@@ -914,7 +914,7 @@ def run_uninstall_wizard(argv: list[str] | None = None) -> int:
 
     app = QApplication.instance() or QApplication(sys.argv)
     if isinstance(app, QApplication):
-        install_app_fonts(app)
+        install_app_fonts(app, scale=1.0)
     icon = load_app_icon()
     if not icon.isNull():
         app.setWindowIcon(icon)
@@ -940,7 +940,7 @@ def run_wizard(argv: list[str] | None = None) -> int:
         return 0
     app = QApplication.instance() or QApplication(sys.argv)
     if isinstance(app, QApplication):
-        install_app_fonts(app)
+        install_app_fonts(app, scale=1.0)
     icon = load_app_icon()
     if not icon.isNull():
         app.setWindowIcon(icon)

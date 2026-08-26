@@ -44,6 +44,7 @@ from shiboken6 import isValid
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.ui_helpers import reveal_in_file_explorer
 from harrix_swiss_knife.apps.common.word_wrap_header import install_word_wrap_headers
+from harrix_swiss_knife.qt_app_font import apply_ui_font_scale
 from harrix_swiss_knife.qt_emoji_icon import apply_leading_emoji_icons, set_action_text_with_emoji_icon
 
 if TYPE_CHECKING:
@@ -276,6 +277,7 @@ class AppWindowMixin:
         top-left corner widget, then collapses the original menu bar row.
 
         """
+        apply_ui_font_scale(cast("QWidget", self))
         main_window = cast("QMainWindow", self)
         tab_widget = getattr(self, "tabWidget", None)
         if not isinstance(tab_widget, QTabWidget):

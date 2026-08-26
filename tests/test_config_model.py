@@ -10,7 +10,11 @@ import pytest
 
 from harrix_swiss_knife.config_model import (
     SHOW_MAIN_WINDOW_ON_STARTUP_KEY,
+    UI_FONT_SCALE_DEFAULT,
+    UI_FONT_SCALE_KEY,
+    clamp_ui_font_scale,
     get_show_main_window_on_startup,
+    get_ui_font_scale,
     load_app_config,
     set_show_main_window_on_startup,
     validate_app_config,
@@ -63,6 +67,16 @@ def test_load_app_config_and_ensure_local(monkeypatch: pytest.MonkeyPatch, tmp_p
     assert path.name == "config.json"
     loaded = load_app_config(str(path))
     assert loaded["editor-notes"] == "code"
+
+
+def test_ui_font_scale_defaults_and_clamps() -> None:
+    assert get_ui_font_scale({}) == UI_FONT_SCALE_DEFAULT
+    assert get_ui_font_scale({UI_FONT_SCALE_KEY: 0.9}) == 0.9
+    assert get_ui_font_scale({UI_FONT_SCALE_KEY: "0.85"}) == 0.85
+    assert get_ui_font_scale({UI_FONT_SCALE_KEY: "nope"}) == UI_FONT_SCALE_DEFAULT
+    assert get_ui_font_scale({UI_FONT_SCALE_KEY: 0.1}) == UI_FONT_SCALE_DEFAULT
+    assert clamp_ui_font_scale(0.5) == 0.7
+    assert clamp_ui_font_scale(2.0) == 1.5
 
 
 def test_show_main_window_on_startup_defaults_and_writes(tmp_path: Path) -> None:

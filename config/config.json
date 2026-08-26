@@ -364,6 +364,7 @@
   "pypi_token": "snippet:api-keys/pypi-token.txt",
   "quick_launcher_markdown_in_panel": true,
   "show_main_window_on_startup": false,
+  "ui_font_scale": 1.0,
   "site_default_language": "ru",
   "site_name": "harrix.dev",
   "sqlite_finance": "D:/Dropbox/Databases/finance.db",

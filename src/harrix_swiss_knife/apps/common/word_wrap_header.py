@@ -6,7 +6,7 @@ from PySide6.QtCore import QAbstractItemModel, QRect, QSize, Qt
 from PySide6.QtGui import QFontMetrics, QPainter, QPalette
 from PySide6.QtWidgets import QHeaderView, QStyle, QStyleOptionHeader, QTableView, QWidget
 
-HEADER_TEXT_FLAGS = Qt.AlignmentFlag.AlignCenter | Qt.TextFlag.TextWordWrap | Qt.TextFlag.TextWrapAnywhere
+HEADER_TEXT_FLAGS = Qt.AlignmentFlag.AlignCenter | Qt.TextFlag.TextWordWrap
 _TEXT_PADDING = 8
 _TEXT_INSET = 4
 

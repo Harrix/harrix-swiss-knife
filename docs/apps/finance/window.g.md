@@ -829,14 +829,12 @@ class Ui_MainWindow(object):
         self.verticalLayout_14.setObjectName(u"verticalLayout_14")
         self.frame_3 = QFrame(self.frame_rates)
         self.frame_3.setObjectName(u"frame_3")
-        self.frame_3.setMinimumSize(QSize(0, 171))
-        self.frame_3.setMaximumSize(QSize(16777215, 150))
         self.frame_3.setFrameShape(QFrame.Shape.StyledPanel)
         self.frame_3.setFrameShadow(QFrame.Shadow.Raised)
-        self.horizontalLayout_25 = QHBoxLayout(self.frame_3)
-        self.horizontalLayout_25.setSpacing(5)
-        self.horizontalLayout_25.setObjectName(u"horizontalLayout_25")
-        self.horizontalLayout_25.setContentsMargins(5, 5, 5, 5)
+        self.verticalLayout_rate_panels = QVBoxLayout(self.frame_3)
+        self.verticalLayout_rate_panels.setSpacing(5)
+        self.verticalLayout_rate_panels.setObjectName(u"verticalLayout_rate_panels")
+        self.verticalLayout_rate_panels.setContentsMargins(5, 5, 5, 5)
         self.groupBox_rate_commands = QGroupBox(self.frame_3)
         self.groupBox_rate_commands.setObjectName(u"groupBox_rate_commands")
         self.groupBox_rate_commands.setMinimumSize(QSize(0, 0))
@@ -863,12 +861,10 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_13.addWidget(self.pushButton_exchange_update)
 
-        self.horizontalLayout_21 = QHBoxLayout()
-        self.horizontalLayout_21.setObjectName(u"horizontalLayout_21")
         self.pushButton_rates_refresh = QPushButton(self.groupBox_rate_commands)
         self.pushButton_rates_refresh.setObjectName(u"pushButton_rates_refresh")
 
-        self.horizontalLayout_21.addWidget(self.pushButton_rates_refresh)
+        self.verticalLayout_13.addWidget(self.pushButton_rates_refresh)
 
         self.horizontalLayout_15 = QHBoxLayout()
         self.horizontalLayout_15.setObjectName(u"horizontalLayout_15")
@@ -895,10 +891,7 @@ class Ui_MainWindow(object):
         self.horizontalLayout_15.addWidget(self.pushButton_rates_delete)
 
 
-        self.horizontalLayout_21.addLayout(self.horizontalLayout_15)
-
-
-        self.verticalLayout_13.addLayout(self.horizontalLayout_21)
+        self.verticalLayout_13.addLayout(self.horizontalLayout_15)
 
         self.horizontalLayout_16 = QHBoxLayout()
         self.horizontalLayout_16.setObjectName(u"horizontalLayout_16")
@@ -918,32 +911,37 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_16.addWidget(self.dateEdit_exchange_item_update)
 
+
+        self.verticalLayout_13.addLayout(self.horizontalLayout_16)
+
+        self.horizontalLayout_exchange_item_rate = QHBoxLayout()
+        self.horizontalLayout_exchange_item_rate.setObjectName(u"horizontalLayout_exchange_item_rate")
         self.label_exchange_item_update_2 = QLabel(self.groupBox_rate_commands)
         self.label_exchange_item_update_2.setObjectName(u"label_exchange_item_update_2")
 
-        self.horizontalLayout_16.addWidget(self.label_exchange_item_update_2)
+        self.horizontalLayout_exchange_item_rate.addWidget(self.label_exchange_item_update_2)
 
         self.doubleSpinBox_exchange_item_update = QDoubleSpinBox(self.groupBox_rate_commands)
         self.doubleSpinBox_exchange_item_update.setObjectName(u"doubleSpinBox_exchange_item_update")
         self.doubleSpinBox_exchange_item_update.setDecimals(9)
         self.doubleSpinBox_exchange_item_update.setMaximum(10000000.000000000000000)
 
-        self.horizontalLayout_16.addWidget(self.doubleSpinBox_exchange_item_update)
+        self.horizontalLayout_exchange_item_rate.addWidget(self.doubleSpinBox_exchange_item_update)
 
         self.pushButton_exchange_item_update = QPushButton(self.groupBox_rate_commands)
         self.pushButton_exchange_item_update.setObjectName(u"pushButton_exchange_item_update")
 
-        self.horizontalLayout_16.addWidget(self.pushButton_exchange_item_update)
+        self.horizontalLayout_exchange_item_rate.addWidget(self.pushButton_exchange_item_update)
 
 
-        self.verticalLayout_13.addLayout(self.horizontalLayout_16)
+        self.verticalLayout_13.addLayout(self.horizontalLayout_exchange_item_rate)
 
         self.verticalSpacer_3 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.verticalLayout_13.addItem(self.verticalSpacer_3)
 
 
-        self.horizontalLayout_25.addWidget(self.groupBox_rate_commands)
+        self.verticalLayout_rate_panels.addWidget(self.groupBox_rate_commands)
 
         self.groupBox_filter_2 = QGroupBox(self.frame_3)
         self.groupBox_filter_2.setObjectName(u"groupBox_filter_2")
@@ -960,7 +958,11 @@ class Ui_MainWindow(object):
 
         self.comboBox_exchange_rates_filter_currency = QComboBox(self.groupBox_filter_2)
         self.comboBox_exchange_rates_filter_currency.setObjectName(u"comboBox_exchange_rates_filter_currency")
-        self.comboBox_exchange_rates_filter_currency.setMinimumSize(QSize(191, 0))
+        sizePolicy4 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        sizePolicy4.setHorizontalStretch(0)
+        sizePolicy4.setVerticalStretch(0)
+        sizePolicy4.setHeightForWidth(self.comboBox_exchange_rates_filter_currency.sizePolicy().hasHeightForWidth())
+        self.comboBox_exchange_rates_filter_currency.setSizePolicy(sizePolicy4)
 
         self.horizontalLayout_currency_filter_2.addWidget(self.comboBox_exchange_rates_filter_currency)
 
@@ -977,7 +979,8 @@ class Ui_MainWindow(object):
 
         self.dateEdit_filter_exchange_rates_from = QDateEdit(self.groupBox_filter_2)
         self.dateEdit_filter_exchange_rates_from.setObjectName(u"dateEdit_filter_exchange_rates_from")
-        self.dateEdit_filter_exchange_rates_from.setMinimumSize(QSize(191, 0))
+        sizePolicy4.setHeightForWidth(self.dateEdit_filter_exchange_rates_from.sizePolicy().hasHeightForWidth())
+        self.dateEdit_filter_exchange_rates_from.setSizePolicy(sizePolicy4)
         self.dateEdit_filter_exchange_rates_from.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
         self.dateEdit_filter_exchange_rates_from.setCalendarPopup(True)
 
@@ -997,7 +1000,8 @@ class Ui_MainWindow(object):
 
         self.dateEdit_filter_exchange_rates_to = QDateEdit(self.groupBox_filter_2)
         self.dateEdit_filter_exchange_rates_to.setObjectName(u"dateEdit_filter_exchange_rates_to")
-        self.dateEdit_filter_exchange_rates_to.setMinimumSize(QSize(191, 0))
+        sizePolicy4.setHeightForWidth(self.dateEdit_filter_exchange_rates_to.sizePolicy().hasHeightForWidth())
+        self.dateEdit_filter_exchange_rates_to.setSizePolicy(sizePolicy4)
         self.dateEdit_filter_exchange_rates_to.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
         self.dateEdit_filter_exchange_rates_to.setCalendarPopup(True)
 
@@ -1028,7 +1032,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_6.addItem(self.verticalSpacer_5)
 
 
-        self.horizontalLayout_25.addWidget(self.groupBox_filter_2)
+        self.verticalLayout_rate_panels.addWidget(self.groupBox_filter_2)
 
 
         self.verticalLayout_14.addWidget(self.frame_3)
@@ -2298,14 +2302,12 @@ def setupUi(self, MainWindow):
         self.verticalLayout_14.setObjectName(u"verticalLayout_14")
         self.frame_3 = QFrame(self.frame_rates)
         self.frame_3.setObjectName(u"frame_3")
-        self.frame_3.setMinimumSize(QSize(0, 171))
-        self.frame_3.setMaximumSize(QSize(16777215, 150))
         self.frame_3.setFrameShape(QFrame.Shape.StyledPanel)
         self.frame_3.setFrameShadow(QFrame.Shadow.Raised)
-        self.horizontalLayout_25 = QHBoxLayout(self.frame_3)
-        self.horizontalLayout_25.setSpacing(5)
-        self.horizontalLayout_25.setObjectName(u"horizontalLayout_25")
-        self.horizontalLayout_25.setContentsMargins(5, 5, 5, 5)
+        self.verticalLayout_rate_panels = QVBoxLayout(self.frame_3)
+        self.verticalLayout_rate_panels.setSpacing(5)
+        self.verticalLayout_rate_panels.setObjectName(u"verticalLayout_rate_panels")
+        self.verticalLayout_rate_panels.setContentsMargins(5, 5, 5, 5)
         self.groupBox_rate_commands = QGroupBox(self.frame_3)
         self.groupBox_rate_commands.setObjectName(u"groupBox_rate_commands")
         self.groupBox_rate_commands.setMinimumSize(QSize(0, 0))
@@ -2332,12 +2334,10 @@ def setupUi(self, MainWindow):
 
         self.verticalLayout_13.addWidget(self.pushButton_exchange_update)
 
-        self.horizontalLayout_21 = QHBoxLayout()
-        self.horizontalLayout_21.setObjectName(u"horizontalLayout_21")
         self.pushButton_rates_refresh = QPushButton(self.groupBox_rate_commands)
         self.pushButton_rates_refresh.setObjectName(u"pushButton_rates_refresh")
 
-        self.horizontalLayout_21.addWidget(self.pushButton_rates_refresh)
+        self.verticalLayout_13.addWidget(self.pushButton_rates_refresh)
 
         self.horizontalLayout_15 = QHBoxLayout()
         self.horizontalLayout_15.setObjectName(u"horizontalLayout_15")
@@ -2364,10 +2364,7 @@ def setupUi(self, MainWindow):
         self.horizontalLayout_15.addWidget(self.pushButton_rates_delete)
 
 
-        self.horizontalLayout_21.addLayout(self.horizontalLayout_15)
-
-
-        self.verticalLayout_13.addLayout(self.horizontalLayout_21)
+        self.verticalLayout_13.addLayout(self.horizontalLayout_15)
 
         self.horizontalLayout_16 = QHBoxLayout()
         self.horizontalLayout_16.setObjectName(u"horizontalLayout_16")
@@ -2387,32 +2384,37 @@ def setupUi(self, MainWindow):
 
         self.horizontalLayout_16.addWidget(self.dateEdit_exchange_item_update)
 
+
+        self.verticalLayout_13.addLayout(self.horizontalLayout_16)
+
+        self.horizontalLayout_exchange_item_rate = QHBoxLayout()
+        self.horizontalLayout_exchange_item_rate.setObjectName(u"horizontalLayout_exchange_item_rate")
         self.label_exchange_item_update_2 = QLabel(self.groupBox_rate_commands)
         self.label_exchange_item_update_2.setObjectName(u"label_exchange_item_update_2")
 
-        self.horizontalLayout_16.addWidget(self.label_exchange_item_update_2)
+        self.horizontalLayout_exchange_item_rate.addWidget(self.label_exchange_item_update_2)
 
         self.doubleSpinBox_exchange_item_update = QDoubleSpinBox(self.groupBox_rate_commands)
         self.doubleSpinBox_exchange_item_update.setObjectName(u"doubleSpinBox_exchange_item_update")
         self.doubleSpinBox_exchange_item_update.setDecimals(9)
         self.doubleSpinBox_exchange_item_update.setMaximum(10000000.000000000000000)
 
-        self.horizontalLayout_16.addWidget(self.doubleSpinBox_exchange_item_update)
+        self.horizontalLayout_exchange_item_rate.addWidget(self.doubleSpinBox_exchange_item_update)
 
         self.pushButton_exchange_item_update = QPushButton(self.groupBox_rate_commands)
         self.pushButton_exchange_item_update.setObjectName(u"pushButton_exchange_item_update")
 
-        self.horizontalLayout_16.addWidget(self.pushButton_exchange_item_update)
+        self.horizontalLayout_exchange_item_rate.addWidget(self.pushButton_exchange_item_update)
 
 
-        self.verticalLayout_13.addLayout(self.horizontalLayout_16)
+        self.verticalLayout_13.addLayout(self.horizontalLayout_exchange_item_rate)
 
         self.verticalSpacer_3 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.verticalLayout_13.addItem(self.verticalSpacer_3)
 
 
-        self.horizontalLayout_25.addWidget(self.groupBox_rate_commands)
+        self.verticalLayout_rate_panels.addWidget(self.groupBox_rate_commands)
 
         self.groupBox_filter_2 = QGroupBox(self.frame_3)
         self.groupBox_filter_2.setObjectName(u"groupBox_filter_2")
@@ -2429,7 +2431,11 @@ def setupUi(self, MainWindow):
 
         self.comboBox_exchange_rates_filter_currency = QComboBox(self.groupBox_filter_2)
         self.comboBox_exchange_rates_filter_currency.setObjectName(u"comboBox_exchange_rates_filter_currency")
-        self.comboBox_exchange_rates_filter_currency.setMinimumSize(QSize(191, 0))
+        sizePolicy4 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        sizePolicy4.setHorizontalStretch(0)
+        sizePolicy4.setVerticalStretch(0)
+        sizePolicy4.setHeightForWidth(self.comboBox_exchange_rates_filter_currency.sizePolicy().hasHeightForWidth())
+        self.comboBox_exchange_rates_filter_currency.setSizePolicy(sizePolicy4)
 
         self.horizontalLayout_currency_filter_2.addWidget(self.comboBox_exchange_rates_filter_currency)
 
@@ -2446,7 +2452,8 @@ def setupUi(self, MainWindow):
 
         self.dateEdit_filter_exchange_rates_from = QDateEdit(self.groupBox_filter_2)
         self.dateEdit_filter_exchange_rates_from.setObjectName(u"dateEdit_filter_exchange_rates_from")
-        self.dateEdit_filter_exchange_rates_from.setMinimumSize(QSize(191, 0))
+        sizePolicy4.setHeightForWidth(self.dateEdit_filter_exchange_rates_from.sizePolicy().hasHeightForWidth())
+        self.dateEdit_filter_exchange_rates_from.setSizePolicy(sizePolicy4)
         self.dateEdit_filter_exchange_rates_from.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
         self.dateEdit_filter_exchange_rates_from.setCalendarPopup(True)
 
@@ -2466,7 +2473,8 @@ def setupUi(self, MainWindow):
 
         self.dateEdit_filter_exchange_rates_to = QDateEdit(self.groupBox_filter_2)
         self.dateEdit_filter_exchange_rates_to.setObjectName(u"dateEdit_filter_exchange_rates_to")
-        self.dateEdit_filter_exchange_rates_to.setMinimumSize(QSize(191, 0))
+        sizePolicy4.setHeightForWidth(self.dateEdit_filter_exchange_rates_to.sizePolicy().hasHeightForWidth())
+        self.dateEdit_filter_exchange_rates_to.setSizePolicy(sizePolicy4)
         self.dateEdit_filter_exchange_rates_to.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
         self.dateEdit_filter_exchange_rates_to.setCalendarPopup(True)
 
@@ -2497,7 +2505,7 @@ def setupUi(self, MainWindow):
         self.verticalLayout_6.addItem(self.verticalSpacer_5)
 
 
-        self.horizontalLayout_25.addWidget(self.groupBox_filter_2)
+        self.verticalLayout_rate_panels.addWidget(self.groupBox_filter_2)
 
 
         self.verticalLayout_14.addWidget(self.frame_3)

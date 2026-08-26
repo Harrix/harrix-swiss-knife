@@ -20,7 +20,9 @@ lang: en
 - [🏛️ Class `HotkeyEntry`](#%EF%B8%8F-class-hotkeyentry)
 - [🏛️ Class `OpenAISettings`](#%EF%B8%8F-class-openaisettings)
 - [🏛️ Class `PersonalDataSettings`](#%EF%B8%8F-class-personaldatasettings)
+- [🔧 Function `clamp_ui_font_scale`](#-function-clamp_ui_font_scale)
 - [🔧 Function `get_show_main_window_on_startup`](#-function-get_show_main_window_on_startup)
+- [🔧 Function `get_ui_font_scale`](#-function-get_ui_font_scale)
 - [🔧 Function `load_app_config`](#-function-load_app_config)
 - [🔧 Function `set_show_main_window_on_startup`](#-function-set_show_main_window_on_startup)
 - [🔧 Function `validate_app_config`](#-function-validate_app_config)
@@ -129,6 +131,7 @@ class AppConfig(TypedDict, total=False):
     personal_data: PersonalDataSettings
     prompts: dict[str, str]
     show_main_window_on_startup: bool
+    ui_font_scale: NotRequired[float]
     data_for_hsk_root: NotRequired[str]
     data_for_hsk_notes_folders: NotRequired[list[str]]
     data_for_hsk_setup_done: NotRequired[bool]
@@ -271,6 +274,24 @@ class PersonalDataSettings(TypedDict, total=False):
 
 </details>
 
+## 🔧 Function `clamp_ui_font_scale`
+
+```python
+def clamp_ui_font_scale(value: float) -> float
+```
+
+Clamp `ui_font_scale` to the supported range.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def clamp_ui_font_scale(value: float) -> float:
+    return min(UI_FONT_SCALE_MAX, max(UI_FONT_SCALE_MIN, value))
+```
+
+</details>
+
 ## 🔧 Function `get_show_main_window_on_startup`
 
 ```python
@@ -292,6 +313,37 @@ def get_show_main_window_on_startup(config: dict[str, Any] | None = None) -> boo
             return SHOW_MAIN_WINDOW_ON_STARTUP_DEFAULT
     value = data.get(SHOW_MAIN_WINDOW_ON_STARTUP_KEY, SHOW_MAIN_WINDOW_ON_STARTUP_DEFAULT)
     return value if isinstance(value, bool) else SHOW_MAIN_WINDOW_ON_STARTUP_DEFAULT
+```
+
+</details>
+
+## 🔧 Function `get_ui_font_scale`
+
+```python
+def get_ui_font_scale(config: dict[str, Any] | None = None) -> float
+```
+
+Return the global UI font multiplier from `config.json` (`1.0` by default).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_ui_font_scale(config: dict[str, Any] | None = None) -> float:
+    data = config
+    if data is None:
+        try:
+            data = load_app_config()
+        except (OSError, TypeError, ValueError):
+            return UI_FONT_SCALE_DEFAULT
+    raw = data.get(UI_FONT_SCALE_KEY, UI_FONT_SCALE_DEFAULT)
+    try:
+        value = float(raw)
+    except (TypeError, ValueError):
+        return UI_FONT_SCALE_DEFAULT
+    if value < UI_FONT_SCALE_MIN or value > UI_FONT_SCALE_MAX:
+        return UI_FONT_SCALE_DEFAULT
+    return value
 ```
 
 </details>

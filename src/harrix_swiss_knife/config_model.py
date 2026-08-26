@@ -12,6 +12,10 @@ from harrix_swiss_knife.paths import get_config_path_str
 
 SHOW_MAIN_WINDOW_ON_STARTUP_DEFAULT = True
 SHOW_MAIN_WINDOW_ON_STARTUP_KEY = "show_main_window_on_startup"
+UI_FONT_SCALE_DEFAULT = 1.0
+UI_FONT_SCALE_KEY = "ui_font_scale"
+UI_FONT_SCALE_MAX = 1.5
+UI_FONT_SCALE_MIN = 0.7
 
 
 class AiSettings(TypedDict, total=False):
@@ -81,6 +85,7 @@ class AppConfig(TypedDict, total=False):
     personal_data: PersonalDataSettings
     prompts: dict[str, str]
     show_main_window_on_startup: bool
+    ui_font_scale: NotRequired[float]
     data_for_hsk_root: NotRequired[str]
     data_for_hsk_notes_folders: NotRequired[list[str]]
     data_for_hsk_setup_done: NotRequired[bool]
@@ -143,6 +148,11 @@ class PersonalDataSettings(TypedDict, total=False):
     author_email: str
 
 
+def clamp_ui_font_scale(value: float) -> float:
+    """Clamp `ui_font_scale` to the supported range."""
+    return min(UI_FONT_SCALE_MAX, max(UI_FONT_SCALE_MIN, value))
+
+
 def get_show_main_window_on_startup(config: dict[str, Any] | None = None) -> bool:
     """Return whether the commands window should open when the app starts."""
     data = config
@@ -153,6 +163,24 @@ def get_show_main_window_on_startup(config: dict[str, Any] | None = None) -> boo
             return SHOW_MAIN_WINDOW_ON_STARTUP_DEFAULT
     value = data.get(SHOW_MAIN_WINDOW_ON_STARTUP_KEY, SHOW_MAIN_WINDOW_ON_STARTUP_DEFAULT)
     return value if isinstance(value, bool) else SHOW_MAIN_WINDOW_ON_STARTUP_DEFAULT
+
+
+def get_ui_font_scale(config: dict[str, Any] | None = None) -> float:
+    """Return the global UI font multiplier from `config.json` (`1.0` by default)."""
+    data = config
+    if data is None:
+        try:
+            data = load_app_config()
+        except (OSError, TypeError, ValueError):
+            return UI_FONT_SCALE_DEFAULT
+    raw = data.get(UI_FONT_SCALE_KEY, UI_FONT_SCALE_DEFAULT)
+    try:
+        value = float(raw)
+    except (TypeError, ValueError):
+        return UI_FONT_SCALE_DEFAULT
+    if value < UI_FONT_SCALE_MIN or value > UI_FONT_SCALE_MAX:
+        return UI_FONT_SCALE_DEFAULT
+    return value
 
 
 def load_app_config(config_path: str | None = None) -> dict[str, Any]:

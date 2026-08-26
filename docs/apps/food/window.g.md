@@ -376,8 +376,8 @@ class Ui_MainWindow(object):
         self.horizontalLayout_4.setObjectName(u"horizontalLayout_4")
         self.frame = QFrame(self.tab_food_stats)
         self.frame.setObjectName(u"frame")
-        self.frame.setMinimumSize(QSize(250, 0))
-        self.frame.setMaximumSize(QSize(250, 16777215))
+        self.frame.setMinimumSize(QSize(280, 0))
+        self.frame.setMaximumSize(QSize(280, 16777215))
         self.frame.setFrameShape(QFrame.Shape.StyledPanel)
         self.frame.setFrameShadow(QFrame.Shadow.Raised)
         self.verticalLayout_3 = QVBoxLayout(self.frame)
@@ -399,57 +399,59 @@ class Ui_MainWindow(object):
         self.verticalLayout_4.setObjectName(u"verticalLayout_4")
         self.frame_food_stats_controls = QFrame(self.tab_food_stats)
         self.frame_food_stats_controls.setObjectName(u"frame_food_stats_controls")
-        self.frame_food_stats_controls.setMaximumSize(QSize(16777215, 80))
         self.frame_food_stats_controls.setFrameShape(QFrame.Shape.StyledPanel)
         self.frame_food_stats_controls.setFrameShadow(QFrame.Shadow.Raised)
-        self.horizontalLayout_food_stats_controls = QHBoxLayout(self.frame_food_stats_controls)
-        self.horizontalLayout_food_stats_controls.setObjectName(u"horizontalLayout_food_stats_controls")
+        self.verticalLayout_food_stats_controls = QVBoxLayout(self.frame_food_stats_controls)
+        self.verticalLayout_food_stats_controls.setSpacing(4)
+        self.verticalLayout_food_stats_controls.setObjectName(u"verticalLayout_food_stats_controls")
+        self.horizontalLayout_food_stats_period = QHBoxLayout()
+        self.horizontalLayout_food_stats_period.setObjectName(u"horizontalLayout_food_stats_period")
         self.label_food_stats_from = QLabel(self.frame_food_stats_controls)
         self.label_food_stats_from.setObjectName(u"label_food_stats_from")
 
-        self.horizontalLayout_food_stats_controls.addWidget(self.label_food_stats_from)
+        self.horizontalLayout_food_stats_period.addWidget(self.label_food_stats_from)
 
         self.dateEdit_food_stats_from = QDateEdit(self.frame_food_stats_controls)
         self.dateEdit_food_stats_from.setObjectName(u"dateEdit_food_stats_from")
         self.dateEdit_food_stats_from.setCalendarPopup(True)
 
-        self.horizontalLayout_food_stats_controls.addWidget(self.dateEdit_food_stats_from)
+        self.horizontalLayout_food_stats_period.addWidget(self.dateEdit_food_stats_from)
 
         self.label_food_stats_to = QLabel(self.frame_food_stats_controls)
         self.label_food_stats_to.setObjectName(u"label_food_stats_to")
 
-        self.horizontalLayout_food_stats_controls.addWidget(self.label_food_stats_to)
+        self.horizontalLayout_food_stats_period.addWidget(self.label_food_stats_to)
 
         self.dateEdit_food_stats_to = QDateEdit(self.frame_food_stats_controls)
         self.dateEdit_food_stats_to.setObjectName(u"dateEdit_food_stats_to")
         self.dateEdit_food_stats_to.setCalendarPopup(True)
 
-        self.horizontalLayout_food_stats_controls.addWidget(self.dateEdit_food_stats_to)
+        self.horizontalLayout_food_stats_period.addWidget(self.dateEdit_food_stats_to)
 
         self.pushButton_food_stats_last_week = QPushButton(self.frame_food_stats_controls)
         self.pushButton_food_stats_last_week.setObjectName(u"pushButton_food_stats_last_week")
 
-        self.horizontalLayout_food_stats_controls.addWidget(self.pushButton_food_stats_last_week)
+        self.horizontalLayout_food_stats_period.addWidget(self.pushButton_food_stats_last_week)
 
         self.pushButton_food_stats_last_month = QPushButton(self.frame_food_stats_controls)
         self.pushButton_food_stats_last_month.setObjectName(u"pushButton_food_stats_last_month")
 
-        self.horizontalLayout_food_stats_controls.addWidget(self.pushButton_food_stats_last_month)
+        self.horizontalLayout_food_stats_period.addWidget(self.pushButton_food_stats_last_month)
 
         self.pushButton_food_stats_last_year = QPushButton(self.frame_food_stats_controls)
         self.pushButton_food_stats_last_year.setObjectName(u"pushButton_food_stats_last_year")
 
-        self.horizontalLayout_food_stats_controls.addWidget(self.pushButton_food_stats_last_year)
+        self.horizontalLayout_food_stats_period.addWidget(self.pushButton_food_stats_last_year)
 
         self.pushButton_food_stats_all_time = QPushButton(self.frame_food_stats_controls)
         self.pushButton_food_stats_all_time.setObjectName(u"pushButton_food_stats_all_time")
 
-        self.horizontalLayout_food_stats_controls.addWidget(self.pushButton_food_stats_all_time)
+        self.horizontalLayout_food_stats_period.addWidget(self.pushButton_food_stats_all_time)
 
         self.pushButton_food_stats_update = QPushButton(self.frame_food_stats_controls)
         self.pushButton_food_stats_update.setObjectName(u"pushButton_food_stats_update")
 
-        self.horizontalLayout_food_stats_controls.addWidget(self.pushButton_food_stats_update)
+        self.horizontalLayout_food_stats_period.addWidget(self.pushButton_food_stats_update)
 
         self.comboBox_food_stats_period = QComboBox(self.frame_food_stats_controls)
         self.comboBox_food_stats_period.addItem("")
@@ -457,21 +459,33 @@ class Ui_MainWindow(object):
         self.comboBox_food_stats_period.addItem("")
         self.comboBox_food_stats_period.setObjectName(u"comboBox_food_stats_period")
 
-        self.horizontalLayout_food_stats_controls.addWidget(self.comboBox_food_stats_period)
+        self.horizontalLayout_food_stats_period.addWidget(self.comboBox_food_stats_period)
 
+        self.horizontalSpacer_food_stats_period = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_food_stats_period.addItem(self.horizontalSpacer_food_stats_period)
+
+
+        self.verticalLayout_food_stats_controls.addLayout(self.horizontalLayout_food_stats_period)
+
+        self.horizontalLayout_food_stats_charts = QHBoxLayout()
+        self.horizontalLayout_food_stats_charts.setObjectName(u"horizontalLayout_food_stats_charts")
         self.pushButton_food_stats_food_weight = QPushButton(self.frame_food_stats_controls)
         self.pushButton_food_stats_food_weight.setObjectName(u"pushButton_food_stats_food_weight")
 
-        self.horizontalLayout_food_stats_controls.addWidget(self.pushButton_food_stats_food_weight)
+        self.horizontalLayout_food_stats_charts.addWidget(self.pushButton_food_stats_food_weight)
 
         self.pushButton_food_stats_drink = QPushButton(self.frame_food_stats_controls)
         self.pushButton_food_stats_drink.setObjectName(u"pushButton_food_stats_drink")
 
-        self.horizontalLayout_food_stats_controls.addWidget(self.pushButton_food_stats_drink)
+        self.horizontalLayout_food_stats_charts.addWidget(self.pushButton_food_stats_drink)
 
-        self.horizontalSpacer_food_stats = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        self.horizontalSpacer_food_stats_charts = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
-        self.horizontalLayout_food_stats_controls.addItem(self.horizontalSpacer_food_stats)
+        self.horizontalLayout_food_stats_charts.addItem(self.horizontalSpacer_food_stats_charts)
+
+
+        self.verticalLayout_food_stats_controls.addLayout(self.horizontalLayout_food_stats_charts)
 
 
         self.verticalLayout_4.addWidget(self.frame_food_stats_controls)
@@ -902,8 +916,8 @@ def setupUi(self, MainWindow):
         self.horizontalLayout_4.setObjectName(u"horizontalLayout_4")
         self.frame = QFrame(self.tab_food_stats)
         self.frame.setObjectName(u"frame")
-        self.frame.setMinimumSize(QSize(250, 0))
-        self.frame.setMaximumSize(QSize(250, 16777215))
+        self.frame.setMinimumSize(QSize(280, 0))
+        self.frame.setMaximumSize(QSize(280, 16777215))
         self.frame.setFrameShape(QFrame.Shape.StyledPanel)
         self.frame.setFrameShadow(QFrame.Shadow.Raised)
         self.verticalLayout_3 = QVBoxLayout(self.frame)
@@ -925,57 +939,59 @@ def setupUi(self, MainWindow):
         self.verticalLayout_4.setObjectName(u"verticalLayout_4")
         self.frame_food_stats_controls = QFrame(self.tab_food_stats)
         self.frame_food_stats_controls.setObjectName(u"frame_food_stats_controls")
-        self.frame_food_stats_controls.setMaximumSize(QSize(16777215, 80))
         self.frame_food_stats_controls.setFrameShape(QFrame.Shape.StyledPanel)
         self.frame_food_stats_controls.setFrameShadow(QFrame.Shadow.Raised)
-        self.horizontalLayout_food_stats_controls = QHBoxLayout(self.frame_food_stats_controls)
-        self.horizontalLayout_food_stats_controls.setObjectName(u"horizontalLayout_food_stats_controls")
+        self.verticalLayout_food_stats_controls = QVBoxLayout(self.frame_food_stats_controls)
+        self.verticalLayout_food_stats_controls.setSpacing(4)
+        self.verticalLayout_food_stats_controls.setObjectName(u"verticalLayout_food_stats_controls")
+        self.horizontalLayout_food_stats_period = QHBoxLayout()
+        self.horizontalLayout_food_stats_period.setObjectName(u"horizontalLayout_food_stats_period")
         self.label_food_stats_from = QLabel(self.frame_food_stats_controls)
         self.label_food_stats_from.setObjectName(u"label_food_stats_from")
 
-        self.horizontalLayout_food_stats_controls.addWidget(self.label_food_stats_from)
+        self.horizontalLayout_food_stats_period.addWidget(self.label_food_stats_from)
 
         self.dateEdit_food_stats_from = QDateEdit(self.frame_food_stats_controls)
         self.dateEdit_food_stats_from.setObjectName(u"dateEdit_food_stats_from")
         self.dateEdit_food_stats_from.setCalendarPopup(True)
 
-        self.horizontalLayout_food_stats_controls.addWidget(self.dateEdit_food_stats_from)
+        self.horizontalLayout_food_stats_period.addWidget(self.dateEdit_food_stats_from)
 
         self.label_food_stats_to = QLabel(self.frame_food_stats_controls)
         self.label_food_stats_to.setObjectName(u"label_food_stats_to")
 
-        self.horizontalLayout_food_stats_controls.addWidget(self.label_food_stats_to)
+        self.horizontalLayout_food_stats_period.addWidget(self.label_food_stats_to)
 
         self.dateEdit_food_stats_to = QDateEdit(self.frame_food_stats_controls)
         self.dateEdit_food_stats_to.setObjectName(u"dateEdit_food_stats_to")
         self.dateEdit_food_stats_to.setCalendarPopup(True)
 
-        self.horizontalLayout_food_stats_controls.addWidget(self.dateEdit_food_stats_to)
+        self.horizontalLayout_food_stats_period.addWidget(self.dateEdit_food_stats_to)
 
         self.pushButton_food_stats_last_week = QPushButton(self.frame_food_stats_controls)
         self.pushButton_food_stats_last_week.setObjectName(u"pushButton_food_stats_last_week")
 
-        self.horizontalLayout_food_stats_controls.addWidget(self.pushButton_food_stats_last_week)
+        self.horizontalLayout_food_stats_period.addWidget(self.pushButton_food_stats_last_week)
 
         self.pushButton_food_stats_last_month = QPushButton(self.frame_food_stats_controls)
         self.pushButton_food_stats_last_month.setObjectName(u"pushButton_food_stats_last_month")
 
-        self.horizontalLayout_food_stats_controls.addWidget(self.pushButton_food_stats_last_month)
+        self.horizontalLayout_food_stats_period.addWidget(self.pushButton_food_stats_last_month)
 
         self.pushButton_food_stats_last_year = QPushButton(self.frame_food_stats_controls)
         self.pushButton_food_stats_last_year.setObjectName(u"pushButton_food_stats_last_year")
 
-        self.horizontalLayout_food_stats_controls.addWidget(self.pushButton_food_stats_last_year)
+        self.horizontalLayout_food_stats_period.addWidget(self.pushButton_food_stats_last_year)
 
         self.pushButton_food_stats_all_time = QPushButton(self.frame_food_stats_controls)
         self.pushButton_food_stats_all_time.setObjectName(u"pushButton_food_stats_all_time")
 
-        self.horizontalLayout_food_stats_controls.addWidget(self.pushButton_food_stats_all_time)
+        self.horizontalLayout_food_stats_period.addWidget(self.pushButton_food_stats_all_time)
 
         self.pushButton_food_stats_update = QPushButton(self.frame_food_stats_controls)
         self.pushButton_food_stats_update.setObjectName(u"pushButton_food_stats_update")
 
-        self.horizontalLayout_food_stats_controls.addWidget(self.pushButton_food_stats_update)
+        self.horizontalLayout_food_stats_period.addWidget(self.pushButton_food_stats_update)
 
         self.comboBox_food_stats_period = QComboBox(self.frame_food_stats_controls)
         self.comboBox_food_stats_period.addItem("")
@@ -983,21 +999,33 @@ def setupUi(self, MainWindow):
         self.comboBox_food_stats_period.addItem("")
         self.comboBox_food_stats_period.setObjectName(u"comboBox_food_stats_period")
 
-        self.horizontalLayout_food_stats_controls.addWidget(self.comboBox_food_stats_period)
+        self.horizontalLayout_food_stats_period.addWidget(self.comboBox_food_stats_period)
 
+        self.horizontalSpacer_food_stats_period = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_food_stats_period.addItem(self.horizontalSpacer_food_stats_period)
+
+
+        self.verticalLayout_food_stats_controls.addLayout(self.horizontalLayout_food_stats_period)
+
+        self.horizontalLayout_food_stats_charts = QHBoxLayout()
+        self.horizontalLayout_food_stats_charts.setObjectName(u"horizontalLayout_food_stats_charts")
         self.pushButton_food_stats_food_weight = QPushButton(self.frame_food_stats_controls)
         self.pushButton_food_stats_food_weight.setObjectName(u"pushButton_food_stats_food_weight")
 
-        self.horizontalLayout_food_stats_controls.addWidget(self.pushButton_food_stats_food_weight)
+        self.horizontalLayout_food_stats_charts.addWidget(self.pushButton_food_stats_food_weight)
 
         self.pushButton_food_stats_drink = QPushButton(self.frame_food_stats_controls)
         self.pushButton_food_stats_drink.setObjectName(u"pushButton_food_stats_drink")
 
-        self.horizontalLayout_food_stats_controls.addWidget(self.pushButton_food_stats_drink)
+        self.horizontalLayout_food_stats_charts.addWidget(self.pushButton_food_stats_drink)
 
-        self.horizontalSpacer_food_stats = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        self.horizontalSpacer_food_stats_charts = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
-        self.horizontalLayout_food_stats_controls.addItem(self.horizontalSpacer_food_stats)
+        self.horizontalLayout_food_stats_charts.addItem(self.horizontalSpacer_food_stats_charts)
+
+
+        self.verticalLayout_food_stats_controls.addLayout(self.horizontalLayout_food_stats_charts)
 
 
         self.verticalLayout_4.addWidget(self.frame_food_stats_controls)

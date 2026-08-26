@@ -1304,17 +1304,17 @@ class MainWindow(
         available_width = table_width - vertical_header_width - scrollbar_width - borders_and_margins
 
         # Define proportional distribution of available width
-        # Total: 100% = 18% + 5% + 5% + 11% + 9% + 9% + 11% + 20% + 12%
+        # Total: 100% = 16% + 5% + 6% + 13% + 11% + 12% + 10% + 16% + 11%
         proportions = [
-            0.18,  # Name
+            0.16,  # Name
             0.05,  # Is Drink
-            0.05,  # Weight
-            0.11,  # Calories per 100g
-            0.09,  # Portion Calories
-            0.09,  # Calculated Calories
-            0.11,  # Date
-            0.20,  # English Name
-            0.12,  # Total per day
+            0.06,  # Weight
+            0.13,  # Calories per 100g
+            0.11,  # Portion Calories
+            0.12,  # Calculated Calories
+            0.10,  # Date
+            0.16,  # English Name
+            0.11,  # Total per day
         ]
 
         # Calculate widths based on proportions of available width
@@ -1332,8 +1332,9 @@ class MainWindow(
         if not hasattr(self, "tableView_kcal_per_day") or not self.tableView_kcal_per_day.model():
             return
 
-        # Set first column (Date) to fixed width of 80px
-        self.tableView_kcal_per_day.setColumnWidth(0, 80)
+        # Date plus vertical header must stay readable at 125% DPI.
+        self.tableView_kcal_per_day.verticalHeader().setMinimumWidth(28)
+        self.tableView_kcal_per_day.setColumnWidth(0, 112)
 
         # Set second column (Calories) to stretch to remaining space
         self.tableView_kcal_per_day.horizontalHeader().setStretchLastSection(True)

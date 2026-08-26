@@ -421,13 +421,13 @@
          <widget class="QFrame" name="frame">
           <property name="minimumSize">
            <size>
-            <width>250</width>
+            <width>280</width>
             <height>0</height>
            </size>
           </property>
           <property name="maximumSize">
            <size>
-            <width>250</width>
+            <width>280</width>
             <height>16777215</height>
            </size>
           </property>
@@ -455,133 +455,151 @@
          <layout class="QVBoxLayout" name="verticalLayout_4">
           <item>
            <widget class="QFrame" name="frame_food_stats_controls">
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>80</height>
-             </size>
-            </property>
             <property name="frameShape">
              <enum>QFrame::Shape::StyledPanel</enum>
             </property>
             <property name="frameShadow">
              <enum>QFrame::Shadow::Raised</enum>
             </property>
-            <layout class="QHBoxLayout" name="horizontalLayout_food_stats_controls">
+            <layout class="QVBoxLayout" name="verticalLayout_food_stats_controls">
+             <property name="spacing">
+              <number>4</number>
+             </property>
              <item>
-              <widget class="QLabel" name="label_food_stats_from">
-               <property name="text">
-                <string>From:</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QDateEdit" name="dateEdit_food_stats_from">
-               <property name="displayFormat">
-                <string>yyyy-MM-dd</string>
-               </property>
-               <property name="calendarPopup">
-                <bool>true</bool>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QLabel" name="label_food_stats_to">
-               <property name="text">
-                <string>To:</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QDateEdit" name="dateEdit_food_stats_to">
-               <property name="displayFormat">
-                <string>yyyy-MM-dd</string>
-               </property>
-               <property name="calendarPopup">
-                <bool>true</bool>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QPushButton" name="pushButton_food_stats_last_week">
-               <property name="text">
-                <string>Last Week</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QPushButton" name="pushButton_food_stats_last_month">
-               <property name="text">
-                <string>Last Month</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QPushButton" name="pushButton_food_stats_last_year">
-               <property name="text">
-                <string>Last Year</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QPushButton" name="pushButton_food_stats_all_time">
-               <property name="text">
-                <string>All Time</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QPushButton" name="pushButton_food_stats_update">
-               <property name="text">
-                <string>Update Chart</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QComboBox" name="comboBox_food_stats_period">
+              <layout class="QHBoxLayout" name="horizontalLayout_food_stats_period">
                <item>
-                <property name="text">
-                 <string>Days</string>
-                </property>
+                <widget class="QLabel" name="label_food_stats_from">
+                 <property name="text">
+                  <string>From:</string>
+                 </property>
+                </widget>
                </item>
                <item>
-                <property name="text">
-                 <string>Months</string>
-                </property>
+                <widget class="QDateEdit" name="dateEdit_food_stats_from">
+                 <property name="displayFormat">
+                  <string>yyyy-MM-dd</string>
+                 </property>
+                 <property name="calendarPopup">
+                  <bool>true</bool>
+                 </property>
+                </widget>
                </item>
                <item>
-                <property name="text">
-                 <string>Years</string>
-                </property>
+                <widget class="QLabel" name="label_food_stats_to">
+                 <property name="text">
+                  <string>To:</string>
+                 </property>
+                </widget>
                </item>
-              </widget>
+               <item>
+                <widget class="QDateEdit" name="dateEdit_food_stats_to">
+                 <property name="displayFormat">
+                  <string>yyyy-MM-dd</string>
+                 </property>
+                 <property name="calendarPopup">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="pushButton_food_stats_last_week">
+                 <property name="text">
+                  <string>Last Week</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="pushButton_food_stats_last_month">
+                 <property name="text">
+                  <string>Last Month</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="pushButton_food_stats_last_year">
+                 <property name="text">
+                  <string>Last Year</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="pushButton_food_stats_all_time">
+                 <property name="text">
+                  <string>All Time</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="pushButton_food_stats_update">
+                 <property name="text">
+                  <string>Update Chart</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QComboBox" name="comboBox_food_stats_period">
+                 <item>
+                  <property name="text">
+                   <string>Days</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Months</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Years</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+               <item>
+                <spacer name="horizontalSpacer_food_stats_period">
+                 <property name="orientation">
+                  <enum>Qt::Orientation::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+              </layout>
              </item>
              <item>
-              <widget class="QPushButton" name="pushButton_food_stats_food_weight">
-               <property name="text">
-                <string>Food Weight Chart</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QPushButton" name="pushButton_food_stats_drink">
-               <property name="text">
-                <string>Drinks Chart</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <spacer name="horizontalSpacer_food_stats">
-               <property name="orientation">
-                <enum>Qt::Orientation::Horizontal</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>40</width>
-                 <height>20</height>
-                </size>
-               </property>
-              </spacer>
+              <layout class="QHBoxLayout" name="horizontalLayout_food_stats_charts">
+               <item>
+                <widget class="QPushButton" name="pushButton_food_stats_food_weight">
+                 <property name="text">
+                  <string>Food Weight Chart</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="pushButton_food_stats_drink">
+                 <property name="text">
+                  <string>Drinks Chart</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <spacer name="horizontalSpacer_food_stats_charts">
+                 <property name="orientation">
+                  <enum>Qt::Orientation::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+              </layout>
              </item>
             </layout>
            </widget>

@@ -1115,25 +1115,13 @@
            <layout class="QVBoxLayout" name="verticalLayout_14">
             <item>
              <widget class="QFrame" name="frame_3">
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>171</height>
-               </size>
-              </property>
-              <property name="maximumSize">
-               <size>
-                <width>16777215</width>
-                <height>150</height>
-               </size>
-              </property>
               <property name="frameShape">
                <enum>QFrame::Shape::StyledPanel</enum>
               </property>
               <property name="frameShadow">
                <enum>QFrame::Shadow::Raised</enum>
               </property>
-              <layout class="QHBoxLayout" name="horizontalLayout_25">
+              <layout class="QVBoxLayout" name="verticalLayout_rate_panels">
                <property name="spacing">
                 <number>5</number>
                </property>
@@ -1194,48 +1182,44 @@
                    </widget>
                   </item>
                   <item>
-                   <layout class="QHBoxLayout" name="horizontalLayout_21">
+                   <widget class="QPushButton" name="pushButton_rates_refresh">
+                    <property name="text">
+                     <string>Refresh Table</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <layout class="QHBoxLayout" name="horizontalLayout_15">
                     <item>
-                     <widget class="QPushButton" name="pushButton_rates_refresh">
+                     <widget class="QLabel" name="label">
                       <property name="text">
-                       <string>Refresh Table</string>
+                       <string>Delete the last</string>
                       </property>
                      </widget>
                     </item>
                     <item>
-                     <layout class="QHBoxLayout" name="horizontalLayout_15">
-                      <item>
-                       <widget class="QLabel" name="label">
-                        <property name="text">
-                         <string>Delete the last</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item>
-                       <widget class="QSpinBox" name="spinBox_exchange_rate_count_days">
-                        <property name="maximum">
-                         <number>100000</number>
-                        </property>
-                        <property name="value">
-                         <number>1</number>
-                        </property>
-                       </widget>
-                      </item>
-                      <item>
-                       <widget class="QLabel" name="label_2">
-                        <property name="text">
-                         <string>days</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item>
-                       <widget class="QPushButton" name="pushButton_rates_delete">
-                        <property name="text">
-                         <string>Delete</string>
-                        </property>
-                       </widget>
-                      </item>
-                     </layout>
+                     <widget class="QSpinBox" name="spinBox_exchange_rate_count_days">
+                      <property name="maximum">
+                       <number>100000</number>
+                      </property>
+                      <property name="value">
+                       <number>1</number>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QLabel" name="label_2">
+                      <property name="text">
+                       <string>days</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QPushButton" name="pushButton_rates_delete">
+                      <property name="text">
+                       <string>Delete</string>
+                      </property>
+                     </widget>
                     </item>
                    </layout>
                   </item>
@@ -1261,6 +1245,10 @@
                       </property>
                      </widget>
                     </item>
+                   </layout>
+                  </item>
+                  <item>
+                   <layout class="QHBoxLayout" name="horizontalLayout_exchange_item_rate">
                     <item>
                      <widget class="QLabel" name="label_exchange_item_update_2">
                       <property name="text">
@@ -1332,11 +1320,11 @@
                     </item>
                     <item>
                      <widget class="QComboBox" name="comboBox_exchange_rates_filter_currency">
-                      <property name="minimumSize">
-                       <size>
-                        <width>191</width>
-                        <height>0</height>
-                       </size>
+                      <property name="sizePolicy">
+                       <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                        <horstretch>0</horstretch>
+                        <verstretch>0</verstretch>
+                       </sizepolicy>
                       </property>
                      </widget>
                     </item>
@@ -1359,11 +1347,11 @@
                     </item>
                     <item>
                      <widget class="QDateEdit" name="dateEdit_filter_exchange_rates_from">
-                      <property name="minimumSize">
-                       <size>
-                        <width>191</width>
-                        <height>0</height>
-                       </size>
+                      <property name="sizePolicy">
+                       <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                        <horstretch>0</horstretch>
+                        <verstretch>0</verstretch>
+                       </sizepolicy>
                       </property>
                       <property name="alignment">
                        <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
@@ -1398,11 +1386,11 @@
                     </item>
                     <item>
                      <widget class="QDateEdit" name="dateEdit_filter_exchange_rates_to">
-                      <property name="minimumSize">
-                       <size>
-                        <width>191</width>
-                        <height>0</height>
-                       </size>
+                      <property name="sizePolicy">
+                       <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                        <horstretch>0</horstretch>
+                        <verstretch>0</verstretch>
+                       </sizepolicy>
                       </property>
                       <property name="alignment">
                        <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>

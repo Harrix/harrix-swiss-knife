@@ -263,6 +263,7 @@ class AppWindowMixin:
         top-left corner widget, then collapses the original menu bar row.
 
         """
+        apply_ui_font_scale(cast("QWidget", self))
         main_window = cast("QMainWindow", self)
         tab_widget = getattr(self, "tabWidget", None)
         if not isinstance(tab_widget, QTabWidget):

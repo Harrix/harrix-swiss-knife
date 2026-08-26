@@ -8,11 +8,14 @@ from harrix_swiss_knife.qt_app_font import (
     APP_FONT_FAMILY,
     MONO_FONT_FAMILY,
     apply_mono_font,
+    apply_ui_font_scale,
     bundled_font_paths,
     bundled_font_resource_paths,
+    current_ui_font_scale,
     install_app_fonts,
     load_fira_sans_fonts,
     load_jetbrains_mono_fonts,
+    scale_explicit_widget_font,
 )
 
 
@@ -46,6 +49,30 @@ def test_install_app_fonts_sets_fira_sans() -> None:
     assert app.font().family() == APP_FONT_FAMILY
     install_app_fonts(app)
     assert app.font().family() == APP_FONT_FAMILY
+
+
+def test_scale_explicit_widget_font_multiplies_point_size_once() -> None:
+    app = QApplication.instance()
+    if app is None:
+        app = QApplication([])
+    if not isinstance(app, QApplication):
+        msg = "QApplication.instance() returned a non-QApplication object."
+        raise TypeError(msg)
+    previous = app.property("_hskUiFontScale")
+    app.setProperty("_hskUiFontScale", 0.8)
+    label = QLabel()
+    font = label.font()
+    font.setPointSize(20)
+    label.setFont(font)
+    scale_explicit_widget_font(label)
+    assert abs(label.font().pointSizeF() - 16.0) < 0.01
+    scale_explicit_widget_font(label)
+    assert abs(label.font().pointSizeF() - 16.0) < 0.01
+    apply_ui_font_scale(label)
+    assert abs(label.font().pointSizeF() - 16.0) < 0.01
+    assert current_ui_font_scale() == 0.8
+    label.close()
+    app.setProperty("_hskUiFontScale", previous)
 
 
 def test_apply_mono_font_sets_jetbrains_mono() -> None:
