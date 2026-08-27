@@ -8,7 +8,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from harrix_pylib.img_tools import process_animated_avif
-from PIL import Image
+from PIL import Image, ImageOps
 
 from harrix_swiss_knife.actions.common.image_optimize import find_optimized_output, optimize_image_file
 from harrix_swiss_knife.paths import get_project_root
@@ -18,8 +18,19 @@ EXERCISE_MEDIA_EXTENSIONS = frozenset(
 )
 
 FITNESS_IMG_HIGH_DIR = "high"
+FITNESS_IMG_MIN_DIR = "min"
+MIN_THUMBNAIL_EXTENSIONS = (".webp", ".jpg", ".jpeg", ".avif")
 
 MEDIA_FILE_FILTER = "Media (*.mp4 *.avif *.gif *.png *.jpg *.jpeg *.webp *.bmp);;All files (*)"
+
+
+@dataclass(frozen=True, slots=True)
+class RebuildMinThumbnailResult:
+    """Outcome of rebuilding table thumbnails in `fitness_img/min/`."""
+
+    rebuilt: tuple[str, ...]
+    skipped: tuple[str, ...]
+    failed: tuple[tuple[str, str], ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -80,6 +91,34 @@ def rebuild_small_avifs_from_high(
     return RebuildSmallAvifResult(tuple(rebuilt), tuple(skipped), tuple(failed))
 
 
+def rebuild_min_thumbnails_from_small(
+    avif_dir: Path | str,
+    *,
+    min_max_size: int,
+) -> RebuildMinThumbnailResult:
+    """Write missing or stale static WebP thumbnails from UI-sized AVIFs."""
+    target_dir = Path(avif_dir)
+    min_dir = target_dir / FITNESS_IMG_MIN_DIR
+    rebuilt: list[str] = []
+    skipped: list[str] = []
+    failed: list[tuple[str, str]] = []
+    for small_path in sorted(target_dir.glob("*.avif")):
+        if not small_path.is_file():
+            continue
+        name = small_path.stem
+        min_target = min_dir / f"{name}.webp"
+        try:
+            if min_target.is_file() and min_target.stat().st_mtime >= small_path.stat().st_mtime:
+                skipped.append(name)
+                continue
+            _write_min_webp_thumbnail(small_path, min_target, max_size=min_max_size)
+        except Exception as error:
+            failed.append((name, str(error)))
+            continue
+        rebuilt.append(name)
+    return RebuildMinThumbnailResult(tuple(rebuilt), tuple(skipped), tuple(failed))
+
+
 def save_exercise_avif(
     source: Path | str,
     exercise_name: str,
@@ -88,12 +127,14 @@ def save_exercise_avif(
     project_root: Path | None = None,
     max_size: int | None = None,
     high_max_size: int | None = None,
+    min_max_size: int | None = None,
 ) -> Path:
     """Optimize `source` into a small AVIF and, optionally, a high-resolution copy.
 
     Writes `{avif_dir}/{exercise_name}.avif` (UI size). When `high_max_size` is set,
-    also writes `{avif_dir}/high/{exercise_name}.avif` for the lightbox. An existing
-    file with the same name is replaced.
+    also writes `{avif_dir}/high/{exercise_name}.avif` for the lightbox. When
+    `min_max_size` is set, also writes `{avif_dir}/min/{exercise_name}.webp` for
+    table icons. An existing file with the same name is replaced.
 
     When the high-resolution file is animated, the small UI file is resized from it
     so every frame is kept. Static sources stay static at both sizes.
@@ -110,6 +151,8 @@ def save_exercise_avif(
     - `max_size` (`int | None`): Optional max width/height in pixels for the UI file.
     - `high_max_size` (`int | None`): When set, also write a high-resolution AVIF using
       this max width/height. Both files are replaced together after conversion succeeds.
+    - `min_max_size` (`int | None`): When set, also write a static WebP thumbnail under
+      `min/` for fast table icons.
 
     Returns:
 
@@ -142,12 +185,16 @@ def save_exercise_avif(
     small_target = target_dir / f"{name}.avif"
 
     if high_max_size is None:
-        return _convert_source_to_avif(
+        written = _convert_source_to_avif(
             source_path,
             small_target,
             project_root=root,
             max_size=max_size,
         )
+        if min_max_size is not None:
+            min_target = target_dir / FITNESS_IMG_MIN_DIR / f"{name}.webp"
+            _write_min_webp_thumbnail(written, min_target, max_size=min_max_size)
+        return written
 
     high_target = target_dir / FITNESS_IMG_HIGH_DIR / f"{name}.avif"
     with TemporaryDirectory(prefix="exercise_media_pair_") as temp_folder:
@@ -176,6 +223,10 @@ def save_exercise_avif(
             )
         _replace_file(temp_high, high_target)
         _replace_file(temp_small, small_target)
+
+    if min_max_size is not None:
+        min_target = target_dir / FITNESS_IMG_MIN_DIR / f"{name}.webp"
+        _write_min_webp_thumbnail(small_target, min_target, max_size=min_max_size)
 
     return small_target
 
@@ -268,4 +319,34 @@ def _write_small_from_animated_avif(
             msg = f"Animated shrink produced no output for {high_path.name}"
             raise ValueError(msg)
         _replace_file(temp_target, target)
+    return target
+
+
+def _pil_frame_to_rgb(image: Image.Image) -> Image.Image:
+    frame = ImageOps.exif_transpose(image)
+    if frame.mode in ("RGBA", "LA", "P"):
+        background = Image.new("RGB", frame.size, (255, 255, 255))
+        if frame.mode == "P":
+            frame = frame.convert("RGBA")
+        if frame.mode in ("RGBA", "LA"):
+            background.paste(frame, mask=frame.split()[-1])
+        else:
+            background.paste(frame)
+        return background
+    if frame.mode != "RGB":
+        return frame.convert("RGB")
+    return frame
+
+
+def _write_min_webp_thumbnail(source: Path, target: Path, *, max_size: int) -> Path:
+    """Write a static WebP thumbnail for table icons."""
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with Image.open(source) as image:
+        if getattr(image, "is_animated", False):
+            image.seek(0)
+        frame = _pil_frame_to_rgb(image.copy())
+        frame.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
+        if target.exists():
+            target.unlink()
+        frame.save(target, format="WEBP", quality=75, method=4)
     return target

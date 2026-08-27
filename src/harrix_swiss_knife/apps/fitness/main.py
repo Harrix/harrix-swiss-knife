@@ -79,6 +79,7 @@ from harrix_swiss_knife.apps.common.app_entry import run_app_main
 from harrix_swiss_knife.apps.common.apps_config import (
     get_apps_fitness_image_high_max_size,
     get_apps_fitness_image_max_size,
+    get_apps_fitness_image_min_max_size,
     get_apps_fitness_lightbox_countdown_seconds,
     get_apps_fitness_workout_history_count,
     get_apps_list_limits,
@@ -401,6 +402,8 @@ class MainWindow(
         self._exercise_catalog_refresh_timer.timeout.connect(self._flush_exercise_catalog_refresh)
         self._exercise_catalog_refresh_focus: str | None = None
         self._exercise_icons_defer_decode: set[str] = set()
+        self._exercises_catalog_loaded = False
+        self._defer_list_exercise_icons = True
 
         # Initialize application
         self._init_database()
@@ -2731,6 +2734,9 @@ class MainWindow(
             if self._workouts_widget is not None:
                 self._workouts_widget.refresh()
             return
+        if widget is self.tab_2:
+            self._ensure_exercises_catalog_loaded()
+            return
         if widget is self.tab_charts:  # Exercise Chart tab
             self.update_chart_comboboxes()
             self._load_default_exercise_chart()
@@ -3075,37 +3081,8 @@ class MainWindow(
             return
 
         try:
-            # Refresh exercises table with light green background
-            exercises_data = self.db_manager.get_all_exercises()
-            exercises_transformed_data = []
-            light_green = QColor(240, 255, 240)  # Light green background
-            dumbbell_names = self._cached_dumbbell_exercise_names()
-
-            for row in exercises_data:
-                exercise_name = row[1]
-                transformed_row = [
-                    self._get_exercise_icon(str(exercise_name or "")) or QIcon(),
-                    format_favorite_exercise_label(
-                        str(exercise_name or ""),
-                        favorite=False,
-                        dumbbell=str(exercise_name or "") in dumbbell_names,
-                    ),
-                    row[2],
-                    str(row[3]),
-                    f"{row[4]:.1f}",
-                    row[5] or "",
-                    row[0],
-                    light_green,
-                ]
-                exercises_transformed_data.append(transformed_row)
-
-            self.models["exercises"] = self._create_colored_table_model(
-                exercises_transformed_data, self.table_config["exercises"][2]
-            )
-            self.tableView_exercises.setModel(self.models["exercises"])
-            self.tableView_exercises.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-
-            self._reload_types_table(dumbbell_names=dumbbell_names)
+            if self._exercises_catalog_loaded:
+                self._populate_exercises_catalog_tables()
 
             # Load process table data with appropriate limit
             self.load_process_table()
@@ -3124,17 +3101,18 @@ class MainWindow(
             # Date column will stretch automatically
 
             # Configure exercises table header - image + interactive + stretch last
-            self._configure_exercise_image_table(self.tableView_exercises)
-            exercises_header = self.tableView_exercises.horizontalHeader()
-            for i in range(1, exercises_header.count() - 1):
-                exercises_header.setSectionResizeMode(i, exercises_header.ResizeMode.Interactive)
-            exercises_header.setSectionResizeMode(exercises_header.count() - 1, exercises_header.ResizeMode.Stretch)
-            self.tableView_exercises.setColumnWidth(1, 200)  # Exercise name
-            self.tableView_exercises.setColumnWidth(2, 120)  # Unit
-            self.tableView_exercises.setColumnWidth(_EXERCISE_TABLE_TYPE_REQUIRED_COLUMN, 100)  # Type Required
-            self.tableView_exercises.setColumnWidth(4, 120)  # Calories per Unit
+            if self._exercises_catalog_loaded:
+                self._configure_exercise_image_table(self.tableView_exercises)
+                exercises_header = self.tableView_exercises.horizontalHeader()
+                for i in range(1, exercises_header.count() - 1):
+                    exercises_header.setSectionResizeMode(i, exercises_header.ResizeMode.Interactive)
+                exercises_header.setSectionResizeMode(exercises_header.count() - 1, exercises_header.ResizeMode.Stretch)
+                self.tableView_exercises.setColumnWidth(1, 200)  # Exercise name
+                self.tableView_exercises.setColumnWidth(2, 120)  # Unit
+                self.tableView_exercises.setColumnWidth(_EXERCISE_TABLE_TYPE_REQUIRED_COLUMN, 100)  # Type Required
+                self.tableView_exercises.setColumnWidth(4, 120)  # Calories per Unit
 
-            self._apply_stored_exercise_table_sort("exercises")
+                self._apply_stored_exercise_table_sort("exercises")
 
             # Connect selection change signals after models are set
             self._connect_table_selection_signals()
@@ -3172,13 +3150,19 @@ class MainWindow(
 
         self.show_tables()
 
+        defer_list_icons = self._defer_list_exercise_icons
         if is_preserve_selections and current_exercise:
             self._update_comboboxes(
                 selected_exercise=current_exercise,
                 selected_type=current_type,
+                defer_icons=defer_list_icons,
             )
         else:
-            self._update_comboboxes()
+            self._update_comboboxes(defer_icons=defer_list_icons)
+        if defer_list_icons:
+            self._defer_list_exercise_icons = False
+            if self._exercise_icons_defer_decode:
+                QTimer.singleShot(0, self._decode_next_deferred_exercise_icon)
 
         if not is_skip_date_update:
             self.set_today_date()
@@ -4495,7 +4479,7 @@ class MainWindow(
         self._append_exercise_name_to_list_view(name, load_icon=False)
         self._scroll_table_to_exercise("exercises", name)
 
-    def _append_exercises_to_list_view(self, exercise_names: list[str]) -> None:
+    def _append_exercises_to_list_view(self, exercise_names: list[str], *, defer_icons: bool = False) -> None:
         """Append exercise items to listView_exercises model."""
         if self.exercises_list_model is None:
             return
@@ -4513,9 +4497,12 @@ class MainWindow(
             )
             item = QStandardItem(display_text)
 
-            icon = self._get_exercise_icon(exercise)
-            if icon is not None and not icon.isNull():
-                item.setIcon(icon)
+            if defer_icons:
+                self._exercise_icons_defer_decode.add(exercise)
+            else:
+                icon = self._get_exercise_icon(exercise)
+                if icon is not None and not icon.isNull():
+                    item.setIcon(icon)
 
             item.setData(exercise, Qt.ItemDataRole.UserRole)
             name_local = name_locals.get(exercise, "").strip()
@@ -4946,7 +4933,7 @@ class MainWindow(
         self.actionExport_Set_Table.triggered.connect(self.on_export_csv)
         self.actionAdd_Exercise.triggered.connect(self.on_add_exercise)
         self.pushButton_exercise_add.clicked.connect(self.on_add_exercise)
-        self.actionRefresh_Exercises_Table.triggered.connect(self.update_all)
+        self.actionRefresh_Exercises_Table.triggered.connect(self._refresh_exercises_catalog)
         self.actionAdd_Exercise_Type.triggered.connect(self.on_add_type)
         self.pushButton_type_add.clicked.connect(self.on_add_type)
         self.actionRefresh_Types_Table.triggered.connect(self.update_all)
@@ -5735,15 +5722,15 @@ class MainWindow(
             return None
 
         cache_entry = self._exercise_icon_cache.get(exercise_name)
-        avif_path = self._get_exercise_avif_path(exercise_name)
+        image_path = self.avif_manager.get_exercise_thumbnail_path(exercise_name) if self.avif_manager else None
 
-        if avif_path is None:
+        if image_path is None:
             if cache_entry is None or cache_entry[0] != -1.0:
                 self._exercise_icon_cache[exercise_name] = (-1.0, None)
             return None
 
         try:
-            mtime = avif_path.stat().st_mtime
+            mtime = image_path.stat().st_mtime
         except OSError:
             self._exercise_icon_cache[exercise_name] = (-1.0, None)
             return None
@@ -5753,15 +5740,18 @@ class MainWindow(
         if exercise_name in self._exercise_icons_defer_decode:
             return None
 
-        pixmap = self.avif_manager.load_avif_pixmap(avif_path) if self.avif_manager else None
+        pixmap = self.avif_manager.load_avif_pixmap(image_path) if self.avif_manager else None
         icon: QIcon | None = None
         if pixmap and not pixmap.isNull():
-            scaled_pixmap = pixmap.scaled(
-                self.icon_size,
-                self.icon_size,
-                Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.SmoothTransformation,
-            )
+            if pixmap.width() > self.icon_size or pixmap.height() > self.icon_size:
+                scaled_pixmap = pixmap.scaled(
+                    self.icon_size,
+                    self.icon_size,
+                    Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation,
+                )
+            else:
+                scaled_pixmap = pixmap
             final_pixmap = QPixmap(self.icon_size, self.icon_size)
             final_pixmap.fill(Qt.GlobalColor.white)
             painter = QPainter(final_pixmap)
@@ -7220,29 +7210,96 @@ class MainWindow(
         self._exercise_catalog_refresh_focus = exercise
         self._schedule_exercise_catalog_refresh()
 
-    def _reload_types_table(self, *, dumbbell_names: set[str] | None = None) -> None:
+    def _ensure_exercises_catalog_loaded(self) -> None:
+        """Populate Exercises and Types tables on first visit to that tab."""
+        if self._exercises_catalog_loaded:
+            return
+        if not self._validate_database_connection() or self.db_manager is None:
+            return
+        self._exercises_catalog_loaded = True
+        try:
+            self._populate_exercises_catalog_tables()
+            self._connect_table_selection_signals()
+            self._connect_table_auto_save_signals()
+        except Exception:
+            logger.exception("Error loading exercises catalog tables")
+            self._exercises_catalog_loaded = False
+
+    def _populate_exercises_catalog_tables(self) -> None:
+        """Rebuild Exercises and Types tables from the database."""
+        if self.db_manager is None:
+            return
+        exercises_data = self.db_manager.get_all_exercises()
+        exercises_transformed_data = []
+        light_green = QColor(240, 255, 240)
+        dumbbell_names = self._cached_dumbbell_exercise_names()
+
+        for row in exercises_data:
+            exercise_name = str(row[1] or "")
+            if exercise_name:
+                self._exercise_icons_defer_decode.add(exercise_name)
+            transformed_row = [
+                QIcon(),
+                format_favorite_exercise_label(
+                    exercise_name,
+                    favorite=False,
+                    dumbbell=exercise_name in dumbbell_names,
+                ),
+                row[2],
+                str(row[3]),
+                f"{row[4]:.1f}",
+                row[5] or "",
+                row[0],
+                light_green,
+            ]
+            exercises_transformed_data.append(transformed_row)
+
+        self.models["exercises"] = self._create_colored_table_model(
+            exercises_transformed_data, self.table_config["exercises"][2]
+        )
+        self.tableView_exercises.setModel(self.models["exercises"])
+        self.tableView_exercises.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self._reload_types_table(dumbbell_names=dumbbell_names, defer_icons=True)
+        if self._exercise_icons_defer_decode:
+            QTimer.singleShot(0, self._decode_next_deferred_exercise_icon)
+
+    def _refresh_exercises_catalog(self) -> None:
+        """Refresh catalog tables after explicit user action."""
+        self._exercises_catalog_loaded = True
+        self.update_all()
+
+    def _reload_types_table(
+        self,
+        *,
+        dumbbell_names: set[str] | None = None,
+        defer_icons: bool = False,
+    ) -> None:
         """Rebuild the exercise types table from the database."""
         if self.db_manager is None:
             return
         names = dumbbell_names if dumbbell_names is not None else self._cached_dumbbell_exercise_names()
         types_data = self.db_manager.get_all_exercise_types()
         light_orange = QColor(255, 248, 220)
-        types_transformed_data = [
-            [
-                self._get_exercise_icon(str(row[1] or "")) or QIcon(),
-                format_favorite_exercise_label(
-                    str(row[1] or ""),
-                    favorite=False,
-                    dumbbell=str(row[1] or "") in names,
-                ),
-                row[2],
-                f"{float(row[3] or 0):.1f}",
-                row[4] or "",
-                row[0],
-                light_orange,
-            ]
-            for row in types_data
-        ]
+        types_transformed_data = []
+        for row in types_data:
+            exercise_name = str(row[1] or "")
+            if defer_icons and exercise_name:
+                self._exercise_icons_defer_decode.add(exercise_name)
+            types_transformed_data.append(
+                [
+                    QIcon() if defer_icons else (self._get_exercise_icon(exercise_name) or QIcon()),
+                    format_favorite_exercise_label(
+                        exercise_name,
+                        favorite=False,
+                        dumbbell=exercise_name in names,
+                    ),
+                    row[2],
+                    f"{float(row[3] or 0):.1f}",
+                    row[4] or "",
+                    row[0],
+                    light_orange,
+                ]
+            )
         self.models["types"] = self._create_colored_table_model(types_transformed_data, self.table_config["types"][2])
         self.tableView_exercise_types.setModel(self.models["types"])
         self.tableView_exercise_types.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
@@ -8275,12 +8332,14 @@ class MainWindow(
 
         max_size = get_apps_fitness_image_max_size(self._app_config)
         high_max_size = get_apps_fitness_image_high_max_size(self._app_config)
+        min_max_size = get_apps_fitness_image_min_max_size(self._app_config)
         self._exercise_media_worker = ExerciseMediaSaveWorker(
             source_path,
             exercise_name,
             self.avif_manager.avif_dir,
             max_size=max_size,
             high_max_size=high_max_size,
+            min_max_size=min_max_size,
             project_root=get_project_root(),
             parent=self,
         )

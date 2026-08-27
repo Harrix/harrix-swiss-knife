@@ -3,8 +3,9 @@
 Not part of public install bundles. History tables are never included: fitness
 `process`/`weight`, finance transactions/accounts, and food `food_log`. Catalog
 upsert preserves existing IDs on the target machine. Fitness images are
-`{exercise English name}.avif` under `fitness_img/` next to the DB, plus optional
-high-resolution copies in `fitness_img/high/`.
+`{exercise English name}.avif` under `fitness_img/` next to the DB, optional
+high-resolution copies in `fitness_img/high/`, and static WebP table icons in
+`fitness_img/min/`.
 
 """
 
@@ -24,6 +25,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from harrix_swiss_knife.apps.common.apps_config import DEFAULT_FITNESS_IMAGE_MIN_MAX_SIZE
+from harrix_swiss_knife.apps.common.exercise_media import rebuild_min_thumbnails_from_small
 from harrix_swiss_knife.apps.finance.catalog_sync import (
     FinanceCatalogUpsertStats,
     create_empty_finance_database,
@@ -120,7 +123,7 @@ def collect_fitness_image_files(
 ) -> tuple[list[Path], list[str]]:
     """Return files to pack from `fitness_img_dir` and catalog names missing `{name}.avif`.
 
-    Packs every file under the folder (small AVIFs, `high/` copies, plus extras).
+    Packs every file under the folder (small AVIFs, `high/` and `min/` copies, plus extras).
     Missing names are catalog exercises with no `{name}.avif` in the folder root
     (a file only under `high/` does not count).
 
@@ -702,6 +705,8 @@ def _install_fitness_data(
             raise
         names = [str(exercise["name"]) for exercise in catalog["exercises"]]
         _copied, missing_images = collect_fitness_image_files(fitness_img_dir, names)
+
+    rebuild_min_thumbnails_from_small(fitness_img_dir, min_max_size=DEFAULT_FITNESS_IMAGE_MIN_MAX_SIZE)
 
     return len(img_files), missing_images, stats
 

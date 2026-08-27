@@ -18,7 +18,11 @@ from PIL import Image, ImageOps
 from PySide6.QtCore import QObject, Qt, QThread, QTimer, Signal
 from PySide6.QtGui import QImageReader, QPixmap
 
-from harrix_swiss_knife.apps.common.exercise_media import FITNESS_IMG_HIGH_DIR
+from harrix_swiss_knife.apps.common.exercise_media import (
+    FITNESS_IMG_HIGH_DIR,
+    FITNESS_IMG_MIN_DIR,
+    MIN_THUMBNAIL_EXTENSIONS,
+)
 
 if TYPE_CHECKING:
     from PySide6.QtCore import QSize
@@ -111,6 +115,13 @@ class AvifManager(QObject):
                 logger.exception("Failed to delete exercise AVIF %s", avif_path)
                 return False
             removed = True
+        for min_path in self._exercise_min_files(exercise_name):
+            try:
+                min_path.unlink()
+            except OSError:
+                logger.exception("Failed to delete exercise thumbnail %s", min_path)
+                return False
+            removed = True
         return removed
 
     def get_current_exercise(self, label_key: str | AvifLabelKey) -> str | None:
@@ -166,6 +177,18 @@ class AvifManager(QObject):
         high_path = self.get_exercise_avif_path(exercise_name, high=True)
         if high_path is not None:
             return high_path
+        return self.get_exercise_avif_path(exercise_name)
+
+    def get_exercise_thumbnail_path(self, exercise_name: str) -> Path | None:
+        """Return the smallest static file for table icons, falling back to UI AVIF."""
+        name = exercise_name.strip() if exercise_name else ""
+        if not name:
+            return None
+        min_dir = self.avif_dir / FITNESS_IMG_MIN_DIR
+        for extension in MIN_THUMBNAIL_EXTENSIONS:
+            min_path = min_dir / f"{name}{extension}"
+            if min_path.is_file():
+                return min_path
         return self.get_exercise_avif_path(exercise_name)
 
     def has_any_exercise_avif(self) -> bool:
@@ -304,6 +327,9 @@ class AvifManager(QObject):
         for high in (False, True):
             if self._rename_avif_file(old, new, high=high):
                 renamed = True
+        for extension in MIN_THUMBNAIL_EXTENSIONS:
+            if self._rename_min_file(old, new, extension=extension):
+                renamed = True
         if renamed:
             self._retarget_exercise_name(old, new)
         return renamed
@@ -432,6 +458,17 @@ class AvifManager(QObject):
             return None
         folder = self.avif_dir / FITNESS_IMG_HIGH_DIR if high else self.avif_dir
         return folder / f"{name}.avif"
+
+    def _exercise_min_files(self, exercise_name: str) -> list[Path]:
+        name = exercise_name.strip() if exercise_name else ""
+        if not name:
+            return []
+        min_dir = self.avif_dir / FITNESS_IMG_MIN_DIR
+        return [
+            min_dir / f"{name}{extension}"
+            for extension in MIN_THUMBNAIL_EXTENSIONS
+            if (min_dir / f"{name}{extension}").is_file()
+        ]
 
     def _load_avif_first_frame_then_async(
         self,
@@ -631,6 +668,22 @@ class AvifManager(QObject):
                 source.rename(destination)
         except OSError:
             logger.exception("Failed to rename exercise AVIF %s -> %s", source, destination)
+            return False
+        return True
+
+    def _rename_min_file(self, old_name: str, new_name: str, *, extension: str) -> bool:
+        min_dir = self.avif_dir / FITNESS_IMG_MIN_DIR
+        source = min_dir / f"{old_name.strip()}{extension}"
+        if not source.is_file():
+            return False
+        destination = min_dir / f"{new_name.strip()}{extension}"
+        try:
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            if destination.exists():
+                destination.unlink()
+            source.rename(destination)
+        except OSError:
+            logger.exception("Failed to rename exercise thumbnail %s -> %s", source, destination)
             return False
         return True
 
