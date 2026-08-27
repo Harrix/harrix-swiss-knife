@@ -162,6 +162,11 @@ def test_fitness_lightbox_has_splitter_sidebar_and_browse_confirm(
         parent=owner,
         countdown_seconds=5,
     )
+    chrome = dialog.chrome_rect()
+    assert chrome.x() >= 200
+    assert chrome.width() > 400
+    assert dialog._close_button.x() > dialog.width() // 2
+    assert dialog._previous_button.x() >= chrome.x()
     dialog.show()
     qapp.processEvents()
     assert dialog._splitter is not None

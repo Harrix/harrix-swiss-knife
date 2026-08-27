@@ -6,7 +6,7 @@ from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QPoint, QRect, Qt, QTimer, Signal
-from PySide6.QtGui import QCloseEvent, QColor, QFont, QPainter, QPaintEvent, QPen
+from PySide6.QtGui import QCloseEvent, QColor, QFont, QPainter, QPaintEvent, QPen, QShowEvent
 from PySide6.QtWidgets import (
     QComboBox,
     QFrame,
@@ -38,6 +38,7 @@ if TYPE_CHECKING:
 
 _SIDEBAR_MIN_WIDTH = 260
 _SIDEBAR_WIDTH = 300
+_SPLITTER_PANE_COUNT = 2
 _MIN_IMAGE_EDGE = 2
 _TICK_MS = 100
 _VALUE_MAXIMUM = 1_000_000
@@ -206,11 +207,13 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
         self.finish_setup()
 
     def chrome_rect(self) -> QRect:
-        """Place overlay chrome over the image pane, not the timer column."""
-        host = self._image_host
-        if host is None:
-            return super().chrome_rect()
-        return QRect(host.mapTo(self, QPoint(0, 0)), host.size())
+        """Place overlay chrome over the image pane, not the timer column.
+
+        Uses the dialog size and sidebar width so arrows and captions are
+        not piled at the origin while the splitter is still laying out.
+
+        """
+        return self._image_pane_rect()
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Stop the timer alert when the overlay is closed."""
@@ -226,6 +229,12 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
     def should_open_sets_tab(self) -> bool:
         """Whether confirm in browse mode asked to switch to Sets."""
         return self._open_sets_on_close
+
+    def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
+        """Reposition chrome after the overlay is shown and laid out."""
+        super().showEvent(event)
+        self._position_controls()
+        self._schedule_avif_reload()
 
     def show_item(self, index: int) -> None:
         """Load the exercise image and bind the timer column."""
@@ -261,6 +270,18 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
             workout_item_id=item_id,
         )
 
+    def _image_pane_rect(self) -> QRect:
+        width = max(self.width(), 1)
+        height = max(self.height(), 1)
+        handle = self._splitter.handleWidth() if self._splitter is not None else 0
+        sidebar = _SIDEBAR_WIDTH
+        if self._splitter is not None:
+            sizes = self._splitter.sizes()
+            if len(sizes) >= _SPLITTER_PANE_COUNT and sizes[0] >= _SIDEBAR_MIN_WIDTH and sizes[1] >= _MIN_IMAGE_EDGE:
+                sidebar = sizes[0]
+        image_width = max(width - sidebar - handle, 1)
+        return QRect(sidebar + handle, 0, image_width, height)
+
     def _install_sidebar(self) -> None:
         splitter = QSplitter(Qt.Orientation.Horizontal, self)
         splitter.setObjectName("fitnessLightboxSplitter")
@@ -292,14 +313,19 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
         self._schedule_avif_reload()
 
     def _position_controls(self) -> None:
+        if self._splitter is not None:
+            self._splitter.setGeometry(self.rect())
+            sizes = self._splitter.sizes()
+            if len(sizes) < _SPLITTER_PANE_COUNT or sizes[1] < _MIN_IMAGE_EDGE:
+                self._splitter.setSizes(
+                    [_SIDEBAR_WIDTH, max(self.width() - _SIDEBAR_WIDTH, _SIDEBAR_WIDTH)],
+                )
         super()._position_controls()
         host = self._image_host
         if host is None:
             return
-        rect = host.rect()
-        if rect.width() < _MIN_IMAGE_EDGE or rect.height() < _MIN_IMAGE_EDGE:
-            rect = QRect(0, 0, max(self.width() - _SIDEBAR_WIDTH, 1), max(self.height(), 1))
-        self._label.setGeometry(rect)
+        pane = self._image_pane_rect()
+        self._label.setGeometry(0, 0, pane.width(), pane.height())
         self._schedule_avif_reload()
 
 

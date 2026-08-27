@@ -17,6 +17,7 @@ lang: en
   - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
   - [⚙️ Method `done`](#%EF%B8%8F-method-done)
   - [⚙️ Method `should_open_sets_tab (property)`](#%EF%B8%8F-method-should_open_sets_tab-property)
+  - [⚙️ Method `showEvent`](#%EF%B8%8F-method-showevent)
   - [⚙️ Method `show_item`](#%EF%B8%8F-method-show_item)
 - [🏛️ Class `FitnessLightboxSidebar`](#%EF%B8%8F-class-fitnesslightboxsidebar)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
@@ -105,11 +106,13 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
         self.finish_setup()
 
     def chrome_rect(self) -> QRect:
-        """Place overlay chrome over the image pane, not the timer column."""
-        host = self._image_host
-        if host is None:
-            return super().chrome_rect()
-        return QRect(host.mapTo(self, QPoint(0, 0)), host.size())
+        """Place overlay chrome over the image pane, not the timer column.
+
+        Uses the dialog size and sidebar width so arrows and captions are
+        not piled at the origin while the splitter is still laying out.
+
+        """
+        return self._image_pane_rect()
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Stop the timer alert when the overlay is closed."""
@@ -125,6 +128,12 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
     def should_open_sets_tab(self) -> bool:
         """Whether confirm in browse mode asked to switch to Sets."""
         return self._open_sets_on_close
+
+    def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
+        """Reposition chrome after the overlay is shown and laid out."""
+        super().showEvent(event)
+        self._position_controls()
+        self._schedule_avif_reload()
 
     def show_item(self, index: int) -> None:
         """Load the exercise image and bind the timer column."""
@@ -160,6 +169,18 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
             workout_item_id=item_id,
         )
 
+    def _image_pane_rect(self) -> QRect:
+        width = max(self.width(), 1)
+        height = max(self.height(), 1)
+        handle = self._splitter.handleWidth() if self._splitter is not None else 0
+        sidebar = _SIDEBAR_WIDTH
+        if self._splitter is not None:
+            sizes = self._splitter.sizes()
+            if len(sizes) >= _SPLITTER_PANE_COUNT and sizes[0] >= _SIDEBAR_MIN_WIDTH and sizes[1] >= _MIN_IMAGE_EDGE:
+                sidebar = sizes[0]
+        image_width = max(width - sidebar - handle, 1)
+        return QRect(sidebar + handle, 0, image_width, height)
+
     def _install_sidebar(self) -> None:
         splitter = QSplitter(Qt.Orientation.Horizontal, self)
         splitter.setObjectName("fitnessLightboxSplitter")
@@ -191,14 +212,19 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
         self._schedule_avif_reload()
 
     def _position_controls(self) -> None:
+        if self._splitter is not None:
+            self._splitter.setGeometry(self.rect())
+            sizes = self._splitter.sizes()
+            if len(sizes) < _SPLITTER_PANE_COUNT or sizes[1] < _MIN_IMAGE_EDGE:
+                self._splitter.setSizes(
+                    [_SIDEBAR_WIDTH, max(self.width() - _SIDEBAR_WIDTH, _SIDEBAR_WIDTH)],
+                )
         super()._position_controls()
         host = self._image_host
         if host is None:
             return
-        rect = host.rect()
-        if rect.width() < _MIN_IMAGE_EDGE or rect.height() < _MIN_IMAGE_EDGE:
-            rect = QRect(0, 0, max(self.width() - _SIDEBAR_WIDTH, 1), max(self.height(), 1))
-        self._label.setGeometry(rect)
+        pane = self._image_pane_rect()
+        self._label.setGeometry(0, 0, pane.width(), pane.height())
         self._schedule_avif_reload()
 ```
 
@@ -286,15 +312,15 @@ def chrome_rect(self) -> QRect
 
 Place overlay chrome over the image pane, not the timer column.
 
+Uses the dialog size and sidebar width so arrows and captions are
+not piled at the origin while the splitter is still laying out.
+
 <details>
 <summary>Code:</summary>
 
 ```python
 def chrome_rect(self) -> QRect:
-        host = self._image_host
-        if host is None:
-            return super().chrome_rect()
-        return QRect(host.mapTo(self, QPoint(0, 0)), host.size())
+        return self._image_pane_rect()
 ```
 
 </details>
@@ -351,6 +377,26 @@ Whether confirm in browse mode asked to switch to Sets.
 ```python
 def should_open_sets_tab(self) -> bool:
         return self._open_sets_on_close
+```
+
+</details>
+
+### ⚙️ Method `showEvent`
+
+```python
+def showEvent(self, event: QShowEvent) -> None
+```
+
+Reposition chrome after the overlay is shown and laid out.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
+        super().showEvent(event)
+        self._position_controls()
+        self._schedule_avif_reload()
 ```
 
 </details>
