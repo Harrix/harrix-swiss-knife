@@ -126,6 +126,10 @@ def has_missing_static_thumbnails(avif_dir: Path | str) -> bool
 
 Return whether any exercise lacks an up-to-date WebP under `static/`.
 
+Picking the exact hover source requires opening AVIFs to test for animation, which
+is far too slow for the whole catalog. A thumbnail newer than every candidate source
+is up to date whichever source would be picked, so only ambiguous names are opened.
+
 <details>
 <summary>Code:</summary>
 
@@ -133,16 +137,29 @@ Return whether any exercise lacks an up-to-date WebP under `static/`.
 def has_missing_static_thumbnails(avif_dir: Path | str) -> bool:
     target_dir = Path(avif_dir)
     static_dir = target_dir / FITNESS_IMG_STATIC_DIR
+    high_dir = target_dir / FITNESS_IMG_HIGH_DIR
     for small_path in target_dir.glob("*.avif"):
         if not small_path.is_file():
             continue
-        source = _exercise_hover_avif_path(target_dir, small_path.stem)
-        if source is None:
-            continue
-        static_target = static_dir / f"{small_path.stem}.webp"
+        name = small_path.stem
+        static_target = static_dir / f"{name}.webp"
         try:
             if not static_target.is_file():
                 return True
+            static_mtime = static_target.stat().st_mtime
+            newest_source = small_path.stat().st_mtime
+            high_path = high_dir / f"{name}.avif"
+            if high_path.is_file():
+                newest_source = max(newest_source, high_path.stat().st_mtime)
+            if static_mtime >= newest_source:
+                continue
+        except OSError:
+            return True
+
+        source = _exercise_hover_avif_path(target_dir, name)
+        if source is None:
+            continue
+        try:
             if static_target.stat().st_mtime < source.stat().st_mtime:
                 return True
         except OSError:

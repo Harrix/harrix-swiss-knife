@@ -70,8 +70,10 @@ lang: en
   - [⚙️ Method `get_last_exercise_record`](#%EF%B8%8F-method-get_last_exercise_record)
   - [⚙️ Method `get_last_weight`](#%EF%B8%8F-method-get_last_weight)
   - [⚙️ Method `get_limited_process_records`](#%EF%B8%8F-method-get_limited_process_records)
+  - [⚙️ Method `get_monthly_totals_by_exercise`](#%EF%B8%8F-method-get_monthly_totals_by_exercise)
   - [⚙️ Method `get_sets_chart_data`](#%EF%B8%8F-method-get_sets_chart_data)
   - [⚙️ Method `get_sets_count_today`](#%EF%B8%8F-method-get_sets_count_today)
+  - [⚙️ Method `get_totals_by_exercise_for_date`](#%EF%B8%8F-method-get_totals_by_exercise_for_date)
   - [⚙️ Method `get_weight_chart_data`](#%EF%B8%8F-method-get_weight_chart_data)
   - [⚙️ Method `get_workout_by_id`](#%EF%B8%8F-method-get_workout_by_id)
   - [⚙️ Method `get_workout_item_by_id`](#%EF%B8%8F-method-get_workout_item_by_id)
@@ -1368,6 +1370,40 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             {"limit": limit, "offset": offset},
         )
 
+    def get_monthly_totals_by_exercise(self, date_from: str, date_to: str) -> list[tuple[str, str, float]]:
+        """Return per-exercise monthly totals for the whole catalog in one query.
+
+        Args:
+
+        - `date_from` (`str`): Inclusive lower bound (YYYY-MM-DD).
+        - `date_to` (`str`): Inclusive upper bound (YYYY-MM-DD).
+
+        Returns:
+
+        - `list[tuple[str, str, float]]`: Tuples of (exercise name, `YYYY-MM`, total value).
+
+        """
+        rows = self.get_rows(
+            """
+            SELECT e.name, SUBSTR(p.date, 1, 7) AS month_key, SUM(CAST(p.value AS REAL))
+            FROM process p
+            JOIN exercises e ON p._id_exercises = e._id
+            WHERE p.date BETWEEN :date_from AND :date_to
+            GROUP BY e.name, month_key
+            """,
+            {"date_from": date_from, "date_to": date_to},
+        )
+        result: list[tuple[str, str, float]] = []
+        for row in rows:
+            if not row or row[0] is None or row[1] is None:
+                continue
+            try:
+                total = float(row[2] or 0.0)
+            except (TypeError, ValueError):
+                continue
+            result.append((str(row[0]), str(row[1]), total))
+        return result
+
     def get_sets_chart_data(self, date_from: str, date_to: str) -> list[tuple[str, int]]:
         """Get sets (workout count) data for charting.
 
@@ -1403,6 +1439,38 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
         rows = self.get_rows("SELECT COUNT(*) FROM process WHERE date = :today", {"today": today})
         return rows[0][0] if rows else 0
+
+    def get_totals_by_exercise_for_date(self, date: str) -> dict[str, float]:
+        """Return total value per exercise name for a single date in one query.
+
+        Args:
+
+        - `date` (`str`): Target date (YYYY-MM-DD).
+
+        Returns:
+
+        - `dict[str, float]`: Mapping of exercise name to total value on that date.
+
+        """
+        rows = self.get_rows(
+            """
+            SELECT e.name, SUM(CAST(p.value AS REAL))
+            FROM process p
+            JOIN exercises e ON p._id_exercises = e._id
+            WHERE p.date = :date
+            GROUP BY e.name
+            """,
+            {"date": date},
+        )
+        totals: dict[str, float] = {}
+        for row in rows:
+            if not row or row[0] is None:
+                continue
+            try:
+                totals[str(row[0])] = float(row[1] or 0.0)
+            except (TypeError, ValueError):
+                continue
+        return totals
 
     def get_weight_chart_data(self, date_from: str, date_to: str) -> list[tuple[float, str]]:
         """Get weight data for charting.
@@ -3844,6 +3912,52 @@ def get_limited_process_records(self, limit: int = 5000, offset: int = 0) -> lis
 
 </details>
 
+### ⚙️ Method `get_monthly_totals_by_exercise`
+
+```python
+def get_monthly_totals_by_exercise(self, date_from: str, date_to: str) -> list[tuple[str, str, float]]
+```
+
+Return per-exercise monthly totals for the whole catalog in one query.
+
+Args:
+
+- `date_from` (`str`): Inclusive lower bound (YYYY-MM-DD).
+- `date_to` (`str`): Inclusive upper bound (YYYY-MM-DD).
+
+Returns:
+
+- `list[tuple[str, str, float]]`: Tuples of (exercise name, `YYYY-MM`, total value).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_monthly_totals_by_exercise(self, date_from: str, date_to: str) -> list[tuple[str, str, float]]:
+        rows = self.get_rows(
+            """
+            SELECT e.name, SUBSTR(p.date, 1, 7) AS month_key, SUM(CAST(p.value AS REAL))
+            FROM process p
+            JOIN exercises e ON p._id_exercises = e._id
+            WHERE p.date BETWEEN :date_from AND :date_to
+            GROUP BY e.name, month_key
+            """,
+            {"date_from": date_from, "date_to": date_to},
+        )
+        result: list[tuple[str, str, float]] = []
+        for row in rows:
+            if not row or row[0] is None or row[1] is None:
+                continue
+            try:
+                total = float(row[2] or 0.0)
+            except (TypeError, ValueError):
+                continue
+            result.append((str(row[0]), str(row[1]), total))
+        return result
+```
+
+</details>
+
 ### ⚙️ Method `get_sets_chart_data`
 
 ```python
@@ -3900,6 +4014,50 @@ def get_sets_count_today(self) -> int:
         today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
         rows = self.get_rows("SELECT COUNT(*) FROM process WHERE date = :today", {"today": today})
         return rows[0][0] if rows else 0
+```
+
+</details>
+
+### ⚙️ Method `get_totals_by_exercise_for_date`
+
+```python
+def get_totals_by_exercise_for_date(self, date: str) -> dict[str, float]
+```
+
+Return total value per exercise name for a single date in one query.
+
+Args:
+
+- `date` (`str`): Target date (YYYY-MM-DD).
+
+Returns:
+
+- `dict[str, float]`: Mapping of exercise name to total value on that date.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_totals_by_exercise_for_date(self, date: str) -> dict[str, float]:
+        rows = self.get_rows(
+            """
+            SELECT e.name, SUM(CAST(p.value AS REAL))
+            FROM process p
+            JOIN exercises e ON p._id_exercises = e._id
+            WHERE p.date = :date
+            GROUP BY e.name
+            """,
+            {"date": date},
+        )
+        totals: dict[str, float] = {}
+        for row in rows:
+            if not row or row[0] is None:
+                continue
+            try:
+                totals[str(row[0])] = float(row[1] or 0.0)
+            except (TypeError, ValueError):
+                continue
+        return totals
 ```
 
 </details>

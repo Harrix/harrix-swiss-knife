@@ -35,10 +35,6 @@ lang: en
   - [⚙️ Method `on_exercise_type_changed`](#%EF%B8%8F-method-on_exercise_type_changed)
   - [⚙️ Method `on_export_csv`](#%EF%B8%8F-method-on_export_csv)
   - [⚙️ Method `on_export_excel`](#%EF%B8%8F-method-on_export_excel)
-  - [⚙️ Method `on_fitness_dashboard_add`](#%EF%B8%8F-method-on_fitness_dashboard_add)
-  - [⚙️ Method `on_fitness_dashboard_add_text`](#%EF%B8%8F-method-on_fitness_dashboard_add_text)
-  - [⚙️ Method `on_fitness_dashboard_add_voice`](#%EF%B8%8F-method-on_fitness_dashboard_add_voice)
-  - [⚙️ Method `on_fitness_dashboard_exercise_changed`](#%EF%B8%8F-method-on_fitness_dashboard_exercise_changed)
   - [⚙️ Method `on_open_exercise_image_lightbox`](#%EF%B8%8F-method-on_open_exercise_image_lightbox)
   - [⚙️ Method `on_open_exercise_images_folder`](#%EF%B8%8F-method-on_open_exercise_images_folder)
   - [⚙️ Method `on_process_selection_changed`](#%EF%B8%8F-method-on_process_selection_changed)
@@ -128,7 +124,6 @@ class MainWindow(
     def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
         super().__init__()
         try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
-        self._fitness_dashboard: FitnessDashboardWidget | None = None
         self._workouts_widget: WorkoutsWidget | None = None
         self._exercise_list_hover: ExerciseListHoverPreview | None = None
         self.setupUi(self)
@@ -358,9 +353,13 @@ class MainWindow(
         self._exercise_icons_defer_decode.clear()
         self._close_exercise_add_toast()
         self._close_exercise_media_toast()
-        worker = self._exercise_media_worker
-        if worker is not None and worker.isRunning():
-            worker.wait(3000)
+        for background_worker in (
+            self._exercise_media_worker,
+            self._min_thumbnail_rebuild_worker,
+            self._static_thumbnail_rebuild_worker,
+        ):
+            if background_worker is not None and background_worker.isRunning():
+                background_worker.wait(3000)
 
         # Stop animations for all labels
         if self.current_movie:
@@ -482,17 +481,6 @@ class MainWindow(
         if obj is self.label_exercise_avif_5 and event.type() == QEvent.Type.MouseButtonDblClick:
             self._open_exercise_media_lightbox(self._resolve_statistics_avif_exercise())
             return True
-
-        dashboard = self._fitness_dashboard
-        if (
-            dashboard is not None
-            and obj is dashboard.exercise_list.viewport()
-            and event.type() == QEvent.Type.MouseButtonDblClick
-        ):
-            name = exercise_at_list_icon(dashboard.exercise_list, cast("QMouseEvent", event).position().toPoint())
-            if name:
-                self._open_exercise_media_lightbox(name, list_view=dashboard.exercise_list)
-                return True
 
         return super().eventFilter(obj, event)
 
@@ -1666,41 +1654,6 @@ class MainWindow(
     def on_export_excel(self) -> None:
         """Save the process table as Excel (CSV is also offered in the dialog)."""
         self._export_named_table("process", prefer="xlsx")
-
-    @requires_database()
-    def on_fitness_dashboard_add(self) -> None:
-        """Insert today's process record from the dashboard value field."""
-        if self._fitness_dashboard is None:
-            return
-        exercise = self._fitness_dashboard.selected_exercise()
-        if not exercise:
-            message_box.warning(self, "Error", "Please select an exercise")
-            return
-        self._commit_process_record(
-            exercise,
-            self._fitness_dashboard.selected_type(),
-            str(self._fitness_dashboard.value()),
-            QDate.currentDate().toString("yyyy-MM-dd"),
-            increment_date=False,
-        )
-
-    def on_fitness_dashboard_add_text(self) -> None:
-        """Open a large text form and send the description to AI."""
-        if not self._validate_database_connection():
-            message_box.warning(self, "Error", "Database connection not available")
-            return
-        source_dialog = create_fitness_dashboard_text_dialog(self)
-        if source_dialog.exec() != QDialog.DialogCode.Accepted:
-            return
-        self._send_sets_to_ai(source_dialog.get_raw_text(), prompt_key="fitness_sets_to_tsv")
-
-    def on_fitness_dashboard_add_voice(self) -> None:
-        """Open a large recording form and send speech to AI."""
-        self._run_fitness_add_by_voice(large_ui=True)
-
-    def on_fitness_dashboard_exercise_changed(self, exercise: str) -> None:
-        """Load unit, types, and last value for the dashboard exercise."""
-        self._load_fitness_dashboard_exercise_details(exercise)
 
     def on_open_exercise_image_lightbox(self) -> None:
         """Open the selected exercise AVIF in a window-sized lightbox."""
@@ -3056,16 +3009,14 @@ class MainWindow(
             # Create model for exercise list view
             exercise_model = QStandardItemModel()
             if exercises:
+                goal_infos = self._exercise_goal_info_map()
+                dumbbell_names = self._cached_dumbbell_exercise_names()
                 for exercise in exercises:
-                    # Get today's goal info for this exercise
-                    goal_info = self._get_exercise_today_goal_info(exercise)
-
-                    # Create display text with goal info if available
                     display_text = format_favorite_exercise_label(
                         exercise,
                         favorite=exercise in favorite_names,
-                        extra=goal_info,
-                        dumbbell=exercise in self._cached_dumbbell_exercise_names(),
+                        extra=goal_infos.get(exercise, ""),
+                        dumbbell=exercise in dumbbell_names,
                     )
                     item = QStandardItem(display_text)
 
@@ -3340,20 +3291,14 @@ class MainWindow(
 
         if not self._validate_database_connection():
             self.label_count_sets_today.setText("0")
-            if self._fitness_dashboard is not None:
-                self._fitness_dashboard.set_today_sets(0)
             return
 
         try:
             count = self.db_manager.get_sets_count_today()
             self.label_count_sets_today.setText(str(count))
-            if self._fitness_dashboard is not None:
-                self._fitness_dashboard.set_today_sets(count)
         except Exception:
             logger.exception("Error getting sets count for today")
             self.label_count_sets_today.setText("0")
-            if self._fitness_dashboard is not None:
-                self._fitness_dashboard.set_today_sets(0)
 
     @requires_database(is_show_warning=False)
     def update_statistics_exercise_combobox(self, _index: int = -1) -> None:
@@ -4346,12 +4291,12 @@ class MainWindow(
         name_locals = self.db_manager.get_exercise_name_local_map() if self.db_manager else {}
         favorite_names = self.db_manager.get_favorite_exercise_names() if self.db_manager else set()
         dumbbell_names = self._cached_dumbbell_exercise_names()
+        goal_infos = self._exercise_goal_info_map()
         for exercise in exercise_names:
-            goal_info = self._get_exercise_today_goal_info(exercise)
             display_text = format_favorite_exercise_label(
                 exercise,
                 favorite=exercise in favorite_names,
-                extra=goal_info,
+                extra=goal_infos.get(exercise, ""),
                 dumbbell=exercise in dumbbell_names,
             )
             item = QStandardItem(display_text)
@@ -4467,16 +4412,6 @@ class MainWindow(
         header = table_view.horizontalHeader()
         header.setSortIndicatorShown(True)
         header.setSortIndicator(column, order)
-
-    def _attach_fitness_dashboard_hover(self) -> None:
-        """Watch dashboard list icons once both the list and hover preview exist."""
-        if self._exercise_list_hover is None or self._fitness_dashboard is None:
-            return
-        dashboard_list = self._fitness_dashboard.exercise_list
-        self._exercise_list_hover.add_view(
-            dashboard_list,
-            lambda pos: exercise_at_list_icon(dashboard_list, pos),
-        )
 
     def _attach_workouts_hover(self) -> None:
         """Watch workout-table thumbnails once both the table and hover preview exist."""
@@ -4667,7 +4602,7 @@ class MainWindow(
         *,
         increment_date: bool,
     ) -> None:
-        """Insert a process record and refresh Sets plus dashboard widgets.
+        """Insert a process record and refresh the Sets tab.
 
         Args:
 
@@ -4724,8 +4659,6 @@ class MainWindow(
                 self.update_filter_comboboxes()
                 self.update_sets_count_today()
                 self.on_exercise_selection_changed_list()
-                if self._fitness_dashboard is not None:
-                    QTimer.singleShot(0, self._fitness_dashboard.focus_value)
             else:
                 message_box.warning(self, "Error", "Failed to add process record")
         except Exception as e:
@@ -5089,14 +5022,24 @@ class MainWindow(
         return create_table_proxy_model(data, headers, id_column=id_column)
 
     def _decode_next_deferred_exercise_icon(self) -> None:
-        """Decode one queued exercise thumbnail, then continue on the next tick."""
+        """Decode a time-budgeted batch of queued thumbnails, then continue on the next tick.
+
+        Decoding in batches and applying the whole batch with one model pass keeps the
+        UI responsive without re-scanning every model per thumbnail.
+
+        """
         if self._is_closing or not self._exercise_icons_defer_decode:
             return
-        name = next(iter(self._exercise_icons_defer_decode))
-        self._exercise_icons_defer_decode.discard(name)
-        self._get_exercise_icon(name)
-        self._update_table_exercise_icons(name)
-        self._update_list_view_exercise_icon(name)
+        deadline = time.perf_counter() + _ICON_DECODE_BUDGET_S
+        decoded: set[str] = set()
+        while self._exercise_icons_defer_decode:
+            name = self._exercise_icons_defer_decode.pop()
+            self._get_exercise_icon(name)
+            decoded.add(name)
+            if time.perf_counter() >= deadline:
+                break
+        self._update_table_exercise_icons_batch(decoded)
+        self._update_list_view_exercise_icons_batch(decoded)
         if self._exercise_icons_defer_decode:
             QTimer.singleShot(0, self._decode_next_deferred_exercise_icon)
 
@@ -5254,8 +5197,6 @@ class MainWindow(
         self._reload_types_table()
         self._scroll_types_table_to_exercise(exercise_name)
         self._select_exercise_in_list(exercise_name)
-        if self._fitness_dashboard is not None:
-            self._load_fitness_dashboard_exercise_details(exercise_name)
 
     def _exec_fitness_lightbox(
         self,
@@ -5288,6 +5229,40 @@ class MainWindow(
             sets_tab_index = self.tabWidget.indexOf(self.tab)
             if sets_tab_index >= 0:
                 self.tabWidget.setCurrentIndex(sets_tab_index)
+
+    def _exercise_goal_info_map(self) -> dict[str, str]:
+        """Return today's goal label for every exercise in one bulk read.
+
+        Returns:
+
+        - `dict[str, str]`: Mapping of exercise name to goal label; missing keys mean no goal.
+
+        """
+        if self.progress_calculator is None:
+            return {}
+        return self.progress_calculator.get_today_goal_info_map(self.spinBox_compare_last.value())
+
+    def _exercise_icon_or_defer(self, exercise_name: str) -> QIcon:
+        """Return an already decoded icon, or queue a background decode and return a blank one.
+
+        Decoding the whole catalog inline costs hundreds of milliseconds, so table
+        population never blocks on files that are not cached yet.
+
+        Args:
+
+        - `exercise_name` (`str`): Exercise whose thumbnail is needed.
+
+        Returns:
+
+        - `QIcon`: Cached icon, or an empty icon while the decode is queued.
+
+        """
+        cached = self._exercise_icon_cache.get(exercise_name)
+        if cached is not None:
+            return cached[1] or QIcon()
+        if exercise_name:
+            self._exercise_icons_defer_decode.add(exercise_name)
+        return QIcon()
 
     def _exercise_names_from_item_model(self, model: QStandardItemModel | None) -> list[str]:
         """Return exercise names stored in `UserRole` of a list model."""
@@ -5521,9 +5496,6 @@ class MainWindow(
         """Build BotHub placeholders for set-logging prompts."""
         selected_exercise = ""
         selected_type = ""
-        if self._fitness_dashboard is not None:
-            selected_exercise = self._fitness_dashboard.selected_exercise()
-            selected_type = self._fitness_dashboard.selected_type()
         catalog = []
         if self.db_manager is not None and self._validate_database_connection():
             catalog = build_exercise_catalog(
@@ -5993,6 +5965,7 @@ class MainWindow(
         db_path = Path(self._app_config["sqlite_fitness"])
         if db_path.exists():
             ensure_fitness_schema(db_path)
+            ensure_fitness_indexes(db_path)
 
         def _on_db_opened(db_manager: database_manager.DatabaseManager) -> None:
             self.progress_calculator = ExerciseProgressCalculator(db_manager)
@@ -6111,7 +6084,6 @@ class MainWindow(
                 or None
             ),
         )
-        self._attach_fitness_dashboard_hover()
         self._attach_workouts_hover()
 
     def _init_filter_controls(self) -> None:
@@ -6296,42 +6268,6 @@ class MainWindow(
             return
 
         self.avif_manager.load_exercise_avif(exercise_name, label_widget, label_key)
-
-    def _load_fitness_dashboard_exercise_details(self, exercise: str) -> None:
-        """Fill dashboard unit, types, and last value for `exercise`."""
-        if self._fitness_dashboard is None:
-            return
-        if not exercise or self.db_manager is None or not self._validate_database_connection():
-            self._fitness_dashboard.set_types([])
-            self._fitness_dashboard.set_unit("")
-            return
-
-        ex_id = self.db_manager.get_id("exercises", "name", exercise)
-        if ex_id is None:
-            self._fitness_dashboard.set_types([])
-            self._fitness_dashboard.set_unit("")
-            return
-
-        self._fitness_dashboard.set_unit(self.db_manager.get_exercise_unit(exercise))
-        types = self.db_manager.get_exercise_types(ex_id)
-        last_type = ""
-        last_record = self.db_manager.get_last_exercise_record(ex_id)
-        if last_record:
-            last_type, last_value = last_record
-            if ex_id == self.id_steps:
-                self._fitness_dashboard.set_value(0)
-            else:
-                try:
-                    self._fitness_dashboard.set_value(int(float(last_value)))
-                except (ValueError, TypeError):
-                    logger.exception(
-                        "Could not convert last value '%s' to int for exercise '%s'",
-                        last_value,
-                        exercise,
-                    )
-        elif ex_id == self.id_steps:
-            self._fitness_dashboard.set_value(0)
-        self._fitness_dashboard.set_types(types, selected=last_type)
 
     def _load_initial_avifs(self) -> None:
         """Load AVIF for all labels after complete UI initialization."""
@@ -6622,13 +6558,6 @@ class MainWindow(
             self._update_list_view_exercise_icon(name)
             if self._workouts_widget is not None:
                 self._workouts_widget.update_exercise_icon(name, self._get_exercise_icon(name))
-        if self._fitness_dashboard is not None and self.db_manager is not None:
-            self._refresh_fitness_dashboard_exercises(
-                self._demote_steps_from_first(
-                    self.db_manager.get_exercises_by_frequency(self.exercises_frequency_window),
-                ),
-                selected=self._fitness_dashboard.selected_exercise(),
-            )
 
     def _on_process_scroll(self, value: int) -> None:
         """Trigger loading more process rows when scrolled near the bottom."""
@@ -7070,7 +6999,7 @@ class MainWindow(
         for row in exercises_data:
             exercise_name = str(row[1] or "")
             transformed_row = [
-                self._get_exercise_icon(exercise_name) or QIcon(),
+                self._exercise_icon_or_defer(exercise_name),
                 format_favorite_exercise_label(
                     exercise_name,
                     favorite=False,
@@ -7101,6 +7030,8 @@ class MainWindow(
         )
         self._apply_stored_exercise_table_sort("exercises")
         self._reload_types_table(dumbbell_names=dumbbell_names)
+        if self._exercise_icons_defer_decode:
+            QTimer.singleShot(0, self._decode_next_deferred_exercise_icon)
 
     def _process_filter_is_active(self) -> bool:
         """Return whether any process table filter is currently applied."""
@@ -7214,44 +7145,11 @@ class MainWindow(
                 self._load_exercise_avif(exercise_name, label_key)
         self._update_list_view_exercise_icon(exercise_name)
         self._update_table_exercise_icons(exercise_name)
-        if self._fitness_dashboard is not None:
-            edge = self._fitness_dashboard.icon_size
-            self._fitness_dashboard.update_exercise_icon(
-                exercise_name,
-                self._get_exercise_preview_icon(exercise_name, QSize(edge, edge)),
-            )
 
     def _refresh_exercises_catalog(self) -> None:
         """Refresh catalog tables after explicit user action."""
         self._exercises_catalog_loaded = True
         self.update_all()
-
-    def _refresh_fitness_dashboard_exercises(
-        self,
-        exercises: list[str],
-        *,
-        selected: str | None = None,
-    ) -> None:
-        """Rebuild the dashboard exercise list from frequency-sorted names."""
-        if self._fitness_dashboard is None:
-            return
-        self._hide_exercise_list_hover_preview()
-        name_locals = self.db_manager.get_exercise_name_local_map() if self.db_manager else {}
-        favorite_names = self.db_manager.get_favorite_exercise_names() if self.db_manager else set()
-        dumbbell_names = self._cached_dumbbell_exercise_names()
-        edge = self._fitness_dashboard.icon_size
-        icon_size = QSize(edge, edge)
-        items = [
-            FitnessDashboardExercise(
-                name=name,
-                name_local=name_locals.get(name, ""),
-                icon=self._get_exercise_preview_icon(name, icon_size),
-                is_favorite=name in favorite_names,
-                is_dumbbell=name in dumbbell_names,
-            )
-            for name in exercises
-        ]
-        self._fitness_dashboard.set_exercises(items, selected=selected)
 
     def _refresh_ui_after_exercise_add(self, exercise: str, *, with_dumbbells: bool) -> None:
         """Show the new exercise immediately, then defer a full catalog refresh."""
@@ -7279,7 +7177,7 @@ class MainWindow(
                 self._exercise_icons_defer_decode.add(exercise_name)
             types_transformed_data.append(
                 [
-                    QIcon() if defer_icons else (self._get_exercise_icon(exercise_name) or QIcon()),
+                    QIcon() if defer_icons else self._exercise_icon_or_defer(exercise_name),
                     format_favorite_exercise_label(
                         exercise_name,
                         favorite=False,
@@ -8323,8 +8221,6 @@ class MainWindow(
         if worker is not None and worker.isRunning():
             return
         avif_dir = self.avif_manager.avif_dir
-        if not has_missing_min_thumbnails(avif_dir):
-            return
         min_max_size = get_apps_fitness_image_min_max_size(self._app_config)
         self._min_thumbnail_rebuild_worker = MinThumbnailRebuildWorker(
             avif_dir,
@@ -8347,8 +8243,6 @@ class MainWindow(
         if worker is not None and worker.isRunning():
             return
         avif_dir = self.avif_manager.avif_dir
-        if not has_missing_static_thumbnails(avif_dir):
-            return
         static_max_size = get_apps_fitness_image_static_max_size(self._app_config)
         self._static_thumbnail_rebuild_worker = StaticThumbnailRebuildWorker(
             avif_dir,
@@ -8543,7 +8437,7 @@ class MainWindow(
         *,
         selected_exercise: str | None = None,
         selected_type: str | None = None,
-        defer_icons: bool = False,
+        defer_icons: bool = True,
     ) -> None:
         """Refresh exercise list and type combo-box (optionally keep a selection).
 
@@ -8551,7 +8445,8 @@ class MainWindow(
 
         - `selected_exercise` (`str | None`): Exercise to keep selected. Defaults to `None`.
         - `selected_type` (`str | None`): Exercise type to keep selected. Defaults to `None`.
-        - `defer_icons` (`bool`): Queue list icons for background decode instead of loading now.
+        - `defer_icons` (`bool`): Queue list icons for background decode instead of loading
+          now. Defaults to `True`; decoding the whole catalog inline stalls the UI.
 
         """
         if not self._validate_database_connection():
@@ -8576,11 +8471,6 @@ class MainWindow(
                 self.exercises_list_model.clear()
                 self._append_exercises_to_list_view(exercises, defer_icons=defer_icons)
                 self._filter_exercises_list(self.lineEdit_exercises_filter.text())
-            dashboard_selected = self._fitness_dashboard.selected_exercise() if self._fitness_dashboard else ""
-            self._refresh_fitness_dashboard_exercises(
-                exercises,
-                selected=dashboard_selected or selected_exercise,
-            )
 
             # Unblock signals
             if selection_model:
@@ -8603,6 +8493,9 @@ class MainWindow(
             # If no specific selection, select the first exercise by default
             elif exercises:
                 self._select_exercise_in_list(exercises[0])
+
+            if self._exercise_icons_defer_decode:
+                QTimer.singleShot(0, self._decode_next_deferred_exercise_icon)
 
         except Exception:
             logger.exception("Error updating comboboxes")
@@ -8703,19 +8596,36 @@ class MainWindow(
 
     def _update_list_view_exercise_icon(self, exercise_name: str) -> None:
         """Refresh the icon for one exercise in the main exercises list view."""
-        if not self.exercises_list_model or not exercise_name:
+        if not exercise_name:
             return
-        icon = self._get_exercise_icon(exercise_name)
+        self._update_list_view_exercise_icons_batch({exercise_name})
+
+    def _update_list_view_exercise_icons_batch(self, exercise_names: set[str]) -> None:
+        """Refresh icons for several exercises with a single pass over the list model.
+
+        Args:
+
+        - `exercise_names` (`set[str]`): Exercises whose icons should be re-applied.
+
+        """
+        if not self.exercises_list_model or not exercise_names:
+            return
+        icons = {name: self._get_exercise_icon(name) for name in exercise_names}
+        remaining = set(exercise_names)
         for row in range(self.exercises_list_model.rowCount()):
+            if not remaining:
+                break
             item = self.exercises_list_model.item(row)
             if item is None:
                 continue
             stored_name = item.data(Qt.ItemDataRole.UserRole)
-            display_name = parse_exercise_display_name(item.text())
-            if exercise_name in (stored_name, display_name):
-                if icon is not None:
-                    item.setIcon(icon)
-                break
+            name = stored_name if stored_name in remaining else parse_exercise_display_name(item.text())
+            if name not in remaining:
+                continue
+            remaining.discard(name)
+            icon = icons.get(name)
+            if icon is not None:
+                item.setIcon(icon)
 
     def _update_statistics_avif(self) -> None:
         """Update AVIF for statistics table based on current mode."""
@@ -8744,7 +8654,22 @@ class MainWindow(
         """Refresh the image column for one exercise in Exercises, Types, and Workouts."""
         if not exercise_name:
             return
-        icon = self._get_exercise_icon(exercise_name) or QIcon()
+        self._update_table_exercise_icons_batch({exercise_name})
+
+    def _update_table_exercise_icons_batch(self, exercise_names: set[str]) -> None:
+        """Refresh the image column for several exercises with one pass per model.
+
+        Scanning the models once per batch keeps the deferred-decode pass linear in the
+        catalog size instead of quadratic.
+
+        Args:
+
+        - `exercise_names` (`set[str]`): Exercises whose icons should be re-applied.
+
+        """
+        if not exercise_names:
+            return
+        icons = {name: self._get_exercise_icon(name) or QIcon() for name in exercise_names}
         for table_name in ("exercises", "types"):
             proxy = self.models.get(table_name)
             if proxy is None:
@@ -8755,13 +8680,15 @@ class MainWindow(
             name_column = self._table_exercise_name_column(table_name)
             for row in range(source.rowCount()):
                 name = parse_exercise_display_name(source.data(source.index(row, name_column)) or "")
-                if name != exercise_name:
+                icon = icons.get(name)
+                if icon is None:
                     continue
                 item = source.item(row, _EXERCISE_TABLE_IMAGE_COLUMN)
                 if item is not None:
                     item.setIcon(icon)
         if self._workouts_widget is not None:
-            self._workouts_widget.update_exercise_icon(exercise_name, icon)
+            for name, icon in icons.items():
+                self._workouts_widget.update_exercise_icon(name, icon)
 
     def _wait_for_static_thumbnail_rebuild(self, worker: StaticThumbnailRebuildWorker) -> bool:
         """Block until `worker` finishes; return `False` when the window is closing."""
@@ -8823,7 +8750,6 @@ _No docstring provided._
 def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
         super().__init__()
         try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
-        self._fitness_dashboard: FitnessDashboardWidget | None = None
         self._workouts_widget: WorkoutsWidget | None = None
         self._exercise_list_hover: ExerciseListHoverPreview | None = None
         self.setupUi(self)
@@ -9090,9 +9016,13 @@ def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         self._exercise_icons_defer_decode.clear()
         self._close_exercise_add_toast()
         self._close_exercise_media_toast()
-        worker = self._exercise_media_worker
-        if worker is not None and worker.isRunning():
-            worker.wait(3000)
+        for background_worker in (
+            self._exercise_media_worker,
+            self._min_thumbnail_rebuild_worker,
+            self._static_thumbnail_rebuild_worker,
+        ):
+            if background_worker is not None and background_worker.isRunning():
+                background_worker.wait(3000)
 
         # Stop animations for all labels
         if self.current_movie:
@@ -9237,17 +9167,6 @@ def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
         if obj is self.label_exercise_avif_5 and event.type() == QEvent.Type.MouseButtonDblClick:
             self._open_exercise_media_lightbox(self._resolve_statistics_avif_exercise())
             return True
-
-        dashboard = self._fitness_dashboard
-        if (
-            dashboard is not None
-            and obj is dashboard.exercise_list.viewport()
-            and event.type() == QEvent.Type.MouseButtonDblClick
-        ):
-            name = exercise_at_list_icon(dashboard.exercise_list, cast("QMouseEvent", event).position().toPoint())
-            if name:
-                self._open_exercise_media_lightbox(name, list_view=dashboard.exercise_list)
-                return True
 
         return super().eventFilter(obj, event)
 ```
@@ -10635,96 +10554,6 @@ Save the process table as Excel (CSV is also offered in the dialog).
 ```python
 def on_export_excel(self) -> None:
         self._export_named_table("process", prefer="xlsx")
-```
-
-</details>
-
-### ⚙️ Method `on_fitness_dashboard_add`
-
-```python
-def on_fitness_dashboard_add(self) -> None
-```
-
-Insert today's process record from the dashboard value field.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def on_fitness_dashboard_add(self) -> None:
-        if self._fitness_dashboard is None:
-            return
-        exercise = self._fitness_dashboard.selected_exercise()
-        if not exercise:
-            message_box.warning(self, "Error", "Please select an exercise")
-            return
-        self._commit_process_record(
-            exercise,
-            self._fitness_dashboard.selected_type(),
-            str(self._fitness_dashboard.value()),
-            QDate.currentDate().toString("yyyy-MM-dd"),
-            increment_date=False,
-        )
-```
-
-</details>
-
-### ⚙️ Method `on_fitness_dashboard_add_text`
-
-```python
-def on_fitness_dashboard_add_text(self) -> None
-```
-
-Open a large text form and send the description to AI.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def on_fitness_dashboard_add_text(self) -> None:
-        if not self._validate_database_connection():
-            message_box.warning(self, "Error", "Database connection not available")
-            return
-        source_dialog = create_fitness_dashboard_text_dialog(self)
-        if source_dialog.exec() != QDialog.DialogCode.Accepted:
-            return
-        self._send_sets_to_ai(source_dialog.get_raw_text(), prompt_key="fitness_sets_to_tsv")
-```
-
-</details>
-
-### ⚙️ Method `on_fitness_dashboard_add_voice`
-
-```python
-def on_fitness_dashboard_add_voice(self) -> None
-```
-
-Open a large recording form and send speech to AI.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def on_fitness_dashboard_add_voice(self) -> None:
-        self._run_fitness_add_by_voice(large_ui=True)
-```
-
-</details>
-
-### ⚙️ Method `on_fitness_dashboard_exercise_changed`
-
-```python
-def on_fitness_dashboard_exercise_changed(self, exercise: str) -> None
-```
-
-Load unit, types, and last value for the dashboard exercise.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def on_fitness_dashboard_exercise_changed(self, exercise: str) -> None:
-        self._load_fitness_dashboard_exercise_details(exercise)
 ```
 
 </details>
@@ -12434,16 +12263,14 @@ def update_chart_comboboxes(self) -> None:
             # Create model for exercise list view
             exercise_model = QStandardItemModel()
             if exercises:
+                goal_infos = self._exercise_goal_info_map()
+                dumbbell_names = self._cached_dumbbell_exercise_names()
                 for exercise in exercises:
-                    # Get today's goal info for this exercise
-                    goal_info = self._get_exercise_today_goal_info(exercise)
-
-                    # Create display text with goal info if available
                     display_text = format_favorite_exercise_label(
                         exercise,
                         favorite=exercise in favorite_names,
-                        extra=goal_info,
-                        dumbbell=exercise in self._cached_dumbbell_exercise_names(),
+                        extra=goal_infos.get(exercise, ""),
+                        dumbbell=exercise in dumbbell_names,
                     )
                     item = QStandardItem(display_text)
 
@@ -12778,20 +12605,14 @@ def update_sets_count_today(self) -> None:
 
         if not self._validate_database_connection():
             self.label_count_sets_today.setText("0")
-            if self._fitness_dashboard is not None:
-                self._fitness_dashboard.set_today_sets(0)
             return
 
         try:
             count = self.db_manager.get_sets_count_today()
             self.label_count_sets_today.setText(str(count))
-            if self._fitness_dashboard is not None:
-                self._fitness_dashboard.set_today_sets(count)
         except Exception:
             logger.exception("Error getting sets count for today")
             self.label_count_sets_today.setText("0")
-            if self._fitness_dashboard is not None:
-                self._fitness_dashboard.set_today_sets(0)
 ```
 
 </details>

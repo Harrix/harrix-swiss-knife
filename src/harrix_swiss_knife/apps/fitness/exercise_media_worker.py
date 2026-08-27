@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING
 from PySide6.QtCore import QThread, Signal
 
 from harrix_swiss_knife.apps.common.exercise_media import (
+    has_missing_min_thumbnails,
+    has_missing_static_thumbnails,
     rebuild_min_thumbnails_from_small,
     rebuild_static_thumbnails_from_avif,
     save_exercise_avif,
@@ -85,8 +87,15 @@ class MinThumbnailRebuildWorker(QThread):
         self._min_max_size = min_max_size
 
     def run(self) -> None:
-        """Generate missing or stale `min/*.webp` files off the UI thread."""
+        """Generate missing or stale `min/*.webp` files off the UI thread.
+
+        The up-to-date check runs here too: scanning the whole media folder costs
+        hundreds of milliseconds and must not block the UI thread.
+
+        """
         try:
+            if not has_missing_min_thumbnails(self._avif_dir):
+                return
             result = rebuild_min_thumbnails_from_small(self._avif_dir, min_max_size=self._min_max_size)
         except Exception as error:
             self.rebuild_failed.emit(str(error))
@@ -113,8 +122,15 @@ class StaticThumbnailRebuildWorker(QThread):
         self._static_max_size = static_max_size
 
     def run(self) -> None:
-        """Generate missing or stale `static/*.webp` files off the UI thread."""
+        """Generate missing or stale `static/*.webp` files off the UI thread.
+
+        The up-to-date check runs here too: it opens every AVIF to test for animation,
+        which is far too slow for the UI thread.
+
+        """
         try:
+            if not has_missing_static_thumbnails(self._avif_dir):
+                return
             result = rebuild_static_thumbnails_from_avif(self._avif_dir, static_max_size=self._static_max_size)
         except Exception as error:
             self.rebuild_failed.emit(str(error))

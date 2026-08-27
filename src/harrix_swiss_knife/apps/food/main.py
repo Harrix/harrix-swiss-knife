@@ -14,8 +14,6 @@ from typing import TYPE_CHECKING, Any, Literal, cast
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from harrix_swiss_knife.apps.food.food_dashboard import FoodDashboardWidget
-
 import harrix_pylib as h
 from PySide6.QtCore import (
     QDate,
@@ -80,11 +78,7 @@ from harrix_swiss_knife.apps.common.widgets.image_picker import ImagePicker, Ima
 from harrix_swiss_knife.apps.common.widgets.shrinkable_scroll_area import install_shrinkable_tab_scroll
 from harrix_swiss_knife.apps.common.word_wrap_header import WordWrapHeaderView
 from harrix_swiss_knife.apps.food import database_manager, window
-from harrix_swiss_knife.apps.food.ai_source_dialog import (
-    AiSourceDialog,
-    create_food_dashboard_photo_dialog,
-    create_food_dashboard_text_dialog,
-)
+from harrix_swiss_knife.apps.food.ai_source_dialog import AiSourceDialog
 from harrix_swiss_knife.apps.food.delegates import DateDelegate, IsDrinkDelegate, parse_is_drink_cell
 from harrix_swiss_knife.apps.food.eaten_fraction import (
     ATE_HALF,
@@ -206,7 +200,6 @@ class MainWindow(
         super().__init__()
         try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
         self.setupUi(self)
-        self._food_dashboard: FoodDashboardWidget | None = None
         self._recipes_widget: RecipesWidget | None = None
         self._setup_ui()
 
@@ -616,36 +609,6 @@ class MainWindow(
             source_dialog.get_raw_text(),
             source_dialog.get_images_bytes_and_mime(),
         )
-
-    def on_food_dashboard_add_photo(self) -> None:
-        """Open a large photo-only form and send the image to AI."""
-        if not self._validate_database_connection():
-            message_box.warning(self, "Error", "Database connection not available")
-            return
-        source_dialog = create_food_dashboard_photo_dialog(
-            self,
-            max_image_side=get_max_image_side(self._app_config),
-        )
-        if source_dialog.exec() != QDialog.DialogCode.Accepted:
-            return
-        self._send_food_log_to_ai(
-            source_dialog.get_raw_text(),
-            source_dialog.get_images_bytes_and_mime(),
-        )
-
-    def on_food_dashboard_add_text(self) -> None:
-        """Open a large text-only form and send the description to AI."""
-        if not self._validate_database_connection():
-            message_box.warning(self, "Error", "Database connection not available")
-            return
-        source_dialog = create_food_dashboard_text_dialog(self)
-        if source_dialog.exec() != QDialog.DialogCode.Accepted:
-            return
-        self._send_food_log_to_ai(source_dialog.get_raw_text())
-
-    def on_food_dashboard_add_voice(self) -> None:
-        """Open a large recording form and send speech to AI."""
-        self._run_food_add_by_voice(large_ui=True)
 
     def on_food_item_double_clicked(self, _index: QModelIndex) -> None:
         """Handle double click on food item in the list view.
@@ -1128,8 +1091,6 @@ class MainWindow(
 
         if not self._validate_database_connection():
             self.label_food_today.setText("0 kcal\n0,0 liters")
-            if self._food_dashboard is not None:
-                self._food_dashboard.set_today_calories(0)
             return
 
         try:
@@ -1138,13 +1099,9 @@ class MainWindow(
             drinks_liters = drinks_weight / 1000 if drinks_weight else 0.0
             drinks_liters_str = f"{drinks_liters:.1f}"
             self.label_food_today.setText(f"{calories:.1f} kcal \n{drinks_liters_str} liters")
-            if self._food_dashboard is not None:
-                self._food_dashboard.set_today_calories(calories)
         except Exception:
             logger.exception("Error getting food calories for today")
             self.label_food_today.setText("0 kcal\n0,0 liters")
-            if self._food_dashboard is not None:
-                self._food_dashboard.set_today_calories(0)
 
     def update_food_data(self) -> None:
         """Refresh food-related data only.

@@ -19,8 +19,6 @@ from typing import TYPE_CHECKING, Any, Literal, cast
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from harrix_swiss_knife.apps.finance.finance_dashboard import FinanceDashboardWidget
-
 import harrix_pylib as h
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.dates import date2num
@@ -108,11 +106,7 @@ from harrix_swiss_knife.apps.common.widgets.shrinkable_scroll_area import instal
 from harrix_swiss_knife.apps.common.word_wrap_header import install_word_wrap_header
 from harrix_swiss_knife.apps.finance import database_manager, window
 from harrix_swiss_knife.apps.finance.account_edit_dialog import AccountEditDialog
-from harrix_swiss_knife.apps.finance.ai_source_dialog import (
-    AiSourceDialog,
-    create_finance_dashboard_photo_dialog,
-    create_finance_dashboard_text_dialog,
-)
+from harrix_swiss_knife.apps.finance.ai_source_dialog import AiSourceDialog
 from harrix_swiss_knife.apps.finance.amount_expression_dialog import AmountExpressionDialog
 from harrix_swiss_knife.apps.finance.balance_check_worker import BalanceCheckResult, BalanceCheckWorker
 from harrix_swiss_knife.apps.finance.categories_dialog import CategoriesDialog
@@ -141,7 +135,6 @@ from harrix_swiss_knife.apps.finance.exchange_rates_operations import (
     _require_db_filename_for_worker,
 )
 from harrix_swiss_knife.apps.finance.exchange_validation import validate_exchange_data
-from harrix_swiss_knife.apps.finance.finance_dashboard import pick_today_expense_display
 from harrix_swiss_knife.apps.finance.mixins import (
     AutoSaveOperations,
     ChartOperations,
@@ -261,7 +254,6 @@ class MainWindow(
         super().__init__()
         try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
         self.setupUi(self)
-        self._finance_dashboard: FinanceDashboardWidget | None = None
         self._is_closing = False
         self.db_manager: database_manager.DatabaseManager | None = None
         self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
@@ -1131,39 +1123,6 @@ class MainWindow(
         """Save current transactions view as Excel (CSV is also offered)."""
         self._export_transactions_table(prefer="xlsx")
 
-    def on_finance_dashboard_add_photo(self) -> None:
-        """Open a large photo-only form and send the receipt to AI."""
-        if self.db_manager is None:
-            message_box.warning(self, "Error", "Database connection not available")
-            return
-        source_dialog = create_finance_dashboard_photo_dialog(
-            self,
-            max_image_side=get_max_image_side(self._app_config),
-        )
-        if source_dialog.exec() != QDialog.DialogCode.Accepted:
-            return
-        self._send_purchases_to_ai(
-            source_dialog.get_raw_text(),
-            source_dialog.get_images_bytes_and_mime(),
-        )
-
-    def on_finance_dashboard_add_text(self) -> None:
-        """Open a large text-only form and send the description to AI."""
-        if self.db_manager is None:
-            message_box.warning(self, "Error", "Database connection not available")
-            return
-        source_dialog = create_finance_dashboard_text_dialog(self)
-        if source_dialog.exec() != QDialog.DialogCode.Accepted:
-            return
-        self._send_purchases_to_ai(source_dialog.get_raw_text())
-
-    def on_finance_dashboard_add_voice(self) -> None:
-        """Open a large recording form and send speech to AI."""
-        if self.db_manager is None:
-            message_box.warning(self, "Error", "Database connection not available")
-            return
-        self._run_finance_add_by_voice(large_ui=True)
-
     def on_select_only_expense_chart_categories(self) -> None:
         """Check only expense categories in the Charts category list."""
         self._select_only_chart_categories(0)
@@ -1466,11 +1425,6 @@ class MainWindow(
                 self.label_today_expense.setText("\n".join(expense_today_lines))
             else:
                 self.label_today_expense.setText(zero_today)
-            self._update_finance_dashboard_today_expense(
-                expense_today_lines,
-                default_code=db.get_default_currency(),
-                zero_text=zero_today,
-            )
 
             expense_yesterday_lines: list[str] = _expense_lines_for_date(yesterday_str)
             if expense_yesterday_lines:
@@ -1485,7 +1439,6 @@ class MainWindow(
             self.label_total_expenses.setText(f"Total Expenses: {format_amount('0.00')}₽")
             self.label_today_expense.setText(f"{format_amount('0.00')}₽")
             self.label_yesterday_expense.setText(f"{format_amount('0.00')}₽")
-            self._update_finance_dashboard_today_expense([], default_code="", zero_text=f"{format_amount('0.00')}₽")
 
     def _account_id_from_table_index(self, index: QModelIndex) -> int | None:
         """Return account database ID for an accounts table model index."""
@@ -6382,23 +6335,6 @@ class MainWindow(
                 self._draw_category_chart(category_series, period, currency_symbol)
         finally:
             self._close_chart_build_toast()
-
-    def _update_finance_dashboard_today_expense(
-        self,
-        lines: list[str],
-        *,
-        default_code: str,
-        zero_text: str,
-    ) -> None:
-        """Refresh the dashboard spend figure from today's expense lines."""
-        if self._finance_dashboard is None:
-            return
-        amount_text, extra_text = pick_today_expense_display(
-            lines,
-            default_code=default_code,
-            zero_text=zero_text,
-        )
-        self._finance_dashboard.set_today_expense(amount_text, extra_text)
 
 
 def apply_transactions_table_column_widths(table_view: QTableView) -> None:

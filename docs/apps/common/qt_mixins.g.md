@@ -133,6 +133,9 @@ class AutoSaveMixin:
         if table_name not in self._SAFE_TABLES:
             return
 
+        if not _roles_affect_saved_data(_roles):
+            return
+
         if not self._validate_database_connection():
             return
 

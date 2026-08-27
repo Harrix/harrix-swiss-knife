@@ -357,43 +357,66 @@ class ExerciseProgressCalculator:
         current_month_data = monthly_data[0] if monthly_data else []
         current_progress_with_today = current_month_data[-1][1] if current_month_data else 0.0
 
-        target_value = max_value
-
-        if target_value <= 0:
-            return ""
-
-        # Get today's progress
         today_progress = self.db_manager.get_exercise_total_today(exercise_id)
+        return _format_goal_info(
+            target_value=max_value,
+            current_month_total=current_progress_with_today,
+            today_progress=today_progress,
+        )
 
-        # Calculate progress WITHOUT today's records to get stable daily target
-        current_progress_without_today = current_progress_with_today - today_progress
+    def get_today_goal_info_map(self, months_count: int) -> dict[str, str]:
+        """Return today's goal label for every exercise using two aggregate queries.
 
-        # Calculate remaining days in current month
+        Equivalent to calling `get_today_goal_info` for each exercise, but without the
+        per-exercise query fan-out that makes the full catalog unusably slow.
+
+        Args:
+
+        - `months_count` (`int`): Number of months to compare.
+
+        Returns:
+
+        - `dict[str, str]`: Mapping of exercise name to its goal label. Exercises with
+          no usable data are omitted.
+
+        """
+        if self.db_manager is None or months_count <= 0:
+            return {}
+
         today = datetime.now(UTC).astimezone()
-        days_in_month = calendar.monthrange(today.year, today.month)[1]
-        remaining_days = days_in_month - today.day
-        total_days_including_current = remaining_days + 1
+        month_keys = _recent_month_keys(today, months_count)
+        date_from = f"{month_keys[-1]}-01"
+        date_to = today.strftime("%Y-%m-%d")
 
-        # Calculate daily needed based on progress WITHOUT today
-        # This makes the daily target stable and doesn't change when adding records
-        remaining_to_goal = target_value - current_progress_without_today
-        if total_days_including_current > 0 and remaining_to_goal > 0:
-            daily_needed = remaining_to_goal / total_days_including_current
-            daily_needed_rounded = math.ceil(daily_needed)
+        try:
+            monthly_totals = self.db_manager.get_monthly_totals_by_exercise(date_from, date_to)
+            today_totals = self.db_manager.get_totals_by_exercise_for_date(date_to)
+        except Exception:
+            logger.exception("Error loading bulk goal information")
+            return {}
 
-            # Calculate remaining for today: subtract what was already done today
-            remaining_for_today = daily_needed_rounded - today_progress
+        allowed_months = set(month_keys)
+        current_month = month_keys[0]
+        max_by_exercise: dict[str, float] = {}
+        current_by_exercise: dict[str, float] = {}
+        for name, month_key, total in monthly_totals:
+            if month_key not in allowed_months:
+                continue
+            max_by_exercise[name] = max(max_by_exercise.get(name, 0.0), total)
+            if month_key == current_month:
+                current_by_exercise[name] = total
 
-            if remaining_for_today > 0:
-                # Goal not achieved - show how much more is needed
-                return f"(+{int(remaining_for_today)})"
-            # Goal achieved - show checkmark and completed amount
-            return f"✅ ({int(today_progress)})"
-        if remaining_to_goal <= 0:
-            # Max goal already achieved (without today's progress)
-            return f"✅ ({int(today_progress)})"
-
-        return ""
+        result: dict[str, str] = {}
+        for name, target_value in max_by_exercise.items():
+            label = _format_goal_info(
+                target_value=target_value,
+                current_month_total=current_by_exercise.get(name, 0.0),
+                today_progress=today_totals.get(name, 0.0),
+                today=today,
+            )
+            if label:
+                result[name] = label
+        return result
 
     def get_today_progress(self, exercise_id: int, exercise_name: str, exercise_type: str | None = None) -> float:
         """Get today's progress for an exercise.
@@ -420,3 +443,73 @@ class ExerciseProgressCalculator:
             )
             return sum(float(value) for _, value in today_data)
         return self.db_manager.get_exercise_total_today(exercise_id)
+
+
+def _format_goal_info(
+    *,
+    target_value: float,
+    current_month_total: float,
+    today_progress: float,
+    today: datetime | None = None,
+) -> str:
+    """Render the goal label shown next to an exercise name.
+
+    The daily target is derived from progress _excluding_ today, so it stays stable
+    while records are being added during the day.
+
+    Args:
+
+    - `target_value` (`float`): Best monthly total across the compared months.
+    - `current_month_total` (`float`): Current month total including today.
+    - `today_progress` (`float`): Total logged today.
+    - `today` (`datetime | None`): Reference moment. Defaults to `None` (now).
+
+    Returns:
+
+    - `str`: `(+N)` when more is needed, `✅ (N)` when done, empty string when there is no goal.
+
+    """
+    if target_value <= 0:
+        return ""
+
+    moment = today or datetime.now(UTC).astimezone()
+    days_in_month = calendar.monthrange(moment.year, moment.month)[1]
+    total_days_including_current = days_in_month - moment.day + 1
+
+    progress_without_today = current_month_total - today_progress
+    remaining_to_goal = target_value - progress_without_today
+
+    if total_days_including_current > 0 and remaining_to_goal > 0:
+        daily_needed = math.ceil(remaining_to_goal / total_days_including_current)
+        remaining_for_today = daily_needed - today_progress
+        if remaining_for_today > 0:
+            return f"(+{int(remaining_for_today)})"
+        return f"✅ ({int(today_progress)})"
+    if remaining_to_goal <= 0:
+        return f"✅ ({int(today_progress)})"
+    return ""
+
+
+def _recent_month_keys(today: datetime, months_count: int) -> list[str]:
+    """Return `YYYY-MM` keys for the current month and the preceding ones.
+
+    Args:
+
+    - `today` (`datetime`): Reference moment; its month is the first key.
+    - `months_count` (`int`): How many months to include.
+
+    Returns:
+
+    - `list[str]`: Month keys ordered from newest to oldest.
+
+    """
+    keys: list[str] = []
+    year = today.year
+    month = today.month
+    for _ in range(months_count):
+        keys.append(f"{year:04d}-{month:02d}")
+        month -= 1
+        if month == 0:
+            month = 12
+            year -= 1
+    return keys

@@ -35,9 +35,6 @@ lang: en
   - [⚙️ Method `on_exchange_item_update_changed`](#%EF%B8%8F-method-on_exchange_item_update_changed)
   - [⚙️ Method `on_export_csv`](#%EF%B8%8F-method-on_export_csv)
   - [⚙️ Method `on_export_excel`](#%EF%B8%8F-method-on_export_excel)
-  - [⚙️ Method `on_finance_dashboard_add_photo`](#%EF%B8%8F-method-on_finance_dashboard_add_photo)
-  - [⚙️ Method `on_finance_dashboard_add_text`](#%EF%B8%8F-method-on_finance_dashboard_add_text)
-  - [⚙️ Method `on_finance_dashboard_add_voice`](#%EF%B8%8F-method-on_finance_dashboard_add_voice)
   - [⚙️ Method `on_select_only_expense_chart_categories`](#%EF%B8%8F-method-on_select_only_expense_chart_categories)
   - [⚙️ Method `on_select_only_income_chart_categories`](#%EF%B8%8F-method-on_select_only_income_chart_categories)
   - [⚙️ Method `on_show_all_records_clicked`](#%EF%B8%8F-method-on_show_all_records_clicked)
@@ -110,7 +107,6 @@ class MainWindow(
         super().__init__()
         try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
         self.setupUi(self)
-        self._finance_dashboard: FinanceDashboardWidget | None = None
         self._is_closing = False
         self.db_manager: database_manager.DatabaseManager | None = None
         self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
@@ -980,39 +976,6 @@ class MainWindow(
         """Save current transactions view as Excel (CSV is also offered)."""
         self._export_transactions_table(prefer="xlsx")
 
-    def on_finance_dashboard_add_photo(self) -> None:
-        """Open a large photo-only form and send the receipt to AI."""
-        if self.db_manager is None:
-            message_box.warning(self, "Error", "Database connection not available")
-            return
-        source_dialog = create_finance_dashboard_photo_dialog(
-            self,
-            max_image_side=get_max_image_side(self._app_config),
-        )
-        if source_dialog.exec() != QDialog.DialogCode.Accepted:
-            return
-        self._send_purchases_to_ai(
-            source_dialog.get_raw_text(),
-            source_dialog.get_images_bytes_and_mime(),
-        )
-
-    def on_finance_dashboard_add_text(self) -> None:
-        """Open a large text-only form and send the description to AI."""
-        if self.db_manager is None:
-            message_box.warning(self, "Error", "Database connection not available")
-            return
-        source_dialog = create_finance_dashboard_text_dialog(self)
-        if source_dialog.exec() != QDialog.DialogCode.Accepted:
-            return
-        self._send_purchases_to_ai(source_dialog.get_raw_text())
-
-    def on_finance_dashboard_add_voice(self) -> None:
-        """Open a large recording form and send speech to AI."""
-        if self.db_manager is None:
-            message_box.warning(self, "Error", "Database connection not available")
-            return
-        self._run_finance_add_by_voice(large_ui=True)
-
     def on_select_only_expense_chart_categories(self) -> None:
         """Check only expense categories in the Charts category list."""
         self._select_only_chart_categories(0)
@@ -1315,11 +1278,6 @@ class MainWindow(
                 self.label_today_expense.setText("\n".join(expense_today_lines))
             else:
                 self.label_today_expense.setText(zero_today)
-            self._update_finance_dashboard_today_expense(
-                expense_today_lines,
-                default_code=db.get_default_currency(),
-                zero_text=zero_today,
-            )
 
             expense_yesterday_lines: list[str] = _expense_lines_for_date(yesterday_str)
             if expense_yesterday_lines:
@@ -1334,7 +1292,6 @@ class MainWindow(
             self.label_total_expenses.setText(f"Total Expenses: {format_amount('0.00')}₽")
             self.label_today_expense.setText(f"{format_amount('0.00')}₽")
             self.label_yesterday_expense.setText(f"{format_amount('0.00')}₽")
-            self._update_finance_dashboard_today_expense([], default_code="", zero_text=f"{format_amount('0.00')}₽")
 
     def _account_id_from_table_index(self, index: QModelIndex) -> int | None:
         """Return account database ID for an accounts table model index."""
@@ -6231,23 +6188,6 @@ class MainWindow(
                 self._draw_category_chart(category_series, period, currency_symbol)
         finally:
             self._close_chart_build_toast()
-
-    def _update_finance_dashboard_today_expense(
-        self,
-        lines: list[str],
-        *,
-        default_code: str,
-        zero_text: str,
-    ) -> None:
-        """Refresh the dashboard spend figure from today's expense lines."""
-        if self._finance_dashboard is None:
-            return
-        amount_text, extra_text = pick_today_expense_display(
-            lines,
-            default_code=default_code,
-            zero_text=zero_text,
-        )
-        self._finance_dashboard.set_today_expense(amount_text, extra_text)
 ```
 
 </details>
@@ -6268,7 +6208,6 @@ def __init__(self, *, hide_on_close: bool = False) -> None:
         super().__init__()
         try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
         self.setupUi(self)
-        self._finance_dashboard: FinanceDashboardWidget | None = None
         self._is_closing = False
         self.db_manager: database_manager.DatabaseManager | None = None
         self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
@@ -7427,81 +7366,6 @@ def on_export_excel(self) -> None:
 
 </details>
 
-### ⚙️ Method `on_finance_dashboard_add_photo`
-
-```python
-def on_finance_dashboard_add_photo(self) -> None
-```
-
-Open a large photo-only form and send the receipt to AI.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def on_finance_dashboard_add_photo(self) -> None:
-        if self.db_manager is None:
-            message_box.warning(self, "Error", "Database connection not available")
-            return
-        source_dialog = create_finance_dashboard_photo_dialog(
-            self,
-            max_image_side=get_max_image_side(self._app_config),
-        )
-        if source_dialog.exec() != QDialog.DialogCode.Accepted:
-            return
-        self._send_purchases_to_ai(
-            source_dialog.get_raw_text(),
-            source_dialog.get_images_bytes_and_mime(),
-        )
-```
-
-</details>
-
-### ⚙️ Method `on_finance_dashboard_add_text`
-
-```python
-def on_finance_dashboard_add_text(self) -> None
-```
-
-Open a large text-only form and send the description to AI.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def on_finance_dashboard_add_text(self) -> None:
-        if self.db_manager is None:
-            message_box.warning(self, "Error", "Database connection not available")
-            return
-        source_dialog = create_finance_dashboard_text_dialog(self)
-        if source_dialog.exec() != QDialog.DialogCode.Accepted:
-            return
-        self._send_purchases_to_ai(source_dialog.get_raw_text())
-```
-
-</details>
-
-### ⚙️ Method `on_finance_dashboard_add_voice`
-
-```python
-def on_finance_dashboard_add_voice(self) -> None
-```
-
-Open a large recording form and send speech to AI.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def on_finance_dashboard_add_voice(self) -> None:
-        if self.db_manager is None:
-            message_box.warning(self, "Error", "Database connection not available")
-            return
-        self._run_finance_add_by_voice(large_ui=True)
-```
-
-</details>
-
 ### ⚙️ Method `on_select_only_expense_chart_categories`
 
 ```python
@@ -7989,11 +7853,6 @@ def update_summary_labels(self) -> None:
                 self.label_today_expense.setText("\n".join(expense_today_lines))
             else:
                 self.label_today_expense.setText(zero_today)
-            self._update_finance_dashboard_today_expense(
-                expense_today_lines,
-                default_code=db.get_default_currency(),
-                zero_text=zero_today,
-            )
 
             expense_yesterday_lines: list[str] = _expense_lines_for_date(yesterday_str)
             if expense_yesterday_lines:
@@ -8008,7 +7867,6 @@ def update_summary_labels(self) -> None:
             self.label_total_expenses.setText(f"Total Expenses: {format_amount('0.00')}₽")
             self.label_today_expense.setText(f"{format_amount('0.00')}₽")
             self.label_yesterday_expense.setText(f"{format_amount('0.00')}₽")
-            self._update_finance_dashboard_today_expense([], default_code="", zero_text=f"{format_amount('0.00')}₽")
 ```
 
 </details>

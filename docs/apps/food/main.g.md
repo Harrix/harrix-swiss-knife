@@ -25,9 +25,6 @@ lang: en
   - [⚙️ Method `on_export_excel`](#%EF%B8%8F-method-on_export_excel)
   - [⚙️ Method `on_food_add_by_voice`](#%EF%B8%8F-method-on_food_add_by_voice)
   - [⚙️ Method `on_food_add_with_ai`](#%EF%B8%8F-method-on_food_add_with_ai)
-  - [⚙️ Method `on_food_dashboard_add_photo`](#%EF%B8%8F-method-on_food_dashboard_add_photo)
-  - [⚙️ Method `on_food_dashboard_add_text`](#%EF%B8%8F-method-on_food_dashboard_add_text)
-  - [⚙️ Method `on_food_dashboard_add_voice`](#%EF%B8%8F-method-on_food_dashboard_add_voice)
   - [⚙️ Method `on_food_item_double_clicked`](#%EF%B8%8F-method-on_food_item_double_clicked)
   - [⚙️ Method `on_food_log_table_cell_clicked`](#%EF%B8%8F-method-on_food_log_table_cell_clicked)
   - [⚙️ Method `on_food_stats_all_time`](#%EF%B8%8F-method-on_food_stats_all_time)
@@ -102,7 +99,6 @@ class MainWindow(
         super().__init__()
         try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
         self.setupUi(self)
-        self._food_dashboard: FoodDashboardWidget | None = None
         self._recipes_widget: RecipesWidget | None = None
         self._setup_ui()
 
@@ -512,36 +508,6 @@ class MainWindow(
             source_dialog.get_raw_text(),
             source_dialog.get_images_bytes_and_mime(),
         )
-
-    def on_food_dashboard_add_photo(self) -> None:
-        """Open a large photo-only form and send the image to AI."""
-        if not self._validate_database_connection():
-            message_box.warning(self, "Error", "Database connection not available")
-            return
-        source_dialog = create_food_dashboard_photo_dialog(
-            self,
-            max_image_side=get_max_image_side(self._app_config),
-        )
-        if source_dialog.exec() != QDialog.DialogCode.Accepted:
-            return
-        self._send_food_log_to_ai(
-            source_dialog.get_raw_text(),
-            source_dialog.get_images_bytes_and_mime(),
-        )
-
-    def on_food_dashboard_add_text(self) -> None:
-        """Open a large text-only form and send the description to AI."""
-        if not self._validate_database_connection():
-            message_box.warning(self, "Error", "Database connection not available")
-            return
-        source_dialog = create_food_dashboard_text_dialog(self)
-        if source_dialog.exec() != QDialog.DialogCode.Accepted:
-            return
-        self._send_food_log_to_ai(source_dialog.get_raw_text())
-
-    def on_food_dashboard_add_voice(self) -> None:
-        """Open a large recording form and send speech to AI."""
-        self._run_food_add_by_voice(large_ui=True)
 
     def on_food_item_double_clicked(self, _index: QModelIndex) -> None:
         """Handle double click on food item in the list view.
@@ -1024,8 +990,6 @@ class MainWindow(
 
         if not self._validate_database_connection():
             self.label_food_today.setText("0 kcal\n0,0 liters")
-            if self._food_dashboard is not None:
-                self._food_dashboard.set_today_calories(0)
             return
 
         try:
@@ -1034,13 +998,9 @@ class MainWindow(
             drinks_liters = drinks_weight / 1000 if drinks_weight else 0.0
             drinks_liters_str = f"{drinks_liters:.1f}"
             self.label_food_today.setText(f"{calories:.1f} kcal \n{drinks_liters_str} liters")
-            if self._food_dashboard is not None:
-                self._food_dashboard.set_today_calories(calories)
         except Exception:
             logger.exception("Error getting food calories for today")
             self.label_food_today.setText("0 kcal\n0,0 liters")
-            if self._food_dashboard is not None:
-                self._food_dashboard.set_today_calories(0)
 
     def update_food_data(self) -> None:
         """Refresh food-related data only.
@@ -3784,7 +3744,6 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
         super().__init__()
         try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
         self.setupUi(self)
-        self._food_dashboard: FoodDashboardWidget | None = None
         self._recipes_widget: RecipesWidget | None = None
         self._setup_ui()
 
@@ -4352,78 +4311,6 @@ def on_food_add_with_ai(
             source_dialog.get_raw_text(),
             source_dialog.get_images_bytes_and_mime(),
         )
-```
-
-</details>
-
-### ⚙️ Method `on_food_dashboard_add_photo`
-
-```python
-def on_food_dashboard_add_photo(self) -> None
-```
-
-Open a large photo-only form and send the image to AI.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def on_food_dashboard_add_photo(self) -> None:
-        if not self._validate_database_connection():
-            message_box.warning(self, "Error", "Database connection not available")
-            return
-        source_dialog = create_food_dashboard_photo_dialog(
-            self,
-            max_image_side=get_max_image_side(self._app_config),
-        )
-        if source_dialog.exec() != QDialog.DialogCode.Accepted:
-            return
-        self._send_food_log_to_ai(
-            source_dialog.get_raw_text(),
-            source_dialog.get_images_bytes_and_mime(),
-        )
-```
-
-</details>
-
-### ⚙️ Method `on_food_dashboard_add_text`
-
-```python
-def on_food_dashboard_add_text(self) -> None
-```
-
-Open a large text-only form and send the description to AI.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def on_food_dashboard_add_text(self) -> None:
-        if not self._validate_database_connection():
-            message_box.warning(self, "Error", "Database connection not available")
-            return
-        source_dialog = create_food_dashboard_text_dialog(self)
-        if source_dialog.exec() != QDialog.DialogCode.Accepted:
-            return
-        self._send_food_log_to_ai(source_dialog.get_raw_text())
-```
-
-</details>
-
-### ⚙️ Method `on_food_dashboard_add_voice`
-
-```python
-def on_food_dashboard_add_voice(self) -> None
-```
-
-Open a large recording form and send speech to AI.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def on_food_dashboard_add_voice(self) -> None:
-        self._run_food_add_by_voice(large_ui=True)
 ```
 
 </details>
@@ -5177,8 +5064,6 @@ def update_food_calories_today(self) -> None:
 
         if not self._validate_database_connection():
             self.label_food_today.setText("0 kcal\n0,0 liters")
-            if self._food_dashboard is not None:
-                self._food_dashboard.set_today_calories(0)
             return
 
         try:
@@ -5187,13 +5072,9 @@ def update_food_calories_today(self) -> None:
             drinks_liters = drinks_weight / 1000 if drinks_weight else 0.0
             drinks_liters_str = f"{drinks_liters:.1f}"
             self.label_food_today.setText(f"{calories:.1f} kcal \n{drinks_liters_str} liters")
-            if self._food_dashboard is not None:
-                self._food_dashboard.set_today_calories(calories)
         except Exception:
             logger.exception("Error getting food calories for today")
             self.label_food_today.setText("0 kcal\n0,0 liters")
-            if self._food_dashboard is not None:
-                self._food_dashboard.set_today_calories(0)
 ```
 
 </details>

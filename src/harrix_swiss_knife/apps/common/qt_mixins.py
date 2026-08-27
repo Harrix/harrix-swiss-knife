@@ -19,7 +19,7 @@ from datetime import UTC, datetime
 from functools import partial
 from typing import TYPE_CHECKING, Any
 
-from PySide6.QtCore import QDate, QModelIndex, QSortFilterProxyModel
+from PySide6.QtCore import QDate, QModelIndex, QSortFilterProxyModel, Qt
 from PySide6.QtGui import QStandardItemModel
 from PySide6.QtWidgets import QWidget
 
@@ -30,6 +30,9 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from PySide6.QtWidgets import QDateEdit
+
+# Roles that carry user-visible data; anything else (icons, colours) must not be saved.
+_AUTO_SAVE_DATA_ROLES = frozenset({int(Qt.ItemDataRole.DisplayRole), int(Qt.ItemDataRole.EditRole)})
 
 
 class AutoSaveMixin:
@@ -134,6 +137,9 @@ class AutoSaveMixin:
     ) -> None:
         """Handle table model changes and auto-save affected rows."""
         if table_name not in self._SAFE_TABLES:
+            return
+
+        if not _roles_affect_saved_data(_roles):
             return
 
         if not self._validate_database_connection():
@@ -419,3 +425,23 @@ class ValidationMixin:
             return False
         else:
             return True
+
+
+def _roles_affect_saved_data(roles: list | None) -> bool:
+    """Return whether a `dataChanged` notification touches persisted cell data.
+
+    Qt reports decoration-only updates (thumbnails, row colours) through the same
+    signal, and saving a row for those causes a pointless database write per icon.
+
+    Args:
+
+    - `roles` (`list | None`): Roles reported by `dataChanged`, empty for "all roles".
+
+    Returns:
+
+    - `bool`: `True` when the change may need saving.
+
+    """
+    if not roles:
+        return True
+    return any(int(role) in _AUTO_SAVE_DATA_ROLES for role in roles)
