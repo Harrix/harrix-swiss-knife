@@ -6798,8 +6798,9 @@ class MainWindow(
             if row and row[0] is not None and row[1]:
                 exercise_ids[str(row[1])] = int(row[0])
         type_ids: dict[tuple[str, str], int] = {}
+        type_name_index = 2
         for row in self.db_manager.get_all_exercise_types():
-            if len(row) > 2 and row[0] is not None and row[1] and row[2]:
+            if len(row) > type_name_index and row[0] is not None and row[1] and row[2]:
                 type_ids[(str(row[1]), str(row[2]))] = int(row[0])
         drafts: list[database_manager.WorkoutItemInput] = []
         errors: list[str] = []

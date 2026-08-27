@@ -9,6 +9,8 @@ from pathlib import Path
 
 from PIL import Image
 
+from harrix_swiss_knife.actions.common.subprocess_run import hidden_subprocess_kwargs
+
 RASTER_EXTENSIONS = frozenset({".png", ".jpg", ".jpeg", ".webp"})
 _JPG_WEBP_EXTENSIONS = frozenset({".jpg", ".jpeg", ".webp"})
 _PALETTE_COLORS = 256
@@ -238,6 +240,7 @@ def _run_checked(args: list[str]) -> None:
         text=True,
         encoding="utf-8",
         check=False,
+        **hidden_subprocess_kwargs(),
     )
     if process.returncode != 0:
         details = (process.stderr or process.stdout or "").strip()

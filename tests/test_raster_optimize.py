@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import subprocess
+import sys
 from pathlib import Path
 from unittest.mock import patch
 
@@ -120,6 +122,22 @@ def test_process_png_compare_uses_hq_avif_for_flat_graphic(mock_convert: object,
     assert not (output_folder / "diagram.avif").exists()
     assert "kept as PNG" in message
     assert "high-quality AVIF" in message
+
+
+def test_run_checked_hides_console_on_windows(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_run(args: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        captured.update(kwargs)
+        return subprocess.CompletedProcess(args, 0, stdout="ok", stderr="")
+
+    monkeypatch.setattr(raster_optimize.subprocess, "run", fake_run)
+    raster_optimize._run_checked(["ffmpeg"])
+    if sys.platform == "win32":
+        assert captured["creationflags"] == subprocess.CREATE_NO_WINDOW
+        assert "startupinfo" in captured
+    else:
+        assert "creationflags" not in captured
 
 
 @pytest.mark.slow

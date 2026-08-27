@@ -82,7 +82,7 @@ def format_recent_sets(rows: list[list]) -> str:
         return "(none)"
     lines = ["Exercise\tType\tValue\tUnit\tDate"]
     for row in rows:
-        if len(row) < 6:
+        if len(row) < _RECENT_SET_COL_COUNT:
             continue
         lines.append(f"{row[1] or ''}\t{row[2] or ''}\t{row[3] or ''}\t{row[4] or ''}\t{row[5] or ''}")
     return "\n".join(lines)

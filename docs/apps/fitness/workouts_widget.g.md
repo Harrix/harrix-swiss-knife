@@ -158,7 +158,9 @@ class WorkoutsWidget(QWidget):
             checkbox.setChecked(item.is_done)
             checkbox.setEnabled(not item.is_done)
             if not item.is_done:
-                checkbox.clicked.connect(lambda checked, item_id=item.id: self._on_done_clicked(item_id, checked))
+                checkbox.clicked.connect(
+                    lambda checked, item_id=item.id: self._on_done_toggled(item_id=item_id, checked=checked),
+                )
             self.table_items.setCellWidget(row, _COL_DONE, checkbox)
             self.table_items.setItem(row, _COL_EXERCISE, QTableWidgetItem(item.exercise_name))
             self.table_items.setItem(row, _COL_TYPE, QTableWidgetItem(item.type_name))
@@ -182,7 +184,7 @@ class WorkoutsWidget(QWidget):
         items = self._db.get_workout_items(workout_id)
         self._fill_items(items)
 
-    def _on_done_clicked(self, item_id: int, checked: bool) -> None:
+    def _on_done_toggled(self, *, item_id: int, checked: bool) -> None:
         if not checked:
             return
         self.item_done_requested.emit(item_id)
