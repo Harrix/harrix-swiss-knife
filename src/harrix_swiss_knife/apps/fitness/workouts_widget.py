@@ -6,7 +6,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QModelIndex, QPoint, QSize, Qt, Signal
-from PySide6.QtGui import QIcon, QKeySequence, QShortcut, QStandardItem, QStandardItemModel
+from PySide6.QtGui import QIcon, QKeySequence, QPainter, QShortcut, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
@@ -18,6 +18,9 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QSpinBox,
     QSplitter,
+    QStyle,
+    QStyledItemDelegate,
+    QStyleOptionViewItem,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
@@ -36,6 +39,8 @@ from harrix_swiss_knife.qt_emoji_icon import apply_leading_emoji_icons, make_emo
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+    from PySide6.QtCore import QPersistentModelIndex
 
     from harrix_swiss_knife.apps.fitness.database_manager import DatabaseManager, WorkoutItemRow, WorkoutRow
 
@@ -179,9 +184,12 @@ class WorkoutsWidget(QWidget):
         right_layout.addLayout(duration_row)
 
         self.table_items = QTableWidget(0, _ITEM_COLUMN_COUNT)
+        self.table_items.setObjectName("workoutsItemsTable")
         self.table_items.setHorizontalHeaderLabels(["Done", "", "Exercise", "Type", "Value", "Unit", "kcal"])
         self.table_items.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table_items.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.table_items.verticalHeader().setVisible(False)
+        self.table_items.setItemDelegateForColumn(_COL_IMAGE, _WorkoutImageDelegate(self.table_items))
         self.table_items.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.table_items.customContextMenuRequested.connect(self._show_items_context_menu)
         self.table_items.doubleClicked.connect(self._on_item_double_clicked)
@@ -252,7 +260,7 @@ class WorkoutsWidget(QWidget):
                 checkbox.clicked.connect(
                     lambda checked, item_id=item.id: self._on_done_toggled(item_id=item_id, checked=checked),
                 )
-            self.table_items.setCellWidget(row, _COL_DONE, checkbox)
+            self.table_items.setCellWidget(row, _COL_DONE, _make_done_cell(checkbox))
             image_item = QTableWidgetItem()
             image_item.setFlags(image_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             icon = self._icon_getter(item.exercise_name) if self._icon_getter is not None else None
@@ -409,3 +417,29 @@ class WorkoutsWidget(QWidget):
                 self._on_item_double_clicked(target)
         elif action == delete_action:
             self._remove_selected_items()
+
+
+class _WorkoutImageDelegate(QStyledItemDelegate):
+    """Paint exercise thumbnails without the row-selection blue fill."""
+
+    def paint(
+        self,
+        painter: QPainter,
+        option: QStyleOptionViewItem,
+        index: QModelIndex | QPersistentModelIndex,
+    ) -> None:
+        """Draw the icon on the normal table background even when the row is selected."""
+        option = QStyleOptionViewItem(option)
+        option.state &= ~QStyle.StateFlag.State_Selected
+        option.state &= ~QStyle.StateFlag.State_HasFocus
+        super().paint(painter, option, index)
+
+
+def _make_done_cell(checkbox: QCheckBox) -> QWidget:
+    """Wrap a Done checkbox so row selection does not paint blue behind it."""
+    cell = QWidget()
+    cell.setAutoFillBackground(True)
+    layout = QHBoxLayout(cell)
+    layout.setContentsMargins(0, 0, 0, 0)
+    layout.addWidget(checkbox, alignment=Qt.AlignmentFlag.AlignCenter)
+    return cell

@@ -84,4 +84,5 @@ def test_workouts_widget_has_duration_edit() -> None:
     widget = WorkoutsWidget()
     assert widget.spin_duration.isEnabled() is False
     assert widget.spin_duration.suffix() == " min"
+    assert not widget.table_items.verticalHeader().isVisible()
     widget.close()
