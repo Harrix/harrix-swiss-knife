@@ -7,7 +7,11 @@ from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QThread, Signal
 
-from harrix_swiss_knife.apps.common.exercise_media import rebuild_min_thumbnails_from_small, save_exercise_avif
+from harrix_swiss_knife.apps.common.exercise_media import (
+    rebuild_min_thumbnails_from_small,
+    rebuild_static_thumbnails_from_avif,
+    save_exercise_avif,
+)
 
 if TYPE_CHECKING:
     from PySide6.QtCore import QObject
@@ -28,6 +32,7 @@ class ExerciseMediaSaveWorker(QThread):
         max_size: int | None = None,
         high_max_size: int | None = None,
         min_max_size: int | None = None,
+        static_max_size: int | None = None,
         project_root: Path | None = None,
         parent: QObject | None = None,
     ) -> None:
@@ -39,6 +44,7 @@ class ExerciseMediaSaveWorker(QThread):
         self._max_size = max_size
         self._high_max_size = high_max_size
         self._min_max_size = min_max_size
+        self._static_max_size = static_max_size
         self._project_root = project_root
 
     def run(self) -> None:
@@ -52,6 +58,7 @@ class ExerciseMediaSaveWorker(QThread):
                 max_size=self._max_size,
                 high_max_size=self._high_max_size,
                 min_max_size=self._min_max_size,
+                static_max_size=self._static_max_size,
             )
         except Exception as error:
             self.save_failed.emit(self._exercise_name, str(error))
@@ -81,6 +88,34 @@ class MinThumbnailRebuildWorker(QThread):
         """Generate missing or stale `min/*.webp` files off the UI thread."""
         try:
             result = rebuild_min_thumbnails_from_small(self._avif_dir, min_max_size=self._min_max_size)
+        except Exception as error:
+            self.rebuild_failed.emit(str(error))
+            return
+        self.rebuild_completed.emit(result)
+
+
+class StaticThumbnailRebuildWorker(QThread):
+    """Build missing static WebP previews for Select Exercise from AVIF sources."""
+
+    rebuild_completed = Signal(object)  # RebuildStaticThumbnailResult
+    rebuild_failed = Signal(str)
+
+    def __init__(
+        self,
+        avif_dir: Path | str,
+        *,
+        static_max_size: int,
+        parent: QObject | None = None,
+    ) -> None:
+        """Store rebuild parameters for `run()`."""
+        super().__init__(parent)
+        self._avif_dir = Path(avif_dir)
+        self._static_max_size = static_max_size
+
+    def run(self) -> None:
+        """Generate missing or stale `static/*.webp` files off the UI thread."""
+        try:
+            result = rebuild_static_thumbnails_from_avif(self._avif_dir, static_max_size=self._static_max_size)
         except Exception as error:
             self.rebuild_failed.emit(str(error))
             return

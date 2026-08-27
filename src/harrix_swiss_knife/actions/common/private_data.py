@@ -4,8 +4,8 @@ Not part of public install bundles. History tables are never included: fitness
 `process`/`weight`, finance transactions/accounts, and food `food_log`. Catalog
 upsert preserves existing IDs on the target machine. Fitness images are
 `{exercise English name}.avif` under `fitness_img/` next to the DB, optional
-high-resolution copies in `fitness_img/high/`, and static WebP table icons in
-`fitness_img/min/`.
+high-resolution copies in `fitness_img/high/`, static WebP table icons in
+`fitness_img/min/`, and static WebP dialog previews in `fitness_img/static/`.
 
 """
 

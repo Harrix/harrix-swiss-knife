@@ -27,6 +27,7 @@ from PySide6.QtCore import (
     QDate,
     QDateTime,
     QEvent,
+    QEventLoop,
     QModelIndex,
     QObject,
     QPoint,
@@ -80,6 +81,7 @@ from harrix_swiss_knife.apps.common.apps_config import (
     get_apps_fitness_image_high_max_size,
     get_apps_fitness_image_max_size,
     get_apps_fitness_image_min_max_size,
+    get_apps_fitness_image_static_max_size,
     get_apps_fitness_lightbox_countdown_seconds,
     get_apps_fitness_workout_gender,
     get_apps_fitness_workout_history_count,
@@ -100,7 +102,9 @@ from harrix_swiss_knife.apps.common.dialogs.simple_recording_dialog import Simpl
 from harrix_swiss_knife.apps.common.dialogs.text_input_dialog import TextInputDialog
 from harrix_swiss_knife.apps.common.exercise_media import (
     RebuildMinThumbnailResult,
+    RebuildStaticThumbnailResult,
     has_missing_min_thumbnails,
+    has_missing_static_thumbnails,
     is_exercise_media_path,
 )
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
@@ -167,7 +171,11 @@ from harrix_swiss_knife.apps.fitness.exercise_favorites import (
     format_favorite_exercise_label,
     parse_exercise_display_name,
 )
-from harrix_swiss_knife.apps.fitness.exercise_media_worker import ExerciseMediaSaveWorker, MinThumbnailRebuildWorker
+from harrix_swiss_knife.apps.fitness.exercise_media_worker import (
+    ExerciseMediaSaveWorker,
+    MinThumbnailRebuildWorker,
+    StaticThumbnailRebuildWorker,
+)
 from harrix_swiss_knife.apps.fitness.exercise_type_add_dialog import ExerciseTypeAddDialog
 from harrix_swiss_knife.apps.fitness.fitness_dashboard import (
     FitnessDashboardExercise,
@@ -306,6 +314,7 @@ class MainWindow(
         self._bothub_state = BothubRequestState()
         self._exercise_media_worker: ExerciseMediaSaveWorker | None = None
         self._min_thumbnail_rebuild_worker: MinThumbnailRebuildWorker | None = None
+        self._static_thumbnail_rebuild_worker: StaticThumbnailRebuildWorker | None = None
         self._exercise_media_toast: toast_countdown_notification.ToastCountdownNotification | None = None
         self._exercise_media_success_message: str | None = None
         self._exercise_add_after_media: tuple[str, bool] | None = None
@@ -427,6 +436,7 @@ class MainWindow(
         # Load initial AVIF animations after UI is ready
         QTimer.singleShot(100, self._load_initial_avifs)
         QTimer.singleShot(300, self._start_missing_min_thumbnails_rebuild)
+        QTimer.singleShot(400, self._start_missing_static_thumbnails_rebuild)
 
         # Set window size and position based on screen resolution
         self._setup_window_size_and_position()
@@ -2274,6 +2284,9 @@ class MainWindow(
 
         if not exercises:
             message_box.information(self, "No Exercises", "No exercises are available to select.")
+            return
+
+        if not self._ensure_static_thumbnails_for_select_exercise():
             return
 
         label_height = self.label_exercise_avif.height()
@@ -4717,6 +4730,10 @@ class MainWindow(
         """Drop finished min-thumbnail rebuild worker reference."""
         self._min_thumbnail_rebuild_worker = None
 
+    def _cleanup_static_thumbnail_rebuild_worker(self) -> None:
+        """Drop finished static-preview rebuild worker reference."""
+        self._static_thumbnail_rebuild_worker = None
+
     def _close_exercise_add_toast(self) -> None:
         """Close the shared add-exercise queue toast if present."""
         toast = self._exercise_add_toast
@@ -5750,11 +5767,13 @@ class MainWindow(
             return None
 
         avif_path = self.avif_manager.get_exercise_hover_avif_path(exercise_name)
-        if avif_path is None:
+        static_path = self.avif_manager.get_exercise_dialog_static_path(exercise_name)
+        if static_path is None and avif_path is None:
             return None
 
+        cache_source = static_path or avif_path
         try:
-            mtime = avif_path.stat().st_mtime
+            mtime = cache_source.stat().st_mtime
         except OSError:
             return None
 
@@ -6716,6 +6735,15 @@ class MainWindow(
         """Refresh type options and apply the process filter when exercise changes."""
         self.update_filter_type_combobox()
         self.apply_filter()
+
+    def _on_static_thumbnails_rebuilt(self, result: object) -> None:
+        """Clear dialog preview cache after background static preview generation."""
+        if not isinstance(result, RebuildStaticThumbnailResult) or not result.rebuilt:
+            return
+        for name in result.rebuilt:
+            self._exercise_avif_preview_cache = {
+                key: value for key, value in self._exercise_avif_preview_cache.items() if key[0] != name
+            }
 
     def _on_min_thumbnails_rebuilt(self, result: object) -> None:
         """Refresh table and list icons after background min thumbnail generation."""
@@ -8396,6 +8424,7 @@ class MainWindow(
         max_size = get_apps_fitness_image_max_size(self._app_config)
         high_max_size = get_apps_fitness_image_high_max_size(self._app_config)
         min_max_size = get_apps_fitness_image_min_max_size(self._app_config)
+        static_max_size = get_apps_fitness_image_static_max_size(self._app_config)
         self._exercise_media_worker = ExerciseMediaSaveWorker(
             source_path,
             exercise_name,
@@ -8403,6 +8432,7 @@ class MainWindow(
             max_size=max_size,
             high_max_size=high_max_size,
             min_max_size=min_max_size,
+            static_max_size=static_max_size,
             project_root=get_project_root(),
             parent=self,
         )
@@ -8435,6 +8465,70 @@ class MainWindow(
         self._min_thumbnail_rebuild_worker.finished.connect(self._cleanup_min_thumbnail_rebuild_worker)
         self._min_thumbnail_rebuild_worker.finished.connect(self._min_thumbnail_rebuild_worker.deleteLater)
         self._min_thumbnail_rebuild_worker.start()
+
+    def _ensure_static_thumbnails_for_select_exercise(self) -> bool:
+        """Build missing `static/*.webp` previews before opening Select Exercise."""
+        if self._is_closing or self.avif_manager is None:
+            return True
+        avif_dir = self.avif_manager.avif_dir
+        if not has_missing_static_thumbnails(avif_dir):
+            return True
+        worker = self._static_thumbnail_rebuild_worker
+        if worker is not None and worker.isRunning():
+            return self._wait_for_static_thumbnail_rebuild(worker)
+        static_max_size = get_apps_fitness_image_static_max_size(self._app_config)
+        worker = StaticThumbnailRebuildWorker(
+            avif_dir,
+            static_max_size=static_max_size,
+            parent=self,
+        )
+        self._static_thumbnail_rebuild_worker = worker
+        worker.rebuild_completed.connect(self._on_static_thumbnails_rebuilt)
+        worker.rebuild_failed.connect(
+            lambda message: logger.warning("Static preview rebuild failed: %s", message),
+        )
+        worker.finished.connect(self._cleanup_static_thumbnail_rebuild_worker)
+        worker.finished.connect(worker.deleteLater)
+        worker.start()
+        return self._wait_for_static_thumbnail_rebuild(worker)
+
+    def _start_missing_static_thumbnails_rebuild(self) -> None:
+        """Generate missing `static/*.webp` previews in the background on startup."""
+        if self._is_closing or self.avif_manager is None:
+            return
+        worker = self._static_thumbnail_rebuild_worker
+        if worker is not None and worker.isRunning():
+            return
+        avif_dir = self.avif_manager.avif_dir
+        if not has_missing_static_thumbnails(avif_dir):
+            return
+        static_max_size = get_apps_fitness_image_static_max_size(self._app_config)
+        self._static_thumbnail_rebuild_worker = StaticThumbnailRebuildWorker(
+            avif_dir,
+            static_max_size=static_max_size,
+            parent=self,
+        )
+        self._static_thumbnail_rebuild_worker.rebuild_completed.connect(self._on_static_thumbnails_rebuilt)
+        self._static_thumbnail_rebuild_worker.rebuild_failed.connect(
+            lambda message: logger.warning("Static preview rebuild failed: %s", message),
+        )
+        self._static_thumbnail_rebuild_worker.finished.connect(self._cleanup_static_thumbnail_rebuild_worker)
+        self._static_thumbnail_rebuild_worker.finished.connect(self._static_thumbnail_rebuild_worker.deleteLater)
+        self._static_thumbnail_rebuild_worker.start()
+
+    def _wait_for_static_thumbnail_rebuild(self, worker: StaticThumbnailRebuildWorker) -> bool:
+        """Block until `worker` finishes; return False when the window is closing."""
+        if self._is_closing:
+            return False
+        app = QApplication.instance()
+        if isinstance(app, QApplication):
+            app.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        loop = QEventLoop(self)
+        worker.finished.connect(loop.quit)
+        loop.exec()
+        if isinstance(app, QApplication):
+            app.restoreOverrideCursor()
+        return not self._is_closing
 
     def _sync_dumbbell_weight_types(self, *, notify: bool = True) -> int:
         """Copy missing template dumbbell weights onto matching exercises.

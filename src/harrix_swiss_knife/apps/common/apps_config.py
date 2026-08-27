@@ -16,6 +16,7 @@ DEFAULT_LOCAL_LANGUAGE = "ru"
 DEFAULT_FITNESS_IMAGE_MAX_SIZE = 330
 DEFAULT_FITNESS_IMAGE_HIGH_MAX_SIZE = 1920
 DEFAULT_FITNESS_IMAGE_MIN_MAX_SIZE = 96
+DEFAULT_FITNESS_IMAGE_STATIC_MAX_SIZE = 512
 DEFAULT_FITNESS_WORKOUT_HISTORY_COUNT = 100
 DEFAULT_FITNESS_LIGHTBOX_COUNTDOWN_SECONDS = 5
 FITNESS_WORKOUT_GENDER_KEY = "fitness_workout_gender"
@@ -84,6 +85,20 @@ def get_apps_fitness_image_min_max_size(config: dict[str, Any]) -> int:
         return max(int(raw), 1)
     except (TypeError, ValueError):
         return DEFAULT_FITNESS_IMAGE_MIN_MAX_SIZE
+
+
+def get_apps_fitness_image_static_max_size(config: dict[str, Any]) -> int:
+    """Return max Select Exercise preview size from `apps.fitness_image_static_max_size`.
+
+    Default `512`. Used for static WebP files under `fitness_img/static/`.
+
+    """
+    apps = config.get("apps") or {}
+    raw = apps.get("fitness_image_static_max_size", DEFAULT_FITNESS_IMAGE_STATIC_MAX_SIZE)
+    try:
+        return max(int(raw), 1)
+    except (TypeError, ValueError):
+        return DEFAULT_FITNESS_IMAGE_STATIC_MAX_SIZE
 
 
 def get_apps_fitness_lightbox_countdown_seconds(config: dict[str, Any]) -> int:

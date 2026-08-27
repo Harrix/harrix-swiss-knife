@@ -10,16 +10,21 @@ from harrix_swiss_knife.apps.common.apps_config import (
     DEFAULT_FITNESS_IMAGE_HIGH_MAX_SIZE,
     DEFAULT_FITNESS_IMAGE_MAX_SIZE,
     DEFAULT_FITNESS_IMAGE_MIN_MAX_SIZE,
+    DEFAULT_FITNESS_IMAGE_STATIC_MAX_SIZE,
     get_apps_fitness_image_high_max_size,
     get_apps_fitness_image_max_size,
     get_apps_fitness_image_min_max_size,
+    get_apps_fitness_image_static_max_size,
 )
 from harrix_swiss_knife.apps.common.exercise_media import (
     FITNESS_IMG_HIGH_DIR,
     FITNESS_IMG_MIN_DIR,
+    FITNESS_IMG_STATIC_DIR,
     has_missing_min_thumbnails,
+    has_missing_static_thumbnails,
     rebuild_min_thumbnails_from_small,
     rebuild_small_avifs_from_high,
+    rebuild_static_thumbnails_from_avif,
     save_exercise_avif,
 )
 
@@ -44,6 +49,12 @@ def test_fitness_image_min_max_size_defaults() -> None:
     assert get_apps_fitness_image_min_max_size({}) == DEFAULT_FITNESS_IMAGE_MIN_MAX_SIZE
     assert get_apps_fitness_image_min_max_size({"apps": {"fitness_image_min_max_size": 128}}) == 128
     assert get_apps_fitness_image_min_max_size({"apps": {"fitness_image_min_max_size": 0}}) == 1
+
+
+def test_fitness_image_static_max_size_defaults() -> None:
+    assert get_apps_fitness_image_static_max_size({}) == DEFAULT_FITNESS_IMAGE_STATIC_MAX_SIZE
+    assert get_apps_fitness_image_static_max_size({"apps": {"fitness_image_static_max_size": 384}}) == 384
+    assert get_apps_fitness_image_static_max_size({"apps": {"fitness_image_static_max_size": 0}}) == 1
 
 
 def test_save_exercise_avif_writes_small_and_high(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -114,6 +125,40 @@ def test_save_exercise_avif_writes_min_webp(tmp_path: Path, monkeypatch: pytest.
     assert (avif_dir / FITNESS_IMG_MIN_DIR / "Walk.webp").read_bytes() == b"min-96"
 
 
+def test_save_exercise_avif_writes_static_webp(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    source = tmp_path / "source.png"
+    source.write_bytes(b"src")
+    avif_dir = tmp_path / "fitness_img"
+
+    def fake_convert(source_path: Path, target: Path, *, project_root: Path, max_size: int | None) -> Path:
+        del source_path, project_root
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(f"new-{max_size}".encode())
+        return target
+
+    def fake_static(source: Path, target: Path, *, max_size: int) -> Path:
+        del source
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(f"static-{max_size}".encode())
+        return target
+
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.common.exercise_media._convert_source_to_avif",
+        fake_convert,
+    )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.common.exercise_media._avif_file_is_animated",
+        lambda _path: False,
+    )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.common.exercise_media._write_min_webp_thumbnail",
+        fake_static,
+    )
+
+    save_exercise_avif(source, "Walk", avif_dir, max_size=330, static_max_size=512)
+    assert (avif_dir / FITNESS_IMG_STATIC_DIR / "Walk.webp").read_bytes() == b"static-512"
+
+
 def test_has_missing_min_thumbnails(tmp_path: Path) -> None:
     avif_dir = tmp_path / "fitness_img"
     avif_dir.mkdir()
@@ -145,6 +190,39 @@ def test_rebuild_min_thumbnails_from_small(tmp_path: Path, monkeypatch: pytest.M
     result = rebuild_min_thumbnails_from_small(avif_dir, min_max_size=96)
     assert result.rebuilt == ("Walk",)
     assert (avif_dir / FITNESS_IMG_MIN_DIR / "Walk.webp").read_bytes() == b"webp"
+
+
+def test_has_missing_static_thumbnails(tmp_path: Path) -> None:
+    avif_dir = tmp_path / "fitness_img"
+    avif_dir.mkdir()
+    assert not has_missing_static_thumbnails(avif_dir)
+    (avif_dir / "Walk.avif").write_bytes(b"small")
+    assert has_missing_static_thumbnails(avif_dir)
+    static_dir = avif_dir / FITNESS_IMG_STATIC_DIR
+    static_dir.mkdir()
+    (static_dir / "Walk.webp").write_bytes(b"webp")
+    assert not has_missing_static_thumbnails(avif_dir)
+
+
+def test_rebuild_static_thumbnails_from_avif(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    avif_dir = tmp_path / "fitness_img"
+    avif_dir.mkdir()
+    (avif_dir / "Walk.avif").write_bytes(b"small")
+
+    def fake_static(source: Path, target: Path, *, max_size: int) -> Path:
+        assert source.name == "Walk.avif"
+        assert max_size == 512
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(b"webp")
+        return target
+
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.common.exercise_media._write_min_webp_thumbnail",
+        fake_static,
+    )
+    result = rebuild_static_thumbnails_from_avif(avif_dir, static_max_size=512)
+    assert result.rebuilt == ("Walk",)
+    assert (avif_dir / FITNESS_IMG_STATIC_DIR / "Walk.webp").read_bytes() == b"webp"
 
 
 def test_save_exercise_avif_keeps_old_files_when_high_convert_fails(
