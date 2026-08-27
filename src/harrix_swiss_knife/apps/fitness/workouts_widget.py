@@ -148,19 +148,19 @@ class WorkoutsWidget(QWidget):
         left_layout = QVBoxLayout(left)
         left_layout.setContentsMargins(8, 8, 8, 8)
         left_layout.addWidget(QLabel("Workouts"))
+        new_row = QHBoxLayout()
+        self.button_new = make_emoji_push_button("New", "➕")  # noqa: RUF001
+        self.button_new.clicked.connect(self.generate_requested.emit)
+        new_row.addWidget(self.button_new)
+        new_row.addStretch()
+        left_layout.addLayout(new_row)
         self.list_workouts = QListView()
         self._list_model = QStandardItemModel(self.list_workouts)
         self.list_workouts.setModel(self._list_model)
         self.list_workouts.clicked.connect(self._on_workout_clicked)
+        self.list_workouts.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.list_workouts.customContextMenuRequested.connect(self._show_workouts_context_menu)
         left_layout.addWidget(self.list_workouts, 1)
-        buttons = QHBoxLayout()
-        self.button_new = make_emoji_push_button("New", "➕")  # noqa: RUF001
-        self.button_delete = make_emoji_push_button("Delete", "🗑️")
-        self.button_new.clicked.connect(self.generate_requested.emit)
-        self.button_delete.clicked.connect(self._delete_workout)
-        buttons.addWidget(self.button_new)
-        buttons.addWidget(self.button_delete)
-        left_layout.addLayout(buttons)
         splitter.addWidget(left)
 
         right = QWidget()
@@ -455,6 +455,23 @@ class WorkoutsWidget(QWidget):
                 self._on_item_double_clicked(target)
         elif action == delete_action:
             self._remove_selected_items()
+
+    def _show_workouts_context_menu(self, position: QPoint) -> None:
+        index = self.list_workouts.indexAt(position)
+        if index.isValid():
+            self.list_workouts.setCurrentIndex(index)
+            item = self._list_model.itemFromIndex(index)
+            if item is not None:
+                workout_id = item.data(Qt.ItemDataRole.UserRole)
+                if isinstance(workout_id, int):
+                    self._load_workout(workout_id)
+        context_menu = QMenu(self)
+        delete_action = add_delete_action(context_menu)
+        delete_action.setEnabled(self._current_workout_id is not None)
+        apply_leading_emoji_icons(context_menu)
+        action = context_menu.exec_(self.list_workouts.mapToGlobal(position))
+        if action == delete_action:
+            self._delete_workout()
 
     def _sync_duration_from_items(self) -> None:
         if self._current_workout_id is None:
