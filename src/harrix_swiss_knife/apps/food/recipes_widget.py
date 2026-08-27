@@ -6,17 +6,20 @@ import logging
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QModelIndex, Qt, Signal
-from PySide6.QtGui import QStandardItem, QStandardItemModel
+from PySide6.QtGui import QFont, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import (
     QCheckBox,
     QCompleter,
     QDoubleSpinBox,
     QFormLayout,
+    QFrame,
+    QGroupBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
     QListView,
     QMessageBox,
+    QPushButton,
     QRadioButton,
     QSpinBox,
     QSplitter,
@@ -48,9 +51,44 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+_SPINBOX_STYLE = "QSpinBox { background-color: #e3f2fd; }"
+_DOUBLE_SPINBOX_STYLE = "QDoubleSpinBox { background-color: #e3f2fd; }"
+_FOOD_BUTTON_STYLE = """
+QPushButton {
+    background-color: #e3f2fd;
+    border: 1px solid #2196F3;
+    border-radius: 4px;
+}
+QPushButton:hover {
+    background-color: #bbdefb;
+}
+QPushButton:pressed {
+    background-color: #90caf9;
+}
+"""
+_LIST_STYLE = """
+QListView {
+    border: 2px solid #2196F3;
+    border-radius: 4px;
+    background-color: white;
+}
+QListView::item {
+    padding: 4px;
+    border-bottom: 1px solid #e0e0e0;
+}
+QListView::item:selected {
+    background-color: #e3f2fd;
+    color: black;
+}
+QListView::item:hover {
+    background-color: #bbdefb;
+}
+"""
+_CONTROLS_MIN_WIDTH = 350
+
 
 class RecipesWidget(QWidget):
-    """Split view: recipe list on the left, editor with ingredients on the right."""
+    """Three-pane view: ingredient add on the left, recipe list in the middle, editor on the right."""
 
     recipes_changed = Signal()
 
@@ -133,26 +171,96 @@ class RecipesWidget(QWidget):
         splitter = QSplitter(Qt.Orientation.Horizontal)
         root.addWidget(splitter)
 
-        left = QWidget()
-        left_layout = QVBoxLayout(left)
-        left_layout.setContentsMargins(8, 8, 8, 8)
-        left_label = QLabel("Recipes")
-        left_layout.addWidget(left_label)
+        font_12_bold = QFont()
+        font_12_bold.setPointSize(12)
+        font_12_bold.setBold(True)
+        font_12 = QFont()
+        font_12.setPointSize(12)
+        font_30_bold = QFont()
+        font_30_bold.setPointSize(30)
+        font_30_bold.setBold(True)
+
+        controls = QFrame()
+        controls.setMinimumWidth(_CONTROLS_MIN_WIDTH)
+        controls.setFrameShape(QFrame.Shape.StyledPanel)
+        controls.setFrameShadow(QFrame.Shadow.Raised)
+        controls_layout = QVBoxLayout(controls)
+
+        group_add = QGroupBox("Add ingredient")
+        add_layout = QVBoxLayout(group_add)
+
+        self.line_ingredient_name = QLineEdit()
+        self.line_ingredient_name.setFont(font_12)
+        self.line_ingredient_name.setPlaceholderText("Enter ingredient name")
+        add_layout.addWidget(self.line_ingredient_name)
+
+        amount_row = QHBoxLayout()
+        self.spin_ingredient_weight = QSpinBox()
+        self.spin_ingredient_weight.setFont(font_12_bold)
+        self.spin_ingredient_weight.setStyleSheet(_SPINBOX_STYLE)
+        self.spin_ingredient_weight.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.spin_ingredient_weight.setRange(1, 100_000)
+        self.spin_ingredient_weight.setValue(100)
+        self.spin_ingredient_calories = QDoubleSpinBox()
+        self.spin_ingredient_calories.setFont(font_12_bold)
+        self.spin_ingredient_calories.setStyleSheet(_DOUBLE_SPINBOX_STYLE)
+        self.spin_ingredient_calories.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.spin_ingredient_calories.setRange(0, 100_000)
+        self.spin_ingredient_calories.setDecimals(1)
+        amount_row.addWidget(self.spin_ingredient_weight)
+        amount_row.addWidget(QLabel("g"))
+        amount_row.addWidget(self.spin_ingredient_calories)
+        amount_row.addWidget(QLabel("kcal"))
+        self.check_ingredient_drink = QCheckBox("Drink")
+        amount_row.addWidget(self.check_ingredient_drink)
+        add_layout.addLayout(amount_row)
+
+        mode_row = QHBoxLayout()
+        self.radio_use_weight = QRadioButton("Calculate by weight")
+        self.radio_use_calories = QRadioButton("Enter calories directly")
+        self.radio_use_weight.setChecked(True)
+        mode_row.addWidget(self.radio_use_weight)
+        mode_row.addWidget(self.radio_use_calories)
+        add_layout.addLayout(mode_row)
+
+        self.button_add_ingredient = QPushButton("Add ingredient")
+        self.button_add_ingredient.setMinimumHeight(41)
+        self.button_add_ingredient.setFont(font_12_bold)
+        self.button_add_ingredient.setStyleSheet(_FOOD_BUTTON_STYLE)
+        self.button_add_ingredient.clicked.connect(self._add_ingredient)
+        add_layout.addWidget(self.button_add_ingredient)
+        controls_layout.addWidget(group_add)
+
+        group_totals = QGroupBox("Total")
+        totals_layout = QHBoxLayout(group_totals)
+        self.label_recipe_totals = QLabel("0 g\n0 kcal")
+        self.label_recipe_totals.setFont(font_30_bold)
+        self.label_recipe_totals.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        totals_layout.addWidget(self.label_recipe_totals)
+        controls_layout.addWidget(group_totals)
+        controls_layout.addStretch()
+        splitter.addWidget(controls)
+
+        middle = QWidget()
+        middle_layout = QVBoxLayout(middle)
+        middle_layout.setContentsMargins(8, 8, 8, 8)
+        middle_layout.addWidget(QLabel("Recipes"))
         self.list_recipes = QListView()
+        self.list_recipes.setStyleSheet(_LIST_STYLE)
         self._recipes_model = QStandardItemModel(self.list_recipes)
         self.list_recipes.setModel(self._recipes_model)
         self.list_recipes.clicked.connect(self._on_recipe_clicked)
-        left_layout.addWidget(self.list_recipes, 1)
+        middle_layout.addWidget(self.list_recipes, 1)
 
-        buttons = QHBoxLayout()
+        list_buttons = QHBoxLayout()
         self.button_new = make_emoji_push_button("New", "➕")  # noqa: RUF001
         self.button_delete = make_emoji_push_button("Delete", "🗑️")
         self.button_new.clicked.connect(self._new_recipe)
         self.button_delete.clicked.connect(self._delete_recipe)
-        buttons.addWidget(self.button_new)
-        buttons.addWidget(self.button_delete)
-        left_layout.addLayout(buttons)
-        splitter.addWidget(left)
+        list_buttons.addWidget(self.button_new)
+        list_buttons.addWidget(self.button_delete)
+        middle_layout.addLayout(list_buttons)
+        splitter.addWidget(middle)
 
         right = QWidget()
         right_layout = QVBoxLayout(right)
@@ -165,45 +273,6 @@ class RecipesWidget(QWidget):
         form.addRow("Name:", self.line_recipe_name)
         form.addRow("", self.check_recipe_drink)
         right_layout.addLayout(form)
-
-        ingredient_box = QWidget()
-        ingredient_layout = QVBoxLayout(ingredient_box)
-        ingredient_layout.setContentsMargins(0, 0, 0, 0)
-        ingredient_layout.addWidget(QLabel("Add ingredient"))
-
-        name_row = QHBoxLayout()
-        self.line_ingredient_name = QLineEdit()
-        self.line_ingredient_name.setPlaceholderText("Ingredient name")
-        name_row.addWidget(self.line_ingredient_name, 1)
-        ingredient_layout.addLayout(name_row)
-
-        amount_row = QHBoxLayout()
-        self.spin_ingredient_weight = QSpinBox()
-        self.spin_ingredient_weight.setRange(1, 100_000)
-        self.spin_ingredient_weight.setValue(100)
-        self.spin_ingredient_weight.setSuffix(" g")
-        self.spin_ingredient_calories = QDoubleSpinBox()
-        self.spin_ingredient_calories.setRange(0, 100_000)
-        self.spin_ingredient_calories.setDecimals(1)
-        self.spin_ingredient_calories.setSuffix(" kcal")
-        amount_row.addWidget(self.spin_ingredient_weight)
-        amount_row.addWidget(self.spin_ingredient_calories)
-        ingredient_layout.addLayout(amount_row)
-
-        mode_row = QHBoxLayout()
-        self.radio_use_weight = QRadioButton("By weight (kcal/100g)")
-        self.radio_use_calories = QRadioButton("Portion calories")
-        self.radio_use_weight.setChecked(True)
-        self.check_ingredient_drink = QCheckBox("Drink")
-        mode_row.addWidget(self.radio_use_weight)
-        mode_row.addWidget(self.radio_use_calories)
-        mode_row.addWidget(self.check_ingredient_drink)
-        ingredient_layout.addLayout(mode_row)
-
-        self.button_add_ingredient = make_emoji_push_button("Add ingredient", "➕")  # noqa: RUF001
-        self.button_add_ingredient.clicked.connect(self._add_ingredient)
-        ingredient_layout.addWidget(self.button_add_ingredient)
-        right_layout.addWidget(ingredient_box)
 
         self.table_ingredients = QTableWidget(0, 6)
         self.table_ingredients.setHorizontalHeaderLabels(
@@ -220,16 +289,14 @@ class RecipesWidget(QWidget):
         remove_row.addStretch()
         right_layout.addLayout(remove_row)
 
-        self.label_totals = QLabel("Total: 0 g · 0 kcal · — kcal/100g")
-        right_layout.addWidget(self.label_totals)
-
         self.button_save = make_emoji_push_button("Save recipe", "💾")
         self.button_save.clicked.connect(self._save_recipe)
         right_layout.addWidget(self.button_save)
 
         splitter.addWidget(right)
-        splitter.setStretchFactor(0, 1)
-        splitter.setStretchFactor(1, 3)
+        splitter.setStretchFactor(0, 0)
+        splitter.setStretchFactor(1, 1)
+        splitter.setStretchFactor(2, 3)
 
     def _clear_editor(self) -> None:
         self._current_recipe_id = None
@@ -362,10 +429,10 @@ class RecipesWidget(QWidget):
                 self.table_ingredients.setItem(row, col, QTableWidgetItem(value))
         nutrition = calculate_recipe_nutrition(self._ingredients)
         per_100 = (
-            f"{nutrition.calories_per_100g:.2f} kcal/100g" if nutrition.calories_per_100g is not None else "— kcal/100g"
+            f"{nutrition.calories_per_100g:.1f} kcal/100g" if nutrition.calories_per_100g is not None else "— kcal/100g"
         )
-        self.label_totals.setText(
-            f"Total: {nutrition.total_weight:.1f} g · {nutrition.total_calories:.1f} kcal · {per_100}"
+        self.label_recipe_totals.setText(
+            f"{nutrition.total_weight:.0f} g\n{nutrition.total_calories:.1f} kcal\n{per_100}"
         )
 
     def _reload_recipe_list(self, *, keep_selection: bool) -> None:
