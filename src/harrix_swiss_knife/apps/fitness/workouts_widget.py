@@ -16,7 +16,6 @@ from PySide6.QtWidgets import (
     QListView,
     QMenu,
     QMessageBox,
-    QSpinBox,
     QSplitter,
     QStyle,
     QStyledItemDelegate,
@@ -30,11 +29,7 @@ from PySide6.QtWidgets import (
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.table_context_menu import LABEL_OPEN_LIGHTBOX, add_delete_action
 from harrix_swiss_knife.apps.common.widgets.exercise_list_hover_preview import exercise_at_table_image
-from harrix_swiss_knife.apps.fitness.workouts_ai import (
-    MAX_WORKOUT_DURATION_MIN,
-    MIN_WORKOUT_DURATION_MIN,
-    recalculate_workout_duration,
-)
+from harrix_swiss_knife.apps.fitness.workouts_ai import estimate_workout_duration_min
 from harrix_swiss_knife.qt_emoji_icon import apply_leading_emoji_icons, make_emoji_push_button
 
 if TYPE_CHECKING:
@@ -177,12 +172,8 @@ class WorkoutsWidget(QWidget):
         right_layout.addWidget(self.label_meta)
         duration_row = QHBoxLayout()
         duration_row.addWidget(QLabel("Duration:"))
-        self.spin_duration = QSpinBox()
-        self.spin_duration.setRange(MIN_WORKOUT_DURATION_MIN, MAX_WORKOUT_DURATION_MIN)
-        self.spin_duration.setSuffix(" min")
-        self.spin_duration.setEnabled(False)
-        self.spin_duration.editingFinished.connect(self._save_duration)
-        duration_row.addWidget(self.spin_duration)
+        self.label_duration = QLabel("")
+        duration_row.addWidget(self.label_duration)
         duration_row.addStretch()
         right_layout.addLayout(duration_row)
 
@@ -216,12 +207,19 @@ class WorkoutsWidget(QWidget):
         self._item_calories_modifier = []
         self.label_title.setText("Select a workout")
         self.label_meta.setText("")
-        self.spin_duration.blockSignals(True)  # noqa: FBT003
-        self.spin_duration.setValue(MIN_WORKOUT_DURATION_MIN)
-        self.spin_duration.setEnabled(False)
-        self.spin_duration.blockSignals(False)  # noqa: FBT003
+        self.label_duration.setText("")
         self.label_totals.setText("")
         self.table_items.setRowCount(0)
+
+    def _collect_duration_items(self) -> list[tuple[str, str]]:
+        items: list[tuple[str, str]] = []
+        for row in range(self.table_items.rowCount()):
+            value_item = self.table_items.item(row, _COL_VALUE)
+            unit_item = self.table_items.item(row, _COL_UNIT)
+            if value_item is None or unit_item is None:
+                continue
+            items.append((value_item.text().strip(), unit_item.text().strip()))
+        return items
 
     def _delete_workout(self) -> None:
         if self._db is None or self._current_workout_id is None:
@@ -294,6 +292,7 @@ class WorkoutsWidget(QWidget):
                 total_kcal += kcal
                 self._set_readonly_item(row, _COL_KCAL, f"{kcal:.1f}")
             self.label_totals.setText(f"Estimated: {total_kcal:.0f} kcal")
+            self._sync_duration_from_items()
         finally:
             self.table_items.blockSignals(False)  # noqa: FBT003
             self._filling_items = False
@@ -307,10 +306,6 @@ class WorkoutsWidget(QWidget):
         self._current_workout_id = workout.id
         self.label_title.setText(workout.name)
         self.label_meta.setText(f"{workout.gender} · {workout.created_date}")
-        self.spin_duration.blockSignals(True)  # noqa: FBT003
-        self.spin_duration.setEnabled(True)
-        self.spin_duration.setValue(workout.duration_min)
-        self.spin_duration.blockSignals(False)  # noqa: FBT003
         items = self._db.get_workout_items(workout_id)
         self._fill_items(items)
 
@@ -345,6 +340,7 @@ class WorkoutsWidget(QWidget):
             self._filling_items = False
             return
         self._update_row_kcal(row)
+        self._sync_duration_from_items()
         self.workouts_changed.emit()
 
     def _on_workout_clicked(self, index: QModelIndex) -> None:
@@ -367,16 +363,15 @@ class WorkoutsWidget(QWidget):
                 continue
         self.label_totals.setText(f"Estimated: {total_kcal:.0f} kcal")
 
-    def _refresh_list_duration_label(self) -> None:
+    def _refresh_list_duration_label(self, duration_min: int) -> None:
         workout_id = self._current_workout_id
         if workout_id is None:
             return
         name = self.label_title.text()
-        duration = self.spin_duration.value()
         for row in range(self._list_model.rowCount()):
             item = self._list_model.item(row)
             if item is not None and item.data(Qt.ItemDataRole.UserRole) == workout_id:
-                item.setText(f"{name} ({duration} min)")
+                item.setText(f"{name} (~{duration_min} min)")
                 return
 
     def _reload_list(self, *, keep_selection: bool) -> None:
@@ -386,7 +381,7 @@ class WorkoutsWidget(QWidget):
             return
         workouts: list[WorkoutRow] = self._db.get_all_workouts()
         for workout in workouts:
-            item = QStandardItem(f"{workout.name} ({workout.duration_min} min)")
+            item = QStandardItem(f"{workout.name} (~{workout.duration_min} min)")
             item.setData(workout.id, Qt.ItemDataRole.UserRole)
             item.setEditable(False)
             self._list_model.appendRow(item)
@@ -415,33 +410,12 @@ class WorkoutsWidget(QWidget):
         if reply != QMessageBox.StandardButton.Yes:
             return
         workout_id = self._current_workout_id
-        previous_count = len(self._item_ids)
-        previous_duration = self.spin_duration.value()
         for item_id in item_ids:
             if not self._db.delete_workout_item(item_id):
                 message_box.warning(self, "Error", "Failed to remove workout row")
                 self._load_workout(workout_id)
                 return
-        remaining_count = previous_count - len(item_ids)
-        new_duration = recalculate_workout_duration(
-            previous_duration,
-            remaining_count=remaining_count,
-            previous_count=previous_count,
-        )
-        if not self._db.update_workout_duration(workout_id, new_duration):
-            message_box.warning(self, "Error", "Failed to update workout duration")
         self._load_workout(workout_id)
-        self._refresh_list_duration_label()
-        self.workouts_changed.emit()
-
-    def _save_duration(self) -> None:
-        if self._db is None or self._current_workout_id is None or not self.spin_duration.isEnabled():
-            return
-        duration = self.spin_duration.value()
-        if not self._db.update_workout_duration(self._current_workout_id, duration):
-            message_box.warning(self, "Error", "Failed to update workout duration")
-            return
-        self._refresh_list_duration_label()
         self.workouts_changed.emit()
 
     def _selected_exercise_names(self) -> list[str]:
@@ -457,6 +431,9 @@ class WorkoutsWidget(QWidget):
 
     def _selected_rows(self) -> list[int]:
         return sorted({index.row() for index in self.table_items.selectedIndexes()})
+
+    def _set_duration_label(self, duration_min: int) -> None:
+        self.label_duration.setText(f"~{duration_min} min")
 
     def _set_readonly_item(self, row: int, column: int, text: str) -> None:
         cell = QTableWidgetItem(text)
@@ -478,6 +455,17 @@ class WorkoutsWidget(QWidget):
                 self._on_item_double_clicked(target)
         elif action == delete_action:
             self._remove_selected_items()
+
+    def _sync_duration_from_items(self) -> None:
+        if self._current_workout_id is None:
+            self.label_duration.setText("")
+            return
+        duration = estimate_workout_duration_min(self._collect_duration_items())
+        self._set_duration_label(duration)
+        if self._db is not None and not self._db.update_workout_duration(self._current_workout_id, duration):
+            message_box.warning(self, "Error", "Failed to update workout duration")
+            return
+        self._refresh_list_duration_label(duration)
 
     def _update_row_kcal(self, row: int) -> None:
         value_item = self.table_items.item(row, _COL_VALUE)

@@ -81,12 +81,14 @@ def test_workouts_table_has_image_column_like_other_tables() -> None:
     widget.close()
 
 
-def test_workouts_widget_has_duration_edit() -> None:
-    """Duration is editable on the workout detail pane."""
+def test_workouts_widget_shows_estimated_duration() -> None:
+    """Duration is read-only and shows an approximate estimate."""
     assert _qapp() is not None
     widget = WorkoutsWidget()
-    assert widget.spin_duration.isEnabled() is False
-    assert widget.spin_duration.suffix() == " min"
+    assert widget.label_duration.text() == ""
+    widget._current_workout_id = 1
+    widget._fill_items([_sample_item()])
+    assert widget.label_duration.text() == "~1 min"
     assert not widget.table_items.verticalHeader().isVisible()
     widget.close()
 
@@ -117,6 +119,7 @@ def test_workouts_value_edit_recalculates_kcal() -> None:
         calories_modifier=2.0,
     )
     widget = WorkoutsWidget()
+    widget._current_workout_id = 1
     widget._fill_items([item])
     value_item = widget.table_items.item(0, _COL_VALUE)
     kcal_item = widget.table_items.item(0, _COL_KCAL)
@@ -125,11 +128,13 @@ def test_workouts_value_edit_recalculates_kcal() -> None:
     assert value_item.flags() & Qt.ItemFlag.ItemIsEditable
     assert kcal_item.text() == "10.0"
     assert widget.label_totals.text() == "Estimated: 10 kcal"
+    assert widget.label_duration.text() == "~1 min"
 
     value_item.setText("20")
     widget._on_table_item_changed(value_item)
     assert kcal_item.text() == "20.0"
     assert widget.label_totals.text() == "Estimated: 20 kcal"
+    assert widget.label_duration.text() == "~2 min"
     widget.close()
 
 

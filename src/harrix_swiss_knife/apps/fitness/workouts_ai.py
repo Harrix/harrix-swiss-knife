@@ -16,6 +16,10 @@ _TITLE_PREFIXES = {"title"}
 _RECENT_SET_COL_COUNT = 6
 MIN_WORKOUT_DURATION_MIN = 1
 MAX_WORKOUT_DURATION_MIN = 240
+_SECONDS_PER_REP = 5
+_REST_SECONDS_BETWEEN = 45
+_MINUTE_UNITS = frozenset({"min", "minute", "minutes", "m"})
+_SECOND_UNITS = frozenset({"sec", "second", "seconds", "s"})
 
 
 @dataclass(frozen=True)
@@ -35,6 +39,25 @@ class WorkoutItemDraft:
     exercise_name: str
     type_name: str
     target_value: str
+
+
+def estimate_workout_duration_min(items: list[tuple[str, str]]) -> int:
+    """Estimate planned workout length from item values and units.
+
+    Rep-based units use an approximate seconds-per-rep heuristic; minute and
+    second units use the numeric value directly. Rest between exercises is
+    included.
+
+    """
+    if not items:
+        return MIN_WORKOUT_DURATION_MIN
+    total_seconds = 0.0
+    for index, (value_text, unit) in enumerate(items):
+        total_seconds += _item_duration_seconds(value_text, unit)
+        if index < len(items) - 1:
+            total_seconds += _REST_SECONDS_BETWEEN
+    minutes = round(total_seconds / 60)
+    return max(MIN_WORKOUT_DURATION_MIN, min(minutes, MAX_WORKOUT_DURATION_MIN))
 
 
 def format_recent_sets(rows: list[list]) -> str:
@@ -162,3 +185,20 @@ def resolve_workout_item(
         ),
         None,
     )
+
+
+def _item_duration_seconds(value_text: str, unit: str) -> float:
+    value = _parse_numeric_value(value_text)
+    normalized = (unit or "times").strip().casefold()
+    if normalized in _MINUTE_UNITS:
+        return value * 60
+    if normalized in _SECOND_UNITS:
+        return value
+    return value * _SECONDS_PER_REP
+
+
+def _parse_numeric_value(value_text: str) -> float:
+    try:
+        return max(0.0, float(value_text.strip().replace(",", ".")))
+    except (TypeError, ValueError):
+        return 0.0

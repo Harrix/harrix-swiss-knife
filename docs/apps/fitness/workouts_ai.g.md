@@ -13,6 +13,7 @@ lang: en
 
 - [🏛️ Class `ParsedWorkout`](#%EF%B8%8F-class-parsedworkout)
 - [🏛️ Class `WorkoutItemDraft`](#%EF%B8%8F-class-workoutitemdraft)
+- [🔧 Function `estimate_workout_duration_min`](#-function-estimate_workout_duration_min)
 - [🔧 Function `format_recent_sets`](#-function-format_recent_sets)
 - [🔧 Function `format_workout_exercise_catalog`](#-function-format_workout_exercise_catalog)
 - [🔧 Function `parse_workout_tsv`](#-function-parse_workout_tsv)
@@ -60,6 +61,36 @@ class WorkoutItemDraft:
     exercise_name: str
     type_name: str
     target_value: str
+```
+
+</details>
+
+## 🔧 Function `estimate_workout_duration_min`
+
+```python
+def estimate_workout_duration_min(items: list[tuple[str, str]]) -> int
+```
+
+Estimate planned workout length from item values and units.
+
+Rep-based units use an approximate seconds-per-rep heuristic; minute and
+second units use the numeric value directly. Rest between exercises is
+included.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def estimate_workout_duration_min(items: list[tuple[str, str]]) -> int:
+    if not items:
+        return MIN_WORKOUT_DURATION_MIN
+    total_seconds = 0.0
+    for index, (value_text, unit) in enumerate(items):
+        total_seconds += _item_duration_seconds(value_text, unit)
+        if index < len(items) - 1:
+            total_seconds += _REST_SECONDS_BETWEEN
+    minutes = round(total_seconds / 60)
+    return max(MIN_WORKOUT_DURATION_MIN, min(minutes, MAX_WORKOUT_DURATION_MIN))
 ```
 
 </details>

@@ -13,6 +13,7 @@ from harrix_swiss_knife.apps.fitness.sets_ai import (
     build_exercise_catalog,
 )
 from harrix_swiss_knife.apps.fitness.workouts_ai import (
+    estimate_workout_duration_min,
     format_recent_sets,
     format_workout_exercise_catalog,
     parse_workout_tsv,
@@ -34,6 +35,14 @@ def test_recalculate_workout_duration_scales_and_clamps() -> None:
     assert recalculate_workout_duration(45, remaining_count=0, previous_count=9) == 45
     assert recalculate_workout_duration(10, remaining_count=1, previous_count=10) == 1
     assert recalculate_workout_duration(0, remaining_count=2, previous_count=4) == 1
+
+
+def test_estimate_workout_duration_min_for_reps_and_time_units() -> None:
+    assert estimate_workout_duration_min([("10", "times")]) == 1
+    assert estimate_workout_duration_min([("20", "times")]) == 2
+    assert estimate_workout_duration_min([("2", "min")]) == 2
+    assert estimate_workout_duration_min([("90", "sec")]) == 2
+    assert estimate_workout_duration_min([("10", "times"), ("2", "min")]) == 4
 
 
 def test_parse_workout_tsv_reads_title_and_sets() -> None:
