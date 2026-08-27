@@ -164,7 +164,6 @@ from harrix_swiss_knife.apps.finance.transaction_helpers import (
     compute_period_flow_compare_last_years,
     compute_period_flow_series,
     fiscal_period_month_labels_by_index,
-    get_natural_cumulative_income_expense_minor_by_currency,
     get_natural_currency_reconciliation,
     iter_period_end_dates,
     plan_revision_expense_consolidation_for_positive_diff,
@@ -1345,11 +1344,9 @@ class MainWindow(
             default_currency_info = db.get_currency_by_code(db.get_default_currency())
             currency_symbol: str = default_currency_info[2] if default_currency_info else "₽"
 
-            transaction_rows: list = db.get_all_transactions()
-
             income_minor: dict[int, int]
             expense_minor: dict[int, int]
-            income_minor, expense_minor = get_natural_cumulative_income_expense_minor_by_currency(transaction_rows, db)
+            income_minor, expense_minor = db.get_cumulative_income_expense_minor_by_currency()
 
             def _currency_sort_key(cid: int) -> str:
                 cur = db.get_currency_by_id(cid)
@@ -1396,15 +1393,7 @@ class MainWindow(
             yesterday_str: str = (today - timedelta(days=1)).strftime("%Y-%m-%d")
 
             def _expense_lines_for_date(target_date: str) -> list[str]:
-                expense_minor_by_date: dict[int, int] = {}
-                for row in transaction_rows:
-                    if len(row) < MIN_TRANSACTION_ROW_LENGTH:
-                        continue
-                    if row[5] != target_date or int(row[7]) != 0:
-                        continue
-                    currency_info = db.get_currency_by_code(row[4])
-                    cid = currency_info[0] if currency_info else 1
-                    expense_minor_by_date[cid] = expense_minor_by_date.get(cid, 0) + int(row[1])
+                expense_minor_by_date = db.get_expense_minor_by_currency_for_date(target_date)
 
                 lines: list[str] = []
                 for cid in sorted(expense_minor_by_date, key=_currency_sort_key):
@@ -2350,7 +2339,12 @@ class MainWindow(
         self._add_finance_chart_stats_box(ax, all_values, currency_symbol)
         self._add_chart_canvas(fig)
 
-    def _draw_compare_chart(self, mode: str) -> None:
+    def _draw_compare_chart(
+        self,
+        mode: str,
+        transaction_rows: list[list[Any]],
+        chart_ctx: ChartComputeContext,
+    ) -> None:
         if self.db_manager is None:
             return
 
@@ -2359,9 +2353,7 @@ class MainWindow(
             self._show_no_data_label(self.verticalLayout_charts_content, "Please select at least one category")
             return
 
-        transaction_rows = self.db_manager.get_all_transactions()
         currency_symbol = self._get_default_currency_symbol()
-        chart_ctx = ChartComputeContext.load(self.db_manager)
         sections: list[tuple[str, int, set[str]]] = []
         if expense_names:
             sections.append(("Expense", 0, expense_names))
@@ -2511,12 +2503,12 @@ class MainWindow(
         period: str,
         currency_symbol: str,
         years_count: int,
+        transaction_rows: list[list[Any]],
+        chart_ctx: ChartComputeContext,
     ) -> None:
         if self.db_manager is None:
             return
 
-        transaction_rows = self.db_manager.get_all_transactions()
-        chart_ctx = ChartComputeContext.load(self.db_manager)
         year_start_month = self._compare_last_years_start_month
         year_start_day = self._compare_last_years_start_day
         self.label_compare_last.setText("Number of years:")
@@ -2881,14 +2873,7 @@ class MainWindow(
             return []
 
         try:
-            transactions: list = self.db_manager.get_all_transactions()
-            tags: set[str] = set()
-            for transaction in transactions:
-                tag: str = transaction[6]  # tag is at index 6
-                if tag and tag.strip():
-                    tags.add(tag.strip())
-
-            return sorted(tags)
+            return self.db_manager.get_distinct_transaction_tags()
         except Exception:
             logger.exception("Error getting tags for delegate")
             return []
@@ -6199,9 +6184,6 @@ class MainWindow(
             date_from = self.dateEdit_chart_from.date().toString("yyyy-MM-dd")
             date_to = self.dateEdit_chart_to.date().toString("yyyy-MM-dd")
             currency_symbol = self._get_default_currency_symbol()
-            transaction_rows = self.db_manager.get_all_transactions()
-            exchange_rows = self.db_manager.get_all_currency_exchanges()
-            chart_ctx = ChartComputeContext.load(self.db_manager)
 
             if self.radioButton_type_of_chart_average_salary.isChecked():
                 year_start_month = self._compare_last_years_start_month
@@ -6226,7 +6208,11 @@ class MainWindow(
                 )
                 return
 
+            transaction_rows = self.db_manager.get_all_transactions()
+            chart_ctx = ChartComputeContext.load(self.db_manager)
+
             if self.radioButton_type_of_chart_balance.isChecked():
+                exchange_rows = self.db_manager.get_all_currency_exchanges()
                 period_end_dates = iter_period_end_dates(date_from, date_to, period)
                 series = compute_balance_series(
                     transaction_rows, exchange_rows, self.db_manager, period_end_dates, ctx=chart_ctx
@@ -6241,15 +6227,15 @@ class MainWindow(
                 return
 
             if self.radioButton_type_of_chart_compare_last.isChecked():
-                self._draw_compare_chart("last")
+                self._draw_compare_chart("last", transaction_rows, chart_ctx)
                 return
 
             if self.radioButton_type_of_chart_compare_last_years.isChecked():
-                self._draw_compare_chart("last_years")
+                self._draw_compare_chart("last_years", transaction_rows, chart_ctx)
                 return
 
             if self.radioButton_type_of_chart_compare_same_months.isChecked():
-                self._draw_compare_chart("same")
+                self._draw_compare_chart("same", transaction_rows, chart_ctx)
                 return
 
             expense_names, income_names, all_names = self._get_checked_chart_categories()
@@ -6268,6 +6254,8 @@ class MainWindow(
                     period,
                     currency_symbol,
                     years_count,
+                    transaction_rows,
+                    chart_ctx,
                 )
                 return
 

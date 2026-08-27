@@ -50,6 +50,7 @@ lang: en
   - [⚙️ Method `get_categories_with_icons_by_type`](#%EF%B8%8F-method-get_categories_with_icons_by_type)
   - [⚙️ Method `get_category_by_id`](#%EF%B8%8F-method-get_category_by_id)
   - [⚙️ Method `get_category_totals_in_currency`](#%EF%B8%8F-method-get_category_totals_in_currency)
+  - [⚙️ Method `get_cumulative_income_expense_minor_by_currency`](#%EF%B8%8F-method-get_cumulative_income_expense_minor_by_currency)
   - [⚙️ Method `get_currencies_except_usd`](#%EF%B8%8F-method-get_currencies_except_usd)
   - [⚙️ Method `get_currency_by_code`](#%EF%B8%8F-method-get_currency_by_code)
   - [⚙️ Method `get_currency_by_id`](#%EF%B8%8F-method-get_currency_by_id)
@@ -60,9 +61,11 @@ lang: en
   - [⚙️ Method `get_currency_ticker`](#%EF%B8%8F-method-get_currency_ticker)
   - [⚙️ Method `get_default_currency`](#%EF%B8%8F-method-get_default_currency)
   - [⚙️ Method `get_default_currency_id`](#%EF%B8%8F-method-get_default_currency_id)
+  - [⚙️ Method `get_distinct_transaction_tags`](#%EF%B8%8F-method-get_distinct_transaction_tags)
   - [⚙️ Method `get_earliest_currency_exchange_date`](#%EF%B8%8F-method-get_earliest_currency_exchange_date)
   - [⚙️ Method `get_earliest_transaction_date`](#%EF%B8%8F-method-get_earliest_transaction_date)
   - [⚙️ Method `get_exchange_rate`](#%EF%B8%8F-method-get_exchange_rate)
+  - [⚙️ Method `get_expense_minor_by_currency_for_date`](#%EF%B8%8F-method-get_expense_minor_by_currency_for_date)
   - [⚙️ Method `get_filtered_exchange_rates`](#%EF%B8%8F-method-get_filtered_exchange_rates)
   - [⚙️ Method `get_filtered_transactions`](#%EF%B8%8F-method-get_filtered_transactions)
   - [⚙️ Method `get_income_vs_expenses_in_currency`](#%EF%B8%8F-method-get_income_vs_expenses_in_currency)
@@ -142,6 +145,10 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         """
         super().__init__(prefix="finance_db", db_filename=db_filename)
+
+        # The currency catalog holds a handful of rows but is looked up once per
+        # transaction in several aggregations, so it is loaded once and cached.
+        self._currencies_cache: list[tuple[int, str, str, str, int, str | None]] | None = None
 
         self.exchange_rates = ExchangeRatesService(self)
 
@@ -231,7 +238,9 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             "symbol": symbol,
             "subdivision": subdivision,
         }
-        return self.execute_simple_query(query, params)
+        success = self.execute_simple_query(query, params)
+        self._invalidate_currencies_cache()
+        return success
 
     def add_currency_exchange(
         self,
@@ -499,7 +508,9 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         """
         query = "DELETE FROM currencies WHERE _id = :id"
-        return self.execute_simple_query(query, {"id": currency_id})
+        success = self.execute_simple_query(query, {"id": currency_id})
+        self._invalidate_currencies_cache()
+        return success
 
     def delete_currency_exchange(self, exchange_id: int) -> bool:
         """Delete a currency exchange record.
@@ -711,7 +722,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `list[list[Any]]`: List of currency records [\_id, code, name, symbol].
 
         """
-        return self.get_rows("SELECT _id, code, name, symbol FROM currencies ORDER BY code")
+        return [[row[0], row[1], row[2], row[3]] for row in self._cached_currencies()]
 
     def get_all_currencies_map(
         self,
@@ -719,7 +730,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """Return currency lookups: code -> (ID, name, symbol) and ID -> (code, name, symbol)."""
         by_code: dict[str, tuple[int, str, str]] = {}
         by_id: dict[int, tuple[str, str, str]] = {}
-        for row in self.get_rows("SELECT _id, code, name, symbol FROM currencies ORDER BY code"):
+        for row in self.get_all_currencies():
             currency_id = int(row[0])
             code = str(row[1])
             name = str(row[2])
@@ -901,6 +912,35 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         rows = self.get_rows(query, params)
         return {str(row[0]): float(row[1] or 0) / 100 for row in rows if row[0] is not None}
 
+    def get_cumulative_income_expense_minor_by_currency(self) -> tuple[dict[int, int], dict[int, int]]:
+        """Sum all-time income and expense amounts per currency in minor units.
+
+        Aggregating in SQL avoids loading the whole transactions table just to total it.
+
+        Returns:
+
+        - `tuple[dict[int, int], dict[int, int]]`: `(income, expense)` maps of currency ID
+          to summed minor units, skipping currencies with no rows.
+
+        """
+        rows = self.get_rows(
+            """
+            SELECT t._id_currencies,
+                   COALESCE(SUM(CASE WHEN cat.type = 0 THEN 0 ELSE t.amount END), 0) AS income_minor,
+                   COALESCE(SUM(CASE WHEN cat.type = 0 THEN t.amount ELSE 0 END), 0) AS expense_minor
+            FROM transactions t
+            JOIN categories cat ON t._id_categories = cat._id
+            GROUP BY t._id_currencies
+            """
+        )
+        income: dict[int, int] = {}
+        expense: dict[int, int] = {}
+        for row in rows:
+            currency_id = int(row[0])
+            income[currency_id] = int(row[1] or 0)
+            expense[currency_id] = int(row[2] or 0)
+        return income, expense
+
     def get_currencies_except_usd(self) -> list[list[Any]]:
         r"""Get all currencies except USD (which is the base currency).
 
@@ -909,7 +949,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `list[list[Any]]`: List of currency records [\_id, code, name, symbol] excluding USD.
 
         """
-        return self.get_rows("SELECT _id, code, name, symbol FROM currencies WHERE code != 'USD' ORDER BY code")
+        return [row for row in self.get_all_currencies() if row[1] != "USD"]
 
     def get_currency_by_code(self, code: str) -> tuple[int, str, str] | None:
         """Get currency information by code.
@@ -923,8 +963,10 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `tuple[int, str, str] | None`: Tuple of (ID, name, symbol) or `None` if not found.
 
         """
-        rows = self.get_rows("SELECT _id, name, symbol FROM currencies WHERE code = :code", {"code": code})
-        return (rows[0][0], rows[0][1], rows[0][2]) if rows else None
+        for row in self._cached_currencies():
+            if row[1] == code:
+                return (row[0], row[2], row[3])
+        return None
 
     def get_currency_by_id(self, currency_id: int) -> tuple[str, str, str] | None:
         """Get currency information by ID.
@@ -938,8 +980,10 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `tuple[str, str, str] | None`: Tuple of (code, name, symbol) or `None` if not found.
 
         """
-        rows = self.get_rows("SELECT code, name, symbol FROM currencies WHERE _id = :id", {"id": currency_id})
-        return (rows[0][0], rows[0][1], rows[0][2]) if rows else None
+        for row in self._cached_currencies():
+            if row[0] == currency_id:
+                return (row[1], row[2], row[3])
+        return None
 
     def get_currency_exchange_rate_by_date(self, currency_id: int, date: str) -> float:
         """Get exchange rate for a specific currency on a specific date.
@@ -968,8 +1012,10 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `int`: Number of minor units in one major unit (e.g., 100 for USD cents). Returns 100 as default if not found.
 
         """
-        rows = self.get_rows("SELECT subdivision FROM currencies WHERE _id = :id", {"id": currency_id})
-        return rows[0][0] if rows else 100
+        for row in self._cached_currencies():
+            if row[0] == currency_id:
+                return row[4]
+        return 100
 
     def get_currency_subdivision_by_code(self, currency_code: str) -> int:
         """Get subdivision value for a currency by currency code.
@@ -983,12 +1029,14 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `int`: Number of minor units in one major unit (e.g., 100 for USD cents). Returns 100 as default if not found.
 
         """
-        rows = self.get_rows("SELECT subdivision FROM currencies WHERE code = :code", {"code": currency_code})
-        return rows[0][0] if rows else 100
+        for row in self._cached_currencies():
+            if row[1] == currency_code:
+                return row[4]
+        return 100
 
     def get_currency_subdivisions(self) -> dict[int, int]:
         """Return a currency ID to subdivision map loaded with one query."""
-        rows = self.get_rows("SELECT _id, subdivision FROM currencies")
+        rows = [(row[0], row[4]) for row in self._cached_currencies()]
         result: dict[int, int] = {}
         for row in rows:
             try:
@@ -1009,9 +1057,10 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `str | None`: Currency ticker or `None` if not found or empty.
 
         """
-        rows = self.get_rows("SELECT ticker FROM currencies WHERE _id = :id", {"id": currency_id})
-        if rows and rows[0][0] and rows[0][0].strip():
-            return rows[0][0].strip()
+        for row in self._cached_currencies():
+            if row[0] == currency_id:
+                ticker = (row[5] or "").strip()
+                return ticker or None
         return None
 
     def get_default_currency(self) -> str:
@@ -1039,6 +1088,24 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         if self._default_currency_cache:
             return self._default_currency_cache[1]
         return 1
+
+    def get_distinct_transaction_tags(self) -> list[str]:
+        """Return sorted unique non-empty transaction tags.
+
+        Returns:
+
+        - `list[str]`: Trimmed tag values in ascending order.
+
+        """
+        rows = self.get_rows(
+            """
+            SELECT DISTINCT TRIM(tag)
+            FROM transactions
+            WHERE tag IS NOT NULL AND TRIM(tag) != ''
+            ORDER BY TRIM(tag)
+            """
+        )
+        return [str(row[0]) for row in rows]
 
     def get_earliest_currency_exchange_date(self) -> str | None:
         """Get the earliest date from currency_exchanges table.
@@ -1077,6 +1144,30 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         """
         return self.exchange_rates.get_exchange_rate(from_currency_id, to_currency_id, date)
+
+    def get_expense_minor_by_currency_for_date(self, target_date: str) -> dict[int, int]:
+        """Sum expense amounts per currency in minor units for one date.
+
+        Args:
+
+        - `target_date` (`str`): Date in `YYYY-MM-DD` format.
+
+        Returns:
+
+        - `dict[int, int]`: Currency ID to summed minor units for expense categories.
+
+        """
+        rows = self.get_rows(
+            """
+            SELECT t._id_currencies, COALESCE(SUM(t.amount), 0)
+            FROM transactions t
+            JOIN categories cat ON t._id_categories = cat._id
+            WHERE t.date = :target_date AND cat.type = 0
+            GROUP BY t._id_currencies
+            """,
+            {"target_date": target_date},
+        )
+        return {int(row[0]): int(row[1] or 0) for row in rows}
 
     def get_filtered_exchange_rates(
         self,
@@ -1957,7 +2048,9 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             "symbol": symbol,
             "id": currency_id,
         }
-        return self.execute_simple_query(query, params)
+        success = self.execute_simple_query(query, params)
+        self._invalidate_currencies_cache()
+        return success
 
     def update_currency_exchange_full(
         self,
@@ -2064,10 +2157,12 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         try:
             query = "UPDATE currencies SET ticker = :ticker WHERE _id = :id"
             params = {"ticker": ticker, "id": currency_id}
-            return self.execute_simple_query(query, params)
+            success = self.execute_simple_query(query, params)
         except Exception:
             logger.exception("Error updating currency ticker")
             return False
+        self._invalidate_currencies_cache()
+        return success
 
     def update_exchange_rate(self, currency_id: int, date: str, rate: float) -> bool:
         """Update or insert exchange rate for a specific currency and date.
@@ -2240,6 +2335,22 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         ok = self.update_standard_item(item_id, name, category_id, new_en)
         return ok, "updated" if ok else "unchanged"
 
+    def _cached_currencies(self) -> list[tuple[int, str, str, str, int, str | None]]:
+        """Return the whole currency catalog, loading it from the database only once.
+
+        Returns:
+
+        - `list[tuple[int, str, str, str, int, str | None]]`: Rows of
+          `(_id, code, name, symbol, subdivision, ticker)` ordered by code.
+
+        """
+        if self._currencies_cache is None:
+            rows = self.get_rows("SELECT _id, code, name, symbol, subdivision, ticker FROM currencies ORDER BY code")
+            self._currencies_cache = [
+                (int(row[0]), str(row[1]), str(row[2]), str(row[3]), int(row[4] or 100), row[5]) for row in rows
+            ]
+        return self._currencies_cache
+
     def _ensure_category_name_local_column(self) -> None:
         """Ensure `name_local` exists on categories (migrate from `name_ru` if needed)."""
         try:
@@ -2411,6 +2522,10 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         except Exception:
             logger.exception("Could not initialize default settings")
 
+    def _invalidate_currencies_cache(self) -> None:
+        """Drop the cached currency catalog after a write to the `currencies` table."""
+        self._currencies_cache = None
+
     def _load_default_currency_cache(self) -> None:
         """Load default currency from DB into cache (once per run)."""
         if self._default_currency_cache is not None:
@@ -2494,6 +2609,10 @@ Raises:
 ```python
 def __init__(self, db_filename: str) -> None:
         super().__init__(prefix="finance_db", db_filename=db_filename)
+
+        # The currency catalog holds a handful of rows but is looked up once per
+        # transaction in several aggregations, so it is loaded once and cached.
+        self._currencies_cache: list[tuple[int, str, str, str, int, str | None]] | None = None
 
         self.exchange_rates = ExchangeRatesService(self)
 
@@ -2619,7 +2738,9 @@ def add_currency(self, code: str, name: str, symbol: str, subdivision: int = 100
             "symbol": symbol,
             "subdivision": subdivision,
         }
-        return self.execute_simple_query(query, params)
+        success = self.execute_simple_query(query, params)
+        self._invalidate_currencies_cache()
+        return success
 ```
 
 </details>
@@ -3059,7 +3180,9 @@ Returns:
 ```python
 def delete_currency(self, currency_id: int) -> bool:
         query = "DELETE FROM currencies WHERE _id = :id"
-        return self.execute_simple_query(query, {"id": currency_id})
+        success = self.execute_simple_query(query, {"id": currency_id})
+        self._invalidate_currencies_cache()
+        return success
 ```
 
 </details>
@@ -3401,7 +3524,7 @@ Returns:
 
 ```python
 def get_all_currencies(self) -> list[list[Any]]:
-        return self.get_rows("SELECT _id, code, name, symbol FROM currencies ORDER BY code")
+        return [[row[0], row[1], row[2], row[3]] for row in self._cached_currencies()]
 ```
 
 </details>
@@ -3423,7 +3546,7 @@ def get_all_currencies_map(
     ) -> tuple[dict[str, tuple[int, str, str]], dict[int, tuple[str, str, str]]]:
         by_code: dict[str, tuple[int, str, str]] = {}
         by_id: dict[int, tuple[str, str, str]] = {}
-        for row in self.get_rows("SELECT _id, code, name, symbol FROM currencies ORDER BY code"):
+        for row in self.get_all_currencies():
             currency_id = int(row[0])
             code = str(row[1])
             name = str(row[2])
@@ -3706,6 +3829,47 @@ def get_category_totals_in_currency(
 
 </details>
 
+### ⚙️ Method `get_cumulative_income_expense_minor_by_currency`
+
+```python
+def get_cumulative_income_expense_minor_by_currency(self) -> tuple[dict[int, int], dict[int, int]]
+```
+
+Sum all-time income and expense amounts per currency in minor units.
+
+Aggregating in SQL avoids loading the whole transactions table just to total it.
+
+Returns:
+
+- `tuple[dict[int, int], dict[int, int]]`: `(income, expense)` maps of currency ID
+  to summed minor units, skipping currencies with no rows.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_cumulative_income_expense_minor_by_currency(self) -> tuple[dict[int, int], dict[int, int]]:
+        rows = self.get_rows(
+            """
+            SELECT t._id_currencies,
+                   COALESCE(SUM(CASE WHEN cat.type = 0 THEN 0 ELSE t.amount END), 0) AS income_minor,
+                   COALESCE(SUM(CASE WHEN cat.type = 0 THEN t.amount ELSE 0 END), 0) AS expense_minor
+            FROM transactions t
+            JOIN categories cat ON t._id_categories = cat._id
+            GROUP BY t._id_currencies
+            """
+        )
+        income: dict[int, int] = {}
+        expense: dict[int, int] = {}
+        for row in rows:
+            currency_id = int(row[0])
+            income[currency_id] = int(row[1] or 0)
+            expense[currency_id] = int(row[2] or 0)
+        return income, expense
+```
+
+</details>
+
 ### ⚙️ Method `get_currencies_except_usd`
 
 ```python
@@ -3723,7 +3887,7 @@ Returns:
 
 ```python
 def get_currencies_except_usd(self) -> list[list[Any]]:
-        return self.get_rows("SELECT _id, code, name, symbol FROM currencies WHERE code != 'USD' ORDER BY code")
+        return [row for row in self.get_all_currencies() if row[1] != "USD"]
 ```
 
 </details>
@@ -3749,8 +3913,10 @@ Returns:
 
 ```python
 def get_currency_by_code(self, code: str) -> tuple[int, str, str] | None:
-        rows = self.get_rows("SELECT _id, name, symbol FROM currencies WHERE code = :code", {"code": code})
-        return (rows[0][0], rows[0][1], rows[0][2]) if rows else None
+        for row in self._cached_currencies():
+            if row[1] == code:
+                return (row[0], row[2], row[3])
+        return None
 ```
 
 </details>
@@ -3776,8 +3942,10 @@ Returns:
 
 ```python
 def get_currency_by_id(self, currency_id: int) -> tuple[str, str, str] | None:
-        rows = self.get_rows("SELECT code, name, symbol FROM currencies WHERE _id = :id", {"id": currency_id})
-        return (rows[0][0], rows[0][1], rows[0][2]) if rows else None
+        for row in self._cached_currencies():
+            if row[0] == currency_id:
+                return (row[1], row[2], row[3])
+        return None
 ```
 
 </details>
@@ -3830,8 +3998,10 @@ Returns:
 
 ```python
 def get_currency_subdivision(self, currency_id: int) -> int:
-        rows = self.get_rows("SELECT subdivision FROM currencies WHERE _id = :id", {"id": currency_id})
-        return rows[0][0] if rows else 100
+        for row in self._cached_currencies():
+            if row[0] == currency_id:
+                return row[4]
+        return 100
 ```
 
 </details>
@@ -3857,8 +4027,10 @@ Returns:
 
 ```python
 def get_currency_subdivision_by_code(self, currency_code: str) -> int:
-        rows = self.get_rows("SELECT subdivision FROM currencies WHERE code = :code", {"code": currency_code})
-        return rows[0][0] if rows else 100
+        for row in self._cached_currencies():
+            if row[1] == currency_code:
+                return row[4]
+        return 100
 ```
 
 </details>
@@ -3876,7 +4048,7 @@ Return a currency ID to subdivision map loaded with one query.
 
 ```python
 def get_currency_subdivisions(self) -> dict[int, int]:
-        rows = self.get_rows("SELECT _id, subdivision FROM currencies")
+        rows = [(row[0], row[4]) for row in self._cached_currencies()]
         result: dict[int, int] = {}
         for row in rows:
             try:
@@ -3909,9 +4081,10 @@ Returns:
 
 ```python
 def get_currency_ticker(self, currency_id: int) -> str | None:
-        rows = self.get_rows("SELECT ticker FROM currencies WHERE _id = :id", {"id": currency_id})
-        if rows and rows[0][0] and rows[0][0].strip():
-            return rows[0][0].strip()
+        for row in self._cached_currencies():
+            if row[0] == currency_id:
+                ticker = (row[5] or "").strip()
+                return ticker or None
         return None
 ```
 
@@ -3963,6 +4136,36 @@ def get_default_currency_id(self) -> int:
         if self._default_currency_cache:
             return self._default_currency_cache[1]
         return 1
+```
+
+</details>
+
+### ⚙️ Method `get_distinct_transaction_tags`
+
+```python
+def get_distinct_transaction_tags(self) -> list[str]
+```
+
+Return sorted unique non-empty transaction tags.
+
+Returns:
+
+- `list[str]`: Trimmed tag values in ascending order.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_distinct_transaction_tags(self) -> list[str]:
+        rows = self.get_rows(
+            """
+            SELECT DISTINCT TRIM(tag)
+            FROM transactions
+            WHERE tag IS NOT NULL AND TRIM(tag) != ''
+            ORDER BY TRIM(tag)
+            """
+        )
+        return [str(row[0]) for row in rows]
 ```
 
 </details>
@@ -4037,6 +4240,42 @@ Returns:
 ```python
 def get_exchange_rate(self, from_currency_id: int, to_currency_id: int, date: str | None = None) -> float:
         return self.exchange_rates.get_exchange_rate(from_currency_id, to_currency_id, date)
+```
+
+</details>
+
+### ⚙️ Method `get_expense_minor_by_currency_for_date`
+
+```python
+def get_expense_minor_by_currency_for_date(self, target_date: str) -> dict[int, int]
+```
+
+Sum expense amounts per currency in minor units for one date.
+
+Args:
+
+- `target_date` (`str`): Date in `YYYY-MM-DD` format.
+
+Returns:
+
+- `dict[int, int]`: Currency ID to summed minor units for expense categories.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_expense_minor_by_currency_for_date(self, target_date: str) -> dict[int, int]:
+        rows = self.get_rows(
+            """
+            SELECT t._id_currencies, COALESCE(SUM(t.amount), 0)
+            FROM transactions t
+            JOIN categories cat ON t._id_categories = cat._id
+            WHERE t.date = :target_date AND cat.type = 0
+            GROUP BY t._id_currencies
+            """,
+            {"target_date": target_date},
+        )
+        return {int(row[0]): int(row[1] or 0) for row in rows}
 ```
 
 </details>
@@ -5327,7 +5566,9 @@ def update_currency(self, currency_id: int, code: str, name: str, symbol: str) -
             "symbol": symbol,
             "id": currency_id,
         }
-        return self.execute_simple_query(query, params)
+        success = self.execute_simple_query(query, params)
+        self._invalidate_currencies_cache()
+        return success
 ```
 
 </details>
@@ -5458,10 +5699,12 @@ def update_currency_ticker(self, currency_id: int, ticker: str) -> bool:
         try:
             query = "UPDATE currencies SET ticker = :ticker WHERE _id = :id"
             params = {"ticker": ticker, "id": currency_id}
-            return self.execute_simple_query(query, params)
+            success = self.execute_simple_query(query, params)
         except Exception:
             logger.exception("Error updating currency ticker")
             return False
+        self._invalidate_currencies_cache()
+        return success
 ```
 
 </details>

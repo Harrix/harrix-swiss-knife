@@ -37,7 +37,6 @@ lang: en
 - [🔧 Function `get_accounting_balance_latest_rates`](#-function-get_accounting_balance_latest_rates)
 - [🔧 Function `get_balance_difference`](#-function-get_balance_difference)
 - [🔧 Function `get_currency_exchange_fee_and_loss_signed`](#-function-get_currency_exchange_fee_and_loss_signed)
-- [🔧 Function `get_natural_cumulative_income_expense_minor_by_currency`](#-function-get_natural_cumulative_income_expense_minor_by_currency)
 - [🔧 Function `get_natural_currency_reconciliation`](#-function-get_natural_currency_reconciliation)
 - [🔧 Function `get_natural_journal_net_minor_by_date`](#-function-get_natural_journal_net_minor_by_date)
 - [🔧 Function `get_transaction_money_op_value`](#-function-get_transaction_money_op_value)
@@ -1499,46 +1498,6 @@ def get_currency_exchange_fee_and_loss_signed(
         return (0.0, 0.0)
     else:
         return (fee_in_target, loss_in_target_signed)
-```
-
-</details>
-
-## 🔧 Function `get_natural_cumulative_income_expense_minor_by_currency`
-
-```python
-def get_natural_cumulative_income_expense_minor_by_currency(transaction_rows: list[list[Any]], db_manager: DatabaseManager | None) -> tuple[dict[int, int], dict[int, int]]
-```
-
-Sum income (category type 1) and expense (type 0) amounts per currency in minor units.
-
-Transactions only; same storage interpretation as [`get_natural_currency_reconciliation`](#-function-get_natural_currency_reconciliation).
-
-<details>
-<summary>Code:</summary>
-
-```python
-def get_natural_cumulative_income_expense_minor_by_currency(
-    transaction_rows: list[list[Any]],
-    db_manager: DatabaseManager | None,
-) -> tuple[dict[int, int], dict[int, int]]:
-    income_minor: defaultdict[int, int] = defaultdict(int)
-    expense_minor: defaultdict[int, int] = defaultdict(int)
-    if db_manager is None:
-        return income_minor, expense_minor
-
-    for row in transaction_rows:
-        if len(row) < MIN_TRANSACTION_ROW_LENGTH:
-            continue
-        amount_minor = int(row[1])
-        category_type = int(row[7])
-        currency_info = db_manager.get_currency_by_code(row[4])
-        currency_id: int = currency_info[0] if currency_info else 1
-        if category_type == 0:
-            expense_minor[currency_id] += amount_minor
-        else:
-            income_minor[currency_id] += amount_minor
-
-    return income_minor, expense_minor
 ```
 
 </details>

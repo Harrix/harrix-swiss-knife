@@ -315,9 +315,11 @@ class QtSqliteDatabaseManagerBase:
     def rows_from_query(self, query: QSqlQuery) -> list[list[Any]]:
         """Convert the full result set in `query` into a list of rows."""
         result: list[list[Any]] = []
+        column_count = -1
         while query.next():
-            row = [query.value(i) for i in range(query.record().count())]
-            result.append(row)
+            if column_count < 0:
+                column_count = query.record().count()
+            result.append([query.value(i) for i in range(column_count)])
         return result
 
     @contextmanager
@@ -810,9 +812,11 @@ Convert the full result set in `query` into a list of rows.
 ```python
 def rows_from_query(self, query: QSqlQuery) -> list[list[Any]]:
         result: list[list[Any]] = []
+        column_count = -1
         while query.next():
-            row = [query.value(i) for i in range(query.record().count())]
-            result.append(row)
+            if column_count < 0:
+                column_count = query.record().count()
+            result.append([query.value(i) for i in range(column_count)])
         return result
 ```
 
