@@ -13,9 +13,13 @@ from harrix_swiss_knife.apps.fitness.sets_ai import (
     build_exercise_catalog,
 )
 from harrix_swiss_knife.apps.fitness.workouts_ai import (
+    WorkoutGeneratePreferences,
+    apply_workout_preferences_to_title,
     estimate_workout_duration_min,
     format_recent_sets,
     format_workout_exercise_catalog,
+    format_workout_preferences_for_prompt,
+    format_workout_preferences_title_suffix,
     parse_workout_tsv,
     recalculate_workout_duration,
     resolve_workout_item,
@@ -50,6 +54,25 @@ def test_parse_workout_tsv_reads_title_and_sets() -> None:
     parsed = parse_workout_tsv(text)
     assert parsed.title == "Upper body"
     assert [(row.exercise, row.value) for row in parsed.rows] == [("Pull-up", "10"), ("Squat", "20")]
+
+
+def test_format_workout_preferences_for_prompt_and_title() -> None:
+    preferences = WorkoutGeneratePreferences(
+        dumbbells=True,
+        cardio=True,
+        notes="focus on back",
+    )
+    prompt = format_workout_preferences_for_prompt(preferences)
+    assert "dumbbell" in prompt.lower()
+    assert "cardio" in prompt.lower()
+    assert "focus on back" in prompt
+    assert format_workout_preferences_title_suffix(preferences) == "Dumbbells · Cardio · focus on back"
+    assert (
+        apply_workout_preferences_to_title("Upper body strength", preferences)
+        == "Upper body strength — Dumbbells · Cardio · focus on back"
+    )
+    titled = apply_workout_preferences_to_title("Cardio dumbbell day", preferences)
+    assert titled == "Cardio dumbbell day — focus on back"
 
 
 def test_format_workout_exercise_catalog_includes_unit_and_kcal() -> None:

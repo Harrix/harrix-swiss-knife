@@ -41,6 +41,84 @@ class WorkoutItemDraft:
     target_value: str
 
 
+@dataclass(frozen=True, slots=True)
+class WorkoutGeneratePreferences:
+    """Optional focus areas and free-text notes for workout generation."""
+
+    dumbbells: bool = False
+    cardio: bool = False
+    stretching: bool = False
+    yoga: bool = False
+    strength: bool = False
+    notes: str = ""
+
+
+def apply_workout_preferences_to_title(title: str, preferences: WorkoutGeneratePreferences) -> str:
+    """Append preference tags to `title` when they are not already mentioned."""
+    base = title.strip()
+    lowered = base.lower()
+    parts: list[str] = []
+    if preferences.dumbbells and "dumbbell" not in lowered:
+        parts.append("Dumbbells")
+    if preferences.cardio and "cardio" not in lowered:
+        parts.append("Cardio")
+    if preferences.stretching and "stretch" not in lowered:
+        parts.append("Stretching")
+    if preferences.yoga and "yoga" not in lowered:
+        parts.append("Yoga")
+    if preferences.strength and "strength" not in lowered:
+        parts.append("Strength")
+    notes = preferences.notes.strip()
+    if notes and notes.lower() not in lowered:
+        parts.append(notes)
+    if not parts:
+        return base
+    suffix = " · ".join(parts)
+    if not base:
+        return suffix
+    return f"{base} — {suffix}"
+
+
+def format_workout_preferences_for_prompt(preferences: WorkoutGeneratePreferences) -> str:
+    """Format athlete preferences for the workout-generation prompt."""
+    lines: list[str] = []
+    if preferences.dumbbells:
+        lines.append("- Prefer dumbbell exercises where they fit the catalog.")
+    if preferences.cardio:
+        lines.append("- Include cardio exercises.")
+    if preferences.stretching:
+        lines.append("- Include stretching / mobility exercises.")
+    if preferences.yoga:
+        lines.append("- Include yoga-style exercises.")
+    if preferences.strength:
+        lines.append("- Emphasize strength / resistance exercises.")
+    notes = preferences.notes.strip()
+    if notes:
+        lines.append(f"- Additional notes: {notes}")
+    if not lines:
+        return "No specific preferences."
+    return "\n".join(lines)
+
+
+def format_workout_preferences_title_suffix(preferences: WorkoutGeneratePreferences) -> str:
+    """Build a short English suffix for the workout title from preferences."""
+    tags: list[str] = []
+    if preferences.dumbbells:
+        tags.append("Dumbbells")
+    if preferences.cardio:
+        tags.append("Cardio")
+    if preferences.stretching:
+        tags.append("Stretching")
+    if preferences.yoga:
+        tags.append("Yoga")
+    if preferences.strength:
+        tags.append("Strength")
+    notes = preferences.notes.strip()
+    if notes:
+        tags.append(notes)
+    return " · ".join(tags)
+
+
 def estimate_workout_duration_min(items: list[tuple[str, str]]) -> int:
     """Estimate planned workout length from item values and units.
 

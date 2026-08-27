@@ -210,8 +210,11 @@ from harrix_swiss_knife.apps.fitness.sets_ai import (
 from harrix_swiss_knife.apps.fitness.workout_generate_dialog import WorkoutGenerateDialog
 from harrix_swiss_knife.apps.fitness.workout_preview_dialog import WorkoutPreviewDialog
 from harrix_swiss_knife.apps.fitness.workouts_ai import (
+    WorkoutGeneratePreferences,
+    apply_workout_preferences_to_title,
     format_recent_sets,
     format_workout_exercise_catalog,
+    format_workout_preferences_for_prompt,
     parse_workout_tsv,
     resolve_workout_item,
 )
@@ -6793,18 +6796,19 @@ class MainWindow(
             except (OSError, TypeError, ValueError) as exc:
                 logger.warning("Could not save fitness workout gender to config: %s", exc)
         duration_min = dialog.duration_min()
+        preferences = dialog.preferences()
         try:
             prompt_text = build_prompt(
                 self._app_config,
                 "fitness_workout_generate",
-                self._workout_prompt_replacements(gender, duration_min),
+                self._workout_prompt_replacements(gender, duration_min, preferences),
             )
         except ValueError as exc:
             show_bothub_prompt_build_error(self, exc)
             return
 
         def on_success(response_text: str) -> None:
-            self._open_workout_preview_and_save(response_text, gender, duration_min)
+            self._open_workout_preview_and_save(response_text, gender, duration_min, preferences)
 
         run_bothub_request(
             self,
@@ -7105,12 +7109,19 @@ class MainWindow(
             workout_duration_min=workout.duration_min if workout is not None else None,
         )
 
-    def _open_workout_preview_and_save(self, response_text: str, gender: str, duration_min: int) -> None:
+    def _open_workout_preview_and_save(
+        self,
+        response_text: str,
+        gender: str,
+        duration_min: int,
+        preferences: WorkoutGeneratePreferences,
+    ) -> None:
         """Show generated workout TSV and save when the user confirms."""
         if self.db_manager is None:
             return
         parsed = parse_workout_tsv(response_text)
-        default_title = parsed.title or f"Workout {QDate.currentDate().toString('yyyy-MM-dd')}"
+        base_title = parsed.title or f"Workout {QDate.currentDate().toString('yyyy-MM-dd')}"
+        default_title = apply_workout_preferences_to_title(base_title, preferences)
         preview = WorkoutPreviewDialog(default_title, parsed.rows, self)
         if preview.exec() != QDialog.DialogCode.Accepted:
             return
@@ -8930,7 +8941,12 @@ class MainWindow(
         if self._workouts_widget is not None:
             self._workouts_widget.update_exercise_icon(exercise_name, icon)
 
-    def _workout_prompt_replacements(self, gender: str, duration_min: int) -> dict[str, str]:
+    def _workout_prompt_replacements(
+        self,
+        gender: str,
+        duration_min: int,
+        preferences: WorkoutGeneratePreferences,
+    ) -> dict[str, str]:
         """Build BotHub placeholders for workout generation."""
         catalog: list[ExerciseCatalogEntry] = []
         recent: list[list[Any]] = []
@@ -8944,6 +8960,7 @@ class MainWindow(
         return {
             "GENDER": gender,
             "DURATION_MIN": str(duration_min),
+            "WORKOUT_PREFERENCES": format_workout_preferences_for_prompt(preferences),
             "EXERCISES": format_workout_exercise_catalog(catalog),
             "RECENT_SETS": format_recent_sets(recent),
         }
