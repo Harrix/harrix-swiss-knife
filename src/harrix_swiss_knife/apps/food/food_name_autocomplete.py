@@ -256,8 +256,11 @@ def _row_match_tier(
     index: QModelIndex | QPersistentModelIndex,
     filter_text: str,
 ) -> int | None:
-    """Return best autocomplete match tier for name or English name."""
-    name = source_model.data(index, Qt.ItemDataRole.DisplayRole)
+    """Return best autocomplete match tier for bare name or English name."""
+    # Prefer EditRole (bare name) so recipe/drink emoji prefixes do not break matching.
+    name = source_model.data(index, Qt.ItemDataRole.EditRole)
+    if name is None or str(name).strip() == "":
+        name = source_model.data(index, Qt.ItemDataRole.DisplayRole)
     name_en = source_model.data(index, Qt.ItemDataRole.UserRole)
 
     best = autocomplete_match_tier(str(name), filter_text) if name is not None else None

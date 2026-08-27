@@ -67,3 +67,52 @@ def test_ensure_food_schema_migrates_legacy_id_datetime(tmp_path: Path) -> None:
         assert float(row[3]) == 178
         assert row[4] == "Банан"
         assert int(conn.execute("SELECT COUNT(*) FROM food_items").fetchone()[0]) == 1
+        assert _table_exists_names(conn, "recipes")
+        assert _table_exists_names(conn, "recipe_ingredients")
+
+
+def test_ensure_food_schema_creates_recipes_on_current_db(tmp_path: Path) -> None:
+    """Existing current-schema DBs gain empty recipes tables."""
+    db_path = tmp_path / "food_current.db"
+    with sqlite3.connect(str(db_path)) as conn:
+        conn.executescript(
+            """
+            CREATE TABLE food_items (
+                _id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE,
+                name_en TEXT,
+                is_drink INTEGER NOT NULL DEFAULT 0,
+                calories_per_100g REAL,
+                default_portion_weight REAL,
+                default_portion_calories REAL
+            );
+            CREATE TABLE food_log (
+                _id INTEGER PRIMARY KEY AUTOINCREMENT,
+                date TEXT,
+                weight REAL,
+                portion_calories REAL,
+                calories_per_100g REAL,
+                name TEXT,
+                name_en TEXT,
+                is_drink INTEGER NOT NULL DEFAULT 0
+            );
+            """
+        )
+        conn.commit()
+
+    assert ensure_food_schema(db_path) is True
+    assert ensure_food_schema(db_path) is False
+
+    with sqlite3.connect(str(db_path)) as conn:
+        assert _table_exists_names(conn, "recipes")
+        assert _table_exists_names(conn, "recipe_ingredients")
+        cols = {row[1] for row in conn.execute("PRAGMA table_info(recipes)")}
+        assert {"_id", "name", "calories_per_100g", "total_weight"}.issubset(cols)
+
+
+def _table_exists_names(conn: sqlite3.Connection, table: str) -> bool:
+    row = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ? LIMIT 1",
+        (table,),
+    ).fetchone()
+    return row is not None

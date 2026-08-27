@@ -5,14 +5,17 @@ from __future__ import annotations
 import re
 
 DRINK_EMOJI = "🥤"
+RECIPE_EMOJI = "🍽"
 
 
 def extract_food_name_from_display(display_text: str) -> str:
-    """Strip drink emoji prefix and trailing calories suffix such as `(120 kcal/portion)`."""
+    """Strip drink/recipe emoji prefixes and trailing calories suffix such as `(120 kcal/portion)`."""
     if not display_text:
         return ""
 
     text = display_text.strip()
+    if text.startswith(RECIPE_EMOJI):
+        text = text[len(RECIPE_EMOJI) :].lstrip()
     if text.startswith(DRINK_EMOJI):
         text = text[len(DRINK_EMOJI) :].lstrip()
 
@@ -26,10 +29,12 @@ def format_food_name_with_calories(
     default_portion_calories: float | None,
     *,
     is_drink: bool = False,
+    is_recipe: bool = False,
 ) -> str:
     """Append `(… kcal/portion)` or `(… kcal/100g)` when values exist.
 
     Drinks get the same `DRINK_EMOJI` prefix as `tableView_food_log`.
+    Recipes get `RECIPE_EMOJI` (before the drink prefix when both apply).
 
     """
     if not food_name:
@@ -47,7 +52,9 @@ def format_food_name_with_calories(
 
     result = f"{food_name} {calories_info}" if calories_info else food_name
     if is_drink:
-        return f"{DRINK_EMOJI} {result}"
+        result = f"{DRINK_EMOJI} {result}"
+    if is_recipe:
+        result = f"{RECIPE_EMOJI} {result}"
     return result
 
 

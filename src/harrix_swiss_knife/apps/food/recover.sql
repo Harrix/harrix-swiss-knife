@@ -4,6 +4,8 @@
 
 PRAGMA foreign_keys = OFF;
 
+DROP TABLE IF EXISTS recipe_ingredients;
+DROP TABLE IF EXISTS recipes;
 DROP TABLE IF EXISTS food_log;
 DROP TABLE IF EXISTS food_items;
 
@@ -28,6 +30,28 @@ CREATE TABLE food_log (
     name TEXT,
     name_en TEXT,
     is_drink INTEGER NOT NULL DEFAULT 0 CHECK (is_drink IN (0, 1))
+);
+
+CREATE TABLE recipes (
+    _id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    name_en TEXT,
+    is_drink INTEGER NOT NULL DEFAULT 0 CHECK (is_drink IN (0, 1)),
+    calories_per_100g REAL,
+    total_weight REAL
+);
+
+CREATE TABLE recipe_ingredients (
+    _id INTEGER PRIMARY KEY AUTOINCREMENT,
+    recipe_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    name_en TEXT,
+    weight REAL,
+    calories_per_100g REAL,
+    portion_calories REAL,
+    is_drink INTEGER NOT NULL DEFAULT 0 CHECK (is_drink IN (0, 1)),
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    FOREIGN KEY (recipe_id) REFERENCES recipes(_id) ON DELETE CASCADE
 );
 
 -- Seed catalog of food items from working database

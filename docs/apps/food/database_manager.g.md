@@ -18,8 +18,10 @@ lang: en
   - [⚙️ Method `count_food_log_rows_missing_name_en`](#%EF%B8%8F-method-count_food_log_rows_missing_name_en)
   - [⚙️ Method `delete_food_item`](#%EF%B8%8F-method-delete_food_item)
   - [⚙️ Method `delete_food_log_record`](#%EF%B8%8F-method-delete_food_log_record)
+  - [⚙️ Method `delete_recipe`](#%EF%B8%8F-method-delete_recipe)
   - [⚙️ Method `get_all_food_items`](#%EF%B8%8F-method-get_all_food_items)
   - [⚙️ Method `get_all_food_log_records`](#%EF%B8%8F-method-get_all_food_log_records)
+  - [⚙️ Method `get_all_recipes`](#%EF%B8%8F-method-get_all_recipes)
   - [⚙️ Method `get_calories_per_day`](#%EF%B8%8F-method-get_calories_per_day)
   - [⚙️ Method `get_drinks_weight_per_day`](#%EF%B8%8F-method-get_drinks_weight_per_day)
   - [⚙️ Method `get_drinks_weight_today`](#%EF%B8%8F-method-get_drinks_weight_today)
@@ -34,8 +36,13 @@ lang: en
   - [⚙️ Method `get_problematic_food_records`](#%EF%B8%8F-method-get_problematic_food_records)
   - [⚙️ Method `get_recent_food_log_records`](#%EF%B8%8F-method-get_recent_food_log_records)
   - [⚙️ Method `get_recent_food_names_for_autocomplete`](#%EF%B8%8F-method-get_recent_food_names_for_autocomplete)
+  - [⚙️ Method `get_recipe_by_id`](#%EF%B8%8F-method-get_recipe_by_id)
+  - [⚙️ Method `get_recipe_by_name`](#%EF%B8%8F-method-get_recipe_by_name)
+  - [⚙️ Method `get_recipe_ingredients`](#%EF%B8%8F-method-get_recipe_ingredients)
+  - [⚙️ Method `get_recipe_names_for_autocomplete`](#%EF%B8%8F-method-get_recipe_names_for_autocomplete)
   - [⚙️ Method `get_unique_food_log_names_missing_name_en`](#%EF%B8%8F-method-get_unique_food_log_names_missing_name_en)
   - [⚙️ Method `lookup_existing_name_en_for_names`](#%EF%B8%8F-method-lookup_existing_name_en_for_names)
+  - [⚙️ Method `save_recipe`](#%EF%B8%8F-method-save_recipe)
   - [⚙️ Method `update_food_item`](#%EF%B8%8F-method-update_food_item)
   - [⚙️ Method `update_food_log_calories`](#%EF%B8%8F-method-update_food_log_calories)
   - [⚙️ Method `update_food_log_name_en_by_name`](#%EF%B8%8F-method-update_food_log_name_en_by_name)
@@ -46,6 +53,8 @@ lang: en
 - [🏛️ Class `FoodAutocompleteEntry`](#%EF%B8%8F-class-foodautocompleteentry)
 - [🏛️ Class `FoodItemByNameRow`](#%EF%B8%8F-class-fooditembynamerow)
 - [🏛️ Class `FoodLogItemByNameRow`](#%EF%B8%8F-class-foodlogitembynamerow)
+- [🏛️ Class `RecipeIngredientRow`](#%EF%B8%8F-class-recipeingredientrow)
+- [🏛️ Class `RecipeRow`](#%EF%B8%8F-class-reciperow)
 - [🔧 Function `merge_food_autocomplete_entries`](#-function-merge_food_autocomplete_entries)
 
 </details>
@@ -226,6 +235,32 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         params = {"id": record_id}
         return self.execute_simple_query(query, params)
 
+    def delete_recipe(self, recipe_id: int) -> bool:
+        """Delete a recipe and its ingredients.
+
+        Args:
+
+        - `recipe_id` (`int`): Recipe primary key.
+
+        Returns:
+
+        - `bool`: `True` if successful, `False` otherwise.
+
+        """
+        try:
+            with self.sql_transaction():
+                if not self.execute_simple_query(
+                    "DELETE FROM recipe_ingredients WHERE recipe_id = :id",
+                    {"id": recipe_id},
+                ):
+                    _raise_runtime_error(f"Failed to delete ingredients for recipe id={recipe_id}")
+                if not self.execute_simple_query("DELETE FROM recipes WHERE _id = :id", {"id": recipe_id}):
+                    _raise_runtime_error(f"Failed to delete recipe id={recipe_id}")
+        except Exception:
+            return False
+        else:
+            return True
+
     def get_all_food_items(self) -> list[list[Any]]:
         r"""Get all food items.
 
@@ -255,6 +290,23 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             FROM food_log
             ORDER BY date DESC, _id DESC
         """)
+
+    def get_all_recipes(self) -> list[RecipeRow]:
+        """Return all recipes ordered by name.
+
+        Returns:
+
+        - `list[RecipeRow]`: Recipe catalog rows.
+
+        """
+        rows = self.get_rows(
+            """
+            SELECT _id, name, name_en, is_drink, calories_per_100g, total_weight
+            FROM recipes
+            ORDER BY name ASC
+            """
+        )
+        return [_recipe_row_from_sql(row) for row in rows if row]
 
     def get_calories_per_day(self) -> list[list[Any]]:
         """Get calories consumed per day for all days.
@@ -624,6 +676,105 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             for name, name_en in sorted(by_name.items(), key=lambda item: item[0].casefold())
         ]
 
+    def get_recipe_by_id(self, recipe_id: int) -> RecipeRow | None:
+        """Return a recipe by primary key.
+
+        Args:
+
+        - `recipe_id` (`int`): Recipe `_id`.
+
+        Returns:
+
+        - `RecipeRow | None`: Recipe row or `None` when missing.
+
+        """
+        rows = self.get_rows(
+            """
+            SELECT _id, name, name_en, is_drink, calories_per_100g, total_weight
+            FROM recipes WHERE _id = :id
+            """,
+            {"id": recipe_id},
+        )
+        if not rows:
+            return None
+        return _recipe_row_from_sql(rows[0])
+
+    def get_recipe_by_name(self, name: str) -> RecipeRow | None:
+        """Return a recipe by exact name.
+
+        Args:
+
+        - `name` (`str`): Recipe name.
+
+        Returns:
+
+        - `RecipeRow | None`: Recipe row or `None` when missing.
+
+        """
+        rows = self.get_rows(
+            """
+            SELECT _id, name, name_en, is_drink, calories_per_100g, total_weight
+            FROM recipes WHERE name = :name
+            """,
+            {"name": name},
+        )
+        if not rows:
+            return None
+        return _recipe_row_from_sql(rows[0])
+
+    def get_recipe_ingredients(self, recipe_id: int) -> list[RecipeIngredientRow]:
+        """Return ingredients for `recipe_id` ordered by `sort_order`.
+
+        Args:
+
+        - `recipe_id` (`int`): Parent recipe `_id`.
+
+        Returns:
+
+        - `list[RecipeIngredientRow]`: Ingredient snapshots.
+
+        """
+        rows = self.get_rows(
+            """
+            SELECT _id, recipe_id, name, name_en, weight, calories_per_100g,
+                   portion_calories, is_drink, sort_order
+            FROM recipe_ingredients
+            WHERE recipe_id = :recipe_id
+            ORDER BY sort_order ASC, _id ASC
+            """,
+            {"recipe_id": recipe_id},
+        )
+        return [_recipe_ingredient_row_from_sql(row) for row in rows if row]
+
+    def get_recipe_names_for_autocomplete(self) -> list[FoodAutocompleteEntry]:
+        """Get recipe names for autocomplete (marked as recipes).
+
+        Returns:
+
+        - `list[FoodAutocompleteEntry]`: Recipe entries sorted by name.
+
+        """
+        rows = self.get_rows(
+            """
+            SELECT name, name_en, calories_per_100g FROM recipes
+            WHERE name IS NOT NULL AND name != ''
+            ORDER BY name ASC
+            """
+        )
+        result: list[FoodAutocompleteEntry] = []
+        for row in rows:
+            if not row or not row[0]:
+                continue
+            result.append(
+                FoodAutocompleteEntry(
+                    name=str(row[0]),
+                    name_en=_normalize_optional_name_en(row[1]),
+                    is_recipe=True,
+                    calories_per_100g=_optional_sql_float(row[2]),
+                )
+            )
+        return result
+
     def get_unique_food_log_names_missing_name_en(self, *, limit: int = 1000) -> list[str]:
         """Return distinct Russian names from food_log rows missing English name.
 
@@ -698,6 +849,109 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
                 translations[name] = name_en
 
         return translations
+
+    def save_recipe(
+        self,
+        name: str,
+        ingredients: list[RecipeIngredientInput],
+        *,
+        recipe_id: int | None = None,
+        name_en: str | None = None,
+        is_drink: bool = False,
+    ) -> int | None:
+        """Create or update a recipe and replace its ingredients.
+
+        Args:
+
+        - `name` (`str`): Recipe name (unique).
+        - `ingredients` (`list[RecipeIngredientInput]`): Full composition to store.
+        - `recipe_id` (`int | None`): Existing recipe to update; `None` inserts new.
+        - `name_en` (`str | None`): English name. Defaults to `None`.
+        - `is_drink` (`bool`): Whether the dish is a drink. Defaults to `False`.
+
+        Returns:
+
+        - `int | None`: Recipe `_id` on success, or `None` on failure.
+
+        """
+        nutrition = calculate_recipe_nutrition(ingredients)
+        try:
+            with self.sql_transaction():
+                if recipe_id is None:
+                    if not self.execute_simple_query(
+                        """
+                        INSERT INTO recipes (
+                            name, name_en, is_drink, calories_per_100g, total_weight
+                        )
+                        VALUES (
+                            :name, :name_en, :is_drink, :calories_per_100g, :total_weight
+                        )
+                        """,
+                        {
+                            "name": name,
+                            "name_en": name_en,
+                            "is_drink": 1 if is_drink else 0,
+                            "calories_per_100g": nutrition.calories_per_100g,
+                            "total_weight": nutrition.total_weight if nutrition.total_weight > 0 else None,
+                        },
+                    ):
+                        _raise_runtime_error(f"Failed to insert recipe {name!r}")
+                    id_rows = self.get_rows("SELECT last_insert_rowid()")
+                    if not id_rows or id_rows[0][0] is None:
+                        _raise_runtime_error("Failed to read new recipe id")
+                    recipe_id = int(id_rows[0][0])
+                else:
+                    if not self.execute_simple_query(
+                        """
+                        UPDATE recipes
+                        SET name = :name, name_en = :name_en, is_drink = :is_drink,
+                            calories_per_100g = :calories_per_100g, total_weight = :total_weight
+                        WHERE _id = :id
+                        """,
+                        {
+                            "id": recipe_id,
+                            "name": name,
+                            "name_en": name_en,
+                            "is_drink": 1 if is_drink else 0,
+                            "calories_per_100g": nutrition.calories_per_100g,
+                            "total_weight": nutrition.total_weight if nutrition.total_weight > 0 else None,
+                        },
+                    ):
+                        _raise_runtime_error(f"Failed to update recipe id={recipe_id}")
+                    if not self.execute_simple_query(
+                        "DELETE FROM recipe_ingredients WHERE recipe_id = :recipe_id",
+                        {"recipe_id": recipe_id},
+                    ):
+                        _raise_runtime_error(f"Failed to clear ingredients for recipe id={recipe_id}")
+
+                for sort_order, ingredient in enumerate(ingredients):
+                    if not self.execute_simple_query(
+                        """
+                        INSERT INTO recipe_ingredients (
+                            recipe_id, name, name_en, weight, calories_per_100g,
+                            portion_calories, is_drink, sort_order
+                        )
+                        VALUES (
+                            :recipe_id, :name, :name_en, :weight, :calories_per_100g,
+                            :portion_calories, :is_drink, :sort_order
+                        )
+                        """,
+                        {
+                            "recipe_id": recipe_id,
+                            "name": ingredient.name,
+                            "name_en": ingredient.name_en,
+                            "weight": ingredient.weight,
+                            "calories_per_100g": ingredient.calories_per_100g,
+                            "portion_calories": ingredient.portion_calories,
+                            "is_drink": 1 if ingredient.is_drink else 0,
+                            "sort_order": sort_order,
+                        },
+                    ):
+                        _raise_runtime_error(f"Failed to insert ingredient {ingredient.name!r}")
+        except Exception:
+            return None
+        else:
+            return recipe_id
 
     def update_food_item(
         self,
@@ -1153,6 +1407,44 @@ def delete_food_log_record(self, record_id: int) -> bool:
 
 </details>
 
+### ⚙️ Method `delete_recipe`
+
+```python
+def delete_recipe(self, recipe_id: int) -> bool
+```
+
+Delete a recipe and its ingredients.
+
+Args:
+
+- `recipe_id` (`int`): Recipe primary key.
+
+Returns:
+
+- `bool`: `True` if successful, `False` otherwise.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def delete_recipe(self, recipe_id: int) -> bool:
+        try:
+            with self.sql_transaction():
+                if not self.execute_simple_query(
+                    "DELETE FROM recipe_ingredients WHERE recipe_id = :id",
+                    {"id": recipe_id},
+                ):
+                    _raise_runtime_error(f"Failed to delete ingredients for recipe id={recipe_id}")
+                if not self.execute_simple_query("DELETE FROM recipes WHERE _id = :id", {"id": recipe_id}):
+                    _raise_runtime_error(f"Failed to delete recipe id={recipe_id}")
+        except Exception:
+            return False
+        else:
+            return True
+```
+
+</details>
+
 ### ⚙️ Method `get_all_food_items`
 
 ```python
@@ -1203,6 +1495,35 @@ def get_all_food_log_records(self) -> list[list[Any]]:
             FROM food_log
             ORDER BY date DESC, _id DESC
         """)
+```
+
+</details>
+
+### ⚙️ Method `get_all_recipes`
+
+```python
+def get_all_recipes(self) -> list[RecipeRow]
+```
+
+Return all recipes ordered by name.
+
+Returns:
+
+- `list[RecipeRow]`: Recipe catalog rows.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_all_recipes(self) -> list[RecipeRow]:
+        rows = self.get_rows(
+            """
+            SELECT _id, name, name_en, is_drink, calories_per_100g, total_weight
+            FROM recipes
+            ORDER BY name ASC
+            """
+        )
+        return [_recipe_row_from_sql(row) for row in rows if row]
 ```
 
 </details>
@@ -1747,6 +2068,153 @@ def get_recent_food_names_for_autocomplete(self, limit: int = 1000) -> list[Food
 
 </details>
 
+### ⚙️ Method `get_recipe_by_id`
+
+```python
+def get_recipe_by_id(self, recipe_id: int) -> RecipeRow | None
+```
+
+Return a recipe by primary key.
+
+Args:
+
+- `recipe_id` (`int`): Recipe `_id`.
+
+Returns:
+
+- `RecipeRow | None`: Recipe row or `None` when missing.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_recipe_by_id(self, recipe_id: int) -> RecipeRow | None:
+        rows = self.get_rows(
+            """
+            SELECT _id, name, name_en, is_drink, calories_per_100g, total_weight
+            FROM recipes WHERE _id = :id
+            """,
+            {"id": recipe_id},
+        )
+        if not rows:
+            return None
+        return _recipe_row_from_sql(rows[0])
+```
+
+</details>
+
+### ⚙️ Method `get_recipe_by_name`
+
+```python
+def get_recipe_by_name(self, name: str) -> RecipeRow | None
+```
+
+Return a recipe by exact name.
+
+Args:
+
+- `name` (`str`): Recipe name.
+
+Returns:
+
+- `RecipeRow | None`: Recipe row or `None` when missing.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_recipe_by_name(self, name: str) -> RecipeRow | None:
+        rows = self.get_rows(
+            """
+            SELECT _id, name, name_en, is_drink, calories_per_100g, total_weight
+            FROM recipes WHERE name = :name
+            """,
+            {"name": name},
+        )
+        if not rows:
+            return None
+        return _recipe_row_from_sql(rows[0])
+```
+
+</details>
+
+### ⚙️ Method `get_recipe_ingredients`
+
+```python
+def get_recipe_ingredients(self, recipe_id: int) -> list[RecipeIngredientRow]
+```
+
+Return ingredients for `recipe_id` ordered by `sort_order`.
+
+Args:
+
+- `recipe_id` (`int`): Parent recipe `_id`.
+
+Returns:
+
+- `list[RecipeIngredientRow]`: Ingredient snapshots.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_recipe_ingredients(self, recipe_id: int) -> list[RecipeIngredientRow]:
+        rows = self.get_rows(
+            """
+            SELECT _id, recipe_id, name, name_en, weight, calories_per_100g,
+                   portion_calories, is_drink, sort_order
+            FROM recipe_ingredients
+            WHERE recipe_id = :recipe_id
+            ORDER BY sort_order ASC, _id ASC
+            """,
+            {"recipe_id": recipe_id},
+        )
+        return [_recipe_ingredient_row_from_sql(row) for row in rows if row]
+```
+
+</details>
+
+### ⚙️ Method `get_recipe_names_for_autocomplete`
+
+```python
+def get_recipe_names_for_autocomplete(self) -> list[FoodAutocompleteEntry]
+```
+
+Get recipe names for autocomplete (marked as recipes).
+
+Returns:
+
+- `list[FoodAutocompleteEntry]`: Recipe entries sorted by name.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_recipe_names_for_autocomplete(self) -> list[FoodAutocompleteEntry]:
+        rows = self.get_rows(
+            """
+            SELECT name, name_en, calories_per_100g FROM recipes
+            WHERE name IS NOT NULL AND name != ''
+            ORDER BY name ASC
+            """
+        )
+        result: list[FoodAutocompleteEntry] = []
+        for row in rows:
+            if not row or not row[0]:
+                continue
+            result.append(
+                FoodAutocompleteEntry(
+                    name=str(row[0]),
+                    name_en=_normalize_optional_name_en(row[1]),
+                    is_recipe=True,
+                    calories_per_100g=_optional_sql_float(row[2]),
+                )
+            )
+        return result
+```
+
+</details>
+
 ### ⚙️ Method `get_unique_food_log_names_missing_name_en`
 
 ```python
@@ -1842,6 +2310,121 @@ def lookup_existing_name_en_for_names(self, names: list[str]) -> dict[str, str]:
                 translations[name] = name_en
 
         return translations
+```
+
+</details>
+
+### ⚙️ Method `save_recipe`
+
+```python
+def save_recipe(self, name: str, ingredients: list[RecipeIngredientInput], *, recipe_id: int | None = None, name_en: str | None = None, is_drink: bool = False) -> int | None
+```
+
+Create or update a recipe and replace its ingredients.
+
+Args:
+
+- `name` (`str`): Recipe name (unique).
+- `ingredients` (`list[RecipeIngredientInput]`): Full composition to store.
+- `recipe_id` (`int | None`): Existing recipe to update; `None` inserts new.
+- `name_en` (`str | None`): English name. Defaults to `None`.
+- `is_drink` (`bool`): Whether the dish is a drink. Defaults to `False`.
+
+Returns:
+
+- `int | None`: Recipe `_id` on success, or `None` on failure.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def save_recipe(
+        self,
+        name: str,
+        ingredients: list[RecipeIngredientInput],
+        *,
+        recipe_id: int | None = None,
+        name_en: str | None = None,
+        is_drink: bool = False,
+    ) -> int | None:
+        nutrition = calculate_recipe_nutrition(ingredients)
+        try:
+            with self.sql_transaction():
+                if recipe_id is None:
+                    if not self.execute_simple_query(
+                        """
+                        INSERT INTO recipes (
+                            name, name_en, is_drink, calories_per_100g, total_weight
+                        )
+                        VALUES (
+                            :name, :name_en, :is_drink, :calories_per_100g, :total_weight
+                        )
+                        """,
+                        {
+                            "name": name,
+                            "name_en": name_en,
+                            "is_drink": 1 if is_drink else 0,
+                            "calories_per_100g": nutrition.calories_per_100g,
+                            "total_weight": nutrition.total_weight if nutrition.total_weight > 0 else None,
+                        },
+                    ):
+                        _raise_runtime_error(f"Failed to insert recipe {name!r}")
+                    id_rows = self.get_rows("SELECT last_insert_rowid()")
+                    if not id_rows or id_rows[0][0] is None:
+                        _raise_runtime_error("Failed to read new recipe id")
+                    recipe_id = int(id_rows[0][0])
+                else:
+                    if not self.execute_simple_query(
+                        """
+                        UPDATE recipes
+                        SET name = :name, name_en = :name_en, is_drink = :is_drink,
+                            calories_per_100g = :calories_per_100g, total_weight = :total_weight
+                        WHERE _id = :id
+                        """,
+                        {
+                            "id": recipe_id,
+                            "name": name,
+                            "name_en": name_en,
+                            "is_drink": 1 if is_drink else 0,
+                            "calories_per_100g": nutrition.calories_per_100g,
+                            "total_weight": nutrition.total_weight if nutrition.total_weight > 0 else None,
+                        },
+                    ):
+                        _raise_runtime_error(f"Failed to update recipe id={recipe_id}")
+                    if not self.execute_simple_query(
+                        "DELETE FROM recipe_ingredients WHERE recipe_id = :recipe_id",
+                        {"recipe_id": recipe_id},
+                    ):
+                        _raise_runtime_error(f"Failed to clear ingredients for recipe id={recipe_id}")
+
+                for sort_order, ingredient in enumerate(ingredients):
+                    if not self.execute_simple_query(
+                        """
+                        INSERT INTO recipe_ingredients (
+                            recipe_id, name, name_en, weight, calories_per_100g,
+                            portion_calories, is_drink, sort_order
+                        )
+                        VALUES (
+                            :recipe_id, :name, :name_en, :weight, :calories_per_100g,
+                            :portion_calories, :is_drink, :sort_order
+                        )
+                        """,
+                        {
+                            "recipe_id": recipe_id,
+                            "name": ingredient.name,
+                            "name_en": ingredient.name_en,
+                            "weight": ingredient.weight,
+                            "calories_per_100g": ingredient.calories_per_100g,
+                            "portion_calories": ingredient.portion_calories,
+                            "is_drink": 1 if ingredient.is_drink else 0,
+                            "sort_order": sort_order,
+                        },
+                    ):
+                        _raise_runtime_error(f"Failed to insert ingredient {ingredient.name!r}")
+        except Exception:
+            return None
+        else:
+            return recipe_id
 ```
 
 </details>
@@ -2171,6 +2754,8 @@ class FoodAutocompleteEntry:
 
     name: str
     name_en: str | None
+    is_recipe: bool = False
+    calories_per_100g: float | None = None
 ```
 
 </details>
@@ -2224,13 +2809,67 @@ class FoodLogItemByNameRow:
 
 </details>
 
+## 🏛️ Class `RecipeIngredientRow`
+
+```python
+class RecipeIngredientRow
+```
+
+One stored ingredient of a recipe.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class RecipeIngredientRow:
+
+    id: int
+    recipe_id: int
+    name: str
+    name_en: str | None
+    weight: float | None
+    calories_per_100g: float | None
+    portion_calories: float | None
+    is_drink: bool
+    sort_order: int
+```
+
+</details>
+
+## 🏛️ Class `RecipeRow`
+
+```python
+class RecipeRow
+```
+
+Row from `recipes` for list and lookup.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class RecipeRow:
+
+    id: int
+    name: str
+    name_en: str | None
+    is_drink: bool
+    calories_per_100g: float | None
+    total_weight: float | None
+```
+
+</details>
+
 ## 🔧 Function `merge_food_autocomplete_entries`
 
 ```python
-def merge_food_autocomplete_entries(primary: list[FoodAutocompleteEntry], secondary: list[FoodAutocompleteEntry]) -> list[FoodAutocompleteEntry]
+def merge_food_autocomplete_entries(primary: list[FoodAutocompleteEntry], secondary: list[FoodAutocompleteEntry], *extra: list[FoodAutocompleteEntry]) -> list[FoodAutocompleteEntry]
 ```
 
 Merge autocomplete entries, keeping primary order and filling empty English names.
+
+Later lists override `is_recipe` / `calories_per_100g` when the same name appears
+again (so recipe entries can decorate an existing catalog/log name).
 
 <details>
 <summary>Code:</summary>
@@ -2239,11 +2878,29 @@ Merge autocomplete entries, keeping primary order and filling empty English name
 def merge_food_autocomplete_entries(
     primary: list[FoodAutocompleteEntry],
     secondary: list[FoodAutocompleteEntry],
+    *extra: list[FoodAutocompleteEntry],
 ) -> list[FoodAutocompleteEntry]:
-    merged: dict[str, str | None] = {}
-    for entry in primary + secondary:
-        _put_autocomplete_name(merged, entry.name, entry.name_en)
-    return [FoodAutocompleteEntry(name=name, name_en=name_en) for name, name_en in merged.items()]
+    merged: dict[str, FoodAutocompleteEntry] = {}
+    for group in (primary, secondary, *extra):
+        for entry in group:
+            existing = merged.get(entry.name)
+            if existing is None:
+                merged[entry.name] = entry
+                continue
+            name_en = existing.name_en if existing.name_en is not None else entry.name_en
+            is_recipe = existing.is_recipe or entry.is_recipe
+            calories = entry.calories_per_100g if entry.is_recipe else existing.calories_per_100g
+            if entry.is_recipe and entry.calories_per_100g is not None:
+                calories = entry.calories_per_100g
+            elif existing.calories_per_100g is not None and not entry.is_recipe:
+                calories = existing.calories_per_100g
+            merged[entry.name] = FoodAutocompleteEntry(
+                name=entry.name,
+                name_en=name_en,
+                is_recipe=is_recipe,
+                calories_per_100g=calories,
+            )
+    return list(merged.values())
 ```
 
 </details>

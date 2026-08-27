@@ -412,6 +412,12 @@
         </item>
        </layout>
       </widget>
+      <widget class="QWidget" name="tab_food_recipes">
+       <attribute name="title">
+        <string>Recipes</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_food_recipes"/>
+      </widget>
       <widget class="QWidget" name="tab_food_stats">
        <attribute name="title">
         <string>Food Statistics</string>
