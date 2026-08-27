@@ -5,12 +5,13 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QModelIndex, Qt, Signal
-from PySide6.QtGui import QStandardItem, QStandardItemModel
+from PySide6.QtCore import QModelIndex, QPoint, QSize, Qt, Signal
+from PySide6.QtGui import QIcon, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
     QHBoxLayout,
+    QHeaderView,
     QLabel,
     QListView,
     QMessageBox,
@@ -22,19 +23,26 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife.apps.common import message_box
+from harrix_swiss_knife.apps.common.widgets.exercise_list_hover_preview import exercise_at_table_image
 from harrix_swiss_knife.qt_emoji_icon import make_emoji_push_button
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from harrix_swiss_knife.apps.fitness.database_manager import DatabaseManager, WorkoutItemRow, WorkoutRow
 
 logger = logging.getLogger(__name__)
 
 _COL_DONE = 0
-_COL_EXERCISE = 1
-_COL_TYPE = 2
-_COL_VALUE = 3
-_COL_UNIT = 4
-_COL_KCAL = 5
+_COL_IMAGE = 1
+_COL_EXERCISE = 2
+_COL_TYPE = 3
+_COL_VALUE = 4
+_COL_UNIT = 5
+_COL_KCAL = 6
+_DEFAULT_TABLE_ICON_SIZE = 64
+_ITEM_COLUMN_COUNT = 7
+_DONE_COLUMN_WIDTH = 56
 
 
 class WorkoutsWidget(QWidget):
@@ -44,6 +52,7 @@ class WorkoutsWidget(QWidget):
     workouts_changed = Signal()
     item_done_requested = Signal(int)
     exercise_lightbox_requested = Signal(str)
+    items_reloading = Signal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
         """Build the workouts UI; call `set_database_manager` before loading data."""
@@ -51,7 +60,29 @@ class WorkoutsWidget(QWidget):
         self._db: DatabaseManager | None = None
         self._current_workout_id: int | None = None
         self._item_ids: list[int] = []
+        self._icon_getter: Callable[[str], QIcon | None] | None = None
+        self._icon_size = _DEFAULT_TABLE_ICON_SIZE
         self._build_ui()
+
+    def configure_exercise_images(
+        self,
+        *,
+        icon_size: int,
+        icon_getter: Callable[[str], QIcon | None] | None,
+    ) -> None:
+        """Set thumbnail size and the callback that loads exercise icons."""
+        self._icon_size = max(icon_size, 1)
+        self._icon_getter = icon_getter
+        self._apply_image_column_metrics()
+
+    def exercise_at_image(self, pos: QPoint) -> str | None:
+        """Return the exercise name when `pos` is over a workout-row thumbnail."""
+        return exercise_at_table_image(
+            self.table_items,
+            pos,
+            image_column=_COL_IMAGE,
+            name_column=_COL_EXERCISE,
+        )
 
     def refresh(self) -> None:
         """Reload the workout list, keeping the current selection when possible."""
@@ -70,6 +101,31 @@ class WorkoutsWidget(QWidget):
         """Attach the fitness database and refresh the list."""
         self._db = db_manager
         self.refresh()
+
+    def update_exercise_icon(self, exercise_name: str, icon: QIcon | None) -> None:
+        """Refresh the image-column icon for every row of `exercise_name`."""
+        if not exercise_name:
+            return
+        resolved = icon if icon is not None else QIcon()
+        for row in range(self.table_items.rowCount()):
+            name_item = self.table_items.item(row, _COL_EXERCISE)
+            if name_item is None or name_item.text().strip() != exercise_name:
+                continue
+            image_item = self.table_items.item(row, _COL_IMAGE)
+            if image_item is None:
+                image_item = QTableWidgetItem()
+                image_item.setFlags(image_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                self.table_items.setItem(row, _COL_IMAGE, image_item)
+            image_item.setIcon(resolved)
+
+    def _apply_image_column_metrics(self) -> None:
+        self.table_items.setIconSize(QSize(self._icon_size, self._icon_size))
+        self.table_items.verticalHeader().setDefaultSectionSize(self._icon_size + 8)
+        header = self.table_items.horizontalHeader()
+        header.setSectionResizeMode(_COL_DONE, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(_COL_IMAGE, QHeaderView.ResizeMode.Fixed)
+        self.table_items.setColumnWidth(_COL_DONE, _DONE_COLUMN_WIDTH)
+        self.table_items.setColumnWidth(_COL_IMAGE, self._icon_size + 12)
 
     def _build_ui(self) -> None:
         root = QHBoxLayout(self)
@@ -104,11 +160,12 @@ class WorkoutsWidget(QWidget):
         right_layout.addWidget(self.label_title)
         right_layout.addWidget(self.label_meta)
 
-        self.table_items = QTableWidget(0, 6)
-        self.table_items.setHorizontalHeaderLabels(["Done", "Exercise", "Type", "Value", "Unit", "kcal"])
+        self.table_items = QTableWidget(0, _ITEM_COLUMN_COUNT)
+        self.table_items.setHorizontalHeaderLabels(["Done", "", "Exercise", "Type", "Value", "Unit", "kcal"])
         self.table_items.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table_items.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.table_items.doubleClicked.connect(self._on_item_double_clicked)
+        self._apply_image_column_metrics()
         right_layout.addWidget(self.table_items, 1)
         self.label_totals = QLabel("")
         right_layout.addWidget(self.label_totals)
@@ -117,6 +174,7 @@ class WorkoutsWidget(QWidget):
         splitter.setStretchFactor(1, 3)
 
     def _clear_detail(self) -> None:
+        self.items_reloading.emit()
         self._current_workout_id = None
         self._item_ids = []
         self.label_title.setText("Select a workout")
@@ -154,6 +212,7 @@ class WorkoutsWidget(QWidget):
         return value * item.calories_per_unit * item.calories_modifier
 
     def _fill_items(self, items: list[WorkoutItemRow]) -> None:
+        self.items_reloading.emit()
         self.table_items.setRowCount(0)
         self._item_ids = []
         total_kcal = 0.0
@@ -169,6 +228,12 @@ class WorkoutsWidget(QWidget):
                     lambda checked, item_id=item.id: self._on_done_toggled(item_id=item_id, checked=checked),
                 )
             self.table_items.setCellWidget(row, _COL_DONE, checkbox)
+            image_item = QTableWidgetItem()
+            image_item.setFlags(image_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+            icon = self._icon_getter(item.exercise_name) if self._icon_getter is not None else None
+            if icon is not None and not icon.isNull():
+                image_item.setIcon(icon)
+            self.table_items.setItem(row, _COL_IMAGE, image_item)
             self.table_items.setItem(row, _COL_EXERCISE, QTableWidgetItem(item.exercise_name))
             self.table_items.setItem(row, _COL_TYPE, QTableWidgetItem(item.type_name))
             self.table_items.setItem(row, _COL_VALUE, QTableWidgetItem(item.target_value))

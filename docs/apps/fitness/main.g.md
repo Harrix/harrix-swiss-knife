@@ -4474,6 +4474,15 @@ class MainWindow(
             lambda pos: exercise_at_list_icon(dashboard_list, pos),
         )
 
+    def _attach_workouts_hover(self) -> None:
+        """Watch workout-table thumbnails once both the table and hover preview exist."""
+        if self._exercise_list_hover is None or self._workouts_widget is None:
+            return
+        self._exercise_list_hover.add_view(
+            self._workouts_widget.table_items,
+            self._workouts_widget.exercise_at_image,
+        )
+
     def _cached_dumbbell_exercise_names(self) -> set[str]:
         """Return cached names of exercises that use template dumbbell weights."""
         if self._dumbbell_exercise_names_cache is None:
@@ -5950,6 +5959,7 @@ class MainWindow(
             ),
         )
         self._attach_fitness_dashboard_hover()
+        self._attach_workouts_hover()
 
     def _init_filter_controls(self) -> None:
         """Prepare widgets on the `Filters` group box.
@@ -7553,9 +7563,14 @@ class MainWindow(
     def _setup_workouts_tab(self) -> None:
         """Fill the Workouts tab with the saved-plan widget."""
         self._workouts_widget = WorkoutsWidget(self)
+        self._workouts_widget.configure_exercise_images(
+            icon_size=getattr(self, "table_icon_size", 64),
+            icon_getter=self._get_exercise_icon,
+        )
         self._workouts_widget.generate_requested.connect(self._on_workout_generate_requested)
         self._workouts_widget.item_done_requested.connect(self._on_workout_item_done)
         self._workouts_widget.exercise_lightbox_requested.connect(self._open_exercise_media_lightbox)
+        self._workouts_widget.items_reloading.connect(self._hide_exercise_list_hover_preview)
         self.verticalLayout_workouts.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_workouts.addWidget(self._workouts_widget, 1)
 
@@ -8375,7 +8390,7 @@ class MainWindow(
                 self._load_exercise_avif(exercise_name, "statistics")
 
     def _update_table_exercise_icons(self, exercise_name: str) -> None:
-        """Refresh the image column for one exercise in Exercises and Types tables."""
+        """Refresh the image column for one exercise in Exercises, Types, and Workouts."""
         if not exercise_name:
             return
         icon = self._get_exercise_icon(exercise_name) or QIcon()
@@ -8394,6 +8409,8 @@ class MainWindow(
                 item = source.item(row, _EXERCISE_TABLE_IMAGE_COLUMN)
                 if item is not None:
                     item.setIcon(icon)
+        if self._workouts_widget is not None:
+            self._workouts_widget.update_exercise_icon(exercise_name, icon)
 
     def _workout_prompt_replacements(self, gender: str, duration_min: int) -> dict[str, str]:
         """Build BotHub placeholders for workout generation."""
