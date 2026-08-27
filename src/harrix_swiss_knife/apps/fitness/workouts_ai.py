@@ -30,17 +30,6 @@ class ParsedWorkout:
     rows: list[ParsedSetRow]
 
 
-@dataclass(frozen=True)
-class WorkoutItemDraft:
-    """One workout item resolved against the exercise catalog."""
-
-    exercise_id: int
-    type_id: int
-    exercise_name: str
-    type_name: str
-    target_value: str
-
-
 @dataclass(frozen=True, slots=True)
 class WorkoutGeneratePreferences:
     """Optional focus areas and free-text notes for workout generation."""
@@ -52,6 +41,17 @@ class WorkoutGeneratePreferences:
     strength: bool = False
     try_something_new: bool = False
     notes: str = ""
+
+
+@dataclass(frozen=True)
+class WorkoutItemDraft:
+    """One workout item resolved against the exercise catalog."""
+
+    exercise_id: int
+    type_id: int
+    exercise_name: str
+    type_name: str
+    target_value: str
 
 
 def apply_workout_preferences_to_title(title: str, preferences: WorkoutGeneratePreferences) -> str:
@@ -80,75 +80,6 @@ def apply_workout_preferences_to_title(title: str, preferences: WorkoutGenerateP
     if not base:
         return suffix
     return f"{base} — {suffix}"
-
-
-def format_workout_preferences_for_prompt(
-    preferences: WorkoutGeneratePreferences,
-    *,
-    catalog: list[ExerciseCatalogEntry] | None = None,
-    recent_rows: list[list] | None = None,
-) -> str:
-    """Format athlete preferences for the workout-generation prompt."""
-    lines: list[str] = []
-    if preferences.dumbbells:
-        lines.append("- Prefer dumbbell exercises where they fit the catalog.")
-    if preferences.cardio:
-        lines.append("- Include cardio exercises.")
-    if preferences.stretching:
-        lines.append("- Include stretching / mobility exercises.")
-    if preferences.yoga:
-        lines.append("- Include yoga-style exercises.")
-    if preferences.strength:
-        lines.append("- Emphasize strength / resistance exercises.")
-    if preferences.try_something_new:
-        lines.append(
-            "- Include several catalog exercises that do NOT appear in recent sets. "
-            "Prefer exercises the athlete has rarely or never logged."
-        )
-        unused = format_unused_exercise_names(catalog or [], recent_rows or [])
-        if unused:
-            lines.append(f"- Exercises not in recent sets (pick from these when possible): {unused}")
-    notes = preferences.notes.strip()
-    if notes:
-        lines.append(f"- Additional notes: {notes}")
-    if not lines:
-        return "No specific preferences."
-    return "\n".join(lines)
-
-
-def format_unused_exercise_names(
-    catalog: list[ExerciseCatalogEntry],
-    recent_rows: list[list],
-) -> str:
-    """Return catalog exercise names absent from recent process rows."""
-    recent_names = {
-        str(row[1] or "").strip()
-        for row in recent_rows
-        if len(row) > 1 and str(row[1] or "").strip()
-    }
-    unused = [entry.name for entry in catalog if entry.name not in recent_names]
-    return ", ".join(unused)
-
-
-def format_workout_preferences_title_suffix(preferences: WorkoutGeneratePreferences) -> str:
-    """Build a short English suffix for the workout title from preferences."""
-    tags: list[str] = []
-    if preferences.dumbbells:
-        tags.append("Dumbbells")
-    if preferences.cardio:
-        tags.append("Cardio")
-    if preferences.stretching:
-        tags.append("Stretching")
-    if preferences.yoga:
-        tags.append("Yoga")
-    if preferences.strength:
-        tags.append("Strength")
-    if preferences.try_something_new:
-        tags.append("Something new")
-    notes = preferences.notes.strip()
-    if notes:
-        tags.append(notes)
-    return " · ".join(tags)
 
 
 def estimate_workout_duration_min(items: list[tuple[str, str]]) -> int:
@@ -186,6 +117,16 @@ def format_recent_sets(rows: list[list]) -> str:
     return "\n".join(lines)
 
 
+def format_unused_exercise_names(
+    catalog: list[ExerciseCatalogEntry],
+    recent_rows: list[list],
+) -> str:
+    """Return catalog exercise names absent from recent process rows."""
+    recent_names = {str(row[1] or "").strip() for row in recent_rows if len(row) > 1 and str(row[1] or "").strip()}
+    unused = [entry.name for entry in catalog if entry.name not in recent_names]
+    return ", ".join(unused)
+
+
 def format_workout_exercise_catalog(catalog: list[ExerciseCatalogEntry]) -> str:
     """Render catalog lines with unit, kcal/unit, and type calorie modifiers."""
     lines: list[str] = []
@@ -209,6 +150,61 @@ def format_workout_exercise_catalog(catalog: list[ExerciseCatalogEntry]) -> str:
             f"{label} | unit {unit} | {entry.calories_per_unit:g} kcal/unit | type {required} | types: {types_text}"
         )
     return "\n".join(lines)
+
+
+def format_workout_preferences_for_prompt(
+    preferences: WorkoutGeneratePreferences,
+    *,
+    catalog: list[ExerciseCatalogEntry] | None = None,
+    recent_rows: list[list] | None = None,
+) -> str:
+    """Format athlete preferences for the workout-generation prompt."""
+    lines: list[str] = []
+    if preferences.dumbbells:
+        lines.append("- Prefer dumbbell exercises where they fit the catalog.")
+    if preferences.cardio:
+        lines.append("- Include cardio exercises.")
+    if preferences.stretching:
+        lines.append("- Include stretching / mobility exercises.")
+    if preferences.yoga:
+        lines.append("- Include yoga-style exercises.")
+    if preferences.strength:
+        lines.append("- Emphasize strength / resistance exercises.")
+    if preferences.try_something_new:
+        lines.append(
+            "- Include several catalog exercises that do NOT appear in recent sets. "
+            "Prefer exercises the athlete has rarely or never logged."
+        )
+        unused = format_unused_exercise_names(catalog or [], recent_rows or [])
+        if unused:
+            lines.append(f"- Exercises not in recent sets (pick from these when possible): {unused}")
+    notes = preferences.notes.strip()
+    if notes:
+        lines.append(f"- Additional notes: {notes}")
+    if not lines:
+        return "No specific preferences."
+    return "\n".join(lines)
+
+
+def format_workout_preferences_title_suffix(preferences: WorkoutGeneratePreferences) -> str:
+    """Build a short English suffix for the workout title from preferences."""
+    tags: list[str] = []
+    if preferences.dumbbells:
+        tags.append("Dumbbells")
+    if preferences.cardio:
+        tags.append("Cardio")
+    if preferences.stretching:
+        tags.append("Stretching")
+    if preferences.yoga:
+        tags.append("Yoga")
+    if preferences.strength:
+        tags.append("Strength")
+    if preferences.try_something_new:
+        tags.append("Something new")
+    notes = preferences.notes.strip()
+    if notes:
+        tags.append(notes)
+    return " · ".join(tags)
 
 
 def parse_workout_tsv(text: str) -> ParsedWorkout:

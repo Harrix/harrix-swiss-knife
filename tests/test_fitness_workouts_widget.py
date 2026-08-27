@@ -162,3 +162,38 @@ def test_workouts_done_item_value_is_read_only() -> None:
     assert value_item is not None
     assert not (value_item.flags() & Qt.ItemFlag.ItemIsEditable)
     widget.close()
+
+
+def test_workout_session_shows_timer_bar_and_hides_start() -> None:
+    """Starting a session shows the top stopwatch bar and hides Start."""
+    assert _qapp() is not None
+    widget = WorkoutsWidget()
+    widget._current_workout_id = 1
+    widget._session_active = True
+    widget._session_workout_id = 1
+    widget._session_elapsed.start()
+    widget._session_bar.show()
+    widget._update_start_button()
+    widget._update_session_ui_locked()
+    widget.show()
+    _qapp().processEvents()
+
+    assert widget.is_workout_session_active()
+    assert widget._session_bar.isVisible()
+    assert not widget.button_start.isVisible()
+    assert not widget.list_workouts.isEnabled()
+
+    widget.stop_workout_session(completed=False)
+    assert not widget.is_workout_session_active()
+    assert not widget._session_bar.isVisible()
+    assert widget.button_start.isVisible()
+    widget.close()
+
+
+def test_workout_session_timer_label_starts_at_zero() -> None:
+    """The workout timer label uses M:SS formatting from zero."""
+    assert _qapp() is not None
+    widget = WorkoutsWidget()
+    widget._update_session_timer_label()
+    assert widget.label_session_timer.text() == "0:00"
+    widget.close()

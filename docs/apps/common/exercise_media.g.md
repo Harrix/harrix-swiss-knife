@@ -13,10 +13,13 @@ lang: en
 
 - [🏛️ Class `RebuildMinThumbnailResult`](#%EF%B8%8F-class-rebuildminthumbnailresult)
 - [🏛️ Class `RebuildSmallAvifResult`](#%EF%B8%8F-class-rebuildsmallavifresult)
+- [🏛️ Class `RebuildStaticThumbnailResult`](#%EF%B8%8F-class-rebuildstaticthumbnailresult)
 - [🔧 Function `has_missing_min_thumbnails`](#-function-has_missing_min_thumbnails)
+- [🔧 Function `has_missing_static_thumbnails`](#-function-has_missing_static_thumbnails)
 - [🔧 Function `is_exercise_media_path`](#-function-is_exercise_media_path)
 - [🔧 Function `rebuild_min_thumbnails_from_small`](#-function-rebuild_min_thumbnails_from_small)
 - [🔧 Function `rebuild_small_avifs_from_high`](#-function-rebuild_small_avifs_from_high)
+- [🔧 Function `rebuild_static_thumbnails_from_avif`](#-function-rebuild_static_thumbnails_from_avif)
 - [🔧 Function `save_exercise_avif`](#-function-save_exercise_avif)
 
 </details>
@@ -63,6 +66,27 @@ class RebuildSmallAvifResult:
 
 </details>
 
+## 🏛️ Class `RebuildStaticThumbnailResult`
+
+```python
+class RebuildStaticThumbnailResult
+```
+
+Outcome of rebuilding dialog previews in `fitness_img/static/`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class RebuildStaticThumbnailResult:
+
+    rebuilt: tuple[str, ...]
+    skipped: tuple[str, ...]
+    failed: tuple[tuple[str, str], ...]
+```
+
+</details>
+
 ## 🔧 Function `has_missing_min_thumbnails`
 
 ```python
@@ -86,6 +110,40 @@ def has_missing_min_thumbnails(avif_dir: Path | str) -> bool:
             if not min_target.is_file():
                 return True
             if min_target.stat().st_mtime < small_path.stat().st_mtime:
+                return True
+        except OSError:
+            return True
+    return False
+```
+
+</details>
+
+## 🔧 Function `has_missing_static_thumbnails`
+
+```python
+def has_missing_static_thumbnails(avif_dir: Path | str) -> bool
+```
+
+Return whether any exercise lacks an up-to-date WebP under `static/`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def has_missing_static_thumbnails(avif_dir: Path | str) -> bool:
+    target_dir = Path(avif_dir)
+    static_dir = target_dir / FITNESS_IMG_STATIC_DIR
+    for small_path in target_dir.glob("*.avif"):
+        if not small_path.is_file():
+            continue
+        source = _exercise_hover_avif_path(target_dir, small_path.stem)
+        if source is None:
+            continue
+        static_target = static_dir / f"{small_path.stem}.webp"
+        try:
+            if not static_target.is_file():
+                return True
+            if static_target.stat().st_mtime < source.stat().st_mtime:
                 return True
         except OSError:
             return True
@@ -208,10 +266,54 @@ def rebuild_small_avifs_from_high(
 
 </details>
 
+## 🔧 Function `rebuild_static_thumbnails_from_avif`
+
+```python
+def rebuild_static_thumbnails_from_avif(avif_dir: Path | str, *, static_max_size: int) -> RebuildStaticThumbnailResult
+```
+
+Write missing or stale static WebP previews from hover AVIF sources.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def rebuild_static_thumbnails_from_avif(
+    avif_dir: Path | str,
+    *,
+    static_max_size: int,
+) -> RebuildStaticThumbnailResult:
+    target_dir = Path(avif_dir)
+    static_dir = target_dir / FITNESS_IMG_STATIC_DIR
+    rebuilt: list[str] = []
+    skipped: list[str] = []
+    failed: list[tuple[str, str]] = []
+    for small_path in sorted(target_dir.glob("*.avif")):
+        if not small_path.is_file():
+            continue
+        name = small_path.stem
+        source = _exercise_hover_avif_path(target_dir, name)
+        if source is None:
+            continue
+        static_target = static_dir / f"{name}.webp"
+        try:
+            if static_target.is_file() and static_target.stat().st_mtime >= source.stat().st_mtime:
+                skipped.append(name)
+                continue
+            _write_min_webp_thumbnail(source, static_target, max_size=static_max_size)
+        except Exception as error:
+            failed.append((name, str(error)))
+            continue
+        rebuilt.append(name)
+    return RebuildStaticThumbnailResult(tuple(rebuilt), tuple(skipped), tuple(failed))
+```
+
+</details>
+
 ## 🔧 Function `save_exercise_avif`
 
 ```python
-def save_exercise_avif(source: Path | str, exercise_name: str, avif_dir: Path | str, *, project_root: Path | None = None, max_size: int | None = None, high_max_size: int | None = None, min_max_size: int | None = None) -> Path
+def save_exercise_avif(source: Path | str, exercise_name: str, avif_dir: Path | str, *, project_root: Path | None = None, max_size: int | None = None, high_max_size: int | None = None, min_max_size: int | None = None, static_max_size: int | None = None) -> Path
 ```
 
 Optimize `source` into a small AVIF and, optionally, a high-resolution copy.
@@ -238,6 +340,8 @@ Args:
   this max width/height. Both files are replaced together after conversion succeeds.
 - `min_max_size` (`int | None`): When set, also write a static WebP thumbnail under
   `min/` for fast table icons.
+- `static_max_size` (`int | None`): When set, also write a static WebP preview under
+  `static/` for the Select Exercise dialog.
 
 Returns:
 
@@ -262,6 +366,7 @@ def save_exercise_avif(
     max_size: int | None = None,
     high_max_size: int | None = None,
     min_max_size: int | None = None,
+    static_max_size: int | None = None,
 ) -> Path:
     name = exercise_name.strip()
     if not name:
@@ -292,6 +397,10 @@ def save_exercise_avif(
         if min_max_size is not None:
             min_target = target_dir / FITNESS_IMG_MIN_DIR / f"{name}.webp"
             _write_min_webp_thumbnail(written, min_target, max_size=min_max_size)
+        if static_max_size is not None:
+            static_source = _exercise_hover_avif_path(target_dir, name) or written
+            static_target = target_dir / FITNESS_IMG_STATIC_DIR / f"{name}.webp"
+            _write_min_webp_thumbnail(static_source, static_target, max_size=static_max_size)
         return written
 
     high_target = target_dir / FITNESS_IMG_HIGH_DIR / f"{name}.avif"
@@ -325,6 +434,10 @@ def save_exercise_avif(
     if min_max_size is not None:
         min_target = target_dir / FITNESS_IMG_MIN_DIR / f"{name}.webp"
         _write_min_webp_thumbnail(small_target, min_target, max_size=min_max_size)
+    if static_max_size is not None:
+        static_source = _exercise_hover_avif_path(target_dir, name) or small_target
+        static_target = target_dir / FITNESS_IMG_STATIC_DIR / f"{name}.webp"
+        _write_min_webp_thumbnail(static_source, static_target, max_size=static_max_size)
 
     return small_target
 ```

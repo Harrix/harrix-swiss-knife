@@ -14,6 +14,7 @@ lang: en
 - [🔧 Function `get_apps_fitness_image_high_max_size`](#-function-get_apps_fitness_image_high_max_size)
 - [🔧 Function `get_apps_fitness_image_max_size`](#-function-get_apps_fitness_image_max_size)
 - [🔧 Function `get_apps_fitness_image_min_max_size`](#-function-get_apps_fitness_image_min_max_size)
+- [🔧 Function `get_apps_fitness_image_static_max_size`](#-function-get_apps_fitness_image_static_max_size)
 - [🔧 Function `get_apps_fitness_lightbox_countdown_seconds`](#-function-get_apps_fitness_lightbox_countdown_seconds)
 - [🔧 Function `get_apps_fitness_workout_gender`](#-function-get_apps_fitness_workout_gender)
 - [🔧 Function `get_apps_fitness_workout_history_count`](#-function-get_apps_fitness_workout_history_count)
@@ -101,6 +102,31 @@ def get_apps_fitness_image_min_max_size(config: dict[str, Any]) -> int:
         return max(int(raw), 1)
     except (TypeError, ValueError):
         return DEFAULT_FITNESS_IMAGE_MIN_MAX_SIZE
+```
+
+</details>
+
+## 🔧 Function `get_apps_fitness_image_static_max_size`
+
+```python
+def get_apps_fitness_image_static_max_size(config: dict[str, Any]) -> int
+```
+
+Return max Select Exercise preview size from `apps.fitness_image_static_max_size`.
+
+Default `512`. Used for static WebP files under `fitness_img/static/`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_apps_fitness_image_static_max_size(config: dict[str, Any]) -> int:
+    apps = config.get("apps") or {}
+    raw = apps.get("fitness_image_static_max_size", DEFAULT_FITNESS_IMAGE_STATIC_MAX_SIZE)
+    try:
+        return max(int(raw), 1)
+    except (TypeError, ValueError):
+        return DEFAULT_FITNESS_IMAGE_STATIC_MAX_SIZE
 ```
 
 </details>

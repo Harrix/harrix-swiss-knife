@@ -163,6 +163,18 @@ class AvifManager(QObject):
         avif_path = self._exercise_avif_file(exercise_name, high=high)
         return avif_path if avif_path is not None and avif_path.exists() else None
 
+    def get_exercise_dialog_static_path(self, exercise_name: str) -> Path | None:
+        """Return a cached static WebP for Select Exercise, when present."""
+        name = exercise_name.strip() if exercise_name else ""
+        if not name:
+            return None
+        static_dir = self.avif_dir / FITNESS_IMG_STATIC_DIR
+        for extension in MIN_THUMBNAIL_EXTENSIONS:
+            static_path = static_dir / f"{name}{extension}"
+            if static_path.is_file():
+                return static_path
+        return None
+
     def get_exercise_hover_avif_path(self, exercise_name: str) -> Path | None:
         """Return the hover preview file, preferring an animated high-resolution AVIF.
 
@@ -185,18 +197,6 @@ class AvifManager(QObject):
         if high_path is not None:
             return high_path
         return self.get_exercise_avif_path(exercise_name)
-
-    def get_exercise_dialog_static_path(self, exercise_name: str) -> Path | None:
-        """Return a cached static WebP for Select Exercise, when present."""
-        name = exercise_name.strip() if exercise_name else ""
-        if not name:
-            return None
-        static_dir = self.avif_dir / FITNESS_IMG_STATIC_DIR
-        for extension in MIN_THUMBNAIL_EXTENSIONS:
-            static_path = static_dir / f"{name}{extension}"
-            if static_path.is_file():
-                return static_path
-        return None
 
     def get_exercise_thumbnail_path(self, exercise_name: str) -> Path | None:
         """Return the smallest static file for table icons, falling back to UI AVIF."""

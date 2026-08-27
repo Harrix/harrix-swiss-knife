@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QModelIndex, QPoint, QSize, Qt, Signal
+from PySide6.QtCore import QElapsedTimer, QModelIndex, QPoint, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QIcon, QKeySequence, QPainter, QShortcut, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -29,6 +29,7 @@ from PySide6.QtWidgets import (
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.table_context_menu import LABEL_OPEN_LIGHTBOX, add_delete_action
 from harrix_swiss_knife.apps.common.widgets.exercise_list_hover_preview import exercise_at_table_image
+from harrix_swiss_knife.apps.fitness.lightbox_logic import format_mm_ss
 from harrix_swiss_knife.apps.fitness.workouts_ai import estimate_workout_duration_min
 from harrix_swiss_knife.qt_emoji_icon import apply_leading_emoji_icons, make_emoji_push_button
 
@@ -61,6 +62,7 @@ class WorkoutsWidget(QWidget):
     item_done_requested = Signal(int)
     exercise_lightbox_requested = Signal(int)
     items_reloading = Signal()
+    workout_session_started = Signal(int)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         """Build the workouts UI; call `set_database_manager` before loading data."""
@@ -73,6 +75,12 @@ class WorkoutsWidget(QWidget):
         self._filling_items = False
         self._icon_getter: Callable[[str], QIcon | None] | None = None
         self._icon_size = _DEFAULT_TABLE_ICON_SIZE
+        self._session_active = False
+        self._session_workout_id: int | None = None
+        self._session_elapsed = QElapsedTimer()
+        self._session_timer = QTimer(self)
+        self._session_timer.setInterval(1000)
+        self._session_timer.timeout.connect(self._tick_session_timer)
         self._build_ui()
 
     def configure_exercise_images(
@@ -95,6 +103,21 @@ class WorkoutsWidget(QWidget):
             name_column=_COL_EXERCISE,
         )
 
+    def is_workout_session_active(self) -> bool:
+        """Return whether a workout session timer is running."""
+        return self._session_active
+
+    def notify_workout_progress(self) -> None:
+        """After an item is marked done, finish the session or open the next exercise."""
+        if not self._session_active or self._session_workout_id != self._current_workout_id:
+            return
+        if self._all_items_done():
+            self.stop_workout_session(completed=True)
+            return
+        next_item_id = self._first_incomplete_item_id()
+        if next_item_id is not None:
+            self.workout_session_started.emit(next_item_id)
+
     def refresh(self) -> None:
         """Reload the workout list, keeping the current selection when possible."""
         self._reload_list(keep_selection=True)
@@ -113,6 +136,24 @@ class WorkoutsWidget(QWidget):
         self._db = db_manager
         self.refresh()
 
+    def stop_workout_session(self, *, completed: bool = False) -> None:
+        """Stop the workout session timer and restore the normal UI."""
+        if not self._session_active:
+            return
+        elapsed_seconds = self._session_elapsed_seconds()
+        self._session_active = False
+        self._session_workout_id = None
+        self._session_timer.stop()
+        self._session_bar.hide()
+        self._update_start_button()
+        self._update_session_ui_locked()
+        if completed:
+            message_box.information(
+                self,
+                "Workout complete",
+                f"All exercises finished in {format_mm_ss(elapsed_seconds)}.",
+            )
+
     def update_exercise_icon(self, exercise_name: str, icon: QIcon | None) -> None:
         """Refresh the image-column icon for every row of `exercise_name`."""
         if not exercise_name:
@@ -129,6 +170,12 @@ class WorkoutsWidget(QWidget):
                 self.table_items.setItem(row, _COL_IMAGE, image_item)
             image_item.setIcon(resolved)
 
+    def _all_items_done(self) -> bool:
+        if self._db is None or self._current_workout_id is None:
+            return False
+        items = self._db.get_workout_items(self._current_workout_id)
+        return bool(items) and all(item.is_done for item in items)
+
     def _apply_image_column_metrics(self) -> None:
         self.table_items.setIconSize(QSize(self._icon_size, self._icon_size))
         self.table_items.verticalHeader().setDefaultSectionSize(self._icon_size + 8)
@@ -139,10 +186,23 @@ class WorkoutsWidget(QWidget):
         self.table_items.setColumnWidth(_COL_IMAGE, self._icon_size + 12)
 
     def _build_ui(self) -> None:
-        root = QHBoxLayout(self)
+        root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
+        self._session_bar = QWidget()
+        session_layout = QHBoxLayout(self._session_bar)
+        session_layout.setContentsMargins(8, 8, 8, 0)
+        session_layout.addWidget(QLabel("Workout time:"))
+        self.label_session_timer = QLabel("0:00")
+        session_layout.addWidget(self.label_session_timer)
+        session_layout.addStretch()
+        self.button_stop = make_emoji_push_button("Stop", "⏹")
+        self.button_stop.clicked.connect(lambda: self.stop_workout_session(completed=False))
+        session_layout.addWidget(self.button_stop)
+        self._session_bar.hide()
+        root.addWidget(self._session_bar)
+
         splitter = QSplitter(Qt.Orientation.Horizontal)
-        root.addWidget(splitter)
+        root.addWidget(splitter, 1)
 
         left = QWidget()
         left_layout = QVBoxLayout(left)
@@ -166,9 +226,14 @@ class WorkoutsWidget(QWidget):
         right = QWidget()
         right_layout = QVBoxLayout(right)
         right_layout.setContentsMargins(8, 8, 8, 8)
+        title_row = QHBoxLayout()
         self.label_title = QLabel("Select a workout")
+        title_row.addWidget(self.label_title, 1)
+        self.button_start = make_emoji_push_button("Start", "▶")
+        self.button_start.clicked.connect(self._start_workout_session)
+        title_row.addWidget(self.button_start)
+        right_layout.addLayout(title_row)
         self.label_meta = QLabel("")
-        right_layout.addWidget(self.label_title)
         right_layout.addWidget(self.label_meta)
         duration_row = QHBoxLayout()
         duration_row.addWidget(QLabel("Duration:"))
@@ -199,7 +264,12 @@ class WorkoutsWidget(QWidget):
         splitter.setStretchFactor(0, 1)
         splitter.setStretchFactor(1, 3)
 
+    def _can_start_workout(self) -> bool:
+        return self._current_workout_id is not None and self._db is not None and not self._all_items_done()
+
     def _clear_detail(self) -> None:
+        if self._session_active:
+            self.stop_workout_session(completed=False)
         self.items_reloading.emit()
         self._current_workout_id = None
         self._item_ids = []
@@ -210,6 +280,7 @@ class WorkoutsWidget(QWidget):
         self.label_duration.setText("")
         self.label_totals.setText("")
         self.table_items.setRowCount(0)
+        self._update_start_button()
 
     def _collect_duration_items(self) -> list[tuple[str, str]]:
         items: list[tuple[str, str]] = []
@@ -293,11 +364,22 @@ class WorkoutsWidget(QWidget):
                 self._set_readonly_item(row, _COL_KCAL, f"{kcal:.1f}")
             self.label_totals.setText(f"Estimated: {total_kcal:.0f} kcal")
             self._sync_duration_from_items()
+            self._update_start_button()
         finally:
             self.table_items.blockSignals(False)  # noqa: FBT003
             self._filling_items = False
 
+    def _first_incomplete_item_id(self) -> int | None:
+        if self._db is None or self._current_workout_id is None:
+            return None
+        for item in self._db.get_workout_items(self._current_workout_id):
+            if not item.is_done:
+                return item.id
+        return None
+
     def _load_workout(self, workout_id: int) -> None:
+        if self._session_active and self._session_workout_id != workout_id:
+            return
         if self._db is None:
             return
         workout = self._db.get_workout_by_id(workout_id)
@@ -344,6 +426,8 @@ class WorkoutsWidget(QWidget):
         self.workouts_changed.emit()
 
     def _on_workout_clicked(self, index: QModelIndex) -> None:
+        if self._session_active:
+            return
         item = self._list_model.itemFromIndex(index)
         if item is None:
             return
@@ -432,6 +516,11 @@ class WorkoutsWidget(QWidget):
     def _selected_rows(self) -> list[int]:
         return sorted({index.row() for index in self.table_items.selectedIndexes()})
 
+    def _session_elapsed_seconds(self) -> int:
+        if not self._session_elapsed.isValid():
+            return 0
+        return max(0, self._session_elapsed.elapsed() // 1000)
+
     def _set_duration_label(self, duration_min: int) -> None:
         self.label_duration.setText(f"~{duration_min} min")
 
@@ -466,12 +555,41 @@ class WorkoutsWidget(QWidget):
                 if isinstance(workout_id, int):
                     self._load_workout(workout_id)
         context_menu = QMenu(self)
+        new_action = context_menu.addAction("➕ New")  # noqa: RUF001
         delete_action = add_delete_action(context_menu)
         delete_action.setEnabled(self._current_workout_id is not None)
+        if self._session_active:
+            new_action.setEnabled(False)
+            delete_action.setEnabled(False)
         apply_leading_emoji_icons(context_menu)
         action = context_menu.exec_(self.list_workouts.mapToGlobal(position))
-        if action == delete_action:
+        if action == new_action:
+            self.generate_requested.emit()
+        elif action == delete_action:
             self._delete_workout()
+
+    def _start_workout_session(self) -> None:
+        if self._session_active:
+            return
+        if not self._can_start_workout():
+            if self._current_workout_id is None:
+                message_box.warning(self, "Error", "Select a workout first")
+            elif self._all_items_done():
+                message_box.information(self, "Workout", "All exercises are already done")
+            return
+        first_item_id = self._first_incomplete_item_id()
+        if first_item_id is None:
+            message_box.information(self, "Workout", "All exercises are already done")
+            return
+        self._session_active = True
+        self._session_workout_id = self._current_workout_id
+        self._session_elapsed.start()
+        self._update_session_timer_label()
+        self._session_bar.show()
+        self._update_start_button()
+        self._update_session_ui_locked()
+        self._session_timer.start()
+        self.workout_session_started.emit(first_item_id)
 
     def _sync_duration_from_items(self) -> None:
         if self._current_workout_id is None:
@@ -483,6 +601,10 @@ class WorkoutsWidget(QWidget):
             message_box.warning(self, "Error", "Failed to update workout duration")
             return
         self._refresh_list_duration_label(duration)
+
+    def _tick_session_timer(self) -> None:
+        if self._session_active:
+            self._update_session_timer_label()
 
     def _update_row_kcal(self, row: int) -> None:
         value_item = self.table_items.item(row, _COL_VALUE)
@@ -500,6 +622,19 @@ class WorkoutsWidget(QWidget):
         kcal_item.setText(f"{kcal:.1f}")
         self._filling_items = False
         self._refresh_kcal_totals()
+
+    def _update_session_timer_label(self) -> None:
+        self.label_session_timer.setText(format_mm_ss(self._session_elapsed_seconds()))
+
+    def _update_session_ui_locked(self) -> None:
+        locked = self._session_active
+        self.list_workouts.setEnabled(not locked)
+        self.button_new.setEnabled(not locked)
+
+    def _update_start_button(self) -> None:
+        can_start = self._can_start_workout() and not self._session_active
+        self.button_start.setEnabled(can_start)
+        self.button_start.setVisible(not self._session_active)
 
 
 class _WorkoutImageDelegate(QStyledItemDelegate):

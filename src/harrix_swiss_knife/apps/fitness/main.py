@@ -5360,6 +5360,32 @@ class MainWindow(
             logger.exception("Error loading exercises catalog tables")
             self._exercises_catalog_loaded = False
 
+    def _ensure_static_thumbnails_for_select_exercise(self) -> bool:
+        """Build missing `static/*.webp` previews before opening Select Exercise."""
+        if self._is_closing or self.avif_manager is None:
+            return True
+        avif_dir = self.avif_manager.avif_dir
+        if not has_missing_static_thumbnails(avif_dir):
+            return True
+        worker = self._static_thumbnail_rebuild_worker
+        if worker is not None and worker.isRunning():
+            return self._wait_for_static_thumbnail_rebuild(worker)
+        static_max_size = get_apps_fitness_image_static_max_size(self._app_config)
+        worker = StaticThumbnailRebuildWorker(
+            avif_dir,
+            static_max_size=static_max_size,
+            parent=self,
+        )
+        self._static_thumbnail_rebuild_worker = worker
+        worker.rebuild_completed.connect(self._on_static_thumbnails_rebuilt)
+        worker.rebuild_failed.connect(
+            lambda message: logger.warning("Static preview rebuild failed: %s", message),
+        )
+        worker.finished.connect(self._cleanup_static_thumbnail_rebuild_worker)
+        worker.finished.connect(worker.deleteLater)
+        worker.start()
+        return self._wait_for_static_thumbnail_rebuild(worker)
+
     def _ensure_types_table_shows_exercise(self, exercise_name: str) -> None:
         """Reload the types table so newly copied weights are visible."""
         if self._is_closing or not exercise_name:
@@ -6739,15 +6765,6 @@ class MainWindow(
         self.update_filter_type_combobox()
         self.apply_filter()
 
-    def _on_static_thumbnails_rebuilt(self, result: object) -> None:
-        """Clear dialog preview cache after background static preview generation."""
-        if not isinstance(result, RebuildStaticThumbnailResult) or not result.rebuilt:
-            return
-        for name in result.rebuilt:
-            self._exercise_avif_preview_cache = {
-                key: value for key, value in self._exercise_avif_preview_cache.items() if key[0] != name
-            }
-
     def _on_min_thumbnails_rebuilt(self, result: object) -> None:
         """Refresh table and list icons after background min thumbnail generation."""
         if not isinstance(result, RebuildMinThumbnailResult) or not result.rebuilt:
@@ -6770,6 +6787,15 @@ class MainWindow(
         """Trigger loading more process rows when scrolled near the bottom."""
         scrollbar = self.tableView_process.verticalScrollBar()
         on_scroll_load_more(value, scrollbar.maximum(), self._load_more_process)
+
+    def _on_static_thumbnails_rebuilt(self, result: object) -> None:
+        """Clear dialog preview cache after background static preview generation."""
+        if not isinstance(result, RebuildStaticThumbnailResult) or not result.rebuilt:
+            return
+        for name in result.rebuilt:
+            self._exercise_avif_preview_cache = {
+                key: value for key, value in self._exercise_avif_preview_cache.items() if key[0] != name
+            }
 
     def _on_use_date_filter_toggled(self, *_args: object) -> None:
         """Toggle date edit widgets and refresh the process table filter."""
@@ -6845,6 +6871,13 @@ class MainWindow(
         self.update_sets_count_today()
         if self._workouts_widget is not None:
             self._workouts_widget.refresh()
+            self._workouts_widget.notify_workout_progress()
+
+    def _on_workout_session_started(self, item_id: int) -> None:
+        """Open the lightbox for the next workout exercise while a session is active."""
+        if self._workouts_widget is None or not self._workouts_widget.is_workout_session_active():
+            return
+        self._open_workout_item_lightbox(item_id)
 
     def _open_exercise_chart_tab(self, exercise_name: str) -> None:
         """Switch to the Exercise Chart tab and select `exercise_name`.
@@ -7568,6 +7601,7 @@ class MainWindow(
         self.update_sets_count_today()
         if self._workouts_widget is not None:
             self._workouts_widget.refresh()
+            self._workouts_widget.notify_workout_progress()
         return True
 
     def _schedule_chart_update(self, delay_ms: int = 50) -> None:
@@ -8005,6 +8039,7 @@ class MainWindow(
         self._workouts_widget.generate_requested.connect(self._on_workout_generate_requested)
         self._workouts_widget.item_done_requested.connect(self._on_workout_item_done)
         self._workouts_widget.exercise_lightbox_requested.connect(self._open_workout_item_lightbox)
+        self._workouts_widget.workout_session_started.connect(self._on_workout_session_started)
         self._workouts_widget.items_reloading.connect(self._hide_exercise_list_hover_preview)
         self.verticalLayout_workouts.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_workouts.addWidget(self._workouts_widget, 1)
@@ -8477,32 +8512,6 @@ class MainWindow(
         self._min_thumbnail_rebuild_worker.finished.connect(self._min_thumbnail_rebuild_worker.deleteLater)
         self._min_thumbnail_rebuild_worker.start()
 
-    def _ensure_static_thumbnails_for_select_exercise(self) -> bool:
-        """Build missing `static/*.webp` previews before opening Select Exercise."""
-        if self._is_closing or self.avif_manager is None:
-            return True
-        avif_dir = self.avif_manager.avif_dir
-        if not has_missing_static_thumbnails(avif_dir):
-            return True
-        worker = self._static_thumbnail_rebuild_worker
-        if worker is not None and worker.isRunning():
-            return self._wait_for_static_thumbnail_rebuild(worker)
-        static_max_size = get_apps_fitness_image_static_max_size(self._app_config)
-        worker = StaticThumbnailRebuildWorker(
-            avif_dir,
-            static_max_size=static_max_size,
-            parent=self,
-        )
-        self._static_thumbnail_rebuild_worker = worker
-        worker.rebuild_completed.connect(self._on_static_thumbnails_rebuilt)
-        worker.rebuild_failed.connect(
-            lambda message: logger.warning("Static preview rebuild failed: %s", message),
-        )
-        worker.finished.connect(self._cleanup_static_thumbnail_rebuild_worker)
-        worker.finished.connect(worker.deleteLater)
-        worker.start()
-        return self._wait_for_static_thumbnail_rebuild(worker)
-
     def _start_missing_static_thumbnails_rebuild(self) -> None:
         """Generate missing `static/*.webp` previews in the background on startup."""
         if self._is_closing or self.avif_manager is None:
@@ -8526,20 +8535,6 @@ class MainWindow(
         self._static_thumbnail_rebuild_worker.finished.connect(self._cleanup_static_thumbnail_rebuild_worker)
         self._static_thumbnail_rebuild_worker.finished.connect(self._static_thumbnail_rebuild_worker.deleteLater)
         self._static_thumbnail_rebuild_worker.start()
-
-    def _wait_for_static_thumbnail_rebuild(self, worker: StaticThumbnailRebuildWorker) -> bool:
-        """Block until `worker` finishes; return False when the window is closing."""
-        if self._is_closing:
-            return False
-        app = QApplication.instance()
-        if isinstance(app, QApplication):
-            app.setOverrideCursor(Qt.CursorShape.WaitCursor)
-        loop = QEventLoop(self)
-        worker.finished.connect(loop.quit)
-        loop.exec()
-        if isinstance(app, QApplication):
-            app.restoreOverrideCursor()
-        return not self._is_closing
 
     def _sync_dumbbell_weight_types(self, *, notify: bool = True) -> int:
         """Copy missing template dumbbell weights onto matching exercises.
@@ -8940,6 +8935,20 @@ class MainWindow(
                     item.setIcon(icon)
         if self._workouts_widget is not None:
             self._workouts_widget.update_exercise_icon(exercise_name, icon)
+
+    def _wait_for_static_thumbnail_rebuild(self, worker: StaticThumbnailRebuildWorker) -> bool:
+        """Block until `worker` finishes; return `False` when the window is closing."""
+        if self._is_closing:
+            return False
+        app = QApplication.instance()
+        if isinstance(app, QApplication):
+            app.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        loop = QEventLoop(self)
+        worker.finished.connect(loop.quit)
+        loop.exec()
+        if isinstance(app, QApplication):
+            app.restoreOverrideCursor()
+        return not self._is_closing
 
     def _workout_prompt_replacements(
         self,

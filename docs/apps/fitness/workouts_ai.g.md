@@ -12,10 +12,15 @@ lang: en
 ## Contents
 
 - [🏛️ Class `ParsedWorkout`](#%EF%B8%8F-class-parsedworkout)
+- [🏛️ Class `WorkoutGeneratePreferences`](#%EF%B8%8F-class-workoutgeneratepreferences)
 - [🏛️ Class `WorkoutItemDraft`](#%EF%B8%8F-class-workoutitemdraft)
+- [🔧 Function `apply_workout_preferences_to_title`](#-function-apply_workout_preferences_to_title)
 - [🔧 Function `estimate_workout_duration_min`](#-function-estimate_workout_duration_min)
 - [🔧 Function `format_recent_sets`](#-function-format_recent_sets)
+- [🔧 Function `format_unused_exercise_names`](#-function-format_unused_exercise_names)
 - [🔧 Function `format_workout_exercise_catalog`](#-function-format_workout_exercise_catalog)
+- [🔧 Function `format_workout_preferences_for_prompt`](#-function-format_workout_preferences_for_prompt)
+- [🔧 Function `format_workout_preferences_title_suffix`](#-function-format_workout_preferences_title_suffix)
 - [🔧 Function `parse_workout_tsv`](#-function-parse_workout_tsv)
 - [🔧 Function `recalculate_workout_duration`](#-function-recalculate_workout_duration)
 - [🔧 Function `resolve_workout_item`](#-function-resolve_workout_item)
@@ -42,6 +47,31 @@ class ParsedWorkout:
 
 </details>
 
+## 🏛️ Class `WorkoutGeneratePreferences`
+
+```python
+class WorkoutGeneratePreferences
+```
+
+Optional focus areas and free-text notes for workout generation.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class WorkoutGeneratePreferences:
+
+    dumbbells: bool = False
+    cardio: bool = False
+    stretching: bool = False
+    yoga: bool = False
+    strength: bool = False
+    try_something_new: bool = False
+    notes: str = ""
+```
+
+</details>
+
 ## 🏛️ Class `WorkoutItemDraft`
 
 ```python
@@ -61,6 +91,47 @@ class WorkoutItemDraft:
     exercise_name: str
     type_name: str
     target_value: str
+```
+
+</details>
+
+## 🔧 Function `apply_workout_preferences_to_title`
+
+```python
+def apply_workout_preferences_to_title(title: str, preferences: WorkoutGeneratePreferences) -> str
+```
+
+Append preference tags to `title` when they are not already mentioned.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def apply_workout_preferences_to_title(title: str, preferences: WorkoutGeneratePreferences) -> str:
+    base = title.strip()
+    lowered = base.lower()
+    parts: list[str] = []
+    if preferences.dumbbells and "dumbbell" not in lowered:
+        parts.append("Dumbbells")
+    if preferences.cardio and "cardio" not in lowered:
+        parts.append("Cardio")
+    if preferences.stretching and "stretch" not in lowered:
+        parts.append("Stretching")
+    if preferences.yoga and "yoga" not in lowered:
+        parts.append("Yoga")
+    if preferences.strength and "strength" not in lowered:
+        parts.append("Strength")
+    if preferences.try_something_new and "new" not in lowered:
+        parts.append("Something new")
+    notes = preferences.notes.strip()
+    if notes and notes.lower() not in lowered:
+        parts.append(notes)
+    if not parts:
+        return base
+    suffix = " · ".join(parts)
+    if not base:
+        return suffix
+    return f"{base} — {suffix}"
 ```
 
 </details>
@@ -122,6 +193,29 @@ def format_recent_sets(rows: list[list]) -> str:
 
 </details>
 
+## 🔧 Function `format_unused_exercise_names`
+
+```python
+def format_unused_exercise_names(catalog: list[ExerciseCatalogEntry], recent_rows: list[list]) -> str
+```
+
+Return catalog exercise names absent from recent process rows.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def format_unused_exercise_names(
+    catalog: list[ExerciseCatalogEntry],
+    recent_rows: list[list],
+) -> str:
+    recent_names = {str(row[1] or "").strip() for row in recent_rows if len(row) > 1 and str(row[1] or "").strip()}
+    unused = [entry.name for entry in catalog if entry.name not in recent_names]
+    return ", ".join(unused)
+```
+
+</details>
+
 ## 🔧 Function `format_workout_exercise_catalog`
 
 ```python
@@ -156,6 +250,87 @@ def format_workout_exercise_catalog(catalog: list[ExerciseCatalogEntry]) -> str:
             f"{label} | unit {unit} | {entry.calories_per_unit:g} kcal/unit | type {required} | types: {types_text}"
         )
     return "\n".join(lines)
+```
+
+</details>
+
+## 🔧 Function `format_workout_preferences_for_prompt`
+
+```python
+def format_workout_preferences_for_prompt(preferences: WorkoutGeneratePreferences, *, catalog: list[ExerciseCatalogEntry] | None = None, recent_rows: list[list] | None = None) -> str
+```
+
+Format athlete preferences for the workout-generation prompt.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def format_workout_preferences_for_prompt(
+    preferences: WorkoutGeneratePreferences,
+    *,
+    catalog: list[ExerciseCatalogEntry] | None = None,
+    recent_rows: list[list] | None = None,
+) -> str:
+    lines: list[str] = []
+    if preferences.dumbbells:
+        lines.append("- Prefer dumbbell exercises where they fit the catalog.")
+    if preferences.cardio:
+        lines.append("- Include cardio exercises.")
+    if preferences.stretching:
+        lines.append("- Include stretching / mobility exercises.")
+    if preferences.yoga:
+        lines.append("- Include yoga-style exercises.")
+    if preferences.strength:
+        lines.append("- Emphasize strength / resistance exercises.")
+    if preferences.try_something_new:
+        lines.append(
+            "- Include several catalog exercises that do NOT appear in recent sets. "
+            "Prefer exercises the athlete has rarely or never logged."
+        )
+        unused = format_unused_exercise_names(catalog or [], recent_rows or [])
+        if unused:
+            lines.append(f"- Exercises not in recent sets (pick from these when possible): {unused}")
+    notes = preferences.notes.strip()
+    if notes:
+        lines.append(f"- Additional notes: {notes}")
+    if not lines:
+        return "No specific preferences."
+    return "\n".join(lines)
+```
+
+</details>
+
+## 🔧 Function `format_workout_preferences_title_suffix`
+
+```python
+def format_workout_preferences_title_suffix(preferences: WorkoutGeneratePreferences) -> str
+```
+
+Build a short English suffix for the workout title from preferences.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def format_workout_preferences_title_suffix(preferences: WorkoutGeneratePreferences) -> str:
+    tags: list[str] = []
+    if preferences.dumbbells:
+        tags.append("Dumbbells")
+    if preferences.cardio:
+        tags.append("Cardio")
+    if preferences.stretching:
+        tags.append("Stretching")
+    if preferences.yoga:
+        tags.append("Yoga")
+    if preferences.strength:
+        tags.append("Strength")
+    if preferences.try_something_new:
+        tags.append("Something new")
+    notes = preferences.notes.strip()
+    if notes:
+        tags.append(notes)
+    return " · ".join(tags)
 ```
 
 </details>

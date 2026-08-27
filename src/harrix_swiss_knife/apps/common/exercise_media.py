@@ -35,8 +35,8 @@ class RebuildMinThumbnailResult:
 
 
 @dataclass(frozen=True, slots=True)
-class RebuildStaticThumbnailResult:
-    """Outcome of rebuilding dialog previews in `fitness_img/static/`."""
+class RebuildSmallAvifResult:
+    """Outcome of rebuilding UI-sized AVIFs from `fitness_img/high/`."""
 
     rebuilt: tuple[str, ...]
     skipped: tuple[str, ...]
@@ -44,8 +44,8 @@ class RebuildStaticThumbnailResult:
 
 
 @dataclass(frozen=True, slots=True)
-class RebuildSmallAvifResult:
-    """Outcome of rebuilding UI-sized AVIFs from `fitness_img/high/`."""
+class RebuildStaticThumbnailResult:
+    """Outcome of rebuilding dialog previews in `fitness_img/static/`."""
 
     rebuilt: tuple[str, ...]
     skipped: tuple[str, ...]
@@ -124,37 +124,6 @@ def rebuild_min_thumbnails_from_small(
     return RebuildMinThumbnailResult(tuple(rebuilt), tuple(skipped), tuple(failed))
 
 
-def rebuild_static_thumbnails_from_avif(
-    avif_dir: Path | str,
-    *,
-    static_max_size: int,
-) -> RebuildStaticThumbnailResult:
-    """Write missing or stale static WebP previews from hover AVIF sources."""
-    target_dir = Path(avif_dir)
-    static_dir = target_dir / FITNESS_IMG_STATIC_DIR
-    rebuilt: list[str] = []
-    skipped: list[str] = []
-    failed: list[tuple[str, str]] = []
-    for small_path in sorted(target_dir.glob("*.avif")):
-        if not small_path.is_file():
-            continue
-        name = small_path.stem
-        source = _exercise_hover_avif_path(target_dir, name)
-        if source is None:
-            continue
-        static_target = static_dir / f"{name}.webp"
-        try:
-            if static_target.is_file() and static_target.stat().st_mtime >= source.stat().st_mtime:
-                skipped.append(name)
-                continue
-            _write_min_webp_thumbnail(source, static_target, max_size=static_max_size)
-        except Exception as error:
-            failed.append((name, str(error)))
-            continue
-        rebuilt.append(name)
-    return RebuildStaticThumbnailResult(tuple(rebuilt), tuple(skipped), tuple(failed))
-
-
 def rebuild_small_avifs_from_high(
     avif_dir: Path | str,
     *,
@@ -197,6 +166,37 @@ def rebuild_small_avifs_from_high(
         rebuilt.append(name)
 
     return RebuildSmallAvifResult(tuple(rebuilt), tuple(skipped), tuple(failed))
+
+
+def rebuild_static_thumbnails_from_avif(
+    avif_dir: Path | str,
+    *,
+    static_max_size: int,
+) -> RebuildStaticThumbnailResult:
+    """Write missing or stale static WebP previews from hover AVIF sources."""
+    target_dir = Path(avif_dir)
+    static_dir = target_dir / FITNESS_IMG_STATIC_DIR
+    rebuilt: list[str] = []
+    skipped: list[str] = []
+    failed: list[tuple[str, str]] = []
+    for small_path in sorted(target_dir.glob("*.avif")):
+        if not small_path.is_file():
+            continue
+        name = small_path.stem
+        source = _exercise_hover_avif_path(target_dir, name)
+        if source is None:
+            continue
+        static_target = static_dir / f"{name}.webp"
+        try:
+            if static_target.is_file() and static_target.stat().st_mtime >= source.stat().st_mtime:
+                skipped.append(name)
+                continue
+            _write_min_webp_thumbnail(source, static_target, max_size=static_max_size)
+        except Exception as error:
+            failed.append((name, str(error)))
+            continue
+        rebuilt.append(name)
+    return RebuildStaticThumbnailResult(tuple(rebuilt), tuple(skipped), tuple(failed))
 
 
 def save_exercise_avif(
@@ -322,23 +322,6 @@ def save_exercise_avif(
     return small_target
 
 
-def _exercise_hover_avif_path(avif_dir: Path, name: str) -> Path | None:
-    """Return the AVIF file used for dialog hover previews."""
-    small = avif_dir / f"{name}.avif"
-    high = avif_dir / FITNESS_IMG_HIGH_DIR / f"{name}.avif"
-    small_exists = small.is_file()
-    high_exists = high.is_file()
-    if (
-        high_exists
-        and _avif_file_is_animated(high)
-        and (not small_exists or not _avif_file_is_animated(small))
-    ):
-        return high
-    if small_exists:
-        return small
-    return high if high_exists else None
-
-
 def _avif_file_is_animated(avif_path: Path) -> bool:
     """Return whether `avif_path` has more than one frame."""
     try:
@@ -388,6 +371,19 @@ def _convert_source_to_avif(
         _replace_file(optimized, target)
 
     return target
+
+
+def _exercise_hover_avif_path(avif_dir: Path, name: str) -> Path | None:
+    """Return the AVIF file used for dialog hover previews."""
+    small = avif_dir / f"{name}.avif"
+    high = avif_dir / FITNESS_IMG_HIGH_DIR / f"{name}.avif"
+    small_exists = small.is_file()
+    high_exists = high.is_file()
+    if high_exists and _avif_file_is_animated(high) and (not small_exists or not _avif_file_is_animated(small)):
+        return high
+    if small_exists:
+        return small
+    return high if high_exists else None
 
 
 def _pil_frame_to_rgb(image: Image.Image) -> Image.Image:
