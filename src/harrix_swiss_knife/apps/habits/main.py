@@ -73,6 +73,7 @@ from harrix_swiss_knife.apps.common.table_context_menu import (
 )
 from harrix_swiss_knife.apps.common.table_export import export_table_via_dialog
 from harrix_swiss_knife.apps.common.ui_helpers import close_table_editor_if_open
+from harrix_swiss_knife.apps.common.widgets.shrinkable_scroll_area import install_shrinkable_tab_scroll
 from harrix_swiss_knife.apps.common.word_wrap_header import WordWrapHeaderView
 from harrix_swiss_knife.apps.habits import database_manager, window
 from harrix_swiss_knife.apps.habits.dashboard import HabitDashboardWidget
@@ -1947,6 +1948,7 @@ class MainWindow(
             QSizePolicy.Policy.Expanding,
         )
         self.verticalLayout_charts_process_habits_content.setContentsMargins(0, 0, 0, 0)
+        install_shrinkable_tab_scroll(self, self.tabWidget)
 
     def _show_habit_filter_context_menu(self, position: QPoint) -> None:
         """Show context menu for habit filter list view."""

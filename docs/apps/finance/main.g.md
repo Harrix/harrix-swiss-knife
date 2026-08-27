@@ -5281,6 +5281,7 @@ class MainWindow(
         self.doubleSpinBox_exchange_from.setValue(100.0)
         self.doubleSpinBox_exchange_to.setValue(73.5)
         self.doubleSpinBox_exchange_rate.setValue(73.5)
+        install_shrinkable_tab_scroll(self, self.tabWidget)
 
     def _show_accounts_table_context_menu(self, position: QPoint) -> None:
         """Show context menu on accounts table with edit and account commands."""

@@ -130,7 +130,7 @@ from harrix_swiss_knife.apps.common.widgets.exercise_list_hover_preview import (
     exercise_at_table_image,
 )
 from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import install_url_drop_handlers
-from harrix_swiss_knife.apps.common.widgets.shrinkable_scroll_area import wrap_tab_pages_in_shrinkable_scroll
+from harrix_swiss_knife.apps.common.widgets.shrinkable_scroll_area import install_shrinkable_tab_scroll
 from harrix_swiss_knife.apps.fitness import database_manager, window
 from harrix_swiss_knife.apps.fitness.ai_source_dialog import create_fitness_dashboard_text_dialog
 from harrix_swiss_knife.apps.fitness.dumbbell_weight_types import (
@@ -7539,8 +7539,7 @@ class MainWindow(
         self.splitter.setStretchFactor(2, 3)  # process filters + table
         self._apply_sets_splitter_sizes()
         self._setup_fitness_dashboard_tab()
-        wrap_tab_pages_in_shrinkable_scroll(self.tabWidget)
-        self.setMinimumSize(160, 160)
+        install_shrinkable_tab_scroll(self, self.tabWidget)
 
     def _show_duplicate_exercise_if_needed(
         self,

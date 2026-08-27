@@ -14,6 +14,7 @@ lang: en
 - [🏛️ Class `ShrinkableScrollArea`](#%EF%B8%8F-class-shrinkablescrollarea)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `minimumSizeHint`](#%EF%B8%8F-method-minimumsizehint)
+- [🔧 Function `install_shrinkable_tab_scroll`](#-function-install_shrinkable_tab_scroll)
 - [🔧 Function `wrap_tab_pages_in_shrinkable_scroll`](#-function-wrap_tab_pages_in_shrinkable_scroll)
 - [🔧 Function `wrap_widget_contents_in_shrinkable_scroll`](#-function-wrap_widget_contents_in_shrinkable_scroll)
 
@@ -37,6 +38,7 @@ scrollbars appear instead of blocking the window from shrinking.
 class ShrinkableScrollArea(QScrollArea):
 
     def __init__(self, parent: QWidget | None = None) -> None:
+        """Create a frameless expanding scroll area."""
         super().__init__(parent)
         self.setFrameShape(QFrame.Shape.NoFrame)
         self.setWidgetResizable(True)
@@ -57,7 +59,7 @@ class ShrinkableScrollArea(QScrollArea):
 def __init__(self, parent: QWidget | None = None) -> None
 ```
 
-_No docstring provided._
+Create a frameless expanding scroll area.
 
 <details>
 <summary>Code:</summary>
@@ -88,6 +90,25 @@ Allow the parent to shrink below the inner widget minimum.
 ```python
 def minimumSizeHint(self) -> QSize:  # noqa: N802
         return QSize(_MIN_VIEWPORT, _MIN_VIEWPORT)
+```
+
+</details>
+
+## 🔧 Function `install_shrinkable_tab_scroll`
+
+```python
+def install_shrinkable_tab_scroll(window: QWidget, tab_widget: QTabWidget) -> None
+```
+
+Wrap tab pages and let `window` shrink below the content minimums.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def install_shrinkable_tab_scroll(window: QWidget, tab_widget: QTabWidget) -> None:
+    wrap_tab_pages_in_shrinkable_scroll(tab_widget)
+    window.setMinimumSize(_MIN_VIEWPORT, _MIN_VIEWPORT)
 ```
 
 </details>

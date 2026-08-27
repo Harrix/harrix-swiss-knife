@@ -6,6 +6,7 @@ import pytest
 from PySide6.QtWidgets import QApplication, QHBoxLayout, QTabWidget, QWidget
 
 from harrix_swiss_knife.apps.common.widgets.shrinkable_scroll_area import (
+    install_shrinkable_tab_scroll,
     wrap_tab_pages_in_shrinkable_scroll,
     wrap_widget_contents_in_shrinkable_scroll,
 )
@@ -49,3 +50,21 @@ def test_wrap_tab_pages_in_shrinkable_scroll(qapp: QApplication) -> None:
     wrap_tab_pages_in_shrinkable_scroll(tabs)
     assert page.minimumSizeHint().width() < 900
     tabs.close()
+
+
+def test_install_shrinkable_tab_scroll_sets_window_minimum(qapp: QApplication) -> None:
+    assert qapp is not None
+    window = QWidget()
+    window.setMinimumSize(800, 600)
+    tabs = QTabWidget(window)
+    page = QWidget()
+    layout = QHBoxLayout(page)
+    wide = QWidget()
+    wide.setMinimumWidth(900)
+    layout.addWidget(wide)
+    tabs.addTab(page, "Food")
+    install_shrinkable_tab_scroll(window, tabs)
+    assert window.minimumWidth() == 160
+    assert window.minimumHeight() == 160
+    assert page.minimumSizeHint().width() < 900
+    window.close()

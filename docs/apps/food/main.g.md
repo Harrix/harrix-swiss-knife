@@ -3014,6 +3014,7 @@ class MainWindow(
         QWidget.setTabOrder(self.dateEdit_food, self.pushButton_food_date_quick)
         QWidget.setTabOrder(self.pushButton_food_date_quick, self.pushButton_food_add)
         QWidget.setTabOrder(self.pushButton_food_add, self.pushButton_food_manual_name_clear)
+        install_shrinkable_tab_scroll(self, self.tabWidget)
 
     def _show_all_food_items(self) -> None:
         """Show all food items in the list (remove filtering)."""

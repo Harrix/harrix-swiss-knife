@@ -30,6 +30,12 @@ class ShrinkableScrollArea(QScrollArea):
         return QSize(_MIN_VIEWPORT, _MIN_VIEWPORT)
 
 
+def install_shrinkable_tab_scroll(window: QWidget, tab_widget: QTabWidget) -> None:
+    """Wrap tab pages and let `window` shrink below the content minimums."""
+    wrap_tab_pages_in_shrinkable_scroll(tab_widget)
+    window.setMinimumSize(_MIN_VIEWPORT, _MIN_VIEWPORT)
+
+
 def wrap_tab_pages_in_shrinkable_scroll(tab_widget: QTabWidget) -> None:
     """Wrap every tab page so a narrow window shows scrollbars instead of a min-width clamp."""
     for index in range(tab_widget.count()):

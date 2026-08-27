@@ -103,6 +103,7 @@ from harrix_swiss_knife.apps.common.table_context_menu import (
 from harrix_swiss_knife.apps.common.table_export import export_table_via_dialog
 from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
 from harrix_swiss_knife.apps.common.widgets.image_picker import ImagePicker, ImagePickerMode
+from harrix_swiss_knife.apps.common.widgets.shrinkable_scroll_area import install_shrinkable_tab_scroll
 from harrix_swiss_knife.apps.common.word_wrap_header import install_word_wrap_header
 from harrix_swiss_knife.apps.finance import database_manager, window
 from harrix_swiss_knife.apps.finance.account_edit_dialog import AccountEditDialog
@@ -5430,6 +5431,7 @@ class MainWindow(
         self.doubleSpinBox_exchange_from.setValue(100.0)
         self.doubleSpinBox_exchange_to.setValue(73.5)
         self.doubleSpinBox_exchange_rate.setValue(73.5)
+        install_shrinkable_tab_scroll(self, self.tabWidget)
 
     def _show_accounts_table_context_menu(self, position: QPoint) -> None:
         """Show context menu on accounts table with edit and account commands."""

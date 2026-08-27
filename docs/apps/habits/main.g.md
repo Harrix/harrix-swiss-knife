@@ -1882,6 +1882,7 @@ class MainWindow(
             QSizePolicy.Policy.Expanding,
         )
         self.verticalLayout_charts_process_habits_content.setContentsMargins(0, 0, 0, 0)
+        install_shrinkable_tab_scroll(self, self.tabWidget)
 
     def _show_habit_filter_context_menu(self, position: QPoint) -> None:
         """Show context menu for habit filter list view."""
