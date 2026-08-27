@@ -8960,7 +8960,11 @@ class MainWindow(
         return {
             "GENDER": gender,
             "DURATION_MIN": str(duration_min),
-            "WORKOUT_PREFERENCES": format_workout_preferences_for_prompt(preferences),
+            "WORKOUT_PREFERENCES": format_workout_preferences_for_prompt(
+                preferences,
+                catalog=catalog,
+                recent_rows=recent,
+            ),
             "EXERCISES": format_workout_exercise_catalog(catalog),
             "RECENT_SETS": format_recent_sets(recent),
         }

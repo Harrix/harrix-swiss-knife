@@ -71,12 +71,14 @@ class WorkoutGenerateDialog(QDialog):
         self.check_stretching = QCheckBox("Stretching")
         self.check_yoga = QCheckBox("Yoga")
         self.check_strength = QCheckBox("Strength")
+        self.check_something_new = QCheckBox("Something new")
         for checkbox in (
             self.check_dumbbells,
             self.check_cardio,
             self.check_stretching,
             self.check_yoga,
             self.check_strength,
+            self.check_something_new,
         ):
             preferences_layout.addWidget(checkbox)
         layout.addWidget(preferences)
@@ -114,5 +116,6 @@ class WorkoutGenerateDialog(QDialog):
             stretching=self.check_stretching.isChecked(),
             yoga=self.check_yoga.isChecked(),
             strength=self.check_strength.isChecked(),
+            try_something_new=self.check_something_new.isChecked(),
             notes=self.line_notes.text().strip(),
         )

@@ -17,6 +17,7 @@ from harrix_swiss_knife.apps.fitness.workouts_ai import (
     apply_workout_preferences_to_title,
     estimate_workout_duration_min,
     format_recent_sets,
+    format_unused_exercise_names,
     format_workout_exercise_catalog,
     format_workout_preferences_for_prompt,
     format_workout_preferences_title_suffix,
@@ -73,6 +74,21 @@ def test_format_workout_preferences_for_prompt_and_title() -> None:
     )
     titled = apply_workout_preferences_to_title("Cardio dumbbell day", preferences)
     assert titled == "Cardio dumbbell day — focus on back"
+
+
+def test_format_workout_preferences_try_something_new_lists_unused_exercises() -> None:
+    catalog = build_exercise_catalog(
+        [[1, "Pull-up", "", 1, 0.5, ""], [2, "Row", "", 1, 0.4, ""]],
+        [],
+    )
+    recent = [[1, "Pull-up", "", "10", "times", "2026-08-01"]]
+    preferences = WorkoutGeneratePreferences(try_something_new=True)
+    prompt = format_workout_preferences_for_prompt(preferences, catalog=catalog, recent_rows=recent)
+    assert "do NOT appear in recent sets" in prompt
+    assert "Row" in prompt
+    assert "Pull-up" not in prompt.split("not in recent sets", maxsplit=1)[-1]
+    assert format_unused_exercise_names(catalog, recent) == "Row"
+    assert "Something new" in format_workout_preferences_title_suffix(preferences)
 
 
 def test_format_workout_exercise_catalog_includes_unit_and_kcal() -> None:
