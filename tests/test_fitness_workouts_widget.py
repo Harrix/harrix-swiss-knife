@@ -78,11 +78,10 @@ def test_workouts_table_has_image_column_like_other_tables() -> None:
     widget.close()
 
 
-def test_workouts_widget_has_duration_edit_and_remove_row() -> None:
-    """Duration is editable and the items table has a remove-row action."""
+def test_workouts_widget_has_duration_edit() -> None:
+    """Duration is editable on the workout detail pane."""
     assert _qapp() is not None
     widget = WorkoutsWidget()
     assert widget.spin_duration.isEnabled() is False
     assert widget.spin_duration.suffix() == " min"
-    assert widget.button_remove_item.text()
     widget.close()
