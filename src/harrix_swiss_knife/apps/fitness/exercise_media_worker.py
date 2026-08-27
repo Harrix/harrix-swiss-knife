@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QThread, Signal
 
-from harrix_swiss_knife.apps.common.exercise_media import save_exercise_avif
+from harrix_swiss_knife.apps.common.exercise_media import rebuild_min_thumbnails_from_small, save_exercise_avif
 
 if TYPE_CHECKING:
     from PySide6.QtCore import QObject
@@ -57,3 +57,31 @@ class ExerciseMediaSaveWorker(QThread):
             self.save_failed.emit(self._exercise_name, str(error))
             return
         self.save_completed.emit(self._exercise_name, str(target))
+
+
+class MinThumbnailRebuildWorker(QThread):
+    """Build missing static WebP table icons from UI-sized AVIFs."""
+
+    rebuild_completed = Signal(object)  # RebuildMinThumbnailResult
+    rebuild_failed = Signal(str)
+
+    def __init__(
+        self,
+        avif_dir: Path | str,
+        *,
+        min_max_size: int,
+        parent: QObject | None = None,
+    ) -> None:
+        """Store rebuild parameters for `run()`."""
+        super().__init__(parent)
+        self._avif_dir = Path(avif_dir)
+        self._min_max_size = min_max_size
+
+    def run(self) -> None:
+        """Generate missing or stale `min/*.webp` files off the UI thread."""
+        try:
+            result = rebuild_min_thumbnails_from_small(self._avif_dir, min_max_size=self._min_max_size)
+        except Exception as error:
+            self.rebuild_failed.emit(str(error))
+            return
+        self.rebuild_completed.emit(result)

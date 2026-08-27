@@ -97,6 +97,8 @@ from harrix_swiss_knife.apps.common.dialogs.exercise_selection_dialog import Exe
 from harrix_swiss_knife.apps.common.dialogs.simple_recording_dialog import SimpleRecordingDialog
 from harrix_swiss_knife.apps.common.dialogs.text_input_dialog import TextInputDialog
 from harrix_swiss_knife.apps.common.exercise_media import (
+    RebuildMinThumbnailResult,
+    has_missing_min_thumbnails,
     is_exercise_media_path,
 )
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
@@ -163,7 +165,7 @@ from harrix_swiss_knife.apps.fitness.exercise_favorites import (
     format_favorite_exercise_label,
     parse_exercise_display_name,
 )
-from harrix_swiss_knife.apps.fitness.exercise_media_worker import ExerciseMediaSaveWorker
+from harrix_swiss_knife.apps.fitness.exercise_media_worker import ExerciseMediaSaveWorker, MinThumbnailRebuildWorker
 from harrix_swiss_knife.apps.fitness.exercise_type_add_dialog import ExerciseTypeAddDialog
 from harrix_swiss_knife.apps.fitness.fitness_dashboard import (
     FitnessDashboardExercise,
@@ -301,6 +303,7 @@ class MainWindow(
         self.avif_manager: avif_manager.AvifManager | None = None
         self._bothub_state = BothubRequestState()
         self._exercise_media_worker: ExerciseMediaSaveWorker | None = None
+        self._min_thumbnail_rebuild_worker: MinThumbnailRebuildWorker | None = None
         self._exercise_media_toast: toast_countdown_notification.ToastCountdownNotification | None = None
         self._exercise_media_success_message: str | None = None
         self._exercise_add_after_media: tuple[str, bool] | None = None
@@ -421,6 +424,7 @@ class MainWindow(
 
         # Load initial AVIF animations after UI is ready
         QTimer.singleShot(100, self._load_initial_avifs)
+        QTimer.singleShot(300, self._start_missing_min_thumbnails_rebuild)
 
         # Set window size and position based on screen resolution
         self._setup_window_size_and_position()
@@ -4712,6 +4716,52 @@ class MainWindow(
         if self._try_start_deferred_exercise_add_media():
             return
         self._pump_exercise_add_queue()
+
+    def _cleanup_min_thumbnail_rebuild_worker(self) -> None:
+        """Drop finished min-thumbnail rebuild worker reference."""
+        self._min_thumbnail_rebuild_worker = None
+
+    def _on_min_thumbnails_rebuilt(self, result: object) -> None:
+        """Refresh table and list icons after background min thumbnail generation."""
+        if not isinstance(result, RebuildMinThumbnailResult) or not result.rebuilt:
+            return
+        for name in result.rebuilt:
+            self._exercise_icon_cache.pop(name, None)
+            self._update_table_exercise_icons(name)
+            self._update_list_view_exercise_icon(name)
+            if self._workouts_widget is not None:
+                self._workouts_widget.update_exercise_icon(name, self._get_exercise_icon(name))
+        if self._fitness_dashboard is not None and self.db_manager is not None:
+            self._refresh_fitness_dashboard_exercises(
+                self._demote_steps_from_first(
+                    self.db_manager.get_exercises_by_frequency(self.exercises_frequency_window),
+                ),
+                selected=self._fitness_dashboard.selected_exercise(),
+            )
+
+    def _start_missing_min_thumbnails_rebuild(self) -> None:
+        """Generate missing `min/*.webp` icons in the background on startup."""
+        if self._is_closing or self.avif_manager is None:
+            return
+        worker = self._min_thumbnail_rebuild_worker
+        if worker is not None and worker.isRunning():
+            return
+        avif_dir = self.avif_manager.avif_dir
+        if not has_missing_min_thumbnails(avif_dir):
+            return
+        min_max_size = get_apps_fitness_image_min_max_size(self._app_config)
+        self._min_thumbnail_rebuild_worker = MinThumbnailRebuildWorker(
+            avif_dir,
+            min_max_size=min_max_size,
+            parent=self,
+        )
+        self._min_thumbnail_rebuild_worker.rebuild_completed.connect(self._on_min_thumbnails_rebuilt)
+        self._min_thumbnail_rebuild_worker.rebuild_failed.connect(
+            lambda message: logger.warning("Min thumbnail rebuild failed: %s", message),
+        )
+        self._min_thumbnail_rebuild_worker.finished.connect(self._cleanup_min_thumbnail_rebuild_worker)
+        self._min_thumbnail_rebuild_worker.finished.connect(self._min_thumbnail_rebuild_worker.deleteLater)
+        self._min_thumbnail_rebuild_worker.start()
 
     def _close_exercise_add_toast(self) -> None:
         """Close the shared add-exercise queue toast if present."""

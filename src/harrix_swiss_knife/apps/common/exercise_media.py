@@ -91,6 +91,24 @@ def rebuild_small_avifs_from_high(
     return RebuildSmallAvifResult(tuple(rebuilt), tuple(skipped), tuple(failed))
 
 
+def has_missing_min_thumbnails(avif_dir: Path | str) -> bool:
+    """Return whether any UI AVIF lacks an up-to-date WebP under `min/`."""
+    target_dir = Path(avif_dir)
+    min_dir = target_dir / FITNESS_IMG_MIN_DIR
+    for small_path in target_dir.glob("*.avif"):
+        if not small_path.is_file():
+            continue
+        min_target = min_dir / f"{small_path.stem}.webp"
+        try:
+            if not min_target.is_file():
+                return True
+            if min_target.stat().st_mtime < small_path.stat().st_mtime:
+                return True
+        except OSError:
+            return True
+    return False
+
+
 def rebuild_min_thumbnails_from_small(
     avif_dir: Path | str,
     *,

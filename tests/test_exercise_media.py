@@ -17,6 +17,7 @@ from harrix_swiss_knife.apps.common.apps_config import (
 from harrix_swiss_knife.apps.common.exercise_media import (
     FITNESS_IMG_HIGH_DIR,
     FITNESS_IMG_MIN_DIR,
+    has_missing_min_thumbnails,
     rebuild_min_thumbnails_from_small,
     rebuild_small_avifs_from_high,
     save_exercise_avif,
@@ -111,6 +112,18 @@ def test_save_exercise_avif_writes_min_webp(tmp_path: Path, monkeypatch: pytest.
 
     save_exercise_avif(source, "Walk", avif_dir, max_size=330, high_max_size=1920, min_max_size=96)
     assert (avif_dir / FITNESS_IMG_MIN_DIR / "Walk.webp").read_bytes() == b"min-96"
+
+
+def test_has_missing_min_thumbnails(tmp_path: Path) -> None:
+    avif_dir = tmp_path / "fitness_img"
+    avif_dir.mkdir()
+    assert not has_missing_min_thumbnails(avif_dir)
+    (avif_dir / "Walk.avif").write_bytes(b"small")
+    assert has_missing_min_thumbnails(avif_dir)
+    min_dir = avif_dir / FITNESS_IMG_MIN_DIR
+    min_dir.mkdir()
+    (min_dir / "Walk.webp").write_bytes(b"webp")
+    assert not has_missing_min_thumbnails(avif_dir)
 
 
 def test_rebuild_min_thumbnails_from_small(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
