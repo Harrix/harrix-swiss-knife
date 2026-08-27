@@ -160,6 +160,7 @@ class MainWindow(
         self.avif_manager: avif_manager.AvifManager | None = None
         self._bothub_state = BothubRequestState()
         self._exercise_media_worker: ExerciseMediaSaveWorker | None = None
+        self._min_thumbnail_rebuild_worker: MinThumbnailRebuildWorker | None = None
         self._exercise_media_toast: toast_countdown_notification.ToastCountdownNotification | None = None
         self._exercise_media_success_message: str | None = None
         self._exercise_add_after_media: tuple[str, bool] | None = None
@@ -173,6 +174,7 @@ class MainWindow(
 
         # Cache of exercise icons keyed by exercise name
         self._exercise_icon_cache: dict[str, tuple[float, QIcon | None]] = {}
+        self._exercise_avif_preview_cache: dict[tuple[str, int, int], tuple[float, QIcon | None]] = {}
         self._dumbbell_exercise_names_cache: set[str] | None = None
 
         # Table models dictionary
@@ -261,6 +263,7 @@ class MainWindow(
         self._exercise_catalog_refresh_timer.timeout.connect(self._flush_exercise_catalog_refresh)
         self._exercise_catalog_refresh_focus: str | None = None
         self._exercise_icons_defer_decode: set[str] = set()
+        self._exercises_catalog_loaded = False
 
         # Initialize application
         self._init_database()
@@ -278,6 +281,7 @@ class MainWindow(
 
         # Load initial AVIF animations after UI is ready
         QTimer.singleShot(100, self._load_initial_avifs)
+        QTimer.singleShot(300, self._start_missing_min_thumbnails_rebuild)
 
         # Set window size and position based on screen resolution
         self._setup_window_size_and_position()
@@ -425,7 +429,7 @@ class MainWindow(
                     self._mark_exercises_changed()
                     if exercise_name and self.avif_manager:
                         self.avif_manager.delete_exercise_avif(exercise_name)
-                        self._exercise_icon_cache.pop(exercise_name, None)
+                        self._drop_exercise_icon_cache(exercise_name)
             elif table_name == "types":
                 type_name = self.db_manager.get_exercise_type_name_by_id(record_id) or f"#{record_id}"
                 process_count = self.db_manager.count_process_records_for_type(record_id)
@@ -2138,7 +2142,7 @@ class MainWindow(
         dialog = ExerciseSelectionDialog(
             self,
             exercises=exercises,
-            icon_provider=lambda name: self._get_exercise_preview_icon(name, preview_size),
+            icon_provider=lambda name: self._get_exercise_avif_preview_icon(name, preview_size),
             preview_size=preview_size,
             current_selection=current_selection,
             avif_manager=self.avif_manager,
@@ -2591,6 +2595,9 @@ class MainWindow(
             if self._workouts_widget is not None:
                 self._workouts_widget.refresh()
             return
+        if widget is self.tab_2:
+            self._ensure_exercises_catalog_loaded()
+            return
         if widget is self.tab_charts:  # Exercise Chart tab
             self.update_chart_comboboxes()
             self._load_default_exercise_chart()
@@ -2935,37 +2942,8 @@ class MainWindow(
             return
 
         try:
-            # Refresh exercises table with light green background
-            exercises_data = self.db_manager.get_all_exercises()
-            exercises_transformed_data = []
-            light_green = QColor(240, 255, 240)  # Light green background
-            dumbbell_names = self._cached_dumbbell_exercise_names()
-
-            for row in exercises_data:
-                exercise_name = row[1]
-                transformed_row = [
-                    self._get_exercise_icon(str(exercise_name or "")) or QIcon(),
-                    format_favorite_exercise_label(
-                        str(exercise_name or ""),
-                        favorite=False,
-                        dumbbell=str(exercise_name or "") in dumbbell_names,
-                    ),
-                    row[2],
-                    str(row[3]),
-                    f"{row[4]:.1f}",
-                    row[5] or "",
-                    row[0],
-                    light_green,
-                ]
-                exercises_transformed_data.append(transformed_row)
-
-            self.models["exercises"] = self._create_colored_table_model(
-                exercises_transformed_data, self.table_config["exercises"][2]
-            )
-            self.tableView_exercises.setModel(self.models["exercises"])
-            self.tableView_exercises.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-
-            self._reload_types_table(dumbbell_names=dumbbell_names)
+            if self._exercises_catalog_loaded:
+                self._populate_exercises_catalog_tables()
 
             # Load process table data with appropriate limit
             self.load_process_table()
@@ -2984,17 +2962,18 @@ class MainWindow(
             # Date column will stretch automatically
 
             # Configure exercises table header - image + interactive + stretch last
-            self._configure_exercise_image_table(self.tableView_exercises)
-            exercises_header = self.tableView_exercises.horizontalHeader()
-            for i in range(1, exercises_header.count() - 1):
-                exercises_header.setSectionResizeMode(i, exercises_header.ResizeMode.Interactive)
-            exercises_header.setSectionResizeMode(exercises_header.count() - 1, exercises_header.ResizeMode.Stretch)
-            self.tableView_exercises.setColumnWidth(1, 200)  # Exercise name
-            self.tableView_exercises.setColumnWidth(2, 120)  # Unit
-            self.tableView_exercises.setColumnWidth(_EXERCISE_TABLE_TYPE_REQUIRED_COLUMN, 100)  # Type Required
-            self.tableView_exercises.setColumnWidth(4, 120)  # Calories per Unit
+            if self._exercises_catalog_loaded:
+                self._configure_exercise_image_table(self.tableView_exercises)
+                exercises_header = self.tableView_exercises.horizontalHeader()
+                for i in range(1, exercises_header.count() - 1):
+                    exercises_header.setSectionResizeMode(i, exercises_header.ResizeMode.Interactive)
+                exercises_header.setSectionResizeMode(exercises_header.count() - 1, exercises_header.ResizeMode.Stretch)
+                self.tableView_exercises.setColumnWidth(1, 200)  # Exercise name
+                self.tableView_exercises.setColumnWidth(2, 120)  # Unit
+                self.tableView_exercises.setColumnWidth(_EXERCISE_TABLE_TYPE_REQUIRED_COLUMN, 100)  # Type Required
+                self.tableView_exercises.setColumnWidth(4, 120)  # Calories per Unit
 
-            self._apply_stored_exercise_table_sort("exercises")
+                self._apply_stored_exercise_table_sort("exercises")
 
             # Connect selection change signals after models are set
             self._connect_table_selection_signals()
@@ -4355,7 +4334,7 @@ class MainWindow(
         self._append_exercise_name_to_list_view(name, load_icon=False)
         self._scroll_table_to_exercise("exercises", name)
 
-    def _append_exercises_to_list_view(self, exercise_names: list[str]) -> None:
+    def _append_exercises_to_list_view(self, exercise_names: list[str], *, defer_icons: bool = False) -> None:
         """Append exercise items to listView_exercises model."""
         if self.exercises_list_model is None:
             return
@@ -4373,9 +4352,12 @@ class MainWindow(
             )
             item = QStandardItem(display_text)
 
-            icon = self._get_exercise_icon(exercise)
-            if icon is not None and not icon.isNull():
-                item.setIcon(icon)
+            if defer_icons:
+                self._exercise_icons_defer_decode.add(exercise)
+            else:
+                icon = self._get_exercise_icon(exercise)
+                if icon is not None and not icon.isNull():
+                    item.setIcon(icon)
 
             item.setData(exercise, Qt.ItemDataRole.UserRole)
             name_local = name_locals.get(exercise, "").strip()
@@ -4585,6 +4567,10 @@ class MainWindow(
         if self._try_start_deferred_exercise_add_media():
             return
         self._pump_exercise_add_queue()
+
+    def _cleanup_min_thumbnail_rebuild_worker(self) -> None:
+        """Drop finished min-thumbnail rebuild worker reference."""
+        self._min_thumbnail_rebuild_worker = None
 
     def _close_exercise_add_toast(self) -> None:
         """Close the shared add-exercise queue toast if present."""
@@ -4806,7 +4792,7 @@ class MainWindow(
         self.actionExport_Set_Table.triggered.connect(self.on_export_csv)
         self.actionAdd_Exercise.triggered.connect(self.on_add_exercise)
         self.pushButton_exercise_add.clicked.connect(self.on_add_exercise)
-        self.actionRefresh_Exercises_Table.triggered.connect(self.update_all)
+        self.actionRefresh_Exercises_Table.triggered.connect(self._refresh_exercises_catalog)
         self.actionAdd_Exercise_Type.triggered.connect(self.on_add_type)
         self.pushButton_type_add.clicked.connect(self.on_add_type)
         self.actionRefresh_Types_Table.triggered.connect(self.update_all)
@@ -5178,6 +5164,13 @@ class MainWindow(
             self.exercises_list_model.deleteLater()
         self.exercises_list_model = None
 
+    def _drop_exercise_icon_cache(self, exercise_name: str) -> None:
+        """Drop cached min and AVIF preview icons for one exercise."""
+        self._exercise_icon_cache.pop(exercise_name, None)
+        self._exercise_avif_preview_cache = {
+            key: value for key, value in self._exercise_avif_preview_cache.items() if key[0] != exercise_name
+        }
+
     def _enable_exercise_table_header_sorting(self, table_view: QTableView, table_key: str) -> None:
         """Allow header clicks to sort columns; the image column sorts by ID."""
         header = table_view.horizontalHeader()
@@ -5186,6 +5179,21 @@ class MainWindow(
         header.sectionClicked.connect(
             lambda section, key=table_key: self._on_exercise_table_header_clicked(key, section)
         )
+
+    def _ensure_exercises_catalog_loaded(self) -> None:
+        """Populate Exercises and Types tables on first visit to that tab."""
+        if self._exercises_catalog_loaded:
+            return
+        if not self._validate_database_connection() or self.db_manager is None:
+            return
+        self._exercises_catalog_loaded = True
+        try:
+            self._populate_exercises_catalog_tables()
+            self._connect_table_selection_signals()
+            self._connect_table_auto_save_signals()
+        except Exception:
+            logger.exception("Error loading exercises catalog tables")
+            self._exercises_catalog_loaded = False
 
     def _ensure_types_table_shows_exercise(self, exercise_name: str) -> None:
         """Reload the types table so newly copied weights are visible."""
@@ -5589,21 +5597,49 @@ class MainWindow(
 
         return self.avif_manager.get_exercise_avif_path(exercise_name)
 
+    def _get_exercise_avif_preview_icon(self, exercise_name: str, target_size: QSize) -> QIcon | None:
+        """Return an icon from the first AVIF frame for the selection dialog."""
+        if not exercise_name or not self.avif_manager:
+            return None
+        if target_size.width() <= 0 or target_size.height() <= 0:
+            return None
+
+        avif_path = self.avif_manager.get_exercise_hover_avif_path(exercise_name)
+        if avif_path is None:
+            return None
+
+        try:
+            mtime = avif_path.stat().st_mtime
+        except OSError:
+            return None
+
+        cache_key = (exercise_name, target_size.width(), target_size.height())
+        cache_entry = self._exercise_avif_preview_cache.get(cache_key)
+        if cache_entry is not None and cache_entry[0] == mtime:
+            return cache_entry[1]
+
+        pixmap = self.avif_manager.load_exercise_first_frame_pixmap(exercise_name, target_size)
+        icon: QIcon | None = None
+        if pixmap is not None and not pixmap.isNull():
+            icon = QIcon(pixmap)
+        self._exercise_avif_preview_cache[cache_key] = (mtime, icon)
+        return icon
+
     def _get_exercise_icon(self, exercise_name: str) -> QIcon | None:
         """Return a cached icon for the exercise, loading it from AVIF if needed."""
         if not exercise_name:
             return None
 
         cache_entry = self._exercise_icon_cache.get(exercise_name)
-        avif_path = self._get_exercise_avif_path(exercise_name)
+        image_path = self.avif_manager.get_exercise_thumbnail_path(exercise_name) if self.avif_manager else None
 
-        if avif_path is None:
+        if image_path is None:
             if cache_entry is None or cache_entry[0] != -1.0:
                 self._exercise_icon_cache[exercise_name] = (-1.0, None)
             return None
 
         try:
-            mtime = avif_path.stat().st_mtime
+            mtime = image_path.stat().st_mtime
         except OSError:
             self._exercise_icon_cache[exercise_name] = (-1.0, None)
             return None
@@ -5613,15 +5649,18 @@ class MainWindow(
         if exercise_name in self._exercise_icons_defer_decode:
             return None
 
-        pixmap = self.avif_manager.load_avif_pixmap(avif_path) if self.avif_manager else None
+        pixmap = self.avif_manager.load_avif_pixmap(image_path) if self.avif_manager else None
         icon: QIcon | None = None
         if pixmap and not pixmap.isNull():
-            scaled_pixmap = pixmap.scaled(
-                self.icon_size,
-                self.icon_size,
-                Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.SmoothTransformation,
-            )
+            if pixmap.width() > self.icon_size or pixmap.height() > self.icon_size:
+                scaled_pixmap = pixmap.scaled(
+                    self.icon_size,
+                    self.icon_size,
+                    Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation,
+                )
+            else:
+                scaled_pixmap = pixmap
             final_pixmap = QPixmap(self.icon_size, self.icon_size)
             final_pixmap.fill(Qt.GlobalColor.white)
             painter = QPainter(final_pixmap)
@@ -6533,6 +6572,24 @@ class MainWindow(
         self.update_filter_type_combobox()
         self.apply_filter()
 
+    def _on_min_thumbnails_rebuilt(self, result: object) -> None:
+        """Refresh table and list icons after background min thumbnail generation."""
+        if not isinstance(result, RebuildMinThumbnailResult) or not result.rebuilt:
+            return
+        for name in result.rebuilt:
+            self._drop_exercise_icon_cache(name)
+            self._update_table_exercise_icons(name)
+            self._update_list_view_exercise_icon(name)
+            if self._workouts_widget is not None:
+                self._workouts_widget.update_exercise_icon(name, self._get_exercise_icon(name))
+        if self._fitness_dashboard is not None and self.db_manager is not None:
+            self._refresh_fitness_dashboard_exercises(
+                self._demote_steps_from_first(
+                    self.db_manager.get_exercises_by_frequency(self.exercises_frequency_window),
+                ),
+                selected=self._fitness_dashboard.selected_exercise(),
+            )
+
     def _on_process_scroll(self, value: int) -> None:
         """Trigger loading more process rows when scrolled near the bottom."""
         scrollbar = self.tableView_process.verticalScrollBar()
@@ -6927,6 +6984,40 @@ class MainWindow(
             self._workouts_widget.select_workout_by_id(workout_id)
         message_box.information(self, "Saved", f"Workout '{title}' saved")
 
+    def _populate_exercises_catalog_tables(self) -> None:
+        """Rebuild Exercises and Types tables from the database."""
+        if self.db_manager is None:
+            return
+        exercises_data = self.db_manager.get_all_exercises()
+        exercises_transformed_data = []
+        light_green = QColor(240, 255, 240)
+        dumbbell_names = self._cached_dumbbell_exercise_names()
+
+        for row in exercises_data:
+            exercise_name = str(row[1] or "")
+            transformed_row = [
+                self._get_exercise_icon(exercise_name) or QIcon(),
+                format_favorite_exercise_label(
+                    exercise_name,
+                    favorite=False,
+                    dumbbell=exercise_name in dumbbell_names,
+                ),
+                row[2],
+                str(row[3]),
+                f"{row[4]:.1f}",
+                row[5] or "",
+                row[0],
+                light_green,
+            ]
+            exercises_transformed_data.append(transformed_row)
+
+        self.models["exercises"] = self._create_colored_table_model(
+            exercises_transformed_data, self.table_config["exercises"][2]
+        )
+        self.tableView_exercises.setModel(self.models["exercises"])
+        self.tableView_exercises.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self._reload_types_table(dumbbell_names=dumbbell_names)
+
     def _process_filter_is_active(self) -> bool:
         """Return whether any process table filter is currently applied."""
         if self.comboBox_filter_exercise.currentText().strip():
@@ -7033,7 +7124,7 @@ class MainWindow(
         """Reload labels/icons after AVIF for `exercise_name` changed."""
         if not self.avif_manager:
             return
-        self._exercise_icon_cache.pop(exercise_name, None)
+        self._drop_exercise_icon_cache(exercise_name)
         for label_key in ("main", "charts", "statistics"):
             if self.avif_manager.get_current_exercise(label_key) == exercise_name:
                 self._load_exercise_avif(exercise_name, label_key)
@@ -7045,6 +7136,11 @@ class MainWindow(
                 exercise_name,
                 self._get_exercise_preview_icon(exercise_name, QSize(edge, edge)),
             )
+
+    def _refresh_exercises_catalog(self) -> None:
+        """Refresh catalog tables after explicit user action."""
+        self._exercises_catalog_loaded = True
+        self.update_all()
 
     def _refresh_fitness_dashboard_exercises(
         self,
@@ -7080,29 +7176,38 @@ class MainWindow(
         self._exercise_catalog_refresh_focus = exercise
         self._schedule_exercise_catalog_refresh()
 
-    def _reload_types_table(self, *, dumbbell_names: set[str] | None = None) -> None:
+    def _reload_types_table(
+        self,
+        *,
+        dumbbell_names: set[str] | None = None,
+        defer_icons: bool = False,
+    ) -> None:
         """Rebuild the exercise types table from the database."""
         if self.db_manager is None:
             return
         names = dumbbell_names if dumbbell_names is not None else self._cached_dumbbell_exercise_names()
         types_data = self.db_manager.get_all_exercise_types()
         light_orange = QColor(255, 248, 220)
-        types_transformed_data = [
-            [
-                self._get_exercise_icon(str(row[1] or "")) or QIcon(),
-                format_favorite_exercise_label(
-                    str(row[1] or ""),
-                    favorite=False,
-                    dumbbell=str(row[1] or "") in names,
-                ),
-                row[2],
-                f"{float(row[3] or 0):.1f}",
-                row[4] or "",
-                row[0],
-                light_orange,
-            ]
-            for row in types_data
-        ]
+        types_transformed_data = []
+        for row in types_data:
+            exercise_name = str(row[1] or "")
+            if defer_icons and exercise_name:
+                self._exercise_icons_defer_decode.add(exercise_name)
+            types_transformed_data.append(
+                [
+                    QIcon() if defer_icons else (self._get_exercise_icon(exercise_name) or QIcon()),
+                    format_favorite_exercise_label(
+                        exercise_name,
+                        favorite=False,
+                        dumbbell=exercise_name in names,
+                    ),
+                    row[2],
+                    f"{float(row[3] or 0):.1f}",
+                    row[4] or "",
+                    row[0],
+                    light_orange,
+                ]
+            )
         self.models["types"] = self._create_colored_table_model(types_transformed_data, self.table_config["types"][2])
         self.tableView_exercise_types.setModel(self.models["types"])
         self.tableView_exercise_types.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
@@ -7126,7 +7231,7 @@ class MainWindow(
         if not previous or previous == updated or self.avif_manager is None:
             return
         self.avif_manager.rename_exercise_avif(previous, updated)
-        self._exercise_icon_cache.pop(previous, None)
+        self._drop_exercise_icon_cache(previous)
         self._refresh_exercise_media_ui(updated)
 
     def _reset_process_pagination_state(self) -> None:
@@ -8135,12 +8240,14 @@ class MainWindow(
 
         max_size = get_apps_fitness_image_max_size(self._app_config)
         high_max_size = get_apps_fitness_image_high_max_size(self._app_config)
+        min_max_size = get_apps_fitness_image_min_max_size(self._app_config)
         self._exercise_media_worker = ExerciseMediaSaveWorker(
             source_path,
             exercise_name,
             self.avif_manager.avif_dir,
             max_size=max_size,
             high_max_size=high_max_size,
+            min_max_size=min_max_size,
             project_root=get_project_root(),
             parent=self,
         )
@@ -8149,6 +8256,30 @@ class MainWindow(
         self._exercise_media_worker.finished.connect(self._cleanup_exercise_media_worker)
         self._exercise_media_worker.start()
         return True
+
+    def _start_missing_min_thumbnails_rebuild(self) -> None:
+        """Generate missing `min/*.webp` icons in the background on startup."""
+        if self._is_closing or self.avif_manager is None:
+            return
+        worker = self._min_thumbnail_rebuild_worker
+        if worker is not None and worker.isRunning():
+            return
+        avif_dir = self.avif_manager.avif_dir
+        if not has_missing_min_thumbnails(avif_dir):
+            return
+        min_max_size = get_apps_fitness_image_min_max_size(self._app_config)
+        self._min_thumbnail_rebuild_worker = MinThumbnailRebuildWorker(
+            avif_dir,
+            min_max_size=min_max_size,
+            parent=self,
+        )
+        self._min_thumbnail_rebuild_worker.rebuild_completed.connect(self._on_min_thumbnails_rebuilt)
+        self._min_thumbnail_rebuild_worker.rebuild_failed.connect(
+            lambda message: logger.warning("Min thumbnail rebuild failed: %s", message),
+        )
+        self._min_thumbnail_rebuild_worker.finished.connect(self._cleanup_min_thumbnail_rebuild_worker)
+        self._min_thumbnail_rebuild_worker.finished.connect(self._min_thumbnail_rebuild_worker.deleteLater)
+        self._min_thumbnail_rebuild_worker.start()
 
     def _sync_dumbbell_weight_types(self, *, notify: bool = True) -> int:
         """Copy missing template dumbbell weights onto matching exercises.
@@ -8330,6 +8461,7 @@ class MainWindow(
         *,
         selected_exercise: str | None = None,
         selected_type: str | None = None,
+        defer_icons: bool = False,
     ) -> None:
         """Refresh exercise list and type combo-box (optionally keep a selection).
 
@@ -8337,6 +8469,7 @@ class MainWindow(
 
         - `selected_exercise` (`str | None`): Exercise to keep selected. Defaults to `None`.
         - `selected_type` (`str | None`): Exercise type to keep selected. Defaults to `None`.
+        - `defer_icons` (`bool`): Queue list icons for background decode instead of loading now.
 
         """
         if not self._validate_database_connection():
@@ -8359,7 +8492,7 @@ class MainWindow(
 
             if self.exercises_list_model is not None:
                 self.exercises_list_model.clear()
-                self._append_exercises_to_list_view(exercises)
+                self._append_exercises_to_list_view(exercises, defer_icons=defer_icons)
                 self._filter_exercises_list(self.lineEdit_exercises_filter.text())
             dashboard_selected = self._fitness_dashboard.selected_exercise() if self._fitness_dashboard else ""
             self._refresh_fitness_dashboard_exercises(
@@ -8616,6 +8749,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
         self.avif_manager: avif_manager.AvifManager | None = None
         self._bothub_state = BothubRequestState()
         self._exercise_media_worker: ExerciseMediaSaveWorker | None = None
+        self._min_thumbnail_rebuild_worker: MinThumbnailRebuildWorker | None = None
         self._exercise_media_toast: toast_countdown_notification.ToastCountdownNotification | None = None
         self._exercise_media_success_message: str | None = None
         self._exercise_add_after_media: tuple[str, bool] | None = None
@@ -8629,6 +8763,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
 
         # Cache of exercise icons keyed by exercise name
         self._exercise_icon_cache: dict[str, tuple[float, QIcon | None]] = {}
+        self._exercise_avif_preview_cache: dict[tuple[str, int, int], tuple[float, QIcon | None]] = {}
         self._dumbbell_exercise_names_cache: set[str] | None = None
 
         # Table models dictionary
@@ -8717,6 +8852,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
         self._exercise_catalog_refresh_timer.timeout.connect(self._flush_exercise_catalog_refresh)
         self._exercise_catalog_refresh_focus: str | None = None
         self._exercise_icons_defer_decode: set[str] = set()
+        self._exercises_catalog_loaded = False
 
         # Initialize application
         self._init_database()
@@ -8734,6 +8870,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
 
         # Load initial AVIF animations after UI is ready
         QTimer.singleShot(100, self._load_initial_avifs)
+        QTimer.singleShot(300, self._start_missing_min_thumbnails_rebuild)
 
         # Set window size and position based on screen resolution
         self._setup_window_size_and_position()
@@ -8929,7 +9066,7 @@ def delete_record(self, table_name: str) -> None:
                     self._mark_exercises_changed()
                     if exercise_name and self.avif_manager:
                         self.avif_manager.delete_exercise_avif(exercise_name)
-                        self._exercise_icon_cache.pop(exercise_name, None)
+                        self._drop_exercise_icon_cache(exercise_name)
             elif table_name == "types":
                 type_name = self.db_manager.get_exercise_type_name_by_id(record_id) or f"#{record_id}"
                 process_count = self.db_manager.count_process_records_for_type(record_id)
@@ -11003,7 +11140,7 @@ def on_select_exercise_button_clicked(self) -> None:
         dialog = ExerciseSelectionDialog(
             self,
             exercises=exercises,
-            icon_provider=lambda name: self._get_exercise_preview_icon(name, preview_size),
+            icon_provider=lambda name: self._get_exercise_avif_preview_icon(name, preview_size),
             preview_size=preview_size,
             current_selection=current_selection,
             avif_manager=self.avif_manager,
@@ -11532,6 +11669,9 @@ def on_tab_changed(self, index: int) -> None:
             if self._workouts_widget is not None:
                 self._workouts_widget.refresh()
             return
+        if widget is self.tab_2:
+            self._ensure_exercises_catalog_loaded()
+            return
         if widget is self.tab_charts:  # Exercise Chart tab
             self.update_chart_comboboxes()
             self._load_default_exercise_chart()
@@ -12047,37 +12187,8 @@ def show_tables(self) -> None:
             return
 
         try:
-            # Refresh exercises table with light green background
-            exercises_data = self.db_manager.get_all_exercises()
-            exercises_transformed_data = []
-            light_green = QColor(240, 255, 240)  # Light green background
-            dumbbell_names = self._cached_dumbbell_exercise_names()
-
-            for row in exercises_data:
-                exercise_name = row[1]
-                transformed_row = [
-                    self._get_exercise_icon(str(exercise_name or "")) or QIcon(),
-                    format_favorite_exercise_label(
-                        str(exercise_name or ""),
-                        favorite=False,
-                        dumbbell=str(exercise_name or "") in dumbbell_names,
-                    ),
-                    row[2],
-                    str(row[3]),
-                    f"{row[4]:.1f}",
-                    row[5] or "",
-                    row[0],
-                    light_green,
-                ]
-                exercises_transformed_data.append(transformed_row)
-
-            self.models["exercises"] = self._create_colored_table_model(
-                exercises_transformed_data, self.table_config["exercises"][2]
-            )
-            self.tableView_exercises.setModel(self.models["exercises"])
-            self.tableView_exercises.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-
-            self._reload_types_table(dumbbell_names=dumbbell_names)
+            if self._exercises_catalog_loaded:
+                self._populate_exercises_catalog_tables()
 
             # Load process table data with appropriate limit
             self.load_process_table()
@@ -12096,17 +12207,18 @@ def show_tables(self) -> None:
             # Date column will stretch automatically
 
             # Configure exercises table header - image + interactive + stretch last
-            self._configure_exercise_image_table(self.tableView_exercises)
-            exercises_header = self.tableView_exercises.horizontalHeader()
-            for i in range(1, exercises_header.count() - 1):
-                exercises_header.setSectionResizeMode(i, exercises_header.ResizeMode.Interactive)
-            exercises_header.setSectionResizeMode(exercises_header.count() - 1, exercises_header.ResizeMode.Stretch)
-            self.tableView_exercises.setColumnWidth(1, 200)  # Exercise name
-            self.tableView_exercises.setColumnWidth(2, 120)  # Unit
-            self.tableView_exercises.setColumnWidth(_EXERCISE_TABLE_TYPE_REQUIRED_COLUMN, 100)  # Type Required
-            self.tableView_exercises.setColumnWidth(4, 120)  # Calories per Unit
+            if self._exercises_catalog_loaded:
+                self._configure_exercise_image_table(self.tableView_exercises)
+                exercises_header = self.tableView_exercises.horizontalHeader()
+                for i in range(1, exercises_header.count() - 1):
+                    exercises_header.setSectionResizeMode(i, exercises_header.ResizeMode.Interactive)
+                exercises_header.setSectionResizeMode(exercises_header.count() - 1, exercises_header.ResizeMode.Stretch)
+                self.tableView_exercises.setColumnWidth(1, 200)  # Exercise name
+                self.tableView_exercises.setColumnWidth(2, 120)  # Unit
+                self.tableView_exercises.setColumnWidth(_EXERCISE_TABLE_TYPE_REQUIRED_COLUMN, 100)  # Type Required
+                self.tableView_exercises.setColumnWidth(4, 120)  # Calories per Unit
 
-            self._apply_stored_exercise_table_sort("exercises")
+                self._apply_stored_exercise_table_sort("exercises")
 
             # Connect selection change signals after models are set
             self._connect_table_selection_signals()

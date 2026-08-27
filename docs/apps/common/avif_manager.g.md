@@ -19,10 +19,12 @@ lang: en
   - [⚙️ Method `get_exercise_avif_path`](#%EF%B8%8F-method-get_exercise_avif_path)
   - [⚙️ Method `get_exercise_hover_avif_path`](#%EF%B8%8F-method-get_exercise_hover_avif_path)
   - [⚙️ Method `get_exercise_lightbox_avif_path`](#%EF%B8%8F-method-get_exercise_lightbox_avif_path)
+  - [⚙️ Method `get_exercise_thumbnail_path`](#%EF%B8%8F-method-get_exercise_thumbnail_path)
   - [⚙️ Method `has_any_exercise_avif`](#%EF%B8%8F-method-has_any_exercise_avif)
   - [⚙️ Method `is_animation_active`](#%EF%B8%8F-method-is_animation_active)
   - [⚙️ Method `load_avif_pixmap`](#%EF%B8%8F-method-load_avif_pixmap)
   - [⚙️ Method `load_exercise_avif`](#%EF%B8%8F-method-load_exercise_avif)
+  - [⚙️ Method `load_exercise_first_frame_pixmap`](#%EF%B8%8F-method-load_exercise_first_frame_pixmap)
   - [⚙️ Method `rename_exercise_avif`](#%EF%B8%8F-method-rename_exercise_avif)
   - [⚙️ Method `set_animation_speed`](#%EF%B8%8F-method-set_animation_speed)
   - [⚙️ Method `stop_animation`](#%EF%B8%8F-method-stop_animation)
@@ -132,6 +134,13 @@ class AvifManager(QObject):
                 logger.exception("Failed to delete exercise AVIF %s", avif_path)
                 return False
             removed = True
+        for min_path in self._exercise_min_files(exercise_name):
+            try:
+                min_path.unlink()
+            except OSError:
+                logger.exception("Failed to delete exercise thumbnail %s", min_path)
+                return False
+            removed = True
         return removed
 
     def get_current_exercise(self, label_key: str | AvifLabelKey) -> str | None:
@@ -187,6 +196,18 @@ class AvifManager(QObject):
         high_path = self.get_exercise_avif_path(exercise_name, high=True)
         if high_path is not None:
             return high_path
+        return self.get_exercise_avif_path(exercise_name)
+
+    def get_exercise_thumbnail_path(self, exercise_name: str) -> Path | None:
+        """Return the smallest static file for table icons, falling back to UI AVIF."""
+        name = exercise_name.strip() if exercise_name else ""
+        if not name:
+            return None
+        min_dir = self.avif_dir / FITNESS_IMG_MIN_DIR
+        for extension in MIN_THUMBNAIL_EXTENSIONS:
+            min_path = min_dir / f"{name}{extension}"
+            if min_path.is_file():
+                return min_path
         return self.get_exercise_avif_path(exercise_name)
 
     def has_any_exercise_avif(self) -> bool:
@@ -303,6 +324,46 @@ class AvifManager(QObject):
 
         self._load_avif_first_frame_then_async(avif_path, label_widget, data, key, exercise_name)
 
+    def load_exercise_first_frame_pixmap(
+        self,
+        exercise_name: str,
+        target_size: QSize | None = None,
+    ) -> QPixmap | None:
+        """Load the first AVIF frame for dialog previews (not min thumbnails).
+
+        Uses the same source file as dialog hover previews.
+
+        Args:
+
+        - `exercise_name` (`str`): Exercise name.
+        - `target_size` (`QSize | None`): Optional maximum preview size.
+
+        Returns:
+
+        - `QPixmap | None`: Scaled first frame, or `None` when no AVIF exists.
+
+        """
+        avif_path = self.get_exercise_hover_avif_path(exercise_name)
+        if avif_path is None:
+            return None
+
+        pixmap = load_image_pixmap(avif_path)
+        if pixmap is None or pixmap.isNull():
+            return None
+
+        if target_size is None or target_size.width() <= 0 or target_size.height() <= 0:
+            return pixmap
+
+        if pixmap.width() <= target_size.width() and pixmap.height() <= target_size.height():
+            return pixmap
+
+        scaled = pixmap.scaled(
+            target_size,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
+        return scaled if not scaled.isNull() else None
+
     def rename_exercise_avif(self, old_name: str, new_name: str) -> bool:
         """Rename small and high-resolution AVIFs to match a renamed exercise.
 
@@ -324,6 +385,9 @@ class AvifManager(QObject):
         renamed = False
         for high in (False, True):
             if self._rename_avif_file(old, new, high=high):
+                renamed = True
+        for extension in MIN_THUMBNAIL_EXTENSIONS:
+            if self._rename_min_file(old, new, extension=extension):
                 renamed = True
         if renamed:
             self._retarget_exercise_name(old, new)
@@ -453,6 +517,17 @@ class AvifManager(QObject):
             return None
         folder = self.avif_dir / FITNESS_IMG_HIGH_DIR if high else self.avif_dir
         return folder / f"{name}.avif"
+
+    def _exercise_min_files(self, exercise_name: str) -> list[Path]:
+        name = exercise_name.strip() if exercise_name else ""
+        if not name:
+            return []
+        min_dir = self.avif_dir / FITNESS_IMG_MIN_DIR
+        return [
+            min_dir / f"{name}{extension}"
+            for extension in MIN_THUMBNAIL_EXTENSIONS
+            if (min_dir / f"{name}{extension}").is_file()
+        ]
 
     def _load_avif_first_frame_then_async(
         self,
@@ -655,6 +730,22 @@ class AvifManager(QObject):
             return False
         return True
 
+    def _rename_min_file(self, old_name: str, new_name: str, *, extension: str) -> bool:
+        min_dir = self.avif_dir / FITNESS_IMG_MIN_DIR
+        source = min_dir / f"{old_name.strip()}{extension}"
+        if not source.is_file():
+            return False
+        destination = min_dir / f"{new_name.strip()}{extension}"
+        try:
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            if destination.exists():
+                destination.unlink()
+            source.rename(destination)
+        except OSError:
+            logger.exception("Failed to rename exercise thumbnail %s -> %s", source, destination)
+            return False
+        return True
+
     def _retarget_exercise_name(self, old_name: str, new_name: str) -> None:
         """Point loaded label slots from `old_name` to `new_name` after a file rename."""
         for data in self.avif_data.values():
@@ -782,6 +873,13 @@ def delete_exercise_avif(self, exercise_name: str) -> bool:
                 logger.exception("Failed to delete exercise AVIF %s", avif_path)
                 return False
             removed = True
+        for min_path in self._exercise_min_files(exercise_name):
+            try:
+                min_path.unlink()
+            except OSError:
+                logger.exception("Failed to delete exercise thumbnail %s", min_path)
+                return False
+            removed = True
         return removed
 ```
 
@@ -887,6 +985,32 @@ def get_exercise_lightbox_avif_path(self, exercise_name: str) -> Path | None:
         high_path = self.get_exercise_avif_path(exercise_name, high=True)
         if high_path is not None:
             return high_path
+        return self.get_exercise_avif_path(exercise_name)
+```
+
+</details>
+
+### ⚙️ Method `get_exercise_thumbnail_path`
+
+```python
+def get_exercise_thumbnail_path(self, exercise_name: str) -> Path | None
+```
+
+Return the smallest static file for table icons, falling back to UI AVIF.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_exercise_thumbnail_path(self, exercise_name: str) -> Path | None:
+        name = exercise_name.strip() if exercise_name else ""
+        if not name:
+            return None
+        min_dir = self.avif_dir / FITNESS_IMG_MIN_DIR
+        for extension in MIN_THUMBNAIL_EXTENSIONS:
+            min_path = min_dir / f"{name}{extension}"
+            if min_path.is_file():
+                return min_path
         return self.get_exercise_avif_path(exercise_name)
 ```
 
@@ -1056,6 +1180,58 @@ def load_exercise_avif(
 
 </details>
 
+### ⚙️ Method `load_exercise_first_frame_pixmap`
+
+```python
+def load_exercise_first_frame_pixmap(self, exercise_name: str, target_size: QSize | None = None) -> QPixmap | None
+```
+
+Load the first AVIF frame for dialog previews (not min thumbnails).
+
+Uses the same source file as dialog hover previews.
+
+Args:
+
+- `exercise_name` (`str`): Exercise name.
+- `target_size` (`QSize | None`): Optional maximum preview size.
+
+Returns:
+
+- `QPixmap | None`: Scaled first frame, or `None` when no AVIF exists.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def load_exercise_first_frame_pixmap(
+        self,
+        exercise_name: str,
+        target_size: QSize | None = None,
+    ) -> QPixmap | None:
+        avif_path = self.get_exercise_hover_avif_path(exercise_name)
+        if avif_path is None:
+            return None
+
+        pixmap = load_image_pixmap(avif_path)
+        if pixmap is None or pixmap.isNull():
+            return None
+
+        if target_size is None or target_size.width() <= 0 or target_size.height() <= 0:
+            return pixmap
+
+        if pixmap.width() <= target_size.width() and pixmap.height() <= target_size.height():
+            return pixmap
+
+        scaled = pixmap.scaled(
+            target_size,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
+        return scaled if not scaled.isNull() else None
+```
+
+</details>
+
 ### ⚙️ Method `rename_exercise_avif`
 
 ```python
@@ -1086,6 +1262,9 @@ def rename_exercise_avif(self, old_name: str, new_name: str) -> bool:
         renamed = False
         for high in (False, True):
             if self._rename_avif_file(old, new, high=high):
+                renamed = True
+        for extension in MIN_THUMBNAIL_EXTENSIONS:
+            if self._rename_min_file(old, new, extension=extension):
                 renamed = True
         if renamed:
             self._retarget_exercise_name(old, new)

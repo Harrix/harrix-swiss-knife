@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from PIL import Image, ImageOps
-from PySide6.QtCore import QObject, Qt, QThread, QTimer, Signal
+from PySide6.QtCore import QObject, QSize, Qt, QThread, QTimer, Signal
 from PySide6.QtGui import QImageReader, QPixmap
 
 from harrix_swiss_knife.apps.common.exercise_media import (
@@ -25,7 +25,6 @@ from harrix_swiss_knife.apps.common.exercise_media import (
 )
 
 if TYPE_CHECKING:
-    from PySide6.QtCore import QSize
     from PySide6.QtWidgets import QLabel
 
 
@@ -304,6 +303,46 @@ class AvifManager(QObject):
             return
 
         self._load_avif_first_frame_then_async(avif_path, label_widget, data, key, exercise_name)
+
+    def load_exercise_first_frame_pixmap(
+        self,
+        exercise_name: str,
+        target_size: QSize | None = None,
+    ) -> QPixmap | None:
+        """Load the first AVIF frame for dialog previews (not min thumbnails).
+
+        Uses the same source file as dialog hover previews.
+
+        Args:
+
+        - `exercise_name` (`str`): Exercise name.
+        - `target_size` (`QSize | None`): Optional maximum preview size.
+
+        Returns:
+
+        - `QPixmap | None`: Scaled first frame, or `None` when no AVIF exists.
+
+        """
+        avif_path = self.get_exercise_hover_avif_path(exercise_name)
+        if avif_path is None:
+            return None
+
+        pixmap = load_image_pixmap(avif_path)
+        if pixmap is None or pixmap.isNull():
+            return None
+
+        if target_size is None or target_size.width() <= 0 or target_size.height() <= 0:
+            return pixmap
+
+        if pixmap.width() <= target_size.width() and pixmap.height() <= target_size.height():
+            return pixmap
+
+        scaled = pixmap.scaled(
+            target_size,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
+        return scaled if not scaled.isNull() else None
 
     def rename_exercise_avif(self, old_name: str, new_name: str) -> bool:
         """Rename small and high-resolution AVIFs to match a renamed exercise.

@@ -42,9 +42,55 @@ class RebuildSmallAvifResult:
     failed: tuple[tuple[str, str], ...]
 
 
+def has_missing_min_thumbnails(avif_dir: Path | str) -> bool:
+    """Return whether any UI AVIF lacks an up-to-date WebP under `min/`."""
+    target_dir = Path(avif_dir)
+    min_dir = target_dir / FITNESS_IMG_MIN_DIR
+    for small_path in target_dir.glob("*.avif"):
+        if not small_path.is_file():
+            continue
+        min_target = min_dir / f"{small_path.stem}.webp"
+        try:
+            if not min_target.is_file():
+                return True
+            if min_target.stat().st_mtime < small_path.stat().st_mtime:
+                return True
+        except OSError:
+            return True
+    return False
+
+
 def is_exercise_media_path(path: str | Path) -> bool:
     """Return `True` when `path` has a supported exercise media extension."""
     return Path(path).suffix.lower() in EXERCISE_MEDIA_EXTENSIONS
+
+
+def rebuild_min_thumbnails_from_small(
+    avif_dir: Path | str,
+    *,
+    min_max_size: int,
+) -> RebuildMinThumbnailResult:
+    """Write missing or stale static WebP thumbnails from UI-sized AVIFs."""
+    target_dir = Path(avif_dir)
+    min_dir = target_dir / FITNESS_IMG_MIN_DIR
+    rebuilt: list[str] = []
+    skipped: list[str] = []
+    failed: list[tuple[str, str]] = []
+    for small_path in sorted(target_dir.glob("*.avif")):
+        if not small_path.is_file():
+            continue
+        name = small_path.stem
+        min_target = min_dir / f"{name}.webp"
+        try:
+            if min_target.is_file() and min_target.stat().st_mtime >= small_path.stat().st_mtime:
+                skipped.append(name)
+                continue
+            _write_min_webp_thumbnail(small_path, min_target, max_size=min_max_size)
+        except Exception as error:
+            failed.append((name, str(error)))
+            continue
+        rebuilt.append(name)
+    return RebuildMinThumbnailResult(tuple(rebuilt), tuple(skipped), tuple(failed))
 
 
 def rebuild_small_avifs_from_high(
@@ -89,52 +135,6 @@ def rebuild_small_avifs_from_high(
         rebuilt.append(name)
 
     return RebuildSmallAvifResult(tuple(rebuilt), tuple(skipped), tuple(failed))
-
-
-def has_missing_min_thumbnails(avif_dir: Path | str) -> bool:
-    """Return whether any UI AVIF lacks an up-to-date WebP under `min/`."""
-    target_dir = Path(avif_dir)
-    min_dir = target_dir / FITNESS_IMG_MIN_DIR
-    for small_path in target_dir.glob("*.avif"):
-        if not small_path.is_file():
-            continue
-        min_target = min_dir / f"{small_path.stem}.webp"
-        try:
-            if not min_target.is_file():
-                return True
-            if min_target.stat().st_mtime < small_path.stat().st_mtime:
-                return True
-        except OSError:
-            return True
-    return False
-
-
-def rebuild_min_thumbnails_from_small(
-    avif_dir: Path | str,
-    *,
-    min_max_size: int,
-) -> RebuildMinThumbnailResult:
-    """Write missing or stale static WebP thumbnails from UI-sized AVIFs."""
-    target_dir = Path(avif_dir)
-    min_dir = target_dir / FITNESS_IMG_MIN_DIR
-    rebuilt: list[str] = []
-    skipped: list[str] = []
-    failed: list[tuple[str, str]] = []
-    for small_path in sorted(target_dir.glob("*.avif")):
-        if not small_path.is_file():
-            continue
-        name = small_path.stem
-        min_target = min_dir / f"{name}.webp"
-        try:
-            if min_target.is_file() and min_target.stat().st_mtime >= small_path.stat().st_mtime:
-                skipped.append(name)
-                continue
-            _write_min_webp_thumbnail(small_path, min_target, max_size=min_max_size)
-        except Exception as error:
-            failed.append((name, str(error)))
-            continue
-        rebuilt.append(name)
-    return RebuildMinThumbnailResult(tuple(rebuilt), tuple(skipped), tuple(failed))
 
 
 def save_exercise_avif(
@@ -300,6 +300,22 @@ def _convert_source_to_avif(
     return target
 
 
+def _pil_frame_to_rgb(image: Image.Image) -> Image.Image:
+    frame = ImageOps.exif_transpose(image)
+    if frame.mode in ("RGBA", "LA", "P"):
+        background = Image.new("RGB", frame.size, (255, 255, 255))
+        if frame.mode == "P":
+            frame = frame.convert("RGBA")
+        if frame.mode in ("RGBA", "LA"):
+            background.paste(frame, mask=frame.split()[-1])
+        else:
+            background.paste(frame)
+        return background
+    if frame.mode != "RGB":
+        return frame.convert("RGB")
+    return frame
+
+
 def _prepare_work_source(source: Path, temp_dir: Path) -> Path:
     """Copy source into temp; convert BMP to PNG for the shared optimize pipeline."""
     if source.suffix.lower() != ".bmp":
@@ -321,6 +337,20 @@ def _replace_file(source: Path, target: Path) -> None:
     shutil.copy2(source, target)
 
 
+def _write_min_webp_thumbnail(source: Path, target: Path, *, max_size: int) -> Path:
+    """Write a static WebP thumbnail for table icons."""
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with Image.open(source) as image:
+        if getattr(image, "is_animated", False):
+            image.seek(0)
+        frame = _pil_frame_to_rgb(image.copy())
+        frame.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
+        if target.exists():
+            target.unlink()
+        frame.save(target, format="WEBP", quality=75, method=4)
+    return target
+
+
 def _write_small_from_animated_avif(
     high_path: Path,
     target: Path,
@@ -337,34 +367,4 @@ def _write_small_from_animated_avif(
             msg = f"Animated shrink produced no output for {high_path.name}"
             raise ValueError(msg)
         _replace_file(temp_target, target)
-    return target
-
-
-def _pil_frame_to_rgb(image: Image.Image) -> Image.Image:
-    frame = ImageOps.exif_transpose(image)
-    if frame.mode in ("RGBA", "LA", "P"):
-        background = Image.new("RGB", frame.size, (255, 255, 255))
-        if frame.mode == "P":
-            frame = frame.convert("RGBA")
-        if frame.mode in ("RGBA", "LA"):
-            background.paste(frame, mask=frame.split()[-1])
-        else:
-            background.paste(frame)
-        return background
-    if frame.mode != "RGB":
-        return frame.convert("RGB")
-    return frame
-
-
-def _write_min_webp_thumbnail(source: Path, target: Path, *, max_size: int) -> Path:
-    """Write a static WebP thumbnail for table icons."""
-    target.parent.mkdir(parents=True, exist_ok=True)
-    with Image.open(source) as image:
-        if getattr(image, "is_animated", False):
-            image.seek(0)
-        frame = _pil_frame_to_rgb(image.copy())
-        frame.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
-        if target.exists():
-            target.unlink()
-        frame.save(target, format="WEBP", quality=75, method=4)
     return target

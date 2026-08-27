@@ -14,6 +14,9 @@ lang: en
 - [🏛️ Class `ExerciseMediaSaveWorker`](#%EF%B8%8F-class-exercisemediasaveworker)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `run`](#%EF%B8%8F-method-run)
+- [🏛️ Class `MinThumbnailRebuildWorker`](#%EF%B8%8F-class-minthumbnailrebuildworker)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
+  - [⚙️ Method `run`](#%EF%B8%8F-method-run-1)
 
 </details>
 
@@ -42,6 +45,7 @@ class ExerciseMediaSaveWorker(QThread):
         *,
         max_size: int | None = None,
         high_max_size: int | None = None,
+        min_max_size: int | None = None,
         project_root: Path | None = None,
         parent: QObject | None = None,
     ) -> None:
@@ -52,6 +56,7 @@ class ExerciseMediaSaveWorker(QThread):
         self._avif_dir = Path(avif_dir)
         self._max_size = max_size
         self._high_max_size = high_max_size
+        self._min_max_size = min_max_size
         self._project_root = project_root
 
     def run(self) -> None:
@@ -64,6 +69,7 @@ class ExerciseMediaSaveWorker(QThread):
                 project_root=self._project_root,
                 max_size=self._max_size,
                 high_max_size=self._high_max_size,
+                min_max_size=self._min_max_size,
             )
         except Exception as error:
             self.save_failed.emit(self._exercise_name, str(error))
@@ -76,7 +82,7 @@ class ExerciseMediaSaveWorker(QThread):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, source_path: str, exercise_name: str, avif_dir: Path | str, *, max_size: int | None = None, high_max_size: int | None = None, project_root: Path | None = None, parent: QObject | None = None) -> None
+def __init__(self, source_path: str, exercise_name: str, avif_dir: Path | str, *, max_size: int | None = None, high_max_size: int | None = None, min_max_size: int | None = None, project_root: Path | None = None, parent: QObject | None = None) -> None
 ```
 
 Store conversion parameters for `run()`.
@@ -93,6 +99,7 @@ def __init__(
         *,
         max_size: int | None = None,
         high_max_size: int | None = None,
+        min_max_size: int | None = None,
         project_root: Path | None = None,
         parent: QObject | None = None,
     ) -> None:
@@ -102,6 +109,7 @@ def __init__(
         self._avif_dir = Path(avif_dir)
         self._max_size = max_size
         self._high_max_size = high_max_size
+        self._min_max_size = min_max_size
         self._project_root = project_root
 ```
 
@@ -128,11 +136,102 @@ def run(self) -> None:
                 project_root=self._project_root,
                 max_size=self._max_size,
                 high_max_size=self._high_max_size,
+                min_max_size=self._min_max_size,
             )
         except Exception as error:
             self.save_failed.emit(self._exercise_name, str(error))
             return
         self.save_completed.emit(self._exercise_name, str(target))
+```
+
+</details>
+
+## 🏛️ Class `MinThumbnailRebuildWorker`
+
+```python
+class MinThumbnailRebuildWorker(QThread)
+```
+
+Build missing static WebP table icons from UI-sized AVIFs.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class MinThumbnailRebuildWorker(QThread):
+
+    rebuild_completed = Signal(object)  # RebuildMinThumbnailResult
+    rebuild_failed = Signal(str)
+
+    def __init__(
+        self,
+        avif_dir: Path | str,
+        *,
+        min_max_size: int,
+        parent: QObject | None = None,
+    ) -> None:
+        """Store rebuild parameters for `run()`."""
+        super().__init__(parent)
+        self._avif_dir = Path(avif_dir)
+        self._min_max_size = min_max_size
+
+    def run(self) -> None:
+        """Generate missing or stale `min/*.webp` files off the UI thread."""
+        try:
+            result = rebuild_min_thumbnails_from_small(self._avif_dir, min_max_size=self._min_max_size)
+        except Exception as error:
+            self.rebuild_failed.emit(str(error))
+            return
+        self.rebuild_completed.emit(result)
+```
+
+</details>
+
+### ⚙️ Method `__init__`
+
+```python
+def __init__(self, avif_dir: Path | str, *, min_max_size: int, parent: QObject | None = None) -> None
+```
+
+Store rebuild parameters for `run()`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __init__(
+        self,
+        avif_dir: Path | str,
+        *,
+        min_max_size: int,
+        parent: QObject | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self._avif_dir = Path(avif_dir)
+        self._min_max_size = min_max_size
+```
+
+</details>
+
+### ⚙️ Method `run`
+
+```python
+def run(self) -> None
+```
+
+Generate missing or stale `min/*.webp` files off the UI thread.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def run(self) -> None:
+        try:
+            result = rebuild_min_thumbnails_from_small(self._avif_dir, min_max_size=self._min_max_size)
+        except Exception as error:
+            self.rebuild_failed.emit(str(error))
+            return
+        self.rebuild_completed.emit(result)
 ```
 
 </details>

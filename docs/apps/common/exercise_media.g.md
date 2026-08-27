@@ -11,10 +11,34 @@ lang: en
 
 ## Contents
 
+- [🏛️ Class `RebuildMinThumbnailResult`](#%EF%B8%8F-class-rebuildminthumbnailresult)
 - [🏛️ Class `RebuildSmallAvifResult`](#%EF%B8%8F-class-rebuildsmallavifresult)
+- [🔧 Function `has_missing_min_thumbnails`](#-function-has_missing_min_thumbnails)
 - [🔧 Function `is_exercise_media_path`](#-function-is_exercise_media_path)
+- [🔧 Function `rebuild_min_thumbnails_from_small`](#-function-rebuild_min_thumbnails_from_small)
 - [🔧 Function `rebuild_small_avifs_from_high`](#-function-rebuild_small_avifs_from_high)
 - [🔧 Function `save_exercise_avif`](#-function-save_exercise_avif)
+
+</details>
+
+## 🏛️ Class `RebuildMinThumbnailResult`
+
+```python
+class RebuildMinThumbnailResult
+```
+
+Outcome of rebuilding table thumbnails in `fitness_img/min/`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class RebuildMinThumbnailResult:
+
+    rebuilt: tuple[str, ...]
+    skipped: tuple[str, ...]
+    failed: tuple[tuple[str, str], ...]
+```
 
 </details>
 
@@ -39,6 +63,37 @@ class RebuildSmallAvifResult:
 
 </details>
 
+## 🔧 Function `has_missing_min_thumbnails`
+
+```python
+def has_missing_min_thumbnails(avif_dir: Path | str) -> bool
+```
+
+Return whether any UI AVIF lacks an up-to-date WebP under `min/`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def has_missing_min_thumbnails(avif_dir: Path | str) -> bool:
+    target_dir = Path(avif_dir)
+    min_dir = target_dir / FITNESS_IMG_MIN_DIR
+    for small_path in target_dir.glob("*.avif"):
+        if not small_path.is_file():
+            continue
+        min_target = min_dir / f"{small_path.stem}.webp"
+        try:
+            if not min_target.is_file():
+                return True
+            if min_target.stat().st_mtime < small_path.stat().st_mtime:
+                return True
+        except OSError:
+            return True
+    return False
+```
+
+</details>
+
 ## 🔧 Function `is_exercise_media_path`
 
 ```python
@@ -53,6 +108,47 @@ Return `True` when `path` has a supported exercise media extension.
 ```python
 def is_exercise_media_path(path: str | Path) -> bool:
     return Path(path).suffix.lower() in EXERCISE_MEDIA_EXTENSIONS
+```
+
+</details>
+
+## 🔧 Function `rebuild_min_thumbnails_from_small`
+
+```python
+def rebuild_min_thumbnails_from_small(avif_dir: Path | str, *, min_max_size: int) -> RebuildMinThumbnailResult
+```
+
+Write missing or stale static WebP thumbnails from UI-sized AVIFs.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def rebuild_min_thumbnails_from_small(
+    avif_dir: Path | str,
+    *,
+    min_max_size: int,
+) -> RebuildMinThumbnailResult:
+    target_dir = Path(avif_dir)
+    min_dir = target_dir / FITNESS_IMG_MIN_DIR
+    rebuilt: list[str] = []
+    skipped: list[str] = []
+    failed: list[tuple[str, str]] = []
+    for small_path in sorted(target_dir.glob("*.avif")):
+        if not small_path.is_file():
+            continue
+        name = small_path.stem
+        min_target = min_dir / f"{name}.webp"
+        try:
+            if min_target.is_file() and min_target.stat().st_mtime >= small_path.stat().st_mtime:
+                skipped.append(name)
+                continue
+            _write_min_webp_thumbnail(small_path, min_target, max_size=min_max_size)
+        except Exception as error:
+            failed.append((name, str(error)))
+            continue
+        rebuilt.append(name)
+    return RebuildMinThumbnailResult(tuple(rebuilt), tuple(skipped), tuple(failed))
 ```
 
 </details>
@@ -115,14 +211,15 @@ def rebuild_small_avifs_from_high(
 ## 🔧 Function `save_exercise_avif`
 
 ```python
-def save_exercise_avif(source: Path | str, exercise_name: str, avif_dir: Path | str, *, project_root: Path | None = None, max_size: int | None = None, high_max_size: int | None = None) -> Path
+def save_exercise_avif(source: Path | str, exercise_name: str, avif_dir: Path | str, *, project_root: Path | None = None, max_size: int | None = None, high_max_size: int | None = None, min_max_size: int | None = None) -> Path
 ```
 
 Optimize `source` into a small AVIF and, optionally, a high-resolution copy.
 
 Writes `{avif_dir}/{exercise_name}.avif` (UI size). When `high_max_size` is set,
-also writes `{avif_dir}/high/{exercise_name}.avif` for the lightbox. An existing
-file with the same name is replaced.
+also writes `{avif_dir}/high/{exercise_name}.avif` for the lightbox. When
+`min_max_size` is set, also writes `{avif_dir}/min/{exercise_name}.webp` for
+table icons. An existing file with the same name is replaced.
 
 When the high-resolution file is animated, the small UI file is resized from it
 so every frame is kept. Static sources stay static at both sizes.
@@ -139,6 +236,8 @@ Args:
 - `max_size` (`int | None`): Optional max width/height in pixels for the UI file.
 - `high_max_size` (`int | None`): When set, also write a high-resolution AVIF using
   this max width/height. Both files are replaced together after conversion succeeds.
+- `min_max_size` (`int | None`): When set, also write a static WebP thumbnail under
+  `min/` for fast table icons.
 
 Returns:
 
@@ -162,6 +261,7 @@ def save_exercise_avif(
     project_root: Path | None = None,
     max_size: int | None = None,
     high_max_size: int | None = None,
+    min_max_size: int | None = None,
 ) -> Path:
     name = exercise_name.strip()
     if not name:
@@ -183,12 +283,16 @@ def save_exercise_avif(
     small_target = target_dir / f"{name}.avif"
 
     if high_max_size is None:
-        return _convert_source_to_avif(
+        written = _convert_source_to_avif(
             source_path,
             small_target,
             project_root=root,
             max_size=max_size,
         )
+        if min_max_size is not None:
+            min_target = target_dir / FITNESS_IMG_MIN_DIR / f"{name}.webp"
+            _write_min_webp_thumbnail(written, min_target, max_size=min_max_size)
+        return written
 
     high_target = target_dir / FITNESS_IMG_HIGH_DIR / f"{name}.avif"
     with TemporaryDirectory(prefix="exercise_media_pair_") as temp_folder:
@@ -217,6 +321,10 @@ def save_exercise_avif(
             )
         _replace_file(temp_high, high_target)
         _replace_file(temp_small, small_target)
+
+    if min_max_size is not None:
+        min_target = target_dir / FITNESS_IMG_MIN_DIR / f"{name}.webp"
+        _write_min_webp_thumbnail(small_target, min_target, max_size=min_max_size)
 
     return small_target
 ```

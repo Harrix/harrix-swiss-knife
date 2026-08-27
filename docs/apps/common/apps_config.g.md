@@ -13,6 +13,7 @@ lang: en
 
 - [🔧 Function `get_apps_fitness_image_high_max_size`](#-function-get_apps_fitness_image_high_max_size)
 - [🔧 Function `get_apps_fitness_image_max_size`](#-function-get_apps_fitness_image_max_size)
+- [🔧 Function `get_apps_fitness_image_min_max_size`](#-function-get_apps_fitness_image_min_max_size)
 - [🔧 Function `get_apps_fitness_lightbox_countdown_seconds`](#-function-get_apps_fitness_lightbox_countdown_seconds)
 - [🔧 Function `get_apps_fitness_workout_history_count`](#-function-get_apps_fitness_workout_history_count)
 - [🔧 Function `get_apps_list_limits`](#-function-get_apps_list_limits)
@@ -73,6 +74,31 @@ def get_apps_fitness_image_max_size(config: dict[str, Any]) -> int:
         return max(int(raw), 1)
     except (TypeError, ValueError):
         return DEFAULT_FITNESS_IMAGE_MAX_SIZE
+```
+
+</details>
+
+## 🔧 Function `get_apps_fitness_image_min_max_size`
+
+```python
+def get_apps_fitness_image_min_max_size(config: dict[str, Any]) -> int
+```
+
+Return max table-icon width/height from `apps.fitness_image_min_max_size`.
+
+Default `96`. Used for static WebP files under `fitness_img/min/`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_apps_fitness_image_min_max_size(config: dict[str, Any]) -> int:
+    apps = config.get("apps") or {}
+    raw = apps.get("fitness_image_min_max_size", DEFAULT_FITNESS_IMAGE_MIN_MAX_SIZE)
+    try:
+        return max(int(raw), 1)
+    except (TypeError, ValueError):
+        return DEFAULT_FITNESS_IMAGE_MIN_MAX_SIZE
 ```
 
 </details>
