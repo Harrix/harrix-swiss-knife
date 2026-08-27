@@ -13,6 +13,7 @@ lang: en
 
 - [🔧 Function `get_apps_fitness_image_high_max_size`](#-function-get_apps_fitness_image_high_max_size)
 - [🔧 Function `get_apps_fitness_image_max_size`](#-function-get_apps_fitness_image_max_size)
+- [🔧 Function `get_apps_fitness_lightbox_countdown_seconds`](#-function-get_apps_fitness_lightbox_countdown_seconds)
 - [🔧 Function `get_apps_fitness_workout_history_count`](#-function-get_apps_fitness_workout_history_count)
 - [🔧 Function `get_apps_list_limits`](#-function-get_apps_list_limits)
 - [🔧 Function `get_apps_local_language`](#-function-get_apps_local_language)
@@ -72,6 +73,32 @@ def get_apps_fitness_image_max_size(config: dict[str, Any]) -> int:
         return max(int(raw), 1)
     except (TypeError, ValueError):
         return DEFAULT_FITNESS_IMAGE_MAX_SIZE
+```
+
+</details>
+
+## 🔧 Function `get_apps_fitness_lightbox_countdown_seconds`
+
+```python
+def get_apps_fitness_lightbox_countdown_seconds(config: dict[str, Any]) -> int
+```
+
+Return the ready-countdown before the exercise stopwatch starts.
+
+Reads `apps.fitness_lightbox_countdown_seconds`. Default `5`. Always at
+least `0` (skip the countdown and start the stopwatch immediately).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_apps_fitness_lightbox_countdown_seconds(config: dict[str, Any]) -> int:
+    apps = config.get("apps") or {}
+    raw = apps.get("fitness_lightbox_countdown_seconds", DEFAULT_FITNESS_LIGHTBOX_COUNTDOWN_SECONDS)
+    try:
+        return max(int(raw), 0)
+    except (TypeError, ValueError):
+        return DEFAULT_FITNESS_LIGHTBOX_COUNTDOWN_SECONDS
 ```
 
 </details>

@@ -16,6 +16,7 @@ DEFAULT_LOCAL_LANGUAGE = "ru"
 DEFAULT_FITNESS_IMAGE_MAX_SIZE = 330
 DEFAULT_FITNESS_IMAGE_HIGH_MAX_SIZE = 1920
 DEFAULT_FITNESS_WORKOUT_HISTORY_COUNT = 100
+DEFAULT_FITNESS_LIGHTBOX_COUNTDOWN_SECONDS = 5
 OPEN_QUICK_TAB_ON_STARTUP_DEFAULT = True
 OPEN_QUICK_TAB_ON_STARTUP_KEY_PREFIX = "open_quick_tab_on_startup_"
 
@@ -66,6 +67,21 @@ def get_apps_fitness_image_max_size(config: dict[str, Any]) -> int:
         return max(int(raw), 1)
     except (TypeError, ValueError):
         return DEFAULT_FITNESS_IMAGE_MAX_SIZE
+
+
+def get_apps_fitness_lightbox_countdown_seconds(config: dict[str, Any]) -> int:
+    """Return the ready-countdown before the exercise stopwatch starts.
+
+    Reads `apps.fitness_lightbox_countdown_seconds`. Default `5`. Always at
+    least `0` (skip the countdown and start the stopwatch immediately).
+
+    """
+    apps = config.get("apps") or {}
+    raw = apps.get("fitness_lightbox_countdown_seconds", DEFAULT_FITNESS_LIGHTBOX_COUNTDOWN_SECONDS)
+    try:
+        return max(int(raw), 0)
+    except (TypeError, ValueError):
+        return DEFAULT_FITNESS_LIGHTBOX_COUNTDOWN_SECONDS
 
 
 def get_apps_fitness_workout_history_count(config: dict[str, Any]) -> int:

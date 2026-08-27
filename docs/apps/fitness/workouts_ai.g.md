@@ -173,7 +173,7 @@ def parse_workout_tsv(text: str) -> ParsedWorkout:
 def recalculate_workout_duration(duration_min: int, *, remaining_count: int, previous_count: int) -> int
 ```
 
-Scale planned minutes after items are removed, clamped to 1–240.
+Scale planned minutes after items are removed, clamped to 1-240.
 
 When no items remain, keep the previous duration so it can still be edited.
 

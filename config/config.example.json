@@ -79,6 +79,7 @@
   "apps": {
     "fitness_image_max_size": 330,
     "fitness_image_high_max_size": 1920,
+    "fitness_lightbox_countdown_seconds": 5,
     "fitness_workout_history_count": 100,
     "initial_count": 1000,
     "load_more_count": 500,

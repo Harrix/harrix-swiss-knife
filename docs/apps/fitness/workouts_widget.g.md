@@ -39,7 +39,7 @@ class WorkoutsWidget(QWidget):
     generate_requested = Signal()
     workouts_changed = Signal()
     item_done_requested = Signal(int)
-    exercise_lightbox_requested = Signal(str)
+    exercise_lightbox_requested = Signal(int)
     items_reloading = Signal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
@@ -278,12 +278,8 @@ class WorkoutsWidget(QWidget):
 
     def _on_item_double_clicked(self, index: QModelIndex) -> None:
         row = index.row()
-        name_item = self.table_items.item(row, _COL_EXERCISE)
-        if name_item is None:
-            return
-        name = name_item.text().strip()
-        if name:
-            self.exercise_lightbox_requested.emit(name)
+        if 0 <= row < len(self._item_ids):
+            self.exercise_lightbox_requested.emit(self._item_ids[row])
 
     def _on_workout_clicked(self, index: QModelIndex) -> None:
         item = self._list_model.itemFromIndex(index)
@@ -392,7 +388,7 @@ class WorkoutsWidget(QWidget):
         lightbox_action = context_menu.addAction(LABEL_OPEN_LIGHTBOX)
         delete_action = add_delete_action(context_menu)
         apply_leading_emoji_icons(context_menu)
-        action = context_menu.exec(self.table_items.viewport().mapToGlobal(position))
+        action = context_menu.exec_(self.table_items.mapToGlobal(position))
         if action == lightbox_action:
             target = index if index.isValid() else self.table_items.currentIndex()
             if target.isValid():

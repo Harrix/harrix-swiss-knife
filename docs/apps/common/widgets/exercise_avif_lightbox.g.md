@@ -49,6 +49,7 @@ class ExerciseAvifLightboxDialog(AppWindowLightboxDialog):
         current_index: int = 0,
         parent: QWidget | None = None,
         show_speed_slider: bool = False,
+        complete_setup: bool = True,
     ) -> None:
         """Build a lightbox for `exercises` that have media.
 
@@ -60,6 +61,8 @@ class ExerciseAvifLightboxDialog(AppWindowLightboxDialog):
         - `parent` (`QWidget | None`): Widget whose top-level window is covered.
         - `show_speed_slider` (`bool`): When `True`, show a speed slider for
           animated AVIFs (Fitness lightbox only). Defaults to `False`.
+        - `complete_setup` (`bool`): When `False`, skip `finish_setup` so a
+          subclass can attach extra panes first. Defaults to `True`.
 
         """
         names = [name for name in exercises if name]
@@ -83,7 +86,8 @@ class ExerciseAvifLightboxDialog(AppWindowLightboxDialog):
         self.attach_content(self._label)
         if show_speed_slider:
             self._build_speed_controls()
-        self.finish_setup()
+        if complete_setup:
+            self.finish_setup()
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Stop the lightbox animation when the dialog is closed."""
@@ -248,11 +252,15 @@ class ExerciseAvifLightboxDialog(AppWindowLightboxDialog):
         super()._position_controls()
         if self._speed_bar is None or self._speed_bar.isHidden():
             return
-        bar_width = min(420, max(280, self.width() - 280))
+        rect = self.chrome_rect()
+        bar_width = min(420, max(280, rect.width() - 280))
         self._speed_bar.setFixedWidth(bar_width)
         self._speed_bar.adjustSize()
         y = self._caption.y() - self._speed_bar.height() - 10
-        self._speed_bar.move((self.width() - bar_width) // 2, max(_SPEED_SIDE_MARGIN, y))
+        self._speed_bar.move(
+            rect.x() + (rect.width() - bar_width) // 2,
+            max(rect.y() + _SPEED_SIDE_MARGIN, y),
+        )
         self._speed_bar.raise_()
 
     def _reload_current(self) -> None:
@@ -291,7 +299,7 @@ class ExerciseAvifLightboxDialog(AppWindowLightboxDialog):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, exercises: Sequence[str], *, avif_manager: AvifManager, current_index: int = 0, parent: QWidget | None = None, show_speed_slider: bool = False) -> None
+def __init__(self, exercises: Sequence[str], *, avif_manager: AvifManager, current_index: int = 0, parent: QWidget | None = None, show_speed_slider: bool = False, complete_setup: bool = True) -> None
 ```
 
 Build a lightbox for `exercises` that have media.
@@ -304,6 +312,8 @@ Args:
 - `parent` (`QWidget | None`): Widget whose top-level window is covered.
 - `show_speed_slider` (`bool`): When `True`, show a speed slider for
   animated AVIFs (Fitness lightbox only). Defaults to `False`.
+- `complete_setup` (`bool`): When `False`, skip [`finish_setup`](app_window_lightbox.g.md#%EF%B8%8F-method-finish_setup) so a
+  subclass can attach extra panes first. Defaults to `True`.
 
 <details>
 <summary>Code:</summary>
@@ -317,6 +327,7 @@ def __init__(
         current_index: int = 0,
         parent: QWidget | None = None,
         show_speed_slider: bool = False,
+        complete_setup: bool = True,
     ) -> None:
         names = [name for name in exercises if name]
         super().__init__(parent, item_count=len(names), current_index=current_index)
@@ -339,7 +350,8 @@ def __init__(
         self.attach_content(self._label)
         if show_speed_slider:
             self._build_speed_controls()
-        self.finish_setup()
+        if complete_setup:
+            self.finish_setup()
 ```
 
 </details>

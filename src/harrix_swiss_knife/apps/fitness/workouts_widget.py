@@ -59,7 +59,7 @@ class WorkoutsWidget(QWidget):
     generate_requested = Signal()
     workouts_changed = Signal()
     item_done_requested = Signal(int)
-    exercise_lightbox_requested = Signal(str)
+    exercise_lightbox_requested = Signal(int)
     items_reloading = Signal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
@@ -298,12 +298,8 @@ class WorkoutsWidget(QWidget):
 
     def _on_item_double_clicked(self, index: QModelIndex) -> None:
         row = index.row()
-        name_item = self.table_items.item(row, _COL_EXERCISE)
-        if name_item is None:
-            return
-        name = name_item.text().strip()
-        if name:
-            self.exercise_lightbox_requested.emit(name)
+        if 0 <= row < len(self._item_ids):
+            self.exercise_lightbox_requested.emit(self._item_ids[row])
 
     def _on_workout_clicked(self, index: QModelIndex) -> None:
         item = self._list_model.itemFromIndex(index)

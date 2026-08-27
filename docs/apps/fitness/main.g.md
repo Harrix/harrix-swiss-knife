@@ -5198,6 +5198,38 @@ class MainWindow(
         if self._fitness_dashboard is not None:
             self._load_fitness_dashboard_exercise_details(exercise_name)
 
+    def _exec_fitness_lightbox(
+        self,
+        names: list[str],
+        *,
+        current_index: int,
+        workout_items: list[database_manager.WorkoutItemRow] | None = None,
+        workout_duration_min: int | None = None,
+    ) -> None:
+        """Open the Fitness lightbox for `names` and optionally a workout."""
+        if self.avif_manager is None:
+            message_box.warning(self, "Error", "AVIF manager is not initialized")
+            return
+        if not names:
+            message_box.warning(self, "Error", "Select an exercise")
+            return
+        dialog = FitnessExerciseLightboxDialog(
+            names,
+            avif_manager=self.avif_manager,
+            details_loader=self._fitness_lightbox_details,
+            confirm_handler=self._save_fitness_lightbox_set,
+            current_index=current_index,
+            parent=self,
+            countdown_seconds=get_apps_fitness_lightbox_countdown_seconds(self._app_config),
+            workout_items=workout_items,
+            workout_duration_min=workout_duration_min,
+        )
+        dialog.exec()
+        if dialog.should_open_sets_tab:
+            sets_tab_index = self.tabWidget.indexOf(self.tab)
+            if sets_tab_index >= 0:
+                self.tabWidget.setCurrentIndex(sets_tab_index)
+
     def _exercise_names_from_item_model(self, model: QStandardItemModel | None) -> list[str]:
         """Return exercise names stored in `UserRole` of a list model."""
         if model is None:
@@ -5399,6 +5431,32 @@ class MainWindow(
         QTimer.singleShot(55, self._update_layout_for_window_size)
         QTimer.singleShot(60, self._apply_sets_splitter_sizes)
         QTimer.singleShot(120, self._maybe_prompt_missing_exercise_images)
+
+    def _fitness_lightbox_details(self, exercise_name: str, workout_item_id: int | None) -> FitnessLightboxDetails:
+        """Load types, unit, and the default value for the lightbox form."""
+        empty = FitnessLightboxDetails(unit="", types=[], selected_type="", value=0)
+        if self.db_manager is None:
+            return empty
+        unit = self.db_manager.get_exercise_unit(exercise_name)
+        ex_id = self.db_manager.get_id("exercises", "name", exercise_name)
+        types = self.db_manager.get_exercise_types(ex_id) if ex_id is not None else []
+        last_type = ""
+        last_value = 0
+        if ex_id is not None:
+            last_record = self.db_manager.get_last_exercise_record(ex_id)
+            if last_record:
+                last_type, last_value_text = last_record
+                last_value = parse_exercise_value(last_value_text)
+        preferred = ""
+        value = last_value
+        if workout_item_id is not None:
+            item = self.db_manager.get_workout_item_by_id(workout_item_id)
+            if item is not None:
+                preferred = item.type_name
+                if item.target_value:
+                    value = parse_exercise_value(item.target_value)
+        selected = default_exercise_type(types, preferred=preferred, last_used=last_type)
+        return FitnessLightboxDetails(unit=unit, types=types, selected_type=selected, value=value)
 
     def _fitness_prompt_replacements(self, raw_text: str) -> dict[str, str]:
         """Build BotHub placeholders for set-logging prompts."""
@@ -6675,14 +6733,7 @@ class MainWindow(
         names = [item for item in source_names if self._get_exercise_avif_path(item)]
         if name not in names:
             names = [name]
-        dialog = ExerciseAvifLightboxDialog(
-            names,
-            current_index=names.index(name),
-            parent=self,
-            avif_manager=self.avif_manager,
-            show_speed_slider=True,
-        )
-        dialog.exec()
+        self._exec_fitness_lightbox(names, current_index=names.index(name))
 
     @requires_database()
     def _open_exercise_type_edit_dialog(self) -> None:
@@ -6787,6 +6838,32 @@ class MainWindow(
         if not text or not date_str:
             return
         self._process_set_items(parse_sets_tsv(text), date_str)
+
+    def _open_workout_item_lightbox(self, item_id: int) -> None:
+        """Open the Fitness lightbox for a workout row and its siblings."""
+        self._hide_exercise_list_hover_preview()
+        if self.db_manager is None or not self._validate_database_connection():
+            return
+        if self.avif_manager is None:
+            message_box.warning(self, "Error", "AVIF manager is not initialized")
+            return
+        item = self.db_manager.get_workout_item_by_id(item_id)
+        if item is None:
+            message_box.warning(self, "Error", "Workout item not found")
+            return
+        workout = self.db_manager.get_workout_by_id(item.workout_id)
+        items = self.db_manager.get_workout_items(item.workout_id)
+        names = [row.exercise_name for row in items if row.exercise_name]
+        if not names:
+            message_box.warning(self, "Error", "Select an exercise")
+            return
+        current_index = next((index for index, row in enumerate(items) if row.id == item_id), 0)
+        self._exec_fitness_lightbox(
+            names,
+            current_index=current_index,
+            workout_items=items,
+            workout_duration_min=workout.duration_min if workout is not None else None,
+        )
 
     def _open_workout_preview_and_save(self, response_text: str, gender: str, duration_min: int) -> None:
         """Show generated workout TSV and save when the user confirms."""
@@ -7139,6 +7216,60 @@ class MainWindow(
             is_busy=lambda: self._bothub_state.worker is not None,
             state=self._bothub_state,
         )
+
+    def _save_fitness_lightbox_set(self, payload: FitnessLightboxConfirm) -> bool:
+        """Log the lightbox set into `process` and mark a workout item done."""
+        if self.db_manager is None or not self._validate_database_connection():
+            return False
+        exercise = payload.exercise_name.strip()
+        if not exercise:
+            message_box.warning(self, "Error", "Select an exercise")
+            return False
+        ex_id = self.db_manager.get_id("exercises", "name", exercise)
+        if ex_id is None:
+            message_box.warning(self, "Error", f"Exercise '{exercise}' not found in database")
+            return False
+        type_name = payload.type_name.strip()
+        if self.db_manager.is_exercise_type_required(ex_id) and not type_name:
+            message_box.warning(
+                self,
+                "Error",
+                f"Exercise type is required for '{exercise}'. Please select a type.",
+            )
+            return False
+        if type_name:
+            type_rows = self.db_manager.get_rows(
+                "SELECT _id FROM types WHERE type = :name AND _id_exercises = :ex_id",
+                {"name": type_name, "ex_id": ex_id},
+            )
+            type_id = type_rows[0][0] if type_rows else -1
+        else:
+            type_id = -1
+        date_str = QDate.currentDate().toString("yyyy-MM-dd")
+        try:
+            current_value = float(payload.value)
+        except (TypeError, ValueError):
+            current_value = 0.0
+        record_info = self._check_for_new_records(ex_id, type_id, current_value, type_name)
+        process_id = self.db_manager.add_process_record_returning_id(ex_id, type_id, payload.value, date_str)
+        if process_id is None:
+            message_box.warning(self, "Error", "Failed to add process record")
+            return False
+        if record_info:
+            self._show_record_congratulations(exercise, record_info)
+        if payload.workout_item_id is not None:
+            item = self.db_manager.get_workout_item_by_id(payload.workout_item_id)
+            if (
+                item is not None
+                and not item.is_done
+                and not self.db_manager.mark_workout_item_done(payload.workout_item_id, process_id)
+            ):
+                message_box.warning(self, "Error", "Failed to mark workout item done")
+        self.show_tables()
+        self.update_sets_count_today()
+        if self._workouts_widget is not None:
+            self._workouts_widget.refresh()
+        return True
 
     def _schedule_chart_update(self, delay_ms: int = 50) -> None:
         """Schedule a chart update with the specified delay.
@@ -7574,7 +7705,7 @@ class MainWindow(
         )
         self._workouts_widget.generate_requested.connect(self._on_workout_generate_requested)
         self._workouts_widget.item_done_requested.connect(self._on_workout_item_done)
-        self._workouts_widget.exercise_lightbox_requested.connect(self._open_exercise_media_lightbox)
+        self._workouts_widget.exercise_lightbox_requested.connect(self._open_workout_item_lightbox)
         self._workouts_widget.items_reloading.connect(self._hide_exercise_list_hover_preview)
         self.verticalLayout_workouts.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_workouts.addWidget(self._workouts_widget, 1)

@@ -14,6 +14,7 @@ lang: en
 - [🏛️ Class `AppWindowLightboxDialog`](#%EF%B8%8F-class-appwindowlightboxdialog)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `attach_content`](#%EF%B8%8F-method-attach_content)
+  - [⚙️ Method `chrome_rect`](#%EF%B8%8F-method-chrome_rect)
   - [⚙️ Method `current_index (property)`](#%EF%B8%8F-method-current_index-property)
   - [⚙️ Method `empty_caption`](#%EF%B8%8F-method-empty_caption)
   - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
@@ -111,6 +112,15 @@ class AppWindowLightboxDialog(QDialog):
         backdrop_clicked = getattr(widget, "backdrop_clicked", None)
         if backdrop_clicked is not None:
             backdrop_clicked.connect(self.accept)
+
+    def chrome_rect(self) -> QRect:
+        """Return the rectangle used to place overlay controls.
+
+        Defaults to the full dialog. Subclasses with a side panel override this
+        so arrows and captions stay over the image pane.
+
+        """
+        return QRect(0, 0, self.width(), self.height())
 
     @property
     def current_index(self) -> int:
@@ -219,16 +229,23 @@ class AppWindowLightboxDialog(QDialog):
     def _position_controls(self) -> None:
         if self._content is not None:
             self._content.setGeometry(self.rect())
-        self._black_backdrop_button.move(_SIDE_MARGIN, _SIDE_MARGIN)
-        self._white_backdrop_button.move(_SIDE_MARGIN + self._black_backdrop_button.width() + 8, _SIDE_MARGIN)
-        self._close_button.move(self.width() - _BUTTON_SIZE - _SIDE_MARGIN, _SIDE_MARGIN)
-        center_y = (self.height() - _BUTTON_SIZE) // 2
-        self._previous_button.move(_SIDE_MARGIN, center_y)
-        self._next_button.move(self.width() - _BUTTON_SIZE - _SIDE_MARGIN, center_y)
-        caption_width = min(640, max(240, self.width() - 240))
+        rect = self.chrome_rect()
+        self._black_backdrop_button.move(rect.x() + _SIDE_MARGIN, rect.y() + _SIDE_MARGIN)
+        self._white_backdrop_button.move(
+            rect.x() + _SIDE_MARGIN + self._black_backdrop_button.width() + 8,
+            rect.y() + _SIDE_MARGIN,
+        )
+        self._close_button.move(rect.x() + rect.width() - _BUTTON_SIZE - _SIDE_MARGIN, rect.y() + _SIDE_MARGIN)
+        center_y = rect.y() + (rect.height() - _BUTTON_SIZE) // 2
+        self._previous_button.move(rect.x() + _SIDE_MARGIN, center_y)
+        self._next_button.move(rect.x() + rect.width() - _BUTTON_SIZE - _SIDE_MARGIN, center_y)
+        caption_width = min(640, max(240, rect.width() - 240))
         self._caption.setFixedWidth(caption_width)
         self._caption.adjustSize()
-        self._caption.move((self.width() - caption_width) // 2, self.height() - self._caption.height() - _SIDE_MARGIN)
+        self._caption.move(
+            rect.x() + (rect.width() - caption_width) // 2,
+            rect.y() + rect.height() - self._caption.height() - _SIDE_MARGIN,
+        )
         for widget in (
             self._black_backdrop_button,
             self._white_backdrop_button,
@@ -352,6 +369,27 @@ def attach_content(self, widget: QWidget) -> None:
         backdrop_clicked = getattr(widget, "backdrop_clicked", None)
         if backdrop_clicked is not None:
             backdrop_clicked.connect(self.accept)
+```
+
+</details>
+
+### ⚙️ Method `chrome_rect`
+
+```python
+def chrome_rect(self) -> QRect
+```
+
+Return the rectangle used to place overlay controls.
+
+Defaults to the full dialog. Subclasses with a side panel override this
+so arrows and captions stay over the image pane.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def chrome_rect(self) -> QRect:
+        return QRect(0, 0, self.width(), self.height())
 ```
 
 </details>
