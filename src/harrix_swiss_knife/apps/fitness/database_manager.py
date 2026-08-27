@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from collections import Counter, defaultdict
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any, NoReturn
 
@@ -151,6 +152,15 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
                 f"type_id={type_id}, value={value}, date={date}",
             )
         return result
+
+    def add_process_record_returning_id(self, exercise_id: int, type_id: int, value: str, date: str) -> int | None:
+        """Insert a process row and return its `_id`."""
+        if not self.add_process_record(exercise_id, type_id, value, date):
+            return None
+        rows = self.get_rows("SELECT last_insert_rowid()")
+        if not rows or rows[0][0] is None:
+            return None
+        return int(rows[0][0])
 
     def add_weight_record(self, value: float, date: str) -> bool:
         """Add a new weight record.
@@ -374,6 +384,22 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         query = "DELETE FROM weight WHERE _id = :id"
         return self.execute_simple_query(query, {"id": record_id})
 
+    def delete_workout(self, workout_id: int) -> bool:
+        """Delete a workout and its items."""
+        try:
+            with self.sql_transaction():
+                if not self.execute_simple_query(
+                    "DELETE FROM workout_items WHERE workout_id = :id",
+                    {"id": workout_id},
+                ):
+                    _raise_runtime_error(f"Failed to delete items for workout id={workout_id}")
+                if not self.execute_simple_query("DELETE FROM workouts WHERE _id = :id", {"id": workout_id}):
+                    _raise_runtime_error(f"Failed to delete workout id={workout_id}")
+        except Exception:
+            return False
+        else:
+            return True
+
     def exercise_name_exists(self, name: str, *, exclude_id: int | None = None) -> bool:
         """Return whether an exercise already uses `name`.
 
@@ -521,6 +547,17 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         """
         return self.get_rows("SELECT _id, value, date FROM weight ORDER BY date DESC")
+
+    def get_all_workouts(self) -> list[WorkoutRow]:
+        """Return saved workouts, newest first."""
+        rows = self.get_rows(
+            """
+            SELECT _id, name, gender, duration_min, created_date, notes
+            FROM workouts
+            ORDER BY created_date DESC, _id DESC
+            """
+        )
+        return [_workout_row_from_sql(row) for row in rows if row]
 
     def get_dumbbell_exercise_names(self) -> set[str]:
         """Return English names of exercises that use template dumbbell weights."""
@@ -1296,6 +1333,62 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         rows = self.get_rows(query, {"date_from": date_from, "date_to": date_to})
         return [(float(row[0]), row[1]) for row in rows]
 
+    def get_workout_by_id(self, workout_id: int) -> WorkoutRow | None:
+        """Return one workout by primary key."""
+        rows = self.get_rows(
+            """
+            SELECT _id, name, gender, duration_min, created_date, notes
+            FROM workouts WHERE _id = :id
+            """,
+            {"id": workout_id},
+        )
+        if not rows:
+            return None
+        return _workout_row_from_sql(rows[0])
+
+    def get_workout_item_by_id(self, item_id: int) -> WorkoutItemRow | None:
+        """Return one workout item by primary key."""
+        rows = self.get_rows(
+            """
+            SELECT
+                wi._id, wi.workout_id, wi._id_exercises, wi._id_types,
+                wi.exercise_name, wi.type_name, wi.target_value, wi.sort_order,
+                wi.is_done, wi.process_id,
+                IFNULL(e.unit, ''),
+                IFNULL(e.calories_per_unit, 0),
+                IFNULL(t.calories_modifier, 1.0)
+            FROM workout_items wi
+            LEFT JOIN exercises e ON e._id = wi._id_exercises
+            LEFT JOIN types t ON t._id = wi._id_types AND t._id_exercises = wi._id_exercises
+            WHERE wi._id = :id
+            """,
+            {"id": item_id},
+        )
+        if not rows:
+            return None
+        return _workout_item_row_from_sql(rows[0])
+
+    def get_workout_items(self, workout_id: int) -> list[WorkoutItemRow]:
+        """Return items for `workout_id` ordered by `sort_order`."""
+        rows = self.get_rows(
+            """
+            SELECT
+                wi._id, wi.workout_id, wi._id_exercises, wi._id_types,
+                wi.exercise_name, wi.type_name, wi.target_value, wi.sort_order,
+                wi.is_done, wi.process_id,
+                IFNULL(e.unit, ''),
+                IFNULL(e.calories_per_unit, 0),
+                IFNULL(t.calories_modifier, 1.0)
+            FROM workout_items wi
+            LEFT JOIN exercises e ON e._id = wi._id_exercises
+            LEFT JOIN types t ON t._id = wi._id_types AND t._id_exercises = wi._id_exercises
+            WHERE wi.workout_id = :workout_id
+            ORDER BY wi.sort_order ASC, wi._id ASC
+            """,
+            {"workout_id": workout_id},
+        )
+        return [_workout_item_row_from_sql(row) for row in rows if row]
+
     def is_exercise_favorite(self, exercise_id: int) -> bool:
         """Return whether the exercise is pinned as a favorite."""
         rows = self.get_rows("SELECT is_favorite FROM exercises WHERE _id = :id", {"id": exercise_id})
@@ -1321,6 +1414,17 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         rows = self.get_rows("SELECT is_type_required FROM exercises WHERE _id = :ex_id", {"ex_id": exercise_id})
         return bool(rows and rows[0][0] == 1)
 
+    def mark_workout_item_done(self, item_id: int, process_id: int) -> bool:
+        """Mark a workout item completed and store the logged `process` row."""
+        return self.execute_simple_query(
+            """
+            UPDATE workout_items
+            SET is_done = 1, process_id = :process_id
+            WHERE _id = :id AND is_done = 0
+            """,
+            {"id": item_id, "process_id": process_id},
+        )
+
     def rename_types_by_name(self, old_name: str, new_name: str) -> bool:
         """Rename every type row that currently uses `old_name`.
 
@@ -1338,6 +1442,65 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             "UPDATE types SET type = :new WHERE LOWER(TRIM(type)) = LOWER(TRIM(:old))",
             {"old": old_name, "new": new_name},
         )
+
+    def save_workout(
+        self,
+        name: str,
+        gender: str,
+        duration_min: int,
+        items: list[WorkoutItemInput],
+        *,
+        created_date: str,
+        notes: str | None = None,
+    ) -> int | None:
+        """Insert a workout and its items. Return the new `_id` or `None`."""
+        try:
+            with self.sql_transaction():
+                if not self.execute_simple_query(
+                    """
+                    INSERT INTO workouts (name, gender, duration_min, created_date, notes)
+                    VALUES (:name, :gender, :duration_min, :created_date, :notes)
+                    """,
+                    {
+                        "name": name,
+                        "gender": gender,
+                        "duration_min": duration_min,
+                        "created_date": created_date,
+                        "notes": notes,
+                    },
+                ):
+                    _raise_runtime_error(f"Failed to insert workout {name!r}")
+                id_rows = self.get_rows("SELECT last_insert_rowid()")
+                if not id_rows or id_rows[0][0] is None:
+                    _raise_runtime_error("Failed to read new workout id")
+                workout_id = int(id_rows[0][0])
+                for sort_order, item in enumerate(items):
+                    if not self.execute_simple_query(
+                        """
+                        INSERT INTO workout_items (
+                            workout_id, _id_exercises, _id_types, exercise_name, type_name,
+                            target_value, sort_order, is_done, process_id
+                        )
+                        VALUES (
+                            :workout_id, :exercise_id, :type_id, :exercise_name, :type_name,
+                            :target_value, :sort_order, 0, NULL
+                        )
+                        """,
+                        {
+                            "workout_id": workout_id,
+                            "exercise_id": item.exercise_id,
+                            "type_id": item.type_id,
+                            "exercise_name": item.exercise_name,
+                            "type_name": item.type_name,
+                            "target_value": item.target_value,
+                            "sort_order": sort_order,
+                        },
+                    ):
+                        _raise_runtime_error(f"Failed to insert workout item {item.exercise_name!r}")
+        except Exception:
+            return None
+        else:
+            return workout_id
 
     def set_exercise_favorite(self, exercise_id: int, *, favorite: bool) -> bool:
         """Pin or unpin an exercise as a favorite."""
@@ -1606,6 +1769,48 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             logger.exception("Could not ensure %s.%s column", table_name, column_name)
 
 
+@dataclass(frozen=True, slots=True)
+class WorkoutItemInput:
+    """One item to store when saving a generated workout."""
+
+    exercise_id: int
+    type_id: int
+    exercise_name: str
+    type_name: str
+    target_value: str
+
+
+@dataclass(frozen=True, slots=True)
+class WorkoutItemRow:
+    """Stored workout item plus catalog calorie fields."""
+
+    id: int
+    workout_id: int
+    exercise_id: int
+    type_id: int
+    exercise_name: str
+    type_name: str
+    target_value: str
+    sort_order: int
+    is_done: bool
+    process_id: int | None
+    unit: str
+    calories_per_unit: float
+    calories_modifier: float
+
+
+@dataclass(frozen=True, slots=True)
+class WorkoutRow:
+    """One saved workout."""
+
+    id: int
+    name: str
+    gender: str
+    duration_min: int
+    created_date: str
+    notes: str | None
+
+
 def catalog_matching_row(
     rows: list[list[Any]],
     candidate: str,
@@ -1666,6 +1871,54 @@ def catalog_name_taken(
     return catalog_matching_row(rows, candidate, exclude_id=exclude_id) is not None
 
 
+def _optional_sql_float(value: Any, default: float = 0.0) -> float:
+    if value in (None, ""):
+        return default
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _optional_sql_int(value: Any) -> int | None:
+    if value in (None, ""):
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
 def _raise_runtime_error(message: str) -> NoReturn:
     """Raise `RuntimeError` (helper for TRY301 inside SQL transactions)."""
     raise RuntimeError(message)
+
+
+def _workout_item_row_from_sql(row: list[Any] | tuple[Any, ...]) -> WorkoutItemRow:
+    return WorkoutItemRow(
+        id=int(row[0]),
+        workout_id=int(row[1]),
+        exercise_id=int(row[2]),
+        type_id=int(row[3]),
+        exercise_name=str(row[4]),
+        type_name=str(row[5] or ""),
+        target_value=str(row[6]),
+        sort_order=int(row[7]) if row[7] is not None else 0,
+        is_done=bool(row[8]),
+        process_id=_optional_sql_int(row[9]),
+        unit=str(row[10] or ""),
+        calories_per_unit=_optional_sql_float(row[11]),
+        calories_modifier=_optional_sql_float(row[12], 1.0),
+    )
+
+
+def _workout_row_from_sql(row: list[Any] | tuple[Any, ...]) -> WorkoutRow:
+    notes = str(row[5]).strip() if row[5] not in (None, "") else None
+    return WorkoutRow(
+        id=int(row[0]),
+        name=str(row[1]),
+        gender=str(row[2]),
+        duration_min=int(row[3]),
+        created_date=str(row[4]),
+        notes=notes or None,
+    )

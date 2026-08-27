@@ -125,7 +125,7 @@ exact kcal used on the log row.
 
 Args:
 
-- `rows` (`list[dict[str, object]]`): Selected log rows as plain dicts.
+- [`rows`](../fitness/workout_preview_dialog.g.md#%EF%B8%8F-method-rows) (`list[dict[str, object]]`): Selected log rows as plain dicts.
 
 Returns:
 

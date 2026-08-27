@@ -126,7 +126,7 @@ class RecipesWidget(QWidget):
         left_layout.addWidget(self.list_recipes, 1)
 
         buttons = QHBoxLayout()
-        self.button_new = make_emoji_push_button("New", "➕")
+        self.button_new = make_emoji_push_button("New", "➕")  # noqa: RUF001
         self.button_delete = make_emoji_push_button("Delete", "🗑️")
         self.button_new.clicked.connect(self._new_recipe)
         self.button_delete.clicked.connect(self._delete_recipe)
@@ -181,7 +181,7 @@ class RecipesWidget(QWidget):
         mode_row.addWidget(self.check_ingredient_drink)
         ingredient_layout.addLayout(mode_row)
 
-        self.button_add_ingredient = make_emoji_push_button("Add ingredient", "➕")
+        self.button_add_ingredient = make_emoji_push_button("Add ingredient", "➕")  # noqa: RUF001
         self.button_add_ingredient.clicked.connect(self._add_ingredient)
         ingredient_layout.addWidget(self.button_add_ingredient)
         right_layout.addWidget(ingredient_box)
@@ -427,11 +427,9 @@ class RecipesWidget(QWidget):
         if self._db is None:
             return
         try:
-            from harrix_swiss_knife.apps.food import database_manager as food_db
-
             log_names = self._db.get_recent_food_names_for_autocomplete(500)
             item_names = self._db.get_food_item_names_for_autocomplete()
-            merged = food_db.merge_food_autocomplete_entries(log_names, item_names)
+            merged = merge_food_autocomplete_entries(log_names, item_names)
             for entry in merged:
                 display = format_food_name_with_calories(
                     entry.name,
@@ -456,7 +454,7 @@ class RecipesWidget(QWidget):
 def __init__(self, parent: QWidget | None = None) -> None
 ```
 
-Build the recipes UI; call [`set_database_manager`](#%EF%B8%8F-method-set_database_manager) before loading data.
+Build the recipes UI; call `set_database_manager` before loading data.
 
 <details>
 <summary>Code:</summary>

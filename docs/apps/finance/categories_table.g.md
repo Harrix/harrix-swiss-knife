@@ -108,7 +108,7 @@ Build categories proxy from display rows.
 
 Args:
 
-- `rows` (`list[tuple]`): Each item is
+- [`rows`](../fitness/workout_preview_dialog.g.md#%EF%B8%8F-method-rows) (`list[tuple]`): Each item is
   `(display_name, type_label, type_value, plain_name, name_local, color, row_id)`.
 - `headers` (`list[str]`): Column headers for display columns.
 

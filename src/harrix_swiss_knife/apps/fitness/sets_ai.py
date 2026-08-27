@@ -6,13 +6,16 @@ import re
 from dataclasses import dataclass, field
 
 _EXERCISE_COL_NAME = 1
+_EXERCISE_COL_UNIT = 2
 _EXERCISE_COL_TYPE_REQUIRED = 3
+_EXERCISE_COL_CALORIES = 4
 _EXERCISE_COL_NAME_LOCAL = 5
 _EXERCISE_MIN_COLS = _EXERCISE_COL_NAME + 1
 _HEADER_PREFIXES = {"exercise"}
 _TSV_TWO_COLUMNS = 2
 _TYPE_COL_EXERCISE = 1
 _TYPE_COL_NAME = 2
+_TYPE_COL_MODIFIER = 3
 _TYPE_COL_NAME_LOCAL = 4
 _TYPE_MIN_COLS = _TYPE_COL_NAME + 1
 _VALUE_RE = re.compile(r"^[+-]?\d+(?:[.,]\d+)?")
@@ -25,6 +28,8 @@ class ExerciseCatalogEntry:
     name: str
     name_local: str = ""
     type_required: bool = False
+    unit: str = ""
+    calories_per_unit: float = 0.0
     types: list[ExerciseTypeCatalog] = field(default_factory=list)
 
 
@@ -34,6 +39,7 @@ class ExerciseTypeCatalog:
 
     name: str
     name_local: str = ""
+    calories_modifier: float = 1.0
 
 
 @dataclass(frozen=True)
@@ -57,10 +63,16 @@ def build_exercise_catalog(
         exercise_name = str(row[_TYPE_COL_EXERCISE] or "").strip()
         type_name = str(row[_TYPE_COL_NAME] or "").strip()
         type_local = str(row[_TYPE_COL_NAME_LOCAL] or "").strip() if len(row) > _TYPE_COL_NAME_LOCAL else ""
+        modifier = 1.0
+        if len(row) > _TYPE_COL_MODIFIER and row[_TYPE_COL_MODIFIER] not in (None, ""):
+            try:
+                modifier = float(row[_TYPE_COL_MODIFIER])
+            except (TypeError, ValueError):
+                modifier = 1.0
         if not exercise_name or not type_name:
             continue
         types_by_exercise.setdefault(exercise_name, []).append(
-            ExerciseTypeCatalog(name=type_name, name_local=type_local)
+            ExerciseTypeCatalog(name=type_name, name_local=type_local, calories_modifier=modifier)
         )
 
     catalog: list[ExerciseCatalogEntry] = []
@@ -72,11 +84,20 @@ def build_exercise_catalog(
             continue
         type_required = bool(row[_EXERCISE_COL_TYPE_REQUIRED]) if len(row) > _EXERCISE_COL_TYPE_REQUIRED else False
         name_local = str(row[_EXERCISE_COL_NAME_LOCAL] or "").strip() if len(row) > _EXERCISE_COL_NAME_LOCAL else ""
+        unit = str(row[_EXERCISE_COL_UNIT] or "").strip() if len(row) > _EXERCISE_COL_UNIT else ""
+        calories_per_unit = 0.0
+        if len(row) > _EXERCISE_COL_CALORIES and row[_EXERCISE_COL_CALORIES] not in (None, ""):
+            try:
+                calories_per_unit = float(row[_EXERCISE_COL_CALORIES])
+            except (TypeError, ValueError):
+                calories_per_unit = 0.0
         catalog.append(
             ExerciseCatalogEntry(
                 name=name,
                 name_local=name_local,
                 type_required=type_required,
+                unit=unit,
+                calories_per_unit=calories_per_unit,
                 types=types_by_exercise.get(name, []),
             )
         )

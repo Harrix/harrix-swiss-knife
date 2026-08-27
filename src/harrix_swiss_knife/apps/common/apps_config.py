@@ -15,6 +15,7 @@ DEFAULT_LOAD_MORE_COUNT = 500
 DEFAULT_LOCAL_LANGUAGE = "ru"
 DEFAULT_FITNESS_IMAGE_MAX_SIZE = 330
 DEFAULT_FITNESS_IMAGE_HIGH_MAX_SIZE = 1920
+DEFAULT_FITNESS_WORKOUT_HISTORY_COUNT = 100
 OPEN_QUICK_TAB_ON_STARTUP_DEFAULT = True
 OPEN_QUICK_TAB_ON_STARTUP_KEY_PREFIX = "open_quick_tab_on_startup_"
 
@@ -65,6 +66,20 @@ def get_apps_fitness_image_max_size(config: dict[str, Any]) -> int:
         return max(int(raw), 1)
     except (TypeError, ValueError):
         return DEFAULT_FITNESS_IMAGE_MAX_SIZE
+
+
+def get_apps_fitness_workout_history_count(config: dict[str, Any]) -> int:
+    """Return how many recent sets to send when generating a workout.
+
+    Reads `apps.fitness_workout_history_count`. Default `100`. Always at least `1`.
+
+    """
+    apps = config.get("apps") or {}
+    raw = apps.get("fitness_workout_history_count", DEFAULT_FITNESS_WORKOUT_HISTORY_COUNT)
+    try:
+        return max(int(raw), 1)
+    except (TypeError, ValueError):
+        return DEFAULT_FITNESS_WORKOUT_HISTORY_COUNT
 
 
 def get_apps_list_limits(config: dict[str, Any]) -> tuple[int, int]:

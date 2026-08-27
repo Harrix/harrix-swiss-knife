@@ -31,6 +31,29 @@ CREATE TABLE `weight` (
 	`date`	TEXT
 );
 
+CREATE TABLE workouts (
+	_id INTEGER PRIMARY KEY AUTOINCREMENT,
+	name TEXT NOT NULL,
+	gender TEXT NOT NULL,
+	duration_min INTEGER NOT NULL,
+	created_date TEXT NOT NULL,
+	notes TEXT
+);
+
+CREATE TABLE workout_items (
+	_id INTEGER PRIMARY KEY AUTOINCREMENT,
+	workout_id INTEGER NOT NULL,
+	_id_exercises INTEGER NOT NULL,
+	_id_types INTEGER NOT NULL,
+	exercise_name TEXT NOT NULL,
+	type_name TEXT,
+	target_value TEXT NOT NULL,
+	sort_order INTEGER NOT NULL DEFAULT 0,
+	is_done INTEGER NOT NULL DEFAULT 0 CHECK (is_done IN (0, 1)),
+	process_id INTEGER,
+	FOREIGN KEY (workout_id) REFERENCES workouts(_id)
+);
+
 INSERT INTO "exercises" ("_id", "name", "unit", "is_type_required", "calories_per_unit") VALUES
 (1, 'Pull-ups', '', 1, 0.5),
 (2, 'Squats', '', 0, 0.5),

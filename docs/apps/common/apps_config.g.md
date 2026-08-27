@@ -13,6 +13,7 @@ lang: en
 
 - [🔧 Function `get_apps_fitness_image_high_max_size`](#-function-get_apps_fitness_image_high_max_size)
 - [🔧 Function `get_apps_fitness_image_max_size`](#-function-get_apps_fitness_image_max_size)
+- [🔧 Function `get_apps_fitness_workout_history_count`](#-function-get_apps_fitness_workout_history_count)
 - [🔧 Function `get_apps_list_limits`](#-function-get_apps_list_limits)
 - [🔧 Function `get_apps_local_language`](#-function-get_apps_local_language)
 - [🔧 Function `get_apps_local_language_display_name`](#-function-get_apps_local_language_display_name)
@@ -71,6 +72,31 @@ def get_apps_fitness_image_max_size(config: dict[str, Any]) -> int:
         return max(int(raw), 1)
     except (TypeError, ValueError):
         return DEFAULT_FITNESS_IMAGE_MAX_SIZE
+```
+
+</details>
+
+## 🔧 Function `get_apps_fitness_workout_history_count`
+
+```python
+def get_apps_fitness_workout_history_count(config: dict[str, Any]) -> int
+```
+
+Return how many recent sets to send when generating a workout.
+
+Reads `apps.fitness_workout_history_count`. Default `100`. Always at least `1`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_apps_fitness_workout_history_count(config: dict[str, Any]) -> int:
+    apps = config.get("apps") or {}
+    raw = apps.get("fitness_workout_history_count", DEFAULT_FITNESS_WORKOUT_HISTORY_COUNT)
+    try:
+        return max(int(raw), 1)
+    except (TypeError, ValueError):
+        return DEFAULT_FITNESS_WORKOUT_HISTORY_COUNT
 ```
 
 </details>

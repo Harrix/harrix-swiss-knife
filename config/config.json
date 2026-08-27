@@ -6,6 +6,7 @@
   "apps": {
     "fitness_image_high_max_size": 1920,
     "fitness_image_max_size": 330,
+    "fitness_workout_history_count": 100,
     "initial_count": 1000,
     "load_more_count": 500,
     "local_language": "ru",
@@ -352,6 +353,7 @@
     "fitness_names_translate_local": "snippet:config/prompts/fitness-names-translate-local.md",
     "fitness_sets_to_tsv": "snippet:config/prompts/fitness-sets-to-tsv.md",
     "fitness_voice_sets_to_tsv": "snippet:config/prompts/fitness-voice-sets-to-tsv.md",
+    "fitness_workout_generate": "snippet:config/prompts/fitness-workout-generate.md",
     "food_kcal_lookup": "snippet:config/prompts/food-kcal-lookup.md",
     "food_log_to_tsv": "snippet:config/prompts/food-log-to-tsv.md",
     "food_log_translate_names": "snippet:config/prompts/food-log-translate-names.md",

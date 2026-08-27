@@ -128,6 +128,7 @@ class MainWindow(
         super().__init__()
         try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
         self._fitness_dashboard: FitnessDashboardWidget | None = None
+        self._workouts_widget: WorkoutsWidget | None = None
         self._exercise_list_hover: ExerciseListHoverPreview | None = None
         self.setupUi(self)
         # Install event filter for chart info label to handle double-click
@@ -262,6 +263,8 @@ class MainWindow(
 
         # Initialize application
         self._init_database()
+        if self._workouts_widget is not None:
+            self._workouts_widget.set_database_manager(self.db_manager)
         self._connect_signals()
         self._init_table_date_delegates()
         self._init_filter_controls()
@@ -2582,6 +2585,10 @@ class MainWindow(
             QTimer.singleShot(0, self._apply_sets_splitter_sizes)
             QTimer.singleShot(0, self._adjust_process_table_columns)
             QTimer.singleShot(50, self._adjust_process_table_columns)
+            return
+        if widget is self.tab_workouts:
+            if self._workouts_widget is not None:
+                self._workouts_widget.refresh()
             return
         if widget is self.tab_charts:  # Exercise Chart tab
             self.update_chart_comboboxes()
@@ -5821,6 +5828,9 @@ class MainWindow(
     def _init_database(self) -> None:
         """Open the SQLite file from app config (create from `recover.sql` if missing)."""
         app_dir = Path(__file__).parent
+        db_path = Path(self._app_config["sqlite_fitness"])
+        if db_path.exists():
+            ensure_fitness_schema(db_path)
 
         def _on_db_opened(db_manager: database_manager.DatabaseManager) -> None:
             self.progress_calculator = ExerciseProgressCalculator(db_manager)
@@ -6462,6 +6472,65 @@ class MainWindow(
         self._update_date_filter_controls_enabled()
         self.apply_filter()
 
+    def _on_workout_generate_requested(self) -> None:
+        """Ask for gender and duration, then generate a workout with BotHub."""
+        if self.db_manager is None or not self._validate_database_connection():
+            message_box.warning(self, "Error", "Database connection not available")
+            return
+        dialog = WorkoutGenerateDialog(self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        gender = dialog.gender()
+        duration_min = dialog.duration_min()
+        try:
+            prompt_text = build_prompt(
+                self._app_config,
+                "fitness_workout_generate",
+                self._workout_prompt_replacements(gender, duration_min),
+            )
+        except ValueError as exc:
+            show_bothub_prompt_build_error(self, exc)
+            return
+
+        def on_success(response_text: str) -> None:
+            self._open_workout_preview_and_save(response_text, gender, duration_min)
+
+        run_bothub_request(
+            self,
+            self._app_config,
+            prompt_text,
+            on_success,
+            is_busy=lambda: self._bothub_state.worker is not None,
+            state=self._bothub_state,
+            toast_message="Generating workout…",
+        )
+
+    def _on_workout_item_done(self, item_id: int) -> None:
+        """Log a completed workout item into `process` and mark it done."""
+        if self.db_manager is None or not self._validate_database_connection():
+            return
+        item = self.db_manager.get_workout_item_by_id(item_id)
+        if item is None or item.is_done:
+            return
+        date_str = QDate.currentDate().toString("yyyy-MM-dd")
+        process_id = self.db_manager.add_process_record_returning_id(
+            item.exercise_id,
+            item.type_id,
+            item.target_value,
+            date_str,
+        )
+        if process_id is None:
+            message_box.warning(self, "Error", "Failed to add process record")
+            if self._workouts_widget is not None:
+                self._workouts_widget.refresh()
+            return
+        if not self.db_manager.mark_workout_item_done(item_id, process_id):
+            message_box.warning(self, "Error", "Failed to mark workout item done")
+        self.show_tables()
+        self.update_sets_count_today()
+        if self._workouts_widget is not None:
+            self._workouts_widget.refresh()
+
     def _open_exercise_chart_tab(self, exercise_name: str) -> None:
         """Switch to the Exercise Chart tab and select `exercise_name`.
 
@@ -6705,6 +6774,67 @@ class MainWindow(
         if not text or not date_str:
             return
         self._process_set_items(parse_sets_tsv(text), date_str)
+
+    def _open_workout_preview_and_save(self, response_text: str, gender: str, duration_min: int) -> None:
+        """Show generated workout TSV and save when the user confirms."""
+        if self.db_manager is None:
+            return
+        parsed = parse_workout_tsv(response_text)
+        default_title = parsed.title or f"Workout {QDate.currentDate().toString('yyyy-MM-dd')}"
+        preview = WorkoutPreviewDialog(default_title, parsed.rows, self)
+        if preview.exec() != QDialog.DialogCode.Accepted:
+            return
+        title = preview.title_text() or default_title
+        rows = preview.rows()
+        if not rows:
+            message_box.warning(self, "Error", "Workout has no exercises")
+            return
+        catalog = build_exercise_catalog(
+            self.db_manager.get_all_exercises(),
+            self.db_manager.get_all_exercise_types(),
+        )
+        exercise_ids: dict[str, int] = {}
+        for row in self.db_manager.get_all_exercises():
+            if row and row[0] is not None and row[1]:
+                exercise_ids[str(row[1])] = int(row[0])
+        type_ids: dict[tuple[str, str], int] = {}
+        for row in self.db_manager.get_all_exercise_types():
+            if len(row) > 2 and row[0] is not None and row[1] and row[2]:
+                type_ids[(str(row[1]), str(row[2]))] = int(row[0])
+        drafts: list[database_manager.WorkoutItemInput] = []
+        errors: list[str] = []
+        for row in rows:
+            draft, error = resolve_workout_item(row, catalog, exercise_ids, type_ids)
+            if error or draft is None:
+                errors.append(error or "Unknown error")
+                continue
+            drafts.append(
+                database_manager.WorkoutItemInput(
+                    exercise_id=draft.exercise_id,
+                    type_id=draft.type_id,
+                    exercise_name=draft.exercise_name,
+                    type_name=draft.type_name,
+                    target_value=draft.target_value,
+                )
+            )
+        if errors:
+            message_box.warning(self, "Error", "Could not save some exercises:\n" + "\n".join(errors[:8]))
+        if not drafts:
+            return
+        workout_id = self.db_manager.save_workout(
+            title,
+            gender,
+            duration_min,
+            drafts,
+            created_date=QDate.currentDate().toString("yyyy-MM-dd"),
+        )
+        if workout_id is None:
+            message_box.warning(self, "Error", "Failed to save workout")
+            return
+        if self._workouts_widget is not None:
+            self._workouts_widget.refresh()
+            self._workouts_widget.select_workout_by_id(workout_id)
+        message_box.information(self, "Saved", f"Workout '{title}' saved")
 
     def _process_filter_is_active(self) -> bool:
         """Return whether any process table filter is currently applied."""
@@ -7416,7 +7546,17 @@ class MainWindow(
         self.splitter.setStretchFactor(2, 3)  # process filters + table
         self._apply_sets_splitter_sizes()
         self._setup_fitness_dashboard_tab()
+        self._setup_workouts_tab()
         install_shrinkable_tab_scroll(self, self.tabWidget)
+
+    def _setup_workouts_tab(self) -> None:
+        """Fill the Workouts tab with the saved-plan widget."""
+        self._workouts_widget = WorkoutsWidget(self)
+        self._workouts_widget.generate_requested.connect(self._on_workout_generate_requested)
+        self._workouts_widget.item_done_requested.connect(self._on_workout_item_done)
+        self._workouts_widget.exercise_lightbox_requested.connect(self._open_exercise_media_lightbox)
+        self.verticalLayout_workouts.setContentsMargins(0, 0, 0, 0)
+        self.verticalLayout_workouts.addWidget(self._workouts_widget, 1)
 
     def _show_duplicate_exercise_if_needed(
         self,
@@ -8253,6 +8393,24 @@ class MainWindow(
                 item = source.item(row, _EXERCISE_TABLE_IMAGE_COLUMN)
                 if item is not None:
                     item.setIcon(icon)
+
+    def _workout_prompt_replacements(self, gender: str, duration_min: int) -> dict[str, str]:
+        """Build BotHub placeholders for workout generation."""
+        catalog: list[ExerciseCatalogEntry] = []
+        recent: list[list[Any]] = []
+        if self.db_manager is not None and self._validate_database_connection():
+            catalog = build_exercise_catalog(
+                self.db_manager.get_all_exercises(),
+                self.db_manager.get_all_exercise_types(),
+            )
+            history_count = get_apps_fitness_workout_history_count(self._app_config)
+            recent = self.db_manager.get_limited_process_records(history_count)
+        return {
+            "GENDER": gender,
+            "DURATION_MIN": str(duration_min),
+            "EXERCISES": format_workout_exercise_catalog(catalog),
+            "RECENT_SETS": format_recent_sets(recent),
+        }
 ```
 
 </details>
@@ -8273,6 +8431,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
         super().__init__()
         try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
         self._fitness_dashboard: FitnessDashboardWidget | None = None
+        self._workouts_widget: WorkoutsWidget | None = None
         self._exercise_list_hover: ExerciseListHoverPreview | None = None
         self.setupUi(self)
         # Install event filter for chart info label to handle double-click
@@ -8407,6 +8566,8 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
 
         # Initialize application
         self._init_database()
+        if self._workouts_widget is not None:
+            self._workouts_widget.set_database_manager(self.db_manager)
         self._connect_signals()
         self._init_table_date_delegates()
         self._init_filter_controls()
@@ -11212,6 +11373,10 @@ def on_tab_changed(self, index: int) -> None:
             QTimer.singleShot(0, self._apply_sets_splitter_sizes)
             QTimer.singleShot(0, self._adjust_process_table_columns)
             QTimer.singleShot(50, self._adjust_process_table_columns)
+            return
+        if widget is self.tab_workouts:
+            if self._workouts_widget is not None:
+                self._workouts_widget.refresh()
             return
         if widget is self.tab_charts:  # Exercise Chart tab
             self.update_chart_comboboxes()

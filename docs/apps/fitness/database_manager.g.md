@@ -16,6 +16,7 @@ lang: en
   - [⚙️ Method `add_exercise`](#%EF%B8%8F-method-add_exercise)
   - [⚙️ Method `add_exercise_type`](#%EF%B8%8F-method-add_exercise_type)
   - [⚙️ Method `add_process_record`](#%EF%B8%8F-method-add_process_record)
+  - [⚙️ Method `add_process_record_returning_id`](#%EF%B8%8F-method-add_process_record_returning_id)
   - [⚙️ Method `add_weight_record`](#%EF%B8%8F-method-add_weight_record)
   - [⚙️ Method `check_exercise_exists`](#%EF%B8%8F-method-check_exercise_exists)
   - [⚙️ Method `count_process_records_for_exercise`](#%EF%B8%8F-method-count_process_records_for_exercise)
@@ -29,6 +30,7 @@ lang: en
   - [⚙️ Method `delete_types_by_name`](#%EF%B8%8F-method-delete_types_by_name)
   - [⚙️ Method `delete_types_for_exercise`](#%EF%B8%8F-method-delete_types_for_exercise)
   - [⚙️ Method `delete_weight_record`](#%EF%B8%8F-method-delete_weight_record)
+  - [⚙️ Method `delete_workout`](#%EF%B8%8F-method-delete_workout)
   - [⚙️ Method `exercise_name_exists`](#%EF%B8%8F-method-exercise_name_exists)
   - [⚙️ Method `exercise_name_local_exists`](#%EF%B8%8F-method-exercise_name_local_exists)
   - [⚙️ Method `exercise_type_name_exists`](#%EF%B8%8F-method-exercise_type_name_exists)
@@ -37,6 +39,7 @@ lang: en
   - [⚙️ Method `get_all_exercises`](#%EF%B8%8F-method-get_all_exercises)
   - [⚙️ Method `get_all_process_records`](#%EF%B8%8F-method-get_all_process_records)
   - [⚙️ Method `get_all_weight_records`](#%EF%B8%8F-method-get_all_weight_records)
+  - [⚙️ Method `get_all_workouts`](#%EF%B8%8F-method-get_all_workouts)
   - [⚙️ Method `get_dumbbell_exercise_names`](#%EF%B8%8F-method-get_dumbbell_exercise_names)
   - [⚙️ Method `get_earliest_process_date`](#%EF%B8%8F-method-get_earliest_process_date)
   - [⚙️ Method `get_earliest_weight_date`](#%EF%B8%8F-method-get_earliest_weight_date)
@@ -69,9 +72,14 @@ lang: en
   - [⚙️ Method `get_sets_chart_data`](#%EF%B8%8F-method-get_sets_chart_data)
   - [⚙️ Method `get_sets_count_today`](#%EF%B8%8F-method-get_sets_count_today)
   - [⚙️ Method `get_weight_chart_data`](#%EF%B8%8F-method-get_weight_chart_data)
+  - [⚙️ Method `get_workout_by_id`](#%EF%B8%8F-method-get_workout_by_id)
+  - [⚙️ Method `get_workout_item_by_id`](#%EF%B8%8F-method-get_workout_item_by_id)
+  - [⚙️ Method `get_workout_items`](#%EF%B8%8F-method-get_workout_items)
   - [⚙️ Method `is_exercise_favorite`](#%EF%B8%8F-method-is_exercise_favorite)
   - [⚙️ Method `is_exercise_type_required`](#%EF%B8%8F-method-is_exercise_type_required)
+  - [⚙️ Method `mark_workout_item_done`](#%EF%B8%8F-method-mark_workout_item_done)
   - [⚙️ Method `rename_types_by_name`](#%EF%B8%8F-method-rename_types_by_name)
+  - [⚙️ Method `save_workout`](#%EF%B8%8F-method-save_workout)
   - [⚙️ Method `set_exercise_favorite`](#%EF%B8%8F-method-set_exercise_favorite)
   - [⚙️ Method `set_exercise_type_required`](#%EF%B8%8F-method-set_exercise_type_required)
   - [⚙️ Method `update_exercise`](#%EF%B8%8F-method-update_exercise)
@@ -81,6 +89,9 @@ lang: en
   - [⚙️ Method `update_process_record`](#%EF%B8%8F-method-update_process_record)
   - [⚙️ Method `update_process_records_date`](#%EF%B8%8F-method-update_process_records_date)
   - [⚙️ Method `update_weight_record`](#%EF%B8%8F-method-update_weight_record)
+- [🏛️ Class `WorkoutItemInput`](#%EF%B8%8F-class-workoutiteminput)
+- [🏛️ Class `WorkoutItemRow`](#%EF%B8%8F-class-workoutitemrow)
+- [🏛️ Class `WorkoutRow`](#%EF%B8%8F-class-workoutrow)
 - [🔧 Function `catalog_matching_row`](#-function-catalog_matching_row)
 - [🔧 Function `catalog_name_taken`](#-function-catalog_name_taken)
 
@@ -228,6 +239,15 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
                 f"type_id={type_id}, value={value}, date={date}",
             )
         return result
+
+    def add_process_record_returning_id(self, exercise_id: int, type_id: int, value: str, date: str) -> int | None:
+        """Insert a process row and return its `_id`."""
+        if not self.add_process_record(exercise_id, type_id, value, date):
+            return None
+        rows = self.get_rows("SELECT last_insert_rowid()")
+        if not rows or rows[0][0] is None:
+            return None
+        return int(rows[0][0])
 
     def add_weight_record(self, value: float, date: str) -> bool:
         """Add a new weight record.
@@ -451,6 +471,22 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         query = "DELETE FROM weight WHERE _id = :id"
         return self.execute_simple_query(query, {"id": record_id})
 
+    def delete_workout(self, workout_id: int) -> bool:
+        """Delete a workout and its items."""
+        try:
+            with self.sql_transaction():
+                if not self.execute_simple_query(
+                    "DELETE FROM workout_items WHERE workout_id = :id",
+                    {"id": workout_id},
+                ):
+                    _raise_runtime_error(f"Failed to delete items for workout id={workout_id}")
+                if not self.execute_simple_query("DELETE FROM workouts WHERE _id = :id", {"id": workout_id}):
+                    _raise_runtime_error(f"Failed to delete workout id={workout_id}")
+        except Exception:
+            return False
+        else:
+            return True
+
     def exercise_name_exists(self, name: str, *, exclude_id: int | None = None) -> bool:
         """Return whether an exercise already uses `name`.
 
@@ -598,6 +634,17 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         """
         return self.get_rows("SELECT _id, value, date FROM weight ORDER BY date DESC")
+
+    def get_all_workouts(self) -> list[WorkoutRow]:
+        """Return saved workouts, newest first."""
+        rows = self.get_rows(
+            """
+            SELECT _id, name, gender, duration_min, created_date, notes
+            FROM workouts
+            ORDER BY created_date DESC, _id DESC
+            """
+        )
+        return [_workout_row_from_sql(row) for row in rows if row]
 
     def get_dumbbell_exercise_names(self) -> set[str]:
         """Return English names of exercises that use template dumbbell weights."""
@@ -1373,6 +1420,62 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         rows = self.get_rows(query, {"date_from": date_from, "date_to": date_to})
         return [(float(row[0]), row[1]) for row in rows]
 
+    def get_workout_by_id(self, workout_id: int) -> WorkoutRow | None:
+        """Return one workout by primary key."""
+        rows = self.get_rows(
+            """
+            SELECT _id, name, gender, duration_min, created_date, notes
+            FROM workouts WHERE _id = :id
+            """,
+            {"id": workout_id},
+        )
+        if not rows:
+            return None
+        return _workout_row_from_sql(rows[0])
+
+    def get_workout_item_by_id(self, item_id: int) -> WorkoutItemRow | None:
+        """Return one workout item by primary key."""
+        rows = self.get_rows(
+            """
+            SELECT
+                wi._id, wi.workout_id, wi._id_exercises, wi._id_types,
+                wi.exercise_name, wi.type_name, wi.target_value, wi.sort_order,
+                wi.is_done, wi.process_id,
+                IFNULL(e.unit, ''),
+                IFNULL(e.calories_per_unit, 0),
+                IFNULL(t.calories_modifier, 1.0)
+            FROM workout_items wi
+            LEFT JOIN exercises e ON e._id = wi._id_exercises
+            LEFT JOIN types t ON t._id = wi._id_types AND t._id_exercises = wi._id_exercises
+            WHERE wi._id = :id
+            """,
+            {"id": item_id},
+        )
+        if not rows:
+            return None
+        return _workout_item_row_from_sql(rows[0])
+
+    def get_workout_items(self, workout_id: int) -> list[WorkoutItemRow]:
+        """Return items for `workout_id` ordered by `sort_order`."""
+        rows = self.get_rows(
+            """
+            SELECT
+                wi._id, wi.workout_id, wi._id_exercises, wi._id_types,
+                wi.exercise_name, wi.type_name, wi.target_value, wi.sort_order,
+                wi.is_done, wi.process_id,
+                IFNULL(e.unit, ''),
+                IFNULL(e.calories_per_unit, 0),
+                IFNULL(t.calories_modifier, 1.0)
+            FROM workout_items wi
+            LEFT JOIN exercises e ON e._id = wi._id_exercises
+            LEFT JOIN types t ON t._id = wi._id_types AND t._id_exercises = wi._id_exercises
+            WHERE wi.workout_id = :workout_id
+            ORDER BY wi.sort_order ASC, wi._id ASC
+            """,
+            {"workout_id": workout_id},
+        )
+        return [_workout_item_row_from_sql(row) for row in rows if row]
+
     def is_exercise_favorite(self, exercise_id: int) -> bool:
         """Return whether the exercise is pinned as a favorite."""
         rows = self.get_rows("SELECT is_favorite FROM exercises WHERE _id = :id", {"id": exercise_id})
@@ -1398,6 +1501,17 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         rows = self.get_rows("SELECT is_type_required FROM exercises WHERE _id = :ex_id", {"ex_id": exercise_id})
         return bool(rows and rows[0][0] == 1)
 
+    def mark_workout_item_done(self, item_id: int, process_id: int) -> bool:
+        """Mark a workout item completed and store the logged `process` row."""
+        return self.execute_simple_query(
+            """
+            UPDATE workout_items
+            SET is_done = 1, process_id = :process_id
+            WHERE _id = :id AND is_done = 0
+            """,
+            {"id": item_id, "process_id": process_id},
+        )
+
     def rename_types_by_name(self, old_name: str, new_name: str) -> bool:
         """Rename every type row that currently uses `old_name`.
 
@@ -1415,6 +1529,65 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             "UPDATE types SET type = :new WHERE LOWER(TRIM(type)) = LOWER(TRIM(:old))",
             {"old": old_name, "new": new_name},
         )
+
+    def save_workout(
+        self,
+        name: str,
+        gender: str,
+        duration_min: int,
+        items: list[WorkoutItemInput],
+        *,
+        created_date: str,
+        notes: str | None = None,
+    ) -> int | None:
+        """Insert a workout and its items. Return the new `_id` or `None`."""
+        try:
+            with self.sql_transaction():
+                if not self.execute_simple_query(
+                    """
+                    INSERT INTO workouts (name, gender, duration_min, created_date, notes)
+                    VALUES (:name, :gender, :duration_min, :created_date, :notes)
+                    """,
+                    {
+                        "name": name,
+                        "gender": gender,
+                        "duration_min": duration_min,
+                        "created_date": created_date,
+                        "notes": notes,
+                    },
+                ):
+                    _raise_runtime_error(f"Failed to insert workout {name!r}")
+                id_rows = self.get_rows("SELECT last_insert_rowid()")
+                if not id_rows or id_rows[0][0] is None:
+                    _raise_runtime_error("Failed to read new workout id")
+                workout_id = int(id_rows[0][0])
+                for sort_order, item in enumerate(items):
+                    if not self.execute_simple_query(
+                        """
+                        INSERT INTO workout_items (
+                            workout_id, _id_exercises, _id_types, exercise_name, type_name,
+                            target_value, sort_order, is_done, process_id
+                        )
+                        VALUES (
+                            :workout_id, :exercise_id, :type_id, :exercise_name, :type_name,
+                            :target_value, :sort_order, 0, NULL
+                        )
+                        """,
+                        {
+                            "workout_id": workout_id,
+                            "exercise_id": item.exercise_id,
+                            "type_id": item.type_id,
+                            "exercise_name": item.exercise_name,
+                            "type_name": item.type_name,
+                            "target_value": item.target_value,
+                            "sort_order": sort_order,
+                        },
+                    ):
+                        _raise_runtime_error(f"Failed to insert workout item {item.exercise_name!r}")
+        except Exception:
+            return None
+        else:
+            return workout_id
 
     def set_exercise_favorite(self, exercise_id: int, *, favorite: bool) -> bool:
         """Pin or unpin an exercise as a favorite."""
@@ -1857,6 +2030,29 @@ def add_process_record(self, exercise_id: int, type_id: int, value: str, date: s
 
 </details>
 
+### ⚙️ Method `add_process_record_returning_id`
+
+```python
+def add_process_record_returning_id(self, exercise_id: int, type_id: int, value: str, date: str) -> int | None
+```
+
+Insert a process row and return its `_id`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def add_process_record_returning_id(self, exercise_id: int, type_id: int, value: str, date: str) -> int | None:
+        if not self.add_process_record(exercise_id, type_id, value, date):
+            return None
+        rows = self.get_rows("SELECT last_insert_rowid()")
+        if not rows or rows[0][0] is None:
+            return None
+        return int(rows[0][0])
+```
+
+</details>
+
 ### ⚙️ Method `add_weight_record`
 
 ```python
@@ -2235,6 +2431,36 @@ def delete_weight_record(self, record_id: int) -> bool:
 
 </details>
 
+### ⚙️ Method `delete_workout`
+
+```python
+def delete_workout(self, workout_id: int) -> bool
+```
+
+Delete a workout and its items.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def delete_workout(self, workout_id: int) -> bool:
+        try:
+            with self.sql_transaction():
+                if not self.execute_simple_query(
+                    "DELETE FROM workout_items WHERE workout_id = :id",
+                    {"id": workout_id},
+                ):
+                    _raise_runtime_error(f"Failed to delete items for workout id={workout_id}")
+                if not self.execute_simple_query("DELETE FROM workouts WHERE _id = :id", {"id": workout_id}):
+                    _raise_runtime_error(f"Failed to delete workout id={workout_id}")
+        except Exception:
+            return False
+        else:
+            return True
+```
+
+</details>
+
 ### ⚙️ Method `exercise_name_exists`
 
 ```python
@@ -2475,6 +2701,31 @@ Returns:
 ```python
 def get_all_weight_records(self) -> list[list[Any]]:
         return self.get_rows("SELECT _id, value, date FROM weight ORDER BY date DESC")
+```
+
+</details>
+
+### ⚙️ Method `get_all_workouts`
+
+```python
+def get_all_workouts(self) -> list[WorkoutRow]
+```
+
+Return saved workouts, newest first.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_all_workouts(self) -> list[WorkoutRow]:
+        rows = self.get_rows(
+            """
+            SELECT _id, name, gender, duration_min, created_date, notes
+            FROM workouts
+            ORDER BY created_date DESC, _id DESC
+            """
+        )
+        return [_workout_row_from_sql(row) for row in rows if row]
 ```
 
 </details>
@@ -3649,6 +3900,104 @@ def get_weight_chart_data(self, date_from: str, date_to: str) -> list[tuple[floa
 
 </details>
 
+### ⚙️ Method `get_workout_by_id`
+
+```python
+def get_workout_by_id(self, workout_id: int) -> WorkoutRow | None
+```
+
+Return one workout by primary key.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_workout_by_id(self, workout_id: int) -> WorkoutRow | None:
+        rows = self.get_rows(
+            """
+            SELECT _id, name, gender, duration_min, created_date, notes
+            FROM workouts WHERE _id = :id
+            """,
+            {"id": workout_id},
+        )
+        if not rows:
+            return None
+        return _workout_row_from_sql(rows[0])
+```
+
+</details>
+
+### ⚙️ Method `get_workout_item_by_id`
+
+```python
+def get_workout_item_by_id(self, item_id: int) -> WorkoutItemRow | None
+```
+
+Return one workout item by primary key.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_workout_item_by_id(self, item_id: int) -> WorkoutItemRow | None:
+        rows = self.get_rows(
+            """
+            SELECT
+                wi._id, wi.workout_id, wi._id_exercises, wi._id_types,
+                wi.exercise_name, wi.type_name, wi.target_value, wi.sort_order,
+                wi.is_done, wi.process_id,
+                IFNULL(e.unit, ''),
+                IFNULL(e.calories_per_unit, 0),
+                IFNULL(t.calories_modifier, 1.0)
+            FROM workout_items wi
+            LEFT JOIN exercises e ON e._id = wi._id_exercises
+            LEFT JOIN types t ON t._id = wi._id_types AND t._id_exercises = wi._id_exercises
+            WHERE wi._id = :id
+            """,
+            {"id": item_id},
+        )
+        if not rows:
+            return None
+        return _workout_item_row_from_sql(rows[0])
+```
+
+</details>
+
+### ⚙️ Method `get_workout_items`
+
+```python
+def get_workout_items(self, workout_id: int) -> list[WorkoutItemRow]
+```
+
+Return items for `workout_id` ordered by `sort_order`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_workout_items(self, workout_id: int) -> list[WorkoutItemRow]:
+        rows = self.get_rows(
+            """
+            SELECT
+                wi._id, wi.workout_id, wi._id_exercises, wi._id_types,
+                wi.exercise_name, wi.type_name, wi.target_value, wi.sort_order,
+                wi.is_done, wi.process_id,
+                IFNULL(e.unit, ''),
+                IFNULL(e.calories_per_unit, 0),
+                IFNULL(t.calories_modifier, 1.0)
+            FROM workout_items wi
+            LEFT JOIN exercises e ON e._id = wi._id_exercises
+            LEFT JOIN types t ON t._id = wi._id_types AND t._id_exercises = wi._id_exercises
+            WHERE wi.workout_id = :workout_id
+            ORDER BY wi.sort_order ASC, wi._id ASC
+            """,
+            {"workout_id": workout_id},
+        )
+        return [_workout_item_row_from_sql(row) for row in rows if row]
+```
+
+</details>
+
 ### ⚙️ Method `is_exercise_favorite`
 
 ```python
@@ -3700,6 +4049,31 @@ def is_exercise_type_required(self, exercise_id: int) -> bool:
 
 </details>
 
+### ⚙️ Method `mark_workout_item_done`
+
+```python
+def mark_workout_item_done(self, item_id: int, process_id: int) -> bool
+```
+
+Mark a workout item completed and store the logged `process` row.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def mark_workout_item_done(self, item_id: int, process_id: int) -> bool:
+        return self.execute_simple_query(
+            """
+            UPDATE workout_items
+            SET is_done = 1, process_id = :process_id
+            WHERE _id = :id AND is_done = 0
+            """,
+            {"id": item_id, "process_id": process_id},
+        )
+```
+
+</details>
+
 ### ⚙️ Method `rename_types_by_name`
 
 ```python
@@ -3726,6 +4100,79 @@ def rename_types_by_name(self, old_name: str, new_name: str) -> bool:
             "UPDATE types SET type = :new WHERE LOWER(TRIM(type)) = LOWER(TRIM(:old))",
             {"old": old_name, "new": new_name},
         )
+```
+
+</details>
+
+### ⚙️ Method `save_workout`
+
+```python
+def save_workout(self, name: str, gender: str, duration_min: int, items: list[WorkoutItemInput], *, created_date: str, notes: str | None = None) -> int | None
+```
+
+Insert a workout and its items. Return the new `_id` or `None`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def save_workout(
+        self,
+        name: str,
+        gender: str,
+        duration_min: int,
+        items: list[WorkoutItemInput],
+        *,
+        created_date: str,
+        notes: str | None = None,
+    ) -> int | None:
+        try:
+            with self.sql_transaction():
+                if not self.execute_simple_query(
+                    """
+                    INSERT INTO workouts (name, gender, duration_min, created_date, notes)
+                    VALUES (:name, :gender, :duration_min, :created_date, :notes)
+                    """,
+                    {
+                        "name": name,
+                        "gender": gender,
+                        "duration_min": duration_min,
+                        "created_date": created_date,
+                        "notes": notes,
+                    },
+                ):
+                    _raise_runtime_error(f"Failed to insert workout {name!r}")
+                id_rows = self.get_rows("SELECT last_insert_rowid()")
+                if not id_rows or id_rows[0][0] is None:
+                    _raise_runtime_error("Failed to read new workout id")
+                workout_id = int(id_rows[0][0])
+                for sort_order, item in enumerate(items):
+                    if not self.execute_simple_query(
+                        """
+                        INSERT INTO workout_items (
+                            workout_id, _id_exercises, _id_types, exercise_name, type_name,
+                            target_value, sort_order, is_done, process_id
+                        )
+                        VALUES (
+                            :workout_id, :exercise_id, :type_id, :exercise_name, :type_name,
+                            :target_value, :sort_order, 0, NULL
+                        )
+                        """,
+                        {
+                            "workout_id": workout_id,
+                            "exercise_id": item.exercise_id,
+                            "type_id": item.type_id,
+                            "exercise_name": item.exercise_name,
+                            "type_name": item.type_name,
+                            "target_value": item.target_value,
+                            "sort_order": sort_order,
+                        },
+                    ):
+                        _raise_runtime_error(f"Failed to insert workout item {item.exercise_name!r}")
+        except Exception:
+            return None
+        else:
+            return workout_id
 ```
 
 </details>
@@ -4078,6 +4525,84 @@ def update_weight_record(self, record_id: int, value: float, date: str) -> bool:
 
 </details>
 
+## 🏛️ Class `WorkoutItemInput`
+
+```python
+class WorkoutItemInput
+```
+
+One item to store when saving a generated workout.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class WorkoutItemInput:
+
+    exercise_id: int
+    type_id: int
+    exercise_name: str
+    type_name: str
+    target_value: str
+```
+
+</details>
+
+## 🏛️ Class `WorkoutItemRow`
+
+```python
+class WorkoutItemRow
+```
+
+Stored workout item plus catalog calorie fields.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class WorkoutItemRow:
+
+    id: int
+    workout_id: int
+    exercise_id: int
+    type_id: int
+    exercise_name: str
+    type_name: str
+    target_value: str
+    sort_order: int
+    is_done: bool
+    process_id: int | None
+    unit: str
+    calories_per_unit: float
+    calories_modifier: float
+```
+
+</details>
+
+## 🏛️ Class `WorkoutRow`
+
+```python
+class WorkoutRow
+```
+
+One saved workout.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class WorkoutRow:
+
+    id: int
+    name: str
+    gender: str
+    duration_min: int
+    created_date: str
+    notes: str | None
+```
+
+</details>
+
 ## 🔧 Function `catalog_matching_row`
 
 ```python
@@ -4088,7 +4613,7 @@ Return the first row whose name at `name_index` matches `candidate`.
 
 Args:
 
-- `rows` (`list[list[Any]]`): Rows with an ID in column `0`.
+- [`rows`](workout_preview_dialog.g.md#%EF%B8%8F-method-rows) (`list[list[Any]]`): Rows with an ID in column `0`.
 - `candidate` (`str`): Name to look up.
 - `exclude_id` (`int | None`): ID to ignore. Defaults to `None`.
 - `name_index` (`int`): Column that holds the name. Defaults to `1`.
@@ -4137,7 +4662,7 @@ Return whether `candidate` matches a name in `(_id, name)` rows.
 
 Args:
 
-- `rows` (`list[list[Any]]`): Rows whose first two values are ID and name.
+- [`rows`](workout_preview_dialog.g.md#%EF%B8%8F-method-rows) (`list[list[Any]]`): Rows whose first two values are ID and name.
 - `candidate` (`str`): Name to look up.
 - `exclude_id` (`int | None`): ID to ignore. Defaults to `None`.
 

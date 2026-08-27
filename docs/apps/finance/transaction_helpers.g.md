@@ -247,7 +247,7 @@ first, then summed — not summed then converted.
 
 Args:
 
-- `rows` (`list[list[Any]]`): Raw transaction data from database.
+- [`rows`](../fitness/workout_preview_dialog.g.md#%EF%B8%8F-method-rows) (`list[list[Any]]`): Raw transaction data from database.
 - `db_manager` (`DatabaseManager | None`): Database manager for currency conversion.
 - `target_currency_id` (`int | None`): Target currency ID. `None` = project default currency.
 
@@ -2064,7 +2064,7 @@ Transform transaction data for display with colors and daily totals.
 
 Args:
 
-- `rows` (`list[list[Any]]`): Raw transaction data.
+- [`rows`](../fitness/workout_preview_dialog.g.md#%EF%B8%8F-method-rows) (`list[list[Any]]`): Raw transaction data.
 - `daily_expenses` (`dict[str, float]`): Pre-calculated daily expense totals.
 - `date_colors` (`list[Any]`): List of color objects (e.g. QColor) for date-based coloring.
 - `db_manager` (`DatabaseManager | None`): Database manager for currency conversion.
