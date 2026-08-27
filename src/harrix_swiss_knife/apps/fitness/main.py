@@ -8579,6 +8579,7 @@ class MainWindow(
         *,
         selected_exercise: str | None = None,
         selected_type: str | None = None,
+        defer_icons: bool = False,
     ) -> None:
         """Refresh exercise list and type combo-box (optionally keep a selection).
 
@@ -8586,6 +8587,7 @@ class MainWindow(
 
         - `selected_exercise` (`str | None`): Exercise to keep selected. Defaults to `None`.
         - `selected_type` (`str | None`): Exercise type to keep selected. Defaults to `None`.
+        - `defer_icons` (`bool`): Queue list icons for background decode instead of loading now.
 
         """
         if not self._validate_database_connection():
@@ -8608,7 +8610,7 @@ class MainWindow(
 
             if self.exercises_list_model is not None:
                 self.exercises_list_model.clear()
-                self._append_exercises_to_list_view(exercises)
+                self._append_exercises_to_list_view(exercises, defer_icons=defer_icons)
                 self._filter_exercises_list(self.lineEdit_exercises_filter.text())
             dashboard_selected = self._fitness_dashboard.selected_exercise() if self._fitness_dashboard else ""
             self._refresh_fitness_dashboard_exercises(
