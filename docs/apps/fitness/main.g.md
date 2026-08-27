@@ -7416,6 +7416,8 @@ class MainWindow(
         self.splitter.setStretchFactor(2, 3)  # process filters + table
         self._apply_sets_splitter_sizes()
         self._setup_fitness_dashboard_tab()
+        wrap_tab_pages_in_shrinkable_scroll(self.tabWidget)
+        self.setMinimumSize(160, 160)
 
     def _show_duplicate_exercise_if_needed(
         self,
