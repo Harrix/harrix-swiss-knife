@@ -13,6 +13,7 @@ lang: en
 
 - [🏛️ Class `ColoredTableProxyModel`](#%EF%B8%8F-class-coloredtableproxymodel)
   - [⚙️ Method `lessThan`](#%EF%B8%8F-method-lessthan)
+- [🔧 Function `append_colored_table_row`](#-function-append_colored_table_row)
 - [🔧 Function `create_colored_table_proxy_model`](#-function-create_colored_table_proxy_model)
 - [🔧 Function `create_table_proxy_model`](#-function-create_table_proxy_model)
 - [🔧 Function `next_table_sort_order`](#-function-next_table_sort_order)
@@ -73,6 +74,42 @@ def lessThan(  # noqa: N802
             if left_id is not None and right_id is not None:
                 return left_id < right_id
         return super().lessThan(source_left, source_right)
+```
+
+</details>
+
+## 🔧 Function `append_colored_table_row`
+
+```python
+def append_colored_table_row(proxy: QSortFilterProxyModel, row: Sequence[object], *, id_column: int = -2, color_column: int = -1) -> None
+```
+
+Append one colored row to an existing proxy created by [`create_colored_table_proxy_model`](#-function-create_colored_table_proxy_model).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def append_colored_table_row(
+    proxy: QSortFilterProxyModel,
+    row: Sequence[object],
+    *,
+    id_column: int = -2,
+    color_column: int = -1,
+) -> None:
+    source = proxy.sourceModel()
+    if not isinstance(source, QStandardItemModel):
+        return
+    row_list = list(row)
+    row_len = len(row_list)
+    id_idx = _normalize_column_index(id_column, row_len)
+    color_idx = _normalize_column_index(color_column, row_len)
+    row_color = row_list[color_idx]
+    row_id = row_list[id_idx]
+    display_indices = [i for i in range(row_len) if i not in {id_idx, color_idx}]
+    items = [_colored_standard_item(row_list[col_idx], row_color, row_id=row_id) for col_idx in display_indices]
+    source.appendRow(items)
+    source.setVerticalHeaderItem(source.rowCount() - 1, QStandardItem(str(row_id)))
 ```
 
 </details>

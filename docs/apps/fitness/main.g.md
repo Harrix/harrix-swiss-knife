@@ -254,6 +254,11 @@ class MainWindow(
         self._chart_update_timer = QTimer(self)
         self._chart_update_timer.setSingleShot(True)
         self._chart_update_timer.timeout.connect(self._update_chart_based_on_radio_button)
+        self._exercise_catalog_refresh_timer = QTimer(self)
+        self._exercise_catalog_refresh_timer.setSingleShot(True)
+        self._exercise_catalog_refresh_timer.timeout.connect(self._flush_exercise_catalog_refresh)
+        self._exercise_catalog_refresh_focus: str | None = None
+        self._exercise_icons_defer_decode: set[str] = set()
 
         # Initialize application
         self._init_database()
@@ -338,6 +343,9 @@ class MainWindow(
         self._exercise_add_busy = False
         self._exercise_add_after_media = None
         self._exercise_add_deferred_media = None
+        self._exercise_catalog_refresh_timer.stop()
+        self._exercise_catalog_refresh_focus = None
+        self._exercise_icons_defer_decode.clear()
         self._close_exercise_add_toast()
         self._close_exercise_media_toast()
         worker = self._exercise_media_worker
@@ -4274,6 +4282,71 @@ class MainWindow(
         for i, width in enumerate(column_widths):
             self.tableView_process.setColumnWidth(i, width)
 
+    def _append_exercise_name_to_list_view(self, exercise: str, *, load_icon: bool) -> None:
+        """Append one exercise to the Sets list when it is not already present."""
+        if self.exercises_list_model is None or not exercise:
+            return
+        if exercise in self._exercise_names_from_item_model(self.exercises_list_model):
+            return
+        name_local = self.db_manager.get_exercise_name_local(exercise) if self.db_manager else ""
+        favorite_names = self.db_manager.get_favorite_exercise_names() if self.db_manager else set()
+        display_text = format_favorite_exercise_label(
+            exercise,
+            favorite=exercise in favorite_names,
+            extra=self._get_exercise_today_goal_info(exercise),
+            dumbbell=exercise in self._cached_dumbbell_exercise_names(),
+        )
+        item = QStandardItem(display_text)
+        if load_icon:
+            icon = self._get_exercise_icon(exercise)
+            if icon is not None and not icon.isNull():
+                item.setIcon(icon)
+        item.setData(exercise, Qt.ItemDataRole.UserRole)
+        if name_local.strip():
+            item.setData(name_local.strip(), NAME_LOCAL_ROLE)
+        self.exercises_list_model.appendRow(item)
+
+    def _append_exercise_to_catalog_views(self, exercise: str) -> None:
+        """Add the new exercise name to tables and lists without decoding media."""
+        name = exercise.strip()
+        if not name or self.db_manager is None:
+            return
+        self._exercise_icons_defer_decode.add(name)
+        if self._scroll_table_to_exercise("exercises", name):
+            self._append_exercise_name_to_list_view(name, load_icon=False)
+            return
+        rows = self.db_manager.get_rows(
+            "SELECT _id, name, unit, is_type_required, calories_per_unit, IFNULL(name_local, '') "
+            "FROM exercises WHERE name = :name",
+            {"name": name},
+        )
+        if not rows:
+            return
+        row = rows[0]
+        proxy = self.models.get("exercises")
+        if proxy is not None:
+            light_green = QColor(240, 255, 240)
+            dumbbell_names = self._cached_dumbbell_exercise_names()
+            append_colored_table_row(
+                proxy,
+                [
+                    QIcon(),
+                    format_favorite_exercise_label(
+                        name,
+                        favorite=False,
+                        dumbbell=name in dumbbell_names,
+                    ),
+                    row[2],
+                    str(row[3]),
+                    f"{float(row[4] or 0):.1f}",
+                    row[5] or "",
+                    row[0],
+                    light_green,
+                ],
+            )
+        self._append_exercise_name_to_list_view(name, load_icon=False)
+        self._scroll_table_to_exercise("exercises", name)
+
     def _append_exercises_to_list_view(self, exercise_names: list[str]) -> None:
         """Append exercise items to listView_exercises model."""
         if self.exercises_list_model is None:
@@ -4987,6 +5060,18 @@ class MainWindow(
         """
         return create_table_proxy_model(data, headers, id_column=id_column)
 
+    def _decode_next_deferred_exercise_icon(self) -> None:
+        """Decode one queued exercise thumbnail, then continue on the next tick."""
+        if self._is_closing or not self._exercise_icons_defer_decode:
+            return
+        name = next(iter(self._exercise_icons_defer_decode))
+        self._exercise_icons_defer_decode.discard(name)
+        self._get_exercise_icon(name)
+        self._update_table_exercise_icons(name)
+        self._update_list_view_exercise_icon(name)
+        if self._exercise_icons_defer_decode:
+            QTimer.singleShot(0, self._decode_next_deferred_exercise_icon)
+
     @requires_database()
     def _delete_selected_process_rows(self, record_ids: list[int]) -> None:
         """Delete multiple selected rows from the process table.
@@ -5318,6 +5403,20 @@ class MainWindow(
             "SELECTED_TYPE": selected_type or "(none)",
         }
 
+    def _flush_exercise_catalog_refresh(self) -> None:
+        """Run one full catalog refresh after queued adds settle."""
+        if self._is_closing:
+            return
+        if self._exercise_add_queue or self._exercise_add_busy:
+            self._schedule_exercise_catalog_refresh()
+            return
+        focus = self._exercise_catalog_refresh_focus
+        self._exercise_catalog_refresh_focus = None
+        selected = self._get_current_selected_exercise()
+        preserve = selected if isinstance(selected, str) and selected else focus
+        self.update_all(is_preserve_selections=True, current_exercise=preserve)
+        QTimer.singleShot(0, self._decode_next_deferred_exercise_icon)
+
     def _focus_and_select_spinbox_count(self) -> None:
         """Move focus to spinBox_count and select all text.
 
@@ -5434,6 +5533,8 @@ class MainWindow(
 
         if cache_entry is not None and cache_entry[0] == mtime:
             return cache_entry[1]
+        if exercise_name in self._exercise_icons_defer_decode:
+            return None
 
         pixmap = self.avif_manager.load_avif_pixmap(avif_path) if self.avif_manager else None
         icon: QIcon | None = None
@@ -5474,34 +5575,13 @@ class MainWindow(
         return self.db_manager.get_exercise_name_by_id(exercise_id)
 
     def _get_exercise_preview_icon(self, exercise_name: str, target_size: QSize) -> QIcon | None:
-        """Create a preview-sized icon for the exercise."""
-        avif_path = self._get_exercise_avif_path(exercise_name)
-        if avif_path is None:
+        """Return a cached exercise icon scaled by Qt to `target_size`."""
+        icon = self._get_exercise_icon(exercise_name)
+        if icon is None or icon.isNull():
             return None
-
-        pixmap = self.avif_manager.load_avif_pixmap(avif_path) if self.avif_manager else None
-        if pixmap is None or pixmap.isNull():
-            return None
-
-        scaled_pixmap = pixmap.scaled(
-            target_size,
-            Qt.AspectRatioMode.KeepAspectRatio,
-            Qt.TransformationMode.SmoothTransformation,
-        )
-
-        if scaled_pixmap.isNull():
-            return None
-
-        final_pixmap = QPixmap(target_size)
-        final_pixmap.fill(Qt.GlobalColor.white)
-
-        painter = QPainter(final_pixmap)
-        x_offset = max((target_size.width() - scaled_pixmap.width()) // 2, 0)
-        y_offset = max((target_size.height() - scaled_pixmap.height()) // 2, 0)
-        painter.drawPixmap(x_offset, y_offset, scaled_pixmap)
-        painter.end()
-
-        return QIcon(final_pixmap)
+        if target_size.width() <= 0 or target_size.height() <= 0:
+            return icon
+        return icon
 
     def _get_exercise_today_goal_info(self, exercise: str) -> str:
         """Get today's goal information for an exercise.
@@ -6259,7 +6339,8 @@ class MainWindow(
         if pending_add is not None:
             name, with_dumbbells = pending_add
             self._refresh_ui_after_exercise_add(name, with_dumbbells=with_dumbbells)
-        self._refresh_exercise_media_ui(exercise_name)
+        else:
+            self._refresh_exercise_media_ui(exercise_name)
         self._close_exercise_media_toast()
         success_message = self._exercise_media_success_message
         self._exercise_media_success_message = None
@@ -6772,17 +6853,11 @@ class MainWindow(
         self._fitness_dashboard.set_exercises(items, selected=selected)
 
     def _refresh_ui_after_exercise_add(self, exercise: str, *, with_dumbbells: bool) -> None:
-        """Reload tables, scroll to the new exercise, then keep it selected."""
-        self.update_all(is_preserve_selections=True, current_exercise=exercise)
-        if with_dumbbells:
-            self._ensure_types_table_shows_exercise(exercise)
-        exercises_tab = getattr(self, "tab_2", None)
-        if exercises_tab is not None:
-            self.tabWidget.setCurrentWidget(exercises_tab)
-        self._scroll_table_to_exercise("exercises", exercise)
-        app = QApplication.instance()
-        if app is not None:
-            app.processEvents()
+        """Show the new exercise immediately, then defer a full catalog refresh."""
+        del with_dumbbells
+        self._append_exercise_to_catalog_views(exercise)
+        self._exercise_catalog_refresh_focus = exercise
+        self._schedule_exercise_catalog_refresh()
 
     def _reload_types_table(self, *, dumbbell_names: set[str] | None = None) -> None:
         """Rebuild the exercise types table from the database."""
@@ -6936,6 +7011,13 @@ class MainWindow(
             self._chart_update_timer.timeout.connect(self._update_chart_based_on_radio_button)
 
         self._chart_update_timer.start(delay_ms)
+
+    def _schedule_exercise_catalog_refresh(self) -> None:
+        """Debounce `update_all` until the add queue is idle."""
+        if self._is_closing:
+            return
+        delay_ms = 800 if self._exercise_add_queue or self._exercise_add_busy else 250
+        self._exercise_catalog_refresh_timer.start(delay_ms)
 
     def _scroll_table_to_exercise(self, table_name: str, exercise_name: str) -> bool:
         """Select and scroll to the first row for `exercise_name` in `table_name`."""
@@ -8316,6 +8398,11 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
         self._chart_update_timer = QTimer(self)
         self._chart_update_timer.setSingleShot(True)
         self._chart_update_timer.timeout.connect(self._update_chart_based_on_radio_button)
+        self._exercise_catalog_refresh_timer = QTimer(self)
+        self._exercise_catalog_refresh_timer.setSingleShot(True)
+        self._exercise_catalog_refresh_timer.timeout.connect(self._flush_exercise_catalog_refresh)
+        self._exercise_catalog_refresh_focus: str | None = None
+        self._exercise_icons_defer_decode: set[str] = set()
 
         # Initialize application
         self._init_database()
@@ -8437,6 +8524,9 @@ def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         self._exercise_add_busy = False
         self._exercise_add_after_media = None
         self._exercise_add_deferred_media = None
+        self._exercise_catalog_refresh_timer.stop()
+        self._exercise_catalog_refresh_focus = None
+        self._exercise_icons_defer_decode.clear()
         self._close_exercise_add_toast()
         self._close_exercise_media_toast()
         worker = self._exercise_media_worker

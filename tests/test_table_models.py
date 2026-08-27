@@ -8,6 +8,7 @@ from PySide6.QtGui import QColor, QIcon
 from PySide6.QtWidgets import QApplication, QTableView
 
 from harrix_swiss_knife.apps.common.table_models import (
+    append_colored_table_row,
     create_colored_table_proxy_model,
     next_table_sort_order,
     sort_table_by_header_click,
@@ -100,3 +101,18 @@ def test_sort_table_by_header_click_image_column_sorts_by_id(qapp: QApplication)
     )
     assert second == (0, Qt.SortOrder.DescendingOrder)
     assert [proxy.index(row, 1).data() for row in range(3)] == ["Zulu", "Mike", "Alpha"]
+
+
+def test_append_colored_table_row(qapp: QApplication) -> None:
+    assert qapp is not None
+    proxy = create_colored_table_proxy_model(
+        [[QIcon(), "Alpha", "1.0", 1, QColor("white")]],
+        ["", "Exercise", "Value"],
+    )
+    append_colored_table_row(
+        proxy,
+        [QIcon(), "Zulu", "2.0", 2, QColor("white")],
+    )
+    assert proxy.rowCount() == 2
+    names = {proxy.index(row, 1).data() for row in range(2)}
+    assert names == {"Alpha", "Zulu"}

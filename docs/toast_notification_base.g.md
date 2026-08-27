@@ -252,7 +252,7 @@ class ToastNotificationBase(QDialog):
 
         toasts[-1].raise_()
 
-    def set_pinned(self, pinned: bool) -> None:
+    def set_pinned(self, *, pinned: bool) -> None:
         """Switch between compact (pinned) and expanded layout."""
         if self._is_pinned == pinned:
             return
@@ -364,7 +364,7 @@ class ToastNotificationBase(QDialog):
 
     def _toggle_pinned(self) -> None:
         """Toggle between pinned compact layout and expanded centered layout."""
-        self.set_pinned(not self._is_pinned)
+        self.set_pinned(pinned=not self._is_pinned)
 
     def _trailing_controls_width(self) -> int:
         """Width reserved to the right of the collapse button for subclass controls."""
@@ -718,7 +718,7 @@ def restack_group(cls, *, pinned: bool) -> None:
 ### ⚙️ Method `set_pinned`
 
 ```python
-def set_pinned(self, pinned: bool) -> None
+def set_pinned(self, *, pinned: bool) -> None
 ```
 
 Switch between compact (pinned) and expanded layout.
@@ -727,7 +727,7 @@ Switch between compact (pinned) and expanded layout.
 <summary>Code:</summary>
 
 ```python
-def set_pinned(self, pinned: bool) -> None:
+def set_pinned(self, *, pinned: bool) -> None:
         if self._is_pinned == pinned:
             return
         self._user_moved = False
