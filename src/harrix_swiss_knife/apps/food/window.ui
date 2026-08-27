@@ -20,12 +20,6 @@
       <property name="currentIndex">
        <number>0</number>
       </property>
-      <widget class="QWidget" name="tab_food_dashboard">
-       <attribute name="title">
-        <string>Quick</string>
-       </attribute>
-       <layout class="QVBoxLayout" name="verticalLayout_food_dashboard"/>
-      </widget>
       <widget class="QWidget" name="tab_food">
        <attribute name="title">
         <string>Food</string>

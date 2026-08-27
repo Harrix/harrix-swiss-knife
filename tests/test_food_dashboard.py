@@ -60,8 +60,8 @@ def test_food_dashboard_widget_shows_actions_and_calories() -> None:
     assert calories.text() == "1840"
 
 
-def test_food_window_inserts_dashboard_as_first_tab() -> None:
-    """Dashboard is tab 0; Food, Recipes, and Statistics keep their object names."""
+def test_food_window_starts_on_food_tab() -> None:
+    """Food, Recipes, and Statistics keep their object names after Quick is removed."""
     assert _qapp() is not None
 
     class FoodUiWindow(QMainWindow, Ui_MainWindow):
@@ -70,20 +70,18 @@ def test_food_window_inserts_dashboard_as_first_tab() -> None:
     window = FoodUiWindow()
     window.setupUi(window)
     tabs = window.tabWidget
-    assert tabs.count() == 4
-    assert tabs.widget(0) is window.tab_food_dashboard
-    assert tabs.widget(1) is window.tab_food
-    assert tabs.widget(2) is window.tab_food_recipes
-    assert tabs.widget(3) is window.tab_food_stats
-    assert window.tab_food_dashboard.objectName() == "tab_food_dashboard"
+    assert tabs.count() == 3
+    assert not hasattr(window, "tab_food_dashboard")
+    assert tabs.widget(0) is window.tab_food
+    assert tabs.widget(1) is window.tab_food_recipes
+    assert tabs.widget(2) is window.tab_food_stats
     assert window.tab_food.objectName() == "tab_food"
     assert window.tab_food_recipes.objectName() == "tab_food_recipes"
     assert window.tab_food_stats.objectName() == "tab_food_stats"
-    assert tabs.tabText(0) == "Quick"
-    assert tabs.tabText(1) == "Food"
-    assert tabs.tabText(2) == "Recipes"
-    assert tabs.tabText(3) == "Food Statistics"
-    assert tabs.currentWidget() is window.tab_food_dashboard
+    assert tabs.tabText(0) == "Food"
+    assert tabs.tabText(1) == "Recipes"
+    assert tabs.tabText(2) == "Food Statistics"
+    assert tabs.currentWidget() is window.tab_food
     window.close()
 
 

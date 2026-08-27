@@ -14,6 +14,8 @@ from typing import TYPE_CHECKING, Any, Literal, cast
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+    from harrix_swiss_knife.apps.food.food_dashboard import FoodDashboardWidget
+
 import harrix_pylib as h
 from PySide6.QtCore import (
     QDate,
@@ -59,7 +61,6 @@ from harrix_swiss_knife.apps.common.db_init import init_tracker_database
 from harrix_swiss_knife.apps.common.dialogs.simple_recording_dialog import SimpleRecordingDialog
 from harrix_swiss_knife.apps.common.qt_database_manager_base import QtSqliteDatabaseManagerBase
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
-from harrix_swiss_knife.apps.common.quick_tab_startup import install_open_quick_tab_checkbox
 from harrix_swiss_knife.apps.common.scroll_pagination import ScrollPagination, on_scroll_load_more
 from harrix_swiss_knife.apps.common.table_context_menu import (
     LABEL_FILTER_BY_DATE,
@@ -91,7 +92,6 @@ from harrix_swiss_knife.apps.food.eaten_fraction import (
     ATE_TWO_THIRDS,
     scale_food_log_eaten_amounts,
 )
-from harrix_swiss_knife.apps.food.food_dashboard import FoodDashboardWidget
 from harrix_swiss_knife.apps.food.food_item_dialog import FoodItemDialog
 from harrix_swiss_knife.apps.food.food_log_calories import (
     FOOD_LOG_COL_DATE,
@@ -2294,9 +2294,6 @@ class MainWindow(
             return
 
         tab_name = current_widget.objectName()
-        if tab_name == "tab_food_dashboard":
-            self.update_food_calories_today()
-            return
         if tab_name == "tab_food":
             # Splitter/table get a real width only after the hidden tab is shown.
             QTimer.singleShot(0, self._adjust_food_log_table_columns)
@@ -2946,21 +2943,6 @@ class MainWindow(
         self.lineEdit_food_manual_name.textEdited.connect(self._on_food_name_text_edited)
         self.food_completer.activated.connect(self._on_autocomplete_selected)
 
-    def _setup_food_dashboard_tab(self) -> None:
-        """Fill the first Food tab with the quick-add dashboard."""
-        self._food_dashboard = FoodDashboardWidget(self)
-        self._food_dashboard.add_photo_requested.connect(self.on_food_dashboard_add_photo)
-        self._food_dashboard.add_voice_requested.connect(self.on_food_dashboard_add_voice)
-        self._food_dashboard.add_text_requested.connect(self.on_food_dashboard_add_text)
-        self.verticalLayout_food_dashboard.setContentsMargins(0, 0, 0, 0)
-        self.verticalLayout_food_dashboard.addWidget(self._food_dashboard, 1)
-        install_open_quick_tab_checkbox(
-            self,
-            app="food",
-            tab_layout=self.verticalLayout_food_dashboard,
-            tab_widget=self.tabWidget,
-        )
-
     def _setup_food_recipes_tab(self) -> None:
         """Fill the Recipes tab with the recipe editor widget."""
         self._recipes_widget = RecipesWidget(self)
@@ -3029,7 +3011,6 @@ class MainWindow(
         # Keep default period as "Days" for food stats
         # (but date range will be set to last month)
 
-        self._setup_food_dashboard_tab()
         self._setup_food_recipes_tab()
 
         # Keep keyboard focus on the Food tab form only while that tab is current

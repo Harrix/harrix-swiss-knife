@@ -1065,10 +1065,8 @@ class MainWindow(
             self._ui_refresh_scheduler.flush()
 
         tab_name = self._tab_object_name(index)
-        if tab_name == "tab_finance_dashboard":
-            self._refresh_summary_if_needed()
-            return
         if tab_name == "tab_transactions":
+            self._refresh_summary_if_needed()
             # Hidden tabs report a dummy width; apply sizes after Transactions is shown.
             QTimer.singleShot(0, self._setup_transactions_table_column_widths)
             QTimer.singleShot(50, self._setup_transactions_table_column_widths)
@@ -5053,21 +5051,6 @@ class MainWindow(
         self.lineEdit_description.textEdited.connect(self._on_description_text_edited)
         self.description_completer.activated.connect(self._on_autocomplete_selected)
 
-    def _setup_finance_dashboard_tab(self) -> None:
-        """Fill the first Finance tab with the quick-add dashboard."""
-        self._finance_dashboard = FinanceDashboardWidget(self)
-        self._finance_dashboard.add_photo_requested.connect(self.on_finance_dashboard_add_photo)
-        self._finance_dashboard.add_voice_requested.connect(self.on_finance_dashboard_add_voice)
-        self._finance_dashboard.add_text_requested.connect(self.on_finance_dashboard_add_text)
-        self.verticalLayout_finance_dashboard.setContentsMargins(0, 0, 0, 0)
-        self.verticalLayout_finance_dashboard.addWidget(self._finance_dashboard, 1)
-        install_open_quick_tab_checkbox(
-            self,
-            app="finance",
-            tab_layout=self.verticalLayout_finance_dashboard,
-            tab_widget=self.tabWidget,
-        )
-
     def _setup_status_bar(self) -> None:
         """Ensure status bar is visible and readable on Windows 11 Mica backdrop."""
         status_bar = self.statusBar()
@@ -5179,8 +5162,6 @@ class MainWindow(
         self.label_total_expenses.setWordWrap(True)
         self.label_today_expense.setWordWrap(True)
         self.label_yesterday_expense.setWordWrap(True)
-        self._setup_finance_dashboard_tab()
-
         # Set emoji for exchange rate buttons
         self.pushButton_exchange_update.setText(f"🔄 {self.pushButton_exchange_update.text()}")
         self.pushButton_rates_delete.setText(f"🗑️ {self.pushButton_rates_delete.text()}")
@@ -7637,10 +7618,8 @@ def on_tab_changed(self, index: int) -> None:
             self._ui_refresh_scheduler.flush()
 
         tab_name = self._tab_object_name(index)
-        if tab_name == "tab_finance_dashboard":
-            self._refresh_summary_if_needed()
-            return
         if tab_name == "tab_transactions":
+            self._refresh_summary_if_needed()
             # Hidden tabs report a dummy width; apply sizes after Transactions is shown.
             QTimer.singleShot(0, self._setup_transactions_table_column_widths)
             QTimer.singleShot(50, self._setup_transactions_table_column_widths)

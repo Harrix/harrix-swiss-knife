@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from harrix_swiss_knife import action_usage
 from harrix_swiss_knife.action_usage import (
     RECENT_GUI_ACTIONS_LIMIT,
     RECENT_GUI_EXCLUDED_CLASS_NAMES,
@@ -14,6 +15,8 @@ from harrix_swiss_knife.action_usage import (
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    import pytest
 
 
 def test_record_action_usage_gui_sets_last_used_gui(tmp_path: Path) -> None:
@@ -134,3 +137,43 @@ def test_list_recent_gui_action_names_skips_excluded_exit(tmp_path: Path) -> Non
 
     assert "OnExit" in RECENT_GUI_EXCLUDED_CLASS_NAMES
     assert list_recent_gui_action_names(path=path, limit=2) == ["OnFinance", "OnFood"]
+
+
+def test_record_action_usage_retries_replace_on_permission_error(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    path = tmp_path / "action_usage.json"
+    calls = {"n": 0}
+    real_replace = action_usage.Path.replace
+
+    def flaky_replace(self: Path, target: Path) -> Path:
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise PermissionError(5, "Access is denied")
+        return real_replace(self, target)
+
+    monkeypatch.setattr(action_usage, "_REPLACE_RETRY_DELAYS_S", (0.0,))
+    monkeypatch.setattr(action_usage.Path, "replace", flaky_replace)
+
+    record_action_usage("OnExit", via_cli=False, path=path)
+
+    assert calls["n"] == 2
+    assert load_action_usage(path)["OnExit"]["count"] == 1
+
+
+def test_record_action_usage_overwrites_when_replace_stays_denied(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    path = tmp_path / "action_usage.json"
+
+    def deny_replace(_self: Path, _target: Path) -> Path:
+        raise PermissionError(5, "Access is denied")
+
+    monkeypatch.setattr(action_usage, "_REPLACE_RETRY_DELAYS_S", ())
+    monkeypatch.setattr(action_usage.Path, "replace", deny_replace)
+
+    record_action_usage("OnExit", via_cli=False, path=path)
+
+    assert load_action_usage(path)["OnExit"]["count"] == 1

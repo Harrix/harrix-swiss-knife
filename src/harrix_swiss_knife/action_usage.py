@@ -4,18 +4,20 @@ from __future__ import annotations
 
 import json
 import logging
+import os
+import tempfile
 import threading
+import time
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Any, TypedDict
+from pathlib import Path
+from typing import Any, TypedDict
 
 from harrix_swiss_knife.paths import get_action_usage_path
-
-if TYPE_CHECKING:
-    from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
 _lock = threading.Lock()
+_REPLACE_RETRY_DELAYS_S: tuple[float, ...] = (0.05, 0.1, 0.2, 0.4, 0.8)
 
 RECENT_GUI_ACTIONS_LIMIT = 6
 RECENT_GUI_EXCLUDED_CLASS_NAMES = frozenset({"OnExit"})
@@ -158,13 +160,47 @@ def _parse_usage_timestamp(value: str) -> datetime:
     return parsed
 
 
+def _replace_or_overwrite(tmp_path: Path, path: Path, payload: str) -> None:
+    """Replace `path` with `tmp_path`, retrying Windows lock errors.
+
+    `Path.replace` on Windows raises `[WinError 5] Access is denied` when the
+    destination is briefly locked (another instance, indexer). Retry, then
+    overwrite in place.
+
+    """
+    last_error: OSError | None = None
+    for delay in (0.0, *_REPLACE_RETRY_DELAYS_S):
+        if delay:
+            time.sleep(delay)
+        try:
+            tmp_path.replace(path)
+        except OSError as exc:
+            last_error = exc
+        else:
+            return
+    try:
+        path.write_text(payload, encoding="utf8")
+    except OSError as exc:
+        raise last_error or exc from exc
+    finally:
+        tmp_path.unlink(missing_ok=True)
+
+
 def _write_atomic(path: Path, data: ActionUsageMap) -> None:
-    """Write JSON via a sibling temp file then replace."""
+    """Write JSON via a unique sibling temp file then replace."""
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = json.dumps(data, ensure_ascii=False, indent=2) + "\n"
-    tmp_path = path.with_suffix(path.suffix + ".tmp")
-    tmp_path.write_text(payload, encoding="utf8")
-    tmp_path.replace(path)
+    fd, tmp_name = tempfile.mkstemp(prefix=f"{path.stem}.", suffix=".tmp", dir=path.parent)
+    tmp_path = Path(tmp_name)
+    try:
+        with os.fdopen(fd, "w", encoding="utf8") as handle:
+            handle.write(payload)
+            handle.flush()
+            os.fsync(handle.fileno())
+        _replace_or_overwrite(tmp_path, path, payload)
+    except Exception:
+        tmp_path.unlink(missing_ok=True)
+        raise
 
 
 ActionUsageMap = dict[str, ActionUsageEntry]

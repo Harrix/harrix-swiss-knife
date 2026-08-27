@@ -105,8 +105,8 @@ def test_fitness_dashboard_widget_lists_exercises_and_adds_value() -> None:
     assert local_font.weight() == QFont.Weight.Normal
 
 
-def test_fitness_window_inserts_dashboard_as_first_tab() -> None:
-    """Dashboard is tab 0; later tabs keep their object names."""
+def test_fitness_window_starts_on_sets_tab() -> None:
+    """Sets is first; later tabs keep their object names after Quick is removed."""
     assert _qapp() is not None
 
     class FitnessUiWindow(QMainWindow, Ui_MainWindow):
@@ -115,17 +115,15 @@ def test_fitness_window_inserts_dashboard_as_first_tab() -> None:
     window = FitnessUiWindow()
     window.setupUi(window)
     tabs = window.tabWidget
-    assert tabs.widget(0) is window.tab_fitness_dashboard
-    assert tabs.widget(1) is window.tab
-    assert tabs.widget(2) is window.tab_workouts
-    assert window.tab_fitness_dashboard.objectName() == "tab_fitness_dashboard"
+    assert not hasattr(window, "tab_fitness_dashboard")
+    assert tabs.widget(0) is window.tab
+    assert tabs.widget(1) is window.tab_workouts
     assert window.tab.objectName() == "tab"
     assert window.tab_workouts.objectName() == "tab_workouts"
     assert window.tab_charts.objectName() == "tab_charts"
     assert window.tab_5.objectName() == "tab_5"
     assert window.tab_4.objectName() == "tab_4"
-    assert tabs.tabText(0) == "Quick"
-    assert tabs.tabText(1) == "Sets"
-    assert tabs.tabText(2) == "Workouts"
-    assert tabs.currentWidget() is window.tab_fitness_dashboard
+    assert tabs.tabText(0) == "Sets"
+    assert tabs.tabText(1) == "Workouts"
+    assert tabs.currentWidget() is window.tab
     window.close()

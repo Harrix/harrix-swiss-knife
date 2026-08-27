@@ -2190,9 +2190,6 @@ class MainWindow(
             return
 
         tab_name = current_widget.objectName()
-        if tab_name == "tab_food_dashboard":
-            self.update_food_calories_today()
-            return
         if tab_name == "tab_food":
             # Splitter/table get a real width only after the hidden tab is shown.
             QTimer.singleShot(0, self._adjust_food_log_table_columns)
@@ -2842,21 +2839,6 @@ class MainWindow(
         self.lineEdit_food_manual_name.textEdited.connect(self._on_food_name_text_edited)
         self.food_completer.activated.connect(self._on_autocomplete_selected)
 
-    def _setup_food_dashboard_tab(self) -> None:
-        """Fill the first Food tab with the quick-add dashboard."""
-        self._food_dashboard = FoodDashboardWidget(self)
-        self._food_dashboard.add_photo_requested.connect(self.on_food_dashboard_add_photo)
-        self._food_dashboard.add_voice_requested.connect(self.on_food_dashboard_add_voice)
-        self._food_dashboard.add_text_requested.connect(self.on_food_dashboard_add_text)
-        self.verticalLayout_food_dashboard.setContentsMargins(0, 0, 0, 0)
-        self.verticalLayout_food_dashboard.addWidget(self._food_dashboard, 1)
-        install_open_quick_tab_checkbox(
-            self,
-            app="food",
-            tab_layout=self.verticalLayout_food_dashboard,
-            tab_widget=self.tabWidget,
-        )
-
     def _setup_food_recipes_tab(self) -> None:
         """Fill the Recipes tab with the recipe editor widget."""
         self._recipes_widget = RecipesWidget(self)
@@ -2925,7 +2907,6 @@ class MainWindow(
         # Keep default period as "Days" for food stats
         # (but date range will be set to last month)
 
-        self._setup_food_dashboard_tab()
         self._setup_food_recipes_tab()
 
         # Keep keyboard focus on the Food tab form only while that tab is current

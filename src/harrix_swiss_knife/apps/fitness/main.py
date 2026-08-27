@@ -15,7 +15,10 @@ from collections import defaultdict
 from datetime import UTC, datetime, timedelta
 from functools import partial
 from pathlib import Path
-from typing import Any, Literal, cast
+from typing import TYPE_CHECKING, Any, Literal, cast
+
+if TYPE_CHECKING:
+    from harrix_swiss_knife.apps.fitness.fitness_dashboard import FitnessDashboardWidget
 
 import harrix_pylib as h
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
@@ -108,7 +111,6 @@ from harrix_swiss_knife.apps.common.exercise_media import (
     is_exercise_media_path,
 )
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
-from harrix_swiss_knife.apps.common.quick_tab_startup import install_open_quick_tab_checkbox
 from harrix_swiss_knife.apps.common.scroll_pagination import ScrollPagination, on_scroll_load_more
 from harrix_swiss_knife.apps.common.table_context_menu import (
     LABEL_ADD_DUMBBELL_WEIGHT_TYPES,
@@ -177,10 +179,7 @@ from harrix_swiss_knife.apps.fitness.exercise_media_worker import (
     StaticThumbnailRebuildWorker,
 )
 from harrix_swiss_knife.apps.fitness.exercise_type_add_dialog import ExerciseTypeAddDialog
-from harrix_swiss_knife.apps.fitness.fitness_dashboard import (
-    FitnessDashboardExercise,
-    FitnessDashboardWidget,
-)
+from harrix_swiss_knife.apps.fitness.fitness_dashboard import FitnessDashboardExercise
 from harrix_swiss_knife.apps.fitness.fitness_lightbox import FitnessExerciseLightboxDialog
 from harrix_swiss_knife.apps.fitness.lightbox_logic import (
     FitnessLightboxConfirm,
@@ -4880,7 +4879,7 @@ class MainWindow(
                 self.update_filter_comboboxes()
                 self.update_sets_count_today()
                 self.on_exercise_selection_changed_list()
-                if self.tabWidget.currentWidget() is self.tab_fitness_dashboard and self._fitness_dashboard is not None:
+                if self._fitness_dashboard is not None:
                     QTimer.singleShot(0, self._fitness_dashboard.focus_value)
             else:
                 message_box.warning(self, "Error", "Failed to add process record")
@@ -6358,20 +6357,10 @@ class MainWindow(
             return f"{entry.name}: failed to add process record"
         return None
 
-    def _is_quick_tab_current(self) -> bool:
-        """Return whether the Quick dashboard tab is visible."""
-        tab = getattr(self, "tabWidget", None)
-        dashboard_tab = getattr(self, "tab_fitness_dashboard", None)
-        return tab is not None and dashboard_tab is not None and tab.currentWidget() is dashboard_tab
-
     def _lightbox_source_model(self, list_view: QListView | None) -> QStandardItemModel | None:
         """Return the list model that should drive lightbox navigation."""
         if list_view is not None:
             model = list_view.model()
-            return model if isinstance(model, QStandardItemModel) else None
-        dashboard = self._fitness_dashboard
-        if self._is_quick_tab_current() and dashboard is not None:
-            model = dashboard.exercise_list.model()
             return model if isinstance(model, QStandardItemModel) else None
         return self.exercises_list_model
 
@@ -6498,8 +6487,6 @@ class MainWindow(
         elif ex_id == self.id_steps:
             self._fitness_dashboard.set_value(0)
         self._fitness_dashboard.set_types(types, selected=last_type)
-        if self.tabWidget.currentWidget() is self.tab_fitness_dashboard:
-            QTimer.singleShot(0, self._fitness_dashboard.focus_value)
 
     def _load_initial_avifs(self) -> None:
         """Load AVIF for all labels after complete UI initialization."""
@@ -6623,7 +6610,6 @@ class MainWindow(
         - `_index` (`QModelIndex`): Index of the double-clicked item.
 
         """
-        # Find the Sets tab index (first tab with name "Sets")
         sets_tab_index = self.tabWidget.indexOf(self.tab)
         if sets_tab_index >= 0:
             self.tabWidget.setCurrentIndex(sets_tab_index)
@@ -7501,11 +7487,6 @@ class MainWindow(
 
     def _resolve_selected_exercise_for_lightbox(self) -> str | None:
         """Return the exercise selected on the current tab, if any."""
-        dashboard = self._fitness_dashboard
-        if self._is_quick_tab_current() and dashboard is not None:
-            name = dashboard.selected_exercise()
-            if name:
-                return name
         return self._get_current_selected_exercise()
 
     def _resolve_statistics_avif_exercise(self) -> str | None:
@@ -7927,28 +7908,6 @@ class MainWindow(
             filter_path=is_exercise_media_path,
         )
 
-    def _setup_fitness_dashboard_tab(self) -> None:
-        """Fill the first Fitness tab with the quick-add dashboard."""
-        self._fitness_dashboard = FitnessDashboardWidget(self)
-        self._fitness_dashboard.add_requested.connect(self.on_fitness_dashboard_add)
-        self._fitness_dashboard.add_text_requested.connect(self.on_fitness_dashboard_add_text)
-        self._fitness_dashboard.add_voice_requested.connect(self.on_fitness_dashboard_add_voice)
-        self._fitness_dashboard.exercise_changed.connect(self.on_fitness_dashboard_exercise_changed)
-        self._fitness_dashboard.exercise_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self._fitness_dashboard.exercise_list.customContextMenuRequested.connect(
-            partial(self._show_exercise_list_favorite_menu, self._fitness_dashboard.exercise_list)
-        )
-        self._fitness_dashboard.exercise_list.viewport().installEventFilter(self)
-        self.verticalLayout_fitness_dashboard.setContentsMargins(0, 0, 0, 0)
-        self.verticalLayout_fitness_dashboard.addWidget(self._fitness_dashboard, 1)
-        self._attach_fitness_dashboard_hover()
-        install_open_quick_tab_checkbox(
-            self,
-            app="fitness",
-            tab_layout=self.verticalLayout_fitness_dashboard,
-            tab_widget=self.tabWidget,
-        )
-
     def _setup_open_exercise_images_action(self) -> None:
         """Add File → Open exercise images folder next to the database action."""
         menu_file = getattr(self, "menuFile", None)
@@ -8049,7 +8008,6 @@ class MainWindow(
         self.splitter.setStretchFactor(1, 2)  # exercise list
         self.splitter.setStretchFactor(2, 3)  # process filters + table
         self._apply_sets_splitter_sizes()
-        self._setup_fitness_dashboard_tab()
         self._setup_workouts_tab()
         install_shrinkable_tab_scroll(self, self.tabWidget)
 

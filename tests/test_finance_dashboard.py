@@ -94,8 +94,8 @@ def test_apply_transactions_table_column_widths_skips_hidden_view() -> None:
     view.close()
 
 
-def test_finance_window_inserts_dashboard_as_first_tab() -> None:
-    """Dashboard is tab 0; later tabs keep their object names."""
+def test_finance_window_starts_on_transactions_tab() -> None:
+    """Transactions is first; later tabs keep their object names after Quick is removed."""
     assert _qapp() is not None
 
     class FinanceUiWindow(QMainWindow, Ui_MainWindow):
@@ -104,9 +104,8 @@ def test_finance_window_inserts_dashboard_as_first_tab() -> None:
     window = FinanceUiWindow()
     window.setupUi(window)
     tabs = window.tabWidget
-    assert tabs.widget(0) is window.tab_finance_dashboard
-    assert tabs.widget(1) is window.tab_transactions
-    assert window.tab_finance_dashboard.objectName() == "tab_finance_dashboard"
+    assert not hasattr(window, "tab_finance_dashboard")
+    assert tabs.widget(0) is window.tab_transactions
     assert window.tab_transactions.objectName() == "tab_transactions"
     assert not hasattr(window, "tab_categories")
     assert window.action_categories.text() == "Categories"
@@ -114,9 +113,8 @@ def test_finance_window_inserts_dashboard_as_first_tab() -> None:
     assert window.tab_exchange_rates.objectName() == "tab_exchange_rates"
     assert window.tab_charts.objectName() == "tab_charts"
     assert window.tab_reports.objectName() == "tab_reports"
-    assert tabs.tabText(0) == "Quick"
-    assert tabs.tabText(1) == "Transactions"
-    assert tabs.currentWidget() is window.tab_finance_dashboard
+    assert tabs.tabText(0) == "Transactions"
+    assert tabs.currentWidget() is window.tab_transactions
     window.close()
 
 
