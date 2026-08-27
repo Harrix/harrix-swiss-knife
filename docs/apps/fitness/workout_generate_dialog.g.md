@@ -32,24 +32,39 @@ Collect athlete gender and planned duration.
 ```python
 class WorkoutGenerateDialog(QDialog):
 
-    def __init__(self, parent: QWidget | None = None) -> None:
-        """Build the form with male/female and duration in minutes."""
+    def __init__(
+        self,
+        parent: QWidget | None = None,
+        *,
+        show_gender: bool = True,
+        initial_gender: str | None = None,
+    ) -> None:
+        """Build the form with optional male/female choice and duration in minutes."""
         super().__init__(parent)
         self.setWindowTitle("New workout")
         qt_modality.set_owner_window_modal(self)
         self.setMinimumWidth(360)
+        self._fixed_gender: str | None = None
+        if not show_gender:
+            normalized = str(initial_gender or "").strip().lower()
+            self._fixed_gender = normalized if normalized in {"male", "female"} else "male"
 
         layout = QVBoxLayout(self)
         form = QFormLayout()
         self.radio_male = QRadioButton("Male")
         self.radio_female = QRadioButton("Female")
-        self.radio_male.setChecked(True)
-        gender = QWidget()
-        gender_layout = QVBoxLayout(gender)
-        gender_layout.setContentsMargins(0, 0, 0, 0)
-        gender_layout.addWidget(self.radio_male)
-        gender_layout.addWidget(self.radio_female)
-        form.addRow("Gender:", gender)
+        if show_gender:
+            preselect = str(initial_gender or "").strip().lower()
+            if preselect == "female":
+                self.radio_female.setChecked(True)
+            else:
+                self.radio_male.setChecked(True)
+            gender = QWidget()
+            gender_layout = QVBoxLayout(gender)
+            gender_layout.setContentsMargins(0, 0, 0, 0)
+            gender_layout.addWidget(self.radio_male)
+            gender_layout.addWidget(self.radio_female)
+            form.addRow("Gender:", gender)
 
         self.spin_duration = QSpinBox()
         self.spin_duration.setRange(10, 240)
@@ -73,6 +88,8 @@ class WorkoutGenerateDialog(QDialog):
 
     def gender(self) -> str:
         """Return `male` or `female`."""
+        if self._fixed_gender is not None:
+            return self._fixed_gender
         return "female" if self.radio_female.isChecked() else "male"
 ```
 
@@ -81,32 +98,47 @@ class WorkoutGenerateDialog(QDialog):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None = None) -> None
+def __init__(self, parent: QWidget | None = None, *, show_gender: bool = True, initial_gender: str | None = None) -> None
 ```
 
-Build the form with male/female and duration in minutes.
+Build the form with optional male/female choice and duration in minutes.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def __init__(self, parent: QWidget | None = None) -> None:
+def __init__(
+        self,
+        parent: QWidget | None = None,
+        *,
+        show_gender: bool = True,
+        initial_gender: str | None = None,
+    ) -> None:
         super().__init__(parent)
         self.setWindowTitle("New workout")
         qt_modality.set_owner_window_modal(self)
         self.setMinimumWidth(360)
+        self._fixed_gender: str | None = None
+        if not show_gender:
+            normalized = str(initial_gender or "").strip().lower()
+            self._fixed_gender = normalized if normalized in {"male", "female"} else "male"
 
         layout = QVBoxLayout(self)
         form = QFormLayout()
         self.radio_male = QRadioButton("Male")
         self.radio_female = QRadioButton("Female")
-        self.radio_male.setChecked(True)
-        gender = QWidget()
-        gender_layout = QVBoxLayout(gender)
-        gender_layout.setContentsMargins(0, 0, 0, 0)
-        gender_layout.addWidget(self.radio_male)
-        gender_layout.addWidget(self.radio_female)
-        form.addRow("Gender:", gender)
+        if show_gender:
+            preselect = str(initial_gender or "").strip().lower()
+            if preselect == "female":
+                self.radio_female.setChecked(True)
+            else:
+                self.radio_male.setChecked(True)
+            gender = QWidget()
+            gender_layout = QVBoxLayout(gender)
+            gender_layout.setContentsMargins(0, 0, 0, 0)
+            gender_layout.addWidget(self.radio_male)
+            gender_layout.addWidget(self.radio_female)
+            form.addRow("Gender:", gender)
 
         self.spin_duration = QSpinBox()
         self.spin_duration.setRange(10, 240)
@@ -158,6 +190,8 @@ Return `male` or `female`.
 
 ```python
 def gender(self) -> str:
+        if self._fixed_gender is not None:
+            return self._fixed_gender
         return "female" if self.radio_female.isChecked() else "male"
 ```
 

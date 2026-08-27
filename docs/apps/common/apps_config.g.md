@@ -15,12 +15,14 @@ lang: en
 - [🔧 Function `get_apps_fitness_image_max_size`](#-function-get_apps_fitness_image_max_size)
 - [🔧 Function `get_apps_fitness_image_min_max_size`](#-function-get_apps_fitness_image_min_max_size)
 - [🔧 Function `get_apps_fitness_lightbox_countdown_seconds`](#-function-get_apps_fitness_lightbox_countdown_seconds)
+- [🔧 Function `get_apps_fitness_workout_gender`](#-function-get_apps_fitness_workout_gender)
 - [🔧 Function `get_apps_fitness_workout_history_count`](#-function-get_apps_fitness_workout_history_count)
 - [🔧 Function `get_apps_list_limits`](#-function-get_apps_list_limits)
 - [🔧 Function `get_apps_local_language`](#-function-get_apps_local_language)
 - [🔧 Function `get_apps_local_language_display_name`](#-function-get_apps_local_language_display_name)
 - [🔧 Function `get_open_quick_tab_on_startup`](#-function-get_open_quick_tab_on_startup)
 - [🔧 Function `open_quick_tab_on_startup_key`](#-function-open_quick_tab_on_startup_key)
+- [🔧 Function `set_apps_fitness_workout_gender`](#-function-set_apps_fitness_workout_gender)
 - [🔧 Function `set_open_quick_tab_on_startup`](#-function-set_open_quick_tab_on_startup)
 - [🔧 Function `startup_tab_index`](#-function-startup_tab_index)
 
@@ -125,6 +127,31 @@ def get_apps_fitness_lightbox_countdown_seconds(config: dict[str, Any]) -> int:
         return max(int(raw), 0)
     except (TypeError, ValueError):
         return DEFAULT_FITNESS_LIGHTBOX_COUNTDOWN_SECONDS
+```
+
+</details>
+
+## 🔧 Function `get_apps_fitness_workout_gender`
+
+```python
+def get_apps_fitness_workout_gender(config: dict[str, Any]) -> str | None
+```
+
+Return stored workout gender from `apps.fitness_workout_gender`.
+
+Returns `male`, `female`, or `None` when the user has not chosen yet.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_apps_fitness_workout_gender(config: dict[str, Any]) -> str | None:
+    apps = config.get("apps") or {}
+    raw = apps.get(FITNESS_WORKOUT_GENDER_KEY)
+    gender = str(raw or "").strip().lower()
+    if gender in _VALID_FITNESS_WORKOUT_GENDERS:
+        return gender
+    return None
 ```
 
 </details>
@@ -267,6 +294,55 @@ def open_quick_tab_on_startup_key(app: QuickTabAppName) -> str:
         msg = f"Unknown Quick-tab app: {app}"
         raise ValueError(msg)
     return f"{OPEN_QUICK_TAB_ON_STARTUP_KEY_PREFIX}{app}"
+```
+
+</details>
+
+## 🔧 Function `set_apps_fitness_workout_gender`
+
+```python
+def set_apps_fitness_workout_gender(gender: str, *, config: dict[str, Any] | None = None, config_path: str | None = None) -> None
+```
+
+Write workout gender (`male` or `female`) into `config.json`.
+
+Args:
+
+- [`gender`](../fitness/workout_generate_dialog.g.md#%EF%B8%8F-method-gender) (`str`): Athlete gender for AI workout generation.
+- [`config`](../../actions/common/base.g.md#%EF%B8%8F-method-config-property) (`dict[str, Any] | None`): Optional in-memory config to keep in sync.
+- `config_path` (`str | None`): Config file path. Defaults to the project config.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_apps_fitness_workout_gender(
+    gender: str,
+    *,
+    config: dict[str, Any] | None = None,
+    config_path: str | None = None,
+) -> None:
+    normalized = str(gender or "").strip().lower()
+    if normalized not in _VALID_FITNESS_WORKOUT_GENDERS:
+        msg = f"Workout gender must be one of: {', '.join(sorted(_VALID_FITNESS_WORKOUT_GENDERS))}"
+        raise ValueError(msg)
+
+    path = Path(config_path or get_config_path_str())
+    with path.open(encoding="utf-8") as handle:
+        data = json.load(handle)
+    if not isinstance(data, dict):
+        msg = f"Config root must be a JSON object: {path}"
+        raise TypeError(msg)
+    apps = data.get("apps")
+    if not isinstance(apps, dict):
+        apps = {}
+        data["apps"] = apps
+    apps[FITNESS_WORKOUT_GENDER_KEY] = normalized
+    path.write_text(h.dev.dumps_pretty_json(data), encoding="utf-8")
+    if config is not None:
+        live_apps = config.setdefault("apps", {})
+        if isinstance(live_apps, dict):
+            live_apps[FITNESS_WORKOUT_GENDER_KEY] = normalized
 ```
 
 </details>

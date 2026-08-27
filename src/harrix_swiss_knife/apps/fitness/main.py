@@ -81,8 +81,10 @@ from harrix_swiss_knife.apps.common.apps_config import (
     get_apps_fitness_image_max_size,
     get_apps_fitness_image_min_max_size,
     get_apps_fitness_lightbox_countdown_seconds,
+    get_apps_fitness_workout_gender,
     get_apps_fitness_workout_history_count,
     get_apps_list_limits,
+    set_apps_fitness_workout_gender,
 )
 from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
 from harrix_swiss_knife.apps.common.date_edit_quick import attach_date_edit_quick_controls
@@ -6744,14 +6746,24 @@ class MainWindow(
         self.apply_filter()
 
     def _on_workout_generate_requested(self) -> None:
-        """Ask for gender and duration, then generate a workout with BotHub."""
+        """Ask for gender (once) and duration, then generate a workout with BotHub."""
         if self.db_manager is None or not self._validate_database_connection():
             message_box.warning(self, "Error", "Database connection not available")
             return
-        dialog = WorkoutGenerateDialog(self)
+        stored_gender = get_apps_fitness_workout_gender(self._app_config)
+        dialog = WorkoutGenerateDialog(
+            self,
+            show_gender=stored_gender is None,
+            initial_gender=stored_gender,
+        )
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return
         gender = dialog.gender()
+        if stored_gender is None:
+            try:
+                set_apps_fitness_workout_gender(gender, config=self._app_config)
+            except (OSError, TypeError, ValueError) as exc:
+                logger.warning("Could not save fitness workout gender to config: %s", exc)
         duration_min = dialog.duration_min()
         try:
             prompt_text = build_prompt(
