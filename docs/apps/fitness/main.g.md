@@ -2968,16 +2968,15 @@ class MainWindow(
 
             # Configure exercises table header - image + interactive + stretch last
             if self._exercises_catalog_loaded:
-                self._configure_exercise_image_table(self.tableView_exercises)
-                exercises_header = self.tableView_exercises.horizontalHeader()
-                for i in range(1, exercises_header.count() - 1):
-                    exercises_header.setSectionResizeMode(i, exercises_header.ResizeMode.Interactive)
-                exercises_header.setSectionResizeMode(exercises_header.count() - 1, exercises_header.ResizeMode.Stretch)
-                self.tableView_exercises.setColumnWidth(1, 200)  # Exercise name
-                self.tableView_exercises.setColumnWidth(2, 120)  # Unit
-                self.tableView_exercises.setColumnWidth(_EXERCISE_TABLE_TYPE_REQUIRED_COLUMN, 100)  # Type Required
-                self.tableView_exercises.setColumnWidth(4, 120)  # Calories per Unit
-
+                self._apply_exercise_image_table_stretch_layout(
+                    self.tableView_exercises,
+                    {
+                        1: 200,
+                        2: 120,
+                        _EXERCISE_TABLE_TYPE_REQUIRED_COLUMN: 100,
+                        4: 120,
+                    },
+                )
                 self._apply_stored_exercise_table_sort("exercises")
 
             # Connect selection change signals after models are set
@@ -4417,6 +4416,23 @@ class MainWindow(
             ):
                 return False
         return True
+
+    def _apply_exercise_image_table_stretch_layout(
+        self,
+        table_view: QTableView,
+        column_widths: dict[int, int],
+    ) -> None:
+        """Size the image column, keep middle columns interactive, stretch the last."""
+        self._configure_exercise_image_table(table_view)
+        header = table_view.horizontalHeader()
+        last_column = header.count() - 1
+        if last_column < 1:
+            return
+        for i in range(1, last_column):
+            header.setSectionResizeMode(i, header.ResizeMode.Interactive)
+        header.setSectionResizeMode(last_column, header.ResizeMode.Stretch)
+        for column, width in column_widths.items():
+            table_view.setColumnWidth(column, width)
 
     def _apply_sets_splitter_sizes(self) -> None:
         """Restore Sets-tab splitter widths so the exercise list is not squeezed."""
@@ -7087,6 +7103,16 @@ class MainWindow(
         )
         self.tableView_exercises.setModel(self.models["exercises"])
         self.tableView_exercises.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self._apply_exercise_image_table_stretch_layout(
+            self.tableView_exercises,
+            {
+                1: 200,
+                2: 120,
+                _EXERCISE_TABLE_TYPE_REQUIRED_COLUMN: 100,
+                4: 120,
+            },
+        )
+        self._apply_stored_exercise_table_sort("exercises")
         self._reload_types_table(dumbbell_names=dumbbell_names)
 
     def _process_filter_is_active(self) -> bool:
@@ -7282,16 +7308,14 @@ class MainWindow(
         self.models["types"] = self._create_colored_table_model(types_transformed_data, self.table_config["types"][2])
         self.tableView_exercise_types.setModel(self.models["types"])
         self.tableView_exercise_types.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        self._configure_exercise_image_table(self.tableView_exercise_types)
-        exercise_types_header = self.tableView_exercise_types.horizontalHeader()
-        for i in range(1, exercise_types_header.count() - 1):
-            exercise_types_header.setSectionResizeMode(i, exercise_types_header.ResizeMode.Interactive)
-        exercise_types_header.setSectionResizeMode(
-            exercise_types_header.count() - 1, exercise_types_header.ResizeMode.Stretch
+        self._apply_exercise_image_table_stretch_layout(
+            self.tableView_exercise_types,
+            {
+                1: 200,
+                2: 150,
+                3: 120,
+            },
         )
-        self.tableView_exercise_types.setColumnWidth(1, 200)
-        self.tableView_exercise_types.setColumnWidth(2, 150)
-        self.tableView_exercise_types.setColumnWidth(3, 120)
         self._apply_stored_exercise_table_sort("types")
         self._connect_table_auto_save_signal("types")
 
@@ -12336,16 +12360,15 @@ def show_tables(self) -> None:
 
             # Configure exercises table header - image + interactive + stretch last
             if self._exercises_catalog_loaded:
-                self._configure_exercise_image_table(self.tableView_exercises)
-                exercises_header = self.tableView_exercises.horizontalHeader()
-                for i in range(1, exercises_header.count() - 1):
-                    exercises_header.setSectionResizeMode(i, exercises_header.ResizeMode.Interactive)
-                exercises_header.setSectionResizeMode(exercises_header.count() - 1, exercises_header.ResizeMode.Stretch)
-                self.tableView_exercises.setColumnWidth(1, 200)  # Exercise name
-                self.tableView_exercises.setColumnWidth(2, 120)  # Unit
-                self.tableView_exercises.setColumnWidth(_EXERCISE_TABLE_TYPE_REQUIRED_COLUMN, 100)  # Type Required
-                self.tableView_exercises.setColumnWidth(4, 120)  # Calories per Unit
-
+                self._apply_exercise_image_table_stretch_layout(
+                    self.tableView_exercises,
+                    {
+                        1: 200,
+                        2: 120,
+                        _EXERCISE_TABLE_TYPE_REQUIRED_COLUMN: 100,
+                        4: 120,
+                    },
+                )
                 self._apply_stored_exercise_table_sort("exercises")
 
             # Connect selection change signals after models are set
