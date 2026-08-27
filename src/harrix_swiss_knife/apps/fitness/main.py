@@ -406,7 +406,6 @@ class MainWindow(
         self._exercise_catalog_refresh_focus: str | None = None
         self._exercise_icons_defer_decode: set[str] = set()
         self._exercises_catalog_loaded = False
-        self._defer_list_exercise_icons = True
 
         # Initialize application
         self._init_database()
@@ -3154,19 +3153,13 @@ class MainWindow(
 
         self.show_tables()
 
-        defer_list_icons = self._defer_list_exercise_icons
         if is_preserve_selections and current_exercise:
             self._update_comboboxes(
                 selected_exercise=current_exercise,
                 selected_type=current_type,
-                defer_icons=defer_list_icons,
             )
         else:
-            self._update_comboboxes(defer_icons=defer_list_icons)
-        if defer_list_icons:
-            self._defer_list_exercise_icons = False
-            if self._exercise_icons_defer_decode:
-                QTimer.singleShot(0, self._decode_next_deferred_exercise_icon)
+            self._update_comboboxes()
 
         if not is_skip_date_update:
             self.set_today_date()
@@ -7286,10 +7279,8 @@ class MainWindow(
 
         for row in exercises_data:
             exercise_name = str(row[1] or "")
-            if exercise_name:
-                self._exercise_icons_defer_decode.add(exercise_name)
             transformed_row = [
-                QIcon(),
+                self._get_exercise_icon(exercise_name) or QIcon(),
                 format_favorite_exercise_label(
                     exercise_name,
                     favorite=False,
@@ -7309,9 +7300,7 @@ class MainWindow(
         )
         self.tableView_exercises.setModel(self.models["exercises"])
         self.tableView_exercises.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        self._reload_types_table(dumbbell_names=dumbbell_names, defer_icons=True)
-        if self._exercise_icons_defer_decode:
-            QTimer.singleShot(0, self._decode_next_deferred_exercise_icon)
+        self._reload_types_table(dumbbell_names=dumbbell_names)
 
     def _refresh_exercises_catalog(self) -> None:
         """Refresh catalog tables after explicit user action."""
