@@ -506,6 +506,8 @@ class FitnessLightboxSidebar(QFrame):
             StopwatchColor.OVERTIME: _COLOR_OVERTIME,
         }[snapshot.color]
         self._time_label.setStyleSheet(f"color: {color}; background: transparent;")
+        preparing = snapshot.phase is StopwatchPhase.COUNTDOWN
+        self._prepare_label.setVisible(preparing)
         if snapshot.is_overtime and snapshot.is_running:
             play_fitness_timer_alert()
         else:
@@ -541,6 +543,13 @@ class FitnessLightboxSidebar(QFrame):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(16, 20, 16, 16)
         layout.setSpacing(12)
+
+        self._prepare_label = QLabel("Prepare!")
+        self._prepare_label.setObjectName("fitnessLightboxPrepare")
+        self._prepare_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._prepare_label.setStyleSheet(f"color: {_COLOR_COUNTDOWN}; background: transparent;")
+        _apply_pixel_font(self._prepare_label, pixel_size=22, weight=QFont.Weight.ExtraBold)
+        self._prepare_label.hide()
 
         self._time_label = QLabel("0:00")
         self._time_label.setObjectName("fitnessLightboxTime")
@@ -606,6 +615,7 @@ class FitnessLightboxSidebar(QFrame):
         add_layout.addWidget(self._build_action_button(), 0, Qt.AlignmentFlag.AlignHCenter)
 
         layout.addStretch(1)
+        layout.addWidget(self._prepare_label)
         layout.addWidget(self._time_label)
         layout.addWidget(self._limit_label)
         layout.addWidget(controls)

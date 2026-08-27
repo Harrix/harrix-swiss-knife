@@ -179,6 +179,12 @@ def test_fitness_lightbox_has_splitter_sidebar_and_browse_confirm(
     assert dialog._sidebar._title.text() == "Push-ups"
     assert dialog._sidebar.value() == 10
     assert dialog._sidebar.selected_type() == "Wide"
+    assert dialog._sidebar._prepare_label.isHidden()
+    dialog._sidebar._on_start()
+    assert dialog._sidebar._prepare_label.text() == "Prepare!"
+    assert not dialog._sidebar._prepare_label.isHidden()
+    dialog._sidebar.reset_timer()
+    assert dialog._sidebar._prepare_label.isHidden()
     assert dialog.chrome_rect().x() > 0
     dialog._sidebar.confirm_requested.emit()
     qapp.processEvents()
