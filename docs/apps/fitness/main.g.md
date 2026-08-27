@@ -74,6 +74,7 @@ lang: en
   - [⚙️ Method `update_statistics_exercise_combobox`](#%EF%B8%8F-method-update_statistics_exercise_combobox)
   - [⚙️ Method `update_weight_chart`](#%EF%B8%8F-method-update_weight_chart)
 - [🔧 Function `exercise_names_from_name_column`](#-function-exercise_names_from_name_column)
+- [🔧 Function `exercise_table_focus_column`](#-function-exercise_table_focus_column)
 - [🔧 Function `is_exercise_table_image_column`](#-function-is_exercise_table_image_column)
 
 </details>
@@ -5431,6 +5432,8 @@ class MainWindow(
         selected = self._get_current_selected_exercise()
         preserve = selected if isinstance(selected, str) and selected else focus
         self.update_all(is_preserve_selections=True, current_exercise=preserve)
+        if isinstance(preserve, str) and preserve:
+            self._scroll_table_to_exercise("exercises", preserve)
         QTimer.singleShot(0, self._decode_next_deferred_exercise_icon)
 
     def _focus_and_select_spinbox_count(self) -> None:
@@ -7169,11 +7172,13 @@ class MainWindow(
         if model is None:
             return False
         name_column = self._table_exercise_name_column(table_name)
+        focus_column = exercise_table_focus_column(table_name)
         for row in range(model.rowCount()):
-            index = model.index(row, name_column)
-            name = parse_exercise_display_name(str(model.data(index) or ""))
+            name_index = model.index(row, name_column)
+            name = parse_exercise_display_name(str(model.data(name_index) or ""))
             if name != exercise_name:
                 continue
+            index = model.index(row, focus_column)
             table_view.setCurrentIndex(index)
             table_view.scrollTo(index, QAbstractItemView.ScrollHint.PositionAtCenter)
             return True
@@ -12681,6 +12686,26 @@ def exercise_names_from_name_column(model: QAbstractItemModel | None, name_colum
             seen.add(name)
             names.append(name)
     return names
+```
+
+</details>
+
+## 🔧 Function `exercise_table_focus_column`
+
+```python
+def exercise_table_focus_column(table_name: str) -> int
+```
+
+Return the cell to select when jumping to a row in Exercises or Types.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def exercise_table_focus_column(table_name: str) -> int:
+    if table_name in {"exercises", "types"}:
+        return _EXERCISE_TABLE_IMAGE_COLUMN
+    return 0
 ```
 
 </details>

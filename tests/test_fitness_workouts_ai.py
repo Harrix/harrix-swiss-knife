@@ -16,6 +16,7 @@ from harrix_swiss_knife.apps.fitness.workouts_ai import (
     format_recent_sets,
     format_workout_exercise_catalog,
     parse_workout_tsv,
+    recalculate_workout_duration,
     resolve_workout_item,
 )
 
@@ -26,6 +27,13 @@ def test_get_apps_fitness_workout_history_count_defaults_to_100() -> None:
     assert get_apps_fitness_workout_history_count({"apps": {"fitness_workout_history_count": 25}}) == 25
     assert get_apps_fitness_workout_history_count({"apps": {"fitness_workout_history_count": 0}}) == 1
     assert get_apps_fitness_workout_history_count({"apps": {"fitness_workout_history_count": "nope"}}) == 100
+
+
+def test_recalculate_workout_duration_scales_and_clamps() -> None:
+    assert recalculate_workout_duration(45, remaining_count=8, previous_count=9) == 40
+    assert recalculate_workout_duration(45, remaining_count=0, previous_count=9) == 45
+    assert recalculate_workout_duration(10, remaining_count=1, previous_count=10) == 1
+    assert recalculate_workout_duration(0, remaining_count=2, previous_count=4) == 1
 
 
 def test_parse_workout_tsv_reads_title_and_sets() -> None:

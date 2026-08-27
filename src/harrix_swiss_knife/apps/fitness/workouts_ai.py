@@ -14,6 +14,8 @@ from harrix_swiss_knife.apps.fitness.sets_ai import (
 
 _TITLE_PREFIXES = {"title"}
 _RECENT_SET_COL_COUNT = 6
+MIN_WORKOUT_DURATION_MIN = 1
+MAX_WORKOUT_DURATION_MIN = 240
 
 
 @dataclass(frozen=True)
@@ -101,6 +103,24 @@ def parse_workout_tsv(text: str) -> ParsedWorkout:
             continue
         body_lines.append(raw_line)
     return ParsedWorkout(title=title, rows=parse_sets_tsv("\n".join(body_lines)))
+
+
+def recalculate_workout_duration(
+    duration_min: int,
+    *,
+    remaining_count: int,
+    previous_count: int,
+) -> int:
+    """Scale planned minutes after items are removed, clamped to 1-240.
+
+    When no items remain, keep the previous duration so it can still be edited.
+
+    """
+    current = max(MIN_WORKOUT_DURATION_MIN, min(int(duration_min), MAX_WORKOUT_DURATION_MIN))
+    if previous_count <= 0 or remaining_count <= 0:
+        return current
+    scaled = round(current * remaining_count / previous_count)
+    return max(MIN_WORKOUT_DURATION_MIN, min(scaled, MAX_WORKOUT_DURATION_MIN))
 
 
 def resolve_workout_item(

@@ -31,6 +31,7 @@ lang: en
   - [⚙️ Method `delete_types_for_exercise`](#%EF%B8%8F-method-delete_types_for_exercise)
   - [⚙️ Method `delete_weight_record`](#%EF%B8%8F-method-delete_weight_record)
   - [⚙️ Method `delete_workout`](#%EF%B8%8F-method-delete_workout)
+  - [⚙️ Method `delete_workout_item`](#%EF%B8%8F-method-delete_workout_item)
   - [⚙️ Method `exercise_name_exists`](#%EF%B8%8F-method-exercise_name_exists)
   - [⚙️ Method `exercise_name_local_exists`](#%EF%B8%8F-method-exercise_name_local_exists)
   - [⚙️ Method `exercise_type_name_exists`](#%EF%B8%8F-method-exercise_type_name_exists)
@@ -89,6 +90,7 @@ lang: en
   - [⚙️ Method `update_process_record`](#%EF%B8%8F-method-update_process_record)
   - [⚙️ Method `update_process_records_date`](#%EF%B8%8F-method-update_process_records_date)
   - [⚙️ Method `update_weight_record`](#%EF%B8%8F-method-update_weight_record)
+  - [⚙️ Method `update_workout_duration`](#%EF%B8%8F-method-update_workout_duration)
 - [🏛️ Class `WorkoutItemInput`](#%EF%B8%8F-class-workoutiteminput)
 - [🏛️ Class `WorkoutItemRow`](#%EF%B8%8F-class-workoutitemrow)
 - [🏛️ Class `WorkoutRow`](#%EF%B8%8F-class-workoutrow)
@@ -486,6 +488,10 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             return False
         else:
             return True
+
+    def delete_workout_item(self, item_id: int) -> bool:
+        """Delete one exercise row from a saved workout."""
+        return self.execute_simple_query("DELETE FROM workout_items WHERE _id = :id", {"id": item_id})
 
     def exercise_name_exists(self, name: str, *, exclude_id: int | None = None) -> bool:
         """Return whether an exercise already uses `name`.
@@ -1825,6 +1831,13 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         params = {"v": value, "d": date, "id": record_id}
         return self.execute_simple_query(query, params)
 
+    def update_workout_duration(self, workout_id: int, duration_min: int) -> bool:
+        """Update the planned duration of a saved workout."""
+        return self.execute_simple_query(
+            "UPDATE workouts SET duration_min = :duration WHERE _id = :id",
+            {"duration": duration_min, "id": workout_id},
+        )
+
     def _ensure_name_local_columns(self) -> None:
         """Ensure optional columns exist on `exercises` and `types`."""
         self._ensure_table_column("exercises", "name_local", "TEXT")
@@ -2457,6 +2470,24 @@ def delete_workout(self, workout_id: int) -> bool:
             return False
         else:
             return True
+```
+
+</details>
+
+### ⚙️ Method `delete_workout_item`
+
+```python
+def delete_workout_item(self, item_id: int) -> bool
+```
+
+Delete one exercise row from a saved workout.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def delete_workout_item(self, item_id: int) -> bool:
+        return self.execute_simple_query("DELETE FROM workout_items WHERE _id = :id", {"id": item_id})
 ```
 
 </details>
@@ -4521,6 +4552,27 @@ def update_weight_record(self, record_id: int, value: float, date: str) -> bool:
         query = "UPDATE weight SET value = :v, date = :d WHERE _id = :id"
         params = {"v": value, "d": date, "id": record_id}
         return self.execute_simple_query(query, params)
+```
+
+</details>
+
+### ⚙️ Method `update_workout_duration`
+
+```python
+def update_workout_duration(self, workout_id: int, duration_min: int) -> bool
+```
+
+Update the planned duration of a saved workout.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def update_workout_duration(self, workout_id: int, duration_min: int) -> bool:
+        return self.execute_simple_query(
+            "UPDATE workouts SET duration_min = :duration WHERE _id = :id",
+            {"duration": duration_min, "id": workout_id},
+        )
 ```
 
 </details>

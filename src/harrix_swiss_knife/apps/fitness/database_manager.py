@@ -400,6 +400,10 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         else:
             return True
 
+    def delete_workout_item(self, item_id: int) -> bool:
+        """Delete one exercise row from a saved workout."""
+        return self.execute_simple_query("DELETE FROM workout_items WHERE _id = :id", {"id": item_id})
+
     def exercise_name_exists(self, name: str, *, exclude_id: int | None = None) -> bool:
         """Return whether an exercise already uses `name`.
 
@@ -1737,6 +1741,13 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         query = "UPDATE weight SET value = :v, date = :d WHERE _id = :id"
         params = {"v": value, "d": date, "id": record_id}
         return self.execute_simple_query(query, params)
+
+    def update_workout_duration(self, workout_id: int, duration_min: int) -> bool:
+        """Update the planned duration of a saved workout."""
+        return self.execute_simple_query(
+            "UPDATE workouts SET duration_min = :duration WHERE _id = :id",
+            {"duration": duration_min, "id": workout_id},
+        )
 
     def _ensure_name_local_columns(self) -> None:
         """Ensure optional columns exist on `exercises` and `types`."""

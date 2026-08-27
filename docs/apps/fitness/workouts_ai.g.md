@@ -16,6 +16,7 @@ lang: en
 - [🔧 Function `format_recent_sets`](#-function-format_recent_sets)
 - [🔧 Function `format_workout_exercise_catalog`](#-function-format_workout_exercise_catalog)
 - [🔧 Function `parse_workout_tsv`](#-function-parse_workout_tsv)
+- [🔧 Function `recalculate_workout_duration`](#-function-recalculate_workout_duration)
 - [🔧 Function `resolve_workout_item`](#-function-resolve_workout_item)
 
 </details>
@@ -163,6 +164,35 @@ def parse_workout_tsv(text: str) -> ParsedWorkout:
         body_lines.append(raw_line)
     return ParsedWorkout(title=title, rows=parse_sets_tsv("\n".join(body_lines)))
 ````
+
+</details>
+
+## 🔧 Function `recalculate_workout_duration`
+
+```python
+def recalculate_workout_duration(duration_min: int, *, remaining_count: int, previous_count: int) -> int
+```
+
+Scale planned minutes after items are removed, clamped to 1–240.
+
+When no items remain, keep the previous duration so it can still be edited.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def recalculate_workout_duration(
+    duration_min: int,
+    *,
+    remaining_count: int,
+    previous_count: int,
+) -> int:
+    current = max(MIN_WORKOUT_DURATION_MIN, min(int(duration_min), MAX_WORKOUT_DURATION_MIN))
+    if previous_count <= 0 or remaining_count <= 0:
+        return current
+    scaled = round(current * remaining_count / previous_count)
+    return max(MIN_WORKOUT_DURATION_MIN, min(scaled, MAX_WORKOUT_DURATION_MIN))
+```
 
 </details>
 

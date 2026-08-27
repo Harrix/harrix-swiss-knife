@@ -6,7 +6,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QModelIndex, QPoint, QSize, Qt, Signal
-from PySide6.QtGui import QIcon, QStandardItem, QStandardItemModel
+from PySide6.QtGui import QIcon, QKeySequence, QShortcut, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
@@ -14,7 +14,9 @@ from PySide6.QtWidgets import (
     QHeaderView,
     QLabel,
     QListView,
+    QMenu,
     QMessageBox,
+    QSpinBox,
     QSplitter,
     QTableWidget,
     QTableWidgetItem,
@@ -23,8 +25,14 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife.apps.common import message_box
+from harrix_swiss_knife.apps.common.table_context_menu import LABEL_OPEN_LIGHTBOX, add_delete_action
 from harrix_swiss_knife.apps.common.widgets.exercise_list_hover_preview import exercise_at_table_image
-from harrix_swiss_knife.qt_emoji_icon import make_emoji_push_button
+from harrix_swiss_knife.apps.fitness.workouts_ai import (
+    MAX_WORKOUT_DURATION_MIN,
+    MIN_WORKOUT_DURATION_MIN,
+    recalculate_workout_duration,
+)
+from harrix_swiss_knife.qt_emoji_icon import apply_leading_emoji_icons, make_emoji_push_button
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -159,16 +167,35 @@ class WorkoutsWidget(QWidget):
         self.label_meta = QLabel("")
         right_layout.addWidget(self.label_title)
         right_layout.addWidget(self.label_meta)
+        duration_row = QHBoxLayout()
+        duration_row.addWidget(QLabel("Duration:"))
+        self.spin_duration = QSpinBox()
+        self.spin_duration.setRange(MIN_WORKOUT_DURATION_MIN, MAX_WORKOUT_DURATION_MIN)
+        self.spin_duration.setSuffix(" min")
+        self.spin_duration.setEnabled(False)
+        self.spin_duration.editingFinished.connect(self._save_duration)
+        duration_row.addWidget(self.spin_duration)
+        duration_row.addStretch()
+        right_layout.addLayout(duration_row)
 
         self.table_items = QTableWidget(0, _ITEM_COLUMN_COUNT)
         self.table_items.setHorizontalHeaderLabels(["Done", "", "Exercise", "Type", "Value", "Unit", "kcal"])
         self.table_items.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table_items.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.table_items.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.table_items.customContextMenuRequested.connect(self._show_items_context_menu)
         self.table_items.doubleClicked.connect(self._on_item_double_clicked)
         self._apply_image_column_metrics()
         right_layout.addWidget(self.table_items, 1)
+        remove_row = QHBoxLayout()
+        self.button_remove_item = make_emoji_push_button("Remove selected", "🗑️")
+        self.button_remove_item.clicked.connect(self._remove_selected_items)
+        remove_row.addWidget(self.button_remove_item)
+        remove_row.addStretch()
+        right_layout.addLayout(remove_row)
         self.label_totals = QLabel("")
         right_layout.addWidget(self.label_totals)
+        QShortcut(QKeySequence.StandardKey.Delete, self.table_items, self._remove_selected_items)
         splitter.addWidget(right)
         splitter.setStretchFactor(0, 1)
         splitter.setStretchFactor(1, 3)
@@ -179,6 +206,10 @@ class WorkoutsWidget(QWidget):
         self._item_ids = []
         self.label_title.setText("Select a workout")
         self.label_meta.setText("")
+        self.spin_duration.blockSignals(True)  # noqa: FBT003
+        self.spin_duration.setValue(MIN_WORKOUT_DURATION_MIN)
+        self.spin_duration.setEnabled(False)
+        self.spin_duration.blockSignals(False)  # noqa: FBT003
         self.label_totals.setText("")
         self.table_items.setRowCount(0)
 
@@ -252,7 +283,11 @@ class WorkoutsWidget(QWidget):
             return
         self._current_workout_id = workout.id
         self.label_title.setText(workout.name)
-        self.label_meta.setText(f"{workout.gender} · {workout.duration_min} min · {workout.created_date}")
+        self.label_meta.setText(f"{workout.gender} · {workout.created_date}")
+        self.spin_duration.blockSignals(True)  # noqa: FBT003
+        self.spin_duration.setEnabled(True)
+        self.spin_duration.setValue(workout.duration_min)
+        self.spin_duration.blockSignals(False)  # noqa: FBT003
         items = self._db.get_workout_items(workout_id)
         self._fill_items(items)
 
@@ -278,6 +313,18 @@ class WorkoutsWidget(QWidget):
         if isinstance(workout_id, int):
             self._load_workout(workout_id)
 
+    def _refresh_list_duration_label(self) -> None:
+        workout_id = self._current_workout_id
+        if workout_id is None:
+            return
+        name = self.label_title.text()
+        duration = self.spin_duration.value()
+        for row in range(self._list_model.rowCount()):
+            item = self._list_model.item(row)
+            if item is not None and item.data(Qt.ItemDataRole.UserRole) == workout_id:
+                item.setText(f"{name} ({duration} min)")
+                return
+
     def _reload_list(self, *, keep_selection: bool) -> None:
         selected_id = self._current_workout_id if keep_selection else None
         self._list_model.clear()
@@ -293,3 +340,82 @@ class WorkoutsWidget(QWidget):
             self.select_workout_by_id(selected_id)
         elif workouts:
             self.select_workout_by_id(workouts[0].id)
+
+    def _remove_selected_items(self) -> None:
+        if self._db is None or self._current_workout_id is None:
+            message_box.warning(self, "Error", "Select a workout first")
+            return
+        item_ids = self._selected_item_ids()
+        if not item_ids:
+            message_box.warning(self, "Error", "Select a row to remove")
+            return
+        names = self._selected_exercise_names()
+        label = ", ".join(names) if names else "selected row(s)"
+        reply = message_box.question(
+            self,
+            "Remove exercise?",
+            f"Remove {label} from this workout?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+        workout_id = self._current_workout_id
+        previous_count = len(self._item_ids)
+        previous_duration = self.spin_duration.value()
+        for item_id in item_ids:
+            if not self._db.delete_workout_item(item_id):
+                message_box.warning(self, "Error", "Failed to remove workout row")
+                self._load_workout(workout_id)
+                return
+        remaining_count = previous_count - len(item_ids)
+        new_duration = recalculate_workout_duration(
+            previous_duration,
+            remaining_count=remaining_count,
+            previous_count=previous_count,
+        )
+        if not self._db.update_workout_duration(workout_id, new_duration):
+            message_box.warning(self, "Error", "Failed to update workout duration")
+        self._load_workout(workout_id)
+        self._refresh_list_duration_label()
+        self.workouts_changed.emit()
+
+    def _save_duration(self) -> None:
+        if self._db is None or self._current_workout_id is None or not self.spin_duration.isEnabled():
+            return
+        duration = self.spin_duration.value()
+        if not self._db.update_workout_duration(self._current_workout_id, duration):
+            message_box.warning(self, "Error", "Failed to update workout duration")
+            return
+        self._refresh_list_duration_label()
+        self.workouts_changed.emit()
+
+    def _selected_exercise_names(self) -> list[str]:
+        names: list[str] = []
+        for row in self._selected_rows():
+            name_item = self.table_items.item(row, _COL_EXERCISE)
+            if name_item is not None and name_item.text().strip():
+                names.append(name_item.text().strip())
+        return names
+
+    def _selected_item_ids(self) -> list[int]:
+        return [self._item_ids[row] for row in self._selected_rows() if 0 <= row < len(self._item_ids)]
+
+    def _selected_rows(self) -> list[int]:
+        return sorted({index.row() for index in self.table_items.selectedIndexes()})
+
+    def _show_items_context_menu(self, position: QPoint) -> None:
+        index = self.table_items.indexAt(position)
+        if index.isValid() and not self.table_items.selectionModel().isSelected(index):
+            self.table_items.selectRow(index.row())
+        context_menu = QMenu(self)
+        lightbox_action = context_menu.addAction(LABEL_OPEN_LIGHTBOX)
+        delete_action = add_delete_action(context_menu)
+        apply_leading_emoji_icons(context_menu)
+        action = context_menu.exec_(self.table_items.mapToGlobal(position))
+        if action == lightbox_action:
+            target = index if index.isValid() else self.table_items.currentIndex()
+            if target.isValid():
+                self._on_item_double_clicked(target)
+        elif action == delete_action:
+            self._remove_selected_items()
