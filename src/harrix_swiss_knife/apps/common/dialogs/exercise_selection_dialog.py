@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import time
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QEvent, QObject, QSize, Qt, Signal
+from PySide6.QtCore import QEvent, QObject, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QColor, QFont, QPalette, QPixmap
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -28,7 +29,7 @@ from harrix_swiss_knife.qt_emoji_icon import apply_emoji_dialog_buttons
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from PySide6.QtGui import QCloseEvent, QEnterEvent, QIcon, QMouseEvent
+    from PySide6.QtGui import QCloseEvent, QEnterEvent, QMouseEvent, QShowEvent
 
     from harrix_swiss_knife.apps.common.avif_manager import AvifManager
 
@@ -37,6 +38,8 @@ _NAME_LOCAL_FONT_SCALE = 0.85
 _NAME_LOCAL_MIN_PIXEL_SIZE = 12
 _NAME_LOCAL_MIN_POINT_SIZE = 7.0
 _NAME_LOCAL_FALLBACK_POINT_SIZE = 9.0
+# How long one deferred-preview batch may block the event loop.
+_PREVIEW_DECODE_BUDGET_S = 0.02
 
 
 class ExerciseSelectionDialog(QDialog):
@@ -47,7 +50,7 @@ class ExerciseSelectionDialog(QDialog):
         parent: QWidget | None,
         *,
         exercises: list[str],
-        icon_provider: Callable[[str], QIcon | None],
+        pixmap_provider: Callable[[str], QPixmap | None],
         preview_size: QSize,
         current_selection: str | None,
         avif_manager: AvifManager | None = None,
@@ -60,7 +63,8 @@ class ExerciseSelectionDialog(QDialog):
 
         - `parent` (`QWidget | None`): Parent widget.
         - `exercises` (`list[str]`): List of exercise names to display.
-        - `icon_provider` (`Callable[[str], QIcon | None]`): Returns an icon for a given exercise name.
+        - `pixmap_provider` (`Callable[[str], QPixmap | None]`): Returns a still
+          preview pixmap for a given exercise name.
         - `preview_size` (`QSize`): Size for icon previews.
         - `current_selection` (`str | None`): Currently selected exercise, if any.
         - `avif_manager` (`AvifManager | None`): AVIF manager for loading animations. Defaults to `None`.
@@ -73,12 +77,14 @@ class ExerciseSelectionDialog(QDialog):
         self.setWindowTitle("Select Exercise")
         qt_modality.set_owner_window_modal(self)
         self.selected_exercise: str | None = current_selection
-        self._icon_provider = icon_provider
+        self._pixmap_provider = pixmap_provider
         self._avif_manager = avif_manager
         self._name_locals = name_locals or {}
         self._display_names = display_names or {}
         self._preview_size = preview_size
         self._hovered_tile: _ExercisePreviewTile | None = None
+        self._pending_preview_rows: list[int] = []
+        self._preview_load_started = False
         has_any_local = any(self._name_locals.get(name, "").strip() for name in exercises)
         text_area_height = 54 if has_any_local else 36
 
@@ -128,36 +134,42 @@ class ExerciseSelectionDialog(QDialog):
         )
         layout.addWidget(self.list_widget)
 
-        for exercise in exercises:
-            item = QListWidgetItem()
-            item.setData(Qt.ItemDataRole.UserRole, exercise)
-            item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
+        self.list_widget.setUpdatesEnabled(False)
+        try:
+            for exercise in exercises:
+                item = QListWidgetItem()
+                item.setData(Qt.ItemDataRole.UserRole, exercise)
+                item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
 
-            static_pixmap = self._static_pixmap_for(exercise)
-            name_local = self._name_locals.get(exercise, "").strip()
-            tile = _ExercisePreviewTile(
-                exercise_name=exercise,
-                display_name=self._display_names.get(exercise, exercise),
-                name_local=name_local,
-                static_pixmap=static_pixmap,
-                preview_size=preview_size,
-                text_area_height=text_area_height,
-            )
-            item.setSizeHint(tile.sizeHint())
-            self.list_widget.addItem(item)
-            self.list_widget.setItemWidget(item, tile)
+                name_local = self._name_locals.get(exercise, "").strip()
+                tile = _ExercisePreviewTile(
+                    exercise_name=exercise,
+                    display_name=self._display_names.get(exercise, exercise),
+                    name_local=name_local,
+                    static_pixmap=None,
+                    preview_size=preview_size,
+                    text_area_height=text_area_height,
+                    pixmap_pending=True,
+                )
+                item.setSizeHint(tile.sizeHint())
+                self.list_widget.addItem(item)
+                self.list_widget.setItemWidget(item, tile)
+                self._pending_preview_rows.append(self.list_widget.count() - 1)
 
-            tile.clicked.connect(lambda row_item=item: self._on_tile_clicked(row_item))
-            tile.double_clicked.connect(lambda row_item=item: self._on_tile_double_clicked(row_item))
-            tile.hover_entered.connect(lambda row_tile=tile: self._on_tile_hover_entered(row_tile))
-            tile.hover_left.connect(lambda row_tile=tile: self._on_tile_hover_left(row_tile))
+                tile.clicked.connect(lambda row_item=item: self._on_tile_clicked(row_item))
+                tile.double_clicked.connect(lambda row_item=item: self._on_tile_double_clicked(row_item))
+                tile.hover_entered.connect(lambda row_tile=tile: self._on_tile_hover_entered(row_tile))
+                tile.hover_left.connect(lambda row_tile=tile: self._on_tile_hover_left(row_tile))
 
-            if current_selection and exercise == current_selection:
-                self.list_widget.setCurrentItem(item)
-                item.setSelected(True)
-                tile.set_selected(selected=True)
+                if current_selection and exercise == current_selection:
+                    self.list_widget.setCurrentItem(item)
+                    item.setSelected(True)
+                    tile.set_selected(selected=True)
+        finally:
+            self.list_widget.setUpdatesEnabled(True)
 
         self.list_widget.itemSelectionChanged.connect(self._on_selection_changed)
+        self.list_widget.verticalScrollBar().valueChanged.connect(self._on_list_scrolled)
         self.list_widget.installEventFilter(self)
 
         button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, self)
@@ -186,6 +198,36 @@ class ExerciseSelectionDialog(QDialog):
         self._stop_animation()
         super().reject()
 
+    def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
+        """Start deferred preview loading after the dialog is visible."""
+        super().showEvent(event)
+        if not self._preview_load_started and self._pending_preview_rows:
+            self._preview_load_started = True
+            QTimer.singleShot(0, self._decode_next_preview_batch)
+
+    def _decode_next_preview_batch(self) -> None:
+        """Decode a time-budgeted batch of still previews, visible rows first."""
+        if not self._pending_preview_rows:
+            return
+
+        self._prioritize_visible_preview_rows()
+        deadline = time.perf_counter() + _PREVIEW_DECODE_BUDGET_S
+        while self._pending_preview_rows:
+            row = self._pending_preview_rows.pop(0)
+            item = self.list_widget.item(row)
+            tile = self._tile_for_item(item)
+            if tile is None or not tile.pixmap_pending:
+                continue
+            exercise = item.data(Qt.ItemDataRole.UserRole) if item is not None else None
+            name = str(exercise) if exercise else tile.exercise_name
+            pixmap = self._pixmap_provider(name)
+            tile.set_static_pixmap(pixmap)
+            if time.perf_counter() >= deadline:
+                break
+
+        if self._pending_preview_rows:
+            QTimer.singleShot(0, self._decode_next_preview_batch)
+
     def _filter_exercises(self, text: str) -> None:
         """Show only tiles whose English or local name matches the query."""
         query = text.strip()
@@ -204,6 +246,8 @@ class ExerciseSelectionDialog(QDialog):
                 tile = self._tile_for_item(item)
                 if tile is not None and self._hovered_tile is tile:
                     self._stop_animation()
+        if self._pending_preview_rows:
+            self._prioritize_visible_preview_rows()
 
     def _on_accept(self) -> None:
         self._stop_animation()
@@ -222,6 +266,11 @@ class ExerciseSelectionDialog(QDialog):
             self.accept()
         else:
             self.reject()
+
+    def _on_list_scrolled(self, *_args: object) -> None:
+        """Prefer decoding previews that just scrolled into view."""
+        if self._pending_preview_rows:
+            self._prioritize_visible_preview_rows()
 
     def _on_selection_changed(self) -> None:
         current = self.list_widget.currentItem()
@@ -249,6 +298,13 @@ class ExerciseSelectionDialog(QDialog):
         if not self._avif_manager:
             return
 
+        if tile.pixmap_pending:
+            pixmap = self._pixmap_provider(tile.exercise_name)
+            tile.set_static_pixmap(pixmap)
+            row = self._row_for_tile(tile)
+            if row is not None:
+                self._pending_preview_rows = [pending for pending in self._pending_preview_rows if pending != row]
+
         if self._hovered_tile is not None and self._hovered_tile is not tile:
             self._stop_animation()
 
@@ -264,12 +320,31 @@ class ExerciseSelectionDialog(QDialog):
         if self._hovered_tile is tile:
             self._stop_animation()
 
-    def _static_pixmap_for(self, exercise_name: str) -> QPixmap | None:
-        icon = self._icon_provider(exercise_name)
-        if icon is None or icon.isNull():
-            return None
-        pixmap = icon.pixmap(self._preview_size)
-        return None if pixmap.isNull() else pixmap
+    def _prioritize_visible_preview_rows(self) -> None:
+        """Move rows intersecting the viewport to the front of the decode queue."""
+        if not self._pending_preview_rows:
+            return
+        viewport = self.list_widget.viewport().rect()
+        visible: list[int] = []
+        hidden: list[int] = []
+        for row in self._pending_preview_rows:
+            item = self.list_widget.item(row)
+            if item is None or item.isHidden():
+                hidden.append(row)
+                continue
+            rect = self.list_widget.visualItemRect(item)
+            if rect.intersects(viewport):
+                visible.append(row)
+            else:
+                hidden.append(row)
+        self._pending_preview_rows = visible + hidden
+
+    def _row_for_tile(self, tile: _ExercisePreviewTile) -> int | None:
+        for row in range(self.list_widget.count()):
+            item = self.list_widget.item(row)
+            if self._tile_for_item(item) is tile:
+                return row
+        return None
 
     def _stop_animation(self) -> None:
         """Stop AVIF animation and restore the still preview in the hovered tile."""
@@ -320,6 +395,7 @@ class _ExercisePreviewTile(QFrame):
         static_pixmap: QPixmap | None,
         preview_size: QSize,
         text_area_height: int,
+        pixmap_pending: bool = False,
         parent: QWidget | None = None,
     ) -> None:
         """Build a tile with a fixed-size preview label shared by static and animated frames."""
@@ -327,6 +403,7 @@ class _ExercisePreviewTile(QFrame):
         self.exercise_name = exercise_name
         self._static_pixmap = static_pixmap
         self._selected = False
+        self.pixmap_pending = pixmap_pending
 
         self.setObjectName("exercisePreviewTile")
         self.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -414,6 +491,9 @@ class _ExercisePreviewTile(QFrame):
 
     def restore_static_pixmap(self) -> None:
         """Show the original still preview in the same label used for animation."""
+        if self.pixmap_pending:
+            self.preview_label.clear()
+            return
         if self._static_pixmap is not None and not self._static_pixmap.isNull():
             self.preview_label.setPixmap(self._static_pixmap)
         else:
@@ -426,6 +506,12 @@ class _ExercisePreviewTile(QFrame):
             return
         self._selected = selected
         self._apply_chrome()
+
+    def set_static_pixmap(self, pixmap: QPixmap | None) -> None:
+        """Apply a still preview after deferred decode."""
+        self.pixmap_pending = False
+        self._static_pixmap = pixmap if pixmap is not None and not pixmap.isNull() else None
+        self.restore_static_pixmap()
 
     def _apply_chrome(self) -> None:
         self.setProperty("selected", self._selected)

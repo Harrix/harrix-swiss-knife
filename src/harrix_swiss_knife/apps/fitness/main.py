@@ -326,7 +326,7 @@ class MainWindow(
 
         # Cache of exercise icons keyed by exercise name
         self._exercise_icon_cache: dict[str, tuple[float, QIcon | None]] = {}
-        self._exercise_avif_preview_cache: dict[tuple[str, int, int], tuple[float, QIcon | None]] = {}
+        self._exercise_avif_preview_cache: dict[tuple[str, int, int], tuple[float, QPixmap | None]] = {}
         self._dumbbell_exercise_names_cache: set[str] | None = None
 
         # Table models dictionary
@@ -2256,7 +2256,7 @@ class MainWindow(
         dialog = ExerciseSelectionDialog(
             self,
             exercises=exercises,
-            icon_provider=lambda name: self._get_exercise_avif_preview_icon(name, preview_size),
+            pixmap_provider=lambda name: self._get_exercise_avif_preview_pixmap(name, preview_size),
             preview_size=preview_size,
             current_selection=current_selection,
             avif_manager=self.avif_manager,
@@ -5776,19 +5776,28 @@ class MainWindow(
 
         return self.avif_manager.get_exercise_avif_path(exercise_name)
 
-    def _get_exercise_avif_preview_icon(self, exercise_name: str, target_size: QSize) -> QIcon | None:
-        """Return an icon from the first AVIF frame for the selection dialog."""
+    def _get_exercise_avif_preview_pixmap(self, exercise_name: str, target_size: QSize) -> QPixmap | None:
+        """Return a still preview pixmap for the Select Exercise dialog.
+
+        Prefers `static/*.webp` so opening the dialog does not probe AVIF animation
+        metadata for every exercise. Falls back to the hover AVIF only when no static
+        preview exists.
+
+        """
         if not exercise_name or not self.avif_manager:
             return None
         if target_size.width() <= 0 or target_size.height() <= 0:
             return None
 
-        avif_path = self.avif_manager.get_exercise_hover_avif_path(exercise_name)
         static_path = self.avif_manager.get_exercise_dialog_static_path(exercise_name)
+        # Only open AVIF (and check animation) when the static WebP is missing.
+        avif_path = None if static_path is not None else self.avif_manager.get_exercise_hover_avif_path(exercise_name)
         if static_path is None and avif_path is None:
             return None
 
         cache_source = static_path or avif_path
+        if cache_source is None:
+            return None
         try:
             mtime = cache_source.stat().st_mtime
         except OSError:
@@ -5800,11 +5809,10 @@ class MainWindow(
             return cache_entry[1]
 
         pixmap = self.avif_manager.load_exercise_first_frame_pixmap(exercise_name, target_size)
-        icon: QIcon | None = None
-        if pixmap is not None and not pixmap.isNull():
-            icon = QIcon(pixmap)
-        self._exercise_avif_preview_cache[cache_key] = (mtime, icon)
-        return icon
+        if pixmap is not None and pixmap.isNull():
+            pixmap = None
+        self._exercise_avif_preview_cache[cache_key] = (mtime, pixmap)
+        return pixmap
 
     def _get_exercise_icon(self, exercise_name: str) -> QIcon | None:
         """Return a cached icon for the exercise, loading it from AVIF if needed."""

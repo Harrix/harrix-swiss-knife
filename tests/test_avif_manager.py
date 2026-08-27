@@ -12,7 +12,7 @@ from PySide6.QtWidgets import QApplication, QLabel
 
 from harrix_swiss_knife.apps.common import avif_manager as avif_manager_mod
 from harrix_swiss_knife.apps.common.avif_manager import AvifLabelKey, AvifManager, animation_interval_ms
-from harrix_swiss_knife.apps.common.exercise_media import FITNESS_IMG_HIGH_DIR
+from harrix_swiss_knife.apps.common.exercise_media import FITNESS_IMG_HIGH_DIR, FITNESS_IMG_STATIC_DIR
 
 if TYPE_CHECKING:
     import pytest
@@ -221,6 +221,43 @@ def test_load_exercise_avif_list_hover_uses_async_animation(
     manager.load_exercise_avif("Walk", label, AvifLabelKey.LIST_HOVER)
     assert called == ["async"]
     manager.stop_animation(AvifLabelKey.LIST_HOVER)
+
+
+def test_load_exercise_first_frame_pixmap_uses_static_without_opening_avif(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Dialog still previews load static/*.webp without probing AVIF animation."""
+    assert _qapp() is not None
+    img_dir = tmp_path / "fitness_img"
+    _write_test_avif(img_dir / "Walk.avif")
+    _write_test_avif(img_dir / FITNESS_IMG_HIGH_DIR / "Walk.avif")
+    static_path = img_dir / FITNESS_IMG_STATIC_DIR / "Walk.webp"
+    static_path.parent.mkdir(parents=True, exist_ok=True)
+    Image.new("RGB", (80, 60), (10, 20, 30)).save(static_path, format="WEBP")
+
+    hover_calls: list[str] = []
+    animated_calls: list[Path] = []
+    original_hover = AvifManager.get_exercise_hover_avif_path
+
+    def spy_hover(self: AvifManager, exercise_name: str) -> Path | None:
+        hover_calls.append(exercise_name)
+        return original_hover(self, exercise_name)
+
+    def spy_animated(avif_path: Path) -> bool:
+        animated_calls.append(avif_path)
+        return FITNESS_IMG_HIGH_DIR in avif_path.parts
+
+    monkeypatch.setattr(AvifManager, "get_exercise_hover_avif_path", spy_hover)
+    monkeypatch.setattr(avif_manager_mod, "_avif_is_animated", spy_animated)
+
+    manager = AvifManager(img_dir)
+    assert manager.get_exercise_dialog_static_path("Walk") == static_path
+    pixmap = manager.load_exercise_first_frame_pixmap("Walk")
+    assert pixmap is not None
+    assert not pixmap.isNull()
+    assert hover_calls == []
+    assert animated_calls == []
 
 
 def test_load_exercise_avif_lightbox_prefers_high(
