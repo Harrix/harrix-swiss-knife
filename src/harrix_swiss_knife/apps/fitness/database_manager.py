@@ -1749,6 +1749,13 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             {"duration": duration_min, "id": workout_id},
         )
 
+    def update_workout_item_target_value(self, item_id: int, target_value: str) -> bool:
+        """Update the planned value for one workout item."""
+        return self.execute_simple_query(
+            "UPDATE workout_items SET target_value = :value WHERE _id = :id",
+            {"id": item_id, "value": target_value},
+        )
+
     def _ensure_name_local_columns(self) -> None:
         """Ensure optional columns exist on `exercises` and `types`."""
         self._ensure_table_column("exercises", "name_local", "TEXT")

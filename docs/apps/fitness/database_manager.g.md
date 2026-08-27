@@ -91,6 +91,7 @@ lang: en
   - [⚙️ Method `update_process_records_date`](#%EF%B8%8F-method-update_process_records_date)
   - [⚙️ Method `update_weight_record`](#%EF%B8%8F-method-update_weight_record)
   - [⚙️ Method `update_workout_duration`](#%EF%B8%8F-method-update_workout_duration)
+  - [⚙️ Method `update_workout_item_target_value`](#%EF%B8%8F-method-update_workout_item_target_value)
 - [🏛️ Class `WorkoutItemInput`](#%EF%B8%8F-class-workoutiteminput)
 - [🏛️ Class `WorkoutItemRow`](#%EF%B8%8F-class-workoutitemrow)
 - [🏛️ Class `WorkoutRow`](#%EF%B8%8F-class-workoutrow)
@@ -1836,6 +1837,13 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         return self.execute_simple_query(
             "UPDATE workouts SET duration_min = :duration WHERE _id = :id",
             {"duration": duration_min, "id": workout_id},
+        )
+
+    def update_workout_item_target_value(self, item_id: int, target_value: str) -> bool:
+        """Update the planned value for one workout item."""
+        return self.execute_simple_query(
+            "UPDATE workout_items SET target_value = :value WHERE _id = :id",
+            {"id": item_id, "value": target_value},
         )
 
     def _ensure_name_local_columns(self) -> None:
@@ -4572,6 +4580,27 @@ def update_workout_duration(self, workout_id: int, duration_min: int) -> bool:
         return self.execute_simple_query(
             "UPDATE workouts SET duration_min = :duration WHERE _id = :id",
             {"duration": duration_min, "id": workout_id},
+        )
+```
+
+</details>
+
+### ⚙️ Method `update_workout_item_target_value`
+
+```python
+def update_workout_item_target_value(self, item_id: int, target_value: str) -> bool
+```
+
+Update the planned value for one workout item.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def update_workout_item_target_value(self, item_id: int, target_value: str) -> bool:
+        return self.execute_simple_query(
+            "UPDATE workout_items SET target_value = :value WHERE _id = :id",
+            {"id": item_id, "value": target_value},
         )
 ```
 

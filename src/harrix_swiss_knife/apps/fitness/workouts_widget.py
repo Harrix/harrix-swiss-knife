@@ -73,6 +73,9 @@ class WorkoutsWidget(QWidget):
         self._db: DatabaseManager | None = None
         self._current_workout_id: int | None = None
         self._item_ids: list[int] = []
+        self._item_calories_per_unit: list[float] = []
+        self._item_calories_modifier: list[float] = []
+        self._filling_items = False
         self._icon_getter: Callable[[str], QIcon | None] | None = None
         self._icon_size = _DEFAULT_TABLE_ICON_SIZE
         self._build_ui()
@@ -187,9 +190,12 @@ class WorkoutsWidget(QWidget):
         self.table_items.setObjectName("workoutsItemsTable")
         self.table_items.setHorizontalHeaderLabels(["Done", "", "Exercise", "Type", "Value", "Unit", "kcal"])
         self.table_items.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-        self.table_items.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.table_items.setEditTriggers(
+            QAbstractItemView.EditTrigger.DoubleClicked | QAbstractItemView.EditTrigger.SelectedClicked,
+        )
         self.table_items.verticalHeader().setVisible(False)
         self.table_items.setItemDelegateForColumn(_COL_IMAGE, _WorkoutImageDelegate(self.table_items))
+        self.table_items.itemChanged.connect(self._on_table_item_changed)
         self.table_items.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.table_items.customContextMenuRequested.connect(self._show_items_context_menu)
         self.table_items.doubleClicked.connect(self._on_item_double_clicked)
@@ -206,6 +212,8 @@ class WorkoutsWidget(QWidget):
         self.items_reloading.emit()
         self._current_workout_id = None
         self._item_ids = []
+        self._item_calories_per_unit = []
+        self._item_calories_modifier = []
         self.label_title.setText("Select a workout")
         self.label_meta.setText("")
         self.spin_duration.blockSignals(True)  # noqa: FBT003
@@ -238,44 +246,57 @@ class WorkoutsWidget(QWidget):
         self.workouts_changed.emit()
 
     def _estimated_kcal(self, item: WorkoutItemRow) -> float:
-        try:
-            value = float(item.target_value)
-        except (TypeError, ValueError):
-            return 0.0
-        return value * item.calories_per_unit * item.calories_modifier
+        return estimate_workout_item_kcal(
+            item.target_value,
+            calories_per_unit=item.calories_per_unit,
+            calories_modifier=item.calories_modifier,
+        )
 
     def _fill_items(self, items: list[WorkoutItemRow]) -> None:
         self.items_reloading.emit()
+        self._filling_items = True
+        self.table_items.blockSignals(True)  # noqa: FBT003
         self.table_items.setRowCount(0)
         self._item_ids = []
+        self._item_calories_per_unit = []
+        self._item_calories_modifier = []
         total_kcal = 0.0
-        for item in items:
-            row = self.table_items.rowCount()
-            self.table_items.insertRow(row)
-            self._item_ids.append(item.id)
-            checkbox = QCheckBox()
-            checkbox.setChecked(item.is_done)
-            checkbox.setEnabled(not item.is_done)
-            if not item.is_done:
-                checkbox.clicked.connect(
-                    lambda checked, item_id=item.id: self._on_done_toggled(item_id=item_id, checked=checked),
-                )
-            self.table_items.setCellWidget(row, _COL_DONE, _make_done_cell(checkbox))
-            image_item = QTableWidgetItem()
-            image_item.setFlags(image_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
-            icon = self._icon_getter(item.exercise_name) if self._icon_getter is not None else None
-            if icon is not None and not icon.isNull():
-                image_item.setIcon(icon)
-            self.table_items.setItem(row, _COL_IMAGE, image_item)
-            self.table_items.setItem(row, _COL_EXERCISE, QTableWidgetItem(item.exercise_name))
-            self.table_items.setItem(row, _COL_TYPE, QTableWidgetItem(item.type_name))
-            self.table_items.setItem(row, _COL_VALUE, QTableWidgetItem(item.target_value))
-            unit = item.unit or "times"
-            self.table_items.setItem(row, _COL_UNIT, QTableWidgetItem(unit))
-            kcal = self._estimated_kcal(item)
-            total_kcal += kcal
-            self.table_items.setItem(row, _COL_KCAL, QTableWidgetItem(f"{kcal:.1f}"))
-        self.label_totals.setText(f"Estimated: {total_kcal:.0f} kcal")
+        try:
+            for item in items:
+                row = self.table_items.rowCount()
+                self.table_items.insertRow(row)
+                self._item_ids.append(item.id)
+                self._item_calories_per_unit.append(item.calories_per_unit)
+                self._item_calories_modifier.append(item.calories_modifier)
+                checkbox = QCheckBox()
+                checkbox.setChecked(item.is_done)
+                checkbox.setEnabled(not item.is_done)
+                if not item.is_done:
+                    checkbox.clicked.connect(
+                        lambda checked, item_id=item.id: self._on_done_toggled(item_id=item_id, checked=checked),
+                    )
+                self.table_items.setCellWidget(row, _COL_DONE, _make_done_cell(checkbox))
+                image_item = QTableWidgetItem()
+                image_item.setFlags(image_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                icon = self._icon_getter(item.exercise_name) if self._icon_getter is not None else None
+                if icon is not None and not icon.isNull():
+                    image_item.setIcon(icon)
+                self.table_items.setItem(row, _COL_IMAGE, image_item)
+                self._set_readonly_item(row, _COL_EXERCISE, item.exercise_name)
+                self._set_readonly_item(row, _COL_TYPE, item.type_name)
+                value_item = QTableWidgetItem(item.target_value)
+                if item.is_done:
+                    value_item.setFlags(value_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                self.table_items.setItem(row, _COL_VALUE, value_item)
+                unit = item.unit or "times"
+                self._set_readonly_item(row, _COL_UNIT, unit)
+                kcal = self._estimated_kcal(item)
+                total_kcal += kcal
+                self._set_readonly_item(row, _COL_KCAL, f"{kcal:.1f}")
+            self.label_totals.setText(f"Estimated: {total_kcal:.0f} kcal")
+        finally:
+            self.table_items.blockSignals(False)  # noqa: FBT003
+            self._filling_items = False
 
     def _load_workout(self, workout_id: int) -> None:
         if self._db is None:
@@ -299,9 +320,32 @@ class WorkoutsWidget(QWidget):
         self.item_done_requested.emit(item_id)
 
     def _on_item_double_clicked(self, index: QModelIndex) -> None:
+        if index.column() == _COL_VALUE:
+            value_item = self.table_items.item(index.row(), _COL_VALUE)
+            if value_item is not None and value_item.flags() & Qt.ItemFlag.ItemIsEditable:
+                self.table_items.editItem(value_item)
+            return
         row = index.row()
         if 0 <= row < len(self._item_ids):
             self.exercise_lightbox_requested.emit(self._item_ids[row])
+
+    def _on_table_item_changed(self, item: QTableWidgetItem) -> None:
+        if self._filling_items or item.column() != _COL_VALUE:
+            return
+        row = item.row()
+        if row < 0 or row >= len(self._item_ids):
+            return
+        new_value = item.text().strip()
+        item_id = self._item_ids[row]
+        if self._db is not None and not self._db.update_workout_item_target_value(item_id, new_value):
+            message_box.warning(self, "Error", "Failed to update workout value")
+            stored = self._db.get_workout_item_by_id(item_id)
+            self._filling_items = True
+            item.setText(stored.target_value if stored is not None else "")
+            self._filling_items = False
+            return
+        self._update_row_kcal(row)
+        self.workouts_changed.emit()
 
     def _on_workout_clicked(self, index: QModelIndex) -> None:
         item = self._list_model.itemFromIndex(index)
@@ -310,6 +354,18 @@ class WorkoutsWidget(QWidget):
         workout_id = item.data(Qt.ItemDataRole.UserRole)
         if isinstance(workout_id, int):
             self._load_workout(workout_id)
+
+    def _refresh_kcal_totals(self) -> None:
+        total_kcal = 0.0
+        for row in range(self.table_items.rowCount()):
+            kcal_item = self.table_items.item(row, _COL_KCAL)
+            if kcal_item is None:
+                continue
+            try:
+                total_kcal += float(kcal_item.text())
+            except ValueError:
+                continue
+        self.label_totals.setText(f"Estimated: {total_kcal:.0f} kcal")
 
     def _refresh_list_duration_label(self) -> None:
         workout_id = self._current_workout_id
@@ -402,6 +458,11 @@ class WorkoutsWidget(QWidget):
     def _selected_rows(self) -> list[int]:
         return sorted({index.row() for index in self.table_items.selectedIndexes()})
 
+    def _set_readonly_item(self, row: int, column: int, text: str) -> None:
+        cell = QTableWidgetItem(text)
+        cell.setFlags(cell.flags() & ~Qt.ItemFlag.ItemIsEditable)
+        self.table_items.setItem(row, column, cell)
+
     def _show_items_context_menu(self, position: QPoint) -> None:
         index = self.table_items.indexAt(position)
         if index.isValid() and not self.table_items.selectionModel().isSelected(index):
@@ -418,6 +479,23 @@ class WorkoutsWidget(QWidget):
         elif action == delete_action:
             self._remove_selected_items()
 
+    def _update_row_kcal(self, row: int) -> None:
+        value_item = self.table_items.item(row, _COL_VALUE)
+        kcal_item = self.table_items.item(row, _COL_KCAL)
+        if value_item is None or kcal_item is None:
+            return
+        if row >= len(self._item_calories_per_unit) or row >= len(self._item_calories_modifier):
+            return
+        kcal = estimate_workout_item_kcal(
+            value_item.text(),
+            calories_per_unit=self._item_calories_per_unit[row],
+            calories_modifier=self._item_calories_modifier[row],
+        )
+        self._filling_items = True
+        kcal_item.setText(f"{kcal:.1f}")
+        self._filling_items = False
+        self._refresh_kcal_totals()
+
 
 class _WorkoutImageDelegate(QStyledItemDelegate):
     """Paint exercise thumbnails without the row-selection blue fill."""
@@ -433,6 +511,20 @@ class _WorkoutImageDelegate(QStyledItemDelegate):
         option.state &= ~QStyle.StateFlag.State_Selected
         option.state &= ~QStyle.StateFlag.State_HasFocus
         super().paint(painter, option, index)
+
+
+def estimate_workout_item_kcal(
+    value_text: str,
+    *,
+    calories_per_unit: float,
+    calories_modifier: float,
+) -> float:
+    """Return estimated kcal for a workout item value."""
+    try:
+        value = float(value_text)
+    except (TypeError, ValueError):
+        return 0.0
+    return value * calories_per_unit * calories_modifier
 
 
 def _make_done_cell(checkbox: QCheckBox) -> QWidget:
