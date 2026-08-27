@@ -38,6 +38,7 @@ if TYPE_CHECKING:
 
 _SIDEBAR_MIN_WIDTH = 260
 _SIDEBAR_WIDTH = 300
+_MIN_IMAGE_EDGE = 2
 _TICK_MS = 100
 _VALUE_MAXIMUM = 1_000_000
 
@@ -228,6 +229,7 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
 
     def show_item(self, index: int) -> None:
         """Load the exercise image and bind the timer column."""
+        self._position_controls()
         super().show_item(index)
         self._bind_sidebar(index)
 
@@ -266,15 +268,12 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
         image_host = QWidget(splitter)
         image_host.setObjectName("fitnessLightboxImageHost")
         self._label.setParent(image_host)
-        image_layout = QVBoxLayout(image_host)
-        image_layout.setContentsMargins(0, 0, 0, 0)
-        image_layout.addWidget(self._label)
         splitter.addWidget(self._sidebar)
         splitter.addWidget(image_host)
         splitter.setStretchFactor(0, 0)
         splitter.setStretchFactor(1, 1)
         splitter.setSizes([_SIDEBAR_WIDTH, max(self.width() - _SIDEBAR_WIDTH, _SIDEBAR_WIDTH)])
-        splitter.splitterMoved.connect(self._position_controls)
+        splitter.splitterMoved.connect(self._on_splitter_moved)
         self._splitter = splitter
         self._image_host = image_host
         self.attach_content(splitter)
@@ -287,6 +286,21 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
             self.accept()
             return
         self._advance_after_confirm()
+
+    def _on_splitter_moved(self, _pos: int, _index: int) -> None:
+        self._position_controls()
+        self._schedule_avif_reload()
+
+    def _position_controls(self) -> None:
+        super()._position_controls()
+        host = self._image_host
+        if host is None:
+            return
+        rect = host.rect()
+        if rect.width() < _MIN_IMAGE_EDGE or rect.height() < _MIN_IMAGE_EDGE:
+            rect = QRect(0, 0, max(self.width() - _SIDEBAR_WIDTH, 1), max(self.height(), 1))
+        self._label.setGeometry(rect)
+        self._schedule_avif_reload()
 
 
 class FitnessLightboxSidebar(QFrame):

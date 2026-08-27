@@ -167,6 +167,10 @@ def test_fitness_lightbox_has_splitter_sidebar_and_browse_confirm(
     assert dialog._splitter is not None
     assert isinstance(dialog._splitter, QSplitter)
     assert dialog._splitter.count() == 2
+    assert dialog._image_host is not None
+    assert dialog._label.width() >= dialog._image_host.width() - 2
+    assert dialog._label.height() >= dialog._image_host.height() - 2
+    assert dialog._label.width() > 400
     assert dialog._sidebar._title.text() == "Push-ups"
     assert dialog._sidebar.value() == 10
     assert dialog._sidebar.selected_type() == "Wide"
