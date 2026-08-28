@@ -4307,39 +4307,77 @@ class MainWindow(
         self._scroll_table_to_exercise("exercises", name)
 
     def _append_exercises_to_list_view(self, exercise_names: list[str], *, defer_icons: bool = False) -> None:
-        """Append exercise items to listView_exercises model."""
+        """Sync `listView_exercises` to `exercise_names` without clearing icons.
+
+        Rows are moved in place (`takeRow` / `insertRow`) so existing `QIcon`
+        instances stay on their items. New exercises still load icons from cache
+        or the deferred decode queue.
+
+        """
         if self.exercises_list_model is None:
             return
 
+        model = self.exercises_list_model
         name_locals = self.db_manager.get_exercise_name_local_map() if self.db_manager else {}
         favorite_names = self.db_manager.get_favorite_exercise_names() if self.db_manager else set()
         dumbbell_names = self._cached_dumbbell_exercise_names()
         goal_infos = self._exercise_goal_info_map()
-        for exercise in exercise_names:
-            display_text = format_favorite_exercise_label(
-                exercise,
-                favorite=exercise in favorite_names,
-                extra=goal_infos.get(exercise, ""),
-                dumbbell=exercise in dumbbell_names,
-            )
-            item = QStandardItem(display_text)
 
-            # Prefer the cache when rebuilding (e.g. after Add): empty icons + async
-            # decode makes the whole list flicker even though thumbnails were already loaded.
+        def _row_for(name: str) -> int | None:
+            for row in range(model.rowCount()):
+                item = model.item(row)
+                if item is not None and item.data(Qt.ItemDataRole.UserRole) == name:
+                    return row
+            return None
+
+        def _fill_icon(item: QStandardItem, exercise: str) -> None:
+            if not item.icon().isNull():
+                return
             if defer_icons:
                 icon = self._exercise_icon_or_defer(exercise)
                 if not icon.isNull():
                     item.setIcon(icon)
-            else:
-                icon = self._get_exercise_icon(exercise)
-                if icon is not None and not icon.isNull():
-                    item.setIcon(icon)
+                return
+            icon = self._get_exercise_icon(exercise)
+            if icon is not None and not icon.isNull():
+                item.setIcon(icon)
 
+        def _apply_item_meta(item: QStandardItem, exercise: str) -> None:
+            item.setText(
+                format_favorite_exercise_label(
+                    exercise,
+                    favorite=exercise in favorite_names,
+                    extra=goal_infos.get(exercise, ""),
+                    dumbbell=exercise in dumbbell_names,
+                )
+            )
             item.setData(exercise, Qt.ItemDataRole.UserRole)
             name_local = name_locals.get(exercise, "").strip()
-            if name_local:
-                item.setData(name_local, NAME_LOCAL_ROLE)
-            self.exercises_list_model.appendRow(item)
+            item.setData(name_local or None, NAME_LOCAL_ROLE)
+            _fill_icon(item, exercise)
+
+        for target_row, exercise in enumerate(exercise_names):
+            current_row = _row_for(exercise)
+            if current_row is None:
+                item = QStandardItem()
+                _apply_item_meta(item, exercise)
+                model.insertRow(target_row, [item])
+                continue
+            if current_row != target_row:
+                taken = model.takeRow(current_row)
+                model.insertRow(target_row, taken)
+            item = model.item(target_row)
+            if item is not None:
+                _apply_item_meta(item, exercise)
+
+        desired = set(exercise_names)
+        for row in range(model.rowCount() - 1, len(exercise_names) - 1, -1):
+            item = model.item(row)
+            name = item.data(Qt.ItemDataRole.UserRole) if item is not None else None
+            if name not in desired:
+                model.takeRow(row)
+        while model.rowCount() > len(exercise_names):
+            model.takeRow(model.rowCount() - 1)
 
     def _append_process_rows_to_model(self, model: QStandardItemModel, transformed_data: list[list]) -> None:
         """Append transformed process rows to an existing source model."""
@@ -8520,7 +8558,6 @@ class MainWindow(
                 selection_model.blockSignals(True)  # noqa: FBT003
 
             if self.exercises_list_model is not None:
-                self.exercises_list_model.clear()
                 self._append_exercises_to_list_view(exercises, defer_icons=defer_icons)
                 self._filter_exercises_list(self.lineEdit_exercises_filter.text())
 

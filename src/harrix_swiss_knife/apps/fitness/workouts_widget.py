@@ -6,16 +6,18 @@ import logging
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QElapsedTimer, QModelIndex, QPoint, QSize, Qt, QTimer, Signal
-from PySide6.QtGui import QIcon, QKeySequence, QPainter, QShortcut, QStandardItem, QStandardItemModel
+from PySide6.QtGui import QFont, QIcon, QKeySequence, QPainter, QShortcut, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
+    QFrame,
     QHBoxLayout,
     QHeaderView,
     QLabel,
     QListView,
     QMenu,
     QMessageBox,
+    QPushButton,
     QSplitter,
     QStyle,
     QStyledItemDelegate,
@@ -31,7 +33,7 @@ from harrix_swiss_knife.apps.common.table_context_menu import LABEL_OPEN_LIGHTBO
 from harrix_swiss_knife.apps.common.widgets.exercise_list_hover_preview import exercise_at_table_image
 from harrix_swiss_knife.apps.fitness.lightbox_logic import format_mm_ss
 from harrix_swiss_knife.apps.fitness.workouts_ai import estimate_workout_duration_min
-from harrix_swiss_knife.qt_emoji_icon import apply_leading_emoji_icons, make_emoji_push_button
+from harrix_swiss_knife.qt_emoji_icon import apply_leading_emoji_icons, create_emoji_icon
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -52,6 +54,62 @@ _COL_KCAL = 6
 _DEFAULT_TABLE_ICON_SIZE = 64
 _ITEM_COLUMN_COUNT = 7
 _DONE_COLUMN_WIDTH = 56
+_GREEN_BUTTON_STYLE = """
+QPushButton {
+    background-color: lightgreen;
+    border: 1px solid #4CAF50;
+    border-radius: 4px;
+}
+QPushButton:hover {
+    background-color: #90EE90;
+}
+QPushButton:pressed {
+    background-color: #7FDD7F;
+}
+QPushButton:disabled {
+    background-color: #e8e8e8;
+    border: 1px solid #bdbdbd;
+    color: #9e9e9e;
+}
+"""
+_STOP_BUTTON_STYLE = """
+QPushButton {
+    background-color: #ffebee;
+    border: 1px solid #e57373;
+    border-radius: 4px;
+}
+QPushButton:hover {
+    background-color: #ffcdd2;
+}
+QPushButton:pressed {
+    background-color: #ef9a9a;
+}
+"""
+_SESSION_BAR_STYLE = """
+QFrame#workoutsSessionBar {
+    background-color: #e8f5e9;
+    border: 1px solid #81c784;
+    border-radius: 6px;
+}
+"""
+_LIST_STYLE = """
+QListView {
+    border: 2px solid #4CAF50;
+    border-radius: 4px;
+    background-color: white;
+}
+QListView::item {
+    padding: 4px;
+    border-bottom: 1px solid #e0e0e0;
+}
+QListView::item:selected {
+    background-color: #e8f5e9;
+    color: black;
+}
+QListView::item:hover {
+    background-color: #c8e6c9;
+}
+"""
 
 
 class WorkoutsWidget(QWidget):
@@ -188,16 +246,39 @@ class WorkoutsWidget(QWidget):
     def _build_ui(self) -> None:
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
-        self._session_bar = QWidget()
+        root.setSpacing(0)
+
+        font_12_bold = QFont()
+        font_12_bold.setPointSize(12)
+        font_12_bold.setBold(True)
+        font_title = QFont()
+        font_title.setPointSize(14)
+        font_title.setBold(True)
+        font_timer = QFont()
+        font_timer.setPointSize(28)
+        font_timer.setBold(True)
+
+        self._session_bar = QFrame()
+        self._session_bar.setObjectName("workoutsSessionBar")
+        self._session_bar.setStyleSheet(_SESSION_BAR_STYLE)
         session_layout = QHBoxLayout(self._session_bar)
-        session_layout.setContentsMargins(8, 8, 8, 0)
-        session_layout.addWidget(QLabel("Workout time:"))
+        session_layout.setContentsMargins(12, 8, 12, 8)
+        session_layout.setSpacing(16)
+        session_layout.addStretch(1)
         self.label_session_timer = QLabel("0:00")
+        self.label_session_timer.setFont(font_timer)
+        self.label_session_timer.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.label_session_timer.setMinimumWidth(140)
         session_layout.addWidget(self.label_session_timer)
-        session_layout.addStretch()
-        self.button_stop = make_emoji_push_button("Stop", "⏹")
+        self.button_stop = QPushButton("Stop")
+        self.button_stop.setIcon(create_emoji_icon("⏹"))
+        self.button_stop.setMinimumHeight(41)
+        self.button_stop.setMinimumWidth(110)
+        self.button_stop.setFont(font_12_bold)
+        self.button_stop.setStyleSheet(_STOP_BUTTON_STYLE)
         self.button_stop.clicked.connect(lambda: self.stop_workout_session(completed=False))
         session_layout.addWidget(self.button_stop)
+        session_layout.addStretch(1)
         self._session_bar.hide()
         root.addWidget(self._session_bar)
 
@@ -208,13 +289,15 @@ class WorkoutsWidget(QWidget):
         left_layout = QVBoxLayout(left)
         left_layout.setContentsMargins(8, 8, 8, 8)
         left_layout.addWidget(QLabel("Workouts"))
-        new_row = QHBoxLayout()
-        self.button_new = make_emoji_push_button("New", "➕")  # noqa: RUF001
+        self.button_new = QPushButton("New")
+        self.button_new.setIcon(create_emoji_icon("➕"))  # noqa: RUF001
+        self.button_new.setMinimumHeight(41)
+        self.button_new.setFont(font_12_bold)
+        self.button_new.setStyleSheet(_GREEN_BUTTON_STYLE)
         self.button_new.clicked.connect(self.generate_requested.emit)
-        new_row.addWidget(self.button_new)
-        new_row.addStretch()
-        left_layout.addLayout(new_row)
+        left_layout.addWidget(self.button_new)
         self.list_workouts = QListView()
+        self.list_workouts.setStyleSheet(_LIST_STYLE)
         self._list_model = QStandardItemModel(self.list_workouts)
         self.list_workouts.setModel(self._list_model)
         self.list_workouts.clicked.connect(self._on_workout_clicked)
@@ -228,8 +311,14 @@ class WorkoutsWidget(QWidget):
         right_layout.setContentsMargins(8, 8, 8, 8)
         title_row = QHBoxLayout()
         self.label_title = QLabel("Select a workout")
+        self.label_title.setFont(font_title)
         title_row.addWidget(self.label_title, 1)
-        self.button_start = make_emoji_push_button("Start", "▶")
+        self.button_start = QPushButton("Start")
+        self.button_start.setIcon(create_emoji_icon("▶"))
+        self.button_start.setMinimumHeight(41)
+        self.button_start.setMinimumWidth(120)
+        self.button_start.setFont(font_12_bold)
+        self.button_start.setStyleSheet(_GREEN_BUTTON_STYLE)
         self.button_start.clicked.connect(self._start_workout_session)
         title_row.addWidget(self.button_start)
         right_layout.addLayout(title_row)
