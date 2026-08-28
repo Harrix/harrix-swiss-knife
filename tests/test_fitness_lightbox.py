@@ -27,6 +27,7 @@ from harrix_swiss_knife.apps.fitness.lightbox_logic import (
     default_exercise_type,
     format_mm_ss,
     parse_exercise_value,
+    target_seconds_for_exercise,
 )
 from harrix_swiss_knife.apps.fitness.lightbox_sounds import fitness_timer_cue_sound_name
 
@@ -50,7 +51,18 @@ def _details(_name: str, _item_id: int | None) -> FitnessLightboxDetails:
     return FitnessLightboxDetails(unit="times", types=["Wide", "Narrow"], selected_type="Wide", value=10)
 
 
-def _item(*, item_id: int, name: str, sort_order: int) -> WorkoutItemRow:
+def _plank_details(_name: str, _item_id: int | None) -> FitnessLightboxDetails:
+    return FitnessLightboxDetails(unit="sec.", types=[], selected_type="", value=5)
+
+
+def _item(
+    *,
+    item_id: int,
+    name: str,
+    sort_order: int,
+    target: str = "12",
+    unit: str = "times",
+) -> WorkoutItemRow:
     return WorkoutItemRow(
         id=item_id,
         workout_id=1,
@@ -58,11 +70,11 @@ def _item(*, item_id: int, name: str, sort_order: int) -> WorkoutItemRow:
         type_id=3,
         exercise_name=name,
         type_name="Wide",
-        target_value="12",
+        target_value=target,
         sort_order=sort_order,
         is_done=False,
         process_id=None,
-        unit="times",
+        unit=unit,
         calories_per_unit=1.0,
         calories_modifier=1.0,
     )
@@ -100,6 +112,14 @@ def test_parse_exercise_value_and_format_mm_ss() -> None:
     assert format_mm_ss(75) == "1:15"
 
 
+def test_target_seconds_for_timed_exercise_units() -> None:
+    assert target_seconds_for_exercise("sec.", 5) == 5
+    assert target_seconds_for_exercise("seconds", 12) == 12
+    assert target_seconds_for_exercise("min", 2) == 120
+    assert target_seconds_for_exercise("times", 5) is None
+    assert target_seconds_for_exercise("sec.", 0) is None
+
+
 def test_stopwatch_countdown_then_elapsed_then_overtime() -> None:
     watch = ExerciseStopwatch(countdown_seconds=2, limit_seconds=3)
     idle = watch.snapshot()
@@ -120,6 +140,7 @@ def test_stopwatch_countdown_then_elapsed_then_overtime() -> None:
     assert later.is_overtime
     assert later.color is StopwatchColor.OVERTIME
     assert later.display_seconds == 3
+    assert later.is_running
     paused = watch.pause()
     assert not paused.is_running
     watch.advance(5000)
@@ -127,6 +148,18 @@ def test_stopwatch_countdown_then_elapsed_then_overtime() -> None:
     restarted = watch.restart()
     assert restarted.phase is StopwatchPhase.COUNTDOWN
     assert not restarted.is_overtime
+
+
+def test_stopwatch_stops_at_timed_exercise_limit() -> None:
+    watch = ExerciseStopwatch(countdown_seconds=0, limit_seconds=5, stop_at_limit=True)
+    watch.start()
+    snapshot = watch.advance(5000)
+    assert snapshot.is_overtime
+    assert snapshot.display_seconds == 5
+    assert not snapshot.is_running
+    watch.advance(2000)
+    assert watch.snapshot().display_seconds == 5
+    assert not watch.snapshot().is_running
 
 
 def test_stopwatch_capture_and_restore_resumes_elapsed() -> None:
@@ -201,6 +234,50 @@ def test_fitness_lightbox_flashes_start_and_finish(
     assert cues == ["start", "finish"]
     assert dialog._sidebar._prepare_label.text() == "Finish"
     assert not dialog._sidebar._prepare_label.isHidden()
+    dialog.close()
+
+
+def test_fitness_lightbox_stops_on_timed_exercise_target(
+    tmp_path: Path,
+    qapp: QApplication,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    img_dir = tmp_path / "fitness_img"
+    img_dir.mkdir()
+    _write_test_avif(img_dir / "Plank.avif")
+    manager = AvifManager(img_dir)
+    cues: list[str] = []
+    alerts: list[str] = []
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.fitness.fitness_lightbox.play_fitness_timer_cue",
+        cues.append,
+    )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.fitness.fitness_lightbox.play_fitness_timer_alert",
+        lambda: alerts.append("alert"),
+    )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.fitness.fitness_lightbox.stop_fitness_timer_alert",
+        lambda: None,
+    )
+    dialog = FitnessExerciseLightboxDialog(
+        ["Plank"],
+        avif_manager=manager,
+        details_loader=_plank_details,
+        confirm_handler=lambda _payload: True,
+        countdown_seconds=0,
+        workout_duration_min=10,
+        workout_items=[_item(item_id=1, name="Plank", sort_order=0, target="5")],
+    )
+    assert dialog._sidebar._limit_seconds == 5
+    assert dialog._sidebar._limit_label.text() == "Target 0:05"
+    dialog._sidebar._on_start()
+    dialog._sidebar._apply_snapshot(dialog._sidebar._stopwatch.advance(5000))
+    assert cues == ["start", "finish"]
+    assert dialog._sidebar._prepare_label.text() == "Finish"
+    assert dialog._sidebar._time_label.text() == "0:05"
+    assert not dialog._sidebar._stopwatch.snapshot().is_running
+    assert alerts == []
     dialog.close()
 
 
