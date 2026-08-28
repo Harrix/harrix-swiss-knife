@@ -1757,6 +1757,17 @@ class MainWindow(
 
     def _on_dashboard_data_changed(self) -> None:
         """Refresh table views after check-ins or habit edits on the dashboard."""
+        timer = getattr(self, "_dashboard_tables_sync_timer", None)
+        if timer is None:
+            timer = QTimer(self)
+            timer.setSingleShot(True)
+            timer.setInterval(50)
+            timer.timeout.connect(self._sync_tables_after_dashboard_change)
+            self._dashboard_tables_sync_timer = timer
+        timer.start()
+
+    def _sync_tables_after_dashboard_change(self) -> None:
+        """Reload process/habits tables after the dashboard has painted."""
         if self._is_closing or not self._validate_database_connection():
             return
         self.show_tables()

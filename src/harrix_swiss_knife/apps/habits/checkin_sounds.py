@@ -4,14 +4,14 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QFile, QUrl
+from PySide6.QtCore import QFile, QTimer, QUrl
 from PySide6.QtMultimedia import QSoundEffect
 
 _DONE_NAME = "habit_done.wav"
 _NOT_DONE_NAME = "habit_not_done.wav"
 _VOLUME = 0.5
 
-_active_effects: list[QSoundEffect] = []
+_effects: dict[str, QSoundEffect] = {}
 
 
 def habit_checkin_sound_name(value: int | None) -> str | None:
@@ -26,19 +26,59 @@ def habit_checkin_sound_name(value: int | None) -> str | None:
 
 
 def play_habit_checkin_sound(value: int | None) -> None:
-    """Play the Done or Not done sound after a successful user check-in."""
+    """Play the Done or Not done sound without blocking the UI.
+
+    Loading and playback are deferred to the next event-loop turn so the
+    checkmark can paint before audio work runs.
+
+    """
     name = habit_checkin_sound_name(value)
     if name is None:
         return
+    QTimer.singleShot(0, lambda sound_name=name: _play_named(sound_name))
+
+
+def _effect_for(name: str) -> QSoundEffect | None:
+    cached = _effects.get(name)
+    if cached is not None:
+        return cached
     url = _sound_url(name)
     if not url.isValid():
-        return
+        return None
     effect = QSoundEffect()
     effect.setSource(url)
     effect.setVolume(_VOLUME)
-    _active_effects.clear()
-    _active_effects.append(effect)
-    effect.play()
+    _effects[name] = effect
+    return effect
+
+
+def _play_named(name: str) -> None:
+    effect = _effect_for(name)
+    if effect is None:
+        return
+    status = effect.status()
+    if status == QSoundEffect.Status.Ready:
+        effect.play()
+        return
+    if status == QSoundEffect.Status.Error:
+        return
+
+    def _on_status(new_status: QSoundEffect.Status) -> None:
+        if new_status == QSoundEffect.Status.Error:
+            try:
+                effect.statusChanged.disconnect(_on_status)
+            except RuntimeError:
+                pass
+            return
+        if new_status != QSoundEffect.Status.Ready:
+            return
+        try:
+            effect.statusChanged.disconnect(_on_status)
+        except RuntimeError:
+            pass
+        effect.play()
+
+    effect.statusChanged.connect(_on_status)
 
 
 def _sound_url(name: str) -> QUrl:
