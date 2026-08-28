@@ -17,6 +17,7 @@ lang: en
   - [⚙️ Method `chrome_rect`](#%EF%B8%8F-method-chrome_rect)
   - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
   - [⚙️ Method `done`](#%EF%B8%8F-method-done)
+  - [⚙️ Method `exercise_timer_config`](#%EF%B8%8F-method-exercise_timer_config)
   - [⚙️ Method `should_open_sets_tab (property)`](#%EF%B8%8F-method-should_open_sets_tab-property)
   - [⚙️ Method `showEvent`](#%EF%B8%8F-method-showevent)
   - [⚙️ Method `show_item`](#%EF%B8%8F-method-show_item)
@@ -25,6 +26,7 @@ lang: en
   - [⚙️ Method `apply_backdrop`](#%EF%B8%8F-method-apply_backdrop)
   - [⚙️ Method `bind`](#%EF%B8%8F-method-bind)
   - [⚙️ Method `capture_timer_state`](#%EF%B8%8F-method-capture_timer_state)
+  - [⚙️ Method `exercise_timer_config`](#%EF%B8%8F-method-exercise_timer_config-1)
   - [⚙️ Method `reset_timer`](#%EF%B8%8F-method-reset_timer)
   - [⚙️ Method `restore_timer_state`](#%EF%B8%8F-method-restore_timer_state)
   - [⚙️ Method `selected_type`](#%EF%B8%8F-method-selected_type)
@@ -145,6 +147,10 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
         self._capture_timer_before_close()
         self._sidebar.shutdown()
         super().done(result)
+
+    def exercise_timer_config(self) -> tuple[int, int | None, bool]:
+        """Return countdown, limit, and stop-at-limit used by the sidebar stopwatch."""
+        return self._sidebar.exercise_timer_config()
 
     @property
     def should_open_sets_tab(self) -> bool:
@@ -445,6 +451,24 @@ def done(self, result: int) -> None:
 
 </details>
 
+### ⚙️ Method `exercise_timer_config`
+
+```python
+def exercise_timer_config(self) -> tuple[int, int | None, bool]
+```
+
+Return countdown, limit, and stop-at-limit used by the sidebar stopwatch.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def exercise_timer_config(self) -> tuple[int, int | None, bool]:
+        return self._sidebar.exercise_timer_config()
+```
+
+</details>
+
 ### ⚙️ Method `should_open_sets_tab (property)`
 
 ```python
@@ -597,6 +621,14 @@ class FitnessLightboxSidebar(QFrame):
     def capture_timer_state(self) -> ExerciseStopwatchState:
         """Return the current stopwatch state for Continue resume."""
         return self._stopwatch.capture_state()
+
+    def exercise_timer_config(self) -> tuple[int, int | None, bool]:
+        """Return countdown, limit, and stop-at-limit used by the stopwatch."""
+        return (
+            self._countdown_seconds,
+            self._limit_seconds,
+            self._stop_at_limit,
+        )
 
     def reset_timer(self) -> None:
         """Stop the clock and return to idle."""
@@ -983,6 +1015,28 @@ Return the current stopwatch state for Continue resume.
 ```python
 def capture_timer_state(self) -> ExerciseStopwatchState:
         return self._stopwatch.capture_state()
+```
+
+</details>
+
+### ⚙️ Method `exercise_timer_config`
+
+```python
+def exercise_timer_config(self) -> tuple[int, int | None, bool]
+```
+
+Return countdown, limit, and stop-at-limit used by the stopwatch.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def exercise_timer_config(self) -> tuple[int, int | None, bool]:
+        return (
+            self._countdown_seconds,
+            self._limit_seconds,
+            self._stop_at_limit,
+        )
 ```
 
 </details>

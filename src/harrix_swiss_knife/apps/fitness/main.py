@@ -13,11 +13,13 @@ import contextlib
 import logging
 import time
 from collections import OrderedDict, defaultdict
-from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 from functools import partial
 from pathlib import Path
-from typing import Any, Literal, cast
+from typing import TYPE_CHECKING, Any, Literal, cast
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 import harrix_pylib as h
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
@@ -245,24 +247,6 @@ _EXERCISE_TABLE_TYPE_REQUIRED_COLUMN = 3
 _ICON_DECODE_BUDGET_S = 0.02
 # Decode the top rows of listView_exercises before the rest of the catalog.
 _ICON_DECODE_LIST_PRIORITY = 20
-
-
-def enqueue_deferred_exercise_icon(pending: OrderedDict[str, None], exercise_name: str) -> None:
-    """Append `exercise_name` to the deferred icon queue if it is not already there."""
-    name = exercise_name.strip()
-    if not name or name in pending:
-        return
-    pending[name] = None
-
-
-def prioritize_deferred_exercise_icons(
-    pending: OrderedDict[str, None],
-    priority_names: Sequence[str],
-) -> None:
-    """Move still-pending names from `priority_names` to the front, keeping that order."""
-    front = [name for name in priority_names if name in pending]
-    for name in reversed(front):
-        pending.move_to_end(name, last=False)
 
 
 class MainWindow(
@@ -9109,6 +9093,14 @@ class MainWindow(
         }
 
 
+def enqueue_deferred_exercise_icon(pending: OrderedDict[str, None], exercise_name: str) -> None:
+    """Append `exercise_name` to the deferred icon queue if it is not already there."""
+    name = exercise_name.strip()
+    if not name or name in pending:
+        return
+    pending[name] = None
+
+
 def exercise_names_from_name_column(model: QAbstractItemModel | None, name_column: int) -> list[str]:
     """Return unique exercise names from `name_column`, in model order."""
     if model is None:
@@ -9133,6 +9125,16 @@ def exercise_table_focus_column(table_name: str) -> int:
 def is_exercise_table_image_column(column: int) -> bool:
     """Return whether a table click landed on the exercise thumbnail."""
     return column == _EXERCISE_TABLE_IMAGE_COLUMN
+
+
+def prioritize_deferred_exercise_icons(
+    pending: OrderedDict[str, None],
+    priority_names: Sequence[str],
+) -> None:
+    """Move still-pending names from `priority_names` to the front, keeping that order."""
+    front = [name for name in priority_names if name in pending]
+    for name in reversed(front):
+        pending.move_to_end(name, last=False)
 
 
 if __name__ == "__main__":

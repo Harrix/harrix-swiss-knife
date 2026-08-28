@@ -70,9 +70,11 @@ lang: en
   - [⚙️ Method `update_sets_count_today`](#%EF%B8%8F-method-update_sets_count_today)
   - [⚙️ Method `update_statistics_exercise_combobox`](#%EF%B8%8F-method-update_statistics_exercise_combobox)
   - [⚙️ Method `update_weight_chart`](#%EF%B8%8F-method-update_weight_chart)
+- [🔧 Function `enqueue_deferred_exercise_icon`](#-function-enqueue_deferred_exercise_icon)
 - [🔧 Function `exercise_names_from_name_column`](#-function-exercise_names_from_name_column)
 - [🔧 Function `exercise_table_focus_column`](#-function-exercise_table_focus_column)
 - [🔧 Function `is_exercise_table_image_column`](#-function-is_exercise_table_image_column)
+- [🔧 Function `prioritize_deferred_exercise_icons`](#-function-prioritize_deferred_exercise_icons)
 
 </details>
 
@@ -259,7 +261,7 @@ class MainWindow(
         self._exercise_catalog_refresh_timer.setSingleShot(True)
         self._exercise_catalog_refresh_timer.timeout.connect(self._flush_exercise_catalog_refresh)
         self._exercise_catalog_refresh_focus: str | None = None
-        self._exercise_icons_defer_decode: set[str] = set()
+        self._exercise_icons_defer_decode: OrderedDict[str, None] = OrderedDict()
         self._exercises_catalog_loaded = False
 
         # Initialize application
@@ -4266,7 +4268,7 @@ class MainWindow(
         name = exercise.strip()
         if not name or self.db_manager is None:
             return
-        self._exercise_icons_defer_decode.add(name)
+        enqueue_deferred_exercise_icon(self._exercise_icons_defer_decode, name)
         if self._scroll_table_to_exercise("exercises", name):
             self._append_exercise_name_to_list_view(name, load_icon=False)
             return
@@ -5105,7 +5107,7 @@ class MainWindow(
         deadline = time.perf_counter() + _ICON_DECODE_BUDGET_S
         decoded: set[str] = set()
         while self._exercise_icons_defer_decode:
-            name = self._exercise_icons_defer_decode.pop()
+            name, _ = self._exercise_icons_defer_decode.popitem(last=False)
             self._get_exercise_icon(name)
             decoded.add(name)
             if time.perf_counter() >= deadline:
@@ -5338,7 +5340,7 @@ class MainWindow(
         if cached is not None:
             return cached[1] or QIcon()
         if exercise_name:
-            self._exercise_icons_defer_decode.add(exercise_name)
+            enqueue_deferred_exercise_icon(self._exercise_icons_defer_decode, exercise_name)
         return QIcon()
 
     def _exercise_names_from_item_model(self, model: QStandardItemModel | None) -> list[str]:
@@ -5612,7 +5614,12 @@ class MainWindow(
         self.update_all(is_preserve_selections=True, current_exercise=preserve)
         if isinstance(preserve, str) and preserve:
             self._scroll_table_to_exercise("exercises", preserve)
-        QTimer.singleShot(0, self._decode_next_deferred_exercise_icon)
+        if self._exercise_icons_defer_decode:
+            prioritize_deferred_exercise_icons(
+                self._exercise_icons_defer_decode,
+                self._exercise_names_from_item_model(self.exercises_list_model)[:_ICON_DECODE_LIST_PRIORITY],
+            )
+            QTimer.singleShot(0, self._decode_next_deferred_exercise_icon)
 
     def _focus_and_select_spinbox_count(self) -> None:
         """Move focus to spinBox_count and select all text.
@@ -7129,7 +7136,14 @@ class MainWindow(
             if item is None or item.is_done:
                 self._workouts_widget.clear_exercise_timer_state()
                 return
-        self._workouts_widget.save_exercise_timer_state(item_id, state)
+        countdown_seconds, limit_seconds, stop_at_limit = dialog.exercise_timer_config()
+        self._workouts_widget.save_exercise_timer_state(
+            item_id,
+            state,
+            countdown_seconds=countdown_seconds,
+            limit_seconds=limit_seconds,
+            stop_at_limit=stop_at_limit,
+        )
 
     def _populate_exercises_catalog_tables(self) -> None:
         """Rebuild Exercises and Types tables from the database."""
@@ -7176,6 +7190,10 @@ class MainWindow(
         self._reload_types_table(dumbbell_names=dumbbell_names)
         self._update_exercises_catalog_count_labels()
         if self._exercise_icons_defer_decode:
+            prioritize_deferred_exercise_icons(
+                self._exercise_icons_defer_decode,
+                self._exercise_names_from_item_model(self.exercises_list_model)[:_ICON_DECODE_LIST_PRIORITY],
+            )
             QTimer.singleShot(0, self._decode_next_deferred_exercise_icon)
 
     def _process_filter_is_active(self) -> bool:
@@ -7319,7 +7337,7 @@ class MainWindow(
         for row in types_data:
             exercise_name = str(row[1] or "")
             if defer_icons and exercise_name:
-                self._exercise_icons_defer_decode.add(exercise_name)
+                enqueue_deferred_exercise_icon(self._exercise_icons_defer_decode, exercise_name)
             types_transformed_data.append(
                 [
                     QIcon() if defer_icons else self._exercise_icon_or_defer(exercise_name),
@@ -8639,6 +8657,11 @@ class MainWindow(
             if self.exercises_list_model is not None:
                 self._append_exercises_to_list_view(exercises, defer_icons=defer_icons)
                 self._filter_exercises_list(self.lineEdit_exercises_filter.text())
+                if defer_icons:
+                    prioritize_deferred_exercise_icons(
+                        self._exercise_icons_defer_decode,
+                        exercises[:_ICON_DECODE_LIST_PRIORITY],
+                    )
 
             # Unblock signals
             if selection_model:
@@ -9059,7 +9082,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
         self._exercise_catalog_refresh_timer.setSingleShot(True)
         self._exercise_catalog_refresh_timer.timeout.connect(self._flush_exercise_catalog_refresh)
         self._exercise_catalog_refresh_focus: str | None = None
-        self._exercise_icons_defer_decode: set[str] = set()
+        self._exercise_icons_defer_decode: OrderedDict[str, None] = OrderedDict()
         self._exercises_catalog_loaded = False
 
         # Initialize application
@@ -13048,6 +13071,27 @@ def update_weight_chart(self) -> None:
 
 </details>
 
+## 🔧 Function `enqueue_deferred_exercise_icon`
+
+```python
+def enqueue_deferred_exercise_icon(pending: OrderedDict[str, None], exercise_name: str) -> None
+```
+
+Append `exercise_name` to the deferred icon queue if it is not already there.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def enqueue_deferred_exercise_icon(pending: OrderedDict[str, None], exercise_name: str) -> None:
+    name = exercise_name.strip()
+    if not name or name in pending:
+        return
+    pending[name] = None
+```
+
+</details>
+
 ## 🔧 Function `exercise_names_from_name_column`
 
 ```python
@@ -13109,6 +13153,29 @@ Return whether a table click landed on the exercise thumbnail.
 ```python
 def is_exercise_table_image_column(column: int) -> bool:
     return column == _EXERCISE_TABLE_IMAGE_COLUMN
+```
+
+</details>
+
+## 🔧 Function `prioritize_deferred_exercise_icons`
+
+```python
+def prioritize_deferred_exercise_icons(pending: OrderedDict[str, None], priority_names: Sequence[str]) -> None
+```
+
+Move still-pending names from `priority_names` to the front, keeping that order.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def prioritize_deferred_exercise_icons(
+    pending: OrderedDict[str, None],
+    priority_names: Sequence[str],
+) -> None:
+    front = [name for name in priority_names if name in pending]
+    for name in reversed(front):
+        pending.move_to_end(name, last=False)
 ```
 
 </details>

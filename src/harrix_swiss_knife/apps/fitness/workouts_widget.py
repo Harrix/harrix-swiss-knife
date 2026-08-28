@@ -823,11 +823,6 @@ class WorkoutsWidget(QWidget):
             return
         self._refresh_list_duration_label(duration)
 
-    def _tick_session_timer(self) -> None:
-        if self._session_active:
-            self._update_session_timer_label()
-            self._tick_exercise_timer()
-
     def _tick_exercise_timer(self) -> None:
         state = self._exercise_timer_state
         if state is None or not state.running:
@@ -843,6 +838,11 @@ class WorkoutsWidget(QWidget):
         self._exercise_timer_state = watch.capture_state()
         self.label_exercise_timer.setText(format_mm_ss(snapshot.display_seconds))
         self.label_exercise_timer.setVisible(bool(self._exercise_timer_state.running))
+
+    def _tick_session_timer(self) -> None:
+        if self._session_active:
+            self._update_session_timer_label()
+            self._tick_exercise_timer()
 
     def _update_exercise_timer_label(self) -> None:
         state = self._exercise_timer_state

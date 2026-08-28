@@ -152,14 +152,6 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
         """Return the workout item ID and stopwatch state captured on close."""
         return self._captured_timer_item_id, self._captured_timer_state
 
-    def exercise_timer_config(self) -> tuple[int, int | None, bool]:
-        """Return countdown, limit, and stop-at-limit used by the sidebar stopwatch."""
-        return (
-            self._sidebar._countdown_seconds,
-            self._sidebar._limit_seconds,
-            self._sidebar._stop_at_limit,
-        )
-
     def chrome_rect(self) -> QRect:
         """Place overlay chrome over the image pane, not the timer column.
 
@@ -180,6 +172,10 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
         self._capture_timer_before_close()
         self._sidebar.shutdown()
         super().done(result)
+
+    def exercise_timer_config(self) -> tuple[int, int | None, bool]:
+        """Return countdown, limit, and stop-at-limit used by the sidebar stopwatch."""
+        return self._sidebar.exercise_timer_config()
 
     @property
     def should_open_sets_tab(self) -> bool:
@@ -397,6 +393,14 @@ class FitnessLightboxSidebar(QFrame):
     def capture_timer_state(self) -> ExerciseStopwatchState:
         """Return the current stopwatch state for Continue resume."""
         return self._stopwatch.capture_state()
+
+    def exercise_timer_config(self) -> tuple[int, int | None, bool]:
+        """Return countdown, limit, and stop-at-limit used by the stopwatch."""
+        return (
+            self._countdown_seconds,
+            self._limit_seconds,
+            self._stop_at_limit,
+        )
 
     def reset_timer(self) -> None:
         """Stop the clock and return to idle."""

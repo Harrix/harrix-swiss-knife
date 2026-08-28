@@ -69,12 +69,19 @@ class WorkoutsWidget(QWidget):
         self._session_timer.timeout.connect(self._tick_session_timer)
         self._exercise_timer_item_id: int | None = None
         self._exercise_timer_state: ExerciseStopwatchState | None = None
+        self._exercise_timer_countdown_seconds = 0
+        self._exercise_timer_limit_seconds: int | None = None
+        self._exercise_timer_stop_at_limit = False
         self._build_ui()
 
     def clear_exercise_timer_state(self) -> None:
         """Drop any saved lightbox stopwatch so the next open starts fresh."""
         self._exercise_timer_item_id = None
         self._exercise_timer_state = None
+        self._exercise_timer_countdown_seconds = 0
+        self._exercise_timer_limit_seconds = None
+        self._exercise_timer_stop_at_limit = False
+        self._update_exercise_timer_label()
 
     def configure_exercise_images(
         self,
@@ -125,13 +132,25 @@ class WorkoutsWidget(QWidget):
         """Reload the workout list, keeping the current selection when possible."""
         self._reload_list(keep_selection=True)
 
-    def save_exercise_timer_state(self, item_id: int, state: ExerciseStopwatchState) -> None:
+    def save_exercise_timer_state(
+        self,
+        item_id: int,
+        state: ExerciseStopwatchState,
+        *,
+        countdown_seconds: int = 0,
+        limit_seconds: int | None = None,
+        stop_at_limit: bool = False,
+    ) -> None:
         """Remember the lightbox stopwatch so Continue can resume it."""
         if state.phase is StopwatchPhase.IDLE:
             self.clear_exercise_timer_state()
             return
         self._exercise_timer_item_id = item_id
         self._exercise_timer_state = state
+        self._exercise_timer_countdown_seconds = max(0, int(countdown_seconds))
+        self._exercise_timer_limit_seconds = limit_seconds if limit_seconds and limit_seconds > 0 else None
+        self._exercise_timer_stop_at_limit = bool(stop_at_limit)
+        self._update_exercise_timer_label()
 
     def select_workout_by_id(self, workout_id: int) -> None:
         """Select a workout in the list after a refresh."""
@@ -242,6 +261,9 @@ class WorkoutsWidget(QWidget):
         font_timer = QFont()
         font_timer.setPointSize(28)
         font_timer.setBold(True)
+        font_exercise_timer = QFont()
+        font_exercise_timer.setPointSize(16)
+        font_exercise_timer.setBold(True)
 
         self._session_bar = QFrame()
         self._session_bar.setObjectName("workoutsSessionBar")
@@ -255,6 +277,15 @@ class WorkoutsWidget(QWidget):
         self.label_session_timer.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.label_session_timer.setMinimumWidth(140)
         session_layout.addWidget(self.label_session_timer)
+        self.label_exercise_timer = QLabel("0:00")
+        self.label_exercise_timer.setObjectName("workoutsExerciseTimer")
+        self.label_exercise_timer.setFont(font_exercise_timer)
+        self.label_exercise_timer.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.label_exercise_timer.setMinimumWidth(72)
+        self.label_exercise_timer.setStyleSheet("color: #374151;")
+        self.label_exercise_timer.setToolTip("Current exercise timer")
+        self.label_exercise_timer.hide()
+        session_layout.addWidget(self.label_exercise_timer)
         self.button_continue = QPushButton("Continue")
         self.button_continue.setIcon(create_emoji_icon("▶"))
         self.button_continue.setMinimumHeight(41)
@@ -697,9 +728,40 @@ class WorkoutsWidget(QWidget):
             return
         self._refresh_list_duration_label(duration)
 
+    def _tick_exercise_timer(self) -> None:
+        state = self._exercise_timer_state
+        if state is None or not state.running:
+            self._update_exercise_timer_label()
+            return
+        watch = ExerciseStopwatch(
+            countdown_seconds=self._exercise_timer_countdown_seconds,
+            limit_seconds=self._exercise_timer_limit_seconds,
+            stop_at_limit=self._exercise_timer_stop_at_limit,
+        )
+        watch.apply_state(state)
+        snapshot = watch.advance(1000)
+        self._exercise_timer_state = watch.capture_state()
+        self.label_exercise_timer.setText(format_mm_ss(snapshot.display_seconds))
+        self.label_exercise_timer.setVisible(bool(self._exercise_timer_state.running))
+
     def _tick_session_timer(self) -> None:
         if self._session_active:
             self._update_session_timer_label()
+            self._tick_exercise_timer()
+
+    def _update_exercise_timer_label(self) -> None:
+        state = self._exercise_timer_state
+        if state is None or not state.running:
+            self.label_exercise_timer.hide()
+            return
+        watch = ExerciseStopwatch(
+            countdown_seconds=self._exercise_timer_countdown_seconds,
+            limit_seconds=self._exercise_timer_limit_seconds,
+            stop_at_limit=self._exercise_timer_stop_at_limit,
+        )
+        snapshot = watch.apply_state(state)
+        self.label_exercise_timer.setText(format_mm_ss(snapshot.display_seconds))
+        self.label_exercise_timer.show()
 
     def _update_row_kcal(self, row: int) -> None:
         value_item = self.table_items.item(row, _COL_VALUE)
@@ -765,6 +827,9 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self._session_timer.timeout.connect(self._tick_session_timer)
         self._exercise_timer_item_id: int | None = None
         self._exercise_timer_state: ExerciseStopwatchState | None = None
+        self._exercise_timer_countdown_seconds = 0
+        self._exercise_timer_limit_seconds: int | None = None
+        self._exercise_timer_stop_at_limit = False
         self._build_ui()
 ```
 
@@ -785,6 +850,10 @@ Drop any saved lightbox stopwatch so the next open starts fresh.
 def clear_exercise_timer_state(self) -> None:
         self._exercise_timer_item_id = None
         self._exercise_timer_state = None
+        self._exercise_timer_countdown_seconds = 0
+        self._exercise_timer_limit_seconds = None
+        self._exercise_timer_stop_at_limit = False
+        self._update_exercise_timer_label()
 ```
 
 </details>
@@ -925,7 +994,7 @@ def refresh(self) -> None:
 ### ⚙️ Method `save_exercise_timer_state`
 
 ```python
-def save_exercise_timer_state(self, item_id: int, state: ExerciseStopwatchState) -> None
+def save_exercise_timer_state(self, item_id: int, state: ExerciseStopwatchState, *, countdown_seconds: int = 0, limit_seconds: int | None = None, stop_at_limit: bool = False) -> None
 ```
 
 Remember the lightbox stopwatch so Continue can resume it.
@@ -934,12 +1003,24 @@ Remember the lightbox stopwatch so Continue can resume it.
 <summary>Code:</summary>
 
 ```python
-def save_exercise_timer_state(self, item_id: int, state: ExerciseStopwatchState) -> None:
+def save_exercise_timer_state(
+        self,
+        item_id: int,
+        state: ExerciseStopwatchState,
+        *,
+        countdown_seconds: int = 0,
+        limit_seconds: int | None = None,
+        stop_at_limit: bool = False,
+    ) -> None:
         if state.phase is StopwatchPhase.IDLE:
             self.clear_exercise_timer_state()
             return
         self._exercise_timer_item_id = item_id
         self._exercise_timer_state = state
+        self._exercise_timer_countdown_seconds = max(0, int(countdown_seconds))
+        self._exercise_timer_limit_seconds = limit_seconds if limit_seconds and limit_seconds > 0 else None
+        self._exercise_timer_stop_at_limit = bool(stop_at_limit)
+        self._update_exercise_timer_label()
 ```
 
 </details>
