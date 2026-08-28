@@ -12,7 +12,8 @@ import calendar
 import contextlib
 import logging
 import time
-from collections import defaultdict
+from collections import OrderedDict, defaultdict
+from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 from functools import partial
 from pathlib import Path
@@ -242,6 +243,26 @@ _EXERCISE_TABLE_TYPE_REQUIRED_COLUMN = 3
 
 # How long one deferred-thumbnail batch may block the event loop.
 _ICON_DECODE_BUDGET_S = 0.02
+# Decode the top rows of listView_exercises before the rest of the catalog.
+_ICON_DECODE_LIST_PRIORITY = 20
+
+
+def enqueue_deferred_exercise_icon(pending: OrderedDict[str, None], exercise_name: str) -> None:
+    """Append `exercise_name` to the deferred icon queue if it is not already there."""
+    name = exercise_name.strip()
+    if not name or name in pending:
+        return
+    pending[name] = None
+
+
+def prioritize_deferred_exercise_icons(
+    pending: OrderedDict[str, None],
+    priority_names: Sequence[str],
+) -> None:
+    """Move still-pending names from `priority_names` to the front, keeping that order."""
+    front = [name for name in priority_names if name in pending]
+    for name in reversed(front):
+        pending.move_to_end(name, last=False)
 
 
 class MainWindow(
@@ -418,7 +439,7 @@ class MainWindow(
         self._exercise_catalog_refresh_timer.setSingleShot(True)
         self._exercise_catalog_refresh_timer.timeout.connect(self._flush_exercise_catalog_refresh)
         self._exercise_catalog_refresh_focus: str | None = None
-        self._exercise_icons_defer_decode: set[str] = set()
+        self._exercise_icons_defer_decode: OrderedDict[str, None] = OrderedDict()
         self._exercises_catalog_loaded = False
 
         # Initialize application
@@ -4425,7 +4446,7 @@ class MainWindow(
         name = exercise.strip()
         if not name or self.db_manager is None:
             return
-        self._exercise_icons_defer_decode.add(name)
+        enqueue_deferred_exercise_icon(self._exercise_icons_defer_decode, name)
         if self._scroll_table_to_exercise("exercises", name):
             self._append_exercise_name_to_list_view(name, load_icon=False)
             return
@@ -5264,7 +5285,7 @@ class MainWindow(
         deadline = time.perf_counter() + _ICON_DECODE_BUDGET_S
         decoded: set[str] = set()
         while self._exercise_icons_defer_decode:
-            name = self._exercise_icons_defer_decode.pop()
+            name, _ = self._exercise_icons_defer_decode.popitem(last=False)
             self._get_exercise_icon(name)
             decoded.add(name)
             if time.perf_counter() >= deadline:
@@ -5497,7 +5518,7 @@ class MainWindow(
         if cached is not None:
             return cached[1] or QIcon()
         if exercise_name:
-            self._exercise_icons_defer_decode.add(exercise_name)
+            enqueue_deferred_exercise_icon(self._exercise_icons_defer_decode, exercise_name)
         return QIcon()
 
     def _exercise_names_from_item_model(self, model: QStandardItemModel | None) -> list[str]:
@@ -5771,7 +5792,12 @@ class MainWindow(
         self.update_all(is_preserve_selections=True, current_exercise=preserve)
         if isinstance(preserve, str) and preserve:
             self._scroll_table_to_exercise("exercises", preserve)
-        QTimer.singleShot(0, self._decode_next_deferred_exercise_icon)
+        if self._exercise_icons_defer_decode:
+            prioritize_deferred_exercise_icons(
+                self._exercise_icons_defer_decode,
+                self._exercise_names_from_item_model(self.exercises_list_model)[:_ICON_DECODE_LIST_PRIORITY],
+            )
+            QTimer.singleShot(0, self._decode_next_deferred_exercise_icon)
 
     def _focus_and_select_spinbox_count(self) -> None:
         """Move focus to spinBox_count and select all text.
@@ -7335,6 +7361,10 @@ class MainWindow(
         self._reload_types_table(dumbbell_names=dumbbell_names)
         self._update_exercises_catalog_count_labels()
         if self._exercise_icons_defer_decode:
+            prioritize_deferred_exercise_icons(
+                self._exercise_icons_defer_decode,
+                self._exercise_names_from_item_model(self.exercises_list_model)[:_ICON_DECODE_LIST_PRIORITY],
+            )
             QTimer.singleShot(0, self._decode_next_deferred_exercise_icon)
 
     def _process_filter_is_active(self) -> bool:
@@ -7478,7 +7508,7 @@ class MainWindow(
         for row in types_data:
             exercise_name = str(row[1] or "")
             if defer_icons and exercise_name:
-                self._exercise_icons_defer_decode.add(exercise_name)
+                enqueue_deferred_exercise_icon(self._exercise_icons_defer_decode, exercise_name)
             types_transformed_data.append(
                 [
                     QIcon() if defer_icons else self._exercise_icon_or_defer(exercise_name),
@@ -8798,6 +8828,11 @@ class MainWindow(
             if self.exercises_list_model is not None:
                 self._append_exercises_to_list_view(exercises, defer_icons=defer_icons)
                 self._filter_exercises_list(self.lineEdit_exercises_filter.text())
+                if defer_icons:
+                    prioritize_deferred_exercise_icons(
+                        self._exercise_icons_defer_decode,
+                        exercises[:_ICON_DECODE_LIST_PRIORITY],
+                    )
 
             # Unblock signals
             if selection_model:
