@@ -162,12 +162,12 @@ def test_exercise_avif_lightbox_backdrop_toggle_shows_opposite_color(tmp_path: P
     _write_test_avif(img_dir / "Walk.avif")
     manager = AvifManager(img_dir)
     dialog = ExerciseAvifLightboxDialog(["Walk"], avif_manager=manager)
-    assert dialog._backdrop_button.text() == ""
+    assert not hasattr(dialog, "_backdrop_button")
     assert dialog._backdrop_color == "white"
-    assert "background: black" in dialog._backdrop_button.styleSheet()
+    assert dialog._backdrop_toggle_action.text() == "Switch to black backdrop"
     dialog._toggle_backdrop_color()
     assert dialog._backdrop_color == "black"
-    assert "background: white" in dialog._backdrop_button.styleSheet()
+    assert dialog._backdrop_toggle_action.text() == "Switch to white backdrop"
     dialog.close()
 
 

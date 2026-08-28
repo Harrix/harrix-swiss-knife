@@ -258,6 +258,9 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
         self._splitter = splitter
         self._image_host = image_host
         self.attach_content(splitter)
+        self._enable_backdrop_context_menu(self._sidebar)
+        self._enable_backdrop_context_menu(image_host)
+        self._enable_backdrop_context_menu(self._label)
 
     def _on_confirm(self) -> None:
         if not self._confirm_handler(self._current_confirm()):

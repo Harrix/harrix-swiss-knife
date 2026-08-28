@@ -391,12 +391,12 @@ def test_icon_lightbox_backdrop_toggle_shows_opposite_color(tmp_path: Path, qapp
     svg = tmp_path / "icon.svg"
     _write_svg(svg)
     dialog = IconLightboxDialog([svg])
-    assert dialog._backdrop_button.text() == ""
+    assert not hasattr(dialog, "_backdrop_button")
     assert dialog._backdrop_color == "white"
-    assert "background: black" in dialog._backdrop_button.styleSheet()
+    assert dialog._backdrop_toggle_action.text() == "Switch to black backdrop"
     dialog._toggle_backdrop_color()
     assert dialog._backdrop_color == "black"
-    assert "background: white" in dialog._backdrop_button.styleSheet()
+    assert dialog._backdrop_toggle_action.text() == "Switch to white backdrop"
     dialog.close()
 
 
