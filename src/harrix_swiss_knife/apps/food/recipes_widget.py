@@ -6,7 +6,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QModelIndex, Qt, Signal
-from PySide6.QtGui import QFont, QStandardItem, QStandardItemModel
+from PySide6.QtGui import QBrush, QColor, QFont, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import (
     QCheckBox,
     QCompleter,
@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QFrame,
     QGroupBox,
     QHBoxLayout,
+    QHeaderView,
     QLabel,
     QLineEdit,
     QListView,
@@ -85,6 +86,20 @@ QListView::item:hover {
 }
 """
 _CONTROLS_MIN_WIDTH = 350
+_COL_NAME = 0
+_COL_WEIGHT = 1
+_COL_KCAL_100G = 2
+_COL_PORTION = 3
+_COL_CALC = 4
+_COL_DRINK = 5
+_INGREDIENT_COLUMN_COUNT = 6
+_COL_WEIGHT_WIDTH = 90
+_COL_KCAL_WIDTH = 100
+_COL_PORTION_WIDTH = 110
+_COL_CALC_WIDTH = 100
+_COL_DRINK_WIDTH = 70
+_ROW_COLOR_EVEN = QColor(255, 255, 255)
+_ROW_COLOR_ODD = QColor(240, 255, 240)  # Same light green as Fitness workouts table
 
 
 class RecipesWidget(QWidget):
@@ -163,6 +178,29 @@ class RecipesWidget(QWidget):
         self.check_ingredient_drink.setChecked(False)
         self.radio_use_weight.setChecked(True)
         self.line_ingredient_name.setFocus()
+
+    def _apply_ingredient_row_background(self, row: int) -> None:
+        color = _ROW_COLOR_ODD if row % 2 else _ROW_COLOR_EVEN
+        brush = QBrush(color)
+        for column in range(_INGREDIENT_COLUMN_COUNT):
+            item = self.table_ingredients.item(row, column)
+            if item is not None:
+                item.setBackground(brush)
+
+    def _apply_ingredients_column_metrics(self) -> None:
+        header = self.table_ingredients.horizontalHeader()
+        header.setSectionResizeMode(_COL_NAME, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(_COL_WEIGHT, QHeaderView.ResizeMode.Interactive)
+        header.setSectionResizeMode(_COL_KCAL_100G, QHeaderView.ResizeMode.Interactive)
+        header.setSectionResizeMode(_COL_PORTION, QHeaderView.ResizeMode.Interactive)
+        header.setSectionResizeMode(_COL_CALC, QHeaderView.ResizeMode.Interactive)
+        header.setSectionResizeMode(_COL_DRINK, QHeaderView.ResizeMode.Interactive)
+        header.setStretchLastSection(False)
+        self.table_ingredients.setColumnWidth(_COL_WEIGHT, _COL_WEIGHT_WIDTH)
+        self.table_ingredients.setColumnWidth(_COL_KCAL_100G, _COL_KCAL_WIDTH)
+        self.table_ingredients.setColumnWidth(_COL_PORTION, _COL_PORTION_WIDTH)
+        self.table_ingredients.setColumnWidth(_COL_CALC, _COL_CALC_WIDTH)
+        self.table_ingredients.setColumnWidth(_COL_DRINK, _COL_DRINK_WIDTH)
 
     def _build_ui(self) -> None:
         root = QHBoxLayout(self)
@@ -274,12 +312,16 @@ class RecipesWidget(QWidget):
         form.addRow("", self.check_recipe_drink)
         right_layout.addLayout(form)
 
-        self.table_ingredients = QTableWidget(0, 6)
+        self.table_ingredients = QTableWidget(0, _INGREDIENT_COLUMN_COUNT)
+        self.table_ingredients.setObjectName("recipesIngredientsTable")
         self.table_ingredients.setHorizontalHeaderLabels(
             ["Name", "Weight", "kcal/100g", "Portion kcal", "Calculated", "Drink"]
         )
         self.table_ingredients.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table_ingredients.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.table_ingredients.setAlternatingRowColors(False)
+        self.table_ingredients.verticalHeader().setVisible(False)
+        self._apply_ingredients_column_metrics()
         right_layout.addWidget(self.table_ingredients, 1)
 
         remove_row = QHBoxLayout()
@@ -427,6 +469,7 @@ class RecipesWidget(QWidget):
             ]
             for col, value in enumerate(values):
                 self.table_ingredients.setItem(row, col, QTableWidgetItem(value))
+            self._apply_ingredient_row_background(row)
         nutrition = calculate_recipe_nutrition(self._ingredients)
         per_100 = (
             f"{nutrition.calories_per_100g:.1f} kcal/100g" if nutrition.calories_per_100g is not None else "— kcal/100g"
