@@ -42,7 +42,7 @@ class WorkoutsWidget(QWidget):
 
     generate_requested = Signal()
     workouts_changed = Signal()
-    item_done_requested = Signal(int)
+    item_done_requested = Signal(int, bool)
     exercise_lightbox_requested = Signal(int)
     items_reloading = Signal()
     workout_session_started = Signal(int)
@@ -379,11 +379,9 @@ class WorkoutsWidget(QWidget):
                 self._item_calories_modifier.append(item.calories_modifier)
                 checkbox = QCheckBox()
                 checkbox.setChecked(item.is_done)
-                checkbox.setEnabled(not item.is_done)
-                if not item.is_done:
-                    checkbox.clicked.connect(
-                        lambda checked, item_id=item.id: self._on_done_toggled(item_id=item_id, checked=checked),
-                    )
+                checkbox.clicked.connect(
+                    lambda checked, item_id=item.id: self._on_done_toggled(item_id=item_id, checked=checked),
+                )
                 self.table_items.setCellWidget(row, _COL_DONE, _make_done_cell(checkbox))
                 image_item = QTableWidgetItem()
                 image_item.setFlags(image_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
@@ -433,9 +431,7 @@ class WorkoutsWidget(QWidget):
         self._fill_items(items)
 
     def _on_done_toggled(self, *, item_id: int, checked: bool) -> None:
-        if not checked:
-            return
-        self.item_done_requested.emit(item_id)
+        self.item_done_requested.emit(item_id, checked)
 
     def _on_item_double_clicked(self, index: QModelIndex) -> None:
         if index.column() == _COL_VALUE:

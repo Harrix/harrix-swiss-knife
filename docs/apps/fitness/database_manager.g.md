@@ -85,6 +85,7 @@ lang: en
   - [⚙️ Method `save_workout`](#%EF%B8%8F-method-save_workout)
   - [⚙️ Method `set_exercise_favorite`](#%EF%B8%8F-method-set_exercise_favorite)
   - [⚙️ Method `set_exercise_type_required`](#%EF%B8%8F-method-set_exercise_type_required)
+  - [⚙️ Method `unmark_workout_item_done`](#%EF%B8%8F-method-unmark_workout_item_done)
   - [⚙️ Method `update_exercise`](#%EF%B8%8F-method-update_exercise)
   - [⚙️ Method `update_exercise_type`](#%EF%B8%8F-method-update_exercise_type)
   - [⚙️ Method `update_process_record`](#%EF%B8%8F-method-update_process_record)
@@ -1744,6 +1745,17 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         return self.execute_simple_query(
             "UPDATE exercises SET is_type_required = :itr WHERE _id = :id",
             {"itr": 1 if required else 0, "id": exercise_id},
+        )
+
+    def unmark_workout_item_done(self, item_id: int) -> bool:
+        """Clear completion flags so the workout item can be logged again."""
+        return self.execute_simple_query(
+            """
+            UPDATE workout_items
+            SET is_done = 0, process_id = NULL
+            WHERE _id = :id AND is_done = 1
+            """,
+            {"id": item_id},
         )
 
     def update_exercise(
@@ -4484,6 +4496,31 @@ def set_exercise_type_required(self, exercise_id: int, *, required: bool) -> boo
         return self.execute_simple_query(
             "UPDATE exercises SET is_type_required = :itr WHERE _id = :id",
             {"itr": 1 if required else 0, "id": exercise_id},
+        )
+```
+
+</details>
+
+### ⚙️ Method `unmark_workout_item_done`
+
+```python
+def unmark_workout_item_done(self, item_id: int) -> bool
+```
+
+Clear completion flags so the workout item can be logged again.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def unmark_workout_item_done(self, item_id: int) -> bool:
+        return self.execute_simple_query(
+            """
+            UPDATE workout_items
+            SET is_done = 0, process_id = NULL
+            WHERE _id = :id AND is_done = 1
+            """,
+            {"id": item_id},
         )
 ```
 

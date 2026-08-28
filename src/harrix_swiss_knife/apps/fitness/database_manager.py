@@ -1656,6 +1656,17 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             {"itr": 1 if required else 0, "id": exercise_id},
         )
 
+    def unmark_workout_item_done(self, item_id: int) -> bool:
+        """Clear completion flags so the workout item can be logged again."""
+        return self.execute_simple_query(
+            """
+            UPDATE workout_items
+            SET is_done = 0, process_id = NULL
+            WHERE _id = :id AND is_done = 1
+            """,
+            {"id": item_id},
+        )
+
     def update_exercise(
         self,
         exercise_id: int,

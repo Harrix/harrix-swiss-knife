@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon, QPixmap
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QCheckBox
 
 from harrix_swiss_knife.apps.fitness.database_manager import WorkoutItemRow
 from harrix_swiss_knife.apps.fitness.workouts_widget import (
@@ -139,7 +139,7 @@ def test_workouts_value_edit_recalculates_kcal() -> None:
 
 
 def test_workouts_done_item_value_is_read_only() -> None:
-    """Completed rows keep Value read-only."""
+    """Completed rows keep Value read-only but Done can still be unchecked."""
     assert _qapp() is not None
     done_item = WorkoutItemRow(
         id=2,
@@ -157,10 +157,20 @@ def test_workouts_done_item_value_is_read_only() -> None:
         calories_modifier=1.0,
     )
     widget = WorkoutsWidget()
+    received: list[tuple[int, bool]] = []
+    widget.item_done_requested.connect(lambda item_id, checked: received.append((item_id, checked)))
     widget._fill_items([done_item])
     value_item = widget.table_items.item(0, _COL_VALUE)
     assert value_item is not None
     assert not (value_item.flags() & Qt.ItemFlag.ItemIsEditable)
+    cell = widget.table_items.cellWidget(0, 0)
+    assert cell is not None
+    checkbox = cell.findChild(QCheckBox)
+    assert checkbox is not None
+    assert checkbox.isEnabled()
+    assert checkbox.isChecked()
+    checkbox.click()
+    assert received == [(2, False)]
     widget.close()
 
 

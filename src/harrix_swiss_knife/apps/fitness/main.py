@@ -6572,6 +6572,33 @@ class MainWindow(
         self._exercises_changed = True
         self._dumbbell_exercise_names_cache = None
 
+    def _mark_workout_item_done(self, item_id: int) -> None:
+        """Log a completed workout item into `process` and mark it done."""
+        if self.db_manager is None or not self._validate_database_connection():
+            return
+        item = self.db_manager.get_workout_item_by_id(item_id)
+        if item is None or item.is_done:
+            return
+        date_str = QDate.currentDate().toString("yyyy-MM-dd")
+        process_id = self.db_manager.add_process_record_returning_id(
+            item.exercise_id,
+            item.type_id,
+            item.target_value,
+            date_str,
+        )
+        if process_id is None:
+            message_box.warning(self, "Error", "Failed to add process record")
+            if self._workouts_widget is not None:
+                self._workouts_widget.refresh()
+            return
+        if not self.db_manager.mark_workout_item_done(item_id, process_id):
+            message_box.warning(self, "Error", "Failed to mark workout item done")
+        self.show_tables()
+        self.update_sets_count_today()
+        if self._workouts_widget is not None:
+            self._workouts_widget.refresh()
+            self._workouts_widget.notify_workout_progress()
+
     def _maybe_prompt_missing_exercise_images(self) -> None:
         """Tell the user how to add exercise images when none were found at startup."""
         if self._is_closing:
@@ -6865,32 +6892,12 @@ class MainWindow(
             toast_message="Generating workout…",
         )
 
-    def _on_workout_item_done(self, item_id: int) -> None:
-        """Log a completed workout item into `process` and mark it done."""
-        if self.db_manager is None or not self._validate_database_connection():
-            return
-        item = self.db_manager.get_workout_item_by_id(item_id)
-        if item is None or item.is_done:
-            return
-        date_str = QDate.currentDate().toString("yyyy-MM-dd")
-        process_id = self.db_manager.add_process_record_returning_id(
-            item.exercise_id,
-            item.type_id,
-            item.target_value,
-            date_str,
-        )
-        if process_id is None:
-            message_box.warning(self, "Error", "Failed to add process record")
-            if self._workouts_widget is not None:
-                self._workouts_widget.refresh()
-            return
-        if not self.db_manager.mark_workout_item_done(item_id, process_id):
-            message_box.warning(self, "Error", "Failed to mark workout item done")
-        self.show_tables()
-        self.update_sets_count_today()
-        if self._workouts_widget is not None:
-            self._workouts_widget.refresh()
-            self._workouts_widget.notify_workout_progress()
+    def _on_workout_item_done(self, item_id: int, *, checked: bool) -> None:
+        """Log or undo a workout item in `process` when Done is toggled."""
+        if checked:
+            self._mark_workout_item_done(item_id)
+        else:
+            self._unmark_workout_item_done(item_id)
 
     def _on_workout_session_started(self, item_id: int) -> None:
         """Open the lightbox for the next workout exercise while a session is active."""
@@ -8006,7 +8013,9 @@ class MainWindow(
             icon_getter=self._get_exercise_icon,
         )
         self._workouts_widget.generate_requested.connect(self._on_workout_generate_requested)
-        self._workouts_widget.item_done_requested.connect(self._on_workout_item_done)
+        self._workouts_widget.item_done_requested.connect(
+            lambda item_id, checked: self._on_workout_item_done(item_id, checked=checked),
+        )
         self._workouts_widget.exercise_lightbox_requested.connect(self._open_workout_item_lightbox)
         self._workouts_widget.workout_session_started.connect(self._on_workout_session_started)
         self._workouts_widget.items_reloading.connect(self._hide_exercise_list_hover_preview)
@@ -8652,6 +8661,27 @@ class MainWindow(
         self._exercise_add_after_media = (exercise, with_dumbbells)
         self._update_exercise_add_toast()
         return True
+
+    def _unmark_workout_item_done(self, item_id: int) -> None:
+        """Remove the Sets row linked to a workout item and clear Done."""
+        if self.db_manager is None or not self._validate_database_connection():
+            return
+        item = self.db_manager.get_workout_item_by_id(item_id)
+        if item is None or not item.is_done:
+            if self._workouts_widget is not None:
+                self._workouts_widget.refresh()
+            return
+        if item.process_id is not None and not self.db_manager.delete_process_record(item.process_id):
+            message_box.warning(self, "Error", "Failed to delete process record")
+            if self._workouts_widget is not None:
+                self._workouts_widget.refresh()
+            return
+        if not self.db_manager.unmark_workout_item_done(item_id):
+            message_box.warning(self, "Error", "Failed to unmark workout item")
+        self.show_tables()
+        self.update_sets_count_today()
+        if self._workouts_widget is not None:
+            self._workouts_widget.refresh()
 
     def _update_chart_based_on_radio_button(self) -> None:
         """Update chart based on selected radio button."""
