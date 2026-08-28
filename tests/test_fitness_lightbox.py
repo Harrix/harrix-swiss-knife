@@ -18,6 +18,7 @@ from harrix_swiss_knife.apps.fitness.database_manager import WorkoutItemRow
 from harrix_swiss_knife.apps.fitness.fitness_lightbox import FitnessExerciseLightboxDialog
 from harrix_swiss_knife.apps.fitness.lightbox_logic import (
     ExerciseStopwatch,
+    ExerciseStopwatchState,
     FitnessLightboxConfirm,
     FitnessLightboxDetails,
     StopwatchColor,
@@ -128,6 +129,23 @@ def test_stopwatch_countdown_then_elapsed_then_overtime() -> None:
     assert not restarted.is_overtime
 
 
+def test_stopwatch_capture_and_restore_resumes_elapsed() -> None:
+    watch = ExerciseStopwatch(countdown_seconds=0, limit_seconds=10)
+    watch.start()
+    watch.advance(2500)
+    state = watch.capture_state()
+    assert state.phase is StopwatchPhase.RUNNING
+    assert state.elapsed_ms == 2500
+    assert state.running
+    restored = ExerciseStopwatch(countdown_seconds=0, limit_seconds=10)
+    snapshot = restored.apply_state(state)
+    assert snapshot.phase is StopwatchPhase.RUNNING
+    assert snapshot.display_seconds == 2
+    assert snapshot.is_running
+    restored.advance(800)
+    assert restored.snapshot().display_seconds == 3
+
+
 def test_stopwatch_skips_countdown_when_zero() -> None:
     watch = ExerciseStopwatch(countdown_seconds=0, limit_seconds=None)
     started = watch.start()
@@ -184,6 +202,50 @@ def test_fitness_lightbox_flashes_start_and_finish(
     assert dialog._sidebar._prepare_label.text() == "Finish"
     assert not dialog._sidebar._prepare_label.isHidden()
     dialog.close()
+
+
+def test_fitness_lightbox_restores_timer_state_without_prepare(
+    tmp_path: Path,
+    qapp: QApplication,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    img_dir = tmp_path / "fitness_img"
+    img_dir.mkdir()
+    _write_test_avif(img_dir / "Push-ups.avif")
+    manager = AvifManager(img_dir)
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.fitness.fitness_lightbox.play_fitness_timer_cue",
+        lambda _cue: None,
+    )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.fitness.fitness_lightbox.play_fitness_timer_alert",
+        lambda: None,
+    )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.fitness.fitness_lightbox.stop_fitness_timer_alert",
+        lambda: None,
+    )
+    state = ExerciseStopwatchState(phase=StopwatchPhase.RUNNING, elapsed_ms=4500, running=True)
+    dialog = FitnessExerciseLightboxDialog(
+        ["Push-ups"],
+        avif_manager=manager,
+        details_loader=_details,
+        confirm_handler=lambda _payload: True,
+        countdown_seconds=5,
+        workout_duration_min=1,
+        workout_items=[_item(item_id=1, name="Push-ups", sort_order=0)],
+        auto_start_prepare=True,
+        initial_timer_state=state,
+    )
+    assert dialog._sidebar._prepare_label.isHidden() or dialog._sidebar._prepare_label.text() != "Prepare!"
+    assert dialog._sidebar._time_label.text() == "0:04"
+    assert dialog._sidebar._tick.isActive()
+    dialog.close()
+    item_id, captured = dialog.captured_timer_state()
+    assert item_id == 1
+    assert captured is not None
+    assert captured.phase is StopwatchPhase.RUNNING
+    assert captured.elapsed_ms >= 4500
 
 
 def test_fitness_lightbox_has_splitter_sidebar_and_browse_confirm(

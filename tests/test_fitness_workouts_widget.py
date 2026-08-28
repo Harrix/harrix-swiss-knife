@@ -2,16 +2,19 @@
 
 from __future__ import annotations
 
+import pytest
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import QApplication, QCheckBox
 
 from harrix_swiss_knife.apps.fitness.database_manager import WorkoutItemRow
+from harrix_swiss_knife.apps.fitness.lightbox_logic import ExerciseStopwatchState, StopwatchPhase
 from harrix_swiss_knife.apps.fitness.workouts_widget import (
     _COL_EXERCISE,
     _COL_IMAGE,
     _COL_KCAL,
     _COL_VALUE,
+    _ROW_COLOR_CURRENT,
     WorkoutsWidget,
     estimate_workout_item_kcal,
 )
@@ -220,6 +223,7 @@ def test_workout_session_shows_timer_bar_and_hides_start() -> None:
 
     assert widget.is_workout_session_active()
     assert widget._session_bar.isVisible()
+    assert widget.button_continue.isVisible()
     assert not widget.button_start.isVisible()
     assert not widget.list_workouts.isEnabled()
 
@@ -227,6 +231,61 @@ def test_workout_session_shows_timer_bar_and_hides_start() -> None:
     assert not widget.is_workout_session_active()
     assert not widget._session_bar.isVisible()
     assert widget.button_start.isVisible()
+    widget.close()
+
+
+def test_workout_session_continue_emits_current_incomplete(monkeypatch: pytest.MonkeyPatch) -> None:
+    assert _qapp() is not None
+    widget = WorkoutsWidget()
+    widget._session_active = True
+    widget._session_workout_id = 1
+    widget._current_workout_id = 1
+    emitted: list[int] = []
+    widget.workout_session_started.connect(emitted.append)
+    monkeypatch.setattr(widget, "_first_incomplete_item_id", lambda: 42)
+    widget._continue_workout_session()
+    assert emitted == [42]
+    widget.close()
+
+
+def test_workout_session_highlights_current_incomplete_row(monkeypatch: pytest.MonkeyPatch) -> None:
+    assert _qapp() is not None
+    widget = WorkoutsWidget()
+    items = [
+        _sample_item(),
+        WorkoutItemRow(
+            id=2,
+            workout_id=1,
+            exercise_id=3,
+            type_id=3,
+            exercise_name="Squat",
+            type_name="Bodyweight",
+            target_value="20",
+            sort_order=1,
+            is_done=False,
+            process_id=None,
+            unit="times",
+            calories_per_unit=1.0,
+            calories_modifier=1.0,
+        ),
+    ]
+    widget._session_active = True
+    monkeypatch.setattr(widget, "_first_incomplete_item_id", lambda: 1)
+    widget._fill_items(items)
+    assert widget.table_items.item(0, _COL_EXERCISE).background().color() == _ROW_COLOR_CURRENT
+    assert widget.table_items.item(1, _COL_EXERCISE).background().color() != _ROW_COLOR_CURRENT
+    widget.close()
+
+
+def test_workout_session_saves_and_pops_exercise_timer_state() -> None:
+    assert _qapp() is not None
+    widget = WorkoutsWidget()
+    state = ExerciseStopwatchState(phase=StopwatchPhase.RUNNING, elapsed_ms=1200, running=True)
+    widget.save_exercise_timer_state(7, state)
+    assert widget.pop_exercise_timer_state(99) is None
+    restored = widget.pop_exercise_timer_state(7)
+    assert restored == state
+    assert widget.pop_exercise_timer_state(7) is None
     widget.close()
 
 

@@ -176,6 +176,7 @@ from harrix_swiss_knife.apps.fitness.exercise_media_worker import (
 from harrix_swiss_knife.apps.fitness.exercise_type_add_dialog import ExerciseTypeAddDialog
 from harrix_swiss_knife.apps.fitness.fitness_lightbox import FitnessExerciseLightboxDialog
 from harrix_swiss_knife.apps.fitness.lightbox_logic import (
+    ExerciseStopwatchState,
     FitnessLightboxConfirm,
     FitnessLightboxDetails,
     default_exercise_type,
@@ -5423,6 +5424,7 @@ class MainWindow(
         workout_items: list[database_manager.WorkoutItemRow] | None = None,
         workout_duration_min: int | None = None,
         auto_start_prepare: bool = False,
+        initial_timer_state: ExerciseStopwatchState | None = None,
     ) -> None:
         """Open the Fitness lightbox for `names` and optionally a workout."""
         if self.avif_manager is None:
@@ -5442,8 +5444,10 @@ class MainWindow(
             workout_items=workout_items,
             workout_duration_min=workout_duration_min,
             auto_start_prepare=auto_start_prepare,
+            initial_timer_state=initial_timer_state,
         )
         dialog.exec()
+        self._persist_fitness_lightbox_timer(dialog)
         if dialog.should_open_sets_tab:
             sets_tab_index = self.tabWidget.indexOf(self.tab)
             if sets_tab_index >= 0:
@@ -6903,6 +6907,21 @@ class MainWindow(
             return
         self._open_workout_item_lightbox(item_id)
 
+    def _persist_fitness_lightbox_timer(self, dialog: FitnessExerciseLightboxDialog) -> None:
+        """Save the exercise stopwatch when a session lightbox closes mid-exercise."""
+        if self._workouts_widget is None or not self._workouts_widget.is_workout_session_active():
+            return
+        item_id, state = dialog.captured_timer_state()
+        if item_id is None or state is None:
+            self._workouts_widget.clear_exercise_timer_state()
+            return
+        if self.db_manager is not None:
+            item = self.db_manager.get_workout_item_by_id(item_id)
+            if item is None or item.is_done:
+                self._workouts_widget.clear_exercise_timer_state()
+                return
+        self._workouts_widget.save_exercise_timer_state(item_id, state)
+
     def _open_exercise_chart_tab(self, exercise_name: str) -> None:
         """Switch to the Exercise Chart tab and select `exercise_name`.
 
@@ -7159,15 +7178,20 @@ class MainWindow(
             message_box.warning(self, "Error", "Select an exercise")
             return
         current_index = next((index for index, row in enumerate(items) if row.id == item_id), 0)
-        auto_start_prepare = (
+        session_active = (
             self._workouts_widget is not None and self._workouts_widget.is_workout_session_active()
         )
+        timer_state = None
+        if session_active and self._workouts_widget is not None:
+            timer_state = self._workouts_widget.pop_exercise_timer_state(item_id)
+        auto_start_prepare = session_active and timer_state is None
         self._exec_fitness_lightbox(
             names,
             current_index=current_index,
             workout_items=items,
             workout_duration_min=workout.duration_min if workout is not None else None,
             auto_start_prepare=auto_start_prepare,
+            initial_timer_state=timer_state,
         )
 
     def _open_workout_preview_and_save(

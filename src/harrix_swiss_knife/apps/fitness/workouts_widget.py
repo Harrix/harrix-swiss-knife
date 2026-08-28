@@ -42,7 +42,7 @@ from PySide6.QtWidgets import (
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.table_context_menu import LABEL_OPEN_LIGHTBOX, add_delete_action
 from harrix_swiss_knife.apps.common.widgets.exercise_list_hover_preview import exercise_at_table_image
-from harrix_swiss_knife.apps.fitness.lightbox_logic import format_mm_ss
+from harrix_swiss_knife.apps.fitness.lightbox_logic import ExerciseStopwatchState, StopwatchPhase, format_mm_ss
 from harrix_swiss_knife.apps.fitness.workouts_ai import estimate_workout_duration_min
 from harrix_swiss_knife.qt_emoji_icon import apply_leading_emoji_icons, create_emoji_icon
 
@@ -67,6 +67,7 @@ _ITEM_COLUMN_COUNT = 7
 _DONE_COLUMN_WIDTH = 56
 _ROW_COLOR_EVEN = QColor(255, 255, 255)
 _ROW_COLOR_ODD = QColor(240, 255, 240)  # Same light green as Exercises table
+_ROW_COLOR_CURRENT = QColor(255, 236, 179)  # Amber highlight for the active exercise
 _COL_TYPE_WIDTH = 140
 _COL_VALUE_WIDTH = 90
 _COL_UNIT_WIDTH = 90
@@ -88,6 +89,7 @@ QPushButton:disabled {
     color: #9e9e9e;
 }
 """
+_CONTINUE_BUTTON_STYLE = _GREEN_BUTTON_STYLE
 _STOP_BUTTON_STYLE = """
 QPushButton {
     background-color: #ffebee;
@@ -155,6 +157,8 @@ class WorkoutsWidget(QWidget):
         self._session_timer = QTimer(self)
         self._session_timer.setInterval(1000)
         self._session_timer.timeout.connect(self._tick_session_timer)
+        self._exercise_timer_item_id: int | None = None
+        self._exercise_timer_state: ExerciseStopwatchState | None = None
         self._build_ui()
 
     def configure_exercise_images(
@@ -177,6 +181,11 @@ class WorkoutsWidget(QWidget):
             name_column=_COL_EXERCISE,
         )
 
+    def clear_exercise_timer_state(self) -> None:
+        """Drop any saved lightbox stopwatch so the next open starts fresh."""
+        self._exercise_timer_item_id = None
+        self._exercise_timer_state = None
+
     def is_workout_session_active(self) -> bool:
         """Return whether a workout session timer is running."""
         return self._session_active
@@ -185,12 +194,22 @@ class WorkoutsWidget(QWidget):
         """After an item is marked done, finish the session or open the next exercise."""
         if not self._session_active or self._session_workout_id != self._current_workout_id:
             return
+        self.clear_exercise_timer_state()
+        self._refresh_row_highlights()
         if self._all_items_done():
             self.stop_workout_session(completed=True)
             return
         next_item_id = self._first_incomplete_item_id()
         if next_item_id is not None:
             self.workout_session_started.emit(next_item_id)
+
+    def pop_exercise_timer_state(self, item_id: int) -> ExerciseStopwatchState | None:
+        """Take the saved stopwatch for `item_id`, if any."""
+        if self._exercise_timer_item_id != item_id:
+            return None
+        state = self._exercise_timer_state
+        self.clear_exercise_timer_state()
+        return state
 
     def refresh(self) -> None:
         """Reload the workout list, keeping the current selection when possible."""
@@ -205,6 +224,14 @@ class WorkoutsWidget(QWidget):
                 self._load_workout(workout_id)
                 return
 
+    def save_exercise_timer_state(self, item_id: int, state: ExerciseStopwatchState) -> None:
+        """Remember the lightbox stopwatch so Continue can resume it."""
+        if state.phase is StopwatchPhase.IDLE:
+            self.clear_exercise_timer_state()
+            return
+        self._exercise_timer_item_id = item_id
+        self._exercise_timer_state = state
+
     def set_database_manager(self, db_manager: DatabaseManager | None) -> None:
         """Attach the fitness database and refresh the list."""
         self._db = db_manager
@@ -217,10 +244,12 @@ class WorkoutsWidget(QWidget):
         elapsed_seconds = self._session_elapsed_seconds()
         self._session_active = False
         self._session_workout_id = None
+        self.clear_exercise_timer_state()
         self._session_timer.stop()
         self._session_bar.hide()
         self._update_start_button()
         self._update_session_ui_locked()
+        self._refresh_row_highlights()
         if completed:
             message_box.information(
                 self,
@@ -271,7 +300,12 @@ class WorkoutsWidget(QWidget):
         self.table_items.setColumnWidth(_COL_KCAL, _COL_VALUE_WIDTH)
 
     def _apply_row_background(self, row: int) -> None:
-        color = _ROW_COLOR_ODD if row % 2 else _ROW_COLOR_EVEN
+        current_id = self._first_incomplete_item_id() if self._session_active else None
+        item_id = self._item_ids[row] if 0 <= row < len(self._item_ids) else None
+        if current_id is not None and item_id == current_id:
+            color = _ROW_COLOR_CURRENT
+        else:
+            color = _ROW_COLOR_ODD if row % 2 else _ROW_COLOR_EVEN
         brush = QBrush(color)
         for column in range(_ITEM_COLUMN_COUNT):
             item = self.table_items.item(row, column)
@@ -311,6 +345,14 @@ class WorkoutsWidget(QWidget):
         self.label_session_timer.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.label_session_timer.setMinimumWidth(140)
         session_layout.addWidget(self.label_session_timer)
+        self.button_continue = QPushButton("Continue")
+        self.button_continue.setIcon(create_emoji_icon("▶"))
+        self.button_continue.setMinimumHeight(41)
+        self.button_continue.setMinimumWidth(120)
+        self.button_continue.setFont(font_12_bold)
+        self.button_continue.setStyleSheet(_CONTINUE_BUTTON_STYLE)
+        self.button_continue.clicked.connect(self._continue_workout_session)
+        session_layout.addWidget(self.button_continue)
         self.button_stop = QPushButton("Stop")
         self.button_stop.setIcon(create_emoji_icon("⏹"))
         self.button_stop.setMinimumHeight(41)
@@ -422,6 +464,15 @@ class WorkoutsWidget(QWidget):
                 continue
             items.append((value_item.text().strip(), unit_item.text().strip()))
         return items
+
+    def _continue_workout_session(self) -> None:
+        if not self._session_active:
+            return
+        item_id = self._first_incomplete_item_id()
+        if item_id is None:
+            self.stop_workout_session(completed=True)
+            return
+        self.workout_session_started.emit(item_id)
 
     def _delete_workout(self) -> None:
         if self._db is None or self._current_workout_id is None:
@@ -575,6 +626,10 @@ class WorkoutsWidget(QWidget):
                 continue
         self.label_totals.setText(f"Estimated: {total_kcal:.0f} kcal")
 
+    def _refresh_row_highlights(self) -> None:
+        for row in range(self.table_items.rowCount()):
+            self._apply_row_background(row)
+
     def _refresh_list_duration_label(self, duration_min: int) -> None:
         workout_id = self._current_workout_id
         if workout_id is None:
@@ -711,11 +766,13 @@ class WorkoutsWidget(QWidget):
             return
         self._session_active = True
         self._session_workout_id = self._current_workout_id
+        self.clear_exercise_timer_state()
         self._session_elapsed.start()
         self._update_session_timer_label()
         self._session_bar.show()
         self._update_start_button()
         self._update_session_ui_locked()
+        self._refresh_row_highlights()
         self._session_timer.start()
         self.workout_session_started.emit(first_item_id)
 
