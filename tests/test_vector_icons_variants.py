@@ -387,14 +387,16 @@ def test_icon_lightbox_double_click_closes(tmp_path: Path, qapp: QApplication) -
     dialog.close()
 
 
-def test_icon_lightbox_backdrop_swatches_have_no_labels(tmp_path: Path, qapp: QApplication) -> None:  # noqa: ARG001
+def test_icon_lightbox_backdrop_toggle_shows_opposite_color(tmp_path: Path, qapp: QApplication) -> None:  # noqa: ARG001
     svg = tmp_path / "icon.svg"
     _write_svg(svg)
     dialog = IconLightboxDialog([svg])
-    assert dialog._white_backdrop_button.text() == ""
-    assert dialog._black_backdrop_button.text() == ""
-    dialog._set_backdrop_color("black")
-    assert dialog._black_backdrop_button.isChecked()
+    assert dialog._backdrop_button.text() == ""
+    assert dialog._backdrop_color == "white"
+    assert "background: black" in dialog._backdrop_button.styleSheet()
+    dialog._toggle_backdrop_color()
+    assert dialog._backdrop_color == "black"
+    assert "background: white" in dialog._backdrop_button.styleSheet()
     dialog.close()
 
 

@@ -156,16 +156,18 @@ def test_exercise_avif_lightbox_double_click_closes(tmp_path: Path, qapp: QAppli
     dialog.close()
 
 
-def test_exercise_avif_lightbox_backdrop_swatches_have_no_labels(tmp_path: Path, qapp: QApplication) -> None:  # noqa: ARG001
+def test_exercise_avif_lightbox_backdrop_toggle_shows_opposite_color(tmp_path: Path, qapp: QApplication) -> None:  # noqa: ARG001
     img_dir = tmp_path / "fitness_img"
     img_dir.mkdir()
     _write_test_avif(img_dir / "Walk.avif")
     manager = AvifManager(img_dir)
     dialog = ExerciseAvifLightboxDialog(["Walk"], avif_manager=manager)
-    assert dialog._white_backdrop_button.text() == ""
-    assert dialog._black_backdrop_button.text() == ""
-    dialog._set_backdrop_color("black")
-    assert dialog._black_backdrop_button.isChecked()
+    assert dialog._backdrop_button.text() == ""
+    assert dialog._backdrop_color == "white"
+    assert "background: black" in dialog._backdrop_button.styleSheet()
+    dialog._toggle_backdrop_color()
+    assert dialog._backdrop_color == "black"
+    assert "background: white" in dialog._backdrop_button.styleSheet()
     dialog.close()
 
 
