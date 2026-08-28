@@ -11,31 +11,11 @@ lang: en
 
 ## Contents
 
-- [🔧 Function `completed_process_output`](#-function-completed_process_output)
 - [🔧 Function `hidden_subprocess_kwargs`](#-function-hidden_subprocess_kwargs)
 - [🔧 Function `run_argv`](#-function-run_argv)
 - [🔧 Function `run_argv_output`](#-function-run_argv_output)
 - [🔧 Function `venv_module_argv`](#-function-venv_module_argv)
 - [🔧 Function `venv_python`](#-function-venv_python)
-
-</details>
-
-## 🔧 Function `completed_process_output`
-
-```python
-def completed_process_output(process: subprocess.CompletedProcess[Any]) -> str
-```
-
-Return combined stdout/stderr from a completed process.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def completed_process_output(process: subprocess.CompletedProcess[Any]) -> str:
-    output_parts = [(process.stdout or "").strip(), (process.stderr or "").strip()]
-    return "\n".join(filter(None, output_parts))
-```
 
 </details>
 

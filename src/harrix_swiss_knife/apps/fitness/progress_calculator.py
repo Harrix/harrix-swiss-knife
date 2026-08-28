@@ -10,6 +10,7 @@ from __future__ import annotations
 import calendar
 import logging
 import math
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
@@ -238,69 +239,55 @@ class ExerciseProgressCalculator:
         - `list`: List of monthly data, where each item is a list of (day, cumulative_value) tuples.
 
         """
-        monthly_data = []
         today = datetime.now(UTC).astimezone()
+        monthly_data = []
 
-        for i in range(months_count):
-            # Calculate start and end of month
-            # Calculate month i months ago
-            month_date = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-            for _ in range(i):
-                if month_date.month == 1:
-                    month_date = month_date.replace(year=month_date.year - 1, month=12)
-                else:
-                    month_date = month_date.replace(month=month_date.month - 1)
-            month_start = month_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-            if i == 0:
-                month_end = today
-            else:
-                last_day = calendar.monthrange(month_start.year, month_start.month)[1]
-                month_end = month_start.replace(day=last_day, hour=23, minute=59, second=59, microsecond=999999)
-
-            # Format for DB
-            date_from = month_start.strftime("%Y-%m-%d")
-            date_to = month_end.strftime("%Y-%m-%d")
-
-            # Query data for this exercise (all types)
+        for index, window in enumerate(self._month_windows(months_count, today)):
             rows = self.db_manager.get_exercise_chart_data(
                 exercise_name=exercise_name,
                 exercise_type=None,  # Get all types
-                date_from=date_from,
-                date_to=date_to,
+                date_from=window.date_from,
+                date_to=window.date_to,
             )
-
-            # Build cumulative data for this month
-            cumulative_data = []
-            if rows:
-                cumulative_value = 0.0
-                for date_str, value_str in rows:
-                    try:
-                        date_obj = datetime.fromisoformat(date_str).replace(tzinfo=UTC)
-                        value = float(value_str)
-                        cumulative_value += value
-                        day_of_month = date_obj.day
-                        cumulative_data.append((day_of_month, cumulative_value))
-                    except (ValueError, TypeError):
-                        continue
-
-                # Extend horizontally to the end-of-visualization day
-                if cumulative_data:
-                    last_day_in_data = cumulative_data[-1][0]
-                    last_value = cumulative_data[-1][1]
-                    if i == 0:
-                        # Current month: extend to today
-                        today_day = today.day
-                        if last_day_in_data < today_day:
-                            cumulative_data.append((today_day, last_value))
-                    else:
-                        # Past months: extend to last day of month
-                        last_day_of_month = calendar.monthrange(month_start.year, month_start.month)[1]
-                        if last_day_in_data < last_day_of_month:
-                            cumulative_data.append((last_day_of_month, last_value))
-
-            monthly_data.append(cumulative_data)
+            monthly_data.append(self._cumulative_for_month(rows, index=index, window=window, today=today))
 
         return monthly_data
+
+    def get_monthly_data_for_exercises(self, exercise_names: list[str], months_count: int) -> dict[str, list]:
+        """Get monthly data for many exercises using a single query for the whole window.
+
+        Same output shape as `get_monthly_data_for_exercise`, but one query instead of
+        `len(exercise_names) * months_count` of them.
+
+        Args:
+
+        - `exercise_names` (`list[str]`): Exercise names to build data for.
+        - `months_count` (`int`): Number of months to analyze.
+
+        Returns:
+
+        - `dict[str, list]`: Exercise name to its per-month list of (day, cumulative_value) tuples.
+
+        """
+        today = datetime.now(UTC).astimezone()
+        windows = self._month_windows(months_count, today)
+        if not windows or not exercise_names:
+            return {name: [[] for _ in windows] for name in exercise_names}
+
+        rows_by_exercise = self.db_manager.get_chart_data_for_all_exercises(
+            windows[-1].date_from,
+            windows[0].date_to,
+        )
+
+        result: dict[str, list] = {}
+        for name in exercise_names:
+            exercise_rows = rows_by_exercise.get(name, [])
+            months: list = []
+            for index, window in enumerate(windows):
+                month_rows = [row for row in exercise_rows if window.date_from <= row[0] <= window.date_to]
+                months.append(self._cumulative_for_month(month_rows, index=index, window=window, today=today))
+            result[name] = months
+        return result
 
     def get_remaining_days_info(self) -> tuple[int, int]:
         """Get remaining days information for current month.
@@ -443,6 +430,74 @@ class ExerciseProgressCalculator:
             )
             return sum(float(value) for _, value in today_data)
         return self.db_manager.get_exercise_total_today(exercise_id)
+
+    def _cumulative_for_month(
+        self,
+        rows: list[tuple[str, str]],
+        *,
+        index: int,
+        window: _MonthWindow,
+        today: datetime,
+    ) -> list[tuple[int, float]]:
+        """Turn one month of (date, value) rows into cumulative (day, value) points."""
+        cumulative_data: list[tuple[int, float]] = []
+        if not rows:
+            return cumulative_data
+
+        cumulative_value = 0.0
+        for date_str, value_str in rows:
+            try:
+                date_obj = datetime.fromisoformat(date_str).replace(tzinfo=UTC)
+                value = float(value_str)
+            except (ValueError, TypeError):
+                continue
+            cumulative_value += value
+            cumulative_data.append((date_obj.day, cumulative_value))
+
+        # Extend horizontally to the end-of-visualization day.
+        if cumulative_data:
+            last_day_in_data = cumulative_data[-1][0]
+            last_value = cumulative_data[-1][1]
+            end_day = today.day if index == 0 else window.last_day
+            if last_day_in_data < end_day:
+                cumulative_data.append((end_day, last_value))
+
+        return cumulative_data
+
+    def _month_windows(self, months_count: int, today: datetime) -> list[_MonthWindow]:
+        """Return the month ranges used by monthly comparisons, newest month first."""
+        windows: list[_MonthWindow] = []
+        for i in range(months_count):
+            month_date = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            for _ in range(i):
+                if month_date.month == 1:
+                    month_date = month_date.replace(year=month_date.year - 1, month=12)
+                else:
+                    month_date = month_date.replace(month=month_date.month - 1)
+            month_start = month_date
+            last_day = calendar.monthrange(month_start.year, month_start.month)[1]
+            month_end = (
+                today
+                if i == 0
+                else month_start.replace(day=last_day, hour=23, minute=59, second=59, microsecond=999999)
+            )
+            windows.append(
+                _MonthWindow(
+                    date_from=month_start.strftime("%Y-%m-%d"),
+                    date_to=month_end.strftime("%Y-%m-%d"),
+                    last_day=last_day,
+                )
+            )
+        return windows
+
+
+@dataclass(frozen=True, slots=True)
+class _MonthWindow:
+    """One month range used by monthly comparison charts and goal recommendations."""
+
+    date_from: str
+    date_to: str
+    last_day: int
 
 
 def _format_goal_info(

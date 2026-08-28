@@ -33,7 +33,6 @@ lang: en
 - [🔧 Function `is_single_word_link_text`](#-function-is_single_word_link_text)
 - [🔧 Function `normalize_url_for_compare`](#-function-normalize_url_for_compare)
 - [🔧 Function `parse_content_repo_name`](#-function-parse_content_repo_name)
-- [🔧 Function `parse_github_blob_url`](#-function-parse_github_blob_url)
 - [🔧 Function `parse_site_url_or_path`](#-function-parse_site_url_or_path)
 - [🔧 Function `replace_dual_link_title`](#-function-replace_dual_link_title)
 - [🔧 Function `replace_span`](#-function-replace_span)
@@ -674,34 +673,6 @@ def parse_content_repo_name(repo_name: str, settings: SiteLinkSettings) -> Conte
     if not section:
         return None
     return ContentArticleRef(section=section, year=year, lang=lang, slug="")
-```
-
-</details>
-
-## 🔧 Function `parse_github_blob_url`
-
-```python
-def parse_github_blob_url(url: str, settings: SiteLinkSettings) -> ContentArticleRef | None
-```
-
-Parse a GitHub blob URL for `{slug}/{slug}.md` under a content repo.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def parse_github_blob_url(url: str, settings: SiteLinkSettings) -> ContentArticleRef | None:
-    match = re.fullmatch(
-        r"https?://github\.com/[^/]+/([^/]+)/blob/[^/]+/([^/]+)/\2\.md/?(?:[?#].*)?",
-        url.strip(),
-        flags=re.IGNORECASE,
-    )
-    if match is None:
-        return None
-    parsed = parse_content_repo_name(match.group(1), settings)
-    if parsed is None:
-        return None
-    return ContentArticleRef(section=parsed.section, year=parsed.year, lang=parsed.lang, slug=match.group(2))
 ```
 
 </details>

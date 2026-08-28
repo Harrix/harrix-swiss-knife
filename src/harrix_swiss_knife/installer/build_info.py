@@ -117,12 +117,6 @@ def summarize_dependency_artifacts(deps: Path) -> str:
     return "; ".join(parts)
 
 
-def write_build_meta(path: Path, meta: dict[str, str]) -> None:
-    """Write `build_meta.json`."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
-
-
 def _human_size(size: int) -> str:
     if size < _BYTES_PER_KIB:
         return f"{size}B"

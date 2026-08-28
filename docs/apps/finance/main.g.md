@@ -4605,42 +4605,6 @@ class MainWindow(
         )
         self._apply_category_suggestions(suggested)
 
-    def _run_finance_add_by_voice(self, *, large_ui: bool = False) -> None:
-        """Record speech, transcribe via BotHub, then parse purchases into TSV."""
-        recording_dialog = SimpleRecordingDialog(self, large_ui=large_ui)
-        if recording_dialog.exec() != QDialog.DialogCode.Accepted:
-            recording_dialog.release_multimedia()
-            return
-
-        audio_path = recording_dialog.get_audio_path()
-        recording_dialog.release_multimedia()
-        if not audio_path:
-            return
-
-        try:
-            audio_data = audio_bytes_and_mime(audio_path)
-        except ValueError as exc:
-            message_box.critical(self, "Audio Error", str(exc))
-            return
-
-        def on_transcription_success(transcribed_text: str) -> None:
-            if not transcribed_text.strip():
-                message_box.critical(self, "BotHub Error", "Empty transcription from BotHub.")
-                return
-            self._send_purchases_to_ai(transcribed_text)
-
-        run_bothub_request(
-            self,
-            self._app_config,
-            build_transcription_prompt(),
-            on_transcription_success,
-            audio=audio_data,
-            model=get_speech_model(self._app_config),
-            toast_message="Recognizing speech…",
-            is_busy=lambda: self._bothub_state.worker is not None,
-            state=self._bothub_state,
-        )
-
     def _save_table_column_widths(self, table_view: QTableView) -> list[int]:
         """Save column widths for a table view.
 

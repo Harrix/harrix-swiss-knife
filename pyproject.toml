@@ -113,6 +113,7 @@ lint.ignore = [
 line-length = 120
 exclude = [
     "android",
+    "infra",
     "src/harrix_swiss_knife/resources_rc.py",
     "src/harrix_swiss_knife/apps/fitness/window.py",
     "src/harrix_swiss_knife/apps/food/window.py",

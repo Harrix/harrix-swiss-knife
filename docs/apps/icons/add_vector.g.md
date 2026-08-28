@@ -16,13 +16,16 @@ lang: en
 - [🏛️ Class `AddVectorResult`](#%EF%B8%8F-class-addvectorresult)
 - [🏛️ Class `AddVectorStatus`](#%EF%B8%8F-class-addvectorstatus)
 - [🔧 Function `add_variants_to_family`](#-function-add_variants_to_family)
+- [🔧 Function `append_icon_to_note`](#-function-append_icon_to_note)
 - [🔧 Function `collect_vector_sources`](#-function-collect_vector_sources)
 - [🔧 Function `copy_vectors_to_flat_folder`](#-function-copy_vectors_to_flat_folder)
 - [🔧 Function `create_note_from_meta`](#-function-create_note_from_meta)
 - [🔧 Function `discover_vector_files`](#-function-discover_vector_files)
 - [🔧 Function `ensure_featured_from_source`](#-function-ensure_featured_from_source)
+- [🔧 Function `file_sha256`](#-function-file_sha256)
 - [🔧 Function `note_exists_for_family`](#-function-note_exists_for_family)
-- [🔧 Function `to_add_svgs_report`](#-function-to_add_svgs_report)
+- [🔧 Function `optimize_svg_to`](#-function-optimize_svg_to)
+- [🔧 Function `unique_variant_name`](#-function-unique_variant_name)
 - [🔧 Function `variant_dest_name`](#-function-variant_dest_name)
 - [🔧 Function `write_note_markdown`](#-function-write_note_markdown)
 
@@ -213,6 +216,39 @@ def add_variants_to_family(
         rebuild_catalog(repo_root)
         report.catalog_rebuilt = True
     return report
+```
+
+</details>
+
+## 🔧 Function `append_icon_to_note`
+
+```python
+def append_icon_to_note(md_path: Path, svg_name: str) -> None
+```
+
+Append an image bullet under `## Icons` when not already listed.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def append_icon_to_note(md_path: Path, svg_name: str) -> None:
+    if not md_path.is_file():
+        return
+    text = md_path.read_text(encoding="utf-8")
+    bullet = f"- ![{Path(svg_name).stem}](img/{svg_name})"
+    if f"img/{svg_name}" in text:
+        return
+    match = _ICONS_SECTION_RE.search(text)
+    if match:
+        section_body = match.group(2).rstrip()
+        new_section = match.group(1) + (section_body + "\n" if section_body else "") + bullet + "\n"
+        text = text[: match.start()] + new_section + text[match.end() :]
+    elif "## Icons" not in text:
+        text = text.rstrip() + f"\n\n## Icons\n\n{bullet}\n"
+    else:
+        text = text.rstrip() + f"\n{bullet}\n"
+    md_path.write_text(text if text.endswith("\n") else text + "\n", encoding="utf-8")
 ```
 
 </details>
@@ -417,6 +453,28 @@ def ensure_featured_from_source(note_dir: Path, source: Path) -> Path | None:
 
 </details>
 
+## 🔧 Function `file_sha256`
+
+```python
+def file_sha256(path: Path) -> str
+```
+
+Return hex SHA-256 of a file.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+```
+
+</details>
+
 ## 🔧 Function `note_exists_for_family`
 
 ```python
@@ -452,32 +510,46 @@ def note_exists_for_family(repo_root: Path, *, family_id: str, category: str) ->
 
 </details>
 
-## 🔧 Function `to_add_svgs_report`
+## 🔧 Function `optimize_svg_to`
 
 ```python
-def to_add_svgs_report(report: AddVectorReport) -> AddSvgsReport
+def optimize_svg_to(source: Path, dest: Path) -> str
 ```
 
-Convert a vector report into the legacy SVG report type.
+Optimize `source` SVG into `dest` via `harrix_pylib` SvgOptimizer.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def to_add_svgs_report(report: AddVectorReport) -> AddSvgsReport:
-    legacy = AddSvgsReport(catalog_rebuilt=report.catalog_rebuilt)
-    status_map = {item.value: AddSvgStatus(item.value) for item in AddVectorStatus}
-    for item in report.results:
-        legacy.results.append(
-            AddSvgResult(
-                source=item.source,
-                family_id=item.family_id,
-                dest=item.dest,
-                status=status_map[item.status.value],
-                message=item.message,
-            )
-        )
-    return legacy
+def optimize_svg_to(source: Path, dest: Path) -> str:
+    return h.svg_opt.SvgOptimizer().optimize_file(source, dest)
+```
+
+</details>
+
+## 🔧 Function `unique_variant_name`
+
+```python
+def unique_variant_name(img_dir: Path, stem: str, suffix: str = '.svg') -> str
+```
+
+Return a free filename in `img_dir`, preferring `{stem}_new`, then `_new2`, and so on.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def unique_variant_name(img_dir: Path, stem: str, suffix: str = ".svg") -> str:
+    candidate = f"{stem}_new{suffix}"
+    if not (img_dir / candidate).exists():
+        return candidate
+    index = 2
+    while True:
+        candidate = f"{stem}_new{index}{suffix}"
+        if not (img_dir / candidate).exists():
+            return candidate
+        index += 1
 ```
 
 </details>

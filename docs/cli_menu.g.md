@@ -26,7 +26,6 @@ lang: en
 - [🔧 Function `show_action_class_context_menu`](#-function-show_action_class_context_menu)
 - [🔧 Function `show_action_identity_context_menu`](#-function-show_action_identity_context_menu)
 - [🔧 Function `show_action_item_context_menu`](#-function-show_action_item_context_menu)
-- [🔧 Function `show_copy_cli_menu`](#-function-show_copy_cli_menu)
 - [🔧 Function `truncate_action_name_preview`](#-function-truncate_action_name_preview)
 
 </details>
@@ -402,30 +401,6 @@ def show_action_item_context_menu(*, parent: QWidget | None, global_pos: QPoint,
         identity_parts=get_action_identity_parts(action),
         cli_copy_command=get_cli_copy_command(action),
     )
-```
-
-</details>
-
-## 🔧 Function `show_copy_cli_menu`
-
-```python
-def show_copy_cli_menu(*, parent: QWidget | None, global_pos: QPoint, cli_copy_command: str) -> None
-```
-
-Show a small context menu to copy a CLI command to the clipboard.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def show_copy_cli_menu(*, parent: QWidget | None, global_pos: QPoint, cli_copy_command: str) -> None:
-    menu = QMenu(parent)
-    copy_action = menu.addAction(format_copy_cli_menu_label(cli_copy_command))
-    copy_action.triggered.connect(
-        lambda *_args, cmd=cli_copy_command: copy_cli_command_to_clipboard(cmd),
-    )
-    apply_leading_emoji_icons(menu)
-    menu.exec_(global_pos)
 ```
 
 </details>

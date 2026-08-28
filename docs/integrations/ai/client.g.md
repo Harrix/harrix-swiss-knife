@@ -6,16 +6,6 @@ lang: en
 
 # 📄 File `client.py`
 
-<details>
-<summary>📖 Contents ⬇️</summary>
-
-## Contents
-
-- [🔧 Function `chat_completion`](#-function-chat_completion)
-- [🔧 Function `chat_completion_from_config`](#-function-chat_completion_from_config)
-
-</details>
-
 ## 🔧 Function `chat_completion`
 
 ```python
@@ -88,62 +78,6 @@ def chat_completion(
         if mapped != str(exc):
             raise AiApiError(mapped) from exc
         raise
-```
-
-</details>
-
-## 🔧 Function `chat_completion_from_config`
-
-```python
-def chat_completion_from_config(config: dict, *, text: str, images: Sequence[tuple[bytes, str]] | None = None, image: tuple[bytes, str] | None = None, audio: tuple[bytes, str] | None = None, model: str | None = None, for_speech: bool | None = None, timeout_sec: int = _DEFAULT_TIMEOUT_SEC, proxy_url: str | None = None, should_cancel: Callable[[], bool] | None = None, on_connection: Callable[[http.client.HTTPConnection], None] | None = None) -> str
-```
-
-Resolve provider from config and run `chat_completion`.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def chat_completion_from_config(
-    config: dict,
-    *,
-    text: str,
-    images: Sequence[tuple[bytes, str]] | None = None,
-    image: tuple[bytes, str] | None = None,
-    audio: tuple[bytes, str] | None = None,
-    model: str | None = None,
-    for_speech: bool | None = None,
-    timeout_sec: int = _DEFAULT_TIMEOUT_SEC,
-    proxy_url: str | None = None,
-    should_cancel: Callable[[], bool] | None = None,
-    on_connection: Callable[[http.client.HTTPConnection], None] | None = None,
-) -> str:
-    use_speech = for_speech if for_speech is not None else audio is not None
-    prepare_bothub_router(config, for_speech=use_speech, proxy_url=proxy_url)
-    provider = get_speech_provider(config) if use_speech else get_chat_provider(config)
-    api_key, base_url, default_model, resolved_proxy = get_connection_params_for_provider(
-        config,
-        provider,
-        for_speech=use_speech,
-    )
-    settings = get_provider_settings(config, provider)
-    max_tokens = settings.get("max_tokens")
-    max_tokens_int = int(max_tokens) if max_tokens is not None else None
-    return chat_completion(
-        provider=provider,
-        api_key=api_key,
-        base_url=base_url,
-        model=model if model is not None else default_model,
-        text=text,
-        images=images,
-        image=image,
-        audio=audio,
-        timeout_sec=timeout_sec,
-        proxy_url=proxy_url if proxy_url is not None else resolved_proxy,
-        should_cancel=should_cancel,
-        on_connection=on_connection,
-        max_tokens=max_tokens_int,
-    )
 ```
 
 </details>

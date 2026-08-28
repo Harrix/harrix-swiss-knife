@@ -25,11 +25,9 @@ lang: en
   - [⚙️ Method `resizeEvent`](#%EF%B8%8F-method-resizeevent)
   - [⚙️ Method `schedule_viewport_changed`](#%EF%B8%8F-method-schedule_viewport_changed)
   - [⚙️ Method `select_family`](#%EF%B8%8F-method-select_family)
-  - [⚙️ Method `selected_families`](#%EF%B8%8F-method-selected_families)
   - [⚙️ Method `selected_file_paths`](#%EF%B8%8F-method-selected_file_paths)
   - [⚙️ Method `selected_keyword_targets`](#%EF%B8%8F-method-selected_keyword_targets)
   - [⚙️ Method `set_display_icon_size`](#%EF%B8%8F-method-set_display_icon_size)
-  - [⚙️ Method `set_family_items`](#%EF%B8%8F-method-set_family_items)
   - [⚙️ Method `set_favorite_family_ids`](#%EF%B8%8F-method-set_favorite_family_ids)
   - [⚙️ Method `set_grid_entries`](#%EF%B8%8F-method-set_grid_entries)
   - [⚙️ Method `set_repo_root`](#%EF%B8%8F-method-set_repo_root)
@@ -351,10 +349,6 @@ class DraggableIconList(QListWidget):
         self.scrollToItem(item, QAbstractItemView.ScrollHint.PositionAtCenter)
         return True
 
-    def selected_families(self) -> list[IconFamily]:
-        """Return unique selected families in display order."""
-        return [family for family, _path in self.selected_keyword_targets()]
-
     def selected_file_paths(self) -> list[str]:
         """Return file paths of selected tiles, in display order."""
         paths: list[str] = []
@@ -389,35 +383,6 @@ class DraggableIconList(QListWidget):
         self._icon_size = icon_size
         self.setIconSize(QSize(icon_size, icon_size))
         self.setGridSize(self._grid_size_for(icon_size))
-
-    def set_family_items(
-        self,
-        families: list[IconFamily],
-        *,
-        pixmaps: dict[str, QPixmap],
-        placeholder: QPixmap,
-    ) -> None:
-        """Rebuild the grid from filtered families and available thumbnails."""
-        self.blockSignals(True)  # noqa: FBT003
-        self.clear()
-        self._family_rows = {}
-        for family in families:
-            pixmap = pixmaps.get(family.id) or placeholder
-            item = QListWidgetItem(QIcon(pixmap), family.title)
-            item.setData(Qt.ItemDataRole.UserRole, family)
-            self._family_rows.setdefault(family.id, self.count())
-            item.setData(ROLE_SUBTITLE, family_display_filename(family))
-            item.setData(ROLE_TRADEMARK, getattr(family, "trademark", False))
-
-            tooltip = f"{family.id}\n{', '.join(family.tags)}"
-            if getattr(family, "trademark", False):
-                tooltip += "\n\n⚠️ Editorial Use Only / Trademarked Character"
-            item.setToolTip(tooltip)
-
-            item.setSizeHint(QSize(self._icon_size + 16, self._icon_size + LABEL_EXTRA_HEIGHT))
-            self.addItem(item)
-        self.setCurrentRow(-1)
-        self.blockSignals(False)  # noqa: FBT003
 
     def set_favorite_family_ids(self, family_ids: set[str] | list[str]) -> None:
         """Update the favorite family IDs used by the context menu labels."""
@@ -917,24 +882,6 @@ def select_family(self, family_id: str) -> bool:
 
 </details>
 
-### ⚙️ Method `selected_families`
-
-```python
-def selected_families(self) -> list[IconFamily]
-```
-
-Return unique selected families in display order.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def selected_families(self) -> list[IconFamily]:
-        return [family for family, _path in self.selected_keyword_targets()]
-```
-
-</details>
-
 ### ⚙️ Method `selected_file_paths`
 
 ```python
@@ -1008,49 +955,6 @@ def set_display_icon_size(self, icon_size: int) -> None:
         self._icon_size = icon_size
         self.setIconSize(QSize(icon_size, icon_size))
         self.setGridSize(self._grid_size_for(icon_size))
-```
-
-</details>
-
-### ⚙️ Method `set_family_items`
-
-```python
-def set_family_items(self, families: list[IconFamily], *, pixmaps: dict[str, QPixmap], placeholder: QPixmap) -> None
-```
-
-Rebuild the grid from filtered families and available thumbnails.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def set_family_items(
-        self,
-        families: list[IconFamily],
-        *,
-        pixmaps: dict[str, QPixmap],
-        placeholder: QPixmap,
-    ) -> None:
-        self.blockSignals(True)  # noqa: FBT003
-        self.clear()
-        self._family_rows = {}
-        for family in families:
-            pixmap = pixmaps.get(family.id) or placeholder
-            item = QListWidgetItem(QIcon(pixmap), family.title)
-            item.setData(Qt.ItemDataRole.UserRole, family)
-            self._family_rows.setdefault(family.id, self.count())
-            item.setData(ROLE_SUBTITLE, family_display_filename(family))
-            item.setData(ROLE_TRADEMARK, getattr(family, "trademark", False))
-
-            tooltip = f"{family.id}\n{', '.join(family.tags)}"
-            if getattr(family, "trademark", False):
-                tooltip += "\n\n⚠️ Editorial Use Only / Trademarked Character"
-            item.setToolTip(tooltip)
-
-            item.setSizeHint(QSize(self._icon_size + 16, self._icon_size + LABEL_EXTRA_HEIGHT))
-            self.addItem(item)
-        self.setCurrentRow(-1)
-        self.blockSignals(False)  # noqa: FBT003
 ```
 
 </details>

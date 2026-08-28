@@ -6,6 +6,42 @@ lang: en
 
 # 📄 File `schema.py`
 
+<details>
+<summary>📖 Contents ⬇️</summary>
+
+## Contents
+
+- [🔧 Function `ensure_food_indexes`](#-function-ensure_food_indexes)
+- [🔧 Function `ensure_food_schema`](#-function-ensure_food_schema)
+
+</details>
+
+## 🔧 Function `ensure_food_indexes`
+
+```python
+def ensure_food_indexes(db_path: Path) -> bool
+```
+
+Create lookup indexes used by `food_log` ordering, name lookups, and aggregates.
+
+Args:
+
+- `db_path` (`Path`): Path to `food.db`.
+
+Returns:
+
+- `bool`: `True` when at least one index was created.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def ensure_food_indexes(db_path: Path) -> bool:
+    return ensure_sqlite_indexes(db_path, _INDEX_SQL, label="Food")
+```
+
+</details>
+
 ## 🔧 Function `ensure_food_schema`
 
 ```python

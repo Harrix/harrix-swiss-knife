@@ -12,7 +12,6 @@ lang: en
 ## Contents
 
 - [🔧 Function `default_install_root_parent`](#-function-default_install_root_parent)
-- [🔧 Function `detect_dev_checkout_parent`](#-function-detect_dev_checkout_parent)
 - [🔧 Function `enable_long_paths`](#-function-enable_long_paths)
 - [🔧 Function `is_under_program_files`](#-function-is_under_program_files)
 - [🔧 Function `long_paths_enabled`](#-function-long_paths_enabled)
@@ -50,37 +49,6 @@ def default_install_root_parent() -> Path:
         bundle = Path.home() / "harrix-swiss-knife"
         bundle.mkdir(parents=True, exist_ok=True)
         return bundle.resolve()
-```
-
-</details>
-
-## 🔧 Function `detect_dev_checkout_parent`
-
-```python
-def detect_dev_checkout_parent(project_hint: Path | None = None) -> Path | None
-```
-
-If running from a harrix-swiss-knife checkout, return its parent folder.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def detect_dev_checkout_parent(project_hint: Path | None = None) -> Path | None:
-    candidates: list[Path] = []
-    if project_hint is not None:
-        candidates.append(project_hint)
-    # installer package -> harrix_swiss_knife -> src -> repo root
-    here = Path(__file__).resolve()
-    candidates.append(here.parents[3] if len(here.parents) >= _REPO_ROOT_PARENT_DEPTH else here.parent)
-    for root in candidates:
-        pp = root / "pyproject.toml"
-        if not pp.is_file():
-            continue
-        text = pp.read_text(encoding="utf-8", errors="replace")[:2000]
-        if 'name = "harrix-swiss-knife"' in text or "name='harrix-swiss-knife'" in text:
-            return root.parent.resolve()
-    return None
 ```
 
 </details>

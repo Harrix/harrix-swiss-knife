@@ -17,7 +17,6 @@ lang: en
   - [⚙️ Method `add_menu_structure`](#%EF%B8%8F-method-add_menu_structure)
   - [⚙️ Method `create_emoji_icon`](#%EF%B8%8F-method-create_emoji_icon)
   - [⚙️ Method `get_icon`](#%EF%B8%8F-method-get_icon)
-  - [⚙️ Method `get_menu`](#%EF%B8%8F-method-get_menu)
   - [⚙️ Method `new_menu`](#%EF%B8%8F-method-new_menu)
 - [🔧 Function `set_menu_tooltips_visible_recursive`](#-function-set_menu_tooltips_visible_recursive)
 
@@ -215,16 +214,6 @@ class MainMenuBase:
             # If the icon already exists, load it from the file
             return QIcon(str(icon_path))
         return self.create_emoji_icon(icon, size)
-
-    def get_menu(self) -> str:
-        """Update `README.md` List of commands from get_menu_structure().
-
-        Returns:
-
-        - `str`: The Markdown formatted menu list written into `README.md`.
-
-        """
-        return update_readme_list_of_commands()
 
     def new_menu(self, title: str, icon: str) -> QMenu:
         """Create and return a new QMenu with a title and an icon.
@@ -538,28 +527,6 @@ def get_icon(self, icon: str, size: int = 32) -> QIcon:
             # If the icon already exists, load it from the file
             return QIcon(str(icon_path))
         return self.create_emoji_icon(icon, size)
-```
-
-</details>
-
-### ⚙️ Method `get_menu`
-
-```python
-def get_menu(self) -> str
-```
-
-Update `README.md` List of commands from get_menu_structure().
-
-Returns:
-
-- `str`: The Markdown formatted menu list written into `README.md`.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def get_menu(self) -> str:
-        return update_readme_list_of_commands()
 ```
 
 </details>

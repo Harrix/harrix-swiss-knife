@@ -24,7 +24,6 @@ lang: en
   - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
   - [⚙️ Method `mode (property)`](#%EF%B8%8F-method-mode-property)
   - [⚙️ Method `mousePressEvent`](#%EF%B8%8F-method-mousepressevent)
-  - [⚙️ Method `paste_from_clipboard`](#%EF%B8%8F-method-paste_from_clipboard)
   - [⚙️ Method `paste_image_from_clipboard`](#%EF%B8%8F-method-paste_image_from_clipboard)
   - [⚙️ Method `refresh_filename_base`](#%EF%B8%8F-method-refresh_filename_base)
   - [⚙️ Method `reset_filename_row`](#%EF%B8%8F-method-reset_filename_row)
@@ -310,10 +309,6 @@ class ImagePicker(QWidget):
         if drop is not None:
             drop.setFocus(Qt.FocusReason.MouseFocusReason)
         super().mousePressEvent(event)
-
-    def paste_from_clipboard(self) -> None:
-        """Paste text into fallback editor when available, otherwise paste image."""
-        self._paste_smart_from_clipboard()
 
     def paste_image_from_clipboard(self) -> None:
         """Paste image from clipboard into the picker."""
@@ -747,10 +742,6 @@ class ImagePicker(QWidget):
                 self._clear_button.setText("Clear")
                 self._clear_button.setIcon(create_emoji_icon("🗑️", 18))
                 self._clear_button.setToolTip("Clear image")
-
-    def _remove_multi_image_path(self, path: str) -> None:
-        """Hard-remove a multi image (used when soft-remove is disabled)."""
-        self._hard_remove_multi_image_path(path)
 
     def _resolve_image_path(self, path: str) -> Path | None:
         if not path.strip():
@@ -1327,24 +1318,6 @@ def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         if drop is not None:
             drop.setFocus(Qt.FocusReason.MouseFocusReason)
         super().mousePressEvent(event)
-```
-
-</details>
-
-### ⚙️ Method `paste_from_clipboard`
-
-```python
-def paste_from_clipboard(self) -> None
-```
-
-Paste text into fallback editor when available, otherwise paste image.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def paste_from_clipboard(self) -> None:
-        self._paste_smart_from_clipboard()
 ```
 
 </details>

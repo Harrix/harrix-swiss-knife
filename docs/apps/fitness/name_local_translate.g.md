@@ -11,38 +11,8 @@ lang: en
 
 ## Contents
 
-- [🔧 Function `parse_name_local_batch_response`](#-function-parse_name_local_batch_response)
 - [🔧 Function `parse_name_local_response`](#-function-parse_name_local_response)
 - [🔧 Function `request_name_local_translation`](#-function-request_name_local_translation)
-- [🔧 Function `request_names_local_batch_translation`](#-function-request_names_local_batch_translation)
-
-</details>
-
-## 🔧 Function `parse_name_local_batch_response`
-
-```python
-def parse_name_local_batch_response(text: str) -> dict[str, str]
-```
-
-Parse TSV lines `Name<TAB>LocalName` into a name-to-translation map.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def parse_name_local_batch_response(text: str) -> dict[str, str]:
-    translations: dict[str, str] = {}
-    for line in _iter_data_lines(text):
-        parts = line.split("\t")
-        if len(parts) != _TSV_COLUMN_COUNT:
-            continue
-        name = parts[0].strip()
-        name_local = parts[1].strip()
-        if not name or not name_local:
-            continue
-        translations[name] = name_local
-    return translations
-```
 
 </details>
 
@@ -146,81 +116,6 @@ def request_name_local_translation(
     )
     if not started:
         translate_button.setEnabled(True)
-```
-
-</details>
-
-## 🔧 Function `request_names_local_batch_translation`
-
-```python
-def request_names_local_batch_translation(parent: QWidget, *, app_config: dict[str, Any], bothub_state: BothubRequestState, names: list[str], on_success: Callable[[dict[str, str]], None], on_finished: Callable[[], None] | None = None) -> None
-```
-
-Translate many names into the local language and pass a map to `on_success`.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def request_names_local_batch_translation(
-    parent: QWidget,
-    *,
-    app_config: dict[str, Any],
-    bothub_state: BothubRequestState,
-    names: list[str],
-    on_success: Callable[[dict[str, str]], None],
-    on_finished: Callable[[], None] | None = None,
-) -> None:
-    if not names:
-        message_box.information(parent, "Translation", "All names already have a local translation.")
-        if on_finished is not None:
-            on_finished()
-        return
-
-    names_text = "\n".join(names)
-    try:
-        prompt_text = build_prompt(
-            app_config,
-            "fitness_names_translate_local",
-            {
-                "NAMES": names_text,
-                "LOCAL_LANGUAGE": get_apps_local_language_display_name(app_config),
-            },
-        )
-    except ValueError as exc:
-        show_bothub_prompt_build_error(parent, exc)
-        if on_finished is not None:
-            on_finished()
-        return
-
-    def success_wrapper(response_text: str) -> None:
-        translations = parse_name_local_batch_response(response_text)
-        on_success(translations)
-        if on_finished is not None:
-            on_finished()
-
-    def on_error(error_message: str) -> None:
-        message_box.critical(parent, "BotHub Error", error_message)
-        if on_finished is not None:
-            on_finished()
-
-    def on_cancelled() -> None:
-        if on_finished is not None:
-            on_finished()
-
-    started = run_bothub_request(
-        parent,
-        app_config,
-        prompt_text,
-        success_wrapper,
-        toast_message="Translating names…",
-        is_busy=lambda: bothub_state.worker is not None,
-        state=bothub_state,
-        on_error=on_error,
-        on_cancelled=on_cancelled,
-    )
-    if not started and on_finished is not None:
-        on_finished()
 ```
 
 </details>

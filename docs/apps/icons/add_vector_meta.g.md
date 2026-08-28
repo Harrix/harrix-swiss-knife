@@ -25,7 +25,6 @@ lang: en
 - [🔧 Function `permalink_suffixes`](#-function-permalink_suffixes)
 - [🔧 Function `scan_repo_meta_defaults`](#-function-scan_repo_meta_defaults)
 - [🔧 Function `sync_family_id_category`](#-function-sync_family_id_category)
-- [🔧 Function `today_iso_date`](#-function-today_iso_date)
 
 </details>
 
@@ -476,24 +475,6 @@ def sync_family_id_category(family_id: str, category: str) -> str:
     if not slug:
         return cleaned_category
     return f"{cleaned_category}__{slug}"
-```
-
-</details>
-
-## 🔧 Function `today_iso_date`
-
-```python
-def today_iso_date() -> str
-```
-
-Return today's date in `YYYY-MM-DD` (local calendar via UTC date is fine for tests).
-
-<details>
-<summary>Code:</summary>
-
-```python
-def today_iso_date() -> str:
-    return datetime.now(UTC).date().isoformat()
 ```
 
 </details>

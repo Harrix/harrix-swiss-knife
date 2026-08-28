@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -290,11 +289,6 @@ def sync_family_id_category(family_id: str, category: str) -> str:
     if not slug:
         return cleaned_category
     return f"{cleaned_category}__{slug}"
-
-
-def today_iso_date() -> str:
-    """Return today's date in `YYYY-MM-DD` (local calendar via UTC date is fine for tests)."""
-    return datetime.now(UTC).date().isoformat()
 
 
 def _unique_sorted(values: list[str]) -> list[str]:

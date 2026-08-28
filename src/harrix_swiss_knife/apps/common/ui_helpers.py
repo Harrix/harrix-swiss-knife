@@ -52,26 +52,6 @@ def close_table_editor_if_open(view: QAbstractItemView) -> None:
     view.closeEditor(editor, QAbstractItemDelegate.EndEditHint.SubmitModelCache)
 
 
-def commit_table_editor_if_open(view: QAbstractItemView) -> None:
-    """Commit and close an open inline cell editor so item/model data is current.
-
-    Needed when reading `QTableWidgetItem.text()` after the user typed in a cell
-    and immediately pressed a dialog default button (Enter) or clicked Apply —
-    without this, the editor value is discarded and the item stays stale.
-
-    Args:
-
-    - `view` (`QAbstractItemView`): Table or list view that may have an active editor.
-
-    """
-    editor = _active_table_editor(view)
-    if editor is None:
-        return
-
-    view.commitData(editor)
-    view.closeEditor(editor, QAbstractItemDelegate.EndEditHint.NoHint)
-
-
 def enumerate_stripped_non_empty_lines(text: str, start: int = 1) -> Iterator[tuple[int, str]]:
     """Yield `(line_number, stripped_line)` pairs for non-empty lines in `text`.
 

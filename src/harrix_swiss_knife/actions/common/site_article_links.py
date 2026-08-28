@@ -356,21 +356,6 @@ def parse_content_repo_name(repo_name: str, settings: SiteLinkSettings) -> Conte
     return ContentArticleRef(section=section, year=year, lang=lang, slug="")
 
 
-def parse_github_blob_url(url: str, settings: SiteLinkSettings) -> ContentArticleRef | None:
-    """Parse a GitHub blob URL for `{slug}/{slug}.md` under a content repo."""
-    match = re.fullmatch(
-        r"https?://github\.com/[^/]+/([^/]+)/blob/[^/]+/([^/]+)/\2\.md/?(?:[?#].*)?",
-        url.strip(),
-        flags=re.IGNORECASE,
-    )
-    if match is None:
-        return None
-    parsed = parse_content_repo_name(match.group(1), settings)
-    if parsed is None:
-        return None
-    return ContentArticleRef(section=parsed.section, year=parsed.year, lang=parsed.lang, slug=match.group(2))
-
-
 def parse_site_url_or_path(raw: str, settings: SiteLinkSettings) -> ContentArticleRef | None:
     """Parse `/games/dashes/`, `/ru/articles/2017/slug/`, or full site URLs into a ref."""
     path_text = raw.strip()

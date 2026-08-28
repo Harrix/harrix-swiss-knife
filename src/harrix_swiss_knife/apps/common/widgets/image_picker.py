@@ -375,10 +375,6 @@ class ImagePicker(QWidget):
             drop.setFocus(Qt.FocusReason.MouseFocusReason)
         super().mousePressEvent(event)
 
-    def paste_from_clipboard(self) -> None:
-        """Paste text into fallback editor when available, otherwise paste image."""
-        self._paste_smart_from_clipboard()
-
     def paste_image_from_clipboard(self) -> None:
         """Paste image from clipboard into the picker."""
         self._paste_image_from_clipboard()
@@ -811,10 +807,6 @@ class ImagePicker(QWidget):
                 self._clear_button.setText("Clear")
                 self._clear_button.setIcon(create_emoji_icon("🗑️", 18))
                 self._clear_button.setToolTip("Clear image")
-
-    def _remove_multi_image_path(self, path: str) -> None:
-        """Hard-remove a multi image (used when soft-remove is disabled)."""
-        self._hard_remove_multi_image_path(path)
 
     def _resolve_image_path(self, path: str) -> Path | None:
         if not path.strip():

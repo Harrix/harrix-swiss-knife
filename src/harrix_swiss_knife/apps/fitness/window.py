@@ -44,6 +44,7 @@ class Ui_MainWindow(object):
         self.label_unit.setText(QCoreApplication.translate("MainWindow", u"times", None))
         self.dateEdit.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
         self.pushButton_add.setText(QCoreApplication.translate("MainWindow", u"Add", None))
+        self.pushButton_add_by_voice.setText(QCoreApplication.translate("MainWindow", u"Add by voice", None))
         self.label_exercise_avif.setText(QCoreApplication.translate("MainWindow", u"No exercise selected", None))
         self.groupBox_9.setTitle(QCoreApplication.translate("MainWindow", u"Count of Sets Today", None))
         self.label_count_sets_today.setText(QCoreApplication.translate("MainWindow", u"Text", None))
@@ -241,6 +242,23 @@ class Ui_MainWindow(object):
 "                                      }")
 
         self.verticalLayout_5.addWidget(self.pushButton_add)
+
+        self.pushButton_add_by_voice = QPushButton(self.groupBox)
+        self.pushButton_add_by_voice.setObjectName(u"pushButton_add_by_voice")
+        self.pushButton_add_by_voice.setMinimumSize(QSize(0, 41))
+        self.pushButton_add_by_voice.setStyleSheet(u"QPushButton {\n"
+"                                      background-color: #e3f2fd;\n"
+"                                      border: 1px solid #2196F3;\n"
+"                                      border-radius: 4px;\n"
+"                                      }\n"
+"                                      QPushButton:hover {\n"
+"                                      background-color: #bbdefb;\n"
+"                                      }\n"
+"                                      QPushButton:pressed {\n"
+"                                      background-color: #90caf9;\n"
+"                                      }")
+
+        self.verticalLayout_5.addWidget(self.pushButton_add_by_voice)
 
 
         self.verticalLayout_3.addWidget(self.groupBox)

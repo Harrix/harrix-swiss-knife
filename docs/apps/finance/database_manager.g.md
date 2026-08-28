@@ -62,14 +62,12 @@ lang: en
   - [⚙️ Method `get_default_currency`](#%EF%B8%8F-method-get_default_currency)
   - [⚙️ Method `get_default_currency_id`](#%EF%B8%8F-method-get_default_currency_id)
   - [⚙️ Method `get_distinct_transaction_tags`](#%EF%B8%8F-method-get_distinct_transaction_tags)
-  - [⚙️ Method `get_earliest_currency_exchange_date`](#%EF%B8%8F-method-get_earliest_currency_exchange_date)
   - [⚙️ Method `get_earliest_transaction_date`](#%EF%B8%8F-method-get_earliest_transaction_date)
   - [⚙️ Method `get_exchange_rate`](#%EF%B8%8F-method-get_exchange_rate)
   - [⚙️ Method `get_expense_minor_by_currency_for_date`](#%EF%B8%8F-method-get_expense_minor_by_currency_for_date)
   - [⚙️ Method `get_filtered_exchange_rates`](#%EF%B8%8F-method-get_filtered_exchange_rates)
   - [⚙️ Method `get_filtered_transactions`](#%EF%B8%8F-method-get_filtered_transactions)
   - [⚙️ Method `get_income_vs_expenses_in_currency`](#%EF%B8%8F-method-get_income_vs_expenses_in_currency)
-  - [⚙️ Method `get_income_vs_expenses_in_currency_latest`](#%EF%B8%8F-method-get_income_vs_expenses_in_currency_latest)
   - [⚙️ Method `get_last_exchange_rate_date`](#%EF%B8%8F-method-get_last_exchange_rate_date)
   - [⚙️ Method `get_last_two_exchange_rate_records`](#%EF%B8%8F-method-get_last_two_exchange_rate_records)
   - [⚙️ Method `get_missing_exchange_rates_info`](#%EF%B8%8F-method-get_missing_exchange_rates_info)
@@ -82,7 +80,6 @@ lang: en
   - [⚙️ Method `get_standard_item_description_category_pairs`](#%EF%B8%8F-method-get_standard_item_description_category_pairs)
   - [⚙️ Method `get_standard_item_names_for_autocomplete`](#%EF%B8%8F-method-get_standard_item_names_for_autocomplete)
   - [⚙️ Method `get_standard_items_missing_name_en`](#%EF%B8%8F-method-get_standard_items_missing_name_en)
-  - [⚙️ Method `get_tag_amount_totals_by_currency`](#%EF%B8%8F-method-get_tag_amount_totals_by_currency)
   - [⚙️ Method `get_tag_expense_totals_by_currency`](#%EF%B8%8F-method-get_tag_expense_totals_by_currency)
   - [⚙️ Method `get_tags_sorted_by_last_used`](#%EF%B8%8F-method-get_tags_sorted_by_last_used)
   - [⚙️ Method `get_total_accounts_balance_in_currency`](#%EF%B8%8F-method-get_total_accounts_balance_in_currency)
@@ -1107,17 +1104,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         )
         return [str(row[0]) for row in rows]
 
-    def get_earliest_currency_exchange_date(self) -> str | None:
-        """Get the earliest date from currency_exchanges table.
-
-        Returns:
-
-        - `str | None`: Earliest date in YYYY-MM-DD format or `None` if no records exist.
-
-        """
-        rows = self.get_rows("SELECT MIN(date) FROM currency_exchanges")
-        return rows[0][0] if rows and rows[0][0] else None
-
     def get_earliest_transaction_date(self) -> str | None:
         """Get the earliest date from transactions table.
 
@@ -1342,10 +1328,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         total_expenses = float(expenses_rows[0][0] or 0) / 100 if expenses_rows and expenses_rows[0][0] else 0.0
 
         return total_income, total_expenses
-
-    def get_income_vs_expenses_in_currency_latest(self, currency_id: int) -> tuple[float, float]:
-        """Get total income and expenses using latest exchange rates (not transaction-date rates)."""
-        return self.get_income_vs_expenses_in_currency(currency_id, use_latest_rates=True)
 
     def get_last_exchange_rate_date(self, currency_id: int) -> str | None:
         """Get the last date for which exchange rate exists for a currency.
@@ -1636,29 +1618,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             {"limit": max(1, limit)},
         )
         return [str(row[0]) for row in rows if row[0]]
-
-    def get_tag_amount_totals_by_currency(self, tag: str) -> list[tuple[int, str, str, int]]:
-        """Sum transaction amounts per currency (minor units) for this tag.
-
-        Args:
-
-        - `tag` (`str`): Tag string as stored in `transactions.tag`.
-
-        Returns:
-
-        - `list[tuple[int, str, str, int]]`: `(currency_id, code, symbol, sum_minor)` sorted by code.
-
-        """
-        query = """
-            SELECT t._id_currencies, c.code, c.symbol, SUM(t.amount) AS total_minor
-            FROM transactions t
-            JOIN currencies c ON t._id_currencies = c._id
-            WHERE t.tag = :tag
-            GROUP BY t._id_currencies, c.code, c.symbol
-            ORDER BY c.code
-        """
-        rows = self.get_rows(query, {"tag": tag})
-        return [(int(r[0]), str(r[1]), str(r[2]), int(r[3])) for r in rows]
 
     def get_tag_expense_totals_by_currency(self, tag: str) -> list[tuple[int, str, str, int]]:
         """Sum expense transaction amounts per currency (minor units) for this tag.
@@ -4170,29 +4129,6 @@ def get_distinct_transaction_tags(self) -> list[str]:
 
 </details>
 
-### ⚙️ Method `get_earliest_currency_exchange_date`
-
-```python
-def get_earliest_currency_exchange_date(self) -> str | None
-```
-
-Get the earliest date from currency_exchanges table.
-
-Returns:
-
-- `str | None`: Earliest date in YYYY-MM-DD format or `None` if no records exist.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def get_earliest_currency_exchange_date(self) -> str | None:
-        rows = self.get_rows("SELECT MIN(date) FROM currency_exchanges")
-        return rows[0][0] if rows and rows[0][0] else None
-```
-
-</details>
-
 ### ⚙️ Method `get_earliest_transaction_date`
 
 ```python
@@ -4486,24 +4422,6 @@ def get_income_vs_expenses_in_currency(
         total_expenses = float(expenses_rows[0][0] or 0) / 100 if expenses_rows and expenses_rows[0][0] else 0.0
 
         return total_income, total_expenses
-```
-
-</details>
-
-### ⚙️ Method `get_income_vs_expenses_in_currency_latest`
-
-```python
-def get_income_vs_expenses_in_currency_latest(self, currency_id: int) -> tuple[float, float]
-```
-
-Get total income and expenses using latest exchange rates (not transaction-date rates).
-
-<details>
-<summary>Code:</summary>
-
-```python
-def get_income_vs_expenses_in_currency_latest(self, currency_id: int) -> tuple[float, float]:
-        return self.get_income_vs_expenses_in_currency(currency_id, use_latest_rates=True)
 ```
 
 </details>
@@ -4944,41 +4862,6 @@ def get_standard_items_missing_name_en(self, *, limit: int = 1000) -> list[str]:
             {"limit": max(1, limit)},
         )
         return [str(row[0]) for row in rows if row[0]]
-```
-
-</details>
-
-### ⚙️ Method `get_tag_amount_totals_by_currency`
-
-```python
-def get_tag_amount_totals_by_currency(self, tag: str) -> list[tuple[int, str, str, int]]
-```
-
-Sum transaction amounts per currency (minor units) for this tag.
-
-Args:
-
-- `tag` (`str`): Tag string as stored in `transactions.tag`.
-
-Returns:
-
-- `list[tuple[int, str, str, int]]`: `(currency_id, code, symbol, sum_minor)` sorted by code.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def get_tag_amount_totals_by_currency(self, tag: str) -> list[tuple[int, str, str, int]]:
-        query = """
-            SELECT t._id_currencies, c.code, c.symbol, SUM(t.amount) AS total_minor
-            FROM transactions t
-            JOIN currencies c ON t._id_currencies = c._id
-            WHERE t.tag = :tag
-            GROUP BY t._id_currencies, c.code, c.symbol
-            ORDER BY c.code
-        """
-        rows = self.get_rows(query, {"tag": tag})
-        return [(int(r[0]), str(r[1]), str(r[2]), int(r[3])) for r in rows]
 ```
 
 </details>

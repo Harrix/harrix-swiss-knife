@@ -35,6 +35,7 @@ lang: en
   - [⚙️ Method `on_exercise_type_changed`](#%EF%B8%8F-method-on_exercise_type_changed)
   - [⚙️ Method `on_export_csv`](#%EF%B8%8F-method-on_export_csv)
   - [⚙️ Method `on_export_excel`](#%EF%B8%8F-method-on_export_excel)
+  - [⚙️ Method `on_fitness_add_by_voice`](#%EF%B8%8F-method-on_fitness_add_by_voice)
   - [⚙️ Method `on_open_exercise_image_lightbox`](#%EF%B8%8F-method-on_open_exercise_image_lightbox)
   - [⚙️ Method `on_open_exercise_images_folder`](#%EF%B8%8F-method-on_open_exercise_images_folder)
   - [⚙️ Method `on_process_selection_changed`](#%EF%B8%8F-method-on_process_selection_changed)
@@ -1655,6 +1656,10 @@ class MainWindow(
         """Save the process table as Excel (CSV is also offered in the dialog)."""
         self._export_named_table("process", prefer="xlsx")
 
+    def on_fitness_add_by_voice(self) -> None:
+        """Record speech, transcribe via BotHub, convert to set TSV, then open preview dialog."""
+        self._run_fitness_add_by_voice()
+
     def on_open_exercise_image_lightbox(self) -> None:
         """Open the selected exercise AVIF in a window-sized lightbox."""
         self._open_exercise_media_lightbox()
@@ -1749,9 +1754,22 @@ class MainWindow(
 
             # Get selected exercise from comboBox_records_select_exercise
             selected_exercise = self.comboBox_records_select_exercise.currentText()
+            record_count = self.spinBox_record_count.value()
 
-            # Get statistics data using database manager with optional filtering
-            rows = self.db_manager.get_filtered_statistics_data(exercise_name=selected_exercise or None)
+            local_now = datetime.now(UTC).astimezone()
+            one_year_ago_str = (local_now - timedelta(days=365)).strftime("%Y-%m-%d")
+
+            # Top-N per exercise/type in SQL; loading the full process table here was
+            # the main statistics-tab cost on large databases.
+            rows = self.db_manager.get_filtered_statistics_data(
+                exercise_name=selected_exercise or None,
+                limit=record_count,
+            )
+            year_rows = self.db_manager.get_filtered_statistics_data(
+                exercise_name=selected_exercise or None,
+                limit=record_count,
+                date_from=one_year_ago_str,
+            )
 
             if not rows:
                 # If no data, show empty table
@@ -1788,7 +1806,6 @@ class MainWindow(
                 return
 
             # Calculate key date boundaries relative to local time
-            local_now = datetime.now(UTC).astimezone()
             today_date = local_now.date()
             yesterday_date = today_date - timedelta(days=1)
             thirty_days_ago = today_date - timedelta(days=30)
@@ -1796,9 +1813,6 @@ class MainWindow(
 
             today = today_date.strftime("%Y-%m-%d")
             yesterday = yesterday_date.strftime("%Y-%m-%d")
-
-            one_year_ago = local_now - timedelta(days=365)
-            one_year_ago_str = one_year_ago.strftime("%Y-%m-%d")
 
             # Group data by exercise and type combination
             grouped: defaultdict[str, list[tuple]] = defaultdict(list)
@@ -1808,9 +1822,9 @@ class MainWindow(
                 _key = f"{ex_name} {tp_name}".strip()
                 grouped[_key].append((ex_name, tp_name, val, date))
 
-                # Add to year group if within last year
-                if date >= one_year_ago_str:
-                    grouped_year[_key].append((ex_name, tp_name, val, date))
+            for ex_name, tp_name, val, date in year_rows:
+                _key = f"{ex_name} {tp_name}".strip()
+                grouped_year[_key].append((ex_name, tp_name, val, date))
 
             # Prepare table data
             table_data = []
@@ -1852,6 +1866,9 @@ class MainWindow(
 
             current_row = 0
 
+            # One lookup for the whole table; per-row lookups cost two queries per row.
+            exercise_units = self.db_manager.get_exercise_units()
+
             for exercise_group_index, (_key, entries) in enumerate(grouped.items()):
                 # Sort all-time entries: first by value (descending), then by date (descending)
                 entries.sort(key=lambda x: (x[2], x[3]), reverse=True)
@@ -1873,7 +1890,7 @@ class MainWindow(
                     # Get all-time data if available
                     if i < len(entries):
                         ex_name, tp_name, val, date = entries[i]
-                        unit = self.db_manager.get_exercise_unit(ex_name)
+                        unit = exercise_units.get(ex_name, "times")
                         val_str = f"{val:g}"
                         date_display = _decorate_record_date(date)
                     else:
@@ -1885,7 +1902,7 @@ class MainWindow(
                     # Get year data if available
                     if i < len(year_entries):
                         _, _, year_val, year_date = year_entries[i]
-                        year_unit = self.db_manager.get_exercise_unit(ex_name) if ex_name else ""
+                        year_unit = exercise_units.get(ex_name, "times") if ex_name else ""
                         year_val_str = f"{year_val:g}"
                         year_date_display = _decorate_record_date(year_date, include_last_year_marker=False)
                     else:
@@ -2188,6 +2205,13 @@ class MainWindow(
             # Get months count from spinBox_compare_last
             months_count = self.spinBox_compare_last.value()
 
+            # One query for the whole catalog; per-exercise queries here cost
+            # len(exercises) * months_count round-trips.
+            monthly_data_by_exercise = self._get_monthly_data_for_exercises(
+                [str(record[1]) for record in exercises_data],
+                months_count,
+            )
+
             # Generate recommendations for each exercise
             table_data = []
 
@@ -2198,8 +2222,7 @@ class MainWindow(
                 unit_text = f" {exercise_unit}" if exercise_unit else ""
 
                 try:
-                    # Get monthly data for this exercise (similar to compare_last logic)
-                    monthly_data = self._get_monthly_data_for_exercise(exercise_name, months_count)
+                    monthly_data = monthly_data_by_exercise.get(str(exercise_name), [])
 
                     if not monthly_data or not any(month_data for month_data in monthly_data):
                         # No data for this exercise
@@ -4725,6 +4748,7 @@ class MainWindow(
         self.label_exercise_avif_5.customContextMenuRequested.connect(self._show_exercise_avif_label_menu)
 
         self.pushButton_add.clicked.connect(self.on_add_record)
+        self.pushButton_add_by_voice.clicked.connect(self.on_fitness_add_by_voice)
         self.spinBox_count.lineEdit().returnPressed.connect(self.pushButton_add.click)
 
         # Window resize event is handled by overriding resizeEvent method
@@ -5291,6 +5315,18 @@ class MainWindow(
             sheet_name=table_key.replace("_", " ").title(),
         )
 
+    def _extend_monthly_data_for_display(self, monthly_data: list) -> None:
+        """Extend each month's last point to `max_day` in place, for chart display."""
+        today = datetime.now(UTC).astimezone()
+        for i, cumulative_data in enumerate(monthly_data):
+            if not cumulative_data:
+                continue
+            last_day = cumulative_data[-1][0]
+            last_value = cumulative_data[-1][1]
+            max_day = min(today.day, 31) if i == 0 else 31
+            if last_day < max_day:
+                cumulative_data.append((max_day, last_value))
+
     def _favorite_menu_action(self, menu: QMenu, exercise_name: str) -> QAction:
         """Add an add/remove favorite action for `exercise_name`."""
         is_fav = False
@@ -5494,8 +5530,8 @@ class MainWindow(
 
     def _fitness_prompt_replacements(self, raw_text: str) -> dict[str, str]:
         """Build BotHub placeholders for set-logging prompts."""
-        selected_exercise = ""
-        selected_type = ""
+        selected_exercise = self._get_current_selected_exercise() or ""
+        selected_type = self.comboBox_type.currentText().strip()
         catalog = []
         if self.db_manager is not None and self._validate_database_connection():
             catalog = build_exercise_catalog(
@@ -5723,15 +5759,6 @@ class MainWindow(
 
         return self.db_manager.get_exercise_name_by_id(exercise_id)
 
-    def _get_exercise_preview_icon(self, exercise_name: str, target_size: QSize) -> QIcon | None:
-        """Return a cached exercise icon scaled by Qt to `target_size`."""
-        icon = self._get_exercise_icon(exercise_name)
-        if icon is None or icon.isNull():
-            return None
-        if target_size.width() <= 0 or target_size.height() <= 0:
-            return icon
-        return icon
-
     def _get_exercise_today_goal_info(self, exercise: str) -> str:
         """Get today's goal information for an exercise.
 
@@ -5815,18 +5842,29 @@ class MainWindow(
             return []
 
         monthly_data = self.progress_calculator.get_monthly_data_for_exercise(exercise_name, months_count)
-
-        # Apply visualization extension (extend to max_day for display purposes)
-        today = datetime.now(UTC).astimezone()
-        for i, cumulative_data in enumerate(monthly_data):
-            if cumulative_data:
-                last_day = cumulative_data[-1][0]
-                last_value = cumulative_data[-1][1]
-                max_day = min(today.day, 31) if i == 0 else 31
-                if last_day < max_day:
-                    cumulative_data.append((max_day, last_value))
-
+        self._extend_monthly_data_for_display(monthly_data)
         return monthly_data
+
+    def _get_monthly_data_for_exercises(self, exercise_names: list[str], months_count: int) -> dict[str, list]:
+        """Get monthly data for many exercises at once, in the same format as compare_last.
+
+        Args:
+
+        - `exercise_names` (`list[str]`): Exercise names to build data for.
+        - `months_count` (`int`): Number of months to analyze.
+
+        Returns:
+
+        - `dict[str, list]`: Exercise name to its monthly data.
+
+        """
+        if self.progress_calculator is None:
+            return {}
+
+        data_by_exercise = self.progress_calculator.get_monthly_data_for_exercises(exercise_names, months_count)
+        for monthly_data in data_by_exercise.values():
+            self._extend_monthly_data_for_display(monthly_data)
+        return data_by_exercise
 
     def _get_process_filter_params(self) -> dict[str, str | None]:
         """Return current process table filter parameters."""
@@ -7719,6 +7757,7 @@ class MainWindow(
 
         # Set emoji for buttons
         self.pushButton_add.setText(f"➕  {self.pushButton_add.text()}")  # noqa: RUF001
+        self.pushButton_add_by_voice.setText(f"🎙️ {self.pushButton_add_by_voice.text()}")
         self.groupBox_filter.setTitle("")
         self.groupBox_filter.setStyleSheet(
             "QGroupBox#groupBox_filter { border: none; margin-top: 0px; padding-top: 0px; }"
@@ -10566,6 +10605,24 @@ def on_export_excel(self) -> None:
 
 </details>
 
+### ⚙️ Method `on_fitness_add_by_voice`
+
+```python
+def on_fitness_add_by_voice(self) -> None
+```
+
+Record speech, transcribe via BotHub, convert to set TSV, then open preview dialog.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_fitness_add_by_voice(self) -> None:
+        self._run_fitness_add_by_voice()
+```
+
+</details>
+
 ### ⚙️ Method `on_open_exercise_image_lightbox`
 
 ```python
@@ -10723,9 +10780,22 @@ def on_refresh_statistics(self) -> None:
 
             # Get selected exercise from comboBox_records_select_exercise
             selected_exercise = self.comboBox_records_select_exercise.currentText()
+            record_count = self.spinBox_record_count.value()
 
-            # Get statistics data using database manager with optional filtering
-            rows = self.db_manager.get_filtered_statistics_data(exercise_name=selected_exercise or None)
+            local_now = datetime.now(UTC).astimezone()
+            one_year_ago_str = (local_now - timedelta(days=365)).strftime("%Y-%m-%d")
+
+            # Top-N per exercise/type in SQL; loading the full process table here was
+            # the main statistics-tab cost on large databases.
+            rows = self.db_manager.get_filtered_statistics_data(
+                exercise_name=selected_exercise or None,
+                limit=record_count,
+            )
+            year_rows = self.db_manager.get_filtered_statistics_data(
+                exercise_name=selected_exercise or None,
+                limit=record_count,
+                date_from=one_year_ago_str,
+            )
 
             if not rows:
                 # If no data, show empty table
@@ -10762,7 +10832,6 @@ def on_refresh_statistics(self) -> None:
                 return
 
             # Calculate key date boundaries relative to local time
-            local_now = datetime.now(UTC).astimezone()
             today_date = local_now.date()
             yesterday_date = today_date - timedelta(days=1)
             thirty_days_ago = today_date - timedelta(days=30)
@@ -10770,9 +10839,6 @@ def on_refresh_statistics(self) -> None:
 
             today = today_date.strftime("%Y-%m-%d")
             yesterday = yesterday_date.strftime("%Y-%m-%d")
-
-            one_year_ago = local_now - timedelta(days=365)
-            one_year_ago_str = one_year_ago.strftime("%Y-%m-%d")
 
             # Group data by exercise and type combination
             grouped: defaultdict[str, list[tuple]] = defaultdict(list)
@@ -10782,9 +10848,9 @@ def on_refresh_statistics(self) -> None:
                 _key = f"{ex_name} {tp_name}".strip()
                 grouped[_key].append((ex_name, tp_name, val, date))
 
-                # Add to year group if within last year
-                if date >= one_year_ago_str:
-                    grouped_year[_key].append((ex_name, tp_name, val, date))
+            for ex_name, tp_name, val, date in year_rows:
+                _key = f"{ex_name} {tp_name}".strip()
+                grouped_year[_key].append((ex_name, tp_name, val, date))
 
             # Prepare table data
             table_data = []
@@ -10826,6 +10892,9 @@ def on_refresh_statistics(self) -> None:
 
             current_row = 0
 
+            # One lookup for the whole table; per-row lookups cost two queries per row.
+            exercise_units = self.db_manager.get_exercise_units()
+
             for exercise_group_index, (_key, entries) in enumerate(grouped.items()):
                 # Sort all-time entries: first by value (descending), then by date (descending)
                 entries.sort(key=lambda x: (x[2], x[3]), reverse=True)
@@ -10847,7 +10916,7 @@ def on_refresh_statistics(self) -> None:
                     # Get all-time data if available
                     if i < len(entries):
                         ex_name, tp_name, val, date = entries[i]
-                        unit = self.db_manager.get_exercise_unit(ex_name)
+                        unit = exercise_units.get(ex_name, "times")
                         val_str = f"{val:g}"
                         date_display = _decorate_record_date(date)
                     else:
@@ -10859,7 +10928,7 @@ def on_refresh_statistics(self) -> None:
                     # Get year data if available
                     if i < len(year_entries):
                         _, _, year_val, year_date = year_entries[i]
-                        year_unit = self.db_manager.get_exercise_unit(ex_name) if ex_name else ""
+                        year_unit = exercise_units.get(ex_name, "times") if ex_name else ""
                         year_val_str = f"{year_val:g}"
                         year_date_display = _decorate_record_date(year_date, include_last_year_marker=False)
                     else:
@@ -11188,6 +11257,13 @@ def on_show_exercise_goal_recommendations(self) -> None:
             # Get months count from spinBox_compare_last
             months_count = self.spinBox_compare_last.value()
 
+            # One query for the whole catalog; per-exercise queries here cost
+            # len(exercises) * months_count round-trips.
+            monthly_data_by_exercise = self._get_monthly_data_for_exercises(
+                [str(record[1]) for record in exercises_data],
+                months_count,
+            )
+
             # Generate recommendations for each exercise
             table_data = []
 
@@ -11198,8 +11274,7 @@ def on_show_exercise_goal_recommendations(self) -> None:
                 unit_text = f" {exercise_unit}" if exercise_unit else ""
 
                 try:
-                    # Get monthly data for this exercise (similar to compare_last logic)
-                    monthly_data = self._get_monthly_data_for_exercise(exercise_name, months_count)
+                    monthly_data = monthly_data_by_exercise.get(str(exercise_name), [])
 
                     if not monthly_data or not any(month_data for month_data in monthly_data):
                         # No data for this exercise

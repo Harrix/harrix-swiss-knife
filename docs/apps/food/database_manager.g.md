@@ -23,6 +23,7 @@ lang: en
   - [⚙️ Method `get_all_food_log_records`](#%EF%B8%8F-method-get_all_food_log_records)
   - [⚙️ Method `get_all_recipes`](#%EF%B8%8F-method-get_all_recipes)
   - [⚙️ Method `get_calories_per_day`](#%EF%B8%8F-method-get_calories_per_day)
+  - [⚙️ Method `get_calories_totals_between`](#%EF%B8%8F-method-get_calories_totals_between)
   - [⚙️ Method `get_drinks_weight_per_day`](#%EF%B8%8F-method-get_drinks_weight_per_day)
   - [⚙️ Method `get_drinks_weight_today`](#%EF%B8%8F-method-get_drinks_weight_today)
   - [⚙️ Method `get_earliest_food_log_date`](#%EF%B8%8F-method-get_earliest_food_log_date)
@@ -32,7 +33,6 @@ lang: en
   - [⚙️ Method `get_food_log_amounts`](#%EF%B8%8F-method-get_food_log_amounts)
   - [⚙️ Method `get_food_log_item_by_name`](#%EF%B8%8F-method-get_food_log_item_by_name)
   - [⚙️ Method `get_food_weight_per_day`](#%EF%B8%8F-method-get_food_weight_per_day)
-  - [⚙️ Method `get_popular_food_items_with_calories`](#%EF%B8%8F-method-get_popular_food_items_with_calories)
   - [⚙️ Method `get_problematic_food_records`](#%EF%B8%8F-method-get_problematic_food_records)
   - [⚙️ Method `get_recent_food_log_records`](#%EF%B8%8F-method-get_recent_food_log_records)
   - [⚙️ Method `get_recent_food_names_for_autocomplete`](#%EF%B8%8F-method-get_recent_food_names_for_autocomplete)
@@ -316,24 +316,49 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `list[list[Any]]`: List of [date, total_calories] records.
 
         """
-        query = """
-            SELECT
-                date,
-                SUM(
-                    CASE
-                        WHEN portion_calories IS NOT NULL AND portion_calories > 0
-                        THEN portion_calories
-                        WHEN calories_per_100g IS NOT NULL AND calories_per_100g > 0
-                             AND weight IS NOT NULL AND weight > 0
-                        THEN (calories_per_100g * weight) / 100
-                        ELSE 0
-                    END
-                ) as total_calories
+        query = f"""
+            SELECT date, SUM({_ROW_CALORIES_SQL}) as total_calories
             FROM food_log
             GROUP BY date
             ORDER BY date DESC
         """
         return self.get_rows(query)
+
+    def get_calories_totals_between(self, date_from: str, date_to: str) -> dict[str, float]:
+        """Get true daily calorie totals for an inclusive date range.
+
+        The food log table shows a per-day total next to the first row of each day.
+        Summing only the loaded page would understate the day that straddles a page
+        boundary, so the total comes from the database instead.
+
+        Args:
+
+        - `date_from` (`str`): Inclusive lower bound (YYYY-MM-DD).
+        - `date_to` (`str`): Inclusive upper bound (YYYY-MM-DD).
+
+        Returns:
+
+        - `dict[str, float]`: Date to total calories for that whole day.
+
+        """
+        rows = self.get_rows(
+            f"""
+            SELECT date, SUM({_ROW_CALORIES_SQL}) as total_calories
+            FROM food_log
+            WHERE date BETWEEN :date_from AND :date_to
+            GROUP BY date
+            """,
+            {"date_from": date_from, "date_to": date_to},
+        )
+        result: dict[str, float] = {}
+        for row in rows:
+            if not row or row[0] is None:
+                continue
+            try:
+                result[str(row[0])] = float(row[1] or 0.0)
+            except (TypeError, ValueError):
+                continue
+        return result
 
     def get_drinks_weight_per_day(self) -> list[list[Any]]:
         """Get drinks weight consumed per day for all days.
@@ -525,71 +550,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             ORDER BY date DESC
         """
         return self.get_rows(query)
-
-    def get_popular_food_items_with_calories(self, limit: int = 500) -> list[list[Any]]:
-        """Get popular food items with calories information from recent food_log records.
-
-        Args:
-
-        - `limit` (`int`): Maximum number of recent records to analyze. Defaults to `500`.
-
-        Returns:
-
-        - `list[list[Any]]`: List of food item data with calories info.
-
-        """
-        query = """
-            SELECT name, COUNT(*) as usage_count
-            FROM (
-                SELECT name FROM food_log
-                WHERE name IS NOT NULL AND name != ''
-                ORDER BY date DESC, _id DESC
-                LIMIT :limit
-            ) as recent_foods
-            GROUP BY name
-            ORDER BY usage_count DESC, name ASC
-        """
-        popular_names = self.get_rows(query, {"limit": limit})
-
-        # Get full data for popular items from food_items table
-        result = []
-        for row in popular_names:
-            name = row[0]
-            if name:
-                # First try to get data from food_items table
-                food_item_data = self.get_food_item_by_name(name)
-                if food_item_data:
-                    result.append(
-                        [
-                            food_item_data.id,
-                            food_item_data.name,
-                            food_item_data.name_en,
-                            food_item_data.is_drink,
-                            food_item_data.calories_per_100g,
-                            food_item_data.default_portion_weight,
-                            food_item_data.default_portion_calories,
-                        ]
-                    )
-                else:
-                    # If not found in food_items, get data from food_log
-                    food_log_data = self.get_food_log_item_by_name(name)
-                    if food_log_data:
-                        result.append(
-                            [
-                                None,
-                                food_log_data.name,
-                                food_log_data.name_en,
-                                food_log_data.is_drink,
-                                food_log_data.calories_per_100g,
-                                food_log_data.weight,
-                                food_log_data.portion_calories,
-                            ]
-                        )
-                    else:
-                        # If not found anywhere, create minimal data
-                        result.append([None, name, None, 0, None, None, None])
-
-        return result
 
     def get_problematic_food_records(self) -> list[list[Any]]:
         """Get problematic food records that need attention.
@@ -1545,24 +1505,61 @@ Returns:
 
 ```python
 def get_calories_per_day(self) -> list[list[Any]]:
-        query = """
-            SELECT
-                date,
-                SUM(
-                    CASE
-                        WHEN portion_calories IS NOT NULL AND portion_calories > 0
-                        THEN portion_calories
-                        WHEN calories_per_100g IS NOT NULL AND calories_per_100g > 0
-                             AND weight IS NOT NULL AND weight > 0
-                        THEN (calories_per_100g * weight) / 100
-                        ELSE 0
-                    END
-                ) as total_calories
+        query = f"""
+            SELECT date, SUM({_ROW_CALORIES_SQL}) as total_calories
             FROM food_log
             GROUP BY date
             ORDER BY date DESC
         """
         return self.get_rows(query)
+```
+
+</details>
+
+### ⚙️ Method `get_calories_totals_between`
+
+```python
+def get_calories_totals_between(self, date_from: str, date_to: str) -> dict[str, float]
+```
+
+Get true daily calorie totals for an inclusive date range.
+
+The food log table shows a per-day total next to the first row of each day.
+Summing only the loaded page would understate the day that straddles a page
+boundary, so the total comes from the database instead.
+
+Args:
+
+- `date_from` (`str`): Inclusive lower bound (YYYY-MM-DD).
+- `date_to` (`str`): Inclusive upper bound (YYYY-MM-DD).
+
+Returns:
+
+- `dict[str, float]`: Date to total calories for that whole day.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_calories_totals_between(self, date_from: str, date_to: str) -> dict[str, float]:
+        rows = self.get_rows(
+            f"""
+            SELECT date, SUM({_ROW_CALORIES_SQL}) as total_calories
+            FROM food_log
+            WHERE date BETWEEN :date_from AND :date_to
+            GROUP BY date
+            """,
+            {"date_from": date_from, "date_to": date_to},
+        )
+        result: dict[str, float] = {}
+        for row in rows:
+            if not row or row[0] is None:
+                continue
+            try:
+                result[str(row[0])] = float(row[1] or 0.0)
+            except (TypeError, ValueError):
+                continue
+        return result
 ```
 
 </details>
@@ -1866,83 +1863,6 @@ def get_food_weight_per_day(self) -> list[list[Any]]:
             ORDER BY date DESC
         """
         return self.get_rows(query)
-```
-
-</details>
-
-### ⚙️ Method `get_popular_food_items_with_calories`
-
-```python
-def get_popular_food_items_with_calories(self, limit: int = 500) -> list[list[Any]]
-```
-
-Get popular food items with calories information from recent food_log records.
-
-Args:
-
-- `limit` (`int`): Maximum number of recent records to analyze. Defaults to `500`.
-
-Returns:
-
-- `list[list[Any]]`: List of food item data with calories info.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def get_popular_food_items_with_calories(self, limit: int = 500) -> list[list[Any]]:
-        query = """
-            SELECT name, COUNT(*) as usage_count
-            FROM (
-                SELECT name FROM food_log
-                WHERE name IS NOT NULL AND name != ''
-                ORDER BY date DESC, _id DESC
-                LIMIT :limit
-            ) as recent_foods
-            GROUP BY name
-            ORDER BY usage_count DESC, name ASC
-        """
-        popular_names = self.get_rows(query, {"limit": limit})
-
-        # Get full data for popular items from food_items table
-        result = []
-        for row in popular_names:
-            name = row[0]
-            if name:
-                # First try to get data from food_items table
-                food_item_data = self.get_food_item_by_name(name)
-                if food_item_data:
-                    result.append(
-                        [
-                            food_item_data.id,
-                            food_item_data.name,
-                            food_item_data.name_en,
-                            food_item_data.is_drink,
-                            food_item_data.calories_per_100g,
-                            food_item_data.default_portion_weight,
-                            food_item_data.default_portion_calories,
-                        ]
-                    )
-                else:
-                    # If not found in food_items, get data from food_log
-                    food_log_data = self.get_food_log_item_by_name(name)
-                    if food_log_data:
-                        result.append(
-                            [
-                                None,
-                                food_log_data.name,
-                                food_log_data.name_en,
-                                food_log_data.is_drink,
-                                food_log_data.calories_per_100g,
-                                food_log_data.weight,
-                                food_log_data.portion_calories,
-                            ]
-                        )
-                    else:
-                        # If not found anywhere, create minimal data
-                        result.append([None, name, None, 0, None, None, None])
-
-        return result
 ```
 
 </details>

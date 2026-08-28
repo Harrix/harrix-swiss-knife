@@ -23,7 +23,6 @@ lang: en
 - [🔧 Function `is_java_version_17_output`](#-function-is_java_version_17_output)
 - [🔧 Function `java_home_is_version_17`](#-function-java_home_is_version_17)
 - [🔧 Function `path_with_user_entry`](#-function-path_with_user_entry)
-- [🔧 Function `resolve_android_dir`](#-function-resolve_android_dir)
 - [🔧 Function `resolve_android_home`](#-function-resolve_android_home)
 - [🔧 Function `resolve_java17_home`](#-function-resolve_java17_home)
 - [🔧 Function `resolve_java_home`](#-function-resolve_java_home)
@@ -312,31 +311,6 @@ def path_with_user_entry(user_path: str, entry: str) -> str:
     if not user_path.strip():
         return entry
     return user_path.rstrip(";") + ";" + entry
-```
-
-</details>
-
-## 🔧 Function `resolve_android_dir`
-
-```python
-def resolve_android_dir() -> Path | None
-```
-
-Return `android/` under the project root if the Gradle wrapper exists.
-
-Deprecated for tray/CLI actions; prefer an explicit folder from
-`paths_android_projects` or a CLI argument. Kept for scripts that still
-target the HSK tree layout.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def resolve_android_dir() -> Path | None:
-    android_dir = h.dev.get_project_root() / "android"
-    if not is_android_project(android_dir):
-        return None
-    return android_dir
 ```
 
 </details>

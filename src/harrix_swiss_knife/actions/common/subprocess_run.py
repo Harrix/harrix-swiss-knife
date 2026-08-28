@@ -12,12 +12,6 @@ DEFAULT_SUBPROCESS_TIMEOUT = 300.0
 QT_OFFSCREEN_PLATFORM = "offscreen:size=1920x1080"
 
 
-def completed_process_output(process: subprocess.CompletedProcess[Any]) -> str:
-    """Return combined stdout/stderr from a completed process."""
-    output_parts = [(process.stdout or "").strip(), (process.stderr or "").strip()]
-    return "\n".join(filter(None, output_parts))
-
-
 def hidden_subprocess_kwargs() -> dict[str, Any]:
     """Return subprocess kwargs that hide a console window on Windows.
 

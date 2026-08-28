@@ -25,11 +25,12 @@ lang: en
   - [⚙️ Method `get_filtered_process_habits_records`](#%EF%B8%8F-method-get_filtered_process_habits_records)
   - [⚙️ Method `get_habit_by_id`](#%EF%B8%8F-method-get_habit_by_id)
   - [⚙️ Method `get_habit_calendar_data`](#%EF%B8%8F-method-get_habit_calendar_data)
-  - [⚙️ Method `get_habit_done_dates_between`](#%EF%B8%8F-method-get_habit_done_dates_between)
+  - [⚙️ Method `get_habit_stats_map`](#%EF%B8%8F-method-get_habit_stats_map)
   - [⚙️ Method `get_habit_streak`](#%EF%B8%8F-method-get_habit_streak)
   - [⚙️ Method `get_habit_total_checkins`](#%EF%B8%8F-method-get_habit_total_checkins)
   - [⚙️ Method `get_habit_value_on_date`](#%EF%B8%8F-method-get_habit_value_on_date)
   - [⚙️ Method `get_habit_values_between`](#%EF%B8%8F-method-get_habit_values_between)
+  - [⚙️ Method `get_habit_values_between_map`](#%EF%B8%8F-method-get_habit_values_between_map)
   - [⚙️ Method `get_habit_years`](#%EF%B8%8F-method-get_habit_years)
   - [⚙️ Method `get_habits`](#%EF%B8%8F-method-get_habits)
   - [⚙️ Method `get_habits_years`](#%EF%B8%8F-method-get_habits_years)
@@ -42,6 +43,7 @@ lang: en
   - [⚙️ Method `update_habit`](#%EF%B8%8F-method-update_habit)
   - [⚙️ Method `update_process_habit_record`](#%EF%B8%8F-method-update_process_habit_record)
   - [⚙️ Method `upsert_habit_checkins`](#%EF%B8%8F-method-upsert_habit_checkins)
+- [🏛️ Class `HabitStats`](#%EF%B8%8F-class-habitstats)
 
 </details>
 
@@ -357,20 +359,42 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         rows = self.get_rows(query, params)
         return [(row[0], int(row[1])) for row in rows]
 
-    def get_habit_done_dates_between(self, habit_id: int, date_from: str, date_to: str) -> list[str]:
-        """Return ISO dates with value > 0 for a habit in an inclusive range."""
+    def get_habit_stats_map(self) -> dict[int, HabitStats]:
+        """Return total check-ins and current streak for every habit in one query.
+
+        Use this instead of calling `get_habit_total_checkins` and `get_habit_streak`
+        per habit, which costs two queries each and re-scans `process_habits` every time.
+
+        Returns:
+
+        - `dict[int, HabitStats]`: Habit ID to its totals. Habits with no check-ins are absent.
+
+        """
         rows = self.get_rows(
             """
-            SELECT date
+            SELECT DISTINCT _id_habit, date
             FROM process_habits
-            WHERE _id_habit = :habit_id
-              AND date BETWEEN :date_from AND :date_to
-              AND value > 0
-            ORDER BY date ASC
-            """,
-            {"habit_id": habit_id, "date_from": date_from, "date_to": date_to},
+            WHERE value > 0 AND date IS NOT NULL
+            """
         )
-        return [str(row[0]) for row in rows if row and row[0]]
+        dates_by_habit: dict[int, set[date]] = {}
+        for row in rows:
+            if not row or row[0] is None:
+                continue
+            parsed = _parse_iso_date(str(row[1]) if row[1] else "")
+            if parsed is None:
+                continue
+            try:
+                habit_id = int(row[0])
+            except (TypeError, ValueError):
+                continue
+            dates_by_habit.setdefault(habit_id, set()).add(parsed)
+
+        today = datetime.now(UTC).astimezone().date()
+        return {
+            habit_id: HabitStats(total_checkins=len(done), streak=_streak_from_dates(done, today))
+            for habit_id, done in dates_by_habit.items()
+        }
 
     def get_habit_streak(self, habit_id: int) -> int:
         """Return consecutive completed days ending at today or yesterday.
@@ -394,19 +418,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             if parsed is not None:
                 done.add(parsed)
 
-        if not done:
-            return 0
-
-        today = datetime.now(UTC).astimezone().date()
-        cursor = today if today in done else today - timedelta(days=1)
-        if cursor not in done:
-            return 0
-
-        streak = 0
-        while cursor in done:
-            streak += 1
-            cursor -= timedelta(days=1)
-        return streak
+        return _streak_from_dates(done, datetime.now(UTC).astimezone().date())
 
     def get_habit_total_checkins(self, habit_id: int) -> int:
         """Count distinct days with value > 0 for a habit (all time)."""
@@ -463,6 +475,51 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
                 continue
             try:
                 result[str(row[0])] = int(row[1])
+            except (TypeError, ValueError):
+                continue
+        return result
+
+    def get_habit_values_between_map(
+        self, habit_ids: Sequence[int], date_from: str, date_to: str
+    ) -> dict[int, dict[str, int]]:
+        """Return habit → (date → value) for many habits in one query.
+
+        Bulk form of `get_habit_values_between`, used by the dashboard week view where a
+        per-habit call costs one query per habit.
+
+        Args:
+
+        - `habit_ids` (`Sequence[int]`): Habit primary keys.
+        - `date_from` (`str`): Inclusive lower bound (YYYY-MM-DD).
+        - `date_to` (`str`): Inclusive upper bound (YYYY-MM-DD).
+
+        Returns:
+
+        - `dict[int, dict[str, int]]`: Values per habit; missing dates are omitted.
+
+        """
+        if not habit_ids:
+            return {}
+        placeholders = ", ".join(f":id{index}" for index in range(len(habit_ids)))
+        params: dict[str, Any] = {f"id{index}": int(habit_id) for index, habit_id in enumerate(habit_ids)}
+        params["date_from"] = date_from
+        params["date_to"] = date_to
+        rows = self.get_rows(
+            f"""
+            SELECT _id_habit, date, value
+            FROM process_habits
+            WHERE _id_habit IN ({placeholders})
+              AND date BETWEEN :date_from AND :date_to
+            ORDER BY date ASC, _id ASC
+            """,
+            params,
+        )
+        result: dict[int, dict[str, int]] = {int(habit_id): {} for habit_id in habit_ids}
+        for row in rows:
+            if not row or row[0] is None or row[1] is None or row[2] is None:
+                continue
+            try:
+                result.setdefault(int(row[0]), {})[str(row[1])] = int(row[2])
             except (TypeError, ValueError):
                 continue
         return result
@@ -1282,31 +1339,51 @@ def get_habit_calendar_data(
 
 </details>
 
-### ⚙️ Method `get_habit_done_dates_between`
+### ⚙️ Method `get_habit_stats_map`
 
 ```python
-def get_habit_done_dates_between(self, habit_id: int, date_from: str, date_to: str) -> list[str]
+def get_habit_stats_map(self) -> dict[int, HabitStats]
 ```
 
-Return ISO dates with value > 0 for a habit in an inclusive range.
+Return total check-ins and current streak for every habit in one query.
+
+Use this instead of calling [`get_habit_total_checkins`](#%EF%B8%8F-method-get_habit_total_checkins) and [`get_habit_streak`](#%EF%B8%8F-method-get_habit_streak)
+per habit, which costs two queries each and re-scans `process_habits` every time.
+
+Returns:
+
+- `dict[int, HabitStats]`: Habit ID to its totals. Habits with no check-ins are absent.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def get_habit_done_dates_between(self, habit_id: int, date_from: str, date_to: str) -> list[str]:
+def get_habit_stats_map(self) -> dict[int, HabitStats]:
         rows = self.get_rows(
             """
-            SELECT date
+            SELECT DISTINCT _id_habit, date
             FROM process_habits
-            WHERE _id_habit = :habit_id
-              AND date BETWEEN :date_from AND :date_to
-              AND value > 0
-            ORDER BY date ASC
-            """,
-            {"habit_id": habit_id, "date_from": date_from, "date_to": date_to},
+            WHERE value > 0 AND date IS NOT NULL
+            """
         )
-        return [str(row[0]) for row in rows if row and row[0]]
+        dates_by_habit: dict[int, set[date]] = {}
+        for row in rows:
+            if not row or row[0] is None:
+                continue
+            parsed = _parse_iso_date(str(row[1]) if row[1] else "")
+            if parsed is None:
+                continue
+            try:
+                habit_id = int(row[0])
+            except (TypeError, ValueError):
+                continue
+            dates_by_habit.setdefault(habit_id, set()).add(parsed)
+
+        today = datetime.now(UTC).astimezone().date()
+        return {
+            habit_id: HabitStats(total_checkins=len(done), streak=_streak_from_dates(done, today))
+            for habit_id, done in dates_by_habit.items()
+        }
 ```
 
 </details>
@@ -1342,19 +1419,7 @@ def get_habit_streak(self, habit_id: int) -> int:
             if parsed is not None:
                 done.add(parsed)
 
-        if not done:
-            return 0
-
-        today = datetime.now(UTC).astimezone().date()
-        cursor = today if today in done else today - timedelta(days=1)
-        if cursor not in done:
-            return 0
-
-        streak = 0
-        while cursor in done:
-            streak += 1
-            cursor -= timedelta(days=1)
-        return streak
+        return _streak_from_dates(done, datetime.now(UTC).astimezone().date())
 ```
 
 </details>
@@ -1451,6 +1516,63 @@ def get_habit_values_between(self, habit_id: int, date_from: str, date_to: str) 
                 continue
             try:
                 result[str(row[0])] = int(row[1])
+            except (TypeError, ValueError):
+                continue
+        return result
+```
+
+</details>
+
+### ⚙️ Method `get_habit_values_between_map`
+
+```python
+def get_habit_values_between_map(self, habit_ids: Sequence[int], date_from: str, date_to: str) -> dict[int, dict[str, int]]
+```
+
+Return habit → (date → value) for many habits in one query.
+
+Bulk form of [`get_habit_values_between`](#%EF%B8%8F-method-get_habit_values_between), used by the dashboard week view where a
+per-habit call costs one query per habit.
+
+Args:
+
+- `habit_ids` (`Sequence[int]`): Habit primary keys.
+- `date_from` (`str`): Inclusive lower bound (YYYY-MM-DD).
+- `date_to` (`str`): Inclusive upper bound (YYYY-MM-DD).
+
+Returns:
+
+- `dict[int, dict[str, int]]`: Values per habit; missing dates are omitted.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_habit_values_between_map(
+        self, habit_ids: Sequence[int], date_from: str, date_to: str
+    ) -> dict[int, dict[str, int]]:
+        if not habit_ids:
+            return {}
+        placeholders = ", ".join(f":id{index}" for index in range(len(habit_ids)))
+        params: dict[str, Any] = {f"id{index}": int(habit_id) for index, habit_id in enumerate(habit_ids)}
+        params["date_from"] = date_from
+        params["date_to"] = date_to
+        rows = self.get_rows(
+            f"""
+            SELECT _id_habit, date, value
+            FROM process_habits
+            WHERE _id_habit IN ({placeholders})
+              AND date BETWEEN :date_from AND :date_to
+            ORDER BY date ASC, _id ASC
+            """,
+            params,
+        )
+        result: dict[int, dict[str, int]] = {int(habit_id): {} for habit_id in habit_ids}
+        for row in rows:
+            if not row or row[0] is None or row[1] is None or row[2] is None:
+                continue
+            try:
+                result.setdefault(int(row[0]), {})[str(row[1])] = int(row[2])
             except (TypeError, ValueError):
                 continue
         return result
@@ -1938,6 +2060,26 @@ def upsert_habit_checkins(self, records: list[tuple[int, str, int]]) -> int:
                     msg = "Failed to insert process_habits rows during batch upsert"
                     raise RuntimeError(msg)
         return len(merged)
+```
+
+</details>
+
+## 🏛️ Class `HabitStats`
+
+```python
+class HabitStats
+```
+
+All-time totals for one habit, as shown on the dashboard list.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class HabitStats:
+
+    total_checkins: int
+    streak: int
 ```
 
 </details>

@@ -13,7 +13,6 @@ lang: en
 
 - [🏛️ Class `ImageThumbnailItem`](#%EF%B8%8F-class-imagethumbnailitem)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
-  - [⚙️ Method `marked_for_removal (property)`](#%EF%B8%8F-method-marked_for_removal-property)
   - [⚙️ Method `mouseReleaseEvent`](#%EF%B8%8F-method-mousereleaseevent)
   - [⚙️ Method `set_marked_for_removal`](#%EF%B8%8F-method-set_marked_for_removal)
 
@@ -84,11 +83,6 @@ class ImageThumbnailItem(QFrame):
         remove_btn.clicked.connect(self._handle_remove_clicked)
         grid.addWidget(remove_btn, 0, 0, Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
         self._remove_button = remove_btn
-
-    @property
-    def marked_for_removal(self) -> bool:
-        """Return whether this existing image is marked to be deleted on save."""
-        return self._marked_for_removal
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         """Open lightbox on left click; ignore clicks on the remove button."""
@@ -195,24 +189,6 @@ def __init__(
         remove_btn.clicked.connect(self._handle_remove_clicked)
         grid.addWidget(remove_btn, 0, 0, Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
         self._remove_button = remove_btn
-```
-
-</details>
-
-### ⚙️ Method `marked_for_removal (property)`
-
-```python
-def marked_for_removal(self) -> bool
-```
-
-Return whether this existing image is marked to be deleted on save.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def marked_for_removal(self) -> bool:
-        return self._marked_for_removal
 ```
 
 </details>

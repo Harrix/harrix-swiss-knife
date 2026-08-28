@@ -332,22 +332,6 @@ class ToastNotificationBase(QDialog):
             self._apply_collapse_button_icon(compact=False)
             self._position_collapse_button()
 
-    def _move_to_bottom_right_corner(self, *, margin: int = SCREEN_MARGIN) -> None:
-        """Move the notification to the bottom-right of the primary screen."""
-        screen = QApplication.primaryScreen()
-        if screen is None:
-            return
-        area = screen.availableGeometry()
-        self.move(_toast_home_point(area, self.size(), pinned=True, margin=margin))
-
-    def _move_to_screen_center(self) -> None:
-        """Move the notification to the center of the primary screen."""
-        screen = QApplication.primaryScreen()
-        if screen is None:
-            return
-        area = screen.availableGeometry()
-        self.move(_toast_home_point(area, self.size(), pinned=False, margin=SCREEN_MARGIN))
-
     def _position_collapse_button(self) -> None:
         """Place the collapse button near the top-right of the message label."""
         if not hasattr(self, "_collapse_button"):

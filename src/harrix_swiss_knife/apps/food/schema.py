@@ -6,6 +6,8 @@ import logging
 import sqlite3
 from typing import TYPE_CHECKING
 
+from harrix_swiss_knife.apps.common.db_indexes import ensure_sqlite_indexes
+
 if TYPE_CHECKING:
     from pathlib import Path
 
@@ -61,6 +63,28 @@ CREATE TABLE IF NOT EXISTS recipe_ingredients (
     FOREIGN KEY (recipe_id) REFERENCES recipes(_id) ON DELETE CASCADE
 )
 """
+
+
+_INDEX_SQL: tuple[str, ...] = (
+    "CREATE INDEX IF NOT EXISTS idx_food_log_date_id ON food_log(date DESC, _id DESC)",
+    "CREATE INDEX IF NOT EXISTS idx_food_log_name_date ON food_log(name, date DESC)",
+    "CREATE INDEX IF NOT EXISTS idx_recipe_ingredients_recipe ON recipe_ingredients(recipe_id)",
+)
+
+
+def ensure_food_indexes(db_path: Path) -> bool:
+    """Create lookup indexes used by `food_log` ordering, name lookups, and aggregates.
+
+    Args:
+
+    - `db_path` (`Path`): Path to `food.db`.
+
+    Returns:
+
+    - `bool`: `True` when at least one index was created.
+
+    """
+    return ensure_sqlite_indexes(db_path, _INDEX_SQL, label="Food")
 
 
 def ensure_food_schema(db_path: Path) -> bool:

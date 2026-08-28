@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -13,12 +14,9 @@ from harrix_swiss_knife.apps.finance.report_build_context import ReportBuildCont
 from harrix_swiss_knife.apps.finance.report_generators import (
     get_account_balances_report_data,
     get_category_analysis_report_data,
-    get_category_analysis_report_data_legacy,
     get_currency_analysis_report_data,
-    get_currency_analysis_report_data_legacy,
     get_income_vs_expenses_report_data,
     get_monthly_summary_report_data,
-    get_monthly_summary_report_data_legacy,
 )
 
 RECOVER_SQL = Path(__file__).resolve().parents[1] / "src" / "harrix_swiss_knife" / "apps" / "finance" / "recover.sql"
@@ -68,44 +66,79 @@ def report_ctx(finance_db: DatabaseManager) -> ReportBuildContext:
     )
 
 
-def _monthly_rows_equal(
-    left: list[tuple[str, float, float, dict[int, float]]],
-    right: list[tuple[str, float, float, dict[int, float]]],
-) -> None:
-    assert len(left) == len(right)
-    for (l_month, l_total, l_combined, l_map), (r_month, r_total, r_combined, r_map) in zip(left, right, strict=True):
-        assert l_month == r_month
-        assert l_total == pytest.approx(r_total)
-        assert l_combined == pytest.approx(r_combined)
-        assert set(l_map) == set(r_map)
-        for cid in l_map:
-            assert l_map[cid] == pytest.approx(r_map[cid])
+def _row_for_month(
+    rows: list[tuple[str, float, float, dict[int, float]]],
+    month: str,
+) -> tuple[str, float, float, dict[int, float]]:
+    match = next((row for row in rows if row[0] == month), None)
+    assert match is not None, f"month {month} missing from report rows"
+    return match
 
 
-def test_monthly_summary_matches_legacy(report_ctx: ReportBuildContext, finance_db: DatabaseManager) -> None:
-    new_headers, new_rows, new_categories, new_combined = get_monthly_summary_report_data(report_ctx)
-    old_headers, old_rows, old_categories, old_combined = get_monthly_summary_report_data_legacy(
-        finance_db,
-        finance_db.get_default_currency_id(),
+def test_monthly_summary_totals_per_month(report_ctx: ReportBuildContext) -> None:
+    headers, rows, categories, combined_ids = get_monthly_summary_report_data(report_ctx)
+
+    assert headers[:3] == ["Month", "Total", "Cafe + Food"]
+    # Only expense categories are reported, and Cafe/Food are pinned to the front.
+    assert [name for _cid, name, _icon in categories[:2]] == ["☕ Cafe", "🍔 Food"]
+    assert combined_ids == {cid for cid, name, _icon in categories if name in {"☕ Cafe", "🍔 Food"}}
+
+    # Rows run newest first and cover every month from the earliest transaction to today.
+    assert rows[-1][0] == "2024-01"
+    assert [row[0] for row in rows] == sorted((row[0] for row in rows), reverse=True)
+
+    # 2024-01 holds the single 1000 RUB transaction, needing no conversion.
+    january = _row_for_month(rows, "2024-01")
+    assert january[1] == pytest.approx(1000.0)
+
+    # 2024-02 holds 250 + 75, both in RUB, so no conversion applies.
+    february = _row_for_month(rows, "2024-02")
+    assert february[1] == pytest.approx(325.0)
+
+    # 2024-03 holds 50 USD and 10 EUR converted into RUB at the 2024-01 rates.
+    march = _row_for_month(rows, "2024-03")
+    assert march[1] == pytest.approx(50.0 / 90.0 + 10.0 * 1.1 / 90.0)
+
+
+def test_category_analysis_groups_recent_expenses(finance_db: DatabaseManager) -> None:
+    # The report covers a rolling 30-day window, so it needs transactions dated near today.
+    today = datetime.now(UTC).astimezone().date()
+    recent = (today - timedelta(days=3)).strftime("%Y-%m-%d")
+    finance_db.add_exchange_rate(1, 100.0, recent)
+    finance_db.add_transaction(400.0, "Food", 2, 1, recent)
+    finance_db.add_transaction(150.0, "Transport", 3, 1, recent)
+
+    currencies_by_code, currencies_by_id = finance_db.get_all_currencies_map()
+    ctx = ReportBuildContext(
+        db_manager=finance_db,
+        currency_id=finance_db.get_default_currency_id(),
+        rates=finance_db.exchange_rates.preload_all_rates(),
+        currencies_by_code=currencies_by_code,
+        currencies_by_id=currencies_by_id,
     )
-    assert new_headers == old_headers
-    assert new_categories == old_categories
-    assert new_combined == old_combined
-    _monthly_rows_equal(new_rows, old_rows)
+
+    headers, rows = get_category_analysis_report_data(ctx)
+
+    assert headers == ["Category", "Amount", "Type"]
+    assert rows[0] == ["EXPENSES", "", ""]
+    # Expenses are listed largest first, grouped by category name rather than description.
+    assert rows[1] == ["Beauty Services", "400.00 RUB", "Expense"]
+    assert rows[2] == ["Books", "150.00 RUB", "Expense"]
 
 
-def test_category_analysis_matches_legacy(report_ctx: ReportBuildContext, finance_db: DatabaseManager) -> None:
-    new_headers, new_rows = get_category_analysis_report_data(report_ctx)
-    old_headers, old_rows = get_category_analysis_report_data_legacy(finance_db)
-    assert new_headers == old_headers
-    assert new_rows == old_rows
+def test_currency_analysis_counts_and_totals_per_currency(report_ctx: ReportBuildContext) -> None:
+    headers, rows = get_currency_analysis_report_data(report_ctx)
 
-
-def test_currency_analysis_matches_legacy(report_ctx: ReportBuildContext, finance_db: DatabaseManager) -> None:
-    new_headers, new_rows = get_currency_analysis_report_data(report_ctx)
-    old_headers, old_rows = get_currency_analysis_report_data_legacy(finance_db)
-    assert new_headers == old_headers
-    assert new_rows == old_rows
+    assert headers == ["Currency", "Transaction Count", "Total Amount"]
+    # Every currency appears, including those without transactions.
+    assert rows == [
+        ["CNY", "0", "0.00"],
+        ["EUR", "1", "10.00"],
+        ["RUB", "3", "1325.00"],
+        ["TRY", "0", "0.00"],
+        ["USD", "1", "50.00"],
+        ["VND", "0", "0.00"],
+    ]
 
 
 def test_account_balances_smoke(report_ctx: ReportBuildContext) -> None:

@@ -13,7 +13,6 @@ lang: en
 
 - [🔧 Function `apply_white_editor_background`](#-function-apply_white_editor_background)
 - [🔧 Function `close_table_editor_if_open`](#-function-close_table_editor_if_open)
-- [🔧 Function `commit_table_editor_if_open`](#-function-commit_table_editor_if_open)
 - [🔧 Function `enumerate_stripped_non_empty_lines`](#-function-enumerate_stripped_non_empty_lines)
 - [🔧 Function `iter_stripped_non_empty_lines`](#-function-iter_stripped_non_empty_lines)
 - [🔧 Function `reveal_in_file_explorer`](#-function-reveal_in_file_explorer)
@@ -67,37 +66,6 @@ def close_table_editor_if_open(view: QAbstractItemView) -> None:
         return
 
     view.closeEditor(editor, QAbstractItemDelegate.EndEditHint.SubmitModelCache)
-```
-
-</details>
-
-## 🔧 Function `commit_table_editor_if_open`
-
-```python
-def commit_table_editor_if_open(view: QAbstractItemView) -> None
-```
-
-Commit and close an open inline cell editor so item/model data is current.
-
-Needed when reading `QTableWidgetItem.text()` after the user typed in a cell
-and immediately pressed a dialog default button (Enter) or clicked Apply —
-without this, the editor value is discarded and the item stays stale.
-
-Args:
-
-- `view` (`QAbstractItemView`): Table or list view that may have an active editor.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def commit_table_editor_if_open(view: QAbstractItemView) -> None:
-    editor = _active_table_editor(view)
-    if editor is None:
-        return
-
-    view.commitData(editor)
-    view.closeEditor(editor, QAbstractItemDelegate.EndEditHint.NoHint)
 ```
 
 </details>

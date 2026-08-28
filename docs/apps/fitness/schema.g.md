@@ -24,9 +24,6 @@ def ensure_fitness_indexes(db_path: Path) -> bool
 
 Create lookup indexes used by per-exercise queries.
 
-Without these, every `WHERE _id_exercises = ?` or `WHERE name = ?` lookup is a
-full table scan, which dominates startup once the catalog grows.
-
 Args:
 
 - `db_path` (`Path`): Path to `fitness.db`.
@@ -40,27 +37,7 @@ Returns:
 
 ```python
 def ensure_fitness_indexes(db_path: Path) -> bool:
-    if not db_path.is_file():
-        return False
-
-    created = False
-    with sqlite3.connect(str(db_path)) as conn:
-        existing = {
-            str(row[0]) for row in conn.execute("SELECT name FROM sqlite_master WHERE type = 'index'") if row[0]
-        }
-        for statement in _INDEX_SQL:
-            index_name = statement.split(" ON ", 1)[0].rsplit(" ", 1)[-1]
-            if index_name in existing:
-                continue
-            table = statement.split(" ON ", 1)[1].split("(", 1)[0].strip()
-            if not _table_exists(conn, table):
-                continue
-            conn.execute(statement)
-            created = True
-        if created:
-            conn.commit()
-            logger.info("Created Fitness lookup indexes in %s", db_path)
-    return created
+    return ensure_sqlite_indexes(db_path, _INDEX_SQL, label="Fitness")
 ```
 
 </details>
@@ -90,9 +67,9 @@ def ensure_fitness_schema(db_path: Path) -> bool:
         return False
 
     with sqlite3.connect(str(db_path)) as conn:
-        if not _table_exists(conn, "process") or not _table_exists(conn, "exercises"):
+        if not table_exists(conn, "process") or not table_exists(conn, "exercises"):
             return False
-        if _table_exists(conn, "workouts") and _table_exists(conn, "workout_items"):
+        if table_exists(conn, "workouts") and table_exists(conn, "workout_items"):
             return False
         conn.executescript(f"{_WORKOUTS_SQL}; {_WORKOUT_ITEMS_SQL};")
         conn.commit()

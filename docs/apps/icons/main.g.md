@@ -1065,10 +1065,6 @@ class MainWindow(QMainWindow, AppWindowMixin):
             return
         self._add_variants_to_family(sources, family=family)
 
-    def _on_add_svgs(self) -> None:
-        """Import SVGs from a folder into note folders of the open icons repo."""
-        self._on_add_vector_images()
-
     def _on_add_vector_images(self) -> None:
         """Add vector files via file picker into the open folder."""
         if self._repo_root is None:
@@ -2072,17 +2068,6 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._evict_offscreen_rows(first, last)
         if unfinished:
             self._viewport_pixmap_timer.start()
-
-    def _require_note_repo_for_add_svgs(self) -> Path | None:
-        """Return the open note-folder repo, or show a warning and return `None`."""
-        if not self._is_note_repo_open() or self._repo_root is None:
-            QMessageBox.warning(
-                self,
-                "Vector Icons",
-                "Current folder is not a Vector Icons note repository.",
-            )
-            return None
-        return self._repo_root
 
     def _resolve_source_file(self, family: object, svg_path: str) -> Path | None:
         if not isinstance(family, IconFamily) or self._repo_root is None:

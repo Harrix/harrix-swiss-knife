@@ -14,7 +14,6 @@ from harrix_swiss_knife.cli_menu import (
     CliContextMenu,
     build_cli_copy_command,
 )
-from harrix_swiss_knife.menu_list_markdown import update_readme_list_of_commands
 from harrix_swiss_knife.paths import get_config_path_str
 from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
 
@@ -205,16 +204,6 @@ class MainMenuBase:
             # If the icon already exists, load it from the file
             return QIcon(str(icon_path))
         return self.create_emoji_icon(icon, size)
-
-    def get_menu(self) -> str:
-        """Update `README.md` List of commands from get_menu_structure().
-
-        Returns:
-
-        - `str`: The Markdown formatted menu list written into `README.md`.
-
-        """
-        return update_readme_list_of_commands()
 
     def new_menu(self, title: str, icon: str) -> QMenu:
         """Create and return a new QMenu with a title and an icon.

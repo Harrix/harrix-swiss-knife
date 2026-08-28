@@ -42,6 +42,7 @@ from harrix_swiss_knife.apps.habits.dashboard_widgets import (
     absent_dates_in_month,
     weekday_short,
 )
+from harrix_swiss_knife.apps.habits.database_manager import HabitStats
 from harrix_swiss_knife.apps.habits.habit_comments import HabitCommentsStore, preview_habit_comment
 from harrix_swiss_knife.apps.habits.habit_comments_list_dialog import HabitCommentsListDialog
 from harrix_swiss_knife.apps.habits.habit_day_comment_dialog import HabitDayCommentDialog
@@ -120,6 +121,10 @@ class HabitDashboardWidget(QWidget):
         self._habit_rows: dict[int, HabitRow] = {}
         self._comments = HabitCommentsStore.from_config(app_config)
         self._comment_index: dict[int, set[str]] = {}
+        # Per-refresh caches: without them one refresh costs ~10 queries per habit.
+        self._habits_cache: list[list[Any]] | None = None
+        self._stats_cache: dict[int, HabitStats] | None = None
+        self._week_values_cache: dict[int, dict[str, int]] | None = None
 
         self.setAutoFillBackground(True)
         self.setStyleSheet("HabitDashboardWidget { background: #FFFFFF; }")
@@ -140,6 +145,7 @@ class HabitDashboardWidget(QWidget):
 
     def refresh(self) -> None:
         """Reload list, week rings, and detail pane from the database."""
+        self._invalidate_caches()
         if self._db is None:
             self._comment_index = {}
             self._clear_habit_list()
@@ -147,7 +153,7 @@ class HabitDashboardWidget(QWidget):
             self._set_empty_state_visible(visible=True)
             return
 
-        habits = self._db.get_habits(include_archived=False)
+        habits = self._habits()
         if not habits:
             self._week_dates = _last_seven_days(_local_today())
             self._comment_index = {}
@@ -453,6 +459,24 @@ class HabitDashboardWidget(QWidget):
             return f"Habit {habit_id}"
         return str(habit[_NAME_COLUMN] or f"Habit {habit_id}")
 
+    def _habit_stats(self, habit_id: int) -> HabitStats:
+        """Return all-time totals for one habit, loading the whole map once per refresh."""
+        if self._stats_cache is None:
+            self._stats_cache = self._db.get_habit_stats_map() if self._db else {}
+        return self._stats_cache.get(habit_id, HabitStats(total_checkins=0, streak=0))
+
+    def _habits(self) -> list[list[Any]]:
+        """Return active habits, loading them once per refresh."""
+        if self._habits_cache is None:
+            self._habits_cache = self._db.get_habits(include_archived=False) if self._db else []
+        return self._habits_cache
+
+    def _invalidate_caches(self) -> None:
+        """Drop per-refresh caches so the next read reloads from the database."""
+        self._habits_cache = None
+        self._stats_cache = None
+        self._week_values_cache = None
+
     def _on_calendar_day_comment_requested(self, date_str: str) -> None:
         if self._selected_habit_id is None:
             return
@@ -551,22 +575,22 @@ class HabitDashboardWidget(QWidget):
 
     def _on_habit_selected(self, habit_id: int) -> None:
         self._selected_habit_id = habit_id
+        habits_by_id = {int(row[0]): row for row in self._habits()}
         for hid, row in self._habit_rows.items():
             # Re-apply selection style without full rebuild
-            habit = self._db.get_habit_by_id(hid) if self._db else None
+            habit = habits_by_id.get(hid)
             name = str(habit[_NAME_COLUMN]) if habit else ""
             emoji = (
                 normalize_habit_emoji(str(habit[_EMOJI_COLUMN]) if len(habit) > _EMOJI_COLUMN else "", habit_id=hid)
                 if habit
                 else ""
             )
-            total = self._db.get_habit_total_checkins(hid) if self._db else 0
-            streak = self._db.get_habit_streak(hid) if self._db else 0
+            stats = self._habit_stats(hid)
             row.set_habit_data(
                 hid,
                 name,
-                total,
-                streak,
+                stats.total_checkins,
+                stats.streak,
                 self._week_values_for(hid),
                 selected=hid == habit_id,
                 emoji=emoji,
@@ -584,6 +608,7 @@ class HabitDashboardWidget(QWidget):
         if not self._db.reorder_habits(ordered_ids):
             QMessageBox.warning(self, "Database Error", "Failed to save habit order.")
             return
+        self._invalidate_caches()
         self._rebuild_habit_list()
         self.data_changed.emit()
 
@@ -621,7 +646,7 @@ class HabitDashboardWidget(QWidget):
         if self._db is None:
             return
         self._clear_habit_list()
-        habits = self._db.get_habits(include_archived=False)
+        habits = self._habits()
         if not habits:
             self._selected_habit_id = None
             return
@@ -637,14 +662,13 @@ class HabitDashboardWidget(QWidget):
                 str(row[_EMOJI_COLUMN]) if len(row) > _EMOJI_COLUMN else "",
                 habit_id=habit_id,
             )
-            total_days = self._db.get_habit_total_checkins(habit_id)
-            streak = self._db.get_habit_streak(habit_id)
+            stats = self._habit_stats(habit_id)
             habit_row = HabitRow()
             habit_row.set_habit_data(
                 habit_id,
                 name,
-                total_days,
-                streak,
+                stats.total_checkins,
+                stats.streak,
                 self._week_values_for(habit_id),
                 selected=habit_id == self._selected_habit_id,
                 emoji=emoji,
@@ -666,7 +690,7 @@ class HabitDashboardWidget(QWidget):
             self._show_empty_detail()
             return
 
-        habit = self._db.get_habit_by_id(self._selected_habit_id)
+        habit = next((row for row in self._habits() if int(row[0]) == self._selected_habit_id), None)
         if habit is None:
             self._show_empty_detail()
             return
@@ -694,14 +718,13 @@ class HabitDashboardWidget(QWidget):
             days_in_period = last_day
 
         monthly = self._db.count_habit_checkins_between(habit_id, month_start, month_end)
-        total = self._db.get_habit_total_checkins(habit_id)
-        streak = self._db.get_habit_streak(habit_id)
+        stats = self._habit_stats(habit_id)
         rate = round(100 * monthly / days_in_period) if days_in_period > 0 else 0
 
         self._stat_monthly.set_value(f"{monthly} Days")
-        self._stat_total.set_value(f"{total} Days")
+        self._stat_total.set_value(f"{stats.total_checkins} Days")
         self._stat_rate.set_value(f"{rate}%")
-        self._stat_streak.set_value(f"{streak} Days")
+        self._stat_streak.set_value(f"{stats.streak} Days")
 
         day_values = self._db.get_habit_values_between(habit_id, month_start, month_end)
         self._calendar.set_available_years(self._db.get_habit_years(habit_id))
@@ -751,7 +774,7 @@ class HabitDashboardWidget(QWidget):
         if self._db is None or not self._comments.is_configured():
             self._comment_index = {}
             return
-        habit_ids = [int(row[0]) for row in self._db.get_habits(include_archived=False)]
+        habit_ids = [int(row[0]) for row in self._habits()]
         self._comment_index = self._comments.dates_with_comments(habit_ids)
 
     def _set_date_value(self, habit_id: int, date_str: str, value: object) -> None:
@@ -831,15 +854,16 @@ class HabitDashboardWidget(QWidget):
         if self._db is None:
             return
         today = _local_today()
-        habits = self._db.get_habits(include_archived=False)
-        habit_ids = [int(row[0]) for row in habits]
+        habit_ids = [int(row[0]) for row in self._habits()]
         total = len(habit_ids)
+        week_values = self._week_values_map()
         for i, day in enumerate(self._week_dates):
             caption = f"{weekday_short(day.weekday())} {day.day}"
             if total == 0:
                 ratio = 0.0
             else:
-                done = sum(1 for hid in habit_ids if self._db.is_habit_done_on_date(hid, day.isoformat()))
+                date_str = day.isoformat()
+                done = sum(1 for hid in habit_ids if (week_values.get(hid, {}).get(date_str) or 0) > 0)
                 ratio = done / total
             self._week_headers[i].set_day(caption, ratio, is_today=day == today)
 
@@ -852,12 +876,21 @@ class HabitDashboardWidget(QWidget):
         """Return stored values for the visible week, or ``None`` when no record exists."""
         if self._db is None or not self._week_dates:
             return [None] * 7
-        stored = self._db.get_habit_values_between(
-            habit_id,
-            self._week_dates[0].isoformat(),
-            self._week_dates[-1].isoformat(),
-        )
+        stored = self._week_values_map().get(habit_id, {})
         return [stored.get(day.isoformat()) for day in self._week_dates]
+
+    def _week_values_map(self) -> dict[int, dict[str, int]]:
+        """Return week values for all habits, loading them once per refresh."""
+        if self._week_values_cache is None:
+            if self._db is None or not self._week_dates:
+                self._week_values_cache = {}
+            else:
+                self._week_values_cache = self._db.get_habit_values_between_map(
+                    [int(row[0]) for row in self._habits()],
+                    self._week_dates[0].isoformat(),
+                    self._week_dates[-1].isoformat(),
+                )
+        return self._week_values_cache
 
 
 def _habit_allows_number(habit: list[Any] | None) -> bool:

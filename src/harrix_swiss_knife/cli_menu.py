@@ -190,17 +190,6 @@ def show_action_item_context_menu(*, parent: QWidget | None, global_pos: QPoint,
     )
 
 
-def show_copy_cli_menu(*, parent: QWidget | None, global_pos: QPoint, cli_copy_command: str) -> None:
-    """Show a small context menu to copy a CLI command to the clipboard."""
-    menu = QMenu(parent)
-    copy_action = menu.addAction(format_copy_cli_menu_label(cli_copy_command))
-    copy_action.triggered.connect(
-        lambda *_args, cmd=cli_copy_command: copy_cli_command_to_clipboard(cmd),
-    )
-    apply_leading_emoji_icons(menu)
-    menu.exec_(global_pos)
-
-
 def truncate_action_name_preview(name: str, max_len: int = COPY_ACTION_NAME_PREVIEW_MAX_LEN) -> str:
     """Return `name` unchanged, or a prefix ending with `…` when it is too long."""
     if max_len <= 0:

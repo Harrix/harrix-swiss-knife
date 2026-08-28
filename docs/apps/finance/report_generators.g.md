@@ -14,12 +14,9 @@ lang: en
 - [🔧 Function `get_account_balances_report_data`](#-function-get_account_balances_report_data)
 - [🔧 Function `get_average_salary_by_year_report_data`](#-function-get_average_salary_by_year_report_data)
 - [🔧 Function `get_category_analysis_report_data`](#-function-get_category_analysis_report_data)
-- [🔧 Function `get_category_analysis_report_data_legacy`](#-function-get_category_analysis_report_data_legacy)
 - [🔧 Function `get_currency_analysis_report_data`](#-function-get_currency_analysis_report_data)
-- [🔧 Function `get_currency_analysis_report_data_legacy`](#-function-get_currency_analysis_report_data_legacy)
 - [🔧 Function `get_income_vs_expenses_report_data`](#-function-get_income_vs_expenses_report_data)
 - [🔧 Function `get_monthly_summary_report_data`](#-function-get_monthly_summary_report_data)
-- [🔧 Function `get_monthly_summary_report_data_legacy`](#-function-get_monthly_summary_report_data_legacy)
 
 </details>
 
@@ -140,62 +137,6 @@ def get_category_analysis_report_data(
 
 </details>
 
-## 🔧 Function `get_category_analysis_report_data_legacy`
-
-```python
-def get_category_analysis_report_data_legacy(db_manager: DatabaseManager | None) -> tuple[list[str], list[list[str]]]
-```
-
-Legacy category analysis (per-transaction FX) for regression tests.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def get_category_analysis_report_data_legacy(
-    db_manager: DatabaseManager | None,
-) -> tuple[list[str], list[list[str]]]:
-    if db_manager is None:
-        return ["Category", "Amount", "Type"], []
-
-    currency_code: str = db_manager.get_default_currency()
-    default_currency_id: int = db_manager.get_default_currency_id()
-    end_date: datetime = datetime.now(UTC).astimezone()
-    start_date: datetime = end_date - timedelta(days=30)
-    date_from: str = start_date.strftime("%Y-%m-%d")
-    date_to: str = end_date.strftime("%Y-%m-%d")
-
-    expense_rows: list = db_manager.get_filtered_transactions(category_type=0, date_from=date_from, date_to=date_to)
-    income_rows: list = db_manager.get_filtered_transactions(category_type=1, date_from=date_from, date_to=date_to)
-
-    expense_totals: dict[str, float] = {}
-    income_totals: dict[str, float] = {}
-
-    for row in expense_rows:
-        category: str = row[3]
-        amount: float = abs(get_transaction_money_op_value(row, db_manager, default_currency_id))
-        expense_totals[category] = expense_totals.get(category, 0) + amount
-
-    for row in income_rows:
-        category = row[3]
-        amount = get_transaction_money_op_value(row, db_manager, default_currency_id)
-        income_totals[category] = income_totals.get(category, 0) + amount
-
-    report_data: list[list[str]] = []
-    if expense_totals:
-        report_data.append(["EXPENSES", "", ""])
-        for category, amount in sorted(expense_totals.items(), key=lambda x: x[1], reverse=True):
-            report_data.append([category, f"{amount:.2f} {currency_code}", "Expense"])
-    if income_totals:
-        report_data.append(["INCOME", "", ""])
-        for category, amount in sorted(income_totals.items(), key=lambda x: x[1], reverse=True):
-            report_data.append([category, f"{amount:.2f} {currency_code}", "Income"])
-
-    return ["Category", "Amount", "Type"], report_data
-```
-
-</details>
-
 ## 🔧 Function `get_currency_analysis_report_data`
 
 ```python
@@ -216,39 +157,6 @@ def get_currency_analysis_report_data(
         [currency_code, str(transaction_count), f"{total_amount:.2f}"]
         for currency_code, transaction_count, total_amount in totals
     ]
-    return ["Currency", "Transaction Count", "Total Amount"], report_data
-```
-
-</details>
-
-## 🔧 Function `get_currency_analysis_report_data_legacy`
-
-```python
-def get_currency_analysis_report_data_legacy(db_manager: DatabaseManager | None) -> tuple[list[str], list[list[str]]]
-```
-
-Legacy currency analysis (per-currency scan) for regression tests.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def get_currency_analysis_report_data_legacy(
-    db_manager: DatabaseManager | None,
-) -> tuple[list[str], list[list[str]]]:
-    if db_manager is None:
-        return ["Currency", "Transaction Count", "Total Amount"], []
-
-    currencies: list = db_manager.get_all_currencies()
-    report_data: list[list[str]] = []
-
-    for currency_row in currencies:
-        currency_code: str = currency_row[1]
-        transactions: list = db_manager.get_filtered_transactions(currency_code=currency_code)
-        transaction_count: int = len(transactions)
-        total_amount: float = sum(float(row[1]) / 100 for row in transactions)
-        report_data.append([currency_code, str(transaction_count), f"{total_amount:.2f}"])
-
     return ["Currency", "Transaction Count", "Total Amount"], report_data
 ```
 
@@ -372,119 +280,6 @@ def get_monthly_summary_report_data(
     combined_category_ids: set[int] = {
         cid for name, cid in category_name_to_id.items() if _normalize_category_tokens(name) & combined_category_targets
     }
-
-    headers: list[str] = ["Month", "Total", "Cafe + Food"]
-    headers.extend([cat[1] for cat in expense_categories])
-
-    rows: list[tuple[str, float, float, dict[int, float]]] = []
-    for month_name in reversed(month_names):
-        month_total = sum(monthly_data[month_name].get(cid, 0.0) for cid, _name, _icon in expense_categories)
-        combined_total = sum(monthly_data[month_name].get(cid, 0.0) for cid in combined_category_ids)
-        rows.append((month_name, month_total, combined_total, monthly_data[month_name]))
-
-    return headers, rows, expense_categories, combined_category_ids
-```
-
-</details>
-
-## 🔧 Function `get_monthly_summary_report_data_legacy`
-
-```python
-def get_monthly_summary_report_data_legacy(db_manager: DatabaseManager | None, currency_id: int) -> tuple[list[str], list[tuple[str, float, float, dict[int, float]]], list[tuple[int, str, str]], set[int]]
-```
-
-Legacy monthly summary (per-month scan) for regression tests.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def get_monthly_summary_report_data_legacy(
-    db_manager: DatabaseManager | None,
-    currency_id: int,
-) -> tuple[
-    list[str],
-    list[tuple[str, float, float, dict[int, float]]],
-    list[tuple[int, str, str]],
-    set[int],
-]:
-    if db_manager is None:
-        return [], [], [], set()
-
-    all_categories: list = db_manager.get_all_categories()
-    expense_categories: list[tuple[int, str, str]] = []
-    category_name_to_id: dict[str, int] = {}
-
-    for category in all_categories:
-        cat_id, category_name, category_type, category_icon = (
-            category[0],
-            category[1],
-            category[2],
-            category[3],
-        )
-        if category_type == 0:
-            display_name = f"{category_icon} {category_name}" if category_icon else category_name
-            expense_categories.append((cat_id, display_name, category_icon or ""))
-            category_name_to_id[category_name] = cat_id
-
-    if not expense_categories:
-        return ["Month"], [], [], set()
-
-    def _sort_key(cat: tuple[int, str, str]) -> tuple[int, str]:
-        tokens = _normalize_category_tokens(cat[1])
-        if "cafe" in tokens:
-            return (0, cat[1])
-        if "food" in tokens:
-            return (1, cat[1])
-        return (2, cat[1])
-
-    expense_categories.sort(key=_sort_key)
-
-    end_date: datetime = datetime.now(UTC).astimezone()
-    month_names = _iter_month_keys_from_earliest(db_manager, end_date)
-    monthly_data: dict[str, dict[int, float]] = {month: {} for month in month_names}
-
-    combined_category_targets = {"cafe", "food"}
-    combined_category_ids: set[int] = {
-        cid for name, cid in category_name_to_id.items() if _normalize_category_tokens(name) & combined_category_targets
-    }
-
-    for month_name in month_names:
-        year_str, month_str = month_name.split("-", 1)
-        month_start = datetime(
-            int(year_str),
-            int(month_str),
-            1,
-            tzinfo=end_date.tzinfo,
-        )
-        months_in_year = 12
-        if month_start.month == months_in_year:
-            month_end = month_start.replace(year=month_start.year + 1, month=1, day=1) - timedelta(days=1)
-        else:
-            month_end = month_start.replace(month=month_start.month + 1, day=1) - timedelta(days=1)
-
-        date_from = month_start.strftime("%Y-%m-%d")
-        date_to = month_end.strftime("%Y-%m-%d")
-        expense_rows = db_manager.get_filtered_transactions(category_type=0, date_from=date_from, date_to=date_to)
-
-        for row in expense_rows:
-            amount_cents: int = row[1]
-            category_name_from_row: str = row[3]
-            currency_code_tx: str = row[4]
-            transaction_date: str = row[5]
-
-            category_id_matched = category_name_to_id.get(category_name_from_row)
-            if category_id_matched is None:
-                continue
-
-            currency_info = db_manager.get_currency_by_code(currency_code_tx)
-            source_currency_id: int = currency_info[0] if currency_info else currency_id
-            amount: float = money_amount_in_currency(
-                amount_cents, source_currency_id, db_manager, currency_id, transaction_date
-            )
-            monthly_data[month_name][category_id_matched] = (
-                monthly_data[month_name].get(category_id_matched, 0.0) + amount
-            )
 
     headers: list[str] = ["Month", "Total", "Cafe + Food"]
     headers.extend([cat[1] for cat in expense_categories])

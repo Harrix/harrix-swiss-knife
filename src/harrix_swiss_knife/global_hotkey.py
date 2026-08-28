@@ -96,11 +96,6 @@ class GlobalHotkeyManager(QObject):
                 registered_count += 1
         return registered_count
 
-    @property
-    def registered_bindings(self) -> list[ActionHotkeyBinding]:
-        """Currently registered bindings."""
-        return list(self._registered)
-
     def unregister_all(self) -> None:
         """Unregister all global hotkeys."""
         if sys.platform != "win32" or not self._id_to_action:

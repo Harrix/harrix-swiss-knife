@@ -63,6 +63,7 @@ from harrix_swiss_knife.apps.common.app_entry import run_app_main
 from harrix_swiss_knife.apps.common.apps_config import get_apps_list_limits
 from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
 from harrix_swiss_knife.apps.common.db_init import init_tracker_database
+from harrix_swiss_knife.apps.common.qt_database_manager_base import QtSqliteDatabaseManagerBase
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.table_context_menu import (
     LABEL_CLEAR_CELL,
@@ -102,6 +103,7 @@ from harrix_swiss_knife.apps.habits.mixins import (
     ValidationOperations,
     requires_database,
 )
+from harrix_swiss_knife.apps.habits.schema import ensure_habits_indexes
 from harrix_swiss_knife.apps.habits.ticktick_api import (
     TickTickApiError,
     TickTickHabitsClient,
@@ -1664,14 +1666,18 @@ class MainWindow(
     def _init_database(self) -> None:
         """Open the SQLite file from app config (create from `recover.sql` if missing)."""
         app_dir = Path(__file__).parent
+        configured = Path(self._app_config["sqlite_habits"])
 
         def _on_db_opened(db_manager: database_manager.DatabaseManager) -> None:
             with contextlib.suppress(Exception):
                 db_manager.ensure_habits_schema()
 
+        with contextlib.suppress(Exception):
+            ensure_habits_indexes(QtSqliteDatabaseManagerBase.resolve_db_path_with_fallback(configured, "habits"))
+
         self.db_manager = init_tracker_database(
             self,
-            Path(self._app_config["sqlite_habits"]),
+            configured,
             "habits",
             app_dir / "recover.sql",
             database_manager.DatabaseManager,

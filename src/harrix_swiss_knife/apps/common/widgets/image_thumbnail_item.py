@@ -86,11 +86,6 @@ class ImageThumbnailItem(QFrame):
         grid.addWidget(remove_btn, 0, 0, Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
         self._remove_button = remove_btn
 
-    @property
-    def marked_for_removal(self) -> bool:
-        """Return whether this existing image is marked to be deleted on save."""
-        return self._marked_for_removal
-
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         """Open lightbox on left click; ignore clicks on the remove button."""
         if event.button() == Qt.MouseButton.LeftButton:

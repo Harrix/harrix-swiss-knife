@@ -2,21 +2,16 @@
 
 from __future__ import annotations
 
+import hashlib
+import re
 import shutil
 from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
 
-from harrix_swiss_knife.apps.icons.add_svgs import (
-    AddSvgResult,
-    AddSvgsReport,
-    AddSvgStatus,
-    append_icon_to_note,
-    file_sha256,
-    optimize_svg_to,
-    unique_variant_name,
-)
+import harrix_pylib as h
+
 from harrix_swiss_knife.apps.icons.add_vector_meta import NoteMeta, note_dir_for_meta
 from harrix_swiss_knife.apps.icons.catalog import FLAT_ICON_EXTENSIONS, rebuild_catalog
 from harrix_swiss_knife.apps.icons.family_id import family_id_from_stem
@@ -130,6 +125,26 @@ def add_variants_to_family(
         rebuild_catalog(repo_root)
         report.catalog_rebuilt = True
     return report
+
+
+def append_icon_to_note(md_path: Path, svg_name: str) -> None:
+    """Append an image bullet under `## Icons` when not already listed."""
+    if not md_path.is_file():
+        return
+    text = md_path.read_text(encoding="utf-8")
+    bullet = f"- ![{Path(svg_name).stem}](img/{svg_name})"
+    if f"img/{svg_name}" in text:
+        return
+    match = _ICONS_SECTION_RE.search(text)
+    if match:
+        section_body = match.group(2).rstrip()
+        new_section = match.group(1) + (section_body + "\n" if section_body else "") + bullet + "\n"
+        text = text[: match.start()] + new_section + text[match.end() :]
+    elif "## Icons" not in text:
+        text = text.rstrip() + f"\n\n## Icons\n\n{bullet}\n"
+    else:
+        text = text.rstrip() + f"\n{bullet}\n"
+    md_path.write_text(text if text.endswith("\n") else text + "\n", encoding="utf-8")
 
 
 def collect_vector_sources(paths: Sequence[Path | str], *, skip_under: Path | None = None) -> list[Path]:
@@ -267,6 +282,15 @@ def ensure_featured_from_source(note_dir: Path, source: Path) -> Path | None:
     return featured
 
 
+def file_sha256(path: Path) -> str:
+    """Return hex SHA-256 of a file."""
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 def note_exists_for_family(repo_root: Path, *, family_id: str, category: str) -> Path | None:
     """Return existing note dir for family/category, if present."""
     candidate = note_dir_for_meta(repo_root, family_id=family_id, category=category)
@@ -289,22 +313,22 @@ def note_exists_for_family(repo_root: Path, *, family_id: str, category: str) ->
     return None
 
 
-# Keep AddSvgsReport alias helpers available for callers bridging old tests.
-def to_add_svgs_report(report: AddVectorReport) -> AddSvgsReport:
-    """Convert a vector report into the legacy SVG report type."""
-    legacy = AddSvgsReport(catalog_rebuilt=report.catalog_rebuilt)
-    status_map = {item.value: AddSvgStatus(item.value) for item in AddVectorStatus}
-    for item in report.results:
-        legacy.results.append(
-            AddSvgResult(
-                source=item.source,
-                family_id=item.family_id,
-                dest=item.dest,
-                status=status_map[item.status.value],
-                message=item.message,
-            )
-        )
-    return legacy
+def optimize_svg_to(source: Path, dest: Path) -> str:
+    """Optimize `source` SVG into `dest` via `harrix_pylib` SvgOptimizer."""
+    return h.svg_opt.SvgOptimizer().optimize_file(source, dest)
+
+
+def unique_variant_name(img_dir: Path, stem: str, suffix: str = ".svg") -> str:
+    """Return a free filename in `img_dir`, preferring `{stem}_new`, then `_new2`, and so on."""
+    candidate = f"{stem}_new{suffix}"
+    if not (img_dir / candidate).exists():
+        return candidate
+    index = 2
+    while True:
+        candidate = f"{stem}_new{index}{suffix}"
+        if not (img_dir / candidate).exists():
+            return candidate
+        index += 1
 
 
 def variant_dest_name(source: Path, *, family_id: str) -> str:
@@ -491,3 +515,6 @@ def _write_vector_file(source: Path, dest: Path) -> None:
         optimize_svg_to(source, dest)
     else:
         shutil.copy2(source, dest)
+
+
+_ICONS_SECTION_RE = re.compile(r"(##\s+Icons\s*\n)(.*?)(?=\n##\s|\Z)", re.DOTALL | re.IGNORECASE)

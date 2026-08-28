@@ -253,10 +253,6 @@ class DraggableIconList(QListWidget):
         self.scrollToItem(item, QAbstractItemView.ScrollHint.PositionAtCenter)
         return True
 
-    def selected_families(self) -> list[IconFamily]:
-        """Return unique selected families in display order."""
-        return [family for family, _path in self.selected_keyword_targets()]
-
     def selected_file_paths(self) -> list[str]:
         """Return file paths of selected tiles, in display order."""
         paths: list[str] = []
@@ -291,35 +287,6 @@ class DraggableIconList(QListWidget):
         self._icon_size = icon_size
         self.setIconSize(QSize(icon_size, icon_size))
         self.setGridSize(self._grid_size_for(icon_size))
-
-    def set_family_items(
-        self,
-        families: list[IconFamily],
-        *,
-        pixmaps: dict[str, QPixmap],
-        placeholder: QPixmap,
-    ) -> None:
-        """Rebuild the grid from filtered families and available thumbnails."""
-        self.blockSignals(True)  # noqa: FBT003
-        self.clear()
-        self._family_rows = {}
-        for family in families:
-            pixmap = pixmaps.get(family.id) or placeholder
-            item = QListWidgetItem(QIcon(pixmap), family.title)
-            item.setData(Qt.ItemDataRole.UserRole, family)
-            self._family_rows.setdefault(family.id, self.count())
-            item.setData(ROLE_SUBTITLE, family_display_filename(family))
-            item.setData(ROLE_TRADEMARK, getattr(family, "trademark", False))
-
-            tooltip = f"{family.id}\n{', '.join(family.tags)}"
-            if getattr(family, "trademark", False):
-                tooltip += "\n\n⚠️ Editorial Use Only / Trademarked Character"
-            item.setToolTip(tooltip)
-
-            item.setSizeHint(QSize(self._icon_size + 16, self._icon_size + LABEL_EXTRA_HEIGHT))
-            self.addItem(item)
-        self.setCurrentRow(-1)
-        self.blockSignals(False)  # noqa: FBT003
 
     def set_favorite_family_ids(self, family_ids: set[str] | list[str]) -> None:
         """Update the favorite family IDs used by the context menu labels."""

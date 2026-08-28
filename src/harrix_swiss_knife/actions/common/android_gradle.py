@@ -9,8 +9,6 @@ import sys
 from pathlib import Path
 from typing import Any
 
-import harrix_pylib as h
-
 if sys.platform == "win32":
     import ctypes
     import winreg
@@ -147,20 +145,6 @@ def path_with_user_entry(user_path: str, entry: str) -> str:
     if not user_path.strip():
         return entry
     return user_path.rstrip(";") + ";" + entry
-
-
-def resolve_android_dir() -> Path | None:
-    """Return `android/` under the project root if the Gradle wrapper exists.
-
-    Deprecated for tray/CLI actions; prefer an explicit folder from
-    `paths_android_projects` or a CLI argument. Kept for scripts that still
-    target the HSK tree layout.
-
-    """
-    android_dir = h.dev.get_project_root() / "android"
-    if not is_android_project(android_dir):
-        return None
-    return android_dir
 
 
 def resolve_android_home() -> str | None:

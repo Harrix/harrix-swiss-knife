@@ -70,11 +70,6 @@ class BuildSteps:
     open_install: bool = True
     clean_logs: bool = False
 
-    @classmethod
-    def all_steps(cls) -> BuildSteps:
-        """Return the full default pipeline (CLI default)."""
-        return cls()
-
     def any_work(self) -> bool:
         """Return whether at least one productive step is selected."""
         return any(
@@ -795,27 +790,6 @@ def wipe_dependencies(project_root: Path, log: LogFn) -> None:
     log("✅ Dependencies folder removed.")
 
 
-def _copy_deps(
-    src_deps: Path,
-    dst_deps: Path,
-    *,
-    exclude_dirs: frozenset[str],
-    exclude_files: set[str],
-) -> None:
-    dst_deps.mkdir(parents=True, exist_ok=True)
-    for child in src_deps.iterdir():
-        if child.is_dir():
-            if child.name in exclude_dirs:
-                continue
-            shutil.copytree(child, dst_deps / child.name, dirs_exist_ok=True)
-        else:
-            if child.suffix.lower() == ".log":
-                continue
-            if child.name in exclude_files:
-                continue
-            shutil.copy2(child, dst_deps / child.name)
-
-
 def _no_window_creationflags() -> int:
     """Hide console Windows for child processes on Windows."""
     if sys.platform != "win32":
@@ -865,15 +839,6 @@ def _run_uv(
     if out:
         log(out)
     return int(proc.returncode), out
-
-
-def _zip_dir(source_dir: Path, zip_path: Path) -> None:
-    if zip_path.exists():
-        zip_path.unlink()
-    with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
-        for path in sorted(source_dir.rglob("*")):
-            if path.is_file():
-                zf.write(path, path.relative_to(source_dir).as_posix())
 
 
 STEP_WIPE = "Wipe install/dependencies first"

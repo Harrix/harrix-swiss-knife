@@ -41,6 +41,7 @@ lang: en
   - [⚙️ Method `get_all_process_records`](#%EF%B8%8F-method-get_all_process_records)
   - [⚙️ Method `get_all_weight_records`](#%EF%B8%8F-method-get_all_weight_records)
   - [⚙️ Method `get_all_workouts`](#%EF%B8%8F-method-get_all_workouts)
+  - [⚙️ Method `get_chart_data_for_all_exercises`](#%EF%B8%8F-method-get_chart_data_for_all_exercises)
   - [⚙️ Method `get_dumbbell_exercise_names`](#%EF%B8%8F-method-get_dumbbell_exercise_names)
   - [⚙️ Method `get_earliest_process_date`](#%EF%B8%8F-method-get_earliest_process_date)
   - [⚙️ Method `get_earliest_weight_date`](#%EF%B8%8F-method-get_earliest_weight_date)
@@ -49,13 +50,12 @@ lang: en
   - [⚙️ Method `get_exercise_name_by_id`](#%EF%B8%8F-method-get_exercise_name_by_id)
   - [⚙️ Method `get_exercise_name_local`](#%EF%B8%8F-method-get_exercise_name_local)
   - [⚙️ Method `get_exercise_name_local_map`](#%EF%B8%8F-method-get_exercise_name_local_map)
-  - [⚙️ Method `get_exercise_names_missing_name_local`](#%EF%B8%8F-method-get_exercise_names_missing_name_local)
   - [⚙️ Method `get_exercise_steps_records`](#%EF%B8%8F-method-get_exercise_steps_records)
   - [⚙️ Method `get_exercise_total_today`](#%EF%B8%8F-method-get_exercise_total_today)
   - [⚙️ Method `get_exercise_type_name_by_id`](#%EF%B8%8F-method-get_exercise_type_name_by_id)
-  - [⚙️ Method `get_exercise_type_names_missing_name_local`](#%EF%B8%8F-method-get_exercise_type_names_missing_name_local)
   - [⚙️ Method `get_exercise_types`](#%EF%B8%8F-method-get_exercise_types)
   - [⚙️ Method `get_exercise_unit`](#%EF%B8%8F-method-get_exercise_unit)
+  - [⚙️ Method `get_exercise_units`](#%EF%B8%8F-method-get_exercise_units)
   - [⚙️ Method `get_exercise_weight_type_specs`](#%EF%B8%8F-method-get_exercise_weight_type_specs)
   - [⚙️ Method `get_exercises_by_frequency`](#%EF%B8%8F-method-get_exercises_by_frequency)
   - [⚙️ Method `get_exercises_by_last_execution`](#%EF%B8%8F-method-get_exercises_by_last_execution)
@@ -86,9 +86,7 @@ lang: en
   - [⚙️ Method `set_exercise_favorite`](#%EF%B8%8F-method-set_exercise_favorite)
   - [⚙️ Method `set_exercise_type_required`](#%EF%B8%8F-method-set_exercise_type_required)
   - [⚙️ Method `update_exercise`](#%EF%B8%8F-method-update_exercise)
-  - [⚙️ Method `update_exercise_name_local_by_name`](#%EF%B8%8F-method-update_exercise_name_local_by_name)
   - [⚙️ Method `update_exercise_type`](#%EF%B8%8F-method-update_exercise_type)
-  - [⚙️ Method `update_exercise_type_name_local_by_type`](#%EF%B8%8F-method-update_exercise_type_name_local_by_type)
   - [⚙️ Method `update_process_record`](#%EF%B8%8F-method-update_process_record)
   - [⚙️ Method `update_process_records_date`](#%EF%B8%8F-method-update_process_records_date)
   - [⚙️ Method `update_weight_record`](#%EF%B8%8F-method-update_weight_record)
@@ -655,6 +653,40 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         )
         return [_workout_row_from_sql(row) for row in rows if row]
 
+    def get_chart_data_for_all_exercises(self, date_from: str, date_to: str) -> dict[str, list[tuple[str, str]]]:
+        """Get chart rows for every exercise in one query, grouped by exercise name.
+
+        This is the bulk form of `get_exercise_chart_data` with no type filter. Callers
+        that need the whole catalog must use this, otherwise they issue one query per
+        exercise per month, which reaches tens of thousands of queries on a full catalog.
+
+        Args:
+
+        - `date_from` (`str`): Inclusive lower bound (YYYY-MM-DD).
+        - `date_to` (`str`): Inclusive upper bound (YYYY-MM-DD).
+
+        Returns:
+
+        - `dict[str, list[tuple[str, str]]]`: Exercise name to its (date, value) rows, ordered by date.
+
+        """
+        rows = self.get_rows(
+            """
+            SELECT e.name, p.date, p.value
+            FROM process p
+            JOIN exercises e ON p._id_exercises = e._id
+            WHERE p.date BETWEEN :date_from AND :date_to
+            ORDER BY p.date ASC
+            """,
+            {"date_from": date_from, "date_to": date_to},
+        )
+        result: dict[str, list[tuple[str, str]]] = {}
+        for row in rows:
+            if not row or row[0] is None:
+                continue
+            result.setdefault(str(row[0]), []).append((row[1], row[2]))
+        return result
+
     def get_dumbbell_exercise_names(self) -> set[str]:
         """Return English names of exercises that use template dumbbell weights."""
         template_id = self.get_id("exercises", "name", DUMBBELL_WEIGHT_TEMPLATE_EXERCISE)
@@ -838,20 +870,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
                 result[name] = name_local
         return result
 
-    def get_exercise_names_missing_name_local(self, *, limit: int = 250) -> list[str]:
-        """Return distinct exercise names that still need a local translation."""
-        rows = self.get_rows(
-            """
-            SELECT name FROM exercises
-            WHERE name IS NOT NULL AND TRIM(name) != ''
-              AND (name_local IS NULL OR TRIM(name_local) = '')
-            ORDER BY name
-            LIMIT :limit
-            """,
-            {"limit": limit},
-        )
-        return [str(row[0]) for row in rows if row and row[0] is not None]
-
     def get_exercise_steps_records(self, exercise_id: int) -> list[tuple[str, int, str]]:
         """Get steps records grouped by date.
 
@@ -917,20 +935,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         rows = self.get_rows("SELECT type FROM types WHERE _id = :id", {"id": type_id})
         return rows[0][0] if rows else None
 
-    def get_exercise_type_names_missing_name_local(self, *, limit: int = 250) -> list[str]:
-        """Return distinct type names that still need a local translation."""
-        rows = self.get_rows(
-            """
-            SELECT DISTINCT type FROM types
-            WHERE type IS NOT NULL AND TRIM(type) != ''
-              AND (name_local IS NULL OR TRIM(name_local) = '')
-            ORDER BY type
-            LIMIT :limit
-            """,
-            {"limit": limit},
-        )
-        return [str(row[0]) for row in rows if row and row[0] is not None]
-
     def get_exercise_types(self, exercise_id: int) -> list[str]:
         """Get all types for a specific exercise.
 
@@ -965,6 +969,20 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         if rows and rows[0][0]:
             return rows[0][0]
         return "times"
+
+    def get_exercise_units(self) -> dict[str, str]:
+        """Get units for every exercise in one query.
+
+        Use this instead of calling `get_exercise_unit` in a loop, which costs one query
+        per lookup.
+
+        Returns:
+
+        - `dict[str, str]`: Exercise name to unit, falling back to `times` when unset.
+
+        """
+        rows = self.get_rows("SELECT name, unit FROM exercises")
+        return {str(row[0]): (row[1] or "times") for row in rows if row and row[0] is not None}
 
     def get_exercise_weight_type_specs(self, exercise_id: int) -> list[WeightTypeSpec]:
         """Return type name, calories modifier, and local name for one exercise.
@@ -1142,39 +1160,78 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         return self.get_rows(query_text, params)
 
-    def get_filtered_statistics_data(self, exercise_name: str | None = None) -> list[tuple[str, str, float, str]]:
-        """Get filtered data for statistics display.
+    def get_filtered_statistics_data(
+        self,
+        exercise_name: str | None = None,
+        *,
+        limit: int | None = None,
+        date_from: str | None = None,
+    ) -> list[tuple[str, str, float, str]]:
+        """Get top records per exercise/type for the statistics table.
+
+        When `limit` is set, SQLite ranks rows within each (exercise, type) group by
+        value and date and returns only the first `limit` of them. Without a limit the
+        whole `process` table is loaded, which is costly once the log grows large.
 
         Args:
 
-        - `exercise_name` (`str | None`): Exercise name to filter by. Defaults to `None` for all exercises.
+        - `exercise_name` (`str | None`): Exercise name to filter by. Defaults to `None`
+          for all exercises.
+        - `limit` (`int | None`): Max rows per exercise/type group. Defaults to `None`
+          (no cap).
+        - `date_from` (`str | None`): Inclusive lower date bound (YYYY-MM-DD). Defaults
+          to `None` for all history.
 
         Returns:
 
-        - `list[tuple[str, str, float, str]]`: List of (exercise_name, type_name, value, date) tuples.
+        - `list[tuple[str, str, float, str]]`: List of (exercise_name, type_name, value,
+          date) tuples.
 
         """
-        conditions = []
-        params = {}
+        conditions: list[str] = []
+        params: dict[str, object] = {}
 
         if exercise_name:
             conditions.append("e.name = :exercise")
             params["exercise"] = exercise_name
+        if date_from:
+            conditions.append("p.date >= :date_from")
+            params["date_from"] = date_from
 
-        query = """
-            SELECT e.name,
-                   IFNULL(t.type, ''),
-                   p.value,
-                   p.date
-            FROM process p
-            JOIN exercises e ON p._id_exercises = e._id
-            LEFT JOIN types t ON p._id_types = t._id
-        """
+        where_clause = f" WHERE {' AND '.join(conditions)}" if conditions else ""
 
-        if conditions:
-            query += " WHERE " + " AND ".join(conditions)
-
-        query += " ORDER BY p._id DESC"
+        if limit is not None:
+            params["limit"] = limit
+            query = f"""
+                SELECT exercise_name, type_name, value, date
+                FROM (
+                    SELECT e.name AS exercise_name,
+                           IFNULL(t.type, '') AS type_name,
+                           p.value AS value,
+                           p.date AS date,
+                           ROW_NUMBER() OVER (
+                               PARTITION BY e.name, IFNULL(t.type, '')
+                               ORDER BY CAST(p.value AS REAL) DESC, p.date DESC, p._id DESC
+                           ) AS rn
+                    FROM process p
+                    JOIN exercises e ON p._id_exercises = e._id
+                    LEFT JOIN types t ON p._id_types = t._id AND t._id_exercises = e._id
+                    {where_clause}
+                ) ranked
+                WHERE rn <= :limit
+            """  # noqa: S608
+        else:
+            query = f"""
+                SELECT e.name,
+                       IFNULL(t.type, ''),
+                       p.value,
+                       p.date
+                FROM process p
+                JOIN exercises e ON p._id_exercises = e._id
+                LEFT JOIN types t ON p._id_types = t._id AND t._id_exercises = e._id
+                {where_clause}
+                ORDER BY p._id DESC
+            """  # noqa: S608
 
         rows = self.get_rows(query, params)
         return [(row[0], row[1], float(row[2]), row[3]) for row in rows]
@@ -1735,33 +1792,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         query += " WHERE _id = :id"
         return self.execute_simple_query(query, params)
 
-    def update_exercise_name_local_by_name(self, name: str, name_local: str) -> int:
-        """Set `name_local` for all exercises matching English `name` with empty local name.
-
-        Returns:
-
-        - `int`: Number of updated rows when known, otherwise `1` on success and `0` on failure.
-
-        """
-        before = self.get_rows(
-            """
-            SELECT COUNT(*) FROM exercises
-            WHERE name = :name AND (name_local IS NULL OR TRIM(name_local) = '')
-            """,
-            {"name": name},
-        )
-        ok = self.execute_simple_query(
-            """
-            UPDATE exercises
-            SET name_local = :nl
-            WHERE name = :name AND (name_local IS NULL OR TRIM(name_local) = '')
-            """,
-            {"nl": name_local, "name": name},
-        )
-        if not ok:
-            return 0
-        return int(before[0][0]) if before and before[0] and before[0][0] is not None else 0
-
     def update_exercise_type(
         self,
         type_id: int,
@@ -1797,27 +1827,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             "id": type_id,
         }
         return self.execute_simple_query(query, params)
-
-    def update_exercise_type_name_local_by_type(self, type_name: str, name_local: str) -> int:
-        """Set `name_local` for all types matching English `type_name` with empty local name."""
-        before = self.get_rows(
-            """
-            SELECT COUNT(*) FROM types
-            WHERE type = :tp AND (name_local IS NULL OR TRIM(name_local) = '')
-            """,
-            {"tp": type_name},
-        )
-        ok = self.execute_simple_query(
-            """
-            UPDATE types
-            SET name_local = :nl
-            WHERE type = :tp AND (name_local IS NULL OR TRIM(name_local) = '')
-            """,
-            {"nl": name_local, "tp": type_name},
-        )
-        if not ok:
-            return 0
-        return int(before[0][0]) if before and before[0] and before[0][0] is not None else 0
 
     def update_process_record(self, record_id: int, exercise_id: int, type_id: int, value: str, date: str) -> bool:
         """Update an existing process record.
@@ -2837,6 +2846,52 @@ def get_all_workouts(self) -> list[WorkoutRow]:
 
 </details>
 
+### ⚙️ Method `get_chart_data_for_all_exercises`
+
+```python
+def get_chart_data_for_all_exercises(self, date_from: str, date_to: str) -> dict[str, list[tuple[str, str]]]
+```
+
+Get chart rows for every exercise in one query, grouped by exercise name.
+
+This is the bulk form of [`get_exercise_chart_data`](#%EF%B8%8F-method-get_exercise_chart_data) with no type filter. Callers
+that need the whole catalog must use this, otherwise they issue one query per
+exercise per month, which reaches tens of thousands of queries on a full catalog.
+
+Args:
+
+- `date_from` (`str`): Inclusive lower bound (YYYY-MM-DD).
+- `date_to` (`str`): Inclusive upper bound (YYYY-MM-DD).
+
+Returns:
+
+- `dict[str, list[tuple[str, str]]]`: Exercise name to its (date, value) rows, ordered by date.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_chart_data_for_all_exercises(self, date_from: str, date_to: str) -> dict[str, list[tuple[str, str]]]:
+        rows = self.get_rows(
+            """
+            SELECT e.name, p.date, p.value
+            FROM process p
+            JOIN exercises e ON p._id_exercises = e._id
+            WHERE p.date BETWEEN :date_from AND :date_to
+            ORDER BY p.date ASC
+            """,
+            {"date_from": date_from, "date_to": date_to},
+        )
+        result: dict[str, list[tuple[str, str]]] = {}
+        for row in rows:
+            if not row or row[0] is None:
+                continue
+            result.setdefault(str(row[0]), []).append((row[1], row[2]))
+        return result
+```
+
+</details>
+
 ### ⚙️ Method `get_dumbbell_exercise_names`
 
 ```python
@@ -3122,34 +3177,6 @@ def get_exercise_name_local_map(self) -> dict[str, str]:
 
 </details>
 
-### ⚙️ Method `get_exercise_names_missing_name_local`
-
-```python
-def get_exercise_names_missing_name_local(self, *, limit: int = 250) -> list[str]
-```
-
-Return distinct exercise names that still need a local translation.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def get_exercise_names_missing_name_local(self, *, limit: int = 250) -> list[str]:
-        rows = self.get_rows(
-            """
-            SELECT name FROM exercises
-            WHERE name IS NOT NULL AND TRIM(name) != ''
-              AND (name_local IS NULL OR TRIM(name_local) = '')
-            ORDER BY name
-            LIMIT :limit
-            """,
-            {"limit": limit},
-        )
-        return [str(row[0]) for row in rows if row and row[0] is not None]
-```
-
-</details>
-
 ### ⚙️ Method `get_exercise_steps_records`
 
 ```python
@@ -3251,34 +3278,6 @@ def get_exercise_type_name_by_id(self, type_id: int) -> str | None:
 
 </details>
 
-### ⚙️ Method `get_exercise_type_names_missing_name_local`
-
-```python
-def get_exercise_type_names_missing_name_local(self, *, limit: int = 250) -> list[str]
-```
-
-Return distinct type names that still need a local translation.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def get_exercise_type_names_missing_name_local(self, *, limit: int = 250) -> list[str]:
-        rows = self.get_rows(
-            """
-            SELECT DISTINCT type FROM types
-            WHERE type IS NOT NULL AND TRIM(type) != ''
-              AND (name_local IS NULL OR TRIM(name_local) = '')
-            ORDER BY type
-            LIMIT :limit
-            """,
-            {"limit": limit},
-        )
-        return [str(row[0]) for row in rows if row and row[0] is not None]
-```
-
-</details>
-
 ### ⚙️ Method `get_exercise_types`
 
 ```python
@@ -3334,6 +3333,32 @@ def get_exercise_unit(self, exercise_name: str) -> str:
         if rows and rows[0][0]:
             return rows[0][0]
         return "times"
+```
+
+</details>
+
+### ⚙️ Method `get_exercise_units`
+
+```python
+def get_exercise_units(self) -> dict[str, str]
+```
+
+Get units for every exercise in one query.
+
+Use this instead of calling [`get_exercise_unit`](#%EF%B8%8F-method-get_exercise_unit) in a loop, which costs one query
+per lookup.
+
+Returns:
+
+- `dict[str, str]`: Exercise name to unit, falling back to `times` when unset.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_exercise_units(self) -> dict[str, str]:
+        rows = self.get_rows("SELECT name, unit FROM exercises")
+        return {str(row[0]): (row[1] or "times") for row in rows if row and row[0] is not None}
 ```
 
 </details>
@@ -3579,45 +3604,84 @@ def get_filtered_process_records(
 ### ⚙️ Method `get_filtered_statistics_data`
 
 ```python
-def get_filtered_statistics_data(self, exercise_name: str | None = None) -> list[tuple[str, str, float, str]]
+def get_filtered_statistics_data(self, exercise_name: str | None = None, *, limit: int | None = None, date_from: str | None = None) -> list[tuple[str, str, float, str]]
 ```
 
-Get filtered data for statistics display.
+Get top records per exercise/type for the statistics table.
+
+When `limit` is set, SQLite ranks rows within each (exercise, type) group by
+value and date and returns only the first `limit` of them. Without a limit the
+whole `process` table is loaded, which is costly once the log grows large.
 
 Args:
 
-- `exercise_name` (`str | None`): Exercise name to filter by. Defaults to `None` for all exercises.
+- `exercise_name` (`str | None`): Exercise name to filter by. Defaults to `None`
+  for all exercises.
+- `limit` (`int | None`): Max rows per exercise/type group. Defaults to `None`
+  (no cap).
+- `date_from` (`str | None`): Inclusive lower date bound (YYYY-MM-DD). Defaults
+  to `None` for all history.
 
 Returns:
 
-- `list[tuple[str, str, float, str]]`: List of (exercise_name, type_name, value, date) tuples.
+- `list[tuple[str, str, float, str]]`: List of (exercise_name, type_name, value,
+  date) tuples.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def get_filtered_statistics_data(self, exercise_name: str | None = None) -> list[tuple[str, str, float, str]]:
-        conditions = []
-        params = {}
+def get_filtered_statistics_data(
+        self,
+        exercise_name: str | None = None,
+        *,
+        limit: int | None = None,
+        date_from: str | None = None,
+    ) -> list[tuple[str, str, float, str]]:
+        conditions: list[str] = []
+        params: dict[str, object] = {}
 
         if exercise_name:
             conditions.append("e.name = :exercise")
             params["exercise"] = exercise_name
+        if date_from:
+            conditions.append("p.date >= :date_from")
+            params["date_from"] = date_from
 
-        query = """
-            SELECT e.name,
-                   IFNULL(t.type, ''),
-                   p.value,
-                   p.date
-            FROM process p
-            JOIN exercises e ON p._id_exercises = e._id
-            LEFT JOIN types t ON p._id_types = t._id
-        """
+        where_clause = f" WHERE {' AND '.join(conditions)}" if conditions else ""
 
-        if conditions:
-            query += " WHERE " + " AND ".join(conditions)
-
-        query += " ORDER BY p._id DESC"
+        if limit is not None:
+            params["limit"] = limit
+            query = f"""
+                SELECT exercise_name, type_name, value, date
+                FROM (
+                    SELECT e.name AS exercise_name,
+                           IFNULL(t.type, '') AS type_name,
+                           p.value AS value,
+                           p.date AS date,
+                           ROW_NUMBER() OVER (
+                               PARTITION BY e.name, IFNULL(t.type, '')
+                               ORDER BY CAST(p.value AS REAL) DESC, p.date DESC, p._id DESC
+                           ) AS rn
+                    FROM process p
+                    JOIN exercises e ON p._id_exercises = e._id
+                    LEFT JOIN types t ON p._id_types = t._id AND t._id_exercises = e._id
+                    {where_clause}
+                ) ranked
+                WHERE rn <= :limit
+            """  # noqa: S608
+        else:
+            query = f"""
+                SELECT e.name,
+                       IFNULL(t.type, ''),
+                       p.value,
+                       p.date
+                FROM process p
+                JOIN exercises e ON p._id_exercises = e._id
+                LEFT JOIN types t ON p._id_types = t._id AND t._id_exercises = e._id
+                {where_clause}
+                ORDER BY p._id DESC
+            """  # noqa: S608
 
         rows = self.get_rows(query, params)
         return [(row[0], row[1], float(row[2]), row[3]) for row in rows]
@@ -4483,45 +4547,6 @@ def update_exercise(
 
 </details>
 
-### ⚙️ Method `update_exercise_name_local_by_name`
-
-```python
-def update_exercise_name_local_by_name(self, name: str, name_local: str) -> int
-```
-
-Set `name_local` for all exercises matching English `name` with empty local name.
-
-Returns:
-
-- `int`: Number of updated rows when known, otherwise `1` on success and `0` on failure.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def update_exercise_name_local_by_name(self, name: str, name_local: str) -> int:
-        before = self.get_rows(
-            """
-            SELECT COUNT(*) FROM exercises
-            WHERE name = :name AND (name_local IS NULL OR TRIM(name_local) = '')
-            """,
-            {"name": name},
-        )
-        ok = self.execute_simple_query(
-            """
-            UPDATE exercises
-            SET name_local = :nl
-            WHERE name = :name AND (name_local IS NULL OR TRIM(name_local) = '')
-            """,
-            {"nl": name_local, "name": name},
-        )
-        if not ok:
-            return 0
-        return int(before[0][0]) if before and before[0] and before[0][0] is not None else 0
-```
-
-</details>
-
 ### ⚙️ Method `update_exercise_type`
 
 ```python
@@ -4566,41 +4591,6 @@ def update_exercise_type(
             "id": type_id,
         }
         return self.execute_simple_query(query, params)
-```
-
-</details>
-
-### ⚙️ Method `update_exercise_type_name_local_by_type`
-
-```python
-def update_exercise_type_name_local_by_type(self, type_name: str, name_local: str) -> int
-```
-
-Set `name_local` for all types matching English `type_name` with empty local name.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def update_exercise_type_name_local_by_type(self, type_name: str, name_local: str) -> int:
-        before = self.get_rows(
-            """
-            SELECT COUNT(*) FROM types
-            WHERE type = :tp AND (name_local IS NULL OR TRIM(name_local) = '')
-            """,
-            {"tp": type_name},
-        )
-        ok = self.execute_simple_query(
-            """
-            UPDATE types
-            SET name_local = :nl
-            WHERE type = :tp AND (name_local IS NULL OR TRIM(name_local) = '')
-            """,
-            {"nl": name_local, "tp": type_name},
-        )
-        if not ok:
-            return 0
-        return int(before[0][0]) if before and before[0] and before[0][0] is not None else 0
 ```
 
 </details>

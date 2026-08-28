@@ -7,12 +7,15 @@ SQLite database with food items and food log records.
 
 from __future__ import annotations
 
+import contextlib
 import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, cast
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+    from harrix_swiss_knife.apps.food.text_parser import ParsedFoodItem
 
 import harrix_pylib as h
 from PySide6.QtCore import (
@@ -115,13 +118,12 @@ from harrix_swiss_knife.apps.food.mixins import (
 from harrix_swiss_knife.apps.food.portion_weight_parser import parse_portion_weight_response
 from harrix_swiss_knife.apps.food.recipe_calories import recipe_ingredients_from_food_log_rows
 from harrix_swiss_knife.apps.food.recipes_widget import RecipesWidget
-from harrix_swiss_knife.apps.food.schema import ensure_food_schema
+from harrix_swiss_knife.apps.food.schema import ensure_food_indexes, ensure_food_schema
 from harrix_swiss_knife.apps.food.services.food_display import (
     extract_food_name_from_display,
     format_food_name_with_calories,
 )
 from harrix_swiss_knife.apps.food.text_input_dialog import TextInputDialog
-from harrix_swiss_knife.apps.food.text_parser import ParsedFoodItem, TextParser
 from harrix_swiss_knife.integrations.bothub import (
     BothubRequestState,
     audio_bytes_and_mime,
@@ -1831,8 +1833,43 @@ class MainWindow(
         self._show_placed_window()
         # Adjust columns after window is shown and has proper dimensions
         QTimer.singleShot(50, self._adjust_food_log_table_columns)
-        # Update food stats chart after initialization
-        QTimer.singleShot(100, self._update_food_calories_chart)
+        # The stats chart is already scheduled by _init_food_stats_dates once the date
+        # range is known; scheduling it again here would rebuild it twice on startup.
+
+    def _food_log_daily_totals(self, rows: list[list], *, from_database: bool) -> dict[str, float]:
+        """Return daily calorie totals for the dates present in `rows`.
+
+        For the paginated log the totals come from the database, so a day split across
+        two loaded pages still shows its full total. Filtered views (such as problematic
+        records) sum only their own rows, since a whole-day total there would include
+        rows the user cannot see.
+
+        Args:
+
+        - `rows` (`list[list]`): Food log rows currently being displayed.
+        - `from_database` (`bool`): Whether to read whole-day totals from the database.
+
+        Returns:
+
+        - `dict[str, float]`: Date to total calories.
+
+        """
+        dates = [str(row[1]) for row in rows if row[1]]
+        if from_database and dates and self.db_manager is not None:
+            with contextlib.suppress(Exception):
+                return self.db_manager.get_calories_totals_between(min(dates), max(dates))
+
+        totals: dict[str, float] = {}
+        for row in rows:
+            date_str = row[1]
+            if not date_str:
+                continue
+            totals[date_str] = totals.get(date_str, 0.0) + calculate_food_log_calories(
+                parse_food_log_number(row[2]),
+                parse_food_log_number(row[4]),
+                parse_food_log_number(row[3]),
+            )
+        return totals
 
     @staticmethod
     def _food_log_row_missing_calories(row: list[Any]) -> bool:
@@ -1942,6 +1979,7 @@ class MainWindow(
         if db_path.exists():
             # Installer/old recover.sql created id/datetime/calories; migrate before open.
             ensure_food_schema(db_path)
+            ensure_food_indexes(db_path)
 
         self.db_manager = init_tracker_database(
             self,
@@ -2261,8 +2299,9 @@ class MainWindow(
                 self._recipes_widget.refresh()
             return
         if tab_name == "tab_food_stats":
-            self._update_kcal_per_day_table()
-            self._update_food_calories_chart()
+            kcal_data = self.db_manager.get_calories_per_day() if self.db_manager is not None else None
+            self._update_kcal_per_day_table(kcal_data)
+            self._update_food_calories_chart(kcal_data)
 
     def _open_text_input_dialog(
         self,
@@ -2545,28 +2584,6 @@ class MainWindow(
                 parent=self,
             )
             toast.present()
-
-    def _process_text_input(self, text: str, default_date: str) -> None:
-        """Process text input and add food items to database.
-
-        Args:
-
-        - `text` (`str`): Text input to process.
-        - `default_date` (`str`): Default date for entries in yyyy-MM-dd format.
-
-        """
-        if self.db_manager is None:
-            logger.error("❌ Database manager is not initialized")
-            return
-
-        parser = TextParser()
-        parsed_items = parser.parse_text(
-            text,
-            self.db_manager,
-            default_date,
-            correct_unparseable_line=self._correct_food_input_line,
-        )
-        self._process_food_items(parsed_items, default_date)
 
     def _prompt_eaten_percent_and_apply(self) -> None:
         """Ask for a percent eaten (default 50) and scale selected food log rows."""
@@ -3373,22 +3390,29 @@ class MainWindow(
             logger.exception("Error swapping weight and calories")
             message_box.warning(self, "Error", f"Failed to swap weight and calories: {e}")
 
-    def _transform_food_log_data(self, rows: list[list], *, append_state: bool = False) -> list[list]:
-        """Transform food_log rows for table display with colors and daily totals."""
+    def _transform_food_log_data(
+        self, rows: list[list], *, append_state: bool = False, db_totals: bool = True
+    ) -> list[list]:
+        """Transform food_log rows for table display with colors and daily totals.
+
+        Args:
+
+        - `rows` (`list[list]`): Food log rows to display.
+        - `append_state` (`bool`): Whether to continue colors from the previous page.
+          Defaults to `False`.
+        - `db_totals` (`bool`): Whether the daily total column reads whole-day totals
+          from the database. Set to `False` for filtered views. Defaults to `True`.
+
+        Returns:
+
+        - `list[list]`: Rows ready for the table model.
+
+        """
         date_to_color: dict[str, QColor] = dict(self._food_log_date_color_map) if append_state else {}
         dates_with_totals: set[str] = set(self._food_log_dates_with_totals) if append_state else set()
         color_index: int = len(date_to_color)
 
-        date_to_total_calories: dict[str, float] = {}
-        for row in rows:
-            date_str = row[1]
-            calculated_calories = calculate_food_log_calories(
-                parse_food_log_number(row[2]),
-                parse_food_log_number(row[4]),
-                parse_food_log_number(row[3]),
-            )
-            if date_str:
-                date_to_total_calories[date_str] = date_to_total_calories.get(date_str, 0.0) + calculated_calories
+        date_to_total_calories = self._food_log_daily_totals(rows, from_database=db_totals)
 
         transformed_rows: list[list] = []
         for row in rows:
@@ -3573,8 +3597,16 @@ class MainWindow(
             logger.exception("Error updating drinks chart")
             message_box.warning(self, "Chart Error", f"Failed to create drinks chart: {e}")
 
-    def _update_food_calories_chart(self) -> None:
-        """Update the food calories chart with data from database."""
+    def _update_food_calories_chart(self, kcal_data: list[list[Any]] | None = None) -> None:
+        """Update the food calories chart with data from database.
+
+        Args:
+
+        - `kcal_data` (`list[list[Any]] | None`): Pre-loaded `get_calories_per_day` rows.
+          Pass these when the caller already has them to avoid repeating the aggregate.
+          Defaults to `None`.
+
+        """
         if not self._validate_database_connection():
             logger.warning("Database connection not available for updating food calories chart")
             return
@@ -3589,8 +3621,8 @@ class MainWindow(
             date_to = self.dateEdit_food_stats_to.date().toString("yyyy-MM-dd")
             period = self.comboBox_food_stats_period.currentText()
 
-            # Get calories data for the selected period
-            kcal_data = self.db_manager.get_calories_per_day()
+            if kcal_data is None:
+                kcal_data = self.db_manager.get_calories_per_day()
 
             # Filter data by date range
             filtered_data = []
@@ -3706,7 +3738,9 @@ class MainWindow(
 
         try:
             self._reset_food_log_pagination_state()
-            transformed_food_log_data = self._transform_food_log_data(food_log_rows, append_state=False)
+            transformed_food_log_data = self._transform_food_log_data(
+                food_log_rows, append_state=False, db_totals=False
+            )
             self.models["food_log"] = self._create_colored_food_log_table_model(
                 transformed_food_log_data, self.table_config["food_log"][2]
             )
@@ -3785,8 +3819,15 @@ class MainWindow(
             logger.exception("Error updating food weight chart")
             message_box.warning(self, "Chart Error", f"Failed to create food weight chart: {e}")
 
-    def _update_kcal_per_day_table(self) -> None:
-        """Update the calories per day table with data from database."""
+    def _update_kcal_per_day_table(self, kcal_per_day_data: list[list[Any]] | None = None) -> None:
+        """Update the calories per day table with data from database.
+
+        Args:
+
+        - `kcal_per_day_data` (`list[list[Any]] | None`): Pre-loaded `get_calories_per_day`
+          rows, reused when the caller already has them. Defaults to `None`.
+
+        """
         if not self._validate_database_connection():
             logger.warning("Database connection not available for updating kcal per day table")
             return
@@ -3796,8 +3837,8 @@ class MainWindow(
             return
 
         try:
-            # Get calories per day data for all days
-            kcal_per_day_data = self.db_manager.get_calories_per_day()
+            if kcal_per_day_data is None:
+                kcal_per_day_data = self.db_manager.get_calories_per_day()
 
             # Transform data for display
             transformed_data = []

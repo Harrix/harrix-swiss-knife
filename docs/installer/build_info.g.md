@@ -17,7 +17,6 @@ lang: en
 - [🔧 Function `load_build_meta`](#-function-load_build_meta)
 - [🔧 Function `read_pyproject_version`](#-function-read_pyproject_version)
 - [🔧 Function `summarize_dependency_artifacts`](#-function-summarize_dependency_artifacts)
-- [🔧 Function `write_build_meta`](#-function-write_build_meta)
 
 </details>
 
@@ -200,25 +199,6 @@ def summarize_dependency_artifacts(deps: Path) -> str:
         if cache.is_dir() and any(cache.iterdir()):
             parts.append(f"{cache_name}/={'present'}")
     return "; ".join(parts)
-```
-
-</details>
-
-## 🔧 Function `write_build_meta`
-
-```python
-def write_build_meta(path: Path, meta: dict[str, str]) -> None
-```
-
-Write `build_meta.json`.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def write_build_meta(path: Path, meta: dict[str, str]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
 ```
 
 </details>

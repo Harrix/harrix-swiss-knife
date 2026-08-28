@@ -57,16 +57,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """Delete one item by `_id`."""
         return self.execute_simple_query("DELETE FROM items WHERE _id = :id", {"id": item_id})
 
-    def get_item(self, item_id: int) -> SnippetItem | None:
-        """Return one item by `_id`."""
-        rows = self.get_rows(
-            "SELECT _id, zone, value, hint, created_at, last_used_at, sort_index FROM items WHERE _id = :id",
-            {"id": item_id},
-        )
-        if not rows:
-            return None
-        return _row_to_item(rows[0])
-
     def get_zone_sort(self, zone: str) -> ZoneSort:
         """Return the stored sort settings for `zone`."""
         rows = self.get_rows(

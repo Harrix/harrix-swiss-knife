@@ -12,7 +12,6 @@ lang: en
 ## Contents
 
 - [🏛️ Class `BuildSteps`](#%EF%B8%8F-class-buildsteps)
-  - [⚙️ Method `all_steps (classmethod)`](#%EF%B8%8F-method-all_steps-classmethod)
   - [⚙️ Method `any_work`](#%EF%B8%8F-method-any_work)
   - [⚙️ Method `from_labels (classmethod)`](#%EF%B8%8F-method-from_labels-classmethod)
 - [🏛️ Class `PipelineResult`](#%EF%B8%8F-class-pipelineresult)
@@ -67,11 +66,6 @@ class BuildSteps:
     open_install: bool = True
     clean_logs: bool = False
 
-    @classmethod
-    def all_steps(cls) -> BuildSteps:
-        """Return the full default pipeline (CLI default)."""
-        return cls()
-
     def any_work(self) -> bool:
         """Return whether at least one productive step is selected."""
         return any(
@@ -100,24 +94,6 @@ class BuildSteps:
             open_install=STEP_OPEN in selected,
             clean_logs=STEP_CLEAN_LOGS in selected,
         )
-```
-
-</details>
-
-### ⚙️ Method `all_steps (classmethod)`
-
-```python
-def all_steps(cls) -> BuildSteps
-```
-
-Return the full default pipeline (CLI default).
-
-<details>
-<summary>Code:</summary>
-
-```python
-def all_steps(cls) -> BuildSteps:
-        return cls()
 ```
 
 </details>

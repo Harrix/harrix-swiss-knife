@@ -1598,14 +1598,18 @@ class MainWindow(
     def _init_database(self) -> None:
         """Open the SQLite file from app config (create from `recover.sql` if missing)."""
         app_dir = Path(__file__).parent
+        configured = Path(self._app_config["sqlite_habits"])
 
         def _on_db_opened(db_manager: database_manager.DatabaseManager) -> None:
             with contextlib.suppress(Exception):
                 db_manager.ensure_habits_schema()
 
+        with contextlib.suppress(Exception):
+            ensure_habits_indexes(QtSqliteDatabaseManagerBase.resolve_db_path_with_fallback(configured, "habits"))
+
         self.db_manager = init_tracker_database(
             self,
-            Path(self._app_config["sqlite_habits"]),
+            configured,
             "habits",
             app_dir / "recover.sql",
             database_manager.DatabaseManager,
