@@ -29,6 +29,7 @@ class WorkoutGenerateDialog(QDialog):
         *,
         show_gender: bool = True,
         initial_gender: str | None = None,
+        initial_duration_min: int | None = None,
     ) -> None:
         """Build the form with optional male/female choice and duration in minutes."""
         super().__init__(parent)
@@ -59,7 +60,8 @@ class WorkoutGenerateDialog(QDialog):
 
         self.spin_duration = QSpinBox()
         self.spin_duration.setRange(10, 240)
-        self.spin_duration.setValue(45)
+        duration = 45 if initial_duration_min is None else int(initial_duration_min)
+        self.spin_duration.setValue(max(10, min(duration, 240)))
         self.spin_duration.setSuffix(" min")
         form.addRow("Duration:", self.spin_duration)
         layout.addLayout(form)

@@ -79,14 +79,17 @@ from harrix_swiss_knife import (
 from harrix_swiss_knife.apps.common import achievement_dialog, avif_manager, message_box
 from harrix_swiss_knife.apps.common.app_entry import run_app_main
 from harrix_swiss_knife.apps.common.apps_config import (
+    DEFAULT_FITNESS_WORKOUT_DURATION_MIN,
     get_apps_fitness_image_high_max_size,
     get_apps_fitness_image_max_size,
     get_apps_fitness_image_min_max_size,
     get_apps_fitness_image_static_max_size,
     get_apps_fitness_lightbox_countdown_seconds,
+    get_apps_fitness_workout_duration_min,
     get_apps_fitness_workout_gender,
     get_apps_fitness_workout_history_count,
     get_apps_list_limits,
+    set_apps_fitness_workout_duration_min,
     set_apps_fitness_workout_gender,
 )
 from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
@@ -6386,6 +6389,17 @@ class MainWindow(
         self.doubleSpinBox_weight.setValue(last_weight)
         self.dateEdit_weight.setDate(QDate.currentDate())
 
+    def _initial_workout_duration_min(self) -> int:
+        """Return the duration to prefill in New workout (last used, else last saved)."""
+        stored = get_apps_fitness_workout_duration_min(self._app_config)
+        if stored is not None:
+            return stored
+        if self.db_manager is not None:
+            workouts = self.db_manager.get_all_workouts()
+            if workouts:
+                return max(10, min(int(workouts[0].duration_min), 240))
+        return DEFAULT_FITNESS_WORKOUT_DURATION_MIN
+
     def _insert_parsed_set_row(
         self,
         row: ParsedSetRow,
@@ -6861,6 +6875,7 @@ class MainWindow(
             self,
             show_gender=stored_gender is None,
             initial_gender=stored_gender,
+            initial_duration_min=self._initial_workout_duration_min(),
         )
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return
@@ -6871,6 +6886,10 @@ class MainWindow(
             except (OSError, TypeError, ValueError) as exc:
                 logger.warning("Could not save fitness workout gender to config: %s", exc)
         duration_min = dialog.duration_min()
+        try:
+            set_apps_fitness_workout_duration_min(duration_min, config=self._app_config)
+        except (OSError, TypeError, ValueError) as exc:
+            logger.warning("Could not save fitness workout duration to config: %s", exc)
         preferences = dialog.preferences()
         try:
             prompt_text = build_prompt(

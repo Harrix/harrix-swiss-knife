@@ -19,7 +19,11 @@ DEFAULT_FITNESS_IMAGE_MIN_MAX_SIZE = 96
 DEFAULT_FITNESS_IMAGE_STATIC_MAX_SIZE = 512
 DEFAULT_FITNESS_WORKOUT_HISTORY_COUNT = 100
 DEFAULT_FITNESS_LIGHTBOX_COUNTDOWN_SECONDS = 5
+DEFAULT_FITNESS_WORKOUT_DURATION_MIN = 45
+FITNESS_WORKOUT_DURATION_MIN_KEY = "fitness_workout_duration_min"
 FITNESS_WORKOUT_GENDER_KEY = "fitness_workout_gender"
+_MIN_FITNESS_WORKOUT_DURATION_MIN = 10
+_MAX_FITNESS_WORKOUT_DURATION_MIN = 240
 _VALID_FITNESS_WORKOUT_GENDERS = frozenset({"male", "female"})
 
 _LANGUAGE_DISPLAY_NAMES: dict[str, str] = {
@@ -111,6 +115,25 @@ def get_apps_fitness_lightbox_countdown_seconds(config: dict[str, Any]) -> int:
         return DEFAULT_FITNESS_LIGHTBOX_COUNTDOWN_SECONDS
 
 
+def get_apps_fitness_workout_duration_min(config: dict[str, Any]) -> int | None:
+    """Return stored planned workout duration from `apps.fitness_workout_duration_min`.
+
+    Returns minutes in `10..240`, or `None` when the user has not set a value yet.
+
+    """
+    apps = config.get("apps") or {}
+    raw = apps.get(FITNESS_WORKOUT_DURATION_MIN_KEY)
+    if raw is None:
+        return None
+    try:
+        value = int(raw)
+    except (TypeError, ValueError):
+        return None
+    if value < _MIN_FITNESS_WORKOUT_DURATION_MIN or value > _MAX_FITNESS_WORKOUT_DURATION_MIN:
+        return None
+    return value
+
+
 def get_apps_fitness_workout_gender(config: dict[str, Any]) -> str | None:
     """Return stored workout gender from `apps.fitness_workout_gender`.
 
@@ -167,6 +190,51 @@ def get_apps_local_language_display_name(config: dict[str, Any]) -> str:
     if code in _LANGUAGE_DISPLAY_NAMES:
         return _LANGUAGE_DISPLAY_NAMES[code]
     return code.upper()
+
+
+def set_apps_fitness_workout_duration_min(
+    duration_min: int,
+    *,
+    config: dict[str, Any] | None = None,
+    config_path: str | None = None,
+) -> None:
+    """Write planned workout duration into `config.json`.
+
+    Args:
+
+    - `duration_min` (`int`): Minutes in `10..240`.
+    - `config` (`dict[str, Any] | None`): Optional in-memory config to keep in sync.
+    - `config_path` (`str | None`): Config file path. Defaults to the project config.
+
+    """
+    try:
+        value = int(duration_min)
+    except (TypeError, ValueError) as exc:
+        msg = "Workout duration must be an integer number of minutes"
+        raise ValueError(msg) from exc
+    if value < _MIN_FITNESS_WORKOUT_DURATION_MIN or value > _MAX_FITNESS_WORKOUT_DURATION_MIN:
+        msg = (
+            f"Workout duration must be between {_MIN_FITNESS_WORKOUT_DURATION_MIN} "
+            f"and {_MAX_FITNESS_WORKOUT_DURATION_MIN} minutes"
+        )
+        raise ValueError(msg)
+
+    path = Path(config_path or get_config_path_str())
+    with path.open(encoding="utf-8") as handle:
+        data = json.load(handle)
+    if not isinstance(data, dict):
+        msg = f"Config root must be a JSON object: {path}"
+        raise TypeError(msg)
+    apps = data.get("apps")
+    if not isinstance(apps, dict):
+        apps = {}
+        data["apps"] = apps
+    apps[FITNESS_WORKOUT_DURATION_MIN_KEY] = value
+    path.write_text(h.dev.dumps_pretty_json(data), encoding="utf-8")
+    if config is not None:
+        live_apps = config.setdefault("apps", {})
+        if isinstance(live_apps, dict):
+            live_apps[FITNESS_WORKOUT_DURATION_MIN_KEY] = value
 
 
 def set_apps_fitness_workout_gender(
