@@ -14,11 +14,14 @@ lang: en
 - [🏛️ Class `ExerciseStopwatch`](#%EF%B8%8F-class-exercisestopwatch)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `advance`](#%EF%B8%8F-method-advance)
+  - [⚙️ Method `apply_state`](#%EF%B8%8F-method-apply_state)
+  - [⚙️ Method `capture_state`](#%EF%B8%8F-method-capture_state)
   - [⚙️ Method `pause`](#%EF%B8%8F-method-pause)
   - [⚙️ Method `reset`](#%EF%B8%8F-method-reset)
   - [⚙️ Method `restart`](#%EF%B8%8F-method-restart)
   - [⚙️ Method `snapshot`](#%EF%B8%8F-method-snapshot)
   - [⚙️ Method `start`](#%EF%B8%8F-method-start)
+- [🏛️ Class `ExerciseStopwatchState`](#%EF%B8%8F-class-exercisestopwatchstate)
 - [🏛️ Class `FitnessLightboxConfirm`](#%EF%B8%8F-class-fitnesslightboxconfirm)
 - [🏛️ Class `FitnessLightboxDetails`](#%EF%B8%8F-class-fitnesslightboxdetails)
 - [🏛️ Class `StopwatchColor`](#%EF%B8%8F-class-stopwatchcolor)
@@ -71,6 +74,21 @@ class ExerciseStopwatch:
                 self._phase = StopwatchPhase.RUNNING
                 self._elapsed_ms = overflow
         return self.snapshot()
+
+    def apply_state(self, state: ExerciseStopwatchState) -> StopwatchSnapshot:
+        """Restore a previously captured stopwatch state."""
+        self._phase = state.phase
+        self._elapsed_ms = max(0, int(state.elapsed_ms))
+        self._running = bool(state.running) and state.phase is not StopwatchPhase.IDLE
+        return self.snapshot()
+
+    def capture_state(self) -> ExerciseStopwatchState:
+        """Return the current phase and elapsed time for later resume."""
+        return ExerciseStopwatchState(
+            phase=self._phase,
+            elapsed_ms=self._elapsed_ms,
+            running=self._running,
+        )
 
     def pause(self) -> StopwatchSnapshot:
         """Freeze the countdown or elapsed clock."""
@@ -178,6 +196,49 @@ def advance(self, delta_ms: int) -> StopwatchSnapshot:
                 self._phase = StopwatchPhase.RUNNING
                 self._elapsed_ms = overflow
         return self.snapshot()
+```
+
+</details>
+
+### ⚙️ Method `apply_state`
+
+```python
+def apply_state(self, state: ExerciseStopwatchState) -> StopwatchSnapshot
+```
+
+Restore a previously captured stopwatch state.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def apply_state(self, state: ExerciseStopwatchState) -> StopwatchSnapshot:
+        self._phase = state.phase
+        self._elapsed_ms = max(0, int(state.elapsed_ms))
+        self._running = bool(state.running) and state.phase is not StopwatchPhase.IDLE
+        return self.snapshot()
+```
+
+</details>
+
+### ⚙️ Method `capture_state`
+
+```python
+def capture_state(self) -> ExerciseStopwatchState
+```
+
+Return the current phase and elapsed time for later resume.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def capture_state(self) -> ExerciseStopwatchState:
+        return ExerciseStopwatchState(
+            phase=self._phase,
+            elapsed_ms=self._elapsed_ms,
+            running=self._running,
+        )
 ```
 
 </details>
@@ -302,6 +363,27 @@ def start(self) -> StopwatchSnapshot:
             self._phase = StopwatchPhase.RUNNING if self._countdown_ms <= 0 else StopwatchPhase.COUNTDOWN
         self._running = True
         return self.snapshot()
+```
+
+</details>
+
+## 🏛️ Class `ExerciseStopwatchState`
+
+```python
+class ExerciseStopwatchState
+```
+
+Persisted exercise-timer state so Continue can resume the lightbox clock.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class ExerciseStopwatchState:
+
+    phase: StopwatchPhase
+    elapsed_ms: int
+    running: bool
 ```
 
 </details>

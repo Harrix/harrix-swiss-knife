@@ -161,7 +161,7 @@ def test_fitness_timer_cue_sound_names() -> None:
 
 def test_fitness_lightbox_flashes_start_and_finish(
     tmp_path: Path,
-    qapp: QApplication,
+    qapp: QApplication,  # noqa: ARG001
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     img_dir = tmp_path / "fitness_img"
@@ -171,7 +171,7 @@ def test_fitness_lightbox_flashes_start_and_finish(
     cues: list[str] = []
     monkeypatch.setattr(
         "harrix_swiss_knife.apps.fitness.fitness_lightbox.play_fitness_timer_cue",
-        lambda cue: cues.append(cue),
+        cues.append,
     )
     monkeypatch.setattr(
         "harrix_swiss_knife.apps.fitness.fitness_lightbox.play_fitness_timer_alert",
@@ -206,7 +206,7 @@ def test_fitness_lightbox_flashes_start_and_finish(
 
 def test_fitness_lightbox_restores_timer_state_without_prepare(
     tmp_path: Path,
-    qapp: QApplication,
+    qapp: QApplication,  # noqa: ARG001
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     img_dir = tmp_path / "fitness_img"

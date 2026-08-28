@@ -161,6 +161,11 @@ class WorkoutsWidget(QWidget):
         self._exercise_timer_state: ExerciseStopwatchState | None = None
         self._build_ui()
 
+    def clear_exercise_timer_state(self) -> None:
+        """Drop any saved lightbox stopwatch so the next open starts fresh."""
+        self._exercise_timer_item_id = None
+        self._exercise_timer_state = None
+
     def configure_exercise_images(
         self,
         *,
@@ -180,11 +185,6 @@ class WorkoutsWidget(QWidget):
             image_column=_COL_IMAGE,
             name_column=_COL_EXERCISE,
         )
-
-    def clear_exercise_timer_state(self) -> None:
-        """Drop any saved lightbox stopwatch so the next open starts fresh."""
-        self._exercise_timer_item_id = None
-        self._exercise_timer_state = None
 
     def is_workout_session_active(self) -> bool:
         """Return whether a workout session timer is running."""
@@ -215,6 +215,14 @@ class WorkoutsWidget(QWidget):
         """Reload the workout list, keeping the current selection when possible."""
         self._reload_list(keep_selection=True)
 
+    def save_exercise_timer_state(self, item_id: int, state: ExerciseStopwatchState) -> None:
+        """Remember the lightbox stopwatch so Continue can resume it."""
+        if state.phase is StopwatchPhase.IDLE:
+            self.clear_exercise_timer_state()
+            return
+        self._exercise_timer_item_id = item_id
+        self._exercise_timer_state = state
+
     def select_workout_by_id(self, workout_id: int) -> None:
         """Select a workout in the list after a refresh."""
         for row in range(self._list_model.rowCount()):
@@ -223,14 +231,6 @@ class WorkoutsWidget(QWidget):
                 self.list_workouts.setCurrentIndex(self._list_model.indexFromItem(item))
                 self._load_workout(workout_id)
                 return
-
-    def save_exercise_timer_state(self, item_id: int, state: ExerciseStopwatchState) -> None:
-        """Remember the lightbox stopwatch so Continue can resume it."""
-        if state.phase is StopwatchPhase.IDLE:
-            self.clear_exercise_timer_state()
-            return
-        self._exercise_timer_item_id = item_id
-        self._exercise_timer_state = state
 
     def set_database_manager(self, db_manager: DatabaseManager | None) -> None:
         """Attach the fitness database and refresh the list."""
@@ -626,10 +626,6 @@ class WorkoutsWidget(QWidget):
                 continue
         self.label_totals.setText(f"Estimated: {total_kcal:.0f} kcal")
 
-    def _refresh_row_highlights(self) -> None:
-        for row in range(self.table_items.rowCount()):
-            self._apply_row_background(row)
-
     def _refresh_list_duration_label(self, duration_min: int) -> None:
         workout_id = self._current_workout_id
         if workout_id is None:
@@ -640,6 +636,10 @@ class WorkoutsWidget(QWidget):
             if item is not None and item.data(Qt.ItemDataRole.UserRole) == workout_id:
                 item.setText(f"{name} (~{duration_min} min)")
                 return
+
+    def _refresh_row_highlights(self) -> None:
+        for row in range(self.table_items.rowCount()):
+            self._apply_row_background(row)
 
     def _reload_list(self, *, keep_selection: bool) -> None:
         selected_id = self._current_workout_id if keep_selection else None

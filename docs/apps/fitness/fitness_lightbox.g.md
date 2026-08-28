@@ -13,6 +13,7 @@ lang: en
 
 - [🏛️ Class `FitnessExerciseLightboxDialog`](#%EF%B8%8F-class-fitnessexerciselightboxdialog)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `captured_timer_state`](#%EF%B8%8F-method-captured_timer_state)
   - [⚙️ Method `chrome_rect`](#%EF%B8%8F-method-chrome_rect)
   - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
   - [⚙️ Method `done`](#%EF%B8%8F-method-done)
@@ -21,10 +22,14 @@ lang: en
   - [⚙️ Method `show_item`](#%EF%B8%8F-method-show_item)
 - [🏛️ Class `FitnessLightboxSidebar`](#%EF%B8%8F-class-fitnesslightboxsidebar)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
+  - [⚙️ Method `apply_backdrop`](#%EF%B8%8F-method-apply_backdrop)
   - [⚙️ Method `bind`](#%EF%B8%8F-method-bind)
+  - [⚙️ Method `capture_timer_state`](#%EF%B8%8F-method-capture_timer_state)
   - [⚙️ Method `reset_timer`](#%EF%B8%8F-method-reset_timer)
+  - [⚙️ Method `restore_timer_state`](#%EF%B8%8F-method-restore_timer_state)
   - [⚙️ Method `selected_type`](#%EF%B8%8F-method-selected_type)
   - [⚙️ Method `shutdown`](#%EF%B8%8F-method-shutdown)
+  - [⚙️ Method `start_prepare`](#%EF%B8%8F-method-start_prepare)
   - [⚙️ Method `value`](#%EF%B8%8F-method-value)
 
 </details>
@@ -55,6 +60,8 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
         countdown_seconds: int = DEFAULT_FITNESS_LIGHTBOX_COUNTDOWN_SECONDS,
         workout_items: Sequence[WorkoutItemRow] | None = None,
         workout_duration_min: int | None = None,
+        auto_start_prepare: bool = False,
+        initial_timer_state: ExerciseStopwatchState | None = None,
     ) -> None:
         """Build the Fitness lightbox.
 
@@ -70,6 +77,10 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
         - `workout_items` (`Sequence[WorkoutItemRow] | None`): Workout rows when
           opened from a saved workout. `None` is browse mode.
         - `workout_duration_min` (`int | None`): Planned workout length.
+        - `auto_start_prepare` (`bool`): Start the Prepare countdown when each
+          exercise is shown. Defaults to `False`.
+        - `initial_timer_state` (`ExerciseStopwatchState | None`): Resume the
+          stopwatch for the first shown workout item instead of restarting.
 
         """
         if workout_items is not None:
@@ -89,6 +100,10 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
         self._confirm_handler = confirm_handler
         self._workout_items = list(workout_items) if workout_items is not None else None
         self._open_sets_on_close = False
+        self._auto_start_prepare = auto_start_prepare
+        self._pending_timer_state = initial_timer_state
+        self._captured_timer_item_id: int | None = None
+        self._captured_timer_state: ExerciseStopwatchState | None = None
         item_count = len(self._workout_items) if self._workout_items is not None else 0
         duration = workout_duration_min if workout_duration_min is not None else 0
         self._limit_seconds = (
@@ -103,7 +118,12 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
         )
         self._sidebar.confirm_requested.connect(self._on_confirm)
         self._install_sidebar()
+        self._sync_fitness_chrome_backdrop()
         self.finish_setup()
+
+    def captured_timer_state(self) -> tuple[int | None, ExerciseStopwatchState | None]:
+        """Return the workout item ID and stopwatch state captured on close."""
+        return self._captured_timer_item_id, self._captured_timer_state
 
     def chrome_rect(self) -> QRect:
         """Place overlay chrome over the image pane, not the timer column.
@@ -115,12 +135,14 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
         return self._image_pane_rect()
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
-        """Stop the timer alert when the overlay is closed."""
+        """Capture the exercise timer, then stop alerts when the overlay closes."""
+        self._capture_timer_before_close()
         self._sidebar.shutdown()
         super().closeEvent(event)
 
     def done(self, result: int) -> None:
-        """Stop the timer alert when `exec` finishes."""
+        """Capture the exercise timer, then stop alerts when `exec` finishes."""
+        self._capture_timer_before_close()
         self._sidebar.shutdown()
         super().done(result)
 
@@ -155,7 +177,20 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
         item_id = None
         if self._workout_items is not None and 0 <= index < len(self._workout_items):
             item_id = self._workout_items[index].id
-        self._sidebar.bind(name, self._details_loader(name, item_id))
+        restore = self._pending_timer_state
+        self._pending_timer_state = None
+        self._sidebar.bind(name, self._details_loader(name, item_id), timer_state=restore)
+        if restore is None and self._auto_start_prepare:
+            self._sidebar.start_prepare()
+
+    def _capture_timer_before_close(self) -> None:
+        if self._captured_timer_state is not None:
+            return
+        item_id = None
+        if self._workout_items is not None and 0 <= self._index < len(self._workout_items):
+            item_id = self._workout_items[self._index].id
+        self._captured_timer_item_id = item_id
+        self._captured_timer_state = self._sidebar.capture_timer_state()
 
     def _current_confirm(self) -> FitnessLightboxConfirm:
         item_id = None
@@ -226,6 +261,19 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
         pane = self._image_pane_rect()
         self._label.setGeometry(0, 0, pane.width(), pane.height())
         self._schedule_avif_reload()
+
+    def _set_backdrop_color(self, color: str) -> None:
+        super()._set_backdrop_color(color)
+        self._sync_fitness_chrome_backdrop()
+
+    def _sync_fitness_chrome_backdrop(self) -> None:
+        fill = getattr(self, "_backdrop_color", "white")
+        splitter = getattr(self, "_splitter", None)
+        if splitter is not None:
+            splitter.setStyleSheet(_fitness_splitter_style(fill))
+        sidebar = getattr(self, "_sidebar", None)
+        if sidebar is not None:
+            sidebar.apply_backdrop(fill)
 ```
 
 </details>
@@ -233,7 +281,7 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, exercises: Sequence[str], *, avif_manager: AvifManager, details_loader: DetailsLoader, confirm_handler: ConfirmHandler, current_index: int = 0, parent: QWidget | None = None, countdown_seconds: int = DEFAULT_FITNESS_LIGHTBOX_COUNTDOWN_SECONDS, workout_items: Sequence[WorkoutItemRow] | None = None, workout_duration_min: int | None = None) -> None
+def __init__(self, exercises: Sequence[str], *, avif_manager: AvifManager, details_loader: DetailsLoader, confirm_handler: ConfirmHandler, current_index: int = 0, parent: QWidget | None = None, countdown_seconds: int = DEFAULT_FITNESS_LIGHTBOX_COUNTDOWN_SECONDS, workout_items: Sequence[WorkoutItemRow] | None = None, workout_duration_min: int | None = None, auto_start_prepare: bool = False, initial_timer_state: ExerciseStopwatchState | None = None) -> None
 ```
 
 Build the Fitness lightbox.
@@ -250,6 +298,10 @@ Args:
 - `workout_items` (`Sequence[WorkoutItemRow] | None`): Workout rows when
   opened from a saved workout. `None` is browse mode.
 - `workout_duration_min` (`int | None`): Planned workout length.
+- `auto_start_prepare` (`bool`): Start the Prepare countdown when each
+  exercise is shown. Defaults to `False`.
+- `initial_timer_state` (`ExerciseStopwatchState | None`): Resume the
+  stopwatch for the first shown workout item instead of restarting.
 
 <details>
 <summary>Code:</summary>
@@ -267,6 +319,8 @@ def __init__(
         countdown_seconds: int = DEFAULT_FITNESS_LIGHTBOX_COUNTDOWN_SECONDS,
         workout_items: Sequence[WorkoutItemRow] | None = None,
         workout_duration_min: int | None = None,
+        auto_start_prepare: bool = False,
+        initial_timer_state: ExerciseStopwatchState | None = None,
     ) -> None:
         if workout_items is not None:
             workout_items = [item for item in workout_items if item.exercise_name]
@@ -285,6 +339,10 @@ def __init__(
         self._confirm_handler = confirm_handler
         self._workout_items = list(workout_items) if workout_items is not None else None
         self._open_sets_on_close = False
+        self._auto_start_prepare = auto_start_prepare
+        self._pending_timer_state = initial_timer_state
+        self._captured_timer_item_id: int | None = None
+        self._captured_timer_state: ExerciseStopwatchState | None = None
         item_count = len(self._workout_items) if self._workout_items is not None else 0
         duration = workout_duration_min if workout_duration_min is not None else 0
         self._limit_seconds = (
@@ -299,7 +357,26 @@ def __init__(
         )
         self._sidebar.confirm_requested.connect(self._on_confirm)
         self._install_sidebar()
+        self._sync_fitness_chrome_backdrop()
         self.finish_setup()
+```
+
+</details>
+
+### ⚙️ Method `captured_timer_state`
+
+```python
+def captured_timer_state(self) -> tuple[int | None, ExerciseStopwatchState | None]
+```
+
+Return the workout item ID and stopwatch state captured on close.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def captured_timer_state(self) -> tuple[int | None, ExerciseStopwatchState | None]:
+        return self._captured_timer_item_id, self._captured_timer_state
 ```
 
 </details>
@@ -331,13 +408,14 @@ def chrome_rect(self) -> QRect:
 def closeEvent(self, event: QCloseEvent) -> None
 ```
 
-Stop the timer alert when the overlay is closed.
+Capture the exercise timer, then stop alerts when the overlay closes.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
+        self._capture_timer_before_close()
         self._sidebar.shutdown()
         super().closeEvent(event)
 ```
@@ -350,13 +428,14 @@ def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
 def done(self, result: int) -> None
 ```
 
-Stop the timer alert when `exec` finishes.
+Capture the exercise timer, then stop alerts when `exec` finishes.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def done(self, result: int) -> None:
+        self._capture_timer_before_close()
         self._sidebar.shutdown()
         super().done(result)
 ```
@@ -449,20 +528,42 @@ class FitnessLightboxSidebar(QFrame):
         self.setObjectName("fitnessLightboxPane")
         self.setStyleSheet(_PANE_STYLE)
         self.setMinimumWidth(_SIDEBAR_MIN_WIDTH)
+        self._backdrop_dark = False
         self._countdown_seconds = max(0, countdown_seconds)
         self._limit_seconds = limit_seconds
         self._stopwatch = ExerciseStopwatch(
             countdown_seconds=self._countdown_seconds,
             limit_seconds=self._limit_seconds,
         )
+        self._last_phase: StopwatchPhase | None = None
+        self._overtime_announced = False
         self._tick = QTimer(self)
         self._tick.setInterval(_TICK_MS)
         self._tick.timeout.connect(self._on_tick)
+        self._status_flash = QTimer(self)
+        self._status_flash.setSingleShot(True)
+        self._status_flash.timeout.connect(self._hide_status_flash)
         self._build_ui()
         self._apply_snapshot(self._stopwatch.snapshot())
 
-    def bind(self, exercise_name: str, details: FitnessLightboxDetails) -> None:
-        """Show `exercise_name` and reset the stopwatch."""
+    def apply_backdrop(self, color: str) -> None:
+        """Match label colors to the lightbox backdrop (`white` or `black`)."""
+        self._backdrop_dark = color == "black"
+        title = _COLOR_TITLE_ON_DARK if self._backdrop_dark else _COLOR_TITLE
+        muted = _COLOR_MUTED_ON_DARK if self._backdrop_dark else _COLOR_MUTED
+        self._title.setStyleSheet(f"color: {title}; background: transparent;")
+        self._limit_label.setStyleSheet(f"color: {muted};")
+        self._unit_label.setStyleSheet(f"color: {muted};")
+        self._apply_snapshot(self._stopwatch.snapshot())
+
+    def bind(
+        self,
+        exercise_name: str,
+        details: FitnessLightboxDetails,
+        *,
+        timer_state: ExerciseStopwatchState | None = None,
+    ) -> None:
+        """Show `exercise_name` and reset or resume the stopwatch."""
         self._title.setText(exercise_name or "Exercise")
         self._unit_label.setText(details.unit)
         self._unit_label.setVisible(bool(details.unit))
@@ -476,13 +577,34 @@ class FitnessLightboxSidebar(QFrame):
         self._type_combo.blockSignals(False)  # noqa: FBT003
         self._type_combo.setVisible(bool(details.types))
         self._value_spin.setValue(details.value)
-        self.reset_timer()
+        if timer_state is not None and timer_state.phase is not StopwatchPhase.IDLE:
+            self.restore_timer_state(timer_state)
+        else:
+            self.reset_timer()
+
+    def capture_timer_state(self) -> ExerciseStopwatchState:
+        """Return the current stopwatch state for Continue resume."""
+        return self._stopwatch.capture_state()
 
     def reset_timer(self) -> None:
         """Stop the clock and return to idle."""
         self._tick.stop()
+        self._status_flash.stop()
+        self._overtime_announced = False
         stop_fitness_timer_alert()
         self._apply_snapshot(self._stopwatch.reset())
+
+    def restore_timer_state(self, state: ExerciseStopwatchState) -> None:
+        """Resume a stopwatch captured when the lightbox was closed."""
+        self._tick.stop()
+        self._status_flash.stop()
+        stop_fitness_timer_alert()
+        snapshot = self._stopwatch.apply_state(state)
+        self._overtime_announced = snapshot.is_overtime
+        self._last_phase = snapshot.phase
+        self._apply_snapshot(snapshot)
+        if snapshot.is_running:
+            self._tick.start()
 
     def selected_type(self) -> str:
         """Return the chosen type, or an empty string."""
@@ -491,32 +613,54 @@ class FitnessLightboxSidebar(QFrame):
     def shutdown(self) -> None:
         """Stop ticking and the overtime sound."""
         self._tick.stop()
+        self._status_flash.stop()
         stop_fitness_timer_alert()
+
+    def start_prepare(self) -> None:
+        """Begin the ready countdown (Prepare!) from zero."""
+        self._on_restart()
 
     def value(self) -> int:
         """Return the numeric set value."""
         return int(self._value_spin.value())
 
     def _apply_snapshot(self, snapshot: StopwatchSnapshot) -> None:
+        previous_phase = self._last_phase
         self._time_label.setText(format_mm_ss(snapshot.display_seconds))
         color = {
-            StopwatchColor.IDLE: _COLOR_IDLE,
+            StopwatchColor.IDLE: _COLOR_IDLE_ON_DARK if self._backdrop_dark else _COLOR_IDLE,
             StopwatchColor.COUNTDOWN: _COLOR_COUNTDOWN,
-            StopwatchColor.RUNNING: _COLOR_RUNNING,
+            StopwatchColor.RUNNING: (_COLOR_RUNNING_ON_DARK if self._backdrop_dark else _COLOR_RUNNING),
             StopwatchColor.OVERTIME: _COLOR_OVERTIME,
         }[snapshot.color]
         self._time_label.setStyleSheet(f"color: {color}; background: transparent;")
-        preparing = snapshot.phase is StopwatchPhase.COUNTDOWN
-        self._prepare_label.setVisible(preparing)
+        if snapshot.phase is StopwatchPhase.COUNTDOWN:
+            self._status_flash.stop()
+            self._show_status_label("Prepare!", _COLOR_COUNTDOWN)
+        elif (
+            previous_phase is StopwatchPhase.COUNTDOWN or previous_phase is StopwatchPhase.IDLE
+        ) and snapshot.phase is StopwatchPhase.RUNNING:
+            play_fitness_timer_cue("start")
+            start_color = _COLOR_RUNNING_ON_DARK if self._backdrop_dark else _COLOR_RUNNING
+            self._flash_status("Start", start_color)
+        elif snapshot.phase is StopwatchPhase.IDLE and not self._status_flash.isActive():
+            self._prepare_label.hide()
         if snapshot.is_overtime and snapshot.is_running:
+            if not self._overtime_announced:
+                self._overtime_announced = True
+                play_fitness_timer_cue("finish")
+                self._flash_status("Finish", _COLOR_OVERTIME)
             play_fitness_timer_alert()
         else:
+            if not snapshot.is_overtime:
+                self._overtime_announced = False
             stop_fitness_timer_alert()
         if self._limit_seconds:
             self._limit_label.setText(f"Slot {format_mm_ss(self._limit_seconds)}")
             self._limit_label.show()
         else:
             self._limit_label.hide()
+        self._last_phase = snapshot.phase
 
     def _build_action_button(self) -> QPushButton:
         button = QPushButton("➕ Add")  # noqa: RUF001
@@ -559,7 +703,7 @@ class FitnessLightboxSidebar(QFrame):
         self._limit_label = QLabel("")
         self._limit_label.setObjectName("fitnessLightboxLimit")
         self._limit_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._limit_label.setStyleSheet("color: #6B7280;")
+        self._limit_label.setStyleSheet(f"color: {_COLOR_MUTED};")
         _apply_pixel_font(self._limit_label, pixel_size=14)
         self._limit_label.hide()
 
@@ -582,7 +726,7 @@ class FitnessLightboxSidebar(QFrame):
         self._title.setObjectName("fitnessLightboxTitle")
         self._title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._title.setWordWrap(True)
-        self._title.setStyleSheet("color: #111827;")
+        self._title.setStyleSheet(f"color: {_COLOR_TITLE}; background: transparent;")
         _apply_pixel_font(self._title, pixel_size=22, weight=QFont.Weight.ExtraBold)
 
         self._type_combo = _LightboxTypeCombo()
@@ -604,7 +748,7 @@ class FitnessLightboxSidebar(QFrame):
         self._unit_label = QLabel("")
         self._unit_label.setObjectName("fitnessLightboxUnit")
         self._unit_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._unit_label.setStyleSheet("color: #6B7280;")
+        self._unit_label.setStyleSheet(f"color: {_COLOR_MUTED};")
         _apply_pixel_font(self._unit_label, pixel_size=16)
         self._unit_label.hide()
 
@@ -627,6 +771,17 @@ class FitnessLightboxSidebar(QFrame):
         layout.addWidget(self._unit_label)
         layout.addWidget(add_wrap, 0, Qt.AlignmentFlag.AlignHCenter)
 
+    def _flash_status(self, text: str, color: str) -> None:
+        self._status_flash.stop()
+        self._show_status_label(text, color)
+        self._status_flash.start(_STATUS_FLASH_MS)
+
+    def _hide_status_flash(self) -> None:
+        if self._stopwatch.snapshot().phase is StopwatchPhase.COUNTDOWN:
+            self._show_status_label("Prepare!", _COLOR_COUNTDOWN)
+            return
+        self._prepare_label.hide()
+
     def _on_pause(self) -> None:
         self._tick.stop()
         self._apply_snapshot(self._stopwatch.pause())
@@ -641,6 +796,11 @@ class FitnessLightboxSidebar(QFrame):
 
     def _on_tick(self) -> None:
         self._apply_snapshot(self._stopwatch.advance(_TICK_MS))
+
+    def _show_status_label(self, text: str, color: str) -> None:
+        self._prepare_label.setText(text)
+        self._prepare_label.setStyleSheet(f"color: {color}; background: transparent;")
+        self._prepare_label.show()
 ```
 
 </details>
@@ -668,16 +828,46 @@ def __init__(
         self.setObjectName("fitnessLightboxPane")
         self.setStyleSheet(_PANE_STYLE)
         self.setMinimumWidth(_SIDEBAR_MIN_WIDTH)
+        self._backdrop_dark = False
         self._countdown_seconds = max(0, countdown_seconds)
         self._limit_seconds = limit_seconds
         self._stopwatch = ExerciseStopwatch(
             countdown_seconds=self._countdown_seconds,
             limit_seconds=self._limit_seconds,
         )
+        self._last_phase: StopwatchPhase | None = None
+        self._overtime_announced = False
         self._tick = QTimer(self)
         self._tick.setInterval(_TICK_MS)
         self._tick.timeout.connect(self._on_tick)
+        self._status_flash = QTimer(self)
+        self._status_flash.setSingleShot(True)
+        self._status_flash.timeout.connect(self._hide_status_flash)
         self._build_ui()
+        self._apply_snapshot(self._stopwatch.snapshot())
+```
+
+</details>
+
+### ⚙️ Method `apply_backdrop`
+
+```python
+def apply_backdrop(self, color: str) -> None
+```
+
+Match label colors to the lightbox backdrop (`white` or `black`).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def apply_backdrop(self, color: str) -> None:
+        self._backdrop_dark = color == "black"
+        title = _COLOR_TITLE_ON_DARK if self._backdrop_dark else _COLOR_TITLE
+        muted = _COLOR_MUTED_ON_DARK if self._backdrop_dark else _COLOR_MUTED
+        self._title.setStyleSheet(f"color: {title}; background: transparent;")
+        self._limit_label.setStyleSheet(f"color: {muted};")
+        self._unit_label.setStyleSheet(f"color: {muted};")
         self._apply_snapshot(self._stopwatch.snapshot())
 ```
 
@@ -686,16 +876,22 @@ def __init__(
 ### ⚙️ Method `bind`
 
 ```python
-def bind(self, exercise_name: str, details: FitnessLightboxDetails) -> None
+def bind(self, exercise_name: str, details: FitnessLightboxDetails, *, timer_state: ExerciseStopwatchState | None = None) -> None
 ```
 
-Show `exercise_name` and reset the stopwatch.
+Show `exercise_name` and reset or resume the stopwatch.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def bind(self, exercise_name: str, details: FitnessLightboxDetails) -> None:
+def bind(
+        self,
+        exercise_name: str,
+        details: FitnessLightboxDetails,
+        *,
+        timer_state: ExerciseStopwatchState | None = None,
+    ) -> None:
         self._title.setText(exercise_name or "Exercise")
         self._unit_label.setText(details.unit)
         self._unit_label.setVisible(bool(details.unit))
@@ -709,7 +905,28 @@ def bind(self, exercise_name: str, details: FitnessLightboxDetails) -> None:
         self._type_combo.blockSignals(False)  # noqa: FBT003
         self._type_combo.setVisible(bool(details.types))
         self._value_spin.setValue(details.value)
-        self.reset_timer()
+        if timer_state is not None and timer_state.phase is not StopwatchPhase.IDLE:
+            self.restore_timer_state(timer_state)
+        else:
+            self.reset_timer()
+```
+
+</details>
+
+### ⚙️ Method `capture_timer_state`
+
+```python
+def capture_timer_state(self) -> ExerciseStopwatchState
+```
+
+Return the current stopwatch state for Continue resume.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def capture_timer_state(self) -> ExerciseStopwatchState:
+        return self._stopwatch.capture_state()
 ```
 
 </details>
@@ -728,8 +945,36 @@ Stop the clock and return to idle.
 ```python
 def reset_timer(self) -> None:
         self._tick.stop()
+        self._status_flash.stop()
+        self._overtime_announced = False
         stop_fitness_timer_alert()
         self._apply_snapshot(self._stopwatch.reset())
+```
+
+</details>
+
+### ⚙️ Method `restore_timer_state`
+
+```python
+def restore_timer_state(self, state: ExerciseStopwatchState) -> None
+```
+
+Resume a stopwatch captured when the lightbox was closed.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def restore_timer_state(self, state: ExerciseStopwatchState) -> None:
+        self._tick.stop()
+        self._status_flash.stop()
+        stop_fitness_timer_alert()
+        snapshot = self._stopwatch.apply_state(state)
+        self._overtime_announced = snapshot.is_overtime
+        self._last_phase = snapshot.phase
+        self._apply_snapshot(snapshot)
+        if snapshot.is_running:
+            self._tick.start()
 ```
 
 </details>
@@ -766,7 +1011,26 @@ Stop ticking and the overtime sound.
 ```python
 def shutdown(self) -> None:
         self._tick.stop()
+        self._status_flash.stop()
         stop_fitness_timer_alert()
+```
+
+</details>
+
+### ⚙️ Method `start_prepare`
+
+```python
+def start_prepare(self) -> None
+```
+
+Begin the ready countdown (Prepare!) from zero.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def start_prepare(self) -> None:
+        self._on_restart()
 ```
 
 </details>

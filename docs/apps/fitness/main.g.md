@@ -4299,6 +4299,7 @@ class MainWindow(
                     light_green,
                 ],
             )
+            self._update_exercises_catalog_count_labels()
         self._append_exercise_name_to_list_view(name, load_icon=False)
         self._scroll_table_to_exercise("exercises", name)
 
@@ -4520,6 +4521,15 @@ class MainWindow(
             }
 
         return self.progress_calculator.calculate_exercise_recommendations(monthly_data, _months_count)
+
+    def _catalog_table_row_count(self, table_key: str) -> int:
+        model = self.models.get(table_key)
+        if model is None:
+            return 0
+        source = model.sourceModel()
+        if source is not None:
+            return source.rowCount()
+        return model.rowCount()
 
     def _check_for_monthly_goal_achievement(self, ex_id: int, added_value: float, date_str: str) -> tuple[bool, float]:
         """Check if monthly goal was achieved when adding this record.
@@ -5267,6 +5277,8 @@ class MainWindow(
         current_index: int,
         workout_items: list[database_manager.WorkoutItemRow] | None = None,
         workout_duration_min: int | None = None,
+        auto_start_prepare: bool = False,
+        initial_timer_state: ExerciseStopwatchState | None = None,
     ) -> None:
         """Open the Fitness lightbox for `names` and optionally a workout."""
         if self.avif_manager is None:
@@ -5285,8 +5297,11 @@ class MainWindow(
             countdown_seconds=get_apps_fitness_lightbox_countdown_seconds(self._app_config),
             workout_items=workout_items,
             workout_duration_min=workout_duration_min,
+            auto_start_prepare=auto_start_prepare,
+            initial_timer_state=initial_timer_state,
         )
         dialog.exec()
+        self._persist_fitness_lightbox_timer(dialog)
         if dialog.should_open_sets_tab:
             sets_tab_index = self.tabWidget.indexOf(self.tab)
             if sets_tab_index >= 0:
@@ -6224,6 +6239,17 @@ class MainWindow(
         self.doubleSpinBox_weight.setValue(last_weight)
         self.dateEdit_weight.setDate(QDate.currentDate())
 
+    def _initial_workout_duration_min(self) -> int:
+        """Return the duration to prefill in New workout (last used, else last saved)."""
+        stored = get_apps_fitness_workout_duration_min(self._app_config)
+        if stored is not None:
+            return stored
+        if self.db_manager is not None:
+            workouts = self.db_manager.get_all_workouts()
+            if workouts:
+                return max(10, min(int(workouts[0].duration_min), 240))
+        return DEFAULT_FITNESS_WORKOUT_DURATION_MIN
+
     def _insert_parsed_set_row(
         self,
         row: ParsedSetRow,
@@ -6699,6 +6725,7 @@ class MainWindow(
             self,
             show_gender=stored_gender is None,
             initial_gender=stored_gender,
+            initial_duration_min=self._initial_workout_duration_min(),
         )
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return
@@ -6709,6 +6736,10 @@ class MainWindow(
             except (OSError, TypeError, ValueError) as exc:
                 logger.warning("Could not save fitness workout gender to config: %s", exc)
         duration_min = dialog.duration_min()
+        try:
+            set_apps_fitness_workout_duration_min(duration_min, config=self._app_config)
+        except (OSError, TypeError, ValueError) as exc:
+            logger.warning("Could not save fitness workout duration to config: %s", exc)
         preferences = dialog.preferences()
         try:
             prompt_text = build_prompt(
@@ -7002,11 +7033,18 @@ class MainWindow(
             message_box.warning(self, "Error", "Select an exercise")
             return
         current_index = next((index for index, row in enumerate(items) if row.id == item_id), 0)
+        session_active = self._workouts_widget is not None and self._workouts_widget.is_workout_session_active()
+        timer_state = None
+        if session_active and self._workouts_widget is not None:
+            timer_state = self._workouts_widget.pop_exercise_timer_state(item_id)
+        auto_start_prepare = session_active and timer_state is None
         self._exec_fitness_lightbox(
             names,
             current_index=current_index,
             workout_items=items,
             workout_duration_min=workout.duration_min if workout is not None else None,
+            auto_start_prepare=auto_start_prepare,
+            initial_timer_state=timer_state,
         )
 
     def _open_workout_preview_and_save(
@@ -7078,6 +7116,21 @@ class MainWindow(
             self._workouts_widget.select_workout_by_id(workout_id)
         message_box.information(self, "Saved", f"Workout '{title}' saved")
 
+    def _persist_fitness_lightbox_timer(self, dialog: FitnessExerciseLightboxDialog) -> None:
+        """Save the exercise stopwatch when a session lightbox closes mid-exercise."""
+        if self._workouts_widget is None or not self._workouts_widget.is_workout_session_active():
+            return
+        item_id, state = dialog.captured_timer_state()
+        if item_id is None or state is None:
+            self._workouts_widget.clear_exercise_timer_state()
+            return
+        if self.db_manager is not None:
+            item = self.db_manager.get_workout_item_by_id(item_id)
+            if item is None or item.is_done:
+                self._workouts_widget.clear_exercise_timer_state()
+                return
+        self._workouts_widget.save_exercise_timer_state(item_id, state)
+
     def _populate_exercises_catalog_tables(self) -> None:
         """Rebuild Exercises and Types tables from the database."""
         if self.db_manager is None:
@@ -7121,6 +7174,7 @@ class MainWindow(
         )
         self._apply_stored_exercise_table_sort("exercises")
         self._reload_types_table(dumbbell_names=dumbbell_names)
+        self._update_exercises_catalog_count_labels()
         if self._exercise_icons_defer_decode:
             QTimer.singleShot(0, self._decode_next_deferred_exercise_icon)
 
@@ -7294,6 +7348,7 @@ class MainWindow(
         )
         self._apply_stored_exercise_table_sort("types")
         self._connect_table_auto_save_signal("types")
+        self._update_exercises_catalog_count_labels()
 
     def _rename_exercise_media(self, old_name: str, new_name: str) -> None:
         """Rename the exercise AVIF when the English name changes."""
@@ -8648,6 +8703,13 @@ class MainWindow(
             toast.start_countdown(pinned=True, activate=False)
             return
         toast.set_message(message)
+
+    def _update_exercises_catalog_count_labels(self) -> None:
+        """Show exercise and type counts next to the Exercises catalog labels."""
+        self.label_exercises_table.setText(f"Exercises: ({self._catalog_table_row_count('exercises')})")
+        self.label_exercise_types_table.setText(
+            f"Exercise Types: ({self._catalog_table_row_count('types')})",
+        )
 
     def _update_form_from_process_selection(self, _exercise_name: str, type_name: str, value_str: str) -> None:
         """Update form fields after process selection change.

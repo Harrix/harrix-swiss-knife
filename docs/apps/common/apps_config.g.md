@@ -16,11 +16,13 @@ lang: en
 - [🔧 Function `get_apps_fitness_image_min_max_size`](#-function-get_apps_fitness_image_min_max_size)
 - [🔧 Function `get_apps_fitness_image_static_max_size`](#-function-get_apps_fitness_image_static_max_size)
 - [🔧 Function `get_apps_fitness_lightbox_countdown_seconds`](#-function-get_apps_fitness_lightbox_countdown_seconds)
+- [🔧 Function `get_apps_fitness_workout_duration_min`](#-function-get_apps_fitness_workout_duration_min)
 - [🔧 Function `get_apps_fitness_workout_gender`](#-function-get_apps_fitness_workout_gender)
 - [🔧 Function `get_apps_fitness_workout_history_count`](#-function-get_apps_fitness_workout_history_count)
 - [🔧 Function `get_apps_list_limits`](#-function-get_apps_list_limits)
 - [🔧 Function `get_apps_local_language`](#-function-get_apps_local_language)
 - [🔧 Function `get_apps_local_language_display_name`](#-function-get_apps_local_language_display_name)
+- [🔧 Function `set_apps_fitness_workout_duration_min`](#-function-set_apps_fitness_workout_duration_min)
 - [🔧 Function `set_apps_fitness_workout_gender`](#-function-set_apps_fitness_workout_gender)
 
 </details>
@@ -153,6 +155,36 @@ def get_apps_fitness_lightbox_countdown_seconds(config: dict[str, Any]) -> int:
 
 </details>
 
+## 🔧 Function `get_apps_fitness_workout_duration_min`
+
+```python
+def get_apps_fitness_workout_duration_min(config: dict[str, Any]) -> int | None
+```
+
+Return stored planned workout duration from `apps.fitness_workout_duration_min`.
+
+Returns minutes in `10..240`, or `None` when the user has not set a value yet.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_apps_fitness_workout_duration_min(config: dict[str, Any]) -> int | None:
+    apps = config.get("apps") or {}
+    raw = apps.get(FITNESS_WORKOUT_DURATION_MIN_KEY)
+    if raw is None:
+        return None
+    try:
+        value = int(raw)
+    except (TypeError, ValueError):
+        return None
+    if value < _MIN_FITNESS_WORKOUT_DURATION_MIN or value > _MAX_FITNESS_WORKOUT_DURATION_MIN:
+        return None
+    return value
+```
+
+</details>
+
 ## 🔧 Function `get_apps_fitness_workout_gender`
 
 ```python
@@ -266,6 +298,62 @@ def get_apps_local_language_display_name(config: dict[str, Any]) -> str:
     if code in _LANGUAGE_DISPLAY_NAMES:
         return _LANGUAGE_DISPLAY_NAMES[code]
     return code.upper()
+```
+
+</details>
+
+## 🔧 Function `set_apps_fitness_workout_duration_min`
+
+```python
+def set_apps_fitness_workout_duration_min(duration_min: int, *, config: dict[str, Any] | None = None, config_path: str | None = None) -> None
+```
+
+Write planned workout duration into `config.json`.
+
+Args:
+
+- [`duration_min`](../fitness/workout_generate_dialog.g.md#%EF%B8%8F-method-duration_min) (`int`): Minutes in `10..240`.
+- [`config`](../../actions/common/base.g.md#%EF%B8%8F-method-config-property) (`dict[str, Any] | None`): Optional in-memory config to keep in sync.
+- `config_path` (`str | None`): Config file path. Defaults to the project config.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_apps_fitness_workout_duration_min(
+    duration_min: int,
+    *,
+    config: dict[str, Any] | None = None,
+    config_path: str | None = None,
+) -> None:
+    try:
+        value = int(duration_min)
+    except (TypeError, ValueError) as exc:
+        msg = "Workout duration must be an integer number of minutes"
+        raise ValueError(msg) from exc
+    if value < _MIN_FITNESS_WORKOUT_DURATION_MIN or value > _MAX_FITNESS_WORKOUT_DURATION_MIN:
+        msg = (
+            f"Workout duration must be between {_MIN_FITNESS_WORKOUT_DURATION_MIN} "
+            f"and {_MAX_FITNESS_WORKOUT_DURATION_MIN} minutes"
+        )
+        raise ValueError(msg)
+
+    path = Path(config_path or get_config_path_str())
+    with path.open(encoding="utf-8") as handle:
+        data = json.load(handle)
+    if not isinstance(data, dict):
+        msg = f"Config root must be a JSON object: {path}"
+        raise TypeError(msg)
+    apps = data.get("apps")
+    if not isinstance(apps, dict):
+        apps = {}
+        data["apps"] = apps
+    apps[FITNESS_WORKOUT_DURATION_MIN_KEY] = value
+    path.write_text(h.dev.dumps_pretty_json(data), encoding="utf-8")
+    if config is not None:
+        live_apps = config.setdefault("apps", {})
+        if isinstance(live_apps, dict):
+            live_apps[FITNESS_WORKOUT_DURATION_MIN_KEY] = value
 ```
 
 </details>

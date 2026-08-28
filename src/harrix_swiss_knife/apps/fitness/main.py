@@ -4681,6 +4681,15 @@ class MainWindow(
 
         return self.progress_calculator.calculate_exercise_recommendations(monthly_data, _months_count)
 
+    def _catalog_table_row_count(self, table_key: str) -> int:
+        model = self.models.get(table_key)
+        if model is None:
+            return 0
+        source = model.sourceModel()
+        if source is not None:
+            return source.rowCount()
+        return model.rowCount()
+
     def _check_for_monthly_goal_achievement(self, ex_id: int, added_value: float, date_str: str) -> tuple[bool, float]:
         """Check if monthly goal was achieved when adding this record.
 
@@ -6927,21 +6936,6 @@ class MainWindow(
             return
         self._open_workout_item_lightbox(item_id)
 
-    def _persist_fitness_lightbox_timer(self, dialog: FitnessExerciseLightboxDialog) -> None:
-        """Save the exercise stopwatch when a session lightbox closes mid-exercise."""
-        if self._workouts_widget is None or not self._workouts_widget.is_workout_session_active():
-            return
-        item_id, state = dialog.captured_timer_state()
-        if item_id is None or state is None:
-            self._workouts_widget.clear_exercise_timer_state()
-            return
-        if self.db_manager is not None:
-            item = self.db_manager.get_workout_item_by_id(item_id)
-            if item is None or item.is_done:
-                self._workouts_widget.clear_exercise_timer_state()
-                return
-        self._workouts_widget.save_exercise_timer_state(item_id, state)
-
     def _open_exercise_chart_tab(self, exercise_name: str) -> None:
         """Switch to the Exercise Chart tab and select `exercise_name`.
 
@@ -7198,9 +7192,7 @@ class MainWindow(
             message_box.warning(self, "Error", "Select an exercise")
             return
         current_index = next((index for index, row in enumerate(items) if row.id == item_id), 0)
-        session_active = (
-            self._workouts_widget is not None and self._workouts_widget.is_workout_session_active()
-        )
+        session_active = self._workouts_widget is not None and self._workouts_widget.is_workout_session_active()
         timer_state = None
         if session_active and self._workouts_widget is not None:
             timer_state = self._workouts_widget.pop_exercise_timer_state(item_id)
@@ -7282,6 +7274,21 @@ class MainWindow(
             self._workouts_widget.refresh()
             self._workouts_widget.select_workout_by_id(workout_id)
         message_box.information(self, "Saved", f"Workout '{title}' saved")
+
+    def _persist_fitness_lightbox_timer(self, dialog: FitnessExerciseLightboxDialog) -> None:
+        """Save the exercise stopwatch when a session lightbox closes mid-exercise."""
+        if self._workouts_widget is None or not self._workouts_widget.is_workout_session_active():
+            return
+        item_id, state = dialog.captured_timer_state()
+        if item_id is None or state is None:
+            self._workouts_widget.clear_exercise_timer_state()
+            return
+        if self.db_manager is not None:
+            item = self.db_manager.get_workout_item_by_id(item_id)
+            if item is None or item.is_done:
+                self._workouts_widget.clear_exercise_timer_state()
+                return
+        self._workouts_widget.save_exercise_timer_state(item_id, state)
 
     def _populate_exercises_catalog_tables(self) -> None:
         """Rebuild Exercises and Types tables from the database."""
@@ -7501,22 +7508,6 @@ class MainWindow(
         self._apply_stored_exercise_table_sort("types")
         self._connect_table_auto_save_signal("types")
         self._update_exercises_catalog_count_labels()
-
-    def _update_exercises_catalog_count_labels(self) -> None:
-        """Show exercise and type counts next to the Exercises catalog labels."""
-        self.label_exercises_table.setText(f"Exercises: ({self._catalog_table_row_count('exercises')})")
-        self.label_exercise_types_table.setText(
-            f"Exercise Types: ({self._catalog_table_row_count('types')})",
-        )
-
-    def _catalog_table_row_count(self, table_key: str) -> int:
-        model = self.models.get(table_key)
-        if model is None:
-            return 0
-        source = model.sourceModel()
-        if source is not None:
-            return source.rowCount()
-        return model.rowCount()
 
     def _rename_exercise_media(self, old_name: str, new_name: str) -> None:
         """Rename the exercise AVIF when the English name changes."""
@@ -8871,6 +8862,13 @@ class MainWindow(
             toast.start_countdown(pinned=True, activate=False)
             return
         toast.set_message(message)
+
+    def _update_exercises_catalog_count_labels(self) -> None:
+        """Show exercise and type counts next to the Exercises catalog labels."""
+        self.label_exercises_table.setText(f"Exercises: ({self._catalog_table_row_count('exercises')})")
+        self.label_exercise_types_table.setText(
+            f"Exercise Types: ({self._catalog_table_row_count('types')})",
+        )
 
     def _update_form_from_process_selection(self, _exercise_name: str, type_name: str, value_str: str) -> None:
         """Update form fields after process selection change.

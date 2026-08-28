@@ -34,7 +34,7 @@ lang: en
 class AppWindowLightboxDialog(QDialog)
 ```
 
-Overlay with close, prev/next, backdrop swatches, and a caption.
+Overlay with close, prev/next, a backdrop toggle swatch, and a caption.
 
 Subclasses attach a content widget and implement `show_item`.
 
@@ -87,10 +87,9 @@ class AppWindowLightboxDialog(QDialog):
         self._next_button = self._make_button("→", "Next (Right arrow)")
         self._next_button.clicked.connect(self.show_next)
 
-        self._black_backdrop_button = self._make_backdrop_button(color="black")
-        self._black_backdrop_button.clicked.connect(lambda: self._set_backdrop_color("black"))
-        self._white_backdrop_button = self._make_backdrop_button(color="white")
-        self._white_backdrop_button.clicked.connect(lambda: self._set_backdrop_color("white"))
+        self._backdrop_color = "white"
+        self._backdrop_button = self._make_backdrop_toggle_button()
+        self._backdrop_button.clicked.connect(self._toggle_backdrop_color)
         self._set_backdrop_color("white")
 
         self._previous_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Left), self)
@@ -192,22 +191,12 @@ class AppWindowLightboxDialog(QDialog):
             return
         self.setGeometry(owner.rect())
 
-    def _make_backdrop_button(self, *, color: str) -> QPushButton:
+    def _make_backdrop_toggle_button(self) -> QPushButton:
         button = QPushButton(self)
-        button.setCheckable(True)
-        button.setAutoExclusive(True)
         button.setFixedSize(_SWATCH_SIZE, _SWATCH_SIZE)
         button.setCursor(Qt.CursorShape.PointingHandCursor)
         button.setAutoDefault(False)
         button.setDefault(False)
-        button.setToolTip("Black backdrop" if color == "black" else "White backdrop")
-        border = "#888" if color == "white" else "#ccc"
-        radius = _SWATCH_SIZE // 2
-        button.setStyleSheet(
-            f"QPushButton {{ background: {color}; border: 1px solid {border};"
-            f"border-radius: {radius}px; padding: 0; }}"
-            "QPushButton:checked { border: 3px solid #2f80ed; }"
-        )
         return button
 
     def _make_button(self, text: str, tooltip: str) -> QPushButton:
@@ -230,11 +219,7 @@ class AppWindowLightboxDialog(QDialog):
         if self._content is not None:
             self._content.setGeometry(self.rect())
         rect = self.chrome_rect()
-        self._black_backdrop_button.move(rect.x() + _SIDE_MARGIN, rect.y() + _SIDE_MARGIN)
-        self._white_backdrop_button.move(
-            rect.x() + _SIDE_MARGIN + self._black_backdrop_button.width() + 8,
-            rect.y() + _SIDE_MARGIN,
-        )
+        self._backdrop_button.move(rect.x() + _SIDE_MARGIN, rect.y() + _SIDE_MARGIN)
         self._close_button.move(rect.x() + rect.width() - _BUTTON_SIZE - _SIDE_MARGIN, rect.y() + _SIDE_MARGIN)
         center_y = rect.y() + (rect.height() - _BUTTON_SIZE) // 2
         self._previous_button.move(rect.x() + _SIDE_MARGIN, center_y)
@@ -247,8 +232,7 @@ class AppWindowLightboxDialog(QDialog):
             rect.y() + rect.height() - self._caption.height() - _SIDE_MARGIN,
         )
         for widget in (
-            self._black_backdrop_button,
-            self._white_backdrop_button,
+            self._backdrop_button,
             self._close_button,
             self._previous_button,
             self._next_button,
@@ -257,11 +241,18 @@ class AppWindowLightboxDialog(QDialog):
             widget.raise_()
 
     def _set_backdrop_color(self, color: str) -> None:
-        is_black = color == "black"
-        fill = "black" if is_black else "white"
+        self._backdrop_color = "black" if color == "black" else "white"
+        fill = self._backdrop_color
+        opposite = "white" if fill == "black" else "black"
         self.setStyleSheet(f"#appWindowLightbox {{ background-color: {fill}; }}")
-        self._black_backdrop_button.setChecked(is_black)
-        self._white_backdrop_button.setChecked(not is_black)
+        border = "#888" if opposite == "white" else "#ccc"
+        radius = _SWATCH_SIZE // 2
+        self._backdrop_button.setToolTip(f"Switch to {opposite} backdrop")
+        self._backdrop_button.setStyleSheet(
+            f"QPushButton {{ background: {opposite}; border: 1px solid {border};"
+            f"border-radius: {radius}px; padding: 0; }}"
+            "QPushButton:hover { border: 2px solid #2f80ed; }"
+        )
 
     def _show_current(self) -> None:
         if self._item_count <= 0:
@@ -274,6 +265,9 @@ class AppWindowLightboxDialog(QDialog):
         self._previous_button.setVisible(show_navigation)
         self._next_button.setVisible(show_navigation)
         self._position_controls()
+
+    def _toggle_backdrop_color(self) -> None:
+        self._set_backdrop_color("black" if self._backdrop_color == "white" else "white")
 ```
 
 </details>
@@ -330,10 +324,9 @@ def __init__(
         self._next_button = self._make_button("→", "Next (Right arrow)")
         self._next_button.clicked.connect(self.show_next)
 
-        self._black_backdrop_button = self._make_backdrop_button(color="black")
-        self._black_backdrop_button.clicked.connect(lambda: self._set_backdrop_color("black"))
-        self._white_backdrop_button = self._make_backdrop_button(color="white")
-        self._white_backdrop_button.clicked.connect(lambda: self._set_backdrop_color("white"))
+        self._backdrop_color = "white"
+        self._backdrop_button = self._make_backdrop_toggle_button()
+        self._backdrop_button.clicked.connect(self._toggle_backdrop_color)
         self._set_backdrop_color("white")
 
         self._previous_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Left), self)

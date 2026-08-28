@@ -71,113 +71,6 @@ QFrame#fitnessLightboxPane {
 """
 
 
-def _fitness_splitter_style(fill: str) -> str:
-    return f"""
-QSplitter#fitnessLightboxSplitter {{
-    background: {fill};
-    border: none;
-}}
-QSplitter#fitnessLightboxSplitter::handle {{
-    background: {fill};
-    width: 6px;
-    margin: 0;
-    padding: 0;
-    border: none;
-}}
-QSplitter#fitnessLightboxSplitter::handle:hover {{
-    background: {_SPLITTER_HOVER};
-}}
-QWidget#fitnessLightboxImageHost {{
-    background: {fill};
-    border: none;
-}}
-"""
-
-_VALUE_STYLE = """
-QSpinBox#fitnessLightboxValueSpin {
-    background: #FFFFFF;
-    border: 2px solid #D1D5DB;
-    border-radius: 16px;
-    padding: 8px 16px;
-    color: #111827;
-}
-QSpinBox#fitnessLightboxValueSpin:focus {
-    border-color: #3B82F6;
-}
-"""
-
-_TYPE_STYLE = """
-QComboBox#fitnessLightboxTypeCombo {
-    background: #FFFFFF;
-    border: 1px solid #D1D5DB;
-    border-radius: 12px;
-    padding: 8px 32px 8px 12px;
-    color: #111827;
-    min-height: 28px;
-}
-QComboBox#fitnessLightboxTypeCombo:focus,
-QComboBox#fitnessLightboxTypeCombo:on {
-    border-color: #3B82F6;
-}
-QComboBox#fitnessLightboxTypeCombo::drop-down {
-    subcontrol-origin: padding;
-    subcontrol-position: center right;
-    width: 28px;
-    border: none;
-    background: transparent;
-}
-QComboBox#fitnessLightboxTypeCombo::down-arrow {
-    image: none;
-    width: 0;
-    height: 0;
-}
-QComboBox#fitnessLightboxTypeCombo QAbstractItemView {
-    background: #FFFFFF;
-    border: 1px solid #D1D5DB;
-    outline: none;
-    selection-background-color: #DBEAFE;
-    selection-color: #111827;
-}
-"""
-
-_ADD_BUTTON_STYLE = """
-QPushButton#fitnessLightboxAddButton {
-    background: #3B82F6;
-    color: #FFFFFF;
-    border: none;
-    border-radius: 14px;
-    padding: 16px 32px;
-}
-QPushButton#fitnessLightboxAddButton:hover {
-    background: #2563EB;
-}
-QPushButton#fitnessLightboxAddButton:pressed {
-    background: #1D4ED8;
-}
-"""
-
-_TIMER_BUTTON_STYLE = """
-QPushButton#fitnessLightboxStartButton,
-QPushButton#fitnessLightboxPauseButton,
-QPushButton#fitnessLightboxRestartButton {
-    background: #FFFFFF;
-    color: #111827;
-    border: 1px solid #D1D5DB;
-    border-radius: 12px;
-    padding: 10px 12px;
-}
-QPushButton#fitnessLightboxStartButton:hover,
-QPushButton#fitnessLightboxPauseButton:hover,
-QPushButton#fitnessLightboxRestartButton:hover {
-    background: #F1F5F9;
-    border-color: #3B82F6;
-}
-"""
-
-DetailsLoader = Callable[[str, int | None], FitnessLightboxDetails]
-ConfirmHandler = Callable[[FitnessLightboxConfirm], bool]
-
-
 class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
     """Exercise AVIF lightbox with a Quick-style timer and log column."""
 
@@ -255,7 +148,7 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
         self.finish_setup()
 
     def captured_timer_state(self) -> tuple[int | None, ExerciseStopwatchState | None]:
-        """Return the workout item id and stopwatch state captured on close."""
+        """Return the workout item ID and stopwatch state captured on close."""
         return self._captured_timer_item_id, self._captured_timer_state
 
     def chrome_rect(self) -> QRect:
@@ -528,9 +421,7 @@ class FitnessLightboxSidebar(QFrame):
         color = {
             StopwatchColor.IDLE: _COLOR_IDLE_ON_DARK if self._backdrop_dark else _COLOR_IDLE,
             StopwatchColor.COUNTDOWN: _COLOR_COUNTDOWN,
-            StopwatchColor.RUNNING: (
-                _COLOR_RUNNING_ON_DARK if self._backdrop_dark else _COLOR_RUNNING
-            ),
+            StopwatchColor.RUNNING: (_COLOR_RUNNING_ON_DARK if self._backdrop_dark else _COLOR_RUNNING),
             StopwatchColor.OVERTIME: _COLOR_OVERTIME,
         }[snapshot.color]
         self._time_label.setStyleSheet(f"color: {color}; background: transparent;")
@@ -561,22 +452,6 @@ class FitnessLightboxSidebar(QFrame):
         else:
             self._limit_label.hide()
         self._last_phase = snapshot.phase
-
-    def _flash_status(self, text: str, color: str) -> None:
-        self._status_flash.stop()
-        self._show_status_label(text, color)
-        self._status_flash.start(_STATUS_FLASH_MS)
-
-    def _hide_status_flash(self) -> None:
-        if self._stopwatch.snapshot().phase is StopwatchPhase.COUNTDOWN:
-            self._show_status_label("Prepare!", _COLOR_COUNTDOWN)
-            return
-        self._prepare_label.hide()
-
-    def _show_status_label(self, text: str, color: str) -> None:
-        self._prepare_label.setText(text)
-        self._prepare_label.setStyleSheet(f"color: {color}; background: transparent;")
-        self._prepare_label.show()
 
     def _build_action_button(self) -> QPushButton:
         button = QPushButton("➕ Add")  # noqa: RUF001
@@ -687,6 +562,17 @@ class FitnessLightboxSidebar(QFrame):
         layout.addWidget(self._unit_label)
         layout.addWidget(add_wrap, 0, Qt.AlignmentFlag.AlignHCenter)
 
+    def _flash_status(self, text: str, color: str) -> None:
+        self._status_flash.stop()
+        self._show_status_label(text, color)
+        self._status_flash.start(_STATUS_FLASH_MS)
+
+    def _hide_status_flash(self) -> None:
+        if self._stopwatch.snapshot().phase is StopwatchPhase.COUNTDOWN:
+            self._show_status_label("Prepare!", _COLOR_COUNTDOWN)
+            return
+        self._prepare_label.hide()
+
     def _on_pause(self) -> None:
         self._tick.stop()
         self._apply_snapshot(self._stopwatch.pause())
@@ -701,6 +587,11 @@ class FitnessLightboxSidebar(QFrame):
 
     def _on_tick(self) -> None:
         self._apply_snapshot(self._stopwatch.advance(_TICK_MS))
+
+    def _show_status_label(self, text: str, color: str) -> None:
+        self._prepare_label.setText(text)
+        self._prepare_label.setStyleSheet(f"color: {color}; background: transparent;")
+        self._prepare_label.show()
 
 
 class _LightboxTypeCombo(QComboBox):
@@ -741,3 +632,111 @@ def _apply_pixel_font(
     font.setPixelSize(pixel_size)
     font.setWeight(weight)
     widget.setFont(font)
+
+
+def _fitness_splitter_style(fill: str) -> str:
+    return f"""
+QSplitter#fitnessLightboxSplitter {{
+    background: {fill};
+    border: none;
+}}
+QSplitter#fitnessLightboxSplitter::handle {{
+    background: {fill};
+    width: 6px;
+    margin: 0;
+    padding: 0;
+    border: none;
+}}
+QSplitter#fitnessLightboxSplitter::handle:hover {{
+    background: {_SPLITTER_HOVER};
+}}
+QWidget#fitnessLightboxImageHost {{
+    background: {fill};
+    border: none;
+}}
+"""
+
+
+_VALUE_STYLE = """
+QSpinBox#fitnessLightboxValueSpin {
+    background: #FFFFFF;
+    border: 2px solid #D1D5DB;
+    border-radius: 16px;
+    padding: 8px 16px;
+    color: #111827;
+}
+QSpinBox#fitnessLightboxValueSpin:focus {
+    border-color: #3B82F6;
+}
+"""
+
+_TYPE_STYLE = """
+QComboBox#fitnessLightboxTypeCombo {
+    background: #FFFFFF;
+    border: 1px solid #D1D5DB;
+    border-radius: 12px;
+    padding: 8px 32px 8px 12px;
+    color: #111827;
+    min-height: 28px;
+}
+QComboBox#fitnessLightboxTypeCombo:focus,
+QComboBox#fitnessLightboxTypeCombo:on {
+    border-color: #3B82F6;
+}
+QComboBox#fitnessLightboxTypeCombo::drop-down {
+    subcontrol-origin: padding;
+    subcontrol-position: center right;
+    width: 28px;
+    border: none;
+    background: transparent;
+}
+QComboBox#fitnessLightboxTypeCombo::down-arrow {
+    image: none;
+    width: 0;
+    height: 0;
+}
+QComboBox#fitnessLightboxTypeCombo QAbstractItemView {
+    background: #FFFFFF;
+    border: 1px solid #D1D5DB;
+    outline: none;
+    selection-background-color: #DBEAFE;
+    selection-color: #111827;
+}
+"""
+
+_ADD_BUTTON_STYLE = """
+QPushButton#fitnessLightboxAddButton {
+    background: #3B82F6;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 14px;
+    padding: 16px 32px;
+}
+QPushButton#fitnessLightboxAddButton:hover {
+    background: #2563EB;
+}
+QPushButton#fitnessLightboxAddButton:pressed {
+    background: #1D4ED8;
+}
+"""
+
+_TIMER_BUTTON_STYLE = """
+QPushButton#fitnessLightboxStartButton,
+QPushButton#fitnessLightboxPauseButton,
+QPushButton#fitnessLightboxRestartButton {
+    background: #FFFFFF;
+    color: #111827;
+    border: 1px solid #D1D5DB;
+    border-radius: 12px;
+    padding: 10px 12px;
+}
+QPushButton#fitnessLightboxStartButton:hover,
+QPushButton#fitnessLightboxPauseButton:hover,
+QPushButton#fitnessLightboxRestartButton:hover {
+    background: #F1F5F9;
+    border-color: #3B82F6;
+}
+"""
+
+DetailsLoader = Callable[[str, int | None], FitnessLightboxDetails]
+ConfirmHandler = Callable[[FitnessLightboxConfirm], bool]

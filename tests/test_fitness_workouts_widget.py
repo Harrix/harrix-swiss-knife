@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-import pytest
+from typing import TYPE_CHECKING
+
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import QApplication, QCheckBox
@@ -18,6 +19,9 @@ from harrix_swiss_knife.apps.fitness.workouts_widget import (
     WorkoutsWidget,
     estimate_workout_item_kcal,
 )
+
+if TYPE_CHECKING:
+    import pytest
 
 
 def _qapp() -> QApplication:
