@@ -137,8 +137,8 @@ def test_stopwatch_skips_countdown_when_zero() -> None:
 
 
 def test_fitness_timer_cue_sound_names() -> None:
-    assert fitness_timer_cue_sound_name("start") == "habit_done.wav"
-    assert fitness_timer_cue_sound_name("finish") == "habit_done.wav"
+    assert fitness_timer_cue_sound_name("start") == "fitness_timer_start.wav"
+    assert fitness_timer_cue_sound_name("finish") == "fitness_timer_finish.wav"
 
 
 def test_fitness_lightbox_flashes_start_and_finish(

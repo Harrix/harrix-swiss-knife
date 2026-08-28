@@ -15,5 +15,7 @@
         <file>assets/fonts/JetBrainsMono-MediumItalic.ttf</file>
         <file>assets/sounds/habit_done.wav</file>
         <file>assets/sounds/habit_not_done.wav</file>
+        <file>assets/sounds/fitness_timer_start.wav</file>
+        <file>assets/sounds/fitness_timer_finish.wav</file>
     </qresource>
 </RCC>

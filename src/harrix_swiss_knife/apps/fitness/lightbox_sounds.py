@@ -10,8 +10,8 @@ from PySide6.QtMultimedia import QSoundEffect
 
 _ALERT_NAME = "habit_done.wav"
 _CUE_NAMES: dict[str, str] = {
-    "start": "habit_done.wav",
-    "finish": "habit_done.wav",
+    "start": "fitness_timer_start.wav",
+    "finish": "fitness_timer_finish.wav",
 }
 _VOLUME = 0.5
 
