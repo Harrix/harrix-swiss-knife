@@ -239,7 +239,6 @@ class RecipesWidget(QWidget):
         totals_layout.addWidget(self.label_recipe_totals)
         controls_layout.addWidget(group_totals)
         controls_layout.addStretch()
-        splitter.addWidget(controls)
 
         middle = QWidget()
         middle_layout = QVBoxLayout(middle)
@@ -261,6 +260,7 @@ class RecipesWidget(QWidget):
         list_buttons.addWidget(self.button_delete)
         middle_layout.addLayout(list_buttons)
         splitter.addWidget(middle)
+        splitter.addWidget(controls)
 
         right = QWidget()
         right_layout = QVBoxLayout(right)
@@ -294,8 +294,8 @@ class RecipesWidget(QWidget):
         right_layout.addWidget(self.button_save)
 
         splitter.addWidget(right)
-        splitter.setStretchFactor(0, 0)
-        splitter.setStretchFactor(1, 1)
+        splitter.setStretchFactor(0, 1)
+        splitter.setStretchFactor(1, 0)
         splitter.setStretchFactor(2, 3)
 
     def _clear_editor(self) -> None:
