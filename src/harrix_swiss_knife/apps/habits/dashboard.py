@@ -175,6 +175,17 @@ class HabitDashboardWidget(QWidget):
         self._db = db_manager
         self.refresh()
 
+    def _after_checkin_changed(self, habit_id: int, *, sound_value: int | None) -> None:
+        """Paint the new checkmark first, then sync tables and play sound."""
+        self._invalidate_caches()
+        self._update_week_bar()
+        self._update_habit_row(habit_id)
+        if self._selected_habit_id == habit_id:
+            self._refresh_detail()
+        play_habit_checkin_sound(sound_value)
+        # Parent table reload is heavy; defer so the dashboard paints first.
+        QTimer.singleShot(0, self.data_changed.emit)
+
     def _build_empty_state(self) -> QWidget:
         """Build a full-dashboard call-to-action shown when there are no habits."""
         pane = QFrame()
@@ -841,17 +852,6 @@ class HabitDashboardWidget(QWidget):
             return
         stored = self._db.get_habit_values_between(habit_id, date_str, date_str)
         self._after_checkin_changed(habit_id, sound_value=stored.get(date_str))
-
-    def _after_checkin_changed(self, habit_id: int, *, sound_value: int | None) -> None:
-        """Paint the new checkmark first, then sync tables and play sound."""
-        self._invalidate_caches()
-        self._update_week_bar()
-        self._update_habit_row(habit_id)
-        if self._selected_habit_id == habit_id:
-            self._refresh_detail()
-        play_habit_checkin_sound(sound_value)
-        # Parent table reload is heavy; defer so the dashboard paints first.
-        QTimer.singleShot(0, self.data_changed.emit)
 
     def _update_habit_row(self, habit_id: int) -> None:
         """Refresh one list row without destroying the widget tree."""

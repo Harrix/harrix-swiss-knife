@@ -1766,14 +1766,6 @@ class MainWindow(
             self._dashboard_tables_sync_timer = timer
         timer.start()
 
-    def _sync_tables_after_dashboard_change(self) -> None:
-        """Reload process/habits tables after the dashboard has painted."""
-        if self._is_closing or not self._validate_database_connection():
-            return
-        self.show_tables()
-        self.update_habits_filter_combobox()
-        self.update_habits_year_combobox()
-
     def _on_heatmap_next_year(self) -> None:
         self._step_heatmap_year(1)
 
@@ -2173,6 +2165,14 @@ class MainWindow(
         today_year = datetime.now(UTC).astimezone().date().year
         prev_btn.setEnabled(heatmap_year_after_step(selected, years, step=-1, today_year=today_year) is not None)
         next_btn.setEnabled(heatmap_year_after_step(selected, years, step=1, today_year=today_year) is not None)
+
+    def _sync_tables_after_dashboard_change(self) -> None:
+        """Reload process/habits tables after the dashboard has painted."""
+        if self._is_closing or not self._validate_database_connection():
+            return
+        self.show_tables()
+        self.update_habits_filter_combobox()
+        self.update_habits_year_combobox()
 
     def _sync_with_ticktick(self) -> None:
         """Synchronize habits with TickTick (local SQLite read, Open API writes)."""

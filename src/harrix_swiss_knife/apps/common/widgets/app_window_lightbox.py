@@ -171,7 +171,7 @@ class AppWindowLightboxDialog(QDialog):
     def _enable_backdrop_context_menu(self, widget: QWidget) -> None:
         if widget.property("_lightboxBackdropContextMenu"):
             return
-        widget.setProperty("_lightboxBackdropContextMenu", True)
+        widget.setProperty("_lightboxBackdropContextMenu", 1)
         widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         widget.customContextMenuRequested.connect(self._show_backdrop_context_menu_from_child)
 
@@ -200,6 +200,13 @@ class AppWindowLightboxDialog(QDialog):
         )
         button.raise_()
         return button
+
+    def _popup_backdrop_context_menu(self, global_pos: QPoint) -> None:
+        menu = QMenu(self)
+        action = menu.addAction(self._backdrop_toggle_label())
+        chosen = menu.exec_(global_pos)
+        if chosen is action:
+            self._toggle_backdrop_color()
 
     def _position_controls(self) -> None:
         if self._content is not None:
@@ -247,13 +254,6 @@ class AppWindowLightboxDialog(QDialog):
             "QMenu { background: #FFFFFF; color: #111827; }"
             "QMenu::item:selected { background: #E5E7EB; }"
         )
-
-    def _popup_backdrop_context_menu(self, global_pos: QPoint) -> None:
-        menu = QMenu(self)
-        action = menu.addAction(self._backdrop_toggle_label())
-        chosen = menu.exec(global_pos)
-        if chosen is action:
-            self._toggle_backdrop_color()
 
     def _show_backdrop_context_menu(self, pos: QPoint) -> None:
         self._popup_backdrop_context_menu(self.mapToGlobal(pos))

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 from pathlib import Path
 
 from PySide6.QtCore import QFile, QTimer, QUrl
@@ -65,17 +66,13 @@ def _play_named(name: str) -> None:
 
     def _on_status(new_status: QSoundEffect.Status) -> None:
         if new_status == QSoundEffect.Status.Error:
-            try:
+            with contextlib.suppress(RuntimeError):
                 effect.statusChanged.disconnect(_on_status)
-            except RuntimeError:
-                pass
             return
         if new_status != QSoundEffect.Status.Ready:
             return
-        try:
+        with contextlib.suppress(RuntimeError):
             effect.statusChanged.disconnect(_on_status)
-        except RuntimeError:
-            pass
         effect.play()
 
     effect.statusChanged.connect(_on_status)

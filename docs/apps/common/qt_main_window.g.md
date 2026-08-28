@@ -506,11 +506,13 @@ horizontally. Uses the screen under the cursor so a scaled or secondary
 display does not pin the window to the left.
 
 `showMaximized()` on a hidden window often opens as a normal window on the
-primary monitor. Pin the client rect to the target screen first, and only
-maximize after the native window is mapped.
+primary monitor. Pin a normal-sized client rect onto the target screen
+first (inside the work area, with room for the title bar), then maximize
+after the native window is mapped. Do not pin the client to the full work
+area: that pushes the frame under the taskbar until maximize runs.
 
-That pin is the full work area, so Windows restore would place the title
-bar above the screen. A `WindowStateChange` filter snaps the frame back.
+A `WindowStateChange` filter still corrects Restore if Windows remembers a
+bad normal geometry from an older pin.
 
 <details>
 <summary>Code:</summary>
@@ -534,7 +536,18 @@ def apply_app_window_size_and_position(widget: QWidget, *, standard_width: int =
         frame_bottom=bottom,
     )
     if target is None:
-        widget.setGeometry(compute_maximize_pin_geometry(available))
+        # Map HWND to the cursor screen with a frame-safe normal size, then maximize.
+        widget.setWindowState(widget.windowState() & ~Qt.WindowState.WindowMaximized)
+        widget.setGeometry(
+            compute_maximize_pin_geometry(
+                available,
+                standard_width=standard_width,
+                frame_left=left,
+                frame_top=top,
+                frame_right=right,
+                frame_bottom=bottom,
+            ),
+        )
         if widget.isVisible():
             QTimer.singleShot(0, lambda w=widget: _maximize_when_mapped(w))
         else:
@@ -636,19 +649,22 @@ def compute_app_window_geometry(
 ## 🔧 Function `compute_maximize_pin_geometry`
 
 ```python
-def compute_maximize_pin_geometry(available: QRect, *, frame_left: int = 0, frame_top: int = 0, frame_right: int = 0, frame_bottom: int = 0) -> QRect
+def compute_maximize_pin_geometry(available: QRect, *, standard_width: int = 1920, frame_left: int = 0, frame_top: int = 0, frame_right: int = 0, frame_bottom: int = 0) -> QRect
 ```
 
-Return the work area used to map the HWND onto the target screen.
+Return a frame-safe client rect used to map the HWND before maximize.
 
-Insetting this rect by the window frame caused side gaps after maximize.
-Windows may warn about `setGeometry`; that message is ignored.
+The pin must stay inside the work area. Using the full work area as the
+client rectangle makes the title bar and bottom border spill outside
+(including under the taskbar) until `showMaximized` runs.
 
 Args:
 
 - `available` (`QRect`): Work area of the target screen (excludes the taskbar).
+- `standard_width` (`int`): Preferred width used when deriving the pin.
+  Defaults to `1920`.
 - `frame_left` / `frame_top` / `frame_right` / `frame_bottom` (`int`):
-  Unused; kept so older callers still type-check.
+  Window-frame extents in logical pixels.
 
 Returns:
 
@@ -661,13 +677,20 @@ Returns:
 def compute_maximize_pin_geometry(
     available: QRect,
     *,
+    standard_width: int = 1920,
     frame_left: int = 0,
     frame_top: int = 0,
     frame_right: int = 0,
     frame_bottom: int = 0,
 ) -> QRect:
-    _ = (frame_left, frame_top, frame_right, frame_bottom)
-    return QRect(available)
+    return compute_restore_window_geometry(
+        available,
+        standard_width=standard_width,
+        frame_left=frame_left,
+        frame_top=frame_top,
+        frame_right=frame_right,
+        frame_bottom=frame_bottom,
+    )
 ```
 
 </details>

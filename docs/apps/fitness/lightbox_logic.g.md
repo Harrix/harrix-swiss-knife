@@ -30,7 +30,10 @@ lang: en
 - [🔧 Function `allocated_exercise_seconds`](#-function-allocated_exercise_seconds)
 - [🔧 Function `default_exercise_type`](#-function-default_exercise_type)
 - [🔧 Function `format_mm_ss`](#-function-format_mm_ss)
+- [🔧 Function `is_timed_exercise_unit`](#-function-is_timed_exercise_unit)
+- [🔧 Function `normalize_exercise_unit`](#-function-normalize_exercise_unit)
 - [🔧 Function `parse_exercise_value`](#-function-parse_exercise_value)
+- [🔧 Function `target_seconds_for_exercise`](#-function-target_seconds_for_exercise)
 
 </details>
 
@@ -48,14 +51,22 @@ Countdown, then elapsed time, with an optional workout slot limit.
 ```python
 class ExerciseStopwatch:
 
-    def __init__(self, *, countdown_seconds: int, limit_seconds: int | None) -> None:
+    def __init__(
+        self,
+        *,
+        countdown_seconds: int,
+        limit_seconds: int | None,
+        stop_at_limit: bool = False,
+    ) -> None:
         """Build a stopwatch.
 
         Args:
 
         - `countdown_seconds` (`int`): Ready countdown before elapsed time starts.
-        - `limit_seconds` (`int | None`): Workout slot length. `None` or `0`
-          disables the overtime alert.
+        - `limit_seconds` (`int | None`): Target or slot length. `None` or `0`
+          disables the overtime / finish threshold.
+        - `stop_at_limit` (`bool`): When `True`, freeze the clock at the limit
+          instead of continuing into overtime. Defaults to `False`.
 
         """
         self._countdown_ms = max(0, int(countdown_seconds)) * _MS_PER_SECOND
@@ -63,6 +74,7 @@ class ExerciseStopwatch:
             self._limit_ms: int | None = None
         else:
             self._limit_ms = int(limit_seconds) * _MS_PER_SECOND
+        self._stop_at_limit = bool(stop_at_limit) and self._limit_ms is not None
         self.reset()
 
     def advance(self, delta_ms: int) -> StopwatchSnapshot:
@@ -73,6 +85,14 @@ class ExerciseStopwatch:
                 overflow = self._elapsed_ms - self._countdown_ms
                 self._phase = StopwatchPhase.RUNNING
                 self._elapsed_ms = overflow
+            if (
+                self._stop_at_limit
+                and self._limit_ms is not None
+                and self._phase is StopwatchPhase.RUNNING
+                and self._elapsed_ms >= self._limit_ms
+            ):
+                self._elapsed_ms = self._limit_ms
+                self._running = False
         return self.snapshot()
 
     def apply_state(self, state: ExerciseStopwatchState) -> StopwatchSnapshot:
@@ -150,7 +170,7 @@ class ExerciseStopwatch:
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, *, countdown_seconds: int, limit_seconds: int | None) -> None
+def __init__(self, *, countdown_seconds: int, limit_seconds: int | None, stop_at_limit: bool = False) -> None
 ```
 
 Build a stopwatch.
@@ -158,19 +178,28 @@ Build a stopwatch.
 Args:
 
 - `countdown_seconds` (`int`): Ready countdown before elapsed time starts.
-- `limit_seconds` (`int | None`): Workout slot length. `None` or `0`
-  disables the overtime alert.
+- `limit_seconds` (`int | None`): Target or slot length. `None` or `0`
+  disables the overtime / finish threshold.
+- `stop_at_limit` (`bool`): When `True`, freeze the clock at the limit
+  instead of continuing into overtime. Defaults to `False`.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def __init__(self, *, countdown_seconds: int, limit_seconds: int | None) -> None:
+def __init__(
+        self,
+        *,
+        countdown_seconds: int,
+        limit_seconds: int | None,
+        stop_at_limit: bool = False,
+    ) -> None:
         self._countdown_ms = max(0, int(countdown_seconds)) * _MS_PER_SECOND
         if limit_seconds is None or int(limit_seconds) <= 0:
             self._limit_ms: int | None = None
         else:
             self._limit_ms = int(limit_seconds) * _MS_PER_SECOND
+        self._stop_at_limit = bool(stop_at_limit) and self._limit_ms is not None
         self.reset()
 ```
 
@@ -195,6 +224,14 @@ def advance(self, delta_ms: int) -> StopwatchSnapshot:
                 overflow = self._elapsed_ms - self._countdown_ms
                 self._phase = StopwatchPhase.RUNNING
                 self._elapsed_ms = overflow
+            if (
+                self._stop_at_limit
+                and self._limit_ms is not None
+                and self._phase is StopwatchPhase.RUNNING
+                and self._elapsed_ms >= self._limit_ms
+            ):
+                self._elapsed_ms = self._limit_ms
+                self._running = False
         return self.snapshot()
 ```
 
@@ -573,6 +610,43 @@ def format_mm_ss(total_seconds: int) -> str:
 
 </details>
 
+## 🔧 Function `is_timed_exercise_unit`
+
+```python
+def is_timed_exercise_unit(unit: str) -> bool
+```
+
+Return whether `unit` measures hold/run duration (seconds or minutes).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def is_timed_exercise_unit(unit: str) -> bool:
+    normalized = normalize_exercise_unit(unit)
+    return normalized in _SECOND_UNITS or normalized in _MINUTE_UNITS
+```
+
+</details>
+
+## 🔧 Function `normalize_exercise_unit`
+
+```python
+def normalize_exercise_unit(unit: str) -> str
+```
+
+Lowercase unit text and strip trailing punctuation (`sec.` → `sec`).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def normalize_exercise_unit(unit: str) -> str:
+    return str(unit or "").strip().casefold().rstrip(".")
+```
+
+</details>
+
 ## 🔧 Function `parse_exercise_value`
 
 ```python
@@ -590,6 +664,41 @@ def parse_exercise_value(text: str) -> int:
         return max(0, int(float(str(text).strip() or 0)))
     except (TypeError, ValueError):
         return 0
+```
+
+</details>
+
+## 🔧 Function `target_seconds_for_exercise`
+
+```python
+def target_seconds_for_exercise(unit: str, value: int) -> int | None
+```
+
+Return stopwatch target seconds when `unit` is timed; otherwise `None`.
+
+Args:
+
+- `unit` (`str`): Exercise unit from the catalog (`sec.`, `min`, …).
+- `value` (`int`): Planned or last logged quantity.
+
+Returns:
+
+- `int | None`: Seconds to stop at, or `None` for rep/weight units.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def target_seconds_for_exercise(unit: str, value: int) -> int | None:
+    amount = max(0, int(value))
+    if amount <= 0:
+        return None
+    normalized = normalize_exercise_unit(unit)
+    if normalized in _SECOND_UNITS:
+        return amount
+    if normalized in _MINUTE_UNITS:
+        return amount * _SECONDS_PER_MINUTE
+    return None
 ```
 
 </details>

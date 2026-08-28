@@ -46,7 +46,10 @@ def habit_checkin_sound_name(value: int | None) -> str | None:
 def play_habit_checkin_sound(value: int | None) -> None
 ```
 
-Play the Done or Not done sound after a successful user check-in.
+Play the Done or Not done sound without blocking the UI.
+
+Loading and playback are deferred to the next event-loop turn so the
+checkmark can paint before audio work runs.
 
 <details>
 <summary>Code:</summary>
@@ -56,15 +59,7 @@ def play_habit_checkin_sound(value: int | None) -> None:
     name = habit_checkin_sound_name(value)
     if name is None:
         return
-    url = _sound_url(name)
-    if not url.isValid():
-        return
-    effect = QSoundEffect()
-    effect.setSource(url)
-    effect.setVolume(_VOLUME)
-    _active_effects.clear()
-    _active_effects.append(effect)
-    effect.play()
+    QTimer.singleShot(0, lambda sound_name=name: _play_named(sound_name))
 ```
 
 </details>

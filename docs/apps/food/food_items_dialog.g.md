@@ -1,51 +1,34 @@
-"""Modal dialog for browsing and editing the food items catalog."""
+---
+author: Anton Sergienko
+author-email: anton.b.sergienko@gmail.com
+lang: en
+---
 
-from __future__ import annotations
+# 📄 File `food_items_dialog.py`
 
-from typing import TYPE_CHECKING, Any
+<details>
+<summary>📖 Contents ⬇️</summary>
 
-from PySide6.QtCore import QModelIndex, QPoint, QSortFilterProxyModel, Qt
-from PySide6.QtGui import QColor, QStandardItemModel
-from PySide6.QtWidgets import (
-    QAbstractItemView,
-    QDialog,
-    QHBoxLayout,
-    QHeaderView,
-    QMenu,
-    QMessageBox,
-    QTableView,
-    QVBoxLayout,
-    QWidget,
-)
+## Contents
 
-from harrix_swiss_knife import qt_modality
-from harrix_swiss_knife.apps.common import message_box
-from harrix_swiss_knife.apps.common.table_context_menu import (
-    LABEL_EDIT,
-    LABEL_REFRESH,
-    add_delete_action,
-    add_separator,
-)
-from harrix_swiss_knife.apps.common.table_models import create_colored_table_proxy_model
-from harrix_swiss_knife.apps.common.word_wrap_header import install_word_wrap_header
-from harrix_swiss_knife.apps.food.database_manager import FoodItemByNameRow
-from harrix_swiss_knife.apps.food.food_item_dialog import FoodItemDialog
-from harrix_swiss_knife.qt_emoji_icon import (
-    CANCEL_BUTTON_EMOJI,
-    apply_leading_emoji_icons,
-    make_emoji_push_button,
-)
+- [🏛️ Class `FoodItemsDialog`](#%EF%B8%8F-class-fooditemsdialog)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
 
-if TYPE_CHECKING:
-    from harrix_swiss_knife.apps.food.database_manager import DatabaseManager
+</details>
 
-_HEADERS = ["Name", "Name EN", "Drink", "kcal/100g", "Portion g", "Portion kcal"]
-_ROW_COLOR_EVEN = QColor(255, 255, 255)
-_ROW_COLOR_ODD = QColor(227, 242, 253)  # Light blue, matches Food accents
+## 🏛️ Class `FoodItemsDialog`
 
+```python
+class FoodItemsDialog(QDialog)
+```
 
+Show and edit the food items catalog in a table.
+
+<details>
+<summary>Code:</summary>
+
+```python
 class FoodItemsDialog(QDialog):
-    """Show and edit the food items catalog in a table."""
 
     def __init__(self, parent: QWidget | None, db_manager: DatabaseManager) -> None:
         """Build the catalog dialog and load rows from `db_manager`."""
@@ -248,3 +231,32 @@ class FoodItemsDialog(QDialog):
         if viewport is None:
             return
         context_menu.exec_(viewport.mapToGlobal(position))
+```
+
+</details>
+
+### ⚙️ Method `__init__`
+
+```python
+def __init__(self, parent: QWidget | None, db_manager: DatabaseManager) -> None
+```
+
+Build the catalog dialog and load rows from `db_manager`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __init__(self, parent: QWidget | None, db_manager: DatabaseManager) -> None:
+        super().__init__(parent)
+        self.db_manager = db_manager
+        self.catalog_changed = False
+        self._edit_dialog_open = False
+        self.setWindowTitle("Food Items")
+        qt_modality.set_owner_window_modal(self)
+        self.resize(900, 560)
+        self._setup_ui()
+        self._reload_table()
+```
+
+</details>

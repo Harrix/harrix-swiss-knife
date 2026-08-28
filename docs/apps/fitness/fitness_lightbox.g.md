@@ -232,6 +232,9 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
         self._splitter = splitter
         self._image_host = image_host
         self.attach_content(splitter)
+        self._enable_backdrop_context_menu(self._sidebar)
+        self._enable_backdrop_context_menu(image_host)
+        self._enable_backdrop_context_menu(self._label)
 
     def _on_confirm(self) -> None:
         if not self._confirm_handler(self._current_confirm()):
@@ -530,10 +533,15 @@ class FitnessLightboxSidebar(QFrame):
         self.setMinimumWidth(_SIDEBAR_MIN_WIDTH)
         self._backdrop_dark = False
         self._countdown_seconds = max(0, countdown_seconds)
-        self._limit_seconds = limit_seconds
+        self._slot_limit_seconds = limit_seconds if limit_seconds and limit_seconds > 0 else None
+        self._limit_seconds = self._slot_limit_seconds
+        self._stop_at_limit = False
+        self._limit_label_kind = "slot" if self._slot_limit_seconds else ""
+        self._bound_unit = ""
         self._stopwatch = ExerciseStopwatch(
             countdown_seconds=self._countdown_seconds,
             limit_seconds=self._limit_seconds,
+            stop_at_limit=self._stop_at_limit,
         )
         self._last_phase: StopwatchPhase | None = None
         self._overtime_announced = False
@@ -565,6 +573,7 @@ class FitnessLightboxSidebar(QFrame):
     ) -> None:
         """Show `exercise_name` and reset or resume the stopwatch."""
         self._title.setText(exercise_name or "Exercise")
+        self._bound_unit = details.unit
         self._unit_label.setText(details.unit)
         self._unit_label.setVisible(bool(details.unit))
         self._type_combo.blockSignals(True)  # noqa: FBT003
@@ -576,7 +585,10 @@ class FitnessLightboxSidebar(QFrame):
                 self._type_combo.setCurrentIndex(index)
         self._type_combo.blockSignals(False)  # noqa: FBT003
         self._type_combo.setVisible(bool(details.types))
+        self._value_spin.blockSignals(True)  # noqa: FBT003
         self._value_spin.setValue(details.value)
+        self._value_spin.blockSignals(False)  # noqa: FBT003
+        self._configure_limit_for_exercise(details.unit, details.value)
         if timer_state is not None and timer_state.phase is not StopwatchPhase.IDLE:
             self.restore_timer_state(timer_state)
         else:
@@ -645,18 +657,22 @@ class FitnessLightboxSidebar(QFrame):
             self._flash_status("Start", start_color)
         elif snapshot.phase is StopwatchPhase.IDLE and not self._status_flash.isActive():
             self._prepare_label.hide()
-        if snapshot.is_overtime and snapshot.is_running:
+        if snapshot.is_overtime:
             if not self._overtime_announced:
                 self._overtime_announced = True
                 play_fitness_timer_cue("finish")
                 self._flash_status("Finish", _COLOR_OVERTIME)
-            play_fitness_timer_alert()
+            if snapshot.is_running:
+                play_fitness_timer_alert()
+            else:
+                self._tick.stop()
+                stop_fitness_timer_alert()
         else:
-            if not snapshot.is_overtime:
-                self._overtime_announced = False
+            self._overtime_announced = False
             stop_fitness_timer_alert()
         if self._limit_seconds:
-            self._limit_label.setText(f"Slot {format_mm_ss(self._limit_seconds)}")
+            prefix = "Target" if self._limit_label_kind == "target" else "Slot"
+            self._limit_label.setText(f"{prefix} {format_mm_ss(self._limit_seconds)}")
             self._limit_label.show()
         else:
             self._limit_label.hide()
@@ -744,6 +760,7 @@ class FitnessLightboxSidebar(QFrame):
         self._value_spin.setStyleSheet(_VALUE_STYLE)
         _apply_pixel_font(self._value_spin, pixel_size=40, weight=QFont.Weight.ExtraBold)
         self._value_spin.lineEdit().returnPressed.connect(self.confirm_requested.emit)
+        self._value_spin.valueChanged.connect(self._on_value_changed)
 
         self._unit_label = QLabel("")
         self._unit_label.setObjectName("fitnessLightboxUnit")
@@ -771,6 +788,29 @@ class FitnessLightboxSidebar(QFrame):
         layout.addWidget(self._unit_label)
         layout.addWidget(add_wrap, 0, Qt.AlignmentFlag.AlignHCenter)
 
+    def _configure_limit_for_exercise(self, unit: str, value: int) -> None:
+        target = target_seconds_for_exercise(unit, value)
+        if target is not None:
+            self._limit_seconds = target
+            self._stop_at_limit = True
+            self._limit_label_kind = "target"
+        elif self._slot_limit_seconds:
+            self._limit_seconds = self._slot_limit_seconds
+            self._stop_at_limit = False
+            self._limit_label_kind = "slot"
+        else:
+            self._limit_seconds = None
+            self._stop_at_limit = False
+            self._limit_label_kind = ""
+        previous = self._stopwatch.capture_state()
+        self._stopwatch = ExerciseStopwatch(
+            countdown_seconds=self._countdown_seconds,
+            limit_seconds=self._limit_seconds,
+            stop_at_limit=self._stop_at_limit,
+        )
+        if previous.phase is not StopwatchPhase.IDLE:
+            self._stopwatch.apply_state(previous)
+
     def _flash_status(self, text: str, color: str) -> None:
         self._status_flash.stop()
         self._show_status_label(text, color)
@@ -787,6 +827,7 @@ class FitnessLightboxSidebar(QFrame):
         self._apply_snapshot(self._stopwatch.pause())
 
     def _on_restart(self) -> None:
+        self._configure_limit_for_exercise(self._bound_unit, self.value())
         self._tick.start()
         self._apply_snapshot(self._stopwatch.restart())
 
@@ -796,6 +837,12 @@ class FitnessLightboxSidebar(QFrame):
 
     def _on_tick(self) -> None:
         self._apply_snapshot(self._stopwatch.advance(_TICK_MS))
+
+    def _on_value_changed(self, value: int) -> None:
+        if self._stopwatch.snapshot().phase is not StopwatchPhase.IDLE:
+            return
+        self._configure_limit_for_exercise(self._bound_unit, value)
+        self._apply_snapshot(self._stopwatch.snapshot())
 
     def _show_status_label(self, text: str, color: str) -> None:
         self._prepare_label.setText(text)
@@ -830,10 +877,15 @@ def __init__(
         self.setMinimumWidth(_SIDEBAR_MIN_WIDTH)
         self._backdrop_dark = False
         self._countdown_seconds = max(0, countdown_seconds)
-        self._limit_seconds = limit_seconds
+        self._slot_limit_seconds = limit_seconds if limit_seconds and limit_seconds > 0 else None
+        self._limit_seconds = self._slot_limit_seconds
+        self._stop_at_limit = False
+        self._limit_label_kind = "slot" if self._slot_limit_seconds else ""
+        self._bound_unit = ""
         self._stopwatch = ExerciseStopwatch(
             countdown_seconds=self._countdown_seconds,
             limit_seconds=self._limit_seconds,
+            stop_at_limit=self._stop_at_limit,
         )
         self._last_phase: StopwatchPhase | None = None
         self._overtime_announced = False
@@ -893,6 +945,7 @@ def bind(
         timer_state: ExerciseStopwatchState | None = None,
     ) -> None:
         self._title.setText(exercise_name or "Exercise")
+        self._bound_unit = details.unit
         self._unit_label.setText(details.unit)
         self._unit_label.setVisible(bool(details.unit))
         self._type_combo.blockSignals(True)  # noqa: FBT003
@@ -904,7 +957,10 @@ def bind(
                 self._type_combo.setCurrentIndex(index)
         self._type_combo.blockSignals(False)  # noqa: FBT003
         self._type_combo.setVisible(bool(details.types))
+        self._value_spin.blockSignals(True)  # noqa: FBT003
         self._value_spin.setValue(details.value)
+        self._value_spin.blockSignals(False)  # noqa: FBT003
+        self._configure_limit_for_exercise(details.unit, details.value)
         if timer_state is not None and timer_state.phase is not StopwatchPhase.IDLE:
             self.restore_timer_state(timer_state)
         else:

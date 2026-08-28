@@ -34,7 +34,7 @@ lang: en
 class AppWindowLightboxDialog(QDialog)
 ```
 
-Overlay with close, prev/next, a backdrop toggle swatch, and a caption.
+Overlay with close, prev/next, backdrop toggle menus, and a caption.
 
 Subclasses attach a content widget and implement `show_item`.
 
@@ -88,8 +88,14 @@ class AppWindowLightboxDialog(QDialog):
         self._next_button.clicked.connect(self.show_next)
 
         self._backdrop_color = "white"
-        self._backdrop_button = self._make_backdrop_toggle_button()
-        self._backdrop_button.clicked.connect(self._toggle_backdrop_color)
+        self._backdrop_toggle_action = QAction(self)
+        self._backdrop_toggle_action.triggered.connect(self._toggle_backdrop_color)
+        self._menu_bar = QMenuBar(self)
+        self._menu_bar.setNativeMenuBar(False)
+        view_menu = self._menu_bar.addMenu("View")
+        view_menu.addAction(self._backdrop_toggle_action)
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.customContextMenuRequested.connect(self._show_backdrop_context_menu)
         self._set_backdrop_color("white")
 
         self._previous_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Left), self)
@@ -111,6 +117,7 @@ class AppWindowLightboxDialog(QDialog):
         backdrop_clicked = getattr(widget, "backdrop_clicked", None)
         if backdrop_clicked is not None:
             backdrop_clicked.connect(self.accept)
+        self._enable_backdrop_context_menu(widget)
 
     def chrome_rect(self) -> QRect:
         """Return the rectangle used to place overlay controls.
@@ -181,6 +188,17 @@ class AppWindowLightboxDialog(QDialog):
             self._index = (self._index - 1) % self._item_count
             self._show_current()
 
+    def _backdrop_toggle_label(self) -> str:
+        opposite = "black" if self._backdrop_color == "white" else "white"
+        return f"Switch to {opposite} backdrop"
+
+    def _enable_backdrop_context_menu(self, widget: QWidget) -> None:
+        if widget.property("_lightboxBackdropContextMenu"):
+            return
+        widget.setProperty("_lightboxBackdropContextMenu", 1)
+        widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        widget.customContextMenuRequested.connect(self._show_backdrop_context_menu_from_child)
+
     def _fit_to_owner(self) -> None:
         owner = self.parentWidget()
         if owner is None:
@@ -190,14 +208,6 @@ class AppWindowLightboxDialog(QDialog):
             self.setGeometry(top_left.x(), top_left.y(), owner.width(), owner.height())
             return
         self.setGeometry(owner.rect())
-
-    def _make_backdrop_toggle_button(self) -> QPushButton:
-        button = QPushButton(self)
-        button.setFixedSize(_SWATCH_SIZE, _SWATCH_SIZE)
-        button.setCursor(Qt.CursorShape.PointingHandCursor)
-        button.setAutoDefault(False)
-        button.setDefault(False)
-        return button
 
     def _make_button(self, text: str, tooltip: str) -> QPushButton:
         button = QPushButton(text, self)
@@ -215,11 +225,25 @@ class AppWindowLightboxDialog(QDialog):
         button.raise_()
         return button
 
+    def _popup_backdrop_context_menu(self, global_pos: QPoint) -> None:
+        menu = QMenu(self)
+        action = menu.addAction(self._backdrop_toggle_label())
+        chosen = menu.exec_(global_pos)
+        if chosen is action:
+            self._toggle_backdrop_color()
+
     def _position_controls(self) -> None:
         if self._content is not None:
             self._content.setGeometry(self.rect())
         rect = self.chrome_rect()
-        self._backdrop_button.move(rect.x() + _SIDE_MARGIN, rect.y() + _SIDE_MARGIN)
+        self._menu_bar.adjustSize()
+        menu_width = max(self._menu_bar.sizeHint().width(), 80)
+        self._menu_bar.setGeometry(
+            rect.x() + _SIDE_MARGIN,
+            rect.y() + _SIDE_MARGIN,
+            menu_width,
+            self._menu_bar.sizeHint().height(),
+        )
         self._close_button.move(rect.x() + rect.width() - _BUTTON_SIZE - _SIDE_MARGIN, rect.y() + _SIDE_MARGIN)
         center_y = rect.y() + (rect.height() - _BUTTON_SIZE) // 2
         self._previous_button.move(rect.x() + _SIDE_MARGIN, center_y)
@@ -232,7 +256,7 @@ class AppWindowLightboxDialog(QDialog):
             rect.y() + rect.height() - self._caption.height() - _SIDE_MARGIN,
         )
         for widget in (
-            self._backdrop_button,
+            self._menu_bar,
             self._close_button,
             self._previous_button,
             self._next_button,
@@ -243,16 +267,26 @@ class AppWindowLightboxDialog(QDialog):
     def _set_backdrop_color(self, color: str) -> None:
         self._backdrop_color = "black" if color == "black" else "white"
         fill = self._backdrop_color
-        opposite = "white" if fill == "black" else "black"
         self.setStyleSheet(f"#appWindowLightbox {{ background-color: {fill}; }}")
-        border = "#888" if opposite == "white" else "#ccc"
-        radius = _SWATCH_SIZE // 2
-        self._backdrop_button.setToolTip(f"Switch to {opposite} backdrop")
-        self._backdrop_button.setStyleSheet(
-            f"QPushButton {{ background: {opposite}; border: 1px solid {border};"
-            f"border-radius: {radius}px; padding: 0; }}"
-            "QPushButton:hover { border: 2px solid #2f80ed; }"
+        self._backdrop_toggle_action.setText(self._backdrop_toggle_label())
+        menu_color = "#F9FAFB" if fill == "black" else "#111827"
+        menu_hover = "rgba(255, 255, 255, 40)" if fill == "black" else "rgba(0, 0, 0, 40)"
+        self._menu_bar.setStyleSheet(
+            "QMenuBar { background: transparent; border: none; padding: 0; }"
+            f"QMenuBar::item {{ color: {menu_color}; background: transparent; padding: 4px 8px; }}"
+            f"QMenuBar::item:selected {{ background: {menu_hover}; }}"
+            "QMenu { background: #FFFFFF; color: #111827; }"
+            "QMenu::item:selected { background: #E5E7EB; }"
         )
+
+    def _show_backdrop_context_menu(self, pos: QPoint) -> None:
+        self._popup_backdrop_context_menu(self.mapToGlobal(pos))
+
+    def _show_backdrop_context_menu_from_child(self, pos: QPoint) -> None:
+        sender = self.sender()
+        if not isinstance(sender, QWidget):
+            return
+        self._popup_backdrop_context_menu(sender.mapToGlobal(pos))
 
     def _show_current(self) -> None:
         if self._item_count <= 0:
@@ -325,8 +359,14 @@ def __init__(
         self._next_button.clicked.connect(self.show_next)
 
         self._backdrop_color = "white"
-        self._backdrop_button = self._make_backdrop_toggle_button()
-        self._backdrop_button.clicked.connect(self._toggle_backdrop_color)
+        self._backdrop_toggle_action = QAction(self)
+        self._backdrop_toggle_action.triggered.connect(self._toggle_backdrop_color)
+        self._menu_bar = QMenuBar(self)
+        self._menu_bar.setNativeMenuBar(False)
+        view_menu = self._menu_bar.addMenu("View")
+        view_menu.addAction(self._backdrop_toggle_action)
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.customContextMenuRequested.connect(self._show_backdrop_context_menu)
         self._set_backdrop_color("white")
 
         self._previous_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Left), self)
@@ -362,6 +402,7 @@ def attach_content(self, widget: QWidget) -> None:
         backdrop_clicked = getattr(widget, "backdrop_clicked", None)
         if backdrop_clicked is not None:
             backdrop_clicked.connect(self.accept)
+        self._enable_backdrop_context_menu(widget)
 ```
 
 </details>

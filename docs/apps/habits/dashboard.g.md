@@ -100,6 +100,17 @@ class HabitDashboardWidget(QWidget):
         self._db = db_manager
         self.refresh()
 
+    def _after_checkin_changed(self, habit_id: int, *, sound_value: int | None) -> None:
+        """Paint the new checkmark first, then sync tables and play sound."""
+        self._invalidate_caches()
+        self._update_week_bar()
+        self._update_habit_row(habit_id)
+        if self._selected_habit_id == habit_id:
+            self._refresh_detail()
+        play_habit_checkin_sound(sound_value)
+        # Parent table reload is heavy; defer so the dashboard paints first.
+        QTimer.singleShot(0, self.data_changed.emit)
+
     def _build_empty_state(self) -> QWidget:
         """Build a full-dashboard call-to-action shown when there are no habits."""
         pane = QFrame()
@@ -434,9 +445,7 @@ class HabitDashboardWidget(QWidget):
         except RuntimeError:
             QMessageBox.warning(self, "Database Error", "Failed to fill empty days.")
             return
-        play_habit_checkin_sound(0)
-        self.refresh()
-        self.data_changed.emit()
+        self._after_checkin_changed(habit_id, sound_value=0)
 
     def _on_calendar_month_changed(self, year: int, month: int) -> None:
         self._calendar_year = year
@@ -712,9 +721,7 @@ class HabitDashboardWidget(QWidget):
         if not ok:
             QMessageBox.warning(self, "Database Error", "Failed to set check-in.")
             return
-        play_habit_checkin_sound(stored)
-        self.refresh()
-        self.data_changed.emit()
+        self._after_checkin_changed(habit_id, sound_value=stored)
 
     def _set_empty_state_visible(self, *, visible: bool) -> None:
         """Show the Add habit call-to-action instead of the habit list.
@@ -769,9 +776,34 @@ class HabitDashboardWidget(QWidget):
             QMessageBox.warning(self, "Database Error", "Failed to toggle check-in.")
             return
         stored = self._db.get_habit_values_between(habit_id, date_str, date_str)
-        play_habit_checkin_sound(stored.get(date_str))
-        self.refresh()
-        self.data_changed.emit()
+        self._after_checkin_changed(habit_id, sound_value=stored.get(date_str))
+
+    def _update_habit_row(self, habit_id: int) -> None:
+        """Refresh one list row without destroying the widget tree."""
+        row = self._habit_rows.get(habit_id)
+        if row is None:
+            return
+        habits_by_id = {int(item[0]): item for item in self._habits()}
+        habit = habits_by_id.get(habit_id)
+        if habit is None:
+            return
+        name = str(habit[_NAME_COLUMN] or f"Habit {habit_id}")
+        emoji = normalize_habit_emoji(
+            str(habit[_EMOJI_COLUMN]) if len(habit) > _EMOJI_COLUMN else "",
+            habit_id=habit_id,
+        )
+        stats = self._habit_stats(habit_id)
+        row.set_habit_data(
+            habit_id,
+            name,
+            stats.total_checkins,
+            stats.streak,
+            self._week_values_for(habit_id),
+            selected=habit_id == self._selected_habit_id,
+            emoji=emoji,
+            allows_number=_habit_allows_number(habit),
+            week_comments=self._week_comments_for(habit_id),
+        )
 
     # --- Data refresh ----------------------------------------------------
 

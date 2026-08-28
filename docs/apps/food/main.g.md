@@ -39,6 +39,7 @@ lang: en
   - [⚙️ Method `on_main_food_item_selection_changed`](#%EF%B8%8F-method-on_main_food_item_selection_changed)
   - [⚙️ Method `on_portion_weight_with_ai_from_calories`](#%EF%B8%8F-method-on_portion_weight_with_ai_from_calories)
   - [⚙️ Method `on_show_all_records_clicked`](#%EF%B8%8F-method-on_show_all_records_clicked)
+  - [⚙️ Method `on_show_food_items`](#%EF%B8%8F-method-on_show_food_items)
   - [⚙️ Method `on_translate_with_ai`](#%EF%B8%8F-method-on_translate_with_ai)
   - [⚙️ Method `resizeEvent`](#%EF%B8%8F-method-resizeevent)
   - [⚙️ Method `set_today_date`](#%EF%B8%8F-method-set_today_date)
@@ -873,6 +874,17 @@ class MainWindow(
         self._update_food_log_table()
 
     @requires_database()
+    def on_show_food_items(self) -> None:
+        """Open a dialog with the editable food items catalog table."""
+        if self.db_manager is None:
+            logger.error("❌ Database manager is not initialized")
+            return
+        dialog = FoodItemsDialog(self, self.db_manager)
+        dialog.exec()
+        if dialog.catalog_changed:
+            self.update_food_data()
+
+    @requires_database()
     def on_translate_with_ai(self) -> None:
         """Translate missing food_log name_en values via BotHub from unique Russian names."""
         if self.db_manager is None:
@@ -1371,6 +1383,7 @@ class MainWindow(
         self.verticalLayout_2.insertWidget(1, self._ai_image_drop_zone)
         self.pushButton_kcal_with_ai.clicked.connect(self.on_kcal_with_ai)
         self.action_add_food_item.triggered.connect(self.on_add_food_item)
+        self.action_show_food_items.triggered.connect(self.on_show_food_items)
         self.action_translate_with_ai.triggered.connect(self.on_translate_with_ai)
         self.action_add_as_text.triggered.connect(self.on_add_as_text)
         self.action_show_all_records.triggered.connect(self.on_show_all_records_clicked)
@@ -2831,6 +2844,7 @@ class MainWindow(
         self.pushButton_food_add_by_voice.setText(f"🎙️ {self.pushButton_food_add_by_voice.text()}")
         self.action_refresh.setText(f"🔄 {self.action_refresh.text()}")
         self.action_add_food_item.setText(f"➕ {self.action_add_food_item.text()}")  # noqa: RUF001
+        self.action_show_food_items.setText(f"📋 {self.action_show_food_items.text()}")
         self.action_translate_with_ai.setText(f"🤖 {self.action_translate_with_ai.text()}")
         self.action_add_as_text.setText(f"📝 {self.action_add_as_text.text()}")
         self.action_show_all_records.setText(f"📊 {self.action_show_all_records.text()}")
@@ -2975,7 +2989,7 @@ class MainWindow(
         create_dish_action = None
         if multiple_rows_selected:
             add_separator(context_menu)
-            create_dish_action = context_menu.addAction("🍽 Merge into recipe")
+            create_dish_action = context_menu.addAction("🔀 Merge into recipe")
 
         add_separator(context_menu)
         ate_half_action = context_menu.addAction("🍽️ I ate half")
@@ -4896,6 +4910,30 @@ def on_show_all_records_clicked(self) -> None:
 
         # Refresh the food log table
         self._update_food_log_table()
+```
+
+</details>
+
+### ⚙️ Method `on_show_food_items`
+
+```python
+def on_show_food_items(self) -> None
+```
+
+Open a dialog with the editable food items catalog table.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_show_food_items(self) -> None:
+        if self.db_manager is None:
+            logger.error("❌ Database manager is not initialized")
+            return
+        dialog = FoodItemsDialog(self, self.db_manager)
+        dialog.exec()
+        if dialog.catalog_changed:
+            self.update_food_data()
 ```
 
 </details>
