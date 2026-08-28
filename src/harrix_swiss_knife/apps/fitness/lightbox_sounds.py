@@ -1,16 +1,29 @@
-"""Loop a short alert when a workout exercise slot runs out."""
+"""Timer cues and looping alert for the Fitness exercise lightbox."""
 
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Literal
 
 from PySide6.QtCore import QFile, QUrl
 from PySide6.QtMultimedia import QSoundEffect
 
 _ALERT_NAME = "habit_done.wav"
+_CUE_NAMES: dict[str, str] = {
+    "start": "habit_done.wav",
+    "finish": "habit_done.wav",
+}
 _VOLUME = 0.5
 
 _alert_effects: list[QSoundEffect] = []
+_cue_effects: list[QSoundEffect] = []
+
+FitnessTimerCue = Literal["start", "finish"]
+
+
+def fitness_timer_cue_sound_name(cue: FitnessTimerCue) -> str:
+    """Return the bundled WAV name for a one-shot timer cue."""
+    return _CUE_NAMES[cue]
 
 
 def play_fitness_timer_alert() -> None:
@@ -26,6 +39,19 @@ def play_fitness_timer_alert() -> None:
     effect.setLoopCount(QSoundEffect.Infinite)
     _alert_effects.clear()
     _alert_effects.append(effect)
+    effect.play()
+
+
+def play_fitness_timer_cue(cue: FitnessTimerCue) -> None:
+    """Play a one-shot Start or Finish cue."""
+    url = _sound_url(fitness_timer_cue_sound_name(cue))
+    if not url.isValid():
+        return
+    effect = QSoundEffect()
+    effect.setSource(url)
+    effect.setVolume(_VOLUME)
+    _cue_effects.clear()
+    _cue_effects.append(effect)
     effect.play()
 
 

@@ -31,7 +31,11 @@ from harrix_swiss_knife.apps.fitness.lightbox_logic import (
     allocated_exercise_seconds,
     format_mm_ss,
 )
-from harrix_swiss_knife.apps.fitness.lightbox_sounds import play_fitness_timer_alert, stop_fitness_timer_alert
+from harrix_swiss_knife.apps.fitness.lightbox_sounds import (
+    play_fitness_timer_alert,
+    play_fitness_timer_cue,
+    stop_fitness_timer_alert,
+)
 
 if TYPE_CHECKING:
     from harrix_swiss_knife.apps.common.avif_manager import AvifManager
@@ -42,6 +46,7 @@ _SIDEBAR_WIDTH = 300
 _SPLITTER_PANE_COUNT = 2
 _MIN_IMAGE_EDGE = 2
 _TICK_MS = 100
+_STATUS_FLASH_MS = 2000
 _VALUE_MAXIMUM = 1_000_000
 
 _COLOR_IDLE = "#111827"
@@ -359,9 +364,14 @@ class FitnessLightboxSidebar(QFrame):
             countdown_seconds=self._countdown_seconds,
             limit_seconds=self._limit_seconds,
         )
+        self._last_phase: StopwatchPhase | None = None
+        self._overtime_announced = False
         self._tick = QTimer(self)
         self._tick.setInterval(_TICK_MS)
         self._tick.timeout.connect(self._on_tick)
+        self._status_flash = QTimer(self)
+        self._status_flash.setSingleShot(True)
+        self._status_flash.timeout.connect(self._hide_status_flash)
         self._build_ui()
         self._apply_snapshot(self._stopwatch.snapshot())
 
@@ -385,6 +395,8 @@ class FitnessLightboxSidebar(QFrame):
     def reset_timer(self) -> None:
         """Stop the clock and return to idle."""
         self._tick.stop()
+        self._status_flash.stop()
+        self._overtime_announced = False
         stop_fitness_timer_alert()
         self._apply_snapshot(self._stopwatch.reset())
 
@@ -395,6 +407,7 @@ class FitnessLightboxSidebar(QFrame):
     def shutdown(self) -> None:
         """Stop ticking and the overtime sound."""
         self._tick.stop()
+        self._status_flash.stop()
         stop_fitness_timer_alert()
 
     def start_prepare(self) -> None:
@@ -406,6 +419,7 @@ class FitnessLightboxSidebar(QFrame):
         return int(self._value_spin.value())
 
     def _apply_snapshot(self, snapshot: StopwatchSnapshot) -> None:
+        previous_phase = self._last_phase
         self._time_label.setText(format_mm_ss(snapshot.display_seconds))
         color = {
             StopwatchColor.IDLE: _COLOR_IDLE,
@@ -414,17 +428,48 @@ class FitnessLightboxSidebar(QFrame):
             StopwatchColor.OVERTIME: _COLOR_OVERTIME,
         }[snapshot.color]
         self._time_label.setStyleSheet(f"color: {color}; background: transparent;")
-        preparing = snapshot.phase is StopwatchPhase.COUNTDOWN
-        self._prepare_label.setVisible(preparing)
+        if snapshot.phase is StopwatchPhase.COUNTDOWN:
+            self._status_flash.stop()
+            self._show_status_label("Prepare!", _COLOR_COUNTDOWN)
+        elif (
+            previous_phase is StopwatchPhase.COUNTDOWN or previous_phase is StopwatchPhase.IDLE
+        ) and snapshot.phase is StopwatchPhase.RUNNING:
+            play_fitness_timer_cue("start")
+            self._flash_status("Start", _COLOR_RUNNING)
+        elif snapshot.phase is StopwatchPhase.IDLE and not self._status_flash.isActive():
+            self._prepare_label.hide()
         if snapshot.is_overtime and snapshot.is_running:
+            if not self._overtime_announced:
+                self._overtime_announced = True
+                play_fitness_timer_cue("finish")
+                self._flash_status("Finish", _COLOR_OVERTIME)
             play_fitness_timer_alert()
         else:
+            if not snapshot.is_overtime:
+                self._overtime_announced = False
             stop_fitness_timer_alert()
         if self._limit_seconds:
             self._limit_label.setText(f"Slot {format_mm_ss(self._limit_seconds)}")
             self._limit_label.show()
         else:
             self._limit_label.hide()
+        self._last_phase = snapshot.phase
+
+    def _flash_status(self, text: str, color: str) -> None:
+        self._status_flash.stop()
+        self._show_status_label(text, color)
+        self._status_flash.start(_STATUS_FLASH_MS)
+
+    def _hide_status_flash(self) -> None:
+        if self._stopwatch.snapshot().phase is StopwatchPhase.COUNTDOWN:
+            self._show_status_label("Prepare!", _COLOR_COUNTDOWN)
+            return
+        self._prepare_label.hide()
+
+    def _show_status_label(self, text: str, color: str) -> None:
+        self._prepare_label.setText(text)
+        self._prepare_label.setStyleSheet(f"color: {color}; background: transparent;")
+        self._prepare_label.show()
 
     def _build_action_button(self) -> QPushButton:
         button = QPushButton("➕ Add")  # noqa: RUF001

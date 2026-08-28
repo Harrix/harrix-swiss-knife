@@ -27,6 +27,7 @@ from harrix_swiss_knife.apps.fitness.lightbox_logic import (
     format_mm_ss,
     parse_exercise_value,
 )
+from harrix_swiss_knife.apps.fitness.lightbox_sounds import fitness_timer_cue_sound_name
 
 
 @pytest.fixture
@@ -133,6 +134,56 @@ def test_stopwatch_skips_countdown_when_zero() -> None:
     assert started.phase is StopwatchPhase.RUNNING
     assert started.color is StopwatchColor.RUNNING
     assert not started.is_overtime
+
+
+def test_fitness_timer_cue_sound_names() -> None:
+    assert fitness_timer_cue_sound_name("start") == "habit_done.wav"
+    assert fitness_timer_cue_sound_name("finish") == "habit_done.wav"
+
+
+def test_fitness_lightbox_flashes_start_and_finish(
+    tmp_path: Path,
+    qapp: QApplication,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    img_dir = tmp_path / "fitness_img"
+    img_dir.mkdir()
+    _write_test_avif(img_dir / "Push-ups.avif")
+    manager = AvifManager(img_dir)
+    cues: list[str] = []
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.fitness.fitness_lightbox.play_fitness_timer_cue",
+        lambda cue: cues.append(cue),
+    )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.fitness.fitness_lightbox.play_fitness_timer_alert",
+        lambda: None,
+    )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.fitness.fitness_lightbox.stop_fitness_timer_alert",
+        lambda: None,
+    )
+    dialog = FitnessExerciseLightboxDialog(
+        ["Push-ups"],
+        avif_manager=manager,
+        details_loader=_details,
+        confirm_handler=lambda _payload: True,
+        countdown_seconds=1,
+        workout_duration_min=1,
+        workout_items=[_item(item_id=1, name="Push-ups", sort_order=0)],
+    )
+    dialog._sidebar._on_start()
+    assert dialog._sidebar._prepare_label.text() == "Prepare!"
+    assert not dialog._sidebar._prepare_label.isHidden()
+    dialog._sidebar._apply_snapshot(dialog._sidebar._stopwatch.advance(1000))
+    assert cues == ["start"]
+    assert dialog._sidebar._prepare_label.text() == "Start"
+    assert not dialog._sidebar._prepare_label.isHidden()
+    dialog._sidebar._apply_snapshot(dialog._sidebar._stopwatch.advance(60_000))
+    assert cues == ["start", "finish"]
+    assert dialog._sidebar._prepare_label.text() == "Finish"
+    assert not dialog._sidebar._prepare_label.isHidden()
+    dialog.close()
 
 
 def test_fitness_lightbox_has_splitter_sidebar_and_browse_confirm(
