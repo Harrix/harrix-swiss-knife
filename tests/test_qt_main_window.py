@@ -53,8 +53,9 @@ def test_apply_pins_hidden_window_to_secondary_screen_before_maximize(
     qapp: QApplication,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Maximize is deferred until show; geometry is pinned to the target screen."""
-    fake_screen = SimpleNamespace(availableGeometry=lambda: QRect(1920, 0, 1920, 1080))
+    """Maximize is deferred until show; geometry is pinned inside the work area."""
+    available = QRect(1920, 0, 1920, 1080)
+    fake_screen = SimpleNamespace(availableGeometry=lambda: available)
     monkeypatch.setattr(
         "harrix_swiss_knife.apps.common.qt_main_window.QGuiApplication.screenAt",
         lambda _pos: fake_screen,
@@ -63,7 +64,11 @@ def test_apply_pins_hidden_window_to_secondary_screen_before_maximize(
     widget.setWindowFlags(Qt.WindowType.Window)
     apply_app_window_size_and_position(widget)
     assert not widget.isVisible()
-    assert widget.geometry() == QRect(1920, 0, 1920, 1080)
+    pin = widget.geometry()
+    assert pin.left() >= available.left()
+    assert pin.top() >= available.top()
+    assert pin.right() <= available.right()
+    assert pin.bottom() <= available.bottom()
     assert not widget.windowState() & Qt.WindowState.WindowMaximized
     widget.show()
     qapp.processEvents()
@@ -90,19 +95,16 @@ def test_apply_centers_frameless_window_on_secondary_ultrawide(
     widget.close()
 
 
-def test_compute_maximize_pin_geometry_uses_work_area() -> None:
-    """Maximize pin keeps the full work area so the window has no side gaps."""
-    available = QRect(0, 0, 3840, 2064)
-    assert (
-        compute_maximize_pin_geometry(
-            available,
-            frame_left=13,
-            frame_top=58,
-            frame_right=13,
-            frame_bottom=13,
-        )
-        == available
-    )
+def test_compute_maximize_pin_geometry_stays_inside_work_area() -> None:
+    """Maximize pin reserves the title bar so the frame does not cover the taskbar."""
+    available = QRect(0, 0, 1920, 1032)
+    assert compute_maximize_pin_geometry(
+        available,
+        frame_left=8,
+        frame_top=32,
+        frame_right=8,
+        frame_bottom=8,
+    ) == QRect(8, 32, 1904, 992)
 
 
 def test_compute_app_window_geometry_maximizes_on_standard_1080p() -> None:
