@@ -1219,7 +1219,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
                     {where_clause}
                 ) ranked
                 WHERE rn <= :limit
-            """  # noqa: S608
+            """
         else:
             query = f"""
                 SELECT e.name,
@@ -1231,7 +1231,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
                 LEFT JOIN types t ON p._id_types = t._id AND t._id_exercises = e._id
                 {where_clause}
                 ORDER BY p._id DESC
-            """  # noqa: S608
+            """
 
         rows = self.get_rows(query, params)
         return [(row[0], row[1], float(row[2]), row[3]) for row in rows]
@@ -3669,7 +3669,7 @@ def get_filtered_statistics_data(
                     {where_clause}
                 ) ranked
                 WHERE rn <= :limit
-            """  # noqa: S608
+            """
         else:
             query = f"""
                 SELECT e.name,
@@ -3681,7 +3681,7 @@ def get_filtered_statistics_data(
                 LEFT JOIN types t ON p._id_types = t._id AND t._id_exercises = e._id
                 {where_clause}
                 ORDER BY p._id DESC
-            """  # noqa: S608
+            """
 
         rows = self.get_rows(query, params)
         return [(row[0], row[1], float(row[2]), row[3]) for row in rows]

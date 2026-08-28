@@ -4479,8 +4479,12 @@ class MainWindow(
             )
             item = QStandardItem(display_text)
 
+            # Prefer the cache when rebuilding (e.g. after Add): empty icons + async
+            # decode makes the whole list flicker even though thumbnails were already loaded.
             if defer_icons:
-                self._exercise_icons_defer_decode.add(exercise)
+                icon = self._exercise_icon_or_defer(exercise)
+                if not icon.isNull():
+                    item.setIcon(icon)
             else:
                 icon = self._get_exercise_icon(exercise)
                 if icon is not None and not icon.isNull():
@@ -8647,8 +8651,9 @@ class MainWindow(
 
         - `selected_exercise` (`str | None`): Exercise to keep selected. Defaults to `None`.
         - `selected_type` (`str | None`): Exercise type to keep selected. Defaults to `None`.
-        - `defer_icons` (`bool`): Queue list icons for background decode instead of loading
-          now. Defaults to `True`; decoding the whole catalog inline stalls the UI.
+        - `defer_icons` (`bool`): Use cached icons immediately and queue only missing
+          thumbnails for background decode. Defaults to `True`; decoding the whole
+          catalog inline stalls the UI.
 
         """
         if not self._validate_database_connection():
