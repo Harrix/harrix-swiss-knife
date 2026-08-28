@@ -5422,6 +5422,7 @@ class MainWindow(
         current_index: int,
         workout_items: list[database_manager.WorkoutItemRow] | None = None,
         workout_duration_min: int | None = None,
+        auto_start_prepare: bool = False,
     ) -> None:
         """Open the Fitness lightbox for `names` and optionally a workout."""
         if self.avif_manager is None:
@@ -5440,6 +5441,7 @@ class MainWindow(
             countdown_seconds=get_apps_fitness_lightbox_countdown_seconds(self._app_config),
             workout_items=workout_items,
             workout_duration_min=workout_duration_min,
+            auto_start_prepare=auto_start_prepare,
         )
         dialog.exec()
         if dialog.should_open_sets_tab:
@@ -7157,11 +7159,15 @@ class MainWindow(
             message_box.warning(self, "Error", "Select an exercise")
             return
         current_index = next((index for index, row in enumerate(items) if row.id == item_id), 0)
+        auto_start_prepare = (
+            self._workouts_widget is not None and self._workouts_widget.is_workout_session_active()
+        )
         self._exec_fitness_lightbox(
             names,
             current_index=current_index,
             workout_items=items,
             workout_duration_min=workout.duration_min if workout is not None else None,
+            auto_start_prepare=auto_start_prepare,
         )
 
     def _open_workout_preview_and_save(

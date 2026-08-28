@@ -157,6 +157,7 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
         countdown_seconds: int = DEFAULT_FITNESS_LIGHTBOX_COUNTDOWN_SECONDS,
         workout_items: Sequence[WorkoutItemRow] | None = None,
         workout_duration_min: int | None = None,
+        auto_start_prepare: bool = False,
     ) -> None:
         """Build the Fitness lightbox.
 
@@ -172,6 +173,8 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
         - `workout_items` (`Sequence[WorkoutItemRow] | None`): Workout rows when
           opened from a saved workout. `None` is browse mode.
         - `workout_duration_min` (`int | None`): Planned workout length.
+        - `auto_start_prepare` (`bool`): Start the Prepare countdown when each
+          exercise is shown. Defaults to `False`.
 
         """
         if workout_items is not None:
@@ -191,6 +194,7 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
         self._confirm_handler = confirm_handler
         self._workout_items = list(workout_items) if workout_items is not None else None
         self._open_sets_on_close = False
+        self._auto_start_prepare = auto_start_prepare
         item_count = len(self._workout_items) if self._workout_items is not None else 0
         duration = workout_duration_min if workout_duration_min is not None else 0
         self._limit_seconds = (
@@ -258,6 +262,8 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
         if self._workout_items is not None and 0 <= index < len(self._workout_items):
             item_id = self._workout_items[index].id
         self._sidebar.bind(name, self._details_loader(name, item_id))
+        if self._auto_start_prepare:
+            self._sidebar.start_prepare()
 
     def _current_confirm(self) -> FitnessLightboxConfirm:
         item_id = None
@@ -390,6 +396,10 @@ class FitnessLightboxSidebar(QFrame):
         """Stop ticking and the overtime sound."""
         self._tick.stop()
         stop_fitness_timer_alert()
+
+    def start_prepare(self) -> None:
+        """Begin the ready countdown (Prepare!) from zero."""
+        self._on_restart()
 
     def value(self) -> int:
         """Return the numeric set value."""

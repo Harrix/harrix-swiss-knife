@@ -220,12 +220,16 @@ def test_fitness_lightbox_workout_arrows_skip_confirm_and_confirm_advances(
         workout_items=items,
         workout_duration_min=10,
         countdown_seconds=5,
+        auto_start_prepare=True,
     )
     assert dialog._limit_seconds == allocated_exercise_seconds(10, 2)
     assert not dialog._sidebar._limit_label.isHidden()
+    assert dialog._sidebar._prepare_label.text() == "Prepare!"
+    assert not dialog._sidebar._prepare_label.isHidden()
     dialog.show_next()
     assert dialog.current_index == 1
     assert dialog._sidebar._title.text() == "Squats"
+    assert not dialog._sidebar._prepare_label.isHidden()
     assert confirmed == []
     dialog.show_previous()
     assert dialog.current_index == 0
