@@ -645,6 +645,7 @@
     </property>
     <addaction name="action_refresh"/>
     <addaction name="action_add_food_item"/>
+    <addaction name="action_show_food_items"/>
     <addaction name="separator"/>
     <addaction name="action_translate_with_ai"/>
     <addaction name="action_add_as_text"/>
@@ -675,6 +676,11 @@
   <action name="action_add_food_item">
    <property name="text">
     <string>Add Food Item</string>
+   </property>
+  </action>
+  <action name="action_show_food_items">
+   <property name="text">
+    <string>Show Food Items</string>
    </property>
   </action>
   <action name="action_translate_with_ai">
