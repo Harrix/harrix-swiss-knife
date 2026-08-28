@@ -152,6 +152,14 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
         """Return the workout item ID and stopwatch state captured on close."""
         return self._captured_timer_item_id, self._captured_timer_state
 
+    def exercise_timer_config(self) -> tuple[int, int | None, bool]:
+        """Return countdown, limit, and stop-at-limit used by the sidebar stopwatch."""
+        return (
+            self._sidebar._countdown_seconds,
+            self._sidebar._limit_seconds,
+            self._sidebar._stop_at_limit,
+        )
+
     def chrome_rect(self) -> QRect:
         """Place overlay chrome over the image pane, not the timer column.
 

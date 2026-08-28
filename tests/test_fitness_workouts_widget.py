@@ -293,6 +293,25 @@ def test_workout_session_saves_and_pops_exercise_timer_state() -> None:
     widget.close()
 
 
+def test_workout_session_shows_running_exercise_timer() -> None:
+    assert _qapp() is not None
+    widget = WorkoutsWidget()
+    widget.show()
+    widget._session_bar.show()
+    state = ExerciseStopwatchState(phase=StopwatchPhase.RUNNING, elapsed_ms=4500, running=True)
+    widget.save_exercise_timer_state(3, state)
+    assert not widget.label_exercise_timer.isHidden()
+    assert widget.label_exercise_timer.text() == "0:04"
+    widget._tick_exercise_timer()
+    assert widget.label_exercise_timer.text() == "0:05"
+    assert widget._exercise_timer_state is not None
+    assert widget._exercise_timer_state.elapsed_ms == 5500
+    paused = ExerciseStopwatchState(phase=StopwatchPhase.RUNNING, elapsed_ms=5500, running=False)
+    widget.save_exercise_timer_state(3, paused)
+    assert widget.label_exercise_timer.isHidden()
+    widget.close()
+
+
 def test_workout_session_timer_label_starts_at_zero() -> None:
     """The workout timer label uses M:SS formatting from zero."""
     assert _qapp() is not None

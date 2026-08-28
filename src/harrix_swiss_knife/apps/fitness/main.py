@@ -7314,7 +7314,14 @@ class MainWindow(
             if item is None or item.is_done:
                 self._workouts_widget.clear_exercise_timer_state()
                 return
-        self._workouts_widget.save_exercise_timer_state(item_id, state)
+        countdown_seconds, limit_seconds, stop_at_limit = dialog.exercise_timer_config()
+        self._workouts_widget.save_exercise_timer_state(
+            item_id,
+            state,
+            countdown_seconds=countdown_seconds,
+            limit_seconds=limit_seconds,
+            stop_at_limit=stop_at_limit,
+        )
 
     def _populate_exercises_catalog_tables(self) -> None:
         """Rebuild Exercises and Types tables from the database."""
