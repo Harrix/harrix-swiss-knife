@@ -23,6 +23,7 @@ Rules:
 - The Title must briefly mention the session focus from preferences (e.g. dumbbells, cardio, stretching, yoga, strength, or notes).
 - Prefer catalog exercises the person already does (see recent sets), but mix in variety so the session is not a copy of the last workout.
 - When preferences ask for something new, include exercises that do not appear in recent sets.
+- A separate Warm-up opener is optional: the catalog already has many warm-up / mobility exercises — use those when a warm-up phase is useful instead of always starting with the exercise named Warm-up.
 - Use realistic values for the listed units and recent history.
 - Output only the Title line and the TSV table. No commentary.
 
