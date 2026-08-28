@@ -4455,6 +4455,7 @@ class MainWindow(
                     light_green,
                 ],
             )
+            self._update_exercises_catalog_count_labels()
         self._append_exercise_name_to_list_view(name, load_icon=False)
         self._scroll_table_to_exercise("exercises", name)
 
@@ -7306,6 +7307,7 @@ class MainWindow(
         )
         self._apply_stored_exercise_table_sort("exercises")
         self._reload_types_table(dumbbell_names=dumbbell_names)
+        self._update_exercises_catalog_count_labels()
         if self._exercise_icons_defer_decode:
             QTimer.singleShot(0, self._decode_next_deferred_exercise_icon)
 
@@ -7479,6 +7481,23 @@ class MainWindow(
         )
         self._apply_stored_exercise_table_sort("types")
         self._connect_table_auto_save_signal("types")
+        self._update_exercises_catalog_count_labels()
+
+    def _update_exercises_catalog_count_labels(self) -> None:
+        """Show exercise and type counts next to the Exercises catalog labels."""
+        self.label_exercises_table.setText(f"Exercises: ({self._catalog_table_row_count('exercises')})")
+        self.label_exercise_types_table.setText(
+            f"Exercise Types: ({self._catalog_table_row_count('types')})",
+        )
+
+    def _catalog_table_row_count(self, table_key: str) -> int:
+        model = self.models.get(table_key)
+        if model is None:
+            return 0
+        source = model.sourceModel()
+        if source is not None:
+            return source.rowCount()
+        return model.rowCount()
 
     def _rename_exercise_media(self, old_name: str, new_name: str) -> None:
         """Rename the exercise AVIF when the English name changes."""
