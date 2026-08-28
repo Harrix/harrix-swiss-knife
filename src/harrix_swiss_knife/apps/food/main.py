@@ -3078,7 +3078,7 @@ class MainWindow(
         create_dish_action = None
         if multiple_rows_selected:
             add_separator(context_menu)
-            create_dish_action = context_menu.addAction("🍽 Merge into recipe")
+            create_dish_action = context_menu.addAction("🔀 Merge into recipe")
 
         add_separator(context_menu)
         ate_half_action = context_menu.addAction("🍽️ I ate half")
