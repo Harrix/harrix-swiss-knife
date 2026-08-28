@@ -164,6 +164,36 @@ def test_workouts_done_item_value_is_read_only() -> None:
     widget.close()
 
 
+def test_workouts_table_stretches_and_alternates_row_colors() -> None:
+    """Items table fills width and paints alternating row backgrounds."""
+    assert _qapp() is not None
+    second = WorkoutItemRow(
+        id=2,
+        workout_id=1,
+        exercise_id=3,
+        type_id=3,
+        exercise_name="Squat",
+        type_name="Bodyweight",
+        target_value="15",
+        sort_order=1,
+        is_done=False,
+        process_id=None,
+        unit="times",
+        calories_per_unit=1.0,
+        calories_modifier=1.0,
+    )
+    widget = WorkoutsWidget()
+    widget._fill_items([_sample_item(), second])
+    table = widget.table_items
+    header = table.horizontalHeader()
+    assert header.sectionResizeMode(_COL_EXERCISE) == header.ResizeMode.Stretch
+    assert header.sectionResizeMode(_COL_KCAL) == header.ResizeMode.Interactive
+    first_bg = table.item(0, _COL_EXERCISE).background().color()
+    second_bg = table.item(1, _COL_EXERCISE).background().color()
+    assert first_bg != second_bg
+    widget.close()
+
+
 def test_workout_session_shows_timer_bar_and_hides_start() -> None:
     """Starting a session shows the top stopwatch bar and hides Start."""
     assert _qapp() is not None

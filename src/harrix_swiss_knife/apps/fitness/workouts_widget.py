@@ -6,7 +6,18 @@ import logging
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QElapsedTimer, QModelIndex, QPoint, QSize, Qt, QTimer, Signal
-from PySide6.QtGui import QFont, QIcon, QKeySequence, QPainter, QShortcut, QStandardItem, QStandardItemModel
+from PySide6.QtGui import (
+    QBrush,
+    QColor,
+    QFont,
+    QIcon,
+    QKeySequence,
+    QPainter,
+    QPalette,
+    QShortcut,
+    QStandardItem,
+    QStandardItemModel,
+)
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
@@ -54,6 +65,11 @@ _COL_KCAL = 6
 _DEFAULT_TABLE_ICON_SIZE = 64
 _ITEM_COLUMN_COUNT = 7
 _DONE_COLUMN_WIDTH = 56
+_ROW_COLOR_EVEN = QColor(255, 255, 255)
+_ROW_COLOR_ODD = QColor(240, 255, 240)  # Same light green as Exercises table
+_COL_TYPE_WIDTH = 140
+_COL_VALUE_WIDTH = 90
+_COL_UNIT_WIDTH = 90
 _GREEN_BUTTON_STYLE = """
 QPushButton {
     background-color: lightgreen;
@@ -227,6 +243,7 @@ class WorkoutsWidget(QWidget):
                 image_item.setFlags(image_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                 self.table_items.setItem(row, _COL_IMAGE, image_item)
             image_item.setIcon(resolved)
+            self._apply_row_background(row)
 
     def _all_items_done(self) -> bool:
         if self._db is None or self._current_workout_id is None:
@@ -240,8 +257,32 @@ class WorkoutsWidget(QWidget):
         header = self.table_items.horizontalHeader()
         header.setSectionResizeMode(_COL_DONE, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(_COL_IMAGE, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(_COL_EXERCISE, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(_COL_TYPE, QHeaderView.ResizeMode.Interactive)
+        header.setSectionResizeMode(_COL_VALUE, QHeaderView.ResizeMode.Interactive)
+        header.setSectionResizeMode(_COL_UNIT, QHeaderView.ResizeMode.Interactive)
+        header.setSectionResizeMode(_COL_KCAL, QHeaderView.ResizeMode.Interactive)
+        header.setStretchLastSection(False)
         self.table_items.setColumnWidth(_COL_DONE, _DONE_COLUMN_WIDTH)
         self.table_items.setColumnWidth(_COL_IMAGE, self._icon_size + 12)
+        self.table_items.setColumnWidth(_COL_TYPE, _COL_TYPE_WIDTH)
+        self.table_items.setColumnWidth(_COL_VALUE, _COL_VALUE_WIDTH)
+        self.table_items.setColumnWidth(_COL_UNIT, _COL_UNIT_WIDTH)
+        self.table_items.setColumnWidth(_COL_KCAL, _COL_VALUE_WIDTH)
+
+    def _apply_row_background(self, row: int) -> None:
+        color = _ROW_COLOR_ODD if row % 2 else _ROW_COLOR_EVEN
+        brush = QBrush(color)
+        for column in range(_ITEM_COLUMN_COUNT):
+            item = self.table_items.item(row, column)
+            if item is not None:
+                item.setBackground(brush)
+        cell = self.table_items.cellWidget(row, _COL_DONE)
+        if cell is not None:
+            palette = cell.palette()
+            palette.setColor(QPalette.ColorRole.Window, color)
+            cell.setAutoFillBackground(True)
+            cell.setPalette(palette)
 
     def _build_ui(self) -> None:
         root = QVBoxLayout(self)
@@ -335,6 +376,7 @@ class WorkoutsWidget(QWidget):
         self.table_items.setObjectName("workoutsItemsTable")
         self.table_items.setHorizontalHeaderLabels(["Done", "", "Exercise", "Type", "Value", "Unit", "kcal"])
         self.table_items.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.table_items.setAlternatingRowColors(False)
         self.table_items.setEditTriggers(
             QAbstractItemView.EditTrigger.DoubleClicked | QAbstractItemView.EditTrigger.SelectedClicked,
         )
@@ -451,6 +493,7 @@ class WorkoutsWidget(QWidget):
                 kcal = self._estimated_kcal(item)
                 total_kcal += kcal
                 self._set_readonly_item(row, _COL_KCAL, f"{kcal:.1f}")
+                self._apply_row_background(row)
             self.label_totals.setText(f"Estimated: {total_kcal:.0f} kcal")
             self._sync_duration_from_items()
             self._update_start_button()
@@ -710,6 +753,7 @@ class WorkoutsWidget(QWidget):
         self._filling_items = True
         kcal_item.setText(f"{kcal:.1f}")
         self._filling_items = False
+        self._apply_row_background(row)
         self._refresh_kcal_totals()
 
     def _update_session_timer_label(self) -> None:
