@@ -39,9 +39,8 @@ def test_compute_app_window_geometry_centers_on_ultrawide() -> None:
 
 
 def test_compute_app_window_geometry_fits_scaled_1080p() -> None:
-    """A 125% 1080p work area must not request a 1920 window at a negative X."""
-    rect = compute_app_window_geometry(QRect(0, 48, 1536, 816))
-    assert rect == QRect(0, 48, 1536, 816)
+    """Scaled 1080p is still standard aspect, so the window maximizes."""
+    assert compute_app_window_geometry(QRect(0, 48, 1536, 816)) is None
 
 
 def test_compute_app_window_geometry_uses_available_origin() -> None:
@@ -118,8 +117,9 @@ def test_compute_app_window_geometry_reserves_title_bar() -> None:
 
 
 def test_compute_app_window_geometry_reserves_title_bar_on_scaled_work_area() -> None:
-    """A work area that already starts below a top taskbar still reserves the caption."""
-    rect = compute_app_window_geometry(QRect(0, 48, 1536, 816), frame_top=32)
+    """Scaled standard screens maximize; title-bar inset applies on restore."""
+    assert compute_app_window_geometry(QRect(0, 48, 1536, 816), frame_top=32) is None
+    rect = compute_restore_window_geometry(QRect(0, 48, 1536, 816), frame_top=32)
     assert rect == QRect(0, 80, 1536, 784)
 
 

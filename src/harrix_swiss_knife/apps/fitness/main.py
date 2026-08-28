@@ -4363,38 +4363,34 @@ class MainWindow(
         """)
 
     def _adjust_process_table_columns(self) -> None:
-        """Adjust process table column widths proportionally to window size."""
+        """Size process columns so they fill the visible table viewport."""
         if not hasattr(self, "tableView_process") or not self.tableView_process.model():
             return
         if not self.tableView_process.isVisible():
             return
 
-        # Get current table width
-        table_width = self.tableView_process.width()
-        if table_width <= 0:
-            # Fallback to window width if table width is not available
-            table_width = self.width() * 0.7  # Assume table takes ~70% of window width
+        header = self.tableView_process.horizontalHeader()
+        column_count = header.count()
+        if column_count < 1:
+            return
 
-        # Ensure minimum table width for better appearance
-        table_width = max(table_width, 800)
+        available_width = self.tableView_process.viewport().width()
+        if available_width <= 0:
+            return
 
-        # Reserve space for vertical headers, scrollbar, and borders
-        vertical_header_width = self.tableView_process.verticalHeader().width()
-        scrollbar_width = 20  # Approximate scrollbar width
-        borders_and_margins = 10  # Space for borders and margins
+        # Exercise / Type / Quantity are interactive; Date stretches to fill.
+        last_column = column_count - 1
+        for i in range(last_column):
+            header.setSectionResizeMode(i, header.ResizeMode.Interactive)
+        header.setSectionResizeMode(last_column, header.ResizeMode.Stretch)
+        header.setStretchLastSection(True)
 
-        available_width = table_width - vertical_header_width - scrollbar_width - borders_and_margins
-
-        # Define proportional distribution of available width
-        # Total: 100% = 40% + 25% + 20% + 15%
-        proportions = [0.40, 0.25, 0.20, 0.15]  # Exercise, Exercise Type, Quantity, Date
-
-        # Calculate widths based on proportions of available width
-        column_widths = [int(available_width * prop) for prop in proportions]
-
-        # Apply widths to all columns
-        for i, width in enumerate(column_widths):
-            self.tableView_process.setColumnWidth(i, width)
+        # Preferred shares for the non-stretch columns (Date takes the rest).
+        proportions = [0.40, 0.25, 0.20]
+        for i, prop in enumerate(proportions):
+            if i >= last_column:
+                break
+            self.tableView_process.setColumnWidth(i, max(60, int(available_width * prop)))
 
     def _append_exercise_name_to_list_view(self, exercise: str, *, load_icon: bool) -> None:
         """Append one exercise to the Sets list when it is not already present."""
@@ -7925,9 +7921,6 @@ class MainWindow(
 
     def _setup_process_table_header(self) -> None:
         """Configure process table header and column widths."""
-        process_header = self.tableView_process.horizontalHeader()
-        for i in range(process_header.count()):
-            process_header.setSectionResizeMode(i, process_header.ResizeMode.Interactive)
         self._adjust_process_table_columns()
 
     def _setup_sync_dumbbell_weight_types_action(self) -> None:
@@ -8001,6 +7994,7 @@ class MainWindow(
         self.splitter.setStretchFactor(0, 0)  # frame with fixed size
         self.splitter.setStretchFactor(1, 2)  # exercise list
         self.splitter.setStretchFactor(2, 3)  # process filters + table
+        self.splitter.splitterMoved.connect(lambda *_args: self._adjust_process_table_columns())
         self._apply_sets_splitter_sizes()
         self._setup_workouts_tab()
         install_shrinkable_tab_scroll(self, self.tabWidget)

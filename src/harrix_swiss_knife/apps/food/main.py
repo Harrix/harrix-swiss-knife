@@ -1253,23 +1253,11 @@ class MainWindow(
         if not self.tableView_food_log.isVisible():
             return
 
-        # Get current table width (approximate available width for table)
-        table_width = self.tableView_food_log.width()
-        if table_width <= 0:
+        available_width = self.tableView_food_log.viewport().width()
+        if available_width <= 0:
             return
 
-        # Ensure minimum table width for better appearance
-        table_width = max(table_width, 800)
-
-        # Reserve space for vertical headers, scrollbar, and borders
-        vertical_header_width = self.tableView_food_log.verticalHeader().width()
-        scrollbar_width = 20  # Approximate scrollbar width
-        borders_and_margins = 10  # Space for borders and margins
-
-        available_width = table_width - vertical_header_width - scrollbar_width - borders_and_margins
-
-        # Define proportional distribution of available width
-        # Total: 100% = 16% + 5% + 6% + 13% + 11% + 12% + 10% + 16% + 11%
+        # Define proportional distribution; last column absorbs leftover via Stretch.
         proportions = [
             0.16,  # Name
             0.05,  # Is Drink
@@ -1282,13 +1270,18 @@ class MainWindow(
             0.11,  # Total per day
         ]
 
-        # Calculate widths based on proportions of available width
-        column_widths = [int(available_width * prop) for prop in proportions]
-
-        # Apply widths to all columns
-        for i, width in enumerate(column_widths):
-            self.tableView_food_log.setColumnWidth(i, width)
         food_log_header = self.tableView_food_log.horizontalHeader()
+        last_column = food_log_header.count() - 1
+        for i in range(max(0, last_column)):
+            food_log_header.setSectionResizeMode(i, food_log_header.ResizeMode.Interactive)
+        if last_column >= 0:
+            food_log_header.setSectionResizeMode(last_column, food_log_header.ResizeMode.Stretch)
+            food_log_header.setStretchLastSection(True)
+
+        for i, prop in enumerate(proportions):
+            if i >= last_column:
+                break
+            self.tableView_food_log.setColumnWidth(i, max(40, int(available_width * prop)))
         if isinstance(food_log_header, WordWrapHeaderView):
             food_log_header.refresh_wrapped_height()
 

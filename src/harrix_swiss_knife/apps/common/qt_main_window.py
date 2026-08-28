@@ -463,8 +463,8 @@ class _WindowPlacement(ctypes.Structure):
 def apply_app_window_size_and_position(widget: QWidget, *, standard_width: int = 1920) -> None:
     """Set widget size and position like food/finance/habits main Windows.
 
-    On a standard-aspect work area at least `standard_width` wide, maximize.
-    Otherwise fit the window into the available geometry and center it
+    On a standard-aspect work area, maximize. On ultrawide screens, fit a
+    `standard_width` window into the available geometry and center it
     horizontally. Uses the screen under the cursor so a scaled or secondary
     display does not pin the window to the left.
 
@@ -538,7 +538,7 @@ def compute_app_window_geometry(
     Args:
 
     - `available` (`QRect`): Work area of the target screen (excludes the taskbar).
-    - `standard_width` (`int`): Preferred window width and maximize threshold.
+    - `standard_width` (`int`): Preferred window width on ultrawide screens.
       Defaults to `1920`.
     - `frame_left` / `frame_top` / `frame_right` / `frame_bottom` (`int`):
       Window-frame extents in logical pixels.
@@ -553,7 +553,9 @@ def compute_app_window_geometry(
         return None
 
     aspect_ratio = available.width() / available.height()
-    if aspect_ratio <= _STANDARD_ASPECT_RATIO and available.width() >= standard_width:
+    # Standard / near-standard screens (incl. scaled 1080p under 1920 logical px)
+    # open maximized so the frame fills the work area without side gaps.
+    if aspect_ratio <= _STANDARD_ASPECT_RATIO:
         return None
 
     inner_width = max(1, available.width() - max(0, frame_left) - max(0, frame_right))
