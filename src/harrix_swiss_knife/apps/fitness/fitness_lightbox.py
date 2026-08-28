@@ -53,13 +53,43 @@ _COLOR_IDLE = "#111827"
 _COLOR_COUNTDOWN = "#2563EB"
 _COLOR_RUNNING = "#111827"
 _COLOR_OVERTIME = "#DC2626"
+_COLOR_IDLE_ON_DARK = "#F9FAFB"
+_COLOR_RUNNING_ON_DARK = "#F9FAFB"
+_COLOR_MUTED = "#6B7280"
+_COLOR_MUTED_ON_DARK = "#9CA3AF"
+_COLOR_TITLE = "#111827"
+_COLOR_TITLE_ON_DARK = "#F9FAFB"
+_SPLITTER_HOVER = "#9CA3AF"
 
 _PANE_STYLE = """
 QFrame#fitnessLightboxPane {
-    background: #F8FAFC;
-    border: 1px solid #E5E7EB;
-    border-radius: 16px;
+    background: transparent;
+    border: none;
+    border-radius: 0;
 }
+"""
+
+
+def _fitness_splitter_style(fill: str) -> str:
+    return f"""
+QSplitter#fitnessLightboxSplitter {{
+    background: {fill};
+    border: none;
+}}
+QSplitter#fitnessLightboxSplitter::handle {{
+    background: {fill};
+    width: 6px;
+    margin: 0;
+    padding: 0;
+    border: none;
+}}
+QSplitter#fitnessLightboxSplitter::handle:hover {{
+    background: {_SPLITTER_HOVER};
+}}
+QWidget#fitnessLightboxImageHost {{
+    background: {fill};
+    border: none;
+}}
 """
 
 _VALUE_STYLE = """
@@ -214,6 +244,7 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
         )
         self._sidebar.confirm_requested.connect(self._on_confirm)
         self._install_sidebar()
+        self._sync_fitness_chrome_backdrop()
         self.finish_setup()
 
     def chrome_rect(self) -> QRect:
@@ -340,6 +371,19 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
         self._label.setGeometry(0, 0, pane.width(), pane.height())
         self._schedule_avif_reload()
 
+    def _set_backdrop_color(self, color: str) -> None:
+        super()._set_backdrop_color(color)
+        self._sync_fitness_chrome_backdrop()
+
+    def _sync_fitness_chrome_backdrop(self) -> None:
+        fill = getattr(self, "_backdrop_color", "white")
+        splitter = getattr(self, "_splitter", None)
+        if splitter is not None:
+            splitter.setStyleSheet(_fitness_splitter_style(fill))
+        sidebar = getattr(self, "_sidebar", None)
+        if sidebar is not None:
+            sidebar.apply_backdrop(fill)
+
 
 class FitnessLightboxSidebar(QFrame):
     """Quick-style column: stopwatch, exercise name, type, value, confirm."""
@@ -358,6 +402,7 @@ class FitnessLightboxSidebar(QFrame):
         self.setObjectName("fitnessLightboxPane")
         self.setStyleSheet(_PANE_STYLE)
         self.setMinimumWidth(_SIDEBAR_MIN_WIDTH)
+        self._backdrop_dark = False
         self._countdown_seconds = max(0, countdown_seconds)
         self._limit_seconds = limit_seconds
         self._stopwatch = ExerciseStopwatch(
@@ -373,6 +418,16 @@ class FitnessLightboxSidebar(QFrame):
         self._status_flash.setSingleShot(True)
         self._status_flash.timeout.connect(self._hide_status_flash)
         self._build_ui()
+        self._apply_snapshot(self._stopwatch.snapshot())
+
+    def apply_backdrop(self, color: str) -> None:
+        """Match label colors to the lightbox backdrop (`white` or `black`)."""
+        self._backdrop_dark = color == "black"
+        title = _COLOR_TITLE_ON_DARK if self._backdrop_dark else _COLOR_TITLE
+        muted = _COLOR_MUTED_ON_DARK if self._backdrop_dark else _COLOR_MUTED
+        self._title.setStyleSheet(f"color: {title}; background: transparent;")
+        self._limit_label.setStyleSheet(f"color: {muted};")
+        self._unit_label.setStyleSheet(f"color: {muted};")
         self._apply_snapshot(self._stopwatch.snapshot())
 
     def bind(self, exercise_name: str, details: FitnessLightboxDetails) -> None:
@@ -422,9 +477,11 @@ class FitnessLightboxSidebar(QFrame):
         previous_phase = self._last_phase
         self._time_label.setText(format_mm_ss(snapshot.display_seconds))
         color = {
-            StopwatchColor.IDLE: _COLOR_IDLE,
+            StopwatchColor.IDLE: _COLOR_IDLE_ON_DARK if self._backdrop_dark else _COLOR_IDLE,
             StopwatchColor.COUNTDOWN: _COLOR_COUNTDOWN,
-            StopwatchColor.RUNNING: _COLOR_RUNNING,
+            StopwatchColor.RUNNING: (
+                _COLOR_RUNNING_ON_DARK if self._backdrop_dark else _COLOR_RUNNING
+            ),
             StopwatchColor.OVERTIME: _COLOR_OVERTIME,
         }[snapshot.color]
         self._time_label.setStyleSheet(f"color: {color}; background: transparent;")
@@ -435,7 +492,8 @@ class FitnessLightboxSidebar(QFrame):
             previous_phase is StopwatchPhase.COUNTDOWN or previous_phase is StopwatchPhase.IDLE
         ) and snapshot.phase is StopwatchPhase.RUNNING:
             play_fitness_timer_cue("start")
-            self._flash_status("Start", _COLOR_RUNNING)
+            start_color = _COLOR_RUNNING_ON_DARK if self._backdrop_dark else _COLOR_RUNNING
+            self._flash_status("Start", start_color)
         elif snapshot.phase is StopwatchPhase.IDLE and not self._status_flash.isActive():
             self._prepare_label.hide()
         if snapshot.is_overtime and snapshot.is_running:
@@ -512,7 +570,7 @@ class FitnessLightboxSidebar(QFrame):
         self._limit_label = QLabel("")
         self._limit_label.setObjectName("fitnessLightboxLimit")
         self._limit_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._limit_label.setStyleSheet("color: #6B7280;")
+        self._limit_label.setStyleSheet(f"color: {_COLOR_MUTED};")
         _apply_pixel_font(self._limit_label, pixel_size=14)
         self._limit_label.hide()
 
@@ -535,7 +593,7 @@ class FitnessLightboxSidebar(QFrame):
         self._title.setObjectName("fitnessLightboxTitle")
         self._title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._title.setWordWrap(True)
-        self._title.setStyleSheet("color: #111827;")
+        self._title.setStyleSheet(f"color: {_COLOR_TITLE}; background: transparent;")
         _apply_pixel_font(self._title, pixel_size=22, weight=QFont.Weight.ExtraBold)
 
         self._type_combo = _LightboxTypeCombo()
@@ -557,7 +615,7 @@ class FitnessLightboxSidebar(QFrame):
         self._unit_label = QLabel("")
         self._unit_label.setObjectName("fitnessLightboxUnit")
         self._unit_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._unit_label.setStyleSheet("color: #6B7280;")
+        self._unit_label.setStyleSheet(f"color: {_COLOR_MUTED};")
         _apply_pixel_font(self._unit_label, pixel_size=16)
         self._unit_label.hide()
 

@@ -234,6 +234,15 @@ def test_fitness_lightbox_has_splitter_sidebar_and_browse_confirm(
     dialog._sidebar._on_start()
     assert dialog._sidebar._prepare_label.text() == "Prepare!"
     assert not dialog._sidebar._prepare_label.isHidden()
+    assert "background: transparent" in dialog._sidebar.styleSheet()
+    assert "border: none" in dialog._sidebar.styleSheet()
+    assert "border-radius: 0" in dialog._sidebar.styleSheet()
+    assert dialog._splitter is not None
+    assert "::handle:hover" in dialog._splitter.styleSheet()
+    assert "#9CA3AF" in dialog._splitter.styleSheet()
+    dialog._toggle_backdrop_color()
+    assert dialog._backdrop_color == "black"
+    assert "background: black" in dialog._splitter.styleSheet()
     dialog._sidebar.reset_timer()
     assert dialog._sidebar._prepare_label.isHidden()
     assert dialog.chrome_rect().x() > 0
