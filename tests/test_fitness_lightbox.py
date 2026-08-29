@@ -188,8 +188,12 @@ def test_stopwatch_skips_countdown_when_zero() -> None:
 
 
 def test_fitness_timer_cue_sound_names() -> None:
-    assert fitness_timer_cue_sound_name("start") == "fitness_timer_start.wav"
-    assert fitness_timer_cue_sound_name("finish") == "fitness_timer_finish.wav"
+    assert fitness_timer_cue_sound_name("ready") == "fitness_ready.wav"
+    assert fitness_timer_cue_sound_name("go") == "fitness_go.wav"
+    assert fitness_timer_cue_sound_name("time_over") == "fitness_time_over.wav"
+    assert fitness_timer_cue_sound_name("paste") == "fitness_paste.wav"
+    assert fitness_timer_cue_sound_name("success") == "fitness_success.wav"
+    assert fitness_timer_cue_sound_name("congratulations") == "fitness_congratulations.wav"
 
 
 def test_fitness_lightbox_flashes_start_and_finish(
@@ -207,10 +211,6 @@ def test_fitness_lightbox_flashes_start_and_finish(
         cues.append,
     )
     monkeypatch.setattr(
-        "harrix_swiss_knife.apps.fitness.fitness_lightbox.play_fitness_timer_alert",
-        lambda: None,
-    )
-    monkeypatch.setattr(
         "harrix_swiss_knife.apps.fitness.fitness_lightbox.stop_fitness_timer_alert",
         lambda: None,
     )
@@ -226,12 +226,13 @@ def test_fitness_lightbox_flashes_start_and_finish(
     dialog._sidebar._on_start()
     assert dialog._sidebar._prepare_label.text() == "Prepare!"
     assert not dialog._sidebar._prepare_label.isHidden()
+    assert cues == ["ready", "1"]
     dialog._sidebar._apply_snapshot(dialog._sidebar._stopwatch.advance(1000))
-    assert cues == ["start"]
+    assert cues == ["ready", "1", "go"]
     assert dialog._sidebar._prepare_label.text() == "Start"
     assert not dialog._sidebar._prepare_label.isHidden()
     dialog._sidebar._apply_snapshot(dialog._sidebar._stopwatch.advance(60_000))
-    assert cues == ["start", "finish"]
+    assert cues == ["ready", "1", "go"]
     assert dialog._sidebar._prepare_label.text() == "Finish"
     assert not dialog._sidebar._prepare_label.isHidden()
     dialog.close()
@@ -247,14 +248,9 @@ def test_fitness_lightbox_stops_on_timed_exercise_target(
     _write_test_avif(img_dir / "Plank.avif")
     manager = AvifManager(img_dir)
     cues: list[str] = []
-    alerts: list[str] = []
     monkeypatch.setattr(
         "harrix_swiss_knife.apps.fitness.fitness_lightbox.play_fitness_timer_cue",
         cues.append,
-    )
-    monkeypatch.setattr(
-        "harrix_swiss_knife.apps.fitness.fitness_lightbox.play_fitness_timer_alert",
-        lambda: alerts.append("alert"),
     )
     monkeypatch.setattr(
         "harrix_swiss_knife.apps.fitness.fitness_lightbox.stop_fitness_timer_alert",
@@ -273,11 +269,10 @@ def test_fitness_lightbox_stops_on_timed_exercise_target(
     assert dialog._sidebar._limit_label.text() == "Target 0:05"
     dialog._sidebar._on_start()
     dialog._sidebar._apply_snapshot(dialog._sidebar._stopwatch.advance(5000))
-    assert cues == ["start", "finish"]
+    assert cues == ["go", "time_over"]
     assert dialog._sidebar._prepare_label.text() == "Finish"
     assert dialog._sidebar._time_label.text() == "0:05"
     assert not dialog._sidebar._stopwatch.snapshot().is_running
-    assert alerts == []
     dialog.close()
 
 
@@ -293,10 +288,6 @@ def test_fitness_lightbox_restores_timer_state_without_prepare(
     monkeypatch.setattr(
         "harrix_swiss_knife.apps.fitness.fitness_lightbox.play_fitness_timer_cue",
         lambda _cue: None,
-    )
-    monkeypatch.setattr(
-        "harrix_swiss_knife.apps.fitness.fitness_lightbox.play_fitness_timer_alert",
-        lambda: None,
     )
     monkeypatch.setattr(
         "harrix_swiss_knife.apps.fitness.fitness_lightbox.stop_fitness_timer_alert",
