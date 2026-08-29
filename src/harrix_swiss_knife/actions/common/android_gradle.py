@@ -17,6 +17,12 @@ else:  # pragma: no cover - Windows-only helpers
     winreg = None  # type: ignore[assignment]
 
 ANDROID_SDK_SETUP_HINT = "Run Android → Install JDK and Android SDK, or `hsk android setup`."
+GRADLE_DAEMON_CONNECT_HINT = (
+    "Gradle daemon could not connect (often VPN/WireGuard or IPv6 on Windows). "
+    "Retry the build, or run `gradlew --stop` then rebuild. "
+    "HSK forces IPv4 for Gradle; disconnect VPN if it still fails."
+)
+GRADLE_PREFER_IPV4 = "-Djava.net.preferIPv4Stack=true"
 JAVA17_OUTPUT_RE = re.compile(r'version "17(\.|")')
 PORTABLE_TEMURIN_DIR_NAME = "jdk-17.0.14+7"
 SDK_LICENSE_HASH = "24333f8a63b6825ea9c5514f83c2829b004d1fee"
@@ -85,7 +91,12 @@ def find_built_apk(android_dir: Path, variant: str) -> Path | None:
 
 
 def gradle_env(java_home: str) -> dict[str, str]:
-    """Build process env for Gradle, including JDK and Android SDK paths."""
+    """Build process env for Gradle, including JDK and Android SDK paths.
+
+    Forces IPv4 so the Gradle client and daemon agree on `127.0.0.1` even when
+    extra NICs (e.g. WireGuard) are present on Windows.
+
+    """
     env = os.environ.copy()
     env["JAVA_HOME"] = java_home
     java_bin = str(Path(java_home) / "bin")
@@ -96,6 +107,9 @@ def gradle_env(java_home: str) -> dict[str, str]:
     if android_home:
         env["ANDROID_HOME"] = android_home
         env["ANDROID_SDK_ROOT"] = android_home
+
+    env["JAVA_TOOL_OPTIONS"] = _append_jvm_opt(env.get("JAVA_TOOL_OPTIONS"), GRADLE_PREFER_IPV4)
+    env["GRADLE_OPTS"] = _append_jvm_opt(env.get("GRADLE_OPTS"), GRADLE_PREFER_IPV4)
     return env
 
 
@@ -188,10 +202,10 @@ def run_gradle(
     *tasks: str,
     timeout: float | None = 1800.0,
 ) -> subprocess.CompletedProcess[str]:
-    """Run one or more Gradle tasks via ``gradlew.bat --no-daemon``."""
+    """Run one or more Gradle tasks via ``gradlew.bat`` (persistent daemon)."""
     gradlew = android_dir / "gradlew.bat"
     return subprocess.run(
-        [str(gradlew), *tasks, "--no-daemon"],
+        [str(gradlew), *tasks],
         cwd=str(android_dir),
         env=gradle_env(java_home),
         capture_output=True,
@@ -278,6 +292,16 @@ def write_android_sdk_licenses(sdk_root: Path) -> None:
     licenses_dir.mkdir(parents=True, exist_ok=True)
     (licenses_dir / "android-sdk-license").write_text(SDK_LICENSE_HASH, encoding="ascii", newline="")
     (licenses_dir / "android-sdk-preview-license").write_text(SDK_PREVIEW_LICENSE_HASH, encoding="ascii", newline="")
+
+
+def _append_jvm_opt(existing: str | None, option: str) -> str:
+    """Return ``existing`` with ``option`` appended when it is not already present."""
+    current = (existing or "").strip()
+    if option in current.split():
+        return current
+    if not current:
+        return option
+    return f"{current} {option}"
 
 
 def _java_home_candidates() -> list[str]:
