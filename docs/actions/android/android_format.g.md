@@ -128,7 +128,7 @@ class OnAndroidFormat(ActionBase):
         self.add_line(f"🔵 Starting spotlessApply in {android_dir}")
         self.add_line(f"$ JAVA_HOME={java_home}")
         gradlew = android_dir / "gradlew.bat"
-        self.add_line(f'$ "{gradlew}" spotlessApply --no-daemon')
+        self.add_line(f'$ "{gradlew}" spotlessApply')
 
         process = run_gradle(android_dir, java_home, "spotlessApply")
         output = "\n".join(part for part in (process.stdout.strip(), process.stderr.strip()) if part)
@@ -137,6 +137,10 @@ class OnAndroidFormat(ActionBase):
 
         if process.returncode != 0:
             self.add_line(f"❌ spotlessApply failed (exit code {process.returncode}).")
+            if "Could not connect to the Gradle daemon" in output:
+                self.add_line(f"Hint: {GRADLE_DAEMON_CONNECT_HINT}")
+            else:
+                self.add_line(f"Hint: {ANDROID_SDK_SETUP_HINT}")
         else:
             self.add_line("✅ spotlessApply completed.")
 ```

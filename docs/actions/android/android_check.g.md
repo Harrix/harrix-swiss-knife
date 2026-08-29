@@ -129,7 +129,7 @@ class OnAndroidCheck(ActionBase):
         self.add_line(f"🔵 Starting qualityCheck in {android_dir}")
         self.add_line(f"$ JAVA_HOME={java_home}")
         gradlew = android_dir / "gradlew.bat"
-        self.add_line(f'$ "{gradlew}" qualityCheck --no-daemon')
+        self.add_line(f'$ "{gradlew}" qualityCheck')
 
         process = run_gradle(android_dir, java_home, "qualityCheck")
         output = "\n".join(part for part in (process.stdout.strip(), process.stderr.strip()) if part)
@@ -138,6 +138,10 @@ class OnAndroidCheck(ActionBase):
 
         if process.returncode != 0:
             self.add_line(f"❌ qualityCheck failed (exit code {process.returncode}).")
+            if "Could not connect to the Gradle daemon" in output:
+                self.add_line(f"Hint: {GRADLE_DAEMON_CONNECT_HINT}")
+            else:
+                self.add_line(f"Hint: {ANDROID_SDK_SETUP_HINT}")
         else:
             self.add_line("✅ qualityCheck completed (spotlessCheck, detekt, lintDebug).")
 ```

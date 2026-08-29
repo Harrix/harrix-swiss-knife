@@ -182,6 +182,9 @@ def gradle_env(java_home: str) -> dict[str, str]
 
 Build process env for Gradle, including JDK and Android SDK paths.
 
+Forces IPv4 so the Gradle client and daemon agree on `127.0.0.1` even when
+extra NICs (e.g. WireGuard) are present on Windows.
+
 <details>
 <summary>Code:</summary>
 
@@ -197,6 +200,9 @@ def gradle_env(java_home: str) -> dict[str, str]:
     if android_home:
         env["ANDROID_HOME"] = android_home
         env["ANDROID_SDK_ROOT"] = android_home
+
+    env["JAVA_TOOL_OPTIONS"] = _append_jvm_opt(env.get("JAVA_TOOL_OPTIONS"), GRADLE_PREFER_IPV4)
+    env["GRADLE_OPTS"] = _append_jvm_opt(env.get("GRADLE_OPTS"), GRADLE_PREFER_IPV4)
     return env
 ```
 
@@ -395,7 +401,7 @@ def resolve_java_home() -> str | None:
 def run_gradle(android_dir: Path, java_home: str, *tasks: str, timeout: float | None = 1800.0) -> subprocess.CompletedProcess[str]
 ```
 
-Run one or more Gradle tasks via ``gradlew.bat --no-daemon``.
+Run one or more Gradle tasks via ``gradlew.bat`` (persistent daemon).
 
 <details>
 <summary>Code:</summary>
@@ -409,7 +415,7 @@ def run_gradle(
 ) -> subprocess.CompletedProcess[str]:
     gradlew = android_dir / "gradlew.bat"
     return subprocess.run(
-        [str(gradlew), *tasks, "--no-daemon"],
+        [str(gradlew), *tasks],
         cwd=str(android_dir),
         env=gradle_env(java_home),
         capture_output=True,

@@ -513,7 +513,7 @@ class OnAndroidBuild(ActionBase):
 
         self.add_line(f"🔵 Starting {gradle_task} in {android_dir}")
         self.add_line(f"$ JAVA_HOME={java_home}")
-        self.add_line(f'$ "{gradlew}" {gradle_task} --no-daemon')
+        self.add_line(f'$ "{gradlew}" {gradle_task}')
 
         process = run_gradle(android_dir, java_home, gradle_task)
         output = "\n".join(part for part in (process.stdout.strip(), process.stderr.strip()) if part)
@@ -522,7 +522,9 @@ class OnAndroidBuild(ActionBase):
 
         if process.returncode != 0:
             self.add_line(f"❌ {gradle_task} failed (exit code {process.returncode}).")
-            if "JAVA_HOME" in output:
+            if "Could not connect to the Gradle daemon" in output:
+                self.add_line(f"Hint: {GRADLE_DAEMON_CONNECT_HINT}")
+            elif "JAVA_HOME" in output:
                 self.add_line(f"Hint: set JAVA_HOME or {ANDROID_SDK_SETUP_HINT} Then restart the app.")
             else:
                 self.add_line(f"Hint: {ANDROID_SDK_SETUP_HINT}")

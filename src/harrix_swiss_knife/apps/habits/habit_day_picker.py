@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import date
 from typing import TYPE_CHECKING, Literal, cast
 
 from PySide6.QtCore import QEvent, QPointF, QRectF, Qt, QTimer, Signal
@@ -29,6 +28,8 @@ from harrix_swiss_knife.apps.habits.dashboard_widgets import (
 )
 
 if TYPE_CHECKING:
+    from datetime import date
+
     from PySide6.QtGui import QEnterEvent, QMouseEvent, QPaintEvent
 
     from harrix_swiss_knife.apps.habits.dashboard_widgets import CheckCircle
@@ -585,7 +586,7 @@ class HabitNumberStepper(QWidget):
 class _PickerDateColumn(QWidget):
     """Compact ``30.08`` / ``Sun`` stack for the hover picker."""
 
-    def __init__(self, parent: QWidget | None = None) -> None:  # noqa: D107
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setFixedHeight(_DATE_COLUMN_HEIGHT)
         self.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
