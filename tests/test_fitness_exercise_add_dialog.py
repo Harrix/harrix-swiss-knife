@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from PySide6.QtWidgets import QApplication, QCheckBox
+from PySide6.QtWidgets import QApplication, QCheckBox, QPushButton
 
 from harrix_swiss_knife.apps.fitness import exercise_add_dialog as add_dialog_mod
 from harrix_swiss_knife.apps.fitness.exercise_add_dialog import ExerciseAddDialog, contains_cyrillic
@@ -236,4 +236,43 @@ def test_exercise_add_dialog_accepts_local_and_media_without_english(
     assert result[0] == ""
     assert result[4] == "Приседания"
     assert result[6] == str(media_path)
+    assert not dialog.add_another()
+    dialog.close()
+
+
+def _dialog_button_texts(dialog: ExerciseAddDialog) -> list[str]:
+    return [button.text() for button in dialog.findChildren(QPushButton)]
+
+
+def test_add_dialog_has_ok_and_add_another_button(qapp: QApplication) -> None:
+    assert qapp is not None
+    dialog = ExerciseAddDialog()
+    assert "OK and Add Another" in _dialog_button_texts(dialog)
+    dialog.close()
+
+
+def test_edit_dialog_has_no_ok_and_add_another_button(qapp: QApplication) -> None:
+    assert qapp is not None
+    dialog = ExerciseAddDialog(initial={"name": "Push-ups", "name_local": "Отжимания"})
+    assert "OK and Add Another" not in _dialog_button_texts(dialog)
+    dialog.close()
+
+
+def test_ok_does_not_request_another_exercise(qapp: QApplication) -> None:
+    assert qapp is not None
+    dialog = ExerciseAddDialog()
+    dialog._name_edit.setText("Push-ups")
+    dialog._on_accept()
+    assert dialog.get_result() is not None
+    assert not dialog.add_another()
+    dialog.close()
+
+
+def test_ok_and_add_another_requests_another_exercise(qapp: QApplication) -> None:
+    assert qapp is not None
+    dialog = ExerciseAddDialog()
+    dialog._name_edit.setText("Push-ups")
+    dialog._on_accept_and_add_another()
+    assert dialog.get_result() is not None
+    assert dialog.add_another()
     dialog.close()
