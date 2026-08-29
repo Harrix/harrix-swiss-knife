@@ -26,7 +26,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from harrix_swiss_knife.apps.habits.checkin_sounds import play_habit_checkin_sound
+from harrix_swiss_knife.apps.habits.checkin_sounds import play_habit_checkin_sound, preload_habit_checkin_sounds
 from harrix_swiss_knife.apps.habits.dashboard_widgets import (
     COLOR_PRIMARY,
     COLOR_RATE,
@@ -134,6 +134,7 @@ class HabitDashboardWidget(QWidget):
         self.setAutoFillBackground(True)
         self.setStyleSheet("HabitDashboardWidget { background: #FFFFFF; }")
         self._build_ui()
+        preload_habit_checkin_sounds()
 
     def add_habit(self) -> None:
         """Prompt for a habit and add it to the database."""

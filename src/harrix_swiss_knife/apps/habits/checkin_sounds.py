@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import contextlib
 from pathlib import Path
 
 from PySide6.QtCore import QFile, QTimer, QUrl
@@ -10,10 +9,13 @@ from PySide6.QtMultimedia import QSoundEffect
 
 _DONE_NAME = "habit_done.wav"
 _NOT_DONE_NAME = "habit_not_done.wav"
+_SOUND_NAMES = (_DONE_NAME, _NOT_DONE_NAME)
 _VOLUME_DONE = 0.5
 _VOLUME_NOT_DONE = 1.0
 
 _effects: dict[str, QSoundEffect] = {}
+_pending_play: set[str] = set()
+_primed: set[str] = set()
 
 
 def habit_checkin_sound_name(value: int | None) -> str | None:
@@ -37,7 +39,14 @@ def play_habit_checkin_sound(value: int | None) -> None:
     name = habit_checkin_sound_name(value)
     if name is None:
         return
+    preload_habit_checkin_sounds()
     QTimer.singleShot(0, lambda sound_name=name: _play_named(sound_name))
+
+
+def preload_habit_checkin_sounds() -> None:
+    """Decode both check-in effects so the first click of each type can play."""
+    for name in _SOUND_NAMES:
+        _effect_for(name)
 
 
 def _effect_for(name: str) -> QSoundEffect | None:
@@ -49,37 +58,61 @@ def _effect_for(name: str) -> QSoundEffect | None:
     if not url.isValid():
         return None
     effect = QSoundEffect()
+    # Connect before setSource: Ready can fire before the caller inspects status.
+    effect.statusChanged.connect(lambda n=name, e=effect: _on_effect_status(n, e))
     effect.setSource(url)
     effect.setVolume(_volume_for(name))
     _effects[name] = effect
+    if effect.status() == QSoundEffect.Status.Ready:
+        _on_effect_status(name, effect)
     return effect
+
+
+def _on_effect_status(name: str, effect: QSoundEffect) -> None:
+    status = effect.status()
+    if status == QSoundEffect.Status.Error:
+        _pending_play.discard(name)
+        return
+    if status != QSoundEffect.Status.Ready:
+        return
+    if name not in _primed:
+        _prime_effect(name, effect)
+        if name in _pending_play:
+            QTimer.singleShot(0, lambda n=name, e=effect: _play_pending(n, e))
+        return
+    if name in _pending_play:
+        _play_pending(name, effect)
 
 
 def _play_named(name: str) -> None:
     effect = _effect_for(name)
     if effect is None:
         return
-    status = effect.status()
-    if status == QSoundEffect.Status.Ready:
+    if effect.status() == QSoundEffect.Status.Error:
+        return
+    if effect.status() == QSoundEffect.Status.Ready and name in _primed:
         effect.play()
         return
-    if status == QSoundEffect.Status.Error:
+    _pending_play.add(name)
+    if effect.status() == QSoundEffect.Status.Ready:
+        _on_effect_status(name, effect)
+
+
+def _play_pending(name: str, effect: QSoundEffect) -> None:
+    _pending_play.discard(name)
+    if effect.status() != QSoundEffect.Status.Ready:
         return
+    effect.setVolume(_volume_for(name))
+    effect.play()
 
-    def _on_status() -> None:
-        # QSoundEffect.statusChanged has no arguments; read status from the effect.
-        new_status = effect.status()
-        if new_status == QSoundEffect.Status.Error:
-            with contextlib.suppress(RuntimeError):
-                effect.statusChanged.disconnect(_on_status)
-            return
-        if new_status != QSoundEffect.Status.Ready:
-            return
-        with contextlib.suppress(RuntimeError):
-            effect.statusChanged.disconnect(_on_status)
-        effect.play()
 
-    effect.statusChanged.connect(_on_status)
+def _prime_effect(name: str, effect: QSoundEffect) -> None:
+    """Warm the Windows audio device; the first play() of a new effect is often silent."""
+    _primed.add(name)
+    saved = effect.volume()
+    effect.setVolume(0.0)
+    effect.play()
+    effect.setVolume(saved)
 
 
 def _sound_url(name: str) -> QUrl:

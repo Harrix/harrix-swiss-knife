@@ -7,7 +7,11 @@ from PySide6.QtCore import QFile
 from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife import resources_rc  # noqa: F401
-from harrix_swiss_knife.apps.habits.checkin_sounds import habit_checkin_sound_name, play_habit_checkin_sound
+from harrix_swiss_knife.apps.habits.checkin_sounds import (
+    habit_checkin_sound_name,
+    play_habit_checkin_sound,
+    preload_habit_checkin_sounds,
+)
 
 
 @pytest.fixture
@@ -43,3 +47,9 @@ def test_play_habit_checkin_sound_returns_immediately(qapp: QApplication) -> Non
     play_habit_checkin_sound(0)
     play_habit_checkin_sound(None)
     qapp.processEvents()
+
+
+def test_preload_habit_checkin_sounds_is_idempotent(qapp: QApplication) -> None:  # noqa: ARG001
+    """Preload must be safe to call more than once before the first click."""
+    preload_habit_checkin_sounds()
+    preload_habit_checkin_sounds()
