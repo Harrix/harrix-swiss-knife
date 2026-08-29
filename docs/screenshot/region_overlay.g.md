@@ -97,6 +97,7 @@ class RegionOverlay(QDialog):
             for rect in (window_rects or ())
         ]
         self._window_rects_local = [rect for rect in self._window_rects_local if rect.isValid() and not rect.isEmpty()]
+        self._snap_x_edges, self._snap_y_edges = collect_edge_guides(self._window_rects_local, self.rect())
 
         if with_shutter_controls:
             panel = ShutterPanel(self)
@@ -121,7 +122,9 @@ class RegionOverlay(QDialog):
         - `event` (`QEvent`): The event being delivered to the overlay.
 
         """
-        if event.type() == QEvent.Type.ShortcutOverride and _is_escape_key(event):
+        if event.type() == QEvent.Type.ShortcutOverride and (
+            _is_escape_key(event) or _is_arrow_key(event) or _is_enter_key(event)
+        ):
             event.accept()
             return True
         return super().event(event)
@@ -132,7 +135,7 @@ class RegionOverlay(QDialog):
         super().hideEvent(event)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
-        """Enter confirms an editable frame; Escape clears it or cancels capture."""
+        """Enter confirms; arrows nudge/resize; Escape clears the frame or cancels."""
         if event.key() in {Qt.Key.Key_Return, Qt.Key.Key_Enter} and self._edit_rect is not None:
             self._finish_with_rect(self._edit_rect)
             event.accept()
@@ -144,6 +147,11 @@ class RegionOverlay(QDialog):
                 return
             self._crop = None
             self.reject()
+            event.accept()
+            return
+        direction = _ARROW_KEYS.get(event.key())
+        if direction is not None and self._edit_rect is not None:
+            self._nudge_edit_rect(direction, event.modifiers())
             event.accept()
             return
         super().keyPressEvent(event)
@@ -162,11 +170,20 @@ class RegionOverlay(QDialog):
 
         if self._edit_rect is not None:
             if self._edit_handle is not None and self._edit_press_pos is not None and self._edit_press_rect is not None:
-                self._edit_rect = transform_selection_rect(
+                transformed = transform_selection_rect(
                     self._edit_press_rect,
                     self._edit_handle,
                     self._edit_press_pos,
                     pos,
+                    bounds=self.rect(),
+                    min_size=_MIN_SELECTION,
+                )
+                self._edit_rect = snap_rect_to_edges(
+                    transformed,
+                    self._edit_handle,
+                    self._snap_x_edges,
+                    self._snap_y_edges,
+                    threshold=_EDGE_SNAP_THRESHOLD,
                     bounds=self.rect(),
                     min_size=_MIN_SELECTION,
                 )
@@ -307,6 +324,8 @@ class RegionOverlay(QDialog):
         self._edit_press_pos = None
         self._edit_press_rect = None
         self.setCursor(Qt.CursorShape.CrossCursor)
+        if self._panel is not None:
+            self._panel.set_edit_keys_visible(visible=False)
         self._update_snap_at(self.mapFromGlobal(QCursor.pos()))
         self.update()
 
@@ -316,6 +335,9 @@ class RegionOverlay(QDialog):
         self._origin = None
         self._current = None
         self._dragging = False
+        self._snap_x_edges, self._snap_y_edges = collect_edge_guides(self._window_rects_local, self.rect())
+        if self._panel is not None:
+            self._panel.set_edit_keys_visible(visible=True)
         self._apply_edit_cursor(hit_test_selection_handle(self._edit_rect, self.mapFromGlobal(QCursor.pos())))
         self.update()
 
@@ -327,6 +349,21 @@ class RegionOverlay(QDialog):
             self.reject()
             return
         self.accept()
+
+    def _nudge_edit_rect(self, direction: ArrowDir, modifiers: Qt.KeyboardModifier) -> None:
+        if self._edit_rect is None:
+            return
+        step = _ARROW_STEP_SHIFT if modifiers & Qt.KeyboardModifier.ShiftModifier else _ARROW_STEP
+        resize = bool(modifiers & Qt.KeyboardModifier.ControlModifier)
+        self._edit_rect = nudge_selection_rect(
+            self._edit_rect,
+            direction,
+            step=step,
+            resize=resize,
+            bounds=self.rect(),
+            min_size=_MIN_SELECTION,
+        )
+        self.update()
 
     def _paint_edit_handles(self, painter: QPainter, rect: QRect) -> None:
         half = _HANDLE_DRAW // 2
@@ -421,6 +458,7 @@ def __init__(
             for rect in (window_rects or ())
         ]
         self._window_rects_local = [rect for rect in self._window_rects_local if rect.isValid() and not rect.isEmpty()]
+        self._snap_x_edges, self._snap_y_edges = collect_edge_guides(self._window_rects_local, self.rect())
 
         if with_shutter_controls:
             panel = ShutterPanel(self)
@@ -470,7 +508,9 @@ Args:
 
 ```python
 def event(self, event: QEvent) -> bool:
-        if event.type() == QEvent.Type.ShortcutOverride and _is_escape_key(event):
+        if event.type() == QEvent.Type.ShortcutOverride and (
+            _is_escape_key(event) or _is_arrow_key(event) or _is_enter_key(event)
+        ):
             event.accept()
             return True
         return super().event(event)
@@ -503,7 +543,7 @@ def hideEvent(self, event: QHideEvent) -> None:  # noqa: N802
 def keyPressEvent(self, event: QKeyEvent) -> None
 ```
 
-Enter confirms an editable frame; Escape clears it or cancels capture.
+Enter confirms; arrows nudge/resize; Escape clears the frame or cancels.
 
 <details>
 <summary>Code:</summary>
@@ -521,6 +561,11 @@ def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
                 return
             self._crop = None
             self.reject()
+            event.accept()
+            return
+        direction = _ARROW_KEYS.get(event.key())
+        if direction is not None and self._edit_rect is not None:
+            self._nudge_edit_rect(direction, event.modifiers())
             event.accept()
             return
         super().keyPressEvent(event)
@@ -567,11 +612,20 @@ def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
 
         if self._edit_rect is not None:
             if self._edit_handle is not None and self._edit_press_pos is not None and self._edit_press_rect is not None:
-                self._edit_rect = transform_selection_rect(
+                transformed = transform_selection_rect(
                     self._edit_press_rect,
                     self._edit_handle,
                     self._edit_press_pos,
                     pos,
+                    bounds=self.rect(),
+                    min_size=_MIN_SELECTION,
+                )
+                self._edit_rect = snap_rect_to_edges(
+                    transformed,
+                    self._edit_handle,
+                    self._snap_x_edges,
+                    self._snap_y_edges,
+                    threshold=_EDGE_SNAP_THRESHOLD,
                     bounds=self.rect(),
                     min_size=_MIN_SELECTION,
                 )

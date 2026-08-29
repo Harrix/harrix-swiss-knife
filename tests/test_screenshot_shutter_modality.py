@@ -262,24 +262,25 @@ def test_shutter_panel_shows_hover_hint_caption(qapp: QApplication) -> None:  # 
     QApplication.sendEvent(mode_button, QEvent(QEvent.Type.Enter))
     QApplication.processEvents()
 
-    hint = panel.findChild(QLabel)
-    assert hint is not None
-    assert hint.isVisible()
-    assert "Arrange" in hint.text()
+    hints = [label for label in panel.findChildren(QLabel) if "Arrange" in label.text()]
+    assert hints
+    assert hints[0].isVisible()
 
     QApplication.sendEvent(mode_button, QEvent(QEvent.Type.Leave))
     QApplication.processEvents()
-    assert not hint.isVisible()
+    assert not hints[0].isVisible()
     panel.close()
 
 
-def test_shutter_panel_has_adjust_toggle_in_selection_mode(qapp: QApplication) -> None:  # noqa: ARG001
+def test_shutter_panel_shows_edit_key_hints(qapp: QApplication) -> None:  # noqa: ARG001
     panel = ShutterPanel()
     panel.set_mode("selection")
-    assert panel.adjust_mode is False
-    adjust = next(button for button in panel.findChildren(QPushButton) if button.isCheckable())
-    adjust.setChecked(True)
-    assert panel.adjust_mode is True
-    panel.set_mode("arrange")
-    assert panel.adjust_mode is False
+    panel.show()
+    QApplication.processEvents()
+    panel.set_edit_keys_visible(visible=True)
+    labels = [label for label in panel.findChildren(QLabel) if "Shift" in label.text()]
+    assert labels
+    assert labels[0].isVisible()
+    panel.set_edit_keys_visible(visible=False)
+    assert not labels[0].isVisible()
     panel.close()

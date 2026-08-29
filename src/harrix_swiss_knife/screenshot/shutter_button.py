@@ -37,6 +37,7 @@ _ADJUST_EMOJI = "✥"
 _CLOSE_EMOJI = "❌"
 _ICON_SIZE = 36
 _EDGE_MARGIN = 12
+_EDIT_KEYS_TEXT = "←↑↓→ move 1 px\nShift+arrows 10 px\nCtrl+arrows resize\nEnter confirm"
 
 ShutterMode = Literal["selection", "arrange"]
 
@@ -193,6 +194,15 @@ class ShutterPanel(QWidget):
         close_button.clicked.connect(self.cancelled.emit)
         buttons_layout.addWidget(close_button)
 
+        self._edit_keys_label = QLabel(self)
+        self._edit_keys_label.setStyleSheet(_HINT_STYLE)
+        self._edit_keys_label.setWordWrap(True)
+        self._edit_keys_label.setText(_EDIT_KEYS_TEXT)
+        self._edit_keys_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        self._edit_keys_label.setFixedWidth(max(_BUTTON_SIZE, _HINT_WIDTH))
+        self._edit_keys_label.hide()
+        buttons_layout.addWidget(self._edit_keys_label)
+
         root.addWidget(buttons, 0, Qt.AlignmentFlag.AlignTop)
 
         self._hint_label = QLabel(self)
@@ -223,6 +233,13 @@ class ShutterPanel(QWidget):
                 self._hide_hint()
         return super().eventFilter(watched, event)
 
+    def set_edit_keys_visible(self, *, visible: bool) -> None:
+        """Show or hide arrow/Shift/Ctrl hints under the shutter buttons."""
+        if visible == self._edit_keys_label.isVisible():
+            return
+        self._edit_keys_label.setVisible(visible)
+        self._update_size()
+
     def set_mode(self, mode: ShutterMode) -> None:
         """Update the mode button emoji for selection vs desktop-arrangement."""
         self._mode = mode
@@ -239,6 +256,7 @@ class ShutterPanel(QWidget):
             self._mode_button.setProperty("hover_hint", "Capture region")
             self._adjust_button.hide()
             self._adjust_button.setChecked(False)
+            self.set_edit_keys_visible(visible=False)
         if self._hovered_button is self._mode_button:
             self._show_hint(str(self._mode_button.property("hover_hint") or ""))
         self._update_size()
@@ -274,7 +292,11 @@ class ShutterPanel(QWidget):
     def _update_size(self) -> None:
         button_count = 3 if self._mode == "selection" else 2
         total_height = _BUTTON_SIZE * button_count + _BUTTON_GAP * (button_count - 1)
+        if self._edit_keys_label.isVisible():
+            total_height += _BUTTON_GAP + self._edit_keys_label.sizeHint().height()
         width = _BUTTON_SIZE
+        if self._edit_keys_label.isVisible():
+            width = max(width, self._edit_keys_label.width())
         if self._hint_label.isVisible():
             width += _HINT_GAP + _HINT_WIDTH
         self.setFixedSize(width, total_height)

@@ -21,6 +21,7 @@ lang: en
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
   - [⚙️ Method `adjust_mode (property)`](#%EF%B8%8F-method-adjust_mode-property)
   - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
+  - [⚙️ Method `set_edit_keys_visible`](#%EF%B8%8F-method-set_edit_keys_visible)
   - [⚙️ Method `set_mode`](#%EF%B8%8F-method-set_mode)
 - [🔧 Function `position_panel_on_left_edge`](#-function-position_panel_on_left_edge)
 
@@ -285,6 +286,15 @@ class ShutterPanel(QWidget):
         close_button.clicked.connect(self.cancelled.emit)
         buttons_layout.addWidget(close_button)
 
+        self._edit_keys_label = QLabel(self)
+        self._edit_keys_label.setStyleSheet(_HINT_STYLE)
+        self._edit_keys_label.setWordWrap(True)
+        self._edit_keys_label.setText(_EDIT_KEYS_TEXT)
+        self._edit_keys_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        self._edit_keys_label.setFixedWidth(max(_BUTTON_SIZE, _HINT_WIDTH))
+        self._edit_keys_label.hide()
+        buttons_layout.addWidget(self._edit_keys_label)
+
         root.addWidget(buttons, 0, Qt.AlignmentFlag.AlignTop)
 
         self._hint_label = QLabel(self)
@@ -315,6 +325,13 @@ class ShutterPanel(QWidget):
                 self._hide_hint()
         return super().eventFilter(watched, event)
 
+    def set_edit_keys_visible(self, *, visible: bool) -> None:
+        """Show or hide arrow/Shift/Ctrl hints under the shutter buttons."""
+        if visible == self._edit_keys_label.isVisible():
+            return
+        self._edit_keys_label.setVisible(visible)
+        self._update_size()
+
     def set_mode(self, mode: ShutterMode) -> None:
         """Update the mode button emoji for selection vs desktop-arrangement."""
         self._mode = mode
@@ -331,6 +348,7 @@ class ShutterPanel(QWidget):
             self._mode_button.setProperty("hover_hint", "Capture region")
             self._adjust_button.hide()
             self._adjust_button.setChecked(False)
+            self.set_edit_keys_visible(visible=False)
         if self._hovered_button is self._mode_button:
             self._show_hint(str(self._mode_button.property("hover_hint") or ""))
         self._update_size()
@@ -366,7 +384,11 @@ class ShutterPanel(QWidget):
     def _update_size(self) -> None:
         button_count = 3 if self._mode == "selection" else 2
         total_height = _BUTTON_SIZE * button_count + _BUTTON_GAP * (button_count - 1)
+        if self._edit_keys_label.isVisible():
+            total_height += _BUTTON_GAP + self._edit_keys_label.sizeHint().height()
         width = _BUTTON_SIZE
+        if self._edit_keys_label.isVisible():
+            width = max(width, self._edit_keys_label.width())
         if self._hint_label.isVisible():
             width += _HINT_GAP + _HINT_WIDTH
         self.setFixedSize(width, total_height)
@@ -414,6 +436,15 @@ def __init__(self, parent: QWidget | None = None) -> None:
         close_button = self._make_emoji_button(_CLOSE_EMOJI, "Cancel screenshot")
         close_button.clicked.connect(self.cancelled.emit)
         buttons_layout.addWidget(close_button)
+
+        self._edit_keys_label = QLabel(self)
+        self._edit_keys_label.setStyleSheet(_HINT_STYLE)
+        self._edit_keys_label.setWordWrap(True)
+        self._edit_keys_label.setText(_EDIT_KEYS_TEXT)
+        self._edit_keys_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        self._edit_keys_label.setFixedWidth(max(_BUTTON_SIZE, _HINT_WIDTH))
+        self._edit_keys_label.hide()
+        buttons_layout.addWidget(self._edit_keys_label)
 
         root.addWidget(buttons, 0, Qt.AlignmentFlag.AlignTop)
 
@@ -475,6 +506,27 @@ def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
 
 </details>
 
+### ⚙️ Method `set_edit_keys_visible`
+
+```python
+def set_edit_keys_visible(self, *, visible: bool) -> None
+```
+
+Show or hide arrow/Shift/Ctrl hints under the shutter buttons.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_edit_keys_visible(self, *, visible: bool) -> None:
+        if visible == self._edit_keys_label.isVisible():
+            return
+        self._edit_keys_label.setVisible(visible)
+        self._update_size()
+```
+
+</details>
+
 ### ⚙️ Method `set_mode`
 
 ```python
@@ -502,6 +554,7 @@ def set_mode(self, mode: ShutterMode) -> None:
             self._mode_button.setProperty("hover_hint", "Capture region")
             self._adjust_button.hide()
             self._adjust_button.setChecked(False)
+            self.set_edit_keys_visible(visible=False)
         if self._hovered_button is self._mode_button:
             self._show_hint(str(self._mode_button.property("hover_hint") or ""))
         self._update_size()
