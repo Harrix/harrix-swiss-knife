@@ -2,25 +2,40 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+import harrix_pylib as h
+
 from harrix_swiss_knife.actions.common.markdown_commit import resolve_git_repo, run_git_commit
 from harrix_swiss_knife.apps.common.db_git import ensure_folder_git_repo
+from harrix_swiss_knife.paths import get_config_path
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_HABIT_COMMENTS_DIR = "Notes-Habits"
 _DATE_HEADING_RE = re.compile(r"^## (\d{4}-\d{2}-\d{2})\s*$", re.MULTILINE)
 _UNSAFE_FOLDER_RE = re.compile(r'[<>:"/\\\\|?*]')
 _WHITESPACE_RE = re.compile(r"\s+")
 _DEFAULT_BEGINNING = "---\nlang: ru\n---\n"
 _PREVIEW_MAX_LENGTH = 72
+_NOTE_REPO_NAMES = (
+    "Notes",
+    "Notes-Diaries",
+    "Notes-External",
+    "Notes-Health",
+    DEFAULT_HABIT_COMMENTS_DIR,
+    "Notes-Lists",
+    "Notes-Places",
+    "Notes-Temp",
+)
 
 
 class HabitCommentsStore:
@@ -73,6 +88,21 @@ class HabitCommentsStore:
         for habit_id in habit_ids:
             result[int(habit_id)] = {item.date for item in self.comments_for_habit(int(habit_id))}
         return result
+
+    def ensure_repository(self) -> bool:
+        """Create the Notes-Habits folder and Git repo when they are missing."""
+        if self._root is None:
+            return False
+        try:
+            self._root.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            logger.warning("Could not create habit comments folder %s", self._root)
+            return False
+        ensure_folder_git_repo(self._root)
+        posix = self._root.as_posix()
+        if posix not in self._paths_git:
+            self._paths_git.append(posix)
+        return self._root.is_dir()
 
     def find_habit_file(self, habit_id: int) -> Path | None:
         """Return the existing Markdown file for `habit_id`, if any."""
@@ -140,10 +170,8 @@ class HabitCommentsStore:
         path = self.find_habit_file(habit_id)
         if path is None and not cleaned:
             return None
-        self._root.mkdir(parents=True, exist_ok=True)
-        ensure_folder_git_repo(self._root)
-        if self._root.as_posix() not in self._paths_git:
-            self._paths_git.append(self._root.as_posix())
+        if not self.ensure_repository():
+            return None
 
         if path is None:
             path = self._new_habit_file(habit_id, habit_name)
@@ -212,6 +240,35 @@ class HabitDayComment:
     text: str
 
 
+def apply_habit_comments_root_to_config(config: dict[str, Any], root: Path) -> bool:
+    """Set `path_habit_comments` and append the folder to `paths_git` / `paths_notes`.
+
+    Args:
+
+    - `config` (`dict[str, Any]`): In-memory config to update.
+    - `root` (`Path`): Notes-Habits repository folder.
+
+    Returns:
+
+    - `bool`: `True` when at least one field changed.
+
+    """
+    posix = Path(root).as_posix()
+    changed = False
+    current = str(config.get("path_habit_comments") or "").strip()
+    if not current or Path(current).as_posix() != posix:
+        config["path_habit_comments"] = posix
+        changed = True
+    for key in ("paths_git", "paths_notes"):
+        raw = config.get(key)
+        items = [str(item) for item in raw] if isinstance(raw, list) else []
+        if not _path_in_list(posix, items):
+            items.append(posix)
+            config[key] = items
+            changed = True
+    return changed
+
+
 def habit_comment_folder_slug(name: str) -> str:
     """Return a filesystem-safe stem from a habit name."""
     cleaned = _UNSAFE_FOLDER_RE.sub("", (name or "").strip())
@@ -230,6 +287,34 @@ def parse_habit_comment_file(content: str) -> list[HabitDayComment]:
         if text:
             comments.append(HabitDayComment(date=match.group(1), text=text))
     return comments
+
+
+def persist_habit_comments_root(
+    root: Path,
+    config: dict[str, Any] | None = None,
+    *,
+    config_path: Path | None = None,
+) -> None:
+    """Write Notes-Habits paths into `config.json` and keep `config` in sync.
+
+    Args:
+
+    - `root` (`Path`): Notes-Habits repository folder.
+    - `config` (`dict[str, Any] | None`): Optional in-memory config to keep in sync.
+    - `config_path` (`Path | None`): Config file. Defaults to the project config.
+
+    """
+    path = Path(config_path) if config_path is not None else get_config_path()
+    if path.is_file():
+        loaded = json.loads(path.read_text(encoding="utf-8"))
+        data = loaded if isinstance(loaded, dict) else {}
+    else:
+        data = {}
+    apply_habit_comments_root_to_config(data, root)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(h.dev.dumps_pretty_json(data), encoding="utf-8")
+    if config is not None:
+        apply_habit_comments_root_to_config(config, root)
 
 
 def preview_habit_comment(text: str) -> str:
@@ -266,17 +351,40 @@ def resolve_habit_comments_root(config: dict[str, Any] | None) -> Path | None:
     raw = str(data.get("path_habit_comments") or "").strip()
     if raw:
         return Path(raw)
+    parent = resolve_notes_parent(data)
+    if parent is not None:
+        return parent / DEFAULT_HABIT_COMMENTS_DIR
+    return None
+
+
+def resolve_notes_parent(config: dict[str, Any] | None) -> Path | None:
+    """Return the folder that holds Notes, Notes-Diaries, and sibling repos."""
+    data = config or {}
     diary = str(data.get("path_diary") or "").strip()
     if diary:
         diary_path = Path(diary)
         if diary_path.name.lower() == "diary":
-            return diary_path.parent.parent / "Notes-Habits"
+            return diary_path.parent.parent
         if diary_path.name == "Notes-Diaries":
-            return diary_path.parent / "Notes-Habits"
+            return diary_path.parent
     notes = str(data.get("path_notes") or "").strip()
     if notes:
-        return Path(notes) / "Notes-Habits"
+        return _notes_parent_from_path_notes(Path(notes))
+    paths_notes = data.get("paths_notes")
+    if isinstance(paths_notes, list):
+        for item in paths_notes:
+            raw = str(item or "").strip()
+            if raw:
+                return _notes_parent_from_path_notes(Path(raw))
     return None
+
+
+def _contains_note_repos(folder: Path) -> bool:
+    """Return whether `folder` already contains a Notes / Notes-* repository."""
+    try:
+        return folder.is_dir() and any((folder / name).is_dir() for name in _NOTE_REPO_NAMES)
+    except OSError:
+        return False
 
 
 def _frontmatter_with_habit_id(beginning: str, habit_id: int) -> str:
@@ -290,3 +398,20 @@ def _frontmatter_with_habit_id(beginning: str, habit_id: int) -> str:
     body = [line for line in lines[1:end_idx] if not line.lower().startswith("habit-id:")]
     body.append(f"habit-id: {habit_id}")
     return "\n".join(["---", *body, "---"])
+
+
+def _notes_parent_from_path_notes(notes_path: Path) -> Path:
+    """Infer the shared notes folder from `path_notes`."""
+    if _contains_note_repos(notes_path):
+        return notes_path
+    if _contains_note_repos(notes_path.parent):
+        return notes_path.parent
+    if notes_path.name == "Notes" and notes_path.parent.name == "Notes":
+        return notes_path.parent
+    return notes_path
+
+
+def _path_in_list(posix: str, items: list[str]) -> bool:
+    """Return whether `posix` is already present in `items`."""
+    target = Path(posix)
+    return any(Path(str(item)) == target or Path(str(item)).as_posix() == target.as_posix() for item in items)

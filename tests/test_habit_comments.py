@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+import shutil
 from pathlib import Path
 
 import pytest
@@ -10,11 +12,14 @@ from PySide6.QtWidgets import QApplication
 from harrix_swiss_knife.apps.habits.habit_comments import (
     HabitCommentsStore,
     HabitDayComment,
+    apply_habit_comments_root_to_config,
     habit_comment_folder_slug,
     parse_habit_comment_file,
+    persist_habit_comments_root,
     preview_habit_comment,
     render_habit_comment_file,
     resolve_habit_comments_root,
+    resolve_notes_parent,
 )
 from harrix_swiss_knife.apps.habits.habit_comments_list_dialog import HabitCommentsListDialog
 from harrix_swiss_knife.apps.habits.habit_day_comment_dialog import HabitDayCommentDialog
@@ -64,6 +69,55 @@ def test_resolve_habit_comments_root_from_diary() -> None:
     assert root == Path("D:/Dropbox/Notes/Notes-Habits")
     data_root = resolve_habit_comments_root({"path_diary": "C:/data/Notes/Notes-Diaries"})
     assert data_root == Path("C:/data/Notes/Notes-Habits")
+
+
+def test_resolve_habit_comments_root_from_path_notes(tmp_path: Path) -> None:
+    notes_parent = tmp_path / "Notes"
+    (notes_parent / "Notes-Diaries").mkdir(parents=True)
+    (notes_parent / "Notes").mkdir()
+    assert resolve_notes_parent({"path_notes": str(notes_parent)}) == notes_parent
+    assert resolve_habit_comments_root({"path_notes": str(notes_parent)}) == notes_parent / "Notes-Habits"
+    nested_notes = notes_parent / "Notes"
+    assert resolve_notes_parent({"path_notes": str(nested_notes)}) == notes_parent
+    assert resolve_habit_comments_root({"path_notes": str(nested_notes)}) == notes_parent / "Notes-Habits"
+
+
+def test_apply_habit_comments_root_to_config(tmp_path: Path) -> None:
+    root = tmp_path / "Notes-Habits"
+    config: dict[str, object] = {"paths_git": ["D:/other"], "paths_notes": []}
+    assert apply_habit_comments_root_to_config(config, root) is True
+    assert config["path_habit_comments"] == root.as_posix()
+    assert root.as_posix() in config["paths_git"]
+    assert root.as_posix() in config["paths_notes"]
+    assert apply_habit_comments_root_to_config(config, root) is False
+
+
+def test_persist_habit_comments_root(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.json"
+    config_path.write_text("{}\n", encoding="utf-8")
+    root = tmp_path / "Notes-Habits"
+    live: dict[str, object] = {}
+    persist_habit_comments_root(root, live, config_path=config_path)
+    saved = json.loads(config_path.read_text(encoding="utf-8"))
+    assert saved["path_habit_comments"] == root.as_posix()
+    assert live["path_habit_comments"] == root.as_posix()
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="git is not on PATH")
+def test_set_comment_creates_notes_habits_git_repo_then_note(tmp_path: Path) -> None:
+    notes_parent = tmp_path / "Notes"
+    (notes_parent / "Notes-Diaries").mkdir(parents=True)
+    store = HabitCommentsStore.from_config({"path_notes": str(notes_parent)}, commit=False)
+    root = store.root()
+    assert root == notes_parent / "Notes-Habits"
+    assert root is not None
+    assert not root.exists()
+    path = store.set_comment(1, "2026-08-30", "5 km", habit_name="Run")
+    assert root.is_dir()
+    assert (root / ".git").exists()
+    assert path is not None
+    assert path.is_file()
+    assert store.comment(1, "2026-08-30") == "5 km"
 
 
 def test_habit_comments_store_roundtrip(tmp_path: Path) -> None:
