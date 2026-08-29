@@ -180,6 +180,7 @@ class WorkoutsWidget(QWidget):
         self._update_session_ui_locked()
         self._refresh_row_highlights()
         if completed:
+            play_fitness_timer_cue("congratulations")
             message_box.information(
                 self,
                 "Workout complete",
@@ -1092,6 +1093,7 @@ def stop_workout_session(self, *, completed: bool = False) -> None:
         self._update_session_ui_locked()
         self._refresh_row_highlights()
         if completed:
+            play_fitness_timer_cue("congratulations")
             message_box.information(
                 self,
                 "Workout complete",

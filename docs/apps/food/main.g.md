@@ -95,6 +95,7 @@ class MainWindow(
     )
     about_app_name = "Food tracker"
     about_description = "Track food intake, calories, and drinks."
+    settings_app_id = "food"
 
     def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
         super().__init__()

@@ -91,6 +91,7 @@ class MainWindow(
     )
     about_app_name = "Habit tracker"
     about_description = "Track habits and daily progress."
+    settings_app_id = "habits"
 
     def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107  (inherited from Qt widgets)
         super().__init__()
