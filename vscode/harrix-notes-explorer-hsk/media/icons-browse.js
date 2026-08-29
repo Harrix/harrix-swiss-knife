@@ -18,7 +18,7 @@
   let crumbs = [];
   /** @type {Array<{ path: string, name: string, depth: number, hasChildren?: boolean, expanded?: boolean }>} */
   let folderTree = [];
-  /** @type {Array<{ kind: string, path: string, name: string, label: string, iconEmoji: string, description: string, thumbnailImage?: string, thumbnailExcerpt?: string, tableDate?: string, tableSize?: string, tableType?: string, contextValue?: string, isWorkspaceRoot?: boolean, isCut?: boolean, menu?: Array<{ type: string, command?: string, title?: string }> }>} */
+  /** @type {Array<{ kind: string, path: string, name: string, label: string, iconEmoji: string, iconImage?: string, description: string, thumbnailImage?: string, thumbnailExcerpt?: string, tableDate?: string, tableSize?: string, tableType?: string, contextValue?: string, isWorkspaceRoot?: boolean, isCut?: boolean, menu?: Array<{ type: string, command?: string, title?: string }> }>} */
   let entries = [];
   /** @type {{ kind: string, path: string, name: string, contextValue?: string, isWorkspaceRoot?: boolean } | null} */
   let currentFolder = null;
@@ -237,6 +237,10 @@
     const emoji = String(entry.iconEmoji || '').trim();
     if (emoji) {
       return escapeHtml(emoji);
+    }
+    const iconImage = String(entry.iconImage || '').trim();
+    if (iconImage) {
+      return imgHtml(iconImage);
     }
     if (iconStyle === 'harrix' && iconUrls.note) {
       return imgHtml(iconUrls.note);

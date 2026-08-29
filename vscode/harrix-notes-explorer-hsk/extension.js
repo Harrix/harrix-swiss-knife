@@ -690,11 +690,43 @@ function isAssetFolderName(name) {
   return getAssetFolderNames().has(String(name).toLowerCase());
 }
 
+/** `featured-image.png`, `featured_image.jpg`, etc. SVG ranks first for icon-note glyphs. */
+const FEATURED_IMAGE_RANK = {
+  '.svg': 0,
+  '.png': 1,
+  '.webp': 2,
+  '.jpg': 3,
+  '.jpeg': 3,
+  '.gif': 4,
+  '.avif': 5,
+};
+
 /** `featured-image.png`, `featured_image.jpg`, etc. */
 function isFeaturedImageFileName(name) {
   const ext = path.extname(name);
   const base = name.slice(0, name.length - ext.length).toLowerCase();
   return base === 'featured-image' || base === 'featured_image';
+}
+
+/**
+ * Note-folder `featured-image.*` (Harrix Vector Icons and any note with a featured preview).
+ * @param {string} noteDir
+ * @returns {string | undefined}
+ */
+function findFeaturedImagePath(noteDir) {
+  let best;
+  let bestRank = 99;
+  for (const entry of safeReaddir(noteDir)) {
+    if (!entry.isFile() || !isFeaturedImageFileName(entry.name)) {
+      continue;
+    }
+    const rank = FEATURED_IMAGE_RANK[path.extname(entry.name).toLowerCase()] ?? 9;
+    if (rank < bestRank) {
+      bestRank = rank;
+      best = path.join(noteDir, entry.name);
+    }
+  }
+  return best;
 }
 
 /**
@@ -2578,7 +2610,7 @@ class NotesProvider {
    * Pass `null` / `undefined` for the multi-root workspace picker.
    *
    * @param {string | null | undefined} dirPath
-   * @returns {Array<{ kind: 'folder' | 'note', path: string, name: string, label: string, iconEmoji: string, description: string }>}
+   * @returns {Array<{ kind: 'folder' | 'note', path: string, name: string, label: string, iconEmoji: string, featuredIconPath: string, description: string }>}
    */
   listIconsBrowseEntries(dirPath) {
     if (dirPath == null || dirPath === '') {
@@ -2591,6 +2623,7 @@ class NotesProvider {
             name: entry.name,
             label: typeof item.label === 'string' ? item.label : entry.name,
             iconEmoji: '',
+            featuredIconPath: '',
             description: '',
             contextValue: String(item.contextValue || 'notesFolder'),
             isWorkspaceRoot: true,
@@ -2603,7 +2636,7 @@ class NotesProvider {
       templateCountFor: (folderPath) => this.getTemplatesForFolder(folderPath).length,
     });
 
-    /** @type {Array<{ kind: 'folder' | 'note', path: string, name: string, label: string, iconEmoji: string, description: string, contextValue: string, isWorkspaceRoot?: boolean }>} */
+    /** @type {Array<{ kind: 'folder' | 'note', path: string, name: string, label: string, iconEmoji: string, featuredIconPath: string, description: string, contextValue: string, isWorkspaceRoot?: boolean }>} */
     const entries = [];
     /** @type {string[]} */
     const notePaths = [];
@@ -2617,6 +2650,7 @@ class NotesProvider {
           name: spec.name,
           label: spec.name,
           iconEmoji: '',
+          featuredIconPath: '',
           description: '',
           contextValue: String(item.contextValue || 'notesFolder'),
         });
@@ -2636,6 +2670,7 @@ class NotesProvider {
         name: stem,
         label,
         iconEmoji: noteTitleCache.getIconFast(spec.path) || '',
+        featuredIconPath: findFeaturedImagePath(path.dirname(spec.path)) || '',
         description: label !== stem && getShowNoteFileNameBesideTitle() ? stem : '',
         contextValue: String(item.contextValue || 'note'),
       });
@@ -2768,8 +2803,11 @@ class NotesProvider {
     const movablePath = isNoteInNamedFolder(filePath) ? path.dirname(filePath) : filePath;
     const isCut = treeClipboard.isCutPath(movablePath);
     const emojiIcon = noteIconPathFromEmoji(noteTitleCache.getIconFast(filePath), isCut);
+    const featuredPath = findFeaturedImagePath(noteDir);
     if (emojiIcon) {
       item.iconPath = emojiIcon;
+    } else if (featuredPath) {
+      item.iconPath = vscode.Uri.file(featuredPath);
     } else if (getNotesIconStyle() === 'harrix') {
       item.iconPath = harrixIconUri('note', isCut);
     } else {

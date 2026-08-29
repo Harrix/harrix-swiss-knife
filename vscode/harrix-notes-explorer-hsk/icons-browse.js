@@ -32,6 +32,7 @@ const ICONS_BROWSE_FOLDER_KEY = 'harrixNotesExplorerHsk.iconsBrowse.currentFolde
  *     name: string,
  *     label: string,
  *     iconEmoji: string,
+ *     featuredIconPath?: string,
  *     description: string,
  *     contextValue?: string,
  *     isWorkspaceRoot?: boolean,
@@ -533,11 +534,16 @@ function postState() {
     rawEntries.map((entry) => enrichBrowseEntry(entry, browse)),
     browse,
   );
-  const imageDirs = [
-    ...new Set(
-      listed.map((entry) => (entry.thumbnailImagePath ? path.dirname(entry.thumbnailImagePath) : '')).filter(Boolean),
-    ),
-  ];
+  const imageDirs = dirPath
+    ? [dirPath]
+    : [
+        ...new Set(
+          listed
+            .flatMap((entry) => [entry.thumbnailImagePath, entry.featuredIconPath])
+            .map((imagePath) => (imagePath ? path.dirname(imagePath) : ''))
+            .filter(Boolean),
+        ),
+      ];
   panel.webview.options = {
     enableScripts: true,
     localResourceRoots: webviewResourceRoots(imageDirs),
@@ -552,6 +558,10 @@ function postState() {
       ? panel.webview.asWebviewUri(vscode.Uri.file(entry.thumbnailImagePath)).toString()
       : '',
     thumbnailImagePath: undefined,
+    iconImage: entry.featuredIconPath
+      ? panel.webview.asWebviewUri(vscode.Uri.file(entry.featuredIconPath)).toString()
+      : '',
+    featuredIconPath: undefined,
     isCut: cutPaths.has(
       normalizePath(
         entry.kind === 'note' && String(entry.contextValue || '').includes('NamedFolder')
@@ -622,7 +632,16 @@ function webviewResourceRoots(extraDirs = []) {
   return roots;
 }
 
-const THUMBNAIL_IMAGE_EXT = new Set(['.png', '.jpg', '.jpeg', '.webp', '.avif', '.gif']);
+const THUMBNAIL_IMAGE_EXT = new Set(['.svg', '.png', '.jpg', '.jpeg', '.webp', '.avif', '.gif']);
+const FEATURED_IMAGE_RANK = {
+  '.svg': 0,
+  '.png': 1,
+  '.webp': 2,
+  '.jpg': 3,
+  '.jpeg': 3,
+  '.gif': 4,
+  '.avif': 5,
+};
 
 /**
  * @param {string} name
@@ -634,22 +653,40 @@ function isFeaturedThumbnailName(name) {
 }
 
 /**
+ * @param {string} noteDir
+ * @returns {string | null}
+ */
+function findFeaturedImageInDir(noteDir) {
+  let featuredPath = null;
+  let featuredRank = 99;
+  let entries = [];
+  try {
+    entries = fs.readdirSync(noteDir, { withFileTypes: true });
+  } catch {
+    return null;
+  }
+  for (const entry of entries) {
+    if (entry.isFile() && isFeaturedThumbnailName(entry.name)) {
+      const rank = FEATURED_IMAGE_RANK[path.extname(entry.name).toLowerCase()] ?? 9;
+      if (rank < featuredRank) {
+        featuredRank = rank;
+        featuredPath = path.join(noteDir, entry.name);
+      }
+    }
+  }
+  return featuredPath;
+}
+
+/**
  * @param {string} notePath
  * @param {string} [markdown]
  * @returns {string | null}
  */
 function findThumbnailImagePath(notePath, markdown = '') {
   const noteDir = path.dirname(notePath);
-  let entries = [];
-  try {
-    entries = fs.readdirSync(noteDir, { withFileTypes: true });
-  } catch {
-    entries = [];
-  }
-  for (const entry of entries) {
-    if (entry.isFile() && isFeaturedThumbnailName(entry.name)) {
-      return path.join(noteDir, entry.name);
-    }
+  const featuredPath = findFeaturedImageInDir(noteDir);
+  if (featuredPath) {
+    return featuredPath;
   }
   const imgDir = path.join(noteDir, 'img');
   let images = [];
@@ -714,8 +751,14 @@ function enrichBrowseEntry(entry, browse) {
     // missing path
   }
   const isGmd = entry.kind === 'note' && listing.isGmdFileName(path.basename(entry.path));
-  /** @type {{ dateSource?: string, dateValue?: string, thumbnailExcerpt?: string, thumbnailImagePath?: string }} */
+  /** @type {{ dateSource?: string, dateValue?: string, thumbnailExcerpt?: string, thumbnailImagePath?: string, featuredIconPath?: string }} */
   const extra = {};
+  if (entry.kind === 'note' && !entry.featuredIconPath) {
+    const featured = findFeaturedImageInDir(path.dirname(entry.path));
+    if (featured) {
+      extra.featuredIconPath = featured;
+    }
+  }
   if (entry.kind === 'note' && (browse.layout === 'table' || (browse.showDates && browse.layout === 'list'))) {
     const resolved = noteMeta.resolveNoteDateForPath(entry.path);
     if (resolved) {
