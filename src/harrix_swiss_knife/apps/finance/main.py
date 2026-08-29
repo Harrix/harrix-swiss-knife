@@ -202,6 +202,9 @@ logger = logging.getLogger(__name__)
 _TRANSACTIONS_FIXED_COLUMN_COUNT = 2
 _TRANSACTIONS_TAG_COLUMN_WIDTH = 100
 _TRANSACTIONS_TOTAL_COLUMN_WIDTH = 120
+# Debounce interval after transaction inserts before another silent AI translate pass.
+_BACKGROUND_TX_TRANSLATE_INTERVAL_MS = 5 * 60 * 1000
+_BACKGROUND_TX_TRANSLATE_STATUS = "Translating transaction descriptions…"
 
 
 class MainWindow(
@@ -277,6 +280,10 @@ class MainWindow(
         # Dialog state flags
         self._exchange_dialog_open: bool = False
         self._bothub_state = BothubRequestState()
+        self._bg_tx_translate_state = BothubRequestState()
+        self._bg_tx_translate_timer = QTimer(self)
+        self._bg_tx_translate_timer.setSingleShot(True)
+        self._bg_tx_translate_timer.timeout.connect(self._on_background_transaction_translate_timer)
 
         # Generate pastel colors for date-based coloring
         self.date_colors: list[QColor] = generate_pastel_qcolors(50)
@@ -463,6 +470,7 @@ class MainWindow(
             return
 
         self._is_closing = True
+        self._stop_background_transaction_translate_timer()
 
         scheduler = getattr(self, "_ui_refresh_scheduler", None)
         if scheduler is not None:
@@ -1636,6 +1644,33 @@ class MainWindow(
             model.appendRow(items)
             model.setVerticalHeaderItem(row_idx, QStandardItem(str(row_id)))
 
+    def _apply_background_transaction_translate_response(
+        self,
+        response_text: str,
+        descriptions_for_ai: list[str],
+    ) -> None:
+        """Parse a silent BotHub response, commit matches, then continue or stop."""
+        if self._is_closing or self.db_manager is None:
+            self._clear_background_transaction_translate_status()
+            return
+
+        translations = align_translations_to_descriptions(
+            descriptions_for_ai,
+            parse_transaction_translate_response(response_text),
+        )
+        if not translations:
+            self._on_background_transaction_translate_failed()
+            return
+
+        self._commit_transaction_translations(translations, show_completion=False)
+        self._clear_background_transaction_translate_status()
+
+        remaining = self.db_manager.count_transactions_missing_description_en()
+        if remaining > 0:
+            self._arm_background_transaction_translate_timer()
+        else:
+            self._stop_background_transaction_translate_timer()
+
     def _apply_category_suggestions(self, category_names: list[str]) -> None:
         """Show Use buttons on suggested category rows in `listView_categories`."""
         self._category_suggest_delegate.set_suggested_categories(category_names)
@@ -1660,6 +1695,12 @@ class MainWindow(
             right = min(min_table_width, remaining // 2)
             middle = remaining - right
         self.splitter.setSizes([left, middle, right])
+
+    def _arm_background_transaction_translate_timer(self) -> None:
+        """Start or restart the 5-minute debounce before another silent translate pass."""
+        if self._is_closing:
+            return
+        self._bg_tx_translate_timer.start(_BACKGROUND_TX_TRANSLATE_INTERVAL_MS)
 
     def _calculate_exchange_loss(
         self,
@@ -1759,6 +1800,12 @@ class MainWindow(
 
         # Exchange form
         self._clear_exchange_form()
+
+    def _clear_background_transaction_translate_status(self) -> None:
+        """Clear the silent-translate status bar message when it is ours."""
+        status_bar = self.statusBar()
+        if status_bar.currentMessage() == _BACKGROUND_TX_TRANSLATE_STATUS:
+            status_bar.clearMessage()
 
     def _clear_category_selection(self) -> None:
         """Clear selected category in the transaction form."""
@@ -2714,6 +2761,8 @@ class MainWindow(
         # Start automatic exchange rate update in the background (status bar progress)
         # Use QTimer to delay startup update to ensure all initialization is complete
         QTimer.singleShot(1000, self._auto_update_exchange_rates_on_startup)  # 1 second delay
+        # Silent translate of missing transactions.description_en (status bar only).
+        QTimer.singleShot(300, self._run_background_transaction_translate)
 
     def _focus_amount_and_select_text(self) -> None:
         """Set focus to amount field and select all text."""
@@ -3536,6 +3585,16 @@ class MainWindow(
             year_start_month=self._average_salary_year_start_month,
             year_start_day=self._average_salary_year_start_day,
         )
+
+    def _on_background_transaction_translate_failed(self) -> None:
+        """Stop the silent translate timer after an AI/parse/config failure (no user dialog)."""
+        self._clear_background_transaction_translate_status()
+        self._stop_background_transaction_translate_timer()
+        logger.info("Background transaction description translation stopped after a silent failure")
+
+    def _on_background_transaction_translate_timer(self) -> None:
+        """Run a silent translate pass after the debounce interval."""
+        self._run_background_transaction_translate()
 
     def _on_balance_check_clicked(self) -> None:
         """Show sum of accounts, accounting balance (transactions + exchanges), and difference in current currency."""
@@ -4547,6 +4606,7 @@ class MainWindow(
         self._refresh_transactions_table()
         self._mark_summary_dirty()
         self._mark_transactions_changed(categories_may_change=categories_may_change)
+        self._arm_background_transaction_translate_timer()
 
     def _refresh_secondary_ui_after_transactions_changed(
         self,
@@ -4712,6 +4772,68 @@ class MainWindow(
         if column_widths and header.count() == len(column_widths):
             for i, width in enumerate(column_widths):
                 table_view.setColumnWidth(i, width)
+
+    def _run_background_transaction_translate(self) -> None:
+        """Fill missing transactions.description_en in the background without dialogs or toasts."""
+        if self._is_closing or self.db_manager is None:
+            return
+        if self._bg_tx_translate_state.worker is not None:
+            return
+
+        unique_descriptions_limit = self._finance_transactions_translate_descriptions_limit()
+        descriptions_for_ai: list[str] = []
+
+        while True:
+            descriptions = self.db_manager.get_unique_transaction_descriptions_missing_description_en(
+                limit=unique_descriptions_limit,
+            )
+            if not descriptions:
+                self._clear_background_transaction_translate_status()
+                self._stop_background_transaction_translate_timer()
+                return
+
+            known_translations = self.db_manager.lookup_existing_description_en_for_descriptions(descriptions)
+            if known_translations:
+                self._commit_transaction_translations(known_translations, show_completion=False)
+
+            descriptions_for_ai = [desc for desc in descriptions if desc not in known_translations]
+            if descriptions_for_ai:
+                break
+            # This batch was fully covered by existing DB translations; try the next batch.
+
+        descriptions_text = "\n".join(descriptions_for_ai)
+        try:
+            prompt_text = build_prompt(
+                self._app_config,
+                "finance_transactions_translate_descriptions",
+                {"TRANSACTION_DESCRIPTIONS": descriptions_text},
+            )
+        except ValueError:
+            self._on_background_transaction_translate_failed()
+            return
+
+        self.statusBar().showMessage(_BACKGROUND_TX_TRANSLATE_STATUS)
+
+        def on_success(response_text: str) -> None:
+            self._apply_background_transaction_translate_response(response_text, descriptions_for_ai)
+
+        started = run_bothub_request(
+            self,
+            self._app_config,
+            prompt_text,
+            on_success,
+            toast_message=_BACKGROUND_TX_TRANSLATE_STATUS,
+            is_busy=lambda: self._bg_tx_translate_state.worker is not None,
+            state=self._bg_tx_translate_state,
+            on_error=lambda _message: self._on_background_transaction_translate_failed(),
+            on_cancelled=self._on_background_transaction_translate_failed,
+            offer_retry=False,
+            owner_modal=False,
+            show_toast=False,
+            show_validation_errors=False,
+        )
+        if not started:
+            self._on_background_transaction_translate_failed()
 
     def _run_category_suggestions(self) -> None:
         """Debounced fuzzy category suggestion from the current description text."""
@@ -5931,6 +6053,10 @@ class MainWindow(
         ):
             # This will be handled by the lambda connection above
             pass
+
+    def _stop_background_transaction_translate_timer(self) -> None:
+        """Cancel the silent translate debounce timer."""
+        self._bg_tx_translate_timer.stop()
 
     def _tab_object_name(self, index: int | None = None) -> str:
         """Return the object name of the tab at `index`, or the current tab."""

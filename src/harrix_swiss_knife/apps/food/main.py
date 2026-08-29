@@ -101,7 +101,10 @@ from harrix_swiss_knife.apps.food.food_name_autocomplete import (
     FoodNameAutocompleteProxyModel,
     setup_completer_item_tooltips,
 )
-from harrix_swiss_knife.apps.food.food_translate_parser import parse_food_translate_response
+from harrix_swiss_knife.apps.food.food_translate_parser import (
+    filter_food_translate_for_names,
+    parse_food_translate_response,
+)
 from harrix_swiss_knife.apps.food.food_translate_preview_dialog import FoodTranslatePreviewDialog
 from harrix_swiss_knife.apps.food.kcal_lookup_parser import (
     KcalLookupResult,
@@ -160,6 +163,9 @@ _FOOD_LOG_QUERY_MIN_COLS_FOR_WEIGHT = _FOOD_LOG_QUERY_COL_WEIGHT + 1
 _FOOD_LOG_QUERY_MIN_COLS_FOR_CALORIES = _FOOD_LOG_QUERY_COL_IS_DRINK + 1
 # Columns from `get_all_food_items`: _id, name, name_en, is_drink, …
 _FOOD_ITEM_COL_IS_DRINK = 3
+# Debounce interval after food_log inserts before another silent AI translate pass.
+_BACKGROUND_FOOD_TRANSLATE_INTERVAL_MS = 5 * 60 * 1000
+_BACKGROUND_FOOD_TRANSLATE_STATUS = "Translating food names…"
 
 
 class MainWindow(
@@ -240,6 +246,10 @@ class MainWindow(
         # Dialog state to prevent multiple dialogs
         self._food_item_dialog_open: bool = False
         self._bothub_state = BothubRequestState()
+        self._bg_food_translate_state = BothubRequestState()
+        self._bg_food_translate_timer = QTimer(self)
+        self._bg_food_translate_timer.setSingleShot(True)
+        self._bg_food_translate_timer.timeout.connect(self._on_background_food_translate_timer)
 
         # Table configuration mapping
         self.table_config: dict[str, tuple[QTableView, str, list[str]]] = {
@@ -301,6 +311,7 @@ class MainWindow(
             return
 
         self._is_closing = True
+        self._stop_background_food_translate_timer()
 
         # Dispose Models
         self._dispose_models()
@@ -525,6 +536,7 @@ class MainWindow(
 
                 # Keep focus on food name field for next entry
                 self.lineEdit_food_manual_name.setFocus()
+                self._arm_background_food_translate_timer()
 
             else:
                 message_box.warning(self, "Error", "Failed to add food log record")
@@ -1352,6 +1364,33 @@ class MainWindow(
             model.appendRow(items)
             model.setVerticalHeaderItem(row_idx, QStandardItem(str(row_id)))
 
+    def _apply_background_food_translate_response(
+        self,
+        response_text: str,
+        names_for_ai: list[str],
+    ) -> None:
+        """Parse a silent BotHub response, commit matches, then continue or stop."""
+        if self._is_closing or self.db_manager is None:
+            self._clear_background_food_translate_status()
+            return
+
+        translations = filter_food_translate_for_names(
+            parse_food_translate_response(response_text),
+            names_for_ai,
+        )
+        if not translations:
+            self._on_background_food_translate_failed()
+            return
+
+        self._commit_food_translate_translations(translations, show_completion=False)
+        self._clear_background_food_translate_status()
+
+        remaining = self.db_manager.count_food_log_rows_missing_name_en()
+        if remaining > 0:
+            self._arm_background_food_translate_timer()
+        else:
+            self._stop_background_food_translate_timer()
+
     @requires_database()
     def _apply_eaten_fraction_to_selected_food_log(self, fraction: float) -> None:
         """Scale weight and, in portion mode, serving calories on selected rows."""
@@ -1398,6 +1437,18 @@ class MainWindow(
             self.spinBox_food_weight.setValue(result.weight_g)
         self.update_calories_calculation()
         self._update_add_button_appearance()
+
+    def _arm_background_food_translate_timer(self) -> None:
+        """Start or restart the 5-minute debounce before another silent translate pass."""
+        if self._is_closing:
+            return
+        self._bg_food_translate_timer.start(_BACKGROUND_FOOD_TRANSLATE_INTERVAL_MS)
+
+    def _clear_background_food_translate_status(self) -> None:
+        """Clear the silent-translate status bar message when it is ours."""
+        status_bar = self.statusBar()
+        if status_bar.currentMessage() == _BACKGROUND_FOOD_TRANSLATE_STATUS:
+            status_bar.clearMessage()
 
     def _clear_food_log_table_filter(self) -> None:
         """Clear client-side filter on the food log table proxy."""
@@ -1839,6 +1890,8 @@ class MainWindow(
         self._show_placed_window()
         # Adjust columns after window is shown and has proper dimensions
         QTimer.singleShot(50, self._adjust_food_log_table_columns)
+        # Silent translate of missing food_log name_en values (status bar only).
+        QTimer.singleShot(300, self._run_background_food_translate)
         # The stats chart is already scheduled by _init_food_stats_dates once the date
         # range is known; scheduling it again here would rebuild it twice on startup.
 
@@ -2254,6 +2307,16 @@ class MainWindow(
         self.spinBox_food_weight.setFocus()
         self.spinBox_food_weight.selectAll()
 
+    def _on_background_food_translate_failed(self) -> None:
+        """Stop the silent translate timer after an AI/parse/config failure (no user dialog)."""
+        self._clear_background_food_translate_status()
+        self._stop_background_food_translate_timer()
+        logger.info("Background food name translation stopped after a silent failure")
+
+    def _on_background_food_translate_timer(self) -> None:
+        """Run a silent translate pass after the debounce interval."""
+        self._run_background_food_translate()
+
     def _on_food_add_with_ai_image_dropped(self, paths: list[str]) -> None:
         """Open Add Food with AI dialog with dropped images already loaded."""
         if paths:
@@ -2574,6 +2637,7 @@ class MainWindow(
 
         if success_count > 0:
             self.update_food_data()
+            self._arm_background_food_translate_timer()
 
         if error_count > 0:
             max_errors = 10
@@ -2750,6 +2814,66 @@ class MainWindow(
         self._food_log_pagination.reset()
         self._food_log_dates_with_totals = set()
         self._food_log_date_color_map = {}
+
+    def _run_background_food_translate(self) -> None:
+        """Fill missing food_log name_en values in the background without dialogs or toasts."""
+        if self._is_closing or self.db_manager is None:
+            return
+        if self._bg_food_translate_state.worker is not None:
+            return
+
+        unique_names_limit = self._food_log_translate_names_limit()
+        names_for_ai: list[str] = []
+
+        while True:
+            names = self.db_manager.get_unique_food_log_names_missing_name_en(limit=unique_names_limit)
+            if not names:
+                self._clear_background_food_translate_status()
+                self._stop_background_food_translate_timer()
+                return
+
+            known_translations = self.db_manager.lookup_existing_name_en_for_names(names)
+            if known_translations:
+                self._commit_food_translate_translations(known_translations, show_completion=False)
+
+            names_for_ai = [name for name in names if name not in known_translations]
+            if names_for_ai:
+                break
+            # This batch was fully covered by existing DB translations; try the next batch.
+
+        food_names_text = "\n".join(names_for_ai)
+        try:
+            prompt_text = build_prompt(
+                self._app_config,
+                "food_log_translate_names",
+                {"FOOD_NAMES": food_names_text},
+            )
+        except ValueError:
+            self._on_background_food_translate_failed()
+            return
+
+        self.statusBar().showMessage(_BACKGROUND_FOOD_TRANSLATE_STATUS)
+
+        def on_success(response_text: str) -> None:
+            self._apply_background_food_translate_response(response_text, names_for_ai)
+
+        started = run_bothub_request(
+            self,
+            self._app_config,
+            prompt_text,
+            on_success,
+            toast_message=_BACKGROUND_FOOD_TRANSLATE_STATUS,
+            is_busy=lambda: self._bg_food_translate_state.worker is not None,
+            state=self._bg_food_translate_state,
+            on_error=lambda _message: self._on_background_food_translate_failed(),
+            on_cancelled=self._on_background_food_translate_failed,
+            offer_retry=False,
+            owner_modal=False,
+            show_toast=False,
+            show_validation_errors=False,
+        )
+        if not started:
+            self._on_background_food_translate_failed()
 
     def _run_food_add_by_voice(self, *, large_ui: bool = False) -> None:
         """Record speech, transcribe via BotHub, convert to food log TSV, then open preview dialog."""
@@ -2930,10 +3054,19 @@ class MainWindow(
         self.verticalLayout_food_recipes.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_food_recipes.addWidget(self._recipes_widget, 1)
 
+    def _setup_status_bar(self) -> None:
+        """Ensure status bar is visible and readable on Windows 11 Mica backdrop."""
+        status_bar = self.statusBar()
+        status_bar.setVisible(True)
+        status_bar.setStyleSheet(
+            "QStatusBar { background: rgba(240, 240, 240, 0.9); }QStatusBar QLabel { color: #202020; }"
+        )
+
     def _setup_ui(self) -> None:
         """Set up additional UI elements after basic initialization."""
         self._place_menu_bar_on_tab_row()
         self._install_word_wrap_table_headers()
+        self._setup_status_bar()
 
         # Date field: attach quick preset/offset menu button (removed from .ui)
         self.pushButton_food_date_quick = attach_date_edit_quick_controls(
@@ -3282,6 +3415,10 @@ class MainWindow(
             is_busy=lambda: self._bothub_state.worker is not None,
             state=self._bothub_state,
         )
+
+    def _stop_background_food_translate_timer(self) -> None:
+        """Cancel the silent translate debounce timer."""
+        self._bg_food_translate_timer.stop()
 
     def _swap_weight_and_calories_per_100g(self) -> None:
         """Swap weight and calories per 100g values in the selected row."""

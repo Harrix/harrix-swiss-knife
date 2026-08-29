@@ -47,6 +47,7 @@ class BothubRequestSpec:
     offer_retry: bool = True
     owner_modal: bool = True
     show_toast: bool = True
+    show_validation_errors: bool = True
 ```
 
 </details>
@@ -74,7 +75,7 @@ class BothubRequestState:
 ## 🔧 Function `run_bothub_request`
 
 ```python
-def run_bothub_request(parent: QWidget | None, config: dict[str, Any], prompt_text: str, on_success: Callable[[str], None], *, images: list[tuple[bytes, str]] | None = None, image: tuple[bytes, str] | None = None, audio: tuple[bytes, str] | None = None, model: str | None = None, toast_message: str = 'Requesting AI…', is_busy: Callable[[], bool] | None = None, state: BothubRequestState | None = None, on_error: Callable[[str], None] | None = None, on_cancelled: Callable[[], None] | None = None, offer_retry: bool = True, owner_modal: bool = True, show_toast: bool = True) -> bool
+def run_bothub_request(parent: QWidget | None, config: dict[str, Any], prompt_text: str, on_success: Callable[[str], None], *, images: list[tuple[bytes, str]] | None = None, image: tuple[bytes, str] | None = None, audio: tuple[bytes, str] | None = None, model: str | None = None, toast_message: str = 'Requesting AI…', is_busy: Callable[[], bool] | None = None, state: BothubRequestState | None = None, on_error: Callable[[str], None] | None = None, on_cancelled: Callable[[], None] | None = None, offer_retry: bool = True, owner_modal: bool = True, show_toast: bool = True, show_validation_errors: bool = True) -> bool
 ```
 
 Validate config, show toast, start worker. Returns `True` if the request started.
@@ -101,6 +102,7 @@ Args:
 - `owner_modal`: When `True` (default), the toast blocks the owner window.
   Use `False` for background fills so the UI stays interactive.
 - [`show_toast`](../../actions/common/base.g.md#%EF%B8%8F-method-show_toast): When `False`, run without a BotHub toast.
+- `show_validation_errors`: When `False`, missing API key does not show a dialog.
 
 <details>
 <summary>Code:</summary>
@@ -124,6 +126,7 @@ def run_bothub_request(
     offer_retry: bool = True,
     owner_modal: bool = True,
     show_toast: bool = True,
+    show_validation_errors: bool = True,
 ) -> bool:
     image_list = list(images or [])
     if image is not None:
@@ -145,6 +148,7 @@ def run_bothub_request(
         offer_retry=offer_retry,
         owner_modal=owner_modal,
         show_toast=show_toast,
+        show_validation_errors=show_validation_errors,
     )
     return _start_bothub_request(spec)
 ```

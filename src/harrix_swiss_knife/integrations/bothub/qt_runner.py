@@ -42,6 +42,7 @@ class BothubRequestSpec:
     offer_retry: bool = True
     owner_modal: bool = True
     show_toast: bool = True
+    show_validation_errors: bool = True
 
 
 @dataclass
@@ -70,6 +71,7 @@ def run_bothub_request(
     offer_retry: bool = True,
     owner_modal: bool = True,
     show_toast: bool = True,
+    show_validation_errors: bool = True,
 ) -> bool:
     """Validate config, show toast, start worker. Returns `True` if the request started.
 
@@ -95,6 +97,7 @@ def run_bothub_request(
     - `owner_modal`: When `True` (default), the toast blocks the owner window.
       Use `False` for background fills so the UI stays interactive.
     - `show_toast`: When `False`, run without a BotHub toast.
+    - `show_validation_errors`: When `False`, missing API key does not show a dialog.
 
     """
     image_list = list(images or [])
@@ -117,6 +120,7 @@ def run_bothub_request(
         offer_retry=offer_retry,
         owner_modal=owner_modal,
         show_toast=show_toast,
+        show_validation_errors=show_validation_errors,
     )
     return _start_bothub_request(spec)
 
@@ -205,6 +209,8 @@ def _offer_retry_or_finish(spec: BothubRequestSpec, *, cancelled: bool, message:
 
     """
     if not spec.offer_retry:
+        if spec.state is not None:
+            spec.state.worker = None
         if cancelled:
             _finish_cancelled(spec)
         else:
@@ -266,7 +272,12 @@ def _start_bothub_request(spec: BothubRequestSpec) -> bool:
         return False
 
     for_speech = spec.audio is not None
-    api_key = validate_api_key(spec.config, parent=spec.parent, for_speech=for_speech)
+    api_key = validate_api_key(
+        spec.config,
+        parent=spec.parent,
+        show_message=spec.show_validation_errors,
+        for_speech=for_speech,
+    )
     if api_key is None:
         return False
 

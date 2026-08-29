@@ -145,7 +145,9 @@ def test_offer_retry_restarts_same_spec(qapp: QApplication) -> None:  # noqa: AR
 
 def test_offer_retry_disabled_finishes_immediately(qapp: QApplication) -> None:  # noqa: ARG001
     errors: list[str] = []
-    spec = _make_spec(on_error=errors.append, offer_retry=False)
+    state = BothubRequestState()
+    state.worker = MagicMock()
+    spec = _make_spec(on_error=errors.append, offer_retry=False, state=state)
 
     with (
         patch("harrix_swiss_knife.integrations.bothub.qt_runner.message_box.ask_retry") as ask,
@@ -154,6 +156,7 @@ def test_offer_retry_disabled_finishes_immediately(qapp: QApplication) -> None: 
         _offer_retry_or_finish(spec, cancelled=False, message="boom")
 
     assert errors == ["boom"]
+    assert state.worker is None
     ask.assert_not_called()
     start.assert_not_called()
 
