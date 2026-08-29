@@ -1,10 +1,17 @@
-"""Enumerate visible top-level window rectangles for screenshot region snapping."""
+"""Enumerate snappable screen rectangles for screenshot region capture.
+
+Mirrors ShareX `WindowsRectangleList`: top-level frames, client areas (window without
+chrome), child controls via `EnumChildWindows`, and shell surfaces such as the taskbar.
+
+"""
 
 from __future__ import annotations
 
 import ctypes
 import sys
+import time
 from ctypes import wintypes
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QPoint, QRect
@@ -12,25 +19,58 @@ from PySide6.QtCore import QPoint, QRect
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-_MIN_WINDOW_SIDE = 8
-_GW_OWNER = 4
+_MIN_WINDOW_SIDE = 4
 _GWL_EXSTYLE = -20
 _WS_EX_TOOLWINDOW = 0x00000080
-_WS_EX_APPWINDOW = 0x00040000
+_WS_EX_NOACTIVATE = 0x08000000
 _DWMWA_EXTENDED_FRAME_BOUNDS = 9
 _DWMWA_CLOAKED = 14
-_SHELL_CLASSES = frozenset({"Progman", "WorkerW", "Shell_TrayWnd", "Shell_SecondaryTrayWnd"})
+_ENUM_TIMEOUT_SEC = 3.0
+_IGNORE_CLASS_NAMES = frozenset(
+    {
+        "CEF-OSC-WIDGET",  # NVIDIA GeForce Overlay
+    }
+)
 
 
 class _Point(ctypes.Structure):
     _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
 
 
-def list_snappable_window_rects(*, exclude_hwnds: Sequence[int] = ()) -> list[QRect]:
-    """Return visible top-level window bounds in Qt logical global coordinates.
+@dataclass(frozen=True, slots=True)
+class _SnapCandidate:
+    rect: QRect
+    is_window: bool
 
-    Rectangles are ordered top-most first (same as Win32 `EnumWindows`). Non-Windows
-    platforms return an empty list.
+
+def filter_nested_control_candidates(candidates: Sequence[_SnapCandidate]) -> list[QRect]:
+    """Keep top-level frames always; drop controls fully covered by an earlier region.
+
+    ShareX builds the list depth-first (controls before parents). Hit-testing then picks
+    the first rectangle that contains the cursor, so smaller regions stay preferred.
+
+    Args:
+
+    - `candidates` (`Sequence[_SnapCandidate]`): Raw snap candidates in discovery order.
+
+    Returns:
+
+    - `list[QRect]`: Filtered rectangles for hover snapping.
+
+    """
+    result: list[QRect] = []
+    for candidate in candidates:
+        if not candidate.is_window and any(existing.contains(candidate.rect) for existing in result):
+            continue
+        result.append(QRect(candidate.rect))
+    return result
+
+
+def list_snappable_window_rects(*, exclude_hwnds: Sequence[int] = ()) -> list[QRect]:
+    """Return snappable regions in Qt logical global coordinates.
+
+    Includes window frames, client areas, child controls, and the taskbar. Ordered so
+    the first rectangle containing a point is the most specific match (ShareX-style).
 
     Args:
 
@@ -38,7 +78,7 @@ def list_snappable_window_rects(*, exclude_hwnds: Sequence[int] = ()) -> list[QR
 
     Returns:
 
-    - `list[QRect]`: Snappable window rectangles in global logical pixels.
+    - `list[QRect]`: Snappable rectangles in global logical pixels.
 
     """
     if sys.platform != "win32":
@@ -48,22 +88,45 @@ def list_snappable_window_rects(*, exclude_hwnds: Sequence[int] = ()) -> list[QR
 
 
 def snap_rect_at_point(point: QPoint, window_rects: Sequence[QRect]) -> QRect | None:
-    """Return the top-most rectangle that contains `point`, or `None`.
+    """Return the first rectangle that contains `point`, or `None`.
 
     Args:
 
     - `point` (`QPoint`): Cursor position in the same coordinate space as `window_rects`.
-    - `window_rects` (`Sequence[QRect]`): Candidates ordered top-most first.
+    - `window_rects` (`Sequence[QRect]`): Candidates ordered most-specific first.
 
     Returns:
 
-    - `QRect | None`: Matching rectangle, or `None` when the point is outside all Windows.
+    - `QRect | None`: Matching rectangle, or `None` when the point is outside all regions.
 
     """
     for rect in window_rects:
         if rect.contains(point):
             return QRect(rect)
     return None
+
+
+def _client_rect_logical(user32: ctypes.WinDLL, hwnd: int) -> QRect | None:
+    """Map `GetClientRect` to a logical global `QRect`."""
+    client = wintypes.RECT()
+    if not user32.GetClientRect(hwnd, ctypes.byref(client)):
+        return None
+    if client.right - client.left < _MIN_WINDOW_SIDE or client.bottom - client.top < _MIN_WINDOW_SIDE:
+        return None
+    top_left = _Point(0, 0)
+    bottom_right = _Point(int(client.right), int(client.bottom))
+    if not user32.ClientToScreen(hwnd, ctypes.byref(top_left)):
+        return None
+    if not user32.ClientToScreen(hwnd, ctypes.byref(bottom_right)):
+        return None
+    return _physical_points_to_logical(
+        user32,
+        hwnd,
+        int(top_left.x),
+        int(top_left.y),
+        int(bottom_right.x),
+        int(bottom_right.y),
+    )
 
 
 def _extended_frame_bounds(user32: ctypes.WinDLL, dwmapi: ctypes.WinDLL, hwnd: int) -> tuple[int, int, int, int] | None:
@@ -87,20 +150,6 @@ def _extended_frame_bounds(user32: ctypes.WinDLL, dwmapi: ctypes.WinDLL, hwnd: i
     return int(win_rect.left), int(win_rect.top), int(win_rect.right), int(win_rect.bottom)
 
 
-def _is_alt_tab_window(user32: ctypes.WinDLL, hwnd: int) -> bool:
-    """Skip tool Windows, owned popups, and shell helper Windows."""
-    if user32.GetWindow(hwnd, _GW_OWNER):
-        return False
-
-    ex_style = int(user32.GetWindowLongW(hwnd, _GWL_EXSTYLE))
-    if ex_style & _WS_EX_TOOLWINDOW and not (ex_style & _WS_EX_APPWINDOW):
-        return False
-
-    class_buf = ctypes.create_unicode_buffer(256)
-    user32.GetClassNameW(hwnd, class_buf, 256)
-    return class_buf.value not in _SHELL_CLASSES
-
-
 def _is_cloaked(dwmapi: ctypes.WinDLL, hwnd: int) -> bool:
     cloaked = ctypes.c_int(0)
     result = dwmapi.DwmGetWindowAttribute(
@@ -112,42 +161,92 @@ def _is_cloaked(dwmapi: ctypes.WinDLL, hwnd: int) -> bool:
     return result == 0 and cloaked.value != 0
 
 
+def _is_ignored_top_level(user32: ctypes.WinDLL, dwmapi: ctypes.WinDLL, hwnd: int) -> bool:
+    """ShareX-style filters for top-level Windows only."""
+    if user32.IsIconic(hwnd):
+        return True
+    if _is_cloaked(dwmapi, hwnd):
+        return True
+
+    class_buf = ctypes.create_unicode_buffer(256)
+    user32.GetClassNameW(hwnd, class_buf, 256)
+    if class_buf.value in _IGNORE_CLASS_NAMES:
+        return True
+
+    ex_style = int(user32.GetWindowLongW(hwnd, _GWL_EXSTYLE))
+    # Non-activatable tool overlays (tiling managers, system auxiliaries).
+    return bool(ex_style & _WS_EX_TOOLWINDOW and ex_style & _WS_EX_NOACTIVATE)
+
+
 def _list_snappable_window_rects_win32(*, exclude_hwnds: set[int]) -> list[QRect]:
     user32 = ctypes.windll.user32
     dwmapi = ctypes.windll.dwmapi
-    rects: list[QRect] = []
+    candidates: list[_SnapCandidate] = []
+    visited_parents: set[int] = set()
+    deadline = time.monotonic() + _ENUM_TIMEOUT_SEC
 
-    @ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
-    def _enum_proc(hwnd: int, _lparam: int) -> bool:
+    def check_handle(hwnd: int, clip_rect: QRect | None) -> bool:
+        if time.monotonic() > deadline:
+            return False
         if hwnd in exclude_hwnds:
             return True
         if not user32.IsWindowVisible(hwnd):
             return True
-        if user32.IsIconic(hwnd):
-            return True
-        if _is_cloaked(dwmapi, hwnd):
-            return True
-        if not _is_alt_tab_window(user32, hwnd):
+
+        is_window = clip_rect is None
+        if is_window and _is_ignored_top_level(user32, dwmapi, hwnd):
             return True
 
-        bounds = _extended_frame_bounds(user32, dwmapi, hwnd)
-        if bounds is None:
-            return True
-        left, top, right, bottom = bounds
-        if right - left < _MIN_WINDOW_SIDE or bottom - top < _MIN_WINDOW_SIDE:
+        if is_window:
+            bounds = _extended_frame_bounds(user32, dwmapi, hwnd)
+            if bounds is None:
+                return True
+            left, top, right, bottom = bounds
+            rect = _physical_points_to_logical(user32, hwnd, left, top, right, bottom)
+        else:
+            win_rect = wintypes.RECT()
+            if not user32.GetWindowRect(hwnd, ctypes.byref(win_rect)):
+                return True
+            rect = _physical_points_to_logical(
+                user32,
+                hwnd,
+                int(win_rect.left),
+                int(win_rect.top),
+                int(win_rect.right),
+                int(win_rect.bottom),
+            )
+            if rect is not None and clip_rect is not None:
+                rect = rect.intersected(clip_rect)
+
+        if rect is None or not rect.isValid() or rect.width() < _MIN_WINDOW_SIDE or rect.height() < _MIN_WINDOW_SIDE:
             return True
 
-        logical = _physical_rect_to_logical(user32, hwnd, left, top, right, bottom)
-        if logical is None or logical.width() < _MIN_WINDOW_SIDE or logical.height() < _MIN_WINDOW_SIDE:
-            return True
-        rects.append(logical)
+        if hwnd not in visited_parents:
+            visited_parents.add(hwnd)
+
+            @ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+            def _enum_child(child: int, _lparam: int) -> bool:
+                return check_handle(child, rect)
+
+            user32.EnumChildWindows(hwnd, _enum_child, 0)
+
+        if is_window:
+            client = _client_rect_logical(user32, hwnd)
+            if client is not None and client != rect and client.isValid():
+                candidates.append(_SnapCandidate(rect=client, is_window=False))
+
+        candidates.append(_SnapCandidate(rect=rect, is_window=is_window))
         return True
 
-    user32.EnumWindows(_enum_proc, 0)
-    return rects
+    @ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+    def _enum_top(hwnd: int, _lparam: int) -> bool:
+        return check_handle(hwnd, None)
+
+    user32.EnumWindows(_enum_top, 0)
+    return filter_nested_control_candidates(candidates)
 
 
-def _physical_rect_to_logical(
+def _physical_points_to_logical(
     user32: ctypes.WinDLL,
     hwnd: int,
     left: int,
@@ -163,9 +262,8 @@ def _physical_rect_to_logical(
             return None
         if not convert(hwnd, ctypes.byref(bottom_right)):
             return None
-    return QRect(
-        int(top_left.x),
-        int(top_left.y),
-        max(0, int(bottom_right.x) - int(top_left.x)),
-        max(0, int(bottom_right.y) - int(top_left.y)),
-    )
+    width = max(0, int(bottom_right.x) - int(top_left.x))
+    height = max(0, int(bottom_right.y) - int(top_left.y))
+    if width < _MIN_WINDOW_SIDE or height < _MIN_WINDOW_SIDE:
+        return None
+    return QRect(int(top_left.x), int(top_left.y), width, height)

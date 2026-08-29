@@ -39,8 +39,9 @@ the overlay itself runs modally via `exec()` and owns all input. Clicking
 the arrange button finishes the dialog with `RESULT_TOGGLE_ARRANGE`.
 
 When `window_rects` is provided (global logical coordinates at grab time), moving
-the cursor highlights the top-most window under the pointer. A click without a
-drag captures that window; dragging beyond a small threshold starts a free region.
+the cursor highlights the most specific region under the pointer (control, client
+area, window frame, taskbar, …). A click without a drag captures that region;
+dragging beyond a small threshold starts a free selection.
 
 <details>
 <summary>Code:</summary>
