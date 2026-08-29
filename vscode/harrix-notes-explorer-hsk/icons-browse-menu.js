@@ -11,6 +11,7 @@ const CMD = {
   openNoteInVisualEditor: 'harrixNotesExplorerHsk.openNoteInVisualEditor',
   createNote: 'harrixNotesExplorerHsk.createNote',
   createMarpNote: 'harrixNotesExplorerHsk.createMarpNote',
+  createJupyterNote: 'harrixNotesExplorerHsk.createJupyterNote',
   createFolder: 'harrixNotesExplorerHsk.createFolder',
   addFolderInNote: 'harrixNotesExplorerHsk.addFolderInNote',
   addFileInNote: 'harrixNotesExplorerHsk.addFileInNote',
@@ -142,6 +143,7 @@ function buildIconsBrowseContextMenu(contextValue, opts) {
   if (opts?.background === true) {
     out.push(item(CMD.createNote, 'New Note…'));
     out.push(item(CMD.createMarpNote, 'New Marp Presentation…'));
+    out.push(item(CMD.createJupyterNote, 'New Jupyter Notebook…'));
     out.push(item(CMD.createFolder, 'New Folder…'));
     if (base.includes('Diary')) {
       out.push(item(CMD.newDiaryNote, 'New Diary Note ꟲᴸᴵ'));
@@ -166,6 +168,7 @@ function buildIconsBrowseContextMenu(contextValue, opts) {
   if (base.startsWith('notesFolder')) {
     out.push(item(CMD.createNote, 'New Note…'));
     out.push(item(CMD.createMarpNote, 'New Marp Presentation…'));
+    out.push(item(CMD.createJupyterNote, 'New Jupyter Notebook…'));
     out.push(item(CMD.createFolder, 'New Folder…'));
     if (base.includes('Diary')) {
       out.push(item(CMD.newDiaryNote, 'New Diary Note ꟲᴸᴵ'));
@@ -202,6 +205,7 @@ function buildIconsBrowseContextMenu(contextValue, opts) {
     out.push(sep());
     out.push(item(CMD.createNote, 'New Note…'));
     out.push(item(CMD.createMarpNote, 'New Marp Presentation…'));
+    out.push(item(CMD.createJupyterNote, 'New Jupyter Notebook…'));
     out.push(item(CMD.addFolderInNote, 'Add Folder in Note…'));
     out.push(item(CMD.addFileInNote, 'Add File in Note…'));
 

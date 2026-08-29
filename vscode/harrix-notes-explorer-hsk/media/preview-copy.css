@@ -209,3 +209,85 @@ a.hne-md-open-external:hover {
   max-width: 100%;
   height: auto;
 }
+
+.hne-nb {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 980px;
+}
+
+.hne-nb-file {
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground, #888);
+}
+
+.hne-nb-missing {
+  padding: 12px 16px;
+  border: 1px solid var(--vscode-inputValidation-errorBorder, #be1100);
+  border-radius: 6px;
+  background: var(--vscode-inputValidation-errorBackground, rgba(190, 17, 0, 0.12));
+}
+
+.hne-nb-cell {
+  border: 1px solid var(--vscode-widget-border, #444);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--vscode-editor-background, #fff);
+}
+
+.hne-nb-md,
+.hne-nb-raw {
+  padding: 12px 16px;
+}
+
+.hne-nb-input {
+  display: flex;
+  gap: 8px;
+  padding: 8px 12px 0;
+}
+
+.hne-nb-prompt {
+  flex: 0 0 auto;
+  font-family: var(--vscode-editor-font-family, Consolas, monospace);
+  font-size: 12px;
+  color: var(--vscode-debugTokenExpression-name, #1a7f37);
+  white-space: nowrap;
+  padding-top: 6px;
+}
+
+.hne-nb-source {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.hne-nb-source pre {
+  margin: 0 0 8px;
+}
+
+.hne-nb-outputs {
+  border-top: 1px solid var(--vscode-widget-border, #444);
+  padding: 8px 12px 12px 72px;
+}
+
+.hne-nb-outputs pre,
+.hne-nb-raw pre {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.hne-nb-stderr,
+.hne-nb-error {
+  color: var(--vscode-errorForeground, #f14c4c);
+}
+
+.hne-nb-image,
+.hne-nb-svg svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.hne-nb-html {
+  overflow-x: auto;
+}

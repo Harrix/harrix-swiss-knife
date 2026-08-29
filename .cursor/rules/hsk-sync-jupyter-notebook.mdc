@@ -1,0 +1,29 @@
+---
+description: Keep Jupyter notebook note preview aligned across VS Code and Android
+globs: vscode/harrix-notes-explorer-hsk/jupyter-notebook.js,vscode/harrix-notes-explorer-hsk/new-note.js,vscode/harrix-notes-explorer-hsk/extension.js
+alwaysApply: false
+---
+
+# @hsk-sync:jupyter-notebook
+
+Token `@hsk-sync:jupyter-notebook` marks read-only Jupyter notebook notes shared by VS Code **Harrix Notes Explorer** and Harrix Notes Android.
+
+## Sibling implementations
+
+| Side | Path |
+|------|------|
+| VS Code | `vscode/harrix-notes-explorer-hsk/jupyter-notebook.js` + Markdown preview in `extension.js` |
+| Android | `D:\GitHub\harrix-notes-android` — `JupyterNotebook`, `JupyterHtml`, `NotesJupyterPane` |
+| New note | `@hsk-sync:new-note` (`type: jupyter`, `files/{stem}.ipynb`, Markdown link) |
+
+## Contract
+
+- Identify with YAML `type: jupyter` (also `ipynb` / `notebook`).
+- The note body links to `files/*.ipynb`. If the link is missing, use the first `.ipynb` in `files/`, then in the note folder.
+- Opening the note shows a GitHub-like preview: markdown cells, highlighted code, saved outputs (text, HTML, PNG/JPEG/SVG). No edit, no kernel, no run.
+- HTML outputs drop `script` / `iframe` / event handlers.
+
+## Change checklist
+
+- After VS Code changes: `hsk vscode format` / `hsk vscode check` / `hsk vscode sync-notes-explorer`.
+- After Android changes: `hsk android format` / `hsk android check` in `harrix-notes-android`.

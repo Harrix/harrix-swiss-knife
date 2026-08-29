@@ -64,7 +64,9 @@ These stay in `extension.js` for a public build:
 
 - `harrixNotesExplorerHsk.createNote` — implemented in `new-note.js` (`@hsk-sync:new-note`); keep in public builds.
 - `harrixNotesExplorerHsk.createMarpNote` — same New note path with `type: marp` / `marp: true`.
+- `harrixNotesExplorerHsk.createJupyterNote` — same New note path with `type: jupyter`, `files/*.ipynb`, and a Markdown link to the notebook.
 - `harrixNotesExplorerHsk.presentMarp` — fullscreen slideshow webview for Marp notes.
+- Jupyter preview — `jupyter-notebook.js` + Markdown preview (`@hsk-sync:jupyter-notebook`).
 
 ## CLI commands (registered in `harrix-cli.js`)
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+import json
 import re
 import shutil
 import uuid
@@ -64,6 +65,7 @@ class OnNewMarkdown(ActionBase):
         ("📓", "New note", "_execute_new_note"),
         ("📓", "New note with images", "_execute_new_note_with_images"),
         ("🎞️", "New Marp presentation", "_execute_new_marp"),
+        ("📒", "New Jupyter notebook", "_execute_new_jupyter"),
         ("❞", "New quotes", "_execute_new_quotes"),
     ]
 
@@ -150,6 +152,31 @@ class OnNewMarkdown(ActionBase):
 
         choices.sort(key=lambda choice: self._markdown_choice_sort_key(choice[1]))
         return choices, action_map
+
+    @staticmethod
+    def empty_jupyter_notebook(title: str) -> str:
+        """Return empty nbformat 4 notebook with a Markdown title cell (`@hsk-sync:jupyter-notebook`)."""
+        heading = (title or "").strip() or "Notebook"
+        notebook = {
+            "nbformat": 4,
+            "nbformat_minor": 5,
+            "metadata": {
+                "kernelspec": {
+                    "display_name": "Python 3",
+                    "language": "python",
+                    "name": "python3",
+                },
+                "language_info": {"name": "python"},
+            },
+            "cells": [
+                {
+                    "cell_type": "markdown",
+                    "metadata": {},
+                    "source": [f"# {heading}\n"],
+                }
+            ],
+        }
+        return json.dumps(notebook, indent=1, ensure_ascii=False) + "\n"
 
     @ActionBase.handle_exceptions("creating new markdown")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
@@ -1275,6 +1302,10 @@ class OnNewMarkdown(ActionBase):
         self._open_notes_editor(filename)
         self.add_line(result)
 
+    def _execute_new_jupyter(self) -> None:
+        """Create a Jupyter notebook note (`type: jupyter` + `files/*.ipynb`)."""
+        self._execute_new_note(is_jupyter=True)
+
     def _execute_new_marp(self) -> None:
         """Create a Marp presentation note (`type: marp`, `marp: true`)."""
         self._execute_new_note(is_with_images=True, is_marp=True)
@@ -1298,6 +1329,7 @@ class OnNewMarkdown(ActionBase):
         folder_path: Path | None = None,
         note_stem: str | None = None,
         is_marp: bool = False,
+        is_jupyter: bool = False,
     ) -> None:
         """Create new general note with user-specified filename.
 
@@ -1408,6 +1440,7 @@ class OnNewMarkdown(ActionBase):
 
         # @hsk-sync:new-note — personal_data merge + heading body
         beginning_text = self._apply_personal_data_to_beginning(beginning_text)
+        filename_final = heading_stem.replace("-", "--").replace(" ", "-")
         if is_marp:
             beginning_text = self.inject_frontmatter_key(beginning_text, "type", "marp")
             beginning_text = self.inject_frontmatter_key(beginning_text, "marp", "true")
@@ -1415,11 +1448,22 @@ class OnNewMarkdown(ActionBase):
             beginning_text = self.inject_frontmatter_key(beginning_text, "paginate", "true")
             beginning_text = self.inject_frontmatter_key(beginning_text, "size", "16:9")
             text = beginning_text.rstrip() + f"\n# {heading_stem}\n\n\n---\n\n"
+        elif is_jupyter:
+            beginning_text = self.inject_frontmatter_key(beginning_text, "type", "jupyter")
+            ipynb_name = f"{filename_final}.ipynb"
+            text = beginning_text.rstrip() + f"\n# {heading_stem}\n\n[{ipynb_name}](files/{ipynb_name})\n"
         else:
             text = beginning_text.rstrip() + f"\n# {heading_stem}\n\n\n"
-        filename_final = heading_stem.replace("-", "--").replace(" ", "-")
 
         result, filename = h.md.add_note(parent, filename_final, text, is_with_images=is_with_images)
+        if is_jupyter and filename:
+            note_dir = Path(filename).parent
+            files_dir = note_dir / "files"
+            files_dir.mkdir(parents=True, exist_ok=True)
+            (files_dir / f"{Path(filename).stem}.ipynb").write_text(
+                self.empty_jupyter_notebook(heading_stem),
+                encoding="utf-8",
+            )
         self._open_notes_editor(filename)
         self.add_line(result)
 

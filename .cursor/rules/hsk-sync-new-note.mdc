@@ -24,6 +24,7 @@ Token `@hsk-sync:new-note` marks one logical **New note** command in three place
 3. `personal_data.enabled` default **false** — omit `author` / `author-email` when off; inject configured values when on (defaults `noname` / empty).
 4. Desktop/JS filename stem: spaces → `-`, `-` → `--`; layout `{folder}/{stem}/{stem}.md`.
 5. Android may keep SAF single-file layout; **content** must match the contract.
+6. Marp: `type: marp` + `marp: true` and an `img/` folder. Jupyter: `type: jupyter`, `files/{stem}.ipynb`, and a Markdown link to that notebook. Preview is read-only (`@hsk-sync:jupyter-notebook`).
 
 Out of scope for this sync id: Diary/Dream/Cases, rich `markdown_templates` (Coffee/Travel/…).
 

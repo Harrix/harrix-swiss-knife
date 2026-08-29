@@ -17,6 +17,7 @@ const noteMeta = require('./note-meta');
 const { activateIconsBrowse, refreshIconsBrowseIfOpen } = require('./icons-browse');
 const { activateVisualEditor } = require('./visual-editor');
 const { isMarpMarkdown, renderMarpPreviewHtml, renderMarpPresentWebview } = require('./marp-deck');
+const { isJupyterMarkdown, renderJupyterPreviewHtml } = require('./jupyter-notebook');
 
 function normalizeFsPath(p) {
   const resolved = path.resolve(String(p));
@@ -3826,6 +3827,8 @@ function registerPreviewCopyMarkdownPlugin() {
         const text = typeof src === 'string' ? src : String(src ?? '');
         nextEnv.hneMarpSource = text;
         nextEnv.hneIsMarp = isMarpMarkdown(text);
+        nextEnv.hneJupyterSource = text;
+        nextEnv.hneIsJupyter = isJupyterMarkdown(text);
         return originalParse(src, nextEnv);
       };
 
@@ -3840,6 +3843,23 @@ function registerPreviewCopyMarkdownPlugin() {
             return originalRendererRender(slideTokens, options, {});
           });
           return configHtml + deckHtml;
+        }
+        if (env?.hneIsJupyter && env.hneJupyterSource) {
+          const noteUri = uriFromMarkdownRenderEnv(env);
+          const notebookHtml = renderJupyterPreviewHtml(
+            env.hneJupyterSource,
+            noteUri?.scheme === 'file' ? noteUri.fsPath : undefined,
+            (cellMd) => {
+              const cellTokens = originalParse(cellMd || ' ', {});
+              return originalRendererRender(cellTokens, options, {});
+            },
+          );
+          if (notebookHtml) {
+            const cfg = getPreviewCopyConfig();
+            const json = escapePreviewCopyConfigAttr(JSON.stringify(cfg));
+            const configHtml = `<div id="hne-preview-copy-config" style="display:none" data-config="${json}"></div>`;
+            return configHtml + notebookHtml;
+          }
         }
         // Cursor may emit an empty front_matter token — refill from the note file.
         if (Array.isArray(tokens)) {

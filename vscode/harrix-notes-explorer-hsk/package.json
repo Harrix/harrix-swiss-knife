@@ -496,6 +496,11 @@
         "category": "Harrix Notes HSK"
       },
       {
+        "command": "harrixNotesExplorerHsk.createJupyterNote",
+        "title": "New Jupyter Notebook…",
+        "category": "Harrix Notes HSK"
+      },
+      {
         "command": "harrixNotesExplorerHsk.presentMarp",
         "title": "Present Marp Slideshow",
         "category": "Harrix Notes HSK"
@@ -869,6 +874,11 @@
           "command": "harrixNotesExplorerHsk.createMarpNote",
           "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolder || viewItem == notesFolderWithMerged || viewItem == notesFolderDiary || viewItem == notesFolderWithMergedDiary || viewItem == notesFolderDreams || viewItem == notesFolderWithMergedDreams || viewItem == notesFolderCases || viewItem == notesFolderWithMergedCases || viewItem == notesFolderTemplateTarget || viewItem == notesFolderTemplateTargetWithMerged || viewItem == gitNotesFolder || viewItem == gitNotesFolderWithMerged || viewItem == gitNotesFolderDiary || viewItem == gitNotesFolderWithMergedDiary || viewItem == gitNotesFolderDreams || viewItem == gitNotesFolderWithMergedDreams || viewItem == gitNotesFolderCases || viewItem == gitNotesFolderWithMergedCases || viewItem == gitNotesFolderTemplateTarget || viewItem == gitNotesFolderTemplateTargetWithMerged || viewItem == note || viewItem == noteHasAttachments || viewItem == noteWithAssets || viewItem == noteNamedFolder || viewItem == noteHasAttachmentsNamedFolder || viewItem == noteWithAssetsNamedFolder)",
           "group": "1_create@1.5"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.createJupyterNote",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolder || viewItem == notesFolderWithMerged || viewItem == notesFolderDiary || viewItem == notesFolderWithMergedDiary || viewItem == notesFolderDreams || viewItem == notesFolderWithMergedDreams || viewItem == notesFolderCases || viewItem == notesFolderWithMergedCases || viewItem == notesFolderTemplateTarget || viewItem == notesFolderTemplateTargetWithMerged || viewItem == gitNotesFolder || viewItem == gitNotesFolderWithMerged || viewItem == gitNotesFolderDiary || viewItem == gitNotesFolderWithMergedDiary || viewItem == gitNotesFolderDreams || viewItem == gitNotesFolderWithMergedDreams || viewItem == gitNotesFolderCases || viewItem == gitNotesFolderWithMergedCases || viewItem == gitNotesFolderTemplateTarget || viewItem == gitNotesFolderTemplateTargetWithMerged || viewItem == note || viewItem == noteHasAttachments || viewItem == noteWithAssets || viewItem == noteNamedFolder || viewItem == noteHasAttachmentsNamedFolder || viewItem == noteWithAssetsNamedFolder)",
+          "group": "1_create@1.55"
         },
         {
           "command": "harrixNotesExplorerHsk.addFolderInNote",

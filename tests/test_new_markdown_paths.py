@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from typing import TYPE_CHECKING
 
 import harrix_pylib as h
@@ -196,4 +197,19 @@ def test_inject_frontmatter_key_adds_marp_fields() -> None:
     text = OnNewMarkdown.inject_frontmatter_key(text, "marp", "true")
     assert "type: marp" in text
     assert "marp: true" in text
+    assert text.startswith("---")
+
+
+def test_empty_jupyter_notebook_is_nbformat_4() -> None:
+    raw = OnNewMarkdown.empty_jupyter_notebook("Demo")
+    notebook = json.loads(raw)
+    assert notebook["nbformat"] == 4
+    assert notebook["cells"][0]["cell_type"] == "markdown"
+    assert "# Demo" in "".join(notebook["cells"][0]["source"])
+
+
+def test_inject_frontmatter_key_adds_jupyter_type() -> None:
+    beginning = "---\nlang: ru\n---\n"
+    text = OnNewMarkdown.inject_frontmatter_key(beginning, "type", "jupyter")
+    assert "type: jupyter" in text
     assert text.startswith("---")

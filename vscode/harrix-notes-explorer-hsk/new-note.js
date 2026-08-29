@@ -7,6 +7,7 @@
 const vscode = require('vscode');
 const path = require('node:path');
 const fs = require('node:fs');
+const { emptyNotebookJson } = require('./jupyter-notebook');
 
 const PERSONAL_FRONTMATTER_KEYS = new Set(['author', 'author-email']);
 
@@ -214,7 +215,7 @@ function injectFrontmatterKey(text, key, value) {
 /**
  * @param {string} beginning
  * @param {string} headingStem
- * @param {{ marp?: boolean }} [opts]
+ * @param {{ marp?: boolean, jupyter?: boolean }} [opts]
  * @returns {string}
  */
 function buildNewNoteContent(beginning, headingStem, opts = {}) {
@@ -226,6 +227,12 @@ function buildNewNoteContent(beginning, headingStem, opts = {}) {
     withPersonal = injectFrontmatterKey(withPersonal, 'paginate', 'true');
     withPersonal = injectFrontmatterKey(withPersonal, 'size', '16:9');
     return `${withPersonal.replace(/\s+$/, '')}\n# ${headingStem}\n\n\n---\n\n`;
+  }
+  if (opts.jupyter) {
+    withPersonal = injectFrontmatterKey(withPersonal, 'type', 'jupyter');
+    const fileStem = sanitizeNoteStem(headingStem);
+    const ipynb = `${fileStem}.ipynb`;
+    return `${withPersonal.replace(/\s+$/, '')}\n# ${headingStem}\n\n[${ipynb}](files/${ipynb})\n`;
   }
   return `${withPersonal.replace(/\s+$/, '')}\n# ${headingStem}\n\n\n`;
 }
@@ -406,6 +413,68 @@ function activateNewNote(deps) {
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         vscode.window.showErrorMessage(`New Presentation failed: ${msg}`);
+      }
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.createJupyterNote', async (treeItemOrUri) => {
+      const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
+      const fsPath = uriToFsPath(itemUri);
+
+      const baseDir =
+        fsPath && isDirectoryPath(fsPath)
+          ? fsPath
+          : fsPath && isFilePath(fsPath)
+            ? path.dirname(fsPath)
+            : typeof rootPath === 'string' && rootPath
+              ? rootPath
+              : '';
+
+      if (!baseDir) {
+        vscode.window.showErrorMessage('Select a folder in Harrix Notes (HSK).');
+        return;
+      }
+
+      const name = await vscode.window.showInputBox({
+        title: 'New Jupyter Notebook',
+        prompt: 'Enter note name (without extension)',
+        placeHolder: 'My-notebook',
+      });
+      if (!name) {
+        return;
+      }
+
+      const safeName = name.trim();
+      if (!safeName) {
+        return;
+      }
+
+      const templates = getBeginningTemplates();
+      const selected = await pickBeginningTemplate(templates);
+      if (!selected) {
+        return;
+      }
+
+      let headingStem = safeName;
+      if (headingStem.toLowerCase().endsWith('.md')) {
+        headingStem = headingStem.slice(0, -3);
+      }
+
+      try {
+        const content = buildNewNoteContent(selected.content, headingStem, { jupyter: true });
+        const noteMd = writeNewNoteFiles(baseDir, safeName, content);
+        const noteDir = path.dirname(noteMd);
+        const filesDir = path.join(noteDir, 'files');
+        fs.mkdirSync(filesDir, { recursive: true });
+        const ipynbName = `${path.basename(noteDir)}.ipynb`;
+        fs.writeFileSync(path.join(filesDir, ipynbName), emptyNotebookJson(headingStem), 'utf8');
+        const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(noteMd));
+        await vscode.window.showTextDocument(doc);
+        provider.refresh();
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        vscode.window.showErrorMessage(`New Notebook failed: ${msg}`);
       }
     }),
   );
