@@ -875,8 +875,11 @@ class FitnessLightboxSidebar(QFrame):
         self._prepare_label.hide()
 
     def _on_pause(self) -> None:
+        if not self._stopwatch.snapshot().is_running:
+            return
         self._tick.stop()
         self._apply_snapshot(self._stopwatch.pause())
+        play_fitness_timer_cue("pause")
 
     def _on_restart(self) -> None:
         self._ready_announced = False
@@ -887,12 +890,16 @@ class FitnessLightboxSidebar(QFrame):
         self._apply_snapshot(self._stopwatch.restart())
 
     def _on_start(self) -> None:
-        if self._stopwatch.snapshot().phase is StopwatchPhase.IDLE:
+        snapshot = self._stopwatch.snapshot()
+        resuming = snapshot.phase is not StopwatchPhase.IDLE and not snapshot.is_running
+        if snapshot.phase is StopwatchPhase.IDLE:
             self._ready_announced = False
             self._spoken_countdown.clear()
             self._overtime_announced = False
         self._tick.start()
         self._apply_snapshot(self._stopwatch.start())
+        if resuming:
+            play_fitness_timer_cue("continue")
 
     def _on_tick(self) -> None:
         self._apply_snapshot(self._stopwatch.advance(_TICK_MS))

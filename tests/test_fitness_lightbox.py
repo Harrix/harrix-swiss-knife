@@ -192,6 +192,8 @@ def test_fitness_timer_cue_sound_names() -> None:
     assert fitness_timer_cue_sound_name("go") == "fitness_go.wav"
     assert fitness_timer_cue_sound_name("time_over") == "fitness_time_over.wav"
     assert fitness_timer_cue_sound_name("paste") == "fitness_paste.wav"
+    assert fitness_timer_cue_sound_name("pause") == "fitness_pause.wav"
+    assert fitness_timer_cue_sound_name("continue") == "fitness_continue.wav"
     assert fitness_timer_cue_sound_name("success") == "fitness_success.wav"
     assert fitness_timer_cue_sound_name("congratulations") == "fitness_congratulations.wav"
 
@@ -273,6 +275,42 @@ def test_fitness_lightbox_stops_on_timed_exercise_target(
     assert dialog._sidebar._prepare_label.text() == "Finish"
     assert dialog._sidebar._time_label.text() == "0:05"
     assert not dialog._sidebar._stopwatch.snapshot().is_running
+    dialog.close()
+
+
+def test_fitness_lightbox_pause_and_continue_cues(
+    tmp_path: Path,
+    qapp: QApplication,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    img_dir = tmp_path / "fitness_img"
+    img_dir.mkdir()
+    _write_test_avif(img_dir / "Plank.avif")
+    manager = AvifManager(img_dir)
+    cues: list[str] = []
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.fitness.fitness_lightbox.play_fitness_timer_cue",
+        cues.append,
+    )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.fitness.fitness_lightbox.stop_fitness_timer_alert",
+        lambda: None,
+    )
+    dialog = FitnessExerciseLightboxDialog(
+        ["Plank"],
+        avif_manager=manager,
+        details_loader=_plank_details,
+        confirm_handler=lambda _payload: True,
+        countdown_seconds=0,
+        workout_duration_min=10,
+        workout_items=[_item(item_id=1, name="Plank", sort_order=0, target="30")],
+    )
+    dialog._sidebar._on_start()
+    assert cues == ["go"]
+    dialog._sidebar._on_pause()
+    assert cues == ["go", "pause"]
+    dialog._sidebar._on_start()
+    assert cues == ["go", "pause", "continue"]
     dialog.close()
 
 

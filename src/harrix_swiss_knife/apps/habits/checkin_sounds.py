@@ -10,7 +10,8 @@ from PySide6.QtMultimedia import QSoundEffect
 
 _DONE_NAME = "habit_done.wav"
 _NOT_DONE_NAME = "habit_not_done.wav"
-_VOLUME = 0.5
+_VOLUME_DONE = 0.5
+_VOLUME_NOT_DONE = 1.0
 
 _effects: dict[str, QSoundEffect] = {}
 
@@ -42,13 +43,14 @@ def play_habit_checkin_sound(value: int | None) -> None:
 def _effect_for(name: str) -> QSoundEffect | None:
     cached = _effects.get(name)
     if cached is not None:
+        cached.setVolume(_volume_for(name))
         return cached
     url = _sound_url(name)
     if not url.isValid():
         return None
     effect = QSoundEffect()
     effect.setSource(url)
-    effect.setVolume(_VOLUME)
+    effect.setVolume(_volume_for(name))
     _effects[name] = effect
     return effect
 
@@ -88,3 +90,9 @@ def _sound_url(name: str) -> QUrl:
     if disk.is_file():
         return QUrl.fromLocalFile(str(disk))
     return QUrl()
+
+
+def _volume_for(name: str) -> float:
+    if name == _NOT_DONE_NAME:
+        return _VOLUME_NOT_DONE
+    return _VOLUME_DONE

@@ -18,6 +18,8 @@ _CUE_NAMES: dict[str, str] = {
     "congratulations": "fitness_congratulations.wav",
     "success": "fitness_success.wav",
     "paste": "fitness_paste.wav",
+    "pause": "fitness_pause.wav",
+    "continue": "fitness_continue.wav",
 }
 _VOLUME = 0.9
 _MAX_LIVE_EFFECTS = 8
@@ -34,6 +36,8 @@ FitnessTimerCue = Literal[
     "congratulations",
     "success",
     "paste",
+    "pause",
+    "continue",
 ]
 
 
