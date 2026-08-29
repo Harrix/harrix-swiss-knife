@@ -663,7 +663,7 @@ class MainWindow(
 
             def get_and_validate() -> tuple[str | None, Any]:
                 amount = self.doubleSpinBox_amount.value()
-                description = self.lineEdit_description.text().strip()
+                description = capitalize_first_letter(self.lineEdit_description.text())
                 category_name = (
                     self.listView_categories.currentIndex().data(Qt.ItemDataRole.UserRole)
                     if self.listView_categories.currentIndex().isValid()
@@ -6966,7 +6966,7 @@ def on_add_transaction(self) -> None:
 
             def get_and_validate() -> tuple[str | None, Any]:
                 amount = self.doubleSpinBox_amount.value()
-                description = self.lineEdit_description.text().strip()
+                description = capitalize_first_letter(self.lineEdit_description.text())
                 category_name = (
                     self.listView_categories.currentIndex().data(Qt.ItemDataRole.UserRole)
                     if self.listView_categories.currentIndex().isValid()

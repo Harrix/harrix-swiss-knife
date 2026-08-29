@@ -100,6 +100,7 @@ from harrix_swiss_knife.apps.common.table_context_menu import (
 )
 from harrix_swiss_knife.apps.common.table_export import export_table_via_dialog
 from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
+from harrix_swiss_knife.apps.common.text_case import capitalize_first_letter
 from harrix_swiss_knife.apps.common.widgets.image_picker import ImagePicker, ImagePickerMode
 from harrix_swiss_knife.apps.common.widgets.shrinkable_scroll_area import install_shrinkable_tab_scroll
 from harrix_swiss_knife.apps.common.word_wrap_header import install_word_wrap_header
@@ -808,7 +809,7 @@ class MainWindow(
 
             def get_and_validate() -> tuple[str | None, Any]:
                 amount = self.doubleSpinBox_amount.value()
-                description = self.lineEdit_description.text().strip()
+                description = capitalize_first_letter(self.lineEdit_description.text())
                 category_name = (
                     self.listView_categories.currentIndex().data(Qt.ItemDataRole.UserRole)
                     if self.listView_categories.currentIndex().isValid()

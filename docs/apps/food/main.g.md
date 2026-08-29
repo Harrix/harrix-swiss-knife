@@ -349,7 +349,7 @@ class MainWindow(
     def on_add_food_log(self) -> None:
         """Insert a new food log record using database manager."""
         # Get values from UI
-        food_name = self.lineEdit_food_manual_name.text().strip()
+        food_name = capitalize_first_letter(self.lineEdit_food_manual_name.text())
         weight = self.spinBox_food_weight.value()
         calories = self.doubleSpinBox_food_calories.value()
         food_date = self.dateEdit_food.date().toString("yyyy-MM-dd")
@@ -4245,7 +4245,7 @@ Insert a new food log record using database manager.
 ```python
 def on_add_food_log(self) -> None:
         # Get values from UI
-        food_name = self.lineEdit_food_manual_name.text().strip()
+        food_name = capitalize_first_letter(self.lineEdit_food_manual_name.text())
         weight = self.spinBox_food_weight.value()
         calories = self.doubleSpinBox_food_calories.value()
         food_date = self.dateEdit_food.date().toString("yyyy-MM-dd")

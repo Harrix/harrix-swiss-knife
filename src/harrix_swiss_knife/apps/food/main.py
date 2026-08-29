@@ -77,6 +77,7 @@ from harrix_swiss_knife.apps.common.table_context_menu import (
 )
 from harrix_swiss_knife.apps.common.table_export import export_table_via_dialog
 from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
+from harrix_swiss_knife.apps.common.text_case import capitalize_first_letter
 from harrix_swiss_knife.apps.common.widgets.image_picker import ImagePicker, ImagePickerMode
 from harrix_swiss_knife.apps.common.widgets.shrinkable_scroll_area import install_shrinkable_tab_scroll
 from harrix_swiss_knife.apps.common.word_wrap_header import WordWrapHeaderView
@@ -458,7 +459,7 @@ class MainWindow(
     def on_add_food_log(self) -> None:
         """Insert a new food log record using database manager."""
         # Get values from UI
-        food_name = self.lineEdit_food_manual_name.text().strip()
+        food_name = capitalize_first_letter(self.lineEdit_food_manual_name.text())
         weight = self.spinBox_food_weight.value()
         calories = self.doubleSpinBox_food_calories.value()
         food_date = self.dateEdit_food.date().toString("yyyy-MM-dd")
