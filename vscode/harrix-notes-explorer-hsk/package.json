@@ -491,6 +491,16 @@
         "category": "Harrix Notes HSK"
       },
       {
+        "command": "harrixNotesExplorerHsk.createMarpNote",
+        "title": "New Marp Presentation…",
+        "category": "Harrix Notes HSK"
+      },
+      {
+        "command": "harrixNotesExplorerHsk.presentMarp",
+        "title": "Present Marp Slideshow",
+        "category": "Harrix Notes HSK"
+      },
+      {
         "command": "harrixNotesExplorerHsk.createFolder",
         "title": "New Folder…",
         "category": "Harrix Notes HSK"
@@ -604,6 +614,11 @@
           "command": "harrixNotesExplorerHsk.openNoteInEditor",
           "when": "activeCustomEditorId == 'harrixNotesExplorerHsk.visualMarkdown'",
           "group": "navigation@20"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.presentMarp",
+          "when": "resourceLangId == markdown",
+          "group": "navigation@25"
         }
       ],
       "editor/title/context": [
@@ -611,6 +626,11 @@
           "command": "harrixNotesExplorerHsk.openMarkdownPreviewTabInEditor",
           "when": "activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor'",
           "group": "1_open@5"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.presentMarp",
+          "when": "resourceLangId == markdown",
+          "group": "1_open@6"
         }
       ],
       "commandPalette": [
@@ -685,6 +705,10 @@
         {
           "command": "harrixNotesExplorerHsk.openMarkdownPreviewTabInEditor",
           "when": "activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor'"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.presentMarp",
+          "when": "resourceLangId == markdown"
         },
         {
           "command": "harrixNotesExplorerHsk.showNoteAssets",
@@ -840,6 +864,11 @@
           "command": "harrixNotesExplorerHsk.createNote",
           "when": "view == harrixNotesExplorerHsk && (viewItem == note || viewItem == noteHasAttachments || viewItem == noteWithAssets || viewItem == noteNamedFolder || viewItem == noteHasAttachmentsNamedFolder || viewItem == noteWithAssetsNamedFolder)",
           "group": "1_create@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.createMarpNote",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolder || viewItem == notesFolderWithMerged || viewItem == notesFolderDiary || viewItem == notesFolderWithMergedDiary || viewItem == notesFolderDreams || viewItem == notesFolderWithMergedDreams || viewItem == notesFolderCases || viewItem == notesFolderWithMergedCases || viewItem == notesFolderTemplateTarget || viewItem == notesFolderTemplateTargetWithMerged || viewItem == gitNotesFolder || viewItem == gitNotesFolderWithMerged || viewItem == gitNotesFolderDiary || viewItem == gitNotesFolderWithMergedDiary || viewItem == gitNotesFolderDreams || viewItem == gitNotesFolderWithMergedDreams || viewItem == gitNotesFolderCases || viewItem == gitNotesFolderWithMergedCases || viewItem == gitNotesFolderTemplateTarget || viewItem == gitNotesFolderTemplateTargetWithMerged || viewItem == note || viewItem == noteHasAttachments || viewItem == noteWithAssets || viewItem == noteNamedFolder || viewItem == noteHasAttachmentsNamedFolder || viewItem == noteWithAssetsNamedFolder)",
+          "group": "1_create@1.5"
         },
         {
           "command": "harrixNotesExplorerHsk.addFolderInNote",

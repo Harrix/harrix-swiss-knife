@@ -24,6 +24,7 @@ lang: en
   - [⚙️ Method `execute_new_note_at`](#%EF%B8%8F-method-execute_new_note_at)
   - [⚙️ Method `execute_new_note_with_images`](#%EF%B8%8F-method-execute_new_note_with_images)
   - [⚙️ Method `execute_picker_choice`](#%EF%B8%8F-method-execute_picker_choice)
+  - [⚙️ Method `inject_frontmatter_key (staticmethod)`](#%EF%B8%8F-method-inject_frontmatter_key-staticmethod)
 
 </details>
 
@@ -66,6 +67,7 @@ class OnNewMarkdown(ActionBase):
         ("📋", "New cases note", "_execute_new_diary_cases"),
         ("📓", "New note", "_execute_new_note"),
         ("📓", "New note with images", "_execute_new_note_with_images"),
+        ("🎞️", "New Marp presentation", "_execute_new_marp"),
         ("❞", "New quotes", "_execute_new_quotes"),
     ]
 
@@ -230,6 +232,46 @@ class OnNewMarkdown(ActionBase):
         """Run a single New Markdown picker command by title (for quick launcher panel)."""
         _choices, action_map = self.build_picker_choices()
         self._dispatch_picker_choice(title, action_map, ai_screenshot=ai_screenshot)
+
+    @staticmethod
+    def inject_frontmatter_key(text: str, key: str, value: str) -> str:
+        """Insert or replace a YAML frontmatter key.
+
+        If there is no frontmatter block, creates a minimal one.
+
+        """
+        key_lower = key.strip().lower()
+        stripped = (text or "").lstrip("\ufeff")
+        if not stripped.startswith("---"):
+            body = stripped.lstrip("\n")
+            return f"---\n{key_lower}: {value}\n---\n{body}"
+
+        lines = stripped.splitlines()
+        end_idx: int | None = None
+        for i in range(1, len(lines)):
+            if lines[i].strip() == "---":
+                end_idx = i
+                break
+        if end_idx is None:
+            return text
+
+        body_lines: list[str] = []
+        replaced = False
+        for line in lines[1:end_idx]:
+            line_key = line.split(":", 1)[0].strip().lower() if ":" in line else ""
+            if line_key == key_lower:
+                if not replaced:
+                    body_lines.append(f"{key_lower}: {value}")
+                    replaced = True
+            else:
+                body_lines.append(line)
+        if not replaced:
+            body_lines.append(f"{key_lower}: {value}")
+        rebuilt = ["---", *body_lines, "---", *lines[end_idx + 1 :]]
+        result = "\n".join(rebuilt)
+        if text.endswith("\n") and not result.endswith("\n"):
+            result += "\n"
+        return result
 
     def _apply_personal_data_to_beginning(self, beginning: str) -> str:
         """Merge or strip personal frontmatter keys per config `personal_data`.
@@ -1237,6 +1279,10 @@ class OnNewMarkdown(ActionBase):
         self._open_notes_editor(filename)
         self.add_line(result)
 
+    def _execute_new_marp(self) -> None:
+        """Create a Marp presentation note (`type: marp`, `marp: true`)."""
+        self._execute_new_note(is_with_images=True, is_marp=True)
+
     @ActionBase.handle_exceptions("creating new memory entry")
     def _execute_new_memory(self) -> None:
         """Create new memory entry for current date."""
@@ -1255,6 +1301,7 @@ class OnNewMarkdown(ActionBase):
         is_with_images: bool = False,
         folder_path: Path | None = None,
         note_stem: str | None = None,
+        is_marp: bool = False,
     ) -> None:
         """Create new general note with user-specified filename.
 
@@ -1365,7 +1412,15 @@ class OnNewMarkdown(ActionBase):
 
         # @hsk-sync:new-note — personal_data merge + heading body
         beginning_text = self._apply_personal_data_to_beginning(beginning_text)
-        text = beginning_text.rstrip() + f"\n# {heading_stem}\n\n\n"
+        if is_marp:
+            beginning_text = self.inject_frontmatter_key(beginning_text, "type", "marp")
+            beginning_text = self.inject_frontmatter_key(beginning_text, "marp", "true")
+            beginning_text = self.inject_frontmatter_key(beginning_text, "theme", "default")
+            beginning_text = self.inject_frontmatter_key(beginning_text, "paginate", "true")
+            beginning_text = self.inject_frontmatter_key(beginning_text, "size", "16:9")
+            text = beginning_text.rstrip() + f"\n# {heading_stem}\n\n\n---\n\n"
+        else:
+            text = beginning_text.rstrip() + f"\n# {heading_stem}\n\n\n"
         filename_final = heading_stem.replace("-", "--").replace(" ", "-")
 
         result, filename = h.md.add_note(parent, filename_final, text, is_with_images=is_with_images)
@@ -2611,6 +2666,57 @@ Run a single New Markdown picker command by title (for quick launcher panel).
 def execute_picker_choice(self, title: str, *, ai_screenshot: bool = False) -> None:
         _choices, action_map = self.build_picker_choices()
         self._dispatch_picker_choice(title, action_map, ai_screenshot=ai_screenshot)
+```
+
+</details>
+
+### ⚙️ Method `inject_frontmatter_key (staticmethod)`
+
+```python
+def inject_frontmatter_key(text: str, key: str, value: str) -> str
+```
+
+Insert or replace a YAML frontmatter key.
+
+If there is no frontmatter block, creates a minimal one.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def inject_frontmatter_key(text: str, key: str, value: str) -> str:
+        key_lower = key.strip().lower()
+        stripped = (text or "").lstrip("\ufeff")
+        if not stripped.startswith("---"):
+            body = stripped.lstrip("\n")
+            return f"---\n{key_lower}: {value}\n---\n{body}"
+
+        lines = stripped.splitlines()
+        end_idx: int | None = None
+        for i in range(1, len(lines)):
+            if lines[i].strip() == "---":
+                end_idx = i
+                break
+        if end_idx is None:
+            return text
+
+        body_lines: list[str] = []
+        replaced = False
+        for line in lines[1:end_idx]:
+            line_key = line.split(":", 1)[0].strip().lower() if ":" in line else ""
+            if line_key == key_lower:
+                if not replaced:
+                    body_lines.append(f"{key_lower}: {value}")
+                    replaced = True
+            else:
+                body_lines.append(line)
+        if not replaced:
+            body_lines.append(f"{key_lower}: {value}")
+        rebuilt = ["---", *body_lines, "---", *lines[end_idx + 1 :]]
+        result = "\n".join(rebuilt)
+        if text.endswith("\n") and not result.endswith("\n"):
+            result += "\n"
+        return result
 ```
 
 </details>

@@ -190,3 +190,22 @@ a.hne-md-open-external:hover {
   color: var(--vscode-textLink-activeForeground, #3794ff);
   text-decoration: underline;
 }
+
+.hne-marp-deck {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.hne-marp-slide {
+  border: 1px solid var(--vscode-widget-border, #444);
+  border-radius: 8px;
+  padding: 16px 20px;
+  background: var(--vscode-editor-background, #fff);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.hne-marp-slide img {
+  max-width: 100%;
+  height: auto;
+}

@@ -188,3 +188,12 @@ def test_parse_block_round_trip_for_single_city_note_file() -> None:
     assert parsed["City"] == "Moscow"
     assert parsed["Title"] == "Flat white"
     assert parsed["Images"] == "img/a.jpg"
+
+
+def test_inject_frontmatter_key_adds_marp_fields() -> None:
+    beginning = "---\nlang: ru\n---\n"
+    text = OnNewMarkdown.inject_frontmatter_key(beginning, "type", "marp")
+    text = OnNewMarkdown.inject_frontmatter_key(text, "marp", "true")
+    assert "type: marp" in text
+    assert "marp: true" in text
+    assert text.startswith("---")

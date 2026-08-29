@@ -167,13 +167,66 @@ function sanitizeNoteStem(stem) {
   return String(stem).replace(/-/g, '--').replace(/ /g, '-');
 }
 
+function injectFrontmatterKey(text, key, value) {
+  const keyLower = String(key || '')
+    .trim()
+    .toLowerCase();
+  const stripped = String(text || '').replace(/^\uFEFF/, '');
+  if (!stripped.startsWith('---')) {
+    const body = stripped.replace(/^\n+/, '');
+    return `---\n${keyLower}: ${value}\n---\n${body}`;
+  }
+  const lines = stripped.split(/\r?\n/);
+  let endIdx = -1;
+  for (let i = 1; i < lines.length; i += 1) {
+    if (lines[i].trim() === '---') {
+      endIdx = i;
+      break;
+    }
+  }
+  if (endIdx < 0) {
+    return text;
+  }
+  const bodyLines = [];
+  let replaced = false;
+  for (const line of lines.slice(1, endIdx)) {
+    const lineKey = line.includes(':') ? line.split(':', 1)[0].trim().toLowerCase() : '';
+    if (lineKey === keyLower) {
+      if (!replaced) {
+        bodyLines.push(`${keyLower}: ${value}`);
+        replaced = true;
+      }
+    } else {
+      bodyLines.push(line);
+    }
+  }
+  if (!replaced) {
+    bodyLines.push(`${keyLower}: ${value}`);
+  }
+  const rebuilt = ['---', ...bodyLines, '---', ...lines.slice(endIdx + 1)];
+  let result = rebuilt.join('\n');
+  if (String(text).endsWith('\n') && !result.endsWith('\n')) {
+    result += '\n';
+  }
+  return result;
+}
+
 /**
  * @param {string} beginning
  * @param {string} headingStem
+ * @param {{ marp?: boolean }} [opts]
  * @returns {string}
  */
-function buildNewNoteContent(beginning, headingStem) {
-  const withPersonal = applyPersonalDataToBeginning(beginning, getPersonalDataSettings());
+function buildNewNoteContent(beginning, headingStem, opts = {}) {
+  let withPersonal = applyPersonalDataToBeginning(beginning, getPersonalDataSettings());
+  if (opts.marp) {
+    withPersonal = injectFrontmatterKey(withPersonal, 'type', 'marp');
+    withPersonal = injectFrontmatterKey(withPersonal, 'marp', 'true');
+    withPersonal = injectFrontmatterKey(withPersonal, 'theme', 'default');
+    withPersonal = injectFrontmatterKey(withPersonal, 'paginate', 'true');
+    withPersonal = injectFrontmatterKey(withPersonal, 'size', '16:9');
+    return `${withPersonal.replace(/\s+$/, '')}\n# ${headingStem}\n\n\n---\n\n`;
+  }
   return `${withPersonal.replace(/\s+$/, '')}\n# ${headingStem}\n\n\n`;
 }
 
@@ -297,12 +350,72 @@ function activateNewNote(deps) {
       }
     }),
   );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.createMarpNote', async (treeItemOrUri) => {
+      const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
+      const fsPath = uriToFsPath(itemUri);
+
+      const baseDir =
+        fsPath && isDirectoryPath(fsPath)
+          ? fsPath
+          : fsPath && isFilePath(fsPath)
+            ? path.dirname(fsPath)
+            : typeof rootPath === 'string' && rootPath
+              ? rootPath
+              : '';
+
+      if (!baseDir) {
+        vscode.window.showErrorMessage('Select a folder in Harrix Notes (HSK).');
+        return;
+      }
+
+      const name = await vscode.window.showInputBox({
+        title: 'New Marp Presentation',
+        prompt: 'Enter note name (without extension)',
+        placeHolder: 'My-presentation',
+      });
+      if (!name) {
+        return;
+      }
+
+      const safeName = name.trim();
+      if (!safeName) {
+        return;
+      }
+
+      const templates = getBeginningTemplates();
+      const selected = await pickBeginningTemplate(templates);
+      if (!selected) {
+        return;
+      }
+
+      let headingStem = safeName;
+      if (headingStem.toLowerCase().endsWith('.md')) {
+        headingStem = headingStem.slice(0, -3);
+      }
+
+      try {
+        const content = buildNewNoteContent(selected.content, headingStem, { marp: true });
+        const noteMd = writeNewNoteFiles(baseDir, safeName, content);
+        const imgDir = path.join(path.dirname(noteMd), 'img');
+        fs.mkdirSync(imgDir, { recursive: true });
+        const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(noteMd));
+        await vscode.window.showTextDocument(doc);
+        provider.refresh();
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        vscode.window.showErrorMessage(`New Presentation failed: ${msg}`);
+      }
+    }),
+  );
 }
 
 module.exports = {
   activateNewNote,
   applyPersonalDataToBeginning,
   buildNewNoteContent,
+  injectFrontmatterKey,
   sanitizeNoteStem,
   DEFAULT_BEGINNING_TEMPLATES,
 };

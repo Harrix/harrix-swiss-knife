@@ -16,6 +16,7 @@ const { activateNewNote } = require('./new-note');
 const noteMeta = require('./note-meta');
 const { activateIconsBrowse, refreshIconsBrowseIfOpen } = require('./icons-browse');
 const { activateVisualEditor } = require('./visual-editor');
+const { isMarpMarkdown, renderMarpPreviewHtml, renderMarpPresentWebview } = require('./marp-deck');
 
 function normalizeFsPath(p) {
   const resolved = path.resolve(String(p));
@@ -1113,6 +1114,28 @@ async function openMediaInSystemPlayer(fsPath) {
     const msg = e instanceof Error ? e.message : String(e);
     vscode.window.showErrorMessage(`Could not open file in system player:\n${fsPath}\n${msg}`);
   }
+}
+
+/**
+ * Rewrite relative Marp image URLs to webview URIs.
+ * @param {string} markdown
+ * @param {import('vscode').Webview} webview
+ * @param {string} noteDir
+ * @returns {string}
+ */
+function rewriteMarpRelativeImages(markdown, webview, noteDir) {
+  return String(markdown || '').replace(/!\[([^\]]*)]\(([^)]+)\)/g, (all, alt, src) => {
+    const trimmed = String(src || '').trim();
+    if (!trimmed || /^(https?:|data:|vscode-webview:)/i.test(trimmed)) {
+      return all;
+    }
+    const abs = path.resolve(noteDir, trimmed);
+    if (!fs.existsSync(abs)) {
+      return all;
+    }
+    const uri = webview.asWebviewUri(vscode.Uri.file(abs)).toString();
+    return `![${alt}](${uri})`;
+  });
 }
 
 /**
@@ -3759,8 +3782,27 @@ function registerPreviewCopyMarkdownPlugin() {
         }
       }
 
+      const originalParse = md.parse.bind(md);
+      md.parse = (src, env) => {
+        const nextEnv = env && typeof env === 'object' ? env : {};
+        const text = typeof src === 'string' ? src : String(src ?? '');
+        nextEnv.hneMarpSource = text;
+        nextEnv.hneIsMarp = isMarpMarkdown(text);
+        return originalParse(src, nextEnv);
+      };
+
       const originalRendererRender = md.renderer.render.bind(md.renderer);
       md.renderer.render = (tokens, options, env) => {
+        if (env?.hneIsMarp && env.hneMarpSource) {
+          const cfg = getPreviewCopyConfig();
+          const json = escapePreviewCopyConfigAttr(JSON.stringify(cfg));
+          const configHtml = `<div id="hne-preview-copy-config" style="display:none" data-config="${json}"></div>`;
+          const deckHtml = renderMarpPreviewHtml(env.hneMarpSource, (slideMd) => {
+            const slideTokens = originalParse(slideMd || ' ', {});
+            return originalRendererRender(slideTokens, options, {});
+          });
+          return configHtml + deckHtml;
+        }
         // Cursor may emit an empty front_matter token — refill from the note file.
         if (Array.isArray(tokens)) {
           for (const token of tokens) {
@@ -4132,6 +4174,41 @@ async function activate(context) {
     isDirectoryPath,
     isFilePath,
   });
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.presentMarp', async () => {
+      const editor = vscode.window.activeTextEditor;
+      const doc = editor?.document;
+      if (doc?.languageId !== 'markdown') {
+        vscode.window.showErrorMessage('Open a Markdown Marp note to present.');
+        return;
+      }
+      let markdown = doc.getText();
+      if (!isMarpMarkdown(markdown)) {
+        vscode.window.showErrorMessage('This note is not a Marp presentation (`type: marp` or `marp: true`).');
+        return;
+      }
+      const noteDir = path.dirname(doc.uri.fsPath);
+      const panel = vscode.window.createWebviewPanel(
+        'harrixNotesExplorerHsk.marpPresent',
+        path.basename(doc.fileName),
+        vscode.ViewColumn.Beside,
+        {
+          enableScripts: true,
+          retainContextWhenHidden: true,
+          localResourceRoots: [vscode.Uri.file(noteDir), vscode.Uri.joinPath(context.extensionUri, 'media')],
+        },
+      );
+      markdown = rewriteMarpRelativeImages(markdown, panel.webview, noteDir);
+      const markedSrc = panel.webview
+        .asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'vendor', 'marked.min.js'))
+        .toString();
+      panel.webview.html = renderMarpPresentWebview(markdown, {
+        markedSrc,
+        cspSource: panel.webview.cspSource,
+      });
+    }),
+  );
 
   harrixCli.activateHarrixCliIntegration({
     context,

@@ -63,6 +63,8 @@ These stay in `extension.js` for a public build:
 ## Core (not CLI) — New note
 
 - `harrixNotesExplorerHsk.createNote` — implemented in `new-note.js` (`@hsk-sync:new-note`); keep in public builds.
+- `harrixNotesExplorerHsk.createMarpNote` — same New note path with `type: marp` / `marp: true`.
+- `harrixNotesExplorerHsk.presentMarp` — fullscreen slideshow webview for Marp notes.
 
 ## CLI commands (registered in `harrix-cli.js`)
 
