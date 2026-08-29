@@ -227,7 +227,7 @@ Optimize all supported images in a folder.
 
 Args:
 
-- `images_folder` (`Path`): Source folder with images.
+- [`images_folder`](../../screenshot/dated_image_path.g.md#-function-images_folder) (`Path`): Source folder with images.
 - `output_folder` (`Path`): Destination folder for optimized images.
 - `project_root` (`Path`): Project root with `ffmpeg.exe`, `avifenc.exe`, `avifdec.exe`.
 - `quality` (`bool`): Use higher quality settings. Defaults to `False`.

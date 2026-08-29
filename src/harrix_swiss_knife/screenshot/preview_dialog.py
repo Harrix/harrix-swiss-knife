@@ -4,16 +4,17 @@ from __future__ import annotations
 
 from pathlib import Path
 from tempfile import NamedTemporaryFile
+from typing import TYPE_CHECKING
 
+import harrix_pylib as h
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QImage, QPixmap
+from PySide6.QtGui import QKeyEvent, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QApplication,
     QDialog,
     QFileDialog,
     QHBoxLayout,
     QLabel,
-    QScrollArea,
     QVBoxLayout,
     QWidget,
 )
@@ -24,12 +25,19 @@ from harrix_swiss_knife.actions.common.text_result_dialog import (
     COPY_BUTTON_LABEL,
     add_ok_button,
 )
+from harrix_swiss_knife.apps.common.qt_main_window import apply_app_window_size_and_position
 from harrix_swiss_knife.qt_emoji_icon import SAVE_BUTTON_EMOJI, make_emoji_push_button
+from harrix_swiss_knife.screenshot.dated_image_path import images_folder, next_dated_image_path
+from harrix_swiss_knife.screenshot.preview_canvas import ScreenshotPreviewCanvas
 
-_MAX_PREVIEW_SIDE = 900
+if TYPE_CHECKING:
+    from PySide6.QtGui import QImage
+
 _SAVE_BUTTON_LABEL = "Save as…"
 _MARKDOWN_AI_EMOJI = "🤖"
 _MARKDOWN_OCR_EMOJI = "🔤"
+_VK_S = 0x53
+_KEY_CYRILLIC_YERU = 0x042B  # Cyrillic yeru (same physical key as Latin S)  # ignore: HP001
 
 
 class ScreenshotPreviewDialog(QDialog):
@@ -42,25 +50,13 @@ class ScreenshotPreviewDialog(QDialog):
         qt_modality.set_owner_window_modal(self)
         self._image = image
 
-        preview = QLabel()
-        preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        pixmap = QPixmap.fromImage(image)
-        if max(pixmap.width(), pixmap.height()) > _MAX_PREVIEW_SIDE:
-            pixmap = pixmap.scaled(
-                _MAX_PREVIEW_SIDE,
-                _MAX_PREVIEW_SIDE,
-                Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.SmoothTransformation,
-            )
-        preview.setPixmap(pixmap)
-
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setWidget(preview)
-        scroll.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._canvas = ScreenshotPreviewCanvas(image, self)
+        self._status = QLabel(self)
+        self._status.setWordWrap(True)
+        self._status.setText("Ctrl+wheel zoom · Middle-drag pan · Ctrl+S save to images")
 
         button_layout = QHBoxLayout()
-        button_layout.addStretch()
+        button_layout.addWidget(self._status, stretch=1)
         copy_button = make_emoji_push_button(COPY_BUTTON_LABEL, COPY_BUTTON_EMOJI)
         copy_button.clicked.connect(self._copy_to_clipboard)
         button_layout.addWidget(copy_button)
@@ -82,10 +78,22 @@ class ScreenshotPreviewDialog(QDialog):
         add_ok_button(self, button_layout)
 
         layout = QVBoxLayout(self)
-        layout.addWidget(scroll)
+        layout.addWidget(self._canvas, stretch=1)
         layout.addLayout(button_layout)
 
-        self.resize(min(pixmap.width() + 40, 960), min(pixmap.height() + 100, 720))
+        save_shortcut = QShortcut(QKeySequence.StandardKey.Save, self)
+        save_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
+        save_shortcut.activated.connect(self._save_to_images)
+
+        apply_app_window_size_and_position(self)
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
+        """Save on Ctrl+S / Ctrl+Yeru (layout-independent via virtual key)."""  # ignore: HP001
+        if _is_ctrl_s(event):
+            self._save_to_images()
+            event.accept()
+            return
+        super().keyPressEvent(event)
 
     def _copy_to_clipboard(self) -> None:
         clipboard = QApplication.clipboard()
@@ -133,7 +141,8 @@ class ScreenshotPreviewDialog(QDialog):
         )
         if not path:
             return
-        self._image.save(path)
+        if self._image.save(path):
+            self._status.setText(f"Saved: {path}")
 
     def _save_temp_png(self) -> str | None:
         with NamedTemporaryFile(suffix=".png", delete=False) as handle:
@@ -141,3 +150,21 @@ class ScreenshotPreviewDialog(QDialog):
         if self._image.save(str(temp_path)):
             return str(temp_path)
         return None
+
+    def _save_to_images(self) -> None:
+        folder = images_folder(h.dev.get_project_root())
+        path = next_dated_image_path(folder)
+        if not self._image.save(str(path)):
+            self._status.setText(f"Could not save to {path}")
+            return
+        self._status.setText(f"Saved: {path.name}")
+
+
+def _is_ctrl_s(event: QKeyEvent) -> bool:
+    if event.modifiers() & Qt.KeyboardModifier.AltModifier:
+        return False
+    if not (event.modifiers() & Qt.KeyboardModifier.ControlModifier):
+        return False
+    if event.nativeVirtualKey() == _VK_S:
+        return True
+    return event.key() in {int(Qt.Key.Key_S), _KEY_CYRILLIC_YERU}

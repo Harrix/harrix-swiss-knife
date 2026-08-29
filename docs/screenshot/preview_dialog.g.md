@@ -13,6 +13,7 @@ lang: en
 
 - [🏛️ Class `ScreenshotPreviewDialog`](#%EF%B8%8F-class-screenshotpreviewdialog)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
 
 </details>
 
@@ -37,25 +38,13 @@ class ScreenshotPreviewDialog(QDialog):
         qt_modality.set_owner_window_modal(self)
         self._image = image
 
-        preview = QLabel()
-        preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        pixmap = QPixmap.fromImage(image)
-        if max(pixmap.width(), pixmap.height()) > _MAX_PREVIEW_SIDE:
-            pixmap = pixmap.scaled(
-                _MAX_PREVIEW_SIDE,
-                _MAX_PREVIEW_SIDE,
-                Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.SmoothTransformation,
-            )
-        preview.setPixmap(pixmap)
-
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setWidget(preview)
-        scroll.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._canvas = ScreenshotPreviewCanvas(image, self)
+        self._status = QLabel(self)
+        self._status.setWordWrap(True)
+        self._status.setText("Ctrl+wheel zoom · Middle-drag pan · Ctrl+S save to images")
 
         button_layout = QHBoxLayout()
-        button_layout.addStretch()
+        button_layout.addWidget(self._status, stretch=1)
         copy_button = make_emoji_push_button(COPY_BUTTON_LABEL, COPY_BUTTON_EMOJI)
         copy_button.clicked.connect(self._copy_to_clipboard)
         button_layout.addWidget(copy_button)
@@ -77,10 +66,22 @@ class ScreenshotPreviewDialog(QDialog):
         add_ok_button(self, button_layout)
 
         layout = QVBoxLayout(self)
-        layout.addWidget(scroll)
+        layout.addWidget(self._canvas, stretch=1)
         layout.addLayout(button_layout)
 
-        self.resize(min(pixmap.width() + 40, 960), min(pixmap.height() + 100, 720))
+        save_shortcut = QShortcut(QKeySequence.StandardKey.Save, self)
+        save_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
+        save_shortcut.activated.connect(self._save_to_images)
+
+        apply_app_window_size_and_position(self)
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
+        """Save on Ctrl+S / Ctrl+Yeru (layout-independent via virtual key)."""  # ignore: HP001
+        if _is_ctrl_s(event):
+            self._save_to_images()
+            event.accept()
+            return
+        super().keyPressEvent(event)
 
     def _copy_to_clipboard(self) -> None:
         clipboard = QApplication.clipboard()
@@ -128,7 +129,8 @@ class ScreenshotPreviewDialog(QDialog):
         )
         if not path:
             return
-        self._image.save(path)
+        if self._image.save(path):
+            self._status.setText(f"Saved: {path}")
 
     def _save_temp_png(self) -> str | None:
         with NamedTemporaryFile(suffix=".png", delete=False) as handle:
@@ -136,6 +138,14 @@ class ScreenshotPreviewDialog(QDialog):
         if self._image.save(str(temp_path)):
             return str(temp_path)
         return None
+
+    def _save_to_images(self) -> None:
+        folder = images_folder(h.dev.get_project_root())
+        path = next_dated_image_path(folder)
+        if not self._image.save(str(path)):
+            self._status.setText(f"Could not save to {path}")
+            return
+        self._status.setText(f"Saved: {path.name}")
 ```
 
 </details>
@@ -158,25 +168,13 @@ def __init__(self, image: QImage, parent: QWidget | None = None) -> None:
         qt_modality.set_owner_window_modal(self)
         self._image = image
 
-        preview = QLabel()
-        preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        pixmap = QPixmap.fromImage(image)
-        if max(pixmap.width(), pixmap.height()) > _MAX_PREVIEW_SIDE:
-            pixmap = pixmap.scaled(
-                _MAX_PREVIEW_SIDE,
-                _MAX_PREVIEW_SIDE,
-                Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.SmoothTransformation,
-            )
-        preview.setPixmap(pixmap)
-
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setWidget(preview)
-        scroll.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._canvas = ScreenshotPreviewCanvas(image, self)
+        self._status = QLabel(self)
+        self._status.setWordWrap(True)
+        self._status.setText("Ctrl+wheel zoom · Middle-drag pan · Ctrl+S save to images")
 
         button_layout = QHBoxLayout()
-        button_layout.addStretch()
+        button_layout.addWidget(self._status, stretch=1)
         copy_button = make_emoji_push_button(COPY_BUTTON_LABEL, COPY_BUTTON_EMOJI)
         copy_button.clicked.connect(self._copy_to_clipboard)
         button_layout.addWidget(copy_button)
@@ -198,10 +196,36 @@ def __init__(self, image: QImage, parent: QWidget | None = None) -> None:
         add_ok_button(self, button_layout)
 
         layout = QVBoxLayout(self)
-        layout.addWidget(scroll)
+        layout.addWidget(self._canvas, stretch=1)
         layout.addLayout(button_layout)
 
-        self.resize(min(pixmap.width() + 40, 960), min(pixmap.height() + 100, 720))
+        save_shortcut = QShortcut(QKeySequence.StandardKey.Save, self)
+        save_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
+        save_shortcut.activated.connect(self._save_to_images)
+
+        apply_app_window_size_and_position(self)
+```
+
+</details>
+
+### ⚙️ Method `keyPressEvent`
+
+```python
+def keyPressEvent(self, event: QKeyEvent) -> None
+```
+
+Save on Ctrl+S / Ctrl+Yeru (layout-independent via virtual key).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
+        if _is_ctrl_s(event):
+            self._save_to_images()
+            event.accept()
+            return
+        super().keyPressEvent(event)
 ```
 
 </details>
