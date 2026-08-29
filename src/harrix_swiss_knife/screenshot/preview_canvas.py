@@ -106,8 +106,11 @@ class ScreenshotPreviewCanvas(QWidget):
     def _fitted_size(self) -> QSizeF:
         if self._pixmap.isNull() or self.width() <= 0 or self.height() <= 0:
             return QSizeF()
+        # Fit when larger than the viewport; never upscale at zoom 1.0.
         fitted = self._pixmap.size().scaled(self.size(), Qt.AspectRatioMode.KeepAspectRatio)
-        return QSizeF(fitted.width() * self._zoom, fitted.height() * self._zoom)
+        display_w = min(fitted.width(), self._pixmap.width())
+        display_h = min(fitted.height(), self._pixmap.height())
+        return QSizeF(display_w * self._zoom, display_h * self._zoom)
 
     def _image_rect(self) -> QRectF:
         size = self._fitted_size()

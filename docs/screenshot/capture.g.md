@@ -27,12 +27,12 @@ can be rearranged; adjust keeps the next selection editable (move/resize) until
 Enter or double-click; close cancels. A floating camera button returns to region
 selection with a fresh grab.
 
-Every window shown here runs modally via `exec()`, so capture works even when
-it is started from nested modal dialogs (e.g. New Markdown → Fill with AI).
+Every capture overlay runs modally via `exec()`. The optional preview window is
+non-modal so later captures can add tabs to an already open preview.
 
 Args:
 
-- `show_preview` (`bool`): If `True`, displays the preview dialog after capture.
+- `show_preview` (`bool`): If `True`, displays the preview window after capture.
 - `show_shutter_button` (`bool`): If `True`, shows the mode-toggle shutter controls.
 - `hide_app` (`bool`): If `True`, conceals application Windows before the grab.
 
@@ -67,10 +67,8 @@ def capture_region(
             restore_app_windows(hidden, activate=not show_preview_now)
 
     if show_preview and image is not None and not image.isNull():
-        dialog = ScreenshotPreviewDialog(image)
-        dialog.show()
-        bring_window_to_foreground(dialog, delays_ms=PREVIEW_FOREGROUND_DELAYS_MS)
-        dialog.exec()
+        window = show_screenshot_preview(image)
+        bring_window_to_foreground(window, delays_ms=PREVIEW_FOREGROUND_DELAYS_MS)
 
     return image
 ```

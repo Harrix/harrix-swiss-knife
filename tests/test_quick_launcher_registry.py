@@ -31,7 +31,7 @@ def qapp() -> QApplication:
 
 def test_collect_quick_launcher_actions_finds_marked_actions() -> None:
     actions = collect_quick_launcher_actions(get_menu_structure())
-    assert len(actions) == 11
+    assert len(actions) == 13
     assert {cls.__name__ for cls in actions} == {
         "OnConvertPathToWindows",
         "OnFixTextWithAI",
@@ -42,6 +42,8 @@ def test_collect_quick_launcher_actions_finds_marked_actions() -> None:
         "OnOptimizeClipboard",
         "OnOptimizeClipboardDialog",
         "OnScreenshotRegion",
+        "OnScreenshotRegionClipboard",
+        "OnScreenshotRegionClipboardKeepWindows",
         "OnScreenshotRegionKeepWindows",
         "OnSnippets",
     }

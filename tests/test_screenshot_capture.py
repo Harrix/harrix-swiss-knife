@@ -10,6 +10,10 @@ import pytest
 from PySide6.QtGui import QImage
 from PySide6.QtWidgets import QApplication
 
+from harrix_swiss_knife.actions.images.screenshot_region_clipboard import OnScreenshotRegionClipboard
+from harrix_swiss_knife.actions.images.screenshot_region_clipboard_keep_windows import (
+    OnScreenshotRegionClipboardKeepWindows,
+)
 from harrix_swiss_knife.actions.images.screenshot_region_keep_windows import OnScreenshotRegionKeepWindows
 from harrix_swiss_knife.screenshot import capture
 
@@ -51,16 +55,14 @@ def test_capture_region_restores_without_activate_when_preview_opens(
     )
     monkeypatch.setattr(capture, "bring_window_to_foreground", lambda dialog, **_kwargs: brought.append(dialog))
 
-    fake_dialog = MagicMock()
-    monkeypatch.setattr(capture, "ScreenshotPreviewDialog", lambda _image: fake_dialog)
+    fake_window = MagicMock()
+    monkeypatch.setattr(capture, "show_screenshot_preview", lambda _image: fake_window)
 
     result = capture.capture_region(show_preview=True, show_shutter_button=False)
 
     assert result is image
     assert restore_kwargs == [False]
-    fake_dialog.show.assert_called_once()
-    assert brought == [fake_dialog]
-    fake_dialog.exec.assert_called_once()
+    assert brought == [fake_window]
 
 
 def test_capture_region_activates_restored_windows_when_preview_skipped(
@@ -79,7 +81,7 @@ def test_capture_region_activates_restored_windows_when_preview_skipped(
         lambda _widgets, *, activate=True: restore_kwargs.append(activate),
     )
     monkeypatch.setattr(capture, "bring_window_to_foreground", lambda *_args, **_kwargs: None)
-    monkeypatch.setattr(capture, "ScreenshotPreviewDialog", MagicMock)
+    monkeypatch.setattr(capture, "show_screenshot_preview", MagicMock)
 
     result = capture.capture_region(show_preview=False, show_shutter_button=False)
 
@@ -100,7 +102,7 @@ def test_capture_region_keeps_app_windows_visible(
     monkeypatch.setattr(capture, "_capture_loop", lambda **_kwargs: image)
     monkeypatch.setattr(capture, "restore_app_windows", lambda *_args, **_kwargs: restore_calls.append(1))
     monkeypatch.setattr(capture, "bring_window_to_foreground", lambda *_args, **_kwargs: None)
-    monkeypatch.setattr(capture, "ScreenshotPreviewDialog", MagicMock)
+    monkeypatch.setattr(capture, "show_screenshot_preview", MagicMock)
 
     result = capture.capture_region(show_preview=False, show_shutter_button=False, hide_app=False)
 
@@ -116,3 +118,42 @@ def test_example_config_binds_keep_windows_screenshot() -> None:
     assert "Ctrl+Shift+F4" in matching[0]["hotkeys"]
     assert OnScreenshotRegionKeepWindows.title == "Screenshot region (keep Windows)"
     assert OnScreenshotRegionKeepWindows.quick_launcher is True
+
+
+def test_example_config_binds_clipboard_screenshot_hotkeys() -> None:
+    data = json.loads(_EXAMPLE_CONFIG.read_text(encoding="utf-8"))
+    by_action = {entry["action"]: entry["hotkeys"] for entry in data["hotkeys"]}
+    assert "Ctrl+Shift+5" in by_action["OnScreenshotRegionClipboard"]
+    assert "Ctrl+Shift+6" in by_action["OnScreenshotRegionClipboardKeepWindows"]
+    assert OnScreenshotRegionClipboard.quick_launcher is True
+    assert OnScreenshotRegionClipboardKeepWindows.quick_launcher is True
+
+
+def test_clipboard_actions_skip_preview(qapp: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:  # noqa: ARG001
+    image = _sample_image()
+    calls: list[dict[str, object]] = []
+
+    def fake_capture_region(**kwargs: object) -> QImage:
+        calls.append(kwargs)
+        return image
+
+    monkeypatch.setattr(
+        "harrix_swiss_knife.actions.images.screenshot_region_clipboard.capture_region",
+        fake_capture_region,
+    )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.actions.images.screenshot_region_clipboard_keep_windows.capture_region",
+        fake_capture_region,
+    )
+
+    def _silent_toast(self: object, message: str = "", duration: int = 2000) -> None:  # noqa: ARG001
+        return None
+
+    monkeypatch.setattr(OnScreenshotRegionClipboard, "show_toast", _silent_toast)
+    monkeypatch.setattr(OnScreenshotRegionClipboardKeepWindows, "show_toast", _silent_toast)
+    OnScreenshotRegionClipboard()()
+    OnScreenshotRegionClipboardKeepWindows()()
+    assert calls == [
+        {"show_preview": False, "show_shutter_button": True, "hide_app": True},
+        {"show_preview": False, "show_shutter_button": True, "hide_app": False},
+    ]

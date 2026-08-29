@@ -103,6 +103,8 @@ _Figure 1: Screenshot_
   - 🚀 Optimize image from clipboard
   - 🚀 Optimize image from clipboard as …
   - 📷 Screenshot region
+  - 📷 Screenshot region (clipboard)
+  - 📷 Screenshot region (clipboard, keep Windows)
   - 📷 Screenshot region (keep Windows)
 - **File operations**
   - ✅ Check featured_image in all folders

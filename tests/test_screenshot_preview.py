@@ -1,18 +1,24 @@
-"""Tests for screenshot preview dated paths and canvas helpers."""
+"""Tests for screenshot preview dated paths, canvas, and tabbed window."""
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from datetime import date
 from pathlib import Path
 
 import pytest
 from PySide6.QtCore import QPointF, Qt
 from PySide6.QtGui import QImage, QKeyEvent
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QTabWidget
 
+from harrix_swiss_knife.screenshot import preview_dialog as preview_dialog_module
 from harrix_swiss_knife.screenshot.dated_image_path import images_folder, next_dated_image_path
 from harrix_swiss_knife.screenshot.preview_canvas import ScreenshotPreviewCanvas
-from harrix_swiss_knife.screenshot.preview_dialog import ScreenshotPreviewDialog, _is_ctrl_s
+from harrix_swiss_knife.screenshot.preview_dialog import (
+    ScreenshotPreviewWindow,
+    _is_ctrl_s,
+    show_screenshot_preview,
+)
 
 
 @pytest.fixture
@@ -24,6 +30,23 @@ def qapp() -> QApplication:
         msg = "QApplication.instance() returned a non-QApplication object."
         raise TypeError(msg)
     return app
+
+
+@pytest.fixture(autouse=True)
+def _reset_preview_singleton() -> Iterator[None]:
+    window = preview_dialog_module._preview_holder["window"]
+    preview_dialog_module._preview_holder["window"] = None
+    if window is not None:
+        window.close()
+        window.deleteLater()
+    QApplication.processEvents()
+    yield
+    window = preview_dialog_module._preview_holder["window"]
+    preview_dialog_module._preview_holder["window"] = None
+    if window is not None:
+        window.close()
+        window.deleteLater()
+    QApplication.processEvents()
 
 
 def test_images_folder_under_project_root() -> None:
@@ -55,6 +78,17 @@ def test_preview_canvas_zoom_changes_factor(qapp: QApplication) -> None:  # noqa
     canvas.close()
 
 
+def test_preview_canvas_does_not_upscale_small_image(qapp: QApplication) -> None:  # noqa: ARG001
+    image = QImage(40, 20, QImage.Format.Format_RGB32)
+    image.fill(Qt.GlobalColor.red)
+    canvas = ScreenshotPreviewCanvas(image)
+    canvas.resize(400, 300)
+    rect = canvas._image_rect()
+    assert rect.width() == pytest.approx(40.0)
+    assert rect.height() == pytest.approx(20.0)
+    canvas.close()
+
+
 def test_is_ctrl_s_accepts_key_s_and_yeru(qapp: QApplication) -> None:  # noqa: ARG001
     event_s = QKeyEvent(QKeyEvent.Type.KeyPress, Qt.Key.Key_S, Qt.KeyboardModifier.ControlModifier)
     assert _is_ctrl_s(event_s)
@@ -64,7 +98,7 @@ def test_is_ctrl_s_accepts_key_s_and_yeru(qapp: QApplication) -> None:  # noqa: 
     assert not _is_ctrl_s(event_plain)
 
 
-def test_preview_dialog_saves_dated_png(
+def test_preview_window_saves_dated_png_and_updates_title(
     qapp: QApplication,  # noqa: ARG001
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -72,19 +106,59 @@ def test_preview_dialog_saves_dated_png(
     image = QImage(8, 8, QImage.Format.Format_RGB32)
     image.fill(Qt.GlobalColor.blue)
     monkeypatch.setattr(
-        "harrix_swiss_knife.screenshot.preview_dialog.apply_app_window_size_and_position",
-        lambda _widget: None,
-    )
-    monkeypatch.setattr(
         "harrix_swiss_knife.screenshot.preview_dialog.h.dev.get_project_root",
         lambda: tmp_path,
     )
-    dialog = ScreenshotPreviewDialog(image)
-    dialog._save_to_images()
+    window = show_screenshot_preview(image)
+    assert window.windowTitle() == "Screenshot"
+    window._save_to_images()
     saved = tmp_path / "temp" / "images"
     files = list(saved.glob("*.png"))
     assert len(files) == 1
     assert files[0].stem.endswith("_01")
-    dialog.close()
-    dialog.deleteLater()
-    QApplication.processEvents()
+    assert window.windowTitle() == f"Screenshot — {files[0].name}"
+    window.close()
+
+
+def test_show_screenshot_preview_adds_tabs(qapp: QApplication) -> None:  # noqa: ARG001
+    first = QImage(8, 8, QImage.Format.Format_RGB32)
+    first.fill(Qt.GlobalColor.red)
+    second = QImage(10, 10, QImage.Format.Format_RGB32)
+    second.fill(Qt.GlobalColor.green)
+    window = show_screenshot_preview(first)
+    show_screenshot_preview(second)
+    tabs = window.findChild(QTabWidget)
+    assert tabs is not None
+    assert tabs.count() == 2
+    assert tabs.tabBar().isVisible()
+    window.close()
+
+
+def test_preview_window_title_follows_tab_saved_name(
+    qapp: QApplication,  # noqa: ARG001
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "harrix_swiss_knife.screenshot.preview_dialog.h.dev.get_project_root",
+        lambda: tmp_path,
+    )
+    first = QImage(8, 8, QImage.Format.Format_RGB32)
+    first.fill(Qt.GlobalColor.red)
+    second = QImage(8, 8, QImage.Format.Format_RGB32)
+    second.fill(Qt.GlobalColor.blue)
+    window = show_screenshot_preview(first)
+    window._save_to_images()
+    saved_title = window.windowTitle()
+    assert saved_title.startswith("Screenshot — ")
+    show_screenshot_preview(second)
+    assert window.windowTitle() == "Screenshot"
+    tabs = window.findChild(QTabWidget)
+    assert tabs is not None
+    tabs.setCurrentIndex(0)
+    assert window.windowTitle() == saved_title
+    window.close()
+
+
+def test_screenshot_preview_dialog_alias() -> None:
+    assert ScreenshotPreviewWindow is preview_dialog_module.ScreenshotPreviewDialog
