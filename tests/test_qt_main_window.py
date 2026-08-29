@@ -6,9 +6,11 @@ from types import SimpleNamespace
 
 import pytest
 from PySide6.QtCore import QRect, Qt
+from PySide6.QtGui import QWindowStateChangeEvent
 from PySide6.QtWidgets import QApplication, QMenuBar, QWidget
 
 from harrix_swiss_knife.apps.common.qt_main_window import (
+    _RestoreFromMaximizeFilter,
     apply_app_window_size_and_position,
     compute_app_window_geometry,
     compute_maximize_pin_geometry,
@@ -172,6 +174,16 @@ def test_window_frame_margins_reserve_title_bar_for_window(qapp: QApplication) -
     widget.setWindowFlags(Qt.WindowType.Window)
     _left, top, _right, _bottom = window_frame_margins(widget)
     assert top >= 24
+
+
+def test_restore_filter_event_filter_without_python_attrs(qapp: QApplication) -> None:  # noqa: ARG001
+    """Shiboken can recreate the QObject wrapper without `_widget`; do not crash."""
+    widget = QWidget()
+    restore_filter = _RestoreFromMaximizeFilter(widget, standard_width=1920)
+    restore_filter.__dict__.clear()
+    event = QWindowStateChangeEvent(Qt.WindowState.WindowMaximized)
+    assert restore_filter.eventFilter(widget, event) is False
+    widget.close()
 
 
 def test_resolve_window_menu_bar_when_attribute_shadows_method(qapp: QApplication) -> None:

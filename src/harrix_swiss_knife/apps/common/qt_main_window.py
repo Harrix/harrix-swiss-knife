@@ -441,13 +441,13 @@ class _MaximizeOnFirstShowFilter(QObject):
 
     def __init__(self, widget: QWidget) -> None:
         super().__init__(widget)
-        self._widget = widget
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
-        widget = self._widget
-        if watched is widget and event.type() == QEvent.Type.Show:
+        widget = _filter_widget(self, watched)
+        if widget is not None and watched is widget and event.type() == QEvent.Type.Show:
             QTimer.singleShot(0, lambda w=widget: _maximize_when_mapped(w))
             widget.removeEventFilter(self)
+            setattr(widget, _MAXIMIZE_FILTER_ATTR, None)
             self.deleteLater()
         return False
 
@@ -457,12 +457,11 @@ class _RestoreFromMaximizeFilter(QObject):
 
     def __init__(self, widget: QWidget, *, standard_width: int) -> None:
         super().__init__(widget)
-        self._widget = widget
         self._standard_width = standard_width
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
-        widget = self._widget
-        if watched is not widget or event.type() != QEvent.Type.WindowStateChange:
+        widget = _filter_widget(self, watched)
+        if widget is None or watched is not widget or event.type() != QEvent.Type.WindowStateChange:
             return False
         if not isValid(widget) or widget.isMinimized() or widget.isMaximized() or widget.isFullScreen():
             return False
@@ -471,7 +470,10 @@ class _RestoreFromMaximizeFilter(QObject):
             return False
         if not window_frame_escapes_work_area(widget.frameGeometry(), _widget_work_area(widget)):
             return False
-        apply_restored_app_window_geometry(widget, standard_width=self._standard_width)
+        apply_restored_app_window_geometry(
+            widget,
+            standard_width=getattr(self, "_standard_width", 1920),
+        )
         return False
 
     def set_standard_width(self, standard_width: int) -> None:
@@ -802,20 +804,35 @@ def window_frame_margins(widget: QWidget) -> tuple[int, int, int, int]:
     return (border, title, border, border)
 
 
+def _filter_widget(event_filter: QObject, watched: QObject) -> QWidget | None:
+    """Resolve the filtered window even if Shiboken recreated the Python wrapper."""
+    parent = event_filter.parent()
+    if isinstance(parent, QWidget):
+        return parent
+    if isinstance(watched, QWidget):
+        return watched
+    return None
+
+
 def _install_maximize_on_first_show(widget: QWidget) -> None:
     """Run `showMaximized` on the next `Show` if it is not already scheduled."""
-    if widget.findChildren(_MaximizeOnFirstShowFilter):
+    existing = getattr(widget, _MAXIMIZE_FILTER_ATTR, None)
+    if isinstance(existing, _MaximizeOnFirstShowFilter):
         return
-    widget.installEventFilter(_MaximizeOnFirstShowFilter(widget))
+    maximize_filter = _MaximizeOnFirstShowFilter(widget)
+    setattr(widget, _MAXIMIZE_FILTER_ATTR, maximize_filter)
+    widget.installEventFilter(maximize_filter)
 
 
 def _install_restore_from_maximize_filter(widget: QWidget, *, standard_width: int) -> None:
     """Keep one restore-from-maximize filter on `widget`."""
-    existing = widget.findChildren(_RestoreFromMaximizeFilter)
-    if existing:
-        existing[0].set_standard_width(standard_width)
+    existing = getattr(widget, _RESTORE_FILTER_ATTR, None)
+    if isinstance(existing, _RestoreFromMaximizeFilter):
+        existing.set_standard_width(standard_width)
         return
-    widget.installEventFilter(_RestoreFromMaximizeFilter(widget, standard_width=standard_width))
+    restore_filter = _RestoreFromMaximizeFilter(widget, standard_width=standard_width)
+    setattr(widget, _RESTORE_FILTER_ATTR, restore_filter)
+    widget.installEventFilter(restore_filter)
 
 
 def _maximize_when_mapped(widget: QWidget) -> None:
@@ -887,6 +904,10 @@ def _widget_work_area(widget: QWidget) -> QRect:
     if screen is None:
         return QRect()
     return screen.availableGeometry()
+
+
+_MAXIMIZE_FILTER_ATTR = "_hsk_maximize_on_first_show_filter"
+_RESTORE_FILTER_ATTR = "_hsk_restore_from_maximize_filter"
 
 
 logger = logging.getLogger(__name__)
