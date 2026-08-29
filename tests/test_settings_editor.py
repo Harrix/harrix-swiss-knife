@@ -12,7 +12,7 @@ from PySide6.QtGui import QKeyEvent
 from PySide6.QtWidgets import QApplication, QLineEdit, QPushButton, QTextEdit
 
 from harrix_swiss_knife.actions.common.dialog_geometry import text_content_height
-from harrix_swiss_knife.actions.development.settings_editor import (
+from harrix_swiss_knife.apps.common.settings_editor import (
     ADD_HOTKEY_BUTTON_OBJECT_NAME,
     FIELD_SAVE_BUTTON_OBJECT_NAME,
     HOTKEY_ACTION_OBJECT_NAME,
@@ -24,12 +24,15 @@ from harrix_swiss_knife.actions.development.settings_editor import (
     HotkeyEdit,
     SettingsEditorDialog,
     assemble_config,
+    config_key_belongs_to_app,
+    filter_config_categories,
     folder_path_from_text,
     is_folder_path_setting,
     is_hotkey_bindings_setting,
     is_hotkey_setting,
     is_hotkey_string,
     load_raw_config,
+    merge_filtered_config,
 )
 
 _LONG_LIST = [f"item-{index}" for index in range(12)]
@@ -48,11 +51,11 @@ def qapp() -> QApplication:
 
 def _open_settings_dialog(monkeypatch: pytest.MonkeyPatch, config: dict[str, Any]) -> SettingsEditorDialog:
     monkeypatch.setattr(
-        "harrix_swiss_knife.actions.development.settings_editor.get_config_path_str",
+        "harrix_swiss_knife.apps.common.settings_editor.get_config_path_str",
         lambda: "config.json",
     )
     monkeypatch.setattr(
-        "harrix_swiss_knife.actions.development.settings_editor.load_raw_config",
+        "harrix_swiss_knife.apps.common.settings_editor.load_raw_config",
         lambda _path: config,
     )
     dialog = SettingsEditorDialog()
@@ -145,7 +148,7 @@ def test_open_folder_button_opens_current_path(
 ) -> None:
     opened: list[Path] = []
     monkeypatch.setattr(
-        "harrix_swiss_knife.actions.development.settings_editor.h.file.open_file_or_folder",
+        "harrix_swiss_knife.apps.common.settings_editor.h.file.open_file_or_folder",
         opened.append,
     )
     dialog = _open_settings_dialog(monkeypatch, {"path_notes": str(tmp_path)})
@@ -313,7 +316,7 @@ def test_save_keeps_snippets_key_order_and_stays_open(
     }
     path.write_text(json.dumps(original), encoding="utf-8")
     monkeypatch.setattr(
-        "harrix_swiss_knife.actions.development.settings_editor.get_config_path_str",
+        "harrix_swiss_knife.apps.common.settings_editor.get_config_path_str",
         lambda: str(path),
     )
     dialog = SettingsEditorDialog()
@@ -350,7 +353,7 @@ def test_save_ui_font_scale_prompts_restart(
     path = tmp_path / "config.json"
     path.write_text('{"editor": "cursor", "ui_font_scale": 1.0}\n', encoding="utf-8")
     monkeypatch.setattr(
-        "harrix_swiss_knife.actions.development.settings_editor.get_config_path_str",
+        "harrix_swiss_knife.apps.common.settings_editor.get_config_path_str",
         lambda: str(path),
     )
     prompted: list[list[str]] = []
@@ -386,7 +389,7 @@ def test_save_editor_does_not_prompt_restart(
     path = tmp_path / "config.json"
     path.write_text('{"editor": "cursor", "ui_font_scale": 1.0}\n', encoding="utf-8")
     monkeypatch.setattr(
-        "harrix_swiss_knife.actions.development.settings_editor.get_config_path_str",
+        "harrix_swiss_knife.apps.common.settings_editor.get_config_path_str",
         lambda: str(path),
     )
     prompted: list[list[str]] = []
@@ -420,7 +423,7 @@ def test_enter_in_field_saves_without_closing(
     path = tmp_path / "config.json"
     path.write_text('{"editor": "cursor"}\n', encoding="utf-8")
     monkeypatch.setattr(
-        "harrix_swiss_knife.actions.development.settings_editor.get_config_path_str",
+        "harrix_swiss_knife.apps.common.settings_editor.get_config_path_str",
         lambda: str(path),
     )
     dialog = SettingsEditorDialog()
@@ -438,5 +441,156 @@ def test_enter_in_field_saves_without_closing(
         assert dialog.isVisible()
         written = json.loads(path.read_text(encoding="utf-8"))
         assert written["editor"] == "code"
+    finally:
+        dialog.close()
+
+
+def test_config_key_belongs_to_app_matches_prefixes_and_sqlite() -> None:
+    assert config_key_belongs_to_app("sqlite_fitness", "fitness")
+    assert config_key_belongs_to_app("fitness_names_translate_local_limit", "fitness")
+    assert config_key_belongs_to_app("food_calorie_thresholds", "food")
+    assert config_key_belongs_to_app("path_habit_comments", "habits")
+    assert config_key_belongs_to_app("path_vector_icons_pinned", "icons")
+    assert config_key_belongs_to_app("vector_icons_recent_folders_max", "icons")
+    assert not config_key_belongs_to_app("sqlite_food", "fitness")
+    assert not config_key_belongs_to_app("editor", "fitness")
+
+
+def test_filter_config_categories_keeps_app_and_shared_tracker_keys() -> None:
+    categories = {
+        "General": {
+            "editor": "cursor",
+            "sqlite_fitness": "fitness.db",
+            "sqlite_food": "food.db",
+            "fitness_names_translate_local_limit": 250,
+        },
+        "apps": {
+            "fitness_image_max_size": 330,
+            "initial_count": 1000,
+            "local_language": "ru",
+        },
+        "prompts": {
+            "fitness_workout_generate": "snippet:fitness.md",
+            "food_kcal_lookup": "snippet:food.md",
+        },
+        "food_calorie_thresholds": {"low": 1800, "medium_high": 2500},
+    }
+    fitness = filter_config_categories(categories, "fitness")
+    assert "editor" not in fitness.get("General", {})
+    assert fitness["General"]["sqlite_fitness"] == "fitness.db"
+    assert "sqlite_food" not in fitness.get("General", {})
+    assert fitness["apps"] == {
+        "fitness_image_max_size": 330,
+        "initial_count": 1000,
+        "local_language": "ru",
+    }
+    assert fitness["prompts"] == {"fitness_workout_generate": "snippet:fitness.md"}
+    assert "food_calorie_thresholds" not in fitness
+
+    food = filter_config_categories(categories, "food")
+    assert food["food_calorie_thresholds"] == {"low": 1800, "medium_high": 2500}
+    assert "fitness_image_max_size" not in food.get("apps", {})
+    assert food["apps"]["initial_count"] == 1000
+
+    icons = filter_config_categories(categories, "icons")
+    assert icons == {}
+
+
+def test_merge_filtered_config_updates_app_keys_only() -> None:
+    full = {
+        "editor": "cursor",
+        "apps": {"fitness_image_max_size": 330, "local_language": "ru"},
+        "prompts": {"fitness_workout_generate": "a", "food_kcal_lookup": "b"},
+        "sqlite_fitness": "old.db",
+    }
+    assembled = {
+        "apps": {"fitness_image_max_size": 640, "local_language": "en"},
+        "prompts": {"fitness_workout_generate": "c"},
+        "sqlite_fitness": "new.db",
+    }
+    merged = merge_filtered_config(full, assembled)
+    assert merged["editor"] == "cursor"
+    assert merged["apps"] == {"fitness_image_max_size": 640, "local_language": "en"}
+    assert merged["prompts"] == {"fitness_workout_generate": "c", "food_kcal_lookup": "b"}
+    assert merged["sqlite_fitness"] == "new.db"
+
+
+def test_app_settings_dialog_shows_only_matching_keys(
+    qapp: QApplication,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.common.settings_editor.get_config_path_str",
+        lambda: "config.json",
+    )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.common.settings_editor.load_raw_config",
+        lambda _path: {
+            "editor": "cursor",
+            "sqlite_fitness": "fitness.db",
+            "sqlite_food": "food.db",
+            "apps": {"fitness_image_max_size": 330, "local_language": "ru"},
+            "prompts": {"fitness_sets_to_tsv": "snippet:a.md", "food_kcal_lookup": "snippet:b.md"},
+        },
+    )
+    dialog = SettingsEditorDialog(app_id="fitness", window_title="Fitness tracker settings")
+    dialog.show()
+    QApplication.processEvents()
+    try:
+        assert dialog.windowTitle() == "Fitness tracker settings"
+        assert dialog.categories["General"]["sqlite_fitness"] == "fitness.db"
+        assert "editor" not in dialog.categories["General"]
+        assert "sqlite_food" not in dialog.categories["General"]
+        assert dialog.categories["apps"]["fitness_image_max_size"] == 330
+        assert dialog.categories["apps"]["local_language"] == "ru"
+        assert dialog.categories["prompts"] == {"fitness_sets_to_tsv": "snippet:a.md"}
+        assert "General::sqlite_fitness" in dialog.input_widgets
+        assert "General::editor" not in dialog.input_widgets
+    finally:
+        dialog.close()
+
+
+def test_app_settings_save_keeps_other_app_keys(
+    qapp: QApplication,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "config.json"
+    original = {
+        "editor": "cursor",
+        "apps": {"fitness_image_max_size": 330, "local_language": "ru"},
+        "prompts": {"fitness_sets_to_tsv": "snippet:a.md", "food_kcal_lookup": "snippet:b.md"},
+        "sqlite_fitness": "fitness.db",
+        "sqlite_food": "food.db",
+    }
+    path.write_text(json.dumps(original), encoding="utf-8")
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.common.settings_editor.get_config_path_str",
+        lambda: str(path),
+    )
+    dialog = SettingsEditorDialog(app_id="fitness")
+    dialog.show()
+    QApplication.processEvents()
+    try:
+        for row in range(dialog.list_categories.count()):
+            item = dialog.list_categories.item(row)
+            if item is not None and item.text() == "apps":
+                dialog.list_categories.setCurrentRow(row)
+                break
+        QApplication.processEvents()
+        size = dialog.input_widgets["apps::fitness_image_max_size"]
+        assert isinstance(size, QLineEdit)
+        size.setText("640")
+        QApplication.processEvents()
+        save_all = dialog.findChild(QPushButton, SAVE_ALL_BUTTON_OBJECT_NAME)
+        assert save_all is not None
+        save_all.click()
+        QApplication.processEvents()
+        written = json.loads(path.read_text(encoding="utf-8"))
+        assert written["editor"] == "cursor"
+        assert written["sqlite_food"] == "food.db"
+        assert written["prompts"]["food_kcal_lookup"] == "snippet:b.md"
+        assert written["apps"]["fitness_image_max_size"] == 640
+        assert written["apps"]["local_language"] == "ru"
     finally:
         dialog.close()

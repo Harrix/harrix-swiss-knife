@@ -258,6 +258,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
 
     about_app_name = "Vector Icons"
     about_description = "Browse and drag SVG/AI/PDF/EPS icon folders (Harrix-Vector-Icons or flat dumps)."
+    settings_app_id = "icons"
 
     def __init__(self, *, hide_on_close: bool = False) -> None:
         """Build the browser UI and load catalog from config path."""
@@ -710,6 +711,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         status.addPermanentWidget(self._thumb_status_bar)
 
         file_menu = self.menuBar().addMenu("&File")
+        self.menuFile = file_menu
         open_folder_action = file_menu.addAction("📂 Open folder…")
         open_folder_action.triggered.connect(self._on_open_folder)
         pin_action = file_menu.addAction("📌 Pin current folder")

@@ -11,6 +11,7 @@ Provides `AppWindowMixin` with methods that were previously duplicated in
 - `_handle_ctrl_c_for_tables`
 - Exit / About menu actions
 - Show database in folder (File menu)
+- App-specific Settings (File menu)
 
 """
 
@@ -57,6 +58,7 @@ class AppWindowMixin:
 
     about_app_name: ClassVar[str] = "Harrix Swiss Knife"
     about_description: ClassVar[str] = ""
+    settings_app_id: ClassVar[str | None] = None
 
     actionAbout: QAction  # noqa: N815
     actionExit: QAction  # noqa: N815
@@ -121,6 +123,21 @@ class AppWindowMixin:
         except (FileNotFoundError, OSError) as exc:
             message_box.warning(cast("QWidget", self), "Database", str(exc))
 
+    def on_settings(self) -> None:
+        """Open the settings editor for this app's `config.json` keys."""
+        from harrix_swiss_knife.apps.common.settings_editor import SettingsEditorDialog  # noqa: PLC0415
+
+        app_id = type(self).settings_app_id
+        if not app_id:
+            return
+        dialog = SettingsEditorDialog(
+            cast("QWidget", self),
+            app_id=app_id,
+            window_title=f"{type(self).about_app_name} settings",
+        )
+        apply_app_window_size_and_position(dialog)
+        dialog.exec()
+
     def _apply_exit_about_menu_emojis(self) -> None:
         """Prefix Exit and About with emoji, then turn menu-bar prefixes into icons."""
         self.actionExit.setText(f"🚪 {self.actionExit.text()}")
@@ -142,6 +159,7 @@ class AppWindowMixin:
         self.actionExit.triggered.connect(self.on_exit)
         self.actionAbout.triggered.connect(self.on_about)
         self._setup_reveal_database_action()
+        self._setup_settings_action()
 
     def _copy_table_selection_to_clipboard(self, table_view: QTableView) -> None:
         """Copy selected cells from `table_view` to clipboard as tab-separated text.
@@ -366,6 +384,20 @@ class AppWindowMixin:
         action.triggered.connect(self.on_reveal_database)
         menu.insertAction(self.actionExit, action)
         set_action_text_with_emoji_icon(action, "📂 Show database in folder")
+
+    def _setup_settings_action(self) -> None:
+        """Add File → Settings for apps that declare `settings_app_id`."""
+        if not type(self).settings_app_id:
+            return
+        menu_file = getattr(self, "menuFile", None)
+        if menu_file is None:
+            return
+        menu = cast("QMenu", menu_file)
+        action = QAction("Settings", cast("QWidget", self))
+        action.setObjectName("actionSettings")
+        action.triggered.connect(self.on_settings)
+        menu.insertAction(self.actionExit, action)
+        set_action_text_with_emoji_icon(action, "⚙️ Settings")
 
     def _setup_window_size_and_position(self, *, standard_width: int = 1920) -> None:
         """Set window size and position based on screen resolution and characteristics.
