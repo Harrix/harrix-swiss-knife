@@ -58,7 +58,8 @@ def capture_region(
     try:
         if hide_app:
             _wait_ms(_HIDE_SETTLE_MS)
-        image = _capture_loop(with_controls=show_shutter_button)
+        exclude_hwnds = _hwnds_from_widgets(item.widget for item in hidden)
+        image = _capture_loop(with_controls=show_shutter_button, exclude_hwnds=exclude_hwnds)
     finally:
         show_preview_now = show_preview and image is not None and not image.isNull()
         if hide_app:

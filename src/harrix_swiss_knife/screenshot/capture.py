@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from PySide6.QtCore import QEventLoop, QRect, Qt, QTimer
 from PySide6.QtGui import QImage, QPainter, QPixmap, QScreen
 from PySide6.QtWidgets import QApplication, QDialog
@@ -14,12 +16,18 @@ from harrix_swiss_knife.screenshot.dpi import (
 from harrix_swiss_knife.screenshot.preview_dialog import ScreenshotPreviewDialog
 from harrix_swiss_knife.screenshot.region_overlay import RESULT_TOGGLE_ARRANGE, RegionOverlay
 from harrix_swiss_knife.screenshot.shutter_button import ArrangeModeDialog
+from harrix_swiss_knife.screenshot.window_rects import list_snappable_window_rects
 from harrix_swiss_knife.screenshot.window_visibility import (
     PREVIEW_FOREGROUND_DELAYS_MS,
     bring_window_to_foreground,
     hide_app_windows,
     restore_app_windows,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from PySide6.QtWidgets import QWidget
 
 _HIDE_SETTLE_MS = 200
 
@@ -67,7 +75,8 @@ def capture_region(
     try:
         if hide_app:
             _wait_ms(_HIDE_SETTLE_MS)
-        image = _capture_loop(with_controls=show_shutter_button)
+        exclude_hwnds = _hwnds_from_widgets(item.widget for item in hidden)
+        image = _capture_loop(with_controls=show_shutter_button, exclude_hwnds=exclude_hwnds)
     finally:
         show_preview_now = show_preview and image is not None and not image.isNull()
         if hide_app:
@@ -82,14 +91,21 @@ def capture_region(
     return image
 
 
-def _capture_loop(*, with_controls: bool) -> QImage | None:
+def _capture_loop(*, with_controls: bool, exclude_hwnds: list[int] | None = None) -> QImage | None:
     """Alternate between region selection and desktop-arrangement until done."""
+    excluded = exclude_hwnds or []
     while True:
+        window_rects = list_snappable_window_rects(exclude_hwnds=excluded)
         frozen, geometry = _grab_virtual_desktop()
         if frozen.isNull():
             return None
 
-        overlay = RegionOverlay(frozen, geometry, with_shutter_controls=with_controls)
+        overlay = RegionOverlay(
+            frozen,
+            geometry,
+            with_shutter_controls=with_controls,
+            window_rects=window_rects,
+        )
         result = overlay.exec()
 
         if result == int(QDialog.DialogCode.Accepted):
@@ -163,6 +179,19 @@ def _grab_virtual_desktop() -> tuple[QPixmap, QRect]:
     composed = QPixmap.fromImage(canvas)
     composed.setDevicePixelRatio(composed_dpr)
     return composed, virtual_geometry
+
+
+def _hwnds_from_widgets(widgets: Iterable[QWidget]) -> list[int]:
+    """Collect native window handles from Qt widgets (best-effort)."""
+    handles: list[int] = []
+    for widget in widgets:
+        try:
+            handle = int(widget.winId())
+        except (AttributeError, RuntimeError, TypeError, ValueError):
+            continue
+        if handle:
+            handles.append(handle)
+    return handles
 
 
 def _wait_ms(milliseconds: int) -> None:
