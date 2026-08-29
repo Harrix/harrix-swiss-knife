@@ -48,6 +48,7 @@ from harrix_swiss_knife.apps.fitness.lightbox_logic import (
     StopwatchPhase,
     format_mm_ss,
 )
+from harrix_swiss_knife.apps.fitness.lightbox_sounds import play_fitness_timer_cue
 from harrix_swiss_knife.apps.fitness.workouts_ai import estimate_workout_duration_min
 from harrix_swiss_knife.qt_emoji_icon import apply_leading_emoji_icons, create_emoji_icon
 
@@ -275,6 +276,7 @@ class WorkoutsWidget(QWidget):
         self._update_session_ui_locked()
         self._refresh_row_highlights()
         if completed:
+            play_fitness_timer_cue("congratulations")
             message_box.information(
                 self,
                 "Workout complete",

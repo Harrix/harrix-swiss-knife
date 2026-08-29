@@ -1,4 +1,4 @@
-"""Timer cues and looping alert for the Fitness exercise lightbox."""
+"""Timer and outcome cues for the Fitness exercise lightbox."""
 
 from __future__ import annotations
 
@@ -8,58 +8,63 @@ from typing import Literal
 from PySide6.QtCore import QFile, QUrl
 from PySide6.QtMultimedia import QSoundEffect
 
-_ALERT_NAME = "habit_done.wav"
 _CUE_NAMES: dict[str, str] = {
-    "start": "fitness_timer_start.wav",
-    "finish": "fitness_timer_finish.wav",
+    "ready": "fitness_ready.wav",
+    "3": "fitness_3.wav",
+    "2": "fitness_2.wav",
+    "1": "fitness_1.wav",
+    "go": "fitness_go.wav",
+    "time_over": "fitness_time_over.wav",
+    "congratulations": "fitness_congratulations.wav",
+    "success": "fitness_success.wav",
+    "paste": "fitness_paste.wav",
 }
-_VOLUME = 0.5
+_VOLUME = 0.9
+_MAX_LIVE_EFFECTS = 8
 
-_alert_effects: list[QSoundEffect] = []
 _cue_effects: list[QSoundEffect] = []
 
-FitnessTimerCue = Literal["start", "finish"]
+FitnessTimerCue = Literal[
+    "ready",
+    "3",
+    "2",
+    "1",
+    "go",
+    "time_over",
+    "congratulations",
+    "success",
+    "paste",
+]
 
 
 def fitness_timer_cue_sound_name(cue: FitnessTimerCue) -> str:
-    """Return the bundled WAV name for a one-shot timer cue."""
+    """Return the bundled WAV name for a fitness cue."""
     return _CUE_NAMES[cue]
 
 
-def play_fitness_timer_alert() -> None:
-    """Start a looping alert if one is not already playing."""
-    if _alert_effects and _alert_effects[0].isPlaying():
-        return
-    url = _sound_url(_ALERT_NAME)
-    if not url.isValid():
-        return
-    effect = QSoundEffect()
-    effect.setSource(url)
-    effect.setVolume(_VOLUME)
-    effect.setLoopCount(QSoundEffect.Infinite)
-    _alert_effects.clear()
-    _alert_effects.append(effect)
-    effect.play()
-
-
 def play_fitness_timer_cue(cue: FitnessTimerCue) -> None:
-    """Play a one-shot Start or Finish cue."""
+    """Play a one-shot fitness cue without cutting off earlier voices."""
     url = _sound_url(fitness_timer_cue_sound_name(cue))
     if not url.isValid():
         return
     effect = QSoundEffect()
     effect.setSource(url)
     effect.setVolume(_VOLUME)
-    _cue_effects.clear()
+    _prune_cue_effects()
     _cue_effects.append(effect)
     effect.play()
 
 
 def stop_fitness_timer_alert() -> None:
-    """Stop the workout-slot alert if it is playing."""
-    for effect in _alert_effects:
-        effect.stop()
-    _alert_effects.clear()
+    """No-op kept for call sites that used the old looping overtime alert."""
+
+
+def _prune_cue_effects() -> None:
+    live = [effect for effect in _cue_effects if effect.isPlaying()]
+    if len(live) >= _MAX_LIVE_EFFECTS:
+        live = live[-(_MAX_LIVE_EFFECTS - 1) :]
+    _cue_effects.clear()
+    _cue_effects.extend(live)
 
 
 def _sound_url(name: str) -> QUrl:

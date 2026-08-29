@@ -23,7 +23,7 @@ def qapp() -> QApplication:
 
 
 def test_habit_checkin_sound_name_maps_values() -> None:
-    """Done uses confirmation, Not done uses minimize, absent is silent."""
+    """Done uses check, Not done uses delete, absent is silent."""
     assert habit_checkin_sound_name(1) == "habit_done.wav"
     assert habit_checkin_sound_name(3) == "habit_done.wav"
     assert habit_checkin_sound_name(0) == "habit_not_done.wav"
@@ -32,7 +32,7 @@ def test_habit_checkin_sound_name_maps_values() -> None:
 
 
 def test_habit_checkin_sounds_are_embedded(qapp: QApplication) -> None:  # noqa: ARG001
-    """WAV files from Kenney Interface Sounds are compiled into Qt resources."""
+    """WAV files from UI SFX cinematic are compiled into Qt resources."""
     assert QFile.exists(":/assets/sounds/habit_done.wav")
     assert QFile.exists(":/assets/sounds/habit_not_done.wav")
 

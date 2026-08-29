@@ -64,7 +64,9 @@ def _play_named(name: str) -> None:
     if status == QSoundEffect.Status.Error:
         return
 
-    def _on_status(new_status: QSoundEffect.Status) -> None:
+    def _on_status() -> None:
+        # QSoundEffect.statusChanged has no arguments; read status from the effect.
+        new_status = effect.status()
         if new_status == QSoundEffect.Status.Error:
             with contextlib.suppress(RuntimeError):
                 effect.statusChanged.disconnect(_on_status)

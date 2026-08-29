@@ -34,7 +34,7 @@ from harrix_swiss_knife.apps.fitness.lightbox_logic import (
     target_seconds_for_exercise,
 )
 from harrix_swiss_knife.apps.fitness.lightbox_sounds import (
-    play_fitness_timer_alert,
+    FitnessTimerCue,
     play_fitness_timer_cue,
     stop_fitness_timer_alert,
 )
@@ -49,6 +49,7 @@ _SPLITTER_PANE_COUNT = 2
 _MIN_IMAGE_EDGE = 2
 _TICK_MS = 100
 _STATUS_FLASH_MS = 2000
+_COUNTDOWN_VOICE_CUES: dict[int, FitnessTimerCue] = {3: "3", 2: "2", 1: "1"}
 _VALUE_MAXIMUM = 1_000_000
 
 _COLOR_IDLE = "#111827"
@@ -270,6 +271,7 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
     def _on_confirm(self) -> None:
         if not self._confirm_handler(self._current_confirm()):
             return
+        play_fitness_timer_cue("paste")
         if self._workout_items is None:
             self._open_sets_on_close = True
             self.accept()
@@ -341,6 +343,8 @@ class FitnessLightboxSidebar(QFrame):
         )
         self._last_phase: StopwatchPhase | None = None
         self._overtime_announced = False
+        self._ready_announced = False
+        self._spoken_countdown: set[int] = set()
         self._tick = QTimer(self)
         self._tick.setInterval(_TICK_MS)
         self._tick.timeout.connect(self._on_tick)
@@ -407,6 +411,8 @@ class FitnessLightboxSidebar(QFrame):
         self._tick.stop()
         self._status_flash.stop()
         self._overtime_announced = False
+        self._ready_announced = False
+        self._spoken_countdown.clear()
         stop_fitness_timer_alert()
         self._apply_snapshot(self._stopwatch.reset())
 
@@ -417,6 +423,12 @@ class FitnessLightboxSidebar(QFrame):
         stop_fitness_timer_alert()
         snapshot = self._stopwatch.apply_state(state)
         self._overtime_announced = snapshot.is_overtime
+        self._ready_announced = snapshot.phase is StopwatchPhase.COUNTDOWN
+        self._spoken_countdown = set()
+        if snapshot.phase is StopwatchPhase.COUNTDOWN:
+            # Do not re-speak countdown values already passed while the overlay was closed.
+            remaining = snapshot.display_seconds
+            self._spoken_countdown = {n for n in (1, 2, 3) if n > remaining}
         self._last_phase = snapshot.phase
         self._apply_snapshot(snapshot)
         if snapshot.is_running:
@@ -453,24 +465,33 @@ class FitnessLightboxSidebar(QFrame):
         if snapshot.phase is StopwatchPhase.COUNTDOWN:
             self._status_flash.stop()
             self._show_status_label("Prepare!", _COLOR_COUNTDOWN)
+            if not self._ready_announced:
+                self._ready_announced = True
+                play_fitness_timer_cue("ready")
+            remaining = snapshot.display_seconds
+            cue = _COUNTDOWN_VOICE_CUES.get(remaining)
+            if cue is not None and remaining not in self._spoken_countdown:
+                self._spoken_countdown.add(remaining)
+                play_fitness_timer_cue(cue)
         elif (
             previous_phase is StopwatchPhase.COUNTDOWN or previous_phase is StopwatchPhase.IDLE
         ) and snapshot.phase is StopwatchPhase.RUNNING:
-            play_fitness_timer_cue("start")
+            play_fitness_timer_cue("go")
             start_color = _COLOR_RUNNING_ON_DARK if self._backdrop_dark else _COLOR_RUNNING
             self._flash_status("Start", start_color)
         elif snapshot.phase is StopwatchPhase.IDLE and not self._status_flash.isActive():
             self._prepare_label.hide()
+        if snapshot.phase is StopwatchPhase.IDLE:
+            self._ready_announced = False
+            self._spoken_countdown.clear()
         if snapshot.is_overtime:
             if not self._overtime_announced:
                 self._overtime_announced = True
-                play_fitness_timer_cue("finish")
+                if self._stop_at_limit:
+                    play_fitness_timer_cue("time_over")
                 self._flash_status("Finish", _COLOR_OVERTIME)
-            if snapshot.is_running:
-                play_fitness_timer_alert()
-            else:
+            if not snapshot.is_running:
                 self._tick.stop()
-                stop_fitness_timer_alert()
         else:
             self._overtime_announced = False
             stop_fitness_timer_alert()
@@ -631,11 +652,18 @@ class FitnessLightboxSidebar(QFrame):
         self._apply_snapshot(self._stopwatch.pause())
 
     def _on_restart(self) -> None:
+        self._ready_announced = False
+        self._spoken_countdown.clear()
+        self._overtime_announced = False
         self._configure_limit_for_exercise(self._bound_unit, self.value())
         self._tick.start()
         self._apply_snapshot(self._stopwatch.restart())
 
     def _on_start(self) -> None:
+        if self._stopwatch.snapshot().phase is StopwatchPhase.IDLE:
+            self._ready_announced = False
+            self._spoken_countdown.clear()
+            self._overtime_announced = False
         self._tick.start()
         self._apply_snapshot(self._stopwatch.start())
 

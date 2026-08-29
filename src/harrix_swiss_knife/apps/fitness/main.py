@@ -188,6 +188,7 @@ from harrix_swiss_knife.apps.fitness.lightbox_logic import (
     default_exercise_type,
     parse_exercise_value,
 )
+from harrix_swiss_knife.apps.fitness.lightbox_sounds import play_fitness_timer_cue
 from harrix_swiss_knife.apps.fitness.mixins import (
     AutoSaveOperations,
     ChartOperations,
@@ -285,6 +286,7 @@ class MainWindow(
     )
     about_app_name = "Fitness tracker"
     about_description = "Track workouts, exercises, weight, and progress."
+    settings_app_id = "fitness"
 
     def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
         super().__init__()
@@ -8286,6 +8288,7 @@ class MainWindow(
             return
 
         try:
+            play_fitness_timer_cue("success")
             unit = self.db_manager.get_exercise_unit(exercise)
             achievement_dialog.show_monthly_goal_congratulations(self, exercise, type_name, current_value, unit or None)
         except Exception:
@@ -8398,6 +8401,7 @@ class MainWindow(
             return
 
         try:
+            play_fitness_timer_cue("success")
             unit = self.db_manager.get_exercise_unit(exercise)
             achievement_dialog.show_record_congratulations(self, exercise, record_info, unit or None)
         except Exception:

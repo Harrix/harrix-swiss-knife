@@ -15,7 +15,14 @@
         <file>assets/fonts/JetBrainsMono-MediumItalic.ttf</file>
         <file>assets/sounds/habit_done.wav</file>
         <file>assets/sounds/habit_not_done.wav</file>
-        <file>assets/sounds/fitness_timer_start.wav</file>
-        <file>assets/sounds/fitness_timer_finish.wav</file>
+        <file>assets/sounds/fitness_ready.wav</file>
+        <file>assets/sounds/fitness_3.wav</file>
+        <file>assets/sounds/fitness_2.wav</file>
+        <file>assets/sounds/fitness_1.wav</file>
+        <file>assets/sounds/fitness_go.wav</file>
+        <file>assets/sounds/fitness_time_over.wav</file>
+        <file>assets/sounds/fitness_congratulations.wav</file>
+        <file>assets/sounds/fitness_success.wav</file>
+        <file>assets/sounds/fitness_paste.wav</file>
     </qresource>
 </RCC>
