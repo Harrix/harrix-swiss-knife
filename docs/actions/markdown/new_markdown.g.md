@@ -159,7 +159,7 @@ class OnNewMarkdown(ActionBase):
 
     @staticmethod
     def empty_jupyter_notebook(title: str) -> str:
-        """nbformat 4 notebook with a Markdown title cell (`@hsk-sync:jupyter-notebook`)."""
+        """Return empty nbformat 4 notebook with a Markdown title cell (`@hsk-sync:jupyter-notebook`)."""
         heading = (title or "").strip() or "Notebook"
         notebook = {
             "nbformat": 4,
@@ -2504,7 +2504,7 @@ def build_picker_choices(self) -> tuple[list[tuple[str, str]], dict[str, tuple[s
 def empty_jupyter_notebook(title: str) -> str
 ```
 
-nbformat 4 notebook with a Markdown title cell (`@hsk-sync:jupyter-notebook`).
+Return empty nbformat 4 notebook with a Markdown title cell (`@hsk-sync:jupyter-notebook`).
 
 <details>
 <summary>Code:</summary>

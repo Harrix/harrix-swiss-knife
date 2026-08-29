@@ -24,6 +24,7 @@ def test_is_ignored_qt_message_filters_svg_noise() -> None:
     assert is_ignored_qt_message("link #SVGID_1_ is undefined!")
     assert is_ignored_qt_message("QFont::setPointSize: Point size <= 0 (-1), must be greater than 0")
     assert is_ignored_qt_message("QWindowsWindow::setGeometry: Unable to set geometry 3840x2006+0+58 on QWidgetWindow")
+    assert is_ignored_qt_message('IAudioClient3::GetCurrentPadding failed "AUDCLNT_E_DEVICE_INVALIDATED" (None:0)')
     assert not is_ignored_qt_message("QPainter::begin: Paint device returned engine == 0")
     assert not is_ignored_qt_message("")
 

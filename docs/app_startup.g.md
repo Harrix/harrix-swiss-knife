@@ -93,6 +93,8 @@ def install_diagnostic_handlers(log: logging.Logger) -> None:
         exc_value: BaseException,
         exc_tb: TracebackType | None,
     ) -> None:
+        if issubclass(exc_type, KeyboardInterrupt):
+            return
         tb_text = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
         print(tb_text, file=sys.stderr, end="")
         log.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_tb))

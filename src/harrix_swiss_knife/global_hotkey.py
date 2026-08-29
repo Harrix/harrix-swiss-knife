@@ -152,6 +152,19 @@ class _HotkeyNativeEventFilter(QAbstractNativeEventFilter):
         event_type: QByteArray | bytes | bytearray | memoryview,
         message: int,
     ) -> tuple[bool, int]:
+        try:
+            return self._filter_native_event(event_type, message)
+        except KeyboardInterrupt:
+            app = QApplication.instance()
+            if app is not None:
+                app.quit()
+            return False, 0
+
+    def _filter_native_event(
+        self,
+        event_type: QByteArray | bytes | bytearray | memoryview,
+        message: int,
+    ) -> tuple[bool, int]:
         if sys.platform != "win32" or _event_type_to_bytes(event_type) != b"windows_generic_MSG":
             return False, 0
 
