@@ -12,8 +12,9 @@ from typing import TYPE_CHECKING, Any
 import harrix_pylib as h
 
 from harrix_swiss_knife.actions.common.markdown_commit import resolve_git_repo, run_git_commit
+from harrix_swiss_knife.actions.markdown.new_markdown import OnNewMarkdown
 from harrix_swiss_knife.apps.common.db_git import ensure_folder_git_repo
-from harrix_swiss_knife.paths import get_config_path
+from harrix_swiss_knife.paths import get_config_path, get_project_root
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -137,7 +138,7 @@ class HabitCommentsStore:
         git_roots = [str(path) for path in paths_git] if isinstance(paths_git, list) else []
         return cls(
             resolve_habit_comments_root(data),
-            beginning=str(data.get("beginning_of_md") or _DEFAULT_BEGINNING),
+            beginning=habit_comment_beginning(data),
             paths_git=git_roots,
             commit=commit,
         )
@@ -267,6 +268,23 @@ def apply_habit_comments_root_to_config(config: dict[str, Any], root: Path) -> b
             config[key] = items
             changed = True
     return changed
+
+
+def habit_comment_beginning(config: dict[str, Any] | None) -> str:
+    """Return `beginning_of_md` YAML with `personal_data` applied.
+
+    Uses the same front matter as new Markdown notes, then the caller adds
+    `habit-id`. When `personal_data.enabled` is true, `author` and
+    `author-email` are inserted.
+
+    """
+    data = config or {}
+    beginning = _resolve_beginning_of_md(str(data.get("beginning_of_md") or ""))
+    personal = data.get("personal_data")
+    return OnNewMarkdown.apply_personal_data_to_beginning(
+        beginning,
+        personal if isinstance(personal, dict) else None,
+    )
 
 
 def habit_comment_folder_slug(name: str) -> str:
@@ -415,3 +433,16 @@ def _path_in_list(posix: str, items: list[str]) -> bool:
     """Return whether `posix` is already present in `items`."""
     target = Path(posix)
     return any(Path(str(item)) == target or Path(str(item)).as_posix() == target.as_posix() for item in items)
+
+
+def _resolve_beginning_of_md(raw: str) -> str:
+    """Return beginning-of-md text, expanding a `snippet:` path when needed."""
+    text = raw.strip()
+    if not text:
+        return _DEFAULT_BEGINNING
+    if text.startswith("snippet:"):
+        snippet_path = get_project_root() / text.split("snippet:", 1)[1].strip()
+        if snippet_path.is_file():
+            return snippet_path.read_text(encoding="utf-8")
+        return _DEFAULT_BEGINNING
+    return raw

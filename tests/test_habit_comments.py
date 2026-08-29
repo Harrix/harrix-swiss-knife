@@ -13,6 +13,7 @@ from harrix_swiss_knife.apps.habits.habit_comments import (
     HabitCommentsStore,
     HabitDayComment,
     apply_habit_comments_root_to_config,
+    habit_comment_beginning,
     habit_comment_folder_slug,
     parse_habit_comment_file,
     persist_habit_comments_root,
@@ -40,6 +41,59 @@ def qapp() -> QApplication:
 def test_preview_habit_comment() -> None:
     assert preview_habit_comment("first\nsecond") == "first"
     assert preview_habit_comment("") == ""
+
+
+def test_habit_comment_beginning_adds_personal_data() -> None:
+    beginning = habit_comment_beginning(
+        {
+            "beginning_of_md": "---\nlang: ru\n---\n",
+            "personal_data": {
+                "enabled": True,
+                "author": "Anton Sergienko",
+                "author_email": "anton.b.sergienko@gmail.com",
+            },
+        }
+    )
+    rendered = render_habit_comment_file(
+        [HabitDayComment("2026-08-30", "ok")],
+        habit_id=13,
+        habit_name="Run",
+        beginning=beginning,
+    )
+    assert "author: Anton Sergienko" in rendered
+    assert "author-email: anton.b.sergienko@gmail.com" in rendered
+    assert "lang: ru" in rendered
+    assert "habit-id: 13" in rendered
+    assert rendered.index("author:") < rendered.index("lang:")
+    assert rendered.index("lang:") < rendered.index("habit-id:")
+
+
+def test_habit_comment_beginning_skips_personal_data_when_disabled() -> None:
+    beginning = habit_comment_beginning(
+        {
+            "beginning_of_md": "---\nlang: ru\n---\n",
+            "personal_data": {"enabled": False, "author": "X", "author_email": "x@y.z"},
+        }
+    )
+    assert "author:" not in beginning
+    assert "lang: ru" in beginning
+
+
+def test_from_config_writes_beginning_with_personal_data(tmp_path: Path) -> None:
+    store = HabitCommentsStore.from_config(
+        {
+            "path_habit_comments": str(tmp_path),
+            "beginning_of_md": "---\nlang: ru\n---\n",
+            "personal_data": {"enabled": True, "author": "Ann", "author_email": "a@b.c"},
+        },
+        commit=False,
+    )
+    path = store.set_comment(13, "2026-08-30", "hi", habit_name="Run")
+    assert path is not None
+    text = path.read_text(encoding="utf-8")
+    assert "author: Ann" in text
+    assert "author-email: a@b.c" in text
+    assert "habit-id: 13" in text
 
 
 def test_habit_comment_folder_slug() -> None:
