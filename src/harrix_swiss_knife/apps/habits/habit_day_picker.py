@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import date
 from typing import TYPE_CHECKING, Literal, cast
 
 from PySide6.QtCore import QEvent, QPointF, QRectF, Qt, QTimer, Signal
@@ -24,6 +25,7 @@ from harrix_swiss_knife.apps.habits.dashboard_widgets import (
     COLOR_TRACK,
     habit_day_state,
     paint_habit_day_circle,
+    weekday_short,
 )
 
 if TYPE_CHECKING:
@@ -46,6 +48,10 @@ _NUMBER_PREVIEW_VALUE = 2
 _NUMBER_MIN = -999999
 _NUMBER_MAX = 999999
 _DEFAULT_NUMBER = 2
+_CHOICE_CAPTION_HEIGHT = 12
+_DATE_COLUMN_HEIGHT = _OPTION_CIRCLE_SIZE + 4 + _CHOICE_CAPTION_HEIGHT
+_DATE_LINE_HEIGHT = 14
+_WEEKDAY_LINE_HEIGHT = 12
 
 
 class DayChoiceCircle(QWidget):
@@ -108,6 +114,8 @@ class HabitDayPickerPopup(QWidget):
         self._set_panel_margins(triangle_on_top=False)
         self._root_layout.setSpacing(0)
         self.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Maximum)
+        self._date_column = _PickerDateColumn()
+        self._date_column.hide()
         self._choices_page = QWidget()
         self._choices_page.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Maximum)
         self._choices_layout = QHBoxLayout(self._choices_page)
@@ -120,7 +128,13 @@ class HabitDayPickerPopup(QWidget):
         self._stepper.confirmed.connect(self._on_number_confirmed)
         self._stepper.cancelled.connect(self.hide_active)
         self._stepper.hide()
-        self._root_layout.addWidget(self._choices_page, 0, Qt.AlignmentFlag.AlignCenter)
+        self._content_row = QHBoxLayout()
+        self._content_row.setContentsMargins(0, 0, 0, 0)
+        self._content_row.setSpacing(_CHOICE_SPACING)
+        self._content_row.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+        self._content_row.addWidget(self._date_column, 0, Qt.AlignmentFlag.AlignVCenter)
+        self._content_row.addWidget(self._choices_page, 0, Qt.AlignmentFlag.AlignCenter)
+        self._root_layout.addLayout(self._content_row)
         self._reposition_timer = QTimer(self)
         self._reposition_timer.setSingleShot(True)
         self._reposition_timer.timeout.connect(self._update_geometry)
@@ -133,6 +147,7 @@ class HabitDayPickerPopup(QWidget):
             circle.destroyed.connect(self._on_anchor_destroyed)
         self._anchor = circle
         self._choices = habit_day_choices(allows_number=circle.allows_number())
+        self._update_date_labels()
         self._rebuild_choices()
         self.show_choices_page()
         self._update_geometry()
@@ -425,11 +440,19 @@ class HabitDayPickerPopup(QWidget):
             if child is page:
                 continue
             child.hide()
-            self._root_layout.removeWidget(child)
-        if self._root_layout.indexOf(page) < 0:
-            self._root_layout.addWidget(page, 0, Qt.AlignmentFlag.AlignCenter)
+            self._content_row.removeWidget(child)
+        if self._content_row.indexOf(page) < 0:
+            self._content_row.addWidget(page, 0, Qt.AlignmentFlag.AlignCenter)
         page.show()
         self._fit_to_content()
+
+    def _update_date_labels(self) -> None:
+        day = self._anchor.day() if self._anchor is not None else None
+        if day is None:
+            self._date_column.hide()
+            return
+        self._date_column.set_day(day)
+        self._date_column.show()
 
     def _update_geometry(self) -> None:
         if self._anchor is None:
@@ -559,6 +582,39 @@ class HabitNumberStepper(QWidget):
             return self._value
 
 
+class _PickerDateColumn(QWidget):
+    """Compact ``30.08`` / ``Sun`` stack for the hover picker."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:  # noqa: D107
+        super().__init__(parent)
+        self.setFixedHeight(_DATE_COLUMN_HEIGHT)
+        self.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._date_label = QLabel()
+        self._date_label.setObjectName("pickerDateLabel")
+        self._date_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        self._date_label.setFixedHeight(_DATE_LINE_HEIGHT)
+        self._date_label.setStyleSheet("color: #111827; font-size: 11px; font-weight: 700;")
+        self._weekday_label = QLabel()
+        self._weekday_label.setObjectName("pickerWeekdayLabel")
+        self._weekday_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        self._weekday_label.setFixedHeight(_WEEKDAY_LINE_HEIGHT)
+        self._weekday_label.setStyleSheet("color: #6B7280; font-size: 9px;")
+        layout.addStretch(1)
+        layout.addWidget(self._date_label, 0, Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(self._weekday_label, 0, Qt.AlignmentFlag.AlignHCenter)
+        layout.addStretch(1)
+
+    def set_day(self, day: date) -> None:
+        """Show ``DD.MM`` and the short weekday for ``day``."""
+        date_text, weekday_text = habit_picker_date_parts(day)
+        self._date_label.setText(date_text)
+        self._weekday_label.setText(weekday_text)
+
+
 class _RoundStepButton(QWidget):
     """Circular plus/minus control for the number stepper."""
 
@@ -617,3 +673,8 @@ def habit_day_choices(*, allows_number: bool) -> list[HabitDayChoice]:
     if allows_number:
         choices.append("number")
     return choices
+
+
+def habit_picker_date_parts(day: date) -> tuple[str, str]:
+    """Return compact ``DD.MM`` and English weekday for the hover picker."""
+    return (f"{day.day:02d}.{day.month:02d}", weekday_short(day.weekday()))

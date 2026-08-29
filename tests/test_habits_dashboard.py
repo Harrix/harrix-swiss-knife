@@ -43,6 +43,7 @@ from harrix_swiss_knife.apps.habits.habit_day_picker import (
     HabitDayPickerPopup,
     habit_day_choice_caption,
     habit_day_choices,
+    habit_picker_date_parts,
 )
 
 RECOVER_SQL = Path(__file__).resolve().parents[1] / "src/harrix_swiss_knife/apps/habits/recover.sql"
@@ -613,6 +614,34 @@ def test_habit_day_picker_number_stepper(qapp: QApplication) -> None:
     QTest.mouseClick(set_btn, Qt.MouseButton.LeftButton)
     assert received == [12]
     assert not popup.isVisible()
+    HabitDayPickerPopup.hide_active()
+
+
+def test_habit_picker_date_parts() -> None:
+    """Picker date is ``DD.MM`` with an English weekday."""
+    assert habit_picker_date_parts(date(2026, 8, 30)) == ("30.08", "Sun")
+    assert habit_picker_date_parts(date(2026, 8, 31)) == ("31.08", "Mon")
+
+
+def test_habit_day_picker_shows_compact_date(qapp: QApplication) -> None:
+    """Hover picker shows the day on the left without growing taller than choices."""
+    assert qapp is not None
+    HabitDayPickerPopup.hide_active()
+    circle = CheckCircle()
+    circle.set_day(date(2026, 8, 30))
+    circle.show()
+    popup = HabitDayPickerPopup.show_for(circle)
+    qapp.processEvents()
+    date_label = popup.findChild(QLabel, "pickerDateLabel")
+    weekday_label = popup.findChild(QLabel, "pickerWeekdayLabel")
+    assert date_label is not None
+    assert weekday_label is not None
+    assert date_label.text() == "30.08"
+    assert weekday_label.text() == "Sun"
+    date_column = date_label.parentWidget()
+    assert date_column is not None
+    assert date_column.isVisible()
+    assert date_column.height() <= popup.findChildren(DayChoiceCircle)[0].height() + 4 + 12
     HabitDayPickerPopup.hide_active()
 
 

@@ -626,6 +626,7 @@ class HabitDashboardWidget(QWidget):
                 emoji=emoji,
                 allows_number=_habit_allows_number(habit),
                 week_comments=self._week_comments_for(hid),
+                week_dates=self._week_dates,
             )
         self._refresh_detail()
 
@@ -704,6 +705,7 @@ class HabitDashboardWidget(QWidget):
                 emoji=emoji,
                 allows_number=_habit_allows_number(row),
                 week_comments=self._week_comments_for(habit_id),
+                week_dates=self._week_dates,
             )
             habit_row.selected.connect(self._on_habit_selected)
             habit_row.edit_requested.connect(self._on_habit_edit_requested)
@@ -899,6 +901,7 @@ class HabitDashboardWidget(QWidget):
             emoji=emoji,
             allows_number=_habit_allows_number(habit),
             week_comments=self._week_comments_for(habit_id),
+            week_dates=self._week_dates,
         )
 
     # --- Data refresh ----------------------------------------------------

@@ -102,6 +102,7 @@ class CheckCircle(QWidget):
     def __init__(self, parent: QWidget | None = None, *, size: int = 22) -> None:  # noqa: D107
         super().__init__(parent)
         self._value: int | None = None
+        self._day: date | None = None
         self._allows_number = False
         self._editable = True
         self._has_comment = False
@@ -132,6 +133,10 @@ class CheckCircle(QWidget):
         elif chosen == all_action:
             self.all_comments_requested.emit()
         event.accept()
+
+    def day(self) -> date | None:
+        """Return the calendar day this circle represents, if set."""
+        return self._day
 
     def day_state(self) -> HabitDayState:
         """Return visual state for the stored value."""
@@ -188,6 +193,10 @@ class CheckCircle(QWidget):
     def set_allows_number(self, *, allows_number: bool) -> None:
         """Enable the numeric picker choice when the habit is not boolean."""
         self._allows_number = allows_number
+
+    def set_day(self, day: date | None) -> None:
+        """Bind this circle to a calendar day for the hover picker label."""
+        self._day = day
 
     def set_editable(self, *, editable: bool) -> None:
         """Enable or disable clicks and the hover picker for this day."""
@@ -385,6 +394,7 @@ class HabitRow(QFrame):
         emoji: str = "",
         allows_number: bool = False,
         week_comments: Sequence[bool] | None = None,
+        week_dates: Sequence[date] | None = None,
     ) -> None:
         """Populate row content."""
         self._habit_id = habit_id
@@ -393,11 +403,13 @@ class HabitRow(QFrame):
         self._name_label.setText(name)
         self._meta_label.setText(f"⚡ {total_days} Days   🔥 {streak_days} Days")
         comments = list(week_comments) if week_comments is not None else []
+        days = list(week_dates) if week_dates is not None else []
         for i, circle in enumerate(self._checks):
             value = week_values[i] if i < len(week_values) else None
             circle.set_value(value)
             circle.set_allows_number(allows_number=allows_number)
             circle.set_has_comment(has_comment=bool(comments[i]) if i < len(comments) else False)
+            circle.set_day(days[i] if i < len(days) else None)
         self._apply_style()
 
     def _apply_style(self) -> None:
@@ -734,6 +746,7 @@ class MonthCalendarGrid(QWidget):
                 editable = cell_date <= self._today
                 circle = CheckCircle(size=26)
                 circle.set_value(self._day_values.get(date_str))
+                circle.set_day(cell_date)
                 circle.set_allows_number(allows_number=self._allows_number)
                 circle.set_editable(editable=editable)
                 circle.set_has_comment(has_comment=date_str in self._comment_dates)
