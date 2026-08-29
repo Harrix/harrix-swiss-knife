@@ -13,6 +13,12 @@ from harrix_swiss_knife.screenshot.dpi import (
     logical_rect_to_pixel_rect,
     pixmap_device_pixel_ratio,
 )
+from harrix_swiss_knife.screenshot.selection_edit import (
+    HandleKind,
+    cursor_for_handle,
+    hit_test_selection_handle,
+    transform_selection_rect,
+)
 from harrix_swiss_knife.screenshot.shutter_button import ShutterPanel, position_panel_on_left_edge
 from harrix_swiss_knife.screenshot.window_rects import snap_rect_at_point
 from harrix_swiss_knife.screenshot.window_visibility import (
@@ -28,8 +34,10 @@ if TYPE_CHECKING:
 
 _MIN_SELECTION = 2
 _DRAG_THRESHOLD = 4
+_HANDLE_DRAW = 6
 _DIM_COLOR = QColor(0, 0, 0, 120)
 _BORDER_COLOR = QColor(0, 174, 255)
+_HANDLE_FILL = QColor(0, 174, 255)
 _BORDER_WIDTH = 2
 
 RESULT_TOGGLE_ARRANGE = 2
@@ -38,15 +46,13 @@ RESULT_TOGGLE_ARRANGE = 2
 class RegionOverlay(QDialog):
     """Overlay that shows a frozen desktop grab and lets the user select a region.
 
-    With `with_shutter_controls=True`, arrange/close buttons are embedded as child
-    widgets, so they receive clicks even when other application dialogs are modal —
-    the overlay itself runs modally via `exec()` and owns all input. Clicking
-    the arrange button finishes the dialog with `RESULT_TOGGLE_ARRANGE`.
+    With `with_shutter_controls=True`, arrange/adjust/close buttons are embedded as
+    child widgets. Arrange finishes with `RESULT_TOGGLE_ARRANGE`. Adjust (checkable)
+    keeps the next selection editable: move/resize with handles, Enter or double-click
+    to capture.
 
-    When `window_rects` is provided (global logical coordinates at grab time), moving
-    the cursor highlights the most specific region under the pointer (control, client
-    area, window frame, taskbar, …). A click without a drag captures that region;
-    dragging beyond a small threshold starts a free selection.
+    When `window_rects` is provided, hovering highlights the most specific region under
+    the pointer; a click without a drag captures (or edits) that region.
 
     """
 
@@ -64,7 +70,7 @@ class RegionOverlay(QDialog):
 
         - `frozen` (`QPixmap`): Stitched screenshot of the virtual desktop to display as background.
         - `geometry` (`QRect`): The target geometry in global (screen) coordinates for overlay placement.
-        - `with_shutter_controls` (`bool`): If `True`, embed arrange/close buttons on the left edge.
+        - `with_shutter_controls` (`bool`): If `True`, embed shutter controls on the left edge.
         - `window_rects` (`Sequence[QRect] | None`): Snappable window bounds in global logical pixels.
 
         """
@@ -88,6 +94,11 @@ class RegionOverlay(QDialog):
         self._crop: QImage | None = None
         self._dragging = False
         self._snap_rect: QRect | None = None
+        self._panel: ShutterPanel | None = None
+        self._edit_rect: QRect | None = None
+        self._edit_handle: HandleKind | None = None
+        self._edit_press_pos: QPoint | None = None
+        self._edit_press_rect: QRect | None = None
         origin = geometry.topLeft()
         self._window_rects_local = [
             rect.translated(-origin.x(), -origin.y()).intersected(QRect(0, 0, geometry.width(), geometry.height()))
@@ -100,8 +111,10 @@ class RegionOverlay(QDialog):
             panel.set_mode("selection")
             panel.triggered.connect(lambda: self.done(RESULT_TOGGLE_ARRANGE))
             panel.cancelled.connect(self.reject)
+            panel.geometry_changed.connect(lambda: position_panel_on_left_edge(panel, geometry))
             position_panel_on_left_edge(panel, geometry)
             panel.show()
+            self._panel = panel
 
     @property
     def cropped_image(self) -> QImage | None:
@@ -127,17 +140,49 @@ class RegionOverlay(QDialog):
         super().hideEvent(event)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
-        """Escape cancels the screenshot capture."""
+        """Enter confirms an editable frame; Escape clears it or cancels capture."""
+        if event.key() in {Qt.Key.Key_Return, Qt.Key.Key_Enter} and self._edit_rect is not None:
+            self._finish_with_rect(self._edit_rect)
+            event.accept()
+            return
         if event.key() == Qt.Key.Key_Escape:
+            if self._edit_rect is not None:
+                self._clear_edit_rect()
+                event.accept()
+                return
             self._crop = None
             self.reject()
             event.accept()
             return
         super().keyPressEvent(event)
 
+    def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        """Double-click confirms the editable selection frame."""
+        if event.button() != Qt.MouseButton.LeftButton or self._edit_rect is None:
+            return
+        if self._edit_rect.contains(event.position().toPoint()):
+            self._finish_with_rect(self._edit_rect)
+            event.accept()
+
     def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        """Update snap highlight while hovering, or the selection rectangle while dragging."""
+        """Update snap, free-drag selection, or editable frame move/resize."""
         pos = event.position().toPoint()
+
+        if self._edit_rect is not None:
+            if self._edit_handle is not None and self._edit_press_pos is not None and self._edit_press_rect is not None:
+                self._edit_rect = transform_selection_rect(
+                    self._edit_press_rect,
+                    self._edit_handle,
+                    self._edit_press_pos,
+                    pos,
+                    bounds=self.rect(),
+                    min_size=_MIN_SELECTION,
+                )
+                self.update()
+                return
+            self._apply_edit_cursor(hit_test_selection_handle(self._edit_rect, pos))
+            return
+
         if self._origin is None:
             self._update_snap_at(pos)
             return
@@ -151,10 +196,21 @@ class RegionOverlay(QDialog):
         self.update()
 
     def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        """Start a free selection, or remember a window snap for click-to-capture."""
+        """Start free selection, snap capture, or begin editing an adjustable frame."""
         if event.button() != Qt.MouseButton.LeftButton:
             return
         pos = event.position().toPoint()
+
+        if self._edit_rect is not None:
+            handle = hit_test_selection_handle(self._edit_rect, pos)
+            if handle is None:
+                return
+            self._edit_handle = handle
+            self._edit_press_pos = pos
+            self._edit_press_rect = QRect(self._edit_rect)
+            self._apply_edit_cursor(handle)
+            return
+
         self._origin = pos
         self._current = pos
         self._dragging = False
@@ -162,9 +218,21 @@ class RegionOverlay(QDialog):
         self.update()
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        """Finish selection: snap click, free-drag crop, or keep selecting."""
-        if event.button() != Qt.MouseButton.LeftButton or self._origin is None:
+        """Finish free selection, enter edit mode, or end a frame edit drag."""
+        if event.button() != Qt.MouseButton.LeftButton:
             return
+
+        if self._edit_rect is not None:
+            self._edit_handle = None
+            self._edit_press_pos = None
+            self._edit_press_rect = None
+            self._apply_edit_cursor(hit_test_selection_handle(self._edit_rect, event.position().toPoint()))
+            self.update()
+            return
+
+        if self._origin is None:
+            return
+
         pos = event.position().toPoint()
         self._current = pos
 
@@ -182,7 +250,6 @@ class RegionOverlay(QDialog):
         self._dragging = False
 
         if capture_rect is None:
-            # Click on empty desktop: stay in selection mode.
             self._update_snap_at(pos)
             self.update()
             return
@@ -196,10 +263,14 @@ class RegionOverlay(QDialog):
                 self.update()
             return
 
+        if self._adjust_mode_enabled():
+            self._enter_edit_rect(capture_rect)
+            return
+
         self._finish_with_rect(capture_rect)
 
     def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802, ARG002
-        """Draw frozen desktop, dim overlay, and clear selection or snap region."""
+        """Draw frozen desktop, dim overlay, selection/snap, and edit handles."""
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, on=False)
         painter.drawPixmap(self.rect(), self._frozen)
@@ -212,6 +283,8 @@ class RegionOverlay(QDialog):
             pen = QPen(_BORDER_COLOR, _BORDER_WIDTH)
             painter.setPen(pen)
             painter.drawRect(rect.adjusted(0, 0, -1, -1))
+            if self._edit_rect is not None:
+                self._paint_edit_handles(painter, rect)
 
     def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
         """Take keyboard focus so Escape cancels capture on Tool overlays."""
@@ -221,11 +294,38 @@ class RegionOverlay(QDialog):
 
     def _active_highlight_rect(self) -> QRect | None:
         """Return the rectangle currently shown as the clear selection / snap region."""
+        if self._edit_rect is not None:
+            return self._edit_rect
         if self._dragging:
             return self._selection_rect()
         if self._snap_rect is not None:
             return self._snap_rect
         return self._selection_rect()
+
+    def _adjust_mode_enabled(self) -> bool:
+        return self._panel is not None and self._panel.adjust_mode
+
+    def _apply_edit_cursor(self, handle: HandleKind | None) -> None:
+        shape_name = cursor_for_handle(handle)
+        self.setCursor(getattr(Qt.CursorShape, shape_name))
+
+    def _clear_edit_rect(self) -> None:
+        self._edit_rect = None
+        self._edit_handle = None
+        self._edit_press_pos = None
+        self._edit_press_rect = None
+        self.setCursor(Qt.CursorShape.CrossCursor)
+        self._update_snap_at(self.mapFromGlobal(QCursor.pos()))
+        self.update()
+
+    def _enter_edit_rect(self, rect: QRect) -> None:
+        self._edit_rect = QRect(rect)
+        self._snap_rect = None
+        self._origin = None
+        self._current = None
+        self._dragging = False
+        self._apply_edit_cursor(hit_test_selection_handle(self._edit_rect, self.mapFromGlobal(QCursor.pos())))
+        self.update()
 
     def _finish_with_rect(self, rect: QRect) -> None:
         """Crop `rect` from the frozen desktop and accept the dialog."""
@@ -236,6 +336,23 @@ class RegionOverlay(QDialog):
             return
         self.accept()
 
+    def _paint_edit_handles(self, painter: QPainter, rect: QRect) -> None:
+        half = _HANDLE_DRAW // 2
+        points = [
+            rect.topLeft(),
+            QPoint(rect.center().x(), rect.top()),
+            rect.topRight(),
+            QPoint(rect.left(), rect.center().y()),
+            QPoint(rect.right(), rect.center().y()),
+            rect.bottomLeft(),
+            QPoint(rect.center().x(), rect.bottom()),
+            rect.bottomRight(),
+        ]
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(_HANDLE_FILL)
+        for point in points:
+            painter.drawRect(point.x() - half, point.y() - half, _HANDLE_DRAW, _HANDLE_DRAW)
+
     def _selection_rect(self) -> QRect | None:
         if self._origin is None or self._current is None:
             return None
@@ -243,6 +360,8 @@ class RegionOverlay(QDialog):
 
     def _update_snap_at(self, pos: QPoint) -> None:
         """Refresh the hover snap rectangle for `pos` and repaint when it changes."""
+        if self._edit_rect is not None:
+            return
         new_snap = snap_rect_at_point(pos, self._window_rects_local)
         if new_snap == self._snap_rect:
             return

@@ -33,6 +33,7 @@ _HINT_GAP = 8
 _HINT_WIDTH = 150
 _ARRANGE_EMOJI = "🪟"
 _CAMERA_EMOJI = "📷"
+_ADJUST_EMOJI = "✥"
 _CLOSE_EMOJI = "❌"
 _ICON_SIZE = 36
 _EDGE_MARGIN = 12
@@ -51,6 +52,10 @@ QPushButton:hover {
 }
 QPushButton:pressed {
     background-color: rgba(20, 20, 20, 240);
+}
+QPushButton:checked {
+    background-color: rgba(0, 120, 180, 230);
+    border-color: rgba(120, 210, 255, 230);
 }
 """
 
@@ -149,14 +154,18 @@ class ShutterPanel(QWidget):
     Hover captions are drawn as an in-panel label (not `QToolTip`), so they stay
     visible above the stay-on-top screenshot overlay.
 
+    In selection mode an extra checkable button enables “adjust region”: the next
+    selection is kept editable (move/resize) until Enter confirms.
+
     """
 
+    adjust_toggled = Signal(bool)
     cancelled = Signal()
     geometry_changed = Signal()
     triggered = Signal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
-        """Create the two-button shutter panel."""
+        """Create the shutter panel with arrange/adjust/close controls."""
         super().__init__(parent)
 
         root = QHBoxLayout(self)
@@ -171,6 +180,14 @@ class ShutterPanel(QWidget):
         self._mode_button = self._make_emoji_button(_ARRANGE_EMOJI, "Arrange desktop")
         self._mode_button.clicked.connect(self.triggered.emit)
         buttons_layout.addWidget(self._mode_button)
+
+        self._adjust_button = self._make_emoji_button(
+            _ADJUST_EMOJI,
+            "Adjust region after select (Enter confirms)",
+        )
+        self._adjust_button.setCheckable(True)
+        self._adjust_button.toggled.connect(self.adjust_toggled.emit)
+        buttons_layout.addWidget(self._adjust_button)
 
         close_button = self._make_emoji_button(_CLOSE_EMOJI, "Cancel screenshot")
         close_button.clicked.connect(self.cancelled.emit)
@@ -189,6 +206,11 @@ class ShutterPanel(QWidget):
         self._mode: ShutterMode = "selection"
         self._hovered_button: QPushButton | None = None
         self._update_size()
+
+    @property
+    def adjust_mode(self) -> bool:
+        """Whether the next selection should stay editable until confirmed."""
+        return self._mode == "selection" and self._adjust_button.isChecked()
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
         """Show an in-panel caption while the pointer is over a shutter button."""
@@ -209,13 +231,17 @@ class ShutterPanel(QWidget):
             self._mode_button.setIcon(create_emoji_icon(_ARRANGE_EMOJI, _ICON_SIZE))
             self._mode_button.setToolTip("Arrange desktop")
             self._mode_button.setProperty("hover_hint", "Arrange desktop")
+            self._adjust_button.show()
         else:
             # In arrange mode, click returns to region capture.
             self._mode_button.setIcon(create_emoji_icon(_CAMERA_EMOJI, _ICON_SIZE))
             self._mode_button.setToolTip("Capture region")
             self._mode_button.setProperty("hover_hint", "Capture region")
+            self._adjust_button.hide()
+            self._adjust_button.setChecked(False)
         if self._hovered_button is self._mode_button:
             self._show_hint(str(self._mode_button.property("hover_hint") or ""))
+        self._update_size()
 
     def _hide_hint(self) -> None:
         if not self._hint_label.isVisible():
@@ -246,7 +272,8 @@ class ShutterPanel(QWidget):
         self._update_size()
 
     def _update_size(self) -> None:
-        total_height = _BUTTON_SIZE * 2 + _BUTTON_GAP
+        button_count = 3 if self._mode == "selection" else 2
+        total_height = _BUTTON_SIZE * button_count + _BUTTON_GAP * (button_count - 1)
         width = _BUTTON_SIZE
         if self._hint_label.isVisible():
             width += _HINT_GAP + _HINT_WIDTH

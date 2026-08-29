@@ -21,10 +21,11 @@ Windows, and optionally shows a preview in the foreground.
 When `hide_app` is `False`, application Windows stay visible so they can be
 included in the capture (for example a tracker window).
 
-When `show_shutter_button` is `True`, arrange and close buttons are embedded in
-the selection overlay. Clicking the arrange button removes the overlay so the
-desktop can be arranged; a floating camera button returns to region selection
-with a fresh grab. Escape or Close cancels capture.
+When `show_shutter_button` is `True`, arrange, adjust, and close buttons are
+embedded in the selection overlay. Arrange removes the overlay so the desktop
+can be rearranged; adjust keeps the next selection editable (move/resize) until
+Enter or double-click; close cancels. A floating camera button returns to region
+selection with a fresh grab.
 
 Every window shown here runs modally via `exec()`, so capture works even when
 it is started from nested modal dialogs (e.g. New Markdown → Fill with AI).

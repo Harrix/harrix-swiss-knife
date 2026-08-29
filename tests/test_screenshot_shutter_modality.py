@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from PySide6.QtCore import QEvent, QPointF, Qt
+from PySide6.QtCore import QEvent, QPointF, QRect, Qt
 from PySide6.QtGui import QKeyEvent, QMouseEvent, QPixmap
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QDialog, QLabel, QPushButton, QWidget
@@ -44,6 +44,62 @@ def test_overlay_arrange_button_finishes_with_toggle_code(qapp: QApplication) ->
     QApplication.processEvents()
 
     assert overlay.result() == RESULT_TOGGLE_ARRANGE
+    overlay.close()
+
+
+def test_adjust_mode_keeps_overlay_open_until_enter(qapp: QApplication) -> None:  # noqa: ARG001
+    geo = QApplication.primaryScreen().geometry()
+    overlay = RegionOverlay(QPixmap(geo.size()), geo, with_shutter_controls=True)
+    panel = overlay.findChild(ShutterPanel)
+    assert panel is not None
+    panel.findChildren(QPushButton)[1].setChecked(True)
+    overlay.show()
+    QApplication.processEvents()
+
+    start = QPointF(40, 40)
+    end = QPointF(120, 100)
+    overlay.mousePressEvent(
+        QMouseEvent(
+            QMouseEvent.Type.MouseButtonPress,
+            start,
+            overlay.mapToGlobal(start.toPoint()),
+            Qt.MouseButton.LeftButton,
+            Qt.MouseButton.LeftButton,
+            Qt.KeyboardModifier.NoModifier,
+        )
+    )
+    overlay.mouseMoveEvent(
+        QMouseEvent(
+            QMouseEvent.Type.MouseMove,
+            end,
+            overlay.mapToGlobal(end.toPoint()),
+            Qt.MouseButton.LeftButton,
+            Qt.MouseButton.LeftButton,
+            Qt.KeyboardModifier.NoModifier,
+        )
+    )
+    overlay.mouseReleaseEvent(
+        QMouseEvent(
+            QMouseEvent.Type.MouseButtonRelease,
+            end,
+            overlay.mapToGlobal(end.toPoint()),
+            Qt.MouseButton.LeftButton,
+            Qt.MouseButton.LeftButton,
+            Qt.KeyboardModifier.NoModifier,
+        )
+    )
+    QApplication.processEvents()
+
+    assert overlay.result() == 0  # still running / not finished
+    assert overlay._edit_rect is not None
+    assert overlay.cropped_image is None
+
+    enter = QKeyEvent(QKeyEvent.Type.KeyPress, Qt.Key.Key_Return, Qt.KeyboardModifier.NoModifier)
+    overlay.keyPressEvent(enter)
+    QApplication.processEvents()
+
+    assert overlay.result() == int(QDialog.DialogCode.Accepted)
+    assert overlay.cropped_image is not None
     overlay.close()
 
 
@@ -129,14 +185,41 @@ def test_overlay_grabs_keyboard_while_visible(qapp: QApplication) -> None:  # no
     assert QWidget.keyboardGrabber() is not overlay
 
 
-def test_escape_key_cancels_arrange_dialog(qapp: QApplication) -> None:  # noqa: ARG001
-    dialog = ArrangeModeDialog()
-    dialog.show()
+def test_escape_clears_editable_frame_then_cancels(
+    qapp: QApplication,  # noqa: ARG001
+) -> None:
+    overlay = RegionOverlay(QPixmap(200, 200), QApplication.primaryScreen().geometry(), with_shutter_controls=True)
+    panel = overlay.findChild(ShutterPanel)
+    assert panel is not None
+    adjust = next(button for button in panel.findChildren(QPushButton) if button.isCheckable())
+    adjust.setChecked(True)
+
+    overlay.show()
     QApplication.processEvents()
-    QTest.keyClick(dialog, Qt.Key.Key_Escape)
+    overlay._enter_edit_rect(QRect(20, 20, 80, 60))
+    assert overlay._edit_rect is not None
+
+    QTest.keyClick(overlay, Qt.Key.Key_Escape)
     QApplication.processEvents()
-    assert dialog.result() == int(QDialog.DialogCode.Rejected)
-    dialog.close()
+    assert overlay._edit_rect is None
+    assert overlay.isVisible()
+
+    QTest.keyClick(overlay, Qt.Key.Key_Escape)
+    QApplication.processEvents()
+    assert overlay.result() == int(QDialog.DialogCode.Rejected)
+    overlay.close()
+
+
+def test_enter_confirms_editable_frame(qapp: QApplication) -> None:  # noqa: ARG001
+    overlay = RegionOverlay(QPixmap(200, 200), QApplication.primaryScreen().geometry())
+    overlay.show()
+    QApplication.processEvents()
+    overlay._enter_edit_rect(QRect(10, 10, 50, 40))
+    QTest.keyClick(overlay, Qt.Key.Key_Return)
+    QApplication.processEvents()
+    assert overlay.result() == int(QDialog.DialogCode.Accepted)
+    assert overlay.cropped_image is not None
+    overlay.close()
 
 
 def test_arrange_dialog_accepts_on_camera_and_rejects_on_close(qapp: QApplication) -> None:  # noqa: ARG001
@@ -175,9 +258,7 @@ def test_shutter_panel_shows_hover_hint_caption(qapp: QApplication) -> None:  # 
     panel.show()
     QApplication.processEvents()
 
-    buttons = panel.findChildren(QPushButton)
-    assert buttons
-    mode_button = buttons[0]
+    mode_button = next(button for button in panel.findChildren(QPushButton) if "Arrange" in (button.toolTip() or ""))
     QApplication.sendEvent(mode_button, QEvent(QEvent.Type.Enter))
     QApplication.processEvents()
 
@@ -189,4 +270,16 @@ def test_shutter_panel_shows_hover_hint_caption(qapp: QApplication) -> None:  # 
     QApplication.sendEvent(mode_button, QEvent(QEvent.Type.Leave))
     QApplication.processEvents()
     assert not hint.isVisible()
+    panel.close()
+
+
+def test_shutter_panel_has_adjust_toggle_in_selection_mode(qapp: QApplication) -> None:  # noqa: ARG001
+    panel = ShutterPanel()
+    panel.set_mode("selection")
+    assert panel.adjust_mode is False
+    adjust = next(button for button in panel.findChildren(QPushButton) if button.isCheckable())
+    adjust.setChecked(True)
+    assert panel.adjust_mode is True
+    panel.set_mode("arrange")
+    assert panel.adjust_mode is False
     panel.close()
