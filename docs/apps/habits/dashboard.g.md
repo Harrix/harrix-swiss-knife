@@ -44,7 +44,8 @@ class HabitDashboardWidget(QWidget):
         self._calendar_month = today.month
         self._week_dates: list[date] = []
         self._habit_rows: dict[int, HabitRow] = {}
-        self._comments = HabitCommentsStore.from_config(app_config)
+        self._app_config: dict[str, Any] = app_config if app_config is not None else {}
+        self._comments = HabitCommentsStore.from_config(self._app_config)
         self._comment_index: dict[int, set[str]] = {}
         # Per-refresh caches: without them one refresh costs ~10 queries per habit.
         self._habits_cache: list[list[Any]] | None = None
@@ -54,6 +55,7 @@ class HabitDashboardWidget(QWidget):
         self.setAutoFillBackground(True)
         self.setStyleSheet("HabitDashboardWidget { background: #FFFFFF; }")
         self._build_ui()
+        preload_habit_checkin_sounds()
 
     def add_habit(self) -> None:
         """Prompt for a habit and add it to the database."""
@@ -334,12 +336,7 @@ class HabitDashboardWidget(QWidget):
 
     def _edit_day_comment(self, habit_id: int, date_str: str) -> None:
         """Open the editor for one habit-day comment and persist it."""
-        if not self._comments.is_configured():
-            QMessageBox.warning(
-                self,
-                "Comments",
-                "Habit comments folder is not configured. Set path_habit_comments in config.json.",
-            )
+        if not self._ensure_comments_repository():
             return
         name = self._habit_display_name(habit_id)
         current = self._comments.comment(habit_id, date_str)
@@ -386,6 +383,26 @@ class HabitDashboardWidget(QWidget):
             self.data_changed.emit()
         else:
             QMessageBox.warning(self, "Database Error", "Failed to update habit.")
+
+    def _ensure_comments_repository(self) -> bool:
+        """Create Notes-Habits with Git when the comments folder is missing."""
+        if not self._comments.is_configured():
+            QMessageBox.warning(
+                self,
+                "Comments",
+                "Habit comments folder is not configured. Set path_notes or path_habit_comments in config.json.",
+            )
+            return False
+        root = self._comments.root()
+        if root is None:
+            return False
+        created = not root.is_dir()
+        if not self._comments.ensure_repository():
+            QMessageBox.warning(self, "Comments", f"Could not create habit comments folder:\n{root}")
+            return False
+        if created and not str(self._app_config.get("path_habit_comments") or "").strip():
+            persist_habit_comments_root(root, self._app_config)
+        return True
 
     def _habit_display_name(self, habit_id: int) -> str:
         if self._db is None:
@@ -530,6 +547,7 @@ class HabitDashboardWidget(QWidget):
                 emoji=emoji,
                 allows_number=_habit_allows_number(habit),
                 week_comments=self._week_comments_for(hid),
+                week_dates=self._week_dates,
             )
         self._refresh_detail()
 
@@ -608,6 +626,7 @@ class HabitDashboardWidget(QWidget):
                 emoji=emoji,
                 allows_number=_habit_allows_number(row),
                 week_comments=self._week_comments_for(habit_id),
+                week_dates=self._week_dates,
             )
             habit_row.selected.connect(self._on_habit_selected)
             habit_row.edit_requested.connect(self._on_habit_edit_requested)
@@ -744,7 +763,7 @@ class HabitDashboardWidget(QWidget):
             QMessageBox.warning(
                 self,
                 "Comments",
-                "Habit comments folder is not configured. Set path_habit_comments in config.json.",
+                "Habit comments folder is not configured. Set path_notes or path_habit_comments in config.json.",
             )
             return
         habit_id = self._selected_habit_id
@@ -803,6 +822,7 @@ class HabitDashboardWidget(QWidget):
             emoji=emoji,
             allows_number=_habit_allows_number(habit),
             week_comments=self._week_comments_for(habit_id),
+            week_dates=self._week_dates,
         )
 
     # --- Data refresh ----------------------------------------------------
@@ -873,7 +893,8 @@ def __init__(self, parent: QWidget | None = None, *, app_config: dict[str, Any] 
         self._calendar_month = today.month
         self._week_dates: list[date] = []
         self._habit_rows: dict[int, HabitRow] = {}
-        self._comments = HabitCommentsStore.from_config(app_config)
+        self._app_config: dict[str, Any] = app_config if app_config is not None else {}
+        self._comments = HabitCommentsStore.from_config(self._app_config)
         self._comment_index: dict[int, set[str]] = {}
         # Per-refresh caches: without them one refresh costs ~10 queries per habit.
         self._habits_cache: list[list[Any]] | None = None
@@ -883,6 +904,7 @@ def __init__(self, parent: QWidget | None = None, *, app_config: dict[str, Any] 
         self.setAutoFillBackground(True)
         self.setStyleSheet("HabitDashboardWidget { background: #FFFFFF; }")
         self._build_ui()
+        preload_habit_checkin_sounds()
 ```
 
 </details>

@@ -4001,7 +4001,7 @@ def habit_heatmap_month_separated_positions(
 def habit_heatmap_week_start(day: date, *, week_starts_on: int = HEATMAP_WEEK_STARTS_ON) -> date
 ```
 
-Return the first day of the heatmap week that contains ``day``.
+Return the first day of the heatmap week that contains `[`day`](dashboard_widgets.g.md#%EF%B8%8F-method-day)`.
 
 <details>
 <summary>Code:</summary>
@@ -4019,7 +4019,7 @@ def habit_heatmap_week_start(day: date, *, week_starts_on: int = HEATMAP_WEEK_ST
 def habit_heatmap_weekday_index(day: date, *, week_starts_on: int = HEATMAP_WEEK_STARTS_ON) -> int
 ```
 
-Return 0-based heatmap row for ``day`` (Sunday-first by default).
+Return 0-based heatmap row for `[`day`](dashboard_widgets.g.md#%EF%B8%8F-method-day)` (Sunday-first by default).
 
 <details>
 <summary>Code:</summary>

@@ -13,6 +13,7 @@ lang: en
 
 - [🔧 Function `habit_checkin_sound_name`](#-function-habit_checkin_sound_name)
 - [🔧 Function `play_habit_checkin_sound`](#-function-play_habit_checkin_sound)
+- [🔧 Function `preload_habit_checkin_sounds`](#-function-preload_habit_checkin_sounds)
 
 </details>
 
@@ -59,7 +60,27 @@ def play_habit_checkin_sound(value: int | None) -> None:
     name = habit_checkin_sound_name(value)
     if name is None:
         return
+    preload_habit_checkin_sounds()
     QTimer.singleShot(0, lambda sound_name=name: _play_named(sound_name))
+```
+
+</details>
+
+## 🔧 Function `preload_habit_checkin_sounds`
+
+```python
+def preload_habit_checkin_sounds() -> None
+```
+
+Decode both check-in effects so the first click of each type can play.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def preload_habit_checkin_sounds() -> None:
+    for name in _SOUND_NAMES:
+        _effect_for(name)
 ```
 
 </details>

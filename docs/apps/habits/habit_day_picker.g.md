@@ -37,6 +37,7 @@ lang: en
   - [⚙️ Method `set_value`](#%EF%B8%8F-method-set_value)
 - [🔧 Function `habit_day_choice_caption`](#-function-habit_day_choice_caption)
 - [🔧 Function `habit_day_choices`](#-function-habit_day_choices)
+- [🔧 Function `habit_picker_date_parts`](#-function-habit_picker_date_parts)
 
 </details>
 
@@ -209,6 +210,8 @@ class HabitDayPickerPopup(QWidget):
         self._set_panel_margins(triangle_on_top=False)
         self._root_layout.setSpacing(0)
         self.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Maximum)
+        self._date_column = _PickerDateColumn()
+        self._date_column.hide()
         self._choices_page = QWidget()
         self._choices_page.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Maximum)
         self._choices_layout = QHBoxLayout(self._choices_page)
@@ -221,7 +224,13 @@ class HabitDayPickerPopup(QWidget):
         self._stepper.confirmed.connect(self._on_number_confirmed)
         self._stepper.cancelled.connect(self.hide_active)
         self._stepper.hide()
-        self._root_layout.addWidget(self._choices_page, 0, Qt.AlignmentFlag.AlignCenter)
+        self._content_row = QHBoxLayout()
+        self._content_row.setContentsMargins(0, 0, 0, 0)
+        self._content_row.setSpacing(_CHOICE_SPACING)
+        self._content_row.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+        self._content_row.addWidget(self._date_column, 0, Qt.AlignmentFlag.AlignVCenter)
+        self._content_row.addWidget(self._choices_page, 0, Qt.AlignmentFlag.AlignCenter)
+        self._root_layout.addLayout(self._content_row)
         self._reposition_timer = QTimer(self)
         self._reposition_timer.setSingleShot(True)
         self._reposition_timer.timeout.connect(self._update_geometry)
@@ -234,6 +243,7 @@ class HabitDayPickerPopup(QWidget):
             circle.destroyed.connect(self._on_anchor_destroyed)
         self._anchor = circle
         self._choices = habit_day_choices(allows_number=circle.allows_number())
+        self._update_date_labels()
         self._rebuild_choices()
         self.show_choices_page()
         self._update_geometry()
@@ -526,11 +536,19 @@ class HabitDayPickerPopup(QWidget):
             if child is page:
                 continue
             child.hide()
-            self._root_layout.removeWidget(child)
-        if self._root_layout.indexOf(page) < 0:
-            self._root_layout.addWidget(page, 0, Qt.AlignmentFlag.AlignCenter)
+            self._content_row.removeWidget(child)
+        if self._content_row.indexOf(page) < 0:
+            self._content_row.addWidget(page, 0, Qt.AlignmentFlag.AlignCenter)
         page.show()
         self._fit_to_content()
+
+    def _update_date_labels(self) -> None:
+        day = self._anchor.day() if self._anchor is not None else None
+        if day is None:
+            self._date_column.hide()
+            return
+        self._date_column.set_day(day)
+        self._date_column.show()
 
     def _update_geometry(self) -> None:
         if self._anchor is None:
@@ -596,6 +614,8 @@ def __init__(self) -> None:  # noqa: D107
         self._set_panel_margins(triangle_on_top=False)
         self._root_layout.setSpacing(0)
         self.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Maximum)
+        self._date_column = _PickerDateColumn()
+        self._date_column.hide()
         self._choices_page = QWidget()
         self._choices_page.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Maximum)
         self._choices_layout = QHBoxLayout(self._choices_page)
@@ -608,7 +628,13 @@ def __init__(self) -> None:  # noqa: D107
         self._stepper.confirmed.connect(self._on_number_confirmed)
         self._stepper.cancelled.connect(self.hide_active)
         self._stepper.hide()
-        self._root_layout.addWidget(self._choices_page, 0, Qt.AlignmentFlag.AlignCenter)
+        self._content_row = QHBoxLayout()
+        self._content_row.setContentsMargins(0, 0, 0, 0)
+        self._content_row.setSpacing(_CHOICE_SPACING)
+        self._content_row.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+        self._content_row.addWidget(self._date_column, 0, Qt.AlignmentFlag.AlignVCenter)
+        self._content_row.addWidget(self._choices_page, 0, Qt.AlignmentFlag.AlignCenter)
+        self._root_layout.addLayout(self._content_row)
         self._reposition_timer = QTimer(self)
         self._reposition_timer.setSingleShot(True)
         self._reposition_timer.timeout.connect(self._update_geometry)
@@ -635,6 +661,7 @@ def attach(self, circle: CheckCircle) -> None:
             circle.destroyed.connect(self._on_anchor_destroyed)
         self._anchor = circle
         self._choices = habit_day_choices(allows_number=circle.allows_number())
+        self._update_date_labels()
         self._rebuild_choices()
         self.show_choices_page()
         self._update_geometry()
@@ -1170,6 +1197,24 @@ def habit_day_choices(*, allows_number: bool) -> list[HabitDayChoice]:
     if allows_number:
         choices.append("number")
     return choices
+```
+
+</details>
+
+## 🔧 Function `habit_picker_date_parts`
+
+```python
+def habit_picker_date_parts(day: date) -> tuple[str, str]
+```
+
+Return compact ``DD.MM`` and English weekday for the hover picker.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def habit_picker_date_parts(day: date) -> tuple[str, str]:
+    return (f"{day.day:02d}.{day.month:02d}", weekday_short(day.weekday()))
 ```
 
 </details>

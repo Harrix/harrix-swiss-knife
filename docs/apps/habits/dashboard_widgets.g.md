@@ -15,6 +15,7 @@ lang: en
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `allows_number`](#%EF%B8%8F-method-allows_number)
   - [⚙️ Method `contextMenuEvent`](#%EF%B8%8F-method-contextmenuevent)
+  - [⚙️ Method `day`](#%EF%B8%8F-method-day)
   - [⚙️ Method `day_state`](#%EF%B8%8F-method-day_state)
   - [⚙️ Method `enterEvent`](#%EF%B8%8F-method-enterevent)
   - [⚙️ Method `has_comment`](#%EF%B8%8F-method-has_comment)
@@ -24,6 +25,7 @@ lang: en
   - [⚙️ Method `mousePressEvent`](#%EF%B8%8F-method-mousepressevent)
   - [⚙️ Method `paintEvent`](#%EF%B8%8F-method-paintevent)
   - [⚙️ Method `set_allows_number`](#%EF%B8%8F-method-set_allows_number)
+  - [⚙️ Method `set_day`](#%EF%B8%8F-method-set_day)
   - [⚙️ Method `set_editable`](#%EF%B8%8F-method-set_editable)
   - [⚙️ Method `set_has_comment`](#%EF%B8%8F-method-set_has_comment)
   - [⚙️ Method `set_value`](#%EF%B8%8F-method-set_value)
@@ -62,7 +64,7 @@ lang: en
   - [⚙️ Method `set_value`](#%EF%B8%8F-method-set_value-1)
 - [🏛️ Class `WeekDayHeader`](#%EF%B8%8F-class-weekdayheader)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-7)
-  - [⚙️ Method `set_day`](#%EF%B8%8F-method-set_day)
+  - [⚙️ Method `set_day`](#%EF%B8%8F-method-set_day-1)
 - [🔧 Function `absent_dates_in_month`](#-function-absent_dates_in_month)
 - [🔧 Function `calendar_month_for_year`](#-function-calendar_month_for_year)
 - [🔧 Function `decode_habit_id_mime`](#-function-decode_habit_id_mime)
@@ -100,6 +102,7 @@ class CheckCircle(QWidget):
     def __init__(self, parent: QWidget | None = None, *, size: int = 22) -> None:  # noqa: D107
         super().__init__(parent)
         self._value: int | None = None
+        self._day: date | None = None
         self._allows_number = False
         self._editable = True
         self._has_comment = False
@@ -130,6 +133,10 @@ class CheckCircle(QWidget):
         elif chosen == all_action:
             self.all_comments_requested.emit()
         event.accept()
+
+    def day(self) -> date | None:
+        """Return the calendar day this circle represents, if set."""
+        return self._day
 
     def day_state(self) -> HabitDayState:
         """Return visual state for the stored value."""
@@ -186,6 +193,10 @@ class CheckCircle(QWidget):
     def set_allows_number(self, *, allows_number: bool) -> None:
         """Enable the numeric picker choice when the habit is not boolean."""
         self._allows_number = allows_number
+
+    def set_day(self, day: date | None) -> None:
+        """Bind this circle to a calendar day for the hover picker label."""
+        self._day = day
 
     def set_editable(self, *, editable: bool) -> None:
         """Enable or disable clicks and the hover picker for this day."""
@@ -247,6 +258,7 @@ _No docstring provided._
 def __init__(self, parent: QWidget | None = None, *, size: int = 22) -> None:  # noqa: D107
         super().__init__(parent)
         self._value: int | None = None
+        self._day: date | None = None
         self._allows_number = False
         self._editable = True
         self._has_comment = False
@@ -305,6 +317,24 @@ def contextMenuEvent(self, event: QContextMenuEvent) -> None:  # noqa: N802
         elif chosen == all_action:
             self.all_comments_requested.emit()
         event.accept()
+```
+
+</details>
+
+### ⚙️ Method `day`
+
+```python
+def day(self) -> date | None
+```
+
+Return the calendar day this circle represents, if set.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def day(self) -> date | None:
+        return self._day
 ```
 
 </details>
@@ -487,6 +517,24 @@ Enable the numeric picker choice when the habit is not boolean.
 ```python
 def set_allows_number(self, *, allows_number: bool) -> None:
         self._allows_number = allows_number
+```
+
+</details>
+
+### ⚙️ Method `set_day`
+
+```python
+def set_day(self, day: date | None) -> None
+```
+
+Bind this circle to a calendar day for the hover picker label.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_day(self, day: date | None) -> None:
+        self._day = day
 ```
 
 </details>
@@ -818,6 +866,7 @@ class HabitRow(QFrame):
         emoji: str = "",
         allows_number: bool = False,
         week_comments: Sequence[bool] | None = None,
+        week_dates: Sequence[date] | None = None,
     ) -> None:
         """Populate row content."""
         self._habit_id = habit_id
@@ -826,11 +875,13 @@ class HabitRow(QFrame):
         self._name_label.setText(name)
         self._meta_label.setText(f"⚡ {total_days} Days   🔥 {streak_days} Days")
         comments = list(week_comments) if week_comments is not None else []
+        days = list(week_dates) if week_dates is not None else []
         for i, circle in enumerate(self._checks):
             value = week_values[i] if i < len(week_values) else None
             circle.set_value(value)
             circle.set_allows_number(allows_number=allows_number)
             circle.set_has_comment(has_comment=bool(comments[i]) if i < len(comments) else False)
+            circle.set_day(days[i] if i < len(days) else None)
         self._apply_style()
 
     def _apply_style(self) -> None:
@@ -1086,7 +1137,7 @@ def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
 ### ⚙️ Method `set_habit_data`
 
 ```python
-def set_habit_data(self, habit_id: int, name: str, total_days: int, streak_days: int, week_values: Sequence[int | None], *, selected: bool, emoji: str = '', allows_number: bool = False, week_comments: Sequence[bool] | None = None) -> None
+def set_habit_data(self, habit_id: int, name: str, total_days: int, streak_days: int, week_values: Sequence[int | None], *, selected: bool, emoji: str = '', allows_number: bool = False, week_comments: Sequence[bool] | None = None, week_dates: Sequence[date] | None = None) -> None
 ```
 
 Populate row content.
@@ -1107,6 +1158,7 @@ def set_habit_data(
         emoji: str = "",
         allows_number: bool = False,
         week_comments: Sequence[bool] | None = None,
+        week_dates: Sequence[date] | None = None,
     ) -> None:
         self._habit_id = habit_id
         self._selected = selected
@@ -1114,11 +1166,13 @@ def set_habit_data(
         self._name_label.setText(name)
         self._meta_label.setText(f"⚡ {total_days} Days   🔥 {streak_days} Days")
         comments = list(week_comments) if week_comments is not None else []
+        days = list(week_dates) if week_dates is not None else []
         for i, circle in enumerate(self._checks):
             value = week_values[i] if i < len(week_values) else None
             circle.set_value(value)
             circle.set_allows_number(allows_number=allows_number)
             circle.set_has_comment(has_comment=bool(comments[i]) if i < len(comments) else False)
+            circle.set_day(days[i] if i < len(days) else None)
         self._apply_style()
 ```
 
@@ -1579,6 +1633,7 @@ class MonthCalendarGrid(QWidget):
                 editable = cell_date <= self._today
                 circle = CheckCircle(size=26)
                 circle.set_value(self._day_values.get(date_str))
+                circle.set_day(cell_date)
                 circle.set_allows_number(allows_number=self._allows_number)
                 circle.set_editable(editable=editable)
                 circle.set_has_comment(has_comment=date_str in self._comment_dates)

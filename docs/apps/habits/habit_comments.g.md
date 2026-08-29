@@ -16,17 +16,22 @@ lang: en
   - [⚙️ Method `comment`](#%EF%B8%8F-method-comment)
   - [⚙️ Method `comments_for_habit`](#%EF%B8%8F-method-comments_for_habit)
   - [⚙️ Method `dates_with_comments`](#%EF%B8%8F-method-dates_with_comments)
+  - [⚙️ Method `ensure_repository`](#%EF%B8%8F-method-ensure_repository)
   - [⚙️ Method `find_habit_file`](#%EF%B8%8F-method-find_habit_file)
   - [⚙️ Method `from_config (classmethod)`](#%EF%B8%8F-method-from_config-classmethod)
   - [⚙️ Method `is_configured`](#%EF%B8%8F-method-is_configured)
   - [⚙️ Method `root`](#%EF%B8%8F-method-root)
   - [⚙️ Method `set_comment`](#%EF%B8%8F-method-set_comment)
 - [🏛️ Class `HabitDayComment`](#%EF%B8%8F-class-habitdaycomment)
+- [🔧 Function `apply_habit_comments_root_to_config`](#-function-apply_habit_comments_root_to_config)
+- [🔧 Function `habit_comment_beginning`](#-function-habit_comment_beginning)
 - [🔧 Function `habit_comment_folder_slug`](#-function-habit_comment_folder_slug)
 - [🔧 Function `parse_habit_comment_file`](#-function-parse_habit_comment_file)
+- [🔧 Function `persist_habit_comments_root`](#-function-persist_habit_comments_root)
 - [🔧 Function `preview_habit_comment`](#-function-preview_habit_comment)
 - [🔧 Function `render_habit_comment_file`](#-function-render_habit_comment_file)
 - [🔧 Function `resolve_habit_comments_root`](#-function-resolve_habit_comments_root)
+- [🔧 Function `resolve_notes_parent`](#-function-resolve_notes_parent)
 
 </details>
 
@@ -92,6 +97,21 @@ class HabitCommentsStore:
             result[int(habit_id)] = {item.date for item in self.comments_for_habit(int(habit_id))}
         return result
 
+    def ensure_repository(self) -> bool:
+        """Create the Notes-Habits folder and Git repo when they are missing."""
+        if self._root is None:
+            return False
+        try:
+            self._root.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            logger.warning("Could not create habit comments folder %s", self._root)
+            return False
+        ensure_folder_git_repo(self._root)
+        posix = self._root.as_posix()
+        if posix not in self._paths_git:
+            self._paths_git.append(posix)
+        return self._root.is_dir()
+
     def find_habit_file(self, habit_id: int) -> Path | None:
         """Return the existing Markdown file for `habit_id`, if any."""
         if self._root is None:
@@ -125,7 +145,7 @@ class HabitCommentsStore:
         git_roots = [str(path) for path in paths_git] if isinstance(paths_git, list) else []
         return cls(
             resolve_habit_comments_root(data),
-            beginning=str(data.get("beginning_of_md") or _DEFAULT_BEGINNING),
+            beginning=habit_comment_beginning(data),
             paths_git=git_roots,
             commit=commit,
         )
@@ -158,10 +178,8 @@ class HabitCommentsStore:
         path = self.find_habit_file(habit_id)
         if path is None and not cleaned:
             return None
-        self._root.mkdir(parents=True, exist_ok=True)
-        ensure_folder_git_repo(self._root)
-        if self._root.as_posix() not in self._paths_git:
-            self._paths_git.append(self._root.as_posix())
+        if not self.ensure_repository():
+            return None
 
         if path is None:
             path = self._new_habit_file(habit_id, habit_name)
@@ -326,6 +344,35 @@ def dates_with_comments(self, habit_ids: Iterable[int]) -> dict[int, set[str]]:
 
 </details>
 
+### ⚙️ Method `ensure_repository`
+
+```python
+def ensure_repository(self) -> bool
+```
+
+Create the Notes-Habits folder and Git repo when they are missing.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def ensure_repository(self) -> bool:
+        if self._root is None:
+            return False
+        try:
+            self._root.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            logger.warning("Could not create habit comments folder %s", self._root)
+            return False
+        ensure_folder_git_repo(self._root)
+        posix = self._root.as_posix()
+        if posix not in self._paths_git:
+            self._paths_git.append(posix)
+        return self._root.is_dir()
+```
+
+</details>
+
 ### ⚙️ Method `find_habit_file`
 
 ```python
@@ -383,7 +430,7 @@ def from_config(cls, config: dict[str, Any] | None, *, commit: bool = True) -> H
         git_roots = [str(path) for path in paths_git] if isinstance(paths_git, list) else []
         return cls(
             resolve_habit_comments_root(data),
-            beginning=str(data.get("beginning_of_md") or _DEFAULT_BEGINNING),
+            beginning=habit_comment_beginning(data),
             paths_git=git_roots,
             commit=commit,
         )
@@ -456,10 +503,8 @@ def set_comment(
         path = self.find_habit_file(habit_id)
         if path is None and not cleaned:
             return None
-        self._root.mkdir(parents=True, exist_ok=True)
-        ensure_folder_git_repo(self._root)
-        if self._root.as_posix() not in self._paths_git:
-            self._paths_git.append(self._root.as_posix())
+        if not self.ensure_repository():
+            return None
 
         if path is None:
             path = self._new_habit_file(habit_id, habit_name)
@@ -512,6 +557,74 @@ class HabitDayComment:
 
 </details>
 
+## 🔧 Function `apply_habit_comments_root_to_config`
+
+```python
+def apply_habit_comments_root_to_config(config: dict[str, Any], root: Path) -> bool
+```
+
+Set `path_habit_comments` and append the folder to `paths_git` / `paths_notes`.
+
+Args:
+
+- [`config`](../../actions/common/base.g.md#%EF%B8%8F-method-config-property) (`dict[str, Any]`): In-memory config to update.
+- [`root`](#%EF%B8%8F-method-root) (`Path`): Notes-Habits repository folder.
+
+Returns:
+
+- `bool`: `True` when at least one field changed.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def apply_habit_comments_root_to_config(config: dict[str, Any], root: Path) -> bool:
+    posix = Path(root).as_posix()
+    changed = False
+    current = str(config.get("path_habit_comments") or "").strip()
+    if not current or Path(current).as_posix() != posix:
+        config["path_habit_comments"] = posix
+        changed = True
+    for key in ("paths_git", "paths_notes"):
+        raw = config.get(key)
+        items = [str(item) for item in raw] if isinstance(raw, list) else []
+        if not _path_in_list(posix, items):
+            items.append(posix)
+            config[key] = items
+            changed = True
+    return changed
+```
+
+</details>
+
+## 🔧 Function `habit_comment_beginning`
+
+```python
+def habit_comment_beginning(config: dict[str, Any] | None) -> str
+```
+
+Return `beginning_of_md` YAML with `personal_data` applied.
+
+Uses the same front matter as new Markdown notes, then the caller adds
+`habit-id`. When `personal_data.enabled` is true, `author` and
+`author-email` are inserted.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def habit_comment_beginning(config: dict[str, Any] | None) -> str:
+    data = config or {}
+    beginning = _resolve_beginning_of_md(str(data.get("beginning_of_md") or ""))
+    personal = data.get("personal_data")
+    return OnNewMarkdown.apply_personal_data_to_beginning(
+        beginning,
+        personal if isinstance(personal, dict) else None,
+    )
+```
+
+</details>
+
 ## 🔧 Function `habit_comment_folder_slug`
 
 ```python
@@ -554,6 +667,45 @@ def parse_habit_comment_file(content: str) -> list[HabitDayComment]:
         if text:
             comments.append(HabitDayComment(date=match.group(1), text=text))
     return comments
+```
+
+</details>
+
+## 🔧 Function `persist_habit_comments_root`
+
+```python
+def persist_habit_comments_root(root: Path, config: dict[str, Any] | None = None, *, config_path: Path | None = None) -> None
+```
+
+Write Notes-Habits paths into `config.json` and keep [`config`](../../actions/common/base.g.md#%EF%B8%8F-method-config-property) in sync.
+
+Args:
+
+- [`root`](#%EF%B8%8F-method-root) (`Path`): Notes-Habits repository folder.
+- [`config`](../../actions/common/base.g.md#%EF%B8%8F-method-config-property) (`dict[str, Any] | None`): Optional in-memory config to keep in sync.
+- `config_path` (`Path | None`): Config file. Defaults to the project config.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def persist_habit_comments_root(
+    root: Path,
+    config: dict[str, Any] | None = None,
+    *,
+    config_path: Path | None = None,
+) -> None:
+    path = Path(config_path) if config_path is not None else get_config_path()
+    if path.is_file():
+        loaded = json.loads(path.read_text(encoding="utf-8"))
+        data = loaded if isinstance(loaded, dict) else {}
+    else:
+        data = {}
+    apply_habit_comments_root_to_config(data, root)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(h.dev.dumps_pretty_json(data), encoding="utf-8")
+    if config is not None:
+        apply_habit_comments_root_to_config(config, root)
 ```
 
 </details>
@@ -629,16 +781,44 @@ def resolve_habit_comments_root(config: dict[str, Any] | None) -> Path | None:
     raw = str(data.get("path_habit_comments") or "").strip()
     if raw:
         return Path(raw)
+    parent = resolve_notes_parent(data)
+    if parent is not None:
+        return parent / DEFAULT_HABIT_COMMENTS_DIR
+    return None
+```
+
+</details>
+
+## 🔧 Function `resolve_notes_parent`
+
+```python
+def resolve_notes_parent(config: dict[str, Any] | None) -> Path | None
+```
+
+Return the folder that holds Notes, Notes-Diaries, and sibling repos.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def resolve_notes_parent(config: dict[str, Any] | None) -> Path | None:
+    data = config or {}
     diary = str(data.get("path_diary") or "").strip()
     if diary:
         diary_path = Path(diary)
         if diary_path.name.lower() == "diary":
-            return diary_path.parent.parent / "Notes-Habits"
+            return diary_path.parent.parent
         if diary_path.name == "Notes-Diaries":
-            return diary_path.parent / "Notes-Habits"
+            return diary_path.parent
     notes = str(data.get("path_notes") or "").strip()
     if notes:
-        return Path(notes) / "Notes-Habits"
+        return _notes_parent_from_path_notes(Path(notes))
+    paths_notes = data.get("paths_notes")
+    if isinstance(paths_notes, list):
+        for item in paths_notes:
+            raw = str(item or "").strip()
+            if raw:
+                return _notes_parent_from_path_notes(Path(raw))
     return None
 ```
 
