@@ -35,6 +35,7 @@ _ARRANGE_EMOJI = "🪟"
 _CAMERA_EMOJI = "📷"
 _ADJUST_EMOJI = "✥"
 _GUIDES_EMOJI = "📐"
+_KEEP_WINDOWS_EMOJI = "👁️"
 _CLOSE_EMOJI = "❌"
 _ICON_SIZE = 36
 _EDGE_MARGIN = 12
@@ -157,8 +158,9 @@ class ShutterPanel(QWidget):
     visible above the stay-on-top screenshot overlay.
 
     In selection mode extra checkable buttons enable “adjust region” (the next
-    selection stays editable until Enter) and composition guides (thin frame,
-    thirds, diagonal, size, and angle).
+    selection stays editable until Enter), composition guides (thin frame,
+    thirds, diagonal, size, and angle), and keeping app Windows visible in the
+    grab.
 
     """
 
@@ -166,6 +168,7 @@ class ShutterPanel(QWidget):
     cancelled = Signal()
     geometry_changed = Signal()
     guides_toggled = Signal(bool)
+    keep_windows_toggled = Signal(bool)
     triggered = Signal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
@@ -200,6 +203,14 @@ class ShutterPanel(QWidget):
         self._guides_button.setCheckable(True)
         self._guides_button.toggled.connect(self.guides_toggled.emit)
         buttons_layout.addWidget(self._guides_button)
+
+        self._keep_windows_button = self._make_emoji_button(
+            _KEEP_WINDOWS_EMOJI,
+            "Keep app Windows visible in the screenshot",
+        )
+        self._keep_windows_button.setCheckable(True)
+        self._keep_windows_button.toggled.connect(self.keep_windows_toggled.emit)
+        buttons_layout.addWidget(self._keep_windows_button)
 
         close_button = self._make_emoji_button(_CLOSE_EMOJI, "Cancel screenshot")
         close_button.clicked.connect(self.cancelled.emit)
@@ -238,6 +249,11 @@ class ShutterPanel(QWidget):
         """Whether the selection frame shows composition guides and measurements."""
         return self._mode == "selection" and self._guides_button.isChecked()
 
+    @property
+    def keep_windows(self) -> bool:
+        """Whether application Windows should stay visible in the next grab."""
+        return self._mode == "selection" and self._keep_windows_button.isChecked()
+
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
         """Show an in-panel caption while the pointer is over a shutter button."""
         if isinstance(watched, QPushButton):
@@ -256,6 +272,22 @@ class ShutterPanel(QWidget):
         self._edit_keys_label.setVisible(visible)
         self._update_size()
 
+    def set_adjust_mode(self, *, enabled: bool) -> None:
+        """Set the adjust-region button without requiring a user click."""
+        self._adjust_button.setChecked(enabled)
+
+    def set_guides_mode(self, *, enabled: bool) -> None:
+        """Set the composition-guides button without requiring a user click."""
+        self._guides_button.setChecked(enabled)
+
+    def set_keep_windows(self, *, enabled: bool) -> None:
+        """Set the keep-Windows button without emitting `keep_windows_toggled`."""
+        blocked = self._keep_windows_button.blockSignals(True)  # noqa: FBT003
+        try:
+            self._keep_windows_button.setChecked(enabled)
+        finally:
+            self._keep_windows_button.blockSignals(blocked)
+
     def set_mode(self, mode: ShutterMode) -> None:
         """Update the mode button emoji for selection vs desktop-arrangement."""
         self._mode = mode
@@ -266,6 +298,7 @@ class ShutterPanel(QWidget):
             self._mode_button.setProperty("hover_hint", "Arrange desktop")
             self._adjust_button.show()
             self._guides_button.show()
+            self._keep_windows_button.show()
         else:
             # In arrange mode, click returns to region capture.
             self._mode_button.setIcon(create_emoji_icon(_CAMERA_EMOJI, _ICON_SIZE))
@@ -275,6 +308,7 @@ class ShutterPanel(QWidget):
             self._adjust_button.setChecked(False)
             self._guides_button.hide()
             self._guides_button.setChecked(False)
+            self._keep_windows_button.hide()
             self.set_edit_keys_visible(visible=False)
         if self._hovered_button is self._mode_button:
             self._show_hint(str(self._mode_button.property("hover_hint") or ""))
@@ -309,7 +343,7 @@ class ShutterPanel(QWidget):
         self._update_size()
 
     def _update_size(self) -> None:
-        button_count = 4 if self._mode == "selection" else 2
+        button_count = 5 if self._mode == "selection" else 2
         total_height = _BUTTON_SIZE * button_count + _BUTTON_GAP * (button_count - 1)
         if self._edit_keys_label.isVisible():
             total_height += _BUTTON_GAP + self._edit_keys_label.sizeHint().height()

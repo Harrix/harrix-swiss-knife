@@ -11,8 +11,9 @@ from harrix_swiss_knife.screenshot import capture_region
 class OnScreenshotRegionKeepWindows(ActionBase):
     """Capture a screen region without hiding this application's Windows.
 
-    Same ShareX-like flow as `OnScreenshotRegion`, but tracker and other app
-    Windows stay on screen so they can be included in the screenshot.
+    Same ShareX-like flow as `OnScreenshotRegion`, starting with the
+    keep-Windows shutter button on so tracker and other app Windows stay on
+    screen. The button can still hide them and re-grab during selection.
 
     """
 

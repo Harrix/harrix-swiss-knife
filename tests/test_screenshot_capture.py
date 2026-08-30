@@ -89,6 +89,33 @@ def test_capture_region_activates_restored_windows_when_preview_skipped(
     assert restore_kwargs == [True]
 
 
+def test_hide_session_toggles_keep_windows(
+    qapp: QApplication,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    hides: list[int] = []
+    restores: list[bool] = []
+
+    monkeypatch.setattr(capture, "hide_app_windows", lambda: hides.append(1) or ["hidden"])
+    monkeypatch.setattr(
+        capture,
+        "restore_app_windows",
+        lambda _widgets, *, activate=True: restores.append(activate),
+    )
+    monkeypatch.setattr(capture, "_wait_ms", lambda _ms: None)
+
+    session = capture._HideSession(hide_app=True, hidden=["hidden"])
+    session.apply_keep_windows(keep=True)
+    assert session.hide_app is False
+    assert session.hidden == []
+    assert restores == [False]
+
+    session.apply_keep_windows(keep=False)
+    assert session.hide_app is True
+    assert hides == [1]
+    assert session.hidden == ["hidden"]
+
+
 def test_capture_region_keeps_app_windows_visible(
     qapp: QApplication,  # noqa: ARG001
     monkeypatch: pytest.MonkeyPatch,

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QEventLoop, QRect, Qt, QTimer
@@ -14,11 +15,16 @@ from harrix_swiss_knife.screenshot.dpi import (
     screen_destination_in_physical_pixels,
 )
 from harrix_swiss_knife.screenshot.preview_dialog import show_screenshot_preview
-from harrix_swiss_knife.screenshot.region_overlay import RESULT_TOGGLE_ARRANGE, RegionOverlay
+from harrix_swiss_knife.screenshot.region_overlay import (
+    RESULT_TOGGLE_ARRANGE,
+    RESULT_TOGGLE_KEEP_WINDOWS,
+    RegionOverlay,
+)
 from harrix_swiss_knife.screenshot.shutter_button import ArrangeModeDialog
 from harrix_swiss_knife.screenshot.window_rects import list_snappable_window_rects
 from harrix_swiss_knife.screenshot.window_visibility import (
     PREVIEW_FOREGROUND_DELAYS_MS,
+    ConcealedWindow,
     bring_window_to_foreground,
     hide_app_windows,
     restore_app_windows,
@@ -30,6 +36,31 @@ if TYPE_CHECKING:
     from PySide6.QtWidgets import QWidget
 
 _HIDE_SETTLE_MS = 200
+
+
+@dataclass
+class _HideSession:
+    """Mutable hide/restore state so the shutter can toggle keep-Windows mid-capture."""
+
+    hide_app: bool
+    hidden: list[ConcealedWindow] = field(default_factory=list)
+
+    def apply_keep_windows(self, *, keep: bool) -> None:
+        should_hide = not keep
+        if should_hide == self.hide_app:
+            return
+        if keep:
+            if self.hidden:
+                restore_app_windows(self.hidden, activate=False)
+            self.hidden = []
+            self.hide_app = False
+        else:
+            self.hidden = hide_app_windows()
+            self.hide_app = True
+        _wait_ms(_HIDE_SETTLE_MS)
+
+    def exclude_hwnds(self) -> list[int]:
+        return _hwnds_from_widgets(item.widget for item in self.hidden)
 
 
 def capture_region(
@@ -45,13 +76,15 @@ def capture_region(
     Windows, and optionally shows a preview in the foreground.
 
     When `hide_app` is `False`, application Windows stay visible so they can be
-    included in the capture (for example a tracker window).
+    included in the capture (for example a tracker window). The keep-Windows
+    shutter button can flip this during selection: the overlay closes, Windows
+    are hidden or restored, and a fresh grab opens a new overlay.
 
-    When `show_shutter_button` is `True`, arrange, adjust, and close buttons are
-    embedded in the selection overlay. Arrange removes the overlay so the desktop
-    can be rearranged; adjust keeps the next selection editable (move/resize) until
-    Enter or double-click; close cancels. A floating camera button returns to region
-    selection with a fresh grab.
+    When `show_shutter_button` is `True`, arrange, adjust, guides, keep-Windows,
+    and close buttons are embedded in the selection overlay. Arrange removes the
+    overlay so the desktop can be rearranged; adjust keeps the next selection
+    editable (move/resize) until Enter or double-click; close cancels. A floating
+    camera button returns to region selection with a fresh grab.
 
     Every capture overlay runs modally via `exec()`. The optional preview window is
     non-modal so later captures can add tabs to an already open preview.
@@ -71,17 +104,16 @@ def capture_region(
     if app is None:
         return None
 
-    hidden = hide_app_windows() if hide_app else []
+    session = _HideSession(hide_app=hide_app, hidden=hide_app_windows() if hide_app else [])
     image: QImage | None = None
     try:
-        if hide_app:
+        if session.hide_app:
             _wait_ms(_HIDE_SETTLE_MS)
-        exclude_hwnds = _hwnds_from_widgets(item.widget for item in hidden)
-        image = _capture_loop(with_controls=show_shutter_button, exclude_hwnds=exclude_hwnds)
+        image = _capture_loop(with_controls=show_shutter_button, session=session)
     finally:
         show_preview_now = show_preview and image is not None and not image.isNull()
-        if hide_app:
-            restore_app_windows(hidden, activate=not show_preview_now)
+        if session.hide_app:
+            restore_app_windows(session.hidden, activate=not show_preview_now)
 
     if show_preview and image is not None and not image.isNull():
         window = show_screenshot_preview(image)
@@ -90,11 +122,12 @@ def capture_region(
     return image
 
 
-def _capture_loop(*, with_controls: bool, exclude_hwnds: list[int] | None = None) -> QImage | None:
+def _capture_loop(*, with_controls: bool, session: _HideSession) -> QImage | None:
     """Alternate between region selection and desktop-arrangement until done."""
-    excluded = exclude_hwnds or []
+    adjust_mode = False
+    guides_mode = False
     while True:
-        window_rects = list_snappable_window_rects(exclude_hwnds=excluded)
+        window_rects = list_snappable_window_rects(exclude_hwnds=session.exclude_hwnds())
         frozen, geometry = _grab_virtual_desktop()
         if frozen.isNull():
             return None
@@ -104,8 +137,13 @@ def _capture_loop(*, with_controls: bool, exclude_hwnds: list[int] | None = None
             geometry,
             with_shutter_controls=with_controls,
             window_rects=window_rects,
+            keep_windows=not session.hide_app,
+            adjust_mode=adjust_mode,
+            guides_mode=guides_mode,
         )
         result = overlay.exec()
+        adjust_mode = overlay.adjust_mode
+        guides_mode = overlay.guides_mode
 
         if result == int(QDialog.DialogCode.Accepted):
             image = overlay.cropped_image
@@ -113,6 +151,10 @@ def _capture_loop(*, with_controls: bool, exclude_hwnds: list[int] | None = None
                 return None
             _copy_image_to_clipboard(image)
             return image
+
+        if result == RESULT_TOGGLE_KEEP_WINDOWS:
+            session.apply_keep_windows(keep=overlay.keep_windows)
+            continue
 
         if result != RESULT_TOGGLE_ARRANGE:
             return None

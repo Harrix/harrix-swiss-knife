@@ -8,7 +8,11 @@ from PySide6.QtGui import QKeyEvent, QMouseEvent, QPixmap
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QDialog, QLabel, QLineEdit, QPushButton, QWidget
 
-from harrix_swiss_knife.screenshot.region_overlay import RESULT_TOGGLE_ARRANGE, RegionOverlay
+from harrix_swiss_knife.screenshot.region_overlay import (
+    RESULT_TOGGLE_ARRANGE,
+    RESULT_TOGGLE_KEEP_WINDOWS,
+    RegionOverlay,
+)
 from harrix_swiss_knife.screenshot.shutter_button import ArrangeModeDialog, ShutterPanel
 
 
@@ -270,6 +274,44 @@ def test_shutter_panel_shows_hover_hint_caption(qapp: QApplication) -> None:  # 
     QApplication.processEvents()
     assert not hints[0].isVisible()
     panel.close()
+
+
+def test_keep_windows_button_finishes_with_toggle_code(qapp: QApplication) -> None:  # noqa: ARG001
+    overlay = RegionOverlay(QPixmap(200, 200), QApplication.primaryScreen().geometry(), with_shutter_controls=True)
+    panel = overlay.findChild(ShutterPanel)
+    assert panel is not None
+    overlay.show()
+    QApplication.processEvents()
+    assert overlay.isVisible()
+    assert not overlay.keep_windows
+    keep = next(
+        button
+        for button in panel.findChildren(QPushButton)
+        if button.isCheckable() and "keep" in (button.toolTip() or "").lower()
+    )
+    keep.setChecked(True)
+    QApplication.processEvents()
+    assert overlay.result() == RESULT_TOGGLE_KEEP_WINDOWS
+    assert overlay.keep_windows
+    overlay.close()
+
+
+def test_keep_windows_initial_state_does_not_close_overlay(qapp: QApplication) -> None:  # noqa: ARG001
+    overlay = RegionOverlay(
+        QPixmap(200, 200),
+        QApplication.primaryScreen().geometry(),
+        with_shutter_controls=True,
+        keep_windows=True,
+        adjust_mode=True,
+        guides_mode=True,
+    )
+    overlay.show()
+    QApplication.processEvents()
+    assert overlay.isVisible()
+    assert overlay.keep_windows
+    assert overlay.adjust_mode
+    assert overlay.guides_mode
+    overlay.close()
 
 
 def test_shutter_panel_guides_toggle(qapp: QApplication) -> None:  # noqa: ARG001

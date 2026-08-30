@@ -71,6 +71,7 @@ QLineEdit {
 """
 
 RESULT_TOGGLE_ARRANGE = 2
+RESULT_TOGGLE_KEEP_WINDOWS = 3
 
 _ARROW_KEYS: dict[Qt.Key, ArrowDir] = {
     Qt.Key.Key_Left: "left",
@@ -83,13 +84,15 @@ _ARROW_KEYS: dict[Qt.Key, ArrowDir] = {
 class RegionOverlay(QDialog):
     """Overlay that shows a frozen desktop grab and lets the user select a region.
 
-    With `with_shutter_controls=True`, arrange/adjust/guides/close buttons are
-    embedded as child widgets. Arrange finishes with `RESULT_TOGGLE_ARRANGE`.
-    Adjust (checkable) keeps the next selection editable: move/resize with
-    handles, Enter or double-click to capture. Double-click the width or height
-    numbers (when guides are on) to type a size; Enter or a click elsewhere
-    applies it. Guides (checkable) draw a thinner frame with thirds, halves,
-    diagonal, size, and angle.
+    With `with_shutter_controls=True`, arrange/adjust/guides/keep-Windows/close
+    buttons are embedded as child widgets. Arrange finishes with
+    `RESULT_TOGGLE_ARRANGE`. Keep Windows finishes with
+    `RESULT_TOGGLE_KEEP_WINDOWS` so the capture loop can hide or restore app
+    Windows and grab again. Adjust (checkable) keeps the next selection
+    editable: move/resize with handles, Enter or double-click to capture.
+    Double-click the width or height numbers (when guides are on) to type a
+    size; Enter or a click elsewhere applies it. Guides (checkable) draw a
+    thinner frame with thirds, halves, diagonal, size, and angle.
 
     When `window_rects` is provided, hovering highlights the most specific region under
     the pointer; a click without a drag captures (or edits) that region.
@@ -103,6 +106,9 @@ class RegionOverlay(QDialog):
         *,
         with_shutter_controls: bool = False,
         window_rects: Sequence[QRect] | None = None,
+        keep_windows: bool = False,
+        adjust_mode: bool = False,
+        guides_mode: bool = False,
     ) -> None:
         """Create a fullscreen overlay for region selection, displaying the frozen desktop.
 
@@ -112,6 +118,9 @@ class RegionOverlay(QDialog):
         - `geometry` (`QRect`): The target geometry in global (screen) coordinates for overlay placement.
         - `with_shutter_controls` (`bool`): If `True`, embed shutter controls on the left edge.
         - `window_rects` (`Sequence[QRect] | None`): Snappable window bounds in global logical pixels.
+        - `keep_windows` (`bool`): If `True`, start with the keep-Windows shutter button on.
+        - `adjust_mode` (`bool`): If `True`, start with adjust-region enabled.
+        - `guides_mode` (`bool`): If `True`, start with composition guides enabled.
 
         """
         super().__init__(None)
@@ -135,6 +144,7 @@ class RegionOverlay(QDialog):
         self._dragging = False
         self._snap_rect: QRect | None = None
         self._panel: ShutterPanel | None = None
+        self._keep_windows = keep_windows
         self._guides_enabled = False
         self._edit_rect: QRect | None = None
         self._edit_handle: HandleKind | None = None
@@ -155,18 +165,41 @@ class RegionOverlay(QDialog):
         if with_shutter_controls:
             panel = ShutterPanel(self)
             panel.set_mode("selection")
+            panel.set_keep_windows(enabled=keep_windows)
             panel.triggered.connect(lambda: self.done(RESULT_TOGGLE_ARRANGE))
             panel.cancelled.connect(self.reject)
+            panel.keep_windows_toggled.connect(lambda _enabled: self.done(RESULT_TOGGLE_KEEP_WINDOWS))
             panel.guides_toggled.connect(lambda enabled: self._set_guides_enabled(enabled=enabled))
             panel.geometry_changed.connect(lambda: position_panel_on_left_edge(panel, geometry))
+            if adjust_mode:
+                panel.set_adjust_mode(enabled=True)
+            if guides_mode:
+                panel.set_guides_mode(enabled=True)
             position_panel_on_left_edge(panel, geometry)
             panel.show()
             self._panel = panel
 
     @property
+    def adjust_mode(self) -> bool:
+        """Whether the next selection should stay editable until confirmed."""
+        return self._panel is not None and self._panel.adjust_mode
+
+    @property
     def cropped_image(self) -> QImage | None:
         """Return the selected crop, or `None` if cancelled / empty."""
         return self._crop
+
+    @property
+    def guides_mode(self) -> bool:
+        """Whether composition guides are drawn on the selection frame."""
+        return self._guides_enabled
+
+    @property
+    def keep_windows(self) -> bool:
+        """Whether application Windows should stay visible in the next grab."""
+        if self._panel is not None:
+            return self._panel.keep_windows
+        return self._keep_windows
 
     def event(self, event: QEvent) -> bool:
         """Accept Escape as a shortcut override so it is not stolen by other Windows.
