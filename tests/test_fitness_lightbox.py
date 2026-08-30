@@ -7,8 +7,10 @@ from pathlib import Path
 import pillow_avif  # noqa: F401
 import pytest
 from PIL import Image
+from PySide6.QtCore import QFile
 from PySide6.QtWidgets import QApplication, QSplitter, QWidget
 
+from harrix_swiss_knife import resources_rc  # noqa: F401
 from harrix_swiss_knife.apps.common.apps_config import (
     DEFAULT_FITNESS_LIGHTBOX_COUNTDOWN_SECONDS,
     get_apps_fitness_lightbox_countdown_seconds,
@@ -210,7 +212,13 @@ def test_fitness_timer_cue_sound_names() -> None:
     assert fitness_timer_cue_sound_name("pause") == "fitness_pause.wav"
     assert fitness_timer_cue_sound_name("continue") == "fitness_continue.wav"
     assert fitness_timer_cue_sound_name("success") == "fitness_success.wav"
+    assert fitness_timer_cue_sound_name("applause") == "fitness_applause.wav"
     assert fitness_timer_cue_sound_name("congratulations") == "fitness_congratulations.wav"
+
+
+def test_fitness_applause_sound_is_embedded(qapp: QApplication) -> None:  # noqa: ARG001
+    """Record-congratulations WAV is compiled into Qt resources."""
+    assert QFile.exists(":/assets/sounds/fitness_applause.wav")
 
 
 def test_fitness_lightbox_flashes_start_and_finish(
