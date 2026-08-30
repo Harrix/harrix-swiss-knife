@@ -13,6 +13,8 @@ lang: en
 
 - [🏛️ Class `OnTransferPrivateData`](#%EF%B8%8F-class-ontransferprivatedata)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
 
 </details>
 
@@ -28,6 +30,7 @@ Choose **Export** or **Import**, then one dialog: data types (API keys,
 exercise catalog plus `fitness_img`, finance catalog, food catalog) and
 which `api-keys/*.txt` files. History tables are never included. Import
 overlays images next to existing files and upserts catalogs by name.
+Pack and install run in a background thread with a progress toast.
 
 <details>
 <summary>Code:</summary>
@@ -47,6 +50,11 @@ class OnTransferPrivateData(ActionBase):
     PART_FINANCE = "Finance catalog"
     PART_FOOD = "Food catalog"
     _DATA_PARTS = (PART_API_KEYS, PART_FITNESS, PART_FINANCE, PART_FOOD)
+
+    _export_job: _TransferExportJob | None = None
+    _import_job: _TransferImportJob | None = None
+    _pack_result: PackPrivateDataResult | None = None
+    _install_result: InstallPrivateDataResult | None = None
 
     @ActionBase.handle_exceptions("transfer private data")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
@@ -122,6 +130,96 @@ class OnTransferPrivateData(ActionBase):
         if not noninteractive:
             self.show_result()
 
+    @ActionBase.handle_exceptions("transfer private data thread")
+    def in_thread(self) -> str | None:
+        """Pack or install private data in a worker thread."""
+        self._perform_transfer()
+        return None
+
+    @ActionBase.handle_exceptions("transfer private data thread completion")
+    def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        """Show toast and result dialog after export or import finishes."""
+        self._finish_transfer()
+
+    def _append_export_lines(self, result: PackPrivateDataResult, selection: PrivateDataSelection) -> None:
+        """Write export summary lines from a completed pack."""
+        size_mb = result.zip_path.stat().st_size / (1024 * 1024)
+        if selection.api_keys:
+            names = ", ".join(result.api_key_files)
+            self.add_line(f"Exported {result.api_keys_count} API key file(s): {names}")
+        if selection.fitness:
+            self.add_line(f"Exported {result.fitness_img_count} fitness image file(s).")
+            self.add_line(f"Exported catalog: {result.exercises_count} exercise(s), {result.types_count} type(s).")
+            if result.missing_exercise_images:
+                missing = ", ".join(result.missing_exercise_images)
+                self.add_line(f"No AVIF for {len(result.missing_exercise_images)} exercise(s): {missing}")
+        if selection.finance:
+            self.add_line(
+                "Exported finance catalog: "
+                f"{result.finance_currencies_count} currency(ies), "
+                f"{result.finance_categories_count} categor(ies), "
+                f"{result.finance_standard_items_count} standard item(s)."
+            )
+        if selection.food:
+            self.add_line(f"Exported food catalog: {result.food_items_count} food item(s).")
+        self.add_line(f"ZIP: `{result.zip_path}` ({size_mb:.1f} MB)")
+        self.add_line("History (workouts, transactions, food log) is not included.")
+
+    def _append_import_lines(self, result: InstallPrivateDataResult, selection: PrivateDataSelection) -> None:
+        """Write import summary lines from a completed install."""
+        if result.created_database and result.fitness_db_path is not None:
+            self.add_line(f"Created fitness database from recover.sql: `{result.fitness_db_path}`")
+        if result.created_finance_database and result.finance_db_path is not None:
+            self.add_line(f"Created finance database from recover.sql: `{result.finance_db_path}`")
+        if result.created_food_database and result.food_db_path is not None:
+            self.add_line(f"Created food database from recover.sql: `{result.food_db_path}`")
+        if selection.api_keys:
+            self.add_line(f"Imported {result.api_keys_count} API key file(s).")
+        if selection.fitness:
+            img_dir = result.fitness_img_dir
+            self.add_line(f"Imported {result.fitness_img_count} fitness image file(s) -> `{img_dir}`")
+            stats = result.catalog_stats
+            self.add_line(
+                "Catalog upsert: "
+                f"{stats.exercises_inserted} exercise(s) inserted, "
+                f"{stats.exercises_updated} updated; "
+                f"{stats.types_inserted} type(s) inserted, "
+                f"{stats.types_updated} updated."
+            )
+            if result.missing_exercise_images:
+                missing = ", ".join(result.missing_exercise_images)
+                self.add_line(f"Still no AVIF for {len(result.missing_exercise_images)} exercise(s): {missing}")
+            if result.fitness_db_path is not None:
+                self.add_line(f"Fitness DB: `{result.fitness_db_path}`")
+            self.add_line("Workout history (process/weight) was not modified.")
+            self.add_line("If Fitness is open, restart that window to see catalog and image changes.")
+        if selection.finance:
+            finance_stats = result.finance_stats
+            self.add_line(
+                "Finance catalog upsert: "
+                f"{finance_stats.currencies_inserted} currency(ies) inserted, "
+                f"{finance_stats.currencies_updated} updated; "
+                f"{finance_stats.categories_inserted} categor(ies) inserted, "
+                f"{finance_stats.categories_updated} updated; "
+                f"{finance_stats.standard_items_inserted} standard item(s) inserted, "
+                f"{finance_stats.standard_items_updated} updated."
+            )
+            if result.finance_db_path is not None:
+                self.add_line(f"Finance DB: `{result.finance_db_path}`")
+            self.add_line("Transactions and accounts were not modified.")
+            self.add_line("If Finance is open, restart that window to see catalog changes.")
+        if selection.food:
+            food_stats = result.food_stats
+            self.add_line(
+                "Food catalog upsert: "
+                f"{food_stats.food_items_inserted} food item(s) inserted, "
+                f"{food_stats.food_items_updated} updated."
+            )
+            if result.food_db_path is not None:
+                self.add_line(f"Food DB: `{result.food_db_path}`")
+            self.add_line("Food log was not modified.")
+            self.add_line("If Food is open, restart that window to see catalog changes.")
+
     def _apply_cli_api_key_files(
         self,
         selection: PrivateDataSelection,
@@ -150,6 +248,19 @@ class OnTransferPrivateData(ActionBase):
             self.show_result()
             return None
         return replace(selection, api_key_files=requested_names)
+
+    def _finish_transfer(self) -> None:
+        """Write summary lines, toast, and the result dialog after a completed transfer."""
+        export_job = self._export_job
+        import_job = self._import_job
+        if self._pack_result is not None and export_job is not None:
+            self._append_export_lines(self._pack_result, export_job.selection)
+        elif self._install_result is not None and import_job is not None:
+            self._append_import_lines(self._install_result, import_job.selection)
+        else:
+            return
+        self.show_toast(f"{self.title} completed")
+        self.show_result()
 
     def _interactive_parts_and_keys(
         self,
@@ -233,6 +344,41 @@ class OnTransferPrivateData(ActionBase):
             return [path.name for path in list_api_key_secret_files(project_root / ZIP_API_KEYS_DIR)]
         except FileNotFoundError:
             return []
+
+    def _perform_transfer(self) -> None:
+        """Pack or install the pending transfer job."""
+        export_job = self._export_job
+        import_job = self._import_job
+        if export_job is not None:
+            self._pack_result = pack_private_data(
+                project_root=export_job.project_root,
+                sqlite_fitness=export_job.sqlite_fitness,
+                sqlite_finance=export_job.sqlite_finance,
+                sqlite_food=export_job.sqlite_food,
+                output_zip=export_job.output_zip,
+                selection=export_job.selection,
+            )
+            return
+        if import_job is None:
+            return
+        self._install_result = install_private_data(
+            project_root=import_job.project_root,
+            sqlite_fitness=import_job.sqlite_fitness,
+            sqlite_finance=import_job.sqlite_finance,
+            sqlite_food=import_job.sqlite_food,
+            zip_path=import_job.zip_path,
+            recover_sql_path=import_job.recover_sql,
+            finance_recover_sql_path=import_job.finance_recover_sql,
+            food_recover_sql_path=import_job.food_recover_sql,
+            selection=import_job.selection,
+        )
+
+    def _reset_transfer_state(self) -> None:
+        """Clear pending export/import jobs and results."""
+        self._export_job = None
+        self._import_job = None
+        self._pack_result = None
+        self._install_result = None
 
     def _resolve_export_selection(
         self,
@@ -389,7 +535,8 @@ class OnTransferPrivateData(ActionBase):
         if output_zip.suffix.lower() != ".zip":
             output_zip = output_zip.with_suffix(".zip")
 
-        result = pack_private_data(
+        self._reset_transfer_state()
+        self._export_job = _TransferExportJob(
             project_root=project_root,
             sqlite_fitness=sqlite_fitness,
             sqlite_finance=sqlite_finance,
@@ -397,29 +544,7 @@ class OnTransferPrivateData(ActionBase):
             output_zip=output_zip,
             selection=selection,
         )
-        size_mb = result.zip_path.stat().st_size / (1024 * 1024)
-        if selection.api_keys:
-            names = ", ".join(result.api_key_files)
-            self.add_line(f"Exported {result.api_keys_count} API key file(s): {names}")
-        if selection.fitness:
-            self.add_line(f"Exported {result.fitness_img_count} fitness image file(s).")
-            self.add_line(f"Exported catalog: {result.exercises_count} exercise(s), {result.types_count} type(s).")
-            if result.missing_exercise_images:
-                missing = ", ".join(result.missing_exercise_images)
-                self.add_line(f"No AVIF for {len(result.missing_exercise_images)} exercise(s): {missing}")
-        if selection.finance:
-            self.add_line(
-                "Exported finance catalog: "
-                f"{result.finance_currencies_count} currency(ies), "
-                f"{result.finance_categories_count} categor(ies), "
-                f"{result.finance_standard_items_count} standard item(s)."
-            )
-        if selection.food:
-            self.add_line(f"Exported food catalog: {result.food_items_count} food item(s).")
-        self.add_line(f"ZIP: `{result.zip_path}` ({size_mb:.1f} MB)")
-        self.add_line("History (workouts, transactions, food log) is not included.")
-        self.show_toast(f"{self.title} completed")
-        self.show_result()
+        self._start_transfer(noninteractive=noninteractive, toast_message="Exporting private data…")
 
     def _run_import(
         self,
@@ -466,71 +591,27 @@ class OnTransferPrivateData(ActionBase):
         if selection is None:
             return
 
-        result = install_private_data(
+        self._reset_transfer_state()
+        self._import_job = _TransferImportJob(
             project_root=project_root,
             sqlite_fitness=sqlite_fitness,
             sqlite_finance=sqlite_finance,
             sqlite_food=sqlite_food,
             zip_path=zip_path,
-            recover_sql_path=recover_sql,
-            finance_recover_sql_path=finance_recover_sql,
-            food_recover_sql_path=food_recover_sql,
+            recover_sql=recover_sql,
+            finance_recover_sql=finance_recover_sql,
+            food_recover_sql=food_recover_sql,
             selection=selection,
         )
-        if result.created_database and result.fitness_db_path is not None:
-            self.add_line(f"Created fitness database from recover.sql: `{result.fitness_db_path}`")
-        if result.created_finance_database and result.finance_db_path is not None:
-            self.add_line(f"Created finance database from recover.sql: `{result.finance_db_path}`")
-        if result.created_food_database and result.food_db_path is not None:
-            self.add_line(f"Created food database from recover.sql: `{result.food_db_path}`")
-        if selection.api_keys:
-            self.add_line(f"Imported {result.api_keys_count} API key file(s).")
-        if selection.fitness:
-            img_dir = result.fitness_img_dir
-            self.add_line(f"Imported {result.fitness_img_count} fitness image file(s) -> `{img_dir}`")
-            stats = result.catalog_stats
-            self.add_line(
-                "Catalog upsert: "
-                f"{stats.exercises_inserted} exercise(s) inserted, "
-                f"{stats.exercises_updated} updated; "
-                f"{stats.types_inserted} type(s) inserted, "
-                f"{stats.types_updated} updated."
-            )
-            if result.missing_exercise_images:
-                missing = ", ".join(result.missing_exercise_images)
-                self.add_line(f"Still no AVIF for {len(result.missing_exercise_images)} exercise(s): {missing}")
-            if result.fitness_db_path is not None:
-                self.add_line(f"Fitness DB: `{result.fitness_db_path}`")
-            self.add_line("Workout history (process/weight) was not modified.")
-            self.add_line("If Fitness is open, restart that window to see catalog and image changes.")
-        if selection.finance:
-            finance_stats = result.finance_stats
-            self.add_line(
-                "Finance catalog upsert: "
-                f"{finance_stats.currencies_inserted} currency(ies) inserted, "
-                f"{finance_stats.currencies_updated} updated; "
-                f"{finance_stats.categories_inserted} categor(ies) inserted, "
-                f"{finance_stats.categories_updated} updated; "
-                f"{finance_stats.standard_items_inserted} standard item(s) inserted, "
-                f"{finance_stats.standard_items_updated} updated."
-            )
-            if result.finance_db_path is not None:
-                self.add_line(f"Finance DB: `{result.finance_db_path}`")
-            self.add_line("Transactions and accounts were not modified.")
-            self.add_line("If Finance is open, restart that window to see catalog changes.")
-        if selection.food:
-            food_stats = result.food_stats
-            self.add_line(
-                "Food catalog upsert: "
-                f"{food_stats.food_items_inserted} food item(s) inserted, "
-                f"{food_stats.food_items_updated} updated."
-            )
-            if result.food_db_path is not None:
-                self.add_line(f"Food DB: `{result.food_db_path}`")
-            self.add_line("Food log was not modified.")
-            self.add_line("If Food is open, restart that window to see catalog changes.")
-        self.show_toast(f"{self.title} completed")
-        self.show_result()
+        self._start_transfer(noninteractive=noninteractive, toast_message="Importing private data…")
+
+    def _start_transfer(self, *, noninteractive: bool, toast_message: str) -> None:
+        """Run pack/install inline for CLI, or in a worker thread with a toast."""
+        if noninteractive:
+            self._perform_transfer()
+            self._finish_transfer()
+            return
+        self.start_thread(self.in_thread, self.thread_after, toast_message)
 ```
 
 </details>
@@ -618,6 +699,43 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         self.add_line(f"❌ Unknown mode: {mode}")
         if not noninteractive:
             self.show_result()
+```
+
+</details>
+
+### ⚙️ Method `in_thread`
+
+```python
+def in_thread(self) -> str | None
+```
+
+Pack or install private data in a worker thread.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def in_thread(self) -> str | None:
+        self._perform_transfer()
+        return None
+```
+
+</details>
+
+### ⚙️ Method `thread_after`
+
+```python
+def thread_after(self, result: Any) -> None
+```
+
+Show toast and result dialog after export or import finishes.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        self._finish_transfer()
 ```
 
 </details>

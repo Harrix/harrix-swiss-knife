@@ -557,7 +557,7 @@ class MainWindow(
 
     @requires_database()
     def on_add_exercise(self) -> None:
-        """Queue a new exercise and immediately open the next Add dialog."""
+        """Queue a new exercise. Reopen Add only when the user chose Add Another."""
         if self.db_manager is None:
             logger.error("❌ Database manager is not initialized")
             return
@@ -568,14 +568,15 @@ class MainWindow(
         result = dialog.get_result()
         if result is None:
             return
+        add_another = dialog.add_another()
         job = PendingExerciseAdd.from_dialog_result(result)
         if self._show_duplicate_exercise_if_needed(job.name, job.name_local):
-            if not self._is_closing:
+            if add_another and not self._is_closing:
                 QTimer.singleShot(0, self.on_add_exercise)
             return
         self._exercise_add_queue.append(job)
         self._update_exercise_add_toast()
-        if not self._is_closing:
+        if add_another and not self._is_closing:
             QTimer.singleShot(0, self.on_add_exercise)
         self._pump_exercise_add_queue()
 
@@ -9485,7 +9486,7 @@ def on_add_dumbbell_weight_types(self) -> None:
 def on_add_exercise(self) -> None
 ```
 
-Queue a new exercise and immediately open the next Add dialog.
+Queue a new exercise. Reopen Add only when the user chose Add Another.
 
 <details>
 <summary>Code:</summary>
@@ -9502,14 +9503,15 @@ def on_add_exercise(self) -> None:
         result = dialog.get_result()
         if result is None:
             return
+        add_another = dialog.add_another()
         job = PendingExerciseAdd.from_dialog_result(result)
         if self._show_duplicate_exercise_if_needed(job.name, job.name_local):
-            if not self._is_closing:
+            if add_another and not self._is_closing:
                 QTimer.singleShot(0, self.on_add_exercise)
             return
         self._exercise_add_queue.append(job)
         self._update_exercise_add_toast()
-        if not self._is_closing:
+        if add_another and not self._is_closing:
             QTimer.singleShot(0, self.on_add_exercise)
         self._pump_exercise_add_queue()
 ```

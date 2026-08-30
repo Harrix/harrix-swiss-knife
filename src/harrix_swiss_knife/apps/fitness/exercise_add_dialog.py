@@ -173,7 +173,7 @@ class ExerciseAddDialog(QDialog):
         self._fill_button.clicked.connect(self._on_fill_clicked)
         buttons.addButton(self._fill_button, QDialogButtonBox.ButtonRole.ActionRole)
         if not self._editing:
-            add_another_button = make_emoji_push_button("OK and Add Another", "➕")
+            add_another_button = make_emoji_push_button("OK and Add Another", "➕")  # noqa: RUF001
             add_another_button.setToolTip("Save this exercise and open Add New Exercise again")
             add_another_button.clicked.connect(self._on_accept_and_add_another)
             buttons.addButton(add_another_button, QDialogButtonBox.ButtonRole.ActionRole)

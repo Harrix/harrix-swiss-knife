@@ -13,6 +13,7 @@ lang: en
 
 - [🏛️ Class `ExerciseAddDialog`](#%EF%B8%8F-class-exerciseadddialog)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `add_another`](#%EF%B8%8F-method-add_another)
   - [⚙️ Method `get_result`](#%EF%B8%8F-method-get_result)
 - [🔧 Function `contains_cyrillic`](#-function-contains_cyrillic)
 
@@ -63,6 +64,7 @@ class ExerciseAddDialog(QDialog):
         self._find_duplicate = find_duplicate
         self._local_check_passed = False
         self._result: tuple[str, str, bool, float, str, bool, str, bool] | None = None
+        self._add_another = False
         self._moving_cyrillic_name = False
 
         self.setWindowTitle("Edit Exercise" if self._editing else "Add New Exercise")
@@ -151,12 +153,21 @@ class ExerciseAddDialog(QDialog):
         )
         self._fill_button.clicked.connect(self._on_fill_clicked)
         buttons.addButton(self._fill_button, QDialogButtonBox.ButtonRole.ActionRole)
+        if not self._editing:
+            add_another_button = make_emoji_push_button("OK and Add Another", "➕")  # noqa: RUF001
+            add_another_button.setToolTip("Save this exercise and open Add New Exercise again")
+            add_another_button.clicked.connect(self._on_accept_and_add_another)
+            buttons.addButton(add_another_button, QDialogButtonBox.ButtonRole.ActionRole)
         buttons.accepted.connect(self._on_accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
 
         self._populate_initial()
         self._name_edit.setFocus()
+
+    def add_another(self) -> bool:
+        """Return whether the user asked to open another Add dialog after save."""
+        return self._add_another
 
     def get_result(self) -> tuple[str, str, bool, float, str, bool, str, bool] | None:
         """Return `(name, unit, is_type_required, calories, name_local, is_favorite, media_path, with_dumbbells)`."""
@@ -248,6 +259,12 @@ class ExerciseAddDialog(QDialog):
             self._check_local_name(warn_if_empty=False)
 
     def _on_accept(self) -> None:
+        self._add_another = False
+        self._move_cyrillic_name_to_local(check_local=False)
+        self._finish_accept()
+
+    def _on_accept_and_add_another(self) -> None:
+        self._add_another = True
         self._move_cyrillic_name_to_local(check_local=False)
         self._finish_accept()
 
@@ -381,6 +398,7 @@ def __init__(
         self._find_duplicate = find_duplicate
         self._local_check_passed = False
         self._result: tuple[str, str, bool, float, str, bool, str, bool] | None = None
+        self._add_another = False
         self._moving_cyrillic_name = False
 
         self.setWindowTitle("Edit Exercise" if self._editing else "Add New Exercise")
@@ -469,12 +487,35 @@ def __init__(
         )
         self._fill_button.clicked.connect(self._on_fill_clicked)
         buttons.addButton(self._fill_button, QDialogButtonBox.ButtonRole.ActionRole)
+        if not self._editing:
+            add_another_button = make_emoji_push_button("OK and Add Another", "➕")  # noqa: RUF001
+            add_another_button.setToolTip("Save this exercise and open Add New Exercise again")
+            add_another_button.clicked.connect(self._on_accept_and_add_another)
+            buttons.addButton(add_another_button, QDialogButtonBox.ButtonRole.ActionRole)
         buttons.accepted.connect(self._on_accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
 
         self._populate_initial()
         self._name_edit.setFocus()
+```
+
+</details>
+
+### ⚙️ Method `add_another`
+
+```python
+def add_another(self) -> bool
+```
+
+Return whether the user asked to open another Add dialog after save.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def add_another(self) -> bool:
+        return self._add_another
 ```
 
 </details>
