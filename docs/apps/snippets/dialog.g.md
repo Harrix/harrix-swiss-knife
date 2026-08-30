@@ -15,6 +15,7 @@ lang: en
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
   - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
+  - [⚙️ Method `focusNextPrevChild`](#%EF%B8%8F-method-focusnextprevchild)
   - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
   - [⚙️ Method `mouseMoveEvent`](#%EF%B8%8F-method-mousemoveevent)
   - [⚙️ Method `mousePressEvent`](#%EF%B8%8F-method-mousepressevent)
@@ -104,6 +105,17 @@ class SnippetsDialog(QDialog):
             return True
         return super().eventFilter(watched, event)
 
+    def focusNextPrevChild(self, next: bool) -> bool:  # noqa: A002, FBT001, N802
+        """Cycle Tab between filter, emoji, symbols, and colors."""
+        targets = self._focus_cycle_targets()
+        if not targets:
+            return super().focusNextPrevChild(next)
+        current = self.focusWidget()
+        index = _cycle_index_for_widget(current, targets)
+        index = (0 if next else len(targets) - 1) if index < 0 else (index + (1 if next else -1)) % len(targets)
+        self._focus_cycle_target(targets[index])
+        return True
+
     def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
         """Hide the overlay on Escape."""
         if event.key() == Qt.Key.Key_Escape:
@@ -146,6 +158,8 @@ class SnippetsDialog(QDialog):
     def present(self) -> None:
         """Show and focus the overlay."""
         self.reload_all()
+        for panel in self._panels.values():
+            panel.reset_keyboard_session()
         self._center_on_screen()
         self._phrases.clear_filter()
         self.show()
@@ -250,9 +264,11 @@ class SnippetsDialog(QDialog):
         close_button = QPushButton("X")
         close_button.setFixedSize(28, 28)
         close_button.setFlat(True)
+        close_button.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
         close_button.setToolTip("Close")
         close_button.setCursor(Qt.CursorShape.PointingHandCursor)
         close_button.clicked.connect(self.hide)
+        self._close_button = close_button
 
         header_spacer = QWidget(self)
         header_spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
@@ -323,6 +339,26 @@ class SnippetsDialog(QDialog):
 
     def _end_drag(self) -> None:
         self._dragging = False
+
+    def _focus_cycle_target(self, widget: QWidget) -> None:
+        """Focus a Tab-cycle widget and restore that zone's last selection."""
+        for panel in (self._phrases, self._emoji, self._symbols, self._colors):
+            if widget is not panel.tab_target():
+                continue
+            if panel is self._phrases:
+                panel.focus_filter()
+            else:
+                panel.prepare_keyboard_focus()
+            return
+
+    def _focus_cycle_targets(self) -> list[QWidget]:
+        """Return the Tab order: filter, emoji, symbols, colors."""
+        return [
+            self._phrases.tab_target(),
+            self._emoji.tab_target(),
+            self._symbols.tab_target(),
+            self._colors.tab_target(),
+        ]
 
     def _init_database(self) -> None:
         config = h.dev.config_load(get_config_path_str())
@@ -484,6 +520,31 @@ def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
 
 </details>
 
+### ⚙️ Method `focusNextPrevChild`
+
+```python
+def focusNextPrevChild(self, next: bool) -> bool
+```
+
+Cycle Tab between filter, emoji, symbols, and colors.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def focusNextPrevChild(self, next: bool) -> bool:  # noqa: A002, FBT001, N802
+        targets = self._focus_cycle_targets()
+        if not targets:
+            return super().focusNextPrevChild(next)
+        current = self.focusWidget()
+        index = _cycle_index_for_widget(current, targets)
+        index = (0 if next else len(targets) - 1) if index < 0 else (index + (1 if next else -1)) % len(targets)
+        self._focus_cycle_target(targets[index])
+        return True
+```
+
+</details>
+
 ### ⚙️ Method `keyPressEvent`
 
 ```python
@@ -607,6 +668,8 @@ Show and focus the overlay.
 ```python
 def present(self) -> None:
         self.reload_all()
+        for panel in self._panels.values():
+            panel.reset_keyboard_session()
         self._center_on_screen()
         self._phrases.clear_filter()
         self.show()

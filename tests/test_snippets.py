@@ -8,8 +8,9 @@ import json
 from pathlib import Path
 
 import pytest
-from PySide6.QtGui import QColor
-from PySide6.QtWidgets import QApplication, QToolButton
+from PySide6.QtCore import QEvent, Qt
+from PySide6.QtGui import QColor, QKeyEvent
+from PySide6.QtWidgets import QApplication, QToolButton, QWidget
 
 from harrix_swiss_knife.actions.apps.snippets import OnSnippets
 from harrix_swiss_knife.actions.common.quick_launcher_registry import iter_menu_structure
@@ -24,6 +25,7 @@ from harrix_swiss_knife.apps.snippets.constants import (
     ZONE_SYMBOL,
 )
 from harrix_swiss_knife.apps.snippets.database_manager import DatabaseManager, SnippetItem
+from harrix_swiss_knife.apps.snippets.dialog import SnippetsDialog, _cycle_index_for_widget
 from harrix_swiss_knife.apps.snippets.parse import (
     display_text,
     hint_tooltip,
@@ -357,6 +359,170 @@ def test_on_snippets_is_quick_launcher_action() -> None:
     assert OnSnippets.quick_launcher is True
     assert OnSnippets.title == "Quick paste"
     assert OnSnippets in list(iter_menu_structure(get_menu_structure()))
+
+
+def test_phrase_filter_arrows_select_visible_and_fill_field(qapp: QApplication) -> None:
+    assert qapp is not None
+    panel = ZonePanel(zone=ZONE_PHRASE, title="Add phrase", show_add=True, show_filter=True)
+    panel.set_items([_item(1, "Alpha"), _item(2, "Alpine"), _item(3, "Beta")])
+    assert panel._filter is not None
+    panel._filter.setText("Al")
+    assert panel._list.item(2) is not None
+    assert panel._list.item(2).isHidden()
+    assert panel.move_visible(1)
+    assert panel.current_snippet() is not None
+    assert panel.current_snippet().value == "Alpha"
+    assert panel._filter.text() == "Alpha"
+    assert panel._list.item(1) is not None
+    assert not panel._list.item(1).isHidden()
+    assert panel.move_visible(1)
+    assert panel.current_snippet() is not None
+    assert panel.current_snippet().value == "Alpine"
+    assert panel._filter.text() == "Alpine"
+    panel.close()
+
+
+def test_phrase_filter_down_key_selects_first_visible(qapp: QApplication) -> None:
+    assert qapp is not None
+    panel = ZonePanel(zone=ZONE_PHRASE, title="Add phrase", show_add=True, show_filter=True)
+    panel.set_items([_item(1, "Alpha"), _item(2, "Beta")])
+    assert panel._filter is not None
+    panel._filter.setFocus()
+    event = QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_Down, Qt.KeyboardModifier.NoModifier)
+    assert QApplication.sendEvent(panel._filter, event)
+    assert panel.current_snippet() is not None
+    assert panel.current_snippet().value == "Alpha"
+    assert panel._filter.text() == "Alpha"
+    panel.close()
+
+
+def test_phrase_enter_without_selection_activates_first(qapp: QApplication) -> None:
+    assert qapp is not None
+    panel = ZonePanel(zone=ZONE_PHRASE, title="Add phrase", show_add=True, show_filter=True)
+    activated: list[SnippetItem] = []
+    panel.item_activated.connect(activated.append)
+    panel.set_items([_item(1, "Alpha"), _item(2, "Beta")])
+    panel.activate_current_or_first()
+    assert [item.value for item in activated] == ["Alpha"]
+    panel.close()
+
+
+def test_emoji_prepare_keyboard_focus_restores_remembered(qapp: QApplication) -> None:
+    assert qapp is not None
+    panel = ZonePanel(zone=ZONE_EMOJI, title="Add emoji", show_add=True)
+    panel.set_items(
+        [
+            SnippetItem(
+                item_id=1,
+                zone=ZONE_EMOJI,
+                value="😀",
+                hint="",
+                created_at="2026-01-01T00:00:00+00:00",
+                last_used_at=None,
+                sort_index=0,
+            ),
+            SnippetItem(
+                item_id=2,
+                zone=ZONE_EMOJI,
+                value="🐞",
+                hint="",
+                created_at="2026-01-01T00:00:00+00:00",
+                last_used_at=None,
+                sort_index=1,
+            ),
+        ],
+    )
+    panel.prepare_keyboard_focus()
+    assert panel.current_snippet() is not None
+    assert panel.current_snippet().value == "😀"
+    panel.select_row(1)
+    panel._list.clearSelection()
+    panel._list.setCurrentRow(-1)
+    panel.prepare_keyboard_focus()
+    assert panel.current_snippet() is not None
+    assert panel.current_snippet().value == "🐞"
+    panel.close()
+
+
+def test_cycle_index_for_widget_walks_parents(qapp: QApplication) -> None:
+    assert qapp is not None
+    parent = QWidget()
+    child = QWidget(parent)
+    other = QWidget()
+    assert _cycle_index_for_widget(child, [parent, other]) == 0
+    assert _cycle_index_for_widget(other, [parent, other]) == 1
+    assert _cycle_index_for_widget(QWidget(), [parent, other]) == -1
+    parent.close()
+    other.close()
+
+
+def test_snippets_tab_cycles_filter_emoji_symbols_colors(
+    qapp: QApplication,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    assert qapp is not None
+    monkeypatch.setattr(SnippetsDialog, "_init_database", lambda _dialog: None)
+    dialog = SnippetsDialog()
+    dialog._phrases.set_items([_item(1, "Alpha")])
+    dialog._emoji.set_items(
+        [
+            SnippetItem(
+                item_id=10,
+                zone=ZONE_EMOJI,
+                value="😀",
+                hint="",
+                created_at="2026-01-01T00:00:00+00:00",
+                last_used_at=None,
+                sort_index=0,
+            ),
+        ],
+    )
+    dialog._symbols.set_items(
+        [
+            SnippetItem(
+                item_id=20,
+                zone=ZONE_SYMBOL,
+                value="—",
+                hint="em dash",
+                created_at="2026-01-01T00:00:00+00:00",
+                last_used_at=None,
+                sort_index=0,
+            ),
+        ],
+    )
+    dialog._colors.set_items(
+        [
+            SnippetItem(
+                item_id=30,
+                zone=ZONE_COLOR,
+                value="#ffffff",
+                hint="white",
+                created_at="2026-01-01T00:00:00+00:00",
+                last_used_at=None,
+                sort_index=0,
+            ),
+        ],
+    )
+    dialog.show()
+    QApplication.processEvents()
+    dialog._phrases.focus_filter()
+    QApplication.processEvents()
+    assert dialog._phrases._filter is not None
+    assert dialog._phrases._filter.hasFocus()
+    dialog.focusNextPrevChild(True)  # noqa: FBT003
+    QApplication.processEvents()
+    assert dialog._emoji._list.hasFocus()
+    assert dialog._emoji.current_snippet() is not None
+    dialog.focusNextPrevChild(True)  # noqa: FBT003
+    QApplication.processEvents()
+    assert dialog._symbols._list.hasFocus()
+    dialog.focusNextPrevChild(True)  # noqa: FBT003
+    QApplication.processEvents()
+    assert dialog._colors._list.hasFocus()
+    dialog.focusNextPrevChild(True)  # noqa: FBT003
+    QApplication.processEvents()
+    assert dialog._phrases._filter.hasFocus()
+    dialog.close()
 
 
 def test_example_config_binds_ctrl_shift_f3() -> None:
