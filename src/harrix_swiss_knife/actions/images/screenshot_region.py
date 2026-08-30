@@ -9,7 +9,7 @@ from harrix_swiss_knife.screenshot import capture_region
 
 
 class OnScreenshotRegion(ActionBase):
-    """Capture a screen region to the clipboard (ShareX-like flow).
+    """Capture a screen region to the clipboard.
 
     Starts in region-selection mode with the app hidden. The left shutter
     column can arrange the desktop, keep app Windows visible (re-grabs),
