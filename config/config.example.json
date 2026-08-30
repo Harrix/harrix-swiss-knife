@@ -313,7 +313,9 @@
   "path_html_theme": "<YOUR_SLICED_HTML_THEME>",
   "path_site_repo": "<YOUR_SITE_GIT_REPO>",
   "site_name": "harrix.dev",
+  "site_title": "Harrix",
   "site_default_language": "ru",
+  "site_per_page": 20,
   "paths_with_featured_image": [
     "<YOUR_PATH>"
   ],

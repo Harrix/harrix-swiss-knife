@@ -117,10 +117,18 @@ class OnGenerateStaticSite(ActionBase):
         self.add_line("")
 
         try:
-            sg = hsg.StaticSiteGenerator(self.md_folder, theme_dir=self.theme_dir)
+            sg = hsg.StaticSiteGenerator(
+                self.md_folder,
+                theme_dir=self.theme_dir,
+                site_name=str(self.config.get("site_name", "harrix.dev")),
+                default_language=str(self.config.get("site_default_language", "ru")),
+                site_title=str(self.config.get("site_title", "Harrix")),
+                per_page=int(self.config.get("site_per_page", 20)),
+            )
             sg.generate_site(self.html_folder)
             self.add_line("✅ Site generation completed successfully")
             self.add_line(f"📊 Generated {len(sg.articles)} articles")
+            self.add_line(f"📄 Generated {len(sg.listing_pages)} listing pages")
         except Exception as e:
             self.add_line(f"❌ Error during site generation: {e}")
             raise
