@@ -16,10 +16,12 @@ _GRID_COLOR = QColor(210, 210, 210, 200)
 _DIAGONAL_COLOR = QColor(120, 200, 255, 230)
 _LABEL_COLOR = QColor(230, 230, 230, 240)
 _ANGLE_COLOR = QColor(200, 200, 200, 230)
-_LABEL_GAP = 4
+_LABEL_GAP = 6
+_LABEL_POINT_SIZE = 13
 _ARC_RADIUS = 22
 _MIN_ARC_RADIUS = 8
 _MIN_GUIDE_SIZE = 2
+_DIAGONAL_LABEL_OFFSET = 18
 
 
 @dataclass(frozen=True)
@@ -54,6 +56,25 @@ def format_angle_label(angle_degrees: float) -> str:
 def guide_offsets(length: int) -> tuple[int, int, int]:
     """Return 1/3, 1/2, and 2/3 offsets along `length`."""
     return length // 3, length // 2, (2 * length) // 3
+
+
+def place_diagonal_label(
+    rect: QRect,
+    *,
+    text_width: int,
+    text_height: int,
+    gap: int = _LABEL_GAP,
+) -> QRect:
+    """Place the diagonal length next to the line, not on it.
+
+    Prefers the top-right side of the falling diagonal; falls back to the
+    opposite side if that box does not fit inside `rect`.
+
+    """
+    preferred = _offset_from_diagonal(rect, text_width, text_height, gap=gap, toward_top_right=True)
+    if _label_clears_diagonal(rect, preferred):
+        return preferred
+    return _offset_from_diagonal(rect, text_width, text_height, gap=gap, toward_top_right=False)
 
 
 def place_angle_label(
@@ -146,10 +167,11 @@ def selection_guide_labels(
         text_height=metrics.height(),
         gap=gap,
     )
-    diagonal_box = _diagonal_label_box(
+    diagonal_box = place_diagonal_label(
         rect,
-        metrics.horizontalAdvance(diagonal_text),
-        metrics.height(),
+        text_width=metrics.horizontalAdvance(diagonal_text),
+        text_height=metrics.height(),
+        gap=gap,
     )
     return (
         GuideLabel(width_text, width_box, _LABEL_COLOR, width_inside),
@@ -171,7 +193,8 @@ def paint_selection_guides(painter: QPainter, rect: QRect, bounds: QRect) -> Non
     _paint_diagonal(painter, frame)
     _paint_angle_arc(painter, frame)
     font = QFont(painter.font())
-    font.setPointSize(10)
+    font.setPointSize(_LABEL_POINT_SIZE)
+    font.setBold(True)
     painter.setFont(font)
     for label in selection_guide_labels(rect, bounds, painter.fontMetrics()):
         painter.setPen(label.color)
@@ -185,9 +208,35 @@ def _clamp_inside(box: QRect, rect: QRect, text_width: int, text_height: int, ga
     return QRect(x, y, text_width, text_height)
 
 
-def _diagonal_label_box(rect: QRect, text_width: int, text_height: int) -> QRect:
+def _label_clears_diagonal(rect: QRect, box: QRect) -> bool:
+    return not _point_on_falling_diagonal(rect, box.center())
+
+
+def _offset_from_diagonal(
+    rect: QRect,
+    text_width: int,
+    text_height: int,
+    *,
+    gap: int,
+    toward_top_right: bool,
+) -> QRect:
+    width = max(rect.width(), 1)
+    height = max(rect.height(), 1)
+    length = math.hypot(width, height)
+    normal_x = height / length
+    normal_y = -width / length
+    if not toward_top_right:
+        normal_x = -normal_x
+        normal_y = -normal_y
+    offset = _DIAGONAL_LABEL_OFFSET + text_height // 2
     center = rect.center()
-    return QRect(center.x() - text_width // 2, center.y() - text_height // 2, text_width, text_height)
+    box = QRect(
+        center.x() + round(normal_x * offset) - text_width // 2,
+        center.y() + round(normal_y * offset) - text_height // 2,
+        text_width,
+        text_height,
+    )
+    return _clamp_inside(box, rect, text_width, text_height, gap)
 
 
 def _paint_angle_arc(painter: QPainter, frame: QRect) -> None:
@@ -202,6 +251,16 @@ def _paint_angle_arc(painter: QPainter, frame: QRect) -> None:
     painter.setPen(QPen(_ANGLE_COLOR, 1))
     painter.setBrush(Qt.BrushStyle.NoBrush)
     painter.drawArc(arc_rect, 180 * 16, -int(angle * 16))
+
+
+def _point_on_falling_diagonal(rect: QRect, point: QPoint) -> bool:
+    """Return whether `point` lies on the top-left to bottom-right diagonal."""
+    width = rect.width()
+    height = rect.height()
+    if width <= 0 or height <= 0:
+        return True
+    expected_y = rect.top() + (point.x() - rect.left()) * height / width
+    return abs(point.y() - expected_y) <= 1
 
 
 def _paint_diagonal(painter: QPainter, frame: QRect) -> None:

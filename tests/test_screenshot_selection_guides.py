@@ -10,6 +10,7 @@ from harrix_swiss_knife.screenshot.selection_guides import (
     format_angle_label,
     guide_offsets,
     place_angle_label,
+    place_diagonal_label,
     place_height_label,
     place_width_label,
 )
@@ -25,6 +26,16 @@ def test_diagonal_length_and_angle_match_example_frame() -> None:
 def test_guide_offsets_are_thirds_and_half() -> None:
     assert guide_offsets(90) == (30, 45, 60)
     assert guide_offsets(100) == (33, 50, 66)
+
+
+def test_diagonal_label_is_offset_from_the_diagonal() -> None:
+    rect = QRect(10, 10, 120, 90)
+    box = place_diagonal_label(rect, text_width=28, text_height=16)
+    assert rect.contains(box)
+    assert box.center() != rect.center()
+    width = rect.width()
+    expected_y = rect.top() + (box.center().x() - rect.left()) * rect.height() / width
+    assert abs(box.center().y() - expected_y) > 1
 
 
 def test_width_and_height_labels_flip_inside_near_edges() -> None:
