@@ -135,10 +135,7 @@ exclude = ["android"]
 "tests/*.py" = ["S101", "D103", "INP001", "SLF001", "ANN001", "PLR2004", "PT006", "TC003"]
 
 [tool.pytest.ini_options]
-addopts = "-m 'not slow'"
 testpaths = ["tests"]
-
-markers = ["slow: mark a test as slow."]
 
 [tool.uv.sources]
 harrix-pylib = { path = "../harrix-pylib", editable = true }
