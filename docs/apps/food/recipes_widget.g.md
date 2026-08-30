@@ -215,15 +215,14 @@ class RecipesWidget(QWidget):
         self._recipes_model = QStandardItemModel(self.list_recipes)
         self.list_recipes.setModel(self._recipes_model)
         self.list_recipes.clicked.connect(self._on_recipe_clicked)
+        self.list_recipes.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.list_recipes.customContextMenuRequested.connect(self._show_recipe_context_menu)
         middle_layout.addWidget(self.list_recipes, 1)
 
         list_buttons = QHBoxLayout()
         self.button_new = make_emoji_push_button("New", "➕")  # noqa: RUF001
-        self.button_delete = make_emoji_push_button("Delete", "🗑️")
         self.button_new.clicked.connect(self._new_recipe)
-        self.button_delete.clicked.connect(self._delete_recipe)
         list_buttons.addWidget(self.button_new)
-        list_buttons.addWidget(self.button_delete)
         middle_layout.addLayout(list_buttons)
         splitter.addWidget(middle)
         splitter.addWidget(controls)
@@ -275,12 +274,9 @@ class RecipesWidget(QWidget):
         self.check_recipe_drink.setChecked(False)
         self._refresh_ingredients_table()
 
-    def _delete_recipe(self) -> None:
-        if self._db is None or self._current_recipe_id is None:
-            message_box.warning(self, "Error", "Select a recipe to delete")
+    def _delete_recipe(self, *, recipe_id: int, name: str) -> None:
+        if self._db is None:
             return
-        recipe_id = self._current_recipe_id
-        name = self.line_recipe_name.text().strip() or "this recipe"
         reply = message_box.question(
             self,
             "Delete recipe?",
@@ -293,7 +289,8 @@ class RecipesWidget(QWidget):
         if not self._db.delete_recipe(recipe_id):
             message_box.warning(self, "Error", "Failed to delete recipe")
             return
-        self._clear_editor()
+        if self._current_recipe_id == recipe_id:
+            self._clear_editor()
         self._reload_recipe_list(keep_selection=False)
         self.recipes_changed.emit()
 
@@ -342,12 +339,9 @@ class RecipesWidget(QWidget):
                 popup.hide()
 
     def _on_recipe_clicked(self, index: QModelIndex) -> None:
-        item = self._recipes_model.itemFromIndex(index)
-        if item is None:
-            return
-        recipe_id = item.data(Qt.ItemDataRole.UserRole)
-        if isinstance(recipe_id, int):
-            self._load_recipe(recipe_id)
+        found = self._recipe_id_and_name_from_index(index)
+        if found is not None:
+            self._load_recipe(found[0])
 
     def _populate_ingredient_from_name(self, food_name: str) -> None:
         if self._db is None or not food_name:
@@ -376,6 +370,17 @@ class RecipesWidget(QWidget):
         else:
             self.radio_use_weight.setChecked(True)
             self.spin_ingredient_calories.setValue(log_item.calories_per_100g or 0)
+
+    def _recipe_id_and_name_from_index(self, index: QModelIndex) -> tuple[int, str] | None:
+        if not index.isValid():
+            return None
+        item = self._recipes_model.itemFromIndex(index)
+        if item is None:
+            return None
+        recipe_id = item.data(Qt.ItemDataRole.UserRole)
+        if not isinstance(recipe_id, int):
+            return None
+        return recipe_id, item.text()
 
     def _refresh_ingredients_table(self) -> None:
         self.table_ingredients.setRowCount(0)
@@ -478,6 +483,23 @@ class RecipesWidget(QWidget):
         setup_completer_item_tooltips(self._ingredient_completer)
         self.line_ingredient_name.textEdited.connect(self._on_ingredient_name_edited)
         self._ingredient_completer.activated.connect(self._on_ingredient_completer_selected)
+
+    def _show_recipe_context_menu(self, position: QPoint) -> None:
+        index = self.list_recipes.indexAt(position)
+        found = self._recipe_id_and_name_from_index(index)
+        if found is None:
+            return
+        recipe_id, name = found
+        self.list_recipes.setCurrentIndex(index)
+        self._load_recipe(recipe_id)
+        menu = QMenu(self)
+        delete_action = add_delete_action(menu)
+        delete_action.triggered.connect(lambda: self._delete_recipe(recipe_id=recipe_id, name=name))
+        apply_leading_emoji_icons(menu)
+        viewport = self.list_recipes.viewport()
+        if viewport is None:
+            return
+        menu.popup(viewport.mapToGlobal(position))
 
     def _update_ingredient_autocomplete(self) -> None:
         self._completer_source.clear()
