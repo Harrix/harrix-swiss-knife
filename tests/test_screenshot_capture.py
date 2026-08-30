@@ -11,10 +11,6 @@ from PySide6.QtGui import QImage
 from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife.actions.images.screenshot_region_clipboard import OnScreenshotRegionClipboard
-from harrix_swiss_knife.actions.images.screenshot_region_clipboard_keep_windows import (
-    OnScreenshotRegionClipboardKeepWindows,
-)
-from harrix_swiss_knife.actions.images.screenshot_region_keep_windows import OnScreenshotRegionKeepWindows
 from harrix_swiss_knife.screenshot import capture
 
 _EXAMPLE_CONFIG = Path(__file__).resolve().parents[1] / "config" / "config.example.json"
@@ -138,25 +134,21 @@ def test_capture_region_keeps_app_windows_visible(
     assert restore_calls == []
 
 
-def test_example_config_binds_keep_windows_screenshot() -> None:
+def test_example_config_does_not_bind_removed_keep_windows_actions() -> None:
     data = json.loads(_EXAMPLE_CONFIG.read_text(encoding="utf-8"))
-    matching = [entry for entry in data["hotkeys"] if entry.get("action") == "OnScreenshotRegionKeepWindows"]
-    assert matching
-    assert "Ctrl+Shift+F4" in matching[0]["hotkeys"]
-    assert OnScreenshotRegionKeepWindows.title == "Screenshot region (keep Windows)"
-    assert OnScreenshotRegionKeepWindows.quick_launcher is True
+    actions = {entry.get("action") for entry in data["hotkeys"]}
+    assert "OnScreenshotRegionKeepWindows" not in actions
+    assert "OnScreenshotRegionClipboardKeepWindows" not in actions
 
 
 def test_example_config_binds_clipboard_screenshot_hotkeys() -> None:
     data = json.loads(_EXAMPLE_CONFIG.read_text(encoding="utf-8"))
     by_action = {entry["action"]: entry["hotkeys"] for entry in data["hotkeys"]}
     assert "Ctrl+Shift+5" in by_action["OnScreenshotRegionClipboard"]
-    assert "Ctrl+Shift+6" in by_action["OnScreenshotRegionClipboardKeepWindows"]
     assert OnScreenshotRegionClipboard.quick_launcher is True
-    assert OnScreenshotRegionClipboardKeepWindows.quick_launcher is True
 
 
-def test_clipboard_actions_skip_preview(qapp: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:  # noqa: ARG001
+def test_clipboard_action_skips_preview(qapp: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:  # noqa: ARG001
     image = _sample_image()
     calls: list[dict[str, object]] = []
 
@@ -168,19 +160,12 @@ def test_clipboard_actions_skip_preview(qapp: QApplication, monkeypatch: pytest.
         "harrix_swiss_knife.actions.images.screenshot_region_clipboard.capture_region",
         fake_capture_region,
     )
-    monkeypatch.setattr(
-        "harrix_swiss_knife.actions.images.screenshot_region_clipboard_keep_windows.capture_region",
-        fake_capture_region,
-    )
 
     def _silent_toast(self: object, message: str = "", duration: int = 2000) -> None:  # noqa: ARG001
         return None
 
     monkeypatch.setattr(OnScreenshotRegionClipboard, "show_toast", _silent_toast)
-    monkeypatch.setattr(OnScreenshotRegionClipboardKeepWindows, "show_toast", _silent_toast)
     OnScreenshotRegionClipboard()()
-    OnScreenshotRegionClipboardKeepWindows()()
     assert calls == [
         {"show_preview": False, "show_shutter_button": True, "hide_app": True},
-        {"show_preview": False, "show_shutter_button": True, "hide_app": False},
     ]

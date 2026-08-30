@@ -62,21 +62,9 @@
       ]
     },
     {
-      "action": "OnScreenshotRegionKeepWindows",
-      "hotkeys": [
-        "Ctrl+Shift+F4"
-      ]
-    },
-    {
       "action": "OnScreenshotRegionClipboard",
       "hotkeys": [
         "Ctrl+Shift+5"
-      ]
-    },
-    {
-      "action": "OnScreenshotRegionClipboardKeepWindows",
-      "hotkeys": [
-        "Ctrl+Shift+6"
       ]
     }
   ],

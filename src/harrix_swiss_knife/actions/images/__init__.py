@@ -15,10 +15,6 @@ from harrix_swiss_knife.actions.images.recognize_text_with_ai import OnRecognize
 from harrix_swiss_knife.actions.images.recognize_text_with_ocr import OnRecognizeTextWithOcr
 from harrix_swiss_knife.actions.images.screenshot_region import OnScreenshotRegion
 from harrix_swiss_knife.actions.images.screenshot_region_clipboard import OnScreenshotRegionClipboard
-from harrix_swiss_knife.actions.images.screenshot_region_clipboard_keep_windows import (
-    OnScreenshotRegionClipboardKeepWindows,
-)
-from harrix_swiss_knife.actions.images.screenshot_region_keep_windows import OnScreenshotRegionKeepWindows
 
 __all__ = [
     "OnClearImages",
@@ -36,6 +32,4 @@ __all__ = [
     "OnRecognizeTextWithOcr",
     "OnScreenshotRegion",
     "OnScreenshotRegionClipboard",
-    "OnScreenshotRegionClipboardKeepWindows",
-    "OnScreenshotRegionKeepWindows",
 ]

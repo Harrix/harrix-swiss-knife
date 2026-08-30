@@ -79,10 +79,6 @@ from harrix_swiss_knife.actions.images.recognize_text_with_ai import OnRecognize
 from harrix_swiss_knife.actions.images.recognize_text_with_ocr import OnRecognizeTextWithOcr
 from harrix_swiss_knife.actions.images.screenshot_region import OnScreenshotRegion
 from harrix_swiss_knife.actions.images.screenshot_region_clipboard import OnScreenshotRegionClipboard
-from harrix_swiss_knife.actions.images.screenshot_region_clipboard_keep_windows import (
-    OnScreenshotRegionClipboardKeepWindows,
-)
-from harrix_swiss_knife.actions.images.screenshot_region_keep_windows import OnScreenshotRegionKeepWindows
 from harrix_swiss_knife.actions.markdown.append_yaml_tag import OnAppendYamlTag
 from harrix_swiss_knife.actions.markdown.beautify_md import OnBeautifyMd
 from harrix_swiss_knife.actions.markdown.beautify_md_and_regenerate_g_md import OnBeautifyMdAndRegenerateGMd
@@ -200,9 +196,7 @@ def get_menu_structure() -> list[Any]:
                 OnOptimizeClipboardDialog,
                 "-",
                 OnScreenshotRegion,
-                OnScreenshotRegionKeepWindows,
                 OnScreenshotRegionClipboard,
-                OnScreenshotRegionClipboardKeepWindows,
             ],
         ),
         (
