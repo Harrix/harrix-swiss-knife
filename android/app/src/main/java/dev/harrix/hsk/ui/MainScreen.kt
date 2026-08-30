@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material3.DrawerValue
@@ -75,6 +76,7 @@ import dev.harrix.hsk.ui.about.AboutScreen
 import dev.harrix.hsk.ui.gallery.GalleryCleanerScreen
 import dev.harrix.hsk.ui.gallery.VideoCleanerScreen
 import dev.harrix.hsk.ui.medicinesearch.MedicineSearchScreen
+import dev.harrix.hsk.ui.movies.MoviesScreen
 import dev.harrix.hsk.ui.photoeditor.PhotoEditorScreen
 import dev.harrix.hsk.ui.settings.SettingsScreen
 import dev.harrix.hsk.ui.settings.SettingsSection
@@ -107,6 +109,7 @@ private enum class AppDestination {
     PhotoEditor,
     SpeechToText,
     MedicineSearch,
+    Movies,
 }
 
 private data class UtilityCardItem(
@@ -201,6 +204,12 @@ fun MainScreen(
                 icon = Icons.Filled.Medication,
                 destination = AppDestination.MedicineSearch,
             ),
+            UtilityCardItem(
+                titleRes = R.string.nav_drawer_movies,
+                descriptionRes = R.string.movies_card_description,
+                icon = Icons.Filled.Movie,
+                destination = AppDestination.Movies,
+            ),
         )
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -255,6 +264,15 @@ fun MainScreen(
                 MedicineSearchScreen(
                     onClose = { destination = AppDestination.Home },
                     onOpenSettings = { settingsSection = SettingsSection.MedicineSearch },
+                    settingsRevision = settingsRevision,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+
+            AppDestination.Movies -> {
+                MoviesScreen(
+                    onClose = { destination = AppDestination.Home },
+                    onOpenSettings = { settingsSection = SettingsSection.Movies },
                     settingsRevision = settingsRevision,
                     modifier = Modifier.fillMaxSize(),
                 )
@@ -600,6 +618,12 @@ private fun AppNavigationDrawerContent(
             selected = selected == AppDestination.MedicineSearch,
             onClick = { onNavigate(AppDestination.MedicineSearch) },
             icon = Icons.Filled.Medication,
+        )
+        DrawerNavItem(
+            label = stringResource(R.string.nav_drawer_movies),
+            selected = selected == AppDestination.Movies,
+            onClick = { onNavigate(AppDestination.Movies) },
+            icon = Icons.Filled.Movie,
         )
         DrawerNavItem(
             label = stringResource(R.string.nav_drawer_about),

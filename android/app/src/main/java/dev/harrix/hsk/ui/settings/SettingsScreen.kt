@@ -25,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.AlertDialog
@@ -82,6 +83,7 @@ import dev.harrix.hsk.gallery.GalleryReviewOrder
 import dev.harrix.hsk.gallery.MediaFolderPaths
 import dev.harrix.hsk.medicinesearch.MedicineSearchPreferences
 import dev.harrix.hsk.medicinesearch.MedicinesNoteOpener
+import dev.harrix.hsk.movies.MoviesPreferences
 import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.HskDropdownMenuItem
 import dev.harrix.hsk.ui.TypeYesConfirmDialog
@@ -107,6 +109,7 @@ enum class SettingsSection {
     GalleryCleaner,
     VideoCleaner,
     MedicineSearch,
+    Movies,
 }
 
 /**
@@ -118,6 +121,7 @@ private enum class HskSettingsPage {
     General,
     Gallery,
     MedicineSearch,
+    Movies,
     Other,
 }
 
@@ -160,6 +164,7 @@ fun SettingsScreen(
     val appPreferences = remember { AppPreferences(context.applicationContext) }
     val galleryPreferences = remember { GalleryCleanerPreferences(context.applicationContext) }
     val medicinePreferences = remember { MedicineSearchPreferences(context.applicationContext) }
+    val moviesPreferences = remember { MoviesPreferences(context.applicationContext) }
     var settingsEpoch by rememberSaveable { mutableIntStateOf(0) }
     var resetMessage by rememberSaveable { mutableStateOf<String?>(null) }
     var showResetSettingsConfirm by rememberSaveable { mutableStateOf(false) }
@@ -170,6 +175,7 @@ fun SettingsScreen(
                 SettingsSection.GalleryCleaner -> HskSettingsPage.Gallery
                 SettingsSection.VideoCleaner -> HskSettingsPage.Hub
                 SettingsSection.MedicineSearch -> HskSettingsPage.MedicineSearch
+                SettingsSection.Movies -> HskSettingsPage.Movies
             },
         )
     }
@@ -184,6 +190,8 @@ fun SettingsScreen(
 
             HskSettingsPage.MedicineSearch ->
                 stringResource(R.string.settings_medicine_search_title)
+
+            HskSettingsPage.Movies -> stringResource(R.string.settings_movies_title)
 
             HskSettingsPage.Other -> stringResource(R.string.settings_other_title)
         }
@@ -255,6 +263,12 @@ fun SettingsScreen(
                         icon = Icons.Filled.Medication,
                         onClick = { page = HskSettingsPage.MedicineSearch },
                     )
+                    SettingsHubRow(
+                        title = stringResource(R.string.settings_movies_title),
+                        summary = stringResource(R.string.settings_movies_summary),
+                        icon = Icons.Filled.Movie,
+                        onClick = { page = HskSettingsPage.Movies },
+                    )
                     SettingsCategoryHeader(text = stringResource(R.string.settings_category_essential))
                     key(settingsEpoch) {
                         EssentialSettingsSection(
@@ -313,6 +327,21 @@ fun SettingsScreen(
                 }
             }
 
+            HskSettingsPage.Movies -> {
+                SettingsDetailPane(innerPadding = innerPadding) {
+                    key(settingsEpoch) {
+                        MoviesSettingsSection(
+                            preferences = moviesPreferences,
+                        )
+                    }
+                    if (onOpenAllSettings != null && section != SettingsSection.All) {
+                        TextButton(onClick = onOpenAllSettings) {
+                            AutoFitText(text = stringResource(R.string.settings_open_all), maxLines = 2)
+                        }
+                    }
+                }
+            }
+
             HskSettingsPage.Other -> {
                 SettingsDetailPane(innerPadding = innerPadding) {
                     Text(
@@ -344,6 +373,7 @@ fun SettingsScreen(
                 appPreferences.resetAppearanceToDefaults()
                 galleryPreferences.resetSettingsToDefaults()
                 medicinePreferences.resetSettingsToDefaults()
+                moviesPreferences.resetSettingsToDefaults()
                 onThemeModeChange(ThemeMode.System)
                 onAppLanguageChange(AppLanguage.System)
                 settingsEpoch += 1
@@ -797,6 +827,131 @@ private fun MedicineSearchSettingsSection(
 }
 
 private fun medicinesUriLabel(uri: Uri): String = uri.lastPathSegment?.substringAfterLast('/')?.takeIf { it.isNotBlank() }
+    ?: uri.toString()
+
+@Composable
+private fun MoviesSettingsSection(
+    preferences: MoviesPreferences,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    var folderUri by remember { mutableStateOf(preferences.getFolderUri()) }
+    var folderLabel by remember {
+        mutableStateOf(folderUri?.let(::moviesFolderLabel))
+    }
+    var statusMessage by remember { mutableStateOf<String?>(null) }
+    var showClearFolderConfirm by remember { mutableStateOf(false) }
+    val hasFolder = folderUri != null
+
+    val openTree =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.OpenDocumentTree(),
+        ) { uri: Uri? ->
+            if (uri == null) {
+                return@rememberLauncherForActivityResult
+            }
+            val flags =
+                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(uri, flags)
+            }.onFailure {
+                runCatching {
+                    context.contentResolver.takePersistableUriPermission(
+                        uri,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                    )
+                }
+            }
+            val previous = preferences.getFolderUri()
+            preferences.setFolderUri(uri)
+            if (previous != null && previous != uri) {
+                runCatching {
+                    context.contentResolver.releasePersistableUriPermission(
+                        previous,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                    )
+                }
+            }
+            folderUri = uri
+            folderLabel = moviesFolderLabel(uri)
+            statusMessage = context.getString(R.string.settings_movies_folder_saved)
+        }
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        SettingsSectionHeader(text = stringResource(R.string.settings_movies_folder))
+        Text(
+            text = stringResource(R.string.settings_movies_folder_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text =
+            if (folderLabel.isNullOrBlank()) {
+                stringResource(R.string.settings_movies_folder_none)
+            } else {
+                stringResource(R.string.settings_movies_folder_current, folderLabel!!)
+            },
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        SettingsFullWidthOutlinedButton(
+            onClick = { openTree.launch(null) },
+            label =
+            stringResource(
+                if (hasFolder) {
+                    R.string.movies_change_folder
+                } else {
+                    R.string.settings_movies_choose_folder
+                },
+            ),
+        )
+        SettingsFullWidthOutlinedButton(
+            onClick = { showClearFolderConfirm = true },
+            enabled = hasFolder,
+            label = stringResource(R.string.settings_movies_clear_folder),
+        )
+        statusMessage?.let { message ->
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+    if (showClearFolderConfirm) {
+        TypeYesConfirmDialog(
+            title = stringResource(R.string.settings_movies_clear_folder),
+            message = stringResource(R.string.settings_movies_clear_folder_hint),
+            confirmLabel = stringResource(R.string.settings_movies_clear_folder),
+            onConfirm = {
+                val previous = preferences.getFolderUri()
+                preferences.clearFolderUri()
+                if (previous != null) {
+                    runCatching {
+                        context.contentResolver.releasePersistableUriPermission(
+                            previous,
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                        )
+                    }
+                }
+                folderUri = null
+                folderLabel = null
+                statusMessage = context.getString(R.string.settings_movies_folder_cleared)
+                showClearFolderConfirm = false
+            },
+            onDismissRequest = { showClearFolderConfirm = false },
+        )
+    }
+}
+
+private fun moviesFolderLabel(uri: Uri): String = uri.lastPathSegment
+    ?.substringAfterLast(':')
+    ?.substringAfterLast('/')
+    ?.takeIf { it.isNotBlank() }
+    ?: uri.toString()
     ?: uri.toString()
 
 @Composable
