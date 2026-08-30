@@ -23,6 +23,20 @@ def qapp() -> QApplication:
     return app
 
 
+def test_add_transaction_clears_category_after_add() -> None:
+    """`pushButton_add` must reset `label_category_now` after a successful add."""
+    source = inspect.getsource(MainWindow.on_add_transaction)
+    assert "_clear_category_selection()" in source
+
+
+def test_refresh_after_transaction_add_clears_category() -> None:
+    """Table reload after add must not leave the previous category selected."""
+    source = inspect.getsource(MainWindow._refresh_after_transaction_add)
+    assert "_clear_category_selection()" in source
+    assert "_suppress_transaction_form_fill" in source
+    assert "QTimer.singleShot(0, self._clear_category_selection)" in source
+
+
 def test_process_purchase_items_clears_category_after_add() -> None:
     """Add with AI used `update_all` → `_clear_all_forms`; keep that category reset."""
     source = inspect.getsource(MainWindow._process_purchase_items)
