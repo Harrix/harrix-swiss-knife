@@ -8362,7 +8362,7 @@ class MainWindow(
             return
 
         try:
-            play_fitness_timer_cue("success")
+            play_fitness_timer_cue("applause")
             unit = self.db_manager.get_exercise_unit(exercise)
             achievement_dialog.show_monthly_goal_congratulations(self, exercise, type_name, current_value, unit or None)
         except Exception:
@@ -8475,7 +8475,7 @@ class MainWindow(
             return
 
         try:
-            play_fitness_timer_cue("success")
+            play_fitness_timer_cue("applause")
             unit = self.db_manager.get_exercise_unit(exercise)
             achievement_dialog.show_record_congratulations(self, exercise, record_info, unit or None)
         except Exception:
