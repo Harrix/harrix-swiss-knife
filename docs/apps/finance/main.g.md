@@ -99,7 +99,7 @@ class MainWindow(
     about_app_name = "Finance tracker"
     about_description = "Track accounts, transactions, and exchange rates."
     settings_app_id = "finance"
-    _NO_CATEGORY_LABEL: str = "No selected category"
+    _NO_CATEGORY_LABEL: str = "❓ No selected category"
     _TRANSACTION_AMOUNT_COLUMN: int = 2
     _TRANSLATION_FAILURE_PREVIEW_LIMIT: int = 8
 

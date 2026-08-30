@@ -174,10 +174,10 @@ def api_key_file_matches_config_token(filename: str, token: str) -> bool:
     norm_token = _normalize_transfer_api_key_token(raw)
     if not norm_token:
         return False
-    if norm_stem == norm_token or norm_stem == f"{norm_token}-api-key":
+    if norm_stem in (norm_token, f"{norm_token}-api-key"):
         return True
     token_hyphen = norm_token.replace(".", "-")
-    return token_hyphen != norm_token and (norm_stem == token_hyphen or norm_stem == f"{token_hyphen}-api-key")
+    return token_hyphen != norm_token and norm_stem in (token_hyphen, f"{token_hyphen}-api-key")
 ```
 
 </details>

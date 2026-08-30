@@ -18,6 +18,7 @@ This repository is licensed under the MIT license (see `LICENSE.md`), but during
   - [Habits (UI SFX cinematic)](#habits-ui-sfx-cinematic)
   - [Fitness voiceover (Kenney)](#fitness-voiceover-kenney)
   - [Fitness UI cues (UI SFX cinematic)](#fitness-ui-cues-ui-sfx-cinematic)
+  - [Fitness record applause (BigSoundBank + UI SFX)](#fitness-record-applause-bigsoundbank--ui-sfx)
 - [FFmpeg (`ffmpeg.exe`)](#ffmpeg-ffmpegexe)
 - [libavif tools (`avifenc.exe`, `avifdec.exe`)](#libavif-tools-avifencexe-avifdecexe)
 - [Online download vs offline bundle (`install/dependencies/`)](#online-download-vs-offline-bundle-installdependencies)
@@ -34,7 +35,7 @@ This repository also contains some third-party assets that are bundled into the 
 
 ## UI sounds (bundled WAV assets)
 
-Short UI effects from **UI SFX** and **Kenney**, license **CC0 1.0**. WAV copies live under `src/harrix_swiss_knife/assets/sounds/` (compiled into Qt resources). Attribution is not required by CC0; it is recorded here on purpose. WAV copies are lossless conversions of the original OGG files from those packs.
+Short UI effects from **UI SFX**, **Kenney**, and **BigSoundBank**, license **CC0 1.0**. WAV copies live under `src/harrix_swiss_knife/assets/sounds/` (compiled into Qt resources). Attribution is not required by CC0; it is recorded here on purpose. WAV copies are lossless conversions of the original OGG/MP3 files from those packs.
 
 ### Habits (UI SFX cinematic)
 
@@ -64,9 +65,17 @@ Short UI effects from **UI SFX** and **Kenney**, license **CC0 1.0**. WAV copies
 - License: CC0 1.0 (audio)
 - Files used:
   - `fitness_paste.wav` — UI SFX `cinematic/paste` (set added to process / workout)
-  - `fitness_success.wav` — UI SFX `cinematic/success` (new record / monthly goal)
+  - `fitness_success.wav` — UI SFX `cinematic/success`
   - `fitness_pause.wav` — UI SFX `cinematic/pause` (timer paused)
   - `fitness_continue.wav` — UI SFX `cinematic/play` (timer resumed)
+
+### Fitness record applause (BigSoundBank + UI SFX)
+
+- Packs: <https://bigsoundbank.com/applause-1-s2363.html> (Applause #1, sound 2363) and UI SFX `cinematic/achievement`
+- Authors: Dorian CLAIR (BigSoundBank); UI SFX (Romain Simon)
+- License: CC0 1.0
+- Files used:
+  - `fitness_applause.wav` — trimmed ~2.9 s mix of BigSoundBank applause and UI SFX `cinematic/achievement` (new record / monthly goal)
 
 ## FFmpeg (`ffmpeg.exe`)
 
