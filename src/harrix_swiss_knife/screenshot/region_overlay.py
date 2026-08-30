@@ -23,6 +23,7 @@ from harrix_swiss_knife.screenshot.selection_edit import (
     snap_rect_to_edges,
     transform_selection_rect,
 )
+from harrix_swiss_knife.screenshot.selection_guides import paint_selection_guides
 from harrix_swiss_knife.screenshot.shutter_button import ShutterPanel, position_panel_on_left_edge
 from harrix_swiss_knife.screenshot.window_rects import snap_rect_at_point
 from harrix_swiss_knife.screenshot.window_visibility import (
@@ -46,6 +47,7 @@ _DIM_COLOR = QColor(0, 0, 0, 120)
 _BORDER_COLOR = QColor(0, 174, 255)
 _HANDLE_FILL = QColor(0, 174, 255)
 _BORDER_WIDTH = 2
+_GUIDE_BORDER_WIDTH = 1
 
 RESULT_TOGGLE_ARRANGE = 2
 
@@ -60,10 +62,11 @@ _ARROW_KEYS: dict[Qt.Key, ArrowDir] = {
 class RegionOverlay(QDialog):
     """Overlay that shows a frozen desktop grab and lets the user select a region.
 
-    With `with_shutter_controls=True`, arrange/adjust/close buttons are embedded as
-    child widgets. Arrange finishes with `RESULT_TOGGLE_ARRANGE`. Adjust (checkable)
-    keeps the next selection editable: move/resize with handles, Enter or double-click
-    to capture.
+    With `with_shutter_controls=True`, arrange/adjust/guides/close buttons are
+    embedded as child widgets. Arrange finishes with `RESULT_TOGGLE_ARRANGE`.
+    Adjust (checkable) keeps the next selection editable: move/resize with
+    handles, Enter or double-click to capture. Guides (checkable) draw a thinner
+    frame with thirds, halves, diagonal, size, and angle.
 
     When `window_rects` is provided, hovering highlights the most specific region under
     the pointer; a click without a drag captures (or edits) that region.
@@ -109,6 +112,7 @@ class RegionOverlay(QDialog):
         self._dragging = False
         self._snap_rect: QRect | None = None
         self._panel: ShutterPanel | None = None
+        self._guides_enabled = False
         self._edit_rect: QRect | None = None
         self._edit_handle: HandleKind | None = None
         self._edit_press_pos: QPoint | None = None
@@ -126,6 +130,7 @@ class RegionOverlay(QDialog):
             panel.set_mode("selection")
             panel.triggered.connect(lambda: self.done(RESULT_TOGGLE_ARRANGE))
             panel.cancelled.connect(self.reject)
+            panel.guides_toggled.connect(lambda enabled: self._set_guides_enabled(enabled=enabled))
             panel.geometry_changed.connect(lambda: position_panel_on_left_edge(panel, geometry))
             position_panel_on_left_edge(panel, geometry)
             panel.show()
@@ -311,9 +316,12 @@ class RegionOverlay(QDialog):
         if rect is not None and rect.isValid():
             source = logical_rect_to_pixel_rect(rect, pixmap_device_pixel_ratio(self._frozen))
             painter.drawPixmap(rect, self._frozen, source)
-            pen = QPen(_BORDER_COLOR, _BORDER_WIDTH)
+            guides_on = self._guides_enabled
+            pen = QPen(_BORDER_COLOR, _GUIDE_BORDER_WIDTH if guides_on else _BORDER_WIDTH)
             painter.setPen(pen)
             painter.drawRect(rect.adjusted(0, 0, -1, -1))
+            if guides_on:
+                paint_selection_guides(painter, rect, self.rect())
             if self._edit_rect is not None:
                 self._paint_edit_handles(painter, rect)
 
@@ -371,6 +379,10 @@ class RegionOverlay(QDialog):
             self.reject()
             return
         self.accept()
+
+    def _set_guides_enabled(self, *, enabled: bool) -> None:
+        self._guides_enabled = enabled
+        self.update()
 
     def _nudge_edit_rect(self, direction: ArrowDir, modifiers: Qt.KeyboardModifier) -> None:
         if self._edit_rect is None:

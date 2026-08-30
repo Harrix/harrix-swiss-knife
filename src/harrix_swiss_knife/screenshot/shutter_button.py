@@ -34,6 +34,7 @@ _HINT_WIDTH = 150
 _ARRANGE_EMOJI = "🪟"
 _CAMERA_EMOJI = "📷"
 _ADJUST_EMOJI = "✥"
+_GUIDES_EMOJI = "📐"
 _CLOSE_EMOJI = "❌"
 _ICON_SIZE = 36
 _EDGE_MARGIN = 12
@@ -155,14 +156,16 @@ class ShutterPanel(QWidget):
     Hover captions are drawn as an in-panel label (not `QToolTip`), so they stay
     visible above the stay-on-top screenshot overlay.
 
-    In selection mode an extra checkable button enables “adjust region”: the next
-    selection is kept editable (move/resize) until Enter confirms.
+    In selection mode extra checkable buttons enable “adjust region” (the next
+    selection stays editable until Enter) and composition guides (thin frame,
+    thirds, diagonal, size, and angle).
 
     """
 
     adjust_toggled = Signal(bool)
     cancelled = Signal()
     geometry_changed = Signal()
+    guides_toggled = Signal(bool)
     triggered = Signal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
@@ -189,6 +192,14 @@ class ShutterPanel(QWidget):
         self._adjust_button.setCheckable(True)
         self._adjust_button.toggled.connect(self.adjust_toggled.emit)
         buttons_layout.addWidget(self._adjust_button)
+
+        self._guides_button = self._make_emoji_button(
+            _GUIDES_EMOJI,
+            "Composition guides: thirds, diagonal, size, and angle",
+        )
+        self._guides_button.setCheckable(True)
+        self._guides_button.toggled.connect(self.guides_toggled.emit)
+        buttons_layout.addWidget(self._guides_button)
 
         close_button = self._make_emoji_button(_CLOSE_EMOJI, "Cancel screenshot")
         close_button.clicked.connect(self.cancelled.emit)
@@ -222,6 +233,11 @@ class ShutterPanel(QWidget):
         """Whether the next selection should stay editable until confirmed."""
         return self._mode == "selection" and self._adjust_button.isChecked()
 
+    @property
+    def guides_mode(self) -> bool:
+        """Whether the selection frame shows composition guides and measurements."""
+        return self._mode == "selection" and self._guides_button.isChecked()
+
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
         """Show an in-panel caption while the pointer is over a shutter button."""
         if isinstance(watched, QPushButton):
@@ -249,6 +265,7 @@ class ShutterPanel(QWidget):
             self._mode_button.setToolTip("Arrange desktop")
             self._mode_button.setProperty("hover_hint", "Arrange desktop")
             self._adjust_button.show()
+            self._guides_button.show()
         else:
             # In arrange mode, click returns to region capture.
             self._mode_button.setIcon(create_emoji_icon(_CAMERA_EMOJI, _ICON_SIZE))
@@ -256,6 +273,8 @@ class ShutterPanel(QWidget):
             self._mode_button.setProperty("hover_hint", "Capture region")
             self._adjust_button.hide()
             self._adjust_button.setChecked(False)
+            self._guides_button.hide()
+            self._guides_button.setChecked(False)
             self.set_edit_keys_visible(visible=False)
         if self._hovered_button is self._mode_button:
             self._show_hint(str(self._mode_button.property("hover_hint") or ""))
@@ -290,7 +309,7 @@ class ShutterPanel(QWidget):
         self._update_size()
 
     def _update_size(self) -> None:
-        button_count = 3 if self._mode == "selection" else 2
+        button_count = 4 if self._mode == "selection" else 2
         total_height = _BUTTON_SIZE * button_count + _BUTTON_GAP * (button_count - 1)
         if self._edit_keys_label.isVisible():
             total_height += _BUTTON_GAP + self._edit_keys_label.sizeHint().height()

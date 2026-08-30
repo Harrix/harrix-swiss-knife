@@ -272,6 +272,23 @@ def test_shutter_panel_shows_hover_hint_caption(qapp: QApplication) -> None:  # 
     panel.close()
 
 
+def test_shutter_panel_guides_toggle(qapp: QApplication) -> None:  # noqa: ARG001
+    """Composition-guides button is checkable in selection mode and updates the overlay."""
+    overlay = RegionOverlay(QPixmap(200, 200), QApplication.primaryScreen().geometry(), with_shutter_controls=True)
+    panel = overlay.findChild(ShutterPanel)
+    assert panel is not None
+    assert not panel.guides_mode
+    guides = next(
+        button
+        for button in panel.findChildren(QPushButton)
+        if button.isCheckable() and "guides" in (button.toolTip() or "").lower()
+    )
+    guides.setChecked(True)
+    assert panel.guides_mode
+    assert overlay._guides_enabled
+    overlay.close()
+
+
 def test_shutter_panel_shows_edit_key_hints(qapp: QApplication) -> None:  # noqa: ARG001
     panel = ShutterPanel()
     panel.set_mode("selection")
