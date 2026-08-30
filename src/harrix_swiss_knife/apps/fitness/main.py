@@ -4578,6 +4578,14 @@ class MainWindow(
             model.appendRow(items)
             model.setVerticalHeaderItem(row_idx, QStandardItem(str(row_id)))
 
+    def _apply_count_input_mode(self, unit: str) -> None:
+        seconds_mode = is_seconds_exercise_unit(unit)
+        self._count_input_is_seconds = seconds_mode
+        self.spinBox_count.setVisible(not seconds_mode)
+        self.spinBox_count_minutes.setVisible(seconds_mode)
+        self.spinBox_count_seconds.setVisible(seconds_mode)
+        self.label_unit.setVisible(not seconds_mode)
+
     def _apply_dumbbell_weight_edit_plan(self, plan: WeightEditPlan, template_id: int) -> bool:
         """Apply add/rename/delete operations from the dumbbell-weight editor."""
         if self.db_manager is None:
@@ -5146,6 +5154,21 @@ class MainWindow(
         if require_type and not self.db_manager.set_exercise_type_required(exercise_id, required=True):
             logger.error("Failed to set is_type_required for exercise %s", exercise_id)
         return added
+
+    def _count_focus_spinbox(self) -> QSpinBox:
+        if self._count_input_is_seconds:
+            if self.spinBox_count_minutes.value() > 0:
+                return self.spinBox_count_minutes
+            return self.spinBox_count_seconds
+        return self.spinBox_count
+
+    def _count_value(self) -> int:
+        if self._count_input_is_seconds:
+            return minutes_seconds_to_total(
+                self.spinBox_count_minutes.value(),
+                self.spinBox_count_seconds.value(),
+            )
+        return self.spinBox_count.value()
 
     def _create_colored_process_table_model(
         self,
@@ -5811,68 +5834,6 @@ class MainWindow(
             target.selectAll()
         except Exception:
             logger.exception("Error focusing spinBox_count")
-
-    def _apply_count_input_mode(self, unit: str) -> None:
-        seconds_mode = is_seconds_exercise_unit(unit)
-        self._count_input_is_seconds = seconds_mode
-        self.spinBox_count.setVisible(not seconds_mode)
-        self.spinBox_count_minutes.setVisible(seconds_mode)
-        self.spinBox_count_seconds.setVisible(seconds_mode)
-        self.label_unit.setVisible(not seconds_mode)
-
-    def _count_focus_spinbox(self) -> QSpinBox:
-        if self._count_input_is_seconds:
-            if self.spinBox_count_minutes.value() > 0:
-                return self.spinBox_count_minutes
-            return self.spinBox_count_seconds
-        return self.spinBox_count
-
-    def _count_value(self) -> int:
-        if self._count_input_is_seconds:
-            return minutes_seconds_to_total(
-                self.spinBox_count_minutes.value(),
-                self.spinBox_count_seconds.value(),
-            )
-        return self.spinBox_count.value()
-
-    def _set_count_value(self, value: int) -> None:
-        amount = max(0, int(value))
-        if self._count_input_is_seconds:
-            minutes, seconds = split_total_seconds(amount)
-            self.spinBox_count_minutes.setValue(minutes)
-            self.spinBox_count_seconds.setValue(seconds)
-            return
-        self.spinBox_count.setValue(amount)
-
-    def _setup_seconds_count_inputs(self) -> None:
-        self._count_input_is_seconds = False
-        style = self.spinBox_count.styleSheet()
-        font = self.spinBox_count.font()
-        alignment = self.spinBox_count.alignment()
-        parent = self.spinBox_count.parentWidget()
-
-        self.spinBox_count_minutes = QSpinBox(parent)
-        self.spinBox_count_minutes.setObjectName("spinBox_count_minutes")
-        self.spinBox_count_minutes.setFont(font)
-        self.spinBox_count_minutes.setStyleSheet(style)
-        self.spinBox_count_minutes.setAlignment(alignment)
-        self.spinBox_count_minutes.setRange(0, 10000)
-        self.spinBox_count_minutes.setSuffix(" min")
-        self.spinBox_count_minutes.hide()
-
-        self.spinBox_count_seconds = QSpinBox(parent)
-        self.spinBox_count_seconds.setObjectName("spinBox_count_seconds")
-        self.spinBox_count_seconds.setFont(font)
-        self.spinBox_count_seconds.setStyleSheet(style)
-        self.spinBox_count_seconds.setAlignment(alignment)
-        self.spinBox_count_seconds.setRange(0, 59)
-        self.spinBox_count_seconds.setSuffix(" sec")
-        self.spinBox_count_seconds.hide()
-
-        unit_index = self.horizontalLayout_14.indexOf(self.label_unit)
-        insert_at = unit_index if unit_index >= 0 else self.horizontalLayout_14.count()
-        self.horizontalLayout_14.insertWidget(insert_at, self.spinBox_count_minutes)
-        self.horizontalLayout_14.insertWidget(insert_at + 1, self.spinBox_count_seconds)
 
     def _get_current_selected_exercise(self) -> str | None:
         """Get the currently selected exercise from the list view.
@@ -7940,6 +7901,15 @@ class MainWindow(
             toast_message="Parsing sets…",
         )
 
+    def _set_count_value(self, value: int) -> None:
+        amount = max(0, int(value))
+        if self._count_input_is_seconds:
+            minutes, seconds = split_total_seconds(amount)
+            self.spinBox_count_minutes.setValue(minutes)
+            self.spinBox_count_seconds.setValue(seconds)
+            return
+        self.spinBox_count.setValue(amount)
+
     @requires_database()
     def _set_date_for_selected_process_records(self, record_ids: list[int]) -> None:
         """Set the same date on several process rows after user picks a date in a dialog."""
@@ -8077,6 +8047,36 @@ class MainWindow(
     def _setup_process_table_header(self) -> None:
         """Configure process table header and column widths."""
         self._adjust_process_table_columns()
+
+    def _setup_seconds_count_inputs(self) -> None:
+        self._count_input_is_seconds = False
+        style = self.spinBox_count.styleSheet()
+        font = self.spinBox_count.font()
+        alignment = self.spinBox_count.alignment()
+        parent = self.spinBox_count.parentWidget()
+
+        self.spinBox_count_minutes = QSpinBox(parent)
+        self.spinBox_count_minutes.setObjectName("spinBox_count_minutes")
+        self.spinBox_count_minutes.setFont(font)
+        self.spinBox_count_minutes.setStyleSheet(style)
+        self.spinBox_count_minutes.setAlignment(alignment)
+        self.spinBox_count_minutes.setRange(0, 10000)
+        self.spinBox_count_minutes.setSuffix(" min")
+        self.spinBox_count_minutes.hide()
+
+        self.spinBox_count_seconds = QSpinBox(parent)
+        self.spinBox_count_seconds.setObjectName("spinBox_count_seconds")
+        self.spinBox_count_seconds.setFont(font)
+        self.spinBox_count_seconds.setStyleSheet(style)
+        self.spinBox_count_seconds.setAlignment(alignment)
+        self.spinBox_count_seconds.setRange(0, 59)
+        self.spinBox_count_seconds.setSuffix(" sec")
+        self.spinBox_count_seconds.hide()
+
+        unit_index = self.horizontalLayout_14.indexOf(self.label_unit)
+        insert_at = unit_index if unit_index >= 0 else self.horizontalLayout_14.count()
+        self.horizontalLayout_14.insertWidget(insert_at, self.spinBox_count_minutes)
+        self.horizontalLayout_14.insertWidget(insert_at + 1, self.spinBox_count_seconds)
 
     def _setup_sync_dumbbell_weight_types_action(self) -> None:
         """Add Commands → Sync and Edit dumbbell weights after the types-table actions."""

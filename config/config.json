@@ -382,6 +382,7 @@
   "start_pattern_jupyter_notebooks": "jupyter-notebook-",
   "start_pattern_py_projects": "python-project-",
   "ticktick_api_key": "snippet:api-keys/ticktick-api-key.txt",
+  "transfer_private_data_default_api_keys": ["bothub", "bothub.ru"],
   "ui_font_scale": 1.0,
   "vector_icons_recent_folders_max": 12,
   "vscode_workspace_articles": "D:/Dropbox/Programs/vscode_workspaces/_content__harrix-dev.code-workspace",

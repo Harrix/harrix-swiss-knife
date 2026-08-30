@@ -167,6 +167,7 @@ class MainWindow(
         self._description_filter_timer.setInterval(400)
         self._description_filter_timer.timeout.connect(self.apply_filter)
         self._suppress_category_suggest: bool = False
+        self._suppress_transaction_form_fill: bool = False
         self._category_suggest_delegate = CategorySuggestDelegate(self.listView_categories)
         self._category_suggest_delegate.use_clicked.connect(self._select_category_by_name)
         self.listView_categories.setItemDelegate(self._category_suggest_delegate)
@@ -718,6 +719,7 @@ class MainWindow(
                 self.lineEdit_description.clear()
                 self.lineEdit_tag.clear()
                 self.dateEdit.setDate(current_date)
+                self._clear_category_selection()
                 QTimer.singleShot(100, self._focus_description_and_select_text)
 
             self._add_record("transaction", get_and_validate, add_db, on_success)
@@ -4025,6 +4027,8 @@ class MainWindow(
         # Don't copy data if right click is in progress
         if hasattr(self, "_right_click_in_progress") and self._right_click_in_progress:
             return
+        if getattr(self, "_suppress_transaction_form_fill", False):
+            return
 
         if not current.isValid():
             return
@@ -4459,7 +4463,13 @@ class MainWindow(
 
     def _refresh_after_transaction_add(self, *, categories_may_change: bool = False) -> None:
         """Reload transactions table immediately; defer summary and secondary UI."""
-        self._refresh_transactions_table()
+        self._suppress_transaction_form_fill = True
+        try:
+            self._refresh_transactions_table()
+        finally:
+            self._suppress_transaction_form_fill = False
+        self._clear_category_selection()
+        QTimer.singleShot(0, self._clear_category_selection)
         self._mark_summary_dirty()
         self._mark_transactions_changed(categories_may_change=categories_may_change)
         self._arm_background_transaction_translate_timer()
@@ -6344,6 +6354,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:
         self._description_filter_timer.setInterval(400)
         self._description_filter_timer.timeout.connect(self.apply_filter)
         self._suppress_category_suggest: bool = False
+        self._suppress_transaction_form_fill: bool = False
         self._category_suggest_delegate = CategorySuggestDelegate(self.listView_categories)
         self._category_suggest_delegate.use_clicked.connect(self._select_category_by_name)
         self.listView_categories.setItemDelegate(self._category_suggest_delegate)
@@ -7021,6 +7032,7 @@ def on_add_transaction(self) -> None:
                 self.lineEdit_description.clear()
                 self.lineEdit_tag.clear()
                 self.dateEdit.setDate(current_date)
+                self._clear_category_selection()
                 QTimer.singleShot(100, self._focus_description_and_select_text)
 
             self._add_record("transaction", get_and_validate, add_db, on_success)

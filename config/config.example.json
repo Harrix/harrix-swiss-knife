@@ -356,6 +356,7 @@
   },
   "gemini_api_key": "snippet:api-keys/gemini-api-key.txt",
   "ticktick_api_key": "snippet:api-keys/ticktick-api-key.txt",
+  "transfer_private_data_default_api_keys": ["bothub", "bothub.ru"],
   "prompts": {
     "finance_purchases_to_tsv": "snippet:config/prompts/finance-purchases-to-tsv.md",
     "finance_category_translate_local": "snippet:config/prompts/finance-category-translate-local.md",

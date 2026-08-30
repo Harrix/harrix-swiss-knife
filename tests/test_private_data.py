@@ -15,8 +15,10 @@ from harrix_swiss_knife.actions.common.private_data import (
     ZIP_FITNESS_IMG_DIR,
     ZIP_FOOD_CATALOG_NAME,
     PrivateDataSelection,
+    api_key_file_matches_config_token,
     collect_fitness_image_files,
     default_private_data_zip_path,
+    default_selected_api_key_files,
     find_importable_fitness_private_data_zip,
     inspect_private_data_zip,
     install_private_data,
@@ -174,6 +176,24 @@ def test_collect_fitness_image_files_packs_high_and_requires_root_avif(tmp_path:
     rels = {path.relative_to(img_dir).as_posix() for path in files}
     assert rels == {"Pull-ups.avif", "high/Pull-ups.avif", "high/Plank.avif"}
     assert missing == ["Plank", "Squats"]
+
+
+def test_default_selected_api_key_files_matches_config_tokens() -> None:
+    """Config tokens select bothub files; unknown tokens and empty lists select none."""
+    names = [
+        "bothub-api-key.txt",
+        "bothub-ru-api-key.txt",
+        "openai-api-key.txt",
+        "github-token.txt",
+    ]
+    selected = default_selected_api_key_files(names, ["bothub", "bothub.ru"])
+    assert selected == ["bothub-api-key.txt", "bothub-ru-api-key.txt"]
+    assert default_selected_api_key_files(names, []) == []
+    assert default_selected_api_key_files(names, ["missing"]) == []
+    assert api_key_file_matches_config_token("bothub-api-key.txt", "bothub")
+    assert api_key_file_matches_config_token("bothub-ru-api-key.txt", "bothub.ru")
+    assert not api_key_file_matches_config_token("bothub-ru-api-key.txt", "bothub")
+    assert api_key_file_matches_config_token("openai-api-key.txt", "openai-api-key.txt")
 
 
 def test_resolve_api_key_files_for_pack_filters_names(tmp_path: Path) -> None:
@@ -540,6 +560,25 @@ CREATE TABLE food_log (
     name_en TEXT,
     is_drink INTEGER NOT NULL DEFAULT 0
 );
+CREATE TABLE recipes (
+    _id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    name_en TEXT,
+    is_drink INTEGER NOT NULL DEFAULT 0,
+    calories_per_100g REAL,
+    total_weight REAL
+);
+CREATE TABLE recipe_ingredients (
+    _id INTEGER PRIMARY KEY AUTOINCREMENT,
+    recipe_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    name_en TEXT,
+    weight REAL,
+    calories_per_100g REAL,
+    portion_calories REAL,
+    is_drink INTEGER NOT NULL DEFAULT 0,
+    sort_order INTEGER NOT NULL DEFAULT 0
+);
 """
 
 
@@ -579,6 +618,23 @@ def _create_food_db(db_path: Path) -> Path:
             "INSERT INTO food_log (date, name, calories_per_100g, weight, is_drink) "
             "VALUES ('2024-01-01', 'Банан', 89, 100, 0)",
         )
+        cursor = conn.execute(
+            """
+            INSERT INTO recipes (name, name_en, is_drink, calories_per_100g, total_weight)
+            VALUES ('Овсянка', 'Oatmeal', 0, 88, 250)
+            """
+        )
+        recipe_id = int(cursor.lastrowid or 0)
+        conn.execute(
+            """
+            INSERT INTO recipe_ingredients (
+                recipe_id, name, name_en, weight, calories_per_100g,
+                portion_calories, is_drink, sort_order
+            )
+            VALUES (?, 'Овсянка', 'Oats', 50, 350, 175, 0, 0)
+            """,
+            (recipe_id,),
+        )
         conn.commit()
     return db_path
 
@@ -602,6 +658,7 @@ def test_pack_and_install_finance_and_food_catalogs(tmp_path: Path) -> None:
     assert result.finance_categories_count == 1
     assert result.finance_standard_items_count == 1
     assert result.food_items_count == 1
+    assert result.food_recipes_count == 1
     with zipfile.ZipFile(zip_path) as archive:
         names = set(archive.namelist())
     assert ZIP_FINANCE_CATALOG_NAME in names
@@ -619,6 +676,7 @@ def test_pack_and_install_finance_and_food_catalogs(tmp_path: Path) -> None:
         conn.commit()
     with sqlite3.connect(str(target_food)) as conn:
         conn.execute("UPDATE food_items SET calories_per_100g = 1 WHERE name = 'Банан'")
+        conn.execute("UPDATE recipes SET calories_per_100g = 1 WHERE name = 'Овсянка'")
         conn.commit()
 
     installed = install_private_data(
@@ -632,6 +690,7 @@ def test_pack_and_install_finance_and_food_catalogs(tmp_path: Path) -> None:
     )
     assert installed.finance_stats.categories_updated == 1
     assert installed.food_stats.food_items_updated == 1
+    assert installed.food_stats.recipes_updated == 1
     with sqlite3.connect(str(target_finance)) as conn:
         icon = conn.execute("SELECT icon FROM categories WHERE name = 'Food'").fetchone()[0]
         assert icon == "🍔"
@@ -639,4 +698,6 @@ def test_pack_and_install_finance_and_food_catalogs(tmp_path: Path) -> None:
     with sqlite3.connect(str(target_food)) as conn:
         calories = conn.execute("SELECT calories_per_100g FROM food_items WHERE name = 'Банан'").fetchone()[0]
         assert float(calories) == 89
+        recipe_calories = conn.execute("SELECT calories_per_100g FROM recipes WHERE name = 'Овсянка'").fetchone()[0]
+        assert float(recipe_calories) == 88
         assert int(conn.execute("SELECT COUNT(*) FROM food_log").fetchone()[0]) == 1

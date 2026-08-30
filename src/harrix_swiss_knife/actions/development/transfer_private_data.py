@@ -13,6 +13,7 @@ from harrix_swiss_knife.actions.common.private_data import (
     PackPrivateDataResult,
     PrivateDataSelection,
     default_private_data_zip_path,
+    default_selected_api_key_files,
     inspect_private_data_zip,
     install_private_data,
     list_api_key_files_in_zip,
@@ -157,7 +158,9 @@ class OnTransferPrivateData(ActionBase):
                 f"{result.finance_standard_items_count} standard item(s)."
             )
         if selection.food:
-            self.add_line(f"Exported food catalog: {result.food_items_count} food item(s).")
+            self.add_line(
+                f"Exported food catalog: {result.food_items_count} food item(s), {result.food_recipes_count} recipe(s)."
+            )
         self.add_line(f"ZIP: `{result.zip_path}` ({size_mb:.1f} MB)")
         self.add_line("History (workouts, transactions, food log) is not included.")
 
@@ -209,7 +212,9 @@ class OnTransferPrivateData(ActionBase):
             self.add_line(
                 "Food catalog upsert: "
                 f"{food_stats.food_items_inserted} food item(s) inserted, "
-                f"{food_stats.food_items_updated} updated."
+                f"{food_stats.food_items_updated} updated; "
+                f"{food_stats.recipes_inserted} recipe(s) inserted, "
+                f"{food_stats.recipes_updated} updated."
             )
             if result.food_db_path is not None:
                 self.add_line(f"Food DB: `{result.food_db_path}`")
@@ -244,6 +249,22 @@ class OnTransferPrivateData(ActionBase):
             self.show_result()
             return None
         return replace(selection, api_key_files=requested_names)
+
+    def _default_selected_api_key_names(self, key_names: list[str]) -> list[str]:
+        """Return API key filenames checked by default from `config.json`.
+
+        Args:
+
+        - `key_names` (`list[str]`): Secret filenames shown in the dialog.
+
+        Returns:
+
+        - `list[str]`: Filenames that match `transfer_private_data_default_api_keys`.
+
+        """
+        raw = self.config.get("transfer_private_data_default_api_keys")
+        tokens = raw if isinstance(raw, list) else []
+        return default_selected_api_key_files(key_names, tokens)
 
     def _finish_transfer(self) -> None:
         """Write summary lines, toast, and the result dialog after a completed transfer."""
@@ -292,7 +313,7 @@ class OnTransferPrivateData(ActionBase):
             section2_title="API keys",
             section2_label=keys_label,
             section2_choices=key_names,
-            section2_default_selected=key_names,
+            section2_default_selected=self._default_selected_api_key_names(key_names),
             section2_disabled_choices=[],
         )
         if selected is None:

@@ -30,9 +30,12 @@ lang: en
 - [🔧 Function `allocated_exercise_seconds`](#-function-allocated_exercise_seconds)
 - [🔧 Function `default_exercise_type`](#-function-default_exercise_type)
 - [🔧 Function `format_mm_ss`](#-function-format_mm_ss)
+- [🔧 Function `is_seconds_exercise_unit`](#-function-is_seconds_exercise_unit)
 - [🔧 Function `is_timed_exercise_unit`](#-function-is_timed_exercise_unit)
+- [🔧 Function `minutes_seconds_to_total`](#-function-minutes_seconds_to_total)
 - [🔧 Function `normalize_exercise_unit`](#-function-normalize_exercise_unit)
 - [🔧 Function `parse_exercise_value`](#-function-parse_exercise_value)
+- [🔧 Function `split_total_seconds`](#-function-split_total_seconds)
 - [🔧 Function `target_seconds_for_exercise`](#-function-target_seconds_for_exercise)
 
 </details>
@@ -610,6 +613,24 @@ def format_mm_ss(total_seconds: int) -> str:
 
 </details>
 
+## 🔧 Function `is_seconds_exercise_unit`
+
+```python
+def is_seconds_exercise_unit(unit: str) -> bool
+```
+
+Return whether `unit` stores duration as a number of seconds.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def is_seconds_exercise_unit(unit: str) -> bool:
+    return normalize_exercise_unit(unit) in _SECOND_UNITS
+```
+
+</details>
+
 ## 🔧 Function `is_timed_exercise_unit`
 
 ```python
@@ -625,6 +646,24 @@ Return whether `unit` measures hold/run duration (seconds or minutes).
 def is_timed_exercise_unit(unit: str) -> bool:
     normalized = normalize_exercise_unit(unit)
     return normalized in _SECOND_UNITS or normalized in _MINUTE_UNITS
+```
+
+</details>
+
+## 🔧 Function `minutes_seconds_to_total`
+
+```python
+def minutes_seconds_to_total(minutes: int, seconds: int) -> int
+```
+
+Combine minutes and seconds into a non-negative total in seconds.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def minutes_seconds_to_total(minutes: int, seconds: int) -> int:
+    return max(0, int(minutes)) * _SECONDS_PER_MINUTE + max(0, int(seconds))
 ```
 
 </details>
@@ -664,6 +703,25 @@ def parse_exercise_value(text: str) -> int:
         return max(0, int(float(str(text).strip() or 0)))
     except (TypeError, ValueError):
         return 0
+```
+
+</details>
+
+## 🔧 Function `split_total_seconds`
+
+```python
+def split_total_seconds(total_seconds: int) -> tuple[int, int]
+```
+
+Split a non-negative second count into `(minutes, seconds)`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def split_total_seconds(total_seconds: int) -> tuple[int, int]:
+    total = max(0, int(total_seconds))
+    return divmod(total, _SECONDS_PER_MINUTE)
 ```
 
 </details>

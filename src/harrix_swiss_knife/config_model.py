@@ -87,6 +87,7 @@ class AppConfig(TypedDict, total=False):
     sqlite_food: str
     sqlite_habits: str
     sqlite_snippets: str
+    transfer_private_data_default_api_keys: NotRequired[list[str]]
     food_calorie_thresholds: FoodCalorieThresholds
     block_drives: list[str]
     markdown_templates: dict[str, Any]
@@ -254,7 +255,14 @@ def validate_app_config(config: dict[str, Any]) -> list[str]:
                 msg = f"Config hotkeys[{index}] is missing non-empty 'action'."
                 raise TypeError(msg)
 
-    for key in ("paths_python_projects", "paths_python_libraries", "paths_notes", "paths_git", "block_drives"):
+    for key in (
+        "paths_python_projects",
+        "paths_python_libraries",
+        "paths_notes",
+        "paths_git",
+        "block_drives",
+        "transfer_private_data_default_api_keys",
+    ):
         value = config.get(key)
         if value is not None and not isinstance(value, list):
             msg = f"Config key '{key}' must be a list."

@@ -44,6 +44,11 @@ def test_validate_app_config_rejects_bad_hotkeys() -> None:
         validate_app_config({"hotkeys": "nope"})
 
 
+def test_validate_app_config_rejects_non_list_default_api_keys() -> None:
+    with pytest.raises(TypeError, match="transfer_private_data_default_api_keys"):
+        validate_app_config({"transfer_private_data_default_api_keys": "bothub"})
+
+
 def test_validate_app_config_warns_on_placeholders() -> None:
     warnings = validate_app_config(
         {

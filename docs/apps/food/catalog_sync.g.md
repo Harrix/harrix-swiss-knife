@@ -36,6 +36,8 @@ class FoodCatalogUpsertStats:
 
     food_items_inserted: int = 0
     food_items_updated: int = 0
+    recipes_inserted: int = 0
+    recipes_updated: int = 0
 ```
 
 </details>
@@ -68,12 +70,12 @@ def create_empty_food_database(db_path: Path, recover_sql_path: Path) -> None:
 def export_food_catalog(db_path: Path) -> dict[str, Any]
 ```
 
-Read `food_items` from `db_path` into a JSON-serializable catalog.
+Read `food_items` and recipes from `db_path` into a JSON catalog.
 
 Returns:
 
-- `dict[str, Any]`: Object with `version` and `food_items`. Database `_id`
-  values are omitted.
+- `dict[str, Any]`: Object with `version`, `food_items`, and `recipes`.
+  Database `_id` values are omitted.
 
 <details>
 <summary>Code:</summary>
@@ -99,6 +101,7 @@ def export_food_catalog(db_path: Path) -> dict[str, Any]:
             ORDER BY name COLLATE NOCASE
             """
         ).fetchall()
+        recipes = _export_recipes(conn)
 
     return {
         "version": 1,
@@ -113,6 +116,7 @@ def export_food_catalog(db_path: Path) -> dict[str, Any]:
             }
             for row in rows
         ],
+        "recipes": recipes,
     }
 ```
 
@@ -181,7 +185,16 @@ def normalize_food_catalog(raw: Any) -> dict[str, Any]:
                 "default_portion_calories": _optional_float(item.get("default_portion_calories")),
             }
         )
-    return {"version": int(raw.get("version") or 1), "food_items": food_items}
+    recipes_raw = raw.get("recipes")
+    if recipes_raw is None:
+        recipes_raw = []
+    if not isinstance(recipes_raw, list):
+        msg = "food_catalog.json must contain a 'recipes' list when present"
+        raise TypeError(msg)
+    recipes: list[dict[str, Any]] = []
+    for index, recipe in enumerate(recipes_raw):
+        recipes.append(_normalize_recipe(recipe, index))
+    return {"version": int(raw.get("version") or 1), "food_items": food_items, "recipes": recipes}
 ```
 
 </details>
@@ -192,10 +205,10 @@ def normalize_food_catalog(raw: Any) -> dict[str, Any]:
 def upsert_food_catalog(db_path: Path, catalog: dict[str, Any]) -> FoodCatalogUpsertStats
 ```
 
-Insert or update food items by name; never touch `food_log`.
+Insert or update food items and recipes by name; never touch `food_log`.
 
-Existing local-only items are left unchanged. Existing `_id` values are
-preserved so `food_log` rows stay linked.
+Existing local-only items and recipes are left unchanged. Existing `_id`
+values are preserved so `food_log` rows stay linked.
 
 <details>
 <summary>Code:</summary>
@@ -209,6 +222,8 @@ def upsert_food_catalog(db_path: Path, catalog: dict[str, Any]) -> FoodCatalogUp
 
     inserted = 0
     updated = 0
+    recipes_inserted = 0
+    recipes_updated = 0
     with sqlite3.connect(str(db_path)) as conn:
         for item in normalized["food_items"]:
             row = conn.execute("SELECT _id FROM food_items WHERE name = ?", (item["name"],)).fetchone()
@@ -242,9 +257,15 @@ def upsert_food_catalog(db_path: Path, catalog: dict[str, Any]) -> FoodCatalogUp
                     (*values, int(row[0])),
                 )
                 updated += 1
+        recipes_inserted, recipes_updated = _upsert_recipes(conn, normalized["recipes"])
         conn.commit()
 
-    return FoodCatalogUpsertStats(food_items_inserted=inserted, food_items_updated=updated)
+    return FoodCatalogUpsertStats(
+        food_items_inserted=inserted,
+        food_items_updated=updated,
+        recipes_inserted=recipes_inserted,
+        recipes_updated=recipes_updated,
+    )
 ```
 
 </details>

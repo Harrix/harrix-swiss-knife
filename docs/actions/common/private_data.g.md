@@ -15,8 +15,10 @@ lang: en
 - [🏛️ Class `PackPrivateDataResult`](#%EF%B8%8F-class-packprivatedataresult)
 - [🏛️ Class `PrivateDataSelection`](#%EF%B8%8F-class-privatedataselection)
   - [⚙️ Method `any_selected`](#%EF%B8%8F-method-any_selected)
+- [🔧 Function `api_key_file_matches_config_token`](#-function-api_key_file_matches_config_token)
 - [🔧 Function `collect_fitness_image_files`](#-function-collect_fitness_image_files)
 - [🔧 Function `default_private_data_zip_path`](#-function-default_private_data_zip_path)
+- [🔧 Function `default_selected_api_key_files`](#-function-default_selected_api_key_files)
 - [🔧 Function `find_importable_fitness_private_data_zip`](#-function-find_importable_fitness_private_data_zip)
 - [🔧 Function `inspect_private_data_zip`](#-function-inspect_private_data_zip)
 - [🔧 Function `install_private_data`](#-function-install_private_data)
@@ -86,6 +88,7 @@ class PackPrivateDataResult:
     finance_categories_count: int = 0
     finance_standard_items_count: int = 0
     food_items_count: int = 0
+    food_recipes_count: int = 0
 ```
 
 </details>
@@ -135,6 +138,50 @@ def any_selected(self) -> bool:
 
 </details>
 
+## 🔧 Function `api_key_file_matches_config_token`
+
+```python
+def api_key_file_matches_config_token(filename: str, token: str) -> bool
+```
+
+Return whether an `api-keys` filename matches a config default-key token.
+
+Tokens match the full filename, the stem, `{token}-api-key`, or the same
+forms after `.` is treated as `-` (`bothub.ru` → `bothub-ru-api-key.txt`).
+
+Args:
+
+- `filename` (`str`): Secret key filename, such as `bothub-api-key.txt`.
+- `token` (`str`): Config value such as `bothub` or `bothub.ru`.
+
+Returns:
+
+- `bool`: `True` when this file should be selected by default.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def api_key_file_matches_config_token(filename: str, token: str) -> bool:
+    raw = token.strip()
+    name = filename.strip()
+    if not raw or not name:
+        return False
+    if name.casefold() == raw.casefold():
+        return True
+    stem = name[: -len(".txt")] if name.casefold().endswith(".txt") else name
+    norm_stem = stem.replace("_", "-").casefold()
+    norm_token = _normalize_transfer_api_key_token(raw)
+    if not norm_token:
+        return False
+    if norm_stem == norm_token or norm_stem == f"{norm_token}-api-key":
+        return True
+    token_hyphen = norm_token.replace(".", "-")
+    return token_hyphen != norm_token and (norm_stem == token_hyphen or norm_stem == f"{token_hyphen}-api-key")
+```
+
+</details>
+
 ## 🔧 Function `collect_fitness_image_files`
 
 ```python
@@ -180,6 +227,41 @@ Return default ZIP path under `install/`.
 ```python
 def default_private_data_zip_path(project_root: Path) -> Path:
     return project_root / "install" / DEFAULT_PRIVATE_DATA_ZIP_NAME
+```
+
+</details>
+
+## 🔧 Function `default_selected_api_key_files`
+
+```python
+def default_selected_api_key_files(filenames: Sequence[str], config_tokens: Sequence[object]) -> list[str]
+```
+
+Return filenames that match `transfer_private_data_default_api_keys`.
+
+Empty or missing tokens select nothing. Unknown tokens are ignored.
+
+Args:
+
+- `filenames` (`Sequence[str]`): Secret key filenames to consider.
+- `config_tokens` (`Sequence[object]`): Tokens from config.
+
+Returns:
+
+- `list[str]`: Filenames to check by default, in `filenames` order.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def default_selected_api_key_files(
+    filenames: Sequence[str],
+    config_tokens: Sequence[object],
+) -> list[str]:
+    tokens = [str(item).strip() for item in config_tokens if str(item).strip()]
+    if not tokens:
+        return []
+    return [name for name in filenames if any(api_key_file_matches_config_token(name, token) for token in tokens)]
 ```
 
 </details>
@@ -545,6 +627,7 @@ def pack_private_data(
     finance_categories_count = len(finance_catalog["categories"]) if finance_catalog is not None else 0
     finance_standard_items_count = len(finance_catalog["standard_items"]) if finance_catalog is not None else 0
     food_items_count = len(food_catalog["food_items"]) if food_catalog is not None else 0
+    food_recipes_count = len(food_catalog.get("recipes") or []) if food_catalog is not None else 0
 
     _cleanup_adjacent_stage_dirs(output_zip)
     stage_root = Path(tempfile.mkdtemp(prefix="hsk-private-data-pack-"))
@@ -607,6 +690,7 @@ def pack_private_data(
             "finance_categories_count": finance_categories_count,
             "finance_standard_items_count": finance_standard_items_count,
             "food_items_count": food_items_count,
+            "food_recipes_count": food_recipes_count,
             "api_key_files": [path.name for path in key_files],
             "missing_exercise_images": missing_images,
         }
@@ -646,6 +730,7 @@ def pack_private_data(
         finance_categories_count=finance_categories_count,
         finance_standard_items_count=finance_standard_items_count,
         food_items_count=food_items_count,
+        food_recipes_count=food_recipes_count,
     )
 ```
 

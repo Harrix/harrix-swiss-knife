@@ -244,18 +244,18 @@ def normalize_exercise_unit(unit: str) -> str:
     return str(unit or "").strip().casefold().rstrip(".")
 
 
-def split_total_seconds(total_seconds: int) -> tuple[int, int]:
-    """Split a non-negative second count into `(minutes, seconds)`."""
-    total = max(0, int(total_seconds))
-    return divmod(total, _SECONDS_PER_MINUTE)
-
-
 def parse_exercise_value(text: str) -> int:
     """Parse a logged or planned exercise value as a non-negative integer."""
     try:
         return max(0, int(float(str(text).strip() or 0)))
     except (TypeError, ValueError):
         return 0
+
+
+def split_total_seconds(total_seconds: int) -> tuple[int, int]:
+    """Split a non-negative second count into `(minutes, seconds)`."""
+    total = max(0, int(total_seconds))
+    return divmod(total, _SECONDS_PER_MINUTE)
 
 
 def target_seconds_for_exercise(unit: str, value: int) -> int | None:
