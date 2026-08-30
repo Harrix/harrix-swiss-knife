@@ -245,9 +245,14 @@ class RecipesWidget(QWidget):
             ["Name", "Weight", "kcal/100g", "Portion kcal", "Calculated", "Drink"]
         )
         self.table_ingredients.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        self.table_ingredients.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.table_ingredients.setEditTriggers(
+            QTableWidget.EditTrigger.DoubleClicked | QTableWidget.EditTrigger.EditKeyPressed
+        )
         self.table_ingredients.setAlternatingRowColors(False)
         self.table_ingredients.verticalHeader().setVisible(False)
+        self._is_drink_delegate = IsDrinkDelegate(self.table_ingredients)
+        self.table_ingredients.setItemDelegateForColumn(_COL_DRINK, self._is_drink_delegate)
+        self.table_ingredients.itemChanged.connect(self._on_ingredient_item_changed)
         self._apply_ingredients_column_metrics()
         right_layout.addWidget(self.table_ingredients, 1)
 
@@ -327,6 +332,18 @@ class RecipesWidget(QWidget):
         self.line_ingredient_name.setText(bare)
         self._populate_ingredient_from_name(bare)
 
+    def _on_ingredient_item_changed(self, item: QTableWidgetItem) -> None:
+        if item.column() != _COL_DRINK:
+            return
+        row = item.row()
+        if not 0 <= row < len(self._ingredients):
+            return
+        is_drink = parse_is_drink_cell(item.text())
+        current = self._ingredients[row]
+        if current.is_drink == is_drink:
+            return
+        self._ingredients[row] = replace(current, is_drink=is_drink)
+
     def _on_ingredient_name_edited(self, text: str) -> None:
         self._completer_proxy.set_filter_text(text)
         if text:
@@ -383,26 +400,33 @@ class RecipesWidget(QWidget):
         return recipe_id, item.text()
 
     def _refresh_ingredients_table(self) -> None:
-        self.table_ingredients.setRowCount(0)
-        for ingredient in self._ingredients:
-            row = self.table_ingredients.rowCount()
-            self.table_ingredients.insertRow(row)
-            calc = calculate_food_log_calories(
-                ingredient.weight,
-                ingredient.calories_per_100g,
-                ingredient.portion_calories,
-            )
-            values = [
-                ingredient.name,
-                f"{ingredient.weight:.0f}" if ingredient.weight is not None else "",
-                f"{ingredient.calories_per_100g:.2f}" if ingredient.calories_per_100g is not None else "",
-                f"{ingredient.portion_calories:.2f}" if ingredient.portion_calories is not None else "",
-                f"{calc:.1f}",
-                "Yes" if ingredient.is_drink else "",
-            ]
-            for col, value in enumerate(values):
-                self.table_ingredients.setItem(row, col, QTableWidgetItem(value))
-            self._apply_ingredient_row_background(row)
+        self.table_ingredients.blockSignals(True)  # noqa: FBT003
+        try:
+            self.table_ingredients.setRowCount(0)
+            for ingredient in self._ingredients:
+                row = self.table_ingredients.rowCount()
+                self.table_ingredients.insertRow(row)
+                calc = calculate_food_log_calories(
+                    ingredient.weight,
+                    ingredient.calories_per_100g,
+                    ingredient.portion_calories,
+                )
+                values = [
+                    ingredient.name,
+                    f"{ingredient.weight:.0f}" if ingredient.weight is not None else "",
+                    f"{ingredient.calories_per_100g:.2f}" if ingredient.calories_per_100g is not None else "",
+                    f"{ingredient.portion_calories:.2f}" if ingredient.portion_calories is not None else "",
+                    f"{calc:.1f}",
+                    is_drink_to_model(checked=ingredient.is_drink),
+                ]
+                for col, value in enumerate(values):
+                    table_item = QTableWidgetItem(value)
+                    if col != _COL_DRINK:
+                        table_item.setFlags(table_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                    self.table_ingredients.setItem(row, col, table_item)
+                self._apply_ingredient_row_background(row)
+        finally:
+            self.table_ingredients.blockSignals(False)  # noqa: FBT003
         nutrition = calculate_recipe_nutrition(self._ingredients)
         per_100 = (
             f"{nutrition.calories_per_100g:.1f} kcal/100g" if nutrition.calories_per_100g is not None else "— kcal/100g"

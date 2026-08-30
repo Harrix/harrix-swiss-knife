@@ -70,6 +70,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QRadioButton,
     QSizePolicy,
+    QSpinBox,
     QTableView,
     QVBoxLayout,
 )
@@ -186,7 +187,10 @@ from harrix_swiss_knife.apps.fitness.lightbox_logic import (
     FitnessLightboxConfirm,
     FitnessLightboxDetails,
     default_exercise_type,
+    is_seconds_exercise_unit,
+    minutes_seconds_to_total,
     parse_exercise_value,
+    split_total_seconds,
 )
 from harrix_swiss_knife.apps.fitness.lightbox_sounds import play_fitness_timer_cue
 from harrix_swiss_knife.apps.fitness.mixins import (
@@ -753,7 +757,7 @@ class MainWindow(
         self._commit_process_record(
             exercise,
             self.comboBox_type.currentText(),
-            str(self.spinBox_count.value()),
+            str(self._count_value()),
             self.dateEdit.date().toString("yyyy-MM-dd"),
             increment_date=True,
         )
@@ -1644,6 +1648,7 @@ class MainWindow(
             self.label_exercise.setText("No exercise selected")
             self.label_unit.setText("")
             self.label_last_date_count_today.setText("")
+            self._apply_count_input_mode("")
             return
 
         # Check if database manager is available and connection is open
@@ -1653,6 +1658,7 @@ class MainWindow(
             self.label_exercise.setText("Database error")
             self.label_unit.setText("")
             self.label_last_date_count_today.setText("")
+            self._apply_count_input_mode("")
             return
 
         # Update exercise name label
@@ -1681,11 +1687,13 @@ class MainWindow(
                 self.comboBox_type.setEnabled(False)
                 self.label_unit.setText("")
                 self.label_last_date_count_today.setText("")
+                self._apply_count_input_mode("")
                 return
 
             # Get exercise unit and display it in separate label
             unit = self.db_manager.get_exercise_unit(exercise)
             self.label_unit.setText(unit)
+            self._apply_count_input_mode(unit)
 
             # Get last exercise date (regardless of type)
             last_date = self.db_manager.get_last_exercise_date(ex_id)
@@ -1743,7 +1751,7 @@ class MainWindow(
 
                     # Set spinBox_count value based on exercise _id
                     if ex_id == self.id_steps:  # Steps exercise - set to 0 (empty)
-                        self.spinBox_count.setValue(0)
+                        self._set_count_value(0)
 
                         # For Steps exercise, set date to first day without records
                         current_date = self.dateEdit.date()
@@ -1754,7 +1762,7 @@ class MainWindow(
                     else:  # Other exercises - use last value
                         try:
                             value = int(float(last_value))
-                            self.spinBox_count.setValue(value)
+                            self._set_count_value(value)
                         except (ValueError, TypeError):
                             # If conversion fails, keep default value
                             logger.exception(
@@ -1763,7 +1771,7 @@ class MainWindow(
                                 exercise,
                             )
                 elif ex_id == self.id_steps:  # Steps exercise - set to 0 (empty)
-                    self.spinBox_count.setValue(0)
+                    self._set_count_value(0)
 
                     # For Steps exercise, set date to first day without records
                     current_date = self.dateEdit.date()
@@ -1781,6 +1789,7 @@ class MainWindow(
             self.comboBox_type.setEnabled(False)
             self.label_unit.setText("Error loading data")
             self.label_last_date_count_today.setText("Error loading data")
+            self._apply_count_input_mode("")
 
         if exercise:
             # Sync selection across widgets
@@ -4964,7 +4973,10 @@ class MainWindow(
 
         self.pushButton_add.clicked.connect(self.on_add_record)
         self.pushButton_add_by_voice.clicked.connect(self.on_fitness_add_by_voice)
-        self.spinBox_count.lineEdit().returnPressed.connect(self.pushButton_add.click)
+        for count_spin in (self.spinBox_count, self.spinBox_count_minutes, self.spinBox_count_seconds):
+            count_line = count_spin.lineEdit()
+            if count_line is not None:
+                count_line.returnPressed.connect(self.pushButton_add.click)
 
         # Window resize event is handled by overriding resizeEvent method
 
@@ -5787,20 +5799,80 @@ class MainWindow(
             QTimer.singleShot(0, self._decode_next_deferred_exercise_icon)
 
     def _focus_and_select_spinbox_count(self) -> None:
-        """Move focus to spinBox_count and select all text.
+        """Move focus to the count or minutes/seconds field and select all text.
 
         This method is called after exercise selection to provide better UX
         by automatically focusing the count input field and selecting its content.
 
         """
         try:
-            # Set focus to spinBox_count
-            self.spinBox_count.setFocus()
-
-            # Select all text in the spinbox
-            self.spinBox_count.selectAll()
+            target = self._count_focus_spinbox()
+            target.setFocus()
+            target.selectAll()
         except Exception:
             logger.exception("Error focusing spinBox_count")
+
+    def _apply_count_input_mode(self, unit: str) -> None:
+        seconds_mode = is_seconds_exercise_unit(unit)
+        self._count_input_is_seconds = seconds_mode
+        self.spinBox_count.setVisible(not seconds_mode)
+        self.spinBox_count_minutes.setVisible(seconds_mode)
+        self.spinBox_count_seconds.setVisible(seconds_mode)
+        self.label_unit.setVisible(not seconds_mode)
+
+    def _count_focus_spinbox(self) -> QSpinBox:
+        if self._count_input_is_seconds:
+            if self.spinBox_count_minutes.value() > 0:
+                return self.spinBox_count_minutes
+            return self.spinBox_count_seconds
+        return self.spinBox_count
+
+    def _count_value(self) -> int:
+        if self._count_input_is_seconds:
+            return minutes_seconds_to_total(
+                self.spinBox_count_minutes.value(),
+                self.spinBox_count_seconds.value(),
+            )
+        return self.spinBox_count.value()
+
+    def _set_count_value(self, value: int) -> None:
+        amount = max(0, int(value))
+        if self._count_input_is_seconds:
+            minutes, seconds = split_total_seconds(amount)
+            self.spinBox_count_minutes.setValue(minutes)
+            self.spinBox_count_seconds.setValue(seconds)
+            return
+        self.spinBox_count.setValue(amount)
+
+    def _setup_seconds_count_inputs(self) -> None:
+        self._count_input_is_seconds = False
+        style = self.spinBox_count.styleSheet()
+        font = self.spinBox_count.font()
+        alignment = self.spinBox_count.alignment()
+        parent = self.spinBox_count.parentWidget()
+
+        self.spinBox_count_minutes = QSpinBox(parent)
+        self.spinBox_count_minutes.setObjectName("spinBox_count_minutes")
+        self.spinBox_count_minutes.setFont(font)
+        self.spinBox_count_minutes.setStyleSheet(style)
+        self.spinBox_count_minutes.setAlignment(alignment)
+        self.spinBox_count_minutes.setRange(0, 10000)
+        self.spinBox_count_minutes.setSuffix(" min")
+        self.spinBox_count_minutes.hide()
+
+        self.spinBox_count_seconds = QSpinBox(parent)
+        self.spinBox_count_seconds.setObjectName("spinBox_count_seconds")
+        self.spinBox_count_seconds.setFont(font)
+        self.spinBox_count_seconds.setStyleSheet(style)
+        self.spinBox_count_seconds.setAlignment(alignment)
+        self.spinBox_count_seconds.setRange(0, 59)
+        self.spinBox_count_seconds.setSuffix(" sec")
+        self.spinBox_count_seconds.hide()
+
+        unit_index = self.horizontalLayout_14.indexOf(self.label_unit)
+        insert_at = unit_index if unit_index >= 0 else self.horizontalLayout_14.count()
+        self.horizontalLayout_14.insertWidget(insert_at, self.spinBox_count_minutes)
+        self.horizontalLayout_14.insertWidget(insert_at + 1, self.spinBox_count_seconds)
 
     def _get_current_selected_exercise(self) -> str | None:
         """Get the currently selected exercise from the list view.
@@ -8028,6 +8100,7 @@ class MainWindow(
         self._place_menu_bar_on_tab_row()
         self._install_word_wrap_table_headers()
         self._apply_exit_about_menu_emojis()
+        self._setup_seconds_count_inputs()
 
         # Date field: attach quick preset/offset menu button (removed from .ui)
         self.pushButton_date_quick = attach_date_edit_quick_controls(
@@ -8912,10 +8985,12 @@ class MainWindow(
 
         """
         try:
+            if self.db_manager is not None and _exercise_name:
+                self._apply_count_input_mode(self.db_manager.get_exercise_unit(_exercise_name))
             # Update spinBox_count with the selected value
             try:
                 value = int(float(value_str))
-                self.spinBox_count.setValue(value)
+                self._set_count_value(value)
             except (ValueError, TypeError):
                 logger.exception("%s", f"Could not convert value '{value_str}' to int")
 

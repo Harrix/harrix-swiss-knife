@@ -26,7 +26,10 @@ from harrix_swiss_knife.apps.fitness.lightbox_logic import (
     allocated_exercise_seconds,
     default_exercise_type,
     format_mm_ss,
+    is_seconds_exercise_unit,
+    minutes_seconds_to_total,
     parse_exercise_value,
+    split_total_seconds,
     target_seconds_for_exercise,
 )
 from harrix_swiss_knife.apps.fitness.lightbox_sounds import fitness_timer_cue_sound_name
@@ -102,6 +105,18 @@ def test_default_exercise_type_prefers_plan_then_last_then_first() -> None:
     assert default_exercise_type(types, preferred="", last_used="Wide") == "Wide"
     assert default_exercise_type(types, preferred="", last_used="") == "Wide"
     assert default_exercise_type([], preferred="Wide", last_used="Wide") == ""
+
+
+def test_seconds_exercise_unit_and_minute_second_split() -> None:
+    assert is_seconds_exercise_unit("sec.")
+    assert is_seconds_exercise_unit("seconds")
+    assert not is_seconds_exercise_unit("min")
+    assert not is_seconds_exercise_unit("times")
+    assert split_total_seconds(90) == (1, 30)
+    assert split_total_seconds(5) == (0, 5)
+    assert split_total_seconds(0) == (0, 0)
+    assert minutes_seconds_to_total(1, 30) == 90
+    assert minutes_seconds_to_total(0, 45) == 45
 
 
 def test_parse_exercise_value_and_format_mm_ss() -> None:

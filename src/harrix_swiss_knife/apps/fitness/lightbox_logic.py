@@ -223,15 +223,31 @@ def format_mm_ss(total_seconds: int) -> str:
     return f"{minutes}:{seconds:02d}"
 
 
+def is_seconds_exercise_unit(unit: str) -> bool:
+    """Return whether `unit` stores duration as a number of seconds."""
+    return normalize_exercise_unit(unit) in _SECOND_UNITS
+
+
 def is_timed_exercise_unit(unit: str) -> bool:
     """Return whether `unit` measures hold/run duration (seconds or minutes)."""
     normalized = normalize_exercise_unit(unit)
     return normalized in _SECOND_UNITS or normalized in _MINUTE_UNITS
 
 
+def minutes_seconds_to_total(minutes: int, seconds: int) -> int:
+    """Combine minutes and seconds into a non-negative total in seconds."""
+    return max(0, int(minutes)) * _SECONDS_PER_MINUTE + max(0, int(seconds))
+
+
 def normalize_exercise_unit(unit: str) -> str:
     """Lowercase unit text and strip trailing punctuation (`sec.` → `sec`)."""
     return str(unit or "").strip().casefold().rstrip(".")
+
+
+def split_total_seconds(total_seconds: int) -> tuple[int, int]:
+    """Split a non-negative second count into `(minutes, seconds)`."""
+    total = max(0, int(total_seconds))
+    return divmod(total, _SECONDS_PER_MINUTE)
 
 
 def parse_exercise_value(text: str) -> int:

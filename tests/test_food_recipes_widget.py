@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import pytest
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QLocale, Qt
 from PySide6.QtGui import QStandardItem
 from PySide6.QtWidgets import QApplication, QMenu
 
 from harrix_swiss_knife.apps.common.table_context_menu import LABEL_DELETE
+from harrix_swiss_knife.apps.food.delegates import IsDrinkDelegate, is_drink_to_model
+from harrix_swiss_knife.apps.food.recipe_calories import RecipeIngredientInput
 from harrix_swiss_knife.apps.food.recipes_widget import RecipesWidget
+from harrix_swiss_knife.apps.food.services.food_display import DRINK_EMOJI
 
 
 @pytest.fixture
@@ -56,4 +59,31 @@ def test_recipe_context_menu_has_delete(qapp: QApplication, monkeypatch: pytest.
     # apply_leading_emoji_icons moves the emoji into the action icon.
     assert shown == ["Delete"]
     assert LABEL_DELETE.endswith("Delete")
+    widget.close()
+
+
+def test_ingredient_drink_column_matches_food_log(qapp: QApplication) -> None:  # noqa: ARG001
+    widget = RecipesWidget()
+    widget._ingredients = [
+        RecipeIngredientInput(name="Water", weight=200, portion_calories=0, is_drink=True),
+        RecipeIngredientInput(name="Rice", weight=100, calories_per_100g=130, is_drink=False),
+    ]
+    widget._refresh_ingredients_table()
+
+    delegate = widget.table_ingredients.itemDelegateForColumn(5)
+    assert isinstance(delegate, IsDrinkDelegate)
+    assert delegate.displayText("1", QLocale()) == DRINK_EMOJI
+    assert delegate.displayText("", QLocale()) == ""
+
+    drink_item = widget.table_ingredients.item(0, 5)
+    food_item = widget.table_ingredients.item(1, 5)
+    assert drink_item is not None
+    assert food_item is not None
+    assert drink_item.text() == is_drink_to_model(checked=True)
+    assert food_item.text() == is_drink_to_model(checked=False)
+    assert drink_item.flags() & Qt.ItemFlag.ItemIsEditable
+    assert not (widget.table_ingredients.item(0, 0).flags() & Qt.ItemFlag.ItemIsEditable)
+
+    drink_item.setText(is_drink_to_model(checked=False))
+    assert widget._ingredients[0].is_drink is False
     widget.close()
