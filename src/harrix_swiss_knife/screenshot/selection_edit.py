@@ -158,6 +158,48 @@ def nudge_selection_rect(
     return resized.intersected(bounds)
 
 
+def resize_selection_to_size(
+    rect: QRect,
+    *,
+    width: int | None = None,
+    height: int | None = None,
+    bounds: QRect,
+    min_size: int = 2,
+) -> QRect:
+    """Set width and/or height of `rect`, keeping the top-left corner when possible.
+
+    If the new size would overflow `bounds`, the frame is shifted so the
+    requested size still fits when `bounds` is large enough. Otherwise the
+    size is clamped to `bounds`.
+
+    Args:
+
+    - `rect` (`QRect`): Current selection rectangle.
+    - `width` (`int | None`): New width in pixels, or `None` to keep the current width.
+    - `height` (`int | None`): New height in pixels, or `None` to keep the current height.
+    - `bounds` (`QRect`): Clamp the result to this rectangle (usually the overlay).
+    - `min_size` (`int`): Minimum width and height.
+
+    Returns:
+
+    - `QRect`: Updated selection, normalized and clamped.
+
+    """
+    new_width = rect.width() if width is None else width
+    new_height = rect.height() if height is None else height
+    new_width = min(max(min_size, new_width), max(min_size, bounds.width()))
+    new_height = min(max(min_size, new_height), max(min_size, bounds.height()))
+    left = rect.left()
+    top = rect.top()
+    if left + new_width - 1 > bounds.right():
+        left = bounds.right() - new_width + 1
+    if top + new_height - 1 > bounds.bottom():
+        top = bounds.bottom() - new_height + 1
+    left = max(left, bounds.left())
+    top = max(top, bounds.top())
+    return QRect(left, top, new_width, new_height).intersected(bounds)
+
+
 def snap_rect_to_edges(
     rect: QRect,
     handle: HandleKind,

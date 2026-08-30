@@ -8,6 +8,7 @@ from harrix_swiss_knife.screenshot.selection_edit import (
     collect_edge_guides,
     hit_test_selection_handle,
     nudge_selection_rect,
+    resize_selection_to_size,
     snap_rect_to_edges,
     transform_selection_rect,
 )
@@ -88,3 +89,29 @@ def test_nudge_resize_changes_size_with_fixed_origin() -> None:
     assert taller.height() == 35
     narrower = nudge_selection_rect(rect, "left", step=5, resize=True, bounds=bounds)
     assert narrower.width() == 35
+
+
+def test_resize_selection_to_size_keeps_origin_when_it_fits() -> None:
+    bounds = QRect(0, 0, 200, 200)
+    rect = QRect(10, 20, 40, 30)
+    resized = resize_selection_to_size(rect, width=80, height=50, bounds=bounds)
+    assert resized == QRect(10, 20, 80, 50)
+
+
+def test_resize_selection_to_size_shifts_to_fit_bounds() -> None:
+    bounds = QRect(0, 0, 200, 200)
+    rect = QRect(160, 170, 20, 20)
+    resized = resize_selection_to_size(rect, width=80, height=50, bounds=bounds)
+    assert resized.width() == 80
+    assert resized.height() == 50
+    assert resized.right() <= bounds.right()
+    assert resized.bottom() <= bounds.bottom()
+
+
+def test_resize_selection_to_size_clamps_to_bounds() -> None:
+    bounds = QRect(0, 0, 100, 80)
+    rect = QRect(10, 10, 20, 20)
+    resized = resize_selection_to_size(rect, width=500, height=500, bounds=bounds)
+    assert resized.width() == 100
+    assert resized.height() == 80
+    assert bounds.contains(resized)

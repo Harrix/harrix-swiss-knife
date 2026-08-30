@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import pytest
-from PySide6.QtCore import QEvent, QPointF, QRect, Qt
+from PySide6.QtCore import QEvent, QPoint, QPointF, QRect, Qt
 from PySide6.QtGui import QKeyEvent, QMouseEvent, QPixmap
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QDialog, QLabel, QPushButton, QWidget
+from PySide6.QtWidgets import QApplication, QDialog, QLabel, QLineEdit, QPushButton, QWidget
 
 from harrix_swiss_knife.screenshot.region_overlay import RESULT_TOGGLE_ARRANGE, RegionOverlay
 from harrix_swiss_knife.screenshot.shutter_button import ArrangeModeDialog, ShutterPanel
@@ -301,3 +301,73 @@ def test_shutter_panel_shows_edit_key_hints(qapp: QApplication) -> None:  # noqa
     panel.set_edit_keys_visible(visible=False)
     assert not labels[0].isVisible()
     panel.close()
+
+
+def test_double_click_width_label_commits_typed_size_on_enter(qapp: QApplication) -> None:  # noqa: ARG001
+    overlay = RegionOverlay(QPixmap(400, 400), QApplication.primaryScreen().geometry(), with_shutter_controls=True)
+    overlay.show()
+    QApplication.processEvents()
+    overlay._enter_edit_rect(QRect(80, 80, 100, 70))
+    overlay._set_guides_enabled(enabled=True)
+    width_center = overlay._size_label_box("width").center()
+
+    QTest.mouseDClick(overlay, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, width_center)
+    QApplication.processEvents()
+    editor = overlay.findChild(QLineEdit)
+    assert editor is not None
+    assert editor.isVisible()
+
+    editor.setText("140")
+    QTest.keyClick(editor, Qt.Key.Key_Return)
+    QApplication.processEvents()
+
+    assert not editor.isVisible()
+    assert overlay._edit_rect is not None
+    assert overlay._edit_rect.width() == 140
+    assert overlay._edit_rect.height() == 70
+    assert overlay.isVisible()
+    overlay.close()
+
+
+def test_size_editor_commits_on_click_elsewhere(qapp: QApplication) -> None:  # noqa: ARG001
+    overlay = RegionOverlay(QPixmap(400, 400), QApplication.primaryScreen().geometry(), with_shutter_controls=True)
+    overlay.show()
+    QApplication.processEvents()
+    overlay._enter_edit_rect(QRect(80, 80, 100, 70))
+    overlay._set_guides_enabled(enabled=True)
+    overlay._start_size_edit("height")
+    QApplication.processEvents()
+    editor = overlay.findChild(QLineEdit)
+    assert editor is not None
+    editor.setText("160")
+    QApplication.processEvents()
+
+    QTest.mouseClick(overlay, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, QPoint(20, 20))
+    QApplication.processEvents()
+
+    assert overlay._edit_rect is not None
+    assert overlay._edit_rect.height() == 160
+    assert overlay._edit_rect.width() == 100
+    assert overlay.isVisible()
+    overlay.close()
+
+
+def test_size_editor_escape_cancels_typed_value(qapp: QApplication) -> None:  # noqa: ARG001
+    overlay = RegionOverlay(QPixmap(400, 400), QApplication.primaryScreen().geometry(), with_shutter_controls=True)
+    overlay.show()
+    QApplication.processEvents()
+    overlay._enter_edit_rect(QRect(80, 80, 100, 70))
+    overlay._set_guides_enabled(enabled=True)
+    overlay._start_size_edit("width")
+    QApplication.processEvents()
+    editor = overlay.findChild(QLineEdit)
+    assert editor is not None
+    editor.setText("200")
+    QTest.keyClick(editor, Qt.Key.Key_Escape)
+    QApplication.processEvents()
+
+    assert not editor.isVisible()
+    assert overlay._edit_rect is not None
+    assert overlay._edit_rect.width() == 100
+    assert overlay.isVisible()
+    overlay.close()

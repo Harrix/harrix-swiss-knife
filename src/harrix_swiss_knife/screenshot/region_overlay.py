@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QEvent, QPoint, QRect, Qt
-from PySide6.QtGui import QColor, QCursor, QImage, QPainter, QPen, QPixmap
-from PySide6.QtWidgets import QDialog
+from PySide6.QtCore import QEvent, QObject, QPoint, QRect, Qt, QTimer
+from PySide6.QtGui import QColor, QCursor, QFontMetrics, QImage, QIntValidator, QPainter, QPen, QPixmap
+from PySide6.QtWidgets import QDialog, QLineEdit, QWidget
 
 from harrix_swiss_knife.screenshot.dpi import (
     crop_pixmap_from_logical_rect,
@@ -20,10 +20,18 @@ from harrix_swiss_knife.screenshot.selection_edit import (
     cursor_for_handle,
     hit_test_selection_handle,
     nudge_selection_rect,
+    resize_selection_to_size,
     snap_rect_to_edges,
     transform_selection_rect,
 )
-from harrix_swiss_knife.screenshot.selection_guides import paint_selection_guides
+from harrix_swiss_knife.screenshot.selection_guides import (
+    SizeLabelKind,
+    guide_label_font,
+    hit_test_size_label,
+    paint_selection_guides,
+    parse_size_label,
+    selection_guide_labels,
+)
 from harrix_swiss_knife.screenshot.shutter_button import ShutterPanel, position_panel_on_left_edge
 from harrix_swiss_knife.screenshot.window_rects import snap_rect_at_point
 from harrix_swiss_knife.screenshot.window_visibility import (
@@ -48,6 +56,19 @@ _BORDER_COLOR = QColor(0, 174, 255)
 _HANDLE_FILL = QColor(0, 174, 255)
 _BORDER_WIDTH = 2
 _GUIDE_BORDER_WIDTH = 1
+_SIZE_EDITOR_PAD_X = 12
+_SIZE_EDITOR_PAD_Y = 4
+_SIZE_EDITOR_MIN_DIGITS = "00000"
+_SIZE_EDITOR_STYLE = """
+QLineEdit {
+    color: rgb(230, 230, 230);
+    background-color: rgba(20, 20, 20, 220);
+    border: 1px solid rgb(0, 174, 255);
+    font-weight: bold;
+    padding: 0px 4px;
+    selection-background-color: rgb(0, 174, 255);
+}
+"""
 
 RESULT_TOGGLE_ARRANGE = 2
 
@@ -65,8 +86,10 @@ class RegionOverlay(QDialog):
     With `with_shutter_controls=True`, arrange/adjust/guides/close buttons are
     embedded as child widgets. Arrange finishes with `RESULT_TOGGLE_ARRANGE`.
     Adjust (checkable) keeps the next selection editable: move/resize with
-    handles, Enter or double-click to capture. Guides (checkable) draw a thinner
-    frame with thirds, halves, diagonal, size, and angle.
+    handles, Enter or double-click to capture. Double-click the width or height
+    numbers (when guides are on) to type a size; Enter or a click elsewhere
+    applies it. Guides (checkable) draw a thinner frame with thirds, halves,
+    diagonal, size, and angle.
 
     When `window_rects` is provided, hovering highlights the most specific region under
     the pointer; a click without a drag captures (or edits) that region.
@@ -117,6 +140,10 @@ class RegionOverlay(QDialog):
         self._edit_handle: HandleKind | None = None
         self._edit_press_pos: QPoint | None = None
         self._edit_press_rect: QRect | None = None
+        self._size_edit_kind: SizeLabelKind | None = None
+        self._size_edit_closing = False
+        self._suppress_confirm_once = False
+        self._size_editor = self._make_size_editor()
         origin = geometry.topLeft()
         self._window_rects_local = [
             rect.translated(-origin.x(), -origin.y()).intersected(QRect(0, 0, geometry.width(), geometry.height()))
@@ -149,6 +176,9 @@ class RegionOverlay(QDialog):
         - `event` (`QEvent`): The event being delivered to the overlay.
 
         """
+        editor = getattr(self, "_size_editor", None)
+        if editor is not None and editor.isVisible() and event.type() == QEvent.Type.ShortcutOverride:
+            return super().event(event)
         if event.type() == QEvent.Type.ShortcutOverride and (
             _is_escape_key(event) or _is_arrow_key(event) or _is_enter_key(event)
         ):
@@ -156,14 +186,39 @@ class RegionOverlay(QDialog):
             return True
         return super().event(event)
 
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
+        """Escape cancels the typed size; Enter applies it without capturing."""
+        if watched is self._size_editor and event.type() == QEvent.Type.KeyPress:
+            if _is_escape_key(event):
+                self._cancel_size_edit()
+                return True
+            if _is_enter_key(event):
+                self._commit_size_edit(from_enter=True)
+                return True
+        return super().eventFilter(watched, event)
+
     def hideEvent(self, event: QHideEvent) -> None:  # noqa: N802
         """Release the keyboard grab when the overlay is hidden."""
+        self._close_size_editor()
         release_screenshot_keyboard(self)
         super().hideEvent(event)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
         """Enter confirms; arrows nudge/resize; Escape clears the frame or cancels."""
+        if self._size_editor.isVisible():
+            if event.key() in {Qt.Key.Key_Return, Qt.Key.Key_Enter}:
+                self._commit_size_edit(from_enter=True)
+                event.accept()
+                return
+            if event.key() == Qt.Key.Key_Escape:
+                self._cancel_size_edit()
+                event.accept()
+                return
         if event.key() in {Qt.Key.Key_Return, Qt.Key.Key_Enter} and self._edit_rect is not None:
+            if self._suppress_confirm_once:
+                self._suppress_confirm_once = False
+                event.accept()
+                return
             self._finish_with_rect(self._edit_rect)
             event.accept()
             return
@@ -184,10 +239,16 @@ class RegionOverlay(QDialog):
         super().keyPressEvent(event)
 
     def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        """Double-click confirms the editable selection frame."""
+        """Double-click a size number to type it, or the frame to capture."""
         if event.button() != Qt.MouseButton.LeftButton or self._edit_rect is None:
             return
-        if self._edit_rect.contains(event.position().toPoint()):
+        pos = event.position().toPoint()
+        kind = self._hit_size_label(pos)
+        if kind is not None:
+            self._start_size_edit(kind)
+            event.accept()
+            return
+        if self._edit_rect.contains(pos):
             self._finish_with_rect(self._edit_rect)
             event.accept()
 
@@ -216,6 +277,9 @@ class RegionOverlay(QDialog):
                 )
                 self.update()
                 return
+            if self._hit_size_label(pos) is not None:
+                self.setCursor(Qt.CursorShape.IBeamCursor)
+                return
             self._apply_edit_cursor(hit_test_selection_handle(self._edit_rect, pos))
             return
 
@@ -237,7 +301,11 @@ class RegionOverlay(QDialog):
             return
         pos = event.position().toPoint()
 
+        if self._size_editor.isVisible():
+            self._commit_size_edit()
         if self._edit_rect is not None:
+            if self._hit_size_label(pos) is not None:
+                return
             handle = hit_test_selection_handle(self._edit_rect, pos)
             if handle is None:
                 return
@@ -321,7 +389,8 @@ class RegionOverlay(QDialog):
             painter.setPen(pen)
             painter.drawRect(rect.adjusted(0, 0, -1, -1))
             if guides_on:
-                paint_selection_guides(painter, rect, self.rect())
+                skip = self._size_edit_kind if self._size_editor.isVisible() else None
+                paint_selection_guides(painter, rect, self.rect(), skip_size=skip)
             if self._edit_rect is not None:
                 self._paint_edit_handles(painter, rect)
 
@@ -348,7 +417,11 @@ class RegionOverlay(QDialog):
         shape_name = cursor_for_handle(handle)
         self.setCursor(getattr(Qt.CursorShape, shape_name))
 
+    def _cancel_size_edit(self) -> None:
+        self._close_size_editor()
+
     def _clear_edit_rect(self) -> None:
+        self._close_size_editor()
         self._edit_rect = None
         self._edit_handle = None
         self._edit_press_pos = None
@@ -359,7 +432,48 @@ class RegionOverlay(QDialog):
         self._update_snap_at(self.mapFromGlobal(QCursor.pos()))
         self.update()
 
+    def _close_size_editor(self) -> None:
+        if self._size_edit_closing:
+            return
+        self._size_edit_closing = True
+        try:
+            self._size_edit_kind = None
+            if self._size_editor.isVisible():
+                self._size_editor.hide()
+            if QWidget.keyboardGrabber() is self._size_editor:
+                self._size_editor.releaseKeyboard()
+            if self.isVisible() and QWidget.keyboardGrabber() is None:
+                QTimer.singleShot(0, self._restore_overlay_keyboard)
+            self.update()
+        finally:
+            self._size_edit_closing = False
+
+    def _commit_size_edit(self, *, from_enter: bool = False) -> None:
+        if self._size_edit_closing:
+            return
+        kind = self._size_edit_kind
+        rect = self._edit_rect
+        text = self._size_editor.text()
+        if from_enter:
+            self._suppress_confirm_once = True
+            QTimer.singleShot(0, self._clear_suppress_confirm)
+        self._close_size_editor()
+        if kind is None or rect is None:
+            return
+        parsed = parse_size_label(text)
+        if parsed is None:
+            return
+        self._edit_rect = resize_selection_to_size(
+            rect,
+            width=parsed if kind == "width" else None,
+            height=parsed if kind == "height" else None,
+            bounds=self.rect(),
+            min_size=_MIN_SELECTION,
+        )
+        self.update()
+
     def _enter_edit_rect(self, rect: QRect) -> None:
+        self._close_size_editor()
         self._edit_rect = QRect(rect)
         self._snap_rect = None
         self._origin = None
@@ -369,6 +483,82 @@ class RegionOverlay(QDialog):
         if self._panel is not None:
             self._panel.set_edit_keys_visible(visible=True)
         self._apply_edit_cursor(hit_test_selection_handle(self._edit_rect, self.mapFromGlobal(QCursor.pos())))
+        self.update()
+
+    def _guide_metrics(self) -> QFontMetrics:
+        return QFontMetrics(guide_label_font(self.font()))
+
+    def _hit_size_label(self, pos: QPoint) -> SizeLabelKind | None:
+        if self._edit_rect is None or not self._guides_enabled:
+            return None
+        return hit_test_size_label(self._edit_rect, self.rect(), pos, self._guide_metrics())
+
+    def _make_size_editor(self) -> QLineEdit:
+        editor = QLineEdit(self)
+        editor.hide()
+        editor.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        editor.setMaxLength(5)
+        editor.setStyleSheet(_SIZE_EDITOR_STYLE)
+        editor.setFont(guide_label_font(self.font()))
+        editor.editingFinished.connect(self._commit_size_edit)
+        editor.installEventFilter(self)
+        return editor
+
+    def _clear_suppress_confirm(self) -> None:
+        self._suppress_confirm_once = False
+
+    def _restore_overlay_keyboard(self) -> None:
+        if not self.isVisible() or self._size_editor.isVisible():
+            return
+        if QWidget.keyboardGrabber() is None:
+            self.grabKeyboard()
+            self.setFocus(Qt.FocusReason.OtherFocusReason)
+
+    def _size_editor_geometry(self, box: QRect) -> QRect:
+        metrics = self._guide_metrics()
+        min_width = metrics.horizontalAdvance(_SIZE_EDITOR_MIN_DIGITS) + _SIZE_EDITOR_PAD_X
+        width = max(box.width() + _SIZE_EDITOR_PAD_X, min_width)
+        height = max(box.height() + _SIZE_EDITOR_PAD_Y, metrics.height() + _SIZE_EDITOR_PAD_Y)
+        geo = QRect(box.center().x() - width // 2, box.center().y() - height // 2, width, height)
+        if geo.left() < 0:
+            geo.moveLeft(0)
+        if geo.top() < 0:
+            geo.moveTop(0)
+        if geo.right() > self.width() - 1:
+            geo.moveRight(self.width() - 1)
+        if geo.bottom() > self.height() - 1:
+            geo.moveBottom(self.height() - 1)
+        return geo
+
+    def _size_label_box(self, kind: SizeLabelKind) -> QRect:
+        if self._edit_rect is None:
+            return QRect()
+        width_label, height_label, _, _ = selection_guide_labels(
+            self._edit_rect,
+            self.rect(),
+            self._guide_metrics(),
+        )
+        return width_label.box if kind == "width" else height_label.box
+
+    def _start_size_edit(self, kind: SizeLabelKind) -> None:
+        if self._edit_rect is None:
+            return
+        if self._size_editor.isVisible():
+            self._commit_size_edit()
+        self._size_edit_kind = kind
+        value = self._edit_rect.width() if kind == "width" else self._edit_rect.height()
+        max_value = self.rect().width() if kind == "width" else self.rect().height()
+        self._size_editor.setValidator(QIntValidator(_MIN_SELECTION, max_value, self._size_editor))
+        self._size_editor.setFont(guide_label_font(self.font()))
+        self._size_editor.setGeometry(self._size_editor_geometry(self._size_label_box(kind)))
+        self._size_editor.setText(str(value))
+        self._size_editor.show()
+        self._size_editor.raise_()
+        if QWidget.keyboardGrabber() is self:
+            self.releaseKeyboard()
+        self._size_editor.setFocus(Qt.FocusReason.MouseFocusReason)
+        self._size_editor.selectAll()
+        self._size_editor.grabKeyboard()
         self.update()
 
     def _finish_with_rect(self, rect: QRect) -> None:
@@ -382,6 +572,8 @@ class RegionOverlay(QDialog):
 
     def _set_guides_enabled(self, *, enabled: bool) -> None:
         self._guides_enabled = enabled
+        if not enabled:
+            self._close_size_editor()
         self.update()
 
     def _nudge_edit_rect(self, direction: ArrowDir, modifiers: Qt.KeyboardModifier) -> None:

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from PySide6.QtCore import QPoint, QRect, Qt
 from PySide6.QtGui import QColor, QFont, QPainter, QPen
@@ -22,6 +22,10 @@ _ARC_RADIUS = 22
 _MIN_ARC_RADIUS = 8
 _MIN_GUIDE_SIZE = 2
 _DIAGONAL_LABEL_OFFSET = 18
+_SIZE_HIT_PADDING = 6
+
+SizeLabelKind = Literal["width", "height"]
+GuideLabelKind = Literal["width", "height", "diagonal", "angle"]
 
 
 @dataclass(frozen=True)
@@ -32,6 +36,7 @@ class GuideLabel:
     box: QRect
     color: QColor
     inside: bool
+    kind: GuideLabelKind
 
 
 def diagonal_angle_degrees(width: int, height: int) -> float:
@@ -53,9 +58,43 @@ def format_angle_label(angle_degrees: float) -> str:
     return f"{angle_degrees:.4f} °"
 
 
+def guide_label_font(base: QFont | None = None) -> QFont:
+    """Return the bold measurement font used on the selection frame."""
+    font = QFont() if base is None else QFont(base)
+    font.setPointSize(_LABEL_POINT_SIZE)
+    font.setBold(True)
+    return font
+
+
 def guide_offsets(length: int) -> tuple[int, int, int]:
     """Return 1/3, 1/2, and 2/3 offsets along `length`."""
     return length // 3, length // 2, (2 * length) // 3
+
+
+def hit_test_size_label(
+    rect: QRect,
+    bounds: QRect,
+    pos: QPoint,
+    metrics: QFontMetrics,
+    *,
+    padding: int = _SIZE_HIT_PADDING,
+) -> SizeLabelKind | None:
+    """Return `width` or `height` when `pos` is on that measurement label."""
+    width_label, height_label, _, _ = selection_guide_labels(rect, bounds, metrics)
+    if width_label.box.adjusted(-padding, -padding, padding, padding).contains(pos):
+        return "width"
+    if height_label.box.adjusted(-padding, -padding, padding, padding).contains(pos):
+        return "height"
+    return None
+
+
+def parse_size_label(text: str) -> int | None:
+    """Parse a typed width or height in whole pixels, or `None` if invalid."""
+    stripped = text.strip()
+    if not stripped.isdigit():
+        return None
+    value = int(stripped)
+    return value if value > 0 else None
 
 
 def place_diagonal_label(
@@ -174,14 +213,20 @@ def selection_guide_labels(
         gap=gap,
     )
     return (
-        GuideLabel(width_text, width_box, _LABEL_COLOR, width_inside),
-        GuideLabel(height_text, height_box, _LABEL_COLOR, height_inside),
-        GuideLabel(diagonal_text, diagonal_box, _DIAGONAL_COLOR, inside=True),
-        GuideLabel(angle_text, angle_box, _ANGLE_COLOR, angle_inside),
+        GuideLabel(width_text, width_box, _LABEL_COLOR, width_inside, "width"),
+        GuideLabel(height_text, height_box, _LABEL_COLOR, height_inside, "height"),
+        GuideLabel(diagonal_text, diagonal_box, _DIAGONAL_COLOR, inside=True, kind="diagonal"),
+        GuideLabel(angle_text, angle_box, _ANGLE_COLOR, angle_inside, "angle"),
     )
 
 
-def paint_selection_guides(painter: QPainter, rect: QRect, bounds: QRect) -> None:
+def paint_selection_guides(
+    painter: QPainter,
+    rect: QRect,
+    bounds: QRect,
+    *,
+    skip_size: SizeLabelKind | None = None,
+) -> None:
     """Draw thirds/halves, diagonal, size labels, and the bottom-right angle."""
     if rect.width() < _MIN_GUIDE_SIZE or rect.height() < _MIN_GUIDE_SIZE:
         return
@@ -192,11 +237,10 @@ def paint_selection_guides(painter: QPainter, rect: QRect, bounds: QRect) -> Non
     painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
     _paint_diagonal(painter, frame)
     _paint_angle_arc(painter, frame)
-    font = QFont(painter.font())
-    font.setPointSize(_LABEL_POINT_SIZE)
-    font.setBold(True)
-    painter.setFont(font)
+    painter.setFont(guide_label_font(painter.font()))
     for label in selection_guide_labels(rect, bounds, painter.fontMetrics()):
+        if skip_size is not None and label.kind == skip_size:
+            continue
         painter.setPen(label.color)
         painter.drawText(label.box, Qt.AlignmentFlag.AlignCenter, label.text)
     painter.restore()

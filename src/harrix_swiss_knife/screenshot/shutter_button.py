@@ -38,7 +38,7 @@ _GUIDES_EMOJI = "📐"
 _CLOSE_EMOJI = "❌"
 _ICON_SIZE = 36
 _EDGE_MARGIN = 12
-_EDIT_KEYS_TEXT = "←↑↓→ move 1 px\nShift+arrows 10 px\nCtrl+arrows resize\nEnter confirm"
+_EDIT_KEYS_TEXT = "←↑↓→ move 1 px\nShift+arrows 10 px\nCtrl+arrows resize\nDouble-click W/H to type\nEnter confirm"
 
 ShutterMode = Literal["selection", "arrange"]
 

@@ -2,18 +2,36 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import QRect
+import pytest
+from PySide6.QtCore import QPoint, QRect
+from PySide6.QtGui import QFontMetrics
+from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife.screenshot.selection_guides import (
     diagonal_angle_degrees,
     diagonal_length_px,
     format_angle_label,
+    guide_label_font,
     guide_offsets,
+    hit_test_size_label,
+    parse_size_label,
     place_angle_label,
     place_diagonal_label,
     place_height_label,
     place_width_label,
+    selection_guide_labels,
 )
+
+
+@pytest.fixture
+def qapp() -> QApplication:
+    app = QApplication.instance()
+    if app is None:
+        return QApplication([])
+    if not isinstance(app, QApplication):
+        msg = "QApplication.instance() returned a non-QApplication object."
+        raise TypeError(msg)
+    return app
 
 
 def test_diagonal_length_and_angle_match_example_frame() -> None:
@@ -67,3 +85,22 @@ def test_angle_label_flips_inside_at_bottom_right() -> None:
     assert inside
     assert bounds.contains(box)
     assert flush.contains(box)
+
+
+def test_parse_size_label_accepts_positive_integers() -> None:
+    assert parse_size_label("120") == 120
+    assert parse_size_label("  8  ") == 8
+    assert parse_size_label("") is None
+    assert parse_size_label("0") is None
+    assert parse_size_label("-10") is None
+    assert parse_size_label("12.5") is None
+
+
+def test_hit_test_size_label_finds_width_and_height(qapp: QApplication) -> None:  # noqa: ARG001
+    bounds = QRect(0, 0, 400, 400)
+    rect = QRect(80, 80, 120, 90)
+    metrics = QFontMetrics(guide_label_font())
+    width_label, height_label, _, _ = selection_guide_labels(rect, bounds, metrics)
+    assert hit_test_size_label(rect, bounds, width_label.box.center(), metrics) == "width"
+    assert hit_test_size_label(rect, bounds, height_label.box.center(), metrics) == "height"
+    assert hit_test_size_label(rect, bounds, QPoint(0, 0), metrics) is None
