@@ -302,6 +302,7 @@ def test_keep_windows_initial_state_does_not_close_overlay(qapp: QApplication) -
         QApplication.primaryScreen().geometry(),
         with_shutter_controls=True,
         keep_windows=True,
+        clipboard_only=True,
         adjust_mode=True,
         guides_mode=True,
     )
@@ -309,8 +310,28 @@ def test_keep_windows_initial_state_does_not_close_overlay(qapp: QApplication) -
     QApplication.processEvents()
     assert overlay.isVisible()
     assert overlay.keep_windows
+    assert overlay.clipboard_only
     assert overlay.adjust_mode
     assert overlay.guides_mode
+    overlay.close()
+
+
+def test_clipboard_only_button_toggles_without_closing(qapp: QApplication) -> None:  # noqa: ARG001
+    overlay = RegionOverlay(QPixmap(200, 200), QApplication.primaryScreen().geometry(), with_shutter_controls=True)
+    panel = overlay.findChild(ShutterPanel)
+    assert panel is not None
+    overlay.show()
+    QApplication.processEvents()
+    assert not overlay.clipboard_only
+    clipboard = next(
+        button
+        for button in panel.findChildren(QPushButton)
+        if button.isCheckable() and "clipboard" in (button.toolTip() or "").lower()
+    )
+    clipboard.setChecked(True)
+    QApplication.processEvents()
+    assert overlay.isVisible()
+    assert overlay.clipboard_only
     overlay.close()
 
 

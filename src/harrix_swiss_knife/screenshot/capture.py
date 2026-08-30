@@ -43,6 +43,7 @@ class _HideSession:
     """Mutable hide/restore state so the shutter can toggle keep-Windows mid-capture."""
 
     hide_app: bool
+    show_preview: bool = True
     hidden: list[ConcealedWindow] = field(default_factory=list)
 
     def apply_keep_windows(self, *, keep: bool) -> None:
@@ -81,10 +82,11 @@ def capture_region(
     are hidden or restored, and a fresh grab opens a new overlay.
 
     When `show_shutter_button` is `True`, arrange, adjust, guides, keep-Windows,
-    and close buttons are embedded in the selection overlay. Arrange removes the
-    overlay so the desktop can be rearranged; adjust keeps the next selection
-    editable (move/resize) until Enter or double-click; close cancels. A floating
-    camera button returns to region selection with a fresh grab.
+    clipboard-only, and close buttons are embedded in the selection overlay.
+    Arrange removes the overlay so the desktop can be rearranged; clipboard-only
+    skips the preview after capture; adjust keeps the next selection editable
+    (move/resize) until Enter or double-click; close cancels. A floating camera
+    button returns to region selection with a fresh grab.
 
     Every capture overlay runs modally via `exec()`. The optional preview window is
     non-modal so later captures can add tabs to an already open preview.
@@ -104,18 +106,22 @@ def capture_region(
     if app is None:
         return None
 
-    session = _HideSession(hide_app=hide_app, hidden=hide_app_windows() if hide_app else [])
+    session = _HideSession(
+        hide_app=hide_app,
+        show_preview=show_preview,
+        hidden=hide_app_windows() if hide_app else [],
+    )
     image: QImage | None = None
     try:
         if session.hide_app:
             _wait_ms(_HIDE_SETTLE_MS)
         image = _capture_loop(with_controls=show_shutter_button, session=session)
     finally:
-        show_preview_now = show_preview and image is not None and not image.isNull()
+        show_preview_now = session.show_preview and image is not None and not image.isNull()
         if session.hide_app:
             restore_app_windows(session.hidden, activate=not show_preview_now)
 
-    if show_preview and image is not None and not image.isNull():
+    if session.show_preview and image is not None and not image.isNull():
         window = show_screenshot_preview(image)
         bring_window_to_foreground(window, delays_ms=PREVIEW_FOREGROUND_DELAYS_MS)
 
@@ -126,6 +132,7 @@ def _capture_loop(*, with_controls: bool, session: _HideSession) -> QImage | Non
     """Alternate between region selection and desktop-arrangement until done."""
     adjust_mode = False
     guides_mode = False
+    clipboard_only = not session.show_preview
     while True:
         window_rects = list_snappable_window_rects(exclude_hwnds=session.exclude_hwnds())
         frozen, geometry = _grab_virtual_desktop()
@@ -138,12 +145,15 @@ def _capture_loop(*, with_controls: bool, session: _HideSession) -> QImage | Non
             with_shutter_controls=with_controls,
             window_rects=window_rects,
             keep_windows=not session.hide_app,
+            clipboard_only=clipboard_only,
             adjust_mode=adjust_mode,
             guides_mode=guides_mode,
         )
         result = overlay.exec()
         adjust_mode = overlay.adjust_mode
         guides_mode = overlay.guides_mode
+        clipboard_only = overlay.clipboard_only
+        session.show_preview = not clipboard_only
 
         if result == int(QDialog.DialogCode.Accepted):
             image = overlay.cropped_image

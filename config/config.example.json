@@ -306,7 +306,8 @@
     {
       "input": "<YOUR_SITE_CONTENT>",
       "output": "<YOUR_SITE_OUTPUT>",
-      "theme": "<YOUR_SLICED_HTML_THEME>"
+      "theme": "<YOUR_SLICED_HTML_THEME>",
+      "icons": "<YOUR_GITHUB_FOLDER>/Harrix-Vector-Icons"
     }
   ],
   "path_html_template_dist": "<YOUR_GITHUB_FOLDER>/Harrix-HTML-Template/dist",
@@ -316,6 +317,8 @@
   "site_title": "Harrix",
   "site_default_language": "ru",
   "site_per_page": 20,
+  "site_icons_per_page": 96,
+  "site_icons_language": "en",
   "paths_with_featured_image": [
     "<YOUR_PATH>"
   ],

@@ -11,8 +11,8 @@ from harrix_swiss_knife.screenshot import capture_region
 class OnScreenshotRegionClipboardKeepWindows(ActionBase):
     """Capture a region to the clipboard without preview, keeping app Windows visible.
 
-    Same flow as `OnScreenshotRegionClipboard`, starting with the keep-Windows
-    shutter button on so tracker and other app Windows stay on screen.
+    Same flow as `OnScreenshotRegionClipboard`, starting with both the
+    clipboard-only and keep-Windows shutter buttons on.
 
     """
 

@@ -84,15 +84,16 @@ _ARROW_KEYS: dict[Qt.Key, ArrowDir] = {
 class RegionOverlay(QDialog):
     """Overlay that shows a frozen desktop grab and lets the user select a region.
 
-    With `with_shutter_controls=True`, arrange/adjust/guides/keep-Windows/close
-    buttons are embedded as child widgets. Arrange finishes with
-    `RESULT_TOGGLE_ARRANGE`. Keep Windows finishes with
+    With `with_shutter_controls=True`, arrange/adjust/guides/keep-Windows/
+    clipboard/close buttons are embedded as child widgets. Arrange finishes
+    with `RESULT_TOGGLE_ARRANGE`. Keep Windows finishes with
     `RESULT_TOGGLE_KEEP_WINDOWS` so the capture loop can hide or restore app
-    Windows and grab again. Adjust (checkable) keeps the next selection
-    editable: move/resize with handles, Enter or double-click to capture.
-    Double-click the width or height numbers (when guides are on) to type a
-    size; Enter or a click elsewhere applies it. Guides (checkable) draw a
-    thinner frame with thirds, halves, diagonal, size, and angle.
+    Windows and grab again. Clipboard-only skips the preview after capture.
+    Adjust (checkable) keeps the next selection editable: move/resize with
+    handles, Enter or double-click to capture. Double-click the width or height
+    numbers (when guides are on) to type a size; Enter or a click elsewhere
+    applies it. Guides (checkable) draw a thinner frame with thirds, halves,
+    diagonal, size, and angle.
 
     When `window_rects` is provided, hovering highlights the most specific region under
     the pointer; a click without a drag captures (or edits) that region.
@@ -107,6 +108,7 @@ class RegionOverlay(QDialog):
         with_shutter_controls: bool = False,
         window_rects: Sequence[QRect] | None = None,
         keep_windows: bool = False,
+        clipboard_only: bool = False,
         adjust_mode: bool = False,
         guides_mode: bool = False,
     ) -> None:
@@ -119,6 +121,7 @@ class RegionOverlay(QDialog):
         - `with_shutter_controls` (`bool`): If `True`, embed shutter controls on the left edge.
         - `window_rects` (`Sequence[QRect] | None`): Snappable window bounds in global logical pixels.
         - `keep_windows` (`bool`): If `True`, start with the keep-Windows shutter button on.
+        - `clipboard_only` (`bool`): If `True`, start with the clipboard-only shutter button on.
         - `adjust_mode` (`bool`): If `True`, start with adjust-region enabled.
         - `guides_mode` (`bool`): If `True`, start with composition guides enabled.
 
@@ -145,6 +148,7 @@ class RegionOverlay(QDialog):
         self._snap_rect: QRect | None = None
         self._panel: ShutterPanel | None = None
         self._keep_windows = keep_windows
+        self._clipboard_only = clipboard_only
         self._guides_enabled = False
         self._edit_rect: QRect | None = None
         self._edit_handle: HandleKind | None = None
@@ -166,6 +170,7 @@ class RegionOverlay(QDialog):
             panel = ShutterPanel(self)
             panel.set_mode("selection")
             panel.set_keep_windows(enabled=keep_windows)
+            panel.set_clipboard_only(enabled=clipboard_only)
             panel.triggered.connect(lambda: self.done(RESULT_TOGGLE_ARRANGE))
             panel.cancelled.connect(self.reject)
             panel.keep_windows_toggled.connect(lambda _enabled: self.done(RESULT_TOGGLE_KEEP_WINDOWS))
@@ -183,6 +188,13 @@ class RegionOverlay(QDialog):
     def adjust_mode(self) -> bool:
         """Whether the next selection should stay editable until confirmed."""
         return self._panel is not None and self._panel.adjust_mode
+
+    @property
+    def clipboard_only(self) -> bool:
+        """Whether capture should skip the preview and only copy to the clipboard."""
+        if self._panel is not None:
+            return self._panel.clipboard_only
+        return self._clipboard_only
 
     @property
     def cropped_image(self) -> QImage | None:

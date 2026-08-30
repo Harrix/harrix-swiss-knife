@@ -13,7 +13,8 @@ class OnScreenshotRegion(ActionBase):
 
     Starts in region-selection mode with the app hidden. The left shutter
     column can arrange the desktop, keep app Windows visible (re-grabs),
-    adjust the frame, or show guides; close cancels.
+    skip the preview (clipboard only), adjust the frame, or show guides;
+    close cancels.
 
     """
 

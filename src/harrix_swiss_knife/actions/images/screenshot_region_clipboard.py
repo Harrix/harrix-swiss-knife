@@ -11,7 +11,9 @@ from harrix_swiss_knife.screenshot import capture_region
 class OnScreenshotRegionClipboard(ActionBase):
     """Capture a screen region to the clipboard without opening the preview window.
 
-    Same ShareX-like selection as `OnScreenshotRegion`, but skips the preview UI.
+    Same ShareX-like selection as `OnScreenshotRegion`, starting with the
+    clipboard-only shutter button on so the preview window is skipped. The
+    keep-Windows button can still show app Windows and re-grab.
 
     """
 

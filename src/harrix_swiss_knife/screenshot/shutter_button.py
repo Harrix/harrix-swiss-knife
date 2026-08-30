@@ -36,6 +36,7 @@ _CAMERA_EMOJI = "📷"
 _ADJUST_EMOJI = "✥"
 _GUIDES_EMOJI = "📐"
 _KEEP_WINDOWS_EMOJI = "👁️"
+_CLIPBOARD_EMOJI = "📋"
 _CLOSE_EMOJI = "❌"
 _ICON_SIZE = 36
 _EDGE_MARGIN = 12
@@ -159,8 +160,8 @@ class ShutterPanel(QWidget):
 
     In selection mode extra checkable buttons enable “adjust region” (the next
     selection stays editable until Enter), composition guides (thin frame,
-    thirds, diagonal, size, and angle), and keeping app Windows visible in the
-    grab.
+    thirds, diagonal, size, and angle), keeping app Windows visible in the
+    grab, and clipboard-only (skip the preview window).
 
     """
 
@@ -168,6 +169,7 @@ class ShutterPanel(QWidget):
     cancelled = Signal()
     geometry_changed = Signal()
     guides_toggled = Signal(bool)
+    clipboard_toggled = Signal(bool)
     keep_windows_toggled = Signal(bool)
     triggered = Signal()
 
@@ -212,6 +214,14 @@ class ShutterPanel(QWidget):
         self._keep_windows_button.toggled.connect(self.keep_windows_toggled.emit)
         buttons_layout.addWidget(self._keep_windows_button)
 
+        self._clipboard_button = self._make_emoji_button(
+            _CLIPBOARD_EMOJI,
+            "Clipboard only (skip preview)",
+        )
+        self._clipboard_button.setCheckable(True)
+        self._clipboard_button.toggled.connect(self.clipboard_toggled.emit)
+        buttons_layout.addWidget(self._clipboard_button)
+
         close_button = self._make_emoji_button(_CLOSE_EMOJI, "Cancel screenshot")
         close_button.clicked.connect(self.cancelled.emit)
         buttons_layout.addWidget(close_button)
@@ -250,6 +260,11 @@ class ShutterPanel(QWidget):
         return self._mode == "selection" and self._guides_button.isChecked()
 
     @property
+    def clipboard_only(self) -> bool:
+        """Whether capture should skip the preview and only copy to the clipboard."""
+        return self._mode == "selection" and self._clipboard_button.isChecked()
+
+    @property
     def keep_windows(self) -> bool:
         """Whether application Windows should stay visible in the next grab."""
         return self._mode == "selection" and self._keep_windows_button.isChecked()
@@ -280,6 +295,10 @@ class ShutterPanel(QWidget):
         """Set the composition-guides button without requiring a user click."""
         self._guides_button.setChecked(enabled)
 
+    def set_clipboard_only(self, *, enabled: bool) -> None:
+        """Set the clipboard-only button without requiring a user click."""
+        self._clipboard_button.setChecked(enabled)
+
     def set_keep_windows(self, *, enabled: bool) -> None:
         """Set the keep-Windows button without emitting `keep_windows_toggled`."""
         blocked = self._keep_windows_button.blockSignals(True)  # noqa: FBT003
@@ -299,6 +318,7 @@ class ShutterPanel(QWidget):
             self._adjust_button.show()
             self._guides_button.show()
             self._keep_windows_button.show()
+            self._clipboard_button.show()
         else:
             # In arrange mode, click returns to region capture.
             self._mode_button.setIcon(create_emoji_icon(_CAMERA_EMOJI, _ICON_SIZE))
@@ -309,6 +329,7 @@ class ShutterPanel(QWidget):
             self._guides_button.hide()
             self._guides_button.setChecked(False)
             self._keep_windows_button.hide()
+            self._clipboard_button.hide()
             self.set_edit_keys_visible(visible=False)
         if self._hovered_button is self._mode_button:
             self._show_hint(str(self._mode_button.property("hover_hint") or ""))
@@ -343,7 +364,7 @@ class ShutterPanel(QWidget):
         self._update_size()
 
     def _update_size(self) -> None:
-        button_count = 5 if self._mode == "selection" else 2
+        button_count = 6 if self._mode == "selection" else 2
         total_height = _BUTTON_SIZE * button_count + _BUTTON_GAP * (button_count - 1)
         if self._edit_keys_label.isVisible():
             total_height += _BUTTON_GAP + self._edit_keys_label.sizeHint().height()
