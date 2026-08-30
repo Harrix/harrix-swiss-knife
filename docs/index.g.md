@@ -79,7 +79,7 @@ _Figure 1: Screenshot_
   - 📥 Upgrade uv Python
   - 📋 View recent action logs
 - **Android**
-  - 📱 Build Android APK in … ꟲᴸᴵ
+  - 📱 ★ Build Android APK in … ꟲᴸᴵ
   - 🔬 Check Android code in … ꟲᴸᴵ
   - ✨ Format Android code in … ꟲᴸᴵ
   - 📥 Install JDK and Android SDK ꟲᴸᴵ
@@ -87,7 +87,7 @@ _Figure 1: Screenshot_
   - 🔬 Check VS Code extension ꟲᴸᴵ
   - ✨ Format VS Code extension ꟲᴸᴵ
   - 🔄 Sync Harrix Notes Explorer public repo ꟲᴸᴵ
-  - 📦 Update/install Harrix Notes Explorer extension for VS Code… ꟲᴸᴵ
+  - 📦 ★ Update/install Harrix Notes Explorer extension for VS Code… ꟲᴸᴵ
 - **Images**
   - 📸 Open photos in image viewer
   - 🤖 Recognize text (AI)…
