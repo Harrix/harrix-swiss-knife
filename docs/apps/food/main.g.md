@@ -1331,7 +1331,7 @@ class MainWindow(
         self._update_add_button_appearance()
 
     def _arm_background_food_translate_timer(self) -> None:
-        """Start or restart the 5-minute debounce before another silent translate pass."""
+        """Start or restart the 1-minute debounce before another silent translate pass."""
         if self._is_closing:
             return
         self._bg_food_translate_timer.start(_BACKGROUND_FOOD_TRANSLATE_INTERVAL_MS)

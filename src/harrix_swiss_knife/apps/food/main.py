@@ -165,7 +165,7 @@ _FOOD_LOG_QUERY_MIN_COLS_FOR_CALORIES = _FOOD_LOG_QUERY_COL_IS_DRINK + 1
 # Columns from `get_all_food_items`: _id, name, name_en, is_drink, …
 _FOOD_ITEM_COL_IS_DRINK = 3
 # Debounce interval after food_log inserts before another silent AI translate pass.
-_BACKGROUND_FOOD_TRANSLATE_INTERVAL_MS = 5 * 60 * 1000
+_BACKGROUND_FOOD_TRANSLATE_INTERVAL_MS = 1 * 60 * 1000
 _BACKGROUND_FOOD_TRANSLATE_STATUS = "Translating food names…"
 
 
@@ -1441,7 +1441,7 @@ class MainWindow(
         self._update_add_button_appearance()
 
     def _arm_background_food_translate_timer(self) -> None:
-        """Start or restart the 5-minute debounce before another silent translate pass."""
+        """Start or restart the 1-minute debounce before another silent translate pass."""
         if self._is_closing:
             return
         self._bg_food_translate_timer.start(_BACKGROUND_FOOD_TRANSLATE_INTERVAL_MS)

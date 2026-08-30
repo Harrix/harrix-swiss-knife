@@ -204,7 +204,7 @@ _TRANSACTIONS_FIXED_COLUMN_COUNT = 2
 _TRANSACTIONS_TAG_COLUMN_WIDTH = 100
 _TRANSACTIONS_TOTAL_COLUMN_WIDTH = 120
 # Debounce interval after transaction inserts before another silent AI translate pass.
-_BACKGROUND_TX_TRANSLATE_INTERVAL_MS = 5 * 60 * 1000
+_BACKGROUND_TX_TRANSLATE_INTERVAL_MS = 1 * 60 * 1000
 _BACKGROUND_TX_TRANSLATE_STATUS = "Translating transaction descriptions…"
 
 
@@ -1699,7 +1699,7 @@ class MainWindow(
         self.splitter.setSizes([left, middle, right])
 
     def _arm_background_transaction_translate_timer(self) -> None:
-        """Start or restart the 5-minute debounce before another silent translate pass."""
+        """Start or restart the 1-minute debounce before another silent translate pass."""
         if self._is_closing:
             return
         self._bg_tx_translate_timer.start(_BACKGROUND_TX_TRANSLATE_INTERVAL_MS)

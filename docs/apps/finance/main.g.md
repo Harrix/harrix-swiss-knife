@@ -1553,7 +1553,7 @@ class MainWindow(
         self.splitter.setSizes([left, middle, right])
 
     def _arm_background_transaction_translate_timer(self) -> None:
-        """Start or restart the 5-minute debounce before another silent translate pass."""
+        """Start or restart the 1-minute debounce before another silent translate pass."""
         if self._is_closing:
             return
         self._bg_tx_translate_timer.start(_BACKGROUND_TX_TRANSLATE_INTERVAL_MS)
