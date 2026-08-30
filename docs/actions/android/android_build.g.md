@@ -52,6 +52,7 @@ class OnAndroidBuild(ActionBase):
     title = "Build Android APK in …"
     cli_available = True
     cli_hint = "android build [FOLDER] [debug|release] [--all]"
+    bold_title = True
 
     CLI_VARIANTS: ClassVar[tuple[str, ...]] = ("debug", "release")
     DEFAULT_VARIANT: ClassVar[str] = "release"

@@ -40,6 +40,7 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
     title = "Update/install Harrix Notes Explorer extension for VS Code…"
     cli_available = True
     cli_hint = "dev install-harrix-notes-explorer-hsk vscode [--with-public]"
+    bold_title = True
 
     _HARRIX_NOTES_EXPLORER_EXT_ID = "local.harrix-notes-explorer-hsk"
     _HARRIX_NOTES_EXPLORER_EXT_UUID = "fbb16925-9395-59b6-ad7f-f25518ab2be8"
