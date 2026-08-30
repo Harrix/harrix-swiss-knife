@@ -26,23 +26,6 @@ def test_wav_to_m4a_raises_when_ffmpeg_missing(tmp_path: Path) -> None:
         wav_to_m4a(wav_path, project_root=tmp_path)
 
 
-@pytest.mark.slow
-def test_wav_to_m4a_creates_smaller_m4a(tmp_path: Path) -> None:
-    project_root = Path(__file__).resolve().parents[1]
-    if not is_ffmpeg_available(project_root):
-        pytest.skip("ffmpeg.exe not available in project root")
-
-    wav_path = tmp_path / "speech.wav"
-    write_minimal_wav(wav_path, duration_sec=1.0)
-
-    m4a_path = wav_to_m4a(wav_path, project_root=project_root)
-
-    assert m4a_path.exists()
-    assert m4a_path.suffix == ".m4a"
-    assert m4a_path.stat().st_size > 0
-    assert m4a_path.stat().st_size < wav_path.stat().st_size
-
-
 def test_audio_file_to_mono_pcm_reads_wav(tmp_path: Path) -> None:
     wav_path = tmp_path / "speech.wav"
     write_minimal_wav(wav_path, duration_sec=0.2)

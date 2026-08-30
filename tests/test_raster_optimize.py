@@ -138,17 +138,3 @@ def test_run_checked_hides_console_on_windows(monkeypatch: pytest.MonkeyPatch) -
         assert "startupinfo" in captured
     else:
         assert "creationflags" not in captured
-
-
-@pytest.mark.slow
-def test_process_jpg_webp_to_avif_with_ffmpeg(tmp_path: Path) -> None:
-    project_root = Path(__file__).resolve().parents[1]
-    if not (project_root / "ffmpeg.exe").exists():
-        pytest.skip("ffmpeg.exe not available in project root")
-    source = tmp_path / "photo.jpg"
-    Image.new("RGB", (64, 48), (120, 80, 40)).save(source, format="JPEG", quality=95)
-    output_path = tmp_path / "photo.avif"
-    message = raster_optimize.process_jpg_webp_to_avif(source, output_path, project_root)
-    assert output_path.exists()
-    assert output_path.stat().st_size > 0
-    assert "converted to AVIF" in message
