@@ -58,7 +58,7 @@ checkmark can paint before audio work runs.
 ```python
 def play_habit_checkin_sound(value: int | None) -> None:
     name = habit_checkin_sound_name(value)
-    if name is None:
+    if name is None or qt_sounds_muted():
         return
     preload_habit_checkin_sounds()
     QTimer.singleShot(0, lambda sound_name=name: _play_named(sound_name))

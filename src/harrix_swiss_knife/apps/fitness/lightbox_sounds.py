@@ -8,6 +8,8 @@ from typing import Literal
 from PySide6.QtCore import QFile, QUrl
 from PySide6.QtMultimedia import QSoundEffect
 
+from harrix_swiss_knife.qt_sounds import qt_sounds_muted
+
 _CUE_NAMES: dict[str, str] = {
     "ready": "fitness_ready.wav",
     "3": "fitness_3.wav",
@@ -48,6 +50,8 @@ def fitness_timer_cue_sound_name(cue: FitnessTimerCue) -> str:
 
 def play_fitness_timer_cue(cue: FitnessTimerCue) -> None:
     """Play a one-shot fitness cue without cutting off earlier voices."""
+    if qt_sounds_muted():
+        return
     url = _sound_url(fitness_timer_cue_sound_name(cue))
     if not url.isValid():
         return

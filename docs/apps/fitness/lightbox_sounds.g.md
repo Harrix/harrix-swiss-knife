@@ -48,6 +48,8 @@ Play a one-shot fitness cue without cutting off earlier voices.
 
 ```python
 def play_fitness_timer_cue(cue: FitnessTimerCue) -> None:
+    if qt_sounds_muted():
+        return
     url = _sound_url(fitness_timer_cue_sound_name(cue))
     if not url.isValid():
         return

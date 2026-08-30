@@ -113,6 +113,7 @@ class PythonProjectChecksMixin(ActionBase):
         env.pop("VIRTUAL_ENV", None)
         if tool == "pytest":
             env.setdefault("QT_QPA_PLATFORM", QT_OFFSCREEN_PLATFORM)
+            env["HSK_MUTE_SOUNDS"] = "1"
         returncode, output = run_argv_output(command, cwd=project_path, env=env, timeout=_UV_CHECK_TIMEOUT)
         return returncode == 0, output
 ```

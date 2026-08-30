@@ -7,6 +7,8 @@ from pathlib import Path
 from PySide6.QtCore import QFile, QTimer, QUrl
 from PySide6.QtMultimedia import QSoundEffect
 
+from harrix_swiss_knife.qt_sounds import qt_sounds_muted
+
 _DONE_NAME = "habit_done.wav"
 _NOT_DONE_NAME = "habit_not_done.wav"
 _SOUND_NAMES = (_DONE_NAME, _NOT_DONE_NAME)
@@ -37,7 +39,7 @@ def play_habit_checkin_sound(value: int | None) -> None:
 
     """
     name = habit_checkin_sound_name(value)
-    if name is None:
+    if name is None or qt_sounds_muted():
         return
     preload_habit_checkin_sounds()
     QTimer.singleShot(0, lambda sound_name=name: _play_named(sound_name))
@@ -85,6 +87,8 @@ def _on_effect_status(name: str, effect: QSoundEffect) -> None:
 
 
 def _play_named(name: str) -> None:
+    if qt_sounds_muted():
+        return
     effect = _effect_for(name)
     if effect is None:
         return
@@ -100,6 +104,8 @@ def _play_named(name: str) -> None:
 
 def _play_pending(name: str, effect: QSoundEffect) -> None:
     _pending_play.discard(name)
+    if qt_sounds_muted():
+        return
     if effect.status() != QSoundEffect.Status.Ready:
         return
     effect.setVolume(_volume_for(name))
@@ -109,6 +115,8 @@ def _play_pending(name: str, effect: QSoundEffect) -> None:
 def _prime_effect(name: str, effect: QSoundEffect) -> None:
     """Warm the Windows audio device; the first play() of a new effect is often silent."""
     _primed.add(name)
+    if qt_sounds_muted():
+        return
     saved = effect.volume()
     effect.setVolume(0.0)
     effect.play()
