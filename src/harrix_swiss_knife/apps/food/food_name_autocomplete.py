@@ -1,5 +1,9 @@
 """Autocomplete proxy model and helpers for food name input."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from PySide6.QtCore import (
     QAbstractItemModel,
     QEvent,
@@ -7,15 +11,23 @@ from PySide6.QtCore import (
     QObject,
     QPersistentModelIndex,
     QPoint,
+    QSize,
     QSortFilterProxyModel,
     Qt,
     QTimer,
 )
-from PySide6.QtGui import QCursor
+from PySide6.QtGui import QCursor, QStandardItem
 from PySide6.QtWidgets import QCompleter, QLabel, QStyleOptionViewItem, QWidget
 from shiboken6 import isValid
 
+from harrix_swiss_knife.apps.food.services.food_display import RECIPE_EMOJI, format_food_name_with_calories
 from harrix_swiss_knife.keyboard_layout_search import autocomplete_match_tier
+from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
+
+if TYPE_CHECKING:
+    from harrix_swiss_knife.apps.food.database_manager import FoodAutocompleteEntry
+
+FOOD_AUTOCOMPLETE_ICON_SIZE = 16
 
 
 class CompleterPopupTooltipHelper(QObject):
@@ -244,8 +256,26 @@ class FoodNameAutocompleteProxyModel(QSortFilterProxyModel):
         self.sort(0)
 
 
+def make_food_autocomplete_item(entry: FoodAutocompleteEntry) -> QStandardItem:
+    """Build a completer row; recipes use a plate icon instead of a text prefix."""
+    display = format_food_name_with_calories(
+        entry.name,
+        entry.calories_per_100g,
+        None,
+    )
+    item = QStandardItem(display if entry.is_recipe else entry.name)
+    item.setData(entry.name, Qt.ItemDataRole.EditRole)
+    item.setData(entry.name_en or "", Qt.ItemDataRole.UserRole)
+    if entry.is_recipe:
+        item.setIcon(create_emoji_icon(RECIPE_EMOJI, FOOD_AUTOCOMPLETE_ICON_SIZE))
+    return item
+
+
 def setup_completer_item_tooltips(completer: QCompleter) -> CompleterPopupTooltipHelper:
     """Enable tooltips for elided items in a QCompleter popup list."""
+    popup = completer.popup()
+    if popup is not None:
+        popup.setIconSize(QSize(FOOD_AUTOCOMPLETE_ICON_SIZE, FOOD_AUTOCOMPLETE_ICON_SIZE))
     helper = CompleterPopupTooltipHelper(completer)
     completer._tooltip_helper = helper  # keep reference alive  # noqa: SLF001
     return helper

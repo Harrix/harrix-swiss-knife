@@ -100,6 +100,7 @@ from harrix_swiss_knife.apps.food.food_log_calories import (
 )
 from harrix_swiss_knife.apps.food.food_name_autocomplete import (
     FoodNameAutocompleteProxyModel,
+    make_food_autocomplete_item,
     setup_completer_item_tooltips,
 )
 from harrix_swiss_knife.apps.food.food_translate_parser import (
@@ -3668,16 +3669,7 @@ class MainWindow(
             if self.food_completer_source_model is not None:
                 self.food_completer_source_model.clear()
                 for entry in merged_entries:
-                    display = format_food_name_with_calories(
-                        entry.name,
-                        entry.calories_per_100g,
-                        None,
-                        is_recipe=entry.is_recipe,
-                    )
-                    item = QStandardItem(display if entry.is_recipe else entry.name)
-                    item.setData(entry.name, Qt.ItemDataRole.EditRole)
-                    item.setData(entry.name_en or "", Qt.ItemDataRole.UserRole)
-                    self.food_completer_source_model.appendRow(item)
+                    self.food_completer_source_model.appendRow(make_food_autocomplete_item(entry))
                 self.food_completer_proxy.invalidateFilter()
 
         except Exception:
