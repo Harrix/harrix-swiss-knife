@@ -1,7 +1,8 @@
 """Enumerate snappable screen rectangles for screenshot region capture.
 
 Mirrors ShareX `WindowsRectangleList`: top-level frames, client areas (window without
-chrome), child controls via `EnumChildWindows`, and shell surfaces such as the taskbar.
+chrome), child controls via `EnumChildWindows`, shell surfaces such as the taskbar,
+and visible Qt top-level dialogs (owned `QDialog` windows EnumWindows can miss).
 
 """
 
@@ -15,11 +16,15 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QPoint, QRect
+from PySide6.QtWidgets import QApplication, QWidget
+
+from harrix_swiss_knife.screenshot.window_visibility import is_screenshot_ui
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
 _MIN_WINDOW_SIDE = 4
+_HIDDEN_OPACITY = 0.01
 _GWL_EXSTYLE = -20
 _WS_EX_TOOLWINDOW = 0x00000080
 _WS_EX_NOACTIVATE = 0x08000000
@@ -41,6 +46,37 @@ class _Point(ctypes.Structure):
 class _SnapCandidate:
     rect: QRect
     is_window: bool
+
+
+def merge_preferred_rects(rects: Sequence[QRect], preferred: Sequence[QRect]) -> list[QRect]:
+    """Insert `preferred` windows in front of any larger owner that contains them.
+
+    Win32 `EnumWindows` can miss a Qt owned dialog (`QDialog` + `exec()`). The owner
+    frame is then the first hit, so hover snaps to Finance instead of Balance check.
+    Preferred rects (Qt top-level frames) are inserted just before that owner.
+
+    Args:
+
+    - `rects` (`Sequence[QRect]`): Snap candidates, most-specific first.
+    - `preferred` (`Sequence[QRect]`): Extra window frames that must beat their owner.
+
+    Returns:
+
+    - `list[QRect]`: Combined list for hover snapping.
+
+    """
+    result = [QRect(rect) for rect in rects]
+    for extra in preferred:
+        if not extra.isValid() or extra.width() < _MIN_WINDOW_SIDE or extra.height() < _MIN_WINDOW_SIDE:
+            continue
+        if any(existing == extra for existing in result):
+            continue
+        insert_at = next(
+            (index for index, existing in enumerate(result) if existing.contains(extra) and existing != extra),
+            len(result),
+        )
+        result.insert(insert_at, QRect(extra))
+    return result
 
 
 def filter_nested_control_candidates(candidates: Sequence[_SnapCandidate]) -> list[QRect]:
@@ -81,10 +117,9 @@ def list_snappable_window_rects(*, exclude_hwnds: Sequence[int] = ()) -> list[QR
     - `list[QRect]`: Snappable rectangles in global logical pixels.
 
     """
-    if sys.platform != "win32":
-        return []
     excluded = {int(handle) for handle in exclude_hwnds if handle}
-    return _list_snappable_window_rects_win32(exclude_hwnds=excluded)
+    win32_rects = _list_snappable_window_rects_win32(exclude_hwnds=excluded) if sys.platform == "win32" else []
+    return merge_preferred_rects(win32_rects, _list_qt_top_level_rects(exclude_hwnds=excluded))
 
 
 def snap_rect_at_point(point: QPoint, window_rects: Sequence[QRect]) -> QRect | None:
@@ -188,7 +223,7 @@ def _list_snappable_window_rects_win32(*, exclude_hwnds: set[int]) -> list[QRect
     def check_handle(hwnd: int, clip_rect: QRect | None) -> bool:
         if time.monotonic() > deadline:
             return False
-        if hwnd in exclude_hwnds:
+        if hwnd in exclude_hwnds or hwnd in visited_parents:
             return True
         if not user32.IsWindowVisible(hwnd):
             return True
@@ -243,6 +278,9 @@ def _list_snappable_window_rects_win32(*, exclude_hwnds: set[int]) -> list[QRect
         return check_handle(hwnd, None)
 
     user32.EnumWindows(_enum_top, 0)
+    foreground = int(user32.GetForegroundWindow() or 0)
+    if foreground:
+        check_handle(foreground, None)
     return filter_nested_control_candidates(candidates)
 
 
@@ -258,12 +296,44 @@ def _physical_points_to_logical(
     bottom_right = _Point(right, bottom)
     convert = getattr(user32, "PhysicalToLogicalPointForPerMonitorDPI", None)
     if convert is not None:
-        if not convert(hwnd, ctypes.byref(top_left)):
-            return None
-        if not convert(hwnd, ctypes.byref(bottom_right)):
-            return None
+        converted_left = bool(convert(hwnd, ctypes.byref(top_left)))
+        converted_right = bool(convert(hwnd, ctypes.byref(bottom_right)))
+        if not (converted_left and converted_right):
+            top_left = _Point(left, top)
+            bottom_right = _Point(right, bottom)
     width = max(0, int(bottom_right.x) - int(top_left.x))
     height = max(0, int(bottom_right.y) - int(top_left.y))
     if width < _MIN_WINDOW_SIDE or height < _MIN_WINDOW_SIDE:
         return None
     return QRect(int(top_left.x), int(top_left.y), width, height)
+
+
+def _list_qt_top_level_rects(*, exclude_hwnds: set[int]) -> list[QRect]:
+    """Return visible Qt window frames so owned dialogs stay snappable."""
+    app = QApplication.instance()
+    if app is None:
+        return []
+    rects: list[QRect] = []
+    for widget in app.topLevelWidgets():
+        if not isinstance(widget, QWidget) or not widget.isVisible() or is_screenshot_ui(widget):
+            continue
+        if widget.windowOpacity() <= _HIDDEN_OPACITY:
+            continue
+        try:
+            handle = int(widget.winId())
+        except (AttributeError, RuntimeError, TypeError, ValueError):
+            handle = 0
+        if handle and handle in exclude_hwnds:
+            continue
+        frame = QRect(widget.frameGeometry())
+        if frame.isValid() and frame.width() >= _MIN_WINDOW_SIDE and frame.height() >= _MIN_WINDOW_SIDE:
+            rects.append(frame)
+        client = QRect(widget.geometry())
+        if (
+            client.isValid()
+            and client != frame
+            and client.width() >= _MIN_WINDOW_SIDE
+            and client.height() >= _MIN_WINDOW_SIDE
+        ):
+            rects.append(client)
+    return rects

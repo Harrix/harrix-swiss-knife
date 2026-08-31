@@ -26,6 +26,7 @@ from harrix_swiss_knife.screenshot.window_visibility import (
     PREVIEW_FOREGROUND_DELAYS_MS,
     ConcealedWindow,
     bring_window_to_foreground,
+    has_visible_modal_dialog,
     hide_app_windows,
     restore_app_windows,
 )
@@ -68,13 +69,17 @@ def capture_region(
     *,
     show_preview: bool = True,
     show_shutter_button: bool = True,
-    hide_app: bool = True,
+    hide_app: bool | None = None,
 ) -> QImage | None:
     """Capture a screen region with a ShareX-like workflow.
 
     Optionally hides application Windows for the whole session, freezes the desktop
     for region selection, copies the cropped region to the clipboard, restores
     Windows, and optionally shows a preview in the foreground.
+
+    When `hide_app` is `None` (the default), application Windows are hidden unless
+    a modal dialog is visible (for example Finance Balance check). Hiding that
+    dialog would drop it from the snap list so hover highlights the owner instead.
 
     When `hide_app` is `False`, application Windows stay visible so they can be
     included in the capture (for example a tracker window). The keep-Windows
@@ -95,7 +100,9 @@ def capture_region(
 
     - `show_preview` (`bool`): If `True`, displays the preview window after capture.
     - `show_shutter_button` (`bool`): If `True`, shows the mode-toggle shutter controls.
-    - `hide_app` (`bool`): If `True`, conceals application Windows before the grab.
+    - `hide_app` (`bool | None`): If `True`, conceals application Windows before
+      the grab. If `False`, they stay visible. If `None`, conceal unless a modal
+      dialog is visible.
 
     Returns:
 
@@ -105,6 +112,9 @@ def capture_region(
     app = QApplication.instance()
     if app is None:
         return None
+
+    if hide_app is None:
+        hide_app = not has_visible_modal_dialog()
 
     session = _HideSession(
         hide_app=hide_app,

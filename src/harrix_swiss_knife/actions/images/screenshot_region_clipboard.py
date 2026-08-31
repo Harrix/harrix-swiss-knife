@@ -12,8 +12,9 @@ class OnScreenshotRegionClipboard(ActionBase):
     """Capture a screen region to the clipboard without opening the preview window.
 
     Same ShareX-like selection as `OnScreenshotRegion`, starting with the
-    clipboard-only shutter button on so the preview window is skipped. The
-    keep-Windows button can still show app Windows and re-grab.
+    clipboard-only shutter button on so the preview window is skipped. A
+    visible modal dialog stays on screen so it can be snapped. The
+    keep-Windows button can still show or hide app Windows and re-grab.
 
     """
 
@@ -25,7 +26,7 @@ class OnScreenshotRegionClipboard(ActionBase):
     @ActionBase.handle_exceptions("screenshot region clipboard")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Start region selection; copy to clipboard only."""
-        image = capture_region(show_preview=False, show_shutter_button=True, hide_app=True)
+        image = capture_region(show_preview=False, show_shutter_button=True)
         if image is None:
             self.add_line("Screenshot cancelled")
             return

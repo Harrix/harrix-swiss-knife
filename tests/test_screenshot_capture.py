@@ -8,7 +8,7 @@ from unittest.mock import MagicMock
 
 import pytest
 from PySide6.QtGui import QImage
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QDialog
 
 from harrix_swiss_knife.actions.images.screenshot_region_clipboard import OnScreenshotRegionClipboard
 from harrix_swiss_knife.screenshot import capture
@@ -112,6 +112,33 @@ def test_hide_session_toggles_keep_windows(
     assert session.hidden == ["hidden"]
 
 
+def test_capture_region_keeps_windows_when_modal_is_visible(
+    qapp: QApplication,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    image = _sample_image()
+    hide_calls: list[int] = []
+
+    dialog = QDialog()
+    dialog.setModal(True)
+    dialog.show()
+    QApplication.processEvents()
+
+    monkeypatch.setattr(capture, "hide_app_windows", lambda: hide_calls.append(1) or [])
+    monkeypatch.setattr(capture, "_wait_ms", lambda _ms: None)
+    monkeypatch.setattr(capture, "_capture_loop", lambda **_kwargs: image)
+    monkeypatch.setattr(capture, "restore_app_windows", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(capture, "bring_window_to_foreground", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(capture, "show_screenshot_preview", MagicMock)
+
+    try:
+        result = capture.capture_region(show_preview=False, show_shutter_button=False)
+        assert result is image
+        assert hide_calls == []
+    finally:
+        dialog.close()
+
+
 def test_capture_region_keeps_app_windows_visible(
     qapp: QApplication,  # noqa: ARG001
     monkeypatch: pytest.MonkeyPatch,
@@ -167,5 +194,5 @@ def test_clipboard_action_skips_preview(qapp: QApplication, monkeypatch: pytest.
     monkeypatch.setattr(OnScreenshotRegionClipboard, "show_toast", _silent_toast)
     OnScreenshotRegionClipboard()()
     assert calls == [
-        {"show_preview": False, "show_shutter_button": True, "hide_app": True},
+        {"show_preview": False, "show_shutter_button": True},
     ]

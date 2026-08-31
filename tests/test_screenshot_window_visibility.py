@@ -9,6 +9,7 @@ from PySide6.QtWidgets import QApplication, QDialog, QMessageBox, QWidget
 from harrix_swiss_knife.screenshot.window_visibility import (
     ConcealedWindow,
     _pick_focus_target,
+    has_visible_modal_dialog,
     hide_app_windows,
     restore_app_windows,
 )
@@ -23,6 +24,18 @@ def qapp() -> QApplication:
         msg = "QApplication.instance() returned a non-QApplication object."
         raise TypeError(msg)
     return app
+
+
+def test_has_visible_modal_dialog_detects_shown_modal(qapp: QApplication) -> None:  # noqa: ARG001
+    assert not has_visible_modal_dialog()
+    dialog = QDialog()
+    dialog.setModal(True)
+    dialog.show()
+    QApplication.processEvents()
+    try:
+        assert has_visible_modal_dialog()
+    finally:
+        dialog.close()
 
 
 def test_hide_app_windows_keeps_modal_dialog_exec_alive(qapp: QApplication) -> None:  # noqa: ARG001
