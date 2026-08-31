@@ -259,13 +259,13 @@ class MainWindow(
         self._is_closing = False
         self.db_manager: database_manager.DatabaseManager | None = None
         self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
-        self._setup_ui()
-        self.setWindowIcon(QIcon(":/assets/logo.svg"))
-        self._init_hide_on_close(hide_on_close=hide_on_close)
         self._auto_save_handlers: dict[str, Any] = {}
         self._auto_save_source_models: dict[str, QObject | None] = {}
         self._transaction_selection_selection_model: QItemSelectionModel | None = None
         self._transactions_selection_status_label: QLabel | None = None
+        self._setup_ui()
+        self.setWindowIcon(QIcon(":/assets/logo.svg"))
+        self._init_hide_on_close(hide_on_close=hide_on_close)
 
         # Table models dictionary
         self.models: dict[str, QSortFilterProxyModel | None] = {

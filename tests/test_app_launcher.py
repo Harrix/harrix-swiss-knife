@@ -78,3 +78,9 @@ def test_finance_finish_init_skips_duplicate_exchange_rates_setup() -> None:
     """Exchange rates controls are configured once in _initial_load, not again on show."""
     source = inspect.getsource(MainWindow._finish_window_initialization)
     assert "_setup_exchange_rates_controls" not in source
+
+
+def test_finance_init_creates_selection_status_before_setup_ui() -> None:
+    """Status bar setup reads `_transactions_selection_status_label` during `_setup_ui`."""
+    source = inspect.getsource(MainWindow.__init__)
+    assert source.index("_transactions_selection_status_label") < source.index("self._setup_ui()")
