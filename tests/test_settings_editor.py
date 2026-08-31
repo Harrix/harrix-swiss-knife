@@ -160,6 +160,8 @@ def test_snippet_setting_shows_open_button_and_content(
         content = dialog.findChild(QTextEdit, SNIPPET_CONTENT_OBJECT_NAME)
         assert content is not None
         assert content.toPlainText() == "Translate categories.\n"
+        assert not content.isWindow()
+        assert content.window() is dialog
     finally:
         dialog._dirty.clear()
         dialog.close()

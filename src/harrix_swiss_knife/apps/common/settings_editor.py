@@ -504,6 +504,7 @@ class SettingsEditorDialog(QDialog):
     def _render_settings(self, cat_name: str, settings: dict[str, Any]) -> None:
         for key, value in settings.items():
             setting_layout = QVBoxLayout()
+            self.settings_layout.addLayout(setting_layout)
             label = QLabel(f"<b>{key}</b>")
             setting_layout.addWidget(label)
 
@@ -561,7 +562,6 @@ class SettingsEditorDialog(QDialog):
                 setting_layout.addWidget(self._make_field_save_button(widget_key), alignment=Qt.AlignmentFlag.AlignLeft)
 
             self._connect_dirty(widget_key, widget)
-            self.settings_layout.addLayout(setting_layout)
             self.settings_layout.addSpacing(10)
 
         self._fit_multiline_widgets()
@@ -595,7 +595,7 @@ class SettingsEditorDialog(QDialog):
         self._save_snippet_drafts()
 
     def _add_snippet_setting(self, setting_layout: QVBoxLayout, widget_key: str, path_edit: QLineEdit) -> None:
-        content = QTextEdit()
+        content = QTextEdit(self.settings_container)
         content.setObjectName(SNIPPET_CONTENT_OBJECT_NAME)
         content.setAcceptRichText(False)
         content.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
@@ -698,7 +698,8 @@ class SettingsEditorDialog(QDialog):
         if path is None:
             editor.hide()
             return
-        editor.show()
+        if editor.parentWidget() is not None:
+            editor.show()
         if widget_key in self._snippet_drafts:
             text = self._snippet_drafts[widget_key]
         elif path.is_file():
