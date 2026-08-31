@@ -43,6 +43,8 @@ class OnGenerateStaticSite(ActionBase):
 
     icon = "🌐"
     title = "Generate static site…"
+    icons_dir: Path | None = None
+    theme_dir: Path | None = None
 
     @ActionBase.handle_exceptions("generating static site")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
@@ -78,6 +80,7 @@ class OnGenerateStaticSite(ActionBase):
         choice_type, choice_data = site_map[selected_choice]
 
         self.theme_dir: Path | None = None
+        self.icons_dir: Path | None = None
 
         if choice_type == "site":
             # Use configured site
@@ -85,6 +88,7 @@ class OnGenerateStaticSite(ActionBase):
             self.md_folder = Path(site["input"])
             self.html_folder = Path(site["output"])
             self.theme_dir = self._resolve_theme_dir(site.get("theme"))
+            self.icons_dir = self._resolve_icons_dir(site.get("icons"))
         elif choice_type == "manual":
             # Request folders manually
             self.md_folder = self.dialogs.get_existing_directory(
@@ -102,6 +106,7 @@ class OnGenerateStaticSite(ActionBase):
                 return
 
             self.theme_dir = self._resolve_theme_dir(None)
+            self.icons_dir = self._resolve_icons_dir(None)
 
         if self.theme_dir is None:
             continue_without_theme = self.dialogs.get_yes_no_question(
@@ -131,6 +136,8 @@ class OnGenerateStaticSite(ActionBase):
         self.add_line(f"📁 HTML output folder: {self.html_folder}")
         if self.theme_dir is not None:
             self.add_line(f"🎨 Theme folder: {self.theme_dir}")
+        if self.icons_dir is not None:
+            self.add_line(f"🧩 Icons folder: {self.icons_dir}")
         self.add_line("")
 
         try:
@@ -141,11 +148,17 @@ class OnGenerateStaticSite(ActionBase):
                 default_language=str(self.config.get("site_default_language", "ru")),
                 site_title=str(self.config.get("site_title", "Harrix")),
                 per_page=int(self.config.get("site_per_page", 20)),
+                icons_dir=self.icons_dir,
+                icons_per_page=int(self.config.get("site_icons_per_page", 96)),
+                icons_language=str(self.config.get("site_icons_language", "en")),
             )
             sg.generate_site(self.html_folder)
             self.add_line("✅ Site generation completed successfully")
             self.add_line(f"📊 Generated {len(sg.articles)} articles")
             self.add_line(f"📄 Generated {len(sg.listing_pages)} listing pages")
+            if sg.icon_families:
+                self.add_line(f"🧩 Generated {len(sg.icon_families)} icon families")
+                self.add_line(f"🔲 Generated {len(sg.icon_grid_pages)} icon grid pages")
         except Exception as e:
             self.add_line(f"❌ Error during site generation: {e}")
             raise
@@ -157,6 +170,22 @@ class OnGenerateStaticSite(ActionBase):
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} completed")
         self.show_result()
+
+    def _resolve_icons_dir(self, icons_value: Any) -> Path | None:
+        """Resolve a Harrix-Vector-Icons repo from site config or `path_vector_icons`."""
+        candidates: list[Path] = []
+        if icons_value:
+            candidates.append(Path(str(icons_value)))
+        default_icons = self.config.get("path_vector_icons")
+        if default_icons:
+            candidates.append(Path(str(default_icons)))
+        for candidate in candidates:
+            icons_dir = candidate.expanduser().resolve()
+            if (icons_dir / "catalog.json").is_file() or (icons_dir / "icons").is_dir():
+                return icons_dir
+            if icons_dir.name == "icons" and icons_dir.is_dir():
+                return icons_dir
+        return None
 
     def _resolve_theme_dir(self, theme_value: Any) -> Path | None:
         """Resolve sliced theme directory from site config or global config."""
@@ -220,6 +249,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         choice_type, choice_data = site_map[selected_choice]
 
         self.theme_dir: Path | None = None
+        self.icons_dir: Path | None = None
 
         if choice_type == "site":
             # Use configured site
@@ -227,6 +257,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             self.md_folder = Path(site["input"])
             self.html_folder = Path(site["output"])
             self.theme_dir = self._resolve_theme_dir(site.get("theme"))
+            self.icons_dir = self._resolve_icons_dir(site.get("icons"))
         elif choice_type == "manual":
             # Request folders manually
             self.md_folder = self.dialogs.get_existing_directory(
@@ -244,6 +275,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
                 return
 
             self.theme_dir = self._resolve_theme_dir(None)
+            self.icons_dir = self._resolve_icons_dir(None)
 
         if self.theme_dir is None:
             continue_without_theme = self.dialogs.get_yes_no_question(
@@ -286,6 +318,8 @@ def in_thread(self) -> str | None:
         self.add_line(f"📁 HTML output folder: {self.html_folder}")
         if self.theme_dir is not None:
             self.add_line(f"🎨 Theme folder: {self.theme_dir}")
+        if self.icons_dir is not None:
+            self.add_line(f"🧩 Icons folder: {self.icons_dir}")
         self.add_line("")
 
         try:
@@ -296,11 +330,17 @@ def in_thread(self) -> str | None:
                 default_language=str(self.config.get("site_default_language", "ru")),
                 site_title=str(self.config.get("site_title", "Harrix")),
                 per_page=int(self.config.get("site_per_page", 20)),
+                icons_dir=self.icons_dir,
+                icons_per_page=int(self.config.get("site_icons_per_page", 96)),
+                icons_language=str(self.config.get("site_icons_language", "en")),
             )
             sg.generate_site(self.html_folder)
             self.add_line("✅ Site generation completed successfully")
             self.add_line(f"📊 Generated {len(sg.articles)} articles")
             self.add_line(f"📄 Generated {len(sg.listing_pages)} listing pages")
+            if sg.icon_families:
+                self.add_line(f"🧩 Generated {len(sg.icon_families)} icon families")
+                self.add_line(f"🔲 Generated {len(sg.icon_grid_pages)} icon grid pages")
         except Exception as e:
             self.add_line(f"❌ Error during site generation: {e}")
             raise

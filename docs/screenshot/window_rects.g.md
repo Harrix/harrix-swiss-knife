@@ -13,6 +13,7 @@ lang: en
 
 - [🔧 Function `filter_nested_control_candidates`](#-function-filter_nested_control_candidates)
 - [🔧 Function `list_snappable_window_rects`](#-function-list_snappable_window_rects)
+- [🔧 Function `merge_preferred_rects`](#-function-merge_preferred_rects)
 - [🔧 Function `snap_rect_at_point`](#-function-snap_rect_at_point)
 
 </details>
@@ -75,10 +76,51 @@ Returns:
 
 ```python
 def list_snappable_window_rects(*, exclude_hwnds: Sequence[int] = ()) -> list[QRect]:
-    if sys.platform != "win32":
-        return []
     excluded = {int(handle) for handle in exclude_hwnds if handle}
-    return _list_snappable_window_rects_win32(exclude_hwnds=excluded)
+    win32_rects = _list_snappable_window_rects_win32(exclude_hwnds=excluded) if sys.platform == "win32" else []
+    return merge_preferred_rects(win32_rects, _list_qt_top_level_rects(exclude_hwnds=excluded))
+```
+
+</details>
+
+## 🔧 Function `merge_preferred_rects`
+
+```python
+def merge_preferred_rects(rects: Sequence[QRect], preferred: Sequence[QRect]) -> list[QRect]
+```
+
+Insert `preferred` Windows in front of any larger owner that contains them.
+
+Win32 `EnumWindows` can miss a Qt owned dialog (`QDialog` + `exec()`). The owner
+frame is then the first hit, so hover snaps to Finance instead of Balance check.
+Preferred rects (Qt top-level frames) are inserted just before that owner.
+
+Args:
+
+- `rects` (`Sequence[QRect]`): Snap candidates, most-specific first.
+- `preferred` (`Sequence[QRect]`): Extra window frames that must beat their owner.
+
+Returns:
+
+- `list[QRect]`: Combined list for hover snapping.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def merge_preferred_rects(rects: Sequence[QRect], preferred: Sequence[QRect]) -> list[QRect]:
+    result = [QRect(rect) for rect in rects]
+    for extra in preferred:
+        if not extra.isValid() or extra.width() < _MIN_WINDOW_SIDE or extra.height() < _MIN_WINDOW_SIDE:
+            continue
+        if any(existing == extra for existing in result):
+            continue
+        insert_at = next(
+            (index for index, existing in enumerate(result) if existing.contains(extra) and existing != extra),
+            len(result),
+        )
+        result.insert(insert_at, QRect(extra))
+    return result
 ```
 
 </details>

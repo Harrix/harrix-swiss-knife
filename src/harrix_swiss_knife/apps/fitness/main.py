@@ -63,6 +63,7 @@ from PySide6.QtWidgets import (
     QDateEdit,
     QDialog,
     QDialogButtonBox,
+    QInputDialog,
     QLabel,
     QListView,
     QMainWindow,
@@ -2273,66 +2274,23 @@ class MainWindow(
 
     def on_select_exercise_button_clicked(self) -> None:
         """Open a modal dialog to select an exercise with AVIF previews."""
-        if not self._validate_database_connection() or self.db_manager is None:
-            message_box.warning(self, "Database Error", "Database connection is not available.")
+        selected_exercise = self._open_select_exercise_dialog()
+        if not selected_exercise:
             return
+        if not self._select_exercise_in_list(selected_exercise):
+            self._update_comboboxes(selected_exercise=selected_exercise)
 
-        try:
-            exercises = self.db_manager.get_exercises_by_frequency(500)
-        except Exception as exc:
-            message_box.warning(self, "Database Error", f"Failed to load exercises: {exc}")
-            return
+        # Programmatic selection may not emit currentChanged (e.g. same row re-selected)
+        self.on_exercise_selection_changed_list()
 
-        if not exercises:
-            message_box.information(self, "No Exercises", "No exercises are available to select.")
-            return
-
-        if not self._ensure_static_thumbnails_for_select_exercise():
-            return
-
-        label_height = self.label_exercise_avif.height()
-        preview_edge = max(0, label_height)
-        preview_edge = max(min(preview_edge, 512), 160)
-        preview_size = QSize(preview_edge, preview_edge)
-
-        current_selection = self._get_current_selected_exercise()
-
-        dumbbell_names = self._cached_dumbbell_exercise_names()
-        dialog = ExerciseSelectionDialog(
-            self,
-            exercises=exercises,
-            pixmap_provider=lambda name: self._get_exercise_avif_preview_pixmap(name, preview_size),
-            preview_size=preview_size,
-            current_selection=current_selection,
-            avif_manager=self.avif_manager,
-            name_locals=self.db_manager.get_exercise_name_local_map() if self.db_manager else None,
-            display_names={
-                name: format_favorite_exercise_label(name, favorite=False, dumbbell=name in dumbbell_names)
-                for name in exercises
-            },
-        )
-
-        dialog_width = max(int(self.width() * 0.95), preview_size.width())
-        dialog_height = max(int(self.height() * 0.95), preview_size.height())
-        dialog.resize(dialog_width, dialog_height)
-        dialog.setMinimumSize(preview_size)
-
-        if dialog.exec() == QDialog.DialogCode.Accepted and dialog.selected_exercise:
-            selected_exercise = dialog.selected_exercise
-            if not self._select_exercise_in_list(selected_exercise):
-                self._update_comboboxes(selected_exercise=selected_exercise)
-
-            # Programmatic selection may not emit currentChanged (e.g. same row re-selected)
-            self.on_exercise_selection_changed_list()
-
-            selection_model = self.listView_exercises.selectionModel()
-            if selection_model:
-                current_index = selection_model.currentIndex()
-                if current_index.isValid():
-                    self.listView_exercises.scrollTo(
-                        current_index,
-                        QAbstractItemView.ScrollHint.PositionAtCenter,
-                    )
+        selection_model = self.listView_exercises.selectionModel()
+        if selection_model:
+            current_index = selection_model.currentIndex()
+            if current_index.isValid():
+                self.listView_exercises.scrollTo(
+                    current_index,
+                    QAbstractItemView.ScrollHint.PositionAtCenter,
+                )
 
     def on_show_exercise_goal_recommendations(self) -> None:
         """Show exercise goal recommendations for all exercises in the statistics table.
@@ -6952,6 +6910,83 @@ class MainWindow(
         self._update_date_filter_controls_enabled()
         self.apply_filter()
 
+    def _on_workout_add_exercise_requested(self, workout_id: int) -> None:
+        """Add a catalog exercise to the selected workout via Select Exercise."""
+        if self.db_manager is None or not self._validate_database_connection():
+            message_box.warning(self, "Error", "Database connection not available")
+            return
+        selected_exercise = self._open_select_exercise_dialog()
+        if not selected_exercise:
+            return
+        ex_id = self.db_manager.get_id("exercises", "name", selected_exercise)
+        if ex_id is None:
+            message_box.warning(self, "Error", f"Exercise '{selected_exercise}' not found in database")
+            return
+        types = self.db_manager.get_exercise_types(ex_id)
+        last_type = ""
+        last_value = ""
+        last_record = self.db_manager.get_last_exercise_record(ex_id)
+        if last_record:
+            last_type, last_value = last_record
+        type_name = default_exercise_type(
+            types,
+            preferred="",
+            last_used=last_type,
+            type_required=self.db_manager.is_exercise_type_required(ex_id),
+        )
+        type_id = -1
+        if type_name:
+            type_rows = self.db_manager.get_rows(
+                "SELECT _id FROM types WHERE type = :name AND _id_exercises = :ex_id",
+                {"name": type_name, "ex_id": ex_id},
+            )
+            if type_rows:
+                type_id = int(type_rows[0][0])
+        item_id = self.db_manager.add_workout_item(
+            workout_id,
+            database_manager.WorkoutItemInput(
+                exercise_id=ex_id,
+                type_id=type_id,
+                exercise_name=selected_exercise,
+                type_name=type_name,
+                target_value=str(last_value).strip(),
+            ),
+        )
+        if item_id is None:
+            message_box.warning(self, "Error", f"Failed to add '{selected_exercise}' to the workout")
+            return
+        if self._workouts_widget is not None:
+            self._workouts_widget.refresh()
+
+    def _on_workout_empty_requested(self) -> None:
+        """Create a workout with no exercises so the user can add them manually."""
+        if self.db_manager is None or not self._validate_database_connection():
+            message_box.warning(self, "Error", "Database connection not available")
+            return
+        default_name = f"Workout {QDate.currentDate().toString('yyyy-MM-dd')}"
+        name, accepted = QInputDialog.getText(self, "Empty workout", "Workout name:", text=default_name)
+        if not accepted:
+            return
+        name = name.strip()
+        if not name:
+            message_box.warning(self, "Error", "Enter workout name")
+            return
+        gender = get_apps_fitness_workout_gender(self._app_config) or "male"
+        duration_min = self._initial_workout_duration_min()
+        workout_id = self.db_manager.save_workout(
+            name,
+            gender,
+            duration_min,
+            [],
+            created_date=QDate.currentDate().toString("yyyy-MM-dd"),
+        )
+        if workout_id is None:
+            message_box.warning(self, "Error", "Failed to create empty workout")
+            return
+        if self._workouts_widget is not None:
+            self._workouts_widget.refresh()
+            self._workouts_widget.select_workout_by_id(workout_id)
+
     def _on_workout_generate_requested(self) -> None:
         """Ask for gender (once) and duration, then generate a workout with BotHub."""
         if self.db_manager is None or not self._validate_database_connection():
@@ -7224,6 +7259,56 @@ class MainWindow(
 
         self._mark_exercises_changed()
         self.update_all()
+
+    def _open_select_exercise_dialog(self) -> str | None:
+        """Open the same Select Exercise dialog as `pushButton_select_exercise`."""
+        if not self._validate_database_connection() or self.db_manager is None:
+            message_box.warning(self, "Database Error", "Database connection is not available.")
+            return None
+
+        try:
+            exercises = self.db_manager.get_exercises_by_frequency(500)
+        except Exception as exc:
+            message_box.warning(self, "Database Error", f"Failed to load exercises: {exc}")
+            return None
+
+        if not exercises:
+            message_box.information(self, "No Exercises", "No exercises are available to select.")
+            return None
+
+        if not self._ensure_static_thumbnails_for_select_exercise():
+            return None
+
+        label_height = self.label_exercise_avif.height()
+        preview_edge = max(0, label_height)
+        preview_edge = max(min(preview_edge, 512), 160)
+        preview_size = QSize(preview_edge, preview_edge)
+
+        current_selection = self._get_current_selected_exercise()
+
+        dumbbell_names = self._cached_dumbbell_exercise_names()
+        dialog = ExerciseSelectionDialog(
+            self,
+            exercises=exercises,
+            pixmap_provider=lambda name: self._get_exercise_avif_preview_pixmap(name, preview_size),
+            preview_size=preview_size,
+            current_selection=current_selection,
+            avif_manager=self.avif_manager,
+            name_locals=self.db_manager.get_exercise_name_local_map(),
+            display_names={
+                name: format_favorite_exercise_label(name, favorite=False, dumbbell=name in dumbbell_names)
+                for name in exercises
+            },
+        )
+
+        dialog_width = max(int(self.width() * 0.95), preview_size.width())
+        dialog_height = max(int(self.height() * 0.95), preview_size.height())
+        dialog.resize(dialog_width, dialog_height)
+        dialog.setMinimumSize(preview_size)
+
+        if dialog.exec() == QDialog.DialogCode.Accepted and dialog.selected_exercise:
+            return dialog.selected_exercise
+        return None
 
     def _open_sets_preview_dialog(self, initial_text: str) -> None:
         """Show the TSV preview dialog and save accepted set rows."""
@@ -8195,6 +8280,8 @@ class MainWindow(
             icon_getter=self._get_exercise_icon,
         )
         self._workouts_widget.generate_requested.connect(self._on_workout_generate_requested)
+        self._workouts_widget.empty_requested.connect(self._on_workout_empty_requested)
+        self._workouts_widget.add_exercise_requested.connect(self._on_workout_add_exercise_requested)
         self._workouts_widget.item_done_requested.connect(
             lambda item_id, checked: self._on_workout_item_done(item_id, checked=checked),
         )

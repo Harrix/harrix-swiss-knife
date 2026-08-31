@@ -330,6 +330,41 @@ class SettingsEditorDialog(QDialog):
         super().showEvent(event)
         self._fit_multiline_widgets()
 
+    def _add_snippet_setting(self, setting_layout: QVBoxLayout, widget_key: str, path_edit: QLineEdit) -> None:
+        content = QTextEdit(self.settings_container)
+        content.setObjectName(SNIPPET_CONTENT_OBJECT_NAME)
+        content.setAcceptRichText(False)
+        content.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        content.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        content.setPlaceholderText("Snippet file content")
+        content.textChanged.connect(self._on_multiline_text_changed)
+        content.textChanged.connect(lambda key=widget_key: self._on_snippet_text_changed(key))
+        self._snippet_editors[widget_key] = content
+
+        open_button = make_emoji_push_button("", OPEN_SNIPPET_BUTTON_EMOJI)
+        open_button.setObjectName(OPEN_SNIPPET_BUTTON_OBJECT_NAME)
+        open_button.setToolTip("Open snippet in editor")
+        open_button.setAutoDefault(False)
+        open_button.setDefault(False)
+        open_button.setFixedWidth(36)
+        open_button.clicked.connect(lambda _checked=False, line=path_edit: self._open_snippet_in_editor(line.text()))
+
+        row = QHBoxLayout()
+        row.setContentsMargins(0, 0, 0, 0)
+        row.addWidget(path_edit, 1)
+        row.addWidget(open_button)
+        row.addWidget(
+            self._make_field_save_button(widget_key, tooltip="Save this setting and snippet file"),
+        )
+        setting_layout.addLayout(row)
+        setting_layout.addWidget(content)
+        path_edit.textChanged.connect(
+            lambda _text="", key=widget_key, line=path_edit, editor=content, button=open_button: (
+                self._on_snippet_path_changed(key, line, editor, button)
+            ),
+        )
+        self._refresh_snippet_editor(widget_key, path_edit, content, open_button)
+
     def _categorize_config(self, data: dict[str, Any]) -> dict[str, dict[str, Any]]:
         categories: dict[str, dict[str, Any]] = {"General": {}}
         for key, value in data.items():
@@ -389,6 +424,12 @@ class SettingsEditorDialog(QDialog):
         for widget in (*self.input_widgets.values(), *self._snippet_editors.values()):
             if isinstance(widget, QTextEdit):
                 self._fit_multiline_widget(widget)
+
+    def _load_snippet_text(self, path: Path) -> str:
+        try:
+            return path.read_text(encoding="utf-8")
+        except OSError:
+            return ""
 
     def _make_field_save_button(self, widget_key: str, *, tooltip: str | None = None) -> QPushButton:
         button = make_emoji_push_button("Save", SAVE_BUTTON_EMOJI)
@@ -457,12 +498,43 @@ class SettingsEditorDialog(QDialog):
                 self.settings_layout.addWidget(title)
                 self._render_settings(cat_name, matching_settings)
 
+    def _on_snippet_path_changed(
+        self,
+        widget_key: str,
+        path_edit: QLineEdit,
+        editor: QTextEdit,
+        open_button: QPushButton,
+    ) -> None:
+        self._snippet_drafts.pop(widget_key, None)
+        self._snippet_dirty.discard(widget_key)
+        self._refresh_snippet_editor(widget_key, path_edit, editor, open_button)
+
+    def _on_snippet_text_changed(self, widget_key: str) -> None:
+        if widget_key in self._snippet_reloading:
+            return
+        self._snippet_dirty.add(widget_key)
+        self._mark_dirty(widget_key)
+
     def _open_folder_path(self, path_text: str) -> None:
         folder = folder_path_from_text(path_text)
         if folder is None:
             QMessageBox.warning(self, "Open folder", "Folder does not exist.")
             return
         h.file.open_file_or_folder(folder)
+
+    def _open_snippet_in_editor(self, path_text: str) -> None:
+        path = snippet_path_from_text(path_text)
+        if path is None or not path.is_file():
+            QMessageBox.warning(self, "Open snippet", "Snippet file does not exist.")
+            return
+        editor = str(self.config_data.get("editor") or "").strip()
+        if not editor:
+            h.file.open_file_or_folder(path)
+            return
+        try:
+            open_in_editor(editor, get_project_root(), path)
+        except (OSError, ValueError) as exc:
+            QMessageBox.critical(self, "Open snippet", f"Failed to open snippet in editor:\n{exc}")
 
     def _persist_config(self) -> bool:
         self._save_current_category()
@@ -486,6 +558,26 @@ class SettingsEditorDialog(QDialog):
             self._show_restart_required(restart_keys)
         return True
 
+    def _persist_snippet_files(self) -> bool:
+        for widget_key in list(self._snippet_dirty):
+            path_text = self._snippet_path_text(widget_key)
+            path = snippet_path_from_text(path_text)
+            if path is None:
+                continue
+            editor = self._snippet_editors.get(widget_key)
+            text = editor.toPlainText() if editor is not None else self._snippet_drafts.get(widget_key)
+            if text is None:
+                continue
+            try:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(text, encoding="utf-8")
+            except OSError as e:
+                QMessageBox.critical(self, "Error", f"Failed to save snippet: {e}")
+                return False
+            self._snippet_drafts.pop(widget_key, None)
+            self._snippet_dirty.discard(widget_key)
+        return True
+
     def _refresh_save_ui(self) -> None:
         for key, button in self._field_save_buttons.items():
             button.setEnabled(key in self._dirty)
@@ -495,6 +587,33 @@ class SettingsEditorDialog(QDialog):
             self.status_label.setText("Unsaved changes")
         elif self.status_label.text() != "Saved to config.json":
             self.status_label.setText("")
+
+    def _refresh_snippet_editor(
+        self,
+        widget_key: str,
+        path_edit: QLineEdit,
+        editor: QTextEdit,
+        open_button: QPushButton,
+    ) -> None:
+        path = snippet_path_from_text(path_edit.text())
+        open_button.setEnabled(path is not None and path.is_file())
+        if path is None:
+            editor.hide()
+            return
+        if editor.parentWidget() is not None:
+            editor.show()
+        if widget_key in self._snippet_drafts:
+            text = self._snippet_drafts[widget_key]
+        elif path.is_file():
+            text = self._load_snippet_text(path)
+        else:
+            text = ""
+        self._snippet_reloading.add(widget_key)
+        try:
+            editor.setPlainText(text)
+        finally:
+            self._snippet_reloading.discard(widget_key)
+        self._fit_multiline_widget(editor)
 
     def _render_category(self, cat_name: str) -> None:
         title = QLabel(f"<h2>{cat_name}</h2>")
@@ -594,137 +713,10 @@ class SettingsEditorDialog(QDialog):
                     self.categories[cat_name][key] = json.loads(widget.toPlainText())
         self._save_snippet_drafts()
 
-    def _add_snippet_setting(self, setting_layout: QVBoxLayout, widget_key: str, path_edit: QLineEdit) -> None:
-        content = QTextEdit(self.settings_container)
-        content.setObjectName(SNIPPET_CONTENT_OBJECT_NAME)
-        content.setAcceptRichText(False)
-        content.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        content.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        content.setPlaceholderText("Snippet file content")
-        content.textChanged.connect(self._on_multiline_text_changed)
-        content.textChanged.connect(lambda key=widget_key: self._on_snippet_text_changed(key))
-        self._snippet_editors[widget_key] = content
-
-        open_button = make_emoji_push_button("", OPEN_SNIPPET_BUTTON_EMOJI)
-        open_button.setObjectName(OPEN_SNIPPET_BUTTON_OBJECT_NAME)
-        open_button.setToolTip("Open snippet in editor")
-        open_button.setAutoDefault(False)
-        open_button.setDefault(False)
-        open_button.setFixedWidth(36)
-        open_button.clicked.connect(lambda _checked=False, line=path_edit: self._open_snippet_in_editor(line.text()))
-
-        row = QHBoxLayout()
-        row.setContentsMargins(0, 0, 0, 0)
-        row.addWidget(path_edit, 1)
-        row.addWidget(open_button)
-        row.addWidget(
-            self._make_field_save_button(widget_key, tooltip="Save this setting and snippet file"),
-        )
-        setting_layout.addLayout(row)
-        setting_layout.addWidget(content)
-        path_edit.textChanged.connect(
-            lambda _text="", key=widget_key, line=path_edit, editor=content, button=open_button: (
-                self._on_snippet_path_changed(key, line, editor, button)
-            ),
-        )
-        self._refresh_snippet_editor(widget_key, path_edit, content, open_button)
-
-    def _load_snippet_text(self, path: Path) -> str:
-        try:
-            return path.read_text(encoding="utf-8")
-        except OSError:
-            return ""
-
-    def _on_snippet_path_changed(
-        self,
-        widget_key: str,
-        path_edit: QLineEdit,
-        editor: QTextEdit,
-        open_button: QPushButton,
-    ) -> None:
-        self._snippet_drafts.pop(widget_key, None)
-        self._snippet_dirty.discard(widget_key)
-        self._refresh_snippet_editor(widget_key, path_edit, editor, open_button)
-
-    def _on_snippet_text_changed(self, widget_key: str) -> None:
-        if widget_key in self._snippet_reloading:
-            return
-        self._snippet_dirty.add(widget_key)
-        self._mark_dirty(widget_key)
-
-    def _open_snippet_in_editor(self, path_text: str) -> None:
-        path = snippet_path_from_text(path_text)
-        if path is None or not path.is_file():
-            QMessageBox.warning(self, "Open snippet", "Snippet file does not exist.")
-            return
-        editor = str(self.config_data.get("editor") or "").strip()
-        if not editor:
-            h.file.open_file_or_folder(path)
-            return
-        try:
-            open_in_editor(editor, get_project_root(), path)
-        except (OSError, ValueError) as exc:
-            QMessageBox.critical(self, "Open snippet", f"Failed to open snippet in editor:\n{exc}")
-
-    def _persist_snippet_files(self) -> bool:
-        for widget_key in list(self._snippet_dirty):
-            path_text = self._snippet_path_text(widget_key)
-            path = snippet_path_from_text(path_text)
-            if path is None:
-                continue
-            editor = self._snippet_editors.get(widget_key)
-            text = editor.toPlainText() if editor is not None else self._snippet_drafts.get(widget_key)
-            if text is None:
-                continue
-            try:
-                path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_text(text, encoding="utf-8")
-            except OSError as e:
-                QMessageBox.critical(self, "Error", f"Failed to save snippet: {e}")
-                return False
-            self._snippet_drafts.pop(widget_key, None)
-            self._snippet_dirty.discard(widget_key)
-        return True
-
-    def _refresh_snippet_editor(
-        self,
-        widget_key: str,
-        path_edit: QLineEdit,
-        editor: QTextEdit,
-        open_button: QPushButton,
-    ) -> None:
-        path = snippet_path_from_text(path_edit.text())
-        open_button.setEnabled(path is not None and path.is_file())
-        if path is None:
-            editor.hide()
-            return
-        if editor.parentWidget() is not None:
-            editor.show()
-        if widget_key in self._snippet_drafts:
-            text = self._snippet_drafts[widget_key]
-        elif path.is_file():
-            text = self._load_snippet_text(path)
-        else:
-            text = ""
-        self._snippet_reloading.add(widget_key)
-        try:
-            editor.setPlainText(text)
-        finally:
-            self._snippet_reloading.discard(widget_key)
-        self._fit_multiline_widget(editor)
-
     def _save_snippet_drafts(self) -> None:
         for widget_key, editor in self._snippet_editors.items():
             if widget_key in self._snippet_dirty:
                 self._snippet_drafts[widget_key] = editor.toPlainText()
-
-    def _snippet_path_text(self, widget_key: str) -> str:
-        widget = self.input_widgets.get(widget_key)
-        if isinstance(widget, QLineEdit):
-            return widget.text()
-        cat_name, key = widget_key.split("::", 1)
-        value = self.categories.get(cat_name, {}).get(key)
-        return str(value) if isinstance(value, str) else ""
 
     def _setting_value_row(self, widget_key: str, widget: QWidget) -> QHBoxLayout:
         row = QHBoxLayout()
@@ -812,6 +804,14 @@ class SettingsEditorDialog(QDialog):
                 "Could not start a new process. Restart the app manually.",
             )
 
+    def _snippet_path_text(self, widget_key: str) -> str:
+        widget = self.input_widgets.get(widget_key)
+        if isinstance(widget, QLineEdit):
+            return widget.text()
+        cat_name, key = widget_key.split("::", 1)
+        value = self.categories.get(cat_name, {}).get(key)
+        return str(value) if isinstance(value, str) else ""
+
 
 def assemble_config(categories: dict[str, dict[str, Any]], key_order: list[str]) -> dict[str, Any]:
     """Rebuild a top-level config object, keeping `key_order` and snippet strings."""
@@ -882,23 +882,6 @@ def is_folder_path_setting(key: str, value: object) -> bool:
     return _is_folder_path_key(key, value)
 
 
-def is_snippet_setting(value: object) -> bool:
-    """Return whether a setting value is a `snippet:` file reference."""
-    return isinstance(value, str) and snippet_path_from_text(value) is not None
-
-
-def snippet_path_from_text(text: str, *, project_root: Path | None = None) -> Path | None:
-    """Return the project-relative snippet path, or `None` if `text` is not a snippet."""
-    stripped = text.strip()
-    if not stripped.startswith(_SNIPPET_PREFIX):
-        return None
-    relative = stripped.removeprefix(_SNIPPET_PREFIX).strip()
-    if not relative:
-        return None
-    root = project_root if project_root is not None else get_project_root()
-    return root / relative
-
-
 def is_hotkey_bindings_setting(key: str, value: object) -> bool:
     """Return whether a setting is a list of action-hotkey bindings."""
     if not isinstance(value, list):
@@ -938,6 +921,11 @@ def is_hotkey_string(value: object) -> bool:
     return key.startswith("f") and key[1:].isdigit()
 
 
+def is_snippet_setting(value: object) -> bool:
+    """Return whether a setting value is a `snippet:` file reference."""
+    return isinstance(value, str) and snippet_path_from_text(value) is not None
+
+
 def load_raw_config(path: str | Path) -> dict[str, Any]:
     """Load `config.json` without expanding `snippet:` values."""
     loaded = h.dev.config_load(path, resolve_snippets=False)
@@ -966,6 +954,18 @@ def nested_setting_belongs_to_app(category: str, key: str, app_id: str) -> bool:
     if category == "apps" and key in SHARED_APPS_SETTING_KEYS:
         return app_id in TRACKER_APP_IDS
     return config_key_belongs_to_app(key, app_id)
+
+
+def snippet_path_from_text(text: str, *, project_root: Path | None = None) -> Path | None:
+    """Return the project-relative snippet path, or `None` if `text` is not a snippet."""
+    stripped = text.strip()
+    if not stripped.startswith(_SNIPPET_PREFIX):
+        return None
+    relative = stripped.removeprefix(_SNIPPET_PREFIX).strip()
+    if not relative:
+        return None
+    root = project_root if project_root is not None else get_project_root()
+    return root / relative
 
 
 def _is_folder_path_key(key: str, value: str) -> bool:

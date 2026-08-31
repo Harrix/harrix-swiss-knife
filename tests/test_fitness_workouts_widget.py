@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
+from unittest.mock import MagicMock
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon, QPixmap
@@ -22,6 +23,8 @@ from harrix_swiss_knife.apps.fitness.workouts_widget import (
 
 if TYPE_CHECKING:
     import pytest
+
+    from harrix_swiss_knife.apps.fitness.database_manager import DatabaseManager
 
 
 def _qapp() -> QApplication:
@@ -318,4 +321,45 @@ def test_workout_session_timer_label_starts_at_zero() -> None:
     widget = WorkoutsWidget()
     widget._update_session_timer_label()
     assert widget.label_session_timer.text() == "0:00"
+    widget.close()
+
+
+def test_workouts_empty_button_is_next_to_new() -> None:
+    """Empty sits beside New and is locked during a session."""
+    assert _qapp() is not None
+    widget = WorkoutsWidget()
+    emitted: list[bool] = []
+    widget.empty_requested.connect(lambda: emitted.append(True))
+    assert widget.button_new_empty is not None
+    assert widget.button_new_empty.isEnabled()
+    widget.button_new_empty.click()
+    assert emitted == [True]
+
+    widget._session_active = True
+    widget._update_session_ui_locked()
+    assert not widget.button_new_empty.isEnabled()
+    assert not widget.button_new.isEnabled()
+    widget.close()
+
+
+def test_workouts_add_exercise_button_emits_workout_id() -> None:
+    """Add exercise is off until a workout is selected, then emits that workout id."""
+    assert _qapp() is not None
+    widget = WorkoutsWidget()
+    emitted: list[int] = []
+    widget.add_exercise_requested.connect(emitted.append)
+    assert widget.button_add_exercise is not None
+    assert not widget.button_add_exercise.isEnabled()
+
+    widget._db = cast("DatabaseManager", MagicMock())
+    widget._current_workout_id = 7
+    widget._update_add_exercise_button()
+    assert widget.button_add_exercise.isEnabled()
+
+    widget._request_add_exercise()
+    assert emitted == [7]
+
+    widget._session_active = True
+    widget._update_add_exercise_button()
+    assert not widget.button_add_exercise.isEnabled()
     widget.close()

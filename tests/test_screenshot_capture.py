@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import TYPE_CHECKING, cast
 from unittest.mock import MagicMock
 
 import pytest
@@ -12,6 +13,9 @@ from PySide6.QtWidgets import QApplication, QDialog
 
 from harrix_swiss_knife.actions.images.screenshot_region_clipboard import OnScreenshotRegionClipboard
 from harrix_swiss_knife.screenshot import capture
+
+if TYPE_CHECKING:
+    from harrix_swiss_knife.screenshot.window_visibility import ConcealedWindow
 
 _EXAMPLE_CONFIG = Path(__file__).resolve().parents[1] / "config" / "config.example.json"
 
@@ -100,7 +104,7 @@ def test_hide_session_toggles_keep_windows(
     )
     monkeypatch.setattr(capture, "_wait_ms", lambda _ms: None)
 
-    session = capture._HideSession(hide_app=True, hidden=["hidden"])
+    session = capture._HideSession(hide_app=True, hidden=cast("list[ConcealedWindow]", ["hidden"]))
     session.apply_keep_windows(keep=True)
     assert session.hide_app is False
     assert session.hidden == []

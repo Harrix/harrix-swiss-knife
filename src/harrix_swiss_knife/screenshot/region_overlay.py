@@ -201,18 +201,6 @@ class RegionOverlay(QDialog):
         """Return the selected crop, or `None` if cancelled / empty."""
         return self._crop
 
-    @property
-    def guides_mode(self) -> bool:
-        """Whether composition guides are drawn on the selection frame."""
-        return self._guides_enabled
-
-    @property
-    def keep_windows(self) -> bool:
-        """Whether application Windows should stay visible in the next grab."""
-        if self._panel is not None:
-            return self._panel.keep_windows
-        return self._keep_windows
-
     def event(self, event: QEvent) -> bool:
         """Accept Escape as a shortcut override so it is not stolen by other Windows.
 
@@ -242,11 +230,23 @@ class RegionOverlay(QDialog):
                 return True
         return super().eventFilter(watched, event)
 
+    @property
+    def guides_mode(self) -> bool:
+        """Whether composition guides are drawn on the selection frame."""
+        return self._guides_enabled
+
     def hideEvent(self, event: QHideEvent) -> None:  # noqa: N802
         """Release the keyboard grab when the overlay is hidden."""
         self._close_size_editor()
         release_screenshot_keyboard(self)
         super().hideEvent(event)
+
+    @property
+    def keep_windows(self) -> bool:
+        """Whether application Windows should stay visible in the next grab."""
+        if self._panel is not None:
+            return self._panel.keep_windows
+        return self._keep_windows
 
     def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
         """Enter confirms; arrows nudge/resize; Escape clears the frame or cancels."""
@@ -477,6 +477,9 @@ class RegionOverlay(QDialog):
         self._update_snap_at(self.mapFromGlobal(QCursor.pos()))
         self.update()
 
+    def _clear_suppress_confirm(self) -> None:
+        self._suppress_confirm_once = False
+
     def _close_size_editor(self) -> None:
         if self._size_edit_closing:
             return
@@ -530,6 +533,15 @@ class RegionOverlay(QDialog):
         self._apply_edit_cursor(hit_test_selection_handle(self._edit_rect, self.mapFromGlobal(QCursor.pos())))
         self.update()
 
+    def _finish_with_rect(self, rect: QRect) -> None:
+        """Crop `rect` from the frozen desktop and accept the dialog."""
+        self._crop = crop_pixmap_from_logical_rect(self._frozen, rect)
+        if self._crop is None or self._crop.isNull():
+            self._crop = None
+            self.reject()
+            return
+        self.accept()
+
     def _guide_metrics(self) -> QFontMetrics:
         return QFontMetrics(guide_label_font(self.font()))
 
@@ -549,8 +561,37 @@ class RegionOverlay(QDialog):
         editor.installEventFilter(self)
         return editor
 
-    def _clear_suppress_confirm(self) -> None:
-        self._suppress_confirm_once = False
+    def _nudge_edit_rect(self, direction: ArrowDir, modifiers: Qt.KeyboardModifier) -> None:
+        if self._edit_rect is None:
+            return
+        step = _ARROW_STEP_SHIFT if modifiers & Qt.KeyboardModifier.ShiftModifier else _ARROW_STEP
+        resize = bool(modifiers & Qt.KeyboardModifier.ControlModifier)
+        self._edit_rect = nudge_selection_rect(
+            self._edit_rect,
+            direction,
+            step=step,
+            resize=resize,
+            bounds=self.rect(),
+            min_size=_MIN_SELECTION,
+        )
+        self.update()
+
+    def _paint_edit_handles(self, painter: QPainter, rect: QRect) -> None:
+        half = _HANDLE_DRAW // 2
+        points = [
+            rect.topLeft(),
+            QPoint(rect.center().x(), rect.top()),
+            rect.topRight(),
+            QPoint(rect.left(), rect.center().y()),
+            QPoint(rect.right(), rect.center().y()),
+            rect.bottomLeft(),
+            QPoint(rect.center().x(), rect.bottom()),
+            rect.bottomRight(),
+        ]
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(_HANDLE_FILL)
+        for point in points:
+            painter.drawRect(point.x() - half, point.y() - half, _HANDLE_DRAW, _HANDLE_DRAW)
 
     def _restore_overlay_keyboard(self) -> None:
         if not self.isVisible() or self._size_editor.isVisible():
@@ -558,6 +599,17 @@ class RegionOverlay(QDialog):
         if QWidget.keyboardGrabber() is None:
             self.grabKeyboard()
             self.setFocus(Qt.FocusReason.OtherFocusReason)
+
+    def _selection_rect(self) -> QRect | None:
+        if self._origin is None or self._current is None:
+            return None
+        return QRect(self._origin, self._current).normalized()
+
+    def _set_guides_enabled(self, *, enabled: bool) -> None:
+        self._guides_enabled = enabled
+        if not enabled:
+            self._close_size_editor()
+        self.update()
 
     def _size_editor_geometry(self, box: QRect) -> QRect:
         metrics = self._guide_metrics()
@@ -605,58 +657,6 @@ class RegionOverlay(QDialog):
         self._size_editor.selectAll()
         self._size_editor.grabKeyboard()
         self.update()
-
-    def _finish_with_rect(self, rect: QRect) -> None:
-        """Crop `rect` from the frozen desktop and accept the dialog."""
-        self._crop = crop_pixmap_from_logical_rect(self._frozen, rect)
-        if self._crop is None or self._crop.isNull():
-            self._crop = None
-            self.reject()
-            return
-        self.accept()
-
-    def _set_guides_enabled(self, *, enabled: bool) -> None:
-        self._guides_enabled = enabled
-        if not enabled:
-            self._close_size_editor()
-        self.update()
-
-    def _nudge_edit_rect(self, direction: ArrowDir, modifiers: Qt.KeyboardModifier) -> None:
-        if self._edit_rect is None:
-            return
-        step = _ARROW_STEP_SHIFT if modifiers & Qt.KeyboardModifier.ShiftModifier else _ARROW_STEP
-        resize = bool(modifiers & Qt.KeyboardModifier.ControlModifier)
-        self._edit_rect = nudge_selection_rect(
-            self._edit_rect,
-            direction,
-            step=step,
-            resize=resize,
-            bounds=self.rect(),
-            min_size=_MIN_SELECTION,
-        )
-        self.update()
-
-    def _paint_edit_handles(self, painter: QPainter, rect: QRect) -> None:
-        half = _HANDLE_DRAW // 2
-        points = [
-            rect.topLeft(),
-            QPoint(rect.center().x(), rect.top()),
-            rect.topRight(),
-            QPoint(rect.left(), rect.center().y()),
-            QPoint(rect.right(), rect.center().y()),
-            rect.bottomLeft(),
-            QPoint(rect.center().x(), rect.bottom()),
-            rect.bottomRight(),
-        ]
-        painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(_HANDLE_FILL)
-        for point in points:
-            painter.drawRect(point.x() - half, point.y() - half, _HANDLE_DRAW, _HANDLE_DRAW)
-
-    def _selection_rect(self) -> QRect | None:
-        if self._origin is None or self._current is None:
-            return None
-        return QRect(self._origin, self._current).normalized()
 
     def _update_snap_at(self, pos: QPoint) -> None:
         """Refresh the hover snap rectangle for `pos` and repaint when it changes."""

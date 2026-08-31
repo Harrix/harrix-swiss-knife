@@ -22,10 +22,13 @@ lang: en
 class OnScreenshotRegion(ActionBase)
 ```
 
-Capture a screen region to the clipboard (ShareX-like flow).
+Capture a screen region to the clipboard.
 
-Starts in region-selection mode with the app hidden. The left camera button
-toggles desktop-arrangement mode (app stays hidden); close cancels.
+Starts in region-selection mode with the app hidden, unless a modal
+dialog is open (for example Finance Balance check) so that window can
+be snapped like ShareX. The left shutter column can arrange the desktop,
+keep app Windows visible (re-grabs), skip the preview (clipboard only),
+adjust the frame, or show guides; close cancels.
 
 <details>
 <summary>Code:</summary>

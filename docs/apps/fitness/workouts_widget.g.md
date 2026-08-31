@@ -44,6 +44,8 @@ Split view: saved workouts on the left, items and Done checkboxes on the right.
 class WorkoutsWidget(QWidget):
 
     generate_requested = Signal()
+    empty_requested = Signal()
+    add_exercise_requested = Signal(int)
     workouts_changed = Signal()
     item_done_requested = Signal(int, bool)
     exercise_lightbox_requested = Signal(int)
@@ -314,13 +316,24 @@ class WorkoutsWidget(QWidget):
         left_layout = QVBoxLayout(left)
         left_layout.setContentsMargins(8, 8, 8, 8)
         left_layout.addWidget(QLabel("Workouts"))
+        new_row = QHBoxLayout()
         self.button_new = QPushButton("New")
-        self.button_new.setIcon(create_emoji_icon("➕"))  # noqa: RUF001
+        self.button_new.setIcon(create_emoji_icon("✨"))
         self.button_new.setMinimumHeight(41)
         self.button_new.setFont(font_12_bold)
         self.button_new.setStyleSheet(_GREEN_BUTTON_STYLE)
+        self.button_new.setToolTip("Generate a workout with AI")
         self.button_new.clicked.connect(self.generate_requested.emit)
-        left_layout.addWidget(self.button_new)
+        new_row.addWidget(self.button_new, 1)
+        self.button_new_empty = QPushButton("Empty")
+        self.button_new_empty.setIcon(create_emoji_icon("📄"))
+        self.button_new_empty.setMinimumHeight(41)
+        self.button_new_empty.setFont(font_12_bold)
+        self.button_new_empty.setStyleSheet(_GREEN_BUTTON_STYLE)
+        self.button_new_empty.setToolTip("Create an empty workout")
+        self.button_new_empty.clicked.connect(self.empty_requested.emit)
+        new_row.addWidget(self.button_new_empty, 1)
+        left_layout.addLayout(new_row)
         self.list_workouts = QListView()
         self.list_workouts.setStyleSheet(_LIST_STYLE)
         self._list_model = QStandardItemModel(self.list_workouts)
@@ -338,6 +351,15 @@ class WorkoutsWidget(QWidget):
         self.label_title = QLabel("Select a workout")
         self.label_title.setFont(font_title)
         title_row.addWidget(self.label_title, 1)
+        self.button_add_exercise = QPushButton("Add exercise")
+        self.button_add_exercise.setIcon(create_emoji_icon("🏋️"))
+        self.button_add_exercise.setMinimumHeight(41)
+        self.button_add_exercise.setMinimumWidth(150)
+        self.button_add_exercise.setFont(font_12_bold)
+        self.button_add_exercise.setStyleSheet(_GREEN_BUTTON_STYLE)
+        self.button_add_exercise.setToolTip("Add an exercise from the Select Exercise dialog")
+        self.button_add_exercise.clicked.connect(self._request_add_exercise)
+        title_row.addWidget(self.button_add_exercise)
         self.button_start = QPushButton("Start")
         self.button_start.setIcon(create_emoji_icon("▶"))
         self.button_start.setMinimumHeight(41)
@@ -378,6 +400,7 @@ class WorkoutsWidget(QWidget):
         splitter.addWidget(right)
         splitter.setStretchFactor(0, 1)
         splitter.setStretchFactor(1, 3)
+        self._update_add_exercise_button()
 
     def _can_start_workout(self) -> bool:
         return self._current_workout_id is not None and self._db is not None and not self._all_items_done()
@@ -627,6 +650,14 @@ class WorkoutsWidget(QWidget):
         self._load_workout(workout_id)
         self.workouts_changed.emit()
 
+    def _request_add_exercise(self) -> None:
+        if self._session_active:
+            return
+        if self._current_workout_id is None:
+            message_box.warning(self, "Error", "Select a workout first")
+            return
+        self.add_exercise_requested.emit(self._current_workout_id)
+
     def _selected_exercise_names(self) -> list[str]:
         names: list[str] = []
         for row in self._selected_rows():
@@ -659,11 +690,15 @@ class WorkoutsWidget(QWidget):
         if index.isValid() and not self.table_items.selectionModel().isSelected(index):
             self.table_items.selectRow(index.row())
         context_menu = QMenu(self)
+        add_action = context_menu.addAction("➕ Add exercise")  # noqa: RUF001
+        add_action.setEnabled(self._current_workout_id is not None and not self._session_active)
         lightbox_action = context_menu.addAction(LABEL_OPEN_LIGHTBOX)
         delete_action = add_delete_action(context_menu)
         apply_leading_emoji_icons(context_menu)
         action = context_menu.exec_(self.table_items.mapToGlobal(position))
-        if action == lightbox_action:
+        if action == add_action:
+            self._request_add_exercise()
+        elif action == lightbox_action:
             target = index if index.isValid() else self.table_items.currentIndex()
             if target.isValid():
                 self._on_item_double_clicked(target)
@@ -680,16 +715,20 @@ class WorkoutsWidget(QWidget):
                 if isinstance(workout_id, int):
                     self._load_workout(workout_id)
         context_menu = QMenu(self)
-        new_action = context_menu.addAction("➕ New")  # noqa: RUF001
+        new_action = context_menu.addAction("✨ New")
+        empty_action = context_menu.addAction("📄 Empty")
         delete_action = add_delete_action(context_menu)
         delete_action.setEnabled(self._current_workout_id is not None)
         if self._session_active:
             new_action.setEnabled(False)
+            empty_action.setEnabled(False)
             delete_action.setEnabled(False)
         apply_leading_emoji_icons(context_menu)
         action = context_menu.exec_(self.list_workouts.mapToGlobal(position))
         if action == new_action:
             self.generate_requested.emit()
+        elif action == empty_action:
+            self.empty_requested.emit()
         elif action == delete_action:
             self._delete_workout()
 
@@ -750,6 +789,11 @@ class WorkoutsWidget(QWidget):
             self._update_session_timer_label()
             self._tick_exercise_timer()
 
+    def _update_add_exercise_button(self) -> None:
+        self.button_add_exercise.setEnabled(
+            self._current_workout_id is not None and self._db is not None and not self._session_active,
+        )
+
     def _update_exercise_timer_label(self) -> None:
         state = self._exercise_timer_state
         if state is None or not state.running:
@@ -789,11 +833,14 @@ class WorkoutsWidget(QWidget):
         locked = self._session_active
         self.list_workouts.setEnabled(not locked)
         self.button_new.setEnabled(not locked)
+        self.button_new_empty.setEnabled(not locked)
+        self._update_add_exercise_button()
 
     def _update_start_button(self) -> None:
         can_start = self._can_start_workout() and not self._session_active
         self.button_start.setEnabled(can_start)
         self.button_start.setVisible(not self._session_active)
+        self._update_add_exercise_button()
 ```
 
 </details>

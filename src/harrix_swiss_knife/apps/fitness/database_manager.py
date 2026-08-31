@@ -178,6 +178,57 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         query = "INSERT INTO weight (value, date) VALUES (:val, :dt)"
         return self.execute_simple_query(query, {"val": value, "dt": date})
 
+    def add_workout_item(self, workout_id: int, item: WorkoutItemInput) -> int | None:
+        """Append one exercise row to a saved workout.
+
+        Args:
+
+        - `workout_id` (`int`): Parent workout `_id`.
+        - `item` (`WorkoutItemInput`): Exercise, type, and target value.
+
+        Returns:
+
+        - `int | None`: New item `_id`, or `None` on failure.
+
+        """
+        try:
+            rows = self.get_rows(
+                "SELECT COALESCE(MAX(sort_order), -1) FROM workout_items WHERE workout_id = :id",
+                {"id": workout_id},
+            )
+            sort_order = 0
+            if rows and rows[0][0] is not None:
+                sort_order = int(rows[0][0]) + 1
+            if not self.execute_simple_query(
+                """
+                INSERT INTO workout_items (
+                    workout_id, _id_exercises, _id_types, exercise_name, type_name,
+                    target_value, sort_order, is_done, process_id
+                )
+                VALUES (
+                    :workout_id, :exercise_id, :type_id, :exercise_name, :type_name,
+                    :target_value, :sort_order, 0, NULL
+                )
+                """,
+                {
+                    "workout_id": workout_id,
+                    "exercise_id": item.exercise_id,
+                    "type_id": item.type_id,
+                    "exercise_name": item.exercise_name,
+                    "type_name": item.type_name,
+                    "target_value": item.target_value,
+                    "sort_order": sort_order,
+                },
+            ):
+                return None
+            id_rows = self.get_rows("SELECT last_insert_rowid()")
+            if not id_rows or id_rows[0][0] is None:
+                return None
+            return int(id_rows[0][0])
+        except Exception:
+            logger.exception("Failed to add workout item %s", item.exercise_name)
+            return None
+
     def check_exercise_exists(self, exercise_id: int) -> bool:
         """Check if exercise exists by ID.
 

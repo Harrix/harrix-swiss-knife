@@ -76,7 +76,6 @@ _Figure 1: Screenshot_
   - 📥 Update Node.js
   - 📥 Update uv
   - 📦 Update/Install global NPM packages
-  - 📥 Upgrade uv Python
   - 📋 View recent action logs
 - **Android**
   - 📱 ★ Build Android APK in … ꟲᴸᴵ
@@ -104,8 +103,6 @@ _Figure 1: Screenshot_
   - 🚀 Optimize image from clipboard as …
   - 📷 Screenshot region
   - 📷 Screenshot region (clipboard)
-  - 📷 Screenshot region (clipboard, keep Windows)
-  - 📷 Screenshot region (keep Windows)
 - **File operations**
   - ✅ Check featured_image in all folders
   - ✅ Check featured_image in …

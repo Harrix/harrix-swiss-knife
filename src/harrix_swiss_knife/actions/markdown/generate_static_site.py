@@ -154,21 +154,6 @@ class OnGenerateStaticSite(ActionBase):
         self.show_toast(f"{self.title} completed")
         self.show_result()
 
-    def _resolve_theme_dir(self, theme_value: Any) -> Path | None:
-        """Resolve sliced theme directory from site config or global config."""
-        candidates: list[Path] = []
-        if theme_value:
-            candidates.append(Path(str(theme_value)))
-        default_theme = self.config.get("path_html_theme")
-        if default_theme:
-            candidates.append(Path(str(default_theme)))
-
-        for candidate in candidates:
-            theme_dir = candidate.expanduser().resolve()
-            if (theme_dir / "parts" / "main.html").is_file():
-                return theme_dir
-        return None
-
     def _resolve_icons_dir(self, icons_value: Any) -> Path | None:
         """Resolve a Harrix-Vector-Icons repo from site config or `path_vector_icons`."""
         candidates: list[Path] = []
@@ -183,4 +168,19 @@ class OnGenerateStaticSite(ActionBase):
                 return icons_dir
             if icons_dir.name == "icons" and icons_dir.is_dir():
                 return icons_dir
+        return None
+
+    def _resolve_theme_dir(self, theme_value: Any) -> Path | None:
+        """Resolve sliced theme directory from site config or global config."""
+        candidates: list[Path] = []
+        if theme_value:
+            candidates.append(Path(str(theme_value)))
+        default_theme = self.config.get("path_html_theme")
+        if default_theme:
+            candidates.append(Path(str(default_theme)))
+
+        for candidate in candidates:
+            theme_dir = candidate.expanduser().resolve()
+            if (theme_dir / "parts" / "main.html").is_file():
+                return theme_dir
         return None

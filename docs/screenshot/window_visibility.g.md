@@ -14,6 +14,7 @@ lang: en
 - [🏛️ Class `ConcealedWindow`](#%EF%B8%8F-class-concealedwindow)
 - [🔧 Function `bring_window_to_foreground`](#-function-bring_window_to_foreground)
 - [🔧 Function `claim_screenshot_keyboard`](#-function-claim_screenshot_keyboard)
+- [🔧 Function `has_visible_modal_dialog`](#-function-has_visible_modal_dialog)
 - [🔧 Function `hide_app_windows`](#-function-hide_app_windows)
 - [🔧 Function `is_screenshot_ui`](#-function-is_screenshot_ui)
 - [🔧 Function `mark_screenshot_ui`](#-function-mark_screenshot_ui)
@@ -100,6 +101,41 @@ def claim_screenshot_keyboard(widget: QWidget) -> None:
     bring_window_to_foreground(widget, delays_ms=())
     widget.setFocus(Qt.FocusReason.ActiveWindowFocusReason)
     widget.grabKeyboard()
+```
+
+</details>
+
+## 🔧 Function `has_visible_modal_dialog`
+
+```python
+def has_visible_modal_dialog() -> bool
+```
+
+Return whether a visible app modal dialog should stay in the screenshot.
+
+[`OnScreenshotRegion`](../actions/images/screenshot_region.g.md#%EF%B8%8F-class-onscreenshotregion) hides application Windows by default. A modal such as
+Finance Balance check would then vanish and drop out of the snap list, so
+hover highlights the owner window instead. ShareX keeps that dialog visible.
+
+Returns:
+
+- `bool`: `True` when a non-screenshot modal dialog is on screen.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def has_visible_modal_dialog() -> bool:
+    app = QApplication.instance()
+    if app is None:
+        return False
+    modal = app.activeModalWidget()
+    if modal is not None and modal.isVisible() and not is_screenshot_ui(modal):
+        return True
+    return any(
+        widget.isVisible() and not is_screenshot_ui(widget) and _is_modal_dialog(widget)
+        for widget in app.topLevelWidgets()
+    )
 ```
 
 </details>

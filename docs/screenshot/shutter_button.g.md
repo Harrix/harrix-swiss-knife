@@ -20,8 +20,15 @@ lang: en
 - [🏛️ Class `ShutterPanel`](#%EF%B8%8F-class-shutterpanel)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
   - [⚙️ Method `adjust_mode (property)`](#%EF%B8%8F-method-adjust_mode-property)
+  - [⚙️ Method `clipboard_only (property)`](#%EF%B8%8F-method-clipboard_only-property)
   - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
+  - [⚙️ Method `guides_mode (property)`](#%EF%B8%8F-method-guides_mode-property)
+  - [⚙️ Method `keep_windows (property)`](#%EF%B8%8F-method-keep_windows-property)
+  - [⚙️ Method `set_adjust_mode`](#%EF%B8%8F-method-set_adjust_mode)
+  - [⚙️ Method `set_clipboard_only`](#%EF%B8%8F-method-set_clipboard_only)
   - [⚙️ Method `set_edit_keys_visible`](#%EF%B8%8F-method-set_edit_keys_visible)
+  - [⚙️ Method `set_guides_mode`](#%EF%B8%8F-method-set_guides_mode)
+  - [⚙️ Method `set_keep_windows`](#%EF%B8%8F-method-set_keep_windows)
   - [⚙️ Method `set_mode`](#%EF%B8%8F-method-set_mode)
 - [🔧 Function `position_panel_on_left_edge`](#-function-position_panel_on_left_edge)
 
@@ -243,8 +250,10 @@ clicks reach the buttons even when the application has modal dialogs in
 Hover captions are drawn as an in-panel label (not `QToolTip`), so they stay
 visible above the stay-on-top screenshot overlay.
 
-In selection mode an extra checkable button enables “adjust region”: the next
-selection is kept editable (move/resize) until Enter confirms.
+In selection mode extra checkable buttons enable “adjust region” (the next
+selection stays editable until Enter), composition guides (thin frame,
+thirds, diagonal, size, and angle), keeping app Windows visible in the
+grab, and clipboard-only (skip the preview window).
 
 <details>
 <summary>Code:</summary>
@@ -255,6 +264,9 @@ class ShutterPanel(QWidget):
     adjust_toggled = Signal(bool)
     cancelled = Signal()
     geometry_changed = Signal()
+    guides_toggled = Signal(bool)
+    clipboard_toggled = Signal(bool)
+    keep_windows_toggled = Signal(bool)
     triggered = Signal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
@@ -281,6 +293,30 @@ class ShutterPanel(QWidget):
         self._adjust_button.setCheckable(True)
         self._adjust_button.toggled.connect(self.adjust_toggled.emit)
         buttons_layout.addWidget(self._adjust_button)
+
+        self._guides_button = self._make_emoji_button(
+            _GUIDES_EMOJI,
+            "Composition guides: thirds, diagonal, size, and angle",
+        )
+        self._guides_button.setCheckable(True)
+        self._guides_button.toggled.connect(self.guides_toggled.emit)
+        buttons_layout.addWidget(self._guides_button)
+
+        self._keep_windows_button = self._make_emoji_button(
+            _KEEP_WINDOWS_EMOJI,
+            "Keep app Windows visible in the screenshot",
+        )
+        self._keep_windows_button.setCheckable(True)
+        self._keep_windows_button.toggled.connect(self.keep_windows_toggled.emit)
+        buttons_layout.addWidget(self._keep_windows_button)
+
+        self._clipboard_button = self._make_emoji_button(
+            _CLIPBOARD_EMOJI,
+            "Clipboard only (skip preview)",
+        )
+        self._clipboard_button.setCheckable(True)
+        self._clipboard_button.toggled.connect(self.clipboard_toggled.emit)
+        buttons_layout.addWidget(self._clipboard_button)
 
         close_button = self._make_emoji_button(_CLOSE_EMOJI, "Cancel screenshot")
         close_button.clicked.connect(self.cancelled.emit)
@@ -314,6 +350,11 @@ class ShutterPanel(QWidget):
         """Whether the next selection should stay editable until confirmed."""
         return self._mode == "selection" and self._adjust_button.isChecked()
 
+    @property
+    def clipboard_only(self) -> bool:
+        """Whether capture should skip the preview and only copy to the clipboard."""
+        return self._mode == "selection" and self._clipboard_button.isChecked()
+
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
         """Show an in-panel caption while the pointer is over a shutter button."""
         if isinstance(watched, QPushButton):
@@ -325,12 +366,42 @@ class ShutterPanel(QWidget):
                 self._hide_hint()
         return super().eventFilter(watched, event)
 
+    @property
+    def guides_mode(self) -> bool:
+        """Whether the selection frame shows composition guides and measurements."""
+        return self._mode == "selection" and self._guides_button.isChecked()
+
+    @property
+    def keep_windows(self) -> bool:
+        """Whether application Windows should stay visible in the next grab."""
+        return self._mode == "selection" and self._keep_windows_button.isChecked()
+
+    def set_adjust_mode(self, *, enabled: bool) -> None:
+        """Set the adjust-region button without requiring a user click."""
+        self._adjust_button.setChecked(enabled)
+
+    def set_clipboard_only(self, *, enabled: bool) -> None:
+        """Set the clipboard-only button without requiring a user click."""
+        self._clipboard_button.setChecked(enabled)
+
     def set_edit_keys_visible(self, *, visible: bool) -> None:
         """Show or hide arrow/Shift/Ctrl hints under the shutter buttons."""
         if visible == self._edit_keys_label.isVisible():
             return
         self._edit_keys_label.setVisible(visible)
         self._update_size()
+
+    def set_guides_mode(self, *, enabled: bool) -> None:
+        """Set the composition-guides button without requiring a user click."""
+        self._guides_button.setChecked(enabled)
+
+    def set_keep_windows(self, *, enabled: bool) -> None:
+        """Set the keep-Windows button without emitting `keep_windows_toggled`."""
+        blocked = self._keep_windows_button.blockSignals(True)  # noqa: FBT003
+        try:
+            self._keep_windows_button.setChecked(enabled)
+        finally:
+            self._keep_windows_button.blockSignals(blocked)
 
     def set_mode(self, mode: ShutterMode) -> None:
         """Update the mode button emoji for selection vs desktop-arrangement."""
@@ -341,6 +412,9 @@ class ShutterPanel(QWidget):
             self._mode_button.setToolTip("Arrange desktop")
             self._mode_button.setProperty("hover_hint", "Arrange desktop")
             self._adjust_button.show()
+            self._guides_button.show()
+            self._keep_windows_button.show()
+            self._clipboard_button.show()
         else:
             # In arrange mode, click returns to region capture.
             self._mode_button.setIcon(create_emoji_icon(_CAMERA_EMOJI, _ICON_SIZE))
@@ -348,6 +422,10 @@ class ShutterPanel(QWidget):
             self._mode_button.setProperty("hover_hint", "Capture region")
             self._adjust_button.hide()
             self._adjust_button.setChecked(False)
+            self._guides_button.hide()
+            self._guides_button.setChecked(False)
+            self._keep_windows_button.hide()
+            self._clipboard_button.hide()
             self.set_edit_keys_visible(visible=False)
         if self._hovered_button is self._mode_button:
             self._show_hint(str(self._mode_button.property("hover_hint") or ""))
@@ -382,7 +460,7 @@ class ShutterPanel(QWidget):
         self._update_size()
 
     def _update_size(self) -> None:
-        button_count = 3 if self._mode == "selection" else 2
+        button_count = 6 if self._mode == "selection" else 2
         total_height = _BUTTON_SIZE * button_count + _BUTTON_GAP * (button_count - 1)
         if self._edit_keys_label.isVisible():
             total_height += _BUTTON_GAP + self._edit_keys_label.sizeHint().height()
@@ -433,6 +511,30 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self._adjust_button.toggled.connect(self.adjust_toggled.emit)
         buttons_layout.addWidget(self._adjust_button)
 
+        self._guides_button = self._make_emoji_button(
+            _GUIDES_EMOJI,
+            "Composition guides: thirds, diagonal, size, and angle",
+        )
+        self._guides_button.setCheckable(True)
+        self._guides_button.toggled.connect(self.guides_toggled.emit)
+        buttons_layout.addWidget(self._guides_button)
+
+        self._keep_windows_button = self._make_emoji_button(
+            _KEEP_WINDOWS_EMOJI,
+            "Keep app Windows visible in the screenshot",
+        )
+        self._keep_windows_button.setCheckable(True)
+        self._keep_windows_button.toggled.connect(self.keep_windows_toggled.emit)
+        buttons_layout.addWidget(self._keep_windows_button)
+
+        self._clipboard_button = self._make_emoji_button(
+            _CLIPBOARD_EMOJI,
+            "Clipboard only (skip preview)",
+        )
+        self._clipboard_button.setCheckable(True)
+        self._clipboard_button.toggled.connect(self.clipboard_toggled.emit)
+        buttons_layout.addWidget(self._clipboard_button)
+
         close_button = self._make_emoji_button(_CLOSE_EMOJI, "Cancel screenshot")
         close_button.clicked.connect(self.cancelled.emit)
         buttons_layout.addWidget(close_button)
@@ -481,6 +583,24 @@ def adjust_mode(self) -> bool:
 
 </details>
 
+### ⚙️ Method `clipboard_only (property)`
+
+```python
+def clipboard_only(self) -> bool
+```
+
+Whether capture should skip the preview and only copy to the clipboard.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def clipboard_only(self) -> bool:
+        return self._mode == "selection" and self._clipboard_button.isChecked()
+```
+
+</details>
+
 ### ⚙️ Method `eventFilter`
 
 ```python
@@ -506,6 +626,78 @@ def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
 
 </details>
 
+### ⚙️ Method `guides_mode (property)`
+
+```python
+def guides_mode(self) -> bool
+```
+
+Whether the selection frame shows composition guides and measurements.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def guides_mode(self) -> bool:
+        return self._mode == "selection" and self._guides_button.isChecked()
+```
+
+</details>
+
+### ⚙️ Method `keep_windows (property)`
+
+```python
+def keep_windows(self) -> bool
+```
+
+Whether application Windows should stay visible in the next grab.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def keep_windows(self) -> bool:
+        return self._mode == "selection" and self._keep_windows_button.isChecked()
+```
+
+</details>
+
+### ⚙️ Method `set_adjust_mode`
+
+```python
+def set_adjust_mode(self, *, enabled: bool) -> None
+```
+
+Set the adjust-region button without requiring a user click.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_adjust_mode(self, *, enabled: bool) -> None:
+        self._adjust_button.setChecked(enabled)
+```
+
+</details>
+
+### ⚙️ Method `set_clipboard_only`
+
+```python
+def set_clipboard_only(self, *, enabled: bool) -> None
+```
+
+Set the clipboard-only button without requiring a user click.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_clipboard_only(self, *, enabled: bool) -> None:
+        self._clipboard_button.setChecked(enabled)
+```
+
+</details>
+
 ### ⚙️ Method `set_edit_keys_visible`
 
 ```python
@@ -523,6 +715,46 @@ def set_edit_keys_visible(self, *, visible: bool) -> None:
             return
         self._edit_keys_label.setVisible(visible)
         self._update_size()
+```
+
+</details>
+
+### ⚙️ Method `set_guides_mode`
+
+```python
+def set_guides_mode(self, *, enabled: bool) -> None
+```
+
+Set the composition-guides button without requiring a user click.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_guides_mode(self, *, enabled: bool) -> None:
+        self._guides_button.setChecked(enabled)
+```
+
+</details>
+
+### ⚙️ Method `set_keep_windows`
+
+```python
+def set_keep_windows(self, *, enabled: bool) -> None
+```
+
+Set the keep-Windows button without emitting `keep_windows_toggled`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_keep_windows(self, *, enabled: bool) -> None:
+        blocked = self._keep_windows_button.blockSignals(True)  # noqa: FBT003
+        try:
+            self._keep_windows_button.setChecked(enabled)
+        finally:
+            self._keep_windows_button.blockSignals(blocked)
 ```
 
 </details>
@@ -547,6 +779,9 @@ def set_mode(self, mode: ShutterMode) -> None:
             self._mode_button.setToolTip("Arrange desktop")
             self._mode_button.setProperty("hover_hint", "Arrange desktop")
             self._adjust_button.show()
+            self._guides_button.show()
+            self._keep_windows_button.show()
+            self._clipboard_button.show()
         else:
             # In arrange mode, click returns to region capture.
             self._mode_button.setIcon(create_emoji_icon(_CAMERA_EMOJI, _ICON_SIZE))
@@ -554,6 +789,10 @@ def set_mode(self, mode: ShutterMode) -> None:
             self._mode_button.setProperty("hover_hint", "Capture region")
             self._adjust_button.hide()
             self._adjust_button.setChecked(False)
+            self._guides_button.hide()
+            self._guides_button.setChecked(False)
+            self._keep_windows_button.hide()
+            self._clipboard_button.hide()
             self.set_edit_keys_visible(visible=False)
         if self._hovered_button is self._mode_button:
             self._show_hint(str(self._mode_button.property("hover_hint") or ""))

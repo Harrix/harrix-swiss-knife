@@ -42,7 +42,6 @@ def get_menu_structure() -> list[Any]:
                 OnShowActionUsageStats,
                 OnClearTempFolder,
                 OnUpdateUv,
-                OnUpgradeUvPython,
                 OnInstallCli,
             ],
         ),
@@ -88,9 +87,7 @@ def get_menu_structure() -> list[Any]:
                 OnOptimizeClipboardDialog,
                 "-",
                 OnScreenshotRegion,
-                OnScreenshotRegionKeepWindows,
                 OnScreenshotRegionClipboard,
-                OnScreenshotRegionClipboardKeepWindows,
             ],
         ),
         (

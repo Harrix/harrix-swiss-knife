@@ -19,6 +19,7 @@ lang: en
   - [⚙️ Method `filterAcceptsRow`](#%EF%B8%8F-method-filteracceptsrow)
   - [⚙️ Method `lessThan`](#%EF%B8%8F-method-lessthan)
   - [⚙️ Method `set_filter_text`](#%EF%B8%8F-method-set_filter_text)
+- [🔧 Function `make_food_autocomplete_item`](#-function-make_food_autocomplete_item)
 - [🔧 Function `setup_completer_item_tooltips`](#-function-setup_completer_item_tooltips)
 
 </details>
@@ -474,6 +475,34 @@ def set_filter_text(self, text: str) -> None:
 
 </details>
 
+## 🔧 Function `make_food_autocomplete_item`
+
+```python
+def make_food_autocomplete_item(entry: FoodAutocompleteEntry) -> QStandardItem
+```
+
+Build a completer row; recipes use a plate icon instead of a text prefix.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def make_food_autocomplete_item(entry: FoodAutocompleteEntry) -> QStandardItem:
+    display = format_food_name_with_calories(
+        entry.name,
+        entry.calories_per_100g,
+        None,
+    )
+    item = QStandardItem(display if entry.is_recipe else entry.name)
+    item.setData(entry.name, Qt.ItemDataRole.EditRole)
+    item.setData(entry.name_en or "", Qt.ItemDataRole.UserRole)
+    if entry.is_recipe:
+        item.setIcon(create_emoji_icon(RECIPE_EMOJI, FOOD_AUTOCOMPLETE_ICON_SIZE))
+    return item
+```
+
+</details>
+
 ## 🔧 Function `setup_completer_item_tooltips`
 
 ```python
@@ -487,6 +516,9 @@ Enable tooltips for elided items in a QCompleter popup list.
 
 ```python
 def setup_completer_item_tooltips(completer: QCompleter) -> CompleterPopupTooltipHelper:
+    popup = completer.popup()
+    if popup is not None:
+        popup.setIconSize(QSize(FOOD_AUTOCOMPLETE_ICON_SIZE, FOOD_AUTOCOMPLETE_ICON_SIZE))
     helper = CompleterPopupTooltipHelper(completer)
     completer._tooltip_helper = helper  # keep reference alive  # noqa: SLF001
     return helper

@@ -338,18 +338,23 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         date: str,
         tag: str = "",
         description_en: str = "",
+        *,
+        amount_minor: int | None = None,
     ) -> bool:
         """Add a new transaction.
 
         Args:
 
-        - `amount` (`float`): Transaction amount.
+        - `amount` (`float`): Transaction amount in major units. Ignored when
+          `amount_minor` is set.
         - `description` (`str`): Transaction description.
         - `category_id` (`int`): Category ID.
         - `currency_id` (`int`): Currency ID.
         - `date` (`str`): Date in YYYY-MM-DD format.
         - `tag` (`str`): Transaction tag. Defaults to `""`.
         - `description_en` (`str`): English transaction description. Defaults to `""`.
+        - `amount_minor` (`int | None`): Exact amount in minor units. When set,
+          skip float conversion so a one-kopeck revision stays `1`.
 
         Returns:
 
@@ -360,8 +365,9 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
                    (amount, description, _id_categories, _id_currencies, date, tag, description_en)
                    VALUES
                    (:amount, :description, :category_id, :currency_id, :date, :tag, :description_en)"""
+        stored_amount = amount_minor if amount_minor is not None else self.convert_to_minor_units(amount, currency_id)
         params = {
-            "amount": self.convert_to_minor_units(amount, currency_id),
+            "amount": stored_amount,
             "description": description.strip(),
             "category_id": category_id,
             "currency_id": currency_id,
@@ -449,7 +455,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         """
         subdivision = self.get_currency_subdivision(currency_id)
-        return int(amount_major * subdivision)
+        return major_units_to_minor(amount_major, subdivision)
 
     def count_transactions_missing_description_en(self) -> int:
         """Return number of transactions with an empty English description."""
@@ -2833,20 +2839,23 @@ def add_standard_item(self, name: str, category_id: int, name_en: str = "") -> b
 ### ⚙️ Method `add_transaction`
 
 ```python
-def add_transaction(self, amount: float, description: str, category_id: int, currency_id: int, date: str, tag: str = '', description_en: str = '') -> bool
+def add_transaction(self, amount: float, description: str, category_id: int, currency_id: int, date: str, tag: str = '', description_en: str = '', *, amount_minor: int | None = None) -> bool
 ```
 
 Add a new transaction.
 
 Args:
 
-- `amount` (`float`): Transaction amount.
+- `amount` (`float`): Transaction amount in major units. Ignored when
+  `amount_minor` is set.
 - `description` (`str`): Transaction description.
 - `category_id` (`int`): Category ID.
 - `currency_id` (`int`): Currency ID.
 - `date` (`str`): Date in YYYY-MM-DD format.
 - `tag` (`str`): Transaction tag. Defaults to `""`.
 - `description_en` (`str`): English transaction description. Defaults to `""`.
+- `amount_minor` (`int | None`): Exact amount in minor units. When set,
+  skip float conversion so a one-kopeck revision stays `1`.
 
 Returns:
 
@@ -2865,13 +2874,16 @@ def add_transaction(
         date: str,
         tag: str = "",
         description_en: str = "",
+        *,
+        amount_minor: int | None = None,
     ) -> bool:
         query = """INSERT INTO transactions
                    (amount, description, _id_categories, _id_currencies, date, tag, description_en)
                    VALUES
                    (:amount, :description, :category_id, :currency_id, :date, :tag, :description_en)"""
+        stored_amount = amount_minor if amount_minor is not None else self.convert_to_minor_units(amount, currency_id)
         params = {
-            "amount": self.convert_to_minor_units(amount, currency_id),
+            "amount": stored_amount,
             "description": description.strip(),
             "category_id": category_id,
             "currency_id": currency_id,
@@ -3033,7 +3045,7 @@ Returns:
 ```python
 def convert_to_minor_units(self, amount_major: float, currency_id: int) -> int:
         subdivision = self.get_currency_subdivision(currency_id)
-        return int(amount_major * subdivision)
+        return major_units_to_minor(amount_major, subdivision)
 ```
 
 </details>

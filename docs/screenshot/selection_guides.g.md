@@ -1,76 +1,165 @@
-"""Composition guides for the screenshot region overlay (thirds, diagonal, size)."""
+---
+author: Anton Sergienko
+author-email: anton.b.sergienko@gmail.com
+lang: en
+---
 
-from __future__ import annotations
+# 📄 File `selection_guides.py`
 
-import math
-from dataclasses import dataclass
-from typing import TYPE_CHECKING, Literal
+<details>
+<summary>📖 Contents ⬇️</summary>
 
-from PySide6.QtCore import QPoint, QRect, Qt
-from PySide6.QtGui import QColor, QFont, QPainter, QPen
+## Contents
 
-if TYPE_CHECKING:
-    from PySide6.QtGui import QFontMetrics
+- [🏛️ Class `GuideLabel`](#%EF%B8%8F-class-guidelabel)
+- [🔧 Function `diagonal_angle_degrees`](#-function-diagonal_angle_degrees)
+- [🔧 Function `diagonal_length_px`](#-function-diagonal_length_px)
+- [🔧 Function `format_angle_label`](#-function-format_angle_label)
+- [🔧 Function `guide_label_font`](#-function-guide_label_font)
+- [🔧 Function `guide_offsets`](#-function-guide_offsets)
+- [🔧 Function `hit_test_size_label`](#-function-hit_test_size_label)
+- [🔧 Function `paint_selection_guides`](#-function-paint_selection_guides)
+- [🔧 Function `parse_size_label`](#-function-parse_size_label)
+- [🔧 Function `place_angle_label`](#-function-place_angle_label)
+- [🔧 Function `place_diagonal_label`](#-function-place_diagonal_label)
+- [🔧 Function `place_height_label`](#-function-place_height_label)
+- [🔧 Function `place_width_label`](#-function-place_width_label)
+- [🔧 Function `selection_guide_labels`](#-function-selection_guide_labels)
 
-_GRID_COLOR = QColor(210, 210, 210, 200)
-_DIAGONAL_COLOR = QColor(120, 200, 255, 230)
-_LABEL_COLOR = QColor(230, 230, 230, 240)
-_ANGLE_COLOR = QColor(200, 200, 200, 230)
-_LABEL_GAP = 6
-_LABEL_POINT_SIZE = 13
-_ARC_RADIUS = 22
-_MIN_ARC_RADIUS = 8
-_MIN_GUIDE_SIZE = 2
-_DIAGONAL_LABEL_OFFSET = 18
-_SIZE_HIT_PADDING = 6
+</details>
 
-SizeLabelKind = Literal["width", "height"]
-GuideLabelKind = Literal["width", "height", "diagonal", "angle"]
+## 🏛️ Class `GuideLabel`
 
+```python
+class GuideLabel
+```
 
-@dataclass(frozen=True)
+One measurement label placed relative to the selection rectangle.
+
+<details>
+<summary>Code:</summary>
+
+```python
 class GuideLabel:
-    """One measurement label placed relative to the selection rectangle."""
 
     text: str
     box: QRect
     color: QColor
     inside: bool
     kind: GuideLabelKind
+```
 
+</details>
 
+## 🔧 Function `diagonal_angle_degrees`
+
+```python
+def diagonal_angle_degrees(width: int, height: int) -> float
+```
+
+Return the angle (degrees) between the bottom edge and the falling diagonal.
+
+<details>
+<summary>Code:</summary>
+
+```python
 def diagonal_angle_degrees(width: int, height: int) -> float:
-    """Return the angle (degrees) between the bottom edge and the falling diagonal."""
     if width <= 0:
         return 90.0
     if height <= 0:
         return 0.0
     return math.degrees(math.atan2(height, width))
+```
 
+</details>
 
+## 🔧 Function `diagonal_length_px`
+
+```python
+def diagonal_length_px(width: int, height: int) -> int
+```
+
+Return the diagonal length in whole pixels.
+
+<details>
+<summary>Code:</summary>
+
+```python
 def diagonal_length_px(width: int, height: int) -> int:
-    """Return the diagonal length in whole pixels."""
     return round(math.hypot(width, height))
+```
 
+</details>
 
+## 🔧 Function `format_angle_label`
+
+```python
+def format_angle_label(angle_degrees: float) -> str
+```
+
+Return the angle text shown under the bottom-right corner.
+
+<details>
+<summary>Code:</summary>
+
+```python
 def format_angle_label(angle_degrees: float) -> str:
-    """Return the angle text shown under the bottom-right corner."""
     return f"{angle_degrees:.4f} °"
+```
 
+</details>
 
+## 🔧 Function `guide_label_font`
+
+```python
+def guide_label_font(base: QFont | None = None) -> QFont
+```
+
+Return the bold measurement font used on the selection frame.
+
+<details>
+<summary>Code:</summary>
+
+```python
 def guide_label_font(base: QFont | None = None) -> QFont:
-    """Return the bold measurement font used on the selection frame."""
     font = QFont() if base is None else QFont(base)
     font.setPointSize(_LABEL_POINT_SIZE)
     font.setBold(True)
     return font
+```
 
+</details>
 
+## 🔧 Function `guide_offsets`
+
+```python
+def guide_offsets(length: int) -> tuple[int, int, int]
+```
+
+Return 1/3, 1/2, and 2/3 offsets along `length`.
+
+<details>
+<summary>Code:</summary>
+
+```python
 def guide_offsets(length: int) -> tuple[int, int, int]:
-    """Return 1/3, 1/2, and 2/3 offsets along `length`."""
     return length // 3, length // 2, (2 * length) // 3
+```
 
+</details>
 
+## 🔧 Function `hit_test_size_label`
+
+```python
+def hit_test_size_label(rect: QRect, bounds: QRect, pos: QPoint, metrics: QFontMetrics, *, padding: int = _SIZE_HIT_PADDING) -> SizeLabelKind | None
+```
+
+Return `width` or `height` when `pos` is on that measurement label.
+
+<details>
+<summary>Code:</summary>
+
+```python
 def hit_test_size_label(
     rect: QRect,
     bounds: QRect,
@@ -79,15 +168,28 @@ def hit_test_size_label(
     *,
     padding: int = _SIZE_HIT_PADDING,
 ) -> SizeLabelKind | None:
-    """Return `width` or `height` when `pos` is on that measurement label."""
     width_label, height_label, _, _ = selection_guide_labels(rect, bounds, metrics)
     if width_label.box.adjusted(-padding, -padding, padding, padding).contains(pos):
         return "width"
     if height_label.box.adjusted(-padding, -padding, padding, padding).contains(pos):
         return "height"
     return None
+```
 
+</details>
 
+## 🔧 Function `paint_selection_guides`
+
+```python
+def paint_selection_guides(painter: QPainter, rect: QRect, bounds: QRect, *, skip_size: SizeLabelKind | None = None) -> None
+```
+
+Draw thirds/halves, diagonal, size labels, and the bottom-right angle.
+
+<details>
+<summary>Code:</summary>
+
+```python
 def paint_selection_guides(
     painter: QPainter,
     rect: QRect,
@@ -95,7 +197,6 @@ def paint_selection_guides(
     *,
     skip_size: SizeLabelKind | None = None,
 ) -> None:
-    """Draw thirds/halves, diagonal, size labels, and the bottom-right angle."""
     if rect.width() < _MIN_GUIDE_SIZE or rect.height() < _MIN_GUIDE_SIZE:
         return
     frame = rect.adjusted(0, 0, -1, -1)
@@ -112,17 +213,44 @@ def paint_selection_guides(
         painter.setPen(label.color)
         painter.drawText(label.box, Qt.AlignmentFlag.AlignCenter, label.text)
     painter.restore()
+```
 
+</details>
 
+## 🔧 Function `parse_size_label`
+
+```python
+def parse_size_label(text: str) -> int | None
+```
+
+Parse a typed width or height in whole pixels, or `None` if invalid.
+
+<details>
+<summary>Code:</summary>
+
+```python
 def parse_size_label(text: str) -> int | None:
-    """Parse a typed width or height in whole pixels, or `None` if invalid."""
     stripped = text.strip()
     if not stripped.isdigit():
         return None
     value = int(stripped)
     return value if value > 0 else None
+```
 
+</details>
 
+## 🔧 Function `place_angle_label`
+
+```python
+def place_angle_label(rect: QRect, bounds: QRect, *, text_width: int, text_height: int, gap: int = _LABEL_GAP) -> tuple[QRect, bool]
+```
+
+Place the angle label below the bottom-right corner, or inside if it does not fit.
+
+<details>
+<summary>Code:</summary>
+
+```python
 def place_angle_label(
     rect: QRect,
     bounds: QRect,
@@ -131,7 +259,6 @@ def place_angle_label(
     text_height: int,
     gap: int = _LABEL_GAP,
 ) -> tuple[QRect, bool]:
-    """Place the angle label below the bottom-right corner, or inside if it does not fit."""
     x = rect.right() - text_width
     y = rect.bottom() + gap
     box = QRect(x, y, text_width, text_height)
@@ -139,8 +266,25 @@ def place_angle_label(
         return box, False
     inner = QRect(rect.right() - gap - text_width, rect.bottom() - gap - text_height, text_width, text_height)
     return _clamp_inside(inner, rect, text_width, text_height, gap), True
+```
 
+</details>
 
+## 🔧 Function `place_diagonal_label`
+
+```python
+def place_diagonal_label(rect: QRect, *, text_width: int, text_height: int, gap: int = _LABEL_GAP) -> QRect
+```
+
+Place the diagonal length next to the line, not on it.
+
+Prefers the top-right side of the falling diagonal; falls back to the
+opposite side if that box does not fit inside `rect`.
+
+<details>
+<summary>Code:</summary>
+
+```python
 def place_diagonal_label(
     rect: QRect,
     *,
@@ -148,18 +292,26 @@ def place_diagonal_label(
     text_height: int,
     gap: int = _LABEL_GAP,
 ) -> QRect:
-    """Place the diagonal length next to the line, not on it.
-
-    Prefers the top-right side of the falling diagonal; falls back to the
-    opposite side if that box does not fit inside `rect`.
-
-    """
     preferred = _offset_from_diagonal(rect, text_width, text_height, gap=gap, toward_top_right=True)
     if _label_clears_diagonal(rect, preferred):
         return preferred
     return _offset_from_diagonal(rect, text_width, text_height, gap=gap, toward_top_right=False)
+```
 
+</details>
 
+## 🔧 Function `place_height_label`
+
+```python
+def place_height_label(rect: QRect, bounds: QRect, *, text_width: int, text_height: int, gap: int = _LABEL_GAP) -> tuple[QRect, bool]
+```
+
+Place the height label to the left of the frame, or inside if it does not fit.
+
+<details>
+<summary>Code:</summary>
+
+```python
 def place_height_label(
     rect: QRect,
     bounds: QRect,
@@ -168,7 +320,6 @@ def place_height_label(
     text_height: int,
     gap: int = _LABEL_GAP,
 ) -> tuple[QRect, bool]:
-    """Place the height label to the left of the frame, or inside if it does not fit."""
     x = rect.left() - gap - text_width
     y = rect.center().y() - text_height // 2
     box = QRect(x, y, text_width, text_height)
@@ -176,8 +327,22 @@ def place_height_label(
         return box, False
     inner = QRect(rect.left() + gap, rect.center().y() - text_height // 2, text_width, text_height)
     return _clamp_inside(inner, rect, text_width, text_height, gap), True
+```
 
+</details>
 
+## 🔧 Function `place_width_label`
+
+```python
+def place_width_label(rect: QRect, bounds: QRect, *, text_width: int, text_height: int, gap: int = _LABEL_GAP) -> tuple[QRect, bool]
+```
+
+Place the width label above the frame, or inside if it does not fit.
+
+<details>
+<summary>Code:</summary>
+
+```python
 def place_width_label(
     rect: QRect,
     bounds: QRect,
@@ -186,7 +351,6 @@ def place_width_label(
     text_height: int,
     gap: int = _LABEL_GAP,
 ) -> tuple[QRect, bool]:
-    """Place the width label above the frame, or inside if it does not fit."""
     x = rect.center().x() - text_width // 2
     y = rect.top() - gap - text_height
     box = QRect(x, y, text_width, text_height)
@@ -194,8 +358,22 @@ def place_width_label(
         return box, False
     inner = QRect(rect.center().x() - text_width // 2, rect.top() + gap, text_width, text_height)
     return _clamp_inside(inner, rect, text_width, text_height, gap), True
+```
 
+</details>
 
+## 🔧 Function `selection_guide_labels`
+
+```python
+def selection_guide_labels(rect: QRect, bounds: QRect, metrics: QFontMetrics, *, gap: int = _LABEL_GAP) -> tuple[GuideLabel, GuideLabel, GuideLabel, GuideLabel]
+```
+
+Return width, height, diagonal, and angle labels for `rect`.
+
+<details>
+<summary>Code:</summary>
+
+```python
 def selection_guide_labels(
     rect: QRect,
     bounds: QRect,
@@ -203,7 +381,6 @@ def selection_guide_labels(
     *,
     gap: int = _LABEL_GAP,
 ) -> tuple[GuideLabel, GuideLabel, GuideLabel, GuideLabel]:
-    """Return width, height, diagonal, and angle labels for `rect`."""
     width = rect.width()
     height = rect.height()
     width_text = str(width)
@@ -244,81 +421,6 @@ def selection_guide_labels(
         GuideLabel(diagonal_text, diagonal_box, _DIAGONAL_COLOR, inside=True, kind="diagonal"),
         GuideLabel(angle_text, angle_box, _ANGLE_COLOR, angle_inside, "angle"),
     )
+```
 
-
-def _clamp_inside(box: QRect, rect: QRect, text_width: int, text_height: int, gap: int) -> QRect:
-    x = min(max(box.x(), rect.left() + gap), max(rect.left() + gap, rect.right() - gap - text_width))
-    y = min(max(box.y(), rect.top() + gap), max(rect.top() + gap, rect.bottom() - gap - text_height))
-    return QRect(x, y, text_width, text_height)
-
-
-def _label_clears_diagonal(rect: QRect, box: QRect) -> bool:
-    return not _point_on_falling_diagonal(rect, box.center())
-
-
-def _offset_from_diagonal(
-    rect: QRect,
-    text_width: int,
-    text_height: int,
-    *,
-    gap: int,
-    toward_top_right: bool,
-) -> QRect:
-    width = max(rect.width(), 1)
-    height = max(rect.height(), 1)
-    length = math.hypot(width, height)
-    normal_x = height / length
-    normal_y = -width / length
-    if not toward_top_right:
-        normal_x = -normal_x
-        normal_y = -normal_y
-    offset = _DIAGONAL_LABEL_OFFSET + text_height // 2
-    center = rect.center()
-    box = QRect(
-        center.x() + round(normal_x * offset) - text_width // 2,
-        center.y() + round(normal_y * offset) - text_height // 2,
-        text_width,
-        text_height,
-    )
-    return _clamp_inside(box, rect, text_width, text_height, gap)
-
-
-def _paint_angle_arc(painter: QPainter, frame: QRect) -> None:
-    width = frame.width()
-    height = frame.height()
-    angle = diagonal_angle_degrees(width, height)
-    radius = min(_ARC_RADIUS, max(_MIN_ARC_RADIUS, width // 4), max(_MIN_ARC_RADIUS, height // 4))
-    if radius < _MIN_ARC_RADIUS:
-        return
-    corner = frame.bottomRight()
-    arc_rect = QRect(corner.x() - radius, corner.y() - radius, radius * 2, radius * 2)
-    painter.setPen(QPen(_ANGLE_COLOR, 1))
-    painter.setBrush(Qt.BrushStyle.NoBrush)
-    painter.drawArc(arc_rect, 180 * 16, -int(angle * 16))
-
-
-def _paint_diagonal(painter: QPainter, frame: QRect) -> None:
-    painter.setPen(QPen(_DIAGONAL_COLOR, 1))
-    painter.drawLine(frame.topLeft(), frame.bottomRight())
-
-
-def _paint_grid(painter: QPainter, frame: QRect) -> None:
-    painter.setPen(QPen(_GRID_COLOR, 1))
-    left = frame.left()
-    top = frame.top()
-    for offset in guide_offsets(frame.width()):
-        x = left + offset
-        painter.drawLine(QPoint(x, frame.top()), QPoint(x, frame.bottom()))
-    for offset in guide_offsets(frame.height()):
-        y = top + offset
-        painter.drawLine(QPoint(frame.left(), y), QPoint(frame.right(), y))
-
-
-def _point_on_falling_diagonal(rect: QRect, point: QPoint) -> bool:
-    """Return whether `point` lies on the top-left to bottom-right diagonal."""
-    width = rect.width()
-    height = rect.height()
-    if width <= 0 or height <= 0:
-        return True
-    expected_y = rect.top() + (point.x() - rect.left()) * height / width
-    return abs(point.y() - expected_y) <= 1
+</details>

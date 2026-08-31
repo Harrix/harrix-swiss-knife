@@ -255,19 +255,9 @@ class ShutterPanel(QWidget):
         return self._mode == "selection" and self._adjust_button.isChecked()
 
     @property
-    def guides_mode(self) -> bool:
-        """Whether the selection frame shows composition guides and measurements."""
-        return self._mode == "selection" and self._guides_button.isChecked()
-
-    @property
     def clipboard_only(self) -> bool:
         """Whether capture should skip the preview and only copy to the clipboard."""
         return self._mode == "selection" and self._clipboard_button.isChecked()
-
-    @property
-    def keep_windows(self) -> bool:
-        """Whether application Windows should stay visible in the next grab."""
-        return self._mode == "selection" and self._keep_windows_button.isChecked()
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
         """Show an in-panel caption while the pointer is over a shutter button."""
@@ -280,6 +270,24 @@ class ShutterPanel(QWidget):
                 self._hide_hint()
         return super().eventFilter(watched, event)
 
+    @property
+    def guides_mode(self) -> bool:
+        """Whether the selection frame shows composition guides and measurements."""
+        return self._mode == "selection" and self._guides_button.isChecked()
+
+    @property
+    def keep_windows(self) -> bool:
+        """Whether application Windows should stay visible in the next grab."""
+        return self._mode == "selection" and self._keep_windows_button.isChecked()
+
+    def set_adjust_mode(self, *, enabled: bool) -> None:
+        """Set the adjust-region button without requiring a user click."""
+        self._adjust_button.setChecked(enabled)
+
+    def set_clipboard_only(self, *, enabled: bool) -> None:
+        """Set the clipboard-only button without requiring a user click."""
+        self._clipboard_button.setChecked(enabled)
+
     def set_edit_keys_visible(self, *, visible: bool) -> None:
         """Show or hide arrow/Shift/Ctrl hints under the shutter buttons."""
         if visible == self._edit_keys_label.isVisible():
@@ -287,17 +295,9 @@ class ShutterPanel(QWidget):
         self._edit_keys_label.setVisible(visible)
         self._update_size()
 
-    def set_adjust_mode(self, *, enabled: bool) -> None:
-        """Set the adjust-region button without requiring a user click."""
-        self._adjust_button.setChecked(enabled)
-
     def set_guides_mode(self, *, enabled: bool) -> None:
         """Set the composition-guides button without requiring a user click."""
         self._guides_button.setChecked(enabled)
-
-    def set_clipboard_only(self, *, enabled: bool) -> None:
-        """Set the clipboard-only button without requiring a user click."""
-        self._clipboard_button.setChecked(enabled)
 
     def set_keep_windows(self, *, enabled: bool) -> None:
         """Set the keep-Windows button without emitting `keep_windows_toggled`."""
