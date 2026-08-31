@@ -54,16 +54,17 @@ def preload_habit_checkin_sounds() -> None:
 def _effect_for(name: str) -> QSoundEffect | None:
     cached = _effects.get(name)
     if cached is not None:
-        cached.setVolume(_volume_for(name))
         return cached
     url = _sound_url(name)
     if not url.isValid():
         return None
     effect = QSoundEffect()
+    # Stay muted until a real play. setSource can become Ready immediately and
+    # start the silent prime; setting audible volume here made that clip play.
+    effect.setVolume(0.0)
     # Connect before setSource: Ready can fire before the caller inspects status.
     effect.statusChanged.connect(lambda n=name, e=effect: _on_effect_status(n, e))
     effect.setSource(url)
-    effect.setVolume(_volume_for(name))
     _effects[name] = effect
     if effect.status() == QSoundEffect.Status.Ready:
         _on_effect_status(name, effect)
@@ -95,6 +96,7 @@ def _play_named(name: str) -> None:
     if effect.status() == QSoundEffect.Status.Error:
         return
     if effect.status() == QSoundEffect.Status.Ready and name in _primed:
+        effect.setVolume(_volume_for(name))
         effect.play()
         return
     _pending_play.add(name)
@@ -117,10 +119,10 @@ def _prime_effect(name: str, effect: QSoundEffect) -> None:
     _primed.add(name)
     if qt_sounds_muted():
         return
-    saved = effect.volume()
+    # play() is async. Restoring volume here made the prime clip audible on
+    # startup (especially Not done at full volume). Real playback sets volume.
     effect.setVolume(0.0)
     effect.play()
-    effect.setVolume(saved)
 
 
 def _sound_url(name: str) -> QUrl:
