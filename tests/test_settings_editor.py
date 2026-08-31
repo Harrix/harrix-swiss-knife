@@ -19,7 +19,9 @@ from harrix_swiss_knife.apps.common.settings_editor import (
     HOTKEY_BINDINGS_OBJECT_NAME,
     HOTKEY_EDIT_OBJECT_NAME,
     OPEN_FOLDER_BUTTON_OBJECT_NAME,
+    OPEN_SNIPPET_BUTTON_OBJECT_NAME,
     SAVE_ALL_BUTTON_OBJECT_NAME,
+    SNIPPET_CONTENT_OBJECT_NAME,
     HotkeyBindingsWidget,
     HotkeyEdit,
     SettingsEditorDialog,
@@ -31,8 +33,10 @@ from harrix_swiss_knife.apps.common.settings_editor import (
     is_hotkey_bindings_setting,
     is_hotkey_setting,
     is_hotkey_string,
+    is_snippet_setting,
     load_raw_config,
     merge_filtered_config,
+    snippet_path_from_text,
 )
 
 _LONG_LIST = [f"item-{index}" for index in range(12)]
@@ -102,6 +106,132 @@ def test_multiline_field_height_shows_all_text(qapp: QApplication, monkeypatch: 
         assert widget.height() >= needed
         assert widget.height() > 100
         assert widget.verticalScrollBar().maximum() == 0
+    finally:
+        dialog.close()
+
+
+def test_is_snippet_setting_and_path(tmp_path: Path) -> None:
+    assert is_snippet_setting("snippet:config/prompts/finance-category-translate-local.md")
+    assert not is_snippet_setting("cursor")
+    assert not is_snippet_setting("snippet:")
+    path = snippet_path_from_text(
+        "snippet:config/prompts/finance-category-translate-local.md",
+        project_root=tmp_path,
+    )
+    assert path == tmp_path / "config" / "prompts" / "finance-category-translate-local.md"
+    assert snippet_path_from_text("cursor", project_root=tmp_path) is None
+
+
+def test_snippet_setting_shows_open_button_and_content(
+    qapp: QApplication,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    snippet = tmp_path / "config" / "prompts" / "finance-category-translate-local.md"
+    snippet.parent.mkdir(parents=True)
+    snippet.write_text("Translate categories.\n", encoding="utf-8")
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.common.settings_editor.get_project_root",
+        lambda: tmp_path,
+    )
+    dialog = _open_settings_dialog(
+        monkeypatch,
+        {
+            "editor": "cursor",
+            "prompts": {
+                "finance_category_translate_local": "snippet:config/prompts/finance-category-translate-local.md"
+            },
+        },
+    )
+    try:
+        for row in range(dialog.list_categories.count()):
+            item = dialog.list_categories.item(row)
+            if item is not None and item.text() == "prompts":
+                dialog.list_categories.setCurrentRow(row)
+                break
+        QApplication.processEvents()
+        path_edit = dialog.input_widgets["prompts::finance_category_translate_local"]
+        assert isinstance(path_edit, QLineEdit)
+        assert path_edit.text() == "snippet:config/prompts/finance-category-translate-local.md"
+        button = dialog.findChild(QPushButton, OPEN_SNIPPET_BUTTON_OBJECT_NAME)
+        assert button is not None
+        assert button.isEnabled()
+        assert button.toolTip() == "Open snippet in editor"
+        content = dialog.findChild(QTextEdit, SNIPPET_CONTENT_OBJECT_NAME)
+        assert content is not None
+        assert content.toPlainText() == "Translate categories.\n"
+    finally:
+        dialog._dirty.clear()
+        dialog.close()
+
+
+def test_open_snippet_button_opens_file_in_editor(
+    qapp: QApplication,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    snippet = tmp_path / "config" / "prompts" / "note.md"
+    snippet.parent.mkdir(parents=True)
+    snippet.write_text("Hello\n", encoding="utf-8")
+    opened: list[tuple[str, Path, Path]] = []
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.common.settings_editor.get_project_root",
+        lambda: tmp_path,
+    )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.common.settings_editor.open_in_editor",
+        lambda editor, workspace, path: opened.append((editor, Path(workspace), Path(path))),
+    )
+    dialog = _open_settings_dialog(
+        monkeypatch,
+        {"editor": "cursor", "beginning_of_md": "snippet:config/prompts/note.md"},
+    )
+    try:
+        button = dialog.findChild(QPushButton, OPEN_SNIPPET_BUTTON_OBJECT_NAME)
+        assert button is not None
+        button.click()
+        QApplication.processEvents()
+        assert opened == [("cursor", tmp_path, snippet)]
+    finally:
+        dialog.close()
+
+
+def test_snippet_content_save_writes_file(
+    qapp: QApplication,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    snippet = tmp_path / "config" / "prompts" / "note.md"
+    snippet.parent.mkdir(parents=True)
+    snippet.write_text("Old\n", encoding="utf-8")
+    path = tmp_path / "config.json"
+    path.write_text(
+        json.dumps({"editor": "cursor", "beginning_of_md": "snippet:config/prompts/note.md"}),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.common.settings_editor.get_project_root",
+        lambda: tmp_path,
+    )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.common.settings_editor.get_config_path_str",
+        lambda: str(path),
+    )
+    dialog = SettingsEditorDialog()
+    dialog.show()
+    QApplication.processEvents()
+    try:
+        content = dialog.findChild(QTextEdit, SNIPPET_CONTENT_OBJECT_NAME)
+        assert content is not None
+        content.setPlainText("New text\n")
+        QApplication.processEvents()
+        save_all = dialog.findChild(QPushButton, SAVE_ALL_BUTTON_OBJECT_NAME)
+        assert save_all is not None
+        save_all.click()
+        QApplication.processEvents()
+        assert snippet.read_text(encoding="utf-8") == "New text\n"
+        written = json.loads(path.read_text(encoding="utf-8"))
+        assert written["beginning_of_md"] == "snippet:config/prompts/note.md"
     finally:
         dialog.close()
 
