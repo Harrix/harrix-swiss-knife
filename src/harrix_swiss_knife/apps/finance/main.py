@@ -3523,15 +3523,26 @@ class MainWindow(
             # if diff < 0 => add expense by abs(diff)
             is_income = diff_minor > 0
             category_name = "Revision Income" if is_income else "Revision Expense"
-            category_id = self.db_manager.get_id("categories", "name", category_name)
+            category_type = 1 if is_income else 0
+            category_id = self.db_manager.get_id(
+                "categories",
+                "name",
+                category_name,
+                condition=f"type = {category_type}",
+            )
             if category_id is None:
                 message_box.warning(self, "Revision", f"Category '{category_name}' not found")
                 return
 
-            amount_major = self.db_manager.convert_from_minor_units(abs(diff_minor), currency_id)
             description = f"Revision for {currency_code}"
             success = self.db_manager.add_transaction(
-                amount_major, description, category_id, currency_id, today, "revision"
+                0.0,
+                description,
+                category_id,
+                currency_id,
+                today,
+                "revision",
+                amount_minor=abs(diff_minor),
             )
 
             if not success:
@@ -4029,9 +4040,14 @@ class MainWindow(
             if remainder_minor > 0:
                 today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
                 description = f"Revision for {currency_code}"
-                amount_major = self.db_manager.convert_from_minor_units(remainder_minor, currency_id)
                 if not self.db_manager.add_transaction(
-                    amount_major, description, category_id, currency_id, today, "revision"
+                    0.0,
+                    description,
+                    category_id,
+                    currency_id,
+                    today,
+                    "revision",
+                    amount_minor=remainder_minor,
                 ):
                     message_box.warning(self, "Revision", "Failed to add consolidated revision")
                     return

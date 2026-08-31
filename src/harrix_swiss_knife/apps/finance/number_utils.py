@@ -67,9 +67,30 @@ def format_amount(value: float | str) -> str:
         return formatted
 
 
+def major_units_to_minor(amount_major: float, subdivision: int) -> int:
+    """Convert major units to minor units without float truncation.
+
+    `int(0.01 * 100)` can become `0` on some values; `int(19.99 * 100)` is `1998`.
+    Rounding to the nearest minor unit keeps a one-kopeck revision as `1`.
+
+    Args:
+
+    - `amount_major` (`float`): Amount in major units (e.g. rubles).
+    - `subdivision` (`int`): Minor units per major unit (e.g. `100`).
+
+    Returns:
+
+    - `int`: Amount in minor units (e.g. kopecks).
+
+    """
+    scale = subdivision if subdivision > 0 else 1
+    return round(amount_major * scale)
+
+
 __all__ = [
     "clean_number_text",
     "evaluate_arithmetic_expression",
     "format_amount",
+    "major_units_to_minor",
     "try_evaluate_arithmetic_expression",
 ]

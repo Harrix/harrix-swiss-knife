@@ -10,6 +10,7 @@ import pytest
 from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife.apps.finance.database_manager import DatabaseManager
+from harrix_swiss_knife.apps.finance.transaction_helpers import get_natural_currency_reconciliation
 
 RECOVER_SQL = Path(__file__).resolve().parents[1] / "src" / "harrix_swiss_knife" / "apps" / "finance" / "recover.sql"
 
@@ -157,3 +158,68 @@ def test_currency_cache_reflects_writes(finance_db: DatabaseManager) -> None:
 
     assert finance_db.delete_currency(gbp_id)
     assert finance_db.get_currency_by_code("GBP") is None
+
+
+def test_convert_to_minor_units_rounds_kopecks(finance_db: DatabaseManager) -> None:
+    assert finance_db.convert_to_minor_units(0.01, RUB_ID) == 1
+    assert finance_db.convert_to_minor_units(19.99, RUB_ID) == 1999
+    assert finance_db.convert_to_minor_units(-0.01, RUB_ID) == -1
+
+
+def test_add_transaction_stores_exact_one_kopeck(finance_db: DatabaseManager) -> None:
+    category_id = _category_id(finance_db, "Revision Expense")
+    assert finance_db.add_transaction(
+        0.0,
+        "One kopeck revision",
+        category_id,
+        RUB_ID,
+        "2026-08-31",
+        "revision",
+        amount_minor=1,
+    )
+    rows = finance_db.get_rows(
+        "SELECT amount FROM transactions WHERE description = :description",
+        {"description": "One kopeck revision"},
+    )
+    assert rows
+    assert int(rows[0][0]) == 1
+
+
+def _rub_natural_diff(db: DatabaseManager) -> int:
+    rows = get_natural_currency_reconciliation(
+        db.get_all_transactions(),
+        db.get_all_currency_exchanges(),
+        db.get_all_accounts(),
+        db,
+    )
+    rub = next(item for item in rows if int(item["currency_id"]) == RUB_ID)
+    return int(rub["diff_minor"])
+
+
+def test_one_kopeck_revision_closes_natural_diff(finance_db: DatabaseManager) -> None:
+    natural_rows = get_natural_currency_reconciliation(
+        finance_db.get_all_transactions(),
+        finance_db.get_all_currency_exchanges(),
+        finance_db.get_all_accounts(),
+        finance_db,
+    )
+    rub = next(item for item in natural_rows if int(item["currency_id"]) == RUB_ID)
+    journal_minor = int(rub["journal_minor"])
+    assert finance_db.execute_simple_query("UPDATE accounts SET balance = 0")
+    assert finance_db.execute_simple_query(
+        "UPDATE accounts SET balance = :balance WHERE name = 'Cash'",
+        {"balance": journal_minor - 1},
+    )
+    assert _rub_natural_diff(finance_db) == -1
+
+    category_id = _category_id(finance_db, "Revision Expense")
+    assert finance_db.add_transaction(
+        0.0,
+        "Fix one kopeck",
+        category_id,
+        RUB_ID,
+        "2026-08-31",
+        "revision",
+        amount_minor=1,
+    )
+    assert _rub_natural_diff(finance_db) == 0
