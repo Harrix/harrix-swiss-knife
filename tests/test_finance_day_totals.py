@@ -13,9 +13,12 @@ from harrix_swiss_knife.apps.finance.transaction_day_totals import (
     TRANSACTION_COL_TOTAL_PER_DAY,
     expense_in_default_currency,
     format_transaction_day_total,
+    format_transaction_selection_status,
     is_income_category_display,
     parse_transaction_amount_display,
     refresh_transaction_day_totals,
+    signed_amount_in_default_currency,
+    sum_transaction_rows_in_default_currency,
 )
 
 
@@ -102,6 +105,48 @@ def test_refresh_transaction_day_totals_updates_last_column(qapp: QApplication) 
     assert model.item(1, TRANSACTION_COL_TOTAL_PER_DAY).text() == ""
     assert model.item(2, TRANSACTION_COL_TOTAL_PER_DAY).text() == ""
     assert model.item(3, TRANSACTION_COL_TOTAL_PER_DAY).text() == "-50.00"
+
+
+def test_signed_amount_income_positive_expense_negative() -> None:
+    db = _FakeDbManager()
+    assert (
+        signed_amount_in_default_currency(
+            2.0,
+            is_income=True,
+            currency_code="USD",
+            date="2026-08-25",
+            db_manager=db,
+        )
+        == 200.0
+    )
+    assert (
+        signed_amount_in_default_currency(
+            2.0,
+            is_income=False,
+            currency_code="USD",
+            date="2026-08-25",
+            db_manager=db,
+        )
+        == -200.0
+    )
+
+
+def test_format_transaction_selection_status() -> None:
+    assert format_transaction_selection_status(0, 0.0, "₽") == ""
+    assert format_transaction_selection_status(1, -80.0, "₽") == "1 row selected · sum -80₽"
+    assert format_transaction_selection_status(3, 1234.5, "₽") == "3 rows selected · sum 1 234.₅₽"
+
+
+def test_sum_transaction_rows_in_default_currency(qapp: QApplication) -> None:  # noqa: ARG001
+    model = QStandardItemModel()
+    model.setColumnCount(8)
+    model.appendRow(_row("Coffee", "-80.00", "☕ Cafe", "RUB", "2026-08-25", ""))
+    model.appendRow(_row("Salary", "1000.00", "💰 Job (Income)", "RUB", "2026-08-25", ""))
+    model.appendRow(_row("Taxi", "-1.00", "🚕 Transport", "USD", "2026-08-25", ""))
+
+    count, total = sum_transaction_rows_in_default_currency(model, [0, 1, 2], _FakeDbManager())
+    assert count == 3
+    assert total == 820.0
 
 
 def _row(

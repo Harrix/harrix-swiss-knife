@@ -150,7 +150,9 @@ from harrix_swiss_knife.apps.finance.standard_items_dialog import StandardItemsD
 from harrix_swiss_knife.apps.finance.text_input_dialog import TextInputDialog
 from harrix_swiss_knife.apps.finance.transaction_day_totals import (
     TRANSACTION_COL_DATE,
+    format_transaction_selection_status,
     refresh_transaction_day_totals,
+    sum_transaction_rows_in_default_currency,
 )
 from harrix_swiss_knife.apps.finance.transaction_helpers import (
     MIN_TRANSACTION_ROW_LENGTH,
@@ -263,6 +265,7 @@ class MainWindow(
         self._auto_save_handlers: dict[str, Any] = {}
         self._auto_save_source_models: dict[str, QObject | None] = {}
         self._transaction_selection_selection_model: QItemSelectionModel | None = None
+        self._transactions_selection_status_label: QLabel | None = None
 
         # Table models dictionary
         self.models: dict[str, QSortFilterProxyModel | None] = {
@@ -2082,8 +2085,12 @@ class MainWindow(
         if old_selection_model is not None:
             with contextlib.suppress(TypeError, RuntimeError):
                 old_selection_model.currentChanged.disconnect(self._on_transaction_selection_changed)
+            with contextlib.suppress(TypeError, RuntimeError):
+                old_selection_model.selectionChanged.disconnect(self._update_transactions_selection_status)
         selection_model.currentChanged.connect(self._on_transaction_selection_changed)
+        selection_model.selectionChanged.connect(self._update_transactions_selection_status)
         self._transaction_selection_selection_model = selection_model
+        self._update_transactions_selection_status()
 
     def _copy_test_balance_to_clipboard(self, summary_lines: list[str], natural_rows: list[dict[str, Any]]) -> None:
         """Copy test balance summary and currency table to clipboard."""
@@ -5241,6 +5248,10 @@ class MainWindow(
         status_bar.setStyleSheet(
             "QStatusBar { background: rgba(240, 240, 240, 0.9); }QStatusBar QLabel { color: #202020; }"
         )
+        if self._transactions_selection_status_label is None:
+            self._transactions_selection_status_label = QLabel("")
+            self._transactions_selection_status_label.setObjectName("transactions_selection_status")
+            status_bar.addPermanentWidget(self._transactions_selection_status_label)
 
     def _setup_tab_order(self) -> None:
         """Se tup tab order for widgets in groupBox_transaction."""
@@ -6421,6 +6432,42 @@ class MainWindow(
                 self._draw_category_chart(category_series, period, currency_symbol)
         finally:
             self._close_chart_build_toast()
+
+    def _update_transactions_selection_status(self, *_args: object) -> None:
+        """Show selected row count and signed sum in the default currency."""
+        label = self._transactions_selection_status_label
+        if label is None:
+            return
+
+        proxy_model = self.models.get("transactions")
+        if proxy_model is None:
+            label.setText("")
+            return
+
+        source_model = proxy_model.sourceModel()
+        if not isinstance(source_model, QStandardItemModel):
+            label.setText("")
+            return
+
+        selection_model = self.tableView_transactions.selectionModel()
+        if selection_model is None:
+            label.setText("")
+            return
+
+        source_rows: list[int] = []
+        seen_source_rows: set[int] = set()
+        for proxy_index in selection_model.selectedIndexes():
+            source_index = proxy_model.mapToSource(proxy_index)
+            if not source_index.isValid():
+                continue
+            row = source_index.row()
+            if row in seen_source_rows:
+                continue
+            seen_source_rows.add(row)
+            source_rows.append(row)
+
+        count, total = sum_transaction_rows_in_default_currency(source_model, source_rows, self.db_manager)
+        label.setText(format_transaction_selection_status(count, total, self._get_default_currency_symbol()))
 
 
 def apply_transactions_table_column_widths(table_view: QTableView) -> None:
