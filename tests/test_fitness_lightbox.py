@@ -105,8 +105,10 @@ def test_default_exercise_type_prefers_plan_then_last_then_first() -> None:
     types = ["Wide", "Narrow"]
     assert default_exercise_type(types, preferred="Narrow", last_used="Wide") == "Narrow"
     assert default_exercise_type(types, preferred="", last_used="Wide") == "Wide"
-    assert default_exercise_type(types, preferred="", last_used="") == "Wide"
-    assert default_exercise_type([], preferred="Wide", last_used="Wide") == ""
+    assert default_exercise_type(types, preferred="", last_used="") == ""
+    assert default_exercise_type(types, preferred="", last_used="", type_required=True) == "Wide"
+    assert default_exercise_type(types, preferred="", last_used="Narrow", type_required=True) == "Narrow"
+    assert default_exercise_type([], preferred="Wide", last_used="Wide", type_required=True) == ""
 
 
 def test_seconds_exercise_unit_and_minute_second_split() -> None:

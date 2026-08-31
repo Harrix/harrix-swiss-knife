@@ -1739,16 +1739,24 @@ class MainWindow(
 
             # Find the most recently used type and value for this exercise
             try:
+                last_type = ""
+                last_value = ""
                 last_record = self.db_manager.get_last_exercise_record(ex_id)
-
                 if last_record:
                     last_type, last_value = last_record
 
-                    # Find and select this type in the combobox
-                    type_index = self.comboBox_type.findText(last_type)
+                selected_type = default_exercise_type(
+                    types,
+                    preferred="",
+                    last_used=last_type,
+                    type_required=self.db_manager.is_exercise_type_required(ex_id),
+                )
+                if selected_type:
+                    type_index = self.comboBox_type.findText(selected_type)
                     if type_index >= 0:
                         self.comboBox_type.setCurrentIndex(type_index)
 
+                if last_record:
                     # Set spinBox_count value based on exercise _id
                     if ex_id == self.id_steps:  # Steps exercise - set to 0 (empty)
                         self._set_count_value(0)
@@ -3443,7 +3451,7 @@ class MainWindow(
             logger.exception("Error updating filter comboboxes")
 
     @requires_database(is_show_warning=False)
-    def update_filter_type_combobox(self, _index: int = -1) -> None:
+    def update_filter_type_combobox(self, _index: int = -1, *, apply_type_default: bool = False) -> None:
         """Populate `type` filter based on the `exercise` filter selection.
 
         Updates the exercise type combobox in the filter section based on the
@@ -3453,6 +3461,8 @@ class MainWindow(
         Args:
 
         - `_index` (`int`): Index from Qt signal (ignored, but required for signal compatibility). Defaults to `-1`.
+        - `apply_type_default` (`bool`): When `True` and the exercise requires a
+          type, select the last used type or the first catalog type.
 
         """
         if self.db_manager is None:
@@ -3466,14 +3476,28 @@ class MainWindow(
             self.comboBox_filter_type.addItem("")
 
             exercise = self.comboBox_filter_exercise.currentText()
+            types: list[str] = []
+            ex_id: int | None = None
             if exercise:
                 ex_id = self.db_manager.get_id("exercises", "name", exercise)
                 if ex_id is not None:
                     types = self.db_manager.get_exercise_types(ex_id)
                     self.comboBox_filter_type.addItems(types)
 
-            if current_type:
-                idx = self.comboBox_filter_type.findText(current_type)
+            selected_type = current_type
+            if apply_type_default and ex_id is not None:
+                last_used = ""
+                last_record = self.db_manager.get_last_exercise_record(ex_id)
+                if last_record:
+                    last_used = last_record[0] or ""
+                selected_type = default_exercise_type(
+                    types,
+                    preferred=current_type,
+                    last_used=last_used,
+                    type_required=self.db_manager.is_exercise_type_required(ex_id),
+                )
+            if selected_type:
+                idx = self.comboBox_filter_type.findText(selected_type)
                 if idx >= 0:
                     self.comboBox_filter_type.setCurrentIndex(idx)
             self.comboBox_filter_type.blockSignals(False)  # noqa: FBT003
@@ -5780,7 +5804,15 @@ class MainWindow(
                 preferred = item.type_name
                 if item.target_value:
                     value = parse_exercise_value(item.target_value)
-        selected = default_exercise_type(types, preferred=preferred, last_used=last_type)
+        type_required = False
+        if ex_id is not None:
+            type_required = self.db_manager.is_exercise_type_required(ex_id)
+        selected = default_exercise_type(
+            types,
+            preferred=preferred,
+            last_used=last_type,
+            type_required=type_required,
+        )
         return FitnessLightboxDetails(unit=unit, types=types, selected_type=selected, value=value)
 
     def _fitness_prompt_replacements(self, raw_text: str) -> dict[str, str]:
@@ -6887,7 +6919,7 @@ class MainWindow(
 
     def _on_filter_exercise_changed(self, *_args: object) -> None:
         """Refresh type options and apply the process filter when exercise changes."""
-        self.update_filter_type_combobox()
+        self.update_filter_type_combobox(apply_type_default=True)
         self.apply_filter()
 
     def _on_min_thumbnails_rebuilt(self, result: object) -> None:
@@ -8911,16 +8943,26 @@ class MainWindow(
                 # Select the exercise in the list view
                 self._select_exercise_in_list(selected_exercise)
 
-                if selected_type:
-                    ex_id = self.db_manager.get_id("exercises", "name", selected_exercise)
-                    if ex_id is not None:
-                        types = self.db_manager.get_exercise_types(ex_id)
-                        self.comboBox_type.clear()
-                        self.comboBox_type.addItem("")
-                        self.comboBox_type.addItems(types)
-                        t_idx = self.comboBox_type.findText(selected_type)
-                        if t_idx >= 0:
-                            self.comboBox_type.setCurrentIndex(t_idx)
+                ex_id = self.db_manager.get_id("exercises", "name", selected_exercise)
+                if ex_id is not None:
+                    types = self.db_manager.get_exercise_types(ex_id)
+                    last_used = ""
+                    last_record = self.db_manager.get_last_exercise_record(ex_id)
+                    if last_record:
+                        last_used = last_record[0] or ""
+                    chosen_type = default_exercise_type(
+                        types,
+                        preferred=selected_type or "",
+                        last_used=last_used,
+                        type_required=self.db_manager.is_exercise_type_required(ex_id),
+                    )
+                    self.comboBox_type.clear()
+                    self.comboBox_type.addItem("")
+                    self.comboBox_type.addItems(types)
+                    self.comboBox_type.setEnabled(len(types) > 0)
+                    t_idx = self.comboBox_type.findText(chosen_type)
+                    if t_idx >= 0:
+                        self.comboBox_type.setCurrentIndex(t_idx)
             # If no specific selection, select the first exercise by default
             elif exercises:
                 self._select_exercise_in_list(exercises[0])

@@ -201,11 +201,28 @@ def allocated_exercise_seconds(duration_min: int, item_count: int) -> int:
     return max(1, round(int(duration_min) * _SECONDS_PER_MINUTE / int(item_count)))
 
 
-def default_exercise_type(types: list[str], *, preferred: str, last_used: str) -> str:
-    """Pick the type shown in the lightbox combo.
+def default_exercise_type(
+    types: list[str],
+    *,
+    preferred: str,
+    last_used: str,
+    type_required: bool = False,
+) -> str:
+    """Pick the type shown in an exercise-type combobox.
 
-    Prefer the workout-plan type, then the last logged type, then the first
-    catalog type.
+    Prefer the workout-plan type, then the last logged type. When the exercise
+    requires a type and types exist, fall back to the first catalog type.
+
+    Args:
+
+    - `types` (`list[str]`): Catalog types for the exercise.
+    - `preferred` (`str`): Type from the workout plan, if any.
+    - `last_used` (`str`): Last logged type for this exercise.
+    - `type_required` (`bool`): Whether the exercise requires a type.
+
+    Returns:
+
+    - `str`: Type to select, or an empty string.
 
     """
     names = [name for name in types if name]
@@ -213,7 +230,9 @@ def default_exercise_type(types: list[str], *, preferred: str, last_used: str) -
         return preferred
     if last_used and last_used in names:
         return last_used
-    return names[0] if names else ""
+    if type_required and names:
+        return names[0]
+    return ""
 
 
 def format_mm_ss(total_seconds: int) -> str:
