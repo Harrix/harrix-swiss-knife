@@ -1,7 +1,10 @@
 package dev.harrix.hsk.health
 
+import android.content.ActivityNotFoundException
 import android.content.Context
+import android.content.Intent
 import androidx.health.connect.client.HealthConnectClient
+import androidx.health.connect.client.HealthConnectFeatures
 import androidx.health.connect.client.PermissionController
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.ExerciseSessionRecord
@@ -49,11 +52,16 @@ data class ExerciseTypeCount(
 data class HealthConnectSnapshot(
     val stepsByDay: List<DaySteps>,
     val stepsTotal: Long,
+    val stepOrigins: List<String>,
     val otherWorkouts: List<ExerciseSessionSummary>,
+    val allSessions: List<ExerciseSessionSummary>,
     val exerciseTypeCounts: List<ExerciseTypeCount>,
     val rangeStart: LocalDate,
     val rangeEnd: LocalDate,
-)
+) {
+    val hasAnyData: Boolean
+        get() = stepsTotal > 0L || allSessions.isNotEmpty()
+}
 
 /**
  * Reads step and exercise data from Health Connect (Samsung Health syncs into it).
@@ -88,9 +96,27 @@ class HealthConnectReader(
         return HealthConnectClient.getOrCreate(context)
     }
 
+    fun permissionsToRequest(client: HealthConnectClient): Set<String> {
+        val requested = permissions.toMutableSet()
+        if (isHistoryReadAvailable(client)) {
+            requested += HealthPermission.PERMISSION_READ_HEALTH_DATA_HISTORY
+        }
+        return requested
+    }
+
     suspend fun hasAllPermissions(client: HealthConnectClient): Boolean {
         val granted = client.permissionController.getGrantedPermissions()
         return granted.containsAll(permissions)
+    }
+
+    fun openHealthConnectSettings(): Boolean {
+        val intent = Intent(HealthConnectClient.ACTION_HEALTH_CONNECT_SETTINGS)
+        return try {
+            context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            true
+        } catch (_: ActivityNotFoundException) {
+            false
+        }
     }
 
     /**
@@ -108,22 +134,26 @@ class HealthConnectReader(
         val endLocal = today.plusDays(1).atStartOfDay()
         val startInstant = rangeStart.atStartOfDay(zone).toInstant()
         val endInstant = today.plusDays(1).atStartOfDay(zone).toInstant()
+        val instantFilter = TimeRangeFilter.between(startInstant, endInstant)
 
-        val stepsByDay =
+        var (stepsByDay, stepOrigins) =
             readStepsByDay(
                 client,
                 rangeStart,
                 today,
                 TimeRangeFilter.between(startLocal, endLocal),
             )
-        val sessions =
-            readExerciseSessions(
-                client,
-                TimeRangeFilter.between(startInstant, endInstant),
-            )
+        if (stepsByDay.all { it.count == 0L }) {
+            val fromRecords = readStepsFromRecords(client, rangeStart, today, instantFilter, zone)
+            if (fromRecords.first.any { it.count > 0L }) {
+                stepsByDay = fromRecords.first
+                stepOrigins = fromRecords.second
+            }
+        }
+        val sessions = readExerciseSessions(client, instantFilter)
         val otherWorkouts =
             sessions
-                .filter { it.exerciseType == ExerciseSessionRecord.EXERCISE_TYPE_OTHER_WORKOUT }
+                .filter(::isOtherWorkout)
                 .sortedByDescending { it.start }
         val typeCounts =
             sessions
@@ -136,19 +166,25 @@ class HealthConnectReader(
         return HealthConnectSnapshot(
             stepsByDay = stepsByDay,
             stepsTotal = stepsByDay.sumOf { it.count },
+            stepOrigins = stepOrigins.sorted(),
             otherWorkouts = otherWorkouts,
+            allSessions = sessions.sortedByDescending { it.start },
             exerciseTypeCounts = typeCounts,
             rangeStart = rangeStart,
             rangeEnd = today,
         )
     }
 
+    private fun isHistoryReadAvailable(client: HealthConnectClient): Boolean = client.features.getFeatureStatus(
+        HealthConnectFeatures.FEATURE_READ_HEALTH_DATA_HISTORY,
+    ) == HealthConnectFeatures.FEATURE_STATUS_AVAILABLE
+
     private suspend fun readStepsByDay(
         client: HealthConnectClient,
         rangeStart: LocalDate,
         rangeEnd: LocalDate,
         timeFilter: TimeRangeFilter,
-    ): List<DaySteps> {
+    ): Pair<List<DaySteps>, List<String>> {
         val response =
             client.aggregateGroupByPeriod(
                 AggregateGroupByPeriodRequest(
@@ -162,40 +198,79 @@ class HealthConnectReader(
                 val day = result.startTime.toLocalDate()
                 day to (result.result[StepsRecord.COUNT_TOTAL] ?: 0L)
             }
-        val days = mutableListOf<DaySteps>()
-        var day = rangeStart
-        while (!day.isAfter(rangeEnd)) {
-            days += DaySteps(date = day, count = byDate[day] ?: 0L)
-            day = day.plusDays(1)
-        }
-        return days.asReversed()
+        return daysFromMap(rangeStart, rangeEnd, byDate) to emptyList()
+    }
+
+    private suspend fun readStepsFromRecords(
+        client: HealthConnectClient,
+        rangeStart: LocalDate,
+        rangeEnd: LocalDate,
+        timeFilter: TimeRangeFilter,
+        zone: ZoneId,
+    ): Pair<List<DaySteps>, List<String>> {
+        val byDate = mutableMapOf<LocalDate, Long>()
+        val origins = mutableSetOf<String>()
+        var pageToken: String? = null
+        do {
+            val response =
+                client.readRecords(
+                    ReadRecordsRequest(
+                        recordType = StepsRecord::class,
+                        timeRangeFilter = timeFilter,
+                        pageToken = pageToken,
+                    ),
+                )
+            for (record in response.records) {
+                origins += record.metadata.dataOrigin.packageName
+                val day = record.startTime.atZone(zone).toLocalDate()
+                byDate[day] = (byDate[day] ?: 0L) + record.count
+            }
+            pageToken = response.pageToken
+        } while (pageToken != null)
+        return daysFromMap(rangeStart, rangeEnd, byDate) to origins.sorted()
     }
 
     private suspend fun readExerciseSessions(
         client: HealthConnectClient,
         timeFilter: TimeRangeFilter,
     ): List<ExerciseSessionSummary> {
-        val response =
-            client.readRecords(
-                ReadRecordsRequest(
-                    recordType = ExerciseSessionRecord::class,
-                    timeRangeFilter = timeFilter,
-                ),
-            )
-        return response.records.map { record ->
-            ExerciseSessionSummary(
-                start = record.startTime,
-                end = record.endTime,
-                duration = Duration.between(record.startTime, record.endTime),
-                exerciseType = record.exerciseType,
-                title = record.title?.takeIf { it.isNotBlank() },
-                dataOrigin = record.metadata.dataOrigin.packageName,
-            )
-        }
+        val sessions = mutableListOf<ExerciseSessionSummary>()
+        var pageToken: String? = null
+        do {
+            val response =
+                client.readRecords(
+                    ReadRecordsRequest(
+                        recordType = ExerciseSessionRecord::class,
+                        timeRangeFilter = timeFilter,
+                        pageToken = pageToken,
+                    ),
+                )
+            sessions +=
+                response.records.map { record ->
+                    ExerciseSessionSummary(
+                        start = record.startTime,
+                        end = record.endTime,
+                        duration = Duration.between(record.startTime, record.endTime),
+                        exerciseType = record.exerciseType,
+                        title = record.title?.takeIf { it.isNotBlank() },
+                        dataOrigin = record.metadata.dataOrigin.packageName,
+                    )
+                }
+            pageToken = response.pageToken
+        } while (pageToken != null)
+        return sessions
     }
 
     companion object {
         const val DEFAULT_DAY_COUNT = 7
+
+        fun exerciseTypeLabel(type: Int): String = when (type) {
+            ExerciseSessionRecord.EXERCISE_TYPE_OTHER_WORKOUT -> "Other workout"
+            ExerciseSessionRecord.EXERCISE_TYPE_WALKING -> "Walking"
+            ExerciseSessionRecord.EXERCISE_TYPE_RUNNING -> "Running"
+            ExerciseSessionRecord.EXERCISE_TYPE_STRENGTH_TRAINING -> "Strength"
+            else -> "Type $type"
+        }
 
         fun formatDuration(duration: Duration): String {
             val totalSeconds = duration.seconds.coerceAtLeast(0)
@@ -212,5 +287,27 @@ class HealthConnectReader(
             instant: Instant,
             zone: ZoneId = ZoneId.systemDefault(),
         ): ZonedDateTime = instant.atZone(zone)
+
+        fun isOtherWorkout(session: ExerciseSessionSummary): Boolean {
+            if (session.exerciseType == ExerciseSessionRecord.EXERCISE_TYPE_OTHER_WORKOUT) {
+                return true
+            }
+            val title = session.title?.lowercase().orEmpty()
+            return title.contains("други") || title.contains("other")
+        }
+
+        private fun daysFromMap(
+            rangeStart: LocalDate,
+            rangeEnd: LocalDate,
+            byDate: Map<LocalDate, Long>,
+        ): List<DaySteps> {
+            val days = mutableListOf<DaySteps>()
+            var day = rangeStart
+            while (!day.isAfter(rangeEnd)) {
+                days += DaySteps(date = day, count = byDate[day] ?: 0L)
+                day = day.plusDays(1)
+            }
+            return days.asReversed()
+        }
     }
 }

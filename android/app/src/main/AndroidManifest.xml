@@ -14,6 +14,7 @@
         android:maxSdkVersion="28" />
     <uses-permission android:name="android.permission.health.READ_STEPS" />
     <uses-permission android:name="android.permission.health.READ_EXERCISE" />
+    <uses-permission android:name="android.permission.health.READ_HEALTH_DATA_HISTORY" />
 
     <uses-feature
         android:name="android.hardware.microphone"

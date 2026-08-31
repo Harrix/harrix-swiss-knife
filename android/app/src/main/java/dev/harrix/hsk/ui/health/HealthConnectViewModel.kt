@@ -42,7 +42,8 @@ class HealthConnectViewModel(
         private set
 
     val permissionContract = reader.createPermissionContract()
-    val requiredPermissions: Set<String> = reader.permissions
+    val requiredPermissions: Set<String>
+        get() = reader.clientOrNull()?.let(reader::permissionsToRequest) ?: reader.permissions
 
     init {
         refresh()
@@ -80,10 +81,14 @@ class HealthConnectViewModel(
     }
 
     fun onPermissionsResult(granted: Set<String>) {
-        if (granted.containsAll(requiredPermissions)) {
+        if (granted.containsAll(reader.permissions)) {
             refresh()
         } else {
             uiState = HealthConnectUiState.NeedsPermission
         }
+    }
+
+    fun openHealthConnectSettings() {
+        reader.openHealthConnectSettings()
     }
 }

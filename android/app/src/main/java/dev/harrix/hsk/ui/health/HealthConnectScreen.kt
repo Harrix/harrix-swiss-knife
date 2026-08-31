@@ -38,7 +38,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.harrix.hsk.R
 import dev.harrix.hsk.health.DaySteps
 import dev.harrix.hsk.health.ExerciseSessionSummary
-import dev.harrix.hsk.health.ExerciseTypeCount
 import dev.harrix.hsk.health.HealthConnectAvailability
 import dev.harrix.hsk.health.HealthConnectReader
 import dev.harrix.hsk.health.HealthConnectSnapshot
@@ -135,15 +134,14 @@ fun HealthConnectScreen(
                         onRequest = {
                             permissionLauncher.launch(viewModel.requiredPermissions)
                         },
+                        onOpenSettings = { viewModel.openHealthConnectSettings() },
                     )
                 }
 
                 is HealthConnectUiState.Ready -> {
                     ReadyContent(
                         snapshot = state.snapshot,
-                        onRequestPermissions = {
-                            permissionLauncher.launch(viewModel.requiredPermissions)
-                        },
+                        onOpenSettings = { viewModel.openHealthConnectSettings() },
                     )
                 }
 
@@ -186,7 +184,10 @@ private fun UnavailableContent(availability: HealthConnectAvailability) {
 }
 
 @Composable
-private fun NeedsPermissionContent(onRequest: () -> Unit) {
+private fun NeedsPermissionContent(
+    onRequest: () -> Unit,
+    onOpenSettings: () -> Unit,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
             text = stringResource(R.string.health_connect_needs_permission),
@@ -201,13 +202,16 @@ private fun NeedsPermissionContent(onRequest: () -> Unit) {
         Button(onClick = onRequest) {
             Text(stringResource(R.string.health_connect_grant_access))
         }
+        OutlinedButton(onClick = onOpenSettings) {
+            Text(stringResource(R.string.health_connect_open_settings))
+        }
     }
 }
 
 @Composable
 private fun ReadyContent(
     snapshot: HealthConnectSnapshot,
-    onRequestPermissions: () -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
@@ -225,23 +229,65 @@ private fun ReadyContent(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        OutlinedButton(onClick = onRequestPermissions) {
-            Text(stringResource(R.string.health_connect_grant_access))
+        if (!snapshot.hasAnyData) {
+            Text(
+                text = stringResource(R.string.health_connect_hc_empty_diagnosis),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
+        OutlinedButton(onClick = onOpenSettings) {
+            Text(stringResource(R.string.health_connect_open_settings))
         }
 
         SectionHeader(
             icon = Icons.AutoMirrored.Filled.DirectionsWalk,
             title = stringResource(R.string.health_connect_steps_section),
         )
-        StepsSection(stepsByDay = snapshot.stepsByDay, total = snapshot.stepsTotal)
+        StepsSection(
+            stepsByDay = snapshot.stepsByDay,
+            total = snapshot.stepsTotal,
+            origins = snapshot.stepOrigins,
+        )
 
         SectionHeader(
             icon = Icons.Filled.FitnessCenter,
             title = stringResource(R.string.health_connect_other_workouts_section),
         )
-        OtherWorkoutsSection(
-            otherWorkouts = snapshot.otherWorkouts,
-            exerciseTypeCounts = snapshot.exerciseTypeCounts,
+        SessionListSection(
+            sessions = snapshot.otherWorkouts,
+            emptyText = stringResource(R.string.health_connect_other_workouts_empty),
+            untitledRes = R.string.health_connect_other_workout_untitled,
+            extraWhenEmpty = {
+                if (snapshot.exerciseTypeCounts.isNotEmpty()) {
+                    Text(
+                        text = stringResource(R.string.health_connect_exercise_types_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    snapshot.exerciseTypeCounts.forEach { entry ->
+                        Text(
+                            text =
+                            stringResource(
+                                R.string.health_connect_exercise_type_row,
+                                HealthConnectReader.exerciseTypeLabel(entry.exerciseType),
+                                entry.count,
+                            ),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                }
+            },
+        )
+
+        SectionHeader(
+            icon = Icons.Filled.FitnessCenter,
+            title = stringResource(R.string.health_connect_all_sessions_section),
+        )
+        SessionListSection(
+            sessions = snapshot.allSessions,
+            emptyText = stringResource(R.string.health_connect_all_sessions_empty),
+            untitledRes = R.string.health_connect_session_untitled,
         )
     }
 }
@@ -272,6 +318,7 @@ private fun SectionHeader(
 private fun StepsSection(
     stepsByDay: List<DaySteps>,
     total: Long,
+    origins: List<String>,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (stepsByDay.isEmpty() || stepsByDay.all { it.count == 0L }) {
@@ -301,6 +348,17 @@ private fun StepsSection(
                     )
                 }
             }
+            if (origins.isNotEmpty()) {
+                Text(
+                    text =
+                    stringResource(
+                        R.string.health_connect_step_origins,
+                        origins.joinToString(),
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
         Text(
             text = stringResource(R.string.health_connect_steps_total, total),
@@ -311,49 +369,34 @@ private fun StepsSection(
 }
 
 @Composable
-private fun OtherWorkoutsSection(
-    otherWorkouts: List<ExerciseSessionSummary>,
-    exerciseTypeCounts: List<ExerciseTypeCount>,
+private fun SessionListSection(
+    sessions: List<ExerciseSessionSummary>,
+    emptyText: String,
+    untitledRes: Int,
+    extraWhenEmpty: @Composable () -> Unit = {},
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (otherWorkouts.isEmpty()) {
+        if (sessions.isEmpty()) {
             Text(
-                text = stringResource(R.string.health_connect_other_workouts_empty),
+                text = emptyText,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            if (exerciseTypeCounts.isNotEmpty()) {
-                Text(
-                    text = stringResource(R.string.health_connect_exercise_types_hint),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                exerciseTypeCounts.forEach { entry ->
-                    Text(
-                        text =
-                        stringResource(
-                            R.string.health_connect_exercise_type_row,
-                            entry.exerciseType,
-                            entry.count,
-                        ),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                }
-            }
+            extraWhenEmpty()
         } else {
             val dateTimeFormatter =
                 DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT)
             val zone = ZoneId.systemDefault()
-            otherWorkouts.forEach { session ->
+            sessions.forEach { session ->
                 val startLabel =
                     HealthConnectReader.formatZoned(session.start, zone).format(dateTimeFormatter)
                 val durationLabel = HealthConnectReader.formatDuration(session.duration)
                 val title =
-                    session.title
-                        ?: stringResource(R.string.health_connect_other_workout_untitled)
+                    session.title ?: stringResource(untitledRes)
+                val typeLabel = HealthConnectReader.exerciseTypeLabel(session.exerciseType)
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = title,
+                        text = "$title · $typeLabel",
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Medium,
                     )
