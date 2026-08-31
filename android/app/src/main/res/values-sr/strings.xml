@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Harrix Swiss Knife</string>
     <string name="nav_open">Отвори навигацију</string>
@@ -114,6 +114,7 @@
     <string name="nav_drawer_speech_to_text">Speech to Text with AI</string>
     <string name="nav_drawer_medicine_search">Medicine Search</string>
     <string name="nav_drawer_movies">Movies</string>
+    <string name="nav_drawer_health_connect">Health Connect</string>
     <string name="nav_drawer_about">О апликацији</string>
     <string name="about_title">О апликацији</string>
     <string name="about_back">Назад</string>
@@ -130,6 +131,31 @@
     <string name="speech_to_text_card_description">Record speech, recognize with AI, then fix or rewrite the text.</string>
     <string name="medicine_search_card_description">Ask about symptoms or send a photo; BotHub suggests medicines from your Markdown list or what to buy.</string>
     <string name="movies_card_description">Search movie notes: watched or not, when, how many times, ratings, and posters.</string>
+    <string name="health_connect_card_description">Test: last 7 days of steps and Other workout sessions from Samsung Health via Health Connect.</string>
+    <string name="health_connect_title">Health Connect</string>
+    <string name="health_connect_close">Close Health Connect</string>
+    <string name="health_connect_refresh">Refresh</string>
+    <string name="health_connect_retry">Retry</string>
+    <string name="health_connect_grant_access">Grant Health Connect access</string>
+    <string name="health_connect_needs_permission">Allow read access to steps and exercise sessions in Health Connect.</string>
+    <string name="health_connect_install_or_update">Install or update Health Connect from the Play Store, then open this screen again.</string>
+    <string name="health_connect_unavailable">Health Connect is not available on this device.</string>
+    <string name="health_connect_error">Could not load Health Connect data: %1$s</string>
+    <string name="health_connect_samsung_sync_hint">Samsung Health → Settings → Health Connect: enable sync and allow Samsung Health (and this app) for steps and exercise.</string>
+    <string name="health_connect_range">Range: %1$s – %2$s</string>
+    <string name="health_connect_steps_section">Steps (7 days)</string>
+    <string name="health_connect_steps_value">%1$d steps</string>
+    <string name="health_connect_steps_total">Total: %1$d steps</string>
+    <string name="health_connect_steps_empty">No step data for this range. Check Samsung Health sync with Health Connect.</string>
+    <string name="health_connect_other_workouts_section">Other workouts (7 days)</string>
+    <string name="health_connect_other_workouts_empty">No Other workout sessions in this range.</string>
+    <string name="health_connect_other_workout_untitled">Other workout</string>
+    <string name="health_connect_other_workout_row">%1$s · %2$s · %3$s</string>
+    <string name="health_connect_exercise_types_hint">Other exercise types found this week (Health Connect type code → count):</string>
+    <string name="health_connect_exercise_type_row">Type %1$d → %2$d</string>
+    <string name="health_connect_rationale_title">Why Health Connect access?</string>
+    <string name="health_connect_rationale_body">This app reads step counts and exercise sessions from Health Connect so you can preview data synced from Samsung Health. Data stays on the device; nothing is uploaded.</string>
+    <string name="health_connect_rationale_close">Close</string>
     <string name="medicine_search_title">Medicine Search</string>
     <string name="medicine_search_close">Exit Medicine Search</string>
     <string name="medicine_search_settings">Medicine Search settings</string>

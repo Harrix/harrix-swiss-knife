@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.CleaningServices
 import androidx.compose.material.icons.filled.Crop
+import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material.icons.filled.Menu
@@ -75,6 +76,7 @@ import dev.harrix.hsk.ui.HskDropdownMenuItem
 import dev.harrix.hsk.ui.about.AboutScreen
 import dev.harrix.hsk.ui.gallery.GalleryCleanerScreen
 import dev.harrix.hsk.ui.gallery.VideoCleanerScreen
+import dev.harrix.hsk.ui.health.HealthConnectScreen
 import dev.harrix.hsk.ui.medicinesearch.MedicineSearchScreen
 import dev.harrix.hsk.ui.movies.MoviesScreen
 import dev.harrix.hsk.ui.photoeditor.PhotoEditorScreen
@@ -110,6 +112,7 @@ private enum class AppDestination {
     SpeechToText,
     MedicineSearch,
     Movies,
+    HealthConnect,
 }
 
 private data class UtilityCardItem(
@@ -210,6 +213,12 @@ fun MainScreen(
                 icon = Icons.Filled.Movie,
                 destination = AppDestination.Movies,
             ),
+            UtilityCardItem(
+                titleRes = R.string.nav_drawer_health_connect,
+                descriptionRes = R.string.health_connect_card_description,
+                icon = Icons.Filled.FitnessCenter,
+                destination = AppDestination.HealthConnect,
+            ),
         )
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -274,6 +283,13 @@ fun MainScreen(
                     onClose = { destination = AppDestination.Home },
                     onOpenSettings = { settingsSection = SettingsSection.Movies },
                     settingsRevision = settingsRevision,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+
+            AppDestination.HealthConnect -> {
+                HealthConnectScreen(
+                    onClose = { destination = AppDestination.Home },
                     modifier = Modifier.fillMaxSize(),
                 )
             }
@@ -624,6 +640,12 @@ private fun AppNavigationDrawerContent(
             selected = selected == AppDestination.Movies,
             onClick = { onNavigate(AppDestination.Movies) },
             icon = Icons.Filled.Movie,
+        )
+        DrawerNavItem(
+            label = stringResource(R.string.nav_drawer_health_connect),
+            selected = selected == AppDestination.HealthConnect,
+            onClick = { onNavigate(AppDestination.HealthConnect) },
+            icon = Icons.Filled.FitnessCenter,
         )
         DrawerNavItem(
             label = stringResource(R.string.nav_drawer_about),

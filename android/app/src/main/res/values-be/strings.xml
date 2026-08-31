@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Harrix Swiss Knife</string>
     <string name="nav_open">Адкрыць навігацыю</string>
@@ -114,6 +114,7 @@
     <string name="nav_drawer_speech_to_text">Speech to Text with AI</string>
     <string name="nav_drawer_medicine_search">Пошук па леках</string>
     <string name="nav_drawer_movies">Фильмы</string>
+    <string name="nav_drawer_health_connect">Health Connect</string>
     <string name="nav_drawer_about">Пра праграму</string>
     <string name="about_title">Пра праграму</string>
     <string name="about_back">Назад</string>
@@ -130,6 +131,31 @@
     <string name="speech_to_text_card_description">Запіс маўлення, распазнаванне праз AI, затым праўка або рэрайт тэксту.</string>
     <string name="medicine_search_card_description">Спросите о симптомах или отправьте фото — BotHub подскажет по вашему Markdown-списку или что купить.</string>
     <string name="movies_card_description">Поиск по заметкам о фильмах: смотрели ли, когда, сколько раз, оценки и обложки.</string>
+    <string name="health_connect_card_description">Тэст: крокі за 7 дзён і сесіі «Іншыя трэніроўкі» з Samsung Health праз Health Connect.</string>
+    <string name="health_connect_title">Health Connect</string>
+    <string name="health_connect_close">Закрыць Health Connect</string>
+    <string name="health_connect_refresh">Абнавіць</string>
+    <string name="health_connect_retry">Паўтарыць</string>
+    <string name="health_connect_grant_access">Даць доступ Health Connect</string>
+    <string name="health_connect_needs_permission">Дазвольце чытанне крокаў і трэніровак у Health Connect.</string>
+    <string name="health_connect_install_or_update">Усталюйце або абнавіце Health Connect з Play Store, затым адкрыйце гэты экран зноў.</string>
+    <string name="health_connect_unavailable">Health Connect недаступны на гэтай прыладзе.</string>
+    <string name="health_connect_error">Не ўдалося загрузіць даныя Health Connect: %1$s</string>
+    <string name="health_connect_samsung_sync_hint">Samsung Health → Налады → Health Connect: уключыце сінхранізацыю і дазвольце Samsung Health (і гэты дадатак) для крокаў і практыкаванняў.</string>
+    <string name="health_connect_range">Перыяд: %1$s – %2$s</string>
+    <string name="health_connect_steps_section">Крокі (7 дзён)</string>
+    <string name="health_connect_steps_value">%1$d крокаў</string>
+    <string name="health_connect_steps_total">Разам: %1$d крокаў</string>
+    <string name="health_connect_steps_empty">Няма даных пра крокі за гэты перыяд. Праверце сінхранізацыю Samsung Health з Health Connect.</string>
+    <string name="health_connect_other_workouts_section">Іншыя трэніроўкі (7 дзён)</string>
+    <string name="health_connect_other_workouts_empty">Няма сесій «Іншыя трэніроўкі» за гэты перыяд.</string>
+    <string name="health_connect_other_workout_untitled">Іншая трэніроўка</string>
+    <string name="health_connect_other_workout_row">%1$s · %2$s · %3$s</string>
+    <string name="health_connect_exercise_types_hint">Іншыя тыпы практыкаванняў за тыдзень (код тыпу Health Connect → лік):</string>
+    <string name="health_connect_exercise_type_row">Тып %1$d → %2$d</string>
+    <string name="health_connect_rationale_title">Навошта доступ да Health Connect?</string>
+    <string name="health_connect_rationale_body">Дадатак чытае крокі і трэніроўкі з Health Connect, каб паказаць даныя, сінхранізаваныя з Samsung Health. Даныя застаюцца на прыладзе; нічога не загружаецца ў сетку.</string>
+    <string name="health_connect_rationale_close">Закрыць</string>
     <string name="medicine_search_title">Пошук па леках</string>
     <string name="medicine_search_close">Выйти из поиска по лекарствам</string>
     <string name="medicine_search_settings">Настройки поиска по лекарствам</string>

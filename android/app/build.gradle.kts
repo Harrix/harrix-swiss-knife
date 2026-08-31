@@ -378,7 +378,7 @@ val copyBothubPrompts =
 
 android {
     namespace = "dev.harrix.hsk"
-    compileSdk = 35
+    compileSdk = 36
 
     sourceSets {
         getByName("main") {
@@ -520,6 +520,7 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.androidx.exifinterface)
     implementation(libs.okhttp)
+    implementation(libs.androidx.health.connect)
     debugImplementation(libs.androidx.compose.ui.tooling)
     detektPlugins(libs.detekt.compose.rules)
 }
