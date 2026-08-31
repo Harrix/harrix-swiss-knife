@@ -104,12 +104,23 @@ class HealthConnectReader(
         val zone = ZoneId.systemDefault()
         val today = LocalDate.now(zone)
         val rangeStart = today.minusDays((dayCount - 1).toLong())
+        val startLocal = rangeStart.atStartOfDay()
+        val endLocal = today.plusDays(1).atStartOfDay()
         val startInstant = rangeStart.atStartOfDay(zone).toInstant()
         val endInstant = today.plusDays(1).atStartOfDay(zone).toInstant()
-        val timeFilter = TimeRangeFilter.between(startInstant, endInstant)
 
-        val stepsByDay = readStepsByDay(client, rangeStart, today, timeFilter)
-        val sessions = readExerciseSessions(client, timeFilter)
+        val stepsByDay =
+            readStepsByDay(
+                client,
+                rangeStart,
+                today,
+                TimeRangeFilter.between(startLocal, endLocal),
+            )
+        val sessions =
+            readExerciseSessions(
+                client,
+                TimeRangeFilter.between(startInstant, endInstant),
+            )
         val otherWorkouts =
             sessions
                 .filter { it.exerciseType == ExerciseSessionRecord.EXERCISE_TYPE_OTHER_WORKOUT }
