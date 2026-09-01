@@ -150,6 +150,7 @@ class MainWindow(
 
         # Initialize core attributes
         self._is_closing = False
+        self._process_table_reveal_pending = False
         self.db_manager: database_manager.DatabaseManager | None = None
         self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
         self.progress_calculator: ExerciseProgressCalculator | None = None
@@ -2545,7 +2546,8 @@ class MainWindow(
         if widget is self.tab:
             QTimer.singleShot(0, self._apply_sets_splitter_sizes)
             QTimer.singleShot(0, self._adjust_process_table_columns)
-            QTimer.singleShot(50, self._adjust_process_table_columns)
+            if not self._process_table_reveal_pending:
+                QTimer.singleShot(50, self._adjust_process_table_columns)
             return
         if widget is self.tab_workouts:
             if self._workouts_widget is not None:
@@ -5600,15 +5602,27 @@ class MainWindow(
         """Show the window only after splitter and process columns match the final size."""
         if self._is_closing:
             return
-        self.setUpdatesEnabled(False)
+        self._process_table_reveal_pending = True
+        self.setWindowOpacity(0)
         try:
             self._show_placed_window()
-            QApplication.processEvents(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
-            self._update_layout_for_window_size()
-            self._apply_sets_splitter_sizes()
-            self._adjust_process_table_columns()
+            self._wait_until_process_table_ready()
+            if self._is_closing:
+                return
+            self.setUpdatesEnabled(False)
+            try:
+                self._update_layout_for_window_size()
+                self._apply_sets_splitter_sizes()
+                QApplication.processEvents(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
+                self._adjust_process_table_columns()
+                QApplication.processEvents(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
+                self._adjust_process_table_columns()
+            finally:
+                self.setUpdatesEnabled(True)
         finally:
-            self.setUpdatesEnabled(True)
+            self._process_table_reveal_pending = False
+            if not self._is_closing:
+                self.setWindowOpacity(1)
         QTimer.singleShot(120, self._maybe_prompt_missing_exercise_images)
 
     def _fitness_lightbox_details(self, exercise_name: str, workout_item_id: int | None) -> FitnessLightboxDetails:
@@ -9127,6 +9141,46 @@ class MainWindow(
             app.restoreOverrideCursor()
         return not self._is_closing
 
+    def _wait_until_process_table_ready(self) -> None:
+        """Pump events until maximize (if any) and the process table have a stable width."""
+        started = time.monotonic()
+        last_width = -1
+        last_change = started
+        should_maximize = self._window_should_maximize()
+        while time.monotonic() - started < _PROCESS_TABLE_READY_MAX_WAIT_S:
+            QApplication.processEvents(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
+            if self._is_closing:
+                return
+            now = time.monotonic()
+            width = self.tableView_process.viewport().width()
+            if width != last_width:
+                last_width = width
+                last_change = now
+                continue
+            if width <= _PROCESS_TABLE_READY_MIN_WIDTH or now - last_change < _PROCESS_TABLE_READY_STABLE_S:
+                continue
+            if should_maximize and not self.isMaximized():
+                continue
+            return
+
+    def _window_should_maximize(self) -> bool:
+        """Return whether this screen uses the shared maximize-on-show layout."""
+        screen = self.screen() or QApplication.primaryScreen()
+        if screen is None:
+            return False
+        available = screen.availableGeometry()
+        left, top, right, bottom = window_frame_margins(self)
+        return (
+            compute_app_window_geometry(
+                available,
+                frame_left=left,
+                frame_top=top,
+                frame_right=right,
+                frame_bottom=bottom,
+            )
+            is None
+        )
+
     def _workout_prompt_replacements(
         self,
         gender: str,
@@ -9195,6 +9249,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
 
         # Initialize core attributes
         self._is_closing = False
+        self._process_table_reveal_pending = False
         self.db_manager: database_manager.DatabaseManager | None = None
         self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
         self.progress_calculator: ExerciseProgressCalculator | None = None
@@ -12034,7 +12089,8 @@ def on_tab_changed(self, index: int) -> None:
         if widget is self.tab:
             QTimer.singleShot(0, self._apply_sets_splitter_sizes)
             QTimer.singleShot(0, self._adjust_process_table_columns)
-            QTimer.singleShot(50, self._adjust_process_table_columns)
+            if not self._process_table_reveal_pending:
+                QTimer.singleShot(50, self._adjust_process_table_columns)
             return
         if widget is self.tab_workouts:
             if self._workouts_widget is not None:
