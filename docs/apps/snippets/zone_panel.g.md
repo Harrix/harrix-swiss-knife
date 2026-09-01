@@ -220,14 +220,15 @@ class HighlightItemDelegate(QStyledItemDelegate):
             text_rect = style.subElementRect(QStyle.SubElement.SE_ItemViewItemText, opt, widget)
             if not text_rect.isValid():
                 text_rect = opt.rect.adjusted(4, 0, -4, 0)
+            enabled = bool(opt.state & QStyle.StateFlag.State_Enabled)
             style.drawItemText(
                 painter,
                 text_rect,
                 int(opt.displayAlignment),
                 opt.palette,
-                enabled=True,
-                text=opt.text,
-                textRole=QPalette.ColorRole.Text,
+                enabled,
+                opt.text,
+                QPalette.ColorRole.Text,
             )
         else:
             painter.setPen(opt.palette.color(QPalette.ColorRole.Text))
@@ -267,14 +268,15 @@ def paint(
             text_rect = style.subElementRect(QStyle.SubElement.SE_ItemViewItemText, opt, widget)
             if not text_rect.isValid():
                 text_rect = opt.rect.adjusted(4, 0, -4, 0)
+            enabled = bool(opt.state & QStyle.StateFlag.State_Enabled)
             style.drawItemText(
                 painter,
                 text_rect,
                 int(opt.displayAlignment),
                 opt.palette,
-                enabled=True,
-                text=opt.text,
-                textRole=QPalette.ColorRole.Text,
+                enabled,
+                opt.text,
+                QPalette.ColorRole.Text,
             )
         else:
             painter.setPen(opt.palette.color(QPalette.ColorRole.Text))

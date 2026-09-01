@@ -8,9 +8,9 @@ import json
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import QEvent, Qt
-from PySide6.QtGui import QColor, QKeyEvent, QPalette
-from PySide6.QtWidgets import QApplication, QToolButton, QWidget
+from PySide6.QtCore import QEvent, QRect, Qt
+from PySide6.QtGui import QColor, QKeyEvent, QPainter, QPalette, QPixmap
+from PySide6.QtWidgets import QApplication, QStyle, QStyleOptionViewItem, QToolButton, QWidget
 
 from harrix_swiss_knife.actions.apps.snippets import OnSnippets
 from harrix_swiss_knife.actions.common.quick_launcher_registry import iter_menu_structure
@@ -45,6 +45,7 @@ from harrix_swiss_knife.apps.snippets.sort import dash_length_rank, sort_items
 from harrix_swiss_knife.apps.snippets.zone_panel import (
     _LIST_SELECTION_STYLE,
     _SELECTION_BG,
+    HighlightItemDelegate,
     IconItemDelegate,
     ZonePanel,
     chip_border_color,
@@ -354,6 +355,39 @@ def test_color_zone_items_have_no_bracket_text(qapp: QApplication) -> None:
     assert item.text() == ""
     assert "[" not in item.text()
     assert "]" not in item.text()
+    panel.close()
+
+
+def test_highlight_item_delegate_paints_text(qapp: QApplication) -> None:
+    assert qapp is not None
+    panel = ZonePanel(zone=ZONE_PHRASE, title="Phrases")
+    panel.set_items(
+        [
+            SnippetItem(
+                item_id=1,
+                zone=ZONE_PHRASE,
+                value="hello",
+                hint="",
+                created_at="2026-01-01T00:00:00+00:00",
+                last_used_at=None,
+                sort_index=0,
+            ),
+        ],
+    )
+    item = panel._list.item(0)
+    assert item is not None
+    pixmap = QPixmap(240, 32)
+    pixmap.fill(Qt.GlobalColor.white)
+    painter = QPainter(pixmap)
+    option = QStyleOptionViewItem()
+    option.rect = QRect(0, 0, 240, 32)
+    option.widget = panel._list
+    option.text = "hello"
+    option.displayAlignment = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+    option.palette = panel._list.palette()
+    option.state = QStyle.StateFlag.State_Enabled
+    HighlightItemDelegate(panel._list).paint(painter, option, panel._list.indexFromItem(item))
+    painter.end()
     panel.close()
 
 
