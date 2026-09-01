@@ -95,6 +95,24 @@ QPushButton:disabled {
     color: #9e9e9e;
 }
 """
+_GREY_BUTTON_STYLE = """
+QPushButton {
+    background-color: #e8e8e8;
+    border: 1px solid #bdbdbd;
+    border-radius: 4px;
+}
+QPushButton:hover {
+    background-color: #d6d6d6;
+}
+QPushButton:pressed {
+    background-color: #c4c4c4;
+}
+QPushButton:disabled {
+    background-color: #f3f3f3;
+    border: 1px solid #d0d0d0;
+    color: #9e9e9e;
+}
+"""
 _CONTINUE_BUTTON_STYLE = _GREEN_BUTTON_STYLE
 _STOP_BUTTON_STYLE = """
 QPushButton {
@@ -425,7 +443,7 @@ class WorkoutsWidget(QWidget):
         self.button_new_empty.setIcon(create_emoji_icon("📄"))
         self.button_new_empty.setMinimumHeight(41)
         self.button_new_empty.setFont(font_12_bold)
-        self.button_new_empty.setStyleSheet(_GREEN_BUTTON_STYLE)
+        self.button_new_empty.setStyleSheet(_GREY_BUTTON_STYLE)
         self.button_new_empty.setToolTip("Create an empty workout")
         self.button_new_empty.clicked.connect(self.empty_requested.emit)
         new_row.addWidget(self.button_new_empty, 1)
@@ -452,7 +470,7 @@ class WorkoutsWidget(QWidget):
         self.button_add_exercise.setMinimumHeight(41)
         self.button_add_exercise.setMinimumWidth(150)
         self.button_add_exercise.setFont(font_12_bold)
-        self.button_add_exercise.setStyleSheet(_GREEN_BUTTON_STYLE)
+        self.button_add_exercise.setStyleSheet(_GREY_BUTTON_STYLE)
         self.button_add_exercise.setToolTip("Add an exercise from the Select Exercise dialog")
         self.button_add_exercise.clicked.connect(self._request_add_exercise)
         title_row.addWidget(self.button_add_exercise)
