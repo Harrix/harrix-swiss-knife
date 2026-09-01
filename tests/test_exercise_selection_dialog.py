@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+from contextlib import contextmanager
+from types import SimpleNamespace
+
 import pytest
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QAbstractItemView, QApplication
 
 from harrix_swiss_knife.apps.common.dialogs.exercise_selection_dialog import ExerciseSelectionDialog
+from harrix_swiss_knife.apps.fitness.main import MainWindow
 
 
 @pytest.fixture
@@ -93,3 +97,32 @@ def test_exercise_selection_dialog_multi_shift_click_range(qapp: QApplication) -
     dialog._on_tile_clicked(third, Qt.KeyboardModifier.ShiftModifier)
     assert dialog.selected_exercises == ["Push-ups", "Squats", "Plank"]
     dialog.close()
+
+
+def test_open_select_exercise_dialog_shows_loading_toast(
+    qapp: QApplication,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    assert qapp is not None
+    titles: list[str] = []
+
+    @contextmanager
+    def fake_scope(title: str):
+        titles.append(title)
+        yield None
+
+    monkeypatch.setattr("harrix_swiss_knife.apps.fitness.main.app_loading_toast_scope", fake_scope)
+    monkeypatch.setattr("harrix_swiss_knife.apps.fitness.main.message_box.information", lambda *_args, **_kwargs: None)
+
+    class FakeWindow:
+        def __init__(self) -> None:
+            self.db_manager = SimpleNamespace(get_exercises_by_frequency=lambda _limit: [])
+
+        def _validate_database_connection(self) -> bool:
+            return True
+
+    window = FakeWindow()
+    assert MainWindow._open_select_exercise_dialog(window) == []
+    assert titles == ["Select Exercise"]
+    assert MainWindow._open_select_exercise_dialog(window, multi_select=True) == []
+    assert titles == ["Select Exercise", "Select Exercises"]
