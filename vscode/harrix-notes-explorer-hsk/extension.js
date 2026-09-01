@@ -3754,75 +3754,6 @@ function hneFrontMatterBlockRule(state, startLine, endLine, silent) {
   return true;
 }
 
-function isCursorHost() {
-  return /cursor/i.test(String(vscode.env.appName || ''));
-}
-
-/**
- * VS Code's built-in yamlPreamble runs *after* extension markdown-it plugins and
- * overwrites `renderer.rules.front_matter` with a bare table. Hook the property so
- * we still emit a collapsed `<details>` (or a plain table in Cursor's Tiptap host).
- * @param {((tokens: unknown[], idx: number, options: unknown, env: unknown, self: unknown) => string) | undefined} nativeRender
- */
-function createFrontMatterTokenRenderer(nativeRender) {
-  /** @param {unknown[]} tokens @param {number} idx @param {unknown} options @param {unknown} env @param {unknown} self */
-  const render = (tokens, idx, options, env, self) => {
-    const cfg = getPreviewCopyConfig();
-    // Tiptap/ProseMirror rejects `<details>` and a document-level config <div>.
-    // Classic Cursor preview still collapses the table in preview-copy.js.
-    const htmlCfg = isCursorHost() ? { ...cfg, collapseFrontmatter: false } : cfg;
-    const token = Array.isArray(tokens) ? tokens[idx] : undefined;
-    const raw = resolveFrontmatterRaw(/** @type {import('markdown-it/lib/token') | undefined} */ (token), env);
-    const ours = buildFrontmatterPreviewHtml(parseFrontmatterRows(raw), htmlCfg, raw);
-    if (ours) {
-      return ours;
-    }
-    if (typeof nativeRender !== 'function') {
-      return '';
-    }
-    const native = String(nativeRender(tokens, idx, options, env, self) || '');
-    if (!native.trim() || native.includes('hne-frontmatter-details') || isCursorHost()) {
-      return native;
-    }
-    if (cfg.collapseFrontmatter === false) {
-      return native;
-    }
-    const summary = escapeHtmlAttr(normalizePreviewFrontmatterSummary(cfg.frontmatterSummary || '📋 YAML'));
-    return (
-      `<details class="hne-frontmatter-details">` +
-      `<summary class="hne-frontmatter-summary">${summary}</summary>\n` +
-      `${native}` +
-      `</details>\n`
-    );
-  };
-  render.__hneFrontMatter = true;
-  return render;
-}
-
-function installFrontMatterRendererHook(/** @type {import('markdown-it')} */ md) {
-  const rules = md.renderer.rules;
-  const assign = (fn) => {
-    if (fn?.__hneFrontMatter) {
-      return fn;
-    }
-    return createFrontMatterTokenRenderer(typeof fn === 'function' ? fn : undefined);
-  };
-  rules.front_matter = assign(rules.front_matter);
-  try {
-    let current = rules.front_matter;
-    Object.defineProperty(rules, 'front_matter', {
-      configurable: true,
-      enumerable: true,
-      get: () => current,
-      set(fn) {
-        current = assign(fn);
-      },
-    });
-  } catch {
-    // Host sealed the rules object — keep the renderer we already assigned.
-  }
-}
-
 function applyPreviewMarkdownItExtensions(/** @type {import('markdown-it')} */ md) {
   const defaultImageRender =
     md.renderer.rules.image || ((tokens, idx, options, _env, self) => self.renderToken(tokens, idx, options));
@@ -3855,7 +3786,10 @@ function applyPreviewMarkdownItExtensions(/** @type {import('markdown-it')} */ m
     return defaultImageRender(tokens, idx, options, env, self);
   };
 
-  installFrontMatterRendererHook(md);
+  // Do not override `front_matter`: VS Code yamlPreamble assigns its renderer
+  // after this plugin. Extra HTML (`<details>`, a hooked rule) blanks the
+  // Source|Preview tab in current VS Code / Cursor. Collapse is done in
+  // preview-copy.js on the classic webview table.
 
   // If the host has no front_matter block rule, add one (older / stripped engines).
   let hasFrontMatterRule = true;
@@ -3893,54 +3827,58 @@ function applyPreviewMarkdownItExtensions(/** @type {import('markdown-it')} */ m
 
   const originalRendererRender = md.renderer.render.bind(md.renderer);
   md.renderer.render = (tokens, options, env) => {
-    if (env?.hneIsMarp && env.hneMarpSource) {
-      const cfg = getPreviewCopyConfig();
-      const json = escapePreviewCopyConfigAttr(JSON.stringify(cfg));
-      const configHtml = `<div id="hne-preview-copy-config" style="display:none" data-config="${json}"></div>`;
-      const deckHtml = renderMarpPreviewHtml(env.hneMarpSource, (slideMd) => {
-        const slideTokens = originalParse(slideMd || ' ', {});
-        return originalRendererRender(slideTokens, options, {});
-      });
-      return configHtml + deckHtml;
-    }
-    if (env?.hneIsJupyter && env.hneJupyterSource) {
-      const noteUri = uriFromMarkdownRenderEnv(env);
-      const notebookHtml = renderJupyterPreviewHtml(
-        env.hneJupyterSource,
-        noteUri?.scheme === 'file' ? noteUri.fsPath : undefined,
-        (cellMd) => {
-          const cellTokens = originalParse(cellMd || ' ', {});
-          return originalRendererRender(cellTokens, options, {});
-        },
-      );
-      if (notebookHtml) {
+    try {
+      if (env?.hneIsMarp && env.hneMarpSource) {
         const cfg = getPreviewCopyConfig();
         const json = escapePreviewCopyConfigAttr(JSON.stringify(cfg));
         const configHtml = `<div id="hne-preview-copy-config" style="display:none" data-config="${json}"></div>`;
-        return configHtml + notebookHtml;
+        const deckHtml = renderMarpPreviewHtml(env.hneMarpSource, (slideMd) => {
+          const slideTokens = originalParse(slideMd || ' ', {});
+          return originalRendererRender(slideTokens, options, {});
+        });
+        return configHtml + deckHtml;
       }
-    }
-    // Cursor may emit an empty front_matter token — refill from the note file.
-    if (Array.isArray(tokens)) {
-      for (const token of tokens) {
-        if (token?.type !== 'front_matter') {
-          continue;
+      if (env?.hneIsJupyter && env.hneJupyterSource) {
+        const noteUri = uriFromMarkdownRenderEnv(env);
+        const notebookHtml = renderJupyterPreviewHtml(
+          env.hneJupyterSource,
+          noteUri?.scheme === 'file' ? noteUri.fsPath : undefined,
+          (cellMd) => {
+            const cellTokens = originalParse(cellMd || ' ', {});
+            return originalRendererRender(cellTokens, options, {});
+          },
+        );
+        if (notebookHtml) {
+          const cfg = getPreviewCopyConfig();
+          const json = escapePreviewCopyConfigAttr(JSON.stringify(cfg));
+          const configHtml = `<div id="hne-preview-copy-config" style="display:none" data-config="${json}"></div>`;
+          return configHtml + notebookHtml;
         }
-        if (frontMatterContentFromToken(token).trim()) {
-          continue;
-        }
-        const raw = resolveFrontmatterRawFromEnv(env);
-        if (!raw.trim()) {
-          continue;
-        }
-        token.meta = { ...(token.meta && typeof token.meta === 'object' ? token.meta : {}), content: raw };
-        token.content = raw;
       }
+      if (Array.isArray(tokens)) {
+        for (const token of tokens) {
+          if (token?.type !== 'front_matter') {
+            continue;
+          }
+          if (frontMatterContentFromToken(token).trim()) {
+            continue;
+          }
+          const raw = resolveFrontmatterRaw(token, env);
+          if (!String(raw).trim()) {
+            continue;
+          }
+          token.meta = { ...(token.meta && typeof token.meta === 'object' ? token.meta : {}), content: raw };
+          token.content = raw;
+        }
+      }
+      const cfg = getPreviewCopyConfig();
+      const json = escapePreviewCopyConfigAttr(JSON.stringify(cfg));
+      const configHtml = `<div id="hne-preview-copy-config" style="display:none" data-config="${json}"></div>`;
+      return configHtml + originalRendererRender(tokens, options, env);
+    } catch (err) {
+      console.error('[Harrix Notes HSK] markdown-it render failed:', err);
+      return originalRendererRender(tokens, options, env);
     }
-    const cfg = getPreviewCopyConfig();
-    const json = escapePreviewCopyConfigAttr(JSON.stringify(cfg));
-    const configHtml = `<div id="hne-preview-copy-config" style="display:none" data-config="${json}"></div>`;
-    return configHtml + originalRendererRender(tokens, options, env);
   };
 
   // Fallback for hosts that still call `md.render(src)` (and may lack front_matter tokens).
@@ -3982,21 +3920,18 @@ function applyPreviewMarkdownItExtensions(/** @type {import('markdown-it')} */ m
 function registerPreviewCopyMarkdownPlugin() {
   return {
     extendMarkdownIt(/** @type {import('markdown-it')} */ md) {
+      // Source|Preview in Cursor and current VS Code is Tiptap/ProseMirror and
+      // still loads `markdown.markdownItPlugins`. Extra HTML (config <div>,
+      // <details>, custom front_matter) blanks the pane. Classic
+      // `markdown.showPreview` is enhanced only by preview-copy.js / CSS.
       try {
-        // Cursor's Source|Preview tab is Tiptap/ProseMirror and also loads
-        // markdown-it plugins. Wrapping `parse` / `renderer.render` (config <div>
-        // on the whole document) blanks that pane. Only the front_matter token
-        // hook is safe there (plain table, no <details>); classic webview wraps
-        // that table in preview-copy.js.
-        if (isCursorHost()) {
-          installFrontMatterRendererHook(md);
-          return md;
+        if (vscode.workspace.getConfiguration('harrixNotesExplorerHsk').get('previewMarkdownItExtensions') === true) {
+          return applyPreviewMarkdownItExtensions(md);
         }
-        return applyPreviewMarkdownItExtensions(md);
       } catch (err) {
         console.error('[Harrix Notes HSK] extendMarkdownIt failed:', err);
-        return md;
       }
+      return md;
     },
   };
 }
@@ -4010,7 +3945,8 @@ function registerPreviewCopyConfigRefresh(context) {
       if (
         !e.affectsConfiguration('harrixNotesExplorerHsk.previewCopy') &&
         !e.affectsConfiguration('harrixNotesExplorerHsk.previewFrontmatter') &&
-        !e.affectsConfiguration('harrixNotesExplorerHsk.previewColorize')
+        !e.affectsConfiguration('harrixNotesExplorerHsk.previewColorize') &&
+        !e.affectsConfiguration('harrixNotesExplorerHsk.previewMarkdownItExtensions')
       ) {
         return;
       }

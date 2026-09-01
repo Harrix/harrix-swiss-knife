@@ -563,6 +563,15 @@
       }
       initOnce();
       processAllCodeBlocks();
+      [50, 200, 500].forEach((ms) => {
+        setTimeout(() => {
+          try {
+            processAllCodeBlocks();
+          } catch {
+            // ignore late preview updates
+          }
+        }, ms);
+      });
     } catch (err) {
       console.error('[Harrix Notes HSK] preview-copy init failed:', err);
     }

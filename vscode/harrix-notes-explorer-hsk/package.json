@@ -278,10 +278,15 @@
           "default": "#388a34",
           "markdownDescription": "Border and icon color after a successful copy."
         },
+        "harrixNotesExplorerHsk.previewMarkdownItExtensions": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Inject extra HTML via `markdown.markdownItPlugins` (video/audio players, Marp, Jupyter). **Off by default** — this blanks the editor **Preview** tab in VS Code and Cursor (Tiptap/ProseMirror). Enable only if you use **Markdown: Open Preview** and need those extras."
+        },
         "harrixNotesExplorerHsk.previewFrontmatter.collapse": {
           "type": "boolean",
           "default": true,
-          "markdownDescription": "Collapse YAML **frontmatter** at the top of the classic Markdown preview (`markdown.showPreview` / Open Preview) into a `<details>` block (see `previewFrontmatter.summary`). Also wraps VS Code's built-in frontmatter table. In Cursor this applies only to **Markdown: Open Preview**, not the editor **Preview** tab (Tiptap)."
+          "markdownDescription": "Collapse YAML **frontmatter** at the top of the classic Markdown preview (`markdown.showPreview` / Open Preview) into a `<details>` block (see `previewFrontmatter.summary`). Wraps the built-in frontmatter table. Does not apply to the editor **Preview** tab (Tiptap)."
         },
         "harrixNotesExplorerHsk.previewFrontmatter.summary": {
           "type": "string",
