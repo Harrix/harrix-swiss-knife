@@ -4241,16 +4241,10 @@ class MainWindow(
         """Size process columns so they fill the visible table viewport."""
         if not hasattr(self, "tableView_process") or not self.tableView_process.model():
             return
-        if not self.tableView_process.isVisible():
-            return
 
         header = self.tableView_process.horizontalHeader()
         column_count = header.count()
         if column_count < 1:
-            return
-
-        available_width = self.tableView_process.viewport().width()
-        if available_width <= 0:
             return
 
         # Exercise / Type / Quantity are interactive; Date stretches to fill.
@@ -4259,6 +4253,10 @@ class MainWindow(
             header.setSectionResizeMode(i, header.ResizeMode.Interactive)
         header.setSectionResizeMode(last_column, header.ResizeMode.Stretch)
         header.setStretchLastSection(True)
+
+        available_width = self._process_table_available_width()
+        if available_width <= 0:
+            return
 
         # Preferred shares for the non-stretch columns (Date takes the rest).
         proportions = [0.40, 0.25, 0.20]
@@ -4482,8 +4480,6 @@ class MainWindow(
     def _apply_sets_splitter_sizes(self) -> None:
         """Restore Sets-tab splitter widths so the exercise list is not squeezed."""
         if getattr(self, "_is_closing", False) or not hasattr(self, "splitter"):
-            return
-        if not self.tab.isVisible():
             return
 
         total = self.splitter.width()
@@ -5601,14 +5597,18 @@ class MainWindow(
         )
 
     def _finish_window_initialization(self) -> None:
-        """Finish window initialization by showing the window and adjusting columns."""
+        """Show the window only after splitter and process columns match the final size."""
         if self._is_closing:
             return
-        self._show_placed_window()
-        # Adjust columns after window is shown and has proper dimensions
-        QTimer.singleShot(50, self._adjust_process_table_columns)
-        QTimer.singleShot(55, self._update_layout_for_window_size)
-        QTimer.singleShot(60, self._apply_sets_splitter_sizes)
+        self.setUpdatesEnabled(False)
+        try:
+            self._show_placed_window()
+            QApplication.processEvents(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
+            self._update_layout_for_window_size()
+            self._apply_sets_splitter_sizes()
+            self._adjust_process_table_columns()
+        finally:
+            self.setUpdatesEnabled(True)
         QTimer.singleShot(120, self._maybe_prompt_missing_exercise_images)
 
     def _fitness_lightbox_details(self, exercise_name: str, workout_item_id: int | None) -> FitnessLightboxDetails:
@@ -7410,6 +7410,21 @@ class MainWindow(
                 parent=self,
             )
             toast.present()
+
+    def _process_table_available_width(self) -> int:
+        """Return a usable process-table width, including while the window is hidden."""
+        viewport_width = self.tableView_process.viewport().width()
+        if viewport_width > 0:
+            return viewport_width
+        table_width = self.tableView_process.width()
+        if table_width > 0:
+            return table_width
+        if hasattr(self, "splitter"):
+            sizes = self.splitter.sizes()
+            process_pane = 2
+            if len(sizes) > process_pane and sizes[process_pane] > 0:
+                return sizes[process_pane]
+        return max(self.width() // 2, 0)
 
     def _pump_exercise_add_queue(self) -> None:
         """Start the next queued add when AI, media, and the previous job are idle."""
