@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QPoint, QRect, Qt, QTimer, Signal
+from PySide6.QtCore import QPoint, QRect, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QCloseEvent, QColor, QFont, QPainter, QPaintEvent, QPen, QShowEvent
 from PySide6.QtWidgets import (
     QComboBox,
@@ -42,6 +42,7 @@ from harrix_swiss_knife.apps.fitness.lightbox_sounds import (
     play_fitness_timer_cue,
     stop_fitness_timer_alert,
 )
+from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
 
 if TYPE_CHECKING:
     from harrix_swiss_knife.apps.common.avif_manager import AvifManager
@@ -550,14 +551,18 @@ class FitnessLightboxSidebar(QFrame):
         button.clicked.connect(self.confirm_requested.emit)
         return button
 
-    def _build_timer_button(self, text: str, object_name: str) -> QPushButton:
-        button = QPushButton(text)
+    def _build_timer_button(self, emoji: str, tooltip: str, object_name: str) -> QPushButton:
+        button = QPushButton()
         button.setObjectName(object_name)
+        button.setIcon(create_emoji_icon(emoji, 22))
+        button.setIconSize(QSize(22, 22))
+        button.setToolTip(tooltip)
         button.setCursor(Qt.CursorShape.PointingHandCursor)
         button.setAutoDefault(False)
         button.setDefault(False)
         button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        _apply_pixel_font(button, pixel_size=14, weight=QFont.Weight.DemiBold)
+        button.setFixedHeight(44)
+        button.setMinimumWidth(52)
         return button
 
     def _build_ui(self) -> None:
@@ -584,10 +589,10 @@ class FitnessLightboxSidebar(QFrame):
         _apply_pixel_font(self._limit_label, pixel_size=14)
         self._limit_label.hide()
 
-        start = self._build_timer_button("▶ Start", "fitnessLightboxStartButton")
-        pause = self._build_timer_button("⏸ Pause", "fitnessLightboxPauseButton")
-        stop = self._build_timer_button("⏹ Stop", "fitnessLightboxStopButton")
-        restart = self._build_timer_button("↻ Restart", "fitnessLightboxRestartButton")
+        start = self._build_timer_button("▶", "Start", "fitnessLightboxStartButton")
+        pause = self._build_timer_button("⏸", "Pause", "fitnessLightboxPauseButton")
+        stop = self._build_timer_button("⏹", "Stop", "fitnessLightboxStopButton")
+        restart = self._build_timer_button("↻", "Restart", "fitnessLightboxRestartButton")
         start.clicked.connect(self._on_start)
         pause.clicked.connect(self._on_pause)
         stop.clicked.connect(self._on_stop)

@@ -223,7 +223,7 @@ def test_lightbox_playback_view_prepare_run_and_finish() -> None:
     finish_view = lightbox_playback_view(finished.advance(5000))
     assert finish_view.overlay is LightboxOverlayKind.FINISH
     assert not finish_view.animate
-    assert finish_view.freeze_first_frame
+    assert not finish_view.freeze_first_frame
 
 
 def test_stopwatch_capture_and_restore_resumes_elapsed() -> None:
@@ -487,7 +487,13 @@ def test_fitness_lightbox_has_splitter_sidebar_and_browse_confirm(
     assert overlay._number.text() == "5"
     stop = dialog.findChild(QPushButton, "fitnessLightboxStopButton")
     assert stop is not None
-    assert stop.text() == "⏹ Stop"
+    assert stop.text() == ""
+    assert stop.toolTip() == "Stop"
+    assert not stop.icon().isNull()
+    start = dialog.findChild(QPushButton, "fitnessLightboxStartButton")
+    assert start is not None
+    assert start.text() == ""
+    assert start.toolTip() == "Start"
     assert "background: transparent" in dialog._sidebar.styleSheet()
     assert "border: none" in dialog._sidebar.styleSheet()
     assert "border-radius: 0" in dialog._sidebar.styleSheet()

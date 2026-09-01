@@ -308,7 +308,7 @@ def lightbox_playback_view(snapshot: StopwatchSnapshot) -> LightboxPlaybackView:
             overlay=LightboxOverlayKind.FINISH,
             countdown_seconds=0,
             animate=False,
-            freeze_first_frame=True,
+            freeze_first_frame=False,
         )
     if snapshot.phase is StopwatchPhase.RUNNING and snapshot.is_running:
         return LightboxPlaybackView(
