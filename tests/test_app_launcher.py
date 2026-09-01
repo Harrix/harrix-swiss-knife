@@ -74,6 +74,41 @@ def test_app_launcher_shows_loading_toast_while_creating_window(monkeypatch: pyt
     action.main_window.close()
 
 
+def test_app_launcher_skips_show_when_window_defers_initial_show(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Windows with `defer_initial_show` paint themselves after layout is ready."""
+    app = QApplication.instance()
+    if app is None:
+        QApplication([])
+
+    class DeferredWindow(QWidget):
+        defer_initial_show = True
+
+        def __init__(self, *, hide_on_close: bool = False) -> None:
+            super().__init__()
+            del hide_on_close
+            self.show_count = 0
+
+        def show(self) -> None:
+            self.show_count += 1
+            super().show()
+
+    @contextmanager
+    def fake_scope(_title: str) -> Iterator[None]:
+        yield
+
+    monkeypatch.setattr(OnHabits, "get_main_window_class", classmethod(lambda _cls: DeferredWindow))
+    monkeypatch.setattr(
+        "harrix_swiss_knife.actions.common.app_launcher.app_loading_toast_scope",
+        fake_scope,
+    )
+
+    action = OnHabits()
+    action.execute()
+    assert action.main_window is not None
+    assert action.main_window.show_count == 0
+    action.main_window.close()
+
+
 def test_finance_finish_init_skips_duplicate_exchange_rates_setup() -> None:
     """Exchange rates controls are configured once in _initial_load, not again on show."""
     source = inspect.getsource(MainWindow._finish_window_initialization)

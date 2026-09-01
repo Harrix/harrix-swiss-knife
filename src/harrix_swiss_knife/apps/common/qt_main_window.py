@@ -59,6 +59,7 @@ class AppWindowMixin:
     about_app_name: ClassVar[str] = "Harrix Swiss Knife"
     about_description: ClassVar[str] = ""
     settings_app_id: ClassVar[str | None] = None
+    defer_initial_show: ClassVar[bool] = False
 
     actionAbout: QAction  # noqa: N815
     actionExit: QAction  # noqa: N815

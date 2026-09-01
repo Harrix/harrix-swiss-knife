@@ -257,9 +257,6 @@ _EXERCISE_TABLE_TYPE_REQUIRED_COLUMN = 3
 _ICON_DECODE_BUDGET_S = 0.02
 # Decode the top rows of listView_exercises before the rest of the catalog.
 _ICON_DECODE_LIST_PRIORITY = 20
-_PROCESS_TABLE_READY_MAX_WAIT_S = 1.5
-_PROCESS_TABLE_READY_MIN_WIDTH = 80
-_PROCESS_TABLE_READY_STABLE_S = 0.08
 
 
 class MainWindow(
@@ -299,6 +296,7 @@ class MainWindow(
     about_app_name = "Fitness tracker"
     about_description = "Track workouts, exercises, weight, and progress."
     settings_app_id = "fitness"
+    defer_initial_show = True
 
     def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
         super().__init__()
@@ -463,8 +461,8 @@ class MainWindow(
         # Set window size and position based on screen resolution
         self._setup_window_size_and_position()
 
-        # Adjust table column widths and show window after UI is fully initialized
-        QTimer.singleShot(200, self._finish_window_initialization)
+        # Show once after this constructor returns, with columns already sized.
+        QTimer.singleShot(0, self._finish_window_initialization)
 
     @requires_database()
     def apply_filter(self, *_args: object) -> None:
@@ -4437,10 +4435,14 @@ class MainWindow(
 
         # Preferred shares for the non-stretch columns (Date takes the rest).
         proportions = [0.40, 0.25, 0.20]
+        used_width = 0
         for i, prop in enumerate(proportions):
             if i >= last_column:
                 break
-            self.tableView_process.setColumnWidth(i, max(60, int(available_width * prop)))
+            width = max(60, int(available_width * prop))
+            self.tableView_process.setColumnWidth(i, width)
+            used_width += width
+        self.tableView_process.setColumnWidth(last_column, max(60, available_width - used_width))
 
     def _append_exercise_name_to_list_view(self, exercise: str, *, load_icon: bool) -> None:
         """Append one exercise to the Sets list when it is not already present."""
@@ -4655,7 +4657,7 @@ class MainWindow(
             table_view.setColumnWidth(column, width)
 
     def _apply_hidden_process_table_geometry(self) -> None:
-        """Resize the hidden window to its final client size and pre-size columns."""
+        """Lay the window out off-screen at its final size, then pre-size process columns."""
         screen = self.screen() or QApplication.primaryScreen()
         if screen is None:
             return
@@ -4675,15 +4677,19 @@ class MainWindow(
             )
         else:
             self.setGeometry(target)
-        self.ensurePolished()
-        layout = self.layout()
-        if layout is not None:
-            layout.activate()
-        if hasattr(self, "splitter"):
-            self.splitter.resize(max(self.width(), 1), max(self.splitter.height(), 1))
-        self._update_layout_for_window_size()
-        self._apply_sets_splitter_sizes()
-        self._adjust_process_table_columns()
+        # A hidden widget reports no viewport width, so lay the window out off-screen:
+        # `WA_DontShowOnScreen` runs a real show/layout pass without mapping a window.
+        self.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, on=True)
+        try:
+            self.show()
+            QApplication.processEvents(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
+            self._update_layout_for_window_size()
+            self._apply_sets_splitter_sizes()
+            QApplication.processEvents(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
+            self._adjust_process_table_columns()
+            self.hide()
+        finally:
+            self.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, on=False)
 
     def _apply_sets_splitter_sizes(self) -> None:
         """Restore Sets-tab splitter widths so the exercise list is not squeezed."""
@@ -5809,28 +5815,15 @@ class MainWindow(
         if self._is_closing:
             return
         self._process_table_reveal_pending = True
-        self.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, on=True)
         try:
             self._apply_hidden_process_table_geometry()
-            self._show_placed_window()
-            self._wait_until_process_table_ready()
             if self._is_closing:
                 return
-            self.setUpdatesEnabled(False)
-            try:
-                self._update_layout_for_window_size()
-                self._apply_sets_splitter_sizes()
-                QApplication.processEvents(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
-                self._adjust_process_table_columns()
-                QApplication.processEvents(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
-                self._adjust_process_table_columns()
-            finally:
-                self.setUpdatesEnabled(True)
-            self.hide()
-        finally:
-            self.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, on=False)
+            self._show_placed_window()
             if not self._is_closing:
-                self._reveal_prepared_window()
+                self.raise_()
+                self.activateWindow()
+        finally:
             self._process_table_reveal_pending = False
         QTimer.singleShot(120, self._maybe_prompt_missing_exercise_images)
 
@@ -7814,13 +7807,6 @@ class MainWindow(
         except (FileNotFoundError, OSError) as error:
             message_box.warning(self, "Error", f"Could not open File Explorer:\n{error}")
 
-    def _reveal_prepared_window(self) -> None:
-        """Paint the already sized window once, without an opacity hide/show."""
-        if self._window_should_maximize():
-            self.showMaximized()
-            return
-        self.show()
-
     def _run_fitness_add_by_voice(self, *, large_ui: bool = False) -> None:
         """Record speech, transcribe via BotHub, then parse sets into TSV."""
         if not self._validate_database_connection():
@@ -9356,46 +9342,6 @@ class MainWindow(
         if isinstance(app, QApplication):
             app.restoreOverrideCursor()
         return not self._is_closing
-
-    def _wait_until_process_table_ready(self) -> None:
-        """Pump events until maximize (if any) and the process table have a stable width."""
-        started = time.monotonic()
-        last_width = -1
-        last_change = started
-        should_maximize = self._window_should_maximize()
-        while time.monotonic() - started < _PROCESS_TABLE_READY_MAX_WAIT_S:
-            QApplication.processEvents(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
-            if self._is_closing:
-                return
-            now = time.monotonic()
-            width = self.tableView_process.viewport().width()
-            if width != last_width:
-                last_width = width
-                last_change = now
-                continue
-            if width <= _PROCESS_TABLE_READY_MIN_WIDTH or now - last_change < _PROCESS_TABLE_READY_STABLE_S:
-                continue
-            if should_maximize and not self.isMaximized():
-                continue
-            return
-
-    def _window_should_maximize(self) -> bool:
-        """Return whether this screen uses the shared maximize-on-show layout."""
-        screen = self.screen() or QApplication.primaryScreen()
-        if screen is None:
-            return False
-        available = screen.availableGeometry()
-        left, top, right, bottom = window_frame_margins(self)
-        return (
-            compute_app_window_geometry(
-                available,
-                frame_left=left,
-                frame_top=top,
-                frame_right=right,
-                frame_bottom=bottom,
-            )
-            is None
-        )
 
     def _workout_prompt_replacements(
         self,

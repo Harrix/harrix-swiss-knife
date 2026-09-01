@@ -70,6 +70,8 @@ class AppLauncherAction(ActionBase):
                 window = type(self).get_main_window_class()(hide_on_close=type(self).hide_on_close)
                 self.main_window = window
                 window.destroyed.connect(self._clear_main_window_ref)
+                if getattr(window, "defer_initial_show", False):
+                    return
                 self.main_window.show()
                 apply_app_window_size_and_position(self.main_window)
                 self.main_window.raise_()
@@ -151,6 +153,8 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
                 window = type(self).get_main_window_class()(hide_on_close=type(self).hide_on_close)
                 self.main_window = window
                 window.destroyed.connect(self._clear_main_window_ref)
+                if getattr(window, "defer_initial_show", False):
+                    return
                 self.main_window.show()
                 apply_app_window_size_and_position(self.main_window)
                 self.main_window.raise_()
