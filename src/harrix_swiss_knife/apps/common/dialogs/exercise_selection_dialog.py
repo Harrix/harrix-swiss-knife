@@ -5,7 +5,7 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QEvent, QObject, QSize, Qt, QTimer, Signal
+from PySide6.QtCore import QEvent, QItemSelectionModel, QObject, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QColor, QFont, QPalette, QPixmap
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -56,6 +56,7 @@ class ExerciseSelectionDialog(QDialog):
         avif_manager: AvifManager | None = None,
         name_locals: dict[str, str] | None = None,
         display_names: dict[str, str] | None = None,
+        multi_select: bool = False,
     ) -> None:
         """Initialize the ExerciseSelectionDialog.
 
@@ -71,12 +72,16 @@ class ExerciseSelectionDialog(QDialog):
         - `name_locals` (`dict[str, str] | None`): Optional English→local name map.
         - `display_names` (`dict[str, str] | None`): Optional English→display label map
           (for example a dumbbell icon prefix).
+        - `multi_select` (`bool`): Allow Ctrl/Shift selection of several exercises.
+          Defaults to `False`.
 
         """
         super().__init__(parent)
-        self.setWindowTitle("Select Exercise")
+        self.setWindowTitle("Select Exercises" if multi_select else "Select Exercise")
         qt_modality.set_owner_window_modal(self)
+        self._multi_select = multi_select
         self.selected_exercise: str | None = current_selection
+        self.selected_exercises: list[str] = [current_selection] if current_selection else []
         self._pixmap_provider = pixmap_provider
         self._avif_manager = avif_manager
         self._name_locals = name_locals or {}
@@ -91,13 +96,19 @@ class ExerciseSelectionDialog(QDialog):
         layout = QVBoxLayout(self)
 
         self.filter_edit = QLineEdit(self)
-        self.filter_edit.setPlaceholderText("Filter exercises…")
+        self.filter_edit.setPlaceholderText(
+            "Filter exercises…  Ctrl+click or Shift+click to select several" if multi_select else "Filter exercises…",
+        )
         self.filter_edit.setClearButtonEnabled(True)
         self.filter_edit.textChanged.connect(self._filter_exercises)
         layout.addWidget(self.filter_edit)
 
         self.list_widget = QListWidget(self)
-        self.list_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.list_widget.setSelectionMode(
+            QAbstractItemView.SelectionMode.ExtendedSelection
+            if multi_select
+            else QAbstractItemView.SelectionMode.SingleSelection,
+        )
         self.list_widget.setViewMode(QListWidget.ViewMode.IconMode)
         self.list_widget.setResizeMode(QListWidget.ResizeMode.Adjust)
         self.list_widget.setMovement(QListWidget.Movement.Static)
@@ -156,7 +167,7 @@ class ExerciseSelectionDialog(QDialog):
                 self.list_widget.setItemWidget(item, tile)
                 self._pending_preview_rows.append(self.list_widget.count() - 1)
 
-                tile.clicked.connect(lambda row_item=item: self._on_tile_clicked(row_item))
+                tile.clicked.connect(lambda modifiers, row_item=item: self._on_tile_clicked(row_item, modifiers))
                 tile.double_clicked.connect(lambda row_item=item: self._on_tile_double_clicked(row_item))
                 tile.hover_entered.connect(lambda row_tile=tile: self._on_tile_hover_entered(row_tile))
                 tile.hover_left.connect(lambda row_tile=tile: self._on_tile_hover_left(row_tile))
@@ -251,18 +262,17 @@ class ExerciseSelectionDialog(QDialog):
 
     def _on_accept(self) -> None:
         self._stop_animation()
-        item = self.list_widget.currentItem()
-        if item is None:
-            selected_items = self.list_widget.selectedItems()
-            if selected_items:
-                item = selected_items[0]
-                self.list_widget.setCurrentItem(item)
-            elif self.list_widget.count() > 0:
+        self._sync_selected_exercises()
+        if not self.selected_exercises:
+            item = self.list_widget.currentItem()
+            if item is None and self.list_widget.count() > 0:
                 self.list_widget.setCurrentRow(0)
                 item = self.list_widget.currentItem()
-        self._update_selected_from_item(item)
+            if item is not None:
+                item.setSelected(True)
+                self._sync_selected_exercises()
 
-        if self.selected_exercise:
+        if self.selected_exercises:
             self.accept()
         else:
             self.reject()
@@ -273,25 +283,56 @@ class ExerciseSelectionDialog(QDialog):
             self._prioritize_visible_preview_rows()
 
     def _on_selection_changed(self) -> None:
-        current = self.list_widget.currentItem()
+        selected_items = set(self.list_widget.selectedItems())
         for row in range(self.list_widget.count()):
             item = self.list_widget.item(row)
             tile = self._tile_for_item(item)
             if tile is not None and item is not None:
-                tile.set_selected(selected=item is current and item.isSelected())
-        self._update_selected_from_item(current)
+                tile.set_selected(selected=item in selected_items)
+        self._sync_selected_exercises()
 
-    def _on_tile_clicked(self, item: QListWidgetItem) -> None:
-        self.list_widget.setCurrentItem(item)
-        item.setSelected(True)
-        self._update_selected_from_item(item)
+    def _on_tile_clicked(self, item: QListWidgetItem, modifiers: object = Qt.KeyboardModifier.NoModifier) -> None:
+        flags = Qt.KeyboardModifier(modifiers) if modifiers is not None else Qt.KeyboardModifier.NoModifier
+        if not self._multi_select:
+            self.list_widget.setCurrentItem(item)
+            item.setSelected(True)
+            self._sync_selected_exercises()
+            return
+        ctrl = bool(flags & (Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.MetaModifier))
+        shift = bool(flags & Qt.KeyboardModifier.ShiftModifier)
+        no_update = QItemSelectionModel.SelectionFlag.NoUpdate
+        if shift:
+            anchor = self.list_widget.currentItem()
+            start = self.list_widget.row(anchor) if anchor is not None else self.list_widget.row(item)
+            end = self.list_widget.row(item)
+            lo, hi = min(start, end), max(start, end)
+            if not ctrl:
+                self.list_widget.clearSelection()
+            for row in range(lo, hi + 1):
+                row_item = self.list_widget.item(row)
+                if row_item is not None and not row_item.isHidden():
+                    row_item.setSelected(True)
+            self.list_widget.setCurrentItem(item, no_update)
+        elif ctrl:
+            item.setSelected(not item.isSelected())
+            self.list_widget.setCurrentItem(item, no_update)
+        else:
+            self.list_widget.clearSelection()
+            item.setSelected(True)
+            self.list_widget.setCurrentItem(item)
+        self._sync_selected_exercises()
 
     def _on_tile_double_clicked(self, item: QListWidgetItem) -> None:
         self._stop_animation()
-        self.list_widget.setCurrentItem(item)
-        item.setSelected(True)
-        self._update_selected_from_item(item)
-        self.accept()
+        if self._multi_select:
+            item.setSelected(True)
+            self.list_widget.setCurrentItem(item, QItemSelectionModel.SelectionFlag.NoUpdate)
+        else:
+            self.list_widget.setCurrentItem(item)
+            item.setSelected(True)
+        self._sync_selected_exercises()
+        if self.selected_exercises:
+            self.accept()
 
     def _on_tile_hover_entered(self, tile: _ExercisePreviewTile) -> None:
         """Play animation inside the same QLabel that shows the still preview."""
@@ -370,18 +411,23 @@ class ExerciseSelectionDialog(QDialog):
         widget = self.list_widget.itemWidget(item)
         return widget if isinstance(widget, _ExercisePreviewTile) else None
 
-    def _update_selected_from_item(self, item: QListWidgetItem | None) -> None:
-        if item is None:
-            self.selected_exercise = None
-            return
-        exercise = item.data(Qt.ItemDataRole.UserRole)
-        self.selected_exercise = exercise or item.text()
+    def _sync_selected_exercises(self) -> None:
+        names: list[str] = []
+        for row in range(self.list_widget.count()):
+            item = self.list_widget.item(row)
+            if item is None or not item.isSelected():
+                continue
+            exercise = item.data(Qt.ItemDataRole.UserRole)
+            if exercise:
+                names.append(str(exercise))
+        self.selected_exercises = names
+        self.selected_exercise = names[0] if names else None
 
 
 class _ExercisePreviewTile(QFrame):
     """One exercise cell: fixed preview slot plus name lines under it."""
 
-    clicked = Signal()
+    clicked = Signal(object)
     double_clicked = Signal()
     hover_entered = Signal()
     hover_left = Signal()
@@ -486,7 +532,7 @@ class _ExercisePreviewTile(QFrame):
     def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         """Select this exercise on click."""
         if event.button() == Qt.MouseButton.LeftButton:
-            self.clicked.emit()
+            self.clicked.emit(event.modifiers())
         super().mousePressEvent(event)
 
     def restore_static_pixmap(self) -> None:

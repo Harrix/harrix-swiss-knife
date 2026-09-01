@@ -471,7 +471,7 @@ class WorkoutsWidget(QWidget):
         self.button_add_exercise.setMinimumWidth(150)
         self.button_add_exercise.setFont(font_12_bold)
         self.button_add_exercise.setStyleSheet(_GREY_BUTTON_STYLE)
-        self.button_add_exercise.setToolTip("Add an exercise from the Select Exercise dialog")
+        self.button_add_exercise.setToolTip("Add one or more exercises from the Select Exercise dialog")
         self.button_add_exercise.clicked.connect(self._request_add_exercise)
         title_row.addWidget(self.button_add_exercise)
         self.button_start = QPushButton("Start")

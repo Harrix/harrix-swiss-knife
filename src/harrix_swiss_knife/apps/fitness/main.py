@@ -2274,9 +2274,10 @@ class MainWindow(
 
     def on_select_exercise_button_clicked(self) -> None:
         """Open a modal dialog to select an exercise with AVIF previews."""
-        selected_exercise = self._open_select_exercise_dialog()
-        if not selected_exercise:
+        selected = self._open_select_exercise_dialog()
+        if not selected:
             return
+        selected_exercise = selected[0]
         if not self._select_exercise_in_list(selected_exercise):
             self._update_comboboxes(selected_exercise=selected_exercise)
 
@@ -6911,52 +6912,21 @@ class MainWindow(
         self.apply_filter()
 
     def _on_workout_add_exercise_requested(self, workout_id: int) -> None:
-        """Add a catalog exercise to the selected workout via Select Exercise."""
+        """Add one or more catalog exercises to the selected workout."""
         if self.db_manager is None or not self._validate_database_connection():
             message_box.warning(self, "Error", "Database connection not available")
             return
-        selected_exercise = self._open_select_exercise_dialog()
-        if not selected_exercise:
+        selected = self._open_select_exercise_dialog(multi_select=True)
+        if not selected:
             return
-        ex_id = self.db_manager.get_id("exercises", "name", selected_exercise)
-        if ex_id is None:
-            message_box.warning(self, "Error", f"Exercise '{selected_exercise}' not found in database")
-            return
-        types = self.db_manager.get_exercise_types(ex_id)
-        last_type = ""
-        last_value = ""
-        last_record = self.db_manager.get_last_exercise_record(ex_id)
-        if last_record:
-            last_type, last_value = last_record
-        type_name = default_exercise_type(
-            types,
-            preferred="",
-            last_used=last_type,
-            type_required=self.db_manager.is_exercise_type_required(ex_id),
-        )
-        type_id = -1
-        if type_name:
-            type_rows = self.db_manager.get_rows(
-                "SELECT _id FROM types WHERE type = :name AND _id_exercises = :ex_id",
-                {"name": type_name, "ex_id": ex_id},
-            )
-            if type_rows:
-                type_id = int(type_rows[0][0])
-        item_id = self.db_manager.add_workout_item(
-            workout_id,
-            database_manager.WorkoutItemInput(
-                exercise_id=ex_id,
-                type_id=type_id,
-                exercise_name=selected_exercise,
-                type_name=type_name,
-                target_value=str(last_value).strip(),
-            ),
-        )
-        if item_id is None:
-            message_box.warning(self, "Error", f"Failed to add '{selected_exercise}' to the workout")
-            return
+        failed: list[str] = []
+        for name in selected:
+            if not self._add_catalog_exercise_to_workout(workout_id, name):
+                failed.append(name)
         if self._workouts_widget is not None:
             self._workouts_widget.refresh()
+        if failed:
+            message_box.warning(self, "Error", "Failed to add: " + ", ".join(failed))
 
     def _on_workout_empty_requested(self) -> None:
         """Create a workout with no exercises so the user can add them manually."""
@@ -7260,31 +7230,70 @@ class MainWindow(
         self._mark_exercises_changed()
         self.update_all()
 
-    def _open_select_exercise_dialog(self) -> str | None:
+    def _add_catalog_exercise_to_workout(self, workout_id: int, exercise_name: str) -> bool:
+        """Append one catalog exercise to `workout_id` using last type and value."""
+        if self.db_manager is None:
+            return False
+        ex_id = self.db_manager.get_id("exercises", "name", exercise_name)
+        if ex_id is None:
+            return False
+        types = self.db_manager.get_exercise_types(ex_id)
+        last_type = ""
+        last_value = ""
+        last_record = self.db_manager.get_last_exercise_record(ex_id)
+        if last_record:
+            last_type, last_value = last_record
+        type_name = default_exercise_type(
+            types,
+            preferred="",
+            last_used=last_type,
+            type_required=self.db_manager.is_exercise_type_required(ex_id),
+        )
+        type_id = -1
+        if type_name:
+            type_rows = self.db_manager.get_rows(
+                "SELECT _id FROM types WHERE type = :name AND _id_exercises = :ex_id",
+                {"name": type_name, "ex_id": ex_id},
+            )
+            if type_rows:
+                type_id = int(type_rows[0][0])
+        item_id = self.db_manager.add_workout_item(
+            workout_id,
+            database_manager.WorkoutItemInput(
+                exercise_id=ex_id,
+                type_id=type_id,
+                exercise_name=exercise_name,
+                type_name=type_name,
+                target_value=str(last_value).strip(),
+            ),
+        )
+        return item_id is not None
+
+    def _open_select_exercise_dialog(self, *, multi_select: bool = False) -> list[str]:
         """Open the same Select Exercise dialog as `pushButton_select_exercise`."""
         if not self._validate_database_connection() or self.db_manager is None:
             message_box.warning(self, "Database Error", "Database connection is not available.")
-            return None
+            return []
 
         try:
             exercises = self.db_manager.get_exercises_by_frequency(500)
         except Exception as exc:
             message_box.warning(self, "Database Error", f"Failed to load exercises: {exc}")
-            return None
+            return []
 
         if not exercises:
             message_box.information(self, "No Exercises", "No exercises are available to select.")
-            return None
+            return []
 
         if not self._ensure_static_thumbnails_for_select_exercise():
-            return None
+            return []
 
         label_height = self.label_exercise_avif.height()
         preview_edge = max(0, label_height)
         preview_edge = max(min(preview_edge, 512), 160)
         preview_size = QSize(preview_edge, preview_edge)
 
-        current_selection = self._get_current_selected_exercise()
+        current_selection = None if multi_select else self._get_current_selected_exercise()
 
         dumbbell_names = self._cached_dumbbell_exercise_names()
         dialog = ExerciseSelectionDialog(
@@ -7299,6 +7308,7 @@ class MainWindow(
                 name: format_favorite_exercise_label(name, favorite=False, dumbbell=name in dumbbell_names)
                 for name in exercises
             },
+            multi_select=multi_select,
         )
 
         dialog_width = max(int(self.width() * 0.95), preview_size.width())
@@ -7306,9 +7316,9 @@ class MainWindow(
         dialog.resize(dialog_width, dialog_height)
         dialog.setMinimumSize(preview_size)
 
-        if dialog.exec() == QDialog.DialogCode.Accepted and dialog.selected_exercise:
-            return dialog.selected_exercise
-        return None
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            return list(dialog.selected_exercises)
+        return []
 
     def _open_sets_preview_dialog(self, initial_text: str) -> None:
         """Show the TSV preview dialog and save accepted set rows."""
