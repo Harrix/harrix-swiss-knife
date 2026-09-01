@@ -281,7 +281,7 @@
         "harrixNotesExplorerHsk.previewFrontmatter.collapse": {
           "type": "boolean",
           "default": true,
-          "markdownDescription": "Collapse YAML **frontmatter** at the top of the classic Markdown preview (`markdown.showPreview` / Open Preview) into a `<details>` block (see `previewFrontmatter.summary`). Rendered by this extension so it also works in Cursor. Does not apply to Cursor's inline editor Preview toggle."
+          "markdownDescription": "Collapse YAML **frontmatter** at the top of the classic Markdown preview (`markdown.showPreview` / Open Preview) into a `<details>` block (see `previewFrontmatter.summary`). In Cursor this applies only to **Markdown: Open Preview**, not the editor **Preview** tab (Tiptap), which this extension must not hook."
         },
         "harrixNotesExplorerHsk.previewFrontmatter.summary": {
           "type": "string",

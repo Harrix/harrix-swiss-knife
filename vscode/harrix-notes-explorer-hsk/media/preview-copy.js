@@ -28,6 +28,23 @@
   /** @type {typeof DEFAULT_CONFIG} */
   let activeConfig = { ...DEFAULT_CONFIG };
 
+  /**
+   * Cursor's Source|Preview tab is Tiptap/ProseMirror. previewScripts still load
+   * there; mutating that DOM blanks the pane. Classic `markdown.showPreview` uses
+   * `.markdown-body` and has no ProseMirror surface.
+   */
+  function isCursorRichMarkdownSurface() {
+    return Boolean(
+      document.querySelector(
+        '.tiptap, .ProseMirror, .markdown-editor-react__richtext-content, [class*="markdown-editor-react"]',
+      ),
+    );
+  }
+
+  function isClassicMarkdownPreview() {
+    return Boolean(document.querySelector('.markdown-body')) && !isCursorRichMarkdownSurface();
+  }
+
   function readConfigFromDom() {
     const el = document.getElementById('hne-preview-copy-config');
     if (!el) {
@@ -426,6 +443,16 @@
   let isProcessingDom = false;
 
   function processAllCodeBlocks() {
+    if (isCursorRichMarkdownSurface()) {
+      if (domObserver) {
+        domObserver.disconnect();
+        domObserver = null;
+      }
+      return;
+    }
+    if (!isClassicMarkdownPreview()) {
+      return;
+    }
     if (isProcessingDom) {
       return;
     }
@@ -455,6 +482,9 @@
 
   function initOnce() {
     if (window.__hneMarkdownCopyInit) {
+      return;
+    }
+    if (isCursorRichMarkdownSurface()) {
       return;
     }
     window.__hneMarkdownCopyInit = true;

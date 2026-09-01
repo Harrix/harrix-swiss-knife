@@ -237,6 +237,8 @@ Commands:
 **Note labels in the tree** (`harrixNotesExplorerHsk.showNoteTitleFromContent`, default `true`): each note row uses YAML frontmatter `title:` if present, otherwise the first `#` heading, otherwise the file name without `.md`. Set to `false` to always show only the file name (previous behavior). When the label differs from the file name, `harrixNotesExplorerHsk.showNoteFileNameBesideTitle` (default `true`) controls whether the file name is shown as a gray description beside the title; set to `false` to show only the title.
 Fenced code blocks in the built-in **Markdown preview** (including notes opened via **Harrix Notes (HSK)** with `openNotesInPreview`) can show **Copy** buttons (see `harrixNotesExplorerHsk.previewCopy.*` settings: enable buttons, top/bottom visibility, hover zone, colors). Defaults: top always visible, bottom on hover in the last 80px, background `#fefefe`, border/icon `#7f7f7f`. Preview scripts run only in a **trusted** workspace; if buttons are missing, check workspace trust and **Markdown: Preview Security Settings**. After changing colors or visibility, the preview refreshes automatically.
 
+In **Cursor**, the editor **Preview** tab (next to Source) is a Tiptap/ProseMirror surface, not the VS Code webview. This extension does **not** hook that renderer (doing so blanks the pane). Use **Markdown: Open Preview** / **Open Preview to the Side** (`Ctrl+Shift+V`) for the classic webview with copy buttons and YAML collapse. VS Code is unchanged.
+
 Example:
 
 ```json

@@ -3754,170 +3754,190 @@ function hneFrontMatterBlockRule(state, startLine, endLine, silent) {
   return true;
 }
 
-function registerPreviewCopyMarkdownPlugin() {
-  return {
-    extendMarkdownIt(/** @type {import('markdown-it')} */ md) {
-      const defaultImageRender =
-        md.renderer.rules.image || ((tokens, idx, options, _env, self) => self.renderToken(tokens, idx, options));
+function isCursorHost() {
+  return /cursor/i.test(String(vscode.env.appName || ''));
+}
 
-      md.renderer.rules.image = (tokens, idx, options, env, self) => {
-        const token = tokens[idx];
-        const src = token.attrGet('src') || '';
-        const dataSrc = token.attrGet('data-src') || '';
-        const ext = mediaExtFromSrc(dataSrc || src);
-        const title = token.attrGet('title');
-        const titleAttr = title ? ` title="${escapeHtmlAttr(title)}"` : '';
+function applyPreviewMarkdownItExtensions(/** @type {import('markdown-it')} */ md) {
+  const defaultImageRender =
+    md.renderer.rules.image || ((tokens, idx, options, _env, self) => self.renderToken(tokens, idx, options));
 
-        const localFsPath = resolveLocalMediaFsPath(dataSrc, src, env);
-        const openLink = localFsPath ? renderOpenInSystemPlayerLink(localFsPath) : '';
+  md.renderer.rules.image = (tokens, idx, options, env, self) => {
+    const token = tokens[idx];
+    const src = token.attrGet('src') || '';
+    const dataSrc = token.attrGet('data-src') || '';
+    const ext = mediaExtFromSrc(dataSrc || src);
+    const title = token.attrGet('title');
+    const titleAttr = title ? ` title="${escapeHtmlAttr(title)}"` : '';
 
-        if (PREVIEW_VIDEO_EXTENSIONS.has(ext)) {
-          return (
-            `<div class="hne-md-media">` +
-            `<video class="hne-md-video" controls playsinline src="${escapeHtmlAttr(src)}"${titleAttr}></video>\n` +
-            `${openLink}</div>`
-          );
-        }
-        if (PREVIEW_AUDIO_EXTENSIONS.has(ext)) {
-          return (
-            `<div class="hne-md-media">` +
-            `<audio class="hne-md-audio" controls src="${escapeHtmlAttr(src)}"${titleAttr}></audio>\n` +
-            `${openLink}</div>`
-          );
-        }
-        return defaultImageRender(tokens, idx, options, env, self);
-      };
+    const localFsPath = resolveLocalMediaFsPath(dataSrc, src, env);
+    const openLink = localFsPath ? renderOpenInSystemPlayerLink(localFsPath) : '';
 
-      // Modern VS Code / Cursor call `renderer.render(tokens)`, not `md.render(src)`.
-      // Override the front_matter token renderer (yamlPreamble) and inject config there.
-      const renderFrontMatterToken = (tokens, idx, _options, env) => {
-        const cfg = getPreviewCopyConfig();
-        const raw = resolveFrontmatterRaw(tokens[idx], env);
-        const rows = parseFrontmatterRows(raw);
-        return buildFrontmatterPreviewHtml(rows, cfg, raw);
-      };
-      md.renderer.rules.front_matter = renderFrontMatterToken;
+    if (PREVIEW_VIDEO_EXTENSIONS.has(ext)) {
+      return (
+        `<div class="hne-md-media">` +
+        `<video class="hne-md-video" controls playsinline src="${escapeHtmlAttr(src)}"${titleAttr}></video>\n` +
+        `${openLink}</div>`
+      );
+    }
+    if (PREVIEW_AUDIO_EXTENSIONS.has(ext)) {
+      return (
+        `<div class="hne-md-media">` +
+        `<audio class="hne-md-audio" controls src="${escapeHtmlAttr(src)}"${titleAttr}></audio>\n` +
+        `${openLink}</div>`
+      );
+    }
+    return defaultImageRender(tokens, idx, options, env, self);
+  };
 
-      // If the host has no front_matter block rule, add one (older / stripped engines).
-      let hasFrontMatterRule = true;
+  // Modern VS Code / Cursor call `renderer.render(tokens)`, not `md.render(src)`.
+  // Override the front_matter token renderer (yamlPreamble) and inject config there.
+  const renderFrontMatterToken = (tokens, idx, _options, env) => {
+    const cfg = getPreviewCopyConfig();
+    const raw = resolveFrontmatterRaw(tokens[idx], env);
+    const rows = parseFrontmatterRows(raw);
+    return buildFrontmatterPreviewHtml(rows, cfg, raw);
+  };
+  md.renderer.rules.front_matter = renderFrontMatterToken;
+
+  // If the host has no front_matter block rule, add one (older / stripped engines).
+  let hasFrontMatterRule = true;
+  try {
+    md.block.ruler.enable(['front_matter'], true);
+  } catch {
+    hasFrontMatterRule = false;
+  }
+  if (!hasFrontMatterRule) {
+    try {
+      md.block.ruler.before('fence', 'front_matter', hneFrontMatterBlockRule, {
+        alt: ['paragraph', 'reference', 'blockquote', 'list'],
+      });
+    } catch {
       try {
-        md.block.ruler.enable(['front_matter'], true);
+        md.block.ruler.push('front_matter', hneFrontMatterBlockRule, {
+          alt: ['paragraph', 'reference', 'blockquote', 'list'],
+        });
       } catch {
-        hasFrontMatterRule = false;
+        // ignore
       }
-      if (!hasFrontMatterRule) {
-        try {
-          md.block.ruler.before('fence', 'front_matter', hneFrontMatterBlockRule, {
-            alt: ['paragraph', 'reference', 'blockquote', 'list'],
-          });
-        } catch {
-          try {
-            md.block.ruler.push('front_matter', hneFrontMatterBlockRule, {
-              alt: ['paragraph', 'reference', 'blockquote', 'list'],
-            });
-          } catch {
-            // ignore
-          }
-        }
-      }
+    }
+  }
 
-      const originalParse = md.parse.bind(md);
-      md.parse = (src, env) => {
-        const nextEnv = env && typeof env === 'object' ? env : {};
-        const text = typeof src === 'string' ? src : String(src ?? '');
-        nextEnv.hneMarpSource = text;
-        nextEnv.hneIsMarp = isMarpMarkdown(text);
-        nextEnv.hneJupyterSource = text;
-        nextEnv.hneIsJupyter = isJupyterMarkdown(text);
-        return originalParse(src, nextEnv);
-      };
+  const originalParse = md.parse.bind(md);
+  md.parse = (src, env) => {
+    const nextEnv = env && typeof env === 'object' ? env : {};
+    const text = typeof src === 'string' ? src : String(src ?? '');
+    nextEnv.hneMarpSource = text;
+    nextEnv.hneIsMarp = isMarpMarkdown(text);
+    nextEnv.hneJupyterSource = text;
+    nextEnv.hneIsJupyter = isJupyterMarkdown(text);
+    return originalParse(src, nextEnv);
+  };
 
-      const originalRendererRender = md.renderer.render.bind(md.renderer);
-      md.renderer.render = (tokens, options, env) => {
-        if (env?.hneIsMarp && env.hneMarpSource) {
-          const cfg = getPreviewCopyConfig();
-          const json = escapePreviewCopyConfigAttr(JSON.stringify(cfg));
-          const configHtml = `<div id="hne-preview-copy-config" style="display:none" data-config="${json}"></div>`;
-          const deckHtml = renderMarpPreviewHtml(env.hneMarpSource, (slideMd) => {
-            const slideTokens = originalParse(slideMd || ' ', {});
-            return originalRendererRender(slideTokens, options, {});
-          });
-          return configHtml + deckHtml;
-        }
-        if (env?.hneIsJupyter && env.hneJupyterSource) {
-          const noteUri = uriFromMarkdownRenderEnv(env);
-          const notebookHtml = renderJupyterPreviewHtml(
-            env.hneJupyterSource,
-            noteUri?.scheme === 'file' ? noteUri.fsPath : undefined,
-            (cellMd) => {
-              const cellTokens = originalParse(cellMd || ' ', {});
-              return originalRendererRender(cellTokens, options, {});
-            },
-          );
-          if (notebookHtml) {
-            const cfg = getPreviewCopyConfig();
-            const json = escapePreviewCopyConfigAttr(JSON.stringify(cfg));
-            const configHtml = `<div id="hne-preview-copy-config" style="display:none" data-config="${json}"></div>`;
-            return configHtml + notebookHtml;
-          }
-        }
-        // Cursor may emit an empty front_matter token — refill from the note file.
-        if (Array.isArray(tokens)) {
-          for (const token of tokens) {
-            if (token?.type !== 'front_matter') {
-              continue;
-            }
-            if (frontMatterContentFromToken(token).trim()) {
-              continue;
-            }
-            const raw = resolveFrontmatterRawFromEnv(env);
-            if (!raw.trim()) {
-              continue;
-            }
-            token.meta = { ...(token.meta && typeof token.meta === 'object' ? token.meta : {}), content: raw };
-            token.content = raw;
-          }
-        }
+  const originalRendererRender = md.renderer.render.bind(md.renderer);
+  md.renderer.render = (tokens, options, env) => {
+    if (env?.hneIsMarp && env.hneMarpSource) {
+      const cfg = getPreviewCopyConfig();
+      const json = escapePreviewCopyConfigAttr(JSON.stringify(cfg));
+      const configHtml = `<div id="hne-preview-copy-config" style="display:none" data-config="${json}"></div>`;
+      const deckHtml = renderMarpPreviewHtml(env.hneMarpSource, (slideMd) => {
+        const slideTokens = originalParse(slideMd || ' ', {});
+        return originalRendererRender(slideTokens, options, {});
+      });
+      return configHtml + deckHtml;
+    }
+    if (env?.hneIsJupyter && env.hneJupyterSource) {
+      const noteUri = uriFromMarkdownRenderEnv(env);
+      const notebookHtml = renderJupyterPreviewHtml(
+        env.hneJupyterSource,
+        noteUri?.scheme === 'file' ? noteUri.fsPath : undefined,
+        (cellMd) => {
+          const cellTokens = originalParse(cellMd || ' ', {});
+          return originalRendererRender(cellTokens, options, {});
+        },
+      );
+      if (notebookHtml) {
         const cfg = getPreviewCopyConfig();
         const json = escapePreviewCopyConfigAttr(JSON.stringify(cfg));
         const configHtml = `<div id="hne-preview-copy-config" style="display:none" data-config="${json}"></div>`;
-        return configHtml + originalRendererRender(tokens, options, env);
-      };
+        return configHtml + notebookHtml;
+      }
+    }
+    // Cursor may emit an empty front_matter token — refill from the note file.
+    if (Array.isArray(tokens)) {
+      for (const token of tokens) {
+        if (token?.type !== 'front_matter') {
+          continue;
+        }
+        if (frontMatterContentFromToken(token).trim()) {
+          continue;
+        }
+        const raw = resolveFrontmatterRawFromEnv(env);
+        if (!raw.trim()) {
+          continue;
+        }
+        token.meta = { ...(token.meta && typeof token.meta === 'object' ? token.meta : {}), content: raw };
+        token.content = raw;
+      }
+    }
+    const cfg = getPreviewCopyConfig();
+    const json = escapePreviewCopyConfigAttr(JSON.stringify(cfg));
+    const configHtml = `<div id="hne-preview-copy-config" style="display:none" data-config="${json}"></div>`;
+    return configHtml + originalRendererRender(tokens, options, env);
+  };
 
-      // Fallback for hosts that still call `md.render(src)` (and may lack front_matter tokens).
-      const render = md.render.bind(md);
-      md.render = (src, env) => {
-        const cfg = getPreviewCopyConfig();
-        const text = typeof src === 'string' ? src : String(src ?? '');
-        const extracted = extractYamlFrontmatter(text);
-        if (!extracted) {
-          return render(src, env);
-        }
-        const withTokens = render(src, env);
-        if (
-          withTokens.includes('hne-frontmatter-table') ||
-          withTokens.includes('hne-frontmatter-details') ||
-          withTokens.includes('hne-frontmatter-raw')
-        ) {
-          return withTokens;
-        }
-        // No front_matter token emitted — strip YAML and inject our block after the config div.
-        const bodyHtml = render(extracted.body, env);
-        const fmHtml = buildFrontmatterPreviewHtml(extracted.rows, cfg, extracted.raw);
-        const configClose = '</div>';
-        const configMark = 'id="hne-preview-copy-config"';
-        const markAt = bodyHtml.indexOf(configMark);
-        if (markAt !== -1) {
-          const closeAt = bodyHtml.indexOf(configClose, markAt);
-          if (closeAt !== -1) {
-            const insertAt = closeAt + configClose.length;
-            return bodyHtml.slice(0, insertAt) + fmHtml + bodyHtml.slice(insertAt);
-          }
-        }
-        return fmHtml + bodyHtml;
-      };
+  // Fallback for hosts that still call `md.render(src)` (and may lack front_matter tokens).
+  const render = md.render.bind(md);
+  md.render = (src, env) => {
+    const cfg = getPreviewCopyConfig();
+    const text = typeof src === 'string' ? src : String(src ?? '');
+    const extracted = extractYamlFrontmatter(text);
+    if (!extracted) {
+      return render(src, env);
+    }
+    const withTokens = render(src, env);
+    if (
+      withTokens.includes('hne-frontmatter-table') ||
+      withTokens.includes('hne-frontmatter-details') ||
+      withTokens.includes('hne-frontmatter-raw')
+    ) {
+      return withTokens;
+    }
+    // No front_matter token emitted — strip YAML and inject our block after the config div.
+    const bodyHtml = render(extracted.body, env);
+    const fmHtml = buildFrontmatterPreviewHtml(extracted.rows, cfg, extracted.raw);
+    const configClose = '</div>';
+    const configMark = 'id="hne-preview-copy-config"';
+    const markAt = bodyHtml.indexOf(configMark);
+    if (markAt !== -1) {
+      const closeAt = bodyHtml.indexOf(configClose, markAt);
+      if (closeAt !== -1) {
+        const insertAt = closeAt + configClose.length;
+        return bodyHtml.slice(0, insertAt) + fmHtml + bodyHtml.slice(insertAt);
+      }
+    }
+    return fmHtml + bodyHtml;
+  };
 
-      return md;
+  return md;
+}
+
+function registerPreviewCopyMarkdownPlugin() {
+  return {
+    extendMarkdownIt(/** @type {import('markdown-it')} */ md) {
+      // Cursor's Source|Preview tab is Tiptap/ProseMirror and also loads
+      // `markdown.markdownItPlugins`. Extra HTML (config <div>, <details>,
+      // parse/render wraps) blanks that preview. Classic `markdown.showPreview`
+      // still gets preview-copy.js / CSS.
+      if (isCursorHost()) {
+        return md;
+      }
+      try {
+        return applyPreviewMarkdownItExtensions(md);
+      } catch (err) {
+        console.error('[Harrix Notes HSK] extendMarkdownIt failed:', err);
+        return md;
+      }
     },
   };
 }
