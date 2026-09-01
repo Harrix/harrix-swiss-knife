@@ -103,7 +103,7 @@ Format the status-bar text for selected transaction rows.
 Args:
 
 - `count` (`int`): Number of selected rows.
-- [`total`](../../toast_progress_notification.g.md#%EF%B8%8F-method-total-property) (`float`): Signed sum in the default currency (income +, expense −).
+- [`total`](../../toast_progress_notification.g.md#%EF%B8%8F-method-total-property) (`float`): Signed sum in the default currency (income +, expense -).
 - `currency_symbol` (`str`): Default currency symbol.
 
 Returns:
@@ -241,7 +241,7 @@ def refresh_transaction_day_totals(model: QStandardItemModel, db_manager: Any | 
 def signed_amount_in_default_currency(amount_major: float, *, is_income: bool, currency_code: str, date: str, db_manager: Any | None) -> float
 ```
 
-Return a signed amount in the default currency (income +, expense −).
+Return a signed amount in the default currency (income +, expense -).
 
 Args:
 

@@ -38,6 +38,7 @@ lang: en
 - [🔧 Function `habit_day_choice_caption`](#-function-habit_day_choice_caption)
 - [🔧 Function `habit_day_choices`](#-function-habit_day_choices)
 - [🔧 Function `habit_picker_date_parts`](#-function-habit_picker_date_parts)
+- [🔧 Function `pointer_is_over_widget`](#-function-pointer_is_over_widget)
 
 </details>
 
@@ -266,7 +267,7 @@ class HabitDayPickerPopup(QWidget):
     def hide_active(cls) -> None:
         """Hide the open picker immediately."""
         cls._cancel_timers()
-        cls._pending = None
+        cls._set_pending(None)
         if cls._instance is not None:
             cls._instance.cancel_reposition()
             cls._instance.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, on=True)
@@ -307,7 +308,7 @@ class HabitDayPickerPopup(QWidget):
         cls._ensure_timers()
         if cls._show_timer is not None:
             cls._show_timer.stop()
-        cls._pending = None
+        cls._set_pending(None)
         if cls._hide_timer is not None:
             cls._hide_timer.start(_HIDE_DELAY_MS)
 
@@ -320,7 +321,7 @@ class HabitDayPickerPopup(QWidget):
     @classmethod
     def request_show(cls, circle: CheckCircle) -> None:
         """Show or retarget the picker for ``circle``."""
-        if not circle.is_editable():
+        if not cls._should_show_for(circle):
             return
         cls._ensure_timers()
         if cls._hide_timer is not None:
@@ -330,7 +331,7 @@ class HabitDayPickerPopup(QWidget):
         if cls._instance is not None and cls._instance.isVisible():
             cls._instance.attach(circle)
             return
-        cls._pending = circle
+        cls._set_pending(circle)
         if cls._show_timer is not None:
             cls._show_timer.start(_SHOW_DELAY_MS)
 
@@ -450,10 +451,16 @@ class HabitDayPickerPopup(QWidget):
         self.hide_active()
 
     @classmethod
+    def _on_pending_destroyed(cls) -> None:
+        cls._pending = None
+        if cls._show_timer is not None:
+            cls._show_timer.stop()
+
+    @classmethod
     def _on_show_timeout(cls) -> None:
         circle = cls._pending
-        cls._pending = None
-        if circle is None:
+        cls._set_pending(None)
+        if circle is None or not cls._should_show_for(circle):
             return
         cls.show_for(circle)
 
@@ -519,6 +526,29 @@ class HabitDayPickerPopup(QWidget):
             _PANEL_MARGIN,
             _PANEL_EDGE_TO_TRIANGLE + extra,
         )
+
+    @classmethod
+    def _set_pending(cls, circle: CheckCircle | None) -> None:
+        previous = cls._pending
+        if previous is circle:
+            return
+        if previous is not None:
+            with contextlib.suppress(RuntimeError, TypeError):
+                previous.destroyed.disconnect(cls._on_pending_destroyed)
+        cls._pending = circle
+        if circle is not None:
+            circle.destroyed.connect(cls._on_pending_destroyed)
+
+    @classmethod
+    def _should_show_for(cls, circle: CheckCircle) -> bool:
+        """Return whether the pointer is really over an editable circle with no popup."""
+        if not circle.is_editable() or not circle.isVisible():
+            return False
+        if QApplication.activePopupWidget() is not None:
+            return False
+        if QGuiApplication.mouseButtons() & Qt.MouseButton.RightButton:
+            return False
+        return pointer_is_over_widget(circle)
 
     def _show_number_stepper(self) -> None:
         current = self._anchor.value() if self._anchor is not None else None
@@ -739,7 +769,7 @@ Hide the open picker immediately.
 ```python
 def hide_active(cls) -> None:
         cls._cancel_timers()
-        cls._pending = None
+        cls._set_pending(None)
         if cls._instance is not None:
             cls._instance.cancel_reposition()
             cls._instance.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, on=True)
@@ -849,7 +879,7 @@ def request_hide(cls) -> None:
         cls._ensure_timers()
         if cls._show_timer is not None:
             cls._show_timer.stop()
-        cls._pending = None
+        cls._set_pending(None)
         if cls._hide_timer is not None:
             cls._hide_timer.start(_HIDE_DELAY_MS)
 ```
@@ -888,7 +918,7 @@ Show or retarget the picker for ``circle``.
 
 ```python
 def request_show(cls, circle: CheckCircle) -> None:
-        if not circle.is_editable():
+        if not cls._should_show_for(circle):
             return
         cls._ensure_timers()
         if cls._hide_timer is not None:
@@ -898,7 +928,7 @@ def request_show(cls, circle: CheckCircle) -> None:
         if cls._instance is not None and cls._instance.isVisible():
             cls._instance.attach(circle)
             return
-        cls._pending = circle
+        cls._set_pending(circle)
         if cls._show_timer is not None:
             cls._show_timer.start(_SHOW_DELAY_MS)
 ```
@@ -1215,6 +1245,24 @@ Return compact ``DD.MM`` and English weekday for the hover picker.
 ```python
 def habit_picker_date_parts(day: date) -> tuple[str, str]:
     return (f"{day.day:02d}.{day.month:02d}", weekday_short(day.weekday()))
+```
+
+</details>
+
+## 🔧 Function `pointer_is_over_widget`
+
+```python
+def pointer_is_over_widget(widget: QWidget) -> bool
+```
+
+Return whether the cursor is inside ``widget`` in local coordinates.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def pointer_is_over_widget(widget: QWidget) -> bool:
+    return widget.rect().contains(widget.mapFromGlobal(QCursor.pos()))
 ```
 
 </details>

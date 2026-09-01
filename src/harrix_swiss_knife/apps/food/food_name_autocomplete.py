@@ -20,14 +20,21 @@ from PySide6.QtGui import QCursor, QStandardItem
 from PySide6.QtWidgets import QCompleter, QLabel, QStyleOptionViewItem, QWidget
 from shiboken6 import isValid
 
-from harrix_swiss_knife.apps.food.services.food_display import RECIPE_EMOJI, format_food_name_with_calories
+from harrix_swiss_knife.apps.food.services.food_display import (
+    DRINK_EMOJI,
+    FOOD_ITEM_EMOJI,
+    RECIPE_EMOJI,
+    format_food_name_with_calories,
+)
 from harrix_swiss_knife.keyboard_layout_search import autocomplete_match_tier
-from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
+from harrix_swiss_knife.qt_emoji_icon import create_emoji_row_icon
 
 if TYPE_CHECKING:
     from harrix_swiss_knife.apps.food.database_manager import FoodAutocompleteEntry
 
 FOOD_AUTOCOMPLETE_ICON_SIZE = 16
+FOOD_AUTOCOMPLETE_ICON_GAP = 2
+FOOD_AUTOCOMPLETE_ICON_MAX_COUNT = 2
 
 
 class CompleterPopupTooltipHelper(QObject):
@@ -256,8 +263,28 @@ class FoodNameAutocompleteProxyModel(QSortFilterProxyModel):
         self.sort(0)
 
 
+def food_autocomplete_icon_emojis(entry: FoodAutocompleteEntry) -> list[str]:
+    """Return leading marker emojis for a completer row (catalog, then drink)."""
+    emojis: list[str] = []
+    if entry.is_recipe:
+        emojis.append(RECIPE_EMOJI)
+    elif entry.is_food_item:
+        emojis.append(FOOD_ITEM_EMOJI)
+    if entry.is_drink:
+        emojis.append(DRINK_EMOJI)
+    return emojis
+
+
+def food_autocomplete_popup_icon_size() -> QSize:
+    """Icon slot wide enough for a catalog marker plus a drink marker."""
+    width = FOOD_AUTOCOMPLETE_ICON_SIZE * FOOD_AUTOCOMPLETE_ICON_MAX_COUNT + FOOD_AUTOCOMPLETE_ICON_GAP * (
+        FOOD_AUTOCOMPLETE_ICON_MAX_COUNT - 1
+    )
+    return QSize(width, FOOD_AUTOCOMPLETE_ICON_SIZE)
+
+
 def make_food_autocomplete_item(entry: FoodAutocompleteEntry) -> QStandardItem:
-    """Build a completer row; recipes use a plate icon instead of a text prefix."""
+    """Build a completer row; catalog and drink markers are icons, not text prefixes."""
     display = format_food_name_with_calories(
         entry.name,
         entry.calories_per_100g,
@@ -266,8 +293,15 @@ def make_food_autocomplete_item(entry: FoodAutocompleteEntry) -> QStandardItem:
     item = QStandardItem(display if entry.is_recipe else entry.name)
     item.setData(entry.name, Qt.ItemDataRole.EditRole)
     item.setData(entry.name_en or "", Qt.ItemDataRole.UserRole)
-    if entry.is_recipe:
-        item.setIcon(create_emoji_icon(RECIPE_EMOJI, FOOD_AUTOCOMPLETE_ICON_SIZE))
+    emojis = food_autocomplete_icon_emojis(entry)
+    if emojis:
+        item.setIcon(
+            create_emoji_row_icon(
+                emojis,
+                FOOD_AUTOCOMPLETE_ICON_SIZE,
+                gap=FOOD_AUTOCOMPLETE_ICON_GAP,
+            ),
+        )
     return item
 
 
@@ -275,7 +309,7 @@ def setup_completer_item_tooltips(completer: QCompleter) -> CompleterPopupToolti
     """Enable tooltips for elided items in a QCompleter popup list."""
     popup = completer.popup()
     if popup is not None:
-        popup.setIconSize(QSize(FOOD_AUTOCOMPLETE_ICON_SIZE, FOOD_AUTOCOMPLETE_ICON_SIZE))
+        popup.setIconSize(food_autocomplete_popup_icon_size())
     helper = CompleterPopupTooltipHelper(completer)
     completer._tooltip_helper = helper  # keep reference alive  # noqa: SLF001
     return helper

@@ -287,7 +287,7 @@ class ExerciseAvifLightboxDialog(AppWindowLightboxDialog):
     def _sync_speed_controls(self) -> None:
         if self._speed_bar is None:
             return
-        visible = self._avif_manager.is_animation_active(AvifLabelKey.LIGHTBOX)
+        visible = self._avif_manager.has_animation_frames(AvifLabelKey.LIGHTBOX)
         self._speed_bar.setVisible(visible)
         if visible:
             self._apply_speed(self._speed)

@@ -5,17 +5,20 @@ from __future__ import annotations
 import re
 
 DRINK_EMOJI = "🥤"
+FOOD_ITEM_EMOJI = "🥗"
 RECIPE_EMOJI = "🍽"
 
 
 def extract_food_name_from_display(display_text: str) -> str:
-    """Strip drink/recipe emoji prefixes and trailing calories suffix such as `(120 kcal/portion)`."""
+    """Strip drink/recipe/catalog emoji prefixes and trailing calories suffix such as `(120 kcal/portion)`."""
     if not display_text:
         return ""
 
     text = display_text.strip()
     if text.startswith(RECIPE_EMOJI):
         text = text[len(RECIPE_EMOJI) :].lstrip()
+    if text.startswith(FOOD_ITEM_EMOJI):
+        text = text[len(FOOD_ITEM_EMOJI) :].lstrip()
     if text.startswith(DRINK_EMOJI):
         text = text[len(DRINK_EMOJI) :].lstrip()
 

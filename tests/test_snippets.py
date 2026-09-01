@@ -43,10 +43,10 @@ from harrix_swiss_knife.apps.snippets.seed import (
 )
 from harrix_swiss_knife.apps.snippets.sort import dash_length_rank, sort_items
 from harrix_swiss_knife.apps.snippets.zone_panel import (
-    IconItemDelegate,
-    ZonePanel,
     _LIST_SELECTION_STYLE,
     _SELECTION_BG,
+    IconItemDelegate,
+    ZonePanel,
     chip_border_color,
     color_hex_label,
 )

@@ -3825,6 +3825,45 @@ class MainWindow(
             line-height: 1.2;
         """)
 
+    def _add_catalog_exercise_to_workout(self, workout_id: int, exercise_name: str) -> bool:
+        """Append one catalog exercise to `workout_id` using last type and value."""
+        if self.db_manager is None:
+            return False
+        ex_id = self.db_manager.get_id("exercises", "name", exercise_name)
+        if ex_id is None:
+            return False
+        types = self.db_manager.get_exercise_types(ex_id)
+        last_type = ""
+        last_value = ""
+        last_record = self.db_manager.get_last_exercise_record(ex_id)
+        if last_record:
+            last_type, last_value = last_record
+        type_name = default_exercise_type(
+            types,
+            preferred="",
+            last_used=last_type,
+            type_required=self.db_manager.is_exercise_type_required(ex_id),
+        )
+        type_id = -1
+        if type_name:
+            type_rows = self.db_manager.get_rows(
+                "SELECT _id FROM types WHERE type = :name AND _id_exercises = :ex_id",
+                {"name": type_name, "ex_id": ex_id},
+            )
+            if type_rows:
+                type_id = int(type_rows[0][0])
+        item_id = self.db_manager.add_workout_item(
+            workout_id,
+            database_manager.WorkoutItemInput(
+                exercise_id=ex_id,
+                type_id=type_id,
+                exercise_name=exercise_name,
+                type_name=type_name,
+                target_value=str(last_value).strip(),
+            ),
+        )
+        return item_id is not None
+
     def _add_dumbbell_weight_types_to_exercise(self, exercise_name: str) -> int | None:
         """Copy template dumbbell weights onto an exercise and require a type.
 
@@ -6919,10 +6958,7 @@ class MainWindow(
         selected = self._open_select_exercise_dialog(multi_select=True)
         if not selected:
             return
-        failed: list[str] = []
-        for name in selected:
-            if not self._add_catalog_exercise_to_workout(workout_id, name):
-                failed.append(name)
+        failed = [name for name in selected if not self._add_catalog_exercise_to_workout(workout_id, name)]
         if self._workouts_widget is not None:
             self._workouts_widget.refresh()
         if failed:
@@ -7229,45 +7265,6 @@ class MainWindow(
 
         self._mark_exercises_changed()
         self.update_all()
-
-    def _add_catalog_exercise_to_workout(self, workout_id: int, exercise_name: str) -> bool:
-        """Append one catalog exercise to `workout_id` using last type and value."""
-        if self.db_manager is None:
-            return False
-        ex_id = self.db_manager.get_id("exercises", "name", exercise_name)
-        if ex_id is None:
-            return False
-        types = self.db_manager.get_exercise_types(ex_id)
-        last_type = ""
-        last_value = ""
-        last_record = self.db_manager.get_last_exercise_record(ex_id)
-        if last_record:
-            last_type, last_value = last_record
-        type_name = default_exercise_type(
-            types,
-            preferred="",
-            last_used=last_type,
-            type_required=self.db_manager.is_exercise_type_required(ex_id),
-        )
-        type_id = -1
-        if type_name:
-            type_rows = self.db_manager.get_rows(
-                "SELECT _id FROM types WHERE type = :name AND _id_exercises = :ex_id",
-                {"name": type_name, "ex_id": ex_id},
-            )
-            if type_rows:
-                type_id = int(type_rows[0][0])
-        item_id = self.db_manager.add_workout_item(
-            workout_id,
-            database_manager.WorkoutItemInput(
-                exercise_id=ex_id,
-                type_id=type_id,
-                exercise_name=exercise_name,
-                type_name=type_name,
-                target_value=str(last_value).strip(),
-            ),
-        )
-        return item_id is not None
 
     def _open_select_exercise_dialog(self, *, multi_select: bool = False) -> list[str]:
         """Open the same Select Exercise dialog as `pushButton_select_exercise`."""

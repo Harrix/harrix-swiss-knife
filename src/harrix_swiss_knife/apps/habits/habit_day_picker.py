@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 from typing import TYPE_CHECKING, Literal, cast
 
 from PySide6.QtCore import QEvent, QPointF, QRectF, Qt, QTimer, Signal
@@ -369,31 +370,6 @@ class HabitDayPickerPopup(QWidget):
             return
         cls.show_for(circle)
 
-    @classmethod
-    def _set_pending(cls, circle: CheckCircle | None) -> None:
-        previous = cls._pending
-        if previous is circle:
-            return
-        if previous is not None:
-            try:
-                previous.destroyed.disconnect(cls._on_pending_destroyed)
-            except (RuntimeError, TypeError):
-                pass
-        cls._pending = circle
-        if circle is not None:
-            circle.destroyed.connect(cls._on_pending_destroyed)
-
-    @classmethod
-    def _should_show_for(cls, circle: CheckCircle) -> bool:
-        """Return whether the pointer is really over an editable circle with no popup."""
-        if not circle.is_editable() or not circle.isVisible():
-            return False
-        if QApplication.activePopupWidget() is not None:
-            return False
-        if QGuiApplication.mouseButtons() & Qt.MouseButton.RightButton:
-            return False
-        return pointer_is_over_widget(circle)
-
     def _rebuild_choices(self) -> None:
         self._clear_layout(self._choices_layout)
         for choice in self._choices:
@@ -456,6 +432,29 @@ class HabitDayPickerPopup(QWidget):
             _PANEL_MARGIN,
             _PANEL_EDGE_TO_TRIANGLE + extra,
         )
+
+    @classmethod
+    def _set_pending(cls, circle: CheckCircle | None) -> None:
+        previous = cls._pending
+        if previous is circle:
+            return
+        if previous is not None:
+            with contextlib.suppress(RuntimeError, TypeError):
+                previous.destroyed.disconnect(cls._on_pending_destroyed)
+        cls._pending = circle
+        if circle is not None:
+            circle.destroyed.connect(cls._on_pending_destroyed)
+
+    @classmethod
+    def _should_show_for(cls, circle: CheckCircle) -> bool:
+        """Return whether the pointer is really over an editable circle with no popup."""
+        if not circle.is_editable() or not circle.isVisible():
+            return False
+        if QApplication.activePopupWidget() is not None:
+            return False
+        if QGuiApplication.mouseButtons() & Qt.MouseButton.RightButton:
+            return False
+        return pointer_is_over_widget(circle)
 
     def _show_number_stepper(self) -> None:
         current = self._anchor.value() if self._anchor is not None else None

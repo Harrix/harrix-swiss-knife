@@ -11,6 +11,7 @@ from harrix_swiss_knife.qt_emoji_icon import (
     apply_leading_emoji_icon,
     apply_leading_emoji_icons,
     create_emoji_icon,
+    create_emoji_row_icon,
     set_action_text_with_emoji_icon,
     split_leading_emoji,
 )
@@ -88,6 +89,14 @@ def test_create_emoji_icon_uses_device_pixel_ratio(qapp: QApplication) -> None:
     assert pixmap.devicePixelRatio() == 2.0
     assert pixmap.width() == 40
     assert pixmap.height() == 40
+
+
+def test_create_emoji_row_icon_is_wider_for_two_emojis(qapp: QApplication) -> None:
+    assert qapp is not None
+    icon = create_emoji_row_icon(["🥗", "🥤"], 16, gap=2, device_pixel_ratio=1.0)
+    pixmap = icon.pixmap(QSize(34, 16), 1.0)
+    assert pixmap.width() == 34
+    assert pixmap.height() == 16
 
 
 def test_add_emoji_action_keeps_plain_label(qapp: QApplication) -> None:

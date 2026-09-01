@@ -514,7 +514,10 @@ class HabitDashboardWidget(QWidget):
         self._edit_selected_habit()
 
     def _on_habit_row_context_menu(self, habit_id: int, global_pos: QPoint) -> None:
-        self._on_habit_selected(habit_id)
+        if self._selected_habit_id != habit_id:
+            self._on_habit_selected(habit_id)
+        HabitDayPickerPopup.hide_active()
+        QToolTip.hideText()
         menu = QMenu(self)
         act_edit = add_emoji_action(menu, "Edit habit", "✏️")
         act_comments = add_emoji_action(menu, "All comments…", "💬")

@@ -210,12 +210,6 @@ class AvifManager(QObject):
                 return min_path
         return self.get_exercise_avif_path(exercise_name)
 
-    def has_any_exercise_avif(self) -> bool:
-        """Return whether `fitness_img` contains at least one `.avif` file."""
-        if not self.avif_dir.is_dir():
-            return False
-        return any(path.is_file() for path in self.avif_dir.rglob("*.avif"))
-
     def has_animation_frames(self, label_key: str | AvifLabelKey) -> bool:
         """Return whether `label_key` has a multi-frame animation loaded.
 
@@ -232,6 +226,12 @@ class AvifManager(QObject):
         data = self.avif_data.get(key) or {}
         frames = data.get("frames")
         return isinstance(frames, list) and len(frames) > 1
+
+    def has_any_exercise_avif(self) -> bool:
+        """Return whether `fitness_img` contains at least one `.avif` file."""
+        if not self.avif_dir.is_dir():
+            return False
+        return any(path.is_file() for path in self.avif_dir.rglob("*.avif"))
 
     def is_animation_active(self, label_key: str | AvifLabelKey) -> bool:
         """Return whether `label_key` is playing a multi-frame animation.
@@ -405,6 +405,15 @@ class AvifManager(QObject):
         )
         return scaled if not scaled.isNull() else None
 
+    def pause_animation(self, label_key: str | AvifLabelKey) -> None:
+        """Stop the animation timer without clearing frames."""
+        data = self.avif_data.get(self._normalize_label_key(label_key))
+        if data is None:
+            return
+        timer = data.get("timer")
+        if isinstance(timer, QTimer):
+            timer.stop()
+
     def rename_exercise_avif(self, old_name: str, new_name: str) -> bool:
         """Rename small and high-resolution AVIFs to match a renamed exercise.
 
@@ -436,15 +445,6 @@ class AvifManager(QObject):
             self._retarget_exercise_name(old, new)
         return renamed
 
-    def pause_animation(self, label_key: str | AvifLabelKey) -> None:
-        """Stop the animation timer without clearing frames."""
-        data = self.avif_data.get(self._normalize_label_key(label_key))
-        if data is None:
-            return
-        timer = data.get("timer")
-        if isinstance(timer, QTimer):
-            timer.stop()
-
     def resume_animation(self, label_key: str | AvifLabelKey) -> None:
         """Start the animation timer when the slot has multiple frames."""
         key = self._normalize_label_key(label_key)
@@ -460,21 +460,6 @@ class AvifManager(QObject):
             timer.start(
                 animation_interval_ms(duration, float(data.get("speed") or 1.0)),
             )
-
-    def show_first_frame(self, label_key: str | AvifLabelKey) -> None:
-        """Show frame 0 of the loaded animation, if any."""
-        key = self._normalize_label_key(label_key)
-        data = self.avif_data.get(key)
-        if data is None:
-            return
-        frames = data.get("frames")
-        if not isinstance(frames, list) or not frames:
-            return
-        data["current_frame"] = 0
-        label_widget = self.label_widgets.get(key)
-        first = frames[0]
-        if label_widget is not None and hasattr(first, "isNull") and not first.isNull():
-            label_widget.setPixmap(first)
 
     def set_animation_speed(self, label_key: str | AvifLabelKey, speed: float) -> None:
         """Set playback speed for an existing animation slot.
@@ -507,6 +492,21 @@ class AvifManager(QObject):
                     data["speed"],
                 )
             )
+
+    def show_first_frame(self, label_key: str | AvifLabelKey) -> None:
+        """Show frame 0 of the loaded animation, if any."""
+        key = self._normalize_label_key(label_key)
+        data = self.avif_data.get(key)
+        if data is None:
+            return
+        frames = data.get("frames")
+        if not isinstance(frames, list) or not frames:
+            return
+        data["current_frame"] = 0
+        label_widget = self.label_widgets.get(key)
+        first = frames[0]
+        if label_widget is not None and hasattr(first, "isNull") and not first.isNull():
+            label_widget.setPixmap(first)
 
     def stop_animation(self, label_key: str | AvifLabelKey) -> None:
         """Stop the animation timer and clear frames for `label_key`.

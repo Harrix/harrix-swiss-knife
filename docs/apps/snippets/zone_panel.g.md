@@ -14,6 +14,10 @@ lang: en
 - [🏛️ Class `ColorItemDelegate`](#%EF%B8%8F-class-coloritemdelegate)
   - [⚙️ Method `paint`](#%EF%B8%8F-method-paint)
   - [⚙️ Method `sizeHint`](#%EF%B8%8F-method-sizehint)
+- [🏛️ Class `HighlightItemDelegate`](#%EF%B8%8F-class-highlightitemdelegate)
+  - [⚙️ Method `paint`](#%EF%B8%8F-method-paint-1)
+- [🏛️ Class `IconItemDelegate`](#%EF%B8%8F-class-iconitemdelegate)
+  - [⚙️ Method `paint`](#%EF%B8%8F-method-paint-2)
 - [🏛️ Class `ZonePanel`](#%EF%B8%8F-class-zonepanel)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `activate_current_or_first`](#%EF%B8%8F-method-activate_current_or_first)
@@ -32,6 +36,7 @@ lang: en
   - [⚙️ Method `visible_rows`](#%EF%B8%8F-method-visible_rows)
 - [🔧 Function `chip_border_color`](#-function-chip_border_color)
 - [🔧 Function `color_hex_label`](#-function-color_hex_label)
+- [🔧 Function `paint_snippet_highlight`](#-function-paint_snippet_highlight)
 
 </details>
 
@@ -58,20 +63,8 @@ class ColorItemDelegate(QStyledItemDelegate):
         """Draw the selection, hex chip, and optional hint."""
         self.initStyleOption(option, index)
         painter.save()
-        widget = option.widget
-        style = widget.style() if widget is not None else None
-        selected = bool(option.state & QStyle.StateFlag.State_Selected)
-        if selected:
-            painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
-            painter.setBrush(QColor(_SELECTION_BG))
-            painter.setPen(QPen(QColor(_SELECTION_BORDER), 1))
-            painter.drawRoundedRect(
-                option.rect.adjusted(1, 1, -2, -2),
-                _SELECTION_RADIUS,
-                _SELECTION_RADIUS,
-            )
-        elif style is not None:
-            style.drawPrimitive(QStyle.PrimitiveElement.PE_PanelItemViewItem, option, painter, widget)
+        if _item_is_highlighted(option):
+            paint_snippet_highlight(painter, option.rect)
 
         hex_value = strip_wrapping_brackets(str(index.data(_COLOR_ROLE) or ""))
         color = QColor(hex_value) if hex_value else QColor("#ffffff")
@@ -135,20 +128,8 @@ def paint(
     ) -> None:
         self.initStyleOption(option, index)
         painter.save()
-        widget = option.widget
-        style = widget.style() if widget is not None else None
-        selected = bool(option.state & QStyle.StateFlag.State_Selected)
-        if selected:
-            painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
-            painter.setBrush(QColor(_SELECTION_BG))
-            painter.setPen(QPen(QColor(_SELECTION_BORDER), 1))
-            painter.drawRoundedRect(
-                option.rect.adjusted(1, 1, -2, -2),
-                _SELECTION_RADIUS,
-                _SELECTION_RADIUS,
-            )
-        elif style is not None:
-            style.drawPrimitive(QStyle.PrimitiveElement.PE_PanelItemViewItem, option, painter, widget)
+        if _item_is_highlighted(option):
+            paint_snippet_highlight(painter, option.rect)
 
         hex_value = strip_wrapping_brackets(str(index.data(_COLOR_ROLE) or ""))
         color = QColor(hex_value) if hex_value else QColor("#ffffff")
@@ -206,6 +187,186 @@ def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex | QPersisten
 
 </details>
 
+## 🏛️ Class `HighlightItemDelegate`
+
+```python
+class HighlightItemDelegate(QStyledItemDelegate)
+```
+
+Draw hover and selection as a flat fill so text color stays unchanged.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class HighlightItemDelegate(QStyledItemDelegate):
+
+    def paint(
+        self,
+        painter: QPainter,
+        option: QStyleOptionViewItem,
+        index: QModelIndex | QPersistentModelIndex,
+    ) -> None:
+        """Paint a custom highlight, then the item text in the normal color."""
+        opt = QStyleOptionViewItem(option)
+        self.initStyleOption(opt, index)
+        painter.save()
+        if _item_is_highlighted(opt):
+            paint_snippet_highlight(painter, opt.rect)
+        opt.state &= ~_HIGHLIGHT_STATES
+        widget = opt.widget
+        style = widget.style() if widget is not None else None
+        if style is not None:
+            text_rect = style.subElementRect(QStyle.SubElement.SE_ItemViewItemText, opt, widget)
+            if not text_rect.isValid():
+                text_rect = opt.rect.adjusted(4, 0, -4, 0)
+            style.drawItemText(
+                painter,
+                text_rect,
+                int(opt.displayAlignment),
+                opt.palette,
+                enabled=True,
+                text=opt.text,
+                textRole=QPalette.ColorRole.Text,
+            )
+        else:
+            painter.setPen(opt.palette.color(QPalette.ColorRole.Text))
+            painter.drawText(opt.rect, Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft, opt.text)
+        painter.restore()
+```
+
+</details>
+
+### ⚙️ Method `paint`
+
+```python
+def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> None
+```
+
+Paint a custom highlight, then the item text in the normal color.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def paint(
+        self,
+        painter: QPainter,
+        option: QStyleOptionViewItem,
+        index: QModelIndex | QPersistentModelIndex,
+    ) -> None:
+        opt = QStyleOptionViewItem(option)
+        self.initStyleOption(opt, index)
+        painter.save()
+        if _item_is_highlighted(opt):
+            paint_snippet_highlight(painter, opt.rect)
+        opt.state &= ~_HIGHLIGHT_STATES
+        widget = opt.widget
+        style = widget.style() if widget is not None else None
+        if style is not None:
+            text_rect = style.subElementRect(QStyle.SubElement.SE_ItemViewItemText, opt, widget)
+            if not text_rect.isValid():
+                text_rect = opt.rect.adjusted(4, 0, -4, 0)
+            style.drawItemText(
+                painter,
+                text_rect,
+                int(opt.displayAlignment),
+                opt.palette,
+                enabled=True,
+                text=opt.text,
+                textRole=QPalette.ColorRole.Text,
+            )
+        else:
+            painter.setPen(opt.palette.color(QPalette.ColorRole.Text))
+            painter.drawText(opt.rect, Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft, opt.text)
+        painter.restore()
+```
+
+</details>
+
+## 🏛️ Class `IconItemDelegate`
+
+```python
+class IconItemDelegate(QStyledItemDelegate)
+```
+
+Paint emoji and symbol tiles without the native Windows selection pill.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class IconItemDelegate(QStyledItemDelegate):
+
+    def paint(
+        self,
+        painter: QPainter,
+        option: QStyleOptionViewItem,
+        index: QModelIndex | QPersistentModelIndex,
+    ) -> None:
+        """Draw a flat highlight and the icon, never the native selection chrome."""
+        self.initStyleOption(option, index)
+        painter.save()
+        if _item_is_highlighted(option):
+            paint_snippet_highlight(painter, option.rect)
+        icon = index.data(Qt.ItemDataRole.DecorationRole)
+        if isinstance(icon, QIcon) and not icon.isNull():
+            size = (
+                option.decorationSize if option.decorationSize.isValid() else QSize(_ICON_PIXEL_SIZE, _ICON_PIXEL_SIZE)
+            )
+            x = option.rect.x() + (option.rect.width() - size.width()) // 2
+            y = option.rect.y() + (option.rect.height() - size.height()) // 2
+            icon.paint(
+                painter,
+                QRect(x, y, size.width(), size.height()),
+                Qt.AlignmentFlag.AlignCenter,
+                QIcon.Mode.Normal,
+            )
+        painter.restore()
+```
+
+</details>
+
+### ⚙️ Method `paint`
+
+```python
+def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> None
+```
+
+Draw a flat highlight and the icon, never the native selection chrome.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def paint(
+        self,
+        painter: QPainter,
+        option: QStyleOptionViewItem,
+        index: QModelIndex | QPersistentModelIndex,
+    ) -> None:
+        self.initStyleOption(option, index)
+        painter.save()
+        if _item_is_highlighted(option):
+            paint_snippet_highlight(painter, option.rect)
+        icon = index.data(Qt.ItemDataRole.DecorationRole)
+        if isinstance(icon, QIcon) and not icon.isNull():
+            size = (
+                option.decorationSize if option.decorationSize.isValid() else QSize(_ICON_PIXEL_SIZE, _ICON_PIXEL_SIZE)
+            )
+            x = option.rect.x() + (option.rect.width() - size.width()) // 2
+            y = option.rect.y() + (option.rect.height() - size.height()) // 2
+            icon.paint(
+                painter,
+                QRect(x, y, size.width(), size.height()),
+                Qt.AlignmentFlag.AlignCenter,
+                QIcon.Mode.Normal,
+            )
+        painter.restore()
+```
+
+</details>
+
 ## 🏛️ Class `ZonePanel`
 
 ```python
@@ -259,6 +420,10 @@ class ZonePanel(QWidget):
         self._list = QListWidget(self)
         self._list.setFrameShape(QListWidget.Shape.NoFrame)
         self._list.setStyleSheet(_LIST_SELECTION_STYLE)
+        self._list.setMouseTracking(True)
+        self._list.viewport().setMouseTracking(True)
+        self._list.setAttribute(Qt.WidgetAttribute.WA_Hover, on=True)
+        _apply_list_highlight_palette(self._list)
         self._list.installEventFilter(self)
         apply_mono_font(self._list)
         if zone in {ZONE_EMOJI, ZONE_SYMBOL}:
@@ -269,8 +434,11 @@ class ZonePanel(QWidget):
             self._list.setIconSize(QSize(_ICON_PIXEL_SIZE, _ICON_PIXEL_SIZE))
             self._list.setSpacing(_ICON_SPACING)
             self._list.setWordWrap(False)
-        if zone == ZONE_COLOR:
+            self._list.setItemDelegate(IconItemDelegate(self._list))
+        elif zone == ZONE_COLOR:
             self._list.setItemDelegate(ColorItemDelegate(self._list))
+        else:
+            self._list.setItemDelegate(HighlightItemDelegate(self._list))
         self._list.itemClicked.connect(self._on_item_clicked)
         self._list.currentItemChanged.connect(self._on_current_item_changed)
         self._list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -636,6 +804,10 @@ def __init__(
         self._list = QListWidget(self)
         self._list.setFrameShape(QListWidget.Shape.NoFrame)
         self._list.setStyleSheet(_LIST_SELECTION_STYLE)
+        self._list.setMouseTracking(True)
+        self._list.viewport().setMouseTracking(True)
+        self._list.setAttribute(Qt.WidgetAttribute.WA_Hover, on=True)
+        _apply_list_highlight_palette(self._list)
         self._list.installEventFilter(self)
         apply_mono_font(self._list)
         if zone in {ZONE_EMOJI, ZONE_SYMBOL}:
@@ -646,8 +818,11 @@ def __init__(
             self._list.setIconSize(QSize(_ICON_PIXEL_SIZE, _ICON_PIXEL_SIZE))
             self._list.setSpacing(_ICON_SPACING)
             self._list.setWordWrap(False)
-        if zone == ZONE_COLOR:
+            self._list.setItemDelegate(IconItemDelegate(self._list))
+        elif zone == ZONE_COLOR:
             self._list.setItemDelegate(ColorItemDelegate(self._list))
+        else:
+            self._list.setItemDelegate(HighlightItemDelegate(self._list))
         self._list.itemClicked.connect(self._on_item_clicked)
         self._list.currentItemChanged.connect(self._on_current_item_changed)
         self._list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -1101,6 +1276,27 @@ Return the hex text for a color chip, without surrounding brackets.
 ```python
 def color_hex_label(value: str) -> str:
     return strip_wrapping_brackets(value)
+```
+
+</details>
+
+## 🔧 Function `paint_snippet_highlight`
+
+```python
+def paint_snippet_highlight(painter: QPainter, rect: QRect) -> None
+```
+
+Fill the item with the hover/selection color and no border.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def paint_snippet_highlight(painter: QPainter, rect: QRect) -> None:
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
+    painter.setBrush(QColor(_SELECTION_BG))
+    painter.setPen(Qt.PenStyle.NoPen)
+    painter.drawRoundedRect(rect.adjusted(1, 1, -1, -1), _SELECTION_RADIUS, _SELECTION_RADIUS)
 ```
 
 </details>

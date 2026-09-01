@@ -405,12 +405,6 @@ class ExerciseSelectionDialog(QDialog):
             tile.restore_static_pixmap()
         self._hovered_tile = None
 
-    def _tile_for_item(self, item: QListWidgetItem | None) -> _ExercisePreviewTile | None:
-        if item is None:
-            return None
-        widget = self.list_widget.itemWidget(item)
-        return widget if isinstance(widget, _ExercisePreviewTile) else None
-
     def _sync_selected_exercises(self) -> None:
         names: list[str] = []
         for row in range(self.list_widget.count()):
@@ -422,6 +416,12 @@ class ExerciseSelectionDialog(QDialog):
                 names.append(str(exercise))
         self.selected_exercises = names
         self.selected_exercise = names[0] if names else None
+
+    def _tile_for_item(self, item: QListWidgetItem | None) -> _ExercisePreviewTile | None:
+        if item is None:
+            return None
+        widget = self.list_widget.itemWidget(item)
+        return widget if isinstance(widget, _ExercisePreviewTile) else None
 
 
 class _ExercisePreviewTile(QFrame):

@@ -83,100 +83,7 @@ _SORT_BUTTONS: tuple[tuple[SortMode, str, str], ...] = (
     (SORT_ADDED, "📅", "Sort by date added"),
     (SORT_ALPHA, "🔤", "Sort alphabetically"),
 )
-_HIGHLIGHT_STATES = (
-    QStyle.StateFlag.State_Selected | QStyle.StateFlag.State_MouseOver | QStyle.StateFlag.State_HasFocus
-)
-
-
-def _item_is_highlighted(option: QStyleOptionViewItem) -> bool:
-    return bool(option.state & (QStyle.StateFlag.State_Selected | QStyle.StateFlag.State_MouseOver))
-
-
-def paint_snippet_highlight(painter: QPainter, rect: QRect) -> None:
-    """Fill the item with the hover/selection color and no border."""
-    painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
-    painter.setBrush(QColor(_SELECTION_BG))
-    painter.setPen(Qt.PenStyle.NoPen)
-    painter.drawRoundedRect(rect.adjusted(1, 1, -1, -1), _SELECTION_RADIUS, _SELECTION_RADIUS)
-
-
-def _apply_list_highlight_palette(widget: QListWidget) -> None:
-    palette = widget.palette()
-    text = palette.color(QPalette.ColorRole.Text)
-    highlight = QColor(_SELECTION_BG)
-    for group in (QPalette.ColorGroup.Active, QPalette.ColorGroup.Inactive, QPalette.ColorGroup.Disabled):
-        palette.setColor(group, QPalette.ColorRole.Highlight, highlight)
-        palette.setColor(group, QPalette.ColorRole.HighlightedText, text)
-    widget.setPalette(palette)
-
-
-class HighlightItemDelegate(QStyledItemDelegate):
-    """Draw hover and selection as a flat fill so text color stays unchanged."""
-
-    def paint(
-        self,
-        painter: QPainter,
-        option: QStyleOptionViewItem,
-        index: QModelIndex | QPersistentModelIndex,
-    ) -> None:
-        """Paint a custom highlight, then the item text in the normal color."""
-        opt = QStyleOptionViewItem(option)
-        self.initStyleOption(opt, index)
-        painter.save()
-        if _item_is_highlighted(opt):
-            paint_snippet_highlight(painter, opt.rect)
-        opt.state &= ~_HIGHLIGHT_STATES
-        widget = opt.widget
-        style = widget.style() if widget is not None else None
-        if style is not None:
-            text_rect = style.subElementRect(QStyle.SubElement.SE_ItemViewItemText, opt, widget)
-            if not text_rect.isValid():
-                text_rect = opt.rect.adjusted(4, 0, -4, 0)
-            style.drawItemText(
-                painter,
-                text_rect,
-                int(opt.displayAlignment),
-                opt.palette,
-                True,
-                opt.text,
-                QPalette.ColorRole.Text,
-            )
-        else:
-            painter.setPen(opt.palette.color(QPalette.ColorRole.Text))
-            painter.drawText(opt.rect, Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft, opt.text)
-        painter.restore()
-
-
-class IconItemDelegate(QStyledItemDelegate):
-    """Paint emoji and symbol tiles without the native Windows selection pill."""
-
-    def paint(
-        self,
-        painter: QPainter,
-        option: QStyleOptionViewItem,
-        index: QModelIndex | QPersistentModelIndex,
-    ) -> None:
-        """Draw a flat highlight and the icon, never the native selection chrome."""
-        self.initStyleOption(option, index)
-        painter.save()
-        if _item_is_highlighted(option):
-            paint_snippet_highlight(painter, option.rect)
-        icon = index.data(Qt.ItemDataRole.DecorationRole)
-        if isinstance(icon, QIcon) and not icon.isNull():
-            size = (
-                option.decorationSize
-                if option.decorationSize.isValid()
-                else QSize(_ICON_PIXEL_SIZE, _ICON_PIXEL_SIZE)
-            )
-            x = option.rect.x() + (option.rect.width() - size.width()) // 2
-            y = option.rect.y() + (option.rect.height() - size.height()) // 2
-            icon.paint(
-                painter,
-                QRect(x, y, size.width(), size.height()),
-                Qt.AlignmentFlag.AlignCenter,
-                QIcon.Mode.Normal,
-            )
-        painter.restore()
+_HIGHLIGHT_STATES = QStyle.StateFlag.State_Selected | QStyle.StateFlag.State_MouseOver | QStyle.StateFlag.State_HasFocus
 
 
 class ColorItemDelegate(QStyledItemDelegate):
@@ -232,6 +139,73 @@ class ColorItemDelegate(QStyledItemDelegate):
         """Keep color rows tall enough for the rounded chip."""
         hint = super().sizeHint(option, index)
         return QSize(hint.width(), max(hint.height(), _MIN_COLOR_ROW_HEIGHT))
+
+
+class HighlightItemDelegate(QStyledItemDelegate):
+    """Draw hover and selection as a flat fill so text color stays unchanged."""
+
+    def paint(
+        self,
+        painter: QPainter,
+        option: QStyleOptionViewItem,
+        index: QModelIndex | QPersistentModelIndex,
+    ) -> None:
+        """Paint a custom highlight, then the item text in the normal color."""
+        opt = QStyleOptionViewItem(option)
+        self.initStyleOption(opt, index)
+        painter.save()
+        if _item_is_highlighted(opt):
+            paint_snippet_highlight(painter, opt.rect)
+        opt.state &= ~_HIGHLIGHT_STATES
+        widget = opt.widget
+        style = widget.style() if widget is not None else None
+        if style is not None:
+            text_rect = style.subElementRect(QStyle.SubElement.SE_ItemViewItemText, opt, widget)
+            if not text_rect.isValid():
+                text_rect = opt.rect.adjusted(4, 0, -4, 0)
+            style.drawItemText(
+                painter,
+                text_rect,
+                int(opt.displayAlignment),
+                opt.palette,
+                enabled=True,
+                text=opt.text,
+                textRole=QPalette.ColorRole.Text,
+            )
+        else:
+            painter.setPen(opt.palette.color(QPalette.ColorRole.Text))
+            painter.drawText(opt.rect, Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft, opt.text)
+        painter.restore()
+
+
+class IconItemDelegate(QStyledItemDelegate):
+    """Paint emoji and symbol tiles without the native Windows selection pill."""
+
+    def paint(
+        self,
+        painter: QPainter,
+        option: QStyleOptionViewItem,
+        index: QModelIndex | QPersistentModelIndex,
+    ) -> None:
+        """Draw a flat highlight and the icon, never the native selection chrome."""
+        self.initStyleOption(option, index)
+        painter.save()
+        if _item_is_highlighted(option):
+            paint_snippet_highlight(painter, option.rect)
+        icon = index.data(Qt.ItemDataRole.DecorationRole)
+        if isinstance(icon, QIcon) and not icon.isNull():
+            size = (
+                option.decorationSize if option.decorationSize.isValid() else QSize(_ICON_PIXEL_SIZE, _ICON_PIXEL_SIZE)
+            )
+            x = option.rect.x() + (option.rect.width() - size.width()) // 2
+            y = option.rect.y() + (option.rect.height() - size.height()) // 2
+            icon.paint(
+                painter,
+                QRect(x, y, size.width(), size.height()),
+                Qt.AlignmentFlag.AlignCenter,
+                QIcon.Mode.Normal,
+            )
+        painter.restore()
 
 
 class ZonePanel(QWidget):
@@ -626,3 +600,25 @@ def chip_border_color(color: QColor) -> QColor:
 def color_hex_label(value: str) -> str:
     """Return the hex text for a color chip, without surrounding brackets."""
     return strip_wrapping_brackets(value)
+
+
+def paint_snippet_highlight(painter: QPainter, rect: QRect) -> None:
+    """Fill the item with the hover/selection color and no border."""
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
+    painter.setBrush(QColor(_SELECTION_BG))
+    painter.setPen(Qt.PenStyle.NoPen)
+    painter.drawRoundedRect(rect.adjusted(1, 1, -1, -1), _SELECTION_RADIUS, _SELECTION_RADIUS)
+
+
+def _apply_list_highlight_palette(widget: QListWidget) -> None:
+    palette = widget.palette()
+    text = palette.color(QPalette.ColorRole.Text)
+    highlight = QColor(_SELECTION_BG)
+    for group in (QPalette.ColorGroup.Active, QPalette.ColorGroup.Inactive, QPalette.ColorGroup.Disabled):
+        palette.setColor(group, QPalette.ColorRole.Highlight, highlight)
+        palette.setColor(group, QPalette.ColorRole.HighlightedText, text)
+    widget.setPalette(palette)
+
+
+def _item_is_highlighted(option: QStyleOptionViewItem) -> bool:
+    return bool(option.state & (QStyle.StateFlag.State_Selected | QStyle.StateFlag.State_MouseOver))

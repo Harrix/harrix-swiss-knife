@@ -19,6 +19,8 @@ lang: en
   - [⚙️ Method `filterAcceptsRow`](#%EF%B8%8F-method-filteracceptsrow)
   - [⚙️ Method `lessThan`](#%EF%B8%8F-method-lessthan)
   - [⚙️ Method `set_filter_text`](#%EF%B8%8F-method-set_filter_text)
+- [🔧 Function `food_autocomplete_icon_emojis`](#-function-food_autocomplete_icon_emojis)
+- [🔧 Function `food_autocomplete_popup_icon_size`](#-function-food_autocomplete_popup_icon_size)
 - [🔧 Function `make_food_autocomplete_item`](#-function-make_food_autocomplete_item)
 - [🔧 Function `setup_completer_item_tooltips`](#-function-setup_completer_item_tooltips)
 
@@ -475,13 +477,59 @@ def set_filter_text(self, text: str) -> None:
 
 </details>
 
+## 🔧 Function `food_autocomplete_icon_emojis`
+
+```python
+def food_autocomplete_icon_emojis(entry: FoodAutocompleteEntry) -> list[str]
+```
+
+Return leading marker emojis for a completer row (catalog, then drink).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def food_autocomplete_icon_emojis(entry: FoodAutocompleteEntry) -> list[str]:
+    emojis: list[str] = []
+    if entry.is_recipe:
+        emojis.append(RECIPE_EMOJI)
+    elif entry.is_food_item:
+        emojis.append(FOOD_ITEM_EMOJI)
+    if entry.is_drink:
+        emojis.append(DRINK_EMOJI)
+    return emojis
+```
+
+</details>
+
+## 🔧 Function `food_autocomplete_popup_icon_size`
+
+```python
+def food_autocomplete_popup_icon_size() -> QSize
+```
+
+Icon slot wide enough for a catalog marker plus a drink marker.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def food_autocomplete_popup_icon_size() -> QSize:
+    width = FOOD_AUTOCOMPLETE_ICON_SIZE * FOOD_AUTOCOMPLETE_ICON_MAX_COUNT + FOOD_AUTOCOMPLETE_ICON_GAP * (
+        FOOD_AUTOCOMPLETE_ICON_MAX_COUNT - 1
+    )
+    return QSize(width, FOOD_AUTOCOMPLETE_ICON_SIZE)
+```
+
+</details>
+
 ## 🔧 Function `make_food_autocomplete_item`
 
 ```python
 def make_food_autocomplete_item(entry: FoodAutocompleteEntry) -> QStandardItem
 ```
 
-Build a completer row; recipes use a plate icon instead of a text prefix.
+Build a completer row; catalog and drink markers are icons, not text prefixes.
 
 <details>
 <summary>Code:</summary>
@@ -496,8 +544,15 @@ def make_food_autocomplete_item(entry: FoodAutocompleteEntry) -> QStandardItem:
     item = QStandardItem(display if entry.is_recipe else entry.name)
     item.setData(entry.name, Qt.ItemDataRole.EditRole)
     item.setData(entry.name_en or "", Qt.ItemDataRole.UserRole)
-    if entry.is_recipe:
-        item.setIcon(create_emoji_icon(RECIPE_EMOJI, FOOD_AUTOCOMPLETE_ICON_SIZE))
+    emojis = food_autocomplete_icon_emojis(entry)
+    if emojis:
+        item.setIcon(
+            create_emoji_row_icon(
+                emojis,
+                FOOD_AUTOCOMPLETE_ICON_SIZE,
+                gap=FOOD_AUTOCOMPLETE_ICON_GAP,
+            ),
+        )
     return item
 ```
 
@@ -518,7 +573,7 @@ Enable tooltips for elided items in a QCompleter popup list.
 def setup_completer_item_tooltips(completer: QCompleter) -> CompleterPopupTooltipHelper:
     popup = completer.popup()
     if popup is not None:
-        popup.setIconSize(QSize(FOOD_AUTOCOMPLETE_ICON_SIZE, FOOD_AUTOCOMPLETE_ICON_SIZE))
+        popup.setIconSize(food_autocomplete_popup_icon_size())
     helper = CompleterPopupTooltipHelper(completer)
     completer._tooltip_helper = helper  # keep reference alive  # noqa: SLF001
     return helper

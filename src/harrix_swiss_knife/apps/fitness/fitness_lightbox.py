@@ -687,16 +687,6 @@ class FitnessLightboxSidebar(QFrame):
         self._apply_snapshot(self._stopwatch.pause())
         play_fitness_timer_cue("pause")
 
-    def _on_stop(self) -> None:
-        snapshot = self._stopwatch.snapshot()
-        if snapshot.phase in {StopwatchPhase.IDLE, StopwatchPhase.FINISHED}:
-            return
-        self._tick.stop()
-        if not self._overtime_announced:
-            self._overtime_announced = True
-            play_fitness_timer_cue("time_over")
-        self._apply_snapshot(self._stopwatch.stop())
-
     def _on_restart(self) -> None:
         self._ready_announced = False
         self._spoken_countdown.clear()
@@ -717,6 +707,16 @@ class FitnessLightboxSidebar(QFrame):
         if resuming:
             play_fitness_timer_cue("continue")
 
+    def _on_stop(self) -> None:
+        snapshot = self._stopwatch.snapshot()
+        if snapshot.phase in {StopwatchPhase.IDLE, StopwatchPhase.FINISHED}:
+            return
+        self._tick.stop()
+        if not self._overtime_announced:
+            self._overtime_announced = True
+            play_fitness_timer_cue("time_over")
+        self._apply_snapshot(self._stopwatch.stop())
+
     def _on_tick(self) -> None:
         self._apply_snapshot(self._stopwatch.advance(_TICK_MS))
 
@@ -725,6 +725,7 @@ class FitnessLightboxSidebar(QFrame):
             return
         self._configure_limit_for_exercise(self._bound_unit, value)
         self._apply_snapshot(self._stopwatch.snapshot())
+
 
 class LightboxPhaseOverlay(QWidget):
     """Dimmed first-frame overlay for Prepare countdown and Finish."""

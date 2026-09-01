@@ -6,6 +6,7 @@ import pytest
 
 from harrix_swiss_knife.apps.food.services.food_display import (
     DRINK_EMOJI,
+    FOOD_ITEM_EMOJI,
     RECIPE_EMOJI,
     extract_food_name_from_display,
     format_food_name_with_calories,
@@ -26,6 +27,8 @@ def test_extract_food_name_from_display_empty() -> None:
         (f"{DRINK_EMOJI} Water", "Water"),
         (f"{RECIPE_EMOJI} Borscht (45 kcal/100g)", "Borscht"),
         (f"{RECIPE_EMOJI} {DRINK_EMOJI} Smoothie (60 kcal/100g)", "Smoothie"),
+        (f"{FOOD_ITEM_EMOJI} Apple", "Apple"),
+        (f"{FOOD_ITEM_EMOJI} {DRINK_EMOJI} Tea", "Tea"),
         (
             "Name with (120 kcal/portion) extra",
             "Name with (120 kcal/portion) extra",

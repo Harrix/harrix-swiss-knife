@@ -1571,6 +1571,10 @@ class MonthCalendarGrid(QWidget):
         return menu
 
     def _clear_grid(self) -> None:
+        from harrix_swiss_knife.apps.habits.habit_day_picker import HabitDayPickerPopup  # noqa: PLC0415
+
+        HabitDayPickerPopup.hide_active()
+        QToolTip.hideText()
         while self._grid.count():
             item = self._grid.takeAt(0)
             widget = item.widget()

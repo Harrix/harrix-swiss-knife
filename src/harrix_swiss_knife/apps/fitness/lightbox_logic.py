@@ -92,16 +92,6 @@ class ExerciseStopwatch:
         self.reset()
         return self.start()
 
-    def stop(self) -> StopwatchSnapshot:
-        """Stop the clock and mark the session finished."""
-        if self._phase is StopwatchPhase.IDLE:
-            return self.snapshot()
-        if self._phase is StopwatchPhase.COUNTDOWN:
-            self._elapsed_ms = 0
-        self._phase = StopwatchPhase.FINISHED
-        self._running = False
-        return self.snapshot()
-
     def snapshot(self) -> StopwatchSnapshot:
         """Return the current display state without advancing."""
         if self._phase is StopwatchPhase.IDLE:
@@ -147,6 +137,16 @@ class ExerciseStopwatch:
         self._running = True
         return self.snapshot()
 
+    def stop(self) -> StopwatchSnapshot:
+        """Stop the clock and mark the session finished."""
+        if self._phase is StopwatchPhase.IDLE:
+            return self.snapshot()
+        if self._phase is StopwatchPhase.COUNTDOWN:
+            self._elapsed_ms = 0
+        self._phase = StopwatchPhase.FINISHED
+        self._running = False
+        return self.snapshot()
+
 
 @dataclass(frozen=True, slots=True)
 class ExerciseStopwatchState:
@@ -177,6 +177,24 @@ class FitnessLightboxDetails:
     value: int
 
 
+class LightboxOverlayKind(StrEnum):
+    """Image overlay shown over the exercise animation."""
+
+    NONE = "none"
+    PREPARE = "prepare"
+    FINISH = "finish"
+
+
+@dataclass(frozen=True, slots=True)
+class LightboxPlaybackView:
+    """How the exercise image should look for the current stopwatch state."""
+
+    overlay: LightboxOverlayKind
+    countdown_seconds: int
+    animate: bool
+    freeze_first_frame: bool
+
+
 class StopwatchColor(StrEnum):
     """Visual role for the stopwatch readout."""
 
@@ -184,14 +202,6 @@ class StopwatchColor(StrEnum):
     COUNTDOWN = "countdown"
     RUNNING = "running"
     OVERTIME = "overtime"
-
-
-class LightboxOverlayKind(StrEnum):
-    """Image overlay shown over the exercise animation."""
-
-    NONE = "none"
-    PREPARE = "prepare"
-    FINISH = "finish"
 
 
 class StopwatchPhase(StrEnum):
@@ -212,16 +222,6 @@ class StopwatchSnapshot:
     is_overtime: bool
     is_running: bool
     color: StopwatchColor
-
-
-@dataclass(frozen=True, slots=True)
-class LightboxPlaybackView:
-    """How the exercise image should look for the current stopwatch state."""
-
-    overlay: LightboxOverlayKind
-    countdown_seconds: int
-    animate: bool
-    freeze_first_frame: bool
 
 
 def allocated_exercise_seconds(duration_min: int, item_count: int) -> int:

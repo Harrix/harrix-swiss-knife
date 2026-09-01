@@ -133,7 +133,8 @@ def _build_db(tmp_path: Path) -> _SqliteDatabaseManager:
     previous_str = f"{previous_year:04d}-{previous_month:02d}-05"
 
     add("Push ups", previous_str, "500")
-    add("Push ups", month_start, "40")
+    if month_start != today_str:
+        add("Push ups", month_start, "40")
     add("Push ups", today_str, "10")
 
     add("Running", previous_str, "20")

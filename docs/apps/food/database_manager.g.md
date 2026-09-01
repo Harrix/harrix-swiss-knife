@@ -478,11 +478,20 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         """
         rows = self.get_rows("""
-            SELECT name, name_en FROM food_items
+            SELECT name, name_en, is_drink FROM food_items
             WHERE name IS NOT NULL AND name != ''
             ORDER BY name ASC
         """)
-        return [_food_autocomplete_entry_from_row(row) for row in rows if row and row[0]]
+        return [
+            FoodAutocompleteEntry(
+                name=str(row[0]),
+                name_en=_normalize_optional_name_en(row[1]),
+                is_food_item=True,
+                is_drink=_sql_bool_flag(row[2]),
+            )
+            for row in rows
+            if row and row[0]
+        ]
 
     def get_food_log_amounts(self, record_id: int) -> tuple[float | None, float | None, float | None] | None:
         """Return `(weight, calories_per_100g, portion_calories)` for a food log row."""
@@ -619,22 +628,30 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         """
         query = """
-            SELECT name, name_en
+            SELECT name, name_en, is_drink
             FROM food_log
             WHERE name IS NOT NULL AND name != ''
             ORDER BY date DESC, _id DESC
             LIMIT :limit
         """
         rows = self.get_rows(query, {"limit": limit})
-        by_name: dict[str, str | None] = {}
+        by_name: dict[str, FoodAutocompleteEntry] = {}
         for row in rows:
             if not row or not row[0]:
                 continue
-            _put_autocomplete_name(by_name, str(row[0]), _normalize_optional_name_en(row[1]))
-        return [
-            FoodAutocompleteEntry(name=name, name_en=name_en)
-            for name, name_en in sorted(by_name.items(), key=lambda item: item[0].casefold())
-        ]
+            name = str(row[0])
+            name_en = _normalize_optional_name_en(row[1])
+            is_drink = _sql_bool_flag(row[2])
+            existing = by_name.get(name)
+            if existing is None:
+                by_name[name] = FoodAutocompleteEntry(name=name, name_en=name_en, is_drink=is_drink)
+            elif existing.name_en is None and name_en is not None:
+                by_name[name] = FoodAutocompleteEntry(
+                    name=name,
+                    name_en=name_en,
+                    is_drink=existing.is_drink,
+                )
+        return [by_name[name] for name in sorted(by_name, key=str.casefold)]
 
     def get_recipe_by_id(self, recipe_id: int) -> RecipeRow | None:
         """Return a recipe by primary key.
@@ -716,7 +733,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         rows = self.get_rows(
             """
-            SELECT name, name_en, calories_per_100g FROM recipes
+            SELECT name, name_en, calories_per_100g, is_drink FROM recipes
             WHERE name IS NOT NULL AND name != ''
             ORDER BY name ASC
             """
@@ -730,6 +747,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
                     name=str(row[0]),
                     name_en=_normalize_optional_name_en(row[1]),
                     is_recipe=True,
+                    is_drink=_sql_bool_flag(row[3]),
                     calories_per_100g=_optional_sql_float(row[2]),
                 )
             )
@@ -1753,11 +1771,20 @@ Returns:
 ```python
 def get_food_item_names_for_autocomplete(self) -> list[FoodAutocompleteEntry]:
         rows = self.get_rows("""
-            SELECT name, name_en FROM food_items
+            SELECT name, name_en, is_drink FROM food_items
             WHERE name IS NOT NULL AND name != ''
             ORDER BY name ASC
         """)
-        return [_food_autocomplete_entry_from_row(row) for row in rows if row and row[0]]
+        return [
+            FoodAutocompleteEntry(
+                name=str(row[0]),
+                name_en=_normalize_optional_name_en(row[1]),
+                is_food_item=True,
+                is_drink=_sql_bool_flag(row[2]),
+            )
+            for row in rows
+            if row and row[0]
+        ]
 ```
 
 </details>
@@ -1968,22 +1995,30 @@ Returns:
 ```python
 def get_recent_food_names_for_autocomplete(self, limit: int = 1000) -> list[FoodAutocompleteEntry]:
         query = """
-            SELECT name, name_en
+            SELECT name, name_en, is_drink
             FROM food_log
             WHERE name IS NOT NULL AND name != ''
             ORDER BY date DESC, _id DESC
             LIMIT :limit
         """
         rows = self.get_rows(query, {"limit": limit})
-        by_name: dict[str, str | None] = {}
+        by_name: dict[str, FoodAutocompleteEntry] = {}
         for row in rows:
             if not row or not row[0]:
                 continue
-            _put_autocomplete_name(by_name, str(row[0]), _normalize_optional_name_en(row[1]))
-        return [
-            FoodAutocompleteEntry(name=name, name_en=name_en)
-            for name, name_en in sorted(by_name.items(), key=lambda item: item[0].casefold())
-        ]
+            name = str(row[0])
+            name_en = _normalize_optional_name_en(row[1])
+            is_drink = _sql_bool_flag(row[2])
+            existing = by_name.get(name)
+            if existing is None:
+                by_name[name] = FoodAutocompleteEntry(name=name, name_en=name_en, is_drink=is_drink)
+            elif existing.name_en is None and name_en is not None:
+                by_name[name] = FoodAutocompleteEntry(
+                    name=name,
+                    name_en=name_en,
+                    is_drink=existing.is_drink,
+                )
+        return [by_name[name] for name in sorted(by_name, key=str.casefold)]
 ```
 
 </details>
@@ -2113,7 +2148,7 @@ Returns:
 def get_recipe_names_for_autocomplete(self) -> list[FoodAutocompleteEntry]:
         rows = self.get_rows(
             """
-            SELECT name, name_en, calories_per_100g FROM recipes
+            SELECT name, name_en, calories_per_100g, is_drink FROM recipes
             WHERE name IS NOT NULL AND name != ''
             ORDER BY name ASC
             """
@@ -2127,6 +2162,7 @@ def get_recipe_names_for_autocomplete(self) -> list[FoodAutocompleteEntry]:
                     name=str(row[0]),
                     name_en=_normalize_optional_name_en(row[1]),
                     is_recipe=True,
+                    is_drink=_sql_bool_flag(row[3]),
                     calories_per_100g=_optional_sql_float(row[2]),
                 )
             )
@@ -2675,6 +2711,8 @@ class FoodAutocompleteEntry:
     name: str
     name_en: str | None
     is_recipe: bool = False
+    is_food_item: bool = False
+    is_drink: bool = False
     calories_per_100g: float | None = None
 ```
 
@@ -2790,6 +2828,7 @@ Merge autocomplete entries, keeping primary order and filling empty English name
 
 Later lists override `is_recipe` / `calories_per_100g` when the same name appears
 again (so recipe entries can decorate an existing catalog/log name).
+`is_food_item` and `is_drink` are combined with OR.
 
 <details>
 <summary>Code:</summary>
@@ -2818,6 +2857,8 @@ def merge_food_autocomplete_entries(
                 name=entry.name,
                 name_en=name_en,
                 is_recipe=is_recipe,
+                is_food_item=existing.is_food_item or entry.is_food_item,
+                is_drink=existing.is_drink or entry.is_drink,
                 calories_per_100g=calories,
             )
     return list(merged.values())

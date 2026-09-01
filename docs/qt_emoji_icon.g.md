@@ -17,6 +17,7 @@ lang: en
 - [🔧 Function `apply_leading_emoji_icon`](#-function-apply_leading_emoji_icon)
 - [🔧 Function `apply_leading_emoji_icons`](#-function-apply_leading_emoji_icons)
 - [🔧 Function `create_emoji_icon`](#-function-create_emoji_icon)
+- [🔧 Function `create_emoji_row_icon`](#-function-create_emoji_row_icon)
 - [🔧 Function `make_emoji_push_button`](#-function-make_emoji_push_button)
 - [🔧 Function `paint_centered_emoji`](#-function-paint_centered_emoji)
 - [🔧 Function `set_action_text_with_emoji_icon`](#-function-set_action_text_with_emoji_icon)
@@ -209,6 +210,66 @@ def create_emoji_icon(
         fill=0.90,
         align=align,
     )
+    painter.end()
+    pixmap.setDevicePixelRatio(ratio)
+
+    icon = QIcon()
+    icon.addPixmap(pixmap)
+    return icon
+```
+
+</details>
+
+## 🔧 Function `create_emoji_row_icon`
+
+```python
+def create_emoji_row_icon(emojis: list[str], size: int = 64, *, gap: int = 2, device_pixel_ratio: float | None = None) -> QIcon
+```
+
+Create a left-aligned row of emoji icons, or a single square icon.
+
+Used when a list item needs more than one marker (for example a catalog
+food item that is also a drink).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def create_emoji_row_icon(
+    emojis: list[str],
+    size: int = 64,
+    *,
+    gap: int = 2,
+    device_pixel_ratio: float | None = None,
+) -> QIcon:
+    cleaned = [emoji for emoji in emojis if emoji]
+    if not cleaned:
+        return QIcon()
+    if len(cleaned) == 1:
+        return create_emoji_icon(cleaned[0], size, device_pixel_ratio=device_pixel_ratio)
+
+    ratio = device_pixel_ratio if device_pixel_ratio is not None else _emoji_device_pixel_ratio()
+    if ratio <= 0:
+        ratio = 1.0
+    logical_width = size * len(cleaned) + gap * (len(cleaned) - 1)
+    physical_h = max(1, round(size * ratio))
+    physical_w = max(1, round(logical_width * ratio))
+    physical_gap = max(0, round(gap * ratio))
+    pixmap = QPixmap(physical_w, physical_h)
+    pixmap.fill(Qt.GlobalColor.transparent)
+
+    painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
+    painter.setRenderHint(QPainter.RenderHint.TextAntialiasing, on=True)
+    x = 0.0
+    for emoji in cleaned:
+        paint_centered_emoji(
+            painter,
+            emoji,
+            QRectF(x, 0.0, float(physical_h), float(physical_h)),
+            fill=0.90,
+        )
+        x += physical_h + physical_gap
     painter.end()
     pixmap.setDevicePixelRatio(ratio)
 
