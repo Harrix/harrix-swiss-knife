@@ -22,8 +22,11 @@ lang: en
 - [🔧 Function `get_apps_list_limits`](#-function-get_apps_list_limits)
 - [🔧 Function `get_apps_local_language`](#-function-get_apps_local_language)
 - [🔧 Function `get_apps_local_language_display_name`](#-function-get_apps_local_language_display_name)
+- [🔧 Function `get_habits_sport_habit_name`](#-function-get_habits_sport_habit_name)
+- [🔧 Function `get_habits_sport_lookback_days`](#-function-get_habits_sport_lookback_days)
 - [🔧 Function `set_apps_fitness_workout_duration_min`](#-function-set_apps_fitness_workout_duration_min)
 - [🔧 Function `set_apps_fitness_workout_gender`](#-function-set_apps_fitness_workout_gender)
+- [🔧 Function `set_habits_sport_habit_name`](#-function-set_habits_sport_habit_name)
 
 </details>
 
@@ -302,6 +305,47 @@ def get_apps_local_language_display_name(config: dict[str, Any]) -> str:
 
 </details>
 
+## 🔧 Function `get_habits_sport_habit_name`
+
+```python
+def get_habits_sport_habit_name(config: dict[str, Any]) -> str
+```
+
+Return the habit name marked as sport, or an empty string.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_habits_sport_habit_name(config: dict[str, Any]) -> str:
+    return str(config.get(HABITS_SPORT_HABIT_NAME_KEY) or "").strip()
+```
+
+</details>
+
+## 🔧 Function `get_habits_sport_lookback_days`
+
+```python
+def get_habits_sport_lookback_days(config: dict[str, Any]) -> int
+```
+
+Return how many recent days to sync from Fitness (default 31).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_habits_sport_lookback_days(config: dict[str, Any]) -> int:
+    raw = config.get(HABITS_SPORT_LOOKBACK_DAYS_KEY, DEFAULT_HABITS_SPORT_LOOKBACK_DAYS)
+    try:
+        value = int(raw)
+    except (TypeError, ValueError):
+        return DEFAULT_HABITS_SPORT_LOOKBACK_DAYS
+    return max(_MIN_HABITS_SPORT_LOOKBACK_DAYS, min(_MAX_HABITS_SPORT_LOOKBACK_DAYS, value))
+```
+
+</details>
+
 ## 🔧 Function `set_apps_fitness_workout_duration_min`
 
 ```python
@@ -403,6 +447,45 @@ def set_apps_fitness_workout_gender(
         live_apps = config.setdefault("apps", {})
         if isinstance(live_apps, dict):
             live_apps[FITNESS_WORKOUT_GENDER_KEY] = normalized
+```
+
+</details>
+
+## 🔧 Function `set_habits_sport_habit_name`
+
+```python
+def set_habits_sport_habit_name(name: str, *, config: dict[str, Any] | None = None, config_path: str | None = None) -> None
+```
+
+Write the sport habit name into `config.json`.
+
+Args:
+
+- `name` (`str`): Habit name to treat as sport. Empty clears the assignment.
+- [`config`](../../actions/common/base.g.md#%EF%B8%8F-method-config-property) (`dict[str, Any] | None`): Optional in-memory config to keep in sync.
+- `config_path` (`str | None`): Config file path. Defaults to the project config.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_habits_sport_habit_name(
+    name: str,
+    *,
+    config: dict[str, Any] | None = None,
+    config_path: str | None = None,
+) -> None:
+    value = str(name or "").strip()
+    path = Path(config_path or get_config_path_str())
+    with path.open(encoding="utf-8") as handle:
+        data = json.load(handle)
+    if not isinstance(data, dict):
+        msg = f"Config root must be a JSON object: {path}"
+        raise TypeError(msg)
+    data[HABITS_SPORT_HABIT_NAME_KEY] = value
+    path.write_text(h.dev.dumps_pretty_json(data), encoding="utf-8")
+    if config is not None:
+        config[HABITS_SPORT_HABIT_NAME_KEY] = value
 ```
 
 </details>

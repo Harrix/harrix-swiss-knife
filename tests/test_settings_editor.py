@@ -582,6 +582,8 @@ def test_config_key_belongs_to_app_matches_prefixes_and_sqlite() -> None:
     assert config_key_belongs_to_app("fitness_names_translate_local_limit", "fitness")
     assert config_key_belongs_to_app("food_calorie_thresholds", "food")
     assert config_key_belongs_to_app("path_habit_comments", "habits")
+    assert config_key_belongs_to_app("habits_sport_habit_name", "habits")
+    assert config_key_belongs_to_app("habits_sport_lookback_days", "habits")
     assert config_key_belongs_to_app("path_vector_icons_pinned", "icons")
     assert config_key_belongs_to_app("vector_icons_recent_folders_max", "icons")
     assert not config_key_belongs_to_app("sqlite_food", "fitness")

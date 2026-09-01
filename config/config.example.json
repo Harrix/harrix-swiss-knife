@@ -92,6 +92,8 @@
   "food_log_translate_names_limit": 250,
   "finance_transactions_translate_descriptions_limit": 250,
   "finance_standard_items_translate_names_limit": 250,
+  "habits_sport_habit_name": "",
+  "habits_sport_lookback_days": 31,
   "github_user": "Harrix",
   "harrix_notes_explorer_publisher": "harrix",
   "markdown_templates": {

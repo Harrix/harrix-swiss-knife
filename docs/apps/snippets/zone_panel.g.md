@@ -26,11 +26,13 @@ lang: en
   - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
   - [⚙️ Method `filter_query`](#%EF%B8%8F-method-filter_query)
   - [⚙️ Method `item_at`](#%EF%B8%8F-method-item_at)
+  - [⚙️ Method `item_matches_input`](#%EF%B8%8F-method-item_matches_input)
   - [⚙️ Method `move_visible`](#%EF%B8%8F-method-move_visible)
   - [⚙️ Method `prepare_keyboard_focus`](#%EF%B8%8F-method-prepare_keyboard_focus)
   - [⚙️ Method `reset_keyboard_session`](#%EF%B8%8F-method-reset_keyboard_session)
   - [⚙️ Method `select_row`](#%EF%B8%8F-method-select_row)
   - [⚙️ Method `set_filter_query`](#%EF%B8%8F-method-set_filter_query)
+  - [⚙️ Method `set_input_match`](#%EF%B8%8F-method-set_input_match)
   - [⚙️ Method `set_items`](#%EF%B8%8F-method-set_items)
   - [⚙️ Method `set_sort_state`](#%EF%B8%8F-method-set_sort_state)
   - [⚙️ Method `visible_rows`](#%EF%B8%8F-method-visible_rows)
@@ -63,8 +65,9 @@ class ColorItemDelegate(QStyledItemDelegate):
         """Draw the selection, hex chip, and optional hint."""
         self.initStyleOption(option, index)
         painter.save()
-        if _item_is_highlighted(option):
-            paint_snippet_highlight(painter, option.rect)
+        matches = _item_matches_input(index, option)
+        if matches or _item_is_highlighted(option):
+            paint_snippet_highlight(painter, option.rect, outlined=matches)
 
         hex_value = strip_wrapping_brackets(str(index.data(_COLOR_ROLE) or ""))
         color = QColor(hex_value) if hex_value else QColor("#ffffff")
@@ -128,8 +131,9 @@ def paint(
     ) -> None:
         self.initStyleOption(option, index)
         painter.save()
-        if _item_is_highlighted(option):
-            paint_snippet_highlight(painter, option.rect)
+        matches = _item_matches_input(index, option)
+        if matches or _item_is_highlighted(option):
+            paint_snippet_highlight(painter, option.rect, outlined=matches)
 
         hex_value = strip_wrapping_brackets(str(index.data(_COLOR_ROLE) or ""))
         color = QColor(hex_value) if hex_value else QColor("#ffffff")
@@ -211,8 +215,9 @@ class HighlightItemDelegate(QStyledItemDelegate):
         opt = QStyleOptionViewItem(option)
         self.initStyleOption(opt, index)
         painter.save()
-        if _item_is_highlighted(opt):
-            paint_snippet_highlight(painter, opt.rect)
+        matches = _item_matches_input(index, opt)
+        if matches or _item_is_highlighted(opt):
+            paint_snippet_highlight(painter, opt.rect, outlined=matches)
         opt.state &= ~_HIGHLIGHT_STATES
         widget = opt.widget
         style = widget.style() if widget is not None else None
@@ -259,8 +264,9 @@ def paint(
         opt = QStyleOptionViewItem(option)
         self.initStyleOption(opt, index)
         painter.save()
-        if _item_is_highlighted(opt):
-            paint_snippet_highlight(painter, opt.rect)
+        matches = _item_matches_input(index, opt)
+        if matches or _item_is_highlighted(opt):
+            paint_snippet_highlight(painter, opt.rect, outlined=matches)
         opt.state &= ~_HIGHLIGHT_STATES
         widget = opt.widget
         style = widget.style() if widget is not None else None
@@ -309,8 +315,9 @@ class IconItemDelegate(QStyledItemDelegate):
         """Draw a flat highlight and the icon, never the native selection chrome."""
         self.initStyleOption(option, index)
         painter.save()
-        if _item_is_highlighted(option):
-            paint_snippet_highlight(painter, option.rect)
+        matches = _item_matches_input(index, option)
+        if matches or _item_is_highlighted(option):
+            paint_snippet_highlight(painter, option.rect, outlined=matches)
         icon = index.data(Qt.ItemDataRole.DecorationRole)
         if isinstance(icon, QIcon) and not icon.isNull():
             size = (
@@ -349,8 +356,9 @@ def paint(
     ) -> None:
         self.initStyleOption(option, index)
         painter.save()
-        if _item_is_highlighted(option):
-            paint_snippet_highlight(painter, option.rect)
+        matches = _item_matches_input(index, option)
+        if matches or _item_is_highlighted(option):
+            paint_snippet_highlight(painter, option.rect, outlined=matches)
         icon = index.data(Qt.ItemDataRole.DecorationRole)
         if isinstance(icon, QIcon) and not icon.isNull():
             size = (
@@ -414,6 +422,7 @@ class ZonePanel(QWidget):
         self._items: list[SnippetItem] = []
         self._sort_buttons: dict[SortMode, QToolButton] = {}
         self._filter_query = ""
+        self._input_match = ""
         self._remembered_id: int | None = None
 
         self._list = QListWidget(self)
@@ -526,6 +535,10 @@ class ZonePanel(QWidget):
         data = item.data(_ITEM_ROLE)
         return data if data is not None else None
 
+    def item_matches_input(self, snippet: SnippetItem | None) -> bool:
+        """Return whether `snippet` is the value currently shown in the shared input."""
+        return bool(self._input_match) and snippet is not None and snippet.value == self._input_match
+
     def move_visible(self, delta: int) -> bool:
         """Move the list highlight among currently visible items.
 
@@ -589,6 +602,13 @@ class ZonePanel(QWidget):
         self._remembered_id = None
         self._clear_list_current()
         self._apply_filter()
+
+    def set_input_match(self, value: str) -> None:
+        """Mark the item whose value equals `value` as the current input match."""
+        if self._input_match == value:
+            return
+        self._input_match = value
+        self._list.viewport().update()
 
     def set_items(self, items: list[SnippetItem]) -> None:
         """Replace the visible items."""
@@ -743,6 +763,7 @@ def __init__(
         self._items: list[SnippetItem] = []
         self._sort_buttons: dict[SortMode, QToolButton] = {}
         self._filter_query = ""
+        self._input_match = ""
         self._remembered_id: int | None = None
 
         self._list = QListWidget(self)
@@ -942,6 +963,24 @@ def item_at(self, pos: QPoint) -> SnippetItem | None:
 
 </details>
 
+### ⚙️ Method `item_matches_input`
+
+```python
+def item_matches_input(self, snippet: SnippetItem | None) -> bool
+```
+
+Return whether `snippet` is the value currently shown in the shared input.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def item_matches_input(self, snippet: SnippetItem | None) -> bool:
+        return bool(self._input_match) and snippet is not None and snippet.value == self._input_match
+```
+
+</details>
+
 ### ⚙️ Method `move_visible`
 
 ```python
@@ -1072,6 +1111,27 @@ def set_filter_query(self, text: str) -> None:
 
 </details>
 
+### ⚙️ Method `set_input_match`
+
+```python
+def set_input_match(self, value: str) -> None
+```
+
+Mark the item whose value equals `value` as the current input match.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_input_match(self, value: str) -> None:
+        if self._input_match == value:
+            return
+        self._input_match = value
+        self._list.viewport().update()
+```
+
+</details>
+
 ### ⚙️ Method `set_items`
 
 ```python
@@ -1196,20 +1256,25 @@ def color_hex_label(value: str) -> str:
 ## 🔧 Function `paint_snippet_highlight`
 
 ```python
-def paint_snippet_highlight(painter: QPainter, rect: QRect) -> None
+def paint_snippet_highlight(painter: QPainter, rect: QRect, *, outlined: bool = False) -> None
 ```
 
-Fill the item with the hover/selection color and no border.
+Fill the item with the hover/selection color, optionally with a 1 px gray outline.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def paint_snippet_highlight(painter: QPainter, rect: QRect) -> None:
+def paint_snippet_highlight(painter: QPainter, rect: QRect, *, outlined: bool = False) -> None:
     painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
     painter.setBrush(QColor(_SELECTION_BG))
-    painter.setPen(Qt.PenStyle.NoPen)
-    painter.drawRoundedRect(rect.adjusted(1, 1, -1, -1), _SELECTION_RADIUS, _SELECTION_RADIUS)
+    if outlined:
+        painter.setPen(QPen(QColor(_SELECTION_OUTLINE), 1))
+        inner = rect.adjusted(1, 1, -2, -2)
+    else:
+        painter.setPen(Qt.PenStyle.NoPen)
+        inner = rect.adjusted(1, 1, -1, -1)
+    painter.drawRoundedRect(inner, _SELECTION_RADIUS, _SELECTION_RADIUS)
 ```
 
 </details>

@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from contextlib import contextmanager
 from types import SimpleNamespace
+from typing import cast
 
 import pytest
 from PySide6.QtCore import QSize, Qt
@@ -107,7 +109,7 @@ def test_open_select_exercise_dialog_shows_loading_toast(
     titles: list[str] = []
 
     @contextmanager
-    def fake_scope(title: str):
+    def fake_scope(title: str) -> Iterator[None]:
         titles.append(title)
         yield None
 
@@ -121,7 +123,7 @@ def test_open_select_exercise_dialog_shows_loading_toast(
         def _validate_database_connection(self) -> bool:
             return True
 
-    window = FakeWindow()
+    window = cast("MainWindow", FakeWindow())
     assert MainWindow._open_select_exercise_dialog(window) == []
     assert titles == ["Select Exercise"]
     assert MainWindow._open_select_exercise_dialog(window, multi_select=True) == []

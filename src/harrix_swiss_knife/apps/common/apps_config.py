@@ -20,8 +20,13 @@ DEFAULT_FITNESS_IMAGE_STATIC_MAX_SIZE = 512
 DEFAULT_FITNESS_WORKOUT_HISTORY_COUNT = 100
 DEFAULT_FITNESS_LIGHTBOX_COUNTDOWN_SECONDS = 5
 DEFAULT_FITNESS_WORKOUT_DURATION_MIN = 45
+DEFAULT_HABITS_SPORT_LOOKBACK_DAYS = 31
 FITNESS_WORKOUT_DURATION_MIN_KEY = "fitness_workout_duration_min"
 FITNESS_WORKOUT_GENDER_KEY = "fitness_workout_gender"
+HABITS_SPORT_HABIT_NAME_KEY = "habits_sport_habit_name"
+HABITS_SPORT_LOOKBACK_DAYS_KEY = "habits_sport_lookback_days"
+_MAX_HABITS_SPORT_LOOKBACK_DAYS = 366
+_MIN_HABITS_SPORT_LOOKBACK_DAYS = 1
 _MIN_FITNESS_WORKOUT_DURATION_MIN = 10
 _MAX_FITNESS_WORKOUT_DURATION_MIN = 240
 _VALID_FITNESS_WORKOUT_GENDERS = frozenset({"male", "female"})
@@ -192,6 +197,21 @@ def get_apps_local_language_display_name(config: dict[str, Any]) -> str:
     return code.upper()
 
 
+def get_habits_sport_habit_name(config: dict[str, Any]) -> str:
+    """Return the habit name marked as sport, or an empty string."""
+    return str(config.get(HABITS_SPORT_HABIT_NAME_KEY) or "").strip()
+
+
+def get_habits_sport_lookback_days(config: dict[str, Any]) -> int:
+    """Return how many recent days to sync from Fitness (default 31)."""
+    raw = config.get(HABITS_SPORT_LOOKBACK_DAYS_KEY, DEFAULT_HABITS_SPORT_LOOKBACK_DAYS)
+    try:
+        value = int(raw)
+    except (TypeError, ValueError):
+        return DEFAULT_HABITS_SPORT_LOOKBACK_DAYS
+    return max(_MIN_HABITS_SPORT_LOOKBACK_DAYS, min(_MAX_HABITS_SPORT_LOOKBACK_DAYS, value))
+
+
 def set_apps_fitness_workout_duration_min(
     duration_min: int,
     *,
@@ -273,3 +293,31 @@ def set_apps_fitness_workout_gender(
         live_apps = config.setdefault("apps", {})
         if isinstance(live_apps, dict):
             live_apps[FITNESS_WORKOUT_GENDER_KEY] = normalized
+
+
+def set_habits_sport_habit_name(
+    name: str,
+    *,
+    config: dict[str, Any] | None = None,
+    config_path: str | None = None,
+) -> None:
+    """Write the sport habit name into `config.json`.
+
+    Args:
+
+    - `name` (`str`): Habit name to treat as sport. Empty clears the assignment.
+    - `config` (`dict[str, Any] | None`): Optional in-memory config to keep in sync.
+    - `config_path` (`str | None`): Config file path. Defaults to the project config.
+
+    """
+    value = str(name or "").strip()
+    path = Path(config_path or get_config_path_str())
+    with path.open(encoding="utf-8") as handle:
+        data = json.load(handle)
+    if not isinstance(data, dict):
+        msg = f"Config root must be a JSON object: {path}"
+        raise TypeError(msg)
+    data[HABITS_SPORT_HABIT_NAME_KEY] = value
+    path.write_text(h.dev.dumps_pretty_json(data), encoding="utf-8")
+    if config is not None:
+        config[HABITS_SPORT_HABIT_NAME_KEY] = value

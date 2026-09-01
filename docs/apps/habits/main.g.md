@@ -32,6 +32,7 @@ lang: en
   - [⚙️ Method `refresh_habits_and_process_habits`](#%EF%B8%8F-method-refresh_habits_and_process_habits)
   - [⚙️ Method `refresh_process_habits_table`](#%EF%B8%8F-method-refresh_process_habits_table)
   - [⚙️ Method `resizeEvent`](#%EF%B8%8F-method-resizeevent)
+  - [⚙️ Method `showEvent`](#%EF%B8%8F-method-showevent)
   - [⚙️ Method `show_tables`](#%EF%B8%8F-method-show_tables)
   - [⚙️ Method `update_all`](#%EF%B8%8F-method-update_all)
   - [⚙️ Method `update_habit_calendar_heatmap`](#%EF%B8%8F-method-update_habit_calendar_heatmap)
@@ -107,6 +108,10 @@ class MainWindow(
 
         # Initialize core attributes
         self._is_closing = False
+        self._bg_sport_sync_timer = QTimer(self)
+        self._bg_sport_sync_timer.setSingleShot(True)
+        self._bg_sport_sync_timer.setInterval(300)
+        self._bg_sport_sync_timer.timeout.connect(self._run_background_sport_habit_sync)
         self._habits_heatmap_canvas: FigureCanvas | None = None
         self.db_manager: database_manager.DatabaseManager | None = None
         self._is_small_window_layout: bool | None = None  # Used by _update_layout_for_window_size
@@ -180,6 +185,9 @@ class MainWindow(
             refresh_timer = getattr(self, "_habits_refresh_timer", None)
             if refresh_timer is not None:
                 refresh_timer.stop()
+            sport_timer = getattr(self, "_bg_sport_sync_timer", None)
+            if sport_timer is not None:
+                sport_timer.stop()
             self._is_closing = False
             if self._hide_instead_of_close(event):
                 return
@@ -771,6 +779,12 @@ class MainWindow(
 
         self._update_layout_for_window_size()
 
+    def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
+        """Sync the sport habit from Fitness when the window is shown again."""
+        super().showEvent(event)
+        if not self._is_closing:
+            self._arm_background_sport_habit_sync()
+
     @requires_database()
     @requires_database()
     def show_tables(self) -> None:
@@ -1335,6 +1349,12 @@ class MainWindow(
         if table_name == "habits":
             self._schedule_habits_refresh(0)
 
+    def _arm_background_sport_habit_sync(self) -> None:
+        """Start or restart the deferred sport-habit sync."""
+        if self._is_closing:
+            return
+        self._bg_sport_sync_timer.start()
+
     def _backup_habits(self) -> None:
         """Save habit tracker data and TickTick habits into a dated backup folder."""
         if self.db_manager is None:
@@ -1451,6 +1471,7 @@ class MainWindow(
         if self._is_closing:
             return
         self._show_placed_window()
+        self._arm_background_sport_habit_sync()
 
     def _get_selected_habit_filter(self) -> str:
         """Get the currently selected habit from the filter list view."""
@@ -1688,6 +1709,18 @@ class MainWindow(
 
     # Add to MainWindow class (near other small helpers)
 
+    def _on_assign_sport_habit(self, habit_name: str) -> None:
+        """Save the sport habit name and sync check-ins from Fitness."""
+        name = habit_name.strip()
+        if not name:
+            return
+        try:
+            set_habits_sport_habit_name(name, config=self._app_config)
+        except (OSError, TypeError, ValueError) as exc:
+            message_box.warning(self, "Settings Error", f"Failed to save sport habit: {exc}")
+            return
+        self._run_background_sport_habit_sync()
+
     def _on_dashboard_data_changed(self) -> None:
         """Refresh table views after check-ins or habit edits on the dashboard."""
         timer = getattr(self, "_dashboard_tables_sync_timer", None)
@@ -1782,6 +1815,13 @@ class MainWindow(
         """Remove heatmap canvas before window destruction."""
         self._clear_habit_heatmap_layout()
 
+    def _run_background_sport_habit_sync(self) -> None:
+        """Fill the sport habit from Fitness for the configured lookback window."""
+        if self._is_closing or self.db_manager is None:
+            return
+        if sync_sport_habit_from_fitness(self.db_manager, self._app_config):
+            self.refresh_habits_and_process_habits()
+
     def _schedule_habits_refresh(self, delay_ms: int = 0) -> None:
         """Debounce refresh triggered by auto-save edits in habits table."""
         timer = getattr(self, "_habits_refresh_timer", None)
@@ -1850,6 +1890,7 @@ class MainWindow(
         self._habit_dashboard = HabitDashboardWidget(self, app_config=self._app_config)
         self.verticalLayout_dashboard.addWidget(self._habit_dashboard)
         self._habit_dashboard.data_changed.connect(self._on_dashboard_data_changed)
+        self._habit_dashboard.sport_habit_assign_requested.connect(self._on_assign_sport_habit)
         self.action_habits_refresh.setText(f"🔄 {self.action_habits_refresh.text()}")
         self.action_habits_delete.setText(f"🗑️ {self.action_habits_delete.text()}")
         self.menuCommands.addSeparator()
@@ -2065,6 +2106,9 @@ class MainWindow(
         refresh_timer = getattr(self, "_habits_refresh_timer", None)
         if refresh_timer is not None:
             refresh_timer.stop()
+        sport_timer = getattr(self, "_bg_sport_sync_timer", None)
+        if sport_timer is not None:
+            sport_timer.stop()
 
         self._release_habit_heatmap_display()
         self._disconnect_table_auto_save_signals()
@@ -2341,6 +2385,10 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107  (inhe
 
         # Initialize core attributes
         self._is_closing = False
+        self._bg_sport_sync_timer = QTimer(self)
+        self._bg_sport_sync_timer.setSingleShot(True)
+        self._bg_sport_sync_timer.setInterval(300)
+        self._bg_sport_sync_timer.timeout.connect(self._run_background_sport_habit_sync)
         self._habits_heatmap_canvas: FigureCanvas | None = None
         self.db_manager: database_manager.DatabaseManager | None = None
         self._is_small_window_layout: bool | None = None  # Used by _update_layout_for_window_size
@@ -2426,6 +2474,9 @@ def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
             refresh_timer = getattr(self, "_habits_refresh_timer", None)
             if refresh_timer is not None:
                 refresh_timer.stop()
+            sport_timer = getattr(self, "_bg_sport_sync_timer", None)
+            if sport_timer is not None:
+                sport_timer.stop()
             self._is_closing = False
             if self._hide_instead_of_close(event):
                 return
@@ -3239,6 +3290,26 @@ def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
         super().resizeEvent(event)
 
         self._update_layout_for_window_size()
+```
+
+</details>
+
+### ⚙️ Method `showEvent`
+
+```python
+def showEvent(self, event: QShowEvent) -> None
+```
+
+Sync the sport habit from Fitness when the window is shown again.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
+        super().showEvent(event)
+        if not self._is_closing:
+            self._arm_background_sport_habit_sync()
 ```
 
 </details>

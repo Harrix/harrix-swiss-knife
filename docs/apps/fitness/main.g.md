@@ -7117,47 +7117,54 @@ class MainWindow(
             message_box.warning(self, "Database Error", "Database connection is not available.")
             return []
 
-        try:
-            exercises = self.db_manager.get_exercises_by_frequency(500)
-        except Exception as exc:
-            message_box.warning(self, "Database Error", f"Failed to load exercises: {exc}")
-            return []
+        title = "Select Exercises" if multi_select else "Select Exercise"
+        load_error: str | None = None
+        exercises: list[str] = []
+        dialog: ExerciseSelectionDialog | None = None
+        with app_loading_toast_scope(title):
+            try:
+                exercises = self.db_manager.get_exercises_by_frequency(500)
+            except Exception as exc:
+                load_error = f"Failed to load exercises: {exc}"
+            else:
+                if exercises and self._ensure_static_thumbnails_for_select_exercise():
+                    label_height = self.label_exercise_avif.height()
+                    preview_edge = max(0, label_height)
+                    preview_edge = max(min(preview_edge, 512), 160)
+                    preview_size = QSize(preview_edge, preview_edge)
+                    current_selection = None if multi_select else self._get_current_selected_exercise()
+                    dumbbell_names = self._cached_dumbbell_exercise_names()
+                    dialog = ExerciseSelectionDialog(
+                        self,
+                        exercises=exercises,
+                        pixmap_provider=lambda name: self._get_exercise_avif_preview_pixmap(name, preview_size),
+                        preview_size=preview_size,
+                        current_selection=current_selection,
+                        avif_manager=self.avif_manager,
+                        name_locals=self.db_manager.get_exercise_name_local_map(),
+                        display_names={
+                            name: format_favorite_exercise_label(
+                                name,
+                                favorite=False,
+                                dumbbell=name in dumbbell_names,
+                            )
+                            for name in exercises
+                        },
+                        multi_select=multi_select,
+                    )
+                    dialog_width = max(int(self.width() * 0.95), preview_size.width())
+                    dialog_height = max(int(self.height() * 0.95), preview_size.height())
+                    dialog.resize(dialog_width, dialog_height)
+                    dialog.setMinimumSize(preview_size)
 
+        if load_error:
+            message_box.warning(self, "Database Error", load_error)
+            return []
         if not exercises:
             message_box.information(self, "No Exercises", "No exercises are available to select.")
             return []
-
-        if not self._ensure_static_thumbnails_for_select_exercise():
+        if dialog is None:
             return []
-
-        label_height = self.label_exercise_avif.height()
-        preview_edge = max(0, label_height)
-        preview_edge = max(min(preview_edge, 512), 160)
-        preview_size = QSize(preview_edge, preview_edge)
-
-        current_selection = None if multi_select else self._get_current_selected_exercise()
-
-        dumbbell_names = self._cached_dumbbell_exercise_names()
-        dialog = ExerciseSelectionDialog(
-            self,
-            exercises=exercises,
-            pixmap_provider=lambda name: self._get_exercise_avif_preview_pixmap(name, preview_size),
-            preview_size=preview_size,
-            current_selection=current_selection,
-            avif_manager=self.avif_manager,
-            name_locals=self.db_manager.get_exercise_name_local_map(),
-            display_names={
-                name: format_favorite_exercise_label(name, favorite=False, dumbbell=name in dumbbell_names)
-                for name in exercises
-            },
-            multi_select=multi_select,
-        )
-
-        dialog_width = max(int(self.width() * 0.95), preview_size.width())
-        dialog_height = max(int(self.height() * 0.95), preview_size.height())
-        dialog.resize(dialog_width, dialog_height)
-        dialog.setMinimumSize(preview_size)
-
         if dialog.exec() == QDialog.DialogCode.Accepted:
             return list(dialog.selected_exercises)
         return []

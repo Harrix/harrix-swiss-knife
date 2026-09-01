@@ -27,6 +27,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife.apps.common.apps_config import get_habits_sport_habit_name
 from harrix_swiss_knife.apps.habits.checkin_sounds import play_habit_checkin_sound, preload_habit_checkin_sounds
 from harrix_swiss_knife.apps.habits.dashboard_widgets import (
     COLOR_PRIMARY,
@@ -54,6 +55,7 @@ from harrix_swiss_knife.apps.habits.habit_day_comment_dialog import HabitDayComm
 from harrix_swiss_knife.apps.habits.habit_day_picker import HabitDayPickerPopup
 from harrix_swiss_knife.apps.habits.habit_edit_dialog import HabitEditDialog
 from harrix_swiss_knife.apps.habits.habit_emojis import normalize_habit_emoji
+from harrix_swiss_knife.apps.habits.sport_habit_sync import habit_names_match
 from harrix_swiss_knife.qt_emoji_icon import add_emoji_action
 
 if TYPE_CHECKING:
@@ -115,6 +117,7 @@ class HabitDashboardWidget(QWidget):
     """Master-detail habits dashboard matching the design TZ screenshot."""
 
     data_changed = Signal()
+    sport_habit_assign_requested = Signal(str)
 
     def __init__(self, parent: QWidget | None = None, *, app_config: dict[str, Any] | None = None) -> None:  # noqa: D107
         super().__init__(parent)
@@ -493,6 +496,17 @@ class HabitDashboardWidget(QWidget):
             return f"Habit {habit_id}"
         return str(habit[_NAME_COLUMN] or f"Habit {habit_id}")
 
+    def _habit_name(self, habit_id: int) -> str:
+        """Return the stored habit name, or empty when the habit is unknown."""
+        for row in self._habits():
+            if int(row[0]) == habit_id:
+                return str(row[1] or "").strip()
+        if self._db is not None:
+            habit = self._db.get_habit_by_id(habit_id)
+            if habit is not None:
+                return str(habit[_NAME_COLUMN] or "").strip()
+        return ""
+
     def _habit_stats(self, habit_id: int) -> HabitStats:
         """Return all-time totals for one habit, loading the whole map once per refresh."""
         if self._stats_cache is None:
@@ -602,11 +616,17 @@ class HabitDashboardWidget(QWidget):
         menu = QMenu(self)
         act_edit = add_emoji_action(menu, "Edit habit", "✏️")
         act_comments = add_emoji_action(menu, "All comments…", "💬")
+        act_sport = None
+        habit_name = self._habit_name(habit_id)
+        if habit_name and not habit_names_match(habit_name, get_habits_sport_habit_name(self._app_config)):
+            act_sport = add_emoji_action(menu, "Assign as sport habit", "🏃")
         chosen = menu.exec_(global_pos)
         if chosen == act_edit:
             self._edit_selected_habit()
         elif chosen == act_comments:
             self._show_all_comments()
+        elif act_sport is not None and chosen == act_sport:
+            self.sport_habit_assign_requested.emit(habit_name)
 
     def _on_habit_selected(self, habit_id: int) -> None:
         self._selected_habit_id = habit_id

@@ -177,6 +177,10 @@ class SnippetsDialog(QDialog):
 
     def _activate_zone(self, zone: ZoneName, *, select_item: bool = True) -> None:
         """Switch the shared input to `zone` and show that zone's current value."""
+        previous = self._active_zone
+        if previous != zone:
+            self._zone_input_text[previous] = ""
+            self._panels[previous].clear_filter()
         self._active_zone = zone
         self._input.setPlaceholderText(_ZONE_TITLES[zone])
         panel = self._panels[zone]
@@ -301,6 +305,11 @@ class SnippetsDialog(QDialog):
         self._input.textChanged.connect(self._on_input_text_changed)
         self._input.installEventFilter(self)
         apply_mono_font(self._input)
+        font = self._input.font()
+        grow_qfont(font, delta=_INPUT_FONT_DELTA)
+        self._input.setFont(font)
+        self._input.setStyleSheet(_INPUT_STYLE)
+        self._input.setMinimumHeight(self._input.fontMetrics().height() + 22)
         self._layout.addWidget(self._input)
 
     def _center_on_screen(self) -> None:
@@ -410,6 +419,7 @@ class SnippetsDialog(QDialog):
             return
         self._zone_input_text[self._active_zone] = text
         self._active_panel().set_filter_query(text)
+        self._refresh_input_match()
 
     def _paste_item(self, snippet: SnippetItem) -> None:
         self._saved_clipboard = clone_clipboard_mime()
@@ -419,6 +429,11 @@ class SnippetsDialog(QDialog):
             self._saved_clipboard,
             on_finished=lambda: self._mark_used(snippet.item_id),
         )
+
+    def _refresh_input_match(self) -> None:
+        text = self._input.text()
+        for zone, panel in self._panels.items():
+            panel.set_input_match(text if zone == self._active_zone else "")
 
     def _reload_zone(self, zone: str, panel: ZonePanel) -> None:
         if self.db_manager is None:
@@ -432,6 +447,7 @@ class SnippetsDialog(QDialog):
         self._syncing_input = True
         self._input.setText(text)
         self._syncing_input = False
+        self._refresh_input_match()
 
     def _show_current_value_in_input(self) -> None:
         snippet = self._active_panel().current_snippet()
