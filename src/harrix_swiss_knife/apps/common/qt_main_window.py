@@ -26,7 +26,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar, cast
 
 import harrix_pylib as h
-from PySide6.QtCore import QEvent, QObject, QRect, Qt, QTimer
+from PySide6.QtCore import QEvent, QEventLoop, QObject, QRect, Qt, QTimer
 from PySide6.QtGui import QAction, QCursor, QGuiApplication, QScreen, QWindowStateChangeEvent
 from PySide6.QtWidgets import (
     QApplication,
@@ -49,6 +49,8 @@ from harrix_swiss_knife.qt_app_font import apply_ui_font_scale
 from harrix_swiss_knife.qt_emoji_icon import apply_leading_emoji_icons, set_action_text_with_emoji_icon
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from PySide6.QtGui import QCloseEvent, QKeyEvent
     from PySide6.QtWidgets import QMainWindow
 
@@ -355,6 +357,58 @@ class AppWindowMixin:
         # but collapse the reserved row.
         old_bar.hide()
         old_bar.setFixedHeight(0)
+
+    def _prepare_layout_before_first_show(
+        self,
+        *layout_steps: Callable[[], None],
+        standard_width: int = 1920,
+    ) -> None:
+        """Give the window its final size and run `layout_steps` before the first paint.
+
+        A hidden widget reports no viewport width, so table columns sized at this
+        point would use a dummy geometry and snap once the window appears.
+        `WA_DontShowOnScreen` runs a real show and layout pass without mapping a
+        window on screen, so every step below sees the final widths.
+
+        Args:
+
+        - `layout_steps` (`Callable[[], None]`): Layout calls to run off-screen,
+          in order. Pending events are flushed before each one.
+        - `standard_width` (`int`): Reference width used to decide between a
+          maximized and a fixed layout. Defaults to `1920`.
+
+        """
+        widget = cast("QWidget", self)
+        screen = widget.screen() or QApplication.primaryScreen()
+        if screen is None:
+            return
+        available = screen.availableGeometry()
+        left, top, right, bottom = window_frame_margins(widget)
+        target = compute_app_window_geometry(
+            available,
+            standard_width=standard_width,
+            frame_left=left,
+            frame_top=top,
+            frame_right=right,
+            frame_bottom=bottom,
+        )
+        if target is None:
+            widget.resize(
+                max(1, available.width() - left - right),
+                max(1, available.height() - top - bottom),
+            )
+        else:
+            widget.setGeometry(target)
+        widget.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, on=True)
+        try:
+            widget.show()
+            for step in layout_steps:
+                QApplication.processEvents(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
+                step()
+            QApplication.processEvents(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
+            widget.hide()
+        finally:
+            widget.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, on=False)
 
     def _resolve_database_path(self) -> Path | None:
         """Return the open SQLite database path when the app has one.

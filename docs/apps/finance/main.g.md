@@ -99,6 +99,7 @@ class MainWindow(
     about_app_name = "Finance tracker"
     about_description = "Track accounts, transactions, and exchange rates."
     settings_app_id = "finance"
+    defer_initial_show = True
     _NO_CATEGORY_LABEL: str = "❓ No selected category"
     _TRANSACTION_AMOUNT_COLUMN: int = 2
     _TRANSLATION_FAILURE_PREVIEW_LIMIT: int = 8
@@ -270,8 +271,8 @@ class MainWindow(
         # Setup tab order
         self._setup_tab_order()
 
-        # Show window after initialization
-        QTimer.singleShot(200, self._finish_window_initialization)
+        # Show once after this constructor returns, with columns already sized.
+        QTimer.singleShot(0, self._finish_window_initialization)
 
     @requires_database()
     def apply_filter(self, *_args: object) -> None:
@@ -2609,11 +2610,18 @@ class MainWindow(
         return max(1, limit)
 
     def _finish_window_initialization(self) -> None:
-        """Finish window initialization by showing the window."""
+        """Show the window only after the transactions columns match the final size."""
+        if self._is_closing:
+            return
+        self._prepare_layout_before_first_show(
+            self._apply_transactions_splitter_sizes,
+            self._refresh_visible_table_column_widths,
+        )
         if self._is_closing:
             return
         self._show_placed_window()
-        # Column stretch is skipped while the window is hidden; apply it now.
+        self.raise_()
+        self.activateWindow()
         self.on_tab_changed(self.tabWidget.currentIndex())
 
         # Set focus to description field
@@ -6518,8 +6526,8 @@ def __init__(self, *, hide_on_close: bool = False) -> None:
         # Setup tab order
         self._setup_tab_order()
 
-        # Show window after initialization
-        QTimer.singleShot(200, self._finish_window_initialization)
+        # Show once after this constructor returns, with columns already sized.
+        QTimer.singleShot(0, self._finish_window_initialization)
 ```
 
 </details>

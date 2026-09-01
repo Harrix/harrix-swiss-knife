@@ -4484,41 +4484,6 @@ class MainWindow(
         for column, width in column_widths.items():
             table_view.setColumnWidth(column, width)
 
-    def _apply_hidden_process_table_geometry(self) -> None:
-        """Lay the window out off-screen at its final size, then pre-size process columns."""
-        screen = self.screen() or QApplication.primaryScreen()
-        if screen is None:
-            return
-        available = screen.availableGeometry()
-        left, top, right, bottom = window_frame_margins(self)
-        target = compute_app_window_geometry(
-            available,
-            frame_left=left,
-            frame_top=top,
-            frame_right=right,
-            frame_bottom=bottom,
-        )
-        if target is None:
-            self.resize(
-                max(1, available.width() - left - right),
-                max(1, available.height() - top - bottom),
-            )
-        else:
-            self.setGeometry(target)
-        # A hidden widget reports no viewport width, so lay the window out off-screen:
-        # `WA_DontShowOnScreen` runs a real show/layout pass without mapping a window.
-        self.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, on=True)
-        try:
-            self.show()
-            QApplication.processEvents(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
-            self._update_layout_for_window_size()
-            self._apply_sets_splitter_sizes()
-            QApplication.processEvents(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
-            self._adjust_process_table_columns()
-            self.hide()
-        finally:
-            self.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, on=False)
-
     def _apply_sets_splitter_sizes(self) -> None:
         """Restore Sets-tab splitter widths so the exercise list is not squeezed."""
         if getattr(self, "_is_closing", False) or not hasattr(self, "splitter"):
@@ -5644,7 +5609,11 @@ class MainWindow(
             return
         self._process_table_reveal_pending = True
         try:
-            self._apply_hidden_process_table_geometry()
+            self._prepare_layout_before_first_show(
+                self._update_layout_for_window_size,
+                self._apply_sets_splitter_sizes,
+                self._adjust_process_table_columns,
+            )
             if self._is_closing:
                 return
             self._show_placed_window()

@@ -207,6 +207,7 @@ class MainWindow(
     about_app_name = "Food tracker"
     about_description = "Track food intake, calories, and drinks."
     settings_app_id = "food"
+    defer_initial_show = True
 
     def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
         super().__init__()
@@ -299,8 +300,8 @@ class MainWindow(
         # Initialize food stats date range with earliest date from database
         self._init_food_stats_dates()
 
-        # Adjust table column widths and show window after UI is fully initialized
-        QTimer.singleShot(200, self._finish_window_initialization)
+        # Show once after this constructor returns, with columns already sized.
+        QTimer.singleShot(0, self._finish_window_initialization)
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Handle application close event.
@@ -1887,12 +1888,15 @@ class MainWindow(
         )
 
     def _finish_window_initialization(self) -> None:
-        """Finish window initialization by showing the window and adjusting columns."""
+        """Show the window only after the food-log columns match the final size."""
+        if self._is_closing:
+            return
+        self._prepare_layout_before_first_show(self._adjust_food_log_table_columns)
         if self._is_closing:
             return
         self._show_placed_window()
-        # Adjust columns after window is shown and has proper dimensions
-        QTimer.singleShot(50, self._adjust_food_log_table_columns)
+        self.raise_()
+        self.activateWindow()
         # Silent translate of missing food_log name_en values (status bar only).
         QTimer.singleShot(300, self._run_background_food_translate)
         # The stats chart is already scheduled by _init_food_stats_dates once the date
