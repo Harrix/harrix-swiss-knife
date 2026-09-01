@@ -8,13 +8,14 @@ from pathlib import Path
 
 import pytest
 from PySide6.QtCore import QPoint, QRectF, Qt
-from PySide6.QtGui import QContextMenuEvent, QImage, QPainter, QStandardItem, QStandardItemModel
+from PySide6.QtGui import QContextMenuEvent, QCursor, QImage, QPainter, QStandardItem, QStandardItemModel
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import (
     QApplication,
     QLabel,
     QLineEdit,
     QPushButton,
+    QMenu,
     QScrollArea,
     QStyleOptionViewItem,
     QTableView,
@@ -706,6 +707,65 @@ def test_habit_day_picker_sits_above_circle(qapp: QApplication) -> None:
 
     HabitDayPickerPopup.hide_active()
     host.close()
+
+
+def test_habit_day_picker_request_show_requires_pointer(qapp: QApplication) -> None:
+    """Do not open the hover picker when the cursor is not over the circle."""
+    assert qapp is not None
+    HabitDayPickerPopup.hide_active()
+    host = QWidget()
+    host.resize(240, 240)
+    host.move(80, 80)
+    circle = CheckCircle(host)
+    circle.move(20, 20)
+    host.show()
+    qapp.processEvents()
+    QCursor.setPos(host.mapToGlobal(QPoint(200, 200)))
+    HabitDayPickerPopup.request_show(circle)
+    qapp.processEvents()
+    QTest.qWait(250)
+    instance = HabitDayPickerPopup._instance
+    assert instance is None or not instance.isVisible()
+    HabitDayPickerPopup.hide_active()
+    host.close()
+
+
+def test_habit_day_picker_hides_when_calendar_rebuilds(qapp: QApplication) -> None:
+    """Rebuilding the month grid must close a picker attached to an old day."""
+    assert qapp is not None
+    HabitDayPickerPopup.hide_active()
+    grid = MonthCalendarGrid()
+    grid.set_month(2026, 9, {}, today=date(2026, 9, 1))
+    grid.show()
+    qapp.processEvents()
+    circle = grid.findChildren(CheckCircle)[0]
+    popup = HabitDayPickerPopup.show_for(circle)
+    assert popup.isVisible()
+    grid.set_month(2026, 9, {}, today=date(2026, 9, 1))
+    qapp.processEvents()
+    instance = HabitDayPickerPopup._instance
+    assert instance is None or not instance.isVisible()
+    HabitDayPickerPopup.hide_active()
+    grid.close()
+
+
+def test_habit_row_context_menu_hides_day_picker(qapp: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Right-click on a habit row must not leave a picker over the calendar."""
+    assert qapp is not None
+    HabitDayPickerPopup.hide_active()
+    dashboard = HabitDashboardWidget()
+    circle = CheckCircle()
+    circle.show()
+    popup = HabitDayPickerPopup.show_for(circle)
+    assert popup.isVisible()
+    monkeypatch.setattr(QMenu, "exec_", lambda *_args, **_kwargs: None)
+    dashboard._selected_habit_id = 1
+    dashboard._on_habit_row_context_menu(1, QPoint(0, 0))
+    instance = HabitDayPickerPopup._instance
+    assert instance is None or not instance.isVisible()
+    HabitDayPickerPopup.hide_active()
+    circle.close()
+    dashboard.close()
 
 
 def test_reorder_habit_ids_moves_item_and_adjusts_insert_index() -> None:

@@ -22,6 +22,7 @@ from PySide6.QtWidgets import (
     QScrollArea,
     QSplitter,
     QStackedWidget,
+    QToolTip,
     QVBoxLayout,
     QWidget,
 )
@@ -50,6 +51,7 @@ from harrix_swiss_knife.apps.habits.habit_comments import (
 )
 from harrix_swiss_knife.apps.habits.habit_comments_list_dialog import HabitCommentsListDialog
 from harrix_swiss_knife.apps.habits.habit_day_comment_dialog import HabitDayCommentDialog
+from harrix_swiss_knife.apps.habits.habit_day_picker import HabitDayPickerPopup
 from harrix_swiss_knife.apps.habits.habit_edit_dialog import HabitEditDialog
 from harrix_swiss_knife.apps.habits.habit_emojis import normalize_habit_emoji
 from harrix_swiss_knife.qt_emoji_icon import add_emoji_action
@@ -593,7 +595,10 @@ class HabitDashboardWidget(QWidget):
         self._edit_selected_habit()
 
     def _on_habit_row_context_menu(self, habit_id: int, global_pos: QPoint) -> None:
-        self._on_habit_selected(habit_id)
+        if self._selected_habit_id != habit_id:
+            self._on_habit_selected(habit_id)
+        HabitDayPickerPopup.hide_active()
+        QToolTip.hideText()
         menu = QMenu(self)
         act_edit = add_emoji_action(menu, "Edit habit", "✏️")
         act_comments = add_emoji_action(menu, "All comments…", "💬")
