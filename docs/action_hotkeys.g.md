@@ -68,7 +68,7 @@ def load_action_hotkeys(config: dict[str, Any] | None = None) -> list[ActionHotk
     for item in raw:
         if not isinstance(item, dict):
             continue
-        action = str(item.get("action") or "").strip()
+        action = _canonical_hotkey_action(str(item.get("action") or "").strip())
         if not action:
             continue
         bindings.extend(ActionHotkeyBinding(action=action, hotkey=hotkey) for hotkey in _hotkeys_from_entry(item))

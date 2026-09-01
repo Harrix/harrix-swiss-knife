@@ -65,3 +65,16 @@ def test_load_action_hotkeys_from_dict_supports_multiple_keys() -> None:
 
 def test_load_action_hotkeys_returns_empty_when_missing() -> None:
     assert load_action_hotkeys({}) == []
+
+
+def test_load_action_hotkeys_renames_removed_keep_windows_actions() -> None:
+    config = {
+        "hotkeys": [
+            {"action": "OnScreenshotRegionKeepWindows", "hotkeys": ["Ctrl+Shift+4"]},
+            {"action": "OnScreenshotRegionClipboardKeepWindows", "hotkey": "Ctrl+Alt+4"},
+        ],
+    }
+    assert load_action_hotkeys(config) == [
+        ActionHotkeyBinding(action="OnScreenshotRegionClipboard", hotkey="Ctrl+Shift+4"),
+        ActionHotkeyBinding(action="OnScreenshotRegionClipboard", hotkey="Ctrl+Alt+4"),
+    ]

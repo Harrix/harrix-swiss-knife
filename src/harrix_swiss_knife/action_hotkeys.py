@@ -9,6 +9,12 @@ from harrix_swiss_knife.config_model import load_app_config
 
 HOTKEYS_KEY = "hotkeys"
 
+# Removed keep-Windows screenshot actions; their hotkeys now run the clipboard capture.
+_RENAMED_HOTKEY_ACTIONS: dict[str, str] = {
+    "OnScreenshotRegionClipboardKeepWindows": "OnScreenshotRegionClipboard",
+    "OnScreenshotRegionKeepWindows": "OnScreenshotRegionClipboard",
+}
+
 
 @dataclass(frozen=True)
 class ActionHotkeyBinding:
@@ -40,7 +46,7 @@ def load_action_hotkeys(config: dict[str, Any] | None = None) -> list[ActionHotk
     for item in raw:
         if not isinstance(item, dict):
             continue
-        action = str(item.get("action") or "").strip()
+        action = _canonical_hotkey_action(str(item.get("action") or "").strip())
         if not action:
             continue
         bindings.extend(ActionHotkeyBinding(action=action, hotkey=hotkey) for hotkey in _hotkeys_from_entry(item))
@@ -51,6 +57,11 @@ def load_hotkeys_for_action(action_name: str, config: dict[str, Any] | None = No
     """Return hotkey strings bound to `action_name`, in config order."""
     name = action_name.strip()
     return [binding.hotkey for binding in load_action_hotkeys(config) if binding.action == name]
+
+
+def _canonical_hotkey_action(action: str) -> str:
+    """Map retired action names onto the current screenshot actions."""
+    return _RENAMED_HOTKEY_ACTIONS.get(action, action)
 
 
 def _hotkeys_from_entry(item: dict[str, Any]) -> list[str]:

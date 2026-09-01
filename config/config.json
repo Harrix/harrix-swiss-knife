@@ -84,7 +84,7 @@
       "hotkeys": ["Ctrl+Shift+3"]
     },
     {
-      "action": "OnScreenshotRegionKeepWindows",
+      "action": "OnScreenshotRegionClipboard",
       "hotkeys": ["Ctrl+Shift+4"]
     }
   ],

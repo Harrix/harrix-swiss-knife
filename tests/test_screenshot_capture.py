@@ -175,7 +175,7 @@ def test_example_config_does_not_bind_removed_keep_windows_actions() -> None:
 def test_example_config_binds_clipboard_screenshot_hotkeys() -> None:
     data = json.loads(_EXAMPLE_CONFIG.read_text(encoding="utf-8"))
     by_action = {entry["action"]: entry["hotkeys"] for entry in data["hotkeys"]}
-    assert "Ctrl+Shift+5" in by_action["OnScreenshotRegionClipboard"]
+    assert "Ctrl+Shift+4" in by_action["OnScreenshotRegionClipboard"]
     assert OnScreenshotRegionClipboard.quick_launcher is True
 
 
