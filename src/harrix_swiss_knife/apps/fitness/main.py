@@ -4654,6 +4654,37 @@ class MainWindow(
         for column, width in column_widths.items():
             table_view.setColumnWidth(column, width)
 
+    def _apply_hidden_process_table_geometry(self) -> None:
+        """Resize the hidden window to its final client size and pre-size columns."""
+        screen = self.screen() or QApplication.primaryScreen()
+        if screen is None:
+            return
+        available = screen.availableGeometry()
+        left, top, right, bottom = window_frame_margins(self)
+        target = compute_app_window_geometry(
+            available,
+            frame_left=left,
+            frame_top=top,
+            frame_right=right,
+            frame_bottom=bottom,
+        )
+        if target is None:
+            self.resize(
+                max(1, available.width() - left - right),
+                max(1, available.height() - top - bottom),
+            )
+        else:
+            self.setGeometry(target)
+        self.ensurePolished()
+        layout = self.layout()
+        if layout is not None:
+            layout.activate()
+        if hasattr(self, "splitter"):
+            self.splitter.resize(max(self.width(), 1), max(self.splitter.height(), 1))
+        self._update_layout_for_window_size()
+        self._apply_sets_splitter_sizes()
+        self._adjust_process_table_columns()
+
     def _apply_sets_splitter_sizes(self) -> None:
         """Restore Sets-tab splitter widths so the exercise list is not squeezed."""
         if getattr(self, "_is_closing", False) or not hasattr(self, "splitter"):
@@ -5778,8 +5809,9 @@ class MainWindow(
         if self._is_closing:
             return
         self._process_table_reveal_pending = True
-        self.setWindowOpacity(0)
+        self.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, on=True)
         try:
+            self._apply_hidden_process_table_geometry()
             self._show_placed_window()
             self._wait_until_process_table_ready()
             if self._is_closing:
@@ -5794,10 +5826,12 @@ class MainWindow(
                 self._adjust_process_table_columns()
             finally:
                 self.setUpdatesEnabled(True)
+            self.hide()
         finally:
-            self._process_table_reveal_pending = False
+            self.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, on=False)
             if not self._is_closing:
-                self.setWindowOpacity(1)
+                self._reveal_prepared_window()
+            self._process_table_reveal_pending = False
         QTimer.singleShot(120, self._maybe_prompt_missing_exercise_images)
 
     def _fitness_lightbox_details(self, exercise_name: str, workout_item_id: int | None) -> FitnessLightboxDetails:
@@ -7779,6 +7813,13 @@ class MainWindow(
             reveal_in_file_explorer(avif_path)
         except (FileNotFoundError, OSError) as error:
             message_box.warning(self, "Error", f"Could not open File Explorer:\n{error}")
+
+    def _reveal_prepared_window(self) -> None:
+        """Paint the already sized window once, without an opacity hide/show."""
+        if self._window_should_maximize():
+            self.showMaximized()
+            return
+        self.show()
 
     def _run_fitness_add_by_voice(self, *, large_ui: bool = False) -> None:
         """Record speech, transcribe via BotHub, then parse sets into TSV."""
