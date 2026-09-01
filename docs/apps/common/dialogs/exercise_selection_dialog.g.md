@@ -61,7 +61,7 @@ class ExerciseSelectionDialog(QDialog):
         - `name_locals` (`dict[str, str] | None`): Optional English→local name map.
         - `display_names` (`dict[str, str] | None`): Optional English→display label map
           (for example a dumbbell icon prefix).
-        - `multi_select` (`bool`): Allow Ctrl/Shift selection of several exercises.
+        - `multi_select` (`bool`): Click tiles to toggle several exercises.
           Defaults to `False`.
 
         """
@@ -85,16 +85,14 @@ class ExerciseSelectionDialog(QDialog):
         layout = QVBoxLayout(self)
 
         self.filter_edit = QLineEdit(self)
-        self.filter_edit.setPlaceholderText(
-            "Filter exercises…  Ctrl+click or Shift+click to select several" if multi_select else "Filter exercises…",
-        )
+        self.filter_edit.setPlaceholderText("Filter exercises…")
         self.filter_edit.setClearButtonEnabled(True)
         self.filter_edit.textChanged.connect(self._filter_exercises)
         layout.addWidget(self.filter_edit)
 
         self.list_widget = QListWidget(self)
         self.list_widget.setSelectionMode(
-            QAbstractItemView.SelectionMode.ExtendedSelection
+            QAbstractItemView.SelectionMode.MultiSelection
             if multi_select
             else QAbstractItemView.SelectionMode.SingleSelection,
         )
@@ -172,11 +170,29 @@ class ExerciseSelectionDialog(QDialog):
         self.list_widget.verticalScrollBar().valueChanged.connect(self._on_list_scrolled)
         self.list_widget.installEventFilter(self)
 
-        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, self)
-        apply_emoji_dialog_buttons(button_box)
-        button_box.accepted.connect(self._on_accept)
+        footer = QHBoxLayout()
+        self._selection_count_label = QLabel(self)
+        self._selection_count_label.setVisible(multi_select)
+        footer.addWidget(self._selection_count_label, stretch=1)
+
+        if multi_select:
+            button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Cancel, self)
+            apply_emoji_dialog_buttons(button_box)
+            self._add_button = make_emoji_push_button("Add exercise", "➕")  # noqa: RUF001
+            self._add_button.clicked.connect(self._on_accept)
+            button_box.addButton(self._add_button, QDialogButtonBox.ButtonRole.AcceptRole)
+        else:
+            button_box = QDialogButtonBox(
+                QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
+                self,
+            )
+            apply_emoji_dialog_buttons(button_box)
+            self._add_button = button_box.button(QDialogButtonBox.StandardButton.Ok)
+            button_box.accepted.connect(self._on_accept)
         button_box.rejected.connect(self.reject)
-        layout.addWidget(button_box)
+        footer.addWidget(button_box)
+        layout.addLayout(footer)
+        self._update_multi_select_chrome()
 
         self.filter_edit.setFocus()
 
@@ -272,12 +288,12 @@ class ExerciseSelectionDialog(QDialog):
             self._prioritize_visible_preview_rows()
 
     def _on_selection_changed(self) -> None:
-        selected_items = set(self.list_widget.selectedItems())
+        selected_ids = {id(item) for item in self.list_widget.selectedItems()}
         for row in range(self.list_widget.count()):
             item = self.list_widget.item(row)
             tile = self._tile_for_item(item)
             if tile is not None and item is not None:
-                tile.set_selected(selected=item in selected_items)
+                tile.set_selected(selected=id(item) in selected_ids)
         self._sync_selected_exercises()
 
     def _on_tile_clicked(self, item: QListWidgetItem, modifiers: object = Qt.KeyboardModifier.NoModifier) -> None:
@@ -287,7 +303,6 @@ class ExerciseSelectionDialog(QDialog):
             item.setSelected(True)
             self._sync_selected_exercises()
             return
-        ctrl = bool(flags & (Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.MetaModifier))
         shift = bool(flags & Qt.KeyboardModifier.ShiftModifier)
         no_update = QItemSelectionModel.SelectionFlag.NoUpdate
         if shift:
@@ -295,20 +310,14 @@ class ExerciseSelectionDialog(QDialog):
             start = self.list_widget.row(anchor) if anchor is not None else self.list_widget.row(item)
             end = self.list_widget.row(item)
             lo, hi = min(start, end), max(start, end)
-            if not ctrl:
-                self.list_widget.clearSelection()
             for row in range(lo, hi + 1):
                 row_item = self.list_widget.item(row)
                 if row_item is not None and not row_item.isHidden():
                     row_item.setSelected(True)
             self.list_widget.setCurrentItem(item, no_update)
-        elif ctrl:
+        else:
             item.setSelected(not item.isSelected())
             self.list_widget.setCurrentItem(item, no_update)
-        else:
-            self.list_widget.clearSelection()
-            item.setSelected(True)
-            self.list_widget.setCurrentItem(item)
         self._sync_selected_exercises()
 
     def _on_tile_double_clicked(self, item: QListWidgetItem) -> None:
@@ -345,6 +354,7 @@ class ExerciseSelectionDialog(QDialog):
             tile.preview_label,
             AvifLabelKey.DIALOG_PREVIEW,
         )
+        tile.raise_check_overlay()
 
     def _on_tile_hover_left(self, tile: _ExercisePreviewTile) -> None:
         if self._hovered_tile is tile:
@@ -405,12 +415,31 @@ class ExerciseSelectionDialog(QDialog):
                 names.append(str(exercise))
         self.selected_exercises = names
         self.selected_exercise = names[0] if names else None
+        self._update_multi_select_chrome()
 
     def _tile_for_item(self, item: QListWidgetItem | None) -> _ExercisePreviewTile | None:
         if item is None:
             return None
         widget = self.list_widget.itemWidget(item)
         return widget if isinstance(widget, _ExercisePreviewTile) else None
+
+    def _update_multi_select_chrome(self) -> None:
+        """Refresh the selected-count label and Add button in multi-select mode."""
+        if not self._multi_select:
+            return
+        count = len(self.selected_exercises)
+        if count == 0:
+            self._selection_count_label.setText("No exercises selected")
+            self._add_button.setText("Add exercise")
+            self._add_button.setEnabled(False)
+            return
+        if count == 1:
+            self._selection_count_label.setText("1 exercise selected")
+            self._add_button.setText("Add exercise")
+        else:
+            self._selection_count_label.setText(f"{count} exercises selected")
+            self._add_button.setText(f"Add exercises ({count})")
+        self._add_button.setEnabled(True)
 ```
 
 </details>
@@ -435,7 +464,7 @@ Args:
 - `name_locals` (`dict[str, str] | None`): Optional English→local name map.
 - `display_names` (`dict[str, str] | None`): Optional English→display label map
   (for example a dumbbell icon prefix).
-- `multi_select` (`bool`): Allow Ctrl/Shift selection of several exercises.
+- `multi_select` (`bool`): Click tiles to toggle several exercises.
   Defaults to `False`.
 
 <details>
@@ -475,16 +504,14 @@ def __init__(
         layout = QVBoxLayout(self)
 
         self.filter_edit = QLineEdit(self)
-        self.filter_edit.setPlaceholderText(
-            "Filter exercises…  Ctrl+click or Shift+click to select several" if multi_select else "Filter exercises…",
-        )
+        self.filter_edit.setPlaceholderText("Filter exercises…")
         self.filter_edit.setClearButtonEnabled(True)
         self.filter_edit.textChanged.connect(self._filter_exercises)
         layout.addWidget(self.filter_edit)
 
         self.list_widget = QListWidget(self)
         self.list_widget.setSelectionMode(
-            QAbstractItemView.SelectionMode.ExtendedSelection
+            QAbstractItemView.SelectionMode.MultiSelection
             if multi_select
             else QAbstractItemView.SelectionMode.SingleSelection,
         )
@@ -562,11 +589,29 @@ def __init__(
         self.list_widget.verticalScrollBar().valueChanged.connect(self._on_list_scrolled)
         self.list_widget.installEventFilter(self)
 
-        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, self)
-        apply_emoji_dialog_buttons(button_box)
-        button_box.accepted.connect(self._on_accept)
+        footer = QHBoxLayout()
+        self._selection_count_label = QLabel(self)
+        self._selection_count_label.setVisible(multi_select)
+        footer.addWidget(self._selection_count_label, stretch=1)
+
+        if multi_select:
+            button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Cancel, self)
+            apply_emoji_dialog_buttons(button_box)
+            self._add_button = make_emoji_push_button("Add exercise", "➕")  # noqa: RUF001
+            self._add_button.clicked.connect(self._on_accept)
+            button_box.addButton(self._add_button, QDialogButtonBox.ButtonRole.AcceptRole)
+        else:
+            button_box = QDialogButtonBox(
+                QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
+                self,
+            )
+            apply_emoji_dialog_buttons(button_box)
+            self._add_button = button_box.button(QDialogButtonBox.StandardButton.Ok)
+            button_box.accepted.connect(self._on_accept)
         button_box.rejected.connect(self.reject)
-        layout.addWidget(button_box)
+        footer.addWidget(button_box)
+        layout.addLayout(footer)
+        self._update_multi_select_chrome()
 
         self.filter_edit.setFocus()
 ```

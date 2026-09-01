@@ -46,19 +46,39 @@ def test_exercise_selection_dialog_single_click_replaces(qapp: QApplication) -> 
     dialog.close()
 
 
-def test_exercise_selection_dialog_multi_ctrl_click_adds(qapp: QApplication) -> None:
+def test_exercise_selection_dialog_multi_click_toggles(qapp: QApplication) -> None:
     assert qapp is not None
     dialog = _dialog(multi_select=True)
     assert dialog.windowTitle() == "Select Exercises"
-    assert dialog.list_widget.selectionMode() == QAbstractItemView.SelectionMode.ExtendedSelection
+    assert dialog.list_widget.selectionMode() == QAbstractItemView.SelectionMode.MultiSelection
+    assert dialog._selection_count_label.text() == "No exercises selected"
+    assert dialog._add_button.text() == "Add exercise"
+    assert not dialog._add_button.isEnabled()
     first = dialog.list_widget.item(0)
     second = dialog.list_widget.item(1)
     assert first is not None
     assert second is not None
     dialog._on_tile_clicked(first)
-    dialog._on_tile_clicked(second, Qt.KeyboardModifier.ControlModifier)
+    dialog._on_tile_clicked(second)
     assert dialog.selected_exercises == ["Push-ups", "Squats"]
     assert dialog.selected_exercise == "Push-ups"
+    assert dialog._selection_count_label.text() == "2 exercises selected"
+    assert dialog._add_button.text() == "Add exercises (2)"
+    assert dialog._add_button.isEnabled()
+    dialog._on_tile_clicked(first)
+    assert dialog.selected_exercises == ["Squats"]
+    assert dialog._add_button.text() == "Add exercise"
+    dialog.close()
+
+
+def test_exercise_selection_dialog_selection_changed_does_not_use_item_set(qapp: QApplication) -> None:
+    assert qapp is not None
+    dialog = _dialog(multi_select=True)
+    first = dialog.list_widget.item(0)
+    assert first is not None
+    first.setSelected(True)
+    dialog._on_selection_changed()
+    assert dialog.selected_exercises == ["Push-ups"]
     dialog.close()
 
 

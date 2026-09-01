@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
     QFrame,
+    QHBoxLayout,
     QLabel,
     QLineEdit,
     QListWidget,
@@ -24,7 +25,7 @@ from PySide6.QtWidgets import (
 from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common.avif_manager import AvifLabelKey
 from harrix_swiss_knife.keyboard_layout_search import text_matches_autocomplete
-from harrix_swiss_knife.qt_emoji_icon import apply_emoji_dialog_buttons
+from harrix_swiss_knife.qt_emoji_icon import apply_emoji_dialog_buttons, make_emoji_push_button
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -72,7 +73,7 @@ class ExerciseSelectionDialog(QDialog):
         - `name_locals` (`dict[str, str] | None`): Optional English→local name map.
         - `display_names` (`dict[str, str] | None`): Optional English→display label map
           (for example a dumbbell icon prefix).
-        - `multi_select` (`bool`): Allow Ctrl/Shift selection of several exercises.
+        - `multi_select` (`bool`): Click tiles to toggle several exercises.
           Defaults to `False`.
 
         """
@@ -96,16 +97,14 @@ class ExerciseSelectionDialog(QDialog):
         layout = QVBoxLayout(self)
 
         self.filter_edit = QLineEdit(self)
-        self.filter_edit.setPlaceholderText(
-            "Filter exercises…  Ctrl+click or Shift+click to select several" if multi_select else "Filter exercises…",
-        )
+        self.filter_edit.setPlaceholderText("Filter exercises…")
         self.filter_edit.setClearButtonEnabled(True)
         self.filter_edit.textChanged.connect(self._filter_exercises)
         layout.addWidget(self.filter_edit)
 
         self.list_widget = QListWidget(self)
         self.list_widget.setSelectionMode(
-            QAbstractItemView.SelectionMode.ExtendedSelection
+            QAbstractItemView.SelectionMode.MultiSelection
             if multi_select
             else QAbstractItemView.SelectionMode.SingleSelection,
         )
@@ -183,11 +182,29 @@ class ExerciseSelectionDialog(QDialog):
         self.list_widget.verticalScrollBar().valueChanged.connect(self._on_list_scrolled)
         self.list_widget.installEventFilter(self)
 
-        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, self)
-        apply_emoji_dialog_buttons(button_box)
-        button_box.accepted.connect(self._on_accept)
+        footer = QHBoxLayout()
+        self._selection_count_label = QLabel(self)
+        self._selection_count_label.setVisible(multi_select)
+        footer.addWidget(self._selection_count_label, stretch=1)
+
+        if multi_select:
+            button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Cancel, self)
+            apply_emoji_dialog_buttons(button_box)
+            self._add_button = make_emoji_push_button("Add exercise", "➕")  # noqa: RUF001
+            self._add_button.clicked.connect(self._on_accept)
+            button_box.addButton(self._add_button, QDialogButtonBox.ButtonRole.AcceptRole)
+        else:
+            button_box = QDialogButtonBox(
+                QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
+                self,
+            )
+            apply_emoji_dialog_buttons(button_box)
+            self._add_button = button_box.button(QDialogButtonBox.StandardButton.Ok)
+            button_box.accepted.connect(self._on_accept)
         button_box.rejected.connect(self.reject)
-        layout.addWidget(button_box)
+        footer.addWidget(button_box)
+        layout.addLayout(footer)
+        self._update_multi_select_chrome()
 
         self.filter_edit.setFocus()
 
@@ -283,12 +300,12 @@ class ExerciseSelectionDialog(QDialog):
             self._prioritize_visible_preview_rows()
 
     def _on_selection_changed(self) -> None:
-        selected_items = set(self.list_widget.selectedItems())
+        selected_ids = {id(item) for item in self.list_widget.selectedItems()}
         for row in range(self.list_widget.count()):
             item = self.list_widget.item(row)
             tile = self._tile_for_item(item)
             if tile is not None and item is not None:
-                tile.set_selected(selected=item in selected_items)
+                tile.set_selected(selected=id(item) in selected_ids)
         self._sync_selected_exercises()
 
     def _on_tile_clicked(self, item: QListWidgetItem, modifiers: object = Qt.KeyboardModifier.NoModifier) -> None:
@@ -298,7 +315,6 @@ class ExerciseSelectionDialog(QDialog):
             item.setSelected(True)
             self._sync_selected_exercises()
             return
-        ctrl = bool(flags & (Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.MetaModifier))
         shift = bool(flags & Qt.KeyboardModifier.ShiftModifier)
         no_update = QItemSelectionModel.SelectionFlag.NoUpdate
         if shift:
@@ -306,20 +322,14 @@ class ExerciseSelectionDialog(QDialog):
             start = self.list_widget.row(anchor) if anchor is not None else self.list_widget.row(item)
             end = self.list_widget.row(item)
             lo, hi = min(start, end), max(start, end)
-            if not ctrl:
-                self.list_widget.clearSelection()
             for row in range(lo, hi + 1):
                 row_item = self.list_widget.item(row)
                 if row_item is not None and not row_item.isHidden():
                     row_item.setSelected(True)
             self.list_widget.setCurrentItem(item, no_update)
-        elif ctrl:
+        else:
             item.setSelected(not item.isSelected())
             self.list_widget.setCurrentItem(item, no_update)
-        else:
-            self.list_widget.clearSelection()
-            item.setSelected(True)
-            self.list_widget.setCurrentItem(item)
         self._sync_selected_exercises()
 
     def _on_tile_double_clicked(self, item: QListWidgetItem) -> None:
@@ -356,6 +366,7 @@ class ExerciseSelectionDialog(QDialog):
             tile.preview_label,
             AvifLabelKey.DIALOG_PREVIEW,
         )
+        tile.raise_check_overlay()
 
     def _on_tile_hover_left(self, tile: _ExercisePreviewTile) -> None:
         if self._hovered_tile is tile:
@@ -416,12 +427,31 @@ class ExerciseSelectionDialog(QDialog):
                 names.append(str(exercise))
         self.selected_exercises = names
         self.selected_exercise = names[0] if names else None
+        self._update_multi_select_chrome()
 
     def _tile_for_item(self, item: QListWidgetItem | None) -> _ExercisePreviewTile | None:
         if item is None:
             return None
         widget = self.list_widget.itemWidget(item)
         return widget if isinstance(widget, _ExercisePreviewTile) else None
+
+    def _update_multi_select_chrome(self) -> None:
+        """Refresh the selected-count label and Add button in multi-select mode."""
+        if not self._multi_select:
+            return
+        count = len(self.selected_exercises)
+        if count == 0:
+            self._selection_count_label.setText("No exercises selected")
+            self._add_button.setText("Add exercise")
+            self._add_button.setEnabled(False)
+            return
+        if count == 1:
+            self._selection_count_label.setText("1 exercise selected")
+            self._add_button.setText("Add exercise")
+        else:
+            self._selection_count_label.setText(f"{count} exercises selected")
+            self._add_button.setText(f"Add exercises ({count})")
+        self._add_button.setEnabled(True)
 
 
 class _ExercisePreviewTile(QFrame):
@@ -466,6 +496,22 @@ class _ExercisePreviewTile(QFrame):
         self.preview_label.setStyleSheet("background-color: white; border: none;")
         self.preview_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
         self.restore_static_pixmap()
+        self._check_overlay = QLabel(self.preview_label)
+        self._check_overlay.setObjectName("exercisePreviewCheck")
+        self._check_overlay.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._check_overlay.setText("✓")
+        self._check_overlay.setGeometry(0, 0, preview_size.width(), preview_size.height())
+        self._check_overlay.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
+        self._check_overlay.setStyleSheet(
+            "QLabel#exercisePreviewCheck {"
+            " background-color: rgba(80, 80, 80, 150);"
+            " color: #ffffff;"
+            " font-size: 36px;"
+            " font-weight: 700;"
+            " border: none;"
+            "}"
+        )
+        self._check_overlay.hide()
         layout.addWidget(self.preview_label, 0, Qt.AlignmentFlag.AlignHCenter)
 
         self.name_label = QLabel(display_name or exercise_name, self)
@@ -527,27 +573,39 @@ class _ExercisePreviewTile(QFrame):
         """Accept exercise on double-click."""
         if event.button() == Qt.MouseButton.LeftButton:
             self.double_clicked.emit()
+            event.accept()
+            return
         super().mouseDoubleClickEvent(event)
 
     def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        """Select this exercise on click."""
+        """Select this exercise on click without letting the list replace the selection."""
         if event.button() == Qt.MouseButton.LeftButton:
             self.clicked.emit(event.modifiers())
+            event.accept()
+            return
         super().mousePressEvent(event)
+
+    def raise_check_overlay(self) -> None:
+        """Keep the selection checkmark above the still or animated preview."""
+        overlay = getattr(self, "_check_overlay", None)
+        if overlay is not None and self._selected:
+            overlay.raise_()
 
     def restore_static_pixmap(self) -> None:
         """Show the original still preview in the same label used for animation."""
         if self.pixmap_pending:
             self.preview_label.clear()
+            self.raise_check_overlay()
             return
         if self._static_pixmap is not None and not self._static_pixmap.isNull():
             self.preview_label.setPixmap(self._static_pixmap)
         else:
             self.preview_label.clear()
             self.preview_label.setText("No preview")
+        self.raise_check_overlay()
 
     def set_selected(self, *, selected: bool) -> None:
-        """Update selection border without changing preview geometry."""
+        """Update selection border and image overlay without changing preview geometry."""
         if self._selected == selected:
             return
         self._selected = selected
@@ -561,6 +619,8 @@ class _ExercisePreviewTile(QFrame):
 
     def _apply_chrome(self) -> None:
         self.setProperty("selected", self._selected)
+        self._check_overlay.setVisible(self._selected)
+        self.raise_check_overlay()
         self.style().unpolish(self)
         self.style().polish(self)
         self.update()
