@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 from PySide6.QtCore import QEvent, Qt
-from PySide6.QtGui import QColor, QKeyEvent
+from PySide6.QtGui import QColor, QKeyEvent, QPalette
 from PySide6.QtWidgets import QApplication, QToolButton, QWidget
 
 from harrix_swiss_knife.actions.apps.snippets import OnSnippets
@@ -42,7 +42,14 @@ from harrix_swiss_knife.apps.snippets.seed import (
     seed_emojis,
 )
 from harrix_swiss_knife.apps.snippets.sort import dash_length_rank, sort_items
-from harrix_swiss_knife.apps.snippets.zone_panel import ZonePanel, chip_border_color, color_hex_label
+from harrix_swiss_knife.apps.snippets.zone_panel import (
+    IconItemDelegate,
+    ZonePanel,
+    _LIST_SELECTION_STYLE,
+    _SELECTION_BG,
+    chip_border_color,
+    color_hex_label,
+)
 from harrix_swiss_knife.menu_structure import get_menu_structure
 from harrix_swiss_knife.qt_app_font import MONO_FONT_FAMILY
 
@@ -280,6 +287,24 @@ def test_emoji_zone_items_have_icon_without_caption(qapp: QApplication) -> None:
     assert not item.icon().isNull()
     assert panel._list.font().family() == MONO_FONT_FAMILY
     panel.close()
+
+
+def test_list_highlight_is_flat_without_inverted_text(qapp: QApplication) -> None:
+    assert qapp is not None
+    assert _SELECTION_BG == "#e9e9e9"
+    assert "item:hover" in _LIST_SELECTION_STYLE
+    assert "border: none" in _LIST_SELECTION_STYLE
+    assert "#6a6a6a" not in _LIST_SELECTION_STYLE
+    emoji = ZonePanel(zone=ZONE_EMOJI, title="Emoji")
+    assert isinstance(emoji._list.itemDelegate(), IconItemDelegate)
+    phrase = ZonePanel(zone=ZONE_PHRASE, title="Phrases")
+    highlight = phrase._list.palette().color(QPalette.ColorRole.Highlight)
+    assert highlight.name() == "#e9e9e9"
+    text = phrase._list.palette().color(QPalette.ColorRole.Text)
+    highlighted_text = phrase._list.palette().color(QPalette.ColorRole.HighlightedText)
+    assert highlighted_text == text
+    emoji.close()
+    phrase.close()
 
 
 def test_symbol_zone_items_are_icon_buttons_with_hint_tooltip(qapp: QApplication) -> None:
