@@ -42,7 +42,14 @@
   }
 
   function isClassicMarkdownPreview() {
-    return Boolean(document.querySelector('.markdown-body')) && !isCursorRichMarkdownSurface();
+    if (isCursorRichMarkdownSurface()) {
+      return false;
+    }
+    return Boolean(
+      document.querySelector(
+        '.markdown-body, table.frontmatter, table.hne-frontmatter-table, details.hne-frontmatter-details, pre.hne-frontmatter-raw, pre.frontmatter',
+      ),
+    );
   }
 
   function readConfigFromDom() {
@@ -255,11 +262,15 @@
     }
   }
 
-  function wrapFrontmatter(table) {
-    if (!table || !(table instanceof HTMLElement)) {
+  function wrapFrontmatter(node) {
+    if (!node || !(node instanceof HTMLElement)) {
       return;
     }
-    if (table.closest('details.hne-frontmatter-details')) {
+    if (node.closest('details.hne-frontmatter-details')) {
+      return;
+    }
+    const parent = node.parentNode;
+    if (!parent) {
       return;
     }
     const details = document.createElement('details');
@@ -268,15 +279,15 @@
     summary.className = 'hne-frontmatter-summary';
     summary.textContent = getFrontmatterSummaryLabel();
     details.appendChild(summary);
-    table.parentNode.insertBefore(details, table);
-    details.appendChild(table);
+    parent.insertBefore(details, node);
+    details.appendChild(node);
   }
 
   function unwrapFrontmatter(details) {
     if (!details || !(details instanceof HTMLElement)) {
       return;
     }
-    const body = details.querySelector('table.frontmatter, pre.hne-frontmatter-raw');
+    const body = details.querySelector('table.frontmatter, pre.frontmatter, pre.hne-frontmatter-raw');
     if (!body) {
       details.remove();
       return;
@@ -308,9 +319,11 @@
     }
 
     if (activeConfig.collapseFrontmatter) {
-      document.querySelectorAll('table.frontmatter').forEach((table) => {
-        wrapFrontmatter(table);
-      });
+      document
+        .querySelectorAll('table.frontmatter, table.hne-frontmatter-table, pre.frontmatter, pre.hne-frontmatter-raw')
+        .forEach((node) => {
+          wrapFrontmatter(node);
+        });
       syncFrontmatterSummaries();
     } else {
       document.querySelectorAll('details.hne-frontmatter-details').forEach((details) => {

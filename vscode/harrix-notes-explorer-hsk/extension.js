@@ -3758,6 +3758,71 @@ function isCursorHost() {
   return /cursor/i.test(String(vscode.env.appName || ''));
 }
 
+/**
+ * VS Code's built-in yamlPreamble runs *after* extension markdown-it plugins and
+ * overwrites `renderer.rules.front_matter` with a bare table. Hook the property so
+ * we still emit a collapsed `<details>` (or a plain table in Cursor's Tiptap host).
+ * @param {((tokens: unknown[], idx: number, options: unknown, env: unknown, self: unknown) => string) | undefined} nativeRender
+ */
+function createFrontMatterTokenRenderer(nativeRender) {
+  /** @param {unknown[]} tokens @param {number} idx @param {unknown} options @param {unknown} env @param {unknown} self */
+  const render = (tokens, idx, options, env, self) => {
+    const cfg = getPreviewCopyConfig();
+    // Tiptap/ProseMirror rejects `<details>` and a document-level config <div>.
+    // Classic Cursor preview still collapses the table in preview-copy.js.
+    const htmlCfg = isCursorHost() ? { ...cfg, collapseFrontmatter: false } : cfg;
+    const token = Array.isArray(tokens) ? tokens[idx] : undefined;
+    const raw = resolveFrontmatterRaw(/** @type {import('markdown-it/lib/token') | undefined} */ (token), env);
+    const ours = buildFrontmatterPreviewHtml(parseFrontmatterRows(raw), htmlCfg, raw);
+    if (ours) {
+      return ours;
+    }
+    if (typeof nativeRender !== 'function') {
+      return '';
+    }
+    const native = String(nativeRender(tokens, idx, options, env, self) || '');
+    if (!native.trim() || native.includes('hne-frontmatter-details') || isCursorHost()) {
+      return native;
+    }
+    if (cfg.collapseFrontmatter === false) {
+      return native;
+    }
+    const summary = escapeHtmlAttr(normalizePreviewFrontmatterSummary(cfg.frontmatterSummary || '📋 YAML'));
+    return (
+      `<details class="hne-frontmatter-details">` +
+      `<summary class="hne-frontmatter-summary">${summary}</summary>\n` +
+      `${native}` +
+      `</details>\n`
+    );
+  };
+  render.__hneFrontMatter = true;
+  return render;
+}
+
+function installFrontMatterRendererHook(/** @type {import('markdown-it')} */ md) {
+  const rules = md.renderer.rules;
+  const assign = (fn) => {
+    if (fn?.__hneFrontMatter) {
+      return fn;
+    }
+    return createFrontMatterTokenRenderer(typeof fn === 'function' ? fn : undefined);
+  };
+  rules.front_matter = assign(rules.front_matter);
+  try {
+    let current = rules.front_matter;
+    Object.defineProperty(rules, 'front_matter', {
+      configurable: true,
+      enumerable: true,
+      get: () => current,
+      set(fn) {
+        current = assign(fn);
+      },
+    });
+  } catch {
+    // Host sealed the rules object — keep the renderer we already assigned.
+  }
+}
+
 function applyPreviewMarkdownItExtensions(/** @type {import('markdown-it')} */ md) {
   const defaultImageRender =
     md.renderer.rules.image || ((tokens, idx, options, _env, self) => self.renderToken(tokens, idx, options));
@@ -3790,15 +3855,7 @@ function applyPreviewMarkdownItExtensions(/** @type {import('markdown-it')} */ m
     return defaultImageRender(tokens, idx, options, env, self);
   };
 
-  // Modern VS Code / Cursor call `renderer.render(tokens)`, not `md.render(src)`.
-  // Override the front_matter token renderer (yamlPreamble) and inject config there.
-  const renderFrontMatterToken = (tokens, idx, _options, env) => {
-    const cfg = getPreviewCopyConfig();
-    const raw = resolveFrontmatterRaw(tokens[idx], env);
-    const rows = parseFrontmatterRows(raw);
-    return buildFrontmatterPreviewHtml(rows, cfg, raw);
-  };
-  md.renderer.rules.front_matter = renderFrontMatterToken;
+  installFrontMatterRendererHook(md);
 
   // If the host has no front_matter block rule, add one (older / stripped engines).
   let hasFrontMatterRule = true;
@@ -3925,14 +3982,16 @@ function applyPreviewMarkdownItExtensions(/** @type {import('markdown-it')} */ m
 function registerPreviewCopyMarkdownPlugin() {
   return {
     extendMarkdownIt(/** @type {import('markdown-it')} */ md) {
-      // Cursor's Source|Preview tab is Tiptap/ProseMirror and also loads
-      // `markdown.markdownItPlugins`. Extra HTML (config <div>, <details>,
-      // parse/render wraps) blanks that preview. Classic `markdown.showPreview`
-      // still gets preview-copy.js / CSS.
-      if (isCursorHost()) {
-        return md;
-      }
       try {
+        // Cursor's Source|Preview tab is Tiptap/ProseMirror and also loads
+        // markdown-it plugins. Wrapping `parse` / `renderer.render` (config <div>
+        // on the whole document) blanks that pane. Only the front_matter token
+        // hook is safe there (plain table, no <details>); classic webview wraps
+        // that table in preview-copy.js.
+        if (isCursorHost()) {
+          installFrontMatterRendererHook(md);
+          return md;
+        }
         return applyPreviewMarkdownItExtensions(md);
       } catch (err) {
         console.error('[Harrix Notes HSK] extendMarkdownIt failed:', err);

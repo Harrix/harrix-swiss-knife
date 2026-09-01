@@ -281,7 +281,7 @@
         "harrixNotesExplorerHsk.previewFrontmatter.collapse": {
           "type": "boolean",
           "default": true,
-          "markdownDescription": "Collapse YAML **frontmatter** at the top of the classic Markdown preview (`markdown.showPreview` / Open Preview) into a `<details>` block (see `previewFrontmatter.summary`). In Cursor this applies only to **Markdown: Open Preview**, not the editor **Preview** tab (Tiptap), which this extension must not hook."
+          "markdownDescription": "Collapse YAML **frontmatter** at the top of the classic Markdown preview (`markdown.showPreview` / Open Preview) into a `<details>` block (see `previewFrontmatter.summary`). Also wraps VS Code's built-in frontmatter table. In Cursor this applies only to **Markdown: Open Preview**, not the editor **Preview** tab (Tiptap)."
         },
         "harrixNotesExplorerHsk.previewFrontmatter.summary": {
           "type": "string",
