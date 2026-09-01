@@ -1,4 +1,4 @@
-"""One snippets zone: sort buttons, optional filter, and item list."""
+"""One snippets zone: sort buttons and item list."""
 
 from __future__ import annotations
 
@@ -8,7 +8,6 @@ from PySide6.QtCore import QEvent, QModelIndex, QObject, QPersistentModelIndex, 
 from PySide6.QtGui import QColor, QIcon, QKeyEvent, QPainter, QPalette, QPen
 from PySide6.QtWidgets import (
     QHBoxLayout,
-    QLineEdit,
     QListWidget,
     QListWidgetItem,
     QMenu,
@@ -56,6 +55,7 @@ _CHIP_ROW_MARGIN = 8
 _LIGHT_TEXT_THRESHOLD = 160
 _MIN_COLOR_ROW_HEIGHT = 28
 _SELECTION_BG = "#e9e9e9"
+_SELECTION_OUTLINE = "#b0b0b0"
 _SELECTION_RADIUS = 4
 _LIST_SELECTION_STYLE = (
     "QListWidget {"
@@ -98,8 +98,9 @@ class ColorItemDelegate(QStyledItemDelegate):
         """Draw the selection, hex chip, and optional hint."""
         self.initStyleOption(option, index)
         painter.save()
-        if _item_is_highlighted(option):
-            paint_snippet_highlight(painter, option.rect)
+        matches = _item_matches_input(index, option)
+        if matches or _item_is_highlighted(option):
+            paint_snippet_highlight(painter, option.rect, outlined=matches)
 
         hex_value = strip_wrapping_brackets(str(index.data(_COLOR_ROLE) or ""))
         color = QColor(hex_value) if hex_value else QColor("#ffffff")
@@ -154,8 +155,9 @@ class HighlightItemDelegate(QStyledItemDelegate):
         opt = QStyleOptionViewItem(option)
         self.initStyleOption(opt, index)
         painter.save()
-        if _item_is_highlighted(opt):
-            paint_snippet_highlight(painter, opt.rect)
+        matches = _item_matches_input(index, opt)
+        if matches or _item_is_highlighted(opt):
+            paint_snippet_highlight(painter, opt.rect, outlined=matches)
         opt.state &= ~_HIGHLIGHT_STATES
         widget = opt.widget
         style = widget.style() if widget is not None else None
@@ -191,8 +193,9 @@ class IconItemDelegate(QStyledItemDelegate):
         """Draw a flat highlight and the icon, never the native selection chrome."""
         self.initStyleOption(option, index)
         painter.save()
-        if _item_is_highlighted(option):
-            paint_snippet_highlight(painter, option.rect)
+        matches = _item_matches_input(index, option)
+        if matches or _item_is_highlighted(option):
+            paint_snippet_highlight(painter, option.rect, outlined=matches)
         icon = index.data(Qt.ItemDataRole.DecorationRole)
         if isinstance(icon, QIcon) and not icon.isNull():
             size = (
@@ -227,7 +230,6 @@ class ZonePanel(QWidget):
         zone: str,
         title: str,
         show_add: bool = False,
-        show_filter: bool = False,
     ) -> None:
         """Build the zone header and list.
 
@@ -237,7 +239,6 @@ class ZonePanel(QWidget):
         - `zone` (`str`): Zone identifier.
         - `title` (`str`): Header label.
         - `show_add` (`bool`): Show the add button. Defaults to `False`.
-        - `show_filter` (`bool`): Show the search field. Defaults to `False`.
 
         """
         super().__init__(parent)
@@ -245,7 +246,7 @@ class ZonePanel(QWidget):
         self._items: list[SnippetItem] = []
         self._sort_buttons: dict[SortMode, QToolButton] = {}
         self._filter_query = ""
-        self._syncing_filter_text = False
+        self._input_match = ""
         self._remembered_id: int | None = None
 
         self._list = QListWidget(self)
@@ -310,18 +311,6 @@ class ZonePanel(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
         layout.addLayout(header)
-
-        self._filter = None
-        if show_filter:
-            self._filter = QLineEdit(self)
-            apply_mono_font(self._filter)
-            self._filter.setPlaceholderText("Filter and search…")
-            self._filter.setClearButtonEnabled(True)
-            self._filter.textChanged.connect(self._on_filter_text_changed)
-            self._filter.installEventFilter(self)
-            self._list.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
-            layout.addWidget(self._filter)
-
         layout.addWidget(self._list, stretch=1)
 
     def activate_current_or_first(self) -> None:
@@ -331,18 +320,13 @@ class ZonePanel(QWidget):
             rows = self.visible_rows()
             if not rows:
                 return
-            self.select_row(rows[0], sync_filter=self._filter is not None)
+            self.select_row(rows[0])
             snippet = self.current_snippet()
         if snippet is not None:
             self.item_activated.emit(snippet)
 
     def clear_filter(self) -> None:
-        """Clear the search field when the zone has one."""
-        if self._filter is None:
-            return
-        self._syncing_filter_text = True
-        self._filter.clear()
-        self._syncing_filter_text = False
+        """Clear this zone's search query."""
         self._filter_query = ""
         self._apply_filter()
 
@@ -355,28 +339,17 @@ class ZonePanel(QWidget):
         return data if data is not None else None
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
-        """Arrow/Enter navigation in the filter field and Enter to paste from the list."""
+        """Enter to paste from the list."""
         if event.type() != QEvent.Type.KeyPress or not isinstance(event, QKeyEvent):
             return super().eventFilter(watched, event)
-        if watched is self._filter:
-            if event.key() in {Qt.Key.Key_Down, Qt.Key.Key_Up}:
-                self.move_visible(1 if event.key() == Qt.Key.Key_Down else -1)
-                return True
-            if event.key() in {Qt.Key.Key_Return, Qt.Key.Key_Enter}:
-                self.activate_current_or_first()
-                return True
         if watched is self._list and event.key() in {Qt.Key.Key_Return, Qt.Key.Key_Enter}:
             self.activate_current_or_first()
             return True
         return super().eventFilter(watched, event)
 
-    def focus_filter(self) -> None:
-        """Focus the search field and restore the last selected phrase."""
-        if self._filter is None:
-            return
-        self._filter.setFocus()
-        self._restore_remembered_row()
-        self._sync_filter_text_from_current()
+    def filter_query(self) -> str:
+        """Return the current search query for this zone."""
+        return self._filter_query
 
     def item_at(self, pos: QPoint) -> SnippetItem | None:
         """Return the item under `pos` in list coordinates, if any."""
@@ -385,6 +358,10 @@ class ZonePanel(QWidget):
             return None
         data = item.data(_ITEM_ROLE)
         return data if data is not None else None
+
+    def item_matches_input(self, snippet: SnippetItem | None) -> bool:
+        """Return whether `snippet` is the value currently shown in the shared input."""
+        return bool(self._input_match) and snippet is not None and snippet.value == self._input_match
 
     def move_visible(self, delta: int) -> bool:
         """Move the list highlight among currently visible items.
@@ -407,12 +384,11 @@ class ZonePanel(QWidget):
         else:
             index = rows.index(current) + delta
             row = rows[max(0, min(index, len(rows) - 1))]
-        self.select_row(row, sync_filter=self._filter is not None)
+        self.select_row(row)
         return True
 
     def prepare_keyboard_focus(self) -> None:
-        """Focus the item list and select the remembered or first visible item."""
-        self._list.setFocus()
+        """Select the remembered or first visible item without taking keyboard focus."""
         if self._restore_remembered_row():
             return
         current = self._list.currentItem()
@@ -428,13 +404,12 @@ class ZonePanel(QWidget):
         self._remembered_id = None
         self._clear_list_current()
 
-    def select_row(self, row: int, *, sync_filter: bool = False) -> None:
-        """Select `row` and optionally copy its value into the filter field.
+    def select_row(self, row: int) -> None:
+        """Select `row` and remember it for the next keyboard session.
 
         Args:
 
         - `row` (`int`): List row index.
-        - `sync_filter` (`bool`): Update the filter text without changing the query.
 
         """
         item = self._list.item(row)
@@ -444,8 +419,20 @@ class ZonePanel(QWidget):
         item.setSelected(True)
         self._list.scrollToItem(item)
         self._remember_current()
-        if sync_filter:
-            self._sync_filter_text_from_current()
+
+    def set_filter_query(self, text: str) -> None:
+        """Filter this zone by `text` and clear the current highlight."""
+        self._filter_query = text
+        self._remembered_id = None
+        self._clear_list_current()
+        self._apply_filter()
+
+    def set_input_match(self, value: str) -> None:
+        """Mark the item whose value equals `value` as the current input match."""
+        if self._input_match == value:
+            return
+        self._input_match = value
+        self._list.viewport().update()
 
     def set_items(self, items: list[SnippetItem]) -> None:
         """Replace the visible items."""
@@ -481,12 +468,6 @@ class ZonePanel(QWidget):
             else:
                 button.setToolTip(tooltip)
 
-    def tab_target(self) -> QWidget:
-        """Return the widget that receives Tab focus for this zone."""
-        if self._filter is not None:
-            return self._filter
-        return self._list
-
     def visible_rows(self) -> list[int]:
         """Return indexes of items that pass the current filter."""
         rows: list[int] = []
@@ -497,8 +478,6 @@ class ZonePanel(QWidget):
         return rows
 
     def _apply_filter(self) -> None:
-        if self._filter is None:
-            return
         query = self._filter_query
         for row in range(self._list.count()):
             item = self._list.item(row)
@@ -551,14 +530,6 @@ class ZonePanel(QWidget):
         if snippet is not None:
             self._remembered_id = snippet.item_id
 
-    def _on_filter_text_changed(self, text: str) -> None:
-        if self._syncing_filter_text:
-            return
-        self._filter_query = text
-        self._remembered_id = None
-        self._clear_list_current()
-        self._apply_filter()
-
     def _on_item_clicked(self, item: QListWidgetItem) -> None:
         snippet = item.data(_ITEM_ROLE)
         if snippet is not None:
@@ -577,20 +548,9 @@ class ZonePanel(QWidget):
                 continue
             snippet = item.data(_ITEM_ROLE)
             if snippet is not None and snippet.item_id == self._remembered_id:
-                self.select_row(row, sync_filter=False)
+                self.select_row(row)
                 return True
         return False
-
-    def _sync_filter_text_from_current(self) -> None:
-        if self._filter is None:
-            return
-        snippet = self.current_snippet()
-        if snippet is None:
-            return
-        self._syncing_filter_text = True
-        self._filter.setText(snippet.value)
-        self._filter.selectAll()
-        self._syncing_filter_text = False
 
 
 def chip_border_color(color: QColor) -> QColor:
@@ -603,12 +563,17 @@ def color_hex_label(value: str) -> str:
     return strip_wrapping_brackets(value)
 
 
-def paint_snippet_highlight(painter: QPainter, rect: QRect) -> None:
-    """Fill the item with the hover/selection color and no border."""
+def paint_snippet_highlight(painter: QPainter, rect: QRect, *, outlined: bool = False) -> None:
+    """Fill the item with the hover/selection color, optionally with a 1 px gray outline."""
     painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
     painter.setBrush(QColor(_SELECTION_BG))
-    painter.setPen(Qt.PenStyle.NoPen)
-    painter.drawRoundedRect(rect.adjusted(1, 1, -1, -1), _SELECTION_RADIUS, _SELECTION_RADIUS)
+    if outlined:
+        painter.setPen(QPen(QColor(_SELECTION_OUTLINE), 1))
+        inner = rect.adjusted(1, 1, -2, -2)
+    else:
+        painter.setPen(Qt.PenStyle.NoPen)
+        inner = rect.adjusted(1, 1, -1, -1)
+    painter.drawRoundedRect(inner, _SELECTION_RADIUS, _SELECTION_RADIUS)
 
 
 def _apply_list_highlight_palette(widget: QListWidget) -> None:
@@ -623,3 +588,12 @@ def _apply_list_highlight_palette(widget: QListWidget) -> None:
 
 def _item_is_highlighted(option: QStyleOptionViewItem) -> bool:
     return bool(option.state & (QStyle.StateFlag.State_Selected | QStyle.StateFlag.State_MouseOver))
+
+
+def _item_matches_input(index: QModelIndex | QPersistentModelIndex, option: QStyleOptionViewItem) -> bool:
+    widget = option.widget
+    parent = widget.parentWidget() if widget is not None else None
+    if not isinstance(parent, ZonePanel):
+        return False
+    snippet = index.data(_ITEM_ROLE)
+    return parent.item_matches_input(snippet)

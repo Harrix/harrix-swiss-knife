@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 from PySide6.QtCore import QEvent, QRect, Qt
 from PySide6.QtGui import QColor, QKeyEvent, QPainter, QPalette, QPixmap
-from PySide6.QtWidgets import QApplication, QStyle, QStyleOptionViewItem, QToolButton, QWidget
+from PySide6.QtWidgets import QApplication, QStyle, QStyleOptionViewItem, QToolButton
 
 from harrix_swiss_knife.actions.apps.snippets import OnSnippets
 from harrix_swiss_knife.actions.common.quick_launcher_registry import iter_menu_structure
@@ -25,7 +25,7 @@ from harrix_swiss_knife.apps.snippets.constants import (
     ZONE_SYMBOL,
 )
 from harrix_swiss_knife.apps.snippets.database_manager import DatabaseManager, SnippetItem
-from harrix_swiss_knife.apps.snippets.dialog import SnippetsDialog, _cycle_index_for_widget
+from harrix_swiss_knife.apps.snippets.dialog import SnippetsDialog
 from harrix_swiss_knife.apps.snippets.parse import (
     display_text,
     hint_tooltip,
@@ -45,6 +45,7 @@ from harrix_swiss_knife.apps.snippets.sort import dash_length_rank, sort_items
 from harrix_swiss_knife.apps.snippets.zone_panel import (
     _LIST_SELECTION_STYLE,
     _SELECTION_BG,
+    _SELECTION_OUTLINE,
     HighlightItemDelegate,
     IconItemDelegate,
     ZonePanel,
@@ -293,6 +294,7 @@ def test_emoji_zone_items_have_icon_without_caption(qapp: QApplication) -> None:
 def test_list_highlight_is_flat_without_inverted_text(qapp: QApplication) -> None:
     assert qapp is not None
     assert _SELECTION_BG == "#e9e9e9"
+    assert _SELECTION_OUTLINE == "#b0b0b0"
     assert "item:hover" in _LIST_SELECTION_STYLE
     assert "border: none" in _LIST_SELECTION_STYLE
     assert "#6a6a6a" not in _LIST_SELECTION_STYLE
@@ -388,6 +390,10 @@ def test_highlight_item_delegate_paints_text(qapp: QApplication) -> None:
     option.state = QStyle.StateFlag.State_Enabled
     HighlightItemDelegate(panel._list).paint(painter, option, panel._list.indexFromItem(item))
     painter.end()
+    panel.set_input_match("hello")
+    assert panel.item_matches_input(panel._items[0])
+    panel.set_input_match("")
+    assert not panel.item_matches_input(panel._items[0])
     panel.close()
 
 
@@ -406,11 +412,11 @@ def test_zone_panel_add_button_emits_add_requested(qapp: QApplication) -> None:
 
 def test_phrase_zone_clear_filter_empties_search(qapp: QApplication) -> None:
     assert qapp is not None
-    panel = ZonePanel(zone=ZONE_PHRASE, title="Add phrase", show_add=True, show_filter=True)
-    assert panel._filter is not None
-    panel._filter.setText("old query")
+    panel = ZonePanel(zone=ZONE_PHRASE, title="Add phrase", show_add=True)
+    panel.set_filter_query("old query")
+    assert panel.filter_query() == "old query"
     panel.clear_filter()
-    assert panel._filter.text() == ""
+    assert panel.filter_query() == ""
     panel.close()
 
 
@@ -420,44 +426,54 @@ def test_on_snippets_is_quick_launcher_action() -> None:
     assert OnSnippets in list(iter_menu_structure(get_menu_structure()))
 
 
-def test_phrase_filter_arrows_select_visible_and_fill_field(qapp: QApplication) -> None:
+def test_phrase_filter_arrows_select_visible(qapp: QApplication) -> None:
     assert qapp is not None
-    panel = ZonePanel(zone=ZONE_PHRASE, title="Add phrase", show_add=True, show_filter=True)
+    panel = ZonePanel(zone=ZONE_PHRASE, title="Add phrase", show_add=True)
     panel.set_items([_item(1, "Alpha"), _item(2, "Alpine"), _item(3, "Beta")])
-    assert panel._filter is not None
-    panel._filter.setText("Al")
+    panel.set_filter_query("Al")
     assert panel._list.item(2) is not None
     assert panel._list.item(2).isHidden()
     assert panel.move_visible(1)
     assert panel.current_snippet() is not None
     assert panel.current_snippet().value == "Alpha"
-    assert panel._filter.text() == "Alpha"
+    assert panel.filter_query() == "Al"
     assert panel._list.item(1) is not None
     assert not panel._list.item(1).isHidden()
     assert panel.move_visible(1)
     assert panel.current_snippet() is not None
     assert panel.current_snippet().value == "Alpine"
-    assert panel._filter.text() == "Alpine"
     panel.close()
 
 
-def test_phrase_filter_down_key_selects_first_visible(qapp: QApplication) -> None:
+def test_shared_input_arrows_select_visible_and_fill_field(
+    qapp: QApplication,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     assert qapp is not None
-    panel = ZonePanel(zone=ZONE_PHRASE, title="Add phrase", show_add=True, show_filter=True)
-    panel.set_items([_item(1, "Alpha"), _item(2, "Beta")])
-    assert panel._filter is not None
-    panel._filter.setFocus()
+    monkeypatch.setattr(SnippetsDialog, "_init_database", lambda _dialog: None)
+    dialog = SnippetsDialog()
+    dialog._phrases.set_items([_item(1, "Alpha"), _item(2, "Alpine"), _item(3, "Beta")])
+    dialog.show()
+    QApplication.processEvents()
+    dialog._activate_zone(ZONE_PHRASE, select_item=False)
+    dialog._input.setText("Al")
     event = QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_Down, Qt.KeyboardModifier.NoModifier)
-    assert QApplication.sendEvent(panel._filter, event)
-    assert panel.current_snippet() is not None
-    assert panel.current_snippet().value == "Alpha"
-    assert panel._filter.text() == "Alpha"
-    panel.close()
+    assert QApplication.sendEvent(dialog._input, event)
+    assert dialog._phrases.current_snippet() is not None
+    assert dialog._phrases.current_snippet().value == "Alpha"
+    assert dialog._input.text() == "Alpha"
+    assert dialog._phrases.item_matches_input(dialog._phrases.current_snippet())
+    assert QApplication.sendEvent(dialog._input, event)
+    assert dialog._phrases.current_snippet() is not None
+    assert dialog._phrases.current_snippet().value == "Alpine"
+    assert dialog._input.text() == "Alpine"
+    assert dialog._phrases.item_matches_input(dialog._phrases.current_snippet())
+    dialog.close()
 
 
 def test_phrase_enter_without_selection_activates_first(qapp: QApplication) -> None:
     assert qapp is not None
-    panel = ZonePanel(zone=ZONE_PHRASE, title="Add phrase", show_add=True, show_filter=True)
+    panel = ZonePanel(zone=ZONE_PHRASE, title="Add phrase", show_add=True)
     activated: list[SnippetItem] = []
     panel.item_activated.connect(activated.append)
     panel.set_items([_item(1, "Alpha"), _item(2, "Beta")])
@@ -503,19 +519,7 @@ def test_emoji_prepare_keyboard_focus_restores_remembered(qapp: QApplication) ->
     panel.close()
 
 
-def test_cycle_index_for_widget_walks_parents(qapp: QApplication) -> None:
-    assert qapp is not None
-    parent = QWidget()
-    child = QWidget(parent)
-    other = QWidget()
-    assert _cycle_index_for_widget(child, [parent, other]) == 0
-    assert _cycle_index_for_widget(other, [parent, other]) == 1
-    assert _cycle_index_for_widget(QWidget(), [parent, other]) == -1
-    parent.close()
-    other.close()
-
-
-def test_snippets_tab_cycles_filter_emoji_symbols_colors(
+def test_snippets_tab_cycles_shared_input_emoji_symbols_colors(
     qapp: QApplication,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -564,23 +568,35 @@ def test_snippets_tab_cycles_filter_emoji_symbols_colors(
     )
     dialog.show()
     QApplication.processEvents()
-    dialog._phrases.focus_filter()
+    dialog._activate_zone(ZONE_PHRASE, select_item=False)
     QApplication.processEvents()
-    assert dialog._phrases._filter is not None
-    assert dialog._phrases._filter.hasFocus()
+    assert dialog._input.hasFocus()
+    assert dialog._input.placeholderText() == "Phrases"
+    assert dialog._input.placeholderText() != "Filter and search…"
+    assert dialog._input.text() == ""
+    assert "padding" in dialog._input.styleSheet()
+    assert dialog._input.minimumHeight() >= dialog._input.fontMetrics().height() + 22
     dialog.focusNextPrevChild(True)  # noqa: FBT003
     QApplication.processEvents()
-    assert dialog._emoji._list.hasFocus()
+    assert dialog._input.hasFocus()
+    assert dialog._input.text() == "😀"
     assert dialog._emoji.current_snippet() is not None
+    assert dialog._emoji.item_matches_input(dialog._emoji.current_snippet())
+    assert not dialog._phrases.item_matches_input(dialog._phrases._items[0] if dialog._phrases._items else None)
     dialog.focusNextPrevChild(True)  # noqa: FBT003
     QApplication.processEvents()
-    assert dialog._symbols._list.hasFocus()
+    assert dialog._input.hasFocus()
+    assert dialog._input.text() == "—"
+    assert dialog._symbols.item_matches_input(dialog._symbols.current_snippet())
     dialog.focusNextPrevChild(True)  # noqa: FBT003
     QApplication.processEvents()
-    assert dialog._colors._list.hasFocus()
+    assert dialog._input.hasFocus()
+    assert dialog._input.text() == "#ffffff"
+    assert dialog._colors.item_matches_input(dialog._colors.current_snippet())
     dialog.focusNextPrevChild(True)  # noqa: FBT003
     QApplication.processEvents()
-    assert dialog._phrases._filter.hasFocus()
+    assert dialog._input.hasFocus()
+    assert dialog._input.placeholderText() == "Phrases"
     dialog.close()
 
 

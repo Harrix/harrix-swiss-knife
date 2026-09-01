@@ -24,15 +24,15 @@ lang: en
   - [⚙️ Method `clear_filter`](#%EF%B8%8F-method-clear_filter)
   - [⚙️ Method `current_snippet`](#%EF%B8%8F-method-current_snippet)
   - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
-  - [⚙️ Method `focus_filter`](#%EF%B8%8F-method-focus_filter)
+  - [⚙️ Method `filter_query`](#%EF%B8%8F-method-filter_query)
   - [⚙️ Method `item_at`](#%EF%B8%8F-method-item_at)
   - [⚙️ Method `move_visible`](#%EF%B8%8F-method-move_visible)
   - [⚙️ Method `prepare_keyboard_focus`](#%EF%B8%8F-method-prepare_keyboard_focus)
   - [⚙️ Method `reset_keyboard_session`](#%EF%B8%8F-method-reset_keyboard_session)
   - [⚙️ Method `select_row`](#%EF%B8%8F-method-select_row)
+  - [⚙️ Method `set_filter_query`](#%EF%B8%8F-method-set_filter_query)
   - [⚙️ Method `set_items`](#%EF%B8%8F-method-set_items)
   - [⚙️ Method `set_sort_state`](#%EF%B8%8F-method-set_sort_state)
-  - [⚙️ Method `tab_target`](#%EF%B8%8F-method-tab_target)
   - [⚙️ Method `visible_rows`](#%EF%B8%8F-method-visible_rows)
 - [🔧 Function `chip_border_color`](#-function-chip_border_color)
 - [🔧 Function `color_hex_label`](#-function-color_hex_label)
@@ -398,7 +398,6 @@ class ZonePanel(QWidget):
         zone: str,
         title: str,
         show_add: bool = False,
-        show_filter: bool = False,
     ) -> None:
         """Build the zone header and list.
 
@@ -408,7 +407,6 @@ class ZonePanel(QWidget):
         - `zone` (`str`): Zone identifier.
         - `title` (`str`): Header label.
         - `show_add` (`bool`): Show the add button. Defaults to `False`.
-        - `show_filter` (`bool`): Show the search field. Defaults to `False`.
 
         """
         super().__init__(parent)
@@ -416,7 +414,6 @@ class ZonePanel(QWidget):
         self._items: list[SnippetItem] = []
         self._sort_buttons: dict[SortMode, QToolButton] = {}
         self._filter_query = ""
-        self._syncing_filter_text = False
         self._remembered_id: int | None = None
 
         self._list = QListWidget(self)
@@ -481,18 +478,6 @@ class ZonePanel(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
         layout.addLayout(header)
-
-        self._filter = None
-        if show_filter:
-            self._filter = QLineEdit(self)
-            apply_mono_font(self._filter)
-            self._filter.setPlaceholderText("Filter and search…")
-            self._filter.setClearButtonEnabled(True)
-            self._filter.textChanged.connect(self._on_filter_text_changed)
-            self._filter.installEventFilter(self)
-            self._list.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
-            layout.addWidget(self._filter)
-
         layout.addWidget(self._list, stretch=1)
 
     def activate_current_or_first(self) -> None:
@@ -502,18 +487,13 @@ class ZonePanel(QWidget):
             rows = self.visible_rows()
             if not rows:
                 return
-            self.select_row(rows[0], sync_filter=self._filter is not None)
+            self.select_row(rows[0])
             snippet = self.current_snippet()
         if snippet is not None:
             self.item_activated.emit(snippet)
 
     def clear_filter(self) -> None:
-        """Clear the search field when the zone has one."""
-        if self._filter is None:
-            return
-        self._syncing_filter_text = True
-        self._filter.clear()
-        self._syncing_filter_text = False
+        """Clear this zone's search query."""
         self._filter_query = ""
         self._apply_filter()
 
@@ -526,28 +506,17 @@ class ZonePanel(QWidget):
         return data if data is not None else None
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
-        """Arrow/Enter navigation in the filter field and Enter to paste from the list."""
+        """Enter to paste from the list."""
         if event.type() != QEvent.Type.KeyPress or not isinstance(event, QKeyEvent):
             return super().eventFilter(watched, event)
-        if watched is self._filter:
-            if event.key() in {Qt.Key.Key_Down, Qt.Key.Key_Up}:
-                self.move_visible(1 if event.key() == Qt.Key.Key_Down else -1)
-                return True
-            if event.key() in {Qt.Key.Key_Return, Qt.Key.Key_Enter}:
-                self.activate_current_or_first()
-                return True
         if watched is self._list and event.key() in {Qt.Key.Key_Return, Qt.Key.Key_Enter}:
             self.activate_current_or_first()
             return True
         return super().eventFilter(watched, event)
 
-    def focus_filter(self) -> None:
-        """Focus the search field and restore the last selected phrase."""
-        if self._filter is None:
-            return
-        self._filter.setFocus()
-        self._restore_remembered_row()
-        self._sync_filter_text_from_current()
+    def filter_query(self) -> str:
+        """Return the current search query for this zone."""
+        return self._filter_query
 
     def item_at(self, pos: QPoint) -> SnippetItem | None:
         """Return the item under `pos` in list coordinates, if any."""
@@ -578,12 +547,11 @@ class ZonePanel(QWidget):
         else:
             index = rows.index(current) + delta
             row = rows[max(0, min(index, len(rows) - 1))]
-        self.select_row(row, sync_filter=self._filter is not None)
+        self.select_row(row)
         return True
 
     def prepare_keyboard_focus(self) -> None:
-        """Focus the item list and select the remembered or first visible item."""
-        self._list.setFocus()
+        """Select the remembered or first visible item without taking keyboard focus."""
         if self._restore_remembered_row():
             return
         current = self._list.currentItem()
@@ -599,13 +567,12 @@ class ZonePanel(QWidget):
         self._remembered_id = None
         self._clear_list_current()
 
-    def select_row(self, row: int, *, sync_filter: bool = False) -> None:
-        """Select `row` and optionally copy its value into the filter field.
+    def select_row(self, row: int) -> None:
+        """Select `row` and remember it for the next keyboard session.
 
         Args:
 
         - `row` (`int`): List row index.
-        - `sync_filter` (`bool`): Update the filter text without changing the query.
 
         """
         item = self._list.item(row)
@@ -615,8 +582,13 @@ class ZonePanel(QWidget):
         item.setSelected(True)
         self._list.scrollToItem(item)
         self._remember_current()
-        if sync_filter:
-            self._sync_filter_text_from_current()
+
+    def set_filter_query(self, text: str) -> None:
+        """Filter this zone by `text` and clear the current highlight."""
+        self._filter_query = text
+        self._remembered_id = None
+        self._clear_list_current()
+        self._apply_filter()
 
     def set_items(self, items: list[SnippetItem]) -> None:
         """Replace the visible items."""
@@ -652,12 +624,6 @@ class ZonePanel(QWidget):
             else:
                 button.setToolTip(tooltip)
 
-    def tab_target(self) -> QWidget:
-        """Return the widget that receives Tab focus for this zone."""
-        if self._filter is not None:
-            return self._filter
-        return self._list
-
     def visible_rows(self) -> list[int]:
         """Return indexes of items that pass the current filter."""
         rows: list[int] = []
@@ -668,8 +634,6 @@ class ZonePanel(QWidget):
         return rows
 
     def _apply_filter(self) -> None:
-        if self._filter is None:
-            return
         query = self._filter_query
         for row in range(self._list.count()):
             item = self._list.item(row)
@@ -722,14 +686,6 @@ class ZonePanel(QWidget):
         if snippet is not None:
             self._remembered_id = snippet.item_id
 
-    def _on_filter_text_changed(self, text: str) -> None:
-        if self._syncing_filter_text:
-            return
-        self._filter_query = text
-        self._remembered_id = None
-        self._clear_list_current()
-        self._apply_filter()
-
     def _on_item_clicked(self, item: QListWidgetItem) -> None:
         snippet = item.data(_ITEM_ROLE)
         if snippet is not None:
@@ -748,20 +704,9 @@ class ZonePanel(QWidget):
                 continue
             snippet = item.data(_ITEM_ROLE)
             if snippet is not None and snippet.item_id == self._remembered_id:
-                self.select_row(row, sync_filter=False)
+                self.select_row(row)
                 return True
         return False
-
-    def _sync_filter_text_from_current(self) -> None:
-        if self._filter is None:
-            return
-        snippet = self.current_snippet()
-        if snippet is None:
-            return
-        self._syncing_filter_text = True
-        self._filter.setText(snippet.value)
-        self._filter.selectAll()
-        self._syncing_filter_text = False
 ```
 
 </details>
@@ -769,7 +714,7 @@ class ZonePanel(QWidget):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None = None, *, zone: str, title: str, show_add: bool = False, show_filter: bool = False) -> None
+def __init__(self, parent: QWidget | None = None, *, zone: str, title: str, show_add: bool = False) -> None
 ```
 
 Build the zone header and list.
@@ -780,7 +725,6 @@ Args:
 - `zone` (`str`): Zone identifier.
 - `title` (`str`): Header label.
 - `show_add` (`bool`): Show the add button. Defaults to `False`.
-- `show_filter` (`bool`): Show the search field. Defaults to `False`.
 
 <details>
 <summary>Code:</summary>
@@ -793,14 +737,12 @@ def __init__(
         zone: str,
         title: str,
         show_add: bool = False,
-        show_filter: bool = False,
     ) -> None:
         super().__init__(parent)
         self.zone = zone
         self._items: list[SnippetItem] = []
         self._sort_buttons: dict[SortMode, QToolButton] = {}
         self._filter_query = ""
-        self._syncing_filter_text = False
         self._remembered_id: int | None = None
 
         self._list = QListWidget(self)
@@ -865,18 +807,6 @@ def __init__(
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
         layout.addLayout(header)
-
-        self._filter = None
-        if show_filter:
-            self._filter = QLineEdit(self)
-            apply_mono_font(self._filter)
-            self._filter.setPlaceholderText("Filter and search…")
-            self._filter.setClearButtonEnabled(True)
-            self._filter.textChanged.connect(self._on_filter_text_changed)
-            self._filter.installEventFilter(self)
-            self._list.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
-            layout.addWidget(self._filter)
-
         layout.addWidget(self._list, stretch=1)
 ```
 
@@ -900,7 +830,7 @@ def activate_current_or_first(self) -> None:
             rows = self.visible_rows()
             if not rows:
                 return
-            self.select_row(rows[0], sync_filter=self._filter is not None)
+            self.select_row(rows[0])
             snippet = self.current_snippet()
         if snippet is not None:
             self.item_activated.emit(snippet)
@@ -914,18 +844,13 @@ def activate_current_or_first(self) -> None:
 def clear_filter(self) -> None
 ```
 
-Clear the search field when the zone has one.
+Clear this zone's search query.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def clear_filter(self) -> None:
-        if self._filter is None:
-            return
-        self._syncing_filter_text = True
-        self._filter.clear()
-        self._syncing_filter_text = False
         self._filter_query = ""
         self._apply_filter()
 ```
@@ -960,7 +885,7 @@ def current_snippet(self) -> SnippetItem | None:
 def eventFilter(self, watched: QObject, event: QEvent) -> bool
 ```
 
-Arrow/Enter navigation in the filter field and Enter to paste from the list.
+Enter to paste from the list.
 
 <details>
 <summary>Code:</summary>
@@ -969,13 +894,6 @@ Arrow/Enter navigation in the filter field and Enter to paste from the list.
 def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
         if event.type() != QEvent.Type.KeyPress or not isinstance(event, QKeyEvent):
             return super().eventFilter(watched, event)
-        if watched is self._filter:
-            if event.key() in {Qt.Key.Key_Down, Qt.Key.Key_Up}:
-                self.move_visible(1 if event.key() == Qt.Key.Key_Down else -1)
-                return True
-            if event.key() in {Qt.Key.Key_Return, Qt.Key.Key_Enter}:
-                self.activate_current_or_first()
-                return True
         if watched is self._list and event.key() in {Qt.Key.Key_Return, Qt.Key.Key_Enter}:
             self.activate_current_or_first()
             return True
@@ -984,24 +902,20 @@ def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
 
 </details>
 
-### ⚙️ Method `focus_filter`
+### ⚙️ Method `filter_query`
 
 ```python
-def focus_filter(self) -> None
+def filter_query(self) -> str
 ```
 
-Focus the search field and restore the last selected phrase.
+Return the current search query for this zone.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def focus_filter(self) -> None:
-        if self._filter is None:
-            return
-        self._filter.setFocus()
-        self._restore_remembered_row()
-        self._sync_filter_text_from_current()
+def filter_query(self) -> str:
+        return self._filter_query
 ```
 
 </details>
@@ -1058,7 +972,7 @@ def move_visible(self, delta: int) -> bool:
         else:
             index = rows.index(current) + delta
             row = rows[max(0, min(index, len(rows) - 1))]
-        self.select_row(row, sync_filter=self._filter is not None)
+        self.select_row(row)
         return True
 ```
 
@@ -1070,14 +984,13 @@ def move_visible(self, delta: int) -> bool:
 def prepare_keyboard_focus(self) -> None
 ```
 
-Focus the item list and select the remembered or first visible item.
+Select the remembered or first visible item without taking keyboard focus.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def prepare_keyboard_focus(self) -> None:
-        self._list.setFocus()
         if self._restore_remembered_row():
             return
         current = self._list.currentItem()
@@ -1113,21 +1026,20 @@ def reset_keyboard_session(self) -> None:
 ### ⚙️ Method `select_row`
 
 ```python
-def select_row(self, row: int, *, sync_filter: bool = False) -> None
+def select_row(self, row: int) -> None
 ```
 
-Select `row` and optionally copy its value into the filter field.
+Select `row` and remember it for the next keyboard session.
 
 Args:
 
 - `row` (`int`): List row index.
-- `sync_filter` (`bool`): Update the filter text without changing the query.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def select_row(self, row: int, *, sync_filter: bool = False) -> None:
+def select_row(self, row: int) -> None:
         item = self._list.item(row)
         if item is None or item.isHidden():
             return
@@ -1135,8 +1047,27 @@ def select_row(self, row: int, *, sync_filter: bool = False) -> None:
         item.setSelected(True)
         self._list.scrollToItem(item)
         self._remember_current()
-        if sync_filter:
-            self._sync_filter_text_from_current()
+```
+
+</details>
+
+### ⚙️ Method `set_filter_query`
+
+```python
+def set_filter_query(self, text: str) -> None
+```
+
+Filter this zone by `text` and clear the current highlight.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_filter_query(self, text: str) -> None:
+        self._filter_query = text
+        self._remembered_id = None
+        self._clear_list_current()
+        self._apply_filter()
 ```
 
 </details>
@@ -1199,26 +1130,6 @@ def set_sort_state(self, zone_sort: ZoneSort) -> None:
                 button.setToolTip(f"{tooltip} (reversed)")
             else:
                 button.setToolTip(tooltip)
-```
-
-</details>
-
-### ⚙️ Method `tab_target`
-
-```python
-def tab_target(self) -> QWidget
-```
-
-Return the widget that receives Tab focus for this zone.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def tab_target(self) -> QWidget:
-        if self._filter is not None:
-            return self._filter
-        return self._list
 ```
 
 </details>

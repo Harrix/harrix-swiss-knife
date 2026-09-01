@@ -63,10 +63,16 @@ class SnippetsDialog(QDialog):
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
         self.setStyleSheet(_DIALOG_BORDER_STYLE)
 
+        self._active_zone: ZoneName = ZONE_PHRASE
+        self._zone_input_text = dict.fromkeys(ZONES, "")
+        self._syncing_input = False
+        self._input = QLineEdit(self)
+
         self._layout = QVBoxLayout(self)
         self._layout.setContentsMargins(16, 16, 16, 16)
         self._layout.setSpacing(12)
         self._build_header()
+        self._build_shared_input()
         self._build_body()
         self._build_resize_row()
         self.setMouseTracking(True)
@@ -79,41 +85,22 @@ class SnippetsDialog(QDialog):
         self.hide()
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
-        """Start window drag from the title."""
-        if (
-            event.type() == QEvent.Type.MouseButtonPress
-            and isinstance(event, QMouseEvent)
-            and event.button() == Qt.MouseButton.LeftButton
-        ):
-            self._start_drag(event.globalPosition().toPoint())
-            return True
-        if (
-            event.type() == QEvent.Type.MouseMove
-            and isinstance(event, QMouseEvent)
-            and event.buttons() & Qt.MouseButton.LeftButton
-            and self._dragging
-        ):
-            self._move_drag(event.globalPosition().toPoint())
-            return True
-        if (
-            event.type() == QEvent.Type.MouseButtonRelease
-            and isinstance(event, QMouseEvent)
-            and event.button() == Qt.MouseButton.LeftButton
-            and self._dragging
-        ):
-            self._end_drag()
-            return True
-        return super().eventFilter(watched, event)
+        """Start window drag from the title, and navigate from the shared input."""
+        if watched is self._input and event.type() == QEvent.Type.KeyPress and isinstance(event, QKeyEvent):
+            if event.key() in {Qt.Key.Key_Down, Qt.Key.Key_Up}:
+                if self._active_panel().move_visible(1 if event.key() == Qt.Key.Key_Down else -1):
+                    self._show_current_value_in_input()
+                return True
+            if event.key() in {Qt.Key.Key_Return, Qt.Key.Key_Enter}:
+                self._active_panel().activate_current_or_first()
+                return True
+        return self._handle_title_drag(watched, event)
 
     def focusNextPrevChild(self, next: bool) -> bool:  # noqa: A002, FBT001, N802
-        """Cycle Tab between filter, emoji, symbols, and colors."""
-        targets = self._focus_cycle_targets()
-        if not targets:
-            return super().focusNextPrevChild(next)
-        current = self.focusWidget()
-        index = _cycle_index_for_widget(current, targets)
-        index = (0 if next else len(targets) - 1) if index < 0 else (index + (1 if next else -1)) % len(targets)
-        self._focus_cycle_target(targets[index])
+        """Cycle Tab between phrases, emoji, symbols, and colors in the shared input."""
+        index = ZONES.index(self._active_zone)
+        index = (index + (1 if next else -1)) % len(ZONES)
+        self._activate_zone(ZONES[index])
         return True
 
     def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
@@ -156,16 +143,17 @@ class SnippetsDialog(QDialog):
         return cast("tuple[bool, int]", super().nativeEvent(event_type, message))
 
     def present(self) -> None:
-        """Show and focus the overlay."""
+        """Show the overlay and focus the shared input on phrases."""
         self.reload_all()
+        self._zone_input_text = dict.fromkeys(ZONES, "")
         for panel in self._panels.values():
             panel.reset_keyboard_session()
+            panel.clear_filter()
         self._center_on_screen()
-        self._phrases.clear_filter()
         self.show()
         self.raise_()
         self.activateWindow()
-        self._phrases.focus_filter()
+        self._activate_zone(ZONE_PHRASE, select_item=False)
 
     def reload_all(self) -> None:
         """Reload every zone from the database."""
@@ -186,6 +174,27 @@ class SnippetsDialog(QDialog):
         dialog = cls(parent)
         cls._instance = dialog
         dialog.present()
+
+    def _activate_zone(self, zone: ZoneName, *, select_item: bool = True) -> None:
+        """Switch the shared input to `zone` and show that zone's current value."""
+        self._active_zone = zone
+        self._input.setPlaceholderText(_ZONE_TITLES[zone])
+        panel = self._panels[zone]
+        if select_item:
+            panel.prepare_keyboard_focus()
+        stored = self._zone_input_text[zone]
+        if stored:
+            self._set_input_text(stored)
+            self._input.setCursorPosition(len(stored))
+        elif select_item:
+            self._show_current_value_in_input()
+        else:
+            self._set_input_text("")
+        self._input.setFocus()
+
+    def _active_panel(self) -> ZonePanel:
+        """Return the zone panel that the shared input currently filters."""
+        return self._panels[self._active_zone]
 
     def _add_item(self, zone: str) -> None:
         dialog = ItemEditDialog(self, title=f"Add {_ZONE_TITLES[zone].lower()}", zone=zone)
@@ -215,7 +224,7 @@ class SnippetsDialog(QDialog):
         self._reload_zone(zone, self._panels[zone])
 
     def _build_body(self) -> None:
-        self._phrases = ZonePanel(self, zone=ZONE_PHRASE, title="Add phrase", show_add=True, show_filter=True)
+        self._phrases = ZonePanel(self, zone=ZONE_PHRASE, title="Add phrase", show_add=True)
         self._emoji = ZonePanel(self, zone=ZONE_EMOJI, title="Add emoji", show_add=True)
         self._symbols = ZonePanel(self, zone=ZONE_SYMBOL, title="Add symbol", show_add=True)
         self._colors = ZonePanel(self, zone=ZONE_COLOR, title="Add color", show_add=True)
@@ -287,6 +296,13 @@ class SnippetsDialog(QDialog):
         resize_row.addWidget(QSizeGrip(self), alignment=Qt.AlignmentFlag.AlignRight)
         self._layout.addLayout(resize_row)
 
+    def _build_shared_input(self) -> None:
+        self._input.setPlaceholderText(_ZONE_TITLES[ZONE_PHRASE])
+        self._input.textChanged.connect(self._on_input_text_changed)
+        self._input.installEventFilter(self)
+        apply_mono_font(self._input)
+        self._layout.addWidget(self._input)
+
     def _center_on_screen(self) -> None:
         center_widget_on_available_screen(self)
 
@@ -340,25 +356,31 @@ class SnippetsDialog(QDialog):
     def _end_drag(self) -> None:
         self._dragging = False
 
-    def _focus_cycle_target(self, widget: QWidget) -> None:
-        """Focus a Tab-cycle widget and restore that zone's last selection."""
-        for panel in (self._phrases, self._emoji, self._symbols, self._colors):
-            if widget is not panel.tab_target():
-                continue
-            if panel is self._phrases:
-                panel.focus_filter()
-            else:
-                panel.prepare_keyboard_focus()
-            return
-
-    def _focus_cycle_targets(self) -> list[QWidget]:
-        """Return the Tab order: filter, emoji, symbols, colors."""
-        return [
-            self._phrases.tab_target(),
-            self._emoji.tab_target(),
-            self._symbols.tab_target(),
-            self._colors.tab_target(),
-        ]
+    def _handle_title_drag(self, watched: QObject, event: QEvent) -> bool:
+        if (
+            event.type() == QEvent.Type.MouseButtonPress
+            and isinstance(event, QMouseEvent)
+            and event.button() == Qt.MouseButton.LeftButton
+        ):
+            self._start_drag(event.globalPosition().toPoint())
+            return True
+        if (
+            event.type() == QEvent.Type.MouseMove
+            and isinstance(event, QMouseEvent)
+            and event.buttons() & Qt.MouseButton.LeftButton
+            and self._dragging
+        ):
+            self._move_drag(event.globalPosition().toPoint())
+            return True
+        if (
+            event.type() == QEvent.Type.MouseButtonRelease
+            and isinstance(event, QMouseEvent)
+            and event.button() == Qt.MouseButton.LeftButton
+            and self._dragging
+        ):
+            self._end_drag()
+            return True
+        return super().eventFilter(watched, event)
 
     def _init_database(self) -> None:
         config = h.dev.config_load(get_config_path_str())
@@ -383,6 +405,12 @@ class SnippetsDialog(QDialog):
     def _move_drag(self, global_pos: QPoint) -> None:
         self.move(global_pos - self._drag_position)
 
+    def _on_input_text_changed(self, text: str) -> None:
+        if self._syncing_input:
+            return
+        self._zone_input_text[self._active_zone] = text
+        self._active_panel().set_filter_query(text)
+
     def _paste_item(self, snippet: SnippetItem) -> None:
         self._saved_clipboard = clone_clipboard_mime()
         self.hide()
@@ -399,6 +427,18 @@ class SnippetsDialog(QDialog):
         items = sort_items(self.db_manager.list_items(zone), zone_sort.mode, descending=zone_sort.descending)
         panel.set_items(items)
         panel.set_sort_state(zone_sort)
+
+    def _set_input_text(self, text: str) -> None:
+        self._syncing_input = True
+        self._input.setText(text)
+        self._syncing_input = False
+
+    def _show_current_value_in_input(self) -> None:
+        snippet = self._active_panel().current_snippet()
+        if snippet is None:
+            return
+        self._set_input_text(snippet.value)
+        self._input.selectAll()
 
     def _sort_zone(self, zone: str, mode: str) -> None:
         if self.db_manager is None:
@@ -447,10 +487,16 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
         self.setStyleSheet(_DIALOG_BORDER_STYLE)
 
+        self._active_zone: ZoneName = ZONE_PHRASE
+        self._zone_input_text = dict.fromkeys(ZONES, "")
+        self._syncing_input = False
+        self._input = QLineEdit(self)
+
         self._layout = QVBoxLayout(self)
         self._layout.setContentsMargins(16, 16, 16, 16)
         self._layout.setSpacing(12)
         self._build_header()
+        self._build_shared_input()
         self._build_body()
         self._build_resize_row()
         self.setMouseTracking(True)
@@ -485,37 +531,22 @@ def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
 def eventFilter(self, watched: QObject, event: QEvent) -> bool
 ```
 
-Start window drag from the title.
+Start window drag from the title, and navigate from the shared input.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
-        if (
-            event.type() == QEvent.Type.MouseButtonPress
-            and isinstance(event, QMouseEvent)
-            and event.button() == Qt.MouseButton.LeftButton
-        ):
-            self._start_drag(event.globalPosition().toPoint())
-            return True
-        if (
-            event.type() == QEvent.Type.MouseMove
-            and isinstance(event, QMouseEvent)
-            and event.buttons() & Qt.MouseButton.LeftButton
-            and self._dragging
-        ):
-            self._move_drag(event.globalPosition().toPoint())
-            return True
-        if (
-            event.type() == QEvent.Type.MouseButtonRelease
-            and isinstance(event, QMouseEvent)
-            and event.button() == Qt.MouseButton.LeftButton
-            and self._dragging
-        ):
-            self._end_drag()
-            return True
-        return super().eventFilter(watched, event)
+        if watched is self._input and event.type() == QEvent.Type.KeyPress and isinstance(event, QKeyEvent):
+            if event.key() in {Qt.Key.Key_Down, Qt.Key.Key_Up}:
+                if self._active_panel().move_visible(1 if event.key() == Qt.Key.Key_Down else -1):
+                    self._show_current_value_in_input()
+                return True
+            if event.key() in {Qt.Key.Key_Return, Qt.Key.Key_Enter}:
+                self._active_panel().activate_current_or_first()
+                return True
+        return self._handle_title_drag(watched, event)
 ```
 
 </details>
@@ -526,20 +557,16 @@ def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
 def focusNextPrevChild(self, next: bool) -> bool
 ```
 
-Cycle Tab between filter, emoji, symbols, and colors.
+Cycle Tab between phrases, emoji, symbols, and colors in the shared input.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def focusNextPrevChild(self, next: bool) -> bool:  # noqa: A002, FBT001, N802
-        targets = self._focus_cycle_targets()
-        if not targets:
-            return super().focusNextPrevChild(next)
-        current = self.focusWidget()
-        index = _cycle_index_for_widget(current, targets)
-        index = (0 if next else len(targets) - 1) if index < 0 else (index + (1 if next else -1)) % len(targets)
-        self._focus_cycle_target(targets[index])
+        index = ZONES.index(self._active_zone)
+        index = (index + (1 if next else -1)) % len(ZONES)
+        self._activate_zone(ZONES[index])
         return True
 ```
 
@@ -660,7 +687,7 @@ def nativeEvent(self, event_type, message) -> tuple[bool, int]:  # noqa: ANN001,
 def present(self) -> None
 ```
 
-Show and focus the overlay.
+Show the overlay and focus the shared input on phrases.
 
 <details>
 <summary>Code:</summary>
@@ -668,14 +695,15 @@ Show and focus the overlay.
 ```python
 def present(self) -> None:
         self.reload_all()
+        self._zone_input_text = dict.fromkeys(ZONES, "")
         for panel in self._panels.values():
             panel.reset_keyboard_session()
+            panel.clear_filter()
         self._center_on_screen()
-        self._phrases.clear_filter()
         self.show()
         self.raise_()
         self.activateWindow()
-        self._phrases.focus_filter()
+        self._activate_zone(ZONE_PHRASE, select_item=False)
 ```
 
 </details>
