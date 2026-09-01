@@ -471,6 +471,43 @@ def test_shared_input_arrows_select_visible_and_fill_field(
     dialog.close()
 
 
+def test_tab_clears_previous_zone_filter(
+    qapp: QApplication,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    assert qapp is not None
+    monkeypatch.setattr(SnippetsDialog, "_init_database", lambda _dialog: None)
+    dialog = SnippetsDialog()
+    dialog._phrases.set_items([_item(1, "Alpha"), _item(2, "Alpine"), _item(3, "Beta")])
+    dialog._emoji.set_items(
+        [
+            SnippetItem(
+                item_id=10,
+                zone=ZONE_EMOJI,
+                value="😀",
+                hint="",
+                created_at="2026-01-01T00:00:00+00:00",
+                last_used_at=None,
+                sort_index=0,
+            ),
+        ],
+    )
+    dialog.show()
+    QApplication.processEvents()
+    dialog._activate_zone(ZONE_PHRASE, select_item=False)
+    dialog._input.setText("Al")
+    assert dialog._phrases.filter_query() == "Al"
+    assert dialog._phrases._list.item(2) is not None
+    assert dialog._phrases._list.item(2).isHidden()
+    dialog.focusNextPrevChild(True)  # noqa: FBT003
+    QApplication.processEvents()
+    assert dialog._phrases.filter_query() == ""
+    assert dialog._phrases._list.item(2) is not None
+    assert not dialog._phrases._list.item(2).isHidden()
+    assert dialog._input.text() == "😀"
+    dialog.close()
+
+
 def test_phrase_enter_without_selection_activates_first(qapp: QApplication) -> None:
     assert qapp is not None
     panel = ZonePanel(zone=ZONE_PHRASE, title="Add phrase", show_add=True)

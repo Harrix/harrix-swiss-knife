@@ -213,6 +213,10 @@ class SnippetsDialog(QDialog):
 
     def _activate_zone(self, zone: ZoneName, *, select_item: bool = True) -> None:
         """Switch the shared input to `zone` and show that zone's current value."""
+        previous = self._active_zone
+        if previous != zone:
+            self._zone_input_text[previous] = ""
+            self._panels[previous].clear_filter()
         self._active_zone = zone
         self._input.setPlaceholderText(_ZONE_TITLES[zone])
         panel = self._panels[zone]
