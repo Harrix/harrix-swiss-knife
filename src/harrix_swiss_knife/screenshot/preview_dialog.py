@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 import harrix_pylib as h
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QCloseEvent, QGuiApplication, QKeyEvent, QKeySequence, QShortcut
+from PySide6.QtGui import QCloseEvent, QKeyEvent, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QApplication,
     QFileDialog,
@@ -27,6 +27,7 @@ from harrix_swiss_knife.actions.common.text_result_dialog import (
     OK_BUTTON_EMOJI,
     OK_BUTTON_LABEL,
 )
+from harrix_swiss_knife.apps.common.qt_main_window import apply_app_window_size_and_position
 from harrix_swiss_knife.qt_emoji_icon import SAVE_BUTTON_EMOJI, make_emoji_push_button
 from harrix_swiss_knife.screenshot.dated_image_path import images_folder, next_dated_image_path
 from harrix_swiss_knife.screenshot.preview_canvas import ScreenshotPreviewCanvas
@@ -39,8 +40,6 @@ _MARKDOWN_AI_EMOJI = "🤖"
 _MARKDOWN_OCR_EMOJI = "🔤"
 _VK_S = 0x53
 _KEY_CYRILLIC_YERU = 0x042B  # Cyrillic yeru (same physical key as Latin S)  # ignore: HP001
-_CHROME_WIDTH = 80
-_CHROME_HEIGHT = 160
 _MIN_WINDOW_WIDTH = 480
 _MIN_WINDOW_HEIGHT = 360
 _DEFAULT_TITLE = "Screenshot"
@@ -101,14 +100,13 @@ class ScreenshotPreviewWindow(QMainWindow):
         save_shortcut = QShortcut(QKeySequence.StandardKey.Save, self)
         save_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
         save_shortcut.activated.connect(self._save_to_images)
+        apply_app_window_size_and_position(self)
 
     def add_image(self, image: QImage) -> None:
         """Append a new tab for `image` and select it."""
         tab = _ScreenshotTab(image, self._tabs)
         index = self._tabs.addTab(tab, self._tab_label(None, self._tabs.count() + 1))
         self._tabs.setCurrentIndex(index)
-        if self._tabs.count() == 1:
-            self._resize_for_image(image)
         self._update_window_title()
         self._tabs.tabBar().setVisible(self._tabs.count() > 1)
 
@@ -165,22 +163,6 @@ class ScreenshotPreviewWindow(QMainWindow):
             if not isinstance(tab, _ScreenshotTab) or tab.saved_name:
                 continue
             self._tabs.setTabText(index, self._tab_label(None, index + 1))
-
-    def _resize_for_image(self, image: QImage) -> None:
-        screen = QGuiApplication.screenAt(self.pos()) or QGuiApplication.primaryScreen()
-        if screen is None:
-            self.resize(
-                max(_MIN_WINDOW_WIDTH, image.width() + _CHROME_WIDTH),
-                max(_MIN_WINDOW_HEIGHT, image.height() + _CHROME_HEIGHT),
-            )
-            return
-        available = screen.availableGeometry()
-        width = min(max(image.width() + _CHROME_WIDTH, _MIN_WINDOW_WIDTH), available.width())
-        height = min(max(image.height() + _CHROME_HEIGHT, _MIN_WINDOW_HEIGHT), available.height())
-        self.resize(width, height)
-        frame = self.frameGeometry()
-        frame.moveCenter(available.center())
-        self.move(frame.topLeft())
 
     def _run_markdown_with_ai(self) -> None:
         path = self._save_temp_png()

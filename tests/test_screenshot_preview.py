@@ -11,6 +11,7 @@ from PySide6.QtCore import QPointF, Qt
 from PySide6.QtGui import QImage, QKeyEvent
 from PySide6.QtWidgets import QApplication, QTabWidget
 
+from harrix_swiss_knife.apps.common.qt_main_window import compute_app_window_geometry
 from harrix_swiss_knife.screenshot import preview_dialog as preview_dialog_module
 from harrix_swiss_knife.screenshot.dated_image_path import images_folder, next_dated_image_path
 from harrix_swiss_knife.screenshot.preview_canvas import ScreenshotPreviewCanvas
@@ -117,6 +118,24 @@ def test_preview_window_saves_dated_png_and_updates_title(
     assert len(files) == 1
     assert files[0].stem.endswith("_01")
     assert window.windowTitle() == f"Screenshot — {files[0].name}"
+    window.close()
+
+
+def test_preview_window_uses_app_geometry_not_image_size(qapp: QApplication) -> None:
+    image = QImage(40, 20, QImage.Format.Format_RGB32)
+    image.fill(Qt.GlobalColor.red)
+    window = show_screenshot_preview(image)
+    qapp.processEvents()
+    qapp.processEvents()
+    screen = window.screen()
+    assert screen is not None
+    available = screen.availableGeometry()
+    target = compute_app_window_geometry(available)
+    if target is None:
+        assert bool(window.windowState() & Qt.WindowState.WindowMaximized)
+    else:
+        assert window.width() >= target.width() - 80
+        assert window.height() >= target.height() - 80
     window.close()
 
 

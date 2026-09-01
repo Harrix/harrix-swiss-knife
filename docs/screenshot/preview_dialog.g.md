@@ -84,14 +84,13 @@ class ScreenshotPreviewWindow(QMainWindow):
         save_shortcut = QShortcut(QKeySequence.StandardKey.Save, self)
         save_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
         save_shortcut.activated.connect(self._save_to_images)
+        apply_app_window_size_and_position(self)
 
     def add_image(self, image: QImage) -> None:
         """Append a new tab for `image` and select it."""
         tab = _ScreenshotTab(image, self._tabs)
         index = self._tabs.addTab(tab, self._tab_label(None, self._tabs.count() + 1))
         self._tabs.setCurrentIndex(index)
-        if self._tabs.count() == 1:
-            self._resize_for_image(image)
         self._update_window_title()
         self._tabs.tabBar().setVisible(self._tabs.count() > 1)
 
@@ -148,22 +147,6 @@ class ScreenshotPreviewWindow(QMainWindow):
             if not isinstance(tab, _ScreenshotTab) or tab.saved_name:
                 continue
             self._tabs.setTabText(index, self._tab_label(None, index + 1))
-
-    def _resize_for_image(self, image: QImage) -> None:
-        screen = QGuiApplication.screenAt(self.pos()) or QGuiApplication.primaryScreen()
-        if screen is None:
-            self.resize(
-                max(_MIN_WINDOW_WIDTH, image.width() + _CHROME_WIDTH),
-                max(_MIN_WINDOW_HEIGHT, image.height() + _CHROME_HEIGHT),
-            )
-            return
-        available = screen.availableGeometry()
-        width = min(max(image.width() + _CHROME_WIDTH, _MIN_WINDOW_WIDTH), available.width())
-        height = min(max(image.height() + _CHROME_HEIGHT, _MIN_WINDOW_HEIGHT), available.height())
-        self.resize(width, height)
-        frame = self.frameGeometry()
-        frame.moveCenter(available.center())
-        self.move(frame.topLeft())
 
     def _run_markdown_with_ai(self) -> None:
         path = self._save_temp_png()
@@ -314,6 +297,7 @@ def __init__(self, parent: QWidget | None = None) -> None:
         save_shortcut = QShortcut(QKeySequence.StandardKey.Save, self)
         save_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
         save_shortcut.activated.connect(self._save_to_images)
+        apply_app_window_size_and_position(self)
 ```
 
 </details>
@@ -334,8 +318,6 @@ def add_image(self, image: QImage) -> None:
         tab = _ScreenshotTab(image, self._tabs)
         index = self._tabs.addTab(tab, self._tab_label(None, self._tabs.count() + 1))
         self._tabs.setCurrentIndex(index)
-        if self._tabs.count() == 1:
-            self._resize_for_image(image)
         self._update_window_title()
         self._tabs.tabBar().setVisible(self._tabs.count() > 1)
 ```
