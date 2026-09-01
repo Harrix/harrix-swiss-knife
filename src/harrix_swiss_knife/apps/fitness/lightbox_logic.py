@@ -54,13 +54,17 @@ class ExerciseStopwatch:
             ):
                 self._elapsed_ms = self._limit_ms
                 self._running = False
+                self._phase = StopwatchPhase.FINISHED
         return self.snapshot()
 
     def apply_state(self, state: ExerciseStopwatchState) -> StopwatchSnapshot:
         """Restore a previously captured stopwatch state."""
         self._phase = state.phase
         self._elapsed_ms = max(0, int(state.elapsed_ms))
-        self._running = bool(state.running) and state.phase is not StopwatchPhase.IDLE
+        self._running = bool(state.running) and state.phase not in {
+            StopwatchPhase.IDLE,
+            StopwatchPhase.FINISHED,
+        }
         return self.snapshot()
 
     def capture_state(self) -> ExerciseStopwatchState:
@@ -88,6 +92,16 @@ class ExerciseStopwatch:
         self.reset()
         return self.start()
 
+    def stop(self) -> StopwatchSnapshot:
+        """Stop the clock and mark the session finished."""
+        if self._phase is StopwatchPhase.IDLE:
+            return self.snapshot()
+        if self._phase is StopwatchPhase.COUNTDOWN:
+            self._elapsed_ms = 0
+        self._phase = StopwatchPhase.FINISHED
+        self._running = False
+        return self.snapshot()
+
     def snapshot(self) -> StopwatchSnapshot:
         """Return the current display state without advancing."""
         if self._phase is StopwatchPhase.IDLE:
@@ -108,6 +122,14 @@ class ExerciseStopwatch:
                 is_running=self._running,
                 color=StopwatchColor.COUNTDOWN,
             )
+        if self._phase is StopwatchPhase.FINISHED:
+            return StopwatchSnapshot(
+                phase=StopwatchPhase.FINISHED,
+                display_seconds=self._elapsed_ms // _MS_PER_SECOND,
+                is_overtime=True,
+                is_running=False,
+                color=StopwatchColor.OVERTIME,
+            )
         overtime = self._limit_ms is not None and self._elapsed_ms >= self._limit_ms
         return StopwatchSnapshot(
             phase=StopwatchPhase.RUNNING,
@@ -118,8 +140,8 @@ class ExerciseStopwatch:
         )
 
     def start(self) -> StopwatchSnapshot:
-        """Start from idle, or resume after pause."""
-        if self._phase is StopwatchPhase.IDLE:
+        """Start from idle or finished, or resume after pause."""
+        if self._phase in {StopwatchPhase.IDLE, StopwatchPhase.FINISHED}:
             self._elapsed_ms = 0
             self._phase = StopwatchPhase.RUNNING if self._countdown_ms <= 0 else StopwatchPhase.COUNTDOWN
         self._running = True
@@ -164,12 +186,21 @@ class StopwatchColor(StrEnum):
     OVERTIME = "overtime"
 
 
+class LightboxOverlayKind(StrEnum):
+    """Image overlay shown over the exercise animation."""
+
+    NONE = "none"
+    PREPARE = "prepare"
+    FINISH = "finish"
+
+
 class StopwatchPhase(StrEnum):
     """Lifecycle of the lightbox exercise timer."""
 
     IDLE = "idle"
     COUNTDOWN = "countdown"
     RUNNING = "running"
+    FINISHED = "finished"
 
 
 @dataclass(frozen=True, slots=True)
@@ -181,6 +212,16 @@ class StopwatchSnapshot:
     is_overtime: bool
     is_running: bool
     color: StopwatchColor
+
+
+@dataclass(frozen=True, slots=True)
+class LightboxPlaybackView:
+    """How the exercise image should look for the current stopwatch state."""
+
+    overlay: LightboxOverlayKind
+    countdown_seconds: int
+    animate: bool
+    freeze_first_frame: bool
 
 
 def allocated_exercise_seconds(duration_min: int, item_count: int) -> int:
@@ -251,6 +292,37 @@ def is_timed_exercise_unit(unit: str) -> bool:
     """Return whether `unit` measures hold/run duration (seconds or minutes)."""
     normalized = normalize_exercise_unit(unit)
     return normalized in _SECOND_UNITS or normalized in _MINUTE_UNITS
+
+
+def lightbox_playback_view(snapshot: StopwatchSnapshot) -> LightboxPlaybackView:
+    """Return overlay and animation flags for a stopwatch snapshot."""
+    if snapshot.phase is StopwatchPhase.COUNTDOWN:
+        return LightboxPlaybackView(
+            overlay=LightboxOverlayKind.PREPARE,
+            countdown_seconds=snapshot.display_seconds,
+            animate=False,
+            freeze_first_frame=True,
+        )
+    if snapshot.phase is StopwatchPhase.FINISHED or snapshot.is_overtime:
+        return LightboxPlaybackView(
+            overlay=LightboxOverlayKind.FINISH,
+            countdown_seconds=0,
+            animate=False,
+            freeze_first_frame=True,
+        )
+    if snapshot.phase is StopwatchPhase.RUNNING and snapshot.is_running:
+        return LightboxPlaybackView(
+            overlay=LightboxOverlayKind.NONE,
+            countdown_seconds=0,
+            animate=True,
+            freeze_first_frame=False,
+        )
+    return LightboxPlaybackView(
+        overlay=LightboxOverlayKind.NONE,
+        countdown_seconds=0,
+        animate=False,
+        freeze_first_frame=False,
+    )
 
 
 def minutes_seconds_to_total(minutes: int, seconds: int) -> int:

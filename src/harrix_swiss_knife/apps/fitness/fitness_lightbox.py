@@ -20,17 +20,21 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife.apps.common.apps_config import DEFAULT_FITNESS_LIGHTBOX_COUNTDOWN_SECONDS
+from harrix_swiss_knife.apps.common.avif_manager import AvifLabelKey
 from harrix_swiss_knife.apps.common.widgets.exercise_avif_lightbox import ExerciseAvifLightboxDialog
 from harrix_swiss_knife.apps.fitness.lightbox_logic import (
     ExerciseStopwatch,
     ExerciseStopwatchState,
     FitnessLightboxConfirm,
     FitnessLightboxDetails,
+    LightboxOverlayKind,
+    LightboxPlaybackView,
     StopwatchColor,
     StopwatchPhase,
     StopwatchSnapshot,
     allocated_exercise_seconds,
     format_mm_ss,
+    lightbox_playback_view,
     target_seconds_for_exercise,
 )
 from harrix_swiss_knife.apps.fitness.lightbox_sounds import (
@@ -48,7 +52,6 @@ _SIDEBAR_WIDTH = 300
 _SPLITTER_PANE_COUNT = 2
 _MIN_IMAGE_EDGE = 2
 _TICK_MS = 100
-_STATUS_FLASH_MS = 2000
 _COUNTDOWN_VOICE_CUES: dict[int, FitnessTimerCue] = {3: "3", 2: "2", 1: "1"}
 _VALUE_MAXIMUM = 1_000_000
 
@@ -138,6 +141,7 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
             allocated_exercise_seconds(duration, item_count) if self._workout_items is not None else None
         )
         self._image_host: QWidget | None = None
+        self._phase_overlay: LightboxPhaseOverlay | None = None
         self._splitter: QSplitter | None = None
         self._sidebar = FitnessLightboxSidebar(
             countdown_seconds=countdown_seconds,
@@ -145,6 +149,7 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
             parent=self,
         )
         self._sidebar.confirm_requested.connect(self._on_confirm)
+        self._sidebar.playback_changed.connect(self._apply_playback_view)
         self._install_sidebar()
         self._sync_fitness_chrome_backdrop()
         self.finish_setup()
@@ -202,6 +207,21 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
             return
         self.accept()
 
+    def _apply_playback_view(self, view: LightboxPlaybackView) -> None:
+        """Freeze or play the AVIF and show the Prepare / Finish veil."""
+        if view.freeze_first_frame:
+            self._avif_manager.show_first_frame(AvifLabelKey.LIGHTBOX)
+        if view.animate:
+            self._avif_manager.resume_animation(AvifLabelKey.LIGHTBOX)
+        else:
+            self._avif_manager.pause_animation(AvifLabelKey.LIGHTBOX)
+        overlay = self._phase_overlay
+        if overlay is not None:
+            overlay.apply(view)
+            overlay.setGeometry(self._label.geometry())
+            overlay.raise_()
+        self._sync_speed_controls()
+
     def _bind_sidebar(self, index: int) -> None:
         if not self._exercises:
             return
@@ -255,6 +275,8 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
         image_host = QWidget(splitter)
         image_host.setObjectName("fitnessLightboxImageHost")
         self._label.setParent(image_host)
+        overlay = LightboxPhaseOverlay(image_host)
+        self._phase_overlay = overlay
         splitter.addWidget(self._sidebar)
         splitter.addWidget(image_host)
         splitter.setStretchFactor(0, 0)
@@ -296,7 +318,27 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
             return
         pane = self._image_pane_rect()
         self._label.setGeometry(0, 0, pane.width(), pane.height())
+        overlay = self._phase_overlay
+        if overlay is not None:
+            overlay.setGeometry(self._label.geometry())
+            overlay.raise_()
         self._schedule_avif_reload()
+
+    def _reload_current(self) -> None:
+        if not self._exercises:
+            return
+        name = self._exercises[self._index]
+        self._cancel_speed_edit()
+        view = self._sidebar.playback_view()
+        self._avif_manager.load_exercise_avif(
+            name,
+            self._label,
+            AvifLabelKey.LIGHTBOX,
+            autoplay=view.animate,
+        )
+        self._loaded_size = self._label.size()
+        self._apply_playback_view(view)
+        self._sync_speed_controls()
 
     def _set_backdrop_color(self, color: str) -> None:
         super()._set_backdrop_color(color)
@@ -316,6 +358,7 @@ class FitnessLightboxSidebar(QFrame):
     """Quick-style column: stopwatch, exercise name, type, value, confirm."""
 
     confirm_requested = Signal()
+    playback_changed = Signal(object)
 
     def __init__(
         self,
@@ -348,9 +391,6 @@ class FitnessLightboxSidebar(QFrame):
         self._tick = QTimer(self)
         self._tick.setInterval(_TICK_MS)
         self._tick.timeout.connect(self._on_tick)
-        self._status_flash = QTimer(self)
-        self._status_flash.setSingleShot(True)
-        self._status_flash.timeout.connect(self._hide_status_flash)
         self._build_ui()
         self._apply_snapshot(self._stopwatch.snapshot())
 
@@ -406,10 +446,13 @@ class FitnessLightboxSidebar(QFrame):
             self._stop_at_limit,
         )
 
+    def playback_view(self) -> LightboxPlaybackView:
+        """Return overlay and animation flags for the current stopwatch."""
+        return lightbox_playback_view(self._stopwatch.snapshot())
+
     def reset_timer(self) -> None:
         """Stop the clock and return to idle."""
         self._tick.stop()
-        self._status_flash.stop()
         self._overtime_announced = False
         self._ready_announced = False
         self._spoken_countdown.clear()
@@ -419,7 +462,6 @@ class FitnessLightboxSidebar(QFrame):
     def restore_timer_state(self, state: ExerciseStopwatchState) -> None:
         """Resume a stopwatch captured when the lightbox was closed."""
         self._tick.stop()
-        self._status_flash.stop()
         stop_fitness_timer_alert()
         snapshot = self._stopwatch.apply_state(state)
         self._overtime_announced = snapshot.is_overtime
@@ -441,7 +483,6 @@ class FitnessLightboxSidebar(QFrame):
     def shutdown(self) -> None:
         """Stop ticking and the overtime sound."""
         self._tick.stop()
-        self._status_flash.stop()
         stop_fitness_timer_alert()
 
     def start_prepare(self) -> None:
@@ -462,9 +503,8 @@ class FitnessLightboxSidebar(QFrame):
             StopwatchColor.OVERTIME: _COLOR_OVERTIME,
         }[snapshot.color]
         self._time_label.setStyleSheet(f"color: {color}; background: transparent;")
+        self._prepare_label.hide()
         if snapshot.phase is StopwatchPhase.COUNTDOWN:
-            self._status_flash.stop()
-            self._show_status_label("Prepare!", _COLOR_COUNTDOWN)
             if not self._ready_announced:
                 self._ready_announced = True
                 play_fitness_timer_cue("ready")
@@ -477,19 +517,14 @@ class FitnessLightboxSidebar(QFrame):
             previous_phase is StopwatchPhase.COUNTDOWN or previous_phase is StopwatchPhase.IDLE
         ) and snapshot.phase is StopwatchPhase.RUNNING:
             play_fitness_timer_cue("go")
-            start_color = _COLOR_RUNNING_ON_DARK if self._backdrop_dark else _COLOR_RUNNING
-            self._flash_status("Start", start_color)
-        elif snapshot.phase is StopwatchPhase.IDLE and not self._status_flash.isActive():
-            self._prepare_label.hide()
         if snapshot.phase is StopwatchPhase.IDLE:
             self._ready_announced = False
             self._spoken_countdown.clear()
         if snapshot.is_overtime:
             if not self._overtime_announced:
                 self._overtime_announced = True
-                if self._stop_at_limit:
+                if self._stop_at_limit or snapshot.phase is StopwatchPhase.FINISHED:
                     play_fitness_timer_cue("time_over")
-                self._flash_status("Finish", _COLOR_OVERTIME)
             if not snapshot.is_running:
                 self._tick.stop()
         else:
@@ -502,6 +537,7 @@ class FitnessLightboxSidebar(QFrame):
         else:
             self._limit_label.hide()
         self._last_phase = snapshot.phase
+        self.playback_changed.emit(lightbox_playback_view(snapshot))
 
     def _build_action_button(self) -> QPushButton:
         button = QPushButton("➕ Add")  # noqa: RUF001
@@ -550,17 +586,20 @@ class FitnessLightboxSidebar(QFrame):
 
         start = self._build_timer_button("▶ Start", "fitnessLightboxStartButton")
         pause = self._build_timer_button("⏸ Pause", "fitnessLightboxPauseButton")
+        stop = self._build_timer_button("⏹ Stop", "fitnessLightboxStopButton")
         restart = self._build_timer_button("↻ Restart", "fitnessLightboxRestartButton")
         start.clicked.connect(self._on_start)
         pause.clicked.connect(self._on_pause)
+        stop.clicked.connect(self._on_stop)
         restart.clicked.connect(self._on_restart)
         controls = QWidget()
         controls.setStyleSheet(_TIMER_BUTTON_STYLE)
         controls_layout = QHBoxLayout(controls)
         controls_layout.setContentsMargins(0, 0, 0, 0)
-        controls_layout.setSpacing(8)
+        controls_layout.setSpacing(6)
         controls_layout.addWidget(start)
         controls_layout.addWidget(pause)
+        controls_layout.addWidget(stop)
         controls_layout.addWidget(restart)
 
         self._title = QLabel("Exercise")
@@ -636,23 +675,22 @@ class FitnessLightboxSidebar(QFrame):
         if previous.phase is not StopwatchPhase.IDLE:
             self._stopwatch.apply_state(previous)
 
-    def _flash_status(self, text: str, color: str) -> None:
-        self._status_flash.stop()
-        self._show_status_label(text, color)
-        self._status_flash.start(_STATUS_FLASH_MS)
-
-    def _hide_status_flash(self) -> None:
-        if self._stopwatch.snapshot().phase is StopwatchPhase.COUNTDOWN:
-            self._show_status_label("Prepare!", _COLOR_COUNTDOWN)
-            return
-        self._prepare_label.hide()
-
     def _on_pause(self) -> None:
         if not self._stopwatch.snapshot().is_running:
             return
         self._tick.stop()
         self._apply_snapshot(self._stopwatch.pause())
         play_fitness_timer_cue("pause")
+
+    def _on_stop(self) -> None:
+        snapshot = self._stopwatch.snapshot()
+        if snapshot.phase in {StopwatchPhase.IDLE, StopwatchPhase.FINISHED}:
+            return
+        self._tick.stop()
+        if not self._overtime_announced:
+            self._overtime_announced = True
+            play_fitness_timer_cue("time_over")
+        self._apply_snapshot(self._stopwatch.stop())
 
     def _on_restart(self) -> None:
         self._ready_announced = False
@@ -683,10 +721,53 @@ class FitnessLightboxSidebar(QFrame):
         self._configure_limit_for_exercise(self._bound_unit, value)
         self._apply_snapshot(self._stopwatch.snapshot())
 
-    def _show_status_label(self, text: str, color: str) -> None:
-        self._prepare_label.setText(text)
-        self._prepare_label.setStyleSheet(f"color: {color}; background: transparent;")
-        self._prepare_label.show()
+class LightboxPhaseOverlay(QWidget):
+    """Dimmed first-frame overlay for Prepare countdown and Finish."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        """Build the centered Prepare / Finish labels."""
+        super().__init__(parent)
+        self.setObjectName("fitnessLightboxPhaseOverlay")
+        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
+        self._title = QLabel("Prepare", self)
+        self._title.setObjectName("fitnessLightboxOverlayTitle")
+        self._title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._title.setStyleSheet("color: #FFFFFF; background: transparent;")
+        _apply_pixel_font(self._title, pixel_size=48, weight=QFont.Weight.ExtraBold)
+        self._number = QLabel("", self)
+        self._number.setObjectName("fitnessLightboxOverlayNumber")
+        self._number.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._number.setStyleSheet("color: #FFFFFF; background: transparent;")
+        _apply_pixel_font(self._number, pixel_size=96, weight=QFont.Weight.ExtraBold)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setSpacing(8)
+        layout.addStretch(1)
+        layout.addWidget(self._title)
+        layout.addWidget(self._number)
+        layout.addStretch(1)
+        self.hide()
+
+    def apply(self, view: LightboxPlaybackView) -> None:
+        """Show Prepare + countdown, Finish, or hide the overlay."""
+        if view.overlay is LightboxOverlayKind.NONE:
+            self.hide()
+            return
+        if view.overlay is LightboxOverlayKind.PREPARE:
+            self._title.setText("Prepare")
+            self._number.setText(str(view.countdown_seconds))
+            self._number.show()
+        else:
+            self._title.setText("Finish")
+            self._number.clear()
+            self._number.hide()
+        self.show()
+        self.raise_()
+
+    def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
+        """Fill the image pane with a dark translucent veil."""
+        painter = QPainter(self)
+        painter.fillRect(self.rect(), QColor(0, 0, 0, 150))
 
 
 class _LightboxTypeCombo(QComboBox):
@@ -818,15 +899,17 @@ QPushButton#fitnessLightboxAddButton:pressed {
 _TIMER_BUTTON_STYLE = """
 QPushButton#fitnessLightboxStartButton,
 QPushButton#fitnessLightboxPauseButton,
+QPushButton#fitnessLightboxStopButton,
 QPushButton#fitnessLightboxRestartButton {
     background: #FFFFFF;
     color: #111827;
     border: 1px solid #D1D5DB;
     border-radius: 12px;
-    padding: 10px 12px;
+    padding: 10px 8px;
 }
 QPushButton#fitnessLightboxStartButton:hover,
 QPushButton#fitnessLightboxPauseButton:hover,
+QPushButton#fitnessLightboxStopButton:hover,
 QPushButton#fitnessLightboxRestartButton:hover {
     background: #F1F5F9;
     border-color: #3B82F6;

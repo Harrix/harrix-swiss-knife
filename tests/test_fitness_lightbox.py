@@ -8,7 +8,7 @@ import pillow_avif  # noqa: F401
 import pytest
 from PIL import Image
 from PySide6.QtCore import QFile
-from PySide6.QtWidgets import QApplication, QSplitter, QWidget
+from PySide6.QtWidgets import QApplication, QPushButton, QSplitter, QWidget
 
 from harrix_swiss_knife import resources_rc  # noqa: F401
 from harrix_swiss_knife.apps.common.apps_config import (
@@ -17,18 +17,23 @@ from harrix_swiss_knife.apps.common.apps_config import (
 )
 from harrix_swiss_knife.apps.common.avif_manager import AvifManager
 from harrix_swiss_knife.apps.fitness.database_manager import WorkoutItemRow
-from harrix_swiss_knife.apps.fitness.fitness_lightbox import FitnessExerciseLightboxDialog
+from harrix_swiss_knife.apps.fitness.fitness_lightbox import (
+    FitnessExerciseLightboxDialog,
+    LightboxPhaseOverlay,
+)
 from harrix_swiss_knife.apps.fitness.lightbox_logic import (
     ExerciseStopwatch,
     ExerciseStopwatchState,
     FitnessLightboxConfirm,
     FitnessLightboxDetails,
+    LightboxOverlayKind,
     StopwatchColor,
     StopwatchPhase,
     allocated_exercise_seconds,
     default_exercise_type,
     format_mm_ss,
     is_seconds_exercise_unit,
+    lightbox_playback_view,
     minutes_seconds_to_total,
     parse_exercise_value,
     split_total_seconds,
@@ -50,6 +55,12 @@ def qapp() -> QApplication:
 
 def _write_test_avif(path: Path) -> None:
     Image.new("RGB", (64, 48), (120, 80, 40)).save(path, format="AVIF")
+
+
+def _overlay(dialog: FitnessExerciseLightboxDialog) -> LightboxPhaseOverlay:
+    overlay = dialog._phase_overlay
+    assert overlay is not None
+    return overlay
 
 
 def _details(_name: str, _item_id: int | None) -> FitnessLightboxDetails:
@@ -173,12 +184,46 @@ def test_stopwatch_stops_at_timed_exercise_limit() -> None:
     watch = ExerciseStopwatch(countdown_seconds=0, limit_seconds=5, stop_at_limit=True)
     watch.start()
     snapshot = watch.advance(5000)
+    assert snapshot.phase is StopwatchPhase.FINISHED
     assert snapshot.is_overtime
     assert snapshot.display_seconds == 5
     assert not snapshot.is_running
     watch.advance(2000)
     assert watch.snapshot().display_seconds == 5
+    assert watch.snapshot().phase is StopwatchPhase.FINISHED
     assert not watch.snapshot().is_running
+
+
+def test_stopwatch_stop_marks_finished() -> None:
+    watch = ExerciseStopwatch(countdown_seconds=2, limit_seconds=10)
+    watch.start()
+    watch.advance(500)
+    stopped = watch.stop()
+    assert stopped.phase is StopwatchPhase.FINISHED
+    assert not stopped.is_running
+    assert stopped.is_overtime
+    watch.advance(2000)
+    assert watch.snapshot().phase is StopwatchPhase.FINISHED
+    started = watch.start()
+    assert started.phase is StopwatchPhase.COUNTDOWN
+    assert started.is_running
+
+
+def test_lightbox_playback_view_prepare_run_and_finish() -> None:
+    countdown = ExerciseStopwatch(countdown_seconds=3, limit_seconds=None).start()
+    assert lightbox_playback_view(countdown).overlay is LightboxOverlayKind.PREPARE
+    assert lightbox_playback_view(countdown).countdown_seconds == 3
+    assert not lightbox_playback_view(countdown).animate
+    running = ExerciseStopwatch(countdown_seconds=0, limit_seconds=None).start()
+    view = lightbox_playback_view(running)
+    assert view.overlay is LightboxOverlayKind.NONE
+    assert view.animate
+    finished = ExerciseStopwatch(countdown_seconds=0, limit_seconds=5, stop_at_limit=True)
+    finished.start()
+    finish_view = lightbox_playback_view(finished.advance(5000))
+    assert finish_view.overlay is LightboxOverlayKind.FINISH
+    assert not finish_view.animate
+    assert finish_view.freeze_first_frame
 
 
 def test_stopwatch_capture_and_restore_resumes_elapsed() -> None:
@@ -251,17 +296,22 @@ def test_fitness_lightbox_flashes_start_and_finish(
         workout_items=[_item(item_id=1, name="Push-ups", sort_order=0)],
     )
     dialog._sidebar._on_start()
-    assert dialog._sidebar._prepare_label.text() == "Prepare!"
-    assert not dialog._sidebar._prepare_label.isHidden()
+    assert dialog._sidebar._prepare_label.isHidden()
+    overlay = _overlay(dialog)
+    assert not overlay.isHidden()
+    assert overlay._title.text() == "Prepare"
+    assert overlay._number.text() == "1"
     assert cues == ["ready", "1"]
     dialog._sidebar._apply_snapshot(dialog._sidebar._stopwatch.advance(1000))
     assert cues == ["ready", "1", "go"]
-    assert dialog._sidebar._prepare_label.text() == "Start"
-    assert not dialog._sidebar._prepare_label.isHidden()
+    assert overlay.isHidden()
+    assert dialog._sidebar._prepare_label.isHidden()
     dialog._sidebar._apply_snapshot(dialog._sidebar._stopwatch.advance(60_000))
     assert cues == ["ready", "1", "go"]
-    assert dialog._sidebar._prepare_label.text() == "Finish"
-    assert not dialog._sidebar._prepare_label.isHidden()
+    assert not overlay.isHidden()
+    assert overlay._title.text() == "Finish"
+    assert overlay._number.isHidden()
+    assert dialog._sidebar._prepare_label.isHidden()
     dialog.close()
 
 
@@ -297,9 +347,13 @@ def test_fitness_lightbox_stops_on_timed_exercise_target(
     dialog._sidebar._on_start()
     dialog._sidebar._apply_snapshot(dialog._sidebar._stopwatch.advance(5000))
     assert cues == ["go", "time_over"]
-    assert dialog._sidebar._prepare_label.text() == "Finish"
+    assert dialog._sidebar._prepare_label.isHidden()
+    overlay = _overlay(dialog)
+    assert not overlay.isHidden()
+    assert overlay._title.text() == "Finish"
     assert dialog._sidebar._time_label.text() == "0:05"
     assert not dialog._sidebar._stopwatch.snapshot().is_running
+    assert dialog._sidebar._stopwatch.snapshot().phase is StopwatchPhase.FINISHED
     dialog.close()
 
 
@@ -368,7 +422,8 @@ def test_fitness_lightbox_restores_timer_state_without_prepare(
         auto_start_prepare=True,
         initial_timer_state=state,
     )
-    assert dialog._sidebar._prepare_label.isHidden() or dialog._sidebar._prepare_label.text() != "Prepare!"
+    assert dialog._sidebar._prepare_label.isHidden()
+    assert _overlay(dialog).isHidden()
     assert dialog._sidebar._time_label.text() == "0:04"
     assert dialog._sidebar._tick.isActive()
     dialog.close()
@@ -425,8 +480,14 @@ def test_fitness_lightbox_has_splitter_sidebar_and_browse_confirm(
     assert dialog._sidebar.selected_type() == "Wide"
     assert dialog._sidebar._prepare_label.isHidden()
     dialog._sidebar._on_start()
-    assert dialog._sidebar._prepare_label.text() == "Prepare!"
-    assert not dialog._sidebar._prepare_label.isHidden()
+    assert dialog._sidebar._prepare_label.isHidden()
+    overlay = _overlay(dialog)
+    assert not overlay.isHidden()
+    assert overlay._title.text() == "Prepare"
+    assert overlay._number.text() == "5"
+    stop = dialog.findChild(QPushButton, "fitnessLightboxStopButton")
+    assert stop is not None
+    assert stop.text() == "⏹ Stop"
     assert "background: transparent" in dialog._sidebar.styleSheet()
     assert "border: none" in dialog._sidebar.styleSheet()
     assert "border-radius: 0" in dialog._sidebar.styleSheet()
@@ -438,6 +499,7 @@ def test_fitness_lightbox_has_splitter_sidebar_and_browse_confirm(
     assert "background: black" in dialog._splitter.styleSheet()
     dialog._sidebar.reset_timer()
     assert dialog._sidebar._prepare_label.isHidden()
+    assert overlay.isHidden()
     assert dialog.chrome_rect().x() > 0
     dialog._sidebar.confirm_requested.emit()
     qapp.processEvents()
@@ -477,12 +539,15 @@ def test_fitness_lightbox_workout_arrows_skip_confirm_and_confirm_advances(
     )
     assert dialog._limit_seconds == allocated_exercise_seconds(10, 2)
     assert not dialog._sidebar._limit_label.isHidden()
-    assert dialog._sidebar._prepare_label.text() == "Prepare!"
-    assert not dialog._sidebar._prepare_label.isHidden()
+    overlay = _overlay(dialog)
+    assert dialog._sidebar._prepare_label.isHidden()
+    assert not overlay.isHidden()
+    assert overlay._title.text() == "Prepare"
     dialog.show_next()
     assert dialog.current_index == 1
     assert dialog._sidebar._title.text() == "Squats"
-    assert not dialog._sidebar._prepare_label.isHidden()
+    assert not overlay.isHidden()
+    assert overlay._title.text() == "Prepare"
     assert confirmed == []
     dialog.show_previous()
     assert dialog.current_index == 0
@@ -492,4 +557,43 @@ def test_fitness_lightbox_workout_arrows_skip_confirm_and_confirm_advances(
     assert confirmed[0].workout_item_id == 11
     assert dialog.current_index == 1
     assert not dialog.should_open_sets_tab
+    dialog.close()
+
+
+def test_fitness_lightbox_stop_button_shows_finish_overlay(
+    tmp_path: Path,
+    qapp: QApplication,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    img_dir = tmp_path / "fitness_img"
+    img_dir.mkdir()
+    _write_test_avif(img_dir / "Plank.avif")
+    manager = AvifManager(img_dir)
+    cues: list[str] = []
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.fitness.fitness_lightbox.play_fitness_timer_cue",
+        cues.append,
+    )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.fitness.fitness_lightbox.stop_fitness_timer_alert",
+        lambda: None,
+    )
+    dialog = FitnessExerciseLightboxDialog(
+        ["Plank"],
+        avif_manager=manager,
+        details_loader=_plank_details,
+        confirm_handler=lambda _payload: True,
+        countdown_seconds=0,
+        workout_duration_min=10,
+        workout_items=[_item(item_id=1, name="Plank", sort_order=0, target="30")],
+    )
+    dialog._sidebar._on_start()
+    assert _overlay(dialog).isHidden()
+    dialog._sidebar._on_stop()
+    overlay = _overlay(dialog)
+    assert not overlay.isHidden()
+    assert overlay._title.text() == "Finish"
+    assert dialog._sidebar._prepare_label.isHidden()
+    assert dialog._sidebar._stopwatch.snapshot().phase is StopwatchPhase.FINISHED
+    assert cues == ["go", "time_over"]
     dialog.close()

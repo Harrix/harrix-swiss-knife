@@ -66,6 +66,24 @@ def test_set_animation_speed_changes_lightbox_timer_only(tmp_path: Path) -> None
     main_timer.stop()
 
 
+def test_pause_and_resume_lightbox_animation(tmp_path: Path) -> None:
+    assert _qapp() is not None
+    manager = AvifManager(tmp_path)
+    timer = QTimer()
+    timer.start(100)
+    manager.avif_data[AvifLabelKey.LIGHTBOX]["timer"] = timer
+    manager.avif_data[AvifLabelKey.LIGHTBOX]["duration_ms"] = 100
+    manager.avif_data[AvifLabelKey.LIGHTBOX]["frames"] = [object(), object()]
+    assert manager.has_animation_frames(AvifLabelKey.LIGHTBOX)
+    assert manager.is_animation_active(AvifLabelKey.LIGHTBOX)
+    manager.pause_animation(AvifLabelKey.LIGHTBOX)
+    assert not manager.is_animation_active(AvifLabelKey.LIGHTBOX)
+    assert manager.has_animation_frames(AvifLabelKey.LIGHTBOX)
+    manager.resume_animation(AvifLabelKey.LIGHTBOX)
+    assert manager.is_animation_active(AvifLabelKey.LIGHTBOX)
+    timer.stop()
+
+
 def test_load_exercise_avif_preserves_lightbox_speed(tmp_path: Path) -> None:
     assert _qapp() is not None
     img_dir = tmp_path / "fitness_img"
