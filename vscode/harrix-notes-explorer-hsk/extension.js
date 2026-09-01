@@ -3974,7 +3974,17 @@ function getWorkspaceRootEntries() {
   }));
 }
 
-async function activate(context) {
+function activate(context) {
+  // Markdown preview restore waits for `extendMarkdownIt`. Return it before
+  // HTTP server / tree setup so a slow or failed activate cannot blank the pane.
+  const plugin = registerPreviewCopyMarkdownPlugin();
+  void activateWorkbench(context).catch((err) => {
+    console.error('[Harrix Notes HSK] activate failed:', err);
+  });
+  return plugin;
+}
+
+async function activateWorkbench(context) {
   registerOpenMediaExternallyCommand(context);
   try {
     await startOpenMediaHttpServer();
@@ -3993,7 +4003,7 @@ async function activate(context) {
   const rootEntries = getWorkspaceRootEntries();
   if (rootEntries.length === 0) {
     registerMarkdownRelativeLinkDropProvider(context);
-    return registerPreviewCopyMarkdownPlugin();
+    return;
   }
   const rootPath = rootEntries[0].path;
 
@@ -4750,8 +4760,6 @@ async function activate(context) {
   watcher.onDidDelete(refreshTreeAndIconsBrowse);
   watcher.onDidChange(refreshTreeAndIconsBrowse);
   context.subscriptions.push(watcher);
-
-  return registerPreviewCopyMarkdownPlugin();
 }
 
 function deactivate() {

@@ -469,6 +469,8 @@
         }
       });
       processFrontmatter();
+    } catch (err) {
+      console.error('[Harrix Notes HSK] preview-copy update failed:', err);
     } finally {
       isProcessingDom = false;
       if (domObserver && document.body) {
@@ -485,6 +487,9 @@
       return;
     }
     if (isCursorRichMarkdownSurface()) {
+      return;
+    }
+    if (!document.body) {
       return;
     }
     window.__hneMarkdownCopyInit = true;
@@ -523,20 +528,36 @@
       }
     });
 
-    domObserver.observe(document.body, {
-      childList: true,
-      subtree: true,
-    });
+    try {
+      domObserver.observe(document.body, {
+        childList: true,
+        subtree: true,
+      });
+    } catch {
+      domObserver = null;
+      return;
+    }
 
     window.addEventListener('vscode.markdown.updateContent', () => {
       processAllCodeBlocks();
     });
   }
 
-  initOnce();
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', processAllCodeBlocks);
+  function startWhenReady() {
+    try {
+      if (isCursorRichMarkdownSurface()) {
+        return;
+      }
+      initOnce();
+      processAllCodeBlocks();
+    } catch (err) {
+      console.error('[Harrix Notes HSK] preview-copy init failed:', err);
+    }
+  }
+
+  if (document.readyState === 'loading' || !document.body) {
+    document.addEventListener('DOMContentLoaded', startWhenReady);
   } else {
-    processAllCodeBlocks();
+    startWhenReady();
   }
 })();
