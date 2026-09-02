@@ -87,7 +87,6 @@ class AppConfig(TypedDict, total=False):
     sqlite_food: str
     sqlite_habits: str
     sqlite_snippets: str
-    habits_sport_habit_name: NotRequired[str]
     habits_sport_lookback_days: NotRequired[int]
     transfer_private_data_default_api_keys: NotRequired[list[str]]
     food_calorie_thresholds: FoodCalorieThresholds

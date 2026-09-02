@@ -166,7 +166,14 @@ def test_sync_sport_habit_from_fitness_does_nothing_without_habit(
         )
         == 0
     )
-    assert sync_sport_habit_from_fitness(habits_db, {}, today=date(2026, 9, 3)) == 0
+    assert (
+        sync_sport_habit_from_fitness(
+            habits_db,
+            {HABITS_SPORT_HABIT_NAME_KEY: ""},
+            today=date(2026, 9, 3),
+        )
+        == 0
+    )
 
 
 def test_resolve_fitness_db_path(tmp_path: Path) -> None:
@@ -179,18 +186,33 @@ def test_resolve_fitness_db_path(tmp_path: Path) -> None:
 
 
 def test_habits_sport_config_helpers(tmp_path: Path) -> None:
-    assert get_habits_sport_habit_name({}) == ""
+    path = tmp_path / "config.json"
+    path.write_text(json.dumps({}), encoding="utf-8")
+    assert get_habits_sport_habit_name({HABITS_SPORT_HABIT_NAME_KEY: ""}, config_path=str(path)) == ""
+    assert get_habits_sport_habit_name(config_path=str(path)) == ""
     assert get_habits_sport_lookback_days({}) == DEFAULT_HABITS_SPORT_LOOKBACK_DAYS
     assert get_habits_sport_lookback_days({HABITS_SPORT_LOOKBACK_DAYS_KEY: 0}) == 1
     assert get_habits_sport_lookback_days({HABITS_SPORT_LOOKBACK_DAYS_KEY: 400}) == 366
-    path = tmp_path / "config.json"
-    path.write_text(json.dumps({"editor": "cursor"}), encoding="utf-8")
+    path.write_text(
+        json.dumps({"editor": "cursor", HABITS_SPORT_HABIT_NAME_KEY: "Old"}),
+        encoding="utf-8",
+    )
     live: dict[str, Any] = {}
     set_habits_sport_habit_name("Sport", config=live, config_path=str(path))
     written = json.loads(path.read_text(encoding="utf-8"))
-    assert written[HABITS_SPORT_HABIT_NAME_KEY] == "Sport"
+    assert HABITS_SPORT_HABIT_NAME_KEY not in written
+    assert written["editor"] == "cursor"
+    temp = json.loads((tmp_path / "config-temp.json").read_text(encoding="utf-8"))
+    assert temp[HABITS_SPORT_HABIT_NAME_KEY] == "Sport"
     assert live[HABITS_SPORT_HABIT_NAME_KEY] == "Sport"
     assert get_habits_sport_habit_name(live) == "Sport"
+    assert get_habits_sport_habit_name(config_path=str(path)) == "Sport"
+
+
+def test_habits_sport_habit_name_falls_back_to_main_config(tmp_path: Path) -> None:
+    path = tmp_path / "config.json"
+    path.write_text(json.dumps({HABITS_SPORT_HABIT_NAME_KEY: "Walk"}), encoding="utf-8")
+    assert get_habits_sport_habit_name(config_path=str(path)) == "Walk"
 
 
 def test_dashboard_context_menu_hides_assign_for_sport_habit(
@@ -237,7 +259,7 @@ def test_dashboard_context_menu_assigns_sport_habit(
         return action
 
     monkeypatch.setattr("harrix_swiss_knife.apps.habits.dashboard.add_emoji_action", fake_add)
-    dashboard = HabitDashboardWidget(app_config={})
+    dashboard = HabitDashboardWidget(app_config={HABITS_SPORT_HABIT_NAME_KEY: ""})
     dashboard._habits_cache = [[3, "Sport", 1, 0, ""]]
     names: list[str] = []
     dashboard.sport_habit_assign_requested.connect(names.append)

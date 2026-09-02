@@ -308,17 +308,32 @@ def get_apps_local_language_display_name(config: dict[str, Any]) -> str:
 ## 🔧 Function `get_habits_sport_habit_name`
 
 ```python
-def get_habits_sport_habit_name(config: dict[str, Any]) -> str
+def get_habits_sport_habit_name(config: dict[str, Any] | None = None, *, config_path: str | None = None) -> str
 ```
 
-Return the habit name marked as sport, or an empty string.
+Return the sport habit name from `config-temp.json`.
+
+When [`config`](../../actions/common/base.g.md#%EF%B8%8F-method-config-property) includes the key (tests or leftover `config.json`), that
+value wins — including an empty string — so callers stay isolated from
+the machine temp file. Otherwise the name is read from temp, then from
+`config.json`.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def get_habits_sport_habit_name(config: dict[str, Any]) -> str:
-    return str(config.get(HABITS_SPORT_HABIT_NAME_KEY) or "").strip()
+def get_habits_sport_habit_name(
+    config: dict[str, Any] | None = None,
+    *,
+    config_path: str | None = None,
+) -> str:
+    if config is not None and HABITS_SPORT_HABIT_NAME_KEY in config:
+        return str(config.get(HABITS_SPORT_HABIT_NAME_KEY) or "").strip()
+    path = config_path or get_config_path_str()
+    name = _read_config_key(path, HABITS_SPORT_HABIT_NAME_KEY, is_temp=True)
+    if name:
+        return name
+    return _read_config_key(path, HABITS_SPORT_HABIT_NAME_KEY, is_temp=False)
 ```
 
 </details>
@@ -457,7 +472,9 @@ def set_apps_fitness_workout_gender(
 def set_habits_sport_habit_name(name: str, *, config: dict[str, Any] | None = None, config_path: str | None = None) -> None
 ```
 
-Write the sport habit name into `config.json`.
+Write the sport habit name into `config-temp.json`.
+
+Also removes a leftover copy from `config.json` when present.
 
 Args:
 
@@ -476,14 +493,10 @@ def set_habits_sport_habit_name(
     config_path: str | None = None,
 ) -> None:
     value = str(name or "").strip()
-    path = Path(config_path or get_config_path_str())
-    with path.open(encoding="utf-8") as handle:
-        data = json.load(handle)
-    if not isinstance(data, dict):
-        msg = f"Config root must be a JSON object: {path}"
-        raise TypeError(msg)
-    data[HABITS_SPORT_HABIT_NAME_KEY] = value
-    path.write_text(h.dev.dumps_pretty_json(data), encoding="utf-8")
+    path_str = config_path or get_config_path_str()
+    _ensure_temp_config_file(path_str)
+    h.dev.config_update_value(HABITS_SPORT_HABIT_NAME_KEY, value, path_str, is_temp=True)
+    _strip_key_from_config_file(path_str, HABITS_SPORT_HABIT_NAME_KEY)
     if config is not None:
         config[HABITS_SPORT_HABIT_NAME_KEY] = value
 ```

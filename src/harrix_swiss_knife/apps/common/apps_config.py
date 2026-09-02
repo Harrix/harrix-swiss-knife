@@ -197,9 +197,26 @@ def get_apps_local_language_display_name(config: dict[str, Any]) -> str:
     return code.upper()
 
 
-def get_habits_sport_habit_name(config: dict[str, Any]) -> str:
-    """Return the habit name marked as sport, or an empty string."""
-    return str(config.get(HABITS_SPORT_HABIT_NAME_KEY) or "").strip()
+def get_habits_sport_habit_name(
+    config: dict[str, Any] | None = None,
+    *,
+    config_path: str | None = None,
+) -> str:
+    """Return the sport habit name from `config-temp.json`.
+
+    When `config` includes the key (tests or leftover `config.json`), that
+    value wins — including an empty string — so callers stay isolated from
+    the machine temp file. Otherwise the name is read from temp, then from
+    `config.json`.
+
+    """
+    if config is not None and HABITS_SPORT_HABIT_NAME_KEY in config:
+        return str(config.get(HABITS_SPORT_HABIT_NAME_KEY) or "").strip()
+    path = config_path or get_config_path_str()
+    name = _read_config_key(path, HABITS_SPORT_HABIT_NAME_KEY, is_temp=True)
+    if name:
+        return name
+    return _read_config_key(path, HABITS_SPORT_HABIT_NAME_KEY, is_temp=False)
 
 
 def get_habits_sport_lookback_days(config: dict[str, Any]) -> int:
@@ -301,7 +318,9 @@ def set_habits_sport_habit_name(
     config: dict[str, Any] | None = None,
     config_path: str | None = None,
 ) -> None:
-    """Write the sport habit name into `config.json`.
+    """Write the sport habit name into `config-temp.json`.
+
+    Also removes a leftover copy from `config.json` when present.
 
     Args:
 
@@ -311,13 +330,58 @@ def set_habits_sport_habit_name(
 
     """
     value = str(name or "").strip()
-    path = Path(config_path or get_config_path_str())
-    with path.open(encoding="utf-8") as handle:
-        data = json.load(handle)
-    if not isinstance(data, dict):
-        msg = f"Config root must be a JSON object: {path}"
-        raise TypeError(msg)
-    data[HABITS_SPORT_HABIT_NAME_KEY] = value
-    path.write_text(h.dev.dumps_pretty_json(data), encoding="utf-8")
+    path_str = config_path or get_config_path_str()
+    _ensure_temp_config_file(path_str)
+    h.dev.config_update_value(HABITS_SPORT_HABIT_NAME_KEY, value, path_str, is_temp=True)
+    _strip_key_from_config_file(path_str, HABITS_SPORT_HABIT_NAME_KEY)
     if config is not None:
         config[HABITS_SPORT_HABIT_NAME_KEY] = value
+
+
+def _ensure_temp_config_file(config_path: str) -> None:
+    """Create an empty sibling `*-temp.json` when the temp config is missing."""
+    temp_path = _sibling_temp_config_path(config_path)
+    temp_path.parent.mkdir(parents=True, exist_ok=True)
+    if not temp_path.exists() or temp_path.stat().st_size == 0:
+        temp_path.write_text("{}", encoding="utf-8")
+
+
+def _read_config_key(config_path: str, key: str, *, is_temp: bool) -> str:
+    """Return a trimmed string value from main or temp config, or empty."""
+    try:
+        data = h.dev.config_load(config_path, is_temp=is_temp, resolve_snippets=False)
+    except (FileNotFoundError, OSError, TypeError, ValueError, json.JSONDecodeError):
+        return ""
+    if not isinstance(data, dict):
+        return ""
+    return str(data.get(key) or "").strip()
+
+
+def _resolve_config_file(config_path: str) -> Path:
+    """Return the on-disk path `harrix_pylib` uses for `config_path`."""
+    path = Path(config_path)
+    if path.is_absolute():
+        return path
+    return Path(h.dev.get_project_root()) / path
+
+
+def _sibling_temp_config_path(config_path: str) -> Path:
+    """Return `config-temp.json` next to `config.json`."""
+    path = _resolve_config_file(config_path)
+    return path.with_name(f"{path.stem}-temp{path.suffix}")
+
+
+def _strip_key_from_config_file(config_path: str, key: str) -> None:
+    """Remove `key` from the main config file when it is present."""
+    path = _resolve_config_file(config_path)
+    if not path.is_file():
+        return
+    try:
+        with path.open(encoding="utf-8") as handle:
+            data = json.load(handle)
+    except (OSError, TypeError, ValueError, json.JSONDecodeError):
+        return
+    if not isinstance(data, dict) or key not in data:
+        return
+    del data[key]
+    path.write_text(h.dev.dumps_pretty_json(data), encoding="utf-8")
