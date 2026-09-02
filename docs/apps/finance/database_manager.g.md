@@ -72,6 +72,7 @@ lang: en
   - [⚙️ Method `get_last_two_exchange_rate_records`](#%EF%B8%8F-method-get_last_two_exchange_rate_records)
   - [⚙️ Method `get_missing_exchange_rates_info`](#%EF%B8%8F-method-get_missing_exchange_rates_info)
   - [⚙️ Method `get_monthly_expense_totals_by_category`](#%EF%B8%8F-method-get_monthly_expense_totals_by_category)
+  - [⚙️ Method `get_monthly_income_totals`](#%EF%B8%8F-method-get_monthly_income_totals)
   - [⚙️ Method `get_recent_description_category_pairs`](#%EF%B8%8F-method-get_recent_description_category_pairs)
   - [⚙️ Method `get_recent_transaction_descriptions_for_autocomplete`](#%EF%B8%8F-method-get_recent_transaction_descriptions_for_autocomplete)
   - [⚙️ Method `get_revision_expense_transactions`](#%EF%B8%8F-method-get_revision_expense_transactions)
@@ -1408,6 +1409,32 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             cid = int(category_id)
             amount_major = float(total_minor or 0) / 100
             monthly.setdefault(month, {})[cid] = amount_major
+        return monthly
+
+    def get_monthly_income_totals(self, currency_id: int) -> dict[str, float]:
+        """Return income totals grouped by YYYY-MM month (major units)."""
+        join_clause, conversion_case, extra_params = self._get_currency_conversion_sql(
+            currency_id,
+            use_transaction_date=True,
+        )
+        params: dict[str, Any] = {"currency_id": currency_id}
+        params.update(extra_params)
+        query = f"""
+            SELECT strftime('%Y-%m', t.date) as month_key,
+                   SUM({conversion_case}) as total_amount
+            FROM transactions t
+            JOIN categories cat ON t._id_categories = cat._id
+            {join_clause}
+            WHERE cat.type = 1
+            GROUP BY month_key
+            ORDER BY month_key
+        """
+        rows = self.get_rows(query, params)
+        monthly: dict[str, float] = {}
+        for month_key, total_minor in rows:
+            if month_key is None:
+                continue
+            monthly[str(month_key)] = float(total_minor or 0) / 100
         return monthly
 
     def get_recent_description_category_pairs(self, limit: int = 1000) -> list[tuple[str, str, int]]:
@@ -4558,6 +4585,46 @@ def get_monthly_expense_totals_by_category(self, currency_id: int) -> dict[str, 
             cid = int(category_id)
             amount_major = float(total_minor or 0) / 100
             monthly.setdefault(month, {})[cid] = amount_major
+        return monthly
+```
+
+</details>
+
+### ⚙️ Method `get_monthly_income_totals`
+
+```python
+def get_monthly_income_totals(self, currency_id: int) -> dict[str, float]
+```
+
+Return income totals grouped by YYYY-MM month (major units).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_monthly_income_totals(self, currency_id: int) -> dict[str, float]:
+        join_clause, conversion_case, extra_params = self._get_currency_conversion_sql(
+            currency_id,
+            use_transaction_date=True,
+        )
+        params: dict[str, Any] = {"currency_id": currency_id}
+        params.update(extra_params)
+        query = f"""
+            SELECT strftime('%Y-%m', t.date) as month_key,
+                   SUM({conversion_case}) as total_amount
+            FROM transactions t
+            JOIN categories cat ON t._id_categories = cat._id
+            {join_clause}
+            WHERE cat.type = 1
+            GROUP BY month_key
+            ORDER BY month_key
+        """
+        rows = self.get_rows(query, params)
+        monthly: dict[str, float] = {}
+        for month_key, total_minor in rows:
+            if month_key is None:
+                continue
+            monthly[str(month_key)] = float(total_minor or 0) / 100
         return monthly
 ```
 

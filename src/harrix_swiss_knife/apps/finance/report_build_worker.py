@@ -13,6 +13,7 @@ from harrix_swiss_knife.apps.finance.report_generators import (
     get_category_analysis_report_data,
     get_currency_analysis_report_data,
     get_income_vs_expenses_report_data,
+    get_monthly_income_year_delta_report_data,
     get_monthly_summary_report_data,
 )
 
@@ -83,6 +84,9 @@ class ReportBuildWorker(QThread):
                 result = ReportBuildResult(report_type=report_type, headers=headers, table_rows=report_data)
             elif report_type == "Income vs Expenses":
                 headers, report_data = get_income_vs_expenses_report_data(ctx)
+                result = ReportBuildResult(report_type=report_type, headers=headers, table_rows=report_data)
+            elif report_type == "Monthly Income vs Previous Years":
+                headers, report_data = get_monthly_income_year_delta_report_data(ctx)
                 result = ReportBuildResult(report_type=report_type, headers=headers, table_rows=report_data)
             elif report_type == "Average Salary by Year":
                 headers, report_data = get_average_salary_by_year_report_data(

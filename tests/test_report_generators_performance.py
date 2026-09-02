@@ -16,8 +16,10 @@ from harrix_swiss_knife.apps.finance.report_generators import (
     get_category_analysis_report_data,
     get_currency_analysis_report_data,
     get_income_vs_expenses_report_data,
+    get_monthly_income_year_delta_report_data,
     get_monthly_summary_report_data,
 )
+from harrix_swiss_knife.apps.finance.report_operations import REPORT_TYPES
 
 RECOVER_SQL = Path(__file__).resolve().parents[1] / "src" / "harrix_swiss_knife" / "apps" / "finance" / "recover.sql"
 
@@ -152,3 +154,56 @@ def test_income_vs_expenses_smoke(report_ctx: ReportBuildContext) -> None:
     headers, rows = get_income_vs_expenses_report_data(report_ctx)
     assert headers == ["Period", "Income", "Expenses", "Balance"]
     assert len(rows) == 5
+
+
+def _salary_category_id(finance_db: DatabaseManager) -> int:
+    rows = finance_db.get_rows("SELECT _id FROM categories WHERE name = 'Salary'")
+    assert rows
+    return int(rows[0][0])
+
+
+def test_monthly_income_year_delta_compares_same_month(finance_db: DatabaseManager) -> None:
+    today = datetime.now(UTC).astimezone()
+    current_year = today.year
+    last_year = current_year - 1
+    two_years_ago = current_year - 2
+    salary_id = _salary_category_id(finance_db)
+    existing_rate_dates = {
+        str(row[0]) for row in finance_db.get_rows("SELECT date FROM exchange_rates WHERE _id_currency = 1")
+    }
+    for year in (two_years_ago, last_year, current_year):
+        rate_date = f"{year}-01-01"
+        if rate_date not in existing_rate_dates:
+            finance_db.add_exchange_rate(1, 90.0, rate_date)
+    finance_db.add_transaction(1000.0, "Salary", salary_id, 1, f"{two_years_ago}-01-15")
+    finance_db.add_transaction(1200.0, "Salary", salary_id, 1, f"{last_year}-01-15")
+    finance_db.add_transaction(1500.0, "Salary", salary_id, 1, f"{current_year}-01-15")
+
+    currencies_by_code, currencies_by_id = finance_db.get_all_currencies_map()
+    ctx = ReportBuildContext(
+        db_manager=finance_db,
+        currency_id=finance_db.get_default_currency_id(),
+        rates=finance_db.exchange_rates.preload_all_rates(),
+        currencies_by_code=currencies_by_code,
+        currencies_by_id=currencies_by_id,
+    )
+
+    headers, rows = get_monthly_income_year_delta_report_data(ctx)
+    assert headers[:3] == ["Month", str(current_year), f"vs {last_year}"]
+    assert f"vs {two_years_ago}" in headers
+    january = next(row for row in rows if row[0] == "January")
+    assert january[1] == "1500.00 RUB"
+    assert january[2] == "+300.00 RUB"
+    assert january[3] == "+500.00 RUB"
+    if today.month < 12:
+        december = next(row for row in rows if row[0] == "December")
+        assert december[1:] == ["—"] * (len(headers) - 1)
+    assert rows[-1][0] == "TOTAL"
+    assert rows[-1][1] == "1500.00 RUB"
+    assert rows[-1][2] == "+300.00 RUB"
+    assert rows[-1][3] == "+500.00 RUB"
+
+
+def test_report_types_include_monthly_income_year_delta() -> None:
+    names = [report_type for _icon, report_type in REPORT_TYPES]
+    assert "Monthly Income vs Previous Years" in names

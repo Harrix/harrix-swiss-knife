@@ -1307,6 +1307,32 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             monthly.setdefault(month, {})[cid] = amount_major
         return monthly
 
+    def get_monthly_income_totals(self, currency_id: int) -> dict[str, float]:
+        """Return income totals grouped by YYYY-MM month (major units)."""
+        join_clause, conversion_case, extra_params = self._get_currency_conversion_sql(
+            currency_id,
+            use_transaction_date=True,
+        )
+        params: dict[str, Any] = {"currency_id": currency_id}
+        params.update(extra_params)
+        query = f"""
+            SELECT strftime('%Y-%m', t.date) as month_key,
+                   SUM({conversion_case}) as total_amount
+            FROM transactions t
+            JOIN categories cat ON t._id_categories = cat._id
+            {join_clause}
+            WHERE cat.type = 1
+            GROUP BY month_key
+            ORDER BY month_key
+        """
+        rows = self.get_rows(query, params)
+        monthly: dict[str, float] = {}
+        for month_key, total_minor in rows:
+            if month_key is None:
+                continue
+            monthly[str(month_key)] = float(total_minor or 0) / 100
+        return monthly
+
     def get_recent_description_category_pairs(self, limit: int = 1000) -> list[tuple[str, str, int]]:
         """Return `(description, category_name, usage_count)` rows for category suggestions.
 

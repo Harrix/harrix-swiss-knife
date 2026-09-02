@@ -28,6 +28,7 @@ REPORT_TYPES: tuple[tuple[str, str], ...] = (
     ("💱", "Currency Analysis"),
     ("🏦", "Account Balances"),
     ("⚖️", "Income vs Expenses"),
+    ("💹", "Monthly Income vs Previous Years"),
     ("💼", "Average Salary by Year"),
 )
 
@@ -149,6 +150,33 @@ class ReportOperations:
             model.appendRow(items)
         self._set_reports_model_and_stretch(model)
 
+    def _apply_monthly_income_year_delta_report(self, headers: list[str], report_data: list[list[str]]) -> None:
+        """Bind monthly income year-delta report data to the reports table."""
+        model: QStandardItemModel = QStandardItemModel()
+        model.setHorizontalHeaderLabels(headers)
+        for row_data in report_data:
+            items = [QStandardItem(str(value)) for value in row_data]
+            if row_data and row_data[0] == "TOTAL":
+                for item in items:
+                    item.setBackground(QBrush(QColor(255, 255, 0)))
+            else:
+                for column, item in enumerate(items[1:], start=1):
+                    text = str(row_data[column]) if column < len(row_data) else ""
+                    if text in {"", "—"}:
+                        continue
+                    try:
+                        amount = float(text.replace("+", "").split(maxsplit=1)[0])
+                    except (ValueError, IndexError):
+                        continue
+                    if column == 1:
+                        item.setBackground(QBrush(QColor(255, 250, 205)))
+                    elif amount > 0:
+                        item.setBackground(QBrush(QColor(200, 255, 200)))
+                    elif amount < 0:
+                        item.setBackground(QBrush(QColor(255, 200, 200)))
+            model.appendRow(items)
+        self._set_reports_model_and_stretch(model)
+
     def _apply_monthly_summary_report(
         self,
         headers: list[str],
@@ -239,6 +267,8 @@ class ReportOperations:
             self._apply_account_balances_report(result.headers, result.table_rows or [])
         elif report_type == "Income vs Expenses":
             self._apply_income_vs_expenses_report(result.headers, result.table_rows or [])
+        elif report_type == "Monthly Income vs Previous Years":
+            self._apply_monthly_income_year_delta_report(result.headers, result.table_rows or [])
         elif report_type == "Average Salary by Year":
             self._apply_average_salary_by_year_report(result.headers, result.table_rows or [])
 

@@ -16,6 +16,7 @@ lang: en
 - [🔧 Function `get_category_analysis_report_data`](#-function-get_category_analysis_report_data)
 - [🔧 Function `get_currency_analysis_report_data`](#-function-get_currency_analysis_report_data)
 - [🔧 Function `get_income_vs_expenses_report_data`](#-function-get_income_vs_expenses_report_data)
+- [🔧 Function `get_monthly_income_year_delta_report_data`](#-function-get_monthly_income_year_delta_report_data)
 - [🔧 Function `get_monthly_summary_report_data`](#-function-get_monthly_summary_report_data)
 
 </details>
@@ -212,6 +213,76 @@ def get_income_vs_expenses_report_data(
         )
 
     return ["Period", "Income", "Expenses", "Balance"], report_data
+```
+
+</details>
+
+## 🔧 Function `get_monthly_income_year_delta_report_data`
+
+```python
+def get_monthly_income_year_delta_report_data(ctx: ReportBuildContext) -> tuple[list[str], list[list[str]]]
+```
+
+Build monthly income compared with the same month in previous years.
+
+Rows are January — December. The first data column is this calendar year.
+The next columns are deltas versus last year, the year before that, and so on.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_monthly_income_year_delta_report_data(
+    ctx: ReportBuildContext,
+) -> tuple[list[str], list[list[str]]]:
+    db_manager = ctx.db_manager
+    currency_code: str = db_manager.get_default_currency()
+    monthly = db_manager.get_monthly_income_totals(ctx.currency_id)
+    today = datetime.now(UTC).astimezone()
+    current_year = today.year
+    current_month = today.month
+
+    years_with_data: set[int] = set()
+    for month_key in monthly:
+        year_text, _sep, _rest = month_key.partition("-")
+        if year_text.isdigit():
+            years_with_data.add(int(year_text))
+    years_with_data.add(current_year)
+    previous_years = sorted((year for year in years_with_data if year < current_year), reverse=True)
+
+    headers = ["Month", str(current_year), *[f"vs {year}" for year in previous_years]]
+
+    def income_for(year: int, month: int) -> float:
+        return monthly.get(f"{year}-{month:02d}", 0.0)
+
+    def format_amount(amount: float) -> str:
+        return f"{amount:.2f} {currency_code}"
+
+    def format_delta(amount: float) -> str:
+        sign = "+" if amount > 0 else ""
+        return f"{sign}{amount:.2f} {currency_code}"
+
+    report_data: list[list[str]] = []
+    total_current = 0.0
+    total_deltas = [0.0] * len(previous_years)
+
+    for month in range(1, 13):
+        month_name = _MONTH_NAMES[month - 1]
+        if month > current_month:
+            report_data.append([month_name, "—", *["—" for _ in previous_years]])
+            continue
+
+        current_income = income_for(current_year, month)
+        total_current += current_income
+        row = [month_name, format_amount(current_income)]
+        for index, year in enumerate(previous_years):
+            delta = current_income - income_for(year, month)
+            total_deltas[index] += delta
+            row.append(format_delta(delta))
+        report_data.append(row)
+
+    report_data.append(["TOTAL", format_amount(total_current), *[format_delta(delta) for delta in total_deltas]])
+    return headers, report_data
 ```
 
 </details>
