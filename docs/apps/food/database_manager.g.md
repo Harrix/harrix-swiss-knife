@@ -27,6 +27,7 @@ lang: en
   - [⚙️ Method `get_drinks_weight_per_day`](#%EF%B8%8F-method-get_drinks_weight_per_day)
   - [⚙️ Method `get_drinks_weight_today`](#%EF%B8%8F-method-get_drinks_weight_today)
   - [⚙️ Method `get_earliest_food_log_date`](#%EF%B8%8F-method-get_earliest_food_log_date)
+  - [⚙️ Method `get_filtered_food_log_records`](#%EF%B8%8F-method-get_filtered_food_log_records)
   - [⚙️ Method `get_food_calories_today`](#%EF%B8%8F-method-get_food_calories_today)
   - [⚙️ Method `get_food_item_by_name`](#%EF%B8%8F-method-get_food_item_by_name)
   - [⚙️ Method `get_food_item_names_for_autocomplete`](#%EF%B8%8F-method-get_food_item_names_for_autocomplete)
@@ -399,6 +400,74 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
     def get_earliest_food_log_date(self) -> str | None:
         """Get the earliest date from food_log table."""
         return self.get_earliest_date("food_log")
+
+    def get_filtered_food_log_records(
+        self,
+        is_drink: int | None = None,
+        date_from: str | None = None,
+        date_to: str | None = None,
+        name_filter: str | None = None,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> list[list[Any]]:
+        r"""Get food log records matching the table filter toolbar.
+
+        Args:
+
+        - `is_drink` (`int | None`): `0` for food, `1` for drink. Defaults to `None`.
+        - `date_from` (`str | None`): Inclusive start date. Defaults to `None`.
+        - `date_to` (`str | None`): Inclusive end date. Defaults to `None`.
+        - `name_filter` (`str | None`): Substring match on `name` or `name_en`
+          (Unicode case-insensitive). Defaults to `None`.
+        - `limit` (`int | None`): Maximum number of records. Defaults to `None`.
+        - `offset` (`int`): Number of records to skip. Defaults to `0`.
+
+        Returns:
+
+        - `list[list[Any]]`: Filtered rows [\_id, date, weight, portion_calories,
+          calories_per_100g, name, name_en, is_drink].
+
+        """
+        conditions: list[str] = []
+        params: dict[str, Any] = {}
+
+        if is_drink is not None:
+            conditions.append("is_drink = :is_drink")
+            params["is_drink"] = is_drink
+
+        if date_from and date_to:
+            conditions.append("date BETWEEN :date_from AND :date_to")
+            params["date_from"] = date_from
+            params["date_to"] = date_to
+
+        normalized_name_filter = _normalize_name_filter(name_filter)
+
+        query_text = """
+            SELECT _id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink
+            FROM food_log
+        """
+        if conditions:
+            query_text += " WHERE " + " AND ".join(conditions)
+        query_text += " ORDER BY date DESC, _id DESC"
+
+        sql_limit: int | None = limit
+        sql_offset: int = offset
+        if normalized_name_filter is not None:
+            # SQLite LOWER() is ASCII-only; filter names in Python with casefold().
+            sql_limit = None
+            sql_offset = 0
+
+        if sql_limit is not None:
+            query_text += " LIMIT :limit OFFSET :offset"
+            params["limit"] = sql_limit
+            params["offset"] = sql_offset
+
+        rows = self.get_rows(query_text, params)
+        if normalized_name_filter is not None:
+            rows = _filter_rows_by_name(rows, normalized_name_filter)
+            if limit is not None:
+                rows = rows[offset : offset + limit]
+        return rows
 
     def get_food_calories_today(self) -> float:
         """Get total calories consumed today.
@@ -1656,6 +1725,86 @@ Get the earliest date from food_log table.
 ```python
 def get_earliest_food_log_date(self) -> str | None:
         return self.get_earliest_date("food_log")
+```
+
+</details>
+
+### ⚙️ Method `get_filtered_food_log_records`
+
+```python
+def get_filtered_food_log_records(self, is_drink: int | None = None, date_from: str | None = None, date_to: str | None = None, name_filter: str | None = None, limit: int | None = None, offset: int = 0) -> list[list[Any]]
+```
+
+Get food log records matching the table filter toolbar.
+
+Args:
+
+- `is_drink` (`int | None`): `0` for food, `1` for drink. Defaults to `None`.
+- `date_from` (`str | None`): Inclusive start date. Defaults to `None`.
+- `date_to` (`str | None`): Inclusive end date. Defaults to `None`.
+- `name_filter` (`str | None`): Substring match on `name` or `name_en`
+  (Unicode case-insensitive). Defaults to `None`.
+- `limit` (`int | None`): Maximum number of records. Defaults to `None`.
+- `offset` (`int`): Number of records to skip. Defaults to `0`.
+
+Returns:
+
+- `list[list[Any]]`: Filtered rows [\_id, date, weight, portion_calories,
+  calories_per_100g, name, name_en, is_drink].
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_filtered_food_log_records(
+        self,
+        is_drink: int | None = None,
+        date_from: str | None = None,
+        date_to: str | None = None,
+        name_filter: str | None = None,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> list[list[Any]]:
+        conditions: list[str] = []
+        params: dict[str, Any] = {}
+
+        if is_drink is not None:
+            conditions.append("is_drink = :is_drink")
+            params["is_drink"] = is_drink
+
+        if date_from and date_to:
+            conditions.append("date BETWEEN :date_from AND :date_to")
+            params["date_from"] = date_from
+            params["date_to"] = date_to
+
+        normalized_name_filter = _normalize_name_filter(name_filter)
+
+        query_text = """
+            SELECT _id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink
+            FROM food_log
+        """
+        if conditions:
+            query_text += " WHERE " + " AND ".join(conditions)
+        query_text += " ORDER BY date DESC, _id DESC"
+
+        sql_limit: int | None = limit
+        sql_offset: int = offset
+        if normalized_name_filter is not None:
+            # SQLite LOWER() is ASCII-only; filter names in Python with casefold().
+            sql_limit = None
+            sql_offset = 0
+
+        if sql_limit is not None:
+            query_text += " LIMIT :limit OFFSET :offset"
+            params["limit"] = sql_limit
+            params["offset"] = sql_offset
+
+        rows = self.get_rows(query_text, params)
+        if normalized_name_filter is not None:
+            rows = _filter_rows_by_name(rows, normalized_name_filter)
+            if limit is not None:
+                rows = rows[offset : offset + limit]
+        return rows
 ```
 
 </details>

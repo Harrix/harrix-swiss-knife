@@ -354,6 +354,74 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """Get the earliest date from food_log table."""
         return self.get_earliest_date("food_log")
 
+    def get_filtered_food_log_records(
+        self,
+        is_drink: int | None = None,
+        date_from: str | None = None,
+        date_to: str | None = None,
+        name_filter: str | None = None,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> list[list[Any]]:
+        r"""Get food log records matching the table filter toolbar.
+
+        Args:
+
+        - `is_drink` (`int | None`): `0` for food, `1` for drink. Defaults to `None`.
+        - `date_from` (`str | None`): Inclusive start date. Defaults to `None`.
+        - `date_to` (`str | None`): Inclusive end date. Defaults to `None`.
+        - `name_filter` (`str | None`): Substring match on `name` or `name_en`
+          (Unicode case-insensitive). Defaults to `None`.
+        - `limit` (`int | None`): Maximum number of records. Defaults to `None`.
+        - `offset` (`int`): Number of records to skip. Defaults to `0`.
+
+        Returns:
+
+        - `list[list[Any]]`: Filtered rows [\_id, date, weight, portion_calories,
+          calories_per_100g, name, name_en, is_drink].
+
+        """
+        conditions: list[str] = []
+        params: dict[str, Any] = {}
+
+        if is_drink is not None:
+            conditions.append("is_drink = :is_drink")
+            params["is_drink"] = is_drink
+
+        if date_from and date_to:
+            conditions.append("date BETWEEN :date_from AND :date_to")
+            params["date_from"] = date_from
+            params["date_to"] = date_to
+
+        normalized_name_filter = _normalize_name_filter(name_filter)
+
+        query_text = """
+            SELECT _id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink
+            FROM food_log
+        """
+        if conditions:
+            query_text += " WHERE " + " AND ".join(conditions)
+        query_text += " ORDER BY date DESC, _id DESC"
+
+        sql_limit: int | None = limit
+        sql_offset: int = offset
+        if normalized_name_filter is not None:
+            # SQLite LOWER() is ASCII-only; filter names in Python with casefold().
+            sql_limit = None
+            sql_offset = 0
+
+        if sql_limit is not None:
+            query_text += " LIMIT :limit OFFSET :offset"
+            params["limit"] = sql_limit
+            params["offset"] = sql_offset
+
+        rows = self.get_rows(query_text, params)
+        if normalized_name_filter is not None:
+            rows = _filter_rows_by_name(rows, normalized_name_filter)
+            if limit is not None:
+                rows = rows[offset : offset + limit]
+        return rows
+
     def get_food_calories_today(self) -> float:
         """Get total calories consumed today.
 
@@ -1210,6 +1278,35 @@ def merge_food_autocomplete_entries(
     return list(merged.values())
 
 
+def _filter_rows_by_name(rows: list[list[Any]], name_filter: str) -> list[list[Any]]:
+    return [
+        row
+        for row in rows
+        if _name_matches_filter(
+            row[_NAME_COLUMN_INDEX] if len(row) > _NAME_COLUMN_INDEX else None,
+            row[_NAME_EN_COLUMN_INDEX] if len(row) > _NAME_EN_COLUMN_INDEX else None,
+            name_filter,
+        )
+    ]
+
+
+def _name_matches_filter(name: str | None, name_en: str | None, name_filter: str) -> bool:
+    """Return `True` when `name` or `name_en` contains `name_filter` (Unicode case-insensitive)."""
+    if not name_filter:
+        return False
+    needle = name_filter.casefold()
+    if name and needle in str(name).casefold():
+        return True
+    return bool(name_en) and needle in str(name_en).casefold()
+
+
+def _normalize_name_filter(name_filter: str | None) -> str | None:
+    if not name_filter:
+        return None
+    normalized = name_filter.strip()
+    return normalized or None
+
+
 def _normalize_optional_name_en(value: Any) -> str | None:
     """Return a stripped English name, or `None` when empty."""
     if value is None:
@@ -1274,3 +1371,7 @@ def _sql_in_clause(values: list[str], param_prefix: str) -> tuple[str, dict[str,
     placeholders = ", ".join(f":{param_prefix}{index}" for index in range(len(values)))
     params = {f"{param_prefix}{index}": value for index, value in enumerate(values)}
     return placeholders, params
+
+
+_NAME_COLUMN_INDEX = 5
+_NAME_EN_COLUMN_INDEX = 6

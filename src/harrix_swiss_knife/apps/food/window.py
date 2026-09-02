@@ -56,6 +56,22 @@ class Ui_MainWindow(object):
         self.groupBox_food_today.setTitle(QCoreApplication.translate("MainWindow", u"Today", None))
         self.label_food_today.setText(QCoreApplication.translate("MainWindow", u"0", None))
         self.label_food_items.setText(QCoreApplication.translate("MainWindow", u"Food Items:", None))
+        self.groupBox_filter.setTitle("")
+        self.label_filter_name.setText(QCoreApplication.translate("MainWindow", u"Name:", None))
+        self.label_filter_type.setText(QCoreApplication.translate("MainWindow", u"Type:", None))
+        self.comboBox_filter_type.setItemText(0, QCoreApplication.translate("MainWindow", u"All", None))
+        self.comboBox_filter_type.setItemText(1, QCoreApplication.translate("MainWindow", u"Food", None))
+        self.comboBox_filter_type.setItemText(2, QCoreApplication.translate("MainWindow", u"Drink", None))
+
+        self.label_filter_date.setText(QCoreApplication.translate("MainWindow", u"Date:", None))
+        self.dateEdit_filter_from.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
+        self.label_filter_to.setText(QCoreApplication.translate("MainWindow", u"to", None))
+        self.dateEdit_filter_to.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
+        self.checkBox_use_date_filter.setText(QCoreApplication.translate("MainWindow", u"Use date", None))
+#if QT_CONFIG(tooltip)
+        self.pushButton_clear_filter.setToolTip(QCoreApplication.translate("MainWindow", u"Clear filter", None))
+#endif // QT_CONFIG(tooltip)
+        self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", u"\U0001f9f9", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_food), QCoreApplication.translate("MainWindow", u"Food", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_food_recipes), QCoreApplication.translate("MainWindow", u"Recipes", None))
         self.label.setText(QCoreApplication.translate("MainWindow", u"Kcal per day:", None))
@@ -356,9 +372,105 @@ class Ui_MainWindow(object):
         self.verticalLayout_food_middle.addWidget(self.listView_food_items)
 
         self.splitter_food.addWidget(self.widget_food_middle)
-        self.tableView_food_log = QTableView(self.splitter_food)
+        self.widget_food_log = QWidget(self.splitter_food)
+        self.widget_food_log.setObjectName(u"widget_food_log")
+        self.verticalLayout_food_log = QVBoxLayout(self.widget_food_log)
+        self.verticalLayout_food_log.setSpacing(4)
+        self.verticalLayout_food_log.setObjectName(u"verticalLayout_food_log")
+        self.verticalLayout_food_log.setContentsMargins(0, 0, 0, 0)
+        self.groupBox_filter = QGroupBox(self.widget_food_log)
+        self.groupBox_filter.setObjectName(u"groupBox_filter")
+        self.groupBox_filter.setFlat(True)
+        self.horizontalLayout_filter = QHBoxLayout(self.groupBox_filter)
+        self.horizontalLayout_filter.setSpacing(6)
+        self.horizontalLayout_filter.setObjectName(u"horizontalLayout_filter")
+        self.horizontalLayout_filter.setContentsMargins(4, 2, 4, 2)
+        self.label_filter_name = QLabel(self.groupBox_filter)
+        self.label_filter_name.setObjectName(u"label_filter_name")
+
+        self.horizontalLayout_filter.addWidget(self.label_filter_name)
+
+        self.lineEdit_filter_name = QLineEdit(self.groupBox_filter)
+        self.lineEdit_filter_name.setObjectName(u"lineEdit_filter_name")
+        sizePolicy = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        sizePolicy.setHorizontalStretch(3)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.lineEdit_filter_name.sizePolicy().hasHeightForWidth())
+        self.lineEdit_filter_name.setSizePolicy(sizePolicy)
+        self.lineEdit_filter_name.setMinimumSize(QSize(80, 0))
+
+        self.horizontalLayout_filter.addWidget(self.lineEdit_filter_name)
+
+        self.label_filter_type = QLabel(self.groupBox_filter)
+        self.label_filter_type.setObjectName(u"label_filter_type")
+
+        self.horizontalLayout_filter.addWidget(self.label_filter_type)
+
+        self.comboBox_filter_type = QComboBox(self.groupBox_filter)
+        self.comboBox_filter_type.addItem("")
+        self.comboBox_filter_type.addItem("")
+        self.comboBox_filter_type.addItem("")
+        self.comboBox_filter_type.setObjectName(u"comboBox_filter_type")
+        sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        sizePolicy1.setHorizontalStretch(1)
+        sizePolicy1.setVerticalStretch(0)
+        sizePolicy1.setHeightForWidth(self.comboBox_filter_type.sizePolicy().hasHeightForWidth())
+        self.comboBox_filter_type.setSizePolicy(sizePolicy1)
+        self.comboBox_filter_type.setMinimumSize(QSize(70, 0))
+
+        self.horizontalLayout_filter.addWidget(self.comboBox_filter_type)
+
+        self.label_filter_date = QLabel(self.groupBox_filter)
+        self.label_filter_date.setObjectName(u"label_filter_date")
+
+        self.horizontalLayout_filter.addWidget(self.label_filter_date)
+
+        self.dateEdit_filter_from = QDateEdit(self.groupBox_filter)
+        self.dateEdit_filter_from.setObjectName(u"dateEdit_filter_from")
+        self.dateEdit_filter_from.setMinimumSize(QSize(100, 0))
+        self.dateEdit_filter_from.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
+        self.dateEdit_filter_from.setCalendarPopup(True)
+
+        self.horizontalLayout_filter.addWidget(self.dateEdit_filter_from)
+
+        self.label_filter_to = QLabel(self.groupBox_filter)
+        self.label_filter_to.setObjectName(u"label_filter_to")
+
+        self.horizontalLayout_filter.addWidget(self.label_filter_to)
+
+        self.dateEdit_filter_to = QDateEdit(self.groupBox_filter)
+        self.dateEdit_filter_to.setObjectName(u"dateEdit_filter_to")
+        self.dateEdit_filter_to.setMinimumSize(QSize(100, 0))
+        self.dateEdit_filter_to.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
+        self.dateEdit_filter_to.setCalendarPopup(True)
+
+        self.horizontalLayout_filter.addWidget(self.dateEdit_filter_to)
+
+        self.checkBox_use_date_filter = QCheckBox(self.groupBox_filter)
+        self.checkBox_use_date_filter.setObjectName(u"checkBox_use_date_filter")
+
+        self.horizontalLayout_filter.addWidget(self.checkBox_use_date_filter)
+
+        self.pushButton_clear_filter = QPushButton(self.groupBox_filter)
+        self.pushButton_clear_filter.setObjectName(u"pushButton_clear_filter")
+        sizePolicy2 = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        sizePolicy2.setHorizontalStretch(0)
+        sizePolicy2.setVerticalStretch(0)
+        sizePolicy2.setHeightForWidth(self.pushButton_clear_filter.sizePolicy().hasHeightForWidth())
+        self.pushButton_clear_filter.setSizePolicy(sizePolicy2)
+        self.pushButton_clear_filter.setMaximumSize(QSize(32, 16777215))
+
+        self.horizontalLayout_filter.addWidget(self.pushButton_clear_filter)
+
+
+        self.verticalLayout_food_log.addWidget(self.groupBox_filter)
+
+        self.tableView_food_log = QTableView(self.widget_food_log)
         self.tableView_food_log.setObjectName(u"tableView_food_log")
-        self.splitter_food.addWidget(self.tableView_food_log)
+
+        self.verticalLayout_food_log.addWidget(self.tableView_food_log)
+
+        self.splitter_food.addWidget(self.widget_food_log)
 
         self.horizontalLayout_food.addWidget(self.splitter_food)
 

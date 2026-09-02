@@ -13,6 +13,8 @@ lang: en
 
 - [🏛️ Class `MainWindow`](#%EF%B8%8F-class-mainwindow)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `apply_filter`](#%EF%B8%8F-method-apply_filter)
+  - [⚙️ Method `clear_filter`](#%EF%B8%8F-method-clear_filter)
   - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
   - [⚙️ Method `delete_record`](#%EF%B8%8F-method-delete_record)
   - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
@@ -45,6 +47,7 @@ lang: en
   - [⚙️ Method `set_today_date`](#%EF%B8%8F-method-set_today_date)
   - [⚙️ Method `show_tables`](#%EF%B8%8F-method-show_tables)
   - [⚙️ Method `update_calories_calculation`](#%EF%B8%8F-method-update_calories_calculation)
+  - [⚙️ Method `update_filter_comboboxes`](#%EF%B8%8F-method-update_filter_comboboxes)
   - [⚙️ Method `update_food_calories_today`](#%EF%B8%8F-method-update_food_calories_today)
   - [⚙️ Method `update_food_data`](#%EF%B8%8F-method-update_food_data)
 
@@ -143,6 +146,10 @@ class MainWindow(
         self._bg_food_translate_timer = QTimer(self)
         self._bg_food_translate_timer.setSingleShot(True)
         self._bg_food_translate_timer.timeout.connect(self._on_background_food_translate_timer)
+        self._name_filter_timer = QTimer(self)
+        self._name_filter_timer.setSingleShot(True)
+        self._name_filter_timer.setInterval(400)
+        self._name_filter_timer.timeout.connect(self.apply_filter)
 
         # Table configuration mapping
         self.table_config: dict[str, tuple[QTableView, str, list[str]]] = {
@@ -191,6 +198,44 @@ class MainWindow(
 
         # Show once after this constructor returns, with columns already sized.
         QTimer.singleShot(0, self._finish_window_initialization)
+
+    def apply_filter(self, *_args: object) -> None:
+        """Reload the food log table from the database with the toolbar filters."""
+        self._clear_food_log_table_filter()
+        self._update_clear_filter_button_visibility()
+        if self.db_manager is None:
+            logger.error("❌ Database manager is not initialized")
+            return
+        self._update_food_log_table()
+
+    def clear_filter(self) -> None:
+        """Reset all food log toolbar filters and reload the table."""
+        widgets = (
+            self.comboBox_filter_type,
+            self.lineEdit_filter_name,
+            self.checkBox_use_date_filter,
+            self.dateEdit_filter_from,
+            self.dateEdit_filter_to,
+        )
+        for widget in widgets:
+            widget.blockSignals(True)  # noqa: FBT003
+
+        self.comboBox_filter_type.setCurrentIndex(0)
+        self.lineEdit_filter_name.clear()
+        self.checkBox_use_date_filter.setChecked(False)
+
+        current_date: QDate = QDateTime.currentDateTime().date()
+        self.dateEdit_filter_from.setDate(current_date.addMonths(-1))
+        self.dateEdit_filter_to.setDate(current_date)
+
+        for widget in widgets:
+            widget.blockSignals(False)  # noqa: FBT003
+
+        self._name_filter_timer.stop()
+        self._clear_food_log_table_filter()
+        self._update_date_filter_controls_enabled()
+        self._update_clear_filter_button_visibility()
+        self._update_food_log_table()
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Handle application close event.
@@ -1002,6 +1047,9 @@ class MainWindow(
         else:
             self.label_food_calories_calc.setText("Total: 0.0 kcal")
 
+    def update_filter_comboboxes(self) -> None:
+        """Keep the food-log type combo static (All / Food / Drink)."""
+
     def update_food_calories_today(self) -> None:
         """Update the label showing calories consumed today and drinks weight in liters (comma as decimal separator)."""
         if self.db_manager is None:
@@ -1468,6 +1516,13 @@ class MainWindow(
         # Connect drink checkbox for button appearance update
         self.checkBox_food_is_drink.toggled.connect(self._update_add_button_appearance)
 
+        self.pushButton_clear_filter.clicked.connect(self.clear_filter)
+        self.comboBox_filter_type.currentIndexChanged.connect(self.apply_filter)
+        self.lineEdit_filter_name.textChanged.connect(self._schedule_name_filter)
+        self.dateEdit_filter_from.dateChanged.connect(self.apply_filter)
+        self.dateEdit_filter_to.dateChanged.connect(self.apply_filter)
+        self.checkBox_use_date_filter.toggled.connect(self._on_use_date_filter_toggled)
+
     def _connect_table_selection_signals(self) -> None:
         """Connect selection change signals for all tables."""
         selection_model = self.listView_food_items.selectionModel()
@@ -1741,6 +1796,17 @@ class MainWindow(
         model = proxy.sourceModel() if isinstance(proxy, QSortFilterProxyModel) else proxy
         export_table_via_dialog(self, model, prefer=prefer, sheet_name="Food log")
 
+    def _fetch_food_log_rows(self, limit: int | None, offset: int) -> list[list[Any]]:
+        """Return food log rows for the current toolbar filters (or the full recent page)."""
+        if self.db_manager is None:
+            return []
+        filter_params = self._get_food_log_filter_params()
+        if filter_params is not None:
+            return self.db_manager.get_filtered_food_log_records(**filter_params, limit=limit, offset=offset)
+        if limit is None:
+            return self.db_manager.get_all_food_log_records()
+        return self.db_manager.get_recent_food_log_records(limit, offset)
+
     def _filter_food_items(self, text: str) -> None:
         """Filter food items list based on input text.
 
@@ -1763,18 +1829,36 @@ class MainWindow(
                     )
 
     def _filter_food_log_by_column(self, column: int, value: str) -> None:
-        """Apply exact-match filter on one food log table column (loaded rows only)."""
-        proxy = self.models.get("food_log")
-        if proxy is None:
-            return
+        """Apply a toolbar filter from a context-menu cell value."""
         text = value.strip()
         if not text:
             return
-        proxy.setFilterKeyColumn(column)
-        proxy.setFilterCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
-        proxy.setFilterRegularExpression(
-            QRegularExpression(f"^{QRegularExpression.escape(text)}$"),
+        widgets = (
+            self.comboBox_filter_type,
+            self.lineEdit_filter_name,
+            self.checkBox_use_date_filter,
+            self.dateEdit_filter_from,
+            self.dateEdit_filter_to,
         )
+        for widget in widgets:
+            widget.blockSignals(True)  # noqa: FBT003
+        try:
+            if column == 0:
+                self.lineEdit_filter_name.setText(text)
+            elif column == FOOD_LOG_COL_DATE:
+                parsed_date = QDate.fromString(text[:10], "yyyy-MM-dd")
+                if parsed_date.year() < 1:
+                    return
+                self.dateEdit_filter_from.setDate(parsed_date)
+                self.dateEdit_filter_to.setDate(parsed_date)
+                self.checkBox_use_date_filter.setChecked(True)
+                self._update_date_filter_controls_enabled()
+            else:
+                return
+        finally:
+            for widget in widgets:
+                widget.blockSignals(False)  # noqa: FBT003
+        self.apply_filter()
 
     def _finish_window_initialization(self) -> None:
         """Show the window only after the food-log columns match the final size."""
@@ -1825,6 +1909,20 @@ class MainWindow(
                 parse_food_log_number(row[3]),
             )
         return totals
+
+    def _food_log_filter_is_active(self) -> bool:
+        """Return `True` when any food log toolbar filter is applied."""
+        if self.comboBox_filter_type.currentText().strip() in {"Food", "Drink"}:
+            return True
+        if self.lineEdit_filter_name.text().strip():
+            return True
+        return self.checkBox_use_date_filter.isChecked()
+
+    def _food_log_partial_day_filter_is_active(self) -> bool:
+        """Return whether the current filter hides some rows of a visible day."""
+        if self.lineEdit_filter_name.text().strip():
+            return True
+        return self.comboBox_filter_type.currentText().strip() in {"Food", "Drink"}
 
     @staticmethod
     def _food_log_row_missing_calories(row: list[Any]) -> bool:
@@ -1886,6 +1984,28 @@ class MainWindow(
 
         return None
 
+    def _get_food_log_filter_params(self) -> dict[str, Any] | None:
+        """Return active toolbar filter parameters, or `None` when none are set."""
+        if not self._food_log_filter_is_active():
+            return None
+
+        is_drink: int | None = None
+        filter_type = self.comboBox_filter_type.currentText().strip()
+        if filter_type == "Food":
+            is_drink = 0
+        elif filter_type == "Drink":
+            is_drink = 1
+
+        use_date_filter = self.checkBox_use_date_filter.isChecked()
+        date_from = self.dateEdit_filter_from.date().toString("yyyy-MM-dd") if use_date_filter else None
+        date_to = self.dateEdit_filter_to.date().toString("yyyy-MM-dd") if use_date_filter else None
+        return {
+            "is_drink": is_drink,
+            "date_from": date_from,
+            "date_to": date_to,
+            "name_filter": self.lineEdit_filter_name.text().strip() or None,
+        }
+
     def _get_selected_food_log_recalc_targets(self) -> list[tuple[int, str]]:
         """Return `(record_id, name)` for each selected food log row."""
         targets: list[tuple[int, str]] = []
@@ -1945,6 +2065,21 @@ class MainWindow(
             has_required_tables=lambda dm: dm.table_exists("food_log"),
             missing_table_label="food_log table",
         )
+
+    def _init_filter_controls(self) -> None:
+        """Initialize food log filter dates (last month to today, date filter off)."""
+        current_date: QDate = QDateTime.currentDateTime().date()
+        self.dateEdit_filter_from.blockSignals(True)  # noqa: FBT003
+        self.dateEdit_filter_to.blockSignals(True)  # noqa: FBT003
+        self.dateEdit_filter_from.setDate(current_date.addMonths(-1))
+        self.dateEdit_filter_to.setDate(current_date)
+        self.dateEdit_filter_from.blockSignals(False)  # noqa: FBT003
+        self.dateEdit_filter_to.blockSignals(False)  # noqa: FBT003
+
+        self.checkBox_use_date_filter.blockSignals(True)  # noqa: FBT003
+        self.checkBox_use_date_filter.setChecked(False)
+        self.checkBox_use_date_filter.blockSignals(False)  # noqa: FBT003
+        self._update_date_filter_controls_enabled()
 
     def _init_food_items_list(self) -> None:
         """Initialize the food items list view with a model and connect signals."""
@@ -2018,14 +2153,18 @@ class MainWindow(
             self._reset_food_log_pagination_state()
 
         if self.show_all_food_records:
-            rows: list[list] = self.db_manager.get_all_food_log_records()
+            rows: list[list] = self._fetch_food_log_rows(None, 0)
             self._food_log_pagination.record_first_page(len(rows), None, pagination_enabled=False)
         else:
             limit: int = self.count_food_records_to_show
-            rows = self.db_manager.get_recent_food_log_records(limit, 0)
+            rows = self._fetch_food_log_rows(limit, 0)
             self._food_log_pagination.record_first_page(len(rows), limit)
 
-        transformed_data: list[list] = self._transform_food_log_data(rows, append_state=False)
+        transformed_data: list[list] = self._transform_food_log_data(
+            rows,
+            append_state=False,
+            db_totals=not self._food_log_partial_day_filter_is_active(),
+        )
         self.models["food_log"] = self._create_colored_food_log_table_model(
             transformed_data, self.table_config["food_log"][2]
         )
@@ -2045,14 +2184,18 @@ class MainWindow(
             return
 
         def append_rows(rows: list[list]) -> None:
-            transformed_data: list[list] = self._transform_food_log_data(rows, append_state=True)
+            transformed_data: list[list] = self._transform_food_log_data(
+                rows,
+                append_state=True,
+                db_totals=not self._food_log_partial_day_filter_is_active(),
+            )
             proxy = cast("QSortFilterProxyModel", self.models["food_log"])
             source_model = cast("QStandardItemModel", proxy.sourceModel())
             self._append_food_log_rows_to_model(source_model, transformed_data)
 
         self._food_log_pagination.load_more(
             load_more_count=self.food_log_load_more_count,
-            fetch_rows=self.db_manager.get_recent_food_log_records,
+            fetch_rows=self._fetch_food_log_rows,
             append_rows=append_rows,
         )
 
@@ -2267,6 +2410,11 @@ class MainWindow(
             kcal_data = self.db_manager.get_calories_per_day() if self.db_manager is not None else None
             self._update_kcal_per_day_table(kcal_data)
             self._update_food_calories_chart(kcal_data)
+
+    def _on_use_date_filter_toggled(self, *_args: object) -> None:
+        """Toggle date edit widgets and refresh the food log table filter."""
+        self._update_date_filter_controls_enabled()
+        self.apply_filter()
 
     def _open_text_input_dialog(
         self,
@@ -2829,6 +2977,11 @@ class MainWindow(
             state=self._bothub_state,
         )
 
+    def _schedule_name_filter(self, *_args: object) -> None:
+        """Restart debounce timer so the name filter runs after typing pauses."""
+        self._update_clear_filter_button_visibility()
+        self._name_filter_timer.start()
+
     def _send_food_log_to_ai(
         self,
         raw_text: str,
@@ -3006,7 +3159,20 @@ class MainWindow(
         # Configure food splitter proportions
         self.splitter_food.setStretchFactor(0, 0)  # frame_food_controls with fixed size
         self.splitter_food.setStretchFactor(1, 1)  # widget_food_middle gets less space
-        self.splitter_food.setStretchFactor(2, 3)  # tableView_food_log gets more space
+        self.splitter_food.setStretchFactor(2, 3)  # widget_food_log (filter + table) gets more space
+
+        self.groupBox_filter.setTitle("")
+        self.groupBox_filter.setStyleSheet(
+            "QGroupBox#groupBox_filter { border: none; margin-top: 0px; padding-top: 0px; }"
+            "QGroupBox#groupBox_filter::title { height: 0px; width: 0px; padding: 0px; margin: 0px; }"
+        )
+        self.pushButton_clear_filter.setText("🧹")
+        self.pushButton_clear_filter.setToolTip("Clear filter")
+        self.pushButton_clear_filter.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        clear_h = max(self.pushButton_clear_filter.sizeHint().height(), 24)
+        self.pushButton_clear_filter.setFixedSize(clear_h, clear_h)
+        self._init_filter_controls()
+        self._update_clear_filter_button_visibility()
 
         # Set initial radio button state and update calories calculation
         self.radioButton_use_weight.setChecked(True)
@@ -3172,7 +3338,7 @@ class MainWindow(
             elif action == filter_by_date_action and date_value:
                 self._filter_food_log_by_column(6, date_value.strip()[:10])
             elif action == clear_filters_action:
-                self._clear_food_log_table_filter()
+                self.clear_filter()
             elif action == set_date_action and date_value:
                 self._set_date_from_table(date_value)
             elif action == set_date_plus_one_action and date_value:
@@ -3568,6 +3734,18 @@ class MainWindow(
         except Exception:
             logger.exception("Error updating autocomplete data")
 
+    def _update_clear_filter_button_visibility(self) -> None:
+        """Show the clear-filter button only while a food log filter is active."""
+        self.pushButton_clear_filter.setVisible(self._food_log_filter_is_active())
+
+    def _update_date_filter_controls_enabled(self, *_args: object) -> None:
+        """Enable date edits only while the Use date checkbox is checked."""
+        enabled = self.checkBox_use_date_filter.isChecked()
+        self.label_filter_date.setEnabled(enabled)
+        self.label_filter_to.setEnabled(enabled)
+        self.dateEdit_filter_from.setEnabled(enabled)
+        self.dateEdit_filter_to.setEnabled(enabled)
+
     def _update_drinks_chart(self) -> None:
         """Update the drinks chart with data from database."""
         if not self._validate_database_connection():
@@ -3958,6 +4136,10 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
         self._bg_food_translate_timer = QTimer(self)
         self._bg_food_translate_timer.setSingleShot(True)
         self._bg_food_translate_timer.timeout.connect(self._on_background_food_translate_timer)
+        self._name_filter_timer = QTimer(self)
+        self._name_filter_timer.setSingleShot(True)
+        self._name_filter_timer.setInterval(400)
+        self._name_filter_timer.timeout.connect(self.apply_filter)
 
         # Table configuration mapping
         self.table_config: dict[str, tuple[QTableView, str, list[str]]] = {
@@ -4006,6 +4188,72 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
 
         # Show once after this constructor returns, with columns already sized.
         QTimer.singleShot(0, self._finish_window_initialization)
+```
+
+</details>
+
+### ⚙️ Method `apply_filter`
+
+```python
+def apply_filter(self, *_args: object) -> None
+```
+
+Reload the food log table from the database with the toolbar filters.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def apply_filter(self, *_args: object) -> None:
+        self._clear_food_log_table_filter()
+        self._update_clear_filter_button_visibility()
+        if self.db_manager is None:
+            logger.error("❌ Database manager is not initialized")
+            return
+        self._update_food_log_table()
+```
+
+</details>
+
+### ⚙️ Method `clear_filter`
+
+```python
+def clear_filter(self) -> None
+```
+
+Reset all food log toolbar filters and reload the table.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def clear_filter(self) -> None:
+        widgets = (
+            self.comboBox_filter_type,
+            self.lineEdit_filter_name,
+            self.checkBox_use_date_filter,
+            self.dateEdit_filter_from,
+            self.dateEdit_filter_to,
+        )
+        for widget in widgets:
+            widget.blockSignals(True)  # noqa: FBT003
+
+        self.comboBox_filter_type.setCurrentIndex(0)
+        self.lineEdit_filter_name.clear()
+        self.checkBox_use_date_filter.setChecked(False)
+
+        current_date: QDate = QDateTime.currentDateTime().date()
+        self.dateEdit_filter_from.setDate(current_date.addMonths(-1))
+        self.dateEdit_filter_to.setDate(current_date)
+
+        for widget in widgets:
+            widget.blockSignals(False)  # noqa: FBT003
+
+        self._name_filter_timer.stop()
+        self._clear_food_log_table_filter()
+        self._update_date_filter_controls_enabled()
+        self._update_clear_filter_button_visibility()
+        self._update_food_log_table()
 ```
 
 </details>
@@ -5244,6 +5492,23 @@ def update_calories_calculation(self) -> None:
             self.label_food_calories_calc.setText(f"Total: {calories:.1f} kcal")
         else:
             self.label_food_calories_calc.setText("Total: 0.0 kcal")
+```
+
+</details>
+
+### ⚙️ Method `update_filter_comboboxes`
+
+```python
+def update_filter_comboboxes(self) -> None
+```
+
+Keep the food-log type combo static (All / Food / Drink).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def update_filter_comboboxes(self) -> None:
 ```
 
 </details>

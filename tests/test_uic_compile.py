@@ -16,6 +16,7 @@ from harrix_swiss_knife.apps.common.uic_compile import (
 )
 from harrix_swiss_knife.apps.finance.window import Ui_MainWindow as FinanceUi
 from harrix_swiss_knife.apps.fitness.window import Ui_MainWindow
+from harrix_swiss_knife.apps.food.window import Ui_MainWindow as FoodUi
 
 _APPS_ROOT = Path(__file__).resolve().parents[1] / "src" / "harrix_swiss_knife" / "apps"
 
@@ -77,3 +78,13 @@ def test_finance_setup_ui_does_not_raise_on_translate(qapp: QApplication) -> Non
     ui = FinanceUi()
     ui.setupUi(window)
     assert ui.pushButton_clear_filter.text()
+
+
+def test_food_setup_ui_does_not_raise_on_translate(qapp: QApplication) -> None:  # noqa: ARG001
+    """Regression: broom emoji on Food clear-filter must be valid UTF-8."""
+    install_safe_qt_translate()
+    window = QMainWindow()
+    ui = FoodUi()
+    ui.setupUi(window)
+    assert ui.pushButton_clear_filter.text()
+    assert ui.lineEdit_filter_name.objectName() == "lineEdit_filter_name"
