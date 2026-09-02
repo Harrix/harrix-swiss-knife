@@ -56,10 +56,12 @@ def test_exercise_selection_dialog_multi_click_toggles(qapp: QApplication) -> No
     assert qapp is not None
     dialog = _dialog(multi_select=True)
     assert dialog.windowTitle() == "Select Exercises"
-    assert dialog.list_widget.selectionMode() == QAbstractItemView.SelectionMode.MultiSelection
+    assert dialog.list_widget.selectionMode() == QAbstractItemView.SelectionMode.NoSelection
     assert dialog._selection_count_label.text() == "No exercises selected"
     assert dialog._add_button.text() == "Add exercise"
     assert not dialog._add_button.isEnabled()
+    assert dialog._clear_button is not None
+    assert not dialog._clear_button.isEnabled()
     first = dialog.list_widget.item(0)
     second = dialog.list_widget.item(1)
     assert first is not None
@@ -77,14 +79,40 @@ def test_exercise_selection_dialog_multi_click_toggles(qapp: QApplication) -> No
     dialog.close()
 
 
-def test_exercise_selection_dialog_selection_changed_does_not_use_item_set(qapp: QApplication) -> None:
+def test_exercise_selection_dialog_ignores_qt_item_selection(qapp: QApplication) -> None:
+    """IconMode rubber-band must not become the selected-exercise source."""
     assert qapp is not None
     dialog = _dialog(multi_select=True)
     first = dialog.list_widget.item(0)
     assert first is not None
     first.setSelected(True)
-    dialog._on_selection_changed()
-    assert dialog.selected_exercises == ["Push-ups"]
+    dialog._sync_selected_exercises()
+    assert dialog.selected_exercises == []
+    dialog.close()
+
+
+def test_exercise_selection_dialog_multi_clear_selection(qapp: QApplication) -> None:
+    assert qapp is not None
+    dialog = _dialog(multi_select=True)
+    first = dialog.list_widget.item(0)
+    second = dialog.list_widget.item(1)
+    assert first is not None
+    assert second is not None
+    assert dialog._clear_button is not None
+    dialog._on_tile_clicked(first)
+    dialog._on_tile_clicked(second)
+    assert dialog.selected_exercises == ["Push-ups", "Squats"]
+    assert dialog._clear_button.isEnabled()
+    dialog._clear_button.click()
+    assert dialog.selected_exercises == []
+    assert dialog._selection_count_label.text() == "No exercises selected"
+    assert not dialog._clear_button.isEnabled()
+    first_tile = dialog._tile_for_item(first)
+    second_tile = dialog._tile_for_item(second)
+    assert first_tile is not None
+    assert second_tile is not None
+    assert not first_tile.is_selected
+    assert not second_tile.is_selected
     dialog.close()
 
 

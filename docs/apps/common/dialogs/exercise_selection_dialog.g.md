@@ -91,11 +91,13 @@ class ExerciseSelectionDialog(QDialog):
         layout.addWidget(self.filter_edit)
 
         self.list_widget = QListWidget(self)
-        self.list_widget.setSelectionMode(
-            QAbstractItemView.SelectionMode.MultiSelection
-            if multi_select
-            else QAbstractItemView.SelectionMode.SingleSelection,
-        )
+        # IconMode + MultiSelection starts a rubber-band on a slight drag and
+        # selects a 2D block of neighboring tiles. Selection is toggled only
+        # from tile clicks.
+        self.list_widget.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
+        self.list_widget.setDragEnabled(False)
+        self.list_widget.setDragDropMode(QAbstractItemView.DragDropMode.NoDragDrop)
+        self.list_widget.setSelectionRectVisible(False)
         self.list_widget.setViewMode(QListWidget.ViewMode.IconMode)
         self.list_widget.setResizeMode(QListWidget.ResizeMode.Adjust)
         self.list_widget.setMovement(QListWidget.Movement.Static)
@@ -161,21 +163,23 @@ class ExerciseSelectionDialog(QDialog):
 
                 if current_selection and exercise == current_selection:
                     self.list_widget.setCurrentItem(item)
-                    item.setSelected(True)
                     tile.set_selected(selected=True)
         finally:
             self.list_widget.setUpdatesEnabled(True)
 
-        self.list_widget.itemSelectionChanged.connect(self._on_selection_changed)
         self.list_widget.verticalScrollBar().valueChanged.connect(self._on_list_scrolled)
         self.list_widget.installEventFilter(self)
+        self.list_widget.viewport().installEventFilter(self)
 
         footer = QHBoxLayout()
         self._selection_count_label = QLabel(self)
         self._selection_count_label.setVisible(multi_select)
         footer.addWidget(self._selection_count_label, stretch=1)
-
+        self._clear_button: QPushButton | None = None
         if multi_select:
+            self._clear_button = make_emoji_push_button("Clear selection", "✖️")
+            self._clear_button.clicked.connect(self._clear_multi_selection)
+            footer.addWidget(self._clear_button)
             button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Cancel, self)
             apply_emoji_dialog_buttons(button_box)
             self._add_button = make_emoji_push_button("Add exercise", "➕")  # noqa: RUF001
@@ -202,10 +206,23 @@ class ExerciseSelectionDialog(QDialog):
         super().closeEvent(event)
 
     def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
-        """Handle mouse leave on the list so hover previews stop."""
+        """Stop hover previews on leave and keep list rubber-band from selecting tiles."""
         if obj == self.list_widget and event.type() == QEvent.Type.Leave:
             self._stop_animation()
             return False
+        if (
+            obj == self.list_widget.viewport()
+            and event.type() == QEvent.Type.MouseButtonPress
+            and isinstance(event, QMouseEvent)
+            and event.button() == Qt.MouseButton.LeftButton
+        ):
+            item = self.list_widget.itemAt(event.position().toPoint())
+            if item is None:
+                if self._multi_select:
+                    self._clear_multi_selection()
+                return True
+            self._on_tile_clicked(item, event.modifiers())
+            return True
 
         return super().eventFilter(obj, event)
 
@@ -220,6 +237,20 @@ class ExerciseSelectionDialog(QDialog):
         if not self._preview_load_started and self._pending_preview_rows:
             self._preview_load_started = True
             QTimer.singleShot(0, self._decode_next_preview_batch)
+
+    def _clear_all_tile_selection(self) -> None:
+        """Clear the selected chrome on every exercise tile."""
+        for row in range(self.list_widget.count()):
+            item = self.list_widget.item(row)
+            if item is not None:
+                self._set_item_selected(item, selected=False)
+
+    def _clear_multi_selection(self) -> None:
+        """Deselect every exercise tile in multi-select mode."""
+        if not self._multi_select:
+            return
+        self._clear_all_tile_selection()
+        self._sync_selected_exercises()
 
     def _decode_next_preview_batch(self) -> None:
         """Decode a time-budgeted batch of still previews, visible rows first."""
@@ -265,6 +296,10 @@ class ExerciseSelectionDialog(QDialog):
         if self._pending_preview_rows:
             self._prioritize_visible_preview_rows()
 
+    def _is_item_selected(self, item: QListWidgetItem) -> bool:
+        tile = self._tile_for_item(item)
+        return tile is not None and tile.is_selected
+
     def _on_accept(self) -> None:
         self._stop_animation()
         self._sync_selected_exercises()
@@ -274,7 +309,7 @@ class ExerciseSelectionDialog(QDialog):
                 self.list_widget.setCurrentRow(0)
                 item = self.list_widget.currentItem()
             if item is not None:
-                item.setSelected(True)
+                self._set_item_selected(item, selected=True)
                 self._sync_selected_exercises()
 
         if self.selected_exercises:
@@ -287,20 +322,12 @@ class ExerciseSelectionDialog(QDialog):
         if self._pending_preview_rows:
             self._prioritize_visible_preview_rows()
 
-    def _on_selection_changed(self) -> None:
-        selected_ids = {id(item) for item in self.list_widget.selectedItems()}
-        for row in range(self.list_widget.count()):
-            item = self.list_widget.item(row)
-            tile = self._tile_for_item(item)
-            if tile is not None and item is not None:
-                tile.set_selected(selected=id(item) in selected_ids)
-        self._sync_selected_exercises()
-
     def _on_tile_clicked(self, item: QListWidgetItem, modifiers: object = Qt.KeyboardModifier.NoModifier) -> None:
         flags = Qt.KeyboardModifier(modifiers) if modifiers is not None else Qt.KeyboardModifier.NoModifier
         if not self._multi_select:
+            self._clear_all_tile_selection()
             self.list_widget.setCurrentItem(item)
-            item.setSelected(True)
+            self._set_item_selected(item, selected=True)
             self._sync_selected_exercises()
             return
         shift = bool(flags & Qt.KeyboardModifier.ShiftModifier)
@@ -313,21 +340,22 @@ class ExerciseSelectionDialog(QDialog):
             for row in range(lo, hi + 1):
                 row_item = self.list_widget.item(row)
                 if row_item is not None and not row_item.isHidden():
-                    row_item.setSelected(True)
+                    self._set_item_selected(row_item, selected=True)
             self.list_widget.setCurrentItem(item, no_update)
         else:
-            item.setSelected(not item.isSelected())
+            self._set_item_selected(item, selected=not self._is_item_selected(item))
             self.list_widget.setCurrentItem(item, no_update)
         self._sync_selected_exercises()
 
     def _on_tile_double_clicked(self, item: QListWidgetItem) -> None:
         self._stop_animation()
         if self._multi_select:
-            item.setSelected(True)
+            self._set_item_selected(item, selected=True)
             self.list_widget.setCurrentItem(item, QItemSelectionModel.SelectionFlag.NoUpdate)
         else:
+            self._clear_all_tile_selection()
             self.list_widget.setCurrentItem(item)
-            item.setSelected(True)
+            self._set_item_selected(item, selected=True)
         self._sync_selected_exercises()
         if self.selected_exercises:
             self.accept()
@@ -386,6 +414,11 @@ class ExerciseSelectionDialog(QDialog):
                 return row
         return None
 
+    def _set_item_selected(self, item: QListWidgetItem, *, selected: bool) -> None:
+        tile = self._tile_for_item(item)
+        if tile is not None:
+            tile.set_selected(selected=selected)
+
     def _stop_animation(self) -> None:
         """Stop AVIF animation and restore the still preview in the hovered tile."""
         tile = self._hovered_tile
@@ -408,7 +441,7 @@ class ExerciseSelectionDialog(QDialog):
         names: list[str] = []
         for row in range(self.list_widget.count()):
             item = self.list_widget.item(row)
-            if item is None or not item.isSelected():
+            if item is None or not self._is_item_selected(item):
                 continue
             exercise = item.data(Qt.ItemDataRole.UserRole)
             if exercise:
@@ -428,6 +461,8 @@ class ExerciseSelectionDialog(QDialog):
         if not self._multi_select:
             return
         count = len(self.selected_exercises)
+        if self._clear_button is not None:
+            self._clear_button.setEnabled(count > 0)
         if count == 0:
             self._selection_count_label.setText("No exercises selected")
             self._add_button.setText("Add exercise")
@@ -510,11 +545,13 @@ def __init__(
         layout.addWidget(self.filter_edit)
 
         self.list_widget = QListWidget(self)
-        self.list_widget.setSelectionMode(
-            QAbstractItemView.SelectionMode.MultiSelection
-            if multi_select
-            else QAbstractItemView.SelectionMode.SingleSelection,
-        )
+        # IconMode + MultiSelection starts a rubber-band on a slight drag and
+        # selects a 2D block of neighboring tiles. Selection is toggled only
+        # from tile clicks.
+        self.list_widget.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
+        self.list_widget.setDragEnabled(False)
+        self.list_widget.setDragDropMode(QAbstractItemView.DragDropMode.NoDragDrop)
+        self.list_widget.setSelectionRectVisible(False)
         self.list_widget.setViewMode(QListWidget.ViewMode.IconMode)
         self.list_widget.setResizeMode(QListWidget.ResizeMode.Adjust)
         self.list_widget.setMovement(QListWidget.Movement.Static)
@@ -580,21 +617,23 @@ def __init__(
 
                 if current_selection and exercise == current_selection:
                     self.list_widget.setCurrentItem(item)
-                    item.setSelected(True)
                     tile.set_selected(selected=True)
         finally:
             self.list_widget.setUpdatesEnabled(True)
 
-        self.list_widget.itemSelectionChanged.connect(self._on_selection_changed)
         self.list_widget.verticalScrollBar().valueChanged.connect(self._on_list_scrolled)
         self.list_widget.installEventFilter(self)
+        self.list_widget.viewport().installEventFilter(self)
 
         footer = QHBoxLayout()
         self._selection_count_label = QLabel(self)
         self._selection_count_label.setVisible(multi_select)
         footer.addWidget(self._selection_count_label, stretch=1)
-
+        self._clear_button: QPushButton | None = None
         if multi_select:
+            self._clear_button = make_emoji_push_button("Clear selection", "✖️")
+            self._clear_button.clicked.connect(self._clear_multi_selection)
+            footer.addWidget(self._clear_button)
             button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Cancel, self)
             apply_emoji_dialog_buttons(button_box)
             self._add_button = make_emoji_push_button("Add exercise", "➕")  # noqa: RUF001
@@ -643,7 +682,7 @@ def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
 def eventFilter(self, obj: QObject, event: QEvent) -> bool
 ```
 
-Handle mouse leave on the list so hover previews stop.
+Stop hover previews on leave and keep list rubber-band from selecting tiles.
 
 <details>
 <summary>Code:</summary>
@@ -653,6 +692,19 @@ def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
         if obj == self.list_widget and event.type() == QEvent.Type.Leave:
             self._stop_animation()
             return False
+        if (
+            obj == self.list_widget.viewport()
+            and event.type() == QEvent.Type.MouseButtonPress
+            and isinstance(event, QMouseEvent)
+            and event.button() == Qt.MouseButton.LeftButton
+        ):
+            item = self.list_widget.itemAt(event.position().toPoint())
+            if item is None:
+                if self._multi_select:
+                    self._clear_multi_selection()
+                return True
+            self._on_tile_clicked(item, event.modifiers())
+            return True
 
         return super().eventFilter(obj, event)
 ```
