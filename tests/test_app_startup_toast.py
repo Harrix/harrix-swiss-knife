@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from unittest.mock import patch
 
 from PySide6.QtWidgets import QApplication
 
@@ -68,3 +69,23 @@ def test_loading_toast_pumper_updates_clock_without_qt_timers() -> None:
     assert toast.elapsed_seconds >= 1
     assert format_elapsed_clock(toast.elapsed_seconds) in toast.label.text()
     stop_app_loading_toast(toast)
+
+
+def test_loading_toast_pumper_skips_repaint_when_second_unchanged() -> None:
+    """A same-second clock tick must not force a layered window blit."""
+    app = QApplication.instance()
+    if app is None:
+        QApplication([])
+
+    toast = start_app_loading_toast("Fitness tracker")
+    toast.timer.stop()
+    pumper = AppLoadingToastPumper(toast)
+    try:
+        toast.elapsed_seconds = -1
+        with patch.object(ToastCountdownNotification, "repaint") as mocked:
+            pumper.refresh_display()
+            assert mocked.call_count == 1
+            pumper.refresh_display()
+            assert mocked.call_count == 1
+    finally:
+        stop_app_loading_toast(toast)

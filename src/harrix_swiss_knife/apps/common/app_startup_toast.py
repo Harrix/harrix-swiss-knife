@@ -20,8 +20,9 @@ class AppLoadingToastPumper:
     """Refresh the loading toast clock while the UI thread is busy.
 
     `QTimer` does not fire during `MainWindow` construction. A per-thread
-    `sys.setprofile` hook calls `update_time()` and `repaint()` without
-    `processEvents`, so other Qt timers cannot run re-entrantly.
+    `sys.setprofile` hook refreshes the clock without `processEvents`, so
+    other Qt timers cannot run re-entrantly. The window is repainted only
+    when the displayed second changes, so a translucent toast does not flicker.
 
     """
 
@@ -34,10 +35,12 @@ class AppLoadingToastPumper:
         self._active = False
 
     def refresh_display(self) -> None:
-        """Read `QElapsedTimer` and paint the toast without processing Qt events."""
+        """Read `QElapsedTimer` and paint the clock without processing Qt events."""
         toast = self._toast
+        previous = toast.elapsed_seconds
         toast.update_time()
-        toast.label.repaint()
+        if toast.elapsed_seconds == previous:
+            return
         toast.repaint()
 
     def start(self) -> None:

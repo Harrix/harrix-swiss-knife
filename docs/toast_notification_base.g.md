@@ -19,6 +19,7 @@ lang: en
   - [⚙️ Method `mouseMoveEvent`](#%EF%B8%8F-method-mousemoveevent)
   - [⚙️ Method `mousePressEvent`](#%EF%B8%8F-method-mousepressevent)
   - [⚙️ Method `mouseReleaseEvent`](#%EF%B8%8F-method-mousereleaseevent)
+  - [⚙️ Method `paintEvent`](#%EF%B8%8F-method-paintevent)
   - [⚙️ Method `present`](#%EF%B8%8F-method-present)
   - [⚙️ Method `pump_events`](#%EF%B8%8F-method-pump_events)
   - [⚙️ Method `reposition_action_buttons`](#%EF%B8%8F-method-reposition_action_buttons)
@@ -184,6 +185,16 @@ class ToastNotificationBase(QDialog):
             self.setCursor(Qt.CursorShape.OpenHandCursor)  # Restore cursor to indicate draggable state
             event.accept()
 
+    def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
+        """Fill the frameless window so Windows layered blits keep the dark plate."""
+        del event
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(TOAST_BG)
+        radius = TOAST_RADIUS_COMPACT if self._is_pinned else TOAST_RADIUS_DEFAULT
+        painter.drawRoundedRect(self.rect(), radius, radius)
+
     def present(self, *, activate: bool = True, pinned: bool | None = None) -> None:
         """Size, position via the toast stack, and show on top.
 
@@ -305,7 +316,7 @@ class ToastNotificationBase(QDialog):
     def _apply_compact_style(self) -> None:
         """Apply compact styling with reduced font size for pinned notifications."""
         self.label.setStyleSheet(
-            "background-color: rgba(40, 40, 40, 230);"
+            "background-color: transparent;"
             "color: white;"
             f"padding: {toast_label_padding(compact=True)};"
             "border-radius: 8px;"
@@ -320,7 +331,7 @@ class ToastNotificationBase(QDialog):
     def _apply_default_style(self) -> None:
         """Apply default styling for expanded, centered notifications."""
         self.label.setStyleSheet(
-            "background-color: rgba(40, 40, 40, 230);"
+            "background-color: transparent;"
             "color: white;"
             f"padding: {toast_label_padding(compact=False)};"
             "border-radius: 10px;"
@@ -562,6 +573,30 @@ def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
             self.dragging = False
             self.setCursor(Qt.CursorShape.OpenHandCursor)  # Restore cursor to indicate draggable state
             event.accept()
+```
+
+</details>
+
+### ⚙️ Method `paintEvent`
+
+```python
+def paintEvent(self, event: QPaintEvent) -> None
+```
+
+Fill the frameless window so Windows layered blits keep the dark plate.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
+        del event
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(TOAST_BG)
+        radius = TOAST_RADIUS_COMPACT if self._is_pinned else TOAST_RADIUS_DEFAULT
+        painter.drawRoundedRect(self.rect(), radius, radius)
 ```
 
 </details>

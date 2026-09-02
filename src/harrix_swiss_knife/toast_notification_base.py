@@ -12,7 +12,7 @@ from html import escape
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QEvent, QEventLoop, QObject, QPoint, QRect, QSize, Qt
-from PySide6.QtGui import QCloseEvent, QColor, QIcon, QMouseEvent, QPainter, QPixmap, QShowEvent
+from PySide6.QtGui import QCloseEvent, QColor, QIcon, QMouseEvent, QPainter, QPaintEvent, QPixmap, QShowEvent
 from PySide6.QtWidgets import QApplication, QDialog, QLabel, QPushButton, QVBoxLayout, QWidget
 
 if TYPE_CHECKING:
@@ -38,6 +38,9 @@ CANCEL_HINT_FONT_SIZE_COMPACT = "8pt"
 
 STACK_GAP = 8
 SCREEN_MARGIN = 20
+TOAST_BG = QColor(40, 40, 40, 230)
+TOAST_RADIUS_DEFAULT = 10
+TOAST_RADIUS_COMPACT = 8
 
 DEFAULT_ACTION_BUTTON_STYLE = (
     "QPushButton {"
@@ -205,6 +208,16 @@ class ToastNotificationBase(QDialog):
             self.setCursor(Qt.CursorShape.OpenHandCursor)  # Restore cursor to indicate draggable state
             event.accept()
 
+    def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
+        """Fill the frameless window so Windows layered blits keep the dark plate."""
+        del event
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(TOAST_BG)
+        radius = TOAST_RADIUS_COMPACT if self._is_pinned else TOAST_RADIUS_DEFAULT
+        painter.drawRoundedRect(self.rect(), radius, radius)
+
     def present(self, *, activate: bool = True, pinned: bool | None = None) -> None:
         """Size, position via the toast stack, and show on top.
 
@@ -326,7 +339,7 @@ class ToastNotificationBase(QDialog):
     def _apply_compact_style(self) -> None:
         """Apply compact styling with reduced font size for pinned notifications."""
         self.label.setStyleSheet(
-            "background-color: rgba(40, 40, 40, 230);"
+            "background-color: transparent;"
             "color: white;"
             f"padding: {toast_label_padding(compact=True)};"
             "border-radius: 8px;"
@@ -341,7 +354,7 @@ class ToastNotificationBase(QDialog):
     def _apply_default_style(self) -> None:
         """Apply default styling for expanded, centered notifications."""
         self.label.setStyleSheet(
-            "background-color: rgba(40, 40, 40, 230);"
+            "background-color: transparent;"
             "color: white;"
             f"padding: {toast_label_padding(compact=False)};"
             "border-radius: 10px;"
