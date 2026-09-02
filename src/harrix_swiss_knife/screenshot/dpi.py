@@ -2,8 +2,63 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import QRect, QSize
-from PySide6.QtGui import QImage, QPixmap
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+from PySide6.QtCore import QRect, QSize, Qt
+from PySide6.QtGui import QImage, QPainter, QPixmap
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+
+@dataclass(frozen=True, slots=True)
+class ScreenGrab:
+    """One monitor's native grab and its logical geometry."""
+
+    geometry: QRect
+    dpr: float
+    pixmap: QPixmap
+
+
+def crop_from_mixed_dpi_grabs(selection_global: QRect, grabs: Sequence[ScreenGrab]) -> QImage | None:
+    """Crop `selection_global` from per-screen native grabs.
+
+    Each monitor keeps its own device pixel ratio. The output uses the highest
+    intersecting DPR so a 200% screen is never downscaled.
+
+    """
+    intersecting = [grab for grab in grabs if selection_global.intersects(grab.geometry)]
+    if not intersecting:
+        return None
+    out_dpr = max(grab.dpr if grab.dpr > 0 else 1.0 for grab in intersecting)
+    out_size = logical_size_to_pixel_size(selection_global.size(), out_dpr)
+    canvas = QImage(out_size, QImage.Format.Format_ARGB32_Premultiplied)
+    canvas.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(canvas)
+    painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, on=False)
+    try:
+        for grab in intersecting:
+            inter = selection_global.intersected(grab.geometry)
+            local = inter.translated(-grab.geometry.x(), -grab.geometry.y())
+            source = logical_rect_to_pixel_rect(local, grab.dpr).intersected(
+                QRect(0, 0, grab.pixmap.width(), grab.pixmap.height()),
+            )
+            if source.isEmpty():
+                continue
+            dest = logical_rect_to_pixel_rect(
+                inter.translated(-selection_global.x(), -selection_global.y()),
+                out_dpr,
+            )
+            piece = pixmap_as_physical_pixels(grab.pixmap.copy(source))
+            if piece.size() == dest.size():
+                painter.drawPixmap(dest.topLeft(), piece)
+            else:
+                painter.drawPixmap(dest, piece)
+    finally:
+        painter.end()
+    canvas.setDevicePixelRatio(1.0)
+    return canvas
 
 
 def crop_pixmap_from_logical_rect(pixmap: QPixmap, logical_rect: QRect) -> QImage | None:
@@ -66,11 +121,33 @@ def screen_destination_in_physical_pixels(
     virtual_geometry: QRect,
     composed_dpr: float,
 ) -> QRect:
-    """Map a screen's logical geometry onto the stitched physical canvas."""
+    """Map a screen's logical geometry onto a uniform-DPR stitched canvas."""
     scale = composed_dpr if composed_dpr > 0 else 1.0
     return QRect(
         round((screen_geometry.x() - virtual_geometry.x()) * scale),
         round((screen_geometry.y() - virtual_geometry.y()) * scale),
         max(1, round(screen_geometry.width() * scale)),
         max(1, round(screen_geometry.height() * scale)),
+    )
+
+
+def screen_native_destination(
+    screen_geometry: QRect,
+    virtual_geometry: QRect,
+    composed_dpr: float,
+    grab_size: QSize,
+) -> QRect:
+    """Place a native grab on the mixed-DPI canvas without scaling the image.
+
+    Logical offsets are mapped with `composed_dpr` so adjacent screens stay
+    adjacent. The destination size is the grab's physical size, not
+    `logical * composed_dpr`, so a 100% ultrawide is not stretched to 200%.
+
+    """
+    scale = composed_dpr if composed_dpr > 0 else 1.0
+    return QRect(
+        round((screen_geometry.x() - virtual_geometry.x()) * scale),
+        round((screen_geometry.y() - virtual_geometry.y()) * scale),
+        max(1, grab_size.width()),
+        max(1, grab_size.height()),
     )

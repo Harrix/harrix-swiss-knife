@@ -5,15 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QEventLoop, QRect, Qt, QTimer
-from PySide6.QtGui import QImage, QPainter, QPixmap, QScreen
+from PySide6.QtCore import QEventLoop, QRect, QTimer
 from PySide6.QtWidgets import QApplication, QDialog
 
-from harrix_swiss_knife.screenshot.dpi import (
-    logical_size_to_pixel_size,
-    pixmap_as_physical_pixels,
-    screen_destination_in_physical_pixels,
-)
+from harrix_swiss_knife.screenshot.dpi import ScreenGrab
 from harrix_swiss_knife.screenshot.preview_dialog import show_screenshot_preview
 from harrix_swiss_knife.screenshot.region_overlay import (
     RESULT_TOGGLE_ARRANGE,
@@ -34,6 +29,7 @@ from harrix_swiss_knife.screenshot.window_visibility import (
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
+    from PySide6.QtGui import QImage
     from PySide6.QtWidgets import QWidget
 
 _HIDE_SETTLE_MS = 200
@@ -145,13 +141,14 @@ def _capture_loop(*, with_controls: bool, session: _HideSession) -> QImage | Non
     clipboard_only = not session.show_preview
     while True:
         window_rects = list_snappable_window_rects(exclude_hwnds=session.exclude_hwnds())
-        frozen, geometry = _grab_virtual_desktop()
-        if frozen.isNull():
+        grabs, geometry = _grab_all_screens()
+        if not grabs:
             return None
 
         overlay = RegionOverlay(
-            frozen,
+            grabs[0].pixmap,
             geometry,
+            screen_grabs=grabs,
             with_shutter_controls=with_controls,
             window_rects=window_rects,
             keep_windows=not session.hide_app,
@@ -186,60 +183,43 @@ def _capture_loop(*, with_controls: bool, session: _HideSession) -> QImage | Non
         _wait_ms(_HIDE_SETTLE_MS)
 
 
-def _composed_device_pixel_ratio(screens: list[QScreen]) -> float:
-    """Use the highest screen DPR so a HiDPI grab is never downscaled."""
-    ratios = [screen.devicePixelRatio() for screen in screens if screen.devicePixelRatio() > 0]
-    return max(ratios) if ratios else 1.0
-
-
 def _copy_image_to_clipboard(image: QImage) -> None:
     clipboard = QApplication.clipboard()
     if clipboard is not None:
         clipboard.setImage(image)
 
 
-def _grab_virtual_desktop() -> tuple[QPixmap, QRect]:
-    """Grab all screens and stitch them into one pixmap covering the virtual desktop.
+def _grab_all_screens() -> tuple[list[ScreenGrab], QRect]:
+    """Grab each monitor at native resolution.
 
-    `QScreen.geometry()` is in logical pixels, while `grabWindow(0)` returns
-    physical pixels. The canvas is built in device pixels, then tagged with the
-    compose DPR so the overlay can map mouse coordinates back correctly.
+    A single overlay HWND uses the primary screen's DPI, so a 200% 4K monitor
+    next to a 100% ultrawide would only cover part of the 4K display. Each grab
+    is shown on its own fullscreen pane instead.
 
     """
     app = QApplication.instance()
     if app is None:
-        return QPixmap(), QRect()
+        return [], QRect()
 
     screens = app.screens()
     primary = app.primaryScreen()
     if not screens or primary is None:
-        return QPixmap(), QRect()
+        return [], QRect()
 
-    virtual_geometry = primary.virtualGeometry()
-    composed_dpr = _composed_device_pixel_ratio(screens)
-    pixel_size = logical_size_to_pixel_size(virtual_geometry.size(), composed_dpr)
-    canvas = QImage(pixel_size, QImage.Format.Format_ARGB32_Premultiplied)
-    canvas.fill(Qt.GlobalColor.black)
-
-    painter = QPainter(canvas)
-    painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, on=False)
-    try:
-        for screen in screens:
-            grab = screen.grabWindow(0)
-            if grab.isNull():
-                continue
-            dest = screen_destination_in_physical_pixels(screen.geometry(), virtual_geometry, composed_dpr)
-            physical = pixmap_as_physical_pixels(grab)
-            if physical.size() == dest.size():
-                painter.drawPixmap(dest.topLeft(), physical)
-            else:
-                painter.drawPixmap(dest, physical)
-    finally:
-        painter.end()
-
-    composed = QPixmap.fromImage(canvas)
-    composed.setDevicePixelRatio(composed_dpr)
-    return composed, virtual_geometry
+    grabs: list[ScreenGrab] = []
+    for screen in screens:
+        grab = screen.grabWindow(0)
+        if grab.isNull():
+            continue
+        dpr = screen.devicePixelRatio()
+        grabs.append(
+            ScreenGrab(
+                geometry=screen.geometry(),
+                dpr=dpr if dpr > 0 else 1.0,
+                pixmap=grab,
+            ),
+        )
+    return grabs, primary.virtualGeometry()
 
 
 def _hwnds_from_widgets(widgets: Iterable[QWidget]) -> list[int]:

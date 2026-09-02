@@ -5,10 +5,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QEvent, QObject, QPoint, QRect, Qt, QTimer
-from PySide6.QtGui import QColor, QCursor, QFontMetrics, QImage, QIntValidator, QPainter, QPen, QPixmap
-from PySide6.QtWidgets import QDialog, QLineEdit, QWidget
+from PySide6.QtGui import QColor, QCursor, QFontMetrics, QImage, QIntValidator, QPainter, QPen, QPixmap, QScreen
+from PySide6.QtWidgets import QApplication, QDialog, QLineEdit, QWidget
 
 from harrix_swiss_knife.screenshot.dpi import (
+    ScreenGrab,
+    crop_from_mixed_dpi_grabs,
     crop_pixmap_from_logical_rect,
     logical_rect_to_pixel_rect,
     pixmap_device_pixel_ratio,
@@ -105,6 +107,7 @@ class RegionOverlay(QDialog):
         frozen: QPixmap,
         geometry: QRect,
         *,
+        screen_grabs: Sequence[ScreenGrab] | None = None,
         with_shutter_controls: bool = False,
         window_rects: Sequence[QRect] | None = None,
         keep_windows: bool = False,
@@ -118,6 +121,8 @@ class RegionOverlay(QDialog):
 
         - `frozen` (`QPixmap`): Stitched screenshot of the virtual desktop to display as background.
         - `geometry` (`QRect`): The target geometry in global (screen) coordinates for overlay placement.
+        - `screen_grabs` (`Sequence[ScreenGrab] | None`): Native per-monitor grabs. When set,
+          each screen gets its own fullscreen pane so mixed DPI layouts cover every pixel.
         - `with_shutter_controls` (`bool`): If `True`, embed shutter controls on the left edge.
         - `window_rects` (`Sequence[QRect] | None`): Snappable window bounds in global logical pixels.
         - `keep_windows` (`bool`): If `True`, start with the keep-Windows shutter button on.
@@ -138,7 +143,14 @@ class RegionOverlay(QDialog):
         self.setMouseTracking(True)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setWindowModality(Qt.WindowModality.ApplicationModal)
-        self.setGeometry(geometry)
+        self._virtual_origin = geometry.topLeft()
+        self._desktop_rect = QRect(0, 0, geometry.width(), geometry.height())
+        self._screen_grabs: tuple[ScreenGrab, ...] = tuple(screen_grabs or ())
+        self._panes: list[_ScreenPane] = []
+        if self._screen_grabs:
+            self.setGeometry(QRect(-16, -16, 1, 1))
+        else:
+            self.setGeometry(geometry)
 
         self._frozen = frozen
         self._origin: QPoint | None = None
@@ -160,14 +172,17 @@ class RegionOverlay(QDialog):
         self._size_editor = self._make_size_editor()
         origin = geometry.topLeft()
         self._window_rects_local = [
-            rect.translated(-origin.x(), -origin.y()).intersected(QRect(0, 0, geometry.width(), geometry.height()))
-            for rect in (window_rects or ())
+            rect.translated(-origin.x(), -origin.y()).intersected(self._desktop_rect) for rect in (window_rects or ())
         ]
         self._window_rects_local = [rect for rect in self._window_rects_local if rect.isValid() and not rect.isEmpty()]
-        self._snap_x_edges, self._snap_y_edges = collect_edge_guides(self._window_rects_local, self.rect())
+        self._snap_x_edges, self._snap_y_edges = collect_edge_guides(self._window_rects_local, self._desktop_rect)
+
+        if self._screen_grabs:
+            self._panes = [_ScreenPane(self, grab) for grab in self._screen_grabs]
 
         if with_shutter_controls:
-            panel = ShutterPanel(self)
+            panel_parent: QWidget = self._primary_pane() or self
+            panel = ShutterPanel(panel_parent)
             panel.set_mode("selection")
             panel.set_keep_windows(enabled=keep_windows)
             panel.set_clipboard_only(enabled=clipboard_only)
@@ -239,6 +254,8 @@ class RegionOverlay(QDialog):
         """Release the keyboard grab when the overlay is hidden."""
         self._close_size_editor()
         release_screenshot_keyboard(self)
+        for pane in self._panes:
+            pane.hide()
         super().hideEvent(event)
 
     @property
@@ -287,7 +304,7 @@ class RegionOverlay(QDialog):
         """Double-click a size number to type it, or the frame to capture."""
         if event.button() != Qt.MouseButton.LeftButton or self._edit_rect is None:
             return
-        pos = event.position().toPoint()
+        pos = self._event_virtual_pos(event)
         kind = self._hit_size_label(pos)
         if kind is not None:
             self._start_size_edit(kind)
@@ -299,7 +316,7 @@ class RegionOverlay(QDialog):
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         """Update snap, free-drag selection, or editable frame move/resize."""
-        pos = event.position().toPoint()
+        pos = self._event_virtual_pos(event)
 
         if self._edit_rect is not None:
             if self._edit_handle is not None and self._edit_press_pos is not None and self._edit_press_rect is not None:
@@ -308,7 +325,7 @@ class RegionOverlay(QDialog):
                     self._edit_handle,
                     self._edit_press_pos,
                     pos,
-                    bounds=self.rect(),
+                    bounds=self._desktop_rect,
                     min_size=_MIN_SELECTION,
                 )
                 self._edit_rect = snap_rect_to_edges(
@@ -317,13 +334,13 @@ class RegionOverlay(QDialog):
                     self._snap_x_edges,
                     self._snap_y_edges,
                     threshold=_EDGE_SNAP_THRESHOLD,
-                    bounds=self.rect(),
+                    bounds=self._desktop_rect,
                     min_size=_MIN_SELECTION,
                 )
-                self.update()
+                self._repaint_surfaces()
                 return
             if self._hit_size_label(pos) is not None:
-                self.setCursor(Qt.CursorShape.IBeamCursor)
+                self._set_overlay_cursor(Qt.CursorShape.IBeamCursor)
                 return
             self._apply_edit_cursor(hit_test_selection_handle(self._edit_rect, pos))
             return
@@ -338,13 +355,13 @@ class RegionOverlay(QDialog):
             if abs(delta.x()) >= _DRAG_THRESHOLD or abs(delta.y()) >= _DRAG_THRESHOLD:
                 self._dragging = True
                 self._snap_rect = None
-        self.update()
+        self._repaint_surfaces()
 
     def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         """Start free selection, snap capture, or begin editing an adjustable frame."""
         if event.button() != Qt.MouseButton.LeftButton:
             return
-        pos = event.position().toPoint()
+        pos = self._event_virtual_pos(event)
 
         if self._size_editor.isVisible():
             self._commit_size_edit()
@@ -364,7 +381,7 @@ class RegionOverlay(QDialog):
         self._current = pos
         self._dragging = False
         self._update_snap_at(pos)
-        self.update()
+        self._repaint_surfaces()
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         """Finish free selection, enter edit mode, or end a frame edit drag."""
@@ -375,14 +392,14 @@ class RegionOverlay(QDialog):
             self._edit_handle = None
             self._edit_press_pos = None
             self._edit_press_rect = None
-            self._apply_edit_cursor(hit_test_selection_handle(self._edit_rect, event.position().toPoint()))
-            self.update()
+            self._apply_edit_cursor(hit_test_selection_handle(self._edit_rect, self._event_virtual_pos(event)))
+            self._repaint_surfaces()
             return
 
         if self._origin is None:
             return
 
-        pos = event.position().toPoint()
+        pos = self._event_virtual_pos(event)
         self._current = pos
 
         capture_rect: QRect | None
@@ -400,7 +417,7 @@ class RegionOverlay(QDialog):
 
         if capture_rect is None:
             self._update_snap_at(pos)
-            self.update()
+            self._repaint_surfaces()
             return
 
         if capture_rect.width() < _MIN_SELECTION or capture_rect.height() < _MIN_SELECTION:
@@ -409,7 +426,7 @@ class RegionOverlay(QDialog):
                 self.reject()
             else:
                 self._update_snap_at(pos)
-                self.update()
+                self._repaint_surfaces()
             return
 
         if self._adjust_mode_enabled():
@@ -420,30 +437,34 @@ class RegionOverlay(QDialog):
 
     def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802, ARG002
         """Draw frozen desktop, dim overlay, selection/snap, and edit handles."""
+        if self._panes:
+            return
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, on=False)
-        painter.drawPixmap(self.rect(), self._frozen)
-        painter.fillRect(self.rect(), _DIM_COLOR)
+        self._paint_surface(
+            painter,
+            self.rect(),
+            self._frozen,
+            pixmap_device_pixel_ratio(self._frozen),
+            QPoint(0, 0),
+        )
 
-        rect = self._active_highlight_rect()
-        if rect is not None and rect.isValid():
-            source = logical_rect_to_pixel_rect(rect, pixmap_device_pixel_ratio(self._frozen))
-            painter.drawPixmap(rect, self._frozen, source)
-            guides_on = self._guides_enabled
-            pen = QPen(_BORDER_COLOR, _GUIDE_BORDER_WIDTH if guides_on else _BORDER_WIDTH)
-            painter.setPen(pen)
-            painter.drawRect(rect.adjusted(0, 0, -1, -1))
-            if guides_on:
-                skip = self._size_edit_kind if self._size_editor.isVisible() else None
-                paint_selection_guides(painter, rect, self.rect(), skip_size=skip)
-            if self._edit_rect is not None:
-                self._paint_edit_handles(painter, rect)
+    def paint_screen_pane(self, pane: _ScreenPane) -> None:
+        """Paint one monitor pane with that screen's grab and the shared selection."""
+        grab = pane.grab
+        painter = QPainter(pane)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, on=False)
+        offset = grab.geometry.topLeft() - self._virtual_origin
+        self._paint_surface(painter, pane.rect(), grab.pixmap, grab.dpr, offset)
 
     def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
         """Take keyboard focus so Escape cancels capture on Tool overlays."""
         super().showEvent(event)
+        for pane in self._panes:
+            pane.show()
+            pane.raise_()
         claim_screenshot_keyboard(self)
-        self._update_snap_at(self.mapFromGlobal(QCursor.pos()))
+        self._update_snap_at(self._global_to_virtual(QCursor.pos()))
 
     def _active_highlight_rect(self) -> QRect | None:
         """Return the rectangle currently shown as the clear selection / snap region."""
@@ -459,8 +480,7 @@ class RegionOverlay(QDialog):
         return self._panel is not None and self._panel.adjust_mode
 
     def _apply_edit_cursor(self, handle: HandleKind | None) -> None:
-        shape_name = cursor_for_handle(handle)
-        self.setCursor(getattr(Qt.CursorShape, shape_name))
+        self._set_overlay_cursor(getattr(Qt.CursorShape, cursor_for_handle(handle)))
 
     def _cancel_size_edit(self) -> None:
         self._close_size_editor()
@@ -471,11 +491,11 @@ class RegionOverlay(QDialog):
         self._edit_handle = None
         self._edit_press_pos = None
         self._edit_press_rect = None
-        self.setCursor(Qt.CursorShape.CrossCursor)
+        self._set_overlay_cursor(Qt.CursorShape.CrossCursor)
         if self._panel is not None:
             self._panel.set_edit_keys_visible(visible=False)
-        self._update_snap_at(self.mapFromGlobal(QCursor.pos()))
-        self.update()
+        self._update_snap_at(self._global_to_virtual(QCursor.pos()))
+        self._repaint_surfaces()
 
     def _clear_suppress_confirm(self) -> None:
         self._suppress_confirm_once = False
@@ -492,7 +512,7 @@ class RegionOverlay(QDialog):
                 self._size_editor.releaseKeyboard()
             if self.isVisible() and QWidget.keyboardGrabber() is None:
                 QTimer.singleShot(0, self._restore_overlay_keyboard)
-            self.update()
+            self._repaint_surfaces()
         finally:
             self._size_edit_closing = False
 
@@ -515,10 +535,10 @@ class RegionOverlay(QDialog):
             rect,
             width=parsed if kind == "width" else None,
             height=parsed if kind == "height" else None,
-            bounds=self.rect(),
+            bounds=self._desktop_rect,
             min_size=_MIN_SELECTION,
         )
-        self.update()
+        self._repaint_surfaces()
 
     def _enter_edit_rect(self, rect: QRect) -> None:
         self._close_size_editor()
@@ -527,20 +547,31 @@ class RegionOverlay(QDialog):
         self._origin = None
         self._current = None
         self._dragging = False
-        self._snap_x_edges, self._snap_y_edges = collect_edge_guides(self._window_rects_local, self.rect())
+        self._snap_x_edges, self._snap_y_edges = collect_edge_guides(self._window_rects_local, self._desktop_rect)
         if self._panel is not None:
             self._panel.set_edit_keys_visible(visible=True)
-        self._apply_edit_cursor(hit_test_selection_handle(self._edit_rect, self.mapFromGlobal(QCursor.pos())))
-        self.update()
+        self._apply_edit_cursor(hit_test_selection_handle(self._edit_rect, self._global_to_virtual(QCursor.pos())))
+        self._repaint_surfaces()
+
+    def _event_virtual_pos(self, event: QMouseEvent) -> QPoint:
+        if self._panes:
+            return self._global_to_virtual(event.globalPosition().toPoint())
+        return event.position().toPoint()
 
     def _finish_with_rect(self, rect: QRect) -> None:
         """Crop `rect` from the frozen desktop and accept the dialog."""
-        self._crop = crop_pixmap_from_logical_rect(self._frozen, rect)
+        if self._screen_grabs:
+            self._crop = crop_from_mixed_dpi_grabs(rect.translated(self._virtual_origin), self._screen_grabs)
+        else:
+            self._crop = crop_pixmap_from_logical_rect(self._frozen, rect)
         if self._crop is None or self._crop.isNull():
             self._crop = None
             self.reject()
             return
         self.accept()
+
+    def _global_to_virtual(self, global_pos: QPoint) -> QPoint:
+        return QPoint(global_pos.x() - self._virtual_origin.x(), global_pos.y() - self._virtual_origin.y())
 
     def _guide_metrics(self) -> QFontMetrics:
         return QFontMetrics(guide_label_font(self.font()))
@@ -548,7 +579,7 @@ class RegionOverlay(QDialog):
     def _hit_size_label(self, pos: QPoint) -> SizeLabelKind | None:
         if self._edit_rect is None or not self._guides_enabled:
             return None
-        return hit_test_size_label(self._edit_rect, self.rect(), pos, self._guide_metrics())
+        return hit_test_size_label(self._edit_rect, self._desktop_rect, pos, self._guide_metrics())
 
     def _make_size_editor(self) -> QLineEdit:
         editor = QLineEdit(self)
@@ -571,10 +602,10 @@ class RegionOverlay(QDialog):
             direction,
             step=step,
             resize=resize,
-            bounds=self.rect(),
+            bounds=self._desktop_rect,
             min_size=_MIN_SELECTION,
         )
-        self.update()
+        self._repaint_surfaces()
 
     def _paint_edit_handles(self, painter: QPainter, rect: QRect) -> None:
         half = _HANDLE_DRAW // 2
@@ -593,6 +624,56 @@ class RegionOverlay(QDialog):
         for point in points:
             painter.drawRect(point.x() - half, point.y() - half, _HANDLE_DRAW, _HANDLE_DRAW)
 
+    def _paint_surface(
+        self,
+        painter: QPainter,
+        widget_rect: QRect,
+        pixmap: QPixmap,
+        dpr: float,
+        pane_offset: QPoint,
+    ) -> None:
+        painter.drawPixmap(widget_rect, pixmap)
+        painter.fillRect(widget_rect, _DIM_COLOR)
+        rect = self._active_highlight_rect()
+        if rect is None or not rect.isValid():
+            return
+        local = rect.translated(-pane_offset)
+        source = logical_rect_to_pixel_rect(local, dpr)
+        painter.drawPixmap(local, pixmap, source)
+        guides_on = self._guides_enabled
+        pen = QPen(_BORDER_COLOR, _GUIDE_BORDER_WIDTH if guides_on else _BORDER_WIDTH)
+        painter.setPen(pen)
+        painter.drawRect(local.adjusted(0, 0, -1, -1))
+        if guides_on:
+            skip = self._size_edit_kind if self._size_editor.isVisible() else None
+            paint_selection_guides(painter, local, widget_rect, skip_size=skip)
+        if self._edit_rect is not None:
+            self._paint_edit_handles(painter, local)
+
+    def _pane_at_virtual(self, pos: QPoint) -> _ScreenPane | None:
+        global_pos = QPoint(pos.x() + self._virtual_origin.x(), pos.y() + self._virtual_origin.y())
+        for pane in self._panes:
+            if pane.grab.geometry.contains(global_pos):
+                return pane
+        return None
+
+    def _primary_pane(self) -> _ScreenPane | None:
+        if not self._panes:
+            return None
+        primary = QApplication.primaryScreen()
+        if primary is not None:
+            primary_geo = primary.geometry()
+            for pane, grab in zip(self._panes, self._screen_grabs, strict=True):
+                if grab.geometry == primary_geo:
+                    return pane
+        return self._panes[0]
+
+    def _repaint_surfaces(self) -> None:
+        """Repaint the dialog and every per-monitor pane."""
+        super().update()
+        for pane in self._panes:
+            pane.update()
+
     def _restore_overlay_keyboard(self) -> None:
         if not self.isVisible() or self._size_editor.isVisible():
             return
@@ -609,22 +690,28 @@ class RegionOverlay(QDialog):
         self._guides_enabled = enabled
         if not enabled:
             self._close_size_editor()
-        self.update()
+        self._repaint_surfaces()
 
-    def _size_editor_geometry(self, box: QRect) -> QRect:
+    def _set_overlay_cursor(self, shape: Qt.CursorShape) -> None:
+        self.setCursor(shape)
+        for pane in self._panes:
+            pane.setCursor(shape)
+
+    def _size_editor_geometry(self, box: QRect, bounds: QRect | None = None) -> QRect:
         metrics = self._guide_metrics()
         min_width = metrics.horizontalAdvance(_SIZE_EDITOR_MIN_DIGITS) + _SIZE_EDITOR_PAD_X
         width = max(box.width() + _SIZE_EDITOR_PAD_X, min_width)
         height = max(box.height() + _SIZE_EDITOR_PAD_Y, metrics.height() + _SIZE_EDITOR_PAD_Y)
         geo = QRect(box.center().x() - width // 2, box.center().y() - height // 2, width, height)
-        if geo.left() < 0:
-            geo.moveLeft(0)
-        if geo.top() < 0:
-            geo.moveTop(0)
-        if geo.right() > self.width() - 1:
-            geo.moveRight(self.width() - 1)
-        if geo.bottom() > self.height() - 1:
-            geo.moveBottom(self.height() - 1)
+        area = bounds if bounds is not None else self._desktop_rect
+        if geo.left() < area.left():
+            geo.moveLeft(area.left())
+        if geo.top() < area.top():
+            geo.moveTop(area.top())
+        if geo.right() > area.right():
+            geo.moveRight(area.right())
+        if geo.bottom() > area.bottom():
+            geo.moveBottom(area.bottom())
         return geo
 
     def _size_label_box(self, kind: SizeLabelKind) -> QRect:
@@ -632,7 +719,7 @@ class RegionOverlay(QDialog):
             return QRect()
         width_label, height_label, _, _ = selection_guide_labels(
             self._edit_rect,
-            self.rect(),
+            self._desktop_rect,
             self._guide_metrics(),
         )
         return width_label.box if kind == "width" else height_label.box
@@ -644,10 +731,19 @@ class RegionOverlay(QDialog):
             self._commit_size_edit()
         self._size_edit_kind = kind
         value = self._edit_rect.width() if kind == "width" else self._edit_rect.height()
-        max_value = self.rect().width() if kind == "width" else self.rect().height()
+        max_value = self._desktop_rect.width() if kind == "width" else self._desktop_rect.height()
         self._size_editor.setValidator(QIntValidator(_MIN_SELECTION, max_value, self._size_editor))
         self._size_editor.setFont(guide_label_font(self.font()))
-        self._size_editor.setGeometry(self._size_editor_geometry(self._size_label_box(kind)))
+        box = self._size_label_box(kind)
+        pane = self._pane_at_virtual(box.center())
+        if pane is not None:
+            self._size_editor.setParent(pane)
+            offset = pane.grab.geometry.topLeft() - self._virtual_origin
+            local_box = box.translated(-offset.x(), -offset.y())
+            self._size_editor.setGeometry(self._size_editor_geometry(local_box, pane.rect()))
+        else:
+            self._size_editor.setParent(self)
+            self._size_editor.setGeometry(self._size_editor_geometry(box))
         self._size_editor.setText(str(value))
         self._size_editor.show()
         self._size_editor.raise_()
@@ -656,7 +752,7 @@ class RegionOverlay(QDialog):
         self._size_editor.setFocus(Qt.FocusReason.MouseFocusReason)
         self._size_editor.selectAll()
         self._size_editor.grabKeyboard()
-        self.update()
+        self._repaint_surfaces()
 
     def _update_snap_at(self, pos: QPoint) -> None:
         """Refresh the hover snap rectangle for `pos` and repaint when it changes."""
@@ -666,7 +762,54 @@ class RegionOverlay(QDialog):
         if new_snap == self._snap_rect:
             return
         self._snap_rect = new_snap
-        self.update()
+        self._repaint_surfaces()
+
+
+class _ScreenPane(QWidget):
+    """Fullscreen cover for one monitor, painting that screen's native grab."""
+
+    def __init__(self, overlay: RegionOverlay, grab: ScreenGrab) -> None:
+        super().__init__(overlay)
+        mark_screenshot_ui(self)
+        self._overlay = overlay
+        self._grab = grab
+        self.setWindowFlags(
+            Qt.WindowType.FramelessWindowHint
+            | Qt.WindowType.WindowStaysOnTopHint
+            | Qt.WindowType.Tool
+            | Qt.WindowType.Window
+        )
+        self.setAttribute(Qt.WidgetAttribute.WA_NativeWindow, on=True)
+        self.setCursor(Qt.CursorShape.CrossCursor)
+        self.setMouseTracking(True)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        screen = _screen_for_geometry(grab.geometry)
+        if screen is not None:
+            self.setScreen(screen)
+        self.setGeometry(grab.geometry)
+
+    @property
+    def grab(self) -> ScreenGrab:
+        """Native grab painted by this pane."""
+        return self._grab
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
+        self._overlay.keyPressEvent(event)
+
+    def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        self._overlay.mouseDoubleClickEvent(event)
+
+    def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        self._overlay.mouseMoveEvent(event)
+
+    def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        self._overlay.mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        self._overlay.mouseReleaseEvent(event)
+
+    def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802, ARG002
+        self._overlay.paint_screen_pane(self)
 
 
 def _is_arrow_key(event: QEvent) -> bool:
@@ -682,3 +825,13 @@ def _is_enter_key(event: QEvent) -> bool:
 def _is_escape_key(event: QEvent) -> bool:
     key = getattr(event, "key", None)
     return callable(key) and key() == Qt.Key.Key_Escape
+
+
+def _screen_for_geometry(geometry: QRect) -> QScreen | None:
+    app = QApplication.instance()
+    if app is None:
+        return None
+    for screen in app.screens():
+        if screen.geometry() == geometry:
+            return screen
+    return None

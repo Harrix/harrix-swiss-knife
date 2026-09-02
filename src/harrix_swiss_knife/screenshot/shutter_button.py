@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Literal
 
-from PySide6.QtCore import QEvent, QObject, QSize, Qt, Signal
+from PySide6.QtCore import QEvent, QObject, QPoint, QSize, Qt, Signal
 from PySide6.QtWidgets import (
     QApplication,
     QDialog,
@@ -390,6 +390,8 @@ def position_panel_on_left_edge(panel: ShutterPanel, overlay_geometry: QRect) ->
     if screen is None:
         return
     geo = screen.availableGeometry()
-    x = geo.x() - overlay_geometry.x() + _EDGE_MARGIN
-    y = geo.y() - overlay_geometry.y() + (geo.height() - panel.height()) // 2
+    parent = panel.parentWidget()
+    origin = parent.mapToGlobal(QPoint(0, 0)) if parent is not None else overlay_geometry.topLeft()
+    x = geo.x() - origin.x() + _EDGE_MARGIN
+    y = geo.y() - origin.y() + (geo.height() - panel.height()) // 2
     panel.move(x, y)
