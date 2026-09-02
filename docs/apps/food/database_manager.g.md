@@ -24,10 +24,12 @@ lang: en
   - [⚙️ Method `get_all_recipes`](#%EF%B8%8F-method-get_all_recipes)
   - [⚙️ Method `get_calories_per_day`](#%EF%B8%8F-method-get_calories_per_day)
   - [⚙️ Method `get_calories_totals_between`](#%EF%B8%8F-method-get_calories_totals_between)
+  - [⚙️ Method `get_drinks_weight_on_date`](#%EF%B8%8F-method-get_drinks_weight_on_date)
   - [⚙️ Method `get_drinks_weight_per_day`](#%EF%B8%8F-method-get_drinks_weight_per_day)
   - [⚙️ Method `get_drinks_weight_today`](#%EF%B8%8F-method-get_drinks_weight_today)
   - [⚙️ Method `get_earliest_food_log_date`](#%EF%B8%8F-method-get_earliest_food_log_date)
   - [⚙️ Method `get_filtered_food_log_records`](#%EF%B8%8F-method-get_filtered_food_log_records)
+  - [⚙️ Method `get_food_calories_on_date`](#%EF%B8%8F-method-get_food_calories_on_date)
   - [⚙️ Method `get_food_calories_today`](#%EF%B8%8F-method-get_food_calories_today)
   - [⚙️ Method `get_food_item_by_name`](#%EF%B8%8F-method-get_food_item_by_name)
   - [⚙️ Method `get_food_item_names_for_autocomplete`](#%EF%B8%8F-method-get_food_item_names_for_autocomplete)
@@ -361,6 +363,25 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
                 continue
         return result
 
+    def get_drinks_weight_on_date(self, day: str) -> int:
+        """Get total weight of drinks consumed on `day`.
+
+        Args:
+
+        - `day` (`str`): Date in YYYY-MM-DD format.
+
+        Returns:
+
+        - `int`: Total weight of drinks in grams.
+
+        """
+        query = "SELECT SUM(weight) FROM food_log WHERE date = :day AND is_drink = 1 AND weight IS NOT NULL"
+        rows = self.get_rows(query, {"day": day})
+        try:
+            return int(rows[0][0]) if rows and rows[0][0] is not None and rows[0][0] != "" else 0
+        except (ValueError, TypeError):
+            return 0
+
     def get_drinks_weight_per_day(self) -> list[list[Any]]:
         """Get drinks weight consumed per day for all days.
 
@@ -388,14 +409,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `int`: Total weight of drinks in grams.
 
         """
-        today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
-        query = "SELECT SUM(weight) FROM food_log WHERE date = :today AND is_drink = 1 AND weight IS NOT NULL"
-        params = {"today": today}
-        rows = self.get_rows(query, params)
-        try:
-            return int(rows[0][0]) if rows and rows[0][0] is not None and rows[0][0] != "" else 0
-        except (ValueError, TypeError):
-            return 0
+        return self.get_drinks_weight_on_date(_local_iso_date())
 
     def get_earliest_food_log_date(self) -> str | None:
         """Get the earliest date from food_log table."""
@@ -469,6 +483,37 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
                 rows = rows[offset : offset + limit]
         return rows
 
+    def get_food_calories_on_date(self, day: str) -> float:
+        """Get total calories consumed on `day`.
+
+        Args:
+
+        - `day` (`str`): Date in YYYY-MM-DD format.
+
+        Returns:
+
+        - `float`: Total calories for that day.
+
+        """
+        query = f"""
+            SELECT SUM({_ROW_CALORIES_SQL}) as total_calories
+            FROM food_log
+            WHERE date = :day
+        """
+        rows = self.get_rows(query, {"day": day})
+
+        if not rows or not rows[0] or rows[0][0] is None:
+            return 0.0
+
+        try:
+            value = rows[0][0]
+            if value == "" or value is None:
+                return 0.0
+            return float(value)
+        except (ValueError, TypeError):
+            # If conversion fails, return 0.0
+            return 0.0
+
     def get_food_calories_today(self) -> float:
         """Get total calories consumed today.
 
@@ -477,35 +522,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `float`: Total calories today.
 
         """
-        today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
-        query = """
-            SELECT SUM(
-                CASE
-                    WHEN portion_calories IS NOT NULL AND portion_calories > 0
-                    THEN portion_calories
-                    WHEN calories_per_100g IS NOT NULL AND calories_per_100g > 0 AND weight IS NOT NULL AND weight > 0
-                    THEN (calories_per_100g * weight) / 100
-                    ELSE 0
-                END
-            ) as total_calories
-            FROM food_log
-            WHERE date = :today
-        """
-        params = {"today": today}
-        rows = self.get_rows(query, params)
-
-        if not rows or not rows[0] or rows[0][0] is None:
-            return 0.0
-
-        try:
-            # Handle empty string or other non-numeric values
-            value = rows[0][0]
-            if value == "" or value is None:
-                return 0.0
-            return float(value)
-        except (ValueError, TypeError):
-            # If conversion fails, return 0.0
-            return 0.0
+        return self.get_food_calories_on_date(_local_iso_date())
 
     def get_food_item_by_name(self, name: str) -> FoodItemByNameRow | None:
         """Get food item by name.
@@ -1651,6 +1668,37 @@ def get_calories_totals_between(self, date_from: str, date_to: str) -> dict[str,
 
 </details>
 
+### ⚙️ Method `get_drinks_weight_on_date`
+
+```python
+def get_drinks_weight_on_date(self, day: str) -> int
+```
+
+Get total weight of drinks consumed on [`day`](../habits/dashboard_widgets.g.md#%EF%B8%8F-method-day).
+
+Args:
+
+- [`day`](../habits/dashboard_widgets.g.md#%EF%B8%8F-method-day) (`str`): Date in YYYY-MM-DD format.
+
+Returns:
+
+- `int`: Total weight of drinks in grams.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_drinks_weight_on_date(self, day: str) -> int:
+        query = "SELECT SUM(weight) FROM food_log WHERE date = :day AND is_drink = 1 AND weight IS NOT NULL"
+        rows = self.get_rows(query, {"day": day})
+        try:
+            return int(rows[0][0]) if rows and rows[0][0] is not None and rows[0][0] != "" else 0
+        except (ValueError, TypeError):
+            return 0
+```
+
+</details>
+
 ### ⚙️ Method `get_drinks_weight_per_day`
 
 ```python
@@ -1699,14 +1747,7 @@ Returns:
 
 ```python
 def get_drinks_weight_today(self) -> int:
-        today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
-        query = "SELECT SUM(weight) FROM food_log WHERE date = :today AND is_drink = 1 AND weight IS NOT NULL"
-        params = {"today": today}
-        rows = self.get_rows(query, params)
-        try:
-            return int(rows[0][0]) if rows and rows[0][0] is not None and rows[0][0] != "" else 0
-        except (ValueError, TypeError):
-            return 0
+        return self.get_drinks_weight_on_date(_local_iso_date())
 ```
 
 </details>
@@ -1809,6 +1850,49 @@ def get_filtered_food_log_records(
 
 </details>
 
+### ⚙️ Method `get_food_calories_on_date`
+
+```python
+def get_food_calories_on_date(self, day: str) -> float
+```
+
+Get total calories consumed on [`day`](../habits/dashboard_widgets.g.md#%EF%B8%8F-method-day).
+
+Args:
+
+- [`day`](../habits/dashboard_widgets.g.md#%EF%B8%8F-method-day) (`str`): Date in YYYY-MM-DD format.
+
+Returns:
+
+- `float`: Total calories for that day.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_food_calories_on_date(self, day: str) -> float:
+        query = f"""
+            SELECT SUM({_ROW_CALORIES_SQL}) as total_calories
+            FROM food_log
+            WHERE date = :day
+        """
+        rows = self.get_rows(query, {"day": day})
+
+        if not rows or not rows[0] or rows[0][0] is None:
+            return 0.0
+
+        try:
+            value = rows[0][0]
+            if value == "" or value is None:
+                return 0.0
+            return float(value)
+        except (ValueError, TypeError):
+            # If conversion fails, return 0.0
+            return 0.0
+```
+
+</details>
+
 ### ⚙️ Method `get_food_calories_today`
 
 ```python
@@ -1826,35 +1910,7 @@ Returns:
 
 ```python
 def get_food_calories_today(self) -> float:
-        today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
-        query = """
-            SELECT SUM(
-                CASE
-                    WHEN portion_calories IS NOT NULL AND portion_calories > 0
-                    THEN portion_calories
-                    WHEN calories_per_100g IS NOT NULL AND calories_per_100g > 0 AND weight IS NOT NULL AND weight > 0
-                    THEN (calories_per_100g * weight) / 100
-                    ELSE 0
-                END
-            ) as total_calories
-            FROM food_log
-            WHERE date = :today
-        """
-        params = {"today": today}
-        rows = self.get_rows(query, params)
-
-        if not rows or not rows[0] or rows[0][0] is None:
-            return 0.0
-
-        try:
-            # Handle empty string or other non-numeric values
-            value = rows[0][0]
-            if value == "" or value is None:
-                return 0.0
-            return float(value)
-        except (ValueError, TypeError):
-            # If conversion fails, return 0.0
-            return 0.0
+        return self.get_food_calories_on_date(_local_iso_date())
 ```
 
 </details>

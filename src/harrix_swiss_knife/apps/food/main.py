@@ -1160,24 +1160,35 @@ class MainWindow(
         """Keep the food-log type combo static (All / Food / Drink)."""
 
     def update_food_calories_today(self) -> None:
-        """Update the label showing calories consumed today and drinks weight in liters (comma as decimal separator)."""
+        """Update Today and Yesterday calorie/drink labels."""
         if self.db_manager is None:
             logger.error("❌ Database manager is not initialized")
             return
 
+        zero_text = "0 kcal\n0,0 liters"
         if not self._validate_database_connection():
-            self.label_food_today.setText("0 kcal\n0,0 liters")
+            self.label_food_today.setText(zero_text)
+            self.label_food_yesterday.setText(zero_text)
             return
 
         try:
-            calories = self.db_manager.get_food_calories_today()
-            drinks_weight = self.db_manager.get_drinks_weight_today()
-            drinks_liters = drinks_weight / 1000 if drinks_weight else 0.0
-            drinks_liters_str = f"{drinks_liters:.1f}"
-            self.label_food_today.setText(f"{calories:.1f} kcal \n{drinks_liters_str} liters")
+            yesterday = QDate.currentDate().addDays(-1).toString("yyyy-MM-dd")
+            self.label_food_today.setText(
+                _format_food_day_summary(
+                    self.db_manager.get_food_calories_today(),
+                    self.db_manager.get_drinks_weight_today(),
+                )
+            )
+            self.label_food_yesterday.setText(
+                _format_food_day_summary(
+                    self.db_manager.get_food_calories_on_date(yesterday),
+                    self.db_manager.get_drinks_weight_on_date(yesterday),
+                )
+            )
         except Exception:
-            logger.exception("Error getting food calories for today")
-            self.label_food_today.setText("0 kcal\n0,0 liters")
+            logger.exception("Error getting food calories for today and yesterday")
+            self.label_food_today.setText(zero_text)
+            self.label_food_yesterday.setText(zero_text)
 
     def update_food_data(self) -> None:
         """Refresh food-related data only.
@@ -2904,8 +2915,8 @@ class MainWindow(
     ) -> None:
         """Update calculated and daily totals in the open food-log model.
 
-        Reloads neither tables nor charts. `label_food_today` is refreshed only
-        when the edit touches today's date.
+        Reloads neither tables nor charts. Today/Yesterday labels refresh when
+        the edit touches those dates.
 
         """
         proxy_model = self.models.get("food_log")
@@ -2915,19 +2926,23 @@ class MainWindow(
         if not isinstance(source_model, QStandardItemModel):
             return
 
-        today = QDate.currentDate().toString("yyyy-MM-dd")
+        today = QDate.currentDate()
+        summary_dates = {
+            today.toString("yyyy-MM-dd"),
+            today.addDays(-1).toString("yyyy-MM-dd"),
+        }
         date_column_changed = top_left.column() <= FOOD_LOG_COL_DATE <= bottom_right.column()
-        edited_today = False
+        edited_summary_day = False
         for row in range(top_left.row(), bottom_right.row() + 1):
             date_item = source_model.item(row, FOOD_LOG_COL_DATE)
-            if date_item is not None and date_item.text() == today:
-                edited_today = True
+            if date_item is not None and date_item.text() in summary_dates:
+                edited_summary_day = True
                 break
 
         refresh_food_log_calorie_columns(source_model)
         self.tableView_food_log.viewport().update()
 
-        if date_column_changed or edited_today:
+        if date_column_changed or edited_summary_day:
             self.update_food_calories_today()
 
     def _report_food_translate_completion(self, *, prefix: str = "") -> None:
@@ -4184,6 +4199,12 @@ class MainWindow(
         except Exception as e:
             logger.exception("Error updating kcal per day table")
             message_box.warning(self, "Database Error", f"Failed to load calories per day data: {e}")
+
+
+def _format_food_day_summary(calories: float, drinks_weight: int) -> str:
+    """Format a day box as calories plus drink liters."""
+    drinks_liters = drinks_weight / 1000 if drinks_weight else 0.0
+    return f"{calories:.1f} kcal \n{drinks_liters:.1f} liters"
 
 
 if __name__ == "__main__":

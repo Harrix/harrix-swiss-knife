@@ -103,6 +103,34 @@ def test_totals_between_excludes_dates_outside_range(food_db: DatabaseManager) -
     assert "2024-06-05" not in totals
 
 
+def test_calories_and_drinks_on_date(food_db: DatabaseManager) -> None:
+    """Day summaries for the Today/Yesterday boxes use the same calorie SQL as totals."""
+    assert food_db.add_food_log_record(
+        "2024-08-01",
+        name="Bread",
+        weight=200.0,
+        calories_per_100g=50.0,
+    )
+    assert food_db.add_food_log_record(
+        "2024-08-01",
+        name="Tea",
+        weight=500.0,
+        calories_per_100g=1.0,
+        is_drink=True,
+    )
+    assert food_db.add_food_log_record(
+        "2024-08-02",
+        name="Soup",
+        portion_calories=300.0,
+    )
+
+    assert food_db.get_food_calories_on_date("2024-08-01") == pytest.approx(105.0)
+    assert food_db.get_drinks_weight_on_date("2024-08-01") == 500
+    assert food_db.get_food_calories_on_date("2024-08-02") == pytest.approx(300.0)
+    assert food_db.get_drinks_weight_on_date("2024-08-02") == 0
+    assert food_db.get_food_calories_on_date("2024-08-03") == pytest.approx(0.0)
+
+
 def test_totals_between_agrees_with_calories_per_day(food_db: DatabaseManager) -> None:
     """The bounded aggregate must agree with the all-days aggregate it shares SQL with."""
     _add_log(food_db, "2024-07-01", weight=300.0, per_100g=33.0)

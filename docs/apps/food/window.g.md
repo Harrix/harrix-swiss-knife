@@ -60,6 +60,8 @@ class Ui_MainWindow(object):
         self.pushButton_food_add_by_voice.setText(QCoreApplication.translate("MainWindow", u"Add by voice", None))
         self.groupBox_food_today.setTitle(QCoreApplication.translate("MainWindow", u"Today", None))
         self.label_food_today.setText(QCoreApplication.translate("MainWindow", u"0", None))
+        self.groupBox_food_yesterday.setTitle(QCoreApplication.translate("MainWindow", u"Yesterday", None))
+        self.label_food_yesterday.setText(QCoreApplication.translate("MainWindow", u"0", None))
         self.label_food_items.setText(QCoreApplication.translate("MainWindow", u"Food Items:", None))
         self.groupBox_filter.setTitle("")
         self.label_filter_name.setText(QCoreApplication.translate("MainWindow", u"Name:", None))
@@ -339,6 +341,23 @@ class Ui_MainWindow(object):
 
 
         self.verticalLayout_food_controls.addWidget(self.groupBox_food_today)
+
+        self.groupBox_food_yesterday = QGroupBox(self.frame_food_controls)
+        self.groupBox_food_yesterday.setObjectName(u"groupBox_food_yesterday")
+        self.horizontalLayout_food_yesterday = QHBoxLayout(self.groupBox_food_yesterday)
+        self.horizontalLayout_food_yesterday.setObjectName(u"horizontalLayout_food_yesterday")
+        self.label_food_yesterday = QLabel(self.groupBox_food_yesterday)
+        self.label_food_yesterday.setObjectName(u"label_food_yesterday")
+        font4 = QFont()
+        font4.setPointSize(20)
+        font4.setBold(True)
+        self.label_food_yesterday.setFont(font4)
+        self.label_food_yesterday.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.horizontalLayout_food_yesterday.addWidget(self.label_food_yesterday)
+
+
+        self.verticalLayout_food_controls.addWidget(self.groupBox_food_yesterday)
 
         self.verticalSpacer_food = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
@@ -700,6 +719,8 @@ def retranslateUi(self, MainWindow):
         self.pushButton_food_add_by_voice.setText(QCoreApplication.translate("MainWindow", u"Add by voice", None))
         self.groupBox_food_today.setTitle(QCoreApplication.translate("MainWindow", u"Today", None))
         self.label_food_today.setText(QCoreApplication.translate("MainWindow", u"0", None))
+        self.groupBox_food_yesterday.setTitle(QCoreApplication.translate("MainWindow", u"Yesterday", None))
+        self.label_food_yesterday.setText(QCoreApplication.translate("MainWindow", u"0", None))
         self.label_food_items.setText(QCoreApplication.translate("MainWindow", u"Food Items:", None))
         self.groupBox_filter.setTitle("")
         self.label_filter_name.setText(QCoreApplication.translate("MainWindow", u"Name:", None))
@@ -995,6 +1016,23 @@ def setupUi(self, MainWindow):
 
 
         self.verticalLayout_food_controls.addWidget(self.groupBox_food_today)
+
+        self.groupBox_food_yesterday = QGroupBox(self.frame_food_controls)
+        self.groupBox_food_yesterday.setObjectName(u"groupBox_food_yesterday")
+        self.horizontalLayout_food_yesterday = QHBoxLayout(self.groupBox_food_yesterday)
+        self.horizontalLayout_food_yesterday.setObjectName(u"horizontalLayout_food_yesterday")
+        self.label_food_yesterday = QLabel(self.groupBox_food_yesterday)
+        self.label_food_yesterday.setObjectName(u"label_food_yesterday")
+        font4 = QFont()
+        font4.setPointSize(20)
+        font4.setBold(True)
+        self.label_food_yesterday.setFont(font4)
+        self.label_food_yesterday.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.horizontalLayout_food_yesterday.addWidget(self.label_food_yesterday)
+
+
+        self.verticalLayout_food_controls.addWidget(self.groupBox_food_yesterday)
 
         self.verticalSpacer_food = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 

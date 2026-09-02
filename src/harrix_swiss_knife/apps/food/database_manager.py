@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any, NoReturn
 
 from harrix_swiss_knife.apps.common.qt_database_manager_base import QtSqliteDatabaseManagerBase
@@ -314,6 +314,25 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
                 continue
         return result
 
+    def get_drinks_weight_on_date(self, day: str) -> int:
+        """Get total weight of drinks consumed on `day`.
+
+        Args:
+
+        - `day` (`str`): Date in YYYY-MM-DD format.
+
+        Returns:
+
+        - `int`: Total weight of drinks in grams.
+
+        """
+        query = "SELECT SUM(weight) FROM food_log WHERE date = :day AND is_drink = 1 AND weight IS NOT NULL"
+        rows = self.get_rows(query, {"day": day})
+        try:
+            return int(rows[0][0]) if rows and rows[0][0] is not None and rows[0][0] != "" else 0
+        except (ValueError, TypeError):
+            return 0
+
     def get_drinks_weight_per_day(self) -> list[list[Any]]:
         """Get drinks weight consumed per day for all days.
 
@@ -341,14 +360,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `int`: Total weight of drinks in grams.
 
         """
-        today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
-        query = "SELECT SUM(weight) FROM food_log WHERE date = :today AND is_drink = 1 AND weight IS NOT NULL"
-        params = {"today": today}
-        rows = self.get_rows(query, params)
-        try:
-            return int(rows[0][0]) if rows and rows[0][0] is not None and rows[0][0] != "" else 0
-        except (ValueError, TypeError):
-            return 0
+        return self.get_drinks_weight_on_date(_local_iso_date())
 
     def get_earliest_food_log_date(self) -> str | None:
         """Get the earliest date from food_log table."""
@@ -422,6 +434,37 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
                 rows = rows[offset : offset + limit]
         return rows
 
+    def get_food_calories_on_date(self, day: str) -> float:
+        """Get total calories consumed on `day`.
+
+        Args:
+
+        - `day` (`str`): Date in YYYY-MM-DD format.
+
+        Returns:
+
+        - `float`: Total calories for that day.
+
+        """
+        query = f"""
+            SELECT SUM({_ROW_CALORIES_SQL}) as total_calories
+            FROM food_log
+            WHERE date = :day
+        """
+        rows = self.get_rows(query, {"day": day})
+
+        if not rows or not rows[0] or rows[0][0] is None:
+            return 0.0
+
+        try:
+            value = rows[0][0]
+            if value == "" or value is None:
+                return 0.0
+            return float(value)
+        except (ValueError, TypeError):
+            # If conversion fails, return 0.0
+            return 0.0
+
     def get_food_calories_today(self) -> float:
         """Get total calories consumed today.
 
@@ -430,35 +473,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `float`: Total calories today.
 
         """
-        today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
-        query = """
-            SELECT SUM(
-                CASE
-                    WHEN portion_calories IS NOT NULL AND portion_calories > 0
-                    THEN portion_calories
-                    WHEN calories_per_100g IS NOT NULL AND calories_per_100g > 0 AND weight IS NOT NULL AND weight > 0
-                    THEN (calories_per_100g * weight) / 100
-                    ELSE 0
-                END
-            ) as total_calories
-            FROM food_log
-            WHERE date = :today
-        """
-        params = {"today": today}
-        rows = self.get_rows(query, params)
-
-        if not rows or not rows[0] or rows[0][0] is None:
-            return 0.0
-
-        try:
-            # Handle empty string or other non-numeric values
-            value = rows[0][0]
-            if value == "" or value is None:
-                return 0.0
-            return float(value)
-        except (ValueError, TypeError):
-            # If conversion fails, return 0.0
-            return 0.0
+        return self.get_food_calories_on_date(_local_iso_date())
 
     def get_food_item_by_name(self, name: str) -> FoodItemByNameRow | None:
         """Get food item by name.
@@ -1288,6 +1303,14 @@ def _filter_rows_by_name(rows: list[list[Any]], name_filter: str) -> list[list[A
             name_filter,
         )
     ]
+
+
+def _local_iso_date(*, days_ago: int = 0) -> str:
+    """Return the local calendar date as YYYY-MM-DD, optionally shifted back."""
+    day = datetime.now(UTC).astimezone().date()
+    if days_ago:
+        day -= timedelta(days=days_ago)
+    return day.strftime("%Y-%m-%d")
 
 
 def _name_matches_filter(name: str | None, name_en: str | None, name_filter: str) -> bool:
