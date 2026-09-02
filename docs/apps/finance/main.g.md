@@ -1850,6 +1850,7 @@ class MainWindow(
         self.dateEdit_chart_to.dateChanged.connect(self._update_finance_chart)
         self.checkBox_chart_show_labels.toggled.connect(self._update_finance_chart)
         self.spinBox_compare_last.valueChanged.connect(self._update_finance_chart)
+        self.comboBox_compare_same_months.currentIndexChanged.connect(self._update_finance_chart)
 
         self.list_chart_categories.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.list_chart_categories.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -6150,11 +6151,12 @@ class MainWindow(
         if isinstance(sender, QRadioButton) and not sender.isChecked():
             return
 
-        if (
-            self.radioButton_type_of_chart_compare_last_years.isChecked()
-            or self.radioButton_expense_and_income_compare_last_years.isChecked()
-            or self.radioButton_type_of_chart_average_salary.isChecked()
-        ) and not self._prompt_compare_last_years_start():
+        year_start_radios = (
+            self.radioButton_type_of_chart_compare_last_years,
+            self.radioButton_expense_and_income_compare_last_years,
+            self.radioButton_type_of_chart_average_salary,
+        )
+        if sender in year_start_radios and not self._prompt_compare_last_years_start():
             return
 
         self._close_chart_build_toast()
