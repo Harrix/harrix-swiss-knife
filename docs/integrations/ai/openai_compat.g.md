@@ -67,7 +67,7 @@ def build_openai_chat_payload(
 ## 🔧 Function `openai_chat_completion`
 
 ```python
-def openai_chat_completion(*, api_key: str, base_url: str, model: str, text: str, images: Sequence[tuple[bytes, str]] | None = None, audio: tuple[bytes, str] | None = None, timeout_sec: int = _DEFAULT_TIMEOUT_SEC, proxy_url: str | None = None, should_cancel: Callable[[], bool] | None = None, on_connection: Callable[[http.client.HTTPConnection], None] | None = None, allow_audio_as_image_url: bool = True) -> str
+def openai_chat_completion(*, api_key: str, base_url: str, model: str, text: str, images: Sequence[tuple[bytes, str]] | None = None, audio: tuple[bytes, str] | None = None, timeout_sec: int = _DEFAULT_TIMEOUT_SEC, proxy_url: str | None = None, should_cancel: Callable[[], bool] | None = None, on_connection: Callable[[http.client.HTTPConnection], None] | None = None, allow_audio_as_image_url: bool = True, extra_headers: dict[str, str] | None = None) -> str
 ```
 
 POST OpenAI-style `/chat/completions` and return assistant text.
@@ -92,6 +92,7 @@ def openai_chat_completion(
     should_cancel: Callable[[], bool] | None = None,
     on_connection: Callable[[http.client.HTTPConnection], None] | None = None,
     allow_audio_as_image_url: bool = True,
+    extra_headers: dict[str, str] | None = None,
 ) -> str:
     content_parts: list[dict[str, Any]] = [{"type": "text", "text": text}]
     for image_bytes, mime in images or []:
@@ -129,6 +130,8 @@ def openai_chat_completion(
         "Content-Type": "application/json",
         "Accept": "application/json",
     }
+    if extra_headers:
+        headers.update(extra_headers)
 
     raw = post_bytes(
         url,

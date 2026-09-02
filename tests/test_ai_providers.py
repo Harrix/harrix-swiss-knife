@@ -12,6 +12,7 @@ from harrix_swiss_knife.integrations.ai.anthropic import (
     parse_anthropic_response,
 )
 from harrix_swiss_knife.integrations.ai.config import (
+    extra_headers_for_provider,
     get_api_key,
     get_chat_provider,
     get_connection_params_for_provider,
@@ -36,6 +37,9 @@ def test_normalize_provider_unknown_falls_back_to_bothub() -> None:
     assert normalize_provider("bothub.ru") == "bothub.ru"
     assert normalize_provider("bothub_ru") == "bothub.ru"
     assert normalize_provider("bothub-ru") == "bothub.ru"
+    assert normalize_provider("OpenRouter") == "openrouter"
+    assert normalize_provider("open-router") == "openrouter"
+    assert normalize_provider("open_router") == "openrouter"
 
 
 def test_get_chat_provider_defaults_to_bothub() -> None:
@@ -61,6 +65,7 @@ def test_provider_supports_speech() -> None:
     assert provider_supports_speech("bothub")
     assert provider_supports_speech("bothub.ru")
     assert provider_supports_speech("openai")
+    assert provider_supports_speech("openrouter")
     assert provider_supports_speech("gemini")
     assert not provider_supports_speech("anthropic")
 
@@ -107,6 +112,33 @@ def test_get_connection_params_uses_active_provider(monkeypatch: pytest.MonkeyPa
     assert "generativelanguage" in base_url
     assert model == "gemini-2.5-flash"
     assert get_speech_model(config) == "gemini-2.5-flash"
+
+
+def test_get_connection_params_for_openrouter(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("HTTPS_PROXY", raising=False)
+    monkeypatch.delenv("HTTP_PROXY", raising=False)
+    monkeypatch.delenv("https_proxy", raising=False)
+    monkeypatch.delenv("http_proxy", raising=False)
+
+    config = {
+        "ai": {"provider": "openrouter"},
+        "openrouter": {
+            "base_url": "https://openrouter.ai/api/v1",
+            "model": "openai/gpt-4.1",
+            "speech_model": "openai/whisper-large-v3",
+        },
+        "openrouter_api_key": "or-key",
+    }
+    assert get_chat_provider(config) == "openrouter"
+    api_key, base_url, model, _ = get_connection_params_for_provider(config, "openrouter")
+    assert api_key == "or-key"
+    assert base_url == "https://openrouter.ai/api/v1"
+    assert model == "openai/gpt-4.1"
+    assert get_speech_model_for_provider(config, "openrouter") == "openai/whisper-large-v3"
+    headers = extra_headers_for_provider("openrouter")
+    assert headers["HTTP-Referer"]
+    assert headers["X-Title"]
+    assert extra_headers_for_provider("openai") == {}
 
 
 def test_get_connection_params_for_bothub_ru(monkeypatch: pytest.MonkeyPatch) -> None:

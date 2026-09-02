@@ -52,13 +52,23 @@ class AiClient(
         if (forSpeech && provider == AiConfig.PROVIDER_ANTHROPIC) {
             throw AiApiException(
                 "Anthropic does not support speech-to-text. " +
-                    "Set ai.speech_provider to openai, gemini, bothub, or bothub.ru, then rebuild the APK.",
+                    "Set ai.speech_provider to openai, openrouter, gemini, bothub, or bothub.ru, then rebuild the APK.",
             )
         }
         return when (provider) {
-            AiConfig.PROVIDER_OPENAI ->
+            AiConfig.PROVIDER_OPENAI,
+            AiConfig.PROVIDER_OPENROUTER,
+            ->
                 if (audio != null) {
-                    openaiTranscribe(apiKey, baseUrl, resolvedModel, text, audio, cancellationKey)
+                    openaiTranscribe(
+                        apiKey,
+                        baseUrl,
+                        resolvedModel,
+                        text,
+                        audio,
+                        cancellationKey,
+                        extraHeaders = extraHeadersFor(provider),
+                    )
                 } else {
                     openaiChat(
                         apiKey,
@@ -69,6 +79,7 @@ class AiClient(
                         images = images,
                         allowAudioAsImageUrl = false,
                         cancellationKey = cancellationKey,
+                        extraHeaders = extraHeadersFor(provider),
                     )
                 }
 
@@ -106,6 +117,7 @@ class AiClient(
         images: List<Pair<ByteArray, String>>?,
         allowAudioAsImageUrl: Boolean,
         cancellationKey: String? = null,
+        extraHeaders: Map<String, String> = emptyMap(),
     ): String {
         val messageContent =
             buildOpenAiMessageContent(text, audio, images, allowAudioAsImageUrl)
@@ -129,7 +141,7 @@ class AiClient(
                 mapOf(
                     "Authorization" to "Bearer ${apiKey.trim()}",
                     "Accept" to "application/json",
-                ),
+                ) + extraHeaders,
                 cancellationKey = cancellationKey,
             )
         return parseOpenAiChatResponse(raw)
@@ -142,6 +154,7 @@ class AiClient(
         prompt: String,
         audio: Pair<ByteArray, String>,
         cancellationKey: String? = null,
+        extraHeaders: Map<String, String> = emptyMap(),
     ): String {
         val (bytes, mime) = audio
         val filename = filenameForMime(mime)
@@ -159,14 +172,14 @@ class AiClient(
             bodyBuilder.addFormDataPart("prompt", prompt)
         }
         val url = baseUrl.trimEnd('/') + "/audio/transcriptions"
-        val request =
+        val requestBuilder =
             Request
                 .Builder()
                 .url(url)
                 .header("Authorization", "Bearer ${apiKey.trim()}")
                 .header("Accept", "application/json")
-                .post(bodyBuilder.build())
-                .build()
+        extraHeaders.forEach { (name, value) -> requestBuilder.header(name, value) }
+        val request = requestBuilder.post(bodyBuilder.build()).build()
         val raw = execute(request, cancellationKey)
         return parseWhisperResponse(raw)
     }
@@ -582,10 +595,21 @@ class AiClient(
     }
 
     companion object {
+        fun extraHeadersFor(provider: String): Map<String, String> {
+            if (AiConfig.normalizeProvider(provider) != AiConfig.PROVIDER_OPENROUTER) {
+                return emptyMap()
+            }
+            return mapOf(
+                "HTTP-Referer" to "https://github.com/Harrix/harrix-swiss-knife",
+                "X-Title" to "Harrix Swiss Knife",
+            )
+        }
+
         fun missingKeyMessage(provider: String = AiConfig.provider): String {
             val file =
                 when (provider) {
                     AiConfig.PROVIDER_OPENAI -> "api-keys/openai-api-key.txt"
+                    AiConfig.PROVIDER_OPENROUTER -> "api-keys/openrouter-api-key.txt"
                     AiConfig.PROVIDER_ANTHROPIC -> "api-keys/anthropic-api-key.txt"
                     AiConfig.PROVIDER_GEMINI -> "api-keys/gemini-api-key.txt"
                     AiConfig.PROVIDER_BOTHUB_RU -> "api-keys/bothub-ru-api-key.txt"

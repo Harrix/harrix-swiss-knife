@@ -67,6 +67,7 @@ def openai_chat_completion(
     should_cancel: Callable[[], bool] | None = None,
     on_connection: Callable[[http.client.HTTPConnection], None] | None = None,
     allow_audio_as_image_url: bool = True,
+    extra_headers: dict[str, str] | None = None,
 ) -> str:
     """POST OpenAI-style `/chat/completions` and return assistant text.
 
@@ -110,6 +111,8 @@ def openai_chat_completion(
         "Content-Type": "application/json",
         "Accept": "application/json",
     }
+    if extra_headers:
+        headers.update(extra_headers)
 
     raw = post_bytes(
         url,

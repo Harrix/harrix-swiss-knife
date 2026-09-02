@@ -28,6 +28,7 @@ def openai_transcribe(
     proxy_url: str | None = None,
     should_cancel: Callable[[], bool] | None = None,
     on_connection: Callable[[http.client.HTTPConnection], None] | None = None,
+    extra_headers: dict[str, str] | None = None,
 ) -> str:
     """POST OpenAI `/audio/transcriptions` (multipart) and return transcript text."""
     audio_bytes, mime = audio
@@ -50,6 +51,8 @@ def openai_transcribe(
         "Content-Type": f"multipart/form-data; boundary={boundary}",
         "Accept": "application/json",
     }
+    if extra_headers:
+        headers.update(extra_headers)
     raw = post_bytes(
         url,
         body,

@@ -60,8 +60,9 @@ fun nestedMap(
 fun normalizeProvider(value: String): String {
     val name = value.trim().lowercase()
     return when (name) {
-        "bothub", "openai", "anthropic", "gemini" -> name
+        "bothub", "openai", "openrouter", "anthropic", "gemini" -> name
         "bothub.ru", "bothub_ru", "bothub-ru" -> "bothub.ru"
+        "open-router", "open_router" -> "openrouter"
         else -> "bothub"
     }
 }
@@ -116,6 +117,16 @@ val providerDefaults =
                 defaultBaseUrl = "https://api.openai.com/v1",
                 defaultModel = "gpt-4.1",
                 defaultSpeechModel = "whisper-1",
+            ),
+        "openrouter" to
+            ProviderDefaults(
+                settingsKey = "openrouter",
+                apiKeyConfig = "openrouter_api_key",
+                keyFile = "api-keys/openrouter-api-key.txt",
+                envKey = "OPENROUTER_API_KEY",
+                defaultBaseUrl = "https://openrouter.ai/api/v1",
+                defaultModel = "openai/gpt-4.1",
+                defaultSpeechModel = "openai/whisper-large-v3",
             ),
         "anthropic" to
             ProviderDefaults(

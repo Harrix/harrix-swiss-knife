@@ -16,6 +16,7 @@ api-keys/*
 !api-keys/github-token.example.txt
 !api-keys/bothub-api-key.example.txt
 !api-keys/openai-api-key.example.txt
+!api-keys/openrouter-api-key.example.txt
 !api-keys/anthropic-api-key.example.txt
 !api-keys/gemini-api-key.example.txt
 !api-keys/ticktick-api-key.example.txt

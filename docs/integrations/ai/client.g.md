@@ -16,7 +16,7 @@ Send a multimodal request to the given provider and return assistant text.
 
 Args:
 
-- `provider`: `bothub`, `bothub.ru`, `openai`, `anthropic`, or `gemini`.
+- `provider`: `bothub`, `bothub.ru`, `openai`, `openrouter`, `anthropic`, or `gemini`.
 - `api_key`: Provider access token.
 - `base_url`: API base URL.
 - `model`: Model ID (or Whisper model for OpenAI speech).

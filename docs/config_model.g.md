@@ -19,6 +19,7 @@ lang: en
 - [🏛️ Class `GeminiSettings`](#%EF%B8%8F-class-geminisettings)
 - [🏛️ Class `HotkeyEntry`](#%EF%B8%8F-class-hotkeyentry)
 - [🏛️ Class `OpenAISettings`](#%EF%B8%8F-class-openaisettings)
+- [🏛️ Class `OpenRouterSettings`](#%EF%B8%8F-class-openroutersettings)
 - [🏛️ Class `PersonalDataSettings`](#%EF%B8%8F-class-personaldatasettings)
 - [🔧 Function `clamp_ui_font_scale`](#-function-clamp_ui_font_scale)
 - [🔧 Function `get_show_main_window_on_startup`](#-function-get_show_main_window_on_startup)
@@ -119,6 +120,8 @@ class AppConfig(TypedDict, total=False):
     bothub_ru_api_key: str
     openai: OpenAISettings
     openai_api_key: str
+    openrouter: OpenRouterSettings
+    openrouter_api_key: str
     anthropic: AnthropicSettings
     anthropic_api_key: str
     gemini: GeminiSettings
@@ -252,6 +255,27 @@ OpenAI chat completions and Whisper settings.
 
 ```python
 class OpenAISettings(TypedDict, total=False):
+
+    base_url: str
+    model: str
+    speech_model: str
+```
+
+</details>
+
+## 🏛️ Class `OpenRouterSettings`
+
+```python
+class OpenRouterSettings(TypedDict, total=False)
+```
+
+Open Router OpenAI-compatible chat and speech settings.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class OpenRouterSettings(TypedDict, total=False):
 
     base_url: str
     model: str

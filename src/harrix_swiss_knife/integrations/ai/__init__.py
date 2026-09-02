@@ -1,4 +1,4 @@
-"""Multi-provider AI chat client (BotHub, BotHub.ru, OpenAI, Anthropic, Gemini)."""
+"""Multi-provider AI chat client (BotHub, BotHub.ru, OpenAI, Open Router, Anthropic, Gemini)."""
 
 from __future__ import annotations
 

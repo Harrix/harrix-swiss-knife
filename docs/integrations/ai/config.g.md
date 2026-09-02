@@ -11,6 +11,7 @@ lang: en
 
 ## Contents
 
+- [🔧 Function `extra_headers_for_provider`](#-function-extra_headers_for_provider)
 - [🔧 Function `get_api_key`](#-function-get_api_key)
 - [🔧 Function `get_api_key_missing_message`](#-function-get_api_key_missing_message)
 - [🔧 Function `get_chat_provider`](#-function-get_chat_provider)
@@ -25,6 +26,26 @@ lang: en
 - [🔧 Function `normalize_provider`](#-function-normalize_provider)
 - [🔧 Function `other_bothub_router`](#-function-other_bothub_router)
 - [🔧 Function `provider_supports_speech`](#-function-provider_supports_speech)
+
+</details>
+
+## 🔧 Function `extra_headers_for_provider`
+
+```python
+def extra_headers_for_provider(provider: ProviderName) -> dict[str, str]
+```
+
+Return extra HTTP headers required by the provider (Open Router attribution).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def extra_headers_for_provider(provider: ProviderName) -> dict[str, str]:
+    if provider == "openrouter":
+        return dict(OPENROUTER_APP_HEADERS)
+    return {}
+```
 
 </details>
 
@@ -65,6 +86,7 @@ def get_api_key_missing_message(provider: ProviderName) -> str:
         "bothub": "BotHub",
         "bothub.ru": "BotHub.ru",
         "openai": "OpenAI",
+        "openrouter": "Open Router",
         "anthropic": "Anthropic",
         "gemini": "Gemini",
     }[provider]

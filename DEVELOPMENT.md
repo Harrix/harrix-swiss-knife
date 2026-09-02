@@ -67,7 +67,7 @@ CLI commands after installation:
 
 BotHub HTTPS uses `certifi` and optional `SSL_CERT_FILE` (corporate root CA). Proxy resolution order: `ai.proxy` (or legacy `bothub.proxy`) in `config/config.json` (empty = auto), Qt system proxy (PAC/WPAD on Windows), `HTTPS_PROXY` / `HTTP_PROXY`, then Windows/urllib proxy settings. Example: `"ai": { "proxy": "http://proxy.school.local:3128", ... }`.
 
-Choose the AI backend with `"ai": { "provider": "bothub" }` (`openai`, `anthropic`, `gemini`). Keys live in `api-keys/` — see `api-keys/README.md`.
+Choose the AI backend with `"ai": { "provider": "bothub" }` (`openai`, `openrouter`, `anthropic`, `gemini`). Keys live in `api-keys/` — see `api-keys/README.md`.
 
 ## 📦 Building Windows installer EXEs
 
@@ -293,11 +293,11 @@ Provider selection (same as desktop `config/config.json` → `ai.provider`):
 3. `config/config.json` → `ai.provider`
 4. Default: `bothub`
 
-Supported providers: `bothub`, `bothub.ru`, `openai`, `anthropic`, `gemini`. Optional `ai.speech_provider` (empty = same as chat). Anthropic has no STT — set speech to `openai`, `gemini`, `bothub`, or `bothub.ru`.
+Supported providers: `bothub`, `bothub.ru`, `openai`, `openrouter`, `anthropic`, `gemini`. Optional `ai.speech_provider` (empty = same as chat). Anthropic has no STT — set speech to `openai`, `openrouter`, `gemini`, `bothub`, or `bothub.ru`.
 
 API key resolution for the active provider:
 
-1. Provider env (`BOTHUB_API_KEY`, `BOTHUB_RU_API_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`)
+1. Provider env (`BOTHUB_API_KEY`, `BOTHUB_RU_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`)
 2. `local.properties` → `bothub.api_key` / `openai.api_key` / …
 3. `config/config.json` key (`bothub_api_key`, …) including `snippet:api-keys/…`
 4. File under `api-keys/` (same as desktop)

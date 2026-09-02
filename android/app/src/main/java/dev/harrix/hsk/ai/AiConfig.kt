@@ -157,6 +157,7 @@ object AiConfig {
         return when (name) {
             PROVIDER_BOTHUB,
             PROVIDER_OPENAI,
+            PROVIDER_OPENROUTER,
             PROVIDER_ANTHROPIC,
             PROVIDER_GEMINI,
             -> name
@@ -166,12 +167,17 @@ object AiConfig {
             "bothub-ru",
             -> PROVIDER_BOTHUB_RU
 
+            "open-router",
+            "open_router",
+            -> PROVIDER_OPENROUTER
+
             else -> PROVIDER_BOTHUB
         }
     }
 
     fun defaultBaseUrl(providerId: String): String = when (normalizeProvider(providerId)) {
         PROVIDER_OPENAI -> "https://api.openai.com/v1"
+        PROVIDER_OPENROUTER -> "https://openrouter.ai/api/v1"
         PROVIDER_ANTHROPIC -> "https://api.anthropic.com"
         PROVIDER_GEMINI -> "https://generativelanguage.googleapis.com/v1beta"
         PROVIDER_BOTHUB_RU -> "https://openai.bothub.ru/v1"
@@ -180,6 +186,7 @@ object AiConfig {
 
     fun defaultModel(providerId: String): String = when (normalizeProvider(providerId)) {
         PROVIDER_OPENAI -> "gpt-4.1"
+        PROVIDER_OPENROUTER -> "openai/gpt-4.1"
         PROVIDER_ANTHROPIC -> "claude-sonnet-4-6"
         PROVIDER_GEMINI -> "gemini-2.5-flash"
         else -> "gpt-5.4"
@@ -187,6 +194,7 @@ object AiConfig {
 
     fun defaultSpeechModel(providerId: String): String = when (normalizeProvider(providerId)) {
         PROVIDER_OPENAI -> "whisper-1"
+        PROVIDER_OPENROUTER -> "openai/whisper-large-v3"
         PROVIDER_GEMINI -> "gemini-2.5-flash"
         PROVIDER_ANTHROPIC -> ""
         else -> "gemini-3.1-flash-lite-preview"
@@ -227,6 +235,7 @@ object AiConfig {
     const val PROVIDER_BOTHUB = "bothub"
     const val PROVIDER_BOTHUB_RU = "bothub.ru"
     const val PROVIDER_OPENAI = "openai"
+    const val PROVIDER_OPENROUTER = "openrouter"
     const val PROVIDER_ANTHROPIC = "anthropic"
     const val PROVIDER_GEMINI = "gemini"
 }

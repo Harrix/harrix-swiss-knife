@@ -19,7 +19,7 @@ lang: en
 ## 🔧 Function `openai_transcribe`
 
 ```python
-def openai_transcribe(*, api_key: str, base_url: str, model: str, audio: tuple[bytes, str], prompt: str | None = None, timeout_sec: int = _DEFAULT_TIMEOUT_SEC, proxy_url: str | None = None, should_cancel: Callable[[], bool] | None = None, on_connection: Callable[[http.client.HTTPConnection], None] | None = None) -> str
+def openai_transcribe(*, api_key: str, base_url: str, model: str, audio: tuple[bytes, str], prompt: str | None = None, timeout_sec: int = _DEFAULT_TIMEOUT_SEC, proxy_url: str | None = None, should_cancel: Callable[[], bool] | None = None, on_connection: Callable[[http.client.HTTPConnection], None] | None = None, extra_headers: dict[str, str] | None = None) -> str
 ```
 
 POST OpenAI `/audio/transcriptions` (multipart) and return transcript text.
@@ -39,6 +39,7 @@ def openai_transcribe(
     proxy_url: str | None = None,
     should_cancel: Callable[[], bool] | None = None,
     on_connection: Callable[[http.client.HTTPConnection], None] | None = None,
+    extra_headers: dict[str, str] | None = None,
 ) -> str:
     audio_bytes, mime = audio
     filename = _filename_for_mime(mime)
@@ -60,6 +61,8 @@ def openai_transcribe(
         "Content-Type": f"multipart/form-data; boundary={boundary}",
         "Accept": "application/json",
     }
+    if extra_headers:
+        headers.update(extra_headers)
     raw = post_bytes(
         url,
         body,

@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from harrix_swiss_knife.integrations.ai.anthropic import anthropic_messages
+from harrix_swiss_knife.integrations.ai.config import extra_headers_for_provider
 from harrix_swiss_knife.integrations.ai.errors import AiApiError, RequestCancelledError
 from harrix_swiss_knife.integrations.ai.gemini import gemini_generate_content
 from harrix_swiss_knife.integrations.ai.network_errors import remap_bothub_network_error
@@ -40,7 +41,7 @@ def chat_completion(
 
     Args:
 
-    - `provider`: `bothub`, `bothub.ru`, `openai`, `anthropic`, or `gemini`.
+    - `provider`: `bothub`, `bothub.ru`, `openai`, `openrouter`, `anthropic`, or `gemini`.
     - `api_key`: Provider access token.
     - `base_url`: API base URL.
     - `model`: Model ID (or Whisper model for OpenAI speech).
@@ -103,11 +104,12 @@ def _dispatch_chat_completion(
     if provider == "anthropic" and audio is not None:
         msg = (
             "Anthropic does not support speech-to-text. "
-            'Set ai.speech_provider to "openai", "gemini", "bothub", or "bothub.ru".'
+            'Set ai.speech_provider to "openai", "openrouter", "gemini", "bothub", or "bothub.ru".'
         )
         raise AiApiError(msg)
 
-    if provider == "openai" and audio is not None:
+    extra_headers = extra_headers_for_provider(provider)
+    if provider in {"openai", "openrouter"} and audio is not None:
         return openai_transcribe(
             api_key=api_key,
             base_url=base_url,
@@ -118,9 +120,10 @@ def _dispatch_chat_completion(
             proxy_url=proxy_url,
             should_cancel=should_cancel,
             on_connection=on_connection,
+            extra_headers=extra_headers,
         )
 
-    if provider in {"bothub", "bothub.ru", "openai"}:
+    if provider in {"bothub", "bothub.ru", "openai", "openrouter"}:
         bothub_audio = provider in {"bothub", "bothub.ru"}
         return openai_chat_completion(
             api_key=api_key,
@@ -134,6 +137,7 @@ def _dispatch_chat_completion(
             should_cancel=should_cancel,
             on_connection=on_connection,
             allow_audio_as_image_url=bothub_audio,
+            extra_headers=extra_headers,
         )
 
     if provider == "anthropic":

@@ -6,14 +6,20 @@ from typing import Any, Literal
 
 from harrix_swiss_knife.integrations.http_transport import resolve_proxy_url
 
-ProviderName = Literal["bothub", "bothub.ru", "openai", "anthropic", "gemini"]
+ProviderName = Literal["bothub", "bothub.ru", "openai", "openrouter", "anthropic", "gemini"]
 
-PROVIDERS: tuple[ProviderName, ...] = ("bothub", "bothub.ru", "openai", "anthropic", "gemini")
+PROVIDERS: tuple[ProviderName, ...] = ("bothub", "bothub.ru", "openai", "openrouter", "anthropic", "gemini")
 BOTHUB_ROUTERS: tuple[ProviderName, ...] = ("bothub", "bothub.ru")
 _PROVIDER_ALIASES: dict[str, ProviderName] = {
     "bothub.ru": "bothub.ru",
     "bothub_ru": "bothub.ru",
     "bothub-ru": "bothub.ru",
+    "open-router": "openrouter",
+    "open_router": "openrouter",
+}
+OPENROUTER_APP_HEADERS: dict[str, str] = {
+    "HTTP-Referer": "https://github.com/Harrix/harrix-swiss-knife",
+    "X-Title": "Harrix Swiss Knife",
 }
 
 _DEFAULTS: dict[ProviderName, dict[str, Any]] = {
@@ -41,6 +47,14 @@ _DEFAULTS: dict[ProviderName, dict[str, Any]] = {
         "settings_key": "openai",
         "example_key_file": "api-keys/openai-api-key.txt",
     },
+    "openrouter": {
+        "base_url": "https://openrouter.ai/api/v1",
+        "model": "openai/gpt-4.1",
+        "speech_model": "openai/whisper-large-v3",
+        "api_key_config": "openrouter_api_key",
+        "settings_key": "openrouter",
+        "example_key_file": "api-keys/openrouter-api-key.txt",
+    },
     "anthropic": {
         "base_url": "https://api.anthropic.com",
         "model": "claude-sonnet-4-6",
@@ -61,6 +75,13 @@ _DEFAULTS: dict[ProviderName, dict[str, Any]] = {
 }
 
 
+def extra_headers_for_provider(provider: ProviderName) -> dict[str, str]:
+    """Return extra HTTP headers required by the provider (Open Router attribution)."""
+    if provider == "openrouter":
+        return dict(OPENROUTER_APP_HEADERS)
+    return {}
+
+
 def get_api_key(config: dict[str, Any], provider: ProviderName) -> str:
     """Return API key string for the provider (may be empty)."""
     key_name = str(_DEFAULTS[provider]["api_key_config"])
@@ -74,6 +95,7 @@ def get_api_key_missing_message(provider: ProviderName) -> str:
         "bothub": "BotHub",
         "bothub.ru": "BotHub.ru",
         "openai": "OpenAI",
+        "openrouter": "Open Router",
         "anthropic": "Anthropic",
         "gemini": "Gemini",
     }[provider]

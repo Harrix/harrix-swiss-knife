@@ -20,16 +20,17 @@ Local secret files for harrix-swiss-knife. **Not committed to Git** (see root `.
 
 ## Files
 
-| File                    | Config key                                  | Purpose                                             |
-| ----------------------- | ------------------------------------------- | --------------------------------------------------- |
-| `pypi-token.txt`        | `pypi_token` in `config/config.json`        | PyPI token for publishing Python libraries          |
-| `github-token.txt`      | `github_token` in `config/config.json`      | Optional GitHub PAT for higher API rate limits      |
-| `bothub-api-key.txt`    | `bothub_api_key` in `config/config.json`    | BotHub (bothub.chat) access token for AI features   |
-| `bothub-ru-api-key.txt` | `bothub_ru_api_key` in `config/config.json` | BotHub.ru (`openai.bothub.ru`) access token         |
-| `openai-api-key.txt`    | `openai_api_key` in `config/config.json`    | OpenAI API key (chat + Whisper speech)              |
-| `anthropic-api-key.txt` | `anthropic_api_key` in `config/config.json` | Anthropic API key (Claude Messages)                 |
-| `gemini-api-key.txt`    | `gemini_api_key` in `config/config.json`    | Google Gemini API key                               |
-| `ticktick-api-key.txt`  | `ticktick_api_key` in `config/config.json`  | TickTick personal API token (`tp_…`) for habit sync |
+| File                     | Config key                                   | Purpose                                             |
+| ------------------------ | -------------------------------------------- | --------------------------------------------------- |
+| `pypi-token.txt`         | `pypi_token` in `config/config.json`         | PyPI token for publishing Python libraries          |
+| `github-token.txt`       | `github_token` in `config/config.json`       | Optional GitHub PAT for higher API rate limits      |
+| `bothub-api-key.txt`     | `bothub_api_key` in `config/config.json`     | BotHub (bothub.chat) access token for AI features   |
+| `bothub-ru-api-key.txt`  | `bothub_ru_api_key` in `config/config.json`  | BotHub.ru (`openai.bothub.ru`) access token         |
+| `openai-api-key.txt`     | `openai_api_key` in `config/config.json`     | OpenAI API key (chat + Whisper speech)              |
+| `openrouter-api-key.txt` | `openrouter_api_key` in `config/config.json` | Open Router API key (chat + Whisper speech)         |
+| `anthropic-api-key.txt`  | `anthropic_api_key` in `config/config.json`  | Anthropic API key (Claude Messages)                 |
+| `gemini-api-key.txt`     | `gemini_api_key` in `config/config.json`     | Google Gemini API key                               |
+| `ticktick-api-key.txt`   | `ticktick_api_key` in `config/config.json`   | TickTick personal API token (`tp_…`) for habit sync |
 
 AI keys are also read by the Android Gradle build (`android/app/build.gradle.kts`) for the **active** provider from `config.json` → `ai.provider` (override with env). See [`DEVELOPMENT.md`](../DEVELOPMENT.md#ai-api-keys-android).
 
@@ -90,11 +91,11 @@ Choose the backend in `config/config.json`:
 }
 ```
 
-Supported `provider` values: `bothub`, `bothub.ru`, `openai`, `anthropic`, `gemini`.
+Supported `provider` values: `bothub`, `bothub.ru`, `openai`, `openrouter`, `anthropic`, `gemini`.
 
 - `speech_provider` empty means the same as `provider`.
-- Anthropic has no speech-to-text API: set `speech_provider` to `openai`, `gemini`, `bothub`, or `bothub.ru` for voice features.
-- `bothub` and `bothub.ru` are interchangeable routers. Before each AI request the app probes the current site (`bothub.chat` or `bothub.ru`). If it is unreachable, the other key is set, and the other site answers, `ai.provider` is rewritten once to that router. If the other site is also down, `config.json` stays on the previous provider. The next independent AI call can try failover again.
+- Anthropic has no speech-to-text API: set `speech_provider` to `openai`, `openrouter`, `gemini`, `bothub`, or `bothub.ru` for voice features.
+- `bothub` and `bothub.ru` are interchangeable routers. Before each AI request the app probes the preferred site. If it is unreachable and the other key is set, the live router is stored in `config-temp.json`. Preferred `ai.provider` stays in Settings.
 - Copy the matching `*-api-key.example.txt` → `*-api-key.txt` and paste the key (one line).
 
 If `ai` is omitted, the app keeps the previous BotHub-only behavior.
