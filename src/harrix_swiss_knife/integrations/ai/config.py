@@ -85,11 +85,18 @@ def get_api_key_missing_message(provider: ProviderName) -> str:
 
 
 def get_chat_provider(config: dict[str, Any]) -> ProviderName:
-    """Return the configured chat/vision provider (default bothub)."""
+    """Return the live chat/vision provider (BotHub failover may differ from preferred)."""
+    preferred = get_preferred_chat_provider(config)
+    if not is_bothub_router(preferred):
+        return preferred
     ai_cfg = config.get("ai") or {}
     if not isinstance(ai_cfg, dict):
-        return "bothub"
-    return normalize_provider(str(ai_cfg.get("provider", "bothub")))
+        return preferred
+    active = str(ai_cfg.get("active_provider") or "").strip()
+    if not active:
+        return preferred
+    normalized = normalize_provider(active)
+    return normalized if is_bothub_router(normalized) else preferred
 
 
 def get_connection_params_for_provider(
@@ -127,6 +134,25 @@ def get_max_image_side(config: dict[str, Any], default: int = 1600) -> int:
     return default
 
 
+def get_preferred_chat_provider(config: dict[str, Any]) -> ProviderName:
+    """Return `ai.provider` from `config.json` (default bothub)."""
+    ai_cfg = config.get("ai") or {}
+    if not isinstance(ai_cfg, dict):
+        return "bothub"
+    return normalize_provider(str(ai_cfg.get("provider", "bothub")))
+
+
+def get_preferred_speech_provider(config: dict[str, Any]) -> ProviderName:
+    """Return preferred speech provider; empty `ai.speech_provider` means chat preferred."""
+    ai_cfg = config.get("ai") or {}
+    if not isinstance(ai_cfg, dict):
+        return get_preferred_chat_provider(config)
+    speech = str(ai_cfg.get("speech_provider", "")).strip()
+    if not speech:
+        return get_preferred_chat_provider(config)
+    return normalize_provider(speech)
+
+
 def get_provider_settings(config: dict[str, Any], provider: ProviderName) -> dict[str, Any]:
     """Return merged defaults + config section for a provider."""
     defaults = _DEFAULTS[provider]
@@ -146,14 +172,21 @@ def get_speech_model_for_provider(config: dict[str, Any], provider: ProviderName
 
 
 def get_speech_provider(config: dict[str, Any]) -> ProviderName:
-    """Return speech provider; empty `ai.speech_provider` means chat provider."""
+    """Return the live speech provider; empty `ai.speech_provider` follows chat."""
     ai_cfg = config.get("ai") or {}
     if not isinstance(ai_cfg, dict):
         return get_chat_provider(config)
     speech = str(ai_cfg.get("speech_provider", "")).strip()
     if not speech:
         return get_chat_provider(config)
-    return normalize_provider(speech)
+    preferred = normalize_provider(speech)
+    if not is_bothub_router(preferred):
+        return preferred
+    active = str(ai_cfg.get("active_speech_provider") or "").strip()
+    if not active:
+        return preferred
+    normalized = normalize_provider(active)
+    return normalized if is_bothub_router(normalized) else preferred
 
 
 def is_bothub_router(provider: ProviderName) -> bool:

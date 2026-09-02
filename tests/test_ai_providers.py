@@ -16,6 +16,7 @@ from harrix_swiss_knife.integrations.ai.config import (
     get_chat_provider,
     get_connection_params_for_provider,
     get_max_image_side,
+    get_preferred_chat_provider,
     get_speech_model_for_provider,
     get_speech_provider,
     normalize_provider,
@@ -40,6 +41,13 @@ def test_normalize_provider_unknown_falls_back_to_bothub() -> None:
 def test_get_chat_provider_defaults_to_bothub() -> None:
     assert get_chat_provider({}) == "bothub"
     assert get_chat_provider({"ai": {"provider": "gemini"}}) == "gemini"
+
+
+def test_get_chat_provider_uses_in_memory_bothub_active() -> None:
+    config = {"ai": {"provider": "bothub", "active_provider": "bothub.ru"}}
+    assert get_preferred_chat_provider(config) == "bothub"
+    assert get_chat_provider(config) == "bothub.ru"
+    assert get_chat_provider({"ai": {"provider": "openai", "active_provider": "bothub.ru"}}) == "openai"
 
 
 def test_get_speech_provider_falls_back_to_chat() -> None:

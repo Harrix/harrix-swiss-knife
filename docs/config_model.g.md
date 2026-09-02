@@ -36,7 +36,10 @@ lang: en
 class AiSettings(TypedDict, total=False)
 ```
 
-Active AI provider selection and shared transport settings.
+Preferred AI provider and shared transport settings.
+
+`provider` is the stable Settings value. BotHub.chat / BotHub.ru failover
+stores the live site in `config-temp.json`, not here.
 
 <details>
 <summary>Code:</summary>
