@@ -1379,6 +1379,25 @@ class MainWindow(
             return
         message_box.warning(self, "Error", "Failed to update selected food log rows")
 
+    def _apply_food_splitter_sizes(self) -> None:
+        """Restore Food-tab splitter widths so the items list is not squeezed."""
+        if getattr(self, "_is_closing", False) or not hasattr(self, "splitter_food"):
+            return
+
+        total = self.splitter_food.width()
+        if total <= 0:
+            total = max(self.width(), 1200)
+
+        left = max(self.frame_food_controls.minimumWidth(), 350)
+        remaining = max(total - left, 0)
+        min_table_width = 400
+        middle = max(self.widget_food_middle.minimumWidth(), remaining // 4)
+        right = remaining - middle
+        if right < min_table_width:
+            right = min(min_table_width, remaining // 2)
+            middle = remaining - right
+        self.splitter_food.setSizes([left, middle, right])
+
     def _apply_kcal_lookup_result(self, result: KcalLookupResult) -> None:
         """Fill manual food entry fields from a parsed kcal lookup result."""
         self.radioButton_use_weight.setChecked(result.is_weight_mode)
@@ -1875,7 +1894,10 @@ class MainWindow(
         """Show the window only after the food-log columns match the final size."""
         if self._is_closing:
             return
-        self._prepare_layout_before_first_show(self._adjust_food_log_table_columns)
+        self._prepare_layout_before_first_show(
+            self._apply_food_splitter_sizes,
+            self._adjust_food_log_table_columns,
+        )
         if self._is_closing:
             return
         self._show_placed_window()
@@ -3171,10 +3193,14 @@ class MainWindow(
 
         # Export button removed from UI
 
-        # Configure food splitter proportions
+        # Filter bar above the food log has a wide sizeHint; without explicit
+        # sizes QSplitter steals width from listView_food_items.
+        self.widget_food_middle.setMinimumWidth(220)
         self.splitter_food.setStretchFactor(0, 0)  # frame_food_controls with fixed size
-        self.splitter_food.setStretchFactor(1, 1)  # widget_food_middle gets less space
-        self.splitter_food.setStretchFactor(2, 3)  # widget_food_log (filter + table) gets more space
+        self.splitter_food.setStretchFactor(1, 2)  # food items list
+        self.splitter_food.setStretchFactor(2, 3)  # widget_food_log (filter + table)
+        self._apply_food_splitter_sizes()
+        QTimer.singleShot(60, self._apply_food_splitter_sizes)
 
         self.groupBox_filter.setTitle("")
         self.groupBox_filter.setStyleSheet(
