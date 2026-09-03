@@ -34,6 +34,7 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.table_context_menu import add_delete_action
+from harrix_swiss_knife.apps.common.text_case import capitalize_first_letter
 from harrix_swiss_knife.apps.food.database_manager import merge_food_autocomplete_entries
 from harrix_swiss_knife.apps.food.delegates import IsDrinkDelegate, is_drink_to_model, parse_is_drink_cell
 from harrix_swiss_knife.apps.food.food_log_calories import calculate_food_log_calories
@@ -144,7 +145,7 @@ class RecipesWidget(QWidget):
         self.refresh()
 
     def _add_ingredient(self) -> None:
-        name = extract_food_name_from_display(self.line_ingredient_name.text().strip())
+        name = capitalize_first_letter(extract_food_name_from_display(self.line_ingredient_name.text().strip()))
         if not name:
             message_box.warning(self, "Error", "Enter ingredient name")
             return
@@ -545,7 +546,7 @@ class RecipesWidget(QWidget):
         if self._db is None:
             message_box.warning(self, "Error", "Database connection not available")
             return
-        name = self.line_recipe_name.text().strip()
+        name = capitalize_first_letter(self.line_recipe_name.text())
         if not name:
             message_box.warning(self, "Error", "Enter recipe name")
             return

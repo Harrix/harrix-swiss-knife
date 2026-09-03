@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common import message_box
+from harrix_swiss_knife.apps.common.text_case import capitalize_first_letter
 from harrix_swiss_knife.apps.finance.number_utils import evaluate_arithmetic_expression
 from harrix_swiss_knife.qt_emoji_icon import (
     CANCEL_BUTTON_EMOJI,
@@ -122,7 +123,7 @@ class AccountEditDialog(QDialog):
 
     def _on_save(self) -> None:
         """Handle save button click."""
-        name = self.name_edit.text().strip()
+        name = capitalize_first_letter(self.name_edit.text())
         if not name:
             message_box.warning(self, "Error", "Account name cannot be empty")
             return

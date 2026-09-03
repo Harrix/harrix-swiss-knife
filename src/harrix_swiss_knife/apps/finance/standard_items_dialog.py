@@ -26,6 +26,7 @@ from PySide6.QtWidgets import (
 from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.table_context_menu import add_delete_action
+from harrix_swiss_knife.apps.common.text_case import capitalize_first_letter
 from harrix_swiss_knife.apps.common.word_wrap_header import install_word_wrap_header
 from harrix_swiss_knife.apps.finance.transaction_translate_parser import (
     align_translations_to_descriptions,
@@ -349,7 +350,7 @@ class _StandardItemEditDialog(QDialog):
         return self.result_data
 
     def _on_save(self) -> None:
-        name = self.name_edit.text().strip()
+        name = capitalize_first_letter(self.name_edit.text())
         if not name:
             message_box.warning(self, "Error", "Name cannot be empty")
             return
@@ -360,7 +361,7 @@ class _StandardItemEditDialog(QDialog):
         self.result_data = {
             "id": self._item.get("id"),
             "name": name,
-            "name_en": self.name_en_edit.text().strip(),
+            "name_en": capitalize_first_letter(self.name_en_edit.text()),
             "category_id": int(category_id),
         }
         self.accept()

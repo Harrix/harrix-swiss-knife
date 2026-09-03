@@ -117,7 +117,7 @@ class AccountEditDialog(QDialog):
 
     def _on_save(self) -> None:
         """Handle save button click."""
-        name = self.name_edit.text().strip()
+        name = capitalize_first_letter(self.name_edit.text())
         if not name:
             message_box.warning(self, "Error", "Account name cannot be empty")
             return

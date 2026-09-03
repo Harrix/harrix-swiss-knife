@@ -92,7 +92,7 @@ class CurrencyAddDialog(QDialog):
     def _on_accept(self) -> None:
         """Validate fields and accept the dialog."""
         code = self._code_edit.text().strip().upper()
-        name = self._name_edit.text().strip()
+        name = capitalize_first_letter(self._name_edit.text())
         symbol = self._symbol_edit.text().strip()
         subdivision = self._subdivision_spin.value()
         if not code:

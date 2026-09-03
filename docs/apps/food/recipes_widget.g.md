@@ -68,7 +68,7 @@ class RecipesWidget(QWidget):
         self.refresh()
 
     def _add_ingredient(self) -> None:
-        name = extract_food_name_from_display(self.line_ingredient_name.text().strip())
+        name = capitalize_first_letter(extract_food_name_from_display(self.line_ingredient_name.text().strip()))
         if not name:
             message_box.warning(self, "Error", "Enter ingredient name")
             return
@@ -469,7 +469,7 @@ class RecipesWidget(QWidget):
         if self._db is None:
             message_box.warning(self, "Error", "Database connection not available")
             return
-        name = self.line_recipe_name.text().strip()
+        name = capitalize_first_letter(self.line_recipe_name.text())
         if not name:
             message_box.warning(self, "Error", "Enter recipe name")
             return

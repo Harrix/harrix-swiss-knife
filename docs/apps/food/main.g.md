@@ -2304,7 +2304,7 @@ class MainWindow(
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return
 
-        recipe_name = name_input.text().strip()
+        recipe_name = capitalize_first_letter(name_input.text())
         if not recipe_name:
             message_box.warning(self, "Error", "Recipe name cannot be empty")
             return

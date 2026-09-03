@@ -82,7 +82,7 @@ class CategoryEditDialog(QDialog):
 
     def _on_save(self) -> None:
         """Validate fields and accept a save action."""
-        name = self.name_edit.text().strip()
+        name = capitalize_first_letter(self.name_edit.text())
         if not name:
             message_box.warning(self, "Error", "Category name cannot be empty")
             return
@@ -93,7 +93,7 @@ class CategoryEditDialog(QDialog):
             "name": name,
             "type": self.type_combo.currentIndex(),
             "icon": self._icon_row.emoji(),
-            "name_local": self.name_local_edit.text().strip(),
+            "name_local": capitalize_first_letter(self.name_local_edit.text()),
         }
         self.accept()
 

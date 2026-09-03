@@ -16,6 +16,7 @@ from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.chart_operations import ChartOperationsBase
 from harrix_swiss_knife.apps.common.db_guard import requires_database
 from harrix_swiss_knife.apps.common.qt_mixins import AutoSaveMixin, DateMixin, TableOperations, ValidationMixin
+from harrix_swiss_knife.apps.common.text_case import capitalize_first_letter
 from harrix_swiss_knife.apps.food.delegates import parse_is_drink_cell
 
 if TYPE_CHECKING:
@@ -60,13 +61,13 @@ class AutoSaveOperations(AutoSaveMixin):
 
         """
         # Get data from model columns
-        name = model.data(model.index(row, 0)) or ""
+        name = capitalize_first_letter(model.data(model.index(row, 0)) or "")
         is_drink_str = model.data(model.index(row, 1)) or ""
         weight_str = model.data(model.index(row, 2)) or ""
         calories_per_100g_str = model.data(model.index(row, 3)) or ""
         portion_calories_str = model.data(model.index(row, 4)) or ""
         date = model.data(model.index(row, 6)) or ""
-        name_en = model.data(model.index(row, 7)) or ""
+        name_en = capitalize_first_letter(model.data(model.index(row, 7)) or "")
 
         # Validate food name
         if not name.strip():
@@ -124,8 +125,8 @@ class AutoSaveOperations(AutoSaveMixin):
             int(row_id),
             date=date,
             calories_per_100g=calories_per_100g,
-            name=name.strip(),
-            name_en=name_en.strip() or None,
+            name=name,
+            name_en=name_en or None,
             weight=weight,
             portion_calories=portion_calories,
             is_drink=is_drink,

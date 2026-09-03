@@ -87,7 +87,7 @@ class WorkoutPreviewDialog(QDialog):
 
     def title_text(self) -> str:
         """Return the workout name from the form."""
-        return self.line_title.text().strip()
+        return capitalize_first_letter(self.line_title.text())
 ```
 
 </details>
@@ -186,7 +186,7 @@ Return the workout name from the form.
 
 ```python
 def title_text(self) -> str:
-        return self.line_title.text().strip()
+        return capitalize_first_letter(self.line_title.text())
 ```
 
 </details>

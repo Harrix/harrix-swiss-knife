@@ -8,6 +8,7 @@ import pytest
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication
 
+from harrix_swiss_knife.apps.food.food_item_dialog import FoodItemDialog
 from harrix_swiss_knife.apps.food.food_items_dialog import FoodItemsDialog
 
 
@@ -48,4 +49,15 @@ def test_food_items_dialog_title_and_table(qapp: QApplication) -> None:  # noqa:
         "Portion kcal",
     ]
     assert model.index(0, 0).data() == "Apple"
+    dialog.close()
+
+
+def test_food_item_dialog_capitalizes_names(qapp: QApplication) -> None:  # noqa: ARG001
+    """Create Food Item capitalizes Name and English Name."""
+    dialog = FoodItemDialog(is_create=True)
+    dialog.name_edit.setText("яблоко")
+    dialog.name_en_edit.setText("apple")
+    dialog.calories_per_100g_spinbox.setValue(52)
+    assert dialog.get_edited_data()["name"] == "Яблоко"
+    assert dialog.get_edited_data()["name_en"] == "Apple"
     dialog.close()

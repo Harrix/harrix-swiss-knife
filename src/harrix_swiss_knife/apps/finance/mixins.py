@@ -16,6 +16,7 @@ from harrix_swiss_knife.apps.common.chart_extrema_labels import annotate_chart_e
 from harrix_swiss_knife.apps.common.chart_operations import ChartOperationsBase
 from harrix_swiss_knife.apps.common.db_guard import requires_database
 from harrix_swiss_knife.apps.common.qt_mixins import AutoSaveMixin, DateMixin, TableOperations, ValidationMixin
+from harrix_swiss_knife.apps.common.text_case import capitalize_first_letter
 from harrix_swiss_knife.apps.finance.exchange_validation import validate_exchange_data
 from harrix_swiss_knife.apps.finance.number_utils import clean_number_text
 
@@ -74,7 +75,7 @@ class AutoSaveOperations(AutoSaveMixin):
         - `row_id` (`str`): Database ID of the row.
 
         """
-        name = model.data(model.index(row, 0)) or ""
+        name = capitalize_first_letter(model.data(model.index(row, 0)) or "")
         balance_str = model.data(model.index(row, 1)) or "0"
         currency_code = model.data(model.index(row, 2)) or ""
         is_liquid_str = model.data(model.index(row, 3)) or "1"
@@ -105,7 +106,7 @@ class AutoSaveOperations(AutoSaveMixin):
 
         # Update database
         if not self.db_manager.update_account(
-            int(row_id), name.strip(), balance, currency_id, is_liquid=is_liquid, is_cash=is_cash
+            int(row_id), name, balance, currency_id, is_liquid=is_liquid, is_cash=is_cash
         ):
             self._show_db_error("Failed to save account record")
         else:
@@ -123,7 +124,7 @@ class AutoSaveOperations(AutoSaveMixin):
 
         """
         code = model.data(model.index(row, 0)) or ""
-        name = model.data(model.index(row, 1)) or ""
+        name = capitalize_first_letter(model.data(model.index(row, 1)) or "")
         symbol = model.data(model.index(row, 2)) or ""
 
         # Validate inputs
@@ -140,7 +141,7 @@ class AutoSaveOperations(AutoSaveMixin):
             return
 
         # Update database
-        if not self.db_manager.update_currency(int(row_id), code.strip(), name.strip(), symbol.strip()):
+        if not self.db_manager.update_currency(int(row_id), code.strip(), name, symbol.strip()):
             self._show_db_error("Failed to save currency record")
         else:
             # Update related UI elements

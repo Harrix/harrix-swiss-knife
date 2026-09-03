@@ -19,6 +19,7 @@ from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.emoji_picker_dialog import EmojiChoiceRow
 from harrix_swiss_knife.apps.common.emoji_presets import FINANCE_EMOJI_PRESETS
+from harrix_swiss_knife.apps.common.text_case import capitalize_first_letter
 from harrix_swiss_knife.apps.finance.category_name_local_translate import request_category_name_local_translation
 from harrix_swiss_knife.integrations.bothub import BothubRequestState
 from harrix_swiss_knife.qt_emoji_icon import (
@@ -83,7 +84,7 @@ class CategoryEditDialog(QDialog):
 
     def _on_save(self) -> None:
         """Validate fields and accept a save action."""
-        name = self.name_edit.text().strip()
+        name = capitalize_first_letter(self.name_edit.text())
         if not name:
             message_box.warning(self, "Error", "Category name cannot be empty")
             return
@@ -94,7 +95,7 @@ class CategoryEditDialog(QDialog):
             "name": name,
             "type": self.type_combo.currentIndex(),
             "icon": self._icon_row.emoji(),
-            "name_local": self.name_local_edit.text().strip(),
+            "name_local": capitalize_first_letter(self.name_local_edit.text()),
         }
         self.accept()
 

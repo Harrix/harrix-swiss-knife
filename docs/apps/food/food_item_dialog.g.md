@@ -88,7 +88,7 @@ class FoodItemDialog(QDialog):
     def accept(self) -> None:
         """Handle accept (save) button click."""
         # Validate required fields
-        name = self.name_edit.text().strip()
+        name = capitalize_first_letter(self.name_edit.text())
         if not name:
             message_box.warning(self, "Validation Error", "Name is required!")
             return
@@ -135,8 +135,8 @@ class FoodItemDialog(QDialog):
 
         """
         return {
-            "name": self.name_edit.text().strip(),
-            "name_en": self.name_en_edit.text().strip() or None,
+            "name": capitalize_first_letter(self.name_edit.text()),
+            "name_en": capitalize_first_letter(self.name_en_edit.text()) or None,
             "is_drink": self.is_drink_checkbox.isChecked(),
             "calories_per_100g": self.calories_per_100g_spinbox.value() or None,
             "default_portion_weight": self.default_portion_weight_spinbox.value() or None,
@@ -295,7 +295,7 @@ Handle accept (save) button click.
 ```python
 def accept(self) -> None:
         # Validate required fields
-        name = self.name_edit.text().strip()
+        name = capitalize_first_letter(self.name_edit.text())
         if not name:
             message_box.warning(self, "Validation Error", "Name is required!")
             return
@@ -368,8 +368,8 @@ Returns:
 ```python
 def get_edited_data(self) -> dict:
         return {
-            "name": self.name_edit.text().strip(),
-            "name_en": self.name_en_edit.text().strip() or None,
+            "name": capitalize_first_letter(self.name_edit.text()),
+            "name_en": capitalize_first_letter(self.name_en_edit.text()) or None,
             "is_drink": self.is_drink_checkbox.isChecked(),
             "calories_per_100g": self.calories_per_100g_spinbox.value() or None,
             "default_portion_weight": self.default_portion_weight_spinbox.value() or None,

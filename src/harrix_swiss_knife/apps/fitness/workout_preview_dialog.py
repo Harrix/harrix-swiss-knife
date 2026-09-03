@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife import qt_modality
+from harrix_swiss_knife.apps.common.text_case import capitalize_first_letter
 from harrix_swiss_knife.apps.fitness.sets_ai import ParsedSetRow
 from harrix_swiss_knife.qt_emoji_icon import apply_emoji_dialog_buttons
 
@@ -76,4 +77,4 @@ class WorkoutPreviewDialog(QDialog):
 
     def title_text(self) -> str:
         """Return the workout name from the form."""
-        return self.line_title.text().strip()
+        return capitalize_first_letter(self.line_title.text())

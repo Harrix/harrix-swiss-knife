@@ -13,6 +13,7 @@ from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.chart_operations import ChartOperationsBase
 from harrix_swiss_knife.apps.common.db_guard import requires_database
 from harrix_swiss_knife.apps.common.qt_mixins import AutoSaveMixin, DateMixin, TableOperations, ValidationMixin
+from harrix_swiss_knife.apps.common.text_case import capitalize_first_letter
 from harrix_swiss_knife.apps.fitness.exercise_favorites import parse_exercise_display_name
 
 if TYPE_CHECKING:
@@ -57,11 +58,11 @@ class AutoSaveOperations(AutoSaveMixin):
         - `row_id` (`str`): Database ID of the row.
 
         """
-        name = parse_exercise_display_name(model.data(model.index(row, 1)) or "")
+        name = capitalize_first_letter(parse_exercise_display_name(model.data(model.index(row, 1)) or ""))
         unit = model.data(model.index(row, 2)) or ""
         is_type_required_str = model.data(model.index(row, 3)) or "0"
         calories_per_unit_str = model.data(model.index(row, 4)) or "0"
-        name_local = model.data(model.index(row, 5)) or ""
+        name_local = capitalize_first_letter(model.data(model.index(row, 5)) or "")
 
         # Validate exercise name
         if not name.strip():
@@ -80,11 +81,11 @@ class AutoSaveOperations(AutoSaveMixin):
 
         # Update database
         old_name = self.db_manager.get_exercise_name_by_id(int(row_id))
-        new_name = name.strip()
+        new_name = name
         if self.db_manager.exercise_name_exists(new_name, exclude_id=int(row_id)):
             message_box.warning(None, "Validation Error", f"Exercise '{new_name}' already exists")
             return
-        local_name = str(name_local).strip()
+        local_name = name_local
         if self.db_manager.exercise_name_local_exists(local_name, exclude_id=int(row_id)):
             message_box.warning(None, "Validation Error", f"Local name '{local_name}' already exists")
             return
@@ -166,9 +167,9 @@ class AutoSaveOperations(AutoSaveMixin):
 
         """
         exercise_name = parse_exercise_display_name(model.data(model.index(row, 1)) or "")
-        type_name = model.data(model.index(row, 2)) or ""
+        type_name = capitalize_first_letter(model.data(model.index(row, 2)) or "")
         calories_modifier_str = model.data(model.index(row, 3)) or "1.0"
-        name_local = model.data(model.index(row, 4)) or ""
+        name_local = capitalize_first_letter(model.data(model.index(row, 4)) or "")
 
         # Validate inputs
         if not exercise_name.strip():

@@ -45,3 +45,12 @@ def test_account_edit_dialog_edit_mode_shows_delete(qapp: QApplication) -> None:
     assert dialog.windowTitle() == "Edit Account"
     assert not dialog.delete_button.isHidden()
     dialog.close()
+
+
+def test_account_edit_dialog_capitalizes_name(qapp: QApplication) -> None:  # noqa: ARG001
+    """Save capitalizes the first letter of the account name."""
+    dialog = AccountEditDialog(currencies=["USD"], default_currency_code="USD")
+    dialog.name_edit.setText("cash")
+    dialog._on_save()
+    assert dialog.get_result()["name"] == "Cash"
+    dialog.close()

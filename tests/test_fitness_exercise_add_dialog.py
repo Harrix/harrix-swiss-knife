@@ -9,6 +9,8 @@ from PySide6.QtWidgets import QApplication, QCheckBox, QPushButton
 
 from harrix_swiss_knife.apps.fitness import exercise_add_dialog as add_dialog_mod
 from harrix_swiss_knife.apps.fitness.exercise_add_dialog import ExerciseAddDialog, contains_cyrillic
+from harrix_swiss_knife.apps.fitness.exercise_type_add_dialog import ExerciseTypeAddDialog
+from harrix_swiss_knife.apps.fitness.workout_preview_dialog import WorkoutPreviewDialog
 
 
 @pytest.fixture
@@ -265,6 +267,41 @@ def test_ok_does_not_request_another_exercise(qapp: QApplication) -> None:
     dialog._on_accept()
     assert dialog.get_result() is not None
     assert not dialog.add_another()
+    dialog.close()
+
+
+def test_exercise_add_dialog_capitalizes_names(qapp: QApplication) -> None:
+    """OK capitalizes English and local exercise names."""
+    assert qapp is not None
+    dialog = ExerciseAddDialog()
+    dialog._name_edit.setText("push-ups")
+    dialog._name_local_edit.setText("отжимания")
+    dialog._finish_accept()
+    result = dialog.get_result()
+    assert result is not None
+    assert result[0] == "Push-ups"
+    assert result[4] == "Отжимания"
+    dialog.close()
+
+
+def test_exercise_type_add_dialog_capitalizes_names(qapp: QApplication) -> None:
+    """Add Exercise Type capitalizes Type and Local."""
+    assert qapp is not None
+    dialog = ExerciseTypeAddDialog(exercises=["Push-ups"], selected_exercise="Push-ups")
+    dialog._type_edit.setText("wide")
+    dialog._name_local_edit.setText("широкие")
+    dialog._on_accept()
+    assert dialog.get_result() == ("Push-ups", "Wide", 1.0, "Широкие")
+    dialog.close()
+
+
+def test_workout_preview_dialog_capitalizes_title(qapp: QApplication) -> None:
+    """Workout Name is capitalized when reading the title."""
+    assert qapp is not None
+    dialog = WorkoutPreviewDialog("morning run", [])
+    assert dialog.title_text() == "Morning run"
+    dialog.line_title.setText("evening walk")
+    assert dialog.title_text() == "Evening walk"
     dialog.close()
 
 

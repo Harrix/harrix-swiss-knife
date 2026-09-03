@@ -70,7 +70,7 @@ class AutoSaveOperations(AutoSaveMixin):
         - `row_id` (`str`): Database ID of the row.
 
         """
-        name = model.data(model.index(row, 0)) or ""
+        name = capitalize_first_letter(model.data(model.index(row, 0)) or "")
         balance_str = model.data(model.index(row, 1)) or "0"
         currency_code = model.data(model.index(row, 2)) or ""
         is_liquid_str = model.data(model.index(row, 3)) or "1"
@@ -101,7 +101,7 @@ class AutoSaveOperations(AutoSaveMixin):
 
         # Update database
         if not self.db_manager.update_account(
-            int(row_id), name.strip(), balance, currency_id, is_liquid=is_liquid, is_cash=is_cash
+            int(row_id), name, balance, currency_id, is_liquid=is_liquid, is_cash=is_cash
         ):
             self._show_db_error("Failed to save account record")
         else:
@@ -119,7 +119,7 @@ class AutoSaveOperations(AutoSaveMixin):
 
         """
         code = model.data(model.index(row, 0)) or ""
-        name = model.data(model.index(row, 1)) or ""
+        name = capitalize_first_letter(model.data(model.index(row, 1)) or "")
         symbol = model.data(model.index(row, 2)) or ""
 
         # Validate inputs
@@ -136,7 +136,7 @@ class AutoSaveOperations(AutoSaveMixin):
             return
 
         # Update database
-        if not self.db_manager.update_currency(int(row_id), code.strip(), name.strip(), symbol.strip()):
+        if not self.db_manager.update_currency(int(row_id), code.strip(), name, symbol.strip()):
             self._show_db_error("Failed to save currency record")
         else:
             # Update related UI elements

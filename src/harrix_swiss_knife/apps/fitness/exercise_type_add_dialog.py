@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common import message_box
+from harrix_swiss_knife.apps.common.text_case import capitalize_first_letter
 from harrix_swiss_knife.apps.fitness.name_local_translate import request_name_local_translation
 from harrix_swiss_knife.integrations.bothub import BothubRequestState
 from harrix_swiss_knife.qt_emoji_icon import apply_emoji_dialog_buttons, make_emoji_push_button
@@ -116,7 +117,7 @@ class ExerciseTypeAddDialog(QDialog):
         if not exercise:
             message_box.warning(self, "Validation Error", "Select an exercise")
             return
-        type_name = self._type_edit.text().strip()
+        type_name = capitalize_first_letter(self._type_edit.text())
         if not type_name:
             message_box.warning(self, "Validation Error", "Enter type name")
             return
@@ -124,7 +125,7 @@ class ExerciseTypeAddDialog(QDialog):
             exercise,
             type_name,
             self._modifier_spin.value(),
-            self._name_local_edit.text().strip(),
+            capitalize_first_letter(self._name_local_edit.text()),
         )
         self.accept()
 

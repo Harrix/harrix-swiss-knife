@@ -183,7 +183,7 @@ class ExerciseAddDialog(QDialog):
         """
         if self._find_duplicate is None:
             return
-        local_name = self._name_local_edit.text().strip()
+        local_name = capitalize_first_letter(self._name_local_edit.text())
         if not local_name:
             if warn_if_empty:
                 message_box.warning(self, "Validation Error", "Enter local name")
@@ -202,8 +202,8 @@ class ExerciseAddDialog(QDialog):
         self._set_local_check_passed(passed=False)
 
     def _finish_accept(self) -> None:
-        name = self._name_edit.text().strip()
-        name_local = self._name_local_edit.text().strip()
+        name = capitalize_first_letter(self._name_edit.text())
+        name_local = capitalize_first_letter(self._name_local_edit.text())
         media_path = self._media_drop.get_file_path()
         can_auto_fill = not self._editing and should_auto_fill_exercise_on_ok(
             name=name,

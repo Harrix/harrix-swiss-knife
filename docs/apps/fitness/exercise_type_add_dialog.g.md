@@ -120,7 +120,7 @@ class ExerciseTypeAddDialog(QDialog):
         if not exercise:
             message_box.warning(self, "Validation Error", "Select an exercise")
             return
-        type_name = self._type_edit.text().strip()
+        type_name = capitalize_first_letter(self._type_edit.text())
         if not type_name:
             message_box.warning(self, "Validation Error", "Enter type name")
             return
@@ -128,7 +128,7 @@ class ExerciseTypeAddDialog(QDialog):
             exercise,
             type_name,
             self._modifier_spin.value(),
-            self._name_local_edit.text().strip(),
+            capitalize_first_letter(self._name_local_edit.text()),
         )
         self.accept()
 

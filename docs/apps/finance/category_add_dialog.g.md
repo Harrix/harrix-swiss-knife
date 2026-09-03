@@ -104,7 +104,7 @@ class CategoryAddDialog(QDialog):
         return self._result
 
     def _on_accept(self) -> None:
-        name = self._name_edit.text().strip()
+        name = capitalize_first_letter(self._name_edit.text())
         if not name:
             message_box.warning(self, "Validation Error", "Enter category name")
             return
@@ -112,7 +112,7 @@ class CategoryAddDialog(QDialog):
             name,
             self._type_combo.currentIndex(),
             self._icon_row.emoji(),
-            self._name_local_edit.text().strip(),
+            capitalize_first_letter(self._name_local_edit.text()),
         )
         self.accept()
 

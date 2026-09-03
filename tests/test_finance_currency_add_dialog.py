@@ -26,3 +26,14 @@ def test_currency_add_dialog_title_and_empty_result(qapp: QApplication) -> None:
     assert dialog.windowTitle() == "Add Currency"
     assert dialog.get_result() is None
     dialog.close()
+
+
+def test_currency_add_dialog_capitalizes_name_only(qapp: QApplication) -> None:  # noqa: ARG001
+    """Save capitalizes Name and leaves Code/Symbol as entered (code is uppercased)."""
+    dialog = CurrencyAddDialog()
+    dialog._code_edit.setText("usd")
+    dialog._name_edit.setText("us dollar")
+    dialog._symbol_edit.setText("$")
+    dialog._on_accept()
+    assert dialog.get_result() == {"code": "USD", "name": "Us dollar", "symbol": "$", "subdivision": 100}
+    dialog.close()
