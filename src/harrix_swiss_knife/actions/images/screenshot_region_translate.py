@@ -35,7 +35,7 @@ class OnScreenshotRegionTranslate(ActionBase):
 
     """
 
-    icon = "🌐"
+    icon = "📷"
     title = "Screenshot region (OCR + translate)"
     bold_title = False
     quick_launcher = True
