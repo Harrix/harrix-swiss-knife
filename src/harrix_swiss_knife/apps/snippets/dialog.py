@@ -122,14 +122,16 @@ class SnippetsDialog(QDialog):
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
         """Start window drag from the title, and navigate from the shared input."""
-        if watched is self._input and event.type() == QEvent.Type.KeyPress and isinstance(event, QKeyEvent):
-            if event.key() in {Qt.Key.Key_Down, Qt.Key.Key_Up}:
-                if self._active_panel().move_visible(1 if event.key() == Qt.Key.Key_Down else -1):
-                    self._show_current_value_in_input()
-                return True
-            if event.key() in {Qt.Key.Key_Return, Qt.Key.Key_Enter}:
-                self._active_panel().activate_current_or_first()
-                return True
+        if watched is self._input:
+            if event.type() == QEvent.Type.KeyPress and isinstance(event, QKeyEvent):
+                if event.key() in {Qt.Key.Key_Down, Qt.Key.Key_Up}:
+                    if self._active_panel().move_visible(1 if event.key() == Qt.Key.Key_Down else -1):
+                        self._show_current_value_in_input()
+                    return True
+                if event.key() in {Qt.Key.Key_Return, Qt.Key.Key_Enter}:
+                    self._active_panel().activate_current_or_first()
+                    return True
+            return super().eventFilter(watched, event)
         return self._handle_title_drag(watched, event)
 
     def focusNextPrevChild(self, next: bool) -> bool:  # noqa: A002, FBT001, N802

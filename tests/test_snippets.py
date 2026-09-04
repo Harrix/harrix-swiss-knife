@@ -8,8 +8,8 @@ import json
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import QEvent, QRect, Qt
-from PySide6.QtGui import QColor, QKeyEvent, QPainter, QPalette, QPixmap
+from PySide6.QtCore import QEvent, QPointF, QRect, Qt
+from PySide6.QtGui import QColor, QKeyEvent, QMouseEvent, QPainter, QPalette, QPixmap
 from PySide6.QtWidgets import QApplication, QStyle, QStyleOptionViewItem, QToolButton
 
 from harrix_swiss_knife.actions.apps.snippets import OnSnippets
@@ -468,6 +468,30 @@ def test_shared_input_arrows_select_visible_and_fill_field(
     assert dialog._phrases.current_snippet().value == "Alpine"
     assert dialog._input.text() == "Alpine"
     assert dialog._phrases.item_matches_input(dialog._phrases.current_snippet())
+    dialog.close()
+
+
+def test_shared_input_mouse_press_does_not_start_window_drag(
+    qapp: QApplication,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    assert qapp is not None
+    monkeypatch.setattr(SnippetsDialog, "_init_database", lambda _dialog: None)
+    dialog = SnippetsDialog()
+    dialog.show()
+    QApplication.processEvents()
+    dialog._input.setText("Hello world")
+    local = QPointF(20, 10)
+    press = QMouseEvent(
+        QEvent.Type.MouseButtonPress,
+        local,
+        dialog._input.mapToGlobal(local.toPoint()),
+        Qt.MouseButton.LeftButton,
+        Qt.MouseButton.LeftButton,
+        Qt.KeyboardModifier.NoModifier,
+    )
+    assert dialog.eventFilter(dialog._input, press) is False
+    assert dialog._dragging is False
     dialog.close()
 
 
