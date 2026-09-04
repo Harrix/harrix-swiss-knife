@@ -96,6 +96,7 @@ _Figure 1: Screenshot_
   - 🚀 Optimize image from clipboard
   - 🚀 Optimize image from clipboard as …
   - 📷 Screenshot region
+  - 🌐 Screenshot region (OCR + translate)
   - 📷 Screenshot region (clipboard)
 - **File operations**
   - ✅ Check featured_image in all folders

@@ -17,7 +17,10 @@
   "beginning_of_article": "snippet:config/beginning-of-article.md",
   "beginning_of_md": "snippet:config/beginning-of-md.md",
   "beginning_of_md_docs": "snippet:config/beginning-of-md-en.md",
-  "block_drives": ["E", "F"],
+  "block_drives": [
+    "E",
+    "F"
+  ],
   "bothub": {
     "base_url": "https://bothub.chat/api/v2/openai/v1",
     "max_image_side": 1600,
@@ -73,19 +76,33 @@
   "hotkeys": [
     {
       "action": "OnQuickLauncher",
-      "hotkeys": ["Ctrl+Shift+1"]
+      "hotkeys": [
+        "Ctrl+Shift+1"
+      ]
     },
     {
       "action": "OnSnippets",
-      "hotkeys": ["Ctrl+Shift+2"]
+      "hotkeys": [
+        "Ctrl+Shift+2"
+      ]
     },
     {
       "action": "OnScreenshotRegion",
-      "hotkeys": ["Ctrl+Shift+3"]
+      "hotkeys": [
+        "Ctrl+Shift+3"
+      ]
     },
     {
       "action": "OnScreenshotRegionClipboard",
-      "hotkeys": ["Ctrl+Shift+4"]
+      "hotkeys": [
+        "Ctrl+Shift+4"
+      ]
+    },
+    {
+      "action": "OnScreenshotRegionTranslate",
+      "hotkeys": [
+        "Ctrl+Shift+5"
+      ]
     }
   ],
   "markdown_templates": {
@@ -205,7 +222,10 @@
     "snippet:config/beginning-of-article.md",
     "snippet:config/beginning-of-md-en.md"
   ],
-  "npm_packages": ["npm-check-updates", "prettier"],
+  "npm_packages": [
+    "npm-check-updates",
+    "prettier"
+  ],
   "optimize_images_folder_max_size": 1024,
   "path_3d": "D:/Downloads",
   "path_articles": "D:/GitHub/_content__harrix-dev/harrix.dev-articles-2025",
@@ -237,11 +257,16 @@
     "D:/GitHub/_vector/Harrix-Vector-Images"
   ],
   "path_vector_icons_source_app": "C:/Program Files/Adobe/Adobe Illustrator 2026/Support Files/Contents/Windows/Illustrator.exe",
-  "paths_android_projects": ["D:/GitHub/harrix-swiss-knife/android", "D:/GitHub/harrix-notes-android"],
+  "paths_android_projects": [
+    "D:/GitHub/harrix-swiss-knife/android",
+    "D:/GitHub/harrix-notes-android"
+  ],
   "paths_combine_for_ai": [
     {
       "base_folder": "D:/GitHub/harrix-swiss-knife",
-      "files": ["D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/**/*.py"],
+      "files": [
+        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/**/*.py"
+      ],
       "name": "harrix-swiss-knife"
     },
     {
@@ -270,7 +295,9 @@
     },
     {
       "base_folder": "D:/GitHub/harrix-swiss-knife",
-      "files": ["D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/**/*.py"],
+      "files": [
+        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/**/*.py"
+      ],
       "name": "harrix-swiss-knife - all Python files in apps"
     }
   ],
@@ -305,9 +332,19 @@
     "D:/Dropbox/Notes/Notes-Lists/Books",
     "D:/Dropbox/Notes/Notes-Lists/Books-of-nonfiction"
   ],
-  "paths_python_libraries": ["D:/GitHub/harrix-pylib", "D:/GitHub/harrix-pyssg"],
-  "paths_python_project_creation": ["C:/Users/sergi/OneDrive/Projects/Python", "D:/GitHub"],
-  "paths_python_projects": ["D:/GitHub/harrix-swiss-knife", "D:/GitHub/harrix-pylib", "D:/GitHub/harrix-pyssg"],
+  "paths_python_libraries": [
+    "D:/GitHub/harrix-pylib",
+    "D:/GitHub/harrix-pyssg"
+  ],
+  "paths_python_project_creation": [
+    "C:/Users/sergi/OneDrive/Projects/Python",
+    "D:/GitHub"
+  ],
+  "paths_python_projects": [
+    "D:/GitHub/harrix-swiss-knife",
+    "D:/GitHub/harrix-pylib",
+    "D:/GitHub/harrix-pyssg"
+  ],
   "paths_quotes": [
     "D:/Dropbox/Notes/Notes-Lists/Quotes/Fiction",
     "D:/Dropbox/Notes/Notes-Lists/Quotes/Religion",
@@ -367,7 +404,8 @@
     "text_fix_ru_clipboard": "snippet:config/prompts/text-fix-ru-clipboard.md",
     "text_rewrite_ru": "snippet:config/prompts/text-rewrite-ru.md",
     "vector_icons_add_image": "snippet:config/prompts/vector-icons-add-image.md",
-    "vector_icons_keywords": "snippet:config/prompts/vector-icons-keywords.md"
+    "vector_icons_keywords": "snippet:config/prompts/vector-icons-keywords.md",
+    "image_ocr_translate": "snippet:config/prompts/image-ocr-translate.md"
   },
   "pypi_token": "snippet:api-keys/pypi-token.txt",
   "quick_launcher_markdown_in_panel": true,
@@ -382,7 +420,10 @@
   "start_pattern_jupyter_notebooks": "jupyter-notebook-",
   "start_pattern_py_projects": "python-project-",
   "ticktick_api_key": "snippet:api-keys/ticktick-api-key.txt",
-  "transfer_private_data_default_api_keys": ["bothub", "bothub.ru"],
+  "transfer_private_data_default_api_keys": [
+    "bothub",
+    "bothub.ru"
+  ],
   "ui_font_scale": 1.0,
   "vector_icons_recent_folders_max": 12,
   "vscode_workspace_articles": "D:/Dropbox/Programs/vscode_workspaces/_content__harrix-dev.code-workspace",

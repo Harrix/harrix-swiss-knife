@@ -1506,6 +1506,9 @@ class ActionDialogService:
         rerun_button_label: str = RERUN_BUTTON_LABEL,
         rerun_button_emoji: str = RERUN_BUTTON_EMOJI,
         remove_paragraphs_button: bool = False,
+        before_label: str = "Before",
+        after_label: str = "After",
+        highlight_changes: bool = True,
     ) -> tuple[str | None, int]:
         """Show read-only before/after diff with inline change highlighting."""
         result_text_holder = [after_text]
@@ -1521,6 +1524,9 @@ class ActionDialogService:
                 rerun_button_emoji=rerun_button_emoji,
                 remove_paragraphs_button=remove_paragraphs_button,
                 result_text_holder=result_text_holder,
+                before_label=before_label,
+                after_label=after_label,
+                highlight_changes=highlight_changes,
             ),
             stretch_row=0,
         )

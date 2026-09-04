@@ -1741,7 +1741,7 @@ def show_result(self, *, display_text: str | None = None, save_button: bool = Fa
 
 Open a dialog to display result of `execute`.
 
-When [`display_text`](../../apps/snippets/parse.g.md#-function-display_text) is set, show that instead of accumulated log lines.
+When `display_text` is set, show that instead of accumulated log lines.
 
 Returns:
 

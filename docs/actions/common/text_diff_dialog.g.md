@@ -9,7 +9,7 @@ lang: en
 ## 🔧 Function `build_text_diff_side_by_side`
 
 ```python
-def build_text_diff_side_by_side(before_text: str, after_text: str, default_size: QSize, show_toast: Callable[[str], None], *, rerun_button: bool = False, rerun_button_label: str = RERUN_BUTTON_LABEL, rerun_button_emoji: str = RERUN_BUTTON_EMOJI, remove_paragraphs_button: bool = False, result_text_holder: list[str] | None = None) -> Callable[[QDialog, QVBoxLayout], None]
+def build_text_diff_side_by_side(before_text: str, after_text: str, default_size: QSize, show_toast: Callable[[str], None], *, rerun_button: bool = False, rerun_button_label: str = RERUN_BUTTON_LABEL, rerun_button_emoji: str = RERUN_BUTTON_EMOJI, remove_paragraphs_button: bool = False, result_text_holder: list[str] | None = None, before_label: str = 'Before', after_label: str = 'After', highlight_changes: bool = True) -> Callable[[QDialog, QVBoxLayout], None]
 ```
 
 Return dialog layout builder for before/after diff view.
@@ -29,6 +29,9 @@ def build_text_diff_side_by_side(
     rerun_button_emoji: str = RERUN_BUTTON_EMOJI,
     remove_paragraphs_button: bool = False,
     result_text_holder: list[str] | None = None,
+    before_label: str = "Before",
+    after_label: str = "After",
+    highlight_changes: bool = True,
 ) -> Callable[[QDialog, QVBoxLayout], None]:
 
     def _make_selection(
@@ -65,7 +68,7 @@ def build_text_diff_side_by_side(
 
         left_container = QWidget()
         left_layout = QVBoxLayout(left_container)
-        left_label = QLabel("Before")
+        left_label = QLabel(before_label)
         left_layout.addWidget(left_label)
 
         before_edit = QPlainTextEdit()
@@ -87,7 +90,7 @@ def build_text_diff_side_by_side(
 
         right_container = QWidget()
         right_layout = QVBoxLayout(right_container)
-        right_label = QLabel("After")
+        right_label = QLabel(after_label)
         right_layout.addWidget(right_label)
 
         after_edit = QPlainTextEdit()
@@ -110,119 +113,8 @@ def build_text_diff_side_by_side(
         splitter.setSizes([512, 512])
         layout.addWidget(splitter)
 
-        # Mergely-like highlighting:
-        # - whole-line background only for inserted/deleted lines
-        # - inline background for changed segments; equal text stays unstyled
-        before_lines = before_text.splitlines()
-        after_lines = after_text.splitlines()
-        matcher = difflib.SequenceMatcher(a=before_lines, b=after_lines)
-
-        del_line_bg = QColor(255, 80, 80, 170)  # red-ish
-        ins_line_bg = QColor(60, 200, 60, 170)  # green-ish
-
-        del_inline_bg = QColor(255, 80, 80, 210)
-        ins_inline_bg = QColor(60, 200, 60, 210)
-        repl_inline_bg = QColor(255, 200, 60, 210)
-
-        before_doc = before_edit.document()
-        after_doc = after_edit.document()
-
-        before_selections: list[QTextEdit.ExtraSelection] = []
-        after_selections: list[QTextEdit.ExtraSelection] = []
-
-        for tag, i1, i2, j1, j2 in matcher.get_opcodes():
-            if tag == "equal":
-                continue
-
-            if tag == "delete":
-                line_fmt = _format_with_bg(del_line_bg)
-                for ln in range(i1, i2):
-                    sel = _make_selection(before_doc, line_no=ln, fmt=line_fmt)
-                    if sel is not None:
-                        before_selections.append(sel)
-                continue
-
-            if tag == "insert":
-                line_fmt = _format_with_bg(ins_line_bg)
-                for ln in range(j1, j2):
-                    sel = _make_selection(after_doc, line_no=ln, fmt=line_fmt)
-                    if sel is not None:
-                        after_selections.append(sel)
-                continue
-
-            # replace: highlight only changed segments, not unchanged parts of a line
-            left_span = i2 - i1
-            right_span = j2 - j1
-            pairs = max(left_span, right_span)
-
-            for k in range(pairs):
-                left_ln = i1 + k
-                right_ln = j1 + k
-                left_line = before_lines[left_ln] if left_ln < i2 else ""
-                right_line = after_lines[right_ln] if right_ln < j2 else ""
-
-                # If one side is missing (because spans differ), treat as full insert/delete.
-                if left_ln >= i2 and right_ln < j2:
-                    sel = _make_selection(after_doc, line_no=right_ln, fmt=_format_with_bg(ins_inline_bg))
-                    if sel is not None:
-                        after_selections.append(sel)
-                    continue
-                if right_ln >= j2 and left_ln < i2:
-                    sel = _make_selection(before_doc, line_no=left_ln, fmt=_format_with_bg(del_inline_bg))
-                    if sel is not None:
-                        before_selections.append(sel)
-                    continue
-
-                inline = difflib.SequenceMatcher(a=left_line, b=right_line)
-                for itag, ai1, ai2, bi1, bi2 in inline.get_opcodes():
-                    if itag == "equal":
-                        continue
-                    if itag == "delete":
-                        sel = _make_selection(
-                            before_doc,
-                            line_no=left_ln,
-                            start_col=ai1,
-                            end_col=ai2,
-                            fmt=_format_with_bg(del_inline_bg),
-                        )
-                        if sel is not None:
-                            before_selections.append(sel)
-                    elif itag == "insert":
-                        sel = _make_selection(
-                            after_doc,
-                            line_no=right_ln,
-                            start_col=bi1,
-                            end_col=bi2,
-                            fmt=_format_with_bg(ins_inline_bg),
-                        )
-                        if sel is not None:
-                            after_selections.append(sel)
-                    else:  # replace
-                        sel = _make_selection(
-                            before_doc,
-                            line_no=left_ln,
-                            start_col=ai1,
-                            end_col=ai2,
-                            fmt=_format_with_bg(repl_inline_bg),
-                        )
-                        if sel is not None:
-                            before_selections.append(sel)
-                        sel = _make_selection(
-                            after_doc,
-                            line_no=right_ln,
-                            start_col=bi1,
-                            end_col=bi2,
-                            fmt=_format_with_bg(repl_inline_bg),
-                        )
-                        if sel is not None:
-                            after_selections.append(sel)
-
-        # Apply selections after layout is ready to avoid cases where the first paint drops them.
-        def apply_highlight() -> None:
-            before_edit.setExtraSelections(before_selections)
-            after_edit.setExtraSelections(after_selections)
-
-        QTimer.singleShot(0, apply_highlight)
+        if highlight_changes:
+            _apply_diff_highlights(before_edit, after_edit, before_text, after_text, _make_selection, _format_with_bg)
 
         # Sync vertical scrollbars so user can compare line positions.
         syncing = False

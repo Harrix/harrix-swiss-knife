@@ -12,6 +12,7 @@ from PySide6.QtGui import QImage
 from PySide6.QtWidgets import QApplication, QDialog
 
 from harrix_swiss_knife.actions.images.screenshot_region_clipboard import OnScreenshotRegionClipboard
+from harrix_swiss_knife.actions.images.screenshot_region_translate import OnScreenshotRegionTranslate
 from harrix_swiss_knife.screenshot import capture
 
 if TYPE_CHECKING:
@@ -176,7 +177,9 @@ def test_example_config_binds_clipboard_screenshot_hotkeys() -> None:
     data = json.loads(_EXAMPLE_CONFIG.read_text(encoding="utf-8"))
     by_action = {entry["action"]: entry["hotkeys"] for entry in data["hotkeys"]}
     assert "Ctrl+Shift+4" in by_action["OnScreenshotRegionClipboard"]
+    assert "Ctrl+Shift+5" in by_action["OnScreenshotRegionTranslate"]
     assert OnScreenshotRegionClipboard.quick_launcher is True
+    assert OnScreenshotRegionTranslate.quick_launcher is True
 
 
 def test_clipboard_action_skips_preview(qapp: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:  # noqa: ARG001

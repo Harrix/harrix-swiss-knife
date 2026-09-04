@@ -40,6 +40,7 @@ _SAVE_DESKTOP_BUTTON_EMOJI = "🖥️"
 _SAVE_DESKTOP_BUTTON_LABEL = "Save to desktop"
 _MARKDOWN_AI_EMOJI = "🤖"
 _MARKDOWN_OCR_EMOJI = "🔤"
+_TRANSLATE_EMOJI = "🌐"
 _VK_S = 0x53
 _KEY_CYRILLIC_YERU = 0x042B  # Cyrillic yeru (same physical key as Latin S)  # ignore: HP001
 _MIN_WINDOW_WIDTH = 480
@@ -98,6 +99,11 @@ class ScreenshotPreviewWindow(QMainWindow):
         ocr_button.setToolTip("Recognize text (OCR, local)…")
         ocr_button.clicked.connect(self._run_markdown_with_ocr)
         button_layout.addWidget(ocr_button)
+
+        translate_button = make_emoji_push_button("OCR + translate", _TRANSLATE_EMOJI)
+        translate_button.setToolTip("Recognize text and translate to the local language…")
+        translate_button.clicked.connect(self._run_ocr_translate)
+        button_layout.addWidget(translate_button)
 
         ok_button = make_emoji_push_button(OK_BUTTON_LABEL, OK_BUTTON_EMOJI)
         ok_button.clicked.connect(self._close_current_tab)
@@ -198,6 +204,22 @@ class ScreenshotPreviewWindow(QMainWindow):
             )
 
             OnRecognizeTextWithOcr()(image_paths=[path])
+
+        QTimer.singleShot(0, run)
+
+    def _run_ocr_translate(self) -> None:
+        tab = self._current_tab()
+        if tab is None:
+            return
+        image = tab.image.copy()
+        self._close_current_tab()
+
+        def run() -> None:
+            from harrix_swiss_knife.actions.images.screenshot_region_translate import (  # noqa: PLC0415
+                OnScreenshotRegionTranslate,
+            )
+
+            OnScreenshotRegionTranslate()(image=image)
 
         QTimer.singleShot(0, run)
 

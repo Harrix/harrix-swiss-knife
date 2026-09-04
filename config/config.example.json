@@ -66,6 +66,12 @@
       "hotkeys": [
         "Ctrl+Shift+4"
       ]
+    },
+    {
+      "action": "OnScreenshotRegionTranslate",
+      "hotkeys": [
+        "Ctrl+Shift+5"
+      ]
     }
   ],
   "quick_launcher_markdown_in_panel": true,
@@ -379,6 +385,7 @@
     "text_fix_ru_clipboard": "snippet:config/prompts/text-fix-ru-clipboard.md",
     "text_rewrite_ru": "snippet:config/prompts/text-rewrite-ru.md",
     "image_ocr_to_markdown": "snippet:config/prompts/image-ocr-to-markdown.md",
+    "image_ocr_translate": "snippet:config/prompts/image-ocr-translate.md",
     "markdown_template_fields_from_source": "snippet:config/prompts/markdown-template-fields-from-source.md",
     "vector_icons_keywords": "snippet:config/prompts/vector-icons-keywords.md",
     "vector_icons_add_image": "snippet:config/prompts/vector-icons-add-image.md"
