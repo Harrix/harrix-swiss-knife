@@ -16,6 +16,7 @@ from harrix_swiss_knife.screenshot import preview_dialog as preview_dialog_modul
 from harrix_swiss_knife.screenshot.dated_image_path import images_folder, next_dated_image_path
 from harrix_swiss_knife.screenshot.preview_canvas import ScreenshotPreviewCanvas
 from harrix_swiss_knife.screenshot.preview_dialog import (
+    _MIN_WINDOW_WIDTH,
     ScreenshotPreviewWindow,
     _is_ctrl_s,
     show_screenshot_preview,
@@ -206,6 +207,26 @@ def test_preview_window_title_follows_tab_saved_name(
     assert tabs is not None
     tabs.setCurrentIndex(0)
     assert window.windowTitle() == saved_title
+    window.close()
+
+
+def test_preview_footer_wraps_buttons_and_keeps_full_width_status(qapp: QApplication) -> None:
+    image = QImage(8, 8, QImage.Format.Format_RGB32)
+    image.fill(Qt.GlobalColor.cyan)
+    window = show_screenshot_preview(image)
+    window.resize(520, 400)
+    qapp.processEvents()
+    assert window._status.width() >= window.centralWidget().width() - 40
+    for button in window._action_buttons:
+        assert button.width() >= button.sizeHint().width() - 2
+        assert "…" not in button.text() or button.text().endswith("…")
+        assert button.width() >= button.fontMetrics().horizontalAdvance(button.text()[:8])
+    # Narrow window: buttons still keep their natural width (wrap instead of clip).
+    window.resize(_MIN_WINDOW_WIDTH, 400)
+    qapp.processEvents()
+    for button in window._action_buttons:
+        assert button.width() >= button.sizeHint().width() - 2
+    assert window._buttons.heightForWidth(window._buttons.geometry().width()) >= button.sizeHint().height()
     window.close()
 
 

@@ -52,44 +52,45 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._tabs.currentChanged.connect(self._on_tab_changed)
         root.addWidget(self._tabs, stretch=1)
 
-        self._status = QLabel(central)
-        self._status.setWordWrap(True)
-        self._status.setText("Ctrl+wheel zoom · Middle-drag pan · Ctrl+S save to images")
+        footer = QVBoxLayout()
+        footer.setSpacing(8)
 
-        button_layout = QHBoxLayout()
-        button_layout.addWidget(self._status, stretch=1)
-        copy_button = make_emoji_push_button(COPY_BUTTON_LABEL, COPY_BUTTON_EMOJI)
-        copy_button.clicked.connect(self._copy_to_clipboard)
-        button_layout.addWidget(copy_button)
-
+        buttons_host = QWidget(central)
+        self._buttons = FlowLayout(buttons_host, h_spacing=6, v_spacing=6)
+        self._action_buttons: list[QPushButton] = []
+        self._add_footer_button(
+            make_emoji_push_button(COPY_BUTTON_LABEL, COPY_BUTTON_EMOJI),
+            self._copy_to_clipboard,
+        )
         desktop_button = make_emoji_push_button(_SAVE_DESKTOP_BUTTON_LABEL, _SAVE_DESKTOP_BUTTON_EMOJI)
         desktop_button.setToolTip("Save as YYYY-MM-DD_NN.png on the Desktop")
-        desktop_button.clicked.connect(self._save_to_desktop)
-        button_layout.addWidget(desktop_button)
-
-        save_button = make_emoji_push_button(_SAVE_BUTTON_LABEL, SAVE_BUTTON_EMOJI)
-        save_button.clicked.connect(self._save_as)
-        button_layout.addWidget(save_button)
-
+        self._add_footer_button(desktop_button, self._save_to_desktop)
+        self._add_footer_button(
+            make_emoji_push_button(_SAVE_BUTTON_LABEL, SAVE_BUTTON_EMOJI),
+            self._save_as,
+        )
         ai_button = make_emoji_push_button("Recognize text (AI)", _MARKDOWN_AI_EMOJI)
         ai_button.setToolTip("Recognize text (AI)…")
-        ai_button.clicked.connect(self._run_markdown_with_ai)
-        button_layout.addWidget(ai_button)
-
+        self._add_footer_button(ai_button, self._run_markdown_with_ai)
         ocr_button = make_emoji_push_button("Recognize text (OCR)", _MARKDOWN_OCR_EMOJI)
         ocr_button.setToolTip("Recognize text (OCR, local)…")
-        ocr_button.clicked.connect(self._run_markdown_with_ocr)
-        button_layout.addWidget(ocr_button)
-
+        self._add_footer_button(ocr_button, self._run_markdown_with_ocr)
         translate_button = make_emoji_push_button("OCR + translate", _TRANSLATE_EMOJI)
         translate_button.setToolTip("Recognize text and translate to the local language…")
-        translate_button.clicked.connect(self._run_ocr_translate)
-        button_layout.addWidget(translate_button)
+        self._add_footer_button(translate_button, self._run_ocr_translate)
+        self._add_footer_button(
+            make_emoji_push_button(OK_BUTTON_LABEL, OK_BUTTON_EMOJI),
+            self._close_current_tab,
+        )
+        footer.addWidget(buttons_host)
 
-        ok_button = make_emoji_push_button(OK_BUTTON_LABEL, OK_BUTTON_EMOJI)
-        ok_button.clicked.connect(self._close_current_tab)
-        button_layout.addWidget(ok_button)
-        root.addLayout(button_layout)
+        self._status = QLabel(central)
+        self._status.setWordWrap(True)
+        self._status.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        self._status.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        self._status.setText(_STATUS_HINT)
+        footer.addWidget(self._status)
+        root.addLayout(footer)
 
         save_shortcut = QShortcut(QKeySequence.StandardKey.Save, self)
         save_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
@@ -117,6 +118,12 @@ class ScreenshotPreviewWindow(QMainWindow):
             event.accept()
             return
         super().keyPressEvent(event)
+
+    def _add_footer_button(self, button: QPushButton, slot: Callable[[], None]) -> None:
+        button.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
+        button.clicked.connect(slot)
+        self._buttons.addWidget(button)
+        self._action_buttons.append(button)
 
     def _close_current_tab(self) -> None:
         index = self._tabs.currentIndex()
@@ -300,44 +307,45 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self._tabs.currentChanged.connect(self._on_tab_changed)
         root.addWidget(self._tabs, stretch=1)
 
-        self._status = QLabel(central)
-        self._status.setWordWrap(True)
-        self._status.setText("Ctrl+wheel zoom · Middle-drag pan · Ctrl+S save to images")
+        footer = QVBoxLayout()
+        footer.setSpacing(8)
 
-        button_layout = QHBoxLayout()
-        button_layout.addWidget(self._status, stretch=1)
-        copy_button = make_emoji_push_button(COPY_BUTTON_LABEL, COPY_BUTTON_EMOJI)
-        copy_button.clicked.connect(self._copy_to_clipboard)
-        button_layout.addWidget(copy_button)
-
+        buttons_host = QWidget(central)
+        self._buttons = FlowLayout(buttons_host, h_spacing=6, v_spacing=6)
+        self._action_buttons: list[QPushButton] = []
+        self._add_footer_button(
+            make_emoji_push_button(COPY_BUTTON_LABEL, COPY_BUTTON_EMOJI),
+            self._copy_to_clipboard,
+        )
         desktop_button = make_emoji_push_button(_SAVE_DESKTOP_BUTTON_LABEL, _SAVE_DESKTOP_BUTTON_EMOJI)
         desktop_button.setToolTip("Save as YYYY-MM-DD_NN.png on the Desktop")
-        desktop_button.clicked.connect(self._save_to_desktop)
-        button_layout.addWidget(desktop_button)
-
-        save_button = make_emoji_push_button(_SAVE_BUTTON_LABEL, SAVE_BUTTON_EMOJI)
-        save_button.clicked.connect(self._save_as)
-        button_layout.addWidget(save_button)
-
+        self._add_footer_button(desktop_button, self._save_to_desktop)
+        self._add_footer_button(
+            make_emoji_push_button(_SAVE_BUTTON_LABEL, SAVE_BUTTON_EMOJI),
+            self._save_as,
+        )
         ai_button = make_emoji_push_button("Recognize text (AI)", _MARKDOWN_AI_EMOJI)
         ai_button.setToolTip("Recognize text (AI)…")
-        ai_button.clicked.connect(self._run_markdown_with_ai)
-        button_layout.addWidget(ai_button)
-
+        self._add_footer_button(ai_button, self._run_markdown_with_ai)
         ocr_button = make_emoji_push_button("Recognize text (OCR)", _MARKDOWN_OCR_EMOJI)
         ocr_button.setToolTip("Recognize text (OCR, local)…")
-        ocr_button.clicked.connect(self._run_markdown_with_ocr)
-        button_layout.addWidget(ocr_button)
-
+        self._add_footer_button(ocr_button, self._run_markdown_with_ocr)
         translate_button = make_emoji_push_button("OCR + translate", _TRANSLATE_EMOJI)
         translate_button.setToolTip("Recognize text and translate to the local language…")
-        translate_button.clicked.connect(self._run_ocr_translate)
-        button_layout.addWidget(translate_button)
+        self._add_footer_button(translate_button, self._run_ocr_translate)
+        self._add_footer_button(
+            make_emoji_push_button(OK_BUTTON_LABEL, OK_BUTTON_EMOJI),
+            self._close_current_tab,
+        )
+        footer.addWidget(buttons_host)
 
-        ok_button = make_emoji_push_button(OK_BUTTON_LABEL, OK_BUTTON_EMOJI)
-        ok_button.clicked.connect(self._close_current_tab)
-        button_layout.addWidget(ok_button)
-        root.addLayout(button_layout)
+        self._status = QLabel(central)
+        self._status.setWordWrap(True)
+        self._status.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        self._status.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        self._status.setText(_STATUS_HINT)
+        footer.addWidget(self._status)
+        root.addLayout(footer)
 
         save_shortcut = QShortcut(QKeySequence.StandardKey.Save, self)
         save_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)

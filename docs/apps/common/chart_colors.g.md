@@ -16,7 +16,7 @@ Build pastel QColors using golden-ratio hue spacing.
 
 Args:
 
-- `count` (`int`): Number of colors. Defaults to `100`.
+- [`count`](../../qt_flow_layout.g.md#%EF%B8%8F-method-count) (`int`): Number of colors. Defaults to `100`.
 
 Returns:
 

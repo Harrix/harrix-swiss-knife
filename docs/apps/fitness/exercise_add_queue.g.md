@@ -169,7 +169,7 @@ Build the shared add-queue toast label.
 
 Args:
 
-- `count` (`int`): Exercises still in the queue.
+- [`count`](../../qt_flow_layout.g.md#%EF%B8%8F-method-count) (`int`): Exercises still in the queue.
 - `stage` (`str`): Optional current step (`converting`, `filling`).
 
 Returns:

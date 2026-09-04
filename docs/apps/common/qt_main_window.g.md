@@ -704,7 +704,7 @@ def compute_app_window_geometry(available: QRect, *, standard_width: int = 1920,
 
 Return a centered client rect, or `None` when the window should maximize.
 
-`setGeometry` is the client area, so `frame_*` must reserve the title bar
+[`setGeometry`](../../qt_flow_layout.g.md#%EF%B8%8F-method-setgeometry) is the client area, so `frame_*` must reserve the title bar
 and borders. Otherwise the caption buttons sit above the work area.
 
 Args:

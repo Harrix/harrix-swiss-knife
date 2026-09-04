@@ -102,7 +102,7 @@ Format the status-bar text for selected transaction rows.
 
 Args:
 
-- `count` (`int`): Number of selected rows.
+- [`count`](../../qt_flow_layout.g.md#%EF%B8%8F-method-count) (`int`): Number of selected rows.
 - [`total`](../../toast_progress_notification.g.md#%EF%B8%8F-method-total-property) (`float`): Signed sum in the default currency (income +, expense -).
 - `currency_symbol` (`str`): Default currency symbol.
 
