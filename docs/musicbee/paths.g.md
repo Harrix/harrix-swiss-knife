@@ -13,6 +13,8 @@ lang: en
 
 - [🔧 Function `decode_musicbee_text`](#-function-decode_musicbee_text)
 - [🔧 Function `normalize_path_key`](#-function-normalize_path_key)
+- [🔧 Function `path_exists_safe`](#-function-path_exists_safe)
+- [🔧 Function `path_is_file_safe`](#-function-path_is_file_safe)
 - [🔧 Function `path_is_under`](#-function-path_is_under)
 
 </details>
@@ -59,6 +61,48 @@ def normalize_path_key(path: str | Path) -> str:
 
 </details>
 
+## 🔧 Function `path_exists_safe`
+
+```python
+def path_exists_safe(path: str | Path) -> bool
+```
+
+Return whether `path` exists, treating locked or unreadable disks as missing.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def path_exists_safe(path: str | Path) -> bool:
+    try:
+        return Path(path).exists()
+    except OSError:
+        return False
+```
+
+</details>
+
+## 🔧 Function `path_is_file_safe`
+
+```python
+def path_is_file_safe(path: str | Path) -> bool
+```
+
+Return whether `path` is a file, treating locked or unreadable disks as missing.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def path_is_file_safe(path: str | Path) -> bool:
+    try:
+        return Path(path).is_file()
+    except OSError:
+        return False
+```
+
+</details>
+
 ## 🔧 Function `path_is_under`
 
 ```python
@@ -77,10 +121,10 @@ so missing playlist entries can still be filtered.
 def path_is_under(path: str | Path, folder: str | Path) -> bool:
     candidate = Path(path)
     root = Path(folder)
-    if candidate.exists() and root.exists():
+    if path_exists_safe(candidate) and path_exists_safe(root):
         try:
             candidate.resolve().relative_to(root.resolve())
-        except ValueError:
+        except (OSError, ValueError):
             return False
         return True
     key = normalize_path_key(candidate)

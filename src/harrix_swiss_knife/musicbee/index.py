@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from harrix_swiss_knife.musicbee.paths import normalize_path_key
+from harrix_swiss_knife.musicbee.paths import normalize_path_key, path_is_file_safe
 
 
 @dataclass
@@ -22,7 +22,7 @@ class FileIndex:
         if hit is not None:
             return hit.path
         candidate = Path(path)
-        return candidate if candidate.is_file() else None
+        return candidate if path_is_file_safe(candidate) else None
 
 
 @dataclass
@@ -41,19 +41,29 @@ class IndexedFile:
 def index_audio_files(root: Path, extensions: frozenset[str]) -> FileIndex:
     """Walk `root` and collect audio files whose suffix is in `extensions`."""
     index = FileIndex()
-    if not root.is_dir():
+    try:
+        if not root.is_dir():
+            return index
+    except OSError:
         return index
     suffixes = {item if item.startswith(".") else f".{item}" for item in extensions}
     suffixes = {item.casefold() for item in suffixes}
-    for path in root.rglob("*"):
-        if not path.is_file() or path.suffix.casefold() not in suffixes:
-            continue
-        try:
-            size = path.stat().st_size
-        except OSError:
-            continue
-        item = IndexedFile(path=path, size=size)
-        index.files.append(item)
-        index.by_basename.setdefault(item.basename_key, []).append(item)
-        index.by_key[normalize_path_key(path)] = item
+    try:
+        children = root.rglob("*")
+    except OSError:
+        return index
+    try:
+        for path in children:
+            if not path_is_file_safe(path) or path.suffix.casefold() not in suffixes:
+                continue
+            try:
+                size = path.stat().st_size
+            except OSError:
+                continue
+            item = IndexedFile(path=path, size=size)
+            index.files.append(item)
+            index.by_basename.setdefault(item.basename_key, []).append(item)
+            index.by_key[normalize_path_key(path)] = item
+    except OSError:
+        return index
     return index

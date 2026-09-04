@@ -21,6 +21,22 @@ def normalize_path_key(path: str | Path) -> str:
     return text.casefold()
 
 
+def path_exists_safe(path: str | Path) -> bool:
+    """Return whether `path` exists, treating locked or unreadable disks as missing."""
+    try:
+        return Path(path).exists()
+    except OSError:
+        return False
+
+
+def path_is_file_safe(path: str | Path) -> bool:
+    """Return whether `path` is a file, treating locked or unreadable disks as missing."""
+    try:
+        return Path(path).is_file()
+    except OSError:
+        return False
+
+
 def path_is_under(path: str | Path, folder: str | Path) -> bool:
     """Return whether `path` is `folder` or a descendant.
 
@@ -30,10 +46,10 @@ def path_is_under(path: str | Path, folder: str | Path) -> bool:
     """
     candidate = Path(path)
     root = Path(folder)
-    if candidate.exists() and root.exists():
+    if path_exists_safe(candidate) and path_exists_safe(root):
         try:
             candidate.resolve().relative_to(root.resolve())
-        except ValueError:
+        except (OSError, ValueError):
             return False
         return True
     key = normalize_path_key(candidate)

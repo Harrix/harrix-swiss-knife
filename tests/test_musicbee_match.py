@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from harrix_swiss_knife.musicbee.index import index_audio_files
+from harrix_swiss_knife.musicbee.index import FileIndex, index_audio_files
+
+if TYPE_CHECKING:
+    import pytest
 from harrix_swiss_knife.musicbee.match import match_missing_path
-from harrix_swiss_knife.musicbee.paths import path_is_under
+from harrix_swiss_knife.musicbee.paths import path_is_file_safe, path_is_under
 
 
 def test_path_is_under_missing_files() -> None:
@@ -56,3 +60,18 @@ def test_match_ambiguous_without_size(tmp_path: Path) -> None:
     result = match_missing_path(str(tmp_path / "old" / "song.mp3"), index)
     assert result.status == "ambiguous"
     assert len(result.candidates) == 2
+
+
+def test_match_skips_locked_drive(monkeypatch: pytest.MonkeyPatch) -> None:
+    def raise_locked(self: Path) -> bool:
+        if str(self).startswith("E:"):
+            raise OSError(None, "This drive is locked by BitLocker Drive Encryption", str(self), -2144272384)
+        return Path.is_file(self)
+
+    monkeypatch.setattr(Path, "is_file", raise_locked)
+    index = FileIndex()
+    locked = r"E:\Music\metronome_02.mp3"
+    assert not path_is_file_safe(locked)
+    result = match_missing_path(locked, index)
+    assert result.status == "missing"
+    assert result.resolved is None
