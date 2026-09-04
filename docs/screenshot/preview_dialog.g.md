@@ -56,7 +56,12 @@ class ScreenshotPreviewWindow(QMainWindow):
         footer.setSpacing(8)
 
         buttons_host = QWidget(central)
-        self._buttons = FlowLayout(buttons_host, h_spacing=6, v_spacing=6)
+        self._buttons = FlowLayout(
+            buttons_host,
+            h_spacing=6,
+            v_spacing=6,
+            alignment=Qt.AlignmentFlag.AlignRight,
+        )
         self._action_buttons: list[QPushButton] = []
         self._add_footer_button(
             make_emoji_push_button(COPY_BUTTON_LABEL, COPY_BUTTON_EMOJI),
@@ -311,7 +316,12 @@ def __init__(self, parent: QWidget | None = None) -> None:
         footer.setSpacing(8)
 
         buttons_host = QWidget(central)
-        self._buttons = FlowLayout(buttons_host, h_spacing=6, v_spacing=6)
+        self._buttons = FlowLayout(
+            buttons_host,
+            h_spacing=6,
+            v_spacing=6,
+            alignment=Qt.AlignmentFlag.AlignRight,
+        )
         self._action_buttons: list[QPushButton] = []
         self._add_footer_button(
             make_emoji_push_button(COPY_BUTTON_LABEL, COPY_BUTTON_EMOJI),

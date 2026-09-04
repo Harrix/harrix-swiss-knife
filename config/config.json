@@ -243,6 +243,58 @@
   "path_memories": "D:/Dropbox/Notes/Notes-Diaries/Memories",
   "path_notes": "D:/Dropbox/Notes",
   "path_photos": "D:/Dropbox/Camera_Uploads_2",
+  "musicbee": {
+    "library_dir": "D:/Dropbox/Programs/MusicBee/Library",
+    "music_root": "C:/Users/sergi/OneDrive/Music",
+    "stream_root": "C:/Users/sergi/OneDrive/Music/Stream",
+    "backup_dir": "D:/Dropbox/Backups",
+    "audio_extensions": [
+      ".mp3",
+      ".flac",
+      ".m4a",
+      ".ogg",
+      ".opus",
+      ".wav",
+      ".wma"
+    ],
+    "stream_playlist_prefix": "Stream - ",
+    "rules": [
+      {
+        "type": "restrict_folder",
+        "playlists": "Stream - *",
+        "folder": "{stream_root}"
+      },
+      {
+        "type": "ensure_subset",
+        "source": "Stream - Epic (real)",
+        "target": "Stream - Epic"
+      },
+      {
+        "type": "ensure_subset",
+        "source": "Stream - OST (real)",
+        "target": "Stream - OST"
+      },
+      {
+        "type": "ensure_subset",
+        "source": "Stream - Power metal",
+        "target": "Stream - Heavy"
+      },
+      {
+        "type": "union",
+        "target": "Stream - Mad (both)",
+        "sources": [
+          "Stream - Mad",
+          "Stream - Mad (electro)"
+        ]
+      },
+      {
+        "type": "rebuild_remainder",
+        "playlist": "Stream - Temp",
+        "from_folder": "{stream_root}",
+        "exclude_playlists": "Stream - *"
+      }
+    ]
+  },
   "path_quotes": "D:/Dropbox/Notes/Notes-Lists/Quotes",
   "path_site_repo": "D:/GitHub/harrix.dev",
   "path_totalcmd_ini": "C:/TCTitan36/Wincmd.ini",

@@ -3,6 +3,7 @@
 from harrix_swiss_knife.actions.files.all_files_to_parent_folder import OnAllFilesToParentFolder
 from harrix_swiss_knife.actions.files.check_featured_image import OnCheckFeaturedImage
 from harrix_swiss_knife.actions.files.check_featured_image_in_folders import OnCheckFeaturedImageInFolders
+from harrix_swiss_knife.actions.files.check_musicbee_playlists import OnCheckMusicBeePlaylists
 from harrix_swiss_knife.actions.files.combine_for_ai import OnCombineForAI
 from harrix_swiss_knife.actions.files.convert_path_to_windows import OnConvertPathToWindows
 from harrix_swiss_knife.actions.files.discard_git_changes import OnDiscardGitChanges
@@ -28,6 +29,7 @@ __all__ = [
     "OnAllFilesToParentFolder",
     "OnCheckFeaturedImage",
     "OnCheckFeaturedImageInFolders",
+    "OnCheckMusicBeePlaylists",
     "OnCombineForAI",
     "OnConvertPathToWindows",
     "OnDiscardGitChanges",

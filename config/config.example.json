@@ -236,6 +236,58 @@
   "path_last_note_folder": "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes",
   "path_notes": "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes",
   "path_photos": "<YOUR_PHOTOS_FOLDER>",
+  "musicbee": {
+    "library_dir": "D:/Dropbox/Programs/MusicBee/Library",
+    "music_root": "C:/Users/sergi/OneDrive/Music",
+    "stream_root": "C:/Users/sergi/OneDrive/Music/Stream",
+    "backup_dir": "D:/Dropbox/Backups",
+    "audio_extensions": [
+      ".mp3",
+      ".flac",
+      ".m4a",
+      ".ogg",
+      ".opus",
+      ".wav",
+      ".wma"
+    ],
+    "stream_playlist_prefix": "Stream - ",
+    "rules": [
+      {
+        "type": "restrict_folder",
+        "playlists": "Stream - *",
+        "folder": "{stream_root}"
+      },
+      {
+        "type": "ensure_subset",
+        "source": "Stream - Epic (real)",
+        "target": "Stream - Epic"
+      },
+      {
+        "type": "ensure_subset",
+        "source": "Stream - OST (real)",
+        "target": "Stream - OST"
+      },
+      {
+        "type": "ensure_subset",
+        "source": "Stream - Power metal",
+        "target": "Stream - Heavy"
+      },
+      {
+        "type": "union",
+        "target": "Stream - Mad (both)",
+        "sources": [
+          "Stream - Mad",
+          "Stream - Mad (electro)"
+        ]
+      },
+      {
+        "type": "rebuild_remainder",
+        "playlist": "Stream - Temp",
+        "from_folder": "{stream_root}",
+        "exclude_playlists": "Stream - *"
+      }
+    ]
+  },
   "path_quotes": "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes-Lists",
   "path_totalcmd_ini": "<YOUR_TOTALCMD_WINCMD_INI>",
   "path_vector_icons": "<YOUR_GITHUB_FOLDER>/Harrix-Vector-Icons",

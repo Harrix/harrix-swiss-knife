@@ -18,6 +18,7 @@ class FlowLayout(QLayout):
         margin: int = -1,
         h_spacing: int = -1,
         v_spacing: int = -1,
+        alignment: Qt.AlignmentFlag = Qt.AlignmentFlag.AlignLeft,
     ) -> None:
         """Create an empty flow layout.
 
@@ -27,12 +28,15 @@ class FlowLayout(QLayout):
         - `margin` (`int`): Uniform contents margin; `-1` keeps the style default.
         - `h_spacing` (`int`): Horizontal gap; `-1` uses style spacing.
         - `v_spacing` (`int`): Vertical gap; `-1` uses style spacing.
+        - `alignment` (`Qt.AlignmentFlag`): Horizontal alignment of each row
+          (`AlignLeft`, `AlignRight`, or `AlignHCenter`).
 
         """
         super().__init__(parent)
         self._items: list[QLayoutItem] = []
         self._h_spacing = h_spacing
         self._v_spacing = v_spacing
+        self._alignment = alignment
         if margin >= 0:
             self.setContentsMargins(margin, margin, margin, margin)
 
@@ -86,58 +90,81 @@ class FlowLayout(QLayout):
             return self._items.pop(index)
         return None
 
+    def _build_rows(self, available_width: int, space_x: int) -> list[list[tuple[QLayoutItem, QSize]]]:
+        rows: list[list[tuple[QLayoutItem, QSize]]] = []
+        current: list[tuple[QLayoutItem, QSize]] = []
+        x = 0
+        for item in self._items:
+            size = item.sizeHint()
+            space_x_eff = self._item_spacing(item, horizontal=True, fallback=space_x)
+            needed = size.width() if not current else size.width() + space_x_eff
+            if current and x + needed > available_width:
+                rows.append(current)
+                current = []
+                x = 0
+                needed = size.width()
+            current.append((item, size))
+            x += needed
+        if current:
+            rows.append(current)
+        return rows
+
     def _do_layout(self, rect: QRect, *, test_only: bool) -> int:
         left, top, right, bottom = self._margins()
         effective = rect.adjusted(left, top, -right, -bottom)
-        x = effective.x()
-        y = effective.y()
-        line_height = 0
         space_x = self._horizontal_spacing()
         space_y = self._vertical_spacing()
+        rows = self._build_rows(effective.width(), space_x)
 
-        for item in self._items:
-            widget = item.widget()
-            space_x_eff = space_x
-            space_y_eff = space_y
-            if widget is not None:
-                style = widget.style()
-                space_x_eff = style.layoutSpacing(
-                    QSizePolicy.ControlType.PushButton,
-                    QSizePolicy.ControlType.PushButton,
-                    Qt.Orientation.Horizontal,
-                )
-                space_y_eff = style.layoutSpacing(
-                    QSizePolicy.ControlType.PushButton,
-                    QSizePolicy.ControlType.PushButton,
-                    Qt.Orientation.Vertical,
-                )
-                if self._h_spacing >= 0:
-                    space_x_eff = self._h_spacing
-                if self._v_spacing >= 0:
-                    space_y_eff = self._v_spacing
+        y = effective.y()
+        for row_index, row in enumerate(rows):
+            row_width = sum(size.width() for _item, size in row)
+            if len(row) > 1:
+                row_width += space_x * (len(row) - 1)
+            x = self._row_start_x(effective, row_width)
+            line_height = 0
+            for item, size in row:
+                if not test_only:
+                    item.setGeometry(QRect(QPoint(x, y), size))
+                x += size.width() + space_x
+                line_height = max(line_height, size.height())
+            y += line_height
+            if row_index + 1 < len(rows):
+                y += space_y
 
-            next_x = x + item.sizeHint().width() + space_x_eff
-            if next_x - space_x_eff > effective.right() and line_height > 0:
-                x = effective.x()
-                y = y + line_height + space_y_eff
-                next_x = x + item.sizeHint().width() + space_x_eff
-                line_height = 0
-
-            if not test_only:
-                item.setGeometry(QRect(QPoint(x, y), item.sizeHint()))
-
-            x = next_x
-            line_height = max(line_height, item.sizeHint().height())
-
-        return y + line_height - rect.y() + bottom
+        if not rows:
+            return top + bottom
+        return y - rect.y() + bottom
 
     def _horizontal_spacing(self) -> int:
         if self._h_spacing >= 0:
             return self._h_spacing
         return self._smart_spacing(QStyle.PixelMetric.PM_LayoutHorizontalSpacing)
 
+    def _item_spacing(self, item: QLayoutItem, *, horizontal: bool, fallback: int) -> int:
+        if horizontal and self._h_spacing >= 0:
+            return self._h_spacing
+        if not horizontal and self._v_spacing >= 0:
+            return self._v_spacing
+        widget = item.widget()
+        if widget is None:
+            return fallback
+        orientation = Qt.Orientation.Horizontal if horizontal else Qt.Orientation.Vertical
+        return widget.style().layoutSpacing(
+            QSizePolicy.ControlType.PushButton,
+            QSizePolicy.ControlType.PushButton,
+            orientation,
+        )
+
     def _margins(self) -> tuple[int, int, int, int]:
         return cast("tuple[int, int, int, int]", self.getContentsMargins())
+
+    def _row_start_x(self, effective: QRect, row_width: int) -> int:
+        if self._alignment & Qt.AlignmentFlag.AlignRight:
+            return effective.x() + max(0, effective.width() - row_width)
+        if self._alignment & Qt.AlignmentFlag.AlignHCenter:
+            return effective.x() + max(0, (effective.width() - row_width) // 2)
+        return effective.x()
 
     def _smart_spacing(self, metric: QStyle.PixelMetric) -> int:
         parent = self.parent()

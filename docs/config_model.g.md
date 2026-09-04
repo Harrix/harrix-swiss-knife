@@ -18,6 +18,7 @@ lang: en
 - [🏛️ Class `FoodCalorieThresholds`](#%EF%B8%8F-class-foodcaloriethresholds)
 - [🏛️ Class `GeminiSettings`](#%EF%B8%8F-class-geminisettings)
 - [🏛️ Class `HotkeyEntry`](#%EF%B8%8F-class-hotkeyentry)
+- [🏛️ Class `MusicBeeConfig`](#%EF%B8%8F-class-musicbeeconfig)
 - [🏛️ Class `OpenAISettings`](#%EF%B8%8F-class-openaisettings)
 - [🏛️ Class `OpenRouterSettings`](#%EF%B8%8F-class-openroutersettings)
 - [🏛️ Class `PersonalDataSettings`](#%EF%B8%8F-class-personaldatasettings)
@@ -147,6 +148,7 @@ class AppConfig(TypedDict, total=False):
     data_for_hsk_setup_done: NotRequired[bool]
     android_build_variant: str
     path_photos: str
+    musicbee: NotRequired[MusicBeeConfig]
     path_vector_icons: NotRequired[str]
     path_vector_icons_ai: NotRequired[str]
     path_vector_icons_source_app: NotRequired[str]
@@ -238,6 +240,31 @@ class HotkeyEntry(TypedDict):
     action: str
     hotkeys: NotRequired[list[str]]
     hotkey: NotRequired[str]
+```
+
+</details>
+
+## 🏛️ Class `MusicBeeConfig`
+
+```python
+class MusicBeeConfig(TypedDict, total=False)
+```
+
+MusicBee playlist check paths and Stream rules.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class MusicBeeConfig(TypedDict, total=False):
+
+    library_dir: str
+    music_root: str
+    stream_root: str
+    backup_dir: str
+    audio_extensions: list[str]
+    stream_playlist_prefix: str
+    rules: list[dict[str, Any]]
 ```
 
 </details>

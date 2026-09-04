@@ -99,6 +99,7 @@ _Figure 1: Screenshot_
   - 🌐 Screenshot region (OCR + translate)
   - 📷 Screenshot region (clipboard)
 - **File operations**
+  - 🎵 Check MusicBee playlists
   - ✅ Check featured_image in all folders
   - ✅ Check featured_image in …
   - 🤖 ★ Combine files for AI…

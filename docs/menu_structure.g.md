@@ -99,6 +99,7 @@ def get_menu_structure() -> list[Any]:
                 OnLockDisks,
                 OnCheckFeaturedImage,
                 OnCheckFeaturedImageInFolders,
+                OnCheckMusicBeePlaylists,
                 OnExtractZipArchives,
                 OnCombineForAI,
                 OnConvertPathToWindows,
