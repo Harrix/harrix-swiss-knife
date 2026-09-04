@@ -128,12 +128,11 @@ def _skip_to_next_track(data: bytes, offset: int) -> int:
     position += 1
     while tag and tag[0] != 0:
         if tag[0] == _CUE_TAG:
-            position += _CUE_SIZE_BYTES
             cue = data[position : position + _CUE_SIZE_BYTES]
             position += _CUE_SIZE_BYTES
             if len(cue) < _CUE_SIZE_BYTES:
                 break
-            position += struct.unpack("<h", cue)[0] * _CUE_ENTRY_SIZE
+            position += struct.unpack("<H", cue)[0] * _CUE_ENTRY_SIZE
             break
         _text, position = _read_pascal(data, position)
         tag = data[position : position + 1]
