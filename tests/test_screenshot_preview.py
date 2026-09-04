@@ -7,9 +7,9 @@ from datetime import date
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import QPointF, Qt
+from PySide6.QtCore import QPointF, QStandardPaths, Qt
 from PySide6.QtGui import QImage, QKeyEvent
-from PySide6.QtWidgets import QApplication, QTabWidget
+from PySide6.QtWidgets import QApplication, QPushButton, QTabWidget
 
 from harrix_swiss_knife.apps.common.qt_main_window import compute_app_window_geometry
 from harrix_swiss_knife.screenshot import preview_dialog as preview_dialog_module
@@ -118,6 +118,36 @@ def test_preview_window_saves_dated_png_and_updates_title(
     assert len(files) == 1
     assert files[0].stem.endswith("_01")
     assert window.windowTitle() == f"Screenshot — {files[0].name}"
+    window.close()
+
+
+def test_preview_window_saves_dated_png_to_desktop(
+    qapp: QApplication,  # noqa: ARG001
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    desktop = tmp_path / "Desktop"
+    desktop.mkdir()
+    image = QImage(8, 8, QImage.Format.Format_RGB32)
+    image.fill(Qt.GlobalColor.green)
+    monkeypatch.setattr(
+        QStandardPaths,
+        "writableLocation",
+        lambda _location: str(desktop),
+    )
+    window = show_screenshot_preview(image)
+    desktop_buttons = [button for button in window.findChildren(QPushButton) if button.text() == "Save to desktop"]
+    assert len(desktop_buttons) == 1
+    window._save_to_desktop()
+    files = sorted(desktop.glob("*.png"))
+    assert len(files) == 1
+    assert files[0].stem.endswith("_01")
+    assert window.windowTitle() == f"Screenshot — {files[0].name}"
+    assert str(files[0]) in window._status.text()
+    window._save_to_desktop()
+    files = sorted(desktop.glob("*.png"))
+    assert len(files) == 2
+    assert {path.stem[-3:] for path in files} == {"_01", "_02"}
     window.close()
 
 

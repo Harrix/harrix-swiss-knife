@@ -7,7 +7,7 @@ from tempfile import NamedTemporaryFile
 from typing import TYPE_CHECKING
 
 import harrix_pylib as h
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import QStandardPaths, Qt, QTimer
 from PySide6.QtGui import QCloseEvent, QKeyEvent, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QApplication,
@@ -36,6 +36,8 @@ if TYPE_CHECKING:
     from PySide6.QtGui import QImage
 
 _SAVE_BUTTON_LABEL = "Save as…"
+_SAVE_DESKTOP_BUTTON_EMOJI = "🖥️"
+_SAVE_DESKTOP_BUTTON_LABEL = "Save to desktop"
 _MARKDOWN_AI_EMOJI = "🤖"
 _MARKDOWN_OCR_EMOJI = "🔤"
 _VK_S = 0x53
@@ -77,6 +79,11 @@ class ScreenshotPreviewWindow(QMainWindow):
         copy_button = make_emoji_push_button(COPY_BUTTON_LABEL, COPY_BUTTON_EMOJI)
         copy_button.clicked.connect(self._copy_to_clipboard)
         button_layout.addWidget(copy_button)
+
+        desktop_button = make_emoji_push_button(_SAVE_DESKTOP_BUTTON_LABEL, _SAVE_DESKTOP_BUTTON_EMOJI)
+        desktop_button.setToolTip("Save as YYYY-MM-DD_NN.png on the Desktop")
+        desktop_button.clicked.connect(self._save_to_desktop)
+        button_layout.addWidget(desktop_button)
 
         save_button = make_emoji_push_button(_SAVE_BUTTON_LABEL, SAVE_BUTTON_EMOJI)
         save_button.clicked.connect(self._save_as)
@@ -214,6 +221,20 @@ class ScreenshotPreviewWindow(QMainWindow):
             self._status.setText(f"Saved: {path}")
             self._update_window_title()
 
+    def _save_dated_png(self, folder: Path) -> None:
+        tab = self._current_tab()
+        if tab is None:
+            return
+        path = next_dated_image_path(folder)
+        if not tab.image.save(str(path)):
+            self._status.setText(f"Could not save to {path}")
+            return
+        tab.saved_name = path.name
+        index = self._tabs.currentIndex()
+        self._tabs.setTabText(index, path.name)
+        self._status.setText(f"Saved: {path}")
+        self._update_window_title()
+
     def _save_temp_png(self) -> str | None:
         tab = self._current_tab()
         if tab is None:
@@ -224,20 +245,15 @@ class ScreenshotPreviewWindow(QMainWindow):
             return str(temp_path)
         return None
 
+    def _save_to_desktop(self) -> None:
+        desktop = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DesktopLocation)
+        if not desktop:
+            self._status.setText("Desktop folder not found")
+            return
+        self._save_dated_png(Path(desktop))
+
     def _save_to_images(self) -> None:
-        tab = self._current_tab()
-        if tab is None:
-            return
-        folder = images_folder(h.dev.get_project_root())
-        path = next_dated_image_path(folder)
-        if not tab.image.save(str(path)):
-            self._status.setText(f"Could not save to {path}")
-            return
-        tab.saved_name = path.name
-        index = self._tabs.currentIndex()
-        self._tabs.setTabText(index, path.name)
-        self._status.setText(f"Saved: {path.name}")
-        self._update_window_title()
+        self._save_dated_png(images_folder(h.dev.get_project_root()))
 
     def _tab_label(self, saved_name: str | None, number: int) -> str:
         return saved_name or f"Screenshot {number}"
