@@ -6,6 +6,7 @@ Provides `AppWindowMixin` with methods that were previously duplicated in
 - `_setup_window_size_and_position`
 - `_show_placed_window`
 - `_place_menu_bar_on_tab_row`
+- `_style_window_menu_bar`
 - `_copy_table_selection_to_clipboard`
 - `_validate_database_connection`
 - `_handle_ctrl_c_for_tables`
@@ -316,23 +317,8 @@ class AppWindowMixin:
             return
 
         corner_bar = QMenuBar()
-        corner_bar.setNativeMenuBar(False)
         corner_bar.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Preferred)
-        corner_bar.setStyleSheet(
-            """
-            QMenuBar {
-                spacing: 0px;
-                padding: 0px 2px;
-                font-size: 9pt;
-                font-weight: 700;
-            }
-            QMenuBar::item {
-                padding: 2px 8px;
-                margin: 0px;
-                background: transparent;
-            }
-            """,
-        )
+        style_app_menu_bar(corner_bar)
 
         for action in list(old_bar.actions()):
             old_bar.removeAction(action)
@@ -471,6 +457,12 @@ class AppWindowMixin:
         widget = cast("QWidget", self)
         widget.show()
         apply_app_window_size_and_position(widget, standard_width=standard_width)
+
+    def _style_window_menu_bar(self) -> None:
+        """Apply the compact bold menu-bar look used by the other apps."""
+        menu_bar = resolve_window_menu_bar(cast("QWidget", self))
+        if menu_bar is not None:
+            style_app_menu_bar(menu_bar)
 
     def _validate_database_connection(self) -> bool:
         """Validate that database connection is available and open.
@@ -808,6 +800,18 @@ def resolve_window_menu_bar(window: QWidget) -> QMenuBar | None:
     return None
 
 
+def style_app_menu_bar(menu_bar: QMenuBar) -> None:
+    """Apply the compact bold menu-bar look shared by all apps.
+
+    Args:
+
+    - `menu_bar` (`QMenuBar`): Menu bar to style.
+
+    """
+    menu_bar.setNativeMenuBar(False)
+    menu_bar.setStyleSheet(_APP_MENU_BAR_STYLESHEET)
+
+
 def window_frame_escapes_work_area(frame: QRect, available: QRect) -> bool:
     """Return whether the title bar has moved above or left of the work area.
 
@@ -961,6 +965,19 @@ def _widget_work_area(widget: QWidget) -> QRect:
     return screen.availableGeometry()
 
 
+_APP_MENU_BAR_STYLESHEET = """
+QMenuBar {
+    spacing: 0px;
+    padding: 0px 2px;
+    font-size: 9pt;
+    font-weight: 700;
+}
+QMenuBar::item {
+    padding: 2px 8px;
+    margin: 0px;
+    background: transparent;
+}
+"""
 _MAXIMIZE_FILTER_ATTR = "_hsk_maximize_on_first_show_filter"
 _RESTORE_FILTER_ATTR = "_hsk_restore_from_maximize_filter"
 

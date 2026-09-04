@@ -23,6 +23,7 @@ lang: en
 - [🔧 Function `compute_restore_window_geometry`](#-function-compute_restore_window_geometry)
 - [🔧 Function `inset_restore_frame_rect`](#-function-inset_restore_frame_rect)
 - [🔧 Function `resolve_window_menu_bar`](#-function-resolve_window_menu_bar)
+- [🔧 Function `style_app_menu_bar`](#-function-style_app_menu_bar)
 - [🔧 Function `window_frame_escapes_work_area`](#-function-window_frame_escapes_work_area)
 - [🔧 Function `window_frame_margins`](#-function-window_frame_margins)
 
@@ -300,23 +301,8 @@ class AppWindowMixin:
             return
 
         corner_bar = QMenuBar()
-        corner_bar.setNativeMenuBar(False)
         corner_bar.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Preferred)
-        corner_bar.setStyleSheet(
-            """
-            QMenuBar {
-                spacing: 0px;
-                padding: 0px 2px;
-                font-size: 9pt;
-                font-weight: 700;
-            }
-            QMenuBar::item {
-                padding: 2px 8px;
-                margin: 0px;
-                background: transparent;
-            }
-            """,
-        )
+        style_app_menu_bar(corner_bar)
 
         for action in list(old_bar.actions()):
             old_bar.removeAction(action)
@@ -455,6 +441,12 @@ class AppWindowMixin:
         widget = cast("QWidget", self)
         widget.show()
         apply_app_window_size_and_position(widget, standard_width=standard_width)
+
+    def _style_window_menu_bar(self) -> None:
+        """Apply the compact bold menu-bar look used by the other apps."""
+        menu_bar = resolve_window_menu_bar(cast("QWidget", self))
+        if menu_bar is not None:
+            style_app_menu_bar(menu_bar)
 
     def _validate_database_connection(self) -> bool:
         """Validate that database connection is available and open.
@@ -940,6 +932,29 @@ def resolve_window_menu_bar(window: QWidget) -> QMenuBar | None:
         if isinstance(resolved, QMenuBar):
             return resolved
     return None
+```
+
+</details>
+
+## 🔧 Function `style_app_menu_bar`
+
+```python
+def style_app_menu_bar(menu_bar: QMenuBar) -> None
+```
+
+Apply the compact bold menu-bar look shared by all apps.
+
+Args:
+
+- `menu_bar` (`QMenuBar`): Menu bar to style.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def style_app_menu_bar(menu_bar: QMenuBar) -> None:
+    menu_bar.setNativeMenuBar(False)
+    menu_bar.setStyleSheet(_APP_MENU_BAR_STYLESHEET)
 ```
 
 </details>

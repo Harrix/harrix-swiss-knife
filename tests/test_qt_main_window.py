@@ -17,6 +17,7 @@ from harrix_swiss_knife.apps.common.qt_main_window import (
     compute_restore_window_geometry,
     inset_restore_frame_rect,
     resolve_window_menu_bar,
+    style_app_menu_bar,
     window_frame_escapes_work_area,
     window_frame_margins,
 )
@@ -198,3 +199,11 @@ def test_resolve_window_menu_bar_when_attribute_shadows_method(qapp: QApplicatio
     apply_leading_emoji_icons(resolved)
     assert action.text() == "Exit"
     assert not action.icon().isNull()
+
+
+def test_style_app_menu_bar_uses_bold_weight(qapp: QApplication) -> None:
+    """App menus share the compact bold QMenuBar stylesheet."""
+    assert qapp is not None
+    bar = QMenuBar()
+    style_app_menu_bar(bar)
+    assert "font-weight: 700" in bar.styleSheet()

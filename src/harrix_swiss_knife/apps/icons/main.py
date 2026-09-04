@@ -739,6 +739,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.actionExit = file_menu.addAction("E&xit")
         help_menu = self.menuBar().addMenu("&Help")
         self.actionAbout = help_menu.addAction("&About")
+        self._style_window_menu_bar()
         self._connect_exit_about_actions()
         self._apply_exit_about_menu_emojis()
         self._rebuild_folder_menus()
