@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
-from PySide6.QtCore import QObject, QRect
+from PySide6.QtCore import QObject, QRect, QTimer
 from PySide6.QtWidgets import QMessageBox
 
 from harrix_swiss_knife.apps.common.audio_compress import is_ffmpeg_available
@@ -16,6 +16,10 @@ from harrix_swiss_knife.screen_record.preview_dialog import show_recording_previ
 from harrix_swiss_knife.screen_record.record_frame import RecordFrameWindow
 from harrix_swiss_knife.screenshot.capture import select_region
 from harrix_swiss_knife.screenshot.dated_image_path import next_dated_image_path
+from harrix_swiss_knife.screenshot.window_visibility import (
+    PREVIEW_FOREGROUND_DELAYS_MS,
+    bring_window_to_foreground,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -42,6 +46,9 @@ class _RecordSession(QObject):
         self._frame.stop_requested.connect(self._stop)
         self._frame.abort_requested.connect(self._abort)
         self._frame.destroyed.connect(self._on_frame_destroyed)
+        self._watch_timer = QTimer(self)
+        self._watch_timer.setInterval(500)
+        self._watch_timer.timeout.connect(self._watch_ffmpeg)
 
     @property
     def is_active(self) -> bool:
@@ -57,6 +64,7 @@ class _RecordSession(QObject):
         self._frame.activateWindow()
 
     def _abort(self) -> None:
+        self._watch_timer.stop()
         if self._frame is not None:
             self._frame.cancel_countdown()
         if self._recorder.is_running:
@@ -64,6 +72,7 @@ class _RecordSession(QObject):
         self._close_frame()
 
     def _close_frame(self) -> None:
+        self._watch_timer.stop()
         frame = self._frame
         self._frame = None
         if _session_holder["session"] is self:
@@ -72,11 +81,37 @@ class _RecordSession(QObject):
             frame.close()
             frame.deleteLater()
 
+    def _finish_with_path(self, path: Path) -> None:
+        self._close_frame()
+        try:
+            window = show_recording_preview(path)
+            bring_window_to_foreground(window, delays_ms=PREVIEW_FOREGROUND_DELAYS_MS)
+        except Exception as exc:
+            QMessageBox.warning(
+                None,
+                "Screen record",
+                f"Recording saved, but preview failed to open:\n{path}\n\n{exc}",
+            )
+        if self._on_finished is not None:
+            self._on_finished(path)
+
     def _on_frame_destroyed(self) -> None:
+        self._watch_timer.stop()
         if _session_holder["session"] is self:
             _session_holder["session"] = None
         if self._recorder.is_running:
             self._recorder.abort()
+
+    def _show_error(self, message: str) -> None:
+        frame = self._frame
+        text = message.strip() or "Unknown recording error"
+        if frame is not None:
+            frame.set_status("Recording failed")
+            frame.set_recording(active=False)
+            frame.cancel_countdown()
+            QMessageBox.warning(frame, "Screen record", text)
+            return
+        QMessageBox.warning(None, "Screen record", text)
 
     def _start(self, audio: object) -> None:
         if self._frame is None:
@@ -84,37 +119,47 @@ class _RecordSession(QObject):
         mode = cast("ScreenRecordAudio", audio) if audio in {"none", "mic", "system", "mic_and_system"} else "none"
         region = logical_rect_to_gdigrab(self._frame.region)
         if region is None:
-            self._frame.set_status("Invalid region")
-            self._frame.cancel_countdown()
+            self._show_error("Invalid recording region")
             return
         output = next_dated_image_path(videos_folder(get_project_root()), extension=".mp4")
+        # Starting can block briefly while verifying ffmpeg stays alive.
+        self._frame.set_status("Starting…")
         result = self._recorder.start(region, output, audio=mode)
         if not result.ok:
-            self._frame.set_status(result.message)
-            self._frame.cancel_countdown()
-            QMessageBox.warning(self._frame, "Screen record", result.message)
+            self._show_error(result.message)
             return
         self._frame.set_recording(active=True)
         if result.audio_warning:
-            self._frame.set_status(f"Recording (audio: {result.audio_warning})")
+            self._frame.set_status(result.audio_warning)
+        self._watch_timer.start()
 
     def _stop(self) -> None:
+        self._watch_timer.stop()
         if self._frame is None:
             return
-        if not self._recorder.is_running:
-            self._close_frame()
-            return
+        # ffmpeg may have already exited; still try to recover a saved file.
         ok, message = self._recorder.stop()
-        self._frame.set_recording(active=False)
         if ok:
-            path = Path(message)
-            self._close_frame()
-            show_recording_preview(path)
-            if self._on_finished is not None:
-                self._on_finished(path)
+            self._finish_with_path(Path(message))
             return
-        QMessageBox.warning(self._frame, "Screen record", message)
-        self._frame.cancel_countdown()
+        output = self._recorder.output_path
+        if output is not None and output.is_file() and output.stat().st_size > 0:
+            self._finish_with_path(output)
+            return
+        self._show_error(message)
+
+    def _watch_ffmpeg(self) -> None:
+        if self._frame is None:
+            self._watch_timer.stop()
+            return
+        if self._recorder.is_running:
+            return
+        self._watch_timer.stop()
+        output = self._recorder.output_path
+        if output is not None and output.is_file() and output.stat().st_size > 0:
+            self._finish_with_path(output)
+            return
+        self._show_error(self._recorder.last_error_text() or "ffmpeg stopped unexpectedly")
 
 
 def record_region(*, on_finished: Callable[[Path], None] | None = None) -> bool:

@@ -16,6 +16,7 @@ lang: en
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `abort`](#%EF%B8%8F-method-abort)
   - [⚙️ Method `is_running (property)`](#%EF%B8%8F-method-is_running-property)
+  - [⚙️ Method `last_error_text`](#%EF%B8%8F-method-last_error_text)
   - [⚙️ Method `output_path (property)`](#%EF%B8%8F-method-output_path-property)
   - [⚙️ Method `start`](#%EF%B8%8F-method-start)
   - [⚙️ Method `stop`](#%EF%B8%8F-method-stop)
@@ -84,6 +85,10 @@ class ScreenRecorder:
         process = self._process
         return process is not None and process.poll() is None
 
+    def last_error_text(self) -> str:
+        """Return recent ffmpeg stderr lines (best-effort)."""
+        return "\n".join(self._stderr_tail[-30:]).strip()
+
     @property
     def output_path(self) -> Path | None:
         """Destination MP4 path for the current/last session."""
@@ -109,95 +114,70 @@ class ScreenRecorder:
         if output.exists():
             output.unlink()
 
-        args = [
-            str(ffmpeg),
-            "-y",
-            "-f",
-            "gdigrab",
-            "-framerate",
-            str(max(1, framerate)),
-            "-offset_x",
-            str(region.offset_x),
-            "-offset_y",
-            str(region.offset_y),
-            "-video_size",
-            f"{region.width}x{region.height}",
-            "-i",
-            "desktop",
-        ]
-        audio_inputs = self._audio_input_args(audio)
         audio_warning = ""
-        if audio != "none" and not audio_inputs.args:
-            audio_warning = audio_inputs.warning or "Audio unavailable; recording video only"
-        else:
-            args.extend(audio_inputs.args)
-            audio_warning = audio_inputs.warning
-
-        args.extend(
-            [
-                "-c:v",
-                "libx264",
-                "-preset",
-                "ultrafast",
-                "-pix_fmt",
-                "yuv420p",
-            ]
-        )
-        if audio_inputs.map_args:
-            args.extend(audio_inputs.map_args)
-        elif audio_inputs.args:
-            args.extend(["-c:a", "aac", "-b:a", "128k"])
-        args.append(str(output))
-
-        try:
-            process = subprocess.Popen(
-                args,
-                stdin=subprocess.PIPE,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.PIPE,
-                **hidden_subprocess_kwargs(),
-            )
-        except OSError as exc:
-            return RecorderStartResult(ok=False, message=f"Could not start ffmpeg: {exc}")
-
-        self._process = process
-        self._output = output
-        self._stderr_tail = []
-        self._stderr_thread = threading.Thread(
-            target=self._read_stderr,
-            args=(process, on_stderr_line),
-            daemon=True,
-        )
-        self._stderr_thread.start()
+        result = self._spawn(ffmpeg, region, output, audio=audio, framerate=framerate, on_stderr_line=on_stderr_line)
+        if not result.ok:
+            return result
+        audio_warning = result.audio_warning
+        # Give ffmpeg a moment; wasapi/dshow often fails immediately.
+        if not self._wait_alive(0.6):
+            dead_message = self.last_error_text() or "ffmpeg exited immediately"
+            self.abort()
+            if audio != "none":
+                retry = self._spawn(
+                    ffmpeg,
+                    region,
+                    output,
+                    audio="none",
+                    framerate=framerate,
+                    on_stderr_line=on_stderr_line,
+                )
+                if retry.ok and self._wait_alive(0.6):
+                    return RecorderStartResult(
+                        ok=True,
+                        audio_warning=f"Audio failed ({dead_message.splitlines()[-1][:120]}); recording video only",
+                    )
+                self.abort()
+            return RecorderStartResult(ok=False, message=dead_message)
         return RecorderStartResult(ok=True, audio_warning=audio_warning)
 
-    def stop(self, *, timeout: float = 15.0) -> tuple[bool, str]:
+    def stop(self, *, timeout: float = 20.0) -> tuple[bool, str]:
         """Ask ffmpeg to finish (`q`) and wait. Return `(ok, message)`."""
         process = self._process
+        output = self._output
         if process is None:
-            return False, "No active recording"
+            if output is not None and output.is_file() and output.stat().st_size > 0:
+                return True, str(output)
+            return False, self.last_error_text() or "No active recording"
         try:
             if process.poll() is None and process.stdin is not None:
-                process.stdin.write(b"q")
+                process.stdin.write(b"q\n")
                 process.stdin.flush()
+                with contextlib.suppress(OSError):
+                    process.stdin.close()
         except (BrokenPipeError, OSError):
             pass
         try:
             process.wait(timeout=timeout)
         except subprocess.TimeoutExpired:
-            process.kill()
-            process.wait(timeout=5)
+            process.terminate()
+            with contextlib.suppress(subprocess.TimeoutExpired):
+                process.wait(timeout=3)
+            if process.poll() is None:
+                process.kill()
+                process.wait(timeout=5)
             self._clear_process()
+            if output is not None and output.is_file() and output.stat().st_size > 0:
+                return True, str(output)
             return False, "ffmpeg did not exit in time; process killed"
         code = process.returncode
-        tail = "\n".join(self._stderr_tail[-20:])
+        tail = self.last_error_text()
         self._clear_process()
-        output = self._output
-        if code not in (0, None) and (output is None or not output.is_file() or output.stat().st_size == 0):
+        if output is not None and output.is_file() and output.stat().st_size > 0:
+            return True, str(output)
+        if code not in (0, None):
             return False, tail or f"ffmpeg exited with code {code}"
-        if output is None or not output.is_file():
-            return False, "Recording file was not created"
-        return True, str(output)
+        return False, tail or "Recording file was not created"
 
     def _audio_input_args(self, audio: ScreenRecordAudio) -> _AudioArgs:
         if audio == "none":
@@ -263,6 +243,90 @@ class ScreenRecorder:
                 self._stderr_tail = self._stderr_tail[-_STDERR_TAIL_KEEP:]
             if on_line is not None:
                 on_line(line)
+
+    def _spawn(
+        self,
+        ffmpeg: Path,
+        region: GdigrabRegion,
+        output: Path,
+        *,
+        audio: ScreenRecordAudio,
+        framerate: int,
+        on_stderr_line: Callable[[str], None] | None,
+    ) -> RecorderStartResult:
+        args = [
+            str(ffmpeg),
+            "-hide_banner",
+            "-y",
+            "-f",
+            "gdigrab",
+            "-framerate",
+            str(max(1, framerate)),
+            "-offset_x",
+            str(region.offset_x),
+            "-offset_y",
+            str(region.offset_y),
+            "-video_size",
+            f"{region.width}x{region.height}",
+            "-i",
+            "desktop",
+        ]
+        audio_inputs = self._audio_input_args(audio)
+        audio_warning = ""
+        if audio != "none" and not audio_inputs.args:
+            audio_warning = audio_inputs.warning or "Audio unavailable; recording video only"
+        else:
+            args.extend(audio_inputs.args)
+            audio_warning = audio_inputs.warning
+
+        args.extend(
+            [
+                "-c:v",
+                "libx264",
+                "-preset",
+                "ultrafast",
+                "-pix_fmt",
+                "yuv420p",
+            ]
+        )
+        if audio_inputs.map_args:
+            args.extend(audio_inputs.map_args)
+        elif audio_inputs.args:
+            args.extend(["-c:a", "aac", "-b:a", "128k"])
+        args.append(str(output))
+
+        try:
+            process = subprocess.Popen(
+                args,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.PIPE,
+                **hidden_subprocess_kwargs(),
+            )
+        except OSError as exc:
+            return RecorderStartResult(ok=False, message=f"Could not start ffmpeg: {exc}")
+
+        self._process = process
+        self._output = output
+        self._stderr_tail = []
+        self._stderr_thread = threading.Thread(
+            target=self._read_stderr,
+            args=(process, on_stderr_line),
+            daemon=True,
+        )
+        self._stderr_thread.start()
+        return RecorderStartResult(ok=True, audio_warning=audio_warning)
+
+    def _wait_alive(self, seconds: float) -> bool:
+        process = self._process
+        if process is None:
+            return False
+        deadline = time.monotonic() + max(0.0, seconds)
+        while time.monotonic() < deadline:
+            if process.poll() is not None:
+                return False
+            time.sleep(0.05)
+        return process.poll() is None
 ```
 
 </details>
@@ -334,6 +398,24 @@ def is_running(self) -> bool:
 
 </details>
 
+### ⚙️ Method `last_error_text`
+
+```python
+def last_error_text(self) -> str
+```
+
+Return recent ffmpeg stderr lines (best-effort).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def last_error_text(self) -> str:
+        return "\n".join(self._stderr_tail[-30:]).strip()
+```
+
+</details>
+
 ### ⚙️ Method `output_path (property)`
 
 ```python
@@ -383,66 +465,31 @@ def start(
         if output.exists():
             output.unlink()
 
-        args = [
-            str(ffmpeg),
-            "-y",
-            "-f",
-            "gdigrab",
-            "-framerate",
-            str(max(1, framerate)),
-            "-offset_x",
-            str(region.offset_x),
-            "-offset_y",
-            str(region.offset_y),
-            "-video_size",
-            f"{region.width}x{region.height}",
-            "-i",
-            "desktop",
-        ]
-        audio_inputs = self._audio_input_args(audio)
         audio_warning = ""
-        if audio != "none" and not audio_inputs.args:
-            audio_warning = audio_inputs.warning or "Audio unavailable; recording video only"
-        else:
-            args.extend(audio_inputs.args)
-            audio_warning = audio_inputs.warning
-
-        args.extend(
-            [
-                "-c:v",
-                "libx264",
-                "-preset",
-                "ultrafast",
-                "-pix_fmt",
-                "yuv420p",
-            ]
-        )
-        if audio_inputs.map_args:
-            args.extend(audio_inputs.map_args)
-        elif audio_inputs.args:
-            args.extend(["-c:a", "aac", "-b:a", "128k"])
-        args.append(str(output))
-
-        try:
-            process = subprocess.Popen(
-                args,
-                stdin=subprocess.PIPE,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.PIPE,
-                **hidden_subprocess_kwargs(),
-            )
-        except OSError as exc:
-            return RecorderStartResult(ok=False, message=f"Could not start ffmpeg: {exc}")
-
-        self._process = process
-        self._output = output
-        self._stderr_tail = []
-        self._stderr_thread = threading.Thread(
-            target=self._read_stderr,
-            args=(process, on_stderr_line),
-            daemon=True,
-        )
-        self._stderr_thread.start()
+        result = self._spawn(ffmpeg, region, output, audio=audio, framerate=framerate, on_stderr_line=on_stderr_line)
+        if not result.ok:
+            return result
+        audio_warning = result.audio_warning
+        # Give ffmpeg a moment; wasapi/dshow often fails immediately.
+        if not self._wait_alive(0.6):
+            dead_message = self.last_error_text() or "ffmpeg exited immediately"
+            self.abort()
+            if audio != "none":
+                retry = self._spawn(
+                    ffmpeg,
+                    region,
+                    output,
+                    audio="none",
+                    framerate=framerate,
+                    on_stderr_line=on_stderr_line,
+                )
+                if retry.ok and self._wait_alive(0.6):
+                    return RecorderStartResult(
+                        ok=True,
+                        audio_warning=f"Audio failed ({dead_message.splitlines()[-1][:120]}); recording video only",
+                    )
+                self.abort()
+            return RecorderStartResult(ok=False, message=dead_message)
         return RecorderStartResult(ok=True, audio_warning=audio_warning)
 ```
 
@@ -451,7 +498,7 @@ def start(
 ### ⚙️ Method `stop`
 
 ```python
-def stop(self, *, timeout: float = 15.0) -> tuple[bool, str]
+def stop(self, *, timeout: float = 20.0) -> tuple[bool, str]
 ```
 
 Ask ffmpeg to finish (`q`) and wait. Return `(ok, message)`.
@@ -460,32 +507,42 @@ Ask ffmpeg to finish (`q`) and wait. Return `(ok, message)`.
 <summary>Code:</summary>
 
 ```python
-def stop(self, *, timeout: float = 15.0) -> tuple[bool, str]:
+def stop(self, *, timeout: float = 20.0) -> tuple[bool, str]:
         process = self._process
+        output = self._output
         if process is None:
-            return False, "No active recording"
+            if output is not None and output.is_file() and output.stat().st_size > 0:
+                return True, str(output)
+            return False, self.last_error_text() or "No active recording"
         try:
             if process.poll() is None and process.stdin is not None:
-                process.stdin.write(b"q")
+                process.stdin.write(b"q\n")
                 process.stdin.flush()
+                with contextlib.suppress(OSError):
+                    process.stdin.close()
         except (BrokenPipeError, OSError):
             pass
         try:
             process.wait(timeout=timeout)
         except subprocess.TimeoutExpired:
-            process.kill()
-            process.wait(timeout=5)
+            process.terminate()
+            with contextlib.suppress(subprocess.TimeoutExpired):
+                process.wait(timeout=3)
+            if process.poll() is None:
+                process.kill()
+                process.wait(timeout=5)
             self._clear_process()
+            if output is not None and output.is_file() and output.stat().st_size > 0:
+                return True, str(output)
             return False, "ffmpeg did not exit in time; process killed"
         code = process.returncode
-        tail = "\n".join(self._stderr_tail[-20:])
+        tail = self.last_error_text()
         self._clear_process()
-        output = self._output
-        if code not in (0, None) and (output is None or not output.is_file() or output.stat().st_size == 0):
+        if output is not None and output.is_file() and output.stat().st_size > 0:
+            return True, str(output)
+        if code not in (0, None):
             return False, tail or f"ffmpeg exited with code {code}"
-        if output is None or not output.is_file():
-            return False, "Recording file was not created"
-        return True, str(output)
+        return False, tail or "Recording file was not created"
 ```
 
 </details>

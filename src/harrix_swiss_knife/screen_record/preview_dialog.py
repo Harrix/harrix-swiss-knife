@@ -118,9 +118,12 @@ class RecordingPreviewWindow(QMainWindow):
 
 def show_recording_preview(path: Path) -> RecordingPreviewWindow:
     """Show `path` in the shared recording preview window."""
-    window = _preview_holder["window"]
-    if window is not None and isValid(window):
-        window.close()
+    previous = _preview_holder["window"]
+    if previous is not None and isValid(previous):
+        previous.close()
+    if not path.is_file() or path.stat().st_size <= 0:
+        msg = f"Recording file is missing or empty:\n{path}"
+        raise FileNotFoundError(msg)
     window = RecordingPreviewWindow(path)
     _preview_holder["window"] = window
     window.show()
