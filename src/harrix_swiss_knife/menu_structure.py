@@ -42,6 +42,7 @@ from harrix_swiss_knife.actions.files.all_files_to_parent_folder import OnAllFil
 from harrix_swiss_knife.actions.files.check_featured_image import OnCheckFeaturedImage
 from harrix_swiss_knife.actions.files.check_featured_image_in_folders import OnCheckFeaturedImageInFolders
 from harrix_swiss_knife.actions.files.check_musicbee_playlists import OnCheckMusicBeePlaylists
+from harrix_swiss_knife.actions.files.clean_temporary import OnCleanTemporary
 from harrix_swiss_knife.actions.files.close_all_adobe import OnCloseAllAdobe
 from harrix_swiss_knife.actions.files.combine_for_ai import OnCombineForAI
 from harrix_swiss_knife.actions.files.convert_path_to_windows import OnConvertPathToWindows
@@ -213,6 +214,7 @@ def get_menu_structure() -> list[Any]:
                 OnCheckFeaturedImageInFolders,
                 OnCheckMusicBeePlaylists,
                 OnSyncChromeYandexBookmarks,
+                OnCleanTemporary,
                 OnExtractZipArchives,
                 OnCombineForAI,
                 OnConvertPathToWindows,

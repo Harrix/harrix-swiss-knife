@@ -86,6 +86,7 @@ _Figure 1: Screenshot_
   - 🎵 Check MusicBee playlists
   - ✅ Check featured_image in all folders
   - ✅ Check featured_image in …
+  - 🧽 Clean temporary files
   - 🛑 Close all Adobe apps
   - 🤖 ★ Combine files for AI…
   - 🪟 Convert path to Windows from clipboard

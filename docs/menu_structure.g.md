@@ -102,6 +102,7 @@ def get_menu_structure() -> list[Any]:
                 OnCheckFeaturedImageInFolders,
                 OnCheckMusicBeePlaylists,
                 OnSyncChromeYandexBookmarks,
+                OnCleanTemporary,
                 OnExtractZipArchives,
                 OnCombineForAI,
                 OnConvertPathToWindows,

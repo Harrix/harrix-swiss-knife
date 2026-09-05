@@ -231,11 +231,15 @@ class ActionDialogService:
         enable_extension_filter: bool = False,
         disabled_choices: list[str] | None = None,
         selection_presets: list[tuple[str, list[str]]] | None = None,
+        choice_sizes: dict[str, int] | None = None,
     ) -> list[str] | None:
         """Return checkbox-selected items, or `None` on cancel.
 
         `selection_presets` is a list of `(button_label, labels_to_check)` applied
         when the user clicks a preset button (other choices are unchecked).
+
+        When `choice_sizes` maps choice labels to byte counts, a footer shows the
+        total available size and a live sum of currently selected sizes.
 
         """
         if not choices:
@@ -243,6 +247,7 @@ class ActionDialogService:
             return None
 
         disabled_set = set(disabled_choices or ())
+        sizes = choice_sizes or {}
 
         parent = QApplication.activeWindow()
         dialog = StandardActionDialog(self._default_size, parent)
@@ -417,6 +422,34 @@ class ActionDialogService:
         selection_buttons_layout.addStretch()
 
         layout.addLayout(selection_buttons_layout)
+
+        size_summary_label: QLabel | None = None
+        if sizes:
+
+            def _update_size_summary() -> None:
+                if size_summary_label is None:
+                    return
+                selected_bytes = sum(
+                    sizes.get(checkbox.text(), 0)
+                    for checkbox in checkboxes
+                    if checkbox.isEnabled() and checkbox.isChecked()
+                )
+                total_bytes = sum(sizes.get(choice, 0) for choice in choices)
+                size_summary_label.setText(
+                    f"Selected: {h.file.format_byte_size(selected_bytes)}"
+                    f"  ·  Total available: {h.file.format_byte_size(total_bytes)}"
+                )
+
+            size_summary_label = QLabel()
+            size_summary_label.setWordWrap(True)
+            font = size_summary_label.font()
+            font.setPointSize(11)
+            font.setBold(True)
+            size_summary_label.setFont(font)
+            layout.addWidget(size_summary_label)
+            for checkbox in checkboxes:
+                checkbox.stateChanged.connect(lambda _state: _update_size_summary())
+            _update_size_summary()
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         self._apply_emoji_dialog_buttons(buttons)
@@ -2000,13 +2033,16 @@ def get_android_build_selection(
 ### ⚙️ Method `get_checkbox_selection`
 
 ```python
-def get_checkbox_selection(self, title: str, label: str, choices: list[str], default_selected: list[str] | None = None, *, enable_extension_filter: bool = False, disabled_choices: list[str] | None = None, selection_presets: list[tuple[str, list[str]]] | None = None) -> list[str] | None
+def get_checkbox_selection(self, title: str, label: str, choices: list[str], default_selected: list[str] | None = None, *, enable_extension_filter: bool = False, disabled_choices: list[str] | None = None, selection_presets: list[tuple[str, list[str]]] | None = None, choice_sizes: dict[str, int] | None = None) -> list[str] | None
 ```
 
 Return checkbox-selected items, or `None` on cancel.
 
 `selection_presets` is a list of `(button_label, labels_to_check)` applied
 when the user clicks a preset button (other choices are unchecked).
+
+When `choice_sizes` maps choice labels to byte counts, a footer shows the
+total available size and a live sum of currently selected sizes.
 
 <details>
 <summary>Code:</summary>
@@ -2022,12 +2058,14 @@ def get_checkbox_selection(
         enable_extension_filter: bool = False,
         disabled_choices: list[str] | None = None,
         selection_presets: list[tuple[str, list[str]]] | None = None,
+        choice_sizes: dict[str, int] | None = None,
     ) -> list[str] | None:
         if not choices:
             self._add_line("❌ No choices provided.")
             return None
 
         disabled_set = set(disabled_choices or ())
+        sizes = choice_sizes or {}
 
         parent = QApplication.activeWindow()
         dialog = StandardActionDialog(self._default_size, parent)
@@ -2202,6 +2240,34 @@ def get_checkbox_selection(
         selection_buttons_layout.addStretch()
 
         layout.addLayout(selection_buttons_layout)
+
+        size_summary_label: QLabel | None = None
+        if sizes:
+
+            def _update_size_summary() -> None:
+                if size_summary_label is None:
+                    return
+                selected_bytes = sum(
+                    sizes.get(checkbox.text(), 0)
+                    for checkbox in checkboxes
+                    if checkbox.isEnabled() and checkbox.isChecked()
+                )
+                total_bytes = sum(sizes.get(choice, 0) for choice in choices)
+                size_summary_label.setText(
+                    f"Selected: {h.file.format_byte_size(selected_bytes)}"
+                    f"  ·  Total available: {h.file.format_byte_size(total_bytes)}"
+                )
+
+            size_summary_label = QLabel()
+            size_summary_label.setWordWrap(True)
+            font = size_summary_label.font()
+            font.setPointSize(11)
+            font.setBold(True)
+            size_summary_label.setFont(font)
+            layout.addWidget(size_summary_label)
+            for checkbox in checkboxes:
+                checkbox.stateChanged.connect(lambda _state: _update_size_summary())
+            _update_size_summary()
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         self._apply_emoji_dialog_buttons(buttons)

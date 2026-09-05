@@ -292,6 +292,7 @@ class ActionBase(ABC):
         enable_extension_filter: bool = False,
         disabled_choices: list[str] | None = None,
         selection_presets: list[tuple[str, list[str]]] | None = None,
+        choice_sizes: dict[str, int] | None = None,
     ) -> list[str] | None:
         """Dialog wrapper. Prefer `self.dialogs.get_checkbox_selection()`."""
         return self.dialogs.get_checkbox_selection(
@@ -302,6 +303,7 @@ class ActionBase(ABC):
             enable_extension_filter=enable_extension_filter,
             disabled_choices=disabled_choices,
             selection_presets=selection_presets,
+            choice_sizes=choice_sizes,
         )
 
     def get_choice_from_icons(
@@ -1108,7 +1110,7 @@ def execute(self, *args: Any, **kwargs: Any) -> Any:
 ### ⚙️ Method `get_checkbox_selection`
 
 ```python
-def get_checkbox_selection(self, title: str, label: str, choices: list[str], default_selected: list[str] | None = None, *, enable_extension_filter: bool = False, disabled_choices: list[str] | None = None, selection_presets: list[tuple[str, list[str]]] | None = None) -> list[str] | None
+def get_checkbox_selection(self, title: str, label: str, choices: list[str], default_selected: list[str] | None = None, *, enable_extension_filter: bool = False, disabled_choices: list[str] | None = None, selection_presets: list[tuple[str, list[str]]] | None = None, choice_sizes: dict[str, int] | None = None) -> list[str] | None
 ```
 
 Dialog wrapper. Prefer `self.dialogs.get_checkbox_selection()`.
@@ -1127,6 +1129,7 @@ def get_checkbox_selection(
         enable_extension_filter: bool = False,
         disabled_choices: list[str] | None = None,
         selection_presets: list[tuple[str, list[str]]] | None = None,
+        choice_sizes: dict[str, int] | None = None,
     ) -> list[str] | None:
         return self.dialogs.get_checkbox_selection(
             strip_md_inline_code_markers(title),
@@ -1136,6 +1139,7 @@ def get_checkbox_selection(
             enable_extension_filter=enable_extension_filter,
             disabled_choices=disabled_choices,
             selection_presets=selection_presets,
+            choice_sizes=choice_sizes,
         )
 ```
 
