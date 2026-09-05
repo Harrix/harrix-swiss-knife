@@ -60,6 +60,7 @@ from harrix_swiss_knife.actions.files.rename_files_by_mapping import OnRenameFil
 from harrix_swiss_knife.actions.files.rename_largest_images_to_featured_image import (
     OnRenameLargestImagesToFeaturedImage,
 )
+from harrix_swiss_knife.actions.files.sync_chrome_yandex_bookmarks import OnSyncChromeYandexBookmarks
 from harrix_swiss_knife.actions.files.tree_view_folder import OnTreeViewFolder
 from harrix_swiss_knife.actions.files.tree_view_folder_ignore_hidden_folders import (
     OnTreeViewFolderIgnoreHiddenFolders,
@@ -209,6 +210,7 @@ def get_menu_structure() -> list[Any]:
                 OnCheckFeaturedImage,
                 OnCheckFeaturedImageInFolders,
                 OnCheckMusicBeePlaylists,
+                OnSyncChromeYandexBookmarks,
                 OnExtractZipArchives,
                 OnCombineForAI,
                 OnConvertPathToWindows,
