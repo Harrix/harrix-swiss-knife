@@ -106,6 +106,10 @@ class MainMenuBase:
         - A callable class to add as a menu item
         - A string `-` to add a separator
 
+        Submenus are added in alphabetical order by title (case-insensitive).
+        Top-level action items keep group order; items within a group are sorted
+        by title in `add_items`.
+
         Args:
 
         - `parent_menu` (`QMenu`): The parent menu to which menus and items will be added.
@@ -145,6 +149,7 @@ class MainMenuBase:
                 # If we have menus and no items yet, add separator after menus
                 if menus_to_add and not items_to_add:
                     # Add menus first
+                    menus_to_add.sort(key=lambda m: m.title().casefold())
                     for menu in menus_to_add:
                         parent_menu.addMenu(menu)
                     menus_to_add = []
@@ -159,6 +164,7 @@ class MainMenuBase:
 
         # Add any remaining menus
         if menus_to_add:
+            menus_to_add.sort(key=lambda m: m.title().casefold())
             for menu in menus_to_add:
                 parent_menu.addMenu(menu)
 
@@ -391,6 +397,10 @@ Each element in the structure can be:
 - A callable class to add as a menu item
 - A string `-` to add a separator
 
+Submenus are added in alphabetical order by title (case-insensitive).
+Top-level action items keep group order; items within a group are sorted
+by title in `add_items`.
+
 Args:
 
 - `parent_menu` (`QMenu`): The parent menu to which menus and items will be added.
@@ -434,6 +444,7 @@ def add_menu_structure(self, parent_menu: QMenu, structure: list) -> None:
                 # If we have menus and no items yet, add separator after menus
                 if menus_to_add and not items_to_add:
                     # Add menus first
+                    menus_to_add.sort(key=lambda m: m.title().casefold())
                     for menu in menus_to_add:
                         parent_menu.addMenu(menu)
                     menus_to_add = []
@@ -448,6 +459,7 @@ def add_menu_structure(self, parent_menu: QMenu, structure: list) -> None:
 
         # Add any remaining menus
         if menus_to_add:
+            menus_to_add.sort(key=lambda m: m.title().casefold())
             for menu in menus_to_add:
                 parent_menu.addMenu(menu)
 

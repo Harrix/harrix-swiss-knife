@@ -24,8 +24,9 @@ def generate_markdown_from_menu_structure(structure: list[Any], level: int = 0) 
 
 Turn menu structure (same shape as get_menu_structure) into README list lines.
 
-Mirrors MainMenuBase.add_menu_structure / add_items: submenus first, then items;
-separators are omitted; action groups between separators are sorted by title.
+Mirrors MainMenuBase.add_menu_structure / add_items: submenus first (A — Z by
+title), then items; separators are omitted; action groups between separators
+are sorted by title.
 
 <details>
 <summary>Code:</summary>
@@ -42,6 +43,7 @@ def generate_markdown_from_menu_structure(structure: list[Any], level: int = 0) 
             menus_to_add.append((title, icon, items))
         elif element == "-":
             if menus_to_add and not items_to_add:
+                menus_to_add.sort(key=lambda item: item[0].casefold())
                 for title, _icon, items in menus_to_add:
                     markdown_lines.append(f"{'  ' * level}- **{title}**")
                     markdown_lines.extend(generate_markdown_from_menu_structure(items, level + 1))
@@ -51,6 +53,7 @@ def generate_markdown_from_menu_structure(structure: list[Any], level: int = 0) 
         elif isinstance(element, type):
             items_to_add.append(element)
 
+    menus_to_add.sort(key=lambda item: item[0].casefold())
     for title, _icon, items in menus_to_add:
         markdown_lines.append(f"{'  ' * level}- **{title}**")
         markdown_lines.extend(generate_markdown_from_menu_structure(items, level + 1))

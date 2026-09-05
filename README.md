@@ -51,6 +51,11 @@ _Figure 1: Screenshot_
 
 ## 📋 List of commands
 
+- **Android**
+  - 📱 ★ Build Android APK in … ꟲᴸᴵ
+  - 🔬 Check Android code in … ꟲᴸᴵ
+  - ✨ Format Android code in … ꟲᴸᴵ
+  - 📥 Install JDK and Android SDK ꟲᴸᴵ
 - **Dev**
   - ℹ️ About
   - 🚀 Add to Windows autostart
@@ -71,33 +76,6 @@ _Figure 1: Screenshot_
   - 📥 Update uv
   - 📦 Update/Install global NPM packages
   - 📋 View recent action logs
-- **Android**
-  - 📱 ★ Build Android APK in … ꟲᴸᴵ
-  - 🔬 Check Android code in … ꟲᴸᴵ
-  - ✨ Format Android code in … ꟲᴸᴵ
-  - 📥 Install JDK and Android SDK ꟲᴸᴵ
-- **VS Code**
-  - 🔬 Check VS Code extension ꟲᴸᴵ
-  - ✨ Format VS Code extension ꟲᴸᴵ
-  - 🔄 Sync Harrix Notes Explorer public repo ꟲᴸᴵ
-  - 📦 ★ Update/install Harrix Notes Explorer extension for VS Code… ꟲᴸᴵ
-- **Images**
-  - 📸 Open photos in image viewer
-  - 🤖 Recognize text (AI)…
-  - 🔤 Recognize text (OCR, local)…
-  - 🚀 ★ Optimize images
-  - 🔝 Optimize images (high quality)
-  - ⬆️ Optimize images in … and replace
-  - 🖼️ Optimize one image in …
-  - ↔️ ★ Resize and optimize images…
-  - 🧹 Clear folders `images` and `optimized_images`
-  - 📂 Open folder `images`
-  - 📂 Open folder `optimized_images`
-  - 🚀 Optimize image from clipboard
-  - 🚀 Optimize image from clipboard as …
-  - 📷 Screenshot region
-  - 📷 Screenshot region (OCR + translate)
-  - 📷 Screenshot region (clipboard)
 - **File operations**
   - 🎵 Check MusicBee playlists
   - ✅ Check featured_image in all folders
@@ -120,6 +98,26 @@ _Figure 1: Screenshot_
   - 🔖 Sync Chrome and Yandex bookmarks
   - ├ Tree view in …
   - ├ Tree view in … (ignore hidden folders)
+- **Icons**
+  - 💎 Beautify and optimize icons
+  - 🚧 Check images
+- **Images**
+  - 📸 Open photos in image viewer
+  - 🤖 Recognize text (AI)…
+  - 🔤 Recognize text (OCR, local)…
+  - 🚀 ★ Optimize images
+  - 🔝 Optimize images (high quality)
+  - ⬆️ Optimize images in … and replace
+  - 🖼️ Optimize one image in …
+  - ↔️ ★ Resize and optimize images…
+  - 🧹 Clear folders `images` and `optimized_images`
+  - 📂 Open folder `images`
+  - 📂 Open folder `optimized_images`
+  - 🚀 Optimize image from clipboard
+  - 🚀 Optimize image from clipboard as …
+  - 📷 Screenshot region
+  - 📷 Screenshot region (OCR + translate)
+  - 📷 Screenshot region (clipboard)
 - **Markdown**
   - 📝 ★ New Markdown… ꟲᴸᴵ
   - 🎬 Get a list of movies, books for web…
@@ -139,16 +137,6 @@ _Figure 1: Screenshot_
   - 🖼️ ★ Optimize selected images in …
   - 📜 Regenerate `.g.md` in … ꟲᴸᴵ
   - 📶 Sort sections in …
-- **Site**
-  - 📦 Add site content submodule… ꟲᴸᴵ
-  - 🔗 Fix site article link titles in … ꟲᴸᴵ
-  - ⬇️ Pull site submodules ꟲᴸᴵ
-  - ✂️ Slice HTML template… ꟲᴸᴵ
-- **Text**
-  - 🤖 Fix text with AI from clipboard
-  - 🤖 Fix text with AI… ꟲᴸᴵ
-  - ✍️ Rewrite text with AI…
-  - 🎙️ Speech to text with AI…
 - **Python**
   - 🚧 Full PY check all projects ꟲᴸᴵ
   - 🚧 Full PY check in … ꟲᴸᴵ
@@ -159,9 +147,21 @@ _Figure 1: Screenshot_
   - ⚡ Publish Python library to PyPI in …
   - 🌟 Ruff sort, ruff format, sort PY in … ꟲᴸᴵ
   - 🌟 ★ Ruff sort, ruff format, sort, make docs PY in … ꟲᴸᴵ
-- **Icons**
-  - 💎 Beautify and optimize icons
-  - 🚧 Check images
+- **Site**
+  - 📦 Add site content submodule… ꟲᴸᴵ
+  - 🔗 Fix site article link titles in … ꟲᴸᴵ
+  - ⬇️ Pull site submodules ꟲᴸᴵ
+  - ✂️ Slice HTML template… ꟲᴸᴵ
+- **Text**
+  - 🤖 Fix text with AI from clipboard
+  - 🤖 Fix text with AI… ꟲᴸᴵ
+  - ✍️ Rewrite text with AI…
+  - 🎙️ Speech to text with AI…
+- **VS Code**
+  - 🔬 Check VS Code extension ꟲᴸᴵ
+  - ✨ Format VS Code extension ꟲᴸᴵ
+  - 🔄 Sync Harrix Notes Explorer public repo ꟲᴸᴵ
+  - 📦 ★ Update/install Harrix Notes Explorer extension for VS Code… ꟲᴸᴵ
 - 💰 Finance tracker
 - 🏃🏻 Fitness tracker
 - 🍔 Food tracker

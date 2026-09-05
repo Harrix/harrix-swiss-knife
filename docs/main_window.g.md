@@ -328,7 +328,7 @@ class MainWindow(QMainWindow):
 
         if top_level_actions:
             self._create_section("Main", top_level_actions)
-        for title, actions in submenu_sections:
+        for title, actions in sorted(submenu_sections, key=lambda item: item[0].casefold()):
             self._create_section(title, actions)
         self._recent_section = self._create_section(
             "Recent",

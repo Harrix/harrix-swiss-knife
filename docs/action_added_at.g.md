@@ -65,16 +65,7 @@ def first_added_at_from_git(class_name: str, *, repo: Path) -> str | None:
         return None
     try:
         completed = subprocess.run(
-            [
-                "git",
-                "log",
-                "-S",
-                f"class {class_name}",
-                "--format=%aI",
-                "--reverse",
-                "--",
-                "*.py",
-            ],  # noqa: S607
+            ["git", "log", "-S", f"class {class_name}", "--format=%aI", "--reverse", "--", "*.py"],  # noqa: S607
             cwd=repo,
             capture_output=True,
             text=True,
