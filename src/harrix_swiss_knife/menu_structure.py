@@ -20,6 +20,7 @@ from harrix_swiss_knife.actions.development.about_dialog import OnAboutDialog
 from harrix_swiss_knife.actions.development.add_to_autostart import OnAddToAutostart
 from harrix_swiss_knife.actions.development.build_install_zips import OnBuildInstallZips
 from harrix_swiss_knife.actions.development.clear_temp_folder import OnClearTempFolder
+from harrix_swiss_knife.actions.development.close_all_adobe import OnCloseAllAdobe
 from harrix_swiss_knife.actions.development.create_desktop_shortcut import OnCreateDesktopShortcut
 from harrix_swiss_knife.actions.development.download_optimize_dependencies import OnDownloadOptimizeDependencies
 from harrix_swiss_knife.actions.development.exit_ import OnExit
@@ -151,6 +152,7 @@ def get_menu_structure() -> list[Any]:
                 OnViewRecentActionLogs,
                 OnShowActionUsageStats,
                 OnClearTempFolder,
+                OnCloseAllAdobe,
                 OnUpdateUv,
                 OnInstallCli,
             ],

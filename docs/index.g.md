@@ -67,6 +67,7 @@ _Figure 1: Screenshot_
   - 🚀 Add to Windows autostart
   - 🚀 Build installer EXEs ꟲᴸᴵ
   - 🧹 Clear temp folder
+  - 🛑 Close all Adobe apps
   - 🔗 Create desktop shortcut
   - ⬇️ Download ffmpeg, avifenc, avifdec
   - ⌨️ Install CLI (hsk on PATH) ꟲᴸᴵ

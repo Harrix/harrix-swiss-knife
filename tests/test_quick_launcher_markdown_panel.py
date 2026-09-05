@@ -50,7 +50,7 @@ def test_action_classes_excludes_new_markdown_when_panel_enabled(monkeypatch: py
     )
     actions = context.action_classes()
     assert OnNewMarkdown not in actions
-    assert len(actions) == 11
+    assert len(actions) == 12
 
 
 def test_action_classes_includes_new_markdown_when_panel_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -64,4 +64,4 @@ def test_action_classes_includes_new_markdown_when_panel_disabled(monkeypatch: p
     )
     actions = context.action_classes()
     assert OnNewMarkdown in actions
-    assert len(actions) == 12
+    assert len(actions) == 13
