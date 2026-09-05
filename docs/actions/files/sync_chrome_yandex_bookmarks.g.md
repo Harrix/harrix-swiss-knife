@@ -27,7 +27,7 @@ class OnSyncChromeYandexBookmarks(ActionBase)
 Bidirectional Chrome ↔ Yandex bookmark sync with a deletion-aware snapshot.
 
 First run merges missing URLs both ways without deletions. Later runs use a
-LocalAppData snapshot so deletes propagate. Preview shows Apply / Cancel;
+LocalAppData snapshot so deletes propagate. Preview shows Cancel / Apply;
 browsers must be closed before Apply.
 
 <details>
@@ -72,15 +72,12 @@ class OnSyncChromeYandexBookmarks(ActionBase):
             rerun_button_emoji="💾",
             ok_button_label=CANCEL_BUTTON_LABEL,
             ok_button_emoji=CANCEL_BUTTON_EMOJI,
+            ok_button_before_actions=True,
         )
         if not isinstance(shown, tuple) or shown[1] != RERUN_DIALOG_CODE:
             return
-        still_running = running_browser_names()
-        if still_running:
-            names = ", ".join(still_running)
-            message = f"Close {names}, then run Sync Chrome and Yandex bookmarks again."
-            self.add_line(message)
-            self.show_result(display_text=message)
+        if not self._wait_until_browsers_closed():
+            self.add_line("Sync cancelled.")
             return
         written = apply_sync_plan(result)
         if result.backup_path is not None:
@@ -89,6 +86,29 @@ class OnSyncChromeYandexBookmarks(ActionBase):
         self.add_line(summary)
         self.show_toast("Bookmarks synced")
         self.show_result(display_text=f"{report}\n\n{summary}")
+
+    def _wait_until_browsers_closed(self) -> bool:
+        """Prompt until Chrome and Yandex are closed, or the user cancels.
+
+        Returns:
+
+        - `bool`: `True` when browsers are closed and sync may proceed.
+
+        """
+        while True:
+            still_running = running_browser_names()
+            if not still_running:
+                return True
+            names = ", ".join(still_running)
+            reply = message_box.question(
+                QApplication.activeWindow(),
+                "Close browsers",
+                f"Close {names}, then click OK to continue sync.\n\nCancel aborts without writing.",
+                QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel,
+                QMessageBox.StandardButton.Ok,
+            )
+            if reply != QMessageBox.StandardButton.Ok:
+                return False
 ```
 
 </details>
@@ -161,15 +181,12 @@ def thread_after(self, result: Any) -> None:
             rerun_button_emoji="💾",
             ok_button_label=CANCEL_BUTTON_LABEL,
             ok_button_emoji=CANCEL_BUTTON_EMOJI,
+            ok_button_before_actions=True,
         )
         if not isinstance(shown, tuple) or shown[1] != RERUN_DIALOG_CODE:
             return
-        still_running = running_browser_names()
-        if still_running:
-            names = ", ".join(still_running)
-            message = f"Close {names}, then run Sync Chrome and Yandex bookmarks again."
-            self.add_line(message)
-            self.show_result(display_text=message)
+        if not self._wait_until_browsers_closed():
+            self.add_line("Sync cancelled.")
             return
         written = apply_sync_plan(result)
         if result.backup_path is not None:

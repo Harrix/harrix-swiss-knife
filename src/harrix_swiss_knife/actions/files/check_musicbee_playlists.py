@@ -74,6 +74,7 @@ class OnCheckMusicBeePlaylists(ActionBase):
             rerun_button_emoji="💾",
             ok_button_label=CANCEL_BUTTON_LABEL,
             ok_button_emoji=CANCEL_BUTTON_EMOJI,
+            ok_button_before_actions=True,
         )
         if not isinstance(shown, tuple) or shown[1] != RERUN_DIALOG_CODE:
             return

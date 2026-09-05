@@ -1552,6 +1552,7 @@ class ActionDialogService:
         save_filter: str = "Markdown Files (*.md);;All Files (*)",
         ok_button_label: str = OK_BUTTON_LABEL,
         ok_button_emoji: str = OK_BUTTON_EMOJI,
+        ok_button_before_actions: bool = False,
     ) -> str | tuple[str | None, int] | None:
         """Show read-only multi-line text dialog and return text if accepted."""
         has_action_buttons = rerun_button or rewrite_button or remove_paragraphs_button
@@ -1627,24 +1628,35 @@ class ActionDialogService:
                 if remove_paragraphs_btn is not None:
                     remove_paragraphs_btn.setVisible(False)
 
-            remove_paragraphs_btn = append_result_action_buttons(
-                dialog,
-                button_layout,
-                rerun_button=rerun_button,
-                rerun_button_label=rerun_button_label,
-                rerun_button_emoji=rerun_button_emoji,
-                rewrite_button=rewrite_button,
-                remove_paragraphs_button=remove_paragraphs_button,
-                on_remove_paragraphs=on_remove_paragraphs if remove_paragraphs_button else None,
-                remove_paragraphs_source_text=current_text,
-            )
+            remove_paragraphs_btn: QPushButton | None = None
 
-            add_ok_button(
-                dialog,
-                button_layout,
-                label=ok_button_label,
-                emoji=ok_button_emoji,
-            )
+            def add_action_buttons() -> QPushButton | None:
+                return append_result_action_buttons(
+                    dialog,
+                    button_layout,
+                    rerun_button=rerun_button,
+                    rerun_button_label=rerun_button_label,
+                    rerun_button_emoji=rerun_button_emoji,
+                    rewrite_button=rewrite_button,
+                    remove_paragraphs_button=remove_paragraphs_button,
+                    on_remove_paragraphs=on_remove_paragraphs if remove_paragraphs_button else None,
+                    remove_paragraphs_source_text=current_text,
+                )
+
+            def add_dismiss_button() -> None:
+                add_ok_button(
+                    dialog,
+                    button_layout,
+                    label=ok_button_label,
+                    emoji=ok_button_emoji,
+                )
+
+            if ok_button_before_actions:
+                add_dismiss_button()
+                remove_paragraphs_btn = add_action_buttons()
+            else:
+                remove_paragraphs_btn = add_action_buttons()
+                add_dismiss_button()
 
             layout.addLayout(button_layout)
 
