@@ -45,8 +45,11 @@ class OnCleanTemporary(ActionBase):
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Scan reclaimable locations in a thread, then prompt and clean."""
         self.selected_targets: list[CleanupTarget] = []
+        self._scan_found_bytes = 0
+        self._toast_bridge = self._ToastBridge()
+        self._toast_bridge.message_changed.connect(self._on_scan_toast_message)
         self.add_line("🔵 Scanning cleanup targets…")
-        self.start_thread(self.in_thread_scan, self.thread_after_scan, "Scanning cleanup targets…")
+        self.start_thread(self.in_thread_scan, self.thread_after_scan, self._scan_toast_message())
 
     @ActionBase.handle_exceptions("cleaning temporary files thread")
     def in_thread_clean(self) -> None:
@@ -65,7 +68,19 @@ class OnCleanTemporary(ActionBase):
     @ActionBase.handle_exceptions("scanning temporary files thread")
     def in_thread_scan(self) -> list[CleanupTarget]:
         """Measure reclaimable locations in a background thread."""
-        targets = discover_targets(on_progress=self.add_line)
+
+        def on_found(target: CleanupTarget) -> None:
+            self._scan_found_bytes += target.size_bytes
+            total = self._scan_found_bytes
+            self.add_line(
+                f"Found `{target.title}`: {h.file.format_byte_size(target.size_bytes)} "
+                f"(total {h.file.format_byte_size(total)})"
+            )
+            self._toast_bridge.message_changed.emit(
+                f"Scanning cleanup targets…\nFound (all): {h.file.format_byte_size(total)}"
+            )
+
+        targets = discover_targets(on_progress=self.add_line, on_found=on_found)
         self.add_elapsed_time()
         return targets
 
@@ -119,6 +134,22 @@ class OnCleanTemporary(ActionBase):
 
         self.selected_targets = selected
         self.start_thread(self.in_thread_clean, self.thread_after_clean, self.title)
+
+    def _on_scan_toast_message(self, message: str) -> None:
+        """Update the scan countdown toast from the UI thread."""
+        toast = getattr(self, "toast", None)
+        if isinstance(toast, ToastCountdownNotification):
+            toast.set_message(message)
+
+    def _scan_toast_message(self) -> str:
+        """Return toast text with the reclaimable total if every target is selected."""
+        total = h.file.format_byte_size(self._scan_found_bytes)
+        return f"Scanning cleanup targets…\nFound (all): {total}"
+
+    class _ToastBridge(QObject):
+        """Relay scan toast text from the worker thread to the UI thread."""
+
+        message_changed = Signal(str)
 ```
 
 </details>
@@ -137,8 +168,11 @@ Scan reclaimable locations in a thread, then prompt and clean.
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         self.selected_targets: list[CleanupTarget] = []
+        self._scan_found_bytes = 0
+        self._toast_bridge = self._ToastBridge()
+        self._toast_bridge.message_changed.connect(self._on_scan_toast_message)
         self.add_line("🔵 Scanning cleanup targets…")
-        self.start_thread(self.in_thread_scan, self.thread_after_scan, "Scanning cleanup targets…")
+        self.start_thread(self.in_thread_scan, self.thread_after_scan, self._scan_toast_message())
 ```
 
 </details>
@@ -183,7 +217,19 @@ Measure reclaimable locations in a background thread.
 
 ```python
 def in_thread_scan(self) -> list[CleanupTarget]:
-        targets = discover_targets(on_progress=self.add_line)
+
+        def on_found(target: CleanupTarget) -> None:
+            self._scan_found_bytes += target.size_bytes
+            total = self._scan_found_bytes
+            self.add_line(
+                f"Found `{target.title}`: {h.file.format_byte_size(target.size_bytes)} "
+                f"(total {h.file.format_byte_size(total)})"
+            )
+            self._toast_bridge.message_changed.emit(
+                f"Scanning cleanup targets…\nFound (all): {h.file.format_byte_size(total)}"
+            )
+
+        targets = discover_targets(on_progress=self.add_line, on_found=on_found)
         self.add_elapsed_time()
         return targets
 ```

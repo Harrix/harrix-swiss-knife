@@ -94,16 +94,26 @@ def choice_label(self) -> str:
 ## 🔧 Function `discover_targets`
 
 ```python
-def discover_targets(*, on_progress: ProgressCallback | None = None) -> list[CleanupTarget]
+def discover_targets(*, on_progress: ProgressCallback | None = None, on_found: Callable[[CleanupTarget], None] | None = None) -> list[CleanupTarget]
 ```
 
 Scan known cleanup locations; return only those with size greater than zero.
+
+Args:
+
+- `on_progress` (`ProgressCallback | None`): Called with a log line before each measure.
+- `on_found` (`Callable[[CleanupTarget], None] | None`): Called when a non-empty
+  target is discovered (for live totals while scanning).
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def discover_targets(*, on_progress: ProgressCallback | None = None) -> list[CleanupTarget]:
+def discover_targets(
+    *,
+    on_progress: ProgressCallback | None = None,
+    on_found: Callable[[CleanupTarget], None] | None = None,
+) -> list[CleanupTarget]:
     specs = _candidate_specs()
     found: list[CleanupTarget] = []
     for spec in specs:
@@ -112,16 +122,17 @@ def discover_targets(*, on_progress: ProgressCallback | None = None) -> list[Cle
         size = spec.size_fn()
         if size <= 0:
             continue
-        found.append(
-            CleanupTarget(
-                id=spec.id,
-                title=spec.title,
-                path_display=spec.path_display,
-                size_bytes=size,
-                default_selected=spec.default_selected,
-                cleaner=spec.cleaner,
-            )
+        target = CleanupTarget(
+            id=spec.id,
+            title=spec.title,
+            path_display=spec.path_display,
+            size_bytes=size,
+            default_selected=spec.default_selected,
+            cleaner=spec.cleaner,
         )
+        found.append(target)
+        if on_found is not None:
+            on_found(target)
     return found
 ```
 
