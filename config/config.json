@@ -7,20 +7,17 @@
     "fitness_image_high_max_size": 1920,
     "fitness_image_max_size": 330,
     "fitness_lightbox_countdown_seconds": 5,
+    "fitness_workout_duration_min": 28,
+    "fitness_workout_gender": "male",
     "fitness_workout_history_count": 100,
     "initial_count": 1000,
     "load_more_count": 500,
-    "local_language": "ru",
-    "fitness_workout_gender": "male",
-    "fitness_workout_duration_min": 28
+    "local_language": "ru"
   },
   "beginning_of_article": "snippet:config/beginning-of-article.md",
   "beginning_of_md": "snippet:config/beginning-of-md.md",
   "beginning_of_md_docs": "snippet:config/beginning-of-md-en.md",
-  "block_drives": [
-    "E",
-    "F"
-  ],
+  "block_drives": ["E", "F"],
   "bothub": {
     "base_url": "https://bothub.chat/api/v2/openai/v1",
     "max_image_side": 1600,
@@ -76,35 +73,26 @@
   "hotkeys": [
     {
       "action": "OnQuickLauncher",
-      "hotkeys": [
-        "Ctrl+Shift+1"
-      ]
+      "hotkeys": ["Ctrl+Shift+1"]
     },
     {
       "action": "OnSnippets",
-      "hotkeys": [
-        "Ctrl+Shift+2"
-      ]
+      "hotkeys": ["Ctrl+Shift+2"]
     },
     {
       "action": "OnScreenshotRegion",
-      "hotkeys": [
-        "Ctrl+Shift+3"
-      ]
+      "hotkeys": ["Ctrl+Shift+3"]
     },
     {
       "action": "OnScreenshotRegionClipboard",
-      "hotkeys": [
-        "Ctrl+Shift+4"
-      ]
+      "hotkeys": ["Ctrl+Shift+4"]
     },
     {
       "action": "OnScreenshotRegionTranslate",
-      "hotkeys": [
-        "Ctrl+Shift+5"
-      ]
+      "hotkeys": ["Ctrl+Shift+5"]
     }
   ],
+  "main_window_sort_mode": "menu",
   "markdown_templates": {
     "☕ Coffee": {
       "commit_message_template": "☕ Add coffee note \"{Title}\" in {City}",
@@ -217,15 +205,53 @@
       "template_file": "config/template-series.md"
     }
   },
+  "musicbee": {
+    "audio_extensions": [".mp3", ".flac", ".m4a", ".ogg", ".opus", ".wav", ".wma"],
+    "backup_dir": "D:/Dropbox/Backups",
+    "library_dir": "D:/Dropbox/Programs/MusicBee/Library",
+    "music_root": "C:/Users/sergi/OneDrive/Music",
+    "rules": [
+      {
+        "folder": "{stream_root}",
+        "playlists": "Stream - *",
+        "type": "restrict_folder"
+      },
+      {
+        "source": "Stream - Epic (real)",
+        "target": "Stream - Epic",
+        "type": "ensure_subset"
+      },
+      {
+        "source": "Stream - OST (real)",
+        "target": "Stream - OST",
+        "type": "ensure_subset"
+      },
+      {
+        "source": "Stream - Power metal",
+        "target": "Stream - Heavy",
+        "type": "ensure_subset"
+      },
+      {
+        "sources": ["Stream - Mad", "Stream - Mad (electro)"],
+        "target": "Stream - Mad (both)",
+        "type": "union"
+      },
+      {
+        "exclude_playlists": "Stream - *",
+        "from_folder": "{stream_root}",
+        "playlist": "Stream - Temp",
+        "type": "rebuild_remainder"
+      }
+    ],
+    "stream_playlist_prefix": "Stream - ",
+    "stream_root": "C:/Users/sergi/OneDrive/Music/Stream"
+  },
   "note_beginning_templates": [
     "snippet:config/beginning-of-md.md",
     "snippet:config/beginning-of-article.md",
     "snippet:config/beginning-of-md-en.md"
   ],
-  "npm_packages": [
-    "npm-check-updates",
-    "prettier"
-  ],
+  "npm_packages": ["npm-check-updates", "prettier"],
   "optimize_images_folder_max_size": 1024,
   "path_3d": "D:/Downloads",
   "path_articles": "D:/GitHub/_content__harrix-dev/harrix.dev-articles-2025",
@@ -233,8 +259,8 @@
   "path_cases": "D:/Dropbox/Notes/Notes-Lists/Cases",
   "path_diary": "D:/Dropbox/Notes/Notes-Diaries/Diary",
   "path_dream": "D:/Dropbox/Notes/Notes-Diaries/Dreams",
-  "path_habit_comments": "D:/Dropbox/Notes/Notes-Habits",
   "path_github": "D:/GitHub",
+  "path_habit_comments": "D:/Dropbox/Notes/Notes-Habits",
   "path_harrix_notes_explorer": "D:/GitHub/harrix-notes-explorer",
   "path_html_template_dist": "D:/GitHub/Harrix-HTML-Template/dist",
   "path_html_theme": "D:/GitHub/Harrix-HTML-Template/theme",
@@ -243,58 +269,6 @@
   "path_memories": "D:/Dropbox/Notes/Notes-Diaries/Memories",
   "path_notes": "D:/Dropbox/Notes",
   "path_photos": "D:/Dropbox/Camera_Uploads_2",
-  "musicbee": {
-    "library_dir": "D:/Dropbox/Programs/MusicBee/Library",
-    "music_root": "C:/Users/sergi/OneDrive/Music",
-    "stream_root": "C:/Users/sergi/OneDrive/Music/Stream",
-    "backup_dir": "D:/Dropbox/Backups",
-    "audio_extensions": [
-      ".mp3",
-      ".flac",
-      ".m4a",
-      ".ogg",
-      ".opus",
-      ".wav",
-      ".wma"
-    ],
-    "stream_playlist_prefix": "Stream - ",
-    "rules": [
-      {
-        "type": "restrict_folder",
-        "playlists": "Stream - *",
-        "folder": "{stream_root}"
-      },
-      {
-        "type": "ensure_subset",
-        "source": "Stream - Epic (real)",
-        "target": "Stream - Epic"
-      },
-      {
-        "type": "ensure_subset",
-        "source": "Stream - OST (real)",
-        "target": "Stream - OST"
-      },
-      {
-        "type": "ensure_subset",
-        "source": "Stream - Power metal",
-        "target": "Stream - Heavy"
-      },
-      {
-        "type": "union",
-        "target": "Stream - Mad (both)",
-        "sources": [
-          "Stream - Mad",
-          "Stream - Mad (electro)"
-        ]
-      },
-      {
-        "type": "rebuild_remainder",
-        "playlist": "Stream - Temp",
-        "from_folder": "{stream_root}",
-        "exclude_playlists": "Stream - *"
-      }
-    ]
-  },
   "path_quotes": "D:/Dropbox/Notes/Notes-Lists/Quotes",
   "path_site_repo": "D:/GitHub/harrix.dev",
   "path_totalcmd_ini": "C:/TCTitan36/Wincmd.ini",
@@ -309,16 +283,11 @@
     "D:/GitHub/_vector/Harrix-Vector-Images"
   ],
   "path_vector_icons_source_app": "C:/Program Files/Adobe/Adobe Illustrator 2026/Support Files/Contents/Windows/Illustrator.exe",
-  "paths_android_projects": [
-    "D:/GitHub/harrix-swiss-knife/android",
-    "D:/GitHub/harrix-notes-android"
-  ],
+  "paths_android_projects": ["D:/GitHub/harrix-swiss-knife/android", "D:/GitHub/harrix-notes-android"],
   "paths_combine_for_ai": [
     {
       "base_folder": "D:/GitHub/harrix-swiss-knife",
-      "files": [
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/**/*.py"
-      ],
+      "files": ["D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/**/*.py"],
       "name": "harrix-swiss-knife"
     },
     {
@@ -347,9 +316,7 @@
     },
     {
       "base_folder": "D:/GitHub/harrix-swiss-knife",
-      "files": [
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/**/*.py"
-      ],
+      "files": ["D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/**/*.py"],
       "name": "harrix-swiss-knife - all Python files in apps"
     }
   ],
@@ -384,19 +351,9 @@
     "D:/Dropbox/Notes/Notes-Lists/Books",
     "D:/Dropbox/Notes/Notes-Lists/Books-of-nonfiction"
   ],
-  "paths_python_libraries": [
-    "D:/GitHub/harrix-pylib",
-    "D:/GitHub/harrix-pyssg"
-  ],
-  "paths_python_project_creation": [
-    "C:/Users/sergi/OneDrive/Projects/Python",
-    "D:/GitHub"
-  ],
-  "paths_python_projects": [
-    "D:/GitHub/harrix-swiss-knife",
-    "D:/GitHub/harrix-pylib",
-    "D:/GitHub/harrix-pyssg"
-  ],
+  "paths_python_libraries": ["D:/GitHub/harrix-pylib", "D:/GitHub/harrix-pyssg"],
+  "paths_python_project_creation": ["C:/Users/sergi/OneDrive/Projects/Python", "D:/GitHub"],
+  "paths_python_projects": ["D:/GitHub/harrix-swiss-knife", "D:/GitHub/harrix-pylib", "D:/GitHub/harrix-pyssg"],
   "paths_quotes": [
     "D:/Dropbox/Notes/Notes-Lists/Quotes/Fiction",
     "D:/Dropbox/Notes/Notes-Lists/Quotes/Religion",
@@ -450,14 +407,14 @@
     "food_voice_log_to_tsv": "snippet:config/prompts/food-voice-log-to-tsv.md",
     "habits_emoji_suggest": "snippet:config/prompts/habits-emoji-suggest.md",
     "image_ocr_to_markdown": "snippet:config/prompts/image-ocr-to-markdown.md",
+    "image_ocr_translate": "snippet:config/prompts/image-ocr-translate.md",
     "markdown_template_fields_from_source": "snippet:config/prompts/markdown-template-fields-from-source.md",
     "speech_transcription": "snippet:config/prompts/speech-transcription.md",
     "text_fix_ru": "snippet:config/prompts/text-fix-ru.md",
     "text_fix_ru_clipboard": "snippet:config/prompts/text-fix-ru-clipboard.md",
     "text_rewrite_ru": "snippet:config/prompts/text-rewrite-ru.md",
     "vector_icons_add_image": "snippet:config/prompts/vector-icons-add-image.md",
-    "vector_icons_keywords": "snippet:config/prompts/vector-icons-keywords.md",
-    "image_ocr_translate": "snippet:config/prompts/image-ocr-translate.md"
+    "vector_icons_keywords": "snippet:config/prompts/vector-icons-keywords.md"
   },
   "pypi_token": "snippet:api-keys/pypi-token.txt",
   "quick_launcher_markdown_in_panel": true,
@@ -472,11 +429,8 @@
   "start_pattern_jupyter_notebooks": "jupyter-notebook-",
   "start_pattern_py_projects": "python-project-",
   "ticktick_api_key": "snippet:api-keys/ticktick-api-key.txt",
-  "transfer_private_data_default_api_keys": [
-    "bothub",
-    "bothub.ru"
-  ],
-  "ui_font_scale": 1.0,
+  "transfer_private_data_default_api_keys": ["bothub", "bothub.ru"],
+  "ui_font_scale": 1,
   "vector_icons_recent_folders_max": 12,
   "vscode_workspace_articles": "D:/Dropbox/Programs/vscode_workspaces/_content__harrix-dev.code-workspace",
   "vscode_workspace_notes": "D:/Dropbox/Programs/vscode_workspaces/Notes.code-workspace"
