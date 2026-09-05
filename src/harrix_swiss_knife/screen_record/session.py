@@ -12,6 +12,7 @@ from harrix_swiss_knife.apps.common.audio_compress import is_ffmpeg_available
 from harrix_swiss_knife.paths import get_project_root
 from harrix_swiss_knife.screen_record.ffmpeg_recorder import ScreenRecorder
 from harrix_swiss_knife.screen_record.geometry import logical_rect_to_gdigrab
+from harrix_swiss_knife.screen_record.preview_dialog import show_recording_preview
 from harrix_swiss_knife.screen_record.record_frame import RecordFrameWindow
 from harrix_swiss_knife.screenshot.capture import select_region
 from harrix_swiss_knife.screenshot.dated_image_path import next_dated_image_path
@@ -107,11 +108,10 @@ class _RecordSession(QObject):
         self._frame.set_recording(active=False)
         if ok:
             path = Path(message)
+            self._close_frame()
+            show_recording_preview(path)
             if self._on_finished is not None:
                 self._on_finished(path)
-            else:
-                QMessageBox.information(self._frame, "Screen record", f"Saved:\n{path}")
-            self._close_frame()
             return
         QMessageBox.warning(self._frame, "Screen record", message)
         self._frame.cancel_countdown()

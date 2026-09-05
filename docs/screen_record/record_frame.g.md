@@ -51,10 +51,12 @@ class RecordFrameWindow(QWidget):
         mark_screenshot_ui(self)
         self.setWindowFlags(frameless_stay_on_top_flags() | Qt.WindowType.Tool)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, on=True)
+        self.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips, on=True)
         self.setMouseTracking(True)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
         self._region = QRect(region)
+        self._left_pad = 0
         self._locked = False
         self._drag_handle: HandleKind | None = None
         self._press_pos: QPoint | None = None
@@ -71,9 +73,11 @@ class RecordFrameWindow(QWidget):
         self._elapsed_timer.timeout.connect(self._on_elapsed_tick)
 
         self._status = QLabel(self)
-        self._status.setStyleSheet("color: white; font-weight: bold; padding: 0 6px;")
+        self._status.setStyleSheet("color: white; font-weight: bold; padding: 0 4px;")
+        self._status.setToolTip("Recording status")
 
         self._audio = QComboBox(self)
+        self._audio.setToolTip("Audio source for the recording")
         for mode in ("none", "mic", "system", "mic_and_system"):
             self._audio.addItem(_AUDIO_LABELS[mode], mode)
         current = get_screen_record_audio()
@@ -82,42 +86,25 @@ class RecordFrameWindow(QWidget):
             self._audio.setCurrentIndex(index)
         self._audio.currentIndexChanged.connect(self._on_audio_changed)
 
-        self._record_btn = QPushButton(self)
-        self._record_btn.setIcon(create_emoji_icon("⏺️", _ICON))
-        self._record_btn.setIconSize(QSize(_ICON, _ICON))
-        self._record_btn.setToolTip("Record now")
-        self._record_btn.clicked.connect(self._on_record_now)
-
         countdown = get_screen_record_countdown_seconds()
-        self._countdown_btn = QPushButton(self)
-        self._countdown_btn.setIcon(create_emoji_icon("⏱️", _ICON))
-        self._countdown_btn.setIconSize(QSize(_ICON, _ICON))
-        self._countdown_btn.setToolTip(f"Countdown {countdown}s then record")
-        self._countdown_btn.setText(str(countdown) if countdown else "0")
+        self._record_btn = self._make_tool_button("⏺️", "Record now (start immediately)")
+        self._record_btn.clicked.connect(self._on_record_now)
+        self._countdown_btn = self._make_tool_button(
+            "⏱️",
+            f"Countdown {countdown}s then record",
+            text=str(countdown) if countdown else "0",
+        )
         self._countdown_btn.clicked.connect(self._on_countdown_start)
-
-        self._stop_btn = QPushButton(self)
-        self._stop_btn.setIcon(create_emoji_icon("⏹️", _ICON))
-        self._stop_btn.setIconSize(QSize(_ICON, _ICON))
-        self._stop_btn.setToolTip("Stop and save")
-        self._stop_btn.setEnabled(False)
+        self._stop_btn = self._make_tool_button("⏹️", "Stop recording and open preview")
         self._stop_btn.clicked.connect(self.stop_requested.emit)
-
-        self._abort_btn = QPushButton(self)
-        self._abort_btn.setIcon(create_emoji_icon("❌", _ICON))
-        self._abort_btn.setIconSize(QSize(_ICON, _ICON))
-        self._abort_btn.setToolTip("Abort")
+        self._abort_btn = self._make_tool_button("❌", "Abort without saving")
         self._abort_btn.clicked.connect(self.abort_requested.emit)
 
         bar = QWidget(self)
         bar.setObjectName("recordToolbar")
         bar.setCursor(Qt.CursorShape.ArrowCursor)
-        bar.setStyleSheet(
-            "#recordToolbar { background-color: rgba(30,30,30,230); border-radius: 8px; }"
-            "QPushButton { background: rgba(50,50,50,220); border: 1px solid #888; "
-            "border-radius: 6px; min-width: 36px; min-height: 32px; color: white; }"
-            "QComboBox { min-width: 120px; color: white; background: #333; }"
-        )
+        bar.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips, on=True)
+        bar.setStyleSheet(_TOOLBAR_STYLE)
         row = QHBoxLayout(bar)
         row.setContentsMargins(8, 6, 8, 6)
         row.setSpacing(6)
@@ -132,20 +119,22 @@ class RecordFrameWindow(QWidget):
         bar.installEventFilter(self._toolbar_filter)
         for child in bar.findChildren(QWidget):
             child.setCursor(Qt.CursorShape.ArrowCursor)
+            child.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips, on=True)
             child.installEventFilter(self._toolbar_filter)
 
-        self._status.setText("Ready — move/resize frame, then record")
+        self._status.setText("Ready")
+        self._status.setToolTip("Ready — move/resize frame, then record")
+        self._update_idle_controls(visible=True)
         self._apply_geometry()
 
     def cancel_countdown(self) -> None:
         """Stop a pending countdown without starting capture."""
         self._countdown_timer.stop()
         self._countdown_left = 0
-        self._record_btn.setEnabled(True)
-        self._countdown_btn.setEnabled(True)
-        self._audio.setEnabled(True)
         if not self._recording:
-            self._status.setText("Ready — move/resize frame, then record")
+            self._update_idle_controls(visible=True)
+            self._status.setText("Ready")
+            self._status.setToolTip("Ready — move/resize frame, then record")
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         """Drag move/resize the region, or update the resize cursor."""
@@ -269,21 +258,24 @@ class RecordFrameWindow(QWidget):
         """Update UI for recording vs idle."""
         self._recording = active
         self._locked = active
-        self._record_btn.setEnabled(not active)
-        self._countdown_btn.setEnabled(not active)
-        self._audio.setEnabled(not active)
+        self._update_idle_controls(visible=not active)
+        self._stop_btn.setVisible(active)
         self._stop_btn.setEnabled(active)
         if active:
             self._elapsed_ms = 0
             self._elapsed_timer.start()
-            self._status.setText("Recording 00:00")
+            self._status.setText("00:00")
+            self._status.setToolTip("Recording in progress")
         else:
             self._elapsed_timer.stop()
-            self._status.setText("Ready — move/resize frame, then record")
+            self._status.setText("Ready")
+            self._status.setToolTip("Ready — move/resize frame, then record")
+        self._apply_geometry()
 
     def set_status(self, text: str) -> None:
         """Replace the status label text."""
         self._status.setText(text)
+        self._status.setToolTip(text)
 
     def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
         """Finalize toolbar geometry after the first layout pass."""
@@ -292,10 +284,15 @@ class RecordFrameWindow(QWidget):
         self._update_mask()
 
     def _apply_geometry(self) -> None:
+        self._toolbar.adjustSize()
+        toolbar_w = max(self._toolbar.sizeHint().width(), 200) + _TOOLBAR_SIDE_PAD * 2
+        content_w = self._region.width() + _BORDER * 2
+        win_w = max(content_w, toolbar_w)
+        self._left_pad = max(0, (win_w - content_w) // 2)
         geo = QRect(
-            self._region.x() - _BORDER,
+            self._region.x() - _BORDER - self._left_pad,
             self._region.y() - _BORDER,
-            self._region.width() + _BORDER * 2,
+            win_w,
             self._region.height() + _BORDER * 2 + _TOOLBAR_GAP + _TOOLBAR_H,
         )
         self.setGeometry(geo)
@@ -304,7 +301,8 @@ class RecordFrameWindow(QWidget):
 
     def _border_ring_rect(self) -> QRect:
         """Outer rectangle covering the border around the region (not the toolbar)."""
-        return QRect(0, 0, self._region.width() + _BORDER * 2, self._region.height() + _BORDER * 2)
+        local = self._region_local_rect()
+        return local.adjusted(-_BORDER, -_BORDER, _BORDER, _BORDER)
 
     def _current_audio(self) -> ScreenRecordAudio:
         data = self._audio.currentData()
@@ -317,13 +315,24 @@ class RecordFrameWindow(QWidget):
         return self._toolbar.geometry().contains(pos)
 
     def _layout_toolbar(self) -> None:
+        self._toolbar.adjustSize()
         hint = self._toolbar.sizeHint()
-        width = max(hint.width(), 280)
+        width = min(max(hint.width(), 160), max(160, self.width() - _TOOLBAR_SIDE_PAD * 2))
         height = max(hint.height(), _TOOLBAR_H - 4)
         x = max(0, (self.width() - width) // 2)
         y = _BORDER + self._region.height() + _BORDER + _TOOLBAR_GAP
         self._toolbar.setGeometry(x, y, width, height)
         self._toolbar.raise_()
+
+    def _make_tool_button(self, emoji: str, tip: str, *, text: str = "") -> QPushButton:
+        button = QPushButton(self)
+        button.setIcon(create_emoji_icon(emoji, _ICON))
+        button.setIconSize(QSize(_ICON, _ICON))
+        button.setToolTip(tip)
+        button.setAttribute(Qt.WidgetAttribute.WA_Hover, on=True)
+        if text:
+            button.setText(text)
+        return button
 
     def _on_audio_changed(self, _index: int) -> None:
         mode = self._current_audio()
@@ -338,7 +347,8 @@ class RecordFrameWindow(QWidget):
         self._countdown_btn.setEnabled(False)
         self._audio.setEnabled(False)
         self._countdown_left = seconds
-        self._status.setText(f"Starting in {self._countdown_left}…")
+        self._status.setText(f"{self._countdown_left}…")
+        self._status.setToolTip(f"Starting in {self._countdown_left}s")
         self._countdown_timer.start()
 
     def _on_countdown_tick(self) -> None:
@@ -347,19 +357,20 @@ class RecordFrameWindow(QWidget):
             self._countdown_timer.stop()
             self.start_requested.emit(self._current_audio())
             return
-        self._status.setText(f"Starting in {self._countdown_left}…")
+        self._status.setText(f"{self._countdown_left}…")
+        self._status.setToolTip(f"Starting in {self._countdown_left}s")
 
     def _on_elapsed_tick(self) -> None:
         self._elapsed_ms += 250
         total = self._elapsed_ms // 1000
-        self._status.setText(f"Recording {total // 60:02d}:{total % 60:02d}")
+        self._status.setText(f"{total // 60:02d}:{total % 60:02d}")
 
     def _on_record_now(self) -> None:
         self._countdown_timer.stop()
         self.start_requested.emit(self._current_audio())
 
     def _region_local_rect(self) -> QRect:
-        return QRect(_BORDER, _BORDER, self._region.width(), self._region.height())
+        return QRect(_BORDER + self._left_pad, _BORDER, self._region.width(), self._region.height())
 
     def _set_region(self, region: QRect) -> None:
         if region.width() < _MIN_REGION or region.height() < _MIN_REGION:
@@ -367,6 +378,16 @@ class RecordFrameWindow(QWidget):
         self._region = QRect(region)
         self._apply_geometry()
         self.region_changed.emit(self._region)
+
+    def _update_idle_controls(self, *, visible: bool) -> None:
+        self._audio.setVisible(visible)
+        self._record_btn.setVisible(visible)
+        self._countdown_btn.setVisible(visible)
+        self._audio.setEnabled(visible)
+        self._record_btn.setEnabled(visible)
+        self._countdown_btn.setEnabled(visible)
+        self._stop_btn.setVisible(not visible)
+        self._stop_btn.setEnabled(not visible)
 
     def _update_mask(self) -> None:
         """Leave a click-through hole inside the border; keep toolbar clickable."""
@@ -404,10 +425,12 @@ def __init__(self, region: QRect, parent: QWidget | None = None) -> None:
         mark_screenshot_ui(self)
         self.setWindowFlags(frameless_stay_on_top_flags() | Qt.WindowType.Tool)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, on=True)
+        self.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips, on=True)
         self.setMouseTracking(True)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
         self._region = QRect(region)
+        self._left_pad = 0
         self._locked = False
         self._drag_handle: HandleKind | None = None
         self._press_pos: QPoint | None = None
@@ -424,9 +447,11 @@ def __init__(self, region: QRect, parent: QWidget | None = None) -> None:
         self._elapsed_timer.timeout.connect(self._on_elapsed_tick)
 
         self._status = QLabel(self)
-        self._status.setStyleSheet("color: white; font-weight: bold; padding: 0 6px;")
+        self._status.setStyleSheet("color: white; font-weight: bold; padding: 0 4px;")
+        self._status.setToolTip("Recording status")
 
         self._audio = QComboBox(self)
+        self._audio.setToolTip("Audio source for the recording")
         for mode in ("none", "mic", "system", "mic_and_system"):
             self._audio.addItem(_AUDIO_LABELS[mode], mode)
         current = get_screen_record_audio()
@@ -435,42 +460,25 @@ def __init__(self, region: QRect, parent: QWidget | None = None) -> None:
             self._audio.setCurrentIndex(index)
         self._audio.currentIndexChanged.connect(self._on_audio_changed)
 
-        self._record_btn = QPushButton(self)
-        self._record_btn.setIcon(create_emoji_icon("⏺️", _ICON))
-        self._record_btn.setIconSize(QSize(_ICON, _ICON))
-        self._record_btn.setToolTip("Record now")
-        self._record_btn.clicked.connect(self._on_record_now)
-
         countdown = get_screen_record_countdown_seconds()
-        self._countdown_btn = QPushButton(self)
-        self._countdown_btn.setIcon(create_emoji_icon("⏱️", _ICON))
-        self._countdown_btn.setIconSize(QSize(_ICON, _ICON))
-        self._countdown_btn.setToolTip(f"Countdown {countdown}s then record")
-        self._countdown_btn.setText(str(countdown) if countdown else "0")
+        self._record_btn = self._make_tool_button("⏺️", "Record now (start immediately)")
+        self._record_btn.clicked.connect(self._on_record_now)
+        self._countdown_btn = self._make_tool_button(
+            "⏱️",
+            f"Countdown {countdown}s then record",
+            text=str(countdown) if countdown else "0",
+        )
         self._countdown_btn.clicked.connect(self._on_countdown_start)
-
-        self._stop_btn = QPushButton(self)
-        self._stop_btn.setIcon(create_emoji_icon("⏹️", _ICON))
-        self._stop_btn.setIconSize(QSize(_ICON, _ICON))
-        self._stop_btn.setToolTip("Stop and save")
-        self._stop_btn.setEnabled(False)
+        self._stop_btn = self._make_tool_button("⏹️", "Stop recording and open preview")
         self._stop_btn.clicked.connect(self.stop_requested.emit)
-
-        self._abort_btn = QPushButton(self)
-        self._abort_btn.setIcon(create_emoji_icon("❌", _ICON))
-        self._abort_btn.setIconSize(QSize(_ICON, _ICON))
-        self._abort_btn.setToolTip("Abort")
+        self._abort_btn = self._make_tool_button("❌", "Abort without saving")
         self._abort_btn.clicked.connect(self.abort_requested.emit)
 
         bar = QWidget(self)
         bar.setObjectName("recordToolbar")
         bar.setCursor(Qt.CursorShape.ArrowCursor)
-        bar.setStyleSheet(
-            "#recordToolbar { background-color: rgba(30,30,30,230); border-radius: 8px; }"
-            "QPushButton { background: rgba(50,50,50,220); border: 1px solid #888; "
-            "border-radius: 6px; min-width: 36px; min-height: 32px; color: white; }"
-            "QComboBox { min-width: 120px; color: white; background: #333; }"
-        )
+        bar.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips, on=True)
+        bar.setStyleSheet(_TOOLBAR_STYLE)
         row = QHBoxLayout(bar)
         row.setContentsMargins(8, 6, 8, 6)
         row.setSpacing(6)
@@ -485,9 +493,12 @@ def __init__(self, region: QRect, parent: QWidget | None = None) -> None:
         bar.installEventFilter(self._toolbar_filter)
         for child in bar.findChildren(QWidget):
             child.setCursor(Qt.CursorShape.ArrowCursor)
+            child.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips, on=True)
             child.installEventFilter(self._toolbar_filter)
 
-        self._status.setText("Ready — move/resize frame, then record")
+        self._status.setText("Ready")
+        self._status.setToolTip("Ready — move/resize frame, then record")
+        self._update_idle_controls(visible=True)
         self._apply_geometry()
 ```
 
@@ -508,11 +519,10 @@ Stop a pending countdown without starting capture.
 def cancel_countdown(self) -> None:
         self._countdown_timer.stop()
         self._countdown_left = 0
-        self._record_btn.setEnabled(True)
-        self._countdown_btn.setEnabled(True)
-        self._audio.setEnabled(True)
         if not self._recording:
-            self._status.setText("Ready — move/resize frame, then record")
+            self._update_idle_controls(visible=True)
+            self._status.setText("Ready")
+            self._status.setToolTip("Ready — move/resize frame, then record")
 ```
 
 </details>
@@ -733,17 +743,19 @@ Update UI for recording vs idle.
 def set_recording(self, *, active: bool) -> None:
         self._recording = active
         self._locked = active
-        self._record_btn.setEnabled(not active)
-        self._countdown_btn.setEnabled(not active)
-        self._audio.setEnabled(not active)
+        self._update_idle_controls(visible=not active)
+        self._stop_btn.setVisible(active)
         self._stop_btn.setEnabled(active)
         if active:
             self._elapsed_ms = 0
             self._elapsed_timer.start()
-            self._status.setText("Recording 00:00")
+            self._status.setText("00:00")
+            self._status.setToolTip("Recording in progress")
         else:
             self._elapsed_timer.stop()
-            self._status.setText("Ready — move/resize frame, then record")
+            self._status.setText("Ready")
+            self._status.setToolTip("Ready — move/resize frame, then record")
+        self._apply_geometry()
 ```
 
 </details>
@@ -762,6 +774,7 @@ Replace the status label text.
 ```python
 def set_status(self, text: str) -> None:
         self._status.setText(text)
+        self._status.setToolTip(text)
 ```
 
 </details>
