@@ -67,7 +67,6 @@ _Figure 1: Screenshot_
   - 🚀 Add to Windows autostart
   - 🚀 Build installer EXEs ꟲᴸᴵ
   - 🧹 Clear temp folder
-  - 🛑 Close all Adobe apps
   - 🔗 Create desktop shortcut
   - ⬇️ Download ffmpeg, avifenc, avifdec
   - ⌨️ Install CLI (hsk on PATH) ꟲᴸᴵ
@@ -87,6 +86,7 @@ _Figure 1: Screenshot_
   - 🎵 Check MusicBee playlists
   - ✅ Check featured_image in all folders
   - ✅ Check featured_image in …
+  - 🛑 Close all Adobe apps
   - 🤖 ★ Combine files for AI…
   - 🪟 Convert path to Windows from clipboard
   - ↩️ Discard uncommitted Git changes in … ꟲᴸᴵ

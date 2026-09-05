@@ -4,6 +4,7 @@ from harrix_swiss_knife.actions.files.all_files_to_parent_folder import OnAllFil
 from harrix_swiss_knife.actions.files.check_featured_image import OnCheckFeaturedImage
 from harrix_swiss_knife.actions.files.check_featured_image_in_folders import OnCheckFeaturedImageInFolders
 from harrix_swiss_knife.actions.files.check_musicbee_playlists import OnCheckMusicBeePlaylists
+from harrix_swiss_knife.actions.files.close_all_adobe import OnCloseAllAdobe
 from harrix_swiss_knife.actions.files.combine_for_ai import OnCombineForAI
 from harrix_swiss_knife.actions.files.convert_path_to_windows import OnConvertPathToWindows
 from harrix_swiss_knife.actions.files.discard_git_changes import OnDiscardGitChanges
@@ -31,6 +32,7 @@ __all__ = [
     "OnCheckFeaturedImage",
     "OnCheckFeaturedImageInFolders",
     "OnCheckMusicBeePlaylists",
+    "OnCloseAllAdobe",
     "OnCombineForAI",
     "OnConvertPathToWindows",
     "OnDiscardGitChanges",

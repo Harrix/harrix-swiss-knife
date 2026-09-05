@@ -41,7 +41,6 @@ def get_menu_structure() -> list[Any]:
                 OnViewRecentActionLogs,
                 OnShowActionUsageStats,
                 OnClearTempFolder,
-                OnCloseAllAdobe,
                 OnUpdateUv,
                 OnInstallCli,
             ],
@@ -97,6 +96,7 @@ def get_menu_structure() -> list[Any]:
             "🪟",
             [
                 OnAllFilesToParentFolder,
+                OnCloseAllAdobe,
                 OnLockDisks,
                 OnCheckFeaturedImage,
                 OnCheckFeaturedImageInFolders,

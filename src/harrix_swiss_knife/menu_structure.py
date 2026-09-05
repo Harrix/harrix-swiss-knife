@@ -20,7 +20,6 @@ from harrix_swiss_knife.actions.development.about_dialog import OnAboutDialog
 from harrix_swiss_knife.actions.development.add_to_autostart import OnAddToAutostart
 from harrix_swiss_knife.actions.development.build_install_zips import OnBuildInstallZips
 from harrix_swiss_knife.actions.development.clear_temp_folder import OnClearTempFolder
-from harrix_swiss_knife.actions.development.close_all_adobe import OnCloseAllAdobe
 from harrix_swiss_knife.actions.development.create_desktop_shortcut import OnCreateDesktopShortcut
 from harrix_swiss_knife.actions.development.download_optimize_dependencies import OnDownloadOptimizeDependencies
 from harrix_swiss_knife.actions.development.exit_ import OnExit
@@ -43,6 +42,7 @@ from harrix_swiss_knife.actions.files.all_files_to_parent_folder import OnAllFil
 from harrix_swiss_knife.actions.files.check_featured_image import OnCheckFeaturedImage
 from harrix_swiss_knife.actions.files.check_featured_image_in_folders import OnCheckFeaturedImageInFolders
 from harrix_swiss_knife.actions.files.check_musicbee_playlists import OnCheckMusicBeePlaylists
+from harrix_swiss_knife.actions.files.close_all_adobe import OnCloseAllAdobe
 from harrix_swiss_knife.actions.files.combine_for_ai import OnCombineForAI
 from harrix_swiss_knife.actions.files.convert_path_to_windows import OnConvertPathToWindows
 from harrix_swiss_knife.actions.files.discard_git_changes import OnDiscardGitChanges
@@ -152,7 +152,6 @@ def get_menu_structure() -> list[Any]:
                 OnViewRecentActionLogs,
                 OnShowActionUsageStats,
                 OnClearTempFolder,
-                OnCloseAllAdobe,
                 OnUpdateUv,
                 OnInstallCli,
             ],
@@ -208,6 +207,7 @@ def get_menu_structure() -> list[Any]:
             "🪟",
             [
                 OnAllFilesToParentFolder,
+                OnCloseAllAdobe,
                 OnLockDisks,
                 OnCheckFeaturedImage,
                 OnCheckFeaturedImageInFolders,
