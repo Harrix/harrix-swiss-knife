@@ -13,7 +13,7 @@ from harrix_swiss_knife.paths import get_config_path_str
 ScreenRecordAudio = Literal["none", "mic", "system", "mic_and_system"]
 
 SCREEN_RECORD_AUDIO_MODES: frozenset[str] = frozenset({"none", "mic", "system", "mic_and_system"})
-DEFAULT_SCREEN_RECORD_AUDIO: ScreenRecordAudio = "none"
+DEFAULT_SCREEN_RECORD_AUDIO: ScreenRecordAudio = "system"
 DEFAULT_SCREEN_RECORD_COUNTDOWN_SECONDS = 3
 _SCREEN_RECORD_AUDIO_KEY = "screen_record_audio"
 _SCREEN_RECORD_COUNTDOWN_KEY = "screen_record_countdown_seconds"
