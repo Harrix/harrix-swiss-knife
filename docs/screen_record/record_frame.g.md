@@ -22,6 +22,7 @@ lang: en
   - [⚙️ Method `resizeEvent`](#%EF%B8%8F-method-resizeevent)
   - [⚙️ Method `set_recording`](#%EF%B8%8F-method-set_recording)
   - [⚙️ Method `set_status`](#%EF%B8%8F-method-set_status)
+  - [⚙️ Method `showEvent`](#%EF%B8%8F-method-showevent)
 
 </details>
 
@@ -110,6 +111,7 @@ class RecordFrameWindow(QWidget):
 
         bar = QWidget(self)
         bar.setObjectName("recordToolbar")
+        bar.setCursor(Qt.CursorShape.ArrowCursor)
         bar.setStyleSheet(
             "#recordToolbar { background-color: rgba(30,30,30,230); border-radius: 8px; }"
             "QPushButton { background: rgba(50,50,50,220); border: 1px solid #888; "
@@ -126,15 +128,14 @@ class RecordFrameWindow(QWidget):
         row.addWidget(self._stop_btn)
         row.addWidget(self._abort_btn)
         self._toolbar = bar
-
-        root = QVBoxLayout(self)
-        root.setContentsMargins(_BORDER, _BORDER, _BORDER, _BORDER)
-        root.addStretch(1)
-        root.addWidget(bar, alignment=Qt.AlignmentFlag.AlignHCenter)
+        self._toolbar_filter = _ToolbarCursorFilter(self)
+        bar.installEventFilter(self._toolbar_filter)
+        for child in bar.findChildren(QWidget):
+            child.setCursor(Qt.CursorShape.ArrowCursor)
+            child.installEventFilter(self._toolbar_filter)
 
         self._status.setText("Ready — move/resize frame, then record")
         self._apply_geometry()
-        self._update_mask()
 
     def cancel_countdown(self) -> None:
         """Stop a pending countdown without starting capture."""
@@ -152,6 +153,10 @@ class RecordFrameWindow(QWidget):
             event.accept()
             return
         pos = event.position().toPoint()
+        if self._is_over_toolbar(pos):
+            self.unsetCursor()
+            event.ignore()
+            return
         if self._drag_handle is not None and self._press_pos is not None and self._press_region is not None:
             bounds = self._virtual_bounds()
             if self._drag_handle == "move":
@@ -173,13 +178,13 @@ class RecordFrameWindow(QWidget):
             event.accept()
             return
         handle = hit_test_selection_handle(
-            QRect(_BORDER, _BORDER, self._region.width(), self._region.height()),
+            self._region_local_rect(),
             pos,
             handle_size=_HANDLE,
         )
         if handle is None:
-            inner = QRect(_BORDER, _BORDER, self._region.width(), self._region.height())
-            if not inner.contains(pos):
+            ring = self._border_ring_rect()
+            if ring.contains(pos) and not self._region_local_rect().contains(pos):
                 handle = "move"
         self.setCursor(getattr(Qt.CursorShape, cursor_for_handle(handle)) if handle else Qt.CursorShape.ArrowCursor)
         event.accept()
@@ -190,18 +195,17 @@ class RecordFrameWindow(QWidget):
             event.accept()
             return
         pos = event.position().toPoint()
+        if self._is_over_toolbar(pos):
+            event.ignore()
+            return
         handle = hit_test_selection_handle(
-            QRect(_BORDER, _BORDER, self._region.width(), self._region.height()),
+            self._region_local_rect(),
             pos,
             handle_size=_HANDLE,
         )
-        if handle is None and self._toolbar.geometry().contains(pos):
-            event.ignore()
-            return
         if handle is None:
-            # Drag from border ring → move
-            inner = QRect(_BORDER, _BORDER, self._region.width(), self._region.height())
-            if not inner.contains(pos):
+            ring = self._border_ring_rect()
+            if ring.contains(pos) and not self._region_local_rect().contains(pos):
                 handle = "move"
         if handle is None:
             event.accept()
@@ -213,6 +217,12 @@ class RecordFrameWindow(QWidget):
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         """End move/resize."""
+        if self._is_over_toolbar(event.position().toPoint()):
+            self._drag_handle = None
+            self._press_pos = None
+            self._press_region = None
+            event.ignore()
+            return
         self._drag_handle = None
         self._press_pos = None
         self._press_region = None
@@ -222,7 +232,7 @@ class RecordFrameWindow(QWidget):
         """Draw the recording border and handles."""
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
-        rect = QRect(_BORDER, _BORDER, self._region.width(), self._region.height())
+        rect = self._region_local_rect()
         color = QColor(220, 40, 40) if self._recording else QColor(0, 174, 255)
         pen = QPen(color, _BORDER)
         painter.setPen(pen)
@@ -250,8 +260,9 @@ class RecordFrameWindow(QWidget):
         return QRect(self._region)
 
     def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
-        """Keep the click-through hole aligned with the region."""
+        """Keep the click-through hole and toolbar aligned."""
         super().resizeEvent(event)
+        self._layout_toolbar()
         self._update_mask()
 
     def set_recording(self, *, active: bool) -> None:
@@ -274,15 +285,26 @@ class RecordFrameWindow(QWidget):
         """Replace the status label text."""
         self._status.setText(text)
 
+    def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
+        """Finalize toolbar geometry after the first layout pass."""
+        super().showEvent(event)
+        self._layout_toolbar()
+        self._update_mask()
+
     def _apply_geometry(self) -> None:
         geo = QRect(
             self._region.x() - _BORDER,
             self._region.y() - _BORDER,
             self._region.width() + _BORDER * 2,
-            self._region.height() + _BORDER * 2 + _TOOLBAR_H,
+            self._region.height() + _BORDER * 2 + _TOOLBAR_GAP + _TOOLBAR_H,
         )
         self.setGeometry(geo)
+        self._layout_toolbar()
         self._update_mask()
+
+    def _border_ring_rect(self) -> QRect:
+        """Outer rectangle covering the border around the region (not the toolbar)."""
+        return QRect(0, 0, self._region.width() + _BORDER * 2, self._region.height() + _BORDER * 2)
 
     def _current_audio(self) -> ScreenRecordAudio:
         data = self._audio.currentData()
@@ -290,6 +312,18 @@ class RecordFrameWindow(QWidget):
         if mode in SCREEN_RECORD_AUDIO_MODES:
             return cast("ScreenRecordAudio", mode)
         return "none"
+
+    def _is_over_toolbar(self, pos: QPoint) -> bool:
+        return self._toolbar.geometry().contains(pos)
+
+    def _layout_toolbar(self) -> None:
+        hint = self._toolbar.sizeHint()
+        width = max(hint.width(), 280)
+        height = max(hint.height(), _TOOLBAR_H - 4)
+        x = max(0, (self.width() - width) // 2)
+        y = _BORDER + self._region.height() + _BORDER + _TOOLBAR_GAP
+        self._toolbar.setGeometry(x, y, width, height)
+        self._toolbar.raise_()
 
     def _on_audio_changed(self, _index: int) -> None:
         mode = self._current_audio()
@@ -324,6 +358,9 @@ class RecordFrameWindow(QWidget):
         self._countdown_timer.stop()
         self.start_requested.emit(self._current_audio())
 
+    def _region_local_rect(self) -> QRect:
+        return QRect(_BORDER, _BORDER, self._region.width(), self._region.height())
+
     def _set_region(self, region: QRect) -> None:
         if region.width() < _MIN_REGION or region.height() < _MIN_REGION:
             return
@@ -334,9 +371,7 @@ class RecordFrameWindow(QWidget):
     def _update_mask(self) -> None:
         """Leave a click-through hole inside the border; keep toolbar clickable."""
         full = QRegion(self.rect())
-        hole = QRegion(
-            QRect(_BORDER, _BORDER, max(1, self._region.width()), max(1, self._region.height())),
-        )
+        hole = QRegion(self._region_local_rect())
         toolbar = QRegion(self._toolbar.geometry())
         self.setMask(full.subtracted(hole).united(toolbar))
 
@@ -429,6 +464,7 @@ def __init__(self, region: QRect, parent: QWidget | None = None) -> None:
 
         bar = QWidget(self)
         bar.setObjectName("recordToolbar")
+        bar.setCursor(Qt.CursorShape.ArrowCursor)
         bar.setStyleSheet(
             "#recordToolbar { background-color: rgba(30,30,30,230); border-radius: 8px; }"
             "QPushButton { background: rgba(50,50,50,220); border: 1px solid #888; "
@@ -445,15 +481,14 @@ def __init__(self, region: QRect, parent: QWidget | None = None) -> None:
         row.addWidget(self._stop_btn)
         row.addWidget(self._abort_btn)
         self._toolbar = bar
-
-        root = QVBoxLayout(self)
-        root.setContentsMargins(_BORDER, _BORDER, _BORDER, _BORDER)
-        root.addStretch(1)
-        root.addWidget(bar, alignment=Qt.AlignmentFlag.AlignHCenter)
+        self._toolbar_filter = _ToolbarCursorFilter(self)
+        bar.installEventFilter(self._toolbar_filter)
+        for child in bar.findChildren(QWidget):
+            child.setCursor(Qt.CursorShape.ArrowCursor)
+            child.installEventFilter(self._toolbar_filter)
 
         self._status.setText("Ready — move/resize frame, then record")
         self._apply_geometry()
-        self._update_mask()
 ```
 
 </details>
@@ -499,6 +534,10 @@ def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
             event.accept()
             return
         pos = event.position().toPoint()
+        if self._is_over_toolbar(pos):
+            self.unsetCursor()
+            event.ignore()
+            return
         if self._drag_handle is not None and self._press_pos is not None and self._press_region is not None:
             bounds = self._virtual_bounds()
             if self._drag_handle == "move":
@@ -520,13 +559,13 @@ def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
             event.accept()
             return
         handle = hit_test_selection_handle(
-            QRect(_BORDER, _BORDER, self._region.width(), self._region.height()),
+            self._region_local_rect(),
             pos,
             handle_size=_HANDLE,
         )
         if handle is None:
-            inner = QRect(_BORDER, _BORDER, self._region.width(), self._region.height())
-            if not inner.contains(pos):
+            ring = self._border_ring_rect()
+            if ring.contains(pos) and not self._region_local_rect().contains(pos):
                 handle = "move"
         self.setCursor(getattr(Qt.CursorShape, cursor_for_handle(handle)) if handle else Qt.CursorShape.ArrowCursor)
         event.accept()
@@ -551,18 +590,17 @@ def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
             event.accept()
             return
         pos = event.position().toPoint()
+        if self._is_over_toolbar(pos):
+            event.ignore()
+            return
         handle = hit_test_selection_handle(
-            QRect(_BORDER, _BORDER, self._region.width(), self._region.height()),
+            self._region_local_rect(),
             pos,
             handle_size=_HANDLE,
         )
-        if handle is None and self._toolbar.geometry().contains(pos):
-            event.ignore()
-            return
         if handle is None:
-            # Drag from border ring → move
-            inner = QRect(_BORDER, _BORDER, self._region.width(), self._region.height())
-            if not inner.contains(pos):
+            ring = self._border_ring_rect()
+            if ring.contains(pos) and not self._region_local_rect().contains(pos):
                 handle = "move"
         if handle is None:
             event.accept()
@@ -588,6 +626,12 @@ End move/resize.
 
 ```python
 def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        if self._is_over_toolbar(event.position().toPoint()):
+            self._drag_handle = None
+            self._press_pos = None
+            self._press_region = None
+            event.ignore()
+            return
         self._drag_handle = None
         self._press_pos = None
         self._press_region = None
@@ -611,7 +655,7 @@ Draw the recording border and handles.
 def paintEvent(self, event: QPaintEvent) -> None:  # noqa: ARG002, N802
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
-        rect = QRect(_BORDER, _BORDER, self._region.width(), self._region.height())
+        rect = self._region_local_rect()
         color = QColor(220, 40, 40) if self._recording else QColor(0, 174, 255)
         pen = QPen(color, _BORDER)
         painter.setPen(pen)
@@ -660,7 +704,7 @@ def region(self) -> QRect:
 def resizeEvent(self, event: QResizeEvent) -> None
 ```
 
-Keep the click-through hole aligned with the region.
+Keep the click-through hole and toolbar aligned.
 
 <details>
 <summary>Code:</summary>
@@ -668,6 +712,7 @@ Keep the click-through hole aligned with the region.
 ```python
 def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
         super().resizeEvent(event)
+        self._layout_toolbar()
         self._update_mask()
 ```
 
@@ -717,6 +762,26 @@ Replace the status label text.
 ```python
 def set_status(self, text: str) -> None:
         self._status.setText(text)
+```
+
+</details>
+
+### ⚙️ Method `showEvent`
+
+```python
+def showEvent(self, event: QShowEvent) -> None
+```
+
+Finalize toolbar geometry after the first layout pass.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
+        super().showEvent(event)
+        self._layout_toolbar()
+        self._update_mask()
 ```
 
 </details>

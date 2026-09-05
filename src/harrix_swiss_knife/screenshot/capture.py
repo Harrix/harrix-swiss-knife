@@ -272,7 +272,7 @@ def _hwnds_from_widgets(widgets: Iterable[QWidget]) -> list[int]:
 
 def _select_loop(*, with_controls: bool, session: _HideSession) -> QRect | None:
     """Alternate between region selection and desktop-arrangement until a rect is chosen."""
-    adjust_mode = True
+    adjust_mode = False
     guides_mode = False
     while True:
         window_rects = list_snappable_window_rects(exclude_hwnds=session.exclude_hwnds())
