@@ -46,17 +46,26 @@ def add_copy_button(button_layout: QHBoxLayout, click_handler: Callable[[], None
 ## 🔧 Function `add_ok_button`
 
 ```python
-def add_ok_button(dialog: QDialog, button_layout: QHBoxLayout) -> QPushButton
+def add_ok_button(dialog: QDialog, button_layout: QHBoxLayout, *, label: str = OK_BUTTON_LABEL, emoji: str = OK_BUTTON_EMOJI) -> QPushButton
 ```
 
-Add an OK button with an emoji icon.
+Add a dismiss/confirm button with an emoji icon.
+
+Callers that pair this with a separate Apply-style action should pass
+`Cancel` so the dismiss button is not mistaken for confirmation.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def add_ok_button(dialog: QDialog, button_layout: QHBoxLayout) -> QPushButton:
-    ok_button = make_emoji_push_button(OK_BUTTON_LABEL, OK_BUTTON_EMOJI)
+def add_ok_button(
+    dialog: QDialog,
+    button_layout: QHBoxLayout,
+    *,
+    label: str = OK_BUTTON_LABEL,
+    emoji: str = OK_BUTTON_EMOJI,
+) -> QPushButton:
+    ok_button = make_emoji_push_button(label, emoji)
     ok_button.clicked.connect(dialog.accept)
     button_layout.addWidget(ok_button)
     return ok_button

@@ -5,7 +5,11 @@ from __future__ import annotations
 from typing import Any
 
 from harrix_swiss_knife.actions.common.base import ActionBase
-from harrix_swiss_knife.actions.common.text_result_dialog import RERUN_DIALOG_CODE
+from harrix_swiss_knife.actions.common.text_result_dialog import (
+    CANCEL_BUTTON_EMOJI,
+    CANCEL_BUTTON_LABEL,
+    RERUN_DIALOG_CODE,
+)
 from harrix_swiss_knife.musicbee.process import (
     CheckPlan,
     apply_plan,
@@ -68,6 +72,8 @@ class OnCheckMusicBeePlaylists(ActionBase):
             rerun_button=True,
             rerun_button_label="Apply",
             rerun_button_emoji="💾",
+            ok_button_label=CANCEL_BUTTON_LABEL,
+            ok_button_emoji=CANCEL_BUTTON_EMOJI,
         )
         if not isinstance(shown, tuple) or shown[1] != RERUN_DIALOG_CODE:
             return

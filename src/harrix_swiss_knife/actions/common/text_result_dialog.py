@@ -32,6 +32,7 @@ OPEN_FOLDER_BUTTON_LABEL = "Open folder"
 OPEN_FOLDER_BUTTON_EMOJI = "📂"
 OK_BUTTON_LABEL = "OK"
 OK_BUTTON_EMOJI = "✅"
+CANCEL_BUTTON_LABEL = "Cancel"
 CANCEL_BUTTON_EMOJI = "❌"
 
 
@@ -43,9 +44,20 @@ def add_copy_button(button_layout: QHBoxLayout, click_handler: Callable[[], None
     return copy_button
 
 
-def add_ok_button(dialog: QDialog, button_layout: QHBoxLayout) -> QPushButton:
-    """Add an OK button with an emoji icon."""
-    ok_button = make_emoji_push_button(OK_BUTTON_LABEL, OK_BUTTON_EMOJI)
+def add_ok_button(
+    dialog: QDialog,
+    button_layout: QHBoxLayout,
+    *,
+    label: str = OK_BUTTON_LABEL,
+    emoji: str = OK_BUTTON_EMOJI,
+) -> QPushButton:
+    """Add a dismiss/confirm button with an emoji icon.
+
+    Callers that pair this with a separate Apply-style action should pass
+    `Cancel` so the dismiss button is not mistaken for confirmation.
+
+    """
+    ok_button = make_emoji_push_button(label, emoji)
     ok_button.clicked.connect(dialog.accept)
     button_layout.addWidget(ok_button)
     return ok_button

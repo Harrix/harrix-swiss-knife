@@ -1501,6 +1501,8 @@ class ActionDialogService:
         save_button: bool = False,
         save_default_path: str | None = None,
         save_filter: str = "Markdown Files (*.md);;All Files (*)",
+        ok_button_label: str = OK_BUTTON_LABEL,
+        ok_button_emoji: str = OK_BUTTON_EMOJI,
     ) -> str | tuple[str | None, int] | None:
         """Show read-only multi-line text dialog and return text if accepted."""
         has_action_buttons = rerun_button or rewrite_button or remove_paragraphs_button
@@ -1588,7 +1590,12 @@ class ActionDialogService:
                 remove_paragraphs_source_text=current_text,
             )
 
-            add_ok_button(dialog, button_layout)
+            add_ok_button(
+                dialog,
+                button_layout,
+                label=ok_button_label,
+                emoji=ok_button_emoji,
+            )
 
             layout.addLayout(button_layout)
 
@@ -3629,7 +3636,7 @@ def show_text_diff_side_by_side(
 ### ⚙️ Method `show_text_multiline`
 
 ```python
-def show_text_multiline(self, text: str, title: str = 'Result', *, open_folder_path: Path | str | None = None, rerun_button: bool = False, rerun_button_label: str = RERUN_BUTTON_LABEL, rerun_button_emoji: str = RERUN_BUTTON_EMOJI, rewrite_button: bool = False, remove_paragraphs_button: bool = False, save_button: bool = False, save_default_path: str | None = None, save_filter: str = 'Markdown Files (*.md);;All Files (*)') -> str | tuple[str | None, int] | None
+def show_text_multiline(self, text: str, title: str = 'Result', *, open_folder_path: Path | str | None = None, rerun_button: bool = False, rerun_button_label: str = RERUN_BUTTON_LABEL, rerun_button_emoji: str = RERUN_BUTTON_EMOJI, rewrite_button: bool = False, remove_paragraphs_button: bool = False, save_button: bool = False, save_default_path: str | None = None, save_filter: str = 'Markdown Files (*.md);;All Files (*)', ok_button_label: str = OK_BUTTON_LABEL, ok_button_emoji: str = OK_BUTTON_EMOJI) -> str | tuple[str | None, int] | None
 ```
 
 Show read-only multi-line text dialog and return text if accepted.
@@ -3652,6 +3659,8 @@ def show_text_multiline(
         save_button: bool = False,
         save_default_path: str | None = None,
         save_filter: str = "Markdown Files (*.md);;All Files (*)",
+        ok_button_label: str = OK_BUTTON_LABEL,
+        ok_button_emoji: str = OK_BUTTON_EMOJI,
     ) -> str | tuple[str | None, int] | None:
         has_action_buttons = rerun_button or rewrite_button or remove_paragraphs_button
         folder_to_open = Path(open_folder_path) if open_folder_path is not None else None
@@ -3738,7 +3747,12 @@ def show_text_multiline(
                 remove_paragraphs_source_text=current_text,
             )
 
-            add_ok_button(dialog, button_layout)
+            add_ok_button(
+                dialog,
+                button_layout,
+                label=ok_button_label,
+                emoji=ok_button_emoji,
+            )
 
             layout.addLayout(button_layout)
 

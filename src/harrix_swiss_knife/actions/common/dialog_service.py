@@ -62,6 +62,7 @@ from harrix_swiss_knife.actions.common.text_diff_dialog import build_text_diff_s
 from harrix_swiss_knife.actions.common.text_result_dialog import (
     CANCEL_BUTTON_EMOJI,
     OK_BUTTON_EMOJI,
+    OK_BUTTON_LABEL,
     RERUN_BUTTON_EMOJI,
     RERUN_BUTTON_LABEL,
     RERUN_DIALOG_CODE,
@@ -1549,6 +1550,8 @@ class ActionDialogService:
         save_button: bool = False,
         save_default_path: str | None = None,
         save_filter: str = "Markdown Files (*.md);;All Files (*)",
+        ok_button_label: str = OK_BUTTON_LABEL,
+        ok_button_emoji: str = OK_BUTTON_EMOJI,
     ) -> str | tuple[str | None, int] | None:
         """Show read-only multi-line text dialog and return text if accepted."""
         has_action_buttons = rerun_button or rewrite_button or remove_paragraphs_button
@@ -1636,7 +1639,12 @@ class ActionDialogService:
                 remove_paragraphs_source_text=current_text,
             )
 
-            add_ok_button(dialog, button_layout)
+            add_ok_button(
+                dialog,
+                button_layout,
+                label=ok_button_label,
+                emoji=ok_button_emoji,
+            )
 
             layout.addLayout(button_layout)
 

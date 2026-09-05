@@ -134,6 +134,7 @@ def format_check_report(plan: CheckPlan) -> str:
     else:
         lines.append("")
         lines.append("Click Apply to write the library and static playlists.")
+        lines.append("Cancel closes without writing.")
         lines.append("Smart playlists (.xautopf) are not edited.")
         lines.append("Files under the music folder are not changed.")
     return "\n".join(lines)
