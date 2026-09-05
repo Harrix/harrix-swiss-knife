@@ -76,7 +76,13 @@ def test_first_run_merge_only(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -
     assert [item.url for item in plan.add_to_yandex] == ["https://a.example/"]
     report = format_sync_report(plan)
     assert "merge only" in report.casefold()
+    assert "Status: preview" in report
+    assert "Total bookmark changes:" in report
     apply_sync_plan(plan, create_backup=False)
+    done = format_sync_report(plan, applied=True)
+    assert "Status: applied" in done
+    assert "Copied to Chrome" in done
+    assert "Total bookmark changes: 2" in done
     chrome_urls = set(flatten_bookmarks(load_bookmarks(chrome)))
     yandex_urls = set(flatten_bookmarks(load_bookmarks(yandex)))
     assert chrome_urls == yandex_urls == {"https://a.example/", "https://b.example/"}

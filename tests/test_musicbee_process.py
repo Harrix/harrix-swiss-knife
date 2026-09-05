@@ -90,8 +90,13 @@ def test_run_check_remaps_and_apply(tmp_path: Path, monkeypatch: pytest.MonkeyPa
     assert not any(Path(path).name == "outside.mp3" for path in ambient.new_tracks)
     assert temp.new_tracks == [str(orphan)]
     report = format_check_report(plan)
-    assert "Remapped paths" in report
+    assert "Status: preview" in report
+    assert "Paths to remap:" in report
+    assert "Summary:" in report
     written = apply_plan(plan)
+    done = format_check_report(plan, applied=True, written=written)
+    assert "Status: applied" in done
+    assert "Static playlists rewritten:" in done
     assert settings.library_file in written
     library = parse_mbl(settings.library_file)
     assert library.tracks[0].path == str(new)

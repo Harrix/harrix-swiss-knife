@@ -162,61 +162,112 @@ def apply_plan(plan: CheckPlan) -> list[Path]:
 ## 🔧 Function `format_check_report`
 
 ```python
-def format_check_report(plan: CheckPlan) -> str
+def format_check_report(plan: CheckPlan, *, applied: bool = False, written: list[Path] | None = None) -> str
 ```
 
-Build the preview text shown before Apply.
+Build preview or post-apply report with a clear count summary first.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def format_check_report(plan: CheckPlan) -> str:
+def format_check_report(
+    plan: CheckPlan,
+    *,
+    applied: bool = False,
+    written: list[Path] | None = None,
+) -> str:
+    remapped = len(plan.remaps)
+    missing = len(plan.missing)
+    ambiguous = len(plan.ambiguous)
+    changed = [item for item in plan.playlists if item.changed]
+    playlists_n = len(changed)
+
+    if applied:
+        lines = [
+            "Status: applied",
+            "",
+            "Summary:",
+            f"  Paths remapped in library/playlists: {remapped}",
+            f"  Static playlists rewritten: {playlists_n}",
+            f"  Library file updated: {'yes' if plan.library_changed else 'no'}",
+            f"  Missing left unchanged: {missing}",
+            f"  Ambiguous left unchanged: {ambiguous}",
+            "",
+            f"Backup: {plan.backup_path}",
+        ]
+        if written:
+            lines.append("Written:")
+            lines.extend(f"  {path}" for path in written)
+        return "\n".join(lines)
+
     lines = [
-        f"Backup: {plan.backup_path}",
-        f"Library: {plan.settings.library_dir}",
-        f"Music: {plan.settings.music_root}",
-        f"Stream: {plan.settings.stream_root}",
+        "Status: preview (not written yet)",
+        "",
+        "Summary:",
+        f"  Paths to remap: {remapped}",
+        f"  Static playlists to rewrite: {playlists_n}",
+        f"  Library remaps: {'yes' if plan.library_changed else 'no'}",
+        f"  Missing (not remapped): {missing}",
+        f"  Ambiguous (not remapped): {ambiguous}",
+        "",
+        f"Backup already created: {plan.backup_path}",
         "",
     ]
     if is_musicbee_running():
         lines.append("MusicBee is running. Close it before clicking Apply.")
         lines.append("")
-    lines.append(f"Remapped paths: {len(plan.remaps)}")
-    for item in plan.remaps:
-        lines.append(f"  {item.original}")
-        lines.append(f"    → {item.resolved}")
-    lines.append("")
-    lines.append(f"Missing (not remapped): {len(plan.missing)}")
-    lines.extend(f"  {path}" for path in plan.missing)
-    lines.append("")
-    lines.append(f"Ambiguous (not remapped): {len(plan.ambiguous)}")
-    for item in plan.ambiguous:
-        lines.append(f"  {item.original}")
-        lines.extend(f"    ? {candidate}" for candidate in item.candidates)
-    if plan.unreadable_playlists:
+
+    if remapped:
+        lines.append(f"Remaps ({remapped}):")
+        for item in plan.remaps[:_REPORT_DETAIL_LIMIT]:
+            lines.append(f"  {item.original}")
+            lines.append(f"    → {item.resolved}")
+        if remapped > _REPORT_DETAIL_LIMIT:
+            lines.append(f"  … and {remapped - _REPORT_DETAIL_LIMIT} more")
         lines.append("")
+
+    if missing:
+        lines.append(f"Missing, left as-is ({missing}):")
+        lines.extend(f"  {path}" for path in plan.missing[:_REPORT_DETAIL_LIMIT])
+        if missing > _REPORT_DETAIL_LIMIT:
+            lines.append(f"  … and {missing - _REPORT_DETAIL_LIMIT} more")
+        lines.append("")
+
+    if ambiguous:
+        lines.append(f"Ambiguous, left as-is ({ambiguous}):")
+        for item in plan.ambiguous[:_REPORT_DETAIL_LIMIT]:
+            lines.append(f"  {item.original}")
+            lines.extend(f"    ? {candidate}" for candidate in item.candidates[:5])
+        if ambiguous > _REPORT_DETAIL_LIMIT:
+            lines.append(f"  … and {ambiguous - _REPORT_DETAIL_LIMIT} more")
+        lines.append("")
+
+    if plan.unreadable_playlists:
         lines.append("Unreadable static playlists:")
         lines.extend(f"  {name}" for name in plan.unreadable_playlists)
-    lines.append("")
-    changed = [item for item in plan.playlists if item.changed]
-    lines.append(f"Playlists to rewrite: {len(changed)}")
-    lines.extend(f"  {item.name}: {len(item.original_tracks)} → {len(item.new_tracks)} tracks" for item in changed)
-    if plan.library_changed:
-        lines.append("Library file: path remaps will be written (play counts kept).")
-    if plan.warnings:
         lines.append("")
+
+    if playlists_n:
+        lines.append(f"Playlists to rewrite ({playlists_n}):")
+        lines.extend(f"  {item.name}: {len(item.original_tracks)} → {len(item.new_tracks)} tracks" for item in changed)
+        lines.append("")
+
+    if plan.library_changed:
+        lines.append("Library: path remaps will be written (play counts kept).")
+        lines.append("")
+
+    if plan.warnings:
         lines.append("Rule notes:")
         lines.extend(f"  {warning.message}" for warning in plan.warnings)
-    if not plan.has_writes:
         lines.append("")
+
+    if not plan.has_writes:
         lines.append("Nothing to apply.")
     else:
-        lines.append("")
         lines.append("Click Apply to write the library and static playlists.")
         lines.append("Cancel closes without writing.")
-        lines.append("Smart playlists (.xautopf) are not edited.")
-        lines.append("Files under the music folder are not changed.")
+        lines.append("Smart playlists (.xautopf) and music files are not changed.")
     return "\n".join(lines)
 ```
 

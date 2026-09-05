@@ -79,13 +79,13 @@ class OnSyncChromeYandexBookmarks(ActionBase):
         if not self._wait_until_browsers_closed():
             self.add_line("Sync cancelled.")
             return
-        written = apply_sync_plan(result)
+        apply_sync_plan(result)
         if result.backup_path is not None:
             self.result_folder = result.backup_path
-        summary = "\n".join(["Applied:", *[str(path) for path in written]])
-        self.add_line(summary)
+        done = format_sync_report(result, applied=True)
+        self.add_line(done)
         self.show_toast("Bookmarks synced")
-        self.show_result(display_text=f"{report}\n\n{summary}")
+        self.show_result(display_text=done)
 
     def _wait_until_browsers_closed(self) -> bool:
         """Prompt until Chrome and Yandex are closed, or the user cancels.
@@ -188,13 +188,13 @@ def thread_after(self, result: Any) -> None:
         if not self._wait_until_browsers_closed():
             self.add_line("Sync cancelled.")
             return
-        written = apply_sync_plan(result)
+        apply_sync_plan(result)
         if result.backup_path is not None:
             self.result_folder = result.backup_path
-        summary = "\n".join(["Applied:", *[str(path) for path in written]])
-        self.add_line(summary)
+        done = format_sync_report(result, applied=True)
+        self.add_line(done)
         self.show_toast("Bookmarks synced")
-        self.show_result(display_text=f"{report}\n\n{summary}")
+        self.show_result(display_text=done)
 ```
 
 </details>

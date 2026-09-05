@@ -89,10 +89,10 @@ class OnCheckMusicBeePlaylists(ActionBase):
             self.show_result(display_text="Close MusicBee, then run Check MusicBee playlists again.")
             return
         written = apply_plan(result)
-        summary = "\n".join(["Applied:", *[str(path) for path in written]])
-        self.add_line(summary)
+        done = format_check_report(result, applied=True, written=written)
+        self.add_line(done)
         self.show_toast("MusicBee playlists updated")
-        self.show_result(display_text=f"{report}\n\n{summary}")
+        self.show_result(display_text=done)
 ```
 
 </details>
@@ -182,10 +182,10 @@ def thread_after(self, result: Any) -> None:
             self.show_result(display_text="Close MusicBee, then run Check MusicBee playlists again.")
             return
         written = apply_plan(result)
-        summary = "\n".join(["Applied:", *[str(path) for path in written]])
-        self.add_line(summary)
+        done = format_check_report(result, applied=True, written=written)
+        self.add_line(done)
         self.show_toast("MusicBee playlists updated")
-        self.show_result(display_text=f"{report}\n\n{summary}")
+        self.show_result(display_text=done)
 ```
 
 </details>

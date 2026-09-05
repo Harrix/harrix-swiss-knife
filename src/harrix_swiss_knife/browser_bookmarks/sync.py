@@ -156,43 +156,74 @@ def build_sync_plan(
     )
 
 
-def format_sync_report(plan: SyncPlan) -> str:
-    """Build the preview text shown before Apply."""
+def format_sync_report(plan: SyncPlan, *, applied: bool = False) -> str:
+    """Build preview or post-apply report with a clear count summary first."""
+    add_chrome = len(plan.add_to_chrome)
+    add_yandex = len(plan.add_to_yandex)
+    del_chrome = len(plan.delete_from_chrome)
+    del_yandex = len(plan.delete_from_yandex)
+    total = add_chrome + add_yandex + del_chrome + del_yandex
+
+    if applied:
+        lines = [
+            "Status: applied",
+            "",
+            "Summary:",
+            f"  Copied to Chrome (from Yandex): {add_chrome}",
+            f"  Copied to Yandex (from Chrome): {add_yandex}",
+            f"  Deleted from Chrome: {del_chrome}",
+            f"  Deleted from Yandex: {del_yandex}",
+            f"  Total bookmark changes: {total}",
+            "",
+        ]
+        if plan.backup_path is not None:
+            lines.append(f"Backup: {plan.backup_path}")
+        lines.append(f"Snapshot updated: {plan.snapshot_file}")
+        return "\n".join(lines)
+
     lines = [
-        f"Chrome: {plan.chrome_path}",
-        f"Yandex: {plan.yandex_path}",
-        f"Snapshot: {plan.snapshot_file}",
+        "Status: preview (not written yet)",
+        "",
+        "Summary:",
+        f"  Will copy to Chrome (from Yandex): {add_chrome}",
+        f"  Will copy to Yandex (from Chrome): {add_yandex}",
+        f"  Will delete from Chrome: {del_chrome}",
+        f"  Will delete from Yandex: {del_yandex}",
+        f"  Total bookmark changes: {total}",
         "",
     ]
-    if plan.browsers_running:
-        lines.append("Close these browsers before clicking Apply:")
-        lines.extend(f"  - {name}" for name in plan.browsers_running)
-        lines.append("")
-    else:
-        lines.append("Browsers appear closed.")
-        lines.append("")
-
     if plan.first_run:
-        lines.append("No previous sync snapshot — merge only, no deletions.")
-        lines.append("")
+        lines.append("Mode: first sync — merge only, no deletions.")
+    else:
+        lines.append("Mode: sync with additions and deletions (from snapshot).")
+    lines.append("")
 
-    lines.append(f"Add to Chrome (from Yandex): {len(plan.add_to_chrome)}")
-    lines.extend(_format_entry_lines(plan.add_to_chrome))
+    if plan.browsers_running:
+        lines.append("Close before Apply: " + ", ".join(plan.browsers_running))
+    else:
+        lines.append("Browsers: appear closed.")
     lines.append("")
-    lines.append(f"Add to Yandex (from Chrome): {len(plan.add_to_yandex)}")
-    lines.extend(_format_entry_lines(plan.add_to_yandex))
-    lines.append("")
-    lines.append(f"Delete from Chrome: {len(plan.delete_from_chrome)}")
-    lines.extend(_format_url_lines(plan.delete_from_chrome))
-    lines.append("")
-    lines.append(f"Delete from Yandex: {len(plan.delete_from_yandex)}")
-    lines.extend(_format_url_lines(plan.delete_from_yandex))
+
+    if add_chrome:
+        lines.append(f"Copy to Chrome ({add_chrome}):")
+        lines.extend(_format_entry_lines(plan.add_to_chrome))
+        lines.append("")
+    if add_yandex:
+        lines.append(f"Copy to Yandex ({add_yandex}):")
+        lines.extend(_format_entry_lines(plan.add_to_yandex))
+        lines.append("")
+    if del_chrome:
+        lines.append(f"Delete from Chrome ({del_chrome}):")
+        lines.extend(_format_url_lines(plan.delete_from_chrome))
+        lines.append("")
+    if del_yandex:
+        lines.append(f"Delete from Yandex ({del_yandex}):")
+        lines.extend(_format_url_lines(plan.delete_from_yandex))
+        lines.append("")
 
     if not plan.has_writes:
-        lines.append("")
-        lines.append("Nothing to apply — bookmarks already match the sync rules.")
+        lines.append("Nothing to apply — bookmarks already match.")
     else:
-        lines.append("")
         lines.append("Click Apply to write both Bookmarks files and update the snapshot.")
         lines.append("Cancel closes without writing.")
     return "\n".join(lines)
