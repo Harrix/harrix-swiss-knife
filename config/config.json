@@ -92,7 +92,7 @@
       "hotkeys": ["Ctrl+Shift+5"]
     }
   ],
-  "main_window_sort_mode": "menu",
+  "main_window_sort_mode": "newest",
   "markdown_templates": {
     "☕ Coffee": {
       "commit_message_template": "☕ Add coffee note \"{Title}\" in {City}",

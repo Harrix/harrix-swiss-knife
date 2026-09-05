@@ -11,7 +11,7 @@ import click
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
-from harrix_swiss_knife.action_added_at import generate_action_added_at
+from harrix_swiss_knife.action_added_at import generate_action_added_at, load_action_added_at
 from harrix_swiss_knife.actions.android import OnAndroidBuild, OnAndroidCheck, OnAndroidFormat, OnAndroidSetupSdk
 from harrix_swiss_knife.actions.common.quick_launcher_registry import iter_menu_structure
 from harrix_swiss_knife.actions.development import (
@@ -185,10 +185,14 @@ def dev_build_install_zips(
 @dev_group.command("generate-action-added-at")
 @click.option("--force", is_flag=True, help="Overwrite existing dates from git.")
 def dev_generate_action_added_at(*, force: bool) -> None:
-    """Fill `config/action_added_at.json` from Git history (class pickaxe)."""
+    """Fill `config/action_added_at.json` from Git (pickaxe); now() if missing."""
     class_names = [cls.__name__ for cls in iter_menu_structure(get_menu_structure())]
+    before = {name for name, stamp in load_action_added_at().items() if stamp}
     result = generate_action_added_at(class_names, force=force)
     click.echo(f"Wrote {len(result)} action added-at stamps.")
+    filled = sorted(set(result) - before)
+    if filled:
+        click.echo(f"Filled: {', '.join(filled)}")
 
 
 @dev_group.command("install-cli")

@@ -1,0 +1,17 @@
+---
+description: After adding a tray On* action, refresh config/action_added_at.json
+globs: src/harrix_swiss_knife/actions/**/*.py,src/harrix_swiss_knife/menu_structure.py
+alwaysApply: false
+---
+
+# hsk action added-at
+
+When you **add** a new tray menu action (`On*` in `actions/<section>/` and `menu_structure.py`), also refresh creation dates:
+
+```text
+hsk dev generate-action-added-at
+```
+
+This updates [`config/action_added_at.json`](config/action_added_at.json) (needed for **Newest** sorting). Existing stamps are kept; missing classes get a Git first-appearance date, or `now()` if not yet in Git history.
+
+Do not leave new `On*` classes without an entry in `action_added_at.json`.

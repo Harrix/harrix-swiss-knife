@@ -21,6 +21,10 @@ If helpers or classes are used by **more than one** action (and are not package-
 
 `common/` holds framework pieces (`base`, dialogs) and domain helpers — not tray-menu `On*` action classes.
 
+## Added-at date
+
+After registering a new `On*` in `menu_structure.py`, run `hsk dev generate-action-added-at` so [`config/action_added_at.json`](config/action_added_at.json) gets a stamp (Newest sorting). See `.cursor/rules/hsk-action-added-at.mdc`.
+
 ## Example
 
 ```python

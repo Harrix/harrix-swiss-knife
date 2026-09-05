@@ -441,14 +441,15 @@ from harrix_swiss_knife.actions.common.base import ActionBase
 1. Create `src/harrix_swiss_knife/actions/<section>/<action_snake_case>.py` with `class On<Action>(ActionBase)` (import `ActionBase` from `harrix_swiss_knife.actions.common.base`; see existing files in the same section).
 2. Export the class from `src/harrix_swiss_knife/actions/<section>/__init__.py` (`from … import On…` and add to `__all__`).
 3. Add the class to `get_menu_structure()` in `src/harrix_swiss_knife/menu_structure.py`.
-4. Emoji icons: <https://emojidb.org/>.
-5. If the action should be available from CLI (`hsk`):
+4. Refresh added-at dates: `hsk dev generate-action-added-at` (writes `config/action_added_at.json`; keeps existing stamps; uses Git pickaxe or now() for new classes). Needed for **Newest** sorting in the main window.
+5. Emoji icons: <https://emojidb.org/>.
+6. If the action should be available from CLI (`hsk`):
    - Set `cli_available = True` and `cli_hint = "<section> <command-name>"` on the class.
    - Add a Click command in `src/harrix_swiss_knife/cli.py` (import from `harrix_swiss_knife.actions.<section>`).
    - Verify: `hsk <section> <command-name> --help` and a test run.
-6. Run or restart `harrix-swiss-knife`.
-7. Run `ty check` and `ruff check`.
-8. From the tray app: `Python` → `ruff sort, ruff format, sort, make docs PY in …` on `harrix-swiss-knife` (or `hsk py ruff-sort-docs .`). On the project root this also refreshes `## 📋 List of commands` in `README.md`. Then `Harrix PY check in …` on the same folder.
+7. Run or restart `harrix-swiss-knife`.
+8. Run `ty check` and `ruff check`.
+9. From the tray app: `Python` → `ruff sort, ruff format, sort, make docs PY in …` on `harrix-swiss-knife` (or `hsk py ruff-sort-docs .`). On the project root this also refreshes `## 📋 List of commands` in `README.md`. Then `Harrix PY check in …` on the same folder.
 
 If the new action **inherits** another action or calls `OtherOnAction().execute(...)`, import that class from its module (e.g. `from harrix_swiss_knife.actions.images.optimize import OnOptimize`), not only from the section `__init__.py`.
 

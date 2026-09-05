@@ -82,7 +82,8 @@ def generate_action_added_at(
     """Merge Git first-appearance dates into `action_added_at.json`.
 
     Existing keys are kept unless `force` is true. Missing class names are
-    resolved with `git log -S "class On…"`.
+    resolved with `git log -S "class On…"`. If Git has no hit (for example an
+    uncommitted new action), the current local timestamp is stored instead.
 
     """
     out_path = path if path is not None else get_action_added_at_path()
@@ -94,11 +95,12 @@ def generate_action_added_at(
         if not force and class_name in result and result[class_name]:
             continue
         stamp = first_added_at_from_git(class_name, repo=repo_root)
-        if stamp:
-            result[class_name] = stamp
-            logger.info("%s → %s", class_name, stamp)
-        else:
-            logger.warning("No Git added-at found for %s", class_name)
+        if not stamp:
+            # Uncommitted / new actions: use local now so Newest sorting works.
+            stamp = datetime.now().astimezone().isoformat(timespec="seconds")
+            logger.warning("No Git added-at for %s; using now %s", class_name, stamp)
+        result[class_name] = stamp
+        logger.info("%s → %s", class_name, stamp)
     write_action_added_at(result, path=out_path)
     return result
 
