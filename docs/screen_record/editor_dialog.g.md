@@ -44,6 +44,7 @@ class RecordingEditorWindow(QMainWindow):
         self._out_ms = 0
         self._slider_dragging = False
         self._muted = False
+        self._initial_frame_ready = False
 
         central = QWidget(self)
         self.setCentralWidget(central)
@@ -153,6 +154,7 @@ class RecordingEditorWindow(QMainWindow):
         self._player.setVideoOutput(self._video)
         self._player.setSource(QUrl.fromLocalFile(str(self._path)))
         self._player.playbackStateChanged.connect(self._on_state_changed)
+        self._player.mediaStatusChanged.connect(self._on_media_status_changed)
         self._player.durationChanged.connect(self._on_duration_changed)
         self._player.positionChanged.connect(self._on_position_changed)
 
@@ -163,38 +165,59 @@ class RecordingEditorWindow(QMainWindow):
             _editor_holder["window"] = None
         super().closeEvent(event)
 
+    def _clamp_position(self, position_ms: int) -> int:
+        if self._duration_ms <= 0:
+            return max(0, position_ms)
+        # Stay slightly before the true end so backends keep a visible last frame.
+        last = max(0, self._duration_ms - 1)
+        return max(0, min(position_ms, last))
+
     def _on_duration_changed(self, duration: int) -> None:
         self._duration_ms = max(0, duration)
         self._out_ms = self._duration_ms
         self._in_ms = 0
-        self._position.setRange(0, self._duration_ms)
+        self._position.setRange(0, max(0, self._duration_ms))
         self._update_trim_label()
         self._update_time_label(self._player.position())
+        if self._duration_ms > 0:
+            self._show_initial_frame()
+
+    def _on_media_status_changed(self, status: QMediaPlayer.MediaStatus) -> None:
+        if status in {
+            QMediaPlayer.MediaStatus.LoadedMedia,
+            QMediaPlayer.MediaStatus.BufferedMedia,
+        }:
+            self._show_initial_frame()
+            return
+        if status == QMediaPlayer.MediaStatus.EndOfMedia:
+            end = self._out_ms if self._out_ms > 0 else self._duration_ms
+            self._seek_to(end)
 
     def _on_position_changed(self, position: int) -> None:
         if not self._slider_dragging:
             self._position.blockSignals(True)  # noqa: FBT003
             self._position.setValue(position)
             self._position.blockSignals(False)  # noqa: FBT003
-        self._update_time_label(position)
+            self._update_time_label(position)
         if (
             self._player.playbackState() == QMediaPlayer.PlaybackState.PlayingState
             and self._out_ms > 0
             and position >= self._out_ms
         ):
-            self._player.pause()
-            self._player.setPosition(self._out_ms)
+            self._seek_to(self._out_ms)
 
     def _on_slider_pressed(self) -> None:
         self._slider_dragging = True
+        if self._player.playbackState() == QMediaPlayer.PlaybackState.PlayingState:
+            self._player.pause()
 
     def _on_slider_released(self) -> None:
         self._slider_dragging = False
-        self._player.setPosition(self._position.value())
+        self._seek_to(self._position.value())
 
     def _on_slider_value_changed(self, value: int) -> None:
         if self._slider_dragging:
-            self._update_time_label(value)
+            self._seek_to(value)
 
     def _on_state_changed(self, state: QMediaPlayer.PlaybackState) -> None:
         playing = state == QMediaPlayer.PlaybackState.PlayingState
@@ -252,6 +275,26 @@ class RecordingEditorWindow(QMainWindow):
             return
         QMessageBox.information(self, "Export", f"Saved:\n{result.path}")
 
+    def _seek_to(self, position_ms: int) -> None:
+        """Seek while staying in Paused/Playing — `stop()` clears the video to black."""
+        target = self._clamp_position(position_ms)
+        state = self._player.playbackState()
+        if state == QMediaPlayer.PlaybackState.StoppedState:
+            # Priming play→pause forces the first decoded frame onto the surface.
+            was_muted = self._audio.isMuted()
+            self._audio.setMuted(True)
+            self._player.play()
+            self._player.pause()
+            self._audio.setMuted(was_muted or self._muted)
+        elif state == QMediaPlayer.PlaybackState.PlayingState:
+            self._player.pause()
+        self._player.setPosition(target)
+        if not self._slider_dragging:
+            self._position.blockSignals(True)  # noqa: FBT003
+            self._position.setValue(target)
+            self._position.blockSignals(False)  # noqa: FBT003
+        self._update_time_label(target)
+
     def _set_in(self) -> None:
         pos = self._player.position()
         self._in_ms = max(0, min(pos, self._out_ms - 1 if self._out_ms > 0 else pos))
@@ -264,19 +307,19 @@ class RecordingEditorWindow(QMainWindow):
         self._out_ms = max(self._in_ms + 1, pos)
         self._update_trim_label()
 
+    def _show_initial_frame(self) -> None:
+        if self._initial_frame_ready:
+            return
+        self._initial_frame_ready = True
+        self._seek_to(0)
+
     def _step_frame(self, delta_ms: int) -> None:
-        if self._player.playbackState() == QMediaPlayer.PlaybackState.PlayingState:
-            self._player.pause()
-        pos = max(0, min(self._duration_ms, self._player.position() + delta_ms))
-        self._player.setPosition(pos)
+        pos = self._clamp_position(self._player.position() + delta_ms)
+        self._seek_to(pos)
 
     def _stop(self) -> None:
-        self._player.stop()
-        self._player.setPosition(self._in_ms)
-        self._position.blockSignals(True)  # noqa: FBT003
-        self._position.setValue(self._in_ms)
-        self._position.blockSignals(False)  # noqa: FBT003
-        self._update_time_label(self._in_ms)
+        # Never call stop() here — it clears the video surface to black.
+        self._seek_to(self._in_ms)
 
     def _toggle_mute(self) -> None:
         self._muted = not self._muted
@@ -290,7 +333,7 @@ class RecordingEditorWindow(QMainWindow):
             return
         pos = self._player.position()
         if pos < self._in_ms or (self._out_ms > 0 and pos >= self._out_ms):
-            self._player.setPosition(self._in_ms)
+            self._seek_to(self._in_ms)
         self._player.play()
 
     def _update_time_label(self, position: int) -> None:
@@ -325,6 +368,7 @@ def __init__(self, path: Path, parent: QWidget | None = None) -> None:
         self._out_ms = 0
         self._slider_dragging = False
         self._muted = False
+        self._initial_frame_ready = False
 
         central = QWidget(self)
         self.setCentralWidget(central)
@@ -434,6 +478,7 @@ def __init__(self, path: Path, parent: QWidget | None = None) -> None:
         self._player.setVideoOutput(self._video)
         self._player.setSource(QUrl.fromLocalFile(str(self._path)))
         self._player.playbackStateChanged.connect(self._on_state_changed)
+        self._player.mediaStatusChanged.connect(self._on_media_status_changed)
         self._player.durationChanged.connect(self._on_duration_changed)
         self._player.positionChanged.connect(self._on_position_changed)
 ```
