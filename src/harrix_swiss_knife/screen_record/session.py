@@ -10,9 +10,9 @@ from PySide6.QtWidgets import QMessageBox
 
 from harrix_swiss_knife.apps.common.audio_compress import is_ffmpeg_available
 from harrix_swiss_knife.paths import get_project_root
+from harrix_swiss_knife.screen_record.editor_dialog import show_recording_editor
 from harrix_swiss_knife.screen_record.ffmpeg_recorder import ScreenRecorder
 from harrix_swiss_knife.screen_record.geometry import logical_rect_to_gdigrab
-from harrix_swiss_knife.screen_record.preview_dialog import show_recording_preview
 from harrix_swiss_knife.screen_record.record_frame import RecordFrameWindow
 from harrix_swiss_knife.screenshot.capture import select_region
 from harrix_swiss_knife.screenshot.dated_image_path import next_dated_image_path
@@ -84,13 +84,13 @@ class _RecordSession(QObject):
     def _finish_with_path(self, path: Path) -> None:
         self._close_frame()
         try:
-            window = show_recording_preview(path)
+            window = show_recording_editor(path)
             bring_window_to_foreground(window, delays_ms=PREVIEW_FOREGROUND_DELAYS_MS)
         except Exception as exc:
             QMessageBox.warning(
                 None,
                 "Screen record",
-                f"Recording saved, but preview failed to open:\n{path}\n\n{exc}",
+                f"Recording saved, but editor failed to open:\n{path}\n\n{exc}",
             )
         if self._on_finished is not None:
             self._on_finished(path)

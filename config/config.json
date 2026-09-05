@@ -12,7 +12,8 @@
     "fitness_workout_history_count": 100,
     "initial_count": 1000,
     "load_more_count": 500,
-    "local_language": "ru"
+    "local_language": "ru",
+    "screen_record_audio": "mic"
   },
   "beginning_of_article": "snippet:config/beginning-of-article.md",
   "beginning_of_md": "snippet:config/beginning-of-md.md",
