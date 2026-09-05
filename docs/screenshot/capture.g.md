@@ -6,6 +6,16 @@ lang: en
 
 # 📄 File `capture.py`
 
+<details>
+<summary>📖 Contents ⬇️</summary>
+
+## Contents
+
+- [🔧 Function `capture_region`](#-function-capture_region)
+- [🔧 Function `select_region`](#-function-select_region)
+
+</details>
+
 ## 🔧 Function `capture_region`
 
 ```python
@@ -86,6 +96,52 @@ def capture_region(
         bring_window_to_foreground(window, delays_ms=PREVIEW_FOREGROUND_DELAYS_MS)
 
     return image
+```
+
+</details>
+
+## 🔧 Function `select_region`
+
+```python
+def select_region(*, show_shutter_button: bool = True, hide_app: bool | None = None) -> QRect | None
+```
+
+Select a screen region and return its global logical rectangle.
+
+Same overlay workflow as [`capture_region`](#-function-capture_region), but does not crop an image or copy
+to the clipboard. Used before screen recording.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def select_region(
+    *,
+    show_shutter_button: bool = True,
+    hide_app: bool | None = None,
+) -> QRect | None:
+    app = QApplication.instance()
+    if app is None:
+        return None
+
+    if hide_app is None:
+        hide_app = not has_visible_modal_dialog()
+
+    session = _HideSession(
+        hide_app=hide_app,
+        show_preview=False,
+        hidden=hide_app_windows() if hide_app else [],
+    )
+    rect: QRect | None = None
+    try:
+        if session.hide_app:
+            _wait_ms(_HIDE_SETTLE_MS)
+        rect = _select_loop(with_controls=show_shutter_button, session=session)
+    finally:
+        if session.hide_app:
+            restore_app_windows(session.hidden, activate=True)
+
+    return rect
 ```
 
 </details>

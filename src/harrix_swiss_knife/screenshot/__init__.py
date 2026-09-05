@@ -1,5 +1,5 @@
 """ShareX-like region screenshot capture for Harrix Swiss Knife."""
 
-from harrix_swiss_knife.screenshot.capture import capture_region
+from harrix_swiss_knife.screenshot.capture import capture_region, select_region
 
-__all__ = ["capture_region"]
+__all__ = ["capture_region", "select_region"]

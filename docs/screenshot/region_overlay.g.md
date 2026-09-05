@@ -28,6 +28,7 @@ lang: en
   - [⚙️ Method `mouseReleaseEvent`](#%EF%B8%8F-method-mousereleaseevent)
   - [⚙️ Method `paintEvent`](#%EF%B8%8F-method-paintevent)
   - [⚙️ Method `paint_screen_pane`](#%EF%B8%8F-method-paint_screen_pane)
+  - [⚙️ Method `selected_rect (property)`](#%EF%B8%8F-method-selected_rect-property)
   - [⚙️ Method `showEvent`](#%EF%B8%8F-method-showevent)
 
 </details>
@@ -70,6 +71,7 @@ class RegionOverlay(QDialog):
         window_rects: Sequence[QRect] | None = None,
         keep_windows: bool = False,
         clipboard_only: bool = False,
+        select_rect_only: bool = False,
         adjust_mode: bool = False,
         guides_mode: bool = False,
     ) -> None:
@@ -85,6 +87,8 @@ class RegionOverlay(QDialog):
         - `window_rects` (`Sequence[QRect] | None`): Snappable window bounds in global logical pixels.
         - `keep_windows` (`bool`): If `True`, start with the keep-Windows shutter button on.
         - `clipboard_only` (`bool`): If `True`, start with the clipboard-only shutter button on.
+        - `select_rect_only` (`bool`): If `True`, accept returns a region rect without cropping an image
+          (used for screen recording).
         - `adjust_mode` (`bool`): If `True`, start with adjust-region enabled.
         - `guides_mode` (`bool`): If `True`, start with composition guides enabled.
 
@@ -114,6 +118,8 @@ class RegionOverlay(QDialog):
         self._origin: QPoint | None = None
         self._current: QPoint | None = None
         self._crop: QImage | None = None
+        self._selected_rect: QRect | None = None
+        self._select_rect_only = select_rect_only
         self._dragging = False
         self._snap_rect: QRect | None = None
         self._panel: ShutterPanel | None = None
@@ -415,6 +421,11 @@ class RegionOverlay(QDialog):
         offset = grab.geometry.topLeft() - self._virtual_origin
         self._paint_surface(painter, pane.rect(), grab.pixmap, grab.dpr, offset)
 
+    @property
+    def selected_rect(self) -> QRect | None:
+        """Global logical rectangle of the last accepted selection, if any."""
+        return QRect(self._selected_rect) if self._selected_rect is not None else None
+
     def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
         """Take keyboard focus so Escape cancels capture on Tool overlays."""
         super().showEvent(event)
@@ -518,12 +529,22 @@ class RegionOverlay(QDialog):
 
     def _finish_with_rect(self, rect: QRect) -> None:
         """Crop `rect` from the frozen desktop and accept the dialog."""
+        global_rect = rect.translated(self._virtual_origin)
+        self._selected_rect = QRect(global_rect)
+        if self._select_rect_only:
+            if global_rect.width() < _MIN_SELECTION or global_rect.height() < _MIN_SELECTION:
+                self._selected_rect = None
+                self.reject()
+                return
+            self.accept()
+            return
         if self._screen_grabs:
-            self._crop = crop_from_mixed_dpi_grabs(rect.translated(self._virtual_origin), self._screen_grabs)
+            self._crop = crop_from_mixed_dpi_grabs(global_rect, self._screen_grabs)
         else:
             self._crop = crop_pixmap_from_logical_rect(self._frozen, rect)
         if self._crop is None or self._crop.isNull():
             self._crop = None
+            self._selected_rect = None
             self.reject()
             return
         self.accept()
@@ -728,7 +749,7 @@ class RegionOverlay(QDialog):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, frozen: QPixmap, geometry: QRect, *, screen_grabs: Sequence[ScreenGrab] | None = None, with_shutter_controls: bool = False, window_rects: Sequence[QRect] | None = None, keep_windows: bool = False, clipboard_only: bool = False, adjust_mode: bool = False, guides_mode: bool = False) -> None
+def __init__(self, frozen: QPixmap, geometry: QRect, *, screen_grabs: Sequence[ScreenGrab] | None = None, with_shutter_controls: bool = False, window_rects: Sequence[QRect] | None = None, keep_windows: bool = False, clipboard_only: bool = False, select_rect_only: bool = False, adjust_mode: bool = False, guides_mode: bool = False) -> None
 ```
 
 Create a fullscreen overlay for region selection, displaying the frozen desktop.
@@ -743,6 +764,8 @@ Args:
 - `window_rects` (`Sequence[QRect] | None`): Snappable window bounds in global logical pixels.
 - `keep_windows` (`bool`): If `True`, start with the keep-Windows shutter button on.
 - `clipboard_only` (`bool`): If `True`, start with the clipboard-only shutter button on.
+- `select_rect_only` (`bool`): If `True`, accept returns a region rect without cropping an image
+  (used for screen recording).
 - `adjust_mode` (`bool`): If `True`, start with adjust-region enabled.
 - `guides_mode` (`bool`): If `True`, start with composition guides enabled.
 
@@ -760,6 +783,7 @@ def __init__(
         window_rects: Sequence[QRect] | None = None,
         keep_windows: bool = False,
         clipboard_only: bool = False,
+        select_rect_only: bool = False,
         adjust_mode: bool = False,
         guides_mode: bool = False,
     ) -> None:
@@ -788,6 +812,8 @@ def __init__(
         self._origin: QPoint | None = None
         self._current: QPoint | None = None
         self._crop: QImage | None = None
+        self._selected_rect: QRect | None = None
+        self._select_rect_only = select_rect_only
         self._dragging = False
         self._snap_rect: QRect | None = None
         self._panel: ShutterPanel | None = None
@@ -1291,6 +1317,24 @@ def paint_screen_pane(self, pane: _ScreenPane) -> None:
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, on=False)
         offset = grab.geometry.topLeft() - self._virtual_origin
         self._paint_surface(painter, pane.rect(), grab.pixmap, grab.dpr, offset)
+```
+
+</details>
+
+### ⚙️ Method `selected_rect (property)`
+
+```python
+def selected_rect(self) -> QRect | None
+```
+
+Global logical rectangle of the last accepted selection, if any.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def selected_rect(self) -> QRect | None:
+        return QRect(self._selected_rect) if self._selected_rect is not None else None
 ```
 
 </details>

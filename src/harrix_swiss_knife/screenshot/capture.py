@@ -134,6 +134,41 @@ def capture_region(
     return image
 
 
+def select_region(
+    *,
+    show_shutter_button: bool = True,
+    hide_app: bool | None = None,
+) -> QRect | None:
+    """Select a screen region and return its global logical rectangle.
+
+    Same overlay workflow as `capture_region`, but does not crop an image or copy
+    to the clipboard. Used before screen recording.
+
+    """
+    app = QApplication.instance()
+    if app is None:
+        return None
+
+    if hide_app is None:
+        hide_app = not has_visible_modal_dialog()
+
+    session = _HideSession(
+        hide_app=hide_app,
+        show_preview=False,
+        hidden=hide_app_windows() if hide_app else [],
+    )
+    rect: QRect | None = None
+    try:
+        if session.hide_app:
+            _wait_ms(_HIDE_SETTLE_MS)
+        rect = _select_loop(with_controls=show_shutter_button, session=session)
+    finally:
+        if session.hide_app:
+            restore_app_windows(session.hidden, activate=True)
+
+    return rect
+
+
 def _capture_loop(*, with_controls: bool, session: _HideSession) -> QImage | None:
     """Alternate between region selection and desktop-arrangement until done."""
     adjust_mode = False
@@ -233,6 +268,51 @@ def _hwnds_from_widgets(widgets: Iterable[QWidget]) -> list[int]:
         if handle:
             handles.append(handle)
     return handles
+
+
+def _select_loop(*, with_controls: bool, session: _HideSession) -> QRect | None:
+    """Alternate between region selection and desktop-arrangement until a rect is chosen."""
+    adjust_mode = True
+    guides_mode = False
+    while True:
+        window_rects = list_snappable_window_rects(exclude_hwnds=session.exclude_hwnds())
+        grabs, geometry = _grab_all_screens()
+        if not grabs:
+            return None
+
+        overlay = RegionOverlay(
+            grabs[0].pixmap,
+            geometry,
+            screen_grabs=grabs,
+            with_shutter_controls=with_controls,
+            window_rects=window_rects,
+            keep_windows=not session.hide_app,
+            clipboard_only=True,
+            select_rect_only=True,
+            adjust_mode=adjust_mode,
+            guides_mode=guides_mode,
+        )
+        result = overlay.exec()
+        adjust_mode = overlay.adjust_mode
+        guides_mode = overlay.guides_mode
+
+        if result == int(QDialog.DialogCode.Accepted):
+            rect = overlay.selected_rect
+            if rect is None or rect.isEmpty():
+                return None
+            return QRect(rect)
+
+        if result == RESULT_TOGGLE_KEEP_WINDOWS:
+            session.apply_keep_windows(keep=overlay.keep_windows)
+            continue
+
+        if result != RESULT_TOGGLE_ARRANGE:
+            return None
+
+        arrange = ArrangeModeDialog()
+        if arrange.exec() != int(QDialog.DialogCode.Accepted):
+            return None
+        _wait_ms(_HIDE_SETTLE_MS)
 
 
 def _wait_ms(milliseconds: int) -> None:

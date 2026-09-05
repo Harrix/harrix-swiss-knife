@@ -80,6 +80,7 @@ from harrix_swiss_knife.actions.images.optimize_resize import OnOptimizeResize
 from harrix_swiss_knife.actions.images.optimize_single_image import OnOptimizeSingleImage
 from harrix_swiss_knife.actions.images.recognize_text_with_ai import OnRecognizeTextWithAI
 from harrix_swiss_knife.actions.images.recognize_text_with_ocr import OnRecognizeTextWithOcr
+from harrix_swiss_knife.actions.images.record_region import OnRecordRegion
 from harrix_swiss_knife.actions.images.screenshot_region import OnScreenshotRegion
 from harrix_swiss_knife.actions.images.screenshot_region_clipboard import OnScreenshotRegionClipboard
 from harrix_swiss_knife.actions.images.screenshot_region_translate import OnScreenshotRegionTranslate
@@ -201,6 +202,7 @@ def get_menu_structure() -> list[Any]:
                 OnScreenshotRegion,
                 OnScreenshotRegionClipboard,
                 OnScreenshotRegionTranslate,
+                OnRecordRegion,
             ],
         ),
         (

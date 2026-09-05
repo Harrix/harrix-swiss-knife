@@ -123,6 +123,7 @@ _Figure 1: Screenshot_
   - 📂 Open folder `optimized_images`
   - 🚀 Optimize image from clipboard
   - 🚀 Optimize image from clipboard as …
+  - 🎥 Record region
   - 📷 Screenshot region
   - 📷 Screenshot region (OCR + translate)
   - 📷 Screenshot region (clipboard)
