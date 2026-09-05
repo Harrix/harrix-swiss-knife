@@ -12,6 +12,11 @@ from harrix_swiss_knife.paths import get_config_path_str
 
 SHOW_MAIN_WINDOW_ON_STARTUP_DEFAULT = True
 SHOW_MAIN_WINDOW_ON_STARTUP_KEY = "show_main_window_on_startup"
+MAIN_WINDOW_SORT_MODE_DEFAULT = "menu"
+MAIN_WINDOW_SORT_MODE_KEY = "main_window_sort_mode"
+MAIN_WINDOW_SORT_MODE_MENU = "menu"
+MAIN_WINDOW_SORT_MODE_NEWEST = "newest"
+MAIN_WINDOW_SORT_MODES = frozenset({MAIN_WINDOW_SORT_MODE_MENU, MAIN_WINDOW_SORT_MODE_NEWEST})
 UI_FONT_SCALE_DEFAULT = 1.0
 UI_FONT_SCALE_KEY = "ui_font_scale"
 UI_FONT_SCALE_MAX = 1.5
@@ -102,6 +107,7 @@ class AppConfig(TypedDict, total=False):
     personal_data: PersonalDataSettings
     prompts: dict[str, str]
     show_main_window_on_startup: bool
+    main_window_sort_mode: NotRequired[str]
     ui_font_scale: NotRequired[float]
     data_for_hsk_root: NotRequired[str]
     data_for_hsk_notes_folders: NotRequired[list[str]]
@@ -191,6 +197,20 @@ def clamp_ui_font_scale(value: float) -> float:
     return min(UI_FONT_SCALE_MAX, max(UI_FONT_SCALE_MIN, value))
 
 
+def get_main_window_sort_mode(config: dict[str, Any] | None = None) -> str:
+    """Return commands-window sort mode (`menu` or `newest`)."""
+    data = config
+    if data is None:
+        try:
+            data = load_app_config()
+        except (OSError, TypeError, ValueError):
+            return MAIN_WINDOW_SORT_MODE_DEFAULT
+    value = data.get(MAIN_WINDOW_SORT_MODE_KEY, MAIN_WINDOW_SORT_MODE_DEFAULT)
+    if isinstance(value, str) and value in MAIN_WINDOW_SORT_MODES:
+        return value
+    return MAIN_WINDOW_SORT_MODE_DEFAULT
+
+
 def get_show_main_window_on_startup(config: dict[str, Any] | None = None) -> bool:
     """Return whether the commands window should open when the app starts."""
     data = config
@@ -246,6 +266,21 @@ def restart_required_config_keys(before: dict[str, Any], after: dict[str, Any]) 
 
     """
     return [key for key in sorted(RESTART_REQUIRED_CONFIG_KEYS) if before.get(key) != after.get(key)]
+
+
+def set_main_window_sort_mode(*, mode: str, config_path: str | None = None) -> None:
+    """Write `main_window_sort_mode` to `config.json`."""
+    if mode not in MAIN_WINDOW_SORT_MODES:
+        msg = f"Invalid main_window_sort_mode: {mode!r}"
+        raise ValueError(msg)
+    path = Path(config_path or get_config_path_str())
+    with path.open(encoding="utf-8") as handle:
+        data = json.load(handle)
+    if not isinstance(data, dict):
+        msg = f"Config root must be a JSON object: {path}"
+        raise TypeError(msg)
+    data[MAIN_WINDOW_SORT_MODE_KEY] = mode
+    path.write_text(h.dev.dumps_pretty_json(data), encoding="utf-8")
 
 
 def set_show_main_window_on_startup(*, enabled: bool, config_path: str | None = None) -> None:

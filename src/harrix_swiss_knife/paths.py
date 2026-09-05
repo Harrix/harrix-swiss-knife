@@ -129,6 +129,11 @@ def ensure_local_config() -> Path:
     raise FileNotFoundError(msg)
 
 
+def get_action_added_at_path() -> Path:
+    """Return absolute path to action first-added timestamps JSON."""
+    return get_project_root() / "config" / "action_added_at.json"
+
+
 @lru_cache(maxsize=1)
 def get_action_output_dir() -> Path:
     """Return directory for per-run action log files (under project `temp/` when writable).

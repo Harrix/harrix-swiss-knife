@@ -11,7 +11,9 @@ import click
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
+from harrix_swiss_knife.action_added_at import generate_action_added_at
 from harrix_swiss_knife.actions.android import OnAndroidBuild, OnAndroidCheck, OnAndroidFormat, OnAndroidSetupSdk
+from harrix_swiss_knife.actions.common.quick_launcher_registry import iter_menu_structure
 from harrix_swiss_knife.actions.development import (
     OnBuildInstallZips,
     OnInstallCli,
@@ -48,6 +50,7 @@ from harrix_swiss_knife.actions.vscode import (
     OnVscodeCheck,
     OnVscodeFormat,
 )
+from harrix_swiss_knife.menu_structure import get_menu_structure
 from harrix_swiss_knife.paths import get_project_root
 from harrix_swiss_knife.qt_app_font import install_app_fonts
 from harrix_swiss_knife.qt_flexible_decimal import install_flexible_decimal_separators
@@ -177,6 +180,15 @@ def dev_build_install_zips(
         clean_logs=clean_logs,
     )
     _finish_timed_action(action)
+
+
+@dev_group.command("generate-action-added-at")
+@click.option("--force", is_flag=True, help="Overwrite existing dates from git.")
+def dev_generate_action_added_at(*, force: bool) -> None:
+    """Fill `config/action_added_at.json` from Git history (class pickaxe)."""
+    class_names = [cls.__name__ for cls in iter_menu_structure(get_menu_structure())]
+    result = generate_action_added_at(class_names, force=force)
+    click.echo(f"Wrote {len(result)} action added-at stamps.")
 
 
 @dev_group.command("install-cli")

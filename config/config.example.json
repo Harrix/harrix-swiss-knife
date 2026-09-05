@@ -445,6 +445,7 @@
   "github_token": "snippet:api-keys/github-token.txt",
   "pypi_token": "snippet:api-keys/pypi-token.txt",
   "show_main_window_on_startup": false,
+  "main_window_sort_mode": "menu",
   "ui_font_scale": 1.0,
   "sqlite_finance": "<YOUR_GITHUB_FOLDER>/data-for-hsk/databases/finance.db",
   "sqlite_fitness": "<YOUR_GITHUB_FOLDER>/data-for-hsk/databases/fitness.db",

@@ -54,6 +54,7 @@ class MainWindow(QMainWindow):
         self._sections: list[_CommandSection] = []
         self._recent_section: _CommandSection | None = None
         self._all_actions: list[QAction] = []
+        self._sort_mode = get_main_window_sort_mode()
 
         central_widget = QWidget()
         apply_opaque_white(central_widget)
@@ -66,7 +67,8 @@ class MainWindow(QMainWindow):
         root_layout.addWidget(self._build_body_widget(), stretch=1)
         root_layout.addLayout(self._build_footer_row())
         self._build_sections_from_menu(menu)
-        self._populate_list_from_sections()
+        self._sync_sort_combo()
+        self._apply_catalog_view()
         self._setup_window_size_and_position()
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
@@ -123,9 +125,16 @@ class MainWindow(QMainWindow):
         description = getattr(action, "action_description", "") or ""
         return bool(description) and command_matches_search(description, query)
 
-    def _add_action_item(self, grid: QListWidget, action: QAction) -> None:
+    def _add_action_item(self, grid: QListWidget, action: QAction, *, show_added_at: bool = False) -> None:
         icon_name = getattr(action, "icon_name", "") or ""
         description = getattr(action, "action_description", "") or ""
+        if show_added_at:
+            parts = get_action_identity_parts(action)
+            if parts is not None:
+                date_text = format_added_at_date(added_at_for(parts.class_name))
+                if date_text:
+                    added_line = f"Added {date_text}"
+                    description = f"{description}\n{added_line}" if description else added_line
         add_described_action_card(
             grid,
             icon=icon_name,
@@ -155,7 +164,8 @@ class MainWindow(QMainWindow):
         self.list_widget.addItem(item)
 
     def _apply_card_search(self, query: str) -> None:
-        if not query:
+        newest = self._is_newest_sort()
+        if not query and not newest:
             self._search_grid.hide()
             self._grouped_widget.show()
             QTimer.singleShot(0, self._on_cards_layout_changed)
@@ -163,21 +173,25 @@ class MainWindow(QMainWindow):
 
         self._grouped_widget.hide()
         self._search_grid.clear()
-        for action in self._all_actions:
-            if self._action_matches_search(action, query):
-                self._add_action_item(self._search_grid, action)
+        for action in self._ordered_catalog_actions(query):
+            self._add_action_item(self._search_grid, action, show_added_at=newest)
         self._search_grid.show()
         QTimer.singleShot(0, lambda: self._fit_grid_height(self._search_grid))
 
+    def _apply_catalog_view(self) -> None:
+        """Refresh list and cards for the current search text and sort mode."""
+        query = self._search_edit.text().strip()
+        self._apply_list_search(query)
+        self._apply_card_search(query)
+
     def _apply_list_search(self, query: str) -> None:
-        if not query:
+        if not query and not self._is_newest_sort():
             self._populate_list_from_sections()
             return
 
         self.list_widget.clear()
-        for action in self._all_actions:
-            if self._action_matches_search(action, query):
-                self._add_list_action_item(action)
+        for action in self._ordered_catalog_actions(query):
+            self._add_list_action_item(action)
 
     def _build_body_widget(self) -> QWidget:
         body = QWidget()
@@ -274,6 +288,13 @@ class MainWindow(QMainWindow):
         self._clear_button.clicked.connect(self._search_edit.clear)
         self._clear_button.hide()
         header_row.addWidget(self._clear_button)
+
+        self._sort_combo = QComboBox()
+        self._sort_combo.addItem("Menu order", MAIN_WINDOW_SORT_MODE_MENU)
+        self._sort_combo.addItem("Newest first", MAIN_WINDOW_SORT_MODE_NEWEST)
+        self._sort_combo.setToolTip("Sort commands by menu structure or date added")
+        self._sort_combo.currentIndexChanged.connect(self._on_sort_mode_changed)
+        header_row.addWidget(self._sort_combo)
 
         return header_row
 
@@ -392,6 +413,9 @@ class MainWindow(QMainWindow):
         grids.extend(section.grid for section in self._sections if section.grid is not None)
         return any(watched is grid or watched is grid.viewport() for grid in grids)
 
+    def _is_newest_sort(self) -> bool:
+        return self._sort_mode == MAIN_WINDOW_SORT_MODE_NEWEST
+
     def _on_card_context_menu(self, user_data: object, global_pos: QPoint) -> None:
         """Show copy name/class/path for the action bound to a command card."""
         if isinstance(user_data, QAction):
@@ -400,7 +424,8 @@ class MainWindow(QMainWindow):
     def _on_cards_layout_changed(self) -> None:
         """Fit catalog cards first, then size Recent to that row width."""
         self._fit_visible_grids()
-        self._refresh_recent_section()
+        if not self._is_newest_sort() and not self._search_edit.text().strip():
+            self._refresh_recent_section()
 
     def _on_grid_context_menu(self, grid: QListWidget, pos: QPoint) -> None:
         """Show copy name/class/path and CLI command for the card under the cursor."""
@@ -430,6 +455,34 @@ class MainWindow(QMainWindow):
             self._startup_checkbox.setChecked(get_show_main_window_on_startup())
             self._startup_checkbox.blockSignals(False)  # noqa: FBT003
             message_box.warning(self, "Settings", f"Could not save config.json:\n{exc}")
+
+    def _on_sort_mode_changed(self, _index: int) -> None:
+        """Persist sort mode and refresh the catalog view."""
+        mode = self._sort_combo.currentData()
+        if not isinstance(mode, str) or mode == self._sort_mode:
+            return
+        previous = self._sort_mode
+        self._sort_mode = mode
+        try:
+            set_main_window_sort_mode(mode=mode)
+        except (OSError, TypeError, ValueError) as exc:
+            self._sort_mode = previous
+            self._sync_sort_combo()
+            message_box.warning(self, "Settings", f"Could not save config.json:\n{exc}")
+            return
+        self._apply_catalog_view()
+
+    def _ordered_catalog_actions(self, query: str = "") -> list[QAction]:
+        """Return catalog actions, optionally filtered and newest-first."""
+        actions = [action for action in self._all_actions if not query or self._action_matches_search(action, query)]
+        if not self._is_newest_sort():
+            return actions
+
+        def class_name_of(action: QAction) -> str:
+            parts = get_action_identity_parts(action)
+            return parts.class_name if parts is not None else action.text()
+
+        return sort_items_newest_first(actions, class_name_of=class_name_of)
 
     def _populate_list_from_sections(self) -> None:
         """Fill the list using the same Main / submenu order as the cards, without Recent."""
@@ -491,7 +544,8 @@ class MainWindow(QMainWindow):
     def _run_listed_action(self, action: QAction) -> None:
         """Run a catalog action and refresh the Recent section."""
         action.trigger()
-        self._refresh_recent_section()
+        if not self._is_newest_sort() and not self._search_edit.text().strip():
+            self._refresh_recent_section()
 
     def _setup_window_size_and_position(self) -> None:
         """Set window size and position based on screen resolution and characteristics."""
@@ -510,6 +564,13 @@ class MainWindow(QMainWindow):
             global_pos=QCursor.pos(),
             action=action,
         )
+
+    def _sync_sort_combo(self) -> None:
+        """Select the combo item matching `_sort_mode` without emitting changes."""
+        self._sort_combo.blockSignals(True)  # noqa: FBT003
+        index = self._sort_combo.findData(self._sort_mode)
+        self._sort_combo.setCurrentIndex(max(index, 0))
+        self._sort_combo.blockSignals(False)  # noqa: FBT003
 ```
 
 </details>
@@ -539,6 +600,7 @@ def __init__(self, menu: QMenu) -> None:
         self._sections: list[_CommandSection] = []
         self._recent_section: _CommandSection | None = None
         self._all_actions: list[QAction] = []
+        self._sort_mode = get_main_window_sort_mode()
 
         central_widget = QWidget()
         apply_opaque_white(central_widget)
@@ -551,7 +613,8 @@ def __init__(self, menu: QMenu) -> None:
         root_layout.addWidget(self._build_body_widget(), stretch=1)
         root_layout.addLayout(self._build_footer_row())
         self._build_sections_from_menu(menu)
-        self._populate_list_from_sections()
+        self._sync_sort_combo()
+        self._apply_catalog_view()
         self._setup_window_size_and_position()
 ```
 

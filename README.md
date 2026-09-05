@@ -376,6 +376,8 @@ Folder arguments are optional (default: current directory) for commands that tak
 - `hsk site pull-submodules` — pull `origin main` in each submodule of `path_site_repo`
 - `hsk site pull-submodules "D:/path/to/site-repo"` — same for an explicit site repo folder
 - `hsk dev action-usage` — show sorted action invocation statistics (unused first)
+- `hsk dev generate-action-added-at` — fill `config/action_added_at.json` from Git history (class pickaxe; merge keeps existing dates)
+- `hsk dev generate-action-added-at --force` — overwrite existing dates from Git
 - `hsk dev build-install-zips` — Python installer-EXE pipeline (optional `--no-wipe`, `--skip-*`, `--no-exes`, `--no-open`; Windows; needs PyInstaller in the dev group)
 - `hsk dev install-cli` (global `hsk` on PATH via `uv tool install -e`)
 - `hsk dev private-data export` — pack API keys, `fitness_img`, and exercise/type catalog into `install/private-data-harrix-swiss-knife.zip` (workouts not included)

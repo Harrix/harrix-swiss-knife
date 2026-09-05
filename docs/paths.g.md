@@ -14,6 +14,7 @@ lang: en
 - [🔧 Function `clear_directory_contents`](#-function-clear_directory_contents)
 - [🔧 Function `clear_temp_folder`](#-function-clear_temp_folder)
 - [🔧 Function `ensure_local_config`](#-function-ensure_local_config)
+- [🔧 Function `get_action_added_at_path`](#-function-get_action_added_at_path)
 - [🔧 Function `get_action_output_dir`](#-function-get_action_output_dir)
 - [🔧 Function `get_action_usage_path`](#-function-get_action_usage_path)
 - [🔧 Function `get_config_path`](#-function-get_config_path)
@@ -147,6 +148,24 @@ def ensure_local_config() -> Path:
 
     msg = f"Missing config file and example: {config_path} / {example_path}"
     raise FileNotFoundError(msg)
+```
+
+</details>
+
+## 🔧 Function `get_action_added_at_path`
+
+```python
+def get_action_added_at_path() -> Path
+```
+
+Return absolute path to action first-added timestamps JSON.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_action_added_at_path() -> Path:
+    return get_project_root() / "config" / "action_added_at.json"
 ```
 
 </details>

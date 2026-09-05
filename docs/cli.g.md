@@ -20,6 +20,7 @@ lang: en
 - [🔧 Function `dev_group`](#-function-dev_group)
 - [🔧 Function `dev_action_usage`](#-function-dev_action_usage)
 - [🔧 Function `dev_build_install_zips`](#-function-dev_build_install_zips)
+- [🔧 Function `dev_generate_action_added_at`](#-function-dev_generate_action_added_at)
 - [🔧 Function `dev_install_cli`](#-function-dev_install_cli)
 - [🔧 Function `dev_install_harrix_notes_explorer_hsk`](#-function-dev_install_harrix_notes_explorer_hsk)
 - [🔧 Function `dev_install_private_data`](#-function-dev_install_private_data)
@@ -260,6 +261,26 @@ def dev_build_install_zips(
         clean_logs=clean_logs,
     )
     _finish_timed_action(action)
+```
+
+</details>
+
+## 🔧 Function `dev_generate_action_added_at`
+
+```python
+def dev_generate_action_added_at(*, force: bool) -> None
+```
+
+Fill `config/action_added_at.json` from Git history (class pickaxe).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def dev_generate_action_added_at(*, force: bool) -> None:
+    class_names = [cls.__name__ for cls in iter_menu_structure(get_menu_structure())]
+    result = generate_action_added_at(class_names, force=force)
+    click.echo(f"Wrote {len(result)} action added-at stamps.")
 ```
 
 </details>
