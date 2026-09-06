@@ -253,7 +253,9 @@ visible above the stay-on-top screenshot overlay.
 In selection mode extra checkable buttons enable “adjust region” (the next
 selection stays editable until Enter), composition guides (thin frame,
 thirds, diagonal, size, and angle), keeping app Windows visible in the
-grab, and clipboard-only (skip the preview window).
+grab, and clipboard-only (skip the preview window). Pass
+`capture_options=False` for screen recording to keep only Arrange, Guides,
+and Cancel.
 
 <details>
 <summary>Code:</summary>
@@ -269,9 +271,18 @@ class ShutterPanel(QWidget):
     keep_windows_toggled = Signal(bool)
     triggered = Signal()
 
-    def __init__(self, parent: QWidget | None = None) -> None:
-        """Create the shutter panel with arrange/adjust/close controls."""
+    def __init__(self, parent: QWidget | None = None, *, capture_options: bool = True) -> None:
+        """Create the shutter panel with arrange/adjust/close controls.
+
+        Args:
+
+        - `parent` (`QWidget | None`): Parent widget.
+        - `capture_options` (`bool`): When `False` (screen recording), hide Adjust /
+          Keep Windows / Clipboard — only Arrange, Guides, and Cancel remain.
+
+        """
         super().__init__(parent)
+        self._capture_options = capture_options
 
         root = QHBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
@@ -318,7 +329,10 @@ class ShutterPanel(QWidget):
         self._clipboard_button.toggled.connect(self.clipboard_toggled.emit)
         buttons_layout.addWidget(self._clipboard_button)
 
-        close_button = self._make_emoji_button(_CLOSE_EMOJI, "Cancel screenshot")
+        close_button = self._make_emoji_button(
+            _CLOSE_EMOJI,
+            "Cancel" if not capture_options else "Cancel screenshot",
+        )
         close_button.clicked.connect(self.cancelled.emit)
         buttons_layout.addWidget(close_button)
 
@@ -343,6 +357,7 @@ class ShutterPanel(QWidget):
 
         self._mode: ShutterMode = "selection"
         self._hovered_button: QPushButton | None = None
+        self._apply_capture_option_visibility()
         self._update_size()
 
     @property
@@ -411,15 +426,16 @@ class ShutterPanel(QWidget):
             self._mode_button.setIcon(create_emoji_icon(_ARRANGE_EMOJI, _ICON_SIZE))
             self._mode_button.setToolTip("Arrange desktop")
             self._mode_button.setProperty("hover_hint", "Arrange desktop")
-            self._adjust_button.show()
             self._guides_button.show()
-            self._keep_windows_button.show()
-            self._clipboard_button.show()
+            self._apply_capture_option_visibility()
         else:
             # In arrange mode, click returns to region capture.
             self._mode_button.setIcon(create_emoji_icon(_CAMERA_EMOJI, _ICON_SIZE))
-            self._mode_button.setToolTip("Capture region")
-            self._mode_button.setProperty("hover_hint", "Capture region")
+            self._mode_button.setToolTip("Capture region" if self._capture_options else "Select region")
+            self._mode_button.setProperty(
+                "hover_hint",
+                "Capture region" if self._capture_options else "Select region",
+            )
             self._adjust_button.hide()
             self._adjust_button.setChecked(False)
             self._guides_button.hide()
@@ -430,6 +446,17 @@ class ShutterPanel(QWidget):
         if self._hovered_button is self._mode_button:
             self._show_hint(str(self._mode_button.property("hover_hint") or ""))
         self._update_size()
+
+    def _apply_capture_option_visibility(self) -> None:
+        show = self._capture_options and self._mode == "selection"
+        self._adjust_button.setVisible(show)
+        self._keep_windows_button.setVisible(show)
+        self._clipboard_button.setVisible(show)
+        if not show:
+            self._adjust_button.setChecked(False)
+            self._keep_windows_button.setChecked(False)
+            self._clipboard_button.setChecked(False)
+            self.set_edit_keys_visible(visible=False)
 
     def _hide_hint(self) -> None:
         if not self._hint_label.isVisible():
@@ -460,7 +487,8 @@ class ShutterPanel(QWidget):
         self._update_size()
 
     def _update_size(self) -> None:
-        button_count = 6 if self._mode == "selection" else 2
+        # Selection: Arrange + Guides + Cancel (+ Adjust / Keep / Clipboard when capturing).
+        button_count = (6 if self._capture_options else 3) if self._mode == "selection" else 2
         total_height = _BUTTON_SIZE * button_count + _BUTTON_GAP * (button_count - 1)
         if self._edit_keys_label.isVisible():
             total_height += _BUTTON_GAP + self._edit_keys_label.sizeHint().height()
@@ -478,17 +506,24 @@ class ShutterPanel(QWidget):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None = None) -> None
+def __init__(self, parent: QWidget | None = None, *, capture_options: bool = True) -> None
 ```
 
 Create the shutter panel with arrange/adjust/close controls.
+
+Args:
+
+- `parent` (`QWidget | None`): Parent widget.
+- `capture_options` (`bool`): When `False` (screen recording), hide Adjust /
+  Keep Windows / Clipboard — only Arrange, Guides, and Cancel remain.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def __init__(self, parent: QWidget | None = None) -> None:
+def __init__(self, parent: QWidget | None = None, *, capture_options: bool = True) -> None:
         super().__init__(parent)
+        self._capture_options = capture_options
 
         root = QHBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
@@ -535,7 +570,10 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self._clipboard_button.toggled.connect(self.clipboard_toggled.emit)
         buttons_layout.addWidget(self._clipboard_button)
 
-        close_button = self._make_emoji_button(_CLOSE_EMOJI, "Cancel screenshot")
+        close_button = self._make_emoji_button(
+            _CLOSE_EMOJI,
+            "Cancel" if not capture_options else "Cancel screenshot",
+        )
         close_button.clicked.connect(self.cancelled.emit)
         buttons_layout.addWidget(close_button)
 
@@ -560,6 +598,7 @@ def __init__(self, parent: QWidget | None = None) -> None:
 
         self._mode: ShutterMode = "selection"
         self._hovered_button: QPushButton | None = None
+        self._apply_capture_option_visibility()
         self._update_size()
 ```
 
@@ -778,15 +817,16 @@ def set_mode(self, mode: ShutterMode) -> None:
             self._mode_button.setIcon(create_emoji_icon(_ARRANGE_EMOJI, _ICON_SIZE))
             self._mode_button.setToolTip("Arrange desktop")
             self._mode_button.setProperty("hover_hint", "Arrange desktop")
-            self._adjust_button.show()
             self._guides_button.show()
-            self._keep_windows_button.show()
-            self._clipboard_button.show()
+            self._apply_capture_option_visibility()
         else:
             # In arrange mode, click returns to region capture.
             self._mode_button.setIcon(create_emoji_icon(_CAMERA_EMOJI, _ICON_SIZE))
-            self._mode_button.setToolTip("Capture region")
-            self._mode_button.setProperty("hover_hint", "Capture region")
+            self._mode_button.setToolTip("Capture region" if self._capture_options else "Select region")
+            self._mode_button.setProperty(
+                "hover_hint",
+                "Capture region" if self._capture_options else "Select region",
+            )
             self._adjust_button.hide()
             self._adjust_button.setChecked(False)
             self._guides_button.hide()

@@ -187,16 +187,17 @@ class RegionOverlay(QDialog):
 
         if with_shutter_controls:
             panel_parent: QWidget = self._primary_pane() or self
-            panel = ShutterPanel(panel_parent)
+            panel = ShutterPanel(panel_parent, capture_options=not select_rect_only)
             panel.set_mode("selection")
-            panel.set_keep_windows(enabled=keep_windows)
-            panel.set_clipboard_only(enabled=clipboard_only)
+            if not select_rect_only:
+                panel.set_keep_windows(enabled=keep_windows)
+                panel.set_clipboard_only(enabled=clipboard_only)
             panel.triggered.connect(lambda: self.done(RESULT_TOGGLE_ARRANGE))
             panel.cancelled.connect(self.reject)
             panel.keep_windows_toggled.connect(lambda _enabled: self.done(RESULT_TOGGLE_KEEP_WINDOWS))
             panel.guides_toggled.connect(lambda enabled: self._set_guides_enabled(enabled=enabled))
             panel.geometry_changed.connect(lambda: position_panel_on_left_edge(panel, geometry))
-            if adjust_mode:
+            if adjust_mode and not select_rect_only:
                 panel.set_adjust_mode(enabled=True)
             if guides_mode:
                 panel.set_guides_mode(enabled=True)

@@ -118,8 +118,7 @@ def export_recording(request: ExportRequest) -> ExportResult:
         args.extend(_avif_args())
     args.append(str(destination))
 
-    result = _run_ffmpeg(args, destination)
-    return result
+    return _run_ffmpeg(args, destination)
 ```
 
 </details>

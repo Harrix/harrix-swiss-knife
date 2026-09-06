@@ -366,6 +366,27 @@ def test_shutter_panel_shows_edit_key_hints(qapp: QApplication) -> None:  # noqa
     panel.close()
 
 
+def test_record_region_shutter_hides_capture_only_buttons(qapp: QApplication) -> None:  # noqa: ARG001
+    overlay = RegionOverlay(
+        QPixmap(200, 200),
+        QApplication.primaryScreen().geometry(),
+        with_shutter_controls=True,
+        select_rect_only=True,
+    )
+    panel = overlay.findChild(ShutterPanel)
+    assert panel is not None
+    overlay.show()
+    QApplication.processEvents()
+    tips = {button.toolTip() for button in panel.findChildren(QPushButton) if button.isVisible()}
+    assert any("Arrange" in tip for tip in tips)
+    assert any("Guides" in tip or "guides" in tip for tip in tips)
+    assert any(tip == "Cancel" for tip in tips)
+    assert not any("Adjust region" in tip for tip in tips)
+    assert not any("Keep app" in tip for tip in tips)
+    assert not any("Clipboard" in tip for tip in tips)
+    overlay.close()
+
+
 def test_double_click_width_label_commits_typed_size_on_enter(qapp: QApplication) -> None:  # noqa: ARG001
     overlay = RegionOverlay(QPixmap(400, 400), QApplication.primaryScreen().geometry(), with_shutter_controls=True)
     overlay.show()
