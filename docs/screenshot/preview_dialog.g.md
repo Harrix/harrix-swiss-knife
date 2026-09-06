@@ -205,7 +205,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         super().closeEvent(event)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
-        """Save on Ctrl+S; Enter/Esc confirm or cancel a pending crop."""  # ignore: HP001
+        """Save on Ctrl+S; Delete selected; Enter/Esc for crop."""  # ignore: HP001
         tab = self._current_tab()
         if tab is not None and tab.canvas.crop_mode:
             if event.key() in {int(Qt.Key.Key_Return), int(Qt.Key.Key_Enter)} and tab.canvas.crop_pending:
@@ -216,6 +216,17 @@ class ScreenshotPreviewWindow(QMainWindow):
                 self._cancel_crop()
                 event.accept()
                 return
+        if (
+            tab is not None
+            and event.key() in {int(Qt.Key.Key_Delete), int(Qt.Key.Key_Backspace)}
+            and tab.canvas.delete_selected()
+        ):
+            self._status.setText("Annotation deleted · Ctrl+Z undo")
+            event.accept()
+            return
+        if tab is not None and event.key() == int(Qt.Key.Key_Escape) and tab.canvas.clear_selection():
+            event.accept()
+            return
         if _is_ctrl_s(event):
             self._save_to_images()
             event.accept()
@@ -315,7 +326,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         if tab is None:
             return
         count = len(tab.document.annotations)
-        self._status.setText(f"Annotations: {count} · Ctrl+Z undo")
+        self._status.setText(f"Annotations: {count} · Click to select · Delete removes · Ctrl+Z undo")
 
     def _on_tab_changed(self, _index: int) -> None:
         tab = self._current_tab()
@@ -730,7 +741,7 @@ def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
 def keyPressEvent(self, event: QKeyEvent) -> None
 ```
 
-Save on Ctrl+S; Enter/Esc confirm or cancel a pending crop.
+Save on Ctrl+S; Delete selected; Enter/Esc for crop.
 
 <details>
 <summary>Code:</summary>
@@ -747,6 +758,17 @@ def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
                 self._cancel_crop()
                 event.accept()
                 return
+        if (
+            tab is not None
+            and event.key() in {int(Qt.Key.Key_Delete), int(Qt.Key.Key_Backspace)}
+            and tab.canvas.delete_selected()
+        ):
+            self._status.setText("Annotation deleted · Ctrl+Z undo")
+            event.accept()
+            return
+        if tab is not None and event.key() == int(Qt.Key.Key_Escape) and tab.canvas.clear_selection():
+            event.accept()
+            return
         if _is_ctrl_s(event):
             self._save_to_images()
             event.accept()

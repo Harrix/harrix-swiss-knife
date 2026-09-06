@@ -8,6 +8,13 @@ from PySide6.QtCore import QPoint, QPointF, QRect, QRectF, QSizeF, Qt, Signal
 from PySide6.QtGui import QColor, QKeyEvent, QMouseEvent, QPainter, QPaintEvent, QPixmap, QResizeEvent, QWheelEvent
 from PySide6.QtWidgets import QWidget
 
+from harrix_swiss_knife.screenshot.annotation_edit import (
+    AnnotationHandle,
+    apply_annotation_edit,
+    cursor_for_annotation_handle,
+    hit_test_topmost,
+    paint_annotation_selection,
+)
 from harrix_swiss_knife.screenshot.annotations import (
     Annotation,
     AnnotationStyle,
@@ -69,6 +76,12 @@ class ScreenshotPreviewCanvas(QWidget):
         self._style = AnnotationStyle()
         self._draw_start: QPointF | None = None
         self._draw_current: QPointF | None = None
+        self._selected_index: int | None = None
+        self._edit_handle: AnnotationHandle | None = None
+        self._edit_origin_points: list[QPointF] | None = None
+        self._edit_press: QPointF | None = None
+        self._edit_current: QPointF | None = None
+        self._edit_history_saved = False
         self._crop_pending = False
         self._crop_rect: QRect | None = None
         self._crop_origin: QPoint | None = None
@@ -86,12 +99,23 @@ class ScreenshotPreviewCanvas(QWidget):
         if self._document is not None:
             self._document.cancel_draft()
         self._clear_crop_state()
+        self._clear_edit_state()
+        self._selected_index = None
         self._tool = AnnotationTool.NONE
         self.setCursor(Qt.CursorShape.ArrowCursor)
-        self.update()
+        self._refresh_pixmap()
         if was_crop:
             self.crop_mode_changed.emit(False)  # noqa: FBT003
         self.crop_pending_changed.emit(False)  # noqa: FBT003
+
+    def clear_selection(self) -> bool:
+        """Deselect the current annotation. Return whether anything changed."""
+        if self._selected_index is None and self._edit_handle is None:
+            return False
+        self._clear_edit_state()
+        self._selected_index = None
+        self.update()
+        return True
 
     def confirm_crop(self) -> bool:
         """Apply the pending crop rectangle. Return whether it succeeded."""
@@ -124,6 +148,20 @@ class ScreenshotPreviewCanvas(QWidget):
         """Whether a crop rectangle is waiting for confirmation."""
         return self._crop_pending
 
+    def delete_selected(self) -> bool:
+        """Delete the selected annotation. Return whether it was removed."""
+        document = self._document
+        index = self._selected_index
+        if document is None or index is None:
+            return False
+        self._clear_edit_state()
+        if not document.delete_at(index):
+            return False
+        self._selected_index = None
+        self.update()
+        self.document_changed.emit()
+        return True
+
     def finish_text_at(self, image_pos: QPointF, text: str) -> None:
         """Commit a text annotation at `image_pos` after the user entered `text`."""
         if self._document is None or not text.strip():
@@ -137,12 +175,27 @@ class ScreenshotPreviewCanvas(QWidget):
             )
         )
         if self._document.commit_draft():
-            self._refresh_pixmap()
+            self._selected_index = len(self._document.annotations) - 1
+            self.update()
             self.document_changed.emit()
 
     def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
-        """Re-apply Shift constraints while a shape is being dragged."""
-        if event.key() == Qt.Key.Key_Shift and not event.isAutoRepeat() and self._refresh_constrained_draft(shift=True):
+        """Delete or deselect a shape; re-apply Shift constraints while dragging."""
+        if (
+            event.key() in {Qt.Key.Key_Delete, Qt.Key.Key_Backspace}
+            and self._tool != AnnotationTool.CROP
+            and self.delete_selected()
+        ):
+            event.accept()
+            return
+        if event.key() == Qt.Key.Key_Escape and self._tool != AnnotationTool.CROP and self.clear_selection():
+            event.accept()
+            return
+        if (
+            event.key() == Qt.Key.Key_Shift
+            and not event.isAutoRepeat()
+            and (self._refresh_constrained_edit(shift=True) or self._refresh_constrained_draft(shift=True))
+        ):
             event.accept()
             return
         super().keyPressEvent(event)
@@ -152,14 +205,14 @@ class ScreenshotPreviewCanvas(QWidget):
         if (
             event.key() == Qt.Key.Key_Shift
             and not event.isAutoRepeat()
-            and self._refresh_constrained_draft(shift=False)
+            and (self._refresh_constrained_edit(shift=False) or self._refresh_constrained_draft(shift=False))
         ):
             event.accept()
             return
         super().keyReleaseEvent(event)
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        """Pan with middle button, update crop frame, or update the draft while left-dragging."""
+        """Pan, edit a selected shape, update a draft, or refresh the hover cursor."""
         if self._pan_start is not None:
             delta = event.position() - self._pan_start
             self._offset = self._pan_origin + delta
@@ -172,8 +225,13 @@ class ScreenshotPreviewCanvas(QWidget):
             event.accept()
             return
 
+        image_pos = self._widget_to_image(event.position())
+        if self._edit_handle is not None and image_pos is not None:
+            self._apply_annotation_drag(image_pos, shift=_shift_pressed(event.modifiers()))
+            event.accept()
+            return
+
         if self._draw_start is not None and self._document is not None and self._document.draft is not None:
-            image_pos = self._widget_to_image(event.position())
             if image_pos is None:
                 event.accept()
                 return
@@ -200,10 +258,11 @@ class ScreenshotPreviewCanvas(QWidget):
             self.update()
             event.accept()
             return
+        self._update_hover_cursor(image_pos)
         super().mouseMoveEvent(event)
 
     def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        """Start panning or begin a draft annotation / crop."""
+        """Start panning, select/edit a shape, or begin a draft annotation / crop."""
         if event.button() == Qt.MouseButton.MiddleButton:
             self._pan_start = event.position()
             self._pan_origin = QPointF(self._offset)
@@ -219,13 +278,17 @@ class ScreenshotPreviewCanvas(QWidget):
             if image_pos is None or self._document is None:
                 event.accept()
                 return
+            self.setFocus(Qt.FocusReason.MouseFocusReason)
+            if self._begin_annotation_edit(image_pos):
+                event.accept()
+                return
+            self._selected_index = None
             if self._tool == AnnotationTool.TEXT:
                 self.text_requested.emit(image_pos)
                 event.accept()
                 return
             self._draw_start = image_pos
             self._draw_current = image_pos
-            self.setFocus(Qt.FocusReason.MouseFocusReason)
             self._document.begin_draft(
                 Annotation(
                     tool=self._tool,
@@ -235,10 +298,19 @@ class ScreenshotPreviewCanvas(QWidget):
             )
             event.accept()
             return
+        if event.button() == Qt.MouseButton.LeftButton and self._tool == AnnotationTool.NONE:
+            image_pos = self._widget_to_image(event.position())
+            self.setFocus(Qt.FocusReason.MouseFocusReason)
+            if image_pos is not None and self._begin_annotation_edit(image_pos):
+                event.accept()
+                return
+            self.clear_selection()
+            event.accept()
+            return
         super().mousePressEvent(event)
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        """End panning or commit the draft annotation / crop drag."""
+        """End panning, finish a shape edit, or commit the draft annotation / crop drag."""
         if event.button() == Qt.MouseButton.MiddleButton and self._pan_start is not None:
             self._pan_start = None
             self.set_tool(self._tool)
@@ -248,6 +320,14 @@ class ScreenshotPreviewCanvas(QWidget):
             self._crop_mouse_release(event.position())
             event.accept()
             return
+        if event.button() == Qt.MouseButton.LeftButton and self._edit_handle is not None:
+            changed = self._edit_history_saved
+            self._clear_edit_state()
+            if changed:
+                self.document_changed.emit()
+            self.update()
+            event.accept()
+            return
         if event.button() == Qt.MouseButton.LeftButton and self._draw_start is not None:
             self._finish_draw(event.position(), shift=_shift_pressed(event.modifiers()))
             event.accept()
@@ -255,7 +335,7 @@ class ScreenshotPreviewCanvas(QWidget):
         super().mouseReleaseEvent(event)
 
     def paintEvent(self, event: QPaintEvent) -> None:  # noqa: ARG002, N802
-        """Draw the fitted pixmap, crop frame, and the live draft overlay."""
+        """Draw the fitted pixmap, live annotations, crop frame, and selection chrome."""
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, on=True)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
@@ -265,14 +345,8 @@ class ScreenshotPreviewCanvas(QWidget):
 
         if self._tool == AnnotationTool.CROP and not image_rect.isEmpty():
             self._paint_crop_overlay(painter, image_rect)
-        elif self._document is not None and self._document.draft is not None and not image_rect.isEmpty():
-            painter.save()
-            painter.translate(image_rect.topLeft())
-            scale_x = image_rect.width() / max(1, self._pixmap.width())
-            scale_y = image_rect.height() / max(1, self._pixmap.height())
-            painter.scale(scale_x, scale_y)
-            paint_annotation(painter, self._document.draft)
-            painter.restore()
+        elif self._document is not None and not image_rect.isEmpty():
+            self._paint_live_annotations(painter, image_rect)
         painter.end()
 
     def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
@@ -280,13 +354,18 @@ class ScreenshotPreviewCanvas(QWidget):
         super().resizeEvent(event)
         self.update()
 
+    @property
+    def selected_index(self) -> int | None:
+        """Index of the selected annotation, or `None`."""
+        return self._selected_index
+
     def set_document(self, document: AnnotationDocument | None) -> None:
         """Attach an annotation document; canvas displays its rendered image."""
+        self._clear_edit_state()
+        self._selected_index = None
         self._document = document
-        if document is not None:
-            self._pixmap = QPixmap.fromImage(document.render())
         self._rebuild_snap_edges()
-        self.update()
+        self._refresh_pixmap()
 
     def set_style(self, color: QColor | None = None, width: float | None = None) -> None:
         """Update the stroke color and/or width for new annotations."""
@@ -304,6 +383,9 @@ class ScreenshotPreviewCanvas(QWidget):
         self._tool = tool
         self._draw_start = None
         self._draw_current = None
+        self._clear_edit_state()
+        if tool == AnnotationTool.CROP:
+            self._selected_index = None
         if self._document is not None and tool != AnnotationTool.CROP:
             self._document.cancel_draft()
         if tool == AnnotationTool.CROP:
@@ -363,6 +445,47 @@ class ScreenshotPreviewCanvas(QWidget):
             return self._crop_drag_rect()
         return self._crop_rect
 
+    def _apply_annotation_drag(self, image_pos: QPointF, *, shift: bool) -> None:
+        document = self._document
+        index = self._selected_index
+        handle = self._edit_handle
+        origin = self._edit_origin_points
+        press = self._edit_press
+        if document is None or index is None or handle is None or origin is None or press is None:
+            return
+        if index < 0 or index >= len(document.annotations):
+            return
+        annotation = document.annotations[index]
+        self._edit_current = QPointF(image_pos)
+        if not self._edit_history_saved:
+            document.save_undo_checkpoint()
+            self._edit_history_saved = True
+        points = apply_annotation_edit(annotation, handle, origin, press, image_pos, shift=shift)
+        document.update_annotation_points(index, points)
+        self.update()
+
+    def _begin_annotation_edit(self, image_pos: QPointF) -> bool:
+        document = self._document
+        if document is None or not document.annotations:
+            return False
+        hit = hit_test_topmost(
+            document.annotations,
+            image_pos,
+            handle_size=self._handle_size_image(),
+            selected_index=self._selected_index,
+        )
+        if hit is None:
+            return False
+        index, handle = hit
+        self._selected_index = index
+        self._edit_handle = handle
+        self._edit_origin_points = [QPointF(p) for p in document.annotations[index].points]
+        self._edit_press = QPointF(image_pos)
+        self._edit_current = QPointF(image_pos)
+        self._edit_history_saved = False
+        self.update()
+        return True
+
     def _clear_crop_state(self) -> None:
         self._crop_pending = False
         self._crop_rect = None
@@ -372,6 +495,13 @@ class ScreenshotPreviewCanvas(QWidget):
         self._crop_edit_handle = None
         self._crop_press_pos = None
         self._crop_press_rect = None
+
+    def _clear_edit_state(self) -> None:
+        self._edit_handle = None
+        self._edit_origin_points = None
+        self._edit_press = None
+        self._edit_current = None
+        self._edit_history_saved = False
 
     def _crop_drag_rect(self) -> QRect | None:
         if self._crop_origin is None or self._crop_current is None:
@@ -505,7 +635,8 @@ class ScreenshotPreviewCanvas(QWidget):
                     [start, constrain_shape_end(document.draft.tool, start, image_pos, shift=shift)]
                 )
         if document.commit_draft():
-            self._refresh_pixmap()
+            self._selected_index = len(document.annotations) - 1
+            self.update()
             self.document_changed.emit()
         else:
             self.update()
@@ -517,6 +648,13 @@ class ScreenshotPreviewCanvas(QWidget):
         display_w = min(fitted.width(), self._pixmap.width())
         display_h = min(fitted.height(), self._pixmap.height())
         return QSizeF(display_w * self._zoom, display_h * self._zoom)
+
+    def _handle_size_image(self) -> float:
+        image_rect = self._image_rect()
+        if image_rect.isEmpty() or self._pixmap.isNull():
+            return 8.0
+        scale = image_rect.width() / max(1, self._pixmap.width())
+        return max(6.0, 8.0 / max(scale, 0.01))
 
     def _image_bounds(self) -> QRect:
         if self._pixmap.isNull():
@@ -559,6 +697,28 @@ class ScreenshotPreviewCanvas(QWidget):
             border_width=SELECTION_BORDER_WIDTH,
         )
 
+    def _paint_live_annotations(self, painter: QPainter, image_rect: QRectF) -> None:
+        document = self._document
+        if document is None or self._pixmap.isNull():
+            return
+        painter.save()
+        painter.translate(image_rect.topLeft())
+        scale_x = image_rect.width() / max(1, self._pixmap.width())
+        scale_y = image_rect.height() / max(1, self._pixmap.height())
+        painter.scale(scale_x, scale_y)
+        for item in document.annotations:
+            paint_annotation(painter, item)
+        if document.draft is not None:
+            paint_annotation(painter, document.draft)
+        index = self._selected_index
+        if index is not None and 0 <= index < len(document.annotations):
+            paint_annotation_selection(
+                painter,
+                document.annotations[index],
+                handle_size=self._handle_size_image(),
+            )
+        painter.restore()
+
     def _rebuild_snap_edges(self) -> None:
         bounds = self._image_bounds()
         self._snap_x_edges, self._snap_y_edges = collect_edge_guides((), bounds)
@@ -576,10 +736,44 @@ class ScreenshotPreviewCanvas(QWidget):
         self.update()
         return True
 
+    def _refresh_constrained_edit(self, *, shift: bool) -> bool:
+        """Recompute the live edit from the last pointer using the Shift state."""
+        current = self._edit_current
+        if self._edit_handle is None or current is None:
+            return False
+        self._apply_annotation_drag(current, shift=shift)
+        return True
+
     def _refresh_pixmap(self) -> None:
-        if self._document is not None:
-            self._pixmap = QPixmap.fromImage(self._document.render(include_draft=False))
+        if self._document is None:
+            self.update()
+            return
+        image = (
+            self._document.render(include_draft=False)
+            if self._tool == AnnotationTool.CROP
+            else self._document.base_image
+        )
+        self._pixmap = QPixmap.fromImage(image)
         self.update()
+
+    def _update_hover_cursor(self, image_pos: QPointF | None) -> None:
+        if image_pos is None or self._document is None:
+            return
+        hit = hit_test_topmost(
+            self._document.annotations,
+            image_pos,
+            handle_size=self._handle_size_image(),
+            selected_index=self._selected_index,
+        )
+        if hit is not None:
+            self.setCursor(getattr(Qt.CursorShape, cursor_for_annotation_handle(hit[1])))
+            return
+        if self._tool == AnnotationTool.NONE:
+            self.setCursor(Qt.CursorShape.ArrowCursor)
+        elif self._tool == AnnotationTool.TEXT:
+            self.setCursor(Qt.CursorShape.IBeamCursor)
+        else:
+            self.setCursor(Qt.CursorShape.CrossCursor)
 
     def _widget_to_image(self, pos: QPointF) -> QPointF | None:
         point = self._widget_to_image_point(pos)

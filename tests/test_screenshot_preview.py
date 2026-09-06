@@ -8,11 +8,17 @@ from pathlib import Path
 
 import pytest
 from PySide6.QtCore import QPointF, QStandardPaths, Qt
-from PySide6.QtGui import QImage, QKeyEvent
+from PySide6.QtGui import QImage, QKeyEvent, QMouseEvent
 from PySide6.QtWidgets import QApplication, QPushButton, QTabWidget
 
 from harrix_swiss_knife.apps.common.qt_main_window import compute_app_window_geometry
 from harrix_swiss_knife.screenshot import preview_dialog as preview_dialog_module
+from harrix_swiss_knife.screenshot.annotations import (
+    Annotation,
+    AnnotationDocument,
+    AnnotationStyle,
+    AnnotationTool,
+)
 from harrix_swiss_knife.screenshot.dated_image_path import images_folder, next_dated_image_path
 from harrix_swiss_knife.screenshot.preview_canvas import ScreenshotPreviewCanvas
 from harrix_swiss_knife.screenshot.preview_dialog import (
@@ -232,3 +238,52 @@ def test_preview_footer_wraps_buttons_and_keeps_full_width_status(qapp: QApplica
 
 def test_screenshot_preview_dialog_alias() -> None:
     assert ScreenshotPreviewWindow is preview_dialog_module.ScreenshotPreviewDialog
+
+
+def _left_click(canvas: ScreenshotPreviewCanvas, pos: QPointF) -> None:
+    global_pos = canvas.mapToGlobal(pos.toPoint())
+    canvas.mousePressEvent(
+        QMouseEvent(
+            QMouseEvent.Type.MouseButtonPress,
+            pos,
+            global_pos,
+            Qt.MouseButton.LeftButton,
+            Qt.MouseButton.LeftButton,
+            Qt.KeyboardModifier.NoModifier,
+        )
+    )
+    canvas.mouseReleaseEvent(
+        QMouseEvent(
+            QMouseEvent.Type.MouseButtonRelease,
+            pos,
+            global_pos,
+            Qt.MouseButton.LeftButton,
+            Qt.MouseButton.LeftButton,
+            Qt.KeyboardModifier.NoModifier,
+        )
+    )
+
+
+def test_preview_canvas_selects_and_deletes_arrow(qapp: QApplication) -> None:
+    image = QImage(100, 80, QImage.Format.Format_RGB32)
+    image.fill(Qt.GlobalColor.white)
+    canvas = ScreenshotPreviewCanvas(image)
+    canvas.resize(100, 80)
+    document = AnnotationDocument(image)
+    document.begin_draft(
+        Annotation(
+            tool=AnnotationTool.ARROW,
+            points=[QPointF(10, 40), QPointF(80, 40)],
+            style=AnnotationStyle(),
+        )
+    )
+    assert document.commit_draft()
+    canvas.set_document(document)
+    canvas.set_tool(AnnotationTool.ARROW)
+    qapp.processEvents()
+    _left_click(canvas, QPointF(45, 40))
+    assert canvas.selected_index == 0
+    assert canvas.delete_selected()
+    assert document.annotations == []
+    assert canvas.selected_index is None
+    canvas.close()

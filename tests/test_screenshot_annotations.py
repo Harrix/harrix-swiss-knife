@@ -10,6 +10,11 @@ from PySide6.QtGui import QColor, QImage
 
 from harrix_swiss_knife.apps.snippets.seed import SEED_COLORS
 from harrix_swiss_knife.screenshot.annotation_colors import load_annotation_colors
+from harrix_swiss_knife.screenshot.annotation_edit import (
+    apply_annotation_edit,
+    hit_test_annotation,
+    hit_test_topmost,
+)
 from harrix_swiss_knife.screenshot.annotations import (
     Annotation,
     AnnotationDocument,
@@ -189,3 +194,96 @@ def test_shift_snaps_line_to_vertical() -> None:
     end = constrain_shape_end(AnnotationTool.LINE, start, QPointF(48, 90), shift=True)
     assert end.x() == pytest.approx(40.0)
     assert end.y() == pytest.approx(10 + math.hypot(8, 80))
+
+
+def test_hit_test_arrow_prefers_endpoint_handle() -> None:
+    arrow = Annotation(
+        tool=AnnotationTool.ARROW,
+        points=[QPointF(10, 40), QPointF(80, 40)],
+        style=AnnotationStyle(width=3.0),
+    )
+    assert hit_test_annotation(arrow, QPointF(80, 40), handle_size=8.0) == "end"
+    assert hit_test_annotation(arrow, QPointF(10, 40), handle_size=8.0) == "start"
+    assert hit_test_annotation(arrow, QPointF(45, 40), handle_size=8.0) == "move"
+    assert hit_test_annotation(arrow, QPointF(45, 20), handle_size=8.0) is None
+
+
+def test_hit_test_topmost_uses_front_annotation() -> None:
+    back = Annotation(
+        tool=AnnotationTool.LINE,
+        points=[QPointF(10, 10), QPointF(90, 10)],
+        style=AnnotationStyle(width=3.0),
+    )
+    front = Annotation(
+        tool=AnnotationTool.LINE,
+        points=[QPointF(10, 10), QPointF(90, 10)],
+        style=AnnotationStyle(width=3.0),
+    )
+    hit = hit_test_topmost([back, front], QPointF(50, 10), handle_size=8.0)
+    assert hit == (1, "move")
+
+
+def test_hit_test_rectangle_uses_stroke_not_interior() -> None:
+    rect = Annotation(
+        tool=AnnotationTool.RECTANGLE,
+        points=[QPointF(10, 10), QPointF(80, 60)],
+        style=AnnotationStyle(width=3.0),
+    )
+    assert hit_test_annotation(rect, QPointF(10, 30), handle_size=8.0) == "move"
+    assert hit_test_annotation(rect, QPointF(40, 35), handle_size=8.0) is None
+    assert hit_test_annotation(rect, QPointF(10, 10), handle_size=8.0) == "nw"
+
+
+def test_delete_annotation_and_undo() -> None:
+    doc = AnnotationDocument(_blank())
+    doc.begin_draft(
+        Annotation(
+            tool=AnnotationTool.ARROW,
+            points=[QPointF(10, 10), QPointF(60, 40)],
+            style=AnnotationStyle(),
+        )
+    )
+    assert doc.commit_draft()
+    assert doc.delete_at(0)
+    assert doc.annotations == []
+    assert doc.undo()
+    assert len(doc.annotations) == 1
+
+
+def test_move_arrow_keeps_length() -> None:
+    arrow = Annotation(
+        tool=AnnotationTool.ARROW,
+        points=[QPointF(10, 10), QPointF(50, 10)],
+        style=AnnotationStyle(),
+    )
+    moved = apply_annotation_edit(
+        arrow,
+        "move",
+        [QPointF(10, 10), QPointF(50, 10)],
+        QPointF(10, 10),
+        QPointF(20, 25),
+        shift=False,
+    )
+    assert moved[0].x() == pytest.approx(20.0)
+    assert moved[0].y() == pytest.approx(25.0)
+    assert moved[1].x() == pytest.approx(60.0)
+    assert moved[1].y() == pytest.approx(25.0)
+
+
+def test_drag_arrow_end_updates_tip() -> None:
+    arrow = Annotation(
+        tool=AnnotationTool.ARROW,
+        points=[QPointF(10, 40), QPointF(80, 40)],
+        style=AnnotationStyle(),
+    )
+    points = apply_annotation_edit(
+        arrow,
+        "end",
+        [QPointF(10, 40), QPointF(80, 40)],
+        QPointF(80, 40),
+        QPointF(70, 20),
+        shift=False,
+    )
+    assert points[0].x() == pytest.approx(10.0)
+    assert points[1].x() == pytest.approx(70.0)
+    assert points[1].y() == pytest.approx(20.0)

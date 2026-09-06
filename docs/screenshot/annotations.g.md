@@ -22,10 +22,13 @@ lang: en
   - [⚙️ Method `can_undo (property)`](#%EF%B8%8F-method-can_undo-property)
   - [⚙️ Method `cancel_draft`](#%EF%B8%8F-method-cancel_draft)
   - [⚙️ Method `commit_draft`](#%EF%B8%8F-method-commit_draft)
+  - [⚙️ Method `delete_at`](#%EF%B8%8F-method-delete_at)
   - [⚙️ Method `draft (property)`](#%EF%B8%8F-method-draft-property)
   - [⚙️ Method `render`](#%EF%B8%8F-method-render)
+  - [⚙️ Method `save_undo_checkpoint`](#%EF%B8%8F-method-save_undo_checkpoint)
   - [⚙️ Method `set_draft_text`](#%EF%B8%8F-method-set_draft_text)
   - [⚙️ Method `undo`](#%EF%B8%8F-method-undo)
+  - [⚙️ Method `update_annotation_points`](#%EF%B8%8F-method-update_annotation_points)
   - [⚙️ Method `update_draft_points`](#%EF%B8%8F-method-update_draft_points)
 - [🏛️ Class `AnnotationStyle`](#%EF%B8%8F-class-annotationstyle)
 - [🏛️ Class `AnnotationTool`](#%EF%B8%8F-class-annotationtool)
@@ -131,6 +134,14 @@ class AnnotationDocument:
         self._annotations.append(draft)
         return True
 
+    def delete_at(self, index: int) -> bool:
+        """Remove the annotation at `index` and record undo. Return whether it was deleted."""
+        if index < 0 or index >= len(self._annotations):
+            return False
+        self._push_history()
+        del self._annotations[index]
+        return True
+
     @property
     def draft(self) -> Annotation | None:
         """In-progress annotation while the mouse is dragged."""
@@ -152,6 +163,10 @@ class AnnotationDocument:
         painter.end()
         return result
 
+    def save_undo_checkpoint(self) -> None:
+        """Snapshot the current document so the next mutation can be undone."""
+        self._push_history()
+
     def set_draft_text(self, text: str) -> None:
         """Set text on the current draft (for the text tool)."""
         if self._draft is not None:
@@ -166,6 +181,12 @@ class AnnotationDocument:
         self._annotations = entry.annotations
         self._draft = None
         return True
+
+    def update_annotation_points(self, index: int, points: Sequence[QPointF]) -> None:
+        """Replace points of a committed annotation (image coordinates)."""
+        if index < 0 or index >= len(self._annotations):
+            return
+        self._annotations[index].points = [QPointF(p) for p in points]
 
     def update_draft_points(self, points: Sequence[QPointF]) -> None:
         """Replace draft points (image coordinates)."""
@@ -370,6 +391,28 @@ def commit_draft(self) -> bool:
 
 </details>
 
+### ⚙️ Method `delete_at`
+
+```python
+def delete_at(self, index: int) -> bool
+```
+
+Remove the annotation at `index` and record undo. Return whether it was deleted.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def delete_at(self, index: int) -> bool:
+        if index < 0 or index >= len(self._annotations):
+            return False
+        self._push_history()
+        del self._annotations[index]
+        return True
+```
+
+</details>
+
 ### ⚙️ Method `draft (property)`
 
 ```python
@@ -416,6 +459,24 @@ def render(self, *, include_draft: bool = True) -> QImage:
 
 </details>
 
+### ⚙️ Method `save_undo_checkpoint`
+
+```python
+def save_undo_checkpoint(self) -> None
+```
+
+Snapshot the current document so the next mutation can be undone.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def save_undo_checkpoint(self) -> None:
+        self._push_history()
+```
+
+</details>
+
 ### ⚙️ Method `set_draft_text`
 
 ```python
@@ -455,6 +516,26 @@ def undo(self) -> bool:
         self._annotations = entry.annotations
         self._draft = None
         return True
+```
+
+</details>
+
+### ⚙️ Method `update_annotation_points`
+
+```python
+def update_annotation_points(self, index: int, points: Sequence[QPointF]) -> None
+```
+
+Replace points of a committed annotation (image coordinates).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def update_annotation_points(self, index: int, points: Sequence[QPointF]) -> None:
+        if index < 0 or index >= len(self._annotations):
+            return
+        self._annotations[index].points = [QPointF(p) for p in points]
 ```
 
 </details>

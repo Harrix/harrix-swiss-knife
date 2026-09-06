@@ -99,6 +99,14 @@ class AnnotationDocument:
         self._annotations.append(draft)
         return True
 
+    def delete_at(self, index: int) -> bool:
+        """Remove the annotation at `index` and record undo. Return whether it was deleted."""
+        if index < 0 or index >= len(self._annotations):
+            return False
+        self._push_history()
+        del self._annotations[index]
+        return True
+
     @property
     def draft(self) -> Annotation | None:
         """In-progress annotation while the mouse is dragged."""
@@ -120,6 +128,10 @@ class AnnotationDocument:
         painter.end()
         return result
 
+    def save_undo_checkpoint(self) -> None:
+        """Snapshot the current document so the next mutation can be undone."""
+        self._push_history()
+
     def set_draft_text(self, text: str) -> None:
         """Set text on the current draft (for the text tool)."""
         if self._draft is not None:
@@ -134,6 +146,12 @@ class AnnotationDocument:
         self._annotations = entry.annotations
         self._draft = None
         return True
+
+    def update_annotation_points(self, index: int, points: Sequence[QPointF]) -> None:
+        """Replace points of a committed annotation (image coordinates)."""
+        if index < 0 or index >= len(self._annotations):
+            return
+        self._annotations[index].points = [QPointF(p) for p in points]
 
     def update_draft_points(self, points: Sequence[QPointF]) -> None:
         """Replace draft points (image coordinates)."""

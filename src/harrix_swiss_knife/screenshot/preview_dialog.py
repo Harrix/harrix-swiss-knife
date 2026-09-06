@@ -63,8 +63,8 @@ _MARKDOWN_AI_EMOJI = "🤖"
 _MARKDOWN_OCR_EMOJI = "🔤"
 _TRANSLATE_EMOJI = "🌐"
 _STATUS_HINT = (
-    "Tools: arrow / shapes / pen / text / crop · Shift constrains · Undo · "
-    "Ctrl+wheel zoom · Middle-drag pan · Ctrl+S save to images"
+    "Tools: arrow / shapes / pen / text / crop · Click a shape to select · "
+    "Delete removes · Shift constrains · Undo · Ctrl+wheel zoom · Middle-drag pan · Ctrl+S save to images"
 )
 _VK_S = 0x53
 _KEY_CYRILLIC_YERU = 0x042B  # Cyrillic yeru (same physical key as Latin S)  # ignore: HP001
@@ -260,7 +260,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         super().closeEvent(event)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
-        """Save on Ctrl+S; Enter/Esc confirm or cancel a pending crop."""  # ignore: HP001
+        """Save on Ctrl+S; Delete selected; Enter/Esc for crop."""  # ignore: HP001
         tab = self._current_tab()
         if tab is not None and tab.canvas.crop_mode:
             if event.key() in {int(Qt.Key.Key_Return), int(Qt.Key.Key_Enter)} and tab.canvas.crop_pending:
@@ -271,6 +271,17 @@ class ScreenshotPreviewWindow(QMainWindow):
                 self._cancel_crop()
                 event.accept()
                 return
+        if (
+            tab is not None
+            and event.key() in {int(Qt.Key.Key_Delete), int(Qt.Key.Key_Backspace)}
+            and tab.canvas.delete_selected()
+        ):
+            self._status.setText("Annotation deleted · Ctrl+Z undo")
+            event.accept()
+            return
+        if tab is not None and event.key() == int(Qt.Key.Key_Escape) and tab.canvas.clear_selection():
+            event.accept()
+            return
         if _is_ctrl_s(event):
             self._save_to_images()
             event.accept()
@@ -370,7 +381,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         if tab is None:
             return
         count = len(tab.document.annotations)
-        self._status.setText(f"Annotations: {count} · Ctrl+Z undo")
+        self._status.setText(f"Annotations: {count} · Click to select · Delete removes · Ctrl+Z undo")
 
     def _on_tab_changed(self, _index: int) -> None:
         tab = self._current_tab()
