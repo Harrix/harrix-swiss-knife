@@ -8,7 +8,7 @@ import sys
 from ctypes import wintypes
 from typing import TYPE_CHECKING, Any, cast
 
-from PySide6.QtCore import QAbstractNativeEventFilter, QByteArray, QKeyCombination, QObject, Qt, Signal
+from PySide6.QtCore import QAbstractNativeEventFilter, QByteArray, QKeyCombination, QObject, Qt, QTimer, Signal
 from PySide6.QtGui import QKeySequence
 from PySide6.QtWidgets import QApplication, QWidget
 
@@ -112,8 +112,12 @@ class GlobalHotkeyManager(QObject):
 
     def _on_native_hotkey(self, hotkey_id: int) -> None:
         action = self._id_to_action.get(hotkey_id)
-        if action:
-            self.action_triggered.emit(action)
+        if not action:
+            return
+        # Never run actions inside nativeEventFilter: modal UI / processEvents
+        # re-enters Qt and PySide can report override errors (e.g. after a
+        # screenshot toast with message text leaking into the failure string).
+        QTimer.singleShot(0, lambda name=action: self.action_triggered.emit(name))
 
     def _register_one(self, hotkey_id: int, binding: ActionHotkeyBinding) -> bool:
         text = binding.hotkey.strip()
@@ -158,6 +162,9 @@ class _HotkeyNativeEventFilter(QAbstractNativeEventFilter):
             app = QApplication.instance()
             if app is not None:
                 app.quit()
+            return False, 0
+        except Exception:
+            logger.exception("nativeEventFilter failed")
             return False, 0
 
     def _filter_native_event(

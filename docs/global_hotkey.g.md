@@ -78,8 +78,12 @@ class GlobalHotkeyManager(QObject):
 
     def _on_native_hotkey(self, hotkey_id: int) -> None:
         action = self._id_to_action.get(hotkey_id)
-        if action:
-            self.action_triggered.emit(action)
+        if not action:
+            return
+        # Never run actions inside nativeEventFilter: modal UI / processEvents
+        # re-enters Qt and PySide can report override errors (e.g. after a
+        # screenshot toast with message text leaking into the failure string).
+        QTimer.singleShot(0, lambda name=action: self.action_triggered.emit(name))
 
     def _register_one(self, hotkey_id: int, binding: ActionHotkeyBinding) -> bool:
         text = binding.hotkey.strip()

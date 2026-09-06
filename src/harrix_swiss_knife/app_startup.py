@@ -14,7 +14,7 @@ from time import perf_counter
 from typing import TYPE_CHECKING, cast
 
 import harrix_pylib as h
-from PySide6.QtCore import QTimer, QtMsgType, qInstallMessageHandler
+from PySide6.QtCore import Qt, QTimer, QtMsgType, qInstallMessageHandler
 from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import QApplication, QMessageBox
 
@@ -306,7 +306,10 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
         hotkey_manager.registration_failed.connect(lambda msg: log.warning("Global hotkey: %s", msg))
         registered = hotkey_manager.register_all(bindings)
         log.info("Registered %s global hotkey(s) from config.json", registered)
-        hotkey_manager.action_triggered.connect(run_hotkey_action)
+        hotkey_manager.action_triggered.connect(
+            run_hotkey_action,
+            Qt.ConnectionType.QueuedConnection,
+        )
 
     _log_startup_phase(log, "Entering Qt event loop", startup_t0)
     rc = app.exec()
