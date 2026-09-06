@@ -41,7 +41,7 @@ class AiSourceDialog(TextImageSourceDialog):
             image_mode=ImagePickerMode.MULTI,
             show_skip_manual=True,
             accept_button_text="Send to AI",
-            accept_button_icon="bot",
+            accept_button_icon="astroid",
             accept_button_style=SEND_TO_AI_BUTTON_STYLE,
             max_image_side=max_image_side,
             initial_image_path=initial_image_path,

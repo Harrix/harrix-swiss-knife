@@ -167,7 +167,7 @@ class ExerciseAddDialog(QDialog):
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         apply_lucide_dialog_buttons(buttons)
-        self._fill_button = make_lucide_push_button("Fill with AI", "bot")
+        self._fill_button = make_lucide_push_button("Fill with AI", "astroid")
         self._fill_button.setToolTip(
             "Fill English/local names, unit, and calories from the entered name or media filename",
         )

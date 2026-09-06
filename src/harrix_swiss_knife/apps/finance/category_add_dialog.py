@@ -66,7 +66,7 @@ class CategoryAddDialog(QDialog):
         self._name_local_edit = QLineEdit(form_group)
         self._name_local_edit.setPlaceholderText("Local name")
         name_local_row.addWidget(self._name_local_edit, 1)
-        self._translate_button = make_lucide_push_button("", "bot")
+        self._translate_button = make_lucide_push_button("", "astroid")
         self._translate_button.setToolTip("Translate name to local language with AI")
         self._translate_button.setFixedWidth(36)
         self._translate_button.clicked.connect(self._on_translate_clicked)

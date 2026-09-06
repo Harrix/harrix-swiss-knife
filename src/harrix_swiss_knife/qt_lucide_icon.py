@@ -70,7 +70,7 @@ CHROME_EMOJI_TO_LUCIDE: dict[str, str] = {
     "➕": "plus",  # noqa: RUF001
     "✏️": "pencil",
     "✏": "pencil",
-    "🤖": "bot",
+    "🤖": "astroid",
     "🔄": "refresh-cw",
     "📁": "folder",
     "📂": "folder-open",

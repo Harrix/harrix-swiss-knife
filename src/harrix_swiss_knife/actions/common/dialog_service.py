@@ -1225,7 +1225,7 @@ class ActionDialogService:
 
             auto_button = make_lucide_push_button(
                 auto_button_text.removeprefix("🤖 ").strip() or "Auto",
-                "bot",
+                "astroid",
             )
 
             def on_auto_clicked() -> None:

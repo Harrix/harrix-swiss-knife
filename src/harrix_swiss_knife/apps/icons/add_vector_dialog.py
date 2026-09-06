@@ -298,7 +298,7 @@ class AddVectorImageDialog(QDialog):
 
         buttons = QHBoxLayout()
         buttons.addStretch(1)
-        self._ai_button = make_lucide_push_button("Fill with AI", "bot")
+        self._ai_button = make_lucide_push_button("Fill with AI", "astroid")
         self._ai_button.clicked.connect(self._on_fill_with_ai)
         buttons.addWidget(self._ai_button)
         cancel_button = make_lucide_push_button("Cancel", "x")

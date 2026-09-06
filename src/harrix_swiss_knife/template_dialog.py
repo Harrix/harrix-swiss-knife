@@ -1015,7 +1015,7 @@ class TemplateDialog(QDialog):
             image_mode=ImagePickerMode.MULTI,
             show_skip_manual=False,
             accept_button_text="Send to AI",
-            accept_button_icon="bot",
+            accept_button_icon="astroid",
             accept_button_style=SEND_TO_AI_BUTTON_STYLE,
             max_image_side=max_image_side,
         )
@@ -1459,7 +1459,7 @@ class TemplateDialog(QDialog):
         # Add buttons
         button_layout = QHBoxLayout()
         if self._app_config is not None:
-            self._fill_ai_button = make_lucide_push_button("Fill with AI", "bot")
+            self._fill_ai_button = make_lucide_push_button("Fill with AI", "astroid")
             self._fill_ai_button.setToolTip(
                 "Fill empty template fields from text and/or screenshots via BotHub. "
                 "Does not fill Review or attach images to the note."

@@ -93,7 +93,7 @@ class HabitEditDialog(QDialog):
         self._emoji_preview.clicked.connect(self._choose_emoji)
         choose_button = QPushButton("Choose…")
         choose_button.clicked.connect(self._choose_emoji)
-        self._ai_emoji_button = make_lucide_push_button("", "bot")
+        self._ai_emoji_button = make_lucide_push_button("", "astroid")
         self._ai_emoji_button.setToolTip("Suggest emoji with AI")
         self._ai_emoji_button.setFixedWidth(36)
         self._ai_emoji_button.clicked.connect(self._suggest_emoji_with_ai)
