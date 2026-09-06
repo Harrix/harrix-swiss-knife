@@ -89,7 +89,6 @@
     "fitness_image_static_max_size": 512,
     "fitness_lightbox_countdown_seconds": 5,
     "screen_record_countdown_seconds": 3,
-    "screen_record_audio": "system",
     "screen_record_microphone_id": "",
     "fitness_workout_history_count": 100,
     "initial_count": 1000,

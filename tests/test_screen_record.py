@@ -24,8 +24,8 @@ def test_even_size_rounds_down_to_even() -> None:
 def test_screen_record_config_defaults() -> None:
     assert get_screen_record_audio({}) == DEFAULT_SCREEN_RECORD_AUDIO
     assert get_screen_record_countdown_seconds({}) == DEFAULT_SCREEN_RECORD_COUNTDOWN_SECONDS
-    assert get_screen_record_audio({"apps": {"screen_record_audio": "mic"}}) == "mic"
-    assert get_screen_record_audio({"apps": {"screen_record_audio": "nope"}}) == DEFAULT_SCREEN_RECORD_AUDIO
+    assert get_screen_record_audio({"screen_record_audio": "mic"}) == "mic"
+    assert get_screen_record_audio({"screen_record_audio": "nope"}) == DEFAULT_SCREEN_RECORD_AUDIO
     assert get_screen_record_countdown_seconds({"apps": {"screen_record_countdown_seconds": 5}}) == 5
     assert get_screen_record_countdown_seconds({"apps": {"screen_record_countdown_seconds": 99}}) == 30
     assert get_screen_record_microphone_id({}) == ""

@@ -143,7 +143,7 @@ class RecordFrameWindow(QWidget):
         self._status.setToolTip("Recording status")
 
         self._audio = QComboBox(self)
-        self._audio.setToolTip("Audio source for the recording (saved in config.json)")
+        self._audio.setToolTip("Audio source for the recording (saved in config-temp.json)")
         for mode in ("none", "mic", "system", "mic_and_system"):
             self._audio.addItem(_AUDIO_LABELS[mode], mode)
         current = get_screen_record_audio()
