@@ -441,6 +441,7 @@
     "image_ocr_to_markdown": "snippet:config/prompts/image-ocr-to-markdown.md",
     "image_ocr_translate": "snippet:config/prompts/image-ocr-translate.md",
     "markdown_template_fields_from_source": "snippet:config/prompts/markdown-template-fields-from-source.md",
+    "snippets_emoji_suggest": "snippet:config/prompts/snippets-emoji-suggest.md",
     "vector_icons_keywords": "snippet:config/prompts/vector-icons-keywords.md",
     "vector_icons_add_image": "snippet:config/prompts/vector-icons-add-image.md"
   },

@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QStyle,
     QStyledItemDelegate,
     QStyleOptionViewItem,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -33,13 +34,15 @@ from harrix_swiss_knife.apps.snippets.parse import (
     display_text,
     hint_tooltip,
     item_matches_search,
+    item_values_equal,
     strip_wrapping_brackets,
 )
 from harrix_swiss_knife.qt_app_font import apply_mono_font
 from harrix_swiss_knife.qt_emoji_icon import add_emoji_action, create_emoji_icon
+from harrix_swiss_knife.qt_flow_layout import FlowLayout
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Sequence
 
     from harrix_swiss_knife.apps.snippets.database_manager import SnippetItem, ZoneSort
 
@@ -54,6 +57,7 @@ _CHIP_PADDING_X = 8
 _CHIP_PADDING_Y = 3
 _CHIP_RADIUS = 6
 _CHIP_ROW_MARGIN = 8
+_CANDIDATE_EMOJI_SIZE = 22
 _LIGHT_TEXT_THRESHOLD = 160
 _MIN_COLOR_ROW_HEIGHT = 28
 _SELECTION_BG = "#e9e9e9"
@@ -224,6 +228,8 @@ class ZonePanel(QWidget):
     edit_all_requested = Signal()
     delete_requested = Signal(object)
     sort_requested = Signal(str)
+    ai_add_requested = Signal(str)
+    ai_pick_requested = Signal()
 
     def __init__(
         self,
@@ -249,6 +255,10 @@ class ZonePanel(QWidget):
         self._filter_query = ""
         self._input_match = ""
         self._remembered_id: int | None = None
+        self._ai_pick_button: QToolButton | None = None
+        self._ai_candidates: QWidget | None = None
+        self._ai_candidates_layout: FlowLayout | None = None
+        self._ai_emojis: list[str] = []
 
         self._list = QListWidget(self)
         self._list.setFrameShape(QListWidget.Shape.NoFrame)
@@ -284,12 +294,30 @@ class ZonePanel(QWidget):
         title_label = QLabel(title)
         title_label.setEnabled(False)
         header.addWidget(title_label)
+        if zone == ZONE_EMOJI:
+            pick = QToolButton(self)
+            pick.setIcon(create_emoji_icon("🤖", 18))
+            pick.setIconSize(QSize(18, 18))
+            pick.setFixedSize(28, 28)
+            pick.setAutoRaise(True)
+            pick.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
+            pick.setToolTip("Pick emoji by name")
+            pick.setVisible(False)
+            pick.clicked.connect(self.ai_pick_requested.emit)
+            self._ai_pick_button = pick
+            header.addWidget(pick)
         header.addStretch()
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
         layout.addLayout(header)
+        if zone == ZONE_EMOJI:
+            host = QWidget(self)
+            self._ai_candidates_layout = FlowLayout(host, margin=0, h_spacing=4, v_spacing=4)
+            host.hide()
+            self._ai_candidates = host
+            layout.addWidget(host)
         layout.addWidget(self._list, stretch=1)
 
     def activate_current_or_first(self) -> None:
@@ -303,6 +331,11 @@ class ZonePanel(QWidget):
             snippet = self.current_snippet()
         if snippet is not None:
             self.item_activated.emit(snippet)
+
+    def clear_ai_candidates(self) -> None:
+        """Remove AI suggestion chips from the emoji zone."""
+        self._ai_emojis = []
+        self._rebuild_ai_candidates(())
 
     def clear_filter(self) -> None:
         """Clear this zone's search query."""
@@ -378,6 +411,10 @@ class ZonePanel(QWidget):
         if rows:
             self.select_row(rows[0])
 
+    def refresh_ai_candidates(self, existing_values: Sequence[str]) -> None:
+        """Rebuild AI chips after the emoji list changes."""
+        self._rebuild_ai_candidates(existing_values)
+
     def reset_keyboard_session(self) -> None:
         """Clear the keyboard highlight remembered for this Quick paste session."""
         self._remembered_id = None
@@ -398,6 +435,21 @@ class ZonePanel(QWidget):
         item.setSelected(True)
         self._list.scrollToItem(item)
         self._remember_current()
+
+    def set_ai_candidates(self, emojis: list[str], *, existing_values: Sequence[str]) -> None:
+        """Show AI emoji suggestions; missing ones get an add button."""
+        self._ai_emojis = list(emojis)
+        self._rebuild_ai_candidates(existing_values)
+
+    def set_ai_pick_enabled(self, *, enabled: bool) -> None:
+        """Enable or disable the pick-by-name button."""
+        if self._ai_pick_button is not None:
+            self._ai_pick_button.setEnabled(enabled)
+
+    def set_ai_pick_visible(self, *, visible: bool) -> None:
+        """Show the pick-by-name button when the shared input has text."""
+        if self._ai_pick_button is not None:
+            self._ai_pick_button.setVisible(visible)
 
     def set_filter_query(self, text: str) -> None:
         """Filter this zone by `text` and clear the current highlight."""
@@ -488,6 +540,18 @@ class ZonePanel(QWidget):
         )
         return menu
 
+    def _clear_ai_candidate_widgets(self) -> None:
+        layout = self._ai_candidates_layout
+        if layout is None:
+            return
+        while layout.count():
+            item = layout.takeAt(0)
+            if item is None:
+                break
+            widget = item.widget()
+            if widget is not None:
+                widget.deleteLater()
+
     def _clear_list_current(self) -> None:
         self._list.clearSelection()
         self._list.setCurrentRow(-1)
@@ -519,6 +583,22 @@ class ZonePanel(QWidget):
         snippet = item.data(_ITEM_ROLE)
         if snippet is not None:
             self.item_activated.emit(snippet)
+
+    def _rebuild_ai_candidates(self, existing_values: Sequence[str]) -> None:
+        host = self._ai_candidates
+        layout = self._ai_candidates_layout
+        if host is None or layout is None:
+            return
+        self._clear_ai_candidate_widgets()
+        if not self._ai_emojis:
+            host.hide()
+            return
+        for emoji in self._ai_emojis:
+            can_add = not any(item_values_equal(ZONE_EMOJI, emoji, value) for value in existing_values)
+            layout.addWidget(
+                _make_emoji_candidate_chip(emoji, can_add=can_add, on_add=self.ai_add_requested.emit),
+            )
+        host.show()
 
     def _remember_current(self) -> None:
         snippet = self.current_snippet()
@@ -602,3 +682,29 @@ def _item_matches_input(index: QModelIndex | QPersistentModelIndex, option: QSty
         return False
     snippet = index.data(_ITEM_ROLE)
     return parent.item_matches_input(snippet)
+
+
+def _make_emoji_candidate_chip(emoji: str, *, can_add: bool, on_add: Callable[[str], None]) -> QWidget:
+    chip = QWidget()
+    row = QHBoxLayout(chip)
+    row.setContentsMargins(0, 0, 0, 0)
+    row.setSpacing(0)
+    glyph = QToolButton(chip)
+    glyph.setIcon(create_emoji_icon(emoji, _CANDIDATE_EMOJI_SIZE))
+    glyph.setIconSize(QSize(_CANDIDATE_EMOJI_SIZE, _CANDIDATE_EMOJI_SIZE))
+    glyph.setFixedSize(28, 28)
+    glyph.setAutoRaise(True)
+    glyph.setEnabled(False)
+    glyph.setToolTip(emoji if can_add else f"{emoji} (already in list)")
+    row.addWidget(glyph)
+    if can_add:
+        plus = QToolButton(chip)
+        plus.setIcon(create_emoji_icon("➕", 16))  # noqa: RUF001
+        plus.setIconSize(QSize(16, 16))
+        plus.setFixedSize(22, 22)
+        plus.setAutoRaise(True)
+        plus.setToolTip("Add to emoji list")
+        plus.setProperty("snippet_ai_add", emoji)
+        plus.clicked.connect(lambda _checked=False, value=emoji: on_add(value))
+        row.addWidget(plus)
+    return chip

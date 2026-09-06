@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, ClassVar, cast
+from typing import TYPE_CHECKING, Any, ClassVar, cast
 
 import harrix_pylib as h
 from PySide6.QtCore import QEvent, QObject, QPoint, QSize, Qt
@@ -42,12 +42,14 @@ from harrix_swiss_knife.apps.snippets.constants import (
     SortMode,
     ZoneName,
 )
+from harrix_swiss_knife.apps.snippets.emoji_ai import request_snippets_emoji_suggestions
 from harrix_swiss_knife.apps.snippets.item_edit_dialog import ItemEditDialog
 from harrix_swiss_knife.apps.snippets.parse import filter_new_snippet_items, parse_bulk_lines, serialize_items
 from harrix_swiss_knife.apps.snippets.paste import clone_clipboard_mime, paste_text_then_restore_clipboard
 from harrix_swiss_knife.apps.snippets.seed import ensure_seed_emojis
 from harrix_swiss_knife.apps.snippets.sort import sort_items
 from harrix_swiss_knife.apps.snippets.zone_panel import ZonePanel, add_sort_menu_actions
+from harrix_swiss_knife.integrations.bothub import BothubRequestState
 from harrix_swiss_knife.paths import get_config_path_str
 from harrix_swiss_knife.qt_app_font import apply_mono_font
 from harrix_swiss_knife.qt_command_section import apply_opaque_white, grow_qfont
@@ -109,6 +111,9 @@ class SnippetsDialog(QDialog):
         self._drag_position = QPoint()
         self._saved_clipboard = None
         self.db_manager: database_manager.DatabaseManager | None = None
+        self._app_config: dict[str, Any] = {}
+        self._bothub_state = BothubRequestState()
+        self._ai_request_in_progress = False
 
         apply_opaque_white(self)
         self.setObjectName("snippetsDialog")
@@ -203,11 +208,13 @@ class SnippetsDialog(QDialog):
         for panel in self._panels.values():
             panel.reset_keyboard_session()
             panel.clear_filter()
+        self._emoji.clear_ai_candidates()
         self._center_on_screen()
         self.show()
         self.raise_()
         self.activateWindow()
         self._activate_zone(ZONE_PHRASE, select_item=False)
+        self._update_ai_pick_button()
 
     def reload_all(self) -> None:
         """Reload every zone from the database."""
@@ -253,6 +260,16 @@ class SnippetsDialog(QDialog):
     def _active_panel(self) -> ZonePanel:
         """Return the zone panel that the shared input currently filters."""
         return self._panels[self._active_zone]
+
+    def _add_ai_emoji(self, emoji: str) -> None:
+        if self.db_manager is None or not emoji.strip():
+            return
+        if self.db_manager.has_item_value(ZONE_EMOJI, emoji):
+            self._refresh_ai_candidates()
+            return
+        self.db_manager.add_item(ZONE_EMOJI, emoji, "")
+        self._reload_zone(ZONE_EMOJI, self._emoji)
+        self._refresh_ai_candidates()
 
     def _add_item(self, zone: str) -> None:
         dialog = ItemEditDialog(self, title=f"Add {_ZONE_TITLES[zone].lower()}", zone=zone)
@@ -309,6 +326,8 @@ class SnippetsDialog(QDialog):
             panel.edit_all_requested.connect(lambda zone_panel=panel: self._edit_all(zone_panel.zone))
             panel.delete_requested.connect(self._delete_item)
             panel.sort_requested.connect(lambda mode, zone_panel=panel: self._sort_zone(zone_panel.zone, mode))
+        self._emoji.ai_pick_requested.connect(self._suggest_emoji_with_ai)
+        self._emoji.ai_add_requested.connect(self._add_ai_emoji)
 
         right_split = QSplitter(Qt.Orientation.Vertical, self)
         right_split.addWidget(self._emoji)
@@ -486,8 +505,8 @@ class SnippetsDialog(QDialog):
         return super().eventFilter(watched, event)
 
     def _init_database(self) -> None:
-        config = h.dev.config_load(get_config_path_str())
-        raw = str(config.get("sqlite_snippets") or "").strip()
+        self._app_config = h.dev.config_load(get_config_path_str())
+        raw = str(self._app_config.get("sqlite_snippets") or "").strip()
         configured = Path(raw) if raw else Path("snippets.db")
         self.db_manager = init_tracker_database(
             self,
@@ -508,12 +527,17 @@ class SnippetsDialog(QDialog):
     def _move_drag(self, global_pos: QPoint) -> None:
         self.move(global_pos - self._drag_position)
 
+    def _on_ai_emoji_finished(self) -> None:
+        self._ai_request_in_progress = False
+        self._update_ai_pick_button()
+
     def _on_input_text_changed(self, text: str) -> None:
         if self._syncing_input:
             return
         self._zone_input_text[self._active_zone] = text
         self._active_panel().set_filter_query(text)
         self._refresh_input_match()
+        self._update_ai_pick_button()
 
     def _paste_item(self, snippet: SnippetItem) -> None:
         self._saved_clipboard = clone_clipboard_mime()
@@ -523,6 +547,10 @@ class SnippetsDialog(QDialog):
             self._saved_clipboard,
             on_finished=lambda: self._mark_used(snippet.item_id),
         )
+
+    def _refresh_ai_candidates(self) -> None:
+        existing = [item.value for item in self.db_manager.list_items(ZONE_EMOJI)] if self.db_manager else []
+        self._emoji.refresh_ai_candidates(existing)
 
     def _refresh_input_match(self) -> None:
         text = self._input.text()
@@ -542,6 +570,7 @@ class SnippetsDialog(QDialog):
         self._input.setText(text)
         self._syncing_input = False
         self._refresh_input_match()
+        self._update_ai_pick_button()
 
     def _shared_zone_sort(self) -> tuple[str | None, bool]:
         if self.db_manager is None:
@@ -551,6 +580,10 @@ class SnippetsDialog(QDialog):
         if all(item.mode == first.mode and item.descending == first.descending for item in sorts):
             return first.mode, first.descending
         return None, False
+
+    def _show_ai_emoji_candidates(self, emojis: list[str]) -> None:
+        existing = [item.value for item in self.db_manager.list_items(ZONE_EMOJI)] if self.db_manager else []
+        self._emoji.set_ai_candidates(emojis, existing_values=existing)
 
     def _show_current_value_in_input(self) -> None:
         snippet = self._active_panel().current_snippet()
@@ -581,6 +614,31 @@ class SnippetsDialog(QDialog):
     def _start_drag(self, global_pos: QPoint) -> None:
         self._dragging = True
         self._drag_position = global_pos - self.frameGeometry().topLeft()
+
+    def _suggest_emoji_with_ai(self) -> None:
+        query = self._input.text().strip()
+        if not query or self._ai_request_in_progress:
+            return
+        if self._active_zone != ZONE_EMOJI:
+            self._activate_zone(ZONE_EMOJI, select_item=False)
+            self._set_input_text(query)
+            self._zone_input_text[ZONE_EMOJI] = query
+            self._emoji.set_filter_query(query)
+        self._ai_request_in_progress = True
+        self._update_ai_pick_button()
+        request_snippets_emoji_suggestions(
+            self,
+            app_config=self._app_config,
+            bothub_state=self._bothub_state,
+            query=query,
+            on_emojis=self._show_ai_emoji_candidates,
+            on_finished=self._on_ai_emoji_finished,
+        )
+
+    def _update_ai_pick_button(self) -> None:
+        has_text = bool(self._input.text().strip())
+        self._emoji.set_ai_pick_visible(visible=has_text)
+        self._emoji.set_ai_pick_enabled(enabled=has_text and not self._ai_request_in_progress)
 
     def _warn_duplicate(self, zone: str, value: str) -> None:
         kind = _ZONE_KIND.get(zone, "item")

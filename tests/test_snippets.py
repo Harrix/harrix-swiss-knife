@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 from PySide6.QtCore import QEvent, QPointF, QRect, Qt
 from PySide6.QtGui import QColor, QKeyEvent, QMouseEvent, QPainter, QPalette, QPixmap
-from PySide6.QtWidgets import QApplication, QMenu, QStyle, QStyleOptionViewItem
+from PySide6.QtWidgets import QApplication, QMenu, QStyle, QStyleOptionViewItem, QToolButton
 
 from harrix_swiss_knife.actions.apps.snippets import OnSnippets
 from harrix_swiss_knife.actions.common.quick_launcher_registry import iter_menu_structure
@@ -26,6 +26,7 @@ from harrix_swiss_knife.apps.snippets.constants import (
 )
 from harrix_swiss_knife.apps.snippets.database_manager import DatabaseManager, SnippetItem, ZoneSort
 from harrix_swiss_knife.apps.snippets.dialog import SnippetsDialog
+from harrix_swiss_knife.apps.snippets.emoji_ai import parse_snippets_emoji_response
 from harrix_swiss_knife.apps.snippets.parse import (
     display_text,
     filter_new_snippet_items,
@@ -197,6 +198,12 @@ def test_item_matches_search_ignores_case_and_layout() -> None:
     assert not item_matches_search("Add", "", "zzzz")
 
 
+def test_parse_snippets_emoji_response_collects_unique() -> None:
+    assert parse_snippets_emoji_response("🍕\n🍔\n🍕") == ["🍕", "🍔"]
+    assert parse_snippets_emoji_response("```\n💧 📚\n```") == ["💧", "📚"]
+    assert parse_snippets_emoji_response("no emoji") == []
+
+
 def test_parse_value_hint_line_and_bulk_lines() -> None:
     assert parse_value_hint_line("— | Век живи — век учись. | Тире") == (
         "—",
@@ -268,6 +275,39 @@ def test_ensure_seed_emojis_inserts_missing(qapp: QApplication, tmp_path: Path) 
         assert ensure_seed_emojis(manager) == 0
     finally:
         manager.close()
+
+
+def test_emoji_ai_candidates_show_plus_when_missing(qapp: QApplication) -> None:
+    assert qapp is not None
+    panel = ZonePanel(zone=ZONE_EMOJI, title="Emoji")
+    panel.show()
+    added: list[str] = []
+    panel.ai_add_requested.connect(added.append)
+    panel.set_ai_candidates(["🍕", "🐱"], existing_values=["🐱"])
+    plus_buttons = [button for button in panel.findChildren(QToolButton) if button.toolTip() == "Add to emoji list"]
+    assert len(plus_buttons) == 1
+    assert plus_buttons[0].property("snippet_ai_add") == "🍕"
+    plus_buttons[0].click()
+    assert added == ["🍕"]
+    panel.close()
+
+
+def test_emoji_pick_button_appears_when_input_has_text(qapp: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:
+    assert qapp is not None
+    monkeypatch.setattr(SnippetsDialog, "_init_database", lambda _dialog: None)
+    dialog = SnippetsDialog()
+    dialog.show()
+    QApplication.processEvents()
+    pick = dialog._emoji._ai_pick_button
+    assert pick is not None
+    assert not pick.isVisible()
+    dialog._input.setText("cat")
+    QApplication.processEvents()
+    assert pick.isVisible()
+    dialog._input.clear()
+    QApplication.processEvents()
+    assert not pick.isVisible()
+    dialog.close()
 
 
 def test_emoji_zone_items_have_icon_without_caption(qapp: QApplication) -> None:
