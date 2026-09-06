@@ -54,6 +54,7 @@ if TYPE_CHECKING:
 
 _BORDER = 4
 _HANDLE = 8
+_MOVE_HANDLE_SIZE = 12
 _TOOLBAR_GAP = 16
 _TOOLBAR_H = 48
 _MIN_REGION = 32
@@ -170,6 +171,26 @@ QAbstractItemView::item:selected:hover {
 """
 
 
+def hit_test_record_frame_handle(
+    rect: QRect,
+    pos: QPoint,
+    *,
+    handle_size: int = _HANDLE,
+    border: int = _BORDER,
+) -> HandleKind | None:
+    """Return the frame handle under `pos`. The top-left corner moves the region."""
+    grip = max(handle_size, _MOVE_HANDLE_SIZE // 2)
+    nw = QRect(rect.left() - grip, rect.top() - grip, grip * 2, grip * 2)
+    if nw.contains(pos):
+        return "move"
+    handle = hit_test_selection_handle(rect, pos, handle_size=handle_size)
+    if handle is None:
+        ring = rect.adjusted(-border, -border, border, border)
+        if ring.contains(pos) and not rect.contains(pos):
+            return "move"
+    return handle
+
+
 class RecordFrameWindow(QWidget):
     """Hollow border around a recording region with a toolbar under it."""
 
@@ -282,7 +303,7 @@ class RecordFrameWindow(QWidget):
             child.installEventFilter(self._toolbar_filter)
 
         self._status.setText("Ready")
-        self._status.setToolTip("Ready — move/resize frame, then record")
+        self._status.setToolTip("Ready — drag top-left to move, other handles to resize")
         self._update_idle_controls(visible=True)
         self._update_mic_visibility()
         self._refresh_snap_guides()
@@ -296,7 +317,7 @@ class RecordFrameWindow(QWidget):
         if not self._recording:
             self._update_idle_controls(visible=True)
             self._status.setText("Ready")
-            self._status.setToolTip("Ready — move/resize frame, then record")
+            self._status.setToolTip("Ready — drag top-left to move, other handles to resize")
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Hide the countdown overlay with the frame."""
@@ -388,15 +409,7 @@ class RecordFrameWindow(QWidget):
             self.setCursor(Qt.CursorShape.IBeamCursor)
             event.accept()
             return
-        handle = hit_test_selection_handle(
-            self._region_local_rect(),
-            pos,
-            handle_size=_HANDLE,
-        )
-        if handle is None:
-            ring = self._border_ring_rect()
-            if ring.contains(pos) and not self._region_local_rect().contains(pos):
-                handle = "move"
+        handle = hit_test_record_frame_handle(self._region_local_rect(), pos)
         self.setCursor(getattr(Qt.CursorShape, cursor_for_handle(handle)) if handle else Qt.CursorShape.ArrowCursor)
         event.accept()
 
@@ -419,15 +432,7 @@ class RecordFrameWindow(QWidget):
         if self._hit_size_label(pos) is not None:
             event.accept()
             return
-        handle = hit_test_selection_handle(
-            self._region_local_rect(),
-            pos,
-            handle_size=_HANDLE,
-        )
-        if handle is None:
-            ring = self._border_ring_rect()
-            if ring.contains(pos) and not self._region_local_rect().contains(pos):
-                handle = "move"
+        handle = hit_test_record_frame_handle(self._region_local_rect(), pos)
         if handle is None:
             event.accept()
             return
@@ -462,18 +467,8 @@ class RecordFrameWindow(QWidget):
         painter.drawRect(rect.adjusted(-_BORDER // 2, -_BORDER // 2, _BORDER // 2, _BORDER // 2))
         painter.setBrush(color)
         painter.setPen(Qt.PenStyle.NoPen)
-        half = _HANDLE // 2
-        for hx, hy in (
-            (rect.left(), rect.top()),
-            (rect.center().x(), rect.top()),
-            (rect.right(), rect.top()),
-            (rect.left(), rect.center().y()),
-            (rect.right(), rect.center().y()),
-            (rect.left(), rect.bottom()),
-            (rect.center().x(), rect.bottom()),
-            (rect.right(), rect.bottom()),
-        ):
-            painter.drawRect(hx - half, hy - half, _HANDLE, _HANDLE)
+        for box in self._handle_boxes():
+            painter.drawRect(box)
         if not self._recording:
             painter.setFont(guide_label_font(self.font()))
             for kind, box, text in self._size_label_entries():
@@ -513,7 +508,7 @@ class RecordFrameWindow(QWidget):
         else:
             self._elapsed_timer.stop()
             self._status.setText("Ready")
-            self._status.setToolTip("Ready — move/resize frame, then record")
+            self._status.setToolTip("Ready — drag top-left to move, other handles to resize")
         self._apply_geometry()
 
     def set_status(self, text: str) -> None:
@@ -575,11 +570,6 @@ class RecordFrameWindow(QWidget):
             self._size_editor.setGeometry(self._size_editor_geometry(box))
             self._size_editor.raise_()
 
-    def _border_ring_rect(self) -> QRect:
-        """Outer rectangle covering the border around the region (not the toolbar)."""
-        local = self._region_local_rect()
-        return local.adjusted(-_BORDER, -_BORDER, _BORDER, _BORDER)
-
     def _cancel_size_edit(self) -> None:
         self._close_size_editor()
 
@@ -637,6 +627,30 @@ class RecordFrameWindow(QWidget):
 
     def _guide_metrics(self) -> QFontMetrics:
         return QFontMetrics(guide_label_font(self.font()))
+
+    def _handle_boxes(self) -> list[QRect]:
+        rect = self._region_local_rect()
+        half = _HANDLE // 2
+        move_half = _MOVE_HANDLE_SIZE // 2
+        boxes = [
+            QRect(
+                rect.left() - move_half,
+                rect.top() - move_half,
+                _MOVE_HANDLE_SIZE,
+                _MOVE_HANDLE_SIZE,
+            ),
+        ]
+        for hx, hy in (
+            (rect.center().x(), rect.top()),
+            (rect.right(), rect.top()),
+            (rect.left(), rect.center().y()),
+            (rect.right(), rect.center().y()),
+            (rect.left(), rect.bottom()),
+            (rect.center().x(), rect.bottom()),
+            (rect.right(), rect.bottom()),
+        ):
+            boxes.append(QRect(hx - half, hy - half, _HANDLE, _HANDLE))
+        return boxes
 
     def _hit_size_label(self, pos: QPoint) -> SizeLabelKind | None:
         if self._recording or self._locked:
@@ -873,7 +887,10 @@ class RecordFrameWindow(QWidget):
             )
         if self._size_editor.isVisible():
             labels = labels.united(QRegion(self._size_editor.geometry()))
-        self.setMask(full.subtracted(hole).united(toolbar).united(labels))
+        handles = QRegion()
+        for box in self._handle_boxes():
+            handles = handles.united(QRegion(box))
+        self.setMask(full.subtracted(hole).united(toolbar).united(labels).united(handles))
 
     def _update_mic_visibility(self) -> None:
         show = (not self._recording) and self._needs_microphone() and self._audio.isVisible()
