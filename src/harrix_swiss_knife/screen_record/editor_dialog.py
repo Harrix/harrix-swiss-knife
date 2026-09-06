@@ -7,8 +7,8 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import Qt, QTimer, QUrl
-from PySide6.QtGui import QDesktopServices, QKeySequence, QShortcut
+from PySide6.QtCore import QProcess, Qt, QTimer, QUrl
+from PySide6.QtGui import QDesktopServices, QKeySequence, QPixmap, QShortcut
 from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
 from PySide6.QtMultimediaWidgets import QVideoWidget
 from PySide6.QtWidgets import (
@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QSizePolicy,
     QSlider,
+    QStackedWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -30,15 +31,18 @@ from shiboken6 import isValid
 
 from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon, make_emoji_push_button
 from harrix_swiss_knife.screen_record.export import ExportFormat, ExportRequest, export_recording
+from harrix_swiss_knife.screen_record.frame_grab import ffmpeg_frame_grab_args
 
 if TYPE_CHECKING:
-    from PySide6.QtGui import QCloseEvent
+    from PySide6.QtGui import QCloseEvent, QResizeEvent
 
 _ICON = 18
 _MIN_W = 720
 _MIN_H = 520
 _FRAME_MS = 33  # ~30 fps step for frame-by-frame trim
 _SCRUB_INTERVAL_MS = 50  # preview refresh while dragging (~20 fps)
+_STACK_VIDEO = 0
+_STACK_FRAME = 1
 _editor_holder: dict[str, RecordingEditorWindow | None] = {"window": None}
 
 _FORMAT_FILTERS = {
@@ -67,6 +71,9 @@ class RecordingEditorWindow(QMainWindow):
         self._muted = False
         self._initial_frame_ready = False
         self._scrub_pending_ms: int | None = None
+        self._wanted_frame_ms: int | None = None
+        self._grab_for_ms: int | None = None
+        self._frame_source: QPixmap | None = None
         self._scrub_timer = QTimer(self)
         self._scrub_timer.setSingleShot(True)
         self._scrub_timer.setInterval(_SCRUB_INTERVAL_MS)
@@ -76,9 +83,20 @@ class RecordingEditorWindow(QMainWindow):
         self.setCentralWidget(central)
         root = QVBoxLayout(central)
 
-        self._video = QVideoWidget(central)
+        self._preview_stack = QStackedWidget(central)
+        self._preview_stack.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self._video = QVideoWidget(self._preview_stack)
         self._video.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        root.addWidget(self._video, stretch=1)
+        self._frame_label = QLabel(self._preview_stack)
+        self._frame_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._frame_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self._frame_label.setMinimumSize(1, 1)
+        self._frame_label.setStyleSheet("QLabel { background-color: #111; color: #aaa; }")
+        self._frame_label.setText("Loading frame…")
+        self._preview_stack.addWidget(self._video)
+        self._preview_stack.addWidget(self._frame_label)
+        self._preview_stack.setCurrentIndex(_STACK_FRAME)
+        root.addWidget(self._preview_stack, stretch=1)
 
         self._path_label = QLabel(str(self._path), central)
         self._path_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
@@ -187,6 +205,9 @@ class RecordingEditorWindow(QMainWindow):
         self._player.durationChanged.connect(self._on_duration_changed)
         self._player.positionChanged.connect(self._on_position_changed)
 
+        self._grab_process = QProcess(self)
+        self._grab_process.finished.connect(self._on_frame_grab_finished)
+
         space = QShortcut(QKeySequence(Qt.Key.Key_Space), self)
         space.setContext(Qt.ShortcutContext.WindowShortcut)
         space.activated.connect(self._toggle_play)
@@ -194,10 +215,19 @@ class RecordingEditorWindow(QMainWindow):
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Stop playback and clear the shared editor reference."""
         self._scrub_timer.stop()
+        self._wanted_frame_ms = None
+        if self._grab_process.state() != QProcess.ProcessState.NotRunning:
+            self._grab_process.kill()
+            self._grab_process.waitForFinished(500)
         self._player.stop()
         if _editor_holder["window"] is self:
             _editor_holder["window"] = None
         super().closeEvent(event)
+
+    def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
+        """Keep the scrub pixmap fitted when the window is resized."""
+        super().resizeEvent(event)
+        self._refit_frame_pixmap()
 
     def _apply_scrub_now(self) -> None:
         if self._scrub_pending_ms is None:
@@ -258,6 +288,23 @@ class RecordingEditorWindow(QMainWindow):
         if self._duration_ms > 0:
             self._show_initial_frame()
 
+    def _on_frame_grab_finished(self, exit_code: int, _status: QProcess.ExitStatus) -> None:
+        jpeg = self._grab_process.readAllStandardOutput()
+        grabbed_ms = self._grab_for_ms
+        self._grab_for_ms = None
+        if exit_code == 0 and not jpeg.isEmpty() and grabbed_ms is not None:
+            pixmap = QPixmap()
+            if pixmap.loadFromData(jpeg, b"JPG"):
+                self._frame_source = pixmap
+                self._frame_label.setText("")
+                self._refit_frame_pixmap()
+                if self._player.playbackState() != QMediaPlayer.PlaybackState.PlayingState:
+                    self._preview_stack.setCurrentIndex(_STACK_FRAME)
+
+        wanted = self._wanted_frame_ms
+        if wanted is not None and wanted != grabbed_ms:
+            self._start_frame_grab(wanted)
+
     def _on_media_status_changed(self, status: QMediaPlayer.MediaStatus) -> None:
         if status in {
             QMediaPlayer.MediaStatus.LoadedMedia,
@@ -287,6 +334,7 @@ class RecordingEditorWindow(QMainWindow):
         self._scrub_timer.stop()
         if self._player.playbackState() == QMediaPlayer.PlaybackState.PlayingState:
             self._player.pause()
+        self._preview_stack.setCurrentIndex(_STACK_FRAME)
 
     def _on_slider_released(self) -> None:
         self._scrub_timer.stop()
@@ -308,6 +356,11 @@ class RecordingEditorWindow(QMainWindow):
         playing = state == QMediaPlayer.PlaybackState.PlayingState
         self._play_btn.setText("Pause" if playing else "Play")
         self._play_btn.setIcon(create_emoji_icon("⏸️" if playing else "▶️", _ICON))
+        if playing:
+            self._wanted_frame_ms = None
+            self._preview_stack.setCurrentIndex(_STACK_VIDEO)
+        else:
+            self._preview_stack.setCurrentIndex(_STACK_FRAME)
 
     def _open_folder(self) -> None:
         folder = self._path.parent
@@ -318,6 +371,24 @@ class RecordingEditorWindow(QMainWindow):
             os.startfile(folder)  # noqa: S606
             return
         QDesktopServices.openUrl(QUrl.fromLocalFile(str(folder)))
+
+    def _refit_frame_pixmap(self) -> None:
+        source = self._frame_source
+        if source is None or source.isNull():
+            return
+        fitted = source.scaled(
+            self._frame_label.size(),
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
+        self._frame_label.setPixmap(fitted)
+
+    def _request_accurate_frame(self, position_ms: int) -> None:
+        """Queue an ffmpeg decode to the exact timestamp (not keyframe-only)."""
+        target = self._clamp_position(position_ms)
+        self._wanted_frame_ms = target
+        if self._grab_process.state() == QProcess.ProcessState.NotRunning:
+            self._start_frame_grab(target)
 
     def _save_as(self) -> None:
         fmt_raw = self._format.currentData()
@@ -362,7 +433,7 @@ class RecordingEditorWindow(QMainWindow):
         QMessageBox.information(self, "Export", f"Saved:\n{result.path}")
 
     def _seek_preview(self, position_ms: int) -> None:
-        """Seek for live scrubbing without rewriting the slider value."""
+        """Seek player playhead and show an accurate ffmpeg preview frame."""
         target = self._clamp_position(position_ms)
         state = self._player.playbackState()
         if state == QMediaPlayer.PlaybackState.StoppedState:
@@ -374,6 +445,9 @@ class RecordingEditorWindow(QMainWindow):
         elif state == QMediaPlayer.PlaybackState.PlayingState:
             self._player.pause()
         self._player.setPosition(target)
+        if self._player.playbackState() != QMediaPlayer.PlaybackState.PlayingState:
+            self._preview_stack.setCurrentIndex(_STACK_FRAME)
+            self._request_accurate_frame(target)
 
     def _seek_to(self, position_ms: int) -> None:
         """Seek while staying in Paused/Playing — `stop()` clears the video to black."""
@@ -390,8 +464,26 @@ class RecordingEditorWindow(QMainWindow):
         self._initial_frame_ready = True
         self._seek_to(self._in_ms)
 
+    def _start_frame_grab(self, position_ms: int) -> None:
+        args = ffmpeg_frame_grab_args(self._path, position_ms)
+        if args is None:
+            self._wanted_frame_ms = None
+            self._frame_label.setText("ffmpeg not found — scrub preview unavailable")
+            return
+        self._grab_for_ms = position_ms
+        self._grab_process.setProgram(args[0])
+        self._grab_process.setArguments(args[1:])
+        self._grab_process.start()
+
     def _step_frame(self, delta_ms: int) -> None:
-        pos = self._clamp_position(self._player.position() + delta_ms)
+        base = self._position.value() if self._slider_dragging else self._player.position()
+        # Prefer the last accurate scrub target when the media backend snaps to keyframes.
+        if (
+            self._wanted_frame_ms is not None
+            and self._player.playbackState() != QMediaPlayer.PlaybackState.PlayingState
+        ):
+            base = self._wanted_frame_ms
+        pos = self._clamp_position(base + delta_ms)
         self._seek_to(pos)
 
     def _stop(self) -> None:
@@ -421,12 +513,14 @@ class RecordingEditorWindow(QMainWindow):
     def _toggle_play(self) -> None:
         if self._player.playbackState() == QMediaPlayer.PlaybackState.PlayingState:
             self._player.pause()
+            self._request_accurate_frame(self._player.position())
             return
         pos = self._position.value() if self._slider_dragging else self._player.position()
         end = self._keep_end_ms()
         # At (or past) the end of the kept range — restart from the start.
         if pos < self._in_ms or (end > 0 and pos >= end - 1):
             self._seek_to(self._in_ms)
+        self._preview_stack.setCurrentIndex(_STACK_VIDEO)
         self._player.play()
 
     def _update_time_label(self, position: int) -> None:

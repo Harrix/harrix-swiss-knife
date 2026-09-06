@@ -267,6 +267,13 @@ class ScreenRecorder:
                 "libx264",
                 "-preset",
                 "ultrafast",
+                # Force ~1s keyframes so players/editors can scrub mid-clip.
+                "-g",
+                "30",
+                "-keyint_min",
+                "30",
+                "-sc_threshold",
+                "0",
                 "-pix_fmt",
                 "yuv420p",
             ]

@@ -39,6 +39,32 @@ def test_arrow_commit_and_undo() -> None:
     assert doc.annotations == []
 
 
+def test_arrow_is_thin_shaft_with_filled_head() -> None:
+    color = QColor("#de2b26")
+    doc = AnnotationDocument(_blank(140, 80))
+    doc.begin_draft(
+        Annotation(
+            tool=AnnotationTool.ARROW,
+            points=[QPointF(12, 40), QPointF(120, 40)],
+            style=AnnotationStyle(color=color, width=3.0),
+        )
+    )
+    assert doc.commit_draft()
+    rendered = doc.render(include_draft=False)
+    shaft = rendered.pixelColor(50, 40)
+    above_shaft = rendered.pixelColor(50, 28)
+    # Head runs roughly x=102..120; sample near the centerline inside the fill.
+    head = rendered.pixelColor(110, 40)
+    head_above = rendered.pixelColor(110, 38)
+    assert shaft.red() > 150
+    assert shaft.green() < 80
+    assert above_shaft.green() > 200
+    assert head.red() > 150
+    assert head.green() < 80
+    assert head_above.red() > 150
+    assert head_above.green() < 80
+
+
 def test_tiny_drag_is_ignored() -> None:
     doc = AnnotationDocument(_blank())
     doc.begin_draft(
