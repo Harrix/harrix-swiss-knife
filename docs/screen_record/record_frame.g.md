@@ -82,7 +82,7 @@ class RecordFrameWindow(QWidget):
         self._status.setStyleSheet("color: white; font-weight: bold; padding: 0 4px;")
         self._status.setToolTip("Recording status")
 
-        self._audio = QComboBox(self)
+        self._audio = _DarkComboBox(self)
         self._audio.setToolTip("Audio source for the recording (saved in config-temp.json)")
         for mode in ("none", "mic", "system", "mic_and_system"):
             self._audio.addItem(_AUDIO_LABELS[mode], mode)
@@ -93,12 +93,14 @@ class RecordFrameWindow(QWidget):
             self._audio.setCurrentIndex(index)
         self._audio.blockSignals(False)  # noqa: FBT003
         self._audio.currentIndexChanged.connect(self._on_audio_changed)
+        _prepare_combo_popup(self._audio)
 
-        self._mic = QComboBox(self)
+        self._mic = _DarkComboBox(self)
         self._mic.setObjectName("recordMicCombo")
         self._mic.setToolTip("Microphone (saved in config.json)")
         self._populate_microphones()
         self._mic.currentIndexChanged.connect(self._on_mic_changed)
+        _prepare_combo_popup(self._mic)
 
         countdown = get_screen_record_countdown_seconds()
         self._record_btn = self._make_tool_button("⏺️", "Record now (start immediately)")
@@ -118,6 +120,7 @@ class RecordFrameWindow(QWidget):
         bar.setObjectName("recordToolbar")
         bar.setCursor(Qt.CursorShape.ArrowCursor)
         bar.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips, on=True)
+        bar.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
         bar.setStyleSheet(_TOOLBAR_STYLE)
         row = QHBoxLayout(bar)
         row.setContentsMargins(8, 6, 8, 6)
@@ -133,7 +136,10 @@ class RecordFrameWindow(QWidget):
         self._toolbar_filter = _ToolbarCursorFilter(self)
         bar.installEventFilter(self._toolbar_filter)
         for child in bar.findChildren(QWidget):
-            child.setCursor(Qt.CursorShape.ArrowCursor)
+            if isinstance(child, QPushButton):
+                child.setCursor(Qt.CursorShape.PointingHandCursor)
+            else:
+                child.setCursor(Qt.CursorShape.ArrowCursor)
             child.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips, on=True)
             child.installEventFilter(self._toolbar_filter)
 
@@ -390,6 +396,7 @@ class RecordFrameWindow(QWidget):
         button.setIconSize(QSize(_ICON, _ICON))
         button.setToolTip(tip)
         button.setAttribute(Qt.WidgetAttribute.WA_Hover, on=True)
+        button.setCursor(Qt.CursorShape.PointingHandCursor)
         if text:
             button.setText(text)
         return button
@@ -568,7 +575,7 @@ def __init__(self, region: QRect, parent: QWidget | None = None) -> None:
         self._status.setStyleSheet("color: white; font-weight: bold; padding: 0 4px;")
         self._status.setToolTip("Recording status")
 
-        self._audio = QComboBox(self)
+        self._audio = _DarkComboBox(self)
         self._audio.setToolTip("Audio source for the recording (saved in config-temp.json)")
         for mode in ("none", "mic", "system", "mic_and_system"):
             self._audio.addItem(_AUDIO_LABELS[mode], mode)
@@ -579,12 +586,14 @@ def __init__(self, region: QRect, parent: QWidget | None = None) -> None:
             self._audio.setCurrentIndex(index)
         self._audio.blockSignals(False)  # noqa: FBT003
         self._audio.currentIndexChanged.connect(self._on_audio_changed)
+        _prepare_combo_popup(self._audio)
 
-        self._mic = QComboBox(self)
+        self._mic = _DarkComboBox(self)
         self._mic.setObjectName("recordMicCombo")
         self._mic.setToolTip("Microphone (saved in config.json)")
         self._populate_microphones()
         self._mic.currentIndexChanged.connect(self._on_mic_changed)
+        _prepare_combo_popup(self._mic)
 
         countdown = get_screen_record_countdown_seconds()
         self._record_btn = self._make_tool_button("⏺️", "Record now (start immediately)")
@@ -604,6 +613,7 @@ def __init__(self, region: QRect, parent: QWidget | None = None) -> None:
         bar.setObjectName("recordToolbar")
         bar.setCursor(Qt.CursorShape.ArrowCursor)
         bar.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips, on=True)
+        bar.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
         bar.setStyleSheet(_TOOLBAR_STYLE)
         row = QHBoxLayout(bar)
         row.setContentsMargins(8, 6, 8, 6)
@@ -619,7 +629,10 @@ def __init__(self, region: QRect, parent: QWidget | None = None) -> None:
         self._toolbar_filter = _ToolbarCursorFilter(self)
         bar.installEventFilter(self._toolbar_filter)
         for child in bar.findChildren(QWidget):
-            child.setCursor(Qt.CursorShape.ArrowCursor)
+            if isinstance(child, QPushButton):
+                child.setCursor(Qt.CursorShape.PointingHandCursor)
+            else:
+                child.setCursor(Qt.CursorShape.ArrowCursor)
             child.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips, on=True)
             child.installEventFilter(self._toolbar_filter)
 

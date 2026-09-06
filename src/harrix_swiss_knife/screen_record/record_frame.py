@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, cast
 
 from PySide6.QtCore import QEvent, QObject, QPoint, QRect, QSize, Qt, QTimer, Signal
-from PySide6.QtGui import QColor, QFont, QPainter, QPainterPath, QPen, QRegion
+from PySide6.QtGui import QColor, QFont, QPainter, QPainterPath, QPalette, QPen, QRegion
 from PySide6.QtMultimedia import QAudioDevice
 from PySide6.QtWidgets import (
     QApplication,
@@ -63,21 +63,43 @@ _TOOLBAR_STYLE = """
     border-radius: 8px;
 }
 QPushButton {
-    background: rgba(50, 50, 50, 220);
+    background-color: rgba(50, 50, 50, 220);
     border: 1px solid #888;
     border-radius: 6px;
     min-width: 36px;
     min-height: 32px;
+    padding: 2px 6px;
     color: white;
+}
+QPushButton:hover {
+    background-color: rgba(80, 80, 80, 245);
+    border: 1px solid #ccc;
+}
+QPushButton:pressed {
+    background-color: rgba(30, 30, 30, 245);
+    border: 1px solid #fff;
+}
+QPushButton:disabled {
+    color: #888;
+    background-color: rgba(40, 40, 40, 180);
+    border: 1px solid #555;
 }
 QComboBox {
     min-width: 110px;
     max-width: 180px;
     color: white;
-    background: #333;
+    background-color: #333;
     border: 1px solid #888;
     border-radius: 4px;
     padding: 4px 8px;
+}
+QComboBox:hover {
+    background-color: #444;
+    border: 1px solid #ccc;
+}
+QComboBox:on {
+    background-color: #3a3a3a;
+    border: 1px solid #aaa;
 }
 QComboBox#recordMicCombo {
     min-width: 140px;
@@ -87,13 +109,37 @@ QComboBox::drop-down {
     border: none;
     width: 20px;
 }
-QComboBox QAbstractItemView {
+QComboBox::down-arrow {
+    width: 10px;
+    height: 10px;
+}
+"""
+
+_COMBO_POPUP_STYLE = """
+QAbstractItemView {
     background-color: #2a2a2a;
-    color: white;
-    selection-background-color: #3a7ca5;
-    selection-color: white;
+    color: #ffffff;
     border: 1px solid #666;
     outline: 0;
+    padding: 2px;
+}
+QAbstractItemView::item {
+    min-height: 26px;
+    padding: 4px 10px;
+    color: #ffffff;
+    background-color: #2a2a2a;
+}
+QAbstractItemView::item:hover {
+    background-color: #3a7ca5;
+    color: #ffffff;
+}
+QAbstractItemView::item:selected {
+    background-color: #2f6a8f;
+    color: #ffffff;
+}
+QAbstractItemView::item:selected:hover {
+    background-color: #3a7ca5;
+    color: #ffffff;
 }
 """
 
@@ -142,7 +188,7 @@ class RecordFrameWindow(QWidget):
         self._status.setStyleSheet("color: white; font-weight: bold; padding: 0 4px;")
         self._status.setToolTip("Recording status")
 
-        self._audio = QComboBox(self)
+        self._audio = _DarkComboBox(self)
         self._audio.setToolTip("Audio source for the recording (saved in config-temp.json)")
         for mode in ("none", "mic", "system", "mic_and_system"):
             self._audio.addItem(_AUDIO_LABELS[mode], mode)
@@ -153,12 +199,14 @@ class RecordFrameWindow(QWidget):
             self._audio.setCurrentIndex(index)
         self._audio.blockSignals(False)  # noqa: FBT003
         self._audio.currentIndexChanged.connect(self._on_audio_changed)
+        _prepare_combo_popup(self._audio)
 
-        self._mic = QComboBox(self)
+        self._mic = _DarkComboBox(self)
         self._mic.setObjectName("recordMicCombo")
         self._mic.setToolTip("Microphone (saved in config.json)")
         self._populate_microphones()
         self._mic.currentIndexChanged.connect(self._on_mic_changed)
+        _prepare_combo_popup(self._mic)
 
         countdown = get_screen_record_countdown_seconds()
         self._record_btn = self._make_tool_button("⏺️", "Record now (start immediately)")
@@ -178,6 +226,7 @@ class RecordFrameWindow(QWidget):
         bar.setObjectName("recordToolbar")
         bar.setCursor(Qt.CursorShape.ArrowCursor)
         bar.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips, on=True)
+        bar.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
         bar.setStyleSheet(_TOOLBAR_STYLE)
         row = QHBoxLayout(bar)
         row.setContentsMargins(8, 6, 8, 6)
@@ -193,7 +242,10 @@ class RecordFrameWindow(QWidget):
         self._toolbar_filter = _ToolbarCursorFilter(self)
         bar.installEventFilter(self._toolbar_filter)
         for child in bar.findChildren(QWidget):
-            child.setCursor(Qt.CursorShape.ArrowCursor)
+            if isinstance(child, QPushButton):
+                child.setCursor(Qt.CursorShape.PointingHandCursor)
+            else:
+                child.setCursor(Qt.CursorShape.ArrowCursor)
             child.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips, on=True)
             child.installEventFilter(self._toolbar_filter)
 
@@ -450,6 +502,7 @@ class RecordFrameWindow(QWidget):
         button.setIconSize(QSize(_ICON, _ICON))
         button.setToolTip(tip)
         button.setAttribute(Qt.WidgetAttribute.WA_Hover, on=True)
+        button.setCursor(Qt.CursorShape.PointingHandCursor)
         if text:
             button.setText(text)
         return button
@@ -643,6 +696,25 @@ class _CountdownOverlay(QWidget):
         self.update()
 
 
+class _DarkComboBox(QComboBox):
+    """Combo whose popup stays dark (avoids a white flash over a translucent parent)."""
+
+    def showPopup(self) -> None:  # noqa: N802
+        """Force an opaque dark popup before it becomes visible."""
+        view = self.view()
+        view.setStyleSheet(_COMBO_POPUP_STYLE)
+        view.setAutoFillBackground(True)
+        popup = view.window()
+        popup.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, on=False)
+        popup.setStyleSheet("background-color: #2a2a2a; color: #ffffff;")
+        super().showPopup()
+        # Re-apply after Qt creates the native popup window.
+        popup = view.window()
+        popup.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, on=False)
+        popup.setStyleSheet("background-color: #2a2a2a; color: #ffffff;")
+        view.setStyleSheet(_COMBO_POPUP_STYLE)
+
+
 class _ToolbarCursorFilter(QObject):
     """Keep the arrow cursor on the toolbar and clear the parent resize cursor."""
 
@@ -654,5 +726,26 @@ class _ToolbarCursorFilter(QObject):
         if event.type() in {QEvent.Type.Enter, QEvent.Type.HoverEnter, QEvent.Type.MouseMove}:
             self._frame.unsetCursor()
             if isinstance(watched, QWidget):
-                watched.setCursor(Qt.CursorShape.ArrowCursor)
+                if isinstance(watched, QPushButton):
+                    watched.setCursor(Qt.CursorShape.PointingHandCursor)
+                else:
+                    watched.setCursor(Qt.CursorShape.ArrowCursor)
         return False
+
+
+def _prepare_combo_popup(combo: QComboBox) -> None:
+    """Apply a dark palette/stylesheet so the list never flashes white."""
+    view = combo.view()
+    view.setStyleSheet(_COMBO_POPUP_STYLE)
+    view.setAutoFillBackground(True)
+    view.setMouseTracking(True)
+    palette = view.palette()
+    palette.setColor(QPalette.ColorRole.Base, QColor(42, 42, 42))
+    palette.setColor(QPalette.ColorRole.Text, QColor(255, 255, 255))
+    palette.setColor(QPalette.ColorRole.Window, QColor(42, 42, 42))
+    palette.setColor(QPalette.ColorRole.WindowText, QColor(255, 255, 255))
+    palette.setColor(QPalette.ColorRole.Highlight, QColor(58, 124, 165))
+    palette.setColor(QPalette.ColorRole.HighlightedText, QColor(255, 255, 255))
+    palette.setColor(QPalette.ColorRole.AlternateBase, QColor(42, 42, 42))
+    view.setPalette(palette)
+    combo.setPalette(palette)
