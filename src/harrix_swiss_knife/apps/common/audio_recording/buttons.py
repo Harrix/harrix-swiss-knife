@@ -145,7 +145,7 @@ class PlayButton(QPushButton):
 
 
 class RecordButton(QPushButton):
-    """Record control: red ring + dot when idle, black rounded stop square while recording."""
+    """Record control: red ring + dot when idle, red rounded stop square while recording."""
 
     def __init__(self, parent: QWidget | None = None) -> None:
         """Initialize record button."""
@@ -176,9 +176,11 @@ class RecordButton(QPushButton):
         if self._recording:
             stop_side = 22.0
             corner_radius = 5.0
-            stop_color = QColor("#000000")
+            stop_color = QColor("#e53935")
             if self.isDown():
-                stop_color = QColor("#333333")
+                stop_color = QColor("#c62828")
+            elif self.underMouse():
+                stop_color = QColor("#ef5350")
             painter.setPen(Qt.PenStyle.NoPen)
             painter.setBrush(stop_color)
             painter.drawRoundedRect(
