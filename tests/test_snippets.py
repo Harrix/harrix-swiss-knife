@@ -282,13 +282,42 @@ def test_emoji_ai_candidates_show_plus_when_missing(qapp: QApplication) -> None:
     panel = ZonePanel(zone=ZONE_EMOJI, title="Emoji")
     panel.show()
     added: list[str] = []
+    pasted: list[str] = []
     panel.ai_add_requested.connect(added.append)
+    panel.ai_paste_requested.connect(pasted.append)
     panel.set_ai_candidates(["🍕", "🐱"], existing_values=["🐱"])
-    plus_buttons = [button for button in panel.findChildren(QToolButton) if button.toolTip() == "Add to emoji list"]
+    plus_buttons = [button for button in panel.findChildren(QToolButton) if button.property("snippet_ai_add") == "🍕"]
     assert len(plus_buttons) == 1
-    assert plus_buttons[0].property("snippet_ai_add") == "🍕"
     plus_buttons[0].click()
     assert added == ["🍕"]
+    paste_buttons = [
+        button for button in panel.findChildren(QToolButton) if button.property("snippet_ai_paste") == "🍕"
+    ]
+    assert len(paste_buttons) == 1
+    assert paste_buttons[0].isEnabled()
+    paste_buttons[0].click()
+    assert pasted == ["🍕"]
+    cat_plus = [button for button in panel.findChildren(QToolButton) if button.property("snippet_ai_add") == "🐱"]
+    assert cat_plus == []
+    panel.close()
+
+
+def test_emoji_ai_candidates_close_shows_pick_button(qapp: QApplication) -> None:
+    assert qapp is not None
+    panel = ZonePanel(zone=ZONE_EMOJI, title="Emoji")
+    panel.show()
+    pick = panel._ai_pick_button
+    assert pick is not None
+    assert pick.toolTip() == "Pick emoji by name"
+    panel.set_ai_pick_visible(visible=True)
+    assert pick.isVisible()
+    panel.set_ai_candidates(["🍕"], existing_values=[])
+    assert not pick.isVisible()
+    close_buttons = [button for button in panel.findChildren(QToolButton) if button.toolTip() == "Close suggestions"]
+    assert len(close_buttons) == 1
+    close_buttons[0].click()
+    panel.set_ai_pick_visible(visible=True)
+    assert pick.isVisible()
     panel.close()
 
 
@@ -300,6 +329,7 @@ def test_emoji_pick_button_appears_when_input_has_text(qapp: QApplication, monke
     QApplication.processEvents()
     pick = dialog._emoji._ai_pick_button
     assert pick is not None
+    assert pick.toolTip() == "Pick emoji by name"
     assert not pick.isVisible()
     dialog._input.setText("cat")
     QApplication.processEvents()

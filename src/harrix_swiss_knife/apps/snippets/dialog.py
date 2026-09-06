@@ -44,7 +44,12 @@ from harrix_swiss_knife.apps.snippets.constants import (
 )
 from harrix_swiss_knife.apps.snippets.emoji_ai import request_snippets_emoji_suggestions
 from harrix_swiss_knife.apps.snippets.item_edit_dialog import ItemEditDialog
-from harrix_swiss_knife.apps.snippets.parse import filter_new_snippet_items, parse_bulk_lines, serialize_items
+from harrix_swiss_knife.apps.snippets.parse import (
+    filter_new_snippet_items,
+    item_values_equal,
+    parse_bulk_lines,
+    serialize_items,
+)
 from harrix_swiss_knife.apps.snippets.paste import clone_clipboard_mime, paste_text_then_restore_clipboard
 from harrix_swiss_knife.apps.snippets.seed import ensure_seed_emojis
 from harrix_swiss_knife.apps.snippets.sort import sort_items
@@ -118,6 +123,7 @@ class SnippetsDialog(QDialog):
         apply_opaque_white(self)
         self.setObjectName("snippetsDialog")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
+        self.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips, on=True)
         self.setStyleSheet(_DIALOG_BORDER_STYLE)
 
         self._active_zone: ZoneName = ZONE_PHRASE
@@ -328,6 +334,8 @@ class SnippetsDialog(QDialog):
             panel.sort_requested.connect(lambda mode, zone_panel=panel: self._sort_zone(zone_panel.zone, mode))
         self._emoji.ai_pick_requested.connect(self._suggest_emoji_with_ai)
         self._emoji.ai_add_requested.connect(self._add_ai_emoji)
+        self._emoji.ai_paste_requested.connect(self._paste_ai_emoji)
+        self._emoji.ai_dismiss_requested.connect(self._update_ai_pick_button)
 
         right_split = QSplitter(Qt.Orientation.Vertical, self)
         right_split.addWidget(self._emoji)
@@ -538,6 +546,18 @@ class SnippetsDialog(QDialog):
         self._active_panel().set_filter_query(text)
         self._refresh_input_match()
         self._update_ai_pick_button()
+
+    def _paste_ai_emoji(self, emoji: str) -> None:
+        if not emoji.strip():
+            return
+        if self.db_manager is not None:
+            for item in self.db_manager.list_items(ZONE_EMOJI):
+                if item_values_equal(ZONE_EMOJI, item.value, emoji):
+                    self._paste_item(item)
+                    return
+        self._saved_clipboard = clone_clipboard_mime()
+        self.hide()
+        paste_text_then_restore_clipboard(emoji, self._saved_clipboard)
 
     def _paste_item(self, snippet: SnippetItem) -> None:
         self._saved_clipboard = clone_clipboard_mime()

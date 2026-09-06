@@ -4,8 +4,19 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QEvent, QModelIndex, QObject, QPersistentModelIndex, QPoint, QRect, QSize, Qt, Signal
-from PySide6.QtGui import QActionGroup, QColor, QIcon, QKeyEvent, QPainter, QPalette, QPen
+from PySide6.QtCore import (
+    QEvent,
+    QModelIndex,
+    QObject,
+    QPersistentModelIndex,
+    QPoint,
+    QPointF,
+    QRect,
+    QSize,
+    Qt,
+    Signal,
+)
+from PySide6.QtGui import QActionGroup, QColor, QIcon, QKeyEvent, QPainter, QPalette, QPen, QPixmap
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
@@ -57,7 +68,10 @@ _CHIP_PADDING_X = 8
 _CHIP_PADDING_Y = 3
 _CHIP_RADIUS = 6
 _CHIP_ROW_MARGIN = 8
+_CANDIDATE_CHIP_SIZE = 28
 _CANDIDATE_EMOJI_SIZE = 22
+_PLUS_BADGE_COLOR = "#22c55e"
+_PLUS_BADGE_SIZE = 11
 _LIGHT_TEXT_THRESHOLD = 160
 _MIN_COLOR_ROW_HEIGHT = 28
 _SELECTION_BG = "#e9e9e9"
@@ -229,6 +243,8 @@ class ZonePanel(QWidget):
     delete_requested = Signal(object)
     sort_requested = Signal(str)
     ai_add_requested = Signal(str)
+    ai_dismiss_requested = Signal()
+    ai_paste_requested = Signal(str)
     ai_pick_requested = Signal()
 
     def __init__(
@@ -301,6 +317,7 @@ class ZonePanel(QWidget):
             pick.setFixedSize(28, 28)
             pick.setAutoRaise(True)
             pick.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
+            pick.setCursor(Qt.CursorShape.PointingHandCursor)
             pick.setToolTip("Pick emoji by name")
             pick.setVisible(False)
             pick.clicked.connect(self.ai_pick_requested.emit)
@@ -313,11 +330,25 @@ class ZonePanel(QWidget):
         layout.setSpacing(8)
         layout.addLayout(header)
         if zone == ZONE_EMOJI:
-            host = QWidget(self)
+            panel = QWidget(self)
+            panel_layout = QHBoxLayout(panel)
+            panel_layout.setContentsMargins(0, 0, 0, 0)
+            panel_layout.setSpacing(4)
+            host = QWidget(panel)
             self._ai_candidates_layout = FlowLayout(host, margin=0, h_spacing=4, v_spacing=4)
-            host.hide()
-            self._ai_candidates = host
-            layout.addWidget(host)
+            panel_layout.addWidget(host, stretch=1)
+            close = QToolButton(panel)
+            close.setText("X")
+            close.setFixedSize(22, 22)
+            close.setAutoRaise(True)
+            close.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
+            close.setCursor(Qt.CursorShape.PointingHandCursor)
+            close.setToolTip("Close suggestions")
+            close.clicked.connect(self._dismiss_ai_candidates)
+            panel_layout.addWidget(close, alignment=Qt.AlignmentFlag.AlignTop)
+            panel.hide()
+            self._ai_candidates = panel
+            layout.addWidget(panel)
         layout.addWidget(self._list, stretch=1)
 
     def activate_current_or_first(self) -> None:
@@ -440,6 +471,8 @@ class ZonePanel(QWidget):
         """Show AI emoji suggestions; missing ones get an add button."""
         self._ai_emojis = list(emojis)
         self._rebuild_ai_candidates(existing_values)
+        if self._ai_pick_button is not None:
+            self._ai_pick_button.hide()
 
     def set_ai_pick_enabled(self, *, enabled: bool) -> None:
         """Enable or disable the pick-by-name button."""
@@ -449,7 +482,7 @@ class ZonePanel(QWidget):
     def set_ai_pick_visible(self, *, visible: bool) -> None:
         """Show the pick-by-name button when the shared input has text."""
         if self._ai_pick_button is not None:
-            self._ai_pick_button.setVisible(visible)
+            self._ai_pick_button.setVisible(visible and not self._ai_emojis)
 
     def set_filter_query(self, text: str) -> None:
         """Filter this zone by `text` and clear the current highlight."""
@@ -556,6 +589,10 @@ class ZonePanel(QWidget):
         self._list.clearSelection()
         self._list.setCurrentRow(-1)
 
+    def _dismiss_ai_candidates(self) -> None:
+        self.clear_ai_candidates()
+        self.ai_dismiss_requested.emit()
+
     def _on_context_menu(self, pos: QPoint) -> None:
         widget = self.sender()
         if widget is self._list:
@@ -596,7 +633,12 @@ class ZonePanel(QWidget):
         for emoji in self._ai_emojis:
             can_add = not any(item_values_equal(ZONE_EMOJI, emoji, value) for value in existing_values)
             layout.addWidget(
-                _make_emoji_candidate_chip(emoji, can_add=can_add, on_add=self.ai_add_requested.emit),
+                _make_emoji_candidate_chip(
+                    emoji,
+                    can_add=can_add,
+                    on_add=self.ai_add_requested.emit,
+                    on_paste=self.ai_paste_requested.emit,
+                ),
             )
         host.show()
 
@@ -675,6 +717,23 @@ def _item_is_highlighted(option: QStyleOptionViewItem) -> bool:
     return bool(option.state & (QStyle.StateFlag.State_Selected | QStyle.StateFlag.State_MouseOver))
 
 
+def _green_plus_icon(size: int) -> QIcon:
+    pixmap = QPixmap(size, size)
+    pixmap.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
+    painter.setPen(Qt.PenStyle.NoPen)
+    painter.setBrush(QColor(_PLUS_BADGE_COLOR))
+    painter.drawEllipse(0, 0, size - 1, size - 1)
+    painter.setPen(QPen(QColor("#ffffff"), max(1.2, size / 6), Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
+    pad = size * 0.28
+    mid = (size - 1) / 2
+    painter.drawLine(QPointF(pad, mid), QPointF(size - 1 - pad, mid))
+    painter.drawLine(QPointF(mid, pad), QPointF(mid, size - 1 - pad))
+    painter.end()
+    return QIcon(pixmap)
+
+
 def _item_matches_input(index: QModelIndex | QPersistentModelIndex, option: QStyleOptionViewItem) -> bool:
     widget = option.widget
     parent = widget.parentWidget() if widget is not None else None
@@ -684,27 +743,41 @@ def _item_matches_input(index: QModelIndex | QPersistentModelIndex, option: QSty
     return parent.item_matches_input(snippet)
 
 
-def _make_emoji_candidate_chip(emoji: str, *, can_add: bool, on_add: Callable[[str], None]) -> QWidget:
+def _make_emoji_candidate_chip(
+    emoji: str,
+    *,
+    can_add: bool,
+    on_add: Callable[[str], None],
+    on_paste: Callable[[str], None],
+) -> QWidget:
     chip = QWidget()
-    row = QHBoxLayout(chip)
-    row.setContentsMargins(0, 0, 0, 0)
-    row.setSpacing(0)
+    chip.setFixedSize(_CANDIDATE_CHIP_SIZE, _CANDIDATE_CHIP_SIZE)
     glyph = QToolButton(chip)
     glyph.setIcon(create_emoji_icon(emoji, _CANDIDATE_EMOJI_SIZE))
     glyph.setIconSize(QSize(_CANDIDATE_EMOJI_SIZE, _CANDIDATE_EMOJI_SIZE))
-    glyph.setFixedSize(28, 28)
+    glyph.setGeometry(0, 0, _CANDIDATE_CHIP_SIZE, _CANDIDATE_CHIP_SIZE)
     glyph.setAutoRaise(True)
-    glyph.setEnabled(False)
-    glyph.setToolTip(emoji if can_add else f"{emoji} (already in list)")
-    row.addWidget(glyph)
+    glyph.setCursor(Qt.CursorShape.PointingHandCursor)
+    glyph.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
+    glyph.setToolTip(emoji)
+    glyph.setProperty("snippet_ai_paste", emoji)
+    glyph.clicked.connect(lambda _checked=False, value=emoji: on_paste(value))
     if can_add:
         plus = QToolButton(chip)
-        plus.setIcon(create_emoji_icon("➕", 16))  # noqa: RUF001
-        plus.setIconSize(QSize(16, 16))
-        plus.setFixedSize(22, 22)
+        plus.setIcon(_green_plus_icon(_PLUS_BADGE_SIZE))
+        plus.setIconSize(QSize(_PLUS_BADGE_SIZE, _PLUS_BADGE_SIZE))
+        plus.setGeometry(
+            _CANDIDATE_CHIP_SIZE - _PLUS_BADGE_SIZE,
+            0,
+            _PLUS_BADGE_SIZE,
+            _PLUS_BADGE_SIZE,
+        )
         plus.setAutoRaise(True)
+        plus.setCursor(Qt.CursorShape.PointingHandCursor)
+        plus.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
+        plus.setStyleSheet("QToolButton { padding: 0; border: none; background: transparent; }")
         plus.setToolTip("Add to emoji list")
         plus.setProperty("snippet_ai_add", emoji)
         plus.clicked.connect(lambda _checked=False, value=emoji: on_add(value))
-        row.addWidget(plus)
+        plus.raise_()
     return chip
