@@ -18,6 +18,7 @@ from harrix_swiss_knife.screenshot.selection_guides import (
     place_angle_label,
     place_diagonal_label,
     place_height_label,
+    place_height_label_right,
     place_width_label,
     selection_guide_labels,
 )
@@ -66,11 +67,19 @@ def test_width_and_height_labels_flip_inside_near_edges() -> None:
     assert not height_inside
     assert height_box.right() <= roomy.left()
 
+    right_box, right_inside = place_height_label_right(roomy, bounds, text_width=20, text_height=12)
+    assert not right_inside
+    assert right_box.left() >= roomy.right()
+
     tight = QRect(0, 0, 80, 60)
     _width_box, width_inside = place_width_label(tight, bounds, text_width=20, text_height=12)
     _height_box, height_inside = place_height_label(tight, bounds, text_width=20, text_height=12)
     assert width_inside
     assert height_inside
+
+    tight_right = QRect(150, 40, 50, 60)
+    _right_box, right_inside = place_height_label_right(tight_right, bounds, text_width=20, text_height=12)
+    assert right_inside
 
 
 def test_angle_label_flips_inside_at_bottom_right() -> None:

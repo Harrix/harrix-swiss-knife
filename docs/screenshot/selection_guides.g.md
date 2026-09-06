@@ -23,6 +23,7 @@ lang: en
 - [🔧 Function `place_angle_label`](#-function-place_angle_label)
 - [🔧 Function `place_diagonal_label`](#-function-place_diagonal_label)
 - [🔧 Function `place_height_label`](#-function-place_height_label)
+- [🔧 Function `place_height_label_right`](#-function-place_height_label_right)
 - [🔧 Function `place_width_label`](#-function-place_width_label)
 - [🔧 Function `selection_guide_labels`](#-function-selection_guide_labels)
 
@@ -326,6 +327,37 @@ def place_height_label(
     if bounds.contains(box):
         return box, False
     inner = QRect(rect.left() + gap, rect.center().y() - text_height // 2, text_width, text_height)
+    return _clamp_inside(inner, rect, text_width, text_height, gap), True
+```
+
+</details>
+
+## 🔧 Function `place_height_label_right`
+
+```python
+def place_height_label_right(rect: QRect, bounds: QRect, *, text_width: int, text_height: int, gap: int = _LABEL_GAP) -> tuple[QRect, bool]
+```
+
+Place the height label to the right of the frame, or inside if it does not fit.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def place_height_label_right(
+    rect: QRect,
+    bounds: QRect,
+    *,
+    text_width: int,
+    text_height: int,
+    gap: int = _LABEL_GAP,
+) -> tuple[QRect, bool]:
+    x = rect.right() + gap
+    y = rect.center().y() - text_height // 2
+    box = QRect(x, y, text_width, text_height)
+    if bounds.contains(box):
+        return box, False
+    inner = QRect(rect.right() - gap - text_width, rect.center().y() - text_height // 2, text_width, text_height)
     return _clamp_inside(inner, rect, text_width, text_height, gap), True
 ```
 
