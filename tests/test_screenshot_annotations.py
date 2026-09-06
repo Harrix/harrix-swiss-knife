@@ -40,41 +40,43 @@ def test_arrow_commit_and_undo() -> None:
     assert doc.annotations == []
 
 
-def test_arrow_is_thin_shaft_with_filled_head() -> None:
+def test_arrow_is_round_shaft_with_filled_head() -> None:
     color = QColor("#de2b26")
-    doc = AnnotationDocument(_blank(140, 80))
+    doc = AnnotationDocument(_blank(160, 80))
     doc.begin_draft(
         Annotation(
             tool=AnnotationTool.ARROW,
-            points=[QPointF(12, 40), QPointF(120, 40)],
+            points=[QPointF(12, 40), QPointF(140, 40)],
             style=AnnotationStyle(color=color, width=3.0),
         )
     )
     assert doc.commit_draft()
     rendered = doc.render(include_draft=False)
     shaft = rendered.pixelColor(50, 40)
-    above_shaft = rendered.pixelColor(50, 28)
-    # Head tip at x=120, length 18 → wings near x=102; sample inside the fill.
-    head = rendered.pixelColor(112, 40)
-    head_above = rendered.pixelColor(112, 38)
+    shaft_edge = rendered.pixelColor(50, 41)
+    above_shaft = rendered.pixelColor(50, 30)
+    # Tip 140, head length 18 → wings near x=122; sample inside the fill.
+    head = rendered.pixelColor(130, 40)
+    head_wing = rendered.pixelColor(128, 43)
     assert shaft.red() > 150
     assert shaft.green() < 80
+    assert shaft_edge.red() > 150
     assert above_shaft.green() > 200
     assert head.red() > 150
     assert head.green() < 80
-    assert head_above.red() > 150
-    assert head_above.green() < 80
+    assert head_wing.red() > 150
+    assert head_wing.green() < 80
 
 
 def test_arrow_head_back_is_concave_like_sharex() -> None:
     """Rear edge bows toward the tip (ShareX Classic quadratic notch)."""
-    path = _arrow_head_path(QPointF(12, 40), QPointF(120, 40), stroke=3.0)
+    path = _arrow_head_path(QPointF(12, 40), QPointF(140, 40), stroke=3.0)
     assert path is not None
-    # Tip / mid-head stay filled; centerline behind the quadratic notch does not.
-    assert path.contains(QPointF(116, 40))
-    assert path.contains(QPointF(110, 40))
-    assert not path.contains(QPointF(103, 40))
-    assert not path.contains(QPointF(104, 40))
+    assert path.contains(QPointF(134, 40))
+    assert path.contains(QPointF(128, 40))
+    # Centerline behind the quadratic notch stays empty.
+    assert not path.contains(QPointF(120, 40))
+    assert not path.contains(QPointF(122, 40))
 
 
 def test_tiny_drag_is_ignored() -> None:

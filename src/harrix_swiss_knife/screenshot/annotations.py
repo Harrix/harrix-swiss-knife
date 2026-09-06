@@ -14,10 +14,11 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
 _MAX_UNDO = 40
-# Classic ShareX arrow cap: half-width ∝ stroke, concave back via quadratic control.
+# ShareX Classic proportions: shaft stroke, head half-width = 2x stroke, concave back.
 _ARROW_HEAD_WIDTH_MULT = 2.0
 _ARROW_HEAD_LENGTH_RATIO = 3.0
 _ARROW_HEAD_BACK_CURVE_CONTROL_RATIO = 2.0
+_ARROW_HEAD_MAX_LENGTH_FRAC = 0.45
 _MIN_CROP_SIZE = 2
 _MIN_SHAPE_POINTS = 2
 _MIN_DRAG_MANHATTAN = 3
@@ -224,8 +225,18 @@ def paint_annotation(painter: QPainter, annotation: Annotation) -> None:
         painter.drawRect(rect)
 
 
-def _arrow_head_path(start: QPointF, end: QPointF, stroke: float) -> QPainterPath | None:
-    """Build the classic ShareX arrowhead: tip, wings, concave quadratic back."""
+def _arrow_head_geometry(
+    start: QPointF,
+    end: QPointF,
+    stroke: float,
+) -> tuple[QPointF, QPointF, QPointF, QPointF] | None:
+    """Return tip, left wing, right wing, and concave back-curve control.
+
+    Proportions match ShareX Classic (half-width 2x stroke, length 3x half-width).
+    The shaft ends at the control point so thickness stays uniform and the round
+    start cap stays visible.
+
+    """
     dx = end.x() - start.x()
     dy = end.y() - start.y()
     length = math.hypot(dx, dy)
@@ -233,7 +244,8 @@ def _arrow_head_path(start: QPointF, end: QPointF, stroke: float) -> QPainterPat
         return None
     half_width = max(1.0, stroke) * _ARROW_HEAD_WIDTH_MULT
     head_length = half_width * _ARROW_HEAD_LENGTH_RATIO
-    back_control = half_width * _ARROW_HEAD_BACK_CURVE_CONTROL_RATIO
+    head_length = min(head_length, length * _ARROW_HEAD_MAX_LENGTH_FRAC)
+    back_control = min(half_width * _ARROW_HEAD_BACK_CURVE_CONTROL_RATIO, head_length * 0.85)
     ux, uy = dx / length, dy / length
     px, py = -uy, ux
     base_x = end.x() - ux * head_length
@@ -241,8 +253,17 @@ def _arrow_head_path(start: QPointF, end: QPointF, stroke: float) -> QPainterPat
     left = QPointF(base_x + px * half_width, base_y + py * half_width)
     right = QPointF(base_x - px * half_width, base_y - py * half_width)
     control = QPointF(end.x() - ux * back_control, end.y() - uy * back_control)
+    return end, left, right, control
+
+
+def _arrow_head_path(start: QPointF, end: QPointF, stroke: float) -> QPainterPath | None:
+    """Build the classic ShareX arrowhead: tip, wings, concave quadratic back."""
+    geometry = _arrow_head_geometry(start, end, stroke)
+    if geometry is None:
+        return None
+    tip, left, right, control = geometry
     path = QPainterPath()
-    path.moveTo(end)
+    path.moveTo(tip)
     path.lineTo(left)
     path.quadTo(control, right)
     path.closeSubpath()
@@ -267,22 +288,31 @@ def _draw_filled_arrow(
 ) -> None:
     """Draw a round-capped shaft and a ShareX-classic filled head.
 
-    The head is a filled triangle whose rear edge is a quadratic curve bowed
-    toward the tip (concave notch), matching ShareX `ArrowStyle.Classic`.
+    The shaft keeps constant thickness from a rounded tail to the concave notch.
+    The head is filled and stroked so it reads as a solid triangle with the
+    classic inward rear curve.
 
     """
     stroke = max(1.0, width)
-    head = _arrow_head_path(start, end, stroke)
-    if head is None:
+    geometry = _arrow_head_geometry(start, end, stroke)
+    if geometry is None:
         return
+    tip, left, right, control = geometry
+    head = QPainterPath()
+    head.moveTo(tip)
+    head.lineTo(left)
+    head.quadTo(control, right)
+    head.closeSubpath()
+
     pen = QPen(color)
     pen.setWidthF(stroke)
     pen.setCapStyle(Qt.PenCapStyle.RoundCap)
     pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
     painter.setPen(pen)
     painter.setBrush(Qt.BrushStyle.NoBrush)
-    painter.drawLine(start, end)
-    painter.fillPath(head, color)
+    painter.drawLine(start, control)
+    painter.setBrush(color)
+    painter.drawPath(head)
 
 
 def _is_meaningful(annotation: Annotation) -> bool:
