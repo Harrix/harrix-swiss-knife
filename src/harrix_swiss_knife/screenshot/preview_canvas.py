@@ -5,7 +5,17 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QPoint, QPointF, QRect, QRectF, QSize, QSizeF, Qt, Signal
-from PySide6.QtGui import QColor, QKeyEvent, QMouseEvent, QPainter, QPaintEvent, QPixmap, QResizeEvent, QWheelEvent
+from PySide6.QtGui import (
+    QColor,
+    QKeyEvent,
+    QMouseEvent,
+    QPainter,
+    QPaintEvent,
+    QPen,
+    QPixmap,
+    QResizeEvent,
+    QWheelEvent,
+)
 from PySide6.QtWidgets import QWidget
 
 from harrix_swiss_knife.screenshot.annotation_edit import (
@@ -14,6 +24,12 @@ from harrix_swiss_knife.screenshot.annotation_edit import (
     cursor_for_annotation_handle,
     hit_test_topmost,
     paint_annotation_selection,
+)
+from harrix_swiss_knife.screenshot.annotation_snap import (
+    collect_annotation_guides,
+    snap_annotation_edit,
+    snap_point,
+    snap_shape_end,
 )
 from harrix_swiss_knife.screenshot.annotations import (
     Annotation,
@@ -45,6 +61,7 @@ _MIN_SHAPE_POINTS = 2
 _MIN_CROP = 2
 _DRAG_THRESHOLD = 4
 _EDGE_SNAP_THRESHOLD = 8
+_SNAP_GUIDE_COLOR = QColor(255, 0, 200, 220)
 
 
 class ScreenshotPreviewCanvas(QWidget):
@@ -92,6 +109,8 @@ class ScreenshotPreviewCanvas(QWidget):
         self._crop_press_rect: QRect | None = None
         self._snap_x_edges: list[int] = []
         self._snap_y_edges: list[int] = []
+        self._snap_x_guide: float | None = None
+        self._snap_y_guide: float | None = None
 
     def cancel_crop(self) -> None:
         """Discard crop selection and leave crop mode."""
@@ -250,17 +269,13 @@ class ScreenshotPreviewCanvas(QWidget):
                 self._document.append_draft_point(image_pos)
             else:
                 self._draw_current = image_pos
-                self._document.update_draft_points(
-                    [
-                        start,
-                        constrain_shape_end(
-                            draft.tool,
-                            start,
-                            image_pos,
-                            shift=_shift_pressed(event.modifiers()),
-                        ),
-                    ]
+                end = self._constrain_and_snap_draft_end(
+                    start,
+                    image_pos,
+                    draft.tool,
+                    shift=_shift_pressed(event.modifiers()),
                 )
+                self._document.update_draft_points([start, end])
             self.update()
             event.accept()
             return
@@ -289,14 +304,15 @@ class ScreenshotPreviewCanvas(QWidget):
                 event.accept()
                 return
             self._selected_index = None
+            snapped = self._snap_pointer(image_pos)
             if self._tool == AnnotationTool.TEXT:
-                self.text_requested.emit(image_pos)
+                self.text_requested.emit(snapped)
                 event.accept()
                 return
-            self._draw_start = image_pos
-            self._draw_current = image_pos
+            self._draw_start = snapped
+            self._draw_current = QPointF(snapped)
             if self._tool == AnnotationTool.PEN:
-                self._begin_shape_draft(image_pos, image_pos)
+                self._begin_shape_draft(snapped, snapped)
             event.accept()
             return
         if event.button() == Qt.MouseButton.LeftButton and self._tool == AnnotationTool.NONE:
@@ -449,6 +465,16 @@ class ScreenshotPreviewCanvas(QWidget):
             return self._crop_drag_rect()
         return self._crop_rect
 
+    def _annotation_snap_guides(self, *, exclude_index: int | None = None) -> tuple[list[float], list[float]]:
+        document = self._document
+        if document is None:
+            return [], []
+        bounds = self._image_bounds()
+        frame = None
+        if bounds.isValid() and not bounds.isEmpty():
+            frame = QRectF(QPointF(bounds.left(), bounds.top()), QPointF(bounds.right(), bounds.bottom()))
+        return collect_annotation_guides(document.annotations, exclude_index=exclude_index, bounds=frame)
+
     def _apply_annotation_drag(self, image_pos: QPointF, *, shift: bool) -> None:
         document = self._document
         index = self._selected_index
@@ -465,7 +491,19 @@ class ScreenshotPreviewCanvas(QWidget):
             document.save_undo_checkpoint()
             self._edit_history_saved = True
         points = apply_annotation_edit(annotation, handle, origin, press, image_pos, shift=shift)
-        document.update_annotation_points(index, points)
+        xs, ys = self._annotation_snap_guides(exclude_index=index)
+        snapped = snap_annotation_edit(
+            annotation,
+            handle,
+            points,
+            xs,
+            ys,
+            threshold=_EDGE_SNAP_THRESHOLD,
+            shift=shift,
+        )
+        self._snap_x_guide = snapped.x_guide
+        self._snap_y_guide = snapped.y_guide
+        document.update_annotation_points(index, snapped.points)
         self.update()
 
     def _begin_annotation_edit(self, image_pos: QPointF) -> bool:
@@ -518,6 +556,34 @@ class ScreenshotPreviewCanvas(QWidget):
         self._edit_press = None
         self._edit_current = None
         self._edit_history_saved = False
+        self._clear_snap_guides()
+
+    def _clear_snap_guides(self) -> None:
+        self._snap_x_guide = None
+        self._snap_y_guide = None
+
+    def _constrain_and_snap_draft_end(
+        self,
+        start: QPointF,
+        image_pos: QPointF,
+        tool: AnnotationTool,
+        *,
+        shift: bool,
+    ) -> QPointF:
+        end = constrain_shape_end(tool, start, image_pos, shift=shift)
+        xs, ys = self._annotation_snap_guides()
+        snapped, x_guide, y_guide = snap_shape_end(
+            tool,
+            start,
+            end,
+            xs,
+            ys,
+            threshold=_EDGE_SNAP_THRESHOLD,
+            shift=shift,
+        )
+        self._snap_x_guide = x_guide
+        self._snap_y_guide = y_guide
+        return snapped
 
     def _crop_drag_rect(self) -> QRect | None:
         if self._crop_origin is None or self._crop_current is None:
@@ -641,15 +707,21 @@ class ScreenshotPreviewCanvas(QWidget):
         self._draw_start = None
         self._draw_current = None
         if document is None or start is None:
+            self._clear_snap_guides()
             return
         image_pos = self._widget_to_image(widget_pos)
         if image_pos is not None and document.draft is not None:
             if document.draft.tool == AnnotationTool.PEN:
                 document.append_draft_point(image_pos)
             else:
-                document.update_draft_points(
-                    [start, constrain_shape_end(document.draft.tool, start, image_pos, shift=shift)]
+                end = self._constrain_and_snap_draft_end(
+                    start,
+                    image_pos,
+                    document.draft.tool,
+                    shift=shift,
                 )
+                document.update_draft_points([start, end])
+        self._clear_snap_guides()
         if document.commit_draft():
             self._selected_index = len(document.annotations) - 1
             self.update()
@@ -738,7 +810,20 @@ class ScreenshotPreviewCanvas(QWidget):
                 document.annotations[index],
                 handle_size=self._handle_size_image(),
             )
+        self._paint_snap_guides(painter, width, height)
         painter.restore()
+
+    def _paint_snap_guides(self, painter: QPainter, width: int, height: int) -> None:
+        if self._snap_x_guide is None and self._snap_y_guide is None:
+            return
+        pen = QPen(_SNAP_GUIDE_COLOR, 1.0)
+        pen.setStyle(Qt.PenStyle.DashLine)
+        pen.setCosmetic(True)
+        painter.setPen(pen)
+        if self._snap_x_guide is not None:
+            painter.drawLine(QPointF(self._snap_x_guide, 0.0), QPointF(self._snap_x_guide, float(height)))
+        if self._snap_y_guide is not None:
+            painter.drawLine(QPointF(0.0, self._snap_y_guide), QPointF(float(width), self._snap_y_guide))
 
     def _prefer_tool(self) -> AnnotationTool | None:
         if self._tool in {AnnotationTool.CROP, AnnotationTool.NONE}:
@@ -758,7 +843,8 @@ class ScreenshotPreviewCanvas(QWidget):
             return False
         if document.draft.tool == AnnotationTool.PEN:
             return False
-        document.update_draft_points([start, constrain_shape_end(document.draft.tool, start, current, shift=shift)])
+        end = self._constrain_and_snap_draft_end(start, current, document.draft.tool, shift=shift)
+        document.update_draft_points([start, end])
         self.update()
         return True
 
@@ -789,6 +875,13 @@ class ScreenshotPreviewCanvas(QWidget):
         if self._pixmap.isNull():
             return 0, 0
         return self._pixmap.width(), self._pixmap.height()
+
+    def _snap_pointer(self, image_pos: QPointF, *, exclude_index: int | None = None) -> QPointF:
+        xs, ys = self._annotation_snap_guides(exclude_index=exclude_index)
+        snapped, x_guide, y_guide = snap_point(image_pos, xs, ys, threshold=_EDGE_SNAP_THRESHOLD)
+        self._snap_x_guide = x_guide
+        self._snap_y_guide = y_guide
+        return snapped
 
     def _update_hover_cursor(self, image_pos: QPointF | None) -> None:
         if image_pos is None or self._document is None:
