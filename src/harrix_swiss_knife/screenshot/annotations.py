@@ -14,13 +14,13 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
 _MAX_UNDO = 40
-_ARROW_HEAD_LEN = 18.0
-_ARROW_HEAD_ANGLE = math.radians(24)
+# Classic ShareX arrow cap: half-width ∝ stroke, concave back via quadratic control.
+_ARROW_HEAD_WIDTH_MULT = 2.0
+_ARROW_HEAD_LENGTH_RATIO = 3.0
+_ARROW_HEAD_BACK_CURVE_CONTROL_RATIO = 2.0
 _MIN_CROP_SIZE = 2
 _MIN_SHAPE_POINTS = 2
 _MIN_DRAG_MANHATTAN = 3
-_MIN_POLYGON_VERTICES = 3
-_LENGTH_EPS = 1e-6
 
 
 @dataclass(slots=True)
@@ -224,6 +224,31 @@ def paint_annotation(painter: QPainter, annotation: Annotation) -> None:
         painter.drawRect(rect)
 
 
+def _arrow_head_path(start: QPointF, end: QPointF, stroke: float) -> QPainterPath | None:
+    """Build the classic ShareX arrowhead: tip, wings, concave quadratic back."""
+    dx = end.x() - start.x()
+    dy = end.y() - start.y()
+    length = math.hypot(dx, dy)
+    if length < 1:
+        return None
+    half_width = max(1.0, stroke) * _ARROW_HEAD_WIDTH_MULT
+    head_length = half_width * _ARROW_HEAD_LENGTH_RATIO
+    back_control = half_width * _ARROW_HEAD_BACK_CURVE_CONTROL_RATIO
+    ux, uy = dx / length, dy / length
+    px, py = -uy, ux
+    base_x = end.x() - ux * head_length
+    base_y = end.y() - uy * head_length
+    left = QPointF(base_x + px * half_width, base_y + py * half_width)
+    right = QPointF(base_x - px * half_width, base_y - py * half_width)
+    control = QPointF(end.x() - ux * back_control, end.y() - uy * back_control)
+    path = QPainterPath()
+    path.moveTo(end)
+    path.lineTo(left)
+    path.quadTo(control, right)
+    path.closeSubpath()
+    return path
+
+
 def _clone_annotation(item: Annotation) -> Annotation:
     return Annotation(
         tool=item.tool,
@@ -240,38 +265,24 @@ def _draw_filled_arrow(
     color: QColor,
     width: float,
 ) -> None:
-    """Draw a thin round-capped shaft and a solid isosceles head.
+    """Draw a round-capped shaft and a ShareX-classic filled head.
 
-    The tail is a straight line with a slightly rounded far end. The head is an
-    isosceles triangle whose back edge is perpendicular to the shaft; vertices
-    are slightly rounded so the corners are not sharp.
+    The head is a filled triangle whose rear edge is a quadratic curve bowed
+    toward the tip (concave notch), matching ShareX `ArrowStyle.Classic`.
 
     """
-    dx = end.x() - start.x()
-    dy = end.y() - start.y()
-    length = math.hypot(dx, dy)
-    if length < 1:
-        return
     stroke = max(1.0, width)
-    head = max(_ARROW_HEAD_LEN, stroke * 5.5)
-    head = min(head, length * 0.5)
-    ux, uy = dx / length, dy / length
-    base = QPointF(end.x() - ux * head, end.y() - uy * head)
-    half_base = head * math.tan(_ARROW_HEAD_ANGLE)
-    px, py = -uy, ux
-    left = QPointF(base.x() + px * half_base, base.y() + py * half_base)
-    right = QPointF(base.x() - px * half_base, base.y() - py * half_base)
-    # Hide the round cap inside the head so the shaft meets the flat back edge.
-    shaft_end = QPointF(base.x() + ux * stroke * 0.5, base.y() + uy * stroke * 0.5)
+    head = _arrow_head_path(start, end, stroke)
+    if head is None:
+        return
     pen = QPen(color)
     pen.setWidthF(stroke)
     pen.setCapStyle(Qt.PenCapStyle.RoundCap)
     pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
     painter.setPen(pen)
     painter.setBrush(Qt.BrushStyle.NoBrush)
-    painter.drawLine(start, shaft_end)
-    corner = min(max(1.2, stroke * 0.75), head * 0.16, half_base * 0.28)
-    painter.fillPath(_rounded_polygon_path([end, left, right], corner), color)
+    painter.drawLine(start, end)
+    painter.fillPath(head, color)
 
 
 def _is_meaningful(annotation: Annotation) -> bool:
@@ -283,32 +294,3 @@ def _is_meaningful(annotation: Annotation) -> bool:
         return False
     start, end = annotation.points[0], annotation.points[-1]
     return (end - start).manhattanLength() >= _MIN_DRAG_MANHATTAN
-
-
-def _rounded_polygon_path(vertices: list[QPointF], radius: float) -> QPainterPath:
-    """Build a closed polygon path with quadratic rounding at each vertex."""
-    path = QPainterPath()
-    count = len(vertices)
-    if count < _MIN_POLYGON_VERTICES:
-        return path
-    corners: list[tuple[QPointF, QPointF, QPointF]] = []
-    for index, curr in enumerate(vertices):
-        prev_pt = vertices[index - 1]
-        next_pt = vertices[(index + 1) % count]
-        to_prev = QPointF(prev_pt.x() - curr.x(), prev_pt.y() - curr.y())
-        to_next = QPointF(next_pt.x() - curr.x(), next_pt.y() - curr.y())
-        dist_prev = math.hypot(to_prev.x(), to_prev.y())
-        dist_next = math.hypot(to_next.x(), to_next.y())
-        if dist_prev < _LENGTH_EPS or dist_next < _LENGTH_EPS:
-            corners.append((curr, curr, curr))
-            continue
-        corner = min(max(0.0, radius), dist_prev * 0.45, dist_next * 0.45)
-        p1 = QPointF(curr.x() + to_prev.x() / dist_prev * corner, curr.y() + to_prev.y() / dist_prev * corner)
-        p2 = QPointF(curr.x() + to_next.x() / dist_next * corner, curr.y() + to_next.y() / dist_next * corner)
-        corners.append((p1, curr, p2))
-    path.moveTo(corners[-1][2])
-    for p1, vertex, p2 in corners:
-        path.lineTo(p1)
-        path.quadTo(vertex, p2)
-    path.closeSubpath()
-    return path

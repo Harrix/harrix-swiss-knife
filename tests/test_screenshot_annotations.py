@@ -12,6 +12,7 @@ from harrix_swiss_knife.screenshot.annotations import (
     AnnotationDocument,
     AnnotationStyle,
     AnnotationTool,
+    _arrow_head_path,
 )
 
 
@@ -53,9 +54,9 @@ def test_arrow_is_thin_shaft_with_filled_head() -> None:
     rendered = doc.render(include_draft=False)
     shaft = rendered.pixelColor(50, 40)
     above_shaft = rendered.pixelColor(50, 28)
-    # Head runs roughly x=102..120; sample near the centerline inside the fill.
-    head = rendered.pixelColor(110, 40)
-    head_above = rendered.pixelColor(110, 38)
+    # Head tip at x=120, length 18 → wings near x=102; sample inside the fill.
+    head = rendered.pixelColor(112, 40)
+    head_above = rendered.pixelColor(112, 38)
     assert shaft.red() > 150
     assert shaft.green() < 80
     assert above_shaft.green() > 200
@@ -63,6 +64,17 @@ def test_arrow_is_thin_shaft_with_filled_head() -> None:
     assert head.green() < 80
     assert head_above.red() > 150
     assert head_above.green() < 80
+
+
+def test_arrow_head_back_is_concave_like_sharex() -> None:
+    """Rear edge bows toward the tip (ShareX Classic quadratic notch)."""
+    path = _arrow_head_path(QPointF(12, 40), QPointF(120, 40), stroke=3.0)
+    assert path is not None
+    # Tip / mid-head stay filled; centerline behind the quadratic notch does not.
+    assert path.contains(QPointF(116, 40))
+    assert path.contains(QPointF(110, 40))
+    assert not path.contains(QPointF(103, 40))
+    assert not path.contains(QPointF(104, 40))
 
 
 def test_tiny_drag_is_ignored() -> None:
