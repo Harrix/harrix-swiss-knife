@@ -784,15 +784,15 @@ class FitnessLightboxSidebar(QFrame):
     def _build_timer_button(self, emoji: str, tooltip: str, object_name: str) -> QPushButton:
         button = QPushButton()
         button.setObjectName(object_name)
-        button.setIcon(create_emoji_icon(emoji, 22))
-        button.setIconSize(QSize(22, 22))
+        button.setIcon(create_emoji_icon(emoji, TOOLBAR_ICON_SIZE))
+        button.setIconSize(QSize(TOOLBAR_ICON_SIZE, TOOLBAR_ICON_SIZE))
         button.setToolTip(tooltip)
         button.setCursor(Qt.CursorShape.PointingHandCursor)
         button.setAutoDefault(False)
         button.setDefault(False)
         button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        button.setFixedHeight(44)
-        button.setMinimumWidth(52)
+        button.setFixedSize(TOOLBAR_BUTTON_SIZE, TOOLBAR_BUTTON_SIZE)
+        button.setStyleSheet(TOOLBAR_BUTTON_STYLE)
         return button
 
     def _build_ui(self) -> None:
@@ -828,14 +828,15 @@ class FitnessLightboxSidebar(QFrame):
         stop.clicked.connect(self._on_stop)
         restart.clicked.connect(self._on_restart)
         controls = QWidget()
-        controls.setStyleSheet(_TIMER_BUTTON_STYLE)
         controls_layout = QHBoxLayout(controls)
         controls_layout.setContentsMargins(0, 0, 0, 0)
-        controls_layout.setSpacing(6)
+        controls_layout.setSpacing(TOOLBAR_BUTTON_GAP)
+        controls_layout.addStretch(1)
         controls_layout.addWidget(start)
         controls_layout.addWidget(pause)
         controls_layout.addWidget(stop)
         controls_layout.addWidget(restart)
+        controls_layout.addStretch(1)
 
         self._title = QLabel("Exercise")
         self._title.setObjectName("fitnessLightboxTitle")

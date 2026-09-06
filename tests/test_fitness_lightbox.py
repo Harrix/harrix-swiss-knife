@@ -490,10 +490,16 @@ def test_fitness_lightbox_has_splitter_sidebar_and_browse_confirm(
     assert stop.text() == ""
     assert stop.toolTip() == "Stop"
     assert not stop.icon().isNull()
+    assert stop.size() == stop.minimumSize() == stop.maximumSize()
+    assert stop.width() == 40
+    assert stop.height() == 40
+    assert "#F5F5F7" in stop.styleSheet()
     start = dialog.findChild(QPushButton, "fitnessLightboxStartButton")
     assert start is not None
     assert start.text() == ""
     assert start.toolTip() == "Start"
+    assert start.width() == 40
+    assert start.height() == 40
     assert "background: transparent" in dialog._sidebar.styleSheet()
     assert "border: none" in dialog._sidebar.styleSheet()
     assert "border-radius: 0" in dialog._sidebar.styleSheet()

@@ -43,6 +43,12 @@ from harrix_swiss_knife.apps.fitness.lightbox_sounds import (
     stop_fitness_timer_alert,
 )
 from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
+from harrix_swiss_knife.qt_toolbar_style import (
+    TOOLBAR_BUTTON_GAP,
+    TOOLBAR_BUTTON_SIZE,
+    TOOLBAR_BUTTON_STYLE,
+    TOOLBAR_ICON_SIZE,
+)
 
 if TYPE_CHECKING:
     from harrix_swiss_knife.apps.common.avif_manager import AvifManager
@@ -554,15 +560,15 @@ class FitnessLightboxSidebar(QFrame):
     def _build_timer_button(self, emoji: str, tooltip: str, object_name: str) -> QPushButton:
         button = QPushButton()
         button.setObjectName(object_name)
-        button.setIcon(create_emoji_icon(emoji, 22))
-        button.setIconSize(QSize(22, 22))
+        button.setIcon(create_emoji_icon(emoji, TOOLBAR_ICON_SIZE))
+        button.setIconSize(QSize(TOOLBAR_ICON_SIZE, TOOLBAR_ICON_SIZE))
         button.setToolTip(tooltip)
         button.setCursor(Qt.CursorShape.PointingHandCursor)
         button.setAutoDefault(False)
         button.setDefault(False)
         button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        button.setFixedHeight(44)
-        button.setMinimumWidth(52)
+        button.setFixedSize(TOOLBAR_BUTTON_SIZE, TOOLBAR_BUTTON_SIZE)
+        button.setStyleSheet(TOOLBAR_BUTTON_STYLE)
         return button
 
     def _build_ui(self) -> None:
@@ -598,14 +604,15 @@ class FitnessLightboxSidebar(QFrame):
         stop.clicked.connect(self._on_stop)
         restart.clicked.connect(self._on_restart)
         controls = QWidget()
-        controls.setStyleSheet(_TIMER_BUTTON_STYLE)
         controls_layout = QHBoxLayout(controls)
         controls_layout.setContentsMargins(0, 0, 0, 0)
-        controls_layout.setSpacing(6)
+        controls_layout.setSpacing(TOOLBAR_BUTTON_GAP)
+        controls_layout.addStretch(1)
         controls_layout.addWidget(start)
         controls_layout.addWidget(pause)
         controls_layout.addWidget(stop)
         controls_layout.addWidget(restart)
+        controls_layout.addStretch(1)
 
         self._title = QLabel("Exercise")
         self._title.setObjectName("fitnessLightboxTitle")
@@ -899,26 +906,6 @@ QPushButton#fitnessLightboxAddButton:hover {
 }
 QPushButton#fitnessLightboxAddButton:pressed {
     background: #1D4ED8;
-}
-"""
-
-_TIMER_BUTTON_STYLE = """
-QPushButton#fitnessLightboxStartButton,
-QPushButton#fitnessLightboxPauseButton,
-QPushButton#fitnessLightboxStopButton,
-QPushButton#fitnessLightboxRestartButton {
-    background: #FFFFFF;
-    color: #111827;
-    border: 1px solid #D1D5DB;
-    border-radius: 12px;
-    padding: 10px 8px;
-}
-QPushButton#fitnessLightboxStartButton:hover,
-QPushButton#fitnessLightboxPauseButton:hover,
-QPushButton#fitnessLightboxStopButton:hover,
-QPushButton#fitnessLightboxRestartButton:hover {
-    background: #F1F5F9;
-    border-color: #3B82F6;
 }
 """
 
