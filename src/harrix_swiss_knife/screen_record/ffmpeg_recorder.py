@@ -15,6 +15,7 @@ from harrix_swiss_knife.apps.common.audio_compress import ffmpeg_exe_path, is_ff
 from harrix_swiss_knife.apps.common.audio_recording.pcm_utils import audio_device_id, load_saved_microphone_id
 from harrix_swiss_knife.apps.common.audio_recording.recorder import MicrophoneRecorder
 from harrix_swiss_knife.paths import get_project_root
+from harrix_swiss_knife.screen_record.config import get_screen_record_microphone_id
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -340,12 +341,12 @@ def list_dshow_audio_devices() -> list[str]:
     return [match.group(1) for match in _DSHOW_AUDIO_RE.finditer(text)]
 
 
-def _resolve_dshow_mic_name() -> str | None:
-    """Match the saved Qt mic (or first input) to a DirectShow audio device name."""
-    preferred_id = load_saved_microphone_id()
+def _resolve_dshow_mic_name(preferred_id: str | None = None) -> str | None:
+    """Match a preferred Qt mic (or first input) to a DirectShow audio device name."""
+    preferred = (preferred_id or "").strip() or get_screen_record_microphone_id() or load_saved_microphone_id()
     preferred_description = ""
     for device in MicrophoneRecorder.list_input_devices():
-        if preferred_id and audio_device_id(device) == preferred_id:
+        if preferred and audio_device_id(device) == preferred:
             preferred_description = device.description()
             break
         if not preferred_description:

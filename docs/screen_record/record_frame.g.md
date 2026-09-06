@@ -14,6 +14,7 @@ lang: en
 - [🏛️ Class `RecordFrameWindow`](#%EF%B8%8F-class-recordframewindow)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `cancel_countdown`](#%EF%B8%8F-method-cancel_countdown)
+  - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
   - [⚙️ Method `mouseMoveEvent`](#%EF%B8%8F-method-mousemoveevent)
   - [⚙️ Method `mousePressEvent`](#%EF%B8%8F-method-mousepressevent)
   - [⚙️ Method `mouseReleaseEvent`](#%EF%B8%8F-method-mousereleaseevent)
@@ -49,6 +50,7 @@ class RecordFrameWindow(QWidget):
         """Create a frame for `region` (global logical coordinates)."""
         super().__init__(parent)
         mark_screenshot_ui(self)
+        ensure_screen_record_config_defaults()
         self.setWindowFlags(frameless_stay_on_top_flags() | Qt.WindowType.Tool)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, on=True)
         self.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips, on=True)
@@ -64,6 +66,8 @@ class RecordFrameWindow(QWidget):
         self._countdown_left = 0
         self._recording = False
         self._elapsed_ms = 0
+        self._snap_x_edges: list[int] = []
+        self._snap_y_edges: list[int] = []
 
         self._countdown_timer = QTimer(self)
         self._countdown_timer.setInterval(1000)
@@ -72,19 +76,29 @@ class RecordFrameWindow(QWidget):
         self._elapsed_timer.setInterval(250)
         self._elapsed_timer.timeout.connect(self._on_elapsed_tick)
 
+        self._countdown_overlay = _CountdownOverlay()
+
         self._status = QLabel(self)
         self._status.setStyleSheet("color: white; font-weight: bold; padding: 0 4px;")
         self._status.setToolTip("Recording status")
 
         self._audio = QComboBox(self)
-        self._audio.setToolTip("Audio source for the recording")
+        self._audio.setToolTip("Audio source for the recording (saved in config.json)")
         for mode in ("none", "mic", "system", "mic_and_system"):
             self._audio.addItem(_AUDIO_LABELS[mode], mode)
         current = get_screen_record_audio()
         index = self._audio.findData(current)
+        self._audio.blockSignals(True)  # noqa: FBT003
         if index >= 0:
             self._audio.setCurrentIndex(index)
+        self._audio.blockSignals(False)  # noqa: FBT003
         self._audio.currentIndexChanged.connect(self._on_audio_changed)
+
+        self._mic = QComboBox(self)
+        self._mic.setObjectName("recordMicCombo")
+        self._mic.setToolTip("Microphone (saved in config.json)")
+        self._populate_microphones()
+        self._mic.currentIndexChanged.connect(self._on_mic_changed)
 
         countdown = get_screen_record_countdown_seconds()
         self._record_btn = self._make_tool_button("⏺️", "Record now (start immediately)")
@@ -95,7 +109,7 @@ class RecordFrameWindow(QWidget):
             text=str(countdown) if countdown else "0",
         )
         self._countdown_btn.clicked.connect(self._on_countdown_start)
-        self._stop_btn = self._make_tool_button("⏹️", "Stop recording and open preview")
+        self._stop_btn = self._make_tool_button("⏹️", "Stop recording and open editor")
         self._stop_btn.clicked.connect(self.stop_requested.emit)
         self._abort_btn = self._make_tool_button("❌", "Abort without saving")
         self._abort_btn.clicked.connect(self.abort_requested.emit)
@@ -110,6 +124,7 @@ class RecordFrameWindow(QWidget):
         row.setSpacing(6)
         row.addWidget(self._status)
         row.addWidget(self._audio)
+        row.addWidget(self._mic)
         row.addWidget(self._record_btn)
         row.addWidget(self._countdown_btn)
         row.addWidget(self._stop_btn)
@@ -125,19 +140,28 @@ class RecordFrameWindow(QWidget):
         self._status.setText("Ready")
         self._status.setToolTip("Ready — move/resize frame, then record")
         self._update_idle_controls(visible=True)
+        self._update_mic_visibility()
+        self._refresh_snap_guides()
         self._apply_geometry()
 
     def cancel_countdown(self) -> None:
         """Stop a pending countdown without starting capture."""
         self._countdown_timer.stop()
         self._countdown_left = 0
+        self._countdown_overlay.hide_countdown()
         if not self._recording:
             self._update_idle_controls(visible=True)
             self._status.setText("Ready")
             self._status.setToolTip("Ready — move/resize frame, then record")
 
+    def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
+        """Hide the countdown overlay with the frame."""
+        self._countdown_overlay.hide_countdown()
+        self._countdown_overlay.close()
+        super().closeEvent(event)
+
     def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        """Drag move/resize the region, or update the resize cursor."""
+        """Drag move/resize the region (with window edge snap), or update cursor."""
         if self._locked:
             event.accept()
             return
@@ -153,7 +177,16 @@ class RecordFrameWindow(QWidget):
                 moved = self._press_region.translated(delta)
                 moved.moveLeft(max(bounds.left(), min(moved.left(), bounds.right() - moved.width() + 1)))
                 moved.moveTop(max(bounds.top(), min(moved.top(), bounds.bottom() - moved.height() + 1)))
-                self._set_region(moved)
+                snapped = snap_rect_to_edges(
+                    moved,
+                    "move",
+                    self._snap_x_edges,
+                    self._snap_y_edges,
+                    threshold=_EDGE_SNAP_THRESHOLD,
+                    bounds=bounds,
+                    min_size=_MIN_REGION,
+                )
+                self._set_region(snapped)
             else:
                 new_rect = transform_selection_rect(
                     self._press_region,
@@ -163,7 +196,16 @@ class RecordFrameWindow(QWidget):
                     bounds=bounds,
                     min_size=_MIN_REGION,
                 )
-                self._set_region(new_rect)
+                snapped = snap_rect_to_edges(
+                    new_rect,
+                    self._drag_handle,
+                    self._snap_x_edges,
+                    self._snap_y_edges,
+                    threshold=_EDGE_SNAP_THRESHOLD,
+                    bounds=bounds,
+                    min_size=_MIN_REGION,
+                )
+                self._set_region(snapped)
             event.accept()
             return
         handle = hit_test_selection_handle(
@@ -199,6 +241,7 @@ class RecordFrameWindow(QWidget):
         if handle is None:
             event.accept()
             return
+        self._refresh_snap_guides()
         self._drag_handle = handle
         self._press_pos = event.globalPosition().toPoint()
         self._press_region = QRect(self._region)
@@ -253,11 +296,14 @@ class RecordFrameWindow(QWidget):
         super().resizeEvent(event)
         self._layout_toolbar()
         self._update_mask()
+        if self._countdown_overlay.isVisible():
+            self._countdown_overlay.place_over(self._region)
 
     def set_recording(self, *, active: bool) -> None:
         """Update UI for recording vs idle."""
         self._recording = active
         self._locked = active
+        self._countdown_overlay.hide_countdown()
         self._update_idle_controls(visible=not active)
         self._stop_btn.setVisible(active)
         self._stop_btn.setEnabled(active)
@@ -282,6 +328,7 @@ class RecordFrameWindow(QWidget):
         super().showEvent(event)
         self._layout_toolbar()
         self._update_mask()
+        self._refresh_snap_guides()
 
     def _apply_geometry(self) -> None:
         self._toolbar.adjustSize()
@@ -298,6 +345,8 @@ class RecordFrameWindow(QWidget):
         self.setGeometry(geo)
         self._layout_toolbar()
         self._update_mask()
+        if self._countdown_overlay.isVisible():
+            self._countdown_overlay.place_over(self._region)
 
     def _border_ring_rect(self) -> QRect:
         """Outer rectangle covering the border around the region (not the toolbar)."""
@@ -310,6 +359,17 @@ class RecordFrameWindow(QWidget):
         if mode in SCREEN_RECORD_AUDIO_MODES:
             return cast("ScreenRecordAudio", mode)
         return "none"
+
+    def _exclude_hwnds(self) -> list[int]:
+        handles: list[int] = []
+        for widget in (self, self._countdown_overlay):
+            try:
+                handle = int(widget.winId())
+            except RuntimeError:
+                continue
+            if handle:
+                handles.append(handle)
+        return handles
 
     def _is_over_toolbar(self, pos: QPoint) -> bool:
         return self._toolbar.geometry().contains(pos)
@@ -334,9 +394,14 @@ class RecordFrameWindow(QWidget):
             button.setText(text)
         return button
 
+    def _needs_microphone(self) -> bool:
+        return self._current_audio() in {"mic", "mic_and_system"}
+
     def _on_audio_changed(self, _index: int) -> None:
         mode = self._current_audio()
         save_screen_record_settings(audio=mode)
+        self._update_mic_visibility()
+        self._apply_geometry()
 
     def _on_countdown_start(self) -> None:
         seconds = get_screen_record_countdown_seconds()
@@ -346,28 +411,70 @@ class RecordFrameWindow(QWidget):
         self._record_btn.setEnabled(False)
         self._countdown_btn.setEnabled(False)
         self._audio.setEnabled(False)
+        self._mic.setEnabled(False)
         self._countdown_left = seconds
-        self._status.setText(f"{self._countdown_left}…")
+        self._status.setText("Countdown")
         self._status.setToolTip(f"Starting in {self._countdown_left}s")
+        self._countdown_overlay.show_number(self._countdown_left, self._region)
         self._countdown_timer.start()
 
     def _on_countdown_tick(self) -> None:
         self._countdown_left -= 1
         if self._countdown_left <= 0:
             self._countdown_timer.stop()
+            self._countdown_overlay.hide_countdown()
+            self._persist_current_mic()
             self.start_requested.emit(self._current_audio())
             return
-        self._status.setText(f"{self._countdown_left}…")
         self._status.setToolTip(f"Starting in {self._countdown_left}s")
+        self._countdown_overlay.show_number(self._countdown_left, self._region)
 
     def _on_elapsed_tick(self) -> None:
         self._elapsed_ms += 250
         total = self._elapsed_ms // 1000
         self._status.setText(f"{total // 60:02d}:{total % 60:02d}")
 
+    def _on_mic_changed(self, _index: int) -> None:
+        device = self._mic.currentData()
+        if isinstance(device, QAudioDevice):
+            save_screen_record_settings(microphone_id=audio_device_id(device))
+
     def _on_record_now(self) -> None:
         self._countdown_timer.stop()
+        self._countdown_overlay.hide_countdown()
+        self._persist_current_mic()
         self.start_requested.emit(self._current_audio())
+
+    def _persist_current_mic(self) -> None:
+        if not self._needs_microphone():
+            return
+        device = self._mic.currentData()
+        if isinstance(device, QAudioDevice):
+            save_screen_record_settings(microphone_id=audio_device_id(device))
+
+    def _populate_microphones(self) -> None:
+        self._mic.blockSignals(True)  # noqa: FBT003
+        self._mic.clear()
+        devices = MicrophoneRecorder.list_input_devices()
+        if not devices:
+            self._mic.addItem("No microphone found")
+            self._mic.setEnabled(False)
+            self._mic.blockSignals(False)  # noqa: FBT003
+            return
+        saved_id = get_screen_record_microphone_id()
+        selected = 0
+        for index, device in enumerate(devices):
+            self._mic.addItem(device.description(), device)
+            if saved_id and audio_device_id(device) == saved_id:
+                selected = index
+        self._mic.setCurrentIndex(selected)
+        self._mic.setEnabled(True)
+        self._mic.blockSignals(False)  # noqa: FBT003
+
+    def _refresh_snap_guides(self) -> None:
+        bounds = self._virtual_bounds()
+        rects = list_snappable_window_rects(exclude_hwnds=self._exclude_hwnds())
+        self._snap_x_edges, self._snap_y_edges = collect_edge_guides(rects, bounds)
 
     def _region_local_rect(self) -> QRect:
         return QRect(_BORDER + self._left_pad, _BORDER, self._region.width(), self._region.height())
@@ -388,6 +495,7 @@ class RecordFrameWindow(QWidget):
         self._countdown_btn.setEnabled(visible)
         self._stop_btn.setVisible(not visible)
         self._stop_btn.setEnabled(not visible)
+        self._update_mic_visibility()
 
     def _update_mask(self) -> None:
         """Leave a click-through hole inside the border; keep toolbar clickable."""
@@ -395,6 +503,11 @@ class RecordFrameWindow(QWidget):
         hole = QRegion(self._region_local_rect())
         toolbar = QRegion(self._toolbar.geometry())
         self.setMask(full.subtracted(hole).united(toolbar))
+
+    def _update_mic_visibility(self) -> None:
+        show = (not self._recording) and self._needs_microphone() and self._audio.isVisible()
+        self._mic.setVisible(show)
+        self._mic.setEnabled(show and self._mic.count() > 0 and self._mic.itemData(0) is not None)
 
     def _virtual_bounds(self) -> QRect:
         app = QApplication.instance()
@@ -423,6 +536,7 @@ Create a frame for [`region`](#%EF%B8%8F-method-region-property) (global logical
 def __init__(self, region: QRect, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         mark_screenshot_ui(self)
+        ensure_screen_record_config_defaults()
         self.setWindowFlags(frameless_stay_on_top_flags() | Qt.WindowType.Tool)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, on=True)
         self.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips, on=True)
@@ -438,6 +552,8 @@ def __init__(self, region: QRect, parent: QWidget | None = None) -> None:
         self._countdown_left = 0
         self._recording = False
         self._elapsed_ms = 0
+        self._snap_x_edges: list[int] = []
+        self._snap_y_edges: list[int] = []
 
         self._countdown_timer = QTimer(self)
         self._countdown_timer.setInterval(1000)
@@ -446,19 +562,29 @@ def __init__(self, region: QRect, parent: QWidget | None = None) -> None:
         self._elapsed_timer.setInterval(250)
         self._elapsed_timer.timeout.connect(self._on_elapsed_tick)
 
+        self._countdown_overlay = _CountdownOverlay()
+
         self._status = QLabel(self)
         self._status.setStyleSheet("color: white; font-weight: bold; padding: 0 4px;")
         self._status.setToolTip("Recording status")
 
         self._audio = QComboBox(self)
-        self._audio.setToolTip("Audio source for the recording")
+        self._audio.setToolTip("Audio source for the recording (saved in config.json)")
         for mode in ("none", "mic", "system", "mic_and_system"):
             self._audio.addItem(_AUDIO_LABELS[mode], mode)
         current = get_screen_record_audio()
         index = self._audio.findData(current)
+        self._audio.blockSignals(True)  # noqa: FBT003
         if index >= 0:
             self._audio.setCurrentIndex(index)
+        self._audio.blockSignals(False)  # noqa: FBT003
         self._audio.currentIndexChanged.connect(self._on_audio_changed)
+
+        self._mic = QComboBox(self)
+        self._mic.setObjectName("recordMicCombo")
+        self._mic.setToolTip("Microphone (saved in config.json)")
+        self._populate_microphones()
+        self._mic.currentIndexChanged.connect(self._on_mic_changed)
 
         countdown = get_screen_record_countdown_seconds()
         self._record_btn = self._make_tool_button("⏺️", "Record now (start immediately)")
@@ -469,7 +595,7 @@ def __init__(self, region: QRect, parent: QWidget | None = None) -> None:
             text=str(countdown) if countdown else "0",
         )
         self._countdown_btn.clicked.connect(self._on_countdown_start)
-        self._stop_btn = self._make_tool_button("⏹️", "Stop recording and open preview")
+        self._stop_btn = self._make_tool_button("⏹️", "Stop recording and open editor")
         self._stop_btn.clicked.connect(self.stop_requested.emit)
         self._abort_btn = self._make_tool_button("❌", "Abort without saving")
         self._abort_btn.clicked.connect(self.abort_requested.emit)
@@ -484,6 +610,7 @@ def __init__(self, region: QRect, parent: QWidget | None = None) -> None:
         row.setSpacing(6)
         row.addWidget(self._status)
         row.addWidget(self._audio)
+        row.addWidget(self._mic)
         row.addWidget(self._record_btn)
         row.addWidget(self._countdown_btn)
         row.addWidget(self._stop_btn)
@@ -499,6 +626,8 @@ def __init__(self, region: QRect, parent: QWidget | None = None) -> None:
         self._status.setText("Ready")
         self._status.setToolTip("Ready — move/resize frame, then record")
         self._update_idle_controls(visible=True)
+        self._update_mic_visibility()
+        self._refresh_snap_guides()
         self._apply_geometry()
 ```
 
@@ -519,10 +648,31 @@ Stop a pending countdown without starting capture.
 def cancel_countdown(self) -> None:
         self._countdown_timer.stop()
         self._countdown_left = 0
+        self._countdown_overlay.hide_countdown()
         if not self._recording:
             self._update_idle_controls(visible=True)
             self._status.setText("Ready")
             self._status.setToolTip("Ready — move/resize frame, then record")
+```
+
+</details>
+
+### ⚙️ Method `closeEvent`
+
+```python
+def closeEvent(self, event: QCloseEvent) -> None
+```
+
+Hide the countdown overlay with the frame.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
+        self._countdown_overlay.hide_countdown()
+        self._countdown_overlay.close()
+        super().closeEvent(event)
 ```
 
 </details>
@@ -533,7 +683,7 @@ def cancel_countdown(self) -> None:
 def mouseMoveEvent(self, event: QMouseEvent) -> None
 ```
 
-Drag move/resize the region, or update the resize cursor.
+Drag move/resize the region (with window edge snap), or update cursor.
 
 <details>
 <summary>Code:</summary>
@@ -555,7 +705,16 @@ def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
                 moved = self._press_region.translated(delta)
                 moved.moveLeft(max(bounds.left(), min(moved.left(), bounds.right() - moved.width() + 1)))
                 moved.moveTop(max(bounds.top(), min(moved.top(), bounds.bottom() - moved.height() + 1)))
-                self._set_region(moved)
+                snapped = snap_rect_to_edges(
+                    moved,
+                    "move",
+                    self._snap_x_edges,
+                    self._snap_y_edges,
+                    threshold=_EDGE_SNAP_THRESHOLD,
+                    bounds=bounds,
+                    min_size=_MIN_REGION,
+                )
+                self._set_region(snapped)
             else:
                 new_rect = transform_selection_rect(
                     self._press_region,
@@ -565,7 +724,16 @@ def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
                     bounds=bounds,
                     min_size=_MIN_REGION,
                 )
-                self._set_region(new_rect)
+                snapped = snap_rect_to_edges(
+                    new_rect,
+                    self._drag_handle,
+                    self._snap_x_edges,
+                    self._snap_y_edges,
+                    threshold=_EDGE_SNAP_THRESHOLD,
+                    bounds=bounds,
+                    min_size=_MIN_REGION,
+                )
+                self._set_region(snapped)
             event.accept()
             return
         handle = hit_test_selection_handle(
@@ -615,6 +783,7 @@ def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         if handle is None:
             event.accept()
             return
+        self._refresh_snap_guides()
         self._drag_handle = handle
         self._press_pos = event.globalPosition().toPoint()
         self._press_region = QRect(self._region)
@@ -724,6 +893,8 @@ def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
         super().resizeEvent(event)
         self._layout_toolbar()
         self._update_mask()
+        if self._countdown_overlay.isVisible():
+            self._countdown_overlay.place_over(self._region)
 ```
 
 </details>
@@ -743,6 +914,7 @@ Update UI for recording vs idle.
 def set_recording(self, *, active: bool) -> None:
         self._recording = active
         self._locked = active
+        self._countdown_overlay.hide_countdown()
         self._update_idle_controls(visible=not active)
         self._stop_btn.setVisible(active)
         self._stop_btn.setEnabled(active)
@@ -795,6 +967,7 @@ def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
         super().showEvent(event)
         self._layout_toolbar()
         self._update_mask()
+        self._refresh_snap_guides()
 ```
 
 </details>

@@ -9,6 +9,7 @@ from harrix_swiss_knife.screen_record.config import (
     DEFAULT_SCREEN_RECORD_COUNTDOWN_SECONDS,
     get_screen_record_audio,
     get_screen_record_countdown_seconds,
+    get_screen_record_microphone_id,
 )
 from harrix_swiss_knife.screen_record.geometry import even_size
 from harrix_swiss_knife.screen_record.session import videos_folder
@@ -27,6 +28,8 @@ def test_screen_record_config_defaults() -> None:
     assert get_screen_record_audio({"apps": {"screen_record_audio": "nope"}}) == DEFAULT_SCREEN_RECORD_AUDIO
     assert get_screen_record_countdown_seconds({"apps": {"screen_record_countdown_seconds": 5}}) == 5
     assert get_screen_record_countdown_seconds({"apps": {"screen_record_countdown_seconds": 99}}) == 30
+    assert get_screen_record_microphone_id({}) == ""
+    assert get_screen_record_microphone_id({"apps": {"screen_record_microphone_id": "abc"}}) == "abc"
 
 
 def test_videos_folder(tmp_path: Path) -> None:
