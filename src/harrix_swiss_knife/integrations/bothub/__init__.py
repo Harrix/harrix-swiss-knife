@@ -54,6 +54,10 @@ from harrix_swiss_knife.integrations.bothub.text_rewrite import (
     get_text_rewrite_prompt_template,
     rewrite_text_sync,
 )
+from harrix_swiss_knife.integrations.bothub.text_translate import (
+    build_text_translate_prompt,
+    get_text_translate_prompt_template,
+)
 from harrix_swiss_knife.integrations.bothub.worker import BothubChatWorker
 
 __all__ = [
@@ -73,6 +77,7 @@ __all__ = [
     "build_text_fix_from_clipboard_prompt",
     "build_text_fix_prompt",
     "build_text_rewrite_prompt",
+    "build_text_translate_prompt",
     "build_transcription_prompt",
     "fix_text_sync",
     "get_active_provider",
@@ -85,6 +90,7 @@ __all__ = [
     "get_text_fix_from_clipboard_prompt_template",
     "get_text_fix_prompt_template",
     "get_text_rewrite_prompt_template",
+    "get_text_translate_prompt_template",
     "image_bytes_and_mime",
     "image_mime_from_suffix",
     "qimage_bytes_and_mime",

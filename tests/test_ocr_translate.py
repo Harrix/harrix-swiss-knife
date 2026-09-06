@@ -7,6 +7,7 @@ from __future__ import annotations
 from harrix_swiss_knife.actions.common.ocr_translate import (
     OcrTranslateResult,
     parse_ocr_translate_response,
+    text_needs_translation,
 )
 
 
@@ -58,3 +59,11 @@ def test_parse_ocr_translate_empty_json() -> None:
     )
     assert result.original == ""
     assert result.display_text == ""
+
+
+def test_text_needs_translation_for_local_language() -> None:
+    assert text_needs_translation("Hello world from the screenshot", "ru") is True
+    assert text_needs_translation("Привет, это распознанный текст", "ru") is False
+    assert text_needs_translation("Hello world from the screenshot", "en") is False
+    assert text_needs_translation("_No text recognized._", "ru") is False
+    assert text_needs_translation("OK", "ru") is False

@@ -12,6 +12,7 @@ from harrix_swiss_knife.actions.common.ocr_markdown import (
     ocr_text_to_markdown,
     suggest_markdown_filename,
 )
+from harrix_swiss_knife.actions.common.ocr_translate import present_recognized_text
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.integrations.bothub import (
     BothubRequestState,
@@ -58,8 +59,9 @@ class OnRecognizeTextWithAI(ActionBase):
         self.text_to_clipboard(markdown)
         self.add_line("📋 Markdown copied to clipboard")
         default_name = suggest_markdown_filename(self._image_paths)
-        self.show_result(
-            display_text=markdown,
+        present_recognized_text(
+            self,
+            markdown,
             save_button=True,
             save_default_path=str(self._markdown_base / default_name),
         )

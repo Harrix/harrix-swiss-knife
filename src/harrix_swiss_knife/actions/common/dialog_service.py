@@ -67,6 +67,7 @@ from harrix_swiss_knife.actions.common.text_result_dialog import (
     RERUN_BUTTON_LABEL,
     RERUN_DIALOG_CODE,
     REWRITE_DIALOG_CODE,
+    TRANSLATE_DIALOG_CODE,
     add_copy_button,
     add_ok_button,
     add_open_folder_button,
@@ -1579,6 +1580,7 @@ class ActionDialogService:
         rerun_button_label: str = RERUN_BUTTON_LABEL,
         rerun_button_emoji: str = RERUN_BUTTON_EMOJI,
         rewrite_button: bool = False,
+        translate_button: bool = False,
         remove_paragraphs_button: bool = False,
         save_button: bool = False,
         save_default_path: str | None = None,
@@ -1588,7 +1590,7 @@ class ActionDialogService:
         ok_button_before_actions: bool = False,
     ) -> str | tuple[str | None, int] | None:
         """Show read-only multi-line text dialog and return text if accepted."""
-        has_action_buttons = rerun_button or rewrite_button or remove_paragraphs_button
+        has_action_buttons = rerun_button or rewrite_button or translate_button or remove_paragraphs_button
         folder_to_open = Path(open_folder_path) if open_folder_path is not None else None
         current_text = text
 
@@ -1671,6 +1673,7 @@ class ActionDialogService:
                     rerun_button_label=rerun_button_label,
                     rerun_button_emoji=rerun_button_emoji,
                     rewrite_button=rewrite_button,
+                    translate_button=translate_button,
                     remove_paragraphs_button=remove_paragraphs_button,
                     on_remove_paragraphs=on_remove_paragraphs if remove_paragraphs_button else None,
                     remove_paragraphs_source_text=current_text,
@@ -1695,7 +1698,7 @@ class ActionDialogService:
 
         result, _dialog = self._exec_standard_dialog(title, _build, stretch_row=0, adaptive=False)
         if has_action_buttons:
-            if result in (RERUN_DIALOG_CODE, REWRITE_DIALOG_CODE):
+            if result in (RERUN_DIALOG_CODE, REWRITE_DIALOG_CODE, TRANSLATE_DIALOG_CODE):
                 return current_text, result
             return (current_text if result == QDialog.DialogCode.Accepted else None, result)
         return current_text if result == QDialog.DialogCode.Accepted else None

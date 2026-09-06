@@ -438,6 +438,7 @@
     "text_fix_ru": "snippet:config/prompts/text-fix-ru.md",
     "text_fix_ru_clipboard": "snippet:config/prompts/text-fix-ru-clipboard.md",
     "text_rewrite_ru": "snippet:config/prompts/text-rewrite-ru.md",
+    "text_translate_to_local": "snippet:config/prompts/text-translate-to-local.md",
     "image_ocr_to_markdown": "snippet:config/prompts/image-ocr-to-markdown.md",
     "image_ocr_translate": "snippet:config/prompts/image-ocr-translate.md",
     "markdown_template_fields_from_source": "snippet:config/prompts/markdown-template-fields-from-source.md",

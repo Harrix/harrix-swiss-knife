@@ -9,6 +9,11 @@ from PySide6.QtWidgets import QMessageBox, QWidget
 
 from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.actions.common.base import ActionBase
+from harrix_swiss_knife.actions.common.ocr_translate import (
+    local_language_code_from_config,
+    start_text_translation,
+    text_needs_translation,
+)
 from harrix_swiss_knife.actions.common.text_result_dialog import resolve_text_result_dialog_action
 from harrix_swiss_knife.actions.text.rewrite_text_with_ai import OnRewriteTextWithAI
 from harrix_swiss_knife.actions.text.speech_to_text_pending import SpeechToTextPendingStore
@@ -148,6 +153,10 @@ class OnSpeechToTextWithAI(ActionBase):
                 rerun_button_label="Record new",
                 rerun_button_emoji="🎙️",
                 rewrite_button=True,
+                translate_button=text_needs_translation(
+                    current,
+                    local_language_code_from_config(self.config),
+                ),
                 remove_paragraphs_button=True,
             )
             if not isinstance(dialog_result, tuple):
@@ -162,6 +171,7 @@ class OnSpeechToTextWithAI(ActionBase):
                 on_rewrite=lambda current=current: OnRewriteTextWithAI(output_bus=self._output_bus)(
                     initial_text=current
                 ),
+                on_translate=lambda current=current: start_text_translation(self, current),
             )
 
         def on_transcription_success(transcribed_text: str) -> None:

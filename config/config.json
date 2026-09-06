@@ -415,6 +415,7 @@
     "text_fix_ru": "snippet:config/prompts/text-fix-ru.md",
     "text_fix_ru_clipboard": "snippet:config/prompts/text-fix-ru-clipboard.md",
     "text_rewrite_ru": "snippet:config/prompts/text-rewrite-ru.md",
+    "text_translate_to_local": "snippet:config/prompts/text-translate-to-local.md",
     "vector_icons_add_image": "snippet:config/prompts/vector-icons-add-image.md",
     "vector_icons_keywords": "snippet:config/prompts/vector-icons-keywords.md"
   },

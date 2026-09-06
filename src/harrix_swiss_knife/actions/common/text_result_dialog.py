@@ -14,6 +14,7 @@ if TYPE_CHECKING:
 
 RERUN_DIALOG_CODE = 2
 REWRITE_DIALOG_CODE = 3
+TRANSLATE_DIALOG_CODE = 4
 
 RERUN_BUTTON_LABEL = "Run again"
 RERUN_BUTTON_EMOJI = "🔄"
@@ -23,6 +24,8 @@ REWRITE_AGAIN_BUTTON_LABEL = "Rewrite again"
 REWRITE_AGAIN_BUTTON_EMOJI = "✍️"
 REWRITE_BUTTON_LABEL = "Rewrite with AI…"
 REWRITE_BUTTON_EMOJI = "✍️"
+TRANSLATE_BUTTON_LABEL = "Translate"
+TRANSLATE_BUTTON_EMOJI = "🌐"
 REMOVE_PARAGRAPHS_BUTTON_LABEL = "To single line"
 REMOVE_PARAGRAPHS_BUTTON_EMOJI = "↪️"
 COPY_BUTTON_LABEL = "Copy to Clipboard"
@@ -87,11 +90,12 @@ def append_result_action_buttons(
     rerun_button_label: str = RERUN_BUTTON_LABEL,
     rerun_button_emoji: str = RERUN_BUTTON_EMOJI,
     rewrite_button: bool = False,
+    translate_button: bool = False,
     remove_paragraphs_button: bool = False,
     on_remove_paragraphs: Callable[[], None] | None = None,
     remove_paragraphs_source_text: str = "",
 ) -> QPushButton | None:
-    """Add optional rerun/rewrite buttons and in-place remove-paragraphs action.
+    """Add optional rerun/rewrite/translate buttons and in-place remove-paragraphs action.
 
     The "To single line" button is created only when requested and the source text
     has more than one line after trimming.
@@ -106,6 +110,12 @@ def append_result_action_buttons(
         rewrite_btn = make_emoji_push_button(REWRITE_BUTTON_LABEL, REWRITE_BUTTON_EMOJI)
         rewrite_btn.clicked.connect(lambda: dialog.done(REWRITE_DIALOG_CODE))
         button_layout.addWidget(rewrite_btn)
+
+    if translate_button:
+        translate_btn = make_emoji_push_button(TRANSLATE_BUTTON_LABEL, TRANSLATE_BUTTON_EMOJI)
+        translate_btn.setToolTip("Translate into the local language from config")
+        translate_btn.clicked.connect(lambda: dialog.done(TRANSLATE_DIALOG_CODE))
+        button_layout.addWidget(translate_btn)
 
     if not remove_paragraphs_button or on_remove_paragraphs is None:
         return None
@@ -141,6 +151,7 @@ def resolve_text_result_dialog_action(
     *,
     on_rerun: Callable[[], None] | None = None,
     on_rewrite: Callable[[], None] | None = None,
+    on_translate: Callable[[], None] | None = None,
 ) -> str | None:
     """Handle custom dialog codes. Always returns `None` after optional callbacks."""
     if action_code == RERUN_DIALOG_CODE:
@@ -150,5 +161,9 @@ def resolve_text_result_dialog_action(
     if action_code == REWRITE_DIALOG_CODE:
         if on_rewrite is not None:
             on_rewrite()
+        return None
+    if action_code == TRANSLATE_DIALOG_CODE:
+        if on_translate is not None:
+            on_translate()
         return None
     return None
