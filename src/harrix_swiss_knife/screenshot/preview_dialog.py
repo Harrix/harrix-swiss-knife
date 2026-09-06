@@ -365,8 +365,13 @@ class ScreenshotPreviewWindow(QMainWindow):
     def _on_crop_mode_changed(self, active: bool) -> None:  # noqa: FBT001
         self._set_crop_chrome_visible(active=active)
         if active:
-            self._status.setText("Crop: drag a region · snap to edges · Enter OK · Esc Cancel")
-            self._crop_ok_button.setEnabled(False)
+            tab = self._current_tab()
+            pending = tab is not None and tab.canvas.crop_pending
+            self._crop_ok_button.setEnabled(pending)
+            if pending:
+                self._status.setText("Crop: move/resize the frame · Enter to apply · Esc to cancel")
+            else:
+                self._status.setText("Crop: drag a region · snap to edges · Enter OK · Esc Cancel")
         else:
             self._status.setText(_STATUS_HINT)
             self._refit_tools_host()

@@ -7,7 +7,7 @@ from datetime import date
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import QPointF, QStandardPaths, Qt
+from PySide6.QtCore import QPointF, QRect, QStandardPaths, Qt
 from PySide6.QtGui import QImage, QKeyEvent, QMouseEvent
 from PySide6.QtWidgets import QApplication, QPushButton, QTabWidget
 
@@ -73,6 +73,44 @@ def test_next_dated_image_path_skips_existing_indices(tmp_path: Path) -> None:
     (tmp_path / "2026-08-28_99.png").write_bytes(b"x")
     path = next_dated_image_path(tmp_path, today=date(2026, 8, 29))
     assert path.name == "2026-08-29_03.png"
+
+
+def test_crop_tool_selects_full_image_by_default(qapp: QApplication) -> None:  # noqa: ARG001
+    image = QImage(40, 20, QImage.Format.Format_RGB32)
+    image.fill(Qt.GlobalColor.red)
+    canvas = ScreenshotPreviewCanvas(image)
+    canvas.resize(200, 100)
+    document = AnnotationDocument(image)
+    canvas.set_document(document)
+    canvas.set_tool(AnnotationTool.CROP)
+    assert canvas.crop_mode
+    assert canvas.crop_pending
+    assert canvas._crop_rect == QRect(0, 0, 40, 20)
+    canvas.close()
+
+
+def test_confirm_full_image_crop_keeps_annotations(qapp: QApplication) -> None:  # noqa: ARG001
+    image = QImage(40, 20, QImage.Format.Format_RGB32)
+    image.fill(Qt.GlobalColor.white)
+    canvas = ScreenshotPreviewCanvas(image)
+    canvas.resize(200, 100)
+    document = AnnotationDocument(image)
+    document.begin_draft(
+        Annotation(
+            tool=AnnotationTool.LINE,
+            points=[QPointF(2, 2), QPointF(10, 10)],
+            style=AnnotationStyle(),
+        )
+    )
+    assert document.commit_draft()
+    canvas.set_document(document)
+    canvas.set_tool(AnnotationTool.CROP)
+    assert canvas.confirm_crop()
+    assert not canvas.crop_mode
+    assert document.base_image.width() == 40
+    assert document.base_image.height() == 20
+    assert len(document.annotations) == 1
+    canvas.close()
 
 
 def test_preview_canvas_zoom_changes_factor(qapp: QApplication) -> None:  # noqa: ARG001

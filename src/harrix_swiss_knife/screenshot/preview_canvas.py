@@ -143,12 +143,16 @@ class ScreenshotPreviewCanvas(QWidget):
         if document is None or rect is None or rect.width() < _MIN_CROP or rect.height() < _MIN_CROP:
             self.cancel_crop()
             return False
-        applied = document.apply_crop(QRectF(rect))
+        identity = rect == self._image_bounds()
+        applied = False if identity else document.apply_crop(QRectF(rect))
         self._clear_crop_state()
         self._tool = AnnotationTool.NONE
         self.setCursor(Qt.CursorShape.ArrowCursor)
         self.crop_mode_changed.emit(False)  # noqa: FBT003
         self.crop_pending_changed.emit(False)  # noqa: FBT003
+        if identity:
+            self.update()
+            return True
         if not applied:
             self.update()
             return False
@@ -407,7 +411,13 @@ class ScreenshotPreviewCanvas(QWidget):
             self._document.cancel_draft()
         if tool == AnnotationTool.CROP:
             self._rebuild_snap_edges()
-            self.setCursor(Qt.CursorShape.CrossCursor)
+            if previous_crop:
+                if self._crop_pending:
+                    self.setCursor(Qt.CursorShape.SizeAllCursor)
+                else:
+                    self.setCursor(Qt.CursorShape.CrossCursor)
+            else:
+                self._select_full_image_crop()
             self.crop_mode_changed.emit(True)  # noqa: FBT003
         else:
             if previous_crop:
@@ -549,6 +559,20 @@ class ScreenshotPreviewCanvas(QWidget):
         self._crop_edit_handle = None
         self._crop_press_pos = None
         self._crop_press_rect = None
+
+    def _select_full_image_crop(self) -> None:
+        bounds = self._image_bounds()
+        if not bounds.isValid() or bounds.isEmpty() or bounds.width() < _MIN_CROP or bounds.height() < _MIN_CROP:
+            self.setCursor(Qt.CursorShape.CrossCursor)
+            return
+        self._crop_rect = QRect(bounds)
+        self._crop_pending = True
+        self._crop_origin = None
+        self._crop_current = None
+        self._crop_dragging = False
+        self._crop_edit_handle = None
+        self.setCursor(Qt.CursorShape.SizeAllCursor)
+        self.crop_pending_changed.emit(True)  # noqa: FBT003
 
     def _clear_edit_state(self) -> None:
         self._edit_handle = None
