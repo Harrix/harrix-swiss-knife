@@ -75,6 +75,9 @@ def main() -> None:
             old.unlink()
         for svg in svgs:
             shutil.copy2(svg, dest / svg.name)
+        optimizer = h.svg_opt.SvgOptimizer()
+        for svg in dest.glob("*.svg"):
+            optimizer.optimize_file(svg)
         license_path = dest / "LICENSE.txt"
         try:
             urllib.request.urlretrieve(_LICENSE_URL, license_path)
@@ -83,7 +86,7 @@ def main() -> None:
             if package_license.is_file():
                 shutil.copy2(package_license, license_path)
         (dest / "VERSION.txt").write_text(f"{version}\n", encoding="utf-8")
-    print(f"Wrote {len(svgs)} SVGs to {dest} (lucide-static {version})")
+    print(f"Wrote and optimized {len(svgs)} SVGs to {dest} (lucide-static {version})")
 ```
 
 </details>

@@ -13,7 +13,8 @@
     "initial_count": 1000,
     "load_more_count": 500,
     "local_language": "ru",
-    "screen_record_countdown_seconds": 3
+    "screen_record_countdown_seconds": 3,
+    "screen_record_microphone_id": "7b302e302e312e30303030303030307d2e7b38663934393164382d626637622d343962622d623831662d6566333932626130346364377d"
   },
   "beginning_of_article": "snippet:config/beginning-of-article.md",
   "beginning_of_md": "snippet:config/beginning-of-md.md",

@@ -3,7 +3,7 @@
 Stroke SVG icons from [Lucide](https://lucide.dev/) (ISC). UI chrome loads them by
 kebab-case ID: `create_lucide_icon("save")`.
 
-Refresh the set:
+Refresh the set (downloads lucide-static, then runs `harrix_pylib` SvgOptimizer):
 
 ```text
 python src/harrix_swiss_knife/assets/sync_lucide_icons.py

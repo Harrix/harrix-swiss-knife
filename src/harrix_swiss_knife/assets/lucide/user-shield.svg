@@ -1,17 +1,1 @@
-<!-- @license lucide-static v1.41.0 - ISC -->
-<svg
-  class="lucide lucide-user-shield"
-  xmlns="http://www.w3.org/2000/svg"
-  width="24"
-  height="24"
-  viewBox="0 0 24 24"
-  fill="none"
-  stroke="currentColor"
-  stroke-width="2"
-  stroke-linecap="round"
-  stroke-linejoin="round"
->
-  <path d="M10 15H6a4 4 0 0 0-4 4v2" />
-  <path d="M22 17.5c0 2.499-1.75 3.749-3.83 4.474a.5.5 0 0 1-.335-.005c-2.085-.72-3.835-1.97-3.835-4.47V14a.5.5 0 0 1 .5-.499c1 0 2.25-.6 3.12-1.36a.6.6 0 0 1 .76-.001c.875.765 2.12 1.36 3.12 1.36a.5.5 0 0 1 .5.5z" />
-  <circle cx="9" cy="7" r="4" />
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" class="lucide lucide-user-shield" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 15h-4a4 4 0 0 0 -4 4v2"/><path d="M22 17.5c0 2.499 -1.75 3.749 -3.83 4.474a0.5 0.5 0 0 1 -0.335 -0.005c-2.085 -0.72 -3.835 -1.97 -3.835 -4.47v-3.499a0.5 0.5 0 0 1 0.5 -0.499c1 0 2.25 -0.6 3.12 -1.36a0.6 0.6 0 0 1 0.76 -0.001c0.875 0.765 2.12 1.36 3.12 1.36a0.5 0.5 0 0 1 0.5 0.5z"/><path d="M5 7A4 4 0 1 0 13 7A4 4 0 1 0 5 7z"/></svg>

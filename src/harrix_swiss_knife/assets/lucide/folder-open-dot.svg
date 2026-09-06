@@ -1,16 +1,1 @@
-<!-- @license lucide-static v1.41.0 - ISC -->
-<svg
-  class="lucide lucide-folder-open-dot"
-  xmlns="http://www.w3.org/2000/svg"
-  width="24"
-  height="24"
-  viewBox="0 0 24 24"
-  fill="none"
-  stroke="currentColor"
-  stroke-width="2"
-  stroke-linecap="round"
-  stroke-linejoin="round"
->
-  <path d="m6 14 1.45-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.55 6a2 2 0 0 1-1.94 1.5H4a2 2 0 0 1-2-2V5c0-1.1.9-2 2-2h3.93a2 2 0 0 1 1.66.9l.82 1.2a2 2 0 0 0 1.66.9H18a2 2 0 0 1 2 2v2" />
-  <circle cx="14" cy="15" r="1" />
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" class="lucide lucide-folder-open-dot" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 14l1.45 -2.9A2 2 0 0 1 9.24 10h10.76a2 2 0 0 1 1.94 2.5l-1.55 6a2 2 0 0 1 -1.94 1.5h-14.45a2 2 0 0 1 -2 -2v-13c0 -1.1 0.9 -2 2 -2h3.93a2 2 0 0 1 1.66 0.9l0.82 1.2a2 2 0 0 0 1.66 0.9h5.93a2 2 0 0 1 2 2v2"/><path d="M13 15A1 1 0 1 0 15 15A1 1 0 1 0 13 15z"/></svg>
