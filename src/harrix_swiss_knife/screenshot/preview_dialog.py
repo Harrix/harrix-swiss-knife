@@ -7,8 +7,8 @@ from tempfile import NamedTemporaryFile
 from typing import TYPE_CHECKING
 
 import harrix_pylib as h
-from PySide6.QtCore import QSize, QStandardPaths, Qt, QTimer
-from PySide6.QtGui import QCloseEvent, QColor, QIcon, QKeyEvent, QKeySequence, QPainter, QPixmap, QShortcut
+from PySide6.QtCore import QPointF, QSize, QStandardPaths, Qt, QTimer
+from PySide6.QtGui import QCloseEvent, QColor, QIcon, QKeyEvent, QKeySequence, QPainter, QPen, QPixmap, QShortcut
 from PySide6.QtWidgets import (
     QApplication,
     QButtonGroup,
@@ -51,7 +51,6 @@ from harrix_swiss_knife.screenshot.toolbar_style import (
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from PySide6.QtCore import QPointF
     from PySide6.QtGui import QImage, QResizeEvent
     from PySide6.QtWidgets import QPushButton
 
@@ -63,7 +62,7 @@ _MARKDOWN_AI_EMOJI = "🤖"
 _MARKDOWN_OCR_EMOJI = "🔤"
 _TRANSLATE_EMOJI = "🌐"
 _STATUS_HINT = (
-    "Tools: arrow / shapes / pen / text / crop · Click a shape to select · "
+    "Tools: arrow / shapes / pen / text / eyedropper / crop · Click a shape to select · "
     "Delete removes · Shift constrains · Undo · Ctrl+wheel zoom · Middle-drag pan · Ctrl+S save to images"
 )
 _VK_S = 0x53
@@ -81,6 +80,7 @@ _TOOL_BUTTONS: tuple[tuple[AnnotationTool, str, str], ...] = (
     (AnnotationTool.LINE, "—", "Line (Shift: 0° / 45°)"),
     (AnnotationTool.PEN, "✏️", "Pen"),
     (AnnotationTool.TEXT, "T", "Text"),
+    (AnnotationTool.EYEDROPPER, "💧", "Eyedropper — click a pixel to copy its color"),
     (AnnotationTool.CROP, "✂️", "Crop"),
 )
 
@@ -114,9 +114,13 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._tool_group = QButtonGroup(self)
         self._tool_group.setExclusive(True)
         icon_size = QSize(TOOLBAR_ICON_SIZE, TOOLBAR_ICON_SIZE)
+        eyedropper_button: QToolButton | None = None
         for tool, emoji, tip in _TOOL_BUTTONS:
             button = QToolButton(tools_host)
-            button.setIcon(create_emoji_icon(emoji, TOOLBAR_ICON_SIZE))
+            if tool == AnnotationTool.EYEDROPPER:
+                button.setIcon(_eyedropper_icon(TOOLBAR_ICON_SIZE))
+            else:
+                button.setIcon(create_emoji_icon(emoji, TOOLBAR_ICON_SIZE))
             button.setIconSize(icon_size)
             button.setToolTip(tip)
             button.setCheckable(True)
@@ -129,6 +133,9 @@ class ScreenshotPreviewWindow(QMainWindow):
             self._tool_group.addButton(button)
             self._tool_buttons[tool] = button
             button.clicked.connect(lambda _checked=False, t=tool: self._set_tool(t))
+            if tool == AnnotationTool.EYEDROPPER:
+                eyedropper_button = button
+                continue
             tools_layout.addWidget(button)
 
         undo_button = QToolButton(tools_host)
@@ -155,6 +162,8 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._rebuild_color_menu()
         self._update_color_button()
         tools_layout.addWidget(self._color_button)
+        if eyedropper_button is not None:
+            tools_layout.addWidget(eyedropper_button)
 
         self._tools_host = tools_host
         self._tools_layout = tools_layout
@@ -245,6 +254,8 @@ class ScreenshotPreviewWindow(QMainWindow):
         tab.canvas.document_changed.connect(self._on_document_changed)
         tab.canvas.crop_mode_changed.connect(self._on_crop_mode_changed)
         tab.canvas.crop_pending_changed.connect(self._on_crop_pending_changed)
+        tab.canvas.color_hovered.connect(self._on_color_hovered)
+        tab.canvas.color_picked.connect(self._on_color_picked)
         tab.canvas.text_requested.connect(self._on_text_requested)
         tab.canvas.set_style(color=self._annotation_color)
         index = self._tabs.addTab(tab, self._tab_label(None, self._tabs.count() + 1))
@@ -271,6 +282,10 @@ class ScreenshotPreviewWindow(QMainWindow):
                 self._cancel_crop()
                 event.accept()
                 return
+        if tab is not None and tab.canvas.tool == AnnotationTool.EYEDROPPER and event.key() == int(Qt.Key.Key_Escape):
+            self._set_tool(AnnotationTool.NONE)
+            event.accept()
+            return
         if (
             tab is not None
             and event.key() in {int(Qt.Key.Key_Delete), int(Qt.Key.Key_Backspace)}
@@ -380,6 +395,24 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._crop_ok_button.setEnabled(pending)
         if pending:
             self._status.setText("Crop: move/resize the frame · Enter to apply · Esc to cancel")
+
+    def _on_color_hovered(self, color: object) -> None:
+        tab = self._current_tab()
+        if tab is None or tab.canvas.tool != AnnotationTool.EYEDROPPER:
+            return
+        if not isinstance(color, QColor) or not color.isValid():
+            self._status.setText("Eyedropper: move over the screenshot · click to copy and use as stroke")
+            return
+        self._status.setText(f"{_format_pixel_color(color)} · click to copy and use as stroke")
+
+    def _on_color_picked(self, color: QColor) -> None:
+        if not color.isValid():
+            return
+        self._set_annotation_color(color)
+        clipboard = QApplication.clipboard()
+        if clipboard is not None:
+            clipboard.setText(color.name())
+        self._status.setText(f"Picked {_format_pixel_color(color)} · copied · set as stroke")
 
     def _on_document_changed(self) -> None:
         tab = self._current_tab()
@@ -625,6 +658,31 @@ def _color_swatch_icon(color: QColor, size: int) -> QIcon:
     painter.drawRoundedRect(margin, margin, size - margin * 2 - 1, size - margin * 2 - 1, 3, 3)
     painter.end()
     return QIcon(pixmap)
+
+
+def _eyedropper_icon(size: int) -> QIcon:
+    pixmap = QPixmap(size, size)
+    pixmap.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
+    ink = QColor(45, 45, 45)
+    stroke = max(1.6, size / 9)
+    pen = QPen(ink, stroke)
+    pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+    pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+    painter.setPen(pen)
+    painter.setBrush(ink)
+    painter.drawLine(QPointF(size * 0.30, size * 0.70), QPointF(size * 0.72, size * 0.28))
+    painter.drawEllipse(QPointF(size * 0.24, size * 0.76), size * 0.11, size * 0.11)
+    painter.setBrush(QColor(0, 174, 255))
+    painter.setPen(Qt.PenStyle.NoPen)
+    painter.drawEllipse(QPointF(size * 0.76, size * 0.24), size * 0.10, size * 0.10)
+    painter.end()
+    return QIcon(pixmap)
+
+
+def _format_pixel_color(color: QColor) -> str:
+    return f"{color.name()} · rgb({color.red()}, {color.green()}, {color.blue()})"
 
 
 def _is_ctrl_s(event: QKeyEvent) -> bool:

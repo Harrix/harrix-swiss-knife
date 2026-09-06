@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 from PySide6.QtCore import QPointF, QRect, QStandardPaths, Qt
-from PySide6.QtGui import QImage, QKeyEvent, QMouseEvent
+from PySide6.QtGui import QColor, QImage, QKeyEvent, QMouseEvent
 from PySide6.QtWidgets import QApplication, QPushButton, QTabWidget
 
 from harrix_swiss_knife.apps.common.qt_main_window import compute_app_window_geometry
@@ -111,6 +111,49 @@ def test_confirm_full_image_crop_keeps_annotations(qapp: QApplication) -> None: 
     assert document.base_image.height() == 20
     assert len(document.annotations) == 1
     canvas.close()
+
+
+def _widget_pos_for_image_pixel(canvas: ScreenshotPreviewCanvas, x: float, y: float) -> QPointF:
+    rect = canvas._image_rect()
+    width, height = canvas._source_size()
+    return QPointF(
+        rect.left() + (x + 0.5) / width * rect.width(),
+        rect.top() + (y + 0.5) / height * rect.height(),
+    )
+
+
+def test_eyedropper_samples_visible_pixel(qapp: QApplication) -> None:  # noqa: ARG001
+    image = QImage(20, 10, QImage.Format.Format_RGB32)
+    image.fill(QColor("#112233"))
+    image.setPixelColor(4, 3, QColor("#ff8800"))
+    canvas = ScreenshotPreviewCanvas(image)
+    canvas.resize(200, 100)
+    document = AnnotationDocument(image)
+    canvas.set_document(document)
+    canvas.set_tool(AnnotationTool.EYEDROPPER)
+    qapp.processEvents()
+    color = canvas.sample_color_at(_widget_pos_for_image_pixel(canvas, 4, 3))
+    assert color is not None
+    assert color.name() == "#ff8800"
+    assert canvas.sample_color_at(QPointF(-20, -20)) is None
+    canvas.close()
+
+
+def test_preview_window_eyedropper_sets_stroke_color(
+    qapp: QApplication,  # noqa: ARG001
+) -> None:
+    image = QImage(20, 10, QImage.Format.Format_RGB32)
+    image.fill(QColor("#112233"))
+    image.setPixelColor(4, 3, QColor("#aabbcc"))
+    window = show_screenshot_preview(image)
+    window._set_tool(AnnotationTool.EYEDROPPER)
+    tab = window._current_tab()
+    assert tab is not None
+    qapp.processEvents()
+    _left_click(tab.canvas, _widget_pos_for_image_pixel(tab.canvas, 4, 3))
+    assert window._annotation_color.name() == "#aabbcc"
+    assert tab.canvas._style.color.name() == "#aabbcc"
+    window.close()
 
 
 def test_preview_canvas_zoom_changes_factor(qapp: QApplication) -> None:  # noqa: ARG001

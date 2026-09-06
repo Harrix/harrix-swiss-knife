@@ -189,6 +189,7 @@ class AnnotationTool(Enum):
     PEN = "pen"
     TEXT = "text"
     CROP = "crop"
+    EYEDROPPER = "eyedropper"
 
 
 @dataclass
