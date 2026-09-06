@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 
 from harrix_swiss_knife.apps.common.qt_database_manager_base import QtSqliteDatabaseManagerBase
 from harrix_swiss_knife.apps.snippets.constants import DEFAULT_SORT_MODE, SORT_MODES, SortMode, ZoneName
+from harrix_swiss_knife.apps.snippets.parse import item_values_equal, normalize_item_value
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -29,8 +30,8 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             "VALUES (:zone, :value, :hint, :created_at, NULL, :sort_index)",
             {
                 "zone": zone,
-                "value": value,
-                "hint": hint,
+                "value": normalize_item_value(zone, value),
+                "hint": hint.strip(),
                 "created_at": created_at,
                 "sort_index": sort_index,
             },
@@ -69,6 +70,17 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         mode: SortMode = mode_raw if mode_raw in SORT_MODES else DEFAULT_SORT_MODE
         return ZoneSort(mode=mode, descending=bool(int(rows[0][1] or 0)))
 
+    def has_item_value(self, zone: str, value: str, *, exclude_id: int | None = None) -> bool:
+        """Return whether `zone` already stores `value` (ignoring `exclude_id`)."""
+        if not normalize_item_value(zone, value):
+            return False
+        for item in self.list_items(zone):
+            if exclude_id is not None and item.item_id == exclude_id:
+                continue
+            if item_values_equal(zone, item.value, value):
+                return True
+        return False
+
     def list_items(self, zone: str) -> list[SnippetItem]:
         """Return all items in `zone`."""
         rows = self.get_rows(
@@ -104,9 +116,13 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
     def update_item(self, item_id: int, value: str, hint: str) -> bool:
         """Update value and hint for one item."""
+        rows = self.get_rows("SELECT zone FROM items WHERE _id = :id", {"id": item_id})
+        if not rows:
+            return False
+        zone = str(rows[0][0])
         return self.execute_simple_query(
             "UPDATE items SET value = :value, hint = :hint WHERE _id = :id",
-            {"value": value, "hint": hint, "id": item_id},
+            {"value": normalize_item_value(zone, value), "hint": hint.strip(), "id": item_id},
         )
 
     def _insert_zone_items(self, zone: str, items: Sequence[tuple[str, str]]) -> None:

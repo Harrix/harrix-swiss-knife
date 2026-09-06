@@ -20,6 +20,29 @@ def display_text(value: str, hint: str, zone: str) -> str:
     return value
 
 
+def filter_new_snippet_items(
+    zone: str,
+    items: Sequence[tuple[str, str]],
+    existing_values: Sequence[str],
+) -> tuple[list[tuple[str, str]], list[str]]:
+    """Return `(new_items, duplicate_values)`, skipping empties and repeats."""
+    unique: list[tuple[str, str]] = []
+    duplicates: list[str] = []
+    seen = [normalize_item_value(zone, value) for value in existing_values]
+    seen = [value for value in seen if value]
+    for value, hint in items:
+        normalized = normalize_item_value(zone, value)
+        if not normalized:
+            continue
+        if any(item_values_equal(zone, normalized, previous) for previous in seen):
+            if not any(item_values_equal(zone, normalized, previous) for previous in duplicates):
+                duplicates.append(normalized)
+            continue
+        seen.append(normalized)
+        unique.append((normalized, hint.strip()))
+    return unique, duplicates
+
+
 def hint_tooltip(hint: str, fallback: str = "") -> str:
     """Return hover text without wrapping square brackets."""
     text = strip_wrapping_brackets(hint)
@@ -31,6 +54,26 @@ def item_matches_search(value: str, hint: str, query: str) -> bool:
     if command_matches_search(value, query):
         return True
     return bool(hint) and command_matches_search(hint, query)
+
+
+def item_values_equal(zone: str, left: str, right: str) -> bool:
+    """Return whether two snippet values represent the same item in `zone`."""
+    normalized_left = normalize_item_value(zone, left)
+    normalized_right = normalize_item_value(zone, right)
+    if zone == ZONE_COLOR:
+        return normalized_left.casefold() == normalized_right.casefold()
+    return normalized_left == normalized_right
+
+
+def normalize_item_value(zone: str, value: str) -> str:
+    """Strip wrapping noise so existence checks compare canonical values."""
+    text = value.strip()
+    if zone == ZONE_COLOR:
+        text = strip_wrapping_brackets(text)
+        if text.startswith("#") and len(text) > 1:
+            return f"#{text[1:].casefold()}"
+        return text.casefold()
+    return text
 
 
 def parse_bulk_lines(text: str, zone: str) -> list[tuple[str, str]]:

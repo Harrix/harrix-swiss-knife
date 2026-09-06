@@ -1,26 +1,26 @@
-"""One snippets zone: sort buttons and item list."""
+"""One snippets zone: titled list with a context menu for add, edit, and sort."""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QEvent, QModelIndex, QObject, QPersistentModelIndex, QPoint, QRect, QSize, Qt, Signal
-from PySide6.QtGui import QColor, QIcon, QKeyEvent, QPainter, QPalette, QPen
+from PySide6.QtGui import QActionGroup, QColor, QIcon, QKeyEvent, QPainter, QPalette, QPen
 from PySide6.QtWidgets import (
     QHBoxLayout,
+    QLabel,
     QListWidget,
     QListWidgetItem,
     QMenu,
-    QPushButton,
     QStyle,
     QStyledItemDelegate,
     QStyleOptionViewItem,
-    QToolButton,
     QVBoxLayout,
     QWidget,
 )
 
 from harrix_swiss_knife.apps.snippets.constants import (
+    DEFAULT_SORT_MODE,
     SORT_ADDED,
     SORT_ALPHA,
     SORT_USED,
@@ -39,6 +39,8 @@ from harrix_swiss_knife.qt_app_font import apply_mono_font
 from harrix_swiss_knife.qt_emoji_icon import add_emoji_action, create_emoji_icon
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from harrix_swiss_knife.apps.snippets.database_manager import SnippetItem, ZoneSort
 
 _ITEM_ROLE = Qt.ItemDataRole.UserRole
@@ -229,7 +231,6 @@ class ZonePanel(QWidget):
         *,
         zone: str,
         title: str,
-        show_add: bool = False,
     ) -> None:
         """Build the zone header and list.
 
@@ -238,13 +239,13 @@ class ZonePanel(QWidget):
         - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
         - `zone` (`str`): Zone identifier.
         - `title` (`str`): Header label.
-        - `show_add` (`bool`): Show the add button. Defaults to `False`.
 
         """
         super().__init__(parent)
         self.zone = zone
         self._items: list[SnippetItem] = []
-        self._sort_buttons: dict[SortMode, QToolButton] = {}
+        self._sort_mode: SortMode = DEFAULT_SORT_MODE
+        self._sort_descending = False
         self._filter_query = ""
         self._input_match = ""
         self._remembered_id: int | None = None
@@ -280,32 +281,10 @@ class ZonePanel(QWidget):
 
         header = QHBoxLayout()
         header.setContentsMargins(0, 0, 0, 0)
-        if show_add:
-            add_button = QToolButton(self)
-            add_button.setIcon(create_emoji_icon("➕", 18))  # noqa: RUF001
-            add_button.setIconSize(QSize(18, 18))
-            add_button.setToolTip(title)
-            add_button.setAutoRaise(True)
-            add_button.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
-            add_button.clicked.connect(self.add_requested.emit)
-            header.addWidget(add_button)
-        else:
-            title_button = QPushButton(title)
-            title_button.setFlat(True)
-            title_button.setEnabled(False)
-            header.addWidget(title_button)
+        title_label = QLabel(title)
+        title_label.setEnabled(False)
+        header.addWidget(title_label)
         header.addStretch()
-        for mode, emoji, tooltip in _SORT_BUTTONS:
-            button = QToolButton(self)
-            button.setIcon(create_emoji_icon(emoji, 18))
-            button.setIconSize(QSize(18, 18))
-            button.setToolTip(tooltip)
-            button.setAutoRaise(True)
-            button.setCheckable(True)
-            button.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
-            button.clicked.connect(lambda _checked=False, sort_mode=mode: self.sort_requested.emit(sort_mode))
-            self._sort_buttons[mode] = button
-            header.addWidget(button)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -459,14 +438,9 @@ class ZonePanel(QWidget):
         self._apply_filter()
 
     def set_sort_state(self, zone_sort: ZoneSort) -> None:
-        """Mark the active sort button."""
-        for mode, button in self._sort_buttons.items():
-            button.setChecked(mode == zone_sort.mode)
-            tooltip = next(tip for sort_mode, _emoji, tip in _SORT_BUTTONS if sort_mode == mode)
-            if mode == zone_sort.mode and zone_sort.descending:
-                button.setToolTip(f"{tooltip} (reversed)")
-            else:
-                button.setToolTip(tooltip)
+        """Remember the active sort so the context menu can mark it."""
+        self._sort_mode = zone_sort.mode
+        self._sort_descending = zone_sort.descending
 
     def visible_rows(self) -> list[int]:
         """Return indexes of items that pass the current filter."""
@@ -492,6 +466,28 @@ class ZonePanel(QWidget):
         if current is not None and current.isHidden():
             self._clear_list_current()
 
+    def _build_context_menu(self, snippet: SnippetItem | None) -> QMenu:
+        menu = QMenu(self)
+        add_emoji_action(menu, "Add item", "➕").triggered.connect(self.add_requested.emit)  # noqa: RUF001
+        add_emoji_action(menu, "Add many items", "📥").triggered.connect(self.add_many_requested.emit)
+        edit_action = add_emoji_action(menu, "Edit item", "✏️")
+        edit_action.setEnabled(snippet is not None)
+        if snippet is not None:
+            edit_action.triggered.connect(lambda _checked=False, item=snippet: self.edit_requested.emit(item))
+        add_emoji_action(menu, "Edit entire list", "📝").triggered.connect(self.edit_all_requested.emit)
+        delete_action = add_emoji_action(menu, "Delete item", "🗑️")
+        delete_action.setEnabled(snippet is not None)
+        if snippet is not None:
+            delete_action.triggered.connect(lambda _checked=False, item=snippet: self.delete_requested.emit(item))
+        menu.addSeparator()
+        add_sort_menu_actions(
+            menu,
+            mode=self._sort_mode,
+            descending=self._sort_descending,
+            on_sort=self.sort_requested.emit,
+        )
+        return menu
+
     def _clear_list_current(self) -> None:
         self._list.clearSelection()
         self._list.setCurrentRow(-1)
@@ -505,18 +501,7 @@ class ZonePanel(QWidget):
             global_pos = self.mapToGlobal(pos)
             snippet = self.item_at(self._list.mapFrom(self, pos))
 
-        menu = QMenu(self)
-        add_emoji_action(menu, "Add item", "➕").triggered.connect(self.add_requested.emit)  # noqa: RUF001
-        add_emoji_action(menu, "Add many items", "📥").triggered.connect(self.add_many_requested.emit)
-        edit_action = add_emoji_action(menu, "Edit item", "✏️")
-        edit_action.setEnabled(snippet is not None)
-        if snippet is not None:
-            edit_action.triggered.connect(lambda _checked=False, item=snippet: self.edit_requested.emit(item))
-        add_emoji_action(menu, "Edit entire list", "📝").triggered.connect(self.edit_all_requested.emit)
-        delete_action = add_emoji_action(menu, "Delete item", "🗑️")
-        delete_action.setEnabled(snippet is not None)
-        if snippet is not None:
-            delete_action.triggered.connect(lambda _checked=False, item=snippet: self.delete_requested.emit(item))
+        menu = self._build_context_menu(snippet)
         menu.popup(global_pos)
 
     def _on_current_item_changed(
@@ -551,6 +536,26 @@ class ZonePanel(QWidget):
                 self.select_row(row)
                 return True
         return False
+
+
+def add_sort_menu_actions(
+    menu: QMenu,
+    *,
+    mode: str | None,
+    descending: bool,
+    on_sort: Callable[[str], None],
+) -> None:
+    """Append checkable sort actions that call `on_sort` with the mode id."""
+    group = QActionGroup(menu)
+    group.setExclusive(True)
+    for sort_mode, emoji, tooltip in _SORT_BUTTONS:
+        action = add_emoji_action(menu, tooltip, emoji)
+        action.setCheckable(True)
+        action.setChecked(mode == sort_mode)
+        if mode == sort_mode and descending:
+            action.setText(f"{tooltip} (reversed)")
+        group.addAction(action)
+        action.triggered.connect(lambda _checked=False, chosen=sort_mode: on_sort(chosen))
 
 
 def chip_border_color(color: QColor) -> QColor:

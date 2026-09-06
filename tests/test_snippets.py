@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 from PySide6.QtCore import QEvent, QPointF, QRect, Qt
 from PySide6.QtGui import QColor, QKeyEvent, QMouseEvent, QPainter, QPalette, QPixmap
-from PySide6.QtWidgets import QApplication, QStyle, QStyleOptionViewItem, QToolButton
+from PySide6.QtWidgets import QApplication, QMenu, QStyle, QStyleOptionViewItem
 
 from harrix_swiss_knife.actions.apps.snippets import OnSnippets
 from harrix_swiss_knife.actions.common.quick_launcher_registry import iter_menu_structure
@@ -24,12 +24,14 @@ from harrix_swiss_knife.apps.snippets.constants import (
     ZONE_PHRASE,
     ZONE_SYMBOL,
 )
-from harrix_swiss_knife.apps.snippets.database_manager import DatabaseManager, SnippetItem
+from harrix_swiss_knife.apps.snippets.database_manager import DatabaseManager, SnippetItem, ZoneSort
 from harrix_swiss_knife.apps.snippets.dialog import SnippetsDialog
 from harrix_swiss_knife.apps.snippets.parse import (
     display_text,
+    filter_new_snippet_items,
     hint_tooltip,
     item_matches_search,
+    item_values_equal,
     parse_bulk_lines,
     parse_value_hint_line,
 )
@@ -49,6 +51,7 @@ from harrix_swiss_knife.apps.snippets.zone_panel import (
     HighlightItemDelegate,
     IconItemDelegate,
     ZonePanel,
+    add_sort_menu_actions,
     chip_border_color,
     color_hex_label,
 )
@@ -312,7 +315,7 @@ def test_list_highlight_is_flat_without_inverted_text(qapp: QApplication) -> Non
 
 def test_symbol_zone_items_are_icon_buttons_with_hint_tooltip(qapp: QApplication) -> None:
     assert qapp is not None
-    panel = ZonePanel(zone=ZONE_SYMBOL, title="Add symbol", show_add=True)
+    panel = ZonePanel(zone=ZONE_SYMBOL, title="Add symbol")
     panel.set_items(
         [
             SnippetItem(
@@ -338,7 +341,7 @@ def test_symbol_zone_items_are_icon_buttons_with_hint_tooltip(qapp: QApplication
 
 def test_color_zone_items_have_no_bracket_text(qapp: QApplication) -> None:
     assert qapp is not None
-    panel = ZonePanel(zone=ZONE_COLOR, title="Add color", show_add=True)
+    panel = ZonePanel(zone=ZONE_COLOR, title="Add color")
     panel.set_items(
         [
             SnippetItem(
@@ -397,22 +400,82 @@ def test_highlight_item_delegate_paints_text(qapp: QApplication) -> None:
     panel.close()
 
 
-def test_zone_panel_add_button_emits_add_requested(qapp: QApplication) -> None:
+def test_add_sort_menu_actions_marks_active_mode(qapp: QApplication) -> None:
     assert qapp is not None
-    panel = ZonePanel(zone=ZONE_EMOJI, title="Add emoji", show_add=True)
-    requested: list[bool] = []
-    panel.add_requested.connect(lambda: requested.append(True))
-    add_button = next(button for button in panel.findChildren(QToolButton) if button.toolTip() == "Add emoji")
-    assert add_button.text() == ""
-    assert add_button.autoRaise()
-    add_button.click()
-    assert requested == [True]
+    menu = QMenu()
+    chosen: list[str] = []
+    add_sort_menu_actions(menu, mode=SORT_ALPHA, descending=False, on_sort=chosen.append)
+    alpha = next(action for action in menu.actions() if action.text() == "Sort alphabetically")
+    assert alpha.isChecked()
+    alpha.trigger()
+    assert chosen == [SORT_ALPHA]
+    menu.deleteLater()
+
+
+def test_filter_new_snippet_items_skips_duplicates() -> None:
+    unique, duplicates = filter_new_snippet_items(
+        ZONE_PHRASE,
+        [("Hello", ""), ("Hello", ""), ("Hi", "")],
+        ["Hello"],
+    )
+    assert unique == [("Hi", "")]
+    assert duplicates == ["Hello"]
+
+
+def test_has_item_value_detects_existing_phrase_and_color(qapp: QApplication, tmp_path: Path) -> None:  # noqa: ARG001
+    db_path = tmp_path / "snippets.db"
+    assert QtSqliteDatabaseManagerBase.create_database_from_sql(str(db_path), str(_RECOVER_SQL))
+    manager = DatabaseManager(str(db_path))
+    try:
+        assert manager.add_item(ZONE_PHRASE, "Unique phrase") is not None
+        assert manager.has_item_value(ZONE_PHRASE, "Unique phrase")
+        assert not manager.has_item_value(ZONE_EMOJI, "Unique phrase")
+        color_id = manager.add_item(ZONE_COLOR, "#AABBCC", "Sky")
+        assert color_id is not None
+        assert manager.has_item_value(ZONE_COLOR, "#aabbcc")
+        assert not manager.has_item_value(ZONE_COLOR, "#aabbcc", exclude_id=color_id)
+    finally:
+        manager.close()
+
+
+def test_header_menu_includes_add_and_sort(qapp: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:
+    assert qapp is not None
+    monkeypatch.setattr(SnippetsDialog, "_init_database", lambda _dialog: None)
+    dialog = SnippetsDialog()
+    assert dialog._menu_button.toolTip() == "Menu"
+    dialog._fill_header_menu()
+    texts = [action.text() for action in dialog._header_menu.actions() if action.text()]
+    assert texts[:4] == ["Add phrase", "Add emoji", "Add symbol", "Add color"]
+    assert "Sort by last used" in texts
+    assert "Sort by date added" in texts
+    assert "Sort alphabetically" in texts
+    dialog.close()
+
+
+def test_item_values_equal_colors_ignore_case_and_brackets() -> None:
+    assert item_values_equal(ZONE_COLOR, "#AABBCC", "#aabbcc")
+    assert item_values_equal(ZONE_COLOR, "[#fff]", "#FFF")
+    assert not item_values_equal(ZONE_PHRASE, "Hello", "hello")
+
+
+def test_zone_panel_context_menu_includes_sort(qapp: QApplication) -> None:
+    assert qapp is not None
+    panel = ZonePanel(zone=ZONE_PHRASE, title="Phrases")
+    panel.set_sort_state(ZoneSort(mode=SORT_USED, descending=True))
+    menu = panel._build_context_menu(None)
+    texts = [action.text() for action in menu.actions() if action.text()]
+    assert "Add item" in texts
+    assert "Sort by last used (reversed)" in texts
+    assert "Sort alphabetically" in texts
+    used = next(action for action in menu.actions() if action.text().startswith("Sort by last used"))
+    assert used.isChecked()
+    menu.deleteLater()
     panel.close()
 
 
 def test_phrase_zone_clear_filter_empties_search(qapp: QApplication) -> None:
     assert qapp is not None
-    panel = ZonePanel(zone=ZONE_PHRASE, title="Add phrase", show_add=True)
+    panel = ZonePanel(zone=ZONE_PHRASE, title="Add phrase")
     panel.set_filter_query("old query")
     assert panel.filter_query() == "old query"
     panel.clear_filter()
@@ -428,7 +491,7 @@ def test_on_snippets_is_quick_launcher_action() -> None:
 
 def test_phrase_filter_arrows_select_visible(qapp: QApplication) -> None:
     assert qapp is not None
-    panel = ZonePanel(zone=ZONE_PHRASE, title="Add phrase", show_add=True)
+    panel = ZonePanel(zone=ZONE_PHRASE, title="Add phrase")
     panel.set_items([_item(1, "Alpha"), _item(2, "Alpine"), _item(3, "Beta")])
     panel.set_filter_query("Al")
     assert panel._list.item(2) is not None
@@ -534,7 +597,7 @@ def test_tab_clears_previous_zone_filter(
 
 def test_phrase_enter_without_selection_activates_first(qapp: QApplication) -> None:
     assert qapp is not None
-    panel = ZonePanel(zone=ZONE_PHRASE, title="Add phrase", show_add=True)
+    panel = ZonePanel(zone=ZONE_PHRASE, title="Add phrase")
     activated: list[SnippetItem] = []
     panel.item_activated.connect(activated.append)
     panel.set_items([_item(1, "Alpha"), _item(2, "Beta")])
@@ -545,7 +608,7 @@ def test_phrase_enter_without_selection_activates_first(qapp: QApplication) -> N
 
 def test_emoji_prepare_keyboard_focus_restores_remembered(qapp: QApplication) -> None:
     assert qapp is not None
-    panel = ZonePanel(zone=ZONE_EMOJI, title="Add emoji", show_add=True)
+    panel = ZonePanel(zone=ZONE_EMOJI, title="Add emoji")
     panel.set_items(
         [
             SnippetItem(
