@@ -38,6 +38,24 @@ def test_flow_layout_wraps_to_second_row(qapp: QApplication) -> None:
     host.close()
 
 
+def test_flow_layout_skips_hidden_widgets(qapp: QApplication) -> None:
+    host = QWidget()
+    layout = FlowLayout(host, margin=0, h_spacing=4, v_spacing=4)
+    visible = QPushButton("Visible")
+    visible.setFixedSize(80, 30)
+    hidden = QPushButton("Hidden")
+    hidden.setFixedSize(80, 30)
+    layout.addWidget(visible)
+    layout.addWidget(hidden)
+    hidden.hide()
+    host.resize(200, 80)
+    host.show()
+    qapp.processEvents()
+    # One visible 80px button — height stays a single row, not two.
+    assert layout.heightForWidth(200) == 30
+    host.close()
+
+
 def test_flow_layout_aligns_rows_to_the_right(qapp: QApplication) -> None:
     host = QWidget()
     layout = FlowLayout(host, h_spacing=4, v_spacing=4, alignment=Qt.AlignmentFlag.AlignRight)

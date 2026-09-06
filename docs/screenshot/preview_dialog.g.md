@@ -16,6 +16,7 @@ lang: en
   - [⚙️ Method `add_image`](#%EF%B8%8F-method-add_image)
   - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
   - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
+  - [⚙️ Method `resizeEvent`](#%EF%B8%8F-method-resizeevent)
 - [🔧 Function `show_screenshot_preview`](#-function-show_screenshot_preview)
 
 </details>
@@ -47,28 +48,27 @@ class ScreenshotPreviewWindow(QMainWindow):
         self.setCentralWidget(central)
         root = QVBoxLayout(central)
 
-        self._tabs = QTabWidget(central)
-        self._tabs.setTabsClosable(True)
-        self._tabs.setDocumentMode(True)
-        self._tabs.tabCloseRequested.connect(self._close_tab_at)
-        self._tabs.currentChanged.connect(self._on_tab_changed)
-        root.addWidget(self._tabs, stretch=1)
-
         tools_host = QWidget(central)
-        tools_layout = QHBoxLayout(tools_host)
-        tools_layout.setContentsMargins(0, 4, 0, 0)
-        tools_layout.setSpacing(4)
+        tools_layout = FlowLayout(
+            tools_host,
+            margin=0,
+            h_spacing=TOOLBAR_BUTTON_GAP,
+            v_spacing=TOOLBAR_BUTTON_GAP,
+            alignment=Qt.AlignmentFlag.AlignHCenter,
+        )
         self._tool_group = QButtonGroup(self)
         self._tool_group.setExclusive(True)
-        icon_size = QSize(_TOOL_ICON_SIZE, _TOOL_ICON_SIZE)
+        icon_size = QSize(TOOLBAR_ICON_SIZE, TOOLBAR_ICON_SIZE)
         for tool, emoji, tip in _TOOL_BUTTONS:
             button = QToolButton(tools_host)
-            button.setIcon(create_emoji_icon(emoji, _TOOL_ICON_SIZE))
+            button.setIcon(create_emoji_icon(emoji, TOOLBAR_ICON_SIZE))
             button.setIconSize(icon_size)
             button.setToolTip(tip)
             button.setCheckable(True)
-            button.setAutoRaise(True)
-            button.setFixedSize(_TOOL_BUTTON_SIZE, _TOOL_BUTTON_SIZE)
+            button.setAutoRaise(False)
+            button.setFixedSize(TOOLBAR_BUTTON_SIZE, TOOLBAR_BUTTON_SIZE)
+            button.setStyleSheet(TOOLBAR_BUTTON_STYLE)
+            button.setCursor(Qt.CursorShape.PointingHandCursor)
             if tool == AnnotationTool.NONE:
                 button.setChecked(True)
             self._tool_group.addButton(button)
@@ -77,19 +77,23 @@ class ScreenshotPreviewWindow(QMainWindow):
             tools_layout.addWidget(button)
 
         undo_button = QToolButton(tools_host)
-        undo_button.setIcon(create_emoji_icon("↩️", _TOOL_ICON_SIZE))
+        undo_button.setIcon(create_emoji_icon("↩️", TOOLBAR_ICON_SIZE))
         undo_button.setIconSize(icon_size)
         undo_button.setToolTip("Undo")
-        undo_button.setAutoRaise(True)
-        undo_button.setFixedSize(_TOOL_BUTTON_SIZE, _TOOL_BUTTON_SIZE)
+        undo_button.setAutoRaise(False)
+        undo_button.setFixedSize(TOOLBAR_BUTTON_SIZE, TOOLBAR_BUTTON_SIZE)
+        undo_button.setStyleSheet(TOOLBAR_BUTTON_STYLE)
+        undo_button.setCursor(Qt.CursorShape.PointingHandCursor)
         undo_button.clicked.connect(self._undo)
         tools_layout.addWidget(undo_button)
 
         self._color_button = QToolButton(tools_host)
         self._color_button.setToolTip("Stroke color")
-        self._color_button.setAutoRaise(True)
-        self._color_button.setFixedSize(_TOOL_BUTTON_SIZE, _TOOL_BUTTON_SIZE)
+        self._color_button.setAutoRaise(False)
+        self._color_button.setFixedSize(TOOLBAR_BUTTON_SIZE, TOOLBAR_BUTTON_SIZE)
         self._color_button.setIconSize(icon_size)
+        self._color_button.setStyleSheet(TOOLBAR_BUTTON_STYLE)
+        self._color_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self._color_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         self._color_menu = QMenu(self._color_button)
         self._color_button.setMenu(self._color_menu)
@@ -98,27 +102,39 @@ class ScreenshotPreviewWindow(QMainWindow):
         tools_layout.addWidget(self._color_button)
 
         self._apply_crop_button = QToolButton(tools_host)
-        self._apply_crop_button.setIcon(create_emoji_icon("✅", _TOOL_ICON_SIZE))
+        self._apply_crop_button.setIcon(create_emoji_icon("✅", TOOLBAR_ICON_SIZE))
         self._apply_crop_button.setIconSize(icon_size)
         self._apply_crop_button.setToolTip("Apply crop (Enter)")
-        self._apply_crop_button.setAutoRaise(True)
-        self._apply_crop_button.setFixedSize(_TOOL_BUTTON_SIZE, _TOOL_BUTTON_SIZE)
+        self._apply_crop_button.setAutoRaise(False)
+        self._apply_crop_button.setFixedSize(TOOLBAR_BUTTON_SIZE, TOOLBAR_BUTTON_SIZE)
+        self._apply_crop_button.setStyleSheet(TOOLBAR_BUTTON_STYLE)
+        self._apply_crop_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self._apply_crop_button.setVisible(False)
         self._apply_crop_button.clicked.connect(self._confirm_crop)
         tools_layout.addWidget(self._apply_crop_button)
 
         self._cancel_crop_button = QToolButton(tools_host)
-        self._cancel_crop_button.setIcon(create_emoji_icon("❌", _TOOL_ICON_SIZE))
+        self._cancel_crop_button.setIcon(create_emoji_icon("❌", TOOLBAR_ICON_SIZE))
         self._cancel_crop_button.setIconSize(icon_size)
         self._cancel_crop_button.setToolTip("Cancel crop (Esc)")
-        self._cancel_crop_button.setAutoRaise(True)
-        self._cancel_crop_button.setFixedSize(_TOOL_BUTTON_SIZE, _TOOL_BUTTON_SIZE)
+        self._cancel_crop_button.setAutoRaise(False)
+        self._cancel_crop_button.setFixedSize(TOOLBAR_BUTTON_SIZE, TOOLBAR_BUTTON_SIZE)
+        self._cancel_crop_button.setStyleSheet(TOOLBAR_BUTTON_STYLE)
+        self._cancel_crop_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self._cancel_crop_button.setVisible(False)
         self._cancel_crop_button.clicked.connect(self._cancel_crop)
         tools_layout.addWidget(self._cancel_crop_button)
 
-        tools_layout.addStretch(1)
+        self._tools_host = tools_host
+        self._tools_layout = tools_layout
         root.addWidget(tools_host)
+
+        self._tabs = QTabWidget(central)
+        self._tabs.setTabsClosable(True)
+        self._tabs.setDocumentMode(True)
+        self._tabs.tabCloseRequested.connect(self._close_tab_at)
+        self._tabs.currentChanged.connect(self._on_tab_changed)
+        root.addWidget(self._tabs, stretch=1)
 
         footer = QVBoxLayout()
         footer.setSpacing(8)
@@ -172,6 +188,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         undo_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
         undo_shortcut.activated.connect(self._undo)
         apply_app_window_size_and_position(self)
+        QTimer.singleShot(0, self._refit_tools_host)
 
     def add_image(self, image: QImage) -> None:
         """Append a new tab for `image` and select it."""
@@ -209,6 +226,11 @@ class ScreenshotPreviewWindow(QMainWindow):
             event.accept()
             return
         super().keyPressEvent(event)
+
+    def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
+        """Reflow the top tool row when the window width changes."""
+        super().resizeEvent(event)
+        self._refit_tools_host()
 
     def _add_footer_button(self, button: QPushButton, slot: Callable[[], None]) -> None:
         button.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
@@ -280,6 +302,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._cancel_crop_button.setVisible(pending)
         if pending:
             self._status.setText("Crop: Enter to apply · Esc to cancel")
+        self._refit_tools_host()
 
     def _on_document_changed(self) -> None:
         tab = self._current_tab()
@@ -316,8 +339,15 @@ class ScreenshotPreviewWindow(QMainWindow):
             if not color.isValid():
                 continue
             label = f"{hex_value} — {hint}" if hint else hex_value
-            action = self._color_menu.addAction(_color_swatch_icon(color, _TOOL_ICON_SIZE), label)
+            action = self._color_menu.addAction(_color_swatch_icon(color, TOOLBAR_ICON_SIZE), label)
             action.triggered.connect(lambda _checked=False, c=color: self._set_annotation_color(c))
+
+    def _refit_tools_host(self) -> None:
+        """Size the top tool strip so FlowLayout can wrap on narrow Windows."""
+        width = max(TOOLBAR_BUTTON_SIZE, self._tools_host.width())
+        height = max(TOOLBAR_BUTTON_SIZE, self._tools_layout.heightForWidth(width))
+        self._tools_host.setMinimumHeight(height)
+        self._tools_host.updateGeometry()
 
     def _relabel_untitled_tabs(self) -> None:
         for index in range(self._tabs.count()):
@@ -455,7 +485,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._status.setText("Undone")
 
     def _update_color_button(self) -> None:
-        self._color_button.setIcon(_color_swatch_icon(self._annotation_color, _TOOL_ICON_SIZE))
+        self._color_button.setIcon(_color_swatch_icon(self._annotation_color, TOOLBAR_ICON_SIZE))
         self._color_button.setToolTip(f"Stroke color ({self._annotation_color.name()})")
 
     def _update_window_title(self) -> None:
@@ -492,28 +522,27 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self.setCentralWidget(central)
         root = QVBoxLayout(central)
 
-        self._tabs = QTabWidget(central)
-        self._tabs.setTabsClosable(True)
-        self._tabs.setDocumentMode(True)
-        self._tabs.tabCloseRequested.connect(self._close_tab_at)
-        self._tabs.currentChanged.connect(self._on_tab_changed)
-        root.addWidget(self._tabs, stretch=1)
-
         tools_host = QWidget(central)
-        tools_layout = QHBoxLayout(tools_host)
-        tools_layout.setContentsMargins(0, 4, 0, 0)
-        tools_layout.setSpacing(4)
+        tools_layout = FlowLayout(
+            tools_host,
+            margin=0,
+            h_spacing=TOOLBAR_BUTTON_GAP,
+            v_spacing=TOOLBAR_BUTTON_GAP,
+            alignment=Qt.AlignmentFlag.AlignHCenter,
+        )
         self._tool_group = QButtonGroup(self)
         self._tool_group.setExclusive(True)
-        icon_size = QSize(_TOOL_ICON_SIZE, _TOOL_ICON_SIZE)
+        icon_size = QSize(TOOLBAR_ICON_SIZE, TOOLBAR_ICON_SIZE)
         for tool, emoji, tip in _TOOL_BUTTONS:
             button = QToolButton(tools_host)
-            button.setIcon(create_emoji_icon(emoji, _TOOL_ICON_SIZE))
+            button.setIcon(create_emoji_icon(emoji, TOOLBAR_ICON_SIZE))
             button.setIconSize(icon_size)
             button.setToolTip(tip)
             button.setCheckable(True)
-            button.setAutoRaise(True)
-            button.setFixedSize(_TOOL_BUTTON_SIZE, _TOOL_BUTTON_SIZE)
+            button.setAutoRaise(False)
+            button.setFixedSize(TOOLBAR_BUTTON_SIZE, TOOLBAR_BUTTON_SIZE)
+            button.setStyleSheet(TOOLBAR_BUTTON_STYLE)
+            button.setCursor(Qt.CursorShape.PointingHandCursor)
             if tool == AnnotationTool.NONE:
                 button.setChecked(True)
             self._tool_group.addButton(button)
@@ -522,19 +551,23 @@ def __init__(self, parent: QWidget | None = None) -> None:
             tools_layout.addWidget(button)
 
         undo_button = QToolButton(tools_host)
-        undo_button.setIcon(create_emoji_icon("↩️", _TOOL_ICON_SIZE))
+        undo_button.setIcon(create_emoji_icon("↩️", TOOLBAR_ICON_SIZE))
         undo_button.setIconSize(icon_size)
         undo_button.setToolTip("Undo")
-        undo_button.setAutoRaise(True)
-        undo_button.setFixedSize(_TOOL_BUTTON_SIZE, _TOOL_BUTTON_SIZE)
+        undo_button.setAutoRaise(False)
+        undo_button.setFixedSize(TOOLBAR_BUTTON_SIZE, TOOLBAR_BUTTON_SIZE)
+        undo_button.setStyleSheet(TOOLBAR_BUTTON_STYLE)
+        undo_button.setCursor(Qt.CursorShape.PointingHandCursor)
         undo_button.clicked.connect(self._undo)
         tools_layout.addWidget(undo_button)
 
         self._color_button = QToolButton(tools_host)
         self._color_button.setToolTip("Stroke color")
-        self._color_button.setAutoRaise(True)
-        self._color_button.setFixedSize(_TOOL_BUTTON_SIZE, _TOOL_BUTTON_SIZE)
+        self._color_button.setAutoRaise(False)
+        self._color_button.setFixedSize(TOOLBAR_BUTTON_SIZE, TOOLBAR_BUTTON_SIZE)
         self._color_button.setIconSize(icon_size)
+        self._color_button.setStyleSheet(TOOLBAR_BUTTON_STYLE)
+        self._color_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self._color_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         self._color_menu = QMenu(self._color_button)
         self._color_button.setMenu(self._color_menu)
@@ -543,27 +576,39 @@ def __init__(self, parent: QWidget | None = None) -> None:
         tools_layout.addWidget(self._color_button)
 
         self._apply_crop_button = QToolButton(tools_host)
-        self._apply_crop_button.setIcon(create_emoji_icon("✅", _TOOL_ICON_SIZE))
+        self._apply_crop_button.setIcon(create_emoji_icon("✅", TOOLBAR_ICON_SIZE))
         self._apply_crop_button.setIconSize(icon_size)
         self._apply_crop_button.setToolTip("Apply crop (Enter)")
-        self._apply_crop_button.setAutoRaise(True)
-        self._apply_crop_button.setFixedSize(_TOOL_BUTTON_SIZE, _TOOL_BUTTON_SIZE)
+        self._apply_crop_button.setAutoRaise(False)
+        self._apply_crop_button.setFixedSize(TOOLBAR_BUTTON_SIZE, TOOLBAR_BUTTON_SIZE)
+        self._apply_crop_button.setStyleSheet(TOOLBAR_BUTTON_STYLE)
+        self._apply_crop_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self._apply_crop_button.setVisible(False)
         self._apply_crop_button.clicked.connect(self._confirm_crop)
         tools_layout.addWidget(self._apply_crop_button)
 
         self._cancel_crop_button = QToolButton(tools_host)
-        self._cancel_crop_button.setIcon(create_emoji_icon("❌", _TOOL_ICON_SIZE))
+        self._cancel_crop_button.setIcon(create_emoji_icon("❌", TOOLBAR_ICON_SIZE))
         self._cancel_crop_button.setIconSize(icon_size)
         self._cancel_crop_button.setToolTip("Cancel crop (Esc)")
-        self._cancel_crop_button.setAutoRaise(True)
-        self._cancel_crop_button.setFixedSize(_TOOL_BUTTON_SIZE, _TOOL_BUTTON_SIZE)
+        self._cancel_crop_button.setAutoRaise(False)
+        self._cancel_crop_button.setFixedSize(TOOLBAR_BUTTON_SIZE, TOOLBAR_BUTTON_SIZE)
+        self._cancel_crop_button.setStyleSheet(TOOLBAR_BUTTON_STYLE)
+        self._cancel_crop_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self._cancel_crop_button.setVisible(False)
         self._cancel_crop_button.clicked.connect(self._cancel_crop)
         tools_layout.addWidget(self._cancel_crop_button)
 
-        tools_layout.addStretch(1)
+        self._tools_host = tools_host
+        self._tools_layout = tools_layout
         root.addWidget(tools_host)
+
+        self._tabs = QTabWidget(central)
+        self._tabs.setTabsClosable(True)
+        self._tabs.setDocumentMode(True)
+        self._tabs.tabCloseRequested.connect(self._close_tab_at)
+        self._tabs.currentChanged.connect(self._on_tab_changed)
+        root.addWidget(self._tabs, stretch=1)
 
         footer = QVBoxLayout()
         footer.setSpacing(8)
@@ -617,6 +662,7 @@ def __init__(self, parent: QWidget | None = None) -> None:
         undo_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
         undo_shortcut.activated.connect(self._undo)
         apply_app_window_size_and_position(self)
+        QTimer.singleShot(0, self._refit_tools_host)
 ```
 
 </details>
@@ -696,6 +742,25 @@ def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
             event.accept()
             return
         super().keyPressEvent(event)
+```
+
+</details>
+
+### ⚙️ Method `resizeEvent`
+
+```python
+def resizeEvent(self, event: QResizeEvent) -> None
+```
+
+Reflow the top tool row when the window width changes.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
+        super().resizeEvent(event)
+        self._refit_tools_host()
 ```
 
 </details>

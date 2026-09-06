@@ -20,6 +20,7 @@ lang: en
 - [🏛️ Class `ShutterPanel`](#%EF%B8%8F-class-shutterpanel)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
   - [⚙️ Method `adjust_mode (property)`](#%EF%B8%8F-method-adjust_mode-property)
+  - [⚙️ Method `apply_available_width`](#%EF%B8%8F-method-apply_available_width)
   - [⚙️ Method `clipboard_only (property)`](#%EF%B8%8F-method-clipboard_only-property)
   - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
   - [⚙️ Method `guides_mode (property)`](#%EF%B8%8F-method-guides_mode-property)
@@ -30,7 +31,7 @@ lang: en
   - [⚙️ Method `set_guides_mode`](#%EF%B8%8F-method-set_guides_mode)
   - [⚙️ Method `set_keep_windows`](#%EF%B8%8F-method-set_keep_windows)
   - [⚙️ Method `set_mode`](#%EF%B8%8F-method-set_mode)
-- [🔧 Function `position_panel_on_left_edge`](#-function-position_panel_on_left_edge)
+- [🔧 Function `position_panel_at_top_center`](#-function-position_panel_at_top_center)
 
 </details>
 
@@ -67,7 +68,6 @@ class ArrangeModeDialog(QDialog):
         panel.geometry_changed.connect(self._fit_panel)
         self._panel = panel
         self._fit_panel()
-        self._position_on_primary_screen()
 
     def event(self, event: QEvent) -> bool:
         """Accept Escape as a shortcut override so it is not stolen by other Windows.
@@ -103,16 +103,18 @@ class ArrangeModeDialog(QDialog):
 
     def _fit_panel(self) -> None:
         """Keep the dialog size matched to the panel (grows when a hint is shown)."""
+        self._panel.apply_available_width(_primary_available_width())
         self.setFixedSize(self._panel.sizeHint())
+        self._position_on_primary_screen()
 
     def _position_on_primary_screen(self) -> None:
-        """Place the controls on the left edge, vertically centered."""
+        """Place the controls at the top center of the primary screen."""
         screen = QApplication.primaryScreen()
         if screen is None:
             return
         geo = screen.availableGeometry()
-        x = geo.x() + _EDGE_MARGIN
-        y = geo.y() + (geo.height() - self.height()) // 2
+        x = geo.x() + (geo.width() - self.width()) // 2
+        y = geo.y() + TOOLBAR_EDGE_MARGIN
         self.move(x, y)
 ```
 
@@ -144,7 +146,6 @@ def __init__(self) -> None:
         panel.geometry_changed.connect(self._fit_panel)
         self._panel = panel
         self._fit_panel()
-        self._position_on_primary_screen()
 ```
 
 </details>
@@ -241,7 +242,7 @@ def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
 class ShutterPanel(QWidget)
 ```
 
-Column with mode and close buttons, embeddable as a plain child widget.
+Top-centered toolbar with mode and close buttons, embeddable as a child.
 
 Being a regular child widget (not a separate native window) guarantees that
 clicks reach the buttons even when the application has modal dialogs in
@@ -249,6 +250,10 @@ clicks reach the buttons even when the application has modal dialogs in
 
 Hover captions are drawn as an in-panel label (not `QToolTip`), so they stay
 visible above the stay-on-top screenshot overlay.
+
+Buttons are square (`TOOLBAR_BUTTON_SIZE` px) and wrap to additional rows when
+the available width is too narrow. Checkable tools use the accent fill when
+selected.
 
 In selection mode extra checkable buttons enable “adjust region” (the next
 selection stays editable until Enter), composition guides (thin frame,
@@ -283,19 +288,24 @@ class ShutterPanel(QWidget):
         """
         super().__init__(parent)
         self._capture_options = capture_options
+        self._available_width = _primary_available_width()
 
-        root = QHBoxLayout(self)
+        root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(_HINT_GAP)
 
-        buttons = QWidget(self)
-        buttons_layout = QVBoxLayout(buttons)
-        buttons_layout.setContentsMargins(0, 0, 0, 0)
-        buttons_layout.setSpacing(_BUTTON_GAP)
+        self._buttons_host = QWidget(self)
+        self._buttons_layout = FlowLayout(
+            self._buttons_host,
+            margin=0,
+            h_spacing=TOOLBAR_BUTTON_GAP,
+            v_spacing=TOOLBAR_BUTTON_GAP,
+            alignment=Qt.AlignmentFlag.AlignHCenter,
+        )
 
         self._mode_button = self._make_emoji_button(_ARRANGE_EMOJI, "Arrange desktop")
         self._mode_button.clicked.connect(self.triggered.emit)
-        buttons_layout.addWidget(self._mode_button)
+        self._buttons_layout.addWidget(self._mode_button)
 
         self._adjust_button = self._make_emoji_button(
             _ADJUST_EMOJI,
@@ -303,7 +313,7 @@ class ShutterPanel(QWidget):
         )
         self._adjust_button.setCheckable(True)
         self._adjust_button.toggled.connect(self.adjust_toggled.emit)
-        buttons_layout.addWidget(self._adjust_button)
+        self._buttons_layout.addWidget(self._adjust_button)
 
         self._guides_button = self._make_emoji_button(
             _GUIDES_EMOJI,
@@ -311,7 +321,7 @@ class ShutterPanel(QWidget):
         )
         self._guides_button.setCheckable(True)
         self._guides_button.toggled.connect(self.guides_toggled.emit)
-        buttons_layout.addWidget(self._guides_button)
+        self._buttons_layout.addWidget(self._guides_button)
 
         self._keep_windows_button = self._make_emoji_button(
             _KEEP_WINDOWS_EMOJI,
@@ -319,7 +329,7 @@ class ShutterPanel(QWidget):
         )
         self._keep_windows_button.setCheckable(True)
         self._keep_windows_button.toggled.connect(self.keep_windows_toggled.emit)
-        buttons_layout.addWidget(self._keep_windows_button)
+        self._buttons_layout.addWidget(self._keep_windows_button)
 
         self._clipboard_button = self._make_emoji_button(
             _CLIPBOARD_EMOJI,
@@ -327,33 +337,31 @@ class ShutterPanel(QWidget):
         )
         self._clipboard_button.setCheckable(True)
         self._clipboard_button.toggled.connect(self.clipboard_toggled.emit)
-        buttons_layout.addWidget(self._clipboard_button)
+        self._buttons_layout.addWidget(self._clipboard_button)
 
-        close_button = self._make_emoji_button(
+        self._close_button = self._make_emoji_button(
             _CLOSE_EMOJI,
             "Cancel" if not capture_options else "Cancel screenshot",
         )
-        close_button.clicked.connect(self.cancelled.emit)
-        buttons_layout.addWidget(close_button)
+        self._close_button.clicked.connect(self.cancelled.emit)
+        self._buttons_layout.addWidget(self._close_button)
+
+        root.addWidget(self._buttons_host)
+
+        self._hint_label = QLabel(self)
+        self._hint_label.setStyleSheet(_HINT_STYLE)
+        self._hint_label.setWordWrap(True)
+        self._hint_label.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter)
+        self._hint_label.hide()
+        root.addWidget(self._hint_label, 0, Qt.AlignmentFlag.AlignHCenter)
 
         self._edit_keys_label = QLabel(self)
         self._edit_keys_label.setStyleSheet(_HINT_STYLE)
         self._edit_keys_label.setWordWrap(True)
         self._edit_keys_label.setText(_EDIT_KEYS_TEXT)
         self._edit_keys_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
-        self._edit_keys_label.setFixedWidth(max(_BUTTON_SIZE, _HINT_WIDTH))
         self._edit_keys_label.hide()
-        buttons_layout.addWidget(self._edit_keys_label)
-
-        root.addWidget(buttons, 0, Qt.AlignmentFlag.AlignTop)
-
-        self._hint_label = QLabel(self)
-        self._hint_label.setStyleSheet(_HINT_STYLE)
-        self._hint_label.setWordWrap(True)
-        self._hint_label.setFixedWidth(_HINT_WIDTH)
-        self._hint_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
-        self._hint_label.hide()
-        root.addWidget(self._hint_label, 0, Qt.AlignmentFlag.AlignVCenter)
+        root.addWidget(self._edit_keys_label, 0, Qt.AlignmentFlag.AlignHCenter)
 
         self._mode: ShutterMode = "selection"
         self._hovered_button: QPushButton | None = None
@@ -364,6 +372,14 @@ class ShutterPanel(QWidget):
     def adjust_mode(self) -> bool:
         """Whether the next selection should stay editable until confirmed."""
         return self._mode == "selection" and self._adjust_button.isChecked()
+
+    def apply_available_width(self, width: int) -> None:
+        """Constrain the toolbar width so buttons wrap on narrow screens."""
+        clamped = max(TOOLBAR_BUTTON_SIZE, width)
+        if clamped == self._available_width:
+            return
+        self._available_width = clamped
+        self._update_size()
 
     @property
     def clipboard_only(self) -> bool:
@@ -423,14 +439,14 @@ class ShutterPanel(QWidget):
         self._mode = mode
         if mode == "selection":
             # In region selection, click leaves capture to arrange other Windows.
-            self._mode_button.setIcon(create_emoji_icon(_ARRANGE_EMOJI, _ICON_SIZE))
+            self._mode_button.setIcon(create_emoji_icon(_ARRANGE_EMOJI, TOOLBAR_ICON_SIZE))
             self._mode_button.setToolTip("Arrange desktop")
             self._mode_button.setProperty("hover_hint", "Arrange desktop")
             self._guides_button.show()
             self._apply_capture_option_visibility()
         else:
             # In arrange mode, click returns to region capture.
-            self._mode_button.setIcon(create_emoji_icon(_CAMERA_EMOJI, _ICON_SIZE))
+            self._mode_button.setIcon(create_emoji_icon(_CAMERA_EMOJI, TOOLBAR_ICON_SIZE))
             self._mode_button.setToolTip("Capture region" if self._capture_options else "Select region")
             self._mode_button.setProperty(
                 "hover_hint",
@@ -466,14 +482,14 @@ class ShutterPanel(QWidget):
         self._update_size()
 
     def _make_emoji_button(self, emoji: str, tooltip: str) -> QPushButton:
-        button = QPushButton(self)
-        button.setFixedSize(_BUTTON_SIZE, _BUTTON_SIZE)
-        button.setIcon(create_emoji_icon(emoji, _ICON_SIZE))
-        button.setIconSize(QSize(_ICON_SIZE, _ICON_SIZE))
+        button = QPushButton(self._buttons_host)
+        button.setFixedSize(TOOLBAR_BUTTON_SIZE, TOOLBAR_BUTTON_SIZE)
+        button.setIcon(create_emoji_icon(emoji, TOOLBAR_ICON_SIZE))
+        button.setIconSize(QSize(TOOLBAR_ICON_SIZE, TOOLBAR_ICON_SIZE))
         button.setCursor(Qt.CursorShape.PointingHandCursor)
         button.setToolTip(tooltip)
         button.setProperty("hover_hint", tooltip)
-        button.setStyleSheet(_BUTTON_STYLE)
+        button.setStyleSheet(TOOLBAR_BUTTON_STYLE)
         button.setAttribute(Qt.WidgetAttribute.WA_Hover, on=True)
         button.installEventFilter(self)
         return button
@@ -487,17 +503,49 @@ class ShutterPanel(QWidget):
         self._update_size()
 
     def _update_size(self) -> None:
-        # Selection: Arrange + Guides + Cancel (+ Adjust / Keep / Clipboard when capturing).
-        button_count = (6 if self._capture_options else 3) if self._mode == "selection" else 2
-        total_height = _BUTTON_SIZE * button_count + _BUTTON_GAP * (button_count - 1)
-        if self._edit_keys_label.isVisible():
-            total_height += _BUTTON_GAP + self._edit_keys_label.sizeHint().height()
-        width = _BUTTON_SIZE
-        if self._edit_keys_label.isVisible():
-            width = max(width, self._edit_keys_label.width())
+        visible_count = sum(
+            1
+            for button in (
+                self._mode_button,
+                self._adjust_button,
+                self._guides_button,
+                self._keep_windows_button,
+                self._clipboard_button,
+                self._close_button,
+            )
+            if not button.isHidden()
+        )
+        ideal_width = (
+            TOOLBAR_BUTTON_SIZE * visible_count + TOOLBAR_BUTTON_GAP * max(0, visible_count - 1)
+            if visible_count
+            else TOOLBAR_BUTTON_SIZE
+        )
+        width = min(ideal_width, self._available_width)
+        width = max(width, TOOLBAR_BUTTON_SIZE)
+
+        buttons_height = self._buttons_layout.heightForWidth(width)
+        self._buttons_host.setFixedSize(width, max(TOOLBAR_BUTTON_SIZE, buttons_height))
+
+        extra_height = 0
+        content_width = width
         if self._hint_label.isVisible():
-            width += _HINT_GAP + _HINT_WIDTH
-        self.setFixedSize(width, total_height)
+            hint_w = min(max(width, _HINT_WIDTH), self._available_width)
+            self._hint_label.setFixedWidth(hint_w)
+            hint_h = self._hint_label.sizeHint().height()
+            extra_height += _HINT_GAP + hint_h
+            content_width = max(content_width, hint_w)
+        if self._edit_keys_label.isVisible():
+            keys_w = min(max(width, _HINT_WIDTH), self._available_width)
+            self._edit_keys_label.setFixedWidth(keys_w)
+            keys_h = self._edit_keys_label.sizeHint().height()
+            extra_height += _HINT_GAP + keys_h
+            content_width = max(content_width, keys_w)
+
+        new_width = content_width
+        new_height = self._buttons_host.height() + extra_height
+        if self.width() == new_width and self.height() == new_height:
+            return
+        self.setFixedSize(new_width, new_height)
         self.geometry_changed.emit()
 ```
 
@@ -524,19 +572,24 @@ Args:
 def __init__(self, parent: QWidget | None = None, *, capture_options: bool = True) -> None:
         super().__init__(parent)
         self._capture_options = capture_options
+        self._available_width = _primary_available_width()
 
-        root = QHBoxLayout(self)
+        root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(_HINT_GAP)
 
-        buttons = QWidget(self)
-        buttons_layout = QVBoxLayout(buttons)
-        buttons_layout.setContentsMargins(0, 0, 0, 0)
-        buttons_layout.setSpacing(_BUTTON_GAP)
+        self._buttons_host = QWidget(self)
+        self._buttons_layout = FlowLayout(
+            self._buttons_host,
+            margin=0,
+            h_spacing=TOOLBAR_BUTTON_GAP,
+            v_spacing=TOOLBAR_BUTTON_GAP,
+            alignment=Qt.AlignmentFlag.AlignHCenter,
+        )
 
         self._mode_button = self._make_emoji_button(_ARRANGE_EMOJI, "Arrange desktop")
         self._mode_button.clicked.connect(self.triggered.emit)
-        buttons_layout.addWidget(self._mode_button)
+        self._buttons_layout.addWidget(self._mode_button)
 
         self._adjust_button = self._make_emoji_button(
             _ADJUST_EMOJI,
@@ -544,7 +597,7 @@ def __init__(self, parent: QWidget | None = None, *, capture_options: bool = Tru
         )
         self._adjust_button.setCheckable(True)
         self._adjust_button.toggled.connect(self.adjust_toggled.emit)
-        buttons_layout.addWidget(self._adjust_button)
+        self._buttons_layout.addWidget(self._adjust_button)
 
         self._guides_button = self._make_emoji_button(
             _GUIDES_EMOJI,
@@ -552,7 +605,7 @@ def __init__(self, parent: QWidget | None = None, *, capture_options: bool = Tru
         )
         self._guides_button.setCheckable(True)
         self._guides_button.toggled.connect(self.guides_toggled.emit)
-        buttons_layout.addWidget(self._guides_button)
+        self._buttons_layout.addWidget(self._guides_button)
 
         self._keep_windows_button = self._make_emoji_button(
             _KEEP_WINDOWS_EMOJI,
@@ -560,7 +613,7 @@ def __init__(self, parent: QWidget | None = None, *, capture_options: bool = Tru
         )
         self._keep_windows_button.setCheckable(True)
         self._keep_windows_button.toggled.connect(self.keep_windows_toggled.emit)
-        buttons_layout.addWidget(self._keep_windows_button)
+        self._buttons_layout.addWidget(self._keep_windows_button)
 
         self._clipboard_button = self._make_emoji_button(
             _CLIPBOARD_EMOJI,
@@ -568,33 +621,31 @@ def __init__(self, parent: QWidget | None = None, *, capture_options: bool = Tru
         )
         self._clipboard_button.setCheckable(True)
         self._clipboard_button.toggled.connect(self.clipboard_toggled.emit)
-        buttons_layout.addWidget(self._clipboard_button)
+        self._buttons_layout.addWidget(self._clipboard_button)
 
-        close_button = self._make_emoji_button(
+        self._close_button = self._make_emoji_button(
             _CLOSE_EMOJI,
             "Cancel" if not capture_options else "Cancel screenshot",
         )
-        close_button.clicked.connect(self.cancelled.emit)
-        buttons_layout.addWidget(close_button)
+        self._close_button.clicked.connect(self.cancelled.emit)
+        self._buttons_layout.addWidget(self._close_button)
+
+        root.addWidget(self._buttons_host)
+
+        self._hint_label = QLabel(self)
+        self._hint_label.setStyleSheet(_HINT_STYLE)
+        self._hint_label.setWordWrap(True)
+        self._hint_label.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter)
+        self._hint_label.hide()
+        root.addWidget(self._hint_label, 0, Qt.AlignmentFlag.AlignHCenter)
 
         self._edit_keys_label = QLabel(self)
         self._edit_keys_label.setStyleSheet(_HINT_STYLE)
         self._edit_keys_label.setWordWrap(True)
         self._edit_keys_label.setText(_EDIT_KEYS_TEXT)
         self._edit_keys_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
-        self._edit_keys_label.setFixedWidth(max(_BUTTON_SIZE, _HINT_WIDTH))
         self._edit_keys_label.hide()
-        buttons_layout.addWidget(self._edit_keys_label)
-
-        root.addWidget(buttons, 0, Qt.AlignmentFlag.AlignTop)
-
-        self._hint_label = QLabel(self)
-        self._hint_label.setStyleSheet(_HINT_STYLE)
-        self._hint_label.setWordWrap(True)
-        self._hint_label.setFixedWidth(_HINT_WIDTH)
-        self._hint_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
-        self._hint_label.hide()
-        root.addWidget(self._hint_label, 0, Qt.AlignmentFlag.AlignVCenter)
+        root.addWidget(self._edit_keys_label, 0, Qt.AlignmentFlag.AlignHCenter)
 
         self._mode: ShutterMode = "selection"
         self._hovered_button: QPushButton | None = None
@@ -618,6 +669,28 @@ Whether the next selection should stay editable until confirmed.
 ```python
 def adjust_mode(self) -> bool:
         return self._mode == "selection" and self._adjust_button.isChecked()
+```
+
+</details>
+
+### ⚙️ Method `apply_available_width`
+
+```python
+def apply_available_width(self, width: int) -> None
+```
+
+Constrain the toolbar width so buttons wrap on narrow screens.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def apply_available_width(self, width: int) -> None:
+        clamped = max(TOOLBAR_BUTTON_SIZE, width)
+        if clamped == self._available_width:
+            return
+        self._available_width = clamped
+        self._update_size()
 ```
 
 </details>
@@ -814,14 +887,14 @@ def set_mode(self, mode: ShutterMode) -> None:
         self._mode = mode
         if mode == "selection":
             # In region selection, click leaves capture to arrange other Windows.
-            self._mode_button.setIcon(create_emoji_icon(_ARRANGE_EMOJI, _ICON_SIZE))
+            self._mode_button.setIcon(create_emoji_icon(_ARRANGE_EMOJI, TOOLBAR_ICON_SIZE))
             self._mode_button.setToolTip("Arrange desktop")
             self._mode_button.setProperty("hover_hint", "Arrange desktop")
             self._guides_button.show()
             self._apply_capture_option_visibility()
         else:
             # In arrange mode, click returns to region capture.
-            self._mode_button.setIcon(create_emoji_icon(_CAMERA_EMOJI, _ICON_SIZE))
+            self._mode_button.setIcon(create_emoji_icon(_CAMERA_EMOJI, TOOLBAR_ICON_SIZE))
             self._mode_button.setToolTip("Capture region" if self._capture_options else "Select region")
             self._mode_button.setProperty(
                 "hover_hint",
@@ -841,13 +914,13 @@ def set_mode(self, mode: ShutterMode) -> None:
 
 </details>
 
-## 🔧 Function `position_panel_on_left_edge`
+## 🔧 Function `position_panel_at_top_center`
 
 ```python
-def position_panel_on_left_edge(panel: ShutterPanel, overlay_geometry: QRect) -> None
+def position_panel_at_top_center(panel: ShutterPanel, overlay_geometry: QRect) -> None
 ```
 
-Place an embedded panel at the primary screen's left edge inside the overlay.
+Place an embedded panel at the top center of the primary screen.
 
 Args:
 
@@ -858,16 +931,18 @@ Args:
 <summary>Code:</summary>
 
 ```python
-def position_panel_on_left_edge(panel: ShutterPanel, overlay_geometry: QRect) -> None:
+def position_panel_at_top_center(panel: ShutterPanel, overlay_geometry: QRect) -> None:
     screen = QApplication.primaryScreen()
     if screen is None:
         return
     geo = screen.availableGeometry()
+    panel.apply_available_width(max(TOOLBAR_BUTTON_SIZE, geo.width() - 2 * TOOLBAR_EDGE_MARGIN))
     parent = panel.parentWidget()
     origin = parent.mapToGlobal(QPoint(0, 0)) if parent is not None else overlay_geometry.topLeft()
-    x = geo.x() - origin.x() + _EDGE_MARGIN
-    y = geo.y() - origin.y() + (geo.height() - panel.height()) // 2
+    x = geo.x() - origin.x() + (geo.width() - panel.width()) // 2
+    y = geo.y() - origin.y() + TOOLBAR_EDGE_MARGIN
     panel.move(x, y)
+    panel.raise_()
 ```
 
 </details>

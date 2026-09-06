@@ -95,6 +95,9 @@ class FlowLayout(QLayout):
         current: list[tuple[QLayoutItem, QSize]] = []
         x = 0
         for item in self._items:
+            widget = item.widget()
+            if widget is not None and widget.isHidden():
+                continue
             size = item.sizeHint()
             space_x_eff = self._item_spacing(item, horizontal=True, fallback=space_x)
             needed = size.width() if not current else size.width() + space_x_eff

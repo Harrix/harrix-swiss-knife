@@ -83,7 +83,7 @@ class RegionOverlay(QDialog):
         - `geometry` (`QRect`): The target geometry in global (screen) coordinates for overlay placement.
         - `screen_grabs` (`Sequence[ScreenGrab] | None`): Native per-monitor grabs. When set,
           each screen gets its own fullscreen pane so mixed DPI layouts cover every pixel.
-        - `with_shutter_controls` (`bool`): If `True`, embed shutter controls on the left edge.
+        - `with_shutter_controls` (`bool`): If `True`, embed shutter controls at the top center.
         - `window_rects` (`Sequence[QRect] | None`): Snappable window bounds in global logical pixels.
         - `keep_windows` (`bool`): If `True`, start with the keep-Windows shutter button on.
         - `clipboard_only` (`bool`): If `True`, start with the clipboard-only shutter button on.
@@ -155,12 +155,12 @@ class RegionOverlay(QDialog):
             panel.cancelled.connect(self.reject)
             panel.keep_windows_toggled.connect(lambda _enabled: self.done(RESULT_TOGGLE_KEEP_WINDOWS))
             panel.guides_toggled.connect(lambda enabled: self._set_guides_enabled(enabled=enabled))
-            panel.geometry_changed.connect(lambda: position_panel_on_left_edge(panel, geometry))
+            panel.geometry_changed.connect(lambda: position_panel_at_top_center(panel, geometry))
             if adjust_mode and not select_rect_only:
                 panel.set_adjust_mode(enabled=True)
             if guides_mode:
                 panel.set_guides_mode(enabled=True)
-            position_panel_on_left_edge(panel, geometry)
+            position_panel_at_top_center(panel, geometry)
             panel.show()
             self._panel = panel
 
@@ -761,7 +761,7 @@ Args:
 - `geometry` (`QRect`): The target geometry in global (screen) coordinates for overlay placement.
 - `screen_grabs` (`Sequence[ScreenGrab] | None`): Native per-monitor grabs. When set,
   each screen gets its own fullscreen pane so mixed DPI layouts cover every pixel.
-- `with_shutter_controls` (`bool`): If `True`, embed shutter controls on the left edge.
+- `with_shutter_controls` (`bool`): If `True`, embed shutter controls at the top center.
 - `window_rects` (`Sequence[QRect] | None`): Snappable window bounds in global logical pixels.
 - `keep_windows` (`bool`): If `True`, start with the keep-Windows shutter button on.
 - `clipboard_only` (`bool`): If `True`, start with the clipboard-only shutter button on.
@@ -850,12 +850,12 @@ def __init__(
             panel.cancelled.connect(self.reject)
             panel.keep_windows_toggled.connect(lambda _enabled: self.done(RESULT_TOGGLE_KEEP_WINDOWS))
             panel.guides_toggled.connect(lambda enabled: self._set_guides_enabled(enabled=enabled))
-            panel.geometry_changed.connect(lambda: position_panel_on_left_edge(panel, geometry))
+            panel.geometry_changed.connect(lambda: position_panel_at_top_center(panel, geometry))
             if adjust_mode and not select_rect_only:
                 panel.set_adjust_mode(enabled=True)
             if guides_mode:
                 panel.set_guides_mode(enabled=True)
-            position_panel_on_left_edge(panel, geometry)
+            position_panel_at_top_center(panel, geometry)
             panel.show()
             self._panel = panel
 ```
