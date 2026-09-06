@@ -67,8 +67,8 @@ class ItemEditDialog(QDialog):
 
         buttons = QHBoxLayout()
         buttons.addStretch()
-        cancel = make_emoji_push_button("Cancel", CANCEL_BUTTON_EMOJI)
-        ok = make_emoji_push_button("OK", OK_BUTTON_EMOJI)
+        cancel = make_lucide_push_button("Cancel", CANCEL_BUTTON_ICON)
+        ok = make_lucide_push_button("OK", OK_BUTTON_ICON)
         cancel.clicked.connect(self.reject)
         ok.clicked.connect(self.accept)
         buttons.addWidget(cancel)
@@ -133,8 +133,8 @@ def __init__(
 
         buttons = QHBoxLayout()
         buttons.addStretch()
-        cancel = make_emoji_push_button("Cancel", CANCEL_BUTTON_EMOJI)
-        ok = make_emoji_push_button("OK", OK_BUTTON_EMOJI)
+        cancel = make_lucide_push_button("Cancel", CANCEL_BUTTON_ICON)
+        ok = make_lucide_push_button("OK", OK_BUTTON_ICON)
         cancel.clicked.connect(self.reject)
         ok.clicked.connect(self.accept)
         buttons.addWidget(cancel)

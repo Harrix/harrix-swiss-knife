@@ -7,7 +7,7 @@ from PySide6.QtGui import QAction, QGuiApplication, QKeyEvent, QKeySequence, QRe
 from PySide6.QtWidgets import QDialog, QLabel, QMenu, QMenuBar, QPushButton, QWidget
 
 from harrix_swiss_knife import qt_modality
-from harrix_swiss_knife.qt_emoji_icon import CLOSE_BUTTON_EMOJI, create_emoji_icon
+from harrix_swiss_knife.qt_lucide_icon import CLOSE_BUTTON_ICON, create_lucide_icon
 
 _BUTTON_SIZE = 44
 _SIDE_MARGIN = 20
@@ -56,7 +56,7 @@ class AppWindowLightboxDialog(QDialog):
                 self.resize(1280, 720)
 
         self._close_button = self._make_button("", "Close")
-        self._close_button.setIcon(create_emoji_icon(CLOSE_BUTTON_EMOJI, 22))
+        self._close_button.setIcon(create_lucide_icon(CLOSE_BUTTON_ICON, 22))
         self._close_button.clicked.connect(self.accept)
         self._previous_button = self._make_button("←", "Previous (Left arrow)")
         self._previous_button.clicked.connect(self.show_previous)

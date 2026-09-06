@@ -30,7 +30,7 @@ from harrix_swiss_knife.actions.common.dialog_geometry import (
     list_content_height,
 )
 from harrix_swiss_knife.qt_app_font import APP_FONT_FAMILY
-from harrix_swiss_knife.qt_emoji_icon import DELETE_BUTTON_EMOJI, apply_emoji_dialog_buttons, make_emoji_push_button
+from harrix_swiss_knife.qt_lucide_icon import DELETE_BUTTON_ICON, apply_lucide_dialog_buttons, make_lucide_push_button
 
 _FILES_LIST_MAX_HEIGHT = 100
 _DROP_AREA_MIN_HEIGHT = 150
@@ -267,18 +267,18 @@ class DragDropFileDialog(QDialog):
 
         buttons_layout = QHBoxLayout()
 
-        self.select_files_btn = make_emoji_push_button("Select Files", "📁")
+        self.select_files_btn = make_lucide_push_button("Select Files", "folder")
         self.select_files_btn.clicked.connect(self.select_files)
         buttons_layout.addWidget(self.select_files_btn)
 
-        self.clear_btn = make_emoji_push_button("Clear", DELETE_BUTTON_EMOJI)
+        self.clear_btn = make_lucide_push_button("Clear", DELETE_BUTTON_ICON)
         self.clear_btn.clicked.connect(self.clear_files)
         buttons_layout.addWidget(self.clear_btn)
 
         buttons_layout.addStretch()
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        apply_emoji_dialog_buttons(self.button_box)
+        apply_lucide_dialog_buttons(self.button_box)
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
         buttons_layout.addWidget(self.button_box)

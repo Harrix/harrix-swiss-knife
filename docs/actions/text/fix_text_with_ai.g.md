@@ -124,7 +124,7 @@ class OnFixTextWithAI(ActionBase):
                 title=title,
                 rerun_button=True,
                 rerun_button_label=FIX_AGAIN_BUTTON_LABEL,
-                rerun_button_emoji=FIX_AGAIN_BUTTON_EMOJI,
+                rerun_button_icon=FIX_AGAIN_BUTTON_ICON,
                 remove_paragraphs_button=True,
             )
         else:
@@ -133,7 +133,7 @@ class OnFixTextWithAI(ActionBase):
                 title=title,
                 rerun_button=True,
                 rerun_button_label=FIX_AGAIN_BUTTON_LABEL,
-                rerun_button_emoji=FIX_AGAIN_BUTTON_EMOJI,
+                rerun_button_icon=FIX_AGAIN_BUTTON_ICON,
                 remove_paragraphs_button=True,
             )
             if not isinstance(dialog_result, tuple):

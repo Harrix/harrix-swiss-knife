@@ -77,9 +77,9 @@ class OnCheckMusicBeePlaylists(ActionBase):
             open_folder_path=result.backup_path,
             rerun_button=True,
             rerun_button_label="Apply",
-            rerun_button_emoji="💾",
+            rerun_button_icon="save",
             ok_button_label=CANCEL_BUTTON_LABEL,
-            ok_button_emoji=CANCEL_BUTTON_EMOJI,
+            ok_button_icon=CANCEL_BUTTON_ICON,
             ok_button_before_actions=True,
         )
         if not isinstance(shown, tuple) or shown[1] != RERUN_DIALOG_CODE:
@@ -170,9 +170,9 @@ def thread_after(self, result: Any) -> None:
             open_folder_path=result.backup_path,
             rerun_button=True,
             rerun_button_label="Apply",
-            rerun_button_emoji="💾",
+            rerun_button_icon="save",
             ok_button_label=CANCEL_BUTTON_LABEL,
-            ok_button_emoji=CANCEL_BUTTON_EMOJI,
+            ok_button_icon=CANCEL_BUTTON_ICON,
             ok_button_before_actions=True,
         )
         if not isinstance(shown, tuple) or shown[1] != RERUN_DIALOG_CODE:

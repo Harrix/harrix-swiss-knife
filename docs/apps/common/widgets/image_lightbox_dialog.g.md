@@ -82,7 +82,7 @@ class ImageLightboxDialog(QDialog):
         layout.addWidget(image_label, stretch=1)
 
         close_button = QPushButton(self)
-        close_button.setIcon(create_emoji_icon(CLOSE_BUTTON_EMOJI, 22))
+        close_button.setIcon(create_lucide_icon(CLOSE_BUTTON_ICON, 22))
         close_button.setIconSize(QSize(22, 22))
         close_button.setFixedSize(_CLOSE_BUTTON_SIZE, _CLOSE_BUTTON_SIZE)
         close_button.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -196,7 +196,7 @@ def __init__(self, image_path: str | Path, parent: QWidget | None = None) -> Non
         layout.addWidget(image_label, stretch=1)
 
         close_button = QPushButton(self)
-        close_button.setIcon(create_emoji_icon(CLOSE_BUTTON_EMOJI, 22))
+        close_button.setIcon(create_lucide_icon(CLOSE_BUTTON_ICON, 22))
         close_button.setIconSize(QSize(22, 22))
         close_button.setFixedSize(_CLOSE_BUTTON_SIZE, _CLOSE_BUTTON_SIZE)
         close_button.setCursor(Qt.CursorShape.PointingHandCursor)

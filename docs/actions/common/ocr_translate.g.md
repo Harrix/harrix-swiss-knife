@@ -15,7 +15,10 @@ lang: en
   - [⚙️ Method `display_text (property)`](#%EF%B8%8F-method-display_text-property)
 - [🔧 Function `local_language_code_from_config`](#-function-local_language_code_from_config)
 - [🔧 Function `parse_ocr_translate_response`](#-function-parse_ocr_translate_response)
+- [🔧 Function `present_recognized_text`](#-function-present_recognized_text)
 - [🔧 Function `show_ocr_translate_result`](#-function-show_ocr_translate_result)
+- [🔧 Function `start_text_translation`](#-function-start_text_translation)
+- [🔧 Function `text_needs_translation`](#-function-text_needs_translation)
 
 </details>
 
@@ -140,6 +143,47 @@ def parse_ocr_translate_response(text: str, *, local_language_code: str | None =
 
 </details>
 
+## 🔧 Function `present_recognized_text`
+
+```python
+def present_recognized_text(action: ActionBase, markdown: str, *, save_button: bool = False, save_default_path: str | None = None) -> None
+```
+
+Show recognized text and offer Translate when it is not the local language.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def present_recognized_text(
+    action: ActionBase,
+    markdown: str,
+    *,
+    save_button: bool = False,
+    save_default_path: str | None = None,
+) -> None:
+    offer_translate = text_needs_translation(markdown, local_language_code_from_config(action.config))
+    title = "Result"
+    elapsed = action.elapsed_mm_ss()
+    if elapsed is not None:
+        title = f"Result — {elapsed}"
+    dialog_result = action.dialogs.show_text_multiline(
+        markdown,
+        title,
+        open_folder_path=action.result_folder,
+        save_button=save_button,
+        save_default_path=save_default_path,
+        translate_button=offer_translate,
+    )
+    if not offer_translate or not isinstance(dialog_result, tuple):
+        return
+    text, action_code = dialog_result
+    if action_code == TRANSLATE_DIALOG_CODE:
+        start_text_translation(action, text or markdown)
+```
+
+</details>
+
 ## 🔧 Function `show_ocr_translate_result`
 
 ```python
@@ -182,6 +226,98 @@ def show_ocr_translate_result(action: ActionBase, result: OcrTranslateResult) ->
         highlight_changes=False,
     )
     action.show_toast("✅ Recognized and translated")
+```
+
+</details>
+
+## 🔧 Function `start_text_translation`
+
+```python
+def start_text_translation(action: ActionBase, original: str) -> None
+```
+
+Translate `original` into the local language and show original + translation.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def start_text_translation(action: ActionBase, original: str) -> None:
+    source = original.strip()
+    if not source:
+        return
+    try:
+        prompt_text = build_text_translate_prompt(source, action.config)
+    except ValueError as exc:
+        show_bothub_prompt_build_error(None, exc)
+        return
+
+    state = getattr(action, "_bothub_state", None)
+    if not isinstance(state, BothubRequestState):
+        state = BothubRequestState()
+        action._bothub_state = state  # noqa: SLF001
+
+    def on_error(message: str) -> None:
+        message_box.critical(None, "BotHub Error", message)
+
+    def on_success(response_text: str) -> None:
+        translation = response_text.strip()
+        if not translation:
+            message_box.warning(None, "Translate", "AI returned an empty translation")
+            return
+        action.text_to_clipboard(translation)
+        action.dialogs.show_text_diff_side_by_side(
+            source,
+            translation,
+            title="Recognized text + translation",
+            remove_paragraphs_button=True,
+            before_label="Original",
+            after_label="Translation",
+            highlight_changes=False,
+        )
+        action.show_toast("✅ Translated")
+
+    run_bothub_request(
+        None,
+        action.config,
+        prompt_text,
+        on_success,
+        toast_message="Translating…",
+        is_busy=lambda: state.worker is not None,
+        state=state,
+        on_error=on_error,
+    )
+```
+
+</details>
+
+## 🔧 Function `text_needs_translation`
+
+```python
+def text_needs_translation(text: str, local_language_code: str) -> bool
+```
+
+Return whether `text` looks unlike the configured local language.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def text_needs_translation(text: str, local_language_code: str) -> bool:
+    stripped = text.strip()
+    if not stripped or stripped == _EMPTY_OCR_MARKDOWN:
+        return False
+    cyrillic, latin, cjk = _script_letter_counts(stripped)
+    total = cyrillic + latin + cjk
+    if total < _MIN_SCRIPT_LETTERS:
+        return False
+    code = (local_language_code or "").strip().lower()
+    local_share = latin / total
+    if code in _CYRILLIC_CODES:
+        local_share = cyrillic / total
+    elif code in _CJK_CODES:
+        local_share = cjk / total
+    return local_share < _LOCAL_SCRIPT_MIN_SHARE
 ```
 
 </details>

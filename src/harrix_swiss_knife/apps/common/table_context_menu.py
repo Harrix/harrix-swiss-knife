@@ -16,57 +16,80 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from harrix_swiss_knife.qt_lucide_icon import add_lucide_action
+
 if TYPE_CHECKING:
     from PySide6.QtGui import QAction
     from PySide6.QtWidgets import QMenu
 
-LABEL_ADD_DUMBBELL_WEIGHT_TYPES = "🏋️ Add dumbbell weight types"
-LABEL_CLEAR_CELL = "🗑️ Clear cell"
-LABEL_CLEAR_FILTERS = "🧹 Clear all filters"
-LABEL_DELETE = "🗑️ Delete"
-LABEL_EDIT = "✏️ Edit"
-LABEL_EXPORT_CSV = "📤 Export to CSV"
-LABEL_EXPORT_EXCEL = "📊 Export to Excel"
-LABEL_FILTER_BY_CATEGORY = "🔍 Filter by this category"
-LABEL_FILTER_BY_DATE = "📅 Filter by this date"
-LABEL_FILTER_BY_EXERCISE = "🔍 Filter by this exercise"
-LABEL_FILTER_BY_NAME = "🔍 Filter by this name"
-LABEL_FILTER_BY_TYPE = "🔍 Filter by this type"
-LABEL_OPEN_EXERCISE_CHART = "📊 Open exercise chart"
-LABEL_OPEN_LIGHTBOX = "🖼️ Open image in lightbox"
-LABEL_REFRESH = "🔄 Refresh"
-LABEL_REVEAL_IN_EXPLORER = "📂 Reveal in File Explorer"
-LABEL_SET_DATE = "📅 Set this date in main field"
-LABEL_SET_DATE_MINUS_ONE = "📅 Set this date - 1 day in main field"
-LABEL_SET_DATE_PLUS_ONE = "📅 Set this date + 1 day in main field"
-LABEL_SET_DATE_SELECTED = "✍️ Set date for selected rows…"
-LABEL_SHOW_ALL_RECORDS = "📋 Show all records"
+LABEL_ADD_DUMBBELL_WEIGHT_TYPES = "Add dumbbell weight types"
+LABEL_CLEAR_CELL = "Clear cell"
+LABEL_CLEAR_FILTERS = "Clear all filters"
+LABEL_DELETE = "Delete"
+LABEL_EDIT = "Edit"
+LABEL_EXPORT_CSV = "Export to CSV"
+LABEL_EXPORT_EXCEL = "Export to Excel"
+LABEL_FILTER_BY_CATEGORY = "Filter by this category"
+LABEL_FILTER_BY_DATE = "Filter by this date"
+LABEL_FILTER_BY_EXERCISE = "Filter by this exercise"
+LABEL_FILTER_BY_NAME = "Filter by this name"
+LABEL_FILTER_BY_TYPE = "Filter by this type"
+LABEL_OPEN_EXERCISE_CHART = "Open exercise chart"
+LABEL_OPEN_LIGHTBOX = "Open image in lightbox"
+LABEL_REFRESH = "Refresh"
+LABEL_REVEAL_IN_EXPLORER = "Reveal in File Explorer"
+LABEL_SET_DATE = "Set this date in main field"
+LABEL_SET_DATE_MINUS_ONE = "Set this date - 1 day in main field"
+LABEL_SET_DATE_PLUS_ONE = "Set this date + 1 day in main field"
+LABEL_SET_DATE_SELECTED = "Set date for selected rows…"
+LABEL_SHOW_ALL_RECORDS = "Show all records"
+
+ICON_ADD_DUMBBELL_WEIGHT_TYPES = "dumbbell"
+ICON_CLEAR_CELL = "eraser"
+ICON_CLEAR_FILTERS = "broom"
+ICON_DELETE = "trash"
+ICON_EDIT = "pencil"
+ICON_EXPORT_CSV = "upload"
+ICON_EXPORT_EXCEL = "chart-column"
+ICON_FILTER = "search"
+ICON_OPEN_EXERCISE_CHART = "chart-column"
+ICON_OPEN_LIGHTBOX = "expand"
+ICON_REFRESH = "refresh-cw"
+ICON_REVEAL_IN_EXPLORER = "folder-open"
+ICON_SET_DATE = "calendar"
+ICON_SET_DATE_SELECTED = "square-pen"
+ICON_SHOW_ALL_RECORDS = "clipboard-list"
 
 
 def add_clear_filters_action(menu: QMenu) -> QAction:
     """Add `Clear all filters` inside the filters block above Delete."""
-    return menu.addAction(LABEL_CLEAR_FILTERS)
+    return add_lucide_action(menu, LABEL_CLEAR_FILTERS, ICON_CLEAR_FILTERS)
 
 
 def add_date_in_main_field_actions(menu: QMenu) -> tuple[QAction, QAction, QAction]:
     """Add the three “set this date in the main field” commands."""
     add_separator(menu)
-    set_date = menu.addAction(LABEL_SET_DATE)
-    plus_one = menu.addAction(LABEL_SET_DATE_PLUS_ONE)
-    minus_one = menu.addAction(LABEL_SET_DATE_MINUS_ONE)
+    set_date = add_lucide_action(menu, LABEL_SET_DATE, ICON_SET_DATE)
+    plus_one = add_lucide_action(menu, LABEL_SET_DATE_PLUS_ONE, ICON_SET_DATE)
+    minus_one = add_lucide_action(menu, LABEL_SET_DATE_MINUS_ONE, ICON_SET_DATE)
     return set_date, plus_one, minus_one
 
 
 def add_delete_action(menu: QMenu) -> QAction:
     """Add `Delete` as the last command, after a separator when needed."""
     add_separator(menu)
-    return menu.addAction(LABEL_DELETE)
+    return add_lucide_action(menu, LABEL_DELETE, ICON_DELETE)
+
+
+def add_edit_action(menu: QMenu) -> QAction:
+    """Add `Edit` with a pencil icon."""
+    return add_lucide_action(menu, LABEL_EDIT, ICON_EDIT)
 
 
 def add_export_actions(menu: QMenu) -> tuple[QAction, QAction]:
     """Add CSV and Excel export commands."""
-    csv_action = menu.addAction(LABEL_EXPORT_CSV)
-    excel_action = menu.addAction(LABEL_EXPORT_EXCEL)
+    csv_action = add_lucide_action(menu, LABEL_EXPORT_CSV, ICON_EXPORT_CSV)
+    excel_action = add_lucide_action(menu, LABEL_EXPORT_EXCEL, ICON_EXPORT_EXCEL)
     return csv_action, excel_action
 
 
@@ -76,6 +99,16 @@ def add_info_action(menu: QMenu, text: str) -> QAction:
     action = menu.addAction(text)
     action.setEnabled(False)
     return action
+
+
+def add_labeled_action(menu: QMenu, label: str, icon: str) -> QAction:
+    """Add a chrome menu action with a Lucide icon and plain label."""
+    return add_lucide_action(menu, label, icon)
+
+
+def add_lightbox_action(menu: QMenu) -> QAction:
+    """Add `Open image in lightbox`."""
+    return add_lucide_action(menu, LABEL_OPEN_LIGHTBOX, ICON_OPEN_LIGHTBOX)
 
 
 def add_separator(menu: QMenu) -> None:
@@ -99,5 +132,5 @@ def last_action_is_separator(menu: QMenu) -> bool:
 def show_records_label(*, show_all: bool, last_count: int) -> str:
     """Label that toggles between all records and the last `last_count`."""
     if show_all:
-        return f"📋 Show last {last_count}"
+        return f"Show last {last_count}"
     return LABEL_SHOW_ALL_RECORDS

@@ -56,7 +56,7 @@ def test_recipe_context_menu_has_delete(qapp: QApplication, monkeypatch: pytest.
 
     monkeypatch.setattr(QMenu, "popup", _capture_popup)
     widget._show_recipe_context_menu(widget.list_recipes.visualRect(widget._recipes_model.index(0, 0)).center())
-    # apply_leading_emoji_icons moves the emoji into the action icon.
+    # apply_leading_chrome_icons moves the emoji into the action icon.
     assert shown == ["Delete"]
     assert LABEL_DELETE.endswith("Delete")
     widget.close()

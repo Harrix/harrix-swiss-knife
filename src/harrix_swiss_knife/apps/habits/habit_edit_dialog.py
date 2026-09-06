@@ -29,7 +29,10 @@ from harrix_swiss_knife.apps.habits.habit_emojis import (
 )
 from harrix_swiss_knife.integrations.bothub import BothubRequestState
 from harrix_swiss_knife.paths import get_config_path_str
-from harrix_swiss_knife.qt_emoji_icon import apply_emoji_dialog_buttons, make_emoji_push_button
+from harrix_swiss_knife.qt_lucide_icon import (
+    apply_lucide_dialog_buttons,
+    make_lucide_push_button,
+)
 
 
 class HabitEditDialog(QDialog):
@@ -90,7 +93,7 @@ class HabitEditDialog(QDialog):
         self._emoji_preview.clicked.connect(self._choose_emoji)
         choose_button = QPushButton("Choose…")
         choose_button.clicked.connect(self._choose_emoji)
-        self._ai_emoji_button = make_emoji_push_button("", "🤖")
+        self._ai_emoji_button = make_lucide_push_button("", "bot")
         self._ai_emoji_button.setToolTip("Suggest emoji with AI")
         self._ai_emoji_button.setFixedWidth(36)
         self._ai_emoji_button.clicked.connect(self._suggest_emoji_with_ai)
@@ -103,7 +106,7 @@ class HabitEditDialog(QDialog):
         root.addLayout(form)
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        apply_emoji_dialog_buttons(buttons)
+        apply_lucide_dialog_buttons(buttons)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         root.addWidget(buttons)

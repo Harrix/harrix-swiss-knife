@@ -26,10 +26,10 @@ from harrix_swiss_knife.apps.common.table_context_menu import LABEL_REFRESH, add
 from harrix_swiss_knife.apps.common.table_models import create_colored_table_proxy_model
 from harrix_swiss_knife.apps.common.word_wrap_header import install_word_wrap_header
 from harrix_swiss_knife.apps.finance.currency_add_dialog import CurrencyAddDialog
-from harrix_swiss_knife.qt_emoji_icon import (
-    CANCEL_BUTTON_EMOJI,
-    apply_leading_emoji_icons,
-    make_emoji_push_button,
+from harrix_swiss_knife.qt_lucide_icon import (
+    CANCEL_BUTTON_ICON,
+    apply_leading_chrome_icons,
+    make_lucide_push_button,
 )
 
 if TYPE_CHECKING:
@@ -176,7 +176,7 @@ class CurrenciesDialog(QDialog):
         default_row = QHBoxLayout(default_group)
         self.combo_default_currency = QComboBox(default_group)
         self.combo_default_currency.setMinimumWidth(170)
-        self.set_default_button = make_emoji_push_button("Set Default", "⭐")
+        self.set_default_button = make_lucide_push_button("Set Default", "star")
         self.set_default_button.clicked.connect(self._on_set_default_currency)
         default_row.addWidget(self.combo_default_currency, 1)
         default_row.addWidget(self.set_default_button)
@@ -193,9 +193,9 @@ class CurrenciesDialog(QDialog):
         layout.addWidget(self.table)
 
         buttons = QHBoxLayout()
-        self.add_button = make_emoji_push_button("Add", "➕")  # noqa: RUF001
-        self.refresh_button = make_emoji_push_button("Refresh", "🔄")
-        self.close_button = make_emoji_push_button("Close", CANCEL_BUTTON_EMOJI)
+        self.add_button = make_lucide_push_button("Add", "plus")
+        self.refresh_button = make_lucide_push_button("Refresh", "refresh-cw")
+        self.close_button = make_lucide_push_button("Close", CANCEL_BUTTON_ICON)
         self.add_button.clicked.connect(self._on_add)
         self.refresh_button.clicked.connect(self._on_refresh)
         self.close_button.clicked.connect(self.accept)
@@ -221,7 +221,7 @@ class CurrenciesDialog(QDialog):
         delete_action.setEnabled(currency_id is not None)
         if currency_id is not None:
             delete_action.triggered.connect(lambda: self._on_delete(currency_id))
-        apply_leading_emoji_icons(context_menu)
+        apply_leading_chrome_icons(context_menu)
 
         viewport = self.table.viewport()
         if viewport is None:

@@ -55,7 +55,7 @@ class TextImageSourceDialog(QDialog):
         show_skip_manual: bool = False,
         skip_manual_button_text: str = "Enter Text Manually",
         accept_button_text: str = "OK",
-        accept_button_emoji: str = "✅",
+        accept_button_icon: str = OK_BUTTON_ICON,
         accept_button_style: str | None = None,
         max_image_side: int | None = None,
         initial_image_paths: list[str] | None = None,
@@ -76,7 +76,7 @@ class TextImageSourceDialog(QDialog):
         self._show_skip_manual = show_skip_manual
         self._skip_manual_button_text = skip_manual_button_text
         self._accept_button_text = accept_button_text
-        self._accept_button_emoji = accept_button_emoji
+        self._accept_button_icon = accept_button_icon
         self._accept_button_style = accept_button_style
         self._max_image_side = max_image_side
         self._large_ui = large_ui
@@ -200,15 +200,15 @@ class TextImageSourceDialog(QDialog):
         button_layout.addStretch()
 
         if self._show_skip_manual:
-            skip_button = make_emoji_push_button(self._skip_manual_button_text, "📝")
+            skip_button = make_lucide_push_button(self._skip_manual_button_text, "notebook-pen")
             skip_button.clicked.connect(self._on_skip_to_manual)
             button_layout.addWidget(skip_button)
 
-        cancel_button = make_emoji_push_button("Cancel", "❌")
+        cancel_button = make_lucide_push_button("Cancel", "x")
         cancel_button.clicked.connect(self.reject)
         button_layout.addWidget(cancel_button)
 
-        self._ok_button = make_emoji_push_button(self._accept_button_text, self._accept_button_emoji)
+        self._ok_button = make_lucide_push_button(self._accept_button_text, self._accept_button_icon)
         accept_font = QFont()
         accept_font.setBold(True)
         self._ok_button.setFont(accept_font)
@@ -241,7 +241,7 @@ class TextImageSourceDialog(QDialog):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None = None, *, title: str = 'Source input', description: str = '', placeholder: str = '', show_text: bool = True, text_required: bool = False, show_images: bool = True, images_required: bool = False, image_mode: ImagePickerMode = ImagePickerMode.MULTI, image_label: str | None = 'Images (drag, paste Ctrl+V, or select files):', show_skip_manual: bool = False, skip_manual_button_text: str = 'Enter Text Manually', accept_button_text: str = 'OK', accept_button_emoji: str = '✅', accept_button_style: str | None = None, max_image_side: int | None = None, initial_image_paths: list[str] | None = None, initial_image_path: str | None = None, large_ui: bool = False) -> None
+def __init__(self, parent: QWidget | None = None, *, title: str = 'Source input', description: str = '', placeholder: str = '', show_text: bool = True, text_required: bool = False, show_images: bool = True, images_required: bool = False, image_mode: ImagePickerMode = ImagePickerMode.MULTI, image_label: str | None = 'Images (drag, paste Ctrl+V, or select files):', show_skip_manual: bool = False, skip_manual_button_text: str = 'Enter Text Manually', accept_button_text: str = 'OK', accept_button_icon: str = OK_BUTTON_ICON, accept_button_style: str | None = None, max_image_side: int | None = None, initial_image_paths: list[str] | None = None, initial_image_path: str | None = None, large_ui: bool = False) -> None
 ```
 
 Initialize the text/image source dialog.
@@ -266,7 +266,7 @@ def __init__(
         show_skip_manual: bool = False,
         skip_manual_button_text: str = "Enter Text Manually",
         accept_button_text: str = "OK",
-        accept_button_emoji: str = "✅",
+        accept_button_icon: str = OK_BUTTON_ICON,
         accept_button_style: str | None = None,
         max_image_side: int | None = None,
         initial_image_paths: list[str] | None = None,
@@ -286,7 +286,7 @@ def __init__(
         self._show_skip_manual = show_skip_manual
         self._skip_manual_button_text = skip_manual_button_text
         self._accept_button_text = accept_button_text
-        self._accept_button_emoji = accept_button_emoji
+        self._accept_button_icon = accept_button_icon
         self._accept_button_style = accept_button_style
         self._max_image_side = max_image_side
         self._large_ui = large_ui

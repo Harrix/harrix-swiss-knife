@@ -228,7 +228,7 @@ def test_dashboard_context_menu_hides_assign_for_sport_habit(
         menu.addAction(action)
         return action
 
-    monkeypatch.setattr("harrix_swiss_knife.apps.habits.dashboard.add_emoji_action", fake_add)
+    monkeypatch.setattr("harrix_swiss_knife.apps.habits.dashboard.add_lucide_action", fake_add)
     monkeypatch.setattr(QMenu, "exec_", lambda *_args, **_kwargs: None)
 
     assigned = HabitDashboardWidget(app_config={HABITS_SPORT_HABIT_NAME_KEY: "Sport"})
@@ -258,7 +258,7 @@ def test_dashboard_context_menu_assigns_sport_habit(
         captured.append(action)
         return action
 
-    monkeypatch.setattr("harrix_swiss_knife.apps.habits.dashboard.add_emoji_action", fake_add)
+    monkeypatch.setattr("harrix_swiss_knife.apps.habits.dashboard.add_lucide_action", fake_add)
     dashboard = HabitDashboardWidget(app_config={HABITS_SPORT_HABIT_NAME_KEY: ""})
     dashboard._habits_cache = [[3, "Sport", 1, 0, ""]]
     names: list[str] = []

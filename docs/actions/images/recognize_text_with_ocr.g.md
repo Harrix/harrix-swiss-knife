@@ -93,8 +93,9 @@ class OnRecognizeTextWithOcr(ActionBase):
         self.text_to_clipboard(markdown)
         self.add_line("📋 Markdown copied to clipboard")
         default_name = suggest_markdown_filename(self._image_paths)
-        self.show_result(
-            display_text=markdown,
+        present_recognized_text(
+            self,
+            markdown,
             save_button=True,
             save_default_path=str(self._markdown_base / default_name),
         )
@@ -205,8 +206,9 @@ def thread_after_markdown(self, result: Any) -> None:
         self.text_to_clipboard(markdown)
         self.add_line("📋 Markdown copied to clipboard")
         default_name = suggest_markdown_filename(self._image_paths)
-        self.show_result(
-            display_text=markdown,
+        present_recognized_text(
+            self,
+            markdown,
             save_button=True,
             save_default_path=str(self._markdown_base / default_name),
         )

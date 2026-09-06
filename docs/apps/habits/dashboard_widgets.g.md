@@ -123,10 +123,10 @@ class CheckCircle(QWidget):
         HabitDayPickerPopup.hide_active()
         menu = QMenu(self)
         if self._has_comment:
-            day_action = add_emoji_action(menu, "Open note", "📝")
+            day_action = add_lucide_action(menu, "Open note", "notebook-pen")
         else:
-            day_action = add_emoji_action(menu, "Create note", "➕")  # noqa: RUF001
-        all_action = add_emoji_action(menu, "Show all notes", "💬")
+            day_action = add_lucide_action(menu, "Create note", "plus")
+        all_action = add_lucide_action(menu, "Show all notes", "message-square")
         chosen = menu.exec_(event.globalPos())
         if chosen == day_action:
             self.comment_requested.emit()
@@ -307,10 +307,10 @@ def contextMenuEvent(self, event: QContextMenuEvent) -> None:  # noqa: N802
         HabitDayPickerPopup.hide_active()
         menu = QMenu(self)
         if self._has_comment:
-            day_action = add_emoji_action(menu, "Open note", "📝")
+            day_action = add_lucide_action(menu, "Open note", "notebook-pen")
         else:
-            day_action = add_emoji_action(menu, "Create note", "➕")  # noqa: RUF001
-        all_action = add_emoji_action(menu, "Show all notes", "💬")
+            day_action = add_lucide_action(menu, "Create note", "plus")
+        all_action = add_lucide_action(menu, "Show all notes", "message-square")
         chosen = menu.exec_(event.globalPos())
         if chosen == day_action:
             self.comment_requested.emit()
@@ -1549,17 +1549,17 @@ class MonthCalendarGrid(QWidget):
     def _build_title_menu(self) -> QMenu:
         """Build the month-title context menu for current month and years."""
         menu = QMenu(self)
-        current_action = add_emoji_action(menu, "Show current month and year", "📅")
+        current_action = add_lucide_action(menu, "Show current month and year", "calendar")
         on_current = (self._year, self._month) == (self._today.year, self._today.month)
         current_action.setEnabled(not on_current)
         current_action.triggered.connect(self._on_title_double_clicked)
 
-        fill_action = add_emoji_action(menu, "Fill No record days with Not done", "✅")
+        fill_action = add_lucide_action(menu, "Fill No record days with Not done", "circle-check")
         fill_action.setEnabled(bool(self._absent_dates_this_month()))
         fill_action.triggered.connect(lambda _checked=False: self.fill_absent_not_done.emit())
 
         year_menu = menu.addMenu("Year")
-        apply_emoji_action_icon(year_menu.menuAction(), "📆")
+        apply_lucide_action_icon(year_menu.menuAction(), "calendar")
         if not self._available_years:
             empty = year_menu.addAction("No years in database")
             empty.setEnabled(False)

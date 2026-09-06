@@ -56,7 +56,7 @@ from harrix_swiss_knife.apps.habits.habit_day_picker import HabitDayPickerPopup
 from harrix_swiss_knife.apps.habits.habit_edit_dialog import HabitEditDialog
 from harrix_swiss_knife.apps.habits.habit_emojis import normalize_habit_emoji
 from harrix_swiss_knife.apps.habits.sport_habit_sync import habit_names_match
-from harrix_swiss_knife.qt_emoji_icon import add_emoji_action
+from harrix_swiss_knife.qt_lucide_icon import add_lucide_action, make_lucide_push_button
 
 if TYPE_CHECKING:
     from harrix_swiss_knife.apps.habits.database_manager import DatabaseManager
@@ -223,7 +223,7 @@ class HabitDashboardWidget(QWidget):
         subtitle.setWordWrap(True)
         subtitle.setStyleSheet("color: #6B7280; font-size: 16px;")
 
-        button = QPushButton("➕ Add habit")  # noqa: RUF001
+        button = make_lucide_push_button("Add habit", "plus")
         button.setObjectName("habitDashAddHabitButton")
         button.setCursor(Qt.CursorShape.PointingHandCursor)
         button.setMinimumSize(280, 64)
@@ -568,10 +568,10 @@ class HabitDashboardWidget(QWidget):
         if self._db is None or self._selected_habit_id is None:
             return
         menu = QMenu(self)
-        act_edit = add_emoji_action(menu, "Edit habit", "✏️")
-        act_comments = add_emoji_action(menu, "All comments…", "💬")
-        act_archive = add_emoji_action(menu, "Archive habit", "🗄")
-        act_delete = add_emoji_action(menu, "Delete habit", "🗑️")
+        act_edit = add_lucide_action(menu, "Edit habit", "pencil")
+        act_comments = add_lucide_action(menu, "All comments…", "message-square")
+        act_archive = add_lucide_action(menu, "Archive habit", "archive")
+        act_delete = add_lucide_action(menu, "Delete habit", "trash")
         chosen = menu.exec_(self._detail_more.mapToGlobal(self._detail_more.rect().bottomLeft()))
         habit_id = self._selected_habit_id
         if chosen == act_edit:
@@ -614,12 +614,12 @@ class HabitDashboardWidget(QWidget):
         HabitDayPickerPopup.hide_active()
         QToolTip.hideText()
         menu = QMenu(self)
-        act_edit = add_emoji_action(menu, "Edit habit", "✏️")
-        act_comments = add_emoji_action(menu, "All comments…", "💬")
+        act_edit = add_lucide_action(menu, "Edit habit", "pencil")
+        act_comments = add_lucide_action(menu, "All comments…", "message-square")
         act_sport = None
         habit_name = self._habit_name(habit_id)
         if habit_name and not habit_names_match(habit_name, get_habits_sport_habit_name(self._app_config)):
-            act_sport = add_emoji_action(menu, "Assign as sport habit", "🏃")
+            act_sport = add_lucide_action(menu, "Assign as sport habit", "person-standing")
         chosen = menu.exec_(global_pos)
         if chosen == act_edit:
             self._edit_selected_habit()

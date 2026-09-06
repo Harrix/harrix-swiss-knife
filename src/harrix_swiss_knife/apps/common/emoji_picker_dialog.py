@@ -20,7 +20,7 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common.emoji_presets import POPULAR_EMOJI_PRESETS
-from harrix_swiss_knife.qt_emoji_icon import apply_emoji_dialog_buttons
+from harrix_swiss_knife.qt_lucide_icon import apply_lucide_dialog_buttons
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -179,7 +179,7 @@ class EmojiPickerDialog(QDialog):
         root.addLayout(custom_row)
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        apply_emoji_dialog_buttons(buttons)
+        apply_lucide_dialog_buttons(buttons)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         root.addWidget(buttons)

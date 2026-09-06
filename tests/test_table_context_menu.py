@@ -37,18 +37,18 @@ def qapp() -> QApplication:
 
 def test_add_delete_action_is_last_and_named_delete(qapp: QApplication) -> None:  # noqa: ARG001
     menu = QMenu()
-    menu.addAction("✏️ Edit")
+    menu.addAction("Edit")
     add_delete_action(menu)
     texts = [action.text() for action in menu.actions() if not action.isSeparator()]
     assert texts[-1] == LABEL_DELETE
-    assert LABEL_DELETE == "🗑️ Delete"
+    assert LABEL_DELETE == "Delete"
 
 
 def test_add_separator_skips_empty_and_duplicate(qapp: QApplication) -> None:  # noqa: ARG001
     menu = QMenu()
     add_separator(menu)
     assert menu.isEmpty()
-    menu.addAction("✏️ Edit")
+    menu.addAction("Edit")
     add_separator(menu)
     add_separator(menu)
     assert [action.isSeparator() for action in menu.actions()] == [False, True]
@@ -64,7 +64,7 @@ def test_add_date_in_main_field_actions_use_shared_labels(qapp: QApplication) ->
 
 def test_filters_block_is_above_delete(qapp: QApplication) -> None:  # noqa: ARG001
     menu = QMenu()
-    menu.addAction("📤 Export to CSV")
+    menu.addAction("Export to CSV")
     add_info_action(menu, "💰 Sum of selected: 10")
     begin_filters_block(menu)
     menu.addAction(LABEL_FILTER_BY_DATE)
@@ -76,7 +76,7 @@ def test_filters_block_is_above_delete(qapp: QApplication) -> None:  # noqa: ARG
 
 def test_add_info_action_is_disabled(qapp: QApplication) -> None:  # noqa: ARG001
     menu = QMenu()
-    menu.addAction("📤 Export to CSV")
+    menu.addAction("Export to CSV")
     info = add_info_action(menu, "💰 Sum of selected: 10")
     assert not info.isEnabled()
     add_delete_action(menu)
@@ -95,4 +95,4 @@ def test_add_export_actions_adds_csv_and_excel(qapp: QApplication) -> None:  # n
 
 def test_show_records_label() -> None:
     assert show_records_label(show_all=False, last_count=20) == LABEL_SHOW_ALL_RECORDS
-    assert show_records_label(show_all=True, last_count=20) == "📋 Show last 20"
+    assert show_records_label(show_all=True, last_count=20) == "Show last 20"

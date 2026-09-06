@@ -6,7 +6,11 @@ from PySide6.QtWidgets import QDialog, QFormLayout, QHBoxLayout, QLineEdit, QVBo
 
 from harrix_swiss_knife.apps.snippets.constants import ZONE_COLOR, ZONE_SYMBOL
 from harrix_swiss_knife.qt_app_font import apply_mono_font
-from harrix_swiss_knife.qt_emoji_icon import CANCEL_BUTTON_EMOJI, OK_BUTTON_EMOJI, make_emoji_push_button
+from harrix_swiss_knife.qt_lucide_icon import (
+    CANCEL_BUTTON_ICON,
+    OK_BUTTON_ICON,
+    make_lucide_push_button,
+)
 
 
 class ItemEditDialog(QDialog):
@@ -48,8 +52,8 @@ class ItemEditDialog(QDialog):
 
         buttons = QHBoxLayout()
         buttons.addStretch()
-        cancel = make_emoji_push_button("Cancel", CANCEL_BUTTON_EMOJI)
-        ok = make_emoji_push_button("OK", OK_BUTTON_EMOJI)
+        cancel = make_lucide_push_button("Cancel", CANCEL_BUTTON_ICON)
+        ok = make_lucide_push_button("OK", OK_BUTTON_ICON)
         cancel.clicked.connect(self.reject)
         ok.clicked.connect(self.accept)
         buttons.addWidget(cancel)

@@ -35,12 +35,16 @@ from PySide6.QtWidgets import (
 from harrix_swiss_knife.action_hotkeys import load_action_hotkeys
 from harrix_swiss_knife.actions.common.dialog_geometry import text_content_height
 from harrix_swiss_knife.actions.common.open_in_editor import open_in_editor
-from harrix_swiss_knife.actions.common.text_result_dialog import OPEN_FOLDER_BUTTON_EMOJI
+from harrix_swiss_knife.actions.common.text_result_dialog import OPEN_FOLDER_BUTTON_ICON
 from harrix_swiss_knife.app_restart import restart_current_application
 from harrix_swiss_knife.config_model import restart_required_config_keys
 from harrix_swiss_knife.global_hotkey import hotkey_string_from_event
 from harrix_swiss_knife.paths import get_config_path_str, get_project_root
-from harrix_swiss_knife.qt_emoji_icon import DELETE_BUTTON_EMOJI, SAVE_BUTTON_EMOJI, make_emoji_push_button
+from harrix_swiss_knife.qt_lucide_icon import (
+    DELETE_BUTTON_ICON,
+    SAVE_BUTTON_ICON,
+    make_lucide_push_button,
+)
 
 if TYPE_CHECKING:
     from PySide6.QtGui import QFocusEvent, QKeyEvent, QResizeEvent, QShowEvent
@@ -49,7 +53,7 @@ OPEN_FOLDER_BUTTON_OBJECT_NAME = "settingsOpenFolderButton"
 OPEN_SNIPPET_BUTTON_OBJECT_NAME = "settingsOpenSnippetButton"
 SNIPPET_CONTENT_OBJECT_NAME = "settingsSnippetContent"
 FIELD_SAVE_BUTTON_OBJECT_NAME = "settingsFieldSaveButton"
-OPEN_SNIPPET_BUTTON_EMOJI = "📝"
+OPEN_SNIPPET_BUTTON_ICON = "notebook-pen"
 _SNIPPET_PREFIX = "snippet:"
 STATUS_LABEL_OBJECT_NAME = "settingsSaveStatus"
 CLOSE_BUTTON_OBJECT_NAME = "settingsCloseButton"
@@ -152,7 +156,7 @@ class HotkeyBindingsWidget(QWidget):
         if not self._rows:
             self._add_row("", "")
 
-        add_button = make_emoji_push_button("Add", "➕")  # noqa: RUF001
+        add_button = make_lucide_push_button("Add", "plus")
         add_button.setObjectName(ADD_HOTKEY_BUTTON_OBJECT_NAME)
         add_button.setToolTip("Add hotkey")
         add_button.setAutoDefault(False)
@@ -191,7 +195,7 @@ class HotkeyBindingsWidget(QWidget):
         hotkey_edit.textChanged.connect(self.changed.emit)
         row_layout.addWidget(hotkey_edit, 1)
 
-        remove_button = make_emoji_push_button("", DELETE_BUTTON_EMOJI)
+        remove_button = make_lucide_push_button("", DELETE_BUTTON_ICON)
         remove_button.setObjectName(REMOVE_HOTKEY_BUTTON_OBJECT_NAME)
         remove_button.setToolTip("Remove hotkey")
         remove_button.setAutoDefault(False)
@@ -341,7 +345,7 @@ class SettingsEditorDialog(QDialog):
         content.textChanged.connect(lambda key=widget_key: self._on_snippet_text_changed(key))
         self._snippet_editors[widget_key] = content
 
-        open_button = make_emoji_push_button("", OPEN_SNIPPET_BUTTON_EMOJI)
+        open_button = make_lucide_push_button("", OPEN_SNIPPET_BUTTON_ICON)
         open_button.setObjectName(OPEN_SNIPPET_BUTTON_OBJECT_NAME)
         open_button.setToolTip("Open snippet in editor")
         open_button.setAutoDefault(False)
@@ -432,7 +436,7 @@ class SettingsEditorDialog(QDialog):
             return ""
 
     def _make_field_save_button(self, widget_key: str, *, tooltip: str | None = None) -> QPushButton:
-        button = make_emoji_push_button("Save", SAVE_BUTTON_EMOJI)
+        button = make_lucide_push_button("Save", SAVE_BUTTON_ICON)
         button.setObjectName(FIELD_SAVE_BUTTON_OBJECT_NAME)
         button.setToolTip(tooltip or "Save this setting to config.json")
         button.setAutoDefault(False)
@@ -652,7 +656,7 @@ class SettingsEditorDialog(QDialog):
                     row = QHBoxLayout()
                     row.setContentsMargins(0, 0, 0, 0)
                     row.addWidget(widget, 1)
-                    open_button = make_emoji_push_button("", OPEN_FOLDER_BUTTON_EMOJI)
+                    open_button = make_lucide_push_button("", OPEN_FOLDER_BUTTON_ICON)
                     open_button.setObjectName(OPEN_FOLDER_BUTTON_OBJECT_NAME)
                     open_button.setToolTip("Open folder")
                     open_button.setAutoDefault(False)
@@ -760,7 +764,7 @@ class SettingsEditorDialog(QDialog):
         self.status_label = QLabel("")
         self.status_label.setObjectName(STATUS_LABEL_OBJECT_NAME)
         btn_layout.addWidget(self.status_label, 1)
-        btn_save = make_emoji_push_button("Save all", SAVE_BUTTON_EMOJI)
+        btn_save = make_lucide_push_button("Save all", SAVE_BUTTON_ICON)
         btn_save.setObjectName(SAVE_ALL_BUTTON_OBJECT_NAME)
         btn_save.setAutoDefault(False)
         btn_save.setDefault(False)

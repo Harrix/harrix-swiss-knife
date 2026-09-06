@@ -177,12 +177,12 @@ class ExerciseSelectionDialog(QDialog):
         footer.addWidget(self._selection_count_label, stretch=1)
         self._clear_button: QPushButton | None = None
         if multi_select:
-            self._clear_button = make_emoji_push_button("Clear selection", "✖️")
+            self._clear_button = make_lucide_push_button("Clear selection", "x")
             self._clear_button.clicked.connect(self._clear_multi_selection)
             footer.addWidget(self._clear_button)
             button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Cancel, self)
-            apply_emoji_dialog_buttons(button_box)
-            self._add_button = make_emoji_push_button("Add exercise", "➕")  # noqa: RUF001
+            apply_lucide_dialog_buttons(button_box)
+            self._add_button = make_lucide_push_button("Add exercise", "plus")
             self._add_button.clicked.connect(self._on_accept)
             button_box.addButton(self._add_button, QDialogButtonBox.ButtonRole.AcceptRole)
         else:
@@ -190,7 +190,7 @@ class ExerciseSelectionDialog(QDialog):
                 QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
                 self,
             )
-            apply_emoji_dialog_buttons(button_box)
+            apply_lucide_dialog_buttons(button_box)
             self._add_button = button_box.button(QDialogButtonBox.StandardButton.Ok)
             button_box.accepted.connect(self._on_accept)
         button_box.rejected.connect(self.reject)
@@ -631,12 +631,12 @@ def __init__(
         footer.addWidget(self._selection_count_label, stretch=1)
         self._clear_button: QPushButton | None = None
         if multi_select:
-            self._clear_button = make_emoji_push_button("Clear selection", "✖️")
+            self._clear_button = make_lucide_push_button("Clear selection", "x")
             self._clear_button.clicked.connect(self._clear_multi_selection)
             footer.addWidget(self._clear_button)
             button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Cancel, self)
-            apply_emoji_dialog_buttons(button_box)
-            self._add_button = make_emoji_push_button("Add exercise", "➕")  # noqa: RUF001
+            apply_lucide_dialog_buttons(button_box)
+            self._add_button = make_lucide_push_button("Add exercise", "plus")
             self._add_button.clicked.connect(self._on_accept)
             button_box.addButton(self._add_button, QDialogButtonBox.ButtonRole.AcceptRole)
         else:
@@ -644,7 +644,7 @@ def __init__(
                 QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
                 self,
             )
-            apply_emoji_dialog_buttons(button_box)
+            apply_lucide_dialog_buttons(button_box)
             self._add_button = button_box.button(QDialogButtonBox.StandardButton.Ok)
             button_box.accepted.connect(self._on_accept)
         button_box.rejected.connect(self.reject)

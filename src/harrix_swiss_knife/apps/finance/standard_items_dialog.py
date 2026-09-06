@@ -39,12 +39,12 @@ from harrix_swiss_knife.integrations.bothub import (
     run_bothub_request,
     show_bothub_prompt_build_error,
 )
-from harrix_swiss_knife.qt_emoji_icon import (
-    CANCEL_BUTTON_EMOJI,
-    DELETE_BUTTON_EMOJI,
-    apply_emoji_dialog_buttons,
-    apply_leading_emoji_icons,
-    make_emoji_push_button,
+from harrix_swiss_knife.qt_lucide_icon import (
+    CANCEL_BUTTON_ICON,
+    DELETE_BUTTON_ICON,
+    apply_leading_chrome_icons,
+    apply_lucide_dialog_buttons,
+    make_lucide_push_button,
 )
 
 if TYPE_CHECKING:
@@ -279,11 +279,11 @@ class StandardItemsDialog(QDialog):
         layout.addWidget(self.table)
 
         buttons = QHBoxLayout()
-        self.add_button = make_emoji_push_button("Add", "➕")  # noqa: RUF001
-        self.edit_button = make_emoji_push_button("Edit", "✏️")
-        self.delete_button = make_emoji_push_button("Delete", DELETE_BUTTON_EMOJI)
-        self.translate_button = make_emoji_push_button("Translate with AI", "🤖")
-        self.close_button = make_emoji_push_button("Close", CANCEL_BUTTON_EMOJI)
+        self.add_button = make_lucide_push_button("Add", "plus")
+        self.edit_button = make_lucide_push_button("Edit", "pencil")
+        self.delete_button = make_lucide_push_button("Delete", DELETE_BUTTON_ICON)
+        self.translate_button = make_lucide_push_button("Translate with AI", "bot")
+        self.close_button = make_lucide_push_button("Close", CANCEL_BUTTON_ICON)
         self.add_button.clicked.connect(self._on_add)
         self.edit_button.clicked.connect(self._on_edit)
         self.delete_button.clicked.connect(self._on_delete)
@@ -308,7 +308,7 @@ class StandardItemsDialog(QDialog):
             return
         menu = QMenu(self)
         delete_action = add_delete_action(menu)
-        apply_leading_emoji_icons(menu)
+        apply_leading_chrome_icons(menu)
         viewport = self.table.viewport()
         if viewport is None:
             return
@@ -398,7 +398,7 @@ class _StandardItemEditDialog(QDialog):
             QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel,
             self,
         )
-        apply_emoji_dialog_buttons(buttons)
+        apply_lucide_dialog_buttons(buttons)
         buttons.accepted.connect(self._on_save)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)

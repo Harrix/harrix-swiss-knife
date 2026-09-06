@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife import qt_modality
-from harrix_swiss_knife.qt_emoji_icon import make_emoji_push_button
+from harrix_swiss_knife.qt_lucide_icon import make_lucide_push_button
 
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QWidget
@@ -81,10 +81,10 @@ class ChooseIconFamilyDialog(QDialog):
         layout.addWidget(self._list, 1)
         buttons = QHBoxLayout()
         buttons.addStretch(1)
-        cancel = make_emoji_push_button("Cancel", "❌")
+        cancel = make_lucide_push_button("Cancel", "x")
         cancel.clicked.connect(self.reject)
         buttons.addWidget(cancel)
-        ok = make_emoji_push_button("OK", "✅")
+        ok = make_lucide_push_button("OK", "circle-check")
         ok.setDefault(True)
         ok.clicked.connect(self.accept)
         buttons.addWidget(ok)

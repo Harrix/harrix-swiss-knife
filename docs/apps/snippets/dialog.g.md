@@ -57,10 +57,14 @@ class SnippetsDialog(QDialog):
         self._drag_position = QPoint()
         self._saved_clipboard = None
         self.db_manager: database_manager.DatabaseManager | None = None
+        self._app_config: dict[str, Any] = {}
+        self._bothub_state = BothubRequestState()
+        self._ai_request_in_progress = False
 
         apply_opaque_white(self)
         self.setObjectName("snippetsDialog")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
+        self.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips, on=True)
         self.setStyleSheet(_DIALOG_BORDER_STYLE)
 
         self._active_zone: ZoneName = ZONE_PHRASE
@@ -151,11 +155,13 @@ class SnippetsDialog(QDialog):
         for panel in self._panels.values():
             panel.reset_keyboard_session()
             panel.clear_filter()
+        self._emoji.clear_ai_candidates()
         self._center_on_screen()
         self.show()
         self.raise_()
         self.activateWindow()
         self._activate_zone(ZONE_PHRASE, select_item=False)
+        self._update_ai_pick_button()
 
     def reload_all(self) -> None:
         """Reload every zone from the database."""
@@ -202,12 +208,25 @@ class SnippetsDialog(QDialog):
         """Return the zone panel that the shared input currently filters."""
         return self._panels[self._active_zone]
 
+    def _add_ai_emoji(self, emoji: str) -> None:
+        if self.db_manager is None or not emoji.strip():
+            return
+        if self.db_manager.has_item_value(ZONE_EMOJI, emoji):
+            self._refresh_ai_candidates()
+            return
+        self.db_manager.add_item(ZONE_EMOJI, emoji, "")
+        self._reload_zone(ZONE_EMOJI, self._emoji)
+        self._refresh_ai_candidates()
+
     def _add_item(self, zone: str) -> None:
         dialog = ItemEditDialog(self, title=f"Add {_ZONE_TITLES[zone].lower()}", zone=zone)
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return
         value, hint = dialog.values()
         if not value or self.db_manager is None:
+            return
+        if self.db_manager.has_item_value(zone, value):
+            self._warn_duplicate(zone, value)
             return
         self.db_manager.add_item(zone, value, hint)
         self._reload_zone(zone, self._panels[zone])
@@ -226,14 +245,20 @@ class SnippetsDialog(QDialog):
         items = parse_bulk_lines(dialog.get_text() or "", zone)
         if not items:
             return
-        self.db_manager.add_items(zone, items)
+        existing = [item.value for item in self.db_manager.list_items(zone)]
+        new_items, duplicates = filter_new_snippet_items(zone, items, existing)
+        if duplicates:
+            self._warn_duplicates(zone, duplicates)
+        if not new_items:
+            return
+        self.db_manager.add_items(zone, new_items)
         self._reload_zone(zone, self._panels[zone])
 
     def _build_body(self) -> None:
-        self._phrases = ZonePanel(self, zone=ZONE_PHRASE, title="Add phrase", show_add=True)
-        self._emoji = ZonePanel(self, zone=ZONE_EMOJI, title="Add emoji", show_add=True)
-        self._symbols = ZonePanel(self, zone=ZONE_SYMBOL, title="Add symbol", show_add=True)
-        self._colors = ZonePanel(self, zone=ZONE_COLOR, title="Add color", show_add=True)
+        self._phrases = ZonePanel(self, zone=ZONE_PHRASE, title=_ZONE_TITLES[ZONE_PHRASE])
+        self._emoji = ZonePanel(self, zone=ZONE_EMOJI, title=_ZONE_TITLES[ZONE_EMOJI])
+        self._symbols = ZonePanel(self, zone=ZONE_SYMBOL, title=_ZONE_TITLES[ZONE_SYMBOL])
+        self._colors = ZonePanel(self, zone=ZONE_COLOR, title=_ZONE_TITLES[ZONE_COLOR])
         self._panels = {
             ZONE_PHRASE: self._phrases,
             ZONE_EMOJI: self._emoji,
@@ -248,6 +273,10 @@ class SnippetsDialog(QDialog):
             panel.edit_all_requested.connect(lambda zone_panel=panel: self._edit_all(zone_panel.zone))
             panel.delete_requested.connect(self._delete_item)
             panel.sort_requested.connect(lambda mode, zone_panel=panel: self._sort_zone(zone_panel.zone, mode))
+        self._emoji.ai_pick_requested.connect(self._suggest_emoji_with_ai)
+        self._emoji.ai_add_requested.connect(self._add_ai_emoji)
+        self._emoji.ai_paste_requested.connect(self._paste_ai_emoji)
+        self._emoji.ai_dismiss_requested.connect(self._update_ai_pick_button)
 
         right_split = QSplitter(Qt.Orientation.Vertical, self)
         right_split.addWidget(self._emoji)
@@ -268,6 +297,20 @@ class SnippetsDialog(QDialog):
         self._layout.addWidget(columns, stretch=1)
 
     def _build_header(self) -> None:
+        menu_button = QToolButton(self)
+        menu_button.setIcon(create_lucide_icon("menu", 18))
+        menu_button.setIconSize(QSize(18, 18))
+        menu_button.setFixedSize(28, 28)
+        menu_button.setAutoRaise(True)
+        menu_button.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
+        menu_button.setToolTip("Menu")
+        menu_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        header_menu = QMenu(menu_button)
+        header_menu.aboutToShow.connect(self._fill_header_menu)
+        menu_button.setMenu(header_menu)
+        self._menu_button = menu_button
+        self._header_menu = header_menu
+
         title = QLabel("Quick paste")
         title_font = QFont(title.font())
         grow_qfont(title_font)
@@ -291,6 +334,7 @@ class SnippetsDialog(QDialog):
         header_spacer.installEventFilter(self)
 
         header = QHBoxLayout()
+        header.addWidget(menu_button)
         header.addWidget(title)
         header.addWidget(header_spacer, stretch=1)
         header.addWidget(close_button)
@@ -345,7 +389,10 @@ class SnippetsDialog(QDialog):
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return
         parsed = parse_bulk_lines(dialog.get_text() or "", zone)
-        self.db_manager.replace_zone_items(zone, parsed)
+        unique_items, duplicates = filter_new_snippet_items(zone, parsed, [])
+        if duplicates:
+            self._warn_duplicates(zone, duplicates)
+        self.db_manager.replace_zone_items(zone, unique_items)
         self._reload_zone(zone, self._panels[zone])
 
     def _edit_item(self, snippet: SnippetItem) -> None:
@@ -361,11 +408,24 @@ class SnippetsDialog(QDialog):
         value, hint = dialog.values()
         if not value:
             return
+        if self.db_manager.has_item_value(snippet.zone, value, exclude_id=snippet.item_id):
+            self._warn_duplicate(snippet.zone, value)
+            return
         self.db_manager.update_item(snippet.item_id, value, hint)
         self._reload_zone(snippet.zone, self._panels[snippet.zone])
 
     def _end_drag(self) -> None:
         self._dragging = False
+
+    def _fill_header_menu(self) -> None:
+        menu = self._header_menu
+        menu.clear()
+        for zone, title in _ZONE_ADD_TITLES.items():
+            action = add_lucide_action(menu, title, "plus")
+            action.triggered.connect(lambda _checked=False, chosen=zone: self._add_item(chosen))
+        menu.addSeparator()
+        mode, descending = self._shared_zone_sort()
+        add_sort_menu_actions(menu, mode=mode, descending=descending, on_sort=self._sort_all_zones)
 
     def _handle_title_drag(self, watched: QObject, event: QEvent) -> bool:
         if (
@@ -394,8 +454,8 @@ class SnippetsDialog(QDialog):
         return super().eventFilter(watched, event)
 
     def _init_database(self) -> None:
-        config = h.dev.config_load(get_config_path_str())
-        raw = str(config.get("sqlite_snippets") or "").strip()
+        self._app_config = h.dev.config_load(get_config_path_str())
+        raw = str(self._app_config.get("sqlite_snippets") or "").strip()
         configured = Path(raw) if raw else Path("snippets.db")
         self.db_manager = init_tracker_database(
             self,
@@ -416,12 +476,29 @@ class SnippetsDialog(QDialog):
     def _move_drag(self, global_pos: QPoint) -> None:
         self.move(global_pos - self._drag_position)
 
+    def _on_ai_emoji_finished(self) -> None:
+        self._ai_request_in_progress = False
+        self._update_ai_pick_button()
+
     def _on_input_text_changed(self, text: str) -> None:
         if self._syncing_input:
             return
         self._zone_input_text[self._active_zone] = text
         self._active_panel().set_filter_query(text)
         self._refresh_input_match()
+        self._update_ai_pick_button()
+
+    def _paste_ai_emoji(self, emoji: str) -> None:
+        if not emoji.strip():
+            return
+        if self.db_manager is not None:
+            for item in self.db_manager.list_items(ZONE_EMOJI):
+                if item_values_equal(ZONE_EMOJI, item.value, emoji):
+                    self._paste_item(item)
+                    return
+        self._saved_clipboard = clone_clipboard_mime()
+        self.hide()
+        paste_text_then_restore_clipboard(emoji, self._saved_clipboard)
 
     def _paste_item(self, snippet: SnippetItem) -> None:
         self._saved_clipboard = clone_clipboard_mime()
@@ -431,6 +508,10 @@ class SnippetsDialog(QDialog):
             self._saved_clipboard,
             on_finished=lambda: self._mark_used(snippet.item_id),
         )
+
+    def _refresh_ai_candidates(self) -> None:
+        existing = [item.value for item in self.db_manager.list_items(ZONE_EMOJI)] if self.db_manager else []
+        self._emoji.refresh_ai_candidates(existing)
 
     def _refresh_input_match(self) -> None:
         text = self._input.text()
@@ -450,6 +531,20 @@ class SnippetsDialog(QDialog):
         self._input.setText(text)
         self._syncing_input = False
         self._refresh_input_match()
+        self._update_ai_pick_button()
+
+    def _shared_zone_sort(self) -> tuple[str | None, bool]:
+        if self.db_manager is None:
+            return None, False
+        sorts = [self.db_manager.get_zone_sort(zone) for zone in ZONES]
+        first = sorts[0]
+        if all(item.mode == first.mode and item.descending == first.descending for item in sorts):
+            return first.mode, first.descending
+        return None, False
+
+    def _show_ai_emoji_candidates(self, emojis: list[str]) -> None:
+        existing = [item.value for item in self.db_manager.list_items(ZONE_EMOJI)] if self.db_manager else []
+        self._emoji.set_ai_candidates(emojis, existing_values=existing)
 
     def _show_current_value_in_input(self) -> None:
         snippet = self._active_panel().current_snippet()
@@ -457,6 +552,16 @@ class SnippetsDialog(QDialog):
             return
         self._set_input_text(snippet.value)
         self._input.selectAll()
+
+    def _sort_all_zones(self, mode: str) -> None:
+        if self.db_manager is None:
+            return
+        current_mode, current_descending = self._shared_zone_sort()
+        descending = not current_descending if current_mode == mode else False
+        sort_mode: SortMode = mode if mode in {SORT_USED, SORT_ADDED, SORT_ALPHA} else SORT_ALPHA
+        for zone, panel in self._panels.items():
+            self.db_manager.set_zone_sort(zone, sort_mode, descending=descending)
+            self._reload_zone(zone, panel)
 
     def _sort_zone(self, zone: str, mode: str) -> None:
         if self.db_manager is None:
@@ -470,6 +575,43 @@ class SnippetsDialog(QDialog):
     def _start_drag(self, global_pos: QPoint) -> None:
         self._dragging = True
         self._drag_position = global_pos - self.frameGeometry().topLeft()
+
+    def _suggest_emoji_with_ai(self) -> None:
+        query = self._input.text().strip()
+        if not query or self._ai_request_in_progress:
+            return
+        if self._active_zone != ZONE_EMOJI:
+            self._activate_zone(ZONE_EMOJI, select_item=False)
+            self._set_input_text(query)
+            self._zone_input_text[ZONE_EMOJI] = query
+            self._emoji.set_filter_query(query)
+        self._ai_request_in_progress = True
+        self._update_ai_pick_button()
+        request_snippets_emoji_suggestions(
+            self,
+            app_config=self._app_config,
+            bothub_state=self._bothub_state,
+            query=query,
+            on_emojis=self._show_ai_emoji_candidates,
+            on_finished=self._on_ai_emoji_finished,
+        )
+
+    def _update_ai_pick_button(self) -> None:
+        has_text = bool(self._input.text().strip())
+        self._emoji.set_ai_pick_visible(visible=has_text)
+        self._emoji.set_ai_pick_enabled(enabled=has_text and not self._ai_request_in_progress)
+
+    def _warn_duplicate(self, zone: str, value: str) -> None:
+        kind = _ZONE_KIND.get(zone, "item")
+        message_box.warning(self, "Already exists", f"This {kind} already exists: {value}")
+
+    def _warn_duplicates(self, zone: str, values: list[str]) -> None:
+        kind = _ZONE_KIND.get(zone, "item")
+        preview = ", ".join(values[:_DUPLICATE_PREVIEW_LIMIT])
+        if len(values) > _DUPLICATE_PREVIEW_LIMIT:
+            preview += ", …"
+        plural = "s" if len(values) != 1 else ""
+        message_box.warning(self, "Already exists", f"Skipped duplicate {kind}{plural}: {preview}")
 ```
 
 </details>
@@ -499,10 +641,14 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self._drag_position = QPoint()
         self._saved_clipboard = None
         self.db_manager: database_manager.DatabaseManager | None = None
+        self._app_config: dict[str, Any] = {}
+        self._bothub_state = BothubRequestState()
+        self._ai_request_in_progress = False
 
         apply_opaque_white(self)
         self.setObjectName("snippetsDialog")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
+        self.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips, on=True)
         self.setStyleSheet(_DIALOG_BORDER_STYLE)
 
         self._active_zone: ZoneName = ZONE_PHRASE
@@ -719,11 +865,13 @@ def present(self) -> None:
         for panel in self._panels.values():
             panel.reset_keyboard_session()
             panel.clear_filter()
+        self._emoji.clear_ai_candidates()
         self._center_on_screen()
         self.show()
         self.raise_()
         self.activateWindow()
         self._activate_zone(ZONE_PHRASE, select_item=False)
+        self._update_ai_pick_button()
 ```
 
 </details>

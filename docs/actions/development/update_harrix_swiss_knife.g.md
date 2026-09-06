@@ -389,7 +389,7 @@ class OnUpdateHarrixSwissKnife(ActionBase):
             open_folder_path=self.result_folder,
             rerun_button=True,
             rerun_button_label="Restart now",
-            rerun_button_emoji=RERUN_BUTTON_EMOJI,
+            rerun_button_icon=RERUN_BUTTON_ICON,
         )
 
     @ActionBase.handle_exceptions("update Harrix Swiss Knife stack thread completion")

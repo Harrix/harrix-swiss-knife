@@ -86,9 +86,9 @@ class TransactionTranslatePreviewDialog(QDialog):
 
         button_box = QDialogButtonBox(self)
         apply_button = button_box.addButton("Apply translations", QDialogButtonBox.ButtonRole.AcceptRole)
-        apply_button.setIcon(create_emoji_icon(OK_BUTTON_EMOJI))
+        apply_button.setIcon(create_lucide_icon(OK_BUTTON_ICON))
         button_box.addButton(QDialogButtonBox.StandardButton.Cancel)
-        apply_emoji_dialog_buttons(button_box)
+        apply_lucide_dialog_buttons(button_box)
         apply_button.setDefault(True)
         button_box.accepted.connect(self.accept)
         button_box.rejected.connect(self.reject)
@@ -196,9 +196,9 @@ def __init__(
 
         button_box = QDialogButtonBox(self)
         apply_button = button_box.addButton("Apply translations", QDialogButtonBox.ButtonRole.AcceptRole)
-        apply_button.setIcon(create_emoji_icon(OK_BUTTON_EMOJI))
+        apply_button.setIcon(create_lucide_icon(OK_BUTTON_ICON))
         button_box.addButton(QDialogButtonBox.StandardButton.Cancel)
-        apply_emoji_dialog_buttons(button_box)
+        apply_lucide_dialog_buttons(button_box)
         apply_button.setDefault(True)
         button_box.accepted.connect(self.accept)
         button_box.rejected.connect(self.reject)

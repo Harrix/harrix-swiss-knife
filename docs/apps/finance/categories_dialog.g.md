@@ -222,10 +222,10 @@ class CategoriesDialog(QDialog):
         layout.addWidget(self.table)
 
         buttons = QHBoxLayout()
-        self.add_button = make_emoji_push_button("Add", "➕")  # noqa: RUF001
-        self.refresh_button = make_emoji_push_button("Refresh", "🔄")
-        self.copy_button = make_emoji_push_button("Copy as Text", COPY_BUTTON_EMOJI)
-        self.close_button = make_emoji_push_button("Close", CANCEL_BUTTON_EMOJI)
+        self.add_button = make_lucide_push_button("Add", "plus")
+        self.refresh_button = make_lucide_push_button("Refresh", "refresh-cw")
+        self.copy_button = make_lucide_push_button("Copy as Text", COPY_BUTTON_ICON)
+        self.close_button = make_lucide_push_button("Close", CANCEL_BUTTON_ICON)
         self.add_button.clicked.connect(self._on_add)
         self.refresh_button.clicked.connect(self._reload_table)
         self.copy_button.clicked.connect(self._on_copy_as_text)
@@ -259,7 +259,7 @@ class CategoriesDialog(QDialog):
         delete_action.setEnabled(category_id is not None)
         if category_id is not None:
             delete_action.triggered.connect(lambda: self._on_delete(category_id))
-        apply_leading_emoji_icons(context_menu)
+        apply_leading_chrome_icons(context_menu)
 
         viewport = self.table.viewport()
         if viewport is None:

@@ -151,7 +151,7 @@ class OnSpeechToTextWithAI(ActionBase):
                 title="Speech to text result",
                 rerun_button=True,
                 rerun_button_label="Record new",
-                rerun_button_emoji="🎙️",
+                rerun_button_icon="mic",
                 rewrite_button=True,
                 translate_button=text_needs_translation(
                     current,

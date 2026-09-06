@@ -122,7 +122,7 @@ def _widget_pos_for_image_pixel(canvas: ScreenshotPreviewCanvas, x: float, y: fl
     )
 
 
-def test_eyedropper_samples_visible_pixel(qapp: QApplication) -> None:  # noqa: ARG001
+def test_eyedropper_samples_visible_pixel(qapp: QApplication) -> None:
     image = QImage(20, 10, QImage.Format.Format_RGB32)
     image.fill(QColor("#112233"))
     image.setPixelColor(4, 3, QColor("#ff8800"))
@@ -140,7 +140,7 @@ def test_eyedropper_samples_visible_pixel(qapp: QApplication) -> None:  # noqa: 
 
 
 def test_preview_window_eyedropper_sets_stroke_color(
-    qapp: QApplication,  # noqa: ARG001
+    qapp: QApplication,
 ) -> None:
     image = QImage(20, 10, QImage.Format.Format_RGB32)
     image.fill(QColor("#112233"))

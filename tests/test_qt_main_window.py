@@ -21,7 +21,7 @@ from harrix_swiss_knife.apps.common.qt_main_window import (
     window_frame_escapes_work_area,
     window_frame_margins,
 )
-from harrix_swiss_knife.qt_emoji_icon import apply_leading_emoji_icons
+from harrix_swiss_knife.qt_lucide_icon import apply_leading_chrome_icons
 
 
 @pytest.fixture
@@ -196,7 +196,7 @@ def test_resolve_window_menu_bar_when_attribute_shadows_method(qapp: QApplicatio
     action = bar.addAction("🚪 Exit")
     resolved = resolve_window_menu_bar(window)
     assert resolved is bar
-    apply_leading_emoji_icons(resolved)
+    apply_leading_chrome_icons(resolved)
     assert action.text() == "Exit"
     assert not action.icon().isNull()
 

@@ -58,8 +58,8 @@ from harrix_swiss_knife.integrations.bothub import BothubRequestState
 from harrix_swiss_knife.paths import get_config_path_str
 from harrix_swiss_knife.qt_app_font import apply_mono_font
 from harrix_swiss_knife.qt_command_section import apply_opaque_white, grow_qfont
-from harrix_swiss_knife.qt_emoji_icon import add_emoji_action, create_emoji_icon
 from harrix_swiss_knife.qt_frameless_window import frameless_stay_on_top_flags, try_handle_frameless_resize_native_event
+from harrix_swiss_knife.qt_lucide_icon import add_lucide_action, create_lucide_icon
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
 
 if TYPE_CHECKING:
@@ -357,7 +357,7 @@ class SnippetsDialog(QDialog):
 
     def _build_header(self) -> None:
         menu_button = QToolButton(self)
-        menu_button.setIcon(create_emoji_icon("☰", 18))
+        menu_button.setIcon(create_lucide_icon("menu", 18))
         menu_button.setIconSize(QSize(18, 18))
         menu_button.setFixedSize(28, 28)
         menu_button.setAutoRaise(True)
@@ -480,7 +480,7 @@ class SnippetsDialog(QDialog):
         menu = self._header_menu
         menu.clear()
         for zone, title in _ZONE_ADD_TITLES.items():
-            action = add_emoji_action(menu, title, "➕")  # noqa: RUF001
+            action = add_lucide_action(menu, title, "plus")
             action.triggered.connect(lambda _checked=False, chosen=zone: self._add_item(chosen))
         menu.addSeparator()
         mode, descending = self._shared_zone_sort()

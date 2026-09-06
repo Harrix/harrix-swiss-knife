@@ -50,7 +50,7 @@ from harrix_swiss_knife.apps.fitness.lightbox_logic import (
 )
 from harrix_swiss_knife.apps.fitness.lightbox_sounds import play_fitness_timer_cue
 from harrix_swiss_knife.apps.fitness.workouts_ai import estimate_workout_duration_min
-from harrix_swiss_knife.qt_emoji_icon import apply_leading_emoji_icons, create_emoji_icon
+from harrix_swiss_knife.qt_lucide_icon import apply_leading_chrome_icons, create_lucide_icon
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -404,7 +404,7 @@ class WorkoutsWidget(QWidget):
         self.label_exercise_timer.hide()
         session_layout.addWidget(self.label_exercise_timer)
         self.button_continue = QPushButton("Continue")
-        self.button_continue.setIcon(create_emoji_icon("▶"))
+        self.button_continue.setIcon(create_lucide_icon("play"))
         self.button_continue.setMinimumHeight(41)
         self.button_continue.setMinimumWidth(120)
         self.button_continue.setFont(font_12_bold)
@@ -412,7 +412,7 @@ class WorkoutsWidget(QWidget):
         self.button_continue.clicked.connect(self._continue_workout_session)
         session_layout.addWidget(self.button_continue)
         self.button_stop = QPushButton("Stop")
-        self.button_stop.setIcon(create_emoji_icon("⏹"))
+        self.button_stop.setIcon(create_lucide_icon("square-stop"))
         self.button_stop.setMinimumHeight(41)
         self.button_stop.setMinimumWidth(110)
         self.button_stop.setFont(font_12_bold)
@@ -432,7 +432,7 @@ class WorkoutsWidget(QWidget):
         left_layout.addWidget(QLabel("Workouts"))
         new_row = QHBoxLayout()
         self.button_new = QPushButton("New")
-        self.button_new.setIcon(create_emoji_icon("✨"))
+        self.button_new.setIcon(create_lucide_icon("sparkles"))
         self.button_new.setMinimumHeight(41)
         self.button_new.setFont(font_12_bold)
         self.button_new.setStyleSheet(_GREEN_BUTTON_STYLE)
@@ -440,7 +440,7 @@ class WorkoutsWidget(QWidget):
         self.button_new.clicked.connect(self.generate_requested.emit)
         new_row.addWidget(self.button_new, 1)
         self.button_new_empty = QPushButton("Empty")
-        self.button_new_empty.setIcon(create_emoji_icon("📄"))
+        self.button_new_empty.setIcon(create_lucide_icon("file"))
         self.button_new_empty.setMinimumHeight(41)
         self.button_new_empty.setFont(font_12_bold)
         self.button_new_empty.setStyleSheet(_GREY_BUTTON_STYLE)
@@ -466,7 +466,7 @@ class WorkoutsWidget(QWidget):
         self.label_title.setFont(font_title)
         title_row.addWidget(self.label_title, 1)
         self.button_add_exercise = QPushButton("Add exercise")
-        self.button_add_exercise.setIcon(create_emoji_icon("🏋️"))
+        self.button_add_exercise.setIcon(create_lucide_icon("dumbbell"))
         self.button_add_exercise.setMinimumHeight(41)
         self.button_add_exercise.setMinimumWidth(150)
         self.button_add_exercise.setFont(font_12_bold)
@@ -475,7 +475,7 @@ class WorkoutsWidget(QWidget):
         self.button_add_exercise.clicked.connect(self._request_add_exercise)
         title_row.addWidget(self.button_add_exercise)
         self.button_start = QPushButton("Start")
-        self.button_start.setIcon(create_emoji_icon("▶"))
+        self.button_start.setIcon(create_lucide_icon("play"))
         self.button_start.setMinimumHeight(41)
         self.button_start.setMinimumWidth(120)
         self.button_start.setFont(font_12_bold)
@@ -808,7 +808,7 @@ class WorkoutsWidget(QWidget):
         add_action.setEnabled(self._current_workout_id is not None and not self._session_active)
         lightbox_action = context_menu.addAction(LABEL_OPEN_LIGHTBOX)
         delete_action = add_delete_action(context_menu)
-        apply_leading_emoji_icons(context_menu)
+        apply_leading_chrome_icons(context_menu)
         action = context_menu.exec_(self.table_items.mapToGlobal(position))
         if action == add_action:
             self._request_add_exercise()
@@ -837,7 +837,7 @@ class WorkoutsWidget(QWidget):
             new_action.setEnabled(False)
             empty_action.setEnabled(False)
             delete_action.setEnabled(False)
-        apply_leading_emoji_icons(context_menu)
+        apply_leading_chrome_icons(context_menu)
         action = context_menu.exec_(self.list_workouts.mapToGlobal(position))
         if action == new_action:
             self.generate_requested.emit()

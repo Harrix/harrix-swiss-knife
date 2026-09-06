@@ -14,6 +14,7 @@ This repository is licensed under the MIT license (see `LICENSE.md`), but during
 ## Contents
 
 - [Embedded assets (bundled in this repo)](#embedded-assets-bundled-in-this-repo)
+- [Lucide UI icons](#lucide-ui-icons)
 - [UI sounds (bundled WAV assets)](#ui-sounds-bundled-wav-assets)
   - [Habits (UI SFX cinematic)](#habits-ui-sfx-cinematic)
   - [Fitness voiceover (Kenney)](#fitness-voiceover-kenney)
@@ -32,6 +33,14 @@ The GUI installer that performs these downloads is the PySide6 package under `sr
 ## Embedded assets (bundled in this repo)
 
 This repository also contains some third-party assets that are bundled into the application resources (for example `src/harrix_swiss_knife/assets/py.svg`). See `attribution.yaml` for attribution and the relevant upstream usage policy / licensing terms.
+
+## Lucide UI icons
+
+Stroke SVG icons from **Lucide**, license **ISC**. Copies live under `src/harrix_swiss_knife/assets/lucide/` and are loaded by name at runtime (not compiled into `resources.qrc`). Refresh with `python src/harrix_swiss_knife/assets/sync_lucide_icons.py`.
+
+- Site: <https://lucide.dev/>
+- Package: <https://www.npmjs.com/package/lucide-static>
+- License file: `src/harrix_swiss_knife/assets/lucide/LICENSE.txt`
 
 ## UI sounds (bundled WAV assets)
 

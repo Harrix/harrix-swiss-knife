@@ -9,13 +9,14 @@ from PySide6.QtWidgets import QLabel, QListWidget, QListWidgetItem, QPushButton,
 
 from harrix_swiss_knife.qt_action_card_grid import CARD_GRID_CELL_HEIGHT, CARD_GRID_CELL_WIDTH, CARD_ICON_SIZE
 from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
+from harrix_swiss_knife.qt_lucide_icon import create_lucide_icon
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Collection
 
     from PySide6.QtGui import QMouseEvent
 
-AI_SCREENSHOT_CARD_EMOJI = "📷"
+AI_SCREENSHOT_CARD_ICON = "camera"
 AI_SCREENSHOT_TOOLTIP = "Fill with AI from screenshot: capture region, send to BotHub, then open the filled form"
 ICON_CHOICE_ACTION_ROLE = int(Qt.ItemDataRole.UserRole) + 1
 ICON_CHOICE_ACTION_SELECT = "select"
@@ -58,7 +59,7 @@ class IconChoiceCard(QWidget):
 
         if show_ai_screenshot:
             button = QPushButton(icon_host)
-            button.setIcon(create_emoji_icon(AI_SCREENSHOT_CARD_EMOJI, 14))
+            button.setIcon(create_lucide_icon(AI_SCREENSHOT_CARD_ICON, 14))
             button.setIconSize(QSize(14, 14))
             button.setFixedSize(22, 22)
             button.setFlat(True)

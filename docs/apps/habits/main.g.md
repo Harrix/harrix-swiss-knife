@@ -704,6 +704,7 @@ class MainWindow(
             self.pushButton_habits_show_all_records.setText(f"📋 Show Last {self.count_records_to_show}")
         else:
             self.pushButton_habits_show_all_records.setText("📋 Show All Records")
+        apply_leading_chrome_button_icon(self.pushButton_habits_show_all_records)
         self.load_process_habits_table()
 
     @requires_database()
@@ -869,6 +870,7 @@ class MainWindow(
 
         self.show_all_records = False
         self.pushButton_habits_show_all_records.setText("📋 Show All Records")
+        apply_leading_chrome_button_icon(self.pushButton_habits_show_all_records)
 
         self.show_tables()
         self.update_habits_filter_combobox()
@@ -1910,6 +1912,7 @@ class MainWindow(
         self.pushButton_habits_show_all_records.setText(f"📋 {self.pushButton_habits_show_all_records.text()}")
         self.pushButton_habits_export_csv.setText(f"📤 {self.pushButton_habits_export_csv.text()}")
         self.pushButton_habit_add_new.setText(f"➕ {self.pushButton_habit_add_new.text()}")  # noqa: RUF001
+        apply_leading_chrome_buttons(self)
 
         self._install_word_wrap_table_headers(skip={self.tableView_process_habits})
         process_habits_header = WordWrapHeaderView(
@@ -1962,7 +1965,7 @@ class MainWindow(
         has_habit = habit_id is not None
         archive_action.setEnabled(bool(has_habit and not is_archived))
         unarchive_action.setEnabled(bool(has_habit and is_archived))
-        apply_leading_emoji_icons(context_menu)
+        apply_leading_chrome_icons(context_menu)
 
         action = context_menu.exec_(self.listView_filter_habit.mapToGlobal(position))
         if action is None:
@@ -1997,7 +2000,7 @@ class MainWindow(
             toggle_action = context_menu.addAction("🙈 Hide archived habits")
         else:
             toggle_action = context_menu.addAction("👀 Show archived habits")
-        apply_leading_emoji_icons(context_menu)
+        apply_leading_chrome_icons(context_menu)
 
         action = context_menu.exec_(self.listView_filter_habit_year.mapToGlobal(position))
         if action is None:
@@ -2017,7 +2020,7 @@ class MainWindow(
         add_separator(context_menu)
         self.action_habits_delete.setEnabled(habit_id is not None)
         context_menu.addAction(self.action_habits_delete)
-        apply_leading_emoji_icons(context_menu)
+        apply_leading_chrome_icons(context_menu)
 
         viewport = self.tableView_habits.viewport()
         if viewport is None:
@@ -2068,7 +2071,7 @@ class MainWindow(
         if can_clear_cell:
             add_separator(context_menu)
             clear_cell_action = context_menu.addAction(LABEL_CLEAR_CELL)
-        apply_leading_emoji_icons(context_menu)
+        apply_leading_chrome_icons(context_menu)
 
         # Execute the context menu and get the selected action
         action = context_menu.exec_(self.tableView_process_habits.mapToGlobal(position))
@@ -3178,6 +3181,7 @@ def on_toggle_show_all_habits_records(self) -> None:
             self.pushButton_habits_show_all_records.setText(f"📋 Show Last {self.count_records_to_show}")
         else:
             self.pushButton_habits_show_all_records.setText("📋 Show All Records")
+        apply_leading_chrome_button_icon(self.pushButton_habits_show_all_records)
         self.load_process_habits_table()
 ```
 
@@ -3421,6 +3425,7 @@ def update_all(
 
         self.show_all_records = False
         self.pushButton_habits_show_all_records.setText("📋 Show All Records")
+        apply_leading_chrome_button_icon(self.pushButton_habits_show_all_records)
 
         self.show_tables()
         self.update_habits_filter_combobox()

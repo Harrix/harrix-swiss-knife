@@ -19,8 +19,8 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife.apps.common.audio_recording.pcm_utils import audio_device_id
 from harrix_swiss_knife.apps.common.audio_recording.recorder import MicrophoneRecorder
-from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
 from harrix_swiss_knife.qt_frameless_window import frameless_stay_on_top_flags
+from harrix_swiss_knife.qt_lucide_icon import create_lucide_icon
 from harrix_swiss_knife.screen_record.config import (
     SCREEN_RECORD_AUDIO_MODES,
     ScreenRecordAudio,
@@ -171,26 +171,6 @@ QAbstractItemView::item:selected:hover {
 """
 
 
-def hit_test_record_frame_handle(
-    rect: QRect,
-    pos: QPoint,
-    *,
-    handle_size: int = _HANDLE,
-    border: int = _BORDER,
-) -> HandleKind | None:
-    """Return the frame handle under `pos`. The top-left corner moves the region."""
-    grip = max(handle_size, _MOVE_HANDLE_SIZE // 2)
-    nw = QRect(rect.left() - grip, rect.top() - grip, grip * 2, grip * 2)
-    if nw.contains(pos):
-        return "move"
-    handle = hit_test_selection_handle(rect, pos, handle_size=handle_size)
-    if handle is None:
-        ring = rect.adjusted(-border, -border, border, border)
-        if ring.contains(pos) and not rect.contains(pos):
-            return "move"
-    return handle
-
-
 class RecordFrameWindow(QWidget):
     """Hollow border around a recording region with a toolbar under it."""
 
@@ -262,17 +242,17 @@ class RecordFrameWindow(QWidget):
         _prepare_combo_popup(self._mic)
 
         countdown = get_screen_record_countdown_seconds()
-        self._record_btn = self._make_tool_button("⏺️", "Record now (start immediately)")
+        self._record_btn = self._make_tool_button("circle-dot", "Record now (start immediately)")
         self._record_btn.clicked.connect(self._on_record_now)
         self._countdown_btn = self._make_tool_button(
-            "⏱️",
+            "timer",
             f"Countdown {countdown}s then record",
             text=str(countdown) if countdown else "0",
         )
         self._countdown_btn.clicked.connect(self._on_countdown_start)
-        self._stop_btn = self._make_tool_button("⏹️", "Stop recording and open editor")
+        self._stop_btn = self._make_tool_button("square-stop", "Stop recording and open editor")
         self._stop_btn.clicked.connect(self.stop_requested.emit)
-        self._abort_btn = self._make_tool_button("❌", "Abort without saving")
+        self._abort_btn = self._make_tool_button("x", "Abort without saving")
         self._abort_btn.clicked.connect(self.abort_requested.emit)
 
         bar = QWidget(self)
@@ -689,9 +669,9 @@ class RecordFrameWindow(QWidget):
         editor.installEventFilter(self)
         return editor
 
-    def _make_tool_button(self, emoji: str, tip: str, *, text: str = "") -> QPushButton:
+    def _make_tool_button(self, name: str, tip: str, *, text: str = "") -> QPushButton:
         button = QPushButton(self)
-        button.setIcon(create_emoji_icon(emoji, _ICON))
+        button.setIcon(create_lucide_icon(name, _ICON))
         button.setIconSize(QSize(_ICON, _ICON))
         button.setToolTip(tip)
         button.setAttribute(Qt.WidgetAttribute.WA_Hover, on=True)
@@ -1006,6 +986,26 @@ class _ToolbarCursorFilter(QObject):
                 else:
                     watched.setCursor(Qt.CursorShape.ArrowCursor)
         return False
+
+
+def hit_test_record_frame_handle(
+    rect: QRect,
+    pos: QPoint,
+    *,
+    handle_size: int = _HANDLE,
+    border: int = _BORDER,
+) -> HandleKind | None:
+    """Return the frame handle under `pos`. The top-left corner moves the region."""
+    grip = max(handle_size, _MOVE_HANDLE_SIZE // 2)
+    nw = QRect(rect.left() - grip, rect.top() - grip, grip * 2, grip * 2)
+    if nw.contains(pos):
+        return "move"
+    handle = hit_test_selection_handle(rect, pos, handle_size=handle_size)
+    if handle is None:
+        ring = rect.adjusted(-border, -border, border, border)
+        if ring.contains(pos) and not rect.contains(pos):
+            return "move"
+    return handle
 
 
 def _prepare_combo_popup(combo: QComboBox) -> None:

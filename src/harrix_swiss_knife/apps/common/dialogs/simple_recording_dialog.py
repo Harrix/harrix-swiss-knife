@@ -22,7 +22,10 @@ from harrix_swiss_knife.apps.common.audio_recording import (
     audio_device_id,
     load_saved_microphone_id,
 )
-from harrix_swiss_knife.qt_emoji_icon import SAVE_BUTTON_EMOJI, make_emoji_push_button
+from harrix_swiss_knife.qt_lucide_icon import (
+    SAVE_BUTTON_ICON,
+    make_lucide_push_button,
+)
 
 if TYPE_CHECKING:
     from PySide6.QtGui import QShowEvent
@@ -271,16 +274,16 @@ class SimpleRecordingDialog(QDialog):
         controls.addLayout(column)
         controls.addStretch()
 
-        cancel_button = make_emoji_push_button("Cancel", "❌")
+        cancel_button = make_lucide_push_button("Cancel", "x")
         cancel_button.clicked.connect(self.reject)
         controls.addWidget(cancel_button, alignment=Qt.AlignmentFlag.AlignBottom)
 
-        self._save_button = make_emoji_push_button("Save audio", SAVE_BUTTON_EMOJI)
+        self._save_button = make_lucide_push_button("Save audio", SAVE_BUTTON_ICON)
         self._save_button.clicked.connect(self._on_save_clicked)
         self._save_button.setVisible(False)
         controls.addWidget(self._save_button, alignment=Qt.AlignmentFlag.AlignBottom)
 
-        self._recognize_button = make_emoji_push_button("Recognize", "🤖")
+        self._recognize_button = make_lucide_push_button("Recognize", "bot")
         self._recognize_button.clicked.connect(self._on_recognize_clicked)
         self._recognize_button.setVisible(False)
         controls.addWidget(self._recognize_button, alignment=Qt.AlignmentFlag.AlignBottom)

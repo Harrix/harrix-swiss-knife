@@ -78,7 +78,7 @@ class AmountExpressionDialog(QDialog):
         layout.addWidget(self._result_label)
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        apply_emoji_dialog_buttons(buttons)
+        apply_lucide_dialog_buttons(buttons)
         self._ok_button = buttons.button(QDialogButtonBox.StandardButton.Ok)
         buttons.accepted.connect(self._on_accept)
         buttons.rejected.connect(self.reject)
@@ -208,7 +208,7 @@ def __init__(
         layout.addWidget(self._result_label)
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        apply_emoji_dialog_buttons(buttons)
+        apply_lucide_dialog_buttons(buttons)
         self._ok_button = buttons.button(QDialogButtonBox.StandardButton.Ok)
         buttons.accepted.connect(self._on_accept)
         buttons.rejected.connect(self.reject)

@@ -60,7 +60,7 @@ from harrix_swiss_knife.qt_described_choice_cards import (
     described_card_column_count,
     sync_described_choice_card_grid,
 )
-from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
+from harrix_swiss_knife.qt_lucide_icon import apply_lucide_button_icon, create_lucide_icon
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
 
 
@@ -299,7 +299,7 @@ class MainWindow(QMainWindow):
         header_row.setSpacing(8)
 
         search_icon = QLabel()
-        search_icon.setPixmap(create_emoji_icon("🔍", 22).pixmap(22, 22))
+        search_icon.setPixmap(create_lucide_icon("search", 22).pixmap(22, 22))
         search_icon.setFixedSize(24, 24)
         header_row.addWidget(search_icon)
 
@@ -310,7 +310,8 @@ class MainWindow(QMainWindow):
         header_row.addWidget(self._search_edit, stretch=1)
 
         self._clear_button = QToolButton()
-        self._clear_button.setText("✕")
+        self._clear_button.setText("")
+        apply_lucide_button_icon(self._clear_button, "x")
         self._clear_button.setToolTip("Clear search")
         self._clear_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self._clear_button.setAutoRaise(True)

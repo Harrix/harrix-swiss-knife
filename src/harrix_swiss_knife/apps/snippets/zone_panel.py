@@ -49,8 +49,9 @@ from harrix_swiss_knife.apps.snippets.parse import (
     strip_wrapping_brackets,
 )
 from harrix_swiss_knife.qt_app_font import apply_mono_font
-from harrix_swiss_knife.qt_emoji_icon import add_emoji_action, create_emoji_icon
+from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
 from harrix_swiss_knife.qt_flow_layout import FlowLayout
+from harrix_swiss_knife.qt_lucide_icon import add_lucide_action, create_lucide_icon
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -99,9 +100,9 @@ _LIST_SELECTION_STYLE = (
     "}"
 )
 _SORT_BUTTONS: tuple[tuple[SortMode, str, str], ...] = (
-    (SORT_USED, "🕒", "Sort by last used"),
-    (SORT_ADDED, "📅", "Sort by date added"),
-    (SORT_ALPHA, "🔤", "Sort alphabetically"),
+    (SORT_USED, "clock", "Sort by last used"),
+    (SORT_ADDED, "calendar", "Sort by date added"),
+    (SORT_ALPHA, "a-large-small", "Sort alphabetically"),
 )
 _HIGHLIGHT_STATES = QStyle.StateFlag.State_Selected | QStyle.StateFlag.State_MouseOver | QStyle.StateFlag.State_HasFocus
 
@@ -312,7 +313,7 @@ class ZonePanel(QWidget):
         header.addWidget(title_label)
         if zone == ZONE_EMOJI:
             pick = QToolButton(self)
-            pick.setIcon(create_emoji_icon("🤖", 18))
+            pick.setIcon(create_lucide_icon("bot", 18))
             pick.setIconSize(QSize(18, 18))
             pick.setFixedSize(28, 28)
             pick.setAutoRaise(True)
@@ -553,14 +554,14 @@ class ZonePanel(QWidget):
 
     def _build_context_menu(self, snippet: SnippetItem | None) -> QMenu:
         menu = QMenu(self)
-        add_emoji_action(menu, "Add item", "➕").triggered.connect(self.add_requested.emit)  # noqa: RUF001
-        add_emoji_action(menu, "Add many items", "📥").triggered.connect(self.add_many_requested.emit)
-        edit_action = add_emoji_action(menu, "Edit item", "✏️")
+        add_lucide_action(menu, "Add item", "plus").triggered.connect(self.add_requested.emit)
+        add_lucide_action(menu, "Add many items", "download").triggered.connect(self.add_many_requested.emit)
+        edit_action = add_lucide_action(menu, "Edit item", "pencil")
         edit_action.setEnabled(snippet is not None)
         if snippet is not None:
             edit_action.triggered.connect(lambda _checked=False, item=snippet: self.edit_requested.emit(item))
-        add_emoji_action(menu, "Edit entire list", "📝").triggered.connect(self.edit_all_requested.emit)
-        delete_action = add_emoji_action(menu, "Delete item", "🗑️")
+        add_lucide_action(menu, "Edit entire list", "notebook-pen").triggered.connect(self.edit_all_requested.emit)
+        delete_action = add_lucide_action(menu, "Delete item", "trash")
         delete_action.setEnabled(snippet is not None)
         if snippet is not None:
             delete_action.triggered.connect(lambda _checked=False, item=snippet: self.delete_requested.emit(item))
@@ -667,11 +668,11 @@ def add_sort_menu_actions(
     descending: bool,
     on_sort: Callable[[str], None],
 ) -> None:
-    """Append checkable sort actions that call `on_sort` with the mode id."""
+    """Append checkable sort actions that call `on_sort` with the mode ID."""
     group = QActionGroup(menu)
     group.setExclusive(True)
-    for sort_mode, emoji, tooltip in _SORT_BUTTONS:
-        action = add_emoji_action(menu, tooltip, emoji)
+    for sort_mode, icon_name, tooltip in _SORT_BUTTONS:
+        action = add_lucide_action(menu, tooltip, icon_name)
         action.setCheckable(True)
         action.setChecked(mode == sort_mode)
         if mode == sort_mode and descending:
@@ -713,10 +714,6 @@ def _apply_list_highlight_palette(widget: QListWidget) -> None:
     widget.setPalette(palette)
 
 
-def _item_is_highlighted(option: QStyleOptionViewItem) -> bool:
-    return bool(option.state & (QStyle.StateFlag.State_Selected | QStyle.StateFlag.State_MouseOver))
-
-
 def _green_plus_icon(size: int) -> QIcon:
     pixmap = QPixmap(size, size)
     pixmap.fill(Qt.GlobalColor.transparent)
@@ -732,6 +729,10 @@ def _green_plus_icon(size: int) -> QIcon:
     painter.drawLine(QPointF(mid, pad), QPointF(mid, size - 1 - pad))
     painter.end()
     return QIcon(pixmap)
+
+
+def _item_is_highlighted(option: QStyleOptionViewItem) -> bool:
+    return bool(option.state & (QStyle.StateFlag.State_Selected | QStyle.StateFlag.State_MouseOver))
 
 
 def _item_matches_input(index: QModelIndex | QPersistentModelIndex, option: QStyleOptionViewItem) -> bool:

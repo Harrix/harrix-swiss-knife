@@ -150,7 +150,7 @@ def build_action_usage_stats_browser(
         button_layout = QHBoxLayout()
         button_layout.addStretch()
         close_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
-        apply_emoji_dialog_buttons(close_box)
+        apply_lucide_dialog_buttons(close_box)
         close_box.rejected.connect(dialog.reject)
         button_layout.addWidget(close_box)
         layout.addLayout(button_layout)

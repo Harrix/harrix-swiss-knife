@@ -155,11 +155,11 @@ class TextInputDialog(QDialog):
         button_layout = QHBoxLayout()
         button_layout.addStretch()
 
-        cancel_button = make_emoji_push_button("Cancel", CANCEL_BUTTON_EMOJI)
+        cancel_button = make_lucide_push_button("Cancel", CANCEL_BUTTON_ICON)
         cancel_button.clicked.connect(self.reject)
         button_layout.addWidget(cancel_button)
 
-        ok_button = make_emoji_push_button("OK", OK_BUTTON_EMOJI)
+        ok_button = make_lucide_push_button("OK", OK_BUTTON_ICON)
         ok_button.setDefault(True)
         ok_button.clicked.connect(self.accept)
         button_layout.addWidget(ok_button)

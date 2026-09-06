@@ -127,20 +127,20 @@ class AppWindowMixin:
         dialog.exec()
 
     def _apply_exit_about_menu_emojis(self) -> None:
-        """Prefix Exit and About with emoji, then turn menu-bar prefixes into icons."""
-        self.actionExit.setText(f"🚪 {self.actionExit.text()}")
-        self.actionAbout.setText(f"ℹ️ {self.actionAbout.text()}")  # noqa: RUF001
+        """Set Lucide icons on Exit and About, then convert other menu prefixes."""
+        apply_lucide_action_icon(self.actionExit, "log-out")
+        apply_lucide_action_icon(self.actionAbout, "info")
         self._apply_menu_bar_emoji_icons()
 
     def _apply_menu_bar_emoji_icons(self) -> None:
         """Move leading emoji from File / Commands / Help action text onto icons."""
         menu_bar = resolve_window_menu_bar(cast("QWidget", self))
         if menu_bar is not None:
-            apply_leading_emoji_icons(menu_bar)
+            apply_leading_chrome_icons(menu_bar)
         for name in ("menuFile", "menuCommands", "menuCommanda", "menuHelp"):
             menu = getattr(self, name, None)
             if isinstance(menu, QMenu):
-                apply_leading_emoji_icons(menu)
+                apply_leading_chrome_icons(menu)
 
     def _connect_exit_about_actions(self) -> None:
         """Wire Exit and About menu actions to their handlers."""
@@ -408,7 +408,7 @@ class AppWindowMixin:
         action.setObjectName("actionShowDatabaseInFolder")
         action.triggered.connect(self.on_reveal_database)
         menu.insertAction(self.actionExit, action)
-        set_action_text_with_emoji_icon(action, "📂 Show database in folder")
+        set_action_text_with_lucide_icon(action, "Show database in folder", "folder-open")
 
     def _setup_settings_action(self) -> None:
         """Add File → Settings for apps that declare `settings_app_id`."""
@@ -422,7 +422,7 @@ class AppWindowMixin:
         action.setObjectName("actionSettings")
         action.triggered.connect(self.on_settings)
         menu.insertAction(self.actionExit, action)
-        set_action_text_with_emoji_icon(action, "⚙️ Settings")
+        set_action_text_with_lucide_icon(action, "Settings", "settings")
 
     def _setup_window_size_and_position(self, *, standard_width: int = 1920) -> None:
         """Set window size and position based on screen resolution and characteristics.

@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 import harrix_pylib as h
 from PySide6.QtCore import QPointF, QSize, QStandardPaths, Qt, QTimer
-from PySide6.QtGui import QCloseEvent, QColor, QIcon, QKeyEvent, QKeySequence, QPainter, QPen, QPixmap, QShortcut
+from PySide6.QtGui import QCloseEvent, QColor, QIcon, QKeyEvent, QKeySequence, QPainter, QPixmap, QShortcut
 from PySide6.QtWidgets import (
     QApplication,
     QButtonGroup,
@@ -27,16 +27,20 @@ from PySide6.QtWidgets import (
 from shiboken6 import isValid
 
 from harrix_swiss_knife.actions.common.text_result_dialog import (
-    CANCEL_BUTTON_EMOJI,
     CANCEL_BUTTON_LABEL,
-    COPY_BUTTON_EMOJI,
     COPY_BUTTON_LABEL,
-    OK_BUTTON_EMOJI,
     OK_BUTTON_LABEL,
 )
 from harrix_swiss_knife.apps.common.qt_main_window import apply_app_window_size_and_position
-from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon, make_emoji_push_button
 from harrix_swiss_knife.qt_flow_layout import FlowLayout
+from harrix_swiss_knife.qt_lucide_icon import (
+    CANCEL_BUTTON_ICON,
+    COPY_BUTTON_ICON,
+    OK_BUTTON_ICON,
+    SAVE_BUTTON_ICON,
+    create_lucide_icon,
+    make_lucide_push_button,
+)
 from harrix_swiss_knife.screenshot.annotation_colors import load_annotation_colors
 from harrix_swiss_knife.screenshot.annotations import AnnotationDocument, AnnotationTool
 from harrix_swiss_knife.screenshot.dated_image_path import images_folder, next_dated_image_path
@@ -54,13 +58,13 @@ if TYPE_CHECKING:
     from PySide6.QtGui import QImage, QResizeEvent
     from PySide6.QtWidgets import QPushButton
 
-_SAVE_BUTTON_EMOJI = "💾"
+_SAVE_BUTTON_ICON = SAVE_BUTTON_ICON
 _SAVE_BUTTON_LABEL = "Save as…"
-_SAVE_DESKTOP_BUTTON_EMOJI = "🖥️"
+_SAVE_DESKTOP_BUTTON_ICON = "monitor"
 _SAVE_DESKTOP_BUTTON_LABEL = "Save to desktop"
-_MARKDOWN_AI_EMOJI = "🤖"
-_MARKDOWN_OCR_EMOJI = "🔤"
-_TRANSLATE_EMOJI = "🌐"
+_MARKDOWN_AI_ICON = "bot"
+_MARKDOWN_OCR_ICON = "scan-text"
+_TRANSLATE_ICON = "languages"
 _STATUS_HINT = (
     "Tools: arrow / shapes / pen / text / eyedropper / crop · Click a shape to select · "
     "Delete removes · Shift constrains · Undo · Ctrl+wheel zoom · Middle-drag pan · Ctrl+S save to images"
@@ -73,15 +77,15 @@ _DEFAULT_TITLE = "Screenshot"
 _DEFAULT_ANNOTATION_COLOR = QColor("#de2b26")
 
 _TOOL_BUTTONS: tuple[tuple[AnnotationTool, str, str], ...] = (
-    (AnnotationTool.NONE, "🖱️", "Select / view"),
-    (AnnotationTool.ARROW, "➡️", "Arrow (Shift: 0° / 45°)"),
-    (AnnotationTool.RECTANGLE, "▭", "Rectangle (Shift: square)"),
-    (AnnotationTool.ELLIPSE, "◯", "Ellipse (Shift: circle)"),
-    (AnnotationTool.LINE, "—", "Line (Shift: 0° / 45°)"),
-    (AnnotationTool.PEN, "✏️", "Pen"),
-    (AnnotationTool.TEXT, "T", "Text"),
-    (AnnotationTool.EYEDROPPER, "💧", "Eyedropper — click a pixel to copy its color"),
-    (AnnotationTool.CROP, "✂️", "Crop"),
+    (AnnotationTool.NONE, "mouse-pointer-2", "Select / view"),
+    (AnnotationTool.ARROW, "arrow-right", "Arrow (Shift: 0° / 45°)"),
+    (AnnotationTool.RECTANGLE, "square", "Rectangle (Shift: square)"),
+    (AnnotationTool.ELLIPSE, "circle", "Ellipse (Shift: circle)"),
+    (AnnotationTool.LINE, "minus", "Line (Shift: 0° / 45°)"),
+    (AnnotationTool.PEN, "pencil", "Pen"),
+    (AnnotationTool.TEXT, "type", "Text"),
+    (AnnotationTool.EYEDROPPER, "pipette", "Eyedropper — click a pixel to copy its color"),
+    (AnnotationTool.CROP, "crop", "Crop"),
 )
 
 _preview_holder: dict[str, ScreenshotPreviewWindow | None] = {"window": None}
@@ -115,12 +119,9 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._tool_group.setExclusive(True)
         icon_size = QSize(TOOLBAR_ICON_SIZE, TOOLBAR_ICON_SIZE)
         eyedropper_button: QToolButton | None = None
-        for tool, emoji, tip in _TOOL_BUTTONS:
+        for tool, icon_name, tip in _TOOL_BUTTONS:
             button = QToolButton(tools_host)
-            if tool == AnnotationTool.EYEDROPPER:
-                button.setIcon(_eyedropper_icon(TOOLBAR_ICON_SIZE))
-            else:
-                button.setIcon(create_emoji_icon(emoji, TOOLBAR_ICON_SIZE))
+            button.setIcon(create_lucide_icon(icon_name, TOOLBAR_ICON_SIZE))
             button.setIconSize(icon_size)
             button.setToolTip(tip)
             button.setCheckable(True)
@@ -139,7 +140,7 @@ class ScreenshotPreviewWindow(QMainWindow):
             tools_layout.addWidget(button)
 
         undo_button = QToolButton(tools_host)
-        undo_button.setIcon(create_emoji_icon("↩️", TOOLBAR_ICON_SIZE))
+        undo_button.setIcon(create_lucide_icon("undo-2", TOOLBAR_ICON_SIZE))
         undo_button.setIconSize(icon_size)
         undo_button.setToolTip("Undo")
         undo_button.setAutoRaise(False)
@@ -188,27 +189,27 @@ class ScreenshotPreviewWindow(QMainWindow):
         )
         self._action_buttons: list[QPushButton] = []
         self._add_footer_button(
-            make_emoji_push_button(COPY_BUTTON_LABEL, COPY_BUTTON_EMOJI),
+            make_lucide_push_button(COPY_BUTTON_LABEL, COPY_BUTTON_ICON),
             self._copy_to_clipboard,
         )
-        desktop_button = make_emoji_push_button(_SAVE_DESKTOP_BUTTON_LABEL, _SAVE_DESKTOP_BUTTON_EMOJI)
+        desktop_button = make_lucide_push_button(_SAVE_DESKTOP_BUTTON_LABEL, _SAVE_DESKTOP_BUTTON_ICON)
         desktop_button.setToolTip("Save as YYYY-MM-DD_NN.png on the Desktop")
         self._add_footer_button(desktop_button, self._save_to_desktop)
         self._add_footer_button(
-            make_emoji_push_button(_SAVE_BUTTON_LABEL, _SAVE_BUTTON_EMOJI),
+            make_lucide_push_button(_SAVE_BUTTON_LABEL, _SAVE_BUTTON_ICON),
             self._save_as,
         )
-        ai_button = make_emoji_push_button("Recognize text (AI)", _MARKDOWN_AI_EMOJI)
+        ai_button = make_lucide_push_button("Recognize text (AI)", _MARKDOWN_AI_ICON)
         ai_button.setToolTip("Recognize text (AI)…")
         self._add_footer_button(ai_button, self._run_markdown_with_ai)
-        ocr_button = make_emoji_push_button("Recognize text (OCR)", _MARKDOWN_OCR_EMOJI)
+        ocr_button = make_lucide_push_button("Recognize text (OCR)", _MARKDOWN_OCR_ICON)
         ocr_button.setToolTip("Recognize text (OCR, local)…")
         self._add_footer_button(ocr_button, self._run_markdown_with_ocr)
-        translate_button = make_emoji_push_button("OCR + translate", _TRANSLATE_EMOJI)
+        translate_button = make_lucide_push_button("OCR + translate", _TRANSLATE_ICON)
         translate_button.setToolTip("Recognize text and translate to the local language…")
         self._add_footer_button(translate_button, self._run_ocr_translate)
         self._add_footer_button(
-            make_emoji_push_button(OK_BUTTON_LABEL, OK_BUTTON_EMOJI),
+            make_lucide_push_button(OK_BUTTON_LABEL, OK_BUTTON_ICON),
             self._close_current_tab,
         )
         self._buttons_host = buttons_host
@@ -218,12 +219,12 @@ class ScreenshotPreviewWindow(QMainWindow):
         crop_row = QHBoxLayout(self._crop_bar)
         crop_row.setContentsMargins(0, 0, 0, 0)
         crop_row.addStretch(1)
-        self._crop_ok_button = make_emoji_push_button(OK_BUTTON_LABEL, OK_BUTTON_EMOJI)
+        self._crop_ok_button = make_lucide_push_button(OK_BUTTON_LABEL, OK_BUTTON_ICON)
         self._crop_ok_button.setToolTip("Apply crop (Enter)")
         self._crop_ok_button.setEnabled(False)
         self._crop_ok_button.clicked.connect(self._confirm_crop)
         crop_row.addWidget(self._crop_ok_button)
-        self._crop_cancel_button = make_emoji_push_button(CANCEL_BUTTON_LABEL, CANCEL_BUTTON_EMOJI)
+        self._crop_cancel_button = make_lucide_push_button(CANCEL_BUTTON_LABEL, CANCEL_BUTTON_ICON)
         self._crop_cancel_button.setToolTip("Cancel crop (Esc)")
         self._crop_cancel_button.clicked.connect(self._cancel_crop)
         crop_row.addWidget(self._crop_cancel_button)
@@ -377,6 +378,24 @@ class ScreenshotPreviewWindow(QMainWindow):
         widget = self._tabs.currentWidget()
         return widget if isinstance(widget, _ScreenshotTab) else None
 
+    def _on_color_hovered(self, color: object) -> None:
+        tab = self._current_tab()
+        if tab is None or tab.canvas.tool != AnnotationTool.EYEDROPPER:
+            return
+        if not isinstance(color, QColor) or not color.isValid():
+            self._status.setText("Eyedropper: move over the screenshot · click to copy and use as stroke")
+            return
+        self._status.setText(f"{_format_pixel_color(color)} · click to copy and use as stroke")
+
+    def _on_color_picked(self, color: QColor) -> None:
+        if not color.isValid():
+            return
+        self._set_annotation_color(color)
+        clipboard = QApplication.clipboard()
+        if clipboard is not None:
+            clipboard.setText(color.name())
+        self._status.setText(f"Picked {_format_pixel_color(color)} · copied · set as stroke")
+
     def _on_crop_mode_changed(self, active: bool) -> None:  # noqa: FBT001
         self._set_crop_chrome_visible(active=active)
         if active:
@@ -395,24 +414,6 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._crop_ok_button.setEnabled(pending)
         if pending:
             self._status.setText("Crop: move/resize the frame · Enter to apply · Esc to cancel")
-
-    def _on_color_hovered(self, color: object) -> None:
-        tab = self._current_tab()
-        if tab is None or tab.canvas.tool != AnnotationTool.EYEDROPPER:
-            return
-        if not isinstance(color, QColor) or not color.isValid():
-            self._status.setText("Eyedropper: move over the screenshot · click to copy and use as stroke")
-            return
-        self._status.setText(f"{_format_pixel_color(color)} · click to copy and use as stroke")
-
-    def _on_color_picked(self, color: QColor) -> None:
-        if not color.isValid():
-            return
-        self._set_annotation_color(color)
-        clipboard = QApplication.clipboard()
-        if clipboard is not None:
-            clipboard.setText(color.name())
-        self._status.setText(f"Picked {_format_pixel_color(color)} · copied · set as stroke")
 
     def _on_document_changed(self) -> None:
         tab = self._current_tab()
@@ -656,27 +657,6 @@ def _color_swatch_icon(color: QColor, size: int) -> QIcon:
     painter.setBrush(color)
     margin = 1
     painter.drawRoundedRect(margin, margin, size - margin * 2 - 1, size - margin * 2 - 1, 3, 3)
-    painter.end()
-    return QIcon(pixmap)
-
-
-def _eyedropper_icon(size: int) -> QIcon:
-    pixmap = QPixmap(size, size)
-    pixmap.fill(Qt.GlobalColor.transparent)
-    painter = QPainter(pixmap)
-    painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
-    ink = QColor(45, 45, 45)
-    stroke = max(1.6, size / 9)
-    pen = QPen(ink, stroke)
-    pen.setCapStyle(Qt.PenCapStyle.RoundCap)
-    pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
-    painter.setPen(pen)
-    painter.setBrush(ink)
-    painter.drawLine(QPointF(size * 0.30, size * 0.70), QPointF(size * 0.72, size * 0.28))
-    painter.drawEllipse(QPointF(size * 0.24, size * 0.76), size * 0.11, size * 0.11)
-    painter.setBrush(QColor(0, 174, 255))
-    painter.setPen(Qt.PenStyle.NoPen)
-    painter.drawEllipse(QPointF(size * 0.76, size * 0.24), size * 0.10, size * 0.10)
     painter.end()
     return QIcon(pixmap)
 

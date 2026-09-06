@@ -5,7 +5,12 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
-from harrix_swiss_knife.qt_emoji_icon import SAVE_BUTTON_EMOJI, make_emoji_push_button
+from harrix_swiss_knife.qt_lucide_icon import (
+    COPY_BUTTON_ICON,
+    OK_BUTTON_ICON,
+    SAVE_BUTTON_ICON,
+    make_lucide_push_button,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -17,31 +22,28 @@ REWRITE_DIALOG_CODE = 3
 TRANSLATE_DIALOG_CODE = 4
 
 RERUN_BUTTON_LABEL = "Run again"
-RERUN_BUTTON_EMOJI = "🔄"
+RERUN_BUTTON_ICON = "refresh-cw"
 FIX_AGAIN_BUTTON_LABEL = "Fix again"
-FIX_AGAIN_BUTTON_EMOJI = "🤖"
+FIX_AGAIN_BUTTON_ICON = "bot"
 REWRITE_AGAIN_BUTTON_LABEL = "Rewrite again"
-REWRITE_AGAIN_BUTTON_EMOJI = "✍️"
+REWRITE_AGAIN_BUTTON_ICON = "square-pen"
 REWRITE_BUTTON_LABEL = "Rewrite with AI…"
-REWRITE_BUTTON_EMOJI = "✍️"
+REWRITE_BUTTON_ICON = "square-pen"
 TRANSLATE_BUTTON_LABEL = "Translate"
-TRANSLATE_BUTTON_EMOJI = "🌐"
+TRANSLATE_BUTTON_ICON = "languages"
 REMOVE_PARAGRAPHS_BUTTON_LABEL = "To single line"
-REMOVE_PARAGRAPHS_BUTTON_EMOJI = "↪️"
+REMOVE_PARAGRAPHS_BUTTON_ICON = "text-wrap"
 COPY_BUTTON_LABEL = "Copy to Clipboard"
-COPY_BUTTON_EMOJI = "📋"
 SAVE_MARKDOWN_BUTTON_LABEL = "Save Markdown"
 OPEN_FOLDER_BUTTON_LABEL = "Open folder"
-OPEN_FOLDER_BUTTON_EMOJI = "📂"
+OPEN_FOLDER_BUTTON_ICON = "folder-open"
 OK_BUTTON_LABEL = "OK"
-OK_BUTTON_EMOJI = "✅"
 CANCEL_BUTTON_LABEL = "Cancel"
-CANCEL_BUTTON_EMOJI = "❌"
 
 
 def add_copy_button(button_layout: QHBoxLayout, click_handler: Callable[[], None]) -> QPushButton:
-    """Add a copy-to-clipboard button with an emoji icon."""
-    copy_button = make_emoji_push_button(COPY_BUTTON_LABEL, COPY_BUTTON_EMOJI)
+    """Add a copy-to-clipboard button with a Lucide icon."""
+    copy_button = make_lucide_push_button(COPY_BUTTON_LABEL, COPY_BUTTON_ICON)
     copy_button.clicked.connect(click_handler)
     button_layout.addWidget(copy_button)
     return copy_button
@@ -52,31 +54,31 @@ def add_ok_button(
     button_layout: QHBoxLayout,
     *,
     label: str = OK_BUTTON_LABEL,
-    emoji: str = OK_BUTTON_EMOJI,
+    icon: str = OK_BUTTON_ICON,
 ) -> QPushButton:
-    """Add a dismiss/confirm button with an emoji icon.
+    """Add a dismiss/confirm button with a Lucide icon.
 
     Callers that pair this with a separate Apply-style action should pass
     `Cancel` so the dismiss button is not mistaken for confirmation.
 
     """
-    ok_button = make_emoji_push_button(label, emoji)
+    ok_button = make_lucide_push_button(label, icon)
     ok_button.clicked.connect(dialog.accept)
     button_layout.addWidget(ok_button)
     return ok_button
 
 
 def add_open_folder_button(button_layout: QHBoxLayout, click_handler: Callable[[], None]) -> QPushButton:
-    """Add an open-folder button with an emoji icon."""
-    open_folder_button = make_emoji_push_button(OPEN_FOLDER_BUTTON_LABEL, OPEN_FOLDER_BUTTON_EMOJI)
+    """Add an open-folder button with a Lucide icon."""
+    open_folder_button = make_lucide_push_button(OPEN_FOLDER_BUTTON_LABEL, OPEN_FOLDER_BUTTON_ICON)
     open_folder_button.clicked.connect(click_handler)
     button_layout.addWidget(open_folder_button)
     return open_folder_button
 
 
 def add_save_markdown_button(button_layout: QHBoxLayout, click_handler: Callable[[], None]) -> QPushButton:
-    """Add a save-markdown button with an emoji icon."""
-    save_button = make_emoji_push_button(SAVE_MARKDOWN_BUTTON_LABEL, SAVE_BUTTON_EMOJI)
+    """Add a save-markdown button with a Lucide icon."""
+    save_button = make_lucide_push_button(SAVE_MARKDOWN_BUTTON_LABEL, SAVE_BUTTON_ICON)
     save_button.clicked.connect(click_handler)
     button_layout.addWidget(save_button)
     return save_button
@@ -88,7 +90,7 @@ def append_result_action_buttons(
     *,
     rerun_button: bool = False,
     rerun_button_label: str = RERUN_BUTTON_LABEL,
-    rerun_button_emoji: str = RERUN_BUTTON_EMOJI,
+    rerun_button_icon: str = RERUN_BUTTON_ICON,
     rewrite_button: bool = False,
     translate_button: bool = False,
     remove_paragraphs_button: bool = False,
@@ -102,17 +104,17 @@ def append_result_action_buttons(
 
     """
     if rerun_button:
-        rerun_btn = make_emoji_push_button(rerun_button_label, rerun_button_emoji)
+        rerun_btn = make_lucide_push_button(rerun_button_label, rerun_button_icon)
         rerun_btn.clicked.connect(lambda: dialog.done(RERUN_DIALOG_CODE))
         button_layout.addWidget(rerun_btn)
 
     if rewrite_button:
-        rewrite_btn = make_emoji_push_button(REWRITE_BUTTON_LABEL, REWRITE_BUTTON_EMOJI)
+        rewrite_btn = make_lucide_push_button(REWRITE_BUTTON_LABEL, REWRITE_BUTTON_ICON)
         rewrite_btn.clicked.connect(lambda: dialog.done(REWRITE_DIALOG_CODE))
         button_layout.addWidget(rewrite_btn)
 
     if translate_button:
-        translate_btn = make_emoji_push_button(TRANSLATE_BUTTON_LABEL, TRANSLATE_BUTTON_EMOJI)
+        translate_btn = make_lucide_push_button(TRANSLATE_BUTTON_LABEL, TRANSLATE_BUTTON_ICON)
         translate_btn.setToolTip("Translate into the local language from config")
         translate_btn.clicked.connect(lambda: dialog.done(TRANSLATE_DIALOG_CODE))
         button_layout.addWidget(translate_btn)
@@ -122,9 +124,9 @@ def append_result_action_buttons(
     if not is_multiline_text(remove_paragraphs_source_text):
         return None
 
-    remove_paragraphs_btn = make_emoji_push_button(
+    remove_paragraphs_btn = make_lucide_push_button(
         REMOVE_PARAGRAPHS_BUTTON_LABEL,
-        REMOVE_PARAGRAPHS_BUTTON_EMOJI,
+        REMOVE_PARAGRAPHS_BUTTON_ICON,
     )
     remove_paragraphs_btn.clicked.connect(on_remove_paragraphs)
     button_layout.addWidget(remove_paragraphs_btn)

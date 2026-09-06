@@ -65,7 +65,7 @@ class IconChoiceCard(QWidget):
 
         if show_ai_screenshot:
             button = QPushButton(icon_host)
-            button.setIcon(create_emoji_icon(AI_SCREENSHOT_CARD_EMOJI, 14))
+            button.setIcon(create_lucide_icon(AI_SCREENSHOT_CARD_ICON, 14))
             button.setIconSize(QSize(14, 14))
             button.setFixedSize(22, 22)
             button.setFlat(True)
@@ -143,7 +143,7 @@ def __init__(
 
         if show_ai_screenshot:
             button = QPushButton(icon_host)
-            button.setIcon(create_emoji_icon(AI_SCREENSHOT_CARD_EMOJI, 14))
+            button.setIcon(create_lucide_icon(AI_SCREENSHOT_CARD_ICON, 14))
             button.setIconSize(QSize(14, 14))
             button.setFixedSize(22, 22)
             button.setFlat(True)

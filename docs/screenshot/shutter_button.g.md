@@ -303,44 +303,44 @@ class ShutterPanel(QWidget):
             alignment=Qt.AlignmentFlag.AlignHCenter,
         )
 
-        self._mode_button = self._make_emoji_button(_ARRANGE_EMOJI, "Arrange desktop")
+        self._mode_button = self._make_icon_button(_ARRANGE_ICON, "Arrange desktop")
         self._mode_button.clicked.connect(self.triggered.emit)
         self._buttons_layout.addWidget(self._mode_button)
 
-        self._adjust_button = self._make_emoji_button(
-            _ADJUST_EMOJI,
+        self._adjust_button = self._make_icon_button(
+            _ADJUST_ICON,
             "Adjust region after select (Enter confirms)",
         )
         self._adjust_button.setCheckable(True)
         self._adjust_button.toggled.connect(self.adjust_toggled.emit)
         self._buttons_layout.addWidget(self._adjust_button)
 
-        self._guides_button = self._make_emoji_button(
-            _GUIDES_EMOJI,
+        self._guides_button = self._make_icon_button(
+            _GUIDES_ICON,
             "Composition guides: thirds, diagonal, size, and angle",
         )
         self._guides_button.setCheckable(True)
         self._guides_button.toggled.connect(self.guides_toggled.emit)
         self._buttons_layout.addWidget(self._guides_button)
 
-        self._keep_windows_button = self._make_emoji_button(
-            _KEEP_WINDOWS_EMOJI,
+        self._keep_windows_button = self._make_icon_button(
+            _KEEP_WINDOWS_ICON,
             "Keep app Windows visible in the screenshot",
         )
         self._keep_windows_button.setCheckable(True)
         self._keep_windows_button.toggled.connect(self.keep_windows_toggled.emit)
         self._buttons_layout.addWidget(self._keep_windows_button)
 
-        self._clipboard_button = self._make_emoji_button(
-            _CLIPBOARD_EMOJI,
+        self._clipboard_button = self._make_icon_button(
+            _CLIPBOARD_ICON,
             "Clipboard only (skip preview)",
         )
         self._clipboard_button.setCheckable(True)
         self._clipboard_button.toggled.connect(self.clipboard_toggled.emit)
         self._buttons_layout.addWidget(self._clipboard_button)
 
-        self._close_button = self._make_emoji_button(
-            _CLOSE_EMOJI,
+        self._close_button = self._make_icon_button(
+            _CLOSE_ICON,
             "Cancel" if not capture_options else "Cancel screenshot",
         )
         self._close_button.clicked.connect(self.cancelled.emit)
@@ -439,14 +439,14 @@ class ShutterPanel(QWidget):
         self._mode = mode
         if mode == "selection":
             # In region selection, click leaves capture to arrange other Windows.
-            self._mode_button.setIcon(create_emoji_icon(_ARRANGE_EMOJI, TOOLBAR_ICON_SIZE))
+            self._mode_button.setIcon(create_lucide_icon(_ARRANGE_ICON, TOOLBAR_ICON_SIZE))
             self._mode_button.setToolTip("Arrange desktop")
             self._mode_button.setProperty("hover_hint", "Arrange desktop")
             self._guides_button.show()
             self._apply_capture_option_visibility()
         else:
             # In arrange mode, click returns to region capture.
-            self._mode_button.setIcon(create_emoji_icon(_CAMERA_EMOJI, TOOLBAR_ICON_SIZE))
+            self._mode_button.setIcon(create_lucide_icon(_CAMERA_ICON, TOOLBAR_ICON_SIZE))
             self._mode_button.setToolTip("Capture region" if self._capture_options else "Select region")
             self._mode_button.setProperty(
                 "hover_hint",
@@ -481,10 +481,10 @@ class ShutterPanel(QWidget):
         self._hint_label.clear()
         self._update_size()
 
-    def _make_emoji_button(self, emoji: str, tooltip: str) -> QPushButton:
+    def _make_icon_button(self, name: str, tooltip: str) -> QPushButton:
         button = QPushButton(self._buttons_host)
         button.setFixedSize(TOOLBAR_BUTTON_SIZE, TOOLBAR_BUTTON_SIZE)
-        button.setIcon(create_emoji_icon(emoji, TOOLBAR_ICON_SIZE))
+        button.setIcon(create_lucide_icon(name, TOOLBAR_ICON_SIZE))
         button.setIconSize(QSize(TOOLBAR_ICON_SIZE, TOOLBAR_ICON_SIZE))
         button.setCursor(Qt.CursorShape.PointingHandCursor)
         button.setToolTip(tooltip)
@@ -587,44 +587,44 @@ def __init__(self, parent: QWidget | None = None, *, capture_options: bool = Tru
             alignment=Qt.AlignmentFlag.AlignHCenter,
         )
 
-        self._mode_button = self._make_emoji_button(_ARRANGE_EMOJI, "Arrange desktop")
+        self._mode_button = self._make_icon_button(_ARRANGE_ICON, "Arrange desktop")
         self._mode_button.clicked.connect(self.triggered.emit)
         self._buttons_layout.addWidget(self._mode_button)
 
-        self._adjust_button = self._make_emoji_button(
-            _ADJUST_EMOJI,
+        self._adjust_button = self._make_icon_button(
+            _ADJUST_ICON,
             "Adjust region after select (Enter confirms)",
         )
         self._adjust_button.setCheckable(True)
         self._adjust_button.toggled.connect(self.adjust_toggled.emit)
         self._buttons_layout.addWidget(self._adjust_button)
 
-        self._guides_button = self._make_emoji_button(
-            _GUIDES_EMOJI,
+        self._guides_button = self._make_icon_button(
+            _GUIDES_ICON,
             "Composition guides: thirds, diagonal, size, and angle",
         )
         self._guides_button.setCheckable(True)
         self._guides_button.toggled.connect(self.guides_toggled.emit)
         self._buttons_layout.addWidget(self._guides_button)
 
-        self._keep_windows_button = self._make_emoji_button(
-            _KEEP_WINDOWS_EMOJI,
+        self._keep_windows_button = self._make_icon_button(
+            _KEEP_WINDOWS_ICON,
             "Keep app Windows visible in the screenshot",
         )
         self._keep_windows_button.setCheckable(True)
         self._keep_windows_button.toggled.connect(self.keep_windows_toggled.emit)
         self._buttons_layout.addWidget(self._keep_windows_button)
 
-        self._clipboard_button = self._make_emoji_button(
-            _CLIPBOARD_EMOJI,
+        self._clipboard_button = self._make_icon_button(
+            _CLIPBOARD_ICON,
             "Clipboard only (skip preview)",
         )
         self._clipboard_button.setCheckable(True)
         self._clipboard_button.toggled.connect(self.clipboard_toggled.emit)
         self._buttons_layout.addWidget(self._clipboard_button)
 
-        self._close_button = self._make_emoji_button(
-            _CLOSE_EMOJI,
+        self._close_button = self._make_icon_button(
+            _CLOSE_ICON,
             "Cancel" if not capture_options else "Cancel screenshot",
         )
         self._close_button.clicked.connect(self.cancelled.emit)
@@ -887,14 +887,14 @@ def set_mode(self, mode: ShutterMode) -> None:
         self._mode = mode
         if mode == "selection":
             # In region selection, click leaves capture to arrange other Windows.
-            self._mode_button.setIcon(create_emoji_icon(_ARRANGE_EMOJI, TOOLBAR_ICON_SIZE))
+            self._mode_button.setIcon(create_lucide_icon(_ARRANGE_ICON, TOOLBAR_ICON_SIZE))
             self._mode_button.setToolTip("Arrange desktop")
             self._mode_button.setProperty("hover_hint", "Arrange desktop")
             self._guides_button.show()
             self._apply_capture_option_visibility()
         else:
             # In arrange mode, click returns to region capture.
-            self._mode_button.setIcon(create_emoji_icon(_CAMERA_EMOJI, TOOLBAR_ICON_SIZE))
+            self._mode_button.setIcon(create_lucide_icon(_CAMERA_ICON, TOOLBAR_ICON_SIZE))
             self._mode_button.setToolTip("Capture region" if self._capture_options else "Select region")
             self._mode_button.setProperty(
                 "hover_hint",

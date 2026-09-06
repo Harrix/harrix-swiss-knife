@@ -14,8 +14,11 @@ lang: en
 - [🔧 Function `add_clear_filters_action`](#-function-add_clear_filters_action)
 - [🔧 Function `add_date_in_main_field_actions`](#-function-add_date_in_main_field_actions)
 - [🔧 Function `add_delete_action`](#-function-add_delete_action)
+- [🔧 Function `add_edit_action`](#-function-add_edit_action)
 - [🔧 Function `add_export_actions`](#-function-add_export_actions)
 - [🔧 Function `add_info_action`](#-function-add_info_action)
+- [🔧 Function `add_labeled_action`](#-function-add_labeled_action)
+- [🔧 Function `add_lightbox_action`](#-function-add_lightbox_action)
 - [🔧 Function `add_separator`](#-function-add_separator)
 - [🔧 Function `begin_filters_block`](#-function-begin_filters_block)
 - [🔧 Function `last_action_is_separator`](#-function-last_action_is_separator)
@@ -36,7 +39,7 @@ Add `Clear all filters` inside the filters block above Delete.
 
 ```python
 def add_clear_filters_action(menu: QMenu) -> QAction:
-    return menu.addAction(LABEL_CLEAR_FILTERS)
+    return add_lucide_action(menu, LABEL_CLEAR_FILTERS, ICON_CLEAR_FILTERS)
 ```
 
 </details>
@@ -55,9 +58,9 @@ Add the three “set this date in the main field” commands.
 ```python
 def add_date_in_main_field_actions(menu: QMenu) -> tuple[QAction, QAction, QAction]:
     add_separator(menu)
-    set_date = menu.addAction(LABEL_SET_DATE)
-    plus_one = menu.addAction(LABEL_SET_DATE_PLUS_ONE)
-    minus_one = menu.addAction(LABEL_SET_DATE_MINUS_ONE)
+    set_date = add_lucide_action(menu, LABEL_SET_DATE, ICON_SET_DATE)
+    plus_one = add_lucide_action(menu, LABEL_SET_DATE_PLUS_ONE, ICON_SET_DATE)
+    minus_one = add_lucide_action(menu, LABEL_SET_DATE_MINUS_ONE, ICON_SET_DATE)
     return set_date, plus_one, minus_one
 ```
 
@@ -77,7 +80,25 @@ Add `Delete` as the last command, after a separator when needed.
 ```python
 def add_delete_action(menu: QMenu) -> QAction:
     add_separator(menu)
-    return menu.addAction(LABEL_DELETE)
+    return add_lucide_action(menu, LABEL_DELETE, ICON_DELETE)
+```
+
+</details>
+
+## 🔧 Function `add_edit_action`
+
+```python
+def add_edit_action(menu: QMenu) -> QAction
+```
+
+Add `Edit` with a pencil icon.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def add_edit_action(menu: QMenu) -> QAction:
+    return add_lucide_action(menu, LABEL_EDIT, ICON_EDIT)
 ```
 
 </details>
@@ -95,8 +116,8 @@ Add CSV and Excel export commands.
 
 ```python
 def add_export_actions(menu: QMenu) -> tuple[QAction, QAction]:
-    csv_action = menu.addAction(LABEL_EXPORT_CSV)
-    excel_action = menu.addAction(LABEL_EXPORT_EXCEL)
+    csv_action = add_lucide_action(menu, LABEL_EXPORT_CSV, ICON_EXPORT_CSV)
+    excel_action = add_lucide_action(menu, LABEL_EXPORT_EXCEL, ICON_EXPORT_EXCEL)
     return csv_action, excel_action
 ```
 
@@ -119,6 +140,42 @@ def add_info_action(menu: QMenu, text: str) -> QAction:
     action = menu.addAction(text)
     action.setEnabled(False)
     return action
+```
+
+</details>
+
+## 🔧 Function `add_labeled_action`
+
+```python
+def add_labeled_action(menu: QMenu, label: str, icon: str) -> QAction
+```
+
+Add a chrome menu action with a Lucide icon and plain label.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def add_labeled_action(menu: QMenu, label: str, icon: str) -> QAction:
+    return add_lucide_action(menu, label, icon)
+```
+
+</details>
+
+## 🔧 Function `add_lightbox_action`
+
+```python
+def add_lightbox_action(menu: QMenu) -> QAction
+```
+
+Add `Open image in lightbox`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def add_lightbox_action(menu: QMenu) -> QAction:
+    return add_lucide_action(menu, LABEL_OPEN_LIGHTBOX, ICON_OPEN_LIGHTBOX)
 ```
 
 </details>
@@ -194,7 +251,7 @@ Label that toggles between all records and the last `last_count`.
 ```python
 def show_records_label(*, show_all: bool, last_count: int) -> str:
     if show_all:
-        return f"📋 Show last {last_count}"
+        return f"Show last {last_count}"
     return LABEL_SHOW_ALL_RECORDS
 ```
 

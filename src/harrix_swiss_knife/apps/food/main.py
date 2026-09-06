@@ -143,13 +143,15 @@ from harrix_swiss_knife.integrations.bothub import (
 )
 from harrix_swiss_knife.keyboard_layout_search import text_matches_autocomplete
 from harrix_swiss_knife.paths import get_config_path_str
-from harrix_swiss_knife.qt_emoji_icon import (
-    CANCEL_BUTTON_EMOJI,
-    OK_BUTTON_EMOJI,
-    apply_emoji_dialog_buttons,
-    apply_leading_emoji_icons,
-    make_emoji_push_button,
-    set_action_text_with_emoji_icon,
+from harrix_swiss_knife.qt_lucide_icon import (
+    CANCEL_BUTTON_ICON,
+    OK_BUTTON_ICON,
+    apply_leading_chrome_button_icon,
+    apply_leading_chrome_buttons,
+    apply_leading_chrome_icons,
+    apply_lucide_dialog_buttons,
+    make_lucide_push_button,
+    set_action_text_with_lucide_icon,
 )
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
 
@@ -1025,12 +1027,12 @@ class MainWindow(
 
         # Update menu action text
         if self.show_all_food_records:
-            set_action_text_with_emoji_icon(
+            set_action_text_with_lucide_icon(
                 self.action_show_all_records,
                 f"📊 Show Last {self.count_food_records_to_show}",
             )
         else:
-            set_action_text_with_emoji_icon(self.action_show_all_records, "📊 Show All Records")
+            set_action_text_with_lucide_icon(self.action_show_all_records, "📊 Show All Records")
 
         # Refresh the food log table
         self._update_food_log_table()
@@ -2423,10 +2425,10 @@ class MainWindow(
 
         button_layout = QHBoxLayout()
         button_layout.addStretch()
-        cancel_button = make_emoji_push_button("Cancel", CANCEL_BUTTON_EMOJI)
+        cancel_button = make_lucide_push_button("Cancel", CANCEL_BUTTON_ICON)
         cancel_button.clicked.connect(dialog.reject)
         button_layout.addWidget(cancel_button)
-        ok_button = make_emoji_push_button("OK", OK_BUTTON_EMOJI)
+        ok_button = make_lucide_push_button("OK", OK_BUTTON_ICON)
         ok_button.setDefault(True)
         ok_button.clicked.connect(dialog.accept)
         button_layout.addWidget(ok_button)
@@ -3174,7 +3176,7 @@ class MainWindow(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
             parent=dialog,
         )
-        apply_emoji_dialog_buttons(buttons)
+        apply_lucide_dialog_buttons(buttons)
         buttons.accepted.connect(dialog.accept)
         buttons.rejected.connect(dialog.reject)
         dialog_layout.addWidget(buttons)
@@ -3323,6 +3325,7 @@ class MainWindow(
         self.pushButton_clear_filter.setFixedSize(clear_h, clear_h)
         self._init_filter_controls()
         self._update_clear_filter_button_visibility()
+        apply_leading_chrome_buttons(self)
 
         # Set initial radio button state and update calories calculation
         self.radioButton_use_weight.setChecked(True)
@@ -3471,7 +3474,7 @@ class MainWindow(
         clear_filters_action = add_clear_filters_action(context_menu)
 
         delete_action = add_delete_action(context_menu)
-        apply_leading_emoji_icons(context_menu)
+        apply_leading_chrome_icons(context_menu)
         action = context_menu.exec_(self.tableView_food_log.mapToGlobal(position))
 
         # Process the action only if it was actually selected (not None)
@@ -3825,6 +3828,7 @@ class MainWindow(
         if is_drink:
             # Drink mode: blue color and drink icon
             self.pushButton_food_add.setText("🥤 Add Drink")
+            apply_leading_chrome_button_icon(self.pushButton_food_add)
             self.pushButton_food_add.setStyleSheet(
                 "QPushButton {\n"
                 "    background-color: #e8f5e8;\n"
@@ -3842,6 +3846,7 @@ class MainWindow(
         else:
             # Food mode: default blue color and food icon
             self.pushButton_food_add.setText("➕ Add Food")  # noqa: RUF001
+            apply_leading_chrome_button_icon(self.pushButton_food_add)
             self.pushButton_food_add.setStyleSheet(
                 "QPushButton {\n"
                 "    background-color: #e3f2fd;\n"

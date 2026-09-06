@@ -17,7 +17,7 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.habits.habit_comments import preview_habit_comment
-from harrix_swiss_knife.qt_emoji_icon import apply_emoji_dialog_buttons
+from harrix_swiss_knife.qt_lucide_icon import apply_lucide_dialog_buttons
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -71,7 +71,7 @@ class HabitCommentsListDialog(QDialog):
                 self._list.addItem(row)
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
-        apply_emoji_dialog_buttons(buttons)
+        apply_lucide_dialog_buttons(buttons)
         buttons.rejected.connect(self.reject)
         buttons.accepted.connect(self.reject)
         root.addWidget(buttons)

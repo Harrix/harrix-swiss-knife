@@ -27,6 +27,7 @@ lang: en
   - [⚙️ Method `mouseReleaseEvent`](#%EF%B8%8F-method-mousereleaseevent)
   - [⚙️ Method `paintEvent`](#%EF%B8%8F-method-paintevent)
   - [⚙️ Method `resizeEvent`](#%EF%B8%8F-method-resizeevent)
+  - [⚙️ Method `sample_color_at`](#%EF%B8%8F-method-sample_color_at)
   - [⚙️ Method `selected_index (property)`](#%EF%B8%8F-method-selected_index-property)
   - [⚙️ Method `set_document`](#%EF%B8%8F-method-set_document)
   - [⚙️ Method `set_style`](#%EF%B8%8F-method-set_style)
@@ -58,6 +59,8 @@ class ScreenshotPreviewCanvas(QWidget):
     document_changed = Signal()
     crop_mode_changed = Signal(bool)
     crop_pending_changed = Signal(bool)
+    color_hovered = Signal(object)
+    color_picked = Signal(QColor)
     text_requested = Signal(QPointF)
 
     def __init__(self, image: QImage, parent: QWidget | None = None) -> None:
@@ -92,6 +95,9 @@ class ScreenshotPreviewCanvas(QWidget):
         self._crop_press_rect: QRect | None = None
         self._snap_x_edges: list[int] = []
         self._snap_y_edges: list[int] = []
+        self._snap_x_guide: float | None = None
+        self._snap_y_guide: float | None = None
+        self._eyedrop_hover: tuple[QPointF, QColor] | None = None
 
     def cancel_crop(self) -> None:
         """Discard crop selection and leave crop mode."""
@@ -124,12 +130,16 @@ class ScreenshotPreviewCanvas(QWidget):
         if document is None or rect is None or rect.width() < _MIN_CROP or rect.height() < _MIN_CROP:
             self.cancel_crop()
             return False
-        applied = document.apply_crop(QRectF(rect))
+        identity = rect == self._image_bounds()
+        applied = False if identity else document.apply_crop(QRectF(rect))
         self._clear_crop_state()
         self._tool = AnnotationTool.NONE
         self.setCursor(Qt.CursorShape.ArrowCursor)
         self.crop_mode_changed.emit(False)  # noqa: FBT003
         self.crop_pending_changed.emit(False)  # noqa: FBT003
+        if identity:
+            self.update()
+            return True
         if not applied:
             self.update()
             return False
@@ -225,6 +235,11 @@ class ScreenshotPreviewCanvas(QWidget):
             event.accept()
             return
 
+        if self._tool == AnnotationTool.EYEDROPPER:
+            self._eyedrop_mouse_move(event.position())
+            event.accept()
+            return
+
         image_pos = self._widget_to_image(event.position())
         if self._edit_handle is not None and image_pos is not None:
             self._apply_annotation_drag(image_pos, shift=_shift_pressed(event.modifiers()))
@@ -250,17 +265,13 @@ class ScreenshotPreviewCanvas(QWidget):
                 self._document.append_draft_point(image_pos)
             else:
                 self._draw_current = image_pos
-                self._document.update_draft_points(
-                    [
-                        start,
-                        constrain_shape_end(
-                            draft.tool,
-                            start,
-                            image_pos,
-                            shift=_shift_pressed(event.modifiers()),
-                        ),
-                    ]
+                end = self._constrain_and_snap_draft_end(
+                    start,
+                    image_pos,
+                    draft.tool,
+                    shift=_shift_pressed(event.modifiers()),
                 )
+                self._document.update_draft_points([start, end])
             self.update()
             event.accept()
             return
@@ -279,6 +290,12 @@ class ScreenshotPreviewCanvas(QWidget):
             self._crop_mouse_press(event.position())
             event.accept()
             return
+        if event.button() == Qt.MouseButton.LeftButton and self._tool == AnnotationTool.EYEDROPPER:
+            color = self.sample_color_at(event.position())
+            if color is not None:
+                self.color_picked.emit(color)
+            event.accept()
+            return
         if event.button() == Qt.MouseButton.LeftButton and self._tool != AnnotationTool.NONE:
             image_pos = self._widget_to_image(event.position())
             if image_pos is None or self._document is None:
@@ -289,14 +306,15 @@ class ScreenshotPreviewCanvas(QWidget):
                 event.accept()
                 return
             self._selected_index = None
+            snapped = self._snap_pointer(image_pos)
             if self._tool == AnnotationTool.TEXT:
-                self.text_requested.emit(image_pos)
+                self.text_requested.emit(snapped)
                 event.accept()
                 return
-            self._draw_start = image_pos
-            self._draw_current = image_pos
+            self._draw_start = snapped
+            self._draw_current = QPointF(snapped)
             if self._tool == AnnotationTool.PEN:
-                self._begin_shape_draft(image_pos, image_pos)
+                self._begin_shape_draft(snapped, snapped)
             event.accept()
             return
         if event.button() == Qt.MouseButton.LeftButton and self._tool == AnnotationTool.NONE:
@@ -346,14 +364,35 @@ class ScreenshotPreviewCanvas(QWidget):
 
         if self._tool == AnnotationTool.CROP and not image_rect.isEmpty():
             self._paint_crop_overlay(painter, image_rect)
-        elif self._document is not None and not image_rect.isEmpty():
+        elif self._document is not None and not image_rect.isEmpty() and self._tool != AnnotationTool.EYEDROPPER:
             self._paint_live_annotations(painter, image_rect)
+        if self._tool == AnnotationTool.EYEDROPPER:
+            self._paint_eyedrop_preview(painter)
         painter.end()
 
     def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
         """Repaint when the available fit area changes."""
         super().resizeEvent(event)
         self.update()
+
+    def sample_color_at(self, widget_pos: QPointF) -> QColor | None:
+        """Return the visible pixel color under `widget_pos`, or `None` if outside the image."""
+        rect = self._image_rect()
+        if rect.isEmpty() or self._pixmap.isNull():
+            return None
+        if widget_pos.x() < rect.left() or widget_pos.x() > rect.right():
+            return None
+        if widget_pos.y() < rect.top() or widget_pos.y() > rect.bottom():
+            return None
+        width, height = self._source_size()
+        if width <= 0 or height <= 0:
+            return None
+        x = min(max(0, int((widget_pos.x() - rect.left()) / rect.width() * width)), width - 1)
+        y = min(max(0, int((widget_pos.y() - rect.top()) / rect.height() * height)), height - 1)
+        image = self._pixmap.toImage()
+        if x >= image.width() or y >= image.height():
+            return None
+        return QColor(image.pixelColor(x, y))
 
     @property
     def selected_index(self) -> int | None:
@@ -378,6 +417,7 @@ class ScreenshotPreviewCanvas(QWidget):
     def set_tool(self, tool: AnnotationTool) -> None:
         """Select the drawing tool (`NONE` keeps view-only left-click)."""
         previous_crop = self._tool == AnnotationTool.CROP
+        previous_eyedrop = self._tool == AnnotationTool.EYEDROPPER
         if previous_crop and tool != AnnotationTool.CROP:
             self._clear_crop_state()
             self.crop_pending_changed.emit(False)  # noqa: FBT003
@@ -385,13 +425,23 @@ class ScreenshotPreviewCanvas(QWidget):
         self._draw_start = None
         self._draw_current = None
         self._clear_edit_state()
+        if tool != AnnotationTool.EYEDROPPER:
+            self._eyedrop_hover = None
         if tool == AnnotationTool.CROP:
+            self._selected_index = None
+        if tool == AnnotationTool.EYEDROPPER:
             self._selected_index = None
         if self._document is not None and tool != AnnotationTool.CROP:
             self._document.cancel_draft()
         if tool == AnnotationTool.CROP:
             self._rebuild_snap_edges()
-            self.setCursor(Qt.CursorShape.CrossCursor)
+            if previous_crop:
+                if self._crop_pending:
+                    self.setCursor(Qt.CursorShape.SizeAllCursor)
+                else:
+                    self.setCursor(Qt.CursorShape.CrossCursor)
+            else:
+                self._select_full_image_crop()
             self.crop_mode_changed.emit(True)  # noqa: FBT003
         else:
             if previous_crop:
@@ -402,7 +452,7 @@ class ScreenshotPreviewCanvas(QWidget):
                 self.setCursor(Qt.CursorShape.IBeamCursor)
             else:
                 self.setCursor(Qt.CursorShape.CrossCursor)
-        if tool == AnnotationTool.CROP or previous_crop:
+        if tool == AnnotationTool.CROP or previous_crop or tool == AnnotationTool.EYEDROPPER or previous_eyedrop:
             self._refresh_pixmap()
         else:
             self.update()
@@ -449,6 +499,16 @@ class ScreenshotPreviewCanvas(QWidget):
             return self._crop_drag_rect()
         return self._crop_rect
 
+    def _annotation_snap_guides(self, *, exclude_index: int | None = None) -> tuple[list[float], list[float]]:
+        document = self._document
+        if document is None:
+            return [], []
+        bounds = self._image_bounds()
+        frame = None
+        if bounds.isValid() and not bounds.isEmpty():
+            frame = QRectF(QPointF(bounds.left(), bounds.top()), QPointF(bounds.right(), bounds.bottom()))
+        return collect_annotation_guides(document.annotations, exclude_index=exclude_index, bounds=frame)
+
     def _apply_annotation_drag(self, image_pos: QPointF, *, shift: bool) -> None:
         document = self._document
         index = self._selected_index
@@ -465,7 +525,19 @@ class ScreenshotPreviewCanvas(QWidget):
             document.save_undo_checkpoint()
             self._edit_history_saved = True
         points = apply_annotation_edit(annotation, handle, origin, press, image_pos, shift=shift)
-        document.update_annotation_points(index, points)
+        xs, ys = self._annotation_snap_guides(exclude_index=index)
+        snapped = snap_annotation_edit(
+            annotation,
+            handle,
+            points,
+            xs,
+            ys,
+            threshold=_EDGE_SNAP_THRESHOLD,
+            shift=shift,
+        )
+        self._snap_x_guide = snapped.x_guide
+        self._snap_y_guide = snapped.y_guide
+        document.update_annotation_points(index, snapped.points)
         self.update()
 
     def _begin_annotation_edit(self, image_pos: QPointF) -> bool:
@@ -518,6 +590,34 @@ class ScreenshotPreviewCanvas(QWidget):
         self._edit_press = None
         self._edit_current = None
         self._edit_history_saved = False
+        self._clear_snap_guides()
+
+    def _clear_snap_guides(self) -> None:
+        self._snap_x_guide = None
+        self._snap_y_guide = None
+
+    def _constrain_and_snap_draft_end(
+        self,
+        start: QPointF,
+        image_pos: QPointF,
+        tool: AnnotationTool,
+        *,
+        shift: bool,
+    ) -> QPointF:
+        end = constrain_shape_end(tool, start, image_pos, shift=shift)
+        xs, ys = self._annotation_snap_guides()
+        snapped, x_guide, y_guide = snap_shape_end(
+            tool,
+            start,
+            end,
+            xs,
+            ys,
+            threshold=_EDGE_SNAP_THRESHOLD,
+            shift=shift,
+        )
+        self._snap_x_guide = x_guide
+        self._snap_y_guide = y_guide
+        return snapped
 
     def _crop_drag_rect(self) -> QRect | None:
         if self._crop_origin is None or self._crop_current is None:
@@ -635,21 +735,34 @@ class ScreenshotPreviewCanvas(QWidget):
         self.setCursor(Qt.CursorShape.SizeAllCursor)
         self.update()
 
+    def _eyedrop_mouse_move(self, widget_pos: QPointF) -> None:
+        color = self.sample_color_at(widget_pos)
+        self._eyedrop_hover = (QPointF(widget_pos), color) if color is not None else None
+        self.setCursor(Qt.CursorShape.CrossCursor)
+        self.color_hovered.emit(color)
+        self.update()
+
     def _finish_draw(self, widget_pos: QPointF, *, shift: bool) -> None:
         document = self._document
         start = self._draw_start
         self._draw_start = None
         self._draw_current = None
         if document is None or start is None:
+            self._clear_snap_guides()
             return
         image_pos = self._widget_to_image(widget_pos)
         if image_pos is not None and document.draft is not None:
             if document.draft.tool == AnnotationTool.PEN:
                 document.append_draft_point(image_pos)
             else:
-                document.update_draft_points(
-                    [start, constrain_shape_end(document.draft.tool, start, image_pos, shift=shift)]
+                end = self._constrain_and_snap_draft_end(
+                    start,
+                    image_pos,
+                    document.draft.tool,
+                    shift=shift,
                 )
+                document.update_draft_points([start, end])
+        self._clear_snap_guides()
         if document.commit_draft():
             self._selected_index = len(document.annotations) - 1
             self.update()
@@ -717,6 +830,25 @@ class ScreenshotPreviewCanvas(QWidget):
             border_width=SELECTION_BORDER_WIDTH,
         )
 
+    def _paint_eyedrop_preview(self, painter: QPainter) -> None:
+        hover = self._eyedrop_hover
+        if hover is None:
+            return
+        pos, color = hover
+        size = 32
+        x = int(pos.x()) + 18
+        y = int(pos.y()) + 18
+        if x + size > self.width() - 1:
+            x = int(pos.x()) - size - 8
+        if y + size > self.height() - 1:
+            y = int(pos.y()) - size - 8
+        box = QRect(max(0, x), max(0, y), size, size)
+        painter.fillRect(box, color)
+        painter.setPen(QPen(QColor(255, 255, 255), 2))
+        painter.drawRect(box.adjusted(1, 1, -1, -1))
+        painter.setPen(QPen(QColor(0, 0, 0), 1))
+        painter.drawRect(box)
+
     def _paint_live_annotations(self, painter: QPainter, image_rect: QRectF) -> None:
         document = self._document
         if document is None or self._pixmap.isNull():
@@ -738,10 +870,23 @@ class ScreenshotPreviewCanvas(QWidget):
                 document.annotations[index],
                 handle_size=self._handle_size_image(),
             )
+        self._paint_snap_guides(painter, width, height)
         painter.restore()
 
+    def _paint_snap_guides(self, painter: QPainter, width: int, height: int) -> None:
+        if self._snap_x_guide is None and self._snap_y_guide is None:
+            return
+        pen = QPen(_SNAP_GUIDE_COLOR, 1.0)
+        pen.setStyle(Qt.PenStyle.DashLine)
+        pen.setCosmetic(True)
+        painter.setPen(pen)
+        if self._snap_x_guide is not None:
+            painter.drawLine(QPointF(self._snap_x_guide, 0.0), QPointF(self._snap_x_guide, float(height)))
+        if self._snap_y_guide is not None:
+            painter.drawLine(QPointF(0.0, self._snap_y_guide), QPointF(float(width), self._snap_y_guide))
+
     def _prefer_tool(self) -> AnnotationTool | None:
-        if self._tool in {AnnotationTool.CROP, AnnotationTool.NONE}:
+        if self._tool in {AnnotationTool.CROP, AnnotationTool.NONE, AnnotationTool.EYEDROPPER}:
             return None
         return self._tool
 
@@ -758,7 +903,8 @@ class ScreenshotPreviewCanvas(QWidget):
             return False
         if document.draft.tool == AnnotationTool.PEN:
             return False
-        document.update_draft_points([start, constrain_shape_end(document.draft.tool, start, current, shift=shift)])
+        end = self._constrain_and_snap_draft_end(start, current, document.draft.tool, shift=shift)
+        document.update_draft_points([start, end])
         self.update()
         return True
 
@@ -776,11 +922,32 @@ class ScreenshotPreviewCanvas(QWidget):
             return
         image = (
             self._document.render(include_draft=False)
-            if self._tool == AnnotationTool.CROP
+            if self._tool in {AnnotationTool.CROP, AnnotationTool.EYEDROPPER}
             else self._document.base_image
         )
         self._pixmap = QPixmap.fromImage(image)
         self.update()
+
+    def _select_full_image_crop(self) -> None:
+        bounds = self._image_bounds()
+        if not bounds.isValid() or bounds.isEmpty() or bounds.width() < _MIN_CROP or bounds.height() < _MIN_CROP:
+            self.setCursor(Qt.CursorShape.CrossCursor)
+            return
+        self._crop_rect = QRect(bounds)
+        self._crop_pending = True
+        self._crop_origin = None
+        self._crop_current = None
+        self._crop_dragging = False
+        self._crop_edit_handle = None
+        self.setCursor(Qt.CursorShape.SizeAllCursor)
+        self.crop_pending_changed.emit(True)  # noqa: FBT003
+
+    def _snap_pointer(self, image_pos: QPointF, *, exclude_index: int | None = None) -> QPointF:
+        xs, ys = self._annotation_snap_guides(exclude_index=exclude_index)
+        snapped, x_guide, y_guide = snap_point(image_pos, xs, ys, threshold=_EDGE_SNAP_THRESHOLD)
+        self._snap_x_guide = x_guide
+        self._snap_y_guide = y_guide
+        return snapped
 
     def _source_size(self) -> tuple[int, int]:
         if self._document is not None and not self._document.base_image.isNull():
@@ -877,6 +1044,9 @@ def __init__(self, image: QImage, parent: QWidget | None = None) -> None:
         self._crop_press_rect: QRect | None = None
         self._snap_x_edges: list[int] = []
         self._snap_y_edges: list[int] = []
+        self._snap_x_guide: float | None = None
+        self._snap_y_guide: float | None = None
+        self._eyedrop_hover: tuple[QPointF, QColor] | None = None
 ```
 
 </details>
@@ -951,12 +1121,16 @@ def confirm_crop(self) -> bool:
         if document is None or rect is None or rect.width() < _MIN_CROP or rect.height() < _MIN_CROP:
             self.cancel_crop()
             return False
-        applied = document.apply_crop(QRectF(rect))
+        identity = rect == self._image_bounds()
+        applied = False if identity else document.apply_crop(QRectF(rect))
         self._clear_crop_state()
         self._tool = AnnotationTool.NONE
         self.setCursor(Qt.CursorShape.ArrowCursor)
         self.crop_mode_changed.emit(False)  # noqa: FBT003
         self.crop_pending_changed.emit(False)  # noqa: FBT003
+        if identity:
+            self.update()
+            return True
         if not applied:
             self.update()
             return False
@@ -1148,6 +1322,11 @@ def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
             event.accept()
             return
 
+        if self._tool == AnnotationTool.EYEDROPPER:
+            self._eyedrop_mouse_move(event.position())
+            event.accept()
+            return
+
         image_pos = self._widget_to_image(event.position())
         if self._edit_handle is not None and image_pos is not None:
             self._apply_annotation_drag(image_pos, shift=_shift_pressed(event.modifiers()))
@@ -1173,17 +1352,13 @@ def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
                 self._document.append_draft_point(image_pos)
             else:
                 self._draw_current = image_pos
-                self._document.update_draft_points(
-                    [
-                        start,
-                        constrain_shape_end(
-                            draft.tool,
-                            start,
-                            image_pos,
-                            shift=_shift_pressed(event.modifiers()),
-                        ),
-                    ]
+                end = self._constrain_and_snap_draft_end(
+                    start,
+                    image_pos,
+                    draft.tool,
+                    shift=_shift_pressed(event.modifiers()),
                 )
+                self._document.update_draft_points([start, end])
             self.update()
             event.accept()
             return
@@ -1216,6 +1391,12 @@ def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
             self._crop_mouse_press(event.position())
             event.accept()
             return
+        if event.button() == Qt.MouseButton.LeftButton and self._tool == AnnotationTool.EYEDROPPER:
+            color = self.sample_color_at(event.position())
+            if color is not None:
+                self.color_picked.emit(color)
+            event.accept()
+            return
         if event.button() == Qt.MouseButton.LeftButton and self._tool != AnnotationTool.NONE:
             image_pos = self._widget_to_image(event.position())
             if image_pos is None or self._document is None:
@@ -1226,14 +1407,15 @@ def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
                 event.accept()
                 return
             self._selected_index = None
+            snapped = self._snap_pointer(image_pos)
             if self._tool == AnnotationTool.TEXT:
-                self.text_requested.emit(image_pos)
+                self.text_requested.emit(snapped)
                 event.accept()
                 return
-            self._draw_start = image_pos
-            self._draw_current = image_pos
+            self._draw_start = snapped
+            self._draw_current = QPointF(snapped)
             if self._tool == AnnotationTool.PEN:
-                self._begin_shape_draft(image_pos, image_pos)
+                self._begin_shape_draft(snapped, snapped)
             event.accept()
             return
         if event.button() == Qt.MouseButton.LeftButton and self._tool == AnnotationTool.NONE:
@@ -1311,8 +1493,10 @@ def paintEvent(self, event: QPaintEvent) -> None:  # noqa: ARG002, N802
 
         if self._tool == AnnotationTool.CROP and not image_rect.isEmpty():
             self._paint_crop_overlay(painter, image_rect)
-        elif self._document is not None and not image_rect.isEmpty():
+        elif self._document is not None and not image_rect.isEmpty() and self._tool != AnnotationTool.EYEDROPPER:
             self._paint_live_annotations(painter, image_rect)
+        if self._tool == AnnotationTool.EYEDROPPER:
+            self._paint_eyedrop_preview(painter)
         painter.end()
 ```
 
@@ -1333,6 +1517,39 @@ Repaint when the available fit area changes.
 def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
         super().resizeEvent(event)
         self.update()
+```
+
+</details>
+
+### ⚙️ Method `sample_color_at`
+
+```python
+def sample_color_at(self, widget_pos: QPointF) -> QColor | None
+```
+
+Return the visible pixel color under `widget_pos`, or `None` if outside the image.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def sample_color_at(self, widget_pos: QPointF) -> QColor | None:
+        rect = self._image_rect()
+        if rect.isEmpty() or self._pixmap.isNull():
+            return None
+        if widget_pos.x() < rect.left() or widget_pos.x() > rect.right():
+            return None
+        if widget_pos.y() < rect.top() or widget_pos.y() > rect.bottom():
+            return None
+        width, height = self._source_size()
+        if width <= 0 or height <= 0:
+            return None
+        x = min(max(0, int((widget_pos.x() - rect.left()) / rect.width() * width)), width - 1)
+        y = min(max(0, int((widget_pos.y() - rect.top()) / rect.height() * height)), height - 1)
+        image = self._pixmap.toImage()
+        if x >= image.width() or y >= image.height():
+            return None
+        return QColor(image.pixelColor(x, y))
 ```
 
 </details>
@@ -1412,6 +1629,7 @@ Select the drawing tool (`NONE` keeps view-only left-click).
 ```python
 def set_tool(self, tool: AnnotationTool) -> None:
         previous_crop = self._tool == AnnotationTool.CROP
+        previous_eyedrop = self._tool == AnnotationTool.EYEDROPPER
         if previous_crop and tool != AnnotationTool.CROP:
             self._clear_crop_state()
             self.crop_pending_changed.emit(False)  # noqa: FBT003
@@ -1419,13 +1637,23 @@ def set_tool(self, tool: AnnotationTool) -> None:
         self._draw_start = None
         self._draw_current = None
         self._clear_edit_state()
+        if tool != AnnotationTool.EYEDROPPER:
+            self._eyedrop_hover = None
         if tool == AnnotationTool.CROP:
+            self._selected_index = None
+        if tool == AnnotationTool.EYEDROPPER:
             self._selected_index = None
         if self._document is not None and tool != AnnotationTool.CROP:
             self._document.cancel_draft()
         if tool == AnnotationTool.CROP:
             self._rebuild_snap_edges()
-            self.setCursor(Qt.CursorShape.CrossCursor)
+            if previous_crop:
+                if self._crop_pending:
+                    self.setCursor(Qt.CursorShape.SizeAllCursor)
+                else:
+                    self.setCursor(Qt.CursorShape.CrossCursor)
+            else:
+                self._select_full_image_crop()
             self.crop_mode_changed.emit(True)  # noqa: FBT003
         else:
             if previous_crop:
@@ -1436,7 +1664,7 @@ def set_tool(self, tool: AnnotationTool) -> None:
                 self.setCursor(Qt.CursorShape.IBeamCursor)
             else:
                 self.setCursor(Qt.CursorShape.CrossCursor)
-        if tool == AnnotationTool.CROP or previous_crop:
+        if tool == AnnotationTool.CROP or previous_crop or tool == AnnotationTool.EYEDROPPER or previous_eyedrop:
             self._refresh_pixmap()
         else:
             self.update()

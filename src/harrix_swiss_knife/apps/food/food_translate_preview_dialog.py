@@ -17,10 +17,10 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife.apps.common.word_wrap_header import install_word_wrap_header
-from harrix_swiss_knife.qt_emoji_icon import (
-    OK_BUTTON_EMOJI,
-    apply_emoji_dialog_buttons,
-    create_emoji_icon,
+from harrix_swiss_knife.qt_lucide_icon import (
+    OK_BUTTON_ICON,
+    apply_lucide_dialog_buttons,
+    create_lucide_icon,
 )
 
 _COL_NAME = 0
@@ -98,9 +98,9 @@ class FoodTranslatePreviewDialog(QDialog):
 
         button_box = QDialogButtonBox(self)
         apply_button = button_box.addButton("Apply translations", QDialogButtonBox.ButtonRole.AcceptRole)
-        apply_button.setIcon(create_emoji_icon(OK_BUTTON_EMOJI))
+        apply_button.setIcon(create_lucide_icon(OK_BUTTON_ICON))
         button_box.addButton(QDialogButtonBox.StandardButton.Cancel)
-        apply_emoji_dialog_buttons(button_box)
+        apply_lucide_dialog_buttons(button_box)
         apply_button.setDefault(True)
         button_box.accepted.connect(self.accept)
         button_box.rejected.connect(self.reject)

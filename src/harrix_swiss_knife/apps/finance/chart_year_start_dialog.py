@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife import qt_modality
-from harrix_swiss_knife.qt_emoji_icon import apply_emoji_dialog_buttons
+from harrix_swiss_knife.qt_lucide_icon import apply_lucide_dialog_buttons
 
 _MONTH_NAMES: list[str] = [
     "January",
@@ -75,7 +75,7 @@ class ChartYearStartDialog(QDialog):
         self._populate_day_combo(safe_day)
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        apply_emoji_dialog_buttons(buttons)
+        apply_lucide_dialog_buttons(buttons)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)

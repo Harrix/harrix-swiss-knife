@@ -80,7 +80,7 @@ class AppWindowLightboxDialog(QDialog):
                 self.resize(1280, 720)
 
         self._close_button = self._make_button("", "Close")
-        self._close_button.setIcon(create_emoji_icon(CLOSE_BUTTON_EMOJI, 22))
+        self._close_button.setIcon(create_lucide_icon(CLOSE_BUTTON_ICON, 22))
         self._close_button.clicked.connect(self.accept)
         self._previous_button = self._make_button("←", "Previous (Left arrow)")
         self._previous_button.clicked.connect(self.show_previous)
@@ -351,7 +351,7 @@ def __init__(
                 self.resize(1280, 720)
 
         self._close_button = self._make_button("", "Close")
-        self._close_button.setIcon(create_emoji_icon(CLOSE_BUTTON_EMOJI, 22))
+        self._close_button.setIcon(create_lucide_icon(CLOSE_BUTTON_ICON, 22))
         self._close_button.clicked.connect(self.accept)
         self._previous_button = self._make_button("←", "Previous (Left arrow)")
         self._previous_button.clicked.connect(self.show_previous)

@@ -147,7 +147,7 @@ from harrix_swiss_knife.apps.icons.widgets import (
     read_svg_text,
 )
 from harrix_swiss_knife.paths import get_config_path_str
-from harrix_swiss_knife.qt_emoji_icon import set_action_text_with_emoji_icon
+from harrix_swiss_knife.qt_lucide_icon import set_action_text_with_lucide_icon
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
 
 logger = logging.getLogger(__name__)
@@ -2388,11 +2388,11 @@ class MainWindow(QMainWindow, AppWindowMixin):
         if not hasattr(self, "_add_vector_action"):
             return
         if self._is_note_repo_open():
-            set_action_text_with_emoji_icon(self._add_vector_action, "📥 Add Vector Image…")
+            set_action_text_with_lucide_icon(self._add_vector_action, "📥 Add Vector Image…")
             self._add_variants_action.setEnabled(True)
             note_repo = True
         else:
-            set_action_text_with_emoji_icon(self._add_vector_action, "📥 Add Vector Images…")
+            set_action_text_with_lucide_icon(self._add_vector_action, "📥 Add Vector Images…")
             self._add_variants_action.setEnabled(False)
             note_repo = False
         if hasattr(self, "_check_images_action"):

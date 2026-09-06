@@ -1000,12 +1000,12 @@ class MainWindow(
 
         # Update button text and icon
         if self.show_all_transactions:
-            set_action_text_with_emoji_icon(
+            set_action_text_with_lucide_icon(
                 self.action_transactions_show_all_records,
                 f"📊 Show Last {self.count_transactions_to_show} Transactions",
             )
         else:
-            set_action_text_with_emoji_icon(
+            set_action_text_with_lucide_icon(
                 self.action_transactions_show_all_records,
                 "📊 Show All Transactions",
             )
@@ -4926,14 +4926,14 @@ class MainWindow(
         layout.setContentsMargins(2, 2, 2, 2)
         layout.setSpacing(4)
 
-        add_btn = make_emoji_push_button("Add revision", "➕", parent=container)  # noqa: RUF001
+        add_btn = make_lucide_push_button("Add revision", "plus", parent=container)
         add_btn.clicked.connect(
             lambda _checked=False, c=currency_id, dm=diff_minor: self._on_add_revision_clicked(c, dm, table)
         )
         layout.addWidget(add_btn)
 
         if diff_minor > 0 and self._can_net_negative_revisions(currency_id, diff_minor):
-            net_btn = make_emoji_push_button("Net revisions", "🧮", parent=container)
+            net_btn = make_lucide_push_button("Net revisions", "calculator", parent=container)
             net_btn.clicked.connect(
                 lambda _checked=False, c=currency_id, dm=diff_minor: self._on_net_negative_revisions_clicked(
                     c, dm, table
@@ -4988,7 +4988,7 @@ class MainWindow(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
             parent=dialog,
         )
-        apply_emoji_dialog_buttons(buttons)
+        apply_lucide_dialog_buttons(buttons)
         buttons.accepted.connect(dialog.accept)
         buttons.rejected.connect(dialog.reject)
         dialog_layout.addWidget(buttons)
@@ -5246,8 +5246,8 @@ class MainWindow(
         self.pushButton_chart_last_year.setText(f"📅 {self.pushButton_chart_last_year.text()}")
         self.pushButton_chart_all_time.setText(f"📅 {self.pushButton_chart_all_time.text()}")
         chart_category_button_icon_size = 18
-        self.pushButton_select_all.setIcon(create_emoji_icon("☑️", chart_category_button_icon_size))
-        self.pushButton_select_deselect_all.setIcon(create_emoji_icon("⬜", chart_category_button_icon_size))
+        self.pushButton_select_all.setIcon(create_lucide_icon("square-check", chart_category_button_icon_size))
+        self.pushButton_select_deselect_all.setIcon(create_lucide_icon("square", chart_category_button_icon_size))
         self.pushButton_select_only_expense.setText(f"💸 {self.pushButton_select_only_expense.text()}")
         self.pushButton_select_only_income.setText(f"💰 {self.pushButton_select_only_income.text()}")
 
@@ -5259,6 +5259,7 @@ class MainWindow(
 
         self.pushButton_calculate_fee.setText(f"💰 {self.pushButton_calculate_fee.text()}")
         self.pushButton_rates_refresh.setText(f"🔄 {self.pushButton_rates_refresh.text()}")
+        apply_leading_chrome_buttons(self)
 
         # Connect double-click signal for exchange table
         self.tableView_exchange.doubleClicked.connect(self._on_exchange_table_double_clicked)
@@ -5352,7 +5353,7 @@ class MainWindow(
         add_separator(context_menu)
         self.action_accounts_delete.setEnabled(account_id is not None)
         context_menu.addAction(self.action_accounts_delete)
-        apply_leading_emoji_icons(context_menu)
+        apply_leading_chrome_icons(context_menu)
 
         viewport = self.tableView_accounts.viewport()
         if viewport is None:
@@ -5381,7 +5382,7 @@ class MainWindow(
         context_menu = QMenu(self)
         filter_action = context_menu.addAction(LABEL_FILTER_BY_CATEGORY)
         filter_action.triggered.connect(lambda: self._filter_by_category_from_table(category_value))
-        apply_leading_emoji_icons(context_menu)
+        apply_leading_chrome_icons(context_menu)
         context_menu.exec_(self.listView_categories.mapToGlobal(position))
 
     def _show_category_label_context_menu(self, position: QPoint) -> None:
@@ -5475,7 +5476,7 @@ class MainWindow(
         add_separator(context_menu)
         self.action_exchanges_delete.setEnabled(exchange_id is not None)
         context_menu.addAction(self.action_exchanges_delete)
-        apply_leading_emoji_icons(context_menu)
+        apply_leading_chrome_icons(context_menu)
 
         viewport = self.tableView_exchange.viewport()
         if viewport is None:
@@ -5571,9 +5572,9 @@ class MainWindow(
         layout.addWidget(table)
 
         button_row = QHBoxLayout()
-        copy_btn = make_emoji_push_button("Copy", COPY_BUTTON_EMOJI, parent=dialog)
+        copy_btn = make_lucide_push_button("Copy", COPY_BUTTON_ICON, parent=dialog)
         copy_btn.clicked.connect(lambda: self._copy_test_balance_to_clipboard(summary_lines, natural_rows))
-        close_btn = make_emoji_push_button("Close", CLOSE_BUTTON_EMOJI, parent=dialog)
+        close_btn = make_lucide_push_button("Close", CLOSE_BUTTON_ICON, parent=dialog)
         close_btn.clicked.connect(dialog.accept)
         button_row.addWidget(copy_btn)
         button_row.addStretch()
@@ -5745,7 +5746,7 @@ class MainWindow(
         refresh_tag_view()
 
         button_row = QHBoxLayout()
-        close_btn = make_emoji_push_button("Close", CLOSE_BUTTON_EMOJI, parent=dialog)
+        close_btn = make_lucide_push_button("Close", CLOSE_BUTTON_ICON, parent=dialog)
         close_btn.clicked.connect(dialog.accept)
         button_row.addStretch()
         button_row.addWidget(close_btn)
@@ -5922,7 +5923,7 @@ class MainWindow(
         clear_filters_action.triggered.connect(self.clear_filter)
 
         delete_action = add_delete_action(context_menu)
-        apply_leading_emoji_icons(context_menu)
+        apply_leading_chrome_icons(context_menu)
         action = context_menu.exec_(self.tableView_transactions.mapToGlobal(position))
 
         # Process the action only if it was actually selected (not None)
@@ -7585,12 +7586,12 @@ def on_show_all_records_clicked(self) -> None:
 
         # Update button text and icon
         if self.show_all_transactions:
-            set_action_text_with_emoji_icon(
+            set_action_text_with_lucide_icon(
                 self.action_transactions_show_all_records,
                 f"📊 Show Last {self.count_transactions_to_show} Transactions",
             )
         else:
-            set_action_text_with_emoji_icon(
+            set_action_text_with_lucide_icon(
                 self.action_transactions_show_all_records,
                 "📊 Show All Transactions",
             )

@@ -38,7 +38,10 @@ from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import (
     unique_path_in_folder,
     unique_path_numbered,
 )
-from harrix_swiss_knife.qt_emoji_icon import COPY_BUTTON_EMOJI, create_emoji_icon, make_emoji_push_button
+from harrix_swiss_knife.qt_lucide_icon import (
+    create_lucide_icon,
+    make_lucide_push_button,
+)
 from harrix_swiss_knife.screenshot import capture_region
 
 __all__ = [
@@ -85,7 +88,7 @@ QPushButton:hover {
 }
 """
 
-_SCREENSHOT_BUTTON_EMOJI = "📷"
+_SCREENSHOT_BUTTON_ICON = "camera"
 
 _DROP_NORMAL_STYLE = """
 #ImagePickerDropArea {
@@ -542,26 +545,26 @@ class ImagePicker(QWidget):
             return None
         button_layout = QHBoxLayout()
         if self._show_select_button:
-            browse_button = make_emoji_push_button("Select File", "📁")
+            browse_button = make_lucide_push_button("Select File", "folder")
             browse_button.clicked.connect(self._browse_single_file)
             button_layout.addWidget(browse_button)
         if self._show_add_button:
-            add_button = make_emoji_push_button("Add Images", "➕")  # noqa: RUF001
+            add_button = make_lucide_push_button("Add Images", "plus")
             add_button.clicked.connect(self._add_images_dialog)
             button_layout.addWidget(add_button)
         if self._show_screenshot_button:
-            screenshot_button = make_emoji_push_button("Screenshot", _SCREENSHOT_BUTTON_EMOJI)
+            screenshot_button = make_lucide_push_button("Screenshot", _SCREENSHOT_BUTTON_ICON)
             screenshot_button.clicked.connect(self._capture_screenshot_region)
             button_layout.addWidget(screenshot_button)
         if self._show_paste_button:
-            paste_button = make_emoji_push_button("Paste", COPY_BUTTON_EMOJI)
+            paste_button = make_lucide_push_button("Paste", "clipboard-paste")
             if self._mode == ImagePickerMode.SINGLE:
                 paste_button.clicked.connect(self._paste_smart_from_clipboard)
             else:
                 paste_button.clicked.connect(self._paste_image_from_clipboard)
             button_layout.addWidget(paste_button)
         if self._show_clear_button:
-            clear_button = make_emoji_push_button("Clear", "🗑️")
+            clear_button = make_lucide_push_button("Clear", "trash")
             clear_button.clicked.connect(self._on_clear_or_restore_single)
             button_layout.addWidget(clear_button)
             self._clear_button = clear_button
@@ -648,7 +651,7 @@ class ImagePicker(QWidget):
     def _make_in_zone_paste_button(self) -> QPushButton:
         """Emoji-only Paste control placed inside the drop area (right side)."""
         button = QPushButton()
-        button.setIcon(create_emoji_icon(COPY_BUTTON_EMOJI, 18))
+        button.setIcon(create_lucide_icon("clipboard-paste", 18))
         button.setFixedSize(32, 32)
         button.setToolTip("Paste image from clipboard (Ctrl+V)")
         button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
@@ -664,7 +667,7 @@ class ImagePicker(QWidget):
     def _make_in_zone_screenshot_button(self) -> QPushButton:
         """Emoji-only screenshot control placed inside the drop area."""
         button = QPushButton()
-        button.setIcon(create_emoji_icon(_SCREENSHOT_BUTTON_EMOJI, 18))
+        button.setIcon(create_lucide_icon(_SCREENSHOT_BUTTON_ICON, 18))
         button.setFixedSize(32, 32)
         button.setToolTip("Capture screen region")
         button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
@@ -797,7 +800,7 @@ class ImagePicker(QWidget):
             self._preview_label.setToolTip("Marked for removal — click Restore or save to delete from the note")
             if self._clear_button is not None:
                 self._clear_button.setText("Restore")
-                self._clear_button.setIcon(create_emoji_icon("↺", 18))
+                self._clear_button.setIcon(create_lucide_icon("rotate-ccw", 18))
                 self._clear_button.setToolTip("Undo removal")
         else:
             self._preview_label.setGraphicsEffect(None)  # ty: ignore[invalid-argument-type]
@@ -805,7 +808,7 @@ class ImagePicker(QWidget):
                 self._preview_label.setToolTip("Click to preview")
             if self._clear_button is not None:
                 self._clear_button.setText("Clear")
-                self._clear_button.setIcon(create_emoji_icon("🗑️", 18))
+                self._clear_button.setIcon(create_lucide_icon("trash", 18))
                 self._clear_button.setToolTip("Clear image")
 
     def _resolve_image_path(self, path: str) -> Path | None:

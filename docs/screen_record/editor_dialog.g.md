@@ -95,19 +95,19 @@ class RecordingEditorWindow(QMainWindow):
 
         transport = QHBoxLayout()
         self._play_btn = QPushButton(central)
-        self._play_btn.setIcon(create_emoji_icon("▶️", _ICON))
+        self._play_btn.setIcon(create_lucide_icon("play", _ICON))
         self._play_btn.setText("Play")
         self._play_btn.setToolTip("Play / Pause (Space)")
         self._play_btn.clicked.connect(self._toggle_play)
         transport.addWidget(self._play_btn)
 
-        stop_btn = make_emoji_push_button("Stop", "⏹️")
+        stop_btn = make_lucide_push_button("Stop", "square-stop")
         stop_btn.setToolTip("Stop and jump to the start of the kept range")
         stop_btn.clicked.connect(self._stop)
         transport.addWidget(stop_btn)
 
         self._mute_btn = QPushButton(central)
-        self._mute_btn.setIcon(create_emoji_icon("🔊", _ICON))
+        self._mute_btn.setIcon(create_lucide_icon("volume-2", _ICON))
         self._mute_btn.setText("Mute")
         self._mute_btn.setToolTip("Mute / unmute playback")
         self._mute_btn.clicked.connect(self._toggle_mute)
@@ -115,22 +115,22 @@ class RecordingEditorWindow(QMainWindow):
 
         transport.addSpacing(12)
 
-        prev_btn = make_emoji_push_button("Prev frame", "⏮️")
+        prev_btn = make_lucide_push_button("Prev frame", "skip-back")
         prev_btn.setToolTip("Previous frame (~33 ms)")
         prev_btn.clicked.connect(lambda: self._step_frame(-_FRAME_MS))
         transport.addWidget(prev_btn)
 
-        next_btn = make_emoji_push_button("Next frame", "⏭️")
+        next_btn = make_lucide_push_button("Next frame", "skip-forward")
         next_btn.setToolTip("Next frame (~33 ms)")
         next_btn.clicked.connect(lambda: self._step_frame(_FRAME_MS))
         transport.addWidget(next_btn)
 
-        delete_left_btn = make_emoji_push_button("Delete left", "✂️")
+        delete_left_btn = make_lucide_push_button("Delete left", "scissors")
         delete_left_btn.setToolTip("Remove everything before the playhead (CapCut-style)")
         delete_left_btn.clicked.connect(self._delete_left)
         transport.addWidget(delete_left_btn)
 
-        delete_right_btn = make_emoji_push_button("Delete right", "✂️")
+        delete_right_btn = make_lucide_push_button("Delete right", "scissors")
         delete_right_btn.setToolTip("Remove everything after the playhead (CapCut-style)")
         delete_right_btn.clicked.connect(self._delete_right)
         transport.addWidget(delete_right_btn)
@@ -155,17 +155,17 @@ class RecordingEditorWindow(QMainWindow):
         self._remove_audio.setChecked(False)
         export_row.addWidget(self._remove_audio)
 
-        save_btn = make_emoji_push_button("Save As…", "💾")
+        save_btn = make_lucide_push_button("Save As…", "save")
         save_btn.setToolTip("Export the kept (trimmed) range")
         save_btn.clicked.connect(self._save_as)
         export_row.addWidget(save_btn)
 
-        folder_btn = make_emoji_push_button("Open folder", "📂")
+        folder_btn = make_lucide_push_button("Open folder", "folder-open")
         folder_btn.setToolTip("Open containing folder in Explorer")
         folder_btn.clicked.connect(self._open_folder)
         export_row.addWidget(folder_btn)
 
-        close_btn = make_emoji_push_button("Close", "❌")
+        close_btn = make_lucide_push_button("Close", "x")
         close_btn.setToolTip("Close editor")
         close_btn.clicked.connect(self.close)
         export_row.addWidget(close_btn)
@@ -332,7 +332,7 @@ class RecordingEditorWindow(QMainWindow):
     def _on_state_changed(self, state: QMediaPlayer.PlaybackState) -> None:
         playing = state == QMediaPlayer.PlaybackState.PlayingState
         self._play_btn.setText("Pause" if playing else "Play")
-        self._play_btn.setIcon(create_emoji_icon("⏸️" if playing else "▶️", _ICON))
+        self._play_btn.setIcon(create_lucide_icon("pause" if playing else "play", _ICON))
         if playing:
             self._wanted_frame_ms = None
             self._preview_stack.setCurrentIndex(_STACK_VIDEO)
@@ -485,7 +485,7 @@ class RecordingEditorWindow(QMainWindow):
         self._muted = not self._muted
         self._audio.setMuted(self._muted)
         self._mute_btn.setText("Unmute" if self._muted else "Mute")
-        self._mute_btn.setIcon(create_emoji_icon("🔇" if self._muted else "🔊", _ICON))
+        self._mute_btn.setIcon(create_lucide_icon("volume-x" if self._muted else "volume-2", _ICON))
 
     def _toggle_play(self) -> None:
         if self._player.playbackState() == QMediaPlayer.PlaybackState.PlayingState:
@@ -585,19 +585,19 @@ def __init__(self, path: Path, parent: QWidget | None = None) -> None:
 
         transport = QHBoxLayout()
         self._play_btn = QPushButton(central)
-        self._play_btn.setIcon(create_emoji_icon("▶️", _ICON))
+        self._play_btn.setIcon(create_lucide_icon("play", _ICON))
         self._play_btn.setText("Play")
         self._play_btn.setToolTip("Play / Pause (Space)")
         self._play_btn.clicked.connect(self._toggle_play)
         transport.addWidget(self._play_btn)
 
-        stop_btn = make_emoji_push_button("Stop", "⏹️")
+        stop_btn = make_lucide_push_button("Stop", "square-stop")
         stop_btn.setToolTip("Stop and jump to the start of the kept range")
         stop_btn.clicked.connect(self._stop)
         transport.addWidget(stop_btn)
 
         self._mute_btn = QPushButton(central)
-        self._mute_btn.setIcon(create_emoji_icon("🔊", _ICON))
+        self._mute_btn.setIcon(create_lucide_icon("volume-2", _ICON))
         self._mute_btn.setText("Mute")
         self._mute_btn.setToolTip("Mute / unmute playback")
         self._mute_btn.clicked.connect(self._toggle_mute)
@@ -605,22 +605,22 @@ def __init__(self, path: Path, parent: QWidget | None = None) -> None:
 
         transport.addSpacing(12)
 
-        prev_btn = make_emoji_push_button("Prev frame", "⏮️")
+        prev_btn = make_lucide_push_button("Prev frame", "skip-back")
         prev_btn.setToolTip("Previous frame (~33 ms)")
         prev_btn.clicked.connect(lambda: self._step_frame(-_FRAME_MS))
         transport.addWidget(prev_btn)
 
-        next_btn = make_emoji_push_button("Next frame", "⏭️")
+        next_btn = make_lucide_push_button("Next frame", "skip-forward")
         next_btn.setToolTip("Next frame (~33 ms)")
         next_btn.clicked.connect(lambda: self._step_frame(_FRAME_MS))
         transport.addWidget(next_btn)
 
-        delete_left_btn = make_emoji_push_button("Delete left", "✂️")
+        delete_left_btn = make_lucide_push_button("Delete left", "scissors")
         delete_left_btn.setToolTip("Remove everything before the playhead (CapCut-style)")
         delete_left_btn.clicked.connect(self._delete_left)
         transport.addWidget(delete_left_btn)
 
-        delete_right_btn = make_emoji_push_button("Delete right", "✂️")
+        delete_right_btn = make_lucide_push_button("Delete right", "scissors")
         delete_right_btn.setToolTip("Remove everything after the playhead (CapCut-style)")
         delete_right_btn.clicked.connect(self._delete_right)
         transport.addWidget(delete_right_btn)
@@ -645,17 +645,17 @@ def __init__(self, path: Path, parent: QWidget | None = None) -> None:
         self._remove_audio.setChecked(False)
         export_row.addWidget(self._remove_audio)
 
-        save_btn = make_emoji_push_button("Save As…", "💾")
+        save_btn = make_lucide_push_button("Save As…", "save")
         save_btn.setToolTip("Export the kept (trimmed) range")
         save_btn.clicked.connect(self._save_as)
         export_row.addWidget(save_btn)
 
-        folder_btn = make_emoji_push_button("Open folder", "📂")
+        folder_btn = make_lucide_push_button("Open folder", "folder-open")
         folder_btn.setToolTip("Open containing folder in Explorer")
         folder_btn.clicked.connect(self._open_folder)
         export_row.addWidget(folder_btn)
 
-        close_btn = make_emoji_push_button("Close", "❌")
+        close_btn = make_lucide_push_button("Close", "x")
         close_btn.setToolTip("Close editor")
         close_btn.clicked.connect(self.close)
         export_row.addWidget(close_btn)

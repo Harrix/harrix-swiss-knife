@@ -187,7 +187,7 @@ def hit_test_topmost(
         handle = hit_test_annotation(annotations[selected_index], pos, handle_size=handle_size)
         if handle is not None:
             return selected_index, handle
-    prefer = prefer_tool not in {None, AnnotationTool.NONE, AnnotationTool.CROP}
+    prefer = prefer_tool not in {None, AnnotationTool.NONE, AnnotationTool.CROP, AnnotationTool.EYEDROPPER}
     if prefer:
         for index in range(len(annotations) - 1, -1, -1):
             if index == selected_index or annotations[index].tool != prefer_tool:

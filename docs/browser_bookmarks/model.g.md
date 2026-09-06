@@ -17,6 +17,7 @@ lang: en
 - [🔧 Function `flatten_bookmarks`](#-function-flatten_bookmarks)
 - [🔧 Function `load_bookmarks`](#-function-load_bookmarks)
 - [🔧 Function `normalize_url`](#-function-normalize_url)
+- [🔧 Function `relocate_entries`](#-function-relocate_entries)
 - [🔧 Function `remove_urls`](#-function-remove_urls)
 - [🔧 Function `write_bookmarks`](#-function-write_bookmarks)
 
@@ -40,6 +41,7 @@ class BookmarkEntry:
     name: str
     root: str
     folder_path: tuple[str, ...]
+    date_modified: str = ""
 ```
 
 </details>
@@ -163,6 +165,50 @@ Return a comparison key for a bookmark URL.
 ```python
 def normalize_url(url: str) -> str:
     return url.strip()
+```
+
+</details>
+
+## 🔧 Function `relocate_entries`
+
+```python
+def relocate_entries(data: dict[str, Any], entries: list[BookmarkEntry]) -> int
+```
+
+Move existing URL bookmarks to the given folder paths. Return count moved.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def relocate_entries(data: dict[str, Any], entries: list[BookmarkEntry]) -> int:
+    if not entries:
+        return 0
+    existing = flatten_bookmarks(data)
+    next_id_holder = [_max_id(data) + 1]
+    moved = 0
+    for entry in entries:
+        key = normalize_url(entry.url)
+        if not key:
+            continue
+        current = existing.get(key)
+        if current is None:
+            continue
+        if current.root == entry.root and current.folder_path == entry.folder_path:
+            continue
+        node = _extract_url_node(data, key)
+        if node is None:
+            continue
+        node["date_modified"] = chromium_now()
+        folder = _ensure_folder(data, entry.root, entry.folder_path, next_id_holder)
+        children = folder.setdefault("children", [])
+        if not isinstance(children, list):
+            folder["children"] = []
+            children = folder["children"]
+        children.append(node)
+        existing[key] = entry
+        moved += 1
+    return moved
 ```
 
 </details>

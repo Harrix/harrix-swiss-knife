@@ -85,21 +85,6 @@ def normalize_url(url: str) -> str:
     return url.strip()
 
 
-def remove_urls(data: dict[str, Any], urls: set[str]) -> int:
-    """Remove bookmark URL nodes whose normalized URL is in `urls`. Return count."""
-    if not urls:
-        return 0
-    roots = data.get("roots")
-    if not isinstance(roots, dict):
-        return 0
-    removed = 0
-    for root_key in ROOT_KEYS:
-        node = roots.get(root_key)
-        if isinstance(node, dict):
-            removed += _remove_from_children(node, urls)
-    return removed
-
-
 def relocate_entries(data: dict[str, Any], entries: list[BookmarkEntry]) -> int:
     """Move existing URL bookmarks to the given folder paths. Return count moved."""
     if not entries:
@@ -129,6 +114,21 @@ def relocate_entries(data: dict[str, Any], entries: list[BookmarkEntry]) -> int:
         existing[key] = entry
         moved += 1
     return moved
+
+
+def remove_urls(data: dict[str, Any], urls: set[str]) -> int:
+    """Remove bookmark URL nodes whose normalized URL is in `urls`. Return count."""
+    if not urls:
+        return 0
+    roots = data.get("roots")
+    if not isinstance(roots, dict):
+        return 0
+    removed = 0
+    for root_key in ROOT_KEYS:
+        node = roots.get(root_key)
+        if isinstance(node, dict):
+            removed += _remove_from_children(node, urls)
+    return removed
 
 
 def write_bookmarks(path: Path, data: dict[str, Any]) -> None:

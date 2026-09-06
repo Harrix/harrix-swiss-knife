@@ -17,7 +17,7 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.fitness.workouts_ai import WorkoutGeneratePreferences
-from harrix_swiss_knife.qt_emoji_icon import apply_emoji_dialog_buttons
+from harrix_swiss_knife.qt_lucide_icon import apply_lucide_dialog_buttons
 
 
 class WorkoutGenerateDialog(QDialog):
@@ -95,7 +95,7 @@ class WorkoutGenerateDialog(QDialog):
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
             parent=self,
         )
-        apply_emoji_dialog_buttons(buttons)
+        apply_lucide_dialog_buttons(buttons)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)

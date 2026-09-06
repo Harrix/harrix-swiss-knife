@@ -22,9 +22,9 @@ from harrix_swiss_knife.apps.fitness.dumbbell_weight_types import (
     DUMBBELL_WEIGHT_TEMPLATE_EXERCISE,
     WeightDraft,
 )
-from harrix_swiss_knife.qt_emoji_icon import (
-    apply_emoji_dialog_buttons,
-    make_emoji_push_button,
+from harrix_swiss_knife.qt_lucide_icon import (
+    apply_lucide_dialog_buttons,
+    make_lucide_push_button,
 )
 
 _USED_ROLE = Qt.ItemDataRole.UserRole
@@ -151,9 +151,9 @@ class DumbbellWeightsDialog(QDialog):
         layout.addWidget(self._list, 1)
 
         row = QHBoxLayout()
-        self._add_button = make_emoji_push_button("Add", "➕")  # noqa: RUF001
-        self._rename_button = make_emoji_push_button("Rename", "✏️")
-        self._delete_button = make_emoji_push_button("Delete", "🗑️")
+        self._add_button = make_lucide_push_button("Add", "plus")
+        self._rename_button = make_lucide_push_button("Rename", "pencil")
+        self._delete_button = make_lucide_push_button("Delete", "trash")
         self._add_button.clicked.connect(self._on_add)
         self._rename_button.clicked.connect(self._on_rename)
         self._delete_button.clicked.connect(self._on_delete)
@@ -167,7 +167,7 @@ class DumbbellWeightsDialog(QDialog):
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
             self,
         )
-        apply_emoji_dialog_buttons(buttons)
+        apply_lucide_dialog_buttons(buttons)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)

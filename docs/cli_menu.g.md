@@ -375,7 +375,7 @@ def show_action_identity_context_menu(
         copy_cli.triggered.connect(
             lambda *_args, cmd=cli_copy_command: copy_cli_command_to_clipboard(cmd),
         )
-    apply_leading_emoji_icons(menu)
+    apply_leading_chrome_icons(menu)
     menu.exec_(global_pos)
 ```
 

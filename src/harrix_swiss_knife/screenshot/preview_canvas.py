@@ -380,11 +380,7 @@ class ScreenshotPreviewCanvas(QWidget):
 
         if self._tool == AnnotationTool.CROP and not image_rect.isEmpty():
             self._paint_crop_overlay(painter, image_rect)
-        elif (
-            self._document is not None
-            and not image_rect.isEmpty()
-            and self._tool != AnnotationTool.EYEDROPPER
-        ):
+        elif self._document is not None and not image_rect.isEmpty() and self._tool != AnnotationTool.EYEDROPPER:
             self._paint_live_annotations(painter, image_rect)
         if self._tool == AnnotationTool.EYEDROPPER:
             self._paint_eyedrop_preview(painter)
@@ -603,20 +599,6 @@ class ScreenshotPreviewCanvas(QWidget):
         self._crop_edit_handle = None
         self._crop_press_pos = None
         self._crop_press_rect = None
-
-    def _select_full_image_crop(self) -> None:
-        bounds = self._image_bounds()
-        if not bounds.isValid() or bounds.isEmpty() or bounds.width() < _MIN_CROP or bounds.height() < _MIN_CROP:
-            self.setCursor(Qt.CursorShape.CrossCursor)
-            return
-        self._crop_rect = QRect(bounds)
-        self._crop_pending = True
-        self._crop_origin = None
-        self._crop_current = None
-        self._crop_dragging = False
-        self._crop_edit_handle = None
-        self.setCursor(Qt.CursorShape.SizeAllCursor)
-        self.crop_pending_changed.emit(True)  # noqa: FBT003
 
     def _clear_edit_state(self) -> None:
         self._edit_handle = None
@@ -962,13 +944,19 @@ class ScreenshotPreviewCanvas(QWidget):
         self._pixmap = QPixmap.fromImage(image)
         self.update()
 
-    def _source_size(self) -> tuple[int, int]:
-        if self._document is not None and not self._document.base_image.isNull():
-            image = self._document.base_image
-            return image.width(), image.height()
-        if self._pixmap.isNull():
-            return 0, 0
-        return self._pixmap.width(), self._pixmap.height()
+    def _select_full_image_crop(self) -> None:
+        bounds = self._image_bounds()
+        if not bounds.isValid() or bounds.isEmpty() or bounds.width() < _MIN_CROP or bounds.height() < _MIN_CROP:
+            self.setCursor(Qt.CursorShape.CrossCursor)
+            return
+        self._crop_rect = QRect(bounds)
+        self._crop_pending = True
+        self._crop_origin = None
+        self._crop_current = None
+        self._crop_dragging = False
+        self._crop_edit_handle = None
+        self.setCursor(Qt.CursorShape.SizeAllCursor)
+        self.crop_pending_changed.emit(True)  # noqa: FBT003
 
     def _snap_pointer(self, image_pos: QPointF, *, exclude_index: int | None = None) -> QPointF:
         xs, ys = self._annotation_snap_guides(exclude_index=exclude_index)
@@ -976,6 +964,14 @@ class ScreenshotPreviewCanvas(QWidget):
         self._snap_x_guide = x_guide
         self._snap_y_guide = y_guide
         return snapped
+
+    def _source_size(self) -> tuple[int, int]:
+        if self._document is not None and not self._document.base_image.isNull():
+            image = self._document.base_image
+            return image.width(), image.height()
+        if self._pixmap.isNull():
+            return 0, 0
+        return self._pixmap.width(), self._pixmap.height()
 
     def _update_hover_cursor(self, image_pos: QPointF | None) -> None:
         if image_pos is None or self._document is None:

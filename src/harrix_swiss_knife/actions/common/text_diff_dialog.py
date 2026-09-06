@@ -21,7 +21,7 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife.actions.common.dialog_geometry import fit_widget_height, text_content_height
 from harrix_swiss_knife.actions.common.text_result_dialog import (
-    RERUN_BUTTON_EMOJI,
+    RERUN_BUTTON_ICON,
     RERUN_BUTTON_LABEL,
     add_copy_button,
     add_ok_button,
@@ -41,7 +41,7 @@ def build_text_diff_side_by_side(
     *,
     rerun_button: bool = False,
     rerun_button_label: str = RERUN_BUTTON_LABEL,
-    rerun_button_emoji: str = RERUN_BUTTON_EMOJI,
+    rerun_button_icon: str = RERUN_BUTTON_ICON,
     remove_paragraphs_button: bool = False,
     result_text_holder: list[str] | None = None,
     before_label: str = "Before",
@@ -179,7 +179,7 @@ def build_text_diff_side_by_side(
             button_layout,
             rerun_button=rerun_button,
             rerun_button_label=rerun_button_label,
-            rerun_button_emoji=rerun_button_emoji,
+            rerun_button_icon=rerun_button_icon,
             remove_paragraphs_button=remove_paragraphs_button,
             on_remove_paragraphs=on_remove_paragraphs if remove_paragraphs_button else None,
             remove_paragraphs_source_text=after_text,

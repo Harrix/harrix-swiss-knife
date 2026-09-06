@@ -27,7 +27,7 @@ from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common.ui_helpers import enumerate_stripped_non_empty_lines
 from harrix_swiss_knife.apps.common.word_wrap_header import install_word_wrap_header
 from harrix_swiss_knife.apps.finance.text_parser import ParsedPurchaseItem, TextParser
-from harrix_swiss_knife.qt_emoji_icon import make_emoji_push_button
+from harrix_swiss_knife.qt_lucide_icon import make_lucide_push_button
 
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QTableWidget as QTableWidgetType
@@ -324,10 +324,10 @@ class PurchaseTableDialog(QDialog):
         self._row_buttons_widget = QWidget(table_page)
         row_buttons_layout = QHBoxLayout(self._row_buttons_widget)
         row_buttons_layout.setContentsMargins(0, 0, 0, 0)
-        add_row_button = make_emoji_push_button("Add row", "➕")  # noqa: RUF001
+        add_row_button = make_lucide_push_button("Add row", "plus")
         add_row_button.clicked.connect(self._add_row_and_update)
         row_buttons_layout.addWidget(add_row_button)
-        delete_row_button = make_emoji_push_button("Delete row", "🗑️")
+        delete_row_button = make_lucide_push_button("Delete row", "trash")
         delete_row_button.clicked.connect(self._delete_selected_rows)
         row_buttons_layout.addWidget(delete_row_button)
         row_buttons_layout.addStretch()
@@ -351,10 +351,10 @@ class PurchaseTableDialog(QDialog):
 
         button_layout = QHBoxLayout()
         button_layout.addStretch()
-        cancel_button = make_emoji_push_button("Cancel", "❌")
+        cancel_button = make_lucide_push_button("Cancel", "x")
         cancel_button.clicked.connect(self.reject)
         button_layout.addWidget(cancel_button)
-        ok_button = make_emoji_push_button("OK", "✅")
+        ok_button = make_lucide_push_button("OK", "circle-check")
         ok_button.setDefault(True)
         ok_button.clicked.connect(self._on_accept)
         button_layout.addWidget(ok_button)

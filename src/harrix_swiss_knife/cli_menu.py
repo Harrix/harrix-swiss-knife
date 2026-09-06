@@ -11,7 +11,7 @@ from harrix_swiss_knife.action_identity import (
     action_identity_parts,
     format_action_identity_text,
 )
-from harrix_swiss_knife.qt_emoji_icon import apply_leading_emoji_icons
+from harrix_swiss_knife.qt_lucide_icon import apply_leading_chrome_icons
 
 CLI_EXECUTABLE = "hsk"
 CLI_MENU_SUFFIX = " ꟲᴸᴵ"
@@ -175,7 +175,7 @@ def show_action_identity_context_menu(
         copy_cli.triggered.connect(
             lambda *_args, cmd=cli_copy_command: copy_cli_command_to_clipboard(cmd),
         )
-    apply_leading_emoji_icons(menu)
+    apply_leading_chrome_icons(menu)
     menu.exec_(global_pos)
 
 

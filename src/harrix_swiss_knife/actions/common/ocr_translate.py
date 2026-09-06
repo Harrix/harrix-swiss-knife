@@ -51,6 +51,47 @@ def local_language_code_from_config(config: dict[str, Any]) -> str:
     return get_apps_local_language(config)
 
 
+def parse_ocr_translate_response(text: str, *, local_language_code: str | None = None) -> OcrTranslateResult:
+    """Parse a BotHub OCR+translate JSON response into `OcrTranslateResult`."""
+    payload = _extract_json_object(text)
+    if payload is None:
+        original = text.strip()
+        return OcrTranslateResult(
+            language="und",
+            is_local=True,
+            original=original,
+            translation="",
+        )
+
+    original = str(payload.get("original") or "").strip()
+    translation = str(payload.get("translation") or "").strip()
+    language = str(payload.get("language") or "und").strip().lower() or "und"
+    raw_local = payload.get("is_local")
+    if isinstance(raw_local, bool):
+        is_local = raw_local
+    else:
+        code = (local_language_code or "").strip().lower()
+        is_local = not translation or (bool(code) and language == code) or translation == original
+
+    if not original and not translation:
+        return OcrTranslateResult(language=language, is_local=True, original="", translation="")
+
+    if is_local or not translation or translation == original:
+        return OcrTranslateResult(
+            language=language,
+            is_local=True,
+            original=original or translation,
+            translation="",
+        )
+
+    return OcrTranslateResult(
+        language=language,
+        is_local=False,
+        original=original,
+        translation=translation,
+    )
+
+
 def present_recognized_text(
     action: ActionBase,
     markdown: str,
@@ -77,6 +118,39 @@ def present_recognized_text(
     text, action_code = dialog_result
     if action_code == TRANSLATE_DIALOG_CODE:
         start_text_translation(action, text or markdown)
+
+
+def show_ocr_translate_result(action: ActionBase, result: OcrTranslateResult) -> None:
+    """Show original-only or original+translation dialog and copy the primary text."""
+    display = result.display_text.strip()
+    if not display and not result.original.strip():
+        action.add_line("No text recognized")
+        action.show_toast("No text recognized")
+        action.show_result(display_text="")
+        return
+
+    action.text_to_clipboard(display)
+    action.add_line("📋 Text copied to clipboard")
+
+    if result.is_local or not result.translation.strip():
+        action.dialogs.show_text_multiline(
+            result.original,
+            title="Recognized text",
+            remove_paragraphs_button=True,
+        )
+        action.show_toast("✅ Recognized text")
+        return
+
+    action.dialogs.show_text_diff_side_by_side(
+        result.original,
+        result.translation,
+        title="Recognized text + translation",
+        remove_paragraphs_button=True,
+        before_label="Original",
+        after_label="Translation",
+        highlight_changes=False,
+    )
+    action.show_toast("✅ Recognized and translated")
 
 
 def start_text_translation(action: ActionBase, original: str) -> None:
@@ -145,97 +219,6 @@ def text_needs_translation(text: str, local_language_code: str) -> bool:
     return local_share < _LOCAL_SCRIPT_MIN_SHARE
 
 
-def _script_letter_counts(text: str) -> tuple[int, int, int]:
-    cyrillic = 0
-    latin = 0
-    cjk = 0
-    for char in text:
-        if not char.isalpha():
-            continue
-        name = unicodedata.name(char, "")
-        if name.startswith("CYRILLIC"):
-            cyrillic += 1
-        elif name.startswith(("CJK", "HIRAGANA", "KATAKANA", "HANGUL")):
-            cjk += 1
-        else:
-            latin += 1
-    return cyrillic, latin, cjk
-
-
-def parse_ocr_translate_response(text: str, *, local_language_code: str | None = None) -> OcrTranslateResult:
-    """Parse a BotHub OCR+translate JSON response into `OcrTranslateResult`."""
-    payload = _extract_json_object(text)
-    if payload is None:
-        original = text.strip()
-        return OcrTranslateResult(
-            language="und",
-            is_local=True,
-            original=original,
-            translation="",
-        )
-
-    original = str(payload.get("original") or "").strip()
-    translation = str(payload.get("translation") or "").strip()
-    language = str(payload.get("language") or "und").strip().lower() or "und"
-    raw_local = payload.get("is_local")
-    if isinstance(raw_local, bool):
-        is_local = raw_local
-    else:
-        code = (local_language_code or "").strip().lower()
-        is_local = not translation or (bool(code) and language == code) or translation == original
-
-    if not original and not translation:
-        return OcrTranslateResult(language=language, is_local=True, original="", translation="")
-
-    if is_local or not translation or translation == original:
-        return OcrTranslateResult(
-            language=language,
-            is_local=True,
-            original=original or translation,
-            translation="",
-        )
-
-    return OcrTranslateResult(
-        language=language,
-        is_local=False,
-        original=original,
-        translation=translation,
-    )
-
-
-def show_ocr_translate_result(action: ActionBase, result: OcrTranslateResult) -> None:
-    """Show original-only or original+translation dialog and copy the primary text."""
-    display = result.display_text.strip()
-    if not display and not result.original.strip():
-        action.add_line("No text recognized")
-        action.show_toast("No text recognized")
-        action.show_result(display_text="")
-        return
-
-    action.text_to_clipboard(display)
-    action.add_line("📋 Text copied to clipboard")
-
-    if result.is_local or not result.translation.strip():
-        action.dialogs.show_text_multiline(
-            result.original,
-            title="Recognized text",
-            remove_paragraphs_button=True,
-        )
-        action.show_toast("✅ Recognized text")
-        return
-
-    action.dialogs.show_text_diff_side_by_side(
-        result.original,
-        result.translation,
-        title="Recognized text + translation",
-        remove_paragraphs_button=True,
-        before_label="Original",
-        after_label="Translation",
-        highlight_changes=False,
-    )
-    action.show_toast("✅ Recognized and translated")
-
-
 def _extract_json_object(text: str) -> dict[str, Any] | None:
     cleaned = text.strip()
     if cleaned.startswith("```"):
@@ -256,3 +239,20 @@ def _extract_json_object(text: str) -> dict[str, Any] | None:
         except json.JSONDecodeError:
             return None
     return data if isinstance(data, dict) else None
+
+
+def _script_letter_counts(text: str) -> tuple[int, int, int]:
+    cyrillic = 0
+    latin = 0
+    cjk = 0
+    for char in text:
+        if not char.isalpha():
+            continue
+        name = unicodedata.name(char, "")
+        if name.startswith("CYRILLIC"):
+            cyrillic += 1
+        elif name.startswith(("CJK", "HIRAGANA", "KATAKANA", "HANGUL")):
+            cjk += 1
+        else:
+            latin += 1
+    return cyrillic, latin, cjk

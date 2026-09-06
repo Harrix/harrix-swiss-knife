@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
 from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common.text_case import capitalize_first_letter
 from harrix_swiss_knife.apps.fitness.sets_ai import ParsedSetRow
-from harrix_swiss_knife.qt_emoji_icon import apply_emoji_dialog_buttons
+from harrix_swiss_knife.qt_lucide_icon import apply_lucide_dialog_buttons
 
 
 class WorkoutPreviewDialog(QDialog):
@@ -56,7 +56,7 @@ class WorkoutPreviewDialog(QDialog):
             QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel,
             parent=self,
         )
-        apply_emoji_dialog_buttons(buttons)
+        apply_lucide_dialog_buttons(buttons)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)

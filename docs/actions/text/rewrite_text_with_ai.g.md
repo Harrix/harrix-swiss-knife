@@ -126,7 +126,7 @@ class OnRewriteTextWithAI(ActionBase):
                 title=title,
                 rerun_button=True,
                 rerun_button_label=REWRITE_AGAIN_BUTTON_LABEL,
-                rerun_button_emoji=REWRITE_AGAIN_BUTTON_EMOJI,
+                rerun_button_icon=REWRITE_AGAIN_BUTTON_ICON,
                 remove_paragraphs_button=True,
             )
         else:
@@ -135,7 +135,7 @@ class OnRewriteTextWithAI(ActionBase):
                 title=title,
                 rerun_button=True,
                 rerun_button_label=REWRITE_AGAIN_BUTTON_LABEL,
-                rerun_button_emoji=REWRITE_AGAIN_BUTTON_EMOJI,
+                rerun_button_icon=REWRITE_AGAIN_BUTTON_ICON,
                 remove_paragraphs_button=True,
             )
             if not isinstance(dialog_result, tuple):

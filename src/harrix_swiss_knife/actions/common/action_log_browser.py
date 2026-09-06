@@ -29,10 +29,10 @@ from harrix_swiss_knife.actions.common.dialog_geometry import (
     text_content_height,
 )
 from harrix_swiss_knife.actions.common.dialog_widgets import ChoiceWithDescriptionDelegate
-from harrix_swiss_knife.qt_emoji_icon import (
-    COPY_BUTTON_EMOJI,
-    apply_emoji_dialog_buttons,
-    make_emoji_push_button,
+from harrix_swiss_knife.qt_lucide_icon import (
+    COPY_BUTTON_ICON,
+    apply_lucide_dialog_buttons,
+    make_lucide_push_button,
 )
 
 
@@ -96,7 +96,7 @@ def build_action_output_log_browser(
         layout.addWidget(splitter)
 
         button_layout = QHBoxLayout()
-        copy_button = make_emoji_push_button("Copy to Clipboard", COPY_BUTTON_EMOJI)
+        copy_button = make_lucide_push_button("Copy to Clipboard", COPY_BUTTON_ICON)
 
         def click_copy_button() -> None:
             QGuiApplication.clipboard().setText(preview.toPlainText())
@@ -107,7 +107,7 @@ def build_action_output_log_browser(
         button_layout.addStretch()
 
         close_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
-        apply_emoji_dialog_buttons(close_box)
+        apply_lucide_dialog_buttons(close_box)
         close_box.rejected.connect(dialog.reject)
         button_layout.addWidget(close_box)
 

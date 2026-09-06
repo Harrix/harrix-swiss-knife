@@ -45,7 +45,10 @@ from harrix_swiss_knife.apps.common.audio_recording import (
 from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import install_url_drop_handlers
 from harrix_swiss_knife.integrations.bothub.speech import audio_format_from_suffix
 from harrix_swiss_knife.paths import get_project_root
-from harrix_swiss_knife.qt_emoji_icon import SAVE_BUTTON_EMOJI, make_emoji_push_button
+from harrix_swiss_knife.qt_lucide_icon import (
+    SAVE_BUTTON_ICON,
+    make_lucide_push_button,
+)
 
 RECOGNIZE_BUTTON_STYLE = """QPushButton {
     background-color: #C1ECDD;
@@ -134,10 +137,10 @@ class AudioFileDropWidget(QWidget):
         install_url_drop_handlers(self.file_label, self._on_drop_paths)
 
         button_layout = QHBoxLayout()
-        browse_button = make_emoji_push_button("Select Audio File", "📁")
+        browse_button = make_lucide_push_button("Select Audio File", "folder")
         browse_button.clicked.connect(self._browse_file)
         button_layout.addWidget(browse_button)
-        clear_button = make_emoji_push_button("Clear", "🗑️")
+        clear_button = make_lucide_push_button("Clear", "trash")
         clear_button.clicked.connect(self.clear_file)
         button_layout.addWidget(clear_button)
 
@@ -644,26 +647,26 @@ class AudioSourceDialog(QDialog):
         button_layout = QHBoxLayout()
         button_layout.addStretch()
 
-        self._continue_recording_button = make_emoji_push_button("Continue recording", "▶️")
+        self._continue_recording_button = make_lucide_push_button("Continue recording", "play")
         self._continue_recording_button.clicked.connect(self._on_continue_recording_clicked)
         self._continue_recording_button.setVisible(False)
         button_layout.addWidget(self._continue_recording_button)
 
-        self._rerecord_button = make_emoji_push_button("Re-record", "🔄")
+        self._rerecord_button = make_lucide_push_button("Re-record", "refresh-cw")
         self._rerecord_button.clicked.connect(self._on_rerecord_clicked)
         self._rerecord_button.setVisible(False)
         button_layout.addWidget(self._rerecord_button)
 
-        cancel_button = make_emoji_push_button("Cancel", "❌")
+        cancel_button = make_lucide_push_button("Cancel", "x")
         cancel_button.clicked.connect(self.reject)
         button_layout.addWidget(cancel_button)
 
-        self._save_button = make_emoji_push_button("Save audio", SAVE_BUTTON_EMOJI)
+        self._save_button = make_lucide_push_button("Save audio", SAVE_BUTTON_ICON)
         self._save_button.clicked.connect(self._on_save_clicked)
         self._save_button.setVisible(False)
         button_layout.addWidget(self._save_button)
 
-        self._recognize_button = make_emoji_push_button("Recognize", "🎙️")
+        self._recognize_button = make_lucide_push_button("Recognize", "mic")
         recognize_font = QFont()
         recognize_font.setBold(True)
         self._recognize_button.setFont(recognize_font)

@@ -15,7 +15,11 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common import message_box
-from harrix_swiss_knife.qt_emoji_icon import DELETE_BUTTON_EMOJI, apply_emoji_dialog_buttons, make_emoji_push_button
+from harrix_swiss_knife.qt_lucide_icon import (
+    DELETE_BUTTON_ICON,
+    apply_lucide_dialog_buttons,
+    make_lucide_push_button,
+)
 
 
 class HabitDayCommentDialog(QDialog):
@@ -56,14 +60,14 @@ class HabitDayCommentDialog(QDialog):
         root.addWidget(self._edit, 1)
 
         buttons = QHBoxLayout()
-        self._delete_button = make_emoji_push_button("Delete", DELETE_BUTTON_EMOJI)
+        self._delete_button = make_lucide_push_button("Delete", DELETE_BUTTON_ICON)
         self._delete_button.setEnabled(bool(text.strip()))
         self._delete_button.clicked.connect(self._on_delete)
         buttons.addWidget(self._delete_button)
         buttons.addStretch(1)
 
         box = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
-        apply_emoji_dialog_buttons(box)
+        apply_lucide_dialog_buttons(box)
         box.accepted.connect(self.accept)
         box.rejected.connect(self.reject)
         buttons.addWidget(box)

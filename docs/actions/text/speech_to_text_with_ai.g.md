@@ -148,8 +148,12 @@ class OnSpeechToTextWithAI(ActionBase):
                 title="Speech to text result",
                 rerun_button=True,
                 rerun_button_label="Record new",
-                rerun_button_emoji="🎙️",
+                rerun_button_icon="mic",
                 rewrite_button=True,
+                translate_button=text_needs_translation(
+                    current,
+                    local_language_code_from_config(self.config),
+                ),
                 remove_paragraphs_button=True,
             )
             if not isinstance(dialog_result, tuple):
@@ -164,6 +168,7 @@ class OnSpeechToTextWithAI(ActionBase):
                 on_rewrite=lambda current=current: OnRewriteTextWithAI(output_bus=self._output_bus)(
                     initial_text=current
                 ),
+                on_translate=lambda current=current: start_text_translation(self, current),
             )
 
         def on_transcription_success(transcribed_text: str) -> None:

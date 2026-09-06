@@ -21,6 +21,7 @@ lang: en
 - [🏛️ Class `ZonePanel`](#%EF%B8%8F-class-zonepanel)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `activate_current_or_first`](#%EF%B8%8F-method-activate_current_or_first)
+  - [⚙️ Method `clear_ai_candidates`](#%EF%B8%8F-method-clear_ai_candidates)
   - [⚙️ Method `clear_filter`](#%EF%B8%8F-method-clear_filter)
   - [⚙️ Method `current_snippet`](#%EF%B8%8F-method-current_snippet)
   - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
@@ -29,13 +30,18 @@ lang: en
   - [⚙️ Method `item_matches_input`](#%EF%B8%8F-method-item_matches_input)
   - [⚙️ Method `move_visible`](#%EF%B8%8F-method-move_visible)
   - [⚙️ Method `prepare_keyboard_focus`](#%EF%B8%8F-method-prepare_keyboard_focus)
+  - [⚙️ Method `refresh_ai_candidates`](#%EF%B8%8F-method-refresh_ai_candidates)
   - [⚙️ Method `reset_keyboard_session`](#%EF%B8%8F-method-reset_keyboard_session)
   - [⚙️ Method `select_row`](#%EF%B8%8F-method-select_row)
+  - [⚙️ Method `set_ai_candidates`](#%EF%B8%8F-method-set_ai_candidates)
+  - [⚙️ Method `set_ai_pick_enabled`](#%EF%B8%8F-method-set_ai_pick_enabled)
+  - [⚙️ Method `set_ai_pick_visible`](#%EF%B8%8F-method-set_ai_pick_visible)
   - [⚙️ Method `set_filter_query`](#%EF%B8%8F-method-set_filter_query)
   - [⚙️ Method `set_input_match`](#%EF%B8%8F-method-set_input_match)
   - [⚙️ Method `set_items`](#%EF%B8%8F-method-set_items)
   - [⚙️ Method `set_sort_state`](#%EF%B8%8F-method-set_sort_state)
   - [⚙️ Method `visible_rows`](#%EF%B8%8F-method-visible_rows)
+- [🔧 Function `add_sort_menu_actions`](#-function-add_sort_menu_actions)
 - [🔧 Function `chip_border_color`](#-function-chip_border_color)
 - [🔧 Function `color_hex_label`](#-function-color_hex_label)
 - [🔧 Function `paint_snippet_highlight`](#-function-paint_snippet_highlight)
@@ -398,6 +404,10 @@ class ZonePanel(QWidget):
     edit_all_requested = Signal()
     delete_requested = Signal(object)
     sort_requested = Signal(str)
+    ai_add_requested = Signal(str)
+    ai_dismiss_requested = Signal()
+    ai_paste_requested = Signal(str)
+    ai_pick_requested = Signal()
 
     def __init__(
         self,
@@ -405,7 +415,6 @@ class ZonePanel(QWidget):
         *,
         zone: str,
         title: str,
-        show_add: bool = False,
     ) -> None:
         """Build the zone header and list.
 
@@ -414,16 +423,20 @@ class ZonePanel(QWidget):
         - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
         - `zone` (`str`): Zone identifier.
         - `title` (`str`): Header label.
-        - `show_add` (`bool`): Show the add button. Defaults to `False`.
 
         """
         super().__init__(parent)
         self.zone = zone
         self._items: list[SnippetItem] = []
-        self._sort_buttons: dict[SortMode, QToolButton] = {}
+        self._sort_mode: SortMode = DEFAULT_SORT_MODE
+        self._sort_descending = False
         self._filter_query = ""
         self._input_match = ""
         self._remembered_id: int | None = None
+        self._ai_pick_button: QToolButton | None = None
+        self._ai_candidates: QWidget | None = None
+        self._ai_candidates_layout: FlowLayout | None = None
+        self._ai_emojis: list[str] = []
 
         self._list = QListWidget(self)
         self._list.setFrameShape(QListWidget.Shape.NoFrame)
@@ -456,37 +469,48 @@ class ZonePanel(QWidget):
 
         header = QHBoxLayout()
         header.setContentsMargins(0, 0, 0, 0)
-        if show_add:
-            add_button = QToolButton(self)
-            add_button.setIcon(create_emoji_icon("➕", 18))  # noqa: RUF001
-            add_button.setIconSize(QSize(18, 18))
-            add_button.setToolTip(title)
-            add_button.setAutoRaise(True)
-            add_button.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
-            add_button.clicked.connect(self.add_requested.emit)
-            header.addWidget(add_button)
-        else:
-            title_button = QPushButton(title)
-            title_button.setFlat(True)
-            title_button.setEnabled(False)
-            header.addWidget(title_button)
+        title_label = QLabel(title)
+        title_label.setEnabled(False)
+        header.addWidget(title_label)
+        if zone == ZONE_EMOJI:
+            pick = QToolButton(self)
+            pick.setIcon(create_lucide_icon("bot", 18))
+            pick.setIconSize(QSize(18, 18))
+            pick.setFixedSize(28, 28)
+            pick.setAutoRaise(True)
+            pick.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
+            pick.setCursor(Qt.CursorShape.PointingHandCursor)
+            pick.setToolTip("Pick emoji by name")
+            pick.setVisible(False)
+            pick.clicked.connect(self.ai_pick_requested.emit)
+            self._ai_pick_button = pick
+            header.addWidget(pick)
         header.addStretch()
-        for mode, emoji, tooltip in _SORT_BUTTONS:
-            button = QToolButton(self)
-            button.setIcon(create_emoji_icon(emoji, 18))
-            button.setIconSize(QSize(18, 18))
-            button.setToolTip(tooltip)
-            button.setAutoRaise(True)
-            button.setCheckable(True)
-            button.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
-            button.clicked.connect(lambda _checked=False, sort_mode=mode: self.sort_requested.emit(sort_mode))
-            self._sort_buttons[mode] = button
-            header.addWidget(button)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
         layout.addLayout(header)
+        if zone == ZONE_EMOJI:
+            panel = QWidget(self)
+            panel_layout = QHBoxLayout(panel)
+            panel_layout.setContentsMargins(0, 0, 0, 0)
+            panel_layout.setSpacing(4)
+            host = QWidget(panel)
+            self._ai_candidates_layout = FlowLayout(host, margin=0, h_spacing=4, v_spacing=4)
+            panel_layout.addWidget(host, stretch=1)
+            close = QToolButton(panel)
+            close.setText("X")
+            close.setFixedSize(22, 22)
+            close.setAutoRaise(True)
+            close.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
+            close.setCursor(Qt.CursorShape.PointingHandCursor)
+            close.setToolTip("Close suggestions")
+            close.clicked.connect(self._dismiss_ai_candidates)
+            panel_layout.addWidget(close, alignment=Qt.AlignmentFlag.AlignTop)
+            panel.hide()
+            self._ai_candidates = panel
+            layout.addWidget(panel)
         layout.addWidget(self._list, stretch=1)
 
     def activate_current_or_first(self) -> None:
@@ -500,6 +524,11 @@ class ZonePanel(QWidget):
             snippet = self.current_snippet()
         if snippet is not None:
             self.item_activated.emit(snippet)
+
+    def clear_ai_candidates(self) -> None:
+        """Remove AI suggestion chips from the emoji zone."""
+        self._ai_emojis = []
+        self._rebuild_ai_candidates(())
 
     def clear_filter(self) -> None:
         """Clear this zone's search query."""
@@ -575,6 +604,10 @@ class ZonePanel(QWidget):
         if rows:
             self.select_row(rows[0])
 
+    def refresh_ai_candidates(self, existing_values: Sequence[str]) -> None:
+        """Rebuild AI chips after the emoji list changes."""
+        self._rebuild_ai_candidates(existing_values)
+
     def reset_keyboard_session(self) -> None:
         """Clear the keyboard highlight remembered for this Quick paste session."""
         self._remembered_id = None
@@ -595,6 +628,23 @@ class ZonePanel(QWidget):
         item.setSelected(True)
         self._list.scrollToItem(item)
         self._remember_current()
+
+    def set_ai_candidates(self, emojis: list[str], *, existing_values: Sequence[str]) -> None:
+        """Show AI emoji suggestions; missing ones get an add button."""
+        self._ai_emojis = list(emojis)
+        self._rebuild_ai_candidates(existing_values)
+        if self._ai_pick_button is not None:
+            self._ai_pick_button.hide()
+
+    def set_ai_pick_enabled(self, *, enabled: bool) -> None:
+        """Enable or disable the pick-by-name button."""
+        if self._ai_pick_button is not None:
+            self._ai_pick_button.setEnabled(enabled)
+
+    def set_ai_pick_visible(self, *, visible: bool) -> None:
+        """Show the pick-by-name button when the shared input has text."""
+        if self._ai_pick_button is not None:
+            self._ai_pick_button.setVisible(visible and not self._ai_emojis)
 
     def set_filter_query(self, text: str) -> None:
         """Filter this zone by `text` and clear the current highlight."""
@@ -635,14 +685,9 @@ class ZonePanel(QWidget):
         self._apply_filter()
 
     def set_sort_state(self, zone_sort: ZoneSort) -> None:
-        """Mark the active sort button."""
-        for mode, button in self._sort_buttons.items():
-            button.setChecked(mode == zone_sort.mode)
-            tooltip = next(tip for sort_mode, _emoji, tip in _SORT_BUTTONS if sort_mode == mode)
-            if mode == zone_sort.mode and zone_sort.descending:
-                button.setToolTip(f"{tooltip} (reversed)")
-            else:
-                button.setToolTip(tooltip)
+        """Remember the active sort so the context menu can mark it."""
+        self._sort_mode = zone_sort.mode
+        self._sort_descending = zone_sort.descending
 
     def visible_rows(self) -> list[int]:
         """Return indexes of items that pass the current filter."""
@@ -668,9 +713,47 @@ class ZonePanel(QWidget):
         if current is not None and current.isHidden():
             self._clear_list_current()
 
+    def _build_context_menu(self, snippet: SnippetItem | None) -> QMenu:
+        menu = QMenu(self)
+        add_lucide_action(menu, "Add item", "plus").triggered.connect(self.add_requested.emit)
+        add_lucide_action(menu, "Add many items", "download").triggered.connect(self.add_many_requested.emit)
+        edit_action = add_lucide_action(menu, "Edit item", "pencil")
+        edit_action.setEnabled(snippet is not None)
+        if snippet is not None:
+            edit_action.triggered.connect(lambda _checked=False, item=snippet: self.edit_requested.emit(item))
+        add_lucide_action(menu, "Edit entire list", "notebook-pen").triggered.connect(self.edit_all_requested.emit)
+        delete_action = add_lucide_action(menu, "Delete item", "trash")
+        delete_action.setEnabled(snippet is not None)
+        if snippet is not None:
+            delete_action.triggered.connect(lambda _checked=False, item=snippet: self.delete_requested.emit(item))
+        menu.addSeparator()
+        add_sort_menu_actions(
+            menu,
+            mode=self._sort_mode,
+            descending=self._sort_descending,
+            on_sort=self.sort_requested.emit,
+        )
+        return menu
+
+    def _clear_ai_candidate_widgets(self) -> None:
+        layout = self._ai_candidates_layout
+        if layout is None:
+            return
+        while layout.count():
+            item = layout.takeAt(0)
+            if item is None:
+                break
+            widget = item.widget()
+            if widget is not None:
+                widget.deleteLater()
+
     def _clear_list_current(self) -> None:
         self._list.clearSelection()
         self._list.setCurrentRow(-1)
+
+    def _dismiss_ai_candidates(self) -> None:
+        self.clear_ai_candidates()
+        self.ai_dismiss_requested.emit()
 
     def _on_context_menu(self, pos: QPoint) -> None:
         widget = self.sender()
@@ -681,18 +764,7 @@ class ZonePanel(QWidget):
             global_pos = self.mapToGlobal(pos)
             snippet = self.item_at(self._list.mapFrom(self, pos))
 
-        menu = QMenu(self)
-        add_emoji_action(menu, "Add item", "➕").triggered.connect(self.add_requested.emit)  # noqa: RUF001
-        add_emoji_action(menu, "Add many items", "📥").triggered.connect(self.add_many_requested.emit)
-        edit_action = add_emoji_action(menu, "Edit item", "✏️")
-        edit_action.setEnabled(snippet is not None)
-        if snippet is not None:
-            edit_action.triggered.connect(lambda _checked=False, item=snippet: self.edit_requested.emit(item))
-        add_emoji_action(menu, "Edit entire list", "📝").triggered.connect(self.edit_all_requested.emit)
-        delete_action = add_emoji_action(menu, "Delete item", "🗑️")
-        delete_action.setEnabled(snippet is not None)
-        if snippet is not None:
-            delete_action.triggered.connect(lambda _checked=False, item=snippet: self.delete_requested.emit(item))
+        menu = self._build_context_menu(snippet)
         menu.popup(global_pos)
 
     def _on_current_item_changed(
@@ -710,6 +782,27 @@ class ZonePanel(QWidget):
         snippet = item.data(_ITEM_ROLE)
         if snippet is not None:
             self.item_activated.emit(snippet)
+
+    def _rebuild_ai_candidates(self, existing_values: Sequence[str]) -> None:
+        host = self._ai_candidates
+        layout = self._ai_candidates_layout
+        if host is None or layout is None:
+            return
+        self._clear_ai_candidate_widgets()
+        if not self._ai_emojis:
+            host.hide()
+            return
+        for emoji in self._ai_emojis:
+            can_add = not any(item_values_equal(ZONE_EMOJI, emoji, value) for value in existing_values)
+            layout.addWidget(
+                _make_emoji_candidate_chip(
+                    emoji,
+                    can_add=can_add,
+                    on_add=self.ai_add_requested.emit,
+                    on_paste=self.ai_paste_requested.emit,
+                ),
+            )
+        host.show()
 
     def _remember_current(self) -> None:
         snippet = self.current_snippet()
@@ -734,7 +827,7 @@ class ZonePanel(QWidget):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None = None, *, zone: str, title: str, show_add: bool = False) -> None
+def __init__(self, parent: QWidget | None = None, *, zone: str, title: str) -> None
 ```
 
 Build the zone header and list.
@@ -744,7 +837,6 @@ Args:
 - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
 - `zone` (`str`): Zone identifier.
 - `title` (`str`): Header label.
-- `show_add` (`bool`): Show the add button. Defaults to `False`.
 
 <details>
 <summary>Code:</summary>
@@ -756,15 +848,19 @@ def __init__(
         *,
         zone: str,
         title: str,
-        show_add: bool = False,
     ) -> None:
         super().__init__(parent)
         self.zone = zone
         self._items: list[SnippetItem] = []
-        self._sort_buttons: dict[SortMode, QToolButton] = {}
+        self._sort_mode: SortMode = DEFAULT_SORT_MODE
+        self._sort_descending = False
         self._filter_query = ""
         self._input_match = ""
         self._remembered_id: int | None = None
+        self._ai_pick_button: QToolButton | None = None
+        self._ai_candidates: QWidget | None = None
+        self._ai_candidates_layout: FlowLayout | None = None
+        self._ai_emojis: list[str] = []
 
         self._list = QListWidget(self)
         self._list.setFrameShape(QListWidget.Shape.NoFrame)
@@ -797,37 +893,48 @@ def __init__(
 
         header = QHBoxLayout()
         header.setContentsMargins(0, 0, 0, 0)
-        if show_add:
-            add_button = QToolButton(self)
-            add_button.setIcon(create_emoji_icon("➕", 18))  # noqa: RUF001
-            add_button.setIconSize(QSize(18, 18))
-            add_button.setToolTip(title)
-            add_button.setAutoRaise(True)
-            add_button.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
-            add_button.clicked.connect(self.add_requested.emit)
-            header.addWidget(add_button)
-        else:
-            title_button = QPushButton(title)
-            title_button.setFlat(True)
-            title_button.setEnabled(False)
-            header.addWidget(title_button)
+        title_label = QLabel(title)
+        title_label.setEnabled(False)
+        header.addWidget(title_label)
+        if zone == ZONE_EMOJI:
+            pick = QToolButton(self)
+            pick.setIcon(create_lucide_icon("bot", 18))
+            pick.setIconSize(QSize(18, 18))
+            pick.setFixedSize(28, 28)
+            pick.setAutoRaise(True)
+            pick.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
+            pick.setCursor(Qt.CursorShape.PointingHandCursor)
+            pick.setToolTip("Pick emoji by name")
+            pick.setVisible(False)
+            pick.clicked.connect(self.ai_pick_requested.emit)
+            self._ai_pick_button = pick
+            header.addWidget(pick)
         header.addStretch()
-        for mode, emoji, tooltip in _SORT_BUTTONS:
-            button = QToolButton(self)
-            button.setIcon(create_emoji_icon(emoji, 18))
-            button.setIconSize(QSize(18, 18))
-            button.setToolTip(tooltip)
-            button.setAutoRaise(True)
-            button.setCheckable(True)
-            button.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
-            button.clicked.connect(lambda _checked=False, sort_mode=mode: self.sort_requested.emit(sort_mode))
-            self._sort_buttons[mode] = button
-            header.addWidget(button)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
         layout.addLayout(header)
+        if zone == ZONE_EMOJI:
+            panel = QWidget(self)
+            panel_layout = QHBoxLayout(panel)
+            panel_layout.setContentsMargins(0, 0, 0, 0)
+            panel_layout.setSpacing(4)
+            host = QWidget(panel)
+            self._ai_candidates_layout = FlowLayout(host, margin=0, h_spacing=4, v_spacing=4)
+            panel_layout.addWidget(host, stretch=1)
+            close = QToolButton(panel)
+            close.setText("X")
+            close.setFixedSize(22, 22)
+            close.setAutoRaise(True)
+            close.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
+            close.setCursor(Qt.CursorShape.PointingHandCursor)
+            close.setToolTip("Close suggestions")
+            close.clicked.connect(self._dismiss_ai_candidates)
+            panel_layout.addWidget(close, alignment=Qt.AlignmentFlag.AlignTop)
+            panel.hide()
+            self._ai_candidates = panel
+            layout.addWidget(panel)
         layout.addWidget(self._list, stretch=1)
 ```
 
@@ -855,6 +962,25 @@ def activate_current_or_first(self) -> None:
             snippet = self.current_snippet()
         if snippet is not None:
             self.item_activated.emit(snippet)
+```
+
+</details>
+
+### ⚙️ Method `clear_ai_candidates`
+
+```python
+def clear_ai_candidates(self) -> None
+```
+
+Remove AI suggestion chips from the emoji zone.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def clear_ai_candidates(self) -> None:
+        self._ai_emojis = []
+        self._rebuild_ai_candidates(())
 ```
 
 </details>
@@ -1043,6 +1169,24 @@ def prepare_keyboard_focus(self) -> None:
 
 </details>
 
+### ⚙️ Method `refresh_ai_candidates`
+
+```python
+def refresh_ai_candidates(self, existing_values: Sequence[str]) -> None
+```
+
+Rebuild AI chips after the emoji list changes.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def refresh_ai_candidates(self, existing_values: Sequence[str]) -> None:
+        self._rebuild_ai_candidates(existing_values)
+```
+
+</details>
+
 ### ⚙️ Method `reset_keyboard_session`
 
 ```python
@@ -1086,6 +1230,65 @@ def select_row(self, row: int) -> None:
         item.setSelected(True)
         self._list.scrollToItem(item)
         self._remember_current()
+```
+
+</details>
+
+### ⚙️ Method `set_ai_candidates`
+
+```python
+def set_ai_candidates(self, emojis: list[str], *, existing_values: Sequence[str]) -> None
+```
+
+Show AI emoji suggestions; missing ones get an add button.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_ai_candidates(self, emojis: list[str], *, existing_values: Sequence[str]) -> None:
+        self._ai_emojis = list(emojis)
+        self._rebuild_ai_candidates(existing_values)
+        if self._ai_pick_button is not None:
+            self._ai_pick_button.hide()
+```
+
+</details>
+
+### ⚙️ Method `set_ai_pick_enabled`
+
+```python
+def set_ai_pick_enabled(self, *, enabled: bool) -> None
+```
+
+Enable or disable the pick-by-name button.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_ai_pick_enabled(self, *, enabled: bool) -> None:
+        if self._ai_pick_button is not None:
+            self._ai_pick_button.setEnabled(enabled)
+```
+
+</details>
+
+### ⚙️ Method `set_ai_pick_visible`
+
+```python
+def set_ai_pick_visible(self, *, visible: bool) -> None
+```
+
+Show the pick-by-name button when the shared input has text.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_ai_pick_visible(self, *, visible: bool) -> None:
+        if self._ai_pick_button is not None:
+            self._ai_pick_button.setVisible(visible and not self._ai_emojis)
 ```
 
 </details>
@@ -1176,20 +1379,15 @@ def set_items(self, items: list[SnippetItem]) -> None:
 def set_sort_state(self, zone_sort: ZoneSort) -> None
 ```
 
-Mark the active sort button.
+Remember the active sort so the context menu can mark it.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def set_sort_state(self, zone_sort: ZoneSort) -> None:
-        for mode, button in self._sort_buttons.items():
-            button.setChecked(mode == zone_sort.mode)
-            tooltip = next(tip for sort_mode, _emoji, tip in _SORT_BUTTONS if sort_mode == mode)
-            if mode == zone_sort.mode and zone_sort.descending:
-                button.setToolTip(f"{tooltip} (reversed)")
-            else:
-                button.setToolTip(tooltip)
+        self._sort_mode = zone_sort.mode
+        self._sort_descending = zone_sort.descending
 ```
 
 </details>
@@ -1213,6 +1411,39 @@ def visible_rows(self) -> list[int]:
             if item is not None and not item.isHidden():
                 rows.append(row)
         return rows
+```
+
+</details>
+
+## 🔧 Function `add_sort_menu_actions`
+
+```python
+def add_sort_menu_actions(menu: QMenu, *, mode: str | None, descending: bool, on_sort: Callable[[str], None]) -> None
+```
+
+Append checkable sort actions that call `on_sort` with the mode ID.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def add_sort_menu_actions(
+    menu: QMenu,
+    *,
+    mode: str | None,
+    descending: bool,
+    on_sort: Callable[[str], None],
+) -> None:
+    group = QActionGroup(menu)
+    group.setExclusive(True)
+    for sort_mode, icon_name, tooltip in _SORT_BUTTONS:
+        action = add_lucide_action(menu, tooltip, icon_name)
+        action.setCheckable(True)
+        action.setChecked(mode == sort_mode)
+        if mode == sort_mode and descending:
+            action.setText(f"{tooltip} (reversed)")
+        group.addAction(action)
+        action.triggered.connect(lambda _checked=False, chosen=sort_mode: on_sort(chosen))
 ```
 
 </details>

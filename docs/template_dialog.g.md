@@ -393,10 +393,10 @@ class TemplateDialog(QDialog):
         layout = QHBoxLayout(container)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        today_button = QPushButton("📅 Today")
+        today_button = make_lucide_push_button("Today", "calendar")
         today_button.clicked.connect(lambda: date_edit.setDate(QDate.currentDate()))
 
-        yesterday_button = QPushButton("📅 Yesterday")
+        yesterday_button = make_lucide_push_button("Yesterday", "calendar")
         yesterday_button.clicked.connect(lambda: date_edit.setDate(QDate.currentDate().addDays(-1)))
 
         layout.addWidget(date_edit, 1)
@@ -418,7 +418,7 @@ class TemplateDialog(QDialog):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(line_edit, 1)
 
-        append_button = QPushButton("➕ To title")  # noqa: RUF001
+        append_button = make_lucide_push_button("To title", "plus")
         append_button.setToolTip("Append a shortened street and house number to the title")
         append_button.clicked.connect(lambda: self._on_append_address_to_note_name(line_edit))
         layout.addWidget(append_button)
@@ -891,7 +891,7 @@ class TemplateDialog(QDialog):
             image_mode=ImagePickerMode.MULTI,
             show_skip_manual=False,
             accept_button_text="Send to AI",
-            accept_button_emoji="🤖",
+            accept_button_icon="bot",
             accept_button_style=SEND_TO_AI_BUTTON_STYLE,
             max_image_side=max_image_side,
         )
@@ -1264,7 +1264,7 @@ class TemplateDialog(QDialog):
                 link_label.setOpenExternalLinks(True)
                 links_layout.addWidget(link_label)
             if len(self._link_qurls) > 1:
-                open_all_button = make_emoji_push_button("Open all", "🔗")
+                open_all_button = make_lucide_push_button("Open all", "link")
                 open_all_button.clicked.connect(self._open_all_links)
                 links_layout.addWidget(open_all_button)
             links_layout.addStretch()
@@ -1335,7 +1335,7 @@ class TemplateDialog(QDialog):
         # Add buttons
         button_layout = QHBoxLayout()
         if self._app_config is not None:
-            self._fill_ai_button = make_emoji_push_button("Fill with AI", "🤖")
+            self._fill_ai_button = make_lucide_push_button("Fill with AI", "bot")
             self._fill_ai_button.setToolTip(
                 "Fill empty template fields from text and/or screenshots via BotHub. "
                 "Does not fill Review or attach images to the note."
@@ -1344,11 +1344,11 @@ class TemplateDialog(QDialog):
             button_layout.addWidget(self._fill_ai_button)
         button_layout.addStretch()
 
-        cancel_button = make_emoji_push_button("Cancel", CANCEL_BUTTON_EMOJI)
+        cancel_button = make_lucide_push_button("Cancel", CANCEL_BUTTON_ICON)
         cancel_button.clicked.connect(self._on_cancel)
         button_layout.addWidget(cancel_button)
 
-        ok_button = make_emoji_push_button("OK", OK_BUTTON_EMOJI)
+        ok_button = make_lucide_push_button("OK", OK_BUTTON_ICON)
         ok_button.setDefault(True)
         ok_button.clicked.connect(self._on_ok)
         ok_button.setStyleSheet("QPushButton { background-color: #4CAF50; color: white; }")

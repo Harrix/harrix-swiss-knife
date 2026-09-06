@@ -35,10 +35,10 @@ from harrix_swiss_knife.apps.fitness.exercise_ai_fill import (
 )
 from harrix_swiss_knife.apps.fitness.exercise_duplicate_dialog import show_exercise_already_exists
 from harrix_swiss_knife.integrations.bothub import BothubRequestState
-from harrix_swiss_knife.qt_emoji_icon import (
-    apply_emoji_dialog_buttons,
-    create_emoji_icon,
-    make_emoji_push_button,
+from harrix_swiss_knife.qt_lucide_icon import (
+    apply_lucide_dialog_buttons,
+    create_lucide_icon,
+    make_lucide_push_button,
 )
 
 if TYPE_CHECKING:
@@ -46,8 +46,8 @@ if TYPE_CHECKING:
 
     from harrix_swiss_knife.apps.common.avif_manager import AvifManager
 
-_CHECK_EMOJI = "🔎"
-_CHECK_OK_EMOJI = "✅"
+_CHECK_ICON = "search"
+_CHECK_OK_ICON = "circle-check"
 
 
 class ExerciseAddDialog(QDialog):
@@ -112,7 +112,7 @@ class ExerciseAddDialog(QDialog):
         name_local_row.addWidget(self._name_local_edit, 1)
         self._local_check_button: QPushButton | None = None
         if find_duplicate is not None:
-            self._local_check_button = make_emoji_push_button("Check", _CHECK_EMOJI, parent=form_group)
+            self._local_check_button = make_lucide_push_button("Check", _CHECK_ICON, parent=form_group)
             self._local_check_button.setToolTip("Check whether this local name is already used")
             self._local_check_button.clicked.connect(self._on_check_local_name)
             name_local_row.addWidget(self._local_check_button)
@@ -166,15 +166,15 @@ class ExerciseAddDialog(QDialog):
         layout.addWidget(form_group)
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        apply_emoji_dialog_buttons(buttons)
-        self._fill_button = make_emoji_push_button("Fill with AI", "🤖")
+        apply_lucide_dialog_buttons(buttons)
+        self._fill_button = make_lucide_push_button("Fill with AI", "bot")
         self._fill_button.setToolTip(
             "Fill English/local names, unit, and calories from the entered name or media filename",
         )
         self._fill_button.clicked.connect(self._on_fill_clicked)
         buttons.addButton(self._fill_button, QDialogButtonBox.ButtonRole.ActionRole)
         if not self._editing:
-            add_another_button = make_emoji_push_button("OK and Add Another", "➕")  # noqa: RUF001
+            add_another_button = make_lucide_push_button("OK and Add Another", "plus")
             add_another_button.setToolTip("Save this exercise and open Add New Exercise again")
             add_another_button.clicked.connect(self._on_accept_and_add_another)
             buttons.addButton(add_another_button, QDialogButtonBox.ButtonRole.ActionRole)
@@ -342,8 +342,8 @@ class ExerciseAddDialog(QDialog):
         self._local_check_passed = passed
         if self._local_check_button is None:
             return
-        emoji = _CHECK_OK_EMOJI if passed else _CHECK_EMOJI
-        self._local_check_button.setIcon(create_emoji_icon(emoji))
+        icon_name = _CHECK_OK_ICON if passed else _CHECK_ICON
+        self._local_check_button.setIcon(create_lucide_icon(icon_name))
         self._local_check_button.setToolTip(
             "Local name is available" if passed else "Check whether this local name is already used",
         )

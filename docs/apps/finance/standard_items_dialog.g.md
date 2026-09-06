@@ -251,11 +251,11 @@ class StandardItemsDialog(QDialog):
         layout.addWidget(self.table)
 
         buttons = QHBoxLayout()
-        self.add_button = make_emoji_push_button("Add", "➕")  # noqa: RUF001
-        self.edit_button = make_emoji_push_button("Edit", "✏️")
-        self.delete_button = make_emoji_push_button("Delete", DELETE_BUTTON_EMOJI)
-        self.translate_button = make_emoji_push_button("Translate with AI", "🤖")
-        self.close_button = make_emoji_push_button("Close", CANCEL_BUTTON_EMOJI)
+        self.add_button = make_lucide_push_button("Add", "plus")
+        self.edit_button = make_lucide_push_button("Edit", "pencil")
+        self.delete_button = make_lucide_push_button("Delete", DELETE_BUTTON_ICON)
+        self.translate_button = make_lucide_push_button("Translate with AI", "bot")
+        self.close_button = make_lucide_push_button("Close", CANCEL_BUTTON_ICON)
         self.add_button.clicked.connect(self._on_add)
         self.edit_button.clicked.connect(self._on_edit)
         self.delete_button.clicked.connect(self._on_delete)
@@ -280,7 +280,7 @@ class StandardItemsDialog(QDialog):
             return
         menu = QMenu(self)
         delete_action = add_delete_action(menu)
-        apply_leading_emoji_icons(menu)
+        apply_leading_chrome_icons(menu)
         viewport = self.table.viewport()
         if viewport is None:
             return

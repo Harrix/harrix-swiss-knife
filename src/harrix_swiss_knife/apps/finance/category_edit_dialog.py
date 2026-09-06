@@ -22,11 +22,11 @@ from harrix_swiss_knife.apps.common.emoji_presets import FINANCE_EMOJI_PRESETS
 from harrix_swiss_knife.apps.common.text_case import capitalize_first_letter
 from harrix_swiss_knife.apps.finance.category_name_local_translate import request_category_name_local_translation
 from harrix_swiss_knife.integrations.bothub import BothubRequestState
-from harrix_swiss_knife.qt_emoji_icon import (
-    CANCEL_BUTTON_EMOJI,
-    DELETE_BUTTON_EMOJI,
-    SAVE_BUTTON_EMOJI,
-    make_emoji_push_button,
+from harrix_swiss_knife.qt_lucide_icon import (
+    CANCEL_BUTTON_ICON,
+    DELETE_BUTTON_ICON,
+    SAVE_BUTTON_ICON,
+    make_lucide_push_button,
 )
 
 
@@ -135,7 +135,7 @@ class CategoryEditDialog(QDialog):
         self.name_local_edit = QLineEdit()
         self.name_local_edit.setPlaceholderText("Local name")
         name_local_layout.addWidget(self.name_local_edit, 1)
-        self.translate_button = make_emoji_push_button("", "🤖")
+        self.translate_button = make_lucide_push_button("", "bot")
         self.translate_button.setToolTip("Translate name to local language with AI")
         self.translate_button.setFixedWidth(36)
         self.translate_button.clicked.connect(self._on_translate_clicked)
@@ -161,16 +161,16 @@ class CategoryEditDialog(QDialog):
         layout.addLayout(icon_layout)
 
         button_layout = QHBoxLayout()
-        self.delete_button = make_emoji_push_button("Delete", DELETE_BUTTON_EMOJI)
+        self.delete_button = make_lucide_push_button("Delete", DELETE_BUTTON_ICON)
         self.delete_button.clicked.connect(self._on_delete)
         self.delete_button.setStyleSheet("QPushButton { background-color: #ff6b6b; color: white; }")
         button_layout.addWidget(self.delete_button)
 
-        self.cancel_button = make_emoji_push_button("Cancel", CANCEL_BUTTON_EMOJI)
+        self.cancel_button = make_lucide_push_button("Cancel", CANCEL_BUTTON_ICON)
         self.cancel_button.clicked.connect(self.reject)
         button_layout.addWidget(self.cancel_button)
 
-        self.save_button = make_emoji_push_button("Save", SAVE_BUTTON_EMOJI)
+        self.save_button = make_lucide_push_button("Save", SAVE_BUTTON_ICON)
         self.save_button.clicked.connect(self._on_save)
         self.save_button.setStyleSheet("QPushButton { background-color: #4CAF50; color: white; }")
         self.save_button.setDefault(True)

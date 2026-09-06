@@ -11,7 +11,7 @@ from PySide6.QtWidgets import QDialog, QLabel, QPushButton, QVBoxLayout
 
 from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common.avif_manager import load_image_pixmap
-from harrix_swiss_knife.qt_emoji_icon import CLOSE_BUTTON_EMOJI, create_emoji_icon
+from harrix_swiss_knife.qt_lucide_icon import CLOSE_BUTTON_ICON, create_lucide_icon
 
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QWidget
@@ -70,7 +70,7 @@ class ImageLightboxDialog(QDialog):
         layout.addWidget(image_label, stretch=1)
 
         close_button = QPushButton(self)
-        close_button.setIcon(create_emoji_icon(CLOSE_BUTTON_EMOJI, 22))
+        close_button.setIcon(create_lucide_icon(CLOSE_BUTTON_ICON, 22))
         close_button.setIconSize(QSize(22, 22))
         close_button.setFixedSize(_CLOSE_BUTTON_SIZE, _CLOSE_BUTTON_SIZE)
         close_button.setCursor(Qt.CursorShape.PointingHandCursor)

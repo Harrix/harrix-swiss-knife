@@ -21,7 +21,7 @@ from harrix_swiss_knife.actions.common.github_https import (
     github_download_headers,
     validate_https_url,
 )
-from harrix_swiss_knife.actions.common.text_result_dialog import RERUN_BUTTON_EMOJI, RERUN_DIALOG_CODE
+from harrix_swiss_knife.actions.common.text_result_dialog import RERUN_BUTTON_ICON, RERUN_DIALOG_CODE
 from harrix_swiss_knife.app_restart import restart_current_application
 from harrix_swiss_knife.data_for_hsk import ensure_missing_tracker_databases, relocate_sqlite_paths
 from harrix_swiss_knife.integrations.http_download import download_https_to_path
@@ -393,7 +393,7 @@ class OnUpdateHarrixSwissKnife(ActionBase):
             open_folder_path=self.result_folder,
             rerun_button=True,
             rerun_button_label="Restart now",
-            rerun_button_emoji=RERUN_BUTTON_EMOJI,
+            rerun_button_icon=RERUN_BUTTON_ICON,
         )
 
     @ActionBase.handle_exceptions("update Harrix Swiss Knife stack thread completion")

@@ -9,7 +9,7 @@ from PySide6.QtWidgets import QDialog, QDialogButtonBox, QLabel, QVBoxLayout, QW
 
 from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common.avif_manager import AvifLabelKey
-from harrix_swiss_knife.qt_emoji_icon import apply_emoji_dialog_buttons
+from harrix_swiss_knife.qt_lucide_icon import apply_lucide_dialog_buttons
 
 if TYPE_CHECKING:
     from PySide6.QtGui import QCloseEvent
@@ -64,7 +64,7 @@ class ExerciseAlreadyExistsDialog(QDialog):
         layout.addWidget(QLabel(f"Local: {local}", self))
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok)
-        apply_emoji_dialog_buttons(buttons)
+        apply_lucide_dialog_buttons(buttons)
         buttons.accepted.connect(self.accept)
         layout.addWidget(buttons)
 

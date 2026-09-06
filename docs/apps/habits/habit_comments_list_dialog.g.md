@@ -74,7 +74,7 @@ class HabitCommentsListDialog(QDialog):
                 self._list.addItem(row)
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
-        apply_emoji_dialog_buttons(buttons)
+        apply_lucide_dialog_buttons(buttons)
         buttons.rejected.connect(self.reject)
         buttons.accepted.connect(self.reject)
         root.addWidget(buttons)
@@ -145,7 +145,7 @@ def __init__(
                 self._list.addItem(row)
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
-        apply_emoji_dialog_buttons(buttons)
+        apply_lucide_dialog_buttons(buttons)
         buttons.rejected.connect(self.reject)
         buttons.accepted.connect(self.reject)
         root.addWidget(buttons)

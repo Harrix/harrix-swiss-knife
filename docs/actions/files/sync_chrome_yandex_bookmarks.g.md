@@ -26,9 +26,10 @@ class OnSyncChromeYandexBookmarks(ActionBase)
 
 Bidirectional Chrome ↔ Yandex bookmark sync with a deletion-aware snapshot.
 
-First run merges missing URLs both ways without deletions. Later runs use a
-LocalAppData snapshot so deletes propagate. Preview shows Cancel / Apply;
-browsers must be closed before Apply.
+First run merges missing URLs both ways without deletions or folder moves.
+Later runs use a LocalAppData snapshot so deletes and folder moves
+propagate. Preview shows Cancel / Apply; browsers must be closed before
+Apply.
 
 <details>
 <summary>Code:</summary>
@@ -61,6 +62,7 @@ class OnSyncChromeYandexBookmarks(ActionBase):
         report = format_sync_report(result)
         self.add_line(report)
         if not result.has_writes:
+            persist_snapshot(result)
             self.show_toast("Chrome and Yandex bookmarks are in sync")
             self.show_result(display_text=report)
             return
@@ -69,9 +71,9 @@ class OnSyncChromeYandexBookmarks(ActionBase):
             title="Sync Chrome and Yandex bookmarks",
             rerun_button=True,
             rerun_button_label="Apply",
-            rerun_button_emoji="💾",
+            rerun_button_icon="save",
             ok_button_label=CANCEL_BUTTON_LABEL,
-            ok_button_emoji=CANCEL_BUTTON_EMOJI,
+            ok_button_icon=CANCEL_BUTTON_ICON,
             ok_button_before_actions=True,
         )
         if not isinstance(shown, tuple) or shown[1] != RERUN_DIALOG_CODE:
@@ -170,6 +172,7 @@ def thread_after(self, result: Any) -> None:
         report = format_sync_report(result)
         self.add_line(report)
         if not result.has_writes:
+            persist_snapshot(result)
             self.show_toast("Chrome and Yandex bookmarks are in sync")
             self.show_result(display_text=report)
             return
@@ -178,9 +181,9 @@ def thread_after(self, result: Any) -> None:
             title="Sync Chrome and Yandex bookmarks",
             rerun_button=True,
             rerun_button_label="Apply",
-            rerun_button_emoji="💾",
+            rerun_button_icon="save",
             ok_button_label=CANCEL_BUTTON_LABEL,
-            ok_button_emoji=CANCEL_BUTTON_EMOJI,
+            ok_button_icon=CANCEL_BUTTON_ICON,
             ok_button_before_actions=True,
         )
         if not isinstance(shown, tuple) or shown[1] != RERUN_DIALOG_CODE:

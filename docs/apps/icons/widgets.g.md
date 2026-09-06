@@ -520,6 +520,7 @@ class DraggableIconList(QListWidget):
         labels = batch_context_action_texts(len(targets), all_favorites=all_favorites)
         batch_ai_action = menu.addAction(labels[0])
         favorite_action = menu.addAction(labels[1])
+        apply_leading_chrome_icons(menu)
         chosen = menu.exec_(self.mapToGlobal(pos))
         if chosen is batch_ai_action:
             self.batch_keywords_ai_requested.emit(targets)
@@ -597,6 +598,7 @@ class DraggableIconList(QListWidget):
                 license_action.setEnabled(False)
 
         delete_action = menu.addAction(LABEL_DELETE)
+        apply_leading_chrome_icons(menu)
         chosen = menu.exec_(self.mapToGlobal(pos))
 
         if has_path and chosen is reveal_action:

@@ -75,7 +75,7 @@ class ExerciseAlreadyExistsDialog(QDialog):
         layout.addWidget(QLabel(f"Local: {local}", self))
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok)
-        apply_emoji_dialog_buttons(buttons)
+        apply_lucide_dialog_buttons(buttons)
         buttons.accepted.connect(self.accept)
         layout.addWidget(buttons)
 
@@ -159,7 +159,7 @@ def __init__(
         layout.addWidget(QLabel(f"Local: {local}", self))
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok)
-        apply_emoji_dialog_buttons(buttons)
+        apply_lucide_dialog_buttons(buttons)
         buttons.accepted.connect(self.accept)
         layout.addWidget(buttons)
 

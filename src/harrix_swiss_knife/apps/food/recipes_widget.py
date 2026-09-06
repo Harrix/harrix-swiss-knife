@@ -50,7 +50,10 @@ from harrix_swiss_knife.apps.food.services.food_display import (
     extract_food_name_from_display,
     format_food_name_with_calories,
 )
-from harrix_swiss_knife.qt_emoji_icon import apply_leading_emoji_icons, make_emoji_push_button
+from harrix_swiss_knife.qt_lucide_icon import (
+    apply_leading_chrome_icons,
+    make_lucide_push_button,
+)
 
 if TYPE_CHECKING:
     from harrix_swiss_knife.apps.food.database_manager import DatabaseManager, RecipeRow
@@ -297,7 +300,7 @@ class RecipesWidget(QWidget):
         middle_layout.addWidget(self.list_recipes, 1)
 
         list_buttons = QHBoxLayout()
-        self.button_new = make_emoji_push_button("New", "➕")  # noqa: RUF001
+        self.button_new = make_lucide_push_button("New", "plus")
         self.button_new.clicked.connect(self._new_recipe)
         list_buttons.addWidget(self.button_new)
         middle_layout.addLayout(list_buttons)
@@ -334,13 +337,13 @@ class RecipesWidget(QWidget):
         right_layout.addWidget(self.table_ingredients, 1)
 
         remove_row = QHBoxLayout()
-        self.button_remove_ingredient = make_emoji_push_button("Remove selected", "🗑️")
+        self.button_remove_ingredient = make_lucide_push_button("Remove selected", "trash")
         self.button_remove_ingredient.clicked.connect(self._remove_selected_ingredient)
         remove_row.addWidget(self.button_remove_ingredient)
         remove_row.addStretch()
         right_layout.addLayout(remove_row)
 
-        self.button_save = make_emoji_push_button("Save recipe", "💾")
+        self.button_save = make_lucide_push_button("Save recipe", "save")
         self.button_save.clicked.connect(self._save_recipe)
         right_layout.addWidget(self.button_save)
 
@@ -596,7 +599,7 @@ class RecipesWidget(QWidget):
         menu = QMenu(self)
         delete_action = add_delete_action(menu)
         delete_action.triggered.connect(lambda: self._delete_recipe(recipe_id=recipe_id, name=name))
-        apply_leading_emoji_icons(menu)
+        apply_leading_chrome_icons(menu)
         viewport = self.list_recipes.viewport()
         if viewport is None:
             return

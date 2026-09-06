@@ -62,18 +62,19 @@ def attach_date_edit_quick_controls(date_edit: QDateEdit, *, button_object_name:
         date_edit.setDate(date_edit.date().addDays(-1))
 
     def populate_date_actions(menu: QMenu) -> None:
-        today_action = menu.addAction("📅 Today's date")
+        today_action = add_lucide_action(menu, "Today's date", "calendar")
         today_action.triggered.connect(set_today)
-        yesterday_action = menu.addAction("📅 Yesterday")
+        yesterday_action = add_lucide_action(menu, "Yesterday", "calendar")
         yesterday_action.triggered.connect(set_yesterday)
         menu.addSeparator()
-        plus_action = menu.addAction("➕ Add 1 day")  # noqa: RUF001
+        plus_action = add_lucide_action(menu, "Add 1 day", "plus")
         plus_action.triggered.connect(add_one_day)
-        minus_action = menu.addAction("➖ Subtract 1 day")  # noqa: RUF001
+        minus_action = add_lucide_action(menu, "Subtract 1 day", "minus")
         minus_action.triggered.connect(subtract_one_day)
 
     def refresh_button_text() -> None:
         button.setText(date_quick_button_label(date_edit.date()))
+        apply_leading_chrome_button_icon(button)
 
     menu = QMenu(button)
     populate_date_actions(menu)

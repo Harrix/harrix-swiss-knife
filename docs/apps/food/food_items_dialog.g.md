@@ -194,9 +194,9 @@ class FoodItemsDialog(QDialog):
         layout.addWidget(self.table)
 
         buttons = QHBoxLayout()
-        self.add_button = make_emoji_push_button("Add", "➕")  # noqa: RUF001
-        self.refresh_button = make_emoji_push_button("Refresh", "🔄")
-        self.close_button = make_emoji_push_button("Close", CANCEL_BUTTON_EMOJI)
+        self.add_button = make_lucide_push_button("Add", "plus")
+        self.refresh_button = make_lucide_push_button("Refresh", "refresh-cw")
+        self.close_button = make_lucide_push_button("Close", CANCEL_BUTTON_ICON)
         self.add_button.clicked.connect(self._on_add)
         self.refresh_button.clicked.connect(self._reload_table)
         self.close_button.clicked.connect(self.accept)
@@ -225,7 +225,7 @@ class FoodItemsDialog(QDialog):
         delete_action.setEnabled(food_item_id is not None)
         if food_item_id is not None:
             delete_action.triggered.connect(lambda: self._on_delete(food_item_id))
-        apply_leading_emoji_icons(context_menu)
+        apply_leading_chrome_icons(context_menu)
 
         viewport = self.table.viewport()
         if viewport is None:

@@ -9,7 +9,7 @@ from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife.actions.common.base import ActionBase
 from harrix_swiss_knife.actions.common.text_result_dialog import (
-    FIX_AGAIN_BUTTON_EMOJI,
+    FIX_AGAIN_BUTTON_ICON,
     FIX_AGAIN_BUTTON_LABEL,
     resolve_text_result_dialog_action,
 )
@@ -120,7 +120,7 @@ class OnFixTextWithAI(ActionBase):
                 title=title,
                 rerun_button=True,
                 rerun_button_label=FIX_AGAIN_BUTTON_LABEL,
-                rerun_button_emoji=FIX_AGAIN_BUTTON_EMOJI,
+                rerun_button_icon=FIX_AGAIN_BUTTON_ICON,
                 remove_paragraphs_button=True,
             )
         else:
@@ -129,7 +129,7 @@ class OnFixTextWithAI(ActionBase):
                 title=title,
                 rerun_button=True,
                 rerun_button_label=FIX_AGAIN_BUTTON_LABEL,
-                rerun_button_emoji=FIX_AGAIN_BUTTON_EMOJI,
+                rerun_button_icon=FIX_AGAIN_BUTTON_ICON,
                 remove_paragraphs_button=True,
             )
             if not isinstance(dialog_result, tuple):

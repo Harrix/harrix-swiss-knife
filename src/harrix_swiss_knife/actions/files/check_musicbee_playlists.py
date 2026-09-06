@@ -6,7 +6,6 @@ from typing import Any
 
 from harrix_swiss_knife.actions.common.base import ActionBase
 from harrix_swiss_knife.actions.common.text_result_dialog import (
-    CANCEL_BUTTON_EMOJI,
     CANCEL_BUTTON_LABEL,
     RERUN_DIALOG_CODE,
 )
@@ -19,6 +18,7 @@ from harrix_swiss_knife.musicbee.process import (
 )
 from harrix_swiss_knife.musicbee.settings import load_musicbee_settings
 from harrix_swiss_knife.paths import get_config_path_str
+from harrix_swiss_knife.qt_lucide_icon import CANCEL_BUTTON_ICON
 
 
 class OnCheckMusicBeePlaylists(ActionBase):
@@ -71,9 +71,9 @@ class OnCheckMusicBeePlaylists(ActionBase):
             open_folder_path=result.backup_path,
             rerun_button=True,
             rerun_button_label="Apply",
-            rerun_button_emoji="💾",
+            rerun_button_icon="save",
             ok_button_label=CANCEL_BUTTON_LABEL,
-            ok_button_emoji=CANCEL_BUTTON_EMOJI,
+            ok_button_icon=CANCEL_BUTTON_ICON,
             ok_button_before_actions=True,
         )
         if not isinstance(shown, tuple) or shown[1] != RERUN_DIALOG_CODE:

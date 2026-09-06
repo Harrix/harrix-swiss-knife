@@ -9,7 +9,7 @@ from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife.actions.common.base import ActionBase
 from harrix_swiss_knife.actions.common.text_result_dialog import (
-    REWRITE_AGAIN_BUTTON_EMOJI,
+    REWRITE_AGAIN_BUTTON_ICON,
     REWRITE_AGAIN_BUTTON_LABEL,
     resolve_text_result_dialog_action,
 )
@@ -122,7 +122,7 @@ class OnRewriteTextWithAI(ActionBase):
                 title=title,
                 rerun_button=True,
                 rerun_button_label=REWRITE_AGAIN_BUTTON_LABEL,
-                rerun_button_emoji=REWRITE_AGAIN_BUTTON_EMOJI,
+                rerun_button_icon=REWRITE_AGAIN_BUTTON_ICON,
                 remove_paragraphs_button=True,
             )
         else:
@@ -131,7 +131,7 @@ class OnRewriteTextWithAI(ActionBase):
                 title=title,
                 rerun_button=True,
                 rerun_button_label=REWRITE_AGAIN_BUTTON_LABEL,
-                rerun_button_emoji=REWRITE_AGAIN_BUTTON_EMOJI,
+                rerun_button_icon=REWRITE_AGAIN_BUTTON_ICON,
                 remove_paragraphs_button=True,
             )
             if not isinstance(dialog_result, tuple):

@@ -9,6 +9,15 @@ attribution:
       name: Python logo (py.svg),
     }
   - {
+      author: Lucide Icons and Contributors,
+      author-site: "https://lucide.dev/",
+      license: ISC,
+      license-url: "https://lucide.dev/license",
+      permalink: "https://github.com/lucide-icons/lucide",
+      permalink-date: 2026-09-06,
+      name: Lucide icons (assets/lucide/*.svg from lucide-static),
+    }
+  - {
       author: Kenney,
       author-site: "https://kenney.nl/",
       license: CC0 1.0 Universal,

@@ -49,6 +49,7 @@ from PySide6.QtWidgets import (
 from harrix_swiss_knife.apps.common.table_context_menu import LABEL_DELETE, LABEL_REVEAL_IN_EXPLORER
 from harrix_swiss_knife.apps.icons.catalog import family_license_info, is_openable_license_url
 from harrix_swiss_knife.apps.icons.thumb_cache import DEFAULT_THUMB_SIZE, placeholder_pixmap, render_icon_to_image
+from harrix_swiss_knife.qt_lucide_icon import apply_leading_chrome_icons
 
 if TYPE_CHECKING:
     from harrix_swiss_knife.apps.icons.catalog import IconFamily
@@ -424,6 +425,7 @@ class DraggableIconList(QListWidget):
         labels = batch_context_action_texts(len(targets), all_favorites=all_favorites)
         batch_ai_action = menu.addAction(labels[0])
         favorite_action = menu.addAction(labels[1])
+        apply_leading_chrome_icons(menu)
         chosen = menu.exec_(self.mapToGlobal(pos))
         if chosen is batch_ai_action:
             self.batch_keywords_ai_requested.emit(targets)
@@ -501,6 +503,7 @@ class DraggableIconList(QListWidget):
                 license_action.setEnabled(False)
 
         delete_action = menu.addAction(LABEL_DELETE)
+        apply_leading_chrome_icons(menu)
         chosen = menu.exec_(self.mapToGlobal(pos))
 
         if has_path and chosen is reveal_action:

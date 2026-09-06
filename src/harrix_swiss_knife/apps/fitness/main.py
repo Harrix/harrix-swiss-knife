@@ -237,10 +237,11 @@ from harrix_swiss_knife.integrations.bothub import (
 )
 from harrix_swiss_knife.keyboard_layout_search import text_matches_autocomplete
 from harrix_swiss_knife.paths import get_config_path_str, get_project_root
-from harrix_swiss_knife.qt_emoji_icon import (
-    apply_emoji_dialog_buttons,
-    apply_leading_emoji_icons,
-    set_action_text_with_emoji_icon,
+from harrix_swiss_knife.qt_lucide_icon import (
+    apply_leading_chrome_buttons,
+    apply_leading_chrome_icons,
+    apply_lucide_dialog_buttons,
+    set_action_text_with_lucide_icon,
 )
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
 
@@ -2767,12 +2768,12 @@ class MainWindow(
 
         # Update button text to reflect current state
         if self.show_all_records:
-            set_action_text_with_emoji_icon(
+            set_action_text_with_lucide_icon(
                 self.actionShow_All_Set_Records,
                 f"📋 Show Last {self.count_records_to_show} Set Records",
             )
         else:
-            set_action_text_with_emoji_icon(self.actionShow_All_Set_Records, "📋 Show All Set Records")
+            set_action_text_with_lucide_icon(self.actionShow_All_Set_Records, "📋 Show All Set Records")
 
         # Reload the process table with the appropriate data
         self.load_process_table()
@@ -3130,7 +3131,7 @@ class MainWindow(
 
         # Reset show_all_records flag to default (show limited records)
         self.show_all_records = False
-        set_action_text_with_emoji_icon(self.actionShow_All_Set_Records, "📋 Show All Set Records")
+        set_action_text_with_lucide_icon(self.actionShow_All_Set_Records, "📋 Show All Set Records")
 
         if is_preserve_selections and current_exercise is None:
             current_exercise = self._get_current_selected_exercise()
@@ -8095,7 +8096,7 @@ class MainWindow(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
             parent=dialog,
         )
-        apply_emoji_dialog_buttons(buttons)
+        apply_lucide_dialog_buttons(buttons)
         buttons.accepted.connect(dialog.accept)
         buttons.rejected.connect(dialog.reject)
         dialog_layout.addWidget(buttons)
@@ -8191,7 +8192,7 @@ class MainWindow(
         action.setObjectName("actionOpenExerciseImagesFolder")
         action.triggered.connect(self.on_open_exercise_images_folder)
         menu_file.insertAction(self.actionExit, action)
-        set_action_text_with_emoji_icon(action, "📂 Open exercise images folder")
+        set_action_text_with_lucide_icon(action, "📂 Open exercise images folder")
 
     def _setup_open_exercise_lightbox_action(self) -> None:
         """Add Commands → Open image in lightbox."""
@@ -8202,7 +8203,7 @@ class MainWindow(
         action.setObjectName("actionOpenExerciseImageLightbox")
         action.triggered.connect(self.on_open_exercise_image_lightbox)
         menu.addAction(action)
-        set_action_text_with_emoji_icon(action, action.text())
+        set_action_text_with_lucide_icon(action, action.text())
 
     def _setup_process_table_header(self) -> None:
         """Configure process table header and column widths."""
@@ -8252,8 +8253,8 @@ class MainWindow(
         menu.addSeparator()
         menu.addAction(sync_action)
         menu.addAction(edit_action)
-        set_action_text_with_emoji_icon(sync_action, sync_action.text())
-        set_action_text_with_emoji_icon(edit_action, edit_action.text())
+        set_action_text_with_lucide_icon(sync_action, sync_action.text())
+        set_action_text_with_lucide_icon(edit_action, edit_action.text())
 
     def _setup_ui(self) -> None:
         """Set up additional UI elements after basic initialization."""
@@ -8302,6 +8303,7 @@ class MainWindow(
         self.pushButton_exercise_goal_recommendations.setText(
             f"🎯 {self.pushButton_exercise_goal_recommendations.text()}"
         )
+        apply_leading_chrome_buttons(self)
 
         # Configure splitter proportions.
         # Filter bar above the process table has a wide sizeHint; without explicit
@@ -8384,7 +8386,7 @@ class MainWindow(
         context_menu = QMenu(self)
         lightbox_action = context_menu.addAction(LABEL_OPEN_LIGHTBOX)
         lightbox_action.setEnabled(self._get_exercise_avif_path(exercise_name) is not None)
-        apply_leading_emoji_icons(context_menu)
+        apply_leading_chrome_icons(context_menu)
         action = context_menu.exec_(map_widget.mapToGlobal(position))
         if action == lightbox_action:
             self._open_exercise_media_lightbox(exercise_name)
@@ -8406,7 +8408,7 @@ class MainWindow(
         if list_view is self.listView_exercises:
             chart_action = context_menu.addAction(LABEL_OPEN_EXERCISE_CHART)
         favorite_action = self._favorite_menu_action(context_menu, exercise_name)
-        apply_leading_emoji_icons(context_menu)
+        apply_leading_chrome_icons(context_menu)
         action = context_menu.exec_(list_view.mapToGlobal(position))
         if action == favorite_action:
             self._toggle_exercise_favorite_by_name(exercise_name)
@@ -8438,7 +8440,7 @@ class MainWindow(
         delete_action = add_delete_action(context_menu)
         exercise_name = self._get_selected_exercise_from_table("types") or ""
         lightbox_action.setEnabled(self._get_exercise_avif_path(exercise_name) is not None)
-        apply_leading_emoji_icons(context_menu)
+        apply_leading_chrome_icons(context_menu)
 
         action = context_menu.exec_(self.tableView_exercise_types.mapToGlobal(position))
         if action is None or action in {self.actionAdd_Exercise_Type, self.actionRefresh_Types_Table}:
@@ -8487,7 +8489,7 @@ class MainWindow(
         delete_action = add_delete_action(context_menu)
         lightbox_name = self._get_selected_exercise_from_table("exercises") or selected_name
         lightbox_action.setEnabled(self._get_exercise_avif_path(lightbox_name) is not None)
-        apply_leading_emoji_icons(context_menu)
+        apply_leading_chrome_icons(context_menu)
 
         action = context_menu.exec_(self.tableView_exercises.mapToGlobal(position))
         if action is None or action in {self.actionAdd_Exercise, self.actionRefresh_Exercises_Table}:
@@ -8586,7 +8588,7 @@ class MainWindow(
         clear_filters_action = add_clear_filters_action(context_menu)
 
         delete_action = add_delete_action(context_menu)
-        apply_leading_emoji_icons(context_menu)
+        apply_leading_chrome_icons(context_menu)
 
         action = context_menu.exec_(self.tableView_process.mapToGlobal(position))
         if action is None:
@@ -8653,7 +8655,7 @@ class MainWindow(
         """
         context_menu = QMenu(self)
         export_action, export_excel_action = add_export_actions(context_menu)
-        apply_leading_emoji_icons(context_menu)
+        apply_leading_chrome_icons(context_menu)
         action = context_menu.exec_(self.tableView_statistics.mapToGlobal(position))
 
         # Process the action only if it was actually selected (not None)
@@ -8678,7 +8680,7 @@ class MainWindow(
         """
         context_menu = QMenu(self)
         export_action, export_excel_action = add_export_actions(context_menu)
-        apply_leading_emoji_icons(context_menu)
+        apply_leading_chrome_icons(context_menu)
         action = context_menu.exec_(self.tableView_weight.mapToGlobal(position))
 
         # Process the action only if it was actually selected (not None)

@@ -60,10 +60,8 @@ from harrix_swiss_knife.actions.common.dialog_widgets import (
 )
 from harrix_swiss_knife.actions.common.text_diff_dialog import build_text_diff_side_by_side
 from harrix_swiss_knife.actions.common.text_result_dialog import (
-    CANCEL_BUTTON_EMOJI,
-    OK_BUTTON_EMOJI,
     OK_BUTTON_LABEL,
-    RERUN_BUTTON_EMOJI,
+    RERUN_BUTTON_ICON,
     RERUN_BUTTON_LABEL,
     RERUN_DIALOG_CODE,
     REWRITE_DIALOG_CODE,
@@ -85,11 +83,13 @@ from harrix_swiss_knife.qt_described_choice_cards import (
     configure_described_choice_card_grid,
     populate_described_choice_cards,
 )
-from harrix_swiss_knife.qt_emoji_icon import (
-    COPY_BUTTON_EMOJI,
-    DEFAULT_EMOJI_BUTTON_ICON_SIZE,
-    apply_emoji_dialog_buttons,
-    make_emoji_push_button,
+from harrix_swiss_knife.qt_lucide_icon import (
+    CANCEL_BUTTON_ICON,
+    COPY_BUTTON_ICON,
+    DEFAULT_LUCIDE_BUTTON_ICON_SIZE,
+    OK_BUTTON_ICON,
+    apply_lucide_dialog_buttons,
+    make_lucide_push_button,
 )
 from harrix_swiss_knife.qt_markdown_choice_cards import (
     ICON_CHOICE_ACTION_AI_SCREENSHOT,
@@ -221,7 +221,7 @@ class ActionDialogService:
             layout.addLayout(columns, stretch=1)
 
             buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-            self._apply_emoji_dialog_buttons(buttons)
+            self._apply_lucide_dialog_buttons(buttons)
             buttons.accepted.connect(dialog.accept)
             buttons.rejected.connect(dialog.reject)
             layout.addWidget(buttons)
@@ -430,7 +430,7 @@ class ActionDialogService:
             ext_layout.addWidget(ext_scroll_area)
 
             ext_buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-            self._apply_emoji_dialog_buttons(ext_buttons)
+            self._apply_lucide_dialog_buttons(ext_buttons)
             ext_buttons.accepted.connect(ext_dialog.accept)
             ext_buttons.rejected.connect(ext_dialog.reject)
             ext_layout.addWidget(ext_buttons)
@@ -502,7 +502,7 @@ class ActionDialogService:
             _update_size_summary()
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        self._apply_emoji_dialog_buttons(buttons)
+        self._apply_lucide_dialog_buttons(buttons)
         buttons.accepted.connect(dialog.accept)
         buttons.rejected.connect(dialog.reject)
         layout.addWidget(buttons)
@@ -563,7 +563,7 @@ class ActionDialogService:
             layout.addWidget(section)
 
             buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-            self._apply_emoji_dialog_buttons(buttons)
+            self._apply_lucide_dialog_buttons(buttons)
             buttons.accepted.connect(dialog.accept)
             buttons.rejected.connect(dialog.reject)
             layout.addWidget(buttons)
@@ -633,7 +633,7 @@ class ActionDialogService:
             layout.addWidget(lw)
 
             buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-            self._apply_emoji_dialog_buttons(buttons)
+            self._apply_lucide_dialog_buttons(buttons)
             buttons.accepted.connect(dialog.accept)
             buttons.rejected.connect(dialog.reject)
             layout.addWidget(buttons)
@@ -697,7 +697,7 @@ class ActionDialogService:
             layout.addWidget(lw)
 
             buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-            self._apply_emoji_dialog_buttons(buttons)
+            self._apply_lucide_dialog_buttons(buttons)
             buttons.accepted.connect(dialog.accept)
             buttons.rejected.connect(dialog.reject)
             layout.addWidget(buttons)
@@ -829,7 +829,7 @@ class ActionDialogService:
         layout.addWidget(group2, stretch=1)
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        self._apply_emoji_dialog_buttons(buttons)
+        self._apply_lucide_dialog_buttons(buttons)
         buttons.accepted.connect(dialog.accept)
         buttons.rejected.connect(dialog.reject)
         layout.addWidget(buttons)
@@ -975,7 +975,7 @@ class ActionDialogService:
             layout.addWidget(section)
 
             buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-            self._apply_emoji_dialog_buttons(buttons)
+            self._apply_lucide_dialog_buttons(buttons)
             buttons.accepted.connect(dialog.accept)
             buttons.rejected.connect(dialog.reject)
             layout.addWidget(buttons)
@@ -1072,7 +1072,7 @@ class ActionDialogService:
             cb.toggled.connect(toggle_spin)
 
             buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-            self._apply_emoji_dialog_buttons(buttons)
+            self._apply_lucide_dialog_buttons(buttons)
             buttons.accepted.connect(dialog.accept)
             buttons.rejected.connect(dialog.reject)
             layout.addWidget(buttons)
@@ -1162,7 +1162,7 @@ class ActionDialogService:
             layout.addLayout(input_layout)
 
             buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-            self._apply_emoji_dialog_buttons(buttons)
+            self._apply_lucide_dialog_buttons(buttons)
             buttons.accepted.connect(dialog.accept)
             buttons.rejected.connect(dialog.reject)
             layout.addWidget(buttons)
@@ -1223,9 +1223,9 @@ class ActionDialogService:
                 self._add_line(f"❌ Error generating auto text: {e}")
             input_layout.addWidget(le)
 
-            auto_button = make_emoji_push_button(
+            auto_button = make_lucide_push_button(
                 auto_button_text.removeprefix("🤖 ").strip() or "Auto",
-                "🤖",
+                "bot",
             )
 
             def on_auto_clicked() -> None:
@@ -1241,7 +1241,7 @@ class ActionDialogService:
             layout.addLayout(input_layout)
 
             buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-            self._apply_emoji_dialog_buttons(buttons)
+            self._apply_lucide_dialog_buttons(buttons)
 
             def try_accept() -> None:
                 text = le.text().strip()
@@ -1298,7 +1298,7 @@ class ActionDialogService:
             layout.addWidget(te)
 
             buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-            self._apply_emoji_dialog_buttons(buttons)
+            self._apply_lucide_dialog_buttons(buttons)
             buttons.accepted.connect(dialog.accept)
             buttons.rejected.connect(dialog.reject)
             layout.addWidget(buttons)
@@ -1378,7 +1378,7 @@ class ActionDialogService:
             layout.addWidget(text_browser)
 
             button_layout = QHBoxLayout()
-            copy_button = make_emoji_push_button("Copy to Clipboard", COPY_BUTTON_EMOJI)
+            copy_button = make_lucide_push_button("Copy to Clipboard", COPY_BUTTON_ICON)
 
             def click_copy_button() -> None:
                 QGuiApplication.clipboard().setText(about_text)
@@ -1387,7 +1387,7 @@ class ActionDialogService:
             copy_button.clicked.connect(click_copy_button)
             button_layout.addWidget(copy_button)
 
-            ok_button = make_emoji_push_button("OK", OK_BUTTON_EMOJI)
+            ok_button = make_lucide_push_button("OK", OK_BUTTON_ICON)
             ok_button.clicked.connect(dialog.accept)
             button_layout.addWidget(ok_button)
 
@@ -1468,16 +1468,16 @@ class ActionDialogService:
         layout.addWidget(message_edit)
 
         button_layout = QHBoxLayout()
-        create_button = make_emoji_push_button("Create commit", "✅")
+        create_button = make_lucide_push_button("Create commit", OK_BUTTON_ICON)
         create_button.setEnabled(repo_path is not None)
         create_button.clicked.connect(lambda: dialog.done(COMMIT_OFFER_CREATE_CODE))
         button_layout.addWidget(create_button)
 
-        copy_button = make_emoji_push_button("Copy commit message", "📋")
+        copy_button = make_lucide_push_button("Copy commit message", COPY_BUTTON_ICON)
         copy_button.clicked.connect(lambda: dialog.done(COMMIT_OFFER_COPY_CODE))
         button_layout.addWidget(copy_button)
 
-        close_button = make_emoji_push_button("Close", CANCEL_BUTTON_EMOJI)
+        close_button = make_lucide_push_button("Close", CANCEL_BUTTON_ICON)
         close_button.clicked.connect(dialog.reject)
         button_layout.addWidget(close_button)
 
@@ -1513,7 +1513,7 @@ class ActionDialogService:
             layout.addWidget(text_browser)
 
             button_layout = QHBoxLayout()
-            copy_button = make_emoji_push_button("Copy to Clipboard", COPY_BUTTON_EMOJI)
+            copy_button = make_lucide_push_button("Copy to Clipboard", COPY_BUTTON_ICON)
 
             def click_copy_button() -> None:
                 QGuiApplication.clipboard().setText(instructions)
@@ -1522,7 +1522,7 @@ class ActionDialogService:
             copy_button.clicked.connect(click_copy_button)
             button_layout.addWidget(copy_button)
 
-            ok_button = make_emoji_push_button("OK", OK_BUTTON_EMOJI)
+            ok_button = make_lucide_push_button("OK", OK_BUTTON_ICON)
             ok_button.clicked.connect(dialog.accept)
             button_layout.addWidget(ok_button)
 
@@ -1539,7 +1539,7 @@ class ActionDialogService:
         *,
         rerun_button: bool = False,
         rerun_button_label: str = RERUN_BUTTON_LABEL,
-        rerun_button_emoji: str = RERUN_BUTTON_EMOJI,
+        rerun_button_icon: str = RERUN_BUTTON_ICON,
         remove_paragraphs_button: bool = False,
         before_label: str = "Before",
         after_label: str = "After",
@@ -1556,7 +1556,7 @@ class ActionDialogService:
                 self._show_toast,
                 rerun_button=rerun_button,
                 rerun_button_label=rerun_button_label,
-                rerun_button_emoji=rerun_button_emoji,
+                rerun_button_icon=rerun_button_icon,
                 remove_paragraphs_button=remove_paragraphs_button,
                 result_text_holder=result_text_holder,
                 before_label=before_label,
@@ -1578,7 +1578,7 @@ class ActionDialogService:
         open_folder_path: Path | str | None = None,
         rerun_button: bool = False,
         rerun_button_label: str = RERUN_BUTTON_LABEL,
-        rerun_button_emoji: str = RERUN_BUTTON_EMOJI,
+        rerun_button_icon: str = RERUN_BUTTON_ICON,
         rewrite_button: bool = False,
         translate_button: bool = False,
         remove_paragraphs_button: bool = False,
@@ -1586,7 +1586,7 @@ class ActionDialogService:
         save_default_path: str | None = None,
         save_filter: str = "Markdown Files (*.md);;All Files (*)",
         ok_button_label: str = OK_BUTTON_LABEL,
-        ok_button_emoji: str = OK_BUTTON_EMOJI,
+        ok_button_icon: str = OK_BUTTON_ICON,
         ok_button_before_actions: bool = False,
     ) -> str | tuple[str | None, int] | None:
         """Show read-only multi-line text dialog and return text if accepted."""
@@ -1671,7 +1671,7 @@ class ActionDialogService:
                     button_layout,
                     rerun_button=rerun_button,
                     rerun_button_label=rerun_button_label,
-                    rerun_button_emoji=rerun_button_emoji,
+                    rerun_button_icon=rerun_button_icon,
                     rewrite_button=rewrite_button,
                     translate_button=translate_button,
                     remove_paragraphs_button=remove_paragraphs_button,
@@ -1684,7 +1684,7 @@ class ActionDialogService:
                     dialog,
                     button_layout,
                     label=ok_button_label,
-                    emoji=ok_button_emoji,
+                    icon=ok_button_icon,
                 )
 
             if ok_button_before_actions:
@@ -1703,9 +1703,9 @@ class ActionDialogService:
             return (current_text if result == QDialog.DialogCode.Accepted else None, result)
         return current_text if result == QDialog.DialogCode.Accepted else None
 
-    def _apply_emoji_dialog_buttons(self, buttons: QDialogButtonBox) -> None:
-        """Set emoji icons on standard QDialogButtonBox buttons."""
-        apply_emoji_dialog_buttons(buttons, icon_size=DEFAULT_EMOJI_BUTTON_ICON_SIZE)
+    def _apply_lucide_dialog_buttons(self, buttons: QDialogButtonBox) -> None:
+        """Set Lucide icons on standard QDialogButtonBox buttons."""
+        apply_lucide_dialog_buttons(buttons, icon_size=DEFAULT_LUCIDE_BUTTON_ICON_SIZE)
 
     def _exec_compact_dialog(
         self,
@@ -1845,7 +1845,7 @@ class ActionDialogService:
             layout.addWidget(cb)
 
             buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-            self._apply_emoji_dialog_buttons(buttons)
+            self._apply_lucide_dialog_buttons(buttons)
             buttons.accepted.connect(dialog.accept)
             buttons.rejected.connect(dialog.reject)
             layout.addWidget(buttons)

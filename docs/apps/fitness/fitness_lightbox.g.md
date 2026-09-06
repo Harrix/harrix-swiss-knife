@@ -771,7 +771,8 @@ class FitnessLightboxSidebar(QFrame):
         self.playback_changed.emit(lightbox_playback_view(snapshot))
 
     def _build_action_button(self) -> QPushButton:
-        button = QPushButton("➕ Add")  # noqa: RUF001
+        button = QPushButton("Add")
+        apply_lucide_button_icon(button, "plus")
         button.setObjectName("fitnessLightboxAddButton")
         button.setCursor(Qt.CursorShape.PointingHandCursor)
         button.setMinimumSize(220, 56)
@@ -781,10 +782,10 @@ class FitnessLightboxSidebar(QFrame):
         button.clicked.connect(self.confirm_requested.emit)
         return button
 
-    def _build_timer_button(self, emoji: str, tooltip: str, object_name: str) -> QPushButton:
+    def _build_timer_button(self, name: str, tooltip: str, object_name: str) -> QPushButton:
         button = QPushButton()
         button.setObjectName(object_name)
-        button.setIcon(create_emoji_icon(emoji, TOOLBAR_ICON_SIZE))
+        button.setIcon(create_lucide_icon(name, TOOLBAR_ICON_SIZE))
         button.setIconSize(QSize(TOOLBAR_ICON_SIZE, TOOLBAR_ICON_SIZE))
         button.setToolTip(tooltip)
         button.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -819,10 +820,10 @@ class FitnessLightboxSidebar(QFrame):
         _apply_pixel_font(self._limit_label, pixel_size=14)
         self._limit_label.hide()
 
-        start = self._build_timer_button("▶", "Start", "fitnessLightboxStartButton")
-        pause = self._build_timer_button("⏸", "Pause", "fitnessLightboxPauseButton")
-        stop = self._build_timer_button("⏹", "Stop", "fitnessLightboxStopButton")
-        restart = self._build_timer_button("↻", "Restart", "fitnessLightboxRestartButton")
+        start = self._build_timer_button("play", "Start", "fitnessLightboxStartButton")
+        pause = self._build_timer_button("pause", "Pause", "fitnessLightboxPauseButton")
+        stop = self._build_timer_button("square-stop", "Stop", "fitnessLightboxStopButton")
+        restart = self._build_timer_button("rotate-cw", "Restart", "fitnessLightboxRestartButton")
         start.clicked.connect(self._on_start)
         pause.clicked.connect(self._on_pause)
         stop.clicked.connect(self._on_stop)
