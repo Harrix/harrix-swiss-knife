@@ -89,6 +89,15 @@ def export_recording(request: ExportRequest) -> ExportResult:
     destination = request.destination.resolve()
     destination.parent.mkdir(parents=True, exist_ok=True)
 
+    if request.format == "avif_optimized":
+        return _export_avif_optimized(
+            source=source,
+            destination=destination,
+            start_s=start_s,
+            duration_s=duration_s,
+            root=root,
+        )
+
     ffmpeg = ffmpeg_exe_path(root)
     args = [
         str(ffmpeg),
@@ -109,24 +118,8 @@ def export_recording(request: ExportRequest) -> ExportResult:
         args.extend(_avif_args())
     args.append(str(destination))
 
-    try:
-        completed = subprocess.run(
-            args,
-            check=False,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=_EXPORT_TIMEOUT,
-            **hidden_subprocess_kwargs(),
-        )
-    except (OSError, subprocess.TimeoutExpired) as exc:
-        return ExportResult(ok=False, message=str(exc))
-
-    if completed.returncode != 0 or not destination.is_file() or destination.stat().st_size <= 0:
-        detail = (completed.stderr or completed.stdout or "").strip()
-        return ExportResult(ok=False, message=detail[-2000:] or f"ffmpeg failed ({completed.returncode})")
-    return ExportResult(ok=True, path=destination, message=str(destination))
+    result = _run_ffmpeg(args, destination)
+    return result
 ```
 
 </details>

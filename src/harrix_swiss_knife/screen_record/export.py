@@ -3,17 +3,18 @@
 from __future__ import annotations
 
 import subprocess
+import tempfile
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Literal
+from pathlib import Path
+from typing import Literal
+
+import harrix_pylib as h
 
 from harrix_swiss_knife.actions.common.subprocess_run import hidden_subprocess_kwargs
 from harrix_swiss_knife.apps.common.audio_compress import ffmpeg_exe_path, is_ffmpeg_available
 from harrix_swiss_knife.paths import get_project_root
 
-if TYPE_CHECKING:
-    from pathlib import Path
-
-ExportFormat = Literal["mp4", "gif", "avif"]
+ExportFormat = Literal["mp4", "gif", "avif", "avif_optimized"]
 
 _EXPORT_TIMEOUT = 600.0
 
@@ -55,6 +56,15 @@ def export_recording(request: ExportRequest) -> ExportResult:
     destination = request.destination.resolve()
     destination.parent.mkdir(parents=True, exist_ok=True)
 
+    if request.format == "avif_optimized":
+        return _export_avif_optimized(
+            source=source,
+            destination=destination,
+            start_s=start_s,
+            duration_s=duration_s,
+            root=root,
+        )
+
     ffmpeg = ffmpeg_exe_path(root)
     args = [
         str(ffmpeg),
@@ -75,24 +85,7 @@ def export_recording(request: ExportRequest) -> ExportResult:
         args.extend(_avif_args())
     args.append(str(destination))
 
-    try:
-        completed = subprocess.run(
-            args,
-            check=False,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=_EXPORT_TIMEOUT,
-            **hidden_subprocess_kwargs(),
-        )
-    except (OSError, subprocess.TimeoutExpired) as exc:
-        return ExportResult(ok=False, message=str(exc))
-
-    if completed.returncode != 0 or not destination.is_file() or destination.stat().st_size <= 0:
-        detail = (completed.stderr or completed.stdout or "").strip()
-        return ExportResult(ok=False, message=detail[-2000:] or f"ffmpeg failed ({completed.returncode})")
-    return ExportResult(ok=True, path=destination, message=str(destination))
+    return _run_ffmpeg(args, destination)
 
 
 def _avif_args() -> list[str]:
@@ -109,6 +102,52 @@ def _avif_args() -> list[str]:
         "-pix_fmt",
         "yuv420p",
     ]
+
+
+def _export_avif_optimized(
+    *,
+    source: Path,
+    destination: Path,
+    start_s: float,
+    duration_s: float,
+    root: Path,
+) -> ExportResult:
+    """Trim to a temp MP4, then optimize to AVIF like Images → Optimize (`OnOptimize`)."""
+    ffmpeg = ffmpeg_exe_path(root)
+    with tempfile.TemporaryDirectory(prefix="hsk_record_avif_") as temp_dir:
+        temp_mp4 = Path(temp_dir) / f"{destination.stem}.mp4"
+        args = [
+            str(ffmpeg),
+            "-hide_banner",
+            "-y",
+            "-ss",
+            f"{start_s:.3f}",
+            "-t",
+            f"{duration_s:.3f}",
+            "-i",
+            str(source),
+            *_mp4_args(remove_audio=True),
+            str(temp_mp4),
+        ]
+        trim = _run_ffmpeg(args, temp_mp4)
+        if not trim.ok:
+            return ExportResult(ok=False, message=trim.message or "Failed to trim recording before AVIF optimize")
+
+        try:
+            message = h.img.optimize_image_with_tools(
+                temp_mp4,
+                destination,
+                project_root=root,
+                quality=False,
+                max_size=None,
+            )
+        except (OSError, RuntimeError, ValueError) as exc:
+            return ExportResult(ok=False, message=str(exc))
+
+        if not destination.is_file() or destination.stat().st_size <= 0:
+            detail = (message or "").strip()
+            return ExportResult(ok=False, message=detail or "AVIF optimize produced no output")
+        return ExportResult(ok=True, path=destination, message=message or str(destination))
 
 
 def _gif_args() -> list[str]:
@@ -139,3 +178,24 @@ def _mp4_args(*, remove_audio: bool) -> list[str]:
     else:
         args.extend(["-c:a", "aac", "-b:a", "128k"])
     return args
+
+
+def _run_ffmpeg(args: list[str], destination: Path) -> ExportResult:
+    try:
+        completed = subprocess.run(
+            args,
+            check=False,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=_EXPORT_TIMEOUT,
+            **hidden_subprocess_kwargs(),
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return ExportResult(ok=False, message=str(exc))
+
+    if completed.returncode != 0 or not destination.is_file() or destination.stat().st_size <= 0:
+        detail = (completed.stderr or completed.stdout or "").strip()
+        return ExportResult(ok=False, message=detail[-2000:] or f"ffmpeg failed ({completed.returncode})")
+    return ExportResult(ok=True, path=destination, message=str(destination))

@@ -129,7 +129,10 @@ class RecordingEditorWindow(QMainWindow):
         self._format.addItem("MP4", "mp4")
         self._format.addItem("GIF", "gif")
         self._format.addItem("AVIF", "avif")
-        self._format.setToolTip("Export format")
+        self._format.addItem("AVIF optimized", "avif_optimized")
+        self._format.setToolTip(
+            "Export format. AVIF optimized uses the same pipeline as Images → Optimize (ffmpeg + avifenc)."
+        )
         export_row.addWidget(self._format)
 
         self._remove_audio = QCheckBox("Remove audio", central)
@@ -298,8 +301,9 @@ class RecordingEditorWindow(QMainWindow):
 
     def _save_as(self) -> None:
         fmt_raw = self._format.currentData()
-        fmt: ExportFormat = fmt_raw if fmt_raw in {"mp4", "gif", "avif"} else "mp4"
-        default_name = f"{self._path.stem}_edit.{fmt}"
+        fmt: ExportFormat = fmt_raw if fmt_raw in {"mp4", "gif", "avif", "avif_optimized"} else "mp4"
+        file_ext = "avif" if fmt.startswith("avif") else fmt
+        default_name = f"{self._path.stem}_edit.{file_ext}"
         suggested = str(self._path.with_name(default_name))
         filter_text = _FORMAT_FILTERS[fmt]
         path_str, _ = QFileDialog.getSaveFileName(
@@ -311,8 +315,8 @@ class RecordingEditorWindow(QMainWindow):
         if not path_str:
             return
         destination = Path(path_str)
-        if destination.suffix.lower() != f".{fmt}":
-            destination = destination.with_suffix(f".{fmt}")
+        if destination.suffix.lower() != f".{file_ext}":
+            destination = destination.with_suffix(f".{file_ext}")
 
         remove_audio = self._remove_audio.isChecked() or fmt != "mp4"
         request = ExportRequest(
@@ -525,7 +529,10 @@ def __init__(self, path: Path, parent: QWidget | None = None) -> None:
         self._format.addItem("MP4", "mp4")
         self._format.addItem("GIF", "gif")
         self._format.addItem("AVIF", "avif")
-        self._format.setToolTip("Export format")
+        self._format.addItem("AVIF optimized", "avif_optimized")
+        self._format.setToolTip(
+            "Export format. AVIF optimized uses the same pipeline as Images → Optimize (ffmpeg + avifenc)."
+        )
         export_row.addWidget(self._format)
 
         self._remove_audio = QCheckBox("Remove audio", central)
