@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
     QApplication,
     QButtonGroup,
     QFileDialog,
+    QHBoxLayout,
     QInputDialog,
     QLabel,
     QMainWindow,
@@ -26,6 +27,8 @@ from PySide6.QtWidgets import (
 from shiboken6 import isValid
 
 from harrix_swiss_knife.actions.common.text_result_dialog import (
+    CANCEL_BUTTON_EMOJI,
+    CANCEL_BUTTON_LABEL,
     COPY_BUTTON_EMOJI,
     COPY_BUTTON_LABEL,
     OK_BUTTON_EMOJI,
@@ -152,30 +155,6 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._update_color_button()
         tools_layout.addWidget(self._color_button)
 
-        self._apply_crop_button = QToolButton(tools_host)
-        self._apply_crop_button.setIcon(create_emoji_icon("✅", TOOLBAR_ICON_SIZE))
-        self._apply_crop_button.setIconSize(icon_size)
-        self._apply_crop_button.setToolTip("Apply crop (Enter)")
-        self._apply_crop_button.setAutoRaise(False)
-        self._apply_crop_button.setFixedSize(TOOLBAR_BUTTON_SIZE, TOOLBAR_BUTTON_SIZE)
-        self._apply_crop_button.setStyleSheet(TOOLBAR_BUTTON_STYLE)
-        self._apply_crop_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._apply_crop_button.setVisible(False)
-        self._apply_crop_button.clicked.connect(self._confirm_crop)
-        tools_layout.addWidget(self._apply_crop_button)
-
-        self._cancel_crop_button = QToolButton(tools_host)
-        self._cancel_crop_button.setIcon(create_emoji_icon("❌", TOOLBAR_ICON_SIZE))
-        self._cancel_crop_button.setIconSize(icon_size)
-        self._cancel_crop_button.setToolTip("Cancel crop (Esc)")
-        self._cancel_crop_button.setAutoRaise(False)
-        self._cancel_crop_button.setFixedSize(TOOLBAR_BUTTON_SIZE, TOOLBAR_BUTTON_SIZE)
-        self._cancel_crop_button.setStyleSheet(TOOLBAR_BUTTON_STYLE)
-        self._cancel_crop_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._cancel_crop_button.setVisible(False)
-        self._cancel_crop_button.clicked.connect(self._cancel_crop)
-        tools_layout.addWidget(self._cancel_crop_button)
-
         self._tools_host = tools_host
         self._tools_layout = tools_layout
         root.addWidget(tools_host)
@@ -222,7 +201,25 @@ class ScreenshotPreviewWindow(QMainWindow):
             make_emoji_push_button(OK_BUTTON_LABEL, OK_BUTTON_EMOJI),
             self._close_current_tab,
         )
+        self._buttons_host = buttons_host
         footer.addWidget(buttons_host)
+
+        self._crop_bar = QWidget(central)
+        crop_row = QHBoxLayout(self._crop_bar)
+        crop_row.setContentsMargins(0, 0, 0, 0)
+        crop_row.addStretch(1)
+        self._crop_ok_button = make_emoji_push_button(OK_BUTTON_LABEL, OK_BUTTON_EMOJI)
+        self._crop_ok_button.setToolTip("Apply crop (Enter)")
+        self._crop_ok_button.setEnabled(False)
+        self._crop_ok_button.clicked.connect(self._confirm_crop)
+        crop_row.addWidget(self._crop_ok_button)
+        self._crop_cancel_button = make_emoji_push_button(CANCEL_BUTTON_LABEL, CANCEL_BUTTON_EMOJI)
+        self._crop_cancel_button.setToolTip("Cancel crop (Esc)")
+        self._crop_cancel_button.clicked.connect(self._cancel_crop)
+        crop_row.addWidget(self._crop_cancel_button)
+        crop_row.addStretch(1)
+        self._crop_bar.hide()
+        footer.addWidget(self._crop_bar)
 
         self._status = QLabel(central)
         self._status.setWordWrap(True)
@@ -245,6 +242,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         """Append a new tab for `image` and select it."""
         tab = _ScreenshotTab(image, self._tabs)
         tab.canvas.document_changed.connect(self._on_document_changed)
+        tab.canvas.crop_mode_changed.connect(self._on_crop_mode_changed)
         tab.canvas.crop_pending_changed.connect(self._on_crop_pending_changed)
         tab.canvas.text_requested.connect(self._on_text_requested)
         tab.canvas.set_style(color=self._annotation_color)
@@ -263,8 +261,8 @@ class ScreenshotPreviewWindow(QMainWindow):
     def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
         """Save on Ctrl+S; Enter/Esc confirm or cancel a pending crop."""  # ignore: HP001
         tab = self._current_tab()
-        if tab is not None and tab.canvas.crop_pending:
-            if event.key() in {int(Qt.Key.Key_Return), int(Qt.Key.Key_Enter)}:
+        if tab is not None and tab.canvas.crop_mode:
+            if event.key() in {int(Qt.Key.Key_Return), int(Qt.Key.Key_Enter)} and tab.canvas.crop_pending:
                 self._confirm_crop()
                 event.accept()
                 return
@@ -307,6 +305,9 @@ class ScreenshotPreviewWindow(QMainWindow):
         if tab is None:
             return
         tab.canvas.cancel_crop()
+        select = self._tool_buttons.get(AnnotationTool.NONE)
+        if select is not None:
+            select.setChecked(True)
         self._status.setText("Crop cancelled")
 
     def _close_current_tab(self) -> None:
@@ -330,10 +331,11 @@ class ScreenshotPreviewWindow(QMainWindow):
         tab = self._current_tab()
         if tab is None:
             return
-        if tab.canvas.confirm_crop():
-            self._status.setText("Crop applied")
-        else:
-            self._status.setText("Crop cancelled")
+        ok = tab.canvas.confirm_crop()
+        select = self._tool_buttons.get(AnnotationTool.NONE)
+        if select is not None:
+            select.setChecked(True)
+        self._status.setText("Crop applied" if ok else "Crop cancelled")
 
     def _copy_to_clipboard(self) -> None:
         tab = self._current_tab()
@@ -348,12 +350,19 @@ class ScreenshotPreviewWindow(QMainWindow):
         widget = self._tabs.currentWidget()
         return widget if isinstance(widget, _ScreenshotTab) else None
 
+    def _on_crop_mode_changed(self, active: bool) -> None:  # noqa: FBT001
+        self._set_crop_chrome_visible(active=active)
+        if active:
+            self._status.setText("Crop: drag a region · snap to edges · Enter OK · Esc Cancel")
+            self._crop_ok_button.setEnabled(False)
+        else:
+            self._status.setText(_STATUS_HINT)
+            self._refit_tools_host()
+
     def _on_crop_pending_changed(self, pending: bool) -> None:  # noqa: FBT001
-        self._apply_crop_button.setVisible(pending)
-        self._cancel_crop_button.setVisible(pending)
+        self._crop_ok_button.setEnabled(pending)
         if pending:
-            self._status.setText("Crop: Enter to apply · Esc to cancel")
-        self._refit_tools_host()
+            self._status.setText("Crop: move/resize the frame · Enter to apply · Esc to cancel")
 
     def _on_document_changed(self) -> None:
         tab = self._current_tab()
@@ -364,15 +373,16 @@ class ScreenshotPreviewWindow(QMainWindow):
 
     def _on_tab_changed(self, _index: int) -> None:
         tab = self._current_tab()
-        if tab is not None and tab.canvas.crop_pending:
+        if tab is not None and tab.canvas.crop_mode:
             crop_button = self._tool_buttons.get(AnnotationTool.CROP)
             if crop_button is not None:
                 crop_button.setChecked(True)
-            tab.canvas.set_style(color=self._annotation_color)
+            self._set_crop_chrome_visible(active=True)
+            self._crop_ok_button.setEnabled(tab.canvas.crop_pending)
         else:
+            self._set_crop_chrome_visible(active=False)
             self._apply_tool_to_current()
-        pending = tab is not None and tab.canvas.crop_pending
-        self._on_crop_pending_changed(pending)
+            self._refit_tools_host()
         self._update_window_title()
 
     def _on_text_requested(self, image_pos: QPointF) -> None:
@@ -516,13 +526,21 @@ class ScreenshotPreviewWindow(QMainWindow):
         if tab is not None:
             tab.canvas.set_style(color=self._annotation_color)
 
+    def _set_crop_chrome_visible(self, *, active: bool) -> None:
+        """Show only OK/Cancel while cropping; hide the normal tool and action bars."""
+        self._tools_host.setVisible(not active)
+        self._buttons_host.setVisible(not active)
+        self._crop_bar.setVisible(active)
+        self._tabs.tabBar().setVisible(not active and self._tabs.count() > 1)
+
     def _set_tool(self, tool: AnnotationTool) -> None:
         button = self._tool_buttons.get(tool)
         if button is not None:
             button.setChecked(True)
         self._apply_tool_to_current()
         tip = next((item[2] for item in _TOOL_BUTTONS if item[0] == tool), tool.value)
-        self._status.setText(f"Tool: {tip}")
+        if tool != AnnotationTool.CROP:
+            self._status.setText(f"Tool: {tip}")
 
     def _tab_label(self, saved_name: str | None, number: int) -> str:
         return saved_name or f"Screenshot {number}"

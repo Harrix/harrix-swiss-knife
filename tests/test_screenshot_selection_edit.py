@@ -9,6 +9,7 @@ from harrix_swiss_knife.screenshot.selection_edit import (
     hit_test_selection_handle,
     nudge_selection_rect,
     resize_selection_to_size,
+    snap_all_edges,
     snap_rect_to_edges,
     transform_selection_rect,
 )
@@ -115,3 +116,12 @@ def test_resize_selection_to_size_clamps_to_bounds() -> None:
     assert resized.width() == 100
     assert resized.height() == 80
     assert bounds.contains(resized)
+
+
+def test_snap_all_edges_pulls_near_bounds() -> None:
+    bounds = QRect(0, 0, 200, 100)
+    x_edges, y_edges = collect_edge_guides((), bounds)
+    near = QRect(3, 2, 50, 40)
+    snapped = snap_all_edges(near, x_edges, y_edges, threshold=8, bounds=bounds)
+    assert snapped.left() == 0
+    assert snapped.top() == 0

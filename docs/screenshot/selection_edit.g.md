@@ -16,6 +16,7 @@ lang: en
 - [🔧 Function `hit_test_selection_handle`](#-function-hit_test_selection_handle)
 - [🔧 Function `nudge_selection_rect`](#-function-nudge_selection_rect)
 - [🔧 Function `resize_selection_to_size`](#-function-resize_selection_to_size)
+- [🔧 Function `snap_all_edges`](#-function-snap_all_edges)
 - [🔧 Function `snap_rect_to_edges`](#-function-snap_rect_to_edges)
 - [🔧 Function `transform_selection_rect`](#-function-transform_selection_rect)
 
@@ -260,6 +261,41 @@ def resize_selection_to_size(
     left = max(left, bounds.left())
     top = max(top, bounds.top())
     return QRect(left, top, new_width, new_height).intersected(bounds)
+```
+
+</details>
+
+## 🔧 Function `snap_all_edges`
+
+```python
+def snap_all_edges(rect: QRect, x_edges: Sequence[int], y_edges: Sequence[int], *, threshold: int = _DEFAULT_EDGE_SNAP, bounds: QRect, min_size: int = 2) -> QRect
+```
+
+Snap every edge of `rect` to nearby guides (for free-drag selection).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def snap_all_edges(
+    rect: QRect,
+    x_edges: Sequence[int],
+    y_edges: Sequence[int],
+    *,
+    threshold: int = _DEFAULT_EDGE_SNAP,
+    bounds: QRect,
+    min_size: int = 2,
+) -> QRect:
+    left = _snap_value(rect.left(), x_edges, threshold)
+    right = _snap_value(rect.right(), x_edges, threshold)
+    top = _snap_value(rect.top(), y_edges, threshold)
+    bottom = _snap_value(rect.bottom(), y_edges, threshold)
+    snapped = QRect(QPoint(left, top), QPoint(right, bottom)).normalized()
+    if snapped.width() < min_size:
+        snapped.setRight(snapped.left() + min_size - 1)
+    if snapped.height() < min_size:
+        snapped.setBottom(snapped.top() + min_size - 1)
+    return snapped.intersected(bounds)
 ```
 
 </details>

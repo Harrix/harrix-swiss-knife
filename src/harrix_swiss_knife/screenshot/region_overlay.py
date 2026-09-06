@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QEvent, QObject, QPoint, QRect, Qt, QTimer
-from PySide6.QtGui import QColor, QCursor, QFontMetrics, QImage, QIntValidator, QPainter, QPen, QPixmap, QScreen
+from PySide6.QtGui import QCursor, QFontMetrics, QImage, QIntValidator, QPainter, QPixmap, QScreen
 from PySide6.QtWidgets import QApplication, QDialog, QLineEdit, QWidget
 
 from harrix_swiss_knife.screenshot.dpi import (
@@ -34,6 +34,11 @@ from harrix_swiss_knife.screenshot.selection_guides import (
     parse_size_label,
     selection_guide_labels,
 )
+from harrix_swiss_knife.screenshot.selection_paint import (
+    SELECTION_BORDER_WIDTH,
+    paint_selection_frame,
+    paint_selection_handles,
+)
 from harrix_swiss_knife.screenshot.shutter_button import ShutterPanel, position_panel_at_top_center
 from harrix_swiss_knife.screenshot.window_rects import snap_rect_at_point
 from harrix_swiss_knife.screenshot.window_visibility import (
@@ -49,14 +54,9 @@ if TYPE_CHECKING:
 
 _MIN_SELECTION = 2
 _DRAG_THRESHOLD = 4
-_HANDLE_DRAW = 6
 _EDGE_SNAP_THRESHOLD = 8
 _ARROW_STEP = 1
 _ARROW_STEP_SHIFT = 10
-_DIM_COLOR = QColor(0, 0, 0, 120)
-_BORDER_COLOR = QColor(0, 174, 255)
-_HANDLE_FILL = QColor(0, 174, 255)
-_BORDER_WIDTH = 2
 _GUIDE_BORDER_WIDTH = 1
 _SIZE_EDITOR_PAD_X = 12
 _SIZE_EDITOR_PAD_Y = 4
@@ -629,21 +629,7 @@ class RegionOverlay(QDialog):
         self._repaint_surfaces()
 
     def _paint_edit_handles(self, painter: QPainter, rect: QRect) -> None:
-        half = _HANDLE_DRAW // 2
-        points = [
-            rect.topLeft(),
-            QPoint(rect.center().x(), rect.top()),
-            rect.topRight(),
-            QPoint(rect.left(), rect.center().y()),
-            QPoint(rect.right(), rect.center().y()),
-            rect.bottomLeft(),
-            QPoint(rect.center().x(), rect.bottom()),
-            rect.bottomRight(),
-        ]
-        painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(_HANDLE_FILL)
-        for point in points:
-            painter.drawRect(point.x() - half, point.y() - half, _HANDLE_DRAW, _HANDLE_DRAW)
+        paint_selection_handles(painter, rect)
 
     def _paint_surface(
         self,
@@ -654,17 +640,24 @@ class RegionOverlay(QDialog):
         pane_offset: QPoint,
     ) -> None:
         painter.drawPixmap(widget_rect, pixmap)
-        painter.fillRect(widget_rect, _DIM_COLOR)
         rect = self._active_highlight_rect()
-        if rect is None or not rect.isValid():
-            return
-        local = rect.translated(-pane_offset)
-        source = logical_rect_to_pixel_rect(local, dpr)
-        painter.drawPixmap(local, pixmap, source)
+        local: QRect | None = None
+        source: QRect | None = None
+        if rect is not None and rect.isValid():
+            local = rect.translated(-pane_offset)
+            source = logical_rect_to_pixel_rect(local, dpr)
         guides_on = self._guides_enabled
-        pen = QPen(_BORDER_COLOR, _GUIDE_BORDER_WIDTH if guides_on else _BORDER_WIDTH)
-        painter.setPen(pen)
-        painter.drawRect(local.adjusted(0, 0, -1, -1))
+        paint_selection_frame(
+            painter,
+            widget_rect,
+            local,
+            pixmap=pixmap if local is not None else None,
+            pixmap_source=source,
+            show_handles=False,
+            border_width=_GUIDE_BORDER_WIDTH if guides_on else SELECTION_BORDER_WIDTH,
+        )
+        if local is None:
+            return
         if guides_on:
             skip = self._size_edit_kind if self._size_editor.isVisible() else None
             paint_selection_guides(painter, local, widget_rect, skip_size=skip)

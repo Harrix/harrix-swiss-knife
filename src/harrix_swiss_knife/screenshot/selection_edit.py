@@ -200,6 +200,28 @@ def resize_selection_to_size(
     return QRect(left, top, new_width, new_height).intersected(bounds)
 
 
+def snap_all_edges(
+    rect: QRect,
+    x_edges: Sequence[int],
+    y_edges: Sequence[int],
+    *,
+    threshold: int = _DEFAULT_EDGE_SNAP,
+    bounds: QRect,
+    min_size: int = 2,
+) -> QRect:
+    """Snap every edge of `rect` to nearby guides (for free-drag selection)."""
+    left = _snap_value(rect.left(), x_edges, threshold)
+    right = _snap_value(rect.right(), x_edges, threshold)
+    top = _snap_value(rect.top(), y_edges, threshold)
+    bottom = _snap_value(rect.bottom(), y_edges, threshold)
+    snapped = QRect(QPoint(left, top), QPoint(right, bottom)).normalized()
+    if snapped.width() < min_size:
+        snapped.setRight(snapped.left() + min_size - 1)
+    if snapped.height() < min_size:
+        snapped.setBottom(snapped.top() + min_size - 1)
+    return snapped.intersected(bounds)
+
+
 def snap_rect_to_edges(
     rect: QRect,
     handle: HandleKind,

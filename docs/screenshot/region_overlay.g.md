@@ -588,21 +588,7 @@ class RegionOverlay(QDialog):
         self._repaint_surfaces()
 
     def _paint_edit_handles(self, painter: QPainter, rect: QRect) -> None:
-        half = _HANDLE_DRAW // 2
-        points = [
-            rect.topLeft(),
-            QPoint(rect.center().x(), rect.top()),
-            rect.topRight(),
-            QPoint(rect.left(), rect.center().y()),
-            QPoint(rect.right(), rect.center().y()),
-            rect.bottomLeft(),
-            QPoint(rect.center().x(), rect.bottom()),
-            rect.bottomRight(),
-        ]
-        painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(_HANDLE_FILL)
-        for point in points:
-            painter.drawRect(point.x() - half, point.y() - half, _HANDLE_DRAW, _HANDLE_DRAW)
+        paint_selection_handles(painter, rect)
 
     def _paint_surface(
         self,
@@ -613,17 +599,24 @@ class RegionOverlay(QDialog):
         pane_offset: QPoint,
     ) -> None:
         painter.drawPixmap(widget_rect, pixmap)
-        painter.fillRect(widget_rect, _DIM_COLOR)
         rect = self._active_highlight_rect()
-        if rect is None or not rect.isValid():
-            return
-        local = rect.translated(-pane_offset)
-        source = logical_rect_to_pixel_rect(local, dpr)
-        painter.drawPixmap(local, pixmap, source)
+        local: QRect | None = None
+        source: QRect | None = None
+        if rect is not None and rect.isValid():
+            local = rect.translated(-pane_offset)
+            source = logical_rect_to_pixel_rect(local, dpr)
         guides_on = self._guides_enabled
-        pen = QPen(_BORDER_COLOR, _GUIDE_BORDER_WIDTH if guides_on else _BORDER_WIDTH)
-        painter.setPen(pen)
-        painter.drawRect(local.adjusted(0, 0, -1, -1))
+        paint_selection_frame(
+            painter,
+            widget_rect,
+            local,
+            pixmap=pixmap if local is not None else None,
+            pixmap_source=source,
+            show_handles=False,
+            border_width=_GUIDE_BORDER_WIDTH if guides_on else SELECTION_BORDER_WIDTH,
+        )
+        if local is None:
+            return
         if guides_on:
             skip = self._size_edit_kind if self._size_editor.isVisible() else None
             paint_selection_guides(painter, local, widget_rect, skip_size=skip)
