@@ -19,15 +19,17 @@ from harrix_swiss_knife.browser_bookmarks.sync import (
     apply_sync_plan,
     build_sync_plan,
     format_sync_report,
+    persist_snapshot,
 )
 
 
 class OnSyncChromeYandexBookmarks(ActionBase):
     """Bidirectional Chrome ↔ Yandex bookmark sync with a deletion-aware snapshot.
 
-    First run merges missing URLs both ways without deletions. Later runs use a
-    LocalAppData snapshot so deletes propagate. Preview shows Cancel / Apply;
-    browsers must be closed before Apply.
+    First run merges missing URLs both ways without deletions or folder moves.
+    Later runs use a LocalAppData snapshot so deletes and folder moves
+    propagate. Preview shows Cancel / Apply; browsers must be closed before
+    Apply.
 
     """
 
@@ -56,6 +58,7 @@ class OnSyncChromeYandexBookmarks(ActionBase):
         report = format_sync_report(result)
         self.add_line(report)
         if not result.has_writes:
+            persist_snapshot(result)
             self.show_toast("Chrome and Yandex bookmarks are in sync")
             self.show_result(display_text=report)
             return

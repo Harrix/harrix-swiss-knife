@@ -24,6 +24,7 @@ class BookmarkEntry:
     name: str
     root: str
     folder_path: tuple[str, ...]
+    date_modified: str = ""
 
 
 def add_entries(data: dict[str, Any], entries: list[BookmarkEntry]) -> int:
@@ -99,6 +100,37 @@ def remove_urls(data: dict[str, Any], urls: set[str]) -> int:
     return removed
 
 
+def relocate_entries(data: dict[str, Any], entries: list[BookmarkEntry]) -> int:
+    """Move existing URL bookmarks to the given folder paths. Return count moved."""
+    if not entries:
+        return 0
+    existing = flatten_bookmarks(data)
+    next_id_holder = [_max_id(data) + 1]
+    moved = 0
+    for entry in entries:
+        key = normalize_url(entry.url)
+        if not key:
+            continue
+        current = existing.get(key)
+        if current is None:
+            continue
+        if current.root == entry.root and current.folder_path == entry.folder_path:
+            continue
+        node = _extract_url_node(data, key)
+        if node is None:
+            continue
+        node["date_modified"] = chromium_now()
+        folder = _ensure_folder(data, entry.root, entry.folder_path, next_id_holder)
+        children = folder.setdefault("children", [])
+        if not isinstance(children, list):
+            folder["children"] = []
+            children = folder["children"]
+        children.append(node)
+        existing[key] = entry
+        moved += 1
+    return moved
+
+
 def write_bookmarks(path: Path, data: dict[str, Any]) -> None:
     """Write Bookmarks JSON with a refreshed checksum (atomic replace)."""
     payload = copy.deepcopy(data)
@@ -161,6 +193,50 @@ def _ensure_folder(
     return current
 
 
+def _extract_url_from_children(folder: dict[str, Any], url_key: str) -> dict[str, Any] | None:
+    children = folder.get("children")
+    if not isinstance(children, list):
+        return None
+    kept: list[Any] = []
+    extracted: dict[str, Any] | None = None
+    for child in children:
+        if extracted is not None:
+            kept.append(child)
+            continue
+        if not isinstance(child, dict):
+            kept.append(child)
+            continue
+        if child.get("type") == "url":
+            url = child.get("url")
+            if isinstance(url, str) and normalize_url(url) == url_key:
+                extracted = child
+                continue
+            kept.append(child)
+            continue
+        if child.get("type") == "folder":
+            found = _extract_url_from_children(child, url_key)
+            if found is not None:
+                extracted = found
+            kept.append(child)
+            continue
+        kept.append(child)
+    folder["children"] = kept
+    return extracted
+
+
+def _extract_url_node(data: dict[str, Any], url_key: str) -> dict[str, Any] | None:
+    roots = data.get("roots")
+    if not isinstance(roots, dict):
+        return None
+    for root_key in ROOT_KEYS:
+        node = roots.get(root_key)
+        if isinstance(node, dict):
+            found = _extract_url_from_children(node, url_key)
+            if found is not None:
+                return found
+    return None
+
+
 def _max_id(data: dict[str, Any]) -> int:
     best = 0
 
@@ -192,6 +268,20 @@ def _new_url_node(entry: BookmarkEntry, node_id: int) -> dict[str, Any]:
         "type": "url",
         "url": entry.url,
     }
+
+
+def _node_date_modified(node: dict[str, Any]) -> str:
+    raw = node.get("date_modified")
+    if isinstance(raw, int):
+        return str(raw)
+    if isinstance(raw, str) and raw.strip():
+        return raw.strip()
+    added = node.get("date_added")
+    if isinstance(added, int):
+        return str(added)
+    if isinstance(added, str) and added.strip():
+        return added.strip()
+    return ""
 
 
 def _remove_from_children(folder: dict[str, Any], urls: set[str]) -> int:
@@ -238,6 +328,7 @@ def _walk(
                     name=name if isinstance(name, str) else "",
                     root=root,
                     folder_path=folder_path,
+                    date_modified=_node_date_modified(node),
                 )
         return
     children = node.get("children")
