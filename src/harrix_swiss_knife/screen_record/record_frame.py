@@ -50,6 +50,7 @@ _TOOLBAR_H = 48
 _MIN_REGION = 32
 _ICON = 20
 _TOOLBAR_SIDE_PAD = 8
+_INNER_TOOLBAR_MARGIN = 8
 _EDGE_SNAP_THRESHOLD = 8
 _AUDIO_LABELS: dict[str, str] = {
     "none": "No audio",
@@ -165,6 +166,7 @@ class RecordFrameWindow(QWidget):
 
         self._region = QRect(region)
         self._left_pad = 0
+        self._toolbar_inside = False
         self._locked = False
         self._drag_handle: HandleKind | None = None
         self._press_pos: QPoint | None = None
@@ -444,15 +446,21 @@ class RecordFrameWindow(QWidget):
 
     def _apply_geometry(self) -> None:
         self._toolbar.adjustSize()
-        toolbar_w = max(self._toolbar.sizeHint().width(), 200) + _TOOLBAR_SIDE_PAD * 2
+        hint = self._toolbar.sizeHint()
+        toolbar_h = max(hint.height(), _TOOLBAR_H - 4)
+        toolbar_w = max(hint.width(), 200) + _TOOLBAR_SIDE_PAD * 2
         content_w = self._region.width() + _BORDER * 2
         win_w = max(content_w, toolbar_w)
         self._left_pad = max(0, (win_w - content_w) // 2)
+        self._toolbar_inside = not self._toolbar_fits_below(toolbar_h)
+        win_h = self._region.height() + _BORDER * 2
+        if not self._toolbar_inside:
+            win_h += _TOOLBAR_GAP + toolbar_h
         geo = QRect(
             self._region.x() - _BORDER - self._left_pad,
             self._region.y() - _BORDER,
             win_w,
-            self._region.height() + _BORDER * 2 + _TOOLBAR_GAP + _TOOLBAR_H,
+            win_h,
         )
         self.setGeometry(geo)
         self._layout_toolbar()
@@ -492,7 +500,13 @@ class RecordFrameWindow(QWidget):
         width = min(max(hint.width(), 160), max(160, self.width() - _TOOLBAR_SIDE_PAD * 2))
         height = max(hint.height(), _TOOLBAR_H - 4)
         x = max(0, (self.width() - width) // 2)
-        y = _BORDER + self._region.height() + _BORDER + _TOOLBAR_GAP
+        if self._toolbar_inside:
+            # Bottom of the recording hole, with a small inset so it stays visible.
+            region_bottom = _BORDER + self._region.height()
+            y = region_bottom - height - _INNER_TOOLBAR_MARGIN
+            y = max(_BORDER + _INNER_TOOLBAR_MARGIN, y)
+        else:
+            y = _BORDER + self._region.height() + _BORDER + _TOOLBAR_GAP
         self._toolbar.setGeometry(x, y, width, height)
         self._toolbar.raise_()
 
@@ -598,6 +612,11 @@ class RecordFrameWindow(QWidget):
         self._region = QRect(region)
         self._apply_geometry()
         self.region_changed.emit(self._region)
+
+    def _toolbar_fits_below(self, toolbar_h: int) -> bool:
+        """Return whether the toolbar fits under the region on the virtual desktop."""
+        bounds = self._virtual_bounds()
+        return self._region.bottom() + _TOOLBAR_GAP + toolbar_h <= bounds.bottom()
 
     def _update_idle_controls(self, *, visible: bool) -> None:
         self._audio.setVisible(visible)
