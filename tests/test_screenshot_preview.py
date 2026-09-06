@@ -287,3 +287,32 @@ def test_preview_canvas_selects_and_deletes_arrow(qapp: QApplication) -> None:
     assert document.annotations == []
     assert canvas.selected_index is None
     canvas.close()
+
+
+def test_preview_canvas_selects_arrow_after_tool_switch(qapp: QApplication) -> None:
+    image = QImage(200, 160, QImage.Format.Format_RGB32)
+    image.fill(Qt.GlobalColor.white)
+    canvas = ScreenshotPreviewCanvas(image)
+    canvas.resize(100, 80)
+    document = AnnotationDocument(image)
+    document.begin_draft(
+        Annotation(
+            tool=AnnotationTool.ARROW,
+            points=[QPointF(20, 80), QPointF(160, 80)],
+            style=AnnotationStyle(),
+        )
+    )
+    assert document.commit_draft()
+    canvas.set_document(document)
+    canvas.set_tool(AnnotationTool.ARROW)
+    qapp.processEvents()
+    _left_click(canvas, QPointF(50, 40))
+    assert canvas.selected_index == 0
+    canvas.set_tool(AnnotationTool.RECTANGLE)
+    canvas.set_tool(AnnotationTool.ARROW)
+    canvas.clear_selection()
+    qapp.processEvents()
+    _left_click(canvas, QPointF(50, 40))
+    assert canvas.selected_index == 0
+    assert len(document.annotations) == 1
+    canvas.close()

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QPoint, QPointF, QRect, QRectF, QSizeF, Qt, Signal
+from PySide6.QtCore import QPoint, QPointF, QRect, QRectF, QSize, QSizeF, Qt, Signal
 from PySide6.QtGui import QColor, QKeyEvent, QMouseEvent, QPainter, QPaintEvent, QPixmap, QResizeEvent, QWheelEvent
 from PySide6.QtWidgets import QWidget
 
@@ -231,13 +231,19 @@ class ScreenshotPreviewCanvas(QWidget):
             event.accept()
             return
 
-        if self._draw_start is not None and self._document is not None and self._document.draft is not None:
+        if self._draw_start is not None and self._document is not None:
             if image_pos is None:
                 event.accept()
                 return
-            draft = self._document.draft
             start = self._draw_start
-            if start is None:
+            if self._document.draft is None:
+                delta = image_pos - start
+                if abs(delta.x()) < _DRAG_THRESHOLD and abs(delta.y()) < _DRAG_THRESHOLD:
+                    event.accept()
+                    return
+                self._begin_shape_draft(start, image_pos)
+            draft = self._document.draft
+            if draft is None:
                 event.accept()
                 return
             if draft.tool == AnnotationTool.PEN:
@@ -289,13 +295,8 @@ class ScreenshotPreviewCanvas(QWidget):
                 return
             self._draw_start = image_pos
             self._draw_current = image_pos
-            self._document.begin_draft(
-                Annotation(
-                    tool=self._tool,
-                    points=[QPointF(image_pos), QPointF(image_pos)],
-                    style=AnnotationStyle(color=QColor(self._style.color), width=self._style.width),
-                )
-            )
+            if self._tool == AnnotationTool.PEN:
+                self._begin_shape_draft(image_pos, image_pos)
             event.accept()
             return
         if event.button() == Qt.MouseButton.LeftButton and self._tool == AnnotationTool.NONE:
@@ -401,7 +402,10 @@ class ScreenshotPreviewCanvas(QWidget):
                 self.setCursor(Qt.CursorShape.IBeamCursor)
             else:
                 self.setCursor(Qt.CursorShape.CrossCursor)
-        self._refresh_pixmap()
+        if tool == AnnotationTool.CROP or previous_crop:
+            self._refresh_pixmap()
+        else:
+            self.update()
 
     @property
     def tool(self) -> AnnotationTool:
@@ -472,6 +476,7 @@ class ScreenshotPreviewCanvas(QWidget):
             document.annotations,
             image_pos,
             handle_size=self._handle_size_image(),
+            prefer_tool=self._prefer_tool(),
             selected_index=self._selected_index,
         )
         if hit is None:
@@ -485,6 +490,17 @@ class ScreenshotPreviewCanvas(QWidget):
         self._edit_history_saved = False
         self.update()
         return True
+
+    def _begin_shape_draft(self, start: QPointF, current: QPointF) -> None:
+        if self._document is None:
+            return
+        self._document.begin_draft(
+            Annotation(
+                tool=self._tool,
+                points=[QPointF(start), QPointF(current)],
+                style=AnnotationStyle(color=QColor(self._style.color), width=self._style.width),
+            )
+        )
 
     def _clear_crop_state(self) -> None:
         self._crop_pending = False
@@ -642,24 +658,27 @@ class ScreenshotPreviewCanvas(QWidget):
             self.update()
 
     def _fitted_size(self) -> QSizeF:
-        if self._pixmap.isNull() or self.width() <= 0 or self.height() <= 0:
+        width, height = self._source_size()
+        if width <= 0 or height <= 0 or self.width() <= 0 or self.height() <= 0:
             return QSizeF()
-        fitted = self._pixmap.size().scaled(self.size(), Qt.AspectRatioMode.KeepAspectRatio)
-        display_w = min(fitted.width(), self._pixmap.width())
-        display_h = min(fitted.height(), self._pixmap.height())
+        fitted = QSize(width, height).scaled(self.size(), Qt.AspectRatioMode.KeepAspectRatio)
+        display_w = min(fitted.width(), width)
+        display_h = min(fitted.height(), height)
         return QSizeF(display_w * self._zoom, display_h * self._zoom)
 
     def _handle_size_image(self) -> float:
         image_rect = self._image_rect()
-        if image_rect.isEmpty() or self._pixmap.isNull():
+        width, _height = self._source_size()
+        if image_rect.isEmpty() or width <= 0:
             return 8.0
-        scale = image_rect.width() / max(1, self._pixmap.width())
+        scale = image_rect.width() / width
         return max(6.0, 8.0 / max(scale, 0.01))
 
     def _image_bounds(self) -> QRect:
-        if self._pixmap.isNull():
+        width, height = self._source_size()
+        if width <= 0 or height <= 0:
             return QRect()
-        return QRect(0, 0, self._pixmap.width(), self._pixmap.height())
+        return QRect(0, 0, width, height)
 
     def _image_rect(self) -> QRectF:
         size = self._fitted_size()
@@ -669,10 +688,11 @@ class ScreenshotPreviewCanvas(QWidget):
         return QRectF(center.x() - size.width() / 2, center.y() - size.height() / 2, size.width(), size.height())
 
     def _image_to_widget_rect(self, rect: QRect, image_rect: QRectF) -> QRect:
-        if self._pixmap.isNull() or image_rect.isEmpty():
+        width, height = self._source_size()
+        if width <= 0 or height <= 0 or image_rect.isEmpty():
             return QRect()
-        scale_x = image_rect.width() / max(1, self._pixmap.width())
-        scale_y = image_rect.height() / max(1, self._pixmap.height())
+        scale_x = image_rect.width() / width
+        scale_y = image_rect.height() / height
         left = round(image_rect.left() + rect.left() * scale_x)
         top = round(image_rect.top() + rect.top() * scale_y)
         right = round(image_rect.left() + (rect.right() + 1) * scale_x) - 1
@@ -703,8 +723,9 @@ class ScreenshotPreviewCanvas(QWidget):
             return
         painter.save()
         painter.translate(image_rect.topLeft())
-        scale_x = image_rect.width() / max(1, self._pixmap.width())
-        scale_y = image_rect.height() / max(1, self._pixmap.height())
+        width, height = self._source_size()
+        scale_x = image_rect.width() / max(1, width)
+        scale_y = image_rect.height() / max(1, height)
         painter.scale(scale_x, scale_y)
         for item in document.annotations:
             paint_annotation(painter, item)
@@ -718,6 +739,11 @@ class ScreenshotPreviewCanvas(QWidget):
                 handle_size=self._handle_size_image(),
             )
         painter.restore()
+
+    def _prefer_tool(self) -> AnnotationTool | None:
+        if self._tool in {AnnotationTool.CROP, AnnotationTool.NONE}:
+            return None
+        return self._tool
 
     def _rebuild_snap_edges(self) -> None:
         bounds = self._image_bounds()
@@ -756,6 +782,14 @@ class ScreenshotPreviewCanvas(QWidget):
         self._pixmap = QPixmap.fromImage(image)
         self.update()
 
+    def _source_size(self) -> tuple[int, int]:
+        if self._document is not None and not self._document.base_image.isNull():
+            image = self._document.base_image
+            return image.width(), image.height()
+        if self._pixmap.isNull():
+            return 0, 0
+        return self._pixmap.width(), self._pixmap.height()
+
     def _update_hover_cursor(self, image_pos: QPointF | None) -> None:
         if image_pos is None or self._document is None:
             return
@@ -763,6 +797,7 @@ class ScreenshotPreviewCanvas(QWidget):
             self._document.annotations,
             image_pos,
             handle_size=self._handle_size_image(),
+            prefer_tool=self._prefer_tool(),
             selected_index=self._selected_index,
         )
         if hit is not None:
@@ -776,22 +811,24 @@ class ScreenshotPreviewCanvas(QWidget):
             self.setCursor(Qt.CursorShape.CrossCursor)
 
     def _widget_to_image(self, pos: QPointF) -> QPointF | None:
-        point = self._widget_to_image_point(pos)
-        return QPointF(point) if point is not None else None
-
-    def _widget_to_image_point(self, pos: QPointF) -> QPoint | None:
         rect = self._image_rect()
-        if rect.isEmpty() or self._pixmap.isNull():
+        width, height = self._source_size()
+        if rect.isEmpty() or width <= 0 or height <= 0:
             return None
         x = min(max(pos.x(), rect.left()), rect.right())
         y = min(max(pos.y(), rect.top()), rect.bottom())
         rel_x = (x - rect.left()) / rect.width()
         rel_y = (y - rect.top()) / rect.height()
-        image_x = round(rel_x * (self._pixmap.width() - 1))
-        image_y = round(rel_y * (self._pixmap.height() - 1))
+        return QPointF(rel_x * width, rel_y * height)
+
+    def _widget_to_image_point(self, pos: QPointF) -> QPoint | None:
+        image_pos = self._widget_to_image(pos)
+        if image_pos is None:
+            return None
+        width, height = self._source_size()
         return QPoint(
-            min(max(0, image_x), self._pixmap.width() - 1),
-            min(max(0, image_y), self._pixmap.height() - 1),
+            min(max(0, round(image_pos.x())), max(0, width - 1)),
+            min(max(0, round(image_pos.y())), max(0, height - 1)),
         )
 
 

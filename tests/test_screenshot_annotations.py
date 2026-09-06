@@ -223,6 +223,28 @@ def test_hit_test_topmost_uses_front_annotation() -> None:
     assert hit == (1, "move")
 
 
+def test_hit_test_topmost_prefers_matching_tool() -> None:
+    arrow = Annotation(
+        tool=AnnotationTool.ARROW,
+        points=[QPointF(10, 40), QPointF(80, 40)],
+        style=AnnotationStyle(width=3.0),
+    )
+    line = Annotation(
+        tool=AnnotationTool.LINE,
+        points=[QPointF(10, 40), QPointF(80, 40)],
+        style=AnnotationStyle(width=3.0),
+    )
+    hit = hit_test_topmost([arrow, line], QPointF(45, 40), handle_size=8.0)
+    assert hit == (1, "move")
+    preferred = hit_test_topmost(
+        [arrow, line],
+        QPointF(45, 40),
+        handle_size=8.0,
+        prefer_tool=AnnotationTool.ARROW,
+    )
+    assert preferred == (0, "move")
+
+
 def test_hit_test_rectangle_uses_stroke_not_interior() -> None:
     rect = Annotation(
         tool=AnnotationTool.RECTANGLE,
