@@ -63,7 +63,8 @@ _MARKDOWN_AI_EMOJI = "🤖"
 _MARKDOWN_OCR_EMOJI = "🔤"
 _TRANSLATE_EMOJI = "🌐"
 _STATUS_HINT = (
-    "Tools: arrow / shapes / pen / text / crop · Undo · Ctrl+wheel zoom · Middle-drag pan · Ctrl+S save to images"
+    "Tools: arrow / shapes / pen / text / crop · Shift constrains · Undo · "
+    "Ctrl+wheel zoom · Middle-drag pan · Ctrl+S save to images"
 )
 _VK_S = 0x53
 _KEY_CYRILLIC_YERU = 0x042B  # Cyrillic yeru (same physical key as Latin S)  # ignore: HP001
@@ -74,10 +75,10 @@ _DEFAULT_ANNOTATION_COLOR = QColor("#de2b26")
 
 _TOOL_BUTTONS: tuple[tuple[AnnotationTool, str, str], ...] = (
     (AnnotationTool.NONE, "🖱️", "Select / view"),
-    (AnnotationTool.ARROW, "➡️", "Arrow"),
-    (AnnotationTool.RECTANGLE, "▭", "Rectangle"),
-    (AnnotationTool.ELLIPSE, "◯", "Ellipse"),
-    (AnnotationTool.LINE, "—", "Line"),
+    (AnnotationTool.ARROW, "➡️", "Arrow (Shift: 0° / 45°)"),
+    (AnnotationTool.RECTANGLE, "▭", "Rectangle (Shift: square)"),
+    (AnnotationTool.ELLIPSE, "◯", "Ellipse (Shift: circle)"),
+    (AnnotationTool.LINE, "—", "Line (Shift: 0° / 45°)"),
     (AnnotationTool.PEN, "✏️", "Pen"),
     (AnnotationTool.TEXT, "T", "Text"),
     (AnnotationTool.CROP, "✂️", "Crop"),

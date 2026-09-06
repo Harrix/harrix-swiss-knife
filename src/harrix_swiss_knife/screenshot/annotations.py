@@ -22,6 +22,7 @@ _ARROW_HEAD_MAX_LENGTH_FRAC = 0.45
 _MIN_CROP_SIZE = 2
 _MIN_SHAPE_POINTS = 2
 _MIN_DRAG_MANHATTAN = 3
+_SHIFT_ANGLE_STEP = math.pi / 4
 
 
 @dataclass(slots=True)
@@ -178,6 +179,22 @@ class _HistoryEntry:
     annotations: list[Annotation]
 
 
+def constrain_shape_end(tool: AnnotationTool, start: QPointF, end: QPointF, *, shift: bool) -> QPointF:
+    """Return the free or Shift-constrained end point for `tool`.
+
+    Shift snaps arrows and lines to 0°/45°/90° steps and makes rectangles
+    and ellipses square or circular, keeping the start corner fixed.
+
+    """
+    if not shift:
+        return QPointF(end)
+    if tool in _LINE_SHIFT_TOOLS:
+        return _snap_end_to_45_degrees(start, end)
+    if tool in _SQUARE_SHIFT_TOOLS:
+        return _snap_end_to_square(start, end)
+    return QPointF(end)
+
+
 def paint_annotation(painter: QPainter, annotation: Annotation) -> None:
     """Draw `annotation` onto `painter` in image coordinates."""
     points = annotation.points
@@ -324,3 +341,35 @@ def _is_meaningful(annotation: Annotation) -> bool:
         return False
     start, end = annotation.points[0], annotation.points[-1]
     return (end - start).manhattanLength() >= _MIN_DRAG_MANHATTAN
+
+
+def _snap_end_to_45_degrees(start: QPointF, end: QPointF) -> QPointF:
+    """Snap `end` so the segment from `start` lies on a 45° multiple."""
+    dx = end.x() - start.x()
+    dy = end.y() - start.y()
+    length = math.hypot(dx, dy)
+    if length < 1:
+        return QPointF(end)
+    angle = math.atan2(dy, dx)
+    snapped = round(angle / _SHIFT_ANGLE_STEP) * _SHIFT_ANGLE_STEP
+    return QPointF(start.x() + math.cos(snapped) * length, start.y() + math.sin(snapped) * length)
+
+
+def _snap_end_to_square(start: QPointF, end: QPointF) -> QPointF:
+    """Keep the start corner and make width and height equal.
+
+    Uses the shorter side so the shape stays inside the dragged rectangle.
+
+    """
+    dx = end.x() - start.x()
+    dy = end.y() - start.y()
+    size = min(abs(dx), abs(dy))
+    if size < 1:
+        return QPointF(end)
+    sx = math.copysign(size, dx) if dx != 0 else 0.0
+    sy = math.copysign(size, dy) if dy != 0 else 0.0
+    return QPointF(start.x() + sx, start.y() + sy)
+
+
+_LINE_SHIFT_TOOLS = frozenset({AnnotationTool.ARROW, AnnotationTool.LINE})
+_SQUARE_SHIFT_TOOLS = frozenset({AnnotationTool.ELLIPSE, AnnotationTool.RECTANGLE})

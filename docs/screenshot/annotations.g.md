@@ -29,6 +29,7 @@ lang: en
   - [⚙️ Method `update_draft_points`](#%EF%B8%8F-method-update_draft_points)
 - [🏛️ Class `AnnotationStyle`](#%EF%B8%8F-class-annotationstyle)
 - [🏛️ Class `AnnotationTool`](#%EF%B8%8F-class-annotationtool)
+- [🔧 Function `constrain_shape_end`](#-function-constrain_shape_end)
 - [🔧 Function `paint_annotation`](#-function-paint_annotation)
 
 </details>
@@ -520,6 +521,33 @@ class AnnotationTool(Enum):
     PEN = "pen"
     TEXT = "text"
     CROP = "crop"
+```
+
+</details>
+
+## 🔧 Function `constrain_shape_end`
+
+```python
+def constrain_shape_end(tool: AnnotationTool, start: QPointF, end: QPointF, *, shift: bool) -> QPointF
+```
+
+Return the free or Shift-constrained end point for [`tool`](preview_canvas.g.md#%EF%B8%8F-method-tool-property).
+
+Shift snaps arrows and lines to 0°/45°/90° steps and makes rectangles
+and ellipses square or circular, keeping the start corner fixed.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def constrain_shape_end(tool: AnnotationTool, start: QPointF, end: QPointF, *, shift: bool) -> QPointF:
+    if not shift:
+        return QPointF(end)
+    if tool in _LINE_SHIFT_TOOLS:
+        return _snap_end_to_45_degrees(start, end)
+    if tool in _SQUARE_SHIFT_TOOLS:
+        return _snap_end_to_square(start, end)
+    return QPointF(end)
 ```
 
 </details>

@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import math
+
+import pytest
 from PySide6.QtCore import QPointF, QRectF
 from PySide6.QtGui import QColor, QImage
 
@@ -13,6 +16,7 @@ from harrix_swiss_knife.screenshot.annotations import (
     AnnotationStyle,
     AnnotationTool,
     _arrow_head_path,
+    constrain_shape_end,
 )
 
 
@@ -125,3 +129,63 @@ def test_load_annotation_colors_fallback() -> None:
     assert all(isinstance(hex_value, str) and hex_value.startswith("#") for hex_value, _hint in colors)
     # Without a usable snippets DB in the test env, seed palette is acceptable.
     assert len(colors) >= len(SEED_COLORS) or colors == list(SEED_COLORS)
+
+
+def test_shift_keeps_free_end_without_modifier() -> None:
+    start = QPointF(10, 10)
+    raw = QPointF(50, 30)
+    end = constrain_shape_end(AnnotationTool.LINE, start, raw, shift=False)
+    assert end.x() == pytest.approx(50.0)
+    assert end.y() == pytest.approx(30.0)
+
+
+def test_shift_makes_ellipse_circle() -> None:
+    start = QPointF(10, 10)
+    end = constrain_shape_end(AnnotationTool.ELLIPSE, start, QPointF(50, 30), shift=True)
+    assert end.x() == pytest.approx(30.0)
+    assert end.y() == pytest.approx(30.0)
+
+
+def test_shift_makes_ellipse_circle_up_left() -> None:
+    start = QPointF(80, 80)
+    end = constrain_shape_end(AnnotationTool.ELLIPSE, start, QPointF(20, 50), shift=True)
+    assert end.x() == pytest.approx(50.0)
+    assert end.y() == pytest.approx(50.0)
+
+
+def test_shift_makes_rectangle_square() -> None:
+    start = QPointF(10, 10)
+    end = constrain_shape_end(AnnotationTool.RECTANGLE, start, QPointF(50, 30), shift=True)
+    assert end.x() == pytest.approx(30.0)
+    assert end.y() == pytest.approx(30.0)
+
+
+def test_shift_pen_ignores_constraint() -> None:
+    start = QPointF(10, 10)
+    raw = QPointF(50, 30)
+    end = constrain_shape_end(AnnotationTool.PEN, start, raw, shift=True)
+    assert end.x() == pytest.approx(50.0)
+    assert end.y() == pytest.approx(30.0)
+
+
+def test_shift_snaps_arrow_to_45_degrees() -> None:
+    start = QPointF(0, 0)
+    end = constrain_shape_end(AnnotationTool.ARROW, start, QPointF(100, 84), shift=True)
+    length = math.hypot(100, 84)
+    expected = length / math.sqrt(2)
+    assert end.x() == pytest.approx(expected)
+    assert end.y() == pytest.approx(expected)
+
+
+def test_shift_snaps_line_to_horizontal() -> None:
+    start = QPointF(10, 20)
+    end = constrain_shape_end(AnnotationTool.LINE, start, QPointF(80, 25), shift=True)
+    assert end.y() == pytest.approx(20.0)
+    assert end.x() == pytest.approx(10 + math.hypot(70, 5))
+
+
+def test_shift_snaps_line_to_vertical() -> None:
+    start = QPointF(40, 10)
+    end = constrain_shape_end(AnnotationTool.LINE, start, QPointF(48, 90), shift=True)
+    assert end.x() == pytest.approx(40.0)
+    assert end.y() == pytest.approx(10 + math.hypot(8, 80))

@@ -18,6 +18,8 @@ lang: en
   - [⚙️ Method `crop_mode (property)`](#%EF%B8%8F-method-crop_mode-property)
   - [⚙️ Method `crop_pending (property)`](#%EF%B8%8F-method-crop_pending-property)
   - [⚙️ Method `finish_text_at`](#%EF%B8%8F-method-finish_text_at)
+  - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
+  - [⚙️ Method `keyReleaseEvent`](#%EF%B8%8F-method-keyreleaseevent)
   - [⚙️ Method `mouseMoveEvent`](#%EF%B8%8F-method-mousemoveevent)
   - [⚙️ Method `mousePressEvent`](#%EF%B8%8F-method-mousepressevent)
   - [⚙️ Method `mouseReleaseEvent`](#%EF%B8%8F-method-mousereleaseevent)
@@ -70,6 +72,7 @@ class ScreenshotPreviewCanvas(QWidget):
         self._tool = AnnotationTool.NONE
         self._style = AnnotationStyle()
         self._draw_start: QPointF | None = None
+        self._draw_current: QPointF | None = None
         self._crop_pending = False
         self._crop_rect: QRect | None = None
         self._crop_origin: QPoint | None = None
@@ -141,6 +144,24 @@ class ScreenshotPreviewCanvas(QWidget):
             self._refresh_pixmap()
             self.document_changed.emit()
 
+    def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
+        """Re-apply Shift constraints while a shape is being dragged."""
+        if event.key() == Qt.Key.Key_Shift and not event.isAutoRepeat() and self._refresh_constrained_draft(shift=True):
+            event.accept()
+            return
+        super().keyPressEvent(event)
+
+    def keyReleaseEvent(self, event: QKeyEvent) -> None:  # noqa: N802
+        """Drop Shift constraints when the key is released during a drag."""
+        if (
+            event.key() == Qt.Key.Key_Shift
+            and not event.isAutoRepeat()
+            and self._refresh_constrained_draft(shift=False)
+        ):
+            event.accept()
+            return
+        super().keyReleaseEvent(event)
+
     def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         """Pan with middle button, update crop frame, or update the draft while left-dragging."""
         if self._pan_start is not None:
@@ -161,10 +182,25 @@ class ScreenshotPreviewCanvas(QWidget):
                 event.accept()
                 return
             draft = self._document.draft
+            start = self._draw_start
+            if start is None:
+                event.accept()
+                return
             if draft.tool == AnnotationTool.PEN:
                 self._document.append_draft_point(image_pos)
             else:
-                self._document.update_draft_points([self._draw_start, image_pos])
+                self._draw_current = image_pos
+                self._document.update_draft_points(
+                    [
+                        start,
+                        constrain_shape_end(
+                            draft.tool,
+                            start,
+                            image_pos,
+                            shift=_shift_pressed(event.modifiers()),
+                        ),
+                    ]
+                )
             self.update()
             event.accept()
             return
@@ -192,6 +228,8 @@ class ScreenshotPreviewCanvas(QWidget):
                 event.accept()
                 return
             self._draw_start = image_pos
+            self._draw_current = image_pos
+            self.setFocus(Qt.FocusReason.MouseFocusReason)
             self._document.begin_draft(
                 Annotation(
                     tool=self._tool,
@@ -215,7 +253,7 @@ class ScreenshotPreviewCanvas(QWidget):
             event.accept()
             return
         if event.button() == Qt.MouseButton.LeftButton and self._draw_start is not None:
-            self._finish_draw(event.position())
+            self._finish_draw(event.position(), shift=_shift_pressed(event.modifiers()))
             event.accept()
             return
         super().mouseReleaseEvent(event)
@@ -269,6 +307,7 @@ class ScreenshotPreviewCanvas(QWidget):
             self.crop_pending_changed.emit(False)  # noqa: FBT003
         self._tool = tool
         self._draw_start = None
+        self._draw_current = None
         if self._document is not None and tool != AnnotationTool.CROP:
             self._document.cancel_draft()
         if tool == AnnotationTool.CROP:
@@ -454,10 +493,11 @@ class ScreenshotPreviewCanvas(QWidget):
         self.setCursor(Qt.CursorShape.SizeAllCursor)
         self.update()
 
-    def _finish_draw(self, widget_pos: QPointF) -> None:
+    def _finish_draw(self, widget_pos: QPointF, *, shift: bool) -> None:
         document = self._document
         start = self._draw_start
         self._draw_start = None
+        self._draw_current = None
         if document is None or start is None:
             return
         image_pos = self._widget_to_image(widget_pos)
@@ -465,7 +505,9 @@ class ScreenshotPreviewCanvas(QWidget):
             if document.draft.tool == AnnotationTool.PEN:
                 document.append_draft_point(image_pos)
             else:
-                document.update_draft_points([start, image_pos])
+                document.update_draft_points(
+                    [start, constrain_shape_end(document.draft.tool, start, image_pos, shift=shift)]
+                )
         if document.commit_draft():
             self._refresh_pixmap()
             self.document_changed.emit()
@@ -525,6 +567,19 @@ class ScreenshotPreviewCanvas(QWidget):
         bounds = self._image_bounds()
         self._snap_x_edges, self._snap_y_edges = collect_edge_guides((), bounds)
 
+    def _refresh_constrained_draft(self, *, shift: bool) -> bool:
+        """Recompute the live shape from the last pointer using the Shift state."""
+        document = self._document
+        start = self._draw_start
+        current = self._draw_current
+        if document is None or start is None or current is None or document.draft is None:
+            return False
+        if document.draft.tool == AnnotationTool.PEN:
+            return False
+        document.update_draft_points([start, constrain_shape_end(document.draft.tool, start, current, shift=shift)])
+        self.update()
+        return True
+
     def _refresh_pixmap(self) -> None:
         if self._document is not None:
             self._pixmap = QPixmap.fromImage(self._document.render(include_draft=False))
@@ -578,6 +633,7 @@ def __init__(self, image: QImage, parent: QWidget | None = None) -> None:
         self._tool = AnnotationTool.NONE
         self._style = AnnotationStyle()
         self._draw_start: QPointF | None = None
+        self._draw_current: QPointF | None = None
         self._crop_pending = False
         self._crop_rect: QRect | None = None
         self._crop_origin: QPoint | None = None
@@ -720,6 +776,52 @@ def finish_text_at(self, image_pos: QPointF, text: str) -> None:
 
 </details>
 
+### ⚙️ Method `keyPressEvent`
+
+```python
+def keyPressEvent(self, event: QKeyEvent) -> None
+```
+
+Re-apply Shift constraints while a shape is being dragged.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
+        if event.key() == Qt.Key.Key_Shift and not event.isAutoRepeat() and self._refresh_constrained_draft(shift=True):
+            event.accept()
+            return
+        super().keyPressEvent(event)
+```
+
+</details>
+
+### ⚙️ Method `keyReleaseEvent`
+
+```python
+def keyReleaseEvent(self, event: QKeyEvent) -> None
+```
+
+Drop Shift constraints when the key is released during a drag.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def keyReleaseEvent(self, event: QKeyEvent) -> None:  # noqa: N802
+        if (
+            event.key() == Qt.Key.Key_Shift
+            and not event.isAutoRepeat()
+            and self._refresh_constrained_draft(shift=False)
+        ):
+            event.accept()
+            return
+        super().keyReleaseEvent(event)
+```
+
+</details>
+
 ### ⚙️ Method `mouseMoveEvent`
 
 ```python
@@ -751,10 +853,25 @@ def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
                 event.accept()
                 return
             draft = self._document.draft
+            start = self._draw_start
+            if start is None:
+                event.accept()
+                return
             if draft.tool == AnnotationTool.PEN:
                 self._document.append_draft_point(image_pos)
             else:
-                self._document.update_draft_points([self._draw_start, image_pos])
+                self._draw_current = image_pos
+                self._document.update_draft_points(
+                    [
+                        start,
+                        constrain_shape_end(
+                            draft.tool,
+                            start,
+                            image_pos,
+                            shift=_shift_pressed(event.modifiers()),
+                        ),
+                    ]
+                )
             self.update()
             event.accept()
             return
@@ -796,6 +913,8 @@ def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
                 event.accept()
                 return
             self._draw_start = image_pos
+            self._draw_current = image_pos
+            self.setFocus(Qt.FocusReason.MouseFocusReason)
             self._document.begin_draft(
                 Annotation(
                     tool=self._tool,
@@ -833,7 +952,7 @@ def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
             event.accept()
             return
         if event.button() == Qt.MouseButton.LeftButton and self._draw_start is not None:
-            self._finish_draw(event.position())
+            self._finish_draw(event.position(), shift=_shift_pressed(event.modifiers()))
             event.accept()
             return
         super().mouseReleaseEvent(event)
@@ -957,6 +1076,7 @@ def set_tool(self, tool: AnnotationTool) -> None:
             self.crop_pending_changed.emit(False)  # noqa: FBT003
         self._tool = tool
         self._draw_start = None
+        self._draw_current = None
         if self._document is not None and tool != AnnotationTool.CROP:
             self._document.cancel_draft()
         if tool == AnnotationTool.CROP:
