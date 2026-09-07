@@ -9,5 +9,6 @@ class OnHabits(AppLauncherAction):
     """Launch the habits tracking application."""
 
     icon = "✅"
+    icon_svg = "symbol__ok.svg"
     title = "Habit tracker"
     main_window_module = "harrix_swiss_knife.apps.habits.main"

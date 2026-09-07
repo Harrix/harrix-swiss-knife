@@ -36,6 +36,7 @@ folders recursively from the selected directory.
 class OnRemoveEmptyFolders(ActionBase):
 
     icon = "🗑️"
+    icon_svg = "it__trash.svg"
     title = "Remove empty folders in …"
 
     @ActionBase.handle_exceptions("removing empty folders")

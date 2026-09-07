@@ -37,6 +37,7 @@ files under the music folder are not modified.
 class OnCheckMusicBeePlaylists(ActionBase):
 
     icon = "🎵"
+    icon_svg = "object__note.svg"
     title = "Check MusicBee playlists"
     description = "Backup MusicBee data, remap moved tracks, and apply Stream playlist rules."
 

@@ -21,6 +21,7 @@ class OnCloseAllAdobe(ActionBase):
     """
 
     icon = "🛑"
+    icon_svg = "symbol__stop.svg"
     title = "Close all Adobe apps"
     quick_launcher = True
 

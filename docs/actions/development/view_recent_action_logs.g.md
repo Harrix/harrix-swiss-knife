@@ -31,6 +31,7 @@ Browse and open text logs from recent action runs (`temp/action_output`).
 class OnViewRecentActionLogs(ActionBase):
 
     icon = "📋"
+    icon_svg = "object__tablet.svg"
     title = "View recent action logs"
 
     @ActionBase.handle_exceptions("view recent action logs")

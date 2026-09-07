@@ -37,6 +37,7 @@ and optionally copies the public `harrix-notes-explorer` tree from that repo.
 class OnInstallHarrixNotesExplorerExtension(ActionBase):
 
     icon = "📦"
+    icon_svg = "object__box.svg"
     title = "Update/install Harrix Notes Explorer extension for VS Code…"
     cli_available = True
     cli_hint = "dev install-harrix-notes-explorer-hsk vscode [--with-public]"

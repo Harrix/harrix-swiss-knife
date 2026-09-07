@@ -19,6 +19,7 @@ class OnScreenshotRegionClipboard(ActionBase):
     """
 
     icon = "📷"
+    icon_svg = "it__camera.svg"
     title = "Screenshot region (clipboard)"
     bold_title = False
     quick_launcher = True

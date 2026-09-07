@@ -27,6 +27,7 @@ class OnExtractZipArchives(ActionBase):
     """
 
     icon = "📦"
+    icon_svg = "object__box.svg"
     title = "Extract ZIP archives in …"
 
     @ActionBase.handle_exceptions("extracting ZIP archives")

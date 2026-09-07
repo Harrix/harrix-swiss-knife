@@ -31,6 +31,7 @@ Open settings editor.
 class OnSettingsEditor(ActionBase):
 
     icon = "⚙️"
+    icon_svg = "object__gear.svg"
     title = "Settings Editor"
     description = "Edit config.json in a VS Code style settings editor."
 

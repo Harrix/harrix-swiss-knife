@@ -19,6 +19,7 @@ class OnOpenOptimizedImages(ActionBase):
     """
 
     icon = "📂"
+    icon_svg = "it__folder.svg"
     title = "Open folder `optimized_images`"
 
     @ActionBase.handle_exceptions("opening optimized images folder")

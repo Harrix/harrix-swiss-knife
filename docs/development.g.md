@@ -46,25 +46,25 @@ Full `hsk` CLI catalog (icons + descriptions): [`README.md` → CLI commands](ht
 
 Developer tooling after installation:
 
-| Icon | Command | Description |
-| --- | --- | --- |
-| 🐍 | `.\.venv\Scripts\Activate.ps1` | Activate virtual environment |
-| 🌟 | `ruff check --select I --fix` | Sort imports |
-| 🌟 | `ruff check --fix` | Lint and autofix project Python files |
-| 🌟 | `ruff check` | Lint project Python files |
-| 🌟 | `ruff format` | Format project Python files |
-| 🚧 | `ty check` | Type-check project Python files |
-| 📥 | `winget upgrade OpenJS.NodeJS` | Upgrade Node.js (tray action **Update Node.js**) |
-| 🎨 | `pyside6-designer` | Qt Widgets Designer |
-| 💰 | `python -c "… compile_app_ui('finance')"` | Compile Finance `.ui` → PY (rewrites UTF-16 emoji surrogates from `pyside6-uic`) |
-| 🏃🏻 | `python -c "… compile_app_ui('fitness')"` | Compile Fitness `.ui` → PY |
-| 🍔 | `python -c "… compile_app_ui('food')"` | Compile Food `.ui` → PY |
-| ✅ | `python -c "… compile_app_ui('habits')"` | Compile Habits `.ui` → PY |
-| 🐍 | `uv python install 3.13` + `uv python pin 3.13` + `uv sync` | Switch to a different Python version |
-| 🐍 | `uv python upgrade` | Upgrade Python to the latest patch release |
-| 📥 | `uv self update` | Update uv itself |
-| ⬆️ | `uv sync --upgrade` | Update all project libraries (sometimes call twice) |
-| 🔬 | `vermin src` | Probe minimum Python version via [vermin](https://github.com/netromdk/vermin); keep ≥ 3.10 for annotations |
+| Icon | Command                                                     | Description                                                                                                |
+| ---- | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| 🐍   | `.\.venv\Scripts\Activate.ps1`                              | Activate virtual environment                                                                               |
+| 🌟   | `ruff check --select I --fix`                               | Sort imports                                                                                               |
+| 🌟   | `ruff check --fix`                                          | Lint and autofix project Python files                                                                      |
+| 🌟   | `ruff check`                                                | Lint project Python files                                                                                  |
+| 🌟   | `ruff format`                                               | Format project Python files                                                                                |
+| 🚧   | `ty check`                                                  | Type-check project Python files                                                                            |
+| 📥   | `winget upgrade OpenJS.NodeJS`                              | Upgrade Node.js (tray action **Update Node.js**)                                                           |
+| 🎨   | `pyside6-designer`                                          | Qt Widgets Designer                                                                                        |
+| 💰   | `python -c "… compile_app_ui('finance')"`                   | Compile Finance `.ui` → PY (rewrites UTF-16 emoji surrogates from `pyside6-uic`)                           |
+| 🏃🏻 | `python -c "… compile_app_ui('fitness')"`                   | Compile Fitness `.ui` → PY                                                                                 |
+| 🍔   | `python -c "… compile_app_ui('food')"`                      | Compile Food `.ui` → PY                                                                                    |
+| ✅   | `python -c "… compile_app_ui('habits')"`                    | Compile Habits `.ui` → PY                                                                                  |
+| 🐍   | `uv python install 3.13` + `uv python pin 3.13` + `uv sync` | Switch to a different Python version                                                                       |
+| 🐍   | `uv python upgrade`                                         | Upgrade Python to the latest patch release                                                                 |
+| 📥   | `uv self update`                                            | Update uv itself                                                                                           |
+| ⬆️    | `uv sync --upgrade`                                         | Update all project libraries (sometimes call twice)                                                        |
+| 🔬   | `vermin src`                                                | Probe minimum Python version via [vermin](https://github.com/netromdk/vermin); keep ≥ 3.10 for annotations |
 
 Full UIC one-liners:
 

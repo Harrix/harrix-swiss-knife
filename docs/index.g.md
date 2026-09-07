@@ -336,116 +336,116 @@ Folder arguments are optional (default: current directory) for commands that tak
 
 ### `hsk md`
 
-| Icon | Command | Description |
-| --- | --- | --- |
-| 💎 | `hsk md beautify-md [FOLDER]` | Beautify Markdown; deletes generated `*.g.md` first (keeps `*.include.g.md`) |
-| 💎 | `hsk md beautify-md [FOLDER] --no-prose-fixes` | Skip MdChecker typography autofixes in MdFormatter |
-| 💎 | `hsk md beautify-md [FOLDER] --no-format-code-blocks` | Skip formatting fenced code bodies (e.g. `latex`) |
-| 💎 | `hsk md beautify-md [FOLDER] --prose-wrap always --print-width 80` | Prettier prose wrap (`always` / `never` / `preserve`) |
-| 💎 | `hsk md beautify-regenerate-g-md [FOLDER]` | Beautify Markdown and regenerate `.g.md` |
-| 💎 | `hsk md beautify-regenerate-g-md [FOLDER] --no-prose-fixes` | Skip MdChecker typography autofixes in MdFormatter |
-| 💎 | `hsk md beautify-regenerate-g-md [FOLDER] --no-format-code-blocks` | Skip formatting fenced code bodies (e.g. `latex`) |
-| 💎 | `hsk md beautify-regenerate-g-md [FOLDER] --prose-wrap always --print-width 80` | Prettier prose wrap (`always` / `never` / `preserve`) |
-| 📜 | `hsk md regenerate-g-md [FOLDER]` | Delete, regenerate, and beautify only `*.g.md` (source `.md` unchanged) |
-| 📜 | `hsk md regenerate-g-md [FOLDER] --no-prose-fixes` | Skip MdChecker typography autofixes in MdFormatter |
-| 📜 | `hsk md regenerate-g-md [FOLDER] --no-format-code-blocks` | Skip formatting fenced code block bodies (e.g. `latex`) |
-| 📜 | `hsk md regenerate-g-md [FOLDER] --prose-wrap always --print-width 80` | Prettier prose wrap (`always` / `never` / `preserve`) |
-| 🚧 | `hsk md check [FOLDER]` | All Harrix MD rules |
-| 🚧 | `hsk md check [FOLDER] --include-g-md` | All Harrix MD rules, including `.g.md` |
-| 🚧 | `hsk md check [FOLDER] --rule H001` | Check only selected rule ids (repeatable `--rule`) |
-| 🖼️ | `hsk md optimize-images-folder [FOLDER]` | Optimize images referenced by Markdown under the folder |
-| 🖼️ | `hsk md optimize-images-folder [FOLDER] --max-size 1920` | Resize when width or height exceeds max px |
-| 📝 | `hsk md new-note` | Create a new note (interactive) |
-| 📝 | `hsk md new-note --folder PATH --name "My note"` | Create a new note non-interactively |
-| 📝 | `hsk md new-note-with-images` | Create a new note with images (interactive) |
-| 📝 | `hsk md new-note-with-images --folder PATH --name "My note"` | Create a note with images non-interactively |
-| 📝 | `hsk md new-diary-note` | Create a diary note (interactive) |
-| 📝 | `hsk md new-diary-note --folder PATH` | Create a diary note in `PATH` |
-| 📝 | `hsk md new-dream-note` | Create a dream note (interactive) |
-| 📝 | `hsk md new-dream-note --folder PATH` | Create a dream note in `PATH` |
-| 📝 | `hsk md new-cases-note` | Create a cases note (interactive) |
-| 📝 | `hsk md new-cases-note --folder PATH` | Create a cases note in `PATH` |
-| 📝 | `hsk md list-templates` | List `markdown_templates` as JSON |
-| 📝 | `hsk md add-from-template --template "Movie"` | Add a note via a `markdown_templates` entry (opens Qt UI) |
-| 📝 | `hsk md edit-from-template --template "Movie"` | Edit existing Markdown via a `markdown_templates` entry |
+| Icon | Command                                                                         | Description                                                                  |
+| ---- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| 💎   | `hsk md beautify-md [FOLDER]`                                                   | Beautify Markdown; deletes generated `*.g.md` first (keeps `*.include.g.md`) |
+| 💎   | `hsk md beautify-md [FOLDER] --no-prose-fixes`                                  | Skip MdChecker typography autofixes in MdFormatter                           |
+| 💎   | `hsk md beautify-md [FOLDER] --no-format-code-blocks`                           | Skip formatting fenced code bodies (e.g. `latex`)                            |
+| 💎   | `hsk md beautify-md [FOLDER] --prose-wrap always --print-width 80`              | Prettier prose wrap (`always` / `never` / `preserve`)                        |
+| 💎   | `hsk md beautify-regenerate-g-md [FOLDER]`                                      | Beautify Markdown and regenerate `.g.md`                                     |
+| 💎   | `hsk md beautify-regenerate-g-md [FOLDER] --no-prose-fixes`                     | Skip MdChecker typography autofixes in MdFormatter                           |
+| 💎   | `hsk md beautify-regenerate-g-md [FOLDER] --no-format-code-blocks`              | Skip formatting fenced code bodies (e.g. `latex`)                            |
+| 💎   | `hsk md beautify-regenerate-g-md [FOLDER] --prose-wrap always --print-width 80` | Prettier prose wrap (`always` / `never` / `preserve`)                        |
+| 📜   | `hsk md regenerate-g-md [FOLDER]`                                               | Delete, regenerate, and beautify only `*.g.md` (source `.md` unchanged)      |
+| 📜   | `hsk md regenerate-g-md [FOLDER] --no-prose-fixes`                              | Skip MdChecker typography autofixes in MdFormatter                           |
+| 📜   | `hsk md regenerate-g-md [FOLDER] --no-format-code-blocks`                       | Skip formatting fenced code block bodies (e.g. `latex`)                      |
+| 📜   | `hsk md regenerate-g-md [FOLDER] --prose-wrap always --print-width 80`          | Prettier prose wrap (`always` / `never` / `preserve`)                        |
+| 🚧   | `hsk md check [FOLDER]`                                                         | All Harrix MD rules                                                          |
+| 🚧   | `hsk md check [FOLDER] --include-g-md`                                          | All Harrix MD rules, including `.g.md`                                       |
+| 🚧   | `hsk md check [FOLDER] --rule H001`                                             | Check only selected rule ids (repeatable `--rule`)                           |
+| 🖼️   | `hsk md optimize-images-folder [FOLDER]`                                        | Optimize images referenced by Markdown under the folder                      |
+| 🖼️   | `hsk md optimize-images-folder [FOLDER] --max-size 1920`                        | Resize when width or height exceeds max px                                   |
+| 📝   | `hsk md new-note`                                                               | Create a new note (interactive)                                              |
+| 📝   | `hsk md new-note --folder PATH --name "My note"`                                | Create a new note non-interactively                                          |
+| 📝   | `hsk md new-note-with-images`                                                   | Create a new note with images (interactive)                                  |
+| 📝   | `hsk md new-note-with-images --folder PATH --name "My note"`                    | Create a note with images non-interactively                                  |
+| 📝   | `hsk md new-diary-note`                                                         | Create a diary note (interactive)                                            |
+| 📝   | `hsk md new-diary-note --folder PATH`                                           | Create a diary note in `PATH`                                                |
+| 📝   | `hsk md new-dream-note`                                                         | Create a dream note (interactive)                                            |
+| 📝   | `hsk md new-dream-note --folder PATH`                                           | Create a dream note in `PATH`                                                |
+| 📝   | `hsk md new-cases-note`                                                         | Create a cases note (interactive)                                            |
+| 📝   | `hsk md new-cases-note --folder PATH`                                           | Create a cases note in `PATH`                                                |
+| 📝   | `hsk md list-templates`                                                         | List `markdown_templates` as JSON                                            |
+| 📝   | `hsk md add-from-template --template "Movie"`                                   | Add a note via a `markdown_templates` entry (opens Qt UI)                    |
+| 📝   | `hsk md edit-from-template --template "Movie"`                                  | Edit existing Markdown via a `markdown_templates` entry                      |
 
 ### `hsk py`
 
-| Icon | Command | Description |
-| --- | --- | --- |
-| 🚧 | `hsk py check [FOLDER]` | ty, ruff, pytest, Harrix PY/MD for one folder |
-| 🚧 | `hsk py check-all` | Same checks for all `paths_python_projects` |
-| 🚧 | `hsk py harrix-check [FOLDER]` | Harrix PY rules + docstring Markdown (incl. Private; locations in `.py`) |
-| 🌟 | `hsk py ruff-sort [FOLDER]` | Ruff sort/format + sort PY (no docs generation) |
-| 🌟 | `hsk py ruff-sort-docs [FOLDER]` | Ruff sort/format + sort + generate docs / format MD |
-| 🌟 | `hsk py ruff-sort-docs [FOLDER] --no-prose-fixes` | Skip MdChecker typography autofixes in docstrings and generated Markdown |
+| Icon | Command                                           | Description                                                              |
+| ---- | ------------------------------------------------- | ------------------------------------------------------------------------ |
+| 🚧   | `hsk py check [FOLDER]`                           | ty, ruff, pytest, Harrix PY/MD for one folder                            |
+| 🚧   | `hsk py check-all`                                | Same checks for all `paths_python_projects`                              |
+| 🚧   | `hsk py harrix-check [FOLDER]`                    | Harrix PY rules + docstring Markdown (incl. Private; locations in `.py`) |
+| 🌟   | `hsk py ruff-sort [FOLDER]`                       | Ruff sort/format + sort PY (no docs generation)                          |
+| 🌟   | `hsk py ruff-sort-docs [FOLDER]`                  | Ruff sort/format + sort + generate docs / format MD                      |
+| 🌟   | `hsk py ruff-sort-docs [FOLDER] --no-prose-fixes` | Skip MdChecker typography autofixes in docstrings and generated Markdown |
 
 ### `hsk android`
 
-| Icon | Command | Description |
-| --- | --- | --- |
-| 📥 | `hsk android setup` | Install JDK 17 and Android SDK (`%LOCALAPPDATA%`; Windows) |
-| 📥 | `hsk android setup --android-studio` | Same, plus Android Studio via winget |
-| ✨ | `hsk android format [FOLDER]` | Spotless (ktlint) format (tray uses `paths_android_projects`) |
-| 🔬 | `hsk android check [FOLDER]` | Spotless check + Detekt + Android Lint (`qualityCheck`) |
-| 📱 | `hsk android build [FOLDER] [debug/release]` | Build APK; variant from `android_build_variant` in `config.json` when omitted (default `release`; Windows) |
-| 📱 | `hsk android build debug` | Build debug APK in `.` |
-| 📱 | `hsk android build release` | Build release APK in `.` (debug-signed for sideload) |
-| 📱 | `hsk android build --all` | Build/install all `paths_android_projects` sequentially |
-| 📱 | `hsk android build --all release` | Same with explicit variant |
+| Icon | Command                                      | Description                                                                                                |
+| ---- | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| 📥   | `hsk android setup`                          | Install JDK 17 and Android SDK (`%LOCALAPPDATA%`; Windows)                                                 |
+| 📥   | `hsk android setup --android-studio`         | Same, plus Android Studio via winget                                                                       |
+| ✨   | `hsk android format [FOLDER]`                | Spotless (ktlint) format (tray uses `paths_android_projects`)                                              |
+| 🔬   | `hsk android check [FOLDER]`                 | Spotless check + Detekt + Android Lint (`qualityCheck`)                                                    |
+| 📱   | `hsk android build [FOLDER] [debug/release]` | Build APK; variant from `android_build_variant` in `config.json` when omitted (default `release`; Windows) |
+| 📱   | `hsk android build debug`                    | Build debug APK in `.`                                                                                     |
+| 📱   | `hsk android build release`                  | Build release APK in `.` (debug-signed for sideload)                                                       |
+| 📱   | `hsk android build --all`                    | Build/install all `paths_android_projects` sequentially                                                    |
+| 📱   | `hsk android build --all release`            | Same with explicit variant                                                                                 |
 
 ### `hsk vscode`
 
-| Icon | Command | Description |
-| --- | --- | --- |
-| ✨ | `hsk vscode format` | Biome format for `vscode/harrix-notes-explorer-hsk/` |
-| 🔬 | `hsk vscode check` | Biome lint + format check for the VS Code extension |
-| 🔄 | `hsk vscode sync-notes-explorer` | Sync HSK extension into public `path_harrix_notes_explorer` repo |
+| Icon | Command                          | Description                                                      |
+| ---- | -------------------------------- | ---------------------------------------------------------------- |
+| ✨   | `hsk vscode format`              | Biome format for `vscode/harrix-notes-explorer-hsk/`             |
+| 🔬   | `hsk vscode check`               | Biome lint + format check for the VS Code extension              |
+| 🔄   | `hsk vscode sync-notes-explorer` | Sync HSK extension into public `path_harrix_notes_explorer` repo |
 
 ### `hsk site`
 
-| Icon | Command | Description |
-| --- | --- | --- |
-| 📦 | `hsk site add-submodule PATH` | Add folder as Git submodule of `path_site_repo` |
-| 🔗 | `hsk site fix-article-links [FOLDER]` | Fix titles in site article dual links |
-| ⬇️ | `hsk site pull-submodules` | Pull `origin main` in each submodule of `path_site_repo` |
-| ⬇️ | `hsk site pull-submodules PATH` | Same for an explicit site repo folder |
-| ✂️ | `hsk site slice-html-template DIST THEME` | Slice built HTML into a pyssg theme folder |
-| ✂️ | `hsk site slice-html-template DIST THEME --source-html article.html` | Custom shell HTML filename (default `article.html`) |
+| Icon | Command                                                              | Description                                              |
+| ---- | -------------------------------------------------------------------- | -------------------------------------------------------- |
+| 📦   | `hsk site add-submodule PATH`                                        | Add folder as Git submodule of `path_site_repo`          |
+| 🔗   | `hsk site fix-article-links [FOLDER]`                                | Fix titles in site article dual links                    |
+| ⬇️    | `hsk site pull-submodules`                                           | Pull `origin main` in each submodule of `path_site_repo` |
+| ⬇️    | `hsk site pull-submodules PATH`                                      | Same for an explicit site repo folder                    |
+| ✂️   | `hsk site slice-html-template DIST THEME`                            | Slice built HTML into a pyssg theme folder               |
+| ✂️   | `hsk site slice-html-template DIST THEME --source-html article.html` | Custom shell HTML filename (default `article.html`)      |
 
 ### `hsk file` / `hsk text`
 
-| Icon | Command | Description |
-| --- | --- | --- |
-| ↩️ | `hsk file discard-git-changes [FOLDER]` | `git reset --hard` + `git clean -fd` in each Git repo under the folder |
-| ↩️ | `hsk file discard-git-changes [FOLDER] --status` | Only list repositories with uncommitted changes (no discard) |
-| 🤖 | `hsk text fix-text-with-ai` | BotHub fix via dialog; result copied to clipboard |
+| Icon | Command                                          | Description                                                            |
+| ---- | ------------------------------------------------ | ---------------------------------------------------------------------- |
+| ↩️    | `hsk file discard-git-changes [FOLDER]`          | `git reset --hard` + `git clean -fd` in each Git repo under the folder |
+| ↩️    | `hsk file discard-git-changes [FOLDER] --status` | Only list repositories with uncommitted changes (no discard)           |
+| 🤖   | `hsk text fix-text-with-ai`                      | BotHub fix via dialog; result copied to clipboard                      |
 
 ### `hsk dev`
 
-| Icon | Command | Description |
-| --- | --- | --- |
-| 📊 | `hsk dev action-usage` | Show sorted action invocation statistics (unused first) |
-| 📅 | `hsk dev generate-action-added-at` | Fill `config/action_added_at.json` from Git history (merge keeps existing dates; `now()` when Git has no hit) |
-| 📅 | `hsk dev generate-action-added-at --force` | Overwrite existing dates from Git |
-| ⌨️ | `hsk dev install-cli` | Global `hsk` on PATH via `uv tool install -e` |
-| 📁 | `hsk dev setup-data-for-hsk --parent PATH` | Create `data-for-hsk` under `PATH` (databases, Notes folders, Git repos) |
-| 🚀 | `hsk dev build-install-zips` | Python installer-EXE pipeline (Windows; needs PyInstaller in the dev group) |
-| 🚀 | `hsk dev build-install-zips --no-wipe --skip-binaries --skip-installers --skip-repos --skip-uv-cache` | Quick rebuild; reuse existing `install/dependencies` |
-| 📦 | `hsk dev install-harrix-notes-explorer-hsk EDITOR` | Install HSK into editor (`vscode`, `insiders`, `cursor`, `vscodium`, `windsurf`, `antigravity`; Windows) |
-| 📦 | `hsk dev install-harrix-notes-explorer-hsk EDITOR --with-public` | Also install public `harrix-notes-explorer` into the editor profile |
-| 📦 | `hsk dev private-data export` | Pack API keys / fitness / finance / food parts into `install/private-data-harrix-swiss-knife.zip` (omit part flags to export all) |
-| 📦 | `hsk dev private-data export --zip PATH` | Write the personal ZIP to `PATH` |
-| 📦 | `hsk dev private-data export --api-keys` | Export only API keys |
-| 📦 | `hsk dev private-data export --fitness` | Export only exercise catalog and images |
-| 📦 | `hsk dev private-data export --finance` | Export only finance catalog |
-| 📦 | `hsk dev private-data export --food` | Export only food catalog |
-| 📦 | `hsk dev private-data import` | Install parts present in the ZIP |
-| 📦 | `hsk dev private-data import --zip PATH` | Install from `PATH` instead of the default ZIP |
-| 📦 | `hsk dev private-data import --api-keys` | Import only API keys |
-| 📦 | `hsk dev private-data import --fitness` | Import only exercise catalog and images |
-| 📦 | `hsk dev private-data import --finance` | Import only finance catalog |
-| 📦 | `hsk dev private-data import --food` | Import only food catalog |
+| Icon | Command                                                                                               | Description                                                                                                                       |
+| ---- | ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| 📊   | `hsk dev action-usage`                                                                                | Show sorted action invocation statistics (unused first)                                                                           |
+| 📅   | `hsk dev generate-action-added-at`                                                                    | Fill `config/action_added_at.json` from Git history (merge keeps existing dates; `now()` when Git has no hit)                     |
+| 📅   | `hsk dev generate-action-added-at --force`                                                            | Overwrite existing dates from Git                                                                                                 |
+| ⌨️   | `hsk dev install-cli`                                                                                 | Global `hsk` on PATH via `uv tool install -e`                                                                                     |
+| 📁   | `hsk dev setup-data-for-hsk --parent PATH`                                                            | Create `data-for-hsk` under `PATH` (databases, Notes folders, Git repos)                                                          |
+| 🚀   | `hsk dev build-install-zips`                                                                          | Python installer-EXE pipeline (Windows; needs PyInstaller in the dev group)                                                       |
+| 🚀   | `hsk dev build-install-zips --no-wipe --skip-binaries --skip-installers --skip-repos --skip-uv-cache` | Quick rebuild; reuse existing `install/dependencies`                                                                              |
+| 📦   | `hsk dev install-harrix-notes-explorer-hsk EDITOR`                                                    | Install HSK into editor (`vscode`, `insiders`, `cursor`, `vscodium`, `windsurf`, `antigravity`; Windows)                          |
+| 📦   | `hsk dev install-harrix-notes-explorer-hsk EDITOR --with-public`                                      | Also install public `harrix-notes-explorer` into the editor profile                                                               |
+| 📦   | `hsk dev private-data export`                                                                         | Pack API keys / fitness / finance / food parts into `install/private-data-harrix-swiss-knife.zip` (omit part flags to export all) |
+| 📦   | `hsk dev private-data export --zip PATH`                                                              | Write the personal ZIP to `PATH`                                                                                                  |
+| 📦   | `hsk dev private-data export --api-keys`                                                              | Export only API keys                                                                                                              |
+| 📦   | `hsk dev private-data export --fitness`                                                               | Export only exercise catalog and images                                                                                           |
+| 📦   | `hsk dev private-data export --finance`                                                               | Export only finance catalog                                                                                                       |
+| 📦   | `hsk dev private-data export --food`                                                                  | Export only food catalog                                                                                                          |
+| 📦   | `hsk dev private-data import`                                                                         | Install parts present in the ZIP                                                                                                  |
+| 📦   | `hsk dev private-data import --zip PATH`                                                              | Install from `PATH` instead of the default ZIP                                                                                    |
+| 📦   | `hsk dev private-data import --api-keys`                                                              | Import only API keys                                                                                                              |
+| 📦   | `hsk dev private-data import --fitness`                                                               | Import only exercise catalog and images                                                                                           |
+| 📦   | `hsk dev private-data import --finance`                                                               | Import only finance catalog                                                                                                       |
+| 📦   | `hsk dev private-data import --food`                                                                  | Import only food catalog                                                                                                          |
 
 ## ⚙️ Development
 

@@ -45,6 +45,7 @@ maintaining clean folder organization by removing the original archive files.
 class OnExtractZipArchives(ActionBase):
 
     icon = "📦"
+    icon_svg = "object__box.svg"
     title = "Extract ZIP archives in …"
 
     @ActionBase.handle_exceptions("extracting ZIP archives")

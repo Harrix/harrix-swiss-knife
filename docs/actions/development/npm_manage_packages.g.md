@@ -41,6 +41,7 @@ This ensures all configured packages are present and up-to-date in the system.
 class OnNpmManagePackages(ActionBase):
 
     icon = "📦"
+    icon_svg = "object__box.svg"
     title = "Update/Install global NPM packages"
 
     @ActionBase.handle_exceptions("npm package management")

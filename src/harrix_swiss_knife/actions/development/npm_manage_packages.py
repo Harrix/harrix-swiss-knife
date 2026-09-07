@@ -26,6 +26,7 @@ class OnNpmManagePackages(ActionBase):
     """
 
     icon = "📦"
+    icon_svg = "object__box.svg"
     title = "Update/Install global NPM packages"
 
     @ActionBase.handle_exceptions("npm package management")

@@ -36,6 +36,7 @@ optimizes it, and places the optimized image path back into the clipboard.
 class OnOptimizeClipboard(ActionBase):
 
     icon = "🚀"
+    icon_svg = "space__rocket-with-window.svg"
     title = "Optimize image from clipboard"
     bold_title = False
     quick_launcher = True

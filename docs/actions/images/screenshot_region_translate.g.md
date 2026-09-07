@@ -35,6 +35,7 @@ otherwise original and translation appear side by side.
 class OnScreenshotRegionTranslate(ActionBase):
 
     icon = "📷"
+    icon_svg = "it__camera.svg"
     title = "Screenshot region (OCR + translate)"
     bold_title = False
     quick_launcher = True

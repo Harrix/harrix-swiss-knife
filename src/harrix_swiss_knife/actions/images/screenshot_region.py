@@ -20,6 +20,7 @@ class OnScreenshotRegion(ActionBase):
     """
 
     icon = "📷"
+    icon_svg = "it__camera.svg"
     title = "Screenshot region"
     bold_title = False
     quick_launcher = True

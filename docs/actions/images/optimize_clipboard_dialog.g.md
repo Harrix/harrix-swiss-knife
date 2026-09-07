@@ -35,6 +35,7 @@ image management in the output directory.
 class OnOptimizeClipboardDialog(OnOptimizeClipboard):
 
     icon = "🚀"
+    icon_svg = "space__rocket-with-window.svg"
     title = "Optimize image from clipboard as …"
     bold_title = False
     quick_launcher = True

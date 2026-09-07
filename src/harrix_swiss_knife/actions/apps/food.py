@@ -9,5 +9,6 @@ class OnFood(AppLauncherAction):
     """Launch the food tracking application."""
 
     icon = "🍔"
+    icon_svg = "food__hamburger.svg"
     title = "Food tracker"
     main_window_module = "harrix_swiss_knife.apps.food.main"

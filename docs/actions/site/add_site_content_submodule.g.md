@@ -35,6 +35,7 @@ and runs it in `path_site_repo` from config.
 class OnAddSiteContentSubmodule(ActionBase):
 
     icon = "📦"
+    icon_svg = "object__box.svg"
     title = "Add site content submodule…"
     description = "Add content repo as git submodule in the main site repository"
     cli_available: ClassVar[bool] = True

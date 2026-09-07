@@ -35,6 +35,7 @@ to view or manage the source image files.
 class OnOpenImages(ActionBase):
 
     icon = "📂"
+    icon_svg = "it__folder.svg"
     title = "Open folder `images`"
 
     @ActionBase.handle_exceptions("opening images folder")

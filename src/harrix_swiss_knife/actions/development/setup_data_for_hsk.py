@@ -24,6 +24,7 @@ class OnSetupDataForHsk(ActionBase):
     """Create `data-for-hsk` with databases, Notes folders, and Git repos."""
 
     icon = "📁"
+    icon_svg = "it__folder.svg"
     title = "Set up data-for-hsk"
     cli_available = True
     cli_hint = "dev setup-data-for-hsk"

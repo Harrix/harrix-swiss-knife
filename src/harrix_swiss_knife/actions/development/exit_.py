@@ -18,6 +18,7 @@ class OnExit(ActionBase):
     """
 
     icon = "×"  # noqa: RUF001
+    icon_svg = "symbol__not.svg"
     title = "Exit"
 
     def __init__(self, **kwargs) -> None:  # noqa: ANN003

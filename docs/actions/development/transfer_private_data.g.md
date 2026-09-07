@@ -39,6 +39,7 @@ Pack and install run in a background thread with a progress toast.
 class OnTransferPrivateData(ActionBase):
 
     icon = "📦"
+    icon_svg = "object__box.svg"
     title = "Transfer private data"
     cli_available = True
     cli_hint = "dev private-data export|import"
