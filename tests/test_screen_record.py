@@ -4,7 +4,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QPoint, QRect
+import pytest
+from PySide6.QtCore import QByteArray, QBuffer, QIODevice, QPoint, QRect
+from PySide6.QtGui import QImage, QPixmap
+from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife.screen_record.config import (
     DEFAULT_SCREEN_RECORD_AUDIO,
@@ -16,6 +19,17 @@ from harrix_swiss_knife.screen_record.config import (
 from harrix_swiss_knife.screen_record.geometry import even_size
 from harrix_swiss_knife.screen_record.record_frame import hit_test_record_frame_handle
 from harrix_swiss_knife.screen_record.session import videos_folder
+
+
+@pytest.fixture
+def qapp() -> QApplication:
+    app = QApplication.instance()
+    if app is None:
+        return QApplication([])
+    if not isinstance(app, QApplication):
+        msg = "QApplication.instance() returned a non-QApplication object."
+        raise TypeError(msg)
+    return app
 
 
 def test_even_size_rounds_down_to_even() -> None:
@@ -38,6 +52,20 @@ def test_screen_record_config_defaults() -> None:
 def test_videos_folder(tmp_path: Path) -> None:
     folder = videos_folder(tmp_path)
     assert folder == tmp_path / "temp" / "videos"
+
+
+def test_pixmap_load_from_data_accepts_str_format(qapp: QApplication) -> None:
+    """PySide6 rejects bytes format hints; scrub preview must pass str 'JPG'."""
+    _ = qapp
+    image = QImage(8, 8, QImage.Format.Format_RGB32)
+    image.fill(0xFF0000)
+    buffer = QByteArray()
+    device = QBuffer(buffer)
+    device.open(QIODevice.OpenModeFlag.WriteOnly)
+    assert image.save(device, "JPG")
+    pixmap = QPixmap()
+    assert pixmap.loadFromData(buffer, "JPG")
+    assert not pixmap.isNull()
 
 
 def test_record_frame_top_left_handle_moves_region() -> None:
