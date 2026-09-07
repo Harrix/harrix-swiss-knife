@@ -8,11 +8,26 @@ alwaysApply: false
 
 When adding, renaming, removing, or changing options of any `hsk` command in [`src/harrix_swiss_knife/cli.py`](src/harrix_swiss_knife/cli.py), update [`README.md`](README.md) section **`## 💻 CLI commands`** in the same change.
 
+## Format
+
+Document commands in **markdown tables** grouped by CLI group (`### \`hsk md\``, `### \`hsk py\``, …). Columns:
+
+| Icon | Command | Description |
+| --- | --- | --- |
+| emoji | `` `hsk …` `` | Short description |
+
+Rules for the table:
+
+1. **Icon** — use the tray action `icon` when the command wraps that action; otherwise pick a fitting emoji and keep it consistent for that command and its flag variants.
+2. **Command** — full invocation in backticks; optional args in `[BRACKETS]`; use `PATH` / `FOLDER` / `EDITOR` placeholders (no long sample paths).
+3. **Description** — short; match CLI help / behavior. Every row must have a non-empty description.
+4. For each meaningful option or flag, add a **separate table row** with the same icon (same style as `--no-prose-fixes`, `--status`, `--with-public`).
+5. Do **not** document commands marked `hidden=True`.
+6. Prefer verifying with `hsk <group> --help` / `hsk <group> <cmd> --help` when `hsk` is available.
+
 ## Checklist
 
-1. Every **visible** group and subcommand appears in that section.
+1. Every **visible** group and subcommand appears in the matching `###` table.
 2. Descriptions match current CLI behavior (help text / implementation).
-3. For each meaningful option or flag, add a **separate bullet** with that key (same style as `--no-prose-fixes`, `--status`, `--with-public`).
-4. Do **not** document commands marked `hidden=True`.
-5. Prefer verifying with `hsk <group> --help` / `hsk <group> <cmd> --help` when `hsk` is available.
-6. Preserve the existing bullet format: `` `hsk …` — short description ``.
+3. New groups get a new `### \`hsk <group>\`` subsection with the same three-column table.
+4. Do not revert this section to a flat bullet list.
