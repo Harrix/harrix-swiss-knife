@@ -161,7 +161,7 @@ class CategoryEditDialog(QDialog):
         button_layout = QHBoxLayout()
         self.delete_button = make_lucide_push_button("Delete", DELETE_BUTTON_ICON)
         self.delete_button.clicked.connect(self._on_delete)
-        self.delete_button.setStyleSheet(CANCEL_BUTTON_STYLE)
+        style_cancel_button(self.delete_button)
         button_layout.addWidget(self.delete_button)
 
         self.cancel_button = make_lucide_push_button("Cancel", CANCEL_BUTTON_ICON)

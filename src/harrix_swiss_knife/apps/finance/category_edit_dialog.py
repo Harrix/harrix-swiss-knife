@@ -24,12 +24,12 @@ from harrix_swiss_knife.apps.finance.category_name_local_translate import reques
 from harrix_swiss_knife.integrations.bothub import BothubRequestState
 from harrix_swiss_knife.qt_lucide_icon import (
     CANCEL_BUTTON_ICON,
-    CANCEL_BUTTON_STYLE,
     DELETE_BUTTON_ICON,
     SAVE_BUTTON_ICON,
     make_ai_lucide_push_button,
     make_lucide_push_button,
     style_accept_button,
+    style_cancel_button,
 )
 
 
@@ -166,7 +166,7 @@ class CategoryEditDialog(QDialog):
         button_layout = QHBoxLayout()
         self.delete_button = make_lucide_push_button("Delete", DELETE_BUTTON_ICON)
         self.delete_button.clicked.connect(self._on_delete)
-        self.delete_button.setStyleSheet(CANCEL_BUTTON_STYLE)
+        style_cancel_button(self.delete_button)
         button_layout.addWidget(self.delete_button)
 
         self.cancel_button = make_lucide_push_button("Cancel", CANCEL_BUTTON_ICON)

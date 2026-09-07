@@ -19,8 +19,8 @@ from PySide6.QtWidgets import (
 from harrix_swiss_knife.apps.common.word_wrap_header import install_word_wrap_header
 from harrix_swiss_knife.qt_lucide_icon import (
     OK_BUTTON_ICON,
+    apply_lucide_button_icon,
     apply_lucide_dialog_buttons,
-    create_lucide_icon,
 )
 
 _COL_NAME = 0
@@ -98,7 +98,7 @@ class FoodTranslatePreviewDialog(QDialog):
 
         button_box = QDialogButtonBox(self)
         apply_button = button_box.addButton("Apply translations", QDialogButtonBox.ButtonRole.AcceptRole)
-        apply_button.setIcon(create_lucide_icon(OK_BUTTON_ICON))
+        apply_lucide_button_icon(apply_button, OK_BUTTON_ICON)
         button_box.addButton(QDialogButtonBox.StandardButton.Cancel)
         apply_lucide_dialog_buttons(button_box)
         apply_button.setDefault(True)

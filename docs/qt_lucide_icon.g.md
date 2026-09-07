@@ -21,6 +21,7 @@ lang: en
 - [🔧 Function `apply_lucide_dialog_buttons`](#-function-apply_lucide_dialog_buttons)
 - [🔧 Function `create_ai_lucide_icon`](#-function-create_ai_lucide_icon)
 - [🔧 Function `create_lucide_icon`](#-function-create_lucide_icon)
+- [🔧 Function `lucide_color_for`](#-function-lucide_color_for)
 - [🔧 Function `lucide_name_for_chrome_emoji`](#-function-lucide_name_for_chrome_emoji)
 - [🔧 Function `lucide_svg_path`](#-function-lucide_svg_path)
 - [🔧 Function `make_ai_lucide_push_button`](#-function-make_ai_lucide_push_button)
@@ -227,6 +228,7 @@ def apply_lucide_button_icon(
 ) -> None:
     button.setIcon(create_lucide_icon(name, icon_size, color=color))
     button.setIconSize(QSize(icon_size, icon_size))
+    button.setProperty(_LUCIDE_NAME_PROP, name)
 ```
 
 </details>
@@ -239,7 +241,8 @@ def apply_lucide_dialog_buttons(buttons: QDialogButtonBox, *, icon_size: int = D
 
 Set Lucide icons on standard `QDialogButtonBox` buttons when present.
 
-Also paints OK / Apply / Save / Yes green and Cancel / No / Reject red.
+Also paints OK / Apply / Save / Yes green and Cancel / No / Reject red,
+with white icons on those filled backgrounds.
 
 <details>
 <summary>Code:</summary>
@@ -269,12 +272,12 @@ def apply_lucide_dialog_buttons(
             QDialogButtonBox.ButtonRole.ApplyRole,
             QDialogButtonBox.ButtonRole.YesRole,
         ):
-            style_accept_button(button)
+            style_accept_button(button, icon_size=icon_size)
         elif role in (
             QDialogButtonBox.ButtonRole.RejectRole,
             QDialogButtonBox.ButtonRole.NoRole,
         ):
-            style_cancel_button(button)
+            style_cancel_button(button, icon_size=icon_size)
 ```
 
 </details>
@@ -305,6 +308,7 @@ def create_lucide_icon(name: str, size: int = 64, *, color: QColor | str | None 
 
 Create a square `QIcon` from a Lucide SVG ID.
 
+When `color` is omitted, uses the CodeStyle semantic color for `name`.
 Unknown names log a warning and return an empty icon.
 
 <details>
@@ -321,7 +325,7 @@ def create_lucide_icon(
     ratio = device_pixel_ratio if device_pixel_ratio is not None else _lucide_device_pixel_ratio()
     if ratio <= 0:
         ratio = 1.0
-    paint_color = QColor(color) if color is not None else _lucide_palette_color()
+    paint_color = QColor(color) if color is not None else QColor(lucide_color_for(name))
     cache_key = (name, size, paint_color.name(QColor.NameFormat.HexArgb), ratio)
     cached = _CACHE.get(cache_key)
     if cached is not None:
@@ -349,6 +353,24 @@ def create_lucide_icon(
     icon.addPixmap(pixmap)
     _CACHE[cache_key] = icon
     return icon
+```
+
+</details>
+
+## 🔧 Function `lucide_color_for`
+
+```python
+def lucide_color_for(name: str) -> str
+```
+
+Return the CodeStyle hex color for Lucide ID `name` (or dark default).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def lucide_color_for(name: str) -> str:
+    return LUCIDE_ICON_COLORS.get(name, LUCIDE_COLOR_DARK)
 ```
 
 </details>
@@ -434,7 +456,8 @@ def make_lucide_push_button(label: str, name: str, *, icon_size: int = DEFAULT_L
 
 Create a push button with a Lucide icon.
 
-Labels that are Cancel (or start with `Cancel`) get the shared red chrome.
+Labels that are Cancel (or start with `Cancel`) get the shared red chrome
+and a white icon on that fill.
 
 <details>
 <summary>Code:</summary>
@@ -452,7 +475,7 @@ def make_lucide_push_button(
     apply_lucide_button_icon(button, name, icon_size=icon_size, color=color)
     folded = label.casefold()
     if folded == "cancel" or folded.startswith("cancel "):
-        style_cancel_button(button)
+        style_cancel_button(button, icon_size=icon_size)
     return button
 ```
 
@@ -492,7 +515,7 @@ def set_action_text_with_lucide_icon(
 ## 🔧 Function `style_accept_button`
 
 ```python
-def style_accept_button(button: QAbstractButton) -> None
+def style_accept_button(button: QAbstractButton, *, icon_size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE) -> None
 ```
 
 Paint an accept action (OK / Apply / Save) with the shared green chrome.
@@ -501,8 +524,13 @@ Paint an accept action (OK / Apply / Save) with the shared green chrome.
 <summary>Code:</summary>
 
 ```python
-def style_accept_button(button: QAbstractButton) -> None:
+def style_accept_button(
+    button: QAbstractButton,
+    *,
+    icon_size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE,
+) -> None:
     button.setStyleSheet(ACCEPT_BUTTON_STYLE)
+    _recolor_filled_button_icon(button, icon_size=icon_size)
 ```
 
 </details>
@@ -510,17 +538,22 @@ def style_accept_button(button: QAbstractButton) -> None:
 ## 🔧 Function `style_cancel_button`
 
 ```python
-def style_cancel_button(button: QAbstractButton) -> None
+def style_cancel_button(button: QAbstractButton, *, icon_size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE) -> None
 ```
 
-Paint a cancel/reject action with the shared red chrome.
+Paint a cancel/reject/delete action with the shared red chrome.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def style_cancel_button(button: QAbstractButton) -> None:
+def style_cancel_button(
+    button: QAbstractButton,
+    *,
+    icon_size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE,
+) -> None:
     button.setStyleSheet(CANCEL_BUTTON_STYLE)
+    _recolor_filled_button_icon(button, icon_size=icon_size)
 ```
 
 </details>

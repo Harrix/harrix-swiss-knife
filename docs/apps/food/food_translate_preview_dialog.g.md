@@ -100,7 +100,7 @@ class FoodTranslatePreviewDialog(QDialog):
 
         button_box = QDialogButtonBox(self)
         apply_button = button_box.addButton("Apply translations", QDialogButtonBox.ButtonRole.AcceptRole)
-        apply_button.setIcon(create_lucide_icon(OK_BUTTON_ICON))
+        apply_lucide_button_icon(apply_button, OK_BUTTON_ICON)
         button_box.addButton(QDialogButtonBox.StandardButton.Cancel)
         apply_lucide_dialog_buttons(button_box)
         apply_button.setDefault(True)
@@ -228,7 +228,7 @@ def __init__(
 
         button_box = QDialogButtonBox(self)
         apply_button = button_box.addButton("Apply translations", QDialogButtonBox.ButtonRole.AcceptRole)
-        apply_button.setIcon(create_lucide_icon(OK_BUTTON_ICON))
+        apply_lucide_button_icon(apply_button, OK_BUTTON_ICON)
         button_box.addButton(QDialogButtonBox.StandardButton.Cancel)
         apply_lucide_dialog_buttons(button_box)
         apply_button.setDefault(True)

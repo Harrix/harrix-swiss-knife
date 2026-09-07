@@ -1,8 +1,9 @@
 """Qt helper for Lucide stroke SVG icons.
 
 UI chrome loads icons by Lucide ID (`save`, `trash`, …) from `assets/lucide/`.
-`currentColor` is replaced with the application palette so icons follow the
-theme. Action tray emojis and user-content emojis stay in `qt_emoji_icon`.
+`currentColor` is replaced with a CodeStyle semantic color (or an explicit
+`color=` override). Action tray emojis and user-content emojis stay in
+`qt_emoji_icon`.
 
 Browse names at https://lucide.dev/icons. Refresh SVGs with
 `python src/harrix_swiss_knife/assets/sync_lucide_icons.py`.
@@ -23,13 +24,11 @@ from PySide6.QtGui import (
     QGuiApplication,
     QIcon,
     QPainter,
-    QPalette,
     QPixmap,
 )
 from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import (
     QAbstractButton,
-    QApplication,
     QDialogButtonBox,
     QMenu,
     QMenuBar,
@@ -53,9 +52,60 @@ CLOSE_BUTTON_ICON = "x"
 COPY_BUTTON_ICON = "clipboard-copy"
 DELETE_BUTTON_ICON = "trash"
 AI_BUTTON_ICON = "sparkles"
-AI_BUTTON_ICON_COLOR = "#2e86b7"
+
+# Harrix CodeStyle vector palette (style__vector-images.md).
+LUCIDE_COLOR_BLUE = "#2e86b7"
+LUCIDE_COLOR_CYAN = "#79b1d1"
+LUCIDE_COLOR_TURQUOISE = "#038387"
+LUCIDE_COLOR_GREEN = "#4caf50"
+LUCIDE_COLOR_GREEN_2 = "#35965f"
+LUCIDE_COLOR_RED = "#cc584c"
+LUCIDE_COLOR_ORANGE = "#ffa000"
+LUCIDE_COLOR_YELLOW = "#eec646"
+LUCIDE_COLOR_DARK = "#122a3a"
+LUCIDE_COLOR_ON_FILLED = "#f4f4f4"
+
+AI_BUTTON_ICON_COLOR = LUCIDE_COLOR_BLUE
 ACCEPT_BUTTON_STYLE = "QPushButton { background-color: #4CAF50; color: white; }"
 CANCEL_BUTTON_STYLE = "QPushButton { background-color: #ff6b6b; color: white; }"
+
+_LUCIDE_NAME_PROP = "_harrix_lucide_name"
+
+# Semantic Lucide ID → CodeStyle hex (unlisted IDs use LUCIDE_COLOR_DARK).
+LUCIDE_ICON_COLORS: dict[str, str] = {
+    "archive-restore": LUCIDE_COLOR_GREEN,
+    "check": LUCIDE_COLOR_GREEN,
+    "circle-check": LUCIDE_COLOR_GREEN,
+    "download": LUCIDE_COLOR_GREEN,
+    "plus": LUCIDE_COLOR_GREEN,
+    "save": LUCIDE_COLOR_GREEN,
+    "square-check": LUCIDE_COLOR_GREEN,
+    "upload": LUCIDE_COLOR_GREEN,
+    "ban": LUCIDE_COLOR_RED,
+    "circle-x": LUCIDE_COLOR_RED,
+    "trash": LUCIDE_COLOR_RED,
+    "x": LUCIDE_COLOR_RED,
+    "info": LUCIDE_COLOR_BLUE,
+    "link": LUCIDE_COLOR_BLUE,
+    "search": LUCIDE_COLOR_BLUE,
+    "settings": LUCIDE_COLOR_BLUE,
+    "sparkles": LUCIDE_COLOR_BLUE,
+    "clipboard-copy": LUCIDE_COLOR_CYAN,
+    "clipboard-list": LUCIDE_COLOR_CYAN,
+    "clipboard-paste": LUCIDE_COLOR_CYAN,
+    "copy": LUCIDE_COLOR_CYAN,
+    "refresh-cw": LUCIDE_COLOR_TURQUOISE,
+    "rotate-ccw": LUCIDE_COLOR_TURQUOISE,
+    "rotate-cw": LUCIDE_COLOR_TURQUOISE,
+    "undo-2": LUCIDE_COLOR_TURQUOISE,
+    "edit": LUCIDE_COLOR_ORANGE,
+    "pencil": LUCIDE_COLOR_ORANGE,
+    "scissors": LUCIDE_COLOR_ORANGE,
+    "square-pen": LUCIDE_COLOR_ORANGE,
+    "alert-triangle": LUCIDE_COLOR_YELLOW,
+    "star": LUCIDE_COLOR_YELLOW,
+    "trophy": LUCIDE_COLOR_YELLOW,
+}
 
 _ICON_NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 _CACHE: dict[tuple[str, int, str, float], QIcon] = {}
@@ -291,6 +341,7 @@ def apply_lucide_button_icon(
     """Set a Lucide icon on an existing button."""
     button.setIcon(create_lucide_icon(name, icon_size, color=color))
     button.setIconSize(QSize(icon_size, icon_size))
+    button.setProperty(_LUCIDE_NAME_PROP, name)
 
 
 def apply_lucide_dialog_buttons(
@@ -300,7 +351,8 @@ def apply_lucide_dialog_buttons(
 ) -> None:
     """Set Lucide icons on standard `QDialogButtonBox` buttons when present.
 
-    Also paints OK / Apply / Save / Yes green and Cancel / No / Reject red.
+    Also paints OK / Apply / Save / Yes green and Cancel / No / Reject red,
+    with white icons on those filled backgrounds.
 
     """
     for standard_button, name in (
@@ -322,12 +374,12 @@ def apply_lucide_dialog_buttons(
             QDialogButtonBox.ButtonRole.ApplyRole,
             QDialogButtonBox.ButtonRole.YesRole,
         ):
-            style_accept_button(button)
+            style_accept_button(button, icon_size=icon_size)
         elif role in (
             QDialogButtonBox.ButtonRole.RejectRole,
             QDialogButtonBox.ButtonRole.NoRole,
         ):
-            style_cancel_button(button)
+            style_cancel_button(button, icon_size=icon_size)
 
 
 def create_ai_lucide_icon(size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE) -> QIcon:
@@ -344,13 +396,14 @@ def create_lucide_icon(
 ) -> QIcon:
     """Create a square `QIcon` from a Lucide SVG ID.
 
+    When `color` is omitted, uses the CodeStyle semantic color for `name`.
     Unknown names log a warning and return an empty icon.
 
     """
     ratio = device_pixel_ratio if device_pixel_ratio is not None else _lucide_device_pixel_ratio()
     if ratio <= 0:
         ratio = 1.0
-    paint_color = QColor(color) if color is not None else _lucide_palette_color()
+    paint_color = QColor(color) if color is not None else QColor(lucide_color_for(name))
     cache_key = (name, size, paint_color.name(QColor.NameFormat.HexArgb), ratio)
     cached = _CACHE.get(cache_key)
     if cached is not None:
@@ -378,6 +431,11 @@ def create_lucide_icon(
     icon.addPixmap(pixmap)
     _CACHE[cache_key] = icon
     return icon
+
+
+def lucide_color_for(name: str) -> str:
+    """Return the CodeStyle hex color for Lucide ID `name` (or dark default)."""
+    return LUCIDE_ICON_COLORS.get(name, LUCIDE_COLOR_DARK)
 
 
 def lucide_name_for_chrome_emoji(emoji: str) -> str | None:
@@ -424,14 +482,15 @@ def make_lucide_push_button(
 ) -> QPushButton:
     """Create a push button with a Lucide icon.
 
-    Labels that are Cancel (or start with `Cancel`) get the shared red chrome.
+    Labels that are Cancel (or start with `Cancel`) get the shared red chrome
+    and a white icon on that fill.
 
     """
     button = QPushButton(label, parent)
     apply_lucide_button_icon(button, name, icon_size=icon_size, color=color)
     folded = label.casefold()
     if folded == "cancel" or folded.startswith("cancel "):
-        style_cancel_button(button)
+        style_cancel_button(button, icon_size=icon_size)
     return button
 
 
@@ -455,14 +514,24 @@ def set_action_text_with_lucide_icon(
     apply_leading_chrome_icon(action, icon_size=icon_size)
 
 
-def style_accept_button(button: QAbstractButton) -> None:
+def style_accept_button(
+    button: QAbstractButton,
+    *,
+    icon_size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE,
+) -> None:
     """Paint an accept action (OK / Apply / Save) with the shared green chrome."""
     button.setStyleSheet(ACCEPT_BUTTON_STYLE)
+    _recolor_filled_button_icon(button, icon_size=icon_size)
 
 
-def style_cancel_button(button: QAbstractButton) -> None:
-    """Paint a cancel/reject action with the shared red chrome."""
+def style_cancel_button(
+    button: QAbstractButton,
+    *,
+    icon_size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE,
+) -> None:
+    """Paint a cancel/reject/delete action with the shared red chrome."""
     button.setStyleSheet(CANCEL_BUTTON_STYLE)
+    _recolor_filled_button_icon(button, icon_size=icon_size)
 
 
 def _is_ai_chrome_emoji(emoji: str) -> bool:
@@ -485,13 +554,6 @@ def _lucide_dir() -> Path:
     return Path(__file__).resolve().parent / "assets" / "lucide"
 
 
-def _lucide_palette_color() -> QColor:
-    app = QApplication.instance()
-    if isinstance(app, QApplication):
-        return QColor(app.palette().color(QPalette.ColorRole.WindowText))
-    return QColor("#111827")
-
-
 def _lucide_svg_bytes(name: str, color: QColor) -> bytes | None:
     path = lucide_svg_path(name)
     if path is None:
@@ -500,3 +562,19 @@ def _lucide_svg_bytes(name: str, color: QColor) -> bytes | None:
     hex_color = color.name(QColor.NameFormat.HexRgb)
     text = path.read_text(encoding="utf-8").replace("currentColor", hex_color)
     return text.encode("utf-8")
+
+
+def _recolor_filled_button_icon(
+    button: QAbstractButton,
+    *,
+    icon_size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE,
+) -> None:
+    """Force a white Lucide icon when the button sits on green/red fill."""
+    name = button.property(_LUCIDE_NAME_PROP)
+    if isinstance(name, str) and name:
+        apply_lucide_button_icon(
+            button,
+            name,
+            icon_size=icon_size,
+            color=LUCIDE_COLOR_ON_FILLED,
+        )

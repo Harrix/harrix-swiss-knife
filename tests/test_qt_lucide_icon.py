@@ -4,18 +4,24 @@ from __future__ import annotations
 
 import pytest
 from PySide6.QtCore import QSize
-from PySide6.QtGui import QColor, QPalette
+from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QApplication, QDialogButtonBox, QMenu
 
 from harrix_swiss_knife import qt_lucide_icon as lucide_mod
 from harrix_swiss_knife.qt_lucide_icon import (
     ACCEPT_BUTTON_STYLE,
     CANCEL_BUTTON_STYLE,
+    LUCIDE_COLOR_BLUE,
+    LUCIDE_COLOR_DARK,
+    LUCIDE_COLOR_GREEN,
+    LUCIDE_COLOR_ON_FILLED,
+    LUCIDE_COLOR_RED,
     add_lucide_action,
     apply_leading_chrome_icons,
     apply_lucide_dialog_buttons,
     create_ai_lucide_icon,
     create_lucide_icon,
+    lucide_color_for,
     lucide_name_for_chrome_emoji,
     lucide_svg_path,
     make_lucide_push_button,
@@ -34,6 +40,22 @@ def qapp() -> QApplication:
         msg = "QApplication.instance() returned a non-QApplication object."
         raise TypeError(msg)
     return app
+
+
+def _first_opaque_pixel(icon_name: str, *, color: str | None = None) -> QColor:
+    lucide_mod._CACHE.clear()
+    icon = create_lucide_icon(icon_name, 24, color=color, device_pixel_ratio=1.0)
+    pixmap = icon.pixmap(QSize(24, 24), 1.0)
+    image = pixmap.toImage()
+    for y in range(image.height()):
+        for x in range(image.width()):
+            pixel = QColor(image.pixelColor(x, y))
+            if pixel.alpha() >= 32:
+                lucide_mod._CACHE.clear()
+                return pixel
+    lucide_mod._CACHE.clear()
+    msg = f"No opaque pixels in Lucide icon {icon_name!r}"
+    raise AssertionError(msg)
 
 
 def test_lucide_svg_path_accepts_known_ids() -> None:
@@ -63,33 +85,28 @@ def test_create_lucide_icon_uses_device_pixel_ratio(qapp: QApplication) -> None:
     assert pixmap.height() == 40
 
 
-def test_create_lucide_icon_recolors_from_palette(qapp: QApplication) -> None:
+def test_lucide_color_for_semantic_map() -> None:
+    assert lucide_color_for("trash") == LUCIDE_COLOR_RED
+    assert lucide_color_for("circle-check") == LUCIDE_COLOR_GREEN
+    assert lucide_color_for("sparkles") == LUCIDE_COLOR_BLUE
+    assert lucide_color_for("folder") == LUCIDE_COLOR_DARK
+
+
+def test_create_lucide_icon_uses_semantic_colors(qapp: QApplication) -> None:
     assert qapp is not None
-    previous = qapp.palette()
-    palette = QPalette(previous)
-    palette.setColor(QPalette.ColorRole.WindowText, QColor("#ff00aa"))
-    qapp.setPalette(palette)
-    try:
-        lucide_mod._CACHE.clear()
-        icon = create_lucide_icon("x", 24, device_pixel_ratio=1.0)
-        pixmap = icon.pixmap(QSize(24, 24), 1.0)
-        image = pixmap.toImage()
-        found = False
-        for y in range(image.height()):
-            for x in range(image.width()):
-                pixel = QColor(image.pixelColor(x, y))
-                if pixel.alpha() < 32:
-                    continue
-                assert pixel.red() > 180
-                assert pixel.blue() > 120
-                found = True
-                break
-            if found:
-                break
-        assert found
-    finally:
-        qapp.setPalette(previous)
-        lucide_mod._CACHE.clear()
+    trash = _first_opaque_pixel("trash")
+    check = _first_opaque_pixel("circle-check")
+    sparkles = _first_opaque_pixel("sparkles")
+    assert trash.red() > trash.green()
+    assert check.green() > check.red()
+    assert sparkles.blue() > sparkles.red()
+
+
+def test_create_lucide_icon_explicit_color_overrides_map(qapp: QApplication) -> None:
+    assert qapp is not None
+    pixel = _first_opaque_pixel("trash", color="#ff00aa")
+    assert pixel.red() > 180
+    assert pixel.blue() > 120
 
 
 def test_add_lucide_action_keeps_plain_label(qapp: QApplication) -> None:
@@ -195,6 +212,39 @@ def test_style_accept_button_sets_shared_green(qapp: QApplication) -> None:
     button = make_lucide_push_button("OK", "circle-check")
     style_accept_button(button)
     assert button.styleSheet() == ACCEPT_BUTTON_STYLE
+
+
+def test_filled_accept_and_cancel_use_on_filled_white_icons(qapp: QApplication) -> None:
+    assert qapp is not None
+    lucide_mod._CACHE.clear()
+    ok = make_lucide_push_button("OK", "circle-check")
+    style_accept_button(ok)
+    cancel = make_lucide_push_button("Cancel", "x")
+    ok_pixel = None
+    cancel_pixel = None
+    for button, store in ((ok, "ok"), (cancel, "cancel")):
+        pixmap = button.icon().pixmap(QSize(18, 18), 1.0)
+        image = pixmap.toImage()
+        for y in range(image.height()):
+            for x in range(image.width()):
+                pixel = QColor(image.pixelColor(x, y))
+                if pixel.alpha() < 32:
+                    continue
+                if store == "ok":
+                    ok_pixel = pixel
+                else:
+                    cancel_pixel = pixel
+                break
+            if (store == "ok" and ok_pixel is not None) or (store == "cancel" and cancel_pixel is not None):
+                break
+    assert ok_pixel is not None
+    assert cancel_pixel is not None
+    on_filled = QColor(LUCIDE_COLOR_ON_FILLED)
+    assert abs(ok_pixel.red() - on_filled.red()) < 40
+    assert abs(ok_pixel.green() - on_filled.green()) < 40
+    assert abs(ok_pixel.blue() - on_filled.blue()) < 40
+    assert abs(cancel_pixel.red() - on_filled.red()) < 40
+    lucide_mod._CACHE.clear()
 
 
 def test_make_lucide_push_button_paints_cancel_red(qapp: QApplication) -> None:
