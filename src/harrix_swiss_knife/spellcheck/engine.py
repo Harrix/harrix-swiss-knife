@@ -87,6 +87,26 @@ class SpellEngine:
                 log.exception("Spellcheck lookup failed for %r", word)
         return False
 
+    def suggest(self, word: str, *, limit: int = 7) -> list[str]:
+        """Return up to `limit` unique suggestions from en and ru dictionaries."""
+        cleaned = word.strip()
+        if not cleaned or not self.ensure_loaded() or limit <= 0:
+            return []
+        seen: set[str] = {cleaned, cleaned.casefold()}
+        suggestions: list[str] = []
+        for dictionary in self._dicts:
+            try:
+                for candidate in dictionary.suggest(cleaned):
+                    if not candidate or candidate.casefold() in seen:
+                        continue
+                    seen.add(candidate.casefold())
+                    suggestions.append(candidate)
+                    if len(suggestions) >= limit:
+                        return suggestions
+            except Exception:
+                log.exception("Spellcheck suggest failed for %r", cleaned)
+        return suggestions
+
     def add_to_user_dictionary(self, word: str) -> bool:
         """Persist `word` in the personal dictionary and refresh in-memory set.
 

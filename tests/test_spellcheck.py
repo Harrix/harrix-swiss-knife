@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife.spellcheck.context_menu import replace_word_span
 from harrix_swiss_knife.spellcheck.engine import SpellEngine, reset_spell_engine_for_tests
 from harrix_swiss_knife.spellcheck.install import should_attach_spellcheck, widget_is_inside_item_view
 from harrix_swiss_knife.spellcheck.tokenize import iter_word_spans, word_at_index
@@ -89,6 +90,20 @@ def test_engine_lookup_en_ru_and_user(dicts_dir: Path, tmp_path: Path) -> None:
     assert not engine.lookup("zzzznotawordzzz")
     assert engine.add_to_user_dictionary("zzzznotawordzzz")
     assert engine.lookup("zzzznotawordzzz")
+
+
+def test_engine_suggest_russian_typo(dicts_dir: Path, tmp_path: Path) -> None:
+    engine = SpellEngine(dictionaries_dir=dicts_dir, user_dict_path=tmp_path / "user.txt")
+    assert engine.ensure_loaded()
+    suggestions = engine.suggest("преехал", limit=5)
+    assert "приехал" in suggestions
+
+
+def test_replace_word_span_line_edit(qapp: QApplication) -> None:  # noqa: ARG001
+    line = QLineEdit("foo bar baz")
+    replace_word_span(line, 4, 7, "qux")
+    assert line.text() == "foo qux baz"
+    assert line.cursorPosition() == 7
 
 
 def test_exclude_table_editor(qapp: QApplication) -> None:  # noqa: ARG001

@@ -19,8 +19,8 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife.spellcheck.context_menu import (
     TextEditor,
-    add_dictionary_action,
     is_text_editor,
+    populate_spellcheck_menu,
 )
 from harrix_swiss_knife.spellcheck.engine import SpellEngine, get_spell_engine
 from harrix_swiss_knife.spellcheck.highlighter import SpellHighlighter
@@ -86,10 +86,10 @@ def attach_to_widget(widget: QWidget, engine: SpellEngine | None = None) -> bool
         controller = LineEditSpellController(widget, spell)
         widget.setProperty(_PROP_CONTROLLER, controller)
 
-        def _on_added(_word: str) -> None:
+        def _on_changed() -> None:
             controller.refresh()
 
-        _install_context_hook(widget, spell, _on_added)
+        _install_context_hook(widget, spell, _on_changed)
         return True
 
     if isinstance(widget, (QPlainTextEdit, QTextEdit)):
@@ -108,10 +108,10 @@ def attach_to_widget(widget: QWidget, engine: SpellEngine | None = None) -> bool
         debounce.timeout.connect(_rehighlight)
         widget.textChanged.connect(_schedule_rehighlight)
 
-        def _on_added(_word: str) -> None:
+        def _on_changed() -> None:
             highlighter.rehighlight_all()
 
-        _install_context_hook(widget, spell, _on_added)
+        _install_context_hook(widget, spell, _on_changed)
         return True
 
     return False
@@ -120,26 +120,20 @@ def attach_to_widget(widget: QWidget, engine: SpellEngine | None = None) -> bool
 def _install_context_hook(
     widget: TextEditor,
     engine: SpellEngine,
-    on_added: Callable[[str], None],
+    on_changed: Callable[[], None],
 ) -> None:
     def context_menu_event(event: QContextMenuEvent) -> None:
         menu: QMenu | None = widget.createStandardContextMenu()
         if menu is None:
             event.ignore()
             return
-        added = add_dictionary_action(
+        populate_spellcheck_menu(
             menu,
             widget,
             engine=engine,
             global_pos=event.globalPos(),
-            on_added=on_added,
+            on_changed=on_changed,
         )
-        if added is not None:
-            actions = menu.actions()
-            if actions and added is not actions[0]:
-                menu.removeAction(added)
-                menu.insertAction(actions[0], added)
-                menu.insertSeparator(actions[0])
         menu.exec(event.globalPos())
         event.accept()
 
