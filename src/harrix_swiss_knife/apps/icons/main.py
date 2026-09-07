@@ -150,6 +150,7 @@ from harrix_swiss_knife.paths import get_config_path_str
 from harrix_swiss_knife.qt_lucide_icon import (
     COPY_BUTTON_ICON,
     apply_leading_chrome_button_icon,
+    apply_leading_chrome_icons,
     apply_lucide_dialog_buttons,
     make_lucide_push_button,
     set_action_text_with_lucide_icon,
@@ -748,6 +749,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.actionExit = file_menu.addAction("E&xit")
         help_menu = self.menuBar().addMenu("&Help")
         self.actionAbout = help_menu.addAction("&About")
+        apply_leading_chrome_icons(file_menu)
+        apply_leading_chrome_icons(help_menu)
         self._style_window_menu_bar()
         self._connect_exit_about_actions()
         self._apply_exit_about_menu_emojis()

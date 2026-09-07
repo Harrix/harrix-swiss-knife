@@ -346,9 +346,9 @@ class ActionDialogService:
 
         selection_buttons_layout = QHBoxLayout()
 
-        select_all_button = QPushButton("✅ Select All")
-        deselect_all_button = QPushButton("❌ Deselect All")
-        extension_filter_button = QPushButton("🧩 Select by extension…")
+        select_all_button = make_lucide_push_button("Select All", "square-check")
+        deselect_all_button = make_lucide_push_button("Deselect All", "square")
+        extension_filter_button = make_lucide_push_button("Select by extension…", "puzzle")
         extension_filter_button.setVisible(enable_extension_filter)
 
         def select_all() -> None:
@@ -791,8 +791,8 @@ class ActionDialogService:
             group_layout.addWidget(scroll_area)
 
             selection_buttons_layout = QHBoxLayout()
-            select_all_button = QPushButton("✅ Select All")
-            deselect_all_button = QPushButton("❌ Deselect All")
+            select_all_button = make_lucide_push_button("Select All", "square-check")
+            deselect_all_button = make_lucide_push_button("Deselect All", "square")
 
             def select_all(boxes: list[QCheckBox] = checkboxes) -> None:
                 for checkbox in boxes:
@@ -1146,7 +1146,7 @@ class ActionDialogService:
             le.setText(default_value or "")
             input_layout.addWidget(le)
 
-            browse_button = QPushButton("📁 Browse folder...")
+            browse_button = make_lucide_push_button("Browse folder...", "folder")
 
             def on_browse_clicked() -> None:
                 folder_path = QFileDialog.getExistingDirectory(

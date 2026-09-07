@@ -5,7 +5,7 @@ from __future__ import annotations
 import contextlib
 from typing import TYPE_CHECKING, Literal, cast
 
-from PySide6.QtCore import QEvent, QPointF, QRectF, Qt, QTimer, Signal
+from PySide6.QtCore import QEvent, QPointF, QRectF, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QColor, QCursor, QFont, QGuiApplication, QIntValidator, QPainter, QPainterPath, QPen
 from PySide6.QtWidgets import (
     QApplication,
@@ -28,6 +28,7 @@ from harrix_swiss_knife.apps.habits.dashboard_widgets import (
     paint_habit_day_circle,
     weekday_short,
 )
+from harrix_swiss_knife.qt_lucide_icon import create_lucide_icon
 
 if TYPE_CHECKING:
     from datetime import date
@@ -389,7 +390,9 @@ class HabitDayPickerPopup(QWidget):
         comment_column.setContentsMargins(0, 0, 0, 0)
         comment_column.setSpacing(4)
         comment_column.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        comment_button = QPushButton("💬")
+        comment_button = QPushButton()
+        comment_button.setIcon(create_lucide_icon("message-square", 14))
+        comment_button.setIconSize(QSize(14, 14))
         comment_button.setFixedSize(_OPTION_CIRCLE_SIZE, _OPTION_CIRCLE_SIZE)
         comment_button.setCursor(Qt.CursorShape.PointingHandCursor)
         comment_button.setToolTip("Comment")
@@ -399,7 +402,7 @@ class HabitDayPickerPopup(QWidget):
                 background: #FFFBEB;
                 border: 1px solid #F59E0B;
                 border-radius: 13px;
-                font-size: 13px;
+                padding: 0px;
             }
             QPushButton:hover { background: #FEF3C7; }
             """

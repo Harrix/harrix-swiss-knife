@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from PySide6.QtCore import QDate, Qt, QTimer, QUrl
-from PySide6.QtGui import QAction, QDesktopServices, QGuiApplication
+from PySide6.QtGui import QDesktopServices, QGuiApplication
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -70,6 +70,7 @@ from harrix_swiss_knife.qt_lucide_icon import (
     AI_BUTTON_ICON,
     CANCEL_BUTTON_ICON,
     OK_BUTTON_ICON,
+    add_lucide_action,
     make_ai_lucide_push_button,
     make_lucide_push_button,
 )
@@ -429,40 +430,37 @@ class TemplateDialog(QDialog):
         row_layout.setContentsMargins(0, 0, 0, 0)
         row_layout.addWidget(line_edit, 1)
 
-        check_button = QPushButton("🗺️ Check")
+        check_button = make_lucide_push_button("Check", "map")
         check_button.setToolTip("Open the current coordinates in a map service")
         check_menu = QMenu(check_button)
-        for label, builder in (
-            ("🌐 Google", build_google_maps_url),
-            ("🟡 Yandex", build_yandex_maps_url),
-            ("🗺️ OSM", build_openstreetmap_url),
+        for label, icon_name, builder in (
+            ("Google", "globe", build_google_maps_url),
+            ("Yandex", "map", build_yandex_maps_url),
+            ("OSM", "map", build_openstreetmap_url),
         ):
-            action = QAction(label, check_menu)
+            action = add_lucide_action(check_menu, label, icon_name)
             action.triggered.connect(
                 lambda _checked=False, b=builder: self._on_check_coordinates(line_edit, b),
             )
-            check_menu.addAction(action)
         check_button.setMenu(check_menu)
         row_layout.addWidget(check_button)
 
-        extract_button = QPushButton("📍 Extract")
+        extract_button = make_lucide_push_button("Extract", "map-pin")
         extract_button.setToolTip("Extract coordinates from a map link or from images")
         extract_menu = QMenu(extract_button)
-        for label, service in (
-            ("🌐 Google", "Google Maps"),
-            ("🟡 Yandex", "Yandex Maps"),
-            ("🗺️ OSM", "OpenStreetMap"),
+        for label, icon_name, service in (
+            ("Google", "globe", "Google Maps"),
+            ("Yandex", "map", "Yandex Maps"),
+            ("OSM", "map", "OpenStreetMap"),
         ):
-            action = QAction(label, extract_menu)
+            action = add_lucide_action(extract_menu, label, icon_name)
             action.triggered.connect(
                 lambda _checked=False, s=service: self._on_extract_coordinates_from_map(line_edit, s),
             )
-            extract_menu.addAction(action)
-        from_images_action = QAction("🖼️ From images", extract_menu)
+        from_images_action = add_lucide_action(extract_menu, "From images", "image")
         from_images_action.triggered.connect(
             lambda _checked=False: self._on_extract_coordinates_from_images(line_edit),
         )
-        extract_menu.addAction(from_images_action)
         extract_button.setMenu(extract_menu)
         row_layout.addWidget(extract_button)
 
@@ -565,7 +563,7 @@ class TemplateDialog(QDialog):
         buttons_column = QVBoxLayout()
         buttons_column.setContentsMargins(0, 0, 0, 0)
 
-        fix_button = QPushButton("🤖 Fix with AI")
+        fix_button = make_ai_lucide_push_button("Fix with AI")
         if self._app_config is None:
             fix_button.setEnabled(False)
             fix_button.setToolTip("BotHub is not configured for this dialog.")
@@ -574,7 +572,7 @@ class TemplateDialog(QDialog):
         buttons_column.addWidget(fix_button)
         self._multiline_ai_buttons.append(fix_button)
 
-        speech_button = QPushButton("🎙️ Speech to text")
+        speech_button = make_lucide_push_button("Speech to text", "mic")
         if self._app_config is None:
             speech_button.setEnabled(False)
             speech_button.setToolTip("BotHub is not configured for this dialog.")
@@ -601,7 +599,7 @@ class TemplateDialog(QDialog):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(line_edit, 1)
 
-        open_button = QPushButton("🔗 Open")
+        open_button = make_lucide_push_button("Open", "external-link")
         open_button.setToolTip("Open the URL in the default browser")
         open_button.clicked.connect(lambda: self._on_open_url(line_edit))
         layout.addWidget(open_button)
