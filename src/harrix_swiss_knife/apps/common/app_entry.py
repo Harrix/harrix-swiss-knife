@@ -31,7 +31,6 @@ from harrix_swiss_knife.apps.common.app_startup_toast import app_loading_title, 
 from harrix_swiss_knife.apps.common.uic_compile import install_safe_qt_translate
 from harrix_swiss_knife.qt_app_font import install_app_fonts
 from harrix_swiss_knife.qt_flexible_decimal import install_flexible_decimal_separators
-from harrix_swiss_knife.spellcheck import install_spellcheck
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -59,6 +58,8 @@ def run_app_main(
     Defaults to `True`.
 
     """
+    from harrix_swiss_knife.spellcheck import install_spellcheck  # noqa: PLC0415
+
     app = QApplication(sys.argv)
     app.setWindowIcon(QIcon(icon_path))
     install_flexible_decimal_separators(app)

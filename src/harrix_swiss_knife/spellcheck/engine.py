@@ -5,10 +5,12 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 from threading import Lock
-
-from spylls.hunspell import Dictionary
+from typing import TYPE_CHECKING, Any
 
 from harrix_swiss_knife.spellcheck import user_dict as user_dict_mod
+
+if TYPE_CHECKING:
+    from spylls.hunspell import Dictionary
 
 log = logging.getLogger(__name__)
 
@@ -19,6 +21,16 @@ _ENGINE: SpellEngine | None = None
 def bundled_dictionaries_dir() -> Path:
     """Return the directory that holds bundled `.aff` / `.dic` files."""
     return Path(__file__).resolve().parent.parent / "assets" / "dictionaries"
+
+
+def _import_dictionary_class() -> type[Any]:
+    """Import spylls `Dictionary` lazily so CLI imports do not require it."""
+    try:
+        from spylls.hunspell import Dictionary  # noqa: PLC0415
+    except ImportError as exc:
+        msg = "spylls is not installed; run `uv sync` or reinstall the hsk tool"
+        raise ImportError(msg) from exc
+    return Dictionary
 
 
 class SpellEngine:
@@ -56,17 +68,23 @@ class SpellEngine:
             return bool(self._dicts)
         self._loaded = True
         self._set_user_words(user_dict_mod.load_user_words(self._user_dict_path))
+        try:
+            dictionary_cls = _import_dictionary_class()
+        except ImportError as exc:
+            self._load_error = str(exc)
+            log.warning("%s", self._load_error)
+            return False
         for name in ("en_US", "ru_RU"):
             stem = self._dictionaries_dir / name
             if not stem.with_suffix(".dic").is_file() or not stem.with_suffix(".aff").is_file():
                 log.warning("Spellcheck dictionary missing: %s", stem)
                 continue
             try:
-                self._dicts.append(Dictionary.from_files(str(stem)))
+                self._dicts.append(dictionary_cls.from_files(str(stem)))
             except Exception:
                 log.exception("Failed to load spellcheck dictionary %s", stem)
         if not self._dicts:
-            self._load_error = f"No spellcheck dictionaries in {self._dictionaries_dir}"
+            self._load_error = self._load_error or f"No spellcheck dictionaries in {self._dictionaries_dir}"
             log.error("%s", self._load_error)
             return False
         return True

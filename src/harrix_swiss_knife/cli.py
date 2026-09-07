@@ -54,7 +54,6 @@ from harrix_swiss_knife.menu_structure import get_menu_structure
 from harrix_swiss_knife.paths import get_project_root
 from harrix_swiss_knife.qt_app_font import install_app_fonts
 from harrix_swiss_knife.qt_flexible_decimal import install_flexible_decimal_separators
-from harrix_swiss_knife.spellcheck import install_spellcheck
 
 
 @click.group()
@@ -1053,6 +1052,8 @@ def _cli_action_failed(result_lines: list[object]) -> bool:
 
 def _ensure_qt_app() -> QApplication:
     """Ensure a QApplication exists (required for interactive dialogs)."""
+    from harrix_swiss_knife.spellcheck import install_spellcheck  # noqa: PLC0415
+
     app = cast("QApplication | None", QApplication.instance())
     if app is None:
         app = QApplication(sys.argv)
