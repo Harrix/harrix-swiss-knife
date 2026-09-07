@@ -572,9 +572,9 @@ def test_icon_details_dialog_has_action_buttons(qapp: QApplication) -> None:  # 
     )
     labels = [btn.text() for btn in dialog.action_buttons]
     assert labels == [
-        "📂 Reveal in File Explorer",
-        "📝 Open note in editor",
-        "✏️ Edit icon…",
+        "Reveal in File Explorer",
+        "Open note in editor",
+        "Edit icon…",
     ]
     assert dialog.action_buttons[1].isEnabled() is False
     dialog.action_buttons[0].click()

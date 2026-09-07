@@ -32,7 +32,6 @@ from harrix_swiss_knife.paths import get_config_path_str
 from harrix_swiss_knife.qt_lucide_icon import (
     apply_lucide_dialog_buttons,
     make_ai_lucide_push_button,
-    make_lucide_push_button,
 )
 
 

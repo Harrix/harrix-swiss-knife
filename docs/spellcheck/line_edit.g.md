@@ -45,7 +45,7 @@ class LineEditSpellController(QObject):
         self._timer.setInterval(_DEBOUNCE_MS)
         self._timer.timeout.connect(self._recompute)
         line_edit.textChanged.connect(self._schedule)
-        line_edit.paintEvent = self._paint_event  # type: ignore[method-assign]
+        line_edit.paintEvent = self._paint_event  # ty: ignore[invalid-assignment]
         self._recompute()
 
     def detach(self) -> None:
@@ -53,7 +53,7 @@ class LineEditSpellController(QObject):
         self._timer.stop()
         with contextlib.suppress(TypeError, RuntimeError):
             self._line_edit.textChanged.disconnect(self._schedule)
-        self._line_edit.paintEvent = self._original_paint  # type: ignore[method-assign]
+        self._line_edit.paintEvent = self._original_paint  # ty: ignore[invalid-assignment]
         self._misspellings.clear()
         self._line_edit.update()
 
@@ -90,7 +90,7 @@ class LineEditSpellController(QObject):
             x2 = min(x2, float(contents.right()))
             _draw_wave(painter, x1, x2, float(underline_y))
 
-    def _paint_event(self, event: object) -> None:
+    def _paint_event(self, event: QPaintEvent) -> None:
         self._original_paint(event)
         if not self._misspellings:
             return
@@ -138,7 +138,7 @@ def __init__(self, line_edit: QLineEdit, engine: SpellEngine | None = None) -> N
         self._timer.setInterval(_DEBOUNCE_MS)
         self._timer.timeout.connect(self._recompute)
         line_edit.textChanged.connect(self._schedule)
-        line_edit.paintEvent = self._paint_event  # type: ignore[method-assign]
+        line_edit.paintEvent = self._paint_event  # ty: ignore[invalid-assignment]
         self._recompute()
 ```
 
@@ -160,7 +160,7 @@ def detach(self) -> None:
         self._timer.stop()
         with contextlib.suppress(TypeError, RuntimeError):
             self._line_edit.textChanged.disconnect(self._schedule)
-        self._line_edit.paintEvent = self._original_paint  # type: ignore[method-assign]
+        self._line_edit.paintEvent = self._original_paint  # ty: ignore[invalid-assignment]
         self._misspellings.clear()
         self._line_edit.update()
 ```

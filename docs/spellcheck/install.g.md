@@ -210,7 +210,7 @@ def scan_and_attach(root: QWidget | None = None, engine: SpellEngine | None = No
             return 0
         widgets: list[QWidget] = list(app.allWidgets())
     else:
-        widgets = [root, *cast("list[QWidget]", root.findChildren(QWidget))]
+        widgets = [root, *root.findChildren(QWidget)]
     for widget in widgets:
         if is_text_editor(widget) and attach_to_widget(widget, spell):
             count += 1

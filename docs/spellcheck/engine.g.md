@@ -380,7 +380,11 @@ Return the directory that holds bundled `.aff` / `.dic` files.
 
 ```python
 def bundled_dictionaries_dir() -> Path:
-    return Path(__file__).resolve().parent.parent / "assets" / "dictionaries"
+    base = Path(__file__).resolve().parent.parent / "assets" / "dictionaries"
+    nested = base / "files"
+    if (nested / "en_US.dic").is_file() and (nested / "en_US.aff").is_file():
+        return nested
+    return base
 ```
 
 </details>

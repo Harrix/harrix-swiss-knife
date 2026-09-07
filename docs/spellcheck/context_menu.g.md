@@ -267,7 +267,7 @@ def popup_spellcheck_menu(
     if populate_spellcheck_menu(menu, widget, engine=engine, global_pos=pos, on_changed=on_changed) == 0:
         menu.deleteLater()
         return False
-    menu.exec(pos)
+    menu.exec_(pos)
     return True
 ```
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QChildEvent, QEvent, QObject, QTimer
 from PySide6.QtWidgets import (
@@ -130,7 +130,7 @@ def scan_and_attach(root: QWidget | None = None, engine: SpellEngine | None = No
             return 0
         widgets: list[QWidget] = list(app.allWidgets())
     else:
-        widgets = [root, *cast("list[QWidget]", root.findChildren(QWidget))]
+        widgets = [root, *root.findChildren(QWidget)]
     for widget in widgets:
         if is_text_editor(widget) and attach_to_widget(widget, spell):
             count += 1
@@ -190,7 +190,7 @@ def _install_context_hook(
             global_pos=event.globalPos(),
             on_changed=on_changed,
         )
-        menu.exec(event.globalPos())
+        menu.exec_(event.globalPos())
         event.accept()
 
-    widget.contextMenuEvent = context_menu_event  # type: ignore[method-assign]
+    widget.contextMenuEvent = context_menu_event  # ty: ignore[invalid-assignment]

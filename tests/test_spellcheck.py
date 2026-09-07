@@ -17,7 +17,11 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife.spellcheck.context_menu import replace_word_span
-from harrix_swiss_knife.spellcheck.engine import SpellEngine, reset_spell_engine_for_tests
+from harrix_swiss_knife.spellcheck.engine import (
+    SpellEngine,
+    bundled_dictionaries_dir,
+    reset_spell_engine_for_tests,
+)
 from harrix_swiss_knife.spellcheck.install import should_attach_spellcheck, widget_is_inside_item_view
 from harrix_swiss_knife.spellcheck.tokenize import iter_word_spans, word_at_index
 from harrix_swiss_knife.spellcheck.user_dict import add_user_word, load_user_words, save_user_words
@@ -36,7 +40,7 @@ def qapp() -> QApplication:
 
 @pytest.fixture
 def dicts_dir() -> Path:
-    return Path(__file__).resolve().parents[1] / "src" / "harrix_swiss_knife" / "assets" / "dictionaries"
+    return bundled_dictionaries_dir()
 
 
 def test_tokenize_mixed_ru_en() -> None:

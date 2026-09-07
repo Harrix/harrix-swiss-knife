@@ -5,7 +5,7 @@ from __future__ import annotations
 import contextlib
 
 from PySide6.QtCore import QObject, QRect, QTimer
-from PySide6.QtGui import QColor, QFontMetrics, QPainter, QPainterPath, QPen
+from PySide6.QtGui import QColor, QFontMetrics, QPainter, QPainterPath, QPaintEvent, QPen
 from PySide6.QtWidgets import QLineEdit, QStyle, QStyleOptionFrame
 
 from harrix_swiss_knife.spellcheck.engine import SpellEngine, get_spell_engine
@@ -30,7 +30,7 @@ class LineEditSpellController(QObject):
         self._timer.setInterval(_DEBOUNCE_MS)
         self._timer.timeout.connect(self._recompute)
         line_edit.textChanged.connect(self._schedule)
-        line_edit.paintEvent = self._paint_event  # type: ignore[method-assign]
+        line_edit.paintEvent = self._paint_event  # ty: ignore[invalid-assignment]
         self._recompute()
 
     def detach(self) -> None:
@@ -38,7 +38,7 @@ class LineEditSpellController(QObject):
         self._timer.stop()
         with contextlib.suppress(TypeError, RuntimeError):
             self._line_edit.textChanged.disconnect(self._schedule)
-        self._line_edit.paintEvent = self._original_paint  # type: ignore[method-assign]
+        self._line_edit.paintEvent = self._original_paint  # ty: ignore[invalid-assignment]
         self._misspellings.clear()
         self._line_edit.update()
 
@@ -75,7 +75,7 @@ class LineEditSpellController(QObject):
             x2 = min(x2, float(contents.right()))
             _draw_wave(painter, x1, x2, float(underline_y))
 
-    def _paint_event(self, event: object) -> None:
+    def _paint_event(self, event: QPaintEvent) -> None:
         self._original_paint(event)
         if not self._misspellings:
             return
