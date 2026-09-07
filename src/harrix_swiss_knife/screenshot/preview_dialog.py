@@ -181,18 +181,25 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._tools_layout = tools_layout
         root.addWidget(tools_host)
 
+        text_bar_host = QWidget(central)
+        text_bar_row = QHBoxLayout(text_bar_host)
+        text_bar_row.setContentsMargins(0, 0, 0, 0)
+        text_bar_row.addStretch(1)
+        self._text_toolbar = ScreenshotTextToolbar(text_bar_host)
+        self._text_toolbar.set_settings(self._text_settings)
+        self._text_toolbar.settings_changed.connect(self._on_text_settings_changed)
+        text_bar_row.addWidget(self._text_toolbar, 0, Qt.AlignmentFlag.AlignHCenter)
+        text_bar_row.addStretch(1)
+        self._text_bar_host = text_bar_host
+        text_bar_host.hide()
+        root.addWidget(text_bar_host)
+
         self._tabs = QTabWidget(central)
         self._tabs.setTabsClosable(True)
         self._tabs.setDocumentMode(True)
         self._tabs.tabCloseRequested.connect(self._close_tab_at)
         self._tabs.currentChanged.connect(self._on_tab_changed)
         root.addWidget(self._tabs, stretch=1)
-
-        self._text_toolbar = ScreenshotTextToolbar(central)
-        self._text_toolbar.set_settings(self._text_settings)
-        self._text_toolbar.settings_changed.connect(self._on_text_settings_changed)
-        self._text_toolbar.hide()
-        root.addWidget(self._text_toolbar)
 
         footer = QVBoxLayout()
         footer.setSpacing(8)
@@ -626,7 +633,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._buttons_host.setVisible(not active)
         self._crop_bar.setVisible(active)
         if active:
-            self._text_toolbar.hide()
+            self._text_bar_host.hide()
         self._tabs.tabBar().setVisible(not active and self._tabs.count() > 1)
 
     def _set_tool(self, tool: AnnotationTool) -> None:
@@ -634,7 +641,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         if button is not None:
             button.setChecked(True)
         self._apply_tool_to_current()
-        self._text_toolbar.setVisible(tool == AnnotationTool.TEXT)
+        self._text_bar_host.setVisible(tool == AnnotationTool.TEXT)
         tip = next((item[2] for item in _TOOL_BUTTONS if item[0] == tool), tool.value)
         if tool == AnnotationTool.TEXT:
             self._status.setText(

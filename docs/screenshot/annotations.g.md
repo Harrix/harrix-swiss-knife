@@ -34,6 +34,7 @@ lang: en
 - [🏛️ Class `AnnotationTool`](#%EF%B8%8F-class-annotationtool)
 - [🔧 Function `constrain_shape_end`](#-function-constrain_shape_end)
 - [🔧 Function `paint_annotation`](#-function-paint_annotation)
+- [🔧 Function `text_annotation_rect`](#-function-text_annotation_rect)
 
 </details>
 
@@ -566,7 +567,7 @@ def update_draft_points(self, points: Sequence[QPointF]) -> None:
 class AnnotationStyle
 ```
 
-Stroke style shared by shape tools.
+Stroke / text style shared by annotation tools.
 
 <details>
 <summary>Code:</summary>
@@ -576,6 +577,14 @@ class AnnotationStyle:
 
     color: QColor = field(default_factory=lambda: QColor("#de2b26"))
     width: float = 3.0
+    font_family: str = ""
+    font_size: float = 26.0
+    bold: bool = False
+    italic: bool = False
+    underline: bool = False
+    strikeout: bool = False
+    align: str = "left"
+    background_fill: bool = False
 ```
 
 </details>
@@ -665,10 +674,7 @@ def paint_annotation(painter: QPainter, annotation: Annotation) -> None:
             painter.drawPolyline(QPolygonF(points))
         return
     if tool == AnnotationTool.TEXT:
-        font = QFont()
-        font.setPointSizeF(max(10.0, annotation.style.width * 4))
-        painter.setFont(font)
-        painter.drawText(points[0], annotation.text or "…")
+        _paint_text_annotation(painter, annotation)
         return
     if len(points) < _MIN_SHAPE_POINTS:
         return
@@ -690,6 +696,37 @@ def paint_annotation(painter: QPainter, annotation: Annotation) -> None:
         pen.setStyle(Qt.PenStyle.DashLine)
         painter.setPen(pen)
         painter.drawRect(rect)
+```
+
+</details>
+
+## 🔧 Function `text_annotation_rect`
+
+```python
+def text_annotation_rect(annotation: Annotation) -> QRectF
+```
+
+Return the axis-aligned text box for `annotation` in image coordinates.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def text_annotation_rect(annotation: Annotation) -> QRectF:
+    points = annotation.points
+    if not points:
+        return QRectF()
+    if len(points) >= _MIN_SHAPE_POINTS:
+        return QRectF(points[0], points[-1]).normalized()
+    # Legacy single-point text: size from font metrics.
+    from harrix_swiss_knife.screenshot.text_style import annotation_qfont  # noqa: PLC0415
+
+    origin = points[0]
+    metrics = QFontMetricsF(annotation_qfont(annotation.style))
+    text = annotation.text or "…"
+    width = max(metrics.horizontalAdvance(text), 8.0)
+    height = max(metrics.height(), 10.0)
+    return QRectF(origin.x(), origin.y() - metrics.ascent(), width, height)
 ```
 
 </details>

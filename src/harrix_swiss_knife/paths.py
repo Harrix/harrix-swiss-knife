@@ -171,14 +171,14 @@ def get_config_path_str() -> str:
     return str(get_config_path())
 
 
-def get_spellcheck_user_dict_path() -> Path:
-    """Return absolute path to the personal spellcheck word list (UTF-8, one word per line)."""
-    return get_project_root() / "config" / "spellcheck_user_dict.txt"
-
-
 def get_project_root() -> Path:
     """Return project root directory as detected by harrix_pylib."""
     return h.dev.get_project_root()
+
+
+def get_spellcheck_user_dict_path() -> Path:
+    """Return absolute path to the personal spellcheck word list (UTF-8, one word per line)."""
+    return get_project_root() / "config" / "spellcheck_user_dict.txt"
 
 
 def get_temp_config_path() -> Path:

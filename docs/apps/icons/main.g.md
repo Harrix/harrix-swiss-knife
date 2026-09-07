@@ -73,7 +73,7 @@ class KeyValueTableDialog(QDialog):
             value_item = QTableWidgetItem(value)
             self.table.setItem(row, 1, value_item)
 
-            copy_btn = QPushButton("📋")
+            copy_btn = make_lucide_push_button("", COPY_BUTTON_ICON)
             copy_btn.setToolTip("Copy value")
             copy_btn.setCursor(Qt.CursorShape.PointingHandCursor)
             copy_btn.clicked.connect(lambda _checked, v=value: self._copy_value(v))
@@ -91,6 +91,7 @@ class KeyValueTableDialog(QDialog):
         btn_row = QHBoxLayout()
         for label, callback, enabled in actions or []:
             btn = QPushButton(label)
+            apply_leading_chrome_button_icon(btn)
             btn.setEnabled(enabled)
             if callable(callback):
                 btn.clicked.connect(callback)
@@ -98,6 +99,7 @@ class KeyValueTableDialog(QDialog):
             self.action_buttons.append(btn)
         btn_row.addStretch()
         close_btn = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        apply_lucide_dialog_buttons(close_btn)
         close_btn.rejected.connect(self.reject)
         btn_row.addWidget(close_btn)
         root.addLayout(btn_row)
@@ -156,7 +158,7 @@ def __init__(
             value_item = QTableWidgetItem(value)
             self.table.setItem(row, 1, value_item)
 
-            copy_btn = QPushButton("📋")
+            copy_btn = make_lucide_push_button("", COPY_BUTTON_ICON)
             copy_btn.setToolTip("Copy value")
             copy_btn.setCursor(Qt.CursorShape.PointingHandCursor)
             copy_btn.clicked.connect(lambda _checked, v=value: self._copy_value(v))
@@ -174,6 +176,7 @@ def __init__(
         btn_row = QHBoxLayout()
         for label, callback, enabled in actions or []:
             btn = QPushButton(label)
+            apply_leading_chrome_button_icon(btn)
             btn.setEnabled(enabled)
             if callable(callback):
                 btn.clicked.connect(callback)
@@ -181,6 +184,7 @@ def __init__(
             self.action_buttons.append(btn)
         btn_row.addStretch()
         close_btn = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        apply_lucide_dialog_buttons(close_btn)
         close_btn.rejected.connect(self.reject)
         btn_row.addWidget(close_btn)
         root.addLayout(btn_row)
@@ -574,7 +578,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.search_edit.returnPressed.connect(self._apply_filters)
         toolbar.addWidget(self.search_edit, stretch=1)
 
-        self.refresh_btn = QPushButton("🔄 Refresh catalog")
+        self.refresh_btn = make_lucide_push_button("Refresh catalog", "refresh-cw")
         self.refresh_btn.clicked.connect(self._on_refresh_catalog)
         toolbar.addWidget(self.refresh_btn)
         root.addLayout(toolbar)
@@ -669,7 +673,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._add_vector_action.triggered.connect(self._on_add_vector_images)
         self._add_variants_action = file_menu.addAction("📥 Add icon variants…")
         self._add_variants_action.triggered.connect(self._on_add_icon_variants)
-        refresh_action = file_menu.addAction("🔄 Refresh catalog")
+        refresh_action = file_menu.addAction("Refresh catalog")
+        set_action_text_with_lucide_icon(refresh_action, "Refresh catalog", "refresh-cw")
         refresh_action.triggered.connect(self._on_refresh_catalog)
         file_menu.addSeparator()
         self._check_images_action = file_menu.addAction("🚧 Check images")
@@ -685,6 +690,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.actionExit = file_menu.addAction("E&xit")
         help_menu = self.menuBar().addMenu("&Help")
         self.actionAbout = help_menu.addAction("&About")
+        apply_leading_chrome_icons(file_menu)
+        apply_leading_chrome_icons(help_menu)
         self._style_window_menu_bar()
         self._connect_exit_about_actions()
         self._apply_exit_about_menu_emojis()

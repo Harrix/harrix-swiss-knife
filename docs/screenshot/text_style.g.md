@@ -1,48 +1,43 @@
-"""Screenshot text annotation style helpers and `config-temp.json` persistence."""
+---
+author: Anton Sergienko
+author-email: anton.b.sergienko@gmail.com
+lang: en
+---
 
-from __future__ import annotations
+# 📄 File `text_style.py`
 
-from dataclasses import dataclass
-from typing import Any, Literal
+<details>
+<summary>📖 Contents ⬇️</summary>
 
-import harrix_pylib as h
-from PySide6.QtCore import QPointF
-from PySide6.QtGui import QColor, QFont, QFontDatabase, QFontMetricsF
+## Contents
 
-from harrix_swiss_knife.paths import get_config_path_str
-from harrix_swiss_knife.qt_app_font import MONO_FONT_FAMILY, load_jetbrains_mono_fonts
-from harrix_swiss_knife.screenshot.annotations import AnnotationStyle
+- [🏛️ Class `ScreenshotTextSettings`](#%EF%B8%8F-class-screenshottextsettings)
+- [🔧 Function `annotation_qfont`](#-function-annotation_qfont)
+- [🔧 Function `annotation_style_to_settings`](#-function-annotation_style_to_settings)
+- [🔧 Function `available_text_font_families`](#-function-available_text_font_families)
+- [🔧 Function `copy_annotation_style`](#-function-copy_annotation_style)
+- [🔧 Function `default_text_box_points`](#-function-default_text_box_points)
+- [🔧 Function `default_text_font_family`](#-function-default_text_font_family)
+- [🔧 Function `font_size_choices`](#-function-font_size_choices)
+- [🔧 Function `load_screenshot_text_settings`](#-function-load_screenshot_text_settings)
+- [🔧 Function `save_screenshot_text_settings`](#-function-save_screenshot_text_settings)
+- [🔧 Function `settings_to_annotation_style`](#-function-settings_to_annotation_style)
 
-TextAlign = Literal["left", "center", "right"]
+</details>
 
-_CONFIG_KEY = "screenshot_text"
-_FALLBACK_FAMILY = "Arial"
-_DEFAULT_SIZE = 26.0
-_DEFAULT_COLOR = "#de2b26"
-_SIZE_CHOICES: tuple[float, ...] = (
-    8,
-    9,
-    10,
-    11,
-    12,
-    14,
-    16,
-    18,
-    20,
-    22,
-    24,
-    26,
-    28,
-    32,
-    36,
-    48,
-    72,
-)
+## 🏛️ Class `ScreenshotTextSettings`
 
+```python
+class ScreenshotTextSettings
+```
 
-@dataclass(slots=True)
+Persisted defaults for the screenshot text tool.
+
+<details>
+<summary>Code:</summary>
+
+```python
 class ScreenshotTextSettings:
-    """Persisted defaults for the screenshot text tool."""
 
     font_family: str = ""
     font_size: float = _DEFAULT_SIZE
@@ -53,10 +48,23 @@ class ScreenshotTextSettings:
     align: TextAlign = "left"
     background_fill: bool = False
     color: str = _DEFAULT_COLOR
+```
 
+</details>
 
+## 🔧 Function `annotation_qfont`
+
+```python
+def annotation_qfont(style: AnnotationStyle) -> QFont
+```
+
+Build the QFont used to paint/edit a text annotation.
+
+<details>
+<summary>Code:</summary>
+
+```python
 def annotation_qfont(style: AnnotationStyle) -> QFont:
-    """Build the QFont used to paint/edit a text annotation."""
     family = style.font_family.strip() if style.font_family else ""
     if not family:
         family = default_text_font_family()
@@ -67,10 +75,23 @@ def annotation_qfont(style: AnnotationStyle) -> QFont:
     font.setUnderline(style.underline)
     font.setStrikeOut(style.strikeout)
     return font
+```
 
+</details>
 
+## 🔧 Function `annotation_style_to_settings`
+
+```python
+def annotation_style_to_settings(style: AnnotationStyle) -> ScreenshotTextSettings
+```
+
+Snapshot text fields from `style` for the toolbar / config.
+
+<details>
+<summary>Code:</summary>
+
+```python
 def annotation_style_to_settings(style: AnnotationStyle) -> ScreenshotTextSettings:
-    """Snapshot text fields from `style` for the toolbar / config."""
     align: TextAlign = style.align if style.align in {"left", "center", "right"} else "left"
     return ScreenshotTextSettings(
         font_family=style.font_family or default_text_font_family(),
@@ -83,10 +104,23 @@ def annotation_style_to_settings(style: AnnotationStyle) -> ScreenshotTextSettin
         background_fill=style.background_fill,
         color=style.color.name() if style.color.isValid() else _DEFAULT_COLOR,
     )
+```
 
+</details>
 
+## 🔧 Function `available_text_font_families`
+
+```python
+def available_text_font_families() -> list[str]
+```
+
+Return UI font list with JetBrains Mono / Arial preferred at the top.
+
+<details>
+<summary>Code:</summary>
+
+```python
 def available_text_font_families() -> list[str]:
-    """Return UI font list with JetBrains Mono / Arial preferred at the top."""
     from PySide6.QtWidgets import QApplication  # noqa: PLC0415
 
     if QApplication.instance() is None:
@@ -96,10 +130,23 @@ def available_text_font_families() -> list[str]:
     preferred = [name for name in (MONO_FONT_FAMILY, _FALLBACK_FAMILY) if name in families]
     rest = [name for name in families if name not in preferred]
     return [*preferred, *rest]
+```
 
+</details>
 
+## 🔧 Function `copy_annotation_style`
+
+```python
+def copy_annotation_style(style: AnnotationStyle) -> AnnotationStyle
+```
+
+Return a deep-enough copy of `style`.
+
+<details>
+<summary>Code:</summary>
+
+```python
 def copy_annotation_style(style: AnnotationStyle) -> AnnotationStyle:
-    """Return a deep-enough copy of `style`."""
     return AnnotationStyle(
         color=QColor(style.color),
         width=style.width,
@@ -112,18 +159,44 @@ def copy_annotation_style(style: AnnotationStyle) -> AnnotationStyle:
         align=style.align,
         background_fill=style.background_fill,
     )
+```
 
+</details>
 
+## 🔧 Function `default_text_box_points`
+
+```python
+def default_text_box_points(origin: QPointF, style: AnnotationStyle) -> list[QPointF]
+```
+
+Return a default `[topLeft, bottomRight]` text box at `origin`.
+
+<details>
+<summary>Code:</summary>
+
+```python
 def default_text_box_points(origin: QPointF, style: AnnotationStyle) -> list[QPointF]:
-    """Return a default `[topLeft, bottomRight]` text box at `origin`."""
     metrics = QFontMetricsF(annotation_qfont(style))
     width = max(metrics.averageCharWidth() * 14.0, 140.0)
     height = max(metrics.height() * 2.8, 48.0)
     return [QPointF(origin), QPointF(origin.x() + width, origin.y() + height)]
+```
 
+</details>
 
+## 🔧 Function `default_text_font_family`
+
+```python
+def default_text_font_family() -> str
+```
+
+Return JetBrains Mono when bundled/available, otherwise Arial.
+
+<details>
+<summary>Code:</summary>
+
+```python
 def default_text_font_family() -> str:
-    """Return JetBrains Mono when bundled/available, otherwise Arial."""
     from PySide6.QtWidgets import QApplication  # noqa: PLC0415
 
     if QApplication.instance() is None:
@@ -135,15 +208,41 @@ def default_text_font_family() -> str:
     if _FALLBACK_FAMILY in families:
         return _FALLBACK_FAMILY
     return QFont().defaultFamily() or _FALLBACK_FAMILY
+```
 
+</details>
 
+## 🔧 Function `font_size_choices`
+
+```python
+def font_size_choices() -> tuple[float, ...]
+```
+
+Return common point sizes for the text toolbar.
+
+<details>
+<summary>Code:</summary>
+
+```python
 def font_size_choices() -> tuple[float, ...]:
-    """Return common point sizes for the text toolbar."""
     return _SIZE_CHOICES
+```
 
+</details>
 
+## 🔧 Function `load_screenshot_text_settings`
+
+```python
+def load_screenshot_text_settings() -> ScreenshotTextSettings
+```
+
+Load text-tool defaults from `config-temp.json`.
+
+<details>
+<summary>Code:</summary>
+
+```python
 def load_screenshot_text_settings() -> ScreenshotTextSettings:
-    """Load text-tool defaults from `config-temp.json`."""
     raw: dict[str, Any] = {}
     try:
         loaded = h.dev.config_load(get_config_path_str(), is_temp=True)
@@ -175,10 +274,23 @@ def load_screenshot_text_settings() -> ScreenshotTextSettings:
         background_fill=bool(raw.get("background_fill", False)),
         color=color,
     )
+```
 
+</details>
 
+## 🔧 Function `save_screenshot_text_settings`
+
+```python
+def save_screenshot_text_settings(settings: ScreenshotTextSettings) -> None
+```
+
+Persist text-tool defaults into `config-temp.json`.
+
+<details>
+<summary>Code:</summary>
+
+```python
 def save_screenshot_text_settings(settings: ScreenshotTextSettings) -> None:
-    """Persist text-tool defaults into `config-temp.json`."""
     payload = {
         "font_family": settings.font_family,
         "font_size": settings.font_size,
@@ -191,10 +303,23 @@ def save_screenshot_text_settings(settings: ScreenshotTextSettings) -> None:
         "color": settings.color,
     }
     h.dev.config_update_value(_CONFIG_KEY, payload, get_config_path_str(), is_temp=True)
+```
 
+</details>
 
+## 🔧 Function `settings_to_annotation_style`
+
+```python
+def settings_to_annotation_style(settings: ScreenshotTextSettings) -> AnnotationStyle
+```
+
+Build an [`AnnotationStyle`](annotations.g.md#%EF%B8%8F-class-annotationstyle) from persisted text settings.
+
+<details>
+<summary>Code:</summary>
+
+```python
 def settings_to_annotation_style(settings: ScreenshotTextSettings) -> AnnotationStyle:
-    """Build an `AnnotationStyle` from persisted text settings."""
     return AnnotationStyle(
         color=QColor(settings.color),
         width=3.0,
@@ -207,3 +332,6 @@ def settings_to_annotation_style(settings: ScreenshotTextSettings) -> Annotation
         align=settings.align,
         background_fill=settings.background_fill,
     )
+```
+
+</details>

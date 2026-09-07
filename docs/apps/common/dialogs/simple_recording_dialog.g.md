@@ -284,7 +284,7 @@ class SimpleRecordingDialog(QDialog):
         self._save_button.setVisible(False)
         controls.addWidget(self._save_button, alignment=Qt.AlignmentFlag.AlignBottom)
 
-        self._recognize_button = make_lucide_push_button("Recognize", "bot")
+        self._recognize_button = make_ai_lucide_push_button("Recognize")
         self._recognize_button.clicked.connect(self._on_recognize_clicked)
         self._recognize_button.setVisible(False)
         controls.addWidget(self._recognize_button, alignment=Qt.AlignmentFlag.AlignBottom)

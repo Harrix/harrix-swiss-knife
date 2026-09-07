@@ -20,6 +20,7 @@ lang: en
 - [🔧 Function `get_config_path`](#-function-get_config_path)
 - [🔧 Function `get_config_path_str`](#-function-get_config_path_str)
 - [🔧 Function `get_project_root`](#-function-get_project_root)
+- [🔧 Function `get_spellcheck_user_dict_path`](#-function-get_spellcheck_user_dict_path)
 - [🔧 Function `get_temp_config_path`](#-function-get_temp_config_path)
 - [🔧 Function `get_temp_config_path_str`](#-function-get_temp_config_path_str)
 - [🔧 Function `list_recent_action_output_files`](#-function-list_recent_action_output_files)
@@ -270,6 +271,24 @@ Return project root directory as detected by harrix_pylib.
 ```python
 def get_project_root() -> Path:
     return h.dev.get_project_root()
+```
+
+</details>
+
+## 🔧 Function `get_spellcheck_user_dict_path`
+
+```python
+def get_spellcheck_user_dict_path() -> Path
+```
+
+Return absolute path to the personal spellcheck word list (UTF-8, one word per line).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_spellcheck_user_dict_path() -> Path:
+    return get_project_root() / "config" / "spellcheck_user_dict.txt"
 ```
 
 </details>

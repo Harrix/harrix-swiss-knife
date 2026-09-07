@@ -29,15 +29,12 @@ def iter_skip_spans(text: str) -> list[tuple[int, int]]:
     return [(m.start(), m.end()) for m in _SKIP_RUN_RE.finditer(text)]
 
 
-def _in_skip(index: int, skip_spans: list[tuple[int, int]]) -> bool:
-    return any(start <= index < end for start, end in skip_spans)
-
-
 def iter_word_spans(text: str) -> list[tuple[int, int, str]]:
     """Return `(start, end, word)` spans for spellcheckable tokens in `text`.
 
     Words may contain letters, digits, and internal `'` / `-`. Pure digit tokens,
     and tokens inside URL/email/path runs, are omitted.
+
     """
     skip_spans = iter_skip_spans(text)
     spans: list[tuple[int, int, str]] = []
@@ -57,6 +54,7 @@ def word_at_index(text: str, index: int) -> tuple[int, int, str] | None:
 
     When `index` sits on a boundary (typical caret after a word), the word to the
     left is preferred.
+
     """
     if index < 0 or index > len(text):
         return None
@@ -69,3 +67,7 @@ def word_at_index(text: str, index: int) -> tuple[int, int, str] | None:
             if start <= index - 1 < end:
                 return start, end, word
     return None
+
+
+def _in_skip(index: int, skip_spans: list[tuple[int, int]]) -> bool:
+    return any(start <= index < end for start, end in skip_spans)

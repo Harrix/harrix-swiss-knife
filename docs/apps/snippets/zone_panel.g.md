@@ -474,7 +474,7 @@ class ZonePanel(QWidget):
         header.addWidget(title_label)
         if zone == ZONE_EMOJI:
             pick = QToolButton(self)
-            pick.setIcon(create_lucide_icon("bot", 18))
+            pick.setIcon(create_ai_lucide_icon(18))
             pick.setIconSize(QSize(18, 18))
             pick.setFixedSize(28, 28)
             pick.setAutoRaise(True)
@@ -898,7 +898,7 @@ def __init__(
         header.addWidget(title_label)
         if zone == ZONE_EMOJI:
             pick = QToolButton(self)
-            pick.setIcon(create_lucide_icon("bot", 18))
+            pick.setIcon(create_ai_lucide_icon(18))
             pick.setIconSize(QSize(18, 18))
             pick.setFixedSize(28, 28)
             pick.setAutoRaise(True)

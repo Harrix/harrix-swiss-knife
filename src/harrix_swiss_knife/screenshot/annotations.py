@@ -266,6 +266,24 @@ def paint_annotation(painter: QPainter, annotation: Annotation) -> None:
         painter.drawRect(rect)
 
 
+def text_annotation_rect(annotation: Annotation) -> QRectF:
+    """Return the axis-aligned text box for `annotation` in image coordinates."""
+    points = annotation.points
+    if not points:
+        return QRectF()
+    if len(points) >= _MIN_SHAPE_POINTS:
+        return QRectF(points[0], points[-1]).normalized()
+    # Legacy single-point text: size from font metrics.
+    from harrix_swiss_knife.screenshot.text_style import annotation_qfont  # noqa: PLC0415
+
+    origin = points[0]
+    metrics = QFontMetricsF(annotation_qfont(annotation.style))
+    text = annotation.text or "…"
+    width = max(metrics.horizontalAdvance(text), 8.0)
+    height = max(metrics.height(), 10.0)
+    return QRectF(origin.x(), origin.y() - metrics.ascent(), width, height)
+
+
 def _arrow_head_geometry(
     start: QPointF,
     end: QPointF,
@@ -332,46 +350,6 @@ def _clone_annotation(item: Annotation) -> Annotation:
     )
 
 
-def _paint_text_annotation(painter: QPainter, annotation: Annotation) -> None:
-    from harrix_swiss_knife.screenshot.text_style import annotation_qfont  # noqa: PLC0415
-
-    rect = text_annotation_rect(annotation)
-    if rect.isNull() or rect.isEmpty():
-        return
-    if annotation.style.background_fill:
-        painter.fillRect(rect, QColor(255, 255, 255, 235))
-    font = annotation_qfont(annotation.style)
-    painter.setFont(font)
-    painter.setPen(QPen(annotation.style.color))
-    align = annotation.style.align
-    flags = int(Qt.AlignmentFlag.AlignTop | Qt.TextFlag.TextWordWrap)
-    if align == "center":
-        flags |= int(Qt.AlignmentFlag.AlignHCenter)
-    elif align == "right":
-        flags |= int(Qt.AlignmentFlag.AlignRight)
-    else:
-        flags |= int(Qt.AlignmentFlag.AlignLeft)
-    painter.drawText(rect, flags, annotation.text or "")
-
-
-def text_annotation_rect(annotation: Annotation) -> QRectF:
-    """Return the axis-aligned text box for `annotation` in image coordinates."""
-    points = annotation.points
-    if not points:
-        return QRectF()
-    if len(points) >= _MIN_SHAPE_POINTS:
-        return QRectF(points[0], points[-1]).normalized()
-    # Legacy single-point text: size from font metrics.
-    from harrix_swiss_knife.screenshot.text_style import annotation_qfont  # noqa: PLC0415
-
-    origin = points[0]
-    metrics = QFontMetricsF(annotation_qfont(annotation.style))
-    text = annotation.text or "…"
-    width = max(metrics.horizontalAdvance(text), 8.0)
-    height = max(metrics.height(), 10.0)
-    return QRectF(origin.x(), origin.y() - metrics.ascent(), width, height)
-
-
 def _draw_filled_arrow(
     painter: QPainter,
     start: QPointF,
@@ -417,6 +395,28 @@ def _is_meaningful(annotation: Annotation) -> bool:
         return False
     start, end = annotation.points[0], annotation.points[-1]
     return (end - start).manhattanLength() >= _MIN_DRAG_MANHATTAN
+
+
+def _paint_text_annotation(painter: QPainter, annotation: Annotation) -> None:
+    from harrix_swiss_knife.screenshot.text_style import annotation_qfont  # noqa: PLC0415
+
+    rect = text_annotation_rect(annotation)
+    if rect.isNull() or rect.isEmpty():
+        return
+    if annotation.style.background_fill:
+        painter.fillRect(rect, QColor(255, 255, 255, 235))
+    font = annotation_qfont(annotation.style)
+    painter.setFont(font)
+    painter.setPen(QPen(annotation.style.color))
+    align = annotation.style.align
+    flags = int(Qt.AlignmentFlag.AlignTop | Qt.TextFlag.TextWordWrap)
+    if align == "center":
+        flags |= int(Qt.AlignmentFlag.AlignHCenter)
+    elif align == "right":
+        flags |= int(Qt.AlignmentFlag.AlignRight)
+    else:
+        flags |= int(Qt.AlignmentFlag.AlignLeft)
+    painter.drawText(rect, flags, annotation.text or "")
 
 
 def _snap_end_to_45_degrees(start: QPointF, end: QPointF) -> QPointF:

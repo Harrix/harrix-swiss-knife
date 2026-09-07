@@ -208,7 +208,12 @@ class TextImageSourceDialog(QDialog):
         cancel_button.clicked.connect(self.reject)
         button_layout.addWidget(cancel_button)
 
-        self._ok_button = make_lucide_push_button(self._accept_button_text, self._accept_button_icon)
+        accept_color = AI_BUTTON_ICON_COLOR if self._accept_button_icon == AI_BUTTON_ICON else None
+        self._ok_button = make_lucide_push_button(
+            self._accept_button_text,
+            self._accept_button_icon,
+            color=accept_color,
+        )
         accept_font = QFont()
         accept_font.setBold(True)
         self._ok_button.setFont(accept_font)

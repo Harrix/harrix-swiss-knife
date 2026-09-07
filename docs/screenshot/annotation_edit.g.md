@@ -37,7 +37,7 @@ def annotation_bounds(annotation: Annotation) -> QRectF:
     if not points:
         return QRectF()
     if annotation.tool == AnnotationTool.TEXT:
-        return _text_bounds(annotation)
+        return text_annotation_rect(annotation)
     if annotation.tool in {AnnotationTool.RECTANGLE, AnnotationTool.ELLIPSE, AnnotationTool.CROP}:
         if len(points) < _MIN_SHAPE_POINTS:
             return QRectF(points[0], points[0])
@@ -68,13 +68,18 @@ def apply_annotation_edit(
     *,
     shift: bool,
 ) -> list[QPointF]:
-    if handle == "move" or annotation.tool == AnnotationTool.TEXT:
+    if handle == "move":
         delta = current - press
         return [QPointF(p.x() + delta.x(), p.y() + delta.y()) for p in origin_points]
     if annotation.tool in _LINE_TOOLS:
         return _edit_line_points(annotation.tool, handle, origin_points, current, shift=shift)
     origin_rect = annotation_bounds(
-        Annotation(tool=annotation.tool, points=origin_points, style=annotation.style, text=annotation.text)
+        Annotation(
+            tool=annotation.tool,
+            points=origin_points,
+            style=annotation.style,
+            text=annotation.text,
+        )
     )
     if origin_rect.isEmpty():
         delta = current - press
@@ -82,7 +87,7 @@ def apply_annotation_edit(
     new_rect = _transform_rect(origin_rect, handle, press, current)
     if shift and annotation.tool in {AnnotationTool.ELLIPSE, AnnotationTool.RECTANGLE}:
         new_rect = _square_rect_from_handle(origin_rect, new_rect, handle)
-    if annotation.tool in {AnnotationTool.RECTANGLE, AnnotationTool.ELLIPSE}:
+    if annotation.tool in {AnnotationTool.RECTANGLE, AnnotationTool.ELLIPSE, AnnotationTool.TEXT}:
         return [new_rect.topLeft(), new_rect.bottomRight()]
     return _map_points_from_rect(origin_points, origin_rect, new_rect)
 ```
@@ -152,6 +157,9 @@ def hit_test_annotation(
         return "move" if _hit_ellipse_stroke(bounds, pos, padding) else None
     if annotation.tool == AnnotationTool.RECTANGLE:
         return "move" if _hit_rect_stroke(bounds, pos, padding) else None
+    if annotation.tool == AnnotationTool.TEXT:
+        inflated = bounds.adjusted(-padding, -padding, padding, padding)
+        return "move" if inflated.contains(pos) else None
     inflated = bounds.adjusted(-padding, -padding, padding, padding)
     if inflated.contains(pos):
         return "move"

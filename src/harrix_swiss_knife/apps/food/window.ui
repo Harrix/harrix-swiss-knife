@@ -33,13 +33,13 @@
           <property name="childrenCollapsible">
            <bool>false</bool>
           </property>
-          <widget class="QFrame" name="frame_food_controls">
-           <property name="minimumSize">
-            <size>
-             <width>350</width>
-             <height>0</height>
-            </size>
-           </property>
+         <widget class="QFrame" name="frame_food_controls">
+          <property name="minimumSize">
+           <size>
+            <width>420</width>
+            <height>0</height>
+           </size>
+          </property>
            <property name="frameShape">
             <enum>QFrame::Shape::StyledPanel</enum>
            </property>

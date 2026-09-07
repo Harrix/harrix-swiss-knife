@@ -1,25 +1,41 @@
-"""Context menu: suggestions and Add to dictionary for misspelled words."""
+---
+author: Anton Sergienko
+author-email: anton.b.sergienko@gmail.com
+lang: en
+---
 
-from __future__ import annotations
+# 📄 File `context_menu.py`
 
-from typing import TYPE_CHECKING, TypeGuard
+<details>
+<summary>📖 Contents ⬇️</summary>
 
-from PySide6.QtGui import QAction, QCursor, QTextCursor
-from PySide6.QtWidgets import QLineEdit, QMenu, QPlainTextEdit, QTextEdit, QWidget
+## Contents
 
-from harrix_swiss_knife.spellcheck.engine import SpellEngine, get_spell_engine
-from harrix_swiss_knife.spellcheck.tokenize import word_at_index
+- [🔧 Function `add_dictionary_action`](#-function-add_dictionary_action)
+- [🔧 Function `cursor_char_index`](#-function-cursor_char_index)
+- [🔧 Function `editor_plain_text`](#-function-editor_plain_text)
+- [🔧 Function `is_text_editor`](#-function-is_text_editor)
+- [🔧 Function `misspelled_word_at`](#-function-misspelled_word_at)
+- [🔧 Function `populate_spellcheck_menu`](#-function-populate_spellcheck_menu)
+- [🔧 Function `popup_spellcheck_menu`](#-function-popup_spellcheck_menu)
+- [🔧 Function `replace_word_span`](#-function-replace_word_span)
 
-if TYPE_CHECKING:
-    from collections.abc import Callable
+</details>
 
-    from PySide6.QtCore import QPoint
+## 🔧 Function `add_dictionary_action`
 
-TextEditor = QLineEdit | QPlainTextEdit | QTextEdit
+```python
+def add_dictionary_action(menu: QMenu, widget: TextEditor, *, engine: SpellEngine | None = None, global_pos: QPoint | None = None, on_added: Callable[[str], None] | None = None) -> QAction | None
+```
 
-_DEFAULT_SUGGEST_LIMIT = 7
+Append **Add to dictionary** when a misspelled word is under the cursor.
 
+Prefer [`populate_spellcheck_menu`](#-function-populate_spellcheck_menu) for the full context-menu UX.
 
+<details>
+<summary>Code:</summary>
+
+```python
 def add_dictionary_action(
     menu: QMenu,
     widget: TextEditor,
@@ -28,11 +44,6 @@ def add_dictionary_action(
     global_pos: QPoint | None = None,
     on_added: Callable[[str], None] | None = None,
 ) -> QAction | None:
-    """Append **Add to dictionary** when a misspelled word is under the cursor.
-
-    Prefer `populate_spellcheck_menu` for the full context-menu UX.
-
-    """
     spell = engine if engine is not None else get_spell_engine()
     span = misspelled_word_at(widget, spell, global_pos=global_pos)
     if span is None:
@@ -48,10 +59,23 @@ def add_dictionary_action(
     action.triggered.connect(_add)
     menu.addAction(action)
     return action
+```
 
+</details>
 
+## 🔧 Function `cursor_char_index`
+
+```python
+def cursor_char_index(widget: TextEditor, global_pos: QPoint | None = None) -> int
+```
+
+Return the character index under `global_pos` (or the caret if omitted).
+
+<details>
+<summary>Code:</summary>
+
+```python
 def cursor_char_index(widget: TextEditor, global_pos: QPoint | None = None) -> int:
-    """Return the character index under `global_pos` (or the caret if omitted)."""
     if isinstance(widget, QLineEdit):
         if global_pos is not None:
             local = widget.mapFromGlobal(global_pos)
@@ -62,27 +86,66 @@ def cursor_char_index(widget: TextEditor, global_pos: QPoint | None = None) -> i
         cursor = widget.cursorForPosition(local)
         return cursor.position()
     return widget.textCursor().position()
+```
 
+</details>
 
+## 🔧 Function `editor_plain_text`
+
+```python
+def editor_plain_text(widget: TextEditor) -> str
+```
+
+Return the full plain text of a supported editor.
+
+<details>
+<summary>Code:</summary>
+
+```python
 def editor_plain_text(widget: TextEditor) -> str:
-    """Return the full plain text of a supported editor."""
     if isinstance(widget, QLineEdit):
         return widget.text()
     return widget.toPlainText()
+```
 
+</details>
 
+## 🔧 Function `is_text_editor`
+
+```python
+def is_text_editor(widget: QWidget) -> TypeGuard[TextEditor]
+```
+
+Return whether `widget` is a supported spellcheck editor type.
+
+<details>
+<summary>Code:</summary>
+
+```python
 def is_text_editor(widget: QWidget) -> TypeGuard[TextEditor]:
-    """Return whether `widget` is a supported spellcheck editor type."""
     return isinstance(widget, (QLineEdit, QPlainTextEdit, QTextEdit))
+```
 
+</details>
 
+## 🔧 Function `misspelled_word_at`
+
+```python
+def misspelled_word_at(widget: TextEditor, engine: SpellEngine | None = None, *, global_pos: QPoint | None = None) -> tuple[int, int, str] | None
+```
+
+Return `(start, end, word)` when the token under the cursor is misspelled.
+
+<details>
+<summary>Code:</summary>
+
+```python
 def misspelled_word_at(
     widget: TextEditor,
     engine: SpellEngine | None = None,
     *,
     global_pos: QPoint | None = None,
 ) -> tuple[int, int, str] | None:
-    """Return `(start, end, word)` when the token under the cursor is misspelled."""
     spell = engine if engine is not None else get_spell_engine()
     text = editor_plain_text(widget)
     index = cursor_char_index(widget, global_pos)
@@ -93,8 +156,24 @@ def misspelled_word_at(
     if spell.lookup(word):
         return None
     return span
+```
 
+</details>
 
+## 🔧 Function `populate_spellcheck_menu`
+
+```python
+def populate_spellcheck_menu(menu: QMenu, widget: TextEditor, *, engine: SpellEngine | None = None, global_pos: QPoint | None = None, on_changed: Callable[[], None] | None = None, suggest_limit: int = _DEFAULT_SUGGEST_LIMIT) -> int
+```
+
+Insert suggestions and Add to dictionary at the top of `menu`.
+
+Returns the number of spellcheck actions added (0 when the word is fine).
+
+<details>
+<summary>Code:</summary>
+
+```python
 def populate_spellcheck_menu(
     menu: QMenu,
     widget: TextEditor,
@@ -104,11 +183,6 @@ def populate_spellcheck_menu(
     on_changed: Callable[[], None] | None = None,
     suggest_limit: int = _DEFAULT_SUGGEST_LIMIT,
 ) -> int:
-    """Insert suggestions and Add to dictionary at the top of `menu`.
-
-    Returns the number of spellcheck actions added (0 when the word is fine).
-
-    """
     spell = engine if engine is not None else get_spell_engine()
     span = misspelled_word_at(widget, spell, global_pos=global_pos)
     if span is None:
@@ -161,8 +235,22 @@ def populate_spellcheck_menu(
         menu.addSeparator()
     added += 2
     return added
+```
 
+</details>
 
+## 🔧 Function `popup_spellcheck_menu`
+
+```python
+def popup_spellcheck_menu(widget: TextEditor, global_pos: QPoint | None = None, *, engine: SpellEngine | None = None, on_changed: Callable[[], None] | None = None, base_menu: QMenu | None = None) -> bool
+```
+
+Show a context menu with suggestions and Add to dictionary when applicable.
+
+<details>
+<summary>Code:</summary>
+
+```python
 def popup_spellcheck_menu(
     widget: TextEditor,
     global_pos: QPoint | None = None,
@@ -171,7 +259,6 @@ def popup_spellcheck_menu(
     on_changed: Callable[[], None] | None = None,
     base_menu: QMenu | None = None,
 ) -> bool:
-    """Show a context menu with suggestions and Add to dictionary when applicable."""
     pos = global_pos if global_pos is not None else QCursor.pos()
     if base_menu is not None:
         return populate_spellcheck_menu(base_menu, widget, engine=engine, global_pos=pos, on_changed=on_changed) > 0
@@ -182,10 +269,23 @@ def popup_spellcheck_menu(
         return False
     menu.exec(pos)
     return True
+```
 
+</details>
 
+## 🔧 Function `replace_word_span`
+
+```python
+def replace_word_span(widget: TextEditor, start: int, end: int, replacement: str) -> None
+```
+
+Replace characters `[start, end)` in `widget` with `replacement`.
+
+<details>
+<summary>Code:</summary>
+
+```python
 def replace_word_span(widget: TextEditor, start: int, end: int, replacement: str) -> None:
-    """Replace characters `[start, end)` in `widget` with `replacement`."""
     if isinstance(widget, QLineEdit):
         text = widget.text()
         widget.setText(text[:start] + replacement + text[end:])
@@ -198,3 +298,6 @@ def replace_word_span(widget: TextEditor, start: int, end: int, replacement: str
     cursor.insertText(replacement)
     cursor.endEditBlock()
     widget.setTextCursor(cursor)
+```
+
+</details>

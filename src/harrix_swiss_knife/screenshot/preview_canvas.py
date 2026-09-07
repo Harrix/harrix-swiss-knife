@@ -14,6 +14,8 @@ from PySide6.QtGui import (
     QPen,
     QPixmap,
     QResizeEvent,
+    QTextBlockFormat,
+    QTextCursor,
     QWheelEvent,
 )
 from PySide6.QtWidgets import QPlainTextEdit, QWidget
@@ -124,6 +126,40 @@ class ScreenshotPreviewCanvas(QWidget):
         self._text_edit_index: int | None = None
         self._text_edit_active = False
 
+    @property
+    def annotation_style(self) -> AnnotationStyle:
+        """Style used for new shapes / the active text editor."""
+        return copy_annotation_style(self._style)
+
+    def begin_text_at(self, image_pos: QPointF) -> None:
+        """Start an on-canvas multiline text editor at `image_pos`."""
+        if self._document is None:
+            return
+        self.commit_text_edit()
+        style = copy_annotation_style(self._style)
+        points = default_text_box_points(image_pos, style)
+        self._document.begin_draft(Annotation(tool=AnnotationTool.TEXT, points=points, text="", style=style))
+        self._text_edit_index = None
+        self._open_text_editor(text="", style=style, image_rect=QRectF(points[0], points[1]).normalized())
+
+    def begin_text_edit(self, index: int) -> None:
+        """Open the on-canvas editor for a committed text annotation."""
+        document = self._document
+        if document is None or index < 0 or index >= len(document.annotations):
+            return
+        annotation = document.annotations[index]
+        if annotation.tool != AnnotationTool.TEXT:
+            return
+        self.commit_text_edit()
+        self._selected_index = index
+        self._text_edit_index = index
+        self._style = copy_annotation_style(annotation.style)
+        self._open_text_editor(
+            text=annotation.text,
+            style=annotation.style,
+            image_rect=text_annotation_rect(annotation),
+        )
+
     def cancel_crop(self) -> None:
         """Discard crop selection and leave crop mode."""
         was_crop = self._tool == AnnotationTool.CROP or self._crop_pending or self._crop_rect is not None
@@ -139,6 +175,16 @@ class ScreenshotPreviewCanvas(QWidget):
             self.crop_mode_changed.emit(False)  # noqa: FBT003
         self.crop_pending_changed.emit(False)  # noqa: FBT003
 
+    def cancel_text_edit(self) -> None:
+        """Discard an in-progress text edit without committing."""
+        if not self._text_edit_active:
+            return
+        document = self._document
+        if document is not None and self._text_edit_index is None:
+            document.cancel_draft()
+        self._close_text_editor()
+        self.update()
+
     def clear_selection(self) -> bool:
         """Deselect the current annotation. Return whether anything changed."""
         if self._selected_index is None and self._edit_handle is None:
@@ -147,6 +193,41 @@ class ScreenshotPreviewCanvas(QWidget):
         self._selected_index = None
         self.update()
         return True
+
+    def commit_text_edit(self) -> bool:
+        """Commit the on-canvas text editor. Return whether text was saved."""
+        if not self._text_edit_active or self._text_editor is None or self._document is None:
+            return False
+        text = self._text_editor.toPlainText()
+        index = self._text_edit_index
+        if index is not None and 0 <= index < len(self._document.annotations):
+            annotation = self._document.annotations[index]
+            if not text.strip():
+                self._close_text_editor()
+                self.delete_selected()
+                return False
+            self._document.save_undo_checkpoint()
+            annotation.text = text
+            annotation.style = copy_annotation_style(self._style)
+            self._selected_index = index
+            self._close_text_editor()
+            self.update()
+            self.document_changed.emit()
+            return True
+        draft = self._document.draft
+        if draft is None or draft.tool != AnnotationTool.TEXT:
+            self._close_text_editor()
+            return False
+        draft.text = text
+        draft.style = copy_annotation_style(self._style)
+        self._close_text_editor()
+        if self._document.commit_draft():
+            self._selected_index = len(self._document.annotations) - 1
+            self.update()
+            self.document_changed.emit()
+            return True
+        self.update()
+        return False
 
     def confirm_crop(self) -> bool:
         """Apply the pending crop rectangle. Return whether it succeeded."""
@@ -215,87 +296,6 @@ class ScreenshotPreviewCanvas(QWidget):
             self.update()
             self.document_changed.emit()
 
-    def begin_text_at(self, image_pos: QPointF) -> None:
-        """Start an on-canvas multiline text editor at `image_pos`."""
-        if self._document is None:
-            return
-        self.commit_text_edit()
-        style = copy_annotation_style(self._style)
-        points = default_text_box_points(image_pos, style)
-        self._document.begin_draft(
-            Annotation(tool=AnnotationTool.TEXT, points=points, text="", style=style)
-        )
-        self._text_edit_index = None
-        self._open_text_editor(text="", style=style, image_rect=QRectF(points[0], points[1]).normalized())
-
-    def begin_text_edit(self, index: int) -> None:
-        """Open the on-canvas editor for a committed text annotation."""
-        document = self._document
-        if document is None or index < 0 or index >= len(document.annotations):
-            return
-        annotation = document.annotations[index]
-        if annotation.tool != AnnotationTool.TEXT:
-            return
-        self.commit_text_edit()
-        self._selected_index = index
-        self._text_edit_index = index
-        self._style = copy_annotation_style(annotation.style)
-        self._open_text_editor(
-            text=annotation.text,
-            style=annotation.style,
-            image_rect=text_annotation_rect(annotation),
-        )
-
-    @property
-    def annotation_style(self) -> AnnotationStyle:
-        """Style used for new shapes / the active text editor."""
-        return copy_annotation_style(self._style)
-
-    def cancel_text_edit(self) -> None:
-        """Discard an in-progress text edit without committing."""
-        if not self._text_edit_active:
-            return
-        document = self._document
-        if document is not None and self._text_edit_index is None:
-            document.cancel_draft()
-        self._close_text_editor()
-        self.update()
-
-    def commit_text_edit(self) -> bool:
-        """Commit the on-canvas text editor. Return whether text was saved."""
-        if not self._text_edit_active or self._text_editor is None or self._document is None:
-            return False
-        text = self._text_editor.toPlainText()
-        index = self._text_edit_index
-        if index is not None and 0 <= index < len(self._document.annotations):
-            annotation = self._document.annotations[index]
-            if not text.strip():
-                self._close_text_editor()
-                self.delete_selected()
-                return False
-            self._document.save_undo_checkpoint()
-            annotation.text = text
-            annotation.style = copy_annotation_style(self._style)
-            self._selected_index = index
-            self._close_text_editor()
-            self.update()
-            self.document_changed.emit()
-            return True
-        draft = self._document.draft
-        if draft is None or draft.tool != AnnotationTool.TEXT:
-            self._close_text_editor()
-            return False
-        draft.text = text
-        draft.style = copy_annotation_style(self._style)
-        self._close_text_editor()
-        if self._document.commit_draft():
-            self._selected_index = len(self._document.annotations) - 1
-            self.update()
-            self.document_changed.emit()
-            return True
-        self.update()
-        return False
-
     @property
     def is_text_editing(self) -> bool:
         """Whether the inline text editor is open."""
@@ -346,6 +346,29 @@ class ScreenshotPreviewCanvas(QWidget):
             event.accept()
             return
         super().keyReleaseEvent(event)
+
+    def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        """Double-click a text annotation to edit it on the canvas."""
+        if event.button() != Qt.MouseButton.LeftButton:
+            super().mouseDoubleClickEvent(event)
+            return
+        image_pos = self._widget_to_image(event.position())
+        document = self._document
+        if image_pos is None or document is None:
+            super().mouseDoubleClickEvent(event)
+            return
+        hit = hit_test_topmost(
+            document.annotations,
+            image_pos,
+            handle_size=self._handle_size_image(),
+            prefer_tool=AnnotationTool.TEXT,
+            selected_index=self._selected_index,
+        )
+        if hit is not None and document.annotations[hit[0]].tool == AnnotationTool.TEXT:
+            self.begin_text_edit(hit[0])
+            event.accept()
+            return
+        super().mouseDoubleClickEvent(event)
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         """Pan, edit a selected shape, update a draft, or refresh the hover cursor."""
@@ -509,29 +532,6 @@ class ScreenshotPreviewCanvas(QWidget):
         super().resizeEvent(event)
         self._sync_text_editor_geometry()
         self.update()
-
-    def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        """Double-click a text annotation to edit it on the canvas."""
-        if event.button() != Qt.MouseButton.LeftButton:
-            super().mouseDoubleClickEvent(event)
-            return
-        image_pos = self._widget_to_image(event.position())
-        document = self._document
-        if image_pos is None or document is None:
-            super().mouseDoubleClickEvent(event)
-            return
-        hit = hit_test_topmost(
-            document.annotations,
-            image_pos,
-            handle_size=self._handle_size_image(),
-            prefer_tool=AnnotationTool.TEXT,
-            selected_index=self._selected_index,
-        )
-        if hit is not None and document.annotations[hit[0]].tool == AnnotationTool.TEXT:
-            self.begin_text_edit(hit[0])
-            event.accept()
-            return
-        super().mouseDoubleClickEvent(event)
 
     def sample_color_at(self, widget_pos: QPointF) -> QColor | None:
         """Return the visible pixel color under `widget_pos`, or `None` if outside the image."""
@@ -767,6 +767,18 @@ class ScreenshotPreviewCanvas(QWidget):
         self._snap_x_guide = None
         self._snap_y_guide = None
 
+    def _close_text_editor(self) -> None:
+        was_active = self._text_edit_active
+        editor = self._text_editor
+        self._text_editor = None
+        self._text_edit_index = None
+        self._text_edit_active = False
+        if editor is not None:
+            editor.hide()
+            editor.deleteLater()
+        if was_active:
+            self.text_editing_changed.emit(False)  # noqa: FBT003
+
     def _constrain_and_snap_draft_end(
         self,
         start: QPointF,
@@ -971,6 +983,19 @@ class ScreenshotPreviewCanvas(QWidget):
         center = QPointF(self.rect().center()) + self._offset
         return QRectF(center.x() - size.width() / 2, center.y() - size.height() / 2, size.width(), size.height())
 
+    def _image_rectf_to_widget(self, rect: QRectF) -> QRect:
+        image_rect = self._image_rect()
+        width, height = self._source_size()
+        if width <= 0 or height <= 0 or image_rect.isEmpty() or rect.isNull():
+            return QRect()
+        scale_x = image_rect.width() / width
+        scale_y = image_rect.height() / height
+        left = round(image_rect.left() + rect.left() * scale_x)
+        top = round(image_rect.top() + rect.top() * scale_y)
+        right = round(image_rect.left() + rect.right() * scale_x)
+        bottom = round(image_rect.top() + rect.bottom() * scale_y)
+        return QRect(QPoint(left, top), QPoint(max(left + 8, right), max(top + 8, bottom)))
+
     def _image_to_widget_rect(self, rect: QRect, image_rect: QRectF) -> QRect:
         width, height = self._source_size()
         if width <= 0 or height <= 0 or image_rect.isEmpty():
@@ -982,6 +1007,26 @@ class ScreenshotPreviewCanvas(QWidget):
         right = round(image_rect.left() + (rect.right() + 1) * scale_x) - 1
         bottom = round(image_rect.top() + (rect.bottom() + 1) * scale_y) - 1
         return QRect(QPoint(left, top), QPoint(right, bottom)).normalized()
+
+    def _open_text_editor(self, *, text: str, style: AnnotationStyle, image_rect: QRectF) -> None:
+        self._style = copy_annotation_style(style)
+        editor = QPlainTextEdit(self)
+        editor.setPlainText(text)
+        editor.setFrameShape(QPlainTextEdit.Shape.NoFrame)
+        editor.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        editor.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        editor.setTabChangesFocus(False)
+        editor.setStyleSheet(
+            "QPlainTextEdit {  background: rgba(255, 255, 255, 210);  border: 1px dashed #2e86b7;  padding: 2px;}"
+        )
+        self._text_editor = editor
+        self._text_edit_active = True
+        self._sync_text_editor_style()
+        editor.setGeometry(self._image_rectf_to_widget(image_rect))
+        editor.show()
+        editor.setFocus(Qt.FocusReason.MouseFocusReason)
+        self.text_editing_changed.emit(True)  # noqa: FBT003
+        self.update()
 
     def _paint_crop_overlay(self, painter: QPainter, image_rect: QRectF) -> None:
         bounds = image_rect.toRect()
@@ -1136,75 +1181,6 @@ class ScreenshotPreviewCanvas(QWidget):
             return 0, 0
         return self._pixmap.width(), self._pixmap.height()
 
-    def _update_hover_cursor(self, image_pos: QPointF | None) -> None:
-        if image_pos is None or self._document is None:
-            return
-        hit = hit_test_topmost(
-            self._document.annotations,
-            image_pos,
-            handle_size=self._handle_size_image(),
-            prefer_tool=self._prefer_tool(),
-            selected_index=self._selected_index,
-        )
-        if hit is not None:
-            self.setCursor(getattr(Qt.CursorShape, cursor_for_annotation_handle(hit[1])))
-            return
-        if self._tool == AnnotationTool.NONE:
-            self.setCursor(Qt.CursorShape.ArrowCursor)
-        elif self._tool == AnnotationTool.TEXT:
-            self.setCursor(Qt.CursorShape.IBeamCursor)
-        else:
-            self.setCursor(Qt.CursorShape.CrossCursor)
-
-    def _close_text_editor(self) -> None:
-        was_active = self._text_edit_active
-        editor = self._text_editor
-        self._text_editor = None
-        self._text_edit_index = None
-        self._text_edit_active = False
-        if editor is not None:
-            editor.hide()
-            editor.deleteLater()
-        if was_active:
-            self.text_editing_changed.emit(False)  # noqa: FBT003
-
-    def _image_rectf_to_widget(self, rect: QRectF) -> QRect:
-        image_rect = self._image_rect()
-        width, height = self._source_size()
-        if width <= 0 or height <= 0 or image_rect.isEmpty() or rect.isNull():
-            return QRect()
-        scale_x = image_rect.width() / width
-        scale_y = image_rect.height() / height
-        left = round(image_rect.left() + rect.left() * scale_x)
-        top = round(image_rect.top() + rect.top() * scale_y)
-        right = round(image_rect.left() + rect.right() * scale_x)
-        bottom = round(image_rect.top() + rect.bottom() * scale_y)
-        return QRect(QPoint(left, top), QPoint(max(left + 8, right), max(top + 8, bottom)))
-
-    def _open_text_editor(self, *, text: str, style: AnnotationStyle, image_rect: QRectF) -> None:
-        self._style = copy_annotation_style(style)
-        editor = QPlainTextEdit(self)
-        editor.setPlainText(text)
-        editor.setFrameShape(QPlainTextEdit.Shape.NoFrame)
-        editor.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        editor.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        editor.setTabChangesFocus(False)
-        editor.setStyleSheet(
-            "QPlainTextEdit {"
-            "  background: rgba(255, 255, 255, 210);"
-            "  border: 1px dashed #2e86b7;"
-            "  padding: 2px;"
-            "}"
-        )
-        self._text_editor = editor
-        self._text_edit_active = True
-        self._sync_text_editor_style()
-        editor.setGeometry(self._image_rectf_to_widget(image_rect))
-        editor.show()
-        editor.setFocus(Qt.FocusReason.MouseFocusReason)
-        self.text_editing_changed.emit(True)  # noqa: FBT003
-        self.update()
-
     def _sync_text_editor_geometry(self) -> None:
         if not self._text_edit_active or self._text_editor is None or self._document is None:
             return
@@ -1230,14 +1206,20 @@ class ScreenshotPreviewCanvas(QWidget):
             qt_align = Qt.AlignmentFlag.AlignHCenter
         elif align == "right":
             qt_align = Qt.AlignmentFlag.AlignRight
-        editor.setAlignment(qt_align | Qt.AlignmentFlag.AlignTop)
+        option = editor.document().defaultTextOption()
+        option.setAlignment(qt_align)
+        editor.document().setDefaultTextOption(option)
+        cursor = editor.textCursor()
+        cursor.beginEditBlock()
+        cursor.select(QTextCursor.SelectionType.Document)
+        block_format = QTextBlockFormat()
+        block_format.setAlignment(qt_align)
+        cursor.mergeBlockFormat(block_format)
+        cursor.clearSelection()
+        cursor.endEditBlock()
+        editor.setTextCursor(cursor)
         editor.setStyleSheet(
-            "QPlainTextEdit {"
-            f"  color: {color};"
-            f"  background: {bg};"
-            "  border: 1px dashed #2e86b7;"
-            "  padding: 2px;"
-            "}"
+            f"QPlainTextEdit {{  color: {color};  background: {bg};  border: 1px dashed #2e86b7;  padding: 2px;}}"
         )
         document = self._document
         if document is None:
@@ -1246,6 +1228,26 @@ class ScreenshotPreviewCanvas(QWidget):
             document.annotations[self._text_edit_index].style = copy_annotation_style(style)
         elif document.draft is not None and document.draft.tool == AnnotationTool.TEXT:
             document.draft.style = copy_annotation_style(style)
+
+    def _update_hover_cursor(self, image_pos: QPointF | None) -> None:
+        if image_pos is None or self._document is None:
+            return
+        hit = hit_test_topmost(
+            self._document.annotations,
+            image_pos,
+            handle_size=self._handle_size_image(),
+            prefer_tool=self._prefer_tool(),
+            selected_index=self._selected_index,
+        )
+        if hit is not None:
+            self.setCursor(getattr(Qt.CursorShape, cursor_for_annotation_handle(hit[1])))
+            return
+        if self._tool == AnnotationTool.NONE:
+            self.setCursor(Qt.CursorShape.ArrowCursor)
+        elif self._tool == AnnotationTool.TEXT:
+            self.setCursor(Qt.CursorShape.IBeamCursor)
+        else:
+            self.setCursor(Qt.CursorShape.CrossCursor)
 
     def _widget_to_image(self, pos: QPointF) -> QPointF | None:
         rect = self._image_rect()

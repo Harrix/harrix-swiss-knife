@@ -200,6 +200,8 @@ Create QApplication, tray, main window, and run until the event loop exits.
 
 ```python
 def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBase]) -> int:
+    from harrix_swiss_knife.spellcheck import install_spellcheck  # noqa: PLC0415
+
     startup_t0 = perf_counter()
     config: dict = h.dev.config_load(get_config_path_str())
 
@@ -209,6 +211,7 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
     app.setQuitOnLastWindowClosed(False)
     app.setWindowIcon(QIcon(":/assets/logo.svg"))
     install_flexible_decimal_separators(app)
+    install_spellcheck(app)
     install_app_fonts(app)
     install_safe_qt_translate()
     if early_splash_hwnd():

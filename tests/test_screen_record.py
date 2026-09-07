@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import QByteArray, QBuffer, QIODevice, QPoint, QRect
+from PySide6.QtCore import QBuffer, QByteArray, QIODevice, QPoint, QRect
 from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import QApplication
 

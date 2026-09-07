@@ -133,7 +133,7 @@ class CategoryEditDialog(QDialog):
         self.name_local_edit = QLineEdit()
         self.name_local_edit.setPlaceholderText("Local name")
         name_local_layout.addWidget(self.name_local_edit, 1)
-        self.translate_button = make_lucide_push_button("", "bot")
+        self.translate_button = make_ai_lucide_push_button("")
         self.translate_button.setToolTip("Translate name to local language with AI")
         self.translate_button.setFixedWidth(36)
         self.translate_button.clicked.connect(self._on_translate_clicked)

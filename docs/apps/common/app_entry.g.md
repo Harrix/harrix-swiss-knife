@@ -35,9 +35,12 @@ def run_app_main(
     icon_path: str = ":/assets/logo.svg",
     set_tab_index_zero: bool = True,
 ) -> None:
+    from harrix_swiss_knife.spellcheck import install_spellcheck  # noqa: PLC0415
+
     app = QApplication(sys.argv)
     app.setWindowIcon(QIcon(icon_path))
     install_flexible_decimal_separators(app)
+    install_spellcheck(app)
     install_app_fonts(app)
     install_safe_qt_translate()
     try:

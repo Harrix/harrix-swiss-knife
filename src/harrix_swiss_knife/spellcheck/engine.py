@@ -18,21 +18,6 @@ _ENGINE_LOCK = Lock()
 _ENGINE: SpellEngine | None = None
 
 
-def bundled_dictionaries_dir() -> Path:
-    """Return the directory that holds bundled `.aff` / `.dic` files."""
-    return Path(__file__).resolve().parent.parent / "assets" / "dictionaries"
-
-
-def _import_dictionary_class() -> type[Any]:
-    """Import spylls `Dictionary` lazily so CLI imports do not require it."""
-    try:
-        from spylls.hunspell import Dictionary  # noqa: PLC0415
-    except ImportError as exc:
-        msg = "spylls is not installed; run `uv sync` or reinstall the hsk tool"
-        raise ImportError(msg) from exc
-    return Dictionary
-
-
 class SpellEngine:
     """Lookup words against English, Russian, and the user dictionary (OR)."""
 
@@ -46,15 +31,19 @@ class SpellEngine:
         self._loaded = False
         self._load_error: str | None = None
 
-    @property
-    def load_error(self) -> str | None:
-        """Return a load failure message, or `None` when dictionaries loaded."""
-        return self._load_error
+    def add_to_user_dictionary(self, word: str) -> bool:
+        """Persist `word` in the personal dictionary and refresh in-memory set.
 
-    @property
-    def user_words(self) -> set[str]:
-        """Return a copy of the in-memory personal dictionary."""
-        return set(self._user_words)
+        Returns:
+
+        - `bool`: `True` when the word was added (or already present).
+
+        """
+        cleaned = word.strip()
+        if not cleaned:
+            return False
+        self._set_user_words(user_dict_mod.add_user_word(cleaned, self._user_dict_path))
+        return True
 
     def ensure_loaded(self) -> bool:
         """Load Hunspell dictionaries and the user word list once.
@@ -89,6 +78,11 @@ class SpellEngine:
             return False
         return True
 
+    @property
+    def load_error(self) -> str | None:
+        """Return a load failure message, or `None` when dictionaries loaded."""
+        return self._load_error
+
     def lookup(self, word: str) -> bool:
         """Return `True` when `word` is in en, ru, or the personal dictionary."""
         if not word:
@@ -104,6 +98,10 @@ class SpellEngine:
             except Exception:
                 log.exception("Spellcheck lookup failed for %r", word)
         return False
+
+    def reload_user_dictionary(self) -> None:
+        """Reload personal words from disk (keeps Hunspell dictionaries)."""
+        self._set_user_words(user_dict_mod.load_user_words(self._user_dict_path))
 
     def suggest(self, word: str, *, limit: int = 7) -> list[str]:
         """Return up to `limit` unique suggestions from en and ru dictionaries."""
@@ -125,27 +123,19 @@ class SpellEngine:
                 log.exception("Spellcheck suggest failed for %r", cleaned)
         return suggestions
 
-    def add_to_user_dictionary(self, word: str) -> bool:
-        """Persist `word` in the personal dictionary and refresh in-memory set.
-
-        Returns:
-
-        - `bool`: `True` when the word was added (or already present).
-
-        """
-        cleaned = word.strip()
-        if not cleaned:
-            return False
-        self._set_user_words(user_dict_mod.add_user_word(cleaned, self._user_dict_path))
-        return True
-
-    def reload_user_dictionary(self) -> None:
-        """Reload personal words from disk (keeps Hunspell dictionaries)."""
-        self._set_user_words(user_dict_mod.load_user_words(self._user_dict_path))
+    @property
+    def user_words(self) -> set[str]:
+        """Return a copy of the in-memory personal dictionary."""
+        return set(self._user_words)
 
     def _set_user_words(self, words: set[str]) -> None:
         self._user_words = words
         self._user_words_folded = {w.casefold() for w in words}
+
+
+def bundled_dictionaries_dir() -> Path:
+    """Return the directory that holds bundled `.aff` / `.dic` files."""
+    return Path(__file__).resolve().parent.parent / "assets" / "dictionaries"
 
 
 def get_spell_engine() -> SpellEngine:
@@ -162,3 +152,13 @@ def reset_spell_engine_for_tests() -> None:
     global _ENGINE  # noqa: PLW0603
     with _ENGINE_LOCK:
         _ENGINE = None
+
+
+def _import_dictionary_class() -> type[Any]:
+    """Import spylls `Dictionary` lazily so CLI imports do not require it."""
+    try:
+        from spylls.hunspell import Dictionary  # noqa: PLC0415
+    except ImportError as exc:
+        msg = "spylls is not installed; run `uv sync` or reinstall the hsk tool"
+        raise ImportError(msg) from exc
+    return Dictionary

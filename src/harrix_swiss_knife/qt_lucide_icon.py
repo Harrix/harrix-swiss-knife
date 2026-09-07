@@ -425,6 +425,11 @@ def set_action_text_with_lucide_icon(
     apply_leading_chrome_icon(action, icon_size=icon_size)
 
 
+def _is_ai_chrome_emoji(emoji: str) -> bool:
+    """Return whether `emoji` is the robot chrome mark used for AI actions."""
+    return emoji.replace("\ufe0f", "").replace("\u200d", "") == "🤖"
+
+
 def _lucide_device_pixel_ratio() -> float:
     app = QGuiApplication.instance()
     if isinstance(app, QGuiApplication):
@@ -434,11 +439,6 @@ def _lucide_device_pixel_ratio() -> float:
             if ratio > 0:
                 return float(ratio)
     return 1.0
-
-
-def _is_ai_chrome_emoji(emoji: str) -> bool:
-    """Return whether `emoji` is the robot chrome mark used for AI actions."""
-    return emoji.replace("\ufe0f", "").replace("\u200d", "") == "🤖"
 
 
 def _lucide_dir() -> Path:

@@ -21,18 +21,6 @@ class SpellHighlighter(QSyntaxHighlighter):
         self._engine = engine if engine is not None else get_spell_engine()
         self._enabled = True
 
-    def set_enabled(self, *, enabled: bool) -> None:
-        """Enable or disable highlighting and rehighlight when turning on."""
-        self._enabled = enabled
-        if enabled:
-            self.rehighlight()
-        else:
-            self.setDocument(self.document())
-
-    def rehighlight_all(self) -> None:
-        """Force a full rehighlight (e.g. after adding a user word)."""
-        self.rehighlight()
-
     def highlightBlock(self, text: str) -> None:  # noqa: N802
         """Underline misspelled tokens in the current block."""
         if not self._enabled or not text:
@@ -41,3 +29,15 @@ class SpellHighlighter(QSyntaxHighlighter):
         for start, end, word in iter_word_spans(text):
             if not engine.lookup(word):
                 self.setFormat(start, end - start, _MISS_FORMAT)
+
+    def rehighlight_all(self) -> None:
+        """Force a full rehighlight (e.g. after adding a user word)."""
+        self.rehighlight()
+
+    def set_enabled(self, *, enabled: bool) -> None:
+        """Enable or disable highlighting and rehighlight when turning on."""
+        self._enabled = enabled
+        if enabled:
+            self.rehighlight()
+        else:
+            self.setDocument(self.document())

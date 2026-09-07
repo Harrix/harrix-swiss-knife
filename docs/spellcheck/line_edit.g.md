@@ -1,22 +1,37 @@
-"""Wavy red underlines for `QLineEdit` (no document/highlighter)."""
+---
+author: Anton Sergienko
+author-email: anton.b.sergienko@gmail.com
+lang: en
+---
 
-from __future__ import annotations
+# 📄 File `line_edit.py`
 
-import contextlib
+<details>
+<summary>📖 Contents ⬇️</summary>
 
-from PySide6.QtCore import QObject, QRect, QTimer
-from PySide6.QtGui import QColor, QFontMetrics, QPainter, QPainterPath, QPen
-from PySide6.QtWidgets import QLineEdit, QStyle, QStyleOptionFrame
+## Contents
 
-from harrix_swiss_knife.spellcheck.engine import SpellEngine, get_spell_engine
-from harrix_swiss_knife.spellcheck.tokenize import iter_word_spans
+- [🏛️ Class `LineEditSpellController`](#%EF%B8%8F-class-lineeditspellcontroller)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `detach`](#%EF%B8%8F-method-detach)
+  - [⚙️ Method `misspellings`](#%EF%B8%8F-method-misspellings)
+  - [⚙️ Method `refresh`](#%EF%B8%8F-method-refresh)
 
-_WAVE_COLOR = QColor(220, 50, 47)
-_DEBOUNCE_MS = 300
+</details>
 
+## 🏛️ Class `LineEditSpellController`
 
+```python
+class LineEditSpellController(QObject)
+```
+
+Debounced misspelling ranges and post-paint wave underlines for a line edit.
+
+<details>
+<summary>Code:</summary>
+
+```python
 class LineEditSpellController(QObject):
-    """Debounced misspelling ranges and post-paint wave underlines for a line edit."""
 
     def __init__(self, line_edit: QLineEdit, engine: SpellEngine | None = None) -> None:
         """Attach to `line_edit`; owns a debounce timer for `textChanged`."""
@@ -96,49 +111,95 @@ class LineEditSpellController(QObject):
 
     def _schedule(self, _text: str = "") -> None:
         self._timer.start()
+```
 
+</details>
 
-def _draw_wave(painter: QPainter, x1: float, x2: float, y: float) -> None:
-    if x2 - x1 < 1:
-        return
-    path = QPainterPath()
-    path.moveTo(x1, y)
-    x = x1
-    up = True
-    step = 2.0
-    amp = 1.2
-    while x < x2:
-        next_x = min(x + step, x2)
-        path.lineTo(next_x, y - amp if up else y + amp)
-        x = next_x
-        up = not up
-    painter.drawPath(path)
+### ⚙️ Method `__init__`
 
+```python
+def __init__(self, line_edit: QLineEdit, engine: SpellEngine | None = None) -> None
+```
 
-def _line_edit_scroll_x(line_edit: QLineEdit, content_left: int) -> int:
-    """Estimate horizontal scroll from cursor rect vs. text advance."""
-    cursor = line_edit.cursorPosition()
-    text = line_edit.text()
-    advance = line_edit.fontMetrics().horizontalAdvance(text[:cursor])
-    cursor_x = line_edit.cursorRect().x()
-    return max(0, advance - (cursor_x - content_left))
+Attach to `line_edit`; owns a debounce timer for `textChanged`.
 
+<details>
+<summary>Code:</summary>
 
-def _line_edit_underline_y(
-    line_edit: QLineEdit,
-    contents: QRect,
-    margin_top: int,
-    margin_bottom: int,
-    fm: QFontMetrics,
-) -> int:
-    """Y for the wave: under the baseline, matching QLineEdit vertical centering."""
-    # Prefer the live caret rect — Qt already vertically centers text there.
-    cursor_rect = line_edit.cursorRect()
-    underline_from_baseline = max(1, fm.underlinePos())
-    if cursor_rect.height() > 0:
-        return min(cursor_rect.top() + fm.ascent() + underline_from_baseline, contents.bottom() - 1)
+```python
+def __init__(self, line_edit: QLineEdit, engine: SpellEngine | None = None) -> None:
+        super().__init__(line_edit)
+        self._line_edit = line_edit
+        self._engine = engine if engine is not None else get_spell_engine()
+        self._misspellings: list[tuple[int, int]] = []
+        self._original_paint = line_edit.paintEvent
+        self._timer = QTimer(self)
+        self._timer.setSingleShot(True)
+        self._timer.setInterval(_DEBOUNCE_MS)
+        self._timer.timeout.connect(self._recompute)
+        line_edit.textChanged.connect(self._schedule)
+        line_edit.paintEvent = self._paint_event  # type: ignore[method-assign]
+        self._recompute()
+```
 
-    available = contents.height() - margin_top - margin_bottom
-    v_offset = max(0, (available - fm.height()) // 2)
-    baseline = contents.top() + margin_top + v_offset + fm.ascent()
-    return min(baseline + underline_from_baseline, contents.bottom() - 1)
+</details>
+
+### ⚙️ Method `detach`
+
+```python
+def detach(self) -> None
+```
+
+Restore the original `paintEvent` and stop listening.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def detach(self) -> None:
+        self._timer.stop()
+        with contextlib.suppress(TypeError, RuntimeError):
+            self._line_edit.textChanged.disconnect(self._schedule)
+        self._line_edit.paintEvent = self._original_paint  # type: ignore[method-assign]
+        self._misspellings.clear()
+        self._line_edit.update()
+```
+
+</details>
+
+### ⚙️ Method `misspellings`
+
+```python
+def misspellings(self) -> list[tuple[int, int]]
+```
+
+Return current `[start, end)` misspelled spans.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def misspellings(self) -> list[tuple[int, int]]:
+        return list(self._misspellings)
+```
+
+</details>
+
+### ⚙️ Method `refresh`
+
+```python
+def refresh(self) -> None
+```
+
+Recompute misspellings immediately (e.g. after Add to dictionary).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def refresh(self) -> None:
+        self._timer.stop()
+        self._recompute()
+```
+
+</details>

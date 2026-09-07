@@ -19,9 +19,11 @@ lang: en
 - [🔧 Function `apply_lucide_action_icon`](#-function-apply_lucide_action_icon)
 - [🔧 Function `apply_lucide_button_icon`](#-function-apply_lucide_button_icon)
 - [🔧 Function `apply_lucide_dialog_buttons`](#-function-apply_lucide_dialog_buttons)
+- [🔧 Function `create_ai_lucide_icon`](#-function-create_ai_lucide_icon)
 - [🔧 Function `create_lucide_icon`](#-function-create_lucide_icon)
 - [🔧 Function `lucide_name_for_chrome_emoji`](#-function-lucide_name_for_chrome_emoji)
 - [🔧 Function `lucide_svg_path`](#-function-lucide_svg_path)
+- [🔧 Function `make_ai_lucide_push_button`](#-function-make_ai_lucide_push_button)
 - [🔧 Function `make_lucide_push_button`](#-function-make_lucide_push_button)
 - [🔧 Function `set_action_text_with_lucide_icon`](#-function-set_action_text_with_lucide_icon)
 
@@ -81,7 +83,8 @@ def apply_leading_chrome_button_icon(
         return False
     if name == "clipboard-list" and rest.casefold().startswith("copy"):
         name = COPY_BUTTON_ICON
-    apply_lucide_button_icon(button, name, icon_size=icon_size)
+    color = AI_BUTTON_ICON_COLOR if _is_ai_chrome_emoji(emoji) else None
+    apply_lucide_button_icon(button, name, icon_size=icon_size, color=color)
     button.setText(rest)
     return True
 ```
@@ -140,7 +143,8 @@ def apply_leading_chrome_icon(
         return False
     if name == "clipboard-list" and rest.casefold().startswith("copy"):
         name = COPY_BUTTON_ICON
-    apply_lucide_action_icon(action, name, icon_size=icon_size)
+    color = AI_BUTTON_ICON_COLOR if _is_ai_chrome_emoji(emoji) else None
+    apply_lucide_action_icon(action, name, icon_size=icon_size, color=color)
     action.setText(rest)
     return True
 ```
@@ -178,7 +182,7 @@ def apply_leading_chrome_icons(
 ## 🔧 Function `apply_lucide_action_icon`
 
 ```python
-def apply_lucide_action_icon(action: QAction, name: str, *, icon_size: int = DEFAULT_LUCIDE_MENU_ICON_SIZE) -> None
+def apply_lucide_action_icon(action: QAction, name: str, *, icon_size: int = DEFAULT_LUCIDE_MENU_ICON_SIZE, color: QColor | str | None = None) -> None
 ```
 
 Set a Lucide icon on `action` without changing its text.
@@ -192,9 +196,10 @@ def apply_lucide_action_icon(
     name: str,
     *,
     icon_size: int = DEFAULT_LUCIDE_MENU_ICON_SIZE,
+    color: QColor | str | None = None,
 ) -> None:
     if name:
-        action.setIcon(create_lucide_icon(name, icon_size))
+        action.setIcon(create_lucide_icon(name, icon_size, color=color))
 ```
 
 </details>
@@ -202,7 +207,7 @@ def apply_lucide_action_icon(
 ## 🔧 Function `apply_lucide_button_icon`
 
 ```python
-def apply_lucide_button_icon(button: QAbstractButton, name: str, *, icon_size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE) -> None
+def apply_lucide_button_icon(button: QAbstractButton, name: str, *, icon_size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE, color: QColor | str | None = None) -> None
 ```
 
 Set a Lucide icon on an existing button.
@@ -216,8 +221,9 @@ def apply_lucide_button_icon(
     name: str,
     *,
     icon_size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE,
+    color: QColor | str | None = None,
 ) -> None:
-    button.setIcon(create_lucide_icon(name, icon_size))
+    button.setIcon(create_lucide_icon(name, icon_size, color=color))
     button.setIconSize(QSize(icon_size, icon_size))
 ```
 
@@ -253,10 +259,28 @@ def apply_lucide_dialog_buttons(
 
 </details>
 
+## 🔧 Function `create_ai_lucide_icon`
+
+```python
+def create_ai_lucide_icon(size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE) -> QIcon
+```
+
+Create the shared AI chrome icon (`sparkles` in `#2e86b7`).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def create_ai_lucide_icon(size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE) -> QIcon:
+    return create_lucide_icon(AI_BUTTON_ICON, size, color=AI_BUTTON_ICON_COLOR)
+```
+
+</details>
+
 ## 🔧 Function `create_lucide_icon`
 
 ```python
-def create_lucide_icon(name: str, size: int = 64, *, color: QColor | None = None, device_pixel_ratio: float | None = None) -> QIcon
+def create_lucide_icon(name: str, size: int = 64, *, color: QColor | str | None = None, device_pixel_ratio: float | None = None) -> QIcon
 ```
 
 Create a square `QIcon` from a Lucide SVG ID.
@@ -271,7 +295,7 @@ def create_lucide_icon(
     name: str,
     size: int = 64,
     *,
-    color: QColor | None = None,
+    color: QColor | str | None = None,
     device_pixel_ratio: float | None = None,
 ) -> QIcon:
     ratio = device_pixel_ratio if device_pixel_ratio is not None else _lucide_device_pixel_ratio()
@@ -353,10 +377,39 @@ def lucide_svg_path(name: str) -> Path | None:
 
 </details>
 
+## 🔧 Function `make_ai_lucide_push_button`
+
+```python
+def make_ai_lucide_push_button(label: str, *, icon_size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE, parent: QWidget | None = None) -> QPushButton
+```
+
+Create a push button with the shared AI `sparkles` icon.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def make_ai_lucide_push_button(
+    label: str,
+    *,
+    icon_size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE,
+    parent: QWidget | None = None,
+) -> QPushButton:
+    return make_lucide_push_button(
+        label,
+        AI_BUTTON_ICON,
+        icon_size=icon_size,
+        color=AI_BUTTON_ICON_COLOR,
+        parent=parent,
+    )
+```
+
+</details>
+
 ## 🔧 Function `make_lucide_push_button`
 
 ```python
-def make_lucide_push_button(label: str, name: str, *, icon_size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE, parent: QWidget | None = None) -> QPushButton
+def make_lucide_push_button(label: str, name: str, *, icon_size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE, color: QColor | str | None = None, parent: QWidget | None = None) -> QPushButton
 ```
 
 Create a push button with a Lucide icon.
@@ -370,10 +423,11 @@ def make_lucide_push_button(
     name: str,
     *,
     icon_size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE,
+    color: QColor | str | None = None,
     parent: QWidget | None = None,
 ) -> QPushButton:
     button = QPushButton(label, parent)
-    apply_lucide_button_icon(button, name, icon_size=icon_size)
+    apply_lucide_button_icon(button, name, icon_size=icon_size, color=color)
     return button
 ```
 

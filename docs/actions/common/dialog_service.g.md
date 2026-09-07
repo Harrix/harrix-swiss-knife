@@ -295,9 +295,9 @@ class ActionDialogService:
 
         selection_buttons_layout = QHBoxLayout()
 
-        select_all_button = QPushButton("✅ Select All")
-        deselect_all_button = QPushButton("❌ Deselect All")
-        extension_filter_button = QPushButton("🧩 Select by extension…")
+        select_all_button = make_lucide_push_button("Select All", "square-check")
+        deselect_all_button = make_lucide_push_button("Deselect All", "square")
+        extension_filter_button = make_lucide_push_button("Select by extension…", "puzzle")
         extension_filter_button.setVisible(enable_extension_filter)
 
         def select_all() -> None:
@@ -740,8 +740,8 @@ class ActionDialogService:
             group_layout.addWidget(scroll_area)
 
             selection_buttons_layout = QHBoxLayout()
-            select_all_button = QPushButton("✅ Select All")
-            deselect_all_button = QPushButton("❌ Deselect All")
+            select_all_button = make_lucide_push_button("Select All", "square-check")
+            deselect_all_button = make_lucide_push_button("Deselect All", "square")
 
             def select_all(boxes: list[QCheckBox] = checkboxes) -> None:
                 for checkbox in boxes:
@@ -1095,7 +1095,7 @@ class ActionDialogService:
             le.setText(default_value or "")
             input_layout.addWidget(le)
 
-            browse_button = QPushButton("📁 Browse folder...")
+            browse_button = make_lucide_push_button("Browse folder...", "folder")
 
             def on_browse_clicked() -> None:
                 folder_path = QFileDialog.getExistingDirectory(
@@ -1173,9 +1173,8 @@ class ActionDialogService:
                 self._add_line(f"❌ Error generating auto text: {e}")
             input_layout.addWidget(le)
 
-            auto_button = make_lucide_push_button(
+            auto_button = make_ai_lucide_push_button(
                 auto_button_text.removeprefix("🤖 ").strip() or "Auto",
-                "bot",
             )
 
             def on_auto_clicked() -> None:
@@ -2115,9 +2114,9 @@ def get_checkbox_selection(
 
         selection_buttons_layout = QHBoxLayout()
 
-        select_all_button = QPushButton("✅ Select All")
-        deselect_all_button = QPushButton("❌ Deselect All")
-        extension_filter_button = QPushButton("🧩 Select by extension…")
+        select_all_button = make_lucide_push_button("Select All", "square-check")
+        deselect_all_button = make_lucide_push_button("Deselect All", "square")
+        extension_filter_button = make_lucide_push_button("Select by extension…", "puzzle")
         extension_filter_button.setVisible(enable_extension_filter)
 
         def select_all() -> None:
@@ -2628,8 +2627,8 @@ def get_dual_checkbox_selection(
             group_layout.addWidget(scroll_area)
 
             selection_buttons_layout = QHBoxLayout()
-            select_all_button = QPushButton("✅ Select All")
-            deselect_all_button = QPushButton("❌ Deselect All")
+            select_all_button = make_lucide_push_button("Select All", "square-check")
+            deselect_all_button = make_lucide_push_button("Deselect All", "square")
 
             def select_all(boxes: list[QCheckBox] = checkboxes) -> None:
                 for checkbox in boxes:
@@ -3131,7 +3130,7 @@ def get_path_input(self, title: str, label: str, default_value: str | None = Non
             le.setText(default_value or "")
             input_layout.addWidget(le)
 
-            browse_button = QPushButton("📁 Browse folder...")
+            browse_button = make_lucide_push_button("Browse folder...", "folder")
 
             def on_browse_clicked() -> None:
                 folder_path = QFileDialog.getExistingDirectory(
@@ -3251,9 +3250,8 @@ def get_text_input_with_auto(
                 self._add_line(f"❌ Error generating auto text: {e}")
             input_layout.addWidget(le)
 
-            auto_button = make_lucide_push_button(
+            auto_button = make_ai_lucide_push_button(
                 auto_button_text.removeprefix("🤖 ").strip() or "Auto",
-                "bot",
             )
 
             def on_auto_clicked() -> None:

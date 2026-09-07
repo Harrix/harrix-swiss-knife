@@ -2,6 +2,16 @@
 
 This folder contains LibreOffice Hunspell dictionaries used for spell checking.
 
+<details>
+<summary>📖 Contents ⬇️</summary>
+
+## Contents
+
+- [English (`en_US`)](#english-en_us)
+- [Russian (`ru_RU`)](#russian-ru_ru)
+
+</details>
+
 ## English (`en_US`)
 
 Source: [LibreOffice/dictionaries `en`](https://github.com/LibreOffice/dictionaries/tree/master/en)

@@ -1,50 +1,37 @@
-"""Paint-like text settings bar for the screenshot preview."""
+---
+author: Anton Sergienko
+author-email: anton.b.sergienko@gmail.com
+lang: en
+---
 
-from __future__ import annotations
+# 📄 File `text_toolbar.py`
 
-from typing import TYPE_CHECKING
+<details>
+<summary>📖 Contents ⬇️</summary>
 
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import (
-    QCheckBox,
-    QComboBox,
-    QHBoxLayout,
-    QLabel,
-    QSizePolicy,
-    QToolButton,
-    QWidget,
-)
+## Contents
 
-from harrix_swiss_knife.qt_lucide_icon import create_lucide_icon
-from harrix_swiss_knife.screenshot.text_style import (
-    ScreenshotTextSettings,
-    available_text_font_families,
-    font_size_choices,
-)
-from harrix_swiss_knife.screenshot.toolbar_style import TOOLBAR_BUTTON_SIZE, TOOLBAR_BUTTON_STYLE, TOOLBAR_ICON_SIZE
+- [🏛️ Class `ScreenshotTextToolbar`](#%EF%B8%8F-class-screenshottexttoolbar)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `set_color`](#%EF%B8%8F-method-set_color)
+  - [⚙️ Method `set_settings`](#%EF%B8%8F-method-set_settings)
+  - [⚙️ Method `settings`](#%EF%B8%8F-method-settings)
 
-if TYPE_CHECKING:
-    from PySide6.QtGui import QColor
+</details>
 
-    from harrix_swiss_knife.screenshot.text_style import TextAlign
+## 🏛️ Class `ScreenshotTextToolbar`
 
-_MIN_FONT_SIZE = 6.0
-_MAX_FONT_SIZE = 200.0
-_STYLE_BUTTONS: tuple[tuple[str, str, str], ...] = (
-    ("bold", "B", "Bold"),
-    ("italic", "I", "Italic"),
-    ("underline", "U", "Underline"),
-    ("strikeout", "S", "Strikethrough"),
-)
-_ALIGN_BUTTONS: tuple[tuple[str, str, str], ...] = (
-    ("left", "align-left", "Align left"),
-    ("center", "align-center", "Align center"),
-    ("right", "align-right", "Align right"),
-)
+```python
+class ScreenshotTextToolbar(QWidget)
+```
 
+Compact font / style strip shown while the text tool is active.
 
+<details>
+<summary>Code:</summary>
+
+```python
 class ScreenshotTextToolbar(QWidget):
-    """Compact font / style strip shown while the text tool is active."""
 
     settings_changed = Signal(object)
 
@@ -211,10 +198,177 @@ class ScreenshotTextToolbar(QWidget):
         elif key == "strikeout":
             self._settings.strikeout = checked
         self._emit()
+```
 
+</details>
 
-def _vsep(parent: QWidget) -> QLabel:
-    sep = QLabel("|", parent)
-    sep.setStyleSheet("color: #c4c4c8; padding: 0 2px;")
-    sep.setAlignment(Qt.AlignmentFlag.AlignCenter)
-    return sep
+### ⚙️ Method `__init__`
+
+```python
+def __init__(self, parent: QWidget | None = None) -> None
+```
+
+Build combos and toggles; call [`set_settings`](#%EF%B8%8F-method-set_settings) before showing.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self._updating = False
+        self._settings = ScreenshotTextSettings()
+        self.setObjectName("hskScreenshotTextToolbar")
+        self.setStyleSheet(
+            "#hskScreenshotTextToolbar {  background: #f7f7f8;  border: 1px solid #d0d0d4;  border-radius: 10px;}"
+        )
+
+        row = QHBoxLayout(self)
+        row.setContentsMargins(10, 6, 10, 6)
+        row.setSpacing(8)
+
+        self._family = QComboBox(self)
+        self._family.setMinimumWidth(100)
+        self._family.setMaximumWidth(140)
+        self._family.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        for name in available_text_font_families():
+            self._family.addItem(name)
+        self._family.currentTextChanged.connect(self._on_family_changed)
+        row.addWidget(self._family)
+
+        self._size = QComboBox(self)
+        self._size.setEditable(True)
+        self._size.setMinimumWidth(64)
+        for size in font_size_choices():
+            self._size.addItem(str(int(size) if size == int(size) else size))
+        self._size.currentTextChanged.connect(self._on_size_changed)
+        row.addWidget(self._size)
+
+        row.addWidget(_vsep(self))
+
+        self._style_buttons: dict[str, QToolButton] = {}
+        for key, label, tip in _STYLE_BUTTONS:
+            button = QToolButton(self)
+            button.setText(label)
+            button.setCheckable(True)
+            button.setToolTip(tip)
+            button.setFixedSize(TOOLBAR_BUTTON_SIZE, TOOLBAR_BUTTON_SIZE)
+            button.setStyleSheet(TOOLBAR_BUTTON_STYLE)
+            button.toggled.connect(lambda checked, k=key: self._on_style_toggled(k, checked=checked))
+            self._style_buttons[key] = button
+            row.addWidget(button)
+
+        row.addWidget(_vsep(self))
+
+        self._align_buttons: dict[str, QToolButton] = {}
+        for key, icon_name, tip in _ALIGN_BUTTONS:
+            button = QToolButton(self)
+            button.setCheckable(True)
+            button.setAutoExclusive(True)
+            button.setToolTip(tip)
+            button.setFixedSize(TOOLBAR_BUTTON_SIZE, TOOLBAR_BUTTON_SIZE)
+            button.setStyleSheet(TOOLBAR_BUTTON_STYLE)
+            button.setIcon(create_lucide_icon(icon_name, size=TOOLBAR_ICON_SIZE))
+            button.toggled.connect(lambda checked, k=key: self._on_align_toggled(k, checked=checked))
+            self._align_buttons[key] = button
+            row.addWidget(button)
+
+        row.addWidget(_vsep(self))
+
+        self._bg_fill = QCheckBox("Background fill", self)
+        self._bg_fill.toggled.connect(self._on_bg_toggled)
+        row.addWidget(self._bg_fill)
+        row.addStretch(1)
+```
+
+</details>
+
+### ⚙️ Method `set_color`
+
+```python
+def set_color(self, color: QColor) -> None
+```
+
+Update the text color stored in settings (from the main color picker).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_color(self, color: QColor) -> None:
+        if not color.isValid():
+            return
+        self._settings.color = color.name()
+        self._emit()
+```
+
+</details>
+
+### ⚙️ Method `set_settings`
+
+```python
+def set_settings(self, settings: ScreenshotTextSettings) -> None
+```
+
+Load [`settings`](#%EF%B8%8F-method-settings) into the controls without emitting.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_settings(self, settings: ScreenshotTextSettings) -> None:
+        self._updating = True
+        self._settings = ScreenshotTextSettings(
+            font_family=settings.font_family,
+            font_size=settings.font_size,
+            bold=settings.bold,
+            italic=settings.italic,
+            underline=settings.underline,
+            strikeout=settings.strikeout,
+            align=settings.align,
+            background_fill=settings.background_fill,
+            color=settings.color,
+        )
+        family = settings.font_family
+        index = self._family.findText(family)
+        if index < 0 and family:
+            self._family.addItem(family)
+            index = self._family.findText(family)
+        if index >= 0:
+            self._family.setCurrentIndex(index)
+        size_value = settings.font_size
+        size_text = str(int(size_value) if size_value == int(size_value) else size_value)
+        size_index = self._size.findText(size_text)
+        if size_index >= 0:
+            self._size.setCurrentIndex(size_index)
+        else:
+            self._size.setEditText(size_text)
+        self._style_buttons["bold"].setChecked(settings.bold)
+        self._style_buttons["italic"].setChecked(settings.italic)
+        self._style_buttons["underline"].setChecked(settings.underline)
+        self._style_buttons["strikeout"].setChecked(settings.strikeout)
+        for key, button in self._align_buttons.items():
+            button.setChecked(key == settings.align)
+        self._bg_fill.setChecked(settings.background_fill)
+        self._updating = False
+```
+
+</details>
+
+### ⚙️ Method `settings`
+
+```python
+def settings(self) -> ScreenshotTextSettings
+```
+
+Return the current toolbar settings.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def settings(self) -> ScreenshotTextSettings:
+        return self._settings
+```
+
+</details>

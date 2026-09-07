@@ -41,7 +41,9 @@ class ScreenshotPreviewWindow(QMainWindow):
         self.setWindowTitle(_DEFAULT_TITLE)
         self.setMinimumSize(_MIN_WINDOW_WIDTH, _MIN_WINDOW_HEIGHT)
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, on=True)
-        self._annotation_color = QColor(_DEFAULT_ANNOTATION_COLOR)
+        self._text_settings = load_screenshot_text_settings()
+        color = QColor(self._text_settings.color)
+        self._annotation_color = color if color.isValid() else QColor(_DEFAULT_ANNOTATION_COLOR)
         self._tool_buttons: dict[AnnotationTool, QToolButton] = {}
 
         central = QWidget(self)
@@ -111,6 +113,19 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._tools_layout = tools_layout
         root.addWidget(tools_host)
 
+        text_bar_host = QWidget(central)
+        text_bar_row = QHBoxLayout(text_bar_host)
+        text_bar_row.setContentsMargins(0, 0, 0, 0)
+        text_bar_row.addStretch(1)
+        self._text_toolbar = ScreenshotTextToolbar(text_bar_host)
+        self._text_toolbar.set_settings(self._text_settings)
+        self._text_toolbar.settings_changed.connect(self._on_text_settings_changed)
+        text_bar_row.addWidget(self._text_toolbar, 0, Qt.AlignmentFlag.AlignHCenter)
+        text_bar_row.addStretch(1)
+        self._text_bar_host = text_bar_host
+        text_bar_host.hide()
+        root.addWidget(text_bar_host)
+
         self._tabs = QTabWidget(central)
         self._tabs.setTabsClosable(True)
         self._tabs.setDocumentMode(True)
@@ -140,7 +155,11 @@ class ScreenshotPreviewWindow(QMainWindow):
             make_lucide_push_button(_SAVE_BUTTON_LABEL, _SAVE_BUTTON_ICON),
             self._save_as,
         )
-        ai_button = make_lucide_push_button("Recognize text (AI)", _MARKDOWN_AI_ICON)
+        ai_button = make_lucide_push_button(
+            "Recognize text (AI)",
+            _MARKDOWN_AI_ICON,
+            color=AI_BUTTON_ICON_COLOR,
+        )
         ai_button.setToolTip("Recognize text (AI)…")
         self._add_footer_button(ai_button, self._run_markdown_with_ai)
         ocr_button = make_lucide_push_button("Recognize text (OCR)", _MARKDOWN_OCR_ICON)
@@ -198,7 +217,8 @@ class ScreenshotPreviewWindow(QMainWindow):
         tab.canvas.crop_pending_changed.connect(self._on_crop_pending_changed)
         tab.canvas.color_hovered.connect(self._on_color_hovered)
         tab.canvas.color_picked.connect(self._on_color_picked)
-        tab.canvas.text_requested.connect(self._on_text_requested)
+        tab.canvas.text_editing_changed.connect(self._on_text_editing_changed)
+        tab.canvas.set_style(style=settings_to_annotation_style(self._text_settings))
         tab.canvas.set_style(color=self._annotation_color)
         index = self._tabs.addTab(tab, self._tab_label(None, self._tabs.count() + 1))
         self._tabs.setCurrentIndex(index)
@@ -266,6 +286,7 @@ class ScreenshotPreviewWindow(QMainWindow):
             if button is checked:
                 tool = candidate
                 break
+        tab.canvas.set_style(style=settings_to_annotation_style(self._text_settings))
         tab.canvas.set_style(color=self._annotation_color)
         tab.canvas.set_tool(tool)
 
@@ -377,13 +398,30 @@ class ScreenshotPreviewWindow(QMainWindow):
             self._refit_tools_host()
         self._update_window_title()
 
-    def _on_text_requested(self, image_pos: QPointF) -> None:
+    def _on_text_editing_changed(self, active: bool) -> None:  # noqa: FBT001
         tab = self._current_tab()
-        if tab is None:
+        if tab is None or not active:
             return
-        text, ok = QInputDialog.getText(self, "Text annotation", "Text:")
-        if ok and text.strip():
-            tab.canvas.finish_text_at(image_pos, text)
+        settings = annotation_style_to_settings(tab.canvas.annotation_style)
+        self._text_settings = settings
+        self._text_toolbar.set_settings(settings)
+        color = QColor(settings.color)
+        if color.isValid():
+            self._annotation_color = color
+            self._update_color_button()
+
+    def _on_text_settings_changed(self, settings: object) -> None:
+        if not isinstance(settings, ScreenshotTextSettings):
+            return
+        self._text_settings = settings
+        color = QColor(settings.color)
+        if color.isValid():
+            self._annotation_color = color
+            self._update_color_button()
+        save_screenshot_text_settings(settings)
+        tab = self._current_tab()
+        if tab is not None:
+            tab.canvas.set_style(style=settings_to_annotation_style(settings))
 
     def _rebuild_color_menu(self) -> None:
         self._color_menu.clear()
@@ -513,6 +551,9 @@ class ScreenshotPreviewWindow(QMainWindow):
         if not color.isValid():
             return
         self._annotation_color = QColor(color)
+        self._text_settings.color = color.name()
+        self._text_toolbar.set_settings(self._text_settings)
+        save_screenshot_text_settings(self._text_settings)
         self._update_color_button()
         tab = self._current_tab()
         if tab is not None:
@@ -523,6 +564,8 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._tools_host.setVisible(not active)
         self._buttons_host.setVisible(not active)
         self._crop_bar.setVisible(active)
+        if active:
+            self._text_bar_host.hide()
         self._tabs.tabBar().setVisible(not active and self._tabs.count() > 1)
 
     def _set_tool(self, tool: AnnotationTool) -> None:
@@ -530,8 +573,14 @@ class ScreenshotPreviewWindow(QMainWindow):
         if button is not None:
             button.setChecked(True)
         self._apply_tool_to_current()
+        self._text_bar_host.setVisible(tool == AnnotationTool.TEXT)
         tip = next((item[2] for item in _TOOL_BUTTONS if item[0] == tool), tool.value)
-        if tool != AnnotationTool.CROP:
+        if tool == AnnotationTool.TEXT:
+            self._status.setText(
+                "Text: click to type on the image · resize the box after commit · "
+                "Ctrl+Enter finish · Esc cancel · double-click to re-edit"
+            )
+        elif tool != AnnotationTool.CROP:
             self._status.setText(f"Tool: {tip}")
 
     def _tab_label(self, saved_name: str | None, number: int) -> str:
@@ -576,7 +625,9 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self.setWindowTitle(_DEFAULT_TITLE)
         self.setMinimumSize(_MIN_WINDOW_WIDTH, _MIN_WINDOW_HEIGHT)
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, on=True)
-        self._annotation_color = QColor(_DEFAULT_ANNOTATION_COLOR)
+        self._text_settings = load_screenshot_text_settings()
+        color = QColor(self._text_settings.color)
+        self._annotation_color = color if color.isValid() else QColor(_DEFAULT_ANNOTATION_COLOR)
         self._tool_buttons: dict[AnnotationTool, QToolButton] = {}
 
         central = QWidget(self)
@@ -646,6 +697,19 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self._tools_layout = tools_layout
         root.addWidget(tools_host)
 
+        text_bar_host = QWidget(central)
+        text_bar_row = QHBoxLayout(text_bar_host)
+        text_bar_row.setContentsMargins(0, 0, 0, 0)
+        text_bar_row.addStretch(1)
+        self._text_toolbar = ScreenshotTextToolbar(text_bar_host)
+        self._text_toolbar.set_settings(self._text_settings)
+        self._text_toolbar.settings_changed.connect(self._on_text_settings_changed)
+        text_bar_row.addWidget(self._text_toolbar, 0, Qt.AlignmentFlag.AlignHCenter)
+        text_bar_row.addStretch(1)
+        self._text_bar_host = text_bar_host
+        text_bar_host.hide()
+        root.addWidget(text_bar_host)
+
         self._tabs = QTabWidget(central)
         self._tabs.setTabsClosable(True)
         self._tabs.setDocumentMode(True)
@@ -675,7 +739,11 @@ def __init__(self, parent: QWidget | None = None) -> None:
             make_lucide_push_button(_SAVE_BUTTON_LABEL, _SAVE_BUTTON_ICON),
             self._save_as,
         )
-        ai_button = make_lucide_push_button("Recognize text (AI)", _MARKDOWN_AI_ICON)
+        ai_button = make_lucide_push_button(
+            "Recognize text (AI)",
+            _MARKDOWN_AI_ICON,
+            color=AI_BUTTON_ICON_COLOR,
+        )
         ai_button.setToolTip("Recognize text (AI)…")
         self._add_footer_button(ai_button, self._run_markdown_with_ai)
         ocr_button = make_lucide_push_button("Recognize text (OCR)", _MARKDOWN_OCR_ICON)
@@ -747,7 +815,8 @@ def add_image(self, image: QImage) -> None:
         tab.canvas.crop_pending_changed.connect(self._on_crop_pending_changed)
         tab.canvas.color_hovered.connect(self._on_color_hovered)
         tab.canvas.color_picked.connect(self._on_color_picked)
-        tab.canvas.text_requested.connect(self._on_text_requested)
+        tab.canvas.text_editing_changed.connect(self._on_text_editing_changed)
+        tab.canvas.set_style(style=settings_to_annotation_style(self._text_settings))
         tab.canvas.set_style(color=self._annotation_color)
         index = self._tabs.addTab(tab, self._tab_label(None, self._tabs.count() + 1))
         self._tabs.setCurrentIndex(index)

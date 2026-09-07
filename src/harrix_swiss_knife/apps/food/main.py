@@ -1499,7 +1499,7 @@ class MainWindow(
         if total <= 0:
             total = max(self.width(), 1200)
 
-        left = max(self.frame_food_controls.minimumWidth(), 350)
+        left = max(self.frame_food_controls.minimumWidth(), 420)
         remaining = max(total - left, 0)
         min_table_width = 400
         middle = max(self.widget_food_middle.minimumWidth(), remaining // 4)

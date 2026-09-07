@@ -112,7 +112,11 @@ class RecordFrameWindow(QWidget):
         _prepare_combo_popup(self._mic)
 
         countdown = get_screen_record_countdown_seconds()
-        self._record_btn = self._make_tool_button("circle-dot", "Record now (start immediately)")
+        self._record_btn = self._make_tool_button(
+            "circle-dot",
+            "Record now (start immediately)",
+            color=_RECORD_ICON_COLOR,
+        )
         self._record_btn.clicked.connect(self._on_record_now)
         self._countdown_btn = self._make_tool_button(
             "timer",
@@ -120,7 +124,11 @@ class RecordFrameWindow(QWidget):
             text=str(countdown) if countdown else "0",
         )
         self._countdown_btn.clicked.connect(self._on_countdown_start)
-        self._stop_btn = self._make_tool_button("square-stop", "Stop recording and open editor")
+        self._stop_btn = self._make_tool_button(
+            "square-stop",
+            "Stop recording and open editor",
+            color=_STOP_ICON_COLOR,
+        )
         self._stop_btn.clicked.connect(self.stop_requested.emit)
         self._abort_btn = self._make_tool_button("x", "Abort without saving")
         self._abort_btn.clicked.connect(self.abort_requested.emit)
@@ -539,9 +547,16 @@ class RecordFrameWindow(QWidget):
         editor.installEventFilter(self)
         return editor
 
-    def _make_tool_button(self, name: str, tip: str, *, text: str = "") -> QPushButton:
+    def _make_tool_button(
+        self,
+        name: str,
+        tip: str,
+        *,
+        text: str = "",
+        color: QColor | None = None,
+    ) -> QPushButton:
         button = QPushButton(self)
-        button.setIcon(create_lucide_icon(name, _ICON))
+        button.setIcon(create_lucide_icon(name, _ICON, color=color))
         button.setIconSize(QSize(_ICON, _ICON))
         button.setToolTip(tip)
         button.setAttribute(Qt.WidgetAttribute.WA_Hover, on=True)
@@ -833,7 +848,11 @@ def __init__(self, region: QRect, parent: QWidget | None = None) -> None:
         _prepare_combo_popup(self._mic)
 
         countdown = get_screen_record_countdown_seconds()
-        self._record_btn = self._make_tool_button("circle-dot", "Record now (start immediately)")
+        self._record_btn = self._make_tool_button(
+            "circle-dot",
+            "Record now (start immediately)",
+            color=_RECORD_ICON_COLOR,
+        )
         self._record_btn.clicked.connect(self._on_record_now)
         self._countdown_btn = self._make_tool_button(
             "timer",
@@ -841,7 +860,11 @@ def __init__(self, region: QRect, parent: QWidget | None = None) -> None:
             text=str(countdown) if countdown else "0",
         )
         self._countdown_btn.clicked.connect(self._on_countdown_start)
-        self._stop_btn = self._make_tool_button("square-stop", "Stop recording and open editor")
+        self._stop_btn = self._make_tool_button(
+            "square-stop",
+            "Stop recording and open editor",
+            color=_STOP_ICON_COLOR,
+        )
         self._stop_btn.clicked.connect(self.stop_requested.emit)
         self._abort_btn = self._make_tool_button("x", "Abort without saving")
         self._abort_btn.clicked.connect(self.abort_requested.emit)

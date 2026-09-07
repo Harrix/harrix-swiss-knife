@@ -144,7 +144,8 @@ def append_result_action_buttons(
     remove_paragraphs_source_text: str = "",
 ) -> QPushButton | None:
     if rerun_button:
-        rerun_btn = make_lucide_push_button(rerun_button_label, rerun_button_icon)
+        rerun_color = AI_BUTTON_ICON_COLOR if rerun_button_icon == AI_BUTTON_ICON else None
+        rerun_btn = make_lucide_push_button(rerun_button_label, rerun_button_icon, color=rerun_color)
         rerun_btn.clicked.connect(lambda: dialog.done(RERUN_DIALOG_CODE))
         button_layout.addWidget(rerun_btn)
 

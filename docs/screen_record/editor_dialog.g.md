@@ -271,7 +271,7 @@ class RecordingEditorWindow(QMainWindow):
         self._grab_for_ms = None
         if exit_code == 0 and not jpeg.isEmpty() and grabbed_ms is not None:
             pixmap = QPixmap()
-            if pixmap.loadFromData(jpeg, b"JPG"):
+            if pixmap.loadFromData(jpeg, "JPG"):
                 self._frame_source = pixmap
                 self._frame_label.setText("")
                 self._refit_frame_pixmap()
