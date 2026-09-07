@@ -24,6 +24,7 @@ from harrix_swiss_knife.apps.common.text_case import capitalize_first_letter
 from harrix_swiss_knife.apps.finance.number_utils import evaluate_arithmetic_expression
 from harrix_swiss_knife.qt_lucide_icon import (
     CANCEL_BUTTON_ICON,
+    CANCEL_BUTTON_STYLE,
     DELETE_BUTTON_ICON,
     SAVE_BUTTON_ICON,
     make_lucide_push_button,
@@ -235,7 +236,7 @@ class AccountEditDialog(QDialog):
 
         self.delete_button = make_lucide_push_button("Delete", DELETE_BUTTON_ICON)
         self.delete_button.clicked.connect(self._on_delete)
-        self.delete_button.setStyleSheet("QPushButton { background-color: #ff6b6b; color: white; }")
+        self.delete_button.setStyleSheet(CANCEL_BUTTON_STYLE)
         button_layout.addWidget(self.delete_button)
 
         self.cancel_button = make_lucide_push_button("Cancel", CANCEL_BUTTON_ICON)

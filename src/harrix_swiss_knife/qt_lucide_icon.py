@@ -55,6 +55,7 @@ DELETE_BUTTON_ICON = "trash"
 AI_BUTTON_ICON = "sparkles"
 AI_BUTTON_ICON_COLOR = "#2e86b7"
 ACCEPT_BUTTON_STYLE = "QPushButton { background-color: #4CAF50; color: white; }"
+CANCEL_BUTTON_STYLE = "QPushButton { background-color: #ff6b6b; color: white; }"
 
 _ICON_NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 _CACHE: dict[tuple[str, int, str, float], QIcon] = {}
@@ -299,7 +300,7 @@ def apply_lucide_dialog_buttons(
 ) -> None:
     """Set Lucide icons on standard `QDialogButtonBox` buttons when present.
 
-    Also paints OK / Apply / Save / Yes (and other Accept/Apply/Yes roles) green.
+    Also paints OK / Apply / Save / Yes green and Cancel / No / Reject red.
 
     """
     for standard_button, name in (
@@ -309,6 +310,7 @@ def apply_lucide_dialog_buttons(
         (QDialogButtonBox.StandardButton.Save, SAVE_BUTTON_ICON),
         (QDialogButtonBox.StandardButton.Close, CLOSE_BUTTON_ICON),
         (QDialogButtonBox.StandardButton.Yes, OK_BUTTON_ICON),
+        (QDialogButtonBox.StandardButton.No, CANCEL_BUTTON_ICON),
     ):
         button = buttons.button(standard_button)
         if button is not None:
@@ -321,6 +323,11 @@ def apply_lucide_dialog_buttons(
             QDialogButtonBox.ButtonRole.YesRole,
         ):
             style_accept_button(button)
+        elif role in (
+            QDialogButtonBox.ButtonRole.RejectRole,
+            QDialogButtonBox.ButtonRole.NoRole,
+        ):
+            style_cancel_button(button)
 
 
 def create_ai_lucide_icon(size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE) -> QIcon:
@@ -415,9 +422,16 @@ def make_lucide_push_button(
     color: QColor | str | None = None,
     parent: QWidget | None = None,
 ) -> QPushButton:
-    """Create a push button with a Lucide icon."""
+    """Create a push button with a Lucide icon.
+
+    Labels that are Cancel (or start with `Cancel`) get the shared red chrome.
+
+    """
     button = QPushButton(label, parent)
     apply_lucide_button_icon(button, name, icon_size=icon_size, color=color)
+    folded = label.casefold()
+    if folded == "cancel" or folded.startswith("cancel "):
+        style_cancel_button(button)
     return button
 
 
@@ -444,6 +458,11 @@ def set_action_text_with_lucide_icon(
 def style_accept_button(button: QAbstractButton) -> None:
     """Paint an accept action (OK / Apply / Save) with the shared green chrome."""
     button.setStyleSheet(ACCEPT_BUTTON_STYLE)
+
+
+def style_cancel_button(button: QAbstractButton) -> None:
+    """Paint a cancel/reject action with the shared red chrome."""
+    button.setStyleSheet(CANCEL_BUTTON_STYLE)
 
 
 def _is_ai_chrome_emoji(emoji: str) -> bool:

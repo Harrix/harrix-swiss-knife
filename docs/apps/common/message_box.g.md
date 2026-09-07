@@ -199,7 +199,7 @@ def information(
 def prepare_box(box: QMessageBox) -> None
 ```
 
-Ensure `box` has a Copy button (idempotent) and green OK/Yes/Apply chrome.
+Ensure `box` has a Copy button and green/red accept/cancel chrome.
 
 <details>
 <summary>Code:</summary>
@@ -217,6 +217,11 @@ def prepare_box(box: QMessageBox) -> None:
             QMessageBox.ButtonRole.ApplyRole,
         ):
             style_accept_button(button)
+        elif role in (
+            QMessageBox.ButtonRole.RejectRole,
+            QMessageBox.ButtonRole.NoRole,
+        ):
+            style_cancel_button(button)
 ```
 
 </details>

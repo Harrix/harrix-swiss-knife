@@ -13,6 +13,7 @@ from harrix_swiss_knife.qt_lucide_icon import (
     SAVE_BUTTON_ICON,
     make_lucide_push_button,
     style_accept_button,
+    style_cancel_button,
 )
 
 if TYPE_CHECKING:
@@ -66,7 +67,9 @@ def add_ok_button(
 
     """
     ok_button = make_lucide_push_button(label, icon)
-    if label.casefold() != CANCEL_BUTTON_LABEL.casefold():
+    if label.casefold() == CANCEL_BUTTON_LABEL.casefold():
+        style_cancel_button(ok_button)
+    else:
         style_accept_button(ok_button)
     ok_button.clicked.connect(dialog.accept)
     button_layout.addWidget(ok_button)

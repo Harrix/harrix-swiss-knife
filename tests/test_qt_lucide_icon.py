@@ -10,6 +10,7 @@ from PySide6.QtWidgets import QApplication, QDialogButtonBox, QMenu
 from harrix_swiss_knife import qt_lucide_icon as lucide_mod
 from harrix_swiss_knife.qt_lucide_icon import (
     ACCEPT_BUTTON_STYLE,
+    CANCEL_BUTTON_STYLE,
     add_lucide_action,
     apply_leading_chrome_icons,
     apply_lucide_dialog_buttons,
@@ -20,6 +21,7 @@ from harrix_swiss_knife.qt_lucide_icon import (
     make_lucide_push_button,
     set_action_text_with_lucide_icon,
     style_accept_button,
+    style_cancel_button,
 )
 
 
@@ -167,7 +169,7 @@ def test_create_ai_lucide_icon_uses_brand_blue(qapp: QApplication) -> None:
     lucide_mod._CACHE.clear()
 
 
-def test_apply_lucide_dialog_buttons_paints_ok_and_apply_green(qapp: QApplication) -> None:
+def test_apply_lucide_dialog_buttons_paints_ok_green_and_cancel_red(qapp: QApplication) -> None:
     assert qapp is not None
     box = QDialogButtonBox(
         QDialogButtonBox.StandardButton.Ok
@@ -185,7 +187,7 @@ def test_apply_lucide_dialog_buttons_paints_ok_and_apply_green(qapp: QApplicatio
     assert ok.styleSheet() == ACCEPT_BUTTON_STYLE
     assert apply.styleSheet() == ACCEPT_BUTTON_STYLE
     assert apply_button.styleSheet() == ACCEPT_BUTTON_STYLE
-    assert cancel.styleSheet() == ""
+    assert cancel.styleSheet() == CANCEL_BUTTON_STYLE
 
 
 def test_style_accept_button_sets_shared_green(qapp: QApplication) -> None:
@@ -193,3 +195,13 @@ def test_style_accept_button_sets_shared_green(qapp: QApplication) -> None:
     button = make_lucide_push_button("OK", "circle-check")
     style_accept_button(button)
     assert button.styleSheet() == ACCEPT_BUTTON_STYLE
+
+
+def test_make_lucide_push_button_paints_cancel_red(qapp: QApplication) -> None:
+    assert qapp is not None
+    cancel = make_lucide_push_button("Cancel", "x")
+    cancel_screenshot = make_lucide_push_button("Cancel screenshot", "x")
+    assert cancel.styleSheet() == CANCEL_BUTTON_STYLE
+    assert cancel_screenshot.styleSheet() == CANCEL_BUTTON_STYLE
+    style_cancel_button(cancel)
+    assert cancel.styleSheet() == CANCEL_BUTTON_STYLE

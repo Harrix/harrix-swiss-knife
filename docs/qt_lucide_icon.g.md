@@ -27,6 +27,7 @@ lang: en
 - [🔧 Function `make_lucide_push_button`](#-function-make_lucide_push_button)
 - [🔧 Function `set_action_text_with_lucide_icon`](#-function-set_action_text_with_lucide_icon)
 - [🔧 Function `style_accept_button`](#-function-style_accept_button)
+- [🔧 Function `style_cancel_button`](#-function-style_cancel_button)
 
 </details>
 
@@ -238,7 +239,7 @@ def apply_lucide_dialog_buttons(buttons: QDialogButtonBox, *, icon_size: int = D
 
 Set Lucide icons on standard `QDialogButtonBox` buttons when present.
 
-Also paints OK / Apply / Save / Yes (and other Accept/Apply/Yes roles) green.
+Also paints OK / Apply / Save / Yes green and Cancel / No / Reject red.
 
 <details>
 <summary>Code:</summary>
@@ -256,6 +257,7 @@ def apply_lucide_dialog_buttons(
         (QDialogButtonBox.StandardButton.Save, SAVE_BUTTON_ICON),
         (QDialogButtonBox.StandardButton.Close, CLOSE_BUTTON_ICON),
         (QDialogButtonBox.StandardButton.Yes, OK_BUTTON_ICON),
+        (QDialogButtonBox.StandardButton.No, CANCEL_BUTTON_ICON),
     ):
         button = buttons.button(standard_button)
         if button is not None:
@@ -268,6 +270,11 @@ def apply_lucide_dialog_buttons(
             QDialogButtonBox.ButtonRole.YesRole,
         ):
             style_accept_button(button)
+        elif role in (
+            QDialogButtonBox.ButtonRole.RejectRole,
+            QDialogButtonBox.ButtonRole.NoRole,
+        ):
+            style_cancel_button(button)
 ```
 
 </details>
@@ -427,6 +434,8 @@ def make_lucide_push_button(label: str, name: str, *, icon_size: int = DEFAULT_L
 
 Create a push button with a Lucide icon.
 
+Labels that are Cancel (or start with `Cancel`) get the shared red chrome.
+
 <details>
 <summary>Code:</summary>
 
@@ -441,6 +450,9 @@ def make_lucide_push_button(
 ) -> QPushButton:
     button = QPushButton(label, parent)
     apply_lucide_button_icon(button, name, icon_size=icon_size, color=color)
+    folded = label.casefold()
+    if folded == "cancel" or folded.startswith("cancel "):
+        style_cancel_button(button)
     return button
 ```
 
@@ -491,6 +503,24 @@ Paint an accept action (OK / Apply / Save) with the shared green chrome.
 ```python
 def style_accept_button(button: QAbstractButton) -> None:
     button.setStyleSheet(ACCEPT_BUTTON_STYLE)
+```
+
+</details>
+
+## 🔧 Function `style_cancel_button`
+
+```python
+def style_cancel_button(button: QAbstractButton) -> None
+```
+
+Paint a cancel/reject action with the shared red chrome.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def style_cancel_button(button: QAbstractButton) -> None:
+    button.setStyleSheet(CANCEL_BUTTON_STYLE)
 ```
 
 </details>

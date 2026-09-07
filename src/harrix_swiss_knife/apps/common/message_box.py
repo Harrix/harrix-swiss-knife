@@ -7,7 +7,7 @@ from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QAbstractButton, QMessageBox, QWidget
 
 from harrix_swiss_knife import qt_modality
-from harrix_swiss_knife.qt_lucide_icon import style_accept_button
+from harrix_swiss_knife.qt_lucide_icon import style_accept_button, style_cancel_button
 
 _COPY_BUTTON_ATTR = "_harrix_copy_button_added"
 _CLIPBOARD_TEXT_ATTR = "_harrix_clipboard_text"
@@ -124,7 +124,7 @@ def information(
 
 
 def prepare_box(box: QMessageBox) -> None:
-    """Ensure `box` has a Copy button (idempotent) and green OK/Yes/Apply chrome."""
+    """Ensure `box` has a Copy button and green/red accept/cancel chrome."""
     if not getattr(box, _COPY_BUTTON_ATTR, False):
         add_copy_button(box)
         setattr(box, _COPY_BUTTON_ATTR, True)
@@ -136,6 +136,11 @@ def prepare_box(box: QMessageBox) -> None:
             QMessageBox.ButtonRole.ApplyRole,
         ):
             style_accept_button(button)
+        elif role in (
+            QMessageBox.ButtonRole.RejectRole,
+            QMessageBox.ButtonRole.NoRole,
+        ):
+            style_cancel_button(button)
 
 
 def question(
