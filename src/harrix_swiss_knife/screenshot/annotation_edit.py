@@ -7,9 +7,14 @@ from itertools import pairwise
 from typing import Literal
 
 from PySide6.QtCore import QPointF, QRectF, Qt
-from PySide6.QtGui import QFont, QFontMetricsF, QPainter, QPen
+from PySide6.QtGui import QPainter, QPen
 
-from harrix_swiss_knife.screenshot.annotations import Annotation, AnnotationTool, constrain_shape_end
+from harrix_swiss_knife.screenshot.annotations import (
+    Annotation,
+    AnnotationTool,
+    constrain_shape_end,
+    text_annotation_rect,
+)
 from harrix_swiss_knife.screenshot.selection_edit import cursor_for_handle
 from harrix_swiss_knife.screenshot.selection_paint import (
     SELECTION_BORDER_COLOR,
@@ -20,7 +25,7 @@ from harrix_swiss_knife.screenshot.selection_paint import (
 AnnotationHandle = Literal["move", "start", "end", "n", "s", "e", "w", "ne", "nw", "se", "sw"]
 
 _ARROW_HEAD_HIT_MULT = 2.0
-_BOX_TOOLS = frozenset({AnnotationTool.ELLIPSE, AnnotationTool.PEN, AnnotationTool.RECTANGLE})
+_BOX_TOOLS = frozenset({AnnotationTool.ELLIPSE, AnnotationTool.PEN, AnnotationTool.RECTANGLE, AnnotationTool.TEXT})
 _HIT_PADDING = 6.0
 _LINE_TOOLS = frozenset({AnnotationTool.ARROW, AnnotationTool.LINE})
 _MIN_BOX = 2.0
@@ -34,7 +39,7 @@ def annotation_bounds(annotation: Annotation) -> QRectF:
     if not points:
         return QRectF()
     if annotation.tool == AnnotationTool.TEXT:
-        return _text_bounds(annotation)
+        return text_annotation_rect(annotation)
     if annotation.tool in {AnnotationTool.RECTANGLE, AnnotationTool.ELLIPSE, AnnotationTool.CROP}:
         if len(points) < _MIN_SHAPE_POINTS:
             return QRectF(points[0], points[0])
@@ -52,13 +57,18 @@ def apply_annotation_edit(
     shift: bool,
 ) -> list[QPointF]:
     """Return updated points for `handle` dragged from `press` to `current`."""
-    if handle == "move" or annotation.tool == AnnotationTool.TEXT:
+    if handle == "move":
         delta = current - press
         return [QPointF(p.x() + delta.x(), p.y() + delta.y()) for p in origin_points]
     if annotation.tool in _LINE_TOOLS:
         return _edit_line_points(annotation.tool, handle, origin_points, current, shift=shift)
     origin_rect = annotation_bounds(
-        Annotation(tool=annotation.tool, points=origin_points, style=annotation.style, text=annotation.text)
+        Annotation(
+            tool=annotation.tool,
+            points=origin_points,
+            style=annotation.style,
+            text=annotation.text,
+        )
     )
     if origin_rect.isEmpty():
         delta = current - press
@@ -66,7 +76,7 @@ def apply_annotation_edit(
     new_rect = _transform_rect(origin_rect, handle, press, current)
     if shift and annotation.tool in {AnnotationTool.ELLIPSE, AnnotationTool.RECTANGLE}:
         new_rect = _square_rect_from_handle(origin_rect, new_rect, handle)
-    if annotation.tool in {AnnotationTool.RECTANGLE, AnnotationTool.ELLIPSE}:
+    if annotation.tool in {AnnotationTool.RECTANGLE, AnnotationTool.ELLIPSE, AnnotationTool.TEXT}:
         return [new_rect.topLeft(), new_rect.bottomRight()]
     return _map_points_from_rect(origin_points, origin_rect, new_rect)
 
@@ -110,6 +120,9 @@ def hit_test_annotation(
         return "move" if _hit_ellipse_stroke(bounds, pos, padding) else None
     if annotation.tool == AnnotationTool.RECTANGLE:
         return "move" if _hit_rect_stroke(bounds, pos, padding) else None
+    if annotation.tool == AnnotationTool.TEXT:
+        inflated = bounds.adjusted(-padding, -padding, padding, padding)
+        return "move" if inflated.contains(pos) else None
     inflated = bounds.adjusted(-padding, -padding, padding, padding)
     if inflated.contains(pos):
         return "move"
@@ -201,8 +214,6 @@ def _edit_line_points(
 def _handle_points(annotation: Annotation, bounds: QRectF) -> list[tuple[AnnotationHandle, QPointF]]:
     if annotation.tool in _LINE_TOOLS and len(annotation.points) >= _MIN_SHAPE_POINTS:
         return [("start", QPointF(annotation.points[0])), ("end", QPointF(annotation.points[-1]))]
-    if annotation.tool == AnnotationTool.TEXT:
-        return [("move", bounds.center())]
     if annotation.tool in _BOX_TOOLS or annotation.tool == AnnotationTool.CROP:
         return [
             ("nw", bounds.topLeft()),
@@ -298,19 +309,6 @@ def _square_rect_from_handle(origin: QRectF, current: QRectF, handle: Annotation
         top = origin.center().y() - size / 2
         bottom = top + size
     return QRectF(QPointF(left, top), QPointF(right, bottom)).normalized()
-
-
-def _text_bounds(annotation: Annotation) -> QRectF:
-    if not annotation.points:
-        return QRectF()
-    origin = annotation.points[0]
-    font = QFont()
-    font.setPointSizeF(max(10.0, annotation.style.width * 4))
-    metrics = QFontMetricsF(font)
-    text = annotation.text or "…"
-    width = max(metrics.horizontalAdvance(text), 8.0)
-    height = max(metrics.height(), 10.0)
-    return QRectF(origin.x(), origin.y() - metrics.ascent(), width, height)
 
 
 def _transform_rect(origin: QRectF, handle: AnnotationHandle, press: QPointF, current: QPointF) -> QRectF:

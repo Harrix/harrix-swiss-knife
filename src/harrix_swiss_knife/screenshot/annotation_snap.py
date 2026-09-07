@@ -80,7 +80,7 @@ def snap_annotation_edit(
         return AnnotationSnapResult([QPointF(p) for p in points])
     if handle in {"start", "end"} and annotation.tool in _LINE_TOOLS:
         return _snap_line_endpoint(handle, points, x_guides, y_guides, threshold=threshold, shift=shift)
-    if handle == "move" or annotation.tool == AnnotationTool.TEXT:
+    if handle == "move":
         return _snap_translate(annotation, points, x_guides, y_guides, threshold=threshold)
     if shift and annotation.tool in _BOX_SHIFT_TOOLS:
         return AnnotationSnapResult([QPointF(p) for p in points])

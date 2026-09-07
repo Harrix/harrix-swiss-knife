@@ -8,7 +8,7 @@ from enum import Enum
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QPointF, QRectF, Qt
-from PySide6.QtGui import QColor, QFont, QImage, QPainter, QPainterPath, QPen, QPolygonF
+from PySide6.QtGui import QColor, QFontMetricsF, QImage, QPainter, QPainterPath, QPen, QPolygonF
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -172,10 +172,18 @@ class AnnotationDocument:
 
 @dataclass(slots=True)
 class AnnotationStyle:
-    """Stroke style shared by shape tools."""
+    """Stroke / text style shared by annotation tools."""
 
     color: QColor = field(default_factory=lambda: QColor("#de2b26"))
     width: float = 3.0
+    font_family: str = ""
+    font_size: float = 26.0
+    bold: bool = False
+    italic: bool = False
+    underline: bool = False
+    strikeout: bool = False
+    align: str = "left"
+    background_fill: bool = False
 
 
 class AnnotationTool(Enum):
@@ -234,10 +242,7 @@ def paint_annotation(painter: QPainter, annotation: Annotation) -> None:
             painter.drawPolyline(QPolygonF(points))
         return
     if tool == AnnotationTool.TEXT:
-        font = QFont()
-        font.setPointSizeF(max(10.0, annotation.style.width * 4))
-        painter.setFont(font)
-        painter.drawText(points[0], annotation.text or "…")
+        _paint_text_annotation(painter, annotation)
         return
     if len(points) < _MIN_SHAPE_POINTS:
         return
@@ -307,12 +312,64 @@ def _arrow_head_path(start: QPointF, end: QPointF, stroke: float) -> QPainterPat
 
 
 def _clone_annotation(item: Annotation) -> Annotation:
+    style = item.style
     return Annotation(
         tool=item.tool,
         points=[QPointF(p) for p in item.points],
         text=item.text,
-        style=AnnotationStyle(color=QColor(item.style.color), width=item.style.width),
+        style=AnnotationStyle(
+            color=QColor(style.color),
+            width=style.width,
+            font_family=style.font_family,
+            font_size=style.font_size,
+            bold=style.bold,
+            italic=style.italic,
+            underline=style.underline,
+            strikeout=style.strikeout,
+            align=style.align,
+            background_fill=style.background_fill,
+        ),
     )
+
+
+def _paint_text_annotation(painter: QPainter, annotation: Annotation) -> None:
+    from harrix_swiss_knife.screenshot.text_style import annotation_qfont  # noqa: PLC0415
+
+    rect = text_annotation_rect(annotation)
+    if rect.isNull() or rect.isEmpty():
+        return
+    if annotation.style.background_fill:
+        painter.fillRect(rect, QColor(255, 255, 255, 235))
+    font = annotation_qfont(annotation.style)
+    painter.setFont(font)
+    painter.setPen(QPen(annotation.style.color))
+    align = annotation.style.align
+    flags = int(Qt.AlignmentFlag.AlignTop | Qt.TextFlag.TextWordWrap)
+    if align == "center":
+        flags |= int(Qt.AlignmentFlag.AlignHCenter)
+    elif align == "right":
+        flags |= int(Qt.AlignmentFlag.AlignRight)
+    else:
+        flags |= int(Qt.AlignmentFlag.AlignLeft)
+    painter.drawText(rect, flags, annotation.text or "")
+
+
+def text_annotation_rect(annotation: Annotation) -> QRectF:
+    """Return the axis-aligned text box for `annotation` in image coordinates."""
+    points = annotation.points
+    if not points:
+        return QRectF()
+    if len(points) >= _MIN_SHAPE_POINTS:
+        return QRectF(points[0], points[-1]).normalized()
+    # Legacy single-point text: size from font metrics.
+    from harrix_swiss_knife.screenshot.text_style import annotation_qfont  # noqa: PLC0415
+
+    origin = points[0]
+    metrics = QFontMetricsF(annotation_qfont(annotation.style))
+    text = annotation.text or "…"
+    width = max(metrics.horizontalAdvance(text), 8.0)
+    height = max(metrics.height(), 10.0)
+    return QRectF(origin.x(), origin.y() - metrics.ascent(), width, height)
 
 
 def _draw_filled_arrow(
