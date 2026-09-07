@@ -17,7 +17,7 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife.qt_action_card_grid import CARD_SPACING, configure_action_card_grid
-from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
+from harrix_swiss_knife.qt_action_icon import create_menu_icon
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
@@ -57,7 +57,7 @@ class DescribedCardMetrics:
 
 
 class DescribedChoiceCard(QWidget):
-    """Horizontal card: emoji icon on the left, title and hint on the right."""
+    """Horizontal card: action icon on the left, title and hint on the right."""
 
     selected = Signal()
     context_menu_requested = Signal(QPoint)
@@ -129,7 +129,7 @@ class DescribedChoiceCard(QWidget):
         self._text_column.setSpacing(metrics.text_gap)
 
         self._icon_label.setPixmap(
-            create_emoji_icon(self._icon_emoji, metrics.icon_size).pixmap(metrics.icon_size, metrics.icon_size),
+            create_menu_icon(self._icon_emoji, metrics.icon_size).pixmap(metrics.icon_size, metrics.icon_size),
         )
         self._icon_label.setFixedSize(metrics.icon_size, metrics.icon_size)
 

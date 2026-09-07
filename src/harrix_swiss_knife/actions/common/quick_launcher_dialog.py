@@ -29,6 +29,7 @@ from harrix_swiss_knife.actions.common.quick_launcher_settings import load_quick
 from harrix_swiss_knife.actions.markdown.new_markdown import OnNewMarkdown
 from harrix_swiss_knife.cli_menu import show_action_class_context_menu
 from harrix_swiss_knife.qt_action_card_grid import CARD_ICON_SIZE, configure_action_card_grid
+from harrix_swiss_knife.qt_action_icon import create_action_icon
 from harrix_swiss_knife.qt_command_section import (
     apply_opaque_white,
     create_command_section,
@@ -36,7 +37,6 @@ from harrix_swiss_knife.qt_command_section import (
     measure_icon_grid_height,
     style_transparent_icon_grid,
 )
-from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
 from harrix_swiss_knife.qt_frameless_window import frameless_stay_on_top_flags, try_handle_frameless_resize_native_event
 from harrix_swiss_knife.qt_markdown_choice_cards import populate_icon_choice_cards
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
@@ -556,12 +556,7 @@ class _ContentHeightMetrics:
 
 
 def _action_icon(action_cls: type[ActionBase], size: int = CARD_ICON_SIZE) -> QIcon:
-    icon_name = getattr(action_cls, "icon", "") or ""
-    if ".svg" in icon_name:
-        return QIcon(f":/assets/{icon_name}")
-    if icon_name:
-        return create_emoji_icon(icon_name, size)
-    return QIcon()
+    return create_action_icon(action_cls, size)
 
 
 def _apply_card_grid_height(

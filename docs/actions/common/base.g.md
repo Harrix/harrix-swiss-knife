@@ -69,7 +69,10 @@ file operations, and user interface interactions.
 
 Attributes:
 
-- `icon` (`str`): Icon identifier for the action. Defaults to `""`.
+- `icon` (`str`): Emoji for Markdown/docs (README list of commands). Defaults to `""`.
+- `icon_svg` (`str`): Optional GUI icon filename under `assets/actions/`
+  (with or without `.svg`). When the file exists, tray/menu/cards use it and
+  keep `icon` for documentation. Defaults to `""`.
 - `title` (`str`): Action title. May include Markdown inline code (`` `name` ``)
   for README generation; Qt UI shows it without backticks via [`display_title`](#%EF%B8%8F-method-display_title-property).
   Defaults to `""`.
@@ -86,6 +89,7 @@ Attributes:
 class ActionBase(ABC):
 
     icon = ""
+    icon_svg = ""
     title = ""
     description = ""
     cli_available: ClassVar[bool] = False

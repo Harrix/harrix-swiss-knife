@@ -68,7 +68,7 @@ class OnShowActionUsageStats(ActionBase):
                 ActionUsageStatsRow(
                     count=count,
                     title=title,
-                    icon=getattr(action_cls, "icon", "") or "",
+                    icon=resolve_ui_icon_spec(action_cls),
                     category=category,
                     gui=gui,
                     cli=cli,
@@ -139,7 +139,7 @@ def execute(self, *args: Any, noninteractive: bool = False, **kwargs: Any) -> No
                 ActionUsageStatsRow(
                     count=count,
                     title=title,
-                    icon=getattr(action_cls, "icon", "") or "",
+                    icon=resolve_ui_icon_spec(action_cls),
                     category=category,
                     gui=gui,
                     cli=cli,

@@ -21,6 +21,7 @@ Launch the Harrix Vector Icons browser.
 class OnIcons(AppLauncherAction):
 
     icon = "🎨"
+    icon_svg = "object__palette.svg"
     title = "Vector Icons"
     main_window_module = "harrix_swiss_knife.apps.icons.main"
 ```

@@ -15,6 +15,7 @@ from harrix_swiss_knife.cli_menu import (
     build_cli_copy_command,
 )
 from harrix_swiss_knife.paths import get_config_path_str
+from harrix_swiss_knife.qt_action_icon import create_menu_icon, resolve_ui_icon_spec
 from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
 
 MenuSeparator: TypeAlias = Literal["-"]
@@ -190,7 +191,8 @@ class MainMenuBase:
 
         Args:
 
-        - `icon` (`str`): The path or description of the icon in `resources_rc.py`. Example: `uv.svg`, `🏆`.
+        - `icon` (`str`): Action SVG under `assets/actions/`, Qt resource SVG
+          (`resources_rc.py`), or emoji. Example: `object__palette.svg`, `py.svg`, `🏆`.
         - `size` (`int`): The size of the icon in pixels. Defaults to `32`.
 
         Returns:
@@ -198,18 +200,7 @@ class MainMenuBase:
         - `QIcon`: A QIcon object for the given icon path or emoji icon.
 
         """
-        if ".svg" in icon:
-            # Load the icon from the assets if it's an SVG file
-            return QIcon(f":/assets/{icon}")
-        # Generate a safe filename for the emoji icon
-        filename = f"emoji_{'_'.join(f'{ord(c):X}' for c in icon)}.png"
-        icon_folder = h.dev.get_project_root() / "temp" / "icons"
-        icon_path = icon_folder / filename
-
-        if icon_path.exists():
-            # If the icon already exists, load it from the file
-            return QIcon(str(icon_path))
-        return self.create_emoji_icon(icon, size)
+        return create_menu_icon(icon, size)
 
     def new_menu(self, title: str, icon: str) -> QMenu:
         """Create and return a new QMenu with a title and an icon.
@@ -217,7 +208,7 @@ class MainMenuBase:
         Args:
 
         - `title` (`str`): The title of the new menu.
-        - `icon` (`str`): Path in `resources_rc.py` or emoji for the icon of the menu. Example: `uv.svg`, `🏆`.
+        - `icon` (`str`): Path in `resources_rc.py`, action SVG, or emoji. Example: `uv.svg`, `🏆`.
 
         Returns:
 
@@ -253,7 +244,7 @@ class MainMenuBase:
         markdown_title = decorate_title(raw_title)
         title_text = decorate_title(strip_md_inline_code_markers(raw_title))
 
-        action_icon = icon or getattr(class_action, "icon", "")
+        action_icon = icon or resolve_ui_icon_spec(class_action)
 
         if action_icon:
             action = QAction(self.get_icon(action_icon), title_text)

@@ -9,6 +9,7 @@ from harrix_swiss_knife.action_usage import load_action_usage
 from harrix_swiss_knife.actions.common.action_usage_stats_browser import ActionUsageStatsRow
 from harrix_swiss_knife.actions.common.base import ActionBase
 from harrix_swiss_knife.actions.common.quick_launcher_registry import iter_menu_actions_with_category
+from harrix_swiss_knife.qt_action_icon import resolve_ui_icon_spec
 
 
 class OnShowActionUsageStats(ActionBase):
@@ -52,7 +53,7 @@ class OnShowActionUsageStats(ActionBase):
                 ActionUsageStatsRow(
                     count=count,
                     title=title,
-                    icon=getattr(action_cls, "icon", "") or "",
+                    icon=resolve_ui_icon_spec(action_cls),
                     category=category,
                     gui=gui,
                     cli=cli,

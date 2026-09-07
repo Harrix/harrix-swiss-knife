@@ -6,7 +6,6 @@ from datetime import datetime
 from typing import TYPE_CHECKING, TypedDict
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QDialog,
@@ -19,11 +18,13 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
+from harrix_swiss_knife.qt_action_icon import create_menu_icon
 from harrix_swiss_knife.qt_lucide_icon import apply_lucide_dialog_buttons
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+    from PySide6.QtGui import QIcon
 
 
 class ActionUsageStatsRow(TypedDict):
@@ -155,12 +156,8 @@ def _format_last_used(value: str) -> str:
 
 
 def _row_icon(icon_name: str) -> QIcon:
-    """Build a table icon from an action `icon` class attribute (emoji or SVG)."""
-    if not icon_name:
-        return QIcon()
-    if ".svg" in icon_name:
-        return QIcon(f":/assets/{icon_name}")
-    return create_emoji_icon(icon_name, 18)
+    """Build a table icon from the GUI action icon spec (custom SVG or emoji)."""
+    return create_menu_icon(icon_name, 18)
 
 
 _COL_COUNT = 0

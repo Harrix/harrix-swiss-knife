@@ -65,7 +65,7 @@ class DescribedCardMetrics:
 class DescribedChoiceCard(QWidget)
 ```
 
-Horizontal card: emoji icon on the left, title and hint on the right.
+Horizontal card: action icon on the left, title and hint on the right.
 
 <details>
 <summary>Code:</summary>
@@ -143,7 +143,7 @@ class DescribedChoiceCard(QWidget):
         self._text_column.setSpacing(metrics.text_gap)
 
         self._icon_label.setPixmap(
-            create_emoji_icon(self._icon_emoji, metrics.icon_size).pixmap(metrics.icon_size, metrics.icon_size),
+            create_menu_icon(self._icon_emoji, metrics.icon_size).pixmap(metrics.icon_size, metrics.icon_size),
         )
         self._icon_label.setFixedSize(metrics.icon_size, metrics.icon_size)
 
@@ -289,7 +289,7 @@ def apply_metrics(self, metrics: DescribedCardMetrics) -> None:
         self._text_column.setSpacing(metrics.text_gap)
 
         self._icon_label.setPixmap(
-            create_emoji_icon(self._icon_emoji, metrics.icon_size).pixmap(metrics.icon_size, metrics.icon_size),
+            create_menu_icon(self._icon_emoji, metrics.icon_size).pixmap(metrics.icon_size, metrics.icon_size),
         )
         self._icon_label.setFixedSize(metrics.icon_size, metrics.icon_size)
 
