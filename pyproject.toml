@@ -24,6 +24,7 @@ dependencies = [
     "pyside6>=6.8.1.1",
     "pythonnet>=3.0.5",
     "pyyaml>=6.0.2",
+    "spylls>=0.1.7",
     "yfinance>=0.2.65",
 ]
 
@@ -47,10 +48,12 @@ packages = ["src/harrix_swiss_knife"]
 "src/harrix_swiss_knife/**/*.sql" = "harrix_swiss_knife"
 "src/harrix_swiss_knife/**/*.qrc" = "harrix_swiss_knife"
 "src/harrix_swiss_knife/assets/*" = "harrix_swiss_knife/assets"
+"src/harrix_swiss_knife/assets/dictionaries/*" = "harrix_swiss_knife/assets/dictionaries"
 "src/harrix_swiss_knife/assets/fonts/*" = "harrix_swiss_knife/assets/fonts"
 "src/harrix_swiss_knife/assets/lucide/*" = "harrix_swiss_knife/assets/lucide"
 
 [tool.hatch.build.targets.wheel.force-include]
+"src/harrix_swiss_knife/assets/dictionaries" = "harrix_swiss_knife/assets/dictionaries"
 "src/harrix_swiss_knife/assets/fonts" = "harrix_swiss_knife/assets/fonts"
 "src/harrix_swiss_knife/assets/lucide" = "harrix_swiss_knife/assets/lucide"
 

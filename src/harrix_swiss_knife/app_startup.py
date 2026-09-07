@@ -41,6 +41,7 @@ from harrix_swiss_knife.paths import get_config_path_str, prune_action_output_di
 from harrix_swiss_knife.qt_app_font import install_app_fonts
 from harrix_swiss_knife.qt_flexible_decimal import install_flexible_decimal_separators
 from harrix_swiss_knife.single_instance import acquire_tray_instance
+from harrix_swiss_knife.spellcheck import install_spellcheck
 from harrix_swiss_knife.tray_icon import TrayIcon
 
 if TYPE_CHECKING:
@@ -193,6 +194,7 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
     app.setQuitOnLastWindowClosed(False)
     app.setWindowIcon(QIcon(":/assets/logo.svg"))
     install_flexible_decimal_separators(app)
+    install_spellcheck(app)
     install_app_fonts(app)
     install_safe_qt_translate()
     if early_splash_hwnd():

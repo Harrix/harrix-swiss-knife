@@ -24,6 +24,7 @@ api-keys/*
 config/config.json
 config/config-temp.json
 config/action_usage.json
+config/spellcheck_user_dict.txt
 # Android Kotlin daemon sessions
 android/.kotlin/
 install/dependencies/
