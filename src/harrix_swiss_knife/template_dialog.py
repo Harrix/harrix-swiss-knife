@@ -73,6 +73,7 @@ from harrix_swiss_knife.qt_lucide_icon import (
     add_lucide_action,
     make_ai_lucide_push_button,
     make_lucide_push_button,
+    style_accept_button,
 )
 from harrix_swiss_knife.template_ai_fill import (
     format_fields_for_prompt,
@@ -134,7 +135,7 @@ class MapCoordinatesExtractDialog(QDialog):
         self._ok_button.setEnabled(False)
         self._ok_button.setDefault(True)
         self._ok_button.clicked.connect(self.accept)
-        self._ok_button.setStyleSheet("QPushButton { background-color: #4CAF50; color: white; }")
+        style_accept_button(self._ok_button)
         buttons.addWidget(self._ok_button)
         layout.addLayout(buttons)
 
@@ -1475,7 +1476,7 @@ class TemplateDialog(QDialog):
         ok_button = make_lucide_push_button("OK", OK_BUTTON_ICON)
         ok_button.setDefault(True)
         ok_button.clicked.connect(self._on_ok)
-        ok_button.setStyleSheet("QPushButton { background-color: #4CAF50; color: white; }")
+        style_accept_button(ok_button)
         button_layout.addWidget(ok_button)
 
         main_layout.addLayout(button_layout)

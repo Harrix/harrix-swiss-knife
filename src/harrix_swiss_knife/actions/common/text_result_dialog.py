@@ -12,6 +12,7 @@ from harrix_swiss_knife.qt_lucide_icon import (
     OK_BUTTON_ICON,
     SAVE_BUTTON_ICON,
     make_lucide_push_button,
+    style_accept_button,
 )
 
 if TYPE_CHECKING:
@@ -65,6 +66,8 @@ def add_ok_button(
 
     """
     ok_button = make_lucide_push_button(label, icon)
+    if label.casefold() != CANCEL_BUTTON_LABEL.casefold():
+        style_accept_button(ok_button)
     ok_button.clicked.connect(dialog.accept)
     button_layout.addWidget(ok_button)
     return ok_button
@@ -108,6 +111,8 @@ def append_result_action_buttons(
     if rerun_button:
         rerun_color = AI_BUTTON_ICON_COLOR if rerun_button_icon == AI_BUTTON_ICON else None
         rerun_btn = make_lucide_push_button(rerun_button_label, rerun_button_icon, color=rerun_color)
+        if rerun_button_label.casefold().startswith("apply"):
+            style_accept_button(rerun_btn)
         rerun_btn.clicked.connect(lambda: dialog.done(RERUN_DIALOG_CODE))
         button_layout.addWidget(rerun_btn)
 

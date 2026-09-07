@@ -170,7 +170,7 @@ class CategoryEditDialog(QDialog):
 
         self.save_button = make_lucide_push_button("Save", SAVE_BUTTON_ICON)
         self.save_button.clicked.connect(self._on_save)
-        self.save_button.setStyleSheet("QPushButton { background-color: #4CAF50; color: white; }")
+        style_accept_button(self.save_button)
         self.save_button.setDefault(True)
         button_layout.addWidget(self.save_button)
 

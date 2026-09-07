@@ -71,6 +71,7 @@ class ItemEditDialog(QDialog):
         ok = make_lucide_push_button("OK", OK_BUTTON_ICON)
         cancel.clicked.connect(self.reject)
         ok.clicked.connect(self.accept)
+        style_accept_button(ok)
         buttons.addWidget(cancel)
         buttons.addWidget(ok)
 
@@ -137,6 +138,7 @@ def __init__(
         ok = make_lucide_push_button("OK", OK_BUTTON_ICON)
         cancel.clicked.connect(self.reject)
         ok.clicked.connect(self.accept)
+        style_accept_button(ok)
         buttons.addWidget(cancel)
         buttons.addWidget(ok)
 

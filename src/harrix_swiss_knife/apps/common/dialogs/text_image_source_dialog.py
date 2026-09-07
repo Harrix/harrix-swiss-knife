@@ -23,6 +23,7 @@ from harrix_swiss_knife.qt_lucide_icon import (
     AI_BUTTON_ICON_COLOR,
     OK_BUTTON_ICON,
     make_lucide_push_button,
+    style_accept_button,
 )
 
 SEND_TO_AI_BUTTON_STYLE = """QPushButton {
@@ -225,6 +226,8 @@ class TextImageSourceDialog(QDialog):
         self._ok_button.setFont(accept_font)
         if self._accept_button_style:
             self._ok_button.setStyleSheet(self._accept_button_style)
+        else:
+            style_accept_button(self._ok_button)
         self._ok_button.setEnabled(False)
         self._ok_button.setDefault(True)
         self._ok_button.clicked.connect(self._on_accept)

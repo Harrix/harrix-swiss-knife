@@ -91,6 +91,7 @@ class ChooseIconFamilyDialog(QDialog):
         ok = make_lucide_push_button("OK", "circle-check")
         ok.setDefault(True)
         ok.clicked.connect(self.accept)
+        style_accept_button(ok)
         buttons.addWidget(ok)
         layout.addLayout(buttons)
 ```

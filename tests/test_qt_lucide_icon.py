@@ -5,18 +5,21 @@ from __future__ import annotations
 import pytest
 from PySide6.QtCore import QSize
 from PySide6.QtGui import QColor, QPalette
-from PySide6.QtWidgets import QApplication, QMenu
+from PySide6.QtWidgets import QApplication, QDialogButtonBox, QMenu
 
 from harrix_swiss_knife import qt_lucide_icon as lucide_mod
 from harrix_swiss_knife.qt_lucide_icon import (
+    ACCEPT_BUTTON_STYLE,
     add_lucide_action,
     apply_leading_chrome_icons,
+    apply_lucide_dialog_buttons,
     create_ai_lucide_icon,
     create_lucide_icon,
     lucide_name_for_chrome_emoji,
     lucide_svg_path,
     make_lucide_push_button,
     set_action_text_with_lucide_icon,
+    style_accept_button,
 )
 
 
@@ -162,3 +165,31 @@ def test_create_ai_lucide_icon_uses_brand_blue(qapp: QApplication) -> None:
             break
     assert found
     lucide_mod._CACHE.clear()
+
+
+def test_apply_lucide_dialog_buttons_paints_ok_and_apply_green(qapp: QApplication) -> None:
+    assert qapp is not None
+    box = QDialogButtonBox(
+        QDialogButtonBox.StandardButton.Ok
+        | QDialogButtonBox.StandardButton.Apply
+        | QDialogButtonBox.StandardButton.Cancel
+    )
+    apply_button = box.addButton("Apply translations", QDialogButtonBox.ButtonRole.AcceptRole)
+    apply_lucide_dialog_buttons(box)
+    ok = box.button(QDialogButtonBox.StandardButton.Ok)
+    apply = box.button(QDialogButtonBox.StandardButton.Apply)
+    cancel = box.button(QDialogButtonBox.StandardButton.Cancel)
+    assert ok is not None
+    assert apply is not None
+    assert cancel is not None
+    assert ok.styleSheet() == ACCEPT_BUTTON_STYLE
+    assert apply.styleSheet() == ACCEPT_BUTTON_STYLE
+    assert apply_button.styleSheet() == ACCEPT_BUTTON_STYLE
+    assert cancel.styleSheet() == ""
+
+
+def test_style_accept_button_sets_shared_green(qapp: QApplication) -> None:
+    assert qapp is not None
+    button = make_lucide_push_button("OK", "circle-check")
+    style_accept_button(button)
+    assert button.styleSheet() == ACCEPT_BUTTON_STYLE

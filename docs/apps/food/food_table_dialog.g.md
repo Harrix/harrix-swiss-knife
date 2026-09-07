@@ -392,6 +392,7 @@ class FoodTableDialog(QDialog):
         ok_button = make_lucide_push_button("OK", "circle-check")
         ok_button.setDefault(True)
         ok_button.clicked.connect(self._on_accept)
+        style_accept_button(ok_button)
         button_layout.addWidget(ok_button)
         layout.addLayout(button_layout)
 

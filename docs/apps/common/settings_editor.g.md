@@ -556,6 +556,7 @@ class SettingsEditorDialog(QDialog):
 
     def _make_field_save_button(self, widget_key: str, *, tooltip: str | None = None) -> QPushButton:
         button = make_lucide_push_button("Save", SAVE_BUTTON_ICON)
+        style_accept_button(button)
         button.setObjectName(FIELD_SAVE_BUTTON_OBJECT_NAME)
         button.setToolTip(tooltip or "Save this setting to config.json")
         button.setAutoDefault(False)
@@ -884,6 +885,7 @@ class SettingsEditorDialog(QDialog):
         self.status_label.setObjectName(STATUS_LABEL_OBJECT_NAME)
         btn_layout.addWidget(self.status_label, 1)
         btn_save = make_lucide_push_button("Save all", SAVE_BUTTON_ICON)
+        style_accept_button(btn_save)
         btn_save.setObjectName(SAVE_ALL_BUTTON_OBJECT_NAME)
         btn_save.setAutoDefault(False)
         btn_save.setDefault(False)

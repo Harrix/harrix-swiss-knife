@@ -10,6 +10,7 @@ from harrix_swiss_knife.qt_lucide_icon import (
     CANCEL_BUTTON_ICON,
     OK_BUTTON_ICON,
     make_lucide_push_button,
+    style_accept_button,
 )
 
 
@@ -56,6 +57,7 @@ class ItemEditDialog(QDialog):
         ok = make_lucide_push_button("OK", OK_BUTTON_ICON)
         cancel.clicked.connect(self.reject)
         ok.clicked.connect(self.accept)
+        style_accept_button(ok)
         buttons.addWidget(cancel)
         buttons.addWidget(ok)
 

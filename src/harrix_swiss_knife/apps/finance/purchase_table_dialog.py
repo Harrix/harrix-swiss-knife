@@ -27,7 +27,7 @@ from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common.ui_helpers import enumerate_stripped_non_empty_lines
 from harrix_swiss_knife.apps.common.word_wrap_header import install_word_wrap_header
 from harrix_swiss_knife.apps.finance.text_parser import ParsedPurchaseItem, TextParser
-from harrix_swiss_knife.qt_lucide_icon import make_lucide_push_button
+from harrix_swiss_knife.qt_lucide_icon import make_lucide_push_button, style_accept_button
 
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QTableWidget as QTableWidgetType
@@ -357,6 +357,7 @@ class PurchaseTableDialog(QDialog):
         ok_button = make_lucide_push_button("OK", "circle-check")
         ok_button.setDefault(True)
         ok_button.clicked.connect(self._on_accept)
+        style_accept_button(ok_button)
         button_layout.addWidget(ok_button)
         layout.addLayout(button_layout)
 

@@ -91,6 +91,7 @@ from harrix_swiss_knife.qt_lucide_icon import (
     apply_lucide_dialog_buttons,
     make_ai_lucide_push_button,
     make_lucide_push_button,
+    style_accept_button,
 )
 from harrix_swiss_knife.qt_markdown_choice_cards import (
     ICON_CHOICE_ACTION_AI_SCREENSHOT,
@@ -1389,6 +1390,7 @@ class ActionDialogService:
 
             ok_button = make_lucide_push_button("OK", OK_BUTTON_ICON)
             ok_button.clicked.connect(dialog.accept)
+            style_accept_button(ok_button)
             button_layout.addWidget(ok_button)
 
             layout.addLayout(button_layout)
@@ -1524,6 +1526,7 @@ class ActionDialogService:
 
             ok_button = make_lucide_push_button("OK", OK_BUTTON_ICON)
             ok_button.clicked.connect(dialog.accept)
+            style_accept_button(ok_button)
             button_layout.addWidget(ok_button)
 
             layout.addLayout(button_layout)

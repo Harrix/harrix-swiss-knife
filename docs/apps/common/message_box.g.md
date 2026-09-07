@@ -199,17 +199,24 @@ def information(
 def prepare_box(box: QMessageBox) -> None
 ```
 
-Ensure `box` has a Copy button (idempotent).
+Ensure `box` has a Copy button (idempotent) and green OK/Yes/Apply chrome.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def prepare_box(box: QMessageBox) -> None:
-    if getattr(box, _COPY_BUTTON_ATTR, False):
-        return
-    add_copy_button(box)
-    setattr(box, _COPY_BUTTON_ATTR, True)
+    if not getattr(box, _COPY_BUTTON_ATTR, False):
+        add_copy_button(box)
+        setattr(box, _COPY_BUTTON_ATTR, True)
+    for button in box.buttons():
+        role = box.buttonRole(button)
+        if role in (
+            QMessageBox.ButtonRole.AcceptRole,
+            QMessageBox.ButtonRole.YesRole,
+            QMessageBox.ButtonRole.ApplyRole,
+        ):
+            style_accept_button(button)
 ```
 
 </details>

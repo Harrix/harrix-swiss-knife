@@ -219,6 +219,8 @@ class TextImageSourceDialog(QDialog):
         self._ok_button.setFont(accept_font)
         if self._accept_button_style:
             self._ok_button.setStyleSheet(self._accept_button_style)
+        else:
+            style_accept_button(self._ok_button)
         self._ok_button.setEnabled(False)
         self._ok_button.setDefault(True)
         self._ok_button.clicked.connect(self._on_accept)

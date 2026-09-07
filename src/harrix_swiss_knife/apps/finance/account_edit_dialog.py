@@ -27,6 +27,7 @@ from harrix_swiss_knife.qt_lucide_icon import (
     DELETE_BUTTON_ICON,
     SAVE_BUTTON_ICON,
     make_lucide_push_button,
+    style_accept_button,
 )
 
 _BALANCE_DELTA_EPSILON = 0.005
@@ -243,7 +244,7 @@ class AccountEditDialog(QDialog):
 
         self.save_button = make_lucide_push_button("Save", SAVE_BUTTON_ICON)
         self.save_button.clicked.connect(self._on_save)
-        self.save_button.setStyleSheet("QPushButton { background-color: #4CAF50; color: white; }")
+        style_accept_button(self.save_button)
         self.save_button.setDefault(True)  # Make Save button the default button
         button_layout.addWidget(self.save_button)
 

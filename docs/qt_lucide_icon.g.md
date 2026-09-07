@@ -26,6 +26,7 @@ lang: en
 - [🔧 Function `make_ai_lucide_push_button`](#-function-make_ai_lucide_push_button)
 - [🔧 Function `make_lucide_push_button`](#-function-make_lucide_push_button)
 - [🔧 Function `set_action_text_with_lucide_icon`](#-function-set_action_text_with_lucide_icon)
+- [🔧 Function `style_accept_button`](#-function-style_accept_button)
 
 </details>
 
@@ -237,6 +238,8 @@ def apply_lucide_dialog_buttons(buttons: QDialogButtonBox, *, icon_size: int = D
 
 Set Lucide icons on standard `QDialogButtonBox` buttons when present.
 
+Also paints OK / Apply / Save / Yes (and other Accept/Apply/Yes roles) green.
+
 <details>
 <summary>Code:</summary>
 
@@ -248,13 +251,23 @@ def apply_lucide_dialog_buttons(
 ) -> None:
     for standard_button, name in (
         (QDialogButtonBox.StandardButton.Ok, OK_BUTTON_ICON),
+        (QDialogButtonBox.StandardButton.Apply, APPLY_BUTTON_ICON),
         (QDialogButtonBox.StandardButton.Cancel, CANCEL_BUTTON_ICON),
         (QDialogButtonBox.StandardButton.Save, SAVE_BUTTON_ICON),
         (QDialogButtonBox.StandardButton.Close, CLOSE_BUTTON_ICON),
+        (QDialogButtonBox.StandardButton.Yes, OK_BUTTON_ICON),
     ):
         button = buttons.button(standard_button)
         if button is not None:
             apply_lucide_button_icon(button, name, icon_size=icon_size)
+    for button in buttons.buttons():
+        role = buttons.buttonRole(button)
+        if role in (
+            QDialogButtonBox.ButtonRole.AcceptRole,
+            QDialogButtonBox.ButtonRole.ApplyRole,
+            QDialogButtonBox.ButtonRole.YesRole,
+        ):
+            style_accept_button(button)
 ```
 
 </details>
@@ -460,6 +473,24 @@ def set_action_text_with_lucide_icon(
         apply_lucide_action_icon(action, name, icon_size=icon_size)
         return
     apply_leading_chrome_icon(action, icon_size=icon_size)
+```
+
+</details>
+
+## 🔧 Function `style_accept_button`
+
+```python
+def style_accept_button(button: QAbstractButton) -> None
+```
+
+Paint an accept action (OK / Apply / Save) with the shared green chrome.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def style_accept_button(button: QAbstractButton) -> None:
+    button.setStyleSheet(ACCEPT_BUTTON_STYLE)
 ```
 
 </details>

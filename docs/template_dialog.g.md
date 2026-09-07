@@ -1348,7 +1348,7 @@ class TemplateDialog(QDialog):
         ok_button = make_lucide_push_button("OK", OK_BUTTON_ICON)
         ok_button.setDefault(True)
         ok_button.clicked.connect(self._on_ok)
-        ok_button.setStyleSheet("QPushButton { background-color: #4CAF50; color: white; }")
+        style_accept_button(ok_button)
         button_layout.addWidget(ok_button)
 
         main_layout.addLayout(button_layout)

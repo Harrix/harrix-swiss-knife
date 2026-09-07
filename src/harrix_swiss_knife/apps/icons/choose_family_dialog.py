@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife import qt_modality
-from harrix_swiss_knife.qt_lucide_icon import make_lucide_push_button
+from harrix_swiss_knife.qt_lucide_icon import make_lucide_push_button, style_accept_button
 
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QWidget
@@ -87,5 +87,6 @@ class ChooseIconFamilyDialog(QDialog):
         ok = make_lucide_push_button("OK", "circle-check")
         ok.setDefault(True)
         ok.clicked.connect(self.accept)
+        style_accept_button(ok)
         buttons.addWidget(ok)
         layout.addLayout(buttons)

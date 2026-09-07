@@ -37,7 +37,7 @@ from harrix_swiss_knife.apps.icons.family_id import title_from_family_id
 from harrix_swiss_knife.apps.icons.keywords_update import parse_keywords_text
 from harrix_swiss_knife.apps.icons.vector_render import render_icon_to_image
 from harrix_swiss_knife.integrations.bothub import BothubRequestState
-from harrix_swiss_knife.qt_lucide_icon import make_ai_lucide_push_button, make_lucide_push_button
+from harrix_swiss_knife.qt_lucide_icon import make_ai_lucide_push_button, make_lucide_push_button, style_accept_button
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -307,5 +307,6 @@ class AddVectorImageDialog(QDialog):
         ok_button = make_lucide_push_button("OK", "circle-check")
         ok_button.setDefault(True)
         ok_button.clicked.connect(self.accept)
+        style_accept_button(ok_button)
         buttons.addWidget(ok_button)
         layout.addLayout(buttons)

@@ -46,6 +46,7 @@ DEFAULT_LUCIDE_BUTTON_ICON_SIZE = 18
 DEFAULT_LUCIDE_MENU_ICON_SIZE = 18
 
 OK_BUTTON_ICON = "circle-check"
+APPLY_BUTTON_ICON = "circle-check"
 CANCEL_BUTTON_ICON = "x"
 SAVE_BUTTON_ICON = "save"
 CLOSE_BUTTON_ICON = "x"
@@ -53,6 +54,7 @@ COPY_BUTTON_ICON = "clipboard-copy"
 DELETE_BUTTON_ICON = "trash"
 AI_BUTTON_ICON = "sparkles"
 AI_BUTTON_ICON_COLOR = "#2e86b7"
+ACCEPT_BUTTON_STYLE = "QPushButton { background-color: #4CAF50; color: white; }"
 
 _ICON_NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 _CACHE: dict[tuple[str, int, str, float], QIcon] = {}
@@ -295,16 +297,30 @@ def apply_lucide_dialog_buttons(
     *,
     icon_size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE,
 ) -> None:
-    """Set Lucide icons on standard `QDialogButtonBox` buttons when present."""
+    """Set Lucide icons on standard `QDialogButtonBox` buttons when present.
+
+    Also paints OK / Apply / Save / Yes (and other Accept/Apply/Yes roles) green.
+
+    """
     for standard_button, name in (
         (QDialogButtonBox.StandardButton.Ok, OK_BUTTON_ICON),
+        (QDialogButtonBox.StandardButton.Apply, APPLY_BUTTON_ICON),
         (QDialogButtonBox.StandardButton.Cancel, CANCEL_BUTTON_ICON),
         (QDialogButtonBox.StandardButton.Save, SAVE_BUTTON_ICON),
         (QDialogButtonBox.StandardButton.Close, CLOSE_BUTTON_ICON),
+        (QDialogButtonBox.StandardButton.Yes, OK_BUTTON_ICON),
     ):
         button = buttons.button(standard_button)
         if button is not None:
             apply_lucide_button_icon(button, name, icon_size=icon_size)
+    for button in buttons.buttons():
+        role = buttons.buttonRole(button)
+        if role in (
+            QDialogButtonBox.ButtonRole.AcceptRole,
+            QDialogButtonBox.ButtonRole.ApplyRole,
+            QDialogButtonBox.ButtonRole.YesRole,
+        ):
+            style_accept_button(button)
 
 
 def create_ai_lucide_icon(size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE) -> QIcon:
@@ -423,6 +439,11 @@ def set_action_text_with_lucide_icon(
         apply_lucide_action_icon(action, name, icon_size=icon_size)
         return
     apply_leading_chrome_icon(action, icon_size=icon_size)
+
+
+def style_accept_button(button: QAbstractButton) -> None:
+    """Paint an accept action (OK / Apply / Save) with the shared green chrome."""
+    button.setStyleSheet(ACCEPT_BUTTON_STYLE)
 
 
 def _is_ai_chrome_emoji(emoji: str) -> bool:

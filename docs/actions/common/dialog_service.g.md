@@ -1338,6 +1338,7 @@ class ActionDialogService:
 
             ok_button = make_lucide_push_button("OK", OK_BUTTON_ICON)
             ok_button.clicked.connect(dialog.accept)
+            style_accept_button(ok_button)
             button_layout.addWidget(ok_button)
 
             layout.addLayout(button_layout)
@@ -1473,6 +1474,7 @@ class ActionDialogService:
 
             ok_button = make_lucide_push_button("OK", OK_BUTTON_ICON)
             ok_button.clicked.connect(dialog.accept)
+            style_accept_button(ok_button)
             button_layout.addWidget(ok_button)
 
             layout.addLayout(button_layout)
@@ -3457,6 +3459,7 @@ def show_about_dialog(
 
             ok_button = make_lucide_push_button("OK", OK_BUTTON_ICON)
             ok_button.clicked.connect(dialog.accept)
+            style_accept_button(ok_button)
             button_layout.addWidget(ok_button)
 
             layout.addLayout(button_layout)
@@ -3648,6 +3651,7 @@ def show_instructions(self, instructions: str, title: str = "Instructions") -> s
 
             ok_button = make_lucide_push_button("OK", OK_BUTTON_ICON)
             ok_button.clicked.connect(dialog.accept)
+            style_accept_button(ok_button)
             button_layout.addWidget(ok_button)
 
             layout.addLayout(button_layout)

@@ -152,6 +152,7 @@ from harrix_swiss_knife.qt_lucide_icon import (
     apply_lucide_dialog_buttons,
     make_lucide_push_button,
     set_action_text_with_lucide_icon,
+    style_accept_button,
 )
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
 
@@ -2431,6 +2432,7 @@ class MainWindow(
         ok_button = make_lucide_push_button("OK", OK_BUTTON_ICON)
         ok_button.setDefault(True)
         ok_button.clicked.connect(dialog.accept)
+        style_accept_button(ok_button)
         button_layout.addWidget(ok_button)
         layout.addLayout(button_layout)
 

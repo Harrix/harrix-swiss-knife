@@ -230,6 +230,7 @@ class ExchangeEditDialog(QDialog):
         ok_button = make_lucide_push_button("OK", OK_BUTTON_ICON)
         ok_button.setDefault(True)
         ok_button.clicked.connect(self._on_ok)
+        style_accept_button(ok_button)
         button_layout.addWidget(ok_button)
 
         layout.addLayout(button_layout)

@@ -197,10 +197,10 @@ class ExerciseSelectionDialog(QDialog):
             self._clear_button.clicked.connect(self._clear_multi_selection)
             footer.addWidget(self._clear_button)
             button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Cancel, self)
-            apply_lucide_dialog_buttons(button_box)
             self._add_button = make_lucide_push_button("Add exercise", "plus")
             self._add_button.clicked.connect(self._on_accept)
             button_box.addButton(self._add_button, QDialogButtonBox.ButtonRole.AcceptRole)
+            apply_lucide_dialog_buttons(button_box)
         else:
             button_box = QDialogButtonBox(
                 QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,

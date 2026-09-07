@@ -40,6 +40,7 @@ from harrix_swiss_knife.qt_lucide_icon import (
     create_lucide_icon,
     make_ai_lucide_push_button,
     make_lucide_push_button,
+    style_accept_button,
 )
 
 if TYPE_CHECKING:
@@ -178,6 +179,7 @@ class ExerciseAddDialog(QDialog):
             add_another_button = make_lucide_push_button("OK and Add Another", "plus")
             add_another_button.setToolTip("Save this exercise and open Add New Exercise again")
             add_another_button.clicked.connect(self._on_accept_and_add_another)
+            style_accept_button(add_another_button)
             buttons.addButton(add_another_button, QDialogButtonBox.ButtonRole.ActionRole)
         buttons.accepted.connect(self._on_accept)
         buttons.rejected.connect(self.reject)
