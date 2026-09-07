@@ -67,8 +67,10 @@ from harrix_swiss_knife.map_coordinates import (
     parse_coordinates_text,
 )
 from harrix_swiss_knife.qt_lucide_icon import (
+    AI_BUTTON_ICON,
     CANCEL_BUTTON_ICON,
     OK_BUTTON_ICON,
+    make_ai_lucide_push_button,
     make_lucide_push_button,
 )
 from harrix_swiss_knife.template_ai_fill import (
@@ -1015,7 +1017,7 @@ class TemplateDialog(QDialog):
             image_mode=ImagePickerMode.MULTI,
             show_skip_manual=False,
             accept_button_text="Send to AI",
-            accept_button_icon="astroid",
+            accept_button_icon=AI_BUTTON_ICON,
             accept_button_style=SEND_TO_AI_BUTTON_STYLE,
             max_image_side=max_image_side,
         )
@@ -1459,7 +1461,7 @@ class TemplateDialog(QDialog):
         # Add buttons
         button_layout = QHBoxLayout()
         if self._app_config is not None:
-            self._fill_ai_button = make_lucide_push_button("Fill with AI", "astroid")
+            self._fill_ai_button = make_ai_lucide_push_button("Fill with AI")
             self._fill_ai_button.setToolTip(
                 "Fill empty template fields from text and/or screenshots via BotHub. "
                 "Does not fill Review or attach images to the note."

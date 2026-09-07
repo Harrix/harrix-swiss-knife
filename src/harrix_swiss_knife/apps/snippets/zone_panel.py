@@ -51,7 +51,7 @@ from harrix_swiss_knife.apps.snippets.parse import (
 from harrix_swiss_knife.qt_app_font import apply_mono_font
 from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
 from harrix_swiss_knife.qt_flow_layout import FlowLayout
-from harrix_swiss_knife.qt_lucide_icon import add_lucide_action, create_lucide_icon
+from harrix_swiss_knife.qt_lucide_icon import add_lucide_action, create_ai_lucide_icon
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -313,7 +313,7 @@ class ZonePanel(QWidget):
         header.addWidget(title_label)
         if zone == ZONE_EMOJI:
             pick = QToolButton(self)
-            pick.setIcon(create_lucide_icon("astroid", 18))
+            pick.setIcon(create_ai_lucide_icon(18))
             pick.setIconSize(QSize(18, 18))
             pick.setFixedSize(28, 28)
             pick.setAutoRaise(True)

@@ -11,7 +11,9 @@ from harrix_swiss_knife import qt_lucide_icon as lucide_mod
 from harrix_swiss_knife.qt_lucide_icon import (
     add_lucide_action,
     apply_leading_chrome_icons,
+    create_ai_lucide_icon,
     create_lucide_icon,
+    lucide_name_for_chrome_emoji,
     lucide_svg_path,
     make_lucide_push_button,
     set_action_text_with_lucide_icon,
@@ -129,3 +131,31 @@ def test_set_action_text_with_lucide_icon_strips_leading_emoji(qapp: QApplicatio
     set_action_text_with_lucide_icon(action, "📂 Show database in folder")
     assert action.text() == "Show database in folder"
     assert not action.icon().isNull()
+
+
+def test_robot_chrome_emoji_maps_to_sparkles() -> None:
+    assert lucide_name_for_chrome_emoji("🤖") == "sparkles"
+    assert lucide_svg_path("sparkles") is not None
+
+
+def test_create_ai_lucide_icon_uses_brand_blue(qapp: QApplication) -> None:
+    assert qapp is not None
+    lucide_mod._CACHE.clear()
+    icon = create_ai_lucide_icon(24)
+    pixmap = icon.pixmap(QSize(24, 24), 1.0)
+    image = pixmap.toImage()
+    found = False
+    for y in range(image.height()):
+        for x in range(image.width()):
+            pixel = QColor(image.pixelColor(x, y))
+            if pixel.alpha() < 32:
+                continue
+            assert pixel.red() < 80
+            assert 100 < pixel.green() < 180
+            assert pixel.blue() > 150
+            found = True
+            break
+        if found:
+            break
+    assert found
+    lucide_mod._CACHE.clear()

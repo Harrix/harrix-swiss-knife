@@ -37,7 +37,7 @@ from harrix_swiss_knife.apps.icons.family_id import title_from_family_id
 from harrix_swiss_knife.apps.icons.keywords_update import parse_keywords_text
 from harrix_swiss_knife.apps.icons.vector_render import render_icon_to_image
 from harrix_swiss_knife.integrations.bothub import BothubRequestState
-from harrix_swiss_knife.qt_lucide_icon import make_lucide_push_button
+from harrix_swiss_knife.qt_lucide_icon import make_ai_lucide_push_button, make_lucide_push_button
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -298,7 +298,7 @@ class AddVectorImageDialog(QDialog):
 
         buttons = QHBoxLayout()
         buttons.addStretch(1)
-        self._ai_button = make_lucide_push_button("Fill with AI", "astroid")
+        self._ai_button = make_ai_lucide_push_button("Fill with AI")
         self._ai_button.clicked.connect(self._on_fill_with_ai)
         buttons.addWidget(self._ai_button)
         cancel_button = make_lucide_push_button("Cancel", "x")

@@ -89,6 +89,7 @@ from harrix_swiss_knife.qt_lucide_icon import (
     DEFAULT_LUCIDE_BUTTON_ICON_SIZE,
     OK_BUTTON_ICON,
     apply_lucide_dialog_buttons,
+    make_ai_lucide_push_button,
     make_lucide_push_button,
 )
 from harrix_swiss_knife.qt_markdown_choice_cards import (
@@ -1223,9 +1224,8 @@ class ActionDialogService:
                 self._add_line(f"❌ Error generating auto text: {e}")
             input_layout.addWidget(le)
 
-            auto_button = make_lucide_push_button(
+            auto_button = make_ai_lucide_push_button(
                 auto_button_text.removeprefix("🤖 ").strip() or "Auto",
-                "astroid",
             )
 
             def on_auto_clicked() -> None:

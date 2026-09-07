@@ -26,6 +26,7 @@ from harrix_swiss_knife.qt_lucide_icon import (
     CANCEL_BUTTON_ICON,
     DELETE_BUTTON_ICON,
     SAVE_BUTTON_ICON,
+    make_ai_lucide_push_button,
     make_lucide_push_button,
 )
 
@@ -135,7 +136,7 @@ class CategoryEditDialog(QDialog):
         self.name_local_edit = QLineEdit()
         self.name_local_edit.setPlaceholderText("Local name")
         name_local_layout.addWidget(self.name_local_edit, 1)
-        self.translate_button = make_lucide_push_button("", "astroid")
+        self.translate_button = make_ai_lucide_push_button("")
         self.translate_button.setToolTip("Translate name to local language with AI")
         self.translate_button.setFixedWidth(36)
         self.translate_button.clicked.connect(self._on_translate_clicked)

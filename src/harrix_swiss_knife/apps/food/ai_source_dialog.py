@@ -10,6 +10,7 @@ from harrix_swiss_knife.apps.common.dialogs.text_image_source_dialog import (
 )
 from harrix_swiss_knife.apps.common.widgets.image_picker import ImagePickerMode
 from harrix_swiss_knife.apps.food.text_input_dialog import FOOD_TEXT_PLACEHOLDER
+from harrix_swiss_knife.qt_lucide_icon import AI_BUTTON_ICON
 
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QWidget
@@ -41,7 +42,7 @@ class AiSourceDialog(TextImageSourceDialog):
             image_mode=ImagePickerMode.MULTI,
             show_skip_manual=True,
             accept_button_text="Send to AI",
-            accept_button_icon="astroid",
+            accept_button_icon=AI_BUTTON_ICON,
             accept_button_style=SEND_TO_AI_BUTTON_STYLE,
             max_image_side=max_image_side,
             initial_image_path=initial_image_path,

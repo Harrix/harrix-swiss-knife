@@ -18,7 +18,12 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common.widgets.image_picker import ImagePicker, ImagePickerMode
-from harrix_swiss_knife.qt_lucide_icon import OK_BUTTON_ICON, make_lucide_push_button
+from harrix_swiss_knife.qt_lucide_icon import (
+    AI_BUTTON_ICON,
+    AI_BUTTON_ICON_COLOR,
+    OK_BUTTON_ICON,
+    make_lucide_push_button,
+)
 
 SEND_TO_AI_BUTTON_STYLE = """QPushButton {
     background-color: #C1ECDD;
@@ -209,7 +214,12 @@ class TextImageSourceDialog(QDialog):
         cancel_button.clicked.connect(self.reject)
         button_layout.addWidget(cancel_button)
 
-        self._ok_button = make_lucide_push_button(self._accept_button_text, self._accept_button_icon)
+        accept_color = AI_BUTTON_ICON_COLOR if self._accept_button_icon == AI_BUTTON_ICON else None
+        self._ok_button = make_lucide_push_button(
+            self._accept_button_text,
+            self._accept_button_icon,
+            color=accept_color,
+        )
         accept_font = QFont()
         accept_font.setBold(True)
         self._ok_button.setFont(accept_font)

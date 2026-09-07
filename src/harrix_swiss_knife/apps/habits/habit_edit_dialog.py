@@ -31,6 +31,7 @@ from harrix_swiss_knife.integrations.bothub import BothubRequestState
 from harrix_swiss_knife.paths import get_config_path_str
 from harrix_swiss_knife.qt_lucide_icon import (
     apply_lucide_dialog_buttons,
+    make_ai_lucide_push_button,
     make_lucide_push_button,
 )
 
@@ -93,7 +94,7 @@ class HabitEditDialog(QDialog):
         self._emoji_preview.clicked.connect(self._choose_emoji)
         choose_button = QPushButton("Choose…")
         choose_button.clicked.connect(self._choose_emoji)
-        self._ai_emoji_button = make_lucide_push_button("", "astroid")
+        self._ai_emoji_button = make_ai_lucide_push_button("")
         self._ai_emoji_button.setToolTip("Suggest emoji with AI")
         self._ai_emoji_button.setFixedWidth(36)
         self._ai_emoji_button.clicked.connect(self._suggest_emoji_with_ai)

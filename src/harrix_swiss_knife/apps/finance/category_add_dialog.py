@@ -25,6 +25,7 @@ from harrix_swiss_knife.apps.finance.category_name_local_translate import reques
 from harrix_swiss_knife.integrations.bothub import BothubRequestState
 from harrix_swiss_knife.qt_lucide_icon import (
     apply_lucide_dialog_buttons,
+    make_ai_lucide_push_button,
     make_lucide_push_button,
 )
 
@@ -66,7 +67,7 @@ class CategoryAddDialog(QDialog):
         self._name_local_edit = QLineEdit(form_group)
         self._name_local_edit.setPlaceholderText("Local name")
         name_local_row.addWidget(self._name_local_edit, 1)
-        self._translate_button = make_lucide_push_button("", "astroid")
+        self._translate_button = make_ai_lucide_push_button("")
         self._translate_button.setToolTip("Translate name to local language with AI")
         self._translate_button.setFixedWidth(36)
         self._translate_button.clicked.connect(self._on_translate_clicked)

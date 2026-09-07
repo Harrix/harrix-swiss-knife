@@ -44,6 +44,7 @@ from harrix_swiss_knife.qt_lucide_icon import (
     DELETE_BUTTON_ICON,
     apply_leading_chrome_icons,
     apply_lucide_dialog_buttons,
+    make_ai_lucide_push_button,
     make_lucide_push_button,
 )
 
@@ -282,7 +283,7 @@ class StandardItemsDialog(QDialog):
         self.add_button = make_lucide_push_button("Add", "plus")
         self.edit_button = make_lucide_push_button("Edit", "pencil")
         self.delete_button = make_lucide_push_button("Delete", DELETE_BUTTON_ICON)
-        self.translate_button = make_lucide_push_button("Translate with AI", "astroid")
+        self.translate_button = make_ai_lucide_push_button("Translate with AI")
         self.close_button = make_lucide_push_button("Close", CANCEL_BUTTON_ICON)
         self.add_button.clicked.connect(self._on_add)
         self.edit_button.clicked.connect(self._on_edit)

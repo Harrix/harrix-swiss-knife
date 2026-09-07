@@ -51,6 +51,8 @@ SAVE_BUTTON_ICON = "save"
 CLOSE_BUTTON_ICON = "x"
 COPY_BUTTON_ICON = "clipboard-copy"
 DELETE_BUTTON_ICON = "trash"
+AI_BUTTON_ICON = "sparkles"
+AI_BUTTON_ICON_COLOR = "#2e86b7"
 
 _ICON_NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 _CACHE: dict[tuple[str, int, str, float], QIcon] = {}
@@ -70,7 +72,7 @@ CHROME_EMOJI_TO_LUCIDE: dict[str, str] = {
     "➕": "plus",  # noqa: RUF001
     "✏️": "pencil",
     "✏": "pencil",
-    "🤖": "astroid",
+    "🤖": "sparkles",
     "🔄": "refresh-cw",
     "📁": "folder",
     "📂": "folder-open",
@@ -204,7 +206,8 @@ def apply_leading_chrome_button_icon(
         return False
     if name == "clipboard-list" and rest.casefold().startswith("copy"):
         name = COPY_BUTTON_ICON
-    apply_lucide_button_icon(button, name, icon_size=icon_size)
+    color = AI_BUTTON_ICON_COLOR if _is_ai_chrome_emoji(emoji) else None
+    apply_lucide_button_icon(button, name, icon_size=icon_size, color=color)
     button.setText(rest)
     return True
 
@@ -239,7 +242,8 @@ def apply_leading_chrome_icon(
         return False
     if name == "clipboard-list" and rest.casefold().startswith("copy"):
         name = COPY_BUTTON_ICON
-    apply_lucide_action_icon(action, name, icon_size=icon_size)
+    color = AI_BUTTON_ICON_COLOR if _is_ai_chrome_emoji(emoji) else None
+    apply_lucide_action_icon(action, name, icon_size=icon_size, color=color)
     action.setText(rest)
     return True
 
@@ -264,10 +268,11 @@ def apply_lucide_action_icon(
     name: str,
     *,
     icon_size: int = DEFAULT_LUCIDE_MENU_ICON_SIZE,
+    color: QColor | str | None = None,
 ) -> None:
     """Set a Lucide icon on `action` without changing its text."""
     if name:
-        action.setIcon(create_lucide_icon(name, icon_size))
+        action.setIcon(create_lucide_icon(name, icon_size, color=color))
 
 
 def apply_lucide_button_icon(
@@ -275,9 +280,10 @@ def apply_lucide_button_icon(
     name: str,
     *,
     icon_size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE,
+    color: QColor | str | None = None,
 ) -> None:
     """Set a Lucide icon on an existing button."""
-    button.setIcon(create_lucide_icon(name, icon_size))
+    button.setIcon(create_lucide_icon(name, icon_size, color=color))
     button.setIconSize(QSize(icon_size, icon_size))
 
 
@@ -298,11 +304,16 @@ def apply_lucide_dialog_buttons(
             apply_lucide_button_icon(button, name, icon_size=icon_size)
 
 
+def create_ai_lucide_icon(size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE) -> QIcon:
+    """Create the shared AI chrome icon (`sparkles` in `#2e86b7`)."""
+    return create_lucide_icon(AI_BUTTON_ICON, size, color=AI_BUTTON_ICON_COLOR)
+
+
 def create_lucide_icon(
     name: str,
     size: int = 64,
     *,
-    color: QColor | None = None,
+    color: QColor | str | None = None,
     device_pixel_ratio: float | None = None,
 ) -> QIcon:
     """Create a square `QIcon` from a Lucide SVG ID.
@@ -361,16 +372,33 @@ def lucide_svg_path(name: str) -> Path | None:
     return path
 
 
+def make_ai_lucide_push_button(
+    label: str,
+    *,
+    icon_size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE,
+    parent: QWidget | None = None,
+) -> QPushButton:
+    """Create a push button with the shared AI `sparkles` icon."""
+    return make_lucide_push_button(
+        label,
+        AI_BUTTON_ICON,
+        icon_size=icon_size,
+        color=AI_BUTTON_ICON_COLOR,
+        parent=parent,
+    )
+
+
 def make_lucide_push_button(
     label: str,
     name: str,
     *,
     icon_size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE,
+    color: QColor | str | None = None,
     parent: QWidget | None = None,
 ) -> QPushButton:
     """Create a push button with a Lucide icon."""
     button = QPushButton(label, parent)
-    apply_lucide_button_icon(button, name, icon_size=icon_size)
+    apply_lucide_button_icon(button, name, icon_size=icon_size, color=color)
     return button
 
 
@@ -403,6 +431,11 @@ def _lucide_device_pixel_ratio() -> float:
             if ratio > 0:
                 return float(ratio)
     return 1.0
+
+
+def _is_ai_chrome_emoji(emoji: str) -> bool:
+    """Return whether `emoji` is the robot chrome mark used for AI actions."""
+    return emoji.replace("\ufe0f", "").replace("\u200d", "") == "🤖"
 
 
 def _lucide_dir() -> Path:

@@ -34,6 +34,8 @@ from harrix_swiss_knife.actions.common.text_result_dialog import (
 from harrix_swiss_knife.apps.common.qt_main_window import apply_app_window_size_and_position
 from harrix_swiss_knife.qt_flow_layout import FlowLayout
 from harrix_swiss_knife.qt_lucide_icon import (
+    AI_BUTTON_ICON,
+    AI_BUTTON_ICON_COLOR,
     CANCEL_BUTTON_ICON,
     COPY_BUTTON_ICON,
     OK_BUTTON_ICON,
@@ -62,7 +64,7 @@ _SAVE_BUTTON_ICON = SAVE_BUTTON_ICON
 _SAVE_BUTTON_LABEL = "Save as…"
 _SAVE_DESKTOP_BUTTON_ICON = "monitor"
 _SAVE_DESKTOP_BUTTON_LABEL = "Save to desktop"
-_MARKDOWN_AI_ICON = "astroid"
+_MARKDOWN_AI_ICON = AI_BUTTON_ICON
 _MARKDOWN_OCR_ICON = "scan-text"
 _TRANSLATE_ICON = "languages"
 _STATUS_HINT = (
@@ -199,7 +201,11 @@ class ScreenshotPreviewWindow(QMainWindow):
             make_lucide_push_button(_SAVE_BUTTON_LABEL, _SAVE_BUTTON_ICON),
             self._save_as,
         )
-        ai_button = make_lucide_push_button("Recognize text (AI)", _MARKDOWN_AI_ICON)
+        ai_button = make_lucide_push_button(
+            "Recognize text (AI)",
+            _MARKDOWN_AI_ICON,
+            color=AI_BUTTON_ICON_COLOR,
+        )
         ai_button.setToolTip("Recognize text (AI)…")
         self._add_footer_button(ai_button, self._run_markdown_with_ai)
         ocr_button = make_lucide_push_button("Recognize text (OCR)", _MARKDOWN_OCR_ICON)

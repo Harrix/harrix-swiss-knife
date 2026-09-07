@@ -38,6 +38,7 @@ from harrix_swiss_knife.integrations.bothub import BothubRequestState
 from harrix_swiss_knife.qt_lucide_icon import (
     apply_lucide_dialog_buttons,
     create_lucide_icon,
+    make_ai_lucide_push_button,
     make_lucide_push_button,
 )
 
@@ -167,7 +168,7 @@ class ExerciseAddDialog(QDialog):
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         apply_lucide_dialog_buttons(buttons)
-        self._fill_button = make_lucide_push_button("Fill with AI", "astroid")
+        self._fill_button = make_ai_lucide_push_button("Fill with AI")
         self._fill_button.setToolTip(
             "Fill English/local names, unit, and calories from the entered name or media filename",
         )
