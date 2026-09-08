@@ -46,7 +46,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from harrix_swiss_knife.apps.common.table_context_menu import LABEL_DELETE, LABEL_REVEAL_IN_EXPLORER
+from harrix_swiss_knife.apps.common.table_context_menu import add_delete_action, add_reveal_in_explorer_action
 from harrix_swiss_knife.apps.icons.catalog import family_license_info, is_openable_license_url
 from harrix_swiss_knife.apps.icons.thumb_cache import DEFAULT_THUMB_SIZE, placeholder_pixmap, render_icon_to_image
 from harrix_swiss_knife.qt_lucide_icon import apply_leading_chrome_icons
@@ -467,7 +467,7 @@ class DraggableIconList(QListWidget):
         copy_path_action = None
 
         if has_path:
-            reveal_action = menu.addAction(LABEL_REVEAL_IN_EXPLORER)
+            reveal_action = add_reveal_in_explorer_action(menu)
             details_action = menu.addAction("ℹ️ Icon details")  # noqa: RUF001
             copy_file_action = menu.addAction("📋 Copy file")
             if is_svg_icon_path(path):
@@ -502,7 +502,7 @@ class DraggableIconList(QListWidget):
             if not is_openable_license_url(license_url):
                 license_action.setEnabled(False)
 
-        delete_action = menu.addAction(LABEL_DELETE)
+        delete_action = add_delete_action(menu)
         apply_leading_chrome_icons(menu)
         chosen = menu.exec_(self.mapToGlobal(pos))
 

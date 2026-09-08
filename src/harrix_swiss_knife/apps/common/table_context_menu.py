@@ -61,6 +61,11 @@ ICON_SET_DATE_SELECTED = "square-pen"
 ICON_SHOW_ALL_RECORDS = "clipboard-list"
 
 
+def add_clear_cell_action(menu: QMenu) -> QAction:
+    """Add `Clear cell` with an eraser icon."""
+    return add_lucide_action(menu, LABEL_CLEAR_CELL, ICON_CLEAR_CELL)
+
+
 def add_clear_filters_action(menu: QMenu) -> QAction:
     """Add `Clear all filters` inside the filters block above Delete."""
     return add_lucide_action(menu, LABEL_CLEAR_FILTERS, ICON_CLEAR_FILTERS)
@@ -93,6 +98,11 @@ def add_export_actions(menu: QMenu) -> tuple[QAction, QAction]:
     return csv_action, excel_action
 
 
+def add_filter_action(menu: QMenu, label: str) -> QAction:
+    """Add a Filter-by command with the shared search icon."""
+    return add_lucide_action(menu, label, ICON_FILTER)
+
+
 def add_info_action(menu: QMenu, text: str) -> QAction:
     """Add a disabled informational row (sum, totals) before Delete."""
     add_separator(menu)
@@ -109,6 +119,16 @@ def add_labeled_action(menu: QMenu, label: str, icon: str) -> QAction:
 def add_lightbox_action(menu: QMenu) -> QAction:
     """Add `Open image in lightbox`."""
     return add_lucide_action(menu, LABEL_OPEN_LIGHTBOX, ICON_OPEN_LIGHTBOX)
+
+
+def add_refresh_action(menu: QMenu) -> QAction:
+    """Add `Refresh` with a refresh icon."""
+    return add_lucide_action(menu, LABEL_REFRESH, ICON_REFRESH)
+
+
+def add_reveal_in_explorer_action(menu: QMenu) -> QAction:
+    """Add `Reveal in File Explorer` with a folder icon."""
+    return add_lucide_action(menu, LABEL_REVEAL_IN_EXPLORER, ICON_REVEAL_IN_EXPLORER)
 
 
 def add_separator(menu: QMenu) -> None:

@@ -214,12 +214,12 @@ class FoodItemsDialog(QDialog):
 
         context_menu = QMenu(self)
         if food_item_id is not None:
-            edit_action = context_menu.addAction(LABEL_EDIT)
+            edit_action = add_edit_action(context_menu)
             edit_action.triggered.connect(lambda: self._open_edit_dialog(food_item_id))
         add_separator(context_menu)
         add_action = context_menu.addAction("➕ Add")  # noqa: RUF001
         add_action.triggered.connect(self._on_add)
-        refresh_action = context_menu.addAction(LABEL_REFRESH)
+        refresh_action = add_refresh_action(context_menu)
         refresh_action.triggered.connect(self._reload_table)
         delete_action = add_delete_action(context_menu)
         delete_action.setEnabled(food_item_id is not None)

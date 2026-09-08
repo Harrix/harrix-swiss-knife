@@ -40,7 +40,7 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife.apps.common import message_box
-from harrix_swiss_knife.apps.common.table_context_menu import LABEL_OPEN_LIGHTBOX, add_delete_action
+from harrix_swiss_knife.apps.common.table_context_menu import add_delete_action, add_lightbox_action
 from harrix_swiss_knife.apps.common.widgets.exercise_list_hover_preview import exercise_at_table_image
 from harrix_swiss_knife.apps.fitness.lightbox_logic import (
     ExerciseStopwatch,
@@ -806,7 +806,7 @@ class WorkoutsWidget(QWidget):
         context_menu = QMenu(self)
         add_action = context_menu.addAction("➕ Add exercise")  # noqa: RUF001
         add_action.setEnabled(self._current_workout_id is not None and not self._session_active)
-        lightbox_action = context_menu.addAction(LABEL_OPEN_LIGHTBOX)
+        lightbox_action = add_lightbox_action(context_menu)
         delete_action = add_delete_action(context_menu)
         apply_leading_chrome_icons(context_menu)
         action = context_menu.exec_(self.table_items.mapToGlobal(position))

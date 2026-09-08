@@ -5345,7 +5345,7 @@ class MainWindow(
 
         context_menu = QMenu(self)
         if account_id is not None:
-            edit_action = context_menu.addAction(LABEL_EDIT)
+            edit_action = add_edit_action(context_menu)
             edit_action.triggered.connect(partial(self._on_account_double_clicked, index))
         add_separator(context_menu)
         context_menu.addAction(self.action_add_account)
@@ -5380,7 +5380,7 @@ class MainWindow(
         if not category_value:
             return
         context_menu = QMenu(self)
-        filter_action = context_menu.addAction(LABEL_FILTER_BY_CATEGORY)
+        filter_action = add_filter_action(context_menu, LABEL_FILTER_BY_CATEGORY)
         filter_action.triggered.connect(lambda: self._filter_by_category_from_table(category_value))
         apply_leading_chrome_icons(context_menu)
         context_menu.exec_(self.listView_categories.mapToGlobal(position))
@@ -5469,7 +5469,7 @@ class MainWindow(
 
         context_menu = QMenu(self)
         if exchange_id is not None:
-            edit_action = context_menu.addAction(LABEL_EDIT)
+            edit_action = add_edit_action(context_menu)
             edit_action.triggered.connect(partial(self._on_exchange_table_double_clicked, index))
         add_separator(context_menu)
         context_menu.addAction(self.action_exchanges_refresh)
@@ -5814,7 +5814,7 @@ class MainWindow(
         if len(selected_transaction_ids) > 1:
             ids_for_date_change = list(selected_transaction_ids)
             add_separator(context_menu)
-            bulk_date_action = context_menu.addAction(LABEL_SET_DATE_SELECTED)
+            bulk_date_action = add_labeled_action(context_menu, LABEL_SET_DATE_SELECTED, ICON_SET_DATE_SELECTED)
 
         add_separator(context_menu)
         export_action, export_excel_action = add_export_actions(context_menu)
@@ -5917,7 +5917,7 @@ class MainWindow(
 
         begin_filters_block(context_menu)
         if category_value:
-            filter_by_category_action = context_menu.addAction(LABEL_FILTER_BY_CATEGORY)
+            filter_by_category_action = add_filter_action(context_menu, LABEL_FILTER_BY_CATEGORY)
             filter_by_category_action.triggered.connect(lambda: self._filter_by_category_from_table(category_value))
         clear_filters_action = add_clear_filters_action(context_menu)
         clear_filters_action.triggered.connect(self.clear_filter)

@@ -246,12 +246,12 @@ class CategoriesDialog(QDialog):
 
         context_menu = QMenu(self)
         if category_id is not None:
-            edit_action = context_menu.addAction(LABEL_EDIT)
+            edit_action = add_edit_action(context_menu)
             edit_action.triggered.connect(lambda: self._open_edit_dialog(category_id))
         add_separator(context_menu)
         add_action = context_menu.addAction("➕ Add")  # noqa: RUF001
         add_action.triggered.connect(self._on_add)
-        refresh_action = context_menu.addAction(LABEL_REFRESH)
+        refresh_action = add_refresh_action(context_menu)
         refresh_action.triggered.connect(self._reload_table)
         copy_action = context_menu.addAction("📋 Copy as Text")
         copy_action.triggered.connect(self._on_copy_as_text)

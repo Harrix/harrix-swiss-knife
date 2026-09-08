@@ -204,7 +204,7 @@ class CurrenciesDialog(QDialog):
         context_menu = QMenu(self)
         add_action = context_menu.addAction("➕ Add")  # noqa: RUF001
         add_action.triggered.connect(self._on_add)
-        refresh_action = context_menu.addAction(LABEL_REFRESH)
+        refresh_action = add_refresh_action(context_menu)
         refresh_action.triggered.connect(self._on_refresh)
         delete_action = add_delete_action(context_menu)
         delete_action.setEnabled(currency_id is not None)

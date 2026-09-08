@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import pytest
+from PySide6.QtCore import QSize
+from PySide6.QtGui import QAction, QColor
 from PySide6.QtWidgets import QApplication, QMenu
 
 from harrix_swiss_knife.apps.common.table_context_menu import (
@@ -11,6 +13,7 @@ from harrix_swiss_knife.apps.common.table_context_menu import (
     LABEL_EXPORT_CSV,
     LABEL_EXPORT_EXCEL,
     LABEL_FILTER_BY_DATE,
+    LABEL_REVEAL_IN_EXPLORER,
     LABEL_SET_DATE,
     LABEL_SHOW_ALL_RECORDS,
     add_clear_filters_action,
@@ -18,6 +21,7 @@ from harrix_swiss_knife.apps.common.table_context_menu import (
     add_delete_action,
     add_export_actions,
     add_info_action,
+    add_reveal_in_explorer_action,
     add_separator,
     begin_filters_block,
     show_records_label,
@@ -96,3 +100,30 @@ def test_add_export_actions_adds_csv_and_excel(qapp: QApplication) -> None:  # n
 def test_show_records_label() -> None:
     assert show_records_label(show_all=False, last_count=20) == LABEL_SHOW_ALL_RECORDS
     assert show_records_label(show_all=True, last_count=20) == "Show last 20"
+
+
+def _first_opaque_action_pixel(action: QAction) -> QColor:
+    pixmap = action.icon().pixmap(QSize(24, 24), 1.0)
+    image = pixmap.toImage()
+    for y in range(image.height()):
+        for x in range(image.width()):
+            pixel = QColor(image.pixelColor(x, y))
+            if pixel.alpha() >= 32:
+                return pixel
+    msg = f"No opaque pixels in action icon {action.text()!r}"
+    raise AssertionError(msg)
+
+
+def test_add_reveal_in_explorer_action_has_icon(qapp: QApplication) -> None:  # noqa: ARG001
+    menu = QMenu()
+    action = add_reveal_in_explorer_action(menu)
+    assert action.text() == LABEL_REVEAL_IN_EXPLORER
+    assert not action.icon().isNull()
+
+
+def test_add_delete_action_icon_is_red(qapp: QApplication) -> None:  # noqa: ARG001
+    menu = QMenu()
+    action = add_delete_action(menu)
+    assert not action.icon().isNull()
+    pixel = _first_opaque_action_pixel(action)
+    assert pixel.red() > pixel.green()

@@ -119,19 +119,26 @@ from harrix_swiss_knife.apps.common.exercise_media import (
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.scroll_pagination import ScrollPagination, on_scroll_load_more
 from harrix_swiss_knife.apps.common.table_context_menu import (
+    ICON_ADD_DUMBBELL_WEIGHT_TYPES,
+    ICON_OPEN_EXERCISE_CHART,
+    ICON_OPEN_LIGHTBOX,
+    ICON_SET_DATE_SELECTED,
     LABEL_ADD_DUMBBELL_WEIGHT_TYPES,
-    LABEL_EDIT,
     LABEL_FILTER_BY_DATE,
     LABEL_FILTER_BY_EXERCISE,
     LABEL_FILTER_BY_TYPE,
     LABEL_OPEN_EXERCISE_CHART,
     LABEL_OPEN_LIGHTBOX,
-    LABEL_REVEAL_IN_EXPLORER,
     LABEL_SET_DATE_SELECTED,
     add_clear_filters_action,
     add_date_in_main_field_actions,
     add_delete_action,
+    add_edit_action,
     add_export_actions,
+    add_filter_action,
+    add_labeled_action,
+    add_lightbox_action,
+    add_reveal_in_explorer_action,
     add_separator,
     begin_filters_block,
 )
@@ -8203,7 +8210,7 @@ class MainWindow(
         action.setObjectName("actionOpenExerciseImageLightbox")
         action.triggered.connect(self.on_open_exercise_image_lightbox)
         menu.addAction(action)
-        set_action_text_with_lucide_icon(action, action.text())
+        set_action_text_with_lucide_icon(action, action.text(), ICON_OPEN_LIGHTBOX)
 
     def _setup_process_table_header(self) -> None:
         """Configure process table header and column widths."""
@@ -8384,7 +8391,7 @@ class MainWindow(
             exercise_name = self._get_current_selected_exercise() or ""
             map_widget = self.label_exercise_avif
         context_menu = QMenu(self)
-        lightbox_action = context_menu.addAction(LABEL_OPEN_LIGHTBOX)
+        lightbox_action = add_lightbox_action(context_menu)
         lightbox_action.setEnabled(self._get_exercise_avif_path(exercise_name) is not None)
         apply_leading_chrome_icons(context_menu)
         action = context_menu.exec_(map_widget.mapToGlobal(position))
@@ -8402,11 +8409,11 @@ class MainWindow(
         if not exercise_name:
             return
         context_menu = QMenu(self)
-        lightbox_action = context_menu.addAction(LABEL_OPEN_LIGHTBOX)
+        lightbox_action = add_lightbox_action(context_menu)
         lightbox_action.setEnabled(self._get_exercise_avif_path(exercise_name) is not None)
         chart_action = None
         if list_view is self.listView_exercises:
-            chart_action = context_menu.addAction(LABEL_OPEN_EXERCISE_CHART)
+            chart_action = add_labeled_action(context_menu, LABEL_OPEN_EXERCISE_CHART, ICON_OPEN_EXERCISE_CHART)
         favorite_action = self._favorite_menu_action(context_menu, exercise_name)
         apply_leading_chrome_icons(context_menu)
         action = context_menu.exec_(list_view.mapToGlobal(position))
@@ -8430,9 +8437,9 @@ class MainWindow(
             self.tableView_exercise_types.setCurrentIndex(index)
 
         context_menu = QMenu(self)
-        edit_action = context_menu.addAction(LABEL_EDIT)
-        lightbox_action = context_menu.addAction(LABEL_OPEN_LIGHTBOX)
-        reveal_action = context_menu.addAction(LABEL_REVEAL_IN_EXPLORER)
+        edit_action = add_edit_action(context_menu)
+        lightbox_action = add_lightbox_action(context_menu)
+        reveal_action = add_reveal_in_explorer_action(context_menu)
         add_separator(context_menu)
         context_menu.addAction(self.actionAdd_Exercise_Type)
         context_menu.addAction(self.actionRefresh_Types_Table)
@@ -8476,12 +8483,16 @@ class MainWindow(
             selected_name = self.db_manager.get_exercise_name_by_id(record_id) or ""
 
         context_menu = QMenu(self)
-        edit_action = context_menu.addAction(LABEL_EDIT)
+        edit_action = add_edit_action(context_menu)
         favorite_action = self._favorite_menu_action(context_menu, selected_name)
-        add_weights_action = context_menu.addAction(LABEL_ADD_DUMBBELL_WEIGHT_TYPES)
+        add_weights_action = add_labeled_action(
+            context_menu,
+            LABEL_ADD_DUMBBELL_WEIGHT_TYPES,
+            ICON_ADD_DUMBBELL_WEIGHT_TYPES,
+        )
         add_weights_action.setEnabled(bool(selected_name) and not is_template_exercise(selected_name))
-        lightbox_action = context_menu.addAction(LABEL_OPEN_LIGHTBOX)
-        reveal_action = context_menu.addAction(LABEL_REVEAL_IN_EXPLORER)
+        lightbox_action = add_lightbox_action(context_menu)
+        reveal_action = add_reveal_in_explorer_action(context_menu)
         add_separator(context_menu)
         context_menu.addAction(self.actionAdd_Exercise)
         context_menu.addAction(self.actionRefresh_Exercises_Table)
@@ -8573,18 +8584,18 @@ class MainWindow(
         if len(selected_process_ids) > 1:
             ids_for_date_change = list(selected_process_ids)
             add_separator(context_menu)
-            bulk_date_action = context_menu.addAction(LABEL_SET_DATE_SELECTED)
+            bulk_date_action = add_labeled_action(context_menu, LABEL_SET_DATE_SELECTED, ICON_SET_DATE_SELECTED)
 
         add_separator(context_menu)
         export_action, export_excel_action = add_export_actions(context_menu)
 
         begin_filters_block(context_menu)
         if exercise_value:
-            filter_by_exercise_action = context_menu.addAction(LABEL_FILTER_BY_EXERCISE)
+            filter_by_exercise_action = add_filter_action(context_menu, LABEL_FILTER_BY_EXERCISE)
         if type_value:
-            filter_by_type_action = context_menu.addAction(LABEL_FILTER_BY_TYPE)
+            filter_by_type_action = add_filter_action(context_menu, LABEL_FILTER_BY_TYPE)
         if date_value:
-            filter_by_date_action = context_menu.addAction(LABEL_FILTER_BY_DATE)
+            filter_by_date_action = add_filter_action(context_menu, LABEL_FILTER_BY_DATE)
         clear_filters_action = add_clear_filters_action(context_menu)
 
         delete_action = add_delete_action(context_menu)

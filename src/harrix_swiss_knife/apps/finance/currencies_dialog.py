@@ -22,7 +22,7 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common import message_box
-from harrix_swiss_knife.apps.common.table_context_menu import LABEL_REFRESH, add_delete_action
+from harrix_swiss_knife.apps.common.table_context_menu import add_delete_action, add_refresh_action
 from harrix_swiss_knife.apps.common.table_models import create_colored_table_proxy_model
 from harrix_swiss_knife.apps.common.word_wrap_header import install_word_wrap_header
 from harrix_swiss_knife.apps.finance.currency_add_dialog import CurrencyAddDialog
@@ -215,7 +215,7 @@ class CurrenciesDialog(QDialog):
         context_menu = QMenu(self)
         add_action = context_menu.addAction("➕ Add")  # noqa: RUF001
         add_action.triggered.connect(self._on_add)
-        refresh_action = context_menu.addAction(LABEL_REFRESH)
+        refresh_action = add_refresh_action(context_menu)
         refresh_action.triggered.connect(self._on_refresh)
         delete_action = add_delete_action(context_menu)
         delete_action.setEnabled(currency_id is not None)

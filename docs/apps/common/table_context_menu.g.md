@@ -11,18 +11,40 @@ lang: en
 
 ## Contents
 
+- [🔧 Function `add_clear_cell_action`](#-function-add_clear_cell_action)
 - [🔧 Function `add_clear_filters_action`](#-function-add_clear_filters_action)
 - [🔧 Function `add_date_in_main_field_actions`](#-function-add_date_in_main_field_actions)
 - [🔧 Function `add_delete_action`](#-function-add_delete_action)
 - [🔧 Function `add_edit_action`](#-function-add_edit_action)
 - [🔧 Function `add_export_actions`](#-function-add_export_actions)
+- [🔧 Function `add_filter_action`](#-function-add_filter_action)
 - [🔧 Function `add_info_action`](#-function-add_info_action)
 - [🔧 Function `add_labeled_action`](#-function-add_labeled_action)
 - [🔧 Function `add_lightbox_action`](#-function-add_lightbox_action)
+- [🔧 Function `add_refresh_action`](#-function-add_refresh_action)
+- [🔧 Function `add_reveal_in_explorer_action`](#-function-add_reveal_in_explorer_action)
 - [🔧 Function `add_separator`](#-function-add_separator)
 - [🔧 Function `begin_filters_block`](#-function-begin_filters_block)
 - [🔧 Function `last_action_is_separator`](#-function-last_action_is_separator)
 - [🔧 Function `show_records_label`](#-function-show_records_label)
+
+</details>
+
+## 🔧 Function `add_clear_cell_action`
+
+```python
+def add_clear_cell_action(menu: QMenu) -> QAction
+```
+
+Add `Clear cell` with an eraser icon.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def add_clear_cell_action(menu: QMenu) -> QAction:
+    return add_lucide_action(menu, LABEL_CLEAR_CELL, ICON_CLEAR_CELL)
+```
 
 </details>
 
@@ -123,6 +145,24 @@ def add_export_actions(menu: QMenu) -> tuple[QAction, QAction]:
 
 </details>
 
+## 🔧 Function `add_filter_action`
+
+```python
+def add_filter_action(menu: QMenu, label: str) -> QAction
+```
+
+Add a Filter-by command with the shared search icon.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def add_filter_action(menu: QMenu, label: str) -> QAction:
+    return add_lucide_action(menu, label, ICON_FILTER)
+```
+
+</details>
+
 ## 🔧 Function `add_info_action`
 
 ```python
@@ -176,6 +216,42 @@ Add `Open image in lightbox`.
 ```python
 def add_lightbox_action(menu: QMenu) -> QAction:
     return add_lucide_action(menu, LABEL_OPEN_LIGHTBOX, ICON_OPEN_LIGHTBOX)
+```
+
+</details>
+
+## 🔧 Function `add_refresh_action`
+
+```python
+def add_refresh_action(menu: QMenu) -> QAction
+```
+
+Add `Refresh` with a refresh icon.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def add_refresh_action(menu: QMenu) -> QAction:
+    return add_lucide_action(menu, LABEL_REFRESH, ICON_REFRESH)
+```
+
+</details>
+
+## 🔧 Function `add_reveal_in_explorer_action`
+
+```python
+def add_reveal_in_explorer_action(menu: QMenu) -> QAction
+```
+
+Add `Reveal in File Explorer` with a folder icon.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def add_reveal_in_explorer_action(menu: QMenu) -> QAction:
+    return add_lucide_action(menu, LABEL_REVEAL_IN_EXPLORER, ICON_REVEAL_IN_EXPLORER)
 ```
 
 </details>

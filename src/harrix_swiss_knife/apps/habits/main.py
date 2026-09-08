@@ -67,9 +67,11 @@ from harrix_swiss_knife.apps.common.db_init import init_tracker_database
 from harrix_swiss_knife.apps.common.qt_database_manager_base import QtSqliteDatabaseManagerBase
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.table_context_menu import (
-    LABEL_CLEAR_CELL,
-    LABEL_REFRESH,
+    ICON_SHOW_ALL_RECORDS,
+    add_clear_cell_action,
     add_export_actions,
+    add_labeled_action,
+    add_refresh_action,
     add_separator,
     show_records_label,
 )
@@ -2130,10 +2132,12 @@ class MainWindow(
                             has_display_value = bool(str(item.text() or "").strip())
                             can_clear_cell = bool(has_db_record or has_display_value)
 
-        refresh_action = context_menu.addAction(LABEL_REFRESH)
+        refresh_action = add_refresh_action(context_menu)
         export_action, export_excel_action = add_export_actions(context_menu)
-        show_all_action = context_menu.addAction(
+        show_all_action = add_labeled_action(
+            context_menu,
             show_records_label(show_all=self.show_all_records, last_count=self.count_records_to_show),
+            ICON_SHOW_ALL_RECORDS,
         )
         add_separator(context_menu)
         if self.show_archived_habits:
@@ -2143,7 +2147,7 @@ class MainWindow(
         clear_cell_action = None
         if can_clear_cell:
             add_separator(context_menu)
-            clear_cell_action = context_menu.addAction(LABEL_CLEAR_CELL)
+            clear_cell_action = add_clear_cell_action(context_menu)
         apply_leading_chrome_icons(context_menu)
 
         # Execute the context menu and get the selected action
