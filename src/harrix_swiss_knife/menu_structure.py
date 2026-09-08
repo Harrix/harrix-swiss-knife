@@ -125,6 +125,7 @@ from harrix_swiss_knife.actions.text.speech_to_text_with_ai import OnSpeechToTex
 from harrix_swiss_knife.actions.vscode import (
     OnInstallHarrixNotesExplorerExtension,
     OnSyncHarrixNotesExplorer,
+    OnSyncSaveCommands,
     OnVscodeCheck,
     OnVscodeFormat,
 )
@@ -176,6 +177,7 @@ def get_menu_structure() -> list[Any]:
                 OnVscodeCheck,
                 OnSyncHarrixNotesExplorer,
                 OnInstallHarrixNotesExplorerExtension,
+                OnSyncSaveCommands,
             ],
         ),
         (

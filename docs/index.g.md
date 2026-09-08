@@ -177,6 +177,7 @@ _Figure 1: Screenshot_
   - 🔬 Check VS Code extension ꟲᴸᴵ
   - ✨ Format VS Code extension ꟲᴸᴵ
   - 🔄 Sync Harrix Notes Explorer public repo ꟲᴸᴵ
+  - 🔄 ★ Sync Saved Commands between editors… ꟲᴸᴵ
   - 📦 ★ Update/install Harrix Notes Explorer extension for VS Code… ꟲᴸᴵ
 - 💰 Finance tracker
 - 🏃🏻 Fitness tracker
@@ -396,11 +397,14 @@ Folder arguments are optional (default: current directory) for commands that tak
 
 ### `hsk vscode`
 
-| Icon | Command                          | Description                                                      |
-| ---- | -------------------------------- | ---------------------------------------------------------------- |
-| ✨   | `hsk vscode format`              | Biome format for `vscode/harrix-notes-explorer-hsk/`             |
-| 🔬   | `hsk vscode check`               | Biome lint + format check for the VS Code extension              |
-| 🔄   | `hsk vscode sync-notes-explorer` | Sync HSK extension into public `path_harrix_notes_explorer` repo |
+| Icon | Command                                   | Description                                                                 |
+| ---- | ----------------------------------------- | --------------------------------------------------------------------------- |
+| ✨   | `hsk vscode format`                       | Biome format for `vscode/harrix-notes-explorer-hsk/`                        |
+| 🔬   | `hsk vscode check`                        | Biome lint + format check for the VS Code extension                         |
+| 🔄   | `hsk vscode sync-notes-explorer`          | Sync HSK extension into public `path_harrix_notes_explorer` repo            |
+| 🔄   | `hsk vscode sync-save-commands`           | Union global Saved Commands across editors with the Save Commands extension |
+| 🔄   | `hsk vscode sync-save-commands EDITOR...` | Same for explicit editors (`cursor`, `insiders`, `vscode`, …)               |
+| 🔄   | `hsk vscode sync-save-commands --force`   | Write even if selected editors are running                                  |
 
 ### `hsk site`
 

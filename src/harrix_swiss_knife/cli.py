@@ -47,6 +47,7 @@ from harrix_swiss_knife.actions.text import OnFixTextWithAI
 from harrix_swiss_knife.actions.vscode import (
     OnInstallHarrixNotesExplorerExtension,
     OnSyncHarrixNotesExplorer,
+    OnSyncSaveCommands,
     OnVscodeCheck,
     OnVscodeFormat,
 )
@@ -1011,7 +1012,7 @@ def text_fix_text_with_ai() -> None:
 
 @cli.group("vscode")
 def vscode_group() -> None:
-    """VS Code extension format, quality checks, and public-repo sync."""
+    """VS Code extension format, quality checks, public-repo sync, and Saved Commands sync."""
 
 
 @vscode_group.command("check")
@@ -1035,6 +1036,32 @@ def vscode_sync_notes_explorer() -> None:
     """Sync `vscode/harrix-notes-explorer-hsk` into public `path_harrix_notes_explorer` repo."""
     action = OnSyncHarrixNotesExplorer()
     action(noninteractive=True)
+    _exit_if_action_failed(action)
+
+
+@vscode_group.command("sync-save-commands")
+@click.argument(
+    "editors",
+    nargs=-1,
+    type=click.Choice(
+        OnSyncSaveCommands.CLI_EDITOR_CHOICES,
+        case_sensitive=False,
+    ),
+)
+@click.option(
+    "--force",
+    is_flag=True,
+    help="Write even if selected editors are running (they may overwrite state.vscdb on exit).",
+)
+def vscode_sync_save_commands(editors: tuple[str, ...], *, force: bool) -> None:
+    """Union global Saved Commands (Save Commands extension) across VS Code-family EDITOR profiles.
+
+    Workspace-scoped commands are not copied. Close selected editors before writing,
+    or pass `--force`.
+
+    """
+    action = OnSyncSaveCommands()
+    action(editors=editors, force=force, noninteractive=True)
     _exit_if_action_failed(action)
 
 

@@ -63,6 +63,7 @@ lang: en
 - [🔧 Function `vscode_check`](#-function-vscode_check)
 - [🔧 Function `vscode_format`](#-function-vscode_format)
 - [🔧 Function `vscode_sync_notes_explorer`](#-function-vscode_sync_notes_explorer)
+- [🔧 Function `vscode_sync_save_commands`](#-function-vscode_sync_save_commands)
 - [🔧 Function `main`](#-function-main)
 
 </details>
@@ -1180,7 +1181,7 @@ def text_fix_text_with_ai() -> None:
 def vscode_group() -> None
 ```
 
-VS Code extension format, quality checks, and public-repo sync.
+VS Code extension format, quality checks, public-repo sync, and Saved Commands sync.
 
 <details>
 <summary>Code:</summary>
@@ -1246,6 +1247,29 @@ Sync `vscode/harrix-notes-explorer-hsk` into public `path_harrix_notes_explorer`
 def vscode_sync_notes_explorer() -> None:
     action = OnSyncHarrixNotesExplorer()
     action(noninteractive=True)
+    _exit_if_action_failed(action)
+```
+
+</details>
+
+## 🔧 Function `vscode_sync_save_commands`
+
+```python
+def vscode_sync_save_commands(editors: tuple[str, ...], *, force: bool) -> None
+```
+
+Union global Saved Commands (Save Commands extension) across VS Code-family EDITOR profiles.
+
+Workspace-scoped commands are not copied. Close selected editors before writing,
+or pass `--force`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def vscode_sync_save_commands(editors: tuple[str, ...], *, force: bool) -> None:
+    action = OnSyncSaveCommands()
+    action(editors=editors, force=force, noninteractive=True)
     _exit_if_action_failed(action)
 ```
 
