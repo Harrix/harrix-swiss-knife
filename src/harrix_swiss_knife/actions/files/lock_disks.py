@@ -19,6 +19,7 @@ class OnLockDisks(ActionBase):
     """
 
     icon = "🔒"
+    icon_svg = "object__lock.svg"
     title = "Lock disks (BitLocker)"
 
     @ActionBase.handle_exceptions("locking disks")

@@ -20,6 +20,7 @@ from harrix_swiss_knife.actions.development.view_recent_action_logs import OnVie
 from harrix_swiss_knife.actions.files.check_musicbee_playlists import OnCheckMusicBeePlaylists
 from harrix_swiss_knife.actions.files.close_all_adobe import OnCloseAllAdobe
 from harrix_swiss_knife.actions.files.extract_zip_archives import OnExtractZipArchives
+from harrix_swiss_knife.actions.files.lock_disks import OnLockDisks
 from harrix_swiss_knife.actions.files.remove_empty_folders import OnRemoveEmptyFolders
 from harrix_swiss_knife.actions.images.open_images import OnOpenImages
 from harrix_swiss_knife.actions.images.open_optimized_images import OnOpenOptimizedImages
@@ -51,6 +52,7 @@ _ACTION_SVG_CASES: tuple[tuple[type, str, str], ...] = (
     (OnHabits, "✅", "symbol__ok.svg"),
     (OnIcons, "🎨", "object__palette.svg"),
     (OnInstallHarrixNotesExplorerExtension, "📦", "object__box.svg"),
+    (OnLockDisks, "🔒", "object__lock.svg"),
     (OnNpmManagePackages, "📦", "object__box.svg"),
     (OnOpenImages, "📂", "it__folder.svg"),
     (OnOpenOptimizedImages, "📂", "it__folder.svg"),

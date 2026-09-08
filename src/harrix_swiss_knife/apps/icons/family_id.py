@@ -7,9 +7,11 @@ from pathlib import Path
 
 _STRIP_SUFFIXES = (
     re.compile(r"_\d{2}$"),
-    re.compile(r"_line-(?:8|16|32)$"),
+    re.compile(r"[_-]line-(?:8|16|32)$"),
     re.compile(r"_improbable$"),
-    re.compile(r"_(?:black|gray|white)$"),
+    re.compile(r"(?<=(?:black|white))svg$", re.IGNORECASE),
+    re.compile(r"(?<=(?:gray|grey))svg$", re.IGNORECASE),
+    re.compile(r"_(?:black|gray|grey|white)$", re.IGNORECASE),
 )
 
 
@@ -23,8 +25,9 @@ def category_from_family_id(family_id: str) -> str:
 def family_id_from_stem(stem: str) -> str:
     """Return family ID by stripping variant suffixes from a filename stem.
 
-    Removes trailing design index (`_01`), stroke weight (`_line-8`),
-    `improbable`, and mono color tokens until none remain.
+    Removes trailing design index (`_01`), stroke weight (`_line-8` or
+    `-line-8`), glued `svg` after a color token (`graysvg`), `improbable`,
+    and mono color tokens until none remain.
 
     Args:
 

@@ -18,7 +18,7 @@ SOURCE_EXTENSIONS: tuple[str, ...] = (
 )
 
 _VARIANT_TOKEN_RE = re.compile(
-    r"_(?:white|black|gray|grey|line-[a-z0-9]+)(?=(?:_\d+)?$)",
+    r"(?:_(?:white|black|gray|grey)|[_-]line-[a-z0-9]+|(?<=(?:black|white))svg|(?<=(?:gray|grey))svg)(?=(?:_\d+)?$)",
     re.IGNORECASE,
 )
 

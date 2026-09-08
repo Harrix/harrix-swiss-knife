@@ -15,12 +15,13 @@ from typing import Any, Literal
 
 from harrix_pylib.note_meta import resolve_note_title, title_from_id
 
+from harrix_swiss_knife.apps.icons.family_id import family_id_from_stem
 from harrix_swiss_knife.keyboard_layout_search import text_matches_autocomplete
 
 _FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n?", re.DOTALL)
 _LIST_RE = re.compile(r"^\[\s*(.*?)\s*\]$")
 _VARIANT_TOKEN_RE = re.compile(
-    r"_(?:white|black|gray|grey|line-[a-z0-9]+)(?=(?:_\d+)?$)",
+    r"(?:_(?:white|black|gray|grey)|[_-]line-[a-z0-9]+|(?<=(?:black|white))svg|(?<=(?:gray|grey))svg)(?=(?:_\d+)?$)",
     re.IGNORECASE,
 )
 
@@ -590,7 +591,7 @@ def _flat_category(folder: str, stem: str) -> str:
 def _flat_family_id(path: Path, root: Path) -> str:
     stem = path.stem
     if path.suffix.casefold() == ".svg":
-        stem = _VARIANT_TOKEN_RE.sub("", stem) or path.stem
+        stem = family_id_from_stem(stem) or path.stem
     rel_parent = str(Path(_relative_to_root(path, root)).parent).replace("\\", "/")
     if rel_parent in {"", "."}:
         return stem

@@ -5,14 +5,19 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from harrix_swiss_knife.apps.icons.add_vector import (
     AddVectorStatus,
     collect_vector_sources,
     copy_vectors_to_flat_folder,
     create_note_from_meta,
+    merge_note_families,
     variant_dest_name,
 )
+
+if TYPE_CHECKING:
+    import pytest
 from harrix_swiss_knife.apps.icons.add_vector_ai import parse_add_vector_ai_response
 from harrix_swiss_knife.apps.icons.add_vector_meta import (
     NoteMeta,
@@ -232,3 +237,107 @@ def test_open_icons_folder_rebuilds_stale_catalog(tmp_path: Path) -> None:
     opened = open_icons_folder(repo)
     assert "vehicle" in opened.categories()
     assert opened.icons[0].categories == ["building", "vehicle"]
+
+
+def _write_note(
+    repo: Path,
+    family_id: str,
+    *,
+    title: str,
+    variants: dict[str, str],
+    featured: str = _MIN_SVG,
+) -> Path:
+    category = family_id.split("__", 1)[0]
+    note = repo / "icons" / category / family_id
+    note.mkdir(parents=True, exist_ok=True)
+    img = note / "img"
+    img.mkdir(exist_ok=True)
+    _write(note / "featured-image.svg", featured)
+    bullets = []
+    for name, svg in variants.items():
+        _write(img / name, svg)
+        bullets.append(f"- ![{Path(name).stem}](img/{name})")
+    md = (
+        "---\n"
+        f"categories: [{category}]\n"
+        "lang: en\n"
+        "---\n\n"
+        f"# {title}\n\n"
+        "![Featured image](featured-image.svg)\n\n"
+        "## Icons\n\n" + "\n".join(bullets) + "\n"
+    )
+    (note / f"{family_id}.md").write_text(md, encoding="utf-8")
+    return note
+
+
+def test_merge_note_families_copies_variants_and_deletes_sources(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("harrix_swiss_knife.apps.icons.add_vector.remove_favorites", lambda *_args, **_kwargs: [])
+    repo = tmp_path / "Harrix-Vector-Icons"
+    target_featured = (
+        '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32">'
+        '<rect width="32" height="32" fill="#111111"/></svg>'
+    )
+    line_underscore = (
+        '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32">'
+        '<rect width="32" height="32" fill="#222222"/></svg>'
+    )
+    line_hyphen = (
+        '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32">'
+        '<rect width="32" height="32" fill="#333333"/></svg>'
+    )
+    gray_svg = (
+        '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32">'
+        '<rect width="32" height="32" fill="#36434f"/></svg>'
+    )
+    _write_note(
+        repo,
+        "human__bone",
+        title="Bone",
+        featured=target_featured,
+        variants={
+            "human__bone_01.svg": _MIN_SVG,
+            "human__bone_improbable_black_line-8.svg": line_underscore,
+        },
+    )
+    _write_note(
+        repo,
+        "human__bone_graysvg",
+        title="Bone Graysvg",
+        variants={"human__bone_graysvg.svg": gray_svg},
+    )
+    _write_note(
+        repo,
+        "human__bone_improbable_black-line-8",
+        title="Bone Improbable Black Line 8",
+        variants={"human__bone_improbable_black-line-8.svg": line_hyphen},
+    )
+
+    report = merge_note_families(
+        repo,
+        source_family_ids=["human__bone_graysvg", "human__bone_improbable_black-line-8"],
+        target_family_id="human__bone",
+    )
+    assert report.catalog_rebuilt is True
+    assert not any(item.status == AddVectorStatus.ERROR for item in report.results)
+
+    target = repo / "icons" / "human" / "human__bone"
+    img = target / "img"
+    assert (img / "human__bone_gray.svg").is_file()
+    assert (img / "human__bone_improbable_black-line-8.svg").is_file()
+    assert (img / "human__bone_improbable_black_line-8.svg").is_file()
+    assert (target / "featured-image.svg").read_text(encoding="utf-8") == target_featured
+    assert not (repo / "icons" / "human" / "human__bone_graysvg").exists()
+    assert not (repo / "icons" / "human" / "human__bone_improbable_black-line-8").exists()
+
+    md = (target / "human__bone.md").read_text(encoding="utf-8")
+    assert "# Bone" in md
+    assert "img/human__bone_gray.svg" in md
+    assert "img/human__bone_improbable_black-line-8.svg" in md
+    assert "Graysvg" not in md
+
+    catalog = load_catalog(repo)
+    assert [icon.id for icon in catalog.icons] == ["human__bone"]
+    assert catalog.icons[0].title == "Bone"

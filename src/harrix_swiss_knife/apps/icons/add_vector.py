@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import re
 import shutil
@@ -13,8 +14,14 @@ from typing import TYPE_CHECKING, Literal
 import harrix_pylib as h
 
 from harrix_swiss_knife.apps.icons.add_vector_meta import NoteMeta, note_dir_for_meta
-from harrix_swiss_knife.apps.icons.catalog import FLAT_ICON_EXTENSIONS, rebuild_catalog
-from harrix_swiss_knife.apps.icons.family_id import family_id_from_stem
+from harrix_swiss_knife.apps.icons.catalog import (
+    FLAT_ICON_EXTENSIONS,
+    IconFamily,
+    delete_icon_family,
+    rebuild_catalog,
+)
+from harrix_swiss_knife.apps.icons.family_id import category_from_family_id, family_id_from_stem
+from harrix_swiss_knife.apps.icons.settings import remove_favorites
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -291,6 +298,159 @@ def file_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def merge_note_families(
+    repo_root: Path,
+    *,
+    source_family_ids: Sequence[str],
+    target_family_id: str,
+    rebuild: bool = True,
+) -> AddVectorReport:
+    """Copy variants from source notes into `target_family_id`, then delete sources.
+
+    Does not replace the target featured image. Glued `graysvg` stems become
+    `{family_id}_gray.svg`. Hyphenated line-weight names are kept as-is so they
+    do not overwrite an existing `_line-8` file with different artwork.
+
+    """
+    report = AddVectorReport()
+    target_id = target_family_id.strip()
+    if not target_id:
+        report.results.append(
+            AddVectorResult(
+                source=Path(),
+                family_id="",
+                dest=None,
+                status=AddVectorStatus.ERROR,
+                message="Target family id is empty",
+            )
+        )
+        return report
+
+    target_dir = note_exists_for_family(
+        repo_root,
+        family_id=target_id,
+        category=category_from_family_id(target_id),
+    )
+    if target_dir is None:
+        report.results.append(
+            AddVectorResult(
+                source=Path(),
+                family_id=target_id,
+                dest=None,
+                status=AddVectorStatus.ERROR,
+                message=f"Target note `{target_id}` not found",
+            )
+        )
+        return report
+
+    img_dir = target_dir / "img"
+    img_dir.mkdir(parents=True, exist_ok=True)
+    md_path = target_dir / f"{target_id}.md"
+    deleted_ids: list[str] = []
+
+    for raw_id in source_family_ids:
+        source_id = str(raw_id).strip()
+        if not source_id or source_id == target_id:
+            continue
+        source_dir = note_exists_for_family(
+            repo_root,
+            family_id=source_id,
+            category=category_from_family_id(source_id),
+        )
+        if source_dir is None:
+            report.results.append(
+                AddVectorResult(
+                    source=Path(),
+                    family_id=source_id,
+                    dest=None,
+                    status=AddVectorStatus.ERROR,
+                    message=f"Source note `{source_id}` not found",
+                )
+            )
+            continue
+
+        source_img = source_dir / "img"
+        sources = collect_vector_sources([source_img]) if source_img.is_dir() else []
+        copied_ok = True
+        for source in sources:
+            dest_name = merge_variant_dest_name(source, family_id=target_id)
+            dest_path = img_dir / dest_name
+            place = _place_vector_file(
+                source,
+                dest_path=dest_path,
+                img_dir=img_dir,
+                collision_policy="rename",
+                family_id=target_id,
+            )
+            report.results.append(place)
+            if place.status == AddVectorStatus.ERROR:
+                copied_ok = False
+                continue
+            if place.status == AddVectorStatus.SKIPPED_POLICY:
+                continue
+            listed_name = place.dest.name if place.dest is not None else dest_name
+            if md_path.is_file():
+                append_icon_to_note(md_path, listed_name)
+
+        if not copied_ok:
+            continue
+
+        family = IconFamily(
+            id=source_id,
+            title="",
+            categories=[],
+            tags=[],
+            folder=str(source_dir.relative_to(repo_root)).replace("\\", "/"),
+            featured="",
+            featured_hash="",
+        )
+        try:
+            delete_icon_family(family, repo_root, kind="note")
+        except (OSError, ValueError) as exc:
+            report.results.append(
+                AddVectorResult(
+                    source=source_dir,
+                    family_id=source_id,
+                    dest=None,
+                    status=AddVectorStatus.ERROR,
+                    message=f"Copied variants but failed to delete `{source_id}`: {exc}",
+                )
+            )
+            continue
+        deleted_ids.append(source_id)
+        report.results.append(
+            AddVectorResult(
+                source=source_dir,
+                family_id=target_id,
+                dest=target_dir,
+                status=AddVectorStatus.ADDED,
+                message=f"Merged `{source_id}` → `{target_id}`",
+            )
+        )
+
+    if deleted_ids:
+        with contextlib.suppress(OSError, ValueError, RuntimeError, TypeError):
+            remove_favorites(repo_root, deleted_ids)
+
+    if rebuild:
+        rebuild_catalog(repo_root)
+        report.catalog_rebuilt = True
+    return report
+
+
+def merge_variant_dest_name(source: Path, *, family_id: str) -> str:
+    """Return dest filename when merging a variant into `family_id`."""
+    stem = source.stem
+    suffix = source.suffix
+    match = _GLUED_COLOR_SVG_STEM_RE.fullmatch(stem)
+    if match:
+        color = match.group(1).lower()
+        if color == "grey":
+            color = "gray"
+        return f"{family_id}_{color}{suffix}"
+    return variant_dest_name(source, family_id=family_id)
+
+
 def note_exists_for_family(repo_root: Path, *, family_id: str, category: str) -> Path | None:
     """Return existing note dir for family/category, if present."""
     candidate = note_dir_for_meta(repo_root, family_id=family_id, category=category)
@@ -518,3 +678,4 @@ def _write_vector_file(source: Path, dest: Path) -> None:
 
 
 _ICONS_SECTION_RE = re.compile(r"(##\s+Icons\s*\n)(.*?)(?=\n##\s|\Z)", re.DOTALL | re.IGNORECASE)
+_GLUED_COLOR_SVG_STEM_RE = re.compile(r"^.+_(black|gray|grey|white)svg$", re.IGNORECASE)
