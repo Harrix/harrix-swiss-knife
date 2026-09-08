@@ -543,7 +543,12 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.folder_combo = QComboBox()
         self.folder_combo.setMinimumWidth(220)
         self.folder_combo.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.folder_combo.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.folder_combo.customContextMenuRequested.connect(self._on_folder_combo_context_menu)
         self.folder_combo.currentIndexChanged.connect(self._on_folder_combo_changed)
+        folder_combo_view = self.folder_combo.view()
+        folder_combo_view.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        folder_combo_view.customContextMenuRequested.connect(self._on_folder_combo_view_context_menu)
         toolbar.addWidget(self.folder_combo, stretch=1)
 
         toolbar.addWidget(QLabel("Icon size"))
@@ -664,6 +669,10 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.menuFile = file_menu
         open_folder_action = file_menu.addAction("📂 Open folder…")
         open_folder_action.triggered.connect(self._on_open_folder)
+        reveal_current_action = file_menu.addAction("📂 Reveal current folder in File Explorer")
+        reveal_current_action.triggered.connect(self._on_reveal_current_folder)
+        copy_current_path_action = file_menu.addAction("📋 Copy path to current folder")
+        copy_current_path_action.triggered.connect(self._on_copy_current_folder_path)
         pin_action = file_menu.addAction("📌 Pin current folder")
         pin_action.triggered.connect(self._on_pin_current_folder)
         self._pinned_menu = file_menu.addMenu("📌 Pinned folders")
@@ -870,6 +879,14 @@ class MainWindow(QMainWindow, AppWindowMixin):
         example_ids = {family.id for family, _path in self._view_mode_examples.values()}
         if example_ids & families:
             self._refresh_variant_view_icons()
+
+    def _folder_combo_path_at(self, index: int) -> Path | None:
+        if index < 0:
+            return None
+        raw = self.folder_combo.itemData(index)
+        if not raw:
+            return None
+        return Path(str(raw))
 
     @staticmethod
     def _folder_display_name(path: Path) -> str:
@@ -1291,6 +1308,12 @@ class MainWindow(QMainWindow, AppWindowMixin):
             return
         self.statusBar().showMessage(f"Copied contents of `{path.name}`")
 
+    def _on_copy_current_folder_path(self) -> None:
+        if self._repo_root is None:
+            QMessageBox.warning(self, "Vector Icons", "No icons folder is open.")
+            return
+        self._on_copy_path(str(self._repo_root))
+
     def _on_copy_filename(self, svg_path: str) -> None:
         name = Path(svg_path).name
         clipboard = QApplication.clipboard()
@@ -1525,6 +1548,16 @@ class MainWindow(QMainWindow, AppWindowMixin):
                     return
         self._open_folder(path)
 
+    def _on_folder_combo_context_menu(self, pos: QPoint) -> None:
+        path = self._folder_combo_path_at(self.folder_combo.currentIndex())
+        self._popup_folder_path_menu(self.folder_combo.mapToGlobal(pos), path)
+
+    def _on_folder_combo_view_context_menu(self, pos: QPoint) -> None:
+        view = self.folder_combo.view()
+        index = view.indexAt(pos)
+        path = self._folder_combo_path_at(index.row() if index.isValid() else -1)
+        self._popup_folder_path_menu(view.mapToGlobal(pos), path)
+
     def _on_folder_item_clicked(self, item: QTreeWidgetItem, _column: int) -> None:
         self._activate_folder(str(item.data(0, Qt.ItemDataRole.UserRole) or ""))
 
@@ -1538,12 +1571,17 @@ class MainWindow(QMainWindow, AppWindowMixin):
         item = self.folder_tree.itemAt(pos)
         if item is None or self._repo_root is None:
             return
+        prefix = str(item.data(0, Qt.ItemDataRole.UserRole) or "")
+        disk_path = folder_disk_path(self._repo_root, prefix)
         menu = QMenu(self.folder_tree)
+        copy_action = menu.addAction("📋 Copy path")
         reveal_action = add_reveal_in_explorer_action(menu)
+        apply_leading_chrome_icons(menu)
         chosen = menu.exec_(self.folder_tree.mapToGlobal(pos))
-        if chosen is reveal_action:
-            prefix = str(item.data(0, Qt.ItemDataRole.UserRole) or "")
-            self._on_reveal_in_explorer(str(folder_disk_path(self._repo_root, prefix)))
+        if chosen is copy_action:
+            self._on_copy_path(str(disk_path))
+        elif chosen is reveal_action:
+            self._on_reveal_in_explorer(str(disk_path))
 
     def _on_icon_details(self, family: object, svg_path: str) -> None:
         if not isinstance(family, IconFamily):
@@ -1754,6 +1792,12 @@ class MainWindow(QMainWindow, AppWindowMixin):
             refresh=True,
         )
 
+    def _on_reveal_current_folder(self) -> None:
+        if self._repo_root is None:
+            QMessageBox.warning(self, "Vector Icons", "No icons folder is open.")
+            return
+        self._on_reveal_in_explorer(str(self._repo_root))
+
     def _on_reveal_in_explorer(self, svg_path: str) -> None:
         path = Path(svg_path)
         try:
@@ -1761,7 +1805,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
         except (OSError, FileNotFoundError) as exc:
             QMessageBox.warning(self, "Vector Icons", str(exc))
             return
-        self.statusBar().showMessage(f"Revealed `{path.name}`")
+        label = str(path.resolve()) if path.is_dir() else path.name
+        self.statusBar().showMessage(f"Revealed `{label}`")
 
     def _on_reveal_source(self, family: object, svg_path: str) -> None:
         source = self._resolve_source_file(family, svg_path)
@@ -1973,6 +2018,19 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.folder_tree.blockSignals(False)  # noqa: FBT003
         self.folder_tree.setUpdatesEnabled(True)
         self.folder_tree.viewport().update()
+
+    def _popup_folder_path_menu(self, global_pos: QPoint, path: Path | None) -> None:
+        if path is None:
+            return
+        menu = QMenu(self)
+        copy_action = menu.addAction("📋 Copy path")
+        reveal_action = add_reveal_in_explorer_action(menu)
+        apply_leading_chrome_icons(menu)
+        chosen = menu.exec_(global_pos)
+        if chosen is copy_action:
+            self._on_copy_path(str(path))
+        elif chosen is reveal_action:
+            self._on_reveal_in_explorer(str(path))
 
     def _preview_pixmap_for_path(self, family: IconFamily, path: Path) -> QPixmap | None:
         """Return a cached or freshly rendered thumbnail for `path`."""
