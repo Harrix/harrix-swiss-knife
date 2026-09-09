@@ -641,7 +641,7 @@ Return dest filename when merging a variant into `family_id`.
 
 ```python
 def merge_variant_dest_name(source: Path, *, family_id: str) -> str:
-    stem = source.stem
+    stem = _normalize_variant_stem(source.stem)
     suffix = source.suffix
     match = _GLUED_COLOR_SVG_STEM_RE.fullmatch(stem)
     if match:
@@ -746,7 +746,7 @@ Return destination filename for a variant under `family_id`.
 
 ```python
 def variant_dest_name(source: Path, *, family_id: str) -> str:
-    stem = source.stem
+    stem = _normalize_variant_stem(source.stem)
     suffix = source.suffix
     if stem == family_id or stem.startswith(f"{family_id}_"):
         return f"{stem}{suffix}"

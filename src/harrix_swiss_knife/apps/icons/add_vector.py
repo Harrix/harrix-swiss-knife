@@ -440,7 +440,7 @@ def merge_note_families(
 
 def merge_variant_dest_name(source: Path, *, family_id: str) -> str:
     """Return dest filename when merging a variant into `family_id`."""
-    stem = source.stem
+    stem = _normalize_variant_stem(source.stem)
     suffix = source.suffix
     match = _GLUED_COLOR_SVG_STEM_RE.fullmatch(stem)
     if match:
@@ -493,7 +493,7 @@ def unique_variant_name(img_dir: Path, stem: str, suffix: str = ".svg") -> str:
 
 def variant_dest_name(source: Path, *, family_id: str) -> str:
     """Return destination filename for a variant under `family_id`."""
-    stem = source.stem
+    stem = _normalize_variant_stem(source.stem)
     suffix = source.suffix
     if stem == family_id or stem.startswith(f"{family_id}_"):
         return f"{stem}{suffix}"
@@ -601,6 +601,11 @@ def _is_relative_to(path: Path, parent: Path) -> bool:
     return True
 
 
+def _normalize_variant_stem(stem: str) -> str:
+    """Drop a trailing hyphen after a line-weight token (`_line-16-` → `_line-16`)."""
+    return _LINE_WEIGHT_TRAILING_HYPHEN_RE.sub(r"\1", stem)
+
+
 def _place_vector_file(
     source: Path,
     *,
@@ -679,3 +684,4 @@ def _write_vector_file(source: Path, dest: Path) -> None:
 
 _ICONS_SECTION_RE = re.compile(r"(##\s+Icons\s*\n)(.*?)(?=\n##\s|\Z)", re.DOTALL | re.IGNORECASE)
 _GLUED_COLOR_SVG_STEM_RE = re.compile(r"^.+_(black|gray|grey|white)svg$", re.IGNORECASE)
+_LINE_WEIGHT_TRAILING_HYPHEN_RE = re.compile(r"(line-(?:8|16|32))-+$", re.IGNORECASE)

@@ -1452,8 +1452,19 @@ class VariantsPanel(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         self.header = QLabel("Select an icon to see variants")
         self.header.setWordWrap(True)
-        self.header.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
-        layout.addWidget(self.header)
+        self.header.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+        self.header.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self.header.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.MinimumExpanding)
+
+        self._header_scroll = QScrollArea()
+        self._header_scroll.setWidget(self.header)
+        self._header_scroll.setWidgetResizable(False)
+        self._header_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self._header_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self._header_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self._header_scroll.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
+        layout.addWidget(self._header_scroll)
+        self._sync_header_scroll_height()
 
         self.list = DraggableIconList(icon_size=thumb_size, emit_family_selection=False)
         self.list.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -1464,6 +1475,7 @@ class VariantsPanel(QWidget):
         self._family = None
         self.list.clear()
         self.header.setText("Select an icon to see variants")
+        self._sync_header_scroll_height()
 
     @property
     def current_family(self) -> IconFamily | None:
@@ -1473,6 +1485,7 @@ class VariantsPanel(QWidget):
     def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
         """Keep IconMode cells narrower than the viewport so tiles stay visible."""
         super().resizeEvent(event)
+        self._sync_header_scroll_height()
         viewport_w = self.list.viewport().width()
         if viewport_w <= 0:
             return
@@ -1494,6 +1507,7 @@ class VariantsPanel(QWidget):
         self.list.clear()
         if family is None or repo_root is None:
             self.header.setText("Select an icon to see variants")
+            self._sync_header_scroll_height()
             return
 
         tags = ", ".join(family.tags) if family.tags else "—"
@@ -1501,6 +1515,7 @@ class VariantsPanel(QWidget):
         self.header.setText(
             f"{family.title}\n{family.id}{date_line}\nCategories: {', '.join(family.categories)}\nTags: {tags}",
         )
+        self._sync_header_scroll_height()
         for variant in family.variants:
             path = variant.absolute_path(repo_root, family.folder)
             try:
@@ -1520,6 +1535,17 @@ class VariantsPanel(QWidget):
         if image is None:
             return placeholder_pixmap(size)
         return QPixmap.fromImage(image)
+
+    def _sync_header_scroll_height(self) -> None:
+        """Fit the header scroll area to content, capped so the variants list keeps space."""
+        viewport_w = self._header_scroll.viewport().width()
+        width = viewport_w if viewport_w > 1 else max(self.width() - self._header_scroll.frameWidth() * 2, 1)
+        self.header.setFixedWidth(width)
+        content_h = max(self.header.heightForWidth(width), self.header.sizeHint().height(), 1)
+        self.header.setFixedHeight(content_h)
+        chrome = self._header_scroll.frameWidth() * 2
+        target = min(VARIANT_HEADER_SCROLL_MAX_HEIGHT, content_h + chrome)
+        self._header_scroll.setFixedHeight(max(target, 24))
 ```
 
 </details>
@@ -1546,8 +1572,19 @@ def __init__(self, parent: QWidget | None = None, *, thumb_size: int = VARIANT_T
         layout.setContentsMargins(0, 0, 0, 0)
         self.header = QLabel("Select an icon to see variants")
         self.header.setWordWrap(True)
-        self.header.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
-        layout.addWidget(self.header)
+        self.header.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+        self.header.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self.header.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.MinimumExpanding)
+
+        self._header_scroll = QScrollArea()
+        self._header_scroll.setWidget(self.header)
+        self._header_scroll.setWidgetResizable(False)
+        self._header_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self._header_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self._header_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self._header_scroll.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
+        layout.addWidget(self._header_scroll)
+        self._sync_header_scroll_height()
 
         self.list = DraggableIconList(icon_size=thumb_size, emit_family_selection=False)
         self.list.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -1572,6 +1609,7 @@ def clear_variants(self) -> None:
         self._family = None
         self.list.clear()
         self.header.setText("Select an icon to see variants")
+        self._sync_header_scroll_height()
 ```
 
 </details>
@@ -1608,6 +1646,7 @@ Keep IconMode cells narrower than the viewport so tiles stay visible.
 ```python
 def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
         super().resizeEvent(event)
+        self._sync_header_scroll_height()
         viewport_w = self.list.viewport().width()
         if viewport_w <= 0:
             return
@@ -1657,6 +1696,7 @@ def show_family(self, family: IconFamily | None, repo_root: Path | None) -> None
         self.list.clear()
         if family is None or repo_root is None:
             self.header.setText("Select an icon to see variants")
+            self._sync_header_scroll_height()
             return
 
         tags = ", ".join(family.tags) if family.tags else "—"
@@ -1664,6 +1704,7 @@ def show_family(self, family: IconFamily | None, repo_root: Path | None) -> None
         self.header.setText(
             f"{family.title}\n{family.id}{date_line}\nCategories: {', '.join(family.categories)}\nTags: {tags}",
         )
+        self._sync_header_scroll_height()
         for variant in family.variants:
             path = variant.absolute_path(repo_root, family.folder)
             try:

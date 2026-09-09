@@ -49,8 +49,8 @@ def family_id_from_stem(stem: str) -> str
 Return family ID by stripping variant suffixes from a filename stem.
 
 Removes trailing design index (`_01`), stroke weight (`_line-8` or
-`-line-8`), glued `svg` after a color token (`graysvg`), `improbable`,
-and mono color tokens until none remain.
+`-line-8`, including a stray trailing hyphen), glued `svg` after a color
+token (`graysvg`), `improbable`, and mono color tokens until none remain.
 
 Args:
 

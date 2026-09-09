@@ -14,6 +14,8 @@ def test_family_id_from_stem_strips_color_and_line_variants() -> None:
     assert family_id_from_stem("human__bone_improbable_black_line-8") == "human__bone"
     assert family_id_from_stem("human__bone_improbable_black-line-8") == "human__bone"
     assert family_id_from_stem("human__bone_improbable_white-line-8") == "human__bone"
+    assert family_id_from_stem("it__grid_black_line-16-") == "it__grid"
+    assert family_id_from_stem("it__grid_white_line-16-") == "it__grid"
     assert family_id_from_stem("human__bone_graysvg") == "human__bone"
     assert family_id_from_stem("object__extinguisher_graysvg") == "object__extinguisher"
     assert family_id_from_stem("object__extinguisher_gray") == "object__extinguisher"
@@ -45,4 +47,21 @@ def test_merge_variant_dest_name_renames_graysvg() -> None:
             family_id="human__bone",
         )
         == "human__bone_improbable_black-line-8.svg"
+    )
+
+
+def test_merge_variant_dest_name_strips_trailing_line_hyphen() -> None:
+    assert (
+        merge_variant_dest_name(
+            Path("it__grid_black_line-16-.svg"),
+            family_id="it__grid",
+        )
+        == "it__grid_black_line-16.svg"
+    )
+    assert (
+        merge_variant_dest_name(
+            Path("it__grid_white_line-16-.svg"),
+            family_id="it__grid",
+        )
+        == "it__grid_white_line-16.svg"
     )
