@@ -51,12 +51,17 @@ def test_replace_frontmatter_list_rewrites_inline_and_block() -> None:
     updated = replace_frontmatter_list(inline, "tags", ["garage", _RU_GARAGE])
     assert f"tags:\n  - garage\n  - {_RU_GARAGE}\n" in updated
     assert "# Garage" in updated
+    assert updated.endswith("\n")
+    assert not updated.endswith("\n\n")
+    assert "---\n\n# Garage\n" in updated
 
     block = "---\ncategories:\n  - building\ntags:\n  - old\n---\n\n# Garage\n"
     updated_block = replace_frontmatter_list(block, "tags", ["new"])
     assert "tags:\n  - new\n" in updated_block
     assert "  - old" not in updated_block
     assert "categories:\n  - building\n" in updated_block
+    assert updated_block.endswith("\n")
+    assert not updated_block.endswith("\n\n")
 
 
 def test_update_keywords_files_writes_note_and_catalog(tmp_path: Path) -> None:
@@ -82,6 +87,9 @@ def test_update_keywords_files_writes_note_and_catalog(tmp_path: Path) -> None:
     markdown = md_path.read_text(encoding="utf-8")
     assert "  - garage" in markdown
     assert f"  - {_RU_GARAGE}" in markdown
+    assert markdown.endswith("\n")
+    assert not markdown.endswith("\n\n")
+    assert "---\n\n# Garage\n" in markdown
     catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
     assert catalog["icons"][0]["tags"] == ["garage", _RU_GARAGE, "building"]
 

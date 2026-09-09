@@ -26,7 +26,7 @@ def update_keywords_files(
     tags: list[str],
 ) -> None:
     text = md_path.read_text(encoding="utf-8")
-    new_markdown = replace_frontmatter_list(text, "tags", tags)
+    new_markdown = replace_frontmatter_list(text, "tags", tags).rstrip("\n") + "\n"
 
     catalog_text: str | None = None
     new_catalog_text: str | None = None

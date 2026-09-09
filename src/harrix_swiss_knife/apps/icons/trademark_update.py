@@ -86,7 +86,8 @@ def update_trademark_files(
         body = re.sub(r"\n{3,}", "\n\n", body)
 
     new_frontmatter = "\n".join(frontmatter_lines)
-    new_markdown = f"---\n{new_frontmatter}\n---\n\n{body.lstrip()}\n"
+    body = body.lstrip("\n")
+    new_markdown = f"---\n{new_frontmatter}\n---\n\n{body}".rstrip("\n") + "\n"
 
     catalog_text: str | None = None
     new_catalog_text: str | None = None

@@ -160,6 +160,9 @@ def test_update_icon_note_tags_only_keeps_paths(tmp_path: Path) -> None:
     markdown = (note / "building__garage.md").read_text(encoding="utf-8")
     assert "  - car" in markdown
     assert "img/building__garage_01.svg" in markdown
+    assert "---\n\n# Garage\n" in markdown
+    assert markdown.endswith("\n")
+    assert not markdown.endswith("\n\n")
 
 
 def test_update_icon_note_rejects_existing_destination(tmp_path: Path) -> None:

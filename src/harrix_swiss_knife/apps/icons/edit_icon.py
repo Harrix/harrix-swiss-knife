@@ -229,8 +229,8 @@ def _frontmatter_text(
             lines.append(f"{key}: {'true' if value else 'false'}")
         else:
             lines.append(f"{key}: {value}")
-    lines.extend(["---", ""])
-    return "\n".join(lines)
+    lines.append("---")
+    return "\n".join(lines) + "\n\n"
 
 
 def _note_dir_for_family(family: IconFamily, root: Path) -> Path:
@@ -305,4 +305,4 @@ def _rewrite_note_markdown(
     body = body.lstrip("\n")
     if body and not body.endswith("\n"):
         body += "\n"
-    md_path.write_text(front + body, encoding="utf-8")
+    md_path.write_text((front + body).rstrip("\n") + "\n", encoding="utf-8")
