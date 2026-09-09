@@ -1,17 +1,36 @@
 ---
-description: After adding a tray On* action, refresh config/action_added_at.json
-globs: src/harrix_swiss_knife/actions/**/*.py,src/harrix_swiss_knife/menu_structure.py
+description: New tray On* actions must get an added-at date (Newest sort)
+globs: src/harrix_swiss_knife/actions/**/*.py,src/harrix_swiss_knife/menu_structure.py,config/action_added_at.json
 alwaysApply: false
 ---
 
 # hsk action added-at
 
-When you **add** a new tray menu action (`On*` in `actions/<section>/` and `menu_structure.py`), also refresh creation dates:
+When you **create or register** a new tray menu action (`On*` under `actions/<section>/` and in `menu_structure.py`), you **must** give it a creation date the same session. Do not finish without an entry in [`config/action_added_at.json`](config/action_added_at.json).
+
+## Required step
+
+After the class exists and is wired into `menu_structure.py`, run:
 
 ```text
 hsk dev generate-action-added-at
 ```
 
-This updates [`config/action_added_at.json`](config/action_added_at.json) (needed for **Newest** sorting). Existing stamps are kept; missing classes get a Git first-appearance date, or `now()` if not yet in Git history.
+- Keeps existing stamps.
+- For a new `On*` not yet in Git history, stores the **current local datetime** (`now()`).
+- If Git already has a first appearance, uses that author date.
 
-Do not leave new `On*` classes without an entry in `action_added_at.json`.
+## Manual fallback
+
+If `hsk` is unavailable, add the class name to `config/action_added_at.json` yourself with the current local ISO timestamp, for example:
+
+```json
+"OnExampleAction": "2026-09-09T12:00:00+03:00"
+```
+
+Use seconds precision and a timezone offset. Keep keys sorted alphabetically with the rest of the file.
+
+## Do not
+
+- Leave a new `On*` without a stamp (breaks **Newest** sorting in the main window).
+- Overwrite existing dates unless the user asked for `--force` / a full regenerate.

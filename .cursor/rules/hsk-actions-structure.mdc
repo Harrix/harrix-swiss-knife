@@ -23,7 +23,13 @@ If helpers or classes are used by **more than one** action (and are not package-
 
 ## Added-at date
 
-After registering a new `On*` in `menu_structure.py`, run `hsk dev generate-action-added-at` so [`config/action_added_at.json`](config/action_added_at.json) gets a stamp (Newest sorting). See `.cursor/rules/hsk-action-added-at.mdc`.
+When you **create** a new `On*` and register it in `menu_structure.py`, set its creation date **in the same session**:
+
+```text
+hsk dev generate-action-added-at
+```
+
+That writes [`config/action_added_at.json`](config/action_added_at.json) (needed for **Newest** sorting). Existing stamps stay; new classes get a Git first-appearance date, or **today’s local `now()`** if not in Git yet. See `.cursor/rules/hsk-action-added-at.mdc`.
 
 ## Example
 
