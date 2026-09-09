@@ -9,14 +9,19 @@ import harrix_pylib as h
 import pytest
 
 from harrix_swiss_knife.config_model import (
+    MAIN_WINDOW_SORT_MODE_DEFAULT,
+    MAIN_WINDOW_SORT_MODE_KEY,
+    MAIN_WINDOW_SORT_MODE_NEWEST,
     SHOW_MAIN_WINDOW_ON_STARTUP_KEY,
     UI_FONT_SCALE_DEFAULT,
     UI_FONT_SCALE_KEY,
     clamp_ui_font_scale,
+    get_main_window_sort_mode,
     get_show_main_window_on_startup,
     get_ui_font_scale,
     load_app_config,
     restart_required_config_keys,
+    set_main_window_sort_mode,
     set_show_main_window_on_startup,
     validate_app_config,
 )
@@ -109,3 +114,25 @@ def test_show_main_window_on_startup_defaults_and_writes(tmp_path: Path) -> None
     written = json.loads(path.read_text(encoding="utf-8"))
     assert written[SHOW_MAIN_WINDOW_ON_STARTUP_KEY] is True
     assert written["editor-notes"] == "code"
+
+
+def test_main_window_sort_mode_temp_config(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+    config_path = config_dir / "config.json"
+    temp_path = config_dir / "config-temp.json"
+    config_path.write_text(json.dumps({"editor-notes": "code", MAIN_WINDOW_SORT_MODE_KEY: "newest"}), encoding="utf-8")
+    temp_path.write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(h.dev, "get_project_root", lambda: tmp_path)
+
+    assert get_main_window_sort_mode({}) == MAIN_WINDOW_SORT_MODE_DEFAULT
+    assert get_main_window_sort_mode() == MAIN_WINDOW_SORT_MODE_NEWEST
+    migrated_temp = json.loads(temp_path.read_text(encoding="utf-8"))
+    assert migrated_temp[MAIN_WINDOW_SORT_MODE_KEY] == MAIN_WINDOW_SORT_MODE_NEWEST
+    migrated_config = json.loads(config_path.read_text(encoding="utf-8"))
+    assert MAIN_WINDOW_SORT_MODE_KEY not in migrated_config
+
+    set_main_window_sort_mode(mode=MAIN_WINDOW_SORT_MODE_DEFAULT)
+    written_temp = json.loads(temp_path.read_text(encoding="utf-8"))
+    assert written_temp[MAIN_WINDOW_SORT_MODE_KEY] == MAIN_WINDOW_SORT_MODE_DEFAULT
+    assert get_main_window_sort_mode() == MAIN_WINDOW_SORT_MODE_DEFAULT

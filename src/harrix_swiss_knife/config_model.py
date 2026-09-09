@@ -8,7 +8,7 @@ from typing import Any, NotRequired, TypedDict
 
 import harrix_pylib as h
 
-from harrix_swiss_knife.paths import get_config_path_str
+from harrix_swiss_knife.paths import get_config_path_str, get_temp_config_path
 
 SHOW_MAIN_WINDOW_ON_STARTUP_DEFAULT = True
 SHOW_MAIN_WINDOW_ON_STARTUP_KEY = "show_main_window_on_startup"
@@ -107,7 +107,6 @@ class AppConfig(TypedDict, total=False):
     personal_data: PersonalDataSettings
     prompts: dict[str, str]
     show_main_window_on_startup: bool
-    main_window_sort_mode: NotRequired[str]
     ui_font_scale: NotRequired[float]
     data_for_hsk_root: NotRequired[str]
     data_for_hsk_notes_folders: NotRequired[list[str]]
@@ -197,17 +196,22 @@ def clamp_ui_font_scale(value: float) -> float:
     return min(UI_FONT_SCALE_MAX, max(UI_FONT_SCALE_MIN, value))
 
 
-def get_main_window_sort_mode(config: dict[str, Any] | None = None) -> str:
-    """Return commands-window sort mode (`menu` or `newest`)."""
-    data = config
+def get_main_window_sort_mode(temp_config: dict[str, Any] | None = None) -> str:
+    """Return commands-window sort mode (`menu` or `newest`) from `config-temp.json`."""
+    data = temp_config
     if data is None:
         try:
-            data = load_app_config()
-        except (OSError, TypeError, ValueError):
-            return MAIN_WINDOW_SORT_MODE_DEFAULT
-    value = data.get(MAIN_WINDOW_SORT_MODE_KEY, MAIN_WINDOW_SORT_MODE_DEFAULT)
+            loaded = h.dev.config_load(get_config_path_str(), is_temp=True)
+            data = loaded if isinstance(loaded, dict) else {}
+        except (FileNotFoundError, OSError, TypeError, ValueError):
+            data = {}
+    value = data.get(MAIN_WINDOW_SORT_MODE_KEY)
     if isinstance(value, str) and value in MAIN_WINDOW_SORT_MODES:
         return value
+    if temp_config is None:
+        migrated = _migrate_main_window_sort_mode_from_config()
+        if migrated is not None:
+            return migrated
     return MAIN_WINDOW_SORT_MODE_DEFAULT
 
 
@@ -268,19 +272,19 @@ def restart_required_config_keys(before: dict[str, Any], after: dict[str, Any]) 
     return [key for key in sorted(RESTART_REQUIRED_CONFIG_KEYS) if before.get(key) != after.get(key)]
 
 
-def set_main_window_sort_mode(*, mode: str, config_path: str | None = None) -> None:
-    """Write `main_window_sort_mode` to `config.json`."""
+def set_main_window_sort_mode(*, mode: str) -> None:
+    """Write `main_window_sort_mode` to `config-temp.json`."""
     if mode not in MAIN_WINDOW_SORT_MODES:
         msg = f"Invalid main_window_sort_mode: {mode!r}"
         raise ValueError(msg)
-    path = Path(config_path or get_config_path_str())
-    with path.open(encoding="utf-8") as handle:
-        data = json.load(handle)
-    if not isinstance(data, dict):
-        msg = f"Config root must be a JSON object: {path}"
-        raise TypeError(msg)
-    data[MAIN_WINDOW_SORT_MODE_KEY] = mode
-    path.write_text(h.dev.dumps_pretty_json(data), encoding="utf-8")
+    _ensure_temp_config()
+    h.dev.config_update_value(
+        MAIN_WINDOW_SORT_MODE_KEY,
+        mode,
+        get_config_path_str(),
+        is_temp=True,
+    )
+    _remove_main_window_sort_mode_from_config()
 
 
 def set_show_main_window_on_startup(*, enabled: bool, config_path: str | None = None) -> None:
@@ -350,6 +354,63 @@ def validate_app_config(config: dict[str, Any]) -> list[str]:
             warnings.append(f"Config key '{key}' still has a placeholder value.")
 
     return warnings
+
+
+def _ensure_temp_config() -> None:
+    temp_config_path = get_temp_config_path()
+    temp_config_path.parent.mkdir(parents=True, exist_ok=True)
+    if not temp_config_path.exists() or temp_config_path.stat().st_size == 0:
+        temp_config_path.write_text("{}", encoding="utf-8")
+
+
+def _migrate_main_window_sort_mode_from_config() -> str | None:
+    """Move leftover `main_window_sort_mode` from `config.json` into temp config."""
+    path = Path(get_config_path_str())
+    if not path.is_file():
+        return None
+    try:
+        with path.open(encoding="utf-8") as handle:
+            data = json.load(handle)
+    except (OSError, json.JSONDecodeError, TypeError, ValueError):
+        return None
+    if not isinstance(data, dict):
+        return None
+    raw = data.get(MAIN_WINDOW_SORT_MODE_KEY)
+    if not isinstance(raw, str) or raw not in MAIN_WINDOW_SORT_MODES:
+        if MAIN_WINDOW_SORT_MODE_KEY in data:
+            _remove_main_window_sort_mode_from_config()
+        return None
+    try:
+        _ensure_temp_config()
+        h.dev.config_update_value(
+            MAIN_WINDOW_SORT_MODE_KEY,
+            raw,
+            get_config_path_str(),
+            is_temp=True,
+        )
+    except (FileNotFoundError, OSError, TypeError, ValueError):
+        return raw
+    _remove_main_window_sort_mode_from_config()
+    return raw
+
+
+def _remove_main_window_sort_mode_from_config() -> None:
+    """Drop leftover `main_window_sort_mode` from `config.json` if present."""
+    path = Path(get_config_path_str())
+    if not path.is_file():
+        return
+    try:
+        with path.open(encoding="utf-8") as handle:
+            data = json.load(handle)
+    except (OSError, json.JSONDecodeError, TypeError, ValueError):
+        return
+    if not isinstance(data, dict) or MAIN_WINDOW_SORT_MODE_KEY not in data:
+        return
+    del data[MAIN_WINDOW_SORT_MODE_KEY]
+    try:
+        path.write_text(h.dev.dumps_pretty_json(data), encoding="utf-8")
+    except OSError:
+        return
 
 
 # Keys that should exist for a usable personal setup (soft warnings, not hard fail).

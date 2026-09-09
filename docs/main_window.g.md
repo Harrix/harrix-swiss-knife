@@ -469,7 +469,7 @@ class MainWindow(QMainWindow):
         except (OSError, TypeError, ValueError) as exc:
             self._sort_mode = previous
             self._sync_sort_combo()
-            message_box.warning(self, "Settings", f"Could not save config.json:\n{exc}")
+            message_box.warning(self, "Settings", f"Could not save config-temp.json:\n{exc}")
             return
         self._apply_catalog_view()
 

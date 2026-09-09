@@ -144,7 +144,6 @@ class AppConfig(TypedDict, total=False):
     personal_data: PersonalDataSettings
     prompts: dict[str, str]
     show_main_window_on_startup: bool
-    main_window_sort_mode: NotRequired[str]
     ui_font_scale: NotRequired[float]
     data_for_hsk_root: NotRequired[str]
     data_for_hsk_notes_folders: NotRequired[list[str]]
@@ -356,25 +355,30 @@ def clamp_ui_font_scale(value: float) -> float:
 ## 🔧 Function `get_main_window_sort_mode`
 
 ```python
-def get_main_window_sort_mode(config: dict[str, Any] | None = None) -> str
+def get_main_window_sort_mode(temp_config: dict[str, Any] | None = None) -> str
 ```
 
-Return commands-window sort mode (`menu` or `newest`).
+Return commands-window sort mode (`menu` or `newest`) from `config-temp.json`.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def get_main_window_sort_mode(config: dict[str, Any] | None = None) -> str:
-    data = config
+def get_main_window_sort_mode(temp_config: dict[str, Any] | None = None) -> str:
+    data = temp_config
     if data is None:
         try:
-            data = load_app_config()
-        except (OSError, TypeError, ValueError):
-            return MAIN_WINDOW_SORT_MODE_DEFAULT
-    value = data.get(MAIN_WINDOW_SORT_MODE_KEY, MAIN_WINDOW_SORT_MODE_DEFAULT)
+            loaded = h.dev.config_load(get_config_path_str(), is_temp=True)
+            data = loaded if isinstance(loaded, dict) else {}
+        except (FileNotFoundError, OSError, TypeError, ValueError):
+            data = {}
+    value = data.get(MAIN_WINDOW_SORT_MODE_KEY)
     if isinstance(value, str) and value in MAIN_WINDOW_SORT_MODES:
         return value
+    if temp_config is None:
+        migrated = _migrate_main_window_sort_mode_from_config()
+        if migrated is not None:
+            return migrated
     return MAIN_WINDOW_SORT_MODE_DEFAULT
 ```
 
@@ -490,27 +494,27 @@ def restart_required_config_keys(before: dict[str, Any], after: dict[str, Any]) 
 ## 🔧 Function `set_main_window_sort_mode`
 
 ```python
-def set_main_window_sort_mode(*, mode: str, config_path: str | None = None) -> None
+def set_main_window_sort_mode(*, mode: str) -> None
 ```
 
-Write `main_window_sort_mode` to `config.json`.
+Write `main_window_sort_mode` to `config-temp.json`.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def set_main_window_sort_mode(*, mode: str, config_path: str | None = None) -> None:
+def set_main_window_sort_mode(*, mode: str) -> None:
     if mode not in MAIN_WINDOW_SORT_MODES:
         msg = f"Invalid main_window_sort_mode: {mode!r}"
         raise ValueError(msg)
-    path = Path(config_path or get_config_path_str())
-    with path.open(encoding="utf-8") as handle:
-        data = json.load(handle)
-    if not isinstance(data, dict):
-        msg = f"Config root must be a JSON object: {path}"
-        raise TypeError(msg)
-    data[MAIN_WINDOW_SORT_MODE_KEY] = mode
-    path.write_text(h.dev.dumps_pretty_json(data), encoding="utf-8")
+    _ensure_temp_config()
+    h.dev.config_update_value(
+        MAIN_WINDOW_SORT_MODE_KEY,
+        mode,
+        get_config_path_str(),
+        is_temp=True,
+    )
+    _remove_main_window_sort_mode_from_config()
 ```
 
 </details>
