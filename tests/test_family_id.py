@@ -16,6 +16,9 @@ def test_family_id_from_stem_strips_color_and_line_variants() -> None:
     assert family_id_from_stem("human__bone_improbable_white-line-8") == "human__bone"
     assert family_id_from_stem("it__grid_black_line-16-") == "it__grid"
     assert family_id_from_stem("it__grid_white_line-16-") == "it__grid"
+    assert family_id_from_stem("it__laptop-hp-side-view_hite") == "it__laptop-hp-side-view"
+    assert family_id_from_stem("nature__mushroom_gray_white-32") == "nature__mushroom"
+    assert family_id_from_stem("object__coin_gray_0") == "object__coin"
     assert family_id_from_stem("human__bone_graysvg") == "human__bone"
     assert family_id_from_stem("object__extinguisher_graysvg") == "object__extinguisher"
     assert family_id_from_stem("object__extinguisher_gray") == "object__extinguisher"
@@ -64,4 +67,35 @@ def test_merge_variant_dest_name_strips_trailing_line_hyphen() -> None:
             family_id="it__grid",
         )
         == "it__grid_white_line-16.svg"
+    )
+
+
+def test_merge_variant_dest_name_repairs_garbled_color_stems() -> None:
+    assert (
+        merge_variant_dest_name(
+            Path("it__laptop-hp-side-view_hite.svg"),
+            family_id="it__laptop-hp-side-view",
+        )
+        == "it__laptop-hp-side-view_white.svg"
+    )
+    assert (
+        merge_variant_dest_name(
+            Path("nature__mushroom_gray_white-32.svg"),
+            family_id="nature__mushroom",
+        )
+        == "nature__mushroom_white_line-32.svg"
+    )
+    assert (
+        merge_variant_dest_name(
+            Path("object__coin_gray_0.svg"),
+            family_id="object__coin",
+        )
+        == "object__coin_gray.svg"
+    )
+    assert (
+        merge_variant_dest_name(
+            Path("it__grid_whitek_line-32.svg"),
+            family_id="it__grid",
+        )
+        == "it__grid_white_line-32.svg"
     )

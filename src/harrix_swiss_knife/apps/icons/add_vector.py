@@ -602,8 +602,20 @@ def _is_relative_to(path: Path, parent: Path) -> bool:
 
 
 def _normalize_variant_stem(stem: str) -> str:
-    """Drop a trailing hyphen after a line-weight token (`_line-16-` → `_line-16`)."""
-    return _LINE_WEIGHT_TRAILING_HYPHEN_RE.sub(r"\1", stem)
+    """Repair garbled variant stems before choosing a destination filename.
+
+    Drops a trailing hyphen after a line-weight token (`_line-16-` → `_line-16`),
+    maps `_hite` / `_whitek` to `_white`, inserts a missing `line-` token
+    (`_white-32` → `_white_line-32`), drops a leftover extra color before that
+    token (`_gray_white_line-32` → `_white_line-32`), and treats `{color}_0` as
+    the unnumbered color variant.
+
+    """
+    name = _LINE_WEIGHT_TRAILING_HYPHEN_RE.sub(r"\1", stem)
+    name = _GARBLED_WHITE_RE.sub("_white", name)
+    name = _MISSING_LINE_TOKEN_RE.sub(r"_\1_line-\2", name)
+    name = _DOUBLE_COLOR_LINE_RE.sub(r"_\1_line-\2", name)
+    return _COLOR_ZERO_INDEX_RE.sub(r"_\1", name)
 
 
 def _place_vector_file(
@@ -685,3 +697,10 @@ def _write_vector_file(source: Path, dest: Path) -> None:
 _ICONS_SECTION_RE = re.compile(r"(##\s+Icons\s*\n)(.*?)(?=\n##\s|\Z)", re.DOTALL | re.IGNORECASE)
 _GLUED_COLOR_SVG_STEM_RE = re.compile(r"^.+_(black|gray|grey|white)svg$", re.IGNORECASE)
 _LINE_WEIGHT_TRAILING_HYPHEN_RE = re.compile(r"(line-(?:8|16|32))-+$", re.IGNORECASE)
+_GARBLED_WHITE_RE = re.compile(r"_(?:hite|whitek)(?=_|$)", re.IGNORECASE)
+_MISSING_LINE_TOKEN_RE = re.compile(r"_(black|gray|grey|white)-(8|16|32)$", re.IGNORECASE)
+_DOUBLE_COLOR_LINE_RE = re.compile(
+    r"_(?:black|gray|grey|white)_(black|gray|grey|white)_line-(8|16|32)$",
+    re.IGNORECASE,
+)
+_COLOR_ZERO_INDEX_RE = re.compile(r"_(black|gray|grey|white)_0$", re.IGNORECASE)
