@@ -222,6 +222,8 @@ class DraggableIconList(QListWidget):
     preview_requested = Signal(str)
     batch_keywords_ai_requested = Signal(object)  # list[tuple[IconFamily, str]]
     batch_favorites_requested = Signal(object)  # (targets, add)
+    copy_current_folder_path_requested = Signal()
+    reveal_current_folder_requested = Signal()
     viewport_changed = Signal()
 
     def __init__(
@@ -527,6 +529,17 @@ class DraggableIconList(QListWidget):
         elif chosen is favorite_action:
             self.batch_favorites_requested.emit((targets, not all_favorites))
 
+    def _exec_current_folder_context_menu(self, pos: QPoint) -> None:
+        menu = QMenu(self)
+        copy_folder_path_action = menu.addAction("📋 Copy path to current folder")
+        reveal_folder_action = menu.addAction("📂 Reveal current folder in File Explorer")
+        apply_leading_chrome_icons(menu)
+        chosen = menu.exec_(self.mapToGlobal(pos))
+        if chosen is copy_folder_path_action:
+            self.copy_current_folder_path_requested.emit()
+        elif chosen is reveal_folder_action:
+            self.reveal_current_folder_requested.emit()
+
     def _grid_size_for(self, icon_size: int) -> QSize:
         label_h = LABEL_EXTRA_HEIGHT if self._dual_line_labels else 48
         return QSize(icon_size + 24, icon_size + label_h)
@@ -534,9 +547,11 @@ class DraggableIconList(QListWidget):
     def _on_context_menu(self, pos: QPoint) -> None:
         item = self.itemAt(pos)
         if item is None:
+            self._exec_current_folder_context_menu(pos)
             return
         family = item.data(Qt.ItemDataRole.UserRole)
         if family is None:
+            self._exec_current_folder_context_menu(pos)
             return
 
         path = item.data(ROLE_SVG_PATH)
@@ -590,6 +605,10 @@ class DraggableIconList(QListWidget):
             open_source_action = menu.addAction("🎨 Open source")
             menu.addSeparator()
 
+        copy_folder_path_action = menu.addAction("📋 Copy path to current folder")
+        reveal_folder_action = menu.addAction("📂 Reveal current folder in File Explorer")
+        menu.addSeparator()
+
         license_name, license_url = family_license_info(family, self._repo_root)
         license_action = None
         if license_name:
@@ -629,6 +648,10 @@ class DraggableIconList(QListWidget):
             self.reveal_source_requested.emit(family, path)
         elif has_path and chosen is open_source_action:
             self.open_source_requested.emit(family, path)
+        elif chosen is copy_folder_path_action:
+            self.copy_current_folder_path_requested.emit()
+        elif chosen is reveal_folder_action:
+            self.reveal_current_folder_requested.emit()
         elif chosen is delete_action:
             self.delete_requested.emit(family)
 

@@ -602,12 +602,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.folder_combo = QComboBox()
         self.folder_combo.setMinimumWidth(220)
         self.folder_combo.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        self.folder_combo.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.folder_combo.customContextMenuRequested.connect(self._on_folder_combo_context_menu)
         self.folder_combo.currentIndexChanged.connect(self._on_folder_combo_changed)
-        folder_combo_view = self.folder_combo.view()
-        folder_combo_view.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        folder_combo_view.customContextMenuRequested.connect(self._on_folder_combo_view_context_menu)
         toolbar.addWidget(self.folder_combo, stretch=1)
 
         toolbar.addWidget(QLabel("Icon size"))
@@ -938,14 +933,6 @@ class MainWindow(QMainWindow, AppWindowMixin):
         example_ids = {family.id for family, _path in self._view_mode_examples.values()}
         if example_ids & families:
             self._refresh_variant_view_icons()
-
-    def _folder_combo_path_at(self, index: int) -> Path | None:
-        if index < 0:
-            return None
-        raw = self.folder_combo.itemData(index)
-        if not raw:
-            return None
-        return Path(str(raw))
 
     @staticmethod
     def _folder_display_name(path: Path) -> str:
@@ -1607,16 +1594,6 @@ class MainWindow(QMainWindow, AppWindowMixin):
                     return
         self._open_folder(path)
 
-    def _on_folder_combo_context_menu(self, pos: QPoint) -> None:
-        path = self._folder_combo_path_at(self.folder_combo.currentIndex())
-        self._popup_folder_path_menu(self.folder_combo.mapToGlobal(pos), path)
-
-    def _on_folder_combo_view_context_menu(self, pos: QPoint) -> None:
-        view = self.folder_combo.view()
-        index = view.indexAt(pos)
-        path = self._folder_combo_path_at(index.row() if index.isValid() else -1)
-        self._popup_folder_path_menu(view.mapToGlobal(pos), path)
-
     def _on_folder_item_clicked(self, item: QTreeWidgetItem, _column: int) -> None:
         self._activate_folder(str(item.data(0, Qt.ItemDataRole.UserRole) or ""))
 
@@ -2077,19 +2054,6 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.folder_tree.blockSignals(False)  # noqa: FBT003
         self.folder_tree.setUpdatesEnabled(True)
         self.folder_tree.viewport().update()
-
-    def _popup_folder_path_menu(self, global_pos: QPoint, path: Path | None) -> None:
-        if path is None:
-            return
-        menu = QMenu(self)
-        copy_action = menu.addAction("📋 Copy path")
-        reveal_action = add_reveal_in_explorer_action(menu)
-        apply_leading_chrome_icons(menu)
-        chosen = menu.exec_(global_pos)
-        if chosen is copy_action:
-            self._on_copy_path(str(path))
-        elif chosen is reveal_action:
-            self._on_reveal_in_explorer(str(path))
 
     def _preview_pixmap_for_path(self, family: IconFamily, path: Path) -> QPixmap | None:
         """Return a cached or freshly rendered thumbnail for `path`."""
@@ -2671,6 +2635,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
         icon_list.copy_contents_requested.connect(self._on_copy_contents)
         icon_list.copy_filename_requested.connect(self._on_copy_filename)
         icon_list.copy_path_requested.connect(self._on_copy_path)
+        icon_list.copy_current_folder_path_requested.connect(self._on_copy_current_folder_path)
+        icon_list.reveal_current_folder_requested.connect(self._on_reveal_current_folder)
         icon_list.open_note_requested.connect(self._on_open_note_in_editor)
         icon_list.edit_keywords_requested.connect(self._on_edit_keywords)
         icon_list.batch_keywords_ai_requested.connect(self._on_batch_keywords_ai)
