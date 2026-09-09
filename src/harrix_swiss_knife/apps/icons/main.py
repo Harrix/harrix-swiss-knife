@@ -610,7 +610,6 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.size_slider.setRange(ICON_SIZE_MIN, ICON_SIZE_MAX)
         self.size_slider.setValue(self._icon_size)
         self.size_slider.setMaximumWidth(280)
-        self.size_slider.setFixedHeight(24)
         self.size_slider.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         self.size_slider.valueChanged.connect(self._on_icon_size_changed)
         toolbar.addWidget(self.size_slider)
@@ -640,6 +639,17 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.refresh_btn = make_lucide_push_button("Refresh catalog", "refresh-cw")
         self.refresh_btn.clicked.connect(self._on_refresh_catalog)
         toolbar.addWidget(self.refresh_btn)
+
+        # View combo is taller because of preview icons; match the rest of the row to it.
+        toolbar_h = max(self.variant_view_combo.sizeHint().height(), VIEW_COMBO_ICON_SIZE + 8)
+        for widget in (
+            self.folder_combo,
+            self.size_slider,
+            self.variant_view_combo,
+            self.search_edit,
+            self.refresh_btn,
+        ):
+            widget.setFixedHeight(toolbar_h)
         root.addLayout(toolbar)
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
