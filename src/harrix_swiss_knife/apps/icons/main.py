@@ -598,27 +598,29 @@ class MainWindow(QMainWindow, AppWindowMixin):
         root = QVBoxLayout(central)
 
         toolbar = QHBoxLayout()
-        toolbar.addWidget(QLabel("Folder"))
+        toolbar.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+        toolbar.addWidget(QLabel("Folder"), alignment=Qt.AlignmentFlag.AlignVCenter)
         self.folder_combo = QComboBox()
         self.folder_combo.setMinimumWidth(220)
         self.folder_combo.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.folder_combo.currentIndexChanged.connect(self._on_folder_combo_changed)
         toolbar.addWidget(self.folder_combo, stretch=1)
 
-        toolbar.addWidget(QLabel("Icon size"))
+        toolbar.addWidget(QLabel("Icon size"), alignment=Qt.AlignmentFlag.AlignVCenter)
         self.size_slider = QSlider(Qt.Orientation.Horizontal)
         self.size_slider.setRange(ICON_SIZE_MIN, ICON_SIZE_MAX)
         self.size_slider.setValue(self._icon_size)
         self.size_slider.setMaximumWidth(280)
+        self.size_slider.setFixedHeight(22)
         self.size_slider.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         self.size_slider.valueChanged.connect(self._on_icon_size_changed)
-        toolbar.addWidget(self.size_slider)
+        toolbar.addWidget(self.size_slider, alignment=Qt.AlignmentFlag.AlignVCenter)
         self.size_value_label = QLabel(str(self._icon_size))
         self.size_value_label.setMinimumWidth(28)
-        toolbar.addWidget(self.size_value_label)
+        toolbar.addWidget(self.size_value_label, alignment=Qt.AlignmentFlag.AlignVCenter)
 
         self._variant_view_label = QLabel("View")
-        toolbar.addWidget(self._variant_view_label)
+        toolbar.addWidget(self._variant_view_label, alignment=Qt.AlignmentFlag.AlignVCenter)
         self.variant_view_combo = QComboBox()
         self.variant_view_combo.setMinimumWidth(260)
         self.variant_view_combo.setIconSize(QSize(VIEW_COMBO_ICON_SIZE, VIEW_COMBO_ICON_SIZE))
@@ -641,10 +643,10 @@ class MainWindow(QMainWindow, AppWindowMixin):
         toolbar.addWidget(self.refresh_btn)
 
         # View combo is taller because of preview icons; match the rest of the row to it.
+        # Keep the slider at a compact height and vertically centered (stretching misaligns the groove).
         toolbar_h = max(self.variant_view_combo.sizeHint().height(), VIEW_COMBO_ICON_SIZE + 8)
         for widget in (
             self.folder_combo,
-            self.size_slider,
             self.variant_view_combo,
             self.search_edit,
             self.refresh_btn,
