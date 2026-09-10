@@ -597,8 +597,10 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.setCentralWidget(central)
         root = QVBoxLayout(central)
 
-        toolbar = QHBoxLayout()
-        toolbar.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+        toolbar_widget = QWidget()
+        toolbar_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        toolbar = QHBoxLayout(toolbar_widget)
+        toolbar.setContentsMargins(0, 0, 0, 0)
         toolbar.addWidget(QLabel("Folder"), alignment=Qt.AlignmentFlag.AlignVCenter)
         self.folder_combo = QComboBox()
         self.folder_combo.setMinimumWidth(220)
@@ -652,7 +654,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
             self.refresh_btn,
         ):
             widget.setFixedHeight(toolbar_h)
-        root.addLayout(toolbar)
+        root.addWidget(toolbar_widget, stretch=0)
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
         left_splitter = QSplitter(Qt.Orientation.Vertical)
@@ -715,7 +717,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         splitter.setStretchFactor(1, 1)
         splitter.setStretchFactor(2, 0)
         splitter.setSizes([200, 900, 320])
-        root.addWidget(splitter)
+        root.addWidget(splitter, stretch=1)
 
         status = QStatusBar()
         self.setStatusBar(status)
