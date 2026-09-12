@@ -193,7 +193,7 @@ class ExerciseSelectionDialog(QDialog):
         footer.addWidget(self._selection_count_label, stretch=1)
         self._clear_button: QPushButton | None = None
         if multi_select:
-            self._clear_button = make_lucide_push_button("Clear selection", "x")
+            self._clear_button = make_lucide_push_button("Clear selection", "broom")
             self._clear_button.clicked.connect(self._clear_multi_selection)
             footer.addWidget(self._clear_button)
             button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Cancel, self)

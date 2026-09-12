@@ -132,7 +132,7 @@ class FileDropWidget(QWidget):
         self.browse_button = make_lucide_push_button("Select File", "folder")
         self.browse_button.clicked.connect(self._browse_file)
         button_layout.addWidget(self.browse_button)
-        self.clear_button = make_lucide_push_button("Clear", DELETE_BUTTON_ICON)
+        self.clear_button = make_lucide_push_button("Clear", CLEAR_BUTTON_ICON)
         self.clear_button.clicked.connect(self._clear_file)
         button_layout.addWidget(self.clear_button)
 
@@ -315,7 +315,7 @@ class FilesListWidget(QWidget):
         self.remove_button = make_lucide_push_button("Remove Selected", "minus")
         self.remove_button.clicked.connect(self._remove_selected)
         button_layout.addWidget(self.remove_button)
-        self.clear_button = make_lucide_push_button("Clear All", DELETE_BUTTON_ICON)
+        self.clear_button = make_lucide_push_button("Clear All", CLEAR_BUTTON_ICON)
         self.clear_button.clicked.connect(self._clear_all)
         button_layout.addWidget(self.clear_button)
 

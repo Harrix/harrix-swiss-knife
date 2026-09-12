@@ -193,10 +193,12 @@ from harrix_swiss_knife.integrations.bothub import (
 )
 from harrix_swiss_knife.paths import get_config_path_str
 from harrix_swiss_knife.qt_lucide_icon import (
+    CLEAR_BUTTON_ICON,
     CLOSE_BUTTON_ICON,
     COPY_BUTTON_ICON,
     apply_leading_chrome_buttons,
     apply_leading_chrome_icons,
+    apply_lucide_button_icon,
     apply_lucide_dialog_buttons,
     create_lucide_icon,
     make_lucide_push_button,
@@ -5373,13 +5375,16 @@ class MainWindow(
             "QGroupBox#groupBox_filter { border: none; margin-top: 0px; padding-top: 0px; }"
             "QGroupBox#groupBox_filter::title { height: 0px; width: 0px; padding: 0px; margin: 0px; }"
         )
-        self.pushButton_clear_filter.setText("🧹")
         self.pushButton_clear_filter.setToolTip("Clear filter")
+        apply_lucide_button_icon(self.pushButton_clear_filter, CLEAR_BUTTON_ICON)
+        self.pushButton_clear_filter.setText("")
         self.pushButton_clear_filter.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         clear_h = max(self.pushButton_clear_filter.sizeHint().height(), 24)
         self.pushButton_clear_filter.setFixedSize(clear_h, clear_h)
         self._update_clear_filter_button_visibility()
-        self.pushButton_description_clear.setText("🧹")
+        apply_lucide_button_icon(self.pushButton_description_clear, CLEAR_BUTTON_ICON)
+        self.pushButton_description_clear.setText("")
+        self.pushButton_description_clear.setToolTip("Clear description")
         # Multi-line natural currency summaries (Quick Summary / today)
         self.label_total_income.setWordWrap(True)
         self.label_total_expenses.setWordWrap(True)

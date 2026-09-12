@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import install_url_drop_handlers
 from harrix_swiss_knife.qt_lucide_icon import (
-    DELETE_BUTTON_ICON,
+    CLEAR_BUTTON_ICON,
     make_lucide_push_button,
 )
 
@@ -124,7 +124,7 @@ class FileDropWidget(QWidget):
         self.browse_button = make_lucide_push_button("Select File", "folder")
         self.browse_button.clicked.connect(self._browse_file)
         button_layout.addWidget(self.browse_button)
-        self.clear_button = make_lucide_push_button("Clear", DELETE_BUTTON_ICON)
+        self.clear_button = make_lucide_push_button("Clear", CLEAR_BUTTON_ICON)
         self.clear_button.clicked.connect(self._clear_file)
         button_layout.addWidget(self.clear_button)
 
@@ -196,7 +196,7 @@ class FilesListWidget(QWidget):
         self.remove_button = make_lucide_push_button("Remove Selected", "minus")
         self.remove_button.clicked.connect(self._remove_selected)
         button_layout.addWidget(self.remove_button)
-        self.clear_button = make_lucide_push_button("Clear All", DELETE_BUTTON_ICON)
+        self.clear_button = make_lucide_push_button("Clear All", CLEAR_BUTTON_ICON)
         self.clear_button.clicked.connect(self._clear_all)
         button_layout.addWidget(self.clear_button)
 

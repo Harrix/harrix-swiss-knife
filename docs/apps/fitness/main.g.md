@@ -8107,8 +8107,9 @@ class MainWindow(
             "QGroupBox#groupBox_filter { border: none; margin-top: 0px; padding-top: 0px; }"
             "QGroupBox#groupBox_filter::title { height: 0px; width: 0px; padding: 0px; margin: 0px; }"
         )
-        self.pushButton_clear_filter.setText("🧹")
         self.pushButton_clear_filter.setToolTip("Clear filter")
+        apply_lucide_button_icon(self.pushButton_clear_filter, CLEAR_BUTTON_ICON)
+        self.pushButton_clear_filter.setText("")
         self.pushButton_clear_filter.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         clear_h = max(self.pushButton_clear_filter.sizeHint().height(), 24)
         self.pushButton_clear_filter.setFixedSize(clear_h, clear_h)

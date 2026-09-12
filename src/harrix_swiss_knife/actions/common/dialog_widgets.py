@@ -30,7 +30,7 @@ from harrix_swiss_knife.actions.common.dialog_geometry import (
     list_content_height,
 )
 from harrix_swiss_knife.qt_app_font import APP_FONT_FAMILY
-from harrix_swiss_knife.qt_lucide_icon import DELETE_BUTTON_ICON, apply_lucide_dialog_buttons, make_lucide_push_button
+from harrix_swiss_knife.qt_lucide_icon import CLEAR_BUTTON_ICON, apply_lucide_dialog_buttons, make_lucide_push_button
 
 _FILES_LIST_MAX_HEIGHT = 100
 _DROP_AREA_MIN_HEIGHT = 150
@@ -271,7 +271,7 @@ class DragDropFileDialog(QDialog):
         self.select_files_btn.clicked.connect(self.select_files)
         buttons_layout.addWidget(self.select_files_btn)
 
-        self.clear_btn = make_lucide_push_button("Clear", DELETE_BUTTON_ICON)
+        self.clear_btn = make_lucide_push_button("Clear", CLEAR_BUTTON_ICON)
         self.clear_btn.clicked.connect(self.clear_files)
         buttons_layout.addWidget(self.clear_btn)
 

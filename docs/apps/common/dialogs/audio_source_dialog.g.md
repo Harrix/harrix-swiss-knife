@@ -96,7 +96,7 @@ class AudioFileDropWidget(QWidget):
         browse_button = make_lucide_push_button("Select Audio File", "folder")
         browse_button.clicked.connect(self._browse_file)
         button_layout.addWidget(browse_button)
-        clear_button = make_lucide_push_button("Clear", "trash")
+        clear_button = make_lucide_push_button("Clear", "broom")
         clear_button.clicked.connect(self.clear_file)
         button_layout.addWidget(clear_button)
 

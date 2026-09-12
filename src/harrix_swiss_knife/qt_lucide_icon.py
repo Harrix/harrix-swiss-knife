@@ -50,6 +50,7 @@ CANCEL_BUTTON_ICON = "x"
 SAVE_BUTTON_ICON = "save"
 CLOSE_BUTTON_ICON = "x"
 COPY_BUTTON_ICON = "clipboard-copy"
+CLEAR_BUTTON_ICON = "broom"
 DELETE_BUTTON_ICON = "trash"
 AI_BUTTON_ICON = "sparkles"
 
@@ -100,6 +101,7 @@ LUCIDE_ICON_COLORS: dict[str, str] = {
     "rotate-ccw": LUCIDE_COLOR_TURQUOISE,
     "rotate-cw": LUCIDE_COLOR_TURQUOISE,
     "undo-2": LUCIDE_COLOR_TURQUOISE,
+    "broom": LUCIDE_COLOR_TURQUOISE,
     "edit": LUCIDE_COLOR_ORANGE,
     "pencil": LUCIDE_COLOR_ORANGE,
     "scissors": LUCIDE_COLOR_ORANGE,
@@ -433,12 +435,22 @@ def create_lucide_icon(
     return icon
 
 
-def is_delete_like_button_label(label: str) -> bool:
-    """Return whether `label` is a Delete / Clear / Remove / Discard action."""
+def is_clear_like_button_label(label: str) -> bool:
+    """Return whether `label` is a Clear action (filter/input/list clear)."""
     folded = label.casefold().strip()
-    if folded in {"delete", "clear", "remove", "discard"}:
+    if folded == "clear":
         return True
-    return folded.startswith(("delete ", "clear ", "remove ", "discard "))
+    return folded.startswith("clear ")
+
+
+def is_delete_like_button_label(label: str) -> bool:
+    """Return whether `label` is a Delete / Remove / Discard action."""
+    folded = label.casefold().strip()
+    if folded in {"delete", "remove", "discard"}:
+        return True
+    if folded.startswith(("delete ", "remove ", "discard ")):
+        return True
+    return is_clear_like_button_label(label)
 
 
 def lucide_color_for(name: str) -> str:
@@ -491,12 +503,14 @@ def make_lucide_push_button(
     """Create a push button with a Lucide icon.
 
     Labels that are Delete / Clear / Remove / Discard (or start with those words)
-    get the shared red chrome and a white icon on that fill.
+    get the shared red chrome and a white icon on that fill. Clear labels use the
+    broom icon when a trash ID was passed by mistake.
 
     """
     button = QPushButton(label, parent)
-    apply_lucide_button_icon(button, name, icon_size=icon_size, color=color)
-    if is_delete_like_button_label(label) or name in {"trash", "trash-2"}:
+    icon_name = CLEAR_BUTTON_ICON if is_clear_like_button_label(label) and name in {"trash", "trash-2"} else name
+    apply_lucide_button_icon(button, icon_name, icon_size=icon_size, color=color)
+    if is_delete_like_button_label(label) or icon_name in {"trash", "trash-2"}:
         style_delete_button(button, icon_size=icon_size)
     return button
 

@@ -416,7 +416,7 @@ class DragDropFileDialog(QDialog):
         self.select_files_btn.clicked.connect(self.select_files)
         buttons_layout.addWidget(self.select_files_btn)
 
-        self.clear_btn = make_lucide_push_button("Clear", DELETE_BUTTON_ICON)
+        self.clear_btn = make_lucide_push_button("Clear", CLEAR_BUTTON_ICON)
         self.clear_btn.clicked.connect(self.clear_files)
         buttons_layout.addWidget(self.clear_btn)
 
@@ -695,7 +695,7 @@ def setup_ui(self) -> None:
         self.select_files_btn.clicked.connect(self.select_files)
         buttons_layout.addWidget(self.select_files_btn)
 
-        self.clear_btn = make_lucide_push_button("Clear", DELETE_BUTTON_ICON)
+        self.clear_btn = make_lucide_push_button("Clear", CLEAR_BUTTON_ICON)
         self.clear_btn.clicked.connect(self.clear_files)
         buttons_layout.addWidget(self.clear_btn)
 

@@ -148,10 +148,12 @@ from harrix_swiss_knife.keyboard_layout_search import text_matches_autocomplete
 from harrix_swiss_knife.paths import get_config_path_str
 from harrix_swiss_knife.qt_lucide_icon import (
     CANCEL_BUTTON_ICON,
+    CLEAR_BUTTON_ICON,
     OK_BUTTON_ICON,
     apply_leading_chrome_button_icon,
     apply_leading_chrome_buttons,
     apply_leading_chrome_icons,
+    apply_lucide_button_icon,
     apply_lucide_dialog_buttons,
     make_lucide_push_button,
     set_action_text_with_lucide_icon,
@@ -3288,8 +3290,9 @@ class MainWindow(
         self.action_show_all_records.setText(f"📊 {self.action_show_all_records.text()}")
         self.action_check.setText(f"🔍 {self.action_check.text()}")
         self._apply_exit_about_menu_emojis()
-        self.pushButton_food_manual_name_clear.setText("🧹")
         self.pushButton_food_manual_name_clear.setToolTip("Clear food name input")
+        apply_lucide_button_icon(self.pushButton_food_manual_name_clear, CLEAR_BUTTON_ICON)
+        self.pushButton_food_manual_name_clear.setText("")
         self.pushButton_kcal_with_ai.setText("🤖")
         self.pushButton_kcal_with_ai.setToolTip(
             "Look up calories, drink flag, weight, and entry mode via AI from the food name",
@@ -3323,8 +3326,9 @@ class MainWindow(
             "QGroupBox#groupBox_filter { border: none; margin-top: 0px; padding-top: 0px; }"
             "QGroupBox#groupBox_filter::title { height: 0px; width: 0px; padding: 0px; margin: 0px; }"
         )
-        self.pushButton_clear_filter.setText("🧹")
         self.pushButton_clear_filter.setToolTip("Clear filter")
+        apply_lucide_button_icon(self.pushButton_clear_filter, CLEAR_BUTTON_ICON)
+        self.pushButton_clear_filter.setText("")
         self.pushButton_clear_filter.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         clear_h = max(self.pushButton_clear_filter.sizeHint().height(), 24)
         self.pushButton_clear_filter.setFixedSize(clear_h, clear_h)

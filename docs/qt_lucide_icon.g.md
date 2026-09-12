@@ -21,6 +21,7 @@ lang: en
 - [🔧 Function `apply_lucide_dialog_buttons`](#-function-apply_lucide_dialog_buttons)
 - [🔧 Function `create_ai_lucide_icon`](#-function-create_ai_lucide_icon)
 - [🔧 Function `create_lucide_icon`](#-function-create_lucide_icon)
+- [🔧 Function `is_clear_like_button_label`](#-function-is_clear_like_button_label)
 - [🔧 Function `is_delete_like_button_label`](#-function-is_delete_like_button_label)
 - [🔧 Function `lucide_color_for`](#-function-lucide_color_for)
 - [🔧 Function `lucide_name_for_chrome_emoji`](#-function-lucide_name_for_chrome_emoji)
@@ -357,13 +358,34 @@ def create_lucide_icon(
 
 </details>
 
+## 🔧 Function `is_clear_like_button_label`
+
+```python
+def is_clear_like_button_label(label: str) -> bool
+```
+
+Return whether `label` is a Clear action (filter/input/list clear).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def is_clear_like_button_label(label: str) -> bool:
+    folded = label.casefold().strip()
+    if folded == "clear":
+        return True
+    return folded.startswith("clear ")
+```
+
+</details>
+
 ## 🔧 Function `is_delete_like_button_label`
 
 ```python
 def is_delete_like_button_label(label: str) -> bool
 ```
 
-Return whether `label` is a Delete / Clear / Remove / Discard action.
+Return whether `label` is a Delete / Remove / Discard action.
 
 <details>
 <summary>Code:</summary>
@@ -371,9 +393,11 @@ Return whether `label` is a Delete / Clear / Remove / Discard action.
 ```python
 def is_delete_like_button_label(label: str) -> bool:
     folded = label.casefold().strip()
-    if folded in {"delete", "clear", "remove", "discard"}:
+    if folded in {"delete", "remove", "discard"}:
         return True
-    return folded.startswith(("delete ", "clear ", "remove ", "discard "))
+    if folded.startswith(("delete ", "remove ", "discard ")):
+        return True
+    return is_clear_like_button_label(label)
 ```
 
 </details>
@@ -478,7 +502,8 @@ def make_lucide_push_button(label: str, name: str, *, icon_size: int = DEFAULT_L
 Create a push button with a Lucide icon.
 
 Labels that are Delete / Clear / Remove / Discard (or start with those words)
-get the shared red chrome and a white icon on that fill.
+get the shared red chrome and a white icon on that fill. Clear labels use the
+broom icon when a trash ID was passed by mistake.
 
 <details>
 <summary>Code:</summary>
@@ -493,8 +518,9 @@ def make_lucide_push_button(
     parent: QWidget | None = None,
 ) -> QPushButton:
     button = QPushButton(label, parent)
-    apply_lucide_button_icon(button, name, icon_size=icon_size, color=color)
-    if is_delete_like_button_label(label) or name in {"trash", "trash-2"}:
+    icon_name = CLEAR_BUTTON_ICON if is_clear_like_button_label(label) and name in {"trash", "trash-2"} else name
+    apply_lucide_button_icon(button, icon_name, icon_size=icon_size, color=color)
+    if is_delete_like_button_label(label) or icon_name in {"trash", "trash-2"}:
         style_delete_button(button, icon_size=icon_size)
     return button
 ```
