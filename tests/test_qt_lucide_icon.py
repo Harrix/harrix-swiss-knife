@@ -11,6 +11,7 @@ from harrix_swiss_knife import qt_lucide_icon as lucide_mod
 from harrix_swiss_knife.qt_lucide_icon import (
     ACCEPT_BUTTON_STYLE,
     CANCEL_BUTTON_STYLE,
+    DELETE_BUTTON_STYLE,
     LUCIDE_COLOR_BLUE,
     LUCIDE_COLOR_DARK,
     LUCIDE_COLOR_GREEN,
@@ -28,6 +29,7 @@ from harrix_swiss_knife.qt_lucide_icon import (
     set_action_text_with_lucide_icon,
     style_accept_button,
     style_cancel_button,
+    style_delete_button,
 )
 
 
@@ -186,7 +188,7 @@ def test_create_ai_lucide_icon_uses_brand_blue(qapp: QApplication) -> None:
     lucide_mod._CACHE.clear()
 
 
-def test_apply_lucide_dialog_buttons_paints_ok_green_and_cancel_red(qapp: QApplication) -> None:
+def test_apply_lucide_dialog_buttons_paints_ok_green_and_leaves_cancel_default(qapp: QApplication) -> None:
     assert qapp is not None
     box = QDialogButtonBox(
         QDialogButtonBox.StandardButton.Ok
@@ -194,6 +196,7 @@ def test_apply_lucide_dialog_buttons_paints_ok_green_and_cancel_red(qapp: QAppli
         | QDialogButtonBox.StandardButton.Cancel
     )
     apply_button = box.addButton("Apply translations", QDialogButtonBox.ButtonRole.AcceptRole)
+    delete_button = box.addButton("Delete", QDialogButtonBox.ButtonRole.DestructiveRole)
     apply_lucide_dialog_buttons(box)
     ok = box.button(QDialogButtonBox.StandardButton.Ok)
     apply = box.button(QDialogButtonBox.StandardButton.Apply)
@@ -205,6 +208,7 @@ def test_apply_lucide_dialog_buttons_paints_ok_green_and_cancel_red(qapp: QAppli
     assert apply.styleSheet() == ACCEPT_BUTTON_STYLE
     assert apply_button.styleSheet() == ACCEPT_BUTTON_STYLE
     assert cancel.styleSheet() == CANCEL_BUTTON_STYLE
+    assert delete_button.styleSheet() == DELETE_BUTTON_STYLE
 
 
 def test_style_accept_button_sets_shared_green(qapp: QApplication) -> None:
@@ -214,15 +218,15 @@ def test_style_accept_button_sets_shared_green(qapp: QApplication) -> None:
     assert button.styleSheet() == ACCEPT_BUTTON_STYLE
 
 
-def test_filled_accept_and_cancel_use_on_filled_white_icons(qapp: QApplication) -> None:
+def test_filled_accept_and_delete_use_on_filled_white_icons(qapp: QApplication) -> None:
     assert qapp is not None
     lucide_mod._CACHE.clear()
     ok = make_lucide_push_button("OK", "circle-check")
     style_accept_button(ok)
-    cancel = make_lucide_push_button("Cancel", "x")
+    delete = make_lucide_push_button("Delete", "trash")
     ok_pixel = None
-    cancel_pixel = None
-    for button, store in ((ok, "ok"), (cancel, "cancel")):
+    delete_pixel = None
+    for button, store in ((ok, "ok"), (delete, "delete")):
         pixmap = button.icon().pixmap(QSize(18, 18), 1.0)
         image = pixmap.toImage()
         for y in range(image.height()):
@@ -233,25 +237,31 @@ def test_filled_accept_and_cancel_use_on_filled_white_icons(qapp: QApplication) 
                 if store == "ok":
                     ok_pixel = pixel
                 else:
-                    cancel_pixel = pixel
+                    delete_pixel = pixel
                 break
-            if (store == "ok" and ok_pixel is not None) or (store == "cancel" and cancel_pixel is not None):
+            if (store == "ok" and ok_pixel is not None) or (store == "delete" and delete_pixel is not None):
                 break
     assert ok_pixel is not None
-    assert cancel_pixel is not None
+    assert delete_pixel is not None
     on_filled = QColor(LUCIDE_COLOR_ON_FILLED)
     assert abs(ok_pixel.red() - on_filled.red()) < 40
     assert abs(ok_pixel.green() - on_filled.green()) < 40
     assert abs(ok_pixel.blue() - on_filled.blue()) < 40
-    assert abs(cancel_pixel.red() - on_filled.red()) < 40
+    assert abs(delete_pixel.red() - on_filled.red()) < 40
     lucide_mod._CACHE.clear()
 
 
-def test_make_lucide_push_button_paints_cancel_red(qapp: QApplication) -> None:
+def test_make_lucide_push_button_paints_delete_red_not_cancel(qapp: QApplication) -> None:
     assert qapp is not None
     cancel = make_lucide_push_button("Cancel", "x")
     cancel_screenshot = make_lucide_push_button("Cancel screenshot", "x")
+    delete = make_lucide_push_button("Delete", "trash")
+    clear_all = make_lucide_push_button("Clear All", "trash")
     assert cancel.styleSheet() == CANCEL_BUTTON_STYLE
     assert cancel_screenshot.styleSheet() == CANCEL_BUTTON_STYLE
+    assert delete.styleSheet() == DELETE_BUTTON_STYLE
+    assert clear_all.styleSheet() == DELETE_BUTTON_STYLE
     style_cancel_button(cancel)
     assert cancel.styleSheet() == CANCEL_BUTTON_STYLE
+    style_delete_button(cancel)
+    assert cancel.styleSheet() == DELETE_BUTTON_STYLE

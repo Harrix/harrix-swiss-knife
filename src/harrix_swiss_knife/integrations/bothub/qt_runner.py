@@ -47,10 +47,36 @@ class BothubRequestSpec:
 
 @dataclass
 class BothubRequestState:
-    """Mutable holder for an in-flight BotHub request (worker + toast)."""
+    """Mutable holder for an in-flight BotHub request (worker + toast).
+
+    When `toast_pin_chain` is `True`, collapse/expand of each toast is remembered
+    on `toast_pinned` and applied to the next toast that uses this state. Use that
+    only for sequential toasts in one operation (e.g. batch keyword processing).
+    Leave it `False` for unrelated requests that share a long-lived state object.
+
+    """
 
     worker: BothubChatWorker | None = None
     toast: toast_notification_base.ToastNotificationBase | None = None
+    toast_pin_chain: bool = False
+    toast_pinned: bool | None = None
+
+
+def chain_toast_start_kwargs(state: BothubRequestState | None) -> dict[str, bool]:
+    """Return `start_countdown` kwargs so a toast chain keeps the prior pin state."""
+    if state is None or not state.toast_pin_chain or not state.toast_pinned:
+        return {}
+    return {"pinned": True, "activate": False}
+
+
+def remember_toast_pin(
+    state: BothubRequestState | None,
+    toast: toast_notification_base.ToastNotificationBase | None,
+) -> None:
+    """Store collapse state on `state` when it is part of a toast pin chain."""
+    if state is None or not state.toast_pin_chain or toast is None:
+        return
+    state.toast_pinned = toast.is_pinned
 
 
 def run_bothub_request(
@@ -296,7 +322,7 @@ def _start_bothub_request(spec: BothubRequestSpec) -> bool:
             parent=toast_parent,
             owner_modal=spec.owner_modal,
         )
-        toast.start_countdown()
+        toast.start_countdown(**chain_toast_start_kwargs(spec.state))
 
     worker = BothubChatWorker(
         api_key=api_key,
@@ -324,6 +350,7 @@ def _start_bothub_request(spec: BothubRequestSpec) -> bool:
     def finalize_toast() -> None:
         if toast is None:
             return
+        remember_toast_pin(spec.state, toast)
         toast.mark_completed()
         if spec.state is not None and spec.state.toast is not None:
             spec.state.toast.close()

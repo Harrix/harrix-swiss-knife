@@ -29,7 +29,6 @@ from harrix_swiss_knife.qt_lucide_icon import (
     make_ai_lucide_push_button,
     make_lucide_push_button,
     style_accept_button,
-    style_cancel_button,
 )
 
 
@@ -166,7 +165,6 @@ class CategoryEditDialog(QDialog):
         button_layout = QHBoxLayout()
         self.delete_button = make_lucide_push_button("Delete", DELETE_BUTTON_ICON)
         self.delete_button.clicked.connect(self._on_delete)
-        style_cancel_button(self.delete_button)
         button_layout.addWidget(self.delete_button)
 
         self.cancel_button = make_lucide_push_button("Cancel", CANCEL_BUTTON_ICON)

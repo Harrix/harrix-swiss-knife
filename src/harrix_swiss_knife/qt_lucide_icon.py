@@ -67,7 +67,9 @@ LUCIDE_COLOR_ON_FILLED = "#f4f4f4"
 
 AI_BUTTON_ICON_COLOR = LUCIDE_COLOR_BLUE
 ACCEPT_BUTTON_STYLE = "QPushButton { background-color: #4CAF50; color: white; }"
-CANCEL_BUTTON_STYLE = "QPushButton { background-color: #ff6b6b; color: white; }"
+DELETE_BUTTON_STYLE = "QPushButton { background-color: #ff6b6b; color: white; }"
+# Kept for callers/tests that still import the name; Cancel is no longer filled red.
+CANCEL_BUTTON_STYLE = ""
 
 _LUCIDE_NAME_PROP = "_harrix_lucide_name"
 
@@ -351,8 +353,8 @@ def apply_lucide_dialog_buttons(
 ) -> None:
     """Set Lucide icons on standard `QDialogButtonBox` buttons when present.
 
-    Also paints OK / Apply / Save / Yes green and Cancel / No / Reject red,
-    with white icons on those filled backgrounds.
+    Also paints OK / Apply / Save / Yes green and Delete-like actions red.
+    Cancel / No / Close stay on the default (gray) chrome.
 
     """
     for standard_button, name in (
@@ -363,6 +365,7 @@ def apply_lucide_dialog_buttons(
         (QDialogButtonBox.StandardButton.Close, CLOSE_BUTTON_ICON),
         (QDialogButtonBox.StandardButton.Yes, OK_BUTTON_ICON),
         (QDialogButtonBox.StandardButton.No, CANCEL_BUTTON_ICON),
+        (QDialogButtonBox.StandardButton.Discard, DELETE_BUTTON_ICON),
     ):
         button = buttons.button(standard_button)
         if button is not None:
@@ -375,11 +378,8 @@ def apply_lucide_dialog_buttons(
             QDialogButtonBox.ButtonRole.YesRole,
         ):
             style_accept_button(button, icon_size=icon_size)
-        elif role in (
-            QDialogButtonBox.ButtonRole.RejectRole,
-            QDialogButtonBox.ButtonRole.NoRole,
-        ):
-            style_cancel_button(button, icon_size=icon_size)
+        elif role == QDialogButtonBox.ButtonRole.DestructiveRole or is_delete_like_button_label(button.text()):
+            style_delete_button(button, icon_size=icon_size)
 
 
 def create_ai_lucide_icon(size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE) -> QIcon:
@@ -433,6 +433,14 @@ def create_lucide_icon(
     return icon
 
 
+def is_delete_like_button_label(label: str) -> bool:
+    """Return whether `label` is a Delete / Clear / Remove / Discard action."""
+    folded = label.casefold().strip()
+    if folded in {"delete", "clear", "remove", "discard"}:
+        return True
+    return folded.startswith(("delete ", "clear ", "remove ", "discard "))
+
+
 def lucide_color_for(name: str) -> str:
     """Return the CodeStyle hex color for Lucide ID `name` (or dark default)."""
     return LUCIDE_ICON_COLORS.get(name, LUCIDE_COLOR_DARK)
@@ -482,15 +490,14 @@ def make_lucide_push_button(
 ) -> QPushButton:
     """Create a push button with a Lucide icon.
 
-    Labels that are Cancel (or start with `Cancel`) get the shared red chrome
-    and a white icon on that fill.
+    Labels that are Delete / Clear / Remove / Discard (or start with those words)
+    get the shared red chrome and a white icon on that fill.
 
     """
     button = QPushButton(label, parent)
     apply_lucide_button_icon(button, name, icon_size=icon_size, color=color)
-    folded = label.casefold()
-    if folded == "cancel" or folded.startswith("cancel "):
-        style_cancel_button(button, icon_size=icon_size)
+    if is_delete_like_button_label(label) or name in {"trash", "trash-2"}:
+        style_delete_button(button, icon_size=icon_size)
     return button
 
 
@@ -529,8 +536,20 @@ def style_cancel_button(
     *,
     icon_size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE,
 ) -> None:
-    """Paint a cancel/reject/delete action with the shared red chrome."""
+    """Reset cancel/close chrome to the default gray button (not red)."""
     button.setStyleSheet(CANCEL_BUTTON_STYLE)
+    name = button.property(_LUCIDE_NAME_PROP)
+    if isinstance(name, str) and name.strip():
+        apply_lucide_button_icon(button, name, icon_size=icon_size)
+
+
+def style_delete_button(
+    button: QAbstractButton,
+    *,
+    icon_size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE,
+) -> None:
+    """Paint a delete/clear/remove action with the shared red chrome."""
+    button.setStyleSheet(DELETE_BUTTON_STYLE)
     _recolor_filled_button_icon(button, icon_size=icon_size)
 
 

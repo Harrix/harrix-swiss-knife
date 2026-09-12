@@ -13,6 +13,8 @@ lang: en
 
 - [🏛️ Class `BothubRequestSpec`](#%EF%B8%8F-class-bothubrequestspec)
 - [🏛️ Class `BothubRequestState`](#%EF%B8%8F-class-bothubrequeststate)
+- [🔧 Function `chain_toast_start_kwargs`](#-function-chain_toast_start_kwargs)
+- [🔧 Function `remember_toast_pin`](#-function-remember_toast_pin)
 - [🔧 Function `run_bothub_request`](#-function-run_bothub_request)
 - [🔧 Function `run_bothub_request_blocking`](#-function-run_bothub_request_blocking)
 
@@ -60,6 +62,11 @@ class BothubRequestState
 
 Mutable holder for an in-flight BotHub request (worker + toast).
 
+When `toast_pin_chain` is `True`, collapse/expand of each toast is remembered
+on `toast_pinned` and applied to the next toast that uses this state. Use that
+only for sequential toasts in one operation (e.g. batch keyword processing).
+Leave it `False` for unrelated requests that share a long-lived state object.
+
 <details>
 <summary>Code:</summary>
 
@@ -68,6 +75,51 @@ class BothubRequestState:
 
     worker: BothubChatWorker | None = None
     toast: toast_notification_base.ToastNotificationBase | None = None
+    toast_pin_chain: bool = False
+    toast_pinned: bool | None = None
+```
+
+</details>
+
+## 🔧 Function `chain_toast_start_kwargs`
+
+```python
+def chain_toast_start_kwargs(state: BothubRequestState | None) -> dict[str, bool]
+```
+
+Return [`start_countdown`](../../toast_countdown_notification.g.md#%EF%B8%8F-method-start_countdown) kwargs so a toast chain keeps the prior pin state.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def chain_toast_start_kwargs(state: BothubRequestState | None) -> dict[str, bool]:
+    if state is None or not state.toast_pin_chain or not state.toast_pinned:
+        return {}
+    return {"pinned": True, "activate": False}
+```
+
+</details>
+
+## 🔧 Function `remember_toast_pin`
+
+```python
+def remember_toast_pin(state: BothubRequestState | None, toast: toast_notification_base.ToastNotificationBase | None) -> None
+```
+
+Store collapse state on `state` when it is part of a toast pin chain.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def remember_toast_pin(
+    state: BothubRequestState | None,
+    toast: toast_notification_base.ToastNotificationBase | None,
+) -> None:
+    if state is None or not state.toast_pin_chain or toast is None:
+        return
+    state.toast_pinned = toast.is_pinned
 ```
 
 </details>

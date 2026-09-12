@@ -48,7 +48,7 @@ class KeywordsBatchRunner:
         self._on_item_success = on_item_success
         self._on_finished = on_finished
         self._request_fn = request_fn or request_keywords_fill
-        self._state = BothubRequestState()
+        self._state = BothubRequestState(toast_pin_chain=True)
         self._index = 0
         self._updated = 0
         self._failed = 0

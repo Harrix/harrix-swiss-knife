@@ -66,9 +66,7 @@ def add_ok_button(
     icon: str = OK_BUTTON_ICON,
 ) -> QPushButton:
     ok_button = make_lucide_push_button(label, icon)
-    if label.casefold() == CANCEL_BUTTON_LABEL.casefold():
-        style_cancel_button(ok_button)
-    else:
+    if label.casefold() != CANCEL_BUTTON_LABEL.casefold():
         style_accept_button(ok_button)
     ok_button.clicked.connect(dialog.accept)
     button_layout.addWidget(ok_button)
