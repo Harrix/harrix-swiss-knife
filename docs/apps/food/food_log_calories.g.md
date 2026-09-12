@@ -12,6 +12,9 @@ lang: en
 ## Contents
 
 - [🔧 Function `calculate_food_log_calories`](#-function-calculate_food_log_calories)
+- [🔧 Function `convert_calories_per_100g_to_portion`](#-function-convert_calories_per_100g_to_portion)
+- [🔧 Function `convert_portion_to_calories_per_100g`](#-function-convert_portion_to_calories_per_100g)
+- [🔧 Function `food_log_calorie_mode`](#-function-food_log_calorie_mode)
 - [🔧 Function `parse_food_log_number`](#-function-parse_food_log_number)
 - [🔧 Function `refresh_food_log_calorie_columns`](#-function-refresh_food_log_calorie_columns)
 
@@ -49,6 +52,104 @@ def calculate_food_log_calories(
     if calories_per_100g is not None and calories_per_100g > 0 and weight is not None and weight > 0:
         return (float(calories_per_100g) * float(weight)) / 100
     return 0.0
+```
+
+</details>
+
+## 🔧 Function `convert_calories_per_100g_to_portion`
+
+```python
+def convert_calories_per_100g_to_portion(*, weight: float, calories_per_100g: float) -> float
+```
+
+Return portion calories for `weight` g at `calories_per_100g`.
+
+Args:
+
+- `weight` (`float`): Mass in grams (must be > 0).
+- `calories_per_100g` (`float`): Energy per 100 g.
+
+Returns:
+
+- `float`: Energy of the whole serving.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def convert_calories_per_100g_to_portion(
+    *,
+    weight: float,
+    calories_per_100g: float,
+) -> float:
+    return (float(calories_per_100g) * float(weight)) / 100.0
+```
+
+</details>
+
+## 🔧 Function `convert_portion_to_calories_per_100g`
+
+```python
+def convert_portion_to_calories_per_100g(*, weight: float, portion_calories: float) -> float
+```
+
+Return kcal/100g implied by `portion_calories` for `weight` g.
+
+Args:
+
+- `weight` (`float`): Mass in grams (must be > 0).
+- `portion_calories` (`float`): Energy of the whole serving.
+
+Returns:
+
+- `float`: Energy per 100 g.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def convert_portion_to_calories_per_100g(
+    *,
+    weight: float,
+    portion_calories: float,
+) -> float:
+    return (float(portion_calories) / float(weight)) * 100.0
+```
+
+</details>
+
+## 🔧 Function `food_log_calorie_mode`
+
+```python
+def food_log_calorie_mode(calories_per_100g: float | None, portion_calories: float | None) -> FoodLogCalorieMode | None
+```
+
+Return whether the row uses portion calories or kcal/100g.
+
+Portion mode wins when both are set (same rule as [`calculate_food_log_calories`](#-function-calculate_food_log_calories)).
+
+Args:
+
+- `calories_per_100g` (`float | None`): Energy per 100 g.
+- `portion_calories` (`float | None`): Energy of the whole serving.
+
+Returns:
+
+- `FoodLogCalorieMode | None`: `"portion"`, `"per_100g"`, or `None` when neither applies.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def food_log_calorie_mode(
+    calories_per_100g: float | None,
+    portion_calories: float | None,
+) -> FoodLogCalorieMode | None:
+    if portion_calories is not None and portion_calories > 0:
+        return "portion"
+    if calories_per_100g is not None and calories_per_100g > 0:
+        return "per_100g"
+    return None
 ```
 
 </details>

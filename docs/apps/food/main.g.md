@@ -1571,6 +1571,78 @@ class MainWindow(
         # Load more food log rows when scrolling near the bottom
         self.tableView_food_log.verticalScrollBar().valueChanged.connect(self._on_food_log_scroll)
 
+    @requires_database()
+    def _convert_selected_food_log_calorie_mode(self, target: FoodLogCalorieMode) -> None:
+        """Convert selected food log rows between portion calories and kcal/100g.
+
+        Weight is left unchanged. Calculated calories stay the same when weight > 0.
+
+        Args:
+
+        - `target` (`FoodLogCalorieMode`): Desired calorie storage mode.
+
+        """
+        if self.db_manager is None:
+            return
+        record_ids = self._get_selected_row_ids("food_log")
+        if not record_ids:
+            message_box.warning(self, "Error", "Select one or more food log rows")
+            return
+
+        source_mode: FoodLogCalorieMode = "portion" if target == "per_100g" else "per_100g"
+        updated = 0
+        skipped_no_weight = 0
+        for record_id in record_ids:
+            amounts = self.db_manager.get_food_log_amounts(record_id)
+            if amounts is None:
+                continue
+            weight, calories_per_100g, portion_calories = amounts
+            if food_log_calorie_mode(calories_per_100g, portion_calories) != source_mode:
+                continue
+            if weight is None or weight <= 0:
+                skipped_no_weight += 1
+                continue
+
+            if target == "per_100g":
+                if portion_calories is None or portion_calories <= 0:
+                    continue
+                new_calories_per_100g = convert_portion_to_calories_per_100g(
+                    weight=weight,
+                    portion_calories=portion_calories,
+                )
+                ok = self.db_manager.update_food_log_calories(
+                    record_id,
+                    new_calories_per_100g,
+                    None,
+                )
+            else:
+                if calories_per_100g is None or calories_per_100g <= 0:
+                    continue
+                new_portion_calories = convert_calories_per_100g_to_portion(
+                    weight=weight,
+                    calories_per_100g=calories_per_100g,
+                )
+                # 0 matches insert path for portion mode (schema / display hide empty kcal/100g).
+                ok = self.db_manager.update_food_log_calories(
+                    record_id,
+                    0,
+                    new_portion_calories,
+                )
+            if ok:
+                updated += 1
+
+        if updated:
+            self.update_food_data()
+            return
+        if skipped_no_weight:
+            message_box.warning(
+                self,
+                "Error",
+                "Weight must be greater than 0 to convert calorie mode.",
+            )
+            return
+        message_box.warning(self, "Error", "Failed to update selected food log rows")
+
     def _correct_food_input_line(self, line: str) -> str | None:
         """Ask user to correct one unparseable input line (UI responsibility)."""
         corrected_line, ok = QInputDialog.getText(
@@ -3342,6 +3414,28 @@ class MainWindow(
 
         add_separator(context_menu)
         swap_weight_calories_action = context_menu.addAction("🔄 Swap Weight and Calories per 100g")
+        convert_to_per_100g_action = None
+        convert_to_portion_action = None
+        if self.db_manager is not None and selected_food_log_ids:
+            modes_in_selection: set[FoodLogCalorieMode] = set()
+            for record_id in selected_food_log_ids:
+                amounts = self.db_manager.get_food_log_amounts(record_id)
+                if amounts is None:
+                    continue
+                weight, calories_per_100g, portion_calories = amounts
+                if weight is None or weight <= 0:
+                    continue
+                mode = food_log_calorie_mode(calories_per_100g, portion_calories)
+                if mode is not None:
+                    modes_in_selection.add(mode)
+            if "portion" in modes_in_selection:
+                convert_to_per_100g_action = context_menu.addAction(
+                    "🔄 Convert portion calories to Calories per 100g",
+                )
+            if "per_100g" in modes_in_selection:
+                convert_to_portion_action = context_menu.addAction(
+                    "🔄 Convert Calories per 100g to portion calories",
+                )
         recalc_calories_ai_action = context_menu.addAction("🤖 Recalculate calories with AI")
 
         bulk_date_action = None
@@ -3406,6 +3500,10 @@ class MainWindow(
                 self._prompt_eaten_percent_and_apply()
             elif action == swap_weight_calories_action:
                 self._swap_weight_and_calories_per_100g()
+            elif convert_to_per_100g_action is not None and action == convert_to_per_100g_action:
+                self._convert_selected_food_log_calorie_mode("per_100g")
+            elif convert_to_portion_action is not None and action == convert_to_portion_action:
+                self._convert_selected_food_log_calorie_mode("portion")
             elif action == recalc_calories_ai_action:
                 self._recalculate_selected_food_log_calories_with_ai()
             elif action == delete_action:

@@ -105,13 +105,17 @@ def test_prepare_does_not_switch_without_alternate_key() -> None:
     assert get_chat_provider(config) == "bothub"
 
 
-def test_prepare_from_bothub_ru_switches_to_bothub() -> None:
+def test_prepare_from_bothub_ru_switches_to_bothub(tmp_path: Path) -> None:
     config = _bothub_pair_config()
     config["ai"]["provider"] = "bothub.ru"
+    config_path = tmp_path / "config.json"
+    config_path.write_text("{}", encoding="utf-8")
+    (tmp_path / "config-temp.json").write_text("{}", encoding="utf-8")
     switched = prepare_bothub_router(
         config,
         probe=_probe_hosts("bothub.chat"),
         persist=lambda _provider, _speech: None,
+        config_path=config_path,
     )
     assert switched == "bothub"
     assert config["ai"]["provider"] == "bothub.ru"

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 if TYPE_CHECKING:
     from PySide6.QtGui import QStandardItemModel
@@ -13,6 +13,8 @@ FOOD_LOG_COL_PORTION_CALORIES = 4
 FOOD_LOG_COL_CALCULATED = 5
 FOOD_LOG_COL_DATE = 6
 FOOD_LOG_COL_TOTAL_PER_DAY = 8
+
+FoodLogCalorieMode = Literal["portion", "per_100g"]
 
 
 def calculate_food_log_calories(
@@ -38,6 +40,71 @@ def calculate_food_log_calories(
     if calories_per_100g is not None and calories_per_100g > 0 and weight is not None and weight > 0:
         return (float(calories_per_100g) * float(weight)) / 100
     return 0.0
+
+
+def convert_calories_per_100g_to_portion(
+    *,
+    weight: float,
+    calories_per_100g: float,
+) -> float:
+    """Return portion calories for `weight` g at `calories_per_100g`.
+
+    Args:
+
+    - `weight` (`float`): Mass in grams (must be > 0).
+    - `calories_per_100g` (`float`): Energy per 100 g.
+
+    Returns:
+
+    - `float`: Energy of the whole serving.
+
+    """
+    return (float(calories_per_100g) * float(weight)) / 100.0
+
+
+def convert_portion_to_calories_per_100g(
+    *,
+    weight: float,
+    portion_calories: float,
+) -> float:
+    """Return kcal/100g implied by `portion_calories` for `weight` g.
+
+    Args:
+
+    - `weight` (`float`): Mass in grams (must be > 0).
+    - `portion_calories` (`float`): Energy of the whole serving.
+
+    Returns:
+
+    - `float`: Energy per 100 g.
+
+    """
+    return (float(portion_calories) / float(weight)) * 100.0
+
+
+def food_log_calorie_mode(
+    calories_per_100g: float | None,
+    portion_calories: float | None,
+) -> FoodLogCalorieMode | None:
+    """Return whether the row uses portion calories or kcal/100g.
+
+    Portion mode wins when both are set (same rule as `calculate_food_log_calories`).
+
+    Args:
+
+    - `calories_per_100g` (`float | None`): Energy per 100 g.
+    - `portion_calories` (`float | None`): Energy of the whole serving.
+
+    Returns:
+
+    - `FoodLogCalorieMode | None`: `"portion"`, `"per_100g"`, or `None` when neither applies.
+
+    """
+    if portion_calories is not None and portion_calories > 0:
+        return "portion"
+    if calories_per_100g is not None and calories_per_100g > 0:
+        return "per_100g"
+    return None
 
 
 def parse_food_log_number(value: object) -> float | None:

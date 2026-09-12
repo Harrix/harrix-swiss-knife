@@ -11,6 +11,9 @@ from harrix_swiss_knife.apps.food.food_log_calories import (
     FOOD_LOG_COL_TOTAL_PER_DAY,
     FOOD_LOG_COL_WEIGHT,
     calculate_food_log_calories,
+    convert_calories_per_100g_to_portion,
+    convert_portion_to_calories_per_100g,
+    food_log_calorie_mode,
     parse_food_log_number,
     refresh_food_log_calorie_columns,
 )
@@ -37,6 +40,20 @@ def test_weight_mode_uses_calories_per_100g() -> None:
 
 def test_zero_portion_falls_back_to_weight_mode() -> None:
     assert calculate_food_log_calories(weight=100, calories_per_100g=80, portion_calories=0) == 80
+
+
+def test_food_log_calorie_mode_prefers_portion() -> None:
+    assert food_log_calorie_mode(50, 300) == "portion"
+    assert food_log_calorie_mode(50, None) == "per_100g"
+    assert food_log_calorie_mode(0, 0) is None
+
+
+def test_convert_portion_to_calories_per_100g() -> None:
+    assert convert_portion_to_calories_per_100g(weight=200, portion_calories=300) == 150.0
+
+
+def test_convert_calories_per_100g_to_portion() -> None:
+    assert convert_calories_per_100g_to_portion(weight=200, calories_per_100g=150) == 300.0
 
 
 def test_parse_food_log_number_rejects_empty() -> None:
