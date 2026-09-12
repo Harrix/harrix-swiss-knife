@@ -496,7 +496,7 @@ class ImagePicker(QWidget):
                 paste_button.clicked.connect(self._paste_image_from_clipboard)
             button_layout.addWidget(paste_button)
         if self._show_clear_button:
-            clear_button = make_lucide_push_button("Clear", "broom")
+            clear_button = make_lucide_push_button("Clear", CLEAR_BUTTON_ICON)
             clear_button.clicked.connect(self._on_clear_or_restore_single)
             button_layout.addWidget(clear_button)
             self._clear_button = clear_button
@@ -740,7 +740,7 @@ class ImagePicker(QWidget):
                 self._preview_label.setToolTip("Click to preview")
             if self._clear_button is not None:
                 self._clear_button.setText("Clear")
-                apply_lucide_button_icon(self._clear_button, "broom")
+                apply_lucide_button_icon(self._clear_button, CLEAR_BUTTON_ICON)
                 self._clear_button.setToolTip("Clear image")
 
     def _resolve_image_path(self, path: str) -> Path | None:

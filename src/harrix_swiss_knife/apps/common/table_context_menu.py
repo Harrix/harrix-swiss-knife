@@ -46,7 +46,7 @@ LABEL_SHOW_ALL_RECORDS = "Show all records"
 
 ICON_ADD_DUMBBELL_WEIGHT_TYPES = "dumbbell"
 ICON_CLEAR_CELL = "eraser"
-ICON_CLEAR_FILTERS = "broom"
+ICON_CLEAR_FILTERS = "eraser"
 ICON_DELETE = "trash"
 ICON_EDIT = "pencil"
 ICON_EXPORT_CSV = "upload"

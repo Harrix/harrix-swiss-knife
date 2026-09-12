@@ -46,6 +46,7 @@ from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import install_url
 from harrix_swiss_knife.integrations.bothub.speech import audio_format_from_suffix
 from harrix_swiss_knife.paths import get_project_root
 from harrix_swiss_knife.qt_lucide_icon import (
+    CLEAR_BUTTON_ICON,
     SAVE_BUTTON_ICON,
     make_lucide_push_button,
 )
@@ -140,7 +141,7 @@ class AudioFileDropWidget(QWidget):
         browse_button = make_lucide_push_button("Select Audio File", "folder")
         browse_button.clicked.connect(self._browse_file)
         button_layout.addWidget(browse_button)
-        clear_button = make_lucide_push_button("Clear", "broom")
+        clear_button = make_lucide_push_button("Clear", CLEAR_BUTTON_ICON)
         clear_button.clicked.connect(self.clear_file)
         button_layout.addWidget(clear_button)
 

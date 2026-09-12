@@ -50,7 +50,7 @@ CANCEL_BUTTON_ICON = "x"
 SAVE_BUTTON_ICON = "save"
 CLOSE_BUTTON_ICON = "x"
 COPY_BUTTON_ICON = "clipboard-copy"
-CLEAR_BUTTON_ICON = "broom"
+CLEAR_BUTTON_ICON = "eraser"
 DELETE_BUTTON_ICON = "trash"
 AI_BUTTON_ICON = "sparkles"
 
@@ -102,6 +102,7 @@ LUCIDE_ICON_COLORS: dict[str, str] = {
     "rotate-cw": LUCIDE_COLOR_TURQUOISE,
     "undo-2": LUCIDE_COLOR_TURQUOISE,
     "broom": LUCIDE_COLOR_TURQUOISE,
+    "eraser": LUCIDE_COLOR_TURQUOISE,
     "edit": LUCIDE_COLOR_ORANGE,
     "pencil": LUCIDE_COLOR_ORANGE,
     "scissors": LUCIDE_COLOR_ORANGE,
@@ -166,7 +167,7 @@ CHROME_EMOJI_TO_LUCIDE: dict[str, str] = {
     "🏃": "person-standing",
     "⚙️": "settings",
     "⚙": "settings",
-    "🧹": "broom",
+    "🧹": "eraser",
     "📤": "upload",
     "✨": "sparkles",
     "📄": "file",
@@ -504,7 +505,7 @@ def make_lucide_push_button(
 
     Labels that are Delete / Clear / Remove / Discard (or start with those words)
     get the shared red chrome and a white icon on that fill. Clear labels use the
-    broom icon when a trash ID was passed by mistake.
+    eraser icon when a trash ID was passed by mistake.
 
     """
     button = QPushButton(label, parent)

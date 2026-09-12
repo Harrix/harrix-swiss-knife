@@ -261,7 +261,7 @@ def test_make_lucide_push_button_paints_delete_red_not_cancel(qapp: QApplication
     assert cancel_screenshot.styleSheet() == CANCEL_BUTTON_STYLE
     assert delete.styleSheet() == DELETE_BUTTON_STYLE
     assert clear_all.styleSheet() == DELETE_BUTTON_STYLE
-    assert clear_all.property("_harrix_lucide_name") == "broom"
+    assert clear_all.property("_harrix_lucide_name") == "eraser"
     style_cancel_button(cancel)
     assert cancel.styleSheet() == CANCEL_BUTTON_STYLE
     style_delete_button(cancel)

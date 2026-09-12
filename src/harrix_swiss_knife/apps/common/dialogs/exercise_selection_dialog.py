@@ -27,6 +27,7 @@ from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common.avif_manager import AvifLabelKey
 from harrix_swiss_knife.keyboard_layout_search import text_matches_autocomplete
 from harrix_swiss_knife.qt_lucide_icon import (
+    CLEAR_BUTTON_ICON,
     apply_lucide_dialog_buttons,
     make_lucide_push_button,
 )
@@ -193,7 +194,7 @@ class ExerciseSelectionDialog(QDialog):
         footer.addWidget(self._selection_count_label, stretch=1)
         self._clear_button: QPushButton | None = None
         if multi_select:
-            self._clear_button = make_lucide_push_button("Clear selection", "broom")
+            self._clear_button = make_lucide_push_button("Clear selection", CLEAR_BUTTON_ICON)
             self._clear_button.clicked.connect(self._clear_multi_selection)
             footer.addWidget(self._clear_button)
             button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Cancel, self)
