@@ -27,9 +27,11 @@ class OnSyncChromeYandexBookmarks(ActionBase):
     """Bidirectional Chrome ↔ Yandex bookmark sync with a deletion-aware snapshot.
 
     First run merges missing URLs both ways without deletions or folder moves.
-    Later runs use a LocalAppData snapshot so deletes and folder moves
-    propagate. Preview shows Cancel / Apply; browsers must be closed before
-    Apply.
+    Later runs use a LocalAppData snapshot so deletes, folder moves, and title
+    changes propagate. If one browser later restores an old layout for many
+    URLs (account sync), the next run puts those bookmarks back instead of
+    undoing the other side. Preview shows Cancel / Apply; browsers must be
+    closed before Apply.
 
     """
 

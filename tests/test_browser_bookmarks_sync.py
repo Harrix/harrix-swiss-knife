@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
@@ -14,6 +15,7 @@ from harrix_swiss_knife.browser_bookmarks.model import (
     BookmarkEntry,
     flatten_bookmarks,
     load_bookmarks,
+    relocate_entries,
     write_bookmarks,
 )
 from harrix_swiss_knife.browser_bookmarks.sync import (
@@ -426,3 +428,89 @@ def test_save_snapshot_writes_v2_locations(tmp_path: Path) -> None:
     assert state.urls == {_URL_A}
     assert state.chrome_locations[_URL_A].folder_path == ("Work",)
     assert state.yandex_locations[_URL_A].folder_path == ("Work",)
+    assert state.chrome_locations[_URL_A].name == "A"
+
+
+def _tree_with_urls(items: Sequence[tuple[str, str, Sequence[str]]]) -> dict[str, Any]:
+    data = _empty_bookmarks()
+    folders: dict[tuple[str, ...], list[dict[str, Any]]] = {(): data["roots"]["bookmark_bar"]["children"]}
+    next_folder_id = 30
+    for index, (name, url, folder_parts) in enumerate(items):
+        current_path: tuple[str, ...] = ()
+        current_children = folders[()]
+        for part in folder_parts:
+            next_path = (*current_path, part)
+            if next_path not in folders:
+                folder = _folder_node(part, [], node_id=str(next_folder_id))
+                next_folder_id += 1
+                current_children.append(folder)
+                folders[next_path] = folder["children"]
+            current_children = folders[next_path]
+            current_path = next_path
+        current_children.append(_url_node(name, url, node_id=str(100 + index)))
+    return data
+
+
+def test_yandex_bulk_revert_restores_chrome_folders(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("harrix_swiss_knife.browser_bookmarks.sync.running_browser_names", list)
+    items = [
+        ("A", "https://a.example/", ("Work",)),
+        ("B", "https://b.example/", ("Archive",)),
+        ("C", "https://c.example/", ("Inbox",)),
+        ("D", "https://d.example/", ("Reading",)),
+        ("E", "https://e.example/", ("Later",)),
+    ]
+    chrome, yandex = _write_trees(tmp_path, _tree_with_urls(items), _tree_with_urls(items))
+    snap = tmp_path / "snap.json"
+    apply_sync_plan(
+        build_sync_plan(chrome_path=chrome, yandex_path=yandex, snapshot_file=snap),
+        create_backup=False,
+    )
+    reverted = [(name, url, ("T",)) for name, url, _folder in items]
+    write_bookmarks(yandex, _tree_with_urls(reverted))
+    plan = build_sync_plan(chrome_path=chrome, yandex_path=yandex, snapshot_file=snap)
+    assert plan.move_in_chrome == []
+    assert {item.url for item in plan.move_in_yandex} == {url for _name, url, _folder in items}
+    assert {item.folder_path for item in plan.move_in_yandex} == {
+        ("Work",),
+        ("Archive",),
+        ("Inbox",),
+        ("Reading",),
+        ("Later",),
+    }
+    apply_sync_plan(plan, create_backup=False)
+    yandex_map = flatten_bookmarks(load_bookmarks(yandex))
+    assert yandex_map["https://a.example/"].folder_path == ("Work",)
+    assert yandex_map["https://e.example/"].folder_path == ("Later",)
+
+
+def test_chrome_rename_propagates_to_yandex(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("harrix_swiss_knife.browser_bookmarks.sync.running_browser_names", list)
+    chrome, yandex = _write_trees(
+        tmp_path,
+        _tree_with_url("Old", _URL_A, ("Work",)),
+        _tree_with_url("Old", _URL_A, ("Work",)),
+    )
+    snap = tmp_path / "snap.json"
+    apply_sync_plan(
+        build_sync_plan(chrome_path=chrome, yandex_path=yandex, snapshot_file=snap),
+        create_backup=False,
+    )
+    write_bookmarks(chrome, _tree_with_url("New title", _URL_A, ("Work",)))
+    plan = build_sync_plan(chrome_path=chrome, yandex_path=yandex, snapshot_file=snap)
+    assert [item.url for item in plan.move_in_yandex] == [_URL_A]
+    assert plan.move_in_yandex[0].name == "New title"
+    assert plan.move_in_chrome == []
+    apply_sync_plan(plan, create_backup=False)
+    yandex_map = flatten_bookmarks(load_bookmarks(yandex))
+    assert yandex_map[_URL_A].name == "New title"
+    assert yandex_map[_URL_A].folder_path == ("Work",)
+
+
+def test_relocate_updates_title_in_place() -> None:
+    data = _tree_with_url("Old", _URL_A, ("Work",))
+    entry = BookmarkEntry(url=_URL_A, name="New title", root="bookmark_bar", folder_path=("Work",))
+    assert relocate_entries(data, [entry]) == 1
+    node = _find_url_node(data, _URL_A)
+    assert node is not None
+    assert node["name"] == "New title"

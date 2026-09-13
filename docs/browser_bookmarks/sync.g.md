@@ -42,6 +42,7 @@ class SnapshotLocation:
 
     root: str
     folder_path: tuple[str, ...]
+    name: str = ""
 ```
 
 </details>
@@ -338,6 +339,8 @@ def format_sync_report(plan: SyncPlan, *, applied: bool = False) -> str:
         lines.append("Close before Apply: " + ", ".join(plan.browsers_running))
     else:
         lines.append("Browsers: appear closed.")
+    lines.append("Leave both browsers closed until you confirm the new folders loaded.")
+    lines.append("Browser account sync can put bookmarks back after Apply.")
     lines.append("")
 
     if add_chrome:

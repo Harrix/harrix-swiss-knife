@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
@@ -28,6 +29,8 @@ from harrix_swiss_knife.browser_bookmarks.paths import (
 if TYPE_CHECKING:
     from pathlib import Path
 
+_BULK_REVERT_MIN_SOURCES = 2
+_BULK_REVERT_MIN_URLS = 5
 _REPORT_LIST_LIMIT = 40
 _SNAPSHOT_VERSION = 2
 
@@ -38,6 +41,7 @@ class SnapshotLocation:
 
     root: str
     folder_path: tuple[str, ...]
+    name: str = ""
 
 
 @dataclass
@@ -246,6 +250,8 @@ def format_sync_report(plan: SyncPlan, *, applied: bool = False) -> str:
         lines.append("Close before Apply: " + ", ".join(plan.browsers_running))
     else:
         lines.append("Browsers: appear closed.")
+    lines.append("Leave both browsers closed until you confirm the new folders loaded.")
+    lines.append("Browser account sync can put bookmarks back after Apply.")
     lines.append("")
 
     if add_chrome:
@@ -385,7 +391,7 @@ def _location_key(entry: BookmarkEntry) -> tuple[str, tuple[str, ...]]:
 
 
 def _location_payload(entry: BookmarkEntry) -> dict[str, Any]:
-    return {"root": entry.root, "folder_path": list(entry.folder_path)}
+    return {"root": entry.root, "folder_path": list(entry.folder_path), "name": entry.name}
 
 
 def _parse_snapshot_location(raw: Any) -> SnapshotLocation | None:
@@ -402,7 +408,9 @@ def _parse_snapshot_location(raw: Any) -> SnapshotLocation | None:
         if not isinstance(item, str):
             return None
         parts.append(item)
-    return SnapshotLocation(root=root, folder_path=tuple(parts))
+    name_raw = raw.get("name")
+    name = name_raw if isinstance(name_raw, str) else ""
+    return SnapshotLocation(root=root, folder_path=tuple(parts), name=name)
 
 
 def _plan_folder_moves(
@@ -411,8 +419,11 @@ def _plan_folder_moves(
     state: SnapshotState,
     deleted_urls: set[str],
 ) -> tuple[list[BookmarkEntry], list[BookmarkEntry]]:
-    move_in_chrome: list[BookmarkEntry] = []
-    move_in_yandex: list[BookmarkEntry] = []
+    pending: list[tuple[str, BookmarkEntry, BookmarkEntry, bool, bool]] = []
+    yandex_only_dest_sources: dict[tuple[str, tuple[str, ...]], set[tuple[str, tuple[str, ...]]]] = defaultdict(set)
+    chrome_only_dest_sources: dict[tuple[str, tuple[str, ...]], set[tuple[str, tuple[str, ...]]]] = defaultdict(set)
+    yandex_only_dest_count: dict[tuple[str, tuple[str, ...]], int] = defaultdict(int)
+    chrome_only_dest_count: dict[tuple[str, tuple[str, ...]], int] = defaultdict(int)
     for url in sorted(set(chrome_map) & set(yandex_map)):
         if url in deleted_urls:
             continue
@@ -420,22 +431,66 @@ def _plan_folder_moves(
         yandex_entry = yandex_map[url]
         chrome_loc = _location_key(chrome_entry)
         yandex_loc = _location_key(yandex_entry)
-        if chrome_loc == yandex_loc:
-            continue
         snap_chrome = state.chrome_locations.get(url)
         snap_yandex = state.yandex_locations.get(url)
-        chrome_changed = snap_chrome is not None and chrome_loc != _snapshot_location_key(snap_chrome)
-        yandex_changed = snap_yandex is not None and yandex_loc != _snapshot_location_key(snap_yandex)
+        chrome_loc_changed = snap_chrome is not None and chrome_loc != _snapshot_location_key(snap_chrome)
+        yandex_loc_changed = snap_yandex is not None and yandex_loc != _snapshot_location_key(snap_yandex)
+        chrome_name_changed = bool(
+            snap_chrome is not None and snap_chrome.name and chrome_entry.name != snap_chrome.name
+        )
+        yandex_name_changed = bool(
+            snap_yandex is not None and snap_yandex.name and yandex_entry.name != snap_yandex.name
+        )
+        chrome_changed = chrome_loc_changed or chrome_name_changed
+        yandex_changed = yandex_loc_changed or yandex_name_changed
+        if chrome_loc == yandex_loc and chrome_entry.name == yandex_entry.name:
+            continue
+        pending.append((url, chrome_entry, yandex_entry, chrome_changed, yandex_changed))
+        if yandex_loc_changed and not chrome_changed and snap_chrome is not None:
+            yandex_only_dest_sources[yandex_loc].add(_snapshot_location_key(snap_chrome))
+            yandex_only_dest_count[yandex_loc] += 1
+        elif chrome_loc_changed and not yandex_changed and snap_yandex is not None:
+            chrome_only_dest_sources[chrome_loc].add(_snapshot_location_key(snap_yandex))
+            chrome_only_dest_count[chrome_loc] += 1
+
+    yandex_bulk_revert = {
+        dest
+        for dest, sources in yandex_only_dest_sources.items()
+        if len(sources) >= _BULK_REVERT_MIN_SOURCES and yandex_only_dest_count[dest] >= _BULK_REVERT_MIN_URLS
+    }
+    chrome_bulk_revert = {
+        dest
+        for dest, sources in chrome_only_dest_sources.items()
+        if len(sources) >= _BULK_REVERT_MIN_SOURCES and chrome_only_dest_count[dest] >= _BULK_REVERT_MIN_URLS
+    }
+
+    move_in_chrome: list[BookmarkEntry] = []
+    move_in_yandex: list[BookmarkEntry] = []
+    for _url, chrome_entry, yandex_entry, chrome_changed, yandex_changed in pending:
+        chrome_loc = _location_key(chrome_entry)
+        yandex_loc = _location_key(yandex_entry)
         if chrome_changed and not yandex_changed:
-            move_in_yandex.append(chrome_entry)
-        elif yandex_changed and not chrome_changed:
-            move_in_chrome.append(yandex_entry)
-        elif chrome_changed and yandex_changed:
-            if _chromium_timestamp(yandex_entry.date_modified) > _chromium_timestamp(chrome_entry.date_modified):
+            if chrome_loc in chrome_bulk_revert:
                 move_in_chrome.append(yandex_entry)
             else:
                 move_in_yandex.append(chrome_entry)
+        elif yandex_changed and not chrome_changed:
+            if yandex_loc in yandex_bulk_revert:
+                move_in_yandex.append(chrome_entry)
+            else:
+                move_in_chrome.append(yandex_entry)
+        elif chrome_changed and yandex_changed:
+            if _prefer_yandex_timestamp(chrome_entry, yandex_entry):
+                move_in_chrome.append(yandex_entry)
+            else:
+                move_in_yandex.append(chrome_entry)
+        elif chrome_loc == yandex_loc and chrome_entry.name != yandex_entry.name:
+            move_in_yandex.append(chrome_entry)
     return move_in_chrome, move_in_yandex
+
+
+def _prefer_yandex_timestamp(chrome_entry: BookmarkEntry, yandex_entry: BookmarkEntry) -> bool:
+    return _chromium_timestamp(yandex_entry.date_modified) > _chromium_timestamp(chrome_entry.date_modified)
 
 
 def _snapshot_location_key(location: SnapshotLocation) -> tuple[str, tuple[str, ...]]:

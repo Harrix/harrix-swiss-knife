@@ -122,7 +122,7 @@ def flatten_bookmarks(data: dict[str, Any]) -> dict[str, BookmarkEntry]:
         node = roots.get(root_key)
         if not isinstance(node, dict):
             continue
-        _walk(node, root_key, (), result)
+        _walk(node, root_key, (), result, _node_date_modified(node))
     return result
 ```
 
@@ -175,7 +175,7 @@ def normalize_url(url: str) -> str:
 def relocate_entries(data: dict[str, Any], entries: list[BookmarkEntry]) -> int
 ```
 
-Move existing URL bookmarks to the given folder paths. Return count moved.
+Move existing URL bookmarks and/or update their titles. Return count changed.
 
 <details>
 <summary>Code:</summary>
@@ -195,10 +195,14 @@ def relocate_entries(data: dict[str, Any], entries: list[BookmarkEntry]) -> int:
         if current is None:
             continue
         if current.root == entry.root and current.folder_path == entry.folder_path:
+            if _apply_url_title(data, key, entry.name):
+                moved += 1
             continue
         node = _extract_url_node(data, key)
         if node is None:
             continue
+        if entry.name:
+            node["name"] = entry.name
         node["date_modified"] = chromium_now()
         folder = _ensure_folder(data, entry.root, entry.folder_path, next_id_holder)
         children = folder.setdefault("children", [])

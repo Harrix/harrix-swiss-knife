@@ -66,7 +66,7 @@ def flatten_bookmarks(data: dict[str, Any]) -> dict[str, BookmarkEntry]:
         node = roots.get(root_key)
         if not isinstance(node, dict):
             continue
-        _walk(node, root_key, (), result)
+        _walk(node, root_key, (), result, _node_date_modified(node))
     return result
 
 
@@ -86,7 +86,7 @@ def normalize_url(url: str) -> str:
 
 
 def relocate_entries(data: dict[str, Any], entries: list[BookmarkEntry]) -> int:
-    """Move existing URL bookmarks to the given folder paths. Return count moved."""
+    """Move existing URL bookmarks and/or update their titles. Return count changed."""
     if not entries:
         return 0
     existing = flatten_bookmarks(data)
@@ -100,10 +100,14 @@ def relocate_entries(data: dict[str, Any], entries: list[BookmarkEntry]) -> int:
         if current is None:
             continue
         if current.root == entry.root and current.folder_path == entry.folder_path:
+            if _apply_url_title(data, key, entry.name):
+                moved += 1
             continue
         node = _extract_url_node(data, key)
         if node is None:
             continue
+        if entry.name:
+            node["name"] = entry.name
         node["date_modified"] = chromium_now()
         folder = _ensure_folder(data, entry.root, entry.folder_path, next_id_holder)
         children = folder.setdefault("children", [])
@@ -143,6 +147,20 @@ def write_bookmarks(path: Path, data: dict[str, Any]) -> None:
     tmp = path.with_suffix(path.suffix + ".tmp")
     tmp.write_text(text, encoding="utf-8")
     tmp.replace(path)
+
+
+def _apply_url_title(data: dict[str, Any], url_key: str, name: str) -> bool:
+    if not name:
+        return False
+    node = _find_url_node(data, url_key)
+    if node is None:
+        return False
+    current = node.get("name")
+    if isinstance(current, str) and current == name:
+        return False
+    node["name"] = name
+    node["date_modified"] = chromium_now()
+    return True
 
 
 def _ensure_folder(
@@ -237,6 +255,36 @@ def _extract_url_node(data: dict[str, Any], url_key: str) -> dict[str, Any] | No
     return None
 
 
+def _find_url_in_node(node: dict[str, Any], url_key: str) -> dict[str, Any] | None:
+    if node.get("type") == "url":
+        url = node.get("url")
+        if isinstance(url, str) and normalize_url(url) == url_key:
+            return node
+        return None
+    children = node.get("children")
+    if not isinstance(children, list):
+        return None
+    for child in children:
+        if isinstance(child, dict):
+            found = _find_url_in_node(child, url_key)
+            if found is not None:
+                return found
+    return None
+
+
+def _find_url_node(data: dict[str, Any], url_key: str) -> dict[str, Any] | None:
+    roots = data.get("roots")
+    if not isinstance(roots, dict):
+        return None
+    for root_key in ROOT_KEYS:
+        node = roots.get(root_key)
+        if isinstance(node, dict):
+            found = _find_url_in_node(node, url_key)
+            if found is not None:
+                return found
+    return None
+
+
 def _max_id(data: dict[str, Any]) -> int:
     best = 0
 
@@ -268,6 +316,14 @@ def _new_url_node(entry: BookmarkEntry, node_id: int) -> dict[str, Any]:
         "type": "url",
         "url": entry.url,
     }
+
+
+def _newer_chromium_timestamp(first: str, second: str) -> str:
+    first_n = int(first) if first.isdigit() else 0
+    second_n = int(second) if second.isdigit() else 0
+    if first_n >= second_n:
+        return first or second
+    return second or first
 
 
 def _node_date_modified(node: dict[str, Any]) -> str:
@@ -315,6 +371,7 @@ def _walk(
     root: str,
     folder_path: tuple[str, ...],
     out: dict[str, BookmarkEntry],
+    parent_modified: str,
 ) -> None:
     node_type = node.get("type")
     if node_type == "url":
@@ -328,7 +385,7 @@ def _walk(
                     name=name if isinstance(name, str) else "",
                     root=root,
                     folder_path=folder_path,
-                    date_modified=_node_date_modified(node),
+                    date_modified=_newer_chromium_timestamp(_node_date_modified(node), parent_modified),
                 )
         return
     children = node.get("children")
@@ -340,6 +397,6 @@ def _walk(
         if child.get("type") == "folder":
             child_name = child.get("name")
             label = child_name if isinstance(child_name, str) else ""
-            _walk(child, root, (*folder_path, label), out)
+            _walk(child, root, (*folder_path, label), out, _node_date_modified(child))
         else:
-            _walk(child, root, folder_path, out)
+            _walk(child, root, folder_path, out, parent_modified)
