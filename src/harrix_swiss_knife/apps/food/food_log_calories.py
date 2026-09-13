@@ -56,10 +56,10 @@ def convert_calories_per_100g_to_portion(
 
     Returns:
 
-    - `float`: Energy of the whole serving.
+    - `float`: Energy of the whole serving, rounded to 1 decimal place.
 
     """
-    return (float(calories_per_100g) * float(weight)) / 100.0
+    return round((float(calories_per_100g) * float(weight)) / 100.0, 1)
 
 
 def convert_portion_to_calories_per_100g(
@@ -76,10 +76,10 @@ def convert_portion_to_calories_per_100g(
 
     Returns:
 
-    - `float`: Energy per 100 g.
+    - `float`: Energy per 100 g, rounded to 1 decimal place.
 
     """
-    return (float(portion_calories) / float(weight)) * 100.0
+    return round((float(portion_calories) / float(weight)) * 100.0, 1)
 
 
 def food_log_calorie_mode(

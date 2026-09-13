@@ -50,10 +50,13 @@ def test_food_log_calorie_mode_prefers_portion() -> None:
 
 def test_convert_portion_to_calories_per_100g() -> None:
     assert convert_portion_to_calories_per_100g(weight=200, portion_calories=300) == 150.0
+    assert convert_portion_to_calories_per_100g(weight=150, portion_calories=100) == 66.7
 
 
 def test_convert_calories_per_100g_to_portion() -> None:
     assert convert_calories_per_100g_to_portion(weight=200, calories_per_100g=150) == 300.0
+    assert convert_calories_per_100g_to_portion(weight=70, calories_per_100g=33.3) == 23.3
+    assert convert_calories_per_100g_to_portion(weight=150, calories_per_100g=66.7) == 100.0
 
 
 def test_parse_food_log_number_rejects_empty() -> None:

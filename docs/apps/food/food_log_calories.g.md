@@ -71,7 +71,7 @@ Args:
 
 Returns:
 
-- `float`: Energy of the whole serving.
+- `float`: Energy of the whole serving, rounded to 1 decimal place.
 
 <details>
 <summary>Code:</summary>
@@ -82,7 +82,7 @@ def convert_calories_per_100g_to_portion(
     weight: float,
     calories_per_100g: float,
 ) -> float:
-    return (float(calories_per_100g) * float(weight)) / 100.0
+    return round((float(calories_per_100g) * float(weight)) / 100.0, 1)
 ```
 
 </details>
@@ -102,7 +102,7 @@ Args:
 
 Returns:
 
-- `float`: Energy per 100 g.
+- `float`: Energy per 100 g, rounded to 1 decimal place.
 
 <details>
 <summary>Code:</summary>
@@ -113,7 +113,7 @@ def convert_portion_to_calories_per_100g(
     weight: float,
     portion_calories: float,
 ) -> float:
-    return (float(portion_calories) / float(weight)) * 100.0
+    return round((float(portion_calories) / float(weight)) * 100.0, 1)
 ```
 
 </details>
