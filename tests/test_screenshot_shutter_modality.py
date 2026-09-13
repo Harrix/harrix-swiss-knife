@@ -13,7 +13,7 @@ from harrix_swiss_knife.screenshot.region_overlay import (
     RESULT_TOGGLE_KEEP_WINDOWS,
     RegionOverlay,
 )
-from harrix_swiss_knife.screenshot.shutter_button import ArrangeModeDialog, ShutterPanel
+from harrix_swiss_knife.screenshot.shutter_button import ArrangeModeDialog, ShutterPanel, ShutterSwitch
 
 
 @pytest.fixture
@@ -259,17 +259,70 @@ def test_arrange_dialog_stays_on_top_frameless(qapp: QApplication) -> None:  # n
 
 
 def test_shutter_panel_shows_visible_labels(qapp: QApplication) -> None:  # noqa: ARG001
-    """Tool names stay visible beside the buttons (not only as hover tooltips)."""
+    """Tool names stay visible under the controls (not only as hover tooltips)."""
     panel = ShutterPanel()
     panel.set_mode("selection")
     panel.show()
     QApplication.processEvents()
 
     labels = {label.text() for label in panel.findChildren(QLabel)}
-    assert "Arrange" in labels
+    assert "Desktop" in labels
     assert "Clipboard only" in labels
     assert "OCR + translate" in labels
+    assert "Show app" in labels
     assert "Collapse" in labels
+    panel.close()
+
+
+def test_shutter_panel_is_draggable(qapp: QApplication) -> None:  # noqa: ARG001
+    panel = ShutterPanel()
+    panel.set_mode("selection")
+    panel.show()
+    QApplication.processEvents()
+    start = panel.pos()
+    press = QMouseEvent(
+        QMouseEvent.Type.MouseButtonPress,
+        QPointF(4, 4),
+        panel.mapToGlobal(QPoint(4, 4)),
+        Qt.MouseButton.LeftButton,
+        Qt.MouseButton.LeftButton,
+        Qt.KeyboardModifier.NoModifier,
+    )
+    panel.mousePressEvent(press)
+    move = QMouseEvent(
+        QMouseEvent.Type.MouseMove,
+        QPointF(24, 34),
+        panel.mapToGlobal(QPoint(4, 4)) + QPoint(40, 50),
+        Qt.MouseButton.LeftButton,
+        Qt.MouseButton.LeftButton,
+        Qt.KeyboardModifier.NoModifier,
+    )
+    panel.mouseMoveEvent(move)
+    release = QMouseEvent(
+        QMouseEvent.Type.MouseButtonRelease,
+        QPointF(24, 34),
+        panel.mapToGlobal(QPoint(4, 4)) + QPoint(40, 50),
+        Qt.MouseButton.LeftButton,
+        Qt.MouseButton.LeftButton,
+        Qt.KeyboardModifier.NoModifier,
+    )
+    panel.mouseReleaseEvent(release)
+    QApplication.processEvents()
+    assert panel.user_moved
+    assert panel.pos() != start
+    panel.close()
+
+
+def test_shutter_toggle_exposes_large_switch(qapp: QApplication) -> None:  # noqa: ARG001
+    """Toggle cells include a dedicated switch wider than the icon button."""
+    panel = ShutterPanel()
+    panel.set_mode("selection")
+    panel.show()
+    QApplication.processEvents()
+    switches = panel.findChildren(ShutterSwitch)
+    assert switches
+    assert all(switch.width() >= 40 for switch in switches)
+    assert all(switch.height() >= 24 for switch in switches)
     panel.close()
 
 
@@ -288,6 +341,30 @@ def test_shutter_panel_collapse_hides_tools(qapp: QApplication) -> None:  # noqa
     panel.set_collapsed(collapsed=False)
     assert panel._tools_host.isVisible()
     panel.close()
+
+
+def test_arrange_mode_compacts_without_gaps(qapp: QApplication) -> None:  # noqa: ARG001
+    """Hidden selection tools must not leave empty vertical space in arrange mode."""
+    selection = ShutterPanel()
+    selection.set_mode("selection")
+    selection.show()
+    QApplication.processEvents()
+    selection_height = selection.height()
+
+    arrange = ShutterPanel()
+    arrange.set_mode("arrange")
+    arrange.show()
+    QApplication.processEvents()
+    visible_rows = [row for row in (arrange._mode_row, arrange._close_row, arrange._collapse_row) if row.isVisible()]
+    assert arrange._adjust_row.maximumHeight() == 0
+    assert arrange._guides_row.maximumHeight() == 0
+    assert not arrange._adjust_row.isVisible()
+    assert arrange.height() < selection_height
+    # Collapse + Capture + Cancel only — roughly three control rows.
+    assert arrange.height() <= selection_height // 2
+    assert len(visible_rows) == 3
+    selection.close()
+    arrange.close()
 
 
 def test_keep_windows_button_finishes_with_toggle_code(qapp: QApplication) -> None:  # noqa: ARG001
@@ -440,11 +517,11 @@ def test_record_region_shutter_hides_capture_only_buttons(qapp: QApplication) ->
     overlay.show()
     QApplication.processEvents()
     tips = {button.toolTip() for button in panel.findChildren(QPushButton) if button.isVisible()}
-    assert any("Arrange" in tip for tip in tips)
+    assert any("Desktop" in tip for tip in tips)
     assert any("Guides" in tip or "guides" in tip for tip in tips)
     assert any(tip == "Cancel" for tip in tips)
     assert not any("Adjust region" in tip for tip in tips)
-    assert not any("Keep app" in tip for tip in tips)
+    assert not any("Harrix Swiss Knife" in tip for tip in tips)
     assert not any("Clipboard" in tip for tip in tips)
     overlay.close()
 

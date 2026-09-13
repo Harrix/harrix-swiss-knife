@@ -4,13 +4,15 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Literal
 
-from PySide6.QtCore import QEvent, QPoint, QSize, Qt, Signal
+from PySide6.QtCore import QEvent, QPoint, QRectF, QSize, Qt, Signal
+from PySide6.QtGui import QColor, QMouseEvent, QPainter, QPaintEvent
 from PySide6.QtWidgets import (
     QApplication,
     QDialog,
     QHBoxLayout,
     QLabel,
     QPushButton,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -19,11 +21,8 @@ from harrix_swiss_knife.qt_frameless_window import frameless_stay_on_top_flags
 from harrix_swiss_knife.qt_lucide_icon import create_lucide_icon
 from harrix_swiss_knife.screenshot.toolbar_style import (
     TOOLBAR_BUTTON_SIZE,
-    TOOLBAR_BUTTON_STYLE,
     TOOLBAR_EDGE_MARGIN,
     TOOLBAR_ICON_SIZE,
-    TOOLBAR_TOGGLE_STYLE,
-    TOOLBAR_TOGGLE_WIDTH,
 )
 from harrix_swiss_knife.screenshot.window_visibility import (
     claim_screenshot_keyboard,
@@ -36,8 +35,9 @@ if TYPE_CHECKING:
     from PySide6.QtGui import QHideEvent, QKeyEvent, QShowEvent
 
 _ROW_GAP = 6
-_PANEL_PAD = 8
-_LABEL_MIN_WIDTH = 110
+_PANEL_PAD = 6
+_CELL_WIDTH = 120
+_LABEL_HEIGHT = 34
 _ARRANGE_ICON = "app-window"
 _CAMERA_ICON = "camera"
 _ADJUST_ICON = "move"
@@ -49,35 +49,61 @@ _CLOSE_ICON = "x"
 _COLLAPSE_ICON = "panel-left-close"
 _EXPAND_ICON = "panel-left-open"
 _EDIT_KEYS_TEXT = "←↑↓→ move 1 px\nShift+arrows 10 px\nCtrl+arrows resize\nDouble-click W/H to type\nEnter confirm"
+_ICON_COLOR = "#E8E8EA"
 _TOGGLE_CHECKED_ICON_COLOR = "#FFFFFF"
+_SWITCH_TRACK_W = 44
+_SWITCH_TRACK_H = 26
+_SWITCH_KNOB = 22
+_SWITCH_KNOB_OFF = QColor(150, 150, 155)
+_PANEL_RADIUS = 16
+# Match toast tone: dark translucent plate reads clearly over the dimmed desktop.
+_PANEL_FILL = QColor(40, 40, 40, 200)
+_QWIDGETSIZE_MAX = 16777215
 
 ShutterMode = Literal["selection", "arrange"]
 
-_PANEL_STYLE = """
-QWidget#ShutterPanelRoot {
-    background-color: rgba(245, 245, 247, 235);
-    border: 1px solid #E5E5E8;
-    border-radius: 12px;
+_FLAT_BUTTON_STYLE = """
+QPushButton {
+    background-color: rgba(255, 255, 255, 28);
+    border: 1px solid rgba(255, 255, 255, 45);
+    border-radius: 10px;
+    padding: 0px;
+    margin: 0px;
+}
+QPushButton:hover {
+    background-color: rgba(255, 255, 255, 55);
+    border-color: rgba(255, 255, 255, 80);
+}
+QPushButton:pressed {
+    background-color: rgba(255, 255, 255, 75);
+}
+QPushButton:checked {
+    background-color: rgba(0, 114, 202, 220);
+    border: 1px solid rgba(0, 114, 202, 240);
+}
+QPushButton:checked:hover {
+    background-color: rgba(0, 96, 171, 240);
 }
 """
 
 _HINT_STYLE = """
 QLabel {
-    color: #222;
-    background-color: #F5F5F7;
-    border: 1px solid #E5E5E8;
-    border-radius: 6px;
-    padding: 6px 10px;
-    font-size: 11pt;
+    color: #F2F2F2;
+    background-color: rgba(255, 255, 255, 28);
+    border: none;
+    border-radius: 8px;
+    padding: 6px 8px;
+    font-size: 10.5pt;
 }
 """
 
-_ROW_LABEL_STYLE = """
+_CELL_LABEL_STYLE = """
 QLabel {
-    color: #222;
+    color: #F2F2F2;
     background: transparent;
     border: none;
-    font-size: 10.5pt;
+    font-size: 9.5pt;
+    font-weight: 600;
     padding: 0px;
 }
 """
@@ -143,11 +169,16 @@ class ArrangeModeDialog(QDialog):
     def _fit_panel(self) -> None:
         """Keep the dialog size matched to the panel (grows when a hint is shown)."""
         self._panel.apply_available_height(_primary_available_height())
-        self.setFixedSize(self._panel.sizeHint())
+        self.setMinimumSize(0, 0)
+        self.setMaximumSize(_QWIDGETSIZE_MAX, _QWIDGETSIZE_MAX)
+        hint = self._panel.sizeHint()
+        self.setFixedSize(hint)
         self._position_on_primary_screen()
 
     def _position_on_primary_screen(self) -> None:
-        """Place the controls at the left center of the primary screen."""
+        """Place the controls at the left center unless the user dragged them."""
+        if self._panel.user_moved:
+            return
         screen = QApplication.primaryScreen()
         if screen is None:
             return
@@ -158,15 +189,18 @@ class ArrangeModeDialog(QDialog):
 
 
 class ShutterPanel(QWidget):
-    """Left-centered vertical toolbar with labeled tools, embeddable as a child.
+    """Left-centered translucent tool panel, embeddable as a child.
 
     Being a regular child widget (not a separate native window) guarantees that
     clicks reach the buttons even when the application has modal dialogs in
     `exec()` — the parent (overlay or arrange dialog) owns the modal input.
 
-    Action buttons are square; checkable tools are pill toggles of the same size
-    with visible text labels. Clipboard-only and OCR + translate are mutually
-    exclusive. A collapse control hides the tool list to a single expand button.
+    Tools sit in one rounded dark plate (same family as toasts). Action cells
+    show a left-aligned icon with the caption underneath. Toggle cells show a
+    left-aligned icon plus a large switch, with the caption under both.
+    Clipboard-only and OCR + translate are mutually exclusive. A collapse
+    control hides the tool list to a single expand cell. The plate can be
+    dragged so it does not cover the region being captured.
 
     """
 
@@ -180,95 +214,103 @@ class ShutterPanel(QWidget):
     triggered = Signal()
 
     def __init__(self, parent: QWidget | None = None, *, capture_options: bool = True) -> None:
-        """Create the shutter panel with arrange/adjust/close controls.
+        """Create the shutter panel with desktop/adjust/close controls.
 
         Args:
 
         - `parent` (`QWidget | None`): Parent widget.
         - `capture_options` (`bool`): When `False` (screen recording), hide Adjust /
-          Keep Windows / Clipboard / OCR — only Arrange, Guides, and Cancel remain.
+          Show app / Clipboard / OCR — only Desktop, Guides, and Cancel remain.
 
         """
         super().__init__(parent)
         self.setObjectName("ShutterPanelRoot")
-        self.setStyleSheet(_PANEL_STYLE)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.setAutoFillBackground(False)
+        self.setCursor(Qt.CursorShape.OpenHandCursor)
         self._capture_options = capture_options
         self._available_height = _primary_available_height()
         self._collapsed = False
         self._mode: ShutterMode = "selection"
+        self._user_moved = False
+        self._dragging = False
+        self._drag_offset = QPoint()
 
         root = QVBoxLayout(self)
         root.setContentsMargins(_PANEL_PAD, _PANEL_PAD, _PANEL_PAD, _PANEL_PAD)
         root.setSpacing(_ROW_GAP)
 
-        self._collapse_row, self._collapse_button, self._collapse_label = self._make_action_row(
+        self._collapse_row, self._collapse_button, self._collapse_label = self._make_action_cell(
             _COLLAPSE_ICON,
             "Collapse",
             "Collapse tools panel",
         )
         self._collapse_button.clicked.connect(self._toggle_collapsed)
-        root.addWidget(self._collapse_row)
+        root.addWidget(self._collapse_row, 0, Qt.AlignmentFlag.AlignLeft)
 
         self._tools_host = QWidget(self)
+        self._tools_host.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self._tools_host.setAutoFillBackground(False)
+        self._tools_host.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
         self._tools_layout = QVBoxLayout(self._tools_host)
         self._tools_layout.setContentsMargins(0, 0, 0, 0)
         self._tools_layout.setSpacing(_ROW_GAP)
 
-        self._mode_row, self._mode_button, self._mode_label = self._make_action_row(
+        self._mode_row, self._mode_button, self._mode_label = self._make_action_cell(
             _ARRANGE_ICON,
-            "Arrange",
-            "Arrange desktop",
+            "Desktop",
+            "Desktop — interact with other windows (OpenBoard-style)",
         )
         self._mode_button.clicked.connect(self.triggered.emit)
-        self._tools_layout.addWidget(self._mode_row)
+        self._tools_layout.addWidget(self._mode_row, 0, Qt.AlignmentFlag.AlignLeft)
 
-        self._adjust_row, self._adjust_button, self._adjust_label = self._make_toggle_row(
+        self._adjust_row, self._adjust_button, self._adjust_label = self._make_toggle_cell(
             _ADJUST_ICON,
             "Adjust",
             "Adjust region after select (Enter confirms)",
         )
         self._adjust_button.toggled.connect(self.adjust_toggled.emit)
-        self._tools_layout.addWidget(self._adjust_row)
+        self._tools_layout.addWidget(self._adjust_row, 0, Qt.AlignmentFlag.AlignLeft)
 
-        self._guides_row, self._guides_button, self._guides_label = self._make_toggle_row(
+        self._guides_row, self._guides_button, self._guides_label = self._make_toggle_cell(
             _GUIDES_ICON,
             "Guides",
             "Composition guides: thirds, diagonal, size, and angle",
         )
         self._guides_button.toggled.connect(self.guides_toggled.emit)
-        self._tools_layout.addWidget(self._guides_row)
+        self._tools_layout.addWidget(self._guides_row, 0, Qt.AlignmentFlag.AlignLeft)
 
-        self._keep_windows_row, self._keep_windows_button, self._keep_windows_label = self._make_toggle_row(
+        self._keep_windows_row, self._keep_windows_button, self._keep_windows_label = self._make_toggle_cell(
             _KEEP_WINDOWS_ICON,
-            "Keep windows",
-            "Keep app Windows visible in the screenshot",
+            "Show app",
+            "Keep Harrix Swiss Knife windows visible in the screenshot",
         )
         self._keep_windows_button.toggled.connect(self.keep_windows_toggled.emit)
-        self._tools_layout.addWidget(self._keep_windows_row)
+        self._tools_layout.addWidget(self._keep_windows_row, 0, Qt.AlignmentFlag.AlignLeft)
 
-        self._clipboard_row, self._clipboard_button, self._clipboard_label = self._make_toggle_row(
+        self._clipboard_row, self._clipboard_button, self._clipboard_label = self._make_toggle_cell(
             _CLIPBOARD_ICON,
             "Clipboard only",
             "Clipboard only (skip preview)",
         )
         self._clipboard_button.toggled.connect(lambda checked: self._on_clipboard_toggled(checked=checked))
-        self._tools_layout.addWidget(self._clipboard_row)
+        self._tools_layout.addWidget(self._clipboard_row, 0, Qt.AlignmentFlag.AlignLeft)
 
-        self._ocr_row, self._ocr_translate_button, self._ocr_label = self._make_toggle_row(
+        self._ocr_row, self._ocr_translate_button, self._ocr_label = self._make_toggle_cell(
             _OCR_TRANSLATE_ICON,
             "OCR + translate",
             "OCR + translate (skip preview)",
         )
         self._ocr_translate_button.toggled.connect(lambda checked: self._on_ocr_translate_toggled(checked=checked))
-        self._tools_layout.addWidget(self._ocr_row)
+        self._tools_layout.addWidget(self._ocr_row, 0, Qt.AlignmentFlag.AlignLeft)
 
-        self._close_row, self._close_button, self._close_label = self._make_action_row(
+        self._close_row, self._close_button, self._close_label = self._make_action_cell(
             _CLOSE_ICON,
             "Cancel",
             "Cancel" if not capture_options else "Cancel screenshot",
         )
         self._close_button.clicked.connect(self.cancelled.emit)
-        self._tools_layout.addWidget(self._close_row)
+        self._tools_layout.addWidget(self._close_row, 0, Qt.AlignmentFlag.AlignLeft)
 
         root.addWidget(self._tools_host)
 
@@ -277,8 +319,10 @@ class ShutterPanel(QWidget):
         self._edit_keys_label.setWordWrap(True)
         self._edit_keys_label.setText(_EDIT_KEYS_TEXT)
         self._edit_keys_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        self._edit_keys_label.setFixedWidth(_CELL_WIDTH)
+        self._edit_keys_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         self._edit_keys_label.hide()
-        root.addWidget(self._edit_keys_label)
+        root.addWidget(self._edit_keys_label, 0, Qt.AlignmentFlag.AlignLeft)
 
         self._apply_capture_option_visibility()
         self._update_size()
@@ -313,13 +357,52 @@ class ShutterPanel(QWidget):
 
     @property
     def keep_windows(self) -> bool:
-        """Whether application Windows should stay visible in the next grab."""
+        """Whether Harrix Swiss Knife Windows should stay visible in the next grab."""
         return self._mode == "selection" and self._keep_windows_button.isChecked()
+
+    def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        """Drag the panel (or its top-level arrange dialog) with the left button."""
+        if self._dragging and event.buttons() & Qt.MouseButton.LeftButton:
+            self._apply_drag(event.globalPosition().toPoint())
+            event.accept()
+            return
+        super().mouseMoveEvent(event)
+
+    def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        """Start dragging when the press is not on a button or switch."""
+        if event.button() == Qt.MouseButton.LeftButton and not self._is_interactive_target(
+            self.childAt(event.position().toPoint())
+        ):
+            self._dragging = True
+            self._drag_offset = event.globalPosition().toPoint() - self.mapToGlobal(QPoint(0, 0))
+            self.setCursor(Qt.CursorShape.ClosedHandCursor)
+            event.accept()
+            return
+        super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        """Stop dragging."""
+        if event.button() == Qt.MouseButton.LeftButton and self._dragging:
+            self._dragging = False
+            self.setCursor(Qt.CursorShape.OpenHandCursor)
+            event.accept()
+            return
+        super().mouseReleaseEvent(event)
 
     @property
     def ocr_translate(self) -> bool:
         """Whether capture should skip the preview and run OCR + translate."""
         return self._mode == "selection" and self._ocr_translate_button.isChecked()
+
+    def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
+        """Draw one rounded translucent plate behind all tools."""
+        del event
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(_PANEL_FILL)
+        painter.drawRoundedRect(QRectF(self.rect()), _PANEL_RADIUS, _PANEL_RADIUS)
+        painter.end()
 
     def set_adjust_mode(self, *, enabled: bool) -> None:
         """Set the adjust-region button without requiring a user click."""
@@ -340,11 +423,15 @@ class ShutterPanel(QWidget):
         if collapsed == self._collapsed:
             return
         self._collapsed = collapsed
-        self._tools_host.setVisible(not collapsed)
+        self._set_row_visible(self._tools_host, visible=not collapsed)
         if collapsed:
             self.set_edit_keys_visible(visible=False)
         self._collapse_button.setIcon(
-            create_lucide_icon(_EXPAND_ICON if collapsed else _COLLAPSE_ICON, TOOLBAR_ICON_SIZE)
+            create_lucide_icon(
+                _EXPAND_ICON if collapsed else _COLLAPSE_ICON,
+                TOOLBAR_ICON_SIZE,
+                color=_ICON_COLOR,
+            )
         )
         self._collapse_label.setText("Expand" if collapsed else "Collapse")
         hint = "Expand tools panel" if collapsed else "Collapse tools panel"
@@ -358,7 +445,7 @@ class ShutterPanel(QWidget):
             visible = False
         if visible == self._edit_keys_label.isVisible():
             return
-        self._edit_keys_label.setVisible(visible)
+        self._set_row_visible(self._edit_keys_label, visible=visible)
         self._update_size()
 
     def set_guides_mode(self, *, enabled: bool) -> None:
@@ -366,7 +453,7 @@ class ShutterPanel(QWidget):
         self._guides_button.setChecked(enabled)
 
     def set_keep_windows(self, *, enabled: bool) -> None:
-        """Set the keep-Windows button without emitting `keep_windows_toggled`."""
+        """Set the show-app button without emitting `keep_windows_toggled`."""
         blocked = self._keep_windows_button.blockSignals(True)  # noqa: FBT003
         try:
             self._keep_windows_button.setChecked(enabled)
@@ -374,29 +461,30 @@ class ShutterPanel(QWidget):
             self._keep_windows_button.blockSignals(blocked)
 
     def set_mode(self, mode: ShutterMode) -> None:
-        """Update the mode button for selection vs desktop-arrangement."""
+        """Update the mode button for selection vs desktop interaction."""
         self._mode = mode
         if mode == "selection":
-            self._mode_button.setIcon(create_lucide_icon(_ARRANGE_ICON, TOOLBAR_ICON_SIZE))
-            self._mode_label.setText("Arrange")
-            self._mode_button.setToolTip("Arrange desktop")
-            self._mode_button.setProperty("hover_hint", "Arrange desktop")
-            self._guides_row.show()
+            self._mode_button.setIcon(create_lucide_icon(_ARRANGE_ICON, TOOLBAR_ICON_SIZE, color=_ICON_COLOR))
+            self._mode_label.setText("Desktop")
+            tip = "Desktop — interact with other windows (OpenBoard-style)"
+            self._mode_button.setToolTip(tip)
+            self._mode_button.setProperty("hover_hint", tip)
+            self._set_row_visible(self._guides_row, visible=True)
             self._apply_capture_option_visibility()
         else:
-            self._mode_button.setIcon(create_lucide_icon(_CAMERA_ICON, TOOLBAR_ICON_SIZE))
+            self._mode_button.setIcon(create_lucide_icon(_CAMERA_ICON, TOOLBAR_ICON_SIZE, color=_ICON_COLOR))
             label = "Capture" if self._capture_options else "Select"
             self._mode_label.setText(label)
             tip = "Capture region" if self._capture_options else "Select region"
             self._mode_button.setToolTip(tip)
             self._mode_button.setProperty("hover_hint", tip)
-            self._adjust_row.hide()
+            self._set_row_visible(self._adjust_row, visible=False)
             self._adjust_button.setChecked(False)
-            self._guides_row.hide()
+            self._set_row_visible(self._guides_row, visible=False)
             self._guides_button.setChecked(False)
-            self._keep_windows_row.hide()
-            self._clipboard_row.hide()
-            self._ocr_row.hide()
+            self._set_row_visible(self._keep_windows_row, visible=False)
+            self._set_row_visible(self._clipboard_row, visible=False)
+            self._set_row_visible(self._ocr_row, visible=False)
             self.set_edit_keys_visible(visible=False)
         self._update_size()
 
@@ -410,12 +498,22 @@ class ShutterPanel(QWidget):
         finally:
             self._ocr_translate_button.blockSignals(blocked)
 
+    def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
+        """Recompute size after the first show — layout hints ignore hidden rows only then."""
+        super().showEvent(event)
+        self._update_size()
+
+    @property
+    def user_moved(self) -> bool:
+        """Whether the user dragged the panel away from the default spot."""
+        return self._user_moved
+
     def _apply_capture_option_visibility(self) -> None:
         show = self._capture_options and self._mode == "selection"
-        self._adjust_row.setVisible(show)
-        self._keep_windows_row.setVisible(show)
-        self._clipboard_row.setVisible(show)
-        self._ocr_row.setVisible(show)
+        self._set_row_visible(self._adjust_row, visible=show)
+        self._set_row_visible(self._keep_windows_row, visible=show)
+        self._set_row_visible(self._clipboard_row, visible=show)
+        self._set_row_visible(self._ocr_row, visible=show)
         if not show:
             self._adjust_button.setChecked(False)
             self._keep_windows_button.setChecked(False)
@@ -423,46 +521,76 @@ class ShutterPanel(QWidget):
             self._ocr_translate_button.setChecked(False)
             self.set_edit_keys_visible(visible=False)
 
-    def _make_action_row(self, icon_name: str, label: str, tooltip: str) -> tuple[QWidget, QPushButton, QLabel]:
-        row = QWidget(self)
-        layout = QHBoxLayout(row)
+    def _apply_drag(self, global_mouse: QPoint) -> None:
+        self._user_moved = True
+        new_global = global_mouse - self._drag_offset
+        window = self.window()
+        if isinstance(window, ArrangeModeDialog):
+            window.move(new_global)
+            return
+        parent = self.parentWidget()
+        if parent is not None:
+            self.move(parent.mapFromGlobal(new_global))
+        else:
+            self.move(new_global)
+
+    def _is_interactive_target(self, widget: QWidget | None) -> bool:
+        current = widget
+        while current is not None and current is not self:
+            if isinstance(current, (QPushButton, ShutterSwitch, ShutterToggleControl)):
+                return True
+            current = current.parentWidget()
+        return False
+
+    def _make_action_cell(self, icon_name: str, label: str, tooltip: str) -> tuple[QWidget, QPushButton, QLabel]:
+        cell = QWidget(self)
+        cell.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        cell.setFixedWidth(_CELL_WIDTH)
+        layout = QVBoxLayout(cell)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(_ROW_GAP)
+        layout.setSpacing(4)
         button = self._make_icon_button(icon_name, tooltip)
-        text = QLabel(label, row)
-        text.setStyleSheet(_ROW_LABEL_STYLE)
-        text.setMinimumWidth(_LABEL_MIN_WIDTH)
-        layout.addWidget(button, 0, Qt.AlignmentFlag.AlignVCenter)
-        layout.addWidget(text, 1, Qt.AlignmentFlag.AlignVCenter)
-        return row, button, text
+        text = self._make_cell_label(label, cell)
+        layout.addWidget(button, 0, Qt.AlignmentFlag.AlignLeft)
+        layout.addWidget(text, 0, Qt.AlignmentFlag.AlignLeft)
+        return cell, button, text
+
+    def _make_cell_label(self, label: str, parent: QWidget) -> QLabel:
+        text = QLabel(label, parent)
+        text.setStyleSheet(_CELL_LABEL_STYLE)
+        text.setWordWrap(True)
+        text.setFixedWidth(_CELL_WIDTH)
+        text.setMinimumHeight(_LABEL_HEIGHT)
+        text.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        text.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        return text
 
     def _make_icon_button(self, name: str, tooltip: str) -> QPushButton:
         button = QPushButton(self)
         button.setFixedSize(TOOLBAR_BUTTON_SIZE, TOOLBAR_BUTTON_SIZE)
-        button.setIcon(create_lucide_icon(name, TOOLBAR_ICON_SIZE))
+        button.setIcon(create_lucide_icon(name, TOOLBAR_ICON_SIZE, color=_ICON_COLOR))
         button.setIconSize(QSize(TOOLBAR_ICON_SIZE, TOOLBAR_ICON_SIZE))
         button.setCursor(Qt.CursorShape.PointingHandCursor)
         button.setToolTip(tooltip)
         button.setProperty("hover_hint", tooltip)
-        button.setStyleSheet(TOOLBAR_BUTTON_STYLE)
+        button.setStyleSheet(_FLAT_BUTTON_STYLE)
         button.setAttribute(Qt.WidgetAttribute.WA_Hover, on=True)
         return button
 
-    def _make_toggle(self, name: str, tooltip: str) -> ShutterToggleButton:
-        return ShutterToggleButton(name, tooltip, self)
-
-    def _make_toggle_row(self, icon_name: str, label: str, tooltip: str) -> tuple[QWidget, ShutterToggleButton, QLabel]:
-        row = QWidget(self)
-        layout = QHBoxLayout(row)
+    def _make_toggle_cell(
+        self, icon_name: str, label: str, tooltip: str
+    ) -> tuple[QWidget, ShutterToggleControl, QLabel]:
+        cell = QWidget(self)
+        cell.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        cell.setFixedWidth(_CELL_WIDTH)
+        layout = QVBoxLayout(cell)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(_ROW_GAP)
-        button = self._make_toggle(icon_name, tooltip)
-        text = QLabel(label, row)
-        text.setStyleSheet(_ROW_LABEL_STYLE)
-        text.setMinimumWidth(_LABEL_MIN_WIDTH)
-        layout.addWidget(button, 0, Qt.AlignmentFlag.AlignVCenter)
-        layout.addWidget(text, 1, Qt.AlignmentFlag.AlignVCenter)
-        return row, button, text
+        layout.setSpacing(4)
+        control = ShutterToggleControl(icon_name, tooltip, cell)
+        text = self._make_cell_label(label, cell)
+        layout.addWidget(control, 0, Qt.AlignmentFlag.AlignLeft)
+        layout.addWidget(text, 0, Qt.AlignmentFlag.AlignLeft)
+        return cell, control, text
 
     def _on_clipboard_toggled(self, *, checked: bool) -> None:
         if checked:
@@ -473,6 +601,36 @@ class ShutterPanel(QWidget):
         if checked:
             self._set_clipboard_checked(enabled=False)
         self.ocr_translate_toggled.emit(checked)
+
+    def _preferred_size(self) -> QSize:
+        """Size from non-hidden rows only (`isHidden`, not `isVisible`).
+
+        Before the panel is shown, `sizeHint()` still includes rows that were only
+        marked invisible via ancestors, which left empty gaps in arrange mode.
+
+        """
+        parts: list[QWidget] = []
+        if not self._collapse_row.isHidden():
+            parts.append(self._collapse_row)
+        if not self._tools_host.isHidden():
+            tool_rows = (
+                self._mode_row,
+                self._adjust_row,
+                self._guides_row,
+                self._keep_windows_row,
+                self._clipboard_row,
+                self._ocr_row,
+                self._close_row,
+            )
+            parts.extend(row for row in tool_rows if not row.isHidden())
+        if not self._edit_keys_label.isHidden():
+            parts.append(self._edit_keys_label)
+        if not parts:
+            side = _CELL_WIDTH + 2 * _PANEL_PAD
+            return QSize(side, side)
+        width = _CELL_WIDTH + 2 * _PANEL_PAD
+        height = 2 * _PANEL_PAD + sum(part.sizeHint().height() for part in parts) + _ROW_GAP * (len(parts) - 1)
+        return QSize(width, height)
 
     def _set_clipboard_checked(self, *, enabled: bool) -> None:
         if self._clipboard_button.isChecked() == enabled:
@@ -492,53 +650,149 @@ class ShutterPanel(QWidget):
         finally:
             self._ocr_translate_button.blockSignals(blocked)
 
+    def _set_row_visible(self, row: QWidget, *, visible: bool) -> None:
+        """Hide a row without leaving empty layout gaps after a fixed-size shrink."""
+        row.setVisible(visible)
+        if visible:
+            row.setMaximumHeight(_QWIDGETSIZE_MAX)
+        else:
+            row.setMaximumHeight(0)
+
     def _toggle_collapsed(self) -> None:
         self.set_collapsed(collapsed=not self._collapsed)
 
     def _update_size(self) -> None:
-        self.adjustSize()
-        hint = self.sizeHint()
-        max_h = self._available_height
+        # Clearing fixed bounds is required; otherwise sizeHint keeps the old height
+        # and hidden tools leave empty gaps in arrange / collapsed modes.
+        self.setMinimumSize(0, 0)
+        self.setMaximumSize(_QWIDGETSIZE_MAX, _QWIDGETSIZE_MAX)
+        self._tools_host.setMinimumSize(0, 0)
+        self._tools_host.setMaximumSize(_QWIDGETSIZE_MAX, _QWIDGETSIZE_MAX)
+        hint = self._preferred_size()
         new_width = hint.width()
-        new_height = min(hint.height(), max_h)
-        if self.width() == new_width and self.height() == new_height:
+        new_height = min(hint.height(), self._available_height)
+        if (
+            self.minimumWidth() == new_width
+            and self.maximumWidth() == new_width
+            and self.minimumHeight() == new_height
+            and self.maximumHeight() == new_height
+        ):
             self.geometry_changed.emit()
             return
         self.setFixedSize(new_width, new_height)
         self.geometry_changed.emit()
 
 
-class ShutterToggleButton(QPushButton):
-    """Pill checkable shutter tool matching the square action button size."""
+class ShutterSwitch(QPushButton):
+    """Large standalone on/off switch track used inside toggle cells."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        """Create a large iOS-style switch control."""
+        super().__init__(parent)
+        self.setCheckable(True)
+        self.setFixedSize(_SWITCH_TRACK_W, _SWITCH_TRACK_H)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setStyleSheet("QPushButton { background: transparent; border: none; }")
+        self.setAttribute(Qt.WidgetAttribute.WA_Hover, on=True)
+
+    def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
+        """Draw a large track and knob."""
+        del event
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
+        painter.setPen(Qt.PenStyle.NoPen)
+        if self.isChecked():
+            painter.setBrush(QColor("#0072CA"))
+        else:
+            painter.setBrush(QColor(90, 90, 95, 230))
+        painter.drawRoundedRect(
+            QRectF(0, 0, _SWITCH_TRACK_W, _SWITCH_TRACK_H), _SWITCH_TRACK_H / 2, _SWITCH_TRACK_H / 2
+        )
+        knob_y = (_SWITCH_TRACK_H - _SWITCH_KNOB) / 2
+        knob_x = _SWITCH_TRACK_W - _SWITCH_KNOB - 2 if self.isChecked() else 2
+        painter.setBrush(QColor("#FFFFFF") if self.isChecked() else _SWITCH_KNOB_OFF)
+        painter.drawEllipse(QRectF(knob_x, knob_y, _SWITCH_KNOB, _SWITCH_KNOB))
+        painter.end()
+
+
+class ShutterToggleControl(QWidget):
+    """Icon plus large switch; checkable like a single toggle button."""
+
+    toggled = Signal(bool)
 
     def __init__(self, icon_name: str, tooltip: str, parent: QWidget | None = None) -> None:
-        """Create a modern pill toggle for shutter options."""
+        """Create an icon + switch control group."""
         super().__init__(parent)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self._icon_name = icon_name
-        self.setCheckable(True)
-        self.setFixedSize(TOOLBAR_TOGGLE_WIDTH, TOOLBAR_BUTTON_SIZE)
-        self.setIconSize(QSize(TOOLBAR_ICON_SIZE, TOOLBAR_ICON_SIZE))
-        self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setToolTip(tooltip)
-        self.setProperty("hover_hint", tooltip)
-        self.setProperty("lucide_name", icon_name)
-        self.setStyleSheet(TOOLBAR_TOGGLE_STYLE)
-        self.setAttribute(Qt.WidgetAttribute.WA_Hover, on=True)
-        self.toggled.connect(lambda checked: self._sync_icon(checked=checked))
+        self._syncing = False
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(8)
+
+        self._icon_button = QPushButton(self)
+        self._icon_button.setCheckable(True)
+        self._icon_button.setFixedSize(TOOLBAR_BUTTON_SIZE, TOOLBAR_BUTTON_SIZE)
+        self._icon_button.setIconSize(QSize(TOOLBAR_ICON_SIZE, TOOLBAR_ICON_SIZE))
+        self._icon_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._icon_button.setToolTip(tooltip)
+        self._icon_button.setProperty("hover_hint", tooltip)
+        self._icon_button.setProperty("lucide_name", icon_name)
+        self._icon_button.setStyleSheet(_FLAT_BUTTON_STYLE)
+        self._icon_button.setAttribute(Qt.WidgetAttribute.WA_Hover, on=True)
+
+        self._switch = ShutterSwitch(self)
+        self._switch.setToolTip(tooltip)
+
+        layout.addWidget(self._icon_button)
+        layout.addWidget(self._switch)
+        layout.addStretch(1)
+
+        self._icon_button.toggled.connect(self._on_part_toggled)
+        self._switch.toggled.connect(self._on_part_toggled)
         self._sync_icon(checked=False)
 
+    def isChecked(self) -> bool:  # noqa: N802
+        """Whether the toggle is on."""
+        return self._switch.isChecked()
+
     def setChecked(self, checked: bool) -> None:  # noqa: N802, FBT001
-        """Keep the icon color in sync even when signals are blocked."""
-        super().setChecked(checked)
-        self._sync_icon(checked=checked)
+        """Set both icon and switch; emit `toggled` unless signals are blocked."""
+        if checked == self.isChecked():
+            self._sync_icon(checked=checked)
+            return
+        self._apply_checked(checked=checked, emit_signal=not self.signalsBlocked())
+
+    def toolTip(self) -> str:  # noqa: N802
+        """Forward tooltip from the icon button for test discovery."""
+        return self._icon_button.toolTip()
+
+    def _apply_checked(self, *, checked: bool, emit_signal: bool) -> None:
+        self._syncing = True
+        try:
+            self._icon_button.setChecked(checked)
+            self._switch.setChecked(checked)
+            self._sync_icon(checked=checked)
+        finally:
+            self._syncing = False
+        if emit_signal:
+            self.toggled.emit(checked)
+
+    def _on_part_toggled(self, checked: bool) -> None:  # noqa: FBT001
+        if self._syncing:
+            return
+        self._apply_checked(checked=checked, emit_signal=True)
 
     def _sync_icon(self, *, checked: bool = False) -> None:
-        color = _TOGGLE_CHECKED_ICON_COLOR if checked else None
-        self.setIcon(create_lucide_icon(self._icon_name, TOOLBAR_ICON_SIZE, color=color))
+        color = _TOGGLE_CHECKED_ICON_COLOR if checked else _ICON_COLOR
+        self._icon_button.setIcon(create_lucide_icon(self._icon_name, TOOLBAR_ICON_SIZE, color=color))
 
 
 def position_panel_at_left_center(panel: ShutterPanel, overlay_geometry: QRect) -> None:
     """Place an embedded panel at the left center of the primary screen.
+
+    Skips repositioning after the user has dragged the panel.
 
     Args:
 
@@ -546,6 +800,8 @@ def position_panel_at_left_center(panel: ShutterPanel, overlay_geometry: QRect) 
     - `overlay_geometry` (`QRect`): Overlay geometry in global (virtual desktop) coordinates.
 
     """
+    if panel.user_moved:
+        return
     screen = QApplication.primaryScreen()
     if screen is None:
         return
