@@ -75,6 +75,7 @@
     }
   ],
   "quick_launcher_markdown_in_panel": true,
+  "screenshot_shutter_sound": true,
   "editor": "cursor",
   "editor-notes": "code-insiders",
   "food_calorie_thresholds": {

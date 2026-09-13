@@ -16,6 +16,7 @@ from harrix_swiss_knife.screenshot.region_overlay import (
     RegionOverlay,
 )
 from harrix_swiss_knife.screenshot.shutter_button import ArrangeModeDialog
+from harrix_swiss_knife.screenshot.shutter_sound import play_screenshot_shutter_sound
 from harrix_swiss_knife.screenshot.window_rects import list_snappable_window_rects
 from harrix_swiss_knife.screenshot.window_visibility import (
     PREVIEW_FOREGROUND_DELAYS_MS,
@@ -201,6 +202,7 @@ def _capture_loop(*, with_controls: bool, session: _HideSession) -> QImage | Non
             image = overlay.cropped_image
             if image is None or image.isNull():
                 return None
+            play_screenshot_shutter_sound()
             _copy_image_to_clipboard(image)
             return image
 

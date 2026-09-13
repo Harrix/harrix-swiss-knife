@@ -17,6 +17,7 @@ This repository is licensed under the MIT license (see `LICENSE.md`), but during
 - [Lucide UI icons](#lucide-ui-icons)
 - [UI sounds (bundled WAV assets)](#ui-sounds-bundled-wav-assets)
   - [Habits (UI SFX cinematic)](#habits-ui-sfx-cinematic)
+  - [Screenshot shutter](#screenshot-shutter)
   - [Fitness voiceover (Kenney)](#fitness-voiceover-kenney)
   - [Fitness UI cues (UI SFX cinematic)](#fitness-ui-cues-ui-sfx-cinematic)
   - [Fitness record applause (BigSoundBank + UI SFX)](#fitness-record-applause-bigsoundbank--ui-sfx)
@@ -54,6 +55,13 @@ Short UI effects from **UI SFX**, **Kenney**, and **BigSoundBank**, license **CC
 - Files used:
   - `habit_done.wav` — UI SFX `cinematic/check` (habit Done)
   - `habit_not_done.wav` — UI SFX `cinematic/delete` (habit Not done)
+
+### Screenshot shutter
+
+- Source: Mixkit “Camera shutter click” (<https://mixkit.co/free-sound-effects/camera/>, asset preview `1133`)
+- License: Mixkit Sound Effects Free License (free for commercial and personal use; attribution not required)
+- Files used:
+  - `screenshot_shutter.wav` — short single shutter click after a successful region screenshot
 
 ### Fitness voiceover (Kenney)
 

@@ -421,6 +421,7 @@
   },
   "pypi_token": "snippet:api-keys/pypi-token.txt",
   "quick_launcher_markdown_in_panel": true,
+  "screenshot_shutter_sound": true,
   "show_main_window_on_startup": false,
   "site_default_language": "ru",
   "site_name": "harrix.dev",
