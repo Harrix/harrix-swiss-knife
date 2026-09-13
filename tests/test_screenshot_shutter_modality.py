@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from PySide6.QtCore import QEvent, QPoint, QPointF, QRect, Qt
+from PySide6.QtCore import QPoint, QPointF, QRect, Qt
 from PySide6.QtGui import QKeyEvent, QMouseEvent, QPixmap
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QDialog, QLabel, QLineEdit, QPushButton, QWidget
@@ -56,7 +56,7 @@ def test_adjust_mode_keeps_overlay_open_until_enter(qapp: QApplication) -> None:
     overlay = RegionOverlay(QPixmap(geo.size()), geo, with_shutter_controls=True)
     panel = overlay.findChild(ShutterPanel)
     assert panel is not None
-    panel.findChildren(QPushButton)[1].setChecked(True)
+    panel.set_adjust_mode(enabled=True)
     overlay.show()
     QApplication.processEvents()
 
@@ -127,7 +127,7 @@ def test_overlay_without_controls_has_no_panel(qapp: QApplication) -> None:  # n
     overlay.close()
 
 
-def test_escape_during_drag_cancels_capture(qapp: QApplication) -> None:  # noqa: ARG001
+def test_escape_during_drag_clears_frame_only(qapp: QApplication) -> None:  # noqa: ARG001
     overlay = RegionOverlay(QPixmap(200, 200), QApplication.primaryScreen().geometry())
     overlay.show()
     QApplication.processEvents()
@@ -148,7 +148,10 @@ def test_escape_during_drag_cancels_capture(qapp: QApplication) -> None:  # noqa
     overlay.keyPressEvent(escape)
     QApplication.processEvents()
 
-    assert overlay.result() == int(QDialog.DialogCode.Rejected)
+    assert overlay._origin is None
+    assert overlay._dragging is False
+    assert overlay.isVisible()
+    assert overlay.result() == 0
     overlay.close()
 
 
@@ -255,24 +258,35 @@ def test_arrange_dialog_stays_on_top_frameless(qapp: QApplication) -> None:  # n
     dialog.close()
 
 
-def test_shutter_panel_shows_hover_hint_caption(qapp: QApplication) -> None:  # noqa: ARG001
-    """In-panel captions must appear on hover (QToolTip is hidden under stay-on-top overlays)."""
+def test_shutter_panel_shows_visible_labels(qapp: QApplication) -> None:  # noqa: ARG001
+    """Tool names stay visible beside the buttons (not only as hover tooltips)."""
     panel = ShutterPanel()
     panel.set_mode("selection")
     panel.show()
     QApplication.processEvents()
 
-    mode_button = next(button for button in panel.findChildren(QPushButton) if "Arrange" in (button.toolTip() or ""))
-    QApplication.sendEvent(mode_button, QEvent(QEvent.Type.Enter))
-    QApplication.processEvents()
+    labels = {label.text() for label in panel.findChildren(QLabel)}
+    assert "Arrange" in labels
+    assert "Clipboard only" in labels
+    assert "OCR + translate" in labels
+    assert "Collapse" in labels
+    panel.close()
 
-    hints = [label for label in panel.findChildren(QLabel) if "Arrange" in label.text()]
-    assert hints
-    assert hints[0].isVisible()
 
-    QApplication.sendEvent(mode_button, QEvent(QEvent.Type.Leave))
+def test_shutter_panel_collapse_hides_tools(qapp: QApplication) -> None:  # noqa: ARG001
+    panel = ShutterPanel()
+    panel.set_mode("selection")
+    panel.show()
     QApplication.processEvents()
-    assert not hints[0].isVisible()
+    assert not panel.collapsed
+    panel.set_collapsed(collapsed=True)
+    QApplication.processEvents()
+    assert panel.collapsed
+    assert not panel._tools_host.isVisible()
+    labels = {label.text() for label in panel.findChildren(QLabel) if label.isVisible()}
+    assert "Expand" in labels
+    panel.set_collapsed(collapsed=False)
+    assert panel._tools_host.isVisible()
     panel.close()
 
 

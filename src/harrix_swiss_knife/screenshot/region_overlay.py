@@ -39,7 +39,7 @@ from harrix_swiss_knife.screenshot.selection_paint import (
     paint_selection_frame,
     paint_selection_handles,
 )
-from harrix_swiss_knife.screenshot.shutter_button import ShutterPanel, position_panel_at_top_center
+from harrix_swiss_knife.screenshot.shutter_button import ShutterPanel, position_panel_at_left_center
 from harrix_swiss_knife.screenshot.window_rects import snap_rect_at_point
 from harrix_swiss_knife.screenshot.window_visibility import (
     claim_screenshot_keyboard,
@@ -202,12 +202,12 @@ class RegionOverlay(QDialog):
             panel.cancelled.connect(self.reject)
             panel.keep_windows_toggled.connect(lambda _enabled: self.done(RESULT_TOGGLE_KEEP_WINDOWS))
             panel.guides_toggled.connect(lambda enabled: self._set_guides_enabled(enabled=enabled))
-            panel.geometry_changed.connect(lambda: position_panel_at_top_center(panel, geometry))
+            panel.geometry_changed.connect(lambda: position_panel_at_left_center(panel, geometry))
             if adjust_mode and not select_rect_only:
                 panel.set_adjust_mode(enabled=True)
             if guides_mode:
                 panel.set_guides_mode(enabled=True)
-            position_panel_at_top_center(panel, geometry)
+            position_panel_at_left_center(panel, geometry)
             panel.show()
             self._panel = panel
 
@@ -299,6 +299,10 @@ class RegionOverlay(QDialog):
         if event.key() == Qt.Key.Key_Escape:
             if self._edit_rect is not None:
                 self._clear_edit_rect()
+                event.accept()
+                return
+            if self._origin is not None or self._dragging:
+                self._clear_in_progress_selection()
                 event.accept()
                 return
             self._crop = None
@@ -518,6 +522,15 @@ class RegionOverlay(QDialog):
         self._set_overlay_cursor(Qt.CursorShape.CrossCursor)
         if self._panel is not None:
             self._panel.set_edit_keys_visible(visible=False)
+        self._update_snap_at(self._global_to_virtual(QCursor.pos()))
+        self._repaint_surfaces()
+
+    def _clear_in_progress_selection(self) -> None:
+        """Cancel an unfinished free-drag frame without leaving capture."""
+        self._origin = None
+        self._current = None
+        self._dragging = False
+        self._set_overlay_cursor(Qt.CursorShape.CrossCursor)
         self._update_snap_at(self._global_to_virtual(QCursor.pos()))
         self._repaint_surfaces()
 
