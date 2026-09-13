@@ -357,7 +357,8 @@
       "input": "<YOUR_SITE_CONTENT>",
       "output": "<YOUR_SITE_OUTPUT>",
       "theme": "<YOUR_SLICED_HTML_THEME>",
-      "icons": "<YOUR_GITHUB_FOLDER>/Harrix-Vector-Icons"
+      "icons": "<YOUR_GITHUB_FOLDER>/Harrix-Vector-Icons",
+      "deploy_remote": "root@<YOUR_VPS_IP>:/var/git/harrix.dev.git"
     }
   ],
   "path_html_template_dist": "<YOUR_GITHUB_FOLDER>/Harrix-HTML-Template/dist",

@@ -328,7 +328,8 @@
     "D:/Dropbox/Notes/Notes-Habits",
     "D:/GitHub/harrix-swiss-knife",
     "D:/GitHub/harrix-pylib",
-    "D:/GitHub/harrix-pyssg"
+    "D:/GitHub/harrix-pyssg",
+    "D:/GitHub/harrix.dev-html"
   ],
   "paths_notes": [
     "D:/Dropbox/Notes",
@@ -363,8 +364,10 @@
   "paths_sites": [
     {
       "input": "D:/GitHub/_content__harrix-dev",
-      "output": "D:/temp",
-      "theme": "D:/GitHub/Harrix-HTML-Template/theme"
+      "output": "D:/GitHub/harrix.dev-html",
+      "theme": "D:/GitHub/Harrix-HTML-Template/theme",
+      "icons": "D:/GitHub/_vector/Harrix-Vector-Icons",
+      "deploy_remote": "root@89.40.9.135:/var/git/harrix.dev.git"
     }
   ],
   "paths_with_featured_image": [

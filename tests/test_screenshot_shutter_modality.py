@@ -269,7 +269,7 @@ def test_shutter_panel_shows_visible_labels(qapp: QApplication) -> None:  # noqa
     assert "Desktop" in labels
     assert "Clipboard only" in labels
     assert "OCR + translate" in labels
-    assert "Show app" in labels
+    assert "Show Harrix app" in labels
     assert "Collapse" in labels
     panel.close()
 
@@ -327,20 +327,27 @@ def test_shutter_toggle_exposes_large_switch(qapp: QApplication) -> None:  # noq
 
 
 def test_shutter_panel_collapse_hides_tools(qapp: QApplication) -> None:  # noqa: ARG001
-    panel = ShutterPanel()
+    host = QWidget()
+    host.resize(800, 800)
+    host.show()
+    panel = ShutterPanel(host)
     panel.set_mode("selection")
     panel.show()
     QApplication.processEvents()
     assert not panel.collapsed
+    expanded_width = panel.width()
     panel.set_collapsed(collapsed=True)
     QApplication.processEvents()
     assert panel.collapsed
     assert not panel._tools_host.isVisible()
     labels = {label.text() for label in panel.findChildren(QLabel) if label.isVisible()}
     assert "Expand" in labels
+    assert panel.width() < expanded_width
+    # Collapsed width fits icon + Expand — not a reserved switch column (~92px controls).
+    assert panel.width() < 100
     panel.set_collapsed(collapsed=False)
     assert panel._tools_host.isVisible()
-    panel.close()
+    host.close()
 
 
 def test_arrange_mode_compacts_without_gaps(qapp: QApplication) -> None:  # noqa: ARG001

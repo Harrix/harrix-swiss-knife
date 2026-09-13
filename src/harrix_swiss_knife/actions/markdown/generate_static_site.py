@@ -8,6 +8,7 @@ from typing import Any
 import harrix_pyssg as hsg
 
 from harrix_swiss_knife.actions.common.base import ActionBase
+from harrix_swiss_knife.actions.common.site_deploy import deploy_generated_site, should_offer_deploy
 
 
 class OnGenerateStaticSite(ActionBase):
@@ -26,6 +27,7 @@ class OnGenerateStaticSite(ActionBase):
 
     icon = "🌐"
     title = "Generate static site…"
+    deploy_remote: str | None = None
     icons_dir: Path | None = None
     theme_dir: Path | None = None
 
@@ -64,6 +66,7 @@ class OnGenerateStaticSite(ActionBase):
 
         self.theme_dir: Path | None = None
         self.icons_dir: Path | None = None
+        self.deploy_remote = None
 
         if choice_type == "site":
             # Use configured site
@@ -72,6 +75,8 @@ class OnGenerateStaticSite(ActionBase):
             self.html_folder = Path(site["output"])
             self.theme_dir = self._resolve_theme_dir(site.get("theme"))
             self.icons_dir = self._resolve_icons_dir(site.get("icons"))
+            raw_remote = site.get("deploy_remote")
+            self.deploy_remote = str(raw_remote).strip() if raw_remote else None
         elif choice_type == "manual":
             # Request folders manually
             self.md_folder = self.dialogs.get_existing_directory(
@@ -146,13 +151,50 @@ class OnGenerateStaticSite(ActionBase):
             self.add_line(f"❌ Error during site generation: {e}")
             raise
 
-        return None
+        return "generated"
 
     @ActionBase.handle_exceptions("generating static site thread completion")
-    def thread_after(self, result: Any) -> None:  # noqa: ARG002
+    def thread_after(self, result: Any) -> None:
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} completed")
+        if (
+            result == "generated"
+            and self.html_folder is not None
+            and should_offer_deploy(self.html_folder, self.deploy_remote)
+        ):
+            publish = self.dialogs.get_yes_no_question(
+                "Deploy site",
+                "Deploy to harrix.dev?",
+                default_yes=True,
+            )
+            if publish:
+                self.start_thread(self._deploy_in_thread, self._deploy_after, "Deploying site…")
+                return
         self.show_result()
+
+    @ActionBase.handle_exceptions("deploying static site thread completion")
+    def _deploy_after(self, result: Any) -> None:
+        """Show deploy log after the worker thread finishes."""
+        if result == "deployed":
+            self.show_toast("Deploy to harrix.dev completed")
+        else:
+            self.show_toast("Deploy to harrix.dev failed")
+        self.show_result()
+
+    @ActionBase.handle_exceptions("deploying static site thread")
+    def _deploy_in_thread(self) -> str | None:
+        """Commit and push the generated HTML folder."""
+        if self.html_folder is None:
+            return None
+        self.add_line("")
+        self.add_line("🚀 Deploying generated site")
+        ok, output = deploy_generated_site(self.html_folder, remote_url=self.deploy_remote)
+        self.add_line(output)
+        if ok:
+            self.add_line("✅ Deploy completed")
+            return "deployed"
+        self.add_line("❌ Deploy failed")
+        return "deploy-failed"
 
     def _resolve_icons_dir(self, icons_value: Any) -> Path | None:
         """Resolve a Harrix-Vector-Icons repo from site config or `path_vector_icons`."""
