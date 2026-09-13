@@ -26,6 +26,7 @@ lang: en
   - [⚙️ Method `mouseMoveEvent`](#%EF%B8%8F-method-mousemoveevent)
   - [⚙️ Method `mousePressEvent`](#%EF%B8%8F-method-mousepressevent)
   - [⚙️ Method `mouseReleaseEvent`](#%EF%B8%8F-method-mousereleaseevent)
+  - [⚙️ Method `ocr_translate (property)`](#%EF%B8%8F-method-ocr_translate-property)
   - [⚙️ Method `paintEvent`](#%EF%B8%8F-method-paintevent)
   - [⚙️ Method `paint_screen_pane`](#%EF%B8%8F-method-paint_screen_pane)
   - [⚙️ Method `selected_rect (property)`](#%EF%B8%8F-method-selected_rect-property)
@@ -71,6 +72,7 @@ class RegionOverlay(QDialog):
         window_rects: Sequence[QRect] | None = None,
         keep_windows: bool = False,
         clipboard_only: bool = False,
+        ocr_translate: bool = False,
         select_rect_only: bool = False,
         adjust_mode: bool = False,
         guides_mode: bool = False,
@@ -87,6 +89,7 @@ class RegionOverlay(QDialog):
         - `window_rects` (`Sequence[QRect] | None`): Snappable window bounds in global logical pixels.
         - `keep_windows` (`bool`): If `True`, start with the keep-Windows shutter button on.
         - `clipboard_only` (`bool`): If `True`, start with the clipboard-only shutter button on.
+        - `ocr_translate` (`bool`): If `True`, start with the OCR + translate shutter button on.
         - `select_rect_only` (`bool`): If `True`, accept returns a region rect without cropping an image
           (used for screen recording).
         - `adjust_mode` (`bool`): If `True`, start with adjust-region enabled.
@@ -125,6 +128,7 @@ class RegionOverlay(QDialog):
         self._panel: ShutterPanel | None = None
         self._keep_windows = keep_windows
         self._clipboard_only = clipboard_only
+        self._ocr_translate = ocr_translate
         self._guides_enabled = False
         self._edit_rect: QRect | None = None
         self._edit_handle: HandleKind | None = None
@@ -150,7 +154,10 @@ class RegionOverlay(QDialog):
             panel.set_mode("selection")
             if not select_rect_only:
                 panel.set_keep_windows(enabled=keep_windows)
-                panel.set_clipboard_only(enabled=clipboard_only)
+                if ocr_translate:
+                    panel.set_ocr_translate(enabled=True)
+                else:
+                    panel.set_clipboard_only(enabled=clipboard_only)
             panel.triggered.connect(lambda: self.done(RESULT_TOGGLE_ARRANGE))
             panel.cancelled.connect(self.reject)
             panel.keep_windows_toggled.connect(lambda _enabled: self.done(RESULT_TOGGLE_KEEP_WINDOWS))
@@ -399,6 +406,13 @@ class RegionOverlay(QDialog):
             return
 
         self._finish_with_rect(capture_rect)
+
+    @property
+    def ocr_translate(self) -> bool:
+        """Whether capture should skip the preview and run OCR + translate."""
+        if self._panel is not None:
+            return self._panel.ocr_translate
+        return self._ocr_translate
 
     def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802, ARG002
         """Draw frozen desktop, dim overlay, selection/snap, and edit handles."""
@@ -743,7 +757,7 @@ class RegionOverlay(QDialog):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, frozen: QPixmap, geometry: QRect, *, screen_grabs: Sequence[ScreenGrab] | None = None, with_shutter_controls: bool = False, window_rects: Sequence[QRect] | None = None, keep_windows: bool = False, clipboard_only: bool = False, select_rect_only: bool = False, adjust_mode: bool = False, guides_mode: bool = False) -> None
+def __init__(self, frozen: QPixmap, geometry: QRect, *, screen_grabs: Sequence[ScreenGrab] | None = None, with_shutter_controls: bool = False, window_rects: Sequence[QRect] | None = None, keep_windows: bool = False, clipboard_only: bool = False, ocr_translate: bool = False, select_rect_only: bool = False, adjust_mode: bool = False, guides_mode: bool = False) -> None
 ```
 
 Create a fullscreen overlay for region selection, displaying the frozen desktop.
@@ -758,6 +772,7 @@ Args:
 - `window_rects` (`Sequence[QRect] | None`): Snappable window bounds in global logical pixels.
 - `keep_windows` (`bool`): If `True`, start with the keep-Windows shutter button on.
 - `clipboard_only` (`bool`): If `True`, start with the clipboard-only shutter button on.
+- `ocr_translate` (`bool`): If `True`, start with the OCR + translate shutter button on.
 - `select_rect_only` (`bool`): If `True`, accept returns a region rect without cropping an image
   (used for screen recording).
 - `adjust_mode` (`bool`): If `True`, start with adjust-region enabled.
@@ -777,6 +792,7 @@ def __init__(
         window_rects: Sequence[QRect] | None = None,
         keep_windows: bool = False,
         clipboard_only: bool = False,
+        ocr_translate: bool = False,
         select_rect_only: bool = False,
         adjust_mode: bool = False,
         guides_mode: bool = False,
@@ -813,6 +829,7 @@ def __init__(
         self._panel: ShutterPanel | None = None
         self._keep_windows = keep_windows
         self._clipboard_only = clipboard_only
+        self._ocr_translate = ocr_translate
         self._guides_enabled = False
         self._edit_rect: QRect | None = None
         self._edit_handle: HandleKind | None = None
@@ -838,7 +855,10 @@ def __init__(
             panel.set_mode("selection")
             if not select_rect_only:
                 panel.set_keep_windows(enabled=keep_windows)
-                panel.set_clipboard_only(enabled=clipboard_only)
+                if ocr_translate:
+                    panel.set_ocr_translate(enabled=True)
+                else:
+                    panel.set_clipboard_only(enabled=clipboard_only)
             panel.triggered.connect(lambda: self.done(RESULT_TOGGLE_ARRANGE))
             panel.cancelled.connect(self.reject)
             panel.keep_windows_toggled.connect(lambda _enabled: self.done(RESULT_TOGGLE_KEEP_WINDOWS))
@@ -1262,6 +1282,26 @@ def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
             return
 
         self._finish_with_rect(capture_rect)
+```
+
+</details>
+
+### ⚙️ Method `ocr_translate (property)`
+
+```python
+def ocr_translate(self) -> bool
+```
+
+Whether capture should skip the preview and run OCR + translate.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def ocr_translate(self) -> bool:
+        if self._panel is not None:
+            return self._panel.ocr_translate
+        return self._ocr_translate
 ```
 
 </details>

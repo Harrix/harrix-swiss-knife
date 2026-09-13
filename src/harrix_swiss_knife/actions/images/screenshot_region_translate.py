@@ -29,7 +29,8 @@ from harrix_swiss_knife.screenshot import capture_region
 class OnScreenshotRegionTranslate(ActionBase):
     """Capture a screen region, recognize text with AI, and translate when needed.
 
-    Skips the screenshot preview. Uses `apps.local_language` (default `ru`): if
+    Skips the screenshot preview when the OCR + translate shutter toggle stays
+    on (default for this action). Uses `apps.local_language` (default `ru`): if
     the recognized text is already in that language, only that text is shown;
     otherwise original and translation appear side by side.
 
@@ -58,14 +59,14 @@ class OnScreenshotRegionTranslate(ActionBase):
             self._start_from_path(paths[0])
             return
 
-        captured = capture_region(show_preview=False, show_shutter_button=True)
+        captured = capture_region(show_preview=False, ocr_translate=True, show_shutter_button=True)
         if captured is None:
             self.add_line("Screenshot cancelled")
             return
         message = "Screenshot copied to clipboard"
         self.add_line(message)
         self.show_toast(message)
-        self._start_from_qimage(captured)
+        # OCR + translate is started by `capture_region` when the shutter toggle stays on.
 
     def _run_request(self, prompt_text: str, image_data: tuple[bytes, str]) -> None:
         self._bothub_state = BothubRequestState()

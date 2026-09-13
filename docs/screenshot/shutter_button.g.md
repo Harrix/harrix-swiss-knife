@@ -25,12 +25,18 @@ lang: en
   - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
   - [⚙️ Method `guides_mode (property)`](#%EF%B8%8F-method-guides_mode-property)
   - [⚙️ Method `keep_windows (property)`](#%EF%B8%8F-method-keep_windows-property)
+  - [⚙️ Method `ocr_translate (property)`](#%EF%B8%8F-method-ocr_translate-property)
   - [⚙️ Method `set_adjust_mode`](#%EF%B8%8F-method-set_adjust_mode)
   - [⚙️ Method `set_clipboard_only`](#%EF%B8%8F-method-set_clipboard_only)
   - [⚙️ Method `set_edit_keys_visible`](#%EF%B8%8F-method-set_edit_keys_visible)
   - [⚙️ Method `set_guides_mode`](#%EF%B8%8F-method-set_guides_mode)
   - [⚙️ Method `set_keep_windows`](#%EF%B8%8F-method-set_keep_windows)
   - [⚙️ Method `set_mode`](#%EF%B8%8F-method-set_mode)
+  - [⚙️ Method `set_ocr_translate`](#%EF%B8%8F-method-set_ocr_translate)
+- [🏛️ Class `ShutterToggleButton`](#%EF%B8%8F-class-shuttertogglebutton)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-2)
+  - [⚙️ Method `paintEvent`](#%EF%B8%8F-method-paintevent)
+  - [⚙️ Method `setChecked`](#%EF%B8%8F-method-setchecked)
 - [🔧 Function `position_panel_at_top_center`](#-function-position_panel_at_top_center)
 
 </details>
@@ -251,16 +257,15 @@ clicks reach the buttons even when the application has modal dialogs in
 Hover captions are drawn as an in-panel label (not `QToolTip`), so they stay
 visible above the stay-on-top screenshot overlay.
 
-Buttons are square (`TOOLBAR_BUTTON_SIZE` px) and wrap to additional rows when
-the available width is too narrow. Checkable tools use the accent fill when
-selected.
+Action buttons are square; checkable tools are pill toggles with a mini
+switch cue. Clipboard-only and OCR + translate are mutually exclusive.
 
 In selection mode extra checkable buttons enable “adjust region” (the next
 selection stays editable until Enter), composition guides (thin frame,
 thirds, diagonal, size, and angle), keeping app Windows visible in the
-grab, and clipboard-only (skip the preview window). Pass
-`capture_options=False` for screen recording to keep only Arrange, Guides,
-and Cancel.
+grab, clipboard-only (skip the preview window), and OCR + translate (skip
+preview and run OCR/translate). Pass `capture_options=False` for screen
+recording to keep only Arrange, Guides, and Cancel.
 
 <details>
 <summary>Code:</summary>
@@ -273,6 +278,7 @@ class ShutterPanel(QWidget):
     geometry_changed = Signal()
     guides_toggled = Signal(bool)
     clipboard_toggled = Signal(bool)
+    ocr_translate_toggled = Signal(bool)
     keep_windows_toggled = Signal(bool)
     triggered = Signal()
 
@@ -283,7 +289,7 @@ class ShutterPanel(QWidget):
 
         - `parent` (`QWidget | None`): Parent widget.
         - `capture_options` (`bool`): When `False` (screen recording), hide Adjust /
-          Keep Windows / Clipboard — only Arrange, Guides, and Cancel remain.
+          Keep Windows / Clipboard / OCR — only Arrange, Guides, and Cancel remain.
 
         """
         super().__init__(parent)
@@ -307,37 +313,40 @@ class ShutterPanel(QWidget):
         self._mode_button.clicked.connect(self.triggered.emit)
         self._buttons_layout.addWidget(self._mode_button)
 
-        self._adjust_button = self._make_icon_button(
+        self._adjust_button = self._make_toggle(
             _ADJUST_ICON,
             "Adjust region after select (Enter confirms)",
         )
-        self._adjust_button.setCheckable(True)
         self._adjust_button.toggled.connect(self.adjust_toggled.emit)
         self._buttons_layout.addWidget(self._adjust_button)
 
-        self._guides_button = self._make_icon_button(
+        self._guides_button = self._make_toggle(
             _GUIDES_ICON,
             "Composition guides: thirds, diagonal, size, and angle",
         )
-        self._guides_button.setCheckable(True)
         self._guides_button.toggled.connect(self.guides_toggled.emit)
         self._buttons_layout.addWidget(self._guides_button)
 
-        self._keep_windows_button = self._make_icon_button(
+        self._keep_windows_button = self._make_toggle(
             _KEEP_WINDOWS_ICON,
             "Keep app Windows visible in the screenshot",
         )
-        self._keep_windows_button.setCheckable(True)
         self._keep_windows_button.toggled.connect(self.keep_windows_toggled.emit)
         self._buttons_layout.addWidget(self._keep_windows_button)
 
-        self._clipboard_button = self._make_icon_button(
+        self._clipboard_button = self._make_toggle(
             _CLIPBOARD_ICON,
             "Clipboard only (skip preview)",
         )
-        self._clipboard_button.setCheckable(True)
-        self._clipboard_button.toggled.connect(self.clipboard_toggled.emit)
+        self._clipboard_button.toggled.connect(self._on_clipboard_toggled)
         self._buttons_layout.addWidget(self._clipboard_button)
+
+        self._ocr_translate_button = self._make_toggle(
+            _OCR_TRANSLATE_ICON,
+            "OCR + translate (skip preview)",
+        )
+        self._ocr_translate_button.toggled.connect(self._on_ocr_translate_toggled)
+        self._buttons_layout.addWidget(self._ocr_translate_button)
 
         self._close_button = self._make_icon_button(
             _CLOSE_ICON,
@@ -407,13 +416,24 @@ class ShutterPanel(QWidget):
         """Whether application Windows should stay visible in the next grab."""
         return self._mode == "selection" and self._keep_windows_button.isChecked()
 
+    @property
+    def ocr_translate(self) -> bool:
+        """Whether capture should skip the preview and run OCR + translate."""
+        return self._mode == "selection" and self._ocr_translate_button.isChecked()
+
     def set_adjust_mode(self, *, enabled: bool) -> None:
         """Set the adjust-region button without requiring a user click."""
         self._adjust_button.setChecked(enabled)
 
     def set_clipboard_only(self, *, enabled: bool) -> None:
         """Set the clipboard-only button without requiring a user click."""
-        self._clipboard_button.setChecked(enabled)
+        blocked = self._clipboard_button.blockSignals(True)  # noqa: FBT003
+        try:
+            self._clipboard_button.setChecked(enabled)
+            if enabled:
+                self._set_ocr_translate_checked(enabled=False)
+        finally:
+            self._clipboard_button.blockSignals(blocked)
 
     def set_edit_keys_visible(self, *, visible: bool) -> None:
         """Show or hide arrow/Shift/Ctrl hints under the shutter buttons."""
@@ -458,20 +478,33 @@ class ShutterPanel(QWidget):
             self._guides_button.setChecked(False)
             self._keep_windows_button.hide()
             self._clipboard_button.hide()
+            self._ocr_translate_button.hide()
             self.set_edit_keys_visible(visible=False)
         if self._hovered_button is self._mode_button:
             self._show_hint(str(self._mode_button.property("hover_hint") or ""))
         self._update_size()
+
+    def set_ocr_translate(self, *, enabled: bool) -> None:
+        """Set the OCR + translate button without requiring a user click."""
+        blocked = self._ocr_translate_button.blockSignals(True)  # noqa: FBT003
+        try:
+            self._ocr_translate_button.setChecked(enabled)
+            if enabled:
+                self._set_clipboard_checked(enabled=False)
+        finally:
+            self._ocr_translate_button.blockSignals(blocked)
 
     def _apply_capture_option_visibility(self) -> None:
         show = self._capture_options and self._mode == "selection"
         self._adjust_button.setVisible(show)
         self._keep_windows_button.setVisible(show)
         self._clipboard_button.setVisible(show)
+        self._ocr_translate_button.setVisible(show)
         if not show:
             self._adjust_button.setChecked(False)
             self._keep_windows_button.setChecked(False)
             self._clipboard_button.setChecked(False)
+            self._ocr_translate_button.setChecked(False)
             self.set_edit_keys_visible(visible=False)
 
     def _hide_hint(self) -> None:
@@ -494,6 +527,39 @@ class ShutterPanel(QWidget):
         button.installEventFilter(self)
         return button
 
+    def _make_toggle(self, name: str, tooltip: str) -> ShutterToggleButton:
+        button = ShutterToggleButton(name, tooltip, self._buttons_host)
+        button.installEventFilter(self)
+        return button
+
+    def _on_clipboard_toggled(self, checked: bool) -> None:
+        if checked:
+            self._set_ocr_translate_checked(enabled=False)
+        self.clipboard_toggled.emit(checked)
+
+    def _on_ocr_translate_toggled(self, checked: bool) -> None:
+        if checked:
+            self._set_clipboard_checked(enabled=False)
+        self.ocr_translate_toggled.emit(checked)
+
+    def _set_clipboard_checked(self, *, enabled: bool) -> None:
+        if self._clipboard_button.isChecked() == enabled:
+            return
+        blocked = self._clipboard_button.blockSignals(True)  # noqa: FBT003
+        try:
+            self._clipboard_button.setChecked(enabled)
+        finally:
+            self._clipboard_button.blockSignals(blocked)
+
+    def _set_ocr_translate_checked(self, *, enabled: bool) -> None:
+        if self._ocr_translate_button.isChecked() == enabled:
+            return
+        blocked = self._ocr_translate_button.blockSignals(True)  # noqa: FBT003
+        try:
+            self._ocr_translate_button.setChecked(enabled)
+        finally:
+            self._ocr_translate_button.blockSignals(blocked)
+
     def _show_hint(self, text: str) -> None:
         if not text:
             self._hide_hint()
@@ -503,23 +569,19 @@ class ShutterPanel(QWidget):
         self._update_size()
 
     def _update_size(self) -> None:
-        visible_count = sum(
-            1
-            for button in (
-                self._mode_button,
-                self._adjust_button,
-                self._guides_button,
-                self._keep_windows_button,
-                self._clipboard_button,
-                self._close_button,
-            )
-            if not button.isHidden()
-        )
-        ideal_width = (
-            TOOLBAR_BUTTON_SIZE * visible_count + TOOLBAR_BUTTON_GAP * max(0, visible_count - 1)
-            if visible_count
-            else TOOLBAR_BUTTON_SIZE
-        )
+        widths = []
+        for button in (
+            self._mode_button,
+            self._adjust_button,
+            self._guides_button,
+            self._keep_windows_button,
+            self._clipboard_button,
+            self._ocr_translate_button,
+            self._close_button,
+        ):
+            if not button.isHidden():
+                widths.append(button.width())
+        ideal_width = sum(widths) + TOOLBAR_BUTTON_GAP * max(0, len(widths) - 1) if widths else TOOLBAR_BUTTON_SIZE
         width = min(ideal_width, self._available_width)
         width = max(width, TOOLBAR_BUTTON_SIZE)
 
@@ -563,7 +625,7 @@ Args:
 
 - `parent` (`QWidget | None`): Parent widget.
 - `capture_options` (`bool`): When `False` (screen recording), hide Adjust /
-  Keep Windows / Clipboard — only Arrange, Guides, and Cancel remain.
+  Keep Windows / Clipboard / OCR — only Arrange, Guides, and Cancel remain.
 
 <details>
 <summary>Code:</summary>
@@ -591,37 +653,40 @@ def __init__(self, parent: QWidget | None = None, *, capture_options: bool = Tru
         self._mode_button.clicked.connect(self.triggered.emit)
         self._buttons_layout.addWidget(self._mode_button)
 
-        self._adjust_button = self._make_icon_button(
+        self._adjust_button = self._make_toggle(
             _ADJUST_ICON,
             "Adjust region after select (Enter confirms)",
         )
-        self._adjust_button.setCheckable(True)
         self._adjust_button.toggled.connect(self.adjust_toggled.emit)
         self._buttons_layout.addWidget(self._adjust_button)
 
-        self._guides_button = self._make_icon_button(
+        self._guides_button = self._make_toggle(
             _GUIDES_ICON,
             "Composition guides: thirds, diagonal, size, and angle",
         )
-        self._guides_button.setCheckable(True)
         self._guides_button.toggled.connect(self.guides_toggled.emit)
         self._buttons_layout.addWidget(self._guides_button)
 
-        self._keep_windows_button = self._make_icon_button(
+        self._keep_windows_button = self._make_toggle(
             _KEEP_WINDOWS_ICON,
             "Keep app Windows visible in the screenshot",
         )
-        self._keep_windows_button.setCheckable(True)
         self._keep_windows_button.toggled.connect(self.keep_windows_toggled.emit)
         self._buttons_layout.addWidget(self._keep_windows_button)
 
-        self._clipboard_button = self._make_icon_button(
+        self._clipboard_button = self._make_toggle(
             _CLIPBOARD_ICON,
             "Clipboard only (skip preview)",
         )
-        self._clipboard_button.setCheckable(True)
-        self._clipboard_button.toggled.connect(self.clipboard_toggled.emit)
+        self._clipboard_button.toggled.connect(self._on_clipboard_toggled)
         self._buttons_layout.addWidget(self._clipboard_button)
+
+        self._ocr_translate_button = self._make_toggle(
+            _OCR_TRANSLATE_ICON,
+            "OCR + translate (skip preview)",
+        )
+        self._ocr_translate_button.toggled.connect(self._on_ocr_translate_toggled)
+        self._buttons_layout.addWidget(self._ocr_translate_button)
 
         self._close_button = self._make_icon_button(
             _CLOSE_ICON,
@@ -774,6 +839,24 @@ def keep_windows(self) -> bool:
 
 </details>
 
+### ⚙️ Method `ocr_translate (property)`
+
+```python
+def ocr_translate(self) -> bool
+```
+
+Whether capture should skip the preview and run OCR + translate.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def ocr_translate(self) -> bool:
+        return self._mode == "selection" and self._ocr_translate_button.isChecked()
+```
+
+</details>
+
 ### ⚙️ Method `set_adjust_mode`
 
 ```python
@@ -805,7 +888,13 @@ Set the clipboard-only button without requiring a user click.
 
 ```python
 def set_clipboard_only(self, *, enabled: bool) -> None:
-        self._clipboard_button.setChecked(enabled)
+        blocked = self._clipboard_button.blockSignals(True)  # noqa: FBT003
+        try:
+            self._clipboard_button.setChecked(enabled)
+            if enabled:
+                self._set_ocr_translate_checked(enabled=False)
+        finally:
+            self._clipboard_button.blockSignals(blocked)
 ```
 
 </details>
@@ -906,10 +995,208 @@ def set_mode(self, mode: ShutterMode) -> None:
             self._guides_button.setChecked(False)
             self._keep_windows_button.hide()
             self._clipboard_button.hide()
+            self._ocr_translate_button.hide()
             self.set_edit_keys_visible(visible=False)
         if self._hovered_button is self._mode_button:
             self._show_hint(str(self._mode_button.property("hover_hint") or ""))
         self._update_size()
+```
+
+</details>
+
+### ⚙️ Method `set_ocr_translate`
+
+```python
+def set_ocr_translate(self, *, enabled: bool) -> None
+```
+
+Set the OCR + translate button without requiring a user click.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_ocr_translate(self, *, enabled: bool) -> None:
+        blocked = self._ocr_translate_button.blockSignals(True)  # noqa: FBT003
+        try:
+            self._ocr_translate_button.setChecked(enabled)
+            if enabled:
+                self._set_clipboard_checked(enabled=False)
+        finally:
+            self._ocr_translate_button.blockSignals(blocked)
+```
+
+</details>
+
+## 🏛️ Class `ShutterToggleButton`
+
+```python
+class ShutterToggleButton(QPushButton)
+```
+
+Pill checkable shutter tool with an on/off switch cue on the right.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class ShutterToggleButton(QPushButton):
+
+    def __init__(self, icon_name: str, tooltip: str, parent: QWidget | None = None) -> None:
+        """Create a modern pill toggle for shutter options."""
+        super().__init__(parent)
+        self._icon_name = icon_name
+        self.setCheckable(True)
+        self.setFixedSize(TOOLBAR_TOGGLE_WIDTH, TOOLBAR_BUTTON_SIZE)
+        self.setIconSize(QSize(TOOLBAR_ICON_SIZE, TOOLBAR_ICON_SIZE))
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setToolTip(tooltip)
+        self.setProperty("hover_hint", tooltip)
+        self.setProperty("lucide_name", icon_name)
+        self.setStyleSheet(
+            TOOLBAR_TOGGLE_STYLE
+            + f"""
+QPushButton {{
+    padding-right: {_SWITCH_TRACK_W + _SWITCH_MARGIN}px;
+    padding-left: 4px;
+}}
+"""
+        )
+        self.setAttribute(Qt.WidgetAttribute.WA_Hover, on=True)
+        self.toggled.connect(self._sync_icon)
+        self._sync_icon(checked=False)
+
+    def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
+        """Draw the pill chrome and a compact switch track on the right."""
+        super().paintEvent(event)
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
+        track_x = self.width() - _SWITCH_MARGIN - _SWITCH_TRACK_W
+        track_y = (self.height() - _SWITCH_TRACK_H) // 2
+        painter.setPen(Qt.PenStyle.NoPen)
+        if self.isChecked():
+            painter.setBrush(QColor(255, 255, 255, 230))
+        else:
+            painter.setBrush(QColor(196, 196, 200))
+        painter.drawRoundedRect(
+            track_x,
+            track_y,
+            _SWITCH_TRACK_W,
+            _SWITCH_TRACK_H,
+            _SWITCH_TRACK_H / 2,
+            _SWITCH_TRACK_H / 2,
+        )
+        knob_y = track_y + (_SWITCH_TRACK_H - _SWITCH_KNOB) // 2
+        knob_x = track_x + _SWITCH_TRACK_W - _SWITCH_KNOB - 1 if self.isChecked() else track_x + 1
+        painter.setBrush(QColor("#0A5FA8") if self.isChecked() else QColor("#FFFFFF"))
+        painter.drawEllipse(knob_x, knob_y, _SWITCH_KNOB, _SWITCH_KNOB)
+        painter.end()
+
+    def setChecked(self, checked: bool) -> None:  # noqa: N802
+        """Keep the icon color in sync even when signals are blocked."""
+        super().setChecked(checked)
+        self._sync_icon(checked=checked)
+
+    def _sync_icon(self, checked: bool = False) -> None:
+        color = _TOGGLE_CHECKED_ICON_COLOR if checked else None
+        self.setIcon(create_lucide_icon(self._icon_name, TOOLBAR_ICON_SIZE, color=color))
+```
+
+</details>
+
+### ⚙️ Method `__init__`
+
+```python
+def __init__(self, icon_name: str, tooltip: str, parent: QWidget | None = None) -> None
+```
+
+Create a modern pill toggle for shutter options.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __init__(self, icon_name: str, tooltip: str, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self._icon_name = icon_name
+        self.setCheckable(True)
+        self.setFixedSize(TOOLBAR_TOGGLE_WIDTH, TOOLBAR_BUTTON_SIZE)
+        self.setIconSize(QSize(TOOLBAR_ICON_SIZE, TOOLBAR_ICON_SIZE))
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setToolTip(tooltip)
+        self.setProperty("hover_hint", tooltip)
+        self.setProperty("lucide_name", icon_name)
+        self.setStyleSheet(
+            TOOLBAR_TOGGLE_STYLE
+            + f"""
+QPushButton {{
+    padding-right: {_SWITCH_TRACK_W + _SWITCH_MARGIN}px;
+    padding-left: 4px;
+}}
+"""
+        )
+        self.setAttribute(Qt.WidgetAttribute.WA_Hover, on=True)
+        self.toggled.connect(self._sync_icon)
+        self._sync_icon(checked=False)
+```
+
+</details>
+
+### ⚙️ Method `paintEvent`
+
+```python
+def paintEvent(self, event: QPaintEvent) -> None
+```
+
+Draw the pill chrome and a compact switch track on the right.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
+        super().paintEvent(event)
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
+        track_x = self.width() - _SWITCH_MARGIN - _SWITCH_TRACK_W
+        track_y = (self.height() - _SWITCH_TRACK_H) // 2
+        painter.setPen(Qt.PenStyle.NoPen)
+        if self.isChecked():
+            painter.setBrush(QColor(255, 255, 255, 230))
+        else:
+            painter.setBrush(QColor(196, 196, 200))
+        painter.drawRoundedRect(
+            track_x,
+            track_y,
+            _SWITCH_TRACK_W,
+            _SWITCH_TRACK_H,
+            _SWITCH_TRACK_H / 2,
+            _SWITCH_TRACK_H / 2,
+        )
+        knob_y = track_y + (_SWITCH_TRACK_H - _SWITCH_KNOB) // 2
+        knob_x = track_x + _SWITCH_TRACK_W - _SWITCH_KNOB - 1 if self.isChecked() else track_x + 1
+        painter.setBrush(QColor("#0A5FA8") if self.isChecked() else QColor("#FFFFFF"))
+        painter.drawEllipse(knob_x, knob_y, _SWITCH_KNOB, _SWITCH_KNOB)
+        painter.end()
+```
+
+</details>
+
+### ⚙️ Method `setChecked`
+
+```python
+def setChecked(self, checked: bool) -> None
+```
+
+Keep the icon color in sync even when signals are blocked.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def setChecked(self, checked: bool) -> None:  # noqa: N802
+        super().setChecked(checked)
+        self._sync_icon(checked=checked)
 ```
 
 </details>

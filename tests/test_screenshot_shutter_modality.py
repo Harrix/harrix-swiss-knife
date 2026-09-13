@@ -332,6 +332,54 @@ def test_clipboard_only_button_toggles_without_closing(qapp: QApplication) -> No
     QApplication.processEvents()
     assert overlay.isVisible()
     assert overlay.clipboard_only
+    assert not overlay.ocr_translate
+    overlay.close()
+
+
+def test_ocr_translate_and_clipboard_are_mutual_exclusive(qapp: QApplication) -> None:  # noqa: ARG001
+    overlay = RegionOverlay(QPixmap(200, 200), QApplication.primaryScreen().geometry(), with_shutter_controls=True)
+    panel = overlay.findChild(ShutterPanel)
+    assert panel is not None
+    overlay.show()
+    QApplication.processEvents()
+    clipboard = next(
+        button
+        for button in panel.findChildren(QPushButton)
+        if button.isCheckable() and "clipboard" in (button.toolTip() or "").lower()
+    )
+    ocr = next(
+        button
+        for button in panel.findChildren(QPushButton)
+        if button.isCheckable() and "ocr" in (button.toolTip() or "").lower()
+    )
+    clipboard.setChecked(True)
+    QApplication.processEvents()
+    assert overlay.clipboard_only
+    assert not overlay.ocr_translate
+    ocr.setChecked(True)
+    QApplication.processEvents()
+    assert overlay.ocr_translate
+    assert not overlay.clipboard_only
+    assert not clipboard.isChecked()
+    clipboard.setChecked(True)
+    QApplication.processEvents()
+    assert overlay.clipboard_only
+    assert not overlay.ocr_translate
+    assert not ocr.isChecked()
+    overlay.close()
+
+
+def test_ocr_translate_initial_state(qapp: QApplication) -> None:  # noqa: ARG001
+    overlay = RegionOverlay(
+        QPixmap(200, 200),
+        QApplication.primaryScreen().geometry(),
+        with_shutter_controls=True,
+        ocr_translate=True,
+    )
+    overlay.show()
+    QApplication.processEvents()
+    assert overlay.ocr_translate
+    assert not overlay.clipboard_only
     overlay.close()
 
 

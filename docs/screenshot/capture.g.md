@@ -19,7 +19,7 @@ lang: en
 ## 🔧 Function `capture_region`
 
 ```python
-def capture_region(*, show_preview: bool = True, show_shutter_button: bool = True, hide_app: bool | None = None) -> QImage | None
+def capture_region(*, show_preview: bool = True, ocr_translate: bool = False, show_shutter_button: bool = True, hide_app: bool | None = None) -> QImage | None
 ```
 
 Capture a screen region with a ShareX-like workflow.
@@ -38,18 +38,22 @@ shutter button can flip this during selection: the overlay closes, Windows
 are hidden or restored, and a fresh grab opens a new overlay.
 
 When `show_shutter_button` is `True`, arrange, adjust, guides, keep-Windows,
-clipboard-only, and close buttons are embedded in the selection overlay.
-Arrange removes the overlay so the desktop can be rearranged; clipboard-only
-skips the preview after capture; adjust keeps the next selection editable
-(move/resize) until Enter or double-click; close cancels. A floating camera
-button returns to region selection with a fresh grab.
+clipboard-only, OCR + translate, and close buttons are embedded in the
+selection overlay. Arrange removes the overlay so the desktop can be
+rearranged; clipboard-only skips the preview after capture; OCR + translate
+skips the preview and starts OCR/translate; adjust keeps the next selection
+editable (move/resize) until Enter or double-click; close cancels. A floating
+camera button returns to region selection with a fresh grab.
 
 Every capture overlay runs modally via `exec()`. The optional preview window is
 non-modal so later captures can add tabs to an already open preview.
 
 Args:
 
-- `show_preview` (`bool`): If `True`, displays the preview window after capture.
+- `show_preview` (`bool`): If `True`, displays the preview window after capture
+  unless clipboard-only or OCR + translate is selected on the shutter bar.
+- `ocr_translate` (`bool`): If `True`, starts with OCR + translate enabled
+  (implies skipping the preview when left on).
 - `show_shutter_button` (`bool`): If `True`, shows the mode-toggle shutter controls.
 - `hide_app` (`bool | None`): If `True`, conceals application Windows before
   the grab. If `False`, they stay visible. If `None`, conceal unless a modal
@@ -66,6 +70,7 @@ Returns:
 def capture_region(
     *,
     show_preview: bool = True,
+    ocr_translate: bool = False,
     show_shutter_button: bool = True,
     hide_app: bool | None = None,
 ) -> QImage | None:
@@ -78,7 +83,8 @@ def capture_region(
 
     session = _HideSession(
         hide_app=hide_app,
-        show_preview=show_preview,
+        show_preview=show_preview and not ocr_translate,
+        ocr_translate=ocr_translate,
         hidden=hide_app_windows() if hide_app else [],
     )
     image: QImage | None = None
@@ -91,7 +97,9 @@ def capture_region(
         if session.hide_app:
             restore_app_windows(session.hidden, activate=not show_preview_now)
 
-    if session.show_preview and image is not None and not image.isNull():
+    if session.ocr_translate and image is not None and not image.isNull():
+        _start_ocr_translate(image)
+    elif session.show_preview and image is not None and not image.isNull():
         window = show_screenshot_preview(image)
         bring_window_to_foreground(window, delays_ms=PREVIEW_FOREGROUND_DELAYS_MS)
 

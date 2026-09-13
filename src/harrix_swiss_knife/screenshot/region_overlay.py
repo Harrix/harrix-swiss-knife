@@ -112,6 +112,7 @@ class RegionOverlay(QDialog):
         window_rects: Sequence[QRect] | None = None,
         keep_windows: bool = False,
         clipboard_only: bool = False,
+        ocr_translate: bool = False,
         select_rect_only: bool = False,
         adjust_mode: bool = False,
         guides_mode: bool = False,
@@ -128,6 +129,7 @@ class RegionOverlay(QDialog):
         - `window_rects` (`Sequence[QRect] | None`): Snappable window bounds in global logical pixels.
         - `keep_windows` (`bool`): If `True`, start with the keep-Windows shutter button on.
         - `clipboard_only` (`bool`): If `True`, start with the clipboard-only shutter button on.
+        - `ocr_translate` (`bool`): If `True`, start with the OCR + translate shutter button on.
         - `select_rect_only` (`bool`): If `True`, accept returns a region rect without cropping an image
           (used for screen recording).
         - `adjust_mode` (`bool`): If `True`, start with adjust-region enabled.
@@ -166,6 +168,7 @@ class RegionOverlay(QDialog):
         self._panel: ShutterPanel | None = None
         self._keep_windows = keep_windows
         self._clipboard_only = clipboard_only
+        self._ocr_translate = ocr_translate
         self._guides_enabled = False
         self._edit_rect: QRect | None = None
         self._edit_handle: HandleKind | None = None
@@ -191,7 +194,10 @@ class RegionOverlay(QDialog):
             panel.set_mode("selection")
             if not select_rect_only:
                 panel.set_keep_windows(enabled=keep_windows)
-                panel.set_clipboard_only(enabled=clipboard_only)
+                if ocr_translate:
+                    panel.set_ocr_translate(enabled=True)
+                else:
+                    panel.set_clipboard_only(enabled=clipboard_only)
             panel.triggered.connect(lambda: self.done(RESULT_TOGGLE_ARRANGE))
             panel.cancelled.connect(self.reject)
             panel.keep_windows_toggled.connect(lambda _enabled: self.done(RESULT_TOGGLE_KEEP_WINDOWS))
@@ -440,6 +446,13 @@ class RegionOverlay(QDialog):
             return
 
         self._finish_with_rect(capture_rect)
+
+    @property
+    def ocr_translate(self) -> bool:
+        """Whether capture should skip the preview and run OCR + translate."""
+        if self._panel is not None:
+            return self._panel.ocr_translate
+        return self._ocr_translate
 
     def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802, ARG002
         """Draw frozen desktop, dim overlay, selection/snap, and edit handles."""
