@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 import harrix_pylib as h
-from PySide6.QtCore import QFile, QTimer, QUrl
+from PySide6.QtCore import QFile, QUrl
 from PySide6.QtMultimedia import QSoundEffect
 
 from harrix_swiss_knife.paths import get_config_path_str
@@ -14,13 +14,11 @@ from harrix_swiss_knife.qt_sounds import qt_sounds_muted
 
 SCREENSHOT_SHUTTER_SOUND_KEY = "screenshot_shutter_sound"
 _SOUND_NAME = "screenshot_shutter.wav"
-_VOLUME = 0.85
+_VOLUME = 1.0
+_MAX_LIVE_EFFECTS = 4
 
-_state: dict[str, Any] = {
-    "effect": None,
-    "pending_play": False,
-    "primed": False,
-}
+_live_effects: list[QSoundEffect] = []
+_prime_state: dict[str, Any] = {"effect": None, "ready": False}
 
 
 def load_screenshot_shutter_sound_enabled() -> bool:
@@ -43,13 +41,25 @@ def play_screenshot_shutter_sound() -> None:
     """
     if qt_sounds_muted() or not load_screenshot_shutter_sound_enabled():
         return
-    preload_screenshot_shutter_sound()
-    QTimer.singleShot(0, _play)
+    url = _sound_url(_SOUND_NAME)
+    if not url.isValid():
+        return
+    _ensure_primed(url)
+    effect = QSoundEffect()
+    effect.setSource(url)
+    effect.setVolume(_VOLUME)
+    _prune_live_effects()
+    _live_effects.append(effect)
+    effect.play()
 
 
 def preload_screenshot_shutter_sound() -> None:
-    """Decode the shutter effect so the first capture can play immediately."""
-    _effect_for()
+    """Warm the audio device so the first capture click is audible on Windows."""
+    if qt_sounds_muted():
+        return
+    url = _sound_url(_SOUND_NAME)
+    if url.isValid():
+        _ensure_primed(url)
 
 
 def screenshot_shutter_sound_name() -> str:
@@ -57,73 +67,34 @@ def screenshot_shutter_sound_name() -> str:
     return _SOUND_NAME
 
 
-def _effect_for() -> QSoundEffect | None:
-    cached = _state["effect"]
-    if cached is not None:
-        return cached
-    url = _sound_url(_SOUND_NAME)
-    if not url.isValid():
-        return None
+def _ensure_primed(url: QUrl) -> None:
+    if _prime_state["ready"] and _prime_state["effect"] is not None:
+        return
     effect = QSoundEffect()
     effect.setVolume(0.0)
-    effect.statusChanged.connect(lambda e=effect: _on_effect_status(e))
     effect.setSource(url)
-    _state["effect"] = effect
-    if effect.status() == QSoundEffect.Status.Ready:
-        _on_effect_status(effect)
-    return effect
+    _prime_state["effect"] = effect
 
-
-def _on_effect_status(effect: QSoundEffect) -> None:
-    status = effect.status()
-    if status == QSoundEffect.Status.Error:
-        _state["pending_play"] = False
-        return
-    if status != QSoundEffect.Status.Ready:
-        return
-    if not _state["primed"]:
-        _prime_effect(effect)
-        if _state["pending_play"]:
-            QTimer.singleShot(0, lambda e=effect: _play_pending(e))
-        return
-    if _state["pending_play"]:
-        _play_pending(effect)
-
-
-def _play() -> None:
-    if qt_sounds_muted() or not load_screenshot_shutter_sound_enabled():
-        return
-    effect = _effect_for()
-    if effect is None:
-        return
-    if effect.status() == QSoundEffect.Status.Error:
-        return
-    if effect.status() == QSoundEffect.Status.Ready and _state["primed"]:
-        effect.setVolume(_VOLUME)
+    def on_ready() -> None:
+        if effect.status() != QSoundEffect.Status.Ready or _prime_state["ready"]:
+            return
+        _prime_state["ready"] = True
+        if qt_sounds_muted():
+            return
+        effect.setVolume(0.0)
         effect.play()
-        return
-    _state["pending_play"] = True
+
+    effect.statusChanged.connect(on_ready)
     if effect.status() == QSoundEffect.Status.Ready:
-        _on_effect_status(effect)
+        on_ready()
 
 
-def _play_pending(effect: QSoundEffect) -> None:
-    _state["pending_play"] = False
-    if qt_sounds_muted() or not load_screenshot_shutter_sound_enabled():
-        return
-    if effect.status() != QSoundEffect.Status.Ready:
-        return
-    effect.setVolume(_VOLUME)
-    effect.play()
-
-
-def _prime_effect(effect: QSoundEffect) -> None:
-    """Warm the Windows audio device; the first play() of a new effect is often silent."""
-    _state["primed"] = True
-    if qt_sounds_muted():
-        return
-    effect.setVolume(0.0)
-    effect.play()
+def _prune_live_effects() -> None:
+    live = [effect for effect in _live_effects if effect.isPlaying()]
+    if len(live) >= _MAX_LIVE_EFFECTS:
+        live = live[-(_MAX_LIVE_EFFECTS - 1) :]
+    _live_effects.clear()
+    _live_effects.extend(live)
 
 
 def _sound_url(name: str) -> QUrl:

@@ -58,10 +58,10 @@ Short UI effects from **UI SFX**, **Kenney**, and **BigSoundBank**, license **CC
 
 ### Screenshot shutter
 
-- Source: OpenGameArt “Camera” by themightyglider (<https://opengameart.org/content/camera>), rearranged from Archive.org Camera Shutter Sound (<https://archive.org/details/CameraShutterSound>)
-- License: CC0 1.0
+- Source: Mixkit “Camera shutter click” (<https://mixkit.co/free-sound-effects/camera/>, asset preview `1133`)
+- License: Mixkit Sound Effects Free License (free for commercial and personal use; attribution not required)
 - Files used:
-  - `screenshot_shutter.wav` — camera shutter click after a successful region screenshot
+  - `screenshot_shutter.wav` — short single shutter click after a successful region screenshot
 
 ### Fitness voiceover (Kenney)
 

@@ -60,8 +60,16 @@ Respects `screenshot_shutter_sound` in config and `HSK_MUTE_SOUNDS` / pytest.
 def play_screenshot_shutter_sound() -> None:
     if qt_sounds_muted() or not load_screenshot_shutter_sound_enabled():
         return
-    preload_screenshot_shutter_sound()
-    QTimer.singleShot(0, _play)
+    url = _sound_url(_SOUND_NAME)
+    if not url.isValid():
+        return
+    _ensure_primed(url)
+    effect = QSoundEffect()
+    effect.setSource(url)
+    effect.setVolume(_VOLUME)
+    _prune_live_effects()
+    _live_effects.append(effect)
+    effect.play()
 ```
 
 </details>
@@ -72,14 +80,18 @@ def play_screenshot_shutter_sound() -> None:
 def preload_screenshot_shutter_sound() -> None
 ```
 
-Decode the shutter effect so the first capture can play immediately.
+Warm the audio device so the first capture click is audible on Windows.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def preload_screenshot_shutter_sound() -> None:
-    _effect_for()
+    if qt_sounds_muted():
+        return
+    url = _sound_url(_SOUND_NAME)
+    if url.isValid():
+        _ensure_primed(url)
 ```
 
 </details>

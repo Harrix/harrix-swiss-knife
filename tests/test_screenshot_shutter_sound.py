@@ -56,23 +56,25 @@ def test_load_screenshot_shutter_sound_enabled_reads_false(monkeypatch: pytest.M
 def test_play_respects_disabled_setting(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(shutter_sound, "qt_sounds_muted", lambda: False)
     monkeypatch.setattr(shutter_sound, "load_screenshot_shutter_sound_enabled", lambda: False)
-    preload = MagicMock()
-    monkeypatch.setattr(shutter_sound, "preload_screenshot_shutter_sound", preload)
+    ensure = MagicMock()
+    monkeypatch.setattr(shutter_sound, "_ensure_primed", ensure)
     shutter_sound.play_screenshot_shutter_sound()
-    preload.assert_not_called()
+    ensure.assert_not_called()
 
 
-def test_prime_effect_stays_silent(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_play_creates_audible_effect(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(shutter_sound, "qt_sounds_muted", lambda: False)
+    monkeypatch.setattr(shutter_sound, "load_screenshot_shutter_sound_enabled", lambda: True)
+    monkeypatch.setattr(shutter_sound, "_ensure_primed", lambda _url: None)
+    monkeypatch.setattr(
+        shutter_sound,
+        "_sound_url",
+        lambda _name: MagicMock(isValid=lambda: True),
+    )
     effect = MagicMock()
-    was_primed = shutter_sound._state["primed"]
-    try:
-        shutter_sound._state["primed"] = False
-        shutter_sound._prime_effect(effect)
-        effect.play.assert_called_once()
-        volumes = [call.args[0] for call in effect.setVolume.call_args_list]
-        assert volumes
-        assert volumes[-1] == 0.0
-        assert shutter_sound._state["primed"] is True
-    finally:
-        shutter_sound._state["primed"] = was_primed
+    effect.isPlaying.return_value = False
+    monkeypatch.setattr(shutter_sound, "QSoundEffect", lambda: effect)
+    shutter_sound._live_effects.clear()
+    shutter_sound.play_screenshot_shutter_sound()
+    effect.setVolume.assert_called_with(1.0)
+    effect.play.assert_called_once()
