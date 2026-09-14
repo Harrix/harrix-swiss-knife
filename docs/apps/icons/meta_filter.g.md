@@ -27,7 +27,7 @@ lang: en
 def build_variants_header_html(family: IconFamily, icons: Sequence[IconFamily]) -> str
 ```
 
-Return rich-text header with blue links when other icons share meta values.
+Return rich-text header with blue links when multiple icons share meta values.
 
 <details>
 <summary>Code:</summary>

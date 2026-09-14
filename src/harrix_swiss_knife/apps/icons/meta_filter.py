@@ -19,7 +19,7 @@ _META_KINDS = frozenset({META_KIND_CATEGORY, META_KIND_TAG, META_KIND_DATE})
 
 
 def build_variants_header_html(family: IconFamily, icons: Sequence[IconFamily]) -> str:
-    """Return rich-text header with blue links when other icons share meta values."""
+    """Return rich-text header with blue links when multiple icons share meta values."""
     lines = [
         html.escape(family.title),
         html.escape(family.id),
@@ -104,8 +104,7 @@ def parse_meta_link(href: str) -> tuple[str, str] | None:
 def _meta_value_html(icons: Sequence[IconFamily], kind: str, value: str) -> str:
     escaped = html.escape(value)
     total = count_families_for_meta(icons, kind, value)
-    others = max(0, total - 1)
-    if others <= 0:
+    if total <= 1:
         return escaped
     href = html.escape(meta_link_href(kind, value), quote=True)
-    return f'<a href="{href}">{escaped} ({others})</a>'
+    return f'<a href="{href}">{escaped} ({total})</a>'

@@ -54,7 +54,7 @@ def test_build_variants_header_html_links_when_others_exist() -> None:
     ]
     html = build_variants_header_html(icons[0], icons)
     assert 'href="hsk-meta:category/building"' in html
-    assert "building (1)" in html
+    assert "building (2)" in html
     assert 'href="hsk-meta:date/2020-07-19"' in html
     assert "garage" in html
     assert "garage (" not in html  # unique tag, no link
