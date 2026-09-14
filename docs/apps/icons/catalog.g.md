@@ -40,6 +40,7 @@ lang: en
 - [🔧 Function `preferred_sidebar_folder`](#-function-preferred_sidebar_folder)
 - [🔧 Function `rebuild_catalog`](#-function-rebuild_catalog)
 - [🔧 Function `refresh_hashes_for_paths`](#-function-refresh_hashes_for_paths)
+- [🔧 Function `reload_family_variants`](#-function-reload_family_variants)
 - [🔧 Function `remove_empty_parents`](#-function-remove_empty_parents)
 - [🔧 Function `resolve_icons_root`](#-function-resolve_icons_root)
 - [🔧 Function `scan_flat_folder`](#-function-scan_flat_folder)
@@ -886,6 +887,29 @@ def refresh_hashes_for_paths(catalog: IconCatalog, paths: Sequence[Path]) -> lis
             family.variants = new_variants
             affected.append(family)
     return affected
+```
+
+</details>
+
+## 🔧 Function `reload_family_variants`
+
+```python
+def reload_family_variants(family: IconFamily, repo_root: Path, *, kind: CatalogKind) -> bool
+```
+
+Rescan on-disk files for `family` and update its variants/featured in place.
+
+Returns whether anything changed. Note families read `img/`; flat families
+rescan files that map to the same family ID.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def reload_family_variants(family: IconFamily, repo_root: Path, *, kind: CatalogKind) -> bool:
+    if kind == "flat":
+        return _reload_flat_family_variants(family, repo_root)
+    return _reload_note_family_variants(family, repo_root)
 ```
 
 </details>

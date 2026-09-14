@@ -228,6 +228,7 @@ class DraggableIconList(QListWidget):
     copy_current_folder_path_requested = Signal()
     reveal_current_folder_requested = Signal()
     optimize_svgs_requested = Signal(object)  # list[str]
+    refresh_variants_requested = Signal()
     show_numbers_toggled = Signal(bool)
     sort_mode_requested = Signal(str)
     viewport_changed = Signal()
@@ -599,14 +600,17 @@ class DraggableIconList(QListWidget):
 
     def _exec_current_folder_context_menu(self, pos: QPoint) -> None:
         menu = QMenu(self)
+        refresh_action = None
         optimize_action = None
         family = self._variants_family
-        if (
-            self._variants_context
-            and family is not None
-            and any(Path(variant.file).suffix.casefold() == ".svg" for variant in family.variants)
-        ):
-            optimize_action = menu.addAction("🚀 Optimize SVG")
+        if self._variants_context:
+            refresh_action = menu.addAction("🔄 Refresh variants")
+            if family is not None and any(
+                Path(variant.file).suffix.casefold() == ".svg" for variant in family.variants
+            ):
+                optimize_action = menu.addAction("🚀 Optimize SVG")
+            if refresh_action is not None or optimize_action is not None:
+                menu.addSeparator()
         numbers_action, sort_actions = self._add_main_view_menu_actions(menu)
         if numbers_action is not None or sort_actions:
             menu.addSeparator()
@@ -616,7 +620,9 @@ class DraggableIconList(QListWidget):
         chosen = menu.exec_(self.mapToGlobal(pos))
         if self._handle_main_view_menu_choice(chosen, numbers_action, sort_actions):
             return
-        if optimize_action is not None and chosen is optimize_action and family is not None:
+        if refresh_action is not None and chosen is refresh_action:
+            self.refresh_variants_requested.emit()
+        elif optimize_action is not None and chosen is optimize_action and family is not None:
             if self._repo_root is None:
                 return
             paths = family_svg_paths(
@@ -634,10 +640,13 @@ class DraggableIconList(QListWidget):
     def _exec_variants_batch_context_menu(self, pos: QPoint) -> None:
         paths = [path for item in self.selectedItems() if is_svg_icon_path(path := item.data(ROLE_SVG_PATH))]
         menu = QMenu(self)
+        refresh_action = menu.addAction("🔄 Refresh variants")
         optimize_action = menu.addAction("🚀 Optimize SVG") if paths else None
         apply_leading_chrome_icons(menu)
         chosen = menu.exec_(self.mapToGlobal(pos))
-        if optimize_action is not None and chosen is optimize_action:
+        if chosen is refresh_action:
+            self.refresh_variants_requested.emit()
+        elif optimize_action is not None and chosen is optimize_action:
             self.optimize_svgs_requested.emit(paths)
 
     def _grid_size_for(self, icon_size: int) -> QSize:
@@ -694,6 +703,7 @@ class DraggableIconList(QListWidget):
         copy_filename_action = None
         copy_path_action = None
         optimize_action = None
+        refresh_action = None
 
         if has_path:
             reveal_action = add_reveal_in_explorer_action(menu)
@@ -706,9 +716,10 @@ class DraggableIconList(QListWidget):
             menu.addSeparator()
 
         if self._variants_context:
+            refresh_action = menu.addAction("🔄 Refresh variants")
             if has_path and is_svg_icon_path(path):
                 optimize_action = menu.addAction("🚀 Optimize SVG")
-                menu.addSeparator()
+            menu.addSeparator()
         elif family_has_svg_files(family):
             optimize_action = menu.addAction("🚀 Optimize SVG")
             menu.addSeparator()
@@ -765,6 +776,8 @@ class DraggableIconList(QListWidget):
             self.copy_filename_requested.emit(path)
         elif has_path and chosen is copy_path_action:
             self.copy_path_requested.emit(path)
+        elif refresh_action is not None and chosen is refresh_action:
+            self.refresh_variants_requested.emit()
         elif optimize_action is not None and chosen is optimize_action:
             if self._variants_context and has_path:
                 self.optimize_svgs_requested.emit([path])

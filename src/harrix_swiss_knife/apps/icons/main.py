@@ -84,6 +84,7 @@ from harrix_swiss_knife.apps.icons.catalog import (
     parse_note_frontmatter,
     preferred_sidebar_folder,
     refresh_hashes_for_paths,
+    reload_family_variants,
     write_catalog_json,
 )
 from harrix_swiss_knife.apps.icons.catalog_load import CatalogLoadWorker
@@ -1981,6 +1982,32 @@ class MainWindow(QMainWindow, AppWindowMixin):
             refresh=True,
         )
 
+    def _on_refresh_variants(self) -> None:
+        """Rescan the selected family's files and refresh the variants panel."""
+        family = self.variants_panel.current_family
+        if family is None or self._repo_root is None or self._catalog is None:
+            QMessageBox.information(self, "Vector Icons", "Select an icon to refresh its variants.")
+            return
+        previous_featured_hash = family.featured_hash
+        try:
+            changed = reload_family_variants(family, self._repo_root, kind=self._catalog.kind)
+        except (OSError, ValueError) as exc:
+            QMessageBox.critical(self, "Vector Icons", f"Failed to refresh variants:\n{exc}")
+            return
+        if changed and self._catalog.kind == "note":
+            try:
+                write_catalog_json(self._catalog)
+            except OSError as exc:
+                logger.warning("Failed to write catalog.json after Refresh variants: %s", exc)
+        self.variants_panel.show_family(family, self._repo_root)
+        if family.featured_hash != previous_featured_hash:
+            self._pixmaps.pop(family.id, None)
+            self._thumb_cache.forget(family.id)
+            self._start_thumb_refresh()
+        count = len(family.variants)
+        status = "updated" if changed else "unchanged"
+        self.statusBar().showMessage(f"Variants {status} for `{family.id}` ({count})")
+
     def _on_reveal_current_folder(self) -> None:
         if self._repo_root is None:
             QMessageBox.warning(self, "Vector Icons", "No icons folder is open.")
@@ -2833,6 +2860,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         icon_list.open_source_requested.connect(self._on_open_source)
         icon_list.delete_requested.connect(self._on_delete_icon)
         icon_list.optimize_svgs_requested.connect(self._on_optimize_svgs)
+        icon_list.refresh_variants_requested.connect(self._on_refresh_variants)
         icon_list.show_numbers_toggled.connect(self._on_show_numbers_toggled)
         icon_list.sort_mode_requested.connect(self._on_sort_mode_requested)
         icon_list.preview_requested.connect(

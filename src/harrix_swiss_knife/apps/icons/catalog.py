@@ -431,6 +431,18 @@ def refresh_hashes_for_paths(catalog: IconCatalog, paths: Sequence[Path]) -> lis
     return affected
 
 
+def reload_family_variants(family: IconFamily, repo_root: Path, *, kind: CatalogKind) -> bool:
+    """Rescan on-disk files for `family` and update its variants/featured in place.
+
+    Returns whether anything changed. Note families read `img/`; flat families
+    rescan files that map to the same family ID.
+
+    """
+    if kind == "flat":
+        return _reload_flat_family_variants(family, repo_root)
+    return _reload_note_family_variants(family, repo_root)
+
+
 def remove_empty_parents(start: Path, stop: Path) -> None:
     """Remove empty directories from `start` up to, but not including, `stop`."""
     current = start.resolve()
@@ -885,6 +897,86 @@ def _raise_if_cancelled(should_cancel: CancelCheck | None) -> None:
 
 def _relative_to_root(path: Path, root: Path) -> str:
     return path.resolve().relative_to(root.resolve()).as_posix()
+
+
+def _reload_flat_family_variants(family: IconFamily, repo_root: Path) -> bool:
+    root = repo_root.expanduser().resolve()
+    members = [path for path in _iter_flat_icon_files(root) if _flat_family_id(path, root) == family.id]
+    if not members:
+        changed = bool(family.variants) or bool(family.featured)
+        if changed:
+            family.featured = ""
+            family.featured_hash = ""
+            family.variants = []
+            family.refresh_search_blob()
+        return changed
+
+    members = sorted(members, key=lambda item: item.as_posix().casefold())
+    featured_path = _pick_featured_file(members)
+    rel_featured = _relative_to_root(featured_path, root)
+    parent = Path(rel_featured).parent
+    folder = "" if str(parent) in {"", "."} else str(parent).replace("\\", "/")
+    featured_rel = Path(rel_featured).name
+    variants: list[IconVariant] = []
+    for member in members:
+        rel = _relative_to_root(member, root)
+        variant_file = str(Path(rel).relative_to(folder)).replace("\\", "/") if folder else Path(rel).name
+        variants.append(
+            IconVariant(
+                file=variant_file,
+                name=member.stem,
+                hash=_file_fingerprint(member),
+            ),
+        )
+    featured_hash = _file_fingerprint(featured_path)
+    changed = (
+        family.folder != folder
+        or family.featured != featured_rel
+        or family.featured_hash != featured_hash
+        or [(item.file, item.name, item.hash) for item in family.variants]
+        != [(item.file, item.name, item.hash) for item in variants]
+    )
+    if not changed:
+        return False
+    family.folder = folder
+    family.featured = featured_rel
+    family.featured_hash = featured_hash
+    family.variants = variants
+    family.refresh_search_blob()
+    return True
+
+
+def _reload_note_family_variants(family: IconFamily, repo_root: Path) -> bool:
+    note_dir = repo_root / family.folder if family.folder else repo_root
+    if not note_dir.is_dir():
+        return False
+    featured_path = _find_featured_image(note_dir)
+    featured_rel = featured_path.name if featured_path is not None else ""
+    featured_hash = _file_sha256(featured_path) if featured_path is not None else ""
+    variants: list[IconVariant] = []
+    img_dir = note_dir / "img"
+    if img_dir.is_dir():
+        variants.extend(
+            IconVariant(
+                file=f"img/{path.name}",
+                name=path.stem,
+                hash=_file_sha256(path),
+            )
+            for path in sorted(_iter_vector_files(img_dir), key=lambda item: item.name.casefold())
+        )
+    changed = (
+        family.featured != featured_rel
+        or family.featured_hash != featured_hash
+        or [(item.file, item.name, item.hash) for item in family.variants]
+        != [(item.file, item.name, item.hash) for item in variants]
+    )
+    if not changed:
+        return False
+    family.featured = featured_rel
+    family.featured_hash = featured_hash
+    family.variants = variants
+    family.refresh_search_blob()
+    return True
 
 
 def _resolved_path(path: Path) -> Path | None:
