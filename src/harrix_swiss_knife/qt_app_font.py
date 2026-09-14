@@ -1,4 +1,4 @@
-"""Load bundled Fira Sans and JetBrains Mono, and set Fira Sans as the UI font."""
+"""Load bundled Inter and JetBrains Mono, and set Inter as the UI font."""
 
 from __future__ import annotations
 
@@ -10,16 +10,13 @@ from PySide6.QtWidgets import QApplication, QWidget
 
 from harrix_swiss_knife import resources_rc  # noqa: F401
 
-APP_FONT_FAMILY = "Fira Sans"
+APP_FONT_FAMILY = "Inter"
 MONO_FONT_FAMILY = "JetBrains Mono"
 _FONT_DIR = Path(__file__).resolve().parent / "assets" / "fonts"
 _QRC_FONT_PREFIX = ":/assets/fonts"
 _UI_FONT_FILES = (
-    "FiraSans-Regular.ttf",
-    "FiraSans-Medium.ttf",
-    "FiraSans-Bold.ttf",
-    "FiraSans-Italic.ttf",
-    "FiraSans-MediumItalic.ttf",
+    "Inter.ttf",
+    "Inter-Italic.ttf",
 )
 _MONO_FONT_FILES = (
     "JetBrainsMono-Regular.ttf",
@@ -80,7 +77,7 @@ def current_ui_font_scale() -> float:
 
 
 def install_app_fonts(app: QApplication, scale: float | None = None) -> None:
-    """Register bundled fonts and apply Fira Sans as the default UI font.
+    """Register bundled fonts and apply Inter as the default UI font.
 
     `scale` multiplies the application font and any widget that set its own point
     size in Designer. When omitted, the value comes from `config.json`
@@ -90,7 +87,7 @@ def install_app_fonts(app: QApplication, scale: float | None = None) -> None:
     if not isinstance(app, QApplication) or app.property(_PROP) == "1":
         return
     load_jetbrains_mono_fonts()
-    if not load_fira_sans_fonts():
+    if not load_inter_fonts():
         return
     resolved = _resolve_ui_font_scale(scale)
     app.setProperty(_SCALE_PROP, resolved)
@@ -103,8 +100,8 @@ def install_app_fonts(app: QApplication, scale: float | None = None) -> None:
     app.setProperty(_PROP, "1")
 
 
-def load_fira_sans_fonts() -> bool:
-    """Load bundled Fira Sans files. Return whether Regular loaded."""
+def load_inter_fonts() -> bool:
+    """Load bundled Inter files. Return whether the roman face loaded."""
     return _load_font_files(_UI_FONT_FILES, APP_FONT_FAMILY)
 
 

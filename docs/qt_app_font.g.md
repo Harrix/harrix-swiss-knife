@@ -17,7 +17,7 @@ lang: en
 - [🔧 Function `bundled_font_resource_paths`](#-function-bundled_font_resource_paths)
 - [🔧 Function `current_ui_font_scale`](#-function-current_ui_font_scale)
 - [🔧 Function `install_app_fonts`](#-function-install_app_fonts)
-- [🔧 Function `load_fira_sans_fonts`](#-function-load_fira_sans_fonts)
+- [🔧 Function `load_inter_fonts`](#-function-load_inter_fonts)
 - [🔧 Function `load_jetbrains_mono_fonts`](#-function-load_jetbrains_mono_fonts)
 - [🔧 Function `mono_qfont`](#-function-mono_qfont)
 - [🔧 Function `scale_explicit_widget_font`](#-function-scale_explicit_widget_font)
@@ -130,7 +130,7 @@ def current_ui_font_scale() -> float:
 def install_app_fonts(app: QApplication, scale: float | None = None) -> None
 ```
 
-Register bundled fonts and apply Fira Sans as the default UI font.
+Register bundled fonts and apply Inter as the default UI font.
 
 `scale` multiplies the application font and any widget that set its own point
 size in Designer. When omitted, the value comes from `config.json`
@@ -144,7 +144,7 @@ def install_app_fonts(app: QApplication, scale: float | None = None) -> None:
     if not isinstance(app, QApplication) or app.property(_PROP) == "1":
         return
     load_jetbrains_mono_fonts()
-    if not load_fira_sans_fonts():
+    if not load_inter_fonts():
         return
     resolved = _resolve_ui_font_scale(scale)
     app.setProperty(_SCALE_PROP, resolved)
@@ -159,19 +159,19 @@ def install_app_fonts(app: QApplication, scale: float | None = None) -> None:
 
 </details>
 
-## 🔧 Function `load_fira_sans_fonts`
+## 🔧 Function `load_inter_fonts`
 
 ```python
-def load_fira_sans_fonts() -> bool
+def load_inter_fonts() -> bool
 ```
 
-Load bundled Fira Sans files. Return whether Regular loaded.
+Load bundled Inter files. Return whether the roman face loaded.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def load_fira_sans_fonts() -> bool:
+def load_inter_fonts() -> bool:
     return _load_font_files(_UI_FONT_FILES, APP_FONT_FAMILY)
 ```
 
