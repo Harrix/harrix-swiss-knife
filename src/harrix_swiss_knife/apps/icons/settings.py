@@ -17,11 +17,25 @@ LAST_FOLDER_KEY = "vector_icons_last_folder"
 RECENT_FOLDERS_KEY = "vector_icons_recent_folders"
 PINNED_FOLDERS_KEY = "path_vector_icons_pinned"
 RECENT_FOLDERS_MAX_KEY = "vector_icons_recent_folders_max"
+GRID_SORT_KEY = "vector_icons_grid_sort"
+SHOW_NUMBERS_KEY = "vector_icons_show_numbers"
 ICON_SIZE_MIN = 64
 ICON_SIZE_MAX = 256
 ICON_SIZE_DEFAULT = 160
 RECENT_FOLDERS_MAX_DEFAULT = 12
 RECENT_FOLDERS_MAX_LIMIT = 50
+
+GRID_SORT_DEFAULT = "default"
+GRID_SORT_ALPHA = "alpha"
+GRID_SORT_DATE = "date"
+GRID_SORT_REVERSE = "reverse"
+GRID_SORT_MODES: tuple[tuple[str, str], ...] = (
+    (GRID_SORT_DEFAULT, "Current order"),
+    (GRID_SORT_ALPHA, "Alphabetical"),
+    (GRID_SORT_DATE, "By date"),
+    (GRID_SORT_REVERSE, "Reverse order"),
+)
+GRID_SORT_MODE_IDS = frozenset(mode_id for mode_id, _label in GRID_SORT_MODES)
 
 
 def add_favorites(folder: Path, family_ids: list[str]) -> list[str]:
@@ -109,6 +123,16 @@ def load_favorites_map() -> dict[str, list[str]]:
         if folder and ids:
             result[folder] = ids
     return result
+
+
+def load_grid_sort_mode() -> str:
+    """Load main-grid sort mode from `config-temp.json`."""
+    try:
+        config = h.dev.config_load(get_config_path_str(), is_temp=True)
+    except (FileNotFoundError, OSError, ValueError):
+        return GRID_SORT_DEFAULT
+    raw = str(config.get(GRID_SORT_KEY, GRID_SORT_DEFAULT) or "").strip().casefold()
+    return raw if raw in GRID_SORT_MODE_IDS else GRID_SORT_DEFAULT
 
 
 def load_icon_size() -> int:
@@ -201,6 +225,15 @@ def load_recent_folders_max() -> int:
     except (FileNotFoundError, OSError, ValueError):
         return RECENT_FOLDERS_MAX_DEFAULT
     return clamp_recent_folders_max(config.get(RECENT_FOLDERS_MAX_KEY, RECENT_FOLDERS_MAX_DEFAULT))
+
+
+def load_show_numbers() -> bool:
+    """Load whether main-grid tiles show 1-based index numbers."""
+    try:
+        config = h.dev.config_load(get_config_path_str(), is_temp=True)
+    except (FileNotFoundError, OSError, ValueError):
+        return False
+    return bool(config.get(SHOW_NUMBERS_KEY, False))
 
 
 def pin_folder(path: Path) -> list[Path]:
@@ -303,6 +336,21 @@ def save_favorites(folder: Path, family_ids: list[str]) -> list[str]:
     return cleaned
 
 
+def save_grid_sort_mode(mode: str) -> str:
+    """Persist main-grid sort mode in `config-temp.json`."""
+    cleaned = mode.strip().casefold()
+    if cleaned not in GRID_SORT_MODE_IDS:
+        cleaned = GRID_SORT_DEFAULT
+    _ensure_temp_config()
+    h.dev.config_update_value(
+        GRID_SORT_KEY,
+        cleaned,
+        get_config_path_str(),
+        is_temp=True,
+    )
+    return cleaned
+
+
 def save_icon_size(size: int) -> None:
     """Persist icon display size in `config-temp.json`."""
     _ensure_temp_config()
@@ -339,6 +387,17 @@ def save_last_icon(folder: Path, family_id: str) -> None:
     h.dev.config_update_value(
         LAST_ICONS_KEY,
         mapping,
+        get_config_path_str(),
+        is_temp=True,
+    )
+
+
+def save_show_numbers(*, enabled: bool) -> None:
+    """Persist main-grid number visibility in `config-temp.json`."""
+    _ensure_temp_config()
+    h.dev.config_update_value(
+        SHOW_NUMBERS_KEY,
+        enabled,
         get_config_path_str(),
         is_temp=True,
     )

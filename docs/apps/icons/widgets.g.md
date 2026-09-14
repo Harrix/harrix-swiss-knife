@@ -32,6 +32,7 @@ lang: en
   - [⚙️ Method `set_grid_entries`](#%EF%B8%8F-method-set_grid_entries)
   - [⚙️ Method `set_repo_root`](#%EF%B8%8F-method-set_repo_root)
   - [⚙️ Method `set_variants_family`](#%EF%B8%8F-method-set_variants_family)
+  - [⚙️ Method `set_view_options`](#%EF%B8%8F-method-set_view_options)
   - [⚙️ Method `startDrag`](#%EF%B8%8F-method-startdrag)
   - [⚙️ Method `update_row_pixmaps`](#%EF%B8%8F-method-update_row_pixmaps)
   - [⚙️ Method `visible_row_span`](#%EF%B8%8F-method-visible_row_span)
@@ -226,6 +227,8 @@ class DraggableIconList(QListWidget):
     copy_current_folder_path_requested = Signal()
     reveal_current_folder_requested = Signal()
     optimize_svgs_requested = Signal(object)  # list[str]
+    show_numbers_toggled = Signal(bool)
+    sort_mode_requested = Signal(str)
     viewport_changed = Signal()
 
     def __init__(
@@ -246,6 +249,8 @@ class DraggableIconList(QListWidget):
         self._variants_family: IconFamily | None = None
         self._favorite_family_ids: set[str] = set()
         self._repo_root: Path | None = None
+        self._show_numbers = False
+        self._sort_mode = GRID_SORT_MODES[0][0]
         # family_id → first row, so thumbnail updates skip a full list scan.
         self._family_rows: dict[str, int] = {}
         self._viewport_timer = QTimer(self)
@@ -286,6 +291,7 @@ class DraggableIconList(QListWidget):
         *,
         pixmaps_by_path: dict[str, QPixmap],
         placeholder: QPixmap,
+        start_number: int = 1,
     ) -> None:
         """Add more variant-view tiles without rebuilding the grid."""
         if not entries:
@@ -293,8 +299,14 @@ class DraggableIconList(QListWidget):
         self.blockSignals(True)  # noqa: FBT003
         self.setUpdatesEnabled(False)
         try:
-            for entry in entries:
-                self._add_grid_item(entry, pixmaps_by_path=pixmaps_by_path, placeholder=placeholder)
+            for offset, entry in enumerate(entries):
+                number = start_number + offset if self._show_numbers else 0
+                self._add_grid_item(
+                    entry,
+                    pixmaps_by_path=pixmaps_by_path,
+                    placeholder=placeholder,
+                    number=number,
+                )
         finally:
             self.setUpdatesEnabled(True)
             self.blockSignals(False)  # noqa: FBT003
@@ -406,8 +418,14 @@ class DraggableIconList(QListWidget):
         self.blockSignals(True)  # noqa: FBT003
         self.clear()
         self._family_rows = {}
-        for entry in entries:
-            self._add_grid_item(entry, pixmaps_by_path=pixmaps_by_path, placeholder=placeholder)
+        for offset, entry in enumerate(entries):
+            number = offset + 1 if self._show_numbers else 0
+            self._add_grid_item(
+                entry,
+                pixmaps_by_path=pixmaps_by_path,
+                placeholder=placeholder,
+                number=number,
+            )
         self.setCurrentRow(-1)
         self.blockSignals(False)  # noqa: FBT003
 
@@ -418,6 +436,13 @@ class DraggableIconList(QListWidget):
     def set_variants_family(self, family: IconFamily | None) -> None:
         """Remember the family shown in the variants panel for empty-area actions."""
         self._variants_family = family
+
+    def set_view_options(self, *, show_numbers: bool, sort_mode: str) -> None:
+        """Remember numbering and sort mode used by the main-grid context menu."""
+        self._show_numbers = bool(show_numbers)
+        cleaned = sort_mode.strip().casefold()
+        known = {mode_id for mode_id, _label in GRID_SORT_MODES}
+        self._sort_mode = cleaned if cleaned in known else GRID_SORT_MODES[0][0]
 
     def startDrag(self, supported_actions: Qt.DropAction) -> None:  # noqa: ARG002, N802
         """Start a drag with family IDs (for Categories) and file URLs (for Explorer)."""
@@ -491,6 +516,7 @@ class DraggableIconList(QListWidget):
         *,
         pixmaps_by_path: dict[str, QPixmap],
         placeholder: QPixmap,
+        number: int = 0,
     ) -> None:
         key = str(entry.svg_path)
         pixmap = pixmaps_by_path.get(key) or placeholder
@@ -504,7 +530,10 @@ class DraggableIconList(QListWidget):
         item.setData(ROLE_SUBTITLE, family_display_filename(entry.family, entry.svg_path))
         item.setData(ROLE_FALLBACK, entry.is_fallback)
         item.setData(ROLE_TRADEMARK, getattr(entry.family, "trademark", False))
+        item.setData(ROLE_NUMBER, int(number) if number > 0 else 0)
         tip = f"{entry.family.id}\n{entry.svg_path.name}"
+        if number > 0:
+            tip = f"#{number}\n{tip}"
         if getattr(entry.family, "trademark", False):
             tip += "\n\n⚠️ Editorial Use Only / Trademarked Character"
         if entry.is_fallback:
@@ -513,6 +542,21 @@ class DraggableIconList(QListWidget):
         item.setSizeHint(QSize(self._icon_size + 16, self._icon_size + LABEL_EXTRA_HEIGHT))
         self._family_rows.setdefault(entry.family.id, self.count())
         self.addItem(item)
+
+    def _add_main_view_menu_actions(self, menu: QMenu) -> tuple[QAction | None, dict[str, QAction]]:
+        """Append Show numbers + Sort submenu for the main icon grid."""
+        if self._variants_context:
+            return None, {}
+        numbers_label = "🔢 Hide numbers" if self._show_numbers else "🔢 Show numbers"
+        numbers_action = menu.addAction(numbers_label)
+        sort_menu = menu.addMenu("↕️ Sort")
+        sort_actions: dict[str, QAction] = {}
+        for mode_id, label in GRID_SORT_MODES:
+            action = sort_menu.addAction(label)
+            action.setCheckable(True)
+            action.setChecked(mode_id == self._sort_mode)
+            sort_actions[mode_id] = action
+        return numbers_action, sort_actions
 
     def _emit_family_from_item(self, item: QListWidgetItem | None) -> None:
         if item is None:
@@ -562,10 +606,15 @@ class DraggableIconList(QListWidget):
             and any(Path(variant.file).suffix.casefold() == ".svg" for variant in family.variants)
         ):
             optimize_action = menu.addAction("🚀 Optimize SVG")
+        numbers_action, sort_actions = self._add_main_view_menu_actions(menu)
+        if numbers_action is not None or sort_actions:
+            menu.addSeparator()
         copy_folder_path_action = menu.addAction("📋 Copy path to current folder")
         reveal_folder_action = menu.addAction("📂 Reveal current folder in File Explorer")
         apply_leading_chrome_icons(menu)
         chosen = menu.exec_(self.mapToGlobal(pos))
+        if self._handle_main_view_menu_choice(chosen, numbers_action, sort_actions):
+            return
         if optimize_action is not None and chosen is optimize_action and family is not None:
             if self._repo_root is None:
                 return
@@ -593,6 +642,21 @@ class DraggableIconList(QListWidget):
     def _grid_size_for(self, icon_size: int) -> QSize:
         label_h = LABEL_EXTRA_HEIGHT if self._dual_line_labels else 48
         return QSize(icon_size + 24, icon_size + label_h)
+
+    def _handle_main_view_menu_choice(
+        self,
+        chosen: QAction | None,
+        numbers_action: QAction | None,
+        sort_actions: dict[str, QAction],
+    ) -> bool:
+        if numbers_action is not None and chosen is numbers_action:
+            self.show_numbers_toggled.emit(not self._show_numbers)
+            return True
+        for mode_id, action in sort_actions.items():
+            if chosen is action:
+                self.sort_mode_requested.emit(mode_id)
+                return True
+        return False
 
     def _on_context_menu(self, pos: QPoint) -> None:
         item = self.itemAt(pos)
@@ -671,6 +735,10 @@ class DraggableIconList(QListWidget):
         reveal_folder_action = menu.addAction("📂 Reveal current folder in File Explorer")
         menu.addSeparator()
 
+        numbers_action, sort_actions = self._add_main_view_menu_actions(menu)
+        if numbers_action is not None or sort_actions:
+            menu.addSeparator()
+
         license_name, license_url = family_license_info(family, self._repo_root)
         license_action = None
         if license_name:
@@ -682,6 +750,8 @@ class DraggableIconList(QListWidget):
         apply_leading_chrome_icons(menu)
         chosen = menu.exec_(self.mapToGlobal(pos))
 
+        if self._handle_main_view_menu_choice(chosen, numbers_action, sort_actions):
+            return
         if has_path and chosen is reveal_action:
             self.reveal_requested.emit(path)
         elif has_path and chosen is details_action:
@@ -766,6 +836,8 @@ def __init__(
         self._variants_family: IconFamily | None = None
         self._favorite_family_ids: set[str] = set()
         self._repo_root: Path | None = None
+        self._show_numbers = False
+        self._sort_mode = GRID_SORT_MODES[0][0]
         # family_id → first row, so thumbnail updates skip a full list scan.
         self._family_rows: dict[str, int] = {}
         self._viewport_timer = QTimer(self)
@@ -806,7 +878,7 @@ def __init__(
 ### ⚙️ Method `append_grid_entries`
 
 ```python
-def append_grid_entries(self, entries: list[GridEntry], *, pixmaps_by_path: dict[str, QPixmap], placeholder: QPixmap) -> None
+def append_grid_entries(self, entries: list[GridEntry], *, pixmaps_by_path: dict[str, QPixmap], placeholder: QPixmap, start_number: int = 1) -> None
 ```
 
 Add more variant-view tiles without rebuilding the grid.
@@ -821,14 +893,21 @@ def append_grid_entries(
         *,
         pixmaps_by_path: dict[str, QPixmap],
         placeholder: QPixmap,
+        start_number: int = 1,
     ) -> None:
         if not entries:
             return
         self.blockSignals(True)  # noqa: FBT003
         self.setUpdatesEnabled(False)
         try:
-            for entry in entries:
-                self._add_grid_item(entry, pixmaps_by_path=pixmaps_by_path, placeholder=placeholder)
+            for offset, entry in enumerate(entries):
+                number = start_number + offset if self._show_numbers else 0
+                self._add_grid_item(
+                    entry,
+                    pixmaps_by_path=pixmaps_by_path,
+                    placeholder=placeholder,
+                    number=number,
+                )
         finally:
             self.setUpdatesEnabled(True)
             self.blockSignals(False)  # noqa: FBT003
@@ -1094,8 +1173,14 @@ def set_grid_entries(
         self.blockSignals(True)  # noqa: FBT003
         self.clear()
         self._family_rows = {}
-        for entry in entries:
-            self._add_grid_item(entry, pixmaps_by_path=pixmaps_by_path, placeholder=placeholder)
+        for offset, entry in enumerate(entries):
+            number = offset + 1 if self._show_numbers else 0
+            self._add_grid_item(
+                entry,
+                pixmaps_by_path=pixmaps_by_path,
+                placeholder=placeholder,
+                number=number,
+            )
         self.setCurrentRow(-1)
         self.blockSignals(False)  # noqa: FBT003
 ```
@@ -1134,6 +1219,27 @@ Remember the family shown in the variants panel for empty-area actions.
 ```python
 def set_variants_family(self, family: IconFamily | None) -> None:
         self._variants_family = family
+```
+
+</details>
+
+### ⚙️ Method `set_view_options`
+
+```python
+def set_view_options(self, *, show_numbers: bool, sort_mode: str) -> None
+```
+
+Remember numbering and sort mode used by the main-grid context menu.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_view_options(self, *, show_numbers: bool, sort_mode: str) -> None:
+        self._show_numbers = bool(show_numbers)
+        cleaned = sort_mode.strip().casefold()
+        known = {mode_id for mode_id, _label in GRID_SORT_MODES}
+        self._sort_mode = cleaned if cleaned in known else GRID_SORT_MODES[0][0]
 ```
 
 </details>
@@ -1358,6 +1464,36 @@ class IconLabelDelegate(QStyledItemDelegate):
                     "⚠️",
                 )
 
+        number = index.data(ROLE_NUMBER)
+        if isinstance(number, int) and number > 0:
+            icon_rect = (
+                style.subElementRect(QStyle.SubElement.SE_ItemViewItemDecoration, opt, widget)
+                if style is not None
+                else opt.rect
+            )
+            if icon_rect.isValid():
+                label = str(number)
+                number_font = QFont(title_font)
+                number_font.setBold(True)
+                number_font.setPointSize(max(8, number_font.pointSize() - 1) if number_font.pointSize() > 0 else 9)
+                painter.setFont(number_font)
+                metrics = painter.fontMetrics()
+                text_w = metrics.horizontalAdvance(label)
+                text_h = metrics.height()
+                pad_x = 4
+                pad_y = 2
+                badge = QRect(
+                    icon_rect.left() + 4,
+                    icon_rect.top() + 4,
+                    text_w + pad_x * 2,
+                    text_h + pad_y * 2,
+                )
+                painter.setPen(Qt.PenStyle.NoPen)
+                painter.setBrush(QColor(40, 40, 40, 180))
+                painter.drawRoundedRect(badge, 4, 4)
+                painter.setPen(QColor(255, 255, 255))
+                painter.drawText(badge, int(Qt.AlignmentFlag.AlignCenter), label)
+
         painter.restore()
 
     def sizeHint(  # noqa: N802
@@ -1484,6 +1620,36 @@ def paint(
                     int(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop),
                     "⚠️",
                 )
+
+        number = index.data(ROLE_NUMBER)
+        if isinstance(number, int) and number > 0:
+            icon_rect = (
+                style.subElementRect(QStyle.SubElement.SE_ItemViewItemDecoration, opt, widget)
+                if style is not None
+                else opt.rect
+            )
+            if icon_rect.isValid():
+                label = str(number)
+                number_font = QFont(title_font)
+                number_font.setBold(True)
+                number_font.setPointSize(max(8, number_font.pointSize() - 1) if number_font.pointSize() > 0 else 9)
+                painter.setFont(number_font)
+                metrics = painter.fontMetrics()
+                text_w = metrics.horizontalAdvance(label)
+                text_h = metrics.height()
+                pad_x = 4
+                pad_y = 2
+                badge = QRect(
+                    icon_rect.left() + 4,
+                    icon_rect.top() + 4,
+                    text_w + pad_x * 2,
+                    text_h + pad_y * 2,
+                )
+                painter.setPen(Qt.PenStyle.NoPen)
+                painter.setBrush(QColor(40, 40, 40, 180))
+                painter.drawRoundedRect(badge, 4, 4)
+                painter.setPen(QColor(255, 255, 255))
+                painter.drawText(badge, int(Qt.AlignmentFlag.AlignCenter), label)
 
         painter.restore()
 ```

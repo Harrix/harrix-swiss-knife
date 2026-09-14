@@ -18,6 +18,7 @@ lang: en
 - [🔧 Function `load_category_icons`](#-function-load_category_icons)
 - [🔧 Function `load_favorites`](#-function-load_favorites)
 - [🔧 Function `load_favorites_map`](#-function-load_favorites_map)
+- [🔧 Function `load_grid_sort_mode`](#-function-load_grid_sort_mode)
 - [🔧 Function `load_icon_size`](#-function-load_icon_size)
 - [🔧 Function `load_last_folder`](#-function-load_last_folder)
 - [🔧 Function `load_last_icon`](#-function-load_last_icon)
@@ -25,15 +26,18 @@ lang: en
 - [🔧 Function `load_pinned_folders`](#-function-load_pinned_folders)
 - [🔧 Function `load_recent_folders`](#-function-load_recent_folders)
 - [🔧 Function `load_recent_folders_max`](#-function-load_recent_folders_max)
+- [🔧 Function `load_show_numbers`](#-function-load_show_numbers)
 - [🔧 Function `pin_folder`](#-function-pin_folder)
 - [🔧 Function `remember_recent_folder`](#-function-remember_recent_folder)
 - [🔧 Function `remove_favorites`](#-function-remove_favorites)
 - [🔧 Function `rename_favorite`](#-function-rename_favorite)
 - [🔧 Function `save_category_icons`](#-function-save_category_icons)
 - [🔧 Function `save_favorites`](#-function-save_favorites)
+- [🔧 Function `save_grid_sort_mode`](#-function-save_grid_sort_mode)
 - [🔧 Function `save_icon_size`](#-function-save_icon_size)
 - [🔧 Function `save_last_folder`](#-function-save_last_folder)
 - [🔧 Function `save_last_icon`](#-function-save_last_icon)
+- [🔧 Function `save_show_numbers`](#-function-save_show_numbers)
 - [🔧 Function `set_category_icon`](#-function-set_category_icon)
 - [🔧 Function `sidebar_category_names`](#-function-sidebar_category_names)
 - [🔧 Function `toggle_favorite`](#-function-toggle_favorite)
@@ -214,6 +218,29 @@ def load_favorites_map() -> dict[str, list[str]]:
         if folder and ids:
             result[folder] = ids
     return result
+```
+
+</details>
+
+## 🔧 Function `load_grid_sort_mode`
+
+```python
+def load_grid_sort_mode() -> str
+```
+
+Load main-grid sort mode from `config-temp.json`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def load_grid_sort_mode() -> str:
+    try:
+        config = h.dev.config_load(get_config_path_str(), is_temp=True)
+    except (FileNotFoundError, OSError, ValueError):
+        return GRID_SORT_DEFAULT
+    raw = str(config.get(GRID_SORT_KEY, GRID_SORT_DEFAULT) or "").strip().casefold()
+    return raw if raw in GRID_SORT_MODE_IDS else GRID_SORT_DEFAULT
 ```
 
 </details>
@@ -399,6 +426,28 @@ def load_recent_folders_max() -> int:
 
 </details>
 
+## 🔧 Function `load_show_numbers`
+
+```python
+def load_show_numbers() -> bool
+```
+
+Load whether main-grid tiles show 1-based index numbers.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def load_show_numbers() -> bool:
+    try:
+        config = h.dev.config_load(get_config_path_str(), is_temp=True)
+    except (FileNotFoundError, OSError, ValueError):
+        return False
+    return bool(config.get(SHOW_NUMBERS_KEY, False))
+```
+
+</details>
+
 ## 🔧 Function `pin_folder`
 
 ```python
@@ -577,6 +626,34 @@ def save_favorites(folder: Path, family_ids: list[str]) -> list[str]:
 
 </details>
 
+## 🔧 Function `save_grid_sort_mode`
+
+```python
+def save_grid_sort_mode(mode: str) -> str
+```
+
+Persist main-grid sort mode in `config-temp.json`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def save_grid_sort_mode(mode: str) -> str:
+    cleaned = mode.strip().casefold()
+    if cleaned not in GRID_SORT_MODE_IDS:
+        cleaned = GRID_SORT_DEFAULT
+    _ensure_temp_config()
+    h.dev.config_update_value(
+        GRID_SORT_KEY,
+        cleaned,
+        get_config_path_str(),
+        is_temp=True,
+    )
+    return cleaned
+```
+
+</details>
+
 ## 🔧 Function `save_icon_size`
 
 ```python
@@ -650,6 +727,30 @@ def save_last_icon(folder: Path, family_id: str) -> None:
     h.dev.config_update_value(
         LAST_ICONS_KEY,
         mapping,
+        get_config_path_str(),
+        is_temp=True,
+    )
+```
+
+</details>
+
+## 🔧 Function `save_show_numbers`
+
+```python
+def save_show_numbers(*, enabled: bool) -> None
+```
+
+Persist main-grid number visibility in `config-temp.json`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def save_show_numbers(*, enabled: bool) -> None:
+    _ensure_temp_config()
+    h.dev.config_update_value(
+        SHOW_NUMBERS_KEY,
+        enabled,
         get_config_path_str(),
         is_temp=True,
     )

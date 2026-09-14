@@ -103,18 +103,22 @@ from harrix_swiss_knife.apps.icons.settings import (
     is_favorites_category,
     load_category_icons,
     load_favorites,
+    load_grid_sort_mode,
     load_icon_size,
     load_last_folder,
     load_last_icon,
     load_pinned_folders,
     load_recent_folders,
+    load_show_numbers,
     pin_folder,
     remember_recent_folder,
     remove_favorites,
     rename_favorite,
+    save_grid_sort_mode,
     save_icon_size,
     save_last_folder,
     save_last_icon,
+    save_show_numbers,
     set_category_icon,
     sidebar_category_names,
     toggle_favorite,
@@ -142,6 +146,7 @@ from harrix_swiss_knife.apps.icons.variant_view import (
     available_variant_view_modes,
     build_grid_entries,
     collect_icon_detail_preview_paths,
+    sort_icon_families,
     view_mode_examples,
 )
 from harrix_swiss_knife.apps.icons.widgets import (
@@ -282,6 +287,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._init_hide_on_close(hide_on_close=hide_on_close)
 
         self._icon_size = load_icon_size()
+        self._show_numbers = load_show_numbers()
+        self._grid_sort_mode = load_grid_sort_mode()
         self._catalog: IconCatalog | None = None
         self._repo_root: Path | None = None
         self._thumb_cache = ThumbnailCache(size=DEFAULT_THUMB_SIZE)
@@ -472,6 +479,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         if self._nav_source == "category" and is_favorites_category(self._current_category):
             by_id = {family.id: family for family in families}
             families = [by_id[family_id] for family_id in self._favorite_ids if family_id in by_id]
+        families = sort_icon_families(families, self._grid_sort_mode)
         entries = build_grid_entries(families, repo_root=self._repo_root, mode=self._variant_view_mode)
         self._grid_entries = entries
         self._grid_total_entries = len(entries)
@@ -481,6 +489,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         first_chunk = entries[:GRID_FIRST_CHUNK]
         self._pending_grid_entries = entries[GRID_FIRST_CHUNK:]
         self._loaded_rows = set()
+        self.icon_list.set_view_options(show_numbers=self._show_numbers, sort_mode=self._grid_sort_mode)
         self.icon_list.set_grid_entries(
             first_chunk,
             pixmaps_by_path={},
@@ -695,6 +704,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.count_label = QLabel("")
         center_layout.addWidget(self.count_label)
         self.icon_list = DraggableIconList(icon_size=self._icon_size, dual_line_labels=True)
+        self.icon_list.set_view_options(show_numbers=self._show_numbers, sort_mode=self._grid_sort_mode)
         self.icon_list.family_selected.connect(self._on_family_selected)
         self.icon_list.viewport_changed.connect(self._schedule_viewport_pixmaps)
         self._wire_icon_list_actions(self.icon_list)
@@ -916,10 +926,12 @@ class MainWindow(QMainWindow, AppWindowMixin):
         while self._pending_grid_entries and time.monotonic() < deadline:
             chunk = self._pending_grid_entries[:GRID_CHUNK_SIZE]
             del self._pending_grid_entries[:GRID_CHUNK_SIZE]
+            start_number = self.icon_list.count() + 1
             self.icon_list.append_grid_entries(
                 chunk,
                 pixmaps_by_path={},
                 placeholder=self._placeholder,
+                start_number=start_number,
             )
             self._collect_visible_families(chunk)
         self._update_grid_counters()
@@ -1907,6 +1919,23 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._refresh_category_icons()
         self.statusBar().showMessage(f"Category `{category}` icon set to `{family.id}`")
 
+    def _on_show_numbers_toggled(self, enabled: bool) -> None:  # noqa: FBT001
+        self._show_numbers = bool(enabled)
+        save_show_numbers(enabled=self._show_numbers)
+        self.icon_list.set_view_options(show_numbers=self._show_numbers, sort_mode=self._grid_sort_mode)
+        self._apply_filters()
+        label = "shown" if self._show_numbers else "hidden"
+        self.statusBar().showMessage(f"Icon numbers {label}")
+
+    def _on_sort_mode_requested(self, mode: object) -> None:
+        cleaned = save_grid_sort_mode(str(mode or ""))
+        if cleaned == self._grid_sort_mode:
+            return
+        self._grid_sort_mode = cleaned
+        self.icon_list.set_view_options(show_numbers=self._show_numbers, sort_mode=self._grid_sort_mode)
+        self._apply_filters()
+        self.statusBar().showMessage(f"Sort: {cleaned}")
+
     def _on_thumb_finished(self, updated: int) -> None:
         if self.sender() is not self._thumb_worker:
             return
@@ -2689,6 +2718,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
         icon_list.open_source_requested.connect(self._on_open_source)
         icon_list.delete_requested.connect(self._on_delete_icon)
         icon_list.optimize_svgs_requested.connect(self._on_optimize_svgs)
+        icon_list.show_numbers_toggled.connect(self._on_show_numbers_toggled)
+        icon_list.sort_mode_requested.connect(self._on_sort_mode_requested)
         icon_list.preview_requested.connect(
             lambda path, source=icon_list: self._on_preview_icon(path, source),
         )

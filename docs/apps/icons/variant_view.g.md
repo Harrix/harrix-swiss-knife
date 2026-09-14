@@ -16,6 +16,7 @@ lang: en
 - [🔧 Function `build_grid_entries`](#-function-build_grid_entries)
 - [🔧 Function `classify_variant_kind`](#-function-classify_variant_kind)
 - [🔧 Function `collect_icon_detail_preview_paths`](#-function-collect_icon_detail_preview_paths)
+- [🔧 Function `sort_icon_families`](#-function-sort_icon_families)
 - [🔧 Function `view_mode_examples`](#-function-view_mode_examples)
 
 </details>
@@ -220,6 +221,37 @@ def collect_icon_detail_preview_paths(
     selected = Path(selected_path)
     add(selected.name, selected if selected.is_file() else None)
     return result
+```
+
+</details>
+
+## 🔧 Function `sort_icon_families`
+
+```python
+def sort_icon_families(families: list[IconFamily], mode: str) -> list[IconFamily]
+```
+
+Return families ordered for the main grid sort mode.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def sort_icon_families(families: list[IconFamily], mode: str) -> list[IconFamily]:
+    items = list(families)
+    normalized = mode.strip().casefold() if mode else ""
+    if normalized == GRID_SORT_ALPHA:
+        return sorted(items, key=lambda family: (family.title.casefold(), family.id.casefold()))
+    if normalized == GRID_SORT_DATE:
+        dated = [family for family in items if family.date.strip()]
+        undated = [family for family in items if not family.date.strip()]
+        dated.sort(key=lambda family: family.date.strip(), reverse=True)
+        undated.sort(key=lambda family: (family.title.casefold(), family.id.casefold()))
+        return dated + undated
+    if normalized == GRID_SORT_REVERSE:
+        items.reverse()
+        return items
+    return items
 ```
 
 </details>
