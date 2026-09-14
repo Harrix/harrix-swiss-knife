@@ -366,6 +366,8 @@ class MainWindow(QMainWindow):
         list_layout.setContentsMargins(0, 0, 0, 0)
 
         self.list_widget = QListWidget()
+        self.list_widget.setFrameShape(QListWidget.Shape.NoFrame)
+        self.list_widget.setStyleSheet("QListWidget { border: none; background: transparent; }")
         self.list_widget.itemClicked.connect(self.on_item_clicked)
         self.list_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.list_widget.customContextMenuRequested.connect(self._on_list_context_menu)
