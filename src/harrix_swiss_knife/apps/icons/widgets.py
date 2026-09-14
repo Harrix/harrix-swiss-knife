@@ -57,7 +57,7 @@ from harrix_swiss_knife.apps.icons.catalog import (
     is_openable_license_url,
 )
 from harrix_swiss_knife.apps.icons.meta_filter import build_variants_header_html, parse_meta_link
-from harrix_swiss_knife.apps.icons.settings import GRID_SORT_MODES
+from harrix_swiss_knife.apps.icons.settings import GRID_SORT_DATE, GRID_SORT_MODES
 from harrix_swiss_knife.apps.icons.thumb_cache import DEFAULT_THUMB_SIZE, placeholder_pixmap, render_icon_to_image
 from harrix_swiss_knife.qt_lucide_icon import LUCIDE_COLOR_BLUE, apply_leading_chrome_icons
 
@@ -73,6 +73,7 @@ ROLE_SUBTITLE = int(Qt.ItemDataRole.UserRole) + 2
 ROLE_FALLBACK = int(Qt.ItemDataRole.UserRole) + 3
 ROLE_TRADEMARK = int(Qt.ItemDataRole.UserRole) + 4
 ROLE_NUMBER = int(Qt.ItemDataRole.UserRole) + 5
+ROLE_DATE = int(Qt.ItemDataRole.UserRole) + 6
 LABEL_EXTRA_HEIGHT = 86
 FALLBACK_ICON_OPACITY = 0.38
 FALLBACK_TITLE_ALPHA = 120
@@ -447,9 +448,13 @@ class DraggableIconList(QListWidget):
         item.setData(ROLE_FALLBACK, entry.is_fallback)
         item.setData(ROLE_TRADEMARK, getattr(entry.family, "trademark", False))
         item.setData(ROLE_NUMBER, int(number) if number > 0 else 0)
+        date_text = entry.family.date.strip() if self._sort_mode == GRID_SORT_DATE else ""
+        item.setData(ROLE_DATE, date_text)
         tip = f"{entry.family.id}\n{entry.svg_path.name}"
         if number > 0:
             tip = f"#{number}\n{tip}"
+        if date_text:
+            tip = f"{date_text}\n{tip}"
         if getattr(entry.family, "trademark", False):
             tip += "\n\n⚠️ Editorial Use Only / Trademarked Character"
         if entry.is_fallback:
@@ -822,49 +827,42 @@ class IconLabelDelegate(QStyledItemDelegate):
             )
 
         is_trademark = bool(index.data(ROLE_TRADEMARK))
-        if is_trademark:
-            icon_rect = (
-                style.subElementRect(QStyle.SubElement.SE_ItemViewItemDecoration, opt, widget)
-                if style is not None
-                else opt.rect
+        icon_rect = (
+            style.subElementRect(QStyle.SubElement.SE_ItemViewItemDecoration, opt, widget)
+            if style is not None
+            else opt.rect
+        )
+        if is_trademark and icon_rect.isValid():
+            painter.setFont(title_font)
+            painter.drawText(
+                icon_rect.adjusted(0, 4, -4, 0),
+                int(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop),
+                "⚠️",
             )
-            if icon_rect.isValid():
-                painter.setFont(title_font)
-                painter.drawText(
-                    icon_rect.adjusted(0, 4, -4, 0),
-                    int(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop),
-                    "⚠️",
-                )
 
+        badge_top = icon_rect.top() + 4 if icon_rect.isValid() else 0
         number = index.data(ROLE_NUMBER)
-        if isinstance(number, int) and number > 0:
-            icon_rect = (
-                style.subElementRect(QStyle.SubElement.SE_ItemViewItemDecoration, opt, widget)
-                if style is not None
-                else opt.rect
-            )
-            if icon_rect.isValid():
-                label = str(number)
-                number_font = QFont(title_font)
-                number_font.setBold(True)
-                number_font.setPointSize(max(8, number_font.pointSize() - 1) if number_font.pointSize() > 0 else 9)
-                painter.setFont(number_font)
-                metrics = painter.fontMetrics()
-                text_w = metrics.horizontalAdvance(label)
-                text_h = metrics.height()
-                pad_x = 4
-                pad_y = 2
-                badge = QRect(
-                    icon_rect.left() + 4,
-                    icon_rect.top() + 4,
-                    text_w + pad_x * 2,
-                    text_h + pad_y * 2,
+        if isinstance(number, int) and number > 0 and icon_rect.isValid():
+            badge_top = (
+                _paint_corner_badge(
+                    painter,
+                    icon_rect,
+                    str(number),
+                    font=title_font,
+                    top=badge_top,
                 )
-                painter.setPen(Qt.PenStyle.NoPen)
-                painter.setBrush(QColor(40, 40, 40, 180))
-                painter.drawRoundedRect(badge, 4, 4)
-                painter.setPen(QColor(255, 255, 255))
-                painter.drawText(badge, int(Qt.AlignmentFlag.AlignCenter), label)
+                + 4
+            )
+
+        date_text = index.data(ROLE_DATE)
+        if isinstance(date_text, str) and date_text.strip() and icon_rect.isValid():
+            _paint_corner_badge(
+                painter,
+                icon_rect,
+                date_text.strip(),
+                font=title_font,
+                top=badge_top,
+            )
 
         painter.restore()
 
@@ -1120,3 +1118,26 @@ def _muted_pixmap(pixmap: QPixmap, opacity: float) -> QPixmap:
     painter.drawPixmap(0, 0, pixmap)
     painter.end()
     return result
+
+
+def _paint_corner_badge(painter: QPainter, icon_rect: QRect, label: str, *, font: QFont, top: int) -> int:
+    """Draw a dark corner badge and return its bottom y coordinate."""
+    badge_font = QFont(font)
+    badge_font.setBold(True)
+    badge_font.setPointSize(max(8, badge_font.pointSize() - 1) if badge_font.pointSize() > 0 else 9)
+    painter.setFont(badge_font)
+    metrics = painter.fontMetrics()
+    pad_x = 4
+    pad_y = 2
+    badge = QRect(
+        icon_rect.left() + 4,
+        top,
+        metrics.horizontalAdvance(label) + pad_x * 2,
+        metrics.height() + pad_y * 2,
+    )
+    painter.setPen(Qt.PenStyle.NoPen)
+    painter.setBrush(QColor(40, 40, 40, 180))
+    painter.drawRoundedRect(badge, 4, 4)
+    painter.setPen(QColor(255, 255, 255))
+    painter.drawText(badge, int(Qt.AlignmentFlag.AlignCenter), label)
+    return badge.bottom()

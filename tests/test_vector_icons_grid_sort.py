@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from pathlib import Path
+from typing import Any
 
 import harrix_pylib as h
+import pytest
+from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife.apps.icons import settings
 from harrix_swiss_knife.apps.icons.catalog import IconFamily
@@ -20,10 +23,19 @@ from harrix_swiss_knife.apps.icons.settings import (
     save_grid_sort_mode,
     save_show_numbers,
 )
-from harrix_swiss_knife.apps.icons.variant_view import sort_icon_families
+from harrix_swiss_knife.apps.icons.variant_view import GridEntry, sort_icon_families
+from harrix_swiss_knife.apps.icons.widgets import ROLE_DATE, DraggableIconList, placeholder_pixmap
 
-if TYPE_CHECKING:
-    import pytest
+
+@pytest.fixture
+def qapp() -> QApplication:
+    app = QApplication.instance()
+    if app is None:
+        return QApplication([])
+    if not isinstance(app, QApplication):
+        msg = "QApplication.instance() returned a non-QApplication object."
+        raise TypeError(msg)
+    return app
 
 
 def _family(family_id: str, *, title: str = "", date: str = "") -> IconFamily:
@@ -78,3 +90,33 @@ def test_grid_sort_and_numbers_settings(monkeypatch: pytest.MonkeyPatch) -> None
     assert load_show_numbers() is True
     assert store[GRID_SORT_KEY] == GRID_SORT_ALPHA
     assert store[SHOW_NUMBERS_KEY] is True
+
+
+def test_grid_items_show_date_badge_when_sorted_by_date(tmp_path: Path, qapp: QApplication) -> None:  # noqa: ARG001
+    svg = tmp_path / "icon.svg"
+    svg.write_text(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect width="8" height="8"/></svg>\n',
+        encoding="utf-8",
+    )
+    family = _family("dated", date="2024-06-01")
+    icon_list = DraggableIconList(dual_line_labels=True)
+    icon_list.set_view_options(show_numbers=False, sort_mode=GRID_SORT_DATE)
+    icon_list.append_grid_entries(
+        [GridEntry(family=family, svg_path=svg, is_fallback=False)],
+        pixmaps_by_path={},
+        placeholder=placeholder_pixmap(64),
+    )
+    item = icon_list.item(0)
+    assert item is not None
+    assert item.data(ROLE_DATE) == "2024-06-01"
+
+    icon_list.set_view_options(show_numbers=False, sort_mode=GRID_SORT_DEFAULT)
+    icon_list.clear()
+    icon_list.append_grid_entries(
+        [GridEntry(family=family, svg_path=svg, is_fallback=False)],
+        pixmaps_by_path={},
+        placeholder=placeholder_pixmap(64),
+    )
+    item = icon_list.item(0)
+    assert item is not None
+    assert item.data(ROLE_DATE) == ""
