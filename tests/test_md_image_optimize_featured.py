@@ -81,6 +81,26 @@ def test_optimize_image_file_still_moves_regular_root_image_to_img(mock_optimize
     assert mock_optimize.called
 
 
+def test_process_markdown_list_item_optimizes_svg(tmp_path: Path) -> None:
+    img_dir = tmp_path / "img"
+    img_dir.mkdir()
+    svg = img_dir / "house_01.svg"
+    svg.write_text(
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>',
+        encoding="utf-8",
+    )
+    md_file = tmp_path / "note.md"
+    line = "- ![house_01](img/house_01.svg)"
+    md_file.write_text(f"# Title\n\n{line}\n", encoding="utf-8")
+
+    new_line = process_markdown_image_line(line, md_file)
+
+    assert new_line == line
+    optimized = svg.read_text(encoding="utf-8")
+    assert "<circle" not in optimized
+    assert "<path" in optimized
+
+
 @patch(
     "harrix_swiss_knife.actions.common.md_image_optimize._run_image_optimize",
     side_effect=_fake_run_image_optimize,

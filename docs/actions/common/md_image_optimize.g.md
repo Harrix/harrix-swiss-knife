@@ -210,15 +210,17 @@ def process_markdown_image_line(
     max_size: int | None = None,
     size_stats: OptimizeSizeStats | None = None,
 ) -> str:
-    if REMOTE_IMAGE_PATTERN.search(markdown_line.strip()):
+    stripped = markdown_line.rstrip()
+    if REMOTE_IMAGE_PATTERN.fullmatch(stripped):
         return markdown_line
 
-    local_match = LOCAL_IMAGE_PATTERN.search(markdown_line.strip())
+    local_match = LOCAL_IMAGE_PATTERN.fullmatch(stripped)
     if not local_match:
         return markdown_line
 
-    alt_text = local_match.group(1)
-    image_path = local_match.group(2)
+    prefix = local_match.group("prefix") or ""
+    alt_text = local_match.group("alt")
+    image_path = local_match.group("path")
     if image_path.startswith("http"):
         return markdown_line
 
@@ -243,7 +245,7 @@ def process_markdown_image_line(
         return markdown_line
 
     _new_image_path, new_image_rel_path = result
-    return f"![{alt_text}]({new_image_rel_path})"
+    return f"{prefix}![{alt_text}]({new_image_rel_path})"
 ```
 
 </details>

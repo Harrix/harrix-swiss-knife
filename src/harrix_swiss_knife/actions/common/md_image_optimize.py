@@ -18,8 +18,10 @@ from harrix_swiss_knife.actions.common.image_optimize import (
 )
 
 SUPPORTED_IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".webp", ".gif", ".mp4", ".png", ".svg", ".avif"]
-REMOTE_IMAGE_PATTERN = re.compile(r"^\!\[(.*?)\]\((http.*?)\)$")
-LOCAL_IMAGE_PATTERN = re.compile(r"^\!\[(.*?)\]\((.*?)\)$")
+# Optional list marker so `- ![alt](img/file.svg)` in Vector Icons notes is processed.
+_IMAGE_LINE_PREFIX = r"(?P<prefix>[ \t]*(?:(?:[-*+]|\d+[.)])[ \t]+)?)"
+REMOTE_IMAGE_PATTERN = re.compile(rf"^{_IMAGE_LINE_PREFIX}\!\[(?P<alt>.*?)\]\((?P<path>http.*?)\)$")
+LOCAL_IMAGE_PATTERN = re.compile(rf"^{_IMAGE_LINE_PREFIX}\!\[(?P<alt>.*?)\]\((?P<path>.*?)\)$")
 UNCHANGED_MD_FILE_MESSAGE = "File is not changed."
 
 
@@ -165,15 +167,17 @@ def process_markdown_image_line(
     size_stats: OptimizeSizeStats | None = None,
 ) -> str:
     """Process a single Markdown line and optimise any matching local image reference."""
-    if REMOTE_IMAGE_PATTERN.search(markdown_line.strip()):
+    stripped = markdown_line.rstrip()
+    if REMOTE_IMAGE_PATTERN.fullmatch(stripped):
         return markdown_line
 
-    local_match = LOCAL_IMAGE_PATTERN.search(markdown_line.strip())
+    local_match = LOCAL_IMAGE_PATTERN.fullmatch(stripped)
     if not local_match:
         return markdown_line
 
-    alt_text = local_match.group(1)
-    image_path = local_match.group(2)
+    prefix = local_match.group("prefix") or ""
+    alt_text = local_match.group("alt")
+    image_path = local_match.group("path")
     if image_path.startswith("http"):
         return markdown_line
 
@@ -198,7 +202,7 @@ def process_markdown_image_line(
         return markdown_line
 
     _new_image_path, new_image_rel_path = result
-    return f"![{alt_text}]({new_image_rel_path})"
+    return f"{prefix}![{alt_text}]({new_image_rel_path})"
 
 
 def summarize_md_optimize_messages(messages: list[str]) -> str:
