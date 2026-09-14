@@ -14,6 +14,7 @@ lang: en
 - [🔧 Function `apply_opaque_white`](#-function-apply_opaque_white)
 - [🔧 Function `count_icon_grid_first_row`](#-function-count_icon_grid_first_row)
 - [🔧 Function `create_command_section`](#-function-create_command_section)
+- [🔧 Function `create_command_section_divider`](#-function-create_command_section_divider)
 - [🔧 Function `fit_icon_grid_height`](#-function-fit_icon_grid_height)
 - [🔧 Function `grow_qfont`](#-function-grow_qfont)
 - [🔧 Function `measure_icon_grid_height`](#-function-measure_icon_grid_height)
@@ -81,10 +82,16 @@ def count_icon_grid_first_row(grid: QListWidget) -> int:
 ## 🔧 Function `create_command_section`
 
 ```python
-def create_command_section(*, title: str | None = None) -> tuple[QFrame, QLabel | None, QVBoxLayout]
+def create_command_section(*, title: str | None = None, bordered: bool = True) -> tuple[QFrame, QLabel | None, QVBoxLayout]
 ```
 
-Create a bordered white section card for an icon command grid.
+Create a white section card for an icon command grid.
+
+Args:
+
+- `title` (`str | None`): Optional bold section heading.
+- `bordered` (`bool`): Draw the gray rounded outline. Defaults to `True`
+  (quick launcher / dialogs). Pass `False` for the tray commands window.
 
 Returns:
 
@@ -95,12 +102,16 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def create_command_section(*, title: str | None = None) -> tuple[QFrame, QLabel | None, QVBoxLayout]:
+def create_command_section(
+    *,
+    title: str | None = None,
+    bordered: bool = True,
+) -> tuple[QFrame, QLabel | None, QVBoxLayout]:
     frame = QFrame()
     frame.setObjectName(COMMAND_SECTION_OBJECT_NAME)
     frame.setFrameShape(QFrame.Shape.NoFrame)
     frame.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-    frame.setStyleSheet(COMMAND_SECTION_STYLE)
+    frame.setStyleSheet(COMMAND_SECTION_STYLE if bordered else COMMAND_SECTION_FLAT_STYLE)
 
     layout = QVBoxLayout(frame)
     layout.setContentsMargins(8, 4, 8, 8)
@@ -116,6 +127,30 @@ def create_command_section(*, title: str | None = None) -> tuple[QFrame, QLabel 
         layout.addWidget(label)
 
     return frame, label, layout
+```
+
+</details>
+
+## 🔧 Function `create_command_section_divider`
+
+```python
+def create_command_section_divider() -> QFrame
+```
+
+Return a 1px horizontal rule in the command-section border color.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def create_command_section_divider() -> QFrame:
+    line = QFrame()
+    line.setObjectName(COMMAND_SECTION_DIVIDER_OBJECT_NAME)
+    line.setFrameShape(QFrame.Shape.NoFrame)
+    line.setFixedHeight(1)
+    line.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+    line.setStyleSheet(COMMAND_SECTION_DIVIDER_STYLE)
+    return line
 ```
 
 </details>
@@ -246,7 +281,7 @@ def prepare_icon_grid(grid: QListWidget, *, event_filter: QObject | None = None)
 def style_transparent_icon_grid(grid: QListWidget) -> None
 ```
 
-Keep icon grids frameless so section cards own the border.
+Keep icon grids frameless so the parent section owns chrome.
 
 <details>
 <summary>Code:</summary>

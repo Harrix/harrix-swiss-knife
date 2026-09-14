@@ -392,7 +392,7 @@ class MainWindow(QMainWindow):
         insert_at: int | None = None,
         show_in_list: bool = True,
     ) -> _CommandSection:
-        section_widget, label, section_layout = create_command_section(title=title)
+        section_widget, label, section_layout = create_command_section(title=title, bordered=False)
 
         grid = QListWidget()
         configure_described_choice_card_grid(grid)
@@ -408,6 +408,7 @@ class MainWindow(QMainWindow):
                 self._action_sections[action] = title
 
         section_layout.addWidget(grid)
+        section_layout.addWidget(create_command_section_divider())
         section = _CommandSection(
             title=title,
             actions=actions,

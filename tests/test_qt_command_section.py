@@ -5,7 +5,13 @@ from __future__ import annotations
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QApplication
 
-from harrix_swiss_knife.qt_command_section import create_command_section, grow_qfont
+from harrix_swiss_knife.qt_command_section import (
+    COMMAND_SECTION_BORDER_COLOR,
+    COMMAND_SECTION_DIVIDER_OBJECT_NAME,
+    create_command_section,
+    create_command_section_divider,
+    grow_qfont,
+)
 
 
 def _qapp() -> QApplication:
@@ -43,3 +49,19 @@ def test_create_command_section_title_is_bold() -> None:
     assert label is not None
     assert label.text() == "Food"
     assert label.font().bold()
+
+
+def test_create_command_section_flat_has_no_border() -> None:
+    assert _qapp() is not None
+    frame, _label, _layout = create_command_section(title="Images", bordered=False)
+    assert "border: none" in frame.styleSheet()
+    assert "border-radius" not in frame.styleSheet()
+
+
+def test_create_command_section_divider_uses_border_color() -> None:
+    assert _qapp() is not None
+    line = create_command_section_divider()
+    assert line.objectName() == COMMAND_SECTION_DIVIDER_OBJECT_NAME
+    assert COMMAND_SECTION_BORDER_COLOR in line.styleSheet()
+    assert line.minimumHeight() == 1
+    assert line.maximumHeight() == 1
