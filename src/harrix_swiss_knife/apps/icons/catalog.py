@@ -7,7 +7,7 @@ import json
 import os
 import re
 import shutil
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -394,6 +394,43 @@ def rebuild_catalog(repo_root: Path, *, should_cancel: CancelCheck | None = None
     return catalog
 
 
+def refresh_hashes_for_paths(catalog: IconCatalog, paths: Sequence[Path]) -> list[IconFamily]:
+    """Update featured/variant hashes for families that contain any of `paths`.
+
+    Note catalogs use SHA-256; flat catalogs keep the cheap mtime/size fingerprint.
+    Returns the families whose hashes changed.
+
+    """
+    wanted = {resolved for path in paths if (resolved := _resolved_path(path)) is not None}
+    if not wanted:
+        return []
+
+    root = catalog.repo_root
+    affected: list[IconFamily] = []
+    for family in catalog.icons:
+        changed = False
+        featured = family.featured_path(root)
+        if featured is not None and _resolved_path(featured) in wanted:
+            new_hash = _hash_for_kind(featured, catalog.kind)
+            if new_hash != family.featured_hash:
+                family.featured_hash = new_hash
+                changed = True
+        new_variants: list[IconVariant] = []
+        for variant in family.variants:
+            path = variant.absolute_path(root, family.folder)
+            if path.is_file() and _resolved_path(path) in wanted:
+                new_hash = _hash_for_kind(path, catalog.kind)
+                if new_hash != variant.hash:
+                    new_variants.append(IconVariant(file=variant.file, name=variant.name, hash=new_hash))
+                    changed = True
+                    continue
+            new_variants.append(variant)
+        if changed:
+            family.variants = new_variants
+            affected.append(family)
+    return affected
+
+
 def remove_empty_parents(start: Path, stop: Path) -> None:
     """Remove empty directories from `start` up to, but not including, `stop`."""
     current = start.resolve()
@@ -479,6 +516,20 @@ def scan_flat_folder(root: Path, *, should_cancel: CancelCheck | None = None) ->
         repo_root=root,
         kind="flat",
     )
+
+
+def write_catalog_json(catalog: IconCatalog) -> None:
+    """Persist an in-memory note catalog to `catalog.json` without rescanning disk."""
+    if catalog.kind != "note":
+        return
+    catalog.generated_at = datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    payload = {
+        "version": catalog.version,
+        "generated_at": catalog.generated_at,
+        "icons": [_family_to_dict(family) for family in catalog.icons],
+    }
+    path = catalog.repo_root / "catalog.json"
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def _build_search_blob(family: IconFamily) -> str:
@@ -594,6 +645,23 @@ def _family_from_dict(data: dict[str, Any]) -> IconFamily:
     return family
 
 
+def _family_to_dict(family: IconFamily) -> dict[str, Any]:
+    return {
+        "id": family.id,
+        "title": family.title,
+        "date": family.date,
+        "license": family.license,
+        "license-url": family.license_url,
+        "trademark": family.trademark,
+        "categories": list(family.categories),
+        "tags": list(family.tags),
+        "folder": family.folder,
+        "featured": family.featured,
+        "featured_hash": family.featured_hash,
+        "variants": [{"file": variant.file, "name": variant.name, "hash": variant.hash} for variant in family.variants],
+    }
+
+
 def _file_fingerprint(path: Path) -> str:
     """Return a cheap identity from mtime and size (no full-file hash)."""
     try:
@@ -659,6 +727,10 @@ def _has_flat_icon_file(root: Path, *, should_cancel: CancelCheck | None = None)
         except OSError:
             continue
     return False
+
+
+def _hash_for_kind(path: Path, kind: CatalogKind) -> str:
+    return _file_fingerprint(path) if kind == "flat" else _file_sha256(path)
 
 
 def _is_icon_note_dir(path: Path) -> bool:
@@ -813,6 +885,13 @@ def _raise_if_cancelled(should_cancel: CancelCheck | None) -> None:
 
 def _relative_to_root(path: Path, root: Path) -> str:
     return path.resolve().relative_to(root.resolve()).as_posix()
+
+
+def _resolved_path(path: Path) -> Path | None:
+    try:
+        return path.resolve()
+    except OSError:
+        return None
 
 
 FLAT_ICON_EXTENSIONS: frozenset[str] = frozenset({".svg", ".ai", ".pdf", ".eps"})

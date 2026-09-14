@@ -388,6 +388,45 @@ class MainWindow(QMainWindow, AppWindowMixin):
         if was_favorites or is_favorites_category(self._current_category):
             self._apply_filters()
 
+    def _after_optimize_svgs(self, paths: list[Path]) -> None:
+        """Refresh hashes/thumbs for optimized files without rebuilding the whole catalog."""
+        if self._catalog is None or self._repo_root is None:
+            return
+        affected = refresh_hashes_for_paths(self._catalog, paths)
+        if not affected:
+            return
+        if self._catalog.kind == "note":
+            try:
+                write_catalog_json(self._catalog)
+            except OSError as exc:
+                logger.warning("Failed to write catalog.json after Optimize SVG: %s", exc)
+        resolved = set()
+        for path in paths:
+            try:
+                resolved.add(path.resolve())
+            except OSError:
+                continue
+        featured_ids: set[str] = set()
+        for family in affected:
+            featured = family.featured_path(self._repo_root)
+            if featured is None:
+                continue
+            try:
+                if featured.resolve() not in resolved:
+                    continue
+            except OSError:
+                continue
+            featured_ids.add(family.id)
+            self._pixmaps.pop(family.id, None)
+            self._thumb_cache.forget(family.id)
+        if featured_ids:
+            self._start_thumb_refresh()
+        selected_id = self._selected_family_id
+        if selected_id is not None and any(family.id == selected_id for family in affected):
+            selected = next((item for item in self._catalog.icons if item.id == selected_id), None)
+            if selected is not None:
+                self._on_family_selected(selected, persist=False)
+
     def _apply_filters(self) -> None:
         self._search_filter_timer.stop()
         self._stop_grid_fill()
@@ -1833,7 +1872,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         toast.present()
         self.statusBar().showMessage("Optimize SVG completed")
         self._show_text_result("Optimize SVG", report)
-        self._on_refresh_catalog()
+        self._after_optimize_svgs(svg_paths)
 
     def _on_pin_current_folder(self) -> None:
         if self._repo_root is None:

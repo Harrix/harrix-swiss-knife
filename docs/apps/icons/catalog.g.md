@@ -39,9 +39,11 @@ lang: en
 - [🔧 Function `parse_note_frontmatter`](#-function-parse_note_frontmatter)
 - [🔧 Function `preferred_sidebar_folder`](#-function-preferred_sidebar_folder)
 - [🔧 Function `rebuild_catalog`](#-function-rebuild_catalog)
+- [🔧 Function `refresh_hashes_for_paths`](#-function-refresh_hashes_for_paths)
 - [🔧 Function `remove_empty_parents`](#-function-remove_empty_parents)
 - [🔧 Function `resolve_icons_root`](#-function-resolve_icons_root)
 - [🔧 Function `scan_flat_folder`](#-function-scan_flat_folder)
+- [🔧 Function `write_catalog_json`](#-function-write_catalog_json)
 
 </details>
 
@@ -840,6 +842,54 @@ def rebuild_catalog(repo_root: Path, *, should_cancel: CancelCheck | None = None
 
 </details>
 
+## 🔧 Function `refresh_hashes_for_paths`
+
+```python
+def refresh_hashes_for_paths(catalog: IconCatalog, paths: Sequence[Path]) -> list[IconFamily]
+```
+
+Update featured/variant hashes for families that contain any of `paths`.
+
+Note catalogs use SHA-256; flat catalogs keep the cheap mtime/size fingerprint.
+Returns the families whose hashes changed.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def refresh_hashes_for_paths(catalog: IconCatalog, paths: Sequence[Path]) -> list[IconFamily]:
+    wanted = {resolved for path in paths if (resolved := _resolved_path(path)) is not None}
+    if not wanted:
+        return []
+
+    root = catalog.repo_root
+    affected: list[IconFamily] = []
+    for family in catalog.icons:
+        changed = False
+        featured = family.featured_path(root)
+        if featured is not None and _resolved_path(featured) in wanted:
+            new_hash = _hash_for_kind(featured, catalog.kind)
+            if new_hash != family.featured_hash:
+                family.featured_hash = new_hash
+                changed = True
+        new_variants: list[IconVariant] = []
+        for variant in family.variants:
+            path = variant.absolute_path(root, family.folder)
+            if path.is_file() and _resolved_path(path) in wanted:
+                new_hash = _hash_for_kind(path, catalog.kind)
+                if new_hash != variant.hash:
+                    new_variants.append(IconVariant(file=variant.file, name=variant.name, hash=new_hash))
+                    changed = True
+                    continue
+            new_variants.append(variant)
+        if changed:
+            family.variants = new_variants
+            affected.append(family)
+    return affected
+```
+
+</details>
+
 ## 🔧 Function `remove_empty_parents`
 
 ```python
@@ -962,6 +1012,33 @@ def scan_flat_folder(root: Path, *, should_cancel: CancelCheck | None = None) ->
         repo_root=root,
         kind="flat",
     )
+```
+
+</details>
+
+## 🔧 Function `write_catalog_json`
+
+```python
+def write_catalog_json(catalog: IconCatalog) -> None
+```
+
+Persist an in-memory note catalog to `catalog.json` without rescanning disk.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def write_catalog_json(catalog: IconCatalog) -> None:
+    if catalog.kind != "note":
+        return
+    catalog.generated_at = datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    payload = {
+        "version": catalog.version,
+        "generated_at": catalog.generated_at,
+        "icons": [_family_to_dict(family) for family in catalog.icons],
+    }
+    path = catalog.repo_root / "catalog.json"
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 ```
 
 </details>
