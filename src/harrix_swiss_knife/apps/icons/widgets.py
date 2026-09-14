@@ -56,9 +56,10 @@ from harrix_swiss_knife.apps.icons.catalog import (
     family_svg_paths,
     is_openable_license_url,
 )
+from harrix_swiss_knife.apps.icons.meta_filter import build_variants_header_html, parse_meta_link
 from harrix_swiss_knife.apps.icons.settings import GRID_SORT_MODES
 from harrix_swiss_knife.apps.icons.thumb_cache import DEFAULT_THUMB_SIZE, placeholder_pixmap, render_icon_to_image
-from harrix_swiss_knife.qt_lucide_icon import apply_leading_chrome_icons
+from harrix_swiss_knife.qt_lucide_icon import LUCIDE_COLOR_BLUE, apply_leading_chrome_icons
 
 if TYPE_CHECKING:
     from harrix_swiss_knife.apps.icons.catalog import IconFamily
@@ -869,19 +870,39 @@ class IconLabelDelegate(QStyledItemDelegate):
 class VariantsPanel(QWidget):
     """Right-side panel showing SVG variants for the selected icon family."""
 
+    meta_filter_requested = Signal(str, str)  # kind, value
+
     def __init__(self, parent: QWidget | None = None, *, thumb_size: int = VARIANT_THUMB_SIZE) -> None:
         """Build header + draggable variants list."""
         super().__init__(parent)
         self._thumb_size = thumb_size
         self._repo_root: Path | None = None
         self._family: IconFamily | None = None
+        self._catalog_icons: list[IconFamily] = []
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         self.header = QLabel("Select an icon to see variants")
         self.header.setWordWrap(True)
         self.header.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
-        self.header.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self.header.setTextFormat(Qt.TextFormat.RichText)
+        self.header.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextBrowserInteraction | Qt.TextInteractionFlag.LinksAccessibleByMouse,
+        )
+        self.header.setOpenExternalLinks(False)
+        self.header.setStyleSheet(
+            "QLabel {"
+            " background: transparent;"
+            "}"
+            "QLabel a {"
+            f" color: {LUCIDE_COLOR_BLUE};"
+            " text-decoration: none;"
+            "}"
+            "QLabel a:hover {"
+            " text-decoration: underline;"
+            "}",
+        )
+        self.header.linkActivated.connect(self._on_header_link_activated)
         self.header.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.MinimumExpanding)
 
         self._header_scroll = QScrollArea()
@@ -907,7 +928,9 @@ class VariantsPanel(QWidget):
         self._family = None
         self.list.set_variants_family(None)
         self.list.clear()
+        self.header.setTextFormat(Qt.TextFormat.PlainText)
         self.header.setText("Select an icon to see variants")
+        self.header.setTextFormat(Qt.TextFormat.RichText)
         self._sync_header_scroll_height()
 
     @property
@@ -928,6 +951,12 @@ class VariantsPanel(QWidget):
         icon_size = max(32, min(self._thumb_size, viewport_w - 24 - self.list.spacing() * 2))
         self.list.set_display_icon_size(icon_size)
 
+    def set_catalog_icons(self, icons: list[IconFamily]) -> None:
+        """Remember catalog families used for meta link counts."""
+        self._catalog_icons = list(icons)
+        if self._family is not None:
+            self._refresh_header()
+
     def set_thumb_size(self, thumb_size: int) -> None:
         """Update variant thumbnail size (does not rebuild items)."""
         self._thumb_size = thumb_size
@@ -941,16 +970,13 @@ class VariantsPanel(QWidget):
         self.list.set_variants_family(family)
         self.list.clear()
         if family is None or repo_root is None:
+            self.header.setTextFormat(Qt.TextFormat.PlainText)
             self.header.setText("Select an icon to see variants")
+            self.header.setTextFormat(Qt.TextFormat.RichText)
             self._sync_header_scroll_height()
             return
 
-        tags = ", ".join(family.tags) if family.tags else "—"
-        date_line = f"\nDate: {family.date}" if family.date else ""
-        self.header.setText(
-            f"{family.title}\n{family.id}{date_line}\nCategories: {', '.join(family.categories)}\nTags: {tags}",
-        )
-        self._sync_header_scroll_height()
+        self._refresh_header()
         for variant in family.variants:
             path = variant.absolute_path(repo_root, family.folder)
             try:
@@ -964,12 +990,27 @@ class VariantsPanel(QWidget):
             self.list.addItem(item)
         self.list.doItemsLayout()
 
+    def _on_header_link_activated(self, href: str) -> None:
+        parsed = parse_meta_link(href)
+        if parsed is None:
+            return
+        kind, value = parsed
+        self.meta_filter_requested.emit(kind, value)
+
     @staticmethod
     def _preview(path: Path, size: int) -> QPixmap:
         image = render_icon_to_image(path, size)
         if image is None:
             return placeholder_pixmap(size)
         return QPixmap.fromImage(image)
+
+    def _refresh_header(self) -> None:
+        family = self._family
+        if family is None:
+            return
+        self.header.setTextFormat(Qt.TextFormat.RichText)
+        self.header.setText(build_variants_header_html(family, self._catalog_icons))
+        self._sync_header_scroll_height()
 
     def _sync_header_scroll_height(self) -> None:
         """Fit the header scroll area to content, capped so the variants list keeps space."""

@@ -90,6 +90,10 @@ from harrix_swiss_knife.apps.icons.edit_icon import reassign_icon_category, upda
 from harrix_swiss_knife.apps.icons.keywords_ai import KeywordsBatchRunner
 from harrix_swiss_knife.apps.icons.keywords_update import update_keywords_files
 from harrix_swiss_knife.apps.icons.lightbox import IconLightboxDialog
+from harrix_swiss_knife.apps.icons.meta_filter import (
+    filter_families_by_meta,
+    meta_filter_label,
+)
 from harrix_swiss_knife.apps.icons.repo_maintenance import (
     MaintenanceKind,
     RepoMaintenanceWorker,
@@ -158,6 +162,7 @@ from harrix_swiss_knife.apps.icons.widgets import (
 from harrix_swiss_knife.paths import get_config_path_str
 from harrix_swiss_knife.qt_lucide_icon import (
     COPY_BUTTON_ICON,
+    LUCIDE_COLOR_BLUE,
     apply_leading_chrome_button_icon,
     apply_leading_chrome_icons,
     apply_lucide_dialog_buttons,
@@ -289,6 +294,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._icon_size = load_icon_size()
         self._show_numbers = load_show_numbers()
         self._grid_sort_mode = load_grid_sort_mode()
+        self._meta_filter: tuple[str, str] | None = None
         self._catalog: IconCatalog | None = None
         self._repo_root: Path | None = None
         self._thumb_cache = ThumbnailCache(size=DEFAULT_THUMB_SIZE)
@@ -384,10 +390,12 @@ class MainWindow(QMainWindow, AppWindowMixin):
         changed = (
             category != self._current_category or self._current_folder is not None or self._nav_source != "category"
         )
+        had_meta = self._meta_filter is not None
+        self._clear_meta_filter(apply=False)
         self._nav_source = "category"
         self._current_category = category
         self._select_all_folders()
-        if not changed:
+        if not changed and not had_meta:
             return
         self._apply_filters()
         self._start_thumb_refresh()
@@ -397,10 +405,12 @@ class MainWindow(QMainWindow, AppWindowMixin):
             return
         folder = prefix or None
         changed = folder != self._current_folder or self._current_category is not None or self._nav_source != "folder"
+        had_meta = self._meta_filter is not None
+        self._clear_meta_filter(apply=False)
         self._nav_source = "folder"
         self._current_folder = folder
         self._select_all_categories()
-        if not changed:
+        if not changed and not had_meta:
             return
         self._apply_filters()
         self._start_thumb_refresh()
@@ -464,21 +474,27 @@ class MainWindow(QMainWindow, AppWindowMixin):
             return
         selected_id = self._selected_family_id
         query = self.search_edit.text()
-        folder, category = exclusive_sidebar_filters(
-            source=self._nav_source,
-            folder=self._current_folder,
-            category=self._current_category,
-        )
-        if is_favorites_category(category):
-            category = None
-        families = self._catalog.filter_icons(
-            category=category,
-            folder=folder,
-            query=query,
-        )
-        if self._nav_source == "category" and is_favorites_category(self._current_category):
-            by_id = {family.id: family for family in families}
-            families = [by_id[family_id] for family_id in self._favorite_ids if family_id in by_id]
+        if self._meta_filter is not None:
+            kind, value = self._meta_filter
+            families = filter_families_by_meta(self._catalog.icons, kind, value)
+            if query.strip():
+                families = [family for family in families if family.matches(query)]
+        else:
+            folder, category = exclusive_sidebar_filters(
+                source=self._nav_source,
+                folder=self._current_folder,
+                category=self._current_category,
+            )
+            if is_favorites_category(category):
+                category = None
+            families = self._catalog.filter_icons(
+                category=category,
+                folder=folder,
+                query=query,
+            )
+            if self._nav_source == "category" and is_favorites_category(self._current_category):
+                by_id = {family.id: family for family in families}
+                families = [by_id[family_id] for family_id in self._favorite_ids if family_id in by_id]
         families = sort_icon_families(families, self._grid_sort_mode)
         entries = build_grid_entries(families, repo_root=self._repo_root, mode=self._variant_view_mode)
         self._grid_entries = entries
@@ -533,6 +549,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._stop_grid_fill()
         self._repo_root = catalog.repo_root
         self._catalog = catalog
+        self.variants_panel.set_catalog_icons(catalog.icons)
         self._variant_pixmaps.clear()
         self._thumb_cache = ThumbnailCache(cache_dir=cache_dir_for_root(catalog.repo_root), size=DEFAULT_THUMB_SIZE)
         self._favorite_ids = load_favorites(catalog.repo_root)
@@ -701,6 +718,19 @@ class MainWindow(QMainWindow, AppWindowMixin):
         center = QWidget()
         center_layout = QVBoxLayout(center)
         center_layout.setContentsMargins(0, 0, 0, 0)
+        self._meta_filter_bar = QWidget()
+        meta_filter_layout = QHBoxLayout(self._meta_filter_bar)
+        meta_filter_layout.setContentsMargins(0, 0, 0, 0)
+        meta_filter_layout.setSpacing(8)
+        self._meta_filter_label = QLabel("")
+        self._meta_filter_label.setStyleSheet(f"color: {LUCIDE_COLOR_BLUE};")
+        self._meta_filter_label.setWordWrap(True)
+        meta_filter_layout.addWidget(self._meta_filter_label, stretch=1)
+        self._meta_filter_clear_btn = make_lucide_push_button("Clear filter", "x")
+        self._meta_filter_clear_btn.clicked.connect(self._on_clear_meta_filter)
+        meta_filter_layout.addWidget(self._meta_filter_clear_btn)
+        self._meta_filter_bar.hide()
+        center_layout.addWidget(self._meta_filter_bar)
         self.count_label = QLabel("")
         center_layout.addWidget(self.count_label)
         self.icon_list = DraggableIconList(icon_size=self._icon_size, dual_line_labels=True)
@@ -714,6 +744,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
 
         self.variants_panel = VariantsPanel(thumb_size=self._variant_thumb_size(self._icon_size))
         self.variants_panel.setMinimumWidth(220)
+        self.variants_panel.meta_filter_requested.connect(self._on_meta_filter_requested)
         self._wire_icon_list_actions(self.variants_panel.list)
         install_url_drop_handlers(
             self.variants_panel.list,
@@ -827,6 +858,16 @@ class MainWindow(QMainWindow, AppWindowMixin):
                 Qt.TransformationMode.SmoothTransformation,
             ),
         )
+
+    def _clear_meta_filter(self, *, apply: bool = True) -> None:
+        if self._meta_filter is None:
+            self._sync_meta_filter_bar()
+            return
+        self._meta_filter = None
+        self._sync_meta_filter_bar()
+        if apply:
+            self._apply_filters()
+            self._start_thumb_refresh()
 
     def _close_load_progress_toast(self) -> None:
         toast = self._load_progress_toast
@@ -1365,6 +1406,9 @@ class MainWindow(QMainWindow, AppWindowMixin):
     def _on_check_images(self) -> None:
         self._start_maintenance("check", "Checking images…")
 
+    def _on_clear_meta_filter(self) -> None:
+        self._clear_meta_filter(apply=True)
+
     def _on_copy_contents(self, svg_path: str) -> None:
         path = Path(svg_path)
         if path.suffix.casefold() != ".svg":
@@ -1752,6 +1796,22 @@ class MainWindow(QMainWindow, AppWindowMixin):
         if kind == "beautify_optimize":
             self._on_refresh_catalog()
         self._show_text_result(title, text)
+
+    def _on_meta_filter_requested(self, kind: str, value: str) -> None:
+        cleaned_kind = str(kind or "").strip()
+        cleaned_value = str(value or "").strip()
+        if not cleaned_kind or not cleaned_value:
+            return
+        self._meta_filter = (cleaned_kind, cleaned_value)
+        self._nav_source = None
+        self._current_folder = None
+        self._current_category = None
+        self._select_all_folders()
+        self._select_all_categories()
+        self._sync_meta_filter_bar()
+        self._apply_filters()
+        self._start_thumb_refresh()
+        self.statusBar().showMessage(meta_filter_label(cleaned_kind, cleaned_value))
 
     def _on_open_folder(self) -> None:
         start = str(self._repo_root) if self._repo_root is not None else ""
@@ -2549,6 +2609,17 @@ class MainWindow(QMainWindow, AppWindowMixin):
             self.folder_combo.setCurrentIndex(selected)
         self.folder_combo.blockSignals(False)  # noqa: FBT003
 
+    def _sync_meta_filter_bar(self) -> None:
+        if not hasattr(self, "_meta_filter_bar"):
+            return
+        if self._meta_filter is None:
+            self._meta_filter_bar.hide()
+            self._meta_filter_label.clear()
+            return
+        kind, value = self._meta_filter
+        self._meta_filter_label.setText(f"Filter: {meta_filter_label(kind, value)}")
+        self._meta_filter_bar.show()
+
     def _sync_repo_root_to_lists(self) -> None:
         if hasattr(self, "icon_list"):
             self.icon_list.set_repo_root(self._repo_root)
@@ -2556,6 +2627,9 @@ class MainWindow(QMainWindow, AppWindowMixin):
             self.variants_panel.list.set_repo_root(self._repo_root)
 
     def _sync_sidebar_source(self) -> None:
+        if self._meta_filter is not None:
+            self._nav_source = None
+            return
         if self._current_folder:
             self._nav_source = "folder"
         elif self._current_category:
