@@ -13,6 +13,7 @@ lang: en
 
 - [🏛️ Class `ActionUsageStatsRow`](#%EF%B8%8F-class-actionusagestatsrow)
 - [🔧 Function `build_action_usage_stats_browser`](#-function-build_action_usage_stats_browser)
+- [🔧 Function `copy_table_widget_selection`](#-function-copy_table_widget_selection)
 
 </details>
 
@@ -68,11 +69,12 @@ def build_action_usage_stats_browser(
         table = QTableWidget(0, len(_HEADERS))
         table.setHorizontalHeaderLabels(list(_HEADERS))
         table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-        table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectItems)
+        table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         table.setAlternatingRowColors(True)
         table.verticalHeader().setVisible(False)
         table.setSortingEnabled(False)
+        table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
 
         sort_column = _COL_COUNT
         sort_ascending = False
@@ -133,6 +135,28 @@ def build_action_usage_stats_browser(
                 sort_ascending = logical_index not in _NUMERIC_COLUMNS
             apply_sort()
 
+        def on_copy() -> None:
+            copy_table_widget_selection(table)
+
+        def on_save_excel() -> None:
+            export_table_via_dialog(
+                dialog,
+                table.model(),
+                prefer="xlsx",
+                title="Save action usage stats",
+                sheet_name="Action usage",
+            )
+
+        def on_context_menu(pos: QPoint) -> None:
+            menu = QMenu(table)
+            copy_action = menu.addAction("Copy")
+            excel_action = menu.addAction("Save as Excel…")
+            chosen = menu.exec_(table.viewport().mapToGlobal(pos))
+            if chosen is copy_action:
+                on_copy()
+            elif chosen is excel_action:
+                on_save_excel()
+
         header = table.horizontalHeader()
         header.setSectionsClickable(True)
         header.setSortIndicatorShown(True)
@@ -143,11 +167,18 @@ def build_action_usage_stats_browser(
         header.setSectionResizeMode(_COL_CLI, QHeaderView.ResizeMode.ResizeToContents)
         header.setSectionResizeMode(_COL_LAST_USED, QHeaderView.ResizeMode.ResizeToContents)
         header.sectionClicked.connect(on_header_clicked)
+        table.customContextMenuRequested.connect(on_context_menu)
+
+        copy_shortcut = QShortcut(QKeySequence.StandardKey.Copy, table)
+        copy_shortcut.activated.connect(on_copy)
 
         apply_sort()
         layout.addWidget(table)
 
         button_layout = QHBoxLayout()
+        save_excel_button = make_lucide_push_button("Save as Excel…", "chart-column")
+        save_excel_button.clicked.connect(on_save_excel)
+        button_layout.addWidget(save_excel_button)
         button_layout.addStretch()
         close_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
         apply_lucide_dialog_buttons(close_box)
@@ -156,6 +187,44 @@ def build_action_usage_stats_browser(
         layout.addLayout(button_layout)
 
     return _build
+```
+
+</details>
+
+## 🔧 Function `copy_table_widget_selection`
+
+```python
+def copy_table_widget_selection(table: QTableWidget) -> str
+```
+
+Copy selected cells to the clipboard as tab-separated text.
+
+Returns the copied text (empty when nothing is selected).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def copy_table_widget_selection(table: QTableWidget) -> str:
+    indexes = table.selectedIndexes()
+    if not indexes:
+        return ""
+    indexes = sorted(indexes, key=lambda index: (index.row(), index.column()))
+    rows_data: dict[int, dict[int, str]] = {}
+    for index in indexes:
+        item = table.item(index.row(), index.column())
+        rows_data.setdefault(index.row(), {})[index.column()] = item.text() if item is not None else ""
+    lines: list[str] = []
+    for row in sorted(rows_data):
+        cells = rows_data[row]
+        min_col = min(cells)
+        max_col = max(cells)
+        lines.append("\t".join(cells.get(col, "") for col in range(min_col, max_col + 1)))
+    text = "\n".join(lines)
+    clipboard = QApplication.clipboard()
+    if clipboard is not None and text:
+        clipboard.setText(text)
+    return text
 ```
 
 </details>
