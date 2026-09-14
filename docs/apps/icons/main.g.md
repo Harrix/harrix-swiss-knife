@@ -1751,6 +1751,28 @@ class MainWindow(QMainWindow, AppWindowMixin):
         h.file.open_file_or_folder(path)
         self.statusBar().showMessage(f"Opened `{path}`")
 
+    def _on_optimize_svgs(self, paths: object) -> None:
+        if not isinstance(paths, list) or not paths:
+            QMessageBox.information(self, "Vector Icons", "No SVG files to optimize.")
+            return
+        file_paths = [Path(str(path)) for path in paths]
+        svg_paths = [path for path in file_paths if path.suffix.casefold() == ".svg" and path.is_file()]
+        if not svg_paths:
+            QMessageBox.information(self, "Vector Icons", "No SVG files to optimize.")
+            return
+        self.statusBar().showMessage(f"Optimizing {len(svg_paths)} SVG file(s)…")
+        QApplication.processEvents()
+        try:
+            report = optimize_svg_files_in_place(svg_paths)
+        except (OSError, RuntimeError, ValueError) as exc:
+            QMessageBox.critical(self, "Vector Icons", f"Failed to optimize SVG files:\n{exc}")
+            return
+        toast = toast_notification.ToastNotification("Optimize SVG completed", duration=2500, parent=self)
+        toast.present()
+        self.statusBar().showMessage("Optimize SVG completed")
+        self._show_text_result("Optimize SVG", report)
+        self._on_refresh_catalog()
+
     def _on_pin_current_folder(self) -> None:
         if self._repo_root is None:
             QMessageBox.warning(self, "Vector Icons", "No folder is open.")
@@ -2603,6 +2625,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         icon_list.reveal_source_requested.connect(self._on_reveal_source)
         icon_list.open_source_requested.connect(self._on_open_source)
         icon_list.delete_requested.connect(self._on_delete_icon)
+        icon_list.optimize_svgs_requested.connect(self._on_optimize_svgs)
         icon_list.preview_requested.connect(
             lambda path, source=icon_list: self._on_preview_icon(path, source),
         )

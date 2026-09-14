@@ -80,25 +80,12 @@ def beautify_and_optimize_icons(
     total = max(1, len(svgs) + 1)
     _notify(on_progress, 1, total, "Optimizing SVG files…")
     lines.append("")
-    lines.append("🔵 Optimize SVG files")
-    stats = OptimizeSizeStats()
-    errors: list[str] = []
-    optimizer = h.svg_opt.SvgOptimizer()
-    for index, svg in enumerate(svgs, start=1):
-        _notify(on_progress, index + 1, total, f"Optimizing {svg.name}…")
-        before = svg.stat().st_size
-        try:
-            optimizer.optimize_file(svg)
-        except (OSError, RuntimeError, ValueError) as exc:
-            errors.append(f"❌ {svg}: {exc}")
-            continue
-        stats.add(before, svg.stat().st_size)
-    if svgs:
-        lines.append(f"✅ Optimized {stats.count} SVG file(s).")
-        lines.append(stats.format_summary())
-    else:
-        lines.append("🔵 No SVG files found.")
-    lines.extend(errors)
+    lines.append(
+        optimize_svg_files_in_place(
+            svgs,
+            on_progress=lambda done, _total, message: _notify(on_progress, done + 1, total, message),
+        ).rstrip(),
+    )
     return "\n".join(lines).strip() + "\n"
 
 
@@ -139,6 +126,51 @@ def is_family_prefixed_filename(name: str, family_id: str) -> bool:
     """Return whether `name` is the family note or a `{family_id}_…` variant."""
     stem = Path(name).stem
     return stem == family_id or stem.startswith(f"{family_id}_")
+
+
+def optimize_svg_files_in_place(
+    paths: list[Path] | tuple[Path, ...],
+    *,
+    on_progress: ProgressCallback | None = None,
+) -> str:
+    """Optimize SVG files in place with the same `SvgOptimizer` as OnOptimize."""
+    unique: list[Path] = []
+    seen: set[Path] = set()
+    for raw in paths:
+        path = Path(raw)
+        if path.suffix.casefold() != ".svg" or not path.is_file():
+            continue
+        try:
+            resolved = path.resolve()
+        except OSError:
+            resolved = path
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        unique.append(path)
+
+    lines: list[str] = ["🔵 Optimize SVG files"]
+    if not unique:
+        lines.append("🔵 No SVG files found.")
+        return "\n".join(lines).strip() + "\n"
+
+    stats = OptimizeSizeStats()
+    errors: list[str] = []
+    optimizer = h.svg_opt.SvgOptimizer()
+    total = len(unique)
+    for index, svg in enumerate(unique, start=1):
+        _notify(on_progress, index, total, f"Optimizing {svg.name}…")
+        before = svg.stat().st_size
+        try:
+            optimizer.optimize_file(svg)
+        except (OSError, RuntimeError, ValueError) as exc:
+            errors.append(f"❌ {svg}: {exc}")
+            continue
+        stats.add(before, svg.stat().st_size)
+    lines.append(f"✅ Optimized {stats.count} SVG file(s).")
+    lines.append(stats.format_summary())
+    lines.extend(errors)
+    return "\n".join(lines).strip() + "\n"
 
 
 def _check_markdown_notes(icons_dir: Path) -> list[str]:

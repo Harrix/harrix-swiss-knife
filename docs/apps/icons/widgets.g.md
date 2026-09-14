@@ -31,6 +31,7 @@ lang: en
   - [⚙️ Method `set_favorite_family_ids`](#%EF%B8%8F-method-set_favorite_family_ids)
   - [⚙️ Method `set_grid_entries`](#%EF%B8%8F-method-set_grid_entries)
   - [⚙️ Method `set_repo_root`](#%EF%B8%8F-method-set_repo_root)
+  - [⚙️ Method `set_variants_family`](#%EF%B8%8F-method-set_variants_family)
   - [⚙️ Method `startDrag`](#%EF%B8%8F-method-startdrag)
   - [⚙️ Method `update_row_pixmaps`](#%EF%B8%8F-method-update_row_pixmaps)
   - [⚙️ Method `visible_row_span`](#%EF%B8%8F-method-visible_row_span)
@@ -224,6 +225,7 @@ class DraggableIconList(QListWidget):
     batch_favorites_requested = Signal(object)  # (targets, add)
     copy_current_folder_path_requested = Signal()
     reveal_current_folder_requested = Signal()
+    optimize_svgs_requested = Signal(object)  # list[str]
     viewport_changed = Signal()
 
     def __init__(
@@ -233,12 +235,15 @@ class DraggableIconList(QListWidget):
         icon_size: int = DEFAULT_THUMB_SIZE,
         emit_family_selection: bool = True,
         dual_line_labels: bool = False,
+        variants_context: bool = False,
     ) -> None:
         """Configure icon mode and drag-only outward behavior."""
         super().__init__(parent)
         self._icon_size = icon_size
         self._emit_family_selection = emit_family_selection
         self._dual_line_labels = dual_line_labels
+        self._variants_context = variants_context
+        self._variants_family: IconFamily | None = None
         self._favorite_family_ids: set[str] = set()
         self._repo_root: Path | None = None
         # family_id → first row, so thumbnail updates skip a full list scan.
@@ -410,6 +415,10 @@ class DraggableIconList(QListWidget):
         """Remember the open icons folder for license lookup from notes."""
         self._repo_root = repo_root
 
+    def set_variants_family(self, family: IconFamily | None) -> None:
+        """Remember the family shown in the variants panel for empty-area actions."""
+        self._variants_family = family
+
     def startDrag(self, supported_actions: Qt.DropAction) -> None:  # noqa: ARG002, N802
         """Start a drag with family IDs (for Categories) and file URLs (for Explorer)."""
         targets = self.selected_keyword_targets()
@@ -515,6 +524,15 @@ class DraggableIconList(QListWidget):
         else:
             self.family_selected.emit(None)
 
+    def _emit_optimize_for_families(self, families: list[IconFamily]) -> None:
+        if self._repo_root is None:
+            return
+        paths: list[str] = []
+        for family in families:
+            paths.extend(str(path) for path in family_svg_paths(family, self._repo_root))
+        if paths:
+            self.optimize_svgs_requested.emit(paths)
+
     def _exec_batch_context_menu(self, pos: QPoint, targets: list[tuple[IconFamily, str]]) -> None:
         menu = QMenu(self)
         selected_ids = {family.id for family, _path in targets}
@@ -522,23 +540,55 @@ class DraggableIconList(QListWidget):
         labels = batch_context_action_texts(len(targets), all_favorites=all_favorites)
         batch_ai_action = menu.addAction(labels[0])
         favorite_action = menu.addAction(labels[1])
+        optimize_action = None
+        if any(family_has_svg_files(family) for family, _path in targets):
+            optimize_action = menu.addAction("🚀 Optimize SVG")
         apply_leading_chrome_icons(menu)
         chosen = menu.exec_(self.mapToGlobal(pos))
         if chosen is batch_ai_action:
             self.batch_keywords_ai_requested.emit(targets)
         elif chosen is favorite_action:
             self.batch_favorites_requested.emit((targets, not all_favorites))
+        elif optimize_action is not None and chosen is optimize_action:
+            self._emit_optimize_for_families([family for family, _path in targets])
 
     def _exec_current_folder_context_menu(self, pos: QPoint) -> None:
         menu = QMenu(self)
+        optimize_action = None
+        family = self._variants_family
+        if (
+            self._variants_context
+            and family is not None
+            and any(Path(variant.file).suffix.casefold() == ".svg" for variant in family.variants)
+        ):
+            optimize_action = menu.addAction("🚀 Optimize SVG")
         copy_folder_path_action = menu.addAction("📋 Copy path to current folder")
         reveal_folder_action = menu.addAction("📂 Reveal current folder in File Explorer")
         apply_leading_chrome_icons(menu)
         chosen = menu.exec_(self.mapToGlobal(pos))
-        if chosen is copy_folder_path_action:
+        if optimize_action is not None and chosen is optimize_action and family is not None:
+            if self._repo_root is None:
+                return
+            paths = family_svg_paths(
+                family,
+                self._repo_root,
+                include_featured=False,
+                include_variants=True,
+            )
+            self.optimize_svgs_requested.emit([str(path) for path in paths])
+        elif chosen is copy_folder_path_action:
             self.copy_current_folder_path_requested.emit()
         elif chosen is reveal_folder_action:
             self.reveal_current_folder_requested.emit()
+
+    def _exec_variants_batch_context_menu(self, pos: QPoint) -> None:
+        paths = [path for item in self.selectedItems() if is_svg_icon_path(path := item.data(ROLE_SVG_PATH))]
+        menu = QMenu(self)
+        optimize_action = menu.addAction("🚀 Optimize SVG") if paths else None
+        apply_leading_chrome_icons(menu)
+        chosen = menu.exec_(self.mapToGlobal(pos))
+        if optimize_action is not None and chosen is optimize_action:
+            self.optimize_svgs_requested.emit(paths)
 
     def _grid_size_for(self, icon_size: int) -> QSize:
         label_h = LABEL_EXTRA_HEIGHT if self._dual_line_labels else 48
@@ -563,8 +613,11 @@ class DraggableIconList(QListWidget):
             self.setCurrentItem(item)
 
         targets = self.selected_keyword_targets()
-        if len(targets) > 1:
-            self._exec_batch_context_menu(pos, targets)
+        if len(self.selectedItems()) > 1:
+            if self._variants_context:
+                self._exec_variants_batch_context_menu(pos)
+            else:
+                self._exec_batch_context_menu(pos, targets)
             return
 
         menu = QMenu(self)
@@ -575,6 +628,7 @@ class DraggableIconList(QListWidget):
         copy_contents_action = None
         copy_filename_action = None
         copy_path_action = None
+        optimize_action = None
 
         if has_path:
             reveal_action = add_reveal_in_explorer_action(menu)
@@ -584,6 +638,14 @@ class DraggableIconList(QListWidget):
                 copy_contents_action = menu.addAction("📋 Copy contents")
             copy_filename_action = menu.addAction("📋 Copy filename")
             copy_path_action = menu.addAction("📋 Copy path")
+            menu.addSeparator()
+
+        if self._variants_context:
+            if has_path and is_svg_icon_path(path):
+                optimize_action = menu.addAction("🚀 Optimize SVG")
+                menu.addSeparator()
+        elif family_has_svg_files(family):
+            optimize_action = menu.addAction("🚀 Optimize SVG")
             menu.addSeparator()
 
         open_note_action = menu.addAction("📝 Open note in editor")
@@ -632,6 +694,11 @@ class DraggableIconList(QListWidget):
             self.copy_filename_requested.emit(path)
         elif has_path and chosen is copy_path_action:
             self.copy_path_requested.emit(path)
+        elif optimize_action is not None and chosen is optimize_action:
+            if self._variants_context and has_path:
+                self.optimize_svgs_requested.emit([path])
+            else:
+                self._emit_optimize_for_families([family])
         elif chosen is open_note_action:
             self.open_note_requested.emit(family)
         elif chosen is edit_keywords_action:
@@ -673,7 +740,7 @@ class DraggableIconList(QListWidget):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None = None, *, icon_size: int = DEFAULT_THUMB_SIZE, emit_family_selection: bool = True, dual_line_labels: bool = False) -> None
+def __init__(self, parent: QWidget | None = None, *, icon_size: int = DEFAULT_THUMB_SIZE, emit_family_selection: bool = True, dual_line_labels: bool = False, variants_context: bool = False) -> None
 ```
 
 Configure icon mode and drag-only outward behavior.
@@ -689,11 +756,14 @@ def __init__(
         icon_size: int = DEFAULT_THUMB_SIZE,
         emit_family_selection: bool = True,
         dual_line_labels: bool = False,
+        variants_context: bool = False,
     ) -> None:
         super().__init__(parent)
         self._icon_size = icon_size
         self._emit_family_selection = emit_family_selection
         self._dual_line_labels = dual_line_labels
+        self._variants_context = variants_context
+        self._variants_family: IconFamily | None = None
         self._favorite_family_ids: set[str] = set()
         self._repo_root: Path | None = None
         # family_id → first row, so thumbnail updates skip a full list scan.
@@ -1046,6 +1116,24 @@ Remember the open icons folder for license lookup from notes.
 ```python
 def set_repo_root(self, repo_root: Path | None) -> None:
         self._repo_root = repo_root
+```
+
+</details>
+
+### ⚙️ Method `set_variants_family`
+
+```python
+def set_variants_family(self, family: IconFamily | None) -> None
+```
+
+Remember the family shown in the variants panel for empty-area actions.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_variants_family(self, family: IconFamily | None) -> None:
+        self._variants_family = family
 ```
 
 </details>
@@ -1466,13 +1554,18 @@ class VariantsPanel(QWidget):
         layout.addWidget(self._header_scroll)
         self._sync_header_scroll_height()
 
-        self.list = DraggableIconList(icon_size=thumb_size, emit_family_selection=False)
+        self.list = DraggableIconList(
+            icon_size=thumb_size,
+            emit_family_selection=False,
+            variants_context=True,
+        )
         self.list.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         layout.addWidget(self.list, stretch=1)
 
     def clear_variants(self) -> None:
         """Clear the variants list and reset the header."""
         self._family = None
+        self.list.set_variants_family(None)
         self.list.clear()
         self.header.setText("Select an icon to see variants")
         self._sync_header_scroll_height()
@@ -1504,6 +1597,8 @@ class VariantsPanel(QWidget):
         """Populate the panel with variants of `family`."""
         self._repo_root = repo_root
         self._family = family
+        self.list.set_repo_root(repo_root)
+        self.list.set_variants_family(family)
         self.list.clear()
         if family is None or repo_root is None:
             self.header.setText("Select an icon to see variants")
@@ -1586,7 +1681,11 @@ def __init__(self, parent: QWidget | None = None, *, thumb_size: int = VARIANT_T
         layout.addWidget(self._header_scroll)
         self._sync_header_scroll_height()
 
-        self.list = DraggableIconList(icon_size=thumb_size, emit_family_selection=False)
+        self.list = DraggableIconList(
+            icon_size=thumb_size,
+            emit_family_selection=False,
+            variants_context=True,
+        )
         self.list.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         layout.addWidget(self.list, stretch=1)
 ```
@@ -1607,6 +1706,7 @@ Clear the variants list and reset the header.
 ```python
 def clear_variants(self) -> None:
         self._family = None
+        self.list.set_variants_family(None)
         self.list.clear()
         self.header.setText("Select an icon to see variants")
         self._sync_header_scroll_height()
@@ -1693,6 +1793,8 @@ Populate the panel with variants of `family`.
 def show_family(self, family: IconFamily | None, repo_root: Path | None) -> None:
         self._repo_root = repo_root
         self._family = family
+        self.list.set_repo_root(repo_root)
+        self.list.set_variants_family(family)
         self.list.clear()
         if family is None or repo_root is None:
             self.header.setText("Select an icon to see variants")

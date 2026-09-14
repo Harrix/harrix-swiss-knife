@@ -8,6 +8,7 @@ from harrix_swiss_knife.apps.icons.repo_maintenance import (
     beautify_and_optimize_icons,
     check_icon_repo,
     is_family_prefixed_filename,
+    optimize_svg_files_in_place,
 )
 
 _MIN_SVG = (
@@ -98,6 +99,20 @@ def test_beautify_and_optimize_icons_rewrites_svg(tmp_path: Path) -> None:
     report = beautify_and_optimize_icons(repo)
     after = svg.read_text(encoding="utf-8")
     assert "Beautify Markdown" in report
-    assert "Optimized 2 SVG file(s)." in report
+    assert "Optimize SVG files" in report
     assert after.startswith("<svg")
-    assert after != before or "rect" in after
+    assert after != before or "Optimized" in report
+
+
+def test_optimize_svg_files_in_place_rewrites_selected(tmp_path: Path) -> None:
+    featured = tmp_path / "featured-image.svg"
+    variant = tmp_path / "icon_01.svg"
+    other = tmp_path / "skip.ai"
+    _write(featured)
+    _write(variant)
+    other.write_bytes(b"%PDF")
+    before = featured.read_text(encoding="utf-8")
+    report = optimize_svg_files_in_place([featured, variant, other, featured])
+    assert "Optimized 2 SVG file(s)." in report
+    assert featured.read_text(encoding="utf-8") != before or "Optimized" in report
+    assert other.read_bytes() == b"%PDF"

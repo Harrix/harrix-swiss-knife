@@ -25,8 +25,10 @@ lang: en
   - [⚙️ Method `absolute_path`](#%EF%B8%8F-method-absolute_path)
 - [🔧 Function `delete_icon_family`](#-function-delete_icon_family)
 - [🔧 Function `exclusive_sidebar_filters`](#-function-exclusive_sidebar_filters)
+- [🔧 Function `family_has_svg_files`](#-function-family_has_svg_files)
 - [🔧 Function `family_in_folder`](#-function-family_in_folder)
 - [🔧 Function `family_license_info`](#-function-family_license_info)
+- [🔧 Function `family_svg_paths`](#-function-family_svg_paths)
 - [🔧 Function `folder_disk_path`](#-function-folder_disk_path)
 - [🔧 Function `folder_parts`](#-function-folder_parts)
 - [🔧 Function `is_note_icons_repo`](#-function-is_note_icons_repo)
@@ -433,6 +435,26 @@ def exclusive_sidebar_filters(
 
 </details>
 
+## 🔧 Function `family_has_svg_files`
+
+```python
+def family_has_svg_files(family: IconFamily) -> bool
+```
+
+Return whether the family lists any SVG featured or variant path.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def family_has_svg_files(family: IconFamily) -> bool:
+    if family.featured and Path(family.featured).suffix.casefold() == ".svg":
+        return True
+    return any(Path(variant.file).suffix.casefold() == ".svg" for variant in family.variants)
+```
+
+</details>
+
 ## 🔧 Function `family_in_folder`
 
 ```python
@@ -484,6 +506,50 @@ def family_license_info(family: IconFamily, repo_root: Path | None = None) -> tu
     note_name = str(meta.get("license") or "").strip()
     note_url = str(meta.get("license-url") or "").strip()
     return name or note_name, url or note_url
+```
+
+</details>
+
+## 🔧 Function `family_svg_paths`
+
+```python
+def family_svg_paths(family: IconFamily, repo_root: Path, *, include_featured: bool = True, include_variants: bool = True) -> list[Path]
+```
+
+Return existing `.svg` paths for a family (featured and/or variants).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def family_svg_paths(
+    family: IconFamily,
+    repo_root: Path,
+    *,
+    include_featured: bool = True,
+    include_variants: bool = True,
+) -> list[Path]:
+    paths: list[Path] = []
+    seen: set[Path] = set()
+
+    def add(path: Path | None) -> None:
+        if path is None or not path.is_file() or path.suffix.casefold() != ".svg":
+            return
+        try:
+            resolved = path.resolve()
+        except OSError:
+            resolved = path
+        if resolved in seen:
+            return
+        seen.add(resolved)
+        paths.append(path)
+
+    if include_featured:
+        add(family.featured_path(repo_root))
+    if include_variants:
+        for variant in family.variants:
+            add(variant.absolute_path(repo_root, family.folder))
+    return paths
 ```
 
 </details>

@@ -169,6 +169,13 @@ def exclusive_sidebar_filters(
     return None, None
 
 
+def family_has_svg_files(family: IconFamily) -> bool:
+    """Return whether the family lists any SVG featured or variant path."""
+    if family.featured and Path(family.featured).suffix.casefold() == ".svg":
+        return True
+    return any(Path(variant.file).suffix.casefold() == ".svg" for variant in family.variants)
+
+
 def family_in_folder(family_folder: str, selected: str) -> bool:
     """Return whether `family_folder` is `selected` or nested under it."""
     family = "/".join(folder_parts(family_folder))
@@ -196,6 +203,37 @@ def family_license_info(family: IconFamily, repo_root: Path | None = None) -> tu
     note_name = str(meta.get("license") or "").strip()
     note_url = str(meta.get("license-url") or "").strip()
     return name or note_name, url or note_url
+
+
+def family_svg_paths(
+    family: IconFamily,
+    repo_root: Path,
+    *,
+    include_featured: bool = True,
+    include_variants: bool = True,
+) -> list[Path]:
+    """Return existing `.svg` paths for a family (featured and/or variants)."""
+    paths: list[Path] = []
+    seen: set[Path] = set()
+
+    def add(path: Path | None) -> None:
+        if path is None or not path.is_file() or path.suffix.casefold() != ".svg":
+            return
+        try:
+            resolved = path.resolve()
+        except OSError:
+            resolved = path
+        if resolved in seen:
+            return
+        seen.add(resolved)
+        paths.append(path)
+
+    if include_featured:
+        add(family.featured_path(repo_root))
+    if include_variants:
+        for variant in family.variants:
+            add(variant.absolute_path(repo_root, family.folder))
+    return paths
 
 
 def folder_disk_path(repo_root: Path, prefix: str) -> Path:
