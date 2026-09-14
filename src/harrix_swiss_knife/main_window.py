@@ -83,6 +83,7 @@ class MainWindow(QMainWindow):
         self._sections: list[_CommandSection] = []
         self._recent_section: _CommandSection | None = None
         self._all_actions: list[QAction] = []
+        self._action_sections: dict[QAction, str] = {}
         self._sort_mode = get_main_window_sort_mode()
 
         central_widget = QWidget()
@@ -154,7 +155,14 @@ class MainWindow(QMainWindow):
         description = getattr(action, "action_description", "") or ""
         return bool(description) and command_matches_search(description, query)
 
-    def _add_action_item(self, grid: QListWidget, action: QAction, *, show_added_at: bool = False) -> None:
+    def _add_action_item(
+        self,
+        grid: QListWidget,
+        action: QAction,
+        *,
+        show_added_at: bool = False,
+        show_section: bool = False,
+    ) -> None:
         icon_name = getattr(action, "icon_name", "") or ""
         description = getattr(action, "action_description", "") or ""
         if show_added_at:
@@ -164,11 +172,13 @@ class MainWindow(QMainWindow):
                 if date_text:
                     added_line = f"Added {date_text}"
                     description = f"{description}\n{added_line}" if description else added_line
+        section = self._action_sections.get(action, "") if show_section else ""
         add_described_action_card(
             grid,
             icon=icon_name,
             title=action.text(),
             description=description,
+            section=section,
             user_data=action,
             on_select=lambda listed=action: self._run_listed_action(listed),
             on_context_menu=self._on_card_context_menu,
@@ -203,7 +213,12 @@ class MainWindow(QMainWindow):
         self._grouped_widget.hide()
         self._search_grid.clear()
         for action in self._ordered_catalog_actions(query):
-            self._add_action_item(self._search_grid, action, show_added_at=newest)
+            self._add_action_item(
+                self._search_grid,
+                action,
+                show_added_at=newest,
+                show_section=True,
+            )
         self._search_grid.show()
         QTimer.singleShot(0, lambda: self._fit_grid_height(self._search_grid))
 
@@ -219,8 +234,13 @@ class MainWindow(QMainWindow):
             return
 
         self.list_widget.clear()
+        last_section = ""
         for action in self._ordered_catalog_actions(query):
-            self._add_list_action_item(action)
+            section = self._action_sections.get(action, "")
+            if section and section != last_section:
+                self._add_list_section_header(section)
+                last_section = section
+            self._add_list_action_item(action, indent_level=1 if section else 0)
 
     def _build_body_widget(self) -> QWidget:
         body = QWidget()
@@ -403,6 +423,7 @@ class MainWindow(QMainWindow):
             self._add_action_item(grid, action)
             if track_in_all:
                 self._all_actions.append(action)
+                self._action_sections[action] = title
 
         section_layout.addWidget(grid)
         section = _CommandSection(

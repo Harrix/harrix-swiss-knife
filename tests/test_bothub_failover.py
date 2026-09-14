@@ -33,13 +33,21 @@ def _probe_hosts(*up_hosts: str) -> Callable[[str, str | None], bool]:
     return probe
 
 
-def test_prepare_does_not_switch_when_preferred_site_is_up() -> None:
+def _isolated_config_path(tmp_path: Path) -> Path:
+    config_path = tmp_path / "config.json"
+    config_path.write_text("{}", encoding="utf-8")
+    (tmp_path / "config-temp.json").write_text("{}", encoding="utf-8")
+    return config_path
+
+
+def test_prepare_does_not_switch_when_preferred_site_is_up(tmp_path: Path) -> None:
     config = _bothub_pair_config()
     persisted: list[str] = []
     switched = prepare_bothub_router(
         config,
         probe=lambda _url, _proxy: True,
         persist=lambda provider, _speech: persisted.append(provider),
+        config_path=_isolated_config_path(tmp_path),
     )
     assert switched is None
     assert get_preferred_chat_provider(config) == "bothub"
@@ -47,13 +55,14 @@ def test_prepare_does_not_switch_when_preferred_site_is_up() -> None:
     assert persisted == []
 
 
-def test_prepare_switches_once_when_preferred_site_is_down() -> None:
+def test_prepare_switches_once_when_preferred_site_is_down(tmp_path: Path) -> None:
     config = _bothub_pair_config()
     persisted: list[tuple[str, str | None]] = []
     switched = prepare_bothub_router(
         config,
         probe=_probe_hosts("bothub.ru"),
         persist=lambda provider, speech: persisted.append((provider, speech)),
+        config_path=_isolated_config_path(tmp_path),
     )
     assert switched == "bothub.ru"
     assert get_preferred_chat_provider(config) == "bothub"
@@ -62,7 +71,7 @@ def test_prepare_switches_once_when_preferred_site_is_down() -> None:
     assert persisted == [("bothub.ru", None)]
 
 
-def test_prepare_fails_back_to_preferred_when_it_is_up_again() -> None:
+def test_prepare_fails_back_to_preferred_when_it_is_up_again(tmp_path: Path) -> None:
     config = _bothub_pair_config()
     config["ai"]["active_provider"] = "bothub.ru"
     persisted: list[str] = []
@@ -70,6 +79,7 @@ def test_prepare_fails_back_to_preferred_when_it_is_up_again() -> None:
         config,
         probe=lambda _url, _proxy: True,
         persist=lambda provider, _speech: persisted.append(provider),
+        config_path=_isolated_config_path(tmp_path),
     )
     assert switched == "bothub"
     assert config["ai"]["provider"] == "bothub"
@@ -77,13 +87,14 @@ def test_prepare_fails_back_to_preferred_when_it_is_up_again() -> None:
     assert persisted == ["bothub"]
 
 
-def test_prepare_keeps_old_provider_when_both_sites_are_down() -> None:
+def test_prepare_keeps_old_provider_when_both_sites_are_down(tmp_path: Path) -> None:
     config = _bothub_pair_config()
     persisted: list[str] = []
     switched = prepare_bothub_router(
         config,
         probe=lambda _url, _proxy: False,
         persist=lambda provider, _speech: persisted.append(provider),
+        config_path=_isolated_config_path(tmp_path),
     )
     assert switched is None
     assert get_chat_provider(config) == "bothub"
@@ -97,10 +108,14 @@ def test_prepare_does_not_switch_openai() -> None:
     assert get_chat_provider(config) == "openai"
 
 
-def test_prepare_does_not_switch_without_alternate_key() -> None:
+def test_prepare_does_not_switch_without_alternate_key(tmp_path: Path) -> None:
     config = _bothub_pair_config()
     config["bothub_ru_api_key"] = ""
-    switched = prepare_bothub_router(config, probe=lambda _url, _proxy: False)
+    switched = prepare_bothub_router(
+        config,
+        probe=lambda _url, _proxy: False,
+        config_path=_isolated_config_path(tmp_path),
+    )
     assert switched is None
     assert get_chat_provider(config) == "bothub"
 
@@ -108,9 +123,7 @@ def test_prepare_does_not_switch_without_alternate_key() -> None:
 def test_prepare_from_bothub_ru_switches_to_bothub(tmp_path: Path) -> None:
     config = _bothub_pair_config()
     config["ai"]["provider"] = "bothub.ru"
-    config_path = tmp_path / "config.json"
-    config_path.write_text("{}", encoding="utf-8")
-    (tmp_path / "config-temp.json").write_text("{}", encoding="utf-8")
+    config_path = _isolated_config_path(tmp_path)
     switched = prepare_bothub_router(
         config,
         probe=_probe_hosts("bothub.chat"),
@@ -122,7 +135,7 @@ def test_prepare_from_bothub_ru_switches_to_bothub(tmp_path: Path) -> None:
     assert get_chat_provider(config) == "bothub"
 
 
-def test_prepare_updates_speech_active_when_it_is_a_bothub_router() -> None:
+def test_prepare_updates_speech_active_when_it_is_a_bothub_router(tmp_path: Path) -> None:
     config = _bothub_pair_config()
     config["ai"]["speech_provider"] = "bothub"
     persisted: list[tuple[str, str | None]] = []
@@ -130,6 +143,7 @@ def test_prepare_updates_speech_active_when_it_is_a_bothub_router() -> None:
         config,
         probe=_probe_hosts("bothub.ru"),
         persist=lambda provider, speech: persisted.append((provider, speech)),
+        config_path=_isolated_config_path(tmp_path),
     )
     assert config["ai"]["speech_provider"] == "bothub"
     assert config["ai"]["active_speech_provider"] == "bothub.ru"

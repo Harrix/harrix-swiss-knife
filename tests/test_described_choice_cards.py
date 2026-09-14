@@ -85,7 +85,26 @@ def test_metrics_for_scale_scales_icon_and_fonts() -> None:
     assert metrics.icon_size < 48
     assert metrics.title_pt <= 11
     assert metrics.desc_pt <= 9
+    assert metrics.section_pt <= 8
     assert metrics.height < 104
+
+
+def test_described_card_shows_section_label(qapp: QApplication) -> None:  # noqa: ARG001
+    grid = QListWidget()
+    configure_described_choice_card_grid(grid)
+    add_described_action_card(
+        grid,
+        icon="🚀",
+        title="Optimize images",
+        description="Compress and rewrite files",
+        section="Images",
+        user_data="payload",
+    )
+    card = grid.itemWidget(grid.item(0))
+    assert isinstance(card, DescribedChoiceCard)
+    assert card._section_label is not None
+    assert card._section_label.text() == "Images"
+    assert not card._section_label.isHidden()
 
 
 def test_grid_grows_cell_height_for_wrapped_texts(qapp: QApplication) -> None:  # noqa: ARG001

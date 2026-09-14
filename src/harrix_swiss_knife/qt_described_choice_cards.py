@@ -30,6 +30,7 @@ DESCRIBED_CARD_WIDTH = 320
 DESCRIBED_CARD_HEIGHT = 104
 DESCRIBED_CARD_TITLE_PT = 11
 DESCRIBED_CARD_DESC_PT = 9
+DESCRIBED_CARD_SECTION_PT = 8
 DESCRIBED_CARD_MARGIN_H = 12
 DESCRIBED_CARD_MARGIN_V = 10
 DESCRIBED_CARD_ICON_GAP = 12
@@ -50,6 +51,7 @@ class DescribedCardMetrics:
     icon_size: int
     title_pt: int
     desc_pt: int
+    section_pt: int
     margin_h: int
     margin_v: int
     icon_gap: int
@@ -68,6 +70,7 @@ class DescribedChoiceCard(QWidget):
         title: str,
         description: str,
         *,
+        section: str = "",
         icon_size: int = DESCRIBED_CARD_ICON_SIZE,
         metrics: DescribedCardMetrics | None = None,
         parent: QWidget | None = None,
@@ -77,14 +80,17 @@ class DescribedChoiceCard(QWidget):
         self._icon_emoji = icon_emoji or "📝"
         self._title = title
         self._description = description
+        self._section = section.strip()
         self._root = QHBoxLayout(self)
         self._icon_label = QLabel(self)
+        self._section_label: QLabel | None = None
         self._title_label = QLabel(title)
         self._desc_label: QLabel | None = None
         self._text_column = QVBoxLayout()
 
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setToolTip(f"{title}\n{description}" if description else title)
+        tip_parts = [part for part in (self._section, title, description) if part]
+        self.setToolTip("\n".join(tip_parts))
         self.setObjectName("DescribedChoiceCard")
         self.setStyleSheet(
             "#DescribedChoiceCard {"
@@ -102,6 +108,15 @@ class DescribedChoiceCard(QWidget):
 
         self._text_column.setContentsMargins(0, 0, 0, 0)
         self._text_column.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+        if self._section:
+            self._section_label = QLabel(self._section)
+            self._section_label.setWordWrap(True)
+            self._section_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+            self._section_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+            self._section_label.setStyleSheet("color: palette(mid);")
+            self._section_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
+            self._text_column.addWidget(self._section_label)
 
         self._title_label.setWordWrap(True)
         self._title_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
@@ -135,6 +150,13 @@ class DescribedChoiceCard(QWidget):
 
         text_width = described_card_text_width(metrics)
 
+        if self._section_label is not None:
+            section_font = self._section_label.font()
+            section_font.setPointSize(metrics.section_pt)
+            section_font.setBold(True)
+            self._section_label.setFont(section_font)
+            self._section_label.setFixedHeight(self._section_label.heightForWidth(text_width))
+
         title_font = self._title_label.font()
         title_font.setPointSize(metrics.title_pt)
         title_font.setBold(True)
@@ -162,7 +184,10 @@ class DescribedChoiceCard(QWidget):
 
         """
         text_width = described_card_text_width(metrics)
-        text_height = self._title_label.heightForWidth(text_width)
+        text_height = 0
+        if self._section_label is not None:
+            text_height += self._section_label.heightForWidth(text_width) + metrics.text_gap
+        text_height += self._title_label.heightForWidth(text_width)
         if self._desc_label is not None:
             text_height += metrics.text_gap + self._desc_label.heightForWidth(text_width)
         return max(text_height, metrics.icon_size) + 2 * metrics.margin_v + CARD_SPACING
@@ -188,6 +213,7 @@ def add_described_action_card(
     title: str,
     description: str,
     user_data: object,
+    section: str = "",
     on_select: Callable[[], None] | None = None,
     on_context_menu: Callable[[object, QPoint], None] | None = None,
 ) -> QListWidgetItem:
@@ -201,6 +227,7 @@ def add_described_action_card(
         icon,
         title,
         description,
+        section=section,
         metrics=metrics,
         parent=list_widget,
     )
@@ -273,6 +300,7 @@ def metrics_for_scale(scale: float) -> DescribedCardMetrics:
         icon_size=max(16, round(DESCRIBED_CARD_ICON_SIZE * scale)),
         title_pt=max(8, round(DESCRIBED_CARD_TITLE_PT * scale)),
         desc_pt=max(7, round(DESCRIBED_CARD_DESC_PT * scale)),
+        section_pt=max(7, round(DESCRIBED_CARD_SECTION_PT * scale)),
         margin_h=max(6, round(DESCRIBED_CARD_MARGIN_H * scale)),
         margin_v=max(6, round(DESCRIBED_CARD_MARGIN_V * scale)),
         icon_gap=max(6, round(DESCRIBED_CARD_ICON_GAP * scale)),
