@@ -22,17 +22,19 @@ from harrix_swiss_knife.qt_app_font import (
 def test_bundled_font_files_exist() -> None:
     paths = bundled_font_paths()
     names = {path.name for path in paths}
-    assert len(paths) == 7
+    assert len(paths) == 10
     assert all(path.suffix == ".ttf" for path in paths)
-    assert "Inter.ttf" in names
+    assert "Inter-Regular.ttf" in names
+    assert "Inter-Medium.ttf" in names
+    assert "Inter-Bold.ttf" in names
     assert "Inter-Italic.ttf" in names
     assert "JetBrainsMono-Regular.ttf" in names
 
 
 def test_bundled_font_resources_exist() -> None:
     paths = bundled_font_resource_paths()
-    assert len(paths) == 7
-    assert any(path.endswith("Inter.ttf") for path in paths)
+    assert len(paths) == 10
+    assert any(path.endswith("Inter-Regular.ttf") for path in paths)
     assert any(path.endswith("JetBrainsMono-Regular.ttf") for path in paths)
 
 

@@ -15,8 +15,11 @@ MONO_FONT_FAMILY = "JetBrains Mono"
 _FONT_DIR = Path(__file__).resolve().parent / "assets" / "fonts"
 _QRC_FONT_PREFIX = ":/assets/fonts"
 _UI_FONT_FILES = (
-    "Inter.ttf",
+    "Inter-Regular.ttf",
+    "Inter-Medium.ttf",
+    "Inter-Bold.ttf",
     "Inter-Italic.ttf",
+    "Inter-MediumItalic.ttf",
 )
 _MONO_FONT_FILES = (
     "JetBrainsMono-Regular.ttf",
@@ -146,6 +149,12 @@ def _add_font(path: str, family: str) -> bool:
 def _font_with_family(source: QFont, family: str) -> QFont:
     font = QFont(source)
     font.setFamily(family)
+    # PreferNoHinting matches browser-like smoothing better than full TrueType
+    # hinting on Windows, especially for Inter UI sizes.
+    font.setHintingPreference(QFont.HintingPreference.PreferNoHinting)
+    font.setStyleStrategy(
+        QFont.StyleStrategy(QFont.StyleStrategy.PreferAntialias | QFont.StyleStrategy.PreferQuality),
+    )
     return font
 
 
