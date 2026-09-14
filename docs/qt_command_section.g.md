@@ -110,6 +110,7 @@ def create_command_section(
     frame = QFrame()
     frame.setObjectName(COMMAND_SECTION_OBJECT_NAME)
     frame.setFrameShape(QFrame.Shape.NoFrame)
+    frame.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
     frame.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
     frame.setStyleSheet(COMMAND_SECTION_STYLE if bordered else COMMAND_SECTION_FLAT_STYLE)
 
@@ -134,22 +135,32 @@ def create_command_section(
 ## 🔧 Function `create_command_section_divider`
 
 ```python
-def create_command_section_divider() -> QFrame
+def create_command_section_divider() -> QWidget
 ```
 
 Return a 1px horizontal rule in the command-section border color.
+
+Uses palette fill instead of a stylesheet background: stylesheet
+`background-color` on a frameless `QFrame` often paints nothing unless
+`WA_StyledBackground` is set, which made the tray dividers invisible.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def create_command_section_divider() -> QFrame:
-    line = QFrame()
+def create_command_section_divider() -> QWidget:
+    line = QWidget()
     line.setObjectName(COMMAND_SECTION_DIVIDER_OBJECT_NAME)
-    line.setFrameShape(QFrame.Shape.NoFrame)
     line.setFixedHeight(1)
+    line.setMinimumHeight(1)
+    line.setMaximumHeight(1)
     line.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-    line.setStyleSheet(COMMAND_SECTION_DIVIDER_STYLE)
+    palette = line.palette()
+    color = QColor(COMMAND_SECTION_BORDER_COLOR)
+    palette.setColor(QPalette.ColorRole.Window, color)
+    palette.setColor(QPalette.ColorRole.Base, color)
+    line.setAutoFillBackground(True)
+    line.setPalette(palette)
     return line
 ```
 

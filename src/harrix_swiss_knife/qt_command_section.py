@@ -25,14 +25,6 @@ COMMAND_SECTION_STYLE = (
 COMMAND_SECTION_FLAT_STYLE = (
     f"#{COMMAND_SECTION_OBJECT_NAME} {{ background-color: #ffffff; border: none;}}{_COMMAND_SECTION_LABEL_STYLE}"
 )
-COMMAND_SECTION_DIVIDER_STYLE = (
-    f"#{COMMAND_SECTION_DIVIDER_OBJECT_NAME} {{"
-    f" background-color: {COMMAND_SECTION_BORDER_COLOR};"
-    " border: none;"
-    " max-height: 1px;"
-    " margin: 4px 0px 0px 0px;"
-    "}"
-)
 
 
 def apply_opaque_white(widget: QWidget) -> None:
@@ -87,6 +79,7 @@ def create_command_section(
     frame = QFrame()
     frame.setObjectName(COMMAND_SECTION_OBJECT_NAME)
     frame.setFrameShape(QFrame.Shape.NoFrame)
+    frame.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
     frame.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
     frame.setStyleSheet(COMMAND_SECTION_STYLE if bordered else COMMAND_SECTION_FLAT_STYLE)
 
@@ -106,14 +99,26 @@ def create_command_section(
     return frame, label, layout
 
 
-def create_command_section_divider() -> QFrame:
-    """Return a 1px horizontal rule in the command-section border color."""
-    line = QFrame()
+def create_command_section_divider() -> QWidget:
+    """Return a 1px horizontal rule in the command-section border color.
+
+    Uses palette fill instead of a stylesheet background: stylesheet
+    `background-color` on a frameless `QFrame` often paints nothing unless
+    `WA_StyledBackground` is set, which made the tray dividers invisible.
+
+    """
+    line = QWidget()
     line.setObjectName(COMMAND_SECTION_DIVIDER_OBJECT_NAME)
-    line.setFrameShape(QFrame.Shape.NoFrame)
     line.setFixedHeight(1)
+    line.setMinimumHeight(1)
+    line.setMaximumHeight(1)
     line.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-    line.setStyleSheet(COMMAND_SECTION_DIVIDER_STYLE)
+    palette = line.palette()
+    color = QColor(COMMAND_SECTION_BORDER_COLOR)
+    palette.setColor(QPalette.ColorRole.Window, color)
+    palette.setColor(QPalette.ColorRole.Base, color)
+    line.setAutoFillBackground(True)
+    line.setPalette(palette)
     return line
 
 

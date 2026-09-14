@@ -408,23 +408,27 @@ class MainWindow(QMainWindow):
                 self._action_sections[action] = title
 
         section_layout.addWidget(grid)
-        section_layout.addWidget(create_command_section_divider())
+        divider = create_command_section_divider()
         section = _CommandSection(
             title=title,
             actions=actions,
             label=label,
             grid=grid,
             widget=section_widget,
+            divider=divider,
             show_in_list=show_in_list,
         )
         if insert_at is None:
             self._grouped_layout.addWidget(section_widget)
+            self._grouped_layout.addWidget(divider)
             self._sections.append(section)
         else:
             self._grouped_layout.insertWidget(insert_at, section_widget)
+            self._grouped_layout.insertWidget(insert_at + 1, divider)
             self._sections.insert(insert_at, section)
         if not actions:
             section_widget.hide()
+            divider.hide()
         if actions:
             QTimer.singleShot(0, lambda g=grid: self._fit_grid_height(g))
         return section
@@ -558,8 +562,11 @@ class MainWindow(QMainWindow):
         if section is None or section.grid is None:
             return
         actions = self._recent_gui_actions()
+        visible = bool(actions)
         if section.widget is not None:
-            section.widget.setVisible(bool(actions))
+            section.widget.setVisible(visible)
+        if section.divider is not None:
+            section.divider.setVisible(visible)
         if not actions:
             section.actions = []
             section.grid.clear()

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from PySide6.QtGui import QFont
+from PySide6.QtGui import QFont, QPalette
 from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife.qt_command_section import (
@@ -62,6 +62,7 @@ def test_create_command_section_divider_uses_border_color() -> None:
     assert _qapp() is not None
     line = create_command_section_divider()
     assert line.objectName() == COMMAND_SECTION_DIVIDER_OBJECT_NAME
-    assert COMMAND_SECTION_BORDER_COLOR in line.styleSheet()
     assert line.minimumHeight() == 1
     assert line.maximumHeight() == 1
+    assert line.autoFillBackground()
+    assert line.palette().color(QPalette.ColorRole.Window).name() == COMMAND_SECTION_BORDER_COLOR
