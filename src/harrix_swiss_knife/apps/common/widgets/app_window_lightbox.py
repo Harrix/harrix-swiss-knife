@@ -194,7 +194,7 @@ class AppWindowLightboxDialog(QDialog):
         button.setToolTip(tooltip)
         button.setStyleSheet(
             "QPushButton { color: white; font-size: 24px; font-weight: bold;"
-            "background: rgba(40, 40, 40, 125); border: 1px solid rgba(255, 255, 255, 90);"
+            "background: rgba(40, 40, 40, 125); border: none; outline: none;"
             "border-radius: 9px; }"
             "QPushButton:hover { background: rgba(40, 40, 40, 190); }"
         )

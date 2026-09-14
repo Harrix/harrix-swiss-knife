@@ -90,7 +90,8 @@ class ImageLightboxDialog(QDialog):
         close_button.setStyleSheet(
             "QPushButton {"
             " background: rgba(40, 40, 40, 200);"
-            " border: 1px solid rgba(255, 255, 255, 80);"
+            " border: none;"
+            " outline: none;"
             " border-radius: 8px;"
             " padding: 0;"
             "}"
@@ -204,7 +205,8 @@ def __init__(self, image_path: str | Path, parent: QWidget | None = None) -> Non
         close_button.setStyleSheet(
             "QPushButton {"
             " background: rgba(40, 40, 40, 200);"
-            " border: 1px solid rgba(255, 255, 255, 80);"
+            " border: none;"
+            " outline: none;"
             " border-radius: 8px;"
             " padding: 0;"
             "}"

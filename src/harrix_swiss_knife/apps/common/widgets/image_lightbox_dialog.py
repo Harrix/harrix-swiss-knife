@@ -78,7 +78,8 @@ class ImageLightboxDialog(QDialog):
         close_button.setStyleSheet(
             "QPushButton {"
             " background: rgba(40, 40, 40, 200);"
-            " border: 1px solid rgba(255, 255, 255, 80);"
+            " border: none;"
+            " outline: none;"
             " border-radius: 8px;"
             " padding: 0;"
             "}"
