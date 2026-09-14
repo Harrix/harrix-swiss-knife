@@ -311,8 +311,17 @@ class MainWindow(QMainWindow):
         header_row.addWidget(self._clear_button)
 
         self._sort_combo = QComboBox()
-        self._sort_combo.addItem("Menu order", MAIN_WINDOW_SORT_MODE_MENU)
-        self._sort_combo.addItem("Newest first", MAIN_WINDOW_SORT_MODE_NEWEST)
+        self._sort_combo.setIconSize(QSize(_SORT_COMBO_ICON_SIZE, _SORT_COMBO_ICON_SIZE))
+        self._sort_combo.addItem(
+            create_lucide_icon("list-tree", _SORT_COMBO_ICON_SIZE),
+            "Menu order",
+            MAIN_WINDOW_SORT_MODE_MENU,
+        )
+        self._sort_combo.addItem(
+            create_lucide_icon("list-clock", _SORT_COMBO_ICON_SIZE),
+            "Newest first",
+            MAIN_WINDOW_SORT_MODE_NEWEST,
+        )
         self._sort_combo.setToolTip("Sort commands by menu structure or date added")
         self._sort_combo.currentIndexChanged.connect(self._on_sort_mode_changed)
         header_row.addWidget(self._sort_combo)

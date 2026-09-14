@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from PySide6.QtCore import QEvent, QObject, QPoint, Qt, QTimer
+from PySide6.QtCore import QEvent, QObject, QPoint, QSize, Qt, QTimer
 from PySide6.QtGui import QAction, QCloseEvent, QCursor, QResizeEvent, QShowEvent
 from PySide6.QtWidgets import (
     QApplication,
@@ -62,6 +62,8 @@ from harrix_swiss_knife.qt_described_choice_cards import (
 )
 from harrix_swiss_knife.qt_lucide_icon import apply_lucide_button_icon, create_lucide_icon
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
+
+_SORT_COMBO_ICON_SIZE = 18
 
 
 class MainWindow(QMainWindow):
@@ -340,8 +342,17 @@ class MainWindow(QMainWindow):
         header_row.addWidget(self._clear_button)
 
         self._sort_combo = QComboBox()
-        self._sort_combo.addItem("Menu order", MAIN_WINDOW_SORT_MODE_MENU)
-        self._sort_combo.addItem("Newest first", MAIN_WINDOW_SORT_MODE_NEWEST)
+        self._sort_combo.setIconSize(QSize(_SORT_COMBO_ICON_SIZE, _SORT_COMBO_ICON_SIZE))
+        self._sort_combo.addItem(
+            create_lucide_icon("list-tree", _SORT_COMBO_ICON_SIZE),
+            "Menu order",
+            MAIN_WINDOW_SORT_MODE_MENU,
+        )
+        self._sort_combo.addItem(
+            create_lucide_icon("list-clock", _SORT_COMBO_ICON_SIZE),
+            "Newest first",
+            MAIN_WINDOW_SORT_MODE_NEWEST,
+        )
         self._sort_combo.setToolTip("Sort commands by menu structure or date added")
         self._sort_combo.currentIndexChanged.connect(self._on_sort_mode_changed)
         header_row.addWidget(self._sort_combo)
