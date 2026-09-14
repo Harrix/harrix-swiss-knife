@@ -165,6 +165,16 @@ def test_robot_chrome_emoji_maps_to_sparkles() -> None:
     assert lucide_svg_path("sparkles") is not None
 
 
+def test_icons_app_chrome_emojis_map_to_lucide() -> None:
+    assert lucide_name_for_chrome_emoji("🚀") == "rocket"
+    assert lucide_name_for_chrome_emoji("🔢") == "list-ordered"
+    assert lucide_name_for_chrome_emoji("↕️") == "arrow-down-up"
+    assert lucide_name_for_chrome_emoji("↕") == "arrow-down-up"
+    assert lucide_svg_path("rocket") is not None
+    assert lucide_svg_path("list-ordered") is not None
+    assert lucide_svg_path("arrow-down-up") is not None
+
+
 def test_create_ai_lucide_icon_uses_brand_blue(qapp: QApplication) -> None:
     assert qapp is not None
     lucide_mod._CACHE.clear()
