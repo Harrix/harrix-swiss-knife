@@ -1027,7 +1027,7 @@ Create an icon with the given emoji.
 Args:
 
 - [`emoji`](../../apps/common/emoji_picker_dialog.g.md#%EF%B8%8F-method-emoji) (`str`): The emoji to be used in the icon.
-- `size` (`int`): The size of the icon in pixels. Defaults to `64`.
+- [`size`](../../apps/icons/lightbox_cache.g.md#%EF%B8%8F-method-size-property) (`int`): The size of the icon in pixels. Defaults to `64`.
 
 Returns:
 

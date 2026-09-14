@@ -13,17 +13,20 @@ lang: en
 
 - [🏛️ Class `IconLightboxCanvas`](#%EF%B8%8F-class-iconlightboxcanvas)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `clear_image`](#%EF%B8%8F-method-clear_image)
   - [⚙️ Method `mouseDoubleClickEvent`](#%EF%B8%8F-method-mousedoubleclickevent)
   - [⚙️ Method `mouseMoveEvent`](#%EF%B8%8F-method-mousemoveevent)
   - [⚙️ Method `mousePressEvent`](#%EF%B8%8F-method-mousepressevent)
   - [⚙️ Method `mouseReleaseEvent`](#%EF%B8%8F-method-mousereleaseevent)
   - [⚙️ Method `paintEvent`](#%EF%B8%8F-method-paintevent)
+  - [⚙️ Method `set_image`](#%EF%B8%8F-method-set_image)
   - [⚙️ Method `set_path`](#%EF%B8%8F-method-set_path)
   - [⚙️ Method `wheelEvent`](#%EF%B8%8F-method-wheelevent)
   - [⚙️ Method `zoom (property)`](#%EF%B8%8F-method-zoom-property)
   - [⚙️ Method `zoom_by`](#%EF%B8%8F-method-zoom_by)
 - [🏛️ Class `IconLightboxDialog`](#%EF%B8%8F-class-iconlightboxdialog)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
+  - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
   - [⚙️ Method `empty_caption`](#%EF%B8%8F-method-empty_caption)
   - [⚙️ Method `show_item`](#%EF%B8%8F-method-show_item)
 
@@ -51,12 +54,20 @@ class IconLightboxCanvas(QWidget):
         self.setMouseTracking(True)
         self.setCursor(Qt.CursorShape.ArrowCursor)
         self._path: Path | None = None
-        self._image = None
+        self._image: QImage | None = None
         self._zoom = 1.0
         self._offset = QPointF()
         self._drag_start: QPointF | None = None
         self._drag_origin = QPointF()
         self._did_drag = False
+
+    def clear_image(self) -> None:
+        """Remove the current preview while keeping zoom state reset."""
+        self._path = None
+        self._image = None
+        self._zoom = 1.0
+        self._offset = QPointF()
+        self.update()
 
     def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         """Close the lightbox on a left double-click (image or backdrop)."""
@@ -120,13 +131,23 @@ class IconLightboxCanvas(QWidget):
             painter.drawImage(self._image_rect(), self._image)
         painter.end()
 
-    def set_path(self, path: Path) -> None:
-        """Load a new icon and reset its viewport."""
+    def set_image(self, path: Path, image: QImage | None) -> None:
+        """Show a pre-rendered image and reset the viewport."""
         self._path = path
         self._zoom = 1.0
         self._offset = QPointF()
-        self._image = render_icon_to_image(path, _PREVIEW_RENDER_SIZE)
+        self._image = image
         self.update()
+
+    def set_path(self, path: Path) -> None:
+        """Load a new icon synchronously (used by tests and fallbacks)."""
+        cache = lightbox_image_cache()
+        image = cache.get(path, PREVIEW_RENDER_SIZE)
+        if image is None:
+            image = render_icon_to_image(path, PREVIEW_RENDER_SIZE)
+            if image is not None and not image.isNull():
+                cache.put(path, PREVIEW_RENDER_SIZE, image)
+        self.set_image(path, image)
 
     def wheelEvent(self, event: QWheelEvent) -> None:  # noqa: N802
         """Zoom around the mouse pointer."""
@@ -183,12 +204,34 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self.setMouseTracking(True)
         self.setCursor(Qt.CursorShape.ArrowCursor)
         self._path: Path | None = None
-        self._image = None
+        self._image: QImage | None = None
         self._zoom = 1.0
         self._offset = QPointF()
         self._drag_start: QPointF | None = None
         self._drag_origin = QPointF()
         self._did_drag = False
+```
+
+</details>
+
+### ⚙️ Method `clear_image`
+
+```python
+def clear_image(self) -> None
+```
+
+Remove the current preview while keeping zoom state reset.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def clear_image(self) -> None:
+        self._path = None
+        self._image = None
+        self._zoom = 1.0
+        self._offset = QPointF()
+        self.update()
 ```
 
 </details>
@@ -325,24 +368,48 @@ def paintEvent(self, event: QPaintEvent) -> None:  # noqa: ARG002, N802
 
 </details>
 
+### ⚙️ Method `set_image`
+
+```python
+def set_image(self, path: Path, image: QImage | None) -> None
+```
+
+Show a pre-rendered image and reset the viewport.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_image(self, path: Path, image: QImage | None) -> None:
+        self._path = path
+        self._zoom = 1.0
+        self._offset = QPointF()
+        self._image = image
+        self.update()
+```
+
+</details>
+
 ### ⚙️ Method `set_path`
 
 ```python
 def set_path(self, path: Path) -> None
 ```
 
-Load a new icon and reset its viewport.
+Load a new icon synchronously (used by tests and fallbacks).
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def set_path(self, path: Path) -> None:
-        self._path = path
-        self._zoom = 1.0
-        self._offset = QPointF()
-        self._image = render_icon_to_image(path, _PREVIEW_RENDER_SIZE)
-        self.update()
+        cache = lightbox_image_cache()
+        image = cache.get(path, PREVIEW_RENDER_SIZE)
+        if image is None:
+            image = render_icon_to_image(path, PREVIEW_RENDER_SIZE)
+            if image is not None and not image.isNull():
+                cache.put(path, PREVIEW_RENDER_SIZE, image)
+        self.set_image(path, image)
 ```
 
 </details>
@@ -440,20 +507,87 @@ class IconLightboxDialog(AppWindowLightboxDialog):
         valid_paths = [path for path in paths if path.is_file()]
         super().__init__(parent, item_count=len(valid_paths), current_index=current_index)
         self._paths = valid_paths
+        self._load_token = 0
+        self._load_toast: ToastCountdownNotification | None = None
+        self._toast_present_timer = QTimer(self)
+        self._toast_present_timer.setSingleShot(True)
+        self._toast_present_timer.timeout.connect(self._present_load_toast)
         self.canvas = IconLightboxCanvas(self)
         self.attach_content(self.canvas)
         self.finish_setup()
+
+    def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
+        """Cancel in-flight preview loads when the lightbox closes."""
+        self._cancel_load()
+        super().closeEvent(event)
 
     def empty_caption(self) -> str:
         """Caption when there are no icon files."""
         return "No icon to display"
 
     def show_item(self, index: int) -> None:
-        """Load the icon at `index`."""
+        """Load the icon at `index` from cache or a background render."""
         path = self._paths[index]
         self.setWindowTitle(path.name)
-        self.canvas.set_path(path)
         self.set_caption(f"{path.name}  ·  {index + 1} / {len(self._paths)}")
+        self._start_load(path)
+
+    def _cancel_load(self) -> None:
+        self._load_token += 1
+        self._toast_present_timer.stop()
+        self._stop_load_toast()
+
+    def _complete_load(self, token: int, future: Future[tuple[str, QImage | None]]) -> None:
+        try:
+            path_str, image = future.result()
+        except Exception:
+            path_str, image = "", None
+        if image is not None and not image.isNull() and path_str:
+            lightbox_image_cache().put(Path(path_str), PREVIEW_RENDER_SIZE, image)
+        else:
+            image = None
+        if not isValid(self) or token != self._load_token:
+            return
+        self._toast_present_timer.stop()
+        self._stop_load_toast()
+        if path_str:
+            self.canvas.set_image(Path(path_str), image)
+
+    def _present_load_toast(self) -> None:
+        toast = self._load_toast
+        if toast is None or not isValid(self):
+            return
+        toast.present(activate=False, pinned=True)
+        toast.update_time()
+
+    def _schedule_complete_load(self, token: int, future: Future[tuple[str, QImage | None]]) -> None:
+        # Called from a worker thread; marshal back onto the GUI thread via `self`.
+        QTimer.singleShot(0, self, partial(self._complete_load, token, future))
+
+    def _start_load(self, path: Path) -> None:
+        cached = lightbox_image_cache().get(path, PREVIEW_RENDER_SIZE)
+        if cached is not None:
+            self._cancel_load()
+            self.canvas.set_image(path, cached)
+            return
+
+        self._cancel_load()
+        self.canvas.clear_image()
+        token = self._load_token
+        toast = ToastCountdownNotification("Opening icon…")
+        toast.start_countdown(present=False, pinned=True, activate=False)
+        self._load_toast = toast
+        self._toast_present_timer.start(_LOAD_TOAST_DELAY_MS)
+        future = _render_executor.submit(_render_preview, path, PREVIEW_RENDER_SIZE)
+        future.add_done_callback(partial(self._schedule_complete_load, token))
+
+    def _stop_load_toast(self) -> None:
+        toast = self._load_toast
+        self._load_toast = None
+        if toast is None:
+            return
+        toast.timer.stop()
+        toast.close()
 ```
 
 </details>
@@ -480,9 +614,33 @@ def __init__(
         valid_paths = [path for path in paths if path.is_file()]
         super().__init__(parent, item_count=len(valid_paths), current_index=current_index)
         self._paths = valid_paths
+        self._load_token = 0
+        self._load_toast: ToastCountdownNotification | None = None
+        self._toast_present_timer = QTimer(self)
+        self._toast_present_timer.setSingleShot(True)
+        self._toast_present_timer.timeout.connect(self._present_load_toast)
         self.canvas = IconLightboxCanvas(self)
         self.attach_content(self.canvas)
         self.finish_setup()
+```
+
+</details>
+
+### ⚙️ Method `closeEvent`
+
+```python
+def closeEvent(self, event: QCloseEvent) -> None
+```
+
+Cancel in-flight preview loads when the lightbox closes.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
+        self._cancel_load()
+        super().closeEvent(event)
 ```
 
 </details>
@@ -511,7 +669,7 @@ def empty_caption(self) -> str:
 def show_item(self, index: int) -> None
 ```
 
-Load the icon at `index`.
+Load the icon at `index` from cache or a background render.
 
 <details>
 <summary>Code:</summary>
@@ -520,8 +678,8 @@ Load the icon at `index`.
 def show_item(self, index: int) -> None:
         path = self._paths[index]
         self.setWindowTitle(path.name)
-        self.canvas.set_path(path)
         self.set_caption(f"{path.name}  ·  {index + 1} / {len(self._paths)}")
+        self._start_load(path)
 ```
 
 </details>

@@ -29,7 +29,7 @@ Return a Win32 `HT*` code for a local point on a frameless window.
 Args:
 
 - `local` (`QPoint`): Position in the window's logical coordinates.
-- `size` (`QSize`): Window size in logical pixels.
+- [`size`](apps/icons/lightbox_cache.g.md#%EF%B8%8F-method-size-property) (`QSize`): Window size in logical pixels.
 - `border` (`int`): Resize strip thickness in logical pixels. Defaults to `8`.
 
 Returns:

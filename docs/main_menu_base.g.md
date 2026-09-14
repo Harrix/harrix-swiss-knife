@@ -479,7 +479,7 @@ Create an icon with the given emoji.
 Args:
 
 - [`emoji`](apps/common/emoji_picker_dialog.g.md#%EF%B8%8F-method-emoji) (`str`): The emoji to be used in the icon.
-- `size` (`int`): The size of the icon in pixels. Defaults to `32`.
+- [`size`](apps/icons/lightbox_cache.g.md#%EF%B8%8F-method-size-property) (`int`): The size of the icon in pixels. Defaults to `32`.
 
 Returns:
 
@@ -507,7 +507,7 @@ Args:
 
 - `icon` (`str`): Action SVG under `assets/actions/`, Qt resource SVG
   (`resources_rc.py`), or emoji. Example: `object__palette.svg`, `py.svg`, `🏆`.
-- `size` (`int`): The size of the icon in pixels. Defaults to `32`.
+- [`size`](apps/icons/lightbox_cache.g.md#%EF%B8%8F-method-size-property) (`int`): The size of the icon in pixels. Defaults to `32`.
 
 Returns:
 

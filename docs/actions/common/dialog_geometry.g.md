@@ -127,9 +127,9 @@ def center_widget_on_available_screen(widget: QWidget) -> None:
 def centered_top_left(area: QRect, size: QSize) -> QPoint
 ```
 
-Return the top-left so `size` sits in the middle of `area`.
+Return the top-left so [`size`](../../apps/icons/lightbox_cache.g.md#%EF%B8%8F-method-size-property) sits in the middle of `area`.
 
-If `size` is larger than `area`, pin to the top-left of `area`.
+If [`size`](../../apps/icons/lightbox_cache.g.md#%EF%B8%8F-method-size-property) is larger than `area`, pin to the top-left of `area`.
 
 <details>
 <summary>Code:</summary>
