@@ -19,6 +19,7 @@ lang: en
 - [🔧 Function `load_favorites`](#-function-load_favorites)
 - [🔧 Function `load_favorites_map`](#-function-load_favorites_map)
 - [🔧 Function `load_grid_sort_mode`](#-function-load_grid_sort_mode)
+- [🔧 Function `load_grid_sort_reverse`](#-function-load_grid_sort_reverse)
 - [🔧 Function `load_icon_size`](#-function-load_icon_size)
 - [🔧 Function `load_last_folder`](#-function-load_last_folder)
 - [🔧 Function `load_last_icon`](#-function-load_last_icon)
@@ -34,6 +35,7 @@ lang: en
 - [🔧 Function `save_category_icons`](#-function-save_category_icons)
 - [🔧 Function `save_favorites`](#-function-save_favorites)
 - [🔧 Function `save_grid_sort_mode`](#-function-save_grid_sort_mode)
+- [🔧 Function `save_grid_sort_reverse`](#-function-save_grid_sort_reverse)
 - [🔧 Function `save_icon_size`](#-function-save_icon_size)
 - [🔧 Function `save_last_folder`](#-function-save_last_folder)
 - [🔧 Function `save_last_icon`](#-function-save_last_icon)
@@ -240,7 +242,35 @@ def load_grid_sort_mode() -> str:
     except (FileNotFoundError, OSError, ValueError):
         return GRID_SORT_DEFAULT
     raw = str(config.get(GRID_SORT_KEY, GRID_SORT_DEFAULT) or "").strip().casefold()
+    if raw == GRID_SORT_LEGACY_REVERSE:
+        return GRID_SORT_DEFAULT
     return raw if raw in GRID_SORT_MODE_IDS else GRID_SORT_DEFAULT
+```
+
+</details>
+
+## 🔧 Function `load_grid_sort_reverse`
+
+```python
+def load_grid_sort_reverse() -> bool
+```
+
+Load whether the main-grid sort order is reversed.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def load_grid_sort_reverse() -> bool:
+    try:
+        config = h.dev.config_load(get_config_path_str(), is_temp=True)
+    except (FileNotFoundError, OSError, ValueError):
+        return False
+    if GRID_SORT_REVERSE_KEY in config:
+        return bool(config.get(GRID_SORT_REVERSE_KEY))
+    # Legacy: "reverse" used to be a sort mode of its own.
+    raw = str(config.get(GRID_SORT_KEY, "") or "").strip().casefold()
+    return raw == GRID_SORT_LEGACY_REVERSE
 ```
 
 </details>
@@ -650,6 +680,30 @@ def save_grid_sort_mode(mode: str) -> str:
         is_temp=True,
     )
     return cleaned
+```
+
+</details>
+
+## 🔧 Function `save_grid_sort_reverse`
+
+```python
+def save_grid_sort_reverse(*, enabled: bool) -> None
+```
+
+Persist whether the main-grid sort order is reversed.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def save_grid_sort_reverse(*, enabled: bool) -> None:
+    _ensure_temp_config()
+    h.dev.config_update_value(
+        GRID_SORT_REVERSE_KEY,
+        bool(enabled),
+        get_config_path_str(),
+        is_temp=True,
+    )
 ```
 
 </details>

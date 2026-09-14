@@ -13,7 +13,6 @@ if TYPE_CHECKING:
 from harrix_swiss_knife.apps.icons.settings import (
     GRID_SORT_ALPHA,
     GRID_SORT_DATE,
-    GRID_SORT_REVERSE,
 )
 
 MODE_FEATURED = "featured"
@@ -189,21 +188,29 @@ def collect_icon_detail_preview_paths(
     return result
 
 
-def sort_icon_families(families: list[IconFamily], mode: str) -> list[IconFamily]:
-    """Return families ordered for the main grid sort mode."""
+def sort_icon_families(families: list[IconFamily], mode: str, *, reverse: bool = False) -> list[IconFamily]:
+    """Return families ordered for the main grid sort mode.
+
+    `reverse` flips the chosen order (Z — A, oldest-first dates, or reversed catalog).
+
+    """
     items = list(families)
     normalized = mode.strip().casefold() if mode else ""
     if normalized == GRID_SORT_ALPHA:
-        return sorted(items, key=lambda family: (family.title.casefold(), family.id.casefold()))
+        return sorted(
+            items,
+            key=lambda family: (family.title.casefold(), family.id.casefold()),
+            reverse=reverse,
+        )
     if normalized == GRID_SORT_DATE:
         dated = [family for family in items if family.date.strip()]
         undated = [family for family in items if not family.date.strip()]
-        dated.sort(key=lambda family: family.date.strip(), reverse=True)
+        # Default date order is newest first; `reverse` makes it oldest first.
+        dated.sort(key=lambda family: family.date.strip(), reverse=not reverse)
         undated.sort(key=lambda family: (family.title.casefold(), family.id.casefold()))
         return dated + undated
-    if normalized == GRID_SORT_REVERSE:
+    if reverse:
         items.reverse()
-        return items
     return items
 
 

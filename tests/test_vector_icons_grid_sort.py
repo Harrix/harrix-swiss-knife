@@ -16,11 +16,14 @@ from harrix_swiss_knife.apps.icons.settings import (
     GRID_SORT_DATE,
     GRID_SORT_DEFAULT,
     GRID_SORT_KEY,
-    GRID_SORT_REVERSE,
+    GRID_SORT_LEGACY_REVERSE,
+    GRID_SORT_REVERSE_KEY,
     SHOW_NUMBERS_KEY,
     load_grid_sort_mode,
+    load_grid_sort_reverse,
     load_show_numbers,
     save_grid_sort_mode,
+    save_grid_sort_reverse,
     save_show_numbers,
 )
 from harrix_swiss_knife.apps.icons.variant_view import GridEntry, sort_icon_families
@@ -75,21 +78,34 @@ def test_sort_icon_families_modes() -> None:
         _family("b", title="Bravo", date=""),
     ]
     assert [item.id for item in sort_icon_families(families, GRID_SORT_DEFAULT)] == ["c", "a", "b"]
+    assert [item.id for item in sort_icon_families(families, GRID_SORT_DEFAULT, reverse=True)] == ["b", "a", "c"]
     assert [item.id for item in sort_icon_families(families, GRID_SORT_ALPHA)] == ["a", "b", "c"]
+    assert [item.id for item in sort_icon_families(families, GRID_SORT_ALPHA, reverse=True)] == ["c", "b", "a"]
     assert [item.id for item in sort_icon_families(families, GRID_SORT_DATE)] == ["a", "c", "b"]
-    assert [item.id for item in sort_icon_families(families, GRID_SORT_REVERSE)] == ["b", "a", "c"]
+    assert [item.id for item in sort_icon_families(families, GRID_SORT_DATE, reverse=True)] == ["c", "a", "b"]
 
 
 def test_grid_sort_and_numbers_settings(monkeypatch: pytest.MonkeyPatch) -> None:
     store = _patch_config(monkeypatch)
     assert load_grid_sort_mode() == GRID_SORT_DEFAULT
+    assert load_grid_sort_reverse() is False
     assert load_show_numbers() is False
     assert save_grid_sort_mode(GRID_SORT_ALPHA) == GRID_SORT_ALPHA
+    save_grid_sort_reverse(enabled=True)
     save_show_numbers(enabled=True)
     assert load_grid_sort_mode() == GRID_SORT_ALPHA
+    assert load_grid_sort_reverse() is True
     assert load_show_numbers() is True
     assert store[GRID_SORT_KEY] == GRID_SORT_ALPHA
+    assert store[GRID_SORT_REVERSE_KEY] is True
     assert store[SHOW_NUMBERS_KEY] is True
+
+
+def test_legacy_reverse_sort_mode_migrates_to_flag(monkeypatch: pytest.MonkeyPatch) -> None:
+    store = _patch_config(monkeypatch)
+    store[GRID_SORT_KEY] = GRID_SORT_LEGACY_REVERSE
+    assert load_grid_sort_mode() == GRID_SORT_DEFAULT
+    assert load_grid_sort_reverse() is True
 
 
 def test_grid_items_show_date_badge_when_sorted_by_date(tmp_path: Path, qapp: QApplication) -> None:  # noqa: ARG001

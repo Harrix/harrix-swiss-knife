@@ -146,6 +146,7 @@ class DraggableIconList(QListWidget):
     refresh_variants_requested = Signal()
     show_numbers_toggled = Signal(bool)
     sort_mode_requested = Signal(str)
+    sort_reverse_toggled = Signal(bool)
     viewport_changed = Signal()
 
     def __init__(
@@ -168,6 +169,7 @@ class DraggableIconList(QListWidget):
         self._repo_root: Path | None = None
         self._show_numbers = False
         self._sort_mode = GRID_SORT_MODES[0][0]
+        self._sort_reverse = False
         # family_id → first row, so thumbnail updates skip a full list scan.
         self._family_rows: dict[str, int] = {}
         self._viewport_timer = QTimer(self)
@@ -354,12 +356,13 @@ class DraggableIconList(QListWidget):
         """Remember the family shown in the variants panel for empty-area actions."""
         self._variants_family = family
 
-    def set_view_options(self, *, show_numbers: bool, sort_mode: str) -> None:
-        """Remember numbering and sort mode used by the main-grid context menu."""
+    def set_view_options(self, *, show_numbers: bool, sort_mode: str, sort_reverse: bool = False) -> None:
+        """Remember numbering and sort options used by the main-grid context menu."""
         self._show_numbers = bool(show_numbers)
         cleaned = sort_mode.strip().casefold()
         known = {mode_id for mode_id, _label in GRID_SORT_MODES}
         self._sort_mode = cleaned if cleaned in known else GRID_SORT_MODES[0][0]
+        self._sort_reverse = bool(sort_reverse)
 
     def startDrag(self, supported_actions: Qt.DropAction) -> None:  # noqa: ARG002, N802
         """Start a drag with family IDs (for Categories) and file URLs (for Explorer)."""
@@ -464,10 +467,13 @@ class DraggableIconList(QListWidget):
         self._family_rows.setdefault(entry.family.id, self.count())
         self.addItem(item)
 
-    def _add_main_view_menu_actions(self, menu: QMenu) -> tuple[QAction | None, dict[str, QAction]]:
+    def _add_main_view_menu_actions(
+        self,
+        menu: QMenu,
+    ) -> tuple[QAction | None, dict[str, QAction], QAction | None]:
         """Append Show numbers + Sort submenu for the main icon grid."""
         if self._variants_context:
-            return None, {}
+            return None, {}, None
         numbers_label = "🔢 Hide numbers" if self._show_numbers else "🔢 Show numbers"
         numbers_action = menu.addAction(numbers_label)
         sort_menu = menu.addMenu("↕️ Sort")
@@ -477,7 +483,11 @@ class DraggableIconList(QListWidget):
             action.setCheckable(True)
             action.setChecked(mode_id == self._sort_mode)
             sort_actions[mode_id] = action
-        return numbers_action, sort_actions
+        sort_menu.addSeparator()
+        reverse_action = sort_menu.addAction("Reverse order")
+        reverse_action.setCheckable(True)
+        reverse_action.setChecked(self._sort_reverse)
+        return numbers_action, sort_actions, reverse_action
 
     def _emit_family_from_item(self, item: QListWidgetItem | None) -> None:
         if item is None:
@@ -530,14 +540,14 @@ class DraggableIconList(QListWidget):
                 optimize_action = menu.addAction("🚀 Optimize SVG")
             if refresh_action is not None or optimize_action is not None:
                 menu.addSeparator()
-        numbers_action, sort_actions = self._add_main_view_menu_actions(menu)
+        numbers_action, sort_actions, reverse_action = self._add_main_view_menu_actions(menu)
         if numbers_action is not None or sort_actions:
             menu.addSeparator()
         copy_folder_path_action = menu.addAction("📋 Copy path to current folder")
         reveal_folder_action = menu.addAction("📂 Reveal current folder in File Explorer")
         apply_leading_chrome_icons(menu)
         chosen = menu.exec_(self.mapToGlobal(pos))
-        if self._handle_main_view_menu_choice(chosen, numbers_action, sort_actions):
+        if self._handle_main_view_menu_choice(chosen, numbers_action, sort_actions, reverse_action):
             return
         if refresh_action is not None and chosen is refresh_action:
             self.refresh_variants_requested.emit()
@@ -577,6 +587,7 @@ class DraggableIconList(QListWidget):
         chosen: QAction | None,
         numbers_action: QAction | None,
         sort_actions: dict[str, QAction],
+        reverse_action: QAction | None = None,
     ) -> bool:
         if numbers_action is not None and chosen is numbers_action:
             self.show_numbers_toggled.emit(not self._show_numbers)
@@ -585,6 +596,9 @@ class DraggableIconList(QListWidget):
             if chosen is action:
                 self.sort_mode_requested.emit(mode_id)
                 return True
+        if reverse_action is not None and chosen is reverse_action:
+            self.sort_reverse_toggled.emit(not self._sort_reverse)
+            return True
         return False
 
     def _on_context_menu(self, pos: QPoint) -> None:
@@ -666,7 +680,7 @@ class DraggableIconList(QListWidget):
         reveal_folder_action = menu.addAction("📂 Reveal current folder in File Explorer")
         menu.addSeparator()
 
-        numbers_action, sort_actions = self._add_main_view_menu_actions(menu)
+        numbers_action, sort_actions, reverse_action = self._add_main_view_menu_actions(menu)
         if numbers_action is not None or sort_actions:
             menu.addSeparator()
 
@@ -681,7 +695,7 @@ class DraggableIconList(QListWidget):
         apply_leading_chrome_icons(menu)
         chosen = menu.exec_(self.mapToGlobal(pos))
 
-        if self._handle_main_view_menu_choice(chosen, numbers_action, sort_actions):
+        if self._handle_main_view_menu_choice(chosen, numbers_action, sort_actions, reverse_action):
             return
         if has_path and chosen is reveal_action:
             self.reveal_requested.emit(path)

@@ -18,6 +18,7 @@ RECENT_FOLDERS_KEY = "vector_icons_recent_folders"
 PINNED_FOLDERS_KEY = "path_vector_icons_pinned"
 RECENT_FOLDERS_MAX_KEY = "vector_icons_recent_folders_max"
 GRID_SORT_KEY = "vector_icons_grid_sort"
+GRID_SORT_REVERSE_KEY = "vector_icons_grid_sort_reverse"
 SHOW_NUMBERS_KEY = "vector_icons_show_numbers"
 ICON_SIZE_MIN = 64
 ICON_SIZE_MAX = 256
@@ -28,12 +29,11 @@ RECENT_FOLDERS_MAX_LIMIT = 50
 GRID_SORT_DEFAULT = "default"
 GRID_SORT_ALPHA = "alpha"
 GRID_SORT_DATE = "date"
-GRID_SORT_REVERSE = "reverse"
+GRID_SORT_LEGACY_REVERSE = "reverse"
 GRID_SORT_MODES: tuple[tuple[str, str], ...] = (
     (GRID_SORT_DEFAULT, "Current order"),
     (GRID_SORT_ALPHA, "Alphabetical"),
     (GRID_SORT_DATE, "By date"),
-    (GRID_SORT_REVERSE, "Reverse order"),
 )
 GRID_SORT_MODE_IDS = frozenset(mode_id for mode_id, _label in GRID_SORT_MODES)
 
@@ -132,7 +132,22 @@ def load_grid_sort_mode() -> str:
     except (FileNotFoundError, OSError, ValueError):
         return GRID_SORT_DEFAULT
     raw = str(config.get(GRID_SORT_KEY, GRID_SORT_DEFAULT) or "").strip().casefold()
+    if raw == GRID_SORT_LEGACY_REVERSE:
+        return GRID_SORT_DEFAULT
     return raw if raw in GRID_SORT_MODE_IDS else GRID_SORT_DEFAULT
+
+
+def load_grid_sort_reverse() -> bool:
+    """Load whether the main-grid sort order is reversed."""
+    try:
+        config = h.dev.config_load(get_config_path_str(), is_temp=True)
+    except (FileNotFoundError, OSError, ValueError):
+        return False
+    if GRID_SORT_REVERSE_KEY in config:
+        return bool(config.get(GRID_SORT_REVERSE_KEY))
+    # Legacy: "reverse" used to be a sort mode of its own.
+    raw = str(config.get(GRID_SORT_KEY, "") or "").strip().casefold()
+    return raw == GRID_SORT_LEGACY_REVERSE
 
 
 def load_icon_size() -> int:
@@ -349,6 +364,17 @@ def save_grid_sort_mode(mode: str) -> str:
         is_temp=True,
     )
     return cleaned
+
+
+def save_grid_sort_reverse(*, enabled: bool) -> None:
+    """Persist whether the main-grid sort order is reversed."""
+    _ensure_temp_config()
+    h.dev.config_update_value(
+        GRID_SORT_REVERSE_KEY,
+        bool(enabled),
+        get_config_path_str(),
+        is_temp=True,
+    )
 
 
 def save_icon_size(size: int) -> None:

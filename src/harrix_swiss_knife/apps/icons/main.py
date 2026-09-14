@@ -111,6 +111,7 @@ from harrix_swiss_knife.apps.icons.settings import (
     load_category_icons,
     load_favorites,
     load_grid_sort_mode,
+    load_grid_sort_reverse,
     load_icon_size,
     load_last_folder,
     load_last_icon,
@@ -122,6 +123,7 @@ from harrix_swiss_knife.apps.icons.settings import (
     remove_favorites,
     rename_favorite,
     save_grid_sort_mode,
+    save_grid_sort_reverse,
     save_icon_size,
     save_last_folder,
     save_last_icon,
@@ -297,6 +299,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._icon_size = load_icon_size()
         self._show_numbers = load_show_numbers()
         self._grid_sort_mode = load_grid_sort_mode()
+        self._grid_sort_reverse = load_grid_sort_reverse()
         self._meta_filter: tuple[str, str] | None = None
         self._catalog: IconCatalog | None = None
         self._repo_root: Path | None = None
@@ -537,7 +540,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
             if self._nav_source == "category" and is_favorites_category(self._current_category):
                 by_id = {family.id: family for family in families}
                 families = [by_id[family_id] for family_id in self._favorite_ids if family_id in by_id]
-        families = sort_icon_families(families, self._grid_sort_mode)
+        families = sort_icon_families(families, self._grid_sort_mode, reverse=self._grid_sort_reverse)
         entries = build_grid_entries(families, repo_root=self._repo_root, mode=self._variant_view_mode)
         self._grid_entries = entries
         self._grid_total_entries = len(entries)
@@ -547,7 +550,11 @@ class MainWindow(QMainWindow, AppWindowMixin):
         first_chunk = entries[:GRID_FIRST_CHUNK]
         self._pending_grid_entries = entries[GRID_FIRST_CHUNK:]
         self._loaded_rows = set()
-        self.icon_list.set_view_options(show_numbers=self._show_numbers, sort_mode=self._grid_sort_mode)
+        self.icon_list.set_view_options(
+            show_numbers=self._show_numbers,
+            sort_mode=self._grid_sort_mode,
+            sort_reverse=self._grid_sort_reverse,
+        )
         self.icon_list.set_grid_entries(
             first_chunk,
             pixmaps_by_path={},
@@ -776,7 +783,11 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.count_label = QLabel("")
         center_layout.addWidget(self.count_label)
         self.icon_list = DraggableIconList(icon_size=self._icon_size, dual_line_labels=True)
-        self.icon_list.set_view_options(show_numbers=self._show_numbers, sort_mode=self._grid_sort_mode)
+        self.icon_list.set_view_options(
+            show_numbers=self._show_numbers,
+            sort_mode=self._grid_sort_mode,
+            sort_reverse=self._grid_sort_reverse,
+        )
         self.icon_list.family_selected.connect(self._on_family_selected)
         self.icon_list.viewport_changed.connect(self._schedule_viewport_pixmaps)
         self._wire_icon_list_actions(self.icon_list)
@@ -2050,7 +2061,11 @@ class MainWindow(QMainWindow, AppWindowMixin):
     def _on_show_numbers_toggled(self, enabled: bool) -> None:  # noqa: FBT001
         self._show_numbers = bool(enabled)
         save_show_numbers(enabled=self._show_numbers)
-        self.icon_list.set_view_options(show_numbers=self._show_numbers, sort_mode=self._grid_sort_mode)
+        self.icon_list.set_view_options(
+            show_numbers=self._show_numbers,
+            sort_mode=self._grid_sort_mode,
+            sort_reverse=self._grid_sort_reverse,
+        )
         self._apply_filters()
         label = "shown" if self._show_numbers else "hidden"
         self.statusBar().showMessage(f"Icon numbers {label}")
@@ -2060,9 +2075,25 @@ class MainWindow(QMainWindow, AppWindowMixin):
         if cleaned == self._grid_sort_mode:
             return
         self._grid_sort_mode = cleaned
-        self.icon_list.set_view_options(show_numbers=self._show_numbers, sort_mode=self._grid_sort_mode)
+        self.icon_list.set_view_options(
+            show_numbers=self._show_numbers,
+            sort_mode=self._grid_sort_mode,
+            sort_reverse=self._grid_sort_reverse,
+        )
         self._apply_filters()
         self.statusBar().showMessage(f"Sort: {cleaned}")
+
+    def _on_sort_reverse_toggled(self, enabled: bool) -> None:  # noqa: FBT001
+        self._grid_sort_reverse = bool(enabled)
+        save_grid_sort_reverse(enabled=self._grid_sort_reverse)
+        self.icon_list.set_view_options(
+            show_numbers=self._show_numbers,
+            sort_mode=self._grid_sort_mode,
+            sort_reverse=self._grid_sort_reverse,
+        )
+        self._apply_filters()
+        label = "on" if self._grid_sort_reverse else "off"
+        self.statusBar().showMessage(f"Sort reverse {label}")
 
     def _on_thumb_finished(self, updated: int) -> None:
         if self.sender() is not self._thumb_worker:
@@ -2863,6 +2894,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         icon_list.refresh_variants_requested.connect(self._on_refresh_variants)
         icon_list.show_numbers_toggled.connect(self._on_show_numbers_toggled)
         icon_list.sort_mode_requested.connect(self._on_sort_mode_requested)
+        icon_list.sort_reverse_toggled.connect(self._on_sort_reverse_toggled)
         icon_list.preview_requested.connect(
             lambda path, source=icon_list: self._on_preview_icon(path, source),
         )
