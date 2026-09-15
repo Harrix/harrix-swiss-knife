@@ -6,6 +6,7 @@ CAPTURE_HOTKEY_ACTIONS: frozenset[str] = frozenset(
     {
         "OnScreenshotRegion",
         "OnScreenshotRegionClipboard",
+        "OnScreenshotRegionKeepWindows",
         "OnScreenshotRegionTranslate",
         "OnRecordRegion",
     },

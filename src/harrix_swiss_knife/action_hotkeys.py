@@ -9,10 +9,10 @@ from harrix_swiss_knife.config_model import load_app_config
 
 HOTKEYS_KEY = "hotkeys"
 
-# Removed keep-Windows screenshot actions; their hotkeys now run the clipboard capture.
+# Retired clipboard keep-Windows action; its hotkeys now run clipboard capture.
+# `OnScreenshotRegionKeepWindows` is a live action again (show-app screenshot).
 _RENAMED_HOTKEY_ACTIONS: dict[str, str] = {
     "OnScreenshotRegionClipboardKeepWindows": "OnScreenshotRegionClipboard",
-    "OnScreenshotRegionKeepWindows": "OnScreenshotRegionClipboard",
 }
 
 

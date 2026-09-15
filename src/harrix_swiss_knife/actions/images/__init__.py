@@ -16,6 +16,7 @@ from harrix_swiss_knife.actions.images.recognize_text_with_ocr import OnRecogniz
 from harrix_swiss_knife.actions.images.record_region import OnRecordRegion
 from harrix_swiss_knife.actions.images.screenshot_region import OnScreenshotRegion
 from harrix_swiss_knife.actions.images.screenshot_region_clipboard import OnScreenshotRegionClipboard
+from harrix_swiss_knife.actions.images.screenshot_region_keep_windows import OnScreenshotRegionKeepWindows
 from harrix_swiss_knife.actions.images.screenshot_region_translate import OnScreenshotRegionTranslate
 
 __all__ = [
@@ -35,5 +36,6 @@ __all__ = [
     "OnRecordRegion",
     "OnScreenshotRegion",
     "OnScreenshotRegionClipboard",
+    "OnScreenshotRegionKeepWindows",
     "OnScreenshotRegionTranslate",
 ]

@@ -128,6 +128,7 @@ _Figure 1: Screenshot_
   - 📷 Screenshot region
   - 📷 Screenshot region (OCR + translate)
   - 📷 Screenshot region (clipboard)
+  - 👀 Screenshot region (show app)
 - **Markdown**
   - 📝 ★ New Markdown… ꟲᴸᴵ
   - 🎬 Get a list of movies, books for web…

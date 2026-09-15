@@ -83,6 +83,7 @@ from harrix_swiss_knife.actions.images.recognize_text_with_ocr import OnRecogniz
 from harrix_swiss_knife.actions.images.record_region import OnRecordRegion
 from harrix_swiss_knife.actions.images.screenshot_region import OnScreenshotRegion
 from harrix_swiss_knife.actions.images.screenshot_region_clipboard import OnScreenshotRegionClipboard
+from harrix_swiss_knife.actions.images.screenshot_region_keep_windows import OnScreenshotRegionKeepWindows
 from harrix_swiss_knife.actions.images.screenshot_region_translate import OnScreenshotRegionTranslate
 from harrix_swiss_knife.actions.markdown.append_yaml_tag import OnAppendYamlTag
 from harrix_swiss_knife.actions.markdown.beautify_md import OnBeautifyMd
@@ -203,6 +204,7 @@ def get_menu_structure() -> list[Any]:
                 "-",
                 OnScreenshotRegion,
                 OnScreenshotRegionClipboard,
+                OnScreenshotRegionKeepWindows,
                 OnScreenshotRegionTranslate,
                 OnRecordRegion,
             ],

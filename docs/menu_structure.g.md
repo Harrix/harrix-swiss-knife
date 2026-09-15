@@ -89,6 +89,7 @@ def get_menu_structure() -> list[Any]:
                 "-",
                 OnScreenshotRegion,
                 OnScreenshotRegionClipboard,
+                OnScreenshotRegionKeepWindows,
                 OnScreenshotRegionTranslate,
                 OnRecordRegion,
             ],

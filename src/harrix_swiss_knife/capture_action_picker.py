@@ -24,6 +24,7 @@ from harrix_swiss_knife.actions.common.dialog_geometry import center_widget_on_a
 from harrix_swiss_knife.actions.images.record_region import OnRecordRegion
 from harrix_swiss_knife.actions.images.screenshot_region import OnScreenshotRegion
 from harrix_swiss_knife.actions.images.screenshot_region_clipboard import OnScreenshotRegionClipboard
+from harrix_swiss_knife.actions.images.screenshot_region_keep_windows import OnScreenshotRegionKeepWindows
 from harrix_swiss_knife.actions.images.screenshot_region_translate import OnScreenshotRegionTranslate
 from harrix_swiss_knife.cli_menu import show_action_class_context_menu
 from harrix_swiss_knife.qt_action_card_grid import (
@@ -49,6 +50,7 @@ if TYPE_CHECKING:
 CAPTURE_PICKER_ACTIONS: tuple[type[ActionBase], ...] = (
     OnScreenshotRegion,
     OnScreenshotRegionClipboard,
+    OnScreenshotRegionKeepWindows,
     OnScreenshotRegionTranslate,
     OnRecordRegion,
 )

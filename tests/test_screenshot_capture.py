@@ -12,6 +12,7 @@ from PySide6.QtGui import QImage
 from PySide6.QtWidgets import QApplication, QDialog
 
 from harrix_swiss_knife.actions.images.screenshot_region_clipboard import OnScreenshotRegionClipboard
+from harrix_swiss_knife.actions.images.screenshot_region_keep_windows import OnScreenshotRegionKeepWindows
 from harrix_swiss_knife.actions.images.screenshot_region_translate import OnScreenshotRegionTranslate
 from harrix_swiss_knife.screenshot import capture
 
@@ -166,10 +167,9 @@ def test_capture_region_keeps_app_windows_visible(
     assert restore_calls == []
 
 
-def test_example_config_does_not_bind_removed_keep_windows_actions() -> None:
+def test_example_config_does_not_bind_removed_clipboard_keep_windows_action() -> None:
     data = json.loads(_EXAMPLE_CONFIG.read_text(encoding="utf-8"))
     actions = {entry.get("action") for entry in data["hotkeys"]}
-    assert "OnScreenshotRegionKeepWindows" not in actions
     assert "OnScreenshotRegionClipboardKeepWindows" not in actions
 
 
@@ -202,4 +202,27 @@ def test_clipboard_action_skips_preview(qapp: QApplication, monkeypatch: pytest.
     OnScreenshotRegionClipboard()()
     assert calls == [
         {"show_preview": False, "show_shutter_button": True},
+    ]
+
+
+def test_keep_windows_action_keeps_app_visible(qapp: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:  # noqa: ARG001
+    image = _sample_image()
+    calls: list[dict[str, object]] = []
+
+    def fake_capture_region(**kwargs: object) -> QImage:
+        calls.append(kwargs)
+        return image
+
+    monkeypatch.setattr(
+        "harrix_swiss_knife.actions.images.screenshot_region_keep_windows.capture_region",
+        fake_capture_region,
+    )
+
+    def _silent_toast(self: object, message: str = "", duration: int = 2000) -> None:  # noqa: ARG001
+        return None
+
+    monkeypatch.setattr(OnScreenshotRegionKeepWindows, "show_toast", _silent_toast)
+    OnScreenshotRegionKeepWindows()()
+    assert calls == [
+        {"show_preview": True, "show_shutter_button": True, "hide_app": False},
     ]

@@ -33,6 +33,7 @@ def test_capture_hotkey_action_set() -> None:
     assert {
         "OnScreenshotRegion",
         "OnScreenshotRegionClipboard",
+        "OnScreenshotRegionKeepWindows",
         "OnScreenshotRegionTranslate",
         "OnRecordRegion",
     } == CAPTURE_HOTKEY_ACTIONS
