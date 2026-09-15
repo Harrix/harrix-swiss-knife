@@ -513,6 +513,9 @@ def test_header_menu_includes_add_and_sort(qapp: QApplication, monkeypatch: pyte
     monkeypatch.setattr(SnippetsDialog, "_init_database", lambda _dialog: None)
     dialog = SnippetsDialog()
     assert dialog._menu_button.toolTip() == "Menu"
+    assert "menu-indicator" in dialog._menu_button.styleSheet()
+    assert dialog._close_button.text() == ""
+    assert not dialog._close_button.icon().isNull()
     dialog._fill_header_menu()
     texts = [action.text() for action in dialog._header_menu.actions() if action.text()]
     assert texts[:4] == ["Add phrase", "Add emoji", "Add symbol", "Add color"]

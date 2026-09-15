@@ -59,7 +59,12 @@ from harrix_swiss_knife.paths import get_config_path_str
 from harrix_swiss_knife.qt_app_font import apply_mono_font
 from harrix_swiss_knife.qt_command_section import apply_opaque_white, grow_qfont
 from harrix_swiss_knife.qt_frameless_window import frameless_stay_on_top_flags, try_handle_frameless_resize_native_event
-from harrix_swiss_knife.qt_lucide_icon import add_lucide_action, create_lucide_icon
+from harrix_swiss_knife.qt_lucide_icon import (
+    CLOSE_BUTTON_ICON,
+    add_lucide_action,
+    apply_lucide_button_icon,
+    create_lucide_icon,
+)
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
 
 if TYPE_CHECKING:
@@ -364,6 +369,7 @@ class SnippetsDialog(QDialog):
         menu_button.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
         menu_button.setToolTip("Menu")
         menu_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        menu_button.setStyleSheet("QToolButton::menu-indicator { image: none; width: 0px; }")
         header_menu = QMenu(menu_button)
         header_menu.aboutToShow.connect(self._fill_header_menu)
         menu_button.setMenu(header_menu)
@@ -378,12 +384,13 @@ class SnippetsDialog(QDialog):
         title.setCursor(Qt.CursorShape.OpenHandCursor)
         title.installEventFilter(self)
 
-        close_button = QPushButton("X")
+        close_button = QPushButton("")
         close_button.setFixedSize(28, 28)
         close_button.setFlat(True)
         close_button.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
         close_button.setToolTip("Close")
         close_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        apply_lucide_button_icon(close_button, CLOSE_BUTTON_ICON, icon_size=18)
         close_button.clicked.connect(self.hide)
         self._close_button = close_button
 
