@@ -18,6 +18,10 @@
     "harrixNotesExplorerHsk.checkMarkdownInFolder",
     "harrixNotesExplorerHsk.optimizeImagesFolder",
     "harrixNotesExplorerHsk.optimizeImagesFolderNoSizeLimit",
+    "harrixNotesExplorerHsk.beautifyMdOptimizeImagesFolder",
+    "harrixNotesExplorerHsk.beautifyMdOptimizeImagesFolderNoSizeLimit",
+    "harrixNotesExplorerHsk.beautifyRegenerateGMdOptimizeImagesFolder",
+    "harrixNotesExplorerHsk.beautifyRegenerateGMdOptimizeImagesFolderNoSizeLimit",
     "harrixNotesExplorerHsk.convertToSiteArticleLink"
   ],
   "viewItemContextValues": [

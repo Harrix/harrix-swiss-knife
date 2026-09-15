@@ -59,6 +59,16 @@ function runHarrixCliInTerminal(cliArgs) {
   terminal.sendText(buildHarrixCliCommand(cliArgs));
 }
 
+/**
+ * Run several `hsk` invocations in one terminal line (stop on first failure).
+ * @param {string[][]} commandsArgs
+ */
+function runHarrixCliCommandsInTerminal(commandsArgs) {
+  const terminal = getOrCreateHarrixTerminal();
+  terminal.show(true);
+  terminal.sendText(commandsArgs.map(buildHarrixCliCommand).join(' && '));
+}
+
 /** @param {string} diaryRootPath */
 function runHarrixMarkdownNewDiaryNote(diaryRootPath) {
   runHarrixCliInTerminal(['md', 'new-diary-note', '--folder', path.resolve(diaryRootPath)]);
@@ -137,6 +147,32 @@ function runHarrixOptimizeImagesFolder(folderPath, maxSize) {
     args.push('--max-size', String(maxSize));
   }
   runHarrixCliInTerminal(args);
+}
+
+/**
+ * @param {string} folderPath
+ * @param {number} [maxSize]
+ */
+function runHarrixBeautifyMdThenOptimizeImages(folderPath, maxSize) {
+  const resolved = path.resolve(folderPath);
+  const optimizeArgs = ['md', 'optimize-images-folder', resolved];
+  if (maxSize != null) {
+    optimizeArgs.push('--max-size', String(maxSize));
+  }
+  runHarrixCliCommandsInTerminal([['md', 'beautify-md', resolved], optimizeArgs]);
+}
+
+/**
+ * @param {string} folderPath
+ * @param {number} [maxSize]
+ */
+function runHarrixBeautifyRegenerateGMdThenOptimizeImages(folderPath, maxSize) {
+  const resolved = path.resolve(folderPath);
+  const optimizeArgs = ['md', 'optimize-images-folder', resolved];
+  if (maxSize != null) {
+    optimizeArgs.push('--max-size', String(maxSize));
+  }
+  runHarrixCliCommandsInTerminal([['md', 'beautify-regenerate-g-md', resolved], optimizeArgs]);
 }
 
 /** @returns {number} */
@@ -702,6 +738,65 @@ function activateHarrixCliIntegration(deps) {
     vscode.commands.registerCommand('harrixNotesExplorerHsk.optimizeImagesFolderNoSizeLimit', async (treeItemOrUri) => {
       await runOptimizeImagesFolderCommand(treeItemOrUri, { unlimited: true });
     }),
+  );
+
+  /**
+   * @param {unknown} treeItemOrUri
+   * @param {{ regenerate?: boolean, unlimited?: boolean }} opts
+   */
+  async function runBeautifyThenOptimizeImagesCommand(treeItemOrUri, opts) {
+    const folderPath = resolveFolderPathForCliCommand(treeItemOrUri, deps);
+    if (!folderPath) {
+      vscode.window.showErrorMessage('Open a markdown note or select a folder / Note/Note.md in Harrix Notes (HSK).');
+      return;
+    }
+    try {
+      const maxSize = opts.unlimited ? undefined : getOptimizeImagesFolderMaxSize();
+      if (opts.regenerate) {
+        runHarrixBeautifyRegenerateGMdThenOptimizeImages(folderPath, maxSize);
+      } else {
+        runHarrixBeautifyMdThenOptimizeImages(folderPath, maxSize);
+      }
+      const sizeHint = opts.unlimited ? 'no size limit' : `max ${maxSize}px`;
+      const beautifyHint = opts.regenerate ? 'Beautify + regenerate .g.md' : 'Beautify Markdown';
+      vscode.window.showInformationMessage(`${beautifyHint} then optimize images running in Terminal (${sizeHint}).`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      vscode.window.showErrorMessage(`Beautify and optimize images failed: ${msg}`);
+    }
+  }
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.beautifyMdOptimizeImagesFolder', async (treeItemOrUri) => {
+      await runBeautifyThenOptimizeImagesCommand(treeItemOrUri, {});
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      'harrixNotesExplorerHsk.beautifyMdOptimizeImagesFolderNoSizeLimit',
+      async (treeItemOrUri) => {
+        await runBeautifyThenOptimizeImagesCommand(treeItemOrUri, { unlimited: true });
+      },
+    ),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      'harrixNotesExplorerHsk.beautifyRegenerateGMdOptimizeImagesFolder',
+      async (treeItemOrUri) => {
+        await runBeautifyThenOptimizeImagesCommand(treeItemOrUri, { regenerate: true });
+      },
+    ),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      'harrixNotesExplorerHsk.beautifyRegenerateGMdOptimizeImagesFolderNoSizeLimit',
+      async (treeItemOrUri) => {
+        await runBeautifyThenOptimizeImagesCommand(treeItemOrUri, { regenerate: true, unlimited: true });
+      },
+    ),
   );
 
   context.subscriptions.push(

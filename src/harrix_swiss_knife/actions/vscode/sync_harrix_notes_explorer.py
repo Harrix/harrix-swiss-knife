@@ -282,13 +282,15 @@ class OnSyncHarrixNotesExplorer(ActionBase):
         short_names = cls._cli_command_short_names(manifest)
         for short_name in short_names:
             content = re.sub(
-                rf"^[ \t]*{re.escape(short_name)}:[ \t]*'harrixNotesExplorerHsk\.{re.escape(short_name)}',[ \t]*\n",
+                rf"^[ \t]*{re.escape(short_name)}:[ \t]*(?:\n[ \t]*)?"
+                rf"'harrixNotesExplorerHsk\.{re.escape(short_name)}',[ \t]*\n",
                 "",
                 content,
                 flags=re.MULTILINE,
             )
             content = re.sub(
-                rf"^[ \t]*out\.push\(item\(CMD\.{re.escape(short_name)},[^;\n]*\);[ \t]*\n",
+                rf"^[ \t]*out\.push\(\s*item\(\s*CMD\.{re.escape(short_name)}\s*,"
+                rf"[\s\S]*?\)\s*\);[ \t]*\n",
                 "",
                 content,
                 flags=re.MULTILINE,

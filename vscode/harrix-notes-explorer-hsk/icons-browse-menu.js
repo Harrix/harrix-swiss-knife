@@ -35,6 +35,11 @@ const CMD = {
   beautifyMd: 'harrixNotesExplorerHsk.beautifyMd',
   regenerateGMd: 'harrixNotesExplorerHsk.regenerateGMd',
   beautifyRegenerateGMd: 'harrixNotesExplorerHsk.beautifyRegenerateGMd',
+  beautifyMdOptimizeImagesFolder: 'harrixNotesExplorerHsk.beautifyMdOptimizeImagesFolder',
+  beautifyMdOptimizeImagesFolderNoSizeLimit: 'harrixNotesExplorerHsk.beautifyMdOptimizeImagesFolderNoSizeLimit',
+  beautifyRegenerateGMdOptimizeImagesFolder: 'harrixNotesExplorerHsk.beautifyRegenerateGMdOptimizeImagesFolder',
+  beautifyRegenerateGMdOptimizeImagesFolderNoSizeLimit:
+    'harrixNotesExplorerHsk.beautifyRegenerateGMdOptimizeImagesFolderNoSizeLimit',
   optimizeImagesFolder: 'harrixNotesExplorerHsk.optimizeImagesFolder',
   optimizeImagesFolderNoSizeLimit: 'harrixNotesExplorerHsk.optimizeImagesFolderNoSizeLimit',
   discardGitChangesInFolder: 'harrixNotesExplorerHsk.discardGitChangesInFolder',
@@ -135,6 +140,25 @@ function buildIconsBrowseContextMenu(contextValue, opts) {
     out.push(item(CMD.beautifyRegenerateGMd, 'Beautify Markdown and Regenerate .g.md in Folder ꟲᴸᴵ'));
     out.push(item(CMD.optimizeImagesFolder, 'Optimize Images in Folder ꟲᴸᴵ'));
     out.push(item(CMD.optimizeImagesFolderNoSizeLimit, 'Optimize Images in Folder (No Size Limit) ꟲᴸᴵ'));
+    out.push(item(CMD.beautifyMdOptimizeImagesFolder, 'Beautify Markdown and Optimize Images in Folder ꟲᴸᴵ'));
+    out.push(
+      item(
+        CMD.beautifyMdOptimizeImagesFolderNoSizeLimit,
+        'Beautify Markdown and Optimize Images in Folder (No Size Limit) ꟲᴸᴵ',
+      ),
+    );
+    out.push(
+      item(
+        CMD.beautifyRegenerateGMdOptimizeImagesFolder,
+        'Beautify Markdown and Regenerate .g.md in Folder and Optimize Images in Folder ꟲᴸᴵ',
+      ),
+    );
+    out.push(
+      item(
+        CMD.beautifyRegenerateGMdOptimizeImagesFolderNoSizeLimit,
+        'Beautify Markdown and Regenerate .g.md in Folder and Optimize Images in Folder (No Size Limit) ꟲᴸᴵ',
+      ),
+    );
     if (isGit) {
       out.push(item(CMD.discardGitChangesInFolder, 'Discard Git Changes in Folder…'));
     }

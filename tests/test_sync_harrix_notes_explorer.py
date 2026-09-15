@@ -38,6 +38,8 @@ def test_strip_cli_from_icons_browse_menu_removes_hsk_commands() -> None:
 
     assert "discardGitChangesInFolder" in stripped
     assert "createNote" in stripped
-    assert "beautifyMd" not in stripped
-    assert "regenerateGMd" not in stripped
-    assert "beautifyRegenerateGMd" not in stripped
+    assert "beautifyMd:" not in stripped
+    assert "regenerateGMd:" not in stripped
+    assert "beautifyRegenerateGMd:" not in stripped
+    assert "beautifyMdOptimizeImagesFolder:" not in stripped
+    assert "beautifyRegenerateGMdOptimizeImagesFolder:" not in stripped
