@@ -25,6 +25,7 @@ lang: en
   - [⚙️ Method `resizeEvent`](#%EF%B8%8F-method-resizeevent)
   - [⚙️ Method `schedule_viewport_changed`](#%EF%B8%8F-method-schedule_viewport_changed)
   - [⚙️ Method `select_family`](#%EF%B8%8F-method-select_family)
+  - [⚙️ Method `selected_copy_entries`](#%EF%B8%8F-method-selected_copy_entries)
   - [⚙️ Method `selected_file_paths`](#%EF%B8%8F-method-selected_file_paths)
   - [⚙️ Method `selected_keyword_targets`](#%EF%B8%8F-method-selected_keyword_targets)
   - [⚙️ Method `set_display_icon_size`](#%EF%B8%8F-method-set_display_icon_size)
@@ -55,6 +56,7 @@ lang: en
 - [🔧 Function `icon_size_delta_from_wheel`](#-function-icon_size_delta_from_wheel)
 - [🔧 Function `is_svg_icon_path`](#-function-is_svg_icon_path)
 - [🔧 Function `read_svg_text`](#-function-read_svg_text)
+- [🔧 Function `stage_clipboard_icon_file`](#-function-stage_clipboard_icon_file)
 
 </details>
 
@@ -211,9 +213,9 @@ class DraggableIconList(QListWidget):
     reveal_requested = Signal(str)
     details_requested = Signal(object, str)  # IconFamily, svg_path
     copy_requested = Signal(str)
-    copy_files_requested = Signal(object)  # list[str]
+    copy_files_requested = Signal(object)  # list[tuple[str, str]] (path, display_filename)
     copy_contents_requested = Signal(str)
-    copy_filename_requested = Signal(str)
+    copy_filename_requested = Signal(str)  # display filename text
     copy_path_requested = Signal(str)
     open_note_requested = Signal(object)  # IconFamily
     edit_keywords_requested = Signal(object, str)  # IconFamily, svg_path
@@ -323,9 +325,9 @@ class DraggableIconList(QListWidget):
     def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
         """Copy selected icon files when the standard Copy shortcut is pressed."""
         if event.matches(QKeySequence.StandardKey.Copy):
-            paths = self.selected_file_paths()
-            if paths:
-                self.copy_files_requested.emit(paths)
+            entries = self.selected_copy_entries()
+            if entries:
+                self.copy_files_requested.emit(entries)
                 event.accept()
                 return
         super().keyPressEvent(event)
@@ -377,17 +379,21 @@ class DraggableIconList(QListWidget):
         self.scrollToItem(item, QAbstractItemView.ScrollHint.PositionAtCenter)
         return True
 
-    def selected_file_paths(self) -> list[str]:
-        """Return file paths of selected tiles, in display order."""
-        paths: list[str] = []
+    def selected_copy_entries(self) -> list[tuple[str, str]]:
+        """Return `(path, display_filename)` for selected tiles, in display order."""
+        entries: list[tuple[str, str]] = []
         for index in range(self.count()):
             item = self.item(index)
             if item is None or not item.isSelected():
                 continue
-            raw = item.data(ROLE_SVG_PATH)
-            if isinstance(raw, str) and raw:
-                paths.append(raw)
-        return paths
+            entry = self._copy_entry_for_item(item)
+            if entry is not None:
+                entries.append(entry)
+        return entries
+
+    def selected_file_paths(self) -> list[str]:
+        """Return file paths of selected tiles, in display order."""
+        return [path for path, _display in self.selected_copy_entries()]
 
     def selected_keyword_targets(self) -> list[tuple[IconFamily, str]]:
         """Return unique selected families with an SVG path, in display order."""
@@ -596,6 +602,15 @@ class DraggableIconList(QListWidget):
         if self._variants_context or self._icon_size == ICON_SIZE_DEFAULT:
             return None
         return menu.addAction(f"↩️ Reset icon size ({ICON_SIZE_DEFAULT})")
+
+    def _copy_entry_for_item(self, item: QListWidgetItem) -> tuple[str, str] | None:
+        """Return `(path, display_filename)` for a grid item, or `None` if path is missing."""
+        raw = item.data(ROLE_SVG_PATH)
+        if not isinstance(raw, str) or not raw:
+            return None
+        subtitle = item.data(ROLE_SUBTITLE)
+        display = subtitle if isinstance(subtitle, str) and subtitle else Path(raw).name
+        return raw, display
 
     def _emit_family_from_item(self, item: QListWidgetItem | None) -> None:
         if item is None:
@@ -842,11 +857,14 @@ class DraggableIconList(QListWidget):
         elif has_path and chosen is details_action:
             self.details_requested.emit(family, path)
         elif has_path and chosen is copy_file_action:
-            self.copy_requested.emit(path)
+            entry = self._copy_entry_for_item(item)
+            if entry is not None:
+                self.copy_files_requested.emit([entry])
         elif has_path and copy_contents_action is not None and chosen is copy_contents_action:
             self.copy_contents_requested.emit(path)
         elif has_path and chosen is copy_filename_action:
-            self.copy_filename_requested.emit(path)
+            entry = self._copy_entry_for_item(item)
+            self.copy_filename_requested.emit(entry[1] if entry is not None else Path(path).name)
         elif has_path and chosen is copy_path_action:
             self.copy_path_requested.emit(path)
         elif refresh_action is not None and chosen is refresh_action:
@@ -1019,9 +1037,9 @@ Copy selected icon files when the standard Copy shortcut is pressed.
 ```python
 def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
         if event.matches(QKeySequence.StandardKey.Copy):
-            paths = self.selected_file_paths()
-            if paths:
-                self.copy_files_requested.emit(paths)
+            entries = self.selected_copy_entries()
+            if entries:
+                self.copy_files_requested.emit(entries)
                 event.accept()
                 return
         super().keyPressEvent(event)
@@ -1146,6 +1164,32 @@ def select_family(self, family_id: str) -> bool:
 
 </details>
 
+### ⚙️ Method `selected_copy_entries`
+
+```python
+def selected_copy_entries(self) -> list[tuple[str, str]]
+```
+
+Return `(path, display_filename)` for selected tiles, in display order.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def selected_copy_entries(self) -> list[tuple[str, str]]:
+        entries: list[tuple[str, str]] = []
+        for index in range(self.count()):
+            item = self.item(index)
+            if item is None or not item.isSelected():
+                continue
+            entry = self._copy_entry_for_item(item)
+            if entry is not None:
+                entries.append(entry)
+        return entries
+```
+
+</details>
+
 ### ⚙️ Method `selected_file_paths`
 
 ```python
@@ -1159,15 +1203,7 @@ Return file paths of selected tiles, in display order.
 
 ```python
 def selected_file_paths(self) -> list[str]:
-        paths: list[str] = []
-        for index in range(self.count()):
-            item = self.item(index)
-            if item is None or not item.isSelected():
-                continue
-            raw = item.data(ROLE_SVG_PATH)
-            if isinstance(raw, str) and raw:
-                paths.append(raw)
-        return paths
+        return [path for path, _display in self.selected_copy_entries()]
 ```
 
 </details>
@@ -2328,6 +2364,41 @@ def read_svg_text(path: Path) -> str:
     if last_error is not None:
         raise last_error
     return data.decode("utf-8")
+```
+
+</details>
+
+## 🔧 Function `stage_clipboard_icon_file`
+
+```python
+def stage_clipboard_icon_file(source: Path, display_name: str, stage_dir: Path) -> Path
+```
+
+Return a clipboard path that pastes as `display_name` when source is featured-image.
+
+Non-featured files (or when the display name already matches) are returned as-is.
+Otherwise the file is copied into `stage_dir` under the preferred basename.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def stage_clipboard_icon_file(source: Path, display_name: str, stage_dir: Path) -> Path:
+    preferred = Path(display_name.strip() or source.name).name
+    if not preferred or preferred == source.name:
+        return source.resolve()
+    if not source.name.casefold().startswith("featured-image."):
+        return source.resolve()
+    stage_dir.mkdir(parents=True, exist_ok=True)
+    dest = stage_dir / preferred
+    if dest.exists():
+        stem, suffix = dest.stem, dest.suffix
+        index = 2
+        while dest.exists():
+            dest = stage_dir / f"{stem}_{index}{suffix}"
+            index += 1
+    shutil.copy2(source, dest)
+    return dest.resolve()
 ```
 
 </details>

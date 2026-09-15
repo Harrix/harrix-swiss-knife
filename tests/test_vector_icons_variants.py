@@ -41,6 +41,7 @@ from harrix_swiss_knife.apps.icons.widgets import (
     is_svg_icon_path,
     placeholder_pixmap,
     read_svg_text,
+    stage_clipboard_icon_file,
 )
 
 _MIN_SVG = (
@@ -176,7 +177,7 @@ def test_ctrl_c_emits_copy_files_requested(qapp: QApplication, tmp_path: Path) -
     featured = family.featured_path(repo)
     assert featured is not None
     lst = DraggableIconList(icon_size=64, dual_line_labels=True)
-    copied: list[list[str]] = []
+    copied: list[list[tuple[str, str]]] = []
     lst.copy_files_requested.connect(copied.append)
     placeholder = placeholder_pixmap(64)
     lst.set_grid_entries(
@@ -189,7 +190,21 @@ def test_ctrl_c_emits_copy_files_requested(qapp: QApplication, tmp_path: Path) -
     lst.setCurrentItem(item)
     event = QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_C, Qt.KeyboardModifier.ControlModifier)
     lst.keyPressEvent(event)
-    assert copied == [[str(featured)]]
+    assert copied == [[(str(featured), "building__garage_01.svg")]]
+
+
+def test_stage_clipboard_icon_file_renames_featured_image(tmp_path: Path) -> None:
+    source = tmp_path / "featured-image.svg"
+    _write_svg(source)
+    stage = tmp_path / "stage"
+    staged = stage_clipboard_icon_file(source, "fiction_robot__marvin-s-head_01.svg", stage)
+    assert staged.name == "fiction_robot__marvin-s-head_01.svg"
+    assert staged.is_file()
+    assert staged.read_text(encoding="utf-8") == source.read_text(encoding="utf-8")
+    assert stage_clipboard_icon_file(source, "featured-image.svg", stage) == source.resolve()
+    variant = tmp_path / "building__garage_01.svg"
+    _write_svg(variant)
+    assert stage_clipboard_icon_file(variant, "other.svg", stage) == variant.resolve()
 
 
 def test_rebuild_catalog_title_prefers_yaml_then_h1(tmp_path: Path) -> None:

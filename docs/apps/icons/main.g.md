@@ -269,6 +269,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._grid_sort_reverse = load_grid_sort_reverse()
         self._meta_filter: tuple[str, str] | None = None
         self._icon_details_dialog: KeyValueTableDialog | None = None
+        self._clipboard_stage: TemporaryDirectory[str] | None = None
         self._catalog: IconCatalog | None = None
         self._repo_root: Path | None = None
         self._thumb_cache = ThumbnailCache(size=DEFAULT_THUMB_SIZE)
@@ -353,6 +354,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._stop_maintenance()
         self._stop_keywords_batch()
         self._stop_thumb_refresh()
+        self._clear_clipboard_stage()
         super().closeEvent(event)
 
     def _activate_category(self, text: str) -> None:
@@ -884,6 +886,17 @@ class MainWindow(QMainWindow, AppWindowMixin):
             ),
         )
 
+    def _clear_clipboard_stage(self) -> None:
+        """Drop the temporary directory used for renamed clipboard file copies."""
+        stage = self._clipboard_stage
+        self._clipboard_stage = None
+        if stage is None:
+            return
+        try:
+            stage.cleanup()
+        except OSError:
+            logger.debug("Could not clean clipboard stage directory", exc_info=True)
+
     def _clear_meta_filter(self, *, apply: bool = True) -> None:
         if self._meta_filter is None:
             self._sync_meta_filter_bar()
@@ -921,18 +934,36 @@ class MainWindow(QMainWindow, AppWindowMixin):
             self._visible_family_ids.add(entry.family.id)
             self._visible_families.append(entry.family)
 
-    def _copy_icon_files(self, svg_paths: list[str]) -> None:
-        """Put existing icon files on the clipboard as file URLs."""
+    def _copy_icon_files(self, entries: list[tuple[str, str]]) -> None:
+        """Put existing icon files on the clipboard as file URLs.
+
+        When the tile shows a display name other than `featured-image.*`, the file is
+        staged under that name so paste uses e.g. `fiction_robot__marvin-s-head_01.svg`.
+
+        """
         urls: list[QUrl] = []
         names: list[str] = []
-        for raw in svg_paths:
-            path = Path(raw)
+        stage_dir: Path | None = None
+        for raw_path, display_name in entries:
+            path = Path(raw_path)
             if not path.is_file():
                 continue
-            urls.append(QUrl.fromLocalFile(str(path.resolve())))
-            names.append(path.name)
+            preferred = Path(display_name.strip() or path.name).name
+            clipboard_path = path.resolve()
+            if preferred and preferred != path.name and path.name.casefold().startswith("featured-image."):
+                if stage_dir is None:
+                    self._clear_clipboard_stage()
+                    self._clipboard_stage = TemporaryDirectory(prefix="hsk-icons-clip-")
+                    stage_dir = Path(self._clipboard_stage.name)
+                try:
+                    clipboard_path = stage_clipboard_icon_file(path, preferred, stage_dir)
+                except OSError as exc:
+                    QMessageBox.warning(self, "Vector Icons", f"Failed to prepare `{preferred}`:\n{exc}")
+                    return
+            urls.append(QUrl.fromLocalFile(str(clipboard_path)))
+            names.append(clipboard_path.name)
         if not urls:
-            missing = Path(svg_paths[0]) if svg_paths else Path()
+            missing = Path(entries[0][0]) if entries else Path()
             QMessageBox.warning(self, "Vector Icons", f"File not found:\n{missing}")
             return
         mime = QMimeData()
@@ -942,6 +973,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
             QMessageBox.warning(self, "Vector Icons", "Clipboard is not available.")
             return
         clipboard.setMimeData(mime)
+        if stage_dir is None:
+            self._clear_clipboard_stage()
         if len(names) == 1:
             self.statusBar().showMessage(f"Copied file `{names[0]}`")
             return
@@ -1459,8 +1492,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
             return
         self._on_copy_path(str(self._repo_root))
 
-    def _on_copy_filename(self, svg_path: str) -> None:
-        name = Path(svg_path).name
+    def _on_copy_filename(self, filename: str) -> None:
+        name = Path(filename).name
         clipboard = QApplication.clipboard()
         if clipboard is None:
             QMessageBox.warning(self, "Vector Icons", "Clipboard is not available.")
@@ -1469,9 +1502,24 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.statusBar().showMessage(f"Copied filename `{name}`")
 
     def _on_copy_files(self, paths: object) -> None:
-        if not isinstance(paths, list):
+        if not isinstance(paths, list) or not paths:
             return
-        self._copy_icon_files([str(item) for item in paths if str(item).strip()])
+        entries: list[tuple[str, str]] = []
+        for item in paths:
+            if isinstance(item, tuple):
+                try:
+                    raw_path, raw_display = item
+                except ValueError:
+                    continue
+                path, display = str(raw_path).strip(), str(raw_display).strip()
+                if path:
+                    entries.append((path, display or Path(path).name))
+            else:
+                path = str(item).strip()
+                if path:
+                    entries.append((path, Path(path).name))
+        if entries:
+            self._copy_icon_files(entries)
 
     def _on_copy_path(self, svg_path: str) -> None:
         path = str(Path(svg_path).resolve())
@@ -1483,7 +1531,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.statusBar().showMessage(f"Copied path `{path}`")
 
     def _on_copy_svg(self, svg_path: str) -> None:
-        self._copy_icon_files([svg_path])
+        path = Path(svg_path)
+        self._copy_icon_files([(svg_path, path.name)])
 
     def _on_delete_icon(self, family: object) -> None:
         if not isinstance(family, IconFamily) or self._repo_root is None or self._catalog is None:
@@ -2960,6 +3009,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:
         self._grid_sort_reverse = load_grid_sort_reverse()
         self._meta_filter: tuple[str, str] | None = None
         self._icon_details_dialog: KeyValueTableDialog | None = None
+        self._clipboard_stage: TemporaryDirectory[str] | None = None
         self._catalog: IconCatalog | None = None
         self._repo_root: Path | None = None
         self._thumb_cache = ThumbnailCache(size=DEFAULT_THUMB_SIZE)
@@ -3058,6 +3108,7 @@ def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         self._stop_maintenance()
         self._stop_keywords_batch()
         self._stop_thumb_refresh()
+        self._clear_clipboard_stage()
         super().closeEvent(event)
 ```
 
