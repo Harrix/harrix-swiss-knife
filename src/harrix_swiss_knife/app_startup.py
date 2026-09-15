@@ -55,7 +55,8 @@ if TYPE_CHECKING:
 _FAULTHANDLER_FILE: TextIO | None = None
 
 
-# Harmless Qt noise: phantom displays, and QSvg warnings from stock/Illustrator dumps.
+# Harmless Qt noise: phantom displays, QSvg from stock/Illustrator dumps, and
+# DirectWrite failing on old Windows bitmap OEM fonts (e.g. 8514oem).
 _QT_IGNORED_SUBSTRINGS = (
     "monitorData: Unable to obtain handle for monitor",
     "Could not resolve property:",
@@ -65,6 +66,7 @@ _QT_IGNORED_SUBSTRINGS = (
     "QWindowsWindow::setGeometry",
     "AUDCLNT_E_DEVICE_INVALIDATED",
     "IAudioClient3::GetCurrentPadding failed",
+    "DirectWrite: CreateFontFaceFromHDC() failed",
 )
 
 

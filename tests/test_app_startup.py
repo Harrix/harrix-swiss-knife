@@ -25,6 +25,11 @@ def test_is_ignored_qt_message_filters_svg_noise() -> None:
     assert is_ignored_qt_message("QFont::setPointSize: Point size <= 0 (-1), must be greater than 0")
     assert is_ignored_qt_message("QWindowsWindow::setGeometry: Unable to set geometry 3840x2006+0+58 on QWidgetWindow")
     assert is_ignored_qt_message('IAudioClient3::GetCurrentPadding failed "AUDCLNT_E_DEVICE_INVALIDATED" (None:0)')
+    assert is_ignored_qt_message(
+        "DirectWrite: CreateFontFaceFromHDC() failed (Indicates an error in an input file such as a "
+        'font file.) for QFontDef(Family="8514oem", stylename=Regular, pointsize=9, pixelsize=20, '
+        "styleHint=5, weight=400, stretch=100, hintingPreference=1)",
+    )
     assert not is_ignored_qt_message("QPainter::begin: Paint device returned engine == 0")
     assert not is_ignored_qt_message("")
 
