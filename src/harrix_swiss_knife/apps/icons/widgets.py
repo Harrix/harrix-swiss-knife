@@ -58,7 +58,12 @@ from harrix_swiss_knife.apps.icons.catalog import (
     is_openable_license_url,
 )
 from harrix_swiss_knife.apps.icons.meta_filter import build_variants_header_html, parse_meta_link
-from harrix_swiss_knife.apps.icons.settings import GRID_SORT_DATE, GRID_SORT_MODES, ICON_SIZE_WHEEL_STEP
+from harrix_swiss_knife.apps.icons.settings import (
+    GRID_SORT_DATE,
+    GRID_SORT_MODES,
+    ICON_SIZE_DEFAULT,
+    ICON_SIZE_WHEEL_STEP,
+)
 from harrix_swiss_knife.apps.icons.thumb_cache import DEFAULT_THUMB_SIZE, placeholder_pixmap, render_icon_to_image
 from harrix_swiss_knife.qt_lucide_icon import LUCIDE_COLOR_BLUE, apply_leading_chrome_icons
 
@@ -148,6 +153,7 @@ class DraggableIconList(QListWidget):
     refresh_variants_requested = Signal()
     refresh_icons_requested = Signal()
     icon_size_delta_requested = Signal(int)
+    reset_icon_size_requested = Signal()
     show_numbers_toggled = Signal(bool)
     sort_mode_requested = Signal(str)
     sort_reverse_toggled = Signal(bool)
@@ -483,10 +489,10 @@ class DraggableIconList(QListWidget):
     def _add_main_view_menu_actions(
         self,
         menu: QMenu,
-    ) -> tuple[QAction | None, dict[str, QAction], QAction | None]:
-        """Append Show numbers + Sort submenu for the main icon grid."""
+    ) -> tuple[QAction | None, dict[str, QAction], QAction | None, QAction | None]:
+        """Append Show numbers, Sort submenu, and optional reset size for the main grid."""
         if self._variants_context:
-            return None, {}, None
+            return None, {}, None, None
         numbers_label = "🔢 Hide numbers" if self._show_numbers else "🔢 Show numbers"
         numbers_action = menu.addAction(numbers_label)
         sort_menu = menu.addMenu("↕️ Sort")
@@ -500,7 +506,16 @@ class DraggableIconList(QListWidget):
         reverse_action = sort_menu.addAction("Reverse order")
         reverse_action.setCheckable(True)
         reverse_action.setChecked(self._sort_reverse)
-        return numbers_action, sort_actions, reverse_action
+        reset_size_action = None
+        if self._icon_size != ICON_SIZE_DEFAULT:
+            reset_size_action = menu.addAction(f"↩️ Reset icon size ({ICON_SIZE_DEFAULT})")
+        return numbers_action, sort_actions, reverse_action, reset_size_action
+
+    def _add_reset_icon_size_action(self, menu: QMenu) -> QAction | None:
+        """Add reset size when the main grid size is not the default."""
+        if self._variants_context or self._icon_size == ICON_SIZE_DEFAULT:
+            return None
+        return menu.addAction(f"↩️ Reset icon size ({ICON_SIZE_DEFAULT})")
 
     def _emit_family_from_item(self, item: QListWidgetItem | None) -> None:
         if item is None:
@@ -533,6 +548,7 @@ class DraggableIconList(QListWidget):
             optimize_action = menu.addAction("🚀 Optimize SVG")
         menu.addSeparator()
         refresh_icons_action = menu.addAction("🔄 Refresh icons")
+        reset_size_action = self._add_reset_icon_size_action(menu)
         apply_leading_chrome_icons(menu)
         chosen = menu.exec_(self.mapToGlobal(pos))
         if chosen is batch_ai_action:
@@ -543,6 +559,8 @@ class DraggableIconList(QListWidget):
             self._emit_optimize_for_families([family for family, _path in targets])
         elif chosen is refresh_icons_action:
             self.refresh_icons_requested.emit()
+        elif reset_size_action is not None and chosen is reset_size_action:
+            self.reset_icon_size_requested.emit()
 
     def _exec_current_folder_context_menu(self, pos: QPoint) -> None:
         menu = QMenu(self)
@@ -561,14 +579,20 @@ class DraggableIconList(QListWidget):
         else:
             refresh_icons_action = menu.addAction("🔄 Refresh icons")
             menu.addSeparator()
-        numbers_action, sort_actions, reverse_action = self._add_main_view_menu_actions(menu)
-        if numbers_action is not None or sort_actions:
+        numbers_action, sort_actions, reverse_action, reset_size_action = self._add_main_view_menu_actions(menu)
+        if numbers_action is not None or sort_actions or reset_size_action is not None:
             menu.addSeparator()
         copy_folder_path_action = menu.addAction("📋 Copy path to current folder")
         reveal_folder_action = menu.addAction("📂 Reveal current folder in File Explorer")
         apply_leading_chrome_icons(menu)
         chosen = menu.exec_(self.mapToGlobal(pos))
-        if self._handle_main_view_menu_choice(chosen, numbers_action, sort_actions, reverse_action):
+        if self._handle_main_view_menu_choice(
+            chosen,
+            numbers_action,
+            sort_actions,
+            reverse_action,
+            reset_size_action,
+        ):
             return
         if refresh_action is not None and chosen is refresh_action:
             self.refresh_variants_requested.emit()
@@ -611,6 +635,7 @@ class DraggableIconList(QListWidget):
         numbers_action: QAction | None,
         sort_actions: dict[str, QAction],
         reverse_action: QAction | None = None,
+        reset_size_action: QAction | None = None,
     ) -> bool:
         if numbers_action is not None and chosen is numbers_action:
             self.show_numbers_toggled.emit(not self._show_numbers)
@@ -621,6 +646,9 @@ class DraggableIconList(QListWidget):
                 return True
         if reverse_action is not None and chosen is reverse_action:
             self.sort_reverse_toggled.emit(not self._sort_reverse)
+            return True
+        if reset_size_action is not None and chosen is reset_size_action:
+            self.reset_icon_size_requested.emit()
             return True
         return False
 
@@ -706,8 +734,8 @@ class DraggableIconList(QListWidget):
         reveal_folder_action = menu.addAction("📂 Reveal current folder in File Explorer")
         menu.addSeparator()
 
-        numbers_action, sort_actions, reverse_action = self._add_main_view_menu_actions(menu)
-        if numbers_action is not None or sort_actions:
+        numbers_action, sort_actions, reverse_action, reset_size_action = self._add_main_view_menu_actions(menu)
+        if numbers_action is not None or sort_actions or reset_size_action is not None:
             menu.addSeparator()
 
         license_name, license_url = family_license_info(family, self._repo_root)
@@ -721,7 +749,13 @@ class DraggableIconList(QListWidget):
         apply_leading_chrome_icons(menu)
         chosen = menu.exec_(self.mapToGlobal(pos))
 
-        if self._handle_main_view_menu_choice(chosen, numbers_action, sort_actions, reverse_action):
+        if self._handle_main_view_menu_choice(
+            chosen,
+            numbers_action,
+            sort_actions,
+            reverse_action,
+            reset_size_action,
+        ):
             return
         if has_path and chosen is reveal_action:
             self.reveal_requested.emit(path)

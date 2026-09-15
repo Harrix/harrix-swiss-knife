@@ -616,10 +616,14 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.size_slider.setMaximumWidth(280)
         self.size_slider.setFixedHeight(22)
         self.size_slider.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        self.size_slider.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.size_slider.customContextMenuRequested.connect(self._on_size_slider_context_menu)
         self.size_slider.valueChanged.connect(self._on_icon_size_changed)
         toolbar.addWidget(self.size_slider, alignment=Qt.AlignmentFlag.AlignVCenter)
         self.size_value_label = QLabel(str(self._icon_size))
         self.size_value_label.setMinimumWidth(28)
+        self.size_value_label.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.size_value_label.customContextMenuRequested.connect(self._on_size_value_label_context_menu)
         toolbar.addWidget(self.size_value_label, alignment=Qt.AlignmentFlag.AlignVCenter)
 
         self._variant_view_label = QLabel("View")
@@ -1950,6 +1954,12 @@ class MainWindow(QMainWindow, AppWindowMixin):
         status = "updated" if changed else "unchanged"
         self.statusBar().showMessage(f"Variants {status} for `{family.id}` ({count})")
 
+    def _on_reset_icon_size(self) -> None:
+        """Restore the default icon size through the toolbar slider."""
+        if self.size_slider.value() == ICON_SIZE_DEFAULT:
+            return
+        self.size_slider.setValue(ICON_SIZE_DEFAULT)
+
     def _on_reveal_current_folder(self) -> None:
         if self._repo_root is None:
             QMessageBox.warning(self, "Vector Icons", "No icons folder is open.")
@@ -2000,6 +2010,12 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._apply_filters()
         label = "shown" if self._show_numbers else "hidden"
         self.statusBar().showMessage(f"Icon numbers {label}")
+
+    def _on_size_slider_context_menu(self, pos: QPoint) -> None:
+        self._show_icon_size_reset_menu(self.size_slider.mapToGlobal(pos))
+
+    def _on_size_value_label_context_menu(self, pos: QPoint) -> None:
+        self._show_icon_size_reset_menu(self.size_value_label.mapToGlobal(pos))
 
     def _on_sort_mode_requested(self, mode: object) -> None:
         cleaned = save_grid_sort_mode(str(mode or ""))
@@ -2394,6 +2410,15 @@ class MainWindow(QMainWindow, AppWindowMixin):
             self._current_folder = None
         finally:
             self._nav_syncing = False
+
+    def _show_icon_size_reset_menu(self, global_pos: QPoint) -> None:
+        if self.size_slider.value() == ICON_SIZE_DEFAULT:
+            return
+        menu = QMenu(self)
+        reset_action = menu.addAction(f"↩️ Reset icon size ({ICON_SIZE_DEFAULT})")
+        apply_leading_chrome_icons(menu)
+        if menu.exec_(global_pos) is reset_action:
+            self._on_reset_icon_size()
 
     def _show_text_result(self, title: str, text: str) -> None:
         dialog = QDialog(self)
@@ -2825,6 +2850,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         icon_list.refresh_variants_requested.connect(self._on_refresh_variants)
         icon_list.refresh_icons_requested.connect(self._on_refresh_catalog)
         icon_list.icon_size_delta_requested.connect(self._on_icon_size_delta)
+        icon_list.reset_icon_size_requested.connect(self._on_reset_icon_size)
         icon_list.show_numbers_toggled.connect(self._on_show_numbers_toggled)
         icon_list.sort_mode_requested.connect(self._on_sort_mode_requested)
         icon_list.sort_reverse_toggled.connect(self._on_sort_reverse_toggled)

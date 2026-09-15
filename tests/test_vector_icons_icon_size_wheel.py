@@ -8,7 +8,7 @@ import pytest
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication
 
-from harrix_swiss_knife.apps.icons.settings import ICON_SIZE_WHEEL_STEP
+from harrix_swiss_knife.apps.icons.settings import ICON_SIZE_DEFAULT, ICON_SIZE_WHEEL_STEP
 from harrix_swiss_knife.apps.icons.widgets import DraggableIconList, icon_size_delta_from_wheel
 
 
@@ -55,3 +55,79 @@ def test_variants_grid_ctrl_wheel_does_not_emit(qapp: QApplication) -> None:  # 
     assert icon_size_delta_from_wheel(_wheel(120, ctrl=True), variants_context=True) is None
     # Avoid calling Qt's wheelEvent with a mock; the helper already gates variants.
     assert emitted == []
+
+
+def test_main_grid_context_menu_emits_reset_icon_size(
+    qapp: QApplication,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    icon_list = DraggableIconList(variants_context=False, icon_size=ICON_SIZE_DEFAULT + 16)
+    emitted: list[bool] = []
+    icon_list.reset_icon_size_requested.connect(lambda: emitted.append(True))
+
+    class _FakeMenu:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            self._actions: list[object] = []
+
+        def addAction(self, text: str) -> object:  # noqa: N802
+            action = MagicMock()
+            action.text.return_value = text
+            self._actions.append(action)
+            return action
+
+        def addMenu(self, _text: str) -> object:  # noqa: N802
+            return self
+
+        def addSeparator(self) -> None:  # noqa: N802
+            return None
+
+        def exec_(self, *_args: object) -> object:
+            return next(
+                action
+                for action in self._actions
+                if isinstance(action.text(), str) and action.text().startswith("↩️ Reset icon size")
+            )
+
+    monkeypatch.setattr("harrix_swiss_knife.apps.icons.widgets.QMenu", _FakeMenu)
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.icons.widgets.apply_leading_chrome_icons",
+        lambda *_args, **_kwargs: None,
+    )
+    icon_list._exec_current_folder_context_menu(icon_list.rect().center())
+    assert emitted == [True]
+
+
+def test_main_grid_context_menu_hides_reset_at_default_size(
+    qapp: QApplication,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    icon_list = DraggableIconList(variants_context=False, icon_size=ICON_SIZE_DEFAULT)
+    texts: list[str] = []
+
+    class _FakeMenu:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            self._actions: list[object] = []
+
+        def addAction(self, text: str) -> object:  # noqa: N802
+            action = MagicMock()
+            action.text.return_value = text
+            texts.append(text)
+            self._actions.append(action)
+            return action
+
+        def addMenu(self, _text: str) -> object:  # noqa: N802
+            return self
+
+        def addSeparator(self) -> None:  # noqa: N802
+            return None
+
+        def exec_(self, *_args: object) -> object:
+            return None
+
+    monkeypatch.setattr("harrix_swiss_knife.apps.icons.widgets.QMenu", _FakeMenu)
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.icons.widgets.apply_leading_chrome_icons",
+        lambda *_args, **_kwargs: None,
+    )
+    icon_list._exec_current_folder_context_menu(icon_list.rect().center())
+    assert not any(text.startswith("↩️ Reset icon size") for text in texts)
