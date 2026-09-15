@@ -43,6 +43,7 @@ def get_menu_structure() -> list[Any]:
                 OnClearTempFolder,
                 OnUpdateUv,
                 OnInstallCli,
+                OnQuickLauncher,
             ],
         ),
         (
@@ -198,8 +199,6 @@ def get_menu_structure() -> list[Any]:
         OnHabits,
         OnIcons,
         OnSnippets,
-        "-",
-        OnQuickLauncher,
         "-",
         OnExit,
     ]

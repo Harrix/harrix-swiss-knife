@@ -78,6 +78,7 @@ _Figure 1: Screenshot_
   - ⬇️ Download ffmpeg, avifenc, avifdec
   - ⌨️ Install CLI (hsk on PATH) ꟲᴸᴵ
   - ⚙️ Open `config.json`
+  - ⚡ Quick launcher…
   - 📁 Set up data-for-hsk ꟲᴸᴵ
   - ⚙️ Settings Editor
   - 📊 Show action usage stats ꟲᴸᴵ
@@ -186,7 +187,6 @@ _Figure 1: Screenshot_
 - ✅ Habit tracker
 - 📋 Quick paste
 - 🎨 Vector Icons
-- ⚡ Quick launcher…
 - × Exit
 
 ## 🛠️ Deploy on an empty machine (Windows)

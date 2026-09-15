@@ -149,8 +149,8 @@ def build_action_usage_stats_browser(
 
         def on_context_menu(pos: QPoint) -> None:
             menu = QMenu(table)
-            copy_action = menu.addAction("Copy")
-            excel_action = menu.addAction("Save as Excel…")
+            copy_action = add_lucide_action(menu, "Copy", COPY_BUTTON_ICON)
+            excel_action = add_lucide_action(menu, "Save as Excel…", "chart-column")
             chosen = menu.exec_(table.viewport().mapToGlobal(pos))
             if chosen is copy_action:
                 on_copy()
