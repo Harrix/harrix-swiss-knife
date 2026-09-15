@@ -9,7 +9,7 @@ import pytest
 from PySide6.QtCore import QEvent, Qt
 from PySide6.QtGui import QKeyEvent
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QDialog, QWidget
+from PySide6.QtWidgets import QApplication, QDialog, QLabel, QWidget
 
 from harrix_swiss_knife.apps.icons.catalog import (
     IconFamily,
@@ -579,3 +579,22 @@ def test_icon_details_dialog_has_action_buttons(qapp: QApplication) -> None:  # 
     assert dialog.action_buttons[1].isEnabled() is False
     dialog.action_buttons[0].click()
     assert clicked == ["reveal"]
+    assert dialog.isModal() is False
+
+
+def test_icon_details_dialog_emits_meta_filter_from_rich_links(qapp: QApplication) -> None:  # noqa: ARG001
+    emitted: list[tuple[str, str]] = []
+    dialog = KeyValueTableDialog(
+        None,
+        "Icon details",
+        [("Categories", "building"), ("Tags", "garage")],
+        rich_values={
+            "Categories": '<a href="hsk-meta:category/building">building (2)</a>',
+            "Tags": "garage",
+        },
+    )
+    dialog.meta_filter_requested.connect(lambda kind, value: emitted.append((kind, value)))
+    categories_label = dialog.table.cellWidget(0, 1)
+    assert isinstance(categories_label, QLabel)
+    categories_label.linkActivated.emit("hsk-meta:category/building")
+    assert emitted == [("category", "building")]

@@ -7,6 +7,8 @@ from harrix_swiss_knife.apps.icons.meta_filter import (
     META_KIND_CATEGORY,
     META_KIND_DATE,
     META_KIND_TAG,
+    build_meta_date_html,
+    build_meta_list_html,
     build_variants_header_html,
     count_families_for_meta,
     filter_families_by_meta,
@@ -58,6 +60,17 @@ def test_build_variants_header_html_links_when_others_exist() -> None:
     assert 'href="hsk-meta:date/2020-07-19"' in html
     assert "garage" in html
     assert "garage (" not in html  # unique tag, no link
+
+
+def test_build_meta_field_html_helpers() -> None:
+    icons = [
+        _family("a", categories=["building"], tags=["garage"], date="2020-07-19"),
+        _family("b", categories=["building"], tags=["house"], date="2020-07-19"),
+    ]
+    assert "building (2)" in build_meta_list_html(icons, META_KIND_CATEGORY, ["building"])
+    assert build_meta_list_html(icons, META_KIND_TAG, []) == "—"
+    assert "2020-07-19 (2)" in build_meta_date_html(icons, "2020-07-19")
+    assert build_meta_date_html(icons, "") == "—"
 
 
 def test_parse_meta_link_roundtrip() -> None:

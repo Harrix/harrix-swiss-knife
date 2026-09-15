@@ -11,6 +11,8 @@ lang: en
 
 ## Contents
 
+- [🔧 Function `build_meta_date_html`](#-function-build_meta_date_html)
+- [🔧 Function `build_meta_list_html`](#-function-build_meta_list_html)
 - [🔧 Function `build_variants_header_html`](#-function-build_variants_header_html)
 - [🔧 Function `count_families_for_meta`](#-function-count_families_for_meta)
 - [🔧 Function `family_matches_meta`](#-function-family_matches_meta)
@@ -18,6 +20,48 @@ lang: en
 - [🔧 Function `meta_filter_label`](#-function-meta_filter_label)
 - [🔧 Function `meta_link_href`](#-function-meta_link_href)
 - [🔧 Function `parse_meta_link`](#-function-parse_meta_link)
+
+</details>
+
+## 🔧 Function `build_meta_date_html`
+
+```python
+def build_meta_date_html(icons: Sequence[IconFamily], date: str) -> str
+```
+
+Return HTML for a date value, with a count link when shared by other icons.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def build_meta_date_html(icons: Sequence[IconFamily], date: str) -> str:
+    cleaned = date.strip()
+    if not cleaned:
+        return "—"
+    return _meta_value_html(icons, META_KIND_DATE, cleaned)
+```
+
+</details>
+
+## 🔧 Function `build_meta_list_html`
+
+```python
+def build_meta_list_html(icons: Sequence[IconFamily], kind: str, values: Sequence[str]) -> str
+```
+
+Return HTML for category/tag lists with count links when shared.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def build_meta_list_html(icons: Sequence[IconFamily], kind: str, values: Sequence[str]) -> str:
+    cleaned = [item.strip() for item in values if item.strip()]
+    if not cleaned:
+        return "—"
+    return ", ".join(_meta_value_html(icons, kind, item) for item in cleaned)
+```
 
 </details>
 
@@ -39,17 +83,15 @@ def build_variants_header_html(family: IconFamily, icons: Sequence[IconFamily]) 
         html.escape(family.id),
     ]
     if family.date.strip():
-        lines.append(f"Date: {_meta_value_html(icons, META_KIND_DATE, family.date.strip())}")
+        lines.append(f"Date: {build_meta_date_html(icons, family.date)}")
     categories = [item.strip() for item in family.categories if item.strip()]
     if categories:
-        parts = [_meta_value_html(icons, META_KIND_CATEGORY, item) for item in categories]
-        lines.append("Categories: " + ", ".join(parts))
+        lines.append(f"Categories: {build_meta_list_html(icons, META_KIND_CATEGORY, categories)}")
     else:
         lines.append("Categories: —")
     tags = [item.strip() for item in family.tags if item.strip()]
     if tags:
-        parts = [_meta_value_html(icons, META_KIND_TAG, item) for item in tags]
-        lines.append("Tags: " + ", ".join(parts))
+        lines.append(f"Tags: {build_meta_list_html(icons, META_KIND_TAG, tags)}")
     else:
         lines.append("Tags: —")
     return "<br/>".join(lines)

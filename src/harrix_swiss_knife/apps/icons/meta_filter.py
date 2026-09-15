@@ -18,6 +18,22 @@ META_LINK_SCHEME = "hsk-meta"
 _META_KINDS = frozenset({META_KIND_CATEGORY, META_KIND_TAG, META_KIND_DATE})
 
 
+def build_meta_date_html(icons: Sequence[IconFamily], date: str) -> str:
+    """Return HTML for a date value, with a count link when shared by other icons."""
+    cleaned = date.strip()
+    if not cleaned:
+        return "—"
+    return _meta_value_html(icons, META_KIND_DATE, cleaned)
+
+
+def build_meta_list_html(icons: Sequence[IconFamily], kind: str, values: Sequence[str]) -> str:
+    """Return HTML for category/tag lists with count links when shared."""
+    cleaned = [item.strip() for item in values if item.strip()]
+    if not cleaned:
+        return "—"
+    return ", ".join(_meta_value_html(icons, kind, item) for item in cleaned)
+
+
 def build_variants_header_html(family: IconFamily, icons: Sequence[IconFamily]) -> str:
     """Return rich-text header with blue links when multiple icons share meta values."""
     lines = [
@@ -25,17 +41,15 @@ def build_variants_header_html(family: IconFamily, icons: Sequence[IconFamily]) 
         html.escape(family.id),
     ]
     if family.date.strip():
-        lines.append(f"Date: {_meta_value_html(icons, META_KIND_DATE, family.date.strip())}")
+        lines.append(f"Date: {build_meta_date_html(icons, family.date)}")
     categories = [item.strip() for item in family.categories if item.strip()]
     if categories:
-        parts = [_meta_value_html(icons, META_KIND_CATEGORY, item) for item in categories]
-        lines.append("Categories: " + ", ".join(parts))
+        lines.append(f"Categories: {build_meta_list_html(icons, META_KIND_CATEGORY, categories)}")
     else:
         lines.append("Categories: —")
     tags = [item.strip() for item in family.tags if item.strip()]
     if tags:
-        parts = [_meta_value_html(icons, META_KIND_TAG, item) for item in tags]
-        lines.append("Tags: " + ", ".join(parts))
+        lines.append(f"Tags: {build_meta_list_html(icons, META_KIND_TAG, tags)}")
     else:
         lines.append("Tags: —")
     return "<br/>".join(lines)

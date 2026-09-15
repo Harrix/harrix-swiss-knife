@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 import harrix_pylib as h
-from PySide6.QtCore import QMimeData, QPoint, QSize, Qt, QThread, QTimer, QUrl
+from PySide6.QtCore import QMimeData, QPoint, QSize, Qt, QThread, QTimer, QUrl, Signal
 from PySide6.QtGui import QCloseEvent, QDesktopServices, QIcon, QPixmap
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -43,6 +43,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from shiboken6 import isValid
 
 from harrix_swiss_knife import (
     resources_rc,  # noqa: F401
@@ -94,8 +95,13 @@ from harrix_swiss_knife.apps.icons.keywords_ai import KeywordsBatchRunner
 from harrix_swiss_knife.apps.icons.keywords_update import update_keywords_files
 from harrix_swiss_knife.apps.icons.lightbox import IconLightboxDialog
 from harrix_swiss_knife.apps.icons.meta_filter import (
+    META_KIND_CATEGORY,
+    META_KIND_TAG,
+    build_meta_date_html,
+    build_meta_list_html,
     filter_families_by_meta,
     meta_filter_label,
+    parse_meta_link,
 )
 from harrix_swiss_knife.apps.icons.repo_maintenance import (
     MaintenanceKind,
@@ -209,6 +215,8 @@ _DETAILS_PREVIEW_PANEL_WIDTH = 200
 class KeyValueTableDialog(QDialog):
     """Dialog displaying key-value pairs in a table with a copy button for each row."""
 
+    meta_filter_requested = Signal(str, str)
+
     def __init__(
         self,
         parent: QWidget | None,
@@ -217,16 +225,21 @@ class KeyValueTableDialog(QDialog):
         *,
         previews: list[tuple[str, QPixmap]] | None = None,
         actions: list[tuple[str, object, bool]] | None = None,
+        rich_values: dict[str, str] | None = None,
     ) -> None:
         """Initialize the dialog.
 
         `actions` is `(label, callback, enabled)` for extra buttons on the bottom row.
+        `rich_values` maps property names to HTML shown instead of plain text (meta links).
 
         """
         super().__init__(parent)
         self.setWindowTitle(title)
+        self.setModal(False)
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, on=True)
         self.resize(880 if previews else 600, 520 if previews else 400)
         self.action_buttons: list[QPushButton] = []
+        self._rich_values = dict(rich_values or {})
 
         self.table = QTableWidget(len(data), 3)
         self.table.setHorizontalHeaderLabels(["Property", "Value", ""])
@@ -245,8 +258,21 @@ class KeyValueTableDialog(QDialog):
             key_item = QTableWidgetItem(key)
             self.table.setItem(row, 0, key_item)
 
-            value_item = QTableWidgetItem(value)
-            self.table.setItem(row, 1, value_item)
+            rich = self._rich_values.get(key)
+            if rich:
+                value_label = QLabel()
+                value_label.setTextFormat(Qt.TextFormat.RichText)
+                value_label.setText(rich)
+                value_label.setWordWrap(True)
+                value_label.setTextInteractionFlags(
+                    Qt.TextInteractionFlag.TextBrowserInteraction | Qt.TextInteractionFlag.LinksAccessibleByMouse,
+                )
+                value_label.setOpenExternalLinks(False)
+                value_label.linkActivated.connect(self._on_meta_link_activated)
+                self.table.setCellWidget(row, 1, value_label)
+            else:
+                value_item = QTableWidgetItem(value)
+                self.table.setItem(row, 1, value_item)
 
             copy_btn = make_lucide_push_button("", COPY_BUTTON_ICON)
             copy_btn.setToolTip("Copy value")
@@ -282,6 +308,13 @@ class KeyValueTableDialog(QDialog):
     def _copy_value(self, value: str) -> None:
         QApplication.clipboard().setText(value)
 
+    def _on_meta_link_activated(self, href: str) -> None:
+        parsed = parse_meta_link(href)
+        if parsed is None:
+            return
+        kind, value = parsed
+        self.meta_filter_requested.emit(kind, value)
+
 
 class MainWindow(QMainWindow, AppWindowMixin):
     """Browse Harrix Vector Icons with search, categories, cache, and drag-out."""
@@ -303,6 +336,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._grid_sort_mode = load_grid_sort_mode()
         self._grid_sort_reverse = load_grid_sort_reverse()
         self._meta_filter: tuple[str, str] | None = None
+        self._icon_details_dialog: KeyValueTableDialog | None = None
         self._catalog: IconCatalog | None = None
         self._repo_root: Path | None = None
         self._thumb_cache = ThumbnailCache(size=DEFAULT_THUMB_SIZE)
@@ -1759,13 +1793,17 @@ class MainWindow(QMainWindow, AppWindowMixin):
         source = self._resolve_source_file(family, svg_path)
         variants = "\n".join(f"  - {variant.name} ({variant.file})" for variant in family.variants) or "  —"
         license_name, license_url = family_license_info(family, self._repo_root)
+        catalog_icons = self._catalog.icons if self._catalog is not None else []
+        date_plain = str(family.date or "—")
+        categories_plain = ", ".join(family.categories) or "—"
+        tags_plain = ", ".join(family.tags) or "—"
 
         data = [
             ("ID", str(family.id)),
             ("Title", str(family.title)),
-            ("Date", str(family.date or "—")),
-            ("Categories", ", ".join(family.categories) or "—"),
-            ("Tags", ", ".join(family.tags) or "—"),
+            ("Date", date_plain),
+            ("Categories", categories_plain),
+            ("Tags", tags_plain),
             ("License", license_name or "—"),
             ("License URL", license_url or "—"),
             ("Folder", str(family.folder)),
@@ -1776,6 +1814,11 @@ class MainWindow(QMainWindow, AppWindowMixin):
             ("Selected SVG", str(svg_path)),
             (f"Variants ({len(family.variants)})", variants),
         ]
+        rich_values = {
+            "Date": build_meta_date_html(catalog_icons, family.date),
+            "Categories": build_meta_list_html(catalog_icons, META_KIND_CATEGORY, family.categories),
+            "Tags": build_meta_list_html(catalog_icons, META_KIND_TAG, family.tags),
+        }
 
         selected = Path(svg_path) if svg_path else None
         can_reveal = selected is not None and selected.is_file()
@@ -1784,8 +1827,12 @@ class MainWindow(QMainWindow, AppWindowMixin):
 
         def edit_icon() -> None:
             if dialog_holder:
-                dialog_holder[0].accept()
+                dialog_holder[0].close()
             self._on_edit_keywords(family, svg_path)
+
+        if self._icon_details_dialog is not None and isValid(self._icon_details_dialog):
+            self._icon_details_dialog.close()
+        self._icon_details_dialog = None
 
         dialog = KeyValueTableDialog(
             self,
@@ -1805,9 +1852,24 @@ class MainWindow(QMainWindow, AppWindowMixin):
                 ),
                 ("✏️ Edit icon…", edit_icon, can_open_note),
             ],
+            rich_values=rich_values,
         )
         dialog_holder.append(dialog)
-        dialog.exec()
+        self._icon_details_dialog = dialog
+
+        def on_meta_filter(kind: str, value: str) -> None:
+            dialog.close()
+            self._on_meta_filter_requested(kind, value)
+
+        def on_finished(_result: int) -> None:
+            if self._icon_details_dialog is dialog:
+                self._icon_details_dialog = None
+
+        dialog.meta_filter_requested.connect(on_meta_filter)
+        dialog.finished.connect(on_finished)
+        dialog.show()
+        dialog.raise_()
+        dialog.activateWindow()
 
     def _on_icon_files_dropped(self, paths: list[str]) -> None:
         """Run Add Vector Image for files dropped onto the main icon grid."""
