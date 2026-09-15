@@ -85,6 +85,10 @@ def test_capture_picker_matches_quick_launcher_chrome(qapp: QApplication) -> Non
         assert dialog.objectName() == "quickLauncherDialog"
         assert dialog.windowFlags() & Qt.WindowType.FramelessWindowHint
         assert dialog._cards.count() == len(CAPTURE_PICKER_ACTIONS)
+        footer = dialog._layout.itemAt(dialog._layout.count() - 1).layout()
+        assert footer is not None
+        assert footer.indexOf(dialog._hint) >= 0
+        assert footer.indexOf(dialog._size_grip) >= 0
         names = {
             item.data(Qt.ItemDataRole.UserRole).__name__
             for index in range(dialog._cards.count())

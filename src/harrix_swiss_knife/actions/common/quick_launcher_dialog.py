@@ -28,7 +28,11 @@ from harrix_swiss_knife.actions.common.dialog_geometry import center_widget_on_a
 from harrix_swiss_knife.actions.common.quick_launcher_settings import load_quick_launcher_markdown_in_panel
 from harrix_swiss_knife.actions.markdown.new_markdown import OnNewMarkdown
 from harrix_swiss_knife.cli_menu import show_action_class_context_menu
-from harrix_swiss_knife.qt_action_card_grid import CARD_ICON_SIZE, configure_action_card_grid
+from harrix_swiss_knife.qt_action_card_grid import (
+    CARD_ICON_SIZE,
+    configure_action_card_grid,
+    sync_action_card_grid,
+)
 from harrix_swiss_knife.qt_action_icon import create_action_icon
 from harrix_swiss_knife.qt_command_section import (
     apply_opaque_white,
@@ -138,14 +142,14 @@ class QuickLauncherDialog(QDialog):
         self._hint = QLabel(self)
         self._hint.setStyleSheet("color: palette(mid);")
         self._hint.setCursor(Qt.CursorShape.OpenHandCursor)
-        self._layout.addWidget(self._hint)
         self._update_hint()
 
-        resize_row = QHBoxLayout()
-        resize_row.addStretch()
+        footer = QHBoxLayout()
+        footer.setContentsMargins(0, 0, 0, 0)
+        footer.addWidget(self._hint, stretch=1)
         self._size_grip = QSizeGrip(self)
-        resize_row.addWidget(self._size_grip, alignment=Qt.AlignmentFlag.AlignRight)
-        self._layout.addLayout(resize_row)
+        footer.addWidget(self._size_grip, alignment=Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom)
+        self._layout.addLayout(footer)
 
         draggable_widgets: list[QWidget] = [title, header_spacer, self._hint]
         if self._markdown_section_label is not None:
@@ -320,6 +324,7 @@ class QuickLauncherDialog(QDialog):
         for grid in (self._cards, self._markdown_cards):
             grid.setMinimumHeight(0)
             grid.setMaximumHeight(16777215)
+            sync_action_card_grid(grid)
 
         split = self._markdown_section.isVisible()
         cards_natural = measure_icon_grid_height(self._cards)
@@ -327,8 +332,8 @@ class QuickLauncherDialog(QDialog):
         actions_chrome = _section_chrome_height(self._actions_section)
         markdown_chrome = _section_chrome_height(self._markdown_section) if split else 0
         divider_height = self._actions_divider.height() if self._actions_divider.isVisible() else 0
-        window_chrome = _layout_vertical_chrome(self._layout, self._hint) + self._size_grip.sizeHint().height()
-        spacing_total = _layout_spacing_total(self._layout, split=split) + self._layout.spacing()
+        window_chrome = _layout_vertical_chrome(self._layout)
+        spacing_total = _layout_spacing_total(self._layout, split=split)
         sections_chrome = actions_chrome + markdown_chrome + divider_height
         grids_natural = cards_natural + markdown_natural
         content_height = window_chrome + spacing_total + sections_chrome + grids_natural
@@ -584,16 +589,18 @@ def _apply_card_grid_height(
 
 
 def _layout_spacing_total(layout: QVBoxLayout, *, split: bool) -> int:
-    # header, actions section, divider, [markdown section], hint, resize row
-    visible_items = 5 + (1 if split else 0)
+    # header, actions section, divider, [markdown section], footer
+    visible_items = 4 + (1 if split else 0)
     return layout.spacing() * max(0, visible_items - 1)
 
 
-def _layout_vertical_chrome(layout: QVBoxLayout, hint: QLabel) -> int:
+def _layout_vertical_chrome(layout: QVBoxLayout) -> int:
     margins = layout.contentsMargins()
     header_layout = layout.itemAt(0).layout()
     header_height = header_layout.sizeHint().height() if header_layout is not None else 0
-    return margins.top() + margins.bottom() + header_height + hint.sizeHint().height()
+    footer_layout = layout.itemAt(layout.count() - 1).layout()
+    footer_height = footer_layout.sizeHint().height() if footer_layout is not None else 0
+    return margins.top() + margins.bottom() + header_height + footer_height
 
 
 def _section_chrome_height(section: QFrame) -> int:
