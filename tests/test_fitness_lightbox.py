@@ -7,7 +7,8 @@ from pathlib import Path
 import pillow_avif  # noqa: F401
 import pytest
 from PIL import Image
-from PySide6.QtCore import QFile
+from PySide6.QtCore import QFile, Qt
+from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QPushButton, QSplitter, QWidget
 
 from harrix_swiss_knife import resources_rc  # noqa: F401
@@ -390,6 +391,59 @@ def test_fitness_lightbox_pause_and_continue_cues(
     assert cues == ["go", "pause"]
     dialog._sidebar._on_start()
     assert cues == ["go", "pause", "continue"]
+    dialog.close()
+
+
+def test_fitness_lightbox_space_toggles_timer_and_button_states(
+    tmp_path: Path,
+    qapp: QApplication,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    img_dir = tmp_path / "fitness_img"
+    img_dir.mkdir()
+    _write_test_avif(img_dir / "Plank.avif")
+    manager = AvifManager(img_dir)
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.fitness.fitness_lightbox.play_fitness_timer_cue",
+        lambda _cue: None,
+    )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.fitness.fitness_lightbox.stop_fitness_timer_alert",
+        lambda: None,
+    )
+    dialog = FitnessExerciseLightboxDialog(
+        ["Plank"],
+        avif_manager=manager,
+        details_loader=_plank_details,
+        confirm_handler=lambda _payload: True,
+        countdown_seconds=0,
+    )
+    start = dialog.findChild(QPushButton, "fitnessLightboxStartButton")
+    pause = dialog.findChild(QPushButton, "fitnessLightboxPauseButton")
+    stop = dialog.findChild(QPushButton, "fitnessLightboxStopButton")
+    assert start is not None
+    assert pause is not None
+    assert stop is not None
+    assert start.isEnabled()
+    assert not pause.isEnabled()
+    assert not stop.isEnabled()
+    assert stop.property("_harrix_lucide_name") == "square"
+
+    dialog.show()
+    qapp.processEvents()
+    QTest.keyClick(dialog, Qt.Key.Key_Space)
+    qapp.processEvents()
+    assert dialog._sidebar._stopwatch.snapshot().is_running
+    assert not start.isEnabled()
+    assert pause.isEnabled()
+    assert stop.isEnabled()
+
+    QTest.keyClick(dialog, Qt.Key.Key_Space)
+    qapp.processEvents()
+    assert not dialog._sidebar._stopwatch.snapshot().is_running
+    assert start.isEnabled()
+    assert not pause.isEnabled()
+    assert stop.isEnabled()
     dialog.close()
 
 

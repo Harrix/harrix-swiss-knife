@@ -29,6 +29,7 @@ from harrix_swiss_knife.keyboard_layout_search import text_matches_autocomplete
 from harrix_swiss_knife.qt_lucide_icon import (
     CLEAR_BUTTON_ICON,
     apply_lucide_dialog_buttons,
+    create_lucide_icon,
     make_lucide_push_button,
 )
 
@@ -539,17 +540,12 @@ class _ExercisePreviewTile(QFrame):
         self._check_overlay = QLabel(self.preview_label)
         self._check_overlay.setObjectName("exercisePreviewCheck")
         self._check_overlay.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._check_overlay.setText("✓")
+        check_size = QSize(48, 48)
+        self._check_overlay.setPixmap(create_lucide_icon("square-check", 48, color="#FFFFFF").pixmap(check_size))
         self._check_overlay.setGeometry(0, 0, preview_size.width(), preview_size.height())
         self._check_overlay.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
         self._check_overlay.setStyleSheet(
-            "QLabel#exercisePreviewCheck {"
-            " background-color: rgba(80, 80, 80, 150);"
-            " color: #ffffff;"
-            " font-size: 36px;"
-            " font-weight: 700;"
-            " border: none;"
-            "}"
+            "QLabel#exercisePreviewCheck { background-color: rgba(80, 80, 80, 150); border: none;}"
         )
         self._check_overlay.hide()
         layout.addWidget(self.preview_label, 0, Qt.AlignmentFlag.AlignHCenter)

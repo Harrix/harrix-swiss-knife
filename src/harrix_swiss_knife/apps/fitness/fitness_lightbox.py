@@ -5,8 +5,18 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QPoint, QRect, QSize, Qt, QTimer, Signal
-from PySide6.QtGui import QCloseEvent, QColor, QFont, QPainter, QPaintEvent, QPen, QShowEvent
+from PySide6.QtCore import QPoint, QRect, Qt, QTimer, Signal
+from PySide6.QtGui import (
+    QCloseEvent,
+    QColor,
+    QFont,
+    QKeySequence,
+    QPainter,
+    QPaintEvent,
+    QPen,
+    QShortcut,
+    QShowEvent,
+)
 from PySide6.QtWidgets import (
     QComboBox,
     QFrame,
@@ -42,7 +52,7 @@ from harrix_swiss_knife.apps.fitness.lightbox_sounds import (
     play_fitness_timer_cue,
     stop_fitness_timer_alert,
 )
-from harrix_swiss_knife.qt_lucide_icon import apply_lucide_button_icon, create_lucide_icon
+from harrix_swiss_knife.qt_lucide_icon import apply_lucide_button_icon
 from harrix_swiss_knife.qt_toolbar_style import (
     TOOLBAR_BUTTON_GAP,
     TOOLBAR_BUTTON_SIZE,
@@ -157,6 +167,9 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
         )
         self._sidebar.confirm_requested.connect(self._on_confirm)
         self._sidebar.playback_changed.connect(self._apply_playback_view)
+        self._timer_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Space), self)
+        self._timer_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
+        self._timer_shortcut.activated.connect(self._sidebar.toggle_timer)
         self._install_sidebar()
         self._sync_fitness_chrome_backdrop()
         self.finish_setup()
@@ -496,6 +509,13 @@ class FitnessLightboxSidebar(QFrame):
         """Begin the ready countdown (Prepare!) from zero."""
         self._on_restart()
 
+    def toggle_timer(self) -> None:
+        """Start/resume a stopped timer, or pause a running timer."""
+        if self._stopwatch.snapshot().is_running:
+            self._on_pause()
+        else:
+            self._on_start()
+
     def value(self) -> int:
         """Return the numeric set value."""
         return int(self._value_spin.value())
@@ -537,6 +557,7 @@ class FitnessLightboxSidebar(QFrame):
         else:
             self._overtime_announced = False
             stop_fitness_timer_alert()
+        self._sync_timer_buttons(snapshot)
         if self._limit_seconds:
             prefix = "Target" if self._limit_label_kind == "target" else "Slot"
             self._limit_label.setText(f"{prefix} {format_mm_ss(self._limit_seconds)}")
@@ -561,8 +582,7 @@ class FitnessLightboxSidebar(QFrame):
     def _build_timer_button(self, name: str, tooltip: str, object_name: str) -> QPushButton:
         button = QPushButton()
         button.setObjectName(object_name)
-        button.setIcon(create_lucide_icon(name, TOOLBAR_ICON_SIZE))
-        button.setIconSize(QSize(TOOLBAR_ICON_SIZE, TOOLBAR_ICON_SIZE))
+        apply_lucide_button_icon(button, name, icon_size=TOOLBAR_ICON_SIZE)
         button.setToolTip(tooltip)
         button.setCursor(Qt.CursorShape.PointingHandCursor)
         button.setAutoDefault(False)
@@ -596,22 +616,22 @@ class FitnessLightboxSidebar(QFrame):
         _apply_pixel_font(self._limit_label, pixel_size=14)
         self._limit_label.hide()
 
-        start = self._build_timer_button("play", "Start", "fitnessLightboxStartButton")
-        pause = self._build_timer_button("pause", "Pause", "fitnessLightboxPauseButton")
-        stop = self._build_timer_button("square-stop", "Stop", "fitnessLightboxStopButton")
+        self._start_button = self._build_timer_button("play", "Start", "fitnessLightboxStartButton")
+        self._pause_button = self._build_timer_button("pause", "Pause", "fitnessLightboxPauseButton")
+        self._stop_button = self._build_timer_button("square", "Stop", "fitnessLightboxStopButton")
         restart = self._build_timer_button("rotate-cw", "Restart", "fitnessLightboxRestartButton")
-        start.clicked.connect(self._on_start)
-        pause.clicked.connect(self._on_pause)
-        stop.clicked.connect(self._on_stop)
+        self._start_button.clicked.connect(self._on_start)
+        self._pause_button.clicked.connect(self._on_pause)
+        self._stop_button.clicked.connect(self._on_stop)
         restart.clicked.connect(self._on_restart)
         controls = QWidget()
         controls_layout = QHBoxLayout(controls)
         controls_layout.setContentsMargins(0, 0, 0, 0)
         controls_layout.setSpacing(TOOLBAR_BUTTON_GAP)
         controls_layout.addStretch(1)
-        controls_layout.addWidget(start)
-        controls_layout.addWidget(pause)
-        controls_layout.addWidget(stop)
+        controls_layout.addWidget(self._start_button)
+        controls_layout.addWidget(self._pause_button)
+        controls_layout.addWidget(self._stop_button)
         controls_layout.addWidget(restart)
         controls_layout.addStretch(1)
 
@@ -733,6 +753,14 @@ class FitnessLightboxSidebar(QFrame):
             return
         self._configure_limit_for_exercise(self._bound_unit, value)
         self._apply_snapshot(self._stopwatch.snapshot())
+
+    def _sync_timer_buttons(self, snapshot: StopwatchSnapshot) -> None:
+        """Enable timer actions that are valid for the current state."""
+        self._start_button.setEnabled(not snapshot.is_running)
+        self._pause_button.setEnabled(snapshot.is_running)
+        self._stop_button.setEnabled(
+            snapshot.phase not in {StopwatchPhase.IDLE, StopwatchPhase.FINISHED},
+        )
 
 
 class LightboxPhaseOverlay(QWidget):

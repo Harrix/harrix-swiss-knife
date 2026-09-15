@@ -321,12 +321,29 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
             except Exception:
                 log.exception("Hotkey action %s failed", action_name)
 
+        def run_capture_long_press(_action_name: str) -> None:
+            try:
+                chosen = choose_capture_hotkey_action(parent=None)
+            except Exception:
+                log.exception("Capture hotkey picker failed")
+                return
+            if chosen:
+                run_hotkey_action(chosen)
+
         bindings = load_action_hotkeys(config)
+        hotkey_manager.set_long_press_actions(
+            CAPTURE_HOTKEY_ACTIONS,
+            hold_ms=CAPTURE_HOTKEY_LONG_PRESS_MS,
+        )
         hotkey_manager.registration_failed.connect(lambda msg: log.warning("Global hotkey: %s", msg))
         registered = hotkey_manager.register_all(bindings)
         log.info("Registered %s global hotkey(s) from config.json", registered)
         hotkey_manager.action_triggered.connect(
             run_hotkey_action,
+            Qt.ConnectionType.QueuedConnection,
+        )
+        hotkey_manager.action_long_press.connect(
+            run_capture_long_press,
             Qt.ConnectionType.QueuedConnection,
         )
 

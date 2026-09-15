@@ -80,11 +80,13 @@ class AppWindowLightboxDialog(QDialog):
                 self.resize(1280, 720)
 
         self._close_button = self._make_button("", "Close")
-        self._close_button.setIcon(create_lucide_icon(CLOSE_BUTTON_ICON, 22))
+        apply_lucide_button_icon(self._close_button, CLOSE_BUTTON_ICON, icon_size=22, color="#FFFFFF")
         self._close_button.clicked.connect(self.accept)
-        self._previous_button = self._make_button("←", "Previous (Left arrow)")
+        self._previous_button = self._make_button("", "Previous (Left arrow)")
+        apply_lucide_button_icon(self._previous_button, "chevron-left", icon_size=24, color="#FFFFFF")
         self._previous_button.clicked.connect(self.show_previous)
-        self._next_button = self._make_button("→", "Next (Right arrow)")
+        self._next_button = self._make_button("", "Next (Right arrow)")
+        apply_lucide_button_icon(self._next_button, "chevron-right", icon_size=24, color="#FFFFFF")
         self._next_button.clicked.connect(self.show_next)
 
         self._backdrop_color = "white"
@@ -351,11 +353,13 @@ def __init__(
                 self.resize(1280, 720)
 
         self._close_button = self._make_button("", "Close")
-        self._close_button.setIcon(create_lucide_icon(CLOSE_BUTTON_ICON, 22))
+        apply_lucide_button_icon(self._close_button, CLOSE_BUTTON_ICON, icon_size=22, color="#FFFFFF")
         self._close_button.clicked.connect(self.accept)
-        self._previous_button = self._make_button("←", "Previous (Left arrow)")
+        self._previous_button = self._make_button("", "Previous (Left arrow)")
+        apply_lucide_button_icon(self._previous_button, "chevron-left", icon_size=24, color="#FFFFFF")
         self._previous_button.clicked.connect(self.show_previous)
-        self._next_button = self._make_button("→", "Next (Right arrow)")
+        self._next_button = self._make_button("", "Next (Right arrow)")
+        apply_lucide_button_icon(self._next_button, "chevron-right", icon_size=24, color="#FFFFFF")
         self._next_button.clicked.connect(self.show_next)
 
         self._backdrop_color = "white"

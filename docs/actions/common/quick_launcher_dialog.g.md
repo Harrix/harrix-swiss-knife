@@ -76,11 +76,12 @@ class QuickLauncherDialog(QDialog):
         title.setFont(title_font)
         title.setCursor(Qt.CursorShape.OpenHandCursor)
 
-        self._close_button = QPushButton("X")
+        self._close_button = QPushButton("")
         self._close_button.setFixedSize(28, 28)
         self._close_button.setFlat(True)
         self._close_button.setToolTip("Close")
         self._close_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        apply_lucide_button_icon(self._close_button, CLOSE_BUTTON_ICON, icon_size=18)
         self._close_button.clicked.connect(self.hide)
 
         header_spacer = QWidget(self)
@@ -100,15 +101,19 @@ class QuickLauncherDialog(QDialog):
         self._cards.itemClicked.connect(self._on_item_clicked)
         self._cards.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self._cards.customContextMenuRequested.connect(self._on_cards_context_menu)
-        self._actions_section, _, actions_layout = create_command_section(title="Actions")
+        self._actions_section, _, actions_layout = create_command_section(title="Actions", bordered=False)
         actions_layout.addWidget(self._cards)
         self._layout.addWidget(self._actions_section, stretch=1)
+
+        self._actions_divider = create_command_section_divider()
+        self._layout.addWidget(self._actions_divider)
 
         self._markdown_cards = QListWidget(self)
         configure_action_card_grid(self._markdown_cards)
         style_transparent_icon_grid(self._markdown_cards)
         self._markdown_section, self._markdown_section_label, markdown_layout = create_command_section(
             title="New Markdown",
+            bordered=False,
         )
         if self._markdown_section_label is not None:
             self._markdown_section_label.setCursor(Qt.CursorShape.OpenHandCursor)
@@ -306,9 +311,10 @@ class QuickLauncherDialog(QDialog):
         markdown_natural = measure_icon_grid_height(self._markdown_cards) if split else 0
         actions_chrome = _section_chrome_height(self._actions_section)
         markdown_chrome = _section_chrome_height(self._markdown_section) if split else 0
+        divider_height = self._actions_divider.height() if self._actions_divider.isVisible() else 0
         window_chrome = _layout_vertical_chrome(self._layout, self._hint) + self._size_grip.sizeHint().height()
         spacing_total = _layout_spacing_total(self._layout, split=split) + self._layout.spacing()
-        sections_chrome = actions_chrome + markdown_chrome
+        sections_chrome = actions_chrome + markdown_chrome + divider_height
         grids_natural = cards_natural + markdown_natural
         content_height = window_chrome + spacing_total + sections_chrome + grids_natural
         return _ContentHeightMetrics(
@@ -576,11 +582,12 @@ def __init__(self, parent: QWidget | None = None) -> None:
         title.setFont(title_font)
         title.setCursor(Qt.CursorShape.OpenHandCursor)
 
-        self._close_button = QPushButton("X")
+        self._close_button = QPushButton("")
         self._close_button.setFixedSize(28, 28)
         self._close_button.setFlat(True)
         self._close_button.setToolTip("Close")
         self._close_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        apply_lucide_button_icon(self._close_button, CLOSE_BUTTON_ICON, icon_size=18)
         self._close_button.clicked.connect(self.hide)
 
         header_spacer = QWidget(self)
@@ -600,15 +607,19 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self._cards.itemClicked.connect(self._on_item_clicked)
         self._cards.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self._cards.customContextMenuRequested.connect(self._on_cards_context_menu)
-        self._actions_section, _, actions_layout = create_command_section(title="Actions")
+        self._actions_section, _, actions_layout = create_command_section(title="Actions", bordered=False)
         actions_layout.addWidget(self._cards)
         self._layout.addWidget(self._actions_section, stretch=1)
+
+        self._actions_divider = create_command_section_divider()
+        self._layout.addWidget(self._actions_divider)
 
         self._markdown_cards = QListWidget(self)
         configure_action_card_grid(self._markdown_cards)
         style_transparent_icon_grid(self._markdown_cards)
         self._markdown_section, self._markdown_section_label, markdown_layout = create_command_section(
             title="New Markdown",
+            bordered=False,
         )
         if self._markdown_section_label is not None:
             self._markdown_section_label.setCursor(Qt.CursorShape.OpenHandCursor)

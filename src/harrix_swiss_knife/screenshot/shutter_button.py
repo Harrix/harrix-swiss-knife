@@ -537,6 +537,19 @@ class ShutterPanel(QWidget):
         else:
             self.move(new_global)
 
+    def _cell_labels(self) -> tuple[QLabel, ...]:
+        names = (
+            "_collapse_label",
+            "_mode_label",
+            "_adjust_label",
+            "_guides_label",
+            "_keep_windows_label",
+            "_clipboard_label",
+            "_ocr_label",
+            "_close_label",
+        )
+        return tuple(label for name in names if isinstance((label := getattr(self, name, None)), QLabel))
+
     def _fit_all_cell_labels(self) -> None:
         """Recompute caption widths after collapse/expand or text changes."""
         column = self._label_column_width()
@@ -565,18 +578,13 @@ class ShutterPanel(QWidget):
         natural = metrics.horizontalAdvance(text.text()) + _CELL_LABEL_PAD
         text.setFixedWidth(max(TOOLBAR_BUTTON_SIZE, natural))
 
-    def _cell_labels(self) -> tuple[QLabel, ...]:
-        names = (
-            "_collapse_label",
-            "_mode_label",
-            "_adjust_label",
-            "_guides_label",
-            "_keep_windows_label",
-            "_clipboard_label",
-            "_ocr_label",
-            "_close_label",
-        )
-        return tuple(label for name in names if isinstance((label := getattr(self, name, None)), QLabel))
+    def _is_interactive_target(self, widget: QWidget | None) -> bool:
+        current = widget
+        while current is not None and current is not self:
+            if isinstance(current, (QPushButton, ShutterSwitch, ShutterToggleControl)):
+                return True
+            current = current.parentWidget()
+        return False
 
     def _label_column_width(self) -> int:
         """Toggle-row width, expanded so single-word captions are not clipped."""
@@ -587,14 +595,6 @@ class ShutterPanel(QWidget):
                 continue
             width = max(width, label.fontMetrics().horizontalAdvance(caption) + _CELL_LABEL_PAD)
         return width
-
-    def _is_interactive_target(self, widget: QWidget | None) -> bool:
-        current = widget
-        while current is not None and current is not self:
-            if isinstance(current, (QPushButton, ShutterSwitch, ShutterToggleControl)):
-                return True
-            current = current.parentWidget()
-        return False
 
     def _make_action_cell(self, icon_name: str, label: str, tooltip: str) -> tuple[QWidget, QPushButton, QLabel]:
         cell = QWidget(self)

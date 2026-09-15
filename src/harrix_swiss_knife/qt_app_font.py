@@ -54,16 +54,6 @@ def apply_mono_font(widget: QWidget) -> None:
     widget.setFont(mono_qfont(widget.font()))
 
 
-def style_overlay_line_edit(edit: QLineEdit) -> None:
-    """Apply the Quick paste / tray-search line-edit look (mono, padding, taller field)."""
-    apply_mono_font(edit)
-    font = edit.font()
-    grow_qfont(font, delta=OVERLAY_LINE_EDIT_FONT_DELTA)
-    edit.setFont(font)
-    edit.setStyleSheet(OVERLAY_LINE_EDIT_STYLE)
-    edit.setMinimumHeight(edit.fontMetrics().height() + _OVERLAY_LINE_EDIT_EXTRA_HEIGHT)
-
-
 def apply_ui_font_scale(root: QWidget) -> None:
     """Scale explicit fonts on `root` and its children."""
     scale_explicit_widget_font(root)
@@ -146,6 +136,16 @@ def scale_explicit_widget_font(widget: QWidget) -> None:
         font.setPointSizeF(max(_MIN_POINT_SIZE, point * scale))
         widget.setFont(font)
     widget.setProperty(_SCALED_PROP, "1")
+
+
+def style_overlay_line_edit(edit: QLineEdit) -> None:
+    """Apply the Quick paste / tray-search line-edit look (mono, padding, taller field)."""
+    apply_mono_font(edit)
+    font = edit.font()
+    grow_qfont(font, delta=OVERLAY_LINE_EDIT_FONT_DELTA)
+    edit.setFont(font)
+    edit.setStyleSheet(OVERLAY_LINE_EDIT_STYLE)
+    edit.setMinimumHeight(edit.fontMetrics().height() + _OVERLAY_LINE_EDIT_EXTRA_HEIGHT)
 
 
 def _add_font(path: str, family: str) -> bool:

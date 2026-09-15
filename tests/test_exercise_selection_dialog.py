@@ -52,6 +52,24 @@ def test_exercise_selection_dialog_single_click_replaces(qapp: QApplication) -> 
     dialog.close()
 
 
+def test_exercise_selection_uses_lucide_check_icon(qapp: QApplication) -> None:
+    assert qapp is not None
+    dialog = _dialog()
+    item = dialog.list_widget.item(0)
+    assert item is not None
+    tile = dialog._tile_for_item(item)
+    assert tile is not None
+
+    dialog._on_tile_clicked(item)
+
+    assert tile._check_overlay.text() == ""
+    pixmap = tile._check_overlay.pixmap()
+    assert pixmap is not None
+    assert not pixmap.isNull()
+    assert not tile._check_overlay.isHidden()
+    dialog.close()
+
+
 def test_exercise_selection_dialog_multi_click_toggles(qapp: QApplication) -> None:
     assert qapp is not None
     dialog = _dialog(multi_select=True)

@@ -14,8 +14,10 @@ lang: en
 - [🏛️ Class `GlobalHotkeyManager`](#%EF%B8%8F-class-globalhotkeymanager)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `register_all`](#%EF%B8%8F-method-register_all)
+  - [⚙️ Method `set_long_press_actions`](#%EF%B8%8F-method-set_long_press_actions)
   - [⚙️ Method `unregister_all`](#%EF%B8%8F-method-unregister_all)
 - [🔧 Function `hotkey_string_from_event`](#-function-hotkey_string_from_event)
+- [🔧 Function `is_virtual_key_down`](#-function-is_virtual_key_down)
 - [🔧 Function `parse_hotkey_string`](#-function-parse_hotkey_string)
 
 </details>
@@ -35,6 +37,7 @@ Register multiple global hotkeys while the Qt application is running (Windows on
 class GlobalHotkeyManager(QObject):
 
     action_triggered = Signal(str)
+    action_long_press = Signal(str)
     registration_failed = Signal(str)
 
     def __init__(self, app: QApplication, parent: QObject | None = None) -> None:
@@ -45,7 +48,17 @@ class GlobalHotkeyManager(QObject):
         self._hwnd_holder.setWindowFlags(Qt.WindowType.Tool)
         self._hwnd_holder.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, on=True)
         self._id_to_action: dict[int, str] = {}
+        self._id_to_vk: dict[int, int] = {}
         self._registered: list[ActionHotkeyBinding] = []
+        self._long_press_actions: set[str] = set()
+        self._long_press_ms = 450
+        self._hold_action: str | None = None
+        self._hold_vk = 0
+        self._hold_long_fired = False
+        self._hold_clock = QElapsedTimer()
+        self._hold_poll = QTimer(self)
+        self._hold_poll.setInterval(_HOLD_POLL_MS)
+        self._hold_poll.timeout.connect(self._on_hold_poll)
         self._filter = _HotkeyNativeEventFilter(self._on_native_hotkey)
         self._app.installNativeEventFilter(self._filter)
 
@@ -62,10 +75,17 @@ class GlobalHotkeyManager(QObject):
                 registered_count += 1
         return registered_count
 
+    def set_long_press_actions(self, actions: Collection[str], *, hold_ms: int = 450) -> None:
+        """Treat presses of these actions as short/long based on how long the key stays down."""
+        self._long_press_actions = {name.strip() for name in actions if str(name).strip()}
+        self._long_press_ms = max(100, int(hold_ms))
+
     def unregister_all(self) -> None:
         """Unregister all global hotkeys."""
+        self._cancel_hold()
         if sys.platform != "win32" or not self._id_to_action:
             self._id_to_action.clear()
+            self._id_to_vk.clear()
             self._registered.clear()
             return
 
@@ -74,7 +94,51 @@ class GlobalHotkeyManager(QObject):
         for hotkey_id in list(self._id_to_action):
             user32.UnregisterHotKey(hwnd, hotkey_id)
         self._id_to_action.clear()
+        self._id_to_vk.clear()
         self._registered.clear()
+
+    def _begin_hold(self, action: str, vk: int) -> None:
+        self._cancel_hold()
+        self._hold_action = action
+        self._hold_vk = vk
+        self._hold_long_fired = False
+        self._hold_clock.restart()
+        self._hold_poll.start()
+
+    def _cancel_hold(self) -> None:
+        self._hold_poll.stop()
+        self._hold_action = None
+        self._hold_vk = 0
+        self._hold_long_fired = False
+
+    def _emit_action(self, action: str) -> None:
+        self.action_triggered.emit(action)
+
+    def _emit_long_press(self, action: str) -> None:
+        self.action_long_press.emit(action)
+
+    def _on_hold_poll(self) -> None:
+        action = self._hold_action
+        if action is None:
+            self._hold_poll.stop()
+            return
+
+        key_down = is_virtual_key_down(self._hold_vk)
+        if not key_down:
+            self._hold_poll.stop()
+            held_action = action
+            long_fired = self._hold_long_fired
+            self._cancel_hold()
+            if not long_fired:
+                self._emit_action(held_action)
+            return
+
+        if not self._hold_long_fired and self._hold_clock.elapsed() >= self._long_press_ms:
+            self._hold_long_fired = True
+            self._hold_poll.stop()
+            held_action = action
+            self._cancel_hold()
+            self._emit_long_press(held_action)
 
     def _on_native_hotkey(self, hotkey_id: int) -> None:
         action = self._id_to_action.get(hotkey_id)
@@ -83,7 +147,11 @@ class GlobalHotkeyManager(QObject):
         # Never run actions inside nativeEventFilter: modal UI / processEvents
         # re-enters Qt and PySide can report override errors (e.g. after a
         # screenshot toast with message text leaking into the failure string).
-        QTimer.singleShot(0, lambda name=action: self.action_triggered.emit(name))
+        vk = self._id_to_vk.get(hotkey_id, 0)
+        if action in self._long_press_actions and vk:
+            QTimer.singleShot(0, lambda name=action, key=vk: self._begin_hold(name, key))
+            return
+        QTimer.singleShot(0, lambda name=action: self._emit_action(name))
 
     def _register_one(self, hotkey_id: int, binding: ActionHotkeyBinding) -> bool:
         text = binding.hotkey.strip()
@@ -107,6 +175,7 @@ class GlobalHotkeyManager(QObject):
             return False
 
         self._id_to_action[hotkey_id] = binding.action
+        self._id_to_vk[hotkey_id] = vk
         self._registered.append(binding)
         logger.info("Registered hotkey %s -> %s", text, binding.action)
         return True
@@ -133,7 +202,17 @@ def __init__(self, app: QApplication, parent: QObject | None = None) -> None:
         self._hwnd_holder.setWindowFlags(Qt.WindowType.Tool)
         self._hwnd_holder.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, on=True)
         self._id_to_action: dict[int, str] = {}
+        self._id_to_vk: dict[int, int] = {}
         self._registered: list[ActionHotkeyBinding] = []
+        self._long_press_actions: set[str] = set()
+        self._long_press_ms = 450
+        self._hold_action: str | None = None
+        self._hold_vk = 0
+        self._hold_long_fired = False
+        self._hold_clock = QElapsedTimer()
+        self._hold_poll = QTimer(self)
+        self._hold_poll.setInterval(_HOLD_POLL_MS)
+        self._hold_poll.timeout.connect(self._on_hold_poll)
         self._filter = _HotkeyNativeEventFilter(self._on_native_hotkey)
         self._app.installNativeEventFilter(self._filter)
 ```
@@ -167,6 +246,25 @@ def register_all(self, bindings: list[ActionHotkeyBinding]) -> int:
 
 </details>
 
+### ⚙️ Method `set_long_press_actions`
+
+```python
+def set_long_press_actions(self, actions: Collection[str], *, hold_ms: int = 450) -> None
+```
+
+Treat presses of these actions as short/long based on how long the key stays down.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_long_press_actions(self, actions: Collection[str], *, hold_ms: int = 450) -> None:
+        self._long_press_actions = {name.strip() for name in actions if str(name).strip()}
+        self._long_press_ms = max(100, int(hold_ms))
+```
+
+</details>
+
 ### ⚙️ Method `unregister_all`
 
 ```python
@@ -180,8 +278,10 @@ Unregister all global hotkeys.
 
 ```python
 def unregister_all(self) -> None:
+        self._cancel_hold()
         if sys.platform != "win32" or not self._id_to_action:
             self._id_to_action.clear()
+            self._id_to_vk.clear()
             self._registered.clear()
             return
 
@@ -190,6 +290,7 @@ def unregister_all(self) -> None:
         for hotkey_id in list(self._id_to_action):
             user32.UnregisterHotKey(hwnd, hotkey_id)
         self._id_to_action.clear()
+        self._id_to_vk.clear()
         self._registered.clear()
 ```
 
@@ -210,6 +311,26 @@ Build portable hotkey text from a key event.
 def hotkey_string_from_event(key: int, modifiers: Qt.KeyboardModifier) -> str:
     combination = QKeyCombination(modifiers, Qt.Key(key))
     return QKeySequence(combination).toString(QKeySequence.SequenceFormat.PortableText)
+```
+
+</details>
+
+## 🔧 Function `is_virtual_key_down`
+
+```python
+def is_virtual_key_down(vk: int) -> bool
+```
+
+Return whether a Win32 virtual-key code is currently held down.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def is_virtual_key_down(vk: int) -> bool:
+    if sys.platform != "win32" or vk <= 0:
+        return False
+    return bool(ctypes.windll.user32.GetAsyncKeyState(vk) & 0x8000)
 ```
 
 </details>

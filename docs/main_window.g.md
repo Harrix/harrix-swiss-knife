@@ -299,6 +299,7 @@ class MainWindow(QMainWindow):
         self._search_edit = QLineEdit()
         self._search_edit.setPlaceholderText("Search commands…")
         self._search_edit.setClearButtonEnabled(False)
+        style_overlay_line_edit(self._search_edit)
         self._search_edit.textChanged.connect(self._on_search_changed)
         header_row.addWidget(self._search_edit, stretch=1)
 

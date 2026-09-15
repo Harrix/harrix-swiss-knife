@@ -21,6 +21,7 @@ lang: en
 - [🔧 Function `load_roboto_fonts`](#-function-load_roboto_fonts)
 - [🔧 Function `mono_qfont`](#-function-mono_qfont)
 - [🔧 Function `scale_explicit_widget_font`](#-function-scale_explicit_widget_font)
+- [🔧 Function `style_overlay_line_edit`](#-function-style_overlay_line_edit)
 
 </details>
 
@@ -238,6 +239,29 @@ def scale_explicit_widget_font(widget: QWidget) -> None:
         font.setPointSizeF(max(_MIN_POINT_SIZE, point * scale))
         widget.setFont(font)
     widget.setProperty(_SCALED_PROP, "1")
+```
+
+</details>
+
+## 🔧 Function `style_overlay_line_edit`
+
+```python
+def style_overlay_line_edit(edit: QLineEdit) -> None
+```
+
+Apply the Quick paste / tray-search line-edit look (mono, padding, taller field).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def style_overlay_line_edit(edit: QLineEdit) -> None:
+    apply_mono_font(edit)
+    font = edit.font()
+    grow_qfont(font, delta=OVERLAY_LINE_EDIT_FONT_DELTA)
+    edit.setFont(font)
+    edit.setStyleSheet(OVERLAY_LINE_EDIT_STYLE)
+    edit.setMinimumHeight(edit.fontMetrics().height() + _OVERLAY_LINE_EDIT_EXTRA_HEIGHT)
 ```
 
 </details>

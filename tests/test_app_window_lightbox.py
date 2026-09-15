@@ -36,6 +36,20 @@ def test_icon_lightbox_uses_shared_app_window_chrome() -> None:
     assert issubclass(IconLightboxDialog, AppWindowLightboxDialog)
 
 
+def test_shared_lightbox_chrome_uses_lucide_icons(qapp: QApplication) -> None:  # noqa: ARG001
+    dialog = AppWindowLightboxDialog(item_count=2)
+
+    assert dialog._close_button.text() == ""
+    assert dialog._close_button.property("_harrix_lucide_name") == "x"
+    assert dialog._previous_button.text() == ""
+    assert dialog._previous_button.property("_harrix_lucide_name") == "chevron-left"
+    assert dialog._next_button.text() == ""
+    assert dialog._next_button.property("_harrix_lucide_name") == "chevron-right"
+    assert not dialog._previous_button.icon().isNull()
+    assert not dialog._next_button.icon().isNull()
+    dialog.close()
+
+
 def test_exercise_avif_lightbox_fits_owner_and_navigates(tmp_path: Path, qapp: QApplication) -> None:
     img_dir = tmp_path / "fitness_img"
     img_dir.mkdir()

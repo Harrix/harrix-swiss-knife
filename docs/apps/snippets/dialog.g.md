@@ -286,6 +286,7 @@ class SnippetsDialog(QDialog):
         right_split.setSizes(
             [_EMOJI_SPLIT_RATIO * _EMOJI_SYMBOL_SPLIT_UNIT, _SYMBOL_SPLIT_RATIO * _EMOJI_SYMBOL_SPLIT_UNIT],
         )
+        _style_snippets_splitter(right_split)
 
         columns = QSplitter(Qt.Orientation.Horizontal, self)
         columns.addWidget(self._phrases)
@@ -294,6 +295,7 @@ class SnippetsDialog(QDialog):
         columns.setStretchFactor(0, 2)
         columns.setStretchFactor(1, 2)
         columns.setStretchFactor(2, 2)
+        _style_snippets_splitter(columns)
         self._layout.addWidget(columns, stretch=1)
 
     def _build_header(self) -> None:
@@ -305,6 +307,7 @@ class SnippetsDialog(QDialog):
         menu_button.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
         menu_button.setToolTip("Menu")
         menu_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        menu_button.setStyleSheet("QToolButton::menu-indicator { image: none; width: 0px; }")
         header_menu = QMenu(menu_button)
         header_menu.aboutToShow.connect(self._fill_header_menu)
         menu_button.setMenu(header_menu)
@@ -319,12 +322,13 @@ class SnippetsDialog(QDialog):
         title.setCursor(Qt.CursorShape.OpenHandCursor)
         title.installEventFilter(self)
 
-        close_button = QPushButton("X")
+        close_button = QPushButton("")
         close_button.setFixedSize(28, 28)
         close_button.setFlat(True)
         close_button.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
         close_button.setToolTip("Close")
         close_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        apply_lucide_button_icon(close_button, CLOSE_BUTTON_ICON, icon_size=18)
         close_button.clicked.connect(self.hide)
         self._close_button = close_button
 
@@ -350,12 +354,7 @@ class SnippetsDialog(QDialog):
         self._input.setPlaceholderText(_ZONE_TITLES[ZONE_PHRASE])
         self._input.textChanged.connect(self._on_input_text_changed)
         self._input.installEventFilter(self)
-        apply_mono_font(self._input)
-        font = self._input.font()
-        grow_qfont(font, delta=_INPUT_FONT_DELTA)
-        self._input.setFont(font)
-        self._input.setStyleSheet(_INPUT_STYLE)
-        self._input.setMinimumHeight(self._input.fontMetrics().height() + 22)
+        style_overlay_line_edit(self._input)
         self._layout.addWidget(self._input)
 
     def _center_on_screen(self) -> None:
