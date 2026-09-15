@@ -219,14 +219,14 @@ class ScreenshotPreviewWindow(QMainWindow):
             self._copy_to_clipboard,
         )
         desktop_button = make_lucide_push_button(_SAVE_DESKTOP_BUTTON_LABEL, _SAVE_DESKTOP_BUTTON_ICON)
-        desktop_button.setToolTip("Save as YYYY-MM-DD_NN.png on the Desktop")
+        desktop_button.setToolTip("Save as YYYY-MM-DD_NN.png in Desktop/Screenshots")
         self._add_footer_button(desktop_button, self._save_to_desktop)
         self._save_all_desktop_button = make_lucide_push_button(
             _SAVE_ALL_DESKTOP_BUTTON_LABEL,
             _SAVE_ALL_DESKTOP_BUTTON_ICON,
         )
         self._save_all_desktop_button.setToolTip(
-            "Save every tab as YYYY-MM-DD_NN.png on the Desktop",
+            "Save every tab as YYYY-MM-DD_NN.png in Desktop/Screenshots",
         )
         self._save_all_desktop_button.hide()
         self._add_footer_button(self._save_all_desktop_button, self._save_all_to_desktop)
@@ -424,7 +424,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         if not desktop:
             self._status.setText("Desktop folder not found")
             return None
-        return Path(desktop)
+        return Path(desktop) / "Screenshots"
 
     def _on_color_hovered(self, color: object) -> None:
         tab = self._current_tab()

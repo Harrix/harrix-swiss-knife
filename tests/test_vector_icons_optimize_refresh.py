@@ -152,3 +152,39 @@ def test_variants_context_menu_emits_refresh(
     )
     icon_list._exec_current_folder_context_menu(icon_list.rect().center())
     assert emitted == [True]
+
+
+def test_main_grid_context_menu_emits_refresh_icons(
+    qapp: QApplication,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    icon_list = DraggableIconList(variants_context=False)
+    emitted: list[bool] = []
+    icon_list.refresh_icons_requested.connect(lambda: emitted.append(True))
+
+    class _FakeMenu:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            self._actions: list[object] = []
+
+        def addAction(self, text: str) -> object:  # noqa: N802
+            action = MagicMock()
+            action.text.return_value = text
+            self._actions.append(action)
+            return action
+
+        def addMenu(self, _text: str) -> object:  # noqa: N802
+            return self
+
+        def addSeparator(self) -> None:  # noqa: N802
+            return None
+
+        def exec_(self, *_args: object) -> object:
+            return next(action for action in self._actions if action.text() == "🔄 Refresh icons")
+
+    monkeypatch.setattr("harrix_swiss_knife.apps.icons.widgets.QMenu", _FakeMenu)
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.icons.widgets.apply_leading_chrome_icons",
+        lambda *_args, **_kwargs: None,
+    )
+    icon_list._exec_current_folder_context_menu(icon_list.rect().center())
+    assert emitted == [True]

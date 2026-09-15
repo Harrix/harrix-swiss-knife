@@ -230,13 +230,14 @@ def test_preview_window_saves_dated_png_to_desktop(
     assert len(save_all) == 1
     assert not save_all[0].isVisible()
     window._save_to_desktop()
-    files = sorted(desktop.glob("*.png"))
+    screenshots = desktop / "Screenshots"
+    files = sorted(screenshots.glob("*.png"))
     assert len(files) == 1
     assert files[0].stem.endswith("_01")
     assert window.windowTitle() == f"Screenshot — {files[0].name}"
     assert str(files[0]) in window._status.text()
     window._save_to_desktop()
-    files = sorted(desktop.glob("*.png"))
+    files = sorted(screenshots.glob("*.png"))
     assert len(files) == 2
     assert {path.stem[-3:] for path in files} == {"_01", "_02"}
     window.close()
@@ -263,7 +264,8 @@ def test_preview_window_save_all_to_desktop(
     save_all = next(button for button in window.findChildren(QPushButton) if button.text() == "Save all to desktop")
     assert save_all.isVisible()
     window._save_all_to_desktop()
-    files = sorted(desktop.glob("*.png"))
+    screenshots = desktop / "Screenshots"
+    files = sorted(screenshots.glob("*.png"))
     assert len(files) == 2
     assert {path.stem[-3:] for path in files} == {"_01", "_02"}
     tabs = window.findChild(QTabWidget)

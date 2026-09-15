@@ -229,6 +229,7 @@ class DraggableIconList(QListWidget):
     reveal_current_folder_requested = Signal()
     optimize_svgs_requested = Signal(object)  # list[str]
     refresh_variants_requested = Signal()
+    refresh_icons_requested = Signal()
     show_numbers_toggled = Signal(bool)
     sort_mode_requested = Signal(str)
     sort_reverse_toggled = Signal(bool)
@@ -603,6 +604,8 @@ class DraggableIconList(QListWidget):
         optimize_action = None
         if any(family_has_svg_files(family) for family, _path in targets):
             optimize_action = menu.addAction("🚀 Optimize SVG")
+        menu.addSeparator()
+        refresh_icons_action = menu.addAction("🔄 Refresh icons")
         apply_leading_chrome_icons(menu)
         chosen = menu.exec_(self.mapToGlobal(pos))
         if chosen is batch_ai_action:
@@ -611,10 +614,13 @@ class DraggableIconList(QListWidget):
             self.batch_favorites_requested.emit((targets, not all_favorites))
         elif optimize_action is not None and chosen is optimize_action:
             self._emit_optimize_for_families([family for family, _path in targets])
+        elif chosen is refresh_icons_action:
+            self.refresh_icons_requested.emit()
 
     def _exec_current_folder_context_menu(self, pos: QPoint) -> None:
         menu = QMenu(self)
         refresh_action = None
+        refresh_icons_action = None
         optimize_action = None
         family = self._variants_family
         if self._variants_context:
@@ -625,6 +631,9 @@ class DraggableIconList(QListWidget):
                 optimize_action = menu.addAction("🚀 Optimize SVG")
             if refresh_action is not None or optimize_action is not None:
                 menu.addSeparator()
+        else:
+            refresh_icons_action = menu.addAction("🔄 Refresh icons")
+            menu.addSeparator()
         numbers_action, sort_actions, reverse_action = self._add_main_view_menu_actions(menu)
         if numbers_action is not None or sort_actions:
             menu.addSeparator()
@@ -636,6 +645,8 @@ class DraggableIconList(QListWidget):
             return
         if refresh_action is not None and chosen is refresh_action:
             self.refresh_variants_requested.emit()
+        elif refresh_icons_action is not None and chosen is refresh_icons_action:
+            self.refresh_icons_requested.emit()
         elif optimize_action is not None and chosen is optimize_action and family is not None:
             if self._repo_root is None:
                 return
@@ -722,6 +733,7 @@ class DraggableIconList(QListWidget):
         copy_path_action = None
         optimize_action = None
         refresh_action = None
+        refresh_icons_action = None
 
         if has_path:
             reveal_action = add_reveal_in_explorer_action(menu)
@@ -738,8 +750,10 @@ class DraggableIconList(QListWidget):
             if has_path and is_svg_icon_path(path):
                 optimize_action = menu.addAction("🚀 Optimize SVG")
             menu.addSeparator()
-        elif family_has_svg_files(family):
-            optimize_action = menu.addAction("🚀 Optimize SVG")
+        else:
+            refresh_icons_action = menu.addAction("🔄 Refresh icons")
+            if family_has_svg_files(family):
+                optimize_action = menu.addAction("🚀 Optimize SVG")
             menu.addSeparator()
 
         open_note_action = menu.addAction("📝 Open note in editor")
@@ -796,6 +810,8 @@ class DraggableIconList(QListWidget):
             self.copy_path_requested.emit(path)
         elif refresh_action is not None and chosen is refresh_action:
             self.refresh_variants_requested.emit()
+        elif refresh_icons_action is not None and chosen is refresh_icons_action:
+            self.refresh_icons_requested.emit()
         elif optimize_action is not None and chosen is optimize_action:
             if self._variants_context and has_path:
                 self.optimize_svgs_requested.emit([path])

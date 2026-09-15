@@ -2814,6 +2814,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         icon_list.delete_requested.connect(self._on_delete_icon)
         icon_list.optimize_svgs_requested.connect(self._on_optimize_svgs)
         icon_list.refresh_variants_requested.connect(self._on_refresh_variants)
+        icon_list.refresh_icons_requested.connect(self._on_refresh_catalog)
         icon_list.show_numbers_toggled.connect(self._on_show_numbers_toggled)
         icon_list.sort_mode_requested.connect(self._on_sort_mode_requested)
         icon_list.sort_reverse_toggled.connect(self._on_sort_reverse_toggled)
