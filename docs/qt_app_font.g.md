@@ -17,8 +17,8 @@ lang: en
 - [🔧 Function `bundled_font_resource_paths`](#-function-bundled_font_resource_paths)
 - [🔧 Function `current_ui_font_scale`](#-function-current_ui_font_scale)
 - [🔧 Function `install_app_fonts`](#-function-install_app_fonts)
-- [🔧 Function `load_inter_fonts`](#-function-load_inter_fonts)
 - [🔧 Function `load_jetbrains_mono_fonts`](#-function-load_jetbrains_mono_fonts)
+- [🔧 Function `load_roboto_fonts`](#-function-load_roboto_fonts)
 - [🔧 Function `mono_qfont`](#-function-mono_qfont)
 - [🔧 Function `scale_explicit_widget_font`](#-function-scale_explicit_widget_font)
 
@@ -130,7 +130,7 @@ def current_ui_font_scale() -> float:
 def install_app_fonts(app: QApplication, scale: float | None = None) -> None
 ```
 
-Register bundled fonts and apply Inter as the default UI font.
+Register bundled fonts and apply Roboto as the default UI font.
 
 `scale` multiplies the application font and any widget that set its own point
 size in Designer. When omitted, the value comes from `config.json`
@@ -144,7 +144,7 @@ def install_app_fonts(app: QApplication, scale: float | None = None) -> None:
     if not isinstance(app, QApplication) or app.property(_PROP) == "1":
         return
     load_jetbrains_mono_fonts()
-    if not load_inter_fonts():
+    if not load_roboto_fonts():
         return
     resolved = _resolve_ui_font_scale(scale)
     app.setProperty(_SCALE_PROP, resolved)
@@ -155,24 +155,6 @@ def install_app_fonts(app: QApplication, scale: float | None = None) -> None:
     app.setFont(font)
     _install_ui_font_scale_filter(app)
     app.setProperty(_PROP, "1")
-```
-
-</details>
-
-## 🔧 Function `load_inter_fonts`
-
-```python
-def load_inter_fonts() -> bool
-```
-
-Load bundled Inter files. Return whether the roman face loaded.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def load_inter_fonts() -> bool:
-    return _load_font_files(_UI_FONT_FILES, APP_FONT_FAMILY)
 ```
 
 </details>
@@ -191,6 +173,24 @@ Load bundled JetBrains Mono files. Return whether Regular loaded.
 ```python
 def load_jetbrains_mono_fonts() -> bool:
     return _load_font_files(_MONO_FONT_FILES, MONO_FONT_FAMILY)
+```
+
+</details>
+
+## 🔧 Function `load_roboto_fonts`
+
+```python
+def load_roboto_fonts() -> bool
+```
+
+Load bundled Roboto files. Return whether the roman face loaded.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def load_roboto_fonts() -> bool:
+    return _load_font_files(_UI_FONT_FILES, APP_FONT_FAMILY)
 ```
 
 </details>

@@ -3,11 +3,11 @@
     <qresource prefix="/">
         <file>assets/logo.svg</file>
         <file>assets/py.svg</file>
-        <file>assets/fonts/Inter-Regular.ttf</file>
-        <file>assets/fonts/Inter-Medium.ttf</file>
-        <file>assets/fonts/Inter-Bold.ttf</file>
-        <file>assets/fonts/Inter-Italic.ttf</file>
-        <file>assets/fonts/Inter-MediumItalic.ttf</file>
+        <file>assets/fonts/Roboto-Regular.ttf</file>
+        <file>assets/fonts/Roboto-Medium.ttf</file>
+        <file>assets/fonts/Roboto-Bold.ttf</file>
+        <file>assets/fonts/Roboto-Italic.ttf</file>
+        <file>assets/fonts/Roboto-MediumItalic.ttf</file>
         <file>assets/fonts/JetBrainsMono-Regular.ttf</file>
         <file>assets/fonts/JetBrainsMono-Medium.ttf</file>
         <file>assets/fonts/JetBrainsMono-Bold.ttf</file>

@@ -1,4 +1,4 @@
-"""Tests for bundled Inter and JetBrains Mono fonts."""
+"""Tests for bundled Roboto and JetBrains Mono fonts."""
 
 from __future__ import annotations
 
@@ -13,8 +13,8 @@ from harrix_swiss_knife.qt_app_font import (
     bundled_font_resource_paths,
     current_ui_font_scale,
     install_app_fonts,
-    load_inter_fonts,
     load_jetbrains_mono_fonts,
+    load_roboto_fonts,
     scale_explicit_widget_font,
 )
 
@@ -24,28 +24,28 @@ def test_bundled_font_files_exist() -> None:
     names = {path.name for path in paths}
     assert len(paths) == 10
     assert all(path.suffix == ".ttf" for path in paths)
-    assert "Inter-Regular.ttf" in names
-    assert "Inter-Medium.ttf" in names
-    assert "Inter-Bold.ttf" in names
-    assert "Inter-Italic.ttf" in names
+    assert "Roboto-Regular.ttf" in names
+    assert "Roboto-Medium.ttf" in names
+    assert "Roboto-Bold.ttf" in names
+    assert "Roboto-Italic.ttf" in names
     assert "JetBrainsMono-Regular.ttf" in names
 
 
 def test_bundled_font_resources_exist() -> None:
     paths = bundled_font_resource_paths()
     assert len(paths) == 10
-    assert any(path.endswith("Inter-Regular.ttf") for path in paths)
+    assert any(path.endswith("Roboto-Regular.ttf") for path in paths)
     assert any(path.endswith("JetBrainsMono-Regular.ttf") for path in paths)
 
 
-def test_install_app_fonts_sets_inter() -> None:
+def test_install_app_fonts_sets_roboto() -> None:
     app = QApplication.instance()
     if app is None:
         app = QApplication([])
     if not isinstance(app, QApplication):
         msg = "QApplication.instance() returned a non-QApplication object."
         raise TypeError(msg)
-    assert load_inter_fonts()
+    assert load_roboto_fonts()
     assert load_jetbrains_mono_fonts()
     app.setProperty("_hskAppFontInstalled", None)
     install_app_fonts(app)

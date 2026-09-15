@@ -1,4 +1,4 @@
-"""Load bundled Inter and JetBrains Mono, and set Inter as the UI font."""
+"""Load bundled Roboto and JetBrains Mono, and set Roboto as the UI font."""
 
 from __future__ import annotations
 
@@ -10,16 +10,16 @@ from PySide6.QtWidgets import QApplication, QWidget
 
 from harrix_swiss_knife import resources_rc  # noqa: F401
 
-APP_FONT_FAMILY = "Inter"
+APP_FONT_FAMILY = "Roboto"
 MONO_FONT_FAMILY = "JetBrains Mono"
 _FONT_DIR = Path(__file__).resolve().parent / "assets" / "fonts"
 _QRC_FONT_PREFIX = ":/assets/fonts"
 _UI_FONT_FILES = (
-    "Inter-Regular.ttf",
-    "Inter-Medium.ttf",
-    "Inter-Bold.ttf",
-    "Inter-Italic.ttf",
-    "Inter-MediumItalic.ttf",
+    "Roboto-Regular.ttf",
+    "Roboto-Medium.ttf",
+    "Roboto-Bold.ttf",
+    "Roboto-Italic.ttf",
+    "Roboto-MediumItalic.ttf",
 )
 _MONO_FONT_FILES = (
     "JetBrainsMono-Regular.ttf",
@@ -80,7 +80,7 @@ def current_ui_font_scale() -> float:
 
 
 def install_app_fonts(app: QApplication, scale: float | None = None) -> None:
-    """Register bundled fonts and apply Inter as the default UI font.
+    """Register bundled fonts and apply Roboto as the default UI font.
 
     `scale` multiplies the application font and any widget that set its own point
     size in Designer. When omitted, the value comes from `config.json`
@@ -90,7 +90,7 @@ def install_app_fonts(app: QApplication, scale: float | None = None) -> None:
     if not isinstance(app, QApplication) or app.property(_PROP) == "1":
         return
     load_jetbrains_mono_fonts()
-    if not load_inter_fonts():
+    if not load_roboto_fonts():
         return
     resolved = _resolve_ui_font_scale(scale)
     app.setProperty(_SCALE_PROP, resolved)
@@ -103,14 +103,14 @@ def install_app_fonts(app: QApplication, scale: float | None = None) -> None:
     app.setProperty(_PROP, "1")
 
 
-def load_inter_fonts() -> bool:
-    """Load bundled Inter files. Return whether the roman face loaded."""
-    return _load_font_files(_UI_FONT_FILES, APP_FONT_FAMILY)
-
-
 def load_jetbrains_mono_fonts() -> bool:
     """Load bundled JetBrains Mono files. Return whether Regular loaded."""
     return _load_font_files(_MONO_FONT_FILES, MONO_FONT_FAMILY)
+
+
+def load_roboto_fonts() -> bool:
+    """Load bundled Roboto files. Return whether the roman face loaded."""
+    return _load_font_files(_UI_FONT_FILES, APP_FONT_FAMILY)
 
 
 def mono_qfont(source: QFont | None = None) -> QFont:
@@ -150,7 +150,7 @@ def _font_with_family(source: QFont, family: str) -> QFont:
     font = QFont(source)
     font.setFamily(family)
     # PreferNoHinting matches browser-like smoothing better than full TrueType
-    # hinting on Windows, especially for Inter UI sizes.
+    # hinting on Windows, especially for Roboto UI sizes.
     font.setHintingPreference(QFont.HintingPreference.PreferNoHinting)
     font.setStyleStrategy(
         QFont.StyleStrategy(QFont.StyleStrategy.PreferAntialias | QFont.StyleStrategy.PreferQuality),
