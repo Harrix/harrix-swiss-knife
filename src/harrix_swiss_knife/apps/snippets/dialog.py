@@ -57,7 +57,7 @@ from harrix_swiss_knife.apps.snippets.zone_panel import ZonePanel, add_sort_menu
 from harrix_swiss_knife.integrations.bothub import BothubRequestState
 from harrix_swiss_knife.paths import get_config_path_str
 from harrix_swiss_knife.qt_app_font import apply_mono_font, style_overlay_line_edit
-from harrix_swiss_knife.qt_command_section import apply_opaque_white, grow_qfont
+from harrix_swiss_knife.qt_command_section import COMMAND_SECTION_BORDER_COLOR, apply_opaque_white, grow_qfont
 from harrix_swiss_knife.qt_frameless_window import frameless_stay_on_top_flags, try_handle_frameless_resize_native_event
 from harrix_swiss_knife.qt_lucide_icon import (
     CLOSE_BUTTON_ICON,
@@ -79,6 +79,16 @@ _OVERLAY_DEFAULT_SIZE = QSize(1280, 760)
 _SYMBOL_SPLIT_RATIO = 1
 _WINDOW_FLAGS = frameless_stay_on_top_flags()
 _DIALOG_BORDER_STYLE = "#snippetsDialog { background-color: #ffffff; border: 1px solid #c0c0c0;}"
+_SPLITTER_HANDLE_STYLE = (
+    "QSplitter::handle {"
+    f" background: {COMMAND_SECTION_BORDER_COLOR};"
+    " border: none;"
+    " margin: 0;"
+    " padding: 0;"
+    "}"
+    "QSplitter::handle:horizontal { width: 1px; }"
+    "QSplitter::handle:vertical { height: 1px; }"
+)
 _DUPLICATE_PREVIEW_LIMIT = 8
 _ZONE_TITLES = {
     ZONE_PHRASE: "Phrases",
@@ -348,6 +358,7 @@ class SnippetsDialog(QDialog):
         right_split.setSizes(
             [_EMOJI_SPLIT_RATIO * _EMOJI_SYMBOL_SPLIT_UNIT, _SYMBOL_SPLIT_RATIO * _EMOJI_SYMBOL_SPLIT_UNIT],
         )
+        _style_snippets_splitter(right_split)
 
         columns = QSplitter(Qt.Orientation.Horizontal, self)
         columns.addWidget(self._phrases)
@@ -356,6 +367,7 @@ class SnippetsDialog(QDialog):
         columns.setStretchFactor(0, 2)
         columns.setStretchFactor(1, 2)
         columns.setStretchFactor(2, 2)
+        _style_snippets_splitter(columns)
         self._layout.addWidget(columns, stretch=1)
 
     def _build_header(self) -> None:
@@ -671,3 +683,9 @@ class SnippetsDialog(QDialog):
             preview += ", …"
         plural = "s" if len(values) != 1 else ""
         message_box.warning(self, "Already exists", f"Skipped duplicate {kind}{plural}: {preview}")
+
+
+def _style_snippets_splitter(splitter: QSplitter) -> None:
+    """Keep pane stretch/sizes; draw handles as 1px gray rules like section dividers."""
+    splitter.setHandleWidth(1)
+    splitter.setStyleSheet(_SPLITTER_HANDLE_STYLE)

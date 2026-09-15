@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 from PySide6.QtCore import QEvent, QPointF, QRect, Qt
 from PySide6.QtGui import QColor, QKeyEvent, QMouseEvent, QPainter, QPalette, QPixmap
-from PySide6.QtWidgets import QApplication, QMenu, QStyle, QStyleOptionViewItem, QToolButton
+from PySide6.QtWidgets import QApplication, QMenu, QSplitter, QStyle, QStyleOptionViewItem, QToolButton
 
 from harrix_swiss_knife.actions.apps.snippets import OnSnippets
 from harrix_swiss_knife.actions.common.quick_launcher_registry import iter_menu_structure
@@ -58,6 +58,7 @@ from harrix_swiss_knife.apps.snippets.zone_panel import (
 )
 from harrix_swiss_knife.menu_structure import get_menu_structure
 from harrix_swiss_knife.qt_app_font import MONO_FONT_FAMILY
+from harrix_swiss_knife.qt_command_section import COMMAND_SECTION_BORDER_COLOR
 
 _ROOT = Path(__file__).resolve().parents[1]
 _RECOVER_SQL = _ROOT / "src" / "harrix_swiss_knife" / "apps" / "snippets" / "recover.sql"
@@ -516,6 +517,10 @@ def test_header_menu_includes_add_and_sort(qapp: QApplication, monkeypatch: pyte
     assert "menu-indicator" in dialog._menu_button.styleSheet()
     assert dialog._close_button.text() == ""
     assert not dialog._close_button.icon().isNull()
+    splitters = dialog.findChildren(QSplitter)
+    assert splitters
+    assert all(splitter.handleWidth() == 1 for splitter in splitters)
+    assert all(COMMAND_SECTION_BORDER_COLOR in splitter.styleSheet() for splitter in splitters)
     dialog._fill_header_menu()
     texts = [action.text() for action in dialog._header_menu.actions() if action.text()]
     assert texts[:4] == ["Add phrase", "Add emoji", "Add symbol", "Add color"]
