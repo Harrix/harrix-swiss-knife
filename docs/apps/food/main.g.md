@@ -3343,14 +3343,25 @@ class MainWindow(
         - `position` (`QPoint`): Position where context menu should appear.
 
         """
-        # Check that a row is selected before showing the menu
-        if not self.tableView_food_log.currentIndex().isValid():
-            return
-
-        # Check if multiple rows are selected
         selection_model = self.tableView_food_log.selectionModel()
         selected_indexes = selection_model.selectedIndexes() if selection_model else []
         unique_rows = {index.row() for index in selected_indexes}
+        has_row_selection = bool(unique_rows) or self.tableView_food_log.currentIndex().isValid()
+        if not has_row_selection:
+            context_menu = QMenu(self)
+            refresh_action = add_refresh_action(context_menu)
+            export_action, export_excel_action = add_export_actions(context_menu)
+            apply_leading_chrome_icons(context_menu)
+            action = context_menu.exec_(self.tableView_food_log.mapToGlobal(position))
+            if action == refresh_action:
+                self.update_food_data()
+            elif action == export_action:
+                self.on_export_csv()
+            elif action == export_excel_action:
+                self.on_export_excel()
+            return
+
+        # Check if multiple rows are selected
         multiple_rows_selected = len(unique_rows) > 1
         selected_food_log_ids = self._get_selected_row_ids("food_log")
 
@@ -3447,6 +3458,7 @@ class MainWindow(
                 bulk_date_action = add_labeled_action(context_menu, LABEL_SET_DATE_SELECTED, ICON_SET_DATE_SELECTED)
 
         add_separator(context_menu)
+        refresh_action = add_refresh_action(context_menu)
         export_action, export_excel_action = add_export_actions(context_menu)
 
         if multiple_rows_selected:
@@ -3472,7 +3484,9 @@ class MainWindow(
         self.tableView_food_log.customContextMenuRequested.disconnect()
 
         try:
-            if action == filter_by_name_action and name_value:
+            if action == refresh_action:
+                self.update_food_data()
+            elif action == filter_by_name_action and name_value:
                 self._filter_food_log_by_column(0, name_value)
             elif action == filter_by_date_action and date_value:
                 self._filter_food_log_by_column(6, date_value.strip()[:10])

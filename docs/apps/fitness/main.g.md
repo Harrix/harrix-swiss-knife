@@ -8411,6 +8411,7 @@ class MainWindow(
             bulk_date_action = add_labeled_action(context_menu, LABEL_SET_DATE_SELECTED, ICON_SET_DATE_SELECTED)
 
         add_separator(context_menu)
+        refresh_action = add_refresh_action(context_menu)
         export_action, export_excel_action = add_export_actions(context_menu)
 
         begin_filters_block(context_menu)
@@ -8429,7 +8430,9 @@ class MainWindow(
         if action is None:
             return
 
-        if action == filter_by_exercise_action and exercise_value:
+        if action == refresh_action:
+            self.update_all()
+        elif action == filter_by_exercise_action and exercise_value:
             self._filter_process_by_exercise(exercise_value)
         elif action == filter_by_type_action and type_value:
             self._filter_process_by_type(type_value, exercise_name=exercise_value or None)

@@ -13,6 +13,7 @@ from harrix_swiss_knife.apps.common.table_context_menu import (
     LABEL_EXPORT_CSV,
     LABEL_EXPORT_EXCEL,
     LABEL_FILTER_BY_DATE,
+    LABEL_REFRESH,
     LABEL_REVEAL_IN_EXPLORER,
     LABEL_SET_DATE,
     LABEL_SHOW_ALL_RECORDS,
@@ -21,6 +22,7 @@ from harrix_swiss_knife.apps.common.table_context_menu import (
     add_delete_action,
     add_export_actions,
     add_info_action,
+    add_refresh_action,
     add_reveal_in_explorer_action,
     add_separator,
     begin_filters_block,
@@ -95,6 +97,16 @@ def test_add_export_actions_adds_csv_and_excel(qapp: QApplication) -> None:  # n
     assert excel_action.text() == LABEL_EXPORT_EXCEL
     texts = [action.text() for action in menu.actions() if not action.isSeparator()]
     assert texts == [LABEL_EXPORT_CSV, LABEL_EXPORT_EXCEL]
+
+
+def test_add_refresh_action_uses_shared_label(qapp: QApplication) -> None:  # noqa: ARG001
+    menu = QMenu()
+    action = add_refresh_action(menu)
+    assert action.text() == LABEL_REFRESH
+    assert not action.icon().isNull()
+    add_export_actions(menu)
+    texts = [item.text() for item in menu.actions() if not item.isSeparator()]
+    assert texts[:3] == [LABEL_REFRESH, LABEL_EXPORT_CSV, LABEL_EXPORT_EXCEL]
 
 
 def test_show_records_label() -> None:

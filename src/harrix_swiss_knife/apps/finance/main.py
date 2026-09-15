@@ -98,6 +98,7 @@ from harrix_swiss_knife.apps.common.table_context_menu import (
     add_filter_action,
     add_info_action,
     add_labeled_action,
+    add_refresh_action,
     add_separator,
     begin_filters_block,
 )
@@ -5974,6 +5975,7 @@ class MainWindow(
             bulk_date_action = add_labeled_action(context_menu, LABEL_SET_DATE_SELECTED, ICON_SET_DATE_SELECTED)
 
         add_separator(context_menu)
+        refresh_action = add_refresh_action(context_menu)
         export_action, export_excel_action = add_export_actions(context_menu)
 
         # Sum Amount column for unique selected rows (any column selection counts)
@@ -6088,7 +6090,9 @@ class MainWindow(
             # User clicked outside the menu or pressed Esc - do nothing
             return
 
-        if action == export_action:
+        if action == refresh_action:
+            self.update_all()
+        elif action == export_action:
             self.on_export_csv()
         elif action == export_excel_action:
             self.on_export_excel()
