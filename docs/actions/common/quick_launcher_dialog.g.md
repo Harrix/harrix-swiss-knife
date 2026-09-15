@@ -123,14 +123,14 @@ class QuickLauncherDialog(QDialog):
         self._hint = QLabel(self)
         self._hint.setStyleSheet("color: palette(mid);")
         self._hint.setCursor(Qt.CursorShape.OpenHandCursor)
-        self._layout.addWidget(self._hint)
         self._update_hint()
 
-        resize_row = QHBoxLayout()
-        resize_row.addStretch()
+        footer = QHBoxLayout()
+        footer.setContentsMargins(0, 0, 0, 0)
+        footer.addWidget(self._hint, stretch=1)
         self._size_grip = QSizeGrip(self)
-        resize_row.addWidget(self._size_grip, alignment=Qt.AlignmentFlag.AlignRight)
-        self._layout.addLayout(resize_row)
+        footer.addWidget(self._size_grip, alignment=Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom)
+        self._layout.addLayout(footer)
 
         draggable_widgets: list[QWidget] = [title, header_spacer, self._hint]
         if self._markdown_section_label is not None:
@@ -305,6 +305,7 @@ class QuickLauncherDialog(QDialog):
         for grid in (self._cards, self._markdown_cards):
             grid.setMinimumHeight(0)
             grid.setMaximumHeight(16777215)
+            sync_action_card_grid(grid)
 
         split = self._markdown_section.isVisible()
         cards_natural = measure_icon_grid_height(self._cards)
@@ -312,8 +313,8 @@ class QuickLauncherDialog(QDialog):
         actions_chrome = _section_chrome_height(self._actions_section)
         markdown_chrome = _section_chrome_height(self._markdown_section) if split else 0
         divider_height = self._actions_divider.height() if self._actions_divider.isVisible() else 0
-        window_chrome = _layout_vertical_chrome(self._layout, self._hint) + self._size_grip.sizeHint().height()
-        spacing_total = _layout_spacing_total(self._layout, split=split) + self._layout.spacing()
+        window_chrome = _layout_vertical_chrome(self._layout)
+        spacing_total = _layout_spacing_total(self._layout, split=split)
         sections_chrome = actions_chrome + markdown_chrome + divider_height
         grids_natural = cards_natural + markdown_natural
         content_height = window_chrome + spacing_total + sections_chrome + grids_natural
@@ -629,14 +630,14 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self._hint = QLabel(self)
         self._hint.setStyleSheet("color: palette(mid);")
         self._hint.setCursor(Qt.CursorShape.OpenHandCursor)
-        self._layout.addWidget(self._hint)
         self._update_hint()
 
-        resize_row = QHBoxLayout()
-        resize_row.addStretch()
+        footer = QHBoxLayout()
+        footer.setContentsMargins(0, 0, 0, 0)
+        footer.addWidget(self._hint, stretch=1)
         self._size_grip = QSizeGrip(self)
-        resize_row.addWidget(self._size_grip, alignment=Qt.AlignmentFlag.AlignRight)
-        self._layout.addLayout(resize_row)
+        footer.addWidget(self._size_grip, alignment=Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom)
+        self._layout.addLayout(footer)
 
         draggable_widgets: list[QWidget] = [title, header_spacer, self._hint]
         if self._markdown_section_label is not None:

@@ -1,10 +1,16 @@
 """Tests for quick launcher dialog layout helpers."""
 
 import pytest
-from PySide6.QtWidgets import QApplication, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QApplication, QListWidget, QListWidgetItem, QVBoxLayout, QWidget
 
 from harrix_swiss_knife.actions.common.quick_launcher_dialog import QuickLauncherDialog, _layout_spacing_total
-from harrix_swiss_knife.qt_action_card_grid import resolve_action_card_grid_metrics
+from harrix_swiss_knife.qt_action_card_grid import (
+    CARD_ICON_SIZE,
+    CARD_TEXT_AREA_HEIGHT,
+    configure_action_card_grid,
+    resolve_action_card_grid_metrics,
+    sync_action_card_grid,
+)
 
 
 @pytest.fixture
@@ -50,3 +56,26 @@ def test_quick_launcher_hint_and_size_grip_share_footer(qapp: QApplication) -> N
     assert footer.indexOf(dialog._hint) >= 0
     assert footer.indexOf(dialog._size_grip) >= 0
     dialog.close()
+
+
+def test_action_card_grid_grows_for_wrapped_captions(qapp: QApplication) -> None:
+    host = QWidget()
+    host.resize(220, 320)
+    grid = QListWidget(host)
+    configure_action_card_grid(grid)
+    grid.setGeometry(0, 0, 200, 300)
+    QListWidgetItem("Screenshot region (OCR + translate)", grid)
+    host.show()
+    qapp.processEvents()
+
+    sync_action_card_grid(grid)
+    qapp.processEvents()
+
+    item = grid.item(0)
+    assert item is not None
+    assert grid.gridSize().height() > CARD_ICON_SIZE + CARD_TEXT_AREA_HEIGHT - 20
+    assert item.sizeHint().height() == grid.gridSize().height()
+    assert grid.visualItemRect(item).height() >= item.sizeHint().height() - 2
+    # Caption needs more than the default one-line text strip under a shrunk icon.
+    assert grid.gridSize().height() - grid.iconSize().height() > CARD_TEXT_AREA_HEIGHT
+    host.close()

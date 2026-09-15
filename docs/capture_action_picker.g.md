@@ -102,13 +102,13 @@ class CaptureActionPickerDialog(QDialog):
         self._hint = QLabel("Hold a capture hotkey to open · Esc to close")
         self._hint.setStyleSheet("color: palette(mid);")
         self._hint.setCursor(Qt.CursorShape.OpenHandCursor)
-        self._layout.addWidget(self._hint)
 
-        resize_row = QHBoxLayout()
-        resize_row.addStretch()
+        footer = QHBoxLayout()
+        footer.setContentsMargins(0, 0, 0, 0)
+        footer.addWidget(self._hint, stretch=1)
         self._size_grip = QSizeGrip(self)
-        resize_row.addWidget(self._size_grip, alignment=Qt.AlignmentFlag.AlignRight)
-        self._layout.addLayout(resize_row)
+        footer.addWidget(self._size_grip, alignment=Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom)
+        self._layout.addLayout(footer)
 
         for draggable_widget in (title, header_spacer, self._hint):
             draggable_widget.installEventFilter(self)
@@ -214,6 +214,8 @@ class CaptureActionPickerDialog(QDialog):
         self._dragging = False
 
     def _fit_to_content(self) -> None:
+        self.setMinimumHeight(_OVERLAY_MIN_SIZE.height())
+        sync_action_card_grid(self._cards)
         natural = measure_icon_grid_height(self._cards)
         self._cards.setMinimumHeight(natural)
         self._cards.setMaximumHeight(natural)
@@ -271,6 +273,8 @@ class CaptureActionPickerDialog(QDialog):
     def _refit_grid_for_width(self) -> None:
         if not self.isVisible():
             return
+        self.setMinimumHeight(_OVERLAY_MIN_SIZE.height())
+        sync_action_card_grid(self._cards)
         natural = measure_icon_grid_height(self._cards)
         self._cards.setMinimumHeight(natural)
         self._cards.setMaximumHeight(natural)
@@ -361,13 +365,13 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self._hint = QLabel("Hold a capture hotkey to open · Esc to close")
         self._hint.setStyleSheet("color: palette(mid);")
         self._hint.setCursor(Qt.CursorShape.OpenHandCursor)
-        self._layout.addWidget(self._hint)
 
-        resize_row = QHBoxLayout()
-        resize_row.addStretch()
+        footer = QHBoxLayout()
+        footer.setContentsMargins(0, 0, 0, 0)
+        footer.addWidget(self._hint, stretch=1)
         self._size_grip = QSizeGrip(self)
-        resize_row.addWidget(self._size_grip, alignment=Qt.AlignmentFlag.AlignRight)
-        self._layout.addLayout(resize_row)
+        footer.addWidget(self._size_grip, alignment=Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom)
+        self._layout.addLayout(footer)
 
         for draggable_widget in (title, header_spacer, self._hint):
             draggable_widget.installEventFilter(self)
