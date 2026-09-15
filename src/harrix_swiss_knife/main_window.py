@@ -128,13 +128,13 @@ class MainWindow(QMainWindow):
         self._search_edit.selectAll()
 
     def on_item_clicked(self, item: QListWidgetItem) -> None:
-        """Handle click on a command in the list pane."""
-        if not item.flags() & Qt.ItemFlag.ItemIsSelectable:
+        """Handle click on a command or section header in the list pane."""
+        data = item.data(Qt.ItemDataRole.UserRole)
+        if isinstance(data, QAction):
+            self._run_listed_action(data)
             return
-
-        action = item.data(Qt.ItemDataRole.UserRole)
-        if isinstance(action, QAction):
-            self._run_listed_action(action)
+        if isinstance(data, str) and data:
+            self._scroll_to_section(data)
 
     def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
         """Refit Recent and icon grid heights when the window width changes."""
@@ -203,6 +203,8 @@ class MainWindow(QMainWindow):
         font.setBold(True)
         item.setFont(font)
         item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsSelectable)
+        item.setData(Qt.ItemDataRole.UserRole, title)
+        item.setToolTip(f"Scroll to {title}")
         self.list_widget.addItem(item)
 
     def _apply_card_search(self, query: str) -> None:
@@ -619,6 +621,42 @@ class MainWindow(QMainWindow):
         action.trigger()
         if not self._is_newest_sort() and not self._search_edit.text().strip():
             self._refresh_recent_section()
+
+    def _scroll_cards_to_widget(self, widget: QWidget) -> None:
+        """Scroll the cards pane so `widget` sits at the top of the viewport."""
+        content = self._scroll.widget()
+        if content is None:
+            return
+        y = widget.mapTo(content, QPoint(0, 0)).y()
+        bar = self._scroll.verticalScrollBar()
+        bar.setValue(max(0, min(y, bar.maximum())))
+
+    def _scroll_to_section(self, title: str) -> None:
+        """Scroll the cards pane to the section named `title` (or its first card)."""
+        target: QWidget | None = None
+        if not self._grouped_widget.isHidden():
+            for section in self._sections:
+                if section.title != title:
+                    continue
+                if section.widget is not None and not section.widget.isHidden():
+                    target = section.widget
+                break
+        elif not self._search_grid.isHidden():
+            for index in range(self._search_grid.count()):
+                item = self._search_grid.item(index)
+                if item is None:
+                    continue
+                action = item.data(Qt.ItemDataRole.UserRole)
+                if not isinstance(action, QAction):
+                    continue
+                if self._action_sections.get(action) != title:
+                    continue
+                widget = self._search_grid.itemWidget(item)
+                if widget is not None:
+                    target = widget
+                break
+        if target is not None:
+            self._scroll_cards_to_widget(target)
 
     def _setup_window_size_and_position(self) -> None:
         """Set window size and position based on screen resolution and characteristics."""
