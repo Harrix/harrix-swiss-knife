@@ -6,12 +6,16 @@ from pathlib import Path
 
 from PySide6.QtCore import QEvent, QFile, QObject, Qt
 from PySide6.QtGui import QFont, QFontDatabase
-from PySide6.QtWidgets import QApplication, QWidget
+from PySide6.QtWidgets import QApplication, QLineEdit, QWidget
 
 from harrix_swiss_knife import resources_rc  # noqa: F401
+from harrix_swiss_knife.qt_command_section import grow_qfont
 
 APP_FONT_FAMILY = "Roboto"
 MONO_FONT_FAMILY = "JetBrains Mono"
+OVERLAY_LINE_EDIT_FONT_DELTA = 4
+OVERLAY_LINE_EDIT_STYLE = "QLineEdit { padding: 10px 14px; }"
+_OVERLAY_LINE_EDIT_EXTRA_HEIGHT = 22
 _FONT_DIR = Path(__file__).resolve().parent / "assets" / "fonts"
 _QRC_FONT_PREFIX = ":/assets/fonts"
 _UI_FONT_FILES = (
@@ -48,6 +52,16 @@ def apply_mono_font(widget: QWidget) -> None:
     """Set JetBrains Mono on `widget` after the bundled mono fonts are loaded."""
     load_jetbrains_mono_fonts()
     widget.setFont(mono_qfont(widget.font()))
+
+
+def style_overlay_line_edit(edit: QLineEdit) -> None:
+    """Apply the Quick paste / tray-search line-edit look (mono, padding, taller field)."""
+    apply_mono_font(edit)
+    font = edit.font()
+    grow_qfont(font, delta=OVERLAY_LINE_EDIT_FONT_DELTA)
+    edit.setFont(font)
+    edit.setStyleSheet(OVERLAY_LINE_EDIT_STYLE)
+    edit.setMinimumHeight(edit.fontMetrics().height() + _OVERLAY_LINE_EDIT_EXTRA_HEIGHT)
 
 
 def apply_ui_font_scale(root: QWidget) -> None:

@@ -56,7 +56,7 @@ from harrix_swiss_knife.apps.snippets.sort import sort_items
 from harrix_swiss_knife.apps.snippets.zone_panel import ZonePanel, add_sort_menu_actions
 from harrix_swiss_knife.integrations.bothub import BothubRequestState
 from harrix_swiss_knife.paths import get_config_path_str
-from harrix_swiss_knife.qt_app_font import apply_mono_font
+from harrix_swiss_knife.qt_app_font import apply_mono_font, style_overlay_line_edit
 from harrix_swiss_knife.qt_command_section import apply_opaque_white, grow_qfont
 from harrix_swiss_knife.qt_frameless_window import frameless_stay_on_top_flags, try_handle_frameless_resize_native_event
 from harrix_swiss_knife.qt_lucide_icon import (
@@ -80,8 +80,6 @@ _SYMBOL_SPLIT_RATIO = 1
 _WINDOW_FLAGS = frameless_stay_on_top_flags()
 _DIALOG_BORDER_STYLE = "#snippetsDialog { background-color: #ffffff; border: 1px solid #c0c0c0;}"
 _DUPLICATE_PREVIEW_LIMIT = 8
-_INPUT_FONT_DELTA = 4
-_INPUT_STYLE = "QLineEdit { padding: 10px 14px; }"
 _ZONE_TITLES = {
     ZONE_PHRASE: "Phrases",
     ZONE_EMOJI: "Emoji",
@@ -416,12 +414,7 @@ class SnippetsDialog(QDialog):
         self._input.setPlaceholderText(_ZONE_TITLES[ZONE_PHRASE])
         self._input.textChanged.connect(self._on_input_text_changed)
         self._input.installEventFilter(self)
-        apply_mono_font(self._input)
-        font = self._input.font()
-        grow_qfont(font, delta=_INPUT_FONT_DELTA)
-        self._input.setFont(font)
-        self._input.setStyleSheet(_INPUT_STYLE)
-        self._input.setMinimumHeight(self._input.fontMetrics().height() + 22)
+        style_overlay_line_edit(self._input)
         self._layout.addWidget(self._input)
 
     def _center_on_screen(self) -> None:

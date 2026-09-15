@@ -47,6 +47,7 @@ from harrix_swiss_knife.config_model import (
     set_show_main_window_on_startup,
 )
 from harrix_swiss_knife.keyboard_layout_search import command_matches_search
+from harrix_swiss_knife.qt_app_font import style_overlay_line_edit
 from harrix_swiss_knife.qt_command_section import (
     apply_opaque_white,
     count_icon_grid_first_row,
@@ -331,6 +332,7 @@ class MainWindow(QMainWindow):
         self._search_edit = QLineEdit()
         self._search_edit.setPlaceholderText("Search commands…")
         self._search_edit.setClearButtonEnabled(False)
+        style_overlay_line_edit(self._search_edit)
         self._search_edit.textChanged.connect(self._on_search_changed)
         header_row.addWidget(self._search_edit, stretch=1)
 

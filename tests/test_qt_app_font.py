@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from PySide6.QtWidgets import QApplication, QLabel
+from PySide6.QtWidgets import QApplication, QLabel, QLineEdit
 
 from harrix_swiss_knife.qt_app_font import (
     APP_FONT_FAMILY,
     MONO_FONT_FAMILY,
+    OVERLAY_LINE_EDIT_STYLE,
     apply_mono_font,
     apply_ui_font_scale,
     bundled_font_paths,
@@ -16,6 +17,7 @@ from harrix_swiss_knife.qt_app_font import (
     load_jetbrains_mono_fonts,
     load_roboto_fonts,
     scale_explicit_widget_font,
+    style_overlay_line_edit,
 )
 
 
@@ -89,3 +91,21 @@ def test_apply_mono_font_sets_jetbrains_mono() -> None:
     apply_mono_font(label)
     assert label.font().family() == MONO_FONT_FAMILY
     label.close()
+
+
+def test_style_overlay_line_edit_matches_quick_paste_look() -> None:
+    app = QApplication.instance()
+    if app is None:
+        app = QApplication([])
+    if not isinstance(app, QApplication):
+        msg = "QApplication.instance() returned a non-QApplication object."
+        raise TypeError(msg)
+    edit = QLineEdit()
+    before = edit.font().pointSize()
+    style_overlay_line_edit(edit)
+    assert edit.font().family() == MONO_FONT_FAMILY
+    assert edit.styleSheet() == OVERLAY_LINE_EDIT_STYLE
+    assert edit.minimumHeight() >= edit.fontMetrics().height()
+    if before > 0:
+        assert edit.font().pointSize() >= before
+    edit.close()
