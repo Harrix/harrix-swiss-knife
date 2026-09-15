@@ -48,8 +48,8 @@ CAPTURE_PICKER_ACTIONS: tuple[type[ActionBase], ...] = (
     OnRecordRegion,
 )
 
-_OVERLAY_MIN_SIZE = QSize(520, 280)
-_OVERLAY_DEFAULT_SIZE = QSize(640, 360)
+_OVERLAY_MIN_SIZE = QSize(520, 200)
+_OVERLAY_DEFAULT_SIZE = QSize(640, 240)
 _WINDOW_FLAGS = frameless_stay_on_top_flags()
 _DIALOG_BORDER_STYLE = "#quickLauncherDialog { background-color: #ffffff; border: 1px solid #c0c0c0;}"
 
@@ -122,7 +122,7 @@ class CaptureActionPickerDialog(QDialog):
         self._cards.customContextMenuRequested.connect(self._on_cards_context_menu)
         self._actions_section, _, actions_layout = create_command_section(title="Actions")
         actions_layout.addWidget(self._cards)
-        self._layout.addWidget(self._actions_section, stretch=1)
+        self._layout.addWidget(self._actions_section, stretch=0)
 
         self._hint = QLabel("Hold a capture hotkey to open · Esc to close")
         self._hint.setStyleSheet("color: palette(mid);")
@@ -243,10 +243,13 @@ class CaptureActionPickerDialog(QDialog):
         self._cards.setMinimumHeight(natural)
         self._cards.setMaximumHeight(natural)
         self._cards.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        hint = self.sizeHint()
+        self._cards.updateGeometry()
+        self._actions_section.updateGeometry()
+        self.adjustSize()
         width = max(self.width(), _OVERLAY_DEFAULT_SIZE.width())
-        height = max(hint.height(), _OVERLAY_MIN_SIZE.height())
+        height = max(self.sizeHint().height(), _OVERLAY_MIN_SIZE.height())
         self.resize(width, height)
+        self.setMinimumHeight(height)
         center_widget_on_available_screen(self)
         if self._cards.count():
             self._cards.setCurrentRow(0)
@@ -296,6 +299,11 @@ class CaptureActionPickerDialog(QDialog):
         natural = measure_icon_grid_height(self._cards)
         self._cards.setMinimumHeight(natural)
         self._cards.setMaximumHeight(natural)
+        self._cards.updateGeometry()
+        height = max(self.sizeHint().height(), _OVERLAY_MIN_SIZE.height())
+        if self.height() != height:
+            self.resize(self.width(), height)
+            self.setMinimumHeight(height)
 
     def _start_drag(self, global_pos: QPoint) -> None:
         self._dragging = True
