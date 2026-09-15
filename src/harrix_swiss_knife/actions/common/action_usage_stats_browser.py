@@ -24,6 +24,8 @@ from PySide6.QtWidgets import (
 from harrix_swiss_knife.apps.common.table_export import export_table_via_dialog
 from harrix_swiss_knife.qt_action_icon import create_menu_icon
 from harrix_swiss_knife.qt_lucide_icon import (
+    COPY_BUTTON_ICON,
+    add_lucide_action,
     apply_lucide_dialog_buttons,
     make_lucide_push_button,
 )
@@ -143,8 +145,8 @@ def build_action_usage_stats_browser(
 
         def on_context_menu(pos: QPoint) -> None:
             menu = QMenu(table)
-            copy_action = menu.addAction("Copy")
-            excel_action = menu.addAction("Save as Excel…")
+            copy_action = add_lucide_action(menu, "Copy", COPY_BUTTON_ICON)
+            excel_action = add_lucide_action(menu, "Save as Excel…", "chart-column")
             chosen = menu.exec_(table.viewport().mapToGlobal(pos))
             if chosen is copy_action:
                 on_copy()
