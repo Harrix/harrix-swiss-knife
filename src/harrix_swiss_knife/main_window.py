@@ -359,6 +359,7 @@ class MainWindow(QMainWindow):
             MAIN_WINDOW_SORT_MODE_NEWEST,
         )
         self._sort_combo.setToolTip("Sort commands by menu structure or date added")
+        self._sort_combo.setMinimumHeight(self._search_edit.minimumHeight())
         self._sort_combo.currentIndexChanged.connect(self._on_sort_mode_changed)
         header_row.addWidget(self._sort_combo)
 

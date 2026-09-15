@@ -62,6 +62,17 @@ def _section_header(window: MainWindow, title: str) -> QListWidgetItem | None:
     return None
 
 
+def test_sort_combo_matches_search_field_height(qapp: QApplication) -> None:
+    window = _build_window(qapp)
+    try:
+        assert window._sort_combo.minimumHeight() == window._search_edit.minimumHeight()
+        assert window._sort_combo.minimumHeight() > 0
+    finally:
+        window.close()
+        window.deleteLater()
+        qapp.processEvents()
+
+
 def test_section_header_stores_title_and_is_not_selectable(qapp: QApplication) -> None:
     window = _build_window(qapp)
     try:
