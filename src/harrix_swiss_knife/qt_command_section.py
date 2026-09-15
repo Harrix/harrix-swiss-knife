@@ -67,8 +67,8 @@ def create_command_section(
     Args:
 
     - `title` (`str | None`): Optional bold section heading.
-    - `bordered` (`bool`): Draw the gray rounded outline. Defaults to `True`
-      (quick launcher / dialogs). Pass `False` for the tray commands window.
+    - `bordered` (`bool`): Draw the gray rounded outline. Defaults to `True`.
+      Pass `False` for the tray commands window and Quick Launcher overlays.
 
     Returns:
 

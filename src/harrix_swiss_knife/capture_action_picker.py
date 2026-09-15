@@ -122,7 +122,7 @@ class CaptureActionPickerDialog(QDialog):
         self._cards.itemClicked.connect(self._on_item_clicked)
         self._cards.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self._cards.customContextMenuRequested.connect(self._on_cards_context_menu)
-        self._actions_section, _, actions_layout = create_command_section(title="Actions")
+        self._actions_section, _, actions_layout = create_command_section(title="Actions", bordered=False)
         actions_layout.addWidget(self._cards)
         self._layout.addWidget(self._actions_section, stretch=0)
 
