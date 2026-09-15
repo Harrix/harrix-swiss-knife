@@ -274,6 +274,22 @@ def test_shutter_panel_shows_visible_labels(qapp: QApplication) -> None:  # noqa
     panel.close()
 
 
+def test_shutter_panel_labels_fit_single_line_captions(qapp: QApplication) -> None:  # noqa: ARG001
+    """Short captions like Collapse/Guides keep enough width for the painted font."""
+    panel = ShutterPanel()
+    panel.set_mode("selection")
+    panel.show()
+    QApplication.processEvents()
+
+    for name in ("Collapse", "Guides", "Desktop", "Adjust", "Cancel"):
+        matches = [label for label in panel.findChildren(QLabel) if label.text() == name]
+        assert matches, name
+        label = matches[0]
+        assert label.width() >= label.fontMetrics().horizontalAdvance(name)
+
+    panel.close()
+
+
 def test_shutter_panel_is_draggable(qapp: QApplication) -> None:  # noqa: ARG001
     panel = ShutterPanel()
     panel.set_mode("selection")

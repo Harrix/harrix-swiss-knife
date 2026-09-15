@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Literal
 
 from PySide6.QtCore import QEvent, QPoint, QRectF, QSize, Qt, Signal
-from PySide6.QtGui import QColor, QMouseEvent, QPainter, QPaintEvent
+from PySide6.QtGui import QColor, QFont, QMouseEvent, QPainter, QPaintEvent
 from PySide6.QtWidgets import (
     QApplication,
     QDialog,
@@ -42,7 +42,8 @@ _SWITCH_TRACK_H = 26
 _SWITCH_KNOB = 22
 _SWITCH_KNOB_OFF = QColor(150, 150, 155)
 _TOGGLE_CONTROLS_WIDTH = TOOLBAR_BUTTON_SIZE + _CONTROL_GAP + _SWITCH_TRACK_W
-_LABEL_MAX_WIDTH = _TOGGLE_CONTROLS_WIDTH
+_CELL_LABEL_POINT_SIZE = 9.5
+_CELL_LABEL_PAD = 8
 _ARRANGE_ICON = "app-window"
 _CAMERA_ICON = "camera"
 _ADJUST_ICON = "move"
@@ -103,8 +104,6 @@ QLabel {
     color: #F2F2F2;
     background: transparent;
     border: none;
-    font-size: 9.5pt;
-    font-weight: 600;
     padding: 0px;
 }
 """
@@ -320,7 +319,7 @@ class ShutterPanel(QWidget):
         self._edit_keys_label.setWordWrap(True)
         self._edit_keys_label.setText(_EDIT_KEYS_TEXT)
         self._edit_keys_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
-        self._edit_keys_label.setMaximumWidth(_LABEL_MAX_WIDTH)
+        self._edit_keys_label.setMaximumWidth(_TOGGLE_CONTROLS_WIDTH)
         self._edit_keys_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         self._edit_keys_label.hide()
         root.addWidget(self._edit_keys_label, 0, Qt.AlignmentFlag.AlignLeft)
@@ -538,12 +537,56 @@ class ShutterPanel(QWidget):
         else:
             self.move(new_global)
 
-    def _fit_cell_label(self, text: QLabel) -> None:
-        """Size a caption to its text, capped so toggle rows stay compact."""
+    def _fit_all_cell_labels(self) -> None:
+        """Recompute caption widths after collapse/expand or text changes."""
+        column = self._label_column_width()
+        for label in self._cell_labels():
+            self._fit_cell_label(label, column_width=column)
+        self._edit_keys_label.setMaximumWidth(column)
+
+    def _fit_cell_label(self, text: QLabel, *, column_width: int | None = None) -> None:
+        """Size a caption so painted text fits; use the tool column when expanded.
+
+        Font size/weight live on the `QFont` (not only in a stylesheet) so
+        `fontMetrics` matches what is drawn. Expanded tools share one column
+        wide enough for single-word captions (e.g. Collapse); collapsed mode
+        keeps a narrow natural width.
+
+        """
+        tools_host = getattr(self, "_tools_host", None)
+        collapsed = getattr(self, "_collapsed", False)
+        if not collapsed and tools_host is not None and not tools_host.isHidden():
+            # During `__init__` not every cell label exists yet; use the toggle
+            # floor until `_fit_all_cell_labels` runs with the full set.
+            width = column_width if column_width is not None else _TOGGLE_CONTROLS_WIDTH
+            text.setFixedWidth(width)
+            return
         metrics = text.fontMetrics()
-        natural = metrics.boundingRect(text.text()).width() + 4
-        width = min(_LABEL_MAX_WIDTH, max(TOOLBAR_BUTTON_SIZE, natural))
-        text.setFixedWidth(width)
+        natural = metrics.horizontalAdvance(text.text()) + _CELL_LABEL_PAD
+        text.setFixedWidth(max(TOOLBAR_BUTTON_SIZE, natural))
+
+    def _cell_labels(self) -> tuple[QLabel, ...]:
+        names = (
+            "_collapse_label",
+            "_mode_label",
+            "_adjust_label",
+            "_guides_label",
+            "_keep_windows_label",
+            "_clipboard_label",
+            "_ocr_label",
+            "_close_label",
+        )
+        return tuple(label for name in names if isinstance((label := getattr(self, name, None)), QLabel))
+
+    def _label_column_width(self) -> int:
+        """Toggle-row width, expanded so single-word captions are not clipped."""
+        width = _TOGGLE_CONTROLS_WIDTH
+        for label in self._cell_labels():
+            caption = label.text().strip()
+            if not caption or " " in caption:
+                continue
+            width = max(width, label.fontMetrics().horizontalAdvance(caption) + _CELL_LABEL_PAD)
+        return width
 
     def _is_interactive_target(self, widget: QWidget | None) -> bool:
         current = widget
@@ -568,6 +611,10 @@ class ShutterPanel(QWidget):
 
     def _make_cell_label(self, label: str, parent: QWidget) -> QLabel:
         text = QLabel(label, parent)
+        font = QFont(text.font())
+        font.setPointSizeF(_CELL_LABEL_POINT_SIZE)
+        font.setWeight(QFont.Weight.DemiBold)
+        text.setFont(font)
         text.setStyleSheet(_CELL_LABEL_STYLE)
         text.setWordWrap(True)
         text.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
@@ -685,6 +732,7 @@ class ShutterPanel(QWidget):
             self._tools_host.setMaximumSize(_QWIDGETSIZE_MAX, 0)
         else:
             self._tools_host.setMaximumSize(_QWIDGETSIZE_MAX, _QWIDGETSIZE_MAX)
+        self._fit_all_cell_labels()
         hint = self._preferred_size()
         new_width = hint.width()
         new_height = min(hint.height(), self._available_height)
