@@ -38,6 +38,7 @@ from harrix_swiss_knife.qt_command_section import (
     style_transparent_icon_grid,
 )
 from harrix_swiss_knife.qt_frameless_window import frameless_stay_on_top_flags, try_handle_frameless_resize_native_event
+from harrix_swiss_knife.qt_lucide_icon import CLOSE_BUTTON_ICON, apply_lucide_button_icon
 from harrix_swiss_knife.qt_markdown_choice_cards import populate_icon_choice_cards
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
 
@@ -89,11 +90,12 @@ class QuickLauncherDialog(QDialog):
         title.setFont(title_font)
         title.setCursor(Qt.CursorShape.OpenHandCursor)
 
-        self._close_button = QPushButton("X")
+        self._close_button = QPushButton("")
         self._close_button.setFixedSize(28, 28)
         self._close_button.setFlat(True)
         self._close_button.setToolTip("Close")
         self._close_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        apply_lucide_button_icon(self._close_button, CLOSE_BUTTON_ICON, icon_size=18)
         self._close_button.clicked.connect(self.hide)
 
         header_spacer = QWidget(self)
