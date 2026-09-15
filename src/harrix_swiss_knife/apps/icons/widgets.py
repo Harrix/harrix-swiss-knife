@@ -32,6 +32,7 @@ from PySide6.QtGui import (
     QPainter,
     QPixmap,
     QResizeEvent,
+    QWheelEvent,
 )
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -57,7 +58,7 @@ from harrix_swiss_knife.apps.icons.catalog import (
     is_openable_license_url,
 )
 from harrix_swiss_knife.apps.icons.meta_filter import build_variants_header_html, parse_meta_link
-from harrix_swiss_knife.apps.icons.settings import GRID_SORT_DATE, GRID_SORT_MODES
+from harrix_swiss_knife.apps.icons.settings import GRID_SORT_DATE, GRID_SORT_MODES, ICON_SIZE_WHEEL_STEP
 from harrix_swiss_knife.apps.icons.thumb_cache import DEFAULT_THUMB_SIZE, placeholder_pixmap, render_icon_to_image
 from harrix_swiss_knife.qt_lucide_icon import LUCIDE_COLOR_BLUE, apply_leading_chrome_icons
 
@@ -68,6 +69,7 @@ if TYPE_CHECKING:
 VARIANT_THUMB_SIZE = 112
 VARIANT_HEADER_SCROLL_MAX_HEIGHT = 240
 VIEWPORT_SIGNAL_DEBOUNCE_MS = 60
+_WHEEL_NOTCH = 120
 ROLE_SVG_PATH = int(Qt.ItemDataRole.UserRole) + 1
 ROLE_SUBTITLE = int(Qt.ItemDataRole.UserRole) + 2
 ROLE_FALLBACK = int(Qt.ItemDataRole.UserRole) + 3
@@ -145,6 +147,7 @@ class DraggableIconList(QListWidget):
     optimize_svgs_requested = Signal(object)  # list[str]
     refresh_variants_requested = Signal()
     refresh_icons_requested = Signal()
+    icon_size_delta_requested = Signal(int)
     show_numbers_toggled = Signal(bool)
     sort_mode_requested = Signal(str)
     sort_reverse_toggled = Signal(bool)
@@ -430,6 +433,15 @@ class DraggableIconList(QListWidget):
             first = min(first, max(0, probe.row() - reach))
             last = max(last, min(count - 1, probe.row() + reach))
         return (first, last)
+
+    def wheelEvent(self, event: QWheelEvent) -> None:  # noqa: N802
+        """Ctrl+wheel changes icon size in the main grid; otherwise scroll as usual."""
+        delta = icon_size_delta_from_wheel(event, variants_context=self._variants_context)
+        if delta is None:
+            super().wheelEvent(event)
+            return
+        self.icon_size_delta_requested.emit(delta)
+        event.accept()
 
     def _add_grid_item(
         self,
@@ -1101,6 +1113,19 @@ def family_display_filename(family: IconFamily, svg_path: Path | None = None) ->
     if family.variants:
         return Path(family.variants[0].file).name
     return f"{family.id}.svg"
+
+
+def icon_size_delta_from_wheel(event: QWheelEvent, *, variants_context: bool) -> int | None:
+    """Return pixel delta for Ctrl+wheel icon resize, or `None` to keep normal scrolling."""
+    if variants_context or not (event.modifiers() & Qt.KeyboardModifier.ControlModifier):
+        return None
+    angle = event.angleDelta().y()
+    if angle == 0:
+        return None
+    notches = angle // _WHEEL_NOTCH
+    if notches == 0:
+        notches = 1 if angle > 0 else -1
+    return notches * ICON_SIZE_WHEEL_STEP
 
 
 def is_svg_icon_path(path: object) -> bool:

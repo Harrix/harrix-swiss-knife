@@ -36,6 +36,7 @@ lang: en
   - [⚙️ Method `startDrag`](#%EF%B8%8F-method-startdrag)
   - [⚙️ Method `update_row_pixmaps`](#%EF%B8%8F-method-update_row_pixmaps)
   - [⚙️ Method `visible_row_span`](#%EF%B8%8F-method-visible_row_span)
+  - [⚙️ Method `wheelEvent`](#%EF%B8%8F-method-wheelevent)
 - [🏛️ Class `IconLabelDelegate`](#%EF%B8%8F-class-iconlabeldelegate)
   - [⚙️ Method `paint`](#%EF%B8%8F-method-paint)
   - [⚙️ Method `sizeHint`](#%EF%B8%8F-method-sizehint)
@@ -51,6 +52,7 @@ lang: en
 - [🔧 Function `decode_family_ids_mime`](#-function-decode_family_ids_mime)
 - [🔧 Function `encode_family_ids_mime`](#-function-encode_family_ids_mime)
 - [🔧 Function `family_display_filename`](#-function-family_display_filename)
+- [🔧 Function `icon_size_delta_from_wheel`](#-function-icon_size_delta_from_wheel)
 - [🔧 Function `is_svg_icon_path`](#-function-is_svg_icon_path)
 - [🔧 Function `read_svg_text`](#-function-read_svg_text)
 
@@ -230,6 +232,7 @@ class DraggableIconList(QListWidget):
     optimize_svgs_requested = Signal(object)  # list[str]
     refresh_variants_requested = Signal()
     refresh_icons_requested = Signal()
+    icon_size_delta_requested = Signal(int)
     show_numbers_toggled = Signal(bool)
     sort_mode_requested = Signal(str)
     sort_reverse_toggled = Signal(bool)
@@ -515,6 +518,15 @@ class DraggableIconList(QListWidget):
             first = min(first, max(0, probe.row() - reach))
             last = max(last, min(count - 1, probe.row() + reach))
         return (first, last)
+
+    def wheelEvent(self, event: QWheelEvent) -> None:  # noqa: N802
+        """Ctrl+wheel changes icon size in the main grid; otherwise scroll as usual."""
+        delta = icon_size_delta_from_wheel(event, variants_context=self._variants_context)
+        if delta is None:
+            super().wheelEvent(event)
+            return
+        self.icon_size_delta_requested.emit(delta)
+        event.accept()
 
     def _add_grid_item(
         self,
@@ -1400,6 +1412,29 @@ def visible_row_span(self, margin_lines: int = 1) -> tuple[int, int]:
 
 </details>
 
+### ⚙️ Method `wheelEvent`
+
+```python
+def wheelEvent(self, event: QWheelEvent) -> None
+```
+
+Ctrl+wheel changes icon size in the main grid; otherwise scroll as usual.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def wheelEvent(self, event: QWheelEvent) -> None:  # noqa: N802
+        delta = icon_size_delta_from_wheel(event, variants_context=self._variants_context)
+        if delta is None:
+            super().wheelEvent(event)
+            return
+        self.icon_size_delta_requested.emit(delta)
+        event.accept()
+```
+
+</details>
+
 ## 🏛️ Class `IconLabelDelegate`
 
 ```python
@@ -2188,6 +2223,32 @@ def family_display_filename(family: IconFamily, svg_path: Path | None = None) ->
     if family.variants:
         return Path(family.variants[0].file).name
     return f"{family.id}.svg"
+```
+
+</details>
+
+## 🔧 Function `icon_size_delta_from_wheel`
+
+```python
+def icon_size_delta_from_wheel(event: QWheelEvent, *, variants_context: bool) -> int | None
+```
+
+Return pixel delta for Ctrl+wheel icon resize, or `None` to keep normal scrolling.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def icon_size_delta_from_wheel(event: QWheelEvent, *, variants_context: bool) -> int | None:
+    if variants_context or not (event.modifiers() & Qt.KeyboardModifier.ControlModifier):
+        return None
+    angle = event.angleDelta().y()
+    if angle == 0:
+        return None
+    notches = angle // _WHEEL_NOTCH
+    if notches == 0:
+        notches = 1 if angle > 0 else -1
+    return notches * ICON_SIZE_WHEEL_STEP
 ```
 
 </details>

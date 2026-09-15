@@ -107,6 +107,7 @@ from harrix_swiss_knife.apps.icons.settings import (
     ICON_SIZE_MAX,
     ICON_SIZE_MIN,
     add_favorites,
+    clamp_icon_size,
     is_favorites_category,
     load_category_icons,
     load_favorites,
@@ -1823,6 +1824,15 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._apply_icon_size(value)
         self._icon_size_save_timer.start()
 
+    def _on_icon_size_delta(self, delta: int) -> None:
+        """Apply Ctrl+wheel size steps via the toolbar slider."""
+        if delta == 0:
+            return
+        new_size = clamp_icon_size(self.size_slider.value() + delta)
+        if new_size == self.size_slider.value():
+            return
+        self.size_slider.setValue(new_size)
+
     def _on_maintenance_failed(self, message: str) -> None:
         self._close_maintenance_progress_toast()
         QMessageBox.critical(self, "Vector Icons", f"Maintenance failed:\n{message}")
@@ -2893,6 +2903,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         icon_list.optimize_svgs_requested.connect(self._on_optimize_svgs)
         icon_list.refresh_variants_requested.connect(self._on_refresh_variants)
         icon_list.refresh_icons_requested.connect(self._on_refresh_catalog)
+        icon_list.icon_size_delta_requested.connect(self._on_icon_size_delta)
         icon_list.show_numbers_toggled.connect(self._on_show_numbers_toggled)
         icon_list.sort_mode_requested.connect(self._on_sort_mode_requested)
         icon_list.sort_reverse_toggled.connect(self._on_sort_reverse_toggled)
