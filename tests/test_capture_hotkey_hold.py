@@ -79,14 +79,18 @@ def test_hold_long_press_emits_action_long_press(qapp: QApplication) -> None:
     manager.deleteLater()
 
 
-def test_capture_picker_lists_four_actions(qapp: QApplication) -> None:  # noqa: ARG001
+def test_capture_picker_matches_quick_launcher_chrome(qapp: QApplication) -> None:  # noqa: ARG001
     dialog = CaptureActionPickerDialog()
     try:
-        assert dialog._list.count() == len(CAPTURE_PICKER_ACTIONS)
-        names = [
-            dialog._list.item(index).data(Qt.ItemDataRole.UserRole) for index in range(dialog._list.count())
-        ]
-        assert set(names) == CAPTURE_HOTKEY_ACTIONS
+        assert dialog.objectName() == "quickLauncherDialog"
+        assert dialog.windowFlags() & Qt.WindowType.FramelessWindowHint
+        assert dialog._cards.count() == len(CAPTURE_PICKER_ACTIONS)
+        names = {
+            item.data(Qt.ItemDataRole.UserRole).__name__
+            for index in range(dialog._cards.count())
+            if (item := dialog._cards.item(index)) is not None
+        }
+        assert names == CAPTURE_HOTKEY_ACTIONS
     finally:
         dialog.close()
         dialog.deleteLater()
@@ -95,9 +99,26 @@ def test_capture_picker_lists_four_actions(qapp: QApplication) -> None:  # noqa:
 def test_capture_picker_accepts_selected_action(qapp: QApplication) -> None:  # noqa: ARG001
     dialog = CaptureActionPickerDialog()
     try:
-        dialog._accept_action("OnRecordRegion")
+        dialog._accept_action(CAPTURE_PICKER_ACTIONS[-1])
         assert dialog.selected_action_name() == "OnRecordRegion"
         assert dialog.result() == QDialog.DialogCode.Accepted
+    finally:
+        dialog.close()
+        dialog.deleteLater()
+
+
+def test_capture_picker_context_menu_uses_action_class_menu(qapp: QApplication) -> None:  # noqa: ARG001
+    dialog = CaptureActionPickerDialog()
+    try:
+        item = dialog._cards.item(0)
+        assert item is not None
+        rect = dialog._cards.visualItemRect(item)
+        with patch("harrix_swiss_knife.capture_action_picker.show_action_class_context_menu") as show_menu:
+            dialog._on_cards_context_menu(rect.center())
+            show_menu.assert_called_once()
+            kwargs = show_menu.call_args.kwargs
+            assert kwargs["action_cls"] is CAPTURE_PICKER_ACTIONS[0]
+            assert kwargs["parent"] is dialog
     finally:
         dialog.close()
         dialog.deleteLater()

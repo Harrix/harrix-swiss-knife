@@ -88,10 +88,6 @@
     {
       "action": "OnScreenshotRegionClipboard",
       "hotkeys": ["Ctrl+Shift+4"]
-    },
-    {
-      "action": "OnScreenshotRegionTranslate",
-      "hotkeys": ["Ctrl+Shift+5"]
     }
   ],
   "markdown_templates": {
