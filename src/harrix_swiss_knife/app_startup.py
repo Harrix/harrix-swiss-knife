@@ -42,6 +42,10 @@ from harrix_swiss_knife.menu_structure import get_menu_structure
 from harrix_swiss_knife.paths import get_config_path_str, prune_action_output_dir
 from harrix_swiss_knife.qt_app_font import install_app_fonts
 from harrix_swiss_knife.qt_flexible_decimal import install_flexible_decimal_separators
+from harrix_swiss_knife.screenshot.capture import (
+    clear_pending_screen_freeze,
+    prepare_capture_long_press_freeze,
+)
 from harrix_swiss_knife.single_instance import acquire_tray_instance
 from harrix_swiss_knife.tray_icon import TrayIcon
 
@@ -310,13 +314,19 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
                 log.exception("Hotkey action %s failed", action_name)
 
         def run_capture_long_press(_action_name: str) -> None:
+            prepare_capture_long_press_freeze()
             try:
-                chosen = choose_capture_hotkey_action(parent=None)
-            except Exception:
-                log.exception("Capture hotkey picker failed")
-                return
-            if chosen:
-                run_hotkey_action(chosen)
+                try:
+                    chosen = choose_capture_hotkey_action(parent=None)
+                except Exception:
+                    log.exception("Capture hotkey picker failed")
+                    return
+                if chosen:
+                    run_hotkey_action(chosen)
+            finally:
+                # Leftover freeze if the picker was cancelled or the action never
+                # opened an overlay; no-op when capture already consumed it.
+                clear_pending_screen_freeze()
 
         bindings = load_action_hotkeys(config)
         hotkey_manager.set_long_press_actions(

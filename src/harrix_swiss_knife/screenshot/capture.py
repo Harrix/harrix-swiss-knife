@@ -28,12 +28,15 @@ from harrix_swiss_knife.screenshot.window_visibility import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Iterable, Sequence
 
     from PySide6.QtGui import QImage
     from PySide6.QtWidgets import QWidget
 
 _HIDE_SETTLE_MS = 200
+
+# Optional freeze from a capture hotkey long-press (consumed by the next overlay pass).
+_pending_screen_freeze: tuple[list[ScreenGrab], QRect] | None = None
 
 
 @dataclass
@@ -144,6 +147,64 @@ def capture_region(
     return image
 
 
+def clear_pending_screen_freeze() -> None:
+    """Drop any unused long-press freeze."""
+    global _pending_screen_freeze  # noqa: PLW0603
+    _pending_screen_freeze = None
+
+
+def grab_all_screens() -> tuple[list[ScreenGrab], QRect]:
+    """Grab each monitor at native resolution.
+
+    A single overlay HWND uses the primary screen's DPI, so a 200% 4K monitor
+    next to a 100% ultrawide would only cover part of the 4K display. Each grab
+    is shown on its own fullscreen pane instead.
+
+    """
+    app = QApplication.instance()
+    if app is None:
+        return [], QRect()
+
+    screens = app.screens()
+    primary = app.primaryScreen()
+    if not screens or primary is None:
+        return [], QRect()
+
+    grabs: list[ScreenGrab] = []
+    for screen in screens:
+        grab = screen.grabWindow(0)
+        if grab.isNull():
+            continue
+        dpr = screen.devicePixelRatio()
+        grabs.append(
+            ScreenGrab(
+                geometry=screen.geometry(),
+                dpr=dpr if dpr > 0 else 1.0,
+                pixmap=grab,
+            ),
+        )
+    return grabs, primary.virtualGeometry()
+
+
+def prepare_capture_long_press_freeze() -> bool:
+    """Grab all screens now and store them for the next capture overlay pass.
+
+    Call this before opening the capture-action picker so foreign UI (for example
+    a VS Code context menu) is frozen before focus changes dismiss it.
+
+    Returns:
+
+    - `bool`: `True` when at least one screen was frozen.
+
+    """
+    grabs, geometry = grab_all_screens()
+    if not grabs:
+        clear_pending_screen_freeze()
+        return False
+    set_pending_screen_freeze(grabs, geometry)
+    return True
+
+
 def select_region(
     *,
     show_shutter_button: bool = True,
@@ -179,15 +240,31 @@ def select_region(
     return rect
 
 
+def set_pending_screen_freeze(grabs: Sequence[ScreenGrab], geometry: QRect) -> None:
+    """Store a desktop freeze for the next `_capture_loop` / `_select_loop` pass."""
+    global _pending_screen_freeze  # noqa: PLW0603
+    _pending_screen_freeze = (list(grabs), QRect(geometry))
+
+
+def take_pending_screen_freeze() -> tuple[list[ScreenGrab], QRect] | None:
+    """Return and clear the pending freeze, or `None` when empty."""
+    global _pending_screen_freeze  # noqa: PLW0603
+    pending = _pending_screen_freeze
+    _pending_screen_freeze = None
+    return pending
+
+
 def _capture_loop(*, with_controls: bool, session: _HideSession) -> QImage | None:
     """Alternate between region selection and desktop-arrangement until done."""
     adjust_mode = False
     guides_mode = False
     ocr_translate = session.ocr_translate
     clipboard_only = not session.show_preview and not ocr_translate
+    use_pending_freeze = True
     while True:
         window_rects = list_snappable_window_rects(exclude_hwnds=session.exclude_hwnds())
-        grabs, geometry = _grab_all_screens()
+        grabs, geometry = _grabs_for_overlay_pass(use_pending=use_pending_freeze)
+        use_pending_freeze = False
         if not grabs:
             return None
 
@@ -239,37 +316,13 @@ def _copy_image_to_clipboard(image: QImage) -> None:
         clipboard.setImage(image)
 
 
-def _grab_all_screens() -> tuple[list[ScreenGrab], QRect]:
-    """Grab each monitor at native resolution.
-
-    A single overlay HWND uses the primary screen's DPI, so a 200% 4K monitor
-    next to a 100% ultrawide would only cover part of the 4K display. Each grab
-    is shown on its own fullscreen pane instead.
-
-    """
-    app = QApplication.instance()
-    if app is None:
-        return [], QRect()
-
-    screens = app.screens()
-    primary = app.primaryScreen()
-    if not screens or primary is None:
-        return [], QRect()
-
-    grabs: list[ScreenGrab] = []
-    for screen in screens:
-        grab = screen.grabWindow(0)
-        if grab.isNull():
-            continue
-        dpr = screen.devicePixelRatio()
-        grabs.append(
-            ScreenGrab(
-                geometry=screen.geometry(),
-                dpr=dpr if dpr > 0 else 1.0,
-                pixmap=grab,
-            ),
-        )
-    return grabs, primary.virtualGeometry()
+def _grabs_for_overlay_pass(*, use_pending: bool) -> tuple[list[ScreenGrab], QRect]:
+    """Use a one-shot long-press freeze on the first pass, otherwise live-grab."""
+    if use_pending:
+        pending = take_pending_screen_freeze()
+        if pending is not None:
+            return pending
+    return grab_all_screens()
 
 
 def _hwnds_from_widgets(widgets: Iterable[QWidget]) -> list[int]:
@@ -289,9 +342,11 @@ def _select_loop(*, with_controls: bool, session: _HideSession) -> QRect | None:
     """Alternate between region selection and desktop-arrangement until a rect is chosen."""
     adjust_mode = False
     guides_mode = False
+    use_pending_freeze = True
     while True:
         window_rects = list_snappable_window_rects(exclude_hwnds=session.exclude_hwnds())
-        grabs, geometry = _grab_all_screens()
+        grabs, geometry = _grabs_for_overlay_pass(use_pending=use_pending_freeze)
+        use_pending_freeze = False
         if not grabs:
             return None
 

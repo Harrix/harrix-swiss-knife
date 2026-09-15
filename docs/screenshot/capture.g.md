@@ -12,7 +12,12 @@ lang: en
 ## Contents
 
 - [🔧 Function `capture_region`](#-function-capture_region)
+- [🔧 Function `clear_pending_screen_freeze`](#-function-clear_pending_screen_freeze)
+- [🔧 Function `grab_all_screens`](#-function-grab_all_screens)
+- [🔧 Function `prepare_capture_long_press_freeze`](#-function-prepare_capture_long_press_freeze)
 - [🔧 Function `select_region`](#-function-select_region)
+- [🔧 Function `set_pending_screen_freeze`](#-function-set_pending_screen_freeze)
+- [🔧 Function `take_pending_screen_freeze`](#-function-take_pending_screen_freeze)
 
 </details>
 
@@ -108,6 +113,99 @@ def capture_region(
 
 </details>
 
+## 🔧 Function `clear_pending_screen_freeze`
+
+```python
+def clear_pending_screen_freeze() -> None
+```
+
+Drop any unused long-press freeze.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def clear_pending_screen_freeze() -> None:
+    global _pending_screen_freeze  # noqa: PLW0603
+    _pending_screen_freeze = None
+```
+
+</details>
+
+## 🔧 Function `grab_all_screens`
+
+```python
+def grab_all_screens() -> tuple[list[ScreenGrab], QRect]
+```
+
+Grab each monitor at native resolution.
+
+A single overlay HWND uses the primary screen's DPI, so a 200% 4K monitor
+next to a 100% ultrawide would only cover part of the 4K display. Each grab
+is shown on its own fullscreen pane instead.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def grab_all_screens() -> tuple[list[ScreenGrab], QRect]:
+    app = QApplication.instance()
+    if app is None:
+        return [], QRect()
+
+    screens = app.screens()
+    primary = app.primaryScreen()
+    if not screens or primary is None:
+        return [], QRect()
+
+    grabs: list[ScreenGrab] = []
+    for screen in screens:
+        grab = screen.grabWindow(0)
+        if grab.isNull():
+            continue
+        dpr = screen.devicePixelRatio()
+        grabs.append(
+            ScreenGrab(
+                geometry=screen.geometry(),
+                dpr=dpr if dpr > 0 else 1.0,
+                pixmap=grab,
+            ),
+        )
+    return grabs, primary.virtualGeometry()
+```
+
+</details>
+
+## 🔧 Function `prepare_capture_long_press_freeze`
+
+```python
+def prepare_capture_long_press_freeze() -> bool
+```
+
+Grab all screens now and store them for the next capture overlay pass.
+
+Call this before opening the capture-action picker so foreign UI (for example
+a VS Code context menu) is frozen before focus changes dismiss it.
+
+Returns:
+
+- `bool`: `True` when at least one screen was frozen.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def prepare_capture_long_press_freeze() -> bool:
+    grabs, geometry = grab_all_screens()
+    if not grabs:
+        clear_pending_screen_freeze()
+        return False
+    set_pending_screen_freeze(grabs, geometry)
+    return True
+```
+
+</details>
+
 ## 🔧 Function `select_region`
 
 ```python
@@ -150,6 +248,46 @@ def select_region(
             restore_app_windows(session.hidden, activate=True)
 
     return rect
+```
+
+</details>
+
+## 🔧 Function `set_pending_screen_freeze`
+
+```python
+def set_pending_screen_freeze(grabs: Sequence[ScreenGrab], geometry: QRect) -> None
+```
+
+Store a desktop freeze for the next `_capture_loop` / `_select_loop` pass.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_pending_screen_freeze(grabs: Sequence[ScreenGrab], geometry: QRect) -> None:
+    global _pending_screen_freeze  # noqa: PLW0603
+    _pending_screen_freeze = (list(grabs), QRect(geometry))
+```
+
+</details>
+
+## 🔧 Function `take_pending_screen_freeze`
+
+```python
+def take_pending_screen_freeze() -> tuple[list[ScreenGrab], QRect] | None
+```
+
+Return and clear the pending freeze, or `None` when empty.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def take_pending_screen_freeze() -> tuple[list[ScreenGrab], QRect] | None:
+    global _pending_screen_freeze  # noqa: PLW0603
+    pending = _pending_screen_freeze
+    _pending_screen_freeze = None
+    return pending
 ```
 
 </details>
