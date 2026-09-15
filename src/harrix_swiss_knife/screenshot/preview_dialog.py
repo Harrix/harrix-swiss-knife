@@ -71,6 +71,8 @@ _SAVE_BUTTON_ICON = SAVE_BUTTON_ICON
 _SAVE_BUTTON_LABEL = "Save as…"
 _SAVE_DESKTOP_BUTTON_ICON = "monitor"
 _SAVE_DESKTOP_BUTTON_LABEL = "Save to desktop"
+_SAVE_ALL_DESKTOP_BUTTON_ICON = "images"
+_SAVE_ALL_DESKTOP_BUTTON_LABEL = "Save all to desktop"
 _MARKDOWN_AI_ICON = AI_BUTTON_ICON
 _MARKDOWN_OCR_ICON = "scan-text"
 _TRANSLATE_ICON = "languages"
@@ -219,6 +221,15 @@ class ScreenshotPreviewWindow(QMainWindow):
         desktop_button = make_lucide_push_button(_SAVE_DESKTOP_BUTTON_LABEL, _SAVE_DESKTOP_BUTTON_ICON)
         desktop_button.setToolTip("Save as YYYY-MM-DD_NN.png on the Desktop")
         self._add_footer_button(desktop_button, self._save_to_desktop)
+        self._save_all_desktop_button = make_lucide_push_button(
+            _SAVE_ALL_DESKTOP_BUTTON_LABEL,
+            _SAVE_ALL_DESKTOP_BUTTON_ICON,
+        )
+        self._save_all_desktop_button.setToolTip(
+            "Save every tab as YYYY-MM-DD_NN.png on the Desktop",
+        )
+        self._save_all_desktop_button.hide()
+        self._add_footer_button(self._save_all_desktop_button, self._save_all_to_desktop)
         self._add_footer_button(
             make_lucide_push_button(_SAVE_BUTTON_LABEL, _SAVE_BUTTON_ICON),
             self._save_as,
@@ -292,7 +303,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._tabs.setCurrentIndex(index)
         self._apply_tool_to_current()
         self._update_window_title()
-        self._tabs.tabBar().setVisible(self._tabs.count() > 1)
+        self._update_multi_tab_chrome()
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Clear the process-wide preview reference when the window closes."""
@@ -381,7 +392,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         if self._tabs.count() == 0:
             self.close()
             return
-        self._tabs.tabBar().setVisible(self._tabs.count() > 1)
+        self._update_multi_tab_chrome()
         self._relabel_untitled_tabs()
         self._update_window_title()
 
@@ -407,6 +418,13 @@ class ScreenshotPreviewWindow(QMainWindow):
     def _current_tab(self) -> _ScreenshotTab | None:
         widget = self._tabs.currentWidget()
         return widget if isinstance(widget, _ScreenshotTab) else None
+
+    def _desktop_folder(self) -> Path | None:
+        desktop = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DesktopLocation)
+        if not desktop:
+            self._status.setText("Desktop folder not found")
+            return None
+        return Path(desktop)
 
     def _on_color_hovered(self, color: object) -> None:
         tab = self._current_tab()
@@ -561,6 +579,26 @@ class ScreenshotPreviewWindow(QMainWindow):
 
         QTimer.singleShot(0, run)
 
+    def _save_all_to_desktop(self) -> None:
+        desktop = self._desktop_folder()
+        if desktop is None:
+            return
+        saved_paths: list[Path] = []
+        for index in range(self._tabs.count()):
+            widget = self._tabs.widget(index)
+            if not isinstance(widget, _ScreenshotTab):
+                continue
+            path = self._save_tab_dated_png(widget, desktop, tab_index=index)
+            if path is None:
+                self._status.setText(f"Could not save tab {index + 1} to {desktop}")
+                return
+            saved_paths.append(path)
+        if not saved_paths:
+            self._status.setText("No screenshots to save")
+            return
+        self._status.setText(f"Saved {len(saved_paths)} images to {desktop}")
+        self._update_window_title()
+
     def _save_as(self) -> None:
         tab = self._current_tab()
         if tab is None:
@@ -585,15 +623,27 @@ class ScreenshotPreviewWindow(QMainWindow):
         tab = self._current_tab()
         if tab is None:
             return
-        path = next_dated_image_path(folder)
-        if not tab.image.save(str(path)):
-            self._status.setText(f"Could not save to {path}")
+        path = self._save_tab_dated_png(tab, folder, tab_index=self._tabs.currentIndex())
+        if path is None:
+            self._status.setText(f"Could not save to {folder}")
             return
-        tab.saved_name = path.name
-        index = self._tabs.currentIndex()
-        self._tabs.setTabText(index, path.name)
         self._status.setText(f"Saved: {path}")
         self._update_window_title()
+
+    def _save_tab_dated_png(
+        self,
+        tab: _ScreenshotTab,
+        folder: Path,
+        *,
+        tab_index: int,
+    ) -> Path | None:
+        path = next_dated_image_path(folder)
+        if not tab.image.save(str(path)):
+            return None
+        tab.saved_name = path.name
+        if 0 <= tab_index < self._tabs.count():
+            self._tabs.setTabText(tab_index, path.name)
+        return path
 
     def _save_temp_png(self) -> str | None:
         tab = self._current_tab()
@@ -606,11 +656,10 @@ class ScreenshotPreviewWindow(QMainWindow):
         return None
 
     def _save_to_desktop(self) -> None:
-        desktop = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DesktopLocation)
-        if not desktop:
-            self._status.setText("Desktop folder not found")
+        desktop = self._desktop_folder()
+        if desktop is None:
             return
-        self._save_dated_png(Path(desktop))
+        self._save_dated_png(desktop)
 
     def _save_to_images(self) -> None:
         self._save_dated_png(images_folder(h.dev.get_project_root()))
@@ -634,7 +683,9 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._crop_bar.setVisible(active)
         if active:
             self._text_bar_host.hide()
-        self._tabs.tabBar().setVisible(not active and self._tabs.count() > 1)
+        multi = self._tabs.count() > 1
+        self._tabs.tabBar().setVisible(not active and multi)
+        self._save_all_desktop_button.setVisible(not active and multi)
 
     def _set_tool(self, tool: AnnotationTool) -> None:
         button = self._tool_buttons.get(tool)
@@ -665,6 +716,11 @@ class ScreenshotPreviewWindow(QMainWindow):
     def _update_color_button(self) -> None:
         self._color_button.setIcon(_color_swatch_icon(self._annotation_color, TOOLBAR_ICON_SIZE))
         self._color_button.setToolTip(f"Stroke color ({self._annotation_color.name()})")
+
+    def _update_multi_tab_chrome(self) -> None:
+        multi = self._tabs.count() > 1
+        self._tabs.tabBar().setVisible(multi)
+        self._save_all_desktop_button.setVisible(multi)
 
     def _update_window_title(self) -> None:
         tab = self._current_tab()

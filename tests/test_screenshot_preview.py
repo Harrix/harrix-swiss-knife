@@ -226,6 +226,9 @@ def test_preview_window_saves_dated_png_to_desktop(
     window = show_screenshot_preview(image)
     desktop_buttons = [button for button in window.findChildren(QPushButton) if button.text() == "Save to desktop"]
     assert len(desktop_buttons) == 1
+    save_all = [button for button in window.findChildren(QPushButton) if button.text() == "Save all to desktop"]
+    assert len(save_all) == 1
+    assert not save_all[0].isVisible()
     window._save_to_desktop()
     files = sorted(desktop.glob("*.png"))
     assert len(files) == 1
@@ -236,6 +239,39 @@ def test_preview_window_saves_dated_png_to_desktop(
     files = sorted(desktop.glob("*.png"))
     assert len(files) == 2
     assert {path.stem[-3:] for path in files} == {"_01", "_02"}
+    window.close()
+
+
+def test_preview_window_save_all_to_desktop(
+    qapp: QApplication,  # noqa: ARG001
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    desktop = tmp_path / "Desktop"
+    desktop.mkdir()
+    monkeypatch.setattr(
+        QStandardPaths,
+        "writableLocation",
+        lambda _location: str(desktop),
+    )
+    first = QImage(8, 8, QImage.Format.Format_RGB32)
+    first.fill(Qt.GlobalColor.red)
+    second = QImage(10, 10, QImage.Format.Format_RGB32)
+    second.fill(Qt.GlobalColor.blue)
+    window = show_screenshot_preview(first)
+    show_screenshot_preview(second)
+    save_all = next(button for button in window.findChildren(QPushButton) if button.text() == "Save all to desktop")
+    assert save_all.isVisible()
+    window._save_all_to_desktop()
+    files = sorted(desktop.glob("*.png"))
+    assert len(files) == 2
+    assert {path.stem[-3:] for path in files} == {"_01", "_02"}
+    tabs = window.findChild(QTabWidget)
+    assert tabs is not None
+    assert tabs.count() == 2
+    assert tabs.tabText(0) == files[0].name
+    assert tabs.tabText(1) == files[1].name
+    assert "Saved 2 images" in window._status.text()
     window.close()
 
 
