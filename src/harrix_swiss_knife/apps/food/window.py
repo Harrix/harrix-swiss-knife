@@ -76,7 +76,7 @@ class Ui_MainWindow(object):
         self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", u"\U0001f9f9", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_food), QCoreApplication.translate("MainWindow", u"Food", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_food_recipes), QCoreApplication.translate("MainWindow", u"Recipes", None))
-        self.label.setText(QCoreApplication.translate("MainWindow", u"Kcal per day:", None))
+        self.label.setText(QCoreApplication.translate("MainWindow", u"Daily calories & macros:", None))
         self.label_food_stats_from.setText(QCoreApplication.translate("MainWindow", u"From:", None))
         self.dateEdit_food_stats_from.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
         self.label_food_stats_to.setText(QCoreApplication.translate("MainWindow", u"To:", None))
@@ -505,8 +505,8 @@ class Ui_MainWindow(object):
         self.horizontalLayout_4.setObjectName(u"horizontalLayout_4")
         self.frame = QFrame(self.tab_food_stats)
         self.frame.setObjectName(u"frame")
-        self.frame.setMinimumSize(QSize(280, 0))
-        self.frame.setMaximumSize(QSize(280, 16777215))
+        self.frame.setMinimumSize(QSize(520, 0))
+        self.frame.setMaximumSize(QSize(16777215, 16777215))
         self.frame.setFrameShape(QFrame.Shape.StyledPanel)
         self.frame.setFrameShadow(QFrame.Shadow.Raised)
         self.verticalLayout_3 = QVBoxLayout(self.frame)
@@ -519,10 +519,10 @@ class Ui_MainWindow(object):
         self.tableView_kcal_per_day = QTableView(self.frame)
         self.tableView_kcal_per_day.setObjectName(u"tableView_kcal_per_day")
 
-        self.verticalLayout_3.addWidget(self.tableView_kcal_per_day)
+        self.verticalLayout_3.addWidget(self.tableView_kcal_per_day, 1)
 
 
-        self.horizontalLayout_4.addWidget(self.frame)
+        self.horizontalLayout_4.addWidget(self.frame, 2)
 
         self.verticalLayout_4 = QVBoxLayout()
         self.verticalLayout_4.setObjectName(u"verticalLayout_4")
@@ -632,7 +632,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_4.addWidget(self.scrollArea_food_stats)
 
 
-        self.horizontalLayout_4.addLayout(self.verticalLayout_4)
+        self.horizontalLayout_4.addLayout(self.verticalLayout_4, 3)
 
         self.tabWidget.addTab(self.tab_food_stats, "")
 

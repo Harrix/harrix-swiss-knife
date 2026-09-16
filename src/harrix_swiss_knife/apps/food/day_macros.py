@@ -242,6 +242,17 @@ def macro_tone(value: float, norm: float) -> MacroTone:
     return "bad"
 
 
+def macro_tone_rgb(tone: MacroTone) -> tuple[int, int, int] | None:
+    """Return pastel RGB for a macros tone, or `None` for neutral/empty cells."""
+    if tone == "good":
+        return (144, 238, 144)
+    if tone == "warn":
+        return (255, 255, 224)
+    if tone == "bad":
+        return (255, 192, 203)
+    return None
+
+
 def parse_day_macros_response(text: str) -> DayMacrosResult | None:
     """Parse AI output: intake TSV, norms TSV, bilingual verdict/notes.
 

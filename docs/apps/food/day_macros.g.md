@@ -27,6 +27,7 @@ lang: en
 - [🔧 Function `format_days_summary_for_range_prompt`](#-function-format_days_summary_for_range_prompt)
 - [🔧 Function `kcal_tone`](#-function-kcal_tone)
 - [🔧 Function `macro_tone`](#-function-macro_tone)
+- [🔧 Function `macro_tone_rgb`](#-function-macro_tone_rgb)
 - [🔧 Function `parse_day_macros_response`](#-function-parse_day_macros_response)
 - [🔧 Function `parse_range_macros_response`](#-function-parse_range_macros_response)
 - [🔧 Function `percent_of_norm`](#-function-percent_of_norm)
@@ -437,6 +438,30 @@ def macro_tone(value: float, norm: float) -> MacroTone:
     if _MACRO_WARN_LOW <= pct <= _MACRO_WARN_HIGH:
         return "warn"
     return "bad"
+```
+
+</details>
+
+## 🔧 Function `macro_tone_rgb`
+
+```python
+def macro_tone_rgb(tone: MacroTone) -> tuple[int, int, int] | None
+```
+
+Return pastel RGB for a macros tone, or `None` for neutral/empty cells.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def macro_tone_rgb(tone: MacroTone) -> tuple[int, int, int] | None:
+    if tone == "good":
+        return (144, 238, 144)
+    if tone == "warn":
+        return (255, 255, 224)
+    if tone == "bad":
+        return (255, 192, 203)
+    return None
 ```
 
 </details>

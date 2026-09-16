@@ -122,7 +122,6 @@ class MainWindow(
         self._day_macros_dialog: DayMacrosDialog | None = None
         self._range_macros_dialog: RangeMacrosDialog | None = None
         self.label_macros_status: QLabel | None = None
-        self.tableView_macros_analysis: QTableView | None = None
         self.label_macros_notes: QLabel | None = None
         self._setup_ui()
 
@@ -143,7 +142,6 @@ class MainWindow(
         self.models: dict[str, QSortFilterProxyModel | None] = {
             "food_log": None,
             "kcal_per_day": None,
-            "macros_analysis": None,
         }
 
         # Food log display state
@@ -190,7 +188,7 @@ class MainWindow(
             "kcal_per_day": (
                 self.tableView_kcal_per_day,
                 "kcal_per_day",
-                ["Date", "Calories"],
+                list(_STATS_DAY_HEADERS),
             ),
         }
 
@@ -1358,15 +1356,22 @@ class MainWindow(
             food_log_header.refresh_wrapped_height()
 
     def _adjust_kcal_per_day_table_columns(self) -> None:
-        """Set column widths for kcal per day table."""
+        """Set column widths for the combined daily calories & macros table."""
         if not hasattr(self, "tableView_kcal_per_day") or not self.tableView_kcal_per_day.model():
             return
 
         # Date plus vertical header must stay readable at 125% DPI.
         self.tableView_kcal_per_day.verticalHeader().setMinimumWidth(28)
-        self.tableView_kcal_per_day.setColumnWidth(0, 112)
-
-        # Set second column (Calories) to stretch to remaining space
+        self.tableView_kcal_per_day.setColumnWidth(_STATS_DAY_DATE_COLUMN, 96)
+        self.tableView_kcal_per_day.setColumnWidth(_STATS_DAY_CALORIES_COLUMN, 72)
+        for column in (
+            _STATS_DAY_PROTEIN_COLUMN,
+            _STATS_DAY_FAT_COLUMN,
+            _STATS_DAY_CARB_COLUMN,
+            _STATS_DAY_KCAL_COLUMN,
+        ):
+            self.tableView_kcal_per_day.setColumnWidth(column, 48)
+        self.tableView_kcal_per_day.setColumnWidth(_STATS_DAY_STATUS_COLUMN, 64)
         self.tableView_kcal_per_day.horizontalHeader().setStretchLastSection(True)
 
     def _after_table_data_changed(
@@ -1897,13 +1902,20 @@ class MainWindow(
         self,
         data: list[list],
         headers: list[str],
+        *,
+        calorie_values: list[float | None] | None = None,
+        macro_tones: list[tuple[MacroTone, MacroTone, MacroTone, MacroTone] | None] | None = None,
     ) -> QSortFilterProxyModel:
-        """Return a proxy model filled with colored kcal per day data.
+        """Return a proxy model for the combined daily calories & macros table.
 
         Args:
 
-        - `data` (`list[list]`): The table data.
+        - `data` (`list[list]`): Display cell values per row.
         - `headers` (`list[str]`): Column header names.
+        - `calorie_values` (`list[float | None] | None`): Numeric daily totals for
+          coloring the Calories column. Defaults to `None`.
+        - `macro_tones` (`list[tuple[MacroTone, MacroTone, MacroTone, MacroTone] | None] | None`):
+          P/F/C/kcal tones for cell backgrounds. Defaults to `None`.
 
         Returns:
 
@@ -1914,27 +1926,30 @@ class MainWindow(
         model.setHorizontalHeaderLabels(headers)
         thresholds = calorie_thresholds_from_config(self._app_config)
 
-        for _row_idx, row in enumerate(data):
-            items = []
-            row_color = None
+        for row_idx, row in enumerate(data):
+            items: list[QStandardItem] = []
+            calories_value = None
+            if calorie_values is not None and row_idx < len(calorie_values):
+                calories_value = calorie_values[row_idx]
+            tones = None
+            if macro_tones is not None and row_idx < len(macro_tones):
+                tones = macro_tones[row_idx]
 
-            # Determine row color based on calories (second column)
-            if len(row) > 1:
-                try:
-                    calories = float(row[1]) if row[1] else 0.0
-                    row_color = QColor(*calorie_band_rgb(calories, thresholds))
-                except (ValueError, TypeError):
-                    # If calories can't be parsed, use default background
-                    pass
-
-            # Create items for all columns
-            for _col_idx, value in enumerate(row):
+            for col_idx, value in enumerate(row):
                 item = QStandardItem(str(value) if value is not None else "")
-
-                # Apply row color to all items in the row
-                if row_color:
-                    item.setBackground(QBrush(row_color))
-
+                item.setEditable(False)
+                if col_idx == _STATS_DAY_CALORIES_COLUMN and calories_value is not None:
+                    item.setBackground(QBrush(QColor(*calorie_band_rgb(calories_value, thresholds))))
+                elif tones is not None and col_idx in {
+                    _STATS_DAY_PROTEIN_COLUMN,
+                    _STATS_DAY_FAT_COLUMN,
+                    _STATS_DAY_CARB_COLUMN,
+                    _STATS_DAY_KCAL_COLUMN,
+                }:
+                    tone_index = col_idx - _STATS_DAY_PROTEIN_COLUMN
+                    rgb = macro_tone_rgb(tones[tone_index])
+                    if rgb is not None:
+                        item.setBackground(QBrush(QColor(*rgb)))
                 items.append(item)
 
             model.appendRow(items)
@@ -2057,8 +2072,6 @@ class MainWindow(
             if key in self.table_config:
                 view = self.table_config[key][0]
                 view.setModel(None)
-            elif key == "macros_analysis" and self.tableView_macros_analysis is not None:
-                self.tableView_macros_analysis.setModel(None)
             if model is not None:
                 model.deleteLater()
             self.models[key] = None
@@ -2683,30 +2696,32 @@ class MainWindow(
                 popup.hide()
 
     def _on_macros_analysis_row_clicked(self, index: QModelIndex) -> None:
-        """Show verdict/notes for the clicked macros analysis row."""
+        """Show verdict/notes for the clicked daily stats row."""
         if self.label_macros_notes is None or not index.isValid():
             return
-        proxy = self.models.get("macros_analysis")
+        proxy = self.models.get("kcal_per_day")
         if proxy is None:
             return
         source = proxy.sourceModel()
         if not isinstance(source, QStandardItemModel):
             return
-        notes_item = source.item(index.row(), _MACROS_NOTES_COLUMN)
+        source_index = proxy.mapToSource(index)
+        notes_item = source.item(source_index.row(), _STATS_DAY_NOTES_COLUMN)
         notes = notes_item.text() if notes_item is not None else ""
         self.label_macros_notes.setText(notes or "")
 
     def _on_macros_analysis_row_double_clicked(self, index: QModelIndex) -> None:
-        """Open the day macros dialog for the double-clicked status row."""
+        """Open the day macros dialog for the double-clicked stats row."""
         if not index.isValid():
             return
-        proxy = self.models.get("macros_analysis")
+        proxy = self.models.get("kcal_per_day")
         if proxy is None:
             return
         source = proxy.sourceModel()
         if not isinstance(source, QStandardItemModel):
             return
-        date_item = source.item(index.row(), _MACROS_DATE_COLUMN)
+        source_index = proxy.mapToSource(index)
+        date_item = source.item(source_index.row(), _STATS_DAY_DATE_COLUMN)
         if date_item is None:
             return
         self._open_day_macros_dialog(date_item.text())
@@ -2739,8 +2754,8 @@ class MainWindow(
                 self._recipes_widget.refresh()
             return
         if tab_name == "tab_food_stats":
+            self._update_macros_analysis_table()
             kcal_data = self.db_manager.get_calories_per_day() if self.db_manager is not None else None
-            self._update_kcal_per_day_table(kcal_data)
             self._update_food_calories_chart(kcal_data)
 
     def _on_use_date_filter_toggled(self, *_args: object) -> None:
@@ -3735,7 +3750,7 @@ class MainWindow(
         self.verticalLayout_food_recipes.addWidget(self._recipes_widget, 1)
 
     def _setup_macros_analysis_ui(self) -> None:
-        """Add macros analysis controls, status table, and today badge."""
+        """Add macros status badge, notes under the combined stats table, and buttons."""
         self.label_macros_status = QLabel("")
         self.label_macros_status.setObjectName("label_macros_status")
         self.label_macros_status.setWordWrap(True)
@@ -3750,21 +3765,14 @@ class MainWindow(
             today_stack.addWidget(self.label_macros_status)
             today_layout.addLayout(today_stack)
 
-        macros_label = QLabel("Macros analysis:")
-        macros_label.setObjectName("label_macros_analysis")
-        self.tableView_macros_analysis = QTableView(self.frame)
-        self.tableView_macros_analysis.setObjectName("tableView_macros_analysis")
-        self.tableView_macros_analysis.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
-        self.tableView_macros_analysis.setSelectionMode(QTableView.SelectionMode.SingleSelection)
-        self.tableView_macros_analysis.clicked.connect(self._on_macros_analysis_row_clicked)
-        self.tableView_macros_analysis.doubleClicked.connect(self._on_macros_analysis_row_double_clicked)
+        self.tableView_kcal_per_day.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
+        self.tableView_kcal_per_day.setSelectionMode(QTableView.SelectionMode.SingleSelection)
+        self.tableView_kcal_per_day.clicked.connect(self._on_macros_analysis_row_clicked)
+        self.tableView_kcal_per_day.doubleClicked.connect(self._on_macros_analysis_row_double_clicked)
         self.label_macros_notes = QLabel("")
         self.label_macros_notes.setObjectName("label_macros_notes")
         self.label_macros_notes.setWordWrap(True)
-        left_layout = self.verticalLayout_3
-        left_layout.addWidget(macros_label)
-        left_layout.addWidget(self.tableView_macros_analysis, 1)
-        left_layout.addWidget(self.label_macros_notes)
+        self.verticalLayout_3.addWidget(self.label_macros_notes)
 
         self.pushButton_food_stats_analyze_today = QPushButton("🤖 Analyze Today")
         self.pushButton_food_stats_analyze_range = QPushButton("🤖 Analyze Range")
@@ -4858,56 +4866,20 @@ class MainWindow(
             message_box.warning(self, "Chart Error", f"Failed to create food weight chart: {e}")
 
     def _update_kcal_per_day_table(self, kcal_per_day_data: list[list[Any]] | None = None) -> None:
-        """Update the calories per day table with data from database.
+        """Update the combined daily calories & macros table.
 
         Args:
 
-        - `kcal_per_day_data` (`list[list[Any]] | None`): Pre-loaded `get_calories_per_day`
-          rows, reused when the caller already has them. Defaults to `None`.
+        - `kcal_per_day_data` (`list[list[Any]] | None`): Unused; kept for callers that
+          previously passed pre-loaded rows. Defaults to `None`.
 
         """
-        if not self._validate_database_connection():
-            logger.warning("Database connection not available for updating kcal per day table")
-            return
-
-        if self.db_manager is None:
-            logger.error("❌ Database manager is not initialized")
-            return
-
-        try:
-            if kcal_per_day_data is None:
-                kcal_per_day_data = self.db_manager.get_calories_per_day()
-
-            # Transform data for display
-            transformed_data = []
-            for row in kcal_per_day_data:
-                date_str = str(row[0]) if row[0] is not None else ""
-                calories = row[1] if row[1] is not None else 0.0
-                # Format calories to 1 decimal place
-                calories_str = f"{float(calories):.1f}" if calories else "0.0"
-                transformed_data.append([date_str, calories_str])
-
-            # Create colored table model
-            self.models["kcal_per_day"] = self._create_colored_kcal_per_day_table_model(
-                transformed_data, self.table_config["kcal_per_day"][2]
-            )
-            self.tableView_kcal_per_day.setModel(self.models["kcal_per_day"])
-
-            # Configure table header
-            kcal_per_day_header = self.tableView_kcal_per_day.horizontalHeader()
-            # Set all columns to interactive (resizable)
-            for i in range(kcal_per_day_header.count()):
-                kcal_per_day_header.setSectionResizeMode(i, kcal_per_day_header.ResizeMode.Interactive)
-            # Set proportional column widths
-            self._adjust_kcal_per_day_table_columns()
-
-        except Exception as e:
-            logger.exception("Error updating kcal per day table")
-            message_box.warning(self, "Database Error", f"Failed to load calories per day data: {e}")
+        _ = kcal_per_day_data
+        self._update_macros_analysis_table()
 
     def _update_macros_analysis_table(self) -> None:
-        """Refresh the macros analysis status table for the stats date range."""
-        if self.tableView_macros_analysis is None:
+        """Refresh the combined daily calories & macros table for the stats date range."""
+        if not hasattr(self, "tableView_kcal_per_day"):
             return
         if not self._validate_database_connection() or self.db_manager is None:
             return
@@ -4917,21 +4889,35 @@ class MainWindow(
         analyses = {
             row.date: row for row in self.db_manager.get_food_day_nutrition_analyses_between(date_from, date_to)
         }
-        all_dates = sorted(log_dates | set(analyses), reverse=True)
-        model = QStandardItemModel()
-        model.setHorizontalHeaderLabels(["Date", "P", "F", "C", "kcal", "Status", "Notes"])
+        calories_by_day: dict[str, float] = {}
+        for row in self.db_manager.get_calories_per_day():
+            day = str(row[0] or "")[:10]
+            if not day or day < date_from or day > date_to:
+                continue
+            try:
+                calories_by_day[day] = float(row[1] or 0.0)
+            except (ValueError, TypeError):
+                calories_by_day[day] = 0.0
+        all_dates = sorted(log_dates | set(analyses) | set(calories_by_day), reverse=True)
+        transformed_data: list[list[str]] = []
+        calorie_values: list[float | None] = []
+        macro_tones: list[tuple[MacroTone, MacroTone, MacroTone, MacroTone] | None] = []
         for day in all_dates:
             analysis = analyses.get(day)
             current_hash = self.db_manager.get_food_day_input_hash(day)
             status = resolve_day_macros_status(analysis, current_hash)
+            calories = calories_by_day.get(day)
+            calories_str = f"{calories:.1f}" if calories is not None else "—"
             if analysis is None:
-                values = [day, "—", "—", "—", "—", status.value, ""]
+                values = [day, calories_str, "—", "—", "—", "—", status.value, ""]
+                tones = None
             else:
                 note = analysis.verdict.strip()
                 if analysis.notes.strip():
                     note = f"{note}\n{analysis.notes}".strip() if note else analysis.notes.strip()
                 values = [
                     day,
+                    calories_str,
                     f"{analysis.protein_g:.1f}",
                     f"{analysis.fat_g:.1f}",
                     f"{analysis.carb_g:.1f}",
@@ -4939,21 +4925,28 @@ class MainWindow(
                     status.value,
                     note,
                 ]
-            items = [QStandardItem(text) for text in values]
-            for item in items:
-                item.setEditable(False)
-            model.appendRow(items)
-        proxy = QSortFilterProxyModel(self)
-        proxy.setSourceModel(model)
-        self.models["macros_analysis"] = proxy
-        self.tableView_macros_analysis.setModel(proxy)
-        self.tableView_macros_analysis.setColumnHidden(_MACROS_NOTES_COLUMN, True)  # noqa: FBT003
-        header = self.tableView_macros_analysis.horizontalHeader()
-        header.setStretchLastSection(True)
-        self.tableView_macros_analysis.setColumnWidth(0, 96)
-        for column in (1, 2, 3, 4):
-            self.tableView_macros_analysis.setColumnWidth(column, 48)
-        self.tableView_macros_analysis.setColumnWidth(5, 64)
+                tones = (
+                    macro_tone(analysis.protein_g, analysis.norm_protein_g),
+                    macro_tone(analysis.fat_g, analysis.norm_fat_g),
+                    macro_tone(analysis.carb_g, analysis.norm_carb_g),
+                    macro_tone(analysis.kcal, analysis.norm_kcal),
+                )
+            transformed_data.append(values)
+            calorie_values.append(calories)
+            macro_tones.append(tones)
+
+        self.models["kcal_per_day"] = self._create_colored_kcal_per_day_table_model(
+            transformed_data,
+            self.table_config["kcal_per_day"][2],
+            calorie_values=calorie_values,
+            macro_tones=macro_tones,
+        )
+        self.tableView_kcal_per_day.setModel(self.models["kcal_per_day"])
+        self.tableView_kcal_per_day.setColumnHidden(_STATS_DAY_NOTES_COLUMN, True)  # noqa: FBT003
+        header = self.tableView_kcal_per_day.horizontalHeader()
+        for i in range(header.count()):
+            header.setSectionResizeMode(i, header.ResizeMode.Interactive)
+        self._adjust_kcal_per_day_table_columns()
         if self.label_macros_notes is not None:
             self.label_macros_notes.clear()
 
@@ -5051,7 +5044,6 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
         self._day_macros_dialog: DayMacrosDialog | None = None
         self._range_macros_dialog: RangeMacrosDialog | None = None
         self.label_macros_status: QLabel | None = None
-        self.tableView_macros_analysis: QTableView | None = None
         self.label_macros_notes: QLabel | None = None
         self._setup_ui()
 
@@ -5072,7 +5064,6 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
         self.models: dict[str, QSortFilterProxyModel | None] = {
             "food_log": None,
             "kcal_per_day": None,
-            "macros_analysis": None,
         }
 
         # Food log display state
@@ -5119,7 +5110,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
             "kcal_per_day": (
                 self.tableView_kcal_per_day,
                 "kcal_per_day",
-                ["Date", "Calories"],
+                list(_STATS_DAY_HEADERS),
             ),
         }
 

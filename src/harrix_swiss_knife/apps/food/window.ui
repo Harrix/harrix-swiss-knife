@@ -636,13 +636,13 @@
          <widget class="QFrame" name="frame">
           <property name="minimumSize">
            <size>
-            <width>280</width>
+            <width>520</width>
             <height>0</height>
            </size>
           </property>
           <property name="maximumSize">
            <size>
-            <width>280</width>
+            <width>16777215</width>
             <height>16777215</height>
            </size>
           </property>
@@ -656,7 +656,7 @@
            <item>
             <widget class="QLabel" name="label">
              <property name="text">
-              <string>Kcal per day:</string>
+              <string>Daily calories &amp; macros:</string>
              </property>
             </widget>
            </item>
