@@ -25,7 +25,7 @@ lang: en
 ## 🔧 Function `add_copy_button`
 
 ```python
-def add_copy_button(button_layout: QHBoxLayout, click_handler: Callable[[], None]) -> QPushButton
+def add_copy_button(button_layout: QHBoxLayout, click_handler: Callable[[], None], *, label: str = COPY_BUTTON_LABEL) -> QPushButton
 ```
 
 Add a copy-to-clipboard button with a Lucide icon.
@@ -34,8 +34,13 @@ Add a copy-to-clipboard button with a Lucide icon.
 <summary>Code:</summary>
 
 ```python
-def add_copy_button(button_layout: QHBoxLayout, click_handler: Callable[[], None]) -> QPushButton:
-    copy_button = make_lucide_push_button(COPY_BUTTON_LABEL, COPY_BUTTON_ICON)
+def add_copy_button(
+    button_layout: QHBoxLayout,
+    click_handler: Callable[[], None],
+    *,
+    label: str = COPY_BUTTON_LABEL,
+) -> QPushButton:
+    copy_button = make_lucide_push_button(label, COPY_BUTTON_ICON)
     copy_button.clicked.connect(click_handler)
     button_layout.addWidget(copy_button)
     return copy_button

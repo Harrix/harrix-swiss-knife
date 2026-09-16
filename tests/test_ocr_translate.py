@@ -42,7 +42,7 @@ def test_parse_ocr_translate_foreign_with_translation() -> None:
     assert result.is_local is False
     assert result.original == "Hello\nworld"
     assert result.translation == "Привет\nмир"
-    assert result.display_text == "Привет\nмир"
+    assert result.display_text == "Hello\nworld"
 
 
 def test_parse_ocr_translate_falls_back_to_plain_text() -> None:

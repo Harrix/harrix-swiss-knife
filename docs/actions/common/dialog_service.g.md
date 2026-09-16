@@ -1495,6 +1495,9 @@ class ActionDialogService:
         before_label: str = "Before",
         after_label: str = "After",
         highlight_changes: bool = True,
+        copy_before: bool = False,
+        copy_after_button: bool = False,
+        copy_after_button_label: str = COPY_TRANSLATION_BUTTON_LABEL,
     ) -> tuple[str | None, int]:
         """Show read-only before/after diff with inline change highlighting."""
         result_text_holder = [after_text]
@@ -1513,6 +1516,9 @@ class ActionDialogService:
                 before_label=before_label,
                 after_label=after_label,
                 highlight_changes=highlight_changes,
+                copy_before=copy_before,
+                copy_after_button=copy_after_button,
+                copy_after_button_label=copy_after_button_label,
             ),
             stretch_row=0,
         )
@@ -3665,7 +3671,7 @@ def show_instructions(self, instructions: str, title: str = "Instructions") -> s
 ### ⚙️ Method `show_text_diff_side_by_side`
 
 ```python
-def show_text_diff_side_by_side(self, before_text: str, after_text: str, title: str = 'Diff (Before/After)', *, rerun_button: bool = False, rerun_button_label: str = RERUN_BUTTON_LABEL, rerun_button_icon: str = RERUN_BUTTON_ICON, remove_paragraphs_button: bool = False, before_label: str = 'Before', after_label: str = 'After', highlight_changes: bool = True) -> tuple[str | None, int]
+def show_text_diff_side_by_side(self, before_text: str, after_text: str, title: str = 'Diff (Before/After)', *, rerun_button: bool = False, rerun_button_label: str = RERUN_BUTTON_LABEL, rerun_button_icon: str = RERUN_BUTTON_ICON, remove_paragraphs_button: bool = False, before_label: str = 'Before', after_label: str = 'After', highlight_changes: bool = True, copy_before: bool = False, copy_after_button: bool = False, copy_after_button_label: str = COPY_TRANSLATION_BUTTON_LABEL) -> tuple[str | None, int]
 ```
 
 Show read-only before/after diff with inline change highlighting.
@@ -3687,6 +3693,9 @@ def show_text_diff_side_by_side(
         before_label: str = "Before",
         after_label: str = "After",
         highlight_changes: bool = True,
+        copy_before: bool = False,
+        copy_after_button: bool = False,
+        copy_after_button_label: str = COPY_TRANSLATION_BUTTON_LABEL,
     ) -> tuple[str | None, int]:
         result_text_holder = [after_text]
         result, _dialog = self._exec_standard_dialog(
@@ -3704,6 +3713,9 @@ def show_text_diff_side_by_side(
                 before_label=before_label,
                 after_label=after_label,
                 highlight_changes=highlight_changes,
+                copy_before=copy_before,
+                copy_after_button=copy_after_button,
+                copy_after_button_label=copy_after_button_label,
             ),
             stretch_row=0,
         )

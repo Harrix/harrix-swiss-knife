@@ -60,6 +60,7 @@ from harrix_swiss_knife.actions.common.dialog_widgets import (
 )
 from harrix_swiss_knife.actions.common.text_diff_dialog import build_text_diff_side_by_side
 from harrix_swiss_knife.actions.common.text_result_dialog import (
+    COPY_TRANSLATION_BUTTON_LABEL,
     OK_BUTTON_LABEL,
     RERUN_BUTTON_ICON,
     RERUN_BUTTON_LABEL,
@@ -1547,6 +1548,9 @@ class ActionDialogService:
         before_label: str = "Before",
         after_label: str = "After",
         highlight_changes: bool = True,
+        copy_before: bool = False,
+        copy_after_button: bool = False,
+        copy_after_button_label: str = COPY_TRANSLATION_BUTTON_LABEL,
     ) -> tuple[str | None, int]:
         """Show read-only before/after diff with inline change highlighting."""
         result_text_holder = [after_text]
@@ -1565,6 +1569,9 @@ class ActionDialogService:
                 before_label=before_label,
                 after_label=after_label,
                 highlight_changes=highlight_changes,
+                copy_before=copy_before,
+                copy_after_button=copy_after_button,
+                copy_after_button_label=copy_after_button_label,
             ),
             stretch_row=0,
         )

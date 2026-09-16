@@ -9,7 +9,7 @@ lang: en
 ## 🔧 Function `build_text_diff_side_by_side`
 
 ```python
-def build_text_diff_side_by_side(before_text: str, after_text: str, default_size: QSize, show_toast: Callable[[str], None], *, rerun_button: bool = False, rerun_button_label: str = RERUN_BUTTON_LABEL, rerun_button_icon: str = RERUN_BUTTON_ICON, remove_paragraphs_button: bool = False, result_text_holder: list[str] | None = None, before_label: str = 'Before', after_label: str = 'After', highlight_changes: bool = True) -> Callable[[QDialog, QVBoxLayout], None]
+def build_text_diff_side_by_side(before_text: str, after_text: str, default_size: QSize, show_toast: Callable[[str], None], *, rerun_button: bool = False, rerun_button_label: str = RERUN_BUTTON_LABEL, rerun_button_icon: str = RERUN_BUTTON_ICON, remove_paragraphs_button: bool = False, result_text_holder: list[str] | None = None, before_label: str = 'Before', after_label: str = 'After', highlight_changes: bool = True, copy_before: bool = False, copy_after_button: bool = False, copy_after_button_label: str = COPY_TRANSLATION_BUTTON_LABEL) -> Callable[[QDialog, QVBoxLayout], None]
 ```
 
 Return dialog layout builder for before/after diff view.
@@ -32,6 +32,9 @@ def build_text_diff_side_by_side(
     before_label: str = "Before",
     after_label: str = "After",
     highlight_changes: bool = True,
+    copy_before: bool = False,
+    copy_after_button: bool = False,
+    copy_after_button_label: str = COPY_TRANSLATION_BUTTON_LABEL,
 ) -> Callable[[QDialog, QVBoxLayout], None]:
 
     def _make_selection(
@@ -142,10 +145,23 @@ def build_text_diff_side_by_side(
         button_layout.addStretch(1)
 
         def click_copy_button() -> None:
-            QGuiApplication.clipboard().setText(after_edit.toPlainText())
+            text = before_edit.toPlainText() if copy_before else after_edit.toPlainText()
+            QGuiApplication.clipboard().setText(text)
             show_toast("Copied to Clipboard")
 
         add_copy_button(button_layout, click_copy_button)
+
+        if copy_after_button:
+
+            def click_copy_after_button() -> None:
+                QGuiApplication.clipboard().setText(after_edit.toPlainText())
+                show_toast("Translation copied to Clipboard")
+
+            add_copy_button(
+                button_layout,
+                click_copy_after_button,
+                label=copy_after_button_label,
+            )
 
         def on_remove_paragraphs() -> None:
             collapsed = collapse_text_to_single_line(after_edit.toPlainText())

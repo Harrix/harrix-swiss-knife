@@ -37,6 +37,7 @@ TRANSLATE_BUTTON_ICON = "languages"
 REMOVE_PARAGRAPHS_BUTTON_LABEL = "To single line"
 REMOVE_PARAGRAPHS_BUTTON_ICON = "text-wrap"
 COPY_BUTTON_LABEL = "Copy to Clipboard"
+COPY_TRANSLATION_BUTTON_LABEL = "Copy translation to Clipboard"
 SAVE_MARKDOWN_BUTTON_LABEL = "Save Markdown"
 OPEN_FOLDER_BUTTON_LABEL = "Open folder"
 OPEN_FOLDER_BUTTON_ICON = "folder-open"
@@ -44,9 +45,14 @@ OK_BUTTON_LABEL = "OK"
 CANCEL_BUTTON_LABEL = "Cancel"
 
 
-def add_copy_button(button_layout: QHBoxLayout, click_handler: Callable[[], None]) -> QPushButton:
+def add_copy_button(
+    button_layout: QHBoxLayout,
+    click_handler: Callable[[], None],
+    *,
+    label: str = COPY_BUTTON_LABEL,
+) -> QPushButton:
     """Add a copy-to-clipboard button with a Lucide icon."""
-    copy_button = make_lucide_push_button(COPY_BUTTON_LABEL, COPY_BUTTON_ICON)
+    copy_button = make_lucide_push_button(label, COPY_BUTTON_ICON)
     copy_button.clicked.connect(click_handler)
     button_layout.addWidget(copy_button)
     return copy_button

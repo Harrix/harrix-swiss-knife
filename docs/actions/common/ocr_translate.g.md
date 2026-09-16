@@ -43,9 +43,7 @@ class OcrTranslateResult:
 
     @property
     def display_text(self) -> str:
-        """Text to copy: translation when present, otherwise original."""
-        if not self.is_local and self.translation.strip():
-            return self.translation
+        """Text to copy by default: original OCR text."""
         return self.original
 ```
 
@@ -57,15 +55,13 @@ class OcrTranslateResult:
 def display_text(self) -> str
 ```
 
-Text to copy: translation when present, otherwise original.
+Text to copy by default: original OCR text.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def display_text(self) -> str:
-        if not self.is_local and self.translation.strip():
-            return self.translation
         return self.original
 ```
 
@@ -190,21 +186,21 @@ def present_recognized_text(
 def show_ocr_translate_result(action: ActionBase, result: OcrTranslateResult) -> None
 ```
 
-Show original-only or original+translation dialog and copy the primary text.
+Show original-only or original+translation dialog and copy the original text.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def show_ocr_translate_result(action: ActionBase, result: OcrTranslateResult) -> None:
-    display = result.display_text.strip()
-    if not display and not result.original.strip():
+    original = result.original.strip()
+    if not original and not result.translation.strip():
         action.add_line("No text recognized")
         action.show_toast("No text recognized")
         action.show_result(display_text="")
         return
 
-    action.text_to_clipboard(display)
+    action.text_to_clipboard(original or result.translation.strip())
     action.add_line("📋 Text copied to clipboard")
 
     if result.is_local or not result.translation.strip():
@@ -224,6 +220,8 @@ def show_ocr_translate_result(action: ActionBase, result: OcrTranslateResult) ->
         before_label="Original",
         after_label="Translation",
         highlight_changes=False,
+        copy_before=True,
+        copy_after_button=True,
     )
     action.show_toast("✅ Recognized and translated")
 ```
@@ -265,7 +263,7 @@ def start_text_translation(action: ActionBase, original: str) -> None:
         if not translation:
             message_box.warning(None, "Translate", "AI returned an empty translation")
             return
-        action.text_to_clipboard(translation)
+        action.text_to_clipboard(source)
         action.dialogs.show_text_diff_side_by_side(
             source,
             translation,
@@ -274,6 +272,8 @@ def start_text_translation(action: ActionBase, original: str) -> None:
             before_label="Original",
             after_label="Translation",
             highlight_changes=False,
+            copy_before=True,
+            copy_after_button=True,
         )
         action.show_toast("✅ Translated")
 
