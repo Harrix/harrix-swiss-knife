@@ -101,29 +101,74 @@ _COLOR_TITLE = "#111827"
 _COLOR_TITLE_ON_DARK = "#F9FAFB"
 _SPLITTER_HOVER = "#9CA3AF"
 _TIMER_BUTTON_ICON_ACTIVE = "#122A3A"
+_TIMER_BUTTON_ICON_ON_FILLED = "#F9FAFB"
 _TIMER_BUTTON_ICON_DISABLED = "#C4C4C8"
+_TIMER_ROLE_START = "start"
+_TIMER_ROLE_STOP = "stop"
 
-_TIMER_BUTTON_STYLE = f"""
+
+def _timer_button_style(
+    *,
+    background: str,
+    border: str,
+    hover_background: str,
+    hover_border: str,
+    pressed_background: str,
+    pressed_border: str,
+    disabled_background: str = "#FBFBFC",
+    disabled_border: str = "#F0F0F2",
+) -> str:
+    return f"""
 QPushButton {{
-    background-color: #F5F5F7;
-    border: 1px solid #E5E5E8;
+    background-color: {background};
+    border: 1px solid {border};
     border-radius: {TOOLBAR_BORDER_RADIUS}px;
     padding: 0px;
     margin: 0px;
 }}
 QPushButton:hover:!disabled {{
-    background-color: #ECECEF;
-    border-color: #D8D8DC;
+    background-color: {hover_background};
+    border-color: {hover_border};
 }}
 QPushButton:pressed:!disabled {{
-    background-color: #E2E2E6;
-    border-color: #C8C8CC;
+    background-color: {pressed_background};
+    border-color: {pressed_border};
 }}
 QPushButton:disabled {{
-    background-color: #FBFBFC;
-    border: 1px solid #F0F0F2;
+    background-color: {disabled_background};
+    border: 1px solid {disabled_border};
 }}
 """
+
+
+_TIMER_BUTTON_STYLE = _timer_button_style(
+    background="#F5F5F7",
+    border="#E5E5E8",
+    hover_background="#ECECEF",
+    hover_border="#D8D8DC",
+    pressed_background="#E2E2E6",
+    pressed_border="#C8C8CC",
+)
+_TIMER_BUTTON_START_STYLE = _timer_button_style(
+    background="#16A34A",
+    border="#15803D",
+    hover_background="#15803D",
+    hover_border="#166534",
+    pressed_background="#166534",
+    pressed_border="#14532D",
+    disabled_background="#E5E7EB",
+    disabled_border="#D1D5DB",
+)
+_TIMER_BUTTON_STOP_STYLE = _timer_button_style(
+    background="#DC2626",
+    border="#B91C1C",
+    hover_background="#B91C1C",
+    hover_border="#991B1B",
+    pressed_background="#991B1B",
+    pressed_border="#7F1D1D",
+    disabled_background="#FEE2E2",
+    disabled_border="#FECACA",
+)
 
 _PANE_STYLE = """
 QFrame#fitnessLightboxPane {
@@ -653,10 +698,20 @@ class FitnessLightboxSidebar(QFrame):
         spin.valueChanged.connect(self._on_value_changed)
         return spin
 
-    def _build_timer_button(self, name: str, tooltip: str, object_name: str) -> QPushButton:
+    def _build_timer_button(
+        self,
+        name: str,
+        tooltip: str,
+        object_name: str,
+        *,
+        style: str = _TIMER_BUTTON_STYLE,
+        role: str = "",
+    ) -> QPushButton:
         button = QPushButton()
         button.setObjectName(object_name)
         button.setProperty("_fitness_timer_icon", name)
+        if role:
+            button.setProperty("_fitness_timer_role", role)
         apply_lucide_button_icon(
             button,
             name,
@@ -669,7 +724,8 @@ class FitnessLightboxSidebar(QFrame):
         button.setDefault(False)
         button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         button.setFixedSize(TOOLBAR_BUTTON_SIZE, TOOLBAR_BUTTON_SIZE)
-        button.setStyleSheet(_TIMER_BUTTON_STYLE)
+        button.setStyleSheet(style)
+        self._refresh_timer_button_icon(button)
         return button
 
     def _build_ui(self) -> None:
@@ -696,9 +752,21 @@ class FitnessLightboxSidebar(QFrame):
         _apply_pixel_font(self._limit_label, pixel_size=14)
         self._limit_label.hide()
 
-        self._start_button = self._build_timer_button("play", "Start", "fitnessLightboxStartButton")
+        self._start_button = self._build_timer_button(
+            "play",
+            "Start",
+            "fitnessLightboxStartButton",
+            style=_TIMER_BUTTON_START_STYLE,
+            role=_TIMER_ROLE_START,
+        )
         self._pause_button = self._build_timer_button("pause", "Pause", "fitnessLightboxPauseButton")
-        self._stop_button = self._build_timer_button("square", "Stop", "fitnessLightboxStopButton")
+        self._stop_button = self._build_timer_button(
+            "square",
+            "Stop",
+            "fitnessLightboxStopButton",
+            style=_TIMER_BUTTON_STOP_STYLE,
+            role=_TIMER_ROLE_STOP,
+        )
         restart = self._build_timer_button("rotate-cw", "Restart", "fitnessLightboxRestartButton")
         self._start_button.clicked.connect(self._on_start)
         self._pause_button.clicked.connect(self._on_pause)
@@ -865,7 +933,13 @@ class FitnessLightboxSidebar(QFrame):
         name = button.property("_fitness_timer_icon")
         if not isinstance(name, str) or not name:
             return
-        color = _TIMER_BUTTON_ICON_ACTIVE if button.isEnabled() else _TIMER_BUTTON_ICON_DISABLED
+        role = button.property("_fitness_timer_role")
+        if button.isEnabled() and role in {_TIMER_ROLE_START, _TIMER_ROLE_STOP}:
+            color = _TIMER_BUTTON_ICON_ON_FILLED
+        elif button.isEnabled():
+            color = _TIMER_BUTTON_ICON_ACTIVE
+        else:
+            color = _TIMER_BUTTON_ICON_DISABLED
         apply_lucide_button_icon(button, name, icon_size=TOOLBAR_ICON_SIZE, color=color)
         button.setCursor(
             Qt.CursorShape.PointingHandCursor if button.isEnabled() else Qt.CursorShape.ArrowCursor,

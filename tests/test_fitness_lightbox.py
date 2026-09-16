@@ -598,6 +598,8 @@ def test_fitness_lightbox_space_toggles_timer_and_button_states(
     assert start.isEnabled()
     assert not pause.isEnabled()
     assert not stop.isEnabled()
+    assert "#16A34A" in start.styleSheet()
+    assert "#DC2626" in stop.styleSheet()
     assert stop.property("_harrix_lucide_name") == "square"
 
     dialog.show()
