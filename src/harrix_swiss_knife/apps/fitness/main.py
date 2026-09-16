@@ -212,7 +212,11 @@ from harrix_swiss_knife.apps.fitness.mixins import (
     requires_database,
 )
 from harrix_swiss_knife.apps.fitness.progress_calculator import ExerciseProgressCalculator
-from harrix_swiss_knife.apps.fitness.schema import ensure_fitness_indexes, ensure_fitness_schema
+from harrix_swiss_knife.apps.fitness.schema import (
+    ensure_fitness_indexes,
+    ensure_fitness_schema,
+    migrate_minute_exercise_units_to_seconds,
+)
 from harrix_swiss_knife.apps.fitness.sets_ai import (
     ExerciseCatalogEntry,
     ParsedSetRow,
@@ -6325,6 +6329,7 @@ class MainWindow(
         if db_path.exists():
             ensure_fitness_schema(db_path)
             ensure_fitness_indexes(db_path)
+            migrate_minute_exercise_units_to_seconds(db_path)
 
         def _on_db_opened(db_manager: database_manager.DatabaseManager) -> None:
             self.progress_calculator = ExerciseProgressCalculator(db_manager)
@@ -6339,6 +6344,11 @@ class MainWindow(
             missing_table_label="process table",
             on_opened=_on_db_opened,
         )
+        opened_path = Path(getattr(self.db_manager, "_db_filename", "") or db_path)
+        if opened_path.exists():
+            ensure_fitness_schema(opened_path)
+            ensure_fitness_indexes(opened_path)
+            migrate_minute_exercise_units_to_seconds(opened_path)
         self._dumbbell_exercise_names_cache = None
         self._init_avif_manager()
 

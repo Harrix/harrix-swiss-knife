@@ -617,6 +617,8 @@ class FitnessLightboxSidebar(QFrame):
         self._stop_at_limit = False
         self._limit_label_kind = "slot" if self._slot_limit_seconds else ""
         self._bound_unit = ""
+        self._seconds_value_mode = False
+        self._planned_value = 0
         self._stopwatch = ExerciseStopwatch(
             countdown_seconds=self._countdown_seconds,
             limit_seconds=self._limit_seconds,
@@ -652,8 +654,8 @@ class FitnessLightboxSidebar(QFrame):
         """Show `exercise_name` and reset or resume the stopwatch."""
         self._title.setText(exercise_name or "Exercise")
         self._bound_unit = details.unit
+        self._apply_value_input_mode(details.unit)
         self._unit_label.setText(details.unit)
-        self._unit_label.setVisible(bool(details.unit))
         self._type_combo.blockSignals(True)  # noqa: FBT003
         self._type_combo.clear()
         self._type_combo.addItems(details.types)
@@ -663,10 +665,9 @@ class FitnessLightboxSidebar(QFrame):
                 self._type_combo.setCurrentIndex(index)
         self._type_combo.blockSignals(False)  # noqa: FBT003
         self._type_combo.setVisible(bool(details.types))
-        self._value_spin.blockSignals(True)  # noqa: FBT003
-        self._value_spin.setValue(details.value)
-        self._value_spin.blockSignals(False)  # noqa: FBT003
-        self._configure_limit_for_exercise(details.unit, details.value)
+        self._planned_value = max(0, int(details.value))
+        self._set_value_total(self._planned_value)
+        self._configure_limit_for_exercise(details.unit, self._planned_value)
         if timer_state is not None and timer_state.phase is not StopwatchPhase.IDLE:
             self.restore_timer_state(timer_state)
         else:
@@ -735,7 +736,12 @@ class FitnessLightboxSidebar(QFrame):
             self._on_start()
 
     def value(self) -> int:
-        """Return the numeric set value."""
+        """Return the numeric set value (seconds when the unit is timed)."""
+        if self._seconds_value_mode:
+            return minutes_seconds_to_total(
+                self._value_minutes_spin.value(),
+                self._value_seconds_spin.value(),
+            )
         return int(self._value_spin.value())
 
     def _apply_snapshot(self, snapshot: StopwatchSnapshot) -> None:
@@ -776,6 +782,7 @@ class FitnessLightboxSidebar(QFrame):
         else:
             self._overtime_announced = False
             stop_fitness_timer_alert()
+        self._sync_value_fields_with_timer(snapshot, previous_phase=previous_phase)
         self._sync_timer_buttons(snapshot)
         if self._limit_seconds:
             prefix = "Target" if self._limit_label_kind == "target" else "Slot"
@@ -785,6 +792,12 @@ class FitnessLightboxSidebar(QFrame):
             self._limit_label.hide()
         self._last_phase = snapshot.phase
         self.playback_changed.emit(lightbox_playback_view(snapshot))
+
+    def _apply_value_input_mode(self, unit: str) -> None:
+        self._seconds_value_mode = is_seconds_exercise_unit(unit)
+        self._value_spin.setVisible(not self._seconds_value_mode)
+        self._value_duration_wrap.setVisible(self._seconds_value_mode)
+        self._unit_label.setVisible(bool(unit) and not self._seconds_value_mode)
 
     def _build_action_button(self) -> QPushButton:
         button = QPushButton("Add")
@@ -797,6 +810,20 @@ class FitnessLightboxSidebar(QFrame):
         _apply_pixel_font(button, pixel_size=20, weight=QFont.Weight.Bold)
         button.clicked.connect(self.confirm_requested.emit)
         return button
+
+    def _build_duration_spin(self, object_name: str, *, maximum: int, suffix: str) -> QSpinBox:
+        spin = QSpinBox()
+        spin.setObjectName(object_name)
+        spin.setRange(0, maximum)
+        spin.setSuffix(suffix)
+        spin.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        spin.setButtonSymbols(QSpinBox.ButtonSymbols.NoButtons)
+        spin.setFixedSize(_DURATION_SPIN_WIDTH, _DURATION_SPIN_HEIGHT)
+        spin.setStyleSheet(_VALUE_STYLE)
+        _apply_pixel_font(spin, pixel_size=28, weight=QFont.Weight.ExtraBold)
+        spin.lineEdit().returnPressed.connect(self.confirm_requested.emit)
+        spin.valueChanged.connect(self._on_value_changed)
+        return spin
 
     def _build_timer_button(self, name: str, tooltip: str, object_name: str) -> QPushButton:
         button = QPushButton()
@@ -878,11 +905,30 @@ class FitnessLightboxSidebar(QFrame):
         self._value_spin.setRange(0, _VALUE_MAXIMUM)
         self._value_spin.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._value_spin.setButtonSymbols(QSpinBox.ButtonSymbols.NoButtons)
-        self._value_spin.setMinimumSize(220, 72)
+        self._value_spin.setMinimumSize(220, _DURATION_SPIN_HEIGHT)
         self._value_spin.setStyleSheet(_VALUE_STYLE)
         _apply_pixel_font(self._value_spin, pixel_size=40, weight=QFont.Weight.ExtraBold)
         self._value_spin.lineEdit().returnPressed.connect(self.confirm_requested.emit)
         self._value_spin.valueChanged.connect(self._on_value_changed)
+
+        self._value_duration_wrap = QWidget()
+        self._value_duration_wrap.setObjectName("fitnessLightboxValueDuration")
+        duration_layout = QHBoxLayout(self._value_duration_wrap)
+        duration_layout.setContentsMargins(0, 0, 0, 0)
+        duration_layout.setSpacing(8)
+        self._value_minutes_spin = self._build_duration_spin(
+            "fitnessLightboxValueMinutesSpin",
+            maximum=10_000,
+            suffix=" min",
+        )
+        self._value_seconds_spin = self._build_duration_spin(
+            "fitnessLightboxValueSecondsSpin",
+            maximum=59,
+            suffix=" sec",
+        )
+        duration_layout.addWidget(self._value_minutes_spin)
+        duration_layout.addWidget(self._value_seconds_spin)
+        self._value_duration_wrap.hide()
 
         self._unit_label = QLabel("")
         self._unit_label.setObjectName("fitnessLightboxUnit")
@@ -907,6 +953,7 @@ class FitnessLightboxSidebar(QFrame):
         layout.addStretch(2)
         layout.addWidget(self._type_combo)
         layout.addWidget(self._value_spin, 0, Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(self._value_duration_wrap, 0, Qt.AlignmentFlag.AlignHCenter)
         layout.addWidget(self._unit_label)
         layout.addWidget(add_wrap, 0, Qt.AlignmentFlag.AlignHCenter)
 
@@ -944,7 +991,8 @@ class FitnessLightboxSidebar(QFrame):
         self._ready_announced = False
         self._spoken_countdown.clear()
         self._overtime_announced = False
-        self._configure_limit_for_exercise(self._bound_unit, self.value())
+        self._configure_limit_for_exercise(self._bound_unit, self._planned_value)
+        self._set_value_total(self._planned_value)
         self._tick.start()
         self._apply_snapshot(self._stopwatch.restart())
 
@@ -974,10 +1022,11 @@ class FitnessLightboxSidebar(QFrame):
     def _on_tick(self) -> None:
         self._apply_snapshot(self._stopwatch.advance(_TICK_MS))
 
-    def _on_value_changed(self, value: int) -> None:
+    def _on_value_changed(self, _value: int = 0) -> None:
         if self._stopwatch.snapshot().phase is not StopwatchPhase.IDLE:
             return
-        self._configure_limit_for_exercise(self._bound_unit, value)
+        self._planned_value = self.value()
+        self._configure_limit_for_exercise(self._bound_unit, self._planned_value)
         self._apply_snapshot(self._stopwatch.snapshot())
 
     def _refresh_timer_button_icon(self, button: QPushButton) -> None:
@@ -991,6 +1040,21 @@ class FitnessLightboxSidebar(QFrame):
             Qt.CursorShape.PointingHandCursor if button.isEnabled() else Qt.CursorShape.ArrowCursor,
         )
 
+    def _set_value_total(self, total_seconds: int) -> None:
+        total = max(0, int(total_seconds))
+        if self._seconds_value_mode:
+            minutes, seconds = split_total_seconds(total)
+            self._value_minutes_spin.blockSignals(True)  # noqa: FBT003
+            self._value_seconds_spin.blockSignals(True)  # noqa: FBT003
+            self._value_minutes_spin.setValue(minutes)
+            self._value_seconds_spin.setValue(seconds)
+            self._value_minutes_spin.blockSignals(False)  # noqa: FBT003
+            self._value_seconds_spin.blockSignals(False)  # noqa: FBT003
+            return
+        self._value_spin.blockSignals(True)  # noqa: FBT003
+        self._value_spin.setValue(total)
+        self._value_spin.blockSignals(False)  # noqa: FBT003
+
     def _sync_timer_buttons(self, snapshot: StopwatchSnapshot) -> None:
         """Enable timer actions that are valid for the current state."""
         self._start_button.setEnabled(not snapshot.is_running)
@@ -1001,6 +1065,23 @@ class FitnessLightboxSidebar(QFrame):
         self._refresh_timer_button_icon(self._start_button)
         self._refresh_timer_button_icon(self._pause_button)
         self._refresh_timer_button_icon(self._stop_button)
+
+    def _sync_value_fields_with_timer(
+        self,
+        snapshot: StopwatchSnapshot,
+        *,
+        previous_phase: StopwatchPhase | None,
+    ) -> None:
+        if not self._seconds_value_mode:
+            return
+        if snapshot.phase is StopwatchPhase.RUNNING:
+            self._set_value_total(snapshot.display_seconds)
+            return
+        if snapshot.phase is StopwatchPhase.FINISHED and previous_phase in {
+            StopwatchPhase.RUNNING,
+            StopwatchPhase.FINISHED,
+        }:
+            self._set_value_total(snapshot.display_seconds)
 ```
 
 </details>
@@ -1035,6 +1116,8 @@ def __init__(
         self._stop_at_limit = False
         self._limit_label_kind = "slot" if self._slot_limit_seconds else ""
         self._bound_unit = ""
+        self._seconds_value_mode = False
+        self._planned_value = 0
         self._stopwatch = ExerciseStopwatch(
             countdown_seconds=self._countdown_seconds,
             limit_seconds=self._limit_seconds,
@@ -1098,8 +1181,8 @@ def bind(
     ) -> None:
         self._title.setText(exercise_name or "Exercise")
         self._bound_unit = details.unit
+        self._apply_value_input_mode(details.unit)
         self._unit_label.setText(details.unit)
-        self._unit_label.setVisible(bool(details.unit))
         self._type_combo.blockSignals(True)  # noqa: FBT003
         self._type_combo.clear()
         self._type_combo.addItems(details.types)
@@ -1109,10 +1192,9 @@ def bind(
                 self._type_combo.setCurrentIndex(index)
         self._type_combo.blockSignals(False)  # noqa: FBT003
         self._type_combo.setVisible(bool(details.types))
-        self._value_spin.blockSignals(True)  # noqa: FBT003
-        self._value_spin.setValue(details.value)
-        self._value_spin.blockSignals(False)  # noqa: FBT003
-        self._configure_limit_for_exercise(details.unit, details.value)
+        self._planned_value = max(0, int(details.value))
+        self._set_value_total(self._planned_value)
+        self._configure_limit_for_exercise(details.unit, self._planned_value)
         if timer_state is not None and timer_state.phase is not StopwatchPhase.IDLE:
             self.restore_timer_state(timer_state)
         else:
@@ -1315,13 +1397,18 @@ def toggle_timer(self) -> None:
 def value(self) -> int
 ```
 
-Return the numeric set value.
+Return the numeric set value (seconds when the unit is timed).
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def value(self) -> int:
+        if self._seconds_value_mode:
+            return minutes_seconds_to_total(
+                self._value_minutes_spin.value(),
+                self._value_seconds_spin.value(),
+            )
         return int(self._value_spin.value())
 ```
 

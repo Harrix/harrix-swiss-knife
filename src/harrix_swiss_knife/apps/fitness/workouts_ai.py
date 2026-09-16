@@ -4,6 +4,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from harrix_swiss_knife.apps.fitness.lightbox_logic import (
+    is_minute_exercise_unit,
+    is_seconds_exercise_unit,
+)
 from harrix_swiss_knife.apps.fitness.sets_ai import (
     ExerciseCatalogEntry,
     ParsedSetRow,
@@ -18,8 +22,6 @@ MIN_WORKOUT_DURATION_MIN = 1
 MAX_WORKOUT_DURATION_MIN = 240
 _SECONDS_PER_REP = 5
 _REST_SECONDS_BETWEEN = 45
-_MINUTE_UNITS = frozenset({"min", "minute", "minutes", "m"})
-_SECOND_UNITS = frozenset({"sec", "second", "seconds", "s"})
 
 
 @dataclass(frozen=True)
@@ -295,10 +297,9 @@ def resolve_workout_item(
 
 def _item_duration_seconds(value_text: str, unit: str) -> float:
     value = _parse_numeric_value(value_text)
-    normalized = (unit or "times").strip().casefold()
-    if normalized in _MINUTE_UNITS:
+    if is_minute_exercise_unit(unit):
         return value * 60
-    if normalized in _SECOND_UNITS:
+    if is_seconds_exercise_unit(unit):
         return value
     return value * _SECONDS_PER_REP
 

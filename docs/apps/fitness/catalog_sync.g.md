@@ -60,6 +60,7 @@ def create_empty_fitness_database(db_path: Path, recover_sql_path: Path) -> None
     with sqlite3.connect(str(db_path)) as conn:
         conn.executescript(sql)
         conn.commit()
+    migrate_minute_exercise_units_to_seconds(db_path)
 ```
 
 </details>
@@ -320,6 +321,8 @@ def upsert_fitness_catalog(db_path: Path, catalog: dict[str, Any]) -> CatalogUps
                     )
                     types_updated += 1
         conn.commit()
+
+    migrate_minute_exercise_units_to_seconds(db_path)
 
     return CatalogUpsertStats(
         exercises_inserted=exercises_inserted,

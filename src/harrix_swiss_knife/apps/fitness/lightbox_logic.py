@@ -284,6 +284,15 @@ def format_mm_ss(total_seconds: int) -> str:
     return f"{minutes}:{seconds:02d}"
 
 
+def is_minute_exercise_unit(unit: str) -> bool:
+    """Return whether `unit` stores duration as a number of minutes.
+
+    Bare `m` is meters (walking/distance), not minutes — use `min` / `min.`.
+
+    """
+    return normalize_exercise_unit(unit) in _MINUTE_UNITS
+
+
 def is_seconds_exercise_unit(unit: str) -> bool:
     """Return whether `unit` stores duration as a number of seconds."""
     return normalize_exercise_unit(unit) in _SECOND_UNITS
@@ -374,5 +383,6 @@ def target_seconds_for_exercise(unit: str, value: int) -> int | None:
     return None
 
 
-_MINUTE_UNITS = frozenset({"min", "minute", "minutes", "m"})
+# Do not include bare "m" — that is meters for walking/distance exercises.
+_MINUTE_UNITS = frozenset({"min", "minute", "minutes", "mins"})
 _SECOND_UNITS = frozenset({"sec", "second", "seconds", "secs", "s"})

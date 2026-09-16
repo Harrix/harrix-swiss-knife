@@ -72,6 +72,10 @@ def _plank_details(_name: str, _item_id: int | None) -> FitnessLightboxDetails:
     return FitnessLightboxDetails(unit="sec.", types=[], selected_type="", value=5)
 
 
+def _long_plank_details(_name: str, _item_id: int | None) -> FitnessLightboxDetails:
+    return FitnessLightboxDetails(unit="sec.", types=[], selected_type="", value=90)
+
+
 def _item(
     *,
     item_id: int,
@@ -128,6 +132,7 @@ def test_seconds_exercise_unit_and_minute_second_split() -> None:
     assert is_seconds_exercise_unit("seconds")
     assert not is_seconds_exercise_unit("min")
     assert not is_seconds_exercise_unit("times")
+    assert not is_seconds_exercise_unit("m")
     assert split_total_seconds(90) == (1, 30)
     assert split_total_seconds(5) == (0, 5)
     assert split_total_seconds(0) == (0, 0)
@@ -358,6 +363,84 @@ def test_fitness_lightbox_stops_on_timed_exercise_target(
     assert dialog._sidebar._time_label.text() == "0:05"
     assert not dialog._sidebar._stopwatch.snapshot().is_running
     assert dialog._sidebar._stopwatch.snapshot().phase is StopwatchPhase.FINISHED
+    dialog.close()
+
+
+def test_fitness_lightbox_seconds_value_uses_minutes_seconds_and_syncs(
+    tmp_path: Path,
+    qapp: QApplication,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    img_dir = tmp_path / "fitness_img"
+    img_dir.mkdir()
+    _write_test_avif(img_dir / "Plank.avif")
+    manager = AvifManager(img_dir)
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.fitness.fitness_lightbox.play_fitness_timer_cue",
+        lambda _cue: None,
+    )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.fitness.fitness_lightbox.stop_fitness_timer_alert",
+        lambda: None,
+    )
+    dialog = FitnessExerciseLightboxDialog(
+        ["Plank"],
+        avif_manager=manager,
+        details_loader=_long_plank_details,
+        confirm_handler=lambda _payload: True,
+        countdown_seconds=0,
+        workout_duration_min=10,
+        workout_items=[_item(item_id=1, name="Plank", sort_order=0, target="90")],
+    )
+    sidebar = dialog._sidebar
+    assert sidebar._value_spin.isHidden()
+    assert not sidebar._value_duration_wrap.isHidden()
+    assert sidebar._unit_label.isHidden()
+    assert sidebar._value_minutes_spin.value() == 1
+    assert sidebar._value_seconds_spin.value() == 30
+    assert sidebar.value() == 90
+
+    sidebar._on_start()
+    assert sidebar.value() == 0
+    sidebar._apply_snapshot(sidebar._stopwatch.advance(65_000))
+    assert sidebar._time_label.text() == "1:05"
+    assert sidebar._value_minutes_spin.value() == 1
+    assert sidebar._value_seconds_spin.value() == 5
+    assert sidebar.value() == 65
+    dialog.close()
+
+
+def test_fitness_lightbox_rep_value_keeps_single_spin(
+    tmp_path: Path,
+    qapp: QApplication,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    img_dir = tmp_path / "fitness_img"
+    img_dir.mkdir()
+    _write_test_avif(img_dir / "Push-ups.avif")
+    manager = AvifManager(img_dir)
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.fitness.fitness_lightbox.play_fitness_timer_cue",
+        lambda _cue: None,
+    )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.fitness.fitness_lightbox.stop_fitness_timer_alert",
+        lambda: None,
+    )
+    dialog = FitnessExerciseLightboxDialog(
+        ["Push-ups"],
+        avif_manager=manager,
+        details_loader=_details,
+        confirm_handler=lambda _payload: True,
+        countdown_seconds=0,
+    )
+    sidebar = dialog._sidebar
+    assert not sidebar._value_spin.isHidden()
+    assert sidebar._value_duration_wrap.isHidden()
+    assert sidebar._value_spin.value() == 10
+    sidebar._on_start()
+    sidebar._apply_snapshot(sidebar._stopwatch.advance(3000))
+    assert sidebar._value_spin.value() == 10
     dialog.close()
 
 

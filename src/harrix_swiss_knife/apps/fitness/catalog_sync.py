@@ -13,6 +13,8 @@ import sqlite3
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
+from harrix_swiss_knife.apps.fitness.schema import migrate_minute_exercise_units_to_seconds
+
 if TYPE_CHECKING:
     from pathlib import Path
 
@@ -34,6 +36,7 @@ def create_empty_fitness_database(db_path: Path, recover_sql_path: Path) -> None
     with sqlite3.connect(str(db_path)) as conn:
         conn.executescript(sql)
         conn.commit()
+    migrate_minute_exercise_units_to_seconds(db_path)
 
 
 def export_fitness_catalog(db_path: Path) -> dict[str, Any]:
@@ -246,6 +249,8 @@ def upsert_fitness_catalog(db_path: Path, catalog: dict[str, Any]) -> CatalogUps
                     )
                     types_updated += 1
         conn.commit()
+
+    migrate_minute_exercise_units_to_seconds(db_path)
 
     return CatalogUpsertStats(
         exercises_inserted=exercises_inserted,

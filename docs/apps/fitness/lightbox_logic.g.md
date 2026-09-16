@@ -33,6 +33,7 @@ lang: en
 - [🔧 Function `allocated_exercise_seconds`](#-function-allocated_exercise_seconds)
 - [🔧 Function `default_exercise_type`](#-function-default_exercise_type)
 - [🔧 Function `format_mm_ss`](#-function-format_mm_ss)
+- [🔧 Function `is_minute_exercise_unit`](#-function-is_minute_exercise_unit)
 - [🔧 Function `is_seconds_exercise_unit`](#-function-is_seconds_exercise_unit)
 - [🔧 Function `is_timed_exercise_unit`](#-function-is_timed_exercise_unit)
 - [🔧 Function `lightbox_playback_view`](#-function-lightbox_playback_view)
@@ -735,6 +736,26 @@ def format_mm_ss(total_seconds: int) -> str:
     total = max(0, int(total_seconds))
     minutes, seconds = divmod(total, _SECONDS_PER_MINUTE)
     return f"{minutes}:{seconds:02d}"
+```
+
+</details>
+
+## 🔧 Function `is_minute_exercise_unit`
+
+```python
+def is_minute_exercise_unit(unit: str) -> bool
+```
+
+Return whether `unit` stores duration as a number of minutes.
+
+Bare `m` is meters (walking/distance), not minutes — use `min` / `min.`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def is_minute_exercise_unit(unit: str) -> bool:
+    return normalize_exercise_unit(unit) in _MINUTE_UNITS
 ```
 
 </details>

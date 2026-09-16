@@ -7,11 +7,15 @@ import sqlite3
 from typing import TYPE_CHECKING
 
 from harrix_swiss_knife.apps.common.db_indexes import ensure_sqlite_indexes, table_exists
+from harrix_swiss_knife.apps.fitness.lightbox_logic import is_minute_exercise_unit
 
 if TYPE_CHECKING:
     from pathlib import Path
 
 logger = logging.getLogger(__name__)
+
+_SECONDS_UNIT = "sec."
+_SECONDS_PER_MINUTE = 60
 
 _WORKOUTS_SQL = """
 CREATE TABLE IF NOT EXISTS workouts (
@@ -92,3 +96,102 @@ def ensure_fitness_schema(db_path: Path) -> bool:
         conn.commit()
         logger.info("Created Fitness workout tables in %s", db_path)
         return True
+
+
+def migrate_minute_exercise_units_to_seconds(db_path: Path) -> int:
+    """Convert exercise units stored in minutes to seconds (idempotent).
+
+    For every exercise whose unit is minutes (`min`, `min.`, …):
+
+    - set unit to `sec.`
+    - divide `calories_per_unit` by 60
+    - multiply `process.value` and `workout_items.target_value` by 60
+
+    Safe to run on every app open: already-converted exercises are skipped.
+    Distance unit `m` (meters) is not treated as minutes.
+
+    Args:
+
+    - `db_path` (`Path`): Path to `fitness.db`.
+
+    Returns:
+
+    - `int`: Number of exercises converted.
+
+    """
+    if not db_path.is_file():
+        return 0
+
+    with sqlite3.connect(str(db_path)) as conn:
+        if not table_exists(conn, "exercises") or not table_exists(conn, "process"):
+            return 0
+
+        exercise_rows = conn.execute("SELECT _id, unit, calories_per_unit FROM exercises").fetchall()
+        minute_exercises: list[tuple[int, float]] = []
+        for exercise_id, unit, calories_per_unit in exercise_rows:
+            if not is_minute_exercise_unit(str(unit or "")):
+                continue
+            try:
+                calories = float(calories_per_unit or 0)
+            except (TypeError, ValueError):
+                calories = 0.0
+            minute_exercises.append((int(exercise_id), calories))
+
+        if not minute_exercises:
+            return 0
+
+        exercise_ids = [exercise_id for exercise_id, _calories in minute_exercises]
+        placeholders = ",".join("?" * len(exercise_ids))
+
+        for exercise_id, calories in minute_exercises:
+            conn.execute(
+                "UPDATE exercises SET unit = ?, calories_per_unit = ? WHERE _id = ?",
+                (_SECONDS_UNIT, calories / _SECONDS_PER_MINUTE, exercise_id),
+            )
+
+        process_rows = conn.execute(
+            f"SELECT _id, value FROM process WHERE _id_exercises IN ({placeholders})",
+            exercise_ids,
+        ).fetchall()
+        for process_id, value in process_rows:
+            scaled = _scale_minutes_value_to_seconds(value)
+            if scaled is None:
+                continue
+            conn.execute("UPDATE process SET value = ? WHERE _id = ?", (scaled, process_id))
+
+        if table_exists(conn, "workout_items"):
+            item_rows = conn.execute(
+                f"SELECT _id, target_value FROM workout_items WHERE _id_exercises IN ({placeholders})",
+                exercise_ids,
+            ).fetchall()
+            for item_id, target_value in item_rows:
+                scaled = _scale_minutes_value_to_seconds(target_value)
+                if scaled is None:
+                    continue
+                conn.execute(
+                    "UPDATE workout_items SET target_value = ? WHERE _id = ?",
+                    (scaled, item_id),
+                )
+
+        conn.commit()
+        logger.info(
+            "Converted %s minute-unit exercise(s) to seconds in %s",
+            len(minute_exercises),
+            db_path,
+        )
+        return len(minute_exercises)
+
+
+def _scale_minutes_value_to_seconds(raw: object) -> str | None:
+    """Multiply a stored minute quantity by 60; return `None` when not numeric."""
+    text = str(raw or "").strip()
+    if not text:
+        return None
+    try:
+        amount = float(text.replace(",", "."))
+    except ValueError:
+        return None
+    scaled = amount * _SECONDS_PER_MINUTE
+    if scaled == int(scaled):
+        return str(int(scaled))
+    return str(scaled)
