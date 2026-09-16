@@ -241,12 +241,10 @@ class DayMacrosDialog(AdviceMacrosDialogBase):
         analysis: FoodDayMacrosAnalysis | None,
         status: DayMacrosStatus,
         *,
-        thresholds: CalorieThresholds | None = None,
         local_language_label: str = "Local",
     ) -> None:
         """Open the day macros dialog for `day`."""
         self.day = day
-        self._thresholds = thresholds or CalorieThresholds()
         super().__init__(
             parent,
             title=f"Day macros — {day}",
@@ -291,10 +289,8 @@ class DayMacrosDialog(AdviceMacrosDialogBase):
         self._set_macro_row(
             self._kcal_row,
             _format_vs_norm(analysis.kcal, analysis.norm_kcal, "kcal"),
-            _combine_tones(
-                macro_tone(analysis.kcal, analysis.norm_kcal),
-                kcal_tone(analysis.kcal, self._thresholds),
-            ),
+            # Same as P/F/C: in-range vs AI norm → black bold (ignore calorie-band warn).
+            macro_tone(analysis.kcal, analysis.norm_kcal),
         )
         self._apply_text(
             status=status,
@@ -326,7 +322,7 @@ class DayMacrosDialog(AdviceMacrosDialogBase):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None, day: str, analysis: FoodDayMacrosAnalysis | None, status: DayMacrosStatus, *, thresholds: CalorieThresholds | None = None, local_language_label: str = 'Local') -> None
+def __init__(self, parent: QWidget | None, day: str, analysis: FoodDayMacrosAnalysis | None, status: DayMacrosStatus, *, local_language_label: str = 'Local') -> None
 ```
 
 Open the day macros dialog for [`day`](../habits/dashboard_widgets.g.md#%EF%B8%8F-method-day).
@@ -342,11 +338,9 @@ def __init__(
         analysis: FoodDayMacrosAnalysis | None,
         status: DayMacrosStatus,
         *,
-        thresholds: CalorieThresholds | None = None,
         local_language_label: str = "Local",
     ) -> None:
         self.day = day
-        self._thresholds = thresholds or CalorieThresholds()
         super().__init__(
             parent,
             title=f"Day macros — {day}",
@@ -405,10 +399,8 @@ def set_analysis(self, analysis: FoodDayMacrosAnalysis | None, status: DayMacros
         self._set_macro_row(
             self._kcal_row,
             _format_vs_norm(analysis.kcal, analysis.norm_kcal, "kcal"),
-            _combine_tones(
-                macro_tone(analysis.kcal, analysis.norm_kcal),
-                kcal_tone(analysis.kcal, self._thresholds),
-            ),
+            # Same as P/F/C: in-range vs AI norm → black bold (ignore calorie-band warn).
+            macro_tone(analysis.kcal, analysis.norm_kcal),
         )
         self._apply_text(
             status=status,

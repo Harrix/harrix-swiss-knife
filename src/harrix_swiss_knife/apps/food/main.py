@@ -2917,7 +2917,6 @@ class MainWindow(
             day_key,
             analysis,
             status,
-            thresholds=calorie_thresholds_from_config(self._app_config),
             local_language_label=get_apps_local_language_display_name(self._app_config),
         )
         self._day_macros_dialog = dialog

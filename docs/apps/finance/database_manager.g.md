@@ -2406,13 +2406,13 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             )
             existing = {(row[0], int(row[1])) for row in rows}
             if ("Revision Income", 1) not in existing:
-                self.add_category("Revision Income", 1, "🧾", "Корректировка дохода")
+                self.add_category("Revision Income", 1, "🧾", "Корректировка дохода")  # ignore: HP001
             if ("Revision Expense", 0) not in existing:
-                self.add_category("Revision Expense", 0, "🧾", "Корректировка расхода")
+                self.add_category("Revision Expense", 0, "🧾", "Корректировка расхода")  # ignore: HP001
             if ("Family Transfer In", 1) not in existing:
-                self.add_category("Family Transfer In", 1, "🔄", "Перевод от семьи")
+                self.add_category("Family Transfer In", 1, "🔄", "Перевод от семьи")  # ignore: HP001
             if ("Family Transfer Out", 0) not in existing:
-                self.add_category("Family Transfer Out", 0, "🔄", "Перевод семье")
+                self.add_category("Family Transfer Out", 0, "🔄", "Перевод семье")  # ignore: HP001
             self._migrate_balance_correction_to_revision_expense()
         except Exception:
             logger.exception("Could not ensure system categories")

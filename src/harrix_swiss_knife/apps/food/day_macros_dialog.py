@@ -20,12 +20,10 @@ from PySide6.QtWidgets import (
 from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.actions.common.dialog_geometry import centered_top_left
 from harrix_swiss_knife.apps.food.day_macros import (
-    CalorieThresholds,
     DayMacrosStatus,
     FoodDayMacrosAnalysis,
     FoodRangeMacrosAnalysis,
     MacroTone,
-    kcal_tone,
     macro_tone,
     percent_of_norm,
 )
@@ -215,12 +213,10 @@ class DayMacrosDialog(AdviceMacrosDialogBase):
         analysis: FoodDayMacrosAnalysis | None,
         status: DayMacrosStatus,
         *,
-        thresholds: CalorieThresholds | None = None,
         local_language_label: str = "Local",
     ) -> None:
         """Open the day macros dialog for `day`."""
         self.day = day
-        self._thresholds = thresholds or CalorieThresholds()
         super().__init__(
             parent,
             title=f"Day macros — {day}",
@@ -265,10 +261,8 @@ class DayMacrosDialog(AdviceMacrosDialogBase):
         self._set_macro_row(
             self._kcal_row,
             _format_vs_norm(analysis.kcal, analysis.norm_kcal, "kcal"),
-            _combine_tones(
-                macro_tone(analysis.kcal, analysis.norm_kcal),
-                kcal_tone(analysis.kcal, self._thresholds),
-            ),
+            # Same as P/F/C: in-range vs AI norm → black bold (ignore calorie-band warn).
+            macro_tone(analysis.kcal, analysis.norm_kcal),
         )
         self._apply_text(
             status=status,
@@ -367,11 +361,6 @@ class RangeMacrosDialog(AdviceMacrosDialogBase):
             notes_en=analysis.notes_en.strip(),
             empty_message="",
         )
-
-
-def _combine_tones(a: MacroTone, b: MacroTone) -> MacroTone:
-    order = {"good": 0, "neutral": 1, "warn": 2, "bad": 3}
-    return a if order[a] >= order[b] else b
 
 
 def _format_vs_norm(value: float, norm: float, unit: str) -> str:
