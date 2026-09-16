@@ -75,6 +75,8 @@ _PLUS_BADGE_COLOR = "#22c55e"
 _PLUS_BADGE_SIZE = 11
 _LIGHT_TEXT_THRESHOLD = 160
 _MIN_COLOR_ROW_HEIGHT = 28
+_ZONE_TITLE_COLOR = "#202020"
+_ZONE_PANEL_MARGINS = (10, 8, 10, 0)
 _SELECTION_BG = "#e9e9e9"
 _SELECTION_OUTLINE = "#b0b0b0"
 _SELECTION_RADIUS = 4
@@ -309,7 +311,10 @@ class ZonePanel(QWidget):
         header = QHBoxLayout()
         header.setContentsMargins(0, 0, 0, 0)
         title_label = QLabel(title)
-        title_label.setEnabled(False)
+        title_font = title_label.font()
+        title_font.setBold(True)
+        title_label.setFont(title_font)
+        title_label.setStyleSheet(f"color: {_ZONE_TITLE_COLOR};")
         header.addWidget(title_label)
         if zone == ZONE_EMOJI:
             pick = QToolButton(self)
@@ -327,7 +332,7 @@ class ZonePanel(QWidget):
         header.addStretch()
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(*_ZONE_PANEL_MARGINS)
         layout.setSpacing(8)
         layout.addLayout(header)
         if zone == ZONE_EMOJI:

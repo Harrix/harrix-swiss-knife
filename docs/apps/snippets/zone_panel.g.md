@@ -470,7 +470,10 @@ class ZonePanel(QWidget):
         header = QHBoxLayout()
         header.setContentsMargins(0, 0, 0, 0)
         title_label = QLabel(title)
-        title_label.setEnabled(False)
+        title_font = title_label.font()
+        title_font.setBold(True)
+        title_label.setFont(title_font)
+        title_label.setStyleSheet(f"color: {_ZONE_TITLE_COLOR};")
         header.addWidget(title_label)
         if zone == ZONE_EMOJI:
             pick = QToolButton(self)
@@ -488,7 +491,7 @@ class ZonePanel(QWidget):
         header.addStretch()
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(*_ZONE_PANEL_MARGINS)
         layout.setSpacing(8)
         layout.addLayout(header)
         if zone == ZONE_EMOJI:
@@ -894,7 +897,10 @@ def __init__(
         header = QHBoxLayout()
         header.setContentsMargins(0, 0, 0, 0)
         title_label = QLabel(title)
-        title_label.setEnabled(False)
+        title_font = title_label.font()
+        title_font.setBold(True)
+        title_label.setFont(title_font)
+        title_label.setStyleSheet(f"color: {_ZONE_TITLE_COLOR};")
         header.addWidget(title_label)
         if zone == ZONE_EMOJI:
             pick = QToolButton(self)
@@ -912,7 +918,7 @@ def __init__(
         header.addStretch()
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(*_ZONE_PANEL_MARGINS)
         layout.setSpacing(8)
         layout.addLayout(header)
         if zone == ZONE_EMOJI:
