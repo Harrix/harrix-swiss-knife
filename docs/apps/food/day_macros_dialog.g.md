@@ -54,7 +54,7 @@ class AdviceMacrosDialogBase(QDialog):
         """Build the shared macros dialog chrome."""
         super().__init__(parent)
         self.setWindowTitle(title)
-        self.setMinimumSize(560, 640)
+        self.setMinimumSize(400, 400)
         self.resize(600, 720)
         qt_modality.set_owner_window_modal(self)
         self._local_tab_label = local_language_label.strip() or "Local"
@@ -191,7 +191,7 @@ def __init__(
     ) -> None:
         super().__init__(parent)
         self.setWindowTitle(title)
-        self.setMinimumSize(560, 640)
+        self.setMinimumSize(400, 400)
         self.resize(600, 720)
         qt_modality.set_owner_window_modal(self)
         self._local_tab_label = local_language_label.strip() or "Local"
@@ -253,6 +253,7 @@ class DayMacrosDialog(AdviceMacrosDialogBase):
             local_language_label=local_language_label,
             show_macro_rows=True,
         )
+        self._size_and_center_on_parent()
         self.set_analysis(analysis, status)
 
     def set_analysis(self, analysis: FoodDayMacrosAnalysis | None, status: DayMacrosStatus) -> None:
@@ -304,6 +305,20 @@ class DayMacrosDialog(AdviceMacrosDialogBase):
             notes_en=analysis.notes_en.strip(),
             empty_message="",
         )
+
+    def _size_and_center_on_parent(self) -> None:
+        """Resize to 50% width and 80% height of the parent window and center on it."""
+        parent = self.parentWidget()
+        if parent is None:
+            self.resize(_DAY_MACROS_FALLBACK_SIZE)
+            return
+        area = parent.frameGeometry()
+        size = QSize(
+            max(1, int(area.width() * _DAY_MACROS_WIDTH_RATIO)),
+            max(1, int(area.height() * _DAY_MACROS_HEIGHT_RATIO)),
+        )
+        self.resize(size)
+        self.move(centered_top_left(area, size))
 ```
 
 </details>
@@ -338,6 +353,7 @@ def __init__(
             local_language_label=local_language_label,
             show_macro_rows=True,
         )
+        self._size_and_center_on_parent()
         self.set_analysis(analysis, status)
 ```
 

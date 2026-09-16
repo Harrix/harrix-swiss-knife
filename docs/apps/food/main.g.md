@@ -46,6 +46,7 @@ lang: en
   - [⚙️ Method `on_food_stats_update`](#%EF%B8%8F-method-on_food_stats_update)
   - [⚙️ Method `on_kcal_with_ai`](#%EF%B8%8F-method-on_kcal_with_ai)
   - [⚙️ Method `on_main_food_item_selection_changed`](#%EF%B8%8F-method-on_main_food_item_selection_changed)
+  - [⚙️ Method `on_open_photos`](#%EF%B8%8F-method-on_open_photos)
   - [⚙️ Method `on_portion_weight_with_ai_from_calories`](#%EF%B8%8F-method-on_portion_weight_with_ai_from_calories)
   - [⚙️ Method `on_show_all_records_clicked`](#%EF%B8%8F-method-on_show_all_records_clicked)
   - [⚙️ Method `on_show_food_items`](#%EF%B8%8F-method-on_show_food_items)
@@ -916,6 +917,38 @@ class MainWindow(
                 food_name = extract_food_name_from_display(item.text())
                 self._process_food_item_selection(food_name)
 
+    def on_open_photos(self) -> None:
+        """Open `path_photos` from config in the configured image viewer."""
+        path_viewer = str(self._app_config.get("path_image_viewer") or "").strip()
+        if not path_viewer:
+            message_box.warning(
+                self,
+                "Photos",
+                "path_image_viewer is not set in config.json.\n"
+                "Set it to the full path of your image viewer executable.",
+            )
+            return
+        viewer_path = Path(path_viewer)
+        if not viewer_path.is_file():
+            message_box.warning(
+                self,
+                "Photos",
+                f"Image viewer not found:\n{path_viewer}",
+            )
+            return
+        path_photos = str(self._app_config.get("path_photos") or "").strip()
+        if not path_photos:
+            message_box.warning(self, "Photos", "path_photos is not set in config.json.")
+            return
+        folder = Path(path_photos)
+        if not folder.is_dir():
+            message_box.warning(self, "Photos", f"Folder does not exist:\n{folder}")
+            return
+        try:
+            subprocess.Popen([str(viewer_path), str(folder)], shell=False)
+        except OSError as exc:
+            message_box.warning(self, "Photos", f"Could not open photos:\n{exc}")
+
     def on_portion_weight_with_ai_from_calories(self) -> None:
         """Determine portion weight and drink flag via BotHub for calories-mode entry."""
         if self.radioButton_use_weight.isChecked():
@@ -1442,6 +1475,36 @@ class MainWindow(
             return
         message_box.warning(self, "Error", "Failed to update selected food log rows")
 
+    def _apply_food_log_daily_total_colors(self, model: QStandardItemModel) -> None:
+        """Color Total-per-day cells from `food_calorie_thresholds` in config."""
+        thresholds = calorie_thresholds_from_config(self._app_config)
+        model.blockSignals(True)  # noqa: FBT003
+        try:
+            for row in range(model.rowCount()):
+                total_item = model.item(row, FOOD_LOG_COL_TOTAL_PER_DAY)
+                if total_item is None:
+                    continue
+                anchor = model.item(row, 0)
+                date_brush = anchor.background() if anchor is not None else QBrush()
+                total_text = total_item.text().strip()
+                if not total_text:
+                    total_item.setBackground(date_brush)
+                    font = total_item.font()
+                    font.setBold(False)
+                    total_item.setFont(font)
+                    continue
+                try:
+                    band = calorie_band_rgb(float(total_text), thresholds)
+                except (TypeError, ValueError):
+                    total_item.setBackground(date_brush)
+                    continue
+                total_item.setBackground(QBrush(QColor(*band)))
+                font = total_item.font()
+                font.setBold(True)
+                total_item.setFont(font)
+        finally:
+            model.blockSignals(False)  # noqa: FBT003
+
     def _apply_food_splitter_sizes(self) -> None:
         """Restore Food-tab splitter widths so the items list is not squeezed."""
         if getattr(self, "_is_closing", False) or not hasattr(self, "splitter_food"):
@@ -1774,6 +1837,7 @@ class MainWindow(
         """
         model = QStandardItemModel()
         model.setHorizontalHeaderLabels(headers)
+        thresholds = calorie_thresholds_from_config(self._app_config)
 
         for row_idx, row in enumerate(data):
             # Extract color information (last element) and ID
@@ -1794,9 +1858,18 @@ class MainWindow(
                     item.setEditable(False)
 
                 # Make total per day column non-editable (column 8)
-                id_column_total_per_day = 8
-                if col_idx == id_column_total_per_day:
+                if col_idx == FOOD_LOG_COL_TOTAL_PER_DAY:
                     item.setEditable(False)
+                    total_text = str(value).strip() if value is not None else ""
+                    if total_text:
+                        try:
+                            band = calorie_band_rgb(float(total_text), thresholds)
+                            item.setBackground(QBrush(QColor(*band)))
+                            font = item.font()
+                            font.setBold(True)
+                            item.setFont(font)
+                        except (TypeError, ValueError):
+                            pass
 
                 # Check if this is today's record and make it bold
                 today = QDateTime.currentDateTime().toString("yyyy-MM-dd")
@@ -1839,6 +1912,7 @@ class MainWindow(
         """
         model = QStandardItemModel()
         model.setHorizontalHeaderLabels(headers)
+        thresholds = calorie_thresholds_from_config(self._app_config)
 
         for _row_idx, row in enumerate(data):
             items = []
@@ -1848,23 +1922,7 @@ class MainWindow(
             if len(row) > 1:
                 try:
                     calories = float(row[1]) if row[1] else 0.0
-                    thresholds = self._app_config.get("food_calorie_thresholds", {})
-                    low_threshold = thresholds.get("low", 1800)
-                    medium_low_threshold = thresholds.get("medium_low", 2100)
-                    medium_high_threshold = thresholds.get("medium_high", 2500)
-
-                    if calories <= low_threshold:
-                        # Green for low calories
-                        row_color = QColor(144, 238, 144)
-                    elif calories <= medium_low_threshold:
-                        # Green-yellow for medium-low calories
-                        row_color = QColor(255, 255, 224)
-                    elif calories <= medium_high_threshold:
-                        # Yellow for medium-high calories
-                        row_color = QColor(255, 228, 196)
-                    else:
-                        # Red for high calories
-                        row_color = QColor(255, 192, 203)
+                    row_color = QColor(*calorie_band_rgb(calories, thresholds))
                 except (ValueError, TypeError):
                     # If calories can't be parsed, use default background
                     pass
@@ -3154,6 +3212,7 @@ class MainWindow(
                 break
 
         refresh_food_log_calorie_columns(source_model)
+        self._apply_food_log_daily_total_colors(source_model)
         self.tableView_food_log.viewport().update()
 
         if date_column_changed or edited_summary_day:
@@ -3740,6 +3799,18 @@ class MainWindow(
         charts.insertWidget(3, self.pushButton_food_stats_macros_fat)
         charts.insertWidget(4, self.pushButton_food_stats_macros_carb)
 
+    def _setup_open_photos_action(self) -> None:
+        """Add Commands → Open photos (`path_photos` in the image viewer)."""
+        menu = getattr(self, "menuCommands", None)
+        if menu is None:
+            return
+        menu.addSeparator()
+        action = QAction("Open photos", self)
+        action.setObjectName("action_open_photos")
+        action.triggered.connect(self.on_open_photos)
+        menu.addAction(action)
+        set_action_text_with_lucide_icon(action, "📸 Open photos")
+
     def _setup_status_bar(self) -> None:
         """Ensure status bar is visible and readable on Windows 11 Mica backdrop."""
         status_bar = self.statusBar()
@@ -3772,6 +3843,7 @@ class MainWindow(
         self.action_add_as_text.setText(f"📝 {self.action_add_as_text.text()}")
         self.action_show_all_records.setText(f"📊 {self.action_show_all_records.text()}")
         self.action_check.setText(f"🔍 {self.action_check.text()}")
+        self._setup_open_photos_action()
         self._apply_exit_about_menu_emojis()
         self.pushButton_food_manual_name_clear.setToolTip("Clear food name input")
         apply_lucide_button_icon(self.pushButton_food_manual_name_clear, CLEAR_BUTTON_ICON)
@@ -6220,6 +6292,52 @@ def on_main_food_item_selection_changed(self, current: QModelIndex, _previous: Q
             if item:
                 food_name = extract_food_name_from_display(item.text())
                 self._process_food_item_selection(food_name)
+```
+
+</details>
+
+### ⚙️ Method `on_open_photos`
+
+```python
+def on_open_photos(self) -> None
+```
+
+Open `path_photos` from config in the configured image viewer.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_open_photos(self) -> None:
+        path_viewer = str(self._app_config.get("path_image_viewer") or "").strip()
+        if not path_viewer:
+            message_box.warning(
+                self,
+                "Photos",
+                "path_image_viewer is not set in config.json.\n"
+                "Set it to the full path of your image viewer executable.",
+            )
+            return
+        viewer_path = Path(path_viewer)
+        if not viewer_path.is_file():
+            message_box.warning(
+                self,
+                "Photos",
+                f"Image viewer not found:\n{path_viewer}",
+            )
+            return
+        path_photos = str(self._app_config.get("path_photos") or "").strip()
+        if not path_photos:
+            message_box.warning(self, "Photos", "path_photos is not set in config.json.")
+            return
+        folder = Path(path_photos)
+        if not folder.is_dir():
+            message_box.warning(self, "Photos", f"Folder does not exist:\n{folder}")
+            return
+        try:
+            subprocess.Popen([str(viewer_path), str(folder)], shell=False)
+        except OSError as exc:
+            message_box.warning(self, "Photos", f"Could not open photos:\n{exc}")
 ```
 
 </details>

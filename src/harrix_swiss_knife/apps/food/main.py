@@ -1095,7 +1095,7 @@ class MainWindow(
             message_box.warning(self, "Photos", f"Folder does not exist:\n{folder}")
             return
         try:
-            subprocess.Popen([str(viewer_path), str(folder)], shell=False)  # noqa: S603
+            subprocess.Popen([str(viewer_path), str(folder)], shell=False)
         except OSError as exc:
             message_box.warning(self, "Photos", f"Could not open photos:\n{exc}")
 
@@ -1625,25 +1625,6 @@ class MainWindow(
             return
         message_box.warning(self, "Error", "Failed to update selected food log rows")
 
-    def _apply_food_splitter_sizes(self) -> None:
-        """Restore Food-tab splitter widths so the items list is not squeezed."""
-        if getattr(self, "_is_closing", False) or not hasattr(self, "splitter_food"):
-            return
-
-        total = self.splitter_food.width()
-        if total <= 0:
-            total = max(self.width(), 1200)
-
-        left = max(self.frame_food_controls.minimumWidth(), 420)
-        remaining = max(total - left, 0)
-        min_table_width = 400
-        middle = max(self.widget_food_middle.minimumWidth(), remaining // 4)
-        right = remaining - middle
-        if right < min_table_width:
-            right = min(min_table_width, remaining // 2)
-            middle = remaining - right
-        self.splitter_food.setSizes([left, middle, right])
-
     def _apply_food_log_daily_total_colors(self, model: QStandardItemModel) -> None:
         """Color Total-per-day cells from `food_calorie_thresholds` in config."""
         thresholds = calorie_thresholds_from_config(self._app_config)
@@ -1673,6 +1654,25 @@ class MainWindow(
                 total_item.setFont(font)
         finally:
             model.blockSignals(False)  # noqa: FBT003
+
+    def _apply_food_splitter_sizes(self) -> None:
+        """Restore Food-tab splitter widths so the items list is not squeezed."""
+        if getattr(self, "_is_closing", False) or not hasattr(self, "splitter_food"):
+            return
+
+        total = self.splitter_food.width()
+        if total <= 0:
+            total = max(self.width(), 1200)
+
+        left = max(self.frame_food_controls.minimumWidth(), 420)
+        remaining = max(total - left, 0)
+        min_table_width = 400
+        middle = max(self.widget_food_middle.minimumWidth(), remaining // 4)
+        right = remaining - middle
+        if right < min_table_width:
+            right = min(min_table_width, remaining // 2)
+            middle = remaining - right
+        self.splitter_food.setSizes([left, middle, right])
 
     def _apply_kcal_lookup_result(self, result: KcalLookupResult) -> None:
         """Fill manual food entry fields from a parsed kcal lookup result."""

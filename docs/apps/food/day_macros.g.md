@@ -18,6 +18,7 @@ lang: en
 - [🏛️ Class `FoodDayMacrosAnalysis`](#%EF%B8%8F-class-fooddaymacrosanalysis)
 - [🏛️ Class `FoodRangeMacrosAnalysis`](#%EF%B8%8F-class-foodrangemacrosanalysis)
 - [🏛️ Class `RangeMacrosResult`](#%EF%B8%8F-class-rangemacrosresult)
+- [🔧 Function `calorie_band_rgb`](#-function-calorie_band_rgb)
 - [🔧 Function `calorie_thresholds_from_config`](#-function-calorie_thresholds_from_config)
 - [🔧 Function `day_macros_prompt_key`](#-function-day_macros_prompt_key)
 - [🔧 Function `food_day_input_hash`](#-function-food_day_input_hash)
@@ -209,6 +210,33 @@ class RangeMacrosResult:
     notes: str
     verdict_en: str
     notes_en: str
+```
+
+</details>
+
+## 🔧 Function `calorie_band_rgb`
+
+```python
+def calorie_band_rgb(kcal: float, thresholds: CalorieThresholds) -> tuple[int, int, int]
+```
+
+Return pastel RGB for a daily kcal total vs configured bands.
+
+Bands match the kcal-per-day table and charts: low → green, medium-low →
+light yellow, medium-high → bisque, above medium-high → pink.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def calorie_band_rgb(kcal: float, thresholds: CalorieThresholds) -> tuple[int, int, int]:
+    if kcal <= thresholds.low:
+        return (144, 238, 144)
+    if kcal <= thresholds.medium_low:
+        return (255, 255, 224)
+    if kcal <= thresholds.medium_high:
+        return (255, 228, 196)
+    return (255, 192, 203)
 ```
 
 </details>

@@ -126,6 +126,22 @@ class RangeMacrosResult:
     notes_en: str
 
 
+def calorie_band_rgb(kcal: float, thresholds: CalorieThresholds) -> tuple[int, int, int]:
+    """Return pastel RGB for a daily kcal total vs configured bands.
+
+    Bands match the kcal-per-day table and charts: low → green, medium-low →
+    light yellow, medium-high → bisque, above medium-high → pink.
+
+    """
+    if kcal <= thresholds.low:
+        return (144, 238, 144)
+    if kcal <= thresholds.medium_low:
+        return (255, 255, 224)
+    if kcal <= thresholds.medium_high:
+        return (255, 228, 196)
+    return (255, 192, 203)
+
+
 def calorie_thresholds_from_config(config: Mapping[str, Any] | None) -> CalorieThresholds:
     """Parse `food_calorie_thresholds` from app config with defaults."""
     raw = (config or {}).get("food_calorie_thresholds", {})
@@ -136,21 +152,6 @@ def calorie_thresholds_from_config(config: Mapping[str, Any] | None) -> CalorieT
         medium_low=_as_positive_float(raw.get("medium_low"), 2100.0),
         medium_high=_as_positive_float(raw.get("medium_high"), 2500.0),
     )
-
-
-def calorie_band_rgb(kcal: float, thresholds: CalorieThresholds) -> tuple[int, int, int]:
-    """Return pastel RGB for a daily kcal total vs configured bands.
-
-    Bands match the kcal-per-day table and charts: low → green, medium-low →
-    light yellow, medium-high → bisque, above medium-high → pink.
-    """
-    if kcal <= thresholds.low:
-        return (144, 238, 144)
-    if kcal <= thresholds.medium_low:
-        return (255, 255, 224)
-    if kcal <= thresholds.medium_high:
-        return (255, 228, 196)
-    return (255, 192, 203)
 
 
 def day_macros_prompt_key() -> str:
