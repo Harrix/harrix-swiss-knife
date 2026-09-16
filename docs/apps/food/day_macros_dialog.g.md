@@ -51,6 +51,7 @@ class AdviceMacrosDialogBase(QDialog):
         local_language_label: str,
         show_macro_rows: bool,
     ) -> None:
+        """Build the shared macros dialog chrome."""
         super().__init__(parent)
         self.setWindowTitle(title)
         self.setMinimumSize(560, 640)
@@ -180,7 +181,7 @@ class AdviceMacrosDialogBase(QDialog):
 def __init__(self, parent: QWidget | None, *, title: str, local_language_label: str, show_macro_rows: bool) -> None
 ```
 
-_No docstring provided._
+Build the shared macros dialog chrome.
 
 <details>
 <summary>Code:</summary>
@@ -249,6 +250,7 @@ class DayMacrosDialog(AdviceMacrosDialogBase):
         thresholds: CalorieThresholds | None = None,
         local_language_label: str = "Local",
     ) -> None:
+        """Open the day macros dialog for `day`."""
         self.day = day
         self._thresholds = thresholds or CalorieThresholds()
         super().__init__(
@@ -318,7 +320,7 @@ class DayMacrosDialog(AdviceMacrosDialogBase):
 def __init__(self, parent: QWidget | None, day: str, analysis: FoodDayMacrosAnalysis | None, status: DayMacrosStatus, *, thresholds: CalorieThresholds | None = None, local_language_label: str = 'Local') -> None
 ```
 
-_No docstring provided._
+Open the day macros dialog for [`day`](../habits/dashboard_widgets.g.md#%EF%B8%8F-method-day).
 
 <details>
 <summary>Code:</summary>
@@ -426,6 +428,7 @@ One intake-vs-norm line with a tone icon and colored text.
 class MacroValueRow(QWidget):
 
     def __init__(self, parent: QWidget | None = None) -> None:
+        """Create the icon + text row."""
         super().__init__(parent)
         self._icon = QLabel()
         self._icon.setFixedSize(20, 20)
@@ -438,6 +441,7 @@ class MacroValueRow(QWidget):
         layout.addWidget(self._text, 1)
 
     def set_value(self, text: str, tone: MacroTone) -> None:
+        """Set the displayed value text and tone icon/color."""
         color = _TONE_COLORS[tone]
         self._text.setText(text)
         self._text.setStyleSheet(f"color: {color}; font-weight: 600;")
@@ -453,7 +457,7 @@ class MacroValueRow(QWidget):
 def __init__(self, parent: QWidget | None = None) -> None
 ```
 
-_No docstring provided._
+Create the icon + text row.
 
 <details>
 <summary>Code:</summary>
@@ -480,7 +484,7 @@ def __init__(self, parent: QWidget | None = None) -> None:
 def set_value(self, text: str, tone: MacroTone) -> None
 ```
 
-_No docstring provided._
+Set the displayed value text and tone icon/color.
 
 <details>
 <summary>Code:</summary>
@@ -520,6 +524,7 @@ class RangeMacrosDialog(AdviceMacrosDialogBase):
         *,
         local_language_label: str = "Local",
     ) -> None:
+        """Open the period macros dialog for `date_from`…`date_to`."""
         self.date_from = date_from
         self.date_to = date_to
         super().__init__(
@@ -562,7 +567,7 @@ class RangeMacrosDialog(AdviceMacrosDialogBase):
 def __init__(self, parent: QWidget | None, date_from: str, date_to: str, analysis: FoodRangeMacrosAnalysis | None, status: DayMacrosStatus, *, local_language_label: str = 'Local') -> None
 ```
 
-_No docstring provided._
+Open the period macros dialog for `date_from`…`date_to`.
 
 <details>
 <summary>Code:</summary>

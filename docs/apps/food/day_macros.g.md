@@ -352,14 +352,15 @@ Build a per-day macros block for the range-macros prompt.
 
 ```python
 def format_days_summary_for_range_prompt(analyses: Sequence[FoodDayMacrosAnalysis]) -> str:
-    lines: list[str] = []
-    for row in analyses:
-        lines.append(
+    lines = [
+        (
             f"{row.date}: P {row.protein_g:.0f}/{row.norm_protein_g:.0f} g, "
             f"F {row.fat_g:.0f}/{row.norm_fat_g:.0f} g, "
             f"C {row.carb_g:.0f}/{row.norm_carb_g:.0f} g, "
             f"kcal {row.kcal:.0f}/{row.norm_kcal:.0f}"
         )
+        for row in analyses
+    ]
     return "\n".join(lines) if lines else "(no day analyses)"
 ```
 

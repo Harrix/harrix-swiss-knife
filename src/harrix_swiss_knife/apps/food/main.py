@@ -2162,6 +2162,11 @@ class MainWindow(
             self.food_completer_source_model.deleteLater()
             self.food_completer_source_model = None
 
+    def _end_day_macros_toast_pin_chain(self) -> None:
+        """Stop carrying collapse state across macros toasts after the queue ends."""
+        self._bothub_state.toast_pin_chain = False
+        self._bothub_state.toast_pinned = None
+
     def _export_food_log_table(self, *, prefer: Literal["csv", "xlsx"]) -> None:
         """Export the food log source model as CSV or Excel."""
         proxy = self.models.get("food_log")
@@ -3519,6 +3524,8 @@ class MainWindow(
         if self.db_manager is None:
             return
         if not self._macros_analysis_queue:
+            pinned = bool(self._bothub_state.toast_pinned)
+            self._end_day_macros_toast_pin_chain()
             self._update_macros_analysis_table()
             self._update_macros_status_label()
             self._refresh_open_day_macros_dialog()
@@ -3540,7 +3547,7 @@ class MainWindow(
                     duration=2500,
                     parent=self,
                 )
-                toast.present()
+                toast.present(activate=not pinned, pinned=True if pinned else None)
             if open_range and not self._macros_analysis_failed:
                 date_from = self.dateEdit_food_stats_from.date().toString("yyyy-MM-dd")
                 date_to = self.dateEdit_food_stats_to.date().toString("yyyy-MM-dd")
@@ -3568,6 +3575,7 @@ class MainWindow(
             show_bothub_prompt_build_error(self, exc)
             self._macros_analysis_queue = []
             self._macros_open_range_after_queue = False
+            self._end_day_macros_toast_pin_chain()
             self._refresh_open_day_macros_dialog()
             return
 
@@ -3613,6 +3621,7 @@ class MainWindow(
         if not started:
             self._macros_analysis_queue = []
             self._macros_open_range_after_queue = False
+            self._end_day_macros_toast_pin_chain()
             self._refresh_open_day_macros_dialog()
 
     def _run_range_macros_request(self, date_from: str, date_to: str) -> None:
@@ -4355,6 +4364,9 @@ class MainWindow(
         self._macros_analysis_queue = unique_dates
         self._macros_analysis_done = 0
         self._macros_analysis_failed = []
+        # Keep collapse/expand across sequential day-analysis toasts in this queue.
+        self._bothub_state.toast_pin_chain = True
+        self._bothub_state.toast_pinned = None
         if self._day_macros_dialog is not None:
             self._day_macros_dialog.set_busy(busy=True)
         self._run_next_day_macros_request()
