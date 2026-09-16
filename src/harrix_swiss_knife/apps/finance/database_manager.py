@@ -2289,16 +2289,26 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             logger.exception("Could not ensure standard_items table")
 
     def _ensure_system_categories(self) -> None:
-        """Ensure revision categories exist and merge legacy Balance Correction."""
+        """Ensure revision and family-transfer categories exist; merge legacy Balance Correction."""
         try:
             rows = self.get_rows(
-                "SELECT name, type FROM categories WHERE name IN ('Revision Income', 'Revision Expense')"
+                """
+                SELECT name, type FROM categories
+                WHERE name IN (
+                    'Revision Income', 'Revision Expense',
+                    'Family Transfer In', 'Family Transfer Out'
+                )
+                """
             )
             existing = {(row[0], int(row[1])) for row in rows}
             if ("Revision Income", 1) not in existing:
-                self.add_category("Revision Income", 1, "🧾")
+                self.add_category("Revision Income", 1, "🧾", "Корректировка дохода")
             if ("Revision Expense", 0) not in existing:
-                self.add_category("Revision Expense", 0, "🧾")
+                self.add_category("Revision Expense", 0, "🧾", "Корректировка расхода")
+            if ("Family Transfer In", 1) not in existing:
+                self.add_category("Family Transfer In", 1, "🔄", "Перевод от семьи")
+            if ("Family Transfer Out", 0) not in existing:
+                self.add_category("Family Transfer Out", 0, "🔄", "Перевод семье")
             self._migrate_balance_correction_to_revision_expense()
         except Exception:
             logger.exception("Could not ensure system categories")

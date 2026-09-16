@@ -92,6 +92,7 @@ INSERT INTO categories (name, type, icon, name_local) VALUES ('Books', 0, '📖'
 INSERT INTO categories (name, type, icon, name_local) VALUES ('Cafe', 0, '☕', 'Кафе');
 INSERT INTO categories (name, type, icon, name_local) VALUES ('Clothing', 0, '👕', 'Одежда');
 INSERT INTO categories (name, type, icon, name_local) VALUES ('Education', 0, '📚', 'Образование');
+INSERT INTO categories (name, type, icon, name_local) VALUES ('Family Transfer Out', 0, '🔄', 'Перевод семье');
 INSERT INTO categories (name, type, icon, name_local) VALUES ('Food', 0, '🍔', 'Еда');
 INSERT INTO categories (name, type, icon, name_local) VALUES ('Furniture', 0, '🪑', 'Мебель');
 INSERT INTO categories (name, type, icon, name_local) VALUES ('Gifts', 0, '🎁', 'Подарки');
@@ -114,6 +115,7 @@ INSERT INTO categories (name, type, icon, name_local) VALUES ('Utilities', 0, '�
 INSERT INTO categories (name, type, icon, name_local) VALUES ('Contribution', 1, '🤝', 'Взнос');
 INSERT INTO categories (name, type, icon, name_local) VALUES ('Credit', 1, '💳', 'Кредит');
 INSERT INTO categories (name, type, icon, name_local) VALUES ('Debt Recovery', 1, '↩️', 'Возврат долга');
+INSERT INTO categories (name, type, icon, name_local) VALUES ('Family Transfer In', 1, '🔄', 'Перевод от семьи');
 INSERT INTO categories (name, type, icon, name_local) VALUES ('Freelance', 1, '💼', 'Фриланс');
 INSERT INTO categories (name, type, icon, name_local) VALUES ('Gifts me', 1, '🎉', 'Подарки мне');
 INSERT INTO categories (name, type, icon, name_local) VALUES ('Initial Capital', 1, '🏛️', 'Начальный капитал');
