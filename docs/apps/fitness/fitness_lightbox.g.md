@@ -127,6 +127,7 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
         )
         self._sidebar.confirm_requested.connect(self._on_confirm)
         self._sidebar.playback_changed.connect(self._apply_playback_view)
+        self._last_playback_view: LightboxPlaybackView | None = None
         self._timer_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Space), self)
         self._timer_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
         self._timer_shortcut.activated.connect(self._sidebar.toggle_timer)
@@ -189,12 +190,17 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
 
     def _apply_playback_view(self, view: LightboxPlaybackView) -> None:
         """Freeze or play the AVIF and show the Prepare / Finish veil."""
-        if view.freeze_first_frame:
+        previous = self._last_playback_view
+        freeze = view.freeze_first_frame
+        if freeze and (previous is None or not previous.freeze_first_frame):
             self._avif_manager.show_first_frame(AvifLabelKey.LIGHTBOX)
-        if view.animate:
-            self._avif_manager.resume_animation(AvifLabelKey.LIGHTBOX)
-        else:
-            self._avif_manager.pause_animation(AvifLabelKey.LIGHTBOX)
+        animate = view.animate
+        if previous is None or animate != previous.animate:
+            if animate:
+                self._avif_manager.resume_animation(AvifLabelKey.LIGHTBOX)
+            else:
+                self._avif_manager.pause_animation(AvifLabelKey.LIGHTBOX)
+        self._last_playback_view = view
         overlay = self._phase_overlay
         if overlay is not None:
             overlay.apply(view)
@@ -317,6 +323,7 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
             autoplay=view.animate,
         )
         self._loaded_size = self._label.size()
+        self._last_playback_view = None
         self._apply_playback_view(view)
         self._sync_speed_controls()
 
@@ -416,6 +423,7 @@ def __init__(
         )
         self._sidebar.confirm_requested.connect(self._on_confirm)
         self._sidebar.playback_changed.connect(self._apply_playback_view)
+        self._last_playback_view: LightboxPlaybackView | None = None
         self._timer_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Space), self)
         self._timer_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
         self._timer_shortcut.activated.connect(self._sidebar.toggle_timer)
@@ -625,6 +633,7 @@ class FitnessLightboxSidebar(QFrame):
             stop_at_limit=self._stop_at_limit,
         )
         self._last_phase: StopwatchPhase | None = None
+        self._last_synced_value_seconds: int | None = None
         self._overtime_announced = False
         self._ready_announced = False
         self._spoken_countdown: set[int] = set()
@@ -830,10 +839,20 @@ class FitnessLightboxSidebar(QFrame):
         spin.valueChanged.connect(self._on_value_changed)
         return spin
 
-    def _build_timer_button(self, name: str, tooltip: str, object_name: str) -> QPushButton:
+    def _build_timer_button(
+        self,
+        name: str,
+        tooltip: str,
+        object_name: str,
+        *,
+        style: str = _TIMER_BUTTON_STYLE,
+        role: str = "",
+    ) -> QPushButton:
         button = QPushButton()
         button.setObjectName(object_name)
         button.setProperty("_fitness_timer_icon", name)
+        if role:
+            button.setProperty("_fitness_timer_role", role)
         apply_lucide_button_icon(
             button,
             name,
@@ -846,7 +865,8 @@ class FitnessLightboxSidebar(QFrame):
         button.setDefault(False)
         button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         button.setFixedSize(TOOLBAR_BUTTON_SIZE, TOOLBAR_BUTTON_SIZE)
-        button.setStyleSheet(_TIMER_BUTTON_STYLE)
+        button.setStyleSheet(style)
+        self._refresh_timer_button_icon(button)
         return button
 
     def _build_ui(self) -> None:
@@ -873,9 +893,21 @@ class FitnessLightboxSidebar(QFrame):
         _apply_pixel_font(self._limit_label, pixel_size=14)
         self._limit_label.hide()
 
-        self._start_button = self._build_timer_button("play", "Start", "fitnessLightboxStartButton")
+        self._start_button = self._build_timer_button(
+            "play",
+            "Start",
+            "fitnessLightboxStartButton",
+            style=_TIMER_BUTTON_START_STYLE,
+            role=_TIMER_ROLE_START,
+        )
         self._pause_button = self._build_timer_button("pause", "Pause", "fitnessLightboxPauseButton")
-        self._stop_button = self._build_timer_button("square", "Stop", "fitnessLightboxStopButton")
+        self._stop_button = self._build_timer_button(
+            "square",
+            "Stop",
+            "fitnessLightboxStopButton",
+            style=_TIMER_BUTTON_STOP_STYLE,
+            role=_TIMER_ROLE_STOP,
+        )
         restart = self._build_timer_button("rotate-cw", "Restart", "fitnessLightboxRestartButton")
         self._start_button.clicked.connect(self._on_start)
         self._pause_button.clicked.connect(self._on_pause)
@@ -1042,7 +1074,13 @@ class FitnessLightboxSidebar(QFrame):
         name = button.property("_fitness_timer_icon")
         if not isinstance(name, str) or not name:
             return
-        color = _TIMER_BUTTON_ICON_ACTIVE if button.isEnabled() else _TIMER_BUTTON_ICON_DISABLED
+        role = button.property("_fitness_timer_role")
+        if button.isEnabled() and role in {_TIMER_ROLE_START, _TIMER_ROLE_STOP}:
+            color = _TIMER_BUTTON_ICON_ON_FILLED
+        elif button.isEnabled():
+            color = _TIMER_BUTTON_ICON_ACTIVE
+        else:
+            color = _TIMER_BUTTON_ICON_DISABLED
         apply_lucide_button_icon(button, name, icon_size=TOOLBAR_ICON_SIZE, color=color)
         button.setCursor(
             Qt.CursorShape.PointingHandCursor if button.isEnabled() else Qt.CursorShape.ArrowCursor,
@@ -1083,13 +1121,18 @@ class FitnessLightboxSidebar(QFrame):
         if not self._seconds_value_mode:
             return
         if snapshot.phase is StopwatchPhase.RUNNING:
-            self._set_value_total(snapshot.display_seconds)
+            if self._last_synced_value_seconds != snapshot.display_seconds:
+                self._last_synced_value_seconds = snapshot.display_seconds
+                self._set_value_total(snapshot.display_seconds)
             return
         if snapshot.phase is StopwatchPhase.FINISHED and previous_phase in {
             StopwatchPhase.RUNNING,
             StopwatchPhase.FINISHED,
         }:
+            self._last_synced_value_seconds = snapshot.display_seconds
             self._set_value_total(snapshot.display_seconds)
+        elif snapshot.phase in {StopwatchPhase.IDLE, StopwatchPhase.COUNTDOWN}:
+            self._last_synced_value_seconds = None
 ```
 
 </details>
@@ -1132,6 +1175,7 @@ def __init__(
             stop_at_limit=self._stop_at_limit,
         )
         self._last_phase: StopwatchPhase | None = None
+        self._last_synced_value_seconds: int | None = None
         self._overtime_announced = False
         self._ready_announced = False
         self._spoken_countdown: set[int] = set()

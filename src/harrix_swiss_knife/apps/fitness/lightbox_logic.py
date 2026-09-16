@@ -314,7 +314,7 @@ def lightbox_playback_view(snapshot: StopwatchSnapshot) -> LightboxPlaybackView:
             animate=False,
             freeze_first_frame=True,
         )
-    if snapshot.phase is StopwatchPhase.FINISHED or snapshot.is_overtime:
+    if snapshot.phase is StopwatchPhase.FINISHED:
         return LightboxPlaybackView(
             overlay=LightboxOverlayKind.FINISH,
             countdown_seconds=0,
@@ -322,10 +322,18 @@ def lightbox_playback_view(snapshot: StopwatchSnapshot) -> LightboxPlaybackView:
             freeze_first_frame=False,
         )
     if snapshot.phase is StopwatchPhase.RUNNING and snapshot.is_running:
+        overlay = LightboxOverlayKind.FINISH if snapshot.is_overtime else LightboxOverlayKind.NONE
         return LightboxPlaybackView(
-            overlay=LightboxOverlayKind.NONE,
+            overlay=overlay,
             countdown_seconds=0,
             animate=True,
+            freeze_first_frame=False,
+        )
+    if snapshot.is_overtime and snapshot.phase is StopwatchPhase.RUNNING:
+        return LightboxPlaybackView(
+            overlay=LightboxOverlayKind.FINISH,
+            countdown_seconds=0,
+            animate=False,
             freeze_first_frame=False,
         )
     return LightboxPlaybackView(

@@ -107,78 +107,6 @@ _TIMER_ROLE_START = "start"
 _TIMER_ROLE_STOP = "stop"
 
 
-def _timer_button_style(
-    *,
-    background: str,
-    border: str,
-    hover_background: str,
-    hover_border: str,
-    pressed_background: str,
-    pressed_border: str,
-    disabled_background: str = "#FBFBFC",
-    disabled_border: str = "#F0F0F2",
-) -> str:
-    return f"""
-QPushButton {{
-    background-color: {background};
-    border: 1px solid {border};
-    border-radius: {TOOLBAR_BORDER_RADIUS}px;
-    padding: 0px;
-    margin: 0px;
-}}
-QPushButton:hover:!disabled {{
-    background-color: {hover_background};
-    border-color: {hover_border};
-}}
-QPushButton:pressed:!disabled {{
-    background-color: {pressed_background};
-    border-color: {pressed_border};
-}}
-QPushButton:disabled {{
-    background-color: {disabled_background};
-    border: 1px solid {disabled_border};
-}}
-"""
-
-
-_TIMER_BUTTON_STYLE = _timer_button_style(
-    background="#F5F5F7",
-    border="#E5E5E8",
-    hover_background="#ECECEF",
-    hover_border="#D8D8DC",
-    pressed_background="#E2E2E6",
-    pressed_border="#C8C8CC",
-)
-_TIMER_BUTTON_START_STYLE = _timer_button_style(
-    background="#16A34A",
-    border="#15803D",
-    hover_background="#15803D",
-    hover_border="#166534",
-    pressed_background="#166534",
-    pressed_border="#14532D",
-    disabled_background="#E5E7EB",
-    disabled_border="#D1D5DB",
-)
-_TIMER_BUTTON_STOP_STYLE = _timer_button_style(
-    background="#DC2626",
-    border="#B91C1C",
-    hover_background="#B91C1C",
-    hover_border="#991B1B",
-    pressed_background="#991B1B",
-    pressed_border="#7F1D1D",
-    disabled_background="#FEE2E2",
-    disabled_border="#FECACA",
-)
-
-_PANE_STYLE = """
-QFrame#fitnessLightboxPane {
-    background: transparent;
-    border: none;
-    border-radius: 0;
-}
-"""
-
-
 class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
     """Exercise AVIF lightbox with a Quick-style timer and log column."""
 
@@ -253,6 +181,7 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
         )
         self._sidebar.confirm_requested.connect(self._on_confirm)
         self._sidebar.playback_changed.connect(self._apply_playback_view)
+        self._last_playback_view: LightboxPlaybackView | None = None
         self._timer_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Space), self)
         self._timer_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
         self._timer_shortcut.activated.connect(self._sidebar.toggle_timer)
@@ -315,12 +244,17 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
 
     def _apply_playback_view(self, view: LightboxPlaybackView) -> None:
         """Freeze or play the AVIF and show the Prepare / Finish veil."""
-        if view.freeze_first_frame:
+        previous = self._last_playback_view
+        freeze = view.freeze_first_frame
+        if freeze and (previous is None or not previous.freeze_first_frame):
             self._avif_manager.show_first_frame(AvifLabelKey.LIGHTBOX)
-        if view.animate:
-            self._avif_manager.resume_animation(AvifLabelKey.LIGHTBOX)
-        else:
-            self._avif_manager.pause_animation(AvifLabelKey.LIGHTBOX)
+        animate = view.animate
+        if previous is None or animate != previous.animate:
+            if animate:
+                self._avif_manager.resume_animation(AvifLabelKey.LIGHTBOX)
+            else:
+                self._avif_manager.pause_animation(AvifLabelKey.LIGHTBOX)
+        self._last_playback_view = view
         overlay = self._phase_overlay
         if overlay is not None:
             overlay.apply(view)
@@ -443,6 +377,7 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
             autoplay=view.animate,
         )
         self._loaded_size = self._label.size()
+        self._last_playback_view = None
         self._apply_playback_view(view)
         self._sync_speed_controls()
 
@@ -458,6 +393,70 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
         sidebar = getattr(self, "_sidebar", None)
         if sidebar is not None:
             sidebar.apply_backdrop(fill)
+
+
+def _timer_button_style(
+    *,
+    background: str,
+    border: str,
+    hover_background: str,
+    hover_border: str,
+    pressed_background: str,
+    pressed_border: str,
+    disabled_background: str = "#FBFBFC",
+    disabled_border: str = "#F0F0F2",
+) -> str:
+    return f"""
+QPushButton {{
+    background-color: {background};
+    border: 1px solid {border};
+    border-radius: {TOOLBAR_BORDER_RADIUS}px;
+    padding: 0px;
+    margin: 0px;
+}}
+QPushButton:hover:!disabled {{
+    background-color: {hover_background};
+    border-color: {hover_border};
+}}
+QPushButton:pressed:!disabled {{
+    background-color: {pressed_background};
+    border-color: {pressed_border};
+}}
+QPushButton:disabled {{
+    background-color: {disabled_background};
+    border: 1px solid {disabled_border};
+}}
+"""
+
+
+_TIMER_BUTTON_STYLE = _timer_button_style(
+    background="#F5F5F7",
+    border="#E5E5E8",
+    hover_background="#ECECEF",
+    hover_border="#D8D8DC",
+    pressed_background="#E2E2E6",
+    pressed_border="#C8C8CC",
+)
+_TIMER_BUTTON_START_STYLE = _timer_button_style(
+    background="#16A34A",
+    border="#15803D",
+    hover_background="#15803D",
+    hover_border="#166534",
+    pressed_background="#166534",
+    pressed_border="#14532D",
+    disabled_background="#E5E7EB",
+    disabled_border="#D1D5DB",
+)
+_TIMER_BUTTON_STOP_STYLE = _timer_button_style(
+    background="#DC2626",
+    border="#B91C1C",
+    hover_background="#B91C1C",
+    hover_border="#991B1B",
+    pressed_background="#991B1B",
+    pressed_border="#7F1D1D",
+    disabled_background="#FEE2E2",
+    disabled_border="#FECACA",
+)
 
 
 class FitnessLightboxSidebar(QFrame):
@@ -493,6 +492,7 @@ class FitnessLightboxSidebar(QFrame):
             stop_at_limit=self._stop_at_limit,
         )
         self._last_phase: StopwatchPhase | None = None
+        self._last_synced_value_seconds: int | None = None
         self._overtime_announced = False
         self._ready_announced = False
         self._spoken_countdown: set[int] = set()
@@ -980,13 +980,18 @@ class FitnessLightboxSidebar(QFrame):
         if not self._seconds_value_mode:
             return
         if snapshot.phase is StopwatchPhase.RUNNING:
-            self._set_value_total(snapshot.display_seconds)
+            if self._last_synced_value_seconds != snapshot.display_seconds:
+                self._last_synced_value_seconds = snapshot.display_seconds
+                self._set_value_total(snapshot.display_seconds)
             return
         if snapshot.phase is StopwatchPhase.FINISHED and previous_phase in {
             StopwatchPhase.RUNNING,
             StopwatchPhase.FINISHED,
         }:
+            self._last_synced_value_seconds = snapshot.display_seconds
             self._set_value_total(snapshot.display_seconds)
+        elif snapshot.phase in {StopwatchPhase.IDLE, StopwatchPhase.COUNTDOWN}:
+            self._last_synced_value_seconds = None
 
 
 class LightboxPhaseOverlay(QWidget):
@@ -1173,6 +1178,14 @@ QWidget#fitnessLightboxImageHost {{
     background: {fill};
     border: none;
 }}
+"""
+
+_PANE_STYLE = """
+QFrame#fitnessLightboxPane {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+}
 """
 
 

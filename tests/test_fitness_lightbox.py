@@ -242,6 +242,23 @@ def test_lightbox_playback_view_prepare_run_and_finish() -> None:
     assert not finish_view.freeze_first_frame
 
 
+def test_lightbox_playback_view_running_overtime_keeps_animation() -> None:
+    watch = ExerciseStopwatch(countdown_seconds=0, limit_seconds=10, stop_at_limit=False)
+    watch.start()
+    watch.advance(12_000)
+    snapshot = watch.snapshot()
+    assert snapshot.phase is StopwatchPhase.RUNNING
+    assert snapshot.is_overtime
+    assert snapshot.is_running
+    view = lightbox_playback_view(snapshot)
+    assert view.animate
+    assert view.overlay is LightboxOverlayKind.FINISH
+    watch.pause()
+    paused = lightbox_playback_view(watch.snapshot())
+    assert not paused.animate
+    assert paused.overlay is LightboxOverlayKind.FINISH
+
+
 def test_stopwatch_capture_and_restore_resumes_elapsed() -> None:
     watch = ExerciseStopwatch(countdown_seconds=0, limit_seconds=10)
     watch.start()
@@ -720,13 +737,14 @@ def test_fitness_lightbox_has_splitter_sidebar_and_browse_confirm(
     assert stop.size() == stop.minimumSize() == stop.maximumSize()
     assert stop.width() == 40
     assert stop.height() == 40
-    assert "#F5F5F7" in stop.styleSheet()
+    assert "#DC2626" in stop.styleSheet()
     start = dialog.findChild(QPushButton, "fitnessLightboxStartButton")
     assert start is not None
     assert start.text() == ""
     assert start.toolTip() == "Start"
     assert start.width() == 40
     assert start.height() == 40
+    assert "#16A34A" in start.styleSheet()
     assert "background: transparent" in dialog._sidebar.styleSheet()
     assert "border: none" in dialog._sidebar.styleSheet()
     assert "border-radius: 0" in dialog._sidebar.styleSheet()
