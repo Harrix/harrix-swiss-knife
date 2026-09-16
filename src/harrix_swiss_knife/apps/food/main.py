@@ -5254,8 +5254,8 @@ class MainWindow(
     def _update_macros_analysis_table(self) -> None:
         """Refresh the combined daily calories & macros table for the stats date range.
 
-        Only days inside From/To that have both calorie totals and macros analysis
-        are shown (incomplete rows are omitted).
+        Days match the calories chart (From/To with food-log calorie totals). Macros
+        columns are filled when analysis exists, otherwise shown as dashes.
 
         """
         if not hasattr(self, "tableView_kcal_per_day"):
@@ -5276,31 +5276,35 @@ class MainWindow(
                 calories_by_day[day] = float(row[1] or 0.0)
             except (ValueError, TypeError):
                 calories_by_day[day] = 0.0
-        complete_dates = sorted(set(analyses) & set(calories_by_day), reverse=True)
+        chart_dates = sorted(calories_by_day, reverse=True)
         transformed_data: list[list[str]] = []
         calorie_values: list[float | None] = []
         macro_tones: list[tuple[MacroTone, MacroTone, MacroTone, MacroTone] | None] = []
-        for day in complete_dates:
-            analysis = analyses[day]
+        for day in chart_dates:
+            analysis = analyses.get(day)
             calories = calories_by_day[day]
-            note = analysis.verdict.strip()
-            if analysis.notes.strip():
-                note = f"{note}\n{analysis.notes}".strip() if note else analysis.notes.strip()
-            values = [
-                day,
-                f"{calories:.1f}",
-                f"{analysis.protein_g:.1f}",
-                f"{analysis.fat_g:.1f}",
-                f"{analysis.carb_g:.1f}",
-                f"{analysis.kcal:.0f}",
-                note,
-            ]
-            tones = (
-                macro_tone(analysis.protein_g, analysis.norm_protein_g),
-                macro_tone(analysis.fat_g, analysis.norm_fat_g),
-                macro_tone(analysis.carb_g, analysis.norm_carb_g),
-                macro_tone(analysis.kcal, analysis.norm_kcal),
-            )
+            if analysis is None:
+                values = [day, f"{calories:.1f}", "—", "—", "—", "—", ""]
+                tones = None
+            else:
+                note = analysis.verdict.strip()
+                if analysis.notes.strip():
+                    note = f"{note}\n{analysis.notes}".strip() if note else analysis.notes.strip()
+                values = [
+                    day,
+                    f"{calories:.1f}",
+                    f"{analysis.protein_g:.1f}",
+                    f"{analysis.fat_g:.1f}",
+                    f"{analysis.carb_g:.1f}",
+                    f"{analysis.kcal:.0f}",
+                    note,
+                ]
+                tones = (
+                    macro_tone(analysis.protein_g, analysis.norm_protein_g),
+                    macro_tone(analysis.fat_g, analysis.norm_fat_g),
+                    macro_tone(analysis.carb_g, analysis.norm_carb_g),
+                    macro_tone(analysis.kcal, analysis.norm_kcal),
+                )
             transformed_data.append(values)
             calorie_values.append(calories)
             macro_tones.append(tones)
