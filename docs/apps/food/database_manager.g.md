@@ -42,6 +42,7 @@ lang: en
   - [⚙️ Method `get_food_item_names_for_autocomplete`](#%EF%B8%8F-method-get_food_item_names_for_autocomplete)
   - [⚙️ Method `get_food_log_amounts`](#%EF%B8%8F-method-get_food_log_amounts)
   - [⚙️ Method `get_food_log_item_by_name`](#%EF%B8%8F-method-get_food_log_item_by_name)
+  - [⚙️ Method `get_food_log_records_by_ids`](#%EF%B8%8F-method-get_food_log_records_by_ids)
   - [⚙️ Method `get_food_range_nutrition_analysis`](#%EF%B8%8F-method-get_food_range_nutrition_analysis)
   - [⚙️ Method `get_food_weight_per_day`](#%EF%B8%8F-method-get_food_weight_per_day)
   - [⚙️ Method `get_problematic_food_records`](#%EF%B8%8F-method-get_problematic_food_records)
@@ -742,6 +743,34 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             calories_per_100g=float(row[3]) if row[3] not in (None, "") else None,
             weight=float(row[4]) if row[4] not in (None, "") else None,
             portion_calories=float(row[5]) if row[5] not in (None, "") else None,
+        )
+
+    def get_food_log_records_by_ids(self, record_ids: list[int]) -> list[list[Any]]:
+        r"""Return food log rows for the given `_id` values.
+
+        Args:
+
+        - `record_ids` (`list[int]`): Food log primary keys.
+
+        Returns:
+
+        - `list[list[Any]]`: Rows as [\_id, date, weight, portion_calories,
+          calories_per_100g, name, name_en, is_drink], ordered by date DESC, \_id DESC.
+
+        """
+        ids = [int(record_id) for record_id in record_ids if int(record_id) > 0]
+        if not ids:
+            return []
+        placeholders = ", ".join(f":id{index}" for index in range(len(ids)))
+        params = {f"id{index}": record_id for index, record_id in enumerate(ids)}
+        return self.get_rows(
+            f"""
+            SELECT _id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink
+            FROM food_log
+            WHERE _id IN ({placeholders})
+            ORDER BY date DESC, _id DESC
+            """,
+            params,
         )
 
     def get_food_range_nutrition_analysis(self, date_from: str, date_to: str) -> FoodRangeMacrosAnalysis | None:
@@ -2492,6 +2521,46 @@ def get_food_log_item_by_name(self, name: str) -> FoodLogItemByNameRow | None:
             calories_per_100g=float(row[3]) if row[3] not in (None, "") else None,
             weight=float(row[4]) if row[4] not in (None, "") else None,
             portion_calories=float(row[5]) if row[5] not in (None, "") else None,
+        )
+```
+
+</details>
+
+### ⚙️ Method `get_food_log_records_by_ids`
+
+```python
+def get_food_log_records_by_ids(self, record_ids: list[int]) -> list[list[Any]]
+```
+
+Return food log rows for the given `_id` values.
+
+Args:
+
+- `record_ids` (`list[int]`): Food log primary keys.
+
+Returns:
+
+- `list[list[Any]]`: Rows as [\_id, date, weight, portion_calories,
+  calories_per_100g, name, name_en, is_drink], ordered by date DESC, \_id DESC.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_food_log_records_by_ids(self, record_ids: list[int]) -> list[list[Any]]:
+        ids = [int(record_id) for record_id in record_ids if int(record_id) > 0]
+        if not ids:
+            return []
+        placeholders = ", ".join(f":id{index}" for index in range(len(ids)))
+        params = {f"id{index}": record_id for index, record_id in enumerate(ids)}
+        return self.get_rows(
+            f"""
+            SELECT _id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink
+            FROM food_log
+            WHERE _id IN ({placeholders})
+            ORDER BY date DESC, _id DESC
+            """,
+            params,
         )
 ```
 

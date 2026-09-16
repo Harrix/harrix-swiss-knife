@@ -66,6 +66,7 @@ class ImagePicker(QWidget):
         on_double_click: Callable[[], None] | None = None,
         hint_text: str | None = None,
         extra_drop_targets: Sequence[QWidget] = (),
+        accept_path: Callable[[str], bool] | None = None,
         show_label: bool = False,
         label_text: str = "",
         show_select_button: bool | None = None,
@@ -86,6 +87,7 @@ class ImagePicker(QWidget):
         - `on_double_click`: Optional callback for double-click on the drop zone.
         - `hint_text`: Override drop-area hint.
         - `extra_drop_targets`: Additional widgets that accept drops (compact).
+        - `accept_path`: Optional path filter for drops; defaults to image extensions.
         - `show_label` / `label_text`: Optional label above the drop area.
         - Button flags: when `None`, defaults follow the mode.
 
@@ -99,6 +101,7 @@ class ImagePicker(QWidget):
         self._on_double_click = on_double_click
         self._hint_text = hint_text
         self._extra_drop_targets = list(extra_drop_targets)
+        self._accept_path = accept_path or is_image_file_path
         self._show_label = show_label
         self._label_text = label_text
 
@@ -623,7 +626,7 @@ class ImagePicker(QWidget):
         self._clear_single_image()
 
     def _on_drop_paths(self, paths: list[str]) -> None:
-        valid_paths = [file_path for file_path in paths if is_image_file_path(file_path)]
+        valid_paths = [file_path for file_path in paths if self._accept_path(file_path)]
         if not valid_paths:
             return
         if self._mode == ImagePickerMode.COMPACT:
@@ -819,9 +822,9 @@ class ImagePicker(QWidget):
         self._drop_hint.installEventFilter(self)
         self._place_content_in_drop_area(self._drop_hint)
 
-        install_url_drop_handlers(self._drop_area, self._on_drop_paths, filter_path=is_image_file_path)
+        install_url_drop_handlers(self._drop_area, self._on_drop_paths, filter_path=self._accept_path)
         for target in self._extra_drop_targets:
-            install_url_drop_handlers(target, self._on_drop_paths, filter_path=is_image_file_path)
+            install_url_drop_handlers(target, self._on_drop_paths, filter_path=self._accept_path)
 
         layout.addWidget(self._drop_area)
 
@@ -884,7 +887,7 @@ class ImagePicker(QWidget):
             self._update_multi_drop_state()
 
         self._place_content_in_drop_area(content)
-        install_url_drop_handlers(self._drop_area, self._on_drop_paths, filter_path=is_image_file_path)
+        install_url_drop_handlers(self._drop_area, self._on_drop_paths, filter_path=self._accept_path)
         layout.addWidget(self._drop_area)
         button_row = self._build_button_row()
         if button_row is not None:
@@ -904,7 +907,7 @@ class ImagePicker(QWidget):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None = None, *, mode: ImagePickerMode = ImagePickerMode.SINGLE, save_dir: Path | None = None, max_image_side: int | None = None, fallback_text_edit: QPlainTextEdit | None = None, on_paths: Callable[[list[str]], None] | None = None, on_double_click: Callable[[], None] | None = None, hint_text: str | None = None, extra_drop_targets: Sequence[QWidget] = (), show_label: bool = False, label_text: str = '', show_select_button: bool | None = None, show_add_button: bool | None = None, show_paste_button: bool | None = None, show_clear_button: bool | None = None, show_screenshot_button: bool | None = None) -> None
+def __init__(self, parent: QWidget | None = None, *, mode: ImagePickerMode = ImagePickerMode.SINGLE, save_dir: Path | None = None, max_image_side: int | None = None, fallback_text_edit: QPlainTextEdit | None = None, on_paths: Callable[[list[str]], None] | None = None, on_double_click: Callable[[], None] | None = None, hint_text: str | None = None, extra_drop_targets: Sequence[QWidget] = (), accept_path: Callable[[str], bool] | None = None, show_label: bool = False, label_text: str = '', show_select_button: bool | None = None, show_add_button: bool | None = None, show_paste_button: bool | None = None, show_clear_button: bool | None = None, show_screenshot_button: bool | None = None) -> None
 ```
 
 Initialize the image picker.
@@ -919,6 +922,7 @@ Args:
 - `on_double_click`: Optional callback for double-click on the drop zone.
 - `hint_text`: Override drop-area hint.
 - `extra_drop_targets`: Additional widgets that accept drops (compact).
+- `accept_path`: Optional path filter for drops; defaults to image extensions.
 - `show_label` / `label_text`: Optional label above the drop area.
 - Button flags: when `None`, defaults follow the mode.
 
@@ -938,6 +942,7 @@ def __init__(
         on_double_click: Callable[[], None] | None = None,
         hint_text: str | None = None,
         extra_drop_targets: Sequence[QWidget] = (),
+        accept_path: Callable[[str], bool] | None = None,
         show_label: bool = False,
         label_text: str = "",
         show_select_button: bool | None = None,
@@ -955,6 +960,7 @@ def __init__(
         self._on_double_click = on_double_click
         self._hint_text = hint_text
         self._extra_drop_targets = list(extra_drop_targets)
+        self._accept_path = accept_path or is_image_file_path
         self._show_label = show_label
         self._label_text = label_text
 

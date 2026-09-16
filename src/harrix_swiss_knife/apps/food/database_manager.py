@@ -693,6 +693,34 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             portion_calories=float(row[5]) if row[5] not in (None, "") else None,
         )
 
+    def get_food_log_records_by_ids(self, record_ids: list[int]) -> list[list[Any]]:
+        r"""Return food log rows for the given `_id` values.
+
+        Args:
+
+        - `record_ids` (`list[int]`): Food log primary keys.
+
+        Returns:
+
+        - `list[list[Any]]`: Rows as [\_id, date, weight, portion_calories,
+          calories_per_100g, name, name_en, is_drink], ordered by date DESC, \_id DESC.
+
+        """
+        ids = [int(record_id) for record_id in record_ids if int(record_id) > 0]
+        if not ids:
+            return []
+        placeholders = ", ".join(f":id{index}" for index in range(len(ids)))
+        params = {f"id{index}": record_id for index, record_id in enumerate(ids)}
+        return self.get_rows(
+            f"""
+            SELECT _id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink
+            FROM food_log
+            WHERE _id IN ({placeholders})
+            ORDER BY date DESC, _id DESC
+            """,
+            params,
+        )
+
     def get_food_range_nutrition_analysis(self, date_from: str, date_to: str) -> FoodRangeMacrosAnalysis | None:
         """Return the saved multi-day macros summary for the range, or `None`."""
         rows = self.get_rows(

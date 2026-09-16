@@ -25,6 +25,7 @@ lang: en
   - [⚙️ Method `on_clear_food_manual_name`](#%EF%B8%8F-method-on_clear_food_manual_name)
   - [⚙️ Method `on_export_csv`](#%EF%B8%8F-method-on_export_csv)
   - [⚙️ Method `on_export_excel`](#%EF%B8%8F-method-on_export_excel)
+  - [⚙️ Method `on_export_food_log_json`](#%EF%B8%8F-method-on_export_food_log_json)
   - [⚙️ Method `on_food_add_by_voice`](#%EF%B8%8F-method-on_food_add_by_voice)
   - [⚙️ Method `on_food_add_with_ai`](#%EF%B8%8F-method-on_food_add_with_ai)
   - [⚙️ Method `on_food_item_double_clicked`](#%EF%B8%8F-method-on_food_item_double_clicked)
@@ -44,6 +45,7 @@ lang: en
   - [⚙️ Method `on_food_stats_period_changed`](#%EF%B8%8F-method-on_food_stats_period_changed)
   - [⚙️ Method `on_food_stats_refresh_stale`](#%EF%B8%8F-method-on_food_stats_refresh_stale)
   - [⚙️ Method `on_food_stats_update`](#%EF%B8%8F-method-on_food_stats_update)
+  - [⚙️ Method `on_import_food_log_json`](#%EF%B8%8F-method-on_import_food_log_json)
   - [⚙️ Method `on_kcal_with_ai`](#%EF%B8%8F-method-on_kcal_with_ai)
   - [⚙️ Method `on_main_food_item_selection_changed`](#%EF%B8%8F-method-on_main_food_item_selection_changed)
   - [⚙️ Method `on_open_photos`](#%EF%B8%8F-method-on_open_photos)
@@ -549,6 +551,10 @@ class MainWindow(
         """Save current food log view as Excel (CSV is also offered)."""
         self._export_food_log_table(prefer="xlsx")
 
+    def on_export_food_log_json(self) -> None:
+        """Export selected food log rows to transfer JSON (one file per date)."""
+        self._export_selected_food_log_json()
+
     def on_food_add_by_voice(self) -> None:
         """Record speech, transcribe via BotHub, convert to food log TSV, then open preview dialog."""
         self._run_food_add_by_voice()
@@ -868,6 +874,18 @@ class MainWindow(
             self._update_macros_chart()
             return
         self._update_food_calories_chart()
+
+    def on_import_food_log_json(self) -> None:
+        """Pick a transfer JSON file and open the add-food preview dialog."""
+        filename, _selected = QFileDialog.getOpenFileName(
+            self,
+            "Import food log JSON",
+            "",
+            "Food log JSON (*.json);;All files (*)",
+        )
+        if not filename:
+            return
+        self._import_food_log_transfer_file(Path(filename))
 
     def on_kcal_with_ai(self) -> None:
         """Look up calories, drink flag, mode, and weight via BotHub from the food name."""
@@ -1659,9 +1677,11 @@ class MainWindow(
         max_image_side = get_max_image_side(self._app_config)
         self._ai_image_drop_zone = ImagePicker(
             mode=ImagePickerMode.COMPACT,
-            on_paths=self._on_food_add_with_ai_image_dropped,
+            on_paths=self._on_food_add_with_ai_paths_dropped,
             on_double_click=self.pushButton_food_add_with_ai.click,
             extra_drop_targets=[self.pushButton_food_add_with_ai],
+            accept_path=_is_food_ai_drop_path,
+            hint_text="Drop images or food-log JSON here",
             max_image_side=max_image_side,
         )
         self.verticalLayout_2.insertWidget(1, self._ai_image_drop_zone)
@@ -2106,6 +2126,69 @@ class MainWindow(
         model = proxy.sourceModel() if isinstance(proxy, QSortFilterProxyModel) else proxy
         export_table_via_dialog(self, model, prefer=prefer, sheet_name="Food log")
 
+    def _export_selected_food_log_json(self) -> None:
+        """Write selected food log rows as transfer JSON files (one per date)."""
+        if self.db_manager is None or not self._validate_database_connection():
+            message_box.warning(self, "Export", "Database connection not available.")
+            return
+        record_ids = self._get_selected_row_ids("food_log")
+        if not record_ids:
+            message_box.information(self, "Export", "Select one or more food log rows to export.")
+            return
+        rows = self.db_manager.get_food_log_records_by_ids(record_ids)
+        items = []
+        for row in rows:
+            item = build_transfer_item_from_log_row(
+                date=str(row[1] or ""),
+                name=str(row[5] or ""),
+                name_en=str(row[6]).strip() if row[6] else None,
+                weight=float(row[2]) if row[2] is not None else None,
+                portion_calories=float(row[3]) if row[3] is not None else None,
+                calories_per_100g=float(row[4]) if row[4] is not None else None,
+                is_drink=bool(row[7] == 1),
+            )
+            if item is not None:
+                items.append(item)
+        if not items:
+            message_box.warning(self, "Export", "Selected rows have no exportable calorie data.")
+            return
+        by_date = group_items_by_date(items)
+        try:
+            if len(by_date) == 1:
+                day = next(iter(by_date))
+                suggested = transfer_filename_for_date(day)
+                filename, _selected = QFileDialog.getSaveFileName(
+                    self,
+                    "Export food log JSON",
+                    suggested,
+                    "Food log JSON (*.json);;All files (*)",
+                )
+                if not filename:
+                    return
+                path = Path(filename)
+                if path.suffix.lower() != ".json":
+                    path = path.with_suffix(".json")
+                written = write_transfer_files(items, single_path=path)
+            else:
+                directory_str = QFileDialog.getExistingDirectory(
+                    self,
+                    "Choose folder for food-log JSON files (one per date)",
+                )
+                if not directory_str:
+                    return
+                written = write_transfer_files(items, directory=Path(directory_str))
+        except (OSError, ValueError, TypeError) as exc:
+            message_box.warning(self, "Export", f"Failed to write JSON: {exc}")
+            return
+        names = ", ".join(path.name for path in written[:_FOOD_LOG_JSON_EXPORT_NAME_PREVIEW])
+        suffix = "…" if len(written) > _FOOD_LOG_JSON_EXPORT_NAME_PREVIEW else ""
+        toast = toast_notification.ToastNotification(
+            f"Exported {len(items)} item(s) to {len(written)} file(s): {names}{suffix}",
+            duration=3000,
+            parent=self,
+        )
+        toast.present()
+
     def _fetch_food_log_rows(self, limit: int | None, offset: int) -> list[list[Any]]:
         """Return food log rows for the current toolbar filters (or the full recent page)."""
         if self.db_manager is None:
@@ -2358,6 +2441,27 @@ class MainWindow(
         except (KeyError, ValueError, TypeError, AttributeError):
             return []
         return targets
+
+    def _import_food_log_transfer_file(self, path: Path) -> bool:
+        """Open the add-food preview for a transfer JSON file. Return `True` if opened."""
+        try:
+            payload = parse_transfer_file(path)
+        except (OSError, TypeError, ValueError) as exc:
+            message_box.warning(self, "Import food log", f"Invalid food log JSON:\n{path.name}\n\n{exc}")
+            return False
+        default_date = QDate.fromString(payload.default_date, "yyyy-MM-dd")
+        if default_date.isNull():
+            default_date = self.dateEdit_food.date()
+        self._open_text_input_dialog(
+            default_date,
+            initial_text=items_to_tsv(payload.items),
+            title="Import Food Log",
+            description=(
+                "Review imported items. Change the date and edit Weight / Calories as needed, then OK to add."
+            ),
+            name_en_by_name=name_en_lookup(payload.items),
+        )
+        return True
 
     def _init_database(self) -> None:
         """Open the SQLite file from app config (create from `recover.sql` if missing)."""
@@ -2672,10 +2776,15 @@ class MainWindow(
         """Run a silent translate pass after the debounce interval."""
         self._run_background_food_translate()
 
-    def _on_food_add_with_ai_image_dropped(self, paths: list[str]) -> None:
-        """Open Add Food with AI dialog with dropped images already loaded."""
-        if paths:
-            self.on_food_add_with_ai(initial_image_paths=paths)
+    def _on_food_add_with_ai_paths_dropped(self, paths: list[str]) -> None:
+        """Handle drops on the AI zone: food-log JSON opens import preview; images go to AI."""
+        json_paths = [path for path in paths if is_food_log_transfer_path(path)]
+        image_paths = [path for path in paths if is_image_file_path(path)]
+        for json_path in json_paths:
+            if self._import_food_log_transfer_file(Path(json_path)):
+                return
+        if image_paths:
+            self.on_food_add_with_ai(initial_image_paths=image_paths)
 
     def _on_food_log_scroll(self, value: int) -> None:
         """Trigger loading more food log rows when scrolled near the bottom."""
@@ -2828,21 +2937,34 @@ class MainWindow(
         *,
         initial_text: str | None = None,
         focus_text_on_show: bool = True,
+        title: str | None = None,
+        description: str | None = None,
+        name_en_by_name: dict[str, str] | None = None,
     ) -> None:
         """Show food table dialog and process accepted input."""
-        dialog = TextInputDialog(
-            self,
-            default_date=default_date,
-            initial_text=initial_text,
-            focus_text_on_show=focus_text_on_show,
-            db_manager=self.db_manager,
-        )
+        if title is not None:
+            dialog: TextInputDialog | FoodTableDialog = FoodTableDialog(
+                self,
+                title=title,
+                description=description,
+                default_date=default_date,
+                initial_text=initial_text,
+                db_manager=self.db_manager,
+            )
+        else:
+            dialog = TextInputDialog(
+                self,
+                default_date=default_date,
+                initial_text=initial_text,
+                focus_text_on_show=focus_text_on_show,
+                db_manager=self.db_manager,
+            )
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return
         items = dialog.get_items()
         date = dialog.get_date()
         if items and date:
-            self._process_food_items(items, date)
+            self._process_food_items(items, date, name_en_by_name=name_en_by_name)
 
     def _populate_form_from_food_name(self, food_name: str) -> None:
         """Populate form fields based on food name from database.
@@ -3041,13 +3163,21 @@ class MainWindow(
             self.spinBox_food_weight.setFocus()
             self.spinBox_food_weight.selectAll()
 
-    def _process_food_items(self, parsed_items: list[ParsedFoodItem], default_date: str) -> None:
+    def _process_food_items(
+        self,
+        parsed_items: list[ParsedFoodItem],
+        default_date: str,
+        *,
+        name_en_by_name: dict[str, str] | None = None,
+    ) -> None:
         """Add parsed food items to the database.
 
         Args:
 
         - `parsed_items` (`list[ParsedFoodItem]`): Food items to save.
         - `default_date` (`str`): Default date for entries in yyyy-MM-dd format.
+        - `name_en_by_name` (`dict[str, str] | None`): Optional English names keyed by
+          casefolded food name (from transfer JSON). Defaults to `None`.
 
         """
         if self.db_manager is None:
@@ -3068,10 +3198,14 @@ class MainWindow(
                     error_count += 1
                     error_messages.append(f"Weight is required: {item.name}")
                     continue
+                name_en = None
+                if name_en_by_name:
+                    name_en = name_en_by_name.get(item.name.casefold())
                 success = self.db_manager.add_food_log_record(
                     date=item.food_date or default_date,
                     calories_per_100g=item.calories_per_100g,
                     name=item.name,
+                    name_en=name_en,
                     weight=item.weight,
                     portion_calories=item.portion_calories,
                     is_drink=item.is_drink,
@@ -3812,6 +3946,17 @@ class MainWindow(
         if menu is None:
             return
         menu.addSeparator()
+        export_json = QAction("Export selected as JSON", self)
+        export_json.setObjectName("action_export_food_log_json")
+        export_json.triggered.connect(self.on_export_food_log_json)
+        menu.addAction(export_json)
+        set_action_text_with_lucide_icon(export_json, "📤 Export selected as JSON")
+        import_json = QAction("Import food log JSON", self)
+        import_json.setObjectName("action_import_food_log_json")
+        import_json.triggered.connect(self.on_import_food_log_json)
+        menu.addAction(import_json)
+        set_action_text_with_lucide_icon(import_json, "📥 Import food log JSON")
+        menu.addSeparator()
         action = QAction("Open photos", self)
         action.setObjectName("action_open_photos")
         action.triggered.connect(self.on_open_photos)
@@ -4074,6 +4219,7 @@ class MainWindow(
         add_separator(context_menu)
         refresh_action = add_refresh_action(context_menu)
         export_action, export_excel_action = add_export_actions(context_menu)
+        export_json_action = context_menu.addAction("📤 Export selected as JSON")
 
         if multiple_rows_selected:
             add_info_action(context_menu, f"📊 Total calories: {total_calories:.1f} kcal")
@@ -4148,6 +4294,8 @@ class MainWindow(
                 self.on_export_csv()
             elif action == export_excel_action:
                 self.on_export_excel()
+            elif action == export_json_action:
+                self.on_export_food_log_json()
         finally:
             # Reconnect the context menu signal after a short delay
             QTimer.singleShot(100, self._reconnect_context_menu)
@@ -5633,6 +5781,24 @@ def on_export_excel(self) -> None:
 
 </details>
 
+### ⚙️ Method `on_export_food_log_json`
+
+```python
+def on_export_food_log_json(self) -> None
+```
+
+Export selected food log rows to transfer JSON (one file per date).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_export_food_log_json(self) -> None:
+        self._export_selected_food_log_json()
+```
+
+</details>
+
 ### ⚙️ Method `on_food_add_by_voice`
 
 ```python
@@ -6210,6 +6376,32 @@ def on_food_stats_update(self) -> None:
             self._update_macros_chart()
             return
         self._update_food_calories_chart()
+```
+
+</details>
+
+### ⚙️ Method `on_import_food_log_json`
+
+```python
+def on_import_food_log_json(self) -> None
+```
+
+Pick a transfer JSON file and open the add-food preview dialog.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_import_food_log_json(self) -> None:
+        filename, _selected = QFileDialog.getOpenFileName(
+            self,
+            "Import food log JSON",
+            "",
+            "Food log JSON (*.json);;All files (*)",
+        )
+        if not filename:
+            return
+        self._import_food_log_transfer_file(Path(filename))
 ```
 
 </details>
