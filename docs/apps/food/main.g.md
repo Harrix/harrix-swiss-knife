@@ -26,6 +26,7 @@ lang: en
   - [⚙️ Method `on_export_csv`](#%EF%B8%8F-method-on_export_csv)
   - [⚙️ Method `on_export_excel`](#%EF%B8%8F-method-on_export_excel)
   - [⚙️ Method `on_export_food_log_json`](#%EF%B8%8F-method-on_export_food_log_json)
+  - [⚙️ Method `on_export_food_stats_excel`](#%EF%B8%8F-method-on_export_food_stats_excel)
   - [⚙️ Method `on_food_add_by_voice`](#%EF%B8%8F-method-on_food_add_by_voice)
   - [⚙️ Method `on_food_add_with_ai`](#%EF%B8%8F-method-on_food_add_with_ai)
   - [⚙️ Method `on_food_item_double_clicked`](#%EF%B8%8F-method-on_food_item_double_clicked)
@@ -555,6 +556,10 @@ class MainWindow(
         """Export selected food log rows to transfer JSON (one file per date)."""
         self._export_selected_food_log_json()
 
+    def on_export_food_stats_excel(self) -> None:
+        """Export the Daily calories & macros stats table to Excel."""
+        self._export_kcal_per_day_table(prefer="xlsx")
+
     def on_food_add_by_voice(self) -> None:
         """Record speech, transcribe via BotHub, convert to food log TSV, then open preview dialog."""
         self._run_food_add_by_voice()
@@ -776,7 +781,7 @@ class MainWindow(
             # Set end date to today
             self.dateEdit_food_stats_to.setDate(QDate.currentDate())
 
-            self._update_food_calories_chart()
+            self.on_food_stats_update()
 
         except Exception:
             logger.exception("Error setting all time date range")
@@ -785,7 +790,7 @@ class MainWindow(
             year_ago = today.addYears(-1)
             self.dateEdit_food_stats_from.setDate(year_ago)
             self.dateEdit_food_stats_to.setDate(today)
-            self._update_food_calories_chart()
+            self.on_food_stats_update()
 
     def on_food_stats_analyze_period(self) -> None:
         """Open multi-day macros summary for the stats date range."""
@@ -818,7 +823,7 @@ class MainWindow(
         self.dateEdit_food_stats_from.setDate(month_ago)
         self.dateEdit_food_stats_to.setDate(today)
 
-        self._update_food_calories_chart()
+        self.on_food_stats_update()
 
     def on_food_stats_last_week(self) -> None:
         """Set date range to last week and update chart."""
@@ -828,7 +833,7 @@ class MainWindow(
         self.dateEdit_food_stats_from.setDate(week_ago)
         self.dateEdit_food_stats_to.setDate(today)
 
-        self._update_food_calories_chart()
+        self.on_food_stats_update()
 
     def on_food_stats_last_year(self) -> None:
         """Set date range to last year and update chart."""
@@ -838,7 +843,7 @@ class MainWindow(
         self.dateEdit_food_stats_from.setDate(year_ago)
         self.dateEdit_food_stats_to.setDate(today)
 
-        self._update_food_calories_chart()
+        self.on_food_stats_update()
 
     def on_food_stats_macros_carb(self) -> None:
         """Show carbohydrate chart from saved day analyses."""
@@ -1380,16 +1385,15 @@ class MainWindow(
 
         # Date plus vertical header must stay readable at 125% DPI.
         self.tableView_kcal_per_day.verticalHeader().setMinimumWidth(28)
-        self.tableView_kcal_per_day.setColumnWidth(_STATS_DAY_DATE_COLUMN, 96)
-        self.tableView_kcal_per_day.setColumnWidth(_STATS_DAY_CALORIES_COLUMN, 72)
+        self.tableView_kcal_per_day.setColumnWidth(_STATS_DAY_DATE_COLUMN, 90)
+        self.tableView_kcal_per_day.setColumnWidth(_STATS_DAY_CALORIES_COLUMN, 64)
         for column in (
             _STATS_DAY_PROTEIN_COLUMN,
             _STATS_DAY_FAT_COLUMN,
             _STATS_DAY_CARB_COLUMN,
             _STATS_DAY_KCAL_COLUMN,
         ):
-            self.tableView_kcal_per_day.setColumnWidth(column, 48)
-        self.tableView_kcal_per_day.setColumnWidth(_STATS_DAY_STATUS_COLUMN, 64)
+            self.tableView_kcal_per_day.setColumnWidth(column, 44)
         self.tableView_kcal_per_day.horizontalHeader().setStretchLastSection(True)
 
     def _after_table_data_changed(
@@ -2125,6 +2129,39 @@ class MainWindow(
         proxy = self.models.get("food_log")
         model = proxy.sourceModel() if isinstance(proxy, QSortFilterProxyModel) else proxy
         export_table_via_dialog(self, model, prefer=prefer, sheet_name="Food log")
+
+    def _export_kcal_per_day_table(self, *, prefer: Literal["csv", "xlsx"] = "xlsx") -> None:
+        """Export visible Daily calories & macros columns (Notes omitted)."""
+        proxy = self.models.get("kcal_per_day")
+        if proxy is None or proxy.rowCount() == 0:
+            message_box.information(self, "Export", "Stats table is empty. Click Update first.")
+            return
+        source = proxy.sourceModel()
+        if not isinstance(source, QStandardItemModel):
+            message_box.warning(self, "Export", "Stats table model is not available.")
+            return
+        export_model = QStandardItemModel()
+        visible_headers = [
+            source.headerData(column, Qt.Orientation.Horizontal) or ""
+            for column in range(source.columnCount())
+            if column != _STATS_DAY_NOTES_COLUMN
+        ]
+        export_model.setHorizontalHeaderLabels([str(header) for header in visible_headers])
+        for row in range(source.rowCount()):
+            items: list[QStandardItem] = []
+            for column in range(source.columnCount()):
+                if column == _STATS_DAY_NOTES_COLUMN:
+                    continue
+                cell = source.item(row, column)
+                items.append(QStandardItem(cell.text() if cell is not None else ""))
+            export_model.appendRow(items)
+        export_table_via_dialog(
+            self,
+            export_model,
+            prefer=prefer,
+            title="Export stats table",
+            sheet_name="Daily calories macros",
+        )
 
     def _export_selected_food_log_json(self) -> None:
         """Write selected food log rows as transfer JSON files (one per date)."""
@@ -3901,6 +3938,8 @@ class MainWindow(
 
         self.tableView_kcal_per_day.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
         self.tableView_kcal_per_day.setSelectionMode(QTableView.SelectionMode.SingleSelection)
+        self.tableView_kcal_per_day.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tableView_kcal_per_day.customContextMenuRequested.connect(self._show_kcal_per_day_context_menu)
         self.tableView_kcal_per_day.clicked.connect(self._on_macros_analysis_row_clicked)
         self.tableView_kcal_per_day.doubleClicked.connect(self._on_macros_analysis_row_double_clicked)
         self.label_macros_notes = QLabel("")
@@ -3956,6 +3995,12 @@ class MainWindow(
         import_json.triggered.connect(self.on_import_food_log_json)
         menu.addAction(import_json)
         set_action_text_with_lucide_icon(import_json, "📥 Import food log JSON")
+        menu.addSeparator()
+        export_stats = QAction("Export stats table to Excel", self)
+        export_stats.setObjectName("action_export_food_stats_excel")
+        export_stats.triggered.connect(self.on_export_food_stats_excel)
+        menu.addAction(export_stats)
+        set_action_text_with_lucide_icon(export_stats, "📊 Export stats table to Excel")
         menu.addSeparator()
         action = QAction("Open photos", self)
         action.setObjectName("action_open_photos")
@@ -4358,6 +4403,18 @@ class MainWindow(
             to_apply,
             prefix="\n\n".join(prefix_parts) if prefix_parts else "",
         )
+
+    def _show_kcal_per_day_context_menu(self, position: QPoint) -> None:
+        """Show context menu for the Daily calories & macros stats table."""
+        context_menu = QMenu(self)
+        refresh_action = context_menu.addAction("🔄 Update table and chart")
+        export_excel_action = context_menu.addAction("📊 Export to Excel")
+        apply_leading_chrome_icons(context_menu)
+        action = context_menu.exec_(self.tableView_kcal_per_day.mapToGlobal(position))
+        if action == refresh_action:
+            self.on_food_stats_update()
+        elif action == export_excel_action:
+            self.on_export_food_stats_excel()
 
     def _show_kcal_with_ai_context_menu(self, position: QPoint) -> None:
         """Show context menu for the kcal AI button (manual entry helpers)."""
@@ -5026,14 +5083,18 @@ class MainWindow(
         self._update_macros_analysis_table()
 
     def _update_macros_analysis_table(self) -> None:
-        """Refresh the combined daily calories & macros table for the stats date range."""
+        """Refresh the combined daily calories & macros table for the stats date range.
+
+        Only days inside From/To that have both calorie totals and macros analysis
+        are shown (incomplete rows are omitted).
+
+        """
         if not hasattr(self, "tableView_kcal_per_day"):
             return
         if not self._validate_database_connection() or self.db_manager is None:
             return
         date_from = self.dateEdit_food_stats_from.date().toString("yyyy-MM-dd")
         date_to = self.dateEdit_food_stats_to.date().toString("yyyy-MM-dd")
-        log_dates = set(self.db_manager.get_dates_with_food_log_between(date_from, date_to))
         analyses = {
             row.date: row for row in self.db_manager.get_food_day_nutrition_analyses_between(date_from, date_to)
         }
@@ -5046,39 +5107,31 @@ class MainWindow(
                 calories_by_day[day] = float(row[1] or 0.0)
             except (ValueError, TypeError):
                 calories_by_day[day] = 0.0
-        all_dates = sorted(log_dates | set(analyses) | set(calories_by_day), reverse=True)
+        complete_dates = sorted(set(analyses) & set(calories_by_day), reverse=True)
         transformed_data: list[list[str]] = []
         calorie_values: list[float | None] = []
         macro_tones: list[tuple[MacroTone, MacroTone, MacroTone, MacroTone] | None] = []
-        for day in all_dates:
-            analysis = analyses.get(day)
-            current_hash = self.db_manager.get_food_day_input_hash(day)
-            status = resolve_day_macros_status(analysis, current_hash)
-            calories = calories_by_day.get(day)
-            calories_str = f"{calories:.1f}" if calories is not None else "—"
-            if analysis is None:
-                values = [day, calories_str, "—", "—", "—", "—", status.value, ""]
-                tones = None
-            else:
-                note = analysis.verdict.strip()
-                if analysis.notes.strip():
-                    note = f"{note}\n{analysis.notes}".strip() if note else analysis.notes.strip()
-                values = [
-                    day,
-                    calories_str,
-                    f"{analysis.protein_g:.1f}",
-                    f"{analysis.fat_g:.1f}",
-                    f"{analysis.carb_g:.1f}",
-                    f"{analysis.kcal:.0f}",
-                    status.value,
-                    note,
-                ]
-                tones = (
-                    macro_tone(analysis.protein_g, analysis.norm_protein_g),
-                    macro_tone(analysis.fat_g, analysis.norm_fat_g),
-                    macro_tone(analysis.carb_g, analysis.norm_carb_g),
-                    macro_tone(analysis.kcal, analysis.norm_kcal),
-                )
+        for day in complete_dates:
+            analysis = analyses[day]
+            calories = calories_by_day[day]
+            note = analysis.verdict.strip()
+            if analysis.notes.strip():
+                note = f"{note}\n{analysis.notes}".strip() if note else analysis.notes.strip()
+            values = [
+                day,
+                f"{calories:.1f}",
+                f"{analysis.protein_g:.1f}",
+                f"{analysis.fat_g:.1f}",
+                f"{analysis.carb_g:.1f}",
+                f"{analysis.kcal:.0f}",
+                note,
+            ]
+            tones = (
+                macro_tone(analysis.protein_g, analysis.norm_protein_g),
+                macro_tone(analysis.fat_g, analysis.norm_fat_g),
+                macro_tone(analysis.carb_g, analysis.norm_carb_g),
+                macro_tone(analysis.kcal, analysis.norm_kcal),
+            )
             transformed_data.append(values)
             calorie_values.append(calories)
             macro_tones.append(tones)
@@ -5799,6 +5852,24 @@ def on_export_food_log_json(self) -> None:
 
 </details>
 
+### ⚙️ Method `on_export_food_stats_excel`
+
+```python
+def on_export_food_stats_excel(self) -> None
+```
+
+Export the Daily calories & macros stats table to Excel.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_export_food_stats_excel(self) -> None:
+        self._export_kcal_per_day_table(prefer="xlsx")
+```
+
+</details>
+
 ### ⚙️ Method `on_food_add_by_voice`
 
 ```python
@@ -6082,7 +6153,7 @@ def on_food_stats_all_time(self) -> None:
             # Set end date to today
             self.dateEdit_food_stats_to.setDate(QDate.currentDate())
 
-            self._update_food_calories_chart()
+            self.on_food_stats_update()
 
         except Exception:
             logger.exception("Error setting all time date range")
@@ -6091,7 +6162,7 @@ def on_food_stats_all_time(self) -> None:
             year_ago = today.addYears(-1)
             self.dateEdit_food_stats_from.setDate(year_ago)
             self.dateEdit_food_stats_to.setDate(today)
-            self._update_food_calories_chart()
+            self.on_food_stats_update()
 ```
 
 </details>
@@ -6208,7 +6279,7 @@ def on_food_stats_last_month(self) -> None:
         self.dateEdit_food_stats_from.setDate(month_ago)
         self.dateEdit_food_stats_to.setDate(today)
 
-        self._update_food_calories_chart()
+        self.on_food_stats_update()
 ```
 
 </details>
@@ -6232,7 +6303,7 @@ def on_food_stats_last_week(self) -> None:
         self.dateEdit_food_stats_from.setDate(week_ago)
         self.dateEdit_food_stats_to.setDate(today)
 
-        self._update_food_calories_chart()
+        self.on_food_stats_update()
 ```
 
 </details>
@@ -6256,7 +6327,7 @@ def on_food_stats_last_year(self) -> None:
         self.dateEdit_food_stats_from.setDate(year_ago)
         self.dateEdit_food_stats_to.setDate(today)
 
-        self._update_food_calories_chart()
+        self.on_food_stats_update()
 ```
 
 </details>

@@ -636,13 +636,13 @@
          <widget class="QFrame" name="frame">
           <property name="minimumSize">
            <size>
-            <width>520</width>
+            <width>380</width>
             <height>0</height>
            </size>
           </property>
           <property name="maximumSize">
            <size>
-            <width>16777215</width>
+            <width>420</width>
             <height>16777215</height>
            </size>
           </property>
@@ -747,7 +747,7 @@
                <item>
                 <widget class="QPushButton" name="pushButton_food_stats_update">
                  <property name="text">
-                  <string>Update Chart</string>
+                  <string>Update</string>
                  </property>
                 </widget>
                </item>

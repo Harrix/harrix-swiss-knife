@@ -85,7 +85,7 @@ class Ui_MainWindow(object):
         self.pushButton_food_stats_last_month.setText(QCoreApplication.translate("MainWindow", u"Last Month", None))
         self.pushButton_food_stats_last_year.setText(QCoreApplication.translate("MainWindow", u"Last Year", None))
         self.pushButton_food_stats_all_time.setText(QCoreApplication.translate("MainWindow", u"All Time", None))
-        self.pushButton_food_stats_update.setText(QCoreApplication.translate("MainWindow", u"Update Chart", None))
+        self.pushButton_food_stats_update.setText(QCoreApplication.translate("MainWindow", u"Update", None))
         self.comboBox_food_stats_period.setItemText(0, QCoreApplication.translate("MainWindow", u"Days", None))
         self.comboBox_food_stats_period.setItemText(1, QCoreApplication.translate("MainWindow", u"Months", None))
         self.comboBox_food_stats_period.setItemText(2, QCoreApplication.translate("MainWindow", u"Years", None))
@@ -505,8 +505,8 @@ class Ui_MainWindow(object):
         self.horizontalLayout_4.setObjectName(u"horizontalLayout_4")
         self.frame = QFrame(self.tab_food_stats)
         self.frame.setObjectName(u"frame")
-        self.frame.setMinimumSize(QSize(520, 0))
-        self.frame.setMaximumSize(QSize(16777215, 16777215))
+        self.frame.setMinimumSize(QSize(380, 0))
+        self.frame.setMaximumSize(QSize(420, 16777215))
         self.frame.setFrameShape(QFrame.Shape.StyledPanel)
         self.frame.setFrameShadow(QFrame.Shadow.Raised)
         self.verticalLayout_3 = QVBoxLayout(self.frame)
@@ -522,7 +522,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_3.addWidget(self.tableView_kcal_per_day, 1)
 
 
-        self.horizontalLayout_4.addWidget(self.frame, 2)
+        self.horizontalLayout_4.addWidget(self.frame, 1)
 
         self.verticalLayout_4 = QVBoxLayout()
         self.verticalLayout_4.setObjectName(u"verticalLayout_4")

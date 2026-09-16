@@ -135,6 +135,7 @@ CHROME_EMOJI_TO_LUCIDE: dict[str, str] = {
     "📁": "folder",
     "📂": "folder-open",
     "📷": "camera",
+    "📸": "camera",
     "▶️": "play",
     "▶": "play",
     "⏸️": "pause",
