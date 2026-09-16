@@ -1952,8 +1952,11 @@ class MainWindow(
     def _dispose_models(self) -> None:
         """Detach all models from QTableView and delete them."""
         for key, model in self.models.items():
-            view = self.table_config[key][0]
-            view.setModel(None)
+            if key in self.table_config:
+                view = self.table_config[key][0]
+                view.setModel(None)
+            elif key == "macros_analysis" and self.tableView_macros_analysis is not None:
+                self.tableView_macros_analysis.setModel(None)
             if model is not None:
                 model.deleteLater()
             self.models[key] = None
@@ -4613,7 +4616,7 @@ class MainWindow(
         proxy.setSourceModel(model)
         self.models["macros_analysis"] = proxy
         self.tableView_macros_analysis.setModel(proxy)
-        self.tableView_macros_analysis.setColumnHidden(_MACROS_NOTES_COLUMN, hide=True)
+        self.tableView_macros_analysis.setColumnHidden(_MACROS_NOTES_COLUMN, True)  # noqa: FBT003
         header = self.tableView_macros_analysis.horizontalHeader()
         header.setStretchLastSection(True)
         self.tableView_macros_analysis.setColumnWidth(0, 96)
