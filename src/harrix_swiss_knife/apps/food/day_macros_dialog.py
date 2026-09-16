@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QSizePolicy,
     QTabWidget,
-    QTextEdit,
+    QTextBrowser,
     QVBoxLayout,
     QWidget,
 )
@@ -40,10 +40,17 @@ from harrix_swiss_knife.qt_lucide_icon import (
 )
 
 _TONE_COLORS: dict[MacroTone, str] = {
+    # In-range numbers: black bold. Icon may still use a calm green check.
+    "good": "#111111",
+    "warn": "#A16207",
+    "bad": "#B91C1C",
+    "neutral": "#111111",
+}
+_TONE_ICON_COLORS: dict[MacroTone, str] = {
     "good": "#15803D",
     "warn": "#A16207",
     "bad": "#B91C1C",
-    "neutral": "#4B5563",
+    "neutral": "#6B7280",
 }
 _TONE_ICONS: dict[MacroTone, str] = {
     "good": "circle-check",
@@ -51,6 +58,16 @@ _TONE_ICONS: dict[MacroTone, str] = {
     "bad": "circle-x",
     "neutral": "minus",
 }
+_ADVICE_BROWSER_STYLE = (
+    "QTextBrowser {"
+    "  font-size: 13pt;"
+    "  line-height: 1.4;"
+    "  background: transparent;"
+    "  border: 1px solid #D1D5DB;"
+    "  border-radius: 6px;"
+    "  padding: 8px;"
+    "}"
+)
 
 
 class AdviceMacrosDialogBase(QDialog):
@@ -101,13 +118,13 @@ class AdviceMacrosDialogBase(QDialog):
         if not analysis_present:
             self._verdict_local.setText(empty_message)
             self._verdict_en.setText(empty_message)
-            self._notes_local.clear()
-            self._notes_en.clear()
+            _set_advice_markdown(self._notes_local, "")
+            _set_advice_markdown(self._notes_en, "")
             return
         self._verdict_local.setText(verdict_local or verdict_en or "—")
         self._verdict_en.setText(verdict_en or verdict_local or "—")
-        self._notes_local.setPlainText(notes_local or notes_en)
-        self._notes_en.setPlainText(notes_en or notes_local)
+        _set_advice_markdown(self._notes_local, notes_local or notes_en)
+        _set_advice_markdown(self._notes_en, notes_en or notes_local)
 
     def _build_ui(self, *, show_macro_rows: bool) -> None:
         self._status_label = QLabel("")
@@ -127,14 +144,8 @@ class AdviceMacrosDialogBase(QDialog):
         self._verdict_local.setWordWrap(True)
         self._verdict_en = QLabel("")
         self._verdict_en.setWordWrap(True)
-        self._notes_local = QTextEdit()
-        self._notes_local.setReadOnly(True)
-        self._notes_local.setMinimumHeight(220)
-        self._notes_local.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self._notes_en = QTextEdit()
-        self._notes_en.setReadOnly(True)
-        self._notes_en.setMinimumHeight(220)
-        self._notes_en.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self._notes_local = _make_advice_browser()
+        self._notes_en = _make_advice_browser()
 
         local_page = QWidget()
         local_layout = QVBoxLayout(local_page)
@@ -265,7 +276,7 @@ class DayMacrosDialog(AdviceMacrosDialogBase):
 
 
 class MacroValueRow(QWidget):
-    """One intake-vs-norm line with a tone icon and colored text."""
+    """One intake-vs-norm line with a tone icon; warn/bad stay colored."""
 
     def __init__(self, parent: QWidget | None = None) -> None:
         """Create the icon + text row."""
@@ -286,7 +297,8 @@ class MacroValueRow(QWidget):
         self._text.setText(text)
         self._text.setStyleSheet(f"color: {color}; font-weight: 600;")
         icon_name = _TONE_ICONS[tone]
-        self._icon.setPixmap(create_lucide_icon(icon_name, 18, color=QColor(color)).pixmap(18, 18))
+        icon_color = QColor(_TONE_ICON_COLORS[tone])
+        self._icon.setPixmap(create_lucide_icon(icon_name, 18, color=icon_color).pixmap(18, 18))
 
 
 class RangeMacrosDialog(AdviceMacrosDialogBase):
@@ -346,3 +358,22 @@ def _format_vs_norm(value: float, norm: float, unit: str) -> str:
     pct = percent_of_norm(value, norm)
     pct_text = f" ({pct:.0f}% of norm)" if pct is not None else ""
     return f"{value:.1f} {unit} / norm {norm:.1f} {unit}{pct_text}"
+
+
+def _make_advice_browser() -> QTextBrowser:
+    """Read-only Markdown browser with larger body text for advice."""
+    browser = QTextBrowser()
+    browser.setOpenExternalLinks(False)
+    browser.setMinimumHeight(220)
+    browser.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+    browser.setStyleSheet(_ADVICE_BROWSER_STYLE)
+    return browser
+
+
+def _set_advice_markdown(browser: QTextBrowser, text: str) -> None:
+    """Show advice as simple Markdown (paragraphs, bold, italic)."""
+    stripped = text.strip()
+    if not stripped:
+        browser.clear()
+        return
+    browser.setMarkdown(stripped)

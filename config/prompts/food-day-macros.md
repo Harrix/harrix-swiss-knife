@@ -23,13 +23,18 @@ NormProtein_g	NormFat_g	NormCarb_g	NormKcal
 ```
 3. `VERDICT_EN:` short English headline
 4. `VERDICT:` short headline in {{LOCAL_LANGUAGE}}
-5. A line exactly `EN:` then English advice (several lines OK). **Must comment on calories** vs the bands above.
+5. A line exactly `EN:` then English advice (several paragraphs OK). **Must comment on calories** vs the bands above.
 6. A line exactly `LOCAL:` then the same advice in {{LOCAL_LANGUAGE}}, including calories.
+
+Advice formatting (EN and LOCAL):
+- Separate paragraphs with a blank line.
+- Simple Markdown is allowed: **bold**, *italic*, lists (`-` / `1.`).
+- Do not use headings, links, images, or code fences in advice.
+- Do not put tabs in VERDICT or advice lines.
 
 Rules:
 - All numeric fields are non-negative (floats allowed).
 - Norms should be a sensible full-day reference, not a copy of intake.
-- Do not put tabs in VERDICT or advice lines.
 
 Example:
 
@@ -39,11 +44,13 @@ Example:
 VERDICT_EN: Low protein; calories in the medium-low band
 VERDICT: Мало белка; калории в средней-нижней зоне
 EN:
-Add a protein-rich meal (eggs, fish, or legumes). Carbs are fine; fats are moderate.
-Calories (~1850) sit near the low/medium boundary — fine for a light day, a bit low if this is a normal active day.
+Add a **protein-rich** meal (eggs, fish, or legumes). Carbs are fine; fats are moderate.
+
+Calories (~1850) sit near the low/medium boundary — fine for a *light* day, a bit low if this is a normal active day.
 LOCAL:
-Добавьте белковую еду (яйца, рыба или бобовые). Углеводы в норме, жиры умеренные.
-Калории (~1850) у нижней границы среднего диапазона — нормально для лёгкого дня.
+Добавьте **белковую** еду (яйца, рыба или бобовые). Углеводы в норме, жиры умеренные.
+
+Калории (~1850) у нижней границы среднего диапазона — нормально для *лёгкого* дня.
 ```
 
 Date:

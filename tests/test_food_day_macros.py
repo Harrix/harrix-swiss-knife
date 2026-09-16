@@ -58,9 +58,13 @@ def test_parse_day_macros_response_bilingual() -> None:
         "VERDICT_EN: Low protein\n"
         "VERDICT: Мало белка\n"
         "EN:\n"
-        "Add eggs. Calories are in the medium band.\n"
+        "Add **eggs**.\n"
+        "\n"
+        "Calories are in the medium band.\n"
         "LOCAL:\n"
-        "Добавьте яйца. Калории в среднем диапазоне."
+        "Добавьте **яйца**.\n"
+        "\n"
+        "Калории в среднем диапазоне."
     )
     result = parse_day_macros_response(text)
     assert result is not None
@@ -68,8 +72,9 @@ def test_parse_day_macros_response_bilingual() -> None:
     assert result.norm_kcal == 2100.0
     assert "Low protein" in result.verdict_en
     assert "Мало белка" in result.verdict
-    assert "eggs" in result.notes_en
-    assert "яйца" in result.notes
+    assert "**eggs**" in result.notes_en
+    assert "**яйца**" in result.notes
+    assert "\n\n" in result.notes_en
     assert "Calories" in result.notes_en
 
 

@@ -12,10 +12,16 @@ User calorie bands:
 Return **exactly**:
 1. `VERDICT_EN:` short English headline for the period
 2. `VERDICT:` short headline in {{LOCAL_LANGUAGE}}
-3. `EN:` English advice (several lines OK), including calories / balance across days
+3. `EN:` English advice (several paragraphs OK), including calories / balance across days
 4. `LOCAL:` same advice in {{LOCAL_LANGUAGE}}
 
-Do not put tabs in the text. No TSV. No preamble.
+Advice formatting (EN and LOCAL):
+- Separate paragraphs with a blank line.
+- Simple Markdown is allowed: **bold**, *italic*, lists (`-` / `1.`).
+- Do not use headings, links, images, or code fences in advice.
+- Do not put tabs in the text.
+
+No TSV. No preamble.
 
 Example:
 
@@ -23,11 +29,13 @@ Example:
 VERDICT_EN: Period balanced despite a heavy last day
 VERDICT: Период в балансе, несмотря на тяжёлый последний день
 EN:
-Yesterday was high (~2800 kcal, above the medium band), but earlier days were lighter, so the average sits in the medium range.
-Protein was consistently a bit low — add one protein-rich meal on lighter days.
+Yesterday was **high** (~2800 kcal, above the medium band), but earlier days were lighter, so the average sits in the medium range.
+
+Protein was consistently a bit low — add one protein-rich meal on *lighter* days.
 LOCAL:
-Вчера калорийность высокая (~2800, выше среднего диапазона), но предыдущие дни были легче — среднее за период в норме.
-Белка стабильно маловато — добавьте белковую еду в более лёгкие дни.
+Вчера калорийность **высокая** (~2800, выше среднего диапазона), но предыдущие дни были легче — среднее за период в норме.
+
+Белка стабильно маловато — добавьте белковую еду в *более лёгкие* дни.
 ```
 
 Date range:

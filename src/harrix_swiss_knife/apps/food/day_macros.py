@@ -238,19 +238,28 @@ def parse_day_macros_response(text: str) -> DayMacrosResult | None:
     - `DayMacrosResult | None`: Parsed values, or `None` when invalid.
 
     """
-    lines = [line.strip() for line in text.replace("\r\n", "\n").replace("\r", "\n").split("\n")]
-    data_lines = [line for line in lines if line and not line.startswith("```")]
-    if len(data_lines) < _MIN_DATA_LINES:
+    lines = _normalize_response_lines(text)
+    tsv_indices: list[int] = []
+    for index, line in enumerate(lines):
+        if not line or line.startswith("```"):
+            continue
+        if _parse_tsv_floats(line) is None:
+            continue
+        tsv_indices.append(index)
+        if len(tsv_indices) == _MIN_DATA_LINES:
+            break
+    if len(tsv_indices) < _MIN_DATA_LINES:
         return None
-    intake = _parse_tsv_floats(data_lines[0])
-    norms = _parse_tsv_floats(data_lines[1])
+    intake = _parse_tsv_floats(lines[tsv_indices[0]])
+    norms = _parse_tsv_floats(lines[tsv_indices[1]])
     if intake is None or norms is None:
         return None
     protein_g, fat_g, carb_g, kcal = intake
     norm_protein_g, norm_fat_g, norm_carb_g, norm_kcal = norms
     if min(protein_g, fat_g, carb_g, kcal, norm_protein_g, norm_fat_g, norm_carb_g, norm_kcal) < 0:
         return None
-    bilingual = _parse_bilingual_tail(data_lines[2:])
+    tail = [line for line in lines[tsv_indices[1] + 1 :] if not line.startswith("```")]
+    bilingual = _parse_bilingual_tail(tail)
     return DayMacrosResult(
         protein_g=protein_g,
         fat_g=fat_g,
@@ -269,9 +278,9 @@ def parse_day_macros_response(text: str) -> DayMacrosResult | None:
 
 def parse_range_macros_response(text: str) -> RangeMacrosResult | None:
     """Parse bilingual period advice (no TSV lines)."""
-    lines = [line.strip() for line in text.replace("\r\n", "\n").replace("\r", "\n").split("\n")]
-    data_lines = [line for line in lines if line and not line.startswith("```")]
-    if not data_lines:
+    lines = _normalize_response_lines(text)
+    data_lines = [line for line in lines if not line.startswith("```")]
+    if not any(line for line in data_lines):
         return None
     bilingual = _parse_bilingual_tail(data_lines)
     if not (bilingual.verdict or bilingual.verdict_en or bilingual.notes or bilingual.notes_en):
@@ -333,6 +342,11 @@ def _canonical_line(line: FoodDayLogLine) -> str:
             "1" if line.is_drink else "0",
         ]
     )
+
+
+def _normalize_response_lines(text: str) -> list[str]:
+    """Split response into lines; keep blank lines for Markdown paragraphs."""
+    return [line.strip() for line in text.replace("\r\n", "\n").replace("\r", "\n").split("\n")]
 
 
 def _num(value: float | None) -> str:

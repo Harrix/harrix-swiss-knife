@@ -85,13 +85,13 @@ class AdviceMacrosDialogBase(QDialog):
         if not analysis_present:
             self._verdict_local.setText(empty_message)
             self._verdict_en.setText(empty_message)
-            self._notes_local.clear()
-            self._notes_en.clear()
+            _set_advice_markdown(self._notes_local, "")
+            _set_advice_markdown(self._notes_en, "")
             return
         self._verdict_local.setText(verdict_local or verdict_en or "—")
         self._verdict_en.setText(verdict_en or verdict_local or "—")
-        self._notes_local.setPlainText(notes_local or notes_en)
-        self._notes_en.setPlainText(notes_en or notes_local)
+        _set_advice_markdown(self._notes_local, notes_local or notes_en)
+        _set_advice_markdown(self._notes_en, notes_en or notes_local)
 
     def _build_ui(self, *, show_macro_rows: bool) -> None:
         self._status_label = QLabel("")
@@ -111,14 +111,8 @@ class AdviceMacrosDialogBase(QDialog):
         self._verdict_local.setWordWrap(True)
         self._verdict_en = QLabel("")
         self._verdict_en.setWordWrap(True)
-        self._notes_local = QTextEdit()
-        self._notes_local.setReadOnly(True)
-        self._notes_local.setMinimumHeight(220)
-        self._notes_local.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self._notes_en = QTextEdit()
-        self._notes_en.setReadOnly(True)
-        self._notes_en.setMinimumHeight(220)
-        self._notes_en.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self._notes_local = _make_advice_browser()
+        self._notes_en = _make_advice_browser()
 
         local_page = QWidget()
         local_layout = QVBoxLayout(local_page)
@@ -419,7 +413,7 @@ def set_analysis(self, analysis: FoodDayMacrosAnalysis | None, status: DayMacros
 class MacroValueRow(QWidget)
 ```
 
-One intake-vs-norm line with a tone icon and colored text.
+One intake-vs-norm line with a tone icon; warn/bad stay colored.
 
 <details>
 <summary>Code:</summary>
@@ -446,7 +440,8 @@ class MacroValueRow(QWidget):
         self._text.setText(text)
         self._text.setStyleSheet(f"color: {color}; font-weight: 600;")
         icon_name = _TONE_ICONS[tone]
-        self._icon.setPixmap(create_lucide_icon(icon_name, 18, color=QColor(color)).pixmap(18, 18))
+        icon_color = QColor(_TONE_ICON_COLORS[tone])
+        self._icon.setPixmap(create_lucide_icon(icon_name, 18, color=icon_color).pixmap(18, 18))
 ```
 
 </details>
@@ -495,7 +490,8 @@ def set_value(self, text: str, tone: MacroTone) -> None:
         self._text.setText(text)
         self._text.setStyleSheet(f"color: {color}; font-weight: 600;")
         icon_name = _TONE_ICONS[tone]
-        self._icon.setPixmap(create_lucide_icon(icon_name, 18, color=QColor(color)).pixmap(18, 18))
+        icon_color = QColor(_TONE_ICON_COLORS[tone])
+        self._icon.setPixmap(create_lucide_icon(icon_name, 18, color=icon_color).pixmap(18, 18))
 ```
 
 </details>
