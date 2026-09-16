@@ -429,6 +429,7 @@
     "habits_emoji_suggest": "snippet:config/prompts/habits-emoji-suggest.md",
     "food_kcal_lookup": "snippet:config/prompts/food-kcal-lookup.md",
     "food_day_macros": "snippet:config/prompts/food-day-macros.md",
+    "food_range_macros": "snippet:config/prompts/food-range-macros.md",
     "food_portion_weight_from_calories": "snippet:config/prompts/food-portion-weight-from-calories.md",
     "food_log_translate_names": "snippet:config/prompts/food-log-translate-names.md",
     "speech_transcription": "snippet:config/prompts/speech-transcription.md",

@@ -77,9 +77,26 @@ CREATE TABLE IF NOT EXISTS food_day_nutrition_analysis (
     norm_kcal REAL NOT NULL,
     verdict TEXT NOT NULL DEFAULT '',
     notes TEXT NOT NULL DEFAULT '',
+    verdict_en TEXT NOT NULL DEFAULT '',
+    notes_en TEXT NOT NULL DEFAULT '',
     input_hash TEXT NOT NULL,
     analyzed_at TEXT NOT NULL,
     prompt_key TEXT NOT NULL DEFAULT 'food_day_macros'
+)
+"""
+
+_RANGE_NUTRITION_ANALYSIS_SQL = """
+CREATE TABLE IF NOT EXISTS food_range_nutrition_analysis (
+    date_from TEXT NOT NULL,
+    date_to TEXT NOT NULL,
+    verdict TEXT NOT NULL DEFAULT '',
+    notes TEXT NOT NULL DEFAULT '',
+    verdict_en TEXT NOT NULL DEFAULT '',
+    notes_en TEXT NOT NULL DEFAULT '',
+    input_hash TEXT NOT NULL,
+    analyzed_at TEXT NOT NULL,
+    prompt_key TEXT NOT NULL DEFAULT 'food_range_macros',
+    PRIMARY KEY (date_from, date_to)
 )
 """
 
@@ -202,6 +219,9 @@ def ensure_food_schema(db_path: Path) -> bool:
         if _ensure_day_nutrition_analysis_table(conn):
             changed = True
 
+        if _ensure_range_nutrition_analysis_table(conn):
+            changed = True
+
         if changed:
             conn.commit()
         return changed
@@ -226,17 +246,44 @@ def _ensure_day_nutrition_analysis_table(conn: sqlite3.Connection) -> bool:
         "norm_kcal",
         "verdict",
         "notes",
+        "verdict_en",
+        "notes_en",
         "input_hash",
         "analyzed_at",
         "prompt_key",
     }
-    if _table_exists(conn, "food_day_nutrition_analysis"):
-        if required.issubset(_column_names(conn, "food_day_nutrition_analysis")):
-            return False
+    if not _table_exists(conn, "food_day_nutrition_analysis"):
+        conn.executescript(_DAY_NUTRITION_ANALYSIS_SQL)
+        logger.info("Created Food day nutrition analysis table")
+        return True
+    cols = _column_names(conn, "food_day_nutrition_analysis")
+    if required.issubset(cols):
+        return False
+    # Prefer additive migration for bilingual columns; recreate only if core cols missing.
+    core = required - {"verdict_en", "notes_en"}
+    if not core.issubset(cols):
         conn.execute("DROP TABLE food_day_nutrition_analysis")
-        logger.info("Recreating Food day nutrition analysis table for AI-norm columns")
-    conn.executescript(_DAY_NUTRITION_ANALYSIS_SQL)
-    logger.info("Created Food day nutrition analysis table")
+        conn.executescript(_DAY_NUTRITION_ANALYSIS_SQL)
+        logger.info("Recreated Food day nutrition analysis table")
+        return True
+    changed = False
+    if "verdict_en" not in cols:
+        conn.execute("ALTER TABLE food_day_nutrition_analysis ADD COLUMN verdict_en TEXT NOT NULL DEFAULT ''")
+        changed = True
+    if "notes_en" not in cols:
+        conn.execute("ALTER TABLE food_day_nutrition_analysis ADD COLUMN notes_en TEXT NOT NULL DEFAULT ''")
+        changed = True
+    if changed:
+        logger.info("Added bilingual columns to Food day nutrition analysis table")
+    return changed
+
+
+def _ensure_range_nutrition_analysis_table(conn: sqlite3.Connection) -> bool:
+    """Create `food_range_nutrition_analysis` when missing."""
+    if _table_exists(conn, "food_range_nutrition_analysis"):
+        return False
+    conn.executescript(_RANGE_NUTRITION_ANALYSIS_SQL)
+    logger.info("Created Food range nutrition analysis table")
     return True
 
 

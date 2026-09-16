@@ -6,12 +6,16 @@ import sqlite3
 from pathlib import Path
 
 from harrix_swiss_knife.apps.food.day_macros import (
+    CalorieThresholds,
     DayMacrosStatus,
     FoodDayLogLine,
     FoodDayMacrosAnalysis,
     food_day_input_hash,
     format_day_menu_for_prompt,
+    kcal_tone,
+    macro_tone,
     parse_day_macros_response,
+    parse_range_macros_response,
     percent_of_norm,
     resolve_day_macros_status,
 )
@@ -47,30 +51,49 @@ def test_food_day_input_hash_order_independent() -> None:
     assert food_day_input_hash([a, b]) == food_day_input_hash([b, a])
 
 
-def test_parse_day_macros_response_happy_path() -> None:
+def test_parse_day_macros_response_bilingual() -> None:
     text = (
-        "95.5\t60\t200.25\t1800\n100\t70\t250\t2100\nVERDICT: Low protein relative to the day norm\nAdd eggs or fish."
+        "95.5\t60\t200.25\t1800\n"
+        "100\t70\t250\t2100\n"
+        "VERDICT_EN: Low protein\n"
+        "VERDICT: Мало белка\n"
+        "EN:\n"
+        "Add eggs. Calories are in the medium band.\n"
+        "LOCAL:\n"
+        "Добавьте яйца. Калории в среднем диапазоне."
     )
     result = parse_day_macros_response(text)
     assert result is not None
     assert result.protein_g == 95.5
-    assert result.fat_g == 60.0
-    assert result.carb_g == 200.25
-    assert result.kcal == 1800.0
-    assert result.norm_protein_g == 100.0
-    assert result.norm_fat_g == 70.0
-    assert result.norm_carb_g == 250.0
     assert result.norm_kcal == 2100.0
-    assert "Low protein" in result.verdict
-    assert "eggs" in result.notes
+    assert "Low protein" in result.verdict_en
+    assert "Мало белка" in result.verdict
+    assert "eggs" in result.notes_en
+    assert "яйца" in result.notes
+    assert "Calories" in result.notes_en
 
 
 def test_parse_day_macros_response_rejects_bad_output() -> None:
     assert parse_day_macros_response("") is None
     assert parse_day_macros_response("a\tb\tc\td") is None
-    assert parse_day_macros_response("10\t20\t30\t40") is None  # missing norms line
+    assert parse_day_macros_response("10\t20\t30\t40") is None
     assert parse_day_macros_response("-1\t0\t0\t0\n1\t1\t1\t1") is None
-    assert parse_day_macros_response("10\t20\t30\n10\t20\t30\t40") is None
+
+
+def test_parse_range_macros_response() -> None:
+    text = (
+        "VERDICT_EN: Period balanced\n"
+        "VERDICT: Период в балансе\n"
+        "EN:\n"
+        "Heavy day offset by light days.\n"
+        "LOCAL:\n"
+        "Тяжёлый день компенсирован лёгкими."
+    )
+    result = parse_range_macros_response(text)
+    assert result is not None
+    assert "balanced" in result.verdict_en
+    assert "балансе" in result.verdict
+    assert "offset" in result.notes_en
 
 
 def test_resolve_day_macros_status() -> None:
@@ -89,14 +112,20 @@ def test_resolve_day_macros_status() -> None:
         notes="",
         input_hash="abc",
         analyzed_at="2026-01-01T00:00:00+00:00",
+        verdict_en="",
+        notes_en="",
     )
     assert resolve_day_macros_status(analysis, "abc") is DayMacrosStatus.OK
     assert resolve_day_macros_status(analysis, "xyz") is DayMacrosStatus.STALE
 
 
-def test_percent_of_norm() -> None:
+def test_percent_and_tones() -> None:
     assert percent_of_norm(50, 100) == 50.0
     assert percent_of_norm(10, 0) is None
+    assert macro_tone(100, 100) == "good"
+    assert macro_tone(50, 100) == "bad"
+    assert kcal_tone(1700, CalorieThresholds()) == "good"
+    assert kcal_tone(3000, CalorieThresholds()) == "bad"
 
 
 def test_format_day_menu_for_prompt_includes_total() -> None:
@@ -109,7 +138,7 @@ def test_format_day_menu_for_prompt_includes_total() -> None:
     assert "Total kcal" in menu
 
 
-def test_ensure_food_schema_creates_day_nutrition_analysis(tmp_path: Path) -> None:
+def test_ensure_food_schema_creates_day_and_range_analysis(tmp_path: Path) -> None:
     db_path = tmp_path / "food_macros.db"
     with sqlite3.connect(str(db_path)) as conn:
         conn.executescript(
@@ -142,16 +171,12 @@ def test_ensure_food_schema_creates_day_nutrition_analysis(tmp_path: Path) -> No
 
     with sqlite3.connect(str(db_path)) as conn:
         assert _table_exists(conn, "food_day_nutrition_analysis")
+        assert _table_exists(conn, "food_range_nutrition_analysis")
         cols = {row[1] for row in conn.execute("PRAGMA table_info(food_day_nutrition_analysis)")}
-        assert {
-            "protein_g",
-            "norm_protein_g",
-            "verdict",
-            "input_hash",
-        }.issubset(cols)
+        assert {"verdict_en", "notes_en", "norm_protein_g"}.issubset(cols)
 
 
-def test_ensure_food_schema_upgrades_legacy_day_analysis_table(tmp_path: Path) -> None:
+def test_ensure_food_schema_adds_bilingual_columns(tmp_path: Path) -> None:
     db_path = tmp_path / "food_legacy_macros.db"
     with sqlite3.connect(str(db_path)) as conn:
         conn.executescript(
@@ -181,6 +206,11 @@ def test_ensure_food_schema_upgrades_legacy_day_analysis_table(tmp_path: Path) -
                 fat_g REAL NOT NULL,
                 carb_g REAL NOT NULL,
                 kcal REAL NOT NULL,
+                norm_protein_g REAL NOT NULL,
+                norm_fat_g REAL NOT NULL,
+                norm_carb_g REAL NOT NULL,
+                norm_kcal REAL NOT NULL,
+                verdict TEXT NOT NULL DEFAULT '',
                 notes TEXT NOT NULL DEFAULT '',
                 input_hash TEXT NOT NULL,
                 analyzed_at TEXT NOT NULL,
@@ -188,13 +218,24 @@ def test_ensure_food_schema_upgrades_legacy_day_analysis_table(tmp_path: Path) -
             );
             """
         )
+        conn.execute(
+            """
+            INSERT INTO food_day_nutrition_analysis (
+                date, protein_g, fat_g, carb_g, kcal,
+                norm_protein_g, norm_fat_g, norm_carb_g, norm_kcal,
+                verdict, notes, input_hash, analyzed_at
+            ) VALUES ('2026-01-01', 1, 2, 3, 4, 10, 20, 30, 40, 'v', 'n', 'h', 't')
+            """
+        )
         conn.commit()
 
     assert ensure_food_schema(db_path) is True
     with sqlite3.connect(str(db_path)) as conn:
         cols = {row[1] for row in conn.execute("PRAGMA table_info(food_day_nutrition_analysis)")}
-        assert "norm_protein_g" in cols
-        assert "verdict" in cols
+        assert "verdict_en" in cols
+        assert "notes_en" in cols
+        row = conn.execute("SELECT verdict, notes FROM food_day_nutrition_analysis").fetchone()
+        assert row == ("v", "n")
 
 
 def _table_exists(conn: sqlite3.Connection, table: str) -> bool:

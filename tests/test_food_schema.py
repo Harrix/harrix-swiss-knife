@@ -108,6 +108,7 @@ def test_ensure_food_schema_creates_recipes_on_current_db(tmp_path: Path) -> Non
         assert _table_exists_names(conn, "recipes")
         assert _table_exists_names(conn, "recipe_ingredients")
         assert _table_exists_names(conn, "food_day_nutrition_analysis")
+        assert _table_exists_names(conn, "food_range_nutrition_analysis")
         cols = {row[1] for row in conn.execute("PRAGMA table_info(recipes)")}
         assert {"_id", "name", "calories_per_100g", "total_weight"}.issubset(cols)
 

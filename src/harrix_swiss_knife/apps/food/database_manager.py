@@ -10,8 +10,10 @@ from harrix_swiss_knife.apps.common.qt_database_manager_base import QtSqliteData
 from harrix_swiss_knife.apps.food.day_macros import (
     FoodDayLogLine,
     FoodDayMacrosAnalysis,
+    FoodRangeMacrosAnalysis,
     day_macros_prompt_key,
     food_day_input_hash,
+    range_macros_prompt_key,
 )
 from harrix_swiss_knife.apps.food.recipe_calories import RecipeIngredientInput, calculate_recipe_nutrition
 
@@ -201,6 +203,16 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         query = "DELETE FROM food_log WHERE _id = :id"
         params = {"id": record_id}
         return self.execute_simple_query(query, params)
+
+    def delete_food_range_nutrition_analysis(self, date_from: str, date_to: str) -> bool:
+        """Delete the saved multi-day macros summary for the range if present."""
+        return self.execute_simple_query(
+            """
+            DELETE FROM food_range_nutrition_analysis
+            WHERE date_from = :date_from AND date_to = :date_to
+            """,
+            {"date_from": date_from, "date_to": date_to},
+        )
 
     def delete_recipe(self, recipe_id: int) -> bool:
         """Delete a recipe and its ingredients.
@@ -552,7 +564,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             """
             SELECT date, protein_g, fat_g, carb_g, kcal,
                    norm_protein_g, norm_fat_g, norm_carb_g, norm_kcal,
-                   verdict, notes, input_hash, analyzed_at, prompt_key
+                   verdict, notes, verdict_en, notes_en, input_hash, analyzed_at, prompt_key
             FROM food_day_nutrition_analysis
             WHERE date BETWEEN :date_from AND :date_to
             ORDER BY date ASC
@@ -567,7 +579,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             """
             SELECT date, protein_g, fat_g, carb_g, kcal,
                    norm_protein_g, norm_fat_g, norm_carb_g, norm_kcal,
-                   verdict, notes, input_hash, analyzed_at, prompt_key
+                   verdict, notes, verdict_en, notes_en, input_hash, analyzed_at, prompt_key
             FROM food_day_nutrition_analysis
             WHERE date = :day
             LIMIT 1
@@ -680,6 +692,22 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             weight=float(row[4]) if row[4] not in (None, "") else None,
             portion_calories=float(row[5]) if row[5] not in (None, "") else None,
         )
+
+    def get_food_range_nutrition_analysis(self, date_from: str, date_to: str) -> FoodRangeMacrosAnalysis | None:
+        """Return the saved multi-day macros summary for the range, or `None`."""
+        rows = self.get_rows(
+            """
+            SELECT date_from, date_to, verdict, notes, verdict_en, notes_en,
+                   input_hash, analyzed_at, prompt_key
+            FROM food_range_nutrition_analysis
+            WHERE date_from = :date_from AND date_to = :date_to
+            LIMIT 1
+            """,
+            {"date_from": date_from, "date_to": date_to},
+        )
+        if not rows:
+            return None
+        return _range_macros_analysis_from_row(rows[0])
 
     def get_food_weight_per_day(self) -> list[list[Any]]:
         """Get food weight consumed per day for all days (excluding drinks).
@@ -1311,11 +1339,11 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             INSERT INTO food_day_nutrition_analysis (
                 date, protein_g, fat_g, carb_g, kcal,
                 norm_protein_g, norm_fat_g, norm_carb_g, norm_kcal,
-                verdict, notes, input_hash, analyzed_at, prompt_key
+                verdict, notes, verdict_en, notes_en, input_hash, analyzed_at, prompt_key
             ) VALUES (
                 :date, :protein_g, :fat_g, :carb_g, :kcal,
                 :norm_protein_g, :norm_fat_g, :norm_carb_g, :norm_kcal,
-                :verdict, :notes, :input_hash, :analyzed_at, :prompt_key
+                :verdict, :notes, :verdict_en, :notes_en, :input_hash, :analyzed_at, :prompt_key
             )
             ON CONFLICT(date) DO UPDATE SET
                 protein_g = excluded.protein_g,
@@ -1328,6 +1356,8 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
                 norm_kcal = excluded.norm_kcal,
                 verdict = excluded.verdict,
                 notes = excluded.notes,
+                verdict_en = excluded.verdict_en,
+                notes_en = excluded.notes_en,
                 input_hash = excluded.input_hash,
                 analyzed_at = excluded.analyzed_at,
                 prompt_key = excluded.prompt_key
@@ -1344,9 +1374,44 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
                 "norm_kcal": analysis.norm_kcal,
                 "verdict": analysis.verdict,
                 "notes": analysis.notes,
+                "verdict_en": analysis.verdict_en,
+                "notes_en": analysis.notes_en,
                 "input_hash": analysis.input_hash,
                 "analyzed_at": analysis.analyzed_at,
                 "prompt_key": analysis.prompt_key or day_macros_prompt_key(),
+            },
+        )
+
+    def upsert_food_range_nutrition_analysis(self, analysis: FoodRangeMacrosAnalysis) -> bool:
+        """Insert or replace a multi-day macros summary row."""
+        return self.execute_simple_query(
+            """
+            INSERT INTO food_range_nutrition_analysis (
+                date_from, date_to, verdict, notes, verdict_en, notes_en,
+                input_hash, analyzed_at, prompt_key
+            ) VALUES (
+                :date_from, :date_to, :verdict, :notes, :verdict_en, :notes_en,
+                :input_hash, :analyzed_at, :prompt_key
+            )
+            ON CONFLICT(date_from, date_to) DO UPDATE SET
+                verdict = excluded.verdict,
+                notes = excluded.notes,
+                verdict_en = excluded.verdict_en,
+                notes_en = excluded.notes_en,
+                input_hash = excluded.input_hash,
+                analyzed_at = excluded.analyzed_at,
+                prompt_key = excluded.prompt_key
+            """,
+            {
+                "date_from": analysis.date_from,
+                "date_to": analysis.date_to,
+                "verdict": analysis.verdict,
+                "notes": analysis.notes,
+                "verdict_en": analysis.verdict_en,
+                "notes_en": analysis.notes_en,
+                "input_hash": analysis.input_hash,
+                "analyzed_at": analysis.analyzed_at,
+                "prompt_key": analysis.prompt_key or range_macros_prompt_key(),
             },
         )
 
@@ -1466,9 +1531,11 @@ def _day_macros_analysis_from_row(row: list[Any] | tuple[Any, ...]) -> FoodDayMa
         norm_kcal=float(row[8] or 0.0),
         verdict=str(row[9] or ""),
         notes=str(row[10] or ""),
-        input_hash=str(row[11] or ""),
-        analyzed_at=str(row[12] or ""),
-        prompt_key=str(row[13] or day_macros_prompt_key()),
+        verdict_en=str(row[11] or ""),
+        notes_en=str(row[12] or ""),
+        input_hash=str(row[13] or ""),
+        analyzed_at=str(row[14] or ""),
+        prompt_key=str(row[15] or day_macros_prompt_key()),
     )
 
 
@@ -1530,6 +1597,21 @@ def _optional_sql_float(value: Any) -> float | None:
 def _raise_runtime_error(message: str) -> NoReturn:
     """Raise `RuntimeError` (helper for TRY301 inside SQL transactions)."""
     raise RuntimeError(message)
+
+
+def _range_macros_analysis_from_row(row: list[Any] | tuple[Any, ...]) -> FoodRangeMacrosAnalysis:
+    """Build a `FoodRangeMacrosAnalysis` from a SQL row."""
+    return FoodRangeMacrosAnalysis(
+        date_from=str(row[0]),
+        date_to=str(row[1]),
+        verdict=str(row[2] or ""),
+        notes=str(row[3] or ""),
+        verdict_en=str(row[4] or ""),
+        notes_en=str(row[5] or ""),
+        input_hash=str(row[6] or ""),
+        analyzed_at=str(row[7] or ""),
+        prompt_key=str(row[8] or range_macros_prompt_key()),
+    )
 
 
 def _recipe_ingredient_row_from_sql(row: list[Any] | tuple[Any, ...]) -> RecipeIngredientRow:

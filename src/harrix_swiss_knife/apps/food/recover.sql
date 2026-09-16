@@ -6,6 +6,7 @@ PRAGMA foreign_keys = OFF;
 
 DROP TABLE IF EXISTS recipe_ingredients;
 DROP TABLE IF EXISTS recipes;
+DROP TABLE IF EXISTS food_range_nutrition_analysis;
 DROP TABLE IF EXISTS food_day_nutrition_analysis;
 DROP TABLE IF EXISTS food_log;
 DROP TABLE IF EXISTS food_items;
@@ -67,9 +68,24 @@ CREATE TABLE food_day_nutrition_analysis (
     norm_kcal REAL NOT NULL,
     verdict TEXT NOT NULL DEFAULT '',
     notes TEXT NOT NULL DEFAULT '',
+    verdict_en TEXT NOT NULL DEFAULT '',
+    notes_en TEXT NOT NULL DEFAULT '',
     input_hash TEXT NOT NULL,
     analyzed_at TEXT NOT NULL,
     prompt_key TEXT NOT NULL DEFAULT 'food_day_macros'
+);
+
+CREATE TABLE food_range_nutrition_analysis (
+    date_from TEXT NOT NULL,
+    date_to TEXT NOT NULL,
+    verdict TEXT NOT NULL DEFAULT '',
+    notes TEXT NOT NULL DEFAULT '',
+    verdict_en TEXT NOT NULL DEFAULT '',
+    notes_en TEXT NOT NULL DEFAULT '',
+    input_hash TEXT NOT NULL,
+    analyzed_at TEXT NOT NULL,
+    prompt_key TEXT NOT NULL DEFAULT 'food_range_macros',
+    PRIMARY KEY (date_from, date_to)
 );
 
 -- Seed catalog of food items from working database
