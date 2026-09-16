@@ -908,11 +908,35 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `list[str]`: List of type names.
 
         """
+        return [name for name, _local in self.get_exercise_types_with_local(exercise_id)]
+
+    def get_exercise_types_with_local(self, exercise_id: int) -> list[tuple[str, str]]:
+        """Return `(type, name_local)` rows for an exercise.
+
+        Args:
+
+        - `exercise_id` (`int`): Exercise ID.
+
+        Returns:
+
+        - `list[tuple[str, str]]`: English type name and optional local name.
+
+        """
         rows = self.get_rows(
-            "SELECT type FROM types WHERE _id_exercises = :ex_id",
+            """
+            SELECT type, IFNULL(name_local, '')
+            FROM types
+            WHERE _id_exercises = :ex_id
+            """,
             {"ex_id": exercise_id},
         )
-        return [row[0] for row in rows]
+        result: list[tuple[str, str]] = []
+        for row in rows:
+            name = str(row[0] or "").strip()
+            if not name:
+                continue
+            result.append((name, str(row[1] or "").strip()))
+        return result
 
     def get_exercise_unit(self, exercise_name: str) -> str:
         """Get the unit of measurement for a given exercise.

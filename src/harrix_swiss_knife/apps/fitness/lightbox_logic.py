@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
 
 _MS_PER_SECOND = 1000
@@ -175,6 +175,7 @@ class FitnessLightboxDetails:
     types: list[str]
     selected_type: str
     value: int
+    type_locals: dict[str, str] = field(default_factory=dict)
 
 
 class LightboxOverlayKind(StrEnum):

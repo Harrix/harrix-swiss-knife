@@ -17,6 +17,7 @@ from harrix_swiss_knife.apps.common.apps_config import (
     get_apps_fitness_lightbox_countdown_seconds,
 )
 from harrix_swiss_knife.apps.common.avif_manager import AvifManager
+from harrix_swiss_knife.apps.common.delegates.name_local_list_delegate import NAME_LOCAL_ROLE
 from harrix_swiss_knife.apps.fitness.database_manager import WorkoutItemRow
 from harrix_swiss_knife.apps.fitness.fitness_lightbox import (
     FitnessExerciseLightboxDialog,
@@ -65,7 +66,13 @@ def _overlay(dialog: FitnessExerciseLightboxDialog) -> LightboxPhaseOverlay:
 
 
 def _details(_name: str, _item_id: int | None) -> FitnessLightboxDetails:
-    return FitnessLightboxDetails(unit="times", types=["Wide", "Narrow"], selected_type="Wide", value=10)
+    return FitnessLightboxDetails(
+        unit="times",
+        types=["Wide", "Narrow"],
+        selected_type="Wide",
+        value=10,
+        type_locals={"Wide": "Широкий", "Narrow": "Узкий"},
+    )
 
 
 def _plank_details(_name: str, _item_id: int | None) -> FitnessLightboxDetails:
@@ -441,6 +448,41 @@ def test_fitness_lightbox_rep_value_keeps_single_spin(
     sidebar._on_start()
     sidebar._apply_snapshot(sidebar._stopwatch.advance(3000))
     assert sidebar._value_spin.value() == 10
+    dialog.close()
+
+
+def test_fitness_lightbox_type_combo_shows_local_names(
+    tmp_path: Path,
+    qapp: QApplication,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    img_dir = tmp_path / "fitness_img"
+    img_dir.mkdir()
+    _write_test_avif(img_dir / "Push-ups.avif")
+    manager = AvifManager(img_dir)
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.fitness.fitness_lightbox.play_fitness_timer_cue",
+        lambda _cue: None,
+    )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.fitness.fitness_lightbox.stop_fitness_timer_alert",
+        lambda: None,
+    )
+    dialog = FitnessExerciseLightboxDialog(
+        ["Push-ups"],
+        avif_manager=manager,
+        details_loader=_details,
+        confirm_handler=lambda _payload: True,
+        countdown_seconds=0,
+    )
+    combo = dialog._sidebar._type_combo
+    assert not combo.isHidden()
+    assert combo._two_line_mode
+    assert combo.itemText(0) == "Wide"
+    assert combo.itemData(0, NAME_LOCAL_ROLE) == "Широкий"
+    assert combo.itemData(1, NAME_LOCAL_ROLE) == "Узкий"
+    assert combo.currentText() == "Wide"
+    assert dialog._sidebar.selected_type() == "Wide"
     dialog.close()
 
 

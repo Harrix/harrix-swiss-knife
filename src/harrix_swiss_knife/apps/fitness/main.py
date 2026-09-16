@@ -5815,7 +5815,9 @@ class MainWindow(
             return empty
         unit = self.db_manager.get_exercise_unit(exercise_name)
         ex_id = self.db_manager.get_id("exercises", "name", exercise_name)
-        types = self.db_manager.get_exercise_types(ex_id) if ex_id is not None else []
+        type_rows = self.db_manager.get_exercise_types_with_local(ex_id) if ex_id is not None else []
+        types = [name for name, _local in type_rows]
+        type_locals = {name: local for name, local in type_rows if local}
         last_type = ""
         last_value = 0
         if ex_id is not None:
@@ -5840,7 +5842,13 @@ class MainWindow(
             last_used=last_type,
             type_required=type_required,
         )
-        return FitnessLightboxDetails(unit=unit, types=types, selected_type=selected, value=value)
+        return FitnessLightboxDetails(
+            unit=unit,
+            types=types,
+            selected_type=selected,
+            value=value,
+            type_locals=type_locals,
+        )
 
     def _fitness_prompt_replacements(self, raw_text: str) -> dict[str, str]:
         """Build BotHub placeholders for set-logging prompts."""

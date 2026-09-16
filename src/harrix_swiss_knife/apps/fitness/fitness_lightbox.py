@@ -10,6 +10,7 @@ from PySide6.QtGui import (
     QCloseEvent,
     QColor,
     QFont,
+    QFontMetrics,
     QKeySequence,
     QPainter,
     QPaintEvent,
@@ -25,12 +26,19 @@ from PySide6.QtWidgets import (
     QPushButton,
     QSpinBox,
     QSplitter,
+    QStyle,
+    QStyleOptionComboBox,
     QVBoxLayout,
     QWidget,
 )
 
 from harrix_swiss_knife.apps.common.apps_config import DEFAULT_FITNESS_LIGHTBOX_COUNTDOWN_SECONDS
 from harrix_swiss_knife.apps.common.avif_manager import AvifLabelKey
+from harrix_swiss_knife.apps.common.delegates.name_local_list_delegate import (
+    NAME_LOCAL_ROLE,
+    NameLocalLayout,
+    NameLocalListDelegate,
+)
 from harrix_swiss_knife.apps.common.widgets.exercise_avif_lightbox import ExerciseAvifLightboxDialog
 from harrix_swiss_knife.apps.fitness.lightbox_logic import (
     ExerciseStopwatch,
@@ -76,6 +84,9 @@ _COUNTDOWN_VOICE_CUES: dict[int, FitnessTimerCue] = {3: "3", 2: "2", 1: "1"}
 _VALUE_MAXIMUM = 1_000_000
 _DURATION_SPIN_WIDTH = 118
 _DURATION_SPIN_HEIGHT = 72
+_TYPE_COMBO_SINGLE_HEIGHT = 40
+_TYPE_COMBO_DOUBLE_HEIGHT = 56
+_NAME_LOCAL_COLOR = QColor("#888888")
 
 _COLOR_IDLE = "#111827"
 _COLOR_COUNTDOWN = "#2563EB"
@@ -470,13 +481,18 @@ class FitnessLightboxSidebar(QFrame):
         self._unit_label.setText(details.unit)
         self._type_combo.blockSignals(True)  # noqa: FBT003
         self._type_combo.clear()
-        self._type_combo.addItems(details.types)
+        for type_name in details.types:
+            self._type_combo.addItem(type_name)
+            local = details.type_locals.get(type_name, "").strip()
+            if local:
+                self._type_combo.setItemData(self._type_combo.count() - 1, local, NAME_LOCAL_ROLE)
         if details.selected_type:
             index = self._type_combo.findText(details.selected_type)
             if index >= 0:
                 self._type_combo.setCurrentIndex(index)
         self._type_combo.blockSignals(False)  # noqa: FBT003
         self._type_combo.setVisible(bool(details.types))
+        self._type_combo.set_two_line_mode(enabled=bool(details.type_locals))
         self._planned_value = max(0, int(details.value))
         self._set_value_total(self._planned_value)
         self._configure_limit_for_exercise(details.unit, self._planned_value)
@@ -710,6 +726,9 @@ class FitnessLightboxSidebar(QFrame):
         self._type_combo.setObjectName("fitnessLightboxTypeCombo")
         self._type_combo.setStyleSheet(_TYPE_STYLE)
         _apply_pixel_font(self._type_combo, pixel_size=16)
+        self._type_combo.setItemDelegate(
+            NameLocalListDelegate(self._type_combo, layout=NameLocalLayout.LIST),
+        )
         self._type_combo.hide()
 
         self._value_spin = QSpinBox()
@@ -946,13 +965,34 @@ class LightboxPhaseOverlay(QWidget):
 
 
 class _LightboxTypeCombo(QComboBox):
-    """QComboBox that paints a flat chevron instead of the native 3D arrow."""
+    """QComboBox that paints a flat chevron and optional local-name second line."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        """Build the combo with single-line height by default."""
+        super().__init__(parent)
+        self._two_line_mode = False
+        self.setMinimumHeight(_TYPE_COMBO_SINGLE_HEIGHT)
 
     def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
-        """Draw the combo, then a simple down arrow on the right."""
-        super().paintEvent(event)
+        """Draw the combo frame, two-line labels, and a simple down arrow."""
+        del event
+        option = QStyleOptionComboBox()
+        self.initStyleOption(option)
+        main_text = option.currentText
+        local_text = str(self.currentData(NAME_LOCAL_ROLE) or "").strip()
+        option.currentText = ""
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        style = self.style()
+        style.drawComplexControl(QStyle.ComplexControl.CC_ComboBox, option, painter, self)
+        edit_rect = style.subControlRect(
+            QStyle.ComplexControl.CC_ComboBox,
+            option,
+            QStyle.SubControl.SC_ComboBoxEditField,
+            self,
+        )
+        if edit_rect.isValid() and main_text:
+            self._paint_labels(painter, edit_rect, main_text, local_text)
         painter.setPen(
             QPen(
                 QColor("#6B7280"),
@@ -971,6 +1011,60 @@ class _LightboxTypeCombo(QComboBox):
                 QPoint(center_x + 5, center_y - 2),
             ]
         )
+
+    def set_two_line_mode(self, *, enabled: bool) -> None:
+        """Grow the closed combo when type rows include a local name."""
+        self._two_line_mode = enabled
+        self.setMinimumHeight(_TYPE_COMBO_DOUBLE_HEIGHT if enabled else _TYPE_COMBO_SINGLE_HEIGHT)
+        self.update()
+
+    def _paint_labels(self, painter: QPainter, text_rect: QRect, main_text: str, local_text: str) -> None:
+        font = self.font()
+        metrics = QFontMetrics(font)
+        painter.save()
+        if not local_text or not self._two_line_mode:
+            painter.setPen(QColor("#111827"))
+            painter.setFont(font)
+            painter.drawText(
+                text_rect,
+                int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft | Qt.TextFlag.TextSingleLine),
+                metrics.elidedText(main_text, Qt.TextElideMode.ElideRight, text_rect.width()),
+            )
+            painter.restore()
+            return
+
+        local_font = QFont(font)
+        pixel = font.pixelSize()
+        if pixel > 0:
+            local_font.setPixelSize(max(12, round(pixel * 0.85)))
+        else:
+            point = font.pointSizeF()
+            if point <= 0:
+                point = float(font.pointSize()) or 9.0
+            local_font.setPointSizeF(max(7.0, point * 0.85))
+        local_metrics = QFontMetrics(local_font)
+        main_height = metrics.height()
+        local_height = local_metrics.height()
+        total_height = main_height + 1 + local_height
+        top = text_rect.y() + max(0, (text_rect.height() - total_height) // 2)
+        main_rect = QRect(text_rect.x(), top, text_rect.width(), main_height)
+        local_rect = QRect(text_rect.x(), top + main_height + 1, text_rect.width(), local_height)
+        left_flags = int(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter | Qt.TextFlag.TextSingleLine)
+        painter.setPen(QColor("#111827"))
+        painter.setFont(font)
+        painter.drawText(
+            main_rect,
+            left_flags,
+            metrics.elidedText(main_text, Qt.TextElideMode.ElideRight, main_rect.width()),
+        )
+        painter.setPen(_NAME_LOCAL_COLOR)
+        painter.setFont(local_font)
+        painter.drawText(
+            local_rect,
+            left_flags,
+            local_metrics.elidedText(local_text, Qt.TextElideMode.ElideRight, local_rect.width()),
+        )
+        painter.restore()
 
 
 def _apply_pixel_font(
@@ -1030,9 +1124,8 @@ QComboBox#fitnessLightboxTypeCombo {
     background: #FFFFFF;
     border: 1px solid #D1D5DB;
     border-radius: 12px;
-    padding: 8px 32px 8px 12px;
+    padding: 6px 32px 6px 12px;
     color: #111827;
-    min-height: 28px;
 }
 QComboBox#fitnessLightboxTypeCombo:focus,
 QComboBox#fitnessLightboxTypeCombo:on {

@@ -531,6 +531,7 @@ class FitnessLightboxDetails:
     types: list[str]
     selected_type: str
     value: int
+    type_locals: dict[str, str] = field(default_factory=dict)
 ```
 
 </details>

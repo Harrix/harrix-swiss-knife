@@ -658,13 +658,18 @@ class FitnessLightboxSidebar(QFrame):
         self._unit_label.setText(details.unit)
         self._type_combo.blockSignals(True)  # noqa: FBT003
         self._type_combo.clear()
-        self._type_combo.addItems(details.types)
+        for type_name in details.types:
+            self._type_combo.addItem(type_name)
+            local = details.type_locals.get(type_name, "").strip()
+            if local:
+                self._type_combo.setItemData(self._type_combo.count() - 1, local, NAME_LOCAL_ROLE)
         if details.selected_type:
             index = self._type_combo.findText(details.selected_type)
             if index >= 0:
                 self._type_combo.setCurrentIndex(index)
         self._type_combo.blockSignals(False)  # noqa: FBT003
         self._type_combo.setVisible(bool(details.types))
+        self._type_combo.set_two_line_mode(enabled=bool(details.type_locals))
         self._planned_value = max(0, int(details.value))
         self._set_value_total(self._planned_value)
         self._configure_limit_for_exercise(details.unit, self._planned_value)
@@ -898,6 +903,9 @@ class FitnessLightboxSidebar(QFrame):
         self._type_combo.setObjectName("fitnessLightboxTypeCombo")
         self._type_combo.setStyleSheet(_TYPE_STYLE)
         _apply_pixel_font(self._type_combo, pixel_size=16)
+        self._type_combo.setItemDelegate(
+            NameLocalListDelegate(self._type_combo, layout=NameLocalLayout.LIST),
+        )
         self._type_combo.hide()
 
         self._value_spin = QSpinBox()
@@ -1185,13 +1193,18 @@ def bind(
         self._unit_label.setText(details.unit)
         self._type_combo.blockSignals(True)  # noqa: FBT003
         self._type_combo.clear()
-        self._type_combo.addItems(details.types)
+        for type_name in details.types:
+            self._type_combo.addItem(type_name)
+            local = details.type_locals.get(type_name, "").strip()
+            if local:
+                self._type_combo.setItemData(self._type_combo.count() - 1, local, NAME_LOCAL_ROLE)
         if details.selected_type:
             index = self._type_combo.findText(details.selected_type)
             if index >= 0:
                 self._type_combo.setCurrentIndex(index)
         self._type_combo.blockSignals(False)  # noqa: FBT003
         self._type_combo.setVisible(bool(details.types))
+        self._type_combo.set_two_line_mode(enabled=bool(details.type_locals))
         self._planned_value = max(0, int(details.value))
         self._set_value_total(self._planned_value)
         self._configure_limit_for_exercise(details.unit, self._planned_value)
