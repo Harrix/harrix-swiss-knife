@@ -424,6 +424,7 @@
   "quick_launcher_markdown_in_panel": true,
   "screenshot_shutter_sound": true,
   "show_main_window_on_startup": false,
+  "ui_font_scale": 1.0,
   "site_default_language": "ru",
   "site_name": "harrix.dev",
   "sqlite_finance": "D:/Dropbox/Databases/finance.db",
