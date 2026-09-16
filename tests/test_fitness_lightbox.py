@@ -187,11 +187,13 @@ def test_stopwatch_stops_at_timed_exercise_limit() -> None:
     snapshot = watch.advance(5000)
     assert snapshot.phase is StopwatchPhase.FINISHED
     assert snapshot.is_overtime
+    assert snapshot.color is StopwatchColor.FINISHED
     assert snapshot.display_seconds == 5
     assert not snapshot.is_running
     watch.advance(2000)
     assert watch.snapshot().display_seconds == 5
     assert watch.snapshot().phase is StopwatchPhase.FINISHED
+    assert watch.snapshot().color is StopwatchColor.FINISHED
     assert not watch.snapshot().is_running
 
 
@@ -201,6 +203,7 @@ def test_stopwatch_stop_marks_finished() -> None:
     watch.advance(500)
     stopped = watch.stop()
     assert stopped.phase is StopwatchPhase.FINISHED
+    assert stopped.color is StopwatchColor.FINISHED
     assert not stopped.is_running
     assert stopped.is_overtime
     watch.advance(2000)
@@ -391,6 +394,49 @@ def test_fitness_lightbox_pause_and_continue_cues(
     assert cues == ["go", "pause"]
     dialog._sidebar._on_start()
     assert cues == ["go", "pause", "continue"]
+    dialog.close()
+
+
+def test_fitness_lightbox_start_after_stop_replays_countdown_cues(
+    tmp_path: Path,
+    qapp: QApplication,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    img_dir = tmp_path / "fitness_img"
+    img_dir.mkdir()
+    _write_test_avif(img_dir / "Push-ups.avif")
+    manager = AvifManager(img_dir)
+    cues: list[str] = []
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.fitness.fitness_lightbox.play_fitness_timer_cue",
+        cues.append,
+    )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.fitness.fitness_lightbox.stop_fitness_timer_alert",
+        lambda: None,
+    )
+    dialog = FitnessExerciseLightboxDialog(
+        ["Push-ups"],
+        avif_manager=manager,
+        details_loader=_details,
+        confirm_handler=lambda _payload: True,
+        countdown_seconds=3,
+        workout_duration_min=1,
+        workout_items=[_item(item_id=1, name="Push-ups", sort_order=0)],
+    )
+    dialog._sidebar._on_start()
+    assert cues == ["ready", "3"]
+    dialog._sidebar._apply_snapshot(dialog._sidebar._stopwatch.advance(1000))
+    assert cues == ["ready", "3", "2"]
+    dialog._sidebar._on_stop()
+    assert "time_over" in cues
+    cues.clear()
+    dialog._sidebar._on_start()
+    assert cues[:2] == ["ready", "3"]
+    dialog._sidebar._apply_snapshot(dialog._sidebar._stopwatch.advance(1000))
+    assert cues == ["ready", "3", "2"]
+    dialog._sidebar._apply_snapshot(dialog._sidebar._stopwatch.advance(1000))
+    assert cues == ["ready", "3", "2", "1"]
     dialog.close()
 
 

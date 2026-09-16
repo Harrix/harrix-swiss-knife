@@ -54,9 +54,9 @@ from harrix_swiss_knife.apps.fitness.lightbox_sounds import (
 )
 from harrix_swiss_knife.qt_lucide_icon import apply_lucide_button_icon
 from harrix_swiss_knife.qt_toolbar_style import (
+    TOOLBAR_BORDER_RADIUS,
     TOOLBAR_BUTTON_GAP,
     TOOLBAR_BUTTON_SIZE,
-    TOOLBAR_BUTTON_STYLE,
     TOOLBAR_ICON_SIZE,
 )
 
@@ -76,6 +76,7 @@ _COLOR_IDLE = "#111827"
 _COLOR_COUNTDOWN = "#2563EB"
 _COLOR_RUNNING = "#111827"
 _COLOR_OVERTIME = "#DC2626"
+_COLOR_FINISHED = "#16A34A"
 _COLOR_IDLE_ON_DARK = "#F9FAFB"
 _COLOR_RUNNING_ON_DARK = "#F9FAFB"
 _COLOR_MUTED = "#6B7280"
@@ -83,6 +84,30 @@ _COLOR_MUTED_ON_DARK = "#9CA3AF"
 _COLOR_TITLE = "#111827"
 _COLOR_TITLE_ON_DARK = "#F9FAFB"
 _SPLITTER_HOVER = "#9CA3AF"
+_TIMER_BUTTON_ICON_ACTIVE = "#122A3A"
+_TIMER_BUTTON_ICON_DISABLED = "#C4C4C8"
+
+_TIMER_BUTTON_STYLE = f"""
+QPushButton {{
+    background-color: #F5F5F7;
+    border: 1px solid #E5E5E8;
+    border-radius: {TOOLBAR_BORDER_RADIUS}px;
+    padding: 0px;
+    margin: 0px;
+}}
+QPushButton:hover:!disabled {{
+    background-color: #ECECEF;
+    border-color: #D8D8DC;
+}}
+QPushButton:pressed:!disabled {{
+    background-color: #E2E2E6;
+    border-color: #C8C8CC;
+}}
+QPushButton:disabled {{
+    background-color: #FBFBFC;
+    border: 1px solid #F0F0F2;
+}}
+"""
 
 _PANE_STYLE = """
 QFrame#fitnessLightboxPane {
@@ -528,6 +553,7 @@ class FitnessLightboxSidebar(QFrame):
             StopwatchColor.COUNTDOWN: _COLOR_COUNTDOWN,
             StopwatchColor.RUNNING: (_COLOR_RUNNING_ON_DARK if self._backdrop_dark else _COLOR_RUNNING),
             StopwatchColor.OVERTIME: _COLOR_OVERTIME,
+            StopwatchColor.FINISHED: _COLOR_FINISHED,
         }[snapshot.color]
         self._time_label.setStyleSheet(f"color: {color}; background: transparent;")
         self._prepare_label.hide()
@@ -582,14 +608,20 @@ class FitnessLightboxSidebar(QFrame):
     def _build_timer_button(self, name: str, tooltip: str, object_name: str) -> QPushButton:
         button = QPushButton()
         button.setObjectName(object_name)
-        apply_lucide_button_icon(button, name, icon_size=TOOLBAR_ICON_SIZE)
+        button.setProperty("_fitness_timer_icon", name)
+        apply_lucide_button_icon(
+            button,
+            name,
+            icon_size=TOOLBAR_ICON_SIZE,
+            color=_TIMER_BUTTON_ICON_ACTIVE,
+        )
         button.setToolTip(tooltip)
         button.setCursor(Qt.CursorShape.PointingHandCursor)
         button.setAutoDefault(False)
         button.setDefault(False)
         button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         button.setFixedSize(TOOLBAR_BUTTON_SIZE, TOOLBAR_BUTTON_SIZE)
-        button.setStyleSheet(TOOLBAR_BUTTON_STYLE)
+        button.setStyleSheet(_TIMER_BUTTON_STYLE)
         return button
 
     def _build_ui(self) -> None:
@@ -725,8 +757,9 @@ class FitnessLightboxSidebar(QFrame):
 
     def _on_start(self) -> None:
         snapshot = self._stopwatch.snapshot()
-        resuming = snapshot.phase is not StopwatchPhase.IDLE and not snapshot.is_running
-        if snapshot.phase is StopwatchPhase.IDLE:
+        fresh_start = snapshot.phase in {StopwatchPhase.IDLE, StopwatchPhase.FINISHED}
+        resuming = not fresh_start and not snapshot.is_running
+        if fresh_start:
             self._ready_announced = False
             self._spoken_countdown.clear()
             self._overtime_announced = False
@@ -754,6 +787,17 @@ class FitnessLightboxSidebar(QFrame):
         self._configure_limit_for_exercise(self._bound_unit, value)
         self._apply_snapshot(self._stopwatch.snapshot())
 
+    def _refresh_timer_button_icon(self, button: QPushButton) -> None:
+        """Repaint the Lucide icon active or muted to match enabled state."""
+        name = button.property("_fitness_timer_icon")
+        if not isinstance(name, str) or not name:
+            return
+        color = _TIMER_BUTTON_ICON_ACTIVE if button.isEnabled() else _TIMER_BUTTON_ICON_DISABLED
+        apply_lucide_button_icon(button, name, icon_size=TOOLBAR_ICON_SIZE, color=color)
+        button.setCursor(
+            Qt.CursorShape.PointingHandCursor if button.isEnabled() else Qt.CursorShape.ArrowCursor,
+        )
+
     def _sync_timer_buttons(self, snapshot: StopwatchSnapshot) -> None:
         """Enable timer actions that are valid for the current state."""
         self._start_button.setEnabled(not snapshot.is_running)
@@ -761,6 +805,9 @@ class FitnessLightboxSidebar(QFrame):
         self._stop_button.setEnabled(
             snapshot.phase not in {StopwatchPhase.IDLE, StopwatchPhase.FINISHED},
         )
+        self._refresh_timer_button_icon(self._start_button)
+        self._refresh_timer_button_icon(self._pause_button)
+        self._refresh_timer_button_icon(self._stop_button)
 
 
 class LightboxPhaseOverlay(QWidget):

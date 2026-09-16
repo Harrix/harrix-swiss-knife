@@ -118,7 +118,7 @@ class ExerciseStopwatch:
                 display_seconds=self._elapsed_ms // _MS_PER_SECOND,
                 is_overtime=True,
                 is_running=False,
-                color=StopwatchColor.OVERTIME,
+                color=StopwatchColor.FINISHED,
             )
         overtime = self._limit_ms is not None and self._elapsed_ms >= self._limit_ms
         return StopwatchSnapshot(
@@ -202,6 +202,7 @@ class StopwatchColor(StrEnum):
     COUNTDOWN = "countdown"
     RUNNING = "running"
     OVERTIME = "overtime"
+    FINISHED = "finished"
 
 
 class StopwatchPhase(StrEnum):
