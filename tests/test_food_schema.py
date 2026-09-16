@@ -69,6 +69,7 @@ def test_ensure_food_schema_migrates_legacy_id_datetime(tmp_path: Path) -> None:
         assert int(conn.execute("SELECT COUNT(*) FROM food_items").fetchone()[0]) == 1
         assert _table_exists_names(conn, "recipes")
         assert _table_exists_names(conn, "recipe_ingredients")
+        assert _table_exists_names(conn, "food_day_nutrition_analysis")
 
 
 def test_ensure_food_schema_creates_recipes_on_current_db(tmp_path: Path) -> None:
@@ -106,6 +107,7 @@ def test_ensure_food_schema_creates_recipes_on_current_db(tmp_path: Path) -> Non
     with sqlite3.connect(str(db_path)) as conn:
         assert _table_exists_names(conn, "recipes")
         assert _table_exists_names(conn, "recipe_ingredients")
+        assert _table_exists_names(conn, "food_day_nutrition_analysis")
         cols = {row[1] for row in conn.execute("PRAGMA table_info(recipes)")}
         assert {"_id", "name", "calories_per_100g", "total_weight"}.issubset(cols)
 

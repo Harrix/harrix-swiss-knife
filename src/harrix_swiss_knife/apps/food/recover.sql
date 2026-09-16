@@ -6,6 +6,7 @@ PRAGMA foreign_keys = OFF;
 
 DROP TABLE IF EXISTS recipe_ingredients;
 DROP TABLE IF EXISTS recipes;
+DROP TABLE IF EXISTS food_day_nutrition_analysis;
 DROP TABLE IF EXISTS food_log;
 DROP TABLE IF EXISTS food_items;
 
@@ -52,6 +53,23 @@ CREATE TABLE recipe_ingredients (
     is_drink INTEGER NOT NULL DEFAULT 0 CHECK (is_drink IN (0, 1)),
     sort_order INTEGER NOT NULL DEFAULT 0,
     FOREIGN KEY (recipe_id) REFERENCES recipes(_id) ON DELETE CASCADE
+);
+
+CREATE TABLE food_day_nutrition_analysis (
+    date TEXT PRIMARY KEY NOT NULL,
+    protein_g REAL NOT NULL,
+    fat_g REAL NOT NULL,
+    carb_g REAL NOT NULL,
+    kcal REAL NOT NULL,
+    norm_protein_g REAL NOT NULL,
+    norm_fat_g REAL NOT NULL,
+    norm_carb_g REAL NOT NULL,
+    norm_kcal REAL NOT NULL,
+    verdict TEXT NOT NULL DEFAULT '',
+    notes TEXT NOT NULL DEFAULT '',
+    input_hash TEXT NOT NULL,
+    analyzed_at TEXT NOT NULL,
+    prompt_key TEXT NOT NULL DEFAULT 'food_day_macros'
 );
 
 -- Seed catalog of food items from working database

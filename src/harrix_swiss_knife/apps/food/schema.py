@@ -64,11 +64,34 @@ CREATE TABLE IF NOT EXISTS recipe_ingredients (
 )
 """
 
+_DAY_NUTRITION_ANALYSIS_SQL = """
+CREATE TABLE IF NOT EXISTS food_day_nutrition_analysis (
+    date TEXT PRIMARY KEY NOT NULL,
+    protein_g REAL NOT NULL,
+    fat_g REAL NOT NULL,
+    carb_g REAL NOT NULL,
+    kcal REAL NOT NULL,
+    norm_protein_g REAL NOT NULL,
+    norm_fat_g REAL NOT NULL,
+    norm_carb_g REAL NOT NULL,
+    norm_kcal REAL NOT NULL,
+    verdict TEXT NOT NULL DEFAULT '',
+    notes TEXT NOT NULL DEFAULT '',
+    input_hash TEXT NOT NULL,
+    analyzed_at TEXT NOT NULL,
+    prompt_key TEXT NOT NULL DEFAULT 'food_day_macros'
+)
+"""
+
 
 _INDEX_SQL: tuple[str, ...] = (
     "CREATE INDEX IF NOT EXISTS idx_food_log_date_id ON food_log(date DESC, _id DESC)",
     "CREATE INDEX IF NOT EXISTS idx_food_log_name_date ON food_log(name, date DESC)",
     "CREATE INDEX IF NOT EXISTS idx_recipe_ingredients_recipe ON recipe_ingredients(recipe_id)",
+    (
+        "CREATE INDEX IF NOT EXISTS idx_food_day_nutrition_analysis_analyzed "
+        "ON food_day_nutrition_analysis(analyzed_at DESC)"
+    ),
 )
 
 
@@ -176,6 +199,9 @@ def ensure_food_schema(db_path: Path) -> bool:
         if _ensure_recipes_tables(conn):
             changed = True
 
+        if _ensure_day_nutrition_analysis_table(conn):
+            changed = True
+
         if changed:
             conn.commit()
         return changed
@@ -184,6 +210,34 @@ def ensure_food_schema(db_path: Path) -> bool:
 def _column_names(conn: sqlite3.Connection, table: str) -> set[str]:
     rows = conn.execute(f"PRAGMA table_info({table})").fetchall()
     return {str(row[1]) for row in rows}
+
+
+def _ensure_day_nutrition_analysis_table(conn: sqlite3.Connection) -> bool:
+    """Create or upgrade `food_day_nutrition_analysis`. Return whether changed."""
+    required = {
+        "date",
+        "protein_g",
+        "fat_g",
+        "carb_g",
+        "kcal",
+        "norm_protein_g",
+        "norm_fat_g",
+        "norm_carb_g",
+        "norm_kcal",
+        "verdict",
+        "notes",
+        "input_hash",
+        "analyzed_at",
+        "prompt_key",
+    }
+    if _table_exists(conn, "food_day_nutrition_analysis"):
+        if required.issubset(_column_names(conn, "food_day_nutrition_analysis")):
+            return False
+        conn.execute("DROP TABLE food_day_nutrition_analysis")
+        logger.info("Recreating Food day nutrition analysis table for AI-norm columns")
+    conn.executescript(_DAY_NUTRITION_ANALYSIS_SQL)
+    logger.info("Created Food day nutrition analysis table")
+    return True
 
 
 def _ensure_recipes_tables(conn: sqlite3.Connection) -> bool:

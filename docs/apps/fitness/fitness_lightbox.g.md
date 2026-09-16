@@ -845,7 +845,7 @@ class FitnessLightboxSidebar(QFrame):
         tooltip: str,
         object_name: str,
         *,
-        style: str = _TIMER_BUTTON_STYLE,
+        style: str | None = None,
         role: str = "",
     ) -> QPushButton:
         button = QPushButton()
@@ -865,7 +865,7 @@ class FitnessLightboxSidebar(QFrame):
         button.setDefault(False)
         button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         button.setFixedSize(TOOLBAR_BUTTON_SIZE, TOOLBAR_BUTTON_SIZE)
-        button.setStyleSheet(style)
+        button.setStyleSheet(style if style is not None else _TIMER_BUTTON_STYLE)
         self._refresh_timer_button_icon(button)
         return button
 

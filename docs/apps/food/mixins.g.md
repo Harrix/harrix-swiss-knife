@@ -125,6 +125,13 @@ class AutoSaveOperations(AutoSaveMixin):
             is_drink=is_drink,
         ):
             message_box.warning(None, "Database Error", "Failed to save food log record")
+            return
+        refresh_macros = getattr(self, "_update_macros_status_label", None)
+        if callable(refresh_macros):
+            refresh_macros()
+        refresh_table = getattr(self, "_update_macros_analysis_table", None)
+        if callable(refresh_table):
+            refresh_table()
 ```
 
 </details>

@@ -7,6 +7,12 @@ from datetime import UTC, datetime, timedelta
 from typing import Any, NoReturn
 
 from harrix_swiss_knife.apps.common.qt_database_manager_base import QtSqliteDatabaseManagerBase
+from harrix_swiss_knife.apps.food.day_macros import (
+    FoodDayLogLine,
+    FoodDayMacrosAnalysis,
+    day_macros_prompt_key,
+    food_day_input_hash,
+)
 from harrix_swiss_knife.apps.food.recipe_calories import RecipeIngredientInput, calculate_recipe_nutrition
 
 # SQL form of `calculate_food_log_calories`: portion mode wins, else weight * kcal/100g.
@@ -156,6 +162,13 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         if not rows or rows[0][0] is None:
             return 0
         return int(rows[0][0])
+
+    def delete_food_day_nutrition_analysis(self, day: str) -> bool:
+        """Delete the saved macros analysis for `day` if present."""
+        return self.execute_simple_query(
+            "DELETE FROM food_day_nutrition_analysis WHERE date = :day",
+            {"day": day},
+        )
 
     def delete_food_item(self, food_item_id: int) -> bool:
         """Delete a food item.
@@ -313,6 +326,19 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             except (TypeError, ValueError):
                 continue
         return result
+
+    def get_dates_with_food_log_between(self, date_from: str, date_to: str) -> list[str]:
+        """Return distinct food_log dates in an inclusive range, ascending."""
+        rows = self.get_rows(
+            """
+            SELECT DISTINCT date
+            FROM food_log
+            WHERE date IS NOT NULL AND date BETWEEN :date_from AND :date_to
+            ORDER BY date ASC
+            """,
+            {"date_from": date_from, "date_to": date_to},
+        )
+        return [str(row[0]) for row in rows if row and row[0]]
 
     def get_drinks_weight_on_date(self, day: str) -> int:
         """Get total weight of drinks consumed on `day`.
@@ -474,6 +500,83 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         """
         return self.get_food_calories_on_date(_local_iso_date())
+
+    def get_food_day_input_hash(self, day: str) -> str:
+        """Return the current food_log content hash for `day`."""
+        return food_day_input_hash(self.get_food_day_log_lines(day))
+
+    def get_food_day_log_lines(self, day: str) -> list[FoodDayLogLine]:
+        """Return denormalized food_log rows for hashing and AI day macros.
+
+        Args:
+
+        - `day` (`str`): Calendar date `YYYY-MM-DD`.
+
+        Returns:
+
+        - `list[FoodDayLogLine]`: Rows for that date, ordered by `_id`.
+
+        """
+        rows = self.get_rows(
+            """
+            SELECT name, name_en, weight, portion_calories, calories_per_100g, is_drink
+            FROM food_log
+            WHERE date = :day
+            ORDER BY _id ASC
+            """,
+            {"day": day},
+        )
+        result: list[FoodDayLogLine] = []
+        for row in rows:
+            if not row:
+                continue
+            result.append(
+                FoodDayLogLine(
+                    name=str(row[0] or ""),
+                    name_en=str(row[1] or ""),
+                    weight=_optional_sql_float(row[2]),
+                    portion_calories=_optional_sql_float(row[3]),
+                    calories_per_100g=_optional_sql_float(row[4]),
+                    is_drink=bool(int(row[5] or 0)),
+                )
+            )
+        return result
+
+    def get_food_day_nutrition_analyses_between(
+        self,
+        date_from: str,
+        date_to: str,
+    ) -> list[FoodDayMacrosAnalysis]:
+        """Return saved macros analyses in an inclusive date range, ascending."""
+        rows = self.get_rows(
+            """
+            SELECT date, protein_g, fat_g, carb_g, kcal,
+                   norm_protein_g, norm_fat_g, norm_carb_g, norm_kcal,
+                   verdict, notes, input_hash, analyzed_at, prompt_key
+            FROM food_day_nutrition_analysis
+            WHERE date BETWEEN :date_from AND :date_to
+            ORDER BY date ASC
+            """,
+            {"date_from": date_from, "date_to": date_to},
+        )
+        return [_day_macros_analysis_from_row(row) for row in rows if row]
+
+    def get_food_day_nutrition_analysis(self, day: str) -> FoodDayMacrosAnalysis | None:
+        """Return the saved macros analysis for `day`, or `None`."""
+        rows = self.get_rows(
+            """
+            SELECT date, protein_g, fat_g, carb_g, kcal,
+                   norm_protein_g, norm_fat_g, norm_carb_g, norm_kcal,
+                   verdict, notes, input_hash, analyzed_at, prompt_key
+            FROM food_day_nutrition_analysis
+            WHERE date = :day
+            LIMIT 1
+            """,
+            {"day": day},
+        )
+        if not rows:
+            return None
+        return _day_macros_analysis_from_row(rows[0])
 
     def get_food_item_by_name(self, name: str) -> FoodItemByNameRow | None:
         """Get food item by name.
@@ -1191,6 +1294,62 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             {"id": record_id, "weight": weight, "portion_calories": portion_calories},
         )
 
+    def upsert_food_day_nutrition_analysis(self, analysis: FoodDayMacrosAnalysis) -> bool:
+        """Insert or replace a day macros analysis row.
+
+        Args:
+
+        - `analysis` (`FoodDayMacrosAnalysis`): Values to persist.
+
+        Returns:
+
+        - `bool`: `True` when the write succeeded.
+
+        """
+        return self.execute_simple_query(
+            """
+            INSERT INTO food_day_nutrition_analysis (
+                date, protein_g, fat_g, carb_g, kcal,
+                norm_protein_g, norm_fat_g, norm_carb_g, norm_kcal,
+                verdict, notes, input_hash, analyzed_at, prompt_key
+            ) VALUES (
+                :date, :protein_g, :fat_g, :carb_g, :kcal,
+                :norm_protein_g, :norm_fat_g, :norm_carb_g, :norm_kcal,
+                :verdict, :notes, :input_hash, :analyzed_at, :prompt_key
+            )
+            ON CONFLICT(date) DO UPDATE SET
+                protein_g = excluded.protein_g,
+                fat_g = excluded.fat_g,
+                carb_g = excluded.carb_g,
+                kcal = excluded.kcal,
+                norm_protein_g = excluded.norm_protein_g,
+                norm_fat_g = excluded.norm_fat_g,
+                norm_carb_g = excluded.norm_carb_g,
+                norm_kcal = excluded.norm_kcal,
+                verdict = excluded.verdict,
+                notes = excluded.notes,
+                input_hash = excluded.input_hash,
+                analyzed_at = excluded.analyzed_at,
+                prompt_key = excluded.prompt_key
+            """,
+            {
+                "date": analysis.date,
+                "protein_g": analysis.protein_g,
+                "fat_g": analysis.fat_g,
+                "carb_g": analysis.carb_g,
+                "kcal": analysis.kcal,
+                "norm_protein_g": analysis.norm_protein_g,
+                "norm_fat_g": analysis.norm_fat_g,
+                "norm_carb_g": analysis.norm_carb_g,
+                "norm_kcal": analysis.norm_kcal,
+                "verdict": analysis.verdict,
+                "notes": analysis.notes,
+                "input_hash": analysis.input_hash,
+                "analyzed_at": analysis.analyzed_at,
+                "prompt_key": analysis.prompt_key or day_macros_prompt_key(),
+            },
+        )
+
 
 @dataclass(frozen=True, slots=True)
 class FoodAutocompleteEntry:
@@ -1291,6 +1450,26 @@ def merge_food_autocomplete_entries(
                 calories_per_100g=calories,
             )
     return list(merged.values())
+
+
+def _day_macros_analysis_from_row(row: list[Any] | tuple[Any, ...]) -> FoodDayMacrosAnalysis:
+    """Build a `FoodDayMacrosAnalysis` from a SQL row."""
+    return FoodDayMacrosAnalysis(
+        date=str(row[0]),
+        protein_g=float(row[1] or 0.0),
+        fat_g=float(row[2] or 0.0),
+        carb_g=float(row[3] or 0.0),
+        kcal=float(row[4] or 0.0),
+        norm_protein_g=float(row[5] or 0.0),
+        norm_fat_g=float(row[6] or 0.0),
+        norm_carb_g=float(row[7] or 0.0),
+        norm_kcal=float(row[8] or 0.0),
+        verdict=str(row[9] or ""),
+        notes=str(row[10] or ""),
+        input_hash=str(row[11] or ""),
+        analyzed_at=str(row[12] or ""),
+        prompt_key=str(row[13] or day_macros_prompt_key()),
+    )
 
 
 def _filter_rows_by_name(rows: list[list[Any]], name_filter: str) -> list[list[Any]]:

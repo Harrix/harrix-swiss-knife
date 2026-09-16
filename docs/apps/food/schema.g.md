@@ -140,6 +140,9 @@ def ensure_food_schema(db_path: Path) -> bool:
         if _ensure_recipes_tables(conn):
             changed = True
 
+        if _ensure_day_nutrition_analysis_table(conn):
+            changed = True
+
         if changed:
             conn.commit()
         return changed

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import contextlib
 import logging
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, cast
 
@@ -43,6 +44,7 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMenu,
     QMessageBox,
+    QPushButton,
     QSizePolicy,
     QTableView,
     QVBoxLayout,
@@ -88,6 +90,15 @@ from harrix_swiss_knife.apps.common.widgets.shrinkable_scroll_area import instal
 from harrix_swiss_knife.apps.common.word_wrap_header import WordWrapHeaderView
 from harrix_swiss_knife.apps.food import database_manager, window
 from harrix_swiss_knife.apps.food.ai_source_dialog import AiSourceDialog
+from harrix_swiss_knife.apps.food.day_macros import (
+    DayMacrosStatus,
+    FoodDayMacrosAnalysis,
+    day_macros_prompt_key,
+    format_day_menu_for_prompt,
+    parse_day_macros_response,
+    resolve_day_macros_status,
+)
+from harrix_swiss_knife.apps.food.day_macros_dialog import DayMacrosDialog
 from harrix_swiss_knife.apps.food.delegates import DateDelegate, IsDrinkDelegate, parse_is_drink_cell
 from harrix_swiss_knife.apps.food.eaten_fraction import (
     ATE_HALF,
@@ -182,6 +193,9 @@ _FOOD_ITEM_COL_IS_DRINK = 3
 # Debounce interval after food_log inserts before another silent AI translate pass.
 _BACKGROUND_FOOD_TRANSLATE_INTERVAL_MS = 1 * 60 * 1000
 _BACKGROUND_FOOD_TRANSLATE_STATUS = "Translating food names…"
+_MACROS_FAILED_PREVIEW_LIMIT = 8
+_MACROS_NOTES_COLUMN = 6
+_MACROS_DATE_COLUMN = 0
 
 
 class MainWindow(
@@ -219,7 +233,7 @@ class MainWindow(
         {"food_log"},
     )
     about_app_name = "Food tracker"
-    about_description = "Track food intake, calories, and drinks."
+    about_description = "Track food intake, calories, macros, and drinks."
     settings_app_id = "food"
     defer_initial_show = True
 
@@ -228,6 +242,14 @@ class MainWindow(
         try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
         self.setupUi(self)
         self._recipes_widget: RecipesWidget | None = None
+        self._macros_analysis_queue: list[str] = []
+        self._macros_analysis_done = 0
+        self._macros_analysis_failed: list[str] = []
+        self._macros_chart_nutrient: Literal["protein", "fat", "carb"] | None = None
+        self._day_macros_dialog: DayMacrosDialog | None = None
+        self.label_macros_status: QLabel | None = None
+        self.tableView_macros_analysis: QTableView | None = None
+        self.label_macros_notes: QLabel | None = None
         self._setup_ui()
 
         # Set window icon
@@ -247,6 +269,7 @@ class MainWindow(
         self.models: dict[str, QSortFilterProxyModel | None] = {
             "food_log": None,
             "kcal_per_day": None,
+            "macros_analysis": None,
         }
 
         # Food log display state
@@ -886,12 +909,23 @@ class MainWindow(
             self.dateEdit_food_stats_to.setDate(today)
             self._update_food_calories_chart()
 
+    def on_food_stats_analyze_range(self) -> None:
+        """Analyze missing and stale days in the stats date range."""
+        self._start_day_macros_queue(self._collect_day_macros_targets(mode="missing_or_stale"))
+
+    def on_food_stats_analyze_today(self) -> None:
+        """Analyze macros for today and open the result dialog."""
+        day = QDate.currentDate().toString("yyyy-MM-dd")
+        self._open_day_macros_dialog(day)
+
     def on_food_stats_drink(self) -> None:
         """Show drinks chart."""
+        self._macros_chart_nutrient = None
         self._update_drinks_chart()
 
     def on_food_stats_food_weight(self) -> None:
         """Show food weight chart."""
+        self._macros_chart_nutrient = None
         self._update_food_weight_chart()
 
     def on_food_stats_last_month(self) -> None:
@@ -924,12 +958,39 @@ class MainWindow(
 
         self._update_food_calories_chart()
 
+    def on_food_stats_macros_carb(self) -> None:
+        """Show carbohydrate chart from saved day analyses."""
+        self._macros_chart_nutrient = "carb"
+        self._update_macros_chart()
+
+    def on_food_stats_macros_fat(self) -> None:
+        """Show fat chart from saved day analyses."""
+        self._macros_chart_nutrient = "fat"
+        self._update_macros_chart()
+
+    def on_food_stats_macros_protein(self) -> None:
+        """Show protein chart from saved day analyses."""
+        self._macros_chart_nutrient = "protein"
+        self._update_macros_chart()
+
     def on_food_stats_period_changed(self) -> None:
         """Handle period selection change and update chart."""
+        if self._macros_chart_nutrient is not None:
+            self._update_macros_chart()
+            return
         self._update_food_calories_chart()
 
+    def on_food_stats_refresh_stale(self) -> None:
+        """Re-analyze stale days in the stats date range."""
+        self._start_day_macros_queue(self._collect_day_macros_targets(mode="stale"))
+
     def on_food_stats_update(self) -> None:
-        """Update the food calories chart."""
+        """Refresh the currently shown stats chart and macros table."""
+        self._update_macros_analysis_table()
+        self._update_macros_status_label()
+        if self._macros_chart_nutrient is not None:
+            self._update_macros_chart()
+            return
         self._update_food_calories_chart()
 
     def on_kcal_with_ai(self) -> None:
@@ -1182,6 +1243,7 @@ class MainWindow(
         if not self._validate_database_connection():
             self.label_food_today.setText(zero_text)
             self.label_food_yesterday.setText(zero_text)
+            self._update_macros_status_label()
             return
 
         try:
@@ -1198,10 +1260,12 @@ class MainWindow(
                     self.db_manager.get_drinks_weight_on_date(yesterday),
                 )
             )
+            self._update_macros_status_label()
         except Exception:
             logger.exception("Error getting food calories for today and yesterday")
             self.label_food_today.setText(zero_text)
             self.label_food_yesterday.setText(zero_text)
+            self._update_macros_status_label()
 
     def update_food_data(self) -> None:
         """Refresh food-related data only.
@@ -1543,6 +1607,11 @@ class MainWindow(
         if status_bar.currentMessage() == _BACKGROUND_FOOD_TRANSLATE_STATUS:
             status_bar.clearMessage()
 
+    def _clear_day_macros_dialog(self, dialog: DayMacrosDialog) -> None:
+        """Drop the open dialog reference when it closes."""
+        if self._day_macros_dialog is dialog:
+            self._day_macros_dialog = None
+
     def _clear_food_log_table_filter(self) -> None:
         """Clear client-side filter on the food log table proxy."""
         proxy = self.models.get("food_log")
@@ -1550,6 +1619,24 @@ class MainWindow(
             return
         proxy.setFilterRegularExpression(QRegularExpression())
         proxy.setFilterKeyColumn(-1)
+
+    def _collect_day_macros_targets(self, *, mode: Literal["missing_or_stale", "stale"]) -> list[str]:
+        """Return dates in the stats range that need AI macros analysis."""
+        if self.db_manager is None or not self._validate_database_connection():
+            return []
+        date_from = self.dateEdit_food_stats_from.date().toString("yyyy-MM-dd")
+        date_to = self.dateEdit_food_stats_to.date().toString("yyyy-MM-dd")
+        dates = self.db_manager.get_dates_with_food_log_between(date_from, date_to)
+        targets: list[str] = []
+        for day in dates:
+            analysis = self.db_manager.get_food_day_nutrition_analysis(day)
+            current_hash = self.db_manager.get_food_day_input_hash(day)
+            status = resolve_day_macros_status(analysis, current_hash)
+            if (mode == "stale" and status is DayMacrosStatus.STALE) or (
+                mode == "missing_or_stale" and status in {DayMacrosStatus.MISSING, DayMacrosStatus.STALE}
+            ):
+                targets.append(day)
+        return targets
 
     def _commit_food_translate_translations(
         self,
@@ -1661,6 +1748,12 @@ class MainWindow(
         self.pushButton_food_stats_drink.clicked.connect(self.on_food_stats_drink)
         self.pushButton_food_stats_update.clicked.connect(self.on_food_stats_update)
         self.comboBox_food_stats_period.currentTextChanged.connect(self.on_food_stats_period_changed)
+        self.pushButton_food_stats_analyze_today.clicked.connect(self.on_food_stats_analyze_today)
+        self.pushButton_food_stats_analyze_range.clicked.connect(self.on_food_stats_analyze_range)
+        self.pushButton_food_stats_refresh_stale.clicked.connect(self.on_food_stats_refresh_stale)
+        self.pushButton_food_stats_macros_protein.clicked.connect(self.on_food_stats_macros_protein)
+        self.pushButton_food_stats_macros_fat.clicked.connect(self.on_food_stats_macros_fat)
+        self.pushButton_food_stats_macros_carb.clicked.connect(self.on_food_stats_macros_carb)
 
         # Connect food name input for real-time filtering
         self.lineEdit_food_manual_name.textChanged.connect(self._filter_food_items)
@@ -2359,6 +2452,7 @@ class MainWindow(
 
             # Update the chart with the new date range
             QTimer.singleShot(50, self._update_food_calories_chart)
+            QTimer.singleShot(80, self._update_macros_analysis_table)
 
         except Exception:
             logger.exception("Error getting earliest food log date")
@@ -2370,6 +2464,7 @@ class MainWindow(
 
             # Update the chart with fallback date range
             QTimer.singleShot(50, self._update_food_calories_chart)
+            QTimer.singleShot(80, self._update_macros_analysis_table)
 
     def _load_food_log_page(self, *, reset: bool = True) -> None:
         """Load the first page of food log records."""
@@ -2607,6 +2702,35 @@ class MainWindow(
             if popup is not None and popup.isVisible():
                 popup.hide()
 
+    def _on_macros_analysis_row_clicked(self, index: QModelIndex) -> None:
+        """Show verdict/notes for the clicked macros analysis row."""
+        if self.label_macros_notes is None or not index.isValid():
+            return
+        proxy = self.models.get("macros_analysis")
+        if proxy is None:
+            return
+        source = proxy.sourceModel()
+        if not isinstance(source, QStandardItemModel):
+            return
+        notes_item = source.item(index.row(), _MACROS_NOTES_COLUMN)
+        notes = notes_item.text() if notes_item is not None else ""
+        self.label_macros_notes.setText(notes or "")
+
+    def _on_macros_analysis_row_double_clicked(self, index: QModelIndex) -> None:
+        """Open the day macros dialog for the double-clicked status row."""
+        if not index.isValid():
+            return
+        proxy = self.models.get("macros_analysis")
+        if proxy is None:
+            return
+        source = proxy.sourceModel()
+        if not isinstance(source, QStandardItemModel):
+            return
+        date_item = source.item(index.row(), _MACROS_DATE_COLUMN)
+        if date_item is None:
+            return
+        self._open_day_macros_dialog(date_item.text())
+
     def _on_recipes_changed(self) -> None:
         """Refresh autocomplete after recipes are saved or deleted."""
         self._update_autocomplete_data()
@@ -2643,6 +2767,28 @@ class MainWindow(
         """Toggle date edit widgets and refresh the food log table filter."""
         self._update_date_filter_controls_enabled()
         self.apply_filter()
+
+    def _open_day_macros_dialog(self, day: str) -> None:
+        """Open the day macros dialog for `day`, analyzing when cache is missing."""
+        if self.db_manager is None or not self._validate_database_connection():
+            message_box.warning(self, "Error", "Database connection not available")
+            return
+        day_key = day.strip()[:10]
+        if not day_key:
+            message_box.warning(self, "Day macros", "No date selected.")
+            return
+        if not self.db_manager.get_food_day_log_lines(day_key):
+            message_box.information(self, "Day macros", f"No food log rows for {day_key}.")
+            return
+        analysis = self.db_manager.get_food_day_nutrition_analysis(day_key)
+        status = resolve_day_macros_status(analysis, self.db_manager.get_food_day_input_hash(day_key))
+        dialog = DayMacrosDialog(self, day_key, analysis, status)
+        self._day_macros_dialog = dialog
+        dialog.refresh_requested.connect(lambda: self._start_day_macros_queue([day_key]))
+        dialog.finished.connect(lambda *_args: self._clear_day_macros_dialog(dialog))
+        if status is DayMacrosStatus.MISSING:
+            QTimer.singleShot(0, lambda: self._start_day_macros_queue([day_key]))
+        dialog.exec()
 
     def _open_text_input_dialog(
         self,
@@ -3053,6 +3199,16 @@ class MainWindow(
         if date_column_changed or edited_summary_day:
             self.update_food_calories_today()
 
+    def _refresh_open_day_macros_dialog(self) -> None:
+        """Reload analysis into the open day macros dialog, if any."""
+        dialog = self._day_macros_dialog
+        if dialog is None or self.db_manager is None:
+            return
+        analysis = self.db_manager.get_food_day_nutrition_analysis(dialog.day)
+        status = resolve_day_macros_status(analysis, self.db_manager.get_food_day_input_hash(dialog.day))
+        dialog.set_analysis(analysis, status)
+        dialog.set_busy(busy=False)
+
     def _report_food_translate_completion(self, *, prefix: str = "") -> None:
         """Tell the user how many rows still lack name_en and offer another AI batch."""
         if self.db_manager is None:
@@ -3209,6 +3365,97 @@ class MainWindow(
             state=self._bothub_state,
         )
 
+    def _run_next_day_macros_request(self) -> None:
+        """Send the next queued day to BotHub for macros analysis."""
+        if self.db_manager is None:
+            return
+        if not self._macros_analysis_queue:
+            self._update_macros_analysis_table()
+            self._update_macros_status_label()
+            self._refresh_open_day_macros_dialog()
+            if self._macros_chart_nutrient is not None:
+                self._update_macros_chart()
+            if self._macros_analysis_failed:
+                preview = ", ".join(self._macros_analysis_failed[:_MACROS_FAILED_PREVIEW_LIMIT])
+                suffix = "…" if len(self._macros_analysis_failed) > _MACROS_FAILED_PREVIEW_LIMIT else ""
+                message_box.warning(
+                    self,
+                    "Macros analysis",
+                    f"Failed for {len(self._macros_analysis_failed)} day(s): {preview}{suffix}",
+                )
+            elif self._macros_analysis_done:
+                toast = toast_notification.ToastNotification(
+                    f"Macros analysis saved for {self._macros_analysis_done} day(s).",
+                    duration=2500,
+                    parent=self,
+                )
+                toast.present()
+            return
+
+        day = self._macros_analysis_queue[0]
+        rest = self._macros_analysis_queue[1:]
+        lines = self.db_manager.get_food_day_log_lines(day)
+        if not lines:
+            self._macros_analysis_queue = rest
+            self._run_next_day_macros_request()
+            return
+
+        total_kcal = self.db_manager.get_food_calories_on_date(day)
+        menu = format_day_menu_for_prompt(lines, total_kcal=total_kcal)
+        input_hash = self.db_manager.get_food_day_input_hash(day)
+        try:
+            prompt_text = build_prompt(
+                self._app_config,
+                day_macros_prompt_key(),
+                {"DATE": day, "DAY_MENU": menu},
+            )
+        except ValueError as exc:
+            show_bothub_prompt_build_error(self, exc)
+            self._macros_analysis_queue = []
+            self._refresh_open_day_macros_dialog()
+            return
+
+        total = self._macros_analysis_done + len(self._macros_analysis_queue)
+        current = self._macros_analysis_done + 1
+
+        def on_success(response_text: str) -> None:
+            self._macros_analysis_queue = rest
+            parsed = parse_day_macros_response(response_text)
+            if parsed is None or self.db_manager is None:
+                self._macros_analysis_failed.append(day)
+                self._run_next_day_macros_request()
+                return
+            analysis = FoodDayMacrosAnalysis(
+                date=day,
+                protein_g=parsed.protein_g,
+                fat_g=parsed.fat_g,
+                carb_g=parsed.carb_g,
+                kcal=parsed.kcal,
+                norm_protein_g=parsed.norm_protein_g,
+                norm_fat_g=parsed.norm_fat_g,
+                norm_carb_g=parsed.norm_carb_g,
+                norm_kcal=parsed.norm_kcal,
+                verdict=parsed.verdict,
+                notes=parsed.notes,
+                input_hash=input_hash,
+                analyzed_at=datetime.now(UTC).replace(microsecond=0).isoformat(),
+                prompt_key=day_macros_prompt_key(),
+            )
+            if self.db_manager.upsert_food_day_nutrition_analysis(analysis):
+                self._macros_analysis_done += 1
+            else:
+                self._macros_analysis_failed.append(day)
+            self._run_next_day_macros_request()
+
+        started = self._start_bothub_worker(
+            prompt_text,
+            on_success,
+            toast_message=f"Analyzing macros ({current}/{total}): {day}…",
+        )
+        if not started:
+            self._macros_analysis_queue = []
+            self._refresh_open_day_macros_dialog()
+
     def _schedule_name_filter(self, *_args: object) -> None:
         """Restart debounce timer so the name filter runs after typing pauses."""
         self._update_clear_filter_button_visibility()
@@ -3335,6 +3582,65 @@ class MainWindow(
         self.verticalLayout_food_recipes.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_food_recipes.addWidget(self._recipes_widget, 1)
 
+    def _setup_macros_analysis_ui(self) -> None:
+        """Add macros analysis controls, status table, and today badge."""
+        self.label_macros_status = QLabel("")
+        self.label_macros_status.setObjectName("label_macros_status")
+        self.label_macros_status.setWordWrap(True)
+        self.label_macros_status.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        today_layout = self.groupBox_food_today.layout()
+        if today_layout is not None:
+            self.horizontalLayout_5.removeWidget(self.label_food_today)
+            today_stack = QVBoxLayout()
+            today_stack.setContentsMargins(0, 0, 0, 0)
+            today_stack.setSpacing(2)
+            today_stack.addWidget(self.label_food_today)
+            today_stack.addWidget(self.label_macros_status)
+            today_layout.addLayout(today_stack)
+
+        macros_label = QLabel("Macros analysis:")
+        macros_label.setObjectName("label_macros_analysis")
+        self.tableView_macros_analysis = QTableView(self.frame)
+        self.tableView_macros_analysis.setObjectName("tableView_macros_analysis")
+        self.tableView_macros_analysis.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
+        self.tableView_macros_analysis.setSelectionMode(QTableView.SelectionMode.SingleSelection)
+        self.tableView_macros_analysis.clicked.connect(self._on_macros_analysis_row_clicked)
+        self.tableView_macros_analysis.doubleClicked.connect(self._on_macros_analysis_row_double_clicked)
+        self.label_macros_notes = QLabel("")
+        self.label_macros_notes.setObjectName("label_macros_notes")
+        self.label_macros_notes.setWordWrap(True)
+        left_layout = self.verticalLayout_3
+        left_layout.addWidget(macros_label)
+        left_layout.addWidget(self.tableView_macros_analysis, 1)
+        left_layout.addWidget(self.label_macros_notes)
+
+        self.pushButton_food_stats_analyze_today = QPushButton("🤖 Analyze Today")
+        self.pushButton_food_stats_analyze_range = QPushButton("🤖 Analyze Range")
+        self.pushButton_food_stats_refresh_stale = QPushButton("🔄 Refresh Stale")
+        self.pushButton_food_stats_macros_protein = QPushButton("🥩 Protein")
+        self.pushButton_food_stats_macros_fat = QPushButton("🧈 Fat")
+        self.pushButton_food_stats_macros_carb = QPushButton("🍞 Carbs")
+        self.pushButton_food_stats_analyze_range.setToolTip(
+            "Analyze days in the From/To range that are missing or stale",
+        )
+        self.pushButton_food_stats_refresh_stale.setToolTip("Re-analyze stale days in the From/To range")
+
+        actions = QHBoxLayout()
+        actions.setObjectName("horizontalLayout_food_stats_macros_actions")
+        for button in (
+            self.pushButton_food_stats_analyze_today,
+            self.pushButton_food_stats_analyze_range,
+            self.pushButton_food_stats_refresh_stale,
+        ):
+            actions.addWidget(button)
+        actions.addStretch(1)
+        self.verticalLayout_food_stats_controls.insertLayout(1, actions)
+
+        charts = self.horizontalLayout_food_stats_charts
+        charts.insertWidget(2, self.pushButton_food_stats_macros_protein)
+        charts.insertWidget(3, self.pushButton_food_stats_macros_fat)
+        charts.insertWidget(4, self.pushButton_food_stats_macros_carb)
+
     def _setup_status_bar(self) -> None:
         """Ensure status bar is visible and readable on Windows 11 Mica backdrop."""
         status_bar = self.statusBar()
@@ -3348,6 +3654,7 @@ class MainWindow(
         self._place_menu_bar_on_tab_row()
         self._install_word_wrap_table_headers()
         self._setup_status_bar()
+        self._setup_macros_analysis_ui()
 
         # Date field: attach quick preset/offset menu button (removed from .ui)
         self.pushButton_food_date_quick = attach_date_edit_quick_controls(
@@ -3516,11 +3823,13 @@ class MainWindow(
         name_value = ""
         date_value = ""
 
+        if index.isValid() and model is not None:
+            date_raw = model.data(model.index(index.row(), 6))
+            date_value = str(date_raw).strip() if date_raw is not None else ""
+
         if not multiple_rows_selected and index.isValid() and model is not None:
             name_raw = model.data(model.index(index.row(), 0))
-            date_raw = model.data(model.index(index.row(), 6))
             name_value = str(name_raw).strip() if name_raw is not None else ""
-            date_value = str(date_raw).strip() if date_raw is not None else ""
 
             if date_value:
                 set_date_action, set_date_plus_one_action, set_date_minus_one_action = add_date_in_main_field_actions(
@@ -3544,6 +3853,11 @@ class MainWindow(
         ate_third_action = context_menu.addAction("🍽️ I ate a third")
         ate_two_thirds_action = context_menu.addAction("🍽️ I ate two thirds")
         ate_percent_action = context_menu.addAction("🍽️ I ate %…")
+
+        analyze_day_macros_action = None
+        if date_value:
+            add_separator(context_menu)
+            analyze_day_macros_action = context_menu.addAction("📊 Analyze day macros")
 
         add_separator(context_menu)
         swap_weight_calories_action = context_menu.addAction("🔄 Swap Weight and Calories per 100g")
@@ -3634,6 +3948,8 @@ class MainWindow(
                 self._apply_eaten_fraction_to_selected_food_log(ATE_TWO_THIRDS)
             elif action == ate_percent_action:
                 self._prompt_eaten_percent_and_apply()
+            elif analyze_day_macros_action is not None and action == analyze_day_macros_action and date_value:
+                self._open_day_macros_dialog(date_value.strip()[:10])
             elif action == swap_weight_calories_action:
                 self._swap_weight_and_calories_per_100g()
             elif convert_to_per_100g_action is not None and action == convert_to_per_100g_action:
@@ -3756,6 +4072,33 @@ class MainWindow(
             is_busy=lambda: self._bothub_state.worker is not None,
             state=self._bothub_state,
         )
+
+    def _start_day_macros_queue(self, dates: list[str]) -> None:
+        """Queue day macros AI requests for `dates` (unique, non-empty log days)."""
+        if self.db_manager is None or not self._validate_database_connection():
+            message_box.warning(self, "Error", "Database connection not available")
+            return
+        if self._bothub_state.worker is not None:
+            message_box.warning(self, "Busy", "Wait for the current BotHub request to finish.")
+            return
+        unique_dates: list[str] = []
+        seen: set[str] = set()
+        for day in dates:
+            if not day or day in seen:
+                continue
+            seen.add(day)
+            if not self.db_manager.get_food_day_log_lines(day):
+                continue
+            unique_dates.append(day)
+        if not unique_dates:
+            message_box.information(self, "Macros analysis", "No days to analyze in the selected range.")
+            return
+        self._macros_analysis_queue = unique_dates
+        self._macros_analysis_done = 0
+        self._macros_analysis_failed = []
+        if self._day_macros_dialog is not None:
+            self._day_macros_dialog.set_busy(busy=True)
+        self._run_next_day_macros_request()
 
     def _stop_background_food_translate_timer(self) -> None:
         """Cancel the silent translate debounce timer."""
@@ -4097,6 +4440,7 @@ class MainWindow(
           Defaults to `None`.
 
         """
+        self._macros_chart_nutrient = None
         if not self._validate_database_connection():
             logger.warning("Database connection not available for updating food calories chart")
             return
@@ -4356,6 +4700,124 @@ class MainWindow(
         except Exception as e:
             logger.exception("Error updating kcal per day table")
             message_box.warning(self, "Database Error", f"Failed to load calories per day data: {e}")
+
+    def _update_macros_analysis_table(self) -> None:
+        """Refresh the macros analysis status table for the stats date range."""
+        if self.tableView_macros_analysis is None:
+            return
+        if not self._validate_database_connection() or self.db_manager is None:
+            return
+        date_from = self.dateEdit_food_stats_from.date().toString("yyyy-MM-dd")
+        date_to = self.dateEdit_food_stats_to.date().toString("yyyy-MM-dd")
+        log_dates = set(self.db_manager.get_dates_with_food_log_between(date_from, date_to))
+        analyses = {
+            row.date: row for row in self.db_manager.get_food_day_nutrition_analyses_between(date_from, date_to)
+        }
+        all_dates = sorted(log_dates | set(analyses), reverse=True)
+        model = QStandardItemModel()
+        model.setHorizontalHeaderLabels(["Date", "P", "F", "C", "kcal", "Status", "Notes"])
+        for day in all_dates:
+            analysis = analyses.get(day)
+            current_hash = self.db_manager.get_food_day_input_hash(day)
+            status = resolve_day_macros_status(analysis, current_hash)
+            if analysis is None:
+                values = [day, "—", "—", "—", "—", status.value, ""]
+            else:
+                note = analysis.verdict.strip()
+                if analysis.notes.strip():
+                    note = f"{note}\n{analysis.notes}".strip() if note else analysis.notes.strip()
+                values = [
+                    day,
+                    f"{analysis.protein_g:.1f}",
+                    f"{analysis.fat_g:.1f}",
+                    f"{analysis.carb_g:.1f}",
+                    f"{analysis.kcal:.0f}",
+                    status.value,
+                    note,
+                ]
+            items = [QStandardItem(text) for text in values]
+            for item in items:
+                item.setEditable(False)
+            model.appendRow(items)
+        proxy = QSortFilterProxyModel(self)
+        proxy.setSourceModel(model)
+        self.models["macros_analysis"] = proxy
+        self.tableView_macros_analysis.setModel(proxy)
+        self.tableView_macros_analysis.setColumnHidden(_MACROS_NOTES_COLUMN, True)  # noqa: FBT003
+        header = self.tableView_macros_analysis.horizontalHeader()
+        header.setStretchLastSection(True)
+        self.tableView_macros_analysis.setColumnWidth(0, 96)
+        for column in (1, 2, 3, 4):
+            self.tableView_macros_analysis.setColumnWidth(column, 48)
+        self.tableView_macros_analysis.setColumnWidth(5, 64)
+        if self.label_macros_notes is not None:
+            self.label_macros_notes.clear()
+
+    def _update_macros_chart(self) -> None:
+        """Plot protein, fat, or carb totals from saved day analyses."""
+        nutrient = self._macros_chart_nutrient
+        if nutrient is None:
+            return
+        if not self._validate_database_connection() or self.db_manager is None:
+            return
+        try:
+            date_from = self.dateEdit_food_stats_from.date().toString("yyyy-MM-dd")
+            date_to = self.dateEdit_food_stats_to.date().toString("yyyy-MM-dd")
+            period = self.comboBox_food_stats_period.currentText()
+            analyses = self.db_manager.get_food_day_nutrition_analyses_between(date_from, date_to)
+            attr = {"protein": "protein_g", "fat": "fat_g", "carb": "carb_g"}[nutrient]
+            filtered: list[tuple[str, str | int | float]] = [(row.date, float(getattr(row, attr))) for row in analyses]
+            grouped = self._group_data_by_period(filtered, period, "float")
+            chart_data = list(grouped.items())
+            titles = {"protein": "Protein", "fat": "Fat", "carb": "Carbohydrates"}
+            colors = {"protein": "firebrick", "fat": "goldenrod", "carb": "seagreen"}
+            chart_config = {
+                "title": f"{titles[nutrient]} ({period})",
+                "xlabel": "Date",
+                "ylabel": f"{titles[nutrient]} (g)",
+                "color": colors[nutrient],
+                "show_stats": True,
+                "stats_unit": "g",
+                "period": period,
+                "fill_zero_periods": False,
+                "date_from": date_from,
+                "date_to": date_to,
+                "is_calories_chart": False,
+            }
+            layout = self.scrollAreaWidgetContents_food_stats.layout()
+            if layout is not None:
+                self._create_chart(layout, chart_data, chart_config)
+        except Exception as e:
+            logger.exception("Error updating macros chart")
+            message_box.warning(self, "Chart Error", f"Failed to create macros chart: {e}")
+
+    def _update_macros_status_label(self) -> None:
+        """Show today's macros analysis status next to the Today summary."""
+        label = self.label_macros_status
+        if label is None:
+            return
+        if self.db_manager is None or not self._validate_database_connection():
+            label.setText("")
+            return
+        day = QDate.currentDate().toString("yyyy-MM-dd")
+        analysis = self.db_manager.get_food_day_nutrition_analysis(day)
+        current_hash = self.db_manager.get_food_day_input_hash(day)
+        status = resolve_day_macros_status(analysis, current_hash)
+        if status is DayMacrosStatus.MISSING:
+            if self.db_manager.get_food_day_log_lines(day):
+                label.setText("Macros: not analyzed")
+            else:
+                label.setText("")
+            return
+        if status is DayMacrosStatus.STALE:
+            label.setText("Macros: stale — refresh")
+            return
+        if analysis is None:
+            label.setText("")
+            return
+        label.setText(
+            f"P {analysis.protein_g:.0f} · F {analysis.fat_g:.0f} · C {analysis.carb_g:.0f} g",
+        )
 
 
 def _format_food_day_summary(calories: float, drinks_weight: int) -> str:

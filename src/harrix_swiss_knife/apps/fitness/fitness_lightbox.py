@@ -395,70 +395,6 @@ class FitnessExerciseLightboxDialog(ExerciseAvifLightboxDialog):
             sidebar.apply_backdrop(fill)
 
 
-def _timer_button_style(
-    *,
-    background: str,
-    border: str,
-    hover_background: str,
-    hover_border: str,
-    pressed_background: str,
-    pressed_border: str,
-    disabled_background: str = "#FBFBFC",
-    disabled_border: str = "#F0F0F2",
-) -> str:
-    return f"""
-QPushButton {{
-    background-color: {background};
-    border: 1px solid {border};
-    border-radius: {TOOLBAR_BORDER_RADIUS}px;
-    padding: 0px;
-    margin: 0px;
-}}
-QPushButton:hover:!disabled {{
-    background-color: {hover_background};
-    border-color: {hover_border};
-}}
-QPushButton:pressed:!disabled {{
-    background-color: {pressed_background};
-    border-color: {pressed_border};
-}}
-QPushButton:disabled {{
-    background-color: {disabled_background};
-    border: 1px solid {disabled_border};
-}}
-"""
-
-
-_TIMER_BUTTON_STYLE = _timer_button_style(
-    background="#F5F5F7",
-    border="#E5E5E8",
-    hover_background="#ECECEF",
-    hover_border="#D8D8DC",
-    pressed_background="#E2E2E6",
-    pressed_border="#C8C8CC",
-)
-_TIMER_BUTTON_START_STYLE = _timer_button_style(
-    background="#16A34A",
-    border="#15803D",
-    hover_background="#15803D",
-    hover_border="#166534",
-    pressed_background="#166534",
-    pressed_border="#14532D",
-    disabled_background="#E5E7EB",
-    disabled_border="#D1D5DB",
-)
-_TIMER_BUTTON_STOP_STYLE = _timer_button_style(
-    background="#DC2626",
-    border="#B91C1C",
-    hover_background="#B91C1C",
-    hover_border="#991B1B",
-    pressed_background="#991B1B",
-    pressed_border="#7F1D1D",
-    disabled_background="#FEE2E2",
-    disabled_border="#FECACA",
-)
-
-
 class FitnessLightboxSidebar(QFrame):
     """Quick-style column: stopwatch, exercise name, type, value, confirm."""
 
@@ -704,7 +640,7 @@ class FitnessLightboxSidebar(QFrame):
         tooltip: str,
         object_name: str,
         *,
-        style: str = _TIMER_BUTTON_STYLE,
+        style: str | None = None,
         role: str = "",
     ) -> QPushButton:
         button = QPushButton()
@@ -724,7 +660,7 @@ class FitnessLightboxSidebar(QFrame):
         button.setDefault(False)
         button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         button.setFixedSize(TOOLBAR_BUTTON_SIZE, TOOLBAR_BUTTON_SIZE)
-        button.setStyleSheet(style)
+        button.setStyleSheet(style if style is not None else _TIMER_BUTTON_STYLE)
         self._refresh_timer_button_icon(button)
         return button
 
@@ -1179,6 +1115,71 @@ QWidget#fitnessLightboxImageHost {{
     border: none;
 }}
 """
+
+
+def _timer_button_style(
+    *,
+    background: str,
+    border: str,
+    hover_background: str,
+    hover_border: str,
+    pressed_background: str,
+    pressed_border: str,
+    disabled_background: str = "#FBFBFC",
+    disabled_border: str = "#F0F0F2",
+) -> str:
+    return f"""
+QPushButton {{
+    background-color: {background};
+    border: 1px solid {border};
+    border-radius: {TOOLBAR_BORDER_RADIUS}px;
+    padding: 0px;
+    margin: 0px;
+}}
+QPushButton:hover:!disabled {{
+    background-color: {hover_background};
+    border-color: {hover_border};
+}}
+QPushButton:pressed:!disabled {{
+    background-color: {pressed_background};
+    border-color: {pressed_border};
+}}
+QPushButton:disabled {{
+    background-color: {disabled_background};
+    border: 1px solid {disabled_border};
+}}
+"""
+
+
+_TIMER_BUTTON_STYLE = _timer_button_style(
+    background="#F5F5F7",
+    border="#E5E5E8",
+    hover_background="#ECECEF",
+    hover_border="#D8D8DC",
+    pressed_background="#E2E2E6",
+    pressed_border="#C8C8CC",
+)
+_TIMER_BUTTON_START_STYLE = _timer_button_style(
+    background="#16A34A",
+    border="#15803D",
+    hover_background="#15803D",
+    hover_border="#166534",
+    pressed_background="#166534",
+    pressed_border="#14532D",
+    disabled_background="#E5E7EB",
+    disabled_border="#D1D5DB",
+)
+_TIMER_BUTTON_STOP_STYLE = _timer_button_style(
+    background="#DC2626",
+    border="#B91C1C",
+    hover_background="#B91C1C",
+    hover_border="#991B1B",
+    pressed_background="#991B1B",
+    pressed_border="#7F1D1D",
+    disabled_background="#FEE2E2",
+    disabled_border="#FECACA",
+)
+
 
 _PANE_STYLE = """
 QFrame#fitnessLightboxPane {
