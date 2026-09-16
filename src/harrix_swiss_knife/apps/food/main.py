@@ -97,6 +97,7 @@ from harrix_swiss_knife.apps.food.day_macros import (
     DayMacrosStatus,
     FoodDayMacrosAnalysis,
     FoodRangeMacrosAnalysis,
+    calorie_band_rgb,
     calorie_thresholds_from_config,
     day_macros_prompt_key,
     food_range_input_hash,
@@ -119,6 +120,7 @@ from harrix_swiss_knife.apps.food.food_item_dialog import FoodItemDialog
 from harrix_swiss_knife.apps.food.food_items_dialog import FoodItemsDialog
 from harrix_swiss_knife.apps.food.food_log_calories import (
     FOOD_LOG_COL_DATE,
+    FOOD_LOG_COL_TOTAL_PER_DAY,
     FoodLogCalorieMode,
     calculate_food_log_calories,
     convert_calories_per_100g_to_portion,
@@ -1599,6 +1601,36 @@ class MainWindow(
             middle = remaining - right
         self.splitter_food.setSizes([left, middle, right])
 
+    def _apply_food_log_daily_total_colors(self, model: QStandardItemModel) -> None:
+        """Color Total-per-day cells from `food_calorie_thresholds` in config."""
+        thresholds = calorie_thresholds_from_config(self._app_config)
+        model.blockSignals(True)  # noqa: FBT003
+        try:
+            for row in range(model.rowCount()):
+                total_item = model.item(row, FOOD_LOG_COL_TOTAL_PER_DAY)
+                if total_item is None:
+                    continue
+                anchor = model.item(row, 0)
+                date_brush = anchor.background() if anchor is not None else QBrush()
+                total_text = total_item.text().strip()
+                if not total_text:
+                    total_item.setBackground(date_brush)
+                    font = total_item.font()
+                    font.setBold(False)
+                    total_item.setFont(font)
+                    continue
+                try:
+                    band = calorie_band_rgb(float(total_text), thresholds)
+                except (TypeError, ValueError):
+                    total_item.setBackground(date_brush)
+                    continue
+                total_item.setBackground(QBrush(QColor(*band)))
+                font = total_item.font()
+                font.setBold(True)
+                total_item.setFont(font)
+        finally:
+            model.blockSignals(False)  # noqa: FBT003
+
     def _apply_kcal_lookup_result(self, result: KcalLookupResult) -> None:
         """Fill manual food entry fields from a parsed kcal lookup result."""
         self.radioButton_use_weight.setChecked(result.is_weight_mode)
@@ -1912,6 +1944,7 @@ class MainWindow(
         """
         model = QStandardItemModel()
         model.setHorizontalHeaderLabels(headers)
+        thresholds = calorie_thresholds_from_config(self._app_config)
 
         for row_idx, row in enumerate(data):
             # Extract color information (last element) and ID
@@ -1932,9 +1965,18 @@ class MainWindow(
                     item.setEditable(False)
 
                 # Make total per day column non-editable (column 8)
-                id_column_total_per_day = 8
-                if col_idx == id_column_total_per_day:
+                if col_idx == FOOD_LOG_COL_TOTAL_PER_DAY:
                     item.setEditable(False)
+                    total_text = str(value).strip() if value is not None else ""
+                    if total_text:
+                        try:
+                            band = calorie_band_rgb(float(total_text), thresholds)
+                            item.setBackground(QBrush(QColor(*band)))
+                            font = item.font()
+                            font.setBold(True)
+                            item.setFont(font)
+                        except (TypeError, ValueError):
+                            pass
 
                 # Check if this is today's record and make it bold
                 today = QDateTime.currentDateTime().toString("yyyy-MM-dd")
@@ -1977,6 +2019,7 @@ class MainWindow(
         """
         model = QStandardItemModel()
         model.setHorizontalHeaderLabels(headers)
+        thresholds = calorie_thresholds_from_config(self._app_config)
 
         for _row_idx, row in enumerate(data):
             items = []
@@ -1986,23 +2029,7 @@ class MainWindow(
             if len(row) > 1:
                 try:
                     calories = float(row[1]) if row[1] else 0.0
-                    thresholds = self._app_config.get("food_calorie_thresholds", {})
-                    low_threshold = thresholds.get("low", 1800)
-                    medium_low_threshold = thresholds.get("medium_low", 2100)
-                    medium_high_threshold = thresholds.get("medium_high", 2500)
-
-                    if calories <= low_threshold:
-                        # Green for low calories
-                        row_color = QColor(144, 238, 144)
-                    elif calories <= medium_low_threshold:
-                        # Green-yellow for medium-low calories
-                        row_color = QColor(255, 255, 224)
-                    elif calories <= medium_high_threshold:
-                        # Yellow for medium-high calories
-                        row_color = QColor(255, 228, 196)
-                    else:
-                        # Red for high calories
-                        row_color = QColor(255, 192, 203)
+                    row_color = QColor(*calorie_band_rgb(calories, thresholds))
                 except (ValueError, TypeError):
                     # If calories can't be parsed, use default background
                     pass
@@ -3292,6 +3319,7 @@ class MainWindow(
                 break
 
         refresh_food_log_calorie_columns(source_model)
+        self._apply_food_log_daily_total_colors(source_model)
         self.tableView_food_log.viewport().update()
 
         if date_column_changed or edited_summary_day:

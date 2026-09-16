@@ -10,6 +10,7 @@ from harrix_swiss_knife.apps.food.day_macros import (
     DayMacrosStatus,
     FoodDayLogLine,
     FoodDayMacrosAnalysis,
+    calorie_band_rgb,
     food_day_input_hash,
     format_day_menu_for_prompt,
     kcal_tone,
@@ -131,6 +132,15 @@ def test_percent_and_tones() -> None:
     assert macro_tone(50, 100) == "bad"
     assert kcal_tone(1700, CalorieThresholds()) == "good"
     assert kcal_tone(3000, CalorieThresholds()) == "bad"
+
+
+def test_calorie_band_rgb_matches_thresholds() -> None:
+    thresholds = CalorieThresholds(low=1800, medium_low=2100, medium_high=2500)
+    assert calorie_band_rgb(1700, thresholds) == (144, 238, 144)
+    assert calorie_band_rgb(1800, thresholds) == (144, 238, 144)
+    assert calorie_band_rgb(2000, thresholds) == (255, 255, 224)
+    assert calorie_band_rgb(2300, thresholds) == (255, 228, 196)
+    assert calorie_band_rgb(2600, thresholds) == (255, 192, 203)
 
 
 def test_format_day_menu_for_prompt_includes_total() -> None:
