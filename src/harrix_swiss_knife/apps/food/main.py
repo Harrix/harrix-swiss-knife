@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import contextlib
 import logging
+import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, cast
@@ -29,7 +30,17 @@ from PySide6.QtCore import (
     Qt,
     QTimer,
 )
-from PySide6.QtGui import QBrush, QCloseEvent, QColor, QIcon, QKeyEvent, QResizeEvent, QStandardItem, QStandardItemModel
+from PySide6.QtGui import (
+    QAction,
+    QBrush,
+    QCloseEvent,
+    QColor,
+    QIcon,
+    QKeyEvent,
+    QResizeEvent,
+    QStandardItem,
+    QStandardItemModel,
+)
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -1055,6 +1066,38 @@ class MainWindow(
             if item:
                 food_name = extract_food_name_from_display(item.text())
                 self._process_food_item_selection(food_name)
+
+    def on_open_photos(self) -> None:
+        """Open `path_photos` from config in the configured image viewer."""
+        path_viewer = str(self._app_config.get("path_image_viewer") or "").strip()
+        if not path_viewer:
+            message_box.warning(
+                self,
+                "Photos",
+                "path_image_viewer is not set in config.json.\n"
+                "Set it to the full path of your image viewer executable.",
+            )
+            return
+        viewer_path = Path(path_viewer)
+        if not viewer_path.is_file():
+            message_box.warning(
+                self,
+                "Photos",
+                f"Image viewer not found:\n{path_viewer}",
+            )
+            return
+        path_photos = str(self._app_config.get("path_photos") or "").strip()
+        if not path_photos:
+            message_box.warning(self, "Photos", "path_photos is not set in config.json.")
+            return
+        folder = Path(path_photos)
+        if not folder.is_dir():
+            message_box.warning(self, "Photos", f"Folder does not exist:\n{folder}")
+            return
+        try:
+            subprocess.Popen([str(viewer_path), str(folder)], shell=False)  # noqa: S603
+        except OSError as exc:
+            message_box.warning(self, "Photos", f"Could not open photos:\n{exc}")
 
     def on_portion_weight_with_ai_from_calories(self) -> None:
         """Determine portion weight and drink flag via BotHub for calories-mode entry."""
@@ -3906,6 +3949,18 @@ class MainWindow(
         charts.insertWidget(3, self.pushButton_food_stats_macros_fat)
         charts.insertWidget(4, self.pushButton_food_stats_macros_carb)
 
+    def _setup_open_photos_action(self) -> None:
+        """Add Commands → Open photos (`path_photos` in the image viewer)."""
+        menu = getattr(self, "menuCommands", None)
+        if menu is None:
+            return
+        menu.addSeparator()
+        action = QAction("Open photos", self)
+        action.setObjectName("action_open_photos")
+        action.triggered.connect(self.on_open_photos)
+        menu.addAction(action)
+        set_action_text_with_lucide_icon(action, "📸 Open photos")
+
     def _setup_status_bar(self) -> None:
         """Ensure status bar is visible and readable on Windows 11 Mica backdrop."""
         status_bar = self.statusBar()
@@ -3938,6 +3993,7 @@ class MainWindow(
         self.action_add_as_text.setText(f"📝 {self.action_add_as_text.text()}")
         self.action_show_all_records.setText(f"📊 {self.action_show_all_records.text()}")
         self.action_check.setText(f"🔍 {self.action_check.text()}")
+        self._setup_open_photos_action()
         self._apply_exit_about_menu_emojis()
         self.pushButton_food_manual_name_clear.setToolTip("Clear food name input")
         apply_lucide_button_icon(self.pushButton_food_manual_name_clear, CLEAR_BUTTON_ICON)
