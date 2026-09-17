@@ -621,12 +621,6 @@
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="tab_food_recipes">
-       <attribute name="title">
-        <string>Recipes</string>
-       </attribute>
-       <layout class="QVBoxLayout" name="verticalLayout_food_recipes"/>
-      </widget>
       <widget class="QWidget" name="tab_food_stats">
        <attribute name="title">
         <string>Food Statistics</string>
@@ -861,6 +855,7 @@
     <addaction name="action_refresh"/>
     <addaction name="action_add_food_item"/>
     <addaction name="action_show_food_items"/>
+    <addaction name="action_show_recipes"/>
     <addaction name="separator"/>
     <addaction name="action_translate_with_ai"/>
     <addaction name="action_add_as_text"/>
@@ -896,6 +891,11 @@
   <action name="action_show_food_items">
    <property name="text">
     <string>Show Food Items</string>
+   </property>
+  </action>
+  <action name="action_show_recipes">
+   <property name="text">
+    <string>Show Recipes</string>
    </property>
   </action>
   <action name="action_translate_with_ai">

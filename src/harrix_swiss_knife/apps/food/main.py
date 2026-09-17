@@ -180,7 +180,7 @@ from harrix_swiss_knife.apps.food.mixins import (
 )
 from harrix_swiss_knife.apps.food.portion_weight_parser import parse_portion_weight_response
 from harrix_swiss_knife.apps.food.recipe_calories import recipe_ingredients_from_food_log_rows
-from harrix_swiss_knife.apps.food.recipes_widget import RecipesWidget
+from harrix_swiss_knife.apps.food.recipes_dialog import RecipesDialog
 from harrix_swiss_knife.apps.food.schema import ensure_food_indexes, ensure_food_schema
 from harrix_swiss_knife.apps.food.services.food_display import (
     extract_food_name_from_display,
@@ -285,7 +285,6 @@ class MainWindow(
         super().__init__()
         try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
         self.setupUi(self)
-        self._recipes_widget: RecipesWidget | None = None
         self._macros_analysis_queue: list[str] = []
         self._macros_analysis_done = 0
         self._macros_analysis_failed: list[str] = []
@@ -372,8 +371,6 @@ class MainWindow(
 
         # Initialize application
         self._init_database()
-        if self._recipes_widget is not None:
-            self._recipes_widget.set_database_manager(self.db_manager)
         self._setup_autocomplete()
         self._connect_signals()
         self._init_food_log_table_delegates()
@@ -1221,6 +1218,16 @@ class MainWindow(
             self.update_food_data()
 
     @requires_database()
+    def on_show_recipes(self, *_args: object, select_recipe_id: int | None = None) -> None:
+        """Open the Recipes editor dialog (same UI as the former Recipes tab)."""
+        if self.db_manager is None:
+            logger.error("❌ Database manager is not initialized")
+            return
+        dialog = RecipesDialog(self, self.db_manager, select_recipe_id=select_recipe_id)
+        dialog.recipes_widget.recipes_changed.connect(self._on_recipes_changed)
+        dialog.exec()
+
+    @requires_database()
     def on_translate_with_ai(self) -> None:
         """Translate missing food_log name_en values via BotHub from unique Russian names."""
         if self.db_manager is None:
@@ -1861,6 +1868,7 @@ class MainWindow(
         self.pushButton_kcal_with_ai.clicked.connect(self.on_kcal_with_ai)
         self.action_add_food_item.triggered.connect(self.on_add_food_item)
         self.action_show_food_items.triggered.connect(self.on_show_food_items)
+        self.action_show_recipes.triggered.connect(self.on_show_recipes)
         self.action_translate_with_ai.triggered.connect(self.on_translate_with_ai)
         self.action_add_as_text.triggered.connect(self.on_add_as_text)
         self.action_show_all_records.triggered.connect(self.on_show_all_records_clicked)
@@ -2827,7 +2835,7 @@ class MainWindow(
 
     @requires_database()
     def _merge_selected_into_recipe(self) -> None:
-        """Save selected food-log rows as a new recipe and open the Recipes tab.
+        """Save selected food-log rows as a new recipe and open the Recipes dialog.
 
         Does not modify food_items or delete the selected log rows.
 
@@ -2940,19 +2948,12 @@ class MainWindow(
             return
 
         self._update_autocomplete_data()
-        if self._recipes_widget is not None:
-            self._recipes_widget.refresh()
-            self._recipes_widget.select_recipe_by_id(recipe_id)
-
-        recipes_index = self.tabWidget.indexOf(self.tab_food_recipes)
-        if recipes_index >= 0:
-            self.tabWidget.setCurrentIndex(recipes_index)
-
         message_box.information(
             self,
             "Recipe created",
             f"Recipe '{recipe_name}' saved with {len(ingredients)} ingredients.",
         )
+        self.on_show_recipes(select_recipe_id=recipe_id)
 
     def _on_autocomplete_selected(self, text: str) -> None:
         """Handle autocomplete selection and populate form fields.
@@ -3064,10 +3065,6 @@ class MainWindow(
             # Splitter/table get a real width only after the hidden tab is shown.
             QTimer.singleShot(0, self._adjust_food_log_table_columns)
             QTimer.singleShot(50, self._adjust_food_log_table_columns)
-            return
-        if tab_name == "tab_food_recipes":
-            if self._recipes_widget is not None:
-                self._recipes_widget.refresh()
             return
         if tab_name == "tab_food_stats":
             self._update_macros_analysis_table()
@@ -4083,13 +4080,6 @@ class MainWindow(
         self.lineEdit_food_manual_name.textEdited.connect(self._on_food_name_text_edited)
         self.food_completer.activated.connect(self._on_autocomplete_selected)
 
-    def _setup_food_recipes_tab(self) -> None:
-        """Fill the Recipes tab with the recipe editor widget."""
-        self._recipes_widget = RecipesWidget(self)
-        self._recipes_widget.recipes_changed.connect(self._on_recipes_changed)
-        self.verticalLayout_food_recipes.setContentsMargins(0, 0, 0, 0)
-        self.verticalLayout_food_recipes.addWidget(self._recipes_widget, 1)
-
     def _setup_macros_analysis_ui(self) -> None:
         """Add macros status badge, notes under the combined stats table, and buttons."""
         self.label_macros_status = QLabel("")
@@ -4206,6 +4196,7 @@ class MainWindow(
         self.action_refresh.setText(f"🔄 {self.action_refresh.text()}")
         self.action_add_food_item.setText(f"➕ {self.action_add_food_item.text()}")  # noqa: RUF001
         self.action_show_food_items.setText(f"📋 {self.action_show_food_items.text()}")
+        self.action_show_recipes.setText(f"🍳 {self.action_show_recipes.text()}")
         self.action_translate_with_ai.setText(f"🤖 {self.action_translate_with_ai.text()}")
         self.action_add_as_text.setText(f"📝 {self.action_add_as_text.text()}")
         self.action_show_all_records.setText(f"📊 {self.action_show_all_records.text()}")
@@ -4270,8 +4261,6 @@ class MainWindow(
 
         # Keep default period as "Days" for food stats
         # (but date range will be set to last month)
-
-        self._setup_food_recipes_tab()
 
         # Keep keyboard focus on the Food tab form only while that tab is current
         if self.tabWidget.currentWidget() is self.tab_food:

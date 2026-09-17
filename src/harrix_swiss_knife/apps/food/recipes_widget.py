@@ -1,4 +1,4 @@
-"""Recipes tab: list recipes and edit ingredient composition with calorie totals."""
+"""Recipes editor: list recipes and edit ingredient composition with calorie totals."""
 
 from __future__ import annotations
 

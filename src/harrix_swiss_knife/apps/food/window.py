@@ -32,6 +32,7 @@ class Ui_MainWindow(object):
         self.action_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh", None))
         self.action_add_food_item.setText(QCoreApplication.translate("MainWindow", u"Add Food Item", None))
         self.action_show_food_items.setText(QCoreApplication.translate("MainWindow", u"Show Food Items", None))
+        self.action_show_recipes.setText(QCoreApplication.translate("MainWindow", u"Show Recipes", None))
         self.action_translate_with_ai.setText(QCoreApplication.translate("MainWindow", u"Translate with AI", None))
         self.action_add_as_text.setText(QCoreApplication.translate("MainWindow", u"Add As Text", None))
         self.action_show_all_records.setText(QCoreApplication.translate("MainWindow", u"Show All Records", None))
@@ -75,7 +76,6 @@ class Ui_MainWindow(object):
 #endif // QT_CONFIG(tooltip)
         self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", u"\U0001f9f9", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_food), QCoreApplication.translate("MainWindow", u"Food", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_food_recipes), QCoreApplication.translate("MainWindow", u"Recipes", None))
         self.label.setText(QCoreApplication.translate("MainWindow", u"Daily calories & macros:", None))
         self.label_food_stats_from.setText(QCoreApplication.translate("MainWindow", u"From:", None))
         self.dateEdit_food_stats_from.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
@@ -106,6 +106,8 @@ class Ui_MainWindow(object):
         self.action_add_food_item.setObjectName(u"action_add_food_item")
         self.action_show_food_items = QAction(MainWindow)
         self.action_show_food_items.setObjectName(u"action_show_food_items")
+        self.action_show_recipes = QAction(MainWindow)
+        self.action_show_recipes.setObjectName(u"action_show_recipes")
         self.action_translate_with_ai = QAction(MainWindow)
         self.action_translate_with_ai.setObjectName(u"action_translate_with_ai")
         self.action_add_as_text = QAction(MainWindow)
@@ -494,11 +496,6 @@ class Ui_MainWindow(object):
         self.horizontalLayout_food.addWidget(self.splitter_food)
 
         self.tabWidget.addTab(self.tab_food, "")
-        self.tab_food_recipes = QWidget()
-        self.tab_food_recipes.setObjectName(u"tab_food_recipes")
-        self.verticalLayout_food_recipes = QVBoxLayout(self.tab_food_recipes)
-        self.verticalLayout_food_recipes.setObjectName(u"verticalLayout_food_recipes")
-        self.tabWidget.addTab(self.tab_food_recipes, "")
         self.tab_food_stats = QWidget()
         self.tab_food_stats.setObjectName(u"tab_food_stats")
         self.horizontalLayout_4 = QHBoxLayout(self.tab_food_stats)
@@ -519,10 +516,10 @@ class Ui_MainWindow(object):
         self.tableView_kcal_per_day = QTableView(self.frame)
         self.tableView_kcal_per_day.setObjectName(u"tableView_kcal_per_day")
 
-        self.verticalLayout_3.addWidget(self.tableView_kcal_per_day, 1)
+        self.verticalLayout_3.addWidget(self.tableView_kcal_per_day)
 
 
-        self.horizontalLayout_4.addWidget(self.frame, 1)
+        self.horizontalLayout_4.addWidget(self.frame)
 
         self.verticalLayout_4 = QVBoxLayout()
         self.verticalLayout_4.setObjectName(u"verticalLayout_4")
@@ -632,7 +629,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_4.addWidget(self.scrollArea_food_stats)
 
 
-        self.horizontalLayout_4.addLayout(self.verticalLayout_4, 3)
+        self.horizontalLayout_4.addLayout(self.verticalLayout_4)
 
         self.tabWidget.addTab(self.tab_food_stats, "")
 
@@ -656,6 +653,7 @@ class Ui_MainWindow(object):
         self.menuCommands.addAction(self.action_refresh)
         self.menuCommands.addAction(self.action_add_food_item)
         self.menuCommands.addAction(self.action_show_food_items)
+        self.menuCommands.addAction(self.action_show_recipes)
         self.menuCommands.addSeparator()
         self.menuCommands.addAction(self.action_translate_with_ai)
         self.menuCommands.addAction(self.action_add_as_text)

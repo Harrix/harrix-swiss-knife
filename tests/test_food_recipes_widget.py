@@ -1,6 +1,8 @@
-"""Tests for the Recipes tab list and delete placement."""
+"""Tests for the Recipes editor list and delete placement."""
 
 from __future__ import annotations
+
+from pathlib import Path
 
 import pytest
 from PySide6.QtCore import QLocale, Qt
@@ -8,8 +10,10 @@ from PySide6.QtGui import QStandardItem
 from PySide6.QtWidgets import QApplication, QMenu
 
 from harrix_swiss_knife.apps.common.table_context_menu import LABEL_DELETE
+from harrix_swiss_knife.apps.food.database_manager import DatabaseManager
 from harrix_swiss_knife.apps.food.delegates import IsDrinkDelegate, is_drink_to_model
 from harrix_swiss_knife.apps.food.recipe_calories import RecipeIngredientInput
+from harrix_swiss_knife.apps.food.recipes_dialog import RecipesDialog
 from harrix_swiss_knife.apps.food.recipes_widget import RecipesWidget
 from harrix_swiss_knife.apps.food.services.food_display import DRINK_EMOJI
 
@@ -24,6 +28,18 @@ def qapp() -> QApplication:
         msg = "QApplication.instance() returned a non-QApplication object."
         raise TypeError(msg)
     return app
+
+
+def test_recipes_dialog_embeds_widget(qapp: QApplication, tmp_path: Path) -> None:  # noqa: ARG001
+    recover_sql = Path(__file__).resolve().parents[1] / "src" / "harrix_swiss_knife" / "apps" / "food" / "recover.sql"
+    db_path = tmp_path / "food.db"
+    assert DatabaseManager.create_database_from_sql(str(db_path), str(recover_sql))
+    db = DatabaseManager(str(db_path))
+    dialog = RecipesDialog(None, db)
+    assert dialog.windowTitle() == "Recipes"
+    assert isinstance(dialog.recipes_widget, RecipesWidget)
+    dialog.close()
+    db.close()
 
 
 def test_recipes_widget_has_no_bottom_delete_button(qapp: QApplication) -> None:  # noqa: ARG001
