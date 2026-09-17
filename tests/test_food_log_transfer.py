@@ -28,29 +28,22 @@ def test_build_transfer_item_weight_mode() -> None:
         name_en="Oatmeal",
         weight=150,
         calories_per_100g=350,
-        portion_calories=None,
         is_drink=False,
     )
     assert item is not None
-    assert item.calorie_mode == "weight"
     assert item.calories_per_100g == 350
-    assert item.portion_calories is None
 
 
-def test_build_transfer_item_portion_mode() -> None:
+def test_build_transfer_item_requires_calories() -> None:
     item = build_transfer_item_from_log_row(
         date="2026-09-16",
         name="Coffee",
         name_en=None,
         weight=250,
-        calories_per_100g=0,
-        portion_calories=85,
+        calories_per_100g=None,
         is_drink=True,
     )
-    assert item is not None
-    assert item.calorie_mode == "portion"
-    assert item.portion_calories == 85
-    assert item.is_drink is True
+    assert item is None
 
 
 def test_write_and_parse_roundtrip(tmp_path: Path) -> None:
@@ -60,9 +53,7 @@ def test_write_and_parse_roundtrip(tmp_path: Path) -> None:
             name_en="Oatmeal",
             weight=150,
             is_drink=False,
-            calorie_mode="weight",
             calories_per_100g=350,
-            portion_calories=None,
             date="2026-09-16",
         ),
         FoodLogTransferItem(
@@ -70,9 +61,7 @@ def test_write_and_parse_roundtrip(tmp_path: Path) -> None:
             name_en=None,
             weight=300,
             is_drink=False,
-            calorie_mode="portion",
-            calories_per_100g=None,
-            portion_calories=200,
+            calories_per_100g=66.7,
             date="2026-09-17",
         ),
     ]
@@ -93,9 +82,7 @@ def test_write_single_path(tmp_path: Path) -> None:
             name="Tea",
             weight=200,
             is_drink=True,
-            calorie_mode="portion",
-            calories_per_100g=None,
-            portion_calories=5,
+            calories_per_100g=2.5,
             date="2026-09-16",
         ),
     ]
@@ -113,9 +100,7 @@ def test_items_to_tsv() -> None:
             name="Rice",
             weight=100,
             is_drink=False,
-            calorie_mode="weight",
             calories_per_100g=130,
-            portion_calories=None,
             date="2026-09-16",
         ),
     ]
@@ -128,24 +113,41 @@ def test_group_and_filename() -> None:
             name="A",
             weight=1,
             is_drink=False,
-            calorie_mode="weight",
             calories_per_100g=1,
-            portion_calories=None,
             date="2026-01-02",
         ),
         FoodLogTransferItem(
             name="B",
             weight=1,
             is_drink=False,
-            calorie_mode="weight",
             calories_per_100g=1,
-            portion_calories=None,
             date="2026-01-01",
         ),
     ]
     grouped = group_items_by_date(items)
     assert set(grouped) == {"2026-01-01", "2026-01-02"}
     assert transfer_filename_for_date("2026-01-01") == "food-log-2026-01-01.json"
+
+
+def test_parse_legacy_portion_mode_converts_to_per_100g() -> None:
+    payload = parse_transfer_payload(
+        {
+            "format": "harrix-food-log",
+            "version": 1,
+            "default_date": "2026-09-16",
+            "items": [
+                {
+                    "name": "Coffee",
+                    "weight": 250,
+                    "calorie_mode": "portion",
+                    "portion_calories": 85,
+                    "is_drink": True,
+                    "date": "2026-09-16",
+                }
+            ],
+        }
+    )
+    assert payload.items[0].calories_per_100g == 34.0
 
 
 def test_parse_rejects_wrong_format() -> None:

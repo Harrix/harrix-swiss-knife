@@ -28,7 +28,6 @@ def test_food_day_input_hash_stable_and_sensitive_to_weight() -> None:
         name="Oatmeal",
         name_en="Oatmeal",
         weight=200.0,
-        portion_calories=None,
         calories_per_100g=68.0,
         is_drink=False,
     )
@@ -39,7 +38,6 @@ def test_food_day_input_hash_stable_and_sensitive_to_weight() -> None:
         name="Oatmeal",
         name_en="Oatmeal",
         weight=250.0,
-        portion_calories=None,
         calories_per_100g=68.0,
         is_drink=False,
     )
@@ -47,8 +45,8 @@ def test_food_day_input_hash_stable_and_sensitive_to_weight() -> None:
 
 
 def test_food_day_input_hash_order_independent() -> None:
-    a = FoodDayLogLine("A", "", 10.0, None, 100.0, is_drink=False)
-    b = FoodDayLogLine("B", "", 20.0, 50.0, None, is_drink=True)
+    a = FoodDayLogLine("A", "", 10.0, 100.0, is_drink=False)
+    b = FoodDayLogLine("B", "", 20.0, 50.0, is_drink=True)
     assert food_day_input_hash([a, b]) == food_day_input_hash([b, a])
 
 
@@ -145,7 +143,7 @@ def test_calorie_band_rgb_matches_thresholds() -> None:
 
 def test_format_day_menu_for_prompt_includes_total() -> None:
     lines = [
-        FoodDayLogLine("Рис", "Rice", 100.0, None, 130.0, is_drink=False),
+        FoodDayLogLine("Рис", "Rice", 100.0, 130.0, is_drink=False),
     ]
     menu = format_day_menu_for_prompt(lines, total_kcal=130.0)
     assert "Рис" in menu
@@ -171,7 +169,6 @@ def test_ensure_food_schema_creates_day_and_range_analysis(tmp_path: Path) -> No
                 _id INTEGER PRIMARY KEY AUTOINCREMENT,
                 date TEXT,
                 weight REAL,
-                portion_calories REAL,
                 calories_per_100g REAL,
                 name TEXT,
                 name_en TEXT,
@@ -209,7 +206,6 @@ def test_ensure_food_schema_adds_bilingual_columns(tmp_path: Path) -> None:
                 _id INTEGER PRIMARY KEY AUTOINCREMENT,
                 date TEXT,
                 weight REAL,
-                portion_calories REAL,
                 calories_per_100g REAL,
                 name TEXT,
                 name_en TEXT,

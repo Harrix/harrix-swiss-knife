@@ -381,12 +381,8 @@ class RecipesWidget(QWidget):
             return
         self.spin_ingredient_weight.setValue(int(log_item.weight) if log_item.weight else 100)
         self.check_ingredient_drink.setChecked(log_item.is_drink)
-        if log_item.portion_calories and log_item.portion_calories > 0:
-            self.radio_use_calories.setChecked(True)
-            self.spin_ingredient_calories.setValue(log_item.portion_calories)
-        else:
-            self.radio_use_weight.setChecked(True)
-            self.spin_ingredient_calories.setValue(log_item.calories_per_100g or 0)
+        self.radio_use_weight.setChecked(True)
+        self.spin_ingredient_calories.setValue(log_item.calories_per_100g or 0)
 
     def _recipe_id_and_name_from_index(self, index: QModelIndex) -> tuple[int, str] | None:
         if not index.isValid():
@@ -406,11 +402,10 @@ class RecipesWidget(QWidget):
             for ingredient in self._ingredients:
                 row = self.table_ingredients.rowCount()
                 self.table_ingredients.insertRow(row)
-                calc = calculate_food_log_calories(
-                    ingredient.weight,
-                    ingredient.calories_per_100g,
-                    ingredient.portion_calories,
-                )
+                if ingredient.portion_calories is not None and ingredient.portion_calories > 0:
+                    calc = float(ingredient.portion_calories)
+                else:
+                    calc = calculate_food_log_calories(ingredient.weight, ingredient.calories_per_100g)
                 values = [
                     ingredient.name,
                     f"{ingredient.weight:.0f}" if ingredient.weight is not None else "",

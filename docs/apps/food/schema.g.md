@@ -51,9 +51,10 @@ def ensure_food_schema(db_path: Path) -> bool
 Migrate a legacy Food database and ensure recipe tables exist.
 
 Legacy `recover.sql` used `id` / `datetime` / `calories` / `food_item_id`. The app
-expects `_id` / `date` / `portion_calories` / `calories_per_100g` on denormalized
-`food_log` rows. Existing databases also gain `recipes` / `recipe_ingredients`
-when missing.
+expects `_id` / `date` / [`calories_per_100g`](portion_calories_dialog.g.md#%EF%B8%8F-method-calories_per_100g) on denormalized `food_log` rows.
+Older databases that still have [`portion_calories`](portion_calories_dialog.g.md#%EF%B8%8F-method-portion_calories) convert those values into
+[`calories_per_100g`](portion_calories_dialog.g.md#%EF%B8%8F-method-calories_per_100g) and drop the column. Existing databases also gain
+`recipes` / `recipe_ingredients` when missing.
 
 Args:
 
@@ -112,18 +113,24 @@ def ensure_food_schema(db_path: Path) -> bool:
             name_expr = "name" if "name" in log_cols else "NULL"
             name_en_expr = "name_en" if "name_en" in log_cols else "NULL"
             is_drink_expr = "COALESCE(is_drink, 0)" if "is_drink" in log_cols else "0"
+            calories_expr = (
+                f"CASE "
+                f"WHEN ({portion_expr}) IS NOT NULL AND ({portion_expr}) > 0 "
+                f"AND ({weight_expr}) IS NOT NULL AND ({weight_expr}) > 0 "
+                f"THEN ROUND((({portion_expr}) * 100.0) / ({weight_expr}), 1) "
+                f"ELSE ({per_100_expr}) END"
+            )
 
             conn.execute(
                 f"""
                 INSERT INTO food_log (
-                    _id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink
+                    _id, date, weight, calories_per_100g, name, name_en, is_drink
                 )
                 SELECT
                     {log_id},
                     {date_expr},
                     {weight_expr},
-                    {portion_expr},
-                    {per_100_expr},
+                    {calories_expr},
                     {name_expr},
                     {name_en_expr},
                     {is_drink_expr}
@@ -136,6 +143,9 @@ def ensure_food_schema(db_path: Path) -> bool:
             conn.execute("PRAGMA foreign_keys = ON")
             changed = True
             logger.info("Food schema migration finished for %s", db_path)
+
+        if _migrate_food_log_drop_portion_calories(conn):
+            changed = True
 
         if _ensure_recipes_tables(conn):
             changed = True

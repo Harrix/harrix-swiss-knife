@@ -31,7 +31,7 @@ CREATE TABLE food_log (
 
 
 def test_ensure_food_schema_migrates_legacy_id_datetime(tmp_path: Path) -> None:
-    """Installer-created legacy DBs gain `_id` / `date` / `portion_calories`."""
+    """Installer-created legacy DBs gain `_id`, `date`, and kcal/100g on `food_log`."""
     db_path = tmp_path / "food.db"
     with sqlite3.connect(str(db_path)) as conn:
         conn.executescript(_LEGACY_SCHEMA)
@@ -56,15 +56,16 @@ def test_ensure_food_schema_migrates_legacy_id_datetime(tmp_path: Path) -> None:
 
     with sqlite3.connect(str(db_path)) as conn:
         log_cols = {row[1] for row in conn.execute("PRAGMA table_info(food_log)")}
-        assert {"_id", "date", "portion_calories", "calories_per_100g"}.issubset(log_cols)
+        assert {"_id", "date", "calories_per_100g"}.issubset(log_cols)
+        assert "portion_calories" not in log_cols
         assert "datetime" not in log_cols
         assert "id" not in {row[1] for row in conn.execute("PRAGMA table_info(food_items)")}
-        row = conn.execute("SELECT _id, date, weight, portion_calories, name FROM food_log").fetchone()
+        row = conn.execute("SELECT _id, date, weight, calories_per_100g, name FROM food_log").fetchone()
         assert row is not None
         assert int(row[0]) == item_id
         assert row[1] == "2024-06-15"
         assert float(row[2]) == 200
-        assert float(row[3]) == 178
+        assert float(row[3]) == 89.0
         assert row[4] == "Банан"
         assert int(conn.execute("SELECT COUNT(*) FROM food_items").fetchone()[0]) == 1
         assert _table_exists_names(conn, "recipes")
@@ -105,6 +106,8 @@ def test_ensure_food_schema_creates_recipes_on_current_db(tmp_path: Path) -> Non
     assert ensure_food_schema(db_path) is False
 
     with sqlite3.connect(str(db_path)) as conn:
+        log_cols = {row[1] for row in conn.execute("PRAGMA table_info(food_log)")}
+        assert "portion_calories" not in log_cols
         assert _table_exists_names(conn, "recipes")
         assert _table_exists_names(conn, "recipe_ingredients")
         assert _table_exists_names(conn, "food_day_nutrition_analysis")

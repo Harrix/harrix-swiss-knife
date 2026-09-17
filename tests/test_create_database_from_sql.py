@@ -61,7 +61,8 @@ def test_create_food_database_from_recover_sql(tmp_path: Path, qapp: QApplicatio
     with sqlite3.connect(str(db_path)) as conn:
         food_log_cols = {row[1] for row in conn.execute("PRAGMA table_info(food_log)")}
         food_items_cols = {row[1] for row in conn.execute("PRAGMA table_info(food_items)")}
-        assert {"_id", "date", "portion_calories", "calories_per_100g"}.issubset(food_log_cols)
+        assert {"_id", "date", "calories_per_100g"}.issubset(food_log_cols)
+        assert "portion_calories" not in food_log_cols
         assert {"_id", "name", "default_portion_calories"}.issubset(food_items_cols)
         assert int(conn.execute("SELECT COUNT(*) FROM food_items").fetchone()[0]) > 0
         assert int(conn.execute("SELECT COUNT(*) FROM food_log").fetchone()[0]) == 0

@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import unique_path_in_folder
-from harrix_swiss_knife.apps.food.food_log_calories import food_log_calorie_mode
+from harrix_swiss_knife.apps.food.food_log_calories import convert_portion_to_calories_per_100g
 from harrix_swiss_knife.apps.food.text_parser import ParsedFoodItem
 
 FORMAT_ID = "harrix-food-log"
@@ -32,9 +32,7 @@ class FoodLogTransferItem:
     name: str
     weight: float
     is_drink: bool
-    calorie_mode: CalorieModeJson
     calories_per_100g: float | None
-    portion_calories: float | None
     date: str
     name_en: str | None = None
 
@@ -55,7 +53,6 @@ def build_transfer_item_from_log_row(
     name_en: str | None,
     weight: float | None,
     calories_per_100g: float | None,
-    portion_calories: float | None,
     is_drink: bool,
 ) -> FoodLogTransferItem | None:
     """Build a transfer item from a food_log DB row, or `None` when incomplete."""
@@ -65,30 +62,16 @@ def build_transfer_item_from_log_row(
         return None
     if weight is None or weight <= 0:
         return None
-    mode = food_log_calorie_mode(calories_per_100g, portion_calories)
-    if mode == "portion":
-        return FoodLogTransferItem(
-            name=food_name,
-            name_en=_optional_name(name_en),
-            weight=float(weight),
-            is_drink=bool(is_drink),
-            calorie_mode="portion",
-            calories_per_100g=None,
-            portion_calories=float(portion_calories) if portion_calories is not None else None,
-            date=day,
-        )
-    if mode == "per_100g":
-        return FoodLogTransferItem(
-            name=food_name,
-            name_en=_optional_name(name_en),
-            weight=float(weight),
-            is_drink=bool(is_drink),
-            calorie_mode="weight",
-            calories_per_100g=float(calories_per_100g) if calories_per_100g is not None else None,
-            portion_calories=None,
-            date=day,
-        )
-    return None
+    if calories_per_100g is None or calories_per_100g < 0:
+        return None
+    return FoodLogTransferItem(
+        name=food_name,
+        name_en=_optional_name(name_en),
+        weight=float(weight),
+        is_drink=bool(is_drink),
+        calories_per_100g=float(calories_per_100g),
+        date=day,
+    )
 
 
 def group_items_by_date(items: list[FoodLogTransferItem]) -> dict[str, list[FoodLogTransferItem]]:
@@ -105,15 +88,15 @@ def is_food_log_transfer_path(file_path: str | Path) -> bool:
 
 
 def item_to_json(item: FoodLogTransferItem) -> dict[str, Any]:
-    """Serialize one transfer item."""
+    """Serialize one transfer item (always weight / kcal per 100 g)."""
     return {
         "name": item.name,
         "name_en": item.name_en,
         "is_drink": item.is_drink,
         "weight": item.weight,
-        "calorie_mode": item.calorie_mode,
+        "calorie_mode": "weight",
         "calories_per_100g": item.calories_per_100g,
-        "portion_calories": item.portion_calories,
+        "portion_calories": None,
         "date": item.date,
     }
 
@@ -122,14 +105,9 @@ def items_to_tsv(items: list[FoodLogTransferItem]) -> str:
     """Convert transfer items to FoodTableDialog TSV (Name/Weight/Calories/Mode/Drink)."""
     lines: list[str] = []
     for item in items:
-        if item.calorie_mode == "portion":
-            calories = item.portion_calories or 0
-            mode = "portion"
-        else:
-            calories = item.calories_per_100g or 0
-            mode = "weight"
+        calories = item.calories_per_100g or 0
         drink = "yes" if item.is_drink else "no"
-        lines.append(f"{item.name}\t{item.weight:g}\t{calories:g}\t{mode}\t{drink}")
+        lines.append(f"{item.name}\t{item.weight:g}\t{calories:g}\tweight\t{drink}")
     return "\n".join(lines)
 
 
@@ -208,28 +186,16 @@ def transfer_items_to_parsed(
     parsed: list[ParsedFoodItem] = []
     for item in items:
         day = item.date if _DATE_RE.match(item.date) else default_date
-        if item.calorie_mode == "portion":
-            parsed.append(
-                ParsedFoodItem(
-                    name=item.name,
-                    weight=item.weight,
-                    calories_per_100g=0,
-                    portion_calories=item.portion_calories,
-                    food_date=day,
-                    is_drink=item.is_drink,
-                )
+        parsed.append(
+            ParsedFoodItem(
+                name=item.name,
+                weight=item.weight,
+                calories_per_100g=item.calories_per_100g,
+                portion_calories=None,
+                food_date=day,
+                is_drink=item.is_drink,
             )
-        else:
-            parsed.append(
-                ParsedFoodItem(
-                    name=item.name,
-                    weight=item.weight,
-                    calories_per_100g=item.calories_per_100g,
-                    portion_calories=None,
-                    food_date=day,
-                    is_drink=item.is_drink,
-                )
-            )
+        )
     return parsed
 
 
@@ -314,29 +280,24 @@ def _parse_item(entry: Any, *, default_date: str) -> FoodLogTransferItem:
         msg = "date must be YYYY-MM-DD"
         raise ValueError(msg)
     mode_raw = str(entry.get("calorie_mode") or "").strip().lower()
-    if mode_raw in {"weight", "per_100g"}:
-        calorie_mode: CalorieModeJson = "weight"
-    elif mode_raw == "portion":
-        calorie_mode = "portion"
-    else:
-        # Infer from numeric fields when mode omitted.
-        portion = _optional_float(entry.get("portion_calories"))
-        per_100 = _optional_float(entry.get("calories_per_100g"))
-        inferred = food_log_calorie_mode(per_100, portion)
-        if inferred == "portion":
-            calorie_mode = "portion"
-        elif inferred == "per_100g":
-            calorie_mode = "weight"
-        else:
-            msg = "calorie_mode must be 'weight' or 'portion'"
-            raise ValueError(msg)
     calories_per_100g = _optional_float(entry.get("calories_per_100g"))
     portion_calories = _optional_float(entry.get("portion_calories"))
-    if calorie_mode == "portion" and (portion_calories is None or portion_calories <= 0):
-        msg = "portion_calories must be > 0 for portion mode"
-        raise ValueError(msg)
-    if calorie_mode == "weight" and (calories_per_100g is None or calories_per_100g < 0):
-        msg = "calories_per_100g is required for weight mode"
+    if mode_raw in {"weight", "per_100g"}:
+        if calories_per_100g is None or calories_per_100g < 0:
+            msg = "calories_per_100g is required for weight mode"
+            raise ValueError(msg)
+    elif mode_raw == "portion" or (portion_calories is not None and portion_calories > 0):
+        if portion_calories is None or portion_calories <= 0:
+            msg = "portion_calories must be > 0 for portion mode"
+            raise ValueError(msg)
+        calories_per_100g = convert_portion_to_calories_per_100g(
+            weight=weight,
+            portion_calories=portion_calories,
+        )
+    elif calories_per_100g is not None and calories_per_100g >= 0:
+        pass
+    else:
+        msg = "calories_per_100g or portion_calories is required"
         raise ValueError(msg)
     is_drink = bool(entry.get("is_drink"))
     return FoodLogTransferItem(
@@ -344,8 +305,6 @@ def _parse_item(entry: Any, *, default_date: str) -> FoodLogTransferItem:
         name_en=_optional_name(entry.get("name_en") if isinstance(entry.get("name_en"), str) else None),
         weight=weight,
         is_drink=is_drink,
-        calorie_mode=calorie_mode,
-        calories_per_100g=calories_per_100g if calorie_mode == "weight" else None,
-        portion_calories=portion_calories if calorie_mode == "portion" else None,
+        calories_per_100g=calories_per_100g,
         date=day,
     )

@@ -60,8 +60,8 @@ lang: en
   - [⚙️ Method `update_food_log_name_en_by_name`](#%EF%B8%8F-method-update_food_log_name_en_by_name)
   - [⚙️ Method `update_food_log_record`](#%EF%B8%8F-method-update_food_log_record)
   - [⚙️ Method `update_food_log_records_date`](#%EF%B8%8F-method-update_food_log_records_date)
+  - [⚙️ Method `update_food_log_weight`](#%EF%B8%8F-method-update_food_log_weight)
   - [⚙️ Method `update_food_log_weight_and_calories`](#%EF%B8%8F-method-update_food_log_weight_and_calories)
-  - [⚙️ Method `update_food_log_weight_and_portion_calories`](#%EF%B8%8F-method-update_food_log_weight_and_portion_calories)
   - [⚙️ Method `upsert_food_day_nutrition_analysis`](#%EF%B8%8F-method-upsert_food_day_nutrition_analysis)
   - [⚙️ Method `upsert_food_range_nutrition_analysis`](#%EF%B8%8F-method-upsert_food_range_nutrition_analysis)
 - [🏛️ Class `FoodAutocompleteEntry`](#%EF%B8%8F-class-foodautocompleteentry)
@@ -161,7 +161,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         name: str | None = None,
         name_en: str | None = None,
         weight: float | None = None,
-        portion_calories: float | None = None,
         *,
         is_drink: bool = False,
     ) -> bool:
@@ -174,7 +173,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `name` (`str | None`): Food name. Defaults to `None`.
         - `name_en` (`str | None`): English food name. Defaults to `None`.
         - `weight` (`float | None`): Weight in grams. Defaults to `None`.
-        - `portion_calories` (`float | None`): Portion calories. Defaults to `None`.
         - `is_drink` (`bool`): Whether it's a drink. Defaults to `False`.
 
         Returns:
@@ -183,13 +181,12 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         """
         query = """
-            INSERT INTO food_log (date, weight, portion_calories, calories_per_100g, name, name_en, is_drink)
-            VALUES (:date, :weight, :portion_calories, :calories_per_100g, :name, :name_en, :is_drink)
+            INSERT INTO food_log (date, weight, calories_per_100g, name, name_en, is_drink)
+            VALUES (:date, :weight, :calories_per_100g, :name, :name_en, :is_drink)
         """
         params = {
             "date": date,
             "weight": weight,
-            "portion_calories": portion_calories,
             "calories_per_100g": calories_per_100g,
             "name": name,
             "name_en": name_en,
@@ -312,12 +309,12 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `list[list[Any]]`: List of food log records [\_id, date, weight, portion_calories,
-          calories_per_100g, name, name_en, is_drink].
+        - `list[list[Any]]`: List of food log records [\_id, date, weight, calories_per_100g,
+          name, name_en, is_drink].
 
         """
         return self.get_rows("""
-            SELECT _id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink
+            SELECT _id, date, weight, calories_per_100g, name, name_en, is_drink
             FROM food_log
             ORDER BY date DESC, _id DESC
         """)
@@ -479,8 +476,8 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `list[list[Any]]`: Filtered rows [\_id, date, weight, portion_calories,
-          calories_per_100g, name, name_en, is_drink].
+        - `list[list[Any]]`: Filtered rows [\_id, date, weight, calories_per_100g,
+          name, name_en, is_drink].
 
         """
         conditions: list[str] = []
@@ -498,7 +495,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         normalized_name_filter = _normalize_name_filter(name_filter)
 
         query_text = """
-            SELECT _id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink
+            SELECT _id, date, weight, calories_per_100g, name, name_en, is_drink
             FROM food_log
         """
         if conditions:
@@ -583,7 +580,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         rows = self.get_rows(
             """
-            SELECT name, name_en, weight, portion_calories, calories_per_100g, is_drink
+            SELECT name, name_en, weight, calories_per_100g, is_drink
             FROM food_log
             WHERE date = :day
             ORDER BY _id ASC
@@ -599,9 +596,8 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
                     name=str(row[0] or ""),
                     name_en=str(row[1] or ""),
                     weight=_optional_sql_float(row[2]),
-                    portion_calories=_optional_sql_float(row[3]),
-                    calories_per_100g=_optional_sql_float(row[4]),
-                    is_drink=bool(int(row[5] or 0)),
+                    calories_per_100g=_optional_sql_float(row[3]),
+                    is_drink=bool(int(row[4] or 0)),
                 )
             )
         return result
@@ -697,10 +693,10 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             if row and row[0]
         ]
 
-    def get_food_log_amounts(self, record_id: int) -> tuple[float | None, float | None, float | None] | None:
-        """Return `(weight, calories_per_100g, portion_calories)` for a food log row."""
+    def get_food_log_amounts(self, record_id: int) -> tuple[float | None, float | None] | None:
+        """Return `(weight, calories_per_100g)` for a food log row."""
         rows = self.get_rows(
-            "SELECT weight, calories_per_100g, portion_calories FROM food_log WHERE _id = :id",
+            "SELECT weight, calories_per_100g FROM food_log WHERE _id = :id",
             {"id": record_id},
         )
         if not rows:
@@ -709,7 +705,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         return (
             _optional_sql_float(row[0]),
             _optional_sql_float(row[1]),
-            _optional_sql_float(row[2]),
         )
 
     def get_food_log_item_by_name(self, name: str) -> FoodLogItemByNameRow | None:
@@ -725,7 +720,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         """
         query = """
-            SELECT name, name_en, is_drink, calories_per_100g, weight, portion_calories
+            SELECT name, name_en, is_drink, calories_per_100g, weight
             FROM food_log
             WHERE name = :name
             ORDER BY date DESC, _id DESC
@@ -742,7 +737,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             is_drink=bool(row[2]) if row[2] is not None else False,
             calories_per_100g=float(row[3]) if row[3] not in (None, "") else None,
             weight=float(row[4]) if row[4] not in (None, "") else None,
-            portion_calories=float(row[5]) if row[5] not in (None, "") else None,
         )
 
     def get_food_log_records_by_ids(self, record_ids: list[int]) -> list[list[Any]]:
@@ -754,8 +748,8 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `list[list[Any]]`: Rows as [\_id, date, weight, portion_calories,
-          calories_per_100g, name, name_en, is_drink], ordered by date DESC, \_id DESC.
+        - `list[list[Any]]`: Rows as [\_id, date, weight, calories_per_100g,
+          name, name_en, is_drink], ordered by date DESC, \_id DESC.
 
         """
         ids = [int(record_id) for record_id in record_ids if int(record_id) > 0]
@@ -765,7 +759,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         params = {f"id{index}": record_id for index, record_id in enumerate(ids)}
         return self.get_rows(
             f"""
-            SELECT _id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink
+            SELECT _id, date, weight, calories_per_100g, name, name_en, is_drink
             FROM food_log
             WHERE _id IN ({placeholders})
             ORDER BY date DESC, _id DESC
@@ -814,7 +808,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         Returns records with:
 
         - NULL or zero weight, OR
-        - Both calories_per_100g and portion_calories are NULL or zero (and not a drink)
+        - calories_per_100g is NULL or zero (and not a drink)
 
         Returns:
 
@@ -822,16 +816,12 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         """
         query = """
-            SELECT _id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink
+            SELECT _id, date, weight, calories_per_100g, name, name_en, is_drink
             FROM food_log
             WHERE (
-                -- Records with NULL or zero weight
                 (weight IS NULL OR weight = 0)
-                OR
-                -- Records where both calories_per_100g and portion_calories are NULL or zero (and not a drink)
-                (
+                OR (
                     (calories_per_100g IS NULL OR calories_per_100g = 0)
-                    AND (portion_calories IS NULL OR portion_calories = 0)
                     AND is_drink = 0
                 )
             )
@@ -849,13 +839,13 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `list[list[Any]]`: List of recent food log records [\_id, date, weight, portion_calories,
-          calories_per_100g, name, name_en, is_drink].
+        - `list[list[Any]]`: List of recent food log records [\_id, date, weight, calories_per_100g,
+          name, name_en, is_drink].
 
         """
         return self.get_rows(
             """
-            SELECT _id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink
+            SELECT _id, date, weight, calories_per_100g, name, name_en, is_drink
             FROM food_log
             ORDER BY date DESC, _id DESC
             LIMIT :limit OFFSET :offset
@@ -1229,15 +1219,13 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         self,
         record_id: int,
         calories_per_100g: float | None,
-        portion_calories: float | None,
     ) -> bool:
-        """Update calorie fields on a food log row without changing weight.
+        """Update `calories_per_100g` on a food log row without changing weight.
 
         Args:
 
         - `record_id` (`int`): Food log primary key.
-        - `calories_per_100g` (`float | None`): Calories per 100 g, or `None` in portion mode.
-        - `portion_calories` (`float | None`): Serving calories, or `None` in weight mode.
+        - `calories_per_100g` (`float | None`): Calories per 100 g.
 
         Returns:
 
@@ -1247,13 +1235,12 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         return self.execute_simple_query(
             """
             UPDATE food_log
-            SET calories_per_100g = :calories_per_100g, portion_calories = :portion_calories
+            SET calories_per_100g = :calories_per_100g
             WHERE _id = :id
             """,
             {
                 "id": record_id,
                 "calories_per_100g": calories_per_100g,
-                "portion_calories": portion_calories,
             },
         )
 
@@ -1286,7 +1273,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         name: str | None = None,
         name_en: str | None = None,
         weight: float | None = None,
-        portion_calories: float | None = None,
         *,
         is_drink: bool = False,
     ) -> bool:
@@ -1300,7 +1286,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `name` (`str | None`): Food name. Defaults to `None`.
         - `name_en` (`str | None`): English food name. Defaults to `None`.
         - `weight` (`float | None`): Weight in grams. Defaults to `None`.
-        - `portion_calories` (`float | None`): Portion calories. Defaults to `None`.
         - `is_drink` (`bool`): Whether it's a drink. Defaults to `False`.
 
         Returns:
@@ -1310,15 +1295,14 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         query = """
             UPDATE food_log
-            SET date = :date, weight = :weight, portion_calories = :portion_calories,
-                calories_per_100g = :calories_per_100g, name = :name, name_en = :name_en, is_drink = :is_drink
+            SET date = :date, weight = :weight, calories_per_100g = :calories_per_100g,
+                name = :name, name_en = :name_en, is_drink = :is_drink
             WHERE _id = :id
         """
         params = {
             "id": record_id,
             "date": date,
             "weight": weight,
-            "portion_calories": portion_calories,
             "calories_per_100g": calories_per_100g,
             "name": name,
             "name_en": name_en,
@@ -1355,6 +1339,21 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         else:
             return True
 
+    def update_food_log_weight(
+        self,
+        record_id: int,
+        weight: float | None,
+    ) -> bool:
+        """Update only weight for a food log record."""
+        return self.execute_simple_query(
+            """
+            UPDATE food_log
+            SET weight = :weight
+            WHERE _id = :id
+            """,
+            {"id": record_id, "weight": weight},
+        )
+
     def update_food_log_weight_and_calories(
         self,
         record_id: int,
@@ -1385,22 +1384,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             "calories_per_100g": calories_per_100g,
         }
         return self.execute_simple_query(query, params)
-
-    def update_food_log_weight_and_portion_calories(
-        self,
-        record_id: int,
-        weight: float | None,
-        portion_calories: float | None,
-    ) -> bool:
-        """Update weight and portion calories without changing kcal per 100 g."""
-        return self.execute_simple_query(
-            """
-            UPDATE food_log
-            SET weight = :weight, portion_calories = :portion_calories
-            WHERE _id = :id
-            """,
-            {"id": record_id, "weight": weight, "portion_calories": portion_calories},
-        )
 
     def upsert_food_day_nutrition_analysis(self, analysis: FoodDayMacrosAnalysis) -> bool:
         """Insert or replace a day macros analysis row.
@@ -1538,7 +1521,7 @@ Args:
 - `name` (`str`): Food item name.
 - `name_en` (`str | None`): English name. Defaults to `None`.
 - `is_drink` (`bool`): Whether it's a drink. Defaults to `False`.
-- `calories_per_100g` (`float | None`): Calories per 100g. Defaults to `None`.
+- [`calories_per_100g`](portion_calories_dialog.g.md#%EF%B8%8F-method-calories_per_100g) (`float | None`): Calories per 100g. Defaults to `None`.
 - `default_portion_weight` (`float | None`): Default portion weight. Defaults to `None`.
 - `default_portion_calories` (`float | None`): Default portion calories. Defaults to `None`.
 
@@ -1586,7 +1569,7 @@ def add_food_item(
 ### ⚙️ Method `add_food_log_record`
 
 ```python
-def add_food_log_record(self, date: str, calories_per_100g: float | None = None, name: str | None = None, name_en: str | None = None, weight: float | None = None, portion_calories: float | None = None, *, is_drink: bool = False) -> bool
+def add_food_log_record(self, date: str, calories_per_100g: float | None = None, name: str | None = None, name_en: str | None = None, weight: float | None = None, *, is_drink: bool = False) -> bool
 ```
 
 Add a new food log record.
@@ -1594,11 +1577,10 @@ Add a new food log record.
 Args:
 
 - `date` (`str`): Date in YYYY-MM-DD format.
-- `calories_per_100g` (`float | None`): Calories per 100g. Defaults to `None`.
+- [`calories_per_100g`](portion_calories_dialog.g.md#%EF%B8%8F-method-calories_per_100g) (`float | None`): Calories per 100g. Defaults to `None`.
 - `name` (`str | None`): Food name. Defaults to `None`.
 - `name_en` (`str | None`): English food name. Defaults to `None`.
 - `weight` (`float | None`): Weight in grams. Defaults to `None`.
-- `portion_calories` (`float | None`): Portion calories. Defaults to `None`.
 - `is_drink` (`bool`): Whether it's a drink. Defaults to `False`.
 
 Returns:
@@ -1616,18 +1598,16 @@ def add_food_log_record(
         name: str | None = None,
         name_en: str | None = None,
         weight: float | None = None,
-        portion_calories: float | None = None,
         *,
         is_drink: bool = False,
     ) -> bool:
         query = """
-            INSERT INTO food_log (date, weight, portion_calories, calories_per_100g, name, name_en, is_drink)
-            VALUES (:date, :weight, :portion_calories, :calories_per_100g, :name, :name_en, :is_drink)
+            INSERT INTO food_log (date, weight, calories_per_100g, name, name_en, is_drink)
+            VALUES (:date, :weight, :calories_per_100g, :name, :name_en, :is_drink)
         """
         params = {
             "date": date,
             "weight": weight,
-            "portion_calories": portion_calories,
             "calories_per_100g": calories_per_100g,
             "name": name,
             "name_en": name_en,
@@ -1846,8 +1826,8 @@ Get all food log records.
 
 Returns:
 
-- `list[list[Any]]`: List of food log records [\_id, date, weight, portion_calories,
-  calories_per_100g, name, name_en, is_drink].
+- `list[list[Any]]`: List of food log records [\_id, date, weight, calories_per_100g,
+  name, name_en, is_drink].
 
 <details>
 <summary>Code:</summary>
@@ -1855,7 +1835,7 @@ Returns:
 ```python
 def get_all_food_log_records(self) -> list[list[Any]]:
         return self.get_rows("""
-            SELECT _id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink
+            SELECT _id, date, weight, calories_per_100g, name, name_en, is_drink
             FROM food_log
             ORDER BY date DESC, _id DESC
         """)
@@ -2117,8 +2097,8 @@ Args:
 
 Returns:
 
-- `list[list[Any]]`: Filtered rows [\_id, date, weight, portion_calories,
-  calories_per_100g, name, name_en, is_drink].
+- `list[list[Any]]`: Filtered rows [\_id, date, weight, calories_per_100g,
+  name, name_en, is_drink].
 
 <details>
 <summary>Code:</summary>
@@ -2148,7 +2128,7 @@ def get_filtered_food_log_records(
         normalized_name_filter = _normalize_name_filter(name_filter)
 
         query_text = """
-            SELECT _id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink
+            SELECT _id, date, weight, calories_per_100g, name, name_en, is_drink
             FROM food_log
         """
         if conditions:
@@ -2283,7 +2263,7 @@ Returns:
 def get_food_day_log_lines(self, day: str) -> list[FoodDayLogLine]:
         rows = self.get_rows(
             """
-            SELECT name, name_en, weight, portion_calories, calories_per_100g, is_drink
+            SELECT name, name_en, weight, calories_per_100g, is_drink
             FROM food_log
             WHERE date = :day
             ORDER BY _id ASC
@@ -2299,9 +2279,8 @@ def get_food_day_log_lines(self, day: str) -> list[FoodDayLogLine]:
                     name=str(row[0] or ""),
                     name_en=str(row[1] or ""),
                     weight=_optional_sql_float(row[2]),
-                    portion_calories=_optional_sql_float(row[3]),
-                    calories_per_100g=_optional_sql_float(row[4]),
-                    is_drink=bool(int(row[5] or 0)),
+                    calories_per_100g=_optional_sql_float(row[3]),
+                    is_drink=bool(int(row[4] or 0)),
                 )
             )
         return result
@@ -2455,18 +2434,18 @@ def get_food_item_names_for_autocomplete(self) -> list[FoodAutocompleteEntry]:
 ### ⚙️ Method `get_food_log_amounts`
 
 ```python
-def get_food_log_amounts(self, record_id: int) -> tuple[float | None, float | None, float | None] | None
+def get_food_log_amounts(self, record_id: int) -> tuple[float | None, float | None] | None
 ```
 
-Return `(weight, calories_per_100g, portion_calories)` for a food log row.
+Return `(weight, calories_per_100g)` for a food log row.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def get_food_log_amounts(self, record_id: int) -> tuple[float | None, float | None, float | None] | None:
+def get_food_log_amounts(self, record_id: int) -> tuple[float | None, float | None] | None:
         rows = self.get_rows(
-            "SELECT weight, calories_per_100g, portion_calories FROM food_log WHERE _id = :id",
+            "SELECT weight, calories_per_100g FROM food_log WHERE _id = :id",
             {"id": record_id},
         )
         if not rows:
@@ -2475,7 +2454,6 @@ def get_food_log_amounts(self, record_id: int) -> tuple[float | None, float | No
         return (
             _optional_sql_float(row[0]),
             _optional_sql_float(row[1]),
-            _optional_sql_float(row[2]),
         )
 ```
 
@@ -2503,7 +2481,7 @@ Returns:
 ```python
 def get_food_log_item_by_name(self, name: str) -> FoodLogItemByNameRow | None:
         query = """
-            SELECT name, name_en, is_drink, calories_per_100g, weight, portion_calories
+            SELECT name, name_en, is_drink, calories_per_100g, weight
             FROM food_log
             WHERE name = :name
             ORDER BY date DESC, _id DESC
@@ -2520,7 +2498,6 @@ def get_food_log_item_by_name(self, name: str) -> FoodLogItemByNameRow | None:
             is_drink=bool(row[2]) if row[2] is not None else False,
             calories_per_100g=float(row[3]) if row[3] not in (None, "") else None,
             weight=float(row[4]) if row[4] not in (None, "") else None,
-            portion_calories=float(row[5]) if row[5] not in (None, "") else None,
         )
 ```
 
@@ -2540,8 +2517,8 @@ Args:
 
 Returns:
 
-- `list[list[Any]]`: Rows as [\_id, date, weight, portion_calories,
-  calories_per_100g, name, name_en, is_drink], ordered by date DESC, \_id DESC.
+- `list[list[Any]]`: Rows as [\_id, date, weight, calories_per_100g,
+  name, name_en, is_drink], ordered by date DESC, \_id DESC.
 
 <details>
 <summary>Code:</summary>
@@ -2555,7 +2532,7 @@ def get_food_log_records_by_ids(self, record_ids: list[int]) -> list[list[Any]]:
         params = {f"id{index}": record_id for index, record_id in enumerate(ids)}
         return self.get_rows(
             f"""
-            SELECT _id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink
+            SELECT _id, date, weight, calories_per_100g, name, name_en, is_drink
             FROM food_log
             WHERE _id IN ({placeholders})
             ORDER BY date DESC, _id DESC
@@ -2638,7 +2615,7 @@ Get problematic food records that need attention.
 Returns records with:
 
 - NULL or zero weight, OR
-- Both calories_per_100g and portion_calories are NULL or zero (and not a drink)
+- calories_per_100g is NULL or zero (and not a drink)
 
 Returns:
 
@@ -2650,16 +2627,12 @@ Returns:
 ```python
 def get_problematic_food_records(self) -> list[list[Any]]:
         query = """
-            SELECT _id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink
+            SELECT _id, date, weight, calories_per_100g, name, name_en, is_drink
             FROM food_log
             WHERE (
-                -- Records with NULL or zero weight
                 (weight IS NULL OR weight = 0)
-                OR
-                -- Records where both calories_per_100g and portion_calories are NULL or zero (and not a drink)
-                (
+                OR (
                     (calories_per_100g IS NULL OR calories_per_100g = 0)
-                    AND (portion_calories IS NULL OR portion_calories = 0)
                     AND is_drink = 0
                 )
             )
@@ -2685,8 +2658,8 @@ Args:
 
 Returns:
 
-- `list[list[Any]]`: List of recent food log records [\_id, date, weight, portion_calories,
-  calories_per_100g, name, name_en, is_drink].
+- `list[list[Any]]`: List of recent food log records [\_id, date, weight, calories_per_100g,
+  name, name_en, is_drink].
 
 <details>
 <summary>Code:</summary>
@@ -2695,7 +2668,7 @@ Returns:
 def get_recent_food_log_records(self, limit: int = 5000, offset: int = 0) -> list[list[Any]]:
         return self.get_rows(
             """
-            SELECT _id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink
+            SELECT _id, date, weight, calories_per_100g, name, name_en, is_drink
             FROM food_log
             ORDER BY date DESC, _id DESC
             LIMIT :limit OFFSET :offset
@@ -3132,7 +3105,7 @@ Args:
 - `name` (`str`): Food item name.
 - `name_en` (`str | None`): English name. Defaults to `None`.
 - `is_drink` (`bool`): Whether it's a drink. Defaults to `False`.
-- `calories_per_100g` (`float | None`): Calories per 100g. Defaults to `None`.
+- [`calories_per_100g`](portion_calories_dialog.g.md#%EF%B8%8F-method-calories_per_100g) (`float | None`): Calories per 100g. Defaults to `None`.
 - `default_portion_weight` (`float | None`): Default portion weight. Defaults to `None`.
 - `default_portion_calories` (`float | None`): Default portion calories. Defaults to `None`.
 
@@ -3179,16 +3152,15 @@ def update_food_item(
 ### ⚙️ Method `update_food_log_calories`
 
 ```python
-def update_food_log_calories(self, record_id: int, calories_per_100g: float | None, portion_calories: float | None) -> bool
+def update_food_log_calories(self, record_id: int, calories_per_100g: float | None) -> bool
 ```
 
-Update calorie fields on a food log row without changing weight.
+Update [`calories_per_100g`](portion_calories_dialog.g.md#%EF%B8%8F-method-calories_per_100g) on a food log row without changing weight.
 
 Args:
 
 - `record_id` (`int`): Food log primary key.
-- `calories_per_100g` (`float | None`): Calories per 100 g, or `None` in portion mode.
-- `portion_calories` (`float | None`): Serving calories, or `None` in weight mode.
+- [`calories_per_100g`](portion_calories_dialog.g.md#%EF%B8%8F-method-calories_per_100g) (`float | None`): Calories per 100 g.
 
 Returns:
 
@@ -3202,18 +3174,16 @@ def update_food_log_calories(
         self,
         record_id: int,
         calories_per_100g: float | None,
-        portion_calories: float | None,
     ) -> bool:
         return self.execute_simple_query(
             """
             UPDATE food_log
-            SET calories_per_100g = :calories_per_100g, portion_calories = :portion_calories
+            SET calories_per_100g = :calories_per_100g
             WHERE _id = :id
             """,
             {
                 "id": record_id,
                 "calories_per_100g": calories_per_100g,
-                "portion_calories": portion_calories,
             },
         )
 ```
@@ -3256,7 +3226,7 @@ def update_food_log_name_en_by_name(self, name: str, name_en: str) -> bool:
 ### ⚙️ Method `update_food_log_record`
 
 ```python
-def update_food_log_record(self, record_id: int, date: str, calories_per_100g: float | None = None, name: str | None = None, name_en: str | None = None, weight: float | None = None, portion_calories: float | None = None, *, is_drink: bool = False) -> bool
+def update_food_log_record(self, record_id: int, date: str, calories_per_100g: float | None = None, name: str | None = None, name_en: str | None = None, weight: float | None = None, *, is_drink: bool = False) -> bool
 ```
 
 Update a food log record.
@@ -3265,11 +3235,10 @@ Args:
 
 - `record_id` (`int`): Record ID.
 - `date` (`str`): Date in YYYY-MM-DD format.
-- `calories_per_100g` (`float | None`): Calories per 100g. Defaults to `None`.
+- [`calories_per_100g`](portion_calories_dialog.g.md#%EF%B8%8F-method-calories_per_100g) (`float | None`): Calories per 100g. Defaults to `None`.
 - `name` (`str | None`): Food name. Defaults to `None`.
 - `name_en` (`str | None`): English food name. Defaults to `None`.
 - `weight` (`float | None`): Weight in grams. Defaults to `None`.
-- `portion_calories` (`float | None`): Portion calories. Defaults to `None`.
 - `is_drink` (`bool`): Whether it's a drink. Defaults to `False`.
 
 Returns:
@@ -3288,21 +3257,19 @@ def update_food_log_record(
         name: str | None = None,
         name_en: str | None = None,
         weight: float | None = None,
-        portion_calories: float | None = None,
         *,
         is_drink: bool = False,
     ) -> bool:
         query = """
             UPDATE food_log
-            SET date = :date, weight = :weight, portion_calories = :portion_calories,
-                calories_per_100g = :calories_per_100g, name = :name, name_en = :name_en, is_drink = :is_drink
+            SET date = :date, weight = :weight, calories_per_100g = :calories_per_100g,
+                name = :name, name_en = :name_en, is_drink = :is_drink
             WHERE _id = :id
         """
         params = {
             "id": record_id,
             "date": date,
             "weight": weight,
-            "portion_calories": portion_calories,
             "calories_per_100g": calories_per_100g,
             "name": name,
             "name_en": name_en,
@@ -3354,6 +3321,35 @@ def update_food_log_records_date(self, record_ids: list[int], date: str) -> bool
 
 </details>
 
+### ⚙️ Method `update_food_log_weight`
+
+```python
+def update_food_log_weight(self, record_id: int, weight: float | None) -> bool
+```
+
+Update only weight for a food log record.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def update_food_log_weight(
+        self,
+        record_id: int,
+        weight: float | None,
+    ) -> bool:
+        return self.execute_simple_query(
+            """
+            UPDATE food_log
+            SET weight = :weight
+            WHERE _id = :id
+            """,
+            {"id": record_id, "weight": weight},
+        )
+```
+
+</details>
+
 ### ⚙️ Method `update_food_log_weight_and_calories`
 
 ```python
@@ -3366,7 +3362,7 @@ Args:
 
 - `record_id` (`int`): Record ID.
 - `weight` (`float | None`): Weight in grams.
-- `calories_per_100g` (`float | None`): Calories per 100g.
+- [`calories_per_100g`](portion_calories_dialog.g.md#%EF%B8%8F-method-calories_per_100g) (`float | None`): Calories per 100g.
 
 Returns:
 
@@ -3393,36 +3389,6 @@ def update_food_log_weight_and_calories(
             "calories_per_100g": calories_per_100g,
         }
         return self.execute_simple_query(query, params)
-```
-
-</details>
-
-### ⚙️ Method `update_food_log_weight_and_portion_calories`
-
-```python
-def update_food_log_weight_and_portion_calories(self, record_id: int, weight: float | None, portion_calories: float | None) -> bool
-```
-
-Update weight and portion calories without changing kcal per 100 g.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def update_food_log_weight_and_portion_calories(
-        self,
-        record_id: int,
-        weight: float | None,
-        portion_calories: float | None,
-    ) -> bool:
-        return self.execute_simple_query(
-            """
-            UPDATE food_log
-            SET weight = :weight, portion_calories = :portion_calories
-            WHERE _id = :id
-            """,
-            {"id": record_id, "weight": weight, "portion_calories": portion_calories},
-        )
 ```
 
 </details>
@@ -3614,7 +3580,6 @@ class FoodLogItemByNameRow:
     is_drink: bool
     calories_per_100g: float | None
     weight: float | None
-    portion_calories: float | None
 ```
 
 </details>
@@ -3678,7 +3643,7 @@ def merge_food_autocomplete_entries(primary: list[FoodAutocompleteEntry], second
 
 Merge autocomplete entries, keeping primary order and filling empty English names.
 
-Later lists override `is_recipe` / `calories_per_100g` when the same name appears
+Later lists override `is_recipe` / [`calories_per_100g`](portion_calories_dialog.g.md#%EF%B8%8F-method-calories_per_100g) when the same name appears
 again (so recipe entries can decorate an existing catalog/log name).
 `is_food_item` and `is_drink` are combined with OR.
 

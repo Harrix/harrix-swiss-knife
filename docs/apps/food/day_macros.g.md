@@ -125,7 +125,6 @@ class FoodDayLogLine:
     name: str
     name_en: str
     weight: float | None
-    portion_calories: float | None
     calories_per_100g: float | None
     is_drink: bool
 ```
@@ -355,7 +354,7 @@ Returns:
 def format_day_menu_for_prompt(lines: Sequence[FoodDayLogLine], *, total_kcal: float) -> str:
     rows: list[str] = []
     for line in lines:
-        kcal = calculate_food_log_calories(line.weight, line.calories_per_100g, line.portion_calories)
+        kcal = calculate_food_log_calories(line.weight, line.calories_per_100g)
         name = line.name.strip() or "(unnamed)"
         name_en = line.name_en.strip()
         label = f"{name} / {name_en}" if name_en else name

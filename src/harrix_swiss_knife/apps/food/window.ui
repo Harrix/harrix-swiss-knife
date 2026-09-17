@@ -158,7 +158,17 @@
                  <item>
                   <widget class="QLabel" name="label_food_calories">
                    <property name="text">
-                    <string>kcal</string>
+                    <string>kcal/100g</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QPushButton" name="pushButton_portion_calories">
+                   <property name="toolTip">
+                    <string>Enter portion weight and calories to compute kcal/100g</string>
+                   </property>
+                   <property name="text">
+                    <string>From portion…</string>
                    </property>
                   </widget>
                  </item>
@@ -166,27 +176,6 @@
                   <widget class="QCheckBox" name="checkBox_food_is_drink">
                    <property name="text">
                     <string>Drink</string>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </item>
-               <item>
-                <layout class="QHBoxLayout" name="horizontalLayout_2">
-                 <item>
-                  <widget class="QRadioButton" name="radioButton_use_weight">
-                   <property name="text">
-                    <string>Calculate by weight</string>
-                   </property>
-                   <property name="checked">
-                    <bool>true</bool>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QRadioButton" name="radioButton_use_calories">
-                   <property name="text">
-                    <string>Enter calories directly</string>
                    </property>
                   </widget>
                  </item>

@@ -1,4 +1,4 @@
-"""Scale food-log weight and portion calories after eating a fraction."""
+"""Scale food-log weight after eating a fraction of a row."""
 
 from __future__ import annotations
 
@@ -7,33 +7,20 @@ ATE_THIRD = 1 / 3
 ATE_TWO_THIRDS = 2 / 3
 
 
-def scale_food_log_eaten_amounts(
-    *,
-    weight: float | None,
-    portion_calories: float | None,
-    fraction: float,
-) -> tuple[float | None, float | None]:
-    """Return `(weight, portion_calories)` after eating `fraction` of the row.
-
-    If the row uses calories per 100 g (`portion_calories` empty or 0), only
-    the mass changes. If it uses calories per serving, both mass and serving
-    calories are scaled.
+def scale_food_log_eaten_weight(*, weight: float | None, fraction: float) -> float | None:
+    """Return weight after eating `fraction` of the row (kcal/100g unchanged).
 
     Args:
 
     - `weight` (`float | None`): Logged mass in grams.
-    - `portion_calories` (`float | None`): Calories for the serving, if used.
     - `fraction` (`float`): Share actually eaten, in `(0, 1]`.
 
     Returns:
 
-    - `tuple[float | None, float | None]`: New weight and portion calories.
+    - `float | None`: New weight.
 
     """
-    new_weight = _scale_amount(weight, fraction)
-    if portion_calories is not None and portion_calories > 0:
-        return new_weight, _scale_amount(portion_calories, fraction)
-    return new_weight, portion_calories
+    return _scale_amount(weight, fraction)
 
 
 def _scale_amount(value: float | None, fraction: float) -> float | None:

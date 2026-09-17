@@ -58,9 +58,8 @@ class AutoSaveOperations(AutoSaveMixin):
         is_drink_str = model.data(model.index(row, 1)) or ""
         weight_str = model.data(model.index(row, 2)) or ""
         calories_per_100g_str = model.data(model.index(row, 3)) or ""
-        portion_calories_str = model.data(model.index(row, 4)) or ""
-        date = model.data(model.index(row, 6)) or ""
-        name_en = capitalize_first_letter(model.data(model.index(row, 7)) or "")
+        date = model.data(model.index(row, 4)) or ""
+        name_en = capitalize_first_letter(model.data(model.index(row, 5)) or "")
 
         # Validate food name
         if not name.strip():
@@ -75,7 +74,6 @@ class AutoSaveOperations(AutoSaveMixin):
         # Parse numeric values
         weight = None
         calories_per_100g = None
-        portion_calories = None
 
         try:
             if weight_str.strip():
@@ -100,17 +98,6 @@ class AutoSaveOperations(AutoSaveMixin):
                 )
                 return
 
-        try:
-            if portion_calories_str.strip():
-                portion_calories = float(portion_calories_str)
-                if portion_calories <= 0:
-                    message_box.warning(None, "Validation Error", "Portion calories must be a positive number")
-                    return
-        except (ValueError, TypeError):
-            if portion_calories_str.strip():  # Only show error if there's actually a value
-                message_box.warning(None, "Validation Error", f"Invalid portion calories value: {portion_calories_str}")
-                return
-
         is_drink = parse_is_drink_cell(is_drink_str)
 
         # Update database
@@ -121,7 +108,6 @@ class AutoSaveOperations(AutoSaveMixin):
             name=name,
             name_en=name_en or None,
             weight=weight,
-            portion_calories=portion_calories,
             is_drink=is_drink,
         ):
             message_box.warning(None, "Database Error", "Failed to save food log record")

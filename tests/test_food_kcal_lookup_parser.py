@@ -39,11 +39,11 @@ def test_normalize_skips_weight_mode() -> None:
     assert normalize_kcal_lookup_mode(original) is original
 
 
-def test_calories_from_lookup_weight_mode_clears_portion() -> None:
+def test_calories_from_lookup_weight_mode() -> None:
     result = KcalLookupResult(calories=165.0, is_weight_mode=True, is_drink=False, weight_g=200)
-    assert calories_from_kcal_lookup(result) == (165.0, None)
+    assert calories_from_kcal_lookup(result) == 165.0
 
 
-def test_calories_from_lookup_portion_mode_clears_per_100g() -> None:
+def test_calories_from_lookup_portion_mode_converts() -> None:
     result = KcalLookupResult(calories=85.0, is_weight_mode=False, is_drink=True, weight_g=180)
-    assert calories_from_kcal_lookup(result) == (None, 85.0)
+    assert calories_from_kcal_lookup(result) == 47.2

@@ -17,11 +17,9 @@ from harrix_swiss_knife.apps.food.day_macros import (
 )
 from harrix_swiss_knife.apps.food.recipe_calories import RecipeIngredientInput, calculate_recipe_nutrition
 
-# SQL form of `calculate_food_log_calories`: portion mode wins, else weight * kcal/100g.
+# SQL form of `calculate_food_log_calories`: weight * kcal/100g.
 _ROW_CALORIES_SQL = """
     CASE
-        WHEN portion_calories IS NOT NULL AND portion_calories > 0
-        THEN portion_calories
         WHEN calories_per_100g IS NOT NULL AND calories_per_100g > 0
              AND weight IS NOT NULL AND weight > 0
         THEN (calories_per_100g * weight) / 100
@@ -109,7 +107,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         name: str | None = None,
         name_en: str | None = None,
         weight: float | None = None,
-        portion_calories: float | None = None,
         *,
         is_drink: bool = False,
     ) -> bool:
@@ -122,7 +119,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `name` (`str | None`): Food name. Defaults to `None`.
         - `name_en` (`str | None`): English food name. Defaults to `None`.
         - `weight` (`float | None`): Weight in grams. Defaults to `None`.
-        - `portion_calories` (`float | None`): Portion calories. Defaults to `None`.
         - `is_drink` (`bool`): Whether it's a drink. Defaults to `False`.
 
         Returns:
@@ -131,13 +127,12 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         """
         query = """
-            INSERT INTO food_log (date, weight, portion_calories, calories_per_100g, name, name_en, is_drink)
-            VALUES (:date, :weight, :portion_calories, :calories_per_100g, :name, :name_en, :is_drink)
+            INSERT INTO food_log (date, weight, calories_per_100g, name, name_en, is_drink)
+            VALUES (:date, :weight, :calories_per_100g, :name, :name_en, :is_drink)
         """
         params = {
             "date": date,
             "weight": weight,
-            "portion_calories": portion_calories,
             "calories_per_100g": calories_per_100g,
             "name": name,
             "name_en": name_en,
@@ -260,12 +255,12 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `list[list[Any]]`: List of food log records [\_id, date, weight, portion_calories,
-          calories_per_100g, name, name_en, is_drink].
+        - `list[list[Any]]`: List of food log records [\_id, date, weight, calories_per_100g,
+          name, name_en, is_drink].
 
         """
         return self.get_rows("""
-            SELECT _id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink
+            SELECT _id, date, weight, calories_per_100g, name, name_en, is_drink
             FROM food_log
             ORDER BY date DESC, _id DESC
         """)
@@ -427,8 +422,8 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `list[list[Any]]`: Filtered rows [\_id, date, weight, portion_calories,
-          calories_per_100g, name, name_en, is_drink].
+        - `list[list[Any]]`: Filtered rows [\_id, date, weight, calories_per_100g,
+          name, name_en, is_drink].
 
         """
         conditions: list[str] = []
@@ -446,7 +441,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         normalized_name_filter = _normalize_name_filter(name_filter)
 
         query_text = """
-            SELECT _id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink
+            SELECT _id, date, weight, calories_per_100g, name, name_en, is_drink
             FROM food_log
         """
         if conditions:
@@ -531,7 +526,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         rows = self.get_rows(
             """
-            SELECT name, name_en, weight, portion_calories, calories_per_100g, is_drink
+            SELECT name, name_en, weight, calories_per_100g, is_drink
             FROM food_log
             WHERE date = :day
             ORDER BY _id ASC
@@ -547,9 +542,8 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
                     name=str(row[0] or ""),
                     name_en=str(row[1] or ""),
                     weight=_optional_sql_float(row[2]),
-                    portion_calories=_optional_sql_float(row[3]),
-                    calories_per_100g=_optional_sql_float(row[4]),
-                    is_drink=bool(int(row[5] or 0)),
+                    calories_per_100g=_optional_sql_float(row[3]),
+                    is_drink=bool(int(row[4] or 0)),
                 )
             )
         return result
@@ -645,10 +639,10 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             if row and row[0]
         ]
 
-    def get_food_log_amounts(self, record_id: int) -> tuple[float | None, float | None, float | None] | None:
-        """Return `(weight, calories_per_100g, portion_calories)` for a food log row."""
+    def get_food_log_amounts(self, record_id: int) -> tuple[float | None, float | None] | None:
+        """Return `(weight, calories_per_100g)` for a food log row."""
         rows = self.get_rows(
-            "SELECT weight, calories_per_100g, portion_calories FROM food_log WHERE _id = :id",
+            "SELECT weight, calories_per_100g FROM food_log WHERE _id = :id",
             {"id": record_id},
         )
         if not rows:
@@ -657,7 +651,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         return (
             _optional_sql_float(row[0]),
             _optional_sql_float(row[1]),
-            _optional_sql_float(row[2]),
         )
 
     def get_food_log_item_by_name(self, name: str) -> FoodLogItemByNameRow | None:
@@ -673,7 +666,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         """
         query = """
-            SELECT name, name_en, is_drink, calories_per_100g, weight, portion_calories
+            SELECT name, name_en, is_drink, calories_per_100g, weight
             FROM food_log
             WHERE name = :name
             ORDER BY date DESC, _id DESC
@@ -690,7 +683,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             is_drink=bool(row[2]) if row[2] is not None else False,
             calories_per_100g=float(row[3]) if row[3] not in (None, "") else None,
             weight=float(row[4]) if row[4] not in (None, "") else None,
-            portion_calories=float(row[5]) if row[5] not in (None, "") else None,
         )
 
     def get_food_log_records_by_ids(self, record_ids: list[int]) -> list[list[Any]]:
@@ -702,8 +694,8 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `list[list[Any]]`: Rows as [\_id, date, weight, portion_calories,
-          calories_per_100g, name, name_en, is_drink], ordered by date DESC, \_id DESC.
+        - `list[list[Any]]`: Rows as [\_id, date, weight, calories_per_100g,
+          name, name_en, is_drink], ordered by date DESC, \_id DESC.
 
         """
         ids = [int(record_id) for record_id in record_ids if int(record_id) > 0]
@@ -713,7 +705,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         params = {f"id{index}": record_id for index, record_id in enumerate(ids)}
         return self.get_rows(
             f"""
-            SELECT _id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink
+            SELECT _id, date, weight, calories_per_100g, name, name_en, is_drink
             FROM food_log
             WHERE _id IN ({placeholders})
             ORDER BY date DESC, _id DESC
@@ -762,7 +754,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         Returns records with:
 
         - NULL or zero weight, OR
-        - Both calories_per_100g and portion_calories are NULL or zero (and not a drink)
+        - calories_per_100g is NULL or zero (and not a drink)
 
         Returns:
 
@@ -770,16 +762,12 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         """
         query = """
-            SELECT _id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink
+            SELECT _id, date, weight, calories_per_100g, name, name_en, is_drink
             FROM food_log
             WHERE (
-                -- Records with NULL or zero weight
                 (weight IS NULL OR weight = 0)
-                OR
-                -- Records where both calories_per_100g and portion_calories are NULL or zero (and not a drink)
-                (
+                OR (
                     (calories_per_100g IS NULL OR calories_per_100g = 0)
-                    AND (portion_calories IS NULL OR portion_calories = 0)
                     AND is_drink = 0
                 )
             )
@@ -797,13 +785,13 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `list[list[Any]]`: List of recent food log records [\_id, date, weight, portion_calories,
-          calories_per_100g, name, name_en, is_drink].
+        - `list[list[Any]]`: List of recent food log records [\_id, date, weight, calories_per_100g,
+          name, name_en, is_drink].
 
         """
         return self.get_rows(
             """
-            SELECT _id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink
+            SELECT _id, date, weight, calories_per_100g, name, name_en, is_drink
             FROM food_log
             ORDER BY date DESC, _id DESC
             LIMIT :limit OFFSET :offset
@@ -1177,15 +1165,13 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         self,
         record_id: int,
         calories_per_100g: float | None,
-        portion_calories: float | None,
     ) -> bool:
-        """Update calorie fields on a food log row without changing weight.
+        """Update `calories_per_100g` on a food log row without changing weight.
 
         Args:
 
         - `record_id` (`int`): Food log primary key.
-        - `calories_per_100g` (`float | None`): Calories per 100 g, or `None` in portion mode.
-        - `portion_calories` (`float | None`): Serving calories, or `None` in weight mode.
+        - `calories_per_100g` (`float | None`): Calories per 100 g.
 
         Returns:
 
@@ -1195,13 +1181,12 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         return self.execute_simple_query(
             """
             UPDATE food_log
-            SET calories_per_100g = :calories_per_100g, portion_calories = :portion_calories
+            SET calories_per_100g = :calories_per_100g
             WHERE _id = :id
             """,
             {
                 "id": record_id,
                 "calories_per_100g": calories_per_100g,
-                "portion_calories": portion_calories,
             },
         )
 
@@ -1234,7 +1219,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         name: str | None = None,
         name_en: str | None = None,
         weight: float | None = None,
-        portion_calories: float | None = None,
         *,
         is_drink: bool = False,
     ) -> bool:
@@ -1248,7 +1232,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `name` (`str | None`): Food name. Defaults to `None`.
         - `name_en` (`str | None`): English food name. Defaults to `None`.
         - `weight` (`float | None`): Weight in grams. Defaults to `None`.
-        - `portion_calories` (`float | None`): Portion calories. Defaults to `None`.
         - `is_drink` (`bool`): Whether it's a drink. Defaults to `False`.
 
         Returns:
@@ -1258,15 +1241,14 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         query = """
             UPDATE food_log
-            SET date = :date, weight = :weight, portion_calories = :portion_calories,
-                calories_per_100g = :calories_per_100g, name = :name, name_en = :name_en, is_drink = :is_drink
+            SET date = :date, weight = :weight, calories_per_100g = :calories_per_100g,
+                name = :name, name_en = :name_en, is_drink = :is_drink
             WHERE _id = :id
         """
         params = {
             "id": record_id,
             "date": date,
             "weight": weight,
-            "portion_calories": portion_calories,
             "calories_per_100g": calories_per_100g,
             "name": name,
             "name_en": name_en,
@@ -1303,6 +1285,21 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         else:
             return True
 
+    def update_food_log_weight(
+        self,
+        record_id: int,
+        weight: float | None,
+    ) -> bool:
+        """Update only weight for a food log record."""
+        return self.execute_simple_query(
+            """
+            UPDATE food_log
+            SET weight = :weight
+            WHERE _id = :id
+            """,
+            {"id": record_id, "weight": weight},
+        )
+
     def update_food_log_weight_and_calories(
         self,
         record_id: int,
@@ -1333,22 +1330,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             "calories_per_100g": calories_per_100g,
         }
         return self.execute_simple_query(query, params)
-
-    def update_food_log_weight_and_portion_calories(
-        self,
-        record_id: int,
-        weight: float | None,
-        portion_calories: float | None,
-    ) -> bool:
-        """Update weight and portion calories without changing kcal per 100 g."""
-        return self.execute_simple_query(
-            """
-            UPDATE food_log
-            SET weight = :weight, portion_calories = :portion_calories
-            WHERE _id = :id
-            """,
-            {"id": record_id, "weight": weight, "portion_calories": portion_calories},
-        )
 
     def upsert_food_day_nutrition_analysis(self, analysis: FoodDayMacrosAnalysis) -> bool:
         """Insert or replace a day macros analysis row.
@@ -1478,7 +1459,6 @@ class FoodLogItemByNameRow:
     is_drink: bool
     calories_per_100g: float | None
     weight: float | None
-    portion_calories: float | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -1685,5 +1665,5 @@ def _sql_in_clause(values: list[str], param_prefix: str) -> tuple[str, dict[str,
     return placeholders, params
 
 
-_NAME_COLUMN_INDEX = 5
-_NAME_EN_COLUMN_INDEX = 6
+_NAME_COLUMN_INDEX = 4
+_NAME_EN_COLUMN_INDEX = 5

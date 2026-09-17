@@ -31,8 +31,8 @@ Attributes:
 
 - `name` (`str`): Food item name (capitalized).
 - `weight` (`float | None`): Weight in grams.
-- `calories_per_100g` (`float | None`): Calories per 100g.
-- `portion_calories` (`float | None`): Calories for the portion.
+- [`calories_per_100g`](portion_calories_dialog.g.md#%EF%B8%8F-method-calories_per_100g) (`float | None`): Calories per 100g.
+- [`portion_calories`](portion_calories_dialog.g.md#%EF%B8%8F-method-portion_calories) (`float | None`): Calories for the portion.
 - `food_date` (`str | None`): Date in YYYY-MM-DD format.
 - `is_drink` (`bool`): Whether the item is a drink.
 

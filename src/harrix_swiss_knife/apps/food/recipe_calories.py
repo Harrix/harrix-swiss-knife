@@ -46,11 +46,7 @@ def calculate_recipe_nutrition(ingredients: list[RecipeIngredientInput]) -> Reci
         weight = float(ingredient.weight) if ingredient.weight is not None else 0.0
         if weight > 0:
             total_weight += weight
-        total_calories += calculate_food_log_calories(
-            ingredient.weight,
-            ingredient.calories_per_100g,
-            ingredient.portion_calories,
-        )
+        total_calories += _ingredient_calories(ingredient)
 
     if total_weight <= 0:
         return RecipeNutrition(total_weight=0.0, total_calories=total_calories, calories_per_100g=None)
@@ -109,6 +105,12 @@ def recipe_ingredients_from_food_log_rows(
             )
         )
     return ingredients
+
+
+def _ingredient_calories(ingredient: RecipeIngredientInput) -> float:
+    if ingredient.portion_calories is not None and ingredient.portion_calories > 0:
+        return float(ingredient.portion_calories)
+    return calculate_food_log_calories(ingredient.weight, ingredient.calories_per_100g)
 
 
 def _optional_float(value: object) -> float | None:

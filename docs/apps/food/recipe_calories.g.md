@@ -77,7 +77,7 @@ Args:
 
 Returns:
 
-- [`RecipeNutrition`](#%EF%B8%8F-class-recipenutrition): Totals; `calories_per_100g` is `None` when total weight is 0.
+- [`RecipeNutrition`](#%EF%B8%8F-class-recipenutrition): Totals; [`calories_per_100g`](portion_calories_dialog.g.md#%EF%B8%8F-method-calories_per_100g) is `None` when total weight is 0.
 
 <details>
 <summary>Code:</summary>
@@ -90,11 +90,7 @@ def calculate_recipe_nutrition(ingredients: list[RecipeIngredientInput]) -> Reci
         weight = float(ingredient.weight) if ingredient.weight is not None else 0.0
         if weight > 0:
             total_weight += weight
-        total_calories += calculate_food_log_calories(
-            ingredient.weight,
-            ingredient.calories_per_100g,
-            ingredient.portion_calories,
-        )
+        total_calories += _ingredient_calories(ingredient)
 
     if total_weight <= 0:
         return RecipeNutrition(total_weight=0.0, total_calories=total_calories, calories_per_100g=None)
@@ -117,10 +113,10 @@ def recipe_ingredients_from_food_log_rows(rows: list[dict[str, object]]) -> list
 
 Build recipe ingredients from selected food-log table row dicts.
 
-Each dict may include `name`, `name_en`, `weight`, `calories_per_100g`,
-`portion_calories`, `calculated_calories`, and `is_drink`. When
-`portion_calories` is missing or zero but `calculated_calories` is set, the
-calculated value is stored as `portion_calories` so the snapshot keeps the
+Each dict may include `name`, `name_en`, `weight`, [`calories_per_100g`](portion_calories_dialog.g.md#%EF%B8%8F-method-calories_per_100g),
+[`portion_calories`](portion_calories_dialog.g.md#%EF%B8%8F-method-portion_calories), `calculated_calories`, and `is_drink`. When
+[`portion_calories`](portion_calories_dialog.g.md#%EF%B8%8F-method-portion_calories) is missing or zero but `calculated_calories` is set, the
+calculated value is stored as [`portion_calories`](portion_calories_dialog.g.md#%EF%B8%8F-method-portion_calories) so the snapshot keeps the
 exact kcal used on the log row.
 
 Args:

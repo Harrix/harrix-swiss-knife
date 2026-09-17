@@ -1,6 +1,6 @@
 -- Recover / recreate Food database schema and seed data
 -- Schema matches the live app (food_items / food_log use `_id`; food_log stores `date`
--- and portion / per-100g calories). Seed is food_items catalog only; food_log stays empty.
+-- and calories per 100 g). Seed is food_items catalog only; food_log stays empty.
 
 PRAGMA foreign_keys = OFF;
 
@@ -27,7 +27,6 @@ CREATE TABLE food_log (
     _id INTEGER PRIMARY KEY AUTOINCREMENT,
     date TEXT,
     weight REAL,
-    portion_calories REAL,
     calories_per_100g REAL,
     name TEXT,
     name_en TEXT,

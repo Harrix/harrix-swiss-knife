@@ -45,9 +45,7 @@ class FoodLogTransferItem:
     name: str
     weight: float
     is_drink: bool
-    calorie_mode: CalorieModeJson
     calories_per_100g: float | None
-    portion_calories: float | None
     date: str
     name_en: str | None = None
 ```
@@ -78,7 +76,7 @@ class FoodLogTransferPayload:
 ## 🔧 Function `build_transfer_item_from_log_row`
 
 ```python
-def build_transfer_item_from_log_row(*, date: str, name: str, name_en: str | None, weight: float | None, calories_per_100g: float | None, portion_calories: float | None, is_drink: bool) -> FoodLogTransferItem | None
+def build_transfer_item_from_log_row(*, date: str, name: str, name_en: str | None, weight: float | None, calories_per_100g: float | None, is_drink: bool) -> FoodLogTransferItem | None
 ```
 
 Build a transfer item from a food_log DB row, or `None` when incomplete.
@@ -94,7 +92,6 @@ def build_transfer_item_from_log_row(
     name_en: str | None,
     weight: float | None,
     calories_per_100g: float | None,
-    portion_calories: float | None,
     is_drink: bool,
 ) -> FoodLogTransferItem | None:
     day = (date or "").strip()[:10]
@@ -103,30 +100,16 @@ def build_transfer_item_from_log_row(
         return None
     if weight is None or weight <= 0:
         return None
-    mode = food_log_calorie_mode(calories_per_100g, portion_calories)
-    if mode == "portion":
-        return FoodLogTransferItem(
-            name=food_name,
-            name_en=_optional_name(name_en),
-            weight=float(weight),
-            is_drink=bool(is_drink),
-            calorie_mode="portion",
-            calories_per_100g=None,
-            portion_calories=float(portion_calories) if portion_calories is not None else None,
-            date=day,
-        )
-    if mode == "per_100g":
-        return FoodLogTransferItem(
-            name=food_name,
-            name_en=_optional_name(name_en),
-            weight=float(weight),
-            is_drink=bool(is_drink),
-            calorie_mode="weight",
-            calories_per_100g=float(calories_per_100g) if calories_per_100g is not None else None,
-            portion_calories=None,
-            date=day,
-        )
-    return None
+    if calories_per_100g is None or calories_per_100g < 0:
+        return None
+    return FoodLogTransferItem(
+        name=food_name,
+        name_en=_optional_name(name_en),
+        weight=float(weight),
+        is_drink=bool(is_drink),
+        calories_per_100g=float(calories_per_100g),
+        date=day,
+    )
 ```
 
 </details>
@@ -176,7 +159,7 @@ def is_food_log_transfer_path(file_path: str | Path) -> bool:
 def item_to_json(item: FoodLogTransferItem) -> dict[str, Any]
 ```
 
-Serialize one transfer item.
+Serialize one transfer item (always weight / kcal per 100 g).
 
 <details>
 <summary>Code:</summary>
@@ -188,9 +171,9 @@ def item_to_json(item: FoodLogTransferItem) -> dict[str, Any]:
         "name_en": item.name_en,
         "is_drink": item.is_drink,
         "weight": item.weight,
-        "calorie_mode": item.calorie_mode,
+        "calorie_mode": "weight",
         "calories_per_100g": item.calories_per_100g,
-        "portion_calories": item.portion_calories,
+        "portion_calories": None,
         "date": item.date,
     }
 ```
@@ -212,14 +195,9 @@ Convert transfer items to FoodTableDialog TSV (Name/Weight/Calories/Mode/Drink).
 def items_to_tsv(items: list[FoodLogTransferItem]) -> str:
     lines: list[str] = []
     for item in items:
-        if item.calorie_mode == "portion":
-            calories = item.portion_calories or 0
-            mode = "portion"
-        else:
-            calories = item.calories_per_100g or 0
-            mode = "weight"
+        calories = item.calories_per_100g or 0
         drink = "yes" if item.is_drink else "no"
-        lines.append(f"{item.name}\t{item.weight:g}\t{calories:g}\t{mode}\t{drink}")
+        lines.append(f"{item.name}\t{item.weight:g}\t{calories:g}\tweight\t{drink}")
     return "\n".join(lines)
 ```
 
@@ -376,28 +354,16 @@ def transfer_items_to_parsed(
     parsed: list[ParsedFoodItem] = []
     for item in items:
         day = item.date if _DATE_RE.match(item.date) else default_date
-        if item.calorie_mode == "portion":
-            parsed.append(
-                ParsedFoodItem(
-                    name=item.name,
-                    weight=item.weight,
-                    calories_per_100g=0,
-                    portion_calories=item.portion_calories,
-                    food_date=day,
-                    is_drink=item.is_drink,
-                )
+        parsed.append(
+            ParsedFoodItem(
+                name=item.name,
+                weight=item.weight,
+                calories_per_100g=item.calories_per_100g,
+                portion_calories=None,
+                food_date=day,
+                is_drink=item.is_drink,
             )
-        else:
-            parsed.append(
-                ParsedFoodItem(
-                    name=item.name,
-                    weight=item.weight,
-                    calories_per_100g=item.calories_per_100g,
-                    portion_calories=None,
-                    food_date=day,
-                    is_drink=item.is_drink,
-                )
-            )
+        )
     return parsed
 ```
 

@@ -50,6 +50,7 @@ lang: en
   - [⚙️ Method `on_kcal_with_ai`](#%EF%B8%8F-method-on_kcal_with_ai)
   - [⚙️ Method `on_main_food_item_selection_changed`](#%EF%B8%8F-method-on_main_food_item_selection_changed)
   - [⚙️ Method `on_open_photos`](#%EF%B8%8F-method-on_open_photos)
+  - [⚙️ Method `on_open_portion_calories_dialog`](#%EF%B8%8F-method-on_open_portion_calories_dialog)
   - [⚙️ Method `on_portion_weight_with_ai_from_calories`](#%EF%B8%8F-method-on_portion_weight_with_ai_from_calories)
   - [⚙️ Method `on_show_all_records_clicked`](#%EF%B8%8F-method-on_show_all_records_clicked)
   - [⚙️ Method `on_show_food_items`](#%EF%B8%8F-method-on_show_food_items)
@@ -180,9 +181,7 @@ class MainWindow(
                     "Name",
                     "Is Drink",
                     "Weight",
-                    "Calories per 100g",
-                    "Portion Calories",
-                    "Calculated Calories",
+                    "Calories",
                     "Date",
                     "English Name",
                     "Total per day",
@@ -370,14 +369,7 @@ class MainWindow(
             is_drink = self.checkBox_food_is_drink.isChecked()
             weight = float(self.spinBox_food_weight.value())
             calories_value = float(self.doubleSpinBox_food_calories.value())
-            use_weight = self.radioButton_use_weight.isChecked()
-
-            if use_weight:
-                calories_per_100g = calories_value if calories_value > 0 else None
-                portion_calories = None
-            else:
-                calories_per_100g = None
-                portion_calories = calories_value if calories_value > 0 else None
+            calories_per_100g = calories_value if calories_value > 0 else None
 
             prefill = database_manager.FoodLogItemByNameRow(
                 name=name,
@@ -385,7 +377,6 @@ class MainWindow(
                 is_drink=is_drink,
                 calories_per_100g=calories_per_100g,
                 weight=weight if weight > 0 else None,
-                portion_calories=portion_calories,
             )
 
             dialog = FoodItemDialog(self, prefill, is_create=True)
@@ -417,7 +408,6 @@ class MainWindow(
         weight = self.spinBox_food_weight.value()
         calories = self.doubleSpinBox_food_calories.value()
         food_date = self.dateEdit_food.date().toString("yyyy-MM-dd")
-        use_weight = self.radioButton_use_weight.isChecked()
         is_drink = self.checkBox_food_is_drink.isChecked()
 
         # Validate required fields
@@ -431,11 +421,6 @@ class MainWindow(
             self.spinBox_food_weight.selectAll()
             return
 
-        # Validate calories based on radio button selection
-        if not use_weight and calories <= 0:
-            message_box.warning(self, "Error", "Calories are required when using portion mode")
-            return
-
         # Validate the date
         if not self._is_valid_date(food_date):
             message_box.warning(self, "Error", "Invalid date format")
@@ -446,18 +431,7 @@ class MainWindow(
             return
 
         try:
-            # Double-check radio button state before processing
-            use_weight_final = self.radioButton_use_weight.isChecked()
-
-            # Determine calories_per_100g and portion_calories based on radio button
-            if use_weight_final:
-                # Weight mode: calories is calories_per_100g
-                calories_per_100g = max(0, calories)
-                portion_calories = None
-            else:
-                # Portion mode: calories is portion_calories, set calories_per_100g to 0
-                calories_per_100g = 0  # Required by database schema (NOT NULL)
-                portion_calories = calories if calories > 0 else None
+            calories_per_100g = max(0, calories) if calories > 0 else None
 
             # Reuse an existing English translation for the same food name, if any.
             known_translations = self.db_manager.lookup_existing_name_en_for_names([food_name])
@@ -470,7 +444,6 @@ class MainWindow(
                 name=food_name,
                 name_en=name_en,
                 weight=weight,
-                portion_calories=portion_calories,
                 is_drink=is_drink,
             ):
                 # Update UI - only food-related data
@@ -481,10 +454,6 @@ class MainWindow(
                 self.spinBox_food_weight.setValue(0)
                 self.doubleSpinBox_food_calories.setValue(0.0)
                 self.checkBox_food_is_drink.setChecked(False)
-
-                # Reset radio buttons to default state
-                self.radioButton_use_weight.setChecked(True)
-                self.radioButton_use_calories.setChecked(False)
 
                 # Update button appearance and calories calculation
                 self._update_add_button_appearance()
@@ -692,15 +661,8 @@ class MainWindow(
             self._food_item_dialog_open = False
 
     def on_food_log_table_cell_clicked(self, index: QModelIndex) -> None:
-        """Handle food log table cell click and populate form fields with row data.
-
-        Args:
-
-        - `index` (`QModelIndex`): Index of the clicked cell.
-
-        """
+        """Handle food log table cell click and populate form fields with row data."""
         try:
-            # Get the row ID from the vertical header
             proxy_model = self.models["food_log"]
             if proxy_model is None:
                 return
@@ -712,45 +674,28 @@ class MainWindow(
             if not row_id:
                 return
 
-            # Get data from the table model directly
-            name = source_model.item(index.row(), 0).text() if source_model.item(index.row(), 0) else ""
-            is_drink_item = source_model.item(index.row(), 1)
+            row = index.row()
+            name = source_model.item(row, 0).text() if source_model.item(row, 0) else ""
+            is_drink_item = source_model.item(row, 1)
             is_drink = parse_is_drink_cell(is_drink_item.data(Qt.ItemDataRole.EditRole)) if is_drink_item else False
-            weight_str = source_model.item(index.row(), 2).text() if source_model.item(index.row(), 2) else "0"
+            weight_str = source_model.item(row, 2).text() if source_model.item(row, 2) else "0"
             calories_per_100g_str = (
-                source_model.item(index.row(), 3).text() if source_model.item(index.row(), 3) else "0"
-            )
-            portion_calories_str = (
-                source_model.item(index.row(), 4).text() if source_model.item(index.row(), 4) else "0"
+                source_model.item(row, FOOD_LOG_COL_CALORIES).text()
+                if source_model.item(row, FOOD_LOG_COL_CALORIES)
+                else "0"
             )
 
-            # Convert string values to appropriate types
             weight = float(weight_str) if weight_str and weight_str != "" else 0
             calories_per_100g = (
                 float(calories_per_100g_str) if calories_per_100g_str and calories_per_100g_str != "" else 0
             )
-            portion_calories = float(portion_calories_str) if portion_calories_str and portion_calories_str != "" else 0
 
-            # Populate groupBox_food_add fields (food log record form)
             self.lineEdit_food_manual_name.setText(name)
             self.spinBox_food_weight.setValue(int(weight) if weight > 0 else 0)
             self.checkBox_food_is_drink.setChecked(is_drink)
             self._update_add_button_appearance()
-
-            # Determine radio button state based on portion_calories
-            if portion_calories > 0:
-                # Use portion calories mode
-                self.radioButton_use_calories.setChecked(True)
-                self.doubleSpinBox_food_calories.setValue(portion_calories)
-            else:
-                # Use weight mode
-                self.radioButton_use_weight.setChecked(True)
-                self.doubleSpinBox_food_calories.setValue(calories_per_100g)
-
-            # Update calories calculation
+            self.doubleSpinBox_food_calories.setValue(calories_per_100g)
             self.update_calories_calculation()
-
-            # Move focus to weight spinbox and select all text
             self.spinBox_food_weight.setFocus()
             self.spinBox_food_weight.selectAll()
 
@@ -968,59 +913,30 @@ class MainWindow(
         except OSError as exc:
             message_box.warning(self, "Photos", f"Could not open photos:\n{exc}")
 
-    def on_portion_weight_with_ai_from_calories(self) -> None:
-        """Determine portion weight and drink flag via BotHub for calories-mode entry."""
-        if self.radioButton_use_weight.isChecked():
-            message_box.warning(
-                self,
-                "Mode",
-                "Switch to 'Enter calories directly' mode first.",
-            )
-            return
-
+    def on_open_portion_calories_dialog(self) -> None:
+        """Open portion weight/calories dialog and apply kcal/100g to the add form."""
         food_name = self.lineEdit_food_manual_name.text().strip()
-        if not food_name:
-            message_box.warning(self, "Food Name", "Enter a food name first.")
+        dialog = PortionCaloriesDialog(
+            self,
+            food_name=food_name,
+            initial_weight=max(1, self.spinBox_food_weight.value() or 100),
+            initial_portion_calories=0.0,
+            is_drink=self.checkBox_food_is_drink.isChecked(),
+            on_ai_weight=self._on_portion_dialog_ai_weight,
+        )
+        if dialog.exec() != QDialog.DialogCode.Accepted:
             return
+        self.spinBox_food_weight.setValue(dialog.weight_g())
+        kcal_per_100g = dialog.calories_per_100g()
+        if kcal_per_100g is not None:
+            self.doubleSpinBox_food_calories.setValue(kcal_per_100g)
+        self.checkBox_food_is_drink.setChecked(dialog.is_drink)
+        self.update_calories_calculation()
+        self._update_add_button_appearance()
 
-        calories_total = float(self.doubleSpinBox_food_calories.value())
-        if calories_total <= 0:
-            message_box.warning(self, "Calories", "Enter calories first.")
-            return
-
-        drink = "yes" if self.checkBox_food_is_drink.isChecked() else "no"
-        try:
-            prompt_text = build_prompt(
-                self._app_config,
-                "food_portion_weight_from_calories",
-                {
-                    "FOOD_NAME": food_name,
-                    "CALORIES_TOTAL": f"{calories_total:.1f}",
-                    "DRINK": drink,
-                },
-            )
-        except ValueError as exc:
-            show_bothub_prompt_build_error(self, exc)
-            return
-
-        def on_success(response_text: str) -> None:
-            result = parse_portion_weight_response(response_text)
-            if result is None:
-                preview = response_text.strip()[:200]
-                message_box.warning(
-                    self,
-                    "AI Response",
-                    f"Could not parse BotHub response.\n\nExpected TSV: Drink, Weight\n\nResponse:\n{preview}",
-                )
-                return
-
-            self.checkBox_food_is_drink.setChecked(result.is_drink)
-            if result.weight_g > 0:
-                self.spinBox_food_weight.setValue(result.weight_g)
-            self.update_calories_calculation()
-            self._update_add_button_appearance()
-
-        self._start_bothub_worker(prompt_text, on_success)
+    def on_portion_weight_with_ai_from_calories(self) -> None:
+        """Legacy entry: open portion dialog (AI runs inside the dialog)."""
+        self.on_open_portion_calories_dialog()
 
     def on_show_all_records_clicked(self) -> None:
         """Toggle between showing all records and last self.count_food_records_to_show records."""
@@ -1151,21 +1067,12 @@ class MainWindow(
             message_box.warning(self, "Database Error", f"Failed to load tables: {e}")
 
     def update_calories_calculation(self) -> None:
-        """Update the calories calculation label based on radio button selection and values."""
+        """Update the calories calculation label from weight and kcal/100g."""
         weight = self.spinBox_food_weight.value()
         calories = self.doubleSpinBox_food_calories.value()
-        use_weight = self.radioButton_use_weight.isChecked()
-
-        if use_weight:
-            # Weight mode: calories per 100g
-            if weight > 0 and calories > 0:
-                calculated_calories = (weight * calories) / 100
-                self.label_food_calories_calc.setText(f"Total: {calculated_calories:.1f} kcal")
-            else:
-                self.label_food_calories_calc.setText("Total: 0.0 kcal")
-        # Portion mode: direct calories
-        elif calories > 0:
-            self.label_food_calories_calc.setText(f"Total: {calories:.1f} kcal")
+        if weight > 0 and calories > 0:
+            calculated_calories = (weight * calories) / 100
+            self.label_food_calories_calc.setText(f"Total: {calculated_calories:.1f} kcal")
         else:
             self.label_food_calories_calc.setText("Total: 0.0 kcal")
 
@@ -1258,8 +1165,7 @@ class MainWindow(
             is_drink_str = is_drink_item.data(Qt.ItemDataRole.EditRole) if is_drink_item else ""
             weight_str = source_model.item(row, 2).text() if source_model.item(row, 2) else "0"
             calories_per_100g_str = source_model.item(row, 3).text() if source_model.item(row, 3) else "0"
-            portion_calories_str = source_model.item(row, 4).text() if source_model.item(row, 4) else "0"
-            name_en = source_model.item(row, 7).text() if source_model.item(row, 7) else ""
+            name_en = source_model.item(row, 5).text() if source_model.item(row, 5) else ""
 
             # Validate food name
             if not name.strip():
@@ -1295,24 +1201,9 @@ class MainWindow(
                 except (ValueError, TypeError):
                     calories_per_100g = None
 
-            # Parse portion calories
-            portion_calories = None
-            if portion_calories_str.strip():
-                try:
-                    portion_calories = float(portion_calories_str)
-                    if portion_calories <= 0:
-                        portion_calories = None
-                except (ValueError, TypeError):
-                    portion_calories = None
-
-            # Determine which values to use based on what's available
-            # If portion_calories exists, use it as default_portion_calories
-            # If calories_per_100g exists, use it
-            # Use weight as default_portion_weight if include_weight is True
-
-            default_portion_weight = weight if include_weight else None
-            default_portion_calories = portion_calories
             final_calories_per_100g = calories_per_100g
+            default_portion_weight = weight if include_weight else None
+            default_portion_calories = None
 
             # Add the food item to database
             success = self.db_manager.add_food_item(
@@ -1360,15 +1251,13 @@ class MainWindow(
 
         # Define proportional distribution; last column absorbs leftover via Stretch.
         proportions = [
-            0.16,  # Name
-            0.05,  # Is Drink
-            0.06,  # Weight
-            0.13,  # Calories per 100g
-            0.11,  # Portion Calories
-            0.12,  # Calculated Calories
-            0.10,  # Date
-            0.16,  # English Name
-            0.11,  # Total per day
+            0.18,  # Name
+            0.06,  # Is Drink
+            0.08,  # Weight
+            0.12,  # Calories (kcal/100g)
+            0.11,  # Date
+            0.20,  # English Name
+            0.12,  # Total per day
         ]
 
         food_log_header = self.tableView_food_log.horizontalHeader()
@@ -1422,22 +1311,17 @@ class MainWindow(
 
         for row_offset, row in enumerate(transformed_data):
             row_idx: int = start_row_idx + row_offset
-            row_color: QColor = row[10]
-            row_id = row[9]
+            row_color: QColor = row[8]
+            row_id = row[7]
             items: list[QStandardItem] = []
 
-            col_calculated_calories = 5
-            col_date = 6
-            col_total_per_day = 8
-            for col_idx, value in enumerate(row[:9]):
+            for col_idx, value in enumerate(row[:7]):
                 item = QStandardItem(str(value) if value is not None else "")
                 item.setBackground(QBrush(row_color))
 
-                if col_idx == col_calculated_calories:
+                if col_idx == FOOD_LOG_COL_TOTAL_PER_DAY:
                     item.setEditable(False)
-                if col_idx == col_total_per_day:
-                    item.setEditable(False)
-                if col_idx == col_date and str(value) == today:
+                if col_idx == FOOD_LOG_COL_DATE and str(value) == today:
                     font = item.font()
                     font.setBold(True)
                     item.setFont(font)
@@ -1492,16 +1376,11 @@ class MainWindow(
             amounts = self.db_manager.get_food_log_amounts(record_id)
             if amounts is None:
                 continue
-            weight, _calories_per_100g, portion_calories = amounts
-            new_weight, new_portion = scale_food_log_eaten_amounts(
-                weight=weight,
-                portion_calories=portion_calories,
-                fraction=fraction,
-            )
-            if self.db_manager.update_food_log_weight_and_portion_calories(
+            weight, _calories_per_100g = amounts
+            new_weight = scale_food_log_eaten_weight(weight=weight, fraction=fraction)
+            if self.db_manager.update_food_log_weight(
                 record_id,
                 new_weight,
-                new_portion,
             ):
                 updated += 1
 
@@ -1561,9 +1440,9 @@ class MainWindow(
 
     def _apply_kcal_lookup_result(self, result: KcalLookupResult) -> None:
         """Fill manual food entry fields from a parsed kcal lookup result."""
-        self.radioButton_use_weight.setChecked(result.is_weight_mode)
-        self.radioButton_use_calories.setChecked(not result.is_weight_mode)
-        self.doubleSpinBox_food_calories.setValue(result.calories)
+        calories_per_100g = calories_from_kcal_lookup(result)
+        if calories_per_100g is not None and calories_per_100g > 0:
+            self.doubleSpinBox_food_calories.setValue(calories_per_100g)
         self.checkBox_food_is_drink.setChecked(result.is_drink)
         if result.weight_g > 0:
             self.spinBox_food_weight.setValue(result.weight_g)
@@ -1712,15 +1591,9 @@ class MainWindow(
 
         self.pushButton_food_manual_name_clear.clicked.connect(self.on_clear_food_manual_name)
 
-        # Connect radio buttons and spin boxes for calories calculation
-        self.radioButton_use_weight.clicked.connect(self.update_calories_calculation)
-        self.radioButton_use_calories.clicked.connect(self.update_calories_calculation)
+        self.pushButton_portion_calories.clicked.connect(self.on_open_portion_calories_dialog)
         self.spinBox_food_weight.valueChanged.connect(self.update_calories_calculation)
         self.doubleSpinBox_food_calories.valueChanged.connect(self.update_calories_calculation)
-
-        # Add context menu for calories mode radio button
-        self.radioButton_use_calories.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.radioButton_use_calories.customContextMenuRequested.connect(self._show_use_calories_context_menu)
 
         # Connect food stats controls
         self.pushButton_food_stats_last_week.clicked.connect(self.on_food_stats_last_week)
@@ -1771,77 +1644,6 @@ class MainWindow(
         self.tableView_food_log.verticalScrollBar().valueChanged.connect(self._on_food_log_scroll)
 
     @requires_database()
-    def _convert_selected_food_log_calorie_mode(self, target: FoodLogCalorieMode) -> None:
-        """Convert selected food log rows between portion calories and kcal/100g.
-
-        Weight is left unchanged. Calculated calories stay the same when weight > 0.
-
-        Args:
-
-        - `target` (`FoodLogCalorieMode`): Desired calorie storage mode.
-
-        """
-        if self.db_manager is None:
-            return
-        record_ids = self._get_selected_row_ids("food_log")
-        if not record_ids:
-            message_box.warning(self, "Error", "Select one or more food log rows")
-            return
-
-        source_mode: FoodLogCalorieMode = "portion" if target == "per_100g" else "per_100g"
-        updated = 0
-        skipped_no_weight = 0
-        for record_id in record_ids:
-            amounts = self.db_manager.get_food_log_amounts(record_id)
-            if amounts is None:
-                continue
-            weight, calories_per_100g, portion_calories = amounts
-            if food_log_calorie_mode(calories_per_100g, portion_calories) != source_mode:
-                continue
-            if weight is None or weight <= 0:
-                skipped_no_weight += 1
-                continue
-
-            if target == "per_100g":
-                if portion_calories is None or portion_calories <= 0:
-                    continue
-                new_calories_per_100g = convert_portion_to_calories_per_100g(
-                    weight=weight,
-                    portion_calories=portion_calories,
-                )
-                ok = self.db_manager.update_food_log_calories(
-                    record_id,
-                    new_calories_per_100g,
-                    None,
-                )
-            else:
-                if calories_per_100g is None or calories_per_100g <= 0:
-                    continue
-                new_portion_calories = convert_calories_per_100g_to_portion(
-                    weight=weight,
-                    calories_per_100g=calories_per_100g,
-                )
-                # 0 matches insert path for portion mode (schema / display hide empty kcal/100g).
-                ok = self.db_manager.update_food_log_calories(
-                    record_id,
-                    0,
-                    new_portion_calories,
-                )
-            if ok:
-                updated += 1
-
-        if updated:
-            self.update_food_data()
-            return
-        if skipped_no_weight:
-            message_box.warning(
-                self,
-                "Error",
-                "Weight must be greater than 0 to convert calorie mode.",
-            )
-            return
-        message_box.warning(self, "Error", "Failed to update selected food log rows")
-
     def _correct_food_input_line(self, line: str) -> str | None:
         """Ask user to correct one unparseable input line (UI responsibility)."""
         corrected_line, ok = QInputDialog.getText(
@@ -1855,10 +1657,7 @@ class MainWindow(
         return None
 
     def _create_colored_food_log_table_model(
-        self,
-        data: list[list],
-        headers: list[str],
-        _id_column: int = 9,  # ID is now at index 9 in transformed data
+        self, data: list[list], headers: list[str], _id_column: int = 7
     ) -> QSortFilterProxyModel:
         """Return a proxy model filled with colored food_log data.
 
@@ -1879,23 +1678,18 @@ class MainWindow(
 
         for row_idx, row in enumerate(data):
             # Extract color information (last element) and ID
-            row_color = row[10]  # Color is at index 10
-            row_id = row[9]  # ID is at index 9
+            row_color = row[8]  # Color is at index 8
+            row_id = row[7]  # ID is at index 7
 
             # Create items for display columns only (first 9 elements)
             items = []
-            for col_idx, value in enumerate(row[:9]):  # Only first 9 elements for display
+            for col_idx, value in enumerate(row[:7]):
                 item = QStandardItem(str(value) if value is not None else "")
 
                 # Set background color for the item
                 item.setBackground(QBrush(row_color))
 
-                # Make calculated calories column non-editable (column 5)
-                id_column_calories = 5
-                if col_idx == id_column_calories:
-                    item.setEditable(False)
-
-                # Make total per day column non-editable (column 8)
+                # Make total per day column non-editable
                 if col_idx == FOOD_LOG_COL_TOTAL_PER_DAY:
                     item.setEditable(False)
                     total_text = str(value).strip() if value is not None else ""
@@ -1911,7 +1705,7 @@ class MainWindow(
 
                 # Check if this is today's record and make it bold
                 today = QDateTime.currentDateTime().toString("yyyy-MM-dd")
-                id_col_date = 6  # Date column is now at index 6
+                id_col_date = FOOD_LOG_COL_DATE
                 if col_idx == id_col_date and str(value) == today:  # Date column
                     font = item.font()
                     font.setBold(True)
@@ -2187,12 +1981,11 @@ class MainWindow(
             for row in rows:
                 item = build_transfer_item_from_log_row(
                     date=str(row[1] or ""),
-                    name=str(row[5] or ""),
-                    name_en=str(row[6]).strip() if row[6] else None,
+                    name=str(row[4] or ""),
+                    name_en=str(row[5]).strip() if row[5] else None,
                     weight=parse_food_log_number(row[2]),
-                    portion_calories=parse_food_log_number(row[3]),
-                    calories_per_100g=parse_food_log_number(row[4]),
-                    is_drink=bool(row[7] == 1),
+                    calories_per_100g=parse_food_log_number(row[3]),
+                    is_drink=bool(row[6] == 1),
                 )
                 if item is not None:
                     items.append(item)
@@ -2348,7 +2141,6 @@ class MainWindow(
                 continue
             totals[date_str] = totals.get(date_str, 0.0) + calculate_food_log_calories(
                 parse_food_log_number(row[2]),
-                parse_food_log_number(row[4]),
                 parse_food_log_number(row[3]),
             )
         return totals
@@ -2375,17 +2167,13 @@ class MainWindow(
         if int(row[_FOOD_LOG_QUERY_COL_IS_DRINK] or 0) == 1:
             return False
 
-        def _empty_or_zero(value: Any) -> bool:
-            if value is None or value == "":
-                return True
-            try:
-                return float(value) <= 0
-            except (TypeError, ValueError):
-                return True
-
-        return _empty_or_zero(row[_FOOD_LOG_QUERY_COL_CALORIES_PER_100G]) and _empty_or_zero(
-            row[_FOOD_LOG_QUERY_COL_PORTION_CALORIES]
-        )
+        value = row[_FOOD_LOG_QUERY_COL_CALORIES_PER_100G]
+        if value is None or value == "":
+            return True
+        try:
+            return float(value) <= 0
+        except (TypeError, ValueError):
+            return True
 
     @staticmethod
     def _food_log_row_missing_weight(row: list[Any]) -> bool:
@@ -2712,17 +2500,18 @@ class MainWindow(
             is_drink_text = source_model.item(row, 1).text() if source_model.item(row, 1) else ""
             weight_str = source_model.item(row, 2).text() if source_model.item(row, 2) else "0"
             kcal_100g_str = source_model.item(row, 3).text() if source_model.item(row, 3) else ""
-            portion_str = source_model.item(row, 4).text() if source_model.item(row, 4) else ""
-            calculated_str = source_model.item(row, 5).text() if source_model.item(row, 5) else "0"
-            name_en = source_model.item(row, 7).text() if source_model.item(row, 7) else ""
+            name_en = source_model.item(row, 5).text() if source_model.item(row, 5) else ""
+            calculated = calculate_food_log_calories(
+                parse_food_log_number(weight_str),
+                parse_food_log_number(kcal_100g_str),
+            )
             row_dicts.append(
                 {
                     "name": name,
                     "name_en": name_en,
                     "weight": weight_str,
                     "calories_per_100g": kcal_100g_str,
-                    "portion_calories": portion_str,
-                    "calculated_calories": calculated_str,
+                    "calculated_calories": f"{calculated:.1f}",
                     "is_drink": bool(parse_is_drink_cell(is_drink_text)),
                 }
             )
@@ -2875,6 +2664,50 @@ class MainWindow(
             return
         self._open_day_macros_dialog(date_item.text())
 
+    def _on_portion_dialog_ai_weight(self, dialog: PortionCaloriesDialog) -> None:
+        """Determine portion weight via BotHub for the portion calories dialog."""
+        food_name = dialog.food_name
+        if not food_name:
+            message_box.warning(self, "Food Name", "Enter a food name first.")
+            return
+
+        calories_total = dialog.portion_calories()
+        if calories_total <= 0:
+            message_box.warning(self, "Calories", "Enter portion calories first.")
+            return
+
+        drink = "yes" if dialog.is_drink else "no"
+        try:
+            prompt_text = build_prompt(
+                self._app_config,
+                "food_portion_weight_from_calories",
+                {
+                    "FOOD_NAME": food_name,
+                    "CALORIES_TOTAL": f"{calories_total:.1f}",
+                    "DRINK": drink,
+                },
+            )
+        except ValueError as exc:
+            show_bothub_prompt_build_error(self, exc)
+            return
+
+        def on_success(response_text: str) -> None:
+            result = parse_portion_weight_response(response_text)
+            if result is None:
+                preview = response_text.strip()[:200]
+                message_box.warning(
+                    self,
+                    "AI Response",
+                    f"Could not parse BotHub response.\n\nExpected TSV: Drink, Weight\n\nResponse:\n{preview}",
+                )
+                return
+
+            dialog.is_drink = result.is_drink
+            if result.weight_g > 0:
+                dialog.spin_weight.setValue(result.weight_g)
+
+        self._start_bothub_worker(prompt_text, on_success)
+
     def _on_recipes_changed(self) -> None:
         """Refresh autocomplete after recipes are saved or deleted."""
         self._update_autocomplete_data()
@@ -3024,7 +2857,6 @@ class MainWindow(
                 self.spinBox_food_weight.setValue(weight)
                 self.checkBox_food_is_drink.setChecked(recipe.is_drink)
                 self._update_add_button_appearance()
-                self.radioButton_use_weight.setChecked(True)
                 self.doubleSpinBox_food_calories.setValue(recipe.calories_per_100g or 0)
                 self.update_calories_calculation()
                 return
@@ -3043,13 +2875,12 @@ class MainWindow(
                 self.checkBox_food_is_drink.setChecked(is_drink)
                 self._update_add_button_appearance()
 
-                # Determine radio button state based on default_portion_calories
-                if default_portion_calories and default_portion_calories > 0:
-                    self.radioButton_use_calories.setChecked(True)
-                    self.doubleSpinBox_food_calories.setValue(default_portion_calories)
-                else:
-                    self.radioButton_use_weight.setChecked(True)
-                    self.doubleSpinBox_food_calories.setValue(calories_per_100g or 0)
+                kcal_per_100g = effective_calories_per_100g(
+                    calories_per_100g,
+                    portion_calories=default_portion_calories,
+                    weight=default_portion_weight,
+                )
+                self.doubleSpinBox_food_calories.setValue(kcal_per_100g or 0)
 
             else:
                 # If not found in food_items, try to get from food_log
@@ -3059,25 +2890,16 @@ class MainWindow(
                     is_drink = food_log_data.is_drink
                     calories_per_100g = food_log_data.calories_per_100g
                     weight = food_log_data.weight
-                    portion_calories = food_log_data.portion_calories
-
                     # Populate form fields
                     self.spinBox_food_weight.setValue(int(weight) if weight else 100)
                     self.checkBox_food_is_drink.setChecked(is_drink)
                     self._update_add_button_appearance()
 
-                    # Determine radio button state based on portion_calories
-                    if portion_calories and portion_calories > 0:
-                        self.radioButton_use_calories.setChecked(True)
-                        self.doubleSpinBox_food_calories.setValue(portion_calories)
-                    else:
-                        self.radioButton_use_weight.setChecked(True)
-                        self.doubleSpinBox_food_calories.setValue(calories_per_100g or 0)
+                    self.doubleSpinBox_food_calories.setValue(calories_per_100g or 0)
                 else:
                     # If not found in either table, set defaults
                     self.spinBox_food_weight.setValue(100)
                     self.checkBox_food_is_drink.setChecked(False)
-                    self.radioButton_use_weight.setChecked(True)
                     self.doubleSpinBox_food_calories.setValue(0)
                     self._update_add_button_appearance()
 
@@ -3115,7 +2937,6 @@ class MainWindow(
                 self.spinBox_food_weight.setValue(weight)
                 self.checkBox_food_is_drink.setChecked(recipe.is_drink)
                 self._update_add_button_appearance()
-                self.radioButton_use_weight.setChecked(True)
                 self.doubleSpinBox_food_calories.setValue(recipe.calories_per_100g or 0)
                 self.update_calories_calculation()
                 self.spinBox_food_weight.setFocus()
@@ -3138,15 +2959,12 @@ class MainWindow(
                 self.checkBox_food_is_drink.setChecked(is_drink)
                 self._update_add_button_appearance()
 
-                # Determine radio button state based on default_portion_calories
-                if default_portion_calories and default_portion_calories > 0:
-                    # Use portion calories mode
-                    self.radioButton_use_calories.setChecked(True)
-                    self.doubleSpinBox_food_calories.setValue(default_portion_calories)
-                else:
-                    # Use weight mode
-                    self.radioButton_use_weight.setChecked(True)
-                    self.doubleSpinBox_food_calories.setValue(calories_per_100g or 0)
+                kcal_per_100g = effective_calories_per_100g(
+                    calories_per_100g,
+                    portion_calories=default_portion_calories,
+                    weight=default_portion_weight,
+                )
+                self.doubleSpinBox_food_calories.setValue(kcal_per_100g or 0)
 
             else:
                 # If not found in food_items, try to get from food_log (for popular items)
@@ -3157,23 +2975,13 @@ class MainWindow(
                     is_drink = food_log_data.is_drink
                     calories_per_100g = food_log_data.calories_per_100g
                     weight = food_log_data.weight
-                    portion_calories = food_log_data.portion_calories
-
                     # Populate groupBox_food_add fields (food log record form)
                     self.lineEdit_food_manual_name.setText(name)
                     self.spinBox_food_weight.setValue(int(weight) if weight else 100)
                     self.checkBox_food_is_drink.setChecked(is_drink)
                     self._update_add_button_appearance()
 
-                    # Determine radio button state based on portion_calories
-                    if portion_calories and portion_calories > 0:
-                        # Use portion calories mode
-                        self.radioButton_use_calories.setChecked(True)
-                        self.doubleSpinBox_food_calories.setValue(portion_calories)
-                    else:
-                        # Use weight mode
-                        self.radioButton_use_weight.setChecked(True)
-                        self.doubleSpinBox_food_calories.setValue(calories_per_100g or 0)
+                    self.doubleSpinBox_food_calories.setValue(calories_per_100g or 0)
 
                 else:
                     # If not found in either table, just set the name
@@ -3181,7 +2989,6 @@ class MainWindow(
                     # Reset other fields to defaults
                     self.spinBox_food_weight.setValue(100)
                     self.checkBox_food_is_drink.setChecked(False)
-                    self.radioButton_use_weight.setChecked(True)
                     self.doubleSpinBox_food_calories.setValue(0)
                     self._update_add_button_appearance()
 
@@ -3237,13 +3044,17 @@ class MainWindow(
                 name_en = None
                 if name_en_by_name:
                     name_en = name_en_by_name.get(item.name.casefold())
+                calories_per_100g = effective_calories_per_100g(
+                    item.calories_per_100g,
+                    portion_calories=item.portion_calories,
+                    weight=item.weight,
+                )
                 success = self.db_manager.add_food_log_record(
                     date=item.food_date or default_date,
-                    calories_per_100g=item.calories_per_100g,
+                    calories_per_100g=calories_per_100g,
                     name=item.name,
                     name_en=name_en,
                     weight=item.weight,
-                    portion_calories=item.portion_calories,
                     is_drink=item.is_drink,
                 )
                 if success:
@@ -3327,11 +3138,10 @@ class MainWindow(
             if result is None:
                 self._recalculate_food_log_calories_queue(rest, updated=updated, failed=[*failed, food_name])
                 return
-            calories_per_100g, portion_calories = calories_from_kcal_lookup(result)
+            calories_per_100g = calories_from_kcal_lookup(result)
             ok = self.db_manager is not None and self.db_manager.update_food_log_calories(
                 record_id,
                 calories_per_100g,
-                portion_calories,
             )
             if ok:
                 self._recalculate_food_log_calories_queue(rest, updated=updated + 1, failed=failed)
@@ -4081,8 +3891,6 @@ class MainWindow(
         self._update_clear_filter_button_visibility()
         apply_leading_chrome_buttons(self)
 
-        # Set initial radio button state and update calories calculation
-        self.radioButton_use_weight.setChecked(True)
         self.update_calories_calculation()
 
         # Initialize food stats date range (will be set after database initialization)
@@ -4109,9 +3917,8 @@ class MainWindow(
         QWidget.setTabOrder(self.lineEdit_food_manual_name, self.spinBox_food_weight)
         QWidget.setTabOrder(self.spinBox_food_weight, self.doubleSpinBox_food_calories)
         QWidget.setTabOrder(self.doubleSpinBox_food_calories, self.checkBox_food_is_drink)
-        QWidget.setTabOrder(self.checkBox_food_is_drink, self.radioButton_use_weight)
-        QWidget.setTabOrder(self.radioButton_use_weight, self.radioButton_use_calories)
-        QWidget.setTabOrder(self.radioButton_use_calories, self.dateEdit_food)
+        QWidget.setTabOrder(self.checkBox_food_is_drink, self.pushButton_portion_calories)
+        QWidget.setTabOrder(self.pushButton_portion_calories, self.dateEdit_food)
         QWidget.setTabOrder(self.dateEdit_food, self.pushButton_food_date_quick)
         QWidget.setTabOrder(self.pushButton_food_date_quick, self.pushButton_food_add)
         QWidget.setTabOrder(self.pushButton_food_add, self.pushButton_food_manual_name_clear)
@@ -4160,15 +3967,17 @@ class MainWindow(
             if proxy_model:
                 source_model = proxy_model.sourceModel()
                 if isinstance(source_model, QStandardItemModel):
-                    calculated_calories_column = 5  # Calculated Calories column index
                     for row in unique_rows:
-                        item = source_model.item(row, calculated_calories_column)
-                        if item:
-                            try:
-                                calories = float(item.text())
-                                total_calories += calories
-                            except (ValueError, TypeError):
-                                pass
+                        weight_text = source_model.item(row, 2).text() if source_model.item(row, 2) else ""
+                        kcal_text = (
+                            source_model.item(row, FOOD_LOG_COL_CALORIES).text()
+                            if source_model.item(row, FOOD_LOG_COL_CALORIES)
+                            else ""
+                        )
+                        total_calories += calculate_food_log_calories(
+                            parse_food_log_number(weight_text),
+                            parse_food_log_number(kcal_text),
+                        )
 
         context_menu = QMenu(self)
         index = self.tableView_food_log.currentIndex()
@@ -4183,7 +3992,7 @@ class MainWindow(
         date_value = ""
 
         if index.isValid() and model is not None:
-            date_raw = model.data(model.index(index.row(), 6))
+            date_raw = model.data(model.index(index.row(), FOOD_LOG_COL_DATE))
             date_value = str(date_raw).strip() if date_raw is not None else ""
 
         if not multiple_rows_selected and index.isValid() and model is not None:
@@ -4219,29 +4028,6 @@ class MainWindow(
             analyze_day_macros_action = context_menu.addAction("📊 Analyze day macros")
 
         add_separator(context_menu)
-        swap_weight_calories_action = context_menu.addAction("🔄 Swap Weight and Calories per 100g")
-        convert_to_per_100g_action = None
-        convert_to_portion_action = None
-        if self.db_manager is not None and selected_food_log_ids:
-            modes_in_selection: set[FoodLogCalorieMode] = set()
-            for record_id in selected_food_log_ids:
-                amounts = self.db_manager.get_food_log_amounts(record_id)
-                if amounts is None:
-                    continue
-                weight, calories_per_100g, portion_calories = amounts
-                if weight is None or weight <= 0:
-                    continue
-                mode = food_log_calorie_mode(calories_per_100g, portion_calories)
-                if mode is not None:
-                    modes_in_selection.add(mode)
-            if "portion" in modes_in_selection:
-                convert_to_per_100g_action = context_menu.addAction(
-                    "🔄 Convert portion calories to Calories per 100g",
-                )
-            if "per_100g" in modes_in_selection:
-                convert_to_portion_action = context_menu.addAction(
-                    "🔄 Convert Calories per 100g to portion calories",
-                )
         recalc_calories_ai_action = context_menu.addAction("🤖 Recalculate calories with AI")
 
         bulk_date_action = None
@@ -4285,7 +4071,7 @@ class MainWindow(
             elif action == filter_by_name_action and name_value:
                 self._filter_food_log_by_column(0, name_value)
             elif action == filter_by_date_action and date_value:
-                self._filter_food_log_by_column(6, date_value.strip()[:10])
+                self._filter_food_log_by_column(FOOD_LOG_COL_DATE, date_value.strip()[:10])
             elif action == clear_filters_action:
                 self.clear_filter()
             elif action == set_date_action and date_value:
@@ -4310,12 +4096,6 @@ class MainWindow(
                 self._prompt_eaten_percent_and_apply()
             elif analyze_day_macros_action is not None and action == analyze_day_macros_action and date_value:
                 self._open_day_macros_dialog(date_value.strip()[:10])
-            elif action == swap_weight_calories_action:
-                self._swap_weight_and_calories_per_100g()
-            elif convert_to_per_100g_action is not None and action == convert_to_per_100g_action:
-                self._convert_selected_food_log_calorie_mode("per_100g")
-            elif convert_to_portion_action is not None and action == convert_to_portion_action:
-                self._convert_selected_food_log_calorie_mode("portion")
             elif action == recalc_calories_ai_action:
                 self._recalculate_selected_food_log_calories_with_ai()
             elif action == delete_action:
@@ -4447,15 +4227,6 @@ class MainWindow(
             QTimer.singleShot(0, lambda: self._run_range_macros_request(date_from, date_to))
         dialog.exec()
 
-    def _show_use_calories_context_menu(self, position: QPoint) -> None:
-        """Show context menu for calories mode radio button."""
-        context_menu = QMenu(self)
-        portion_weight_action = context_menu.addAction("🤖 Determine portion weight from calories")
-        global_pos: QPoint = self.radioButton_use_calories.mapToGlobal(position)
-        action = context_menu.exec_(global_pos)
-        if action == portion_weight_action:
-            self.on_portion_weight_with_ai_from_calories()
-
     def _start_bothub_worker(
         self,
         prompt_text: str,
@@ -4512,120 +4283,6 @@ class MainWindow(
         """Cancel the silent translate debounce timer."""
         self._bg_food_translate_timer.stop()
 
-    def _swap_weight_and_calories_per_100g(self) -> None:
-        """Swap weight and calories per 100g values in the selected row."""
-        if not self._validate_database_connection():
-            message_box.warning(self, "Error", "Database connection not available")
-            return
-
-        if self.db_manager is None:
-            logger.error("❌ Database manager is not initialized")
-            return
-
-        try:
-            # Get the selected row data from the table model
-            proxy_model = self.models["food_log"]
-            if proxy_model is None:
-                return
-            source_model = proxy_model.sourceModel()
-            if not isinstance(source_model, QStandardItemModel):
-                return
-
-            current_index = self.tableView_food_log.currentIndex()
-            if not current_index.isValid():
-                message_box.warning(self, "Error", "No row selected")
-                return
-
-            row = current_index.row()
-
-            # Get data from the table model directly
-            weight_str = source_model.item(row, 2).text() if source_model.item(row, 2) else "0"
-            calories_per_100g_str = source_model.item(row, 3).text() if source_model.item(row, 3) else "0"
-
-            # Parse values, handle empty strings and convert to float
-            try:
-                weight = float(weight_str) if weight_str and weight_str.strip() != "" else 0.0
-            except (ValueError, TypeError):
-                weight = 0.0
-
-            try:
-                calories_per_100g = (
-                    float(calories_per_100g_str)
-                    if calories_per_100g_str and calories_per_100g_str.strip() != ""
-                    else 0.0
-                )
-            except (ValueError, TypeError):
-                calories_per_100g = 0.0
-
-            # Check if both values are 0 (no point in swapping)
-            if weight == 0.0 and calories_per_100g == 0.0:
-                message_box.information(
-                    self, "Information", "Both weight and calories per 100g are 0. No swapping needed."
-                )
-                return
-
-            # Check if portion_calories exists and might affect display
-            portion_calories_str = source_model.item(row, 4).text() if source_model.item(row, 4) else "0"
-            try:
-                portion_calories = (
-                    float(portion_calories_str) if portion_calories_str and portion_calories_str.strip() != "" else 0.0
-                )
-            except (ValueError, TypeError):
-                portion_calories = 0.0
-
-            # Warn user if portion_calories might affect display
-            if portion_calories > 0:
-                result = message_box.question(
-                    self,
-                    "Portion Calories Warning",
-                    (
-                        f"This record has portion calories ({portion_calories}), "
-                        f"which might affect how calories per 100g are displayed. "
-                        f"Continue with swap?"
-                    ),
-                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                    QMessageBox.StandardButton.No,
-                )
-                if result == QMessageBox.StandardButton.No:
-                    return
-
-            # Swap the values
-            new_weight = calories_per_100g
-            new_calories_per_100g = weight
-
-            # Show information about the swap
-            s_weight = f"weight={weight} -> {new_weight}"
-            s_calories_per_100g = f"calories_per_100g={calories_per_100g} -> {new_calories_per_100g}"
-            logger.info("%s", f"🔄 Swapping values: {s_weight}, {s_calories_per_100g}")
-
-            # Update the table model
-            source_model.item(row, 2).setText(str(new_weight))
-            source_model.item(row, 3).setText(str(new_calories_per_100g))
-
-            # Update calculated calories column if both values are available
-            if new_weight > 0 and new_calories_per_100g > 0:
-                calculated_calories = (new_weight * new_calories_per_100g) / 100
-                source_model.item(row, 5).setText(f"{calculated_calories:.1f}")
-                logger.info("%s", f"🔄 Updated calculated calories: {calculated_calories:.1f}")
-
-            # Get the row ID for database update
-            row_id = source_model.verticalHeaderItem(row).text()
-            if row_id:
-                # Update the database
-                success = self.db_manager.update_food_log_weight_and_calories(
-                    int(row_id), new_weight, new_calories_per_100g
-                )
-                if success:
-                    # Refresh the table to show updated calculated calories
-                    self.update_food_data()
-                else:
-                    logger.error("%s", f"❌ Failed to update database for row {row_id}")
-                    message_box.warning(self, "Error", "Failed to update database")
-
-        except Exception as e:
-            logger.exception("Error swapping weight and calories")
-            message_box.warning(self, "Error", f"Failed to swap weight and calories: {e}")
-
     def _transform_food_log_data(
         self, rows: list[list], *, append_state: bool = False, db_totals: bool = True
     ) -> list[list]:
@@ -4652,25 +4309,14 @@ class MainWindow(
 
         transformed_rows: list[list] = []
         for row in rows:
-            portion_calories = row[3]
-            calories_per_100g = row[4]
-            weight = row[2]
+            calories_per_100g = row[3]
             date_str = row[1]
 
             if date_str not in date_to_color:
                 date_to_color[date_str] = self.date_colors[color_index % len(self.date_colors)]
                 color_index += 1
 
-            if portion_calories and portion_calories > 0 and (not calories_per_100g or calories_per_100g == 0):
-                calories_per_100g_display = ""
-            else:
-                calories_per_100g_display = calories_per_100g if calories_per_100g is not None else ""
-
-            calculated_calories = calculate_food_log_calories(
-                parse_food_log_number(weight),
-                parse_food_log_number(calories_per_100g),
-                parse_food_log_number(portion_calories),
-            )
+            calories_display = calories_per_100g if calories_per_100g is not None else ""
 
             is_first_of_day = date_str not in dates_with_totals
             if is_first_of_day:
@@ -4680,14 +4326,12 @@ class MainWindow(
             total_per_day_display = f"{total_per_day:.1f}" if is_first_of_day else ""
 
             transformed_row = [
-                row[5],
-                "1" if row[7] == 1 else "",
+                row[4],
+                "1" if row[6] == 1 else "",
                 row[2],
-                calories_per_100g_display,
-                portion_calories,
-                f"{calculated_calories:.1f}",
+                calories_display,
                 row[1],
-                row[6],
+                row[5],
                 total_per_day_display,
             ]
             date_color = date_to_color.get(date_str, QColor(255, 255, 255))
@@ -5294,9 +4938,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
                     "Name",
                     "Is Drink",
                     "Weight",
-                    "Calories per 100g",
-                    "Portion Calories",
-                    "Calculated Calories",
+                    "Calories",
                     "Date",
                     "English Name",
                     "Total per day",
@@ -5574,14 +5216,7 @@ def on_add_food_item(self) -> None:
             is_drink = self.checkBox_food_is_drink.isChecked()
             weight = float(self.spinBox_food_weight.value())
             calories_value = float(self.doubleSpinBox_food_calories.value())
-            use_weight = self.radioButton_use_weight.isChecked()
-
-            if use_weight:
-                calories_per_100g = calories_value if calories_value > 0 else None
-                portion_calories = None
-            else:
-                calories_per_100g = None
-                portion_calories = calories_value if calories_value > 0 else None
+            calories_per_100g = calories_value if calories_value > 0 else None
 
             prefill = database_manager.FoodLogItemByNameRow(
                 name=name,
@@ -5589,7 +5224,6 @@ def on_add_food_item(self) -> None:
                 is_drink=is_drink,
                 calories_per_100g=calories_per_100g,
                 weight=weight if weight > 0 else None,
-                portion_calories=portion_calories,
             )
 
             dialog = FoodItemDialog(self, prefill, is_create=True)
@@ -5634,7 +5268,6 @@ def on_add_food_log(self) -> None:
         weight = self.spinBox_food_weight.value()
         calories = self.doubleSpinBox_food_calories.value()
         food_date = self.dateEdit_food.date().toString("yyyy-MM-dd")
-        use_weight = self.radioButton_use_weight.isChecked()
         is_drink = self.checkBox_food_is_drink.isChecked()
 
         # Validate required fields
@@ -5648,11 +5281,6 @@ def on_add_food_log(self) -> None:
             self.spinBox_food_weight.selectAll()
             return
 
-        # Validate calories based on radio button selection
-        if not use_weight and calories <= 0:
-            message_box.warning(self, "Error", "Calories are required when using portion mode")
-            return
-
         # Validate the date
         if not self._is_valid_date(food_date):
             message_box.warning(self, "Error", "Invalid date format")
@@ -5663,18 +5291,7 @@ def on_add_food_log(self) -> None:
             return
 
         try:
-            # Double-check radio button state before processing
-            use_weight_final = self.radioButton_use_weight.isChecked()
-
-            # Determine calories_per_100g and portion_calories based on radio button
-            if use_weight_final:
-                # Weight mode: calories is calories_per_100g
-                calories_per_100g = max(0, calories)
-                portion_calories = None
-            else:
-                # Portion mode: calories is portion_calories, set calories_per_100g to 0
-                calories_per_100g = 0  # Required by database schema (NOT NULL)
-                portion_calories = calories if calories > 0 else None
+            calories_per_100g = max(0, calories) if calories > 0 else None
 
             # Reuse an existing English translation for the same food name, if any.
             known_translations = self.db_manager.lookup_existing_name_en_for_names([food_name])
@@ -5687,7 +5304,6 @@ def on_add_food_log(self) -> None:
                 name=food_name,
                 name_en=name_en,
                 weight=weight,
-                portion_calories=portion_calories,
                 is_drink=is_drink,
             ):
                 # Update UI - only food-related data
@@ -5698,10 +5314,6 @@ def on_add_food_log(self) -> None:
                 self.spinBox_food_weight.setValue(0)
                 self.doubleSpinBox_food_calories.setValue(0.0)
                 self.checkBox_food_is_drink.setChecked(False)
-
-                # Reset radio buttons to default state
-                self.radioButton_use_weight.setChecked(True)
-                self.radioButton_use_calories.setChecked(False)
 
                 # Update button appearance and calories calculation
                 self._update_add_button_appearance()
@@ -6042,17 +5654,12 @@ def on_food_log_table_cell_clicked(self, index: QModelIndex) -> None
 
 Handle food log table cell click and populate form fields with row data.
 
-Args:
-
-- `index` (`QModelIndex`): Index of the clicked cell.
-
 <details>
 <summary>Code:</summary>
 
 ```python
 def on_food_log_table_cell_clicked(self, index: QModelIndex) -> None:
         try:
-            # Get the row ID from the vertical header
             proxy_model = self.models["food_log"]
             if proxy_model is None:
                 return
@@ -6064,45 +5671,28 @@ def on_food_log_table_cell_clicked(self, index: QModelIndex) -> None:
             if not row_id:
                 return
 
-            # Get data from the table model directly
-            name = source_model.item(index.row(), 0).text() if source_model.item(index.row(), 0) else ""
-            is_drink_item = source_model.item(index.row(), 1)
+            row = index.row()
+            name = source_model.item(row, 0).text() if source_model.item(row, 0) else ""
+            is_drink_item = source_model.item(row, 1)
             is_drink = parse_is_drink_cell(is_drink_item.data(Qt.ItemDataRole.EditRole)) if is_drink_item else False
-            weight_str = source_model.item(index.row(), 2).text() if source_model.item(index.row(), 2) else "0"
+            weight_str = source_model.item(row, 2).text() if source_model.item(row, 2) else "0"
             calories_per_100g_str = (
-                source_model.item(index.row(), 3).text() if source_model.item(index.row(), 3) else "0"
-            )
-            portion_calories_str = (
-                source_model.item(index.row(), 4).text() if source_model.item(index.row(), 4) else "0"
+                source_model.item(row, FOOD_LOG_COL_CALORIES).text()
+                if source_model.item(row, FOOD_LOG_COL_CALORIES)
+                else "0"
             )
 
-            # Convert string values to appropriate types
             weight = float(weight_str) if weight_str and weight_str != "" else 0
             calories_per_100g = (
                 float(calories_per_100g_str) if calories_per_100g_str and calories_per_100g_str != "" else 0
             )
-            portion_calories = float(portion_calories_str) if portion_calories_str and portion_calories_str != "" else 0
 
-            # Populate groupBox_food_add fields (food log record form)
             self.lineEdit_food_manual_name.setText(name)
             self.spinBox_food_weight.setValue(int(weight) if weight > 0 else 0)
             self.checkBox_food_is_drink.setChecked(is_drink)
             self._update_add_button_appearance()
-
-            # Determine radio button state based on portion_calories
-            if portion_calories > 0:
-                # Use portion calories mode
-                self.radioButton_use_calories.setChecked(True)
-                self.doubleSpinBox_food_calories.setValue(portion_calories)
-            else:
-                # Use weight mode
-                self.radioButton_use_weight.setChecked(True)
-                self.doubleSpinBox_food_calories.setValue(calories_per_100g)
-
-            # Update calories calculation
+            self.doubleSpinBox_food_calories.setValue(calories_per_100g)
             self.update_calories_calculation()
-
-            # Move focus to weight spinbox and select all text
             self.spinBox_food_weight.setFocus()
             self.spinBox_food_weight.selectAll()
 
@@ -6587,70 +6177,55 @@ def on_open_photos(self) -> None:
 
 </details>
 
+### ⚙️ Method `on_open_portion_calories_dialog`
+
+```python
+def on_open_portion_calories_dialog(self) -> None
+```
+
+Open portion weight/calories dialog and apply kcal/100g to the add form.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_open_portion_calories_dialog(self) -> None:
+        food_name = self.lineEdit_food_manual_name.text().strip()
+        dialog = PortionCaloriesDialog(
+            self,
+            food_name=food_name,
+            initial_weight=max(1, self.spinBox_food_weight.value() or 100),
+            initial_portion_calories=0.0,
+            is_drink=self.checkBox_food_is_drink.isChecked(),
+            on_ai_weight=self._on_portion_dialog_ai_weight,
+        )
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        self.spinBox_food_weight.setValue(dialog.weight_g())
+        kcal_per_100g = dialog.calories_per_100g()
+        if kcal_per_100g is not None:
+            self.doubleSpinBox_food_calories.setValue(kcal_per_100g)
+        self.checkBox_food_is_drink.setChecked(dialog.is_drink)
+        self.update_calories_calculation()
+        self._update_add_button_appearance()
+```
+
+</details>
+
 ### ⚙️ Method `on_portion_weight_with_ai_from_calories`
 
 ```python
 def on_portion_weight_with_ai_from_calories(self) -> None
 ```
 
-Determine portion weight and drink flag via BotHub for calories-mode entry.
+Legacy entry: open portion dialog (AI runs inside the dialog).
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def on_portion_weight_with_ai_from_calories(self) -> None:
-        if self.radioButton_use_weight.isChecked():
-            message_box.warning(
-                self,
-                "Mode",
-                "Switch to 'Enter calories directly' mode first.",
-            )
-            return
-
-        food_name = self.lineEdit_food_manual_name.text().strip()
-        if not food_name:
-            message_box.warning(self, "Food Name", "Enter a food name first.")
-            return
-
-        calories_total = float(self.doubleSpinBox_food_calories.value())
-        if calories_total <= 0:
-            message_box.warning(self, "Calories", "Enter calories first.")
-            return
-
-        drink = "yes" if self.checkBox_food_is_drink.isChecked() else "no"
-        try:
-            prompt_text = build_prompt(
-                self._app_config,
-                "food_portion_weight_from_calories",
-                {
-                    "FOOD_NAME": food_name,
-                    "CALORIES_TOTAL": f"{calories_total:.1f}",
-                    "DRINK": drink,
-                },
-            )
-        except ValueError as exc:
-            show_bothub_prompt_build_error(self, exc)
-            return
-
-        def on_success(response_text: str) -> None:
-            result = parse_portion_weight_response(response_text)
-            if result is None:
-                preview = response_text.strip()[:200]
-                message_box.warning(
-                    self,
-                    "AI Response",
-                    f"Could not parse BotHub response.\n\nExpected TSV: Drink, Weight\n\nResponse:\n{preview}",
-                )
-                return
-
-            self.checkBox_food_is_drink.setChecked(result.is_drink)
-            if result.weight_g > 0:
-                self.spinBox_food_weight.setValue(result.weight_g)
-            self.update_calories_calculation()
-            self._update_add_button_appearance()
-
-        self._start_bothub_worker(prompt_text, on_success)
+        self.on_open_portion_calories_dialog()
 ```
 
 </details>
@@ -6882,7 +6457,7 @@ def show_tables(self) -> None:
 def update_calories_calculation(self) -> None
 ```
 
-Update the calories calculation label based on radio button selection and values.
+Update the calories calculation label from weight and kcal/100g.
 
 <details>
 <summary>Code:</summary>
@@ -6891,18 +6466,9 @@ Update the calories calculation label based on radio button selection and values
 def update_calories_calculation(self) -> None:
         weight = self.spinBox_food_weight.value()
         calories = self.doubleSpinBox_food_calories.value()
-        use_weight = self.radioButton_use_weight.isChecked()
-
-        if use_weight:
-            # Weight mode: calories per 100g
-            if weight > 0 and calories > 0:
-                calculated_calories = (weight * calories) / 100
-                self.label_food_calories_calc.setText(f"Total: {calculated_calories:.1f} kcal")
-            else:
-                self.label_food_calories_calc.setText("Total: 0.0 kcal")
-        # Portion mode: direct calories
-        elif calories > 0:
-            self.label_food_calories_calc.setText(f"Total: {calories:.1f} kcal")
+        if weight > 0 and calories > 0:
+            calculated_calories = (weight * calories) / 100
+            self.label_food_calories_calc.setText(f"Total: {calculated_calories:.1f} kcal")
         else:
             self.label_food_calories_calc.setText("Total: 0.0 kcal")
 ```

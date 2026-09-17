@@ -30,7 +30,6 @@ CREATE TABLE food_log (
     _id INTEGER PRIMARY KEY AUTOINCREMENT,
     date TEXT,
     weight REAL,
-    portion_calories REAL,
     calories_per_100g REAL,
     name TEXT,
     name_en TEXT,
@@ -131,9 +130,10 @@ def ensure_food_schema(db_path: Path) -> bool:
     """Migrate a legacy Food database and ensure recipe tables exist.
 
     Legacy `recover.sql` used `id` / `datetime` / `calories` / `food_item_id`. The app
-    expects `_id` / `date` / `portion_calories` / `calories_per_100g` on denormalized
-    `food_log` rows. Existing databases also gain `recipes` / `recipe_ingredients`
-    when missing.
+    expects `_id` / `date` / `calories_per_100g` on denormalized `food_log` rows.
+    Older databases that still have `portion_calories` convert those values into
+    `calories_per_100g` and drop the column. Existing databases also gain
+    `recipes` / `recipe_ingredients` when missing.
 
     Args:
 
@@ -188,18 +188,24 @@ def ensure_food_schema(db_path: Path) -> bool:
             name_expr = "name" if "name" in log_cols else "NULL"
             name_en_expr = "name_en" if "name_en" in log_cols else "NULL"
             is_drink_expr = "COALESCE(is_drink, 0)" if "is_drink" in log_cols else "0"
+            calories_expr = (
+                f"CASE "
+                f"WHEN ({portion_expr}) IS NOT NULL AND ({portion_expr}) > 0 "
+                f"AND ({weight_expr}) IS NOT NULL AND ({weight_expr}) > 0 "
+                f"THEN ROUND((({portion_expr}) * 100.0) / ({weight_expr}), 1) "
+                f"ELSE ({per_100_expr}) END"
+            )
 
             conn.execute(
                 f"""
                 INSERT INTO food_log (
-                    _id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink
+                    _id, date, weight, calories_per_100g, name, name_en, is_drink
                 )
                 SELECT
                     {log_id},
                     {date_expr},
                     {weight_expr},
-                    {portion_expr},
-                    {per_100_expr},
+                    {calories_expr},
                     {name_expr},
                     {name_en_expr},
                     {is_drink_expr}
@@ -212,6 +218,9 @@ def ensure_food_schema(db_path: Path) -> bool:
             conn.execute("PRAGMA foreign_keys = ON")
             changed = True
             logger.info("Food schema migration finished for %s", db_path)
+
+        if _migrate_food_log_drop_portion_calories(conn):
+            changed = True
 
         if _ensure_recipes_tables(conn):
             changed = True
@@ -303,7 +312,7 @@ def _is_current_schema(conn: sqlite3.Connection) -> bool:
     items = _column_names(conn, "food_items")
     log = _column_names(conn, "food_log")
     required_items = {"_id", "name", "is_drink", "calories_per_100g"}
-    required_log = {"_id", "date", "portion_calories", "calories_per_100g", "name", "is_drink"}
+    required_log = {"_id", "date", "calories_per_100g", "name", "is_drink"}
     return required_items.issubset(items) and required_log.issubset(log)
 
 
@@ -321,6 +330,42 @@ def _legacy_portion_calories_expression(columns: set[str]) -> str:
     if "calories" in columns:
         return "calories"
     return "NULL"
+
+
+def _migrate_food_log_drop_portion_calories(conn: sqlite3.Connection) -> bool:
+    """Convert `portion_calories` into `calories_per_100g` and drop the column."""
+    cols = _column_names(conn, "food_log")
+    if "portion_calories" not in cols:
+        return False
+
+    logger.info("Converting food_log.portion_calories to calories_per_100g")
+    conn.execute(
+        """
+        UPDATE food_log
+        SET calories_per_100g = ROUND((portion_calories * 100.0) / weight, 1)
+        WHERE portion_calories IS NOT NULL
+          AND portion_calories > 0
+          AND weight IS NOT NULL
+          AND weight > 0
+        """
+    )
+    conn.execute("PRAGMA foreign_keys = OFF")
+    conn.execute("ALTER TABLE food_log RENAME TO food_log_portion_mig")
+    conn.executescript(_CURRENT_FOOD_LOG_SQL)
+    conn.execute(
+        """
+        INSERT INTO food_log (
+            _id, date, weight, calories_per_100g, name, name_en, is_drink
+        )
+        SELECT
+            _id, date, weight, calories_per_100g, name, name_en, is_drink
+        FROM food_log_portion_mig
+        """
+    )
+    conn.execute("DROP TABLE food_log_portion_mig")
+    conn.execute("PRAGMA foreign_keys = ON")
+    logger.info("Dropped food_log.portion_calories")
+    return True
 
 
 def _table_exists(conn: sqlite3.Connection, table: str) -> bool:

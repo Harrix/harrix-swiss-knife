@@ -2,41 +2,34 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from PySide6.QtGui import QStandardItemModel
 
 FOOD_LOG_COL_WEIGHT = 2
-FOOD_LOG_COL_CALORIES_PER_100G = 3
-FOOD_LOG_COL_PORTION_CALORIES = 4
-FOOD_LOG_COL_CALCULATED = 5
-FOOD_LOG_COL_DATE = 6
-FOOD_LOG_COL_TOTAL_PER_DAY = 8
-
-FoodLogCalorieMode = Literal["portion", "per_100g"]
+FOOD_LOG_COL_CALORIES = 3
+FOOD_LOG_COL_DATE = 4
+FOOD_LOG_COL_NAME_EN = 5
+FOOD_LOG_COL_TOTAL_PER_DAY = 6
 
 
 def calculate_food_log_calories(
     weight: float | None,
     calories_per_100g: float | None,
-    portion_calories: float | None,
 ) -> float:
-    """Return row calories: portion mode wins, otherwise weight * kcal/100g.
+    """Return row calories from weight * kcal/100g.
 
     Args:
 
     - `weight` (`float | None`): Mass in grams.
     - `calories_per_100g` (`float | None`): Energy per 100 g.
-    - `portion_calories` (`float | None`): Energy of the whole serving.
 
     Returns:
 
     - `float`: Calories for the row.
 
     """
-    if portion_calories is not None and portion_calories > 0:
-        return float(portion_calories)
     if calories_per_100g is not None and calories_per_100g > 0 and weight is not None and weight > 0:
         return (float(calories_per_100g) * float(weight)) / 100
     return 0.0
@@ -47,7 +40,7 @@ def convert_calories_per_100g_to_portion(
     weight: float,
     calories_per_100g: float,
 ) -> float:
-    """Return portion calories for `weight` g at `calories_per_100g`.
+    """Return serving kcal from weight * kcal/100g.
 
     Args:
 
@@ -56,7 +49,7 @@ def convert_calories_per_100g_to_portion(
 
     Returns:
 
-    - `float`: Energy of the whole serving, rounded to 1 decimal place.
+    - `float`: Portion calories, rounded to 1 decimal place.
 
     """
     return round((float(calories_per_100g) * float(weight)) / 100.0, 1)
@@ -82,28 +75,19 @@ def convert_portion_to_calories_per_100g(
     return round((float(portion_calories) / float(weight)) * 100.0, 1)
 
 
-def food_log_calorie_mode(
+def effective_calories_per_100g(
     calories_per_100g: float | None,
-    portion_calories: float | None,
-) -> FoodLogCalorieMode | None:
-    """Return whether the row uses portion calories or kcal/100g.
-
-    Portion mode wins when both are set (same rule as `calculate_food_log_calories`).
-
-    Args:
-
-    - `calories_per_100g` (`float | None`): Energy per 100 g.
-    - `portion_calories` (`float | None`): Energy of the whole serving.
-
-    Returns:
-
-    - `FoodLogCalorieMode | None`: `"portion"`, `"per_100g"`, or `None` when neither applies.
-
-    """
-    if portion_calories is not None and portion_calories > 0:
-        return "portion"
+    *,
+    portion_calories: float | None = None,
+    weight: float | None = None,
+) -> float | None:
+    """Return kcal/100g from stored value or by converting portion data."""
     if calories_per_100g is not None and calories_per_100g > 0:
-        return "per_100g"
+        return float(calories_per_100g)
+    if portion_calories is not None and portion_calories > 0 and weight is not None and weight > 0:
+        return convert_portion_to_calories_per_100g(weight=weight, portion_calories=portion_calories)
+    if calories_per_100g is not None and calories_per_100g == 0:
+        return 0.0
     return None
 
 
@@ -128,10 +112,10 @@ def parse_food_log_number(value: object) -> float | None:
 
 
 def refresh_food_log_calorie_columns(model: QStandardItemModel) -> dict[str, float]:
-    """Recalculate calculated-calories and total-per-day cells in `model`.
+    """Recalculate calories and total-per-day cells in `model`.
 
     Does not emit `dataChanged` (signals are blocked) so auto-save does not run
-    again.
+    again. The Calories column stores kcal/100g; the displayed total is derived.
 
     Args:
 
@@ -149,10 +133,10 @@ def refresh_food_log_calorie_columns(model: QStandardItemModel) -> dict[str, flo
 
     for row in range(row_count):
         date_str = _item_text(model, row, FOOD_LOG_COL_DATE)
+        # Calories column holds kcal/100g for editing; total is derived for day sums.
         calories = calculate_food_log_calories(
             parse_food_log_number(_item_text(model, row, FOOD_LOG_COL_WEIGHT)),
-            parse_food_log_number(_item_text(model, row, FOOD_LOG_COL_CALORIES_PER_100G)),
-            parse_food_log_number(_item_text(model, row, FOOD_LOG_COL_PORTION_CALORIES)),
+            parse_food_log_number(_item_text(model, row, FOOD_LOG_COL_CALORIES)),
         )
         dates.append(date_str)
         row_calories.append(calories)
@@ -163,7 +147,6 @@ def refresh_food_log_calorie_columns(model: QStandardItemModel) -> dict[str, flo
     model.blockSignals(True)  # noqa: FBT003
     try:
         for row in range(row_count):
-            _set_item_text(model, row, FOOD_LOG_COL_CALCULATED, f"{row_calories[row]:.1f}")
             date_str = dates[row]
             is_first = bool(date_str) and date_str not in seen_dates
             if is_first:

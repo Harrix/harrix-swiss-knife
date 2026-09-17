@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from harrix_swiss_knife.apps.food.food_log_calories import convert_portion_to_calories_per_100g
+
 _TSV_COLUMN_COUNT = 4
 _MAX_IMPLIED_KCAL_PER_100G = 900.0
 
@@ -18,11 +20,11 @@ class KcalLookupResult:
     weight_g: int
 
 
-def calories_from_kcal_lookup(result: KcalLookupResult) -> tuple[float | None, float | None]:
-    """Map an AI lookup to food_log calorie columns without changing mass.
+def calories_from_kcal_lookup(result: KcalLookupResult) -> float | None:
+    """Map an AI lookup to kcal/100g for food_log (mass unchanged).
 
-    Weight mode stores kcal per 100 g and clears portion calories. Portion mode
-    stores serving calories and clears kcal per 100 g so the row stays in one mode.
+    Weight mode uses the value as kcal per 100 g. Portion mode converts serving
+    calories using the returned weight.
 
     Args:
 
@@ -30,12 +32,17 @@ def calories_from_kcal_lookup(result: KcalLookupResult) -> tuple[float | None, f
 
     Returns:
 
-    - `tuple[float | None, float | None]`: `(calories_per_100g, portion_calories)`.
+    - `float | None`: Energy per 100 g, or `None` when it cannot be derived.
 
     """
     if result.is_weight_mode:
-        return result.calories, None
-    return None, result.calories
+        return result.calories if result.calories > 0 else None
+    if result.weight_g <= 0 or result.calories <= 0:
+        return None
+    return convert_portion_to_calories_per_100g(
+        weight=float(result.weight_g),
+        portion_calories=result.calories,
+    )
 
 
 def normalize_kcal_lookup_mode(result: KcalLookupResult) -> KcalLookupResult:

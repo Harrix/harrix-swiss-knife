@@ -20,9 +20,9 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDateEdit,
     QDoubleSpinBox, QFrame, QGroupBox, QHBoxLayout,
     QHeaderView, QLabel, QLineEdit, QListView,
     QMainWindow, QMenu, QMenuBar, QPushButton,
-    QRadioButton, QScrollArea, QSizePolicy, QSpacerItem,
-    QSpinBox, QSplitter, QTabWidget, QTableView,
-    QVBoxLayout, QWidget)
+    QScrollArea, QSizePolicy, QSpacerItem, QSpinBox,
+    QSplitter, QTabWidget, QTableView, QVBoxLayout,
+    QWidget)
 
 class Ui_MainWindow(object):
     # setupUi
@@ -44,10 +44,12 @@ class Ui_MainWindow(object):
         self.pushButton_kcal_with_ai.setText("")
         self.pushButton_food_manual_name_clear.setText("")
         self.label_food_weight_unit.setText(QCoreApplication.translate("MainWindow", u"g", None))
-        self.label_food_calories.setText(QCoreApplication.translate("MainWindow", u"kcal", None))
+        self.label_food_calories.setText(QCoreApplication.translate("MainWindow", u"kcal/100g", None))
+#if QT_CONFIG(tooltip)
+        self.pushButton_portion_calories.setToolTip(QCoreApplication.translate("MainWindow", u"Enter portion weight and calories to compute kcal/100g", None))
+#endif // QT_CONFIG(tooltip)
+        self.pushButton_portion_calories.setText(QCoreApplication.translate("MainWindow", u"From portion\u2026", None))
         self.checkBox_food_is_drink.setText(QCoreApplication.translate("MainWindow", u"Drink", None))
-        self.radioButton_use_weight.setText(QCoreApplication.translate("MainWindow", u"Calculate by weight", None))
-        self.radioButton_use_calories.setText(QCoreApplication.translate("MainWindow", u"Enter calories directly", None))
         self.label_food_calories_calc.setText(QCoreApplication.translate("MainWindow", u"Calculated calories: 0", None))
         self.dateEdit_food.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
         self.pushButton_food_add.setText(QCoreApplication.translate("MainWindow", u"Add Food", None))
@@ -209,6 +211,11 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_food_weight.addWidget(self.label_food_calories)
 
+        self.pushButton_portion_calories = QPushButton(self.groupBox_food_add)
+        self.pushButton_portion_calories.setObjectName(u"pushButton_portion_calories")
+
+        self.horizontalLayout_food_weight.addWidget(self.pushButton_portion_calories)
+
         self.checkBox_food_is_drink = QCheckBox(self.groupBox_food_add)
         self.checkBox_food_is_drink.setObjectName(u"checkBox_food_is_drink")
 
@@ -216,22 +223,6 @@ class Ui_MainWindow(object):
 
 
         self.verticalLayout.addLayout(self.horizontalLayout_food_weight)
-
-        self.horizontalLayout_2 = QHBoxLayout()
-        self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
-        self.radioButton_use_weight = QRadioButton(self.groupBox_food_add)
-        self.radioButton_use_weight.setObjectName(u"radioButton_use_weight")
-        self.radioButton_use_weight.setChecked(True)
-
-        self.horizontalLayout_2.addWidget(self.radioButton_use_weight)
-
-        self.radioButton_use_calories = QRadioButton(self.groupBox_food_add)
-        self.radioButton_use_calories.setObjectName(u"radioButton_use_calories")
-
-        self.horizontalLayout_2.addWidget(self.radioButton_use_calories)
-
-
-        self.verticalLayout.addLayout(self.horizontalLayout_2)
 
         self.label_food_calories_calc = QLabel(self.groupBox_food_add)
         self.label_food_calories_calc.setObjectName(u"label_food_calories_calc")

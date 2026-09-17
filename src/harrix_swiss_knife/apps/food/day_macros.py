@@ -74,7 +74,6 @@ class FoodDayLogLine:
     name: str
     name_en: str
     weight: float | None
-    portion_calories: float | None
     calories_per_100g: float | None
     is_drink: bool
 
@@ -196,7 +195,7 @@ def format_day_menu_for_prompt(lines: Sequence[FoodDayLogLine], *, total_kcal: f
     """
     rows: list[str] = []
     for line in lines:
-        kcal = calculate_food_log_calories(line.weight, line.calories_per_100g, line.portion_calories)
+        kcal = calculate_food_log_calories(line.weight, line.calories_per_100g)
         name = line.name.strip() or "(unnamed)"
         name_en = line.name_en.strip()
         label = f"{name} / {name_en}" if name_en else name
@@ -364,7 +363,6 @@ def _canonical_line(line: FoodDayLogLine) -> str:
             line.name.strip(),
             line.name_en.strip(),
             _num(line.weight),
-            _num(line.portion_calories),
             _num(line.calories_per_100g),
             "1" if line.is_drink else "0",
         ]
@@ -444,12 +442,11 @@ def _parse_tsv_floats(line: str) -> tuple[float, float, float, float] | None:
     return values[0], values[1], values[2], values[3]
 
 
-def _sort_key(line: FoodDayLogLine) -> tuple[str, str, str, str, str, str]:
+def _sort_key(line: FoodDayLogLine) -> tuple[str, str, str, str, str]:
     return (
         line.name.casefold(),
         line.name_en.casefold(),
         _num(line.weight),
-        _num(line.portion_calories),
         _num(line.calories_per_100g),
         "1" if line.is_drink else "0",
     )
