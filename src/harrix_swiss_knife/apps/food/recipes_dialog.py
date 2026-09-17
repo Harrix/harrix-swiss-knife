@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from PySide6.QtCore import QPoint, Qt
 from PySide6.QtWidgets import QDialog, QHBoxLayout, QVBoxLayout, QWidget
 
 from harrix_swiss_knife import qt_modality
@@ -12,6 +13,8 @@ from harrix_swiss_knife.qt_lucide_icon import CANCEL_BUTTON_ICON, make_lucide_pu
 
 if TYPE_CHECKING:
     from harrix_swiss_knife.apps.food.database_manager import DatabaseManager
+
+_FALLBACK_SIZE = (1200, 720)
 
 
 class RecipesDialog(QDialog):
@@ -28,7 +31,7 @@ class RecipesDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Recipes")
         qt_modality.set_owner_window_modal(self)
-        self.resize(1200, 720)
+        self._match_parent_window()
 
         self._widget = RecipesWidget(self)
         self._widget.set_database_manager(db_manager)
@@ -50,3 +53,16 @@ class RecipesDialog(QDialog):
     def recipes_widget(self) -> RecipesWidget:
         """Embedded recipes editor."""
         return self._widget
+
+    def _match_parent_window(self) -> None:
+        """Use the same size and screen position as the owning Food window."""
+        parent = self.parentWidget()
+        if parent is None:
+            self.resize(*_FALLBACK_SIZE)
+            return
+        owner = parent.window()
+        if owner.windowState() & Qt.WindowState.WindowMaximized:
+            self.setWindowState(Qt.WindowState.WindowMaximized)
+            return
+        top_left = owner.mapToGlobal(QPoint(0, 0))
+        self.setGeometry(top_left.x(), top_left.y(), owner.width(), owner.height())

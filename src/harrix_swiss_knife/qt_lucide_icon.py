@@ -187,6 +187,7 @@ CHROME_EMOJI_TO_LUCIDE: dict[str, str] = {
     "🏷": "tag",
     "🍽️": "utensils",
     "🍽": "utensils",
+    "🍳": "cooking-pot",
     "⚖️": "scale",
     "⚖": "scale",
     "ℹ️": "info",  # noqa: RUF001

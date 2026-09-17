@@ -5,9 +5,9 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import QLocale, Qt
+from PySide6.QtCore import QLocale, QPoint, Qt
 from PySide6.QtGui import QStandardItem
-from PySide6.QtWidgets import QApplication, QMenu
+from PySide6.QtWidgets import QApplication, QMenu, QWidget
 
 from harrix_swiss_knife.apps.common.table_context_menu import LABEL_DELETE
 from harrix_swiss_knife.apps.food.database_manager import DatabaseManager
@@ -39,6 +39,24 @@ def test_recipes_dialog_embeds_widget(qapp: QApplication, tmp_path: Path) -> Non
     assert dialog.windowTitle() == "Recipes"
     assert isinstance(dialog.recipes_widget, RecipesWidget)
     dialog.close()
+    db.close()
+
+
+def test_recipes_dialog_matches_parent_geometry(qapp: QApplication, tmp_path: Path) -> None:
+    recover_sql = Path(__file__).resolve().parents[1] / "src" / "harrix_swiss_knife" / "apps" / "food" / "recover.sql"
+    db_path = tmp_path / "food.db"
+    assert DatabaseManager.create_database_from_sql(str(db_path), str(recover_sql))
+    db = DatabaseManager(str(db_path))
+    parent = QWidget()
+    parent.resize(1100, 640)
+    parent.move(80, 60)
+    parent.show()
+    qapp.processEvents()
+    dialog = RecipesDialog(parent, db)
+    assert dialog.size() == parent.size()
+    assert dialog.pos() == parent.mapToGlobal(QPoint(0, 0))
+    dialog.close()
+    parent.close()
     db.close()
 
 

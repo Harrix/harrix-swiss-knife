@@ -159,10 +159,12 @@ def test_set_action_text_with_lucide_icon_strips_leading_emoji(qapp: QApplicatio
 
 def test_robot_chrome_emoji_maps_to_sparkles() -> None:
     assert lucide_name_for_chrome_emoji("🤖") == "sparkles"
+    assert lucide_name_for_chrome_emoji("🍳") == "cooking-pot"
     assert lucide_name_for_chrome_emoji("⋯") == "ellipsis"
     assert lucide_name_for_chrome_emoji("…") == "ellipsis"
     assert lucide_name_for_chrome_emoji("⋮") == "ellipsis-vertical"
     assert lucide_svg_path("sparkles") is not None
+    assert lucide_svg_path("cooking-pot") is not None
 
 
 def test_icons_app_chrome_emojis_map_to_lucide() -> None:
