@@ -405,6 +405,10 @@ class ShutterPanel(QWidget):
 
         self._apply_capture_option_visibility()
         self._update_size()
+        # On standard (non-ultrawide) screens keep tools collapsed so the plate
+        # does not cover as much of the capture area.
+        if not _is_widescreen_monitor():
+            self.set_collapsed(collapsed=True)
 
     @property
     def adjust_mode(self) -> bool:
@@ -955,6 +959,10 @@ def __init__(self, parent: QWidget | None = None, *, capture_options: bool = Tru
 
         self._apply_capture_option_visibility()
         self._update_size()
+        # On standard (non-ultrawide) screens keep tools collapsed so the plate
+        # does not cover as much of the capture area.
+        if not _is_widescreen_monitor():
+            self.set_collapsed(collapsed=True)
 ```
 
 </details>

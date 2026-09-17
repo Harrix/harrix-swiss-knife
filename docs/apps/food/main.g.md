@@ -2172,25 +2172,25 @@ class MainWindow(
         if not record_ids:
             message_box.information(self, "Export", "Select one or more food log rows to export.")
             return
-        rows = self.db_manager.get_food_log_records_by_ids(record_ids)
-        items = []
-        for row in rows:
-            item = build_transfer_item_from_log_row(
-                date=str(row[1] or ""),
-                name=str(row[5] or ""),
-                name_en=str(row[6]).strip() if row[6] else None,
-                weight=float(row[2]) if row[2] is not None else None,
-                portion_calories=float(row[3]) if row[3] is not None else None,
-                calories_per_100g=float(row[4]) if row[4] is not None else None,
-                is_drink=bool(row[7] == 1),
-            )
-            if item is not None:
-                items.append(item)
-        if not items:
-            message_box.warning(self, "Export", "Selected rows have no exportable calorie data.")
-            return
-        by_date = group_items_by_date(items)
         try:
+            rows = self.db_manager.get_food_log_records_by_ids(record_ids)
+            items = []
+            for row in rows:
+                item = build_transfer_item_from_log_row(
+                    date=str(row[1] or ""),
+                    name=str(row[5] or ""),
+                    name_en=str(row[6]).strip() if row[6] else None,
+                    weight=parse_food_log_number(row[2]),
+                    portion_calories=parse_food_log_number(row[3]),
+                    calories_per_100g=parse_food_log_number(row[4]),
+                    is_drink=bool(row[7] == 1),
+                )
+                if item is not None:
+                    items.append(item)
+            if not items:
+                message_box.warning(self, "Export", "Selected rows have no exportable calorie data.")
+                return
+            by_date = group_items_by_date(items)
             if len(by_date) == 1:
                 day = next(iter(by_date))
                 suggested = transfer_filename_for_date(day)
@@ -2214,8 +2214,9 @@ class MainWindow(
                 if not directory_str:
                     return
                 written = write_transfer_files(items, directory=Path(directory_str))
-        except (OSError, ValueError, TypeError) as exc:
-            message_box.warning(self, "Export", f"Failed to write JSON: {exc}")
+        except (OSError, TypeError, ValueError) as exc:
+            logger.exception("Food log JSON export failed")
+            message_box.warning(self, "Export", f"Failed to export JSON: {exc}")
             return
         names = ", ".join(path.name for path in written[:_FOOD_LOG_JSON_EXPORT_NAME_PREVIEW])
         suffix = "…" if len(written) > _FOOD_LOG_JSON_EXPORT_NAME_PREVIEW else ""

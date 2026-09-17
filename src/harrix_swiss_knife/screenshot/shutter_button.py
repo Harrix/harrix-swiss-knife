@@ -38,6 +38,8 @@ _ROW_GAP = 6
 _PANEL_PAD = 6
 _CONTROL_GAP = 8
 _SWITCH_TRACK_W = 44
+# Same threshold as tracker window layout: wider than 2:1 counts as ultrawide.
+_WIDESCREEN_MIN_ASPECT = 2.0
 _SWITCH_TRACK_H = 26
 _SWITCH_KNOB = 22
 _SWITCH_KNOB_OFF = QColor(150, 150, 155)
@@ -326,6 +328,10 @@ class ShutterPanel(QWidget):
 
         self._apply_capture_option_visibility()
         self._update_size()
+        # On standard (non-ultrawide) screens keep tools collapsed so the plate
+        # does not cover as much of the capture area.
+        if not _is_widescreen_monitor():
+            self.set_collapsed(collapsed=True)
 
     @property
     def adjust_mode(self) -> bool:
@@ -882,6 +888,17 @@ def position_panel_at_left_center(panel: ShutterPanel, overlay_geometry: QRect) 
     y = geo.y() - origin.y() + (geo.height() - panel.height()) // 2
     panel.move(x, y)
     panel.raise_()
+
+
+def _is_widescreen_monitor() -> bool:
+    """Return `True` when the primary screen is ultrawide (aspect > 2:1)."""
+    screen = QApplication.primaryScreen()
+    if screen is None:
+        return False
+    geo = screen.availableGeometry()
+    if geo.height() <= 0:
+        return False
+    return (geo.width() / geo.height()) > _WIDESCREEN_MIN_ASPECT
 
 
 def _primary_available_height() -> int:

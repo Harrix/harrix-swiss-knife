@@ -262,6 +262,7 @@ def test_shutter_panel_shows_visible_labels(qapp: QApplication) -> None:  # noqa
     """Tool names stay visible under the controls (not only as hover tooltips)."""
     panel = ShutterPanel()
     panel.set_mode("selection")
+    panel.set_collapsed(collapsed=False)
     panel.show()
     QApplication.processEvents()
 
@@ -278,6 +279,7 @@ def test_shutter_panel_labels_fit_single_line_captions(qapp: QApplication) -> No
     """Short captions like Collapse/Guides keep enough width for the painted font."""
     panel = ShutterPanel()
     panel.set_mode("selection")
+    panel.set_collapsed(collapsed=False)
     panel.show()
     QApplication.processEvents()
 
@@ -348,6 +350,7 @@ def test_shutter_panel_collapse_hides_tools(qapp: QApplication) -> None:  # noqa
     host.show()
     panel = ShutterPanel(host)
     panel.set_mode("selection")
+    panel.set_collapsed(collapsed=False)
     panel.show()
     QApplication.processEvents()
     assert not panel.collapsed
@@ -366,16 +369,46 @@ def test_shutter_panel_collapse_hides_tools(qapp: QApplication) -> None:  # noqa
     host.close()
 
 
+def test_shutter_panel_defaults_collapsed_on_standard_screen(
+    qapp: QApplication,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Non-ultrawide monitors start with the tools panel collapsed."""
+    monkeypatch.setattr(
+        "harrix_swiss_knife.screenshot.shutter_button._is_widescreen_monitor",
+        lambda: False,
+    )
+    panel = ShutterPanel()
+    assert panel.collapsed
+    panel.close()
+
+
+def test_shutter_panel_defaults_expanded_on_widescreen(
+    qapp: QApplication,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Ultrawide monitors keep the tools panel expanded by default."""
+    monkeypatch.setattr(
+        "harrix_swiss_knife.screenshot.shutter_button._is_widescreen_monitor",
+        lambda: True,
+    )
+    panel = ShutterPanel()
+    assert not panel.collapsed
+    panel.close()
+
+
 def test_arrange_mode_compacts_without_gaps(qapp: QApplication) -> None:  # noqa: ARG001
     """Hidden selection tools must not leave empty vertical space in arrange mode."""
     selection = ShutterPanel()
     selection.set_mode("selection")
+    selection.set_collapsed(collapsed=False)
     selection.show()
     QApplication.processEvents()
     selection_height = selection.height()
 
     arrange = ShutterPanel()
     arrange.set_mode("arrange")
+    arrange.set_collapsed(collapsed=False)
     arrange.show()
     QApplication.processEvents()
     visible_rows = [row for row in (arrange._mode_row, arrange._close_row, arrange._collapse_row) if row.isVisible()]
@@ -517,6 +550,7 @@ def test_shutter_panel_guides_toggle(qapp: QApplication) -> None:  # noqa: ARG00
 def test_shutter_panel_shows_edit_key_hints(qapp: QApplication) -> None:  # noqa: ARG001
     panel = ShutterPanel()
     panel.set_mode("selection")
+    panel.set_collapsed(collapsed=False)
     panel.show()
     QApplication.processEvents()
     panel.set_edit_keys_visible(visible=True)
@@ -537,6 +571,7 @@ def test_record_region_shutter_hides_capture_only_buttons(qapp: QApplication) ->
     )
     panel = overlay.findChild(ShutterPanel)
     assert panel is not None
+    panel.set_collapsed(collapsed=False)
     overlay.show()
     QApplication.processEvents()
     tips = {button.toolTip() for button in panel.findChildren(QPushButton) if button.isVisible()}
