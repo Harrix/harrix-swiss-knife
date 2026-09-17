@@ -236,10 +236,12 @@ def test_preview_window_saves_dated_png_to_desktop(
     assert files[0].stem.endswith("_01")
     assert window.windowTitle() == f"Screenshot — {files[0].name}"
     assert str(files[0]) in window._status.text()
+    first_path = files[0]
+    first_mtime = first_path.stat().st_mtime_ns
     window._save_to_desktop()
     files = sorted(screenshots.glob("*.png"))
-    assert len(files) == 2
-    assert {path.stem[-3:] for path in files} == {"_01", "_02"}
+    assert files == [first_path]
+    assert first_path.stat().st_mtime_ns >= first_mtime
     window.close()
 
 
@@ -332,6 +334,45 @@ def test_preview_window_title_follows_tab_saved_name(
     assert tabs is not None
     tabs.setCurrentIndex(0)
     assert window.windowTitle() == saved_title
+    window.close()
+
+
+def test_preview_resave_reuses_same_dated_path(
+    qapp: QApplication,  # noqa: ARG001
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Repeated Save / Save to desktop overwrites the same file instead of allocating a new name."""
+    monkeypatch.setattr(
+        "harrix_swiss_knife.screenshot.preview_dialog.h.dev.get_project_root",
+        lambda: tmp_path,
+    )
+    desktop = tmp_path / "Desktop"
+    monkeypatch.setattr(
+        ScreenshotPreviewWindow,
+        "_desktop_folder",
+        lambda _self: desktop,
+    )
+    image = QImage(8, 8, QImage.Format.Format_RGB32)
+    image.fill(Qt.GlobalColor.red)
+    window = show_screenshot_preview(image)
+    window._save_to_images()
+    images_dir = images_folder(tmp_path)
+    first_images = sorted(images_dir.glob("*.png"))
+    assert len(first_images) == 1
+    first_path = first_images[0]
+    first_mtime = first_path.stat().st_mtime_ns
+    window._save_to_images()
+    second_images = sorted(images_dir.glob("*.png"))
+    assert second_images == first_images
+    assert first_path.stat().st_mtime_ns >= first_mtime
+
+    window._save_to_desktop()
+    window._save_all_to_desktop()
+    desktop_files = sorted(desktop.glob("*.png"))
+    assert len(desktop_files) == 1
+    window._save_to_desktop()
+    assert sorted(desktop.glob("*.png")) == desktop_files
     window.close()
 
 

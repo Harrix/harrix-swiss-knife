@@ -533,19 +533,21 @@ class ScreenshotPreviewWindow(QMainWindow):
         tab = self._current_tab()
         if tab is None:
             return
-        path, _selected_filter = QFileDialog.getSaveFileName(
+        suggested = str(tab.saved_as_path) if tab.saved_as_path is not None else (tab.saved_name or "screenshot.png")
+        path_str, _selected_filter = QFileDialog.getSaveFileName(
             self,
             "Save screenshot",
-            tab.saved_name or "screenshot.png",
+            suggested,
             "PNG Image (*.png);;JPEG Image (*.jpg *.jpeg);;All Files (*)",
         )
-        if not path:
+        if not path_str:
             return
-        if tab.image.save(path):
-            name = Path(path).name
-            tab.saved_name = name
+        path = Path(path_str)
+        if tab.image.save(str(path)):
+            tab.saved_as_path = path.resolve()
+            tab.saved_name = path.name
             index = self._tabs.currentIndex()
-            self._tabs.setTabText(index, name)
+            self._tabs.setTabText(index, path.name)
             self._status.setText(f"Saved: {path}")
             self._update_window_title()
 
@@ -567,13 +569,22 @@ class ScreenshotPreviewWindow(QMainWindow):
         *,
         tab_index: int,
     ) -> Path | None:
-        path = next_dated_image_path(folder)
+        folder = folder.resolve()
+        folder.mkdir(parents=True, exist_ok=True)
+        folder_key = str(folder)
+        existing = tab.saved_paths.get(folder_key)
+        if existing is not None and existing.parent.resolve() == folder:
+            path = existing
+        else:
+            path = next_dated_image_path(folder)
         if not tab.image.save(str(path)):
             return None
-        tab.saved_name = path.name
+        resolved = path.resolve()
+        tab.saved_paths[folder_key] = resolved
+        tab.saved_name = resolved.name
         if 0 <= tab_index < self._tabs.count():
-            self._tabs.setTabText(tab_index, path.name)
-        return path
+            self._tabs.setTabText(tab_index, resolved.name)
+        return resolved
 
     def _save_temp_png(self) -> str | None:
         tab = self._current_tab()
