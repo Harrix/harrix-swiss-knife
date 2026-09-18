@@ -21,6 +21,7 @@ lang: en
 - [🔧 Function `name_en_lookup`](#-function-name_en_lookup)
 - [🔧 Function `parse_transfer_file`](#-function-parse_transfer_file)
 - [🔧 Function `parse_transfer_payload`](#-function-parse_transfer_payload)
+- [🔧 Function `parsed_items_to_transfer`](#-function-parsed_items_to_transfer)
 - [🔧 Function `payload_dict`](#-function-payload_dict)
 - [🔧 Function `transfer_filename_for_date`](#-function-transfer_filename_for_date)
 - [🔧 Function `transfer_items_to_parsed`](#-function-transfer_items_to_parsed)
@@ -288,6 +289,56 @@ def parse_transfer_payload(raw: Any) -> FoodLogTransferPayload:
         items=items,
         exported_at=str(exported_at) if exported_at else None,
     )
+```
+
+</details>
+
+## 🔧 Function `parsed_items_to_transfer`
+
+```python
+def parsed_items_to_transfer(items: list[ParsedFoodItem], *, default_date: str, name_en_by_name: dict[str, str] | None = None) -> list[FoodLogTransferItem]
+```
+
+Convert dialog [`ParsedFoodItem`](text_parser.g.md#%EF%B8%8F-class-parsedfooditem) rows to transfer items for JSON export.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def parsed_items_to_transfer(
+    items: list[ParsedFoodItem],
+    *,
+    default_date: str,
+    name_en_by_name: dict[str, str] | None = None,
+) -> list[FoodLogTransferItem]:
+    result: list[FoodLogTransferItem] = []
+    for item in items:
+        if item.weight is None or item.weight <= 0:
+            continue
+        calories_per_100g = effective_calories_per_100g(
+            item.calories_per_100g,
+            portion_calories=item.portion_calories,
+            weight=item.weight,
+        )
+        if calories_per_100g is None or calories_per_100g < 0:
+            continue
+        day = (item.food_date or default_date).strip()[:10]
+        if not _DATE_RE.match(day):
+            day = default_date
+        name_en = None
+        if name_en_by_name:
+            name_en = name_en_by_name.get(item.name.casefold())
+        built = build_transfer_item_from_log_row(
+            date=day,
+            name=item.name,
+            name_en=name_en,
+            weight=item.weight,
+            calories_per_100g=calories_per_100g,
+            is_drink=item.is_drink,
+        )
+        if built is not None:
+            result.append(built)
+    return result
 ```
 
 </details>

@@ -1967,7 +1967,7 @@ class MainWindow(
         )
 
     def _export_selected_food_log_json(self) -> None:
-        """Write selected food log rows as transfer JSON files (one per date)."""
+        """Review selected rows in the food table dialog, then write transfer JSON."""
         if self.db_manager is None or not self._validate_database_connection():
             message_box.warning(self, "Export", "Database connection not available.")
             return
@@ -1975,59 +1975,52 @@ class MainWindow(
         if not record_ids:
             message_box.information(self, "Export", "Select one or more food log rows to export.")
             return
-        try:
-            rows = self.db_manager.get_food_log_records_by_ids(record_ids)
-            items = []
-            for row in rows:
-                item = build_transfer_item_from_log_row(
-                    date=str(row[1] or ""),
-                    name=str(row[4] or ""),
-                    name_en=str(row[5]).strip() if row[5] else None,
-                    weight=parse_food_log_number(row[2]),
-                    calories_per_100g=parse_food_log_number(row[3]),
-                    is_drink=bool(row[6] == 1),
-                )
-                if item is not None:
-                    items.append(item)
-            if not items:
-                message_box.warning(self, "Export", "Selected rows have no exportable calorie data.")
-                return
-            by_date = group_items_by_date(items)
-            if len(by_date) == 1:
-                day = next(iter(by_date))
-                suggested = transfer_filename_for_date(day)
-                filename, _selected = QFileDialog.getSaveFileName(
-                    self,
-                    "Export food log JSON",
-                    suggested,
-                    "Food log JSON (*.json);;All files (*)",
-                )
-                if not filename:
-                    return
-                path = Path(filename)
-                if path.suffix.lower() != ".json":
-                    path = path.with_suffix(".json")
-                written = write_transfer_files(items, single_path=path)
-            else:
-                directory_str = QFileDialog.getExistingDirectory(
-                    self,
-                    "Choose folder for food-log JSON files (one per date)",
-                )
-                if not directory_str:
-                    return
-                written = write_transfer_files(items, directory=Path(directory_str))
-        except (OSError, TypeError, ValueError) as exc:
-            logger.exception("Food log JSON export failed")
-            message_box.warning(self, "Export", f"Failed to export JSON: {exc}")
+        rows = self.db_manager.get_food_log_records_by_ids(record_ids)
+        source_items = []
+        for row in rows:
+            item = build_transfer_item_from_log_row(
+                date=str(row[1] or ""),
+                name=str(row[4] or ""),
+                name_en=str(row[5]).strip() if row[5] else None,
+                weight=parse_food_log_number(row[2]),
+                calories_per_100g=parse_food_log_number(row[3]),
+                is_drink=bool(row[6] == 1),
+            )
+            if item is not None:
+                source_items.append(item)
+        if not source_items:
+            message_box.warning(self, "Export", "Selected rows have no exportable calorie data.")
             return
-        names = ", ".join(path.name for path in written[:_FOOD_LOG_JSON_EXPORT_NAME_PREVIEW])
-        suffix = "…" if len(written) > _FOOD_LOG_JSON_EXPORT_NAME_PREVIEW else ""
-        toast = toast_notification.ToastNotification(
-            f"Exported {len(items)} item(s) to {len(written)} file(s): {names}{suffix}",
-            duration=3000,
-            parent=self,
+
+        by_date = group_items_by_date(source_items)
+        default_day = min(by_date)
+        default_date = QDate.fromString(default_day, "yyyy-MM-dd")
+        if default_date.isNull():
+            default_date = self.dateEdit_food.date()
+        name_en_by_name = name_en_lookup(source_items)
+        dialog = FoodTableDialog(
+            self,
+            title="Export Food Log",
+            description=(
+                "Review items before export. Change weights, calories, or add rows as needed, "
+                "then OK to choose where to save the JSON file(s)."
+            ),
+            default_date=default_date,
+            initial_text=items_to_tsv(source_items),
+            db_manager=self.db_manager,
         )
-        toast.present()
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        export_date = dialog.get_date() or default_day
+        items = parsed_items_to_transfer(
+            dialog.get_items(),
+            default_date=export_date,
+            name_en_by_name=name_en_by_name,
+        )
+        if not items:
+            message_box.warning(self, "Export", "No valid items to export.")
+            return
+        self._write_food_log_transfer_json(items)
 
     def _fetch_food_log_rows(self, limit: int | None, offset: int) -> list[list[Any]]:
         """Return food log rows for the current toolbar filters (or the full recent page)."""
@@ -4862,6 +4855,46 @@ class MainWindow(
         label.setText(
             f"P {analysis.protein_g:.0f} · F {analysis.fat_g:.0f} · C {analysis.carb_g:.0f} g",
         )
+
+    def _write_food_log_transfer_json(self, items: list[FoodLogTransferItem]) -> None:
+        """Ask for a save path / folder and write transfer JSON for `items`."""
+        try:
+            by_date = group_items_by_date(items)
+            if len(by_date) == 1:
+                day = next(iter(by_date))
+                suggested = transfer_filename_for_date(day)
+                filename, _selected = QFileDialog.getSaveFileName(
+                    self,
+                    "Export food log JSON",
+                    suggested,
+                    "Food log JSON (*.json);;All files (*)",
+                )
+                if not filename:
+                    return
+                path = Path(filename)
+                if path.suffix.lower() != ".json":
+                    path = path.with_suffix(".json")
+                written = write_transfer_files(items, single_path=path)
+            else:
+                directory_str = QFileDialog.getExistingDirectory(
+                    self,
+                    "Choose folder for food-log JSON files (one per date)",
+                )
+                if not directory_str:
+                    return
+                written = write_transfer_files(items, directory=Path(directory_str))
+        except (OSError, TypeError, ValueError) as exc:
+            logger.exception("Food log JSON export failed")
+            message_box.warning(self, "Export", f"Failed to export JSON: {exc}")
+            return
+        names = ", ".join(path.name for path in written[:_FOOD_LOG_JSON_EXPORT_NAME_PREVIEW])
+        suffix = "…" if len(written) > _FOOD_LOG_JSON_EXPORT_NAME_PREVIEW else ""
+        toast = toast_notification.ToastNotification(
+            f"Exported {len(items)} item(s) to {len(written)} file(s): {names}{suffix}",
+            duration=3000,
+            parent=self,
+        )
+        toast.present()
 ```
 
 </details>

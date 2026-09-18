@@ -16,9 +16,11 @@ from harrix_swiss_knife.apps.food.food_log_transfer import (
     name_en_lookup,
     parse_transfer_file,
     parse_transfer_payload,
+    parsed_items_to_transfer,
     transfer_filename_for_date,
     write_transfer_files,
 )
+from harrix_swiss_knife.apps.food.text_parser import ParsedFoodItem
 
 
 def test_build_transfer_item_weight_mode() -> None:
@@ -105,6 +107,36 @@ def test_items_to_tsv() -> None:
         ),
     ]
     assert items_to_tsv(items) == "Rice\t100\t130\tweight\tno"
+
+
+def test_parsed_items_to_transfer_converts_portion_mode() -> None:
+    parsed = [
+        ParsedFoodItem(
+            name="Coffee",
+            weight=250,
+            calories_per_100g=None,
+            portion_calories=85,
+            food_date="2026-09-16",
+            is_drink=True,
+        ),
+        ParsedFoodItem(
+            name="Rice",
+            weight=100,
+            calories_per_100g=130,
+            portion_calories=None,
+            food_date="2026-09-16",
+            is_drink=False,
+        ),
+    ]
+    items = parsed_items_to_transfer(
+        parsed,
+        default_date="2026-09-16",
+        name_en_by_name={"rice": "Rice EN"},
+    )
+    assert len(items) == 2
+    assert items[0].calories_per_100g == 34.0
+    assert items[0].is_drink is True
+    assert items[1].name_en == "Rice EN"
 
 
 def test_group_and_filename() -> None:

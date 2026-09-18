@@ -14,7 +14,10 @@ from pathlib import Path
 from typing import Any, Literal
 
 from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import unique_path_in_folder
-from harrix_swiss_knife.apps.food.food_log_calories import convert_portion_to_calories_per_100g
+from harrix_swiss_knife.apps.food.food_log_calories import (
+    convert_portion_to_calories_per_100g,
+    effective_calories_per_100g,
+)
 from harrix_swiss_knife.apps.food.text_parser import ParsedFoodItem
 
 FORMAT_ID = "harrix-food-log"
@@ -159,6 +162,43 @@ def parse_transfer_payload(raw: Any) -> FoodLogTransferPayload:
         items=items,
         exported_at=str(exported_at) if exported_at else None,
     )
+
+
+def parsed_items_to_transfer(
+    items: list[ParsedFoodItem],
+    *,
+    default_date: str,
+    name_en_by_name: dict[str, str] | None = None,
+) -> list[FoodLogTransferItem]:
+    """Convert dialog `ParsedFoodItem` rows to transfer items for JSON export."""
+    result: list[FoodLogTransferItem] = []
+    for item in items:
+        if item.weight is None or item.weight <= 0:
+            continue
+        calories_per_100g = effective_calories_per_100g(
+            item.calories_per_100g,
+            portion_calories=item.portion_calories,
+            weight=item.weight,
+        )
+        if calories_per_100g is None or calories_per_100g < 0:
+            continue
+        day = (item.food_date or default_date).strip()[:10]
+        if not _DATE_RE.match(day):
+            day = default_date
+        name_en = None
+        if name_en_by_name:
+            name_en = name_en_by_name.get(item.name.casefold())
+        built = build_transfer_item_from_log_row(
+            date=day,
+            name=item.name,
+            name_en=name_en,
+            weight=item.weight,
+            calories_per_100g=calories_per_100g,
+            is_drink=item.is_drink,
+        )
+        if built is not None:
+            result.append(built)
+    return result
 
 
 def payload_dict(default_date: str, items: list[FoodLogTransferItem], *, exported_at: str) -> dict[str, Any]:
