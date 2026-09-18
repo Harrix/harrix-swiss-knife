@@ -51,9 +51,9 @@ class Ui_MainWindow(object):
         self.label_food_weight_unit.setText(QCoreApplication.translate("MainWindow", u"g", None))
         self.label_food_calories.setText(QCoreApplication.translate("MainWindow", u"kcal/100g", None))
 #if QT_CONFIG(tooltip)
-        self.pushButton_portion_calories.setToolTip(QCoreApplication.translate("MainWindow", u"Enter portion weight and calories to compute kcal/100g", None))
+        self.pushButton_portion_calories.setToolTip(QCoreApplication.translate("MainWindow", u"From portion: enter weight and portion calories to compute kcal/100g", None))
 #endif // QT_CONFIG(tooltip)
-        self.pushButton_portion_calories.setText(QCoreApplication.translate("MainWindow", u"From portion\u2026", None))
+        self.pushButton_portion_calories.setText("")
         self.checkBox_food_is_drink.setText(QCoreApplication.translate("MainWindow", u"Drink", None))
         self.label_food_calories_calc.setText(QCoreApplication.translate("MainWindow", u"Calculated calories: 0", None))
         self.dateEdit_food.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
@@ -218,6 +218,8 @@ class Ui_MainWindow(object):
 
         self.pushButton_portion_calories = QPushButton(self.groupBox_food_add)
         self.pushButton_portion_calories.setObjectName(u"pushButton_portion_calories")
+        self.pushButton_portion_calories.setMinimumSize(QSize(32, 0))
+        self.pushButton_portion_calories.setMaximumSize(QSize(32, 16777215))
 
         self.horizontalLayout_food_weight.addWidget(self.pushButton_portion_calories)
 
@@ -699,9 +701,9 @@ def retranslateUi(self, MainWindow):
         self.label_food_weight_unit.setText(QCoreApplication.translate("MainWindow", u"g", None))
         self.label_food_calories.setText(QCoreApplication.translate("MainWindow", u"kcal/100g", None))
 #if QT_CONFIG(tooltip)
-        self.pushButton_portion_calories.setToolTip(QCoreApplication.translate("MainWindow", u"Enter portion weight and calories to compute kcal/100g", None))
+        self.pushButton_portion_calories.setToolTip(QCoreApplication.translate("MainWindow", u"From portion: enter weight and portion calories to compute kcal/100g", None))
 #endif // QT_CONFIG(tooltip)
-        self.pushButton_portion_calories.setText(QCoreApplication.translate("MainWindow", u"From portion\u2026", None))
+        self.pushButton_portion_calories.setText("")
         self.checkBox_food_is_drink.setText(QCoreApplication.translate("MainWindow", u"Drink", None))
         self.label_food_calories_calc.setText(QCoreApplication.translate("MainWindow", u"Calculated calories: 0", None))
         self.dateEdit_food.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
@@ -882,6 +884,8 @@ def setupUi(self, MainWindow):
 
         self.pushButton_portion_calories = QPushButton(self.groupBox_food_add)
         self.pushButton_portion_calories.setObjectName(u"pushButton_portion_calories")
+        self.pushButton_portion_calories.setMinimumSize(QSize(32, 0))
+        self.pushButton_portion_calories.setMaximumSize(QSize(32, 16777215))
 
         self.horizontalLayout_food_weight.addWidget(self.pushButton_portion_calories)
 

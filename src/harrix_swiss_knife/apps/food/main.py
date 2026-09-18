@@ -345,7 +345,7 @@ class MainWindow(
                     "Name",
                     "Is Drink",
                     "Weight",
-                    "Calories",
+                    "kcal/100g",
                     "Date",
                     "English Name",
                     "Total per day",
@@ -1418,7 +1418,7 @@ class MainWindow(
             0.18,  # Name
             0.06,  # Is Drink
             0.08,  # Weight
-            0.12,  # Calories (kcal/100g)
+            0.14,  # kcal/100g
             0.11,  # Date
             0.20,  # English Name
             0.12,  # Total per day
@@ -4016,6 +4016,13 @@ class MainWindow(
         self.pushButton_kcal_with_ai.setToolTip(
             "Look up calories, drink flag, weight, and entry mode via AI from the food name",
         )
+        apply_lucide_button_icon(self.pushButton_portion_calories, "calculator")
+        self.pushButton_portion_calories.setText("")
+        self.pushButton_portion_calories.setToolTip(
+            "From portion: enter weight and portion calories to compute kcal/100g",
+        )
+        portion_h = max(self.pushButton_portion_calories.sizeHint().height(), 24)
+        self.pushButton_portion_calories.setFixedSize(portion_h, portion_h)
 
         # Set emoji for food stats buttons
         self.pushButton_food_stats_last_week.setText(f"📅 {self.pushButton_food_stats_last_week.text()}")

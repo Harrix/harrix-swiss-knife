@@ -115,7 +115,7 @@ def refresh_food_log_calorie_columns(model: QStandardItemModel) -> dict[str, flo
     """Recalculate calories and total-per-day cells in `model`.
 
     Does not emit `dataChanged` (signals are blocked) so auto-save does not run
-    again. The Calories column stores kcal/100g; the displayed total is derived.
+    again. The kcal/100g column stores density; day totals are derived from it.
 
     Args:
 
@@ -133,7 +133,7 @@ def refresh_food_log_calorie_columns(model: QStandardItemModel) -> dict[str, flo
 
     for row in range(row_count):
         date_str = _item_text(model, row, FOOD_LOG_COL_DATE)
-        # Calories column holds kcal/100g for editing; total is derived for day sums.
+        # kcal/100g column for editing; day totals are derived from it.
         calories = calculate_food_log_calories(
             parse_food_log_number(_item_text(model, row, FOOD_LOG_COL_WEIGHT)),
             parse_food_log_number(_item_text(model, row, FOOD_LOG_COL_CALORIES)),

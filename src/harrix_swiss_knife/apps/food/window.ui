@@ -164,11 +164,23 @@
                  </item>
                  <item>
                   <widget class="QPushButton" name="pushButton_portion_calories">
+                   <property name="minimumSize">
+                    <size>
+                     <width>32</width>
+                     <height>0</height>
+                    </size>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>32</width>
+                     <height>16777215</height>
+                    </size>
+                   </property>
                    <property name="toolTip">
-                    <string>Enter portion weight and calories to compute kcal/100g</string>
+                    <string>From portion: enter weight and portion calories to compute kcal/100g</string>
                    </property>
                    <property name="text">
-                    <string>From portion…</string>
+                    <string/>
                    </property>
                   </widget>
                  </item>
