@@ -39,6 +39,8 @@ REMOVE_PARAGRAPHS_BUTTON_ICON = "text-wrap"
 COPY_BUTTON_LABEL = "Copy to Clipboard"
 COPY_TRANSLATION_BUTTON_LABEL = "Copy translation to Clipboard"
 SAVE_MARKDOWN_BUTTON_LABEL = "Save Markdown"
+SAVE_EXCEL_BUTTON_LABEL = "Save Excel"
+SAVE_EXCEL_BUTTON_ICON = "file-spreadsheet"
 OPEN_FOLDER_BUTTON_LABEL = "Open folder"
 OPEN_FOLDER_BUTTON_ICON = "folder-open"
 OK_BUTTON_LABEL = "OK"
@@ -85,6 +87,14 @@ def add_open_folder_button(button_layout: QHBoxLayout, click_handler: Callable[[
     open_folder_button.clicked.connect(click_handler)
     button_layout.addWidget(open_folder_button)
     return open_folder_button
+
+
+def add_save_excel_button(button_layout: QHBoxLayout, click_handler: Callable[[], None]) -> QPushButton:
+    """Add a save-Excel button with a Lucide icon."""
+    save_button = make_lucide_push_button(SAVE_EXCEL_BUTTON_LABEL, SAVE_EXCEL_BUTTON_ICON)
+    save_button.clicked.connect(click_handler)
+    button_layout.addWidget(save_button)
+    return save_button
 
 
 def add_save_markdown_button(button_layout: QHBoxLayout, click_handler: Callable[[], None]) -> QPushButton:

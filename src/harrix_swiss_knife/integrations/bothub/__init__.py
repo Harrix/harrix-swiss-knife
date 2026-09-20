@@ -28,6 +28,10 @@ from harrix_swiss_knife.integrations.bothub.image_ocr_translate import (
     build_image_ocr_translate_prompt,
     get_image_ocr_translate_prompt_template,
 )
+from harrix_swiss_knife.integrations.bothub.image_table import (
+    build_image_table_prompt,
+    get_image_table_prompt_template,
+)
 from harrix_swiss_knife.integrations.bothub.prompts import build_prompt, get_prompt_template
 from harrix_swiss_knife.integrations.bothub.qt_runner import (
     BothubRequestSpec,
@@ -73,6 +77,7 @@ __all__ = [
     "audio_format_from_suffix",
     "build_image_ocr_prompt",
     "build_image_ocr_translate_prompt",
+    "build_image_table_prompt",
     "build_prompt",
     "build_text_fix_from_clipboard_prompt",
     "build_text_fix_prompt",
@@ -84,6 +89,7 @@ __all__ = [
     "get_connection_params",
     "get_image_ocr_prompt_template",
     "get_image_ocr_translate_prompt_template",
+    "get_image_table_prompt_template",
     "get_max_image_side",
     "get_prompt_template",
     "get_speech_model",

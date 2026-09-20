@@ -14,6 +14,7 @@ lang: en
 - [🔧 Function `add_copy_button`](#-function-add_copy_button)
 - [🔧 Function `add_ok_button`](#-function-add_ok_button)
 - [🔧 Function `add_open_folder_button`](#-function-add_open_folder_button)
+- [🔧 Function `add_save_excel_button`](#-function-add_save_excel_button)
 - [🔧 Function `add_save_markdown_button`](#-function-add_save_markdown_button)
 - [🔧 Function `append_result_action_buttons`](#-function-append_result_action_buttons)
 - [🔧 Function `collapse_text_to_single_line`](#-function-collapse_text_to_single_line)
@@ -97,6 +98,27 @@ def add_open_folder_button(button_layout: QHBoxLayout, click_handler: Callable[[
     open_folder_button.clicked.connect(click_handler)
     button_layout.addWidget(open_folder_button)
     return open_folder_button
+```
+
+</details>
+
+## 🔧 Function `add_save_excel_button`
+
+```python
+def add_save_excel_button(button_layout: QHBoxLayout, click_handler: Callable[[], None]) -> QPushButton
+```
+
+Add a save-Excel button with a Lucide icon.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def add_save_excel_button(button_layout: QHBoxLayout, click_handler: Callable[[], None]) -> QPushButton:
+    save_button = make_lucide_push_button(SAVE_EXCEL_BUTTON_LABEL, SAVE_EXCEL_BUTTON_ICON)
+    save_button.clicked.connect(click_handler)
+    button_layout.addWidget(save_button)
+    return save_button
 ```
 
 </details>

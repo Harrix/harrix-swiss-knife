@@ -171,6 +171,13 @@ class ScreenshotPreviewWindow(QMainWindow):
         )
         ai_button.setToolTip("Recognize text (AI)…")
         self._add_footer_button(ai_button, self._run_markdown_with_ai)
+        table_button = make_lucide_push_button(
+            "Recognize table (AI)",
+            _TABLE_AI_ICON,
+            color=AI_BUTTON_ICON_COLOR,
+        )
+        table_button.setToolTip("Recognize table (AI)…")
+        self._add_footer_button(table_button, self._run_table_with_ai)
         ocr_button = make_lucide_push_button("Recognize text (OCR)", _MARKDOWN_OCR_ICON)
         ocr_button.setToolTip("Recognize text (OCR, local)…")
         self._add_footer_button(ocr_button, self._run_markdown_with_ocr)
@@ -509,6 +516,21 @@ class ScreenshotPreviewWindow(QMainWindow):
 
         QTimer.singleShot(0, run)
 
+    def _run_table_with_ai(self) -> None:
+        path = self._save_temp_png()
+        if path is None:
+            return
+        self._close_current_tab()
+
+        def run() -> None:
+            from harrix_swiss_knife.actions.images.recognize_table_with_ai import (  # noqa: PLC0415
+                OnRecognizeTableWithAI,
+            )
+
+            OnRecognizeTableWithAI()(image_paths=[path])
+
+        QTimer.singleShot(0, run)
+
     def _save_all_to_desktop(self) -> None:
         desktop = self._desktop_folder()
         if desktop is None:
@@ -820,6 +842,13 @@ def __init__(self, parent: QWidget | None = None) -> None:
         )
         ai_button.setToolTip("Recognize text (AI)…")
         self._add_footer_button(ai_button, self._run_markdown_with_ai)
+        table_button = make_lucide_push_button(
+            "Recognize table (AI)",
+            _TABLE_AI_ICON,
+            color=AI_BUTTON_ICON_COLOR,
+        )
+        table_button.setToolTip("Recognize table (AI)…")
+        self._add_footer_button(table_button, self._run_table_with_ai)
         ocr_button = make_lucide_push_button("Recognize text (OCR)", _MARKDOWN_OCR_ICON)
         ocr_button.setToolTip("Recognize text (OCR, local)…")
         self._add_footer_button(ocr_button, self._run_markdown_with_ocr)

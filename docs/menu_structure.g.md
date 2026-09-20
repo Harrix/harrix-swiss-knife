@@ -74,6 +74,7 @@ def get_menu_structure() -> list[Any]:
                 OnOpenPhotosInViewer,
                 OnRecognizeTextWithOcr,
                 OnRecognizeTextWithAI,
+                OnRecognizeTableWithAI,
                 "-",
                 OnOptimize,
                 OnOptimizeDialogReplace,

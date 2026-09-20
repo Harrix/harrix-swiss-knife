@@ -1,0 +1,64 @@
+---
+author: Anton Sergienko
+author-email: anton.b.sergienko@gmail.com
+lang: en
+---
+
+# 📄 File `image_table.py`
+
+<details>
+<summary>📖 Contents ⬇️</summary>
+
+## Contents
+
+- [🔧 Function `build_image_table_prompt`](#-function-build_image_table_prompt)
+- [🔧 Function `get_image_table_prompt_template`](#-function-get_image_table_prompt_template)
+
+</details>
+
+## 🔧 Function `build_image_table_prompt`
+
+```python
+def build_image_table_prompt(config: dict[str, Any]) -> str
+```
+
+Build BotHub prompt for extracting a styled table from an image.
+
+Raises:
+
+- `ValueError`: If the API key is not configured.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def build_image_table_prompt(config: dict[str, Any]) -> str:
+    if get_prompt_template(config, PROMPT_KEY):
+        return build_prompt(config, PROMPT_KEY, {}, prompt_display_name=PROMPT_KEY)
+    return build_prompt(
+        {**config, "prompts": {**(config.get("prompts") or {}), PROMPT_KEY: _DEFAULT_PROMPT}},
+        PROMPT_KEY,
+        {},
+        prompt_display_name=PROMPT_KEY,
+    )
+```
+
+</details>
+
+## 🔧 Function `get_image_table_prompt_template`
+
+```python
+def get_image_table_prompt_template(config: dict[str, Any]) -> str
+```
+
+Return stripped `prompts.image_table_to_excel` template, or the built-in default.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_image_table_prompt_template(config: dict[str, Any]) -> str:
+    return get_prompt_template(config, PROMPT_KEY) or _DEFAULT_PROMPT.strip()
+```
+
+</details>

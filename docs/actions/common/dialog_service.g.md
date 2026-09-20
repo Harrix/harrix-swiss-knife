@@ -40,6 +40,7 @@ lang: en
   - [⚙️ Method `show_about_dialog`](#%EF%B8%8F-method-show_about_dialog)
   - [⚙️ Method `show_action_output_log_browser`](#%EF%B8%8F-method-show_action_output_log_browser)
   - [⚙️ Method `show_action_usage_stats_browser`](#%EF%B8%8F-method-show_action_usage_stats_browser)
+  - [⚙️ Method `show_extracted_tables`](#%EF%B8%8F-method-show_extracted_tables)
   - [⚙️ Method `show_git_commit_offer`](#%EF%B8%8F-method-show_git_commit_offer)
   - [⚙️ Method `show_instructions`](#%EF%B8%8F-method-show_instructions)
   - [⚙️ Method `show_text_diff_side_by_side`](#%EF%B8%8F-method-show_text_diff_side_by_side)
@@ -1386,6 +1387,77 @@ class ActionDialogService:
         # Same sizing as food/finance/habits main windows (maximize or ~1920 wide).
         apply_app_window_size_and_position(dialog)
         dialog.exec()
+
+    def show_extracted_tables(
+        self,
+        tables: list[ExtractedTable],
+        title: str = "Table",
+        *,
+        save_default_path: str | None = None,
+        open_folder_path: Path | str | None = None,
+    ) -> None:
+        """Show recognized tables as HTML with copy-for-Excel and save-`.xlsx` actions."""
+        from harrix_swiss_knife.actions.common.image_table import (  # noqa: PLC0415
+            copy_tables_to_clipboard,
+            tables_to_html,
+            write_tables_xlsx,
+        )
+
+        folder_to_open = Path(open_folder_path) if open_folder_path is not None else None
+        html = tables_to_html(tables)
+
+        def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
+            text_browser = QTextBrowser()
+            text_browser.setOpenExternalLinks(False)
+            text_browser.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+            text_browser.setMinimumHeight(self._default_size.height() - 120)
+            text_browser.setHtml(
+                "<html><head><meta charset='utf-8'></head>"
+                "<body style='font-family:Calibri,sans-serif;font-size:11pt;'>"
+                f"{html}</body></html>"
+            )
+            layout.addWidget(text_browser)
+
+            button_layout = QHBoxLayout()
+            button_layout.addStretch(1)
+
+            def click_copy_button() -> None:
+                copy_tables_to_clipboard(tables)
+                self._show_toast("Copied to Clipboard")
+
+            add_copy_button(button_layout, click_copy_button)
+
+            def click_save_excel() -> None:
+                path = self.get_save_filename(
+                    "Save Excel",
+                    save_default_path or "",
+                    "Excel (*.xlsx)",
+                )
+                if path is None:
+                    return
+                if path.suffix == "":
+                    path = path.with_suffix(".xlsx")
+                try:
+                    write_tables_xlsx(path, tables)
+                except Exception as exc:
+                    message_box.warning(dialog, "Export Error", f"Failed to save Excel: {exc}")
+                    return
+                self._add_line(f"💾 Saved Excel: {path}")
+                self._show_toast(f"Saved: {path.name}")
+
+            add_save_excel_button(button_layout, click_save_excel)
+
+            if folder_to_open is not None:
+
+                def click_open_folder() -> None:
+                    h.file.open_file_or_folder(folder_to_open)
+
+                add_open_folder_button(button_layout, click_open_folder)
+
+            add_ok_button(dialog, button_layout)
+            layout.addLayout(button_layout)
+
+        self._exec_standard_dialog(title, _build, stretch_row=0, adaptive=False)
 
     def show_git_commit_offer(
         self,
@@ -3541,6 +3613,91 @@ def show_action_usage_stats_browser(
         # Same sizing as food/finance/habits main windows (maximize or ~1920 wide).
         apply_app_window_size_and_position(dialog)
         dialog.exec()
+```
+
+</details>
+
+### ⚙️ Method `show_extracted_tables`
+
+```python
+def show_extracted_tables(self, tables: list[ExtractedTable], title: str = 'Table', *, save_default_path: str | None = None, open_folder_path: Path | str | None = None) -> None
+```
+
+Show recognized tables as HTML with copy-for-Excel and save-`.xlsx` actions.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def show_extracted_tables(
+        self,
+        tables: list[ExtractedTable],
+        title: str = "Table",
+        *,
+        save_default_path: str | None = None,
+        open_folder_path: Path | str | None = None,
+    ) -> None:
+        from harrix_swiss_knife.actions.common.image_table import (  # noqa: PLC0415
+            copy_tables_to_clipboard,
+            tables_to_html,
+            write_tables_xlsx,
+        )
+
+        folder_to_open = Path(open_folder_path) if open_folder_path is not None else None
+        html = tables_to_html(tables)
+
+        def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
+            text_browser = QTextBrowser()
+            text_browser.setOpenExternalLinks(False)
+            text_browser.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+            text_browser.setMinimumHeight(self._default_size.height() - 120)
+            text_browser.setHtml(
+                "<html><head><meta charset='utf-8'></head>"
+                "<body style='font-family:Calibri,sans-serif;font-size:11pt;'>"
+                f"{html}</body></html>"
+            )
+            layout.addWidget(text_browser)
+
+            button_layout = QHBoxLayout()
+            button_layout.addStretch(1)
+
+            def click_copy_button() -> None:
+                copy_tables_to_clipboard(tables)
+                self._show_toast("Copied to Clipboard")
+
+            add_copy_button(button_layout, click_copy_button)
+
+            def click_save_excel() -> None:
+                path = self.get_save_filename(
+                    "Save Excel",
+                    save_default_path or "",
+                    "Excel (*.xlsx)",
+                )
+                if path is None:
+                    return
+                if path.suffix == "":
+                    path = path.with_suffix(".xlsx")
+                try:
+                    write_tables_xlsx(path, tables)
+                except Exception as exc:
+                    message_box.warning(dialog, "Export Error", f"Failed to save Excel: {exc}")
+                    return
+                self._add_line(f"💾 Saved Excel: {path}")
+                self._show_toast(f"Saved: {path.name}")
+
+            add_save_excel_button(button_layout, click_save_excel)
+
+            if folder_to_open is not None:
+
+                def click_open_folder() -> None:
+                    h.file.open_file_or_folder(folder_to_open)
+
+                add_open_folder_button(button_layout, click_open_folder)
+
+            add_ok_button(dialog, button_layout)
+            layout.addLayout(button_layout)
+
+        self._exec_standard_dialog(title, _build, stretch_row=0, adaptive=False)
 ```
 
 </details>

@@ -11,6 +11,7 @@ from harrix_swiss_knife.actions.images.optimize_dialog_replace import OnOptimize
 from harrix_swiss_knife.actions.images.optimize_quality import OnOptimizeQuality
 from harrix_swiss_knife.actions.images.optimize_resize import OnOptimizeResize
 from harrix_swiss_knife.actions.images.optimize_single_image import OnOptimizeSingleImage
+from harrix_swiss_knife.actions.images.recognize_table_with_ai import OnRecognizeTableWithAI
 from harrix_swiss_knife.actions.images.recognize_text_with_ai import OnRecognizeTextWithAI
 from harrix_swiss_knife.actions.images.recognize_text_with_ocr import OnRecognizeTextWithOcr
 from harrix_swiss_knife.actions.images.record_region import OnRecordRegion
@@ -31,6 +32,7 @@ __all__ = [
     "OnOptimizeQuality",
     "OnOptimizeResize",
     "OnOptimizeSingleImage",
+    "OnRecognizeTableWithAI",
     "OnRecognizeTextWithAI",
     "OnRecognizeTextWithOcr",
     "OnRecordRegion",
