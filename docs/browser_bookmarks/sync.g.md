@@ -11,6 +11,7 @@ lang: en
 
 ## Contents
 
+- [🏛️ Class `FolderOrder`](#%EF%B8%8F-class-folderorder)
 - [🏛️ Class `SnapshotLocation`](#%EF%B8%8F-class-snapshotlocation)
 - [🏛️ Class `SnapshotState`](#%EF%B8%8F-class-snapshotstate)
 - [🏛️ Class `SyncPlan`](#%EF%B8%8F-class-syncplan)
@@ -23,6 +24,27 @@ lang: en
 - [🔧 Function `persist_snapshot`](#-function-persist_snapshot)
 - [🔧 Function `save_snapshot`](#-function-save_snapshot)
 - [🔧 Function `save_url_snapshot`](#-function-save_url_snapshot)
+
+</details>
+
+## 🏛️ Class `FolderOrder`
+
+```python
+class FolderOrder
+```
+
+Desired child order for one folder under a bookmark root.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class FolderOrder:
+
+    root: str
+    folder_path: tuple[str, ...]
+    children: tuple[ChildRef, ...]
+```
 
 </details>
 
@@ -64,6 +86,8 @@ class SnapshotState:
     urls: set[str] = field(default_factory=set)
     chrome_locations: dict[str, SnapshotLocation] = field(default_factory=dict)
     yandex_locations: dict[str, SnapshotLocation] = field(default_factory=dict)
+    chrome_orders: dict[tuple[str, tuple[str, ...]], tuple[ChildRef, ...]] = field(default_factory=dict)
+    yandex_orders: dict[tuple[str, tuple[str, ...]], tuple[ChildRef, ...]] = field(default_factory=dict)
 ```
 
 </details>
@@ -94,6 +118,8 @@ class SyncPlan:
     delete_from_yandex: list[str] = field(default_factory=list)
     move_in_chrome: list[BookmarkEntry] = field(default_factory=list)
     move_in_yandex: list[BookmarkEntry] = field(default_factory=list)
+    reorder_in_chrome: list[FolderOrder] = field(default_factory=list)
+    reorder_in_yandex: list[FolderOrder] = field(default_factory=list)
     backup_path: Path | None = None
     browsers_running: list[str] = field(default_factory=list)
 
@@ -107,6 +133,8 @@ class SyncPlan:
             or self.delete_from_yandex
             or self.move_in_chrome
             or self.move_in_yandex
+            or self.reorder_in_chrome
+            or self.reorder_in_yandex
         )
 ```
 
@@ -132,6 +160,8 @@ def has_writes(self) -> bool:
             or self.delete_from_yandex
             or self.move_in_chrome
             or self.move_in_yandex
+            or self.reorder_in_chrome
+            or self.reorder_in_yandex
         )
 ```
 
@@ -166,6 +196,10 @@ def apply_sync_plan(plan: SyncPlan, *, create_backup: bool = True) -> list[Path]
     relocate_entries(yandex_data, plan.move_in_yandex)
     add_entries(chrome_data, plan.add_to_chrome)
     add_entries(yandex_data, plan.add_to_yandex)
+    for order in plan.reorder_in_chrome:
+        reorder_folder_children(chrome_data, order.root, order.folder_path, order.children)
+    for order in plan.reorder_in_yandex:
+        reorder_folder_children(yandex_data, order.root, order.folder_path, order.children)
 
     write_bookmarks(plan.chrome_path, chrome_data)
     write_bookmarks(plan.yandex_path, yandex_data)
@@ -224,6 +258,7 @@ def build_sync_plan(
     delete_from_yandex: list[str] = []
     move_in_chrome: list[BookmarkEntry] = []
     move_in_yandex: list[BookmarkEntry] = []
+    deleted_either: set[str] = set()
 
     if first_run:
         add_to_yandex.extend(chrome_map[url] for url in sorted(chrome_urls - yandex_urls))
@@ -250,12 +285,13 @@ def build_sync_plan(
             if url not in chrome_urls:
                 add_to_chrome.append(yandex_map[url])
 
-        move_in_chrome, move_in_yandex = _plan_folder_moves(
-            chrome_map,
-            yandex_map,
-            state,
-            deleted_either,
-        )
+    move_in_chrome, move_in_yandex = _plan_folder_moves(
+        chrome_map,
+        yandex_map,
+        state,
+        deleted_either,
+    )
+    reorder_in_chrome, reorder_in_yandex = _plan_folder_orders(chrome_data, yandex_data, state)
 
     return SyncPlan(
         chrome_path=chrome,
@@ -270,6 +306,8 @@ def build_sync_plan(
         delete_from_yandex=delete_from_yandex,
         move_in_chrome=move_in_chrome,
         move_in_yandex=move_in_yandex,
+        reorder_in_chrome=reorder_in_chrome,
+        reorder_in_yandex=reorder_in_yandex,
         browsers_running=running_browser_names(),
     )
 ```
@@ -295,7 +333,9 @@ def format_sync_report(plan: SyncPlan, *, applied: bool = False) -> str:
     del_yandex = len(plan.delete_from_yandex)
     move_chrome = len(plan.move_in_chrome)
     move_yandex = len(plan.move_in_yandex)
-    total = add_chrome + add_yandex + del_chrome + del_yandex + move_chrome + move_yandex
+    order_chrome = len(plan.reorder_in_chrome)
+    order_yandex = len(plan.reorder_in_yandex)
+    total = add_chrome + add_yandex + del_chrome + del_yandex + move_chrome + move_yandex + order_chrome + order_yandex
 
     if applied:
         lines = [
@@ -308,6 +348,8 @@ def format_sync_report(plan: SyncPlan, *, applied: bool = False) -> str:
             f"  Deleted from Yandex: {del_yandex}",
             f"  Moved in Chrome: {move_chrome}",
             f"  Moved in Yandex: {move_yandex}",
+            f"  Reordered in Chrome: {order_chrome}",
+            f"  Reordered in Yandex: {order_yandex}",
             f"  Total bookmark changes: {total}",
             "",
         ]
@@ -326,13 +368,15 @@ def format_sync_report(plan: SyncPlan, *, applied: bool = False) -> str:
         f"  Will delete from Yandex: {del_yandex}",
         f"  Will move in Chrome: {move_chrome}",
         f"  Will move in Yandex: {move_yandex}",
+        f"  Will reorder in Chrome: {order_chrome}",
+        f"  Will reorder in Yandex: {order_yandex}",
         f"  Total bookmark changes: {total}",
         "",
     ]
     if plan.first_run:
-        lines.append("Mode: first sync — merge only, no deletions.")
+        lines.append("Mode: first sync — merge missing URLs, then align folders and order.")
     else:
-        lines.append("Mode: sync with additions, deletions, and folder moves (from snapshot).")
+        lines.append("Mode: sync additions, deletions, folder moves, and child order.")
     lines.append("")
 
     if plan.browsers_running:
@@ -366,6 +410,14 @@ def format_sync_report(plan: SyncPlan, *, applied: bool = False) -> str:
     if move_yandex:
         lines.append(f"Move in Yandex ({move_yandex}):")
         lines.extend(_format_entry_lines(plan.move_in_yandex))
+        lines.append("")
+    if order_chrome:
+        lines.append(f"Reorder in Chrome ({order_chrome}):")
+        lines.extend(_format_order_lines(plan.reorder_in_chrome))
+        lines.append("")
+    if order_yandex:
+        lines.append(f"Reorder in Yandex ({order_yandex}):")
+        lines.extend(_format_order_lines(plan.reorder_in_yandex))
         lines.append("")
 
     if not plan.has_writes:
@@ -402,7 +454,7 @@ def load_snapshot(path: Path | None = None) -> set[str]:
 def load_snapshot_state(path: Path | None = None) -> SnapshotState
 ```
 
-Load snapshot URLs and per-browser folder locations (v1 or v2).
+Load snapshot URLs, folder locations, and child orders (v1 — v3).
 
 <details>
 <summary>Code:</summary>
@@ -417,7 +469,7 @@ def load_snapshot_state(path: Path | None = None) -> SnapshotState:
         return SnapshotState()
     bookmarks = raw.get("bookmarks")
     if isinstance(bookmarks, dict):
-        return _snapshot_state_from_v2(bookmarks)
+        return _snapshot_state_from_v2(bookmarks, raw.get("orders"))
     urls_raw = raw.get("urls")
     if not isinstance(urls_raw, list):
         return SnapshotState()
@@ -433,7 +485,7 @@ def load_snapshot_state(path: Path | None = None) -> SnapshotState:
 def persist_snapshot(plan: SyncPlan) -> Path
 ```
 
-Write a v2 snapshot from the current in-memory bookmark trees.
+Write a v3 snapshot from the current in-memory bookmark trees.
 
 <details>
 <summary>Code:</summary>
@@ -444,6 +496,8 @@ def persist_snapshot(plan: SyncPlan) -> Path:
         flatten_bookmarks(plan.chrome_data),
         flatten_bookmarks(plan.yandex_data),
         plan.snapshot_file,
+        chrome_orders=collect_folder_orders(plan.chrome_data),
+        yandex_orders=collect_folder_orders(plan.yandex_data),
     )
 ```
 
@@ -452,10 +506,10 @@ def persist_snapshot(plan: SyncPlan) -> Path:
 ## 🔧 Function `save_snapshot`
 
 ```python
-def save_snapshot(chrome_map: dict[str, BookmarkEntry], yandex_map: dict[str, BookmarkEntry], path: Path | None = None) -> Path
+def save_snapshot(chrome_map: dict[str, BookmarkEntry], yandex_map: dict[str, BookmarkEntry], path: Path | None = None, *, chrome_orders: dict[tuple[str, tuple[str, ...]], list[ChildRef]] | None = None, yandex_orders: dict[tuple[str, tuple[str, ...]], list[ChildRef]] | None = None) -> Path
 ```
 
-Write the v2 sync snapshot with per-browser folder locations.
+Write the v3 sync snapshot with per-browser folder locations and orders.
 
 <details>
 <summary>Code:</summary>
@@ -465,6 +519,9 @@ def save_snapshot(
     chrome_map: dict[str, BookmarkEntry],
     yandex_map: dict[str, BookmarkEntry],
     path: Path | None = None,
+    *,
+    chrome_orders: dict[tuple[str, tuple[str, ...]], list[ChildRef]] | None = None,
+    yandex_orders: dict[tuple[str, tuple[str, ...]], list[ChildRef]] | None = None,
 ) -> Path:
     snap = path if path is not None else snapshot_path()
     snap.parent.mkdir(parents=True, exist_ok=True)
@@ -481,6 +538,10 @@ def save_snapshot(
         "version": _SNAPSHOT_VERSION,
         "updated_at": datetime.now(UTC).isoformat(),
         "bookmarks": bookmarks,
+        "orders": {
+            "chrome": _orders_payload(chrome_orders or {}),
+            "yandex": _orders_payload(yandex_orders or {}),
+        },
     }
     snap.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return snap
@@ -508,6 +569,7 @@ def save_url_snapshot(urls: set[str], path: Path | None = None) -> Path:
         "version": _SNAPSHOT_VERSION,
         "updated_at": datetime.now(UTC).isoformat(),
         "bookmarks": bookmarks,
+        "orders": {"chrome": [], "yandex": []},
     }
     snap.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return snap

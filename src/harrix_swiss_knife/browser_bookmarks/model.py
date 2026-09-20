@@ -8,9 +8,10 @@ import json
 import time
 import uuid
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from pathlib import Path
 
 ROOT_KEYS = ("bookmark_bar", "other", "synced")
@@ -25,6 +26,14 @@ class BookmarkEntry:
     root: str
     folder_path: tuple[str, ...]
     date_modified: str = ""
+
+
+@dataclass(frozen=True, slots=True)
+class ChildRef:
+    """One child of a bookmark folder: a URL or a named subfolder."""
+
+    kind: Literal["url", "folder"]
+    value: str
 
 
 def add_entries(data: dict[str, Any], entries: list[BookmarkEntry]) -> int:
@@ -56,6 +65,42 @@ def chromium_now() -> str:
     return str(int(time.time() * 1_000_000) + 11_644_473_600_000_000)
 
 
+def collect_folder_orders(data: dict[str, Any]) -> dict[tuple[str, tuple[str, ...]], list[ChildRef]]:
+    """Map each folder to its child URL/folder refs in display order."""
+    roots = data.get("roots")
+    if not isinstance(roots, dict):
+        return {}
+    result: dict[tuple[str, tuple[str, ...]], list[ChildRef]] = {}
+    for root_key in ROOT_KEYS:
+        node = roots.get(root_key)
+        if isinstance(node, dict):
+            _collect_folder_orders(node, root_key, (), result)
+    return result
+
+
+def find_folder(data: dict[str, Any], root: str, folder_path: tuple[str, ...]) -> dict[str, Any] | None:
+    """Return the folder node at `root` / `folder_path`, or `None`."""
+    roots = data.get("roots")
+    if not isinstance(roots, dict):
+        return None
+    current = roots.get(root if root in ROOT_KEYS else "bookmark_bar")
+    if not isinstance(current, dict):
+        return None
+    for part in folder_path:
+        children = current.get("children")
+        if not isinstance(children, list):
+            return None
+        found: dict[str, Any] | None = None
+        for child in children:
+            if isinstance(child, dict) and child.get("type") == "folder" and child.get("name") == part:
+                found = child
+                break
+        if found is None:
+            return None
+        current = found
+    return current
+
+
 def flatten_bookmarks(data: dict[str, Any]) -> dict[str, BookmarkEntry]:
     """Map normalized URL → first occurrence in the tree."""
     roots = data.get("roots")
@@ -68,6 +113,14 @@ def flatten_bookmarks(data: dict[str, Any]) -> dict[str, BookmarkEntry]:
             continue
         _walk(node, root_key, (), result, _node_date_modified(node))
     return result
+
+
+def folder_date_modified(data: dict[str, Any], root: str, folder_path: tuple[str, ...]) -> str:
+    """Return Chromium `date_modified` for a folder, or `''` if missing."""
+    folder = find_folder(data, root, folder_path)
+    if folder is None:
+        return ""
+    return _node_date_modified(folder)
 
 
 def load_bookmarks(path: Path) -> dict[str, Any]:
@@ -135,6 +188,38 @@ def remove_urls(data: dict[str, Any], urls: set[str]) -> int:
     return removed
 
 
+def reorder_folder_children(
+    data: dict[str, Any],
+    root: str,
+    folder_path: tuple[str, ...],
+    desired: Sequence[ChildRef],
+) -> bool:
+    """Reorder a folder's children to match `desired`. Return whether the list changed.
+
+    Children not mentioned in `desired` stay after the matched ones, in the same
+    relative order. Unknown node types are kept with those leftovers.
+
+    """
+    folder = find_folder(data, root, folder_path)
+    if folder is None:
+        return False
+    children = folder.get("children")
+    if not isinstance(children, list):
+        return False
+    unused = list(children)
+    new_children: list[Any] = []
+    for ref in desired:
+        match = _take_child_ref(unused, ref)
+        if match is not None:
+            new_children.append(match)
+    new_children.extend(unused)
+    if new_children == children:
+        return False
+    folder["children"] = new_children
+    folder["date_modified"] = chromium_now()
+    return True
+
+
 def write_bookmarks(path: Path, data: dict[str, Any]) -> None:
     """Write Bookmarks JSON with a refreshed checksum (atomic replace)."""
     payload = copy.deepcopy(data)
@@ -161,6 +246,44 @@ def _apply_url_title(data: dict[str, Any], url_key: str, name: str) -> bool:
     node["name"] = name
     node["date_modified"] = chromium_now()
     return True
+
+
+def _child_ref_of(node: dict[str, Any]) -> ChildRef | None:
+    node_type = node.get("type")
+    if node_type == "url":
+        url = node.get("url")
+        if isinstance(url, str) and url.strip():
+            return ChildRef("url", normalize_url(url))
+        return None
+    if node_type == "folder":
+        name = node.get("name")
+        return ChildRef("folder", name if isinstance(name, str) else "")
+    return None
+
+
+def _collect_folder_orders(
+    node: dict[str, Any],
+    root: str,
+    folder_path: tuple[str, ...],
+    out: dict[tuple[str, tuple[str, ...]], list[ChildRef]],
+) -> None:
+    children = node.get("children")
+    if not isinstance(children, list):
+        return
+    refs: list[ChildRef] = []
+    for child in children:
+        if not isinstance(child, dict):
+            continue
+        ref = _child_ref_of(child)
+        if ref is not None:
+            refs.append(ref)
+    out[(root, folder_path)] = refs
+    for child in children:
+        if not isinstance(child, dict) or child.get("type") != "folder":
+            continue
+        name = child.get("name")
+        label = name if isinstance(name, str) else ""
+        _collect_folder_orders(child, root, (*folder_path, label), out)
 
 
 def _ensure_folder(
@@ -364,6 +487,16 @@ def _remove_from_children(folder: dict[str, Any], urls: set[str]) -> int:
         kept.append(child)
     folder["children"] = kept
     return removed
+
+
+def _take_child_ref(unused: list[Any], ref: ChildRef) -> dict[str, Any] | None:
+    for index, child in enumerate(unused):
+        if not isinstance(child, dict):
+            continue
+        current = _child_ref_of(child)
+        if current == ref:
+            return unused.pop(index)
+    return None
 
 
 def _walk(

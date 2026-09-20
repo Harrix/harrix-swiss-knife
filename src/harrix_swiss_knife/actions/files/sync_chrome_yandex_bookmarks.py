@@ -26,12 +26,12 @@ from harrix_swiss_knife.qt_lucide_icon import CANCEL_BUTTON_ICON
 class OnSyncChromeYandexBookmarks(ActionBase):
     """Bidirectional Chrome ↔ Yandex bookmark sync with a deletion-aware snapshot.
 
-    First run merges missing URLs both ways without deletions or folder moves.
-    Later runs use a LocalAppData snapshot so deletes, folder moves, and title
-    changes propagate. If one browser later restores an old layout for many
-    URLs (account sync), the next run puts those bookmarks back instead of
-    undoing the other side. Preview shows Cancel / Apply; browsers must be
-    closed before Apply.
+    First run merges missing URLs and aligns folders, titles, and child order
+    so both bars match. Later runs use a LocalAppData snapshot so deletes,
+    folder moves, titles, and order propagate. A leftover mismatch that the
+    snapshot already recorded still converges (Yandex flattened `T/` folders
+    follow Chrome's deeper path). Preview shows Cancel / Apply; browsers must
+    be closed before Apply.
 
     """
 

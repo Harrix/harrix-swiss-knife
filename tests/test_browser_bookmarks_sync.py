@@ -13,9 +13,11 @@ from harrix_swiss_knife.actions.common.quick_launcher_registry import iter_menu_
 from harrix_swiss_knife.actions.files.sync_chrome_yandex_bookmarks import OnSyncChromeYandexBookmarks
 from harrix_swiss_knife.browser_bookmarks.model import (
     BookmarkEntry,
+    ChildRef,
     flatten_bookmarks,
     load_bookmarks,
     relocate_entries,
+    reorder_folder_children,
     write_bookmarks,
 )
 from harrix_swiss_knife.browser_bookmarks.sync import (
@@ -175,7 +177,7 @@ def test_first_run_merge_only(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -
     assert [item.url for item in plan.add_to_chrome] == ["https://b.example/"]
     assert [item.url for item in plan.add_to_yandex] == [_URL_A]
     report = format_sync_report(plan)
-    assert "merge only" in report.casefold()
+    assert "align folders and order" in report.casefold()
     assert "Status: preview" in report
     assert "Total bookmark changes:" in report
     apply_sync_plan(plan, create_backup=False)
@@ -183,7 +185,7 @@ def test_first_run_merge_only(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -
     assert "Status: applied" in done
     assert "Copied to Chrome" in done
     assert "Moved in Chrome" in done
-    assert "Total bookmark changes: 2" in done
+    assert "Total bookmark changes:" in done
     chrome_urls = set(flatten_bookmarks(load_bookmarks(chrome)))
     yandex_urls = set(flatten_bookmarks(load_bookmarks(yandex)))
     assert chrome_urls == yandex_urls == {_URL_A, "https://b.example/"}
@@ -261,7 +263,7 @@ def test_action_in_file_operations_menu() -> None:
     assert OnSyncChromeYandexBookmarks in list(iter_menu_structure(get_menu_structure()))
 
 
-def test_first_run_does_not_relocate_existing_url(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_first_run_converges_folder_location(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("harrix_swiss_knife.browser_bookmarks.sync.running_browser_names", list)
     chrome, yandex = _write_trees(
         tmp_path,
@@ -272,8 +274,10 @@ def test_first_run_does_not_relocate_existing_url(tmp_path: Path, monkeypatch: p
     plan = build_sync_plan(chrome_path=chrome, yandex_path=yandex, snapshot_file=snap)
     assert plan.first_run
     assert plan.move_in_chrome == []
-    assert plan.move_in_yandex == []
-    assert not plan.has_writes
+    assert [item.url for item in plan.move_in_yandex] == [_URL_A]
+    assert plan.move_in_yandex[0].folder_path == ("Work",)
+    apply_sync_plan(plan, create_backup=False)
+    assert flatten_bookmarks(load_bookmarks(yandex))[_URL_A].folder_path == ("Work",)
 
 
 def test_folder_move_propagates_from_chrome(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -405,12 +409,13 @@ def test_v1_snapshot_does_not_guess_folder_moves(tmp_path: Path, monkeypatch: py
     plan = build_sync_plan(chrome_path=chrome, yandex_path=yandex, snapshot_file=snap)
     assert not plan.first_run
     assert plan.move_in_chrome == []
-    assert plan.move_in_yandex == []
+    assert [item.url for item in plan.move_in_yandex] == [_URL_A]
+    assert plan.move_in_yandex[0].folder_path == ("Work",)
     apply_sync_plan(plan, create_backup=False)
     raw = json.loads(snap.read_text(encoding="utf-8"))
-    assert raw["version"] == 2
+    assert raw["version"] == 3
     assert raw["bookmarks"][_URL_A]["chrome"]["folder_path"] == ["Work"]
-    assert raw["bookmarks"][_URL_A]["yandex"]["folder_path"] == ["Archive"]
+    assert raw["bookmarks"][_URL_A]["yandex"]["folder_path"] == ["Work"]
     later = build_sync_plan(chrome_path=chrome, yandex_path=yandex, snapshot_file=snap)
     assert later.move_in_chrome == []
     assert later.move_in_yandex == []
@@ -514,3 +519,55 @@ def test_relocate_updates_title_in_place() -> None:
     node = _find_url_node(data, _URL_A)
     assert node is not None
     assert node["name"] == "New title"
+
+
+def test_stale_snapshot_divergence_still_converges(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("harrix_swiss_knife.browser_bookmarks.sync.running_browser_names", list)
+    chrome, yandex = _write_trees(
+        tmp_path,
+        _tree_with_url("A", _URL_A, ("T", "Programming")),
+        _tree_with_url("A", _URL_A, ("T",)),
+    )
+    snap = tmp_path / "snap.json"
+    save_snapshot(
+        flatten_bookmarks(load_bookmarks(chrome)),
+        flatten_bookmarks(load_bookmarks(yandex)),
+        snap,
+    )
+    plan = build_sync_plan(chrome_path=chrome, yandex_path=yandex, snapshot_file=snap)
+    assert not plan.first_run
+    assert [item.url for item in plan.move_in_yandex] == [_URL_A]
+    assert plan.move_in_yandex[0].folder_path == ("T", "Programming")
+    apply_sync_plan(plan, create_backup=False)
+    assert flatten_bookmarks(load_bookmarks(yandex))[_URL_A].folder_path == ("T", "Programming")
+
+
+def test_bookmark_bar_order_syncs_to_chrome(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("harrix_swiss_knife.browser_bookmarks.sync.running_browser_names", list)
+    chrome, yandex = _write_pair(
+        tmp_path,
+        [("A", _URL_A), ("Keep", _URL_KEEP)],
+        [("Keep", _URL_KEEP), ("A", _URL_A)],
+    )
+    snap = tmp_path / "snap.json"
+    plan = build_sync_plan(chrome_path=chrome, yandex_path=yandex, snapshot_file=snap)
+    assert plan.reorder_in_chrome == []
+    assert plan.reorder_in_yandex
+    assert plan.reorder_in_yandex[0].root == "bookmark_bar"
+    assert [child.value for child in plan.reorder_in_yandex[0].children] == [_URL_A, _URL_KEEP]
+    apply_sync_plan(plan, create_backup=False)
+    yandex_bar = load_bookmarks(yandex)["roots"]["bookmark_bar"]["children"]
+    assert [item["url"] for item in yandex_bar if item.get("type") == "url"] == [_URL_A, _URL_KEEP]
+
+
+def test_reorder_preserves_extra_children() -> None:
+    data = _minimal_bookmarks(("A", _URL_A), ("Keep", _URL_KEEP), ("X", _URL_X))
+    changed = reorder_folder_children(
+        data,
+        "bookmark_bar",
+        (),
+        [ChildRef("url", _URL_KEEP), ChildRef("url", _URL_A)],
+    )
+    assert changed
+    urls = [item["url"] for item in data["roots"]["bookmark_bar"]["children"] if item.get("type") == "url"]
+    assert urls == [_URL_KEEP, _URL_A, _URL_X]
