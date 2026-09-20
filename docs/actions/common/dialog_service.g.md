@@ -1625,16 +1625,11 @@ class ActionDialogService:
 
         def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
             nonlocal current_text
-            text_edit = QPlainTextEdit()
-            text_edit.setPlainText(current_text)
-            text_edit.setReadOnly(True)
+            text_edit = ResultTextBrowser()
+            text_edit.set_plain_result(current_text)
             text_edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
             text_edit.setMinimumHeight(self._default_size.height() - 120)
             text_edit.moveCursor(QTextCursor.MoveOperation.End)
-
-            font = QFont()
-            font.setPointSize(9)
-            text_edit.setFont(font)
 
             layout.addWidget(text_edit)
 
@@ -1649,7 +1644,7 @@ class ActionDialogService:
             button_layout.addStretch(1)
 
             def click_copy_button() -> None:
-                QGuiApplication.clipboard().setText(text_edit.toPlainText())
+                QGuiApplication.clipboard().setText(current_text)
                 self._show_toast("Copied to Clipboard")
 
             add_copy_button(button_layout, click_copy_button)
@@ -1686,7 +1681,7 @@ class ActionDialogService:
             def on_remove_paragraphs() -> None:
                 nonlocal current_text
                 current_text = collapse_text_to_single_line(text_edit.toPlainText())
-                text_edit.setPlainText(current_text)
+                text_edit.set_plain_result(current_text)
                 QGuiApplication.clipboard().setText(current_text)
                 self._show_toast("Converted to single line")
                 if remove_paragraphs_btn is not None:
@@ -3921,16 +3916,11 @@ def show_text_multiline(
 
         def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
             nonlocal current_text
-            text_edit = QPlainTextEdit()
-            text_edit.setPlainText(current_text)
-            text_edit.setReadOnly(True)
+            text_edit = ResultTextBrowser()
+            text_edit.set_plain_result(current_text)
             text_edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
             text_edit.setMinimumHeight(self._default_size.height() - 120)
             text_edit.moveCursor(QTextCursor.MoveOperation.End)
-
-            font = QFont()
-            font.setPointSize(9)
-            text_edit.setFont(font)
 
             layout.addWidget(text_edit)
 
@@ -3945,7 +3935,7 @@ def show_text_multiline(
             button_layout.addStretch(1)
 
             def click_copy_button() -> None:
-                QGuiApplication.clipboard().setText(text_edit.toPlainText())
+                QGuiApplication.clipboard().setText(current_text)
                 self._show_toast("Copied to Clipboard")
 
             add_copy_button(button_layout, click_copy_button)
@@ -3982,7 +3972,7 @@ def show_text_multiline(
             def on_remove_paragraphs() -> None:
                 nonlocal current_text
                 current_text = collapse_text_to_single_line(text_edit.toPlainText())
-                text_edit.setPlainText(current_text)
+                text_edit.set_plain_result(current_text)
                 QGuiApplication.clipboard().setText(current_text)
                 self._show_toast("Converted to single line")
                 if remove_paragraphs_btn is not None:
