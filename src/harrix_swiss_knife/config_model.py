@@ -41,6 +41,7 @@ class AiSettings(TypedDict, total=False):
     provider: str
     speech_provider: str
     max_image_side: int
+    image_table_model: NotRequired[str]
     proxy: str
 
 

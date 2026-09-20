@@ -30,6 +30,7 @@ from harrix_swiss_knife.integrations.bothub.image_ocr_translate import (
 )
 from harrix_swiss_knife.integrations.bothub.image_table import (
     build_image_table_prompt,
+    get_image_table_model,
     get_image_table_prompt_template,
 )
 from harrix_swiss_knife.integrations.bothub.prompts import build_prompt, get_prompt_template
@@ -89,6 +90,7 @@ __all__ = [
     "get_connection_params",
     "get_image_ocr_prompt_template",
     "get_image_ocr_translate_prompt_template",
+    "get_image_table_model",
     "get_image_table_prompt_template",
     "get_max_image_side",
     "get_prompt_template",

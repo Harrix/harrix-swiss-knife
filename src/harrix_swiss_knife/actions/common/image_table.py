@@ -250,7 +250,7 @@ def _cell_from_mapping(raw: dict[str, Any], *, header: bool = False) -> TableCel
     )
 
 
-def _cell_html(cell: TableCell) -> str:
+def _cell_html(cell: TableCell, *, colspan: int | None = None, rowspan: int | None = None) -> str:
     styles = [
         "border:1px solid #b0b0b0",
         "padding:4px 8px",
@@ -263,11 +263,13 @@ def _cell_html(cell: TableCell) -> str:
         styles.append(f"color:{cell.color}")
     if cell.bold:
         styles.append("font-weight:bold")
+    span_cols = colspan if colspan is not None else cell.colspan
+    span_rows = rowspan if rowspan is not None else cell.rowspan
     span = ""
-    if cell.colspan > 1:
-        span += f' colspan="{cell.colspan}"'
-    if cell.rowspan > 1:
-        span += f' rowspan="{cell.rowspan}"'
+    if span_cols > 1:
+        span += f' colspan="{span_cols}"'
+    if span_rows > 1:
+        span += f' rowspan="{span_rows}"'
     tag = "th" if cell.bold else "td"
     return f'<{tag}{span} style="{";".join(styles)}">{escape(cell.text)}</{tag}>'
 
@@ -429,12 +431,20 @@ def _is_origin(grid: list[list[TableCell | None]], row: int, col: int, cell: Tab
     return not (col > 0 and grid[row][col - 1] is cell)
 
 
+def _is_rowspan_continuation(grid: list[list[TableCell | None]], row: int, col: int) -> bool:
+    if row <= 0 or col >= len(grid[row]):
+        return False
+    cell = grid[row][col]
+    if cell is None:
+        return False
+    return col < len(grid[row - 1]) and grid[row - 1][col] is cell
+
+
 def _layout_table(
     table: ExtractedTable,
 ) -> tuple[list[list[TableCell | None]], list[tuple[int, int, int, int]]]:
     column_count = max(table.column_count, 1)
     grid: list[list[TableCell | None]] = []
-    merges: list[tuple[int, int, int, int]] = []
 
     def pad(row: list[TableCell | None]) -> None:
         if len(row) < column_count:
@@ -454,6 +464,20 @@ def _layout_table(
         for row in grid:
             row.extend([None] * extra)
 
+    def insert_column(at: int, *, stretch_before_row: int) -> None:
+        nonlocal column_count
+        column_count += 1
+        for row_i, row in enumerate(grid):
+            row.insert(at, None)
+            if row_i < stretch_before_row and at > 0 and row[at - 1] is not None:
+                row[at] = row[at - 1]
+
+    def first_continuation(row_index: int, start: int = 0) -> int | None:
+        return next(
+            (col for col in range(start, column_count) if _is_rowspan_continuation(grid, row_index, col)),
+            None,
+        )
+
     for source_row in table.rows:
         row_index = 0
         while True:
@@ -466,18 +490,30 @@ def _layout_table(
             pad(grid[row_index])
             while col_index < column_count and grid[row_index][col_index] is not None:
                 col_index += 1
+            if col_index >= column_count:
+                sidebar = first_continuation(row_index)
+                if sidebar is not None:
+                    insert_column(sidebar, stretch_before_row=row_index)
+                    col_index = sidebar
+                else:
+                    expand_columns(col_index + cell.colspan)
             end_col = col_index + cell.colspan
+            if end_col > column_count:
+                sidebar = first_continuation(row_index, col_index)
+                if sidebar is not None:
+                    for _ in range(end_col - column_count):
+                        insert_column(sidebar, stretch_before_row=row_index)
+                    end_col = col_index + cell.colspan
+                else:
+                    expand_columns(end_col)
             end_row = row_index + cell.rowspan
-            expand_columns(end_col)
             for fill_row in range(row_index, end_row):
                 ensure_row(fill_row)
                 pad(grid[fill_row])
                 for fill_col in range(col_index, end_col):
                     grid[fill_row][fill_col] = cell
-            if cell.rowspan > 1 or cell.colspan > 1:
-                merges.append((row_index, col_index, end_row - 1, end_col - 1))
             col_index = end_col
-    return grid, merges
+    return grid, _merges_from_grid(grid)
 
 
 def _merge_cells_xml(merges: list[tuple[int, int, int, int]], *, start_row: int) -> str:
@@ -489,6 +525,18 @@ def _merge_cells_xml(merges: list[tuple[int, int, int, int]], *, start_row: int)
         excel_end = start_row + end_r
         refs.append(f'<mergeCell ref="{column_letters(start_c)}{excel_start}:{column_letters(end_c)}{excel_end}"/>')
     return f'<mergeCells count="{len(refs)}">{"".join(refs)}</mergeCells>'
+
+
+def _merges_from_grid(grid: list[list[TableCell | None]]) -> list[tuple[int, int, int, int]]:
+    merges: list[tuple[int, int, int, int]] = []
+    for row, cells in enumerate(grid):
+        for col, cell in enumerate(cells):
+            if cell is None or not _is_origin(grid, row, col, cell):
+                continue
+            rowspan, colspan = _span_from_grid(grid, row, col, cell)
+            if rowspan > 1 or colspan > 1:
+                merges.append((row, col, row + rowspan - 1, col + colspan - 1))
+    return merges
 
 
 def _normalize_color(value: object) -> str | None:
@@ -510,7 +558,7 @@ def _row_width(row: list[TableCell]) -> int:
 
 def _sheet_xml(table: ExtractedTable, book: _StyleBook) -> str:
     grid, merges = _layout_table(table)
-    column_count = max(table.column_count, 1)
+    column_count = max((len(row) for row in grid), default=max(table.column_count, 1))
     start_row = 1
     xml_rows: list[str] = []
     excel_merges = list(merges)
@@ -550,7 +598,19 @@ def _sheet_xml(table: ExtractedTable, book: _StyleBook) -> str:
     )
 
 
+def _span_from_grid(grid: list[list[TableCell | None]], row: int, col: int, cell: TableCell) -> tuple[int, int]:
+    colspan = 1
+    while col + colspan < len(grid[row]) and grid[row][col + colspan] is cell:
+        colspan += 1
+    rowspan = 1
+    while row + rowspan < len(grid) and col < len(grid[row + rowspan]) and grid[row + rowspan][col] is cell:
+        rowspan += 1
+    return rowspan, colspan
+
+
 def _table_html(table: ExtractedTable) -> str:
+    grid, _merges = _layout_table(table)
+    column_count = max((len(row) for row in grid), default=max(table.column_count, 1))
     parts = [
         (
             '<table cellspacing="0" cellpadding="0" '
@@ -558,14 +618,17 @@ def _table_html(table: ExtractedTable) -> str:
         )
     ]
     if table.title:
-        span = max(table.column_count, 1)
         parts.append(
-            f'<tr><td colspan="{span}" style="font-weight:bold;padding:6px 8px;text-align:left;">'
+            f'<tr><td colspan="{column_count}" style="font-weight:bold;padding:6px 8px;text-align:left;">'
             f"{escape(table.title)}</td></tr>"
         )
-    for row in table.rows:
+    for row_index, cells in enumerate(grid):
         parts.append("<tr>")
-        parts.extend(_cell_html(cell) for cell in row)
+        for col_index, cell in enumerate(cells):
+            if cell is None or not _is_origin(grid, row_index, col_index, cell):
+                continue
+            rowspan, colspan = _span_from_grid(grid, row_index, col_index, cell)
+            parts.append(_cell_html(cell, colspan=colspan, rowspan=rowspan))
         parts.append("</tr>")
     parts.append("</table>")
     return "".join(parts)

@@ -10,6 +10,7 @@ from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife.actions.common.image_table import (
+    _layout_table,
     copy_tables_to_clipboard,
     parse_tables_response,
     suggest_xlsx_filename,
@@ -18,7 +19,9 @@ from harrix_swiss_knife.actions.common.image_table import (
     write_tables_xlsx,
 )
 from harrix_swiss_knife.integrations.bothub.image_table import (
+    DEFAULT_IMAGE_TABLE_MODEL,
     build_image_table_prompt,
+    get_image_table_model,
     get_image_table_prompt_template,
 )
 
@@ -113,6 +116,37 @@ def test_suggest_xlsx_filename_uses_title(tmp_path: Path) -> None:
     image = tmp_path / "shot.png"
     assert suggest_xlsx_filename([image], tables).endswith(".xlsx")
     assert "Ответственный" in suggest_xlsx_filename([image], tables)
+
+
+def test_layout_inserts_columns_before_sidebar_rowspan() -> None:
+    tables = parse_tables_response(
+        """
+{
+  "title": "",
+  "rows": [
+    {"cells": [
+      {"text": "Left header", "colspan": 2, "bold": true},
+      {"text": "Sidebar", "rowspan": 3, "fill": "#5B8DB8"}
+    ]},
+    {"cells": [{"text": "A"}, {"text": "B"}]},
+    {"cells": [{"text": "C"}, {"text": "D"}, {"text": "E"}]}
+  ]
+}
+"""
+    )
+    grid, _merges = _layout_table(tables[0])
+    texts = [[cell.text if cell is not None else None for cell in row] for row in grid]
+    assert all(row[-1] == "Sidebar" for row in texts)
+    assert texts[-1][:3] == ["C", "D", "E"]
+    html = tables_to_html(tables)
+    assert html.count("Sidebar") == 1
+    assert 'rowspan="3"' in html
+
+
+def test_get_image_table_model_defaults_to_gpt_5_6() -> None:
+    assert get_image_table_model({}) == DEFAULT_IMAGE_TABLE_MODEL
+    assert get_image_table_model({"ai": {"image_table_model": "gpt-5.6"}}) == "gpt-5.6"
+    assert get_image_table_model({"ai": {"provider": "openrouter"}}) == f"openai/{DEFAULT_IMAGE_TABLE_MODEL}"
 
 
 def test_get_image_table_prompt_template_falls_back_to_default() -> None:

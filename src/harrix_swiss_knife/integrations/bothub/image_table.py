@@ -4,19 +4,24 @@ from __future__ import annotations
 
 from typing import Any
 
+from harrix_swiss_knife.integrations.ai.config import get_chat_provider
 from harrix_swiss_knife.integrations.bothub.prompts import build_prompt, get_prompt_template
 
 PROMPT_KEY = "image_table_to_excel"
+DEFAULT_IMAGE_TABLE_MODEL = "gpt-5.6"
+IMAGE_TABLE_MODEL_KEY = "image_table_model"
 
-_DEFAULT_PROMPT = """You extract tables from a screenshot or photo of a table.
+_DEFAULT_PROMPT = """You extract tables from a screenshot or photo.
 
 Return JSON only. No markdown fences, comments, or extra text.
+
+Build one rectangular HTML table. Every row covers the same `column_count`.
 
 Schema:
 
 {
   "title": "Caption above the table, or empty string",
-  "columns": [{"width": 24}],
+  "column_count": 4,
   "rows": [
     {
       "cells": [
@@ -34,16 +39,24 @@ Schema:
   ]
 }
 
-Rules:
+Grid rules:
 
-- Reproduce every visible header and data cell. Keep the original language.
-- Use HTML-style cells: include a cell only at the top-left of a merged range; set colspan/rowspan.
+- Choose `column_count` first so the whole screenshot fits one rectangle, including side panels.
+- Emit a cell only at the top-left of its merged range.
+  Never output a cell in a slot already covered by an earlier rowspan or colspan.
+- New cells in a row plus already-occupied slots must add up to `column_count`.
+- A sidebar or right-hand panel beside several stacked blocks is one cell:
+  put it on the first of those rows, in the last columns, with rowspan equal to every row it covers.
+- Nested sections (a header bar, then a 2-column block, then a 3-column block)
+  still share the same `column_count`. Narrower blocks use colspan on the left.
+  They must not push extra cells past the sidebar.
+- A section header that sits only over the left stack uses colspan = left width;
+  the sidebar continues in the remaining columns.
 - fill and color are #RRGGBB from the screenshot (header bars, zebra rows, white cells).
 - bold is true for header cells and other visually bold text.
 - align is left, center, or right.
-- columns.width is optional Excel character width; omit the array if unsure.
-- The word false, emails, phones, and codes stay as text, not booleans.
-- If several tables are visible, return {"tables": [ { ... }, { ... } ] } using the same per-table schema.
+- Keep the original language. The word false, emails, phones, and codes stay as text, not booleans.
+- If several disconnected tables are visible, return {"tables": [ { ... }, { ... } ] }.
 - If there is no table, return {"title": "", "rows": []}.
 """
 
@@ -64,6 +77,19 @@ def build_image_table_prompt(config: dict[str, Any]) -> str:
         {},
         prompt_display_name=PROMPT_KEY,
     )
+
+
+def get_image_table_model(config: dict[str, Any]) -> str:
+    """Return the chat model for table extraction (`ai.image_table_model`, else GPT-5.6)."""
+    ai_cfg = config.get("ai")
+    model = DEFAULT_IMAGE_TABLE_MODEL
+    if isinstance(ai_cfg, dict):
+        raw = str(ai_cfg.get(IMAGE_TABLE_MODEL_KEY) or "").strip()
+        if raw:
+            model = raw
+    if get_chat_provider(config) == "openrouter" and "/" not in model:
+        return f"openai/{model}"
+    return model
 
 
 def get_image_table_prompt_template(config: dict[str, Any]) -> str:

@@ -12,6 +12,7 @@ lang: en
 ## Contents
 
 - [🔧 Function `build_image_table_prompt`](#-function-build_image_table_prompt)
+- [🔧 Function `get_image_table_model`](#-function-get_image_table_model)
 - [🔧 Function `get_image_table_prompt_template`](#-function-get_image_table_prompt_template)
 
 </details>
@@ -41,6 +42,32 @@ def build_image_table_prompt(config: dict[str, Any]) -> str:
         {},
         prompt_display_name=PROMPT_KEY,
     )
+```
+
+</details>
+
+## 🔧 Function `get_image_table_model`
+
+```python
+def get_image_table_model(config: dict[str, Any]) -> str
+```
+
+Return the chat model for table extraction (`ai.image_table_model`, else GPT-5.6).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_image_table_model(config: dict[str, Any]) -> str:
+    ai_cfg = config.get("ai")
+    model = DEFAULT_IMAGE_TABLE_MODEL
+    if isinstance(ai_cfg, dict):
+        raw = str(ai_cfg.get(IMAGE_TABLE_MODEL_KEY) or "").strip()
+        if raw:
+            model = raw
+    if get_chat_provider(config) == "openrouter" and "/" not in model:
+        return f"openai/{model}"
+    return model
 ```
 
 </details>

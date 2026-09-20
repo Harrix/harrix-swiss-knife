@@ -51,6 +51,8 @@ class OnRecognizeTableWithAI(ActionBase):
         self.result_folder = self._image_paths[0].parent
         self._tables: list[ExtractedTable] = []
         self._bothub_state = BothubRequestState()
+        self._model = get_image_table_model(self.config)
+        self.add_line(f"🤖 Model: {self._model}")
         self._process_image(0)
 
     def _finish_tables(self) -> None:
@@ -116,6 +118,7 @@ class OnRecognizeTableWithAI(ActionBase):
             prompt_text,
             on_success,
             image=image_data,
+            model=self._model,
             toast_message=f"Table [{index + 1}/{total}]: {path.name}…",
             is_busy=lambda: self._bothub_state.worker is not None,
             state=self._bothub_state,
@@ -150,6 +153,8 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         self.result_folder = self._image_paths[0].parent
         self._tables: list[ExtractedTable] = []
         self._bothub_state = BothubRequestState()
+        self._model = get_image_table_model(self.config)
+        self.add_line(f"🤖 Model: {self._model}")
         self._process_image(0)
 ```
 

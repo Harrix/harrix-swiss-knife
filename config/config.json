@@ -1,6 +1,7 @@
 {
   "ai": {
-    "provider": "bothub.ru"
+    "provider": "bothub.ru",
+    "image_table_model": "gpt-5.6"
   },
   "android_build_variant": "release",
   "apps": {
