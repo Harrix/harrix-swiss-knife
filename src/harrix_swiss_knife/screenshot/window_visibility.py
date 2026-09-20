@@ -40,6 +40,15 @@ class ConcealedWindow:
     stay_on_top: bool = False
 
 
+@dataclass(frozen=True)
+class SuspendedModal:
+    """Modality snapshot so a leftover dialog cannot block region drawing."""
+
+    widget: QWidget
+    modality: Qt.WindowModality
+    transparent_for_mouse: bool
+
+
 def bring_window_to_foreground(widget: QWidget, *, delays_ms: tuple[int, ...] | None = None) -> None:
     """Raise `widget` now and again after Windows focus races.
 
@@ -222,6 +231,55 @@ def restore_app_windows(widgets: list[ConcealedWindow], *, activate: bool = True
         _schedule_foreground(focus_target)
 
     QApplication.processEvents()
+
+
+def restore_modal_blocking(items: list[SuspendedModal]) -> None:
+    """Restore modality and mouse handling after `suspend_modal_blocking`."""
+    for item in items:
+        if not isValid(item.widget):
+            continue
+        item.widget.setAttribute(
+            Qt.WidgetAttribute.WA_TransparentForMouseEvents,
+            item.transparent_for_mouse,
+        )
+        item.widget.setWindowModality(item.modality)
+    QApplication.processEvents()
+
+
+def suspend_modal_blocking() -> list[SuspendedModal]:
+    """Drop modality on leftover dialogs so the screenshot overlay can receive input.
+
+    A still-open `exec()` result dialog (table, OCR, Finance) stays ApplicationModal
+    and blocks region drawing when keep-Windows leaves it on screen. Windows stay
+    visible; only modality and mouse handling are cleared for the overlay pass.
+
+    Returns:
+
+    - `list[SuspendedModal]`: Dialogs that must be restored after the overlay.
+
+    """
+    app = QApplication.instance()
+    if app is None:
+        return []
+
+    suspended: list[SuspendedModal] = []
+    for widget in app.topLevelWidgets():
+        if not widget.isVisible() or is_screenshot_ui(widget) or not _is_modal_dialog(widget):
+            continue
+        suspended.append(
+            SuspendedModal(
+                widget,
+                modality=widget.windowModality(),
+                transparent_for_mouse=bool(widget.testAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)),
+            ),
+        )
+        widget.setWindowModality(Qt.WindowModality.NonModal)
+        widget.setAttribute(
+            Qt.WidgetAttribute.WA_TransparentForMouseEvents,
+            True,  # noqa: FBT003
+        )
+    QApplication.processEvents()
+    return suspended
 
 
 def _active_top_level() -> QWidget | None:

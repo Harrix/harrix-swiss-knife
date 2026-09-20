@@ -12,6 +12,7 @@ lang: en
 ## Contents
 
 - [🏛️ Class `ConcealedWindow`](#%EF%B8%8F-class-concealedwindow)
+- [🏛️ Class `SuspendedModal`](#%EF%B8%8F-class-suspendedmodal)
 - [🔧 Function `bring_window_to_foreground`](#-function-bring_window_to_foreground)
 - [🔧 Function `claim_screenshot_keyboard`](#-function-claim_screenshot_keyboard)
 - [🔧 Function `has_visible_modal_dialog`](#-function-has_visible_modal_dialog)
@@ -20,6 +21,8 @@ lang: en
 - [🔧 Function `mark_screenshot_ui`](#-function-mark_screenshot_ui)
 - [🔧 Function `release_screenshot_keyboard`](#-function-release_screenshot_keyboard)
 - [🔧 Function `restore_app_windows`](#-function-restore_app_windows)
+- [🔧 Function `restore_modal_blocking`](#-function-restore_modal_blocking)
+- [🔧 Function `suspend_modal_blocking`](#-function-suspend_modal_blocking)
 
 </details>
 
@@ -44,6 +47,27 @@ class ConcealedWindow:
     transparent_for_mouse: bool = False
     was_active: bool = False
     stay_on_top: bool = False
+```
+
+</details>
+
+## 🏛️ Class `SuspendedModal`
+
+```python
+class SuspendedModal
+```
+
+Modality snapshot so a leftover dialog cannot block region drawing.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class SuspendedModal:
+
+    widget: QWidget
+    modality: Qt.WindowModality
+    transparent_for_mouse: bool
 ```
 
 </details>
@@ -320,6 +344,79 @@ def restore_app_windows(widgets: list[ConcealedWindow], *, activate: bool = True
         _schedule_foreground(focus_target)
 
     QApplication.processEvents()
+```
+
+</details>
+
+## 🔧 Function `restore_modal_blocking`
+
+```python
+def restore_modal_blocking(items: list[SuspendedModal]) -> None
+```
+
+Restore modality and mouse handling after [`suspend_modal_blocking`](#-function-suspend_modal_blocking).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def restore_modal_blocking(items: list[SuspendedModal]) -> None:
+    for item in items:
+        if not isValid(item.widget):
+            continue
+        item.widget.setAttribute(
+            Qt.WidgetAttribute.WA_TransparentForMouseEvents,
+            item.transparent_for_mouse,
+        )
+        item.widget.setWindowModality(item.modality)
+    QApplication.processEvents()
+```
+
+</details>
+
+## 🔧 Function `suspend_modal_blocking`
+
+```python
+def suspend_modal_blocking() -> list[SuspendedModal]
+```
+
+Drop modality on leftover dialogs so the screenshot overlay can receive input.
+
+A still-open `exec()` result dialog (table, OCR, Finance) stays ApplicationModal
+and blocks region drawing when keep-Windows leaves it on screen. Windows stay
+visible; only modality and mouse handling are cleared for the overlay pass.
+
+Returns:
+
+- `list[SuspendedModal]`: Dialogs that must be restored after the overlay.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def suspend_modal_blocking() -> list[SuspendedModal]:
+    app = QApplication.instance()
+    if app is None:
+        return []
+
+    suspended: list[SuspendedModal] = []
+    for widget in app.topLevelWidgets():
+        if not widget.isVisible() or is_screenshot_ui(widget) or not _is_modal_dialog(widget):
+            continue
+        suspended.append(
+            SuspendedModal(
+                widget,
+                modality=widget.windowModality(),
+                transparent_for_mouse=bool(widget.testAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)),
+            ),
+        )
+        widget.setWindowModality(Qt.WindowModality.NonModal)
+        widget.setAttribute(
+            Qt.WidgetAttribute.WA_TransparentForMouseEvents,
+            True,  # noqa: FBT003
+        )
+    QApplication.processEvents()
+    return suspended
 ```
 
 </details>

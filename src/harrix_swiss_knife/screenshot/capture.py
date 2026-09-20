@@ -22,9 +22,10 @@ from harrix_swiss_knife.screenshot.window_visibility import (
     PREVIEW_FOREGROUND_DELAYS_MS,
     ConcealedWindow,
     bring_window_to_foreground,
-    has_visible_modal_dialog,
     hide_app_windows,
     restore_app_windows,
+    restore_modal_blocking,
+    suspend_modal_blocking,
 )
 
 if TYPE_CHECKING:
@@ -79,14 +80,17 @@ def capture_region(
     for region selection, copies the cropped region to the clipboard, restores
     Windows, and optionally shows a preview in the foreground.
 
-    When `hide_app` is `None` (the default), application Windows are hidden unless
-    a modal dialog is visible (for example Finance Balance check). Hiding that
-    dialog would drop it from the snap list so hover highlights the owner instead.
+    When `hide_app` is `None` (the default), application Windows are hidden.
+    A leftover modal result dialog (table, OCR, Finance) must not switch the
+    shutter to keep-Windows: that left the dialog ApplicationModal on top of
+    the overlay, so the next `Ctrl+Shift+3` could not draw a region.
 
     When `hide_app` is `False`, application Windows stay visible so they can be
-    included in the capture (for example a tracker window). The keep-Windows
-    shutter button can flip this during selection: the overlay closes, Windows
-    are hidden or restored, and a fresh grab opens a new overlay.
+    included in the capture (for example a tracker window). Other modal dialogs
+    are still made mouse-transparent for the overlay pass so region drawing
+    works. The keep-Windows shutter button can flip this during selection: the
+    overlay closes, Windows are hidden or restored, and a fresh grab opens a
+    new overlay.
 
     When `show_shutter_button` is `True`, arrange, adjust, guides, keep-Windows,
     clipboard-only, OCR + translate, and close buttons are embedded in the
@@ -106,9 +110,8 @@ def capture_region(
     - `ocr_translate` (`bool`): If `True`, starts with OCR + translate enabled
       (implies skipping the preview when left on).
     - `show_shutter_button` (`bool`): If `True`, shows the mode-toggle shutter controls.
-    - `hide_app` (`bool | None`): If `True`, conceals application Windows before
-      the grab. If `False`, they stay visible. If `None`, conceal unless a modal
-      dialog is visible.
+    - `hide_app` (`bool | None`): If `True` or `None`, conceals application
+      Windows before the grab. If `False`, they stay visible.
 
     Returns:
 
@@ -120,7 +123,7 @@ def capture_region(
         return None
 
     if hide_app is None:
-        hide_app = not has_visible_modal_dialog()
+        hide_app = True
 
     session = _HideSession(
         hide_app=hide_app,
@@ -221,7 +224,7 @@ def select_region(
         return None
 
     if hide_app is None:
-        hide_app = not has_visible_modal_dialog()
+        hide_app = True
 
     session = _HideSession(
         hide_app=hide_app,
@@ -280,7 +283,7 @@ def _capture_loop(*, with_controls: bool, session: _HideSession) -> QImage | Non
             adjust_mode=adjust_mode,
             guides_mode=guides_mode,
         )
-        result = overlay.exec()
+        result = _exec_overlay(overlay)
         adjust_mode = overlay.adjust_mode
         guides_mode = overlay.guides_mode
         clipboard_only = overlay.clipboard_only
@@ -314,6 +317,15 @@ def _copy_image_to_clipboard(image: QImage) -> None:
     clipboard = QApplication.clipboard()
     if clipboard is not None:
         clipboard.setImage(image)
+
+
+def _exec_overlay(overlay: RegionOverlay) -> int:
+    """Run the overlay after clearing leftover modal event filters."""
+    suspended = suspend_modal_blocking()
+    try:
+        return overlay.exec()
+    finally:
+        restore_modal_blocking(suspended)
 
 
 def _grabs_for_overlay_pass(*, use_pending: bool) -> tuple[list[ScreenGrab], QRect]:
@@ -362,7 +374,7 @@ def _select_loop(*, with_controls: bool, session: _HideSession) -> QRect | None:
             adjust_mode=adjust_mode,
             guides_mode=guides_mode,
         )
-        result = overlay.exec()
+        result = _exec_overlay(overlay)
         adjust_mode = overlay.adjust_mode
         guides_mode = overlay.guides_mode
 

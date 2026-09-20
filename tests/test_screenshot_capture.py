@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, cast
 from unittest.mock import MagicMock
 
 import pytest
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QImage
 from PySide6.QtWidgets import QApplication, QDialog
 
@@ -118,7 +119,7 @@ def test_hide_session_toggles_keep_windows(
     assert session.hidden == ["hidden"]
 
 
-def test_capture_region_keeps_windows_when_modal_is_visible(
+def test_capture_region_hides_windows_when_modal_is_visible(
     qapp: QApplication,  # noqa: ARG001
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -140,7 +141,33 @@ def test_capture_region_keeps_windows_when_modal_is_visible(
     try:
         result = capture.capture_region(show_preview=False, show_shutter_button=False)
         assert result is image
-        assert hide_calls == []
+        assert hide_calls == [1]
+    finally:
+        dialog.close()
+
+
+def test_exec_overlay_suspends_leftover_modal(qapp: QApplication) -> None:  # noqa: ARG001
+    dialog = QDialog()
+    dialog.setModal(True)
+    dialog.show()
+    QApplication.processEvents()
+    seen: list[Qt.WindowModality] = []
+
+    overlay = MagicMock()
+
+    def _exec() -> int:
+        seen.append(dialog.windowModality())
+        assert dialog.testAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        return int(QDialog.DialogCode.Rejected)
+
+    overlay.exec.side_effect = _exec
+
+    try:
+        result = capture._exec_overlay(overlay)
+        assert result == int(QDialog.DialogCode.Rejected)
+        assert seen == [Qt.WindowModality.NonModal]
+        assert dialog.windowModality() == Qt.WindowModality.ApplicationModal
+        assert not dialog.testAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
     finally:
         dialog.close()
 

@@ -12,6 +12,8 @@ from harrix_swiss_knife.screenshot.window_visibility import (
     has_visible_modal_dialog,
     hide_app_windows,
     restore_app_windows,
+    restore_modal_blocking,
+    suspend_modal_blocking,
 )
 
 
@@ -34,6 +36,29 @@ def test_has_visible_modal_dialog_detects_shown_modal(qapp: QApplication) -> Non
     QApplication.processEvents()
     try:
         assert has_visible_modal_dialog()
+    finally:
+        dialog.close()
+
+
+def test_suspend_modal_blocking_keeps_dialog_visible(qapp: QApplication) -> None:  # noqa: ARG001
+    dialog = QDialog()
+    dialog.setModal(True)
+    dialog.setWindowOpacity(1.0)
+    dialog.show()
+    QApplication.processEvents()
+    try:
+        suspended = suspend_modal_blocking()
+        assert any(item.widget is dialog for item in suspended)
+        assert dialog.isVisible()
+        assert dialog.windowOpacity() == 1.0
+        assert dialog.windowModality() == Qt.WindowModality.NonModal
+        assert dialog.testAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+
+        restore_modal_blocking(suspended)
+        assert dialog.isVisible()
+        assert dialog.windowOpacity() == 1.0
+        assert dialog.windowModality() == Qt.WindowModality.ApplicationModal
+        assert not dialog.testAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
     finally:
         dialog.close()
 
