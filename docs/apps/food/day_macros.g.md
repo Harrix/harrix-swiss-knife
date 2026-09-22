@@ -21,6 +21,7 @@ lang: en
 - [🔧 Function `calorie_band_rgb`](#-function-calorie_band_rgb)
 - [🔧 Function `calorie_thresholds_from_config`](#-function-calorie_thresholds_from_config)
 - [🔧 Function `day_macros_prompt_key`](#-function-day_macros_prompt_key)
+- [🔧 Function `fiber_tone`](#-function-fiber_tone)
 - [🔧 Function `food_day_input_hash`](#-function-food_day_input_hash)
 - [🔧 Function `food_range_input_hash`](#-function-food_range_input_hash)
 - [🔧 Function `format_day_menu_for_prompt`](#-function-format_day_menu_for_prompt)
@@ -31,6 +32,7 @@ lang: en
 - [🔧 Function `parse_day_macros_response`](#-function-parse_day_macros_response)
 - [🔧 Function `parse_range_macros_response`](#-function-parse_range_macros_response)
 - [🔧 Function `percent_of_norm`](#-function-percent_of_norm)
+- [🔧 Function `range_day_hash_token`](#-function-range_day_hash_token)
 - [🔧 Function `range_macros_prompt_key`](#-function-range_macros_prompt_key)
 - [🔧 Function `resolve_day_macros_status`](#-function-resolve_day_macros_status)
 
@@ -74,10 +76,12 @@ class DayMacrosResult:
     protein_g: float
     fat_g: float
     carb_g: float
+    fiber_g: float
     kcal: float
     norm_protein_g: float
     norm_fat_g: float
     norm_carb_g: float
+    norm_fiber_g: float
     norm_kcal: float
     verdict: str
     notes: str
@@ -161,6 +165,8 @@ class FoodDayMacrosAnalysis:
     prompt_key: str = _PROMPT_KEY
     verdict_en: str = ""
     notes_en: str = ""
+    fiber_g: float | None = None
+    norm_fiber_g: float | None = None
 ```
 
 </details>
@@ -284,6 +290,33 @@ def day_macros_prompt_key() -> str:
 
 </details>
 
+## 🔧 Function `fiber_tone`
+
+```python
+def fiber_tone(value: float | None, norm: float | None) -> MacroTone
+```
+
+Map fiber intake against a minimum daily target.
+
+Meeting or exceeding the norm is good. Only a shortfall is warn or bad.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def fiber_tone(value: float | None, norm: float | None) -> MacroTone:
+    pct = None if value is None else percent_of_norm(value, norm or 0.0)
+    if pct is None:
+        return "neutral"
+    if pct >= _MACRO_OK_LOW:
+        return "good"
+    if pct >= _MACRO_WARN_LOW:
+        return "warn"
+    return "bad"
+```
+
+</details>
+
 ## 🔧 Function `food_day_input_hash`
 
 ```python
@@ -385,6 +418,7 @@ def format_days_summary_for_range_prompt(analyses: Sequence[FoodDayMacrosAnalysi
             f"{row.date}: P {row.protein_g:.0f}/{row.norm_protein_g:.0f} g, "
             f"F {row.fat_g:.0f}/{row.norm_fat_g:.0f} g, "
             f"C {row.carb_g:.0f}/{row.norm_carb_g:.0f} g, "
+            f"{_format_fiber_pair(row.fiber_g, row.norm_fiber_g)}, "
             f"kcal {row.kcal:.0f}/{row.norm_kcal:.0f}"
         )
         for row in analyses
@@ -502,9 +536,23 @@ def parse_day_macros_response(text: str) -> DayMacrosResult | None:
     norms = _parse_tsv_floats(lines[tsv_indices[1]])
     if intake is None or norms is None:
         return None
-    protein_g, fat_g, carb_g, kcal = intake
-    norm_protein_g, norm_fat_g, norm_carb_g, norm_kcal = norms
-    if min(protein_g, fat_g, carb_g, kcal, norm_protein_g, norm_fat_g, norm_carb_g, norm_kcal) < 0:
+    protein_g, fat_g, carb_g, fiber_g, kcal = intake
+    norm_protein_g, norm_fat_g, norm_carb_g, norm_fiber_g, norm_kcal = norms
+    if (
+        min(
+            protein_g,
+            fat_g,
+            carb_g,
+            fiber_g,
+            kcal,
+            norm_protein_g,
+            norm_fat_g,
+            norm_carb_g,
+            norm_fiber_g,
+            norm_kcal,
+        )
+        < 0
+    ):
         return None
     tail = [line for line in lines[tsv_indices[1] + 1 :] if not line.startswith("```")]
     bilingual = _parse_bilingual_tail(tail)
@@ -512,10 +560,12 @@ def parse_day_macros_response(text: str) -> DayMacrosResult | None:
         protein_g=protein_g,
         fat_g=fat_g,
         carb_g=carb_g,
+        fiber_g=fiber_g,
         kcal=kcal,
         norm_protein_g=norm_protein_g,
         norm_fat_g=norm_fat_g,
         norm_carb_g=norm_carb_g,
+        norm_fiber_g=norm_fiber_g,
         norm_kcal=norm_kcal,
         verdict=bilingual.verdict,
         notes=bilingual.notes,
@@ -571,6 +621,33 @@ def percent_of_norm(value: float, norm: float) -> float | None:
 
 </details>
 
+## 🔧 Function `range_day_hash_token`
+
+```python
+def range_day_hash_token(food_hash: str, fiber_g: float | None, norm_fiber_g: float | None) -> str
+```
+
+Bind a day food-log hash to its fiber estimate.
+
+Period cache uses this token, so a summary saved before fiber was estimated
+becomes stale once fiber grams are stored.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def range_day_hash_token(
+    food_hash: str,
+    fiber_g: float | None,
+    norm_fiber_g: float | None,
+) -> str:
+    if fiber_g is None or norm_fiber_g is None:
+        return f"{food_hash}|fiber-missing"
+    return f"{food_hash}|{fiber_g:.1f}|{norm_fiber_g:.1f}"
+```
+
+</details>
+
 ## 🔧 Function `range_macros_prompt_key`
 
 ```python
@@ -616,9 +693,9 @@ def resolve_day_macros_status(
 ) -> DayMacrosStatus:
     if analysis is None:
         return DayMacrosStatus.MISSING
-    if analysis.input_hash == current_hash:
-        return DayMacrosStatus.OK
-    return DayMacrosStatus.STALE
+    if analysis.input_hash != current_hash or analysis.fiber_g is None or analysis.norm_fiber_g is None:
+        return DayMacrosStatus.STALE
+    return DayMacrosStatus.OK
 ```
 
 </details>

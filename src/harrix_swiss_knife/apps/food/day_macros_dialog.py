@@ -24,6 +24,7 @@ from harrix_swiss_knife.apps.food.day_macros import (
     FoodDayMacrosAnalysis,
     FoodRangeMacrosAnalysis,
     MacroTone,
+    fiber_tone,
     macro_tone,
     percent_of_norm,
 )
@@ -134,6 +135,7 @@ class AdviceMacrosDialogBase(QDialog):
         self._protein_row = MacroValueRow()
         self._fat_row = MacroValueRow()
         self._carb_row = MacroValueRow()
+        self._fiber_row = MacroValueRow()
         self._kcal_row = MacroValueRow()
 
         form = QFormLayout()
@@ -141,6 +143,7 @@ class AdviceMacrosDialogBase(QDialog):
             form.addRow("Protein", self._protein_row)
             form.addRow("Fat", self._fat_row)
             form.addRow("Carbs", self._carb_row)
+            form.addRow("Fiber", self._fiber_row)
             form.addRow("kcal", self._kcal_row)
 
         self._verdict_local = QLabel("")
@@ -204,7 +207,7 @@ class AdviceMacrosDialogBase(QDialog):
 
 
 class DayMacrosDialog(AdviceMacrosDialogBase):
-    """Show one day's approximate P/F/C intake against AI daily norms."""
+    """Show one day's approximate P/F/C/fiber intake against AI daily norms."""
 
     def __init__(
         self,
@@ -232,6 +235,7 @@ class DayMacrosDialog(AdviceMacrosDialogBase):
             self._set_macro_row(self._protein_row, "—", "neutral")
             self._set_macro_row(self._fat_row, "—", "neutral")
             self._set_macro_row(self._carb_row, "—", "neutral")
+            self._set_macro_row(self._fiber_row, "—", "neutral")
             self._set_macro_row(self._kcal_row, "—", "neutral")
             self._apply_text(
                 status=status,
@@ -258,6 +262,14 @@ class DayMacrosDialog(AdviceMacrosDialogBase):
             _format_vs_norm(analysis.carb_g, analysis.norm_carb_g, "g"),
             macro_tone(analysis.carb_g, analysis.norm_carb_g),
         )
+        if analysis.fiber_g is None or analysis.norm_fiber_g is None:
+            self._set_macro_row(self._fiber_row, "—", "neutral")
+        else:
+            self._set_macro_row(
+                self._fiber_row,
+                _format_vs_norm(analysis.fiber_g, analysis.norm_fiber_g, "g"),
+                fiber_tone(analysis.fiber_g, analysis.norm_fiber_g),
+            )
         self._set_macro_row(
             self._kcal_row,
             _format_vs_norm(analysis.kcal, analysis.norm_kcal, "kcal"),

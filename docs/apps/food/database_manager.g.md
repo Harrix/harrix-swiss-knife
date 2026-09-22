@@ -612,7 +612,8 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             """
             SELECT date, protein_g, fat_g, carb_g, kcal,
                    norm_protein_g, norm_fat_g, norm_carb_g, norm_kcal,
-                   verdict, notes, verdict_en, notes_en, input_hash, analyzed_at, prompt_key
+                   verdict, notes, verdict_en, notes_en, input_hash, analyzed_at, prompt_key,
+                   fiber_g, norm_fiber_g
             FROM food_day_nutrition_analysis
             WHERE date BETWEEN :date_from AND :date_to
             ORDER BY date ASC
@@ -627,7 +628,8 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             """
             SELECT date, protein_g, fat_g, carb_g, kcal,
                    norm_protein_g, norm_fat_g, norm_carb_g, norm_kcal,
-                   verdict, notes, verdict_en, notes_en, input_hash, analyzed_at, prompt_key
+                   verdict, notes, verdict_en, notes_en, input_hash, analyzed_at, prompt_key,
+                   fiber_g, norm_fiber_g
             FROM food_day_nutrition_analysis
             WHERE date = :day
             LIMIT 1
@@ -1402,11 +1404,13 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             INSERT INTO food_day_nutrition_analysis (
                 date, protein_g, fat_g, carb_g, kcal,
                 norm_protein_g, norm_fat_g, norm_carb_g, norm_kcal,
-                verdict, notes, verdict_en, notes_en, input_hash, analyzed_at, prompt_key
+                verdict, notes, verdict_en, notes_en, input_hash, analyzed_at, prompt_key,
+                fiber_g, norm_fiber_g
             ) VALUES (
                 :date, :protein_g, :fat_g, :carb_g, :kcal,
                 :norm_protein_g, :norm_fat_g, :norm_carb_g, :norm_kcal,
-                :verdict, :notes, :verdict_en, :notes_en, :input_hash, :analyzed_at, :prompt_key
+                :verdict, :notes, :verdict_en, :notes_en, :input_hash, :analyzed_at, :prompt_key,
+                :fiber_g, :norm_fiber_g
             )
             ON CONFLICT(date) DO UPDATE SET
                 protein_g = excluded.protein_g,
@@ -1423,7 +1427,9 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
                 notes_en = excluded.notes_en,
                 input_hash = excluded.input_hash,
                 analyzed_at = excluded.analyzed_at,
-                prompt_key = excluded.prompt_key
+                prompt_key = excluded.prompt_key,
+                fiber_g = excluded.fiber_g,
+                norm_fiber_g = excluded.norm_fiber_g
             """,
             {
                 "date": analysis.date,
@@ -1442,6 +1448,8 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
                 "input_hash": analysis.input_hash,
                 "analyzed_at": analysis.analyzed_at,
                 "prompt_key": analysis.prompt_key or day_macros_prompt_key(),
+                "fiber_g": analysis.fiber_g,
+                "norm_fiber_g": analysis.norm_fiber_g,
             },
         )
 
@@ -2309,7 +2317,8 @@ def get_food_day_nutrition_analyses_between(
             """
             SELECT date, protein_g, fat_g, carb_g, kcal,
                    norm_protein_g, norm_fat_g, norm_carb_g, norm_kcal,
-                   verdict, notes, verdict_en, notes_en, input_hash, analyzed_at, prompt_key
+                   verdict, notes, verdict_en, notes_en, input_hash, analyzed_at, prompt_key,
+                   fiber_g, norm_fiber_g
             FROM food_day_nutrition_analysis
             WHERE date BETWEEN :date_from AND :date_to
             ORDER BY date ASC
@@ -2338,7 +2347,8 @@ def get_food_day_nutrition_analysis(self, day: str) -> FoodDayMacrosAnalysis | N
             """
             SELECT date, protein_g, fat_g, carb_g, kcal,
                    norm_protein_g, norm_fat_g, norm_carb_g, norm_kcal,
-                   verdict, notes, verdict_en, notes_en, input_hash, analyzed_at, prompt_key
+                   verdict, notes, verdict_en, notes_en, input_hash, analyzed_at, prompt_key,
+                   fiber_g, norm_fiber_g
             FROM food_day_nutrition_analysis
             WHERE date = :day
             LIMIT 1
@@ -3419,11 +3429,13 @@ def upsert_food_day_nutrition_analysis(self, analysis: FoodDayMacrosAnalysis) ->
             INSERT INTO food_day_nutrition_analysis (
                 date, protein_g, fat_g, carb_g, kcal,
                 norm_protein_g, norm_fat_g, norm_carb_g, norm_kcal,
-                verdict, notes, verdict_en, notes_en, input_hash, analyzed_at, prompt_key
+                verdict, notes, verdict_en, notes_en, input_hash, analyzed_at, prompt_key,
+                fiber_g, norm_fiber_g
             ) VALUES (
                 :date, :protein_g, :fat_g, :carb_g, :kcal,
                 :norm_protein_g, :norm_fat_g, :norm_carb_g, :norm_kcal,
-                :verdict, :notes, :verdict_en, :notes_en, :input_hash, :analyzed_at, :prompt_key
+                :verdict, :notes, :verdict_en, :notes_en, :input_hash, :analyzed_at, :prompt_key,
+                :fiber_g, :norm_fiber_g
             )
             ON CONFLICT(date) DO UPDATE SET
                 protein_g = excluded.protein_g,
@@ -3440,7 +3452,9 @@ def upsert_food_day_nutrition_analysis(self, analysis: FoodDayMacrosAnalysis) ->
                 notes_en = excluded.notes_en,
                 input_hash = excluded.input_hash,
                 analyzed_at = excluded.analyzed_at,
-                prompt_key = excluded.prompt_key
+                prompt_key = excluded.prompt_key,
+                fiber_g = excluded.fiber_g,
+                norm_fiber_g = excluded.norm_fiber_g
             """,
             {
                 "date": analysis.date,
@@ -3459,6 +3473,8 @@ def upsert_food_day_nutrition_analysis(self, analysis: FoodDayMacrosAnalysis) ->
                 "input_hash": analysis.input_hash,
                 "analyzed_at": analysis.analyzed_at,
                 "prompt_key": analysis.prompt_key or day_macros_prompt_key(),
+                "fiber_g": analysis.fiber_g,
+                "norm_fiber_g": analysis.norm_fiber_g,
             },
         )
 ```

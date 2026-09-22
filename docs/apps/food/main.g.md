@@ -1288,6 +1288,7 @@ class MainWindow(
             _STATS_DAY_PROTEIN_COLUMN,
             _STATS_DAY_FAT_COLUMN,
             _STATS_DAY_CARB_COLUMN,
+            _STATS_DAY_FIBER_COLUMN,
             _STATS_DAY_KCAL_COLUMN,
         ):
             self.tableView_kcal_per_day.setColumnWidth(column, 44)
@@ -1731,7 +1732,7 @@ class MainWindow(
         headers: list[str],
         *,
         calorie_values: list[float | None] | None = None,
-        macro_tones: list[tuple[MacroTone, MacroTone, MacroTone, MacroTone] | None] | None = None,
+        macro_tones: list[tuple[MacroTone, MacroTone, MacroTone, MacroTone, MacroTone] | None] | None = None,
     ) -> QSortFilterProxyModel:
         """Return a proxy model for the combined daily calories & macros table.
 
@@ -1741,8 +1742,8 @@ class MainWindow(
         - `headers` (`list[str]`): Column header names.
         - `calorie_values` (`list[float | None] | None`): Numeric daily totals for
           coloring the Calories column. Defaults to `None`.
-        - `macro_tones` (`list[tuple[MacroTone, MacroTone, MacroTone, MacroTone] | None] | None`):
-          P/F/C/kcal tones for cell backgrounds. Defaults to `None`.
+        - `macro_tones` (`list[tuple[MacroTone, MacroTone, MacroTone, MacroTone, MacroTone] | None] | None`):
+          P/F/C/fiber/kcal tones for cell backgrounds. Defaults to `None`.
 
         Returns:
 
@@ -1771,6 +1772,7 @@ class MainWindow(
                     _STATS_DAY_PROTEIN_COLUMN,
                     _STATS_DAY_FAT_COLUMN,
                     _STATS_DAY_CARB_COLUMN,
+                    _STATS_DAY_FIBER_COLUMN,
                     _STATS_DAY_KCAL_COLUMN,
                 }:
                     tone_index = col_idx - _STATS_DAY_PROTEIN_COLUMN
@@ -3094,6 +3096,28 @@ class MainWindow(
             return
         self._apply_eaten_fraction_to_selected_food_log(percent / 100.0)
 
+    def _range_day_hash_pairs(self, days: list[str]) -> list[tuple[str, str]]:
+        """Return `(date, hash token)` pairs, including fiber so a period summary can go stale."""
+        if self.db_manager is None or not days:
+            return []
+        analyses = {
+            row.date: row for row in self.db_manager.get_food_day_nutrition_analyses_between(min(days), max(days))
+        }
+        pairs: list[tuple[str, str]] = []
+        for day in days:
+            analysis = analyses.get(day)
+            pairs.append(
+                (
+                    day,
+                    range_day_hash_token(
+                        self.db_manager.get_food_day_input_hash(day),
+                        None if analysis is None else analysis.fiber_g,
+                        None if analysis is None else analysis.norm_fiber_g,
+                    ),
+                ),
+            )
+        return pairs
+
     def _recalculate_food_log_calories_queue(
         self,
         remaining: list[tuple[int, str]],
@@ -3220,10 +3244,9 @@ class MainWindow(
         dialog = self._range_macros_dialog
         if dialog is None or self.db_manager is None:
             return
-        day_hashes = [
-            (day, self.db_manager.get_food_day_input_hash(day))
-            for day in self.db_manager.get_dates_with_food_log_between(dialog.date_from, dialog.date_to)
-        ]
+        day_hashes = self._range_day_hash_pairs(
+            self.db_manager.get_dates_with_food_log_between(dialog.date_from, dialog.date_to),
+        )
         current_hash = food_range_input_hash(day_hashes)
         analysis = self.db_manager.get_food_range_nutrition_analysis(dialog.date_from, dialog.date_to)
         if analysis is None:
@@ -3507,6 +3530,8 @@ class MainWindow(
                 norm_fat_g=parsed.norm_fat_g,
                 norm_carb_g=parsed.norm_carb_g,
                 norm_kcal=parsed.norm_kcal,
+                fiber_g=parsed.fiber_g,
+                norm_fiber_g=parsed.norm_fiber_g,
                 verdict=parsed.verdict,
                 notes=parsed.notes,
                 verdict_en=parsed.verdict_en,
@@ -3543,7 +3568,7 @@ class MainWindow(
         if not analyses:
             message_box.information(self, "Period macros", "No day macros analyses in the selected range.")
             return
-        day_hashes = [(row.date, self.db_manager.get_food_day_input_hash(row.date)) for row in analyses]
+        day_hashes = self._range_day_hash_pairs([row.date for row in analyses])
         input_hash = food_range_input_hash(day_hashes)
         thresholds = calorie_thresholds_from_config(self._app_config)
         try:
@@ -4199,10 +4224,9 @@ class MainWindow(
     def _show_range_macros_dialog(self, date_from: str, date_to: str) -> None:
         if self.db_manager is None:
             return
-        day_hashes = [
-            (day, self.db_manager.get_food_day_input_hash(day))
-            for day in self.db_manager.get_dates_with_food_log_between(date_from, date_to)
-        ]
+        day_hashes = self._range_day_hash_pairs(
+            self.db_manager.get_dates_with_food_log_between(date_from, date_to),
+        )
         current_hash = food_range_input_hash(day_hashes)
         analysis = self.db_manager.get_food_range_nutrition_analysis(date_from, date_to)
         if analysis is None:
@@ -4745,23 +4769,25 @@ class MainWindow(
         chart_dates = sorted(calories_by_day, reverse=True)
         transformed_data: list[list[str]] = []
         calorie_values: list[float | None] = []
-        macro_tones: list[tuple[MacroTone, MacroTone, MacroTone, MacroTone] | None] = []
+        macro_tones: list[tuple[MacroTone, MacroTone, MacroTone, MacroTone, MacroTone] | None] = []
         for day in chart_dates:
             analysis = analyses.get(day)
             calories = calories_by_day[day]
             if analysis is None:
-                values = [day, f"{calories:.1f}", "—", "—", "—", "—", ""]
+                values = [day, f"{calories:.1f}", "—", "—", "—", "—", "—", ""]
                 tones = None
             else:
                 note = analysis.verdict.strip()
                 if analysis.notes.strip():
                     note = f"{note}\n{analysis.notes}".strip() if note else analysis.notes.strip()
+                fiber_text = "—" if analysis.fiber_g is None else f"{analysis.fiber_g:.1f}"
                 values = [
                     day,
                     f"{calories:.1f}",
                     f"{analysis.protein_g:.1f}",
                     f"{analysis.fat_g:.1f}",
                     f"{analysis.carb_g:.1f}",
+                    fiber_text,
                     f"{analysis.kcal:.0f}",
                     note,
                 ]
@@ -4769,6 +4795,7 @@ class MainWindow(
                     macro_tone(analysis.protein_g, analysis.norm_protein_g),
                     macro_tone(analysis.fat_g, analysis.norm_fat_g),
                     macro_tone(analysis.carb_g, analysis.norm_carb_g),
+                    fiber_tone(analysis.fiber_g, analysis.norm_fiber_g),
                     macro_tone(analysis.kcal, analysis.norm_kcal),
                 )
             transformed_data.append(values)
@@ -4852,8 +4879,9 @@ class MainWindow(
         if analysis is None:
             label.setText("")
             return
+        fiber_bit = "" if analysis.fiber_g is None else f" · Fi {analysis.fiber_g:.0f}"
         label.setText(
-            f"P {analysis.protein_g:.0f} · F {analysis.fat_g:.0f} · C {analysis.carb_g:.0f} g",
+            f"P {analysis.protein_g:.0f} · F {analysis.fat_g:.0f} · C {analysis.carb_g:.0f}{fiber_bit} g",
         )
 
     def _write_food_log_transfer_json(self, items: list[FoodLogTransferItem]) -> None:

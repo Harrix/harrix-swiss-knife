@@ -74,6 +74,8 @@ CREATE TABLE IF NOT EXISTS food_day_nutrition_analysis (
     norm_fat_g REAL NOT NULL,
     norm_carb_g REAL NOT NULL,
     norm_kcal REAL NOT NULL,
+    fiber_g REAL,
+    norm_fiber_g REAL,
     verdict TEXT NOT NULL DEFAULT '',
     notes TEXT NOT NULL DEFAULT '',
     verdict_en TEXT NOT NULL DEFAULT '',
@@ -253,6 +255,8 @@ def _ensure_day_nutrition_analysis_table(conn: sqlite3.Connection) -> bool:
         "norm_fat_g",
         "norm_carb_g",
         "norm_kcal",
+        "fiber_g",
+        "norm_fiber_g",
         "verdict",
         "notes",
         "verdict_en",
@@ -268,8 +272,8 @@ def _ensure_day_nutrition_analysis_table(conn: sqlite3.Connection) -> bool:
     cols = _column_names(conn, "food_day_nutrition_analysis")
     if required.issubset(cols):
         return False
-    # Prefer additive migration for bilingual columns; recreate only if core cols missing.
-    core = required - {"verdict_en", "notes_en"}
+    # Additive columns keep existing analyses. Recreate only if a core column is missing.
+    core = required - {"verdict_en", "notes_en", "fiber_g", "norm_fiber_g"}
     if not core.issubset(cols):
         conn.execute("DROP TABLE food_day_nutrition_analysis")
         conn.executescript(_DAY_NUTRITION_ANALYSIS_SQL)
@@ -282,8 +286,14 @@ def _ensure_day_nutrition_analysis_table(conn: sqlite3.Connection) -> bool:
     if "notes_en" not in cols:
         conn.execute("ALTER TABLE food_day_nutrition_analysis ADD COLUMN notes_en TEXT NOT NULL DEFAULT ''")
         changed = True
+    if "fiber_g" not in cols:
+        conn.execute("ALTER TABLE food_day_nutrition_analysis ADD COLUMN fiber_g REAL")
+        changed = True
+    if "norm_fiber_g" not in cols:
+        conn.execute("ALTER TABLE food_day_nutrition_analysis ADD COLUMN norm_fiber_g REAL")
+        changed = True
     if changed:
-        logger.info("Added bilingual columns to Food day nutrition analysis table")
+        logger.info("Upgraded Food day nutrition analysis columns")
     return changed
 
 
