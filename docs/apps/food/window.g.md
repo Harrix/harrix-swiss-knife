@@ -156,6 +156,9 @@ class Ui_MainWindow(object):
         self.horizontalLayout_food_manual_name.setObjectName(u"horizontalLayout_food_manual_name")
         self.lineEdit_food_manual_name = QLineEdit(self.groupBox_food_add)
         self.lineEdit_food_manual_name.setObjectName(u"lineEdit_food_manual_name")
+        font = QFont()
+        font.setPointSize(12)
+        self.lineEdit_food_manual_name.setFont(font)
 
         self.horizontalLayout_food_manual_name.addWidget(self.lineEdit_food_manual_name)
 
@@ -179,9 +182,10 @@ class Ui_MainWindow(object):
         self.horizontalLayout_food_weight.setObjectName(u"horizontalLayout_food_weight")
         self.spinBox_food_weight = CompactSpinBox(self.groupBox_food_add)
         self.spinBox_food_weight.setObjectName(u"spinBox_food_weight")
-        font = QFont()
-        font.setBold(True)
-        self.spinBox_food_weight.setFont(font)
+        font1 = QFont()
+        font1.setPointSize(12)
+        font1.setBold(True)
+        self.spinBox_food_weight.setFont(font1)
         self.spinBox_food_weight.setStyleSheet(u"QSpinBox {\n"
 "                                          background-color: #e3f2fd;\n"
 "                                          }")
@@ -198,7 +202,7 @@ class Ui_MainWindow(object):
 
         self.doubleSpinBox_food_calories = CompactDoubleSpinBox(self.groupBox_food_add)
         self.doubleSpinBox_food_calories.setObjectName(u"doubleSpinBox_food_calories")
-        self.doubleSpinBox_food_calories.setFont(font)
+        self.doubleSpinBox_food_calories.setFont(font1)
         self.doubleSpinBox_food_calories.setStyleSheet(u"QDoubleSpinBox {\n"
 "                                          background-color: #e3f2fd;\n"
 "                                          }")
@@ -229,7 +233,9 @@ class Ui_MainWindow(object):
 
         self.label_food_calories_calc = QLabel(self.groupBox_food_add)
         self.label_food_calories_calc.setObjectName(u"label_food_calories_calc")
-        self.label_food_calories_calc.setFont(font)
+        font2 = QFont()
+        font2.setBold(True)
+        self.label_food_calories_calc.setFont(font2)
 
         self.verticalLayout.addWidget(self.label_food_calories_calc)
 
@@ -251,7 +257,7 @@ class Ui_MainWindow(object):
         self.pushButton_food_add = QPushButton(self.groupBox_food_add)
         self.pushButton_food_add.setObjectName(u"pushButton_food_add")
         self.pushButton_food_add.setMinimumSize(QSize(0, 41))
-        self.pushButton_food_add.setFont(font)
+        self.pushButton_food_add.setFont(font1)
         self.pushButton_food_add.setStyleSheet(u"QPushButton {\n"
 "                                      background-color: #e3f2fd;\n"
 "                                      border: 1px solid #2196F3;\n"
@@ -319,10 +325,10 @@ class Ui_MainWindow(object):
         self.horizontalLayout_5.setObjectName(u"horizontalLayout_5")
         self.label_food_today = QLabel(self.groupBox_food_today)
         self.label_food_today.setObjectName(u"label_food_today")
-        font1 = QFont()
-        font1.setPointSize(16)
-        font1.setBold(True)
-        self.label_food_today.setFont(font1)
+        font3 = QFont()
+        font3.setPointSize(16)
+        font3.setBold(True)
+        self.label_food_today.setFont(font3)
         self.label_food_today.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.horizontalLayout_5.addWidget(self.label_food_today)
@@ -336,10 +342,7 @@ class Ui_MainWindow(object):
         self.horizontalLayout_food_yesterday.setObjectName(u"horizontalLayout_food_yesterday")
         self.label_food_yesterday = QLabel(self.groupBox_food_yesterday)
         self.label_food_yesterday.setObjectName(u"label_food_yesterday")
-        font2 = QFont()
-        font2.setPointSize(12)
-        font2.setBold(True)
-        self.label_food_yesterday.setFont(font2)
+        self.label_food_yesterday.setFont(font1)
         self.label_food_yesterday.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.horizontalLayout_food_yesterday.addWidget(self.label_food_yesterday)
@@ -815,6 +818,9 @@ def setupUi(self, MainWindow):
         self.horizontalLayout_food_manual_name.setObjectName(u"horizontalLayout_food_manual_name")
         self.lineEdit_food_manual_name = QLineEdit(self.groupBox_food_add)
         self.lineEdit_food_manual_name.setObjectName(u"lineEdit_food_manual_name")
+        font = QFont()
+        font.setPointSize(12)
+        self.lineEdit_food_manual_name.setFont(font)
 
         self.horizontalLayout_food_manual_name.addWidget(self.lineEdit_food_manual_name)
 
@@ -838,9 +844,10 @@ def setupUi(self, MainWindow):
         self.horizontalLayout_food_weight.setObjectName(u"horizontalLayout_food_weight")
         self.spinBox_food_weight = CompactSpinBox(self.groupBox_food_add)
         self.spinBox_food_weight.setObjectName(u"spinBox_food_weight")
-        font = QFont()
-        font.setBold(True)
-        self.spinBox_food_weight.setFont(font)
+        font1 = QFont()
+        font1.setPointSize(12)
+        font1.setBold(True)
+        self.spinBox_food_weight.setFont(font1)
         self.spinBox_food_weight.setStyleSheet(u"QSpinBox {\n"
 "                                          background-color: #e3f2fd;\n"
 "                                          }")
@@ -857,7 +864,7 @@ def setupUi(self, MainWindow):
 
         self.doubleSpinBox_food_calories = CompactDoubleSpinBox(self.groupBox_food_add)
         self.doubleSpinBox_food_calories.setObjectName(u"doubleSpinBox_food_calories")
-        self.doubleSpinBox_food_calories.setFont(font)
+        self.doubleSpinBox_food_calories.setFont(font1)
         self.doubleSpinBox_food_calories.setStyleSheet(u"QDoubleSpinBox {\n"
 "                                          background-color: #e3f2fd;\n"
 "                                          }")
@@ -888,7 +895,9 @@ def setupUi(self, MainWindow):
 
         self.label_food_calories_calc = QLabel(self.groupBox_food_add)
         self.label_food_calories_calc.setObjectName(u"label_food_calories_calc")
-        self.label_food_calories_calc.setFont(font)
+        font2 = QFont()
+        font2.setBold(True)
+        self.label_food_calories_calc.setFont(font2)
 
         self.verticalLayout.addWidget(self.label_food_calories_calc)
 
@@ -910,7 +919,7 @@ def setupUi(self, MainWindow):
         self.pushButton_food_add = QPushButton(self.groupBox_food_add)
         self.pushButton_food_add.setObjectName(u"pushButton_food_add")
         self.pushButton_food_add.setMinimumSize(QSize(0, 41))
-        self.pushButton_food_add.setFont(font)
+        self.pushButton_food_add.setFont(font1)
         self.pushButton_food_add.setStyleSheet(u"QPushButton {\n"
 "                                      background-color: #e3f2fd;\n"
 "                                      border: 1px solid #2196F3;\n"
@@ -978,10 +987,10 @@ def setupUi(self, MainWindow):
         self.horizontalLayout_5.setObjectName(u"horizontalLayout_5")
         self.label_food_today = QLabel(self.groupBox_food_today)
         self.label_food_today.setObjectName(u"label_food_today")
-        font1 = QFont()
-        font1.setPointSize(16)
-        font1.setBold(True)
-        self.label_food_today.setFont(font1)
+        font3 = QFont()
+        font3.setPointSize(16)
+        font3.setBold(True)
+        self.label_food_today.setFont(font3)
         self.label_food_today.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.horizontalLayout_5.addWidget(self.label_food_today)
@@ -995,10 +1004,7 @@ def setupUi(self, MainWindow):
         self.horizontalLayout_food_yesterday.setObjectName(u"horizontalLayout_food_yesterday")
         self.label_food_yesterday = QLabel(self.groupBox_food_yesterday)
         self.label_food_yesterday.setObjectName(u"label_food_yesterday")
-        font2 = QFont()
-        font2.setPointSize(12)
-        font2.setBold(True)
-        self.label_food_yesterday.setFont(font2)
+        self.label_food_yesterday.setFont(font1)
         self.label_food_yesterday.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.horizontalLayout_food_yesterday.addWidget(self.label_food_yesterday)

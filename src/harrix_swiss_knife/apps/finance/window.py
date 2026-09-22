@@ -230,6 +230,9 @@ class Ui_MainWindow(object):
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
         self.lineEdit_description = QLineEdit(self.groupBox_transaction)
         self.lineEdit_description.setObjectName(u"lineEdit_description")
+        font1 = QFont()
+        font1.setPointSize(12)
+        self.lineEdit_description.setFont(font1)
 
         self.horizontalLayout_2.addWidget(self.lineEdit_description)
 
@@ -246,7 +249,10 @@ class Ui_MainWindow(object):
         self.horizontalLayout_amount.setObjectName(u"horizontalLayout_amount")
         self.doubleSpinBox_amount = CompactDoubleSpinBox(self.groupBox_transaction)
         self.doubleSpinBox_amount.setObjectName(u"doubleSpinBox_amount")
-        self.doubleSpinBox_amount.setFont(font)
+        font2 = QFont()
+        font2.setPointSize(12)
+        font2.setBold(True)
+        self.doubleSpinBox_amount.setFont(font2)
         self.doubleSpinBox_amount.setStyleSheet(u"QDoubleSpinBox {\n"
 "                                          background-color: #C1ECDD;\n"
 "                                          }")
@@ -281,7 +287,7 @@ class Ui_MainWindow(object):
         self.pushButton_add = QPushButton(self.groupBox_transaction)
         self.pushButton_add.setObjectName(u"pushButton_add")
         self.pushButton_add.setMinimumSize(QSize(0, 41))
-        self.pushButton_add.setFont(font)
+        self.pushButton_add.setFont(font2)
         self.pushButton_add.setStyleSheet(u"QPushButton {\n"
 "                                      background-color: #C1ECDD;\n"
 "                                      border: 1px solid #7DB68A;\n"
@@ -346,10 +352,10 @@ class Ui_MainWindow(object):
         self.verticalLayout_20.setObjectName(u"verticalLayout_20")
         self.label_today_expense = QLabel(self.groupBox_today_expense)
         self.label_today_expense.setObjectName(u"label_today_expense")
-        font1 = QFont()
-        font1.setPointSize(16)
-        font1.setBold(True)
-        self.label_today_expense.setFont(font1)
+        font3 = QFont()
+        font3.setPointSize(16)
+        font3.setBold(True)
+        self.label_today_expense.setFont(font3)
         self.label_today_expense.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.verticalLayout_20.addWidget(self.label_today_expense)
@@ -364,9 +370,6 @@ class Ui_MainWindow(object):
         self.horizontalLayout_30.setObjectName(u"horizontalLayout_30")
         self.label_yesterday_expense = QLabel(self.groupBox_yesterday_expense)
         self.label_yesterday_expense.setObjectName(u"label_yesterday_expense")
-        font2 = QFont()
-        font2.setPointSize(12)
-        font2.setBold(True)
         self.label_yesterday_expense.setFont(font2)
         self.label_yesterday_expense.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
@@ -567,7 +570,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_16.setObjectName(u"verticalLayout_16")
         self.label_balance_accounts = QLabel(self.groupBox_balance_accounts)
         self.label_balance_accounts.setObjectName(u"label_balance_accounts")
-        self.label_balance_accounts.setFont(font1)
+        self.label_balance_accounts.setFont(font3)
         self.label_balance_accounts.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.verticalLayout_16.addWidget(self.label_balance_accounts)

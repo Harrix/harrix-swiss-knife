@@ -84,6 +84,11 @@
                 <layout class="QHBoxLayout" name="horizontalLayout_2">
                  <item>
                   <widget class="QLineEdit" name="lineEdit_description">
+                   <property name="font">
+                    <font>
+                     <pointsize>12</pointsize>
+                    </font>
+                   </property>
                    <property name="placeholderText">
                     <string>Description</string>
                    </property>
@@ -110,6 +115,7 @@
                   <widget class="CompactDoubleSpinBox" name="doubleSpinBox_amount">
                    <property name="font">
                     <font>
+                     <pointsize>12</pointsize>
                      <bold>true</bold>
                     </font>
                    </property>
@@ -174,6 +180,7 @@
                  </property>
                  <property name="font">
                   <font>
+                   <pointsize>12</pointsize>
                    <bold>true</bold>
                   </font>
                  </property>

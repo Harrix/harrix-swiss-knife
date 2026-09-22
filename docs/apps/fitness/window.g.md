@@ -192,7 +192,10 @@ class Ui_MainWindow(object):
         self.horizontalLayout_14.setObjectName(u"horizontalLayout_14")
         self.spinBox_count = CompactSpinBox(self.groupBox)
         self.spinBox_count.setObjectName(u"spinBox_count")
-        self.spinBox_count.setFont(font)
+        font1 = QFont()
+        font1.setPointSize(12)
+        font1.setBold(True)
+        self.spinBox_count.setFont(font1)
         self.spinBox_count.setStyleSheet(u"QSpinBox {\n"
 "                                          background-color: lightgreen;\n"
 "                                          }")
@@ -232,7 +235,7 @@ class Ui_MainWindow(object):
         self.pushButton_add = QPushButton(self.groupBox)
         self.pushButton_add.setObjectName(u"pushButton_add")
         self.pushButton_add.setMinimumSize(QSize(0, 41))
-        self.pushButton_add.setFont(font)
+        self.pushButton_add.setFont(font1)
         self.pushButton_add.setStyleSheet(u"QPushButton {\n"
 "                                      background-color: lightgreen;\n"
 "                                      border: 1px solid #4CAF50;\n"
@@ -283,10 +286,10 @@ class Ui_MainWindow(object):
         self.verticalLayout_17.setObjectName(u"verticalLayout_17")
         self.label_count_sets_today = QLabel(self.groupBox_9)
         self.label_count_sets_today.setObjectName(u"label_count_sets_today")
-        font1 = QFont()
-        font1.setPointSize(20)
-        font1.setBold(True)
-        self.label_count_sets_today.setFont(font1)
+        font2 = QFont()
+        font2.setPointSize(20)
+        font2.setBold(True)
+        self.label_count_sets_today.setFont(font2)
         self.label_count_sets_today.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.verticalLayout_17.addWidget(self.label_count_sets_today)
@@ -1238,7 +1241,10 @@ def setupUi(self, MainWindow):
         self.horizontalLayout_14.setObjectName(u"horizontalLayout_14")
         self.spinBox_count = CompactSpinBox(self.groupBox)
         self.spinBox_count.setObjectName(u"spinBox_count")
-        self.spinBox_count.setFont(font)
+        font1 = QFont()
+        font1.setPointSize(12)
+        font1.setBold(True)
+        self.spinBox_count.setFont(font1)
         self.spinBox_count.setStyleSheet(u"QSpinBox {\n"
 "                                          background-color: lightgreen;\n"
 "                                          }")
@@ -1278,7 +1284,7 @@ def setupUi(self, MainWindow):
         self.pushButton_add = QPushButton(self.groupBox)
         self.pushButton_add.setObjectName(u"pushButton_add")
         self.pushButton_add.setMinimumSize(QSize(0, 41))
-        self.pushButton_add.setFont(font)
+        self.pushButton_add.setFont(font1)
         self.pushButton_add.setStyleSheet(u"QPushButton {\n"
 "                                      background-color: lightgreen;\n"
 "                                      border: 1px solid #4CAF50;\n"
@@ -1329,10 +1335,10 @@ def setupUi(self, MainWindow):
         self.verticalLayout_17.setObjectName(u"verticalLayout_17")
         self.label_count_sets_today = QLabel(self.groupBox_9)
         self.label_count_sets_today.setObjectName(u"label_count_sets_today")
-        font1 = QFont()
-        font1.setPointSize(20)
-        font1.setBold(True)
-        self.label_count_sets_today.setFont(font1)
+        font2 = QFont()
+        font2.setPointSize(20)
+        font2.setBold(True)
+        self.label_count_sets_today.setFont(font2)
         self.label_count_sets_today.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.verticalLayout_17.addWidget(self.label_count_sets_today)

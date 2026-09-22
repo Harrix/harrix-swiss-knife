@@ -57,6 +57,11 @@
                 <layout class="QHBoxLayout" name="horizontalLayout_food_manual_name">
                  <item>
                   <widget class="QLineEdit" name="lineEdit_food_manual_name">
+                   <property name="font">
+                    <font>
+                     <pointsize>12</pointsize>
+                    </font>
+                   </property>
                    <property name="placeholderText">
                     <string>Enter food name</string>
                    </property>
@@ -102,6 +107,7 @@
                   <widget class="CompactSpinBox" name="spinBox_food_weight">
                    <property name="font">
                     <font>
+                     <pointsize>12</pointsize>
                      <bold>true</bold>
                     </font>
                    </property>
@@ -132,6 +138,7 @@
                   <widget class="CompactDoubleSpinBox" name="doubleSpinBox_food_calories">
                    <property name="font">
                     <font>
+                     <pointsize>12</pointsize>
                      <bold>true</bold>
                     </font>
                    </property>
@@ -233,6 +240,7 @@
                    </property>
                    <property name="font">
                     <font>
+                     <pointsize>12</pointsize>
                      <bold>true</bold>
                     </font>
                    </property>
