@@ -293,12 +293,11 @@ class SimpleRecordingDialog(QDialog):
         if self._large_ui:
             self.setStyleSheet(
                 """
-                QLabel { font-size: 14pt; }
-                QComboBox { min-height: 40px; font-size: 14pt; }
-                QPushButton { min-height: 48px; font-size: 14pt; padding: 8px 16px; }
+                QComboBox { min-height: 40px; }
+                QPushButton { min-height: 48px; padding: 8px 16px; }
                 """
             )
-            self._stop_caption.setStyleSheet(f"{RECORD_CAPTION_STOP_STYLE} QLabel {{ font-size: 15pt; }}")
+            self._stop_caption.setStyleSheet(RECORD_CAPTION_STOP_STYLE)
         self._update_stop_button()
 
     def _start_recording_with_current_device(self) -> None:

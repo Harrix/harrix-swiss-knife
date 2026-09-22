@@ -973,7 +973,6 @@ _APP_MENU_BAR_STYLESHEET = """
 QMenuBar {
     spacing: 0px;
     padding: 0px 2px;
-    font-size: 9pt;
     font-weight: 700;
 }
 QMenuBar::item {

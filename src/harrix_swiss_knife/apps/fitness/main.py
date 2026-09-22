@@ -3840,7 +3840,6 @@ class MainWindow(
             background-color: #F8F9FA;
             border: 1px solid #E9ECEF;
             border-radius: 5px;
-            font-size: 13px;
             line-height: 1.2;
         """)
 
@@ -4052,7 +4051,6 @@ class MainWindow(
             background-color: #F8F9FA;
             border: 1px solid #E9ECEF;
             border-radius: 5px;
-            font-size: 13px;
             line-height: 1.2;
         """)
 
@@ -4275,7 +4273,6 @@ class MainWindow(
             background-color: #F8F9FA;
             border: 1px solid #E9ECEF;
             border-radius: 5px;
-            font-size: 13px;
             line-height: 1.2;
         """)
 
@@ -4420,7 +4417,6 @@ class MainWindow(
             background-color: #F8F9FA;
             border: 1px solid #E9ECEF;
             border-radius: 5px;
-            font-size: 13px;
             line-height: 1.2;
         """)
 
@@ -8194,7 +8190,6 @@ class MainWindow(
             background-color: #F8F9FA;
             border: 1px solid #E9ECEF;
             border-radius: 5px;
-            font-size: 13px;
             line-height: 1.2;
         """)
 

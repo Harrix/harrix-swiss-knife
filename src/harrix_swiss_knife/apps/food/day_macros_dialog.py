@@ -64,7 +64,6 @@ _TONE_ICONS: dict[MacroTone, str] = {
 }
 _ADVICE_BROWSER_STYLE = (
     "QTextBrowser {"
-    "  font-size: 13pt;"
     "  line-height: 1.4;"
     "  background: transparent;"
     "  border: 1px solid #D1D5DB;"

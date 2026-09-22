@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
@@ -53,16 +52,12 @@ class AmountExpressionDialog(QDialog):
         self._expression_edit = QLineEdit(self)
         self._expression_edit.setPlaceholderText("e.g. 6522/2-600")
         self._expression_edit.setClearButtonEnabled(True)
-        expression_font = QFont()
-        expression_font.setPointSize(12)
-        self._expression_edit.setFont(expression_font)
         layout.addWidget(self._expression_edit)
 
         self._result_label = QLabel(self)
         self._result_label.setWordWrap(True)
         self._result_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        result_font = QFont()
-        result_font.setPointSize(11)
+        result_font = self._result_label.font()
         result_font.setBold(True)
         self._result_label.setFont(result_font)
         layout.addWidget(self._result_label)

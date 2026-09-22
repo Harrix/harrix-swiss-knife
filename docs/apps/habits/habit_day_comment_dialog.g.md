@@ -58,7 +58,7 @@ class HabitDayCommentDialog(QDialog):
 
         root = QVBoxLayout(self)
         heading = QLabel(f"{habit_name} · {date_str}")
-        heading.setStyleSheet("color: #111827; font-size: 14px; font-weight: 700;")
+        heading.setStyleSheet("color: #111827; font-weight: 700;")
         root.addWidget(heading)
 
         self._edit = QPlainTextEdit(text)
@@ -138,7 +138,7 @@ def __init__(
 
         root = QVBoxLayout(self)
         heading = QLabel(f"{habit_name} · {date_str}")
-        heading.setStyleSheet("color: #111827; font-size: 14px; font-weight: 700;")
+        heading.setStyleSheet("color: #111827; font-weight: 700;")
         root.addWidget(heading)
 
         self._edit = QPlainTextEdit(text)

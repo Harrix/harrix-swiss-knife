@@ -141,6 +141,11 @@ def scale_explicit_widget_font(widget: QWidget) -> None:
     font = widget.font()
     point = font.pointSizeF()
     if point > 0:
+        app = QApplication.instance()
+        app_point = app.font().pointSizeF() if isinstance(app, QApplication) else -1.0
+        if app_point > 0 and abs(point - app_point) < _SCALE_EPSILON:
+            widget.setProperty(_SCALED_PROP, "1")
+            return
         font.setPointSizeF(max(_MIN_POINT_SIZE, point * scale))
         widget.setFont(font)
     widget.setProperty(_SCALED_PROP, "1")
@@ -152,6 +157,7 @@ def style_overlay_line_edit(edit: QLineEdit) -> None:
     font = edit.font()
     grow_qfont(font, delta=OVERLAY_LINE_EDIT_FONT_DELTA)
     edit.setFont(font)
+    edit.setProperty(_SCALED_PROP, "1")
     edit.setStyleSheet(OVERLAY_LINE_EDIT_STYLE)
     edit.setMinimumHeight(edit.fontMetrics().height() + _OVERLAY_LINE_EDIT_EXTRA_HEIGHT)
 

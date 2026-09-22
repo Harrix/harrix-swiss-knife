@@ -174,7 +174,6 @@ class Ui_MainWindow(object):
         self.label_exercise = QLabel(self.groupBox)
         self.label_exercise.setObjectName(u"label_exercise")
         font = QFont()
-        font.setPointSize(12)
         font.setBold(True)
         self.label_exercise.setFont(font)
 
@@ -281,7 +280,7 @@ class Ui_MainWindow(object):
         self.label_count_sets_today = QLabel(self.groupBox_9)
         self.label_count_sets_today.setObjectName(u"label_count_sets_today")
         font1 = QFont()
-        font1.setPointSize(50)
+        font1.setPointSize(20)
         font1.setBold(True)
         self.label_count_sets_today.setFont(font1)
         self.label_count_sets_today.setAlignment(Qt.AlignmentFlag.AlignCenter)

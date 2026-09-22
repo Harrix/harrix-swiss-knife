@@ -382,7 +382,7 @@ class HabitDayPickerPopup(QWidget):
             circle.selected.connect(self._apply_choice)
             caption = QLabel(habit_day_choice_caption(choice))
             caption.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-            caption.setStyleSheet("color: #6B7280; font-size: 9px;")
+            caption.setStyleSheet("color: #6B7280; font-size: 11px;")
             column.addWidget(circle, 0, Qt.AlignmentFlag.AlignHCenter)
             column.addWidget(caption, 0, Qt.AlignmentFlag.AlignHCenter)
             self._choices_layout.addLayout(column)
@@ -410,7 +410,7 @@ class HabitDayPickerPopup(QWidget):
         comment_button.clicked.connect(self._on_comment_clicked)
         comment_caption = QLabel("Note")
         comment_caption.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        comment_caption.setStyleSheet("color: #6B7280; font-size: 9px;")
+        comment_caption.setStyleSheet("color: #6B7280; font-size: 11px;")
         comment_column.addWidget(comment_button, 0, Qt.AlignmentFlag.AlignHCenter)
         comment_column.addWidget(comment_caption, 0, Qt.AlignmentFlag.AlignHCenter)
         self._choices_layout.addLayout(comment_column)
@@ -551,7 +551,7 @@ class HabitNumberStepper(QWidget):
                 border: 1px solid #E5E7EB;
                 border-radius: 10px;
                 color: #111827;
-                font-size: 16px;
+                font-size: 14px;
                 font-weight: 700;
             }
             """
@@ -574,7 +574,7 @@ class HabitNumberStepper(QWidget):
                 border: none;
                 border-radius: 8px;
                 color: white;
-                font-size: 12px;
+                font-size: 11px;
                 font-weight: 700;
                 padding: 0 16px;
             }}
@@ -637,7 +637,7 @@ class _PickerDateColumn(QWidget):
         self._weekday_label.setObjectName("pickerWeekdayLabel")
         self._weekday_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         self._weekday_label.setFixedHeight(_WEEKDAY_LINE_HEIGHT)
-        self._weekday_label.setStyleSheet("color: #6B7280; font-size: 9px;")
+        self._weekday_label.setStyleSheet("color: #6B7280; font-size: 11px;")
         layout.addStretch(1)
         layout.addWidget(self._date_label, 0, Qt.AlignmentFlag.AlignHCenter)
         layout.addWidget(self._weekday_label, 0, Qt.AlignmentFlag.AlignHCenter)

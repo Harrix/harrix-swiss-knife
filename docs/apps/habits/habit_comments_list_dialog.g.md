@@ -56,7 +56,7 @@ class HabitCommentsListDialog(QDialog):
 
         root = QVBoxLayout(self)
         hint = QLabel("Double-click a day to view or edit the comment.")
-        hint.setStyleSheet("color: #6B7280; font-size: 12px;")
+        hint.setStyleSheet("color: #6B7280;")
         root.addWidget(hint)
 
         self._list = QListWidget()
@@ -127,7 +127,7 @@ def __init__(
 
         root = QVBoxLayout(self)
         hint = QLabel("Double-click a day to view or edit the comment.")
-        hint.setStyleSheet("color: #6B7280; font-size: 12px;")
+        hint.setStyleSheet("color: #6B7280;")
         root.addWidget(hint)
 
         self._list = QListWidget()

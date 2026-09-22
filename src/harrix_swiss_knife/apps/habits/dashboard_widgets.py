@@ -314,11 +314,11 @@ class HabitRow(QFrame):
         self._name_label = QLabel("")
         self._name_label.setAutoFillBackground(False)
         self._name_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
-        self._name_label.setStyleSheet("background: transparent; color: #111827; font-size: 14px; font-weight: 700;")
+        self._name_label.setStyleSheet("background: transparent; color: #111827; font-weight: 700;")
         self._meta_label = QLabel("")
         self._meta_label.setAutoFillBackground(False)
         self._meta_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
-        self._meta_label.setStyleSheet("background: transparent; color: #6B7280; font-size: 12px;")
+        self._meta_label.setStyleSheet("background: transparent; color: #6B7280;")
         text_col.addWidget(self._name_label)
         text_col.addWidget(self._meta_label)
         root.addLayout(text_col, 1)
@@ -589,7 +589,6 @@ class MonthCalendarGrid(QWidget):
         self._title.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self._title.customContextMenuRequested.connect(self._on_title_context_menu)
         title_font = QFont(self._title.font())
-        title_font.setPointSize(12)
         title_font.setBold(True)
         self._title.setFont(title_font)
         self._title.setStyleSheet("color: #111827;")
@@ -607,7 +606,6 @@ class MonthCalendarGrid(QWidget):
             lab = QLabel(name)
             lab.setAlignment(Qt.AlignmentFlag.AlignCenter)
             weekday_font = QFont(lab.font())
-            weekday_font.setPointSize(9)
             weekday_font.setBold(True)
             lab.setFont(weekday_font)
             lab.setStyleSheet("color: #6B7280;")
@@ -765,9 +763,7 @@ class MonthCalendarGrid(QWidget):
                 circle.all_comments_requested.connect(self.all_comments_requested.emit)
                 day_label = QLabel(str(day))
                 day_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                day_label.setFixedHeight(18)
                 day_font = QFont(day_label.font())
-                day_font.setPointSize(10)
                 day_font.setWeight(QFont.Weight.DemiBold)
                 day_label.setFont(day_font)
                 day_label.setStyleSheet("color: #D1D5DB;" if not editable else "color: #4B5563;")
@@ -853,14 +849,14 @@ class StatCard(QFrame):
         icon = QLabel(icon_text)
         icon.setStyleSheet(f"color: {icon_color.name()}; font-size: 14px; font-weight: 700;")
         title_label = QLabel(title)
-        title_label.setStyleSheet("color: #6B7280; font-size: 12px;")
+        title_label.setStyleSheet("color: #6B7280;")
         title_label.setWordWrap(True)
         top.addWidget(icon, 0, Qt.AlignmentFlag.AlignTop)
         top.addWidget(title_label, 1)
         layout.addLayout(top)
 
         self._value_label = QLabel("-")
-        self._value_label.setStyleSheet("color: #111827; font-size: 18px; font-weight: 700;")
+        self._value_label.setStyleSheet("color: #111827; font-weight: 700;")
         layout.addWidget(self._value_label)
 
     def set_value(self, text: str) -> None:
@@ -880,7 +876,7 @@ class WeekDayHeader(QWidget):
 
         self._label = QLabel("-")
         self._label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        self._label.setStyleSheet("color: #6B7280; font-size: 11px;")
+        self._label.setStyleSheet("color: #6B7280;")
         self._ring = ProgressRing(size=34)
         layout.addWidget(self._label)
         layout.addWidget(self._ring, 0, Qt.AlignmentFlag.AlignHCenter)
@@ -890,9 +886,9 @@ class WeekDayHeader(QWidget):
         self._label.setText(caption)
         self._ring.set_ratio(ratio)
         if is_today:
-            self._label.setStyleSheet("color: #2563EB; font-size: 11px; font-weight: 700;")
+            self._label.setStyleSheet("color: #2563EB; font-weight: 700;")
         else:
-            self._label.setStyleSheet("color: #6B7280; font-size: 11px;")
+            self._label.setStyleSheet("color: #6B7280;")
 
 
 def absent_dates_in_month(

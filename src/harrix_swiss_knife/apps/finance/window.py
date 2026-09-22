@@ -220,7 +220,6 @@ class Ui_MainWindow(object):
         self.label_category_now = QLabel(self.groupBox_transaction)
         self.label_category_now.setObjectName(u"label_category_now")
         font = QFont()
-        font.setPointSize(12)
         font.setBold(True)
         self.label_category_now.setFont(font)
         self.label_category_now.setFocusPolicy(Qt.FocusPolicy.NoFocus)
@@ -231,9 +230,6 @@ class Ui_MainWindow(object):
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
         self.lineEdit_description = QLineEdit(self.groupBox_transaction)
         self.lineEdit_description.setObjectName(u"lineEdit_description")
-        font1 = QFont()
-        font1.setPointSize(12)
-        self.lineEdit_description.setFont(font1)
 
         self.horizontalLayout_2.addWidget(self.lineEdit_description)
 
@@ -327,9 +323,7 @@ class Ui_MainWindow(object):
         self.pushButton_add_as_text_with_ai = QPushButton(self.groupBox_commands)
         self.pushButton_add_as_text_with_ai.setObjectName(u"pushButton_add_as_text_with_ai")
         self.pushButton_add_as_text_with_ai.setMinimumSize(QSize(0, 41))
-        font2 = QFont()
-        font2.setBold(True)
-        self.pushButton_add_as_text_with_ai.setFont(font2)
+        self.pushButton_add_as_text_with_ai.setFont(font)
         self.pushButton_add_as_text_with_ai.setStyleSheet(u"QPushButton {\n"
 "                                      background-color: #C1ECDD;\n"
 "                                      }\n"
@@ -352,10 +346,10 @@ class Ui_MainWindow(object):
         self.verticalLayout_20.setObjectName(u"verticalLayout_20")
         self.label_today_expense = QLabel(self.groupBox_today_expense)
         self.label_today_expense.setObjectName(u"label_today_expense")
-        font3 = QFont()
-        font3.setPointSize(20)
-        font3.setBold(True)
-        self.label_today_expense.setFont(font3)
+        font1 = QFont()
+        font1.setPointSize(16)
+        font1.setBold(True)
+        self.label_today_expense.setFont(font1)
         self.label_today_expense.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.verticalLayout_20.addWidget(self.label_today_expense)
@@ -370,10 +364,10 @@ class Ui_MainWindow(object):
         self.horizontalLayout_30.setObjectName(u"horizontalLayout_30")
         self.label_yesterday_expense = QLabel(self.groupBox_yesterday_expense)
         self.label_yesterday_expense.setObjectName(u"label_yesterday_expense")
-        font4 = QFont()
-        font4.setPointSize(14)
-        font4.setBold(True)
-        self.label_yesterday_expense.setFont(font4)
+        font2 = QFont()
+        font2.setPointSize(12)
+        font2.setBold(True)
+        self.label_yesterday_expense.setFont(font2)
         self.label_yesterday_expense.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.horizontalLayout_30.addWidget(self.label_yesterday_expense)
@@ -573,7 +567,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_16.setObjectName(u"verticalLayout_16")
         self.label_balance_accounts = QLabel(self.groupBox_balance_accounts)
         self.label_balance_accounts.setObjectName(u"label_balance_accounts")
-        self.label_balance_accounts.setFont(font3)
+        self.label_balance_accounts.setFont(font1)
         self.label_balance_accounts.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.verticalLayout_16.addWidget(self.label_balance_accounts)
@@ -834,10 +828,7 @@ class Ui_MainWindow(object):
         self.pushButton_exchange_update = QPushButton(self.groupBox_rate_commands)
         self.pushButton_exchange_update.setObjectName(u"pushButton_exchange_update")
         self.pushButton_exchange_update.setMinimumSize(QSize(0, 24))
-        font5 = QFont()
-        font5.setPointSize(8)
-        font5.setBold(True)
-        self.pushButton_exchange_update.setFont(font5)
+        self.pushButton_exchange_update.setFont(font)
         self.pushButton_exchange_update.setStyleSheet(u"QPushButton {\n"
 "                                            background-color: #C1ECDD;\n"
 "                                            border: 1px solid #7DB68A;\n"

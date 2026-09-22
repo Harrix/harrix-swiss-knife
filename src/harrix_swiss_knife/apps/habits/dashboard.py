@@ -216,12 +216,12 @@ class HabitDashboardWidget(QWidget):
 
         title = QLabel("No habits yet")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title.setStyleSheet("color: #111827; font-size: 28px; font-weight: 800;")
+        title.setStyleSheet("color: #111827; font-weight: 800;")
 
         subtitle = QLabel("Add your first habit to start tracking days, streaks, and check-ins.")
         subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
         subtitle.setWordWrap(True)
-        subtitle.setStyleSheet("color: #6B7280; font-size: 16px;")
+        subtitle.setStyleSheet("color: #6B7280;")
 
         button = make_lucide_push_button("Add habit", "plus")
         button.setObjectName("habitDashAddHabitButton")
@@ -232,7 +232,6 @@ class HabitDashboardWidget(QWidget):
             QPushButton#habitDashAddHabitButton {
                 background: #3B82F6;
                 color: #FFFFFF;
-                font-size: 20px;
                 font-weight: 700;
                 border: none;
                 border-radius: 14px;
@@ -272,7 +271,7 @@ class HabitDashboardWidget(QWidget):
 
         header = QHBoxLayout()
         title = QLabel("Habit")
-        title.setStyleSheet("color: #111827; font-size: 20px; font-weight: 700;")
+        title.setStyleSheet("color: #111827; font-weight: 700;")
         header.addWidget(title)
         layout.addLayout(header)
 
@@ -315,7 +314,7 @@ class HabitDashboardWidget(QWidget):
         header = QHBoxLayout()
         self._detail_icon = HabitIconBadge(size=44)
         self._detail_name = QLabel("Select a habit")
-        self._detail_name.setStyleSheet("color: #111827; font-size: 16px; font-weight: 700;")
+        self._detail_name.setStyleSheet("color: #111827; font-weight: 700;")
         self._detail_name.setWordWrap(True)
         header.addWidget(self._detail_icon)
         header.addWidget(self._detail_name, 1)
@@ -359,19 +358,19 @@ class HabitDashboardWidget(QWidget):
         log_header = QHBoxLayout()
         log_title = QLabel("Habit Log on —.")
         log_title.setObjectName("habitLogTitle")
-        log_title.setStyleSheet("color: #111827; font-size: 14px; font-weight: 700;")
+        log_title.setStyleSheet("color: #111827; font-weight: 700;")
         self._log_title = log_title
         log_header.addWidget(log_title, 1)
         self._all_comments_button = QPushButton("All comments…")
         self._all_comments_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self._all_comments_button.setFlat(True)
-        self._all_comments_button.setStyleSheet("color: #2563EB; font-size: 12px;")
+        self._all_comments_button.setStyleSheet("color: #2563EB;")
         self._all_comments_button.clicked.connect(self._show_all_comments)
         log_header.addWidget(self._all_comments_button)
         layout.addLayout(log_header)
 
         self._log_placeholder = QLabel("No comments this month yet.")
-        self._log_placeholder.setStyleSheet("color: #9CA3AF; font-size: 13px;")
+        self._log_placeholder.setStyleSheet("color: #9CA3AF;")
         self._log_placeholder.setWordWrap(True)
         layout.addWidget(self._log_placeholder)
 

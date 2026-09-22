@@ -5503,7 +5503,7 @@ class MainWindow(
         # Create and add label
         label: QLabel = QLabel(text)
         label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        label.setStyleSheet("font-size: 16px; color: #666; padding: 20px;")
+        label.setStyleSheet("color: #666; padding: 20px;")
         layout.addWidget(label)
 
     def _show_test_balance_dialog(

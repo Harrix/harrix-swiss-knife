@@ -97,6 +97,29 @@ def test_scale_explicit_widget_font_multiplies_point_size_once() -> None:
     app.setProperty("_hskUiFontScale", previous)
 
 
+def test_scale_explicit_widget_font_keeps_standard_size() -> None:
+    app = QApplication.instance()
+    if app is None:
+        app = QApplication([])
+    if not isinstance(app, QApplication):
+        msg = "QApplication.instance() returned a non-QApplication object."
+        raise TypeError(msg)
+    previous = app.property("_hskUiFontScale")
+    app.setProperty("_hskUiFontScale", 1.5)
+    label = QLabel()
+    font = label.font()
+    font.setBold(True)
+    label.setFont(font)
+    expected = app.font().pointSizeF()
+
+    scale_explicit_widget_font(label)
+
+    assert abs(label.font().pointSizeF() - expected) < 0.01
+    assert label.font().bold()
+    label.close()
+    app.setProperty("_hskUiFontScale", previous)
+
+
 def test_apply_mono_font_sets_jetbrains_mono() -> None:
     app = QApplication.instance()
     if app is None:

@@ -39,6 +39,9 @@ def test_compact_spin_buttons_are_narrow_and_stacked() -> None:
     assert up.width() == 11
     assert down.width() == 11
     assert up.x() == down.x()
+    assert spin.rect().right() - up.right() == 5
+    assert up.top() - spin.rect().top() == 2
+    assert spin.rect().bottom() - down.bottom() == 2
     assert up.center().y() < down.center().y()
     assert edit.right() == up.left() - 1
     spin.close()

@@ -69,7 +69,6 @@
                 <widget class="QLabel" name="label_category_now">
                  <property name="font">
                   <font>
-                   <pointsize>12</pointsize>
                    <bold>true</bold>
                   </font>
                  </property>
@@ -85,11 +84,6 @@
                 <layout class="QHBoxLayout" name="horizontalLayout_2">
                  <item>
                   <widget class="QLineEdit" name="lineEdit_description">
-                   <property name="font">
-                    <font>
-                     <pointsize>12</pointsize>
-                    </font>
-                   </property>
                    <property name="placeholderText">
                     <string>Description</string>
                    </property>
@@ -116,7 +110,6 @@
                   <widget class="CompactDoubleSpinBox" name="doubleSpinBox_amount">
                    <property name="font">
                     <font>
-                     <pointsize>12</pointsize>
                      <bold>true</bold>
                     </font>
                    </property>
@@ -181,7 +174,6 @@
                  </property>
                  <property name="font">
                   <font>
-                   <pointsize>12</pointsize>
                    <bold>true</bold>
                   </font>
                  </property>
@@ -287,7 +279,7 @@
                 <widget class="QLabel" name="label_today_expense">
                  <property name="font">
                   <font>
-                   <pointsize>20</pointsize>
+                   <pointsize>16</pointsize>
                    <bold>true</bold>
                   </font>
                  </property>
@@ -318,7 +310,7 @@
                 <widget class="QLabel" name="label_yesterday_expense">
                  <property name="font">
                   <font>
-                   <pointsize>14</pointsize>
+                   <pointsize>12</pointsize>
                    <bold>true</bold>
                   </font>
                  </property>
@@ -674,7 +666,7 @@
                 <widget class="QLabel" name="label_balance_accounts">
                  <property name="font">
                   <font>
-                   <pointsize>20</pointsize>
+                   <pointsize>16</pointsize>
                    <bold>true</bold>
                   </font>
                  </property>
@@ -706,7 +698,6 @@
               </property>
               <property name="font">
                <font>
-                <pointsize>12</pointsize>
                 <bold>true</bold>
                </font>
               </property>
@@ -1032,7 +1023,6 @@
                  </property>
                  <property name="font">
                   <font>
-                   <pointsize>12</pointsize>
                    <bold>true</bold>
                   </font>
                  </property>
@@ -1153,7 +1143,6 @@
                     </property>
                     <property name="font">
                      <font>
-                      <pointsize>8</pointsize>
                       <bold>true</bold>
                      </font>
                     </property>

@@ -12,7 +12,6 @@ if TYPE_CHECKING:
 MONTHLY_GOAL_STYLESHEET = """
     QMessageBox {
         background-color: #f0fff0;
-        font-size: 12px;
     }
     QMessageBox QLabel {
         color: #228b22;
@@ -23,7 +22,6 @@ MONTHLY_GOAL_STYLESHEET = """
 NEW_RECORD_STYLESHEET = """
     QMessageBox {
         background-color: #f0f8ff;
-        font-size: 12px;
     }
     QMessageBox QLabel {
         color: #2e8b57;

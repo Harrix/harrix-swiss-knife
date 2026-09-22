@@ -346,7 +346,7 @@ class PurchaseTableDialog(QDialog):
         self._mode_button_group.idClicked.connect(self._on_input_mode_changed)
 
         self.total_label = QLabel()
-        self.total_label.setStyleSheet("font-weight: bold; font-size: 14px;")
+        self.total_label.setStyleSheet("font-weight: bold;")
         layout.addWidget(self.total_label)
 
         button_layout = QHBoxLayout()

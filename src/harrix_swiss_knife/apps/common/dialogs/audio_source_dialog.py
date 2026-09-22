@@ -604,7 +604,6 @@ class AudioSourceDialog(QDialog):
         self._recording_time_label = QLabel("0:00")
         self._recording_time_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         recording_time_font = QFont()
-        recording_time_font.setPointSize(14)
         recording_time_font.setBold(True)
         recording_time_font.setStyleHint(QFont.StyleHint.Monospace)
         self._recording_time_label.setFont(recording_time_font)

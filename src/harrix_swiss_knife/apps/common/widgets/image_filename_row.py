@@ -10,7 +10,7 @@ from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import slugify_ima
 EMPTY_TEMPLATE_DATE = QDate(2000, 1, 1)
 
 
-_HINT_STYLE = "font-size: 11px; color: #888; border: none; background: transparent;"
+_HINT_STYLE = "color: #888; border: none; background: transparent;"
 
 
 class ImageFilenameRow(QWidget):
