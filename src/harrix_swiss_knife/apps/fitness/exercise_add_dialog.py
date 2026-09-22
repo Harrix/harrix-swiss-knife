@@ -10,7 +10,6 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QDialog,
     QDialogButtonBox,
-    QDoubleSpinBox,
     QGroupBox,
     QHBoxLayout,
     QLabel,
@@ -35,6 +34,7 @@ from harrix_swiss_knife.apps.fitness.exercise_ai_fill import (
 )
 from harrix_swiss_knife.apps.fitness.exercise_duplicate_dialog import show_exercise_already_exists
 from harrix_swiss_knife.integrations.bothub import BothubRequestState
+from harrix_swiss_knife.qt_compact_spin_box import CompactDoubleSpinBox as QDoubleSpinBox
 from harrix_swiss_knife.qt_lucide_icon import (
     apply_lucide_dialog_buttons,
     create_lucide_icon,

@@ -10,13 +10,11 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QDialog,
     QDialogButtonBox,
-    QDoubleSpinBox,
     QFormLayout,
     QHBoxLayout,
     QLineEdit,
     QMessageBox,
     QPushButton,
-    QSpinBox,
     QVBoxLayout,
     QWidget,
 )
@@ -25,6 +23,10 @@ from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.text_case import capitalize_first_letter
 from harrix_swiss_knife.apps.food.database_manager import FoodItemByNameRow, FoodLogItemByNameRow
+from harrix_swiss_knife.qt_compact_spin_box import (
+    CompactDoubleSpinBox as QDoubleSpinBox,
+)
+from harrix_swiss_knife.qt_compact_spin_box import CompactSpinBox as QSpinBox
 from harrix_swiss_knife.qt_lucide_icon import (
     DELETE_BUTTON_ICON,
     apply_lucide_dialog_buttons,

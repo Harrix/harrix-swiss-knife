@@ -191,7 +191,7 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_14 = QHBoxLayout()
         self.horizontalLayout_14.setObjectName(u"horizontalLayout_14")
-        self.spinBox_count = QSpinBox(self.groupBox)
+        self.spinBox_count = CompactSpinBox(self.groupBox)
         self.spinBox_count.setObjectName(u"spinBox_count")
         self.spinBox_count.setFont(font)
         self.spinBox_count.setStyleSheet(u"QSpinBox {\n"
@@ -641,7 +641,7 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_charts_controls_2.addWidget(self.label_compare_last)
 
-        self.spinBox_compare_last = QSpinBox(self.frame_charts_controls)
+        self.spinBox_compare_last = CompactSpinBox(self.frame_charts_controls)
         self.spinBox_compare_last.setObjectName(u"spinBox_compare_last")
         self.spinBox_compare_last.setMaximum(100000)
         self.spinBox_compare_last.setValue(3)
@@ -790,7 +790,7 @@ class Ui_MainWindow(object):
         self.groupBox_4.setObjectName(u"groupBox_4")
         self.verticalLayout_7 = QVBoxLayout(self.groupBox_4)
         self.verticalLayout_7.setObjectName(u"verticalLayout_7")
-        self.doubleSpinBox_weight = QDoubleSpinBox(self.groupBox_4)
+        self.doubleSpinBox_weight = CompactDoubleSpinBox(self.groupBox_4)
         self.doubleSpinBox_weight.setObjectName(u"doubleSpinBox_weight")
         self.doubleSpinBox_weight.setMaximum(300.000000000000000)
         self.doubleSpinBox_weight.setValue(89.000000000000000)
@@ -955,7 +955,7 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_24.addWidget(self.label_record_count)
 
-        self.spinBox_record_count = QSpinBox(self.groupBox_10)
+        self.spinBox_record_count = CompactSpinBox(self.groupBox_10)
         self.spinBox_record_count.setObjectName(u"spinBox_record_count")
         self.spinBox_record_count.setMinimum(1)
         self.spinBox_record_count.setMaximum(100)
@@ -1238,7 +1238,7 @@ def setupUi(self, MainWindow):
 
         self.horizontalLayout_14 = QHBoxLayout()
         self.horizontalLayout_14.setObjectName(u"horizontalLayout_14")
-        self.spinBox_count = QSpinBox(self.groupBox)
+        self.spinBox_count = CompactSpinBox(self.groupBox)
         self.spinBox_count.setObjectName(u"spinBox_count")
         self.spinBox_count.setFont(font)
         self.spinBox_count.setStyleSheet(u"QSpinBox {\n"
@@ -1688,7 +1688,7 @@ def setupUi(self, MainWindow):
 
         self.horizontalLayout_charts_controls_2.addWidget(self.label_compare_last)
 
-        self.spinBox_compare_last = QSpinBox(self.frame_charts_controls)
+        self.spinBox_compare_last = CompactSpinBox(self.frame_charts_controls)
         self.spinBox_compare_last.setObjectName(u"spinBox_compare_last")
         self.spinBox_compare_last.setMaximum(100000)
         self.spinBox_compare_last.setValue(3)
@@ -1837,7 +1837,7 @@ def setupUi(self, MainWindow):
         self.groupBox_4.setObjectName(u"groupBox_4")
         self.verticalLayout_7 = QVBoxLayout(self.groupBox_4)
         self.verticalLayout_7.setObjectName(u"verticalLayout_7")
-        self.doubleSpinBox_weight = QDoubleSpinBox(self.groupBox_4)
+        self.doubleSpinBox_weight = CompactDoubleSpinBox(self.groupBox_4)
         self.doubleSpinBox_weight.setObjectName(u"doubleSpinBox_weight")
         self.doubleSpinBox_weight.setMaximum(300.000000000000000)
         self.doubleSpinBox_weight.setValue(89.000000000000000)
@@ -2002,7 +2002,7 @@ def setupUi(self, MainWindow):
 
         self.horizontalLayout_24.addWidget(self.label_record_count)
 
-        self.spinBox_record_count = QSpinBox(self.groupBox_10)
+        self.spinBox_record_count = CompactSpinBox(self.groupBox_10)
         self.spinBox_record_count.setObjectName(u"spinBox_record_count")
         self.spinBox_record_count.setMinimum(1)
         self.spinBox_record_count.setMaximum(100)

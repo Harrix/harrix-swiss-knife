@@ -37,7 +37,6 @@ from PySide6.QtWidgets import (
     QPushButton,
     QScrollArea,
     QSizePolicy,
-    QSpinBox,
     QTextBrowser,
     QVBoxLayout,
     QWidget,
@@ -82,6 +81,7 @@ from harrix_swiss_knife.apps.common.qt_main_window import apply_app_window_size_
 from harrix_swiss_knife.apps.common.widgets.image_picker import ImagePickerMode
 from harrix_swiss_knife.qt_action_card_grid import configure_action_card_grid
 from harrix_swiss_knife.qt_command_section import create_command_section, style_transparent_icon_grid
+from harrix_swiss_knife.qt_compact_spin_box import CompactSpinBox as QSpinBox
 from harrix_swiss_knife.qt_described_choice_cards import (
     configure_described_choice_card_grid,
     populate_described_choice_cards,

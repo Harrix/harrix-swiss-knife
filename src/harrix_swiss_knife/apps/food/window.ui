@@ -104,7 +104,7 @@
                <item>
                 <layout class="QHBoxLayout" name="horizontalLayout_food_weight">
                  <item>
-                  <widget class="QSpinBox" name="spinBox_food_weight">
+                  <widget class="CompactSpinBox" name="spinBox_food_weight">
                    <property name="font">
                     <font>
                      <pointsize>12</pointsize>
@@ -135,7 +135,7 @@
                   </widget>
                  </item>
                  <item>
-                  <widget class="QDoubleSpinBox" name="doubleSpinBox_food_calories">
+                  <widget class="CompactDoubleSpinBox" name="doubleSpinBox_food_calories">
                    <property name="font">
                     <font>
                      <pointsize>12</pointsize>
@@ -930,6 +930,18 @@
    </property>
   </action>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>CompactSpinBox</class>
+   <extends>QSpinBox</extends>
+   <header>harrix_swiss_knife.qt_compact_spin_box</header>
+  </customwidget>
+  <customwidget>
+   <class>CompactDoubleSpinBox</class>
+   <extends>QDoubleSpinBox</extends>
+   <header>harrix_swiss_knife.qt_compact_spin_box</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

@@ -88,7 +88,7 @@
                <item>
                 <layout class="QHBoxLayout" name="horizontalLayout_14">
                  <item>
-                  <widget class="QSpinBox" name="spinBox_count">
+                  <widget class="CompactSpinBox" name="spinBox_count">
                    <property name="font">
                     <font>
                      <pointsize>12</pointsize>
@@ -812,7 +812,7 @@
                     </widget>
                    </item>
                    <item>
-                    <widget class="QSpinBox" name="spinBox_compare_last">
+                    <widget class="CompactSpinBox" name="spinBox_compare_last">
                      <property name="maximum">
                       <number>100000</number>
                      </property>
@@ -1028,7 +1028,7 @@
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_7">
               <item>
-               <widget class="QDoubleSpinBox" name="doubleSpinBox_weight">
+               <widget class="CompactDoubleSpinBox" name="doubleSpinBox_weight">
                 <property name="maximum">
                  <double>300.000000000000000</double>
                 </property>
@@ -1284,7 +1284,7 @@
                  </widget>
                 </item>
                 <item>
-                 <widget class="QSpinBox" name="spinBox_record_count">
+                 <widget class="CompactSpinBox" name="spinBox_record_count">
                   <property name="minimum">
                    <number>1</number>
                   </property>
@@ -1461,6 +1461,18 @@
    </property>
   </action>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>CompactSpinBox</class>
+   <extends>QSpinBox</extends>
+   <header>harrix_swiss_knife.qt_compact_spin_box</header>
+  </customwidget>
+  <customwidget>
+   <class>CompactDoubleSpinBox</class>
+   <extends>QDoubleSpinBox</extends>
+   <header>harrix_swiss_knife.qt_compact_spin_box</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

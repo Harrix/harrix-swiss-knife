@@ -17,12 +17,13 @@ from PySide6.QtGui import (QAction, QBrush, QColor, QConicalGradient,
     QPainter, QPalette, QPixmap, QRadialGradient,
     QTransform)
 from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDateEdit,
-    QDoubleSpinBox, QFrame, QGroupBox, QHBoxLayout,
-    QHeaderView, QLabel, QLineEdit, QListView,
-    QMainWindow, QMenu, QMenuBar, QPushButton,
-    QScrollArea, QSizePolicy, QSpacerItem, QSpinBox,
-    QSplitter, QTabWidget, QTableView, QVBoxLayout,
-    QWidget)
+    QFrame, QGroupBox, QHBoxLayout, QHeaderView,
+    QLabel, QLineEdit, QListView, QMainWindow,
+    QMenu, QMenuBar, QPushButton, QScrollArea,
+    QSizePolicy, QSpacerItem, QSplitter, QTabWidget,
+    QTableView, QVBoxLayout, QWidget)
+
+from harrix_swiss_knife.qt_compact_spin_box import (CompactDoubleSpinBox, CompactSpinBox)
 
 class Ui_MainWindow(object):
     # setupUi
@@ -175,7 +176,7 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_food_weight = QHBoxLayout()
         self.horizontalLayout_food_weight.setObjectName(u"horizontalLayout_food_weight")
-        self.spinBox_food_weight = QSpinBox(self.groupBox_food_add)
+        self.spinBox_food_weight = CompactSpinBox(self.groupBox_food_add)
         self.spinBox_food_weight.setObjectName(u"spinBox_food_weight")
         font1 = QFont()
         font1.setPointSize(12)
@@ -195,7 +196,7 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_food_weight.addWidget(self.label_food_weight_unit)
 
-        self.doubleSpinBox_food_calories = QDoubleSpinBox(self.groupBox_food_add)
+        self.doubleSpinBox_food_calories = CompactDoubleSpinBox(self.groupBox_food_add)
         self.doubleSpinBox_food_calories.setObjectName(u"doubleSpinBox_food_calories")
         self.doubleSpinBox_food_calories.setFont(font1)
         self.doubleSpinBox_food_calories.setStyleSheet(u"QDoubleSpinBox {\n"

@@ -10,13 +10,13 @@ from PySide6.QtWidgets import (
     QGroupBox,
     QLineEdit,
     QRadioButton,
-    QSpinBox,
     QVBoxLayout,
     QWidget,
 )
 
 from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.fitness.workouts_ai import WorkoutGeneratePreferences
+from harrix_swiss_knife.qt_compact_spin_box import CompactSpinBox as QSpinBox
 from harrix_swiss_knife.qt_lucide_icon import apply_lucide_dialog_buttons
 
 

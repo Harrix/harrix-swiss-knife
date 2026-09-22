@@ -8,7 +8,6 @@ from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
     QDialogButtonBox,
-    QDoubleSpinBox,
     QGroupBox,
     QHBoxLayout,
     QLabel,
@@ -22,6 +21,7 @@ from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.text_case import capitalize_first_letter
 from harrix_swiss_knife.apps.fitness.name_local_translate import request_name_local_translation
 from harrix_swiss_knife.integrations.bothub import BothubRequestState
+from harrix_swiss_knife.qt_compact_spin_box import CompactDoubleSpinBox as QDoubleSpinBox
 from harrix_swiss_knife.qt_lucide_icon import (
     apply_lucide_dialog_buttons,
     make_ai_lucide_push_button,

@@ -11,7 +11,6 @@ from PySide6.QtGui import QBrush, QColor, QFont, QStandardItem, QStandardItemMod
 from PySide6.QtWidgets import (
     QCheckBox,
     QCompleter,
-    QDoubleSpinBox,
     QFormLayout,
     QFrame,
     QGroupBox,
@@ -24,7 +23,6 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QRadioButton,
-    QSpinBox,
     QSplitter,
     QTableWidget,
     QTableWidgetItem,
@@ -50,6 +48,10 @@ from harrix_swiss_knife.apps.food.services.food_display import (
     extract_food_name_from_display,
     format_food_name_with_calories,
 )
+from harrix_swiss_knife.qt_compact_spin_box import (
+    CompactDoubleSpinBox as QDoubleSpinBox,
+)
+from harrix_swiss_knife.qt_compact_spin_box import CompactSpinBox as QSpinBox
 from harrix_swiss_knife.qt_lucide_icon import (
     apply_leading_chrome_icons,
     make_lucide_push_button,

@@ -9,6 +9,7 @@ from PySide6.QtGui import QFont, QPainter
 from PySide6.QtWidgets import QDoubleSpinBox, QStyledItemDelegate, QStyleOptionViewItem, QWidget
 
 from harrix_swiss_knife.apps.common.ui_helpers import apply_white_editor_background
+from harrix_swiss_knife.qt_compact_spin_box import CompactDoubleSpinBox
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +54,7 @@ class AmountDelegate(QStyledItemDelegate):
         - `QDoubleSpinBox`: A configured double spin box editor for amount input.
 
         """
-        editor = QDoubleSpinBox(parent)
+        editor = CompactDoubleSpinBox(parent)
         editor.setRange(-999999999.99, 999999999.99)
         editor.setDecimals(2)
         editor.setGroupSeparatorShown(False)  # No separators in editor

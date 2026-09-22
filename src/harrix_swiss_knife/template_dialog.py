@@ -13,7 +13,6 @@ from PySide6.QtWidgets import (
     QComboBox,
     QDateEdit,
     QDialog,
-    QDoubleSpinBox,
     QFormLayout,
     QFrame,
     QHBoxLayout,
@@ -24,7 +23,6 @@ from PySide6.QtWidgets import (
     QPushButton,
     QScrollArea,
     QSizePolicy,
-    QSpinBox,
     QSplitter,
     QVBoxLayout,
     QWidget,
@@ -66,6 +64,10 @@ from harrix_swiss_knife.map_coordinates import (
     parse_coordinates_from_map_url,
     parse_coordinates_text,
 )
+from harrix_swiss_knife.qt_compact_spin_box import (
+    CompactDoubleSpinBox as QDoubleSpinBox,
+)
+from harrix_swiss_knife.qt_compact_spin_box import CompactSpinBox as QSpinBox
 from harrix_swiss_knife.qt_lucide_icon import (
     AI_BUTTON_ICON,
     CANCEL_BUTTON_ICON,

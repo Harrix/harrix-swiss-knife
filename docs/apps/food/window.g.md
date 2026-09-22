@@ -180,7 +180,7 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_food_weight = QHBoxLayout()
         self.horizontalLayout_food_weight.setObjectName(u"horizontalLayout_food_weight")
-        self.spinBox_food_weight = QSpinBox(self.groupBox_food_add)
+        self.spinBox_food_weight = CompactSpinBox(self.groupBox_food_add)
         self.spinBox_food_weight.setObjectName(u"spinBox_food_weight")
         font1 = QFont()
         font1.setPointSize(12)
@@ -200,7 +200,7 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_food_weight.addWidget(self.label_food_weight_unit)
 
-        self.doubleSpinBox_food_calories = QDoubleSpinBox(self.groupBox_food_add)
+        self.doubleSpinBox_food_calories = CompactDoubleSpinBox(self.groupBox_food_add)
         self.doubleSpinBox_food_calories.setObjectName(u"doubleSpinBox_food_calories")
         self.doubleSpinBox_food_calories.setFont(font1)
         self.doubleSpinBox_food_calories.setStyleSheet(u"QDoubleSpinBox {\n"
@@ -846,7 +846,7 @@ def setupUi(self, MainWindow):
 
         self.horizontalLayout_food_weight = QHBoxLayout()
         self.horizontalLayout_food_weight.setObjectName(u"horizontalLayout_food_weight")
-        self.spinBox_food_weight = QSpinBox(self.groupBox_food_add)
+        self.spinBox_food_weight = CompactSpinBox(self.groupBox_food_add)
         self.spinBox_food_weight.setObjectName(u"spinBox_food_weight")
         font1 = QFont()
         font1.setPointSize(12)
@@ -866,7 +866,7 @@ def setupUi(self, MainWindow):
 
         self.horizontalLayout_food_weight.addWidget(self.label_food_weight_unit)
 
-        self.doubleSpinBox_food_calories = QDoubleSpinBox(self.groupBox_food_add)
+        self.doubleSpinBox_food_calories = CompactDoubleSpinBox(self.groupBox_food_add)
         self.doubleSpinBox_food_calories.setObjectName(u"doubleSpinBox_food_calories")
         self.doubleSpinBox_food_calories.setFont(font1)
         self.doubleSpinBox_food_calories.setStyleSheet(u"QDoubleSpinBox {\n"

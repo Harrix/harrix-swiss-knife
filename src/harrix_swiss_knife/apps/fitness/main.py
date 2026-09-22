@@ -71,7 +71,6 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QRadioButton,
     QSizePolicy,
-    QSpinBox,
     QTableView,
     QVBoxLayout,
 )
@@ -249,6 +248,7 @@ from harrix_swiss_knife.integrations.bothub import (
 )
 from harrix_swiss_knife.keyboard_layout_search import text_matches_autocomplete
 from harrix_swiss_knife.paths import get_config_path_str, get_project_root
+from harrix_swiss_knife.qt_compact_spin_box import CompactSpinBox as QSpinBox
 from harrix_swiss_knife.qt_lucide_icon import (
     CLEAR_BUTTON_ICON,
     apply_leading_chrome_buttons,

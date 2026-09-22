@@ -70,7 +70,7 @@ class AmountDelegate(QStyledItemDelegate):
         - `QDoubleSpinBox`: A configured double spin box editor for amount input.
 
         """
-        editor = QDoubleSpinBox(parent)
+        editor = CompactDoubleSpinBox(parent)
         editor.setRange(-999999999.99, 999999999.99)
         editor.setDecimals(2)
         editor.setGroupSeparatorShown(False)  # No separators in editor
@@ -367,7 +367,7 @@ def createEditor(  # noqa: N802
         _option: QStyleOptionViewItem,
         _index: QModelIndex | QPersistentModelIndex,
     ) -> QWidget:
-        editor = QDoubleSpinBox(parent)
+        editor = CompactDoubleSpinBox(parent)
         editor.setRange(-999999999.99, 999999999.99)
         editor.setDecimals(2)
         editor.setGroupSeparatorShown(False)  # No separators in editor

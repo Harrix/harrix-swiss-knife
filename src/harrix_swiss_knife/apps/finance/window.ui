@@ -113,7 +113,7 @@
                <item>
                 <layout class="QHBoxLayout" name="horizontalLayout_amount">
                  <item>
-                  <widget class="QDoubleSpinBox" name="doubleSpinBox_amount">
+                  <widget class="CompactDoubleSpinBox" name="doubleSpinBox_amount">
                    <property name="font">
                     <font>
                      <pointsize>12</pointsize>
@@ -810,7 +810,7 @@
                   </widget>
                  </item>
                  <item>
-                  <widget class="QDoubleSpinBox" name="doubleSpinBox_exchange_from">
+                  <widget class="CompactDoubleSpinBox" name="doubleSpinBox_exchange_from">
                    <property name="minimumSize">
                     <size>
                      <width>120</width>
@@ -853,7 +853,7 @@
                   </widget>
                  </item>
                  <item>
-                  <widget class="QDoubleSpinBox" name="doubleSpinBox_exchange_to">
+                  <widget class="CompactDoubleSpinBox" name="doubleSpinBox_exchange_to">
                    <property name="minimumSize">
                     <size>
                      <width>120</width>
@@ -886,7 +886,7 @@
                   </widget>
                  </item>
                  <item>
-                  <widget class="QDoubleSpinBox" name="doubleSpinBox_exchange_rate">
+                  <widget class="CompactDoubleSpinBox" name="doubleSpinBox_exchange_rate">
                    <property name="minimumSize">
                     <size>
                      <width>120</width>
@@ -932,7 +932,7 @@
                   </widget>
                  </item>
                  <item>
-                  <widget class="QDoubleSpinBox" name="doubleSpinBox_exchange_fee">
+                  <widget class="CompactDoubleSpinBox" name="doubleSpinBox_exchange_fee">
                    <property name="minimumSize">
                     <size>
                      <width>260</width>
@@ -1192,7 +1192,7 @@
                      </widget>
                     </item>
                     <item>
-                     <widget class="QSpinBox" name="spinBox_exchange_rate_count_days">
+                     <widget class="CompactSpinBox" name="spinBox_exchange_rate_count_days">
                       <property name="maximum">
                        <number>100000</number>
                       </property>
@@ -1251,7 +1251,7 @@
                      </widget>
                     </item>
                     <item>
-                     <widget class="QDoubleSpinBox" name="doubleSpinBox_exchange_item_update">
+                     <widget class="CompactDoubleSpinBox" name="doubleSpinBox_exchange_item_update">
                       <property name="decimals">
                        <number>9</number>
                       </property>
@@ -1871,7 +1871,7 @@
                   </widget>
                  </item>
                  <item>
-                  <widget class="QSpinBox" name="spinBox_compare_last">
+                  <widget class="CompactSpinBox" name="spinBox_compare_last">
                    <property name="maximum">
                     <number>100000</number>
                    </property>
@@ -2159,6 +2159,18 @@
    </property>
   </action>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>CompactSpinBox</class>
+   <extends>QSpinBox</extends>
+   <header>harrix_swiss_knife.qt_compact_spin_box</header>
+  </customwidget>
+  <customwidget>
+   <class>CompactDoubleSpinBox</class>
+   <extends>QDoubleSpinBox</extends>
+   <header>harrix_swiss_knife.qt_compact_spin_box</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

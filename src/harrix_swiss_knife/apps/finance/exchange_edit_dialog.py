@@ -9,7 +9,6 @@ from PySide6.QtWidgets import (
     QComboBox,
     QDateEdit,
     QDialog,
-    QDoubleSpinBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -20,6 +19,7 @@ from PySide6.QtWidgets import (
 from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.finance.exchange_validation import validate_exchange_data
+from harrix_swiss_knife.qt_compact_spin_box import CompactDoubleSpinBox as QDoubleSpinBox
 from harrix_swiss_knife.qt_lucide_icon import (
     CANCEL_BUTTON_ICON,
     OK_BUTTON_ICON,

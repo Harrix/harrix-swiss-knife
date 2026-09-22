@@ -17,12 +17,14 @@ from PySide6.QtGui import (QAction, QBrush, QColor, QConicalGradient,
     QPainter, QPalette, QPixmap, QRadialGradient,
     QTransform)
 from PySide6.QtWidgets import (QAbstractItemView, QApplication, QCheckBox, QComboBox,
-    QDateEdit, QDoubleSpinBox, QFrame, QGroupBox,
-    QHBoxLayout, QHeaderView, QLabel, QLineEdit,
-    QListView, QMainWindow, QMenu, QMenuBar,
-    QPushButton, QRadioButton, QScrollArea, QSizePolicy,
-    QSpacerItem, QSpinBox, QSplitter, QStatusBar,
-    QTabWidget, QTableView, QVBoxLayout, QWidget)
+    QDateEdit, QFrame, QGroupBox, QHBoxLayout,
+    QHeaderView, QLabel, QLineEdit, QListView,
+    QMainWindow, QMenu, QMenuBar, QPushButton,
+    QRadioButton, QScrollArea, QSizePolicy, QSpacerItem,
+    QSplitter, QStatusBar, QTabWidget, QTableView,
+    QVBoxLayout, QWidget)
+
+from harrix_swiss_knife.qt_compact_spin_box import (CompactDoubleSpinBox, CompactSpinBox)
 
 class Ui_MainWindow(object):
     # setupUi
@@ -246,7 +248,7 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_amount = QHBoxLayout()
         self.horizontalLayout_amount.setObjectName(u"horizontalLayout_amount")
-        self.doubleSpinBox_amount = QDoubleSpinBox(self.groupBox_transaction)
+        self.doubleSpinBox_amount = CompactDoubleSpinBox(self.groupBox_transaction)
         self.doubleSpinBox_amount.setObjectName(u"doubleSpinBox_amount")
         self.doubleSpinBox_amount.setFont(font)
         self.doubleSpinBox_amount.setStyleSheet(u"QDoubleSpinBox {\n"
@@ -647,7 +649,7 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_exchange_from.addWidget(self.comboBox_exchange_from)
 
-        self.doubleSpinBox_exchange_from = QDoubleSpinBox(self.groupBox_exchange_operation)
+        self.doubleSpinBox_exchange_from = CompactDoubleSpinBox(self.groupBox_exchange_operation)
         self.doubleSpinBox_exchange_from.setObjectName(u"doubleSpinBox_exchange_from")
         self.doubleSpinBox_exchange_from.setMinimumSize(QSize(120, 0))
         self.doubleSpinBox_exchange_from.setMaximum(999999.989999999990687)
@@ -672,7 +674,7 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_exchange_to.addWidget(self.comboBox_exchange_to)
 
-        self.doubleSpinBox_exchange_to = QDoubleSpinBox(self.groupBox_exchange_operation)
+        self.doubleSpinBox_exchange_to = CompactDoubleSpinBox(self.groupBox_exchange_operation)
         self.doubleSpinBox_exchange_to.setObjectName(u"doubleSpinBox_exchange_to")
         self.doubleSpinBox_exchange_to.setMinimumSize(QSize(120, 0))
         self.doubleSpinBox_exchange_to.setMaximum(999999.989999999990687)
@@ -691,7 +693,7 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_exchange_rate.addWidget(self.label_exchange_rate)
 
-        self.doubleSpinBox_exchange_rate = QDoubleSpinBox(self.groupBox_exchange_operation)
+        self.doubleSpinBox_exchange_rate = CompactDoubleSpinBox(self.groupBox_exchange_operation)
         self.doubleSpinBox_exchange_rate.setObjectName(u"doubleSpinBox_exchange_rate")
         self.doubleSpinBox_exchange_rate.setMinimumSize(QSize(120, 0))
         self.doubleSpinBox_exchange_rate.setMaximum(999999.989999999990687)
@@ -716,7 +718,7 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_exchange_fee.addWidget(self.label_exchange_fee)
 
-        self.doubleSpinBox_exchange_fee = QDoubleSpinBox(self.groupBox_exchange_operation)
+        self.doubleSpinBox_exchange_fee = CompactDoubleSpinBox(self.groupBox_exchange_operation)
         self.doubleSpinBox_exchange_fee.setObjectName(u"doubleSpinBox_exchange_fee")
         self.doubleSpinBox_exchange_fee.setMinimumSize(QSize(260, 0))
         self.doubleSpinBox_exchange_fee.setMaximum(999999.989999999990687)
@@ -862,7 +864,7 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_15.addWidget(self.label)
 
-        self.spinBox_exchange_rate_count_days = QSpinBox(self.groupBox_rate_commands)
+        self.spinBox_exchange_rate_count_days = CompactSpinBox(self.groupBox_rate_commands)
         self.spinBox_exchange_rate_count_days.setObjectName(u"spinBox_exchange_rate_count_days")
         self.spinBox_exchange_rate_count_days.setMaximum(100000)
         self.spinBox_exchange_rate_count_days.setValue(1)
@@ -910,7 +912,7 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_exchange_item_rate.addWidget(self.label_exchange_item_update_2)
 
-        self.doubleSpinBox_exchange_item_update = QDoubleSpinBox(self.groupBox_rate_commands)
+        self.doubleSpinBox_exchange_item_update = CompactDoubleSpinBox(self.groupBox_rate_commands)
         self.doubleSpinBox_exchange_item_update.setObjectName(u"doubleSpinBox_exchange_item_update")
         self.doubleSpinBox_exchange_item_update.setDecimals(9)
         self.doubleSpinBox_exchange_item_update.setMaximum(10000000.000000000000000)
@@ -1303,7 +1305,7 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_charts_controls_2.addWidget(self.label_compare_last)
 
-        self.spinBox_compare_last = QSpinBox(self.frame_charts_controls)
+        self.spinBox_compare_last = CompactSpinBox(self.frame_charts_controls)
         self.spinBox_compare_last.setObjectName(u"spinBox_compare_last")
         self.spinBox_compare_last.setMaximum(100000)
         self.spinBox_compare_last.setValue(3)

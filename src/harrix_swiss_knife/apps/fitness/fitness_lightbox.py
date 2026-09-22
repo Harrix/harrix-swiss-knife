@@ -24,7 +24,6 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QPushButton,
-    QSpinBox,
     QSplitter,
     QStyle,
     QStyleOptionComboBox,
@@ -63,6 +62,7 @@ from harrix_swiss_knife.apps.fitness.lightbox_sounds import (
     play_fitness_timer_cue,
     stop_fitness_timer_alert,
 )
+from harrix_swiss_knife.qt_compact_spin_box import CompactSpinBox as QSpinBox
 from harrix_swiss_knife.qt_lucide_icon import apply_lucide_button_icon
 from harrix_swiss_knife.qt_toolbar_style import (
     TOOLBAR_BORDER_RADIUS,
