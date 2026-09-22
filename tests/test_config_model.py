@@ -15,10 +15,13 @@ from harrix_swiss_knife.config_model import (
     SHOW_MAIN_WINDOW_ON_STARTUP_KEY,
     UI_FONT_SCALE_DEFAULT,
     UI_FONT_SCALE_KEY,
+    UI_FONT_SIZE_PT_KEY,
     clamp_ui_font_scale,
+    clamp_ui_font_size_pt,
     get_main_window_sort_mode,
     get_show_main_window_on_startup,
     get_ui_font_scale,
+    get_ui_font_size_pt,
     load_app_config,
     restart_required_config_keys,
     set_main_window_sort_mode,
@@ -102,10 +105,11 @@ def test_load_app_config_and_ensure_local(monkeypatch: pytest.MonkeyPatch, tmp_p
 
 
 def test_restart_required_config_keys_detects_font_scale_and_hotkeys() -> None:
-    before = {UI_FONT_SCALE_KEY: 1.0, "hotkeys": [], "editor": "cursor"}
+    before = {UI_FONT_SIZE_PT_KEY: 10, "hotkeys": [], "editor": "cursor"}
     assert restart_required_config_keys(before, before) == []
     assert restart_required_config_keys(before, {**before, "editor": "code"}) == []
-    assert restart_required_config_keys(before, {**before, UI_FONT_SCALE_KEY: 1.2}) == [UI_FONT_SCALE_KEY]
+    assert restart_required_config_keys(before, {**before, UI_FONT_SIZE_PT_KEY: 14}) == [UI_FONT_SIZE_PT_KEY]
+    assert restart_required_config_keys({UI_FONT_SCALE_KEY: 1.0}, {UI_FONT_SCALE_KEY: 1.2}) == [UI_FONT_SCALE_KEY]
     after_hotkeys = {
         **before,
         "hotkeys": [{"action": "OnQuickLauncher", "hotkeys": ["Ctrl+F1"]}],
@@ -113,7 +117,17 @@ def test_restart_required_config_keys_detects_font_scale_and_hotkeys() -> None:
     assert restart_required_config_keys(before, after_hotkeys) == ["hotkeys"]
 
 
-def test_ui_font_scale_defaults_and_clamps() -> None:
+def test_ui_font_size_pt_defaults_and_clamps() -> None:
+    assert get_ui_font_size_pt({}) is None
+    assert get_ui_font_size_pt({UI_FONT_SIZE_PT_KEY: 14}) == 14.0
+    assert get_ui_font_size_pt({UI_FONT_SIZE_PT_KEY: "16"}) == 16.0
+    assert get_ui_font_size_pt({UI_FONT_SIZE_PT_KEY: "nope"}) is None
+    assert get_ui_font_size_pt({UI_FONT_SIZE_PT_KEY: 4}) is None
+    assert clamp_ui_font_size_pt(4) == 8.0
+    assert clamp_ui_font_size_pt(30) == 24.0
+
+
+def test_ui_font_scale_defaults_and_clamps_for_legacy_configs() -> None:
     assert get_ui_font_scale({}) == UI_FONT_SCALE_DEFAULT
     assert get_ui_font_scale({UI_FONT_SCALE_KEY: 0.9}) == 0.9
     assert get_ui_font_scale({UI_FONT_SCALE_KEY: "0.85"}) == 0.85

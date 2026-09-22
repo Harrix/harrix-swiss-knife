@@ -477,13 +477,13 @@ def test_save_keeps_snippets_key_order_and_stays_open(
         dialog.close()
 
 
-def test_save_ui_font_scale_prompts_restart(
+def test_save_ui_font_size_pt_prompts_restart(
     qapp: QApplication,  # noqa: ARG001
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
     path = tmp_path / "config.json"
-    path.write_text('{"editor": "cursor", "ui_font_scale": 1.0}\n', encoding="utf-8")
+    path.write_text('{"editor": "cursor", "ui_font_size_pt": 10}\n', encoding="utf-8")
     monkeypatch.setattr(
         "harrix_swiss_knife.apps.common.settings_editor.get_config_path_str",
         lambda: str(path),
@@ -498,17 +498,17 @@ def test_save_ui_font_scale_prompts_restart(
     dialog.show()
     QApplication.processEvents()
     try:
-        scale = dialog.input_widgets["General::ui_font_scale"]
-        assert isinstance(scale, QLineEdit)
-        scale.setText("1.2")
+        font_size = dialog.input_widgets["General::ui_font_size_pt"]
+        assert isinstance(font_size, QLineEdit)
+        font_size.setText("14")
         QApplication.processEvents()
         save_all = dialog.findChild(QPushButton, SAVE_ALL_BUTTON_OBJECT_NAME)
         assert save_all is not None
         save_all.click()
         QApplication.processEvents()
         written = json.loads(path.read_text(encoding="utf-8"))
-        assert written["ui_font_scale"] == 1.2
-        assert prompted == [["ui_font_scale"]]
+        assert written["ui_font_size_pt"] == 14
+        assert prompted == [["ui_font_size_pt"]]
     finally:
         dialog.close()
 
@@ -519,7 +519,7 @@ def test_save_editor_does_not_prompt_restart(
     tmp_path: Path,
 ) -> None:
     path = tmp_path / "config.json"
-    path.write_text('{"editor": "cursor", "ui_font_scale": 1.0}\n', encoding="utf-8")
+    path.write_text('{"editor": "cursor", "ui_font_size_pt": 10}\n', encoding="utf-8")
     monkeypatch.setattr(
         "harrix_swiss_knife.apps.common.settings_editor.get_config_path_str",
         lambda: str(path),

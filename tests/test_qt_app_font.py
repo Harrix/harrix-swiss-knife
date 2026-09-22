@@ -56,6 +56,23 @@ def test_install_app_fonts_sets_roboto() -> None:
     assert app.font().family() == APP_FONT_FAMILY
 
 
+def test_install_app_fonts_sets_base_point_size() -> None:
+    app = QApplication.instance()
+    if app is None:
+        app = QApplication([])
+    if not isinstance(app, QApplication):
+        msg = "QApplication.instance() returned a non-QApplication object."
+        raise TypeError(msg)
+    assert load_roboto_fonts()
+    app.setProperty("_hskAppFontInstalled", None)
+    before = app.font().pointSizeF()
+    install_app_fonts(app, base_point_size=14)
+    assert app.font().family() == APP_FONT_FAMILY
+    assert abs(app.font().pointSizeF() - 14.0) < 0.01
+    if before > 0:
+        assert abs(current_ui_font_scale() - (14.0 / before)) < 0.01
+
+
 def test_scale_explicit_widget_font_multiplies_point_size_once() -> None:
     app = QApplication.instance()
     if app is None:

@@ -83,12 +83,16 @@ def current_ui_font_scale() -> float:
         return 1.0
 
 
-def install_app_fonts(app: QApplication, scale: float | None = None) -> None:
+def install_app_fonts(
+    app: QApplication,
+    scale: float | None = None,
+    base_point_size: float | None = None,
+) -> None:
     """Register bundled fonts and apply Roboto as the default UI font.
 
-    `scale` multiplies the application font and any widget that set its own point
-    size in Designer. When omitted, the value comes from `config.json`
-    `ui_font_scale` (default `1.0`).
+    Preferred config is `ui_font_size_pt`: it sets the base application font
+    point size and derives a scale for any widget that set its own point size in
+    Designer. Legacy `scale` / `ui_font_scale` is still supported.
 
     """
     if not isinstance(app, QApplication) or app.property(_PROP) == "1":
@@ -96,12 +100,16 @@ def install_app_fonts(app: QApplication, scale: float | None = None) -> None:
     load_jetbrains_mono_fonts()
     if not load_roboto_fonts():
         return
-    resolved = _resolve_ui_font_scale(scale)
-    app.setProperty(_SCALE_PROP, resolved)
     font = _font_with_family(app.font(), APP_FONT_FAMILY)
     point = font.pointSizeF()
-    if resolved != 1.0 and point > 0:
-        font.setPointSizeF(max(_MIN_POINT_SIZE, point * resolved))
+    resolved_scale = _resolve_ui_font_scale(scale)
+    resolved_point = None if scale is not None else _resolve_ui_font_point_size(base_point_size)
+    if resolved_point is not None and point > 0:
+        resolved_scale = max(_MIN_POINT_SIZE, resolved_point) / point
+        font.setPointSizeF(max(_MIN_POINT_SIZE, resolved_point))
+    elif resolved_scale != 1.0 and point > 0:
+        font.setPointSizeF(max(_MIN_POINT_SIZE, point * resolved_scale))
+    app.setProperty(_SCALE_PROP, resolved_scale)
     app.setFont(font)
     _install_ui_font_scale_filter(app)
     app.setProperty(_PROP, "1")
@@ -191,6 +199,18 @@ def _load_font_files(names: tuple[str, ...], family: str) -> bool:
         if name == names[0] and loaded:
             loaded_regular = True
     return loaded_regular
+
+
+def _resolve_ui_font_point_size(base_point_size: float | None) -> float | None:
+    # Imported lazily so the installer can load fonts without `harrix_pylib`.
+    from harrix_swiss_knife.config_model import (  # noqa: PLC0415
+        clamp_ui_font_size_pt,
+        get_ui_font_size_pt,
+    )
+
+    if base_point_size is not None:
+        return clamp_ui_font_size_pt(base_point_size)
+    return get_ui_font_size_pt()
 
 
 def _resolve_ui_font_scale(scale: float | None) -> float:

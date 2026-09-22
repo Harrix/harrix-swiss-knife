@@ -24,9 +24,11 @@ lang: en
 - [🏛️ Class `OpenRouterSettings`](#%EF%B8%8F-class-openroutersettings)
 - [🏛️ Class `PersonalDataSettings`](#%EF%B8%8F-class-personaldatasettings)
 - [🔧 Function `clamp_ui_font_scale`](#-function-clamp_ui_font_scale)
+- [🔧 Function `clamp_ui_font_size_pt`](#-function-clamp_ui_font_size_pt)
 - [🔧 Function `get_main_window_sort_mode`](#-function-get_main_window_sort_mode)
 - [🔧 Function `get_show_main_window_on_startup`](#-function-get_show_main_window_on_startup)
 - [🔧 Function `get_ui_font_scale`](#-function-get_ui_font_scale)
+- [🔧 Function `get_ui_font_size_pt`](#-function-get_ui_font_size_pt)
 - [🔧 Function `load_app_config`](#-function-load_app_config)
 - [🔧 Function `restart_required_config_keys`](#-function-restart_required_config_keys)
 - [🔧 Function `set_main_window_sort_mode`](#-function-set_main_window_sort_mode)
@@ -160,6 +162,7 @@ class AppConfig(TypedDict, total=False):
     markdown_templates: dict[str, Any]
     personal_data: PersonalDataSettings
     show_main_window_on_startup: bool
+    ui_font_size_pt: NotRequired[float]
     ui_font_scale: NotRequired[float]
     data_for_hsk_root: NotRequired[str]
     data_for_hsk_notes_folders: NotRequired[list[str]]
@@ -368,6 +371,24 @@ def clamp_ui_font_scale(value: float) -> float:
 
 </details>
 
+## 🔧 Function `clamp_ui_font_size_pt`
+
+```python
+def clamp_ui_font_size_pt(value: float) -> float
+```
+
+Clamp `ui_font_size_pt` to the supported range.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def clamp_ui_font_size_pt(value: float) -> float:
+    return min(UI_FONT_SIZE_PT_MAX, max(UI_FONT_SIZE_PT_MIN, value))
+```
+
+</details>
+
 ## 🔧 Function `get_main_window_sort_mode`
 
 ```python
@@ -451,6 +472,39 @@ def get_ui_font_scale(config: dict[str, Any] | None = None) -> float:
         return UI_FONT_SCALE_DEFAULT
     if value < UI_FONT_SCALE_MIN or value > UI_FONT_SCALE_MAX:
         return UI_FONT_SCALE_DEFAULT
+    return value
+```
+
+</details>
+
+## 🔧 Function `get_ui_font_size_pt`
+
+```python
+def get_ui_font_size_pt(config: dict[str, Any] | None = None) -> float | None
+```
+
+Return configured base UI font size in points, or `None` when unset/invalid.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_ui_font_size_pt(config: dict[str, Any] | None = None) -> float | None:
+    data = config
+    if data is None:
+        try:
+            data = load_app_config()
+        except (OSError, TypeError, ValueError):
+            return None
+    raw = data.get(UI_FONT_SIZE_PT_KEY)
+    if raw is None:
+        return None
+    try:
+        value = float(raw)
+    except (TypeError, ValueError):
+        return None
+    if value < UI_FONT_SIZE_PT_MIN or value > UI_FONT_SIZE_PT_MAX:
+        return None
     return value
 ```
 

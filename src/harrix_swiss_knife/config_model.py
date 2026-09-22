@@ -17,6 +17,9 @@ MAIN_WINDOW_SORT_MODE_KEY = "main_window_sort_mode"
 MAIN_WINDOW_SORT_MODE_MENU = "menu"
 MAIN_WINDOW_SORT_MODE_NEWEST = "newest"
 MAIN_WINDOW_SORT_MODES = frozenset({MAIN_WINDOW_SORT_MODE_MENU, MAIN_WINDOW_SORT_MODE_NEWEST})
+UI_FONT_SIZE_PT_KEY = "ui_font_size_pt"
+UI_FONT_SIZE_PT_MAX = 24.0
+UI_FONT_SIZE_PT_MIN = 8.0
 UI_FONT_SCALE_DEFAULT = 1.0
 UI_FONT_SCALE_KEY = "ui_font_scale"
 UI_FONT_SCALE_MAX = 1.5
@@ -25,6 +28,7 @@ UI_FONT_SCALE_MIN = 0.7
 RESTART_REQUIRED_CONFIG_KEYS: frozenset[str] = frozenset(
     {
         "hotkeys",
+        UI_FONT_SIZE_PT_KEY,
         UI_FONT_SCALE_KEY,
     },
 )
@@ -109,6 +113,7 @@ class AppConfig(TypedDict, total=False):
     markdown_templates: dict[str, Any]
     personal_data: PersonalDataSettings
     show_main_window_on_startup: bool
+    ui_font_size_pt: NotRequired[float]
     ui_font_scale: NotRequired[float]
     data_for_hsk_root: NotRequired[str]
     data_for_hsk_notes_folders: NotRequired[list[str]]
@@ -198,6 +203,11 @@ def clamp_ui_font_scale(value: float) -> float:
     return min(UI_FONT_SCALE_MAX, max(UI_FONT_SCALE_MIN, value))
 
 
+def clamp_ui_font_size_pt(value: float) -> float:
+    """Clamp `ui_font_size_pt` to the supported range."""
+    return min(UI_FONT_SIZE_PT_MAX, max(UI_FONT_SIZE_PT_MIN, value))
+
+
 def get_main_window_sort_mode(temp_config: dict[str, Any] | None = None) -> str:
     """Return commands-window sort mode (`menu` or `newest`) from `config-temp.json`."""
     data = temp_config
@@ -244,6 +254,26 @@ def get_ui_font_scale(config: dict[str, Any] | None = None) -> float:
         return UI_FONT_SCALE_DEFAULT
     if value < UI_FONT_SCALE_MIN or value > UI_FONT_SCALE_MAX:
         return UI_FONT_SCALE_DEFAULT
+    return value
+
+
+def get_ui_font_size_pt(config: dict[str, Any] | None = None) -> float | None:
+    """Return configured base UI font size in points, or `None` when unset/invalid."""
+    data = config
+    if data is None:
+        try:
+            data = load_app_config()
+        except (OSError, TypeError, ValueError):
+            return None
+    raw = data.get(UI_FONT_SIZE_PT_KEY)
+    if raw is None:
+        return None
+    try:
+        value = float(raw)
+    except (TypeError, ValueError):
+        return None
+    if value < UI_FONT_SIZE_PT_MIN or value > UI_FONT_SIZE_PT_MAX:
+        return None
     return value
 
 
