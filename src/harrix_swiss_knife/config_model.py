@@ -30,16 +30,31 @@ RESTART_REQUIRED_CONFIG_KEYS: frozenset[str] = frozenset(
 )
 
 
+class AiProviderSettings(TypedDict, total=False):
+    """AI provider connection settings."""
+
+    base_url: str
+    model: str
+    speech_model: str
+    max_image_side: int
+    max_tokens: int
+    proxy: str
+
+
 class AiSettings(TypedDict, total=False):
-    """Preferred AI provider and shared transport settings.
+    """Preferred AI provider, providers, API keys, prompts, and shared transport.
 
     `provider` is the stable Settings value. BotHub.chat / BotHub.ru failover
     stores the live site in `config-temp.json`, not here.
 
     """
 
+    api_keys: dict[str, str]
     provider: str
+    providers: dict[str, AiProviderSettings]
+    prompts: dict[str, str]
     speech_provider: str
+    transfer_private_data_default_api_keys: list[str]
     max_image_side: int
     image_table_model: NotRequired[str]
     proxy: str
@@ -81,18 +96,6 @@ class AppConfig(TypedDict, total=False):
     vscode_workspace_notes: str
     vscode_workspace_articles: str
     ai: AiSettings
-    bothub: BothubSettings
-    bothub_api_key: str
-    bothub_ru: BothubSettings
-    bothub_ru_api_key: str
-    openai: OpenAISettings
-    openai_api_key: str
-    openrouter: OpenRouterSettings
-    openrouter_api_key: str
-    anthropic: AnthropicSettings
-    anthropic_api_key: str
-    gemini: GeminiSettings
-    gemini_api_key: str
     github_token: str
     pypi_token: str
     sqlite_finance: str
@@ -101,12 +104,10 @@ class AppConfig(TypedDict, total=False):
     sqlite_habits: str
     sqlite_snippets: str
     habits_sport_lookback_days: NotRequired[int]
-    transfer_private_data_default_api_keys: NotRequired[list[str]]
     food_calorie_thresholds: FoodCalorieThresholds
     block_drives: list[str]
     markdown_templates: dict[str, Any]
     personal_data: PersonalDataSettings
-    prompts: dict[str, str]
     show_main_window_on_startup: bool
     ui_font_scale: NotRequired[float]
     data_for_hsk_root: NotRequired[str]
@@ -346,6 +347,21 @@ def validate_app_config(config: dict[str, Any]) -> list[str]:
     if personal_data is not None and not isinstance(personal_data, dict):
         msg = "Config key 'personal_data' must be an object."
         raise TypeError(msg)
+
+    ai = config.get("ai")
+    if ai is not None:
+        if not isinstance(ai, dict):
+            msg = "Config key 'ai' must be an object."
+            raise TypeError(msg)
+        for key in ("api_keys", "providers", "prompts"):
+            value = ai.get(key)
+            if value is not None and not isinstance(value, dict):
+                msg = f"Config key 'ai.{key}' must be an object."
+                raise TypeError(msg)
+        ai_default_keys = ai.get("transfer_private_data_default_api_keys")
+        if ai_default_keys is not None and not isinstance(ai_default_keys, list):
+            msg = "Config key 'ai.transfer_private_data_default_api_keys' must be a list."
+            raise TypeError(msg)
 
     for key in _RECOMMENDED_KEYS:
         value = config.get(key)

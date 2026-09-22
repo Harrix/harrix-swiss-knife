@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from harrix_swiss_knife.integrations.ai.config import get_chat_provider
+from harrix_swiss_knife.integrations.ai.config import get_ai_prompts, get_ai_section, get_chat_provider
 from harrix_swiss_knife.integrations.bothub.prompts import build_prompt, get_prompt_template
 
 PROMPT_KEY = "image_table_to_excel"
@@ -71,8 +71,9 @@ def build_image_table_prompt(config: dict[str, Any]) -> str:
     """
     if get_prompt_template(config, PROMPT_KEY):
         return build_prompt(config, PROMPT_KEY, {}, prompt_display_name=PROMPT_KEY)
+    ai_cfg = get_ai_section(config)
     return build_prompt(
-        {**config, "prompts": {**(config.get("prompts") or {}), PROMPT_KEY: _DEFAULT_PROMPT}},
+        {**config, "ai": {**ai_cfg, "prompts": {**get_ai_prompts(config), PROMPT_KEY: _DEFAULT_PROMPT}}},
         PROMPT_KEY,
         {},
         prompt_display_name=PROMPT_KEY,
@@ -81,12 +82,11 @@ def build_image_table_prompt(config: dict[str, Any]) -> str:
 
 def get_image_table_model(config: dict[str, Any]) -> str:
     """Return the chat model for table extraction (`ai.image_table_model`, else GPT-5.6)."""
-    ai_cfg = config.get("ai")
+    ai_cfg = get_ai_section(config)
     model = DEFAULT_IMAGE_TABLE_MODEL
-    if isinstance(ai_cfg, dict):
-        raw = str(ai_cfg.get(IMAGE_TABLE_MODEL_KEY) or "").strip()
-        if raw:
-            model = raw
+    raw = str(ai_cfg.get(IMAGE_TABLE_MODEL_KEY) or "").strip()
+    if raw:
+        model = raw
     if get_chat_provider(config) == "openrouter" and "/" not in model:
         return f"openai/{model}"
     return model

@@ -71,7 +71,7 @@ Return stripped prompt template for `prompt_key`, or `None` if missing.
 
 ```python
 def get_prompt_template(config: dict[str, Any], prompt_key: str) -> str | None:
-    prompts_cfg = config.get("prompts") or {}
+    prompts_cfg = get_ai_prompts(config)
     template = str(prompts_cfg.get(prompt_key, "")).strip()
     return template or None
 ```

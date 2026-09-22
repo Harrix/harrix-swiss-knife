@@ -57,6 +57,26 @@ fun nestedMap(
     return value as? Map<*, *>
 }
 
+fun aiConfig(desktopConfig: Map<String, Any?>?): Map<*, *>? = nestedMap(desktopConfig, "ai")
+
+fun aiProviderSection(
+    desktopConfig: Map<String, Any?>?,
+    provider: String,
+): Map<*, *>? {
+    val defaults = providerDefaults.getValue(provider)
+    val providers = nestedMap(aiConfig(desktopConfig), "providers")
+    return nestedMap(providers, provider) ?: nestedMap(providers, defaults.settingsKey)
+}
+
+fun aiApiKeyValue(
+    desktopConfig: Map<String, Any?>?,
+    provider: String,
+): String {
+    val defaults = providerDefaults.getValue(provider)
+    val apiKeys = nestedMap(aiConfig(desktopConfig), "api_keys")
+    return mapString(apiKeys, provider).ifEmpty { mapString(apiKeys, defaults.settingsKey) }
+}
+
 fun normalizeProvider(value: String): String {
     val name = value.trim().lowercase()
     return when (name) {
@@ -162,7 +182,7 @@ fun resolveProviderId(
     if (fromProps.isNotEmpty()) {
         return normalizeProvider(fromProps)
     }
-    val fromConfig = mapString(nestedMap(desktopConfig, "ai"), "provider")
+    val fromConfig = mapString(aiConfig(desktopConfig), "provider")
     if (fromConfig.isNotEmpty()) {
         return normalizeProvider(fromConfig)
     }
@@ -182,7 +202,7 @@ fun resolveSpeechProviderId(
     if (fromProps.isNotEmpty()) {
         return normalizeProvider(fromProps)
     }
-    val fromConfig = mapString(nestedMap(desktopConfig, "ai"), "speech_provider")
+    val fromConfig = mapString(aiConfig(desktopConfig), "speech_provider")
     if (fromConfig.isNotEmpty()) {
         return normalizeProvider(fromConfig)
     }
@@ -204,7 +224,7 @@ fun resolveProviderApiKey(
     if (fromProps.isNotEmpty()) {
         return fromProps
     }
-    val fromConfigRaw = mapString(desktopConfig, defaults.apiKeyConfig)
+    val fromConfigRaw = aiApiKeyValue(desktopConfig, provider).ifEmpty { mapString(desktopConfig, defaults.apiKeyConfig) }
     if (fromConfigRaw.isNotEmpty()) {
         val resolved = resolveSnippetOrLiteral(fromConfigRaw)
         if (resolved.isNotEmpty()) {
@@ -231,7 +251,8 @@ fun resolveProviderSetting(
     if (fromProps.isNotEmpty()) {
         return fromProps
     }
-    val section = nestedMap(desktopConfig, providerDefaults.getValue(provider).settingsKey)
+    val section = aiProviderSection(desktopConfig, provider)
+        ?: nestedMap(desktopConfig, providerDefaults.getValue(provider).settingsKey)
     val fromConfig = mapString(section, field)
     if (fromConfig.isNotEmpty()) {
         return fromConfig

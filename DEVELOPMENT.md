@@ -311,14 +311,14 @@ API key resolution for the active provider:
 
 1. Provider env (`BOTHUB_API_KEY`, `BOTHUB_RU_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`)
 2. `local.properties` → `bothub.api_key` / `openai.api_key` / …
-3. `config/config.json` key (`bothub_api_key`, …) including `snippet:api-keys/…`
+3. `config/config.json` key (`ai.api_keys.bothub`, …) including `snippet:api-keys/…`
 4. File under `api-keys/` (same as desktop)
 
-Optional overrides: `AI_BASE_URL` / `ai.base_url`, `AI_MODEL` / `ai.model`, `AI_SPEECH_MODEL` / `ai.speech_model`.
+Optional Android overrides: env/local properties `AI_BASE_URL` / `ai.base_url`, `AI_MODEL` / `ai.model`, `AI_SPEECH_MODEL` / `ai.speech_model`; desktop config uses `ai.providers.<provider>.base_url`, `.model`, and `.speech_model`.
 
 Setup example (OpenAI):
 
-1. In `config/config.json`: `"ai": { "provider": "openai" }`
+1. In `config/config.json`: `"ai": { "provider": "openai", "api_keys": { "openai": "snippet:api-keys/openai-api-key.txt" } }`
 2. Copy `api-keys/openai-api-key.example.txt` → `api-keys/openai-api-key.txt` and paste the key
 3. Rebuild the APK
 

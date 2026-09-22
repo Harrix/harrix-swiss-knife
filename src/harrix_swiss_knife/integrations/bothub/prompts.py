@@ -4,7 +4,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from harrix_swiss_knife.integrations.ai.config import get_api_key_missing_message, get_chat_provider
+from harrix_swiss_knife.integrations.ai.config import (
+    get_ai_prompts,
+    get_api_key_missing_message,
+    get_chat_provider,
+)
 from harrix_swiss_knife.integrations.bothub.config import validate_api_key
 
 
@@ -41,6 +45,6 @@ def build_prompt(
 
 def get_prompt_template(config: dict[str, Any], prompt_key: str) -> str | None:
     """Return stripped prompt template for `prompt_key`, or `None` if missing."""
-    prompts_cfg = config.get("prompts") or {}
+    prompts_cfg = get_ai_prompts(config)
     template = str(prompts_cfg.get(prompt_key, "")).strip()
     return template or None

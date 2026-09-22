@@ -82,10 +82,38 @@ def extra_headers_for_provider(provider: ProviderName) -> dict[str, str]:
     return {}
 
 
+def get_ai_api_keys(config: dict[str, Any]) -> dict[str, Any]:
+    """Return `ai.api_keys` config, or an empty dict when missing."""
+    ai_cfg = get_ai_section(config)
+    api_keys = ai_cfg.get("api_keys")
+    return api_keys if isinstance(api_keys, dict) else {}
+
+
+def get_ai_prompts(config: dict[str, Any]) -> dict[str, Any]:
+    """Return prompt templates from `ai.prompts`, falling back to legacy `prompts`."""
+    ai_cfg = get_ai_section(config)
+    prompts = ai_cfg.get("prompts")
+    if isinstance(prompts, dict):
+        return prompts
+    legacy_prompts = config.get("prompts")
+    return legacy_prompts if isinstance(legacy_prompts, dict) else {}
+
+
+def get_ai_section(config: dict[str, Any]) -> dict[str, Any]:
+    """Return the top-level `ai` object, or an empty dict when absent/invalid."""
+    ai_cfg = config.get("ai")
+    return ai_cfg if isinstance(ai_cfg, dict) else {}
+
+
 def get_api_key(config: dict[str, Any], provider: ProviderName) -> str:
     """Return API key string for the provider (may be empty)."""
-    key_name = str(_DEFAULTS[provider]["api_key_config"])
-    return str(config.get(key_name, "")).strip()
+    api_keys = get_ai_api_keys(config)
+    for key_name in _provider_config_keys(provider):
+        value = str(api_keys.get(key_name, "")).strip()
+        if value:
+            return value
+    legacy_key = str(_DEFAULTS[provider]["api_key_config"])
+    return str(config.get(legacy_key, "")).strip()
 
 
 def get_api_key_missing_message(provider: ProviderName) -> str:
@@ -111,14 +139,33 @@ def get_chat_provider(config: dict[str, Any]) -> ProviderName:
     preferred = get_preferred_chat_provider(config)
     if not is_bothub_router(preferred):
         return preferred
-    ai_cfg = config.get("ai") or {}
-    if not isinstance(ai_cfg, dict):
-        return preferred
+    ai_cfg = get_ai_section(config)
     active = str(ai_cfg.get("active_provider") or "").strip()
     if not active:
         return preferred
     normalized = normalize_provider(active)
     return normalized if is_bothub_router(normalized) else preferred
+
+
+def get_config_proxy_setting(config: dict[str, Any]) -> str:
+    """Return proxy string from new `ai` layout, then legacy provider sections."""
+    ai_cfg = get_ai_section(config)
+    config_proxy = str(ai_cfg.get("proxy", "")).strip()
+    if config_proxy:
+        return config_proxy
+
+    provider = get_preferred_chat_provider(config)
+    providers = _get_ai_providers(config)
+    section = _provider_section(providers, provider)
+    if section is not None:
+        config_proxy = str(section.get("proxy", "")).strip()
+        if config_proxy:
+            return config_proxy
+
+    bothub_cfg = config.get("bothub") or {}
+    if isinstance(bothub_cfg, dict):
+        return str(bothub_cfg.get("proxy", "")).strip()
+    return ""
 
 
 def get_connection_params_for_provider(
@@ -140,13 +187,21 @@ def get_connection_params_for_provider(
 
 
 def get_max_image_side(config: dict[str, Any], default: int = 1600) -> int:
-    """Return max image side from `ai`, then legacy `bothub`."""
-    ai_cfg = config.get("ai") or {}
-    if isinstance(ai_cfg, dict) and ai_cfg.get("max_image_side") is not None:
+    """Return max image side from `ai`, provider settings, then legacy `bothub`."""
+    ai_cfg = get_ai_section(config)
+    if ai_cfg.get("max_image_side") is not None:
         try:
             return int(ai_cfg["max_image_side"])
         except (TypeError, ValueError):
             pass
+
+    provider_section = _provider_section(_get_ai_providers(config), get_preferred_chat_provider(config))
+    if provider_section is not None and provider_section.get("max_image_side") is not None:
+        try:
+            return int(provider_section["max_image_side"])
+        except (TypeError, ValueError):
+            pass
+
     bothub_cfg = config.get("bothub") or {}
     if isinstance(bothub_cfg, dict) and bothub_cfg.get("max_image_side") is not None:
         try:
@@ -158,17 +213,13 @@ def get_max_image_side(config: dict[str, Any], default: int = 1600) -> int:
 
 def get_preferred_chat_provider(config: dict[str, Any]) -> ProviderName:
     """Return `ai.provider` from `config.json` (default bothub)."""
-    ai_cfg = config.get("ai") or {}
-    if not isinstance(ai_cfg, dict):
-        return "bothub"
+    ai_cfg = get_ai_section(config)
     return normalize_provider(str(ai_cfg.get("provider", "bothub")))
 
 
 def get_preferred_speech_provider(config: dict[str, Any]) -> ProviderName:
     """Return preferred speech provider; empty `ai.speech_provider` means chat preferred."""
-    ai_cfg = config.get("ai") or {}
-    if not isinstance(ai_cfg, dict):
-        return get_preferred_chat_provider(config)
+    ai_cfg = get_ai_section(config)
     speech = str(ai_cfg.get("speech_provider", "")).strip()
     if not speech:
         return get_preferred_chat_provider(config)
@@ -179,9 +230,10 @@ def get_provider_settings(config: dict[str, Any], provider: ProviderName) -> dic
     """Return merged defaults + config section for a provider."""
     defaults = _DEFAULTS[provider]
     settings_key = str(defaults["settings_key"])
-    section = config.get(settings_key) or {}
-    if not isinstance(section, dict):
-        section = {}
+    section = _provider_section(_get_ai_providers(config), provider)
+    if section is None:
+        legacy_section = config.get(settings_key) or {}
+        section = legacy_section if isinstance(legacy_section, dict) else {}
     merged = dict(defaults)
     merged.update(section)
     return merged
@@ -195,9 +247,7 @@ def get_speech_model_for_provider(config: dict[str, Any], provider: ProviderName
 
 def get_speech_provider(config: dict[str, Any]) -> ProviderName:
     """Return the live speech provider; empty `ai.speech_provider` follows chat."""
-    ai_cfg = config.get("ai") or {}
-    if not isinstance(ai_cfg, dict):
-        return get_chat_provider(config)
+    ai_cfg = get_ai_section(config)
     speech = str(ai_cfg.get("speech_provider", "")).strip()
     if not speech:
         return get_chat_provider(config)
@@ -239,14 +289,26 @@ def provider_supports_speech(provider: ProviderName) -> bool:
     return provider != "anthropic"
 
 
+def _get_ai_providers(config: dict[str, Any]) -> dict[str, Any]:
+    ai_cfg = get_ai_section(config)
+    providers = ai_cfg.get("providers")
+    return providers if isinstance(providers, dict) else {}
+
+
+def _provider_config_keys(provider: ProviderName) -> tuple[str, str]:
+    settings_key = str(_DEFAULTS[provider]["settings_key"])
+    return provider, settings_key
+
+
+def _provider_section(providers: dict[str, Any], provider: ProviderName) -> dict[str, Any] | None:
+    for key_name in _provider_config_keys(provider):
+        section = providers.get(key_name)
+        if isinstance(section, dict):
+            return section
+    return None
+
+
 def _resolve_config_proxy_url(config: dict[str, Any]) -> str | None:
     """Resolve proxy from `ai.proxy` / `bothub.proxy` and environment (no Qt)."""
-    ai_cfg = config.get("ai") or {}
-    config_proxy = ""
-    if isinstance(ai_cfg, dict):
-        config_proxy = str(ai_cfg.get("proxy", "")).strip()
-    if not config_proxy:
-        bothub_cfg = config.get("bothub") or {}
-        if isinstance(bothub_cfg, dict):
-            config_proxy = str(bothub_cfg.get("proxy", "")).strip()
+    config_proxy = get_config_proxy_setting(config)
     return resolve_proxy_url(config_proxy=config_proxy or None, qt_proxy_url=None)

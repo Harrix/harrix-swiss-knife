@@ -266,7 +266,10 @@ class OnTransferPrivateData(ActionBase):
         - `list[str]`: Filenames that match `transfer_private_data_default_api_keys`.
 
         """
-        raw = self.config.get("transfer_private_data_default_api_keys")
+        ai_cfg = self.config.get("ai")
+        raw = ai_cfg.get("transfer_private_data_default_api_keys") if isinstance(ai_cfg, dict) else None
+        if raw is None:
+            raw = self.config.get("transfer_private_data_default_api_keys")
         tokens = raw if isinstance(raw, list) else []
         return default_selected_api_key_files(key_names, tokens)
 

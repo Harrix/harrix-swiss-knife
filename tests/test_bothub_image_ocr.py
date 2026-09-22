@@ -32,8 +32,9 @@ def test_image_bytes_and_mime_rejects_empty(tmp_path: Path) -> None:
 
 
 def test_get_image_ocr_prompt_template() -> None:
-    config = {"prompts": {"image_ocr_to_markdown": "Recognize text"}}
+    config = {"ai": {"prompts": {"image_ocr_to_markdown": "Recognize text"}}}
     assert get_image_ocr_prompt_template(config) == "Recognize text"
+    assert get_image_ocr_prompt_template({"prompts": {"image_ocr_to_markdown": "Legacy text"}}) == "Legacy text"
     assert get_image_ocr_prompt_template({}) is None
 
 

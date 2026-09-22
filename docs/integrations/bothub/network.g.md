@@ -64,21 +64,14 @@ def resolve_bothub_proxy_url(app_config: dict[str, Any]) -> str | None
 
 Resolve AI HTTP proxy from config, Qt, environment, and system settings.
 
-Prefers `ai.proxy`, then legacy `bothub.proxy`.
+Prefers `ai.proxy`, then `ai.providers.<provider>.proxy`, then legacy `bothub.proxy`.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def resolve_bothub_proxy_url(app_config: dict[str, Any]) -> str | None:
-    ai_cfg = app_config.get("ai") or {}
-    config_proxy = ""
-    if isinstance(ai_cfg, dict):
-        config_proxy = str(ai_cfg.get("proxy", "")).strip()
-    if not config_proxy:
-        bothub_cfg = app_config.get("bothub") or {}
-        if isinstance(bothub_cfg, dict):
-            config_proxy = str(bothub_cfg.get("proxy", "")).strip()
+    config_proxy = get_config_proxy_setting(app_config)
     qt_proxy_url = qnetwork_proxy_to_url()
     return resolve_proxy_url(config_proxy=config_proxy or None, qt_proxy_url=qt_proxy_url)
 ```

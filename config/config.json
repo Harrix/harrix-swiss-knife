@@ -1,13 +1,64 @@
 {
   "ai": {
+    "api_keys": {
+      "bothub": "snippet:api-keys/bothub-api-key.txt",
+      "bothub.ru": "snippet:api-keys/bothub-ru-api-key.txt"
+    },
+    "image_table_model": "gpt-5.5",
+    "max_image_side": 1600,
+    "prompts": {
+      "finance_category_translate_local": "snippet:config/prompts/finance-category-translate-local.md",
+      "finance_purchases_to_tsv": "snippet:config/prompts/finance-purchases-to-tsv.md",
+      "finance_standard_items_translate_names": "snippet:config/prompts/finance-standard-items-translate-names.md",
+      "finance_transactions_translate_descriptions": "snippet:config/prompts/finance-transactions-translate-descriptions.md",
+      "fitness_exercise_fill": "snippet:config/prompts/fitness-exercise-fill.md",
+      "fitness_name_translate_from_local": "snippet:config/prompts/fitness-name-translate-from-local.md",
+      "fitness_name_translate_local": "snippet:config/prompts/fitness-name-translate-local.md",
+      "fitness_names_translate_local": "snippet:config/prompts/fitness-names-translate-local.md",
+      "fitness_sets_to_tsv": "snippet:config/prompts/fitness-sets-to-tsv.md",
+      "fitness_voice_sets_to_tsv": "snippet:config/prompts/fitness-voice-sets-to-tsv.md",
+      "fitness_workout_generate": "snippet:config/prompts/fitness-workout-generate.md",
+      "food_day_macros": "snippet:config/prompts/food-day-macros.md",
+      "food_kcal_lookup": "snippet:config/prompts/food-kcal-lookup.md",
+      "food_log_to_tsv": "snippet:config/prompts/food-log-to-tsv.md",
+      "food_log_translate_names": "snippet:config/prompts/food-log-translate-names.md",
+      "food_portion_weight_from_calories": "snippet:config/prompts/food-portion-weight-from-calories.md",
+      "food_range_macros": "snippet:config/prompts/food-range-macros.md",
+      "food_voice_log_to_tsv": "snippet:config/prompts/food-voice-log-to-tsv.md",
+      "habits_emoji_suggest": "snippet:config/prompts/habits-emoji-suggest.md",
+      "image_ocr_to_markdown": "snippet:config/prompts/image-ocr-to-markdown.md",
+      "image_ocr_translate": "snippet:config/prompts/image-ocr-translate.md",
+      "image_table_to_excel": "snippet:config/prompts/image-table-to-excel.md",
+      "markdown_template_fields_from_source": "snippet:config/prompts/markdown-template-fields-from-source.md",
+      "snippets_emoji_suggest": "snippet:config/prompts/snippets-emoji-suggest.md",
+      "speech_transcription": "snippet:config/prompts/speech-transcription.md",
+      "text_fix_ru": "snippet:config/prompts/text-fix-ru.md",
+      "text_fix_ru_clipboard": "snippet:config/prompts/text-fix-ru-clipboard.md",
+      "text_rewrite_ru": "snippet:config/prompts/text-rewrite-ru.md",
+      "text_translate_to_local": "snippet:config/prompts/text-translate-to-local.md",
+      "vector_icons_add_image": "snippet:config/prompts/vector-icons-add-image.md",
+      "vector_icons_keywords": "snippet:config/prompts/vector-icons-keywords.md"
+    },
     "provider": "bothub.ru",
-    "image_table_model": "gpt-5.5"
+    "providers": {
+      "bothub": {
+        "base_url": "https://bothub.chat/api/v2/openai/v1",
+        "model": "gpt-5.4",
+        "speech_model": "gemini-3.1-flash-lite-preview"
+      },
+      "bothub.ru": {
+        "base_url": "https://openai.bothub.ru/v1",
+        "model": "gpt-5.4",
+        "speech_model": "gemini-3.1-flash-lite-preview"
+      }
+    },
+    "proxy": "",
+    "transfer_private_data_default_api_keys": ["bothub", "bothub.ru"]
   },
   "android_build_variant": "release",
   "apps": {
     "fitness_image_high_max_size": 1920,
     "fitness_image_max_size": 330,
-    "fitness_lightbox_countdown_seconds": 5,
     "fitness_lightbox_countdown_seconds": 5,
     "fitness_workout_duration_min": 28,
     "fitness_workout_gender": "male",
@@ -22,21 +73,6 @@
   "beginning_of_md": "snippet:config/beginning-of-md.md",
   "beginning_of_md_docs": "snippet:config/beginning-of-md-en.md",
   "block_drives": ["E", "F"],
-  "bothub": {
-    "base_url": "https://bothub.chat/api/v2/openai/v1",
-    "max_image_side": 1600,
-    "model": "gpt-5.4",
-    "proxy": "",
-    "speech_model": "gemini-3.1-flash-lite-preview"
-  },
-  "bothub_api_key": "snippet:api-keys/bothub-api-key.txt",
-  "bothub_ru": {
-    "base_url": "https://openai.bothub.ru/v1",
-    "max_image_side": 1600,
-    "model": "gpt-5.4",
-    "speech_model": "gemini-3.1-flash-lite-preview"
-  },
-  "bothub_ru_api_key": "snippet:api-keys/bothub-ru-api-key.txt",
   "cli_commands": "snippet:config/cli-commands.md",
   "combine_for_ai_unchecked_extensions": [
     "svg",
@@ -361,11 +397,11 @@
   ],
   "paths_sites": [
     {
+      "deploy_remote": "root@89.40.9.135:/var/git/harrix.dev.git",
+      "icons": "D:/GitHub/_vector/Harrix-Vector-Icons",
       "input": "D:/GitHub/_content__harrix-dev",
       "output": "D:/GitHub/harrix.dev-html",
-      "theme": "D:/GitHub/Harrix-HTML-Template/theme",
-      "icons": "D:/GitHub/_vector/Harrix-Vector-Icons",
-      "deploy_remote": "root@89.40.9.135:/var/git/harrix.dev.git"
+      "theme": "D:/GitHub/Harrix-HTML-Template/theme"
     }
   ],
   "paths_with_featured_image": [
@@ -390,44 +426,10 @@
     "author_email": "anton.b.sergienko@gmail.com",
     "enabled": true
   },
-  "prompts": {
-    "finance_category_translate_local": "snippet:config/prompts/finance-category-translate-local.md",
-    "finance_purchases_to_tsv": "snippet:config/prompts/finance-purchases-to-tsv.md",
-    "finance_standard_items_translate_names": "snippet:config/prompts/finance-standard-items-translate-names.md",
-    "finance_transactions_translate_descriptions": "snippet:config/prompts/finance-transactions-translate-descriptions.md",
-    "fitness_exercise_fill": "snippet:config/prompts/fitness-exercise-fill.md",
-    "fitness_name_translate_from_local": "snippet:config/prompts/fitness-name-translate-from-local.md",
-    "fitness_name_translate_local": "snippet:config/prompts/fitness-name-translate-local.md",
-    "fitness_names_translate_local": "snippet:config/prompts/fitness-names-translate-local.md",
-    "fitness_sets_to_tsv": "snippet:config/prompts/fitness-sets-to-tsv.md",
-    "fitness_voice_sets_to_tsv": "snippet:config/prompts/fitness-voice-sets-to-tsv.md",
-    "fitness_workout_generate": "snippet:config/prompts/fitness-workout-generate.md",
-    "food_kcal_lookup": "snippet:config/prompts/food-kcal-lookup.md",
-    "food_day_macros": "snippet:config/prompts/food-day-macros.md",
-    "food_range_macros": "snippet:config/prompts/food-range-macros.md",
-    "food_log_to_tsv": "snippet:config/prompts/food-log-to-tsv.md",
-    "food_log_translate_names": "snippet:config/prompts/food-log-translate-names.md",
-    "food_portion_weight_from_calories": "snippet:config/prompts/food-portion-weight-from-calories.md",
-    "food_voice_log_to_tsv": "snippet:config/prompts/food-voice-log-to-tsv.md",
-    "habits_emoji_suggest": "snippet:config/prompts/habits-emoji-suggest.md",
-    "image_ocr_to_markdown": "snippet:config/prompts/image-ocr-to-markdown.md",
-    "image_ocr_translate": "snippet:config/prompts/image-ocr-translate.md",
-    "image_table_to_excel": "snippet:config/prompts/image-table-to-excel.md",
-    "markdown_template_fields_from_source": "snippet:config/prompts/markdown-template-fields-from-source.md",
-    "snippets_emoji_suggest": "snippet:config/prompts/snippets-emoji-suggest.md",
-    "speech_transcription": "snippet:config/prompts/speech-transcription.md",
-    "text_fix_ru": "snippet:config/prompts/text-fix-ru.md",
-    "text_fix_ru_clipboard": "snippet:config/prompts/text-fix-ru-clipboard.md",
-    "text_rewrite_ru": "snippet:config/prompts/text-rewrite-ru.md",
-    "text_translate_to_local": "snippet:config/prompts/text-translate-to-local.md",
-    "vector_icons_add_image": "snippet:config/prompts/vector-icons-add-image.md",
-    "vector_icons_keywords": "snippet:config/prompts/vector-icons-keywords.md"
-  },
   "pypi_token": "snippet:api-keys/pypi-token.txt",
   "quick_launcher_markdown_in_panel": true,
   "screenshot_shutter_sound": true,
   "show_main_window_on_startup": false,
-  "ui_font_scale": 1.0,
   "site_default_language": "ru",
   "site_name": "harrix.dev",
   "sqlite_finance": "D:/Dropbox/Databases/finance.db",
@@ -438,8 +440,7 @@
   "start_pattern_jupyter_notebooks": "jupyter-notebook-",
   "start_pattern_py_projects": "python-project-",
   "ticktick_api_key": "snippet:api-keys/ticktick-api-key.txt",
-  "transfer_private_data_default_api_keys": ["bothub", "bothub.ru"],
-  "ui_font_scale": 1,
+  "ui_font_scale": 1.2,
   "vector_icons_recent_folders_max": 12,
   "vscode_workspace_articles": "D:/Dropbox/Programs/vscode_workspaces/_content__harrix-dev.code-workspace",
   "vscode_workspace_notes": "D:/Dropbox/Programs/vscode_workspaces/Notes.code-workspace"

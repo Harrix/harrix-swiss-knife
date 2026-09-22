@@ -77,10 +77,18 @@ def test_get_api_key_and_connection_params(monkeypatch: pytest.MonkeyPatch) -> N
     monkeypatch.delenv("http_proxy", raising=False)
 
     config = {
-        "ai": {"provider": "openai", "proxy": ""},
-        "openai": {"base_url": "https://api.openai.com/v1", "model": "gpt-4.1", "speech_model": "whisper-1"},
-        "openai_api_key": "sk-test",
-        "bothub": {"proxy": ""},
+        "ai": {
+            "api_keys": {"openai": "sk-test"},
+            "provider": "openai",
+            "providers": {
+                "openai": {
+                    "base_url": "https://api.openai.com/v1",
+                    "model": "gpt-4.1",
+                    "speech_model": "whisper-1",
+                },
+            },
+            "proxy": "",
+        },
     }
     assert get_api_key(config, "openai") == "sk-test"
     api_key, base_url, model, _proxy = get_connection_params_for_provider(config, "openai")
@@ -97,15 +105,18 @@ def test_get_connection_params_uses_active_provider(monkeypatch: pytest.MonkeyPa
     monkeypatch.delenv("http_proxy", raising=False)
 
     config = {
-        "ai": {"provider": "gemini"},
-        "gemini": {
-            "base_url": "https://generativelanguage.googleapis.com/v1beta",
-            "model": "gemini-2.5-flash",
-            "speech_model": "gemini-2.5-flash",
+        "ai": {
+            "api_keys": {"bothub": "bothub-key", "gemini": "gem-key"},
+            "provider": "gemini",
+            "providers": {
+                "bothub": {"proxy": ""},
+                "gemini": {
+                    "base_url": "https://generativelanguage.googleapis.com/v1beta",
+                    "model": "gemini-2.5-flash",
+                    "speech_model": "gemini-2.5-flash",
+                },
+            },
         },
-        "gemini_api_key": "gem-key",
-        "bothub_api_key": "bothub-key",
-        "bothub": {"proxy": ""},
     }
     api_key, base_url, model, _ = get_connection_params(config)
     assert api_key == "gem-key"
@@ -121,13 +132,17 @@ def test_get_connection_params_for_openrouter(monkeypatch: pytest.MonkeyPatch) -
     monkeypatch.delenv("http_proxy", raising=False)
 
     config = {
-        "ai": {"provider": "openrouter"},
-        "openrouter": {
-            "base_url": "https://openrouter.ai/api/v1",
-            "model": "openai/gpt-4.1",
-            "speech_model": "openai/whisper-large-v3",
+        "ai": {
+            "api_keys": {"openrouter": "or-key"},
+            "provider": "openrouter",
+            "providers": {
+                "openrouter": {
+                    "base_url": "https://openrouter.ai/api/v1",
+                    "model": "openai/gpt-4.1",
+                    "speech_model": "openai/whisper-large-v3",
+                },
+            },
         },
-        "openrouter_api_key": "or-key",
     }
     assert get_chat_provider(config) == "openrouter"
     api_key, base_url, model, _ = get_connection_params_for_provider(config, "openrouter")
@@ -148,9 +163,11 @@ def test_get_connection_params_for_bothub_ru(monkeypatch: pytest.MonkeyPatch) ->
     monkeypatch.delenv("http_proxy", raising=False)
 
     config = {
-        "ai": {"provider": "bothub.ru"},
-        "bothub_ru": {"base_url": "https://openai.bothub.ru/v1", "model": "gpt-5.5"},
-        "bothub_ru_api_key": "ru-key",
+        "ai": {
+            "api_keys": {"bothub.ru": "ru-key"},
+            "provider": "bothub.ru",
+            "providers": {"bothub.ru": {"base_url": "https://openai.bothub.ru/v1", "model": "gpt-5.5"}},
+        },
     }
     assert get_chat_provider(config) == "bothub.ru"
     api_key, base_url, model, _ = get_connection_params_for_provider(config, "bothub.ru")
@@ -161,8 +178,13 @@ def test_get_connection_params_for_bothub_ru(monkeypatch: pytest.MonkeyPatch) ->
 
 def test_get_max_image_side_prefers_ai() -> None:
     assert get_max_image_side({"ai": {"max_image_side": 800}, "bothub": {"max_image_side": 1600}}) == 800
+    assert get_max_image_side({"ai": {"provider": "bothub", "providers": {"bothub": {"max_image_side": 900}}}}) == 900
     assert get_max_image_side({"bothub": {"max_image_side": 1200}}) == 1200
     assert get_max_image_side({}) == 1600
+
+
+def test_legacy_api_key_layout_still_works() -> None:
+    assert get_api_key({"openai_api_key": "legacy-key"}, "openai") == "legacy-key"
 
 
 def test_build_openai_chat_payload_text_only() -> None:

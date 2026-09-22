@@ -54,6 +54,27 @@ def test_validate_app_config_rejects_non_list_default_api_keys() -> None:
         validate_app_config({"transfer_private_data_default_api_keys": "bothub"})
 
 
+def test_validate_app_config_accepts_nested_ai_settings() -> None:
+    warnings = validate_app_config(
+        {
+            "ai": {
+                "api_keys": {"bothub": "snippet:api-keys/bothub-api-key.txt"},
+                "prompts": {"text_fix_ru": "snippet:config/prompts/text-fix-ru.md"},
+                "providers": {"bothub": {"model": "gpt-5.4"}},
+                "transfer_private_data_default_api_keys": ["bothub"],
+            },
+        },
+    )
+    assert all("ai" not in item for item in warnings)
+
+
+def test_validate_app_config_rejects_bad_nested_ai_settings() -> None:
+    with pytest.raises(TypeError, match=r"ai\.prompts"):
+        validate_app_config({"ai": {"prompts": []}})
+    with pytest.raises(TypeError, match=r"ai\.transfer_private_data_default_api_keys"):
+        validate_app_config({"ai": {"transfer_private_data_default_api_keys": "bothub"}})
+
+
 def test_validate_app_config_warns_on_placeholders() -> None:
     warnings = validate_app_config(
         {
