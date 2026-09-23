@@ -382,9 +382,18 @@ def suspend_modal_blocking() -> list[SuspendedModal]
 
 Drop modality on leftover dialogs so the screenshot overlay can receive input.
 
-A still-open `exec()` result dialog (table, OCR, Finance) stays ApplicationModal
-and blocks region drawing when keep-Windows leaves it on screen. Windows stay
-visible; only modality and mouse handling are cleared for the overlay pass.
+A dialog shown with `setModal(True)` / `show()` (not `exec()`) stays
+ApplicationModal and blocks region drawing when keep-Windows leaves it on
+screen. Those Windows stay visible; only modality and mouse handling are
+cleared for the overlay pass.
+
+A `QMessageBox` already inside `exec()` is left alone.
+`setWindowModality(NonModal)` unmaps it and leaves that local event loop
+running after the overlay closes, so the app looks frozen and the dialog
+cannot be dismissed. The overlay's own `exec()` stacks above the message
+box and disables its native window for the capture, then Qt re-enables the
+box when the overlay returns. Other `QDialog.exec()` loops tolerate a
+modality change and are still suspended.
 
 Returns:
 
@@ -402,6 +411,8 @@ def suspend_modal_blocking() -> list[SuspendedModal]:
     suspended: list[SuspendedModal] = []
     for widget in app.topLevelWidgets():
         if not widget.isVisible() or is_screenshot_ui(widget) or not _is_modal_dialog(widget):
+            continue
+        if _message_box_exec_is_running(widget):
             continue
         suspended.append(
             SuspendedModal(

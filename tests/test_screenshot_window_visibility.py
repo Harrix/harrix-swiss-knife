@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import QApplication, QDialog, QMessageBox, QWidget
 
 from harrix_swiss_knife.screenshot.window_visibility import (
@@ -38,6 +38,32 @@ def test_has_visible_modal_dialog_detects_shown_modal(qapp: QApplication) -> Non
         assert has_visible_modal_dialog()
     finally:
         dialog.close()
+
+
+def test_suspend_modal_blocking_skips_dialog_inside_exec(qapp: QApplication) -> None:  # noqa: ARG001
+    """In-exec QMessageBox must keep its modality so exec() can still be dismissed."""
+    owner = QWidget()
+    owner.show()
+    box = QMessageBox(owner)
+    box.setText("AI error")
+    box.setWindowModality(Qt.WindowModality.WindowModal)
+    box.setStandardButtons(QMessageBox.StandardButton.Ok)
+    seen: dict[str, object] = {}
+
+    def probe() -> None:
+        suspended = suspend_modal_blocking()
+        seen["suspended"] = box in {item.widget for item in suspended}
+        seen["visible"] = box.isVisible()
+        seen["modality"] = box.windowModality()
+        restore_modal_blocking(suspended)
+        box.reject()
+
+    QTimer.singleShot(0, probe)
+    box.exec()
+    assert seen["suspended"] is False
+    assert seen["visible"] is True
+    assert seen["modality"] == Qt.WindowModality.WindowModal
+    owner.close()
 
 
 def test_suspend_modal_blocking_keeps_dialog_visible(qapp: QApplication) -> None:  # noqa: ARG001

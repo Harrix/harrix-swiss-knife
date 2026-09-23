@@ -7,7 +7,7 @@ from dataclasses import dataclass, replace
 from typing import Literal
 
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtWidgets import QApplication, QDialog, QWidget
+from PySide6.QtWidgets import QApplication, QDialog, QMessageBox, QWidget
 from shiboken6 import isValid
 
 if sys.platform == "win32":
@@ -249,9 +249,18 @@ def restore_modal_blocking(items: list[SuspendedModal]) -> None:
 def suspend_modal_blocking() -> list[SuspendedModal]:
     """Drop modality on leftover dialogs so the screenshot overlay can receive input.
 
-    A still-open `exec()` result dialog (table, OCR, Finance) stays ApplicationModal
-    and blocks region drawing when keep-Windows leaves it on screen. Windows stay
-    visible; only modality and mouse handling are cleared for the overlay pass.
+    A dialog shown with `setModal(True)` / `show()` (not `exec()`) stays
+    ApplicationModal and blocks region drawing when keep-Windows leaves it on
+    screen. Those Windows stay visible; only modality and mouse handling are
+    cleared for the overlay pass.
+
+    A `QMessageBox` already inside `exec()` is left alone.
+    `setWindowModality(NonModal)` unmaps it and leaves that local event loop
+    running after the overlay closes, so the app looks frozen and the dialog
+    cannot be dismissed. The overlay's own `exec()` stacks above the message
+    box and disables its native window for the capture, then Qt re-enables the
+    box when the overlay returns. Other `QDialog.exec()` loops tolerate a
+    modality change and are still suspended.
 
     Returns:
 
@@ -265,6 +274,8 @@ def suspend_modal_blocking() -> list[SuspendedModal]:
     suspended: list[SuspendedModal] = []
     for widget in app.topLevelWidgets():
         if not widget.isVisible() or is_screenshot_ui(widget) or not _is_modal_dialog(widget):
+            continue
+        if _message_box_exec_is_running(widget):
             continue
         suspended.append(
             SuspendedModal(
@@ -425,6 +436,25 @@ def _item_is_modal(item: ConcealedWindow) -> bool:
 
     """
     return item.modality != Qt.WindowModality.NonModal or _is_modal_dialog(item.widget)
+
+
+def _message_box_exec_is_running(widget: QWidget) -> bool:
+    """Return whether `widget` is a `QMessageBox` inside `exec()`.
+
+    Changing modality there unmaps the box and sticks its local event loop.
+    `WA_ShowModal` is set for the whole `exec()`. A plain `QDialog` does not
+    have this problem and can still be suspended.
+
+    Args:
+
+    - `widget` (`QWidget`): Top-level window.
+
+    Returns:
+
+    - `bool`: `True` when `widget` is a message box whose `exec()` is running.
+
+    """
+    return isinstance(widget, QMessageBox) and bool(widget.testAttribute(Qt.WidgetAttribute.WA_ShowModal))
 
 
 def _opacity_conceal_targets(candidates: list[QWidget]) -> set[QWidget]:

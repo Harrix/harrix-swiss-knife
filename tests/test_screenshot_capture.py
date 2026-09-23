@@ -8,14 +8,15 @@ from typing import TYPE_CHECKING, cast
 from unittest.mock import MagicMock
 
 import pytest
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QImage
-from PySide6.QtWidgets import QApplication, QDialog
+from PySide6.QtCore import QRect, Qt, QTimer
+from PySide6.QtGui import QImage, QPixmap
+from PySide6.QtWidgets import QApplication, QDialog, QMessageBox, QWidget
 
 from harrix_swiss_knife.actions.images.screenshot_region_clipboard import OnScreenshotRegionClipboard
 from harrix_swiss_knife.actions.images.screenshot_region_keep_windows import OnScreenshotRegionKeepWindows
 from harrix_swiss_knife.actions.images.screenshot_region_translate import OnScreenshotRegionTranslate
 from harrix_swiss_knife.screenshot import capture
+from harrix_swiss_knife.screenshot.region_overlay import RegionOverlay
 
 if TYPE_CHECKING:
     from harrix_swiss_knife.screenshot.window_visibility import ConcealedWindow
@@ -170,6 +171,48 @@ def test_exec_overlay_suspends_leftover_modal(qapp: QApplication) -> None:  # no
         assert not dialog.testAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
     finally:
         dialog.close()
+
+
+def test_exec_overlay_leaves_message_box_exec_running(qapp: QApplication) -> None:  # noqa: ARG001
+    """An open error QMessageBox must stay modal after region capture starts."""
+    owner = QWidget()
+    owner.show()
+    box = QMessageBox(owner)
+    box.setText("AI error")
+    box.setWindowModality(Qt.WindowModality.WindowModal)
+    box.setStandardButtons(QMessageBox.StandardButton.Ok)
+    seen: dict[str, object] = {}
+
+    def close_box() -> None:
+        seen["closed_by_test"] = True
+        box.reject()
+
+    def start() -> None:
+        pixmap = QPixmap(80, 60)
+        pixmap.fill(Qt.GlobalColor.black)
+        overlay = RegionOverlay(pixmap, QRect(0, 0, 80, 60), with_shutter_controls=False)
+
+        def finish_overlay() -> None:
+            seen["during_visible"] = box.isVisible()
+            seen["during_modality"] = box.windowModality()
+            overlay.reject()
+
+        # `suspend_modal_blocking` calls `processEvents()`, which would run a 0 ms
+        # timer before `exec()` and reject the overlay too early.
+        QTimer.singleShot(50, finish_overlay)
+        capture._exec_overlay(overlay)
+        seen["after_visible"] = box.isVisible()
+        seen["after_modality"] = box.windowModality()
+        QTimer.singleShot(0, close_box)
+
+    QTimer.singleShot(0, start)
+    box.exec()
+    assert seen.get("during_visible") is True
+    assert seen.get("during_modality") == Qt.WindowModality.WindowModal
+    assert seen.get("after_visible") is True
+    assert seen.get("after_modality") == Qt.WindowModality.WindowModal
+    assert seen.get("closed_by_test") is True
+    owner.close()
 
 
 def test_capture_region_keeps_app_windows_visible(
