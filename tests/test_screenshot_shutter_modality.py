@@ -364,8 +364,22 @@ def test_shutter_panel_collapse_hides_tools(qapp: QApplication) -> None:  # noqa
     assert panel.width() < expanded_width
     # Collapsed width fits icon + Expand — not a reserved switch column (~92px controls).
     assert panel.width() < 100
+    button_origin = panel._collapse_button.mapTo(panel, panel._collapse_button.rect().topLeft())
+    button_left = button_origin.x()
+    button_right = panel.width() - (button_origin.x() + panel._collapse_button.width())
+    label_origin = panel._collapse_label.mapTo(panel, panel._collapse_label.rect().topLeft())
+    label_left = label_origin.x()
+    label_right = panel.width() - (label_origin.x() + panel._collapse_label.width())
+    # Integer layout can leave a 1 px difference on an odd plate width.
+    assert abs(button_left - button_right) <= 1
+    assert abs(label_left - label_right) <= 1
+    assert panel._collapse_label.alignment() & Qt.AlignmentFlag.AlignHCenter
     panel.set_collapsed(collapsed=False)
+    QApplication.processEvents()
     assert panel._tools_host.isVisible()
+    collapse_left = panel._collapse_button.mapTo(panel, panel._collapse_button.rect().topLeft()).x()
+    mode_left = panel._mode_button.mapTo(panel, panel._mode_button.rect().topLeft()).x()
+    assert abs(collapse_left - mode_left) <= 1
     host.close()
 
 

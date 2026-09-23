@@ -440,6 +440,7 @@ class ShutterPanel(QWidget):
             )
         )
         self._collapse_label.setText("Expand" if collapsed else "Collapse")
+        self._sync_collapse_alignment()
         self._fit_cell_label(self._collapse_label)
         hint = "Expand tools panel" if collapsed else "Collapse tools panel"
         self._collapse_button.setToolTip(hint)
@@ -725,6 +726,18 @@ class ShutterPanel(QWidget):
             row.setMaximumSize(_QWIDGETSIZE_MAX, _QWIDGETSIZE_MAX)
         else:
             row.setMaximumSize(_QWIDGETSIZE_MAX, 0)
+
+    def _sync_collapse_alignment(self) -> None:
+        """Center the lone expand control; keep the open tool column left-aligned."""
+        horizontal = Qt.AlignmentFlag.AlignHCenter if self._collapsed else Qt.AlignmentFlag.AlignLeft
+        root = self.layout()
+        if isinstance(root, QVBoxLayout):
+            root.setAlignment(self._collapse_row, horizontal)
+        cell_layout = self._collapse_row.layout()
+        if isinstance(cell_layout, QVBoxLayout):
+            cell_layout.setAlignment(self._collapse_button, horizontal)
+            cell_layout.setAlignment(self._collapse_label, horizontal)
+        self._collapse_label.setAlignment(horizontal | Qt.AlignmentFlag.AlignTop)
 
     def _toggle_collapsed(self) -> None:
         self.set_collapsed(collapsed=not self._collapsed)
