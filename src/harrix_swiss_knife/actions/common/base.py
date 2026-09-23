@@ -611,20 +611,22 @@ class ActionBase(ABC):
         """Dialog wrapper. Prefer `self.dialogs.show_text_multiline()`."""
         return self.dialogs.show_text_multiline(text, strip_md_inline_code_markers(title), **kwargs)
 
-    def show_toast(self, message: str, duration: int = 2000) -> None:
+    def show_toast(self, message: str, duration: int = 2000, *, collapsed: bool = False) -> None:
         """Display a toast notification.
 
         Args:
 
         - `message` (`str`): The text of the message.
         - `duration` (`int`): The display duration in milliseconds. Defaults to `2000`.
+        - `collapsed` (`bool`): When `True`, show the compact bottom-right toast immediately.
+          Defaults to `False`.
 
         """
         toast = toast_notification.ToastNotification(
             message=strip_md_inline_code_markers(message),
             duration=duration,
         )
-        toast.present()
+        toast.present(activate=not collapsed, pinned=True if collapsed else None)
 
     def start_thread(
         self,

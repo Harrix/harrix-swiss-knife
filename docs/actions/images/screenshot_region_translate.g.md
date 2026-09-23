@@ -64,7 +64,7 @@ class OnScreenshotRegionTranslate(ActionBase):
             return
         message = "Screenshot copied to clipboard"
         self.add_line(message)
-        self.show_toast(message)
+        self.show_toast(message, collapsed=True)
         # OCR + translate is started by `capture_region` when the shutter toggle stays on.
 
     def _run_request(self, prompt_text: str, image_data: tuple[bytes, str]) -> None:
@@ -148,7 +148,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             return
         message = "Screenshot copied to clipboard"
         self.add_line(message)
-        self.show_toast(message)
+        self.show_toast(message, collapsed=True)
 ```
 
 </details>

@@ -222,14 +222,23 @@ def test_clipboard_action_skips_preview(qapp: QApplication, monkeypatch: pytest.
         fake_capture_region,
     )
 
-    def _silent_toast(self: object, message: str = "", duration: int = 2000) -> None:  # noqa: ARG001
-        return None
+    def _silent_toast(
+        self: object,
+        message: str = "",
+        duration: int = 2000,
+        *,
+        collapsed: bool = False,
+    ) -> None:
+        del self, duration
+        toasts.append({"message": message, "collapsed": collapsed})
 
+    toasts: list[dict[str, object]] = []
     monkeypatch.setattr(OnScreenshotRegionClipboard, "show_toast", _silent_toast)
     OnScreenshotRegionClipboard()()
     assert calls == [
         {"show_preview": False, "show_shutter_button": True},
     ]
+    assert toasts == [{"message": "Screenshot copied to clipboard", "collapsed": True}]
 
 
 def test_keep_windows_action_keeps_app_visible(qapp: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:  # noqa: ARG001
@@ -245,11 +254,47 @@ def test_keep_windows_action_keeps_app_visible(qapp: QApplication, monkeypatch: 
         fake_capture_region,
     )
 
-    def _silent_toast(self: object, message: str = "", duration: int = 2000) -> None:  # noqa: ARG001
-        return None
+    def _silent_toast(
+        self: object,
+        message: str = "",
+        duration: int = 2000,
+        *,
+        collapsed: bool = False,
+    ) -> None:
+        del self, duration
+        toasts.append({"message": message, "collapsed": collapsed})
 
+    toasts: list[dict[str, object]] = []
     monkeypatch.setattr(OnScreenshotRegionKeepWindows, "show_toast", _silent_toast)
     OnScreenshotRegionKeepWindows()()
     assert calls == [
         {"show_preview": True, "show_shutter_button": True, "hide_app": False},
     ]
+    assert toasts == [{"message": "Screenshot copied to clipboard", "collapsed": True}]
+
+
+def test_show_toast_collapsed_starts_pinned(qapp: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:
+    assert qapp is not None
+    presented: dict[str, object] = {}
+
+    class _Toast:
+        def __init__(self, message: str, duration: int = 2000, parent: object = None) -> None:
+            del parent
+            presented["message"] = message
+            presented["duration"] = duration
+
+        def present(self, *, activate: bool = True, pinned: bool | None = None) -> None:
+            presented["activate"] = activate
+            presented["pinned"] = pinned
+
+    monkeypatch.setattr(
+        "harrix_swiss_knife.actions.common.base.toast_notification.ToastNotification",
+        _Toast,
+    )
+    OnScreenshotRegionClipboard().show_toast("Screenshot copied to clipboard", collapsed=True)
+    assert presented == {
+        "message": "Screenshot copied to clipboard",
+        "duration": 2000,
+        "activate": False,
+        "pinned": True,
+    }

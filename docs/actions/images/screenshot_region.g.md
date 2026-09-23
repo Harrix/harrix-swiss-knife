@@ -50,7 +50,7 @@ class OnScreenshotRegion(ActionBase):
             return
         message = "Screenshot copied to clipboard"
         self.add_line(message)
-        self.show_toast(message)
+        self.show_toast(message, collapsed=True)
 ```
 
 </details>
@@ -74,7 +74,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             return
         message = "Screenshot copied to clipboard"
         self.add_line(message)
-        self.show_toast(message)
+        self.show_toast(message, collapsed=True)
 ```
 
 </details>
