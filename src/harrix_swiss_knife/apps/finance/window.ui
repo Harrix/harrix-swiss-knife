@@ -127,9 +127,6 @@
                    <property name="alignment">
                     <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
                    </property>
-                   <property name="maximum">
-                    <double>999999.989999999990687</double>
-                   </property>
                    <property name="value">
                     <double>100.000000000000000</double>
                    </property>

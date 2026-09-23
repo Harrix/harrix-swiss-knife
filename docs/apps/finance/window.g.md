@@ -260,7 +260,6 @@ class Ui_MainWindow(object):
 "                                          background-color: #C1ECDD;\n"
 "                                          }")
         self.doubleSpinBox_amount.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
-        self.doubleSpinBox_amount.setMaximum(999999.989999999990687)
         self.doubleSpinBox_amount.setValue(100.000000000000000)
 
         self.horizontalLayout_amount.addWidget(self.doubleSpinBox_amount)
@@ -1721,7 +1720,6 @@ def setupUi(self, MainWindow):
 "                                          background-color: #C1ECDD;\n"
 "                                          }")
         self.doubleSpinBox_amount.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
-        self.doubleSpinBox_amount.setMaximum(999999.989999999990687)
         self.doubleSpinBox_amount.setValue(100.000000000000000)
 
         self.horizontalLayout_amount.addWidget(self.doubleSpinBox_amount)

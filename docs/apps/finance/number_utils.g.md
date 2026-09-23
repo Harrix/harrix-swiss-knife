@@ -13,6 +13,7 @@ lang: en
 
 - [🔧 Function `format_amount`](#-function-format_amount)
 - [🔧 Function `major_units_to_minor`](#-function-major_units_to_minor)
+- [🔧 Function `sqlite_max_major_amount`](#-function-sqlite_max_major_amount)
 
 </details>
 
@@ -112,6 +113,36 @@ Returns:
 def major_units_to_minor(amount_major: float, subdivision: int) -> int:
     scale = subdivision if subdivision > 0 else 1
     return round(amount_major * scale)
+```
+
+</details>
+
+## 🔧 Function `sqlite_max_major_amount`
+
+```python
+def sqlite_max_major_amount(subdivision: int) -> float
+```
+
+Return the largest major amount that fits in a SQLite INTEGER minor-unit column.
+
+Args:
+
+- `subdivision` (`int`): Minor units per major unit (e.g. `100`).
+
+Returns:
+
+- `float`: Maximum major-unit amount for that currency.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def sqlite_max_major_amount(subdivision: int) -> float:
+    scale = subdivision if subdivision > 0 else 1
+    maximum = math.nextafter(_SQLITE_INT64_MAX / scale, 0.0)
+    if major_units_to_minor(maximum, scale) > _SQLITE_INT64_MAX:
+        maximum = math.nextafter(maximum, 0.0)
+    return maximum
 ```
 
 </details>

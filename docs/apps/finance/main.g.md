@@ -1793,6 +1793,8 @@ class MainWindow(
         # Calculate amount from expression
         self.doubleSpinBox_amount.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.doubleSpinBox_amount.customContextMenuRequested.connect(self._show_amount_context_menu)
+        self.comboBox_currency.currentTextChanged.connect(self._sync_amount_spin_limit)
+        self._sync_amount_spin_limit()
 
         # Delete and refresh buttons for all tables
         tables_with_controls: dict[str, tuple[str, str]] = {
@@ -5965,6 +5967,16 @@ class MainWindow(
         """Cancel the silent translate debounce timer."""
         self._bg_tx_translate_timer.stop()
 
+    def _sync_amount_spin_limit(self, *_args: object) -> None:
+        """Raise the amount field to the largest value a SQLite INTEGER can store."""
+        subdivision = 100
+        db_manager = self.db_manager
+        if db_manager is not None:
+            currency_code = self.comboBox_currency.currentText().strip()
+            if currency_code:
+                subdivision = db_manager.get_currency_subdivision_by_code(currency_code)
+        self.doubleSpinBox_amount.setMaximum(sqlite_max_major_amount(subdivision))
+
     def _tab_object_name(self, index: int | None = None) -> str:
         """Return the object name of the tab at `index`, or the current tab."""
         widget = self.tabWidget.widget(self.tabWidget.currentIndex() if index is None else index)
@@ -6135,6 +6147,7 @@ class MainWindow(
                     combo.setCurrentIndex(index)
 
             self._populate_chart_categories_list()
+            self._sync_amount_spin_limit()
 
         except Exception:
             logger.exception("Error updating comboboxes")

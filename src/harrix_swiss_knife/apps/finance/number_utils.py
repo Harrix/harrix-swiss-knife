@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import math
+
 from harrix_pylib.funcs_text import (
     clean_number_text,
     evaluate_arithmetic_expression,
@@ -87,10 +89,33 @@ def major_units_to_minor(amount_major: float, subdivision: int) -> int:
     return round(amount_major * scale)
 
 
+def sqlite_max_major_amount(subdivision: int) -> float:
+    """Return the largest major amount that fits in a SQLite INTEGER minor-unit column.
+
+    Args:
+
+    - `subdivision` (`int`): Minor units per major unit (e.g. `100`).
+
+    Returns:
+
+    - `float`: Maximum major-unit amount for that currency.
+
+    """
+    scale = subdivision if subdivision > 0 else 1
+    maximum = math.nextafter(_SQLITE_INT64_MAX / scale, 0.0)
+    if major_units_to_minor(maximum, scale) > _SQLITE_INT64_MAX:
+        maximum = math.nextafter(maximum, 0.0)
+    return maximum
+
+
+_SQLITE_INT64_MAX = 2**63 - 1
+
+
 __all__ = [
     "clean_number_text",
     "evaluate_arithmetic_expression",
     "format_amount",
     "major_units_to_minor",
+    "sqlite_max_major_amount",
     "try_evaluate_arithmetic_expression",
 ]
