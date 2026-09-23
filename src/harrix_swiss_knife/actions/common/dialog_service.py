@@ -1383,7 +1383,9 @@ class ActionDialogService:
             layout.addWidget(text_browser)
 
             button_layout = QHBoxLayout()
+            button_layout.addStretch(1)
             copy_button = make_lucide_push_button("Copy to Clipboard", COPY_BUTTON_ICON)
+            copy_button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
 
             def click_copy_button() -> None:
                 QGuiApplication.clipboard().setText(about_text)
@@ -1393,6 +1395,7 @@ class ActionDialogService:
             button_layout.addWidget(copy_button)
 
             ok_button = make_lucide_push_button("OK", OK_BUTTON_ICON)
+            ok_button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
             ok_button.clicked.connect(dialog.accept)
             style_accept_button(ok_button)
             button_layout.addWidget(ok_button)
