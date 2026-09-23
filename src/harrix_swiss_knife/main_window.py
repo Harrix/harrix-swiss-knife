@@ -99,7 +99,6 @@ class MainWindow(QMainWindow):
 
         root_layout.addLayout(self._build_header_row())
         root_layout.addWidget(self._build_body_widget(), stretch=1)
-        root_layout.addLayout(self._build_footer_row())
         self._build_sections_from_menu(menu)
         self._sync_sort_combo()
         self._apply_catalog_view()
@@ -378,6 +377,7 @@ class MainWindow(QMainWindow):
         self.list_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.list_widget.customContextMenuRequested.connect(self._on_list_context_menu)
         list_layout.addWidget(self.list_widget)
+        list_layout.addLayout(self._build_footer_row())
         return list_pane
 
     def _build_sections_from_menu(self, menu: QMenu) -> None:
