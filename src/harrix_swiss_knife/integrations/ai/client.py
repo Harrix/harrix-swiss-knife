@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from harrix_swiss_knife.integrations.ai.anthropic import anthropic_messages
-from harrix_swiss_knife.integrations.ai.config import extra_headers_for_provider
+from harrix_swiss_knife.integrations.ai.config import extra_headers_for_provider, format_ai_error_message
 from harrix_swiss_knife.integrations.ai.errors import AiApiError, RequestCancelledError
 from harrix_swiss_knife.integrations.ai.gemini import gemini_generate_content
 from harrix_swiss_knife.integrations.ai.network_errors import remap_bothub_network_error
@@ -81,9 +81,7 @@ def chat_completion(
         raise
     except AiApiError as exc:
         mapped = remap_bothub_network_error(str(exc), provider=provider, exc=exc)
-        if mapped != str(exc):
-            raise AiApiError(mapped) from exc
-        raise
+        raise AiApiError(format_ai_error_message(provider, mapped)) from exc
 
 
 def _dispatch_chat_completion(

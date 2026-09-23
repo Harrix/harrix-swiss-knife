@@ -146,7 +146,7 @@ class BothubChatWorker(QThread):
             if self.should_stop:
                 self.finished_cancelled.emit()
                 return
-            self.finished_error.emit(str(exc))
+            self.finished_error.emit(format_ai_error_message(self._provider, str(exc)))
             return
         finally:
             self._conn = None
@@ -318,7 +318,7 @@ def run(self) -> None:
             if self.should_stop:
                 self.finished_cancelled.emit()
                 return
-            self.finished_error.emit(str(exc))
+            self.finished_error.emit(format_ai_error_message(self._provider, str(exc)))
             return
         finally:
             self._conn = None

@@ -75,11 +75,57 @@ _DEFAULTS: dict[ProviderName, dict[str, Any]] = {
 }
 
 
+def describe_ai_provider(provider: ProviderName) -> str:
+    """Return the provider name shown in AI error dialogs.
+
+    BotHub routers are the site that was called (`bothub.chat` or `bothub.ru`).
+
+    Args:
+
+    - `provider` (`ProviderName`): Active provider ID.
+
+    Returns:
+
+    - `str`: Short label for the user.
+
+    """
+    return {
+        "bothub": "bothub.chat",
+        "bothub.ru": "bothub.ru",
+        "openai": "OpenAI",
+        "openrouter": "OpenRouter",
+        "anthropic": "Anthropic",
+        "gemini": "Gemini",
+    }[provider]
+
+
 def extra_headers_for_provider(provider: ProviderName) -> dict[str, str]:
     """Return extra HTTP headers required by the provider (Open Router attribution)."""
     if provider == "openrouter":
         return dict(OPENROUTER_APP_HEADERS)
     return {}
+
+
+def format_ai_error_message(provider: ProviderName, message: str) -> str:
+    """Prefix an AI error with the provider that was called.
+
+    Args:
+
+    - `provider` (`ProviderName`): Provider used for the failed request.
+    - `message` (`str`): Original error text.
+
+    Returns:
+
+    - `str`: Error text with an `AI provider:` line. Already prefixed text is unchanged.
+
+    """
+    prefix = f"AI provider: {describe_ai_provider(provider)}"
+    body = message.strip()
+    if body.startswith(prefix):
+        return body
+    if not body:
+        body = "Unknown error."
+    return f"{prefix}\n\n{body}"
 
 
 def get_ai_api_keys(config: dict[str, Any]) -> dict[str, Any]:

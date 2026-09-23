@@ -11,7 +11,9 @@ lang: en
 
 ## Contents
 
+- [🔧 Function `describe_ai_provider`](#-function-describe_ai_provider)
 - [🔧 Function `extra_headers_for_provider`](#-function-extra_headers_for_provider)
+- [🔧 Function `format_ai_error_message`](#-function-format_ai_error_message)
 - [🔧 Function `get_ai_api_keys`](#-function-get_ai_api_keys)
 - [🔧 Function `get_ai_prompts`](#-function-get_ai_prompts)
 - [🔧 Function `get_ai_section`](#-function-get_ai_section)
@@ -33,6 +35,41 @@ lang: en
 
 </details>
 
+## 🔧 Function `describe_ai_provider`
+
+```python
+def describe_ai_provider(provider: ProviderName) -> str
+```
+
+Return the provider name shown in AI error dialogs.
+
+BotHub routers are the site that was called (`bothub.chat` or `bothub.ru`).
+
+Args:
+
+- `provider` (`ProviderName`): Active provider ID.
+
+Returns:
+
+- `str`: Short label for the user.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def describe_ai_provider(provider: ProviderName) -> str:
+    return {
+        "bothub": "bothub.chat",
+        "bothub.ru": "bothub.ru",
+        "openai": "OpenAI",
+        "openrouter": "OpenRouter",
+        "anthropic": "Anthropic",
+        "gemini": "Gemini",
+    }[provider]
+```
+
+</details>
+
 ## 🔧 Function `extra_headers_for_provider`
 
 ```python
@@ -49,6 +86,39 @@ def extra_headers_for_provider(provider: ProviderName) -> dict[str, str]:
     if provider == "openrouter":
         return dict(OPENROUTER_APP_HEADERS)
     return {}
+```
+
+</details>
+
+## 🔧 Function `format_ai_error_message`
+
+```python
+def format_ai_error_message(provider: ProviderName, message: str) -> str
+```
+
+Prefix an AI error with the provider that was called.
+
+Args:
+
+- `provider` (`ProviderName`): Provider used for the failed request.
+- `message` (`str`): Original error text.
+
+Returns:
+
+- `str`: Error text with an `AI provider:` line. Already prefixed text is unchanged.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def format_ai_error_message(provider: ProviderName, message: str) -> str:
+    prefix = f"AI provider: {describe_ai_provider(provider)}"
+    body = message.strip()
+    if body.startswith(prefix):
+        return body
+    if not body:
+        body = "Unknown error."
+    return f"{prefix}\n\n{body}"
 ```
 
 </details>

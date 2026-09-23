@@ -75,9 +75,7 @@ def chat_completion(
         raise
     except AiApiError as exc:
         mapped = remap_bothub_network_error(str(exc), provider=provider, exc=exc)
-        if mapped != str(exc):
-            raise AiApiError(mapped) from exc
-        raise
+        raise AiApiError(format_ai_error_message(provider, mapped)) from exc
 ```
 
 </details>

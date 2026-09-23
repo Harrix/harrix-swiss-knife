@@ -1388,7 +1388,7 @@ class OnNewMarkdown(ActionBase):
         self.add_line(f"File name without extension: {heading_stem}")
 
         config_folder = h.dev.get_project_root() / "config"
-        template_files = self.config.get("note_beginning_templates", [])
+        template_files = self._note_beginning_template_refs()
 
         if not template_files:
             self.add_line("❌ No note_beginning_templates configured in config.json.")
@@ -1773,6 +1773,22 @@ class OnNewMarkdown(ActionBase):
                 if dest.exists():
                     dest.unlink()
                 shutil.move(str(file_path), str(dest))
+
+    def _note_beginning_template_refs(self) -> list[str]:
+        """Return `note_beginning_templates` as file references, not expanded text.
+
+        `config_load` inlines every `snippet:` value. This list is consumed as paths.
+
+        """
+        try:
+            loaded = h.dev.config_load(self.config_path, resolve_snippets=False)
+        except (FileNotFoundError, OSError, TypeError, ValueError):
+            loaded = self.config
+        raw = loaded if isinstance(loaded, dict) else {}
+        templates = raw.get("note_beginning_templates", [])
+        if not isinstance(templates, list):
+            return []
+        return [item for item in templates if isinstance(item, str) and _is_template_file_ref(item)]
 
     def _offer_git_commit_after_markdown(
         self,

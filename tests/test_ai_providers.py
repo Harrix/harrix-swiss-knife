@@ -12,7 +12,9 @@ from harrix_swiss_knife.integrations.ai.anthropic import (
     parse_anthropic_response,
 )
 from harrix_swiss_knife.integrations.ai.config import (
+    describe_ai_provider,
     extra_headers_for_provider,
+    format_ai_error_message,
     get_api_key,
     get_chat_provider,
     get_connection_params_for_provider,
@@ -28,6 +30,16 @@ from harrix_swiss_knife.integrations.ai.gemini import build_gemini_payload, pars
 from harrix_swiss_knife.integrations.ai.openai_compat import build_openai_chat_payload
 from harrix_swiss_knife.integrations.ai.openai_speech import parse_whisper_response
 from harrix_swiss_knife.integrations.bothub.config import get_connection_params, get_speech_model
+
+
+def test_format_ai_error_message_names_provider_and_bothub_site() -> None:
+    http_error = 'HTTP 401: {"status":"error","error":{"code":"UNAUTHORIZED","message":""}}'
+    bothub = format_ai_error_message("bothub", http_error)
+    assert bothub == f"AI provider: bothub.chat\n\n{http_error}"
+    assert format_ai_error_message("bothub.ru", http_error) == f"AI provider: bothub.ru\n\n{http_error}"
+    assert format_ai_error_message("openai", "HTTP 401: no") == "AI provider: OpenAI\n\nHTTP 401: no"
+    assert describe_ai_provider("openrouter") == "OpenRouter"
+    assert format_ai_error_message("bothub", bothub) == bothub
 
 
 def test_normalize_provider_unknown_falls_back_to_bothub() -> None:

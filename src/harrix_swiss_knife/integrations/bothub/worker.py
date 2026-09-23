@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 from PySide6.QtCore import QThread, Signal
 
 from harrix_swiss_knife.integrations.ai.bothub_failover import prepare_bothub_router
-from harrix_swiss_knife.integrations.ai.config import get_provider_settings
+from harrix_swiss_knife.integrations.ai.config import format_ai_error_message, get_provider_settings
 from harrix_swiss_knife.integrations.bothub.config import (
     get_active_provider,
     get_connection_params,
@@ -145,7 +145,7 @@ class BothubChatWorker(QThread):
             if self.should_stop:
                 self.finished_cancelled.emit()
                 return
-            self.finished_error.emit(str(exc))
+            self.finished_error.emit(format_ai_error_message(self._provider, str(exc)))
             return
         finally:
             self._conn = None

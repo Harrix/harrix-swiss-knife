@@ -14,6 +14,8 @@ from harrix_swiss_knife.template_parser import TemplateParser
 if TYPE_CHECKING:
     from pathlib import Path
 
+    import pytest
+
 COFFEE_TEMPLATE = """### {{Title:line@note_name}}: {{Score:float:10}}
 
 {{Images:images#1024}}
@@ -28,6 +30,21 @@ _{{Title:line}}_
 - **Last visit:** {{DateLast:date@Images!}}
 - **Review:** {{Review:multiline}}
 """
+
+
+def test_note_beginning_template_refs_keep_snippet_paths(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    snippet = tmp_path / "config" / "beginning-of-md.md"
+    snippet.parent.mkdir()
+    snippet.write_text("---\nlang: ru\n---\n", encoding="utf-8")
+    (tmp_path / "config.json").write_text(
+        json.dumps({"note_beginning_templates": ["snippet:config/beginning-of-md.md"]}),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(h.dev, "get_project_root", lambda: tmp_path)
+    action = OnNewMarkdown.__new__(OnNewMarkdown)
+    action.config_path = "config.json"
+
+    assert action._note_beginning_template_refs() == ["snippet:config/beginning-of-md.md"]
 
 
 def test_sanitize_note_stem_replaces_spaces_and_preserves_hyphens() -> None:
