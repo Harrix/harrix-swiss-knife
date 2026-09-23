@@ -488,12 +488,16 @@ class Ui_MainWindow(object):
         self.tabWidget.addTab(self.tab_food, "")
         self.tab_food_stats = QWidget()
         self.tab_food_stats.setObjectName(u"tab_food_stats")
-        self.horizontalLayout_4 = QHBoxLayout(self.tab_food_stats)
-        self.horizontalLayout_4.setObjectName(u"horizontalLayout_4")
-        self.frame = QFrame(self.tab_food_stats)
+        self.verticalLayout_food_stats_page = QVBoxLayout(self.tab_food_stats)
+        self.verticalLayout_food_stats_page.setObjectName(u"verticalLayout_food_stats_page")
+        self.verticalLayout_food_stats_page.setContentsMargins(0, 0, 0, 0)
+        self.splitter_food_stats = QSplitter(self.tab_food_stats)
+        self.splitter_food_stats.setObjectName(u"splitter_food_stats")
+        self.splitter_food_stats.setOrientation(Qt.Orientation.Horizontal)
+        self.splitter_food_stats.setChildrenCollapsible(False)
+        self.frame = QFrame(self.splitter_food_stats)
         self.frame.setObjectName(u"frame")
-        self.frame.setMinimumSize(QSize(380, 0))
-        self.frame.setMaximumSize(QSize(420, 16777215))
+        self.frame.setMinimumSize(QSize(480, 0))
         self.frame.setFrameShape(QFrame.Shape.StyledPanel)
         self.frame.setFrameShadow(QFrame.Shadow.Raised)
         self.verticalLayout_3 = QVBoxLayout(self.frame)
@@ -508,12 +512,13 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_3.addWidget(self.tableView_kcal_per_day)
 
-
-        self.horizontalLayout_4.addWidget(self.frame)
-
-        self.verticalLayout_4 = QVBoxLayout()
+        self.splitter_food_stats.addWidget(self.frame)
+        self.widget_food_stats_chart = QWidget(self.splitter_food_stats)
+        self.widget_food_stats_chart.setObjectName(u"widget_food_stats_chart")
+        self.verticalLayout_4 = QVBoxLayout(self.widget_food_stats_chart)
         self.verticalLayout_4.setObjectName(u"verticalLayout_4")
-        self.frame_food_stats_controls = QFrame(self.tab_food_stats)
+        self.verticalLayout_4.setContentsMargins(0, 0, 0, 0)
+        self.frame_food_stats_controls = QFrame(self.widget_food_stats_chart)
         self.frame_food_stats_controls.setObjectName(u"frame_food_stats_controls")
         self.frame_food_stats_controls.setFrameShape(QFrame.Shape.StyledPanel)
         self.frame_food_stats_controls.setFrameShadow(QFrame.Shadow.Raised)
@@ -606,7 +611,7 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_4.addWidget(self.frame_food_stats_controls)
 
-        self.scrollArea_food_stats = QScrollArea(self.tab_food_stats)
+        self.scrollArea_food_stats = QScrollArea(self.widget_food_stats_chart)
         self.scrollArea_food_stats.setObjectName(u"scrollArea_food_stats")
         self.scrollArea_food_stats.setWidgetResizable(True)
         self.scrollAreaWidgetContents_food_stats = QWidget()
@@ -618,8 +623,9 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_4.addWidget(self.scrollArea_food_stats)
 
+        self.splitter_food_stats.addWidget(self.widget_food_stats_chart)
 
-        self.horizontalLayout_4.addLayout(self.verticalLayout_4)
+        self.verticalLayout_food_stats_page.addWidget(self.splitter_food_stats)
 
         self.tabWidget.addTab(self.tab_food_stats, "")
 

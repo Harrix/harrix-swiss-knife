@@ -625,21 +625,34 @@
        <attribute name="title">
         <string>Food Statistics</string>
        </attribute>
-       <layout class="QHBoxLayout" name="horizontalLayout_4">
+       <layout class="QVBoxLayout" name="verticalLayout_food_stats_page">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
         <item>
-         <widget class="QFrame" name="frame">
-          <property name="minimumSize">
-           <size>
-            <width>380</width>
-            <height>0</height>
-           </size>
+         <widget class="QSplitter" name="splitter_food_stats">
+          <property name="orientation">
+           <enum>Qt::Orientation::Horizontal</enum>
           </property>
-          <property name="maximumSize">
-           <size>
-            <width>420</width>
-            <height>16777215</height>
-           </size>
+          <property name="childrenCollapsible">
+           <bool>false</bool>
           </property>
+          <widget class="QFrame" name="frame">
+           <property name="minimumSize">
+            <size>
+             <width>480</width>
+             <height>0</height>
+            </size>
+           </property>
           <property name="frameShape">
            <enum>QFrame::Shape::StyledPanel</enum>
           </property>
@@ -659,9 +672,8 @@
            </item>
           </layout>
          </widget>
-        </item>
-        <item>
-         <layout class="QVBoxLayout" name="verticalLayout_4">
+         <widget class="QWidget" name="widget_food_stats_chart">
+          <layout class="QVBoxLayout" name="verticalLayout_4">
           <item>
            <widget class="QFrame" name="frame_food_stats_controls">
             <property name="frameShape">
@@ -832,10 +844,12 @@
            </widget>
           </item>
          </layout>
-        </item>
-       </layout>
-      </widget>
-     </widget>
+        </widget>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </widget>
     </item>
    </layout>
   </widget>

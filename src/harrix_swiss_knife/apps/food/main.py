@@ -1608,6 +1608,17 @@ class MainWindow(
             middle = remaining - right
         self.splitter_food.setSizes([left, middle, right])
 
+    def _apply_food_stats_splitter_sizes(self) -> None:
+        """Give the daily calories table enough width for every visible column."""
+        if getattr(self, "_is_closing", False) or not hasattr(self, "splitter_food_stats"):
+            return
+
+        total = self.splitter_food_stats.width()
+        if total <= 0:
+            total = max(self.width(), 1200)
+        left = max(self.frame.minimumWidth(), 480)
+        self.splitter_food_stats.setSizes([left, max(total - left, 0)])
+
     def _apply_kcal_lookup_result(self, result: KcalLookupResult) -> None:
         """Fill manual food entry fields from a parsed kcal lookup result."""
         calories_per_100g = calories_from_kcal_lookup(result)
@@ -4069,6 +4080,10 @@ class MainWindow(
         self.splitter_food.setStretchFactor(2, 3)  # widget_food_log (filter + table)
         self._apply_food_splitter_sizes()
         QTimer.singleShot(60, self._apply_food_splitter_sizes)
+        self.splitter_food_stats.setStretchFactor(0, 0)
+        self.splitter_food_stats.setStretchFactor(1, 1)
+        self._apply_food_stats_splitter_sizes()
+        QTimer.singleShot(60, self._apply_food_stats_splitter_sizes)
 
         self.groupBox_filter.setTitle("")
         self.groupBox_filter.setStyleSheet(
