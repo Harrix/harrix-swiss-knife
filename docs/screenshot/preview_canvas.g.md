@@ -60,6 +60,8 @@ Show an image fitted with aspect ratio; Ctrl+wheel zooms; middle-drag pans.
 Left-drag draws with the active [`AnnotationTool`](annotations.g.md#%EF%B8%8F-class-annotationtool) when a document is attached.
 Crop mode uses the same dimmed blue selection frame as region capture.
 The right-click menu restores the opening size and can fit a small image into the view.
+Double-click in the view tool returns a zoomed image to that opening size.
+At the opening size, a small image is fitted into the view.
 
 <details>
 <summary>Code:</summary>
@@ -347,24 +349,26 @@ class ScreenshotPreviewCanvas(QWidget):
         super().keyReleaseEvent(event)
 
     def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        """Double-click a text annotation to edit it on the canvas."""
+        """Edit text, or toggle the opening size and fit-to-view."""
         if event.button() != Qt.MouseButton.LeftButton:
             super().mouseDoubleClickEvent(event)
             return
         image_pos = self._widget_to_image(event.position())
         document = self._document
-        if image_pos is None or document is None:
-            super().mouseDoubleClickEvent(event)
-            return
-        hit = hit_test_topmost(
-            document.annotations,
-            image_pos,
-            handle_size=self._handle_size_image(),
-            prefer_tool=AnnotationTool.TEXT,
-            selected_index=self._selected_index,
-        )
-        if hit is not None and document.annotations[hit[0]].tool == AnnotationTool.TEXT:
-            self.begin_text_edit(hit[0])
+        if image_pos is not None and document is not None:
+            hit = hit_test_topmost(
+                document.annotations,
+                image_pos,
+                handle_size=self._handle_size_image(),
+                prefer_tool=AnnotationTool.TEXT,
+                selected_index=self._selected_index,
+            )
+            if hit is not None and document.annotations[hit[0]].tool == AnnotationTool.TEXT:
+                self.begin_text_edit(hit[0])
+                event.accept()
+                return
+        if self._tool == AnnotationTool.NONE and not self._text_edit_active:
+            self._toggle_opening_view()
             event.accept()
             return
         super().mouseDoubleClickEvent(event)
@@ -1250,6 +1254,14 @@ class ScreenshotPreviewCanvas(QWidget):
         elif document.draft is not None and document.draft.tool == AnnotationTool.TEXT:
             document.draft.style = copy_annotation_style(style)
 
+    def _toggle_opening_view(self) -> None:
+        """Return a zoomed image to the opening size, or fit a small image into the view."""
+        if self._size_changed():
+            self.reset_to_original_size()
+            return
+        if self._fit_zoom() > 1.0 + _ZOOM_UNCHANGED:
+            self.fit_to_view()
+
     def _update_hover_cursor(self, image_pos: QPointF | None) -> None:
         if image_pos is None or self._document is None:
             return
@@ -1830,7 +1842,7 @@ def keyReleaseEvent(self, event: QKeyEvent) -> None:  # noqa: N802
 def mouseDoubleClickEvent(self, event: QMouseEvent) -> None
 ```
 
-Double-click a text annotation to edit it on the canvas.
+Edit text, or toggle the opening size and fit-to-view.
 
 <details>
 <summary>Code:</summary>
@@ -1842,18 +1854,20 @@ def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:  # noqa: N802
             return
         image_pos = self._widget_to_image(event.position())
         document = self._document
-        if image_pos is None or document is None:
-            super().mouseDoubleClickEvent(event)
-            return
-        hit = hit_test_topmost(
-            document.annotations,
-            image_pos,
-            handle_size=self._handle_size_image(),
-            prefer_tool=AnnotationTool.TEXT,
-            selected_index=self._selected_index,
-        )
-        if hit is not None and document.annotations[hit[0]].tool == AnnotationTool.TEXT:
-            self.begin_text_edit(hit[0])
+        if image_pos is not None and document is not None:
+            hit = hit_test_topmost(
+                document.annotations,
+                image_pos,
+                handle_size=self._handle_size_image(),
+                prefer_tool=AnnotationTool.TEXT,
+                selected_index=self._selected_index,
+            )
+            if hit is not None and document.annotations[hit[0]].tool == AnnotationTool.TEXT:
+                self.begin_text_edit(hit[0])
+                event.accept()
+                return
+        if self._tool == AnnotationTool.NONE and not self._text_edit_active:
+            self._toggle_opening_view()
             event.accept()
             return
         super().mouseDoubleClickEvent(event)

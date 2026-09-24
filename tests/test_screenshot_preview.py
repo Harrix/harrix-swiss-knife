@@ -159,6 +159,43 @@ def test_preview_window_eyedropper_sets_stroke_color(
     window.close()
 
 
+def test_double_click_restores_zoom_then_fits_small_image(qapp: QApplication) -> None:  # noqa: ARG001
+    image = QImage(40, 20, QImage.Format.Format_RGB32)
+    image.fill(Qt.GlobalColor.red)
+    canvas = ScreenshotPreviewCanvas(image)
+    canvas.resize(400, 200)
+    canvas.zoom_by(2.0, anchor=QPointF(200, 100))
+    _double_click(canvas, QPointF(200, 100))
+    assert canvas.zoom == pytest.approx(1.0)
+    native = canvas._image_rect()
+    assert native.width() == pytest.approx(40.0)
+    assert native.height() == pytest.approx(20.0)
+    _double_click(canvas, QPointF(200, 100))
+    fitted = canvas._image_rect()
+    assert fitted.width() == pytest.approx(400.0, abs=1.0)
+    assert fitted.height() == pytest.approx(200.0, abs=1.0)
+    _double_click(canvas, QPointF(200, 100))
+    assert canvas.zoom == pytest.approx(1.0)
+    canvas.close()
+
+
+def test_double_click_restores_large_image_without_upscaling(qapp: QApplication) -> None:  # noqa: ARG001
+    image = QImage(800, 400, QImage.Format.Format_RGB32)
+    image.fill(Qt.GlobalColor.blue)
+    canvas = ScreenshotPreviewCanvas(image)
+    canvas.resize(200, 200)
+    canvas.zoom_by(3.0, anchor=QPointF(100, 100))
+    _double_click(canvas, QPointF(100, 100))
+    rect = canvas._image_rect()
+    assert rect.width() == pytest.approx(200.0, abs=1.0)
+    assert rect.height() == pytest.approx(100.0, abs=1.0)
+    _double_click(canvas, QPointF(100, 100))
+    again = canvas._image_rect()
+    assert again.width() == pytest.approx(rect.width())
+    assert again.height() == pytest.approx(rect.height())
+    canvas.close()
+
+
 def test_preview_canvas_zoom_changes_factor(qapp: QApplication) -> None:  # noqa: ARG001
     image = QImage(40, 20, QImage.Format.Format_RGB32)
     image.fill(Qt.GlobalColor.red)
@@ -544,6 +581,19 @@ def test_preview_footer_wraps_buttons_and_keeps_full_width_status(qapp: QApplica
 
 def test_screenshot_preview_dialog_alias() -> None:
     assert ScreenshotPreviewWindow is preview_dialog_module.ScreenshotPreviewDialog
+
+
+def _double_click(canvas: ScreenshotPreviewCanvas, pos: QPointF) -> None:
+    canvas.mouseDoubleClickEvent(
+        QMouseEvent(
+            QMouseEvent.Type.MouseButtonDblClick,
+            pos,
+            canvas.mapToGlobal(pos.toPoint()),
+            Qt.MouseButton.LeftButton,
+            Qt.MouseButton.LeftButton,
+            Qt.KeyboardModifier.NoModifier,
+        )
+    )
 
 
 def _left_click(canvas: ScreenshotPreviewCanvas, pos: QPointF) -> None:
