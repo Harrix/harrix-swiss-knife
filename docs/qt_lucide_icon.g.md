@@ -19,6 +19,7 @@ lang: en
 - [🔧 Function `apply_lucide_action_icon`](#-function-apply_lucide_action_icon)
 - [🔧 Function `apply_lucide_button_icon`](#-function-apply_lucide_button_icon)
 - [🔧 Function `apply_lucide_dialog_buttons`](#-function-apply_lucide_dialog_buttons)
+- [🔧 Function `apply_menu_icon_size`](#-function-apply_menu_icon_size)
 - [🔧 Function `create_ai_lucide_icon`](#-function-create_ai_lucide_icon)
 - [🔧 Function `create_lucide_icon`](#-function-create_lucide_icon)
 - [🔧 Function `create_tabler_icon`](#-function-create_tabler_icon)
@@ -57,6 +58,7 @@ def add_lucide_action(
 ) -> QAction:
     action = menu.addAction(label)
     apply_lucide_action_icon(action, name, icon_size=icon_size)
+    apply_menu_icon_size(menu, icon_size)
     return action
 ```
 
@@ -175,6 +177,8 @@ def apply_leading_chrome_icons(
     *,
     icon_size: int = DEFAULT_LUCIDE_MENU_ICON_SIZE,
 ) -> None:
+    if isinstance(menu, QMenu):
+        apply_menu_icon_size(menu, icon_size)
     for action in menu.actions():
         if action.isSeparator():
             continue
@@ -280,6 +284,29 @@ def apply_lucide_dialog_buttons(
             style_accept_button(button, icon_size=icon_size)
         elif role == QDialogButtonBox.ButtonRole.DestructiveRole or is_delete_like_button_label(button.text()):
             style_delete_button(button, icon_size=icon_size)
+```
+
+</details>
+
+## 🔧 Function `apply_menu_icon_size`
+
+```python
+def apply_menu_icon_size(menu: QMenu, icon_size: int = DEFAULT_LUCIDE_MENU_ICON_SIZE) -> None
+```
+
+Draw menu icons at `icon_size` instead of the smaller Windows metric.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def apply_menu_icon_size(menu: QMenu, icon_size: int = DEFAULT_LUCIDE_MENU_ICON_SIZE) -> None:
+    if menu.property("_harrix_menu_icon_size") == icon_size:
+        return
+    style = _MenuIconStyle(icon_size)
+    style.setParent(menu)
+    menu.setStyle(style)
+    menu.setProperty("_harrix_menu_icon_size", icon_size)
 ```
 
 </details>

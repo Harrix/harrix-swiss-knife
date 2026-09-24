@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 from PySide6.QtCore import QPointF, QRect, QStandardPaths, Qt
 from PySide6.QtGui import QColor, QImage, QKeyEvent, QMouseEvent
-from PySide6.QtWidgets import QApplication, QPushButton, QTabWidget
+from PySide6.QtWidgets import QApplication, QPushButton, QStyle, QTabWidget
 
 from harrix_swiss_knife.apps.common.qt_main_window import compute_app_window_geometry
 from harrix_swiss_knife.screenshot import preview_dialog as preview_dialog_module
@@ -297,6 +297,7 @@ def test_save_buttons_offer_format_menus(qapp: QApplication) -> None:  # noqa: A
         assert menu is not None
         assert [action.text() for action in menu.actions()] == labels
         assert all(not action.icon().isNull() for action in menu.actions())
+        assert menu.style().pixelMetric(QStyle.PixelMetric.PM_SmallIconSize, None, menu) == 24
     window.close()
 
 

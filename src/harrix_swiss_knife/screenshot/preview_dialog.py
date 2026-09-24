@@ -45,6 +45,7 @@ from harrix_swiss_knife.qt_lucide_icon import (
     DEFAULT_LUCIDE_MENU_ICON_SIZE,
     OK_BUTTON_ICON,
     SAVE_BUTTON_ICON,
+    apply_menu_icon_size,
     create_lucide_icon,
     create_tabler_icon,
     make_lucide_push_button,
@@ -390,6 +391,7 @@ class ScreenshotPreviewWindow(QMainWindow):
             action = menu.addAction(title)
             action.setIcon(create_lucide_icon(icon_name, DEFAULT_LUCIDE_MENU_ICON_SIZE, color=color))
             action.triggered.connect(lambda _checked=False, chosen=slot: chosen())
+        apply_menu_icon_size(menu)
         button.setMenu(menu)
         button.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
         self._buttons.addWidget(button)
@@ -409,6 +411,7 @@ class ScreenshotPreviewWindow(QMainWindow):
             action = menu.addAction(title)
             action.setIcon(create_lucide_icon(icon_name, DEFAULT_LUCIDE_MENU_ICON_SIZE))
             action.triggered.connect(lambda _checked=False, chosen=slot: chosen())
+        apply_menu_icon_size(menu)
         button.setMenu(menu)
         button.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
         self._buttons.addWidget(button)
@@ -429,6 +432,7 @@ class ScreenshotPreviewWindow(QMainWindow):
             action = menu.addAction(title)
             action.setIcon(create_tabler_icon(_FORMAT_ICONS[fmt]))
             action.triggered.connect(lambda _checked=False, chosen=fmt: slot(chosen))
+        apply_menu_icon_size(menu)
         button.setMenu(menu)
         button.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
         self._buttons.addWidget(button)

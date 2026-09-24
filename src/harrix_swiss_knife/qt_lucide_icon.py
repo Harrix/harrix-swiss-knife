@@ -32,7 +32,10 @@ from PySide6.QtWidgets import (
     QDialogButtonBox,
     QMenu,
     QMenuBar,
+    QProxyStyle,
     QPushButton,
+    QStyle,
+    QStyleOption,
     QToolButton,
     QWidget,
 )
@@ -41,8 +44,10 @@ from harrix_swiss_knife.qt_emoji_icon import split_leading_emoji
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_LUCIDE_BUTTON_ICON_SIZE = 18
-DEFAULT_LUCIDE_MENU_ICON_SIZE = 18
+# Lucide and Tabler strokes are 2px on a 24px grid. Drawing them at 24 keeps the stroke
+# on whole pixels; 18px makes a 1.5px stroke that looks soft, and menus then scale it again.
+DEFAULT_LUCIDE_BUTTON_ICON_SIZE = 24
+DEFAULT_LUCIDE_MENU_ICON_SIZE = 24
 
 OK_BUTTON_ICON = "circle-check"
 APPLY_BUTTON_ICON = "circle-check"
@@ -244,6 +249,25 @@ CHROME_EMOJI_TO_LUCIDE: dict[str, str] = {
 }
 
 
+class _MenuIconStyle(QProxyStyle):
+    """Keep the application style and report a fixed small-icon size."""
+
+    def __init__(self, icon_size: int) -> None:
+        super().__init__()
+        self._icon_size = icon_size
+
+    def pixelMetric(  # noqa: N802
+        self,
+        metric: QStyle.PixelMetric,
+        option: QStyleOption | None = None,
+        widget: QWidget | None = None,
+    ) -> int:
+        """Return `icon_size` for menu icons and delegate every other metric."""
+        if metric == QStyle.PixelMetric.PM_SmallIconSize:
+            return self._icon_size
+        return super().pixelMetric(metric, option, widget)
+
+
 def add_lucide_action(
     menu: QMenu,
     label: str,
@@ -254,6 +278,7 @@ def add_lucide_action(
     """Add a menu action with a Lucide `QIcon` and plain `label` text."""
     action = menu.addAction(label)
     apply_lucide_action_icon(action, name, icon_size=icon_size)
+    apply_menu_icon_size(menu, icon_size)
     return action
 
 
@@ -324,6 +349,8 @@ def apply_leading_chrome_icons(
     icon_size: int = DEFAULT_LUCIDE_MENU_ICON_SIZE,
 ) -> None:
     """Convert leading chrome emoji prefixes on `menu` actions into Lucide icons."""
+    if isinstance(menu, QMenu):
+        apply_menu_icon_size(menu, icon_size)
     for action in menu.actions():
         if action.isSeparator():
             continue
@@ -392,6 +419,16 @@ def apply_lucide_dialog_buttons(
             style_accept_button(button, icon_size=icon_size)
         elif role == QDialogButtonBox.ButtonRole.DestructiveRole or is_delete_like_button_label(button.text()):
             style_delete_button(button, icon_size=icon_size)
+
+
+def apply_menu_icon_size(menu: QMenu, icon_size: int = DEFAULT_LUCIDE_MENU_ICON_SIZE) -> None:
+    """Draw menu icons at `icon_size` instead of the smaller Windows metric."""
+    if menu.property("_harrix_menu_icon_size") == icon_size:
+        return
+    style = _MenuIconStyle(icon_size)
+    style.setParent(menu)
+    menu.setStyle(style)
+    menu.setProperty("_harrix_menu_icon_size", icon_size)
 
 
 def create_ai_lucide_icon(size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE) -> QIcon:
