@@ -90,8 +90,10 @@ INSERT INTO categories (name, type, icon, name_local) VALUES ('Appliances', 0, '
 INSERT INTO categories (name, type, icon, name_local) VALUES ('Beauty Services', 0, '💄', 'Красота');
 INSERT INTO categories (name, type, icon, name_local) VALUES ('Books', 0, '📖', 'Книги');
 INSERT INTO categories (name, type, icon, name_local) VALUES ('Cafe', 0, '☕', 'Кафе');
+INSERT INTO categories (name, type, icon, name_local) VALUES ('Children', 0, '👶', 'Дети');
 INSERT INTO categories (name, type, icon, name_local) VALUES ('Clothing', 0, '👕', 'Одежда');
 INSERT INTO categories (name, type, icon, name_local) VALUES ('Education', 0, '📚', 'Образование');
+INSERT INTO categories (name, type, icon, name_local) VALUES ('Entertainment', 0, '🎬', 'Развлечения');
 INSERT INTO categories (name, type, icon, name_local) VALUES ('Family Transfer Out', 0, '🔄', 'Перевод семье');
 INSERT INTO categories (name, type, icon, name_local) VALUES ('Food', 0, '🍔', 'Еда');
 INSERT INTO categories (name, type, icon, name_local) VALUES ('Furniture', 0, '🪑', 'Мебель');

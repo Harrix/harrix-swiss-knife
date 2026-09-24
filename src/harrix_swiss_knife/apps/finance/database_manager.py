@@ -52,6 +52,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         self._ensure_transaction_description_en_column()
         self._ensure_standard_items_table()
         self._ensure_system_categories()
+        self._ensure_seed_categories()
         self._ensure_performance_indexes()
 
         # Cached default currency (code, id); loaded once from DB, updated only by set_default_currency
@@ -2270,6 +2271,24 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             self.execute_simple_query("CREATE INDEX IF NOT EXISTS idx_standard_items_name ON standard_items(name)")
         except Exception:
             logger.exception("Could not ensure performance indexes")
+
+    def _ensure_seed_categories(self) -> None:
+        """Insert catalog categories added after the database was first created."""
+        seeds = (
+            ("Children", 0, "👶", "Дети"),  # ignore: HP001
+            ("Entertainment", 0, "🎬", "Развлечения"),  # ignore: HP001
+        )
+        try:
+            for name, category_type, icon, name_local in seeds:
+                rows = self.get_rows(
+                    "SELECT _id FROM categories WHERE name = :name AND type = :type",
+                    {"name": name, "type": category_type},
+                )
+                if rows:
+                    continue
+                self.add_category(name, category_type, icon, name_local)
+        except Exception:
+            logger.exception("Could not ensure seed categories")
 
     def _ensure_standard_items_table(self) -> None:
         """Ensure the standard_items catalog table exists."""

@@ -223,3 +223,29 @@ def test_one_kopeck_revision_closes_natural_diff(finance_db: DatabaseManager) ->
         amount_minor=1,
     )
     assert _rub_natural_diff(finance_db) == 0
+
+
+def test_missing_seed_categories_are_inserted_on_open(tmp_path: Path, qapp: QApplication) -> None:  # noqa: ARG001
+    db_path = tmp_path / "finance.db"
+    assert DatabaseManager.create_database_from_sql(str(db_path), str(RECOVER_SQL))
+    db = DatabaseManager(str(db_path))
+    assert db.execute_simple_query("DELETE FROM categories WHERE name IN ('Children', 'Entertainment') AND type = 0")
+    db.close()
+
+    reopened = DatabaseManager(str(db_path))
+    rows = reopened.get_rows(
+        """
+        SELECT name FROM categories
+        WHERE name IN ('Children', 'Entertainment') AND type = 0
+        ORDER BY name
+        """
+    )
+    assert [row[0] for row in rows] == ["Children", "Entertainment"]
+    reopened.close()
+
+    again = DatabaseManager(str(db_path))
+    count_rows = again.get_rows(
+        "SELECT COUNT(*) FROM categories WHERE name IN ('Children', 'Entertainment') AND type = 0"
+    )
+    assert int(count_rows[0][0]) == 2
+    again.close()
