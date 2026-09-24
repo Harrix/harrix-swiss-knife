@@ -16,6 +16,8 @@ from PySide6.QtGui import QIcon, QImage, QPainter, QPixmap
 _PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
 _PAD_RATIO = 0.14
 _ICON_SIZES = (16, 24, 32, 48, 64, 128, 256)
+_WINDOW_ICON_LOGICAL_SIZES = (16, 20, 24, 32, 40, 48, 64, 256)
+_WINDOW_ICON_DPRS = (1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0)
 _ICO_256 = 256
 _ICO_HEADER_SIZE = 6
 _ICO_ENTRY_SIZE = 16
@@ -97,7 +99,16 @@ def largest_image_from_ico(ico_path: Path) -> QImage:
 
 
 def make_window_icon() -> QIcon:
-    """Return a QIcon with padded full-resolution pixmaps so Windows does not pick a blurry small frame."""
+    """Return a raster app icon that fills the tray and taskbar slot.
+
+    The mark is drawn edge to edge. Each pixmap carries a screen scale so Windows
+    does not place a smaller bitmap in the corner of the icon.
+
+    Returns:
+
+    - `QIcon`: Cached icon, or a null icon when no logo is available.
+
+    """
     global _cached_window_icon  # noqa: PLW0603
     if _cached_window_icon is not None:
         return _cached_window_icon
@@ -107,8 +118,9 @@ def make_window_icon() -> QIcon:
         icon = QIcon(str(ico)) if ico is not None else QIcon()
     else:
         icon = QIcon()
-        for size in _ICON_SIZES:
-            icon.addPixmap(QPixmap.fromImage(padded_image(source, size)))
+        for logical in _WINDOW_ICON_LOGICAL_SIZES:
+            for dpr in _WINDOW_ICON_DPRS:
+                icon.addPixmap(_scaled_icon_pixmap(source, logical, dpr))
     if not icon.isNull():
         _cached_window_icon = icon
     return icon
@@ -245,3 +257,16 @@ def _render_svg(path: Path, size: int) -> QImage | None:
     renderer.render(painter)
     painter.end()
     return image
+
+
+def _scaled_icon_pixmap(source: QImage, logical: int, dpr: float) -> QPixmap:
+    pixels = max(1, round(logical * dpr))
+    scaled = source.scaled(
+        pixels,
+        pixels,
+        Qt.AspectRatioMode.IgnoreAspectRatio,
+        Qt.TransformationMode.SmoothTransformation,
+    )
+    pixmap = QPixmap.fromImage(scaled)
+    pixmap.setDevicePixelRatio(dpr)
+    return pixmap

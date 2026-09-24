@@ -7,8 +7,9 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import QLocale
-from PySide6.QtWidgets import QApplication
+from PySide6.QtCore import QLocale, QRect
+from PySide6.QtGui import QStandardItemModel
+from PySide6.QtWidgets import QApplication, QStyleOptionViewItem
 
 from harrix_swiss_knife.apps.finance.database_manager import DatabaseManager
 from harrix_swiss_knife.apps.finance.delegates import YearDeltaCellDelegate
@@ -236,6 +237,17 @@ def test_year_delta_cell_shows_subscript_decimals(qapp: QApplication) -> None:
     assert delegate.displayText("+1300.25 ₽\n1000.00 ₽", locale) == "+1 300.₂₅ ₽\n1 000 ₽"
     assert delegate.displayText("-40.10 ₽", locale) == "-40.₁ ₽"
     assert delegate.displayText("—", locale) == "—"
+
+
+def test_year_delta_cell_width_follows_text(qapp: QApplication) -> None:
+    model = QStandardItemModel(1, 1)
+    model.setData(model.index(0, 0), "+1300.25 ₽\n1000.00 ₽")
+    delegate = YearDeltaCellDelegate()
+    option = QStyleOptionViewItem()
+    option.rect = QRect(0, 0, 2000, 80)
+    option.font = qapp.font()
+    hint = delegate.sizeHint(option, model.index(0, 0))
+    assert hint.width() < 400
 
 
 def test_report_types_include_monthly_income_year_delta() -> None:

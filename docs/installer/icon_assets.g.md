@@ -178,7 +178,14 @@ def largest_image_from_ico(ico_path: Path) -> QImage:
 def make_window_icon() -> QIcon
 ```
 
-Return a QIcon with padded full-resolution pixmaps so Windows does not pick a blurry small frame.
+Return a raster app icon that fills the tray and taskbar slot.
+
+The mark is drawn edge to edge. Each pixmap carries a screen scale so Windows
+does not place a smaller bitmap in the corner of the icon.
+
+Returns:
+
+- `QIcon`: Cached icon, or a null icon when no logo is available.
 
 <details>
 <summary>Code:</summary>
@@ -194,8 +201,9 @@ def make_window_icon() -> QIcon:
         icon = QIcon(str(ico)) if ico is not None else QIcon()
     else:
         icon = QIcon()
-        for size in _ICON_SIZES:
-            icon.addPixmap(QPixmap.fromImage(padded_image(source, size)))
+        for logical in _WINDOW_ICON_LOGICAL_SIZES:
+            for dpr in _WINDOW_ICON_DPRS:
+                icon.addPixmap(_scaled_icon_pixmap(source, logical, dpr))
     if not icon.isNull():
         _cached_window_icon = icon
     return icon

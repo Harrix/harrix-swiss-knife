@@ -24,10 +24,10 @@ lang: en
 class YearDeltaCellDelegate(QStyledItemDelegate)
 ```
 
-Paint a delta on the first line and its baseline amount smaller underneath.
+Paint a bold delta on the first line and its baseline amount smaller underneath.
 
 Amounts use the same thousands separators and subscript decimals as report cells.
-A second line, when present, is drawn in a smaller font.
+Column width follows the text, so a stretched table does not keep the cells wide.
 
 <details>
 <summary>Code:</summary>
@@ -60,8 +60,9 @@ class YearDeltaCellDelegate(QStyledItemDelegate):
         style.drawControl(QStyle.ControlElement.CE_ItemViewItem, opt, painter, widget)
 
         text_rect = style.subElementRect(QStyle.SubElement.SE_ItemViewItemText, opt, widget)
+        delta_font = _bold_font(opt.font)
         small_font = _smaller_font(opt.font)
-        first_height = QFontMetrics(opt.font).height()
+        first_height = QFontMetrics(delta_font).height()
         second_height = QFontMetrics(small_font).height()
         block_height = first_height + _LINE_GAP + second_height
         top = text_rect.top() + max(0, (text_rect.height() - block_height) // 2)
@@ -72,7 +73,7 @@ class YearDeltaCellDelegate(QStyledItemDelegate):
             painter.setPen(opt.palette.highlightedText().color())
         else:
             painter.setPen(opt.palette.text().color())
-        painter.setFont(opt.font)
+        painter.setFont(delta_font)
         painter.drawText(
             QRect(text_rect.left(), top, text_rect.width(), first_height),
             Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
@@ -91,21 +92,22 @@ class YearDeltaCellDelegate(QStyledItemDelegate):
         option: QStyleOptionViewItem,
         index: QModelIndex | QPersistentModelIndex,
     ) -> QSize:
-        """Grow the row when the cell carries a baseline under the delta."""
-        hint = super().sizeHint(option, index)
+        """Size the cell from its text so a stretched column does not stay wide."""
         text = self.displayText(index.data(Qt.ItemDataRole.DisplayRole) or "", QLocale())
-        first, separator, second = text.partition("\n")
-        if not separator or not second.strip():
-            return hint
         opt = QStyleOptionViewItem(option)
         self.initStyleOption(opt, index)
-        small_font = _smaller_font(opt.font)
-        width = max(
-            QFontMetrics(opt.font).horizontalAdvance(first),
-            QFontMetrics(small_font).horizontalAdvance(second),
-        )
-        height = QFontMetrics(opt.font).height() + _LINE_GAP + QFontMetrics(small_font).height() + _TEXT_PADDING
-        return QSize(max(hint.width(), width + _TEXT_PADDING), max(hint.height(), height))
+        first, separator, second = text.partition("\n")
+        if separator and second.strip():
+            delta_font = _bold_font(opt.font)
+            small_font = _smaller_font(opt.font)
+            width = max(
+                QFontMetrics(delta_font).horizontalAdvance(first),
+                QFontMetrics(small_font).horizontalAdvance(second),
+            )
+            height = QFontMetrics(delta_font).height() + _LINE_GAP + QFontMetrics(small_font).height()
+            return QSize(width + _TEXT_PADDING, height + _TEXT_PADDING)
+        metrics = QFontMetrics(opt.font)
+        return QSize(metrics.horizontalAdvance(first) + _TEXT_PADDING, metrics.height() + _TEXT_PADDING)
 ```
 
 </details>
@@ -160,8 +162,9 @@ def paint(
         style.drawControl(QStyle.ControlElement.CE_ItemViewItem, opt, painter, widget)
 
         text_rect = style.subElementRect(QStyle.SubElement.SE_ItemViewItemText, opt, widget)
+        delta_font = _bold_font(opt.font)
         small_font = _smaller_font(opt.font)
-        first_height = QFontMetrics(opt.font).height()
+        first_height = QFontMetrics(delta_font).height()
         second_height = QFontMetrics(small_font).height()
         block_height = first_height + _LINE_GAP + second_height
         top = text_rect.top() + max(0, (text_rect.height() - block_height) // 2)
@@ -172,7 +175,7 @@ def paint(
             painter.setPen(opt.palette.highlightedText().color())
         else:
             painter.setPen(opt.palette.text().color())
-        painter.setFont(opt.font)
+        painter.setFont(delta_font)
         painter.drawText(
             QRect(text_rect.left(), top, text_rect.width(), first_height),
             Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
@@ -195,7 +198,7 @@ def paint(
 def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> QSize
 ```
 
-Grow the row when the cell carries a baseline under the delta.
+Size the cell from its text so a stretched column does not stay wide.
 
 <details>
 <summary>Code:</summary>
@@ -206,20 +209,21 @@ def sizeHint(  # noqa: N802
         option: QStyleOptionViewItem,
         index: QModelIndex | QPersistentModelIndex,
     ) -> QSize:
-        hint = super().sizeHint(option, index)
         text = self.displayText(index.data(Qt.ItemDataRole.DisplayRole) or "", QLocale())
-        first, separator, second = text.partition("\n")
-        if not separator or not second.strip():
-            return hint
         opt = QStyleOptionViewItem(option)
         self.initStyleOption(opt, index)
-        small_font = _smaller_font(opt.font)
-        width = max(
-            QFontMetrics(opt.font).horizontalAdvance(first),
-            QFontMetrics(small_font).horizontalAdvance(second),
-        )
-        height = QFontMetrics(opt.font).height() + _LINE_GAP + QFontMetrics(small_font).height() + _TEXT_PADDING
-        return QSize(max(hint.width(), width + _TEXT_PADDING), max(hint.height(), height))
+        first, separator, second = text.partition("\n")
+        if separator and second.strip():
+            delta_font = _bold_font(opt.font)
+            small_font = _smaller_font(opt.font)
+            width = max(
+                QFontMetrics(delta_font).horizontalAdvance(first),
+                QFontMetrics(small_font).horizontalAdvance(second),
+            )
+            height = QFontMetrics(delta_font).height() + _LINE_GAP + QFontMetrics(small_font).height()
+            return QSize(width + _TEXT_PADDING, height + _TEXT_PADDING)
+        metrics = QFontMetrics(opt.font)
+        return QSize(metrics.horizontalAdvance(first) + _TEXT_PADDING, metrics.height() + _TEXT_PADDING)
 ```
 
 </details>
