@@ -17,6 +17,7 @@ from harrix_swiss_knife.actions.files.list_files_simple_ignore_hidden_folders im
     OnListFilesSimpleIgnoreHiddenFolders,
 )
 from harrix_swiss_knife.actions.files.lock_disks import OnLockDisks
+from harrix_swiss_knife.actions.files.name_git_commit_with_ai import OnNameGitCommitWithAI
 from harrix_swiss_knife.actions.files.remove_empty_folders import OnRemoveEmptyFolders
 from harrix_swiss_knife.actions.files.rename_date_in_filenames import OnRenameDateInFilenames
 from harrix_swiss_knife.actions.files.rename_fb2_epub_pdf_files import OnRenameFb2EpubPdfFiles
@@ -44,6 +45,7 @@ __all__ = [
     "OnListFilesSimple",
     "OnListFilesSimpleIgnoreHiddenFolders",
     "OnLockDisks",
+    "OnNameGitCommitWithAI",
     "OnRemoveEmptyFolders",
     "OnRenameDateInFilenames",
     "OnRenameFb2EpubPdfFiles",

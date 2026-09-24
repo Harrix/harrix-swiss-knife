@@ -120,6 +120,7 @@ def get_menu_structure() -> list[Any]:
                 OnRenameFb2EpubPdfFiles,
                 OnRenameFilesByMapping,
                 OnGitCommitMessage,
+                OnNameGitCommitWithAI,
                 OnRenameLargestImagesToFeaturedImage,
                 OnTreeViewFolder,
                 OnTreeViewFolderIgnoreHiddenFolders,

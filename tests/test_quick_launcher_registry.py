@@ -31,10 +31,11 @@ def qapp() -> QApplication:
 
 def test_collect_quick_launcher_actions_finds_marked_actions() -> None:
     actions = collect_quick_launcher_actions(get_menu_structure())
-    assert len(actions) == 15
+    assert len(actions) == 16
     assert {cls.__name__ for cls in actions} == {
         "OnCloseAllAdobe",
         "OnFlipSlashes",
+        "OnNameGitCommitWithAI",
         "OnFixTextWithAI",
         "OnRewriteTextWithAI",
         "OnSpeechToTextWithAI",

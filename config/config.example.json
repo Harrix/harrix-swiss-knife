@@ -397,6 +397,7 @@
       "food_range_macros": "snippet:config/prompts/food-range-macros.md",
       "food_portion_weight_from_calories": "snippet:config/prompts/food-portion-weight-from-calories.md",
       "food_log_translate_names": "snippet:config/prompts/food-log-translate-names.md",
+      "git_commit_subject": "snippet:config/prompts/git-commit-subject.md",
       "speech_transcription": "snippet:config/prompts/speech-transcription.md",
       "text_fix_ru": "snippet:config/prompts/text-fix-ru.md",
       "text_fix_ru_clipboard": "snippet:config/prompts/text-fix-ru-clipboard.md",

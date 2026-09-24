@@ -25,6 +25,7 @@
       "food_portion_weight_from_calories": "snippet:config/prompts/food-portion-weight-from-calories.md",
       "food_range_macros": "snippet:config/prompts/food-range-macros.md",
       "food_voice_log_to_tsv": "snippet:config/prompts/food-voice-log-to-tsv.md",
+      "git_commit_subject": "snippet:config/prompts/git-commit-subject.md",
       "habits_emoji_suggest": "snippet:config/prompts/habits-emoji-suggest.md",
       "image_ocr_to_markdown": "snippet:config/prompts/image-ocr-to-markdown.md",
       "image_ocr_translate": "snippet:config/prompts/image-ocr-translate.md",
