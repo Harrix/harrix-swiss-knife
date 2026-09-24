@@ -144,8 +144,7 @@ class MainWindow(
         self.label_exercise_avif_5.setToolTip("Double-click to open in lightbox")
         self._setup_ui()
 
-        # Set window icon
-        self.setWindowIcon(QIcon(":/assets/logo.svg"))
+        apply_window_icon(self)
 
         self._init_hide_on_close(hide_on_close=hide_on_close)
 
@@ -9226,8 +9225,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
         self.label_exercise_avif_5.setToolTip("Double-click to open in lightbox")
         self._setup_ui()
 
-        # Set window icon
-        self.setWindowIcon(QIcon(":/assets/logo.svg"))
+        apply_window_icon(self)
 
         self._init_hide_on_close(hide_on_close=hide_on_close)
 

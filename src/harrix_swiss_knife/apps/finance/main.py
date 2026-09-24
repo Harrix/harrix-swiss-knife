@@ -40,7 +40,6 @@ from PySide6.QtGui import (
     QBrush,
     QCloseEvent,
     QColor,
-    QIcon,
     QKeyEvent,
     QMouseEvent,
     QStandardItem,
@@ -185,6 +184,7 @@ from harrix_swiss_knife.apps.finance.transaction_translate_parser import (
 )
 from harrix_swiss_knife.apps.finance.transaction_translate_preview_dialog import TransactionTranslatePreviewDialog
 from harrix_swiss_knife.apps.finance.widgets import ClickableCategoryLabel
+from harrix_swiss_knife.installer.icon_assets import apply_window_icon
 from harrix_swiss_knife.integrations.bothub import (
     BothubRequestState,
     build_prompt,
@@ -272,7 +272,7 @@ class MainWindow(
         self._transaction_selection_selection_model: QItemSelectionModel | None = None
         self._transactions_selection_status_label: QLabel | None = None
         self._setup_ui()
-        self.setWindowIcon(QIcon(":/assets/logo.svg"))
+        apply_window_icon(self)
         self._init_hide_on_close(hide_on_close=hide_on_close)
 
         # Table models dictionary

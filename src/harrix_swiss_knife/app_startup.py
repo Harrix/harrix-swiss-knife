@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, cast
 
 import harrix_pylib as h
 from PySide6.QtCore import Qt, QTimer, QtMsgType, qInstallMessageHandler
-from PySide6.QtGui import QAction, QIcon
+from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 from harrix_swiss_knife import resources_rc  # noqa: F401
@@ -37,6 +37,7 @@ from harrix_swiss_knife.data_for_hsk import (
 )
 from harrix_swiss_knife.early_splash import close_early_splash, early_splash_hwnd
 from harrix_swiss_knife.global_hotkey import GlobalHotkeyManager
+from harrix_swiss_knife.installer.icon_assets import apply_window_icon, make_window_icon
 from harrix_swiss_knife.main_menu_base import set_menu_tooltips_visible_recursive
 from harrix_swiss_knife.menu_structure import get_menu_structure
 from harrix_swiss_knife.paths import get_config_path_str, prune_action_output_dir
@@ -48,6 +49,7 @@ from harrix_swiss_knife.screenshot.capture import (
 )
 from harrix_swiss_knife.single_instance import acquire_tray_instance
 from harrix_swiss_knife.tray_icon import TrayIcon
+from harrix_swiss_knife.win11_backdrop import ensure_windows_app_user_model_id
 
 if TYPE_CHECKING:
     from types import TracebackType
@@ -198,10 +200,11 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
     config: dict = h.dev.config_load(get_config_path_str())
 
     _log_startup_phase(log, "Creating QApplication", startup_t0)
+    ensure_windows_app_user_model_id()
     existing = QApplication.instance()
     app = cast("QApplication", existing) if existing is not None else QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
-    app.setWindowIcon(QIcon(":/assets/logo.svg"))
+    apply_window_icon(app)
     install_flexible_decimal_separators(app)
     install_spellcheck(app)
     install_app_fonts(app)
@@ -229,7 +232,7 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
     placeholder_menu = _make_placeholder_menu()
 
     _log_startup_phase(log, "Creating tray icon", startup_t0)
-    tray_icon = TrayIcon(QIcon(":/assets/logo.svg"), menu=placeholder_menu)
+    tray_icon = TrayIcon(make_window_icon(), menu=placeholder_menu)
     tray_icon_holder = tray_icon
     tray_icon.setToolTip("Harrix Swiss Knife")
     tray_icon.show()

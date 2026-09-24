@@ -260,7 +260,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         super().__init__()
         try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
         self.setWindowTitle("Vector Icons")
-        self.setWindowIcon(QIcon(":/assets/logo.svg"))
+        apply_window_icon(self)
         self._init_hide_on_close(hide_on_close=hide_on_close)
 
         self._icon_size = load_icon_size()
@@ -3000,7 +3000,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:
         super().__init__()
         try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
         self.setWindowTitle("Vector Icons")
-        self.setWindowIcon(QIcon(":/assets/logo.svg"))
+        apply_window_icon(self)
         self._init_hide_on_close(hide_on_close=hide_on_close)
 
         self._icon_size = load_icon_size()

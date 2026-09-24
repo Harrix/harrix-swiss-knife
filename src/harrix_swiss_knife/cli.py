@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import cast
 
 import click
-from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife.action_added_at import generate_action_added_at, load_action_added_at
@@ -52,7 +51,6 @@ from harrix_swiss_knife.actions.vscode import (
     OnVscodeFormat,
 )
 from harrix_swiss_knife.menu_structure import get_menu_structure
-from harrix_swiss_knife.paths import get_project_root
 from harrix_swiss_knife.qt_app_font import install_app_fonts
 from harrix_swiss_knife.qt_flexible_decimal import install_flexible_decimal_separators
 
@@ -1209,15 +1207,11 @@ def _resolve_template_name(templates: dict[object, object], template_arg: str | 
 
 def _set_qt_app_icon(app: QApplication) -> None:
     """Best-effort: set window icon for Qt dialogs spawned from CLI."""
-    project_root = get_project_root()
-    for rel in ("src/harrix_swiss_knife/assets/app.ico", "img/icon.ico"):
-        icon_path = project_root / rel
-        if icon_path.is_file():
-            app.setWindowIcon(QIcon(str(icon_path)))
-            return
+    from harrix_swiss_knife.installer.icon_assets import apply_window_icon  # noqa: PLC0415
+    from harrix_swiss_knife.win11_backdrop import ensure_windows_app_user_model_id  # noqa: PLC0415
 
-    # Fallback: resource icon (available in packaged/tray apps).
-    app.setWindowIcon(QIcon(":/assets/logo.svg"))
+    ensure_windows_app_user_model_id()
+    apply_window_icon(app)
 
 
 def _template_id(template_name: str) -> str:

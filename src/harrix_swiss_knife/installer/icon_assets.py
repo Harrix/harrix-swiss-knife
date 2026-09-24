@@ -8,6 +8,7 @@ import sys
 import tempfile
 from io import BytesIO
 from pathlib import Path
+from typing import Any
 
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QIcon, QImage, QPainter, QPixmap
@@ -21,6 +22,25 @@ _ICO_ENTRY_SIZE = 16
 _WELCOME_LOGO_PX = 96
 _HEADER_LOGO_PX = 48
 _PNG_FORMAT = b"PNG"
+_cached_window_icon: QIcon | None = None
+
+
+def apply_window_icon(target: Any) -> None:
+    """Set the raster app icon on a `QApplication` or top-level window.
+
+    An SVG `QIcon` often has no pixmap for the size the Windows taskbar asks for.
+    Qt then sends `WM_SETICON` with a null icon and the taskbar button goes blank
+    until a later refresh succeeds.
+
+    Args:
+
+    - `target` (`Any`): Object with `setWindowIcon`, typically `QApplication` or `QWidget`.
+
+    """
+    icon = make_window_icon()
+    if icon.isNull():
+        return
+    target.setWindowIcon(icon)
 
 
 def asset_candidates(*relative: str) -> list[Path]:
@@ -78,13 +98,19 @@ def largest_image_from_ico(ico_path: Path) -> QImage:
 
 def make_window_icon() -> QIcon:
     """Return a QIcon with padded full-resolution pixmaps so Windows does not pick a blurry small frame."""
+    global _cached_window_icon  # noqa: PLW0603
+    if _cached_window_icon is not None:
+        return _cached_window_icon
     source = source_logo_image()
     if source.isNull():
         ico = find_app_ico()
-        return QIcon(str(ico)) if ico is not None else QIcon()
-    icon = QIcon()
-    for size in _ICON_SIZES:
-        icon.addPixmap(QPixmap.fromImage(padded_image(source, size)))
+        icon = QIcon(str(ico)) if ico is not None else QIcon()
+    else:
+        icon = QIcon()
+        for size in _ICON_SIZES:
+            icon.addPixmap(QPixmap.fromImage(padded_image(source, size)))
+    if not icon.isNull():
+        _cached_window_icon = icon
     return icon
 
 

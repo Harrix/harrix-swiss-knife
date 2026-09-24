@@ -206,10 +206,11 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
     config: dict = h.dev.config_load(get_config_path_str())
 
     _log_startup_phase(log, "Creating QApplication", startup_t0)
+    ensure_windows_app_user_model_id()
     existing = QApplication.instance()
     app = cast("QApplication", existing) if existing is not None else QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
-    app.setWindowIcon(QIcon(":/assets/logo.svg"))
+    apply_window_icon(app)
     install_flexible_decimal_separators(app)
     install_spellcheck(app)
     install_app_fonts(app)
@@ -237,7 +238,7 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
     placeholder_menu = _make_placeholder_menu()
 
     _log_startup_phase(log, "Creating tray icon", startup_t0)
-    tray_icon = TrayIcon(QIcon(":/assets/logo.svg"), menu=placeholder_menu)
+    tray_icon = TrayIcon(make_window_icon(), menu=placeholder_menu)
     tray_icon_holder = tray_icon
     tray_icon.setToolTip("Harrix Swiss Knife")
     tray_icon.show()

@@ -5,7 +5,7 @@ each app's `__main__` block:
 
 ```python
 app = QApplication(sys.argv)
-app.setWindowIcon(QIcon(":/assets/logo.svg"))
+apply_window_icon(app)
 try:
     win = MainWindow()
 except Exception as exc:
@@ -29,8 +29,10 @@ from PySide6.QtWidgets import QApplication
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.app_startup_toast import app_loading_title, app_loading_toast_scope
 from harrix_swiss_knife.apps.common.uic_compile import install_safe_qt_translate
+from harrix_swiss_knife.installer.icon_assets import apply_window_icon
 from harrix_swiss_knife.qt_app_font import install_app_fonts
 from harrix_swiss_knife.qt_flexible_decimal import install_flexible_decimal_separators
+from harrix_swiss_knife.win11_backdrop import ensure_windows_app_user_model_id
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -60,8 +62,12 @@ def run_app_main(
     """
     from harrix_swiss_knife.spellcheck import install_spellcheck  # noqa: PLC0415
 
+    ensure_windows_app_user_model_id()
     app = QApplication(sys.argv)
-    app.setWindowIcon(QIcon(icon_path))
+    if icon_path == ":/assets/logo.svg":
+        apply_window_icon(app)
+    else:
+        app.setWindowIcon(QIcon(icon_path))
     install_flexible_decimal_separators(app)
     install_spellcheck(app)
     install_app_fonts(app)

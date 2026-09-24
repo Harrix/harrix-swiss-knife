@@ -101,8 +101,7 @@ class MainWindow(
         self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
         self._setup_ui()
 
-        # Set window icon
-        self.setWindowIcon(QIcon(":/assets/logo.svg"))
+        apply_window_icon(self)
 
         self._init_hide_on_close(hide_on_close=hide_on_close)
 
@@ -2383,8 +2382,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107  (inhe
         self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
         self._setup_ui()
 
-        # Set window icon
-        self.setWindowIcon(QIcon(":/assets/logo.svg"))
+        apply_window_icon(self)
 
         self._init_hide_on_close(hide_on_close=hide_on_close)
 

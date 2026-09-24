@@ -237,6 +237,7 @@ from harrix_swiss_knife.apps.fitness.workouts_ai import (
     resolve_workout_item,
 )
 from harrix_swiss_knife.apps.fitness.workouts_widget import WorkoutsWidget
+from harrix_swiss_knife.installer.icon_assets import apply_window_icon
 from harrix_swiss_knife.integrations.bothub import (
     BothubRequestState,
     audio_bytes_and_mime,
@@ -328,8 +329,7 @@ class MainWindow(
         self.label_exercise_avif_5.setToolTip("Double-click to open in lightbox")
         self._setup_ui()
 
-        # Set window icon
-        self.setWindowIcon(QIcon(":/assets/logo.svg"))
+        apply_window_icon(self)
 
         self._init_hide_on_close(hide_on_close=hide_on_close)
 

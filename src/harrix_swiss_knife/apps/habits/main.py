@@ -38,7 +38,6 @@ from PySide6.QtGui import (
     QBrush,
     QCloseEvent,
     QColor,
-    QIcon,
     QKeyEvent,
     QResizeEvent,
     QShowEvent,
@@ -114,6 +113,7 @@ from harrix_swiss_knife.apps.habits.ticktick_api import (
     iso_to_ticktick_stamp,
     resolve_ticktick_api_token,
 )
+from harrix_swiss_knife.installer.icon_assets import apply_window_icon
 from harrix_swiss_knife.paths import get_config_path_str, get_project_root
 from harrix_swiss_knife.qt_lucide_icon import (
     apply_leading_chrome_button_icon,
@@ -176,8 +176,7 @@ class MainWindow(
         self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
         self._setup_ui()
 
-        # Set window icon
-        self.setWindowIcon(QIcon(":/assets/logo.svg"))
+        apply_window_icon(self)
 
         self._init_hide_on_close(hide_on_close=hide_on_close)
 

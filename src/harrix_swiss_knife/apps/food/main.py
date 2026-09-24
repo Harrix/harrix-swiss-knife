@@ -35,7 +35,6 @@ from PySide6.QtGui import (
     QBrush,
     QCloseEvent,
     QColor,
-    QIcon,
     QKeyEvent,
     QResizeEvent,
     QStandardItem,
@@ -190,6 +189,7 @@ from harrix_swiss_knife.apps.food.services.food_display import (
     format_food_name_with_calories,
 )
 from harrix_swiss_knife.apps.food.text_input_dialog import TextInputDialog
+from harrix_swiss_knife.installer.icon_assets import apply_window_icon
 from harrix_swiss_knife.integrations.bothub import (
     BothubRequestState,
     audio_bytes_and_mime,
@@ -298,8 +298,7 @@ class MainWindow(
         self.label_macros_notes: QLabel | None = None
         self._setup_ui()
 
-        # Set window icon
-        self.setWindowIcon(QIcon(":/assets/logo.svg"))
+        apply_window_icon(self)
 
         self._init_hide_on_close(hide_on_close=hide_on_close)
 

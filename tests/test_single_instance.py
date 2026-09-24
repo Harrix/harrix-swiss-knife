@@ -117,7 +117,7 @@ def test_run_tray_application_exits_when_another_instance_owns_socket() -> None:
         patch("harrix_swiss_knife.app_startup.QApplication") as qapp_cls,
         patch("harrix_swiss_knife.app_startup.acquire_tray_instance", return_value=None),
         patch("harrix_swiss_knife.app_startup.install_safe_qt_translate"),
-        patch("harrix_swiss_knife.app_startup.QIcon"),
+        patch("harrix_swiss_knife.app_startup.apply_window_icon"),
     ):
         qapp_cls.return_value = MagicMock()
         rc = run_tray_application(logging.getLogger("test_single_instance"), main_menu_cls=MagicMock)

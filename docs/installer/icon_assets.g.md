@@ -11,6 +11,7 @@ lang: en
 
 ## Contents
 
+- [🔧 Function `apply_window_icon`](#-function-apply_window_icon)
 - [🔧 Function `asset_candidates`](#-function-asset_candidates)
 - [🔧 Function `find_app_ico`](#-function-find_app_ico)
 - [🔧 Function `find_logo_svg`](#-function-find_logo_svg)
@@ -21,6 +22,35 @@ lang: en
 - [🔧 Function `source_logo_image`](#-function-source_logo_image)
 - [🔧 Function `welcome_logo_pixmap`](#-function-welcome_logo_pixmap)
 - [🔧 Function `write_padded_ico`](#-function-write_padded_ico)
+
+</details>
+
+## 🔧 Function `apply_window_icon`
+
+```python
+def apply_window_icon(target: Any) -> None
+```
+
+Set the raster app icon on a `QApplication` or top-level window.
+
+An SVG `QIcon` often has no pixmap for the size the Windows taskbar asks for.
+Qt then sends `WM_SETICON` with a null icon and the taskbar button goes blank
+until a later refresh succeeds.
+
+Args:
+
+- `target` (`Any`): Object with `setWindowIcon`, typically `QApplication` or `QWidget`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def apply_window_icon(target: Any) -> None:
+    icon = make_window_icon()
+    if icon.isNull():
+        return
+    target.setWindowIcon(icon)
+```
 
 </details>
 
@@ -155,13 +185,19 @@ Return a QIcon with padded full-resolution pixmaps so Windows does not pick a bl
 
 ```python
 def make_window_icon() -> QIcon:
+    global _cached_window_icon  # noqa: PLW0603
+    if _cached_window_icon is not None:
+        return _cached_window_icon
     source = source_logo_image()
     if source.isNull():
         ico = find_app_ico()
-        return QIcon(str(ico)) if ico is not None else QIcon()
-    icon = QIcon()
-    for size in _ICON_SIZES:
-        icon.addPixmap(QPixmap.fromImage(padded_image(source, size)))
+        icon = QIcon(str(ico)) if ico is not None else QIcon()
+    else:
+        icon = QIcon()
+        for size in _ICON_SIZES:
+            icon.addPixmap(QPixmap.fromImage(padded_image(source, size)))
+    if not icon.isNull():
+        _cached_window_icon = icon
     return icon
 ```
 

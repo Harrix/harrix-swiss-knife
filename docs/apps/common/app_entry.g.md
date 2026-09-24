@@ -37,8 +37,12 @@ def run_app_main(
 ) -> None:
     from harrix_swiss_knife.spellcheck import install_spellcheck  # noqa: PLC0415
 
+    ensure_windows_app_user_model_id()
     app = QApplication(sys.argv)
-    app.setWindowIcon(QIcon(icon_path))
+    if icon_path == ":/assets/logo.svg":
+        apply_window_icon(app)
+    else:
+        app.setWindowIcon(QIcon(icon_path))
     install_flexible_decimal_separators(app)
     install_spellcheck(app)
     install_app_fonts(app)
