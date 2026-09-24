@@ -113,7 +113,7 @@ INSERT INTO categories (name, type, icon, name_local) VALUES ('Stationery', 0, '
 INSERT INTO categories (name, type, icon, name_local) VALUES ('Tickets', 0, '🎫', 'Билеты');
 INSERT INTO categories (name, type, icon, name_local) VALUES ('Toys', 0, '🧸', 'Игрушки');
 INSERT INTO categories (name, type, icon, name_local) VALUES ('Transport', 0, '🚗', 'Транспорт');
-INSERT INTO categories (name, type, icon, name_local) VALUES ('Utilities', 0, '⚡', 'Коммунальные');
+INSERT INTO categories (name, type, icon, name_local) VALUES ('Utilities', 0, '⚡', 'Выплаты (квартплата, налоги и др.)');
 INSERT INTO categories (name, type, icon, name_local) VALUES ('Contribution', 1, '🤝', 'Взнос');
 INSERT INTO categories (name, type, icon, name_local) VALUES ('Credit', 1, '💳', 'Кредит');
 INSERT INTO categories (name, type, icon, name_local) VALUES ('Debt Recovery', 1, '↩️', 'Возврат долга');
