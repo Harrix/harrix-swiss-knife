@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 from PySide6.QtCore import QPoint, QPointF, QRect, QRectF, QSize, QSizeF, Qt, Signal
 from PySide6.QtGui import (
     QColor,
+    QContextMenuEvent,
     QKeyEvent,
     QMouseEvent,
     QPainter,
@@ -18,8 +19,9 @@ from PySide6.QtGui import (
     QTextCursor,
     QWheelEvent,
 )
-from PySide6.QtWidgets import QPlainTextEdit, QWidget
+from PySide6.QtWidgets import QMenu, QPlainTextEdit, QWidget
 
+from harrix_swiss_knife.qt_lucide_icon import add_lucide_action
 from harrix_swiss_knife.screenshot.annotation_edit import (
     AnnotationHandle,
     apply_annotation_edit,
@@ -65,6 +67,7 @@ if TYPE_CHECKING:
 _ZOOM_STEP = 1.15
 _MIN_ZOOM = 0.25
 _MAX_ZOOM = 16.0
+_ZOOM_UNCHANGED = 1e-4
 _MIN_SHAPE_POINTS = 2
 _MIN_CROP = 2
 _DRAG_THRESHOLD = 4
@@ -77,6 +80,7 @@ class ScreenshotPreviewCanvas(QWidget):
 
     Left-drag draws with the active `AnnotationTool` when a document is attached.
     Crop mode uses the same dimmed blue selection frame as region capture.
+    The right-click menu restores the opening size and can fit a small image into the view.
 
     """
 
@@ -254,6 +258,11 @@ class ScreenshotPreviewCanvas(QWidget):
         self.document_changed.emit()
         return True
 
+    def contextMenuEvent(self, event: QContextMenuEvent) -> None:  # noqa: N802
+        """Offer original size and fit-to-view for the screenshot."""
+        self._view_menu().exec(event.globalPosition().toPoint())
+        event.accept()
+
     @property
     def crop_mode(self) -> bool:
         """Whether the canvas is in crop selection / edit mode."""
@@ -295,6 +304,13 @@ class ScreenshotPreviewCanvas(QWidget):
             self._selected_index = len(self._document.annotations) - 1
             self.update()
             self.document_changed.emit()
+
+    def fit_to_view(self) -> None:
+        """Scale the image so it fills the visible area, including a small image."""
+        self._zoom = self._fit_zoom()
+        self._offset = QPointF()
+        self._sync_text_editor_geometry()
+        self.update()
 
     @property
     def is_text_editing(self) -> bool:
@@ -526,6 +542,13 @@ class ScreenshotPreviewCanvas(QWidget):
         if self._tool == AnnotationTool.EYEDROPPER:
             self._paint_eyedrop_preview(painter)
         painter.end()
+
+    def reset_to_original_size(self) -> None:
+        """Restore the opening view: native pixels when small, fitted down when large."""
+        self._zoom = 1.0
+        self._offset = QPointF()
+        self._sync_text_editor_geometry()
+        self.update()
 
     def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
         """Repaint when the available fit area changes."""
@@ -953,6 +976,17 @@ class ScreenshotPreviewCanvas(QWidget):
         else:
             self.update()
 
+    def _fit_zoom(self) -> float:
+        """Zoom that fills the widget, scaling a small image up past its native size."""
+        width, height = self._source_size()
+        if width <= 0 or height <= 0 or self.width() <= 0 or self.height() <= 0:
+            return 1.0
+        fitted = QSize(width, height).scaled(self.size(), Qt.AspectRatioMode.KeepAspectRatio)
+        base_width = min(fitted.width(), width)
+        if base_width <= 0:
+            return 1.0
+        return max(_MIN_ZOOM, min(_MAX_ZOOM, fitted.width() / base_width))
+
     def _fitted_size(self) -> QSizeF:
         width, height = self._source_size()
         if width <= 0 or height <= 0 or self.width() <= 0 or self.height() <= 0:
@@ -1166,6 +1200,10 @@ class ScreenshotPreviewCanvas(QWidget):
         self.setCursor(Qt.CursorShape.SizeAllCursor)
         self.crop_pending_changed.emit(True)  # noqa: FBT003
 
+    def _size_changed(self) -> bool:
+        """Whether zoom left the opening size."""
+        return abs(self._zoom - 1.0) > _ZOOM_UNCHANGED
+
     def _snap_pointer(self, image_pos: QPointF, *, exclude_index: int | None = None) -> QPointF:
         xs, ys = self._annotation_snap_guides(exclude_index=exclude_index)
         snapped, x_guide, y_guide = snap_point(image_pos, xs, ys, threshold=_EDGE_SNAP_THRESHOLD)
@@ -1248,6 +1286,16 @@ class ScreenshotPreviewCanvas(QWidget):
             self.setCursor(Qt.CursorShape.IBeamCursor)
         else:
             self.setCursor(Qt.CursorShape.CrossCursor)
+
+    def _view_menu(self) -> QMenu:
+        """Context menu: original size when zoom changed, and fit into the view."""
+        menu = QMenu(self)
+        if self._size_changed():
+            original = add_lucide_action(menu, "Original size", "undo-2")
+            original.triggered.connect(lambda _checked=False: self.reset_to_original_size())
+        fit = add_lucide_action(menu, "Fit to view", "expand")
+        fit.triggered.connect(lambda _checked=False: self.fit_to_view())
+        return menu
 
     def _widget_to_image(self, pos: QPointF) -> QPointF | None:
         rect = self._image_rect()
