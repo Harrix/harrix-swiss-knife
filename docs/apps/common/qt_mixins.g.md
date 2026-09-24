@@ -15,6 +15,7 @@ lang: en
 - [🏛️ Class `DateMixin`](#%EF%B8%8F-class-datemixin)
 - [🏛️ Class `TableOperations`](#%EF%B8%8F-class-tableoperations)
 - [🏛️ Class `ValidationMixin`](#%EF%B8%8F-class-validationmixin)
+- [🔧 Function `clear_model_cell_without_autosave`](#-function-clear_model_cell_without_autosave)
 
 </details>
 
@@ -456,6 +457,42 @@ class ValidationMixin:
             return False
         else:
             return True
+```
+
+</details>
+
+## 🔧 Function `clear_model_cell_without_autosave`
+
+```python
+def clear_model_cell_without_autosave(model: QStandardItemModel, row: int, column: int) -> None
+```
+
+Blank a table cell without emitting `dataChanged`.
+
+Auto-save listens to `dataChanged`. Clearing a stale English cell must not start a second save.
+
+Args:
+
+- `model` (`QStandardItemModel`): Source model of the edited table.
+- `row` (`int`): Source-model row.
+- `column` (`int`): Source-model column to blank.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def clear_model_cell_without_autosave(model: QStandardItemModel, row: int, column: int) -> None:
+    index = model.index(row, column)
+    if not index.isValid():
+        return
+    if not str(model.data(index, Qt.ItemDataRole.DisplayRole) or ""):
+        return
+    was_blocked = model.blockSignals(True)  # noqa: FBT003
+    try:
+        model.setData(index, "", Qt.ItemDataRole.EditRole)
+        model.setData(index, "", Qt.ItemDataRole.DisplayRole)
+    finally:
+        model.blockSignals(was_blocked)
 ```
 
 </details>

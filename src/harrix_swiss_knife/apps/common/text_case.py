@@ -24,3 +24,22 @@ def capitalize_first_letter(text: str) -> str:
             return cleaned
         return f"{cleaned[:index]}{upper}{cleaned[index + 1 :]}"
     return cleaned
+
+
+def edited_source_text_differs(stored: str, edited: str) -> bool:
+    """Return whether a manual edit changed source text enough to drop its translation.
+
+    Comparison ignores surrounding whitespace and letter case, so saving the same
+    words again does not clear an existing English field.
+
+    Args:
+
+    - `stored` (`str`): Value currently saved in the database.
+    - `edited` (`str`): Value about to be saved from the table cell.
+
+    Returns:
+
+    - `bool`: `True` when the English translation for this row should be cleared.
+
+    """
+    return stored.strip().casefold() != edited.strip().casefold()

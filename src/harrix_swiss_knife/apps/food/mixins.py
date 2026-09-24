@@ -15,9 +15,18 @@ from matplotlib.dates import date2num
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.chart_operations import ChartOperationsBase
 from harrix_swiss_knife.apps.common.db_guard import requires_database
-from harrix_swiss_knife.apps.common.qt_mixins import AutoSaveMixin, DateMixin, TableOperations, ValidationMixin
-from harrix_swiss_knife.apps.common.text_case import capitalize_first_letter
+from harrix_swiss_knife.apps.common.qt_mixins import (
+    AutoSaveMixin,
+    DateMixin,
+    TableOperations,
+    ValidationMixin,
+    clear_model_cell_without_autosave,
+)
+from harrix_swiss_knife.apps.common.text_case import capitalize_first_letter, edited_source_text_differs
 from harrix_swiss_knife.apps.food.delegates import parse_is_drink_cell
+from harrix_swiss_knife.apps.food.food_log_calories import FOOD_LOG_COL_NAME_EN
+
+_STORED_FOOD_LOG_NAME_INDEX = 4
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -107,6 +116,16 @@ class AutoSaveOperations(AutoSaveMixin):
 
         is_drink = parse_is_drink_cell(is_drink_str)
 
+        # A changed name makes the stored English text stale. Clearing it puts this
+        # row back into the pass that fills empty English fields.
+        name_changed = False
+        stored_rows = self.db_manager.get_food_log_records_by_ids([int(row_id)])
+        if stored_rows and len(stored_rows[0]) > _STORED_FOOD_LOG_NAME_INDEX:
+            stored_name = str(stored_rows[0][_STORED_FOOD_LOG_NAME_INDEX] or "")
+            name_changed = edited_source_text_differs(stored_name, name)
+        if name_changed:
+            name_en = ""
+
         # Update database
         if not self.db_manager.update_food_log_record(
             int(row_id),
@@ -119,6 +138,11 @@ class AutoSaveOperations(AutoSaveMixin):
         ):
             message_box.warning(None, "Database Error", "Failed to save food log record")
             return
+        if name_changed:
+            clear_model_cell_without_autosave(model, row, FOOD_LOG_COL_NAME_EN)
+            arm_translate = getattr(self, "_arm_background_food_translate_timer", None)
+            if callable(arm_translate):
+                arm_translate()
         refresh_macros = getattr(self, "_update_macros_status_label", None)
         if callable(refresh_macros):
             refresh_macros()

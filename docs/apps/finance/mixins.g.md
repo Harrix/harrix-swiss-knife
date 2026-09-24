@@ -305,6 +305,16 @@ class AutoSaveOperations(AutoSaveMixin):
             return
         currency_id = currency_info[0]
 
+        # A changed description makes the stored English text stale. Clearing it
+        # puts this row back into the pass that fills empty English fields.
+        description_changed = False
+        stored = self.db_manager.get_transaction_by_id(int(row_id))
+        if stored is not None and len(stored) > _STORED_TRANSACTION_DESCRIPTION_INDEX:
+            stored_description = str(stored[_STORED_TRANSACTION_DESCRIPTION_INDEX] or "")
+            description_changed = edited_source_text_differs(stored_description, str(description).strip())
+        if description_changed:
+            description_en = ""
+
         # Update database
         if not self.db_manager.update_transaction(
             int(row_id),
@@ -317,6 +327,12 @@ class AutoSaveOperations(AutoSaveMixin):
             description_en,
         ):
             self._show_db_error("Failed to save transaction record")
+            return
+        if description_changed:
+            clear_model_cell_without_autosave(model, row, 1)
+            arm_translate = getattr(self, "_arm_background_transaction_translate_timer", None)
+            if callable(arm_translate):
+                arm_translate()
 
     def _show_auto_save_error(self, message: str) -> None:
         self._show_error("Auto-save Error", message)

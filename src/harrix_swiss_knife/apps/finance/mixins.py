@@ -15,8 +15,14 @@ from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.chart_extrema_labels import annotate_chart_extrema_labels
 from harrix_swiss_knife.apps.common.chart_operations import ChartOperationsBase
 from harrix_swiss_knife.apps.common.db_guard import requires_database
-from harrix_swiss_knife.apps.common.qt_mixins import AutoSaveMixin, DateMixin, TableOperations, ValidationMixin
-from harrix_swiss_knife.apps.common.text_case import capitalize_first_letter
+from harrix_swiss_knife.apps.common.qt_mixins import (
+    AutoSaveMixin,
+    DateMixin,
+    TableOperations,
+    ValidationMixin,
+    clear_model_cell_without_autosave,
+)
+from harrix_swiss_knife.apps.common.text_case import capitalize_first_letter, edited_source_text_differs
 from harrix_swiss_knife.apps.finance.exchange_validation import validate_exchange_data
 from harrix_swiss_knife.apps.finance.number_utils import clean_number_text
 
@@ -30,6 +36,8 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+_STORED_TRANSACTION_DESCRIPTION_INDEX = 2
 
 
 class AutoSaveOperations(AutoSaveMixin):
@@ -310,6 +318,16 @@ class AutoSaveOperations(AutoSaveMixin):
             return
         currency_id = currency_info[0]
 
+        # A changed description makes the stored English text stale. Clearing it
+        # puts this row back into the pass that fills empty English fields.
+        description_changed = False
+        stored = self.db_manager.get_transaction_by_id(int(row_id))
+        if stored is not None and len(stored) > _STORED_TRANSACTION_DESCRIPTION_INDEX:
+            stored_description = str(stored[_STORED_TRANSACTION_DESCRIPTION_INDEX] or "")
+            description_changed = edited_source_text_differs(stored_description, str(description).strip())
+        if description_changed:
+            description_en = ""
+
         # Update database
         if not self.db_manager.update_transaction(
             int(row_id),
@@ -322,6 +340,12 @@ class AutoSaveOperations(AutoSaveMixin):
             description_en,
         ):
             self._show_db_error("Failed to save transaction record")
+            return
+        if description_changed:
+            clear_model_cell_without_autosave(model, row, 1)
+            arm_translate = getattr(self, "_arm_background_transaction_translate_timer", None)
+            if callable(arm_translate):
+                arm_translate()
 
     def _show_auto_save_error(self, message: str) -> None:
         self._show_error("Auto-save Error", message)
