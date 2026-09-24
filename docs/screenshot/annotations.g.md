@@ -17,6 +17,7 @@ lang: en
   - [⚙️ Method `annotations (property)`](#%EF%B8%8F-method-annotations-property)
   - [⚙️ Method `append_draft_point`](#%EF%B8%8F-method-append_draft_point)
   - [⚙️ Method `apply_crop`](#%EF%B8%8F-method-apply_crop)
+  - [⚙️ Method `apply_resize`](#%EF%B8%8F-method-apply_resize)
   - [⚙️ Method `base_image (property)`](#%EF%B8%8F-method-base_image-property)
   - [⚙️ Method `begin_draft`](#%EF%B8%8F-method-begin_draft)
   - [⚙️ Method `can_undo (property)`](#%EF%B8%8F-method-can_undo-property)
@@ -103,6 +104,35 @@ class AnnotationDocument:
             return False
         self._push_history()
         self._base = cropped
+        self._annotations = []
+        self._draft = None
+        return True
+
+    def apply_resize(self, width: int, height: int) -> bool:
+        """Scale the composite to the given pixel size and clear annotations.
+
+        Returns `False` when the target is empty, larger than the image, or unchanged.
+
+        """
+        target_w = int(width)
+        target_h = int(height)
+        if target_w < 1 or target_h < 1:
+            return False
+        if target_w > self._base.width() or target_h > self._base.height():
+            return False
+        if target_w == self._base.width() and target_h == self._base.height():
+            return False
+        composite = self.render(include_draft=False)
+        scaled = composite.scaled(
+            target_w,
+            target_h,
+            Qt.AspectRatioMode.IgnoreAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
+        if scaled.isNull():
+            return False
+        self._push_history()
+        self._base = scaled
         self._annotations = []
         self._draft = None
         return True
@@ -289,6 +319,47 @@ def apply_crop(self, rect: QRectF) -> bool:
             return False
         self._push_history()
         self._base = cropped
+        self._annotations = []
+        self._draft = None
+        return True
+```
+
+</details>
+
+### ⚙️ Method `apply_resize`
+
+```python
+def apply_resize(self, width: int, height: int) -> bool
+```
+
+Scale the composite to the given pixel size and clear annotations.
+
+Returns `False` when the target is empty, larger than the image, or unchanged.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def apply_resize(self, width: int, height: int) -> bool:
+        target_w = int(width)
+        target_h = int(height)
+        if target_w < 1 or target_h < 1:
+            return False
+        if target_w > self._base.width() or target_h > self._base.height():
+            return False
+        if target_w == self._base.width() and target_h == self._base.height():
+            return False
+        composite = self.render(include_draft=False)
+        scaled = composite.scaled(
+            target_w,
+            target_h,
+            Qt.AspectRatioMode.IgnoreAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
+        if scaled.isNull():
+            return False
+        self._push_history()
+        self._base = scaled
         self._annotations = []
         self._draft = None
         return True

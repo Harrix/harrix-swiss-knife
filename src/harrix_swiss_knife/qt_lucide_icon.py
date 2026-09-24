@@ -625,6 +625,16 @@ def _lucide_dir() -> Path:
     return Path(__file__).resolve().parent / "assets" / "lucide"
 
 
+def _lucide_svg_bytes(name: str, color: QColor) -> bytes | None:
+    path = lucide_svg_path(name)
+    if path is None:
+        logger.warning("Unknown Lucide icon `%s`", name)
+        return None
+    hex_color = color.name(QColor.NameFormat.HexRgb)
+    text = path.read_text(encoding="utf-8").replace("currentColor", hex_color)
+    return text.encode("utf-8")
+
+
 def _qicon_from_svg_bytes(svg_bytes: bytes, size: int, ratio: float, *, label: str) -> QIcon:
     physical = max(1, round(size * ratio))
     renderer = QSvgRenderer(QByteArray(svg_bytes))
@@ -643,20 +653,6 @@ def _qicon_from_svg_bytes(svg_bytes: bytes, size: int, ratio: float, *, label: s
     return icon
 
 
-def _tabler_dir() -> Path:
-    return Path(__file__).resolve().parent / "assets" / "tabler"
-
-
-def _lucide_svg_bytes(name: str, color: QColor) -> bytes | None:
-    path = lucide_svg_path(name)
-    if path is None:
-        logger.warning("Unknown Lucide icon `%s`", name)
-        return None
-    hex_color = color.name(QColor.NameFormat.HexRgb)
-    text = path.read_text(encoding="utf-8").replace("currentColor", hex_color)
-    return text.encode("utf-8")
-
-
 def _recolor_filled_button_icon(
     button: QAbstractButton,
     *,
@@ -671,3 +667,7 @@ def _recolor_filled_button_icon(
             icon_size=icon_size,
             color=LUCIDE_COLOR_ON_FILLED,
         )
+
+
+def _tabler_dir() -> Path:
+    return Path(__file__).resolve().parent / "assets" / "tabler"

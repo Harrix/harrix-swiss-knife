@@ -167,26 +167,8 @@ class ScreenshotPreviewWindow(QMainWindow):
             "Choose a format, then pick where to save the screenshot.",
             self._save_as,
         )
-        ai_button = make_lucide_push_button(
-            "Recognize text (AI)",
-            _MARKDOWN_AI_ICON,
-            color=AI_BUTTON_ICON_COLOR,
-        )
-        ai_button.setToolTip("Recognize text (AI)…")
-        self._add_footer_button(ai_button, self._run_markdown_with_ai)
-        table_button = make_lucide_push_button(
-            "Recognize table (AI)",
-            _TABLE_AI_ICON,
-            color=AI_BUTTON_ICON_COLOR,
-        )
-        table_button.setToolTip("Recognize table (AI)…")
-        self._add_footer_button(table_button, self._run_table_with_ai)
-        ocr_button = make_lucide_push_button("Recognize text (OCR)", _MARKDOWN_OCR_ICON)
-        ocr_button.setToolTip("Recognize text (OCR, local)…")
-        self._add_footer_button(ocr_button, self._run_markdown_with_ocr)
-        translate_button = make_lucide_push_button("OCR + translate", _TRANSLATE_ICON)
-        translate_button.setToolTip("Recognize text and translate to the local language…")
-        self._add_footer_button(translate_button, self._run_ocr_translate)
+        self._add_recognize_menu_button()
+        self._add_reduce_size_menu_button()
         self._add_footer_button(
             make_lucide_push_button(OK_BUTTON_LABEL, OK_BUTTON_ICON),
             self._close_current_tab,
@@ -295,6 +277,45 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._buttons.addWidget(button)
         self._action_buttons.append(button)
 
+    def _add_recognize_menu_button(self) -> None:
+        """Add a footer button whose click opens text and table recognition."""
+        button = make_lucide_push_button(_RECOGNIZE_BUTTON_LABEL, _RECOGNIZE_BUTTON_ICON)
+        button.setToolTip("Recognize text or a table. Choose AI, local OCR, or OCR with translation.")
+        menu = QMenu(button)
+        items: tuple[tuple[str, str, str | None, Callable[[], None]], ...] = (
+            ("Recognize text (AI)", _MARKDOWN_AI_ICON, AI_BUTTON_ICON_COLOR, self._run_markdown_with_ai),
+            ("Recognize table (AI)", _TABLE_AI_ICON, AI_BUTTON_ICON_COLOR, self._run_table_with_ai),
+            ("Recognize text (OCR)", _MARKDOWN_OCR_ICON, None, self._run_markdown_with_ocr),
+            ("OCR + translate", _TRANSLATE_ICON, None, self._run_ocr_translate),
+        )
+        for title, icon_name, color, slot in items:
+            action = menu.addAction(title)
+            action.setIcon(create_lucide_icon(icon_name, DEFAULT_LUCIDE_MENU_ICON_SIZE, color=color))
+            action.triggered.connect(lambda _checked=False, chosen=slot: chosen())
+        button.setMenu(menu)
+        button.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
+        self._buttons.addWidget(button)
+        self._action_buttons.append(button)
+
+    def _add_reduce_size_menu_button(self) -> None:
+        """Add a footer button whose click opens screenshot size reduction."""
+        button = make_lucide_push_button(_REDUCE_BUTTON_LABEL, _REDUCE_BUTTON_ICON)
+        button.setToolTip("Reduce the screenshot pixel size. Choose half, 1024 px, or a custom size.")
+        menu = QMenu(button)
+        items: tuple[tuple[str, str, Callable[[], None]], ...] = (
+            ("Half size", "shrink", self._resize_half),
+            ("Max 1024 px", "scaling", self._resize_max_side),
+            ("Custom size…", "proportions", self._resize_custom),
+        )
+        for title, icon_name, slot in items:
+            action = menu.addAction(title)
+            action.setIcon(create_lucide_icon(icon_name, DEFAULT_LUCIDE_MENU_ICON_SIZE))
+            action.triggered.connect(lambda _checked=False, chosen=slot: chosen())
+        button.setMenu(menu)
+        button.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
+        self._buttons.addWidget(button)
+        self._action_buttons.append(button)
+
     def _add_save_menu_button(
         self,
         label: str,
@@ -308,12 +329,26 @@ class ScreenshotPreviewWindow(QMainWindow):
         menu = QMenu(button)
         for fmt, title, _file_filter in _SAVE_FORMATS:
             action = menu.addAction(title)
+            action.setIcon(create_tabler_icon(_FORMAT_ICONS[fmt]))
             action.triggered.connect(lambda _checked=False, chosen=fmt: slot(chosen))
         button.setMenu(menu)
         button.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
         self._buttons.addWidget(button)
         self._action_buttons.append(button)
         return button
+
+    def _apply_pixel_resize(self, width: int, height: int) -> None:
+        tab = self._current_tab()
+        if tab is None:
+            return
+        tab.canvas.commit_text_edit()
+        if not tab.document.apply_resize(width, height):
+            self._status.setText("Size unchanged")
+            return
+        tab.canvas.set_document(tab.document)
+        tab.canvas.reset_to_original_size()
+        image = tab.document.base_image
+        self._status.setText(f"Reduced to {image.width()} x {image.height()}")
 
     def _apply_tool_to_current(self) -> None:
         tab = self._current_tab()
@@ -492,6 +527,39 @@ class ScreenshotPreviewWindow(QMainWindow):
             if not isinstance(tab, _ScreenshotTab) or tab.saved_name:
                 continue
             self._tabs.setTabText(index, self._tab_label(None, index + 1))
+
+    def _resize_custom(self) -> None:
+        tab = self._current_tab()
+        if tab is None:
+            return
+        image = tab.document.base_image
+        dialog = _ReduceSizeDialog(image.width(), image.height(), self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        width, height = dialog.size_pixels()
+        self._apply_pixel_resize(width, height)
+
+    def _resize_half(self) -> None:
+        tab = self._current_tab()
+        if tab is None:
+            return
+        image = tab.document.base_image
+        target = _half_pixel_size(image.width(), image.height())
+        if target is None:
+            self._status.setText("Size unchanged")
+            return
+        self._apply_pixel_resize(*target)
+
+    def _resize_max_side(self) -> None:
+        tab = self._current_tab()
+        if tab is None:
+            return
+        image = tab.document.base_image
+        target = _max_side_pixel_size(image.width(), image.height(), _REDUCE_MAX_SIDE)
+        if target is None:
+            self._status.setText("Already within 1024 px")
+            return
+        self._apply_pixel_resize(*target)
 
     def _run_markdown_with_ai(self) -> None:
         path = self._save_temp_png()
@@ -876,26 +944,8 @@ def __init__(self, parent: QWidget | None = None) -> None:
             "Choose a format, then pick where to save the screenshot.",
             self._save_as,
         )
-        ai_button = make_lucide_push_button(
-            "Recognize text (AI)",
-            _MARKDOWN_AI_ICON,
-            color=AI_BUTTON_ICON_COLOR,
-        )
-        ai_button.setToolTip("Recognize text (AI)…")
-        self._add_footer_button(ai_button, self._run_markdown_with_ai)
-        table_button = make_lucide_push_button(
-            "Recognize table (AI)",
-            _TABLE_AI_ICON,
-            color=AI_BUTTON_ICON_COLOR,
-        )
-        table_button.setToolTip("Recognize table (AI)…")
-        self._add_footer_button(table_button, self._run_table_with_ai)
-        ocr_button = make_lucide_push_button("Recognize text (OCR)", _MARKDOWN_OCR_ICON)
-        ocr_button.setToolTip("Recognize text (OCR, local)…")
-        self._add_footer_button(ocr_button, self._run_markdown_with_ocr)
-        translate_button = make_lucide_push_button("OCR + translate", _TRANSLATE_ICON)
-        translate_button.setToolTip("Recognize text and translate to the local language…")
-        self._add_footer_button(translate_button, self._run_ocr_translate)
+        self._add_recognize_menu_button()
+        self._add_reduce_size_menu_button()
         self._add_footer_button(
             make_lucide_push_button(OK_BUTTON_LABEL, OK_BUTTON_ICON),
             self._close_current_tab,

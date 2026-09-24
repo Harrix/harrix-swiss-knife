@@ -101,6 +101,27 @@ def test_tiny_drag_is_ignored() -> None:
     assert doc.annotations == []
 
 
+def test_resize_scales_image_and_undo_restores_it() -> None:
+    doc = AnnotationDocument(_blank(40, 20))
+    doc.begin_draft(
+        Annotation(
+            tool=AnnotationTool.LINE,
+            points=[QPointF(1, 1), QPointF(10, 10)],
+            style=AnnotationStyle(),
+        )
+    )
+    assert doc.commit_draft()
+    assert not doc.apply_resize(40, 20)
+    assert not doc.apply_resize(80, 10)
+    assert doc.apply_resize(20, 10)
+    assert doc.annotations == []
+    assert doc.base_image.width() == 20
+    assert doc.base_image.height() == 10
+    assert doc.undo()
+    assert doc.base_image.width() == 40
+    assert len(doc.annotations) == 1
+
+
 def test_crop_resets_annotations() -> None:
     doc = AnnotationDocument(_blank(200, 100))
     doc.begin_draft(

@@ -24,7 +24,10 @@ from harrix_swiss_knife.screenshot.preview_canvas import ScreenshotPreviewCanvas
 from harrix_swiss_knife.screenshot.preview_dialog import (
     _MIN_WINDOW_WIDTH,
     ScreenshotPreviewWindow,
+    _half_pixel_size,
     _is_ctrl_s,
+    _max_side_pixel_size,
+    _ReduceSizeDialog,
     show_screenshot_preview,
 )
 
@@ -295,6 +298,36 @@ def test_save_buttons_offer_format_menus(qapp: QApplication) -> None:  # noqa: A
         assert [action.text() for action in menu.actions()] == labels
         assert all(not action.icon().isNull() for action in menu.actions())
     window.close()
+
+
+def test_reduce_size_button_offers_menu_and_halves_image(qapp: QApplication) -> None:  # noqa: ARG001
+    image = QImage(40, 20, QImage.Format.Format_RGB32)
+    image.fill(Qt.GlobalColor.red)
+    window = show_screenshot_preview(image)
+    button = next(item for item in window.findChildren(QPushButton) if item.text() == "Reduce size…")
+    menu = button.menu()
+    assert menu is not None
+    assert [action.text() for action in menu.actions()] == ["Half size", "Max 1024 px", "Custom size…"]
+    assert all(not action.icon().isNull() for action in menu.actions())
+    menu.actions()[0].trigger()
+    tab = window._current_tab()
+    assert tab is not None
+    assert tab.document.base_image.width() == 20
+    assert tab.document.base_image.height() == 10
+    assert window._status.text() == "Reduced to 20 x 10"
+    window.close()
+
+
+def test_reduce_size_max_side_and_custom_dialog(qapp: QApplication) -> None:  # noqa: ARG001
+    assert _half_pixel_size(40, 20) == (20, 10)
+    assert _half_pixel_size(1, 1) is None
+    assert _max_side_pixel_size(2000, 1000, 1024) == (1024, 512)
+    assert _max_side_pixel_size(800, 600, 1024) is None
+    dialog = _ReduceSizeDialog(200, 100)
+    dialog._width.setValue(100)
+    assert dialog.size_pixels() == (100, 50)
+    assert dialog._ok.isEnabled()
+    dialog.close()
 
 
 def test_recognize_button_offers_recognition_menu(qapp: QApplication) -> None:  # noqa: ARG001

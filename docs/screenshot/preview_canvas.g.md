@@ -21,10 +21,12 @@ lang: en
   - [⚙️ Method `clear_selection`](#%EF%B8%8F-method-clear_selection)
   - [⚙️ Method `commit_text_edit`](#%EF%B8%8F-method-commit_text_edit)
   - [⚙️ Method `confirm_crop`](#%EF%B8%8F-method-confirm_crop)
+  - [⚙️ Method `contextMenuEvent`](#%EF%B8%8F-method-contextmenuevent)
   - [⚙️ Method `crop_mode (property)`](#%EF%B8%8F-method-crop_mode-property)
   - [⚙️ Method `crop_pending (property)`](#%EF%B8%8F-method-crop_pending-property)
   - [⚙️ Method `delete_selected`](#%EF%B8%8F-method-delete_selected)
   - [⚙️ Method `finish_text_at`](#%EF%B8%8F-method-finish_text_at)
+  - [⚙️ Method `fit_to_view`](#%EF%B8%8F-method-fit_to_view)
   - [⚙️ Method `is_text_editing (property)`](#%EF%B8%8F-method-is_text_editing-property)
   - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
   - [⚙️ Method `keyReleaseEvent`](#%EF%B8%8F-method-keyreleaseevent)
@@ -33,6 +35,7 @@ lang: en
   - [⚙️ Method `mousePressEvent`](#%EF%B8%8F-method-mousepressevent)
   - [⚙️ Method `mouseReleaseEvent`](#%EF%B8%8F-method-mousereleaseevent)
   - [⚙️ Method `paintEvent`](#%EF%B8%8F-method-paintevent)
+  - [⚙️ Method `reset_to_original_size`](#%EF%B8%8F-method-reset_to_original_size)
   - [⚙️ Method `resizeEvent`](#%EF%B8%8F-method-resizeevent)
   - [⚙️ Method `sample_color_at`](#%EF%B8%8F-method-sample_color_at)
   - [⚙️ Method `selected_index (property)`](#%EF%B8%8F-method-selected_index-property)
@@ -56,6 +59,7 @@ Show an image fitted with aspect ratio; Ctrl+wheel zooms; middle-drag pans.
 
 Left-drag draws with the active [`AnnotationTool`](annotations.g.md#%EF%B8%8F-class-annotationtool) when a document is attached.
 Crop mode uses the same dimmed blue selection frame as region capture.
+The right-click menu restores the opening size and can fit a small image into the view.
 
 <details>
 <summary>Code:</summary>
@@ -237,6 +241,11 @@ class ScreenshotPreviewCanvas(QWidget):
         self.document_changed.emit()
         return True
 
+    def contextMenuEvent(self, event: QContextMenuEvent) -> None:  # noqa: N802
+        """Offer original size and fit-to-view for the screenshot."""
+        self._view_menu().exec(event.globalPosition().toPoint())
+        event.accept()
+
     @property
     def crop_mode(self) -> bool:
         """Whether the canvas is in crop selection / edit mode."""
@@ -278,6 +287,13 @@ class ScreenshotPreviewCanvas(QWidget):
             self._selected_index = len(self._document.annotations) - 1
             self.update()
             self.document_changed.emit()
+
+    def fit_to_view(self) -> None:
+        """Scale the image so it fills the visible area, including a small image."""
+        self._zoom = self._fit_zoom()
+        self._offset = QPointF()
+        self._sync_text_editor_geometry()
+        self.update()
 
     @property
     def is_text_editing(self) -> bool:
@@ -509,6 +525,13 @@ class ScreenshotPreviewCanvas(QWidget):
         if self._tool == AnnotationTool.EYEDROPPER:
             self._paint_eyedrop_preview(painter)
         painter.end()
+
+    def reset_to_original_size(self) -> None:
+        """Restore the opening view: native pixels when small, fitted down when large."""
+        self._zoom = 1.0
+        self._offset = QPointF()
+        self._sync_text_editor_geometry()
+        self.update()
 
     def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
         """Repaint when the available fit area changes."""
@@ -936,6 +959,17 @@ class ScreenshotPreviewCanvas(QWidget):
         else:
             self.update()
 
+    def _fit_zoom(self) -> float:
+        """Zoom that fills the widget, scaling a small image up past its native size."""
+        width, height = self._source_size()
+        if width <= 0 or height <= 0 or self.width() <= 0 or self.height() <= 0:
+            return 1.0
+        fitted = QSize(width, height).scaled(self.size(), Qt.AspectRatioMode.KeepAspectRatio)
+        base_width = min(fitted.width(), width)
+        if base_width <= 0:
+            return 1.0
+        return max(_MIN_ZOOM, min(_MAX_ZOOM, fitted.width() / base_width))
+
     def _fitted_size(self) -> QSizeF:
         width, height = self._source_size()
         if width <= 0 or height <= 0 or self.width() <= 0 or self.height() <= 0:
@@ -1149,6 +1183,10 @@ class ScreenshotPreviewCanvas(QWidget):
         self.setCursor(Qt.CursorShape.SizeAllCursor)
         self.crop_pending_changed.emit(True)  # noqa: FBT003
 
+    def _size_changed(self) -> bool:
+        """Whether zoom left the opening size."""
+        return abs(self._zoom - 1.0) > _ZOOM_UNCHANGED
+
     def _snap_pointer(self, image_pos: QPointF, *, exclude_index: int | None = None) -> QPointF:
         xs, ys = self._annotation_snap_guides(exclude_index=exclude_index)
         snapped, x_guide, y_guide = snap_point(image_pos, xs, ys, threshold=_EDGE_SNAP_THRESHOLD)
@@ -1231,6 +1269,16 @@ class ScreenshotPreviewCanvas(QWidget):
             self.setCursor(Qt.CursorShape.IBeamCursor)
         else:
             self.setCursor(Qt.CursorShape.CrossCursor)
+
+    def _view_menu(self) -> QMenu:
+        """Context menu: original size when zoom changed, and fit into the view."""
+        menu = QMenu(self)
+        if self._size_changed():
+            original = add_lucide_action(menu, "Original size", "undo-2")
+            original.triggered.connect(lambda _checked=False: self.reset_to_original_size())
+        fit = add_lucide_action(menu, "Fit to view", "expand")
+        fit.triggered.connect(lambda _checked=False: self.fit_to_view())
+        return menu
 
     def _widget_to_image(self, pos: QPointF) -> QPointF | None:
         rect = self._image_rect()
@@ -1548,6 +1596,25 @@ def confirm_crop(self) -> bool:
 
 </details>
 
+### ⚙️ Method `contextMenuEvent`
+
+```python
+def contextMenuEvent(self, event: QContextMenuEvent) -> None
+```
+
+Offer original size and fit-to-view for the screenshot.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def contextMenuEvent(self, event: QContextMenuEvent) -> None:  # noqa: N802
+        self._view_menu().exec(event.globalPosition().toPoint())
+        event.accept()
+```
+
+</details>
+
 ### ⚙️ Method `crop_mode (property)`
 
 ```python
@@ -1640,6 +1707,27 @@ def finish_text_at(self, image_pos: QPointF, text: str) -> None:
             self._selected_index = len(self._document.annotations) - 1
             self.update()
             self.document_changed.emit()
+```
+
+</details>
+
+### ⚙️ Method `fit_to_view`
+
+```python
+def fit_to_view(self) -> None
+```
+
+Scale the image so it fills the visible area, including a small image.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def fit_to_view(self) -> None:
+        self._zoom = self._fit_zoom()
+        self._offset = QPointF()
+        self._sync_text_editor_geometry()
+        self.update()
 ```
 
 </details>
@@ -1982,6 +2070,27 @@ def paintEvent(self, event: QPaintEvent) -> None:  # noqa: ARG002, N802
         if self._tool == AnnotationTool.EYEDROPPER:
             self._paint_eyedrop_preview(painter)
         painter.end()
+```
+
+</details>
+
+### ⚙️ Method `reset_to_original_size`
+
+```python
+def reset_to_original_size(self) -> None
+```
+
+Restore the opening view: native pixels when small, fitted down when large.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def reset_to_original_size(self) -> None:
+        self._zoom = 1.0
+        self._offset = QPointF()
+        self._sync_text_editor_geometry()
+        self.update()
 ```
 
 </details>

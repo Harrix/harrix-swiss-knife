@@ -71,6 +71,35 @@ class AnnotationDocument:
         self._draft = None
         return True
 
+    def apply_resize(self, width: int, height: int) -> bool:
+        """Scale the composite to the given pixel size and clear annotations.
+
+        Returns `False` when the target is empty, larger than the image, or unchanged.
+
+        """
+        target_w = int(width)
+        target_h = int(height)
+        if target_w < 1 or target_h < 1:
+            return False
+        if target_w > self._base.width() or target_h > self._base.height():
+            return False
+        if target_w == self._base.width() and target_h == self._base.height():
+            return False
+        composite = self.render(include_draft=False)
+        scaled = composite.scaled(
+            target_w,
+            target_h,
+            Qt.AspectRatioMode.IgnoreAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
+        if scaled.isNull():
+            return False
+        self._push_history()
+        self._base = scaled
+        self._annotations = []
+        self._draft = None
+        return True
+
     @property
     def base_image(self) -> QImage:
         """Underlying image without the current draft."""

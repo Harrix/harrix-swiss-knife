@@ -12,12 +12,16 @@ from PySide6.QtGui import QCloseEvent, QColor, QIcon, QImage, QKeyEvent, QKeySeq
 from PySide6.QtWidgets import (
     QApplication,
     QButtonGroup,
+    QCheckBox,
+    QDialog,
     QFileDialog,
+    QFormLayout,
     QHBoxLayout,
     QLabel,
     QMainWindow,
     QMenu,
     QSizePolicy,
+    QSpinBox,
     QTabWidget,
     QToolButton,
     QVBoxLayout,
@@ -93,6 +97,9 @@ _JPEG_QUALITY = 95
 _JPEG_SUFFIXES = frozenset({".jpg", ".jpeg"})
 _RECOGNIZE_BUTTON_LABEL = "Recognize…"
 _RECOGNIZE_BUTTON_ICON = "scan-text"
+_REDUCE_BUTTON_LABEL = "Reduce size…"
+_REDUCE_BUTTON_ICON = "shrink"
+_REDUCE_MAX_SIDE = 1024
 _MARKDOWN_AI_ICON = AI_BUTTON_ICON
 _MARKDOWN_OCR_ICON = "scan-text"
 _TABLE_AI_ICON = "table"
@@ -259,6 +266,7 @@ class ScreenshotPreviewWindow(QMainWindow):
             self._save_as,
         )
         self._add_recognize_menu_button()
+        self._add_reduce_size_menu_button()
         self._add_footer_button(
             make_lucide_push_button(OK_BUTTON_LABEL, OK_BUTTON_ICON),
             self._close_current_tab,
@@ -367,6 +375,45 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._buttons.addWidget(button)
         self._action_buttons.append(button)
 
+    def _add_recognize_menu_button(self) -> None:
+        """Add a footer button whose click opens text and table recognition."""
+        button = make_lucide_push_button(_RECOGNIZE_BUTTON_LABEL, _RECOGNIZE_BUTTON_ICON)
+        button.setToolTip("Recognize text or a table. Choose AI, local OCR, or OCR with translation.")
+        menu = QMenu(button)
+        items: tuple[tuple[str, str, str | None, Callable[[], None]], ...] = (
+            ("Recognize text (AI)", _MARKDOWN_AI_ICON, AI_BUTTON_ICON_COLOR, self._run_markdown_with_ai),
+            ("Recognize table (AI)", _TABLE_AI_ICON, AI_BUTTON_ICON_COLOR, self._run_table_with_ai),
+            ("Recognize text (OCR)", _MARKDOWN_OCR_ICON, None, self._run_markdown_with_ocr),
+            ("OCR + translate", _TRANSLATE_ICON, None, self._run_ocr_translate),
+        )
+        for title, icon_name, color, slot in items:
+            action = menu.addAction(title)
+            action.setIcon(create_lucide_icon(icon_name, DEFAULT_LUCIDE_MENU_ICON_SIZE, color=color))
+            action.triggered.connect(lambda _checked=False, chosen=slot: chosen())
+        button.setMenu(menu)
+        button.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
+        self._buttons.addWidget(button)
+        self._action_buttons.append(button)
+
+    def _add_reduce_size_menu_button(self) -> None:
+        """Add a footer button whose click opens screenshot size reduction."""
+        button = make_lucide_push_button(_REDUCE_BUTTON_LABEL, _REDUCE_BUTTON_ICON)
+        button.setToolTip("Reduce the screenshot pixel size. Choose half, 1024 px, or a custom size.")
+        menu = QMenu(button)
+        items: tuple[tuple[str, str, Callable[[], None]], ...] = (
+            ("Half size", "shrink", self._resize_half),
+            ("Max 1024 px", "scaling", self._resize_max_side),
+            ("Custom size…", "proportions", self._resize_custom),
+        )
+        for title, icon_name, slot in items:
+            action = menu.addAction(title)
+            action.setIcon(create_lucide_icon(icon_name, DEFAULT_LUCIDE_MENU_ICON_SIZE))
+            action.triggered.connect(lambda _checked=False, chosen=slot: chosen())
+        button.setMenu(menu)
+        button.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
+        self._buttons.addWidget(button)
+        self._action_buttons.append(button)
+
     def _add_save_menu_button(
         self,
         label: str,
@@ -388,25 +435,18 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._action_buttons.append(button)
         return button
 
-    def _add_recognize_menu_button(self) -> None:
-        """Add a footer button whose click opens text and table recognition."""
-        button = make_lucide_push_button(_RECOGNIZE_BUTTON_LABEL, _RECOGNIZE_BUTTON_ICON)
-        button.setToolTip("Recognize text or a table. Choose AI, local OCR, or OCR with translation.")
-        menu = QMenu(button)
-        items: tuple[tuple[str, str, str | None, Callable[[], None]], ...] = (
-            ("Recognize text (AI)", _MARKDOWN_AI_ICON, AI_BUTTON_ICON_COLOR, self._run_markdown_with_ai),
-            ("Recognize table (AI)", _TABLE_AI_ICON, AI_BUTTON_ICON_COLOR, self._run_table_with_ai),
-            ("Recognize text (OCR)", _MARKDOWN_OCR_ICON, None, self._run_markdown_with_ocr),
-            ("OCR + translate", _TRANSLATE_ICON, None, self._run_ocr_translate),
-        )
-        for title, icon_name, color, slot in items:
-            action = menu.addAction(title)
-            action.setIcon(create_lucide_icon(icon_name, DEFAULT_LUCIDE_MENU_ICON_SIZE, color=color))
-            action.triggered.connect(lambda _checked=False, chosen=slot: chosen())
-        button.setMenu(menu)
-        button.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
-        self._buttons.addWidget(button)
-        self._action_buttons.append(button)
+    def _apply_pixel_resize(self, width: int, height: int) -> None:
+        tab = self._current_tab()
+        if tab is None:
+            return
+        tab.canvas.commit_text_edit()
+        if not tab.document.apply_resize(width, height):
+            self._status.setText("Size unchanged")
+            return
+        tab.canvas.set_document(tab.document)
+        tab.canvas.reset_to_original_size()
+        image = tab.document.base_image
+        self._status.setText(f"Reduced to {image.width()} x {image.height()}")
 
     def _apply_tool_to_current(self) -> None:
         tab = self._current_tab()
@@ -585,6 +625,39 @@ class ScreenshotPreviewWindow(QMainWindow):
             if not isinstance(tab, _ScreenshotTab) or tab.saved_name:
                 continue
             self._tabs.setTabText(index, self._tab_label(None, index + 1))
+
+    def _resize_custom(self) -> None:
+        tab = self._current_tab()
+        if tab is None:
+            return
+        image = tab.document.base_image
+        dialog = _ReduceSizeDialog(image.width(), image.height(), self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        width, height = dialog.size_pixels()
+        self._apply_pixel_resize(width, height)
+
+    def _resize_half(self) -> None:
+        tab = self._current_tab()
+        if tab is None:
+            return
+        image = tab.document.base_image
+        target = _half_pixel_size(image.width(), image.height())
+        if target is None:
+            self._status.setText("Size unchanged")
+            return
+        self._apply_pixel_resize(*target)
+
+    def _resize_max_side(self) -> None:
+        tab = self._current_tab()
+        if tab is None:
+            return
+        image = tab.document.base_image
+        target = _max_side_pixel_size(image.width(), image.height(), _REDUCE_MAX_SIDE)
+        if target is None:
+            self._status.setText("Already within 1024 px")
+            return
+        self._apply_pixel_resize(*target)
 
     def _run_markdown_with_ai(self) -> None:
         path = self._save_temp_png()
@@ -824,6 +897,76 @@ class ScreenshotPreviewWindow(QMainWindow):
         self.setWindowTitle(_DEFAULT_TITLE)
 
 
+class _ReduceSizeDialog(QDialog):
+    """Ask for a smaller width and height, keeping the aspect ratio unless unlocked."""
+
+    def __init__(self, width: int, height: int, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setWindowTitle("Reduce size")
+        self._source_w = max(1, width)
+        self._source_h = max(1, height)
+        self._ratio = self._source_h / self._source_w
+        self._syncing = False
+
+        self._width = QSpinBox(self)
+        self._width.setRange(1, self._source_w)
+        self._width.setValue(self._source_w)
+        self._width.setSuffix(" px")
+        self._height = QSpinBox(self)
+        self._height.setRange(1, self._source_h)
+        self._height.setValue(self._source_h)
+        self._height.setSuffix(" px")
+        self._lock = QCheckBox("Keep aspect ratio", self)
+        self._lock.setChecked(True)
+
+        form = QFormLayout()
+        form.addRow("Width", self._width)
+        form.addRow("Height", self._height)
+        form.addRow(self._lock)
+
+        self._ok = make_lucide_push_button(OK_BUTTON_LABEL, OK_BUTTON_ICON)
+        self._ok.setEnabled(False)
+        cancel = make_lucide_push_button(CANCEL_BUTTON_LABEL, CANCEL_BUTTON_ICON)
+        buttons = QHBoxLayout()
+        buttons.addStretch(1)
+        buttons.addWidget(self._ok)
+        buttons.addWidget(cancel)
+
+        layout = QVBoxLayout(self)
+        layout.addLayout(form)
+        layout.addLayout(buttons)
+
+        self._width.valueChanged.connect(self._on_width_changed)
+        self._height.valueChanged.connect(self._on_height_changed)
+        self._ok.clicked.connect(self.accept)
+        cancel.clicked.connect(self.reject)
+
+    def size_pixels(self) -> tuple[int, int]:
+        """Chosen width and height in pixels."""
+        return self._width.value(), self._height.value()
+
+    def _on_height_changed(self, height: int) -> None:
+        if self._lock.isChecked() and self._ratio > 0:
+            self._set_paired(self._width, max(1, round(height / self._ratio)))
+        self._update_ok()
+
+    def _on_width_changed(self, width: int) -> None:
+        if self._lock.isChecked():
+            self._set_paired(self._height, max(1, round(width * self._ratio)))
+        self._update_ok()
+
+    def _set_paired(self, box: QSpinBox, value: int) -> None:
+        if self._syncing:
+            return
+        self._syncing = True
+        box.setValue(min(box.maximum(), max(box.minimum(), value)))
+        self._syncing = False
+
+    def _update_ok(self) -> None:
+        width, height = self.size_pixels()
+        self._ok.setEnabled(width < self._source_w or height < self._source_h)
+
+
 class _ScreenshotTab(QWidget):
     """One preview tab: canvas plus annotation document."""
 
@@ -889,6 +1032,16 @@ def _format_suffix(fmt: _ScreenshotFormat) -> str:
     return ".png"
 
 
+def _half_pixel_size(width: int, height: int) -> tuple[int, int] | None:
+    """Return half the pixel size, or `None` when it cannot get smaller."""
+    if width < 1 or height < 1:
+        return None
+    target = (max(1, width // 2), max(1, height // 2))
+    if target == (width, height):
+        return None
+    return target
+
+
 def _is_ctrl_s(event: QKeyEvent) -> bool:
     if event.modifiers() & Qt.KeyboardModifier.AltModifier:
         return False
@@ -908,6 +1061,22 @@ def _jpeg_image(image: QImage) -> QImage:
     painter.drawImage(0, 0, image)
     painter.end()
     return flat
+
+
+def _max_side_pixel_size(width: int, height: int, max_side: int) -> tuple[int, int] | None:
+    """Return a size whose longest side is `max_side`, keeping the aspect ratio."""
+    longest = max(width, height)
+    if width < 1 or height < 1 or max_side < 1 or longest <= max_side:
+        return None
+    if width >= height:
+        target_w = max_side
+        target_h = max(1, round(height * max_side / width))
+    else:
+        target_h = max_side
+        target_w = max(1, round(width * max_side / height))
+    if (target_w, target_h) == (width, height):
+        return None
+    return target_w, target_h
 
 
 def _write_screenshot_file(image: QImage, path: Path, fmt: _ScreenshotFormat) -> None:
