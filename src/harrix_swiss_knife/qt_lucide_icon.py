@@ -424,23 +424,51 @@ def create_lucide_icon(
     svg_bytes = _lucide_svg_bytes(name, paint_color)
     if svg_bytes is None:
         return QIcon()
+    icon = _qicon_from_svg_bytes(svg_bytes, size, ratio, label=name)
+    if icon.isNull():
+        return icon
+    _CACHE[cache_key] = icon
+    return icon
 
-    physical = max(1, round(size * ratio))
-    renderer = QSvgRenderer(QByteArray(svg_bytes))
-    if not renderer.isValid():
-        logger.warning("Lucide SVG for `%s` is invalid", name)
+
+def create_tabler_icon(
+    name: str,
+    size: int = DEFAULT_LUCIDE_MENU_ICON_SIZE,
+    *,
+    color: QColor | str | None = None,
+    device_pixel_ratio: float | None = None,
+) -> QIcon:
+    """Create a square `QIcon` from a Tabler stroke SVG in `assets/tabler/`.
+
+    Args:
+
+    - `name` (`str`): Icon file stem, such as `file-type-png`.
+    - `size` (`int`): Logical side length in pixels.
+    - `color` (`QColor | str | None`): Stroke color. Defaults to the dark chrome color.
+    - `device_pixel_ratio` (`float | None`): Bitmap scale. Defaults to the screen scale.
+
+    Returns:
+
+    - `QIcon`: Painted icon, or a null icon when the SVG is missing.
+
+    """
+    ratio = device_pixel_ratio if device_pixel_ratio is not None else _lucide_device_pixel_ratio()
+    if ratio <= 0:
+        ratio = 1.0
+    paint_color = QColor(color) if color is not None else QColor(LUCIDE_COLOR_DARK)
+    cache_key = (f"tabler:{name}", size, paint_color.name(QColor.NameFormat.HexArgb), ratio)
+    cached = _CACHE.get(cache_key)
+    if cached is not None:
+        return cached
+    path = _tabler_dir() / f"{name}.svg"
+    if not _ICON_NAME_RE.fullmatch(name) or not path.is_file():
+        logger.warning("Unknown Tabler icon `%s`", name)
         return QIcon()
-
-    pixmap = QPixmap(physical, physical)
-    pixmap.fill(Qt.GlobalColor.transparent)
-    painter = QPainter(pixmap)
-    painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
-    renderer.render(painter, QRectF(0.0, 0.0, float(physical), float(physical)))
-    painter.end()
-    pixmap.setDevicePixelRatio(ratio)
-
-    icon = QIcon()
-    icon.addPixmap(pixmap)
+    hex_color = paint_color.name(QColor.NameFormat.HexRgb)
+    svg_bytes = path.read_text(encoding="utf-8").replace("currentColor", hex_color).encode("utf-8")
+    icon = _qicon_from_svg_bytes(svg_bytes, size, ratio, label=name)
+    if icon.isNull():
+        return icon
     _CACHE[cache_key] = icon
     return icon
 
@@ -595,6 +623,28 @@ def _lucide_device_pixel_ratio() -> float:
 
 def _lucide_dir() -> Path:
     return Path(__file__).resolve().parent / "assets" / "lucide"
+
+
+def _qicon_from_svg_bytes(svg_bytes: bytes, size: int, ratio: float, *, label: str) -> QIcon:
+    physical = max(1, round(size * ratio))
+    renderer = QSvgRenderer(QByteArray(svg_bytes))
+    if not renderer.isValid():
+        logger.warning("SVG for `%s` is invalid", label)
+        return QIcon()
+    pixmap = QPixmap(physical, physical)
+    pixmap.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
+    renderer.render(painter, QRectF(0.0, 0.0, float(physical), float(physical)))
+    painter.end()
+    pixmap.setDevicePixelRatio(ratio)
+    icon = QIcon()
+    icon.addPixmap(pixmap)
+    return icon
+
+
+def _tabler_dir() -> Path:
+    return Path(__file__).resolve().parent / "assets" / "tabler"
 
 
 def _lucide_svg_bytes(name: str, color: QColor) -> bytes | None:

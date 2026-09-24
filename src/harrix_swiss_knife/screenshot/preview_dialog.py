@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 from pathlib import Path
-from tempfile import NamedTemporaryFile
-from typing import TYPE_CHECKING
+from tempfile import NamedTemporaryFile, TemporaryDirectory
+from typing import TYPE_CHECKING, Literal
 
 import harrix_pylib as h
 from PySide6.QtCore import QSize, QStandardPaths, Qt, QTimer
-from PySide6.QtGui import QCloseEvent, QColor, QIcon, QKeyEvent, QKeySequence, QPainter, QPixmap, QShortcut
+from PySide6.QtGui import QCloseEvent, QColor, QIcon, QImage, QKeyEvent, QKeySequence, QPainter, QPixmap, QShortcut
 from PySide6.QtWidgets import (
     QApplication,
     QButtonGroup,
@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
 )
 from shiboken6 import isValid
 
+from harrix_swiss_knife.actions.common.raster_optimize import process_png_to_avif
 from harrix_swiss_knife.actions.common.text_result_dialog import (
     CANCEL_BUTTON_LABEL,
     COPY_BUTTON_LABEL,
@@ -40,6 +41,7 @@ from harrix_swiss_knife.qt_lucide_icon import (
     OK_BUTTON_ICON,
     SAVE_BUTTON_ICON,
     create_lucide_icon,
+    create_tabler_icon,
     make_lucide_push_button,
 )
 from harrix_swiss_knife.screenshot.annotation_colors import load_annotation_colors
@@ -64,7 +66,7 @@ from harrix_swiss_knife.screenshot.toolbar_style import (
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from PySide6.QtGui import QImage, QResizeEvent
+    from PySide6.QtGui import QResizeEvent
     from PySide6.QtWidgets import QPushButton
 
 _SAVE_BUTTON_ICON = SAVE_BUTTON_ICON
@@ -73,6 +75,21 @@ _SAVE_DESKTOP_BUTTON_ICON = "monitor"
 _SAVE_DESKTOP_BUTTON_LABEL = "Save to desktop"
 _SAVE_ALL_DESKTOP_BUTTON_ICON = "images"
 _SAVE_ALL_DESKTOP_BUTTON_LABEL = "Save all to desktop"
+_ScreenshotFormat = Literal["png", "jpeg", "avif_hq", "avif_optimized"]
+_SAVE_FORMATS: tuple[tuple[_ScreenshotFormat, str, str], ...] = (
+    ("png", "PNG", "PNG Image (*.png)"),
+    ("jpeg", "JPEG", "JPEG Image (*.jpg *.jpeg)"),
+    ("avif_hq", "AVIF high quality", "AVIF Image (*.avif)"),
+    ("avif_optimized", "AVIF optimized", "AVIF Image (*.avif)"),
+)
+_FORMAT_ICONS: dict[_ScreenshotFormat, str] = {
+    "png": "file-type-png",
+    "jpeg": "file-type-jpg",
+    "avif_hq": "file-type-avif",
+    "avif_optimized": "file-type-avif",
+}
+_JPEG_QUALITY = 95
+_JPEG_SUFFIXES = frozenset({".jpg", ".jpeg"})
 _MARKDOWN_AI_ICON = AI_BUTTON_ICON
 _MARKDOWN_OCR_ICON = "scan-text"
 _TABLE_AI_ICON = "table"
@@ -219,20 +236,23 @@ class ScreenshotPreviewWindow(QMainWindow):
             make_lucide_push_button(COPY_BUTTON_LABEL, COPY_BUTTON_ICON),
             self._copy_to_clipboard,
         )
-        desktop_button = make_lucide_push_button(_SAVE_DESKTOP_BUTTON_LABEL, _SAVE_DESKTOP_BUTTON_ICON)
-        desktop_button.setToolTip("Save as YYYY-MM-DD_NN.png in Desktop/Screenshots")
-        self._add_footer_button(desktop_button, self._save_to_desktop)
-        self._save_all_desktop_button = make_lucide_push_button(
+        self._add_save_menu_button(
+            _SAVE_DESKTOP_BUTTON_LABEL,
+            _SAVE_DESKTOP_BUTTON_ICON,
+            "Save as YYYY-MM-DD_NN in Desktop/Screenshots. Choose PNG, JPEG, or AVIF.",
+            self._save_to_desktop,
+        )
+        self._save_all_desktop_button = self._add_save_menu_button(
             _SAVE_ALL_DESKTOP_BUTTON_LABEL,
             _SAVE_ALL_DESKTOP_BUTTON_ICON,
-        )
-        self._save_all_desktop_button.setToolTip(
-            "Save every tab as YYYY-MM-DD_NN.png in Desktop/Screenshots",
+            "Save every tab as YYYY-MM-DD_NN in Desktop/Screenshots. Choose PNG, JPEG, or AVIF.",
+            self._save_all_to_desktop,
         )
         self._save_all_desktop_button.hide()
-        self._add_footer_button(self._save_all_desktop_button, self._save_all_to_desktop)
-        self._add_footer_button(
-            make_lucide_push_button(_SAVE_BUTTON_LABEL, _SAVE_BUTTON_ICON),
+        self._add_save_menu_button(
+            _SAVE_BUTTON_LABEL,
+            _SAVE_BUTTON_ICON,
+            "Choose a format, then pick where to save the screenshot.",
             self._save_as,
         )
         ai_button = make_lucide_push_button(
@@ -362,6 +382,27 @@ class ScreenshotPreviewWindow(QMainWindow):
         button.clicked.connect(slot)
         self._buttons.addWidget(button)
         self._action_buttons.append(button)
+
+    def _add_save_menu_button(
+        self,
+        label: str,
+        icon_name: str,
+        tooltip: str,
+        slot: Callable[[_ScreenshotFormat], None],
+    ) -> QPushButton:
+        """Add a footer button whose click opens the screenshot format menu."""
+        button = make_lucide_push_button(label, icon_name)
+        button.setToolTip(tooltip)
+        menu = QMenu(button)
+        for fmt, title, _file_filter in _SAVE_FORMATS:
+            action = menu.addAction(title)
+            action.setIcon(create_tabler_icon(_FORMAT_ICONS[fmt]))
+            action.triggered.connect(lambda _checked=False, chosen=fmt: slot(chosen))
+        button.setMenu(menu)
+        button.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
+        self._buttons.addWidget(button)
+        self._action_buttons.append(button)
+        return button
 
     def _apply_tool_to_current(self) -> None:
         tab = self._current_tab()
@@ -602,7 +643,7 @@ class ScreenshotPreviewWindow(QMainWindow):
 
         QTimer.singleShot(0, run)
 
-    def _save_all_to_desktop(self) -> None:
+    def _save_all_to_desktop(self, fmt: _ScreenshotFormat = "png") -> None:
         desktop = self._desktop_folder()
         if desktop is None:
             return
@@ -611,9 +652,8 @@ class ScreenshotPreviewWindow(QMainWindow):
             widget = self._tabs.widget(index)
             if not isinstance(widget, _ScreenshotTab):
                 continue
-            path = self._save_tab_dated_png(widget, desktop, tab_index=index)
+            path = self._save_tab_dated(widget, desktop, tab_index=index, fmt=fmt)
             if path is None:
-                self._status.setText(f"Could not save tab {index + 1} to {desktop}")
                 return
             saved_paths.append(path)
         if not saved_paths:
@@ -622,55 +662,71 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._status.setText(f"Saved {len(saved_paths)} images to {desktop}")
         self._update_window_title()
 
-    def _save_as(self) -> None:
+    def _save_as(self, fmt: _ScreenshotFormat = "png") -> None:
         tab = self._current_tab()
         if tab is None:
             return
-        suggested = str(tab.saved_as_path) if tab.saved_as_path is not None else (tab.saved_name or "screenshot.png")
+        suffix = _format_suffix(fmt)
+        if tab.saved_as_path is not None:
+            suggested = str(tab.saved_as_path.with_suffix(suffix))
+        elif tab.saved_name:
+            suggested = str(Path(tab.saved_name).with_suffix(suffix))
+        else:
+            suggested = f"screenshot{suffix}"
+        file_filter = next(item[2] for item in _SAVE_FORMATS if item[0] == fmt)
         path_str, _selected_filter = QFileDialog.getSaveFileName(
             self,
             "Save screenshot",
             suggested,
-            "PNG Image (*.png);;JPEG Image (*.jpg *.jpeg);;All Files (*)",
+            file_filter,
         )
         if not path_str:
             return
         path = Path(path_str)
-        if tab.image.save(str(path)):
-            tab.saved_as_path = path.resolve()
-            tab.saved_name = path.name
-            index = self._tabs.currentIndex()
-            self._tabs.setTabText(index, path.name)
-            self._status.setText(f"Saved: {path}")
-            self._update_window_title()
+        if path.suffix.lower() not in _accepted_suffixes(fmt):
+            path = path.with_suffix(suffix)
+        try:
+            _write_screenshot_file(tab.image, path, fmt)
+        except (OSError, RuntimeError, ValueError) as exc:
+            self._status.setText(str(exc))
+            return
+        tab.saved_as_path = path.resolve()
+        tab.saved_name = path.name
+        index = self._tabs.currentIndex()
+        self._tabs.setTabText(index, path.name)
+        self._status.setText(f"Saved: {path}")
+        self._update_window_title()
 
-    def _save_dated_png(self, folder: Path) -> None:
+    def _save_dated(self, folder: Path, fmt: _ScreenshotFormat = "png") -> None:
         tab = self._current_tab()
         if tab is None:
             return
-        path = self._save_tab_dated_png(tab, folder, tab_index=self._tabs.currentIndex())
+        path = self._save_tab_dated(tab, folder, tab_index=self._tabs.currentIndex(), fmt=fmt)
         if path is None:
-            self._status.setText(f"Could not save to {folder}")
             return
         self._status.setText(f"Saved: {path}")
         self._update_window_title()
 
-    def _save_tab_dated_png(
+    def _save_tab_dated(
         self,
         tab: _ScreenshotTab,
         folder: Path,
         *,
         tab_index: int,
+        fmt: _ScreenshotFormat = "png",
     ) -> Path | None:
         folder = folder.resolve()
-        folder.mkdir(parents=True, exist_ok=True)
-        folder_key = str(folder)
+        suffix = _format_suffix(fmt)
+        folder_key = f"{folder}|{suffix}"
         existing = tab.saved_paths.get(folder_key)
-        if existing is not None and existing.parent.resolve() == folder:
+        if existing is not None and existing.parent.resolve() == folder and existing.suffix.lower() == suffix:
             path = existing
         else:
-            path = next_dated_image_path(folder)
-        if not tab.image.save(str(path)):
+            path = next_dated_image_path(folder, extension=suffix)
+        try:
+            _write_screenshot_file(tab.image, path, fmt)
+        except (OSError, RuntimeError, ValueError) as exc:
+            self._status.setText(str(exc))
             return None
         resolved = path.resolve()
         tab.saved_paths[folder_key] = resolved
@@ -689,14 +745,14 @@ class ScreenshotPreviewWindow(QMainWindow):
             return str(temp_path)
         return None
 
-    def _save_to_desktop(self) -> None:
+    def _save_to_desktop(self, fmt: _ScreenshotFormat = "png") -> None:
         desktop = self._desktop_folder()
         if desktop is None:
             return
-        self._save_dated_png(desktop)
+        self._save_dated(desktop, fmt)
 
     def _save_to_images(self) -> None:
-        self._save_dated_png(images_folder(h.dev.get_project_root()))
+        self._save_dated(images_folder(h.dev.get_project_root()))
 
     def _set_annotation_color(self, color: QColor) -> None:
         if not color.isValid():
@@ -798,6 +854,12 @@ def show_screenshot_preview(image: QImage) -> ScreenshotPreviewWindow:
     return window
 
 
+def _accepted_suffixes(fmt: _ScreenshotFormat) -> frozenset[str]:
+    if fmt == "jpeg":
+        return _JPEG_SUFFIXES
+    return frozenset({_format_suffix(fmt)})
+
+
 def _color_swatch_icon(color: QColor, size: int) -> QIcon:
     pixmap = QPixmap(size, size)
     pixmap.fill(Qt.GlobalColor.transparent)
@@ -815,6 +877,14 @@ def _format_pixel_color(color: QColor) -> str:
     return f"{color.name()} · rgb({color.red()}, {color.green()}, {color.blue()})"
 
 
+def _format_suffix(fmt: _ScreenshotFormat) -> str:
+    if fmt == "jpeg":
+        return ".jpg"
+    if fmt in {"avif_hq", "avif_optimized"}:
+        return ".avif"
+    return ".png"
+
+
 def _is_ctrl_s(event: QKeyEvent) -> bool:
     if event.modifiers() & Qt.KeyboardModifier.AltModifier:
         return False
@@ -823,6 +893,62 @@ def _is_ctrl_s(event: QKeyEvent) -> bool:
     if event.nativeVirtualKey() == _VK_S:
         return True
     return event.key() in {int(Qt.Key.Key_S), _KEY_CYRILLIC_YERU}
+
+
+def _jpeg_image(image: QImage) -> QImage:
+    if not image.hasAlphaChannel():
+        return image
+    flat = QImage(image.size(), QImage.Format.Format_RGB32)
+    flat.fill(Qt.GlobalColor.white)
+    painter = QPainter(flat)
+    painter.drawImage(0, 0, image)
+    painter.end()
+    return flat
+
+
+def _write_screenshot_file(image: QImage, path: Path, fmt: _ScreenshotFormat) -> None:
+    """Write `image` to `path` as PNG, JPEG, or AVIF.
+
+    AVIF high quality uses the same encoder as Optimize images (high quality).
+    AVIF optimized uses the same encoder as Optimize images.
+
+    Args:
+
+    - `image` (`QImage`): Screenshot with annotations baked in.
+    - `path` (`Path`): Destination file. Parent folders are created.
+    - `fmt` (`str`): `png`, `jpeg`, `avif_hq`, or `avif_optimized`.
+
+    Raises:
+
+    - `RuntimeError`: When the file cannot be written.
+    - `OSError`: When AVIF encoding cannot start.
+
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if fmt == "png":
+        if not image.save(str(path), "PNG"):  # ty: ignore[no-matching-overload]
+            msg = f"Could not save {path.name}"
+            raise RuntimeError(msg)
+        return
+    if fmt == "jpeg":
+        if not _jpeg_image(image).save(str(path), "JPEG", _JPEG_QUALITY):  # ty: ignore[no-matching-overload]
+            msg = f"Could not save {path.name}"
+            raise RuntimeError(msg)
+        return
+    with TemporaryDirectory(prefix="screenshot_avif_") as temp_dir:
+        temp_png = Path(temp_dir) / f"{path.stem}.png"
+        if not image.save(str(temp_png), "PNG"):  # ty: ignore[no-matching-overload]
+            msg = "Could not prepare the screenshot for AVIF"
+            raise RuntimeError(msg)
+        process_png_to_avif(
+            temp_png,
+            path.parent,
+            h.dev.get_project_root(),
+            quality=fmt == "avif_hq",
+        )
+    if not path.is_file():
+        msg = f"Could not save {path.name}"
+        raise RuntimeError(msg)
 
 
 # Backward-compatible name used by older tests and imports.

@@ -245,6 +245,61 @@ def test_preview_window_saves_dated_png_to_desktop(
     window.close()
 
 
+def test_save_buttons_offer_format_menus(qapp: QApplication) -> None:  # noqa: ARG001
+    image = QImage(8, 8, QImage.Format.Format_RGB32)
+    image.fill(Qt.GlobalColor.white)
+    window = show_screenshot_preview(image)
+    labels = ["PNG", "JPEG", "AVIF high quality", "AVIF optimized"]
+    for text in ("Save as…", "Save to desktop", "Save all to desktop"):
+        button = next(item for item in window.findChildren(QPushButton) if item.text() == text)
+        menu = button.menu()
+        assert menu is not None
+        assert [action.text() for action in menu.actions()] == labels
+        assert all(not action.icon().isNull() for action in menu.actions())
+    window.close()
+
+
+def test_preview_window_saves_jpeg_and_avif_formats(
+    qapp: QApplication,  # noqa: ARG001
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    desktop = tmp_path / "Desktop"
+    desktop.mkdir()
+    monkeypatch.setattr(QStandardPaths, "writableLocation", lambda _location: str(desktop))
+    qualities: list[bool] = []
+
+    def fake_avif(
+        source: Path,
+        output_folder: Path,
+        _project_root: Path,
+        *,
+        quality: bool = False,
+        max_size: int | None = None,
+    ) -> str:
+        del max_size
+        qualities.append(quality)
+        destination = Path(output_folder) / f"{Path(source).stem}.avif"
+        destination.write_bytes(b"avif")
+        return "ok"
+
+    monkeypatch.setattr("harrix_swiss_knife.screenshot.preview_dialog.process_png_to_avif", fake_avif)
+    image = QImage(8, 8, QImage.Format.Format_RGB32)
+    image.fill(Qt.GlobalColor.yellow)
+    window = show_screenshot_preview(image)
+    window._save_to_desktop("jpeg")
+    screenshots = desktop / "Screenshots"
+    jpeg_files = list(screenshots.glob("*.jpg"))
+    assert len(jpeg_files) == 1
+    assert jpeg_files[0].stat().st_size > 0
+    window._save_to_desktop("avif_optimized")
+    window._save_to_desktop("avif_hq")
+    assert qualities == [False, True]
+    assert len(list(screenshots.glob("*.avif"))) == 1
+    assert len(list(screenshots.glob("*.png"))) == 0
+    window.close()
+
+
 def test_preview_window_save_all_to_desktop(
     qapp: QApplication,  # noqa: ARG001
     tmp_path: Path,
