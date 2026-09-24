@@ -178,6 +178,8 @@ def get_monthly_income_year_delta_report_data(
     """
     db_manager = ctx.db_manager
     currency_code: str = db_manager.get_default_currency()
+    currency_info = db_manager.get_currency_by_code(currency_code)
+    currency_symbol = currency_info[2] if currency_info and currency_info[2] else currency_code
     monthly = db_manager.get_monthly_income_totals(ctx.currency_id)
     today = _report_today()
     current_year = today.year
@@ -202,11 +204,11 @@ def get_monthly_income_year_delta_report_data(
         return monthly.get(f"{year}-{month:02d}", 0.0)
 
     def format_amount(amount: float) -> str:
-        return f"{amount:.2f} {currency_code}"
+        return f"{amount:.2f} {currency_symbol}"
 
     def format_delta(amount: float) -> str:
         sign = "+" if amount > 0 else ""
-        return f"{sign}{amount:.2f} {currency_code}"
+        return f"{sign}{amount:.2f} {currency_symbol}"
 
     def delta_cell(reference: float, baseline: float) -> str:
         return f"{format_delta(reference - baseline)}\n{format_amount(baseline)}"

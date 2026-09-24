@@ -7,9 +7,11 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
+from PySide6.QtCore import QLocale
 from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife.apps.finance.database_manager import DatabaseManager
+from harrix_swiss_knife.apps.finance.delegates import YearDeltaCellDelegate
 from harrix_swiss_knife.apps.finance.report_build_context import ReportBuildContext
 from harrix_swiss_knife.apps.finance.report_generators import (
     get_account_balances_report_data,
@@ -202,20 +204,20 @@ def test_monthly_income_year_delta_compares_same_month(
     assert headers[:4] == ["Month", str(current_year), str(last_year), f"vs {last_year}"]
     assert f"vs {two_years_ago}" in headers
     january = next(row for row in rows if row[0] == "January")
-    assert january[1] == "1500.00 RUB"
+    assert january[1] == "1500.00 ₽"
     assert january[2] == "—"
-    assert january[3] == "+300.00 RUB\n1200.00 RUB"
-    assert january[4] == "+500.00 RUB\n1000.00 RUB"
+    assert january[3] == "+300.00 ₽\n1200.00 ₽"
+    assert january[4] == "+500.00 ₽\n1000.00 ₽"
     december = next(row for row in rows if row[0] == "December")
     assert december[1] == "—"
-    assert december[2] == "800.00 RUB"
+    assert december[2] == "800.00 ₽"
     assert december[3] == "—"
-    assert december[4] == "+300.00 RUB\n500.00 RUB"
+    assert december[4] == "+300.00 ₽\n500.00 ₽"
     assert rows[-1][0] == "TOTAL"
-    assert rows[-1][1] == "1500.00 RUB"
+    assert rows[-1][1] == "1500.00 ₽"
     assert rows[-1][2] == "—"
-    assert rows[-1][3] == "+300.00 RUB\n1200.00 RUB"
-    assert rows[-1][4] == "+500.00 RUB\n1000.00 RUB"
+    assert rows[-1][3] == "+300.00 ₽\n1200.00 ₽"
+    assert rows[-1][4] == "+500.00 ₽\n1000.00 ₽"
 
     monkeypatch.setattr(
         "harrix_swiss_knife.apps.finance.report_generators._report_today",
@@ -224,6 +226,16 @@ def test_monthly_income_year_delta_compares_same_month(
     december_headers, _december_rows = get_monthly_income_year_delta_report_data(ctx)
     assert december_headers[:3] == ["Month", str(current_year), f"vs {last_year}"]
     assert str(last_year) not in december_headers
+
+
+def test_year_delta_cell_shows_subscript_decimals(qapp: QApplication) -> None:
+    assert qapp is not None
+    delegate = YearDeltaCellDelegate()
+    locale = QLocale()
+    assert delegate.displayText("1500.50 ₽", locale) == "1 500.₅ ₽"
+    assert delegate.displayText("+1300.25 ₽\n1000.00 ₽", locale) == "+1 300.₂₅ ₽\n1 000 ₽"
+    assert delegate.displayText("-40.10 ₽", locale) == "-40.₁ ₽"
+    assert delegate.displayText("—", locale) == "—"
 
 
 def test_report_types_include_monthly_income_year_delta() -> None:

@@ -12,6 +12,7 @@ lang: en
 ## Contents
 
 - [🏛️ Class `YearDeltaCellDelegate`](#%EF%B8%8F-class-yeardeltacelldelegate)
+  - [⚙️ Method `displayText`](#%EF%B8%8F-method-displaytext)
   - [⚙️ Method `paint`](#%EF%B8%8F-method-paint)
   - [⚙️ Method `sizeHint`](#%EF%B8%8F-method-sizehint)
 
@@ -25,11 +26,18 @@ class YearDeltaCellDelegate(QStyledItemDelegate)
 
 Paint a delta on the first line and its baseline amount smaller underneath.
 
+Amounts use the same thousands separators and subscript decimals as report cells.
+A second line, when present, is drawn in a smaller font.
+
 <details>
 <summary>Code:</summary>
 
 ```python
 class YearDeltaCellDelegate(QStyledItemDelegate):
+
+    def displayText(self, value: object, _locale: QLocale | QLocale.Language) -> str:  # noqa: N802
+        """Format each line with thousands separators and subscript decimals."""
+        return "\n".join(_format_amount_line(line) for line in str(value).split("\n"))
 
     def paint(
         self,
@@ -85,7 +93,7 @@ class YearDeltaCellDelegate(QStyledItemDelegate):
     ) -> QSize:
         """Grow the row when the cell carries a baseline under the delta."""
         hint = super().sizeHint(option, index)
-        text = str(index.data(Qt.ItemDataRole.DisplayRole) or "")
+        text = self.displayText(index.data(Qt.ItemDataRole.DisplayRole) or "", QLocale())
         first, separator, second = text.partition("\n")
         if not separator or not second.strip():
             return hint
@@ -98,6 +106,24 @@ class YearDeltaCellDelegate(QStyledItemDelegate):
         )
         height = QFontMetrics(opt.font).height() + _LINE_GAP + QFontMetrics(small_font).height() + _TEXT_PADDING
         return QSize(max(hint.width(), width + _TEXT_PADDING), max(hint.height(), height))
+```
+
+</details>
+
+### ⚙️ Method `displayText`
+
+```python
+def displayText(self, value: object, _locale: QLocale | QLocale.Language) -> str
+```
+
+Format each line with thousands separators and subscript decimals.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def displayText(self, value: object, _locale: QLocale | QLocale.Language) -> str:  # noqa: N802
+        return "\n".join(_format_amount_line(line) for line in str(value).split("\n"))
 ```
 
 </details>
@@ -181,7 +207,7 @@ def sizeHint(  # noqa: N802
         index: QModelIndex | QPersistentModelIndex,
     ) -> QSize:
         hint = super().sizeHint(option, index)
-        text = str(index.data(Qt.ItemDataRole.DisplayRole) or "")
+        text = self.displayText(index.data(Qt.ItemDataRole.DisplayRole) or "", QLocale())
         first, separator, second = text.partition("\n")
         if not separator or not second.strip():
             return hint
