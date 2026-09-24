@@ -38,6 +38,7 @@ from harrix_swiss_knife.qt_lucide_icon import (
     AI_BUTTON_ICON_COLOR,
     CANCEL_BUTTON_ICON,
     COPY_BUTTON_ICON,
+    DEFAULT_LUCIDE_MENU_ICON_SIZE,
     OK_BUTTON_ICON,
     SAVE_BUTTON_ICON,
     create_lucide_icon,
@@ -90,6 +91,8 @@ _FORMAT_ICONS: dict[_ScreenshotFormat, str] = {
 }
 _JPEG_QUALITY = 95
 _JPEG_SUFFIXES = frozenset({".jpg", ".jpeg"})
+_RECOGNIZE_BUTTON_LABEL = "Recognize…"
+_RECOGNIZE_BUTTON_ICON = "scan-text"
 _MARKDOWN_AI_ICON = AI_BUTTON_ICON
 _MARKDOWN_OCR_ICON = "scan-text"
 _TABLE_AI_ICON = "table"
@@ -255,26 +258,7 @@ class ScreenshotPreviewWindow(QMainWindow):
             "Choose a format, then pick where to save the screenshot.",
             self._save_as,
         )
-        ai_button = make_lucide_push_button(
-            "Recognize text (AI)",
-            _MARKDOWN_AI_ICON,
-            color=AI_BUTTON_ICON_COLOR,
-        )
-        ai_button.setToolTip("Recognize text (AI)…")
-        self._add_footer_button(ai_button, self._run_markdown_with_ai)
-        table_button = make_lucide_push_button(
-            "Recognize table (AI)",
-            _TABLE_AI_ICON,
-            color=AI_BUTTON_ICON_COLOR,
-        )
-        table_button.setToolTip("Recognize table (AI)…")
-        self._add_footer_button(table_button, self._run_table_with_ai)
-        ocr_button = make_lucide_push_button("Recognize text (OCR)", _MARKDOWN_OCR_ICON)
-        ocr_button.setToolTip("Recognize text (OCR, local)…")
-        self._add_footer_button(ocr_button, self._run_markdown_with_ocr)
-        translate_button = make_lucide_push_button("OCR + translate", _TRANSLATE_ICON)
-        translate_button.setToolTip("Recognize text and translate to the local language…")
-        self._add_footer_button(translate_button, self._run_ocr_translate)
+        self._add_recognize_menu_button()
         self._add_footer_button(
             make_lucide_push_button(OK_BUTTON_LABEL, OK_BUTTON_ICON),
             self._close_current_tab,
@@ -403,6 +387,26 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._buttons.addWidget(button)
         self._action_buttons.append(button)
         return button
+
+    def _add_recognize_menu_button(self) -> None:
+        """Add a footer button whose click opens text and table recognition."""
+        button = make_lucide_push_button(_RECOGNIZE_BUTTON_LABEL, _RECOGNIZE_BUTTON_ICON)
+        button.setToolTip("Recognize text or a table. Choose AI, local OCR, or OCR with translation.")
+        menu = QMenu(button)
+        items: tuple[tuple[str, str, str | None, Callable[[], None]], ...] = (
+            ("Recognize text (AI)", _MARKDOWN_AI_ICON, AI_BUTTON_ICON_COLOR, self._run_markdown_with_ai),
+            ("Recognize table (AI)", _TABLE_AI_ICON, AI_BUTTON_ICON_COLOR, self._run_table_with_ai),
+            ("Recognize text (OCR)", _MARKDOWN_OCR_ICON, None, self._run_markdown_with_ocr),
+            ("OCR + translate", _TRANSLATE_ICON, None, self._run_ocr_translate),
+        )
+        for title, icon_name, color, slot in items:
+            action = menu.addAction(title)
+            action.setIcon(create_lucide_icon(icon_name, DEFAULT_LUCIDE_MENU_ICON_SIZE, color=color))
+            action.triggered.connect(lambda _checked=False, chosen=slot: chosen())
+        button.setMenu(menu)
+        button.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
+        self._buttons.addWidget(button)
+        self._action_buttons.append(button)
 
     def _apply_tool_to_current(self) -> None:
         tab = self._current_tab()

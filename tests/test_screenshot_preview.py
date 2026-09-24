@@ -259,6 +259,25 @@ def test_save_buttons_offer_format_menus(qapp: QApplication) -> None:  # noqa: A
     window.close()
 
 
+def test_recognize_button_offers_recognition_menu(qapp: QApplication) -> None:  # noqa: ARG001
+    image = QImage(8, 8, QImage.Format.Format_RGB32)
+    image.fill(Qt.GlobalColor.white)
+    window = show_screenshot_preview(image)
+    button = next(item for item in window.findChildren(QPushButton) if item.text() == "Recognize…")
+    menu = button.menu()
+    assert menu is not None
+    assert [action.text() for action in menu.actions()] == [
+        "Recognize text (AI)",
+        "Recognize table (AI)",
+        "Recognize text (OCR)",
+        "OCR + translate",
+    ]
+    assert all(not action.icon().isNull() for action in menu.actions())
+    gone = {"Recognize text (AI)", "Recognize table (AI)", "Recognize text (OCR)", "OCR + translate"}
+    assert not any(item.text() in gone for item in window.findChildren(QPushButton))
+    window.close()
+
+
 def test_preview_window_saves_jpeg_and_avif_formats(
     qapp: QApplication,  # noqa: ARG001
     tmp_path: Path,
