@@ -45,9 +45,9 @@ from harrix_swiss_knife.actions.files.check_musicbee_playlists import OnCheckMus
 from harrix_swiss_knife.actions.files.clean_temporary import OnCleanTemporary
 from harrix_swiss_knife.actions.files.close_all_adobe import OnCloseAllAdobe
 from harrix_swiss_knife.actions.files.combine_for_ai import OnCombineForAI
-from harrix_swiss_knife.actions.files.convert_path_to_windows import OnConvertPathToWindows
 from harrix_swiss_knife.actions.files.discard_git_changes import OnDiscardGitChanges
 from harrix_swiss_knife.actions.files.extract_zip_archives import OnExtractZipArchives
+from harrix_swiss_knife.actions.files.flip_slashes import OnFlipSlashes
 from harrix_swiss_knife.actions.files.git_commit_message import OnGitCommitMessage
 from harrix_swiss_knife.actions.files.list_files_current_folder import OnListFilesCurrentFolder
 from harrix_swiss_knife.actions.files.list_files_simple import OnListFilesSimple
@@ -226,7 +226,7 @@ def get_menu_structure() -> list[Any]:
                 OnCleanTemporary,
                 OnExtractZipArchives,
                 OnCombineForAI,
-                OnConvertPathToWindows,
+                OnFlipSlashes,
                 OnDiscardGitChanges,
                 OnListFilesSimple,
                 OnListFilesSimpleIgnoreHiddenFolders,

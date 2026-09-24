@@ -34,7 +34,7 @@ def test_collect_quick_launcher_actions_finds_marked_actions() -> None:
     assert len(actions) == 15
     assert {cls.__name__ for cls in actions} == {
         "OnCloseAllAdobe",
-        "OnConvertPathToWindows",
+        "OnFlipSlashes",
         "OnFixTextWithAI",
         "OnRewriteTextWithAI",
         "OnSpeechToTextWithAI",

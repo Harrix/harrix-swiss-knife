@@ -110,7 +110,7 @@ def get_menu_structure() -> list[Any]:
                 OnCleanTemporary,
                 OnExtractZipArchives,
                 OnCombineForAI,
-                OnConvertPathToWindows,
+                OnFlipSlashes,
                 OnDiscardGitChanges,
                 OnListFilesSimple,
                 OnListFilesSimpleIgnoreHiddenFolders,
