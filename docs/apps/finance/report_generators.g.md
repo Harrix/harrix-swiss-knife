@@ -226,7 +226,11 @@ def get_monthly_income_year_delta_report_data(ctx: ReportBuildContext) -> tuple[
 Build monthly income compared with the same month in previous years.
 
 Rows are January — December. The first data column is this calendar year.
-The next columns are deltas versus last year, the year before that, and so on.
+Before December, the next column is last year and shows only months that have
+not started yet; that column is omitted from TOTAL. Later columns are deltas.
+Each delta cell's second line is the amount the delta is measured against.
+Months that have not started yet compare last year with older years, and those
+deltas stay out of TOTAL.
 
 <details>
 <summary>Code:</summary>
@@ -238,9 +242,11 @@ def get_monthly_income_year_delta_report_data(
     db_manager = ctx.db_manager
     currency_code: str = db_manager.get_default_currency()
     monthly = db_manager.get_monthly_income_totals(ctx.currency_id)
-    today = datetime.now(UTC).astimezone()
+    today = _report_today()
     current_year = today.year
     current_month = today.month
+    previous_year = current_year - 1
+    show_remainder = current_month < _MONTHS_IN_YEAR
 
     years_with_data: set[int] = set()
     for month_key in monthly:
@@ -250,7 +256,10 @@ def get_monthly_income_year_delta_report_data(
     years_with_data.add(current_year)
     previous_years = sorted((year for year in years_with_data if year < current_year), reverse=True)
 
-    headers = ["Month", str(current_year), *[f"vs {year}" for year in previous_years]]
+    headers = ["Month", str(current_year)]
+    if show_remainder:
+        headers.append(str(previous_year))
+    headers.extend(f"vs {year}" for year in previous_years)
 
     def income_for(year: int, month: int) -> float:
         return monthly.get(f"{year}-{month:02d}", 0.0)
@@ -262,26 +271,49 @@ def get_monthly_income_year_delta_report_data(
         sign = "+" if amount > 0 else ""
         return f"{sign}{amount:.2f} {currency_code}"
 
+    def delta_cell(reference: float, baseline: float) -> str:
+        return f"{format_delta(reference - baseline)}\n{format_amount(baseline)}"
+
     report_data: list[list[str]] = []
     total_current = 0.0
     total_deltas = [0.0] * len(previous_years)
+    total_baselines = [0.0] * len(previous_years)
 
-    for month in range(1, 13):
+    for month in range(1, _MONTHS_IN_YEAR + 1):
         month_name = _MONTH_NAMES[month - 1]
-        if month > current_month:
-            report_data.append([month_name, "—", *["—" for _ in previous_years]])
-            continue
-
-        current_income = income_for(current_year, month)
-        total_current += current_income
-        row = [month_name, format_amount(current_income)]
+        elapsed = month <= current_month
+        row = [month_name]
+        if elapsed:
+            current_income = income_for(current_year, month)
+            total_current += current_income
+            row.append(format_amount(current_income))
+        else:
+            row.append("—")
+        if show_remainder:
+            if elapsed:
+                row.append("—")
+            else:
+                row.append(format_amount(income_for(previous_year, month)))
+        reference = income_for(current_year, month) if elapsed else income_for(previous_year, month)
         for index, year in enumerate(previous_years):
-            delta = current_income - income_for(year, month)
-            total_deltas[index] += delta
-            row.append(format_delta(delta))
+            if not elapsed and year == previous_year:
+                row.append("—")
+                continue
+            baseline = income_for(year, month)
+            row.append(delta_cell(reference, baseline))
+            if elapsed:
+                total_deltas[index] += reference - baseline
+                total_baselines[index] += baseline
         report_data.append(row)
 
-    report_data.append(["TOTAL", format_amount(total_current), *[format_delta(delta) for delta in total_deltas]])
+    total_row = ["TOTAL", format_amount(total_current)]
+    if show_remainder:
+        total_row.append("—")
+    total_row.extend(
+        f"{format_delta(delta_sum)}\n{format_amount(baseline_sum)}"
+        for delta_sum, baseline_sum in zip(total_deltas, total_baselines, strict=True)
+    )
+    report_data.append(total_row)
     return headers, report_data
 ```
 

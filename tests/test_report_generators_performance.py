@@ -162,7 +162,10 @@ def _salary_category_id(finance_db: DatabaseManager) -> int:
     return int(rows[0][0])
 
 
-def test_monthly_income_year_delta_compares_same_month(finance_db: DatabaseManager) -> None:
+def test_monthly_income_year_delta_compares_same_month(
+    finance_db: DatabaseManager,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     today = datetime.now(UTC).astimezone()
     current_year = today.year
     last_year = current_year - 1
@@ -172,11 +175,14 @@ def test_monthly_income_year_delta_compares_same_month(finance_db: DatabaseManag
         str(row[0]) for row in finance_db.get_rows("SELECT date FROM exchange_rates WHERE _id_currency = 1")
     }
     for year in (two_years_ago, last_year, current_year):
-        rate_date = f"{year}-01-01"
-        if rate_date not in existing_rate_dates:
-            finance_db.add_exchange_rate(1, 90.0, rate_date)
+        for rate_date in (f"{year}-01-01", f"{year}-12-01"):
+            if rate_date not in existing_rate_dates:
+                finance_db.add_exchange_rate(1, 90.0, rate_date)
+                existing_rate_dates.add(rate_date)
     finance_db.add_transaction(1000.0, "Salary", salary_id, 1, f"{two_years_ago}-01-15")
+    finance_db.add_transaction(500.0, "Salary", salary_id, 1, f"{two_years_ago}-12-15")
     finance_db.add_transaction(1200.0, "Salary", salary_id, 1, f"{last_year}-01-15")
+    finance_db.add_transaction(800.0, "Salary", salary_id, 1, f"{last_year}-12-15")
     finance_db.add_transaction(1500.0, "Salary", salary_id, 1, f"{current_year}-01-15")
 
     currencies_by_code, currencies_by_id = finance_db.get_all_currencies_map()
@@ -188,20 +194,36 @@ def test_monthly_income_year_delta_compares_same_month(finance_db: DatabaseManag
         currencies_by_id=currencies_by_id,
     )
 
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.finance.report_generators._report_today",
+        lambda: today.replace(month=9, day=15),
+    )
     headers, rows = get_monthly_income_year_delta_report_data(ctx)
-    assert headers[:3] == ["Month", str(current_year), f"vs {last_year}"]
+    assert headers[:4] == ["Month", str(current_year), str(last_year), f"vs {last_year}"]
     assert f"vs {two_years_ago}" in headers
     january = next(row for row in rows if row[0] == "January")
     assert january[1] == "1500.00 RUB"
-    assert january[2] == "+300.00 RUB"
-    assert january[3] == "+500.00 RUB"
-    if today.month < 12:
-        december = next(row for row in rows if row[0] == "December")
-        assert december[1:] == ["—"] * (len(headers) - 1)
+    assert january[2] == "—"
+    assert january[3] == "+300.00 RUB\n1200.00 RUB"
+    assert january[4] == "+500.00 RUB\n1000.00 RUB"
+    december = next(row for row in rows if row[0] == "December")
+    assert december[1] == "—"
+    assert december[2] == "800.00 RUB"
+    assert december[3] == "—"
+    assert december[4] == "+300.00 RUB\n500.00 RUB"
     assert rows[-1][0] == "TOTAL"
     assert rows[-1][1] == "1500.00 RUB"
-    assert rows[-1][2] == "+300.00 RUB"
-    assert rows[-1][3] == "+500.00 RUB"
+    assert rows[-1][2] == "—"
+    assert rows[-1][3] == "+300.00 RUB\n1200.00 RUB"
+    assert rows[-1][4] == "+500.00 RUB\n1000.00 RUB"
+
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.finance.report_generators._report_today",
+        lambda: today.replace(month=12, day=15),
+    )
+    december_headers, _december_rows = get_monthly_income_year_delta_report_data(ctx)
+    assert december_headers[:3] == ["Month", str(current_year), f"vs {last_year}"]
+    assert str(last_year) not in december_headers
 
 
 def test_report_types_include_monthly_income_year_delta() -> None:

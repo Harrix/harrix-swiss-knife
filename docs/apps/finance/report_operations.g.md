@@ -156,20 +156,32 @@ class ReportOperations:
             else:
                 for column, item in enumerate(items[1:], start=1):
                     text = str(row_data[column]) if column < len(row_data) else ""
-                    if text in {"", "—"}:
+                    first_line = text.split("\n", 1)[0]
+                    if first_line in {"", "—"}:
+                        continue
+                    header = headers[column] if column < len(headers) else ""
+                    if header.isdigit():
+                        color = QColor(255, 250, 205) if column == 1 else QColor(220, 235, 255)
+                        item.setBackground(QBrush(color))
                         continue
                     try:
-                        amount = float(text.replace("+", "").split(maxsplit=1)[0])
+                        amount = float(first_line.replace("+", "").split(maxsplit=1)[0])
                     except (ValueError, IndexError):
                         continue
-                    if column == 1:
-                        item.setBackground(QBrush(QColor(255, 250, 205)))
-                    elif amount > 0:
+                    if amount > 0:
                         item.setBackground(QBrush(QColor(200, 255, 200)))
                     elif amount < 0:
                         item.setBackground(QBrush(QColor(255, 200, 200)))
             model.appendRow(items)
         self._set_reports_model_and_stretch(model)
+        delegate = YearDeltaCellDelegate(self.tableView_reports)
+        for column in range(1, model.columnCount()):
+            self.tableView_reports.setItemDelegateForColumn(column, delegate)
+        reports_header = self.tableView_reports.horizontalHeader()
+        for column in range(reports_header.count()):
+            reports_header.setSectionResizeMode(column, reports_header.ResizeMode.Interactive)
+        self.tableView_reports.resizeColumnsToContents()
+        self.tableView_reports.resizeRowsToContents()
 
     def _apply_monthly_summary_report(
         self,
