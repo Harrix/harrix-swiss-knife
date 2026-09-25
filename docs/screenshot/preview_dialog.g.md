@@ -217,6 +217,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         undo_shortcut = QShortcut(QKeySequence.StandardKey.Undo, self)
         undo_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
         undo_shortcut.activated.connect(self._undo)
+        self._install_zoom_shortcuts()
         apply_app_window_size_and_position(self)
         QTimer.singleShot(0, self._refit_tools_host)
 
@@ -433,6 +434,20 @@ class ScreenshotPreviewWindow(QMainWindow):
             self._status.setText("Desktop folder not found")
             return None
         return Path(desktop) / "Screenshots"
+
+    def _install_zoom_shortcuts(self) -> None:
+        """Zoom with Ctrl++ and Ctrl+-, including Shift on the main plus key."""
+        self._zoom_shortcuts: list[QShortcut] = []
+        for sequence in _zoom_in_sequences():
+            shortcut = QShortcut(sequence, self)
+            shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
+            shortcut.activated.connect(self._zoom_in)
+            self._zoom_shortcuts.append(shortcut)
+        for sequence in _zoom_out_sequences():
+            shortcut = QShortcut(sequence, self)
+            shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
+            shortcut.activated.connect(self._zoom_out)
+            self._zoom_shortcuts.append(shortcut)
 
     def _on_color_hovered(self, color: object) -> None:
         tab = self._current_tab()
@@ -806,6 +821,16 @@ class ScreenshotPreviewWindow(QMainWindow):
             self.setWindowTitle(f"{_DEFAULT_TITLE} — {tab.saved_name}")
             return
         self.setWindowTitle(_DEFAULT_TITLE)
+
+    def _zoom_in(self) -> None:
+        tab = self._current_tab()
+        if tab is not None:
+            tab.canvas.zoom_in()
+
+    def _zoom_out(self) -> None:
+        tab = self._current_tab()
+        if tab is not None:
+            tab.canvas.zoom_out()
 ```
 
 </details>
@@ -1003,6 +1028,7 @@ def __init__(self, parent: QWidget | None = None) -> None:
         undo_shortcut = QShortcut(QKeySequence.StandardKey.Undo, self)
         undo_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
         undo_shortcut.activated.connect(self._undo)
+        self._install_zoom_shortcuts()
         apply_app_window_size_and_position(self)
         QTimer.singleShot(0, self._refit_tools_host)
 ```

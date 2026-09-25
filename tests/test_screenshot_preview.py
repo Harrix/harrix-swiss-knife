@@ -10,6 +10,7 @@ from pathlib import Path
 import pytest
 from PySide6.QtCore import QPoint, QPointF, QRect, QStandardPaths, Qt
 from PySide6.QtGui import QColor, QImage, QKeyEvent, QMouseEvent
+from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QFileDialog, QPushButton, QStyle, QTabWidget
 
 from harrix_swiss_knife.apps.common.qt_main_window import compute_app_window_geometry
@@ -21,7 +22,7 @@ from harrix_swiss_knife.screenshot.annotations import (
     AnnotationTool,
 )
 from harrix_swiss_knife.screenshot.dated_image_path import images_folder, next_dated_image_path
-from harrix_swiss_knife.screenshot.preview_canvas import ScreenshotPreviewCanvas
+from harrix_swiss_knife.screenshot.preview_canvas import _ZOOM_STEP, ScreenshotPreviewCanvas
 from harrix_swiss_knife.screenshot.preview_dialog import (
     _MIN_WINDOW_WIDTH,
     ScreenshotPreviewWindow,
@@ -126,6 +127,34 @@ def _widget_pos_for_image_pixel(canvas: ScreenshotPreviewCanvas, x: float, y: fl
     )
 
 
+def test_eyedropper_zoom_draws_unsmoothed_pixels(qapp: QApplication) -> None:
+    image = QImage(2, 1, QImage.Format.Format_RGB32)
+    image.setPixelColor(0, 0, QColor("#ff0000"))
+    image.setPixelColor(1, 0, QColor("#0000ff"))
+    canvas = ScreenshotPreviewCanvas(image)
+    canvas.resize(200, 100)
+    canvas.set_document(AnnotationDocument(image))
+    canvas.zoom_by(40.0)
+    canvas.set_tool(AnnotationTool.NONE)
+    assert not canvas._crisp_source_pixels()
+    canvas.set_tool(AnnotationTool.EYEDROPPER)
+    qapp.processEvents()
+    assert canvas._crisp_source_pixels()
+    rect = canvas._image_rect()
+    grabbed = canvas.grab()
+    pixels = grabbed.toImage()
+    ratio = grabbed.devicePixelRatio()
+    pixel_w = rect.width() / 2.0
+    y = int(rect.center().y() * ratio)
+    left_x = int((rect.left() + pixel_w - 2) * ratio)
+    right_x = int((rect.left() + pixel_w + 2) * ratio)
+    left = pixels.pixelColor(left_x, y)
+    right = pixels.pixelColor(right_x, y)
+    assert (left.red(), left.green(), left.blue()) == (255, 0, 0)
+    assert (right.red(), right.green(), right.blue()) == (0, 0, 255)
+    canvas.close()
+
+
 def test_eyedropper_samples_visible_pixel(qapp: QApplication) -> None:
     image = QImage(20, 10, QImage.Format.Format_RGB32)
     image.fill(QColor("#112233"))
@@ -195,6 +224,30 @@ def test_double_click_restores_large_image_without_upscaling(qapp: QApplication)
     assert again.width() == pytest.approx(rect.width())
     assert again.height() == pytest.approx(rect.height())
     canvas.close()
+
+
+def test_ctrl_plus_and_minus_zoom_like_wheel(qapp: QApplication) -> None:
+    image = QImage(40, 20, QImage.Format.Format_RGB32)
+    image.fill(Qt.GlobalColor.red)
+    window = show_screenshot_preview(image)
+    window.show()
+    qapp.processEvents()
+    tab = window._current_tab()
+    assert tab is not None
+    assert tab.canvas.zoom == pytest.approx(1.0)
+    QTest.keyClick(window, Qt.Key.Key_Plus, Qt.KeyboardModifier.ControlModifier)
+    assert tab.canvas.zoom == pytest.approx(_ZOOM_STEP)
+    QTest.keyClick(window, Qt.Key.Key_Minus, Qt.KeyboardModifier.ControlModifier)
+    assert tab.canvas.zoom == pytest.approx(1.0)
+    QTest.keyClick(
+        window,
+        Qt.Key.Key_Equal,
+        Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.ShiftModifier,
+    )
+    assert tab.canvas.zoom == pytest.approx(_ZOOM_STEP)
+    QTest.keyClick(window, Qt.Key.Key_Minus, Qt.KeyboardModifier.ControlModifier)
+    assert tab.canvas.zoom == pytest.approx(1.0)
+    window.close()
 
 
 def test_preview_canvas_zoom_changes_factor(qapp: QApplication) -> None:  # noqa: ARG001

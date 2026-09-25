@@ -76,7 +76,7 @@ _SNAP_GUIDE_COLOR = QColor(255, 0, 200, 220)
 
 
 class ScreenshotPreviewCanvas(QWidget):
-    """Show an image fitted with aspect ratio; Ctrl+wheel zooms; middle-drag pans.
+    """Show an image fitted with aspect ratio; Ctrl+wheel and Ctrl++ / Ctrl+- zoom; middle-drag pans.
 
     Left-drag draws with the active `AnnotationTool` when a document is attached.
     Crop mode uses the same dimmed blue selection frame as region capture.
@@ -533,10 +533,13 @@ class ScreenshotPreviewCanvas(QWidget):
     def paintEvent(self, event: QPaintEvent) -> None:  # noqa: ARG002, N802
         """Draw the fitted pixmap, live annotations, crop frame, and selection chrome."""
         painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, on=True)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
         image_rect = self._image_rect()
         if not self._pixmap.isNull():
+            painter.setRenderHint(
+                QPainter.RenderHint.SmoothPixmapTransform,
+                on=not self._crisp_source_pixels(),
+            )
             painter.drawPixmap(image_rect.toRect(), self._pixmap)
 
         if self._tool == AnnotationTool.CROP and not image_rect.isEmpty():
@@ -690,6 +693,14 @@ class ScreenshotPreviewCanvas(QWidget):
         self._sync_text_editor_geometry()
         self.update()
 
+    def zoom_in(self) -> None:
+        """Zoom in one step around the center, matching one Ctrl+wheel notch."""
+        self.zoom_by(_ZOOM_STEP)
+
+    def zoom_out(self) -> None:
+        """Zoom out one step around the center, matching one Ctrl+wheel notch."""
+        self.zoom_by(1.0 / _ZOOM_STEP)
+
     def _active_crop_rect(self) -> QRect | None:
         if self._crop_pending and self._crop_rect is not None:
             return self._crop_rect
@@ -828,6 +839,16 @@ class ScreenshotPreviewCanvas(QWidget):
         self._snap_x_guide = x_guide
         self._snap_y_guide = y_guide
         return snapped
+
+    def _crisp_source_pixels(self) -> bool:
+        """Draw enlarged eyedropper pixels as solid source colors, without smoothing."""
+        if self._tool != AnnotationTool.EYEDROPPER:
+            return False
+        rect = self._image_rect()
+        width, height = self._source_size()
+        if width <= 0 or height <= 0 or rect.isEmpty():
+            return False
+        return rect.width() > width or rect.height() > height
 
     def _crop_drag_rect(self) -> QRect | None:
         if self._crop_origin is None or self._crop_current is None:

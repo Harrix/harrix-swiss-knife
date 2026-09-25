@@ -109,7 +109,8 @@ _TABLE_AI_ICON = "table"
 _TRANSLATE_ICON = "languages"
 _STATUS_HINT = (
     "Tools: arrow / shapes / pen / text / eyedropper / crop · Click a shape to select · "
-    "Delete removes · Shift constrains · Undo · Ctrl+wheel zoom · Middle-drag pan · Ctrl+S save to images"
+    "Delete removes · Shift constrains · Undo · Ctrl+wheel, Ctrl++ or Ctrl+- zoom · "
+    "Middle-drag pan · Ctrl+S save to images"
 )
 _VK_S = 0x53
 _KEY_CYRILLIC_YERU = 0x042B  # Cyrillic yeru (same physical key as Latin S)  # ignore: HP001
@@ -318,6 +319,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         undo_shortcut = QShortcut(QKeySequence.StandardKey.Undo, self)
         undo_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
         undo_shortcut.activated.connect(self._undo)
+        self._install_zoom_shortcuts()
         apply_app_window_size_and_position(self)
         QTimer.singleShot(0, self._refit_tools_host)
 
@@ -534,6 +536,20 @@ class ScreenshotPreviewWindow(QMainWindow):
             self._status.setText("Desktop folder not found")
             return None
         return Path(desktop) / "Screenshots"
+
+    def _install_zoom_shortcuts(self) -> None:
+        """Zoom with Ctrl++ and Ctrl+-, including Shift on the main plus key."""
+        self._zoom_shortcuts: list[QShortcut] = []
+        for sequence in _zoom_in_sequences():
+            shortcut = QShortcut(sequence, self)
+            shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
+            shortcut.activated.connect(self._zoom_in)
+            self._zoom_shortcuts.append(shortcut)
+        for sequence in _zoom_out_sequences():
+            shortcut = QShortcut(sequence, self)
+            shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
+            shortcut.activated.connect(self._zoom_out)
+            self._zoom_shortcuts.append(shortcut)
 
     def _on_color_hovered(self, color: object) -> None:
         tab = self._current_tab()
@@ -908,6 +924,16 @@ class ScreenshotPreviewWindow(QMainWindow):
             return
         self.setWindowTitle(_DEFAULT_TITLE)
 
+    def _zoom_in(self) -> None:
+        tab = self._current_tab()
+        if tab is not None:
+            tab.canvas.zoom_in()
+
+    def _zoom_out(self) -> None:
+        tab = self._current_tab()
+        if tab is not None:
+            tab.canvas.zoom_out()
+
 
 class _ReduceSizeDialog(QDialog):
     """Ask for a smaller width and height, keeping the aspect ratio unless unlocked."""
@@ -1143,6 +1169,19 @@ def _suggested_save_path(tab: _ScreenshotTab, fmt: _ScreenshotFormat) -> str:
     return str(last_dir / filename)
 
 
+def _unique_key_sequences(sequences: list[QKeySequence]) -> tuple[QKeySequence, ...]:
+    """Drop blank and repeated shortcut texts, keeping the first of each."""
+    seen: set[str] = set()
+    result: list[QKeySequence] = []
+    for sequence in sequences:
+        text = sequence.toString()
+        if not text or text in seen:
+            continue
+        seen.add(text)
+        result.append(sequence)
+    return tuple(result)
+
+
 def _write_screenshot_file(image: QImage, path: Path, fmt: _ScreenshotFormat) -> None:
     """Write `image` to `path` as PNG, JPEG, or AVIF.
 
@@ -1186,6 +1225,25 @@ def _write_screenshot_file(image: QImage, path: Path, fmt: _ScreenshotFormat) ->
     if not path.is_file():
         msg = f"Could not save {path.name}"
         raise RuntimeError(msg)
+
+
+def _zoom_in_sequences() -> tuple[QKeySequence, ...]:
+    """Ctrl++, Ctrl+=, and Ctrl with Shift on the plus key."""
+    ctrl = Qt.KeyboardModifier.ControlModifier
+    shift = Qt.KeyboardModifier.ShiftModifier
+    return _unique_key_sequences(
+        [
+            *QKeySequence.keyBindings(QKeySequence.StandardKey.ZoomIn),
+            QKeySequence(ctrl | Qt.Key.Key_Equal),
+            QKeySequence(ctrl | shift | Qt.Key.Key_Equal),
+            QKeySequence(ctrl | shift | Qt.Key.Key_Plus),
+        ],
+    )
+
+
+def _zoom_out_sequences() -> tuple[QKeySequence, ...]:
+    """Ctrl+- for the minus key and the numpad minus."""
+    return _unique_key_sequences([*QKeySequence.keyBindings(QKeySequence.StandardKey.ZoomOut)])
 
 
 # Backward-compatible name used by older tests and imports.

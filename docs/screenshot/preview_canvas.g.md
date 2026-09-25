@@ -46,6 +46,8 @@ lang: en
   - [⚙️ Method `wheelEvent`](#%EF%B8%8F-method-wheelevent)
   - [⚙️ Method `zoom (property)`](#%EF%B8%8F-method-zoom-property)
   - [⚙️ Method `zoom_by`](#%EF%B8%8F-method-zoom_by)
+  - [⚙️ Method `zoom_in`](#%EF%B8%8F-method-zoom_in)
+  - [⚙️ Method `zoom_out`](#%EF%B8%8F-method-zoom_out)
 
 </details>
 
@@ -55,7 +57,7 @@ lang: en
 class ScreenshotPreviewCanvas(QWidget)
 ```
 
-Show an image fitted with aspect ratio; Ctrl+wheel zooms; middle-drag pans.
+Show an image fitted with aspect ratio; Ctrl+wheel and Ctrl++ / Ctrl+- zoom; middle-drag pans.
 
 Left-drag draws with the active [`AnnotationTool`](annotations.g.md#%EF%B8%8F-class-annotationtool) when a document is attached.
 Crop mode uses the same dimmed blue selection frame as region capture.
@@ -516,10 +518,13 @@ class ScreenshotPreviewCanvas(QWidget):
     def paintEvent(self, event: QPaintEvent) -> None:  # noqa: ARG002, N802
         """Draw the fitted pixmap, live annotations, crop frame, and selection chrome."""
         painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, on=True)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
         image_rect = self._image_rect()
         if not self._pixmap.isNull():
+            painter.setRenderHint(
+                QPainter.RenderHint.SmoothPixmapTransform,
+                on=not self._crisp_source_pixels(),
+            )
             painter.drawPixmap(image_rect.toRect(), self._pixmap)
 
         if self._tool == AnnotationTool.CROP and not image_rect.isEmpty():
@@ -673,6 +678,14 @@ class ScreenshotPreviewCanvas(QWidget):
         self._sync_text_editor_geometry()
         self.update()
 
+    def zoom_in(self) -> None:
+        """Zoom in one step around the center, matching one Ctrl+wheel notch."""
+        self.zoom_by(_ZOOM_STEP)
+
+    def zoom_out(self) -> None:
+        """Zoom out one step around the center, matching one Ctrl+wheel notch."""
+        self.zoom_by(1.0 / _ZOOM_STEP)
+
     def _active_crop_rect(self) -> QRect | None:
         if self._crop_pending and self._crop_rect is not None:
             return self._crop_rect
@@ -811,6 +824,16 @@ class ScreenshotPreviewCanvas(QWidget):
         self._snap_x_guide = x_guide
         self._snap_y_guide = y_guide
         return snapped
+
+    def _crisp_source_pixels(self) -> bool:
+        """Draw enlarged eyedropper pixels as solid source colors, without smoothing."""
+        if self._tool != AnnotationTool.EYEDROPPER:
+            return False
+        rect = self._image_rect()
+        width, height = self._source_size()
+        if width <= 0 or height <= 0 or rect.isEmpty():
+            return False
+        return rect.width() > width or rect.height() > height
 
     def _crop_drag_rect(self) -> QRect | None:
         if self._crop_origin is None or self._crop_current is None:
@@ -2071,10 +2094,13 @@ Draw the fitted pixmap, live annotations, crop frame, and selection chrome.
 ```python
 def paintEvent(self, event: QPaintEvent) -> None:  # noqa: ARG002, N802
         painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, on=True)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
         image_rect = self._image_rect()
         if not self._pixmap.isNull():
+            painter.setRenderHint(
+                QPainter.RenderHint.SmoothPixmapTransform,
+                on=not self._crisp_source_pixels(),
+            )
             painter.drawPixmap(image_rect.toRect(), self._pixmap)
 
         if self._tool == AnnotationTool.CROP and not image_rect.isEmpty():
@@ -2378,6 +2404,42 @@ def zoom_by(self, factor: float, *, anchor: QPointF | None = None) -> None:
         self._zoom = new_zoom
         self._sync_text_editor_geometry()
         self.update()
+```
+
+</details>
+
+### ⚙️ Method `zoom_in`
+
+```python
+def zoom_in(self) -> None
+```
+
+Zoom in one step around the center, matching one Ctrl+wheel notch.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def zoom_in(self) -> None:
+        self.zoom_by(_ZOOM_STEP)
+```
+
+</details>
+
+### ⚙️ Method `zoom_out`
+
+```python
+def zoom_out(self) -> None
+```
+
+Zoom out one step around the center, matching one Ctrl+wheel notch.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def zoom_out(self) -> None:
+        self.zoom_by(1.0 / _ZOOM_STEP)
 ```
 
 </details>
