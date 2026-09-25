@@ -42,7 +42,11 @@ class ScreenshotPreviewWindow(QMainWindow):
         self.setMinimumSize(_MIN_WINDOW_WIDTH, _MIN_WINDOW_HEIGHT)
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, on=True)
         self._text_settings = load_screenshot_text_settings()
-        color = QColor(self._text_settings.color)
+        self._tool_colors = load_tool_colors(self._text_settings.color)
+        self._color_tool = AnnotationTool.TEXT
+        text_color = self._tool_colors[AnnotationTool.TEXT.value]
+        self._text_settings.color = text_color
+        color = QColor(text_color)
         self._annotation_color = color if color.isValid() else QColor(_DEFAULT_ANNOTATION_COLOR)
         self._tool_buttons: dict[AnnotationTool, QToolButton] = {}
 
@@ -110,7 +114,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         tools_layout.addWidget(undo_button)
 
         self._color_button = QToolButton(tools_host)
-        self._color_button.setToolTip("Stroke color")
+        self._color_button.setToolTip("Tool color")
         self._color_button.setAutoRaise(False)
         self._color_button.setFixedSize(TOOLBAR_BUTTON_SIZE, TOOLBAR_BUTTON_SIZE)
         self._color_button.setIconSize(icon_size)
@@ -454,9 +458,9 @@ class ScreenshotPreviewWindow(QMainWindow):
         if tab is None or tab.canvas.tool != AnnotationTool.EYEDROPPER:
             return
         if not isinstance(color, QColor) or not color.isValid():
-            self._status.setText("Eyedropper: move over the screenshot · click to copy and use as stroke")
+            self._status.setText("Eyedropper: move over the screenshot · click to copy and use as the tool color")
             return
-        self._status.setText(f"{_format_pixel_color(color)} · click to copy and use as stroke")
+        self._status.setText(f"{_format_pixel_color(color)} · click to copy and use as the tool color")
 
     def _on_color_picked(self, color: QColor) -> None:
         if not color.isValid():
@@ -465,7 +469,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         clipboard = QApplication.clipboard()
         if clipboard is not None:
             clipboard.setText(color.name())
-        self._status.setText(f"Picked {_format_pixel_color(color)} · copied · set as stroke")
+        self._status.setText(f"Picked {_format_pixel_color(color)} · copied · set as the tool color")
 
     def _on_crop_mode_changed(self, active: bool) -> None:  # noqa: FBT001
         self._set_crop_chrome_visible(active=active)
@@ -526,6 +530,8 @@ class ScreenshotPreviewWindow(QMainWindow):
         color = QColor(settings.color)
         if color.isValid():
             self._annotation_color = color
+            self._tool_colors[AnnotationTool.TEXT.value] = color.name()
+            save_tool_colors(self._tool_colors)
             self._update_color_button()
         save_screenshot_text_settings(settings)
         tab = self._current_tab()
@@ -761,9 +767,12 @@ class ScreenshotPreviewWindow(QMainWindow):
         if not color.isValid():
             return
         self._annotation_color = QColor(color)
-        self._text_settings.color = color.name()
-        self._text_toolbar.set_settings(self._text_settings)
-        save_screenshot_text_settings(self._text_settings)
+        self._tool_colors[self._color_tool.value] = self._annotation_color.name()
+        save_tool_colors(self._tool_colors)
+        if self._color_tool == AnnotationTool.TEXT:
+            self._text_settings.color = self._annotation_color.name()
+            self._text_toolbar.set_settings(self._text_settings)
+            save_screenshot_text_settings(self._text_settings)
         self._update_color_button()
         tab = self._current_tab()
         if tab is not None:
@@ -784,6 +793,15 @@ class ScreenshotPreviewWindow(QMainWindow):
         button = self._tool_buttons.get(tool)
         if button is not None:
             button.setChecked(True)
+        if tool in COLOR_TOOLS:
+            self._color_tool = tool
+            saved = QColor(self._tool_colors.get(tool.value, ""))
+            if saved.isValid():
+                self._annotation_color = saved
+                if tool == AnnotationTool.TEXT:
+                    self._text_settings.color = saved.name()
+                    self._text_toolbar.set_settings(self._text_settings)
+                self._update_color_button()
         self._apply_tool_to_current()
         self._text_bar_host.setVisible(tool == AnnotationTool.TEXT)
         tip = next((item[2] for item in _TOOL_BUTTONS if item[0] == tool), tool.value)
@@ -808,7 +826,7 @@ class ScreenshotPreviewWindow(QMainWindow):
 
     def _update_color_button(self) -> None:
         self._color_button.setIcon(_color_swatch_icon(self._annotation_color, TOOLBAR_ICON_SIZE))
-        self._color_button.setToolTip(f"Stroke color ({self._annotation_color.name()})")
+        self._color_button.setToolTip(f"Color ({self._annotation_color.name()})")
 
     def _update_multi_tab_chrome(self) -> None:
         multi = self._tabs.count() > 1
@@ -853,7 +871,11 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self.setMinimumSize(_MIN_WINDOW_WIDTH, _MIN_WINDOW_HEIGHT)
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, on=True)
         self._text_settings = load_screenshot_text_settings()
-        color = QColor(self._text_settings.color)
+        self._tool_colors = load_tool_colors(self._text_settings.color)
+        self._color_tool = AnnotationTool.TEXT
+        text_color = self._tool_colors[AnnotationTool.TEXT.value]
+        self._text_settings.color = text_color
+        color = QColor(text_color)
         self._annotation_color = color if color.isValid() else QColor(_DEFAULT_ANNOTATION_COLOR)
         self._tool_buttons: dict[AnnotationTool, QToolButton] = {}
 
@@ -921,7 +943,7 @@ def __init__(self, parent: QWidget | None = None) -> None:
         tools_layout.addWidget(undo_button)
 
         self._color_button = QToolButton(tools_host)
-        self._color_button.setToolTip("Stroke color")
+        self._color_button.setToolTip("Tool color")
         self._color_button.setAutoRaise(False)
         self._color_button.setFixedSize(TOOLBAR_BUTTON_SIZE, TOOLBAR_BUTTON_SIZE)
         self._color_button.setIconSize(icon_size)

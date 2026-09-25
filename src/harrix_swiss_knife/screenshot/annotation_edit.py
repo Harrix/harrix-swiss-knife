@@ -25,7 +25,15 @@ from harrix_swiss_knife.screenshot.selection_paint import (
 AnnotationHandle = Literal["move", "start", "end", "n", "s", "e", "w", "ne", "nw", "se", "sw"]
 
 _ARROW_HEAD_HIT_MULT = 2.0
-_BOX_TOOLS = frozenset({AnnotationTool.ELLIPSE, AnnotationTool.PEN, AnnotationTool.RECTANGLE, AnnotationTool.TEXT})
+_BOX_TOOLS = frozenset(
+    {
+        AnnotationTool.ELLIPSE,
+        AnnotationTool.HIGHLIGHT,
+        AnnotationTool.PEN,
+        AnnotationTool.RECTANGLE,
+        AnnotationTool.TEXT,
+    }
+)
 _HIT_PADDING = 6.0
 _LINE_TOOLS = frozenset({AnnotationTool.ARROW, AnnotationTool.LINE})
 _MIN_BOX = 2.0
@@ -40,7 +48,12 @@ def annotation_bounds(annotation: Annotation) -> QRectF:
         return QRectF()
     if annotation.tool == AnnotationTool.TEXT:
         return text_annotation_rect(annotation)
-    if annotation.tool in {AnnotationTool.RECTANGLE, AnnotationTool.ELLIPSE, AnnotationTool.CROP}:
+    if annotation.tool in {
+        AnnotationTool.RECTANGLE,
+        AnnotationTool.ELLIPSE,
+        AnnotationTool.HIGHLIGHT,
+        AnnotationTool.CROP,
+    }:
         if len(points) < _MIN_SHAPE_POINTS:
             return QRectF(points[0], points[0])
         return QRectF(points[0], points[-1]).normalized()
@@ -74,9 +87,14 @@ def apply_annotation_edit(
         delta = current - press
         return [QPointF(p.x() + delta.x(), p.y() + delta.y()) for p in origin_points]
     new_rect = _transform_rect(origin_rect, handle, press, current)
-    if shift and annotation.tool in {AnnotationTool.ELLIPSE, AnnotationTool.RECTANGLE}:
+    if shift and annotation.tool in {AnnotationTool.ELLIPSE, AnnotationTool.HIGHLIGHT, AnnotationTool.RECTANGLE}:
         new_rect = _square_rect_from_handle(origin_rect, new_rect, handle)
-    if annotation.tool in {AnnotationTool.RECTANGLE, AnnotationTool.ELLIPSE, AnnotationTool.TEXT}:
+    if annotation.tool in {
+        AnnotationTool.RECTANGLE,
+        AnnotationTool.ELLIPSE,
+        AnnotationTool.HIGHLIGHT,
+        AnnotationTool.TEXT,
+    }:
         return [new_rect.topLeft(), new_rect.bottomRight()]
     return _map_points_from_rect(origin_points, origin_rect, new_rect)
 
@@ -118,6 +136,9 @@ def hit_test_annotation(
         return None
     if annotation.tool == AnnotationTool.ELLIPSE:
         return "move" if _hit_ellipse_stroke(bounds, pos, padding) else None
+    if annotation.tool == AnnotationTool.HIGHLIGHT:
+        inflated = bounds.adjusted(-padding, -padding, padding, padding)
+        return "move" if inflated.contains(pos) else None
     if annotation.tool == AnnotationTool.RECTANGLE:
         return "move" if _hit_rect_stroke(bounds, pos, padding) else None
     if annotation.tool == AnnotationTool.TEXT:

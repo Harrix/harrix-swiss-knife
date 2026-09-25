@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 ANNOTATION_SNAP_THRESHOLD = 8.0
 
-_BOX_SHIFT_TOOLS = frozenset({AnnotationTool.ELLIPSE, AnnotationTool.RECTANGLE})
+_BOX_SHIFT_TOOLS = frozenset({AnnotationTool.ELLIPSE, AnnotationTool.HIGHLIGHT, AnnotationTool.RECTANGLE})
 _LINE_TOOLS = frozenset({AnnotationTool.ARROW, AnnotationTool.LINE})
 _MIN_BOX = 2.0
 _MIN_SHAPE_POINTS = 2
@@ -220,7 +220,7 @@ def _snap_box_handles(
     elif "s" in handle:
         bottom, y_guide = _snap_value(bottom, y_guides, threshold)
     snapped = _enforce_min_size(QRectF(QPointF(left, top), QPointF(right, bottom)).normalized(), handle)
-    if annotation.tool in {AnnotationTool.ELLIPSE, AnnotationTool.RECTANGLE}:
+    if annotation.tool in {AnnotationTool.ELLIPSE, AnnotationTool.HIGHLIGHT, AnnotationTool.RECTANGLE}:
         return AnnotationSnapResult([snapped.topLeft(), snapped.bottomRight()], x_guide, y_guide)
     return AnnotationSnapResult(_map_points_from_rect(points, origin, snapped), x_guide, y_guide)
 

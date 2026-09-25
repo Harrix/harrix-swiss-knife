@@ -186,6 +186,30 @@ def test_shift_makes_rectangle_square() -> None:
     assert end.y() == pytest.approx(30.0)
 
 
+def test_highlight_is_translucent_and_selectable() -> None:
+    doc = AnnotationDocument(_blank())
+    doc.begin_draft(
+        Annotation(
+            tool=AnnotationTool.HIGHLIGHT,
+            points=[QPointF(10, 10), QPointF(30, 20)],
+            style=AnnotationStyle(color=QColor("#ff0000")),
+        )
+    )
+    assert doc.commit_draft()
+    rendered = doc.render()
+    center = rendered.pixelColor(20, 15)
+    outside = rendered.pixelColor(2, 2)
+    assert center.red() == 255
+    assert center.green() < 200
+    assert center.blue() < 200
+    assert (outside.red(), outside.green(), outside.blue()) == (255, 255, 255)
+    highlight = doc.annotations[0]
+    assert hit_test_annotation(highlight, QPointF(20, 15), handle_size=8) == "move"
+    end = constrain_shape_end(AnnotationTool.HIGHLIGHT, QPointF(10, 10), QPointF(50, 30), shift=True)
+    assert end.x() == pytest.approx(30.0)
+    assert end.y() == pytest.approx(30.0)
+
+
 def test_shift_pen_ignores_constraint() -> None:
     start = QPointF(10, 10)
     raw = QPointF(50, 30)

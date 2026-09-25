@@ -23,6 +23,7 @@ _MIN_CROP_SIZE = 2
 _MIN_SHAPE_POINTS = 2
 _MIN_DRAG_MANHATTAN = 3
 _SHIFT_ANGLE_STEP = math.pi / 4
+_HIGHLIGHT_ALPHA = 96
 
 
 @dataclass(slots=True)
@@ -224,6 +225,7 @@ class AnnotationTool(Enum):
     ELLIPSE = "ellipse"
     LINE = "line"
     PEN = "pen"
+    HIGHLIGHT = "highlight"
     TEXT = "text"
     CROP = "crop"
     EYEDROPPER = "eyedropper"
@@ -283,6 +285,13 @@ def paint_annotation(painter: QPainter, annotation: Annotation) -> None:
         _draw_filled_arrow(painter, start, end, annotation.style.color, annotation.style.width)
         return
     rect = QRectF(start, end).normalized()
+    if tool == AnnotationTool.HIGHLIGHT:
+        fill = QColor(annotation.style.color)
+        fill.setAlpha(_HIGHLIGHT_ALPHA)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(fill)
+        painter.drawRect(rect)
+        return
     if tool == AnnotationTool.RECTANGLE:
         painter.drawRect(rect)
         return
@@ -477,4 +486,4 @@ def _snap_end_to_square(start: QPointF, end: QPointF) -> QPointF:
 
 
 _LINE_SHIFT_TOOLS = frozenset({AnnotationTool.ARROW, AnnotationTool.LINE})
-_SQUARE_SHIFT_TOOLS = frozenset({AnnotationTool.ELLIPSE, AnnotationTool.RECTANGLE})
+_SQUARE_SHIFT_TOOLS = frozenset({AnnotationTool.ELLIPSE, AnnotationTool.HIGHLIGHT, AnnotationTool.RECTANGLE})

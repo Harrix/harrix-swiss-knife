@@ -32,6 +32,7 @@ from harrix_swiss_knife.screenshot.preview_dialog import (
     _ReduceSizeDialog,
     show_screenshot_preview,
 )
+from harrix_swiss_knife.screenshot.tool_colors import load_tool_colors, save_tool_colors
 
 
 @pytest.fixture
@@ -153,6 +154,64 @@ def test_eyedropper_zoom_draws_unsmoothed_pixels(qapp: QApplication) -> None:
     assert (left.red(), left.green(), left.blue()) == (255, 0, 0)
     assert (right.red(), right.green(), right.blue()) == (0, 0, 255)
     canvas.close()
+
+
+def test_each_drawing_tool_keeps_its_own_color(
+    qapp: QApplication,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    stored = {
+        "arrow": "#111111",
+        "rectangle": "#de2b26",
+        "ellipse": "#de2b26",
+        "line": "#de2b26",
+        "pen": "#de2b26",
+        "text": "#222222",
+        "highlight": "#ffe14a",
+    }
+
+    def save(colors: dict[str, str]) -> None:
+        stored.clear()
+        stored.update(colors)
+
+    monkeypatch.setattr(preview_dialog_module, "load_tool_colors", lambda _text_color: dict(stored))
+    monkeypatch.setattr(preview_dialog_module, "save_tool_colors", save)
+    image = QImage(20, 10, QImage.Format.Format_RGB32)
+    image.fill(Qt.GlobalColor.white)
+    window = show_screenshot_preview(image)
+    assert AnnotationTool.HIGHLIGHT in window._tool_buttons
+    assert window._annotation_color.name() == "#222222"
+    window._set_tool(AnnotationTool.HIGHLIGHT)
+    assert window._annotation_color.name() == "#ffe14a"
+    window._set_annotation_color(QColor("#00aa00"))
+    assert stored["highlight"] == "#00aa00"
+    assert stored["text"] == "#222222"
+    assert stored["arrow"] == "#111111"
+    window._set_tool(AnnotationTool.ARROW)
+    assert window._annotation_color.name() == "#111111"
+    window._set_tool(AnnotationTool.HIGHLIGHT)
+    assert window._annotation_color.name() == "#00aa00"
+    window._set_tool(AnnotationTool.TEXT)
+    assert window._annotation_color.name() == "#222222"
+    window.close()
+
+
+def test_tool_colors_roundtrip_in_config_temp(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+    (config_dir / "config.json").write_text("{}", encoding="utf-8")
+    (config_dir / "config-temp.json").write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(preview_dialog_module.h.dev, "get_project_root", lambda: tmp_path)
+    colors = load_tool_colors("#336699")
+    assert colors["text"] == "#336699"
+    assert colors["highlight"] == "#ffe14a"
+    colors["highlight"] = "#00aa00"
+    colors["arrow"] = "#111111"
+    save_tool_colors(colors)
+    loaded = load_tool_colors("#000000")
+    assert loaded["highlight"] == "#00aa00"
+    assert loaded["arrow"] == "#111111"
+    assert loaded["text"] == "#336699"
 
 
 def test_eyedropper_samples_visible_pixel(qapp: QApplication) -> None:

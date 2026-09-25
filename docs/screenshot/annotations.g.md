@@ -680,6 +680,7 @@ class AnnotationTool(Enum):
     ELLIPSE = "ellipse"
     LINE = "line"
     PEN = "pen"
+    HIGHLIGHT = "highlight"
     TEXT = "text"
     CROP = "crop"
     EYEDROPPER = "eyedropper"
@@ -757,6 +758,13 @@ def paint_annotation(painter: QPainter, annotation: Annotation) -> None:
         _draw_filled_arrow(painter, start, end, annotation.style.color, annotation.style.width)
         return
     rect = QRectF(start, end).normalized()
+    if tool == AnnotationTool.HIGHLIGHT:
+        fill = QColor(annotation.style.color)
+        fill.setAlpha(_HIGHLIGHT_ALPHA)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(fill)
+        painter.drawRect(rect)
+        return
     if tool == AnnotationTool.RECTANGLE:
         painter.drawRect(rect)
         return
