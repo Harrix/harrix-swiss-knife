@@ -50,6 +50,22 @@ class ScreenshotPreviewWindow(QMainWindow):
         self.setCentralWidget(central)
         root = QVBoxLayout(central)
 
+        self._tabs = QTabWidget(central)
+        self._tabs.setTabsClosable(True)
+        self._tabs.setDocumentMode(True)
+        self._tabs.setStyleSheet("QTabWidget::pane { border: none; background: transparent; }")
+        self._tabs.tabCloseRequested.connect(self._close_tab_at)
+        self._tabs.currentChanged.connect(self._on_tab_changed)
+        tab_bar = self._tabs.tabBar()
+        tab_bar.setParent(central)
+        tab_bar.setDrawBase(False)
+        tab_bar.setAutoFillBackground(False)
+        tab_bar.setExpanding(False)
+        tab_bar.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
+        tab_bar.setStyleSheet("QTabBar { background: transparent; }")
+        self._tab_bar = tab_bar
+        root.addWidget(tab_bar)
+
         tools_host = QWidget(central)
         tools_layout = FlowLayout(
             tools_host,
@@ -125,12 +141,6 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._text_bar_host = text_bar_host
         text_bar_host.hide()
         root.addWidget(text_bar_host)
-
-        self._tabs = QTabWidget(central)
-        self._tabs.setTabsClosable(True)
-        self._tabs.setDocumentMode(True)
-        self._tabs.tabCloseRequested.connect(self._close_tab_at)
-        self._tabs.currentChanged.connect(self._on_tab_changed)
         root.addWidget(self._tabs, stretch=1)
 
         footer = QVBoxLayout()
@@ -649,12 +659,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         if tab is None:
             return
         suffix = _format_suffix(fmt)
-        if tab.saved_as_path is not None:
-            suggested = str(tab.saved_as_path.with_suffix(suffix))
-        elif tab.saved_name:
-            suggested = str(Path(tab.saved_name).with_suffix(suffix))
-        else:
-            suggested = f"screenshot{suffix}"
+        suggested = _suggested_save_path(tab, fmt)
         file_filter = next(item[2] for item in _SAVE_FORMATS if item[0] == fmt)
         path_str, _selected_filter = QFileDialog.getSaveFileName(
             self,
@@ -674,6 +679,7 @@ class ScreenshotPreviewWindow(QMainWindow):
             return
         tab.saved_as_path = path.resolve()
         tab.saved_name = path.name
+        _remember_last_save_dir(path.parent)
         index = self._tabs.currentIndex()
         self._tabs.setTabText(index, path.name)
         self._status.setText(f"Saved: {path}")
@@ -830,6 +836,22 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self.setCentralWidget(central)
         root = QVBoxLayout(central)
 
+        self._tabs = QTabWidget(central)
+        self._tabs.setTabsClosable(True)
+        self._tabs.setDocumentMode(True)
+        self._tabs.setStyleSheet("QTabWidget::pane { border: none; background: transparent; }")
+        self._tabs.tabCloseRequested.connect(self._close_tab_at)
+        self._tabs.currentChanged.connect(self._on_tab_changed)
+        tab_bar = self._tabs.tabBar()
+        tab_bar.setParent(central)
+        tab_bar.setDrawBase(False)
+        tab_bar.setAutoFillBackground(False)
+        tab_bar.setExpanding(False)
+        tab_bar.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
+        tab_bar.setStyleSheet("QTabBar { background: transparent; }")
+        self._tab_bar = tab_bar
+        root.addWidget(tab_bar)
+
         tools_host = QWidget(central)
         tools_layout = FlowLayout(
             tools_host,
@@ -905,12 +927,6 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self._text_bar_host = text_bar_host
         text_bar_host.hide()
         root.addWidget(text_bar_host)
-
-        self._tabs = QTabWidget(central)
-        self._tabs.setTabsClosable(True)
-        self._tabs.setDocumentMode(True)
-        self._tabs.tabCloseRequested.connect(self._close_tab_at)
-        self._tabs.currentChanged.connect(self._on_tab_changed)
         root.addWidget(self._tabs, stretch=1)
 
         footer = QVBoxLayout()

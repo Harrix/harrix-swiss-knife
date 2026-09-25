@@ -36,6 +36,7 @@ from harrix_swiss_knife.actions.common.text_result_dialog import (
     OK_BUTTON_LABEL,
 )
 from harrix_swiss_knife.apps.common.qt_main_window import apply_app_window_size_and_position
+from harrix_swiss_knife.paths import get_config_path_str, get_temp_config_path
 from harrix_swiss_knife.qt_flow_layout import FlowLayout
 from harrix_swiss_knife.qt_lucide_icon import (
     AI_BUTTON_ICON,
@@ -81,6 +82,7 @@ _SAVE_DESKTOP_BUTTON_ICON = "monitor"
 _SAVE_DESKTOP_BUTTON_LABEL = "Save to desktop"
 _SAVE_ALL_DESKTOP_BUTTON_ICON = "images"
 _SAVE_ALL_DESKTOP_BUTTON_LABEL = "Save all to desktop"
+_LAST_SAVE_DIR_KEY = "screenshot_last_save_dir"
 _ScreenshotFormat = Literal["png", "jpeg", "avif_hq", "avif_optimized"]
 _SAVE_FORMATS: tuple[tuple[_ScreenshotFormat, str, str], ...] = (
     ("png", "PNG", "PNG Image (*.png)"),
@@ -148,6 +150,22 @@ class ScreenshotPreviewWindow(QMainWindow):
         central = QWidget(self)
         self.setCentralWidget(central)
         root = QVBoxLayout(central)
+
+        self._tabs = QTabWidget(central)
+        self._tabs.setTabsClosable(True)
+        self._tabs.setDocumentMode(True)
+        self._tabs.setStyleSheet("QTabWidget::pane { border: none; background: transparent; }")
+        self._tabs.tabCloseRequested.connect(self._close_tab_at)
+        self._tabs.currentChanged.connect(self._on_tab_changed)
+        tab_bar = self._tabs.tabBar()
+        tab_bar.setParent(central)
+        tab_bar.setDrawBase(False)
+        tab_bar.setAutoFillBackground(False)
+        tab_bar.setExpanding(False)
+        tab_bar.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
+        tab_bar.setStyleSheet("QTabBar { background: transparent; }")
+        self._tab_bar = tab_bar
+        root.addWidget(tab_bar)
 
         tools_host = QWidget(central)
         tools_layout = FlowLayout(
@@ -224,12 +242,6 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._text_bar_host = text_bar_host
         text_bar_host.hide()
         root.addWidget(text_bar_host)
-
-        self._tabs = QTabWidget(central)
-        self._tabs.setTabsClosable(True)
-        self._tabs.setDocumentMode(True)
-        self._tabs.tabCloseRequested.connect(self._close_tab_at)
-        self._tabs.currentChanged.connect(self._on_tab_changed)
         root.addWidget(self._tabs, stretch=1)
 
         footer = QVBoxLayout()
@@ -748,12 +760,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         if tab is None:
             return
         suffix = _format_suffix(fmt)
-        if tab.saved_as_path is not None:
-            suggested = str(tab.saved_as_path.with_suffix(suffix))
-        elif tab.saved_name:
-            suggested = str(Path(tab.saved_name).with_suffix(suffix))
-        else:
-            suggested = f"screenshot{suffix}"
+        suggested = _suggested_save_path(tab, fmt)
         file_filter = next(item[2] for item in _SAVE_FORMATS if item[0] == fmt)
         path_str, _selected_filter = QFileDialog.getSaveFileName(
             self,
@@ -773,6 +780,7 @@ class ScreenshotPreviewWindow(QMainWindow):
             return
         tab.saved_as_path = path.resolve()
         tab.saved_name = path.name
+        _remember_last_save_dir(path.parent)
         index = self._tabs.currentIndex()
         self._tabs.setTabText(index, path.name)
         self._status.setText(f"Saved: {path}")
@@ -1067,6 +1075,23 @@ def _jpeg_image(image: QImage) -> QImage:
     return flat
 
 
+def _load_last_save_dir() -> Path | None:
+    """Return the last Save as folder from `config-temp.json` when it still exists."""
+    try:
+        loaded = h.dev.config_load(get_config_path_str(), is_temp=True)
+    except (FileNotFoundError, OSError, TypeError, ValueError):
+        return None
+    if not isinstance(loaded, dict):
+        return None
+    raw = str(loaded.get(_LAST_SAVE_DIR_KEY) or "").strip()
+    if not raw or raw.startswith("<"):
+        return None
+    path = Path(raw)
+    if not path.is_dir():
+        return None
+    return path
+
+
 def _max_side_pixel_size(width: int, height: int, max_side: int) -> tuple[int, int] | None:
     """Return a size whose longest side is `max_side`, keeping the aspect ratio."""
     longest = max(width, height)
@@ -1081,6 +1106,41 @@ def _max_side_pixel_size(width: int, height: int, max_side: int) -> tuple[int, i
     if (target_w, target_h) == (width, height):
         return None
     return target_w, target_h
+
+
+def _remember_last_save_dir(folder: Path) -> None:
+    """Store the Save as folder in `config-temp.json`."""
+    try:
+        resolved = folder.expanduser().resolve()
+    except OSError:
+        return
+    if not resolved.is_dir():
+        return
+    temp_path = get_temp_config_path()
+    try:
+        temp_path.parent.mkdir(parents=True, exist_ok=True)
+        if not temp_path.exists() or temp_path.stat().st_size == 0:
+            temp_path.write_text("{}\n", encoding="utf-8")
+        h.dev.config_update_value(
+            _LAST_SAVE_DIR_KEY,
+            resolved.as_posix(),
+            get_config_path_str(),
+            is_temp=True,
+        )
+    except (FileNotFoundError, OSError, TypeError, ValueError):
+        return
+
+
+def _suggested_save_path(tab: _ScreenshotTab, fmt: _ScreenshotFormat) -> str:
+    """Return the Save as start path, using this tab's file or the last folder."""
+    suffix = _format_suffix(fmt)
+    if tab.saved_as_path is not None:
+        return str(tab.saved_as_path.with_suffix(suffix))
+    filename = Path(tab.saved_name).with_suffix(suffix).name if tab.saved_name else f"screenshot{suffix}"
+    last_dir = _load_last_save_dir()
+    if last_dir is None:
+        return filename
+    return str(last_dir / filename)
 
 
 def _write_screenshot_file(image: QImage, path: Path, fmt: _ScreenshotFormat) -> None:

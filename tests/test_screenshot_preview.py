@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Iterator
 from datetime import date
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import QPointF, QRect, QStandardPaths, Qt
+from PySide6.QtCore import QPoint, QPointF, QRect, QStandardPaths, Qt
 from PySide6.QtGui import QColor, QImage, QKeyEvent, QMouseEvent
-from PySide6.QtWidgets import QApplication, QPushButton, QStyle, QTabWidget
+from PySide6.QtWidgets import QApplication, QFileDialog, QPushButton, QStyle, QTabWidget
 
 from harrix_swiss_knife.apps.common.qt_main_window import compute_app_window_geometry
 from harrix_swiss_knife.screenshot import preview_dialog as preview_dialog_module
@@ -323,6 +324,62 @@ def test_preview_window_saves_dated_png_to_desktop(
     window.close()
 
 
+def test_save_as_remembers_last_directory(
+    qapp: QApplication,  # noqa: ARG001
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+    (config_dir / "config.json").write_text("{}", encoding="utf-8")
+    shots = tmp_path / "shots"
+    shots.mkdir()
+    (config_dir / "config-temp.json").write_text(
+        json.dumps({"screenshot_last_save_dir": shots.as_posix()}),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(preview_dialog_module.h.dev, "get_project_root", lambda: tmp_path)
+    suggested: list[str] = []
+    chosen = shots
+
+    def dialog(*args: object) -> tuple[str, str]:
+        start = str(args[2])
+        suggested.append(start)
+        return str(chosen / "kept.png"), ""
+
+    monkeypatch.setattr(QFileDialog, "getSaveFileName", dialog)
+    image = QImage(8, 8, QImage.Format.Format_RGB32)
+    image.fill(Qt.GlobalColor.blue)
+    window = show_screenshot_preview(image)
+    window._save_as()
+    assert Path(suggested[0]) == shots / "screenshot.png"
+    assert (shots / "kept.png").is_file()
+    stored = json.loads((config_dir / "config-temp.json").read_text(encoding="utf-8"))
+    assert stored["screenshot_last_save_dir"] == shots.resolve().as_posix()
+
+    window._save_as()
+    assert Path(suggested[1]).resolve() == (shots / "kept.png").resolve()
+
+    other = tmp_path / "other"
+    other.mkdir()
+    chosen = other
+    window.add_image(image)
+    window._save_as()
+    assert Path(suggested[2]).parent == shots
+    stored = json.loads((config_dir / "config-temp.json").read_text(encoding="utf-8"))
+    assert stored["screenshot_last_save_dir"] == other.resolve().as_posix()
+
+    missing = tmp_path / "gone"
+    (config_dir / "config-temp.json").write_text(
+        json.dumps({"screenshot_last_save_dir": missing.as_posix()}),
+        encoding="utf-8",
+    )
+    window.add_image(image)
+    window._save_as()
+    assert suggested[3] == "screenshot.png"
+    window.close()
+
+
 def test_save_buttons_offer_format_menus(qapp: QApplication) -> None:  # noqa: ARG001
     image = QImage(8, 8, QImage.Format.Format_RGB32)
     image.fill(Qt.GlobalColor.white)
@@ -480,17 +537,23 @@ def test_preview_window_uses_app_geometry_not_image_size(qapp: QApplication) -> 
     window.close()
 
 
-def test_show_screenshot_preview_adds_tabs(qapp: QApplication) -> None:  # noqa: ARG001
+def test_show_screenshot_preview_adds_tabs(qapp: QApplication) -> None:
     first = QImage(8, 8, QImage.Format.Format_RGB32)
     first.fill(Qt.GlobalColor.red)
     second = QImage(10, 10, QImage.Format.Format_RGB32)
     second.fill(Qt.GlobalColor.green)
     window = show_screenshot_preview(first)
     show_screenshot_preview(second)
+    qapp.processEvents()
     tabs = window.findChild(QTabWidget)
     assert tabs is not None
     assert tabs.count() == 2
-    assert tabs.tabBar().isVisible()
+    bar = tabs.tabBar()
+    assert bar.isVisible()
+    assert bar.mapToGlobal(QPoint(0, 0)).y() < window._tools_host.mapToGlobal(QPoint(0, 0)).y()
+    assert not bar.drawBase()
+    assert not bar.autoFillBackground()
+    assert "background: transparent" in bar.styleSheet()
     window.close()
 
 
