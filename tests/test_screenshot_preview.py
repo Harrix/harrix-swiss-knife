@@ -231,20 +231,25 @@ def test_eyedropper_samples_visible_pixel(qapp: QApplication) -> None:
     canvas.close()
 
 
-def test_preview_window_eyedropper_sets_stroke_color(
+def test_preview_window_eyedropper_copies_color_without_changing_tool(
     qapp: QApplication,
 ) -> None:
     image = QImage(20, 10, QImage.Format.Format_RGB32)
     image.fill(QColor("#112233"))
     image.setPixelColor(4, 3, QColor("#aabbcc"))
     window = show_screenshot_preview(image)
+    tool_color = window._annotation_color.name()
     window._set_tool(AnnotationTool.EYEDROPPER)
     tab = window._current_tab()
     assert tab is not None
+    style_color = tab.canvas._style.color.name()
     qapp.processEvents()
     _left_click(tab.canvas, _widget_pos_for_image_pixel(tab.canvas, 4, 3))
-    assert window._annotation_color.name() == "#aabbcc"
-    assert tab.canvas._style.color.name() == "#aabbcc"
+    assert window._annotation_color.name() == tool_color
+    assert tab.canvas._style.color.name() == style_color
+    clipboard = qapp.clipboard()
+    assert clipboard is not None
+    assert clipboard.text() == "#aabbcc"
     window.close()
 
 

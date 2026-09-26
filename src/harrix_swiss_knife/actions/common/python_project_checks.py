@@ -83,8 +83,8 @@ class PythonProjectChecksMixin(ActionBase):
     def _run_project_module(self, project_path: Path, tool: str, args: str) -> tuple[bool, str]:
         """Run `python -m <tool>` from the project's `.venv` without `uv run`.
 
-        `uv run` on Windows often flashes a console. Qt tests also map real
-        Windows unless `QT_QPA_PLATFORM=offscreen`.
+        `uv run` on Windows often flashes a console. Pytest always gets
+        `QT_QPA_PLATFORM=offscreen`, even if the parent process set `windows`.
 
         Args:
 
@@ -109,7 +109,8 @@ class PythonProjectChecksMixin(ActionBase):
         env = os.environ.copy()
         env.pop("VIRTUAL_ENV", None)
         if tool == "pytest":
-            env.setdefault("QT_QPA_PLATFORM", QT_OFFSCREEN_PLATFORM)
+            # Override a parent QT_QPA_PLATFORM=windows so tests cannot open real windows.
+            env["QT_QPA_PLATFORM"] = QT_OFFSCREEN_PLATFORM
             env["HSK_MUTE_SOUNDS"] = "1"
         returncode, output = run_argv_output(command, cwd=project_path, env=env, timeout=_UV_CHECK_TIMEOUT)
         return returncode == 0, output

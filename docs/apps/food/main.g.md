@@ -18,6 +18,7 @@ lang: en
   - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
   - [⚙️ Method `delete_record`](#%EF%B8%8F-method-delete_record)
   - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
+  - [⚙️ Method `nativeEvent`](#%EF%B8%8F-method-nativeevent)
   - [⚙️ Method `on_add_as_text`](#%EF%B8%8F-method-on_add_as_text)
   - [⚙️ Method `on_add_food_item`](#%EF%B8%8F-method-on_add_food_item)
   - [⚙️ Method `on_add_food_log`](#%EF%B8%8F-method-on_add_food_log)
@@ -344,6 +345,13 @@ class MainWindow(
 
         # Call parent implementation for other key events
         super().keyPressEvent(event)
+
+    def nativeEvent(self, event_type, message) -> tuple[bool, int]:  # noqa: ANN001, N802
+        """Drag, resize, and size the client area for the custom caption bar."""
+        handled = try_handle_win11_caption_native_event(self, event_type, message)
+        if handled is not None:
+            return handled
+        return cast("tuple[bool, int]", super().nativeEvent(event_type, message))
 
     def on_add_as_text(self) -> None:
         """Open text input dialog and process entered food items."""
@@ -3849,6 +3857,7 @@ class MainWindow(
     def _setup_ui(self) -> None:
         """Set up additional UI elements after basic initialization."""
         self._place_menu_bar_on_tab_row()
+        install_win11_caption(self)
         self._install_word_wrap_table_headers()
         self._setup_status_bar()
         self._setup_macros_analysis_ui()
@@ -5246,6 +5255,27 @@ def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
 
         # Call parent implementation for other key events
         super().keyPressEvent(event)
+```
+
+</details>
+
+### ⚙️ Method `nativeEvent`
+
+```python
+def nativeEvent(self, event_type, message) -> tuple[bool, int]
+```
+
+Drag, resize, and size the client area for the custom caption bar.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def nativeEvent(self, event_type, message) -> tuple[bool, int]:  # noqa: ANN001, N802
+        handled = try_handle_win11_caption_native_event(self, event_type, message)
+        if handled is not None:
+            return handled
+        return cast("tuple[bool, int]", super().nativeEvent(event_type, message))
 ```
 
 </details>

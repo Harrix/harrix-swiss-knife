@@ -216,6 +216,7 @@ from harrix_swiss_knife.qt_lucide_icon import (
     style_accept_button,
 )
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
+from harrix_swiss_knife.win11_caption import install_win11_caption, try_handle_win11_caption_native_event
 
 logger = logging.getLogger(__name__)
 
@@ -513,6 +514,13 @@ class MainWindow(
 
         # Call parent implementation for other key events
         super().keyPressEvent(event)
+
+    def nativeEvent(self, event_type, message) -> tuple[bool, int]:  # noqa: ANN001, N802
+        """Drag, resize, and size the client area for the custom caption bar."""
+        handled = try_handle_win11_caption_native_event(self, event_type, message)
+        if handled is not None:
+            return handled
+        return cast("tuple[bool, int]", super().nativeEvent(event_type, message))
 
     def on_add_as_text(self) -> None:
         """Open text input dialog and process entered food items."""
@@ -4018,6 +4026,7 @@ class MainWindow(
     def _setup_ui(self) -> None:
         """Set up additional UI elements after basic initialization."""
         self._place_menu_bar_on_tab_row()
+        install_win11_caption(self)
         self._install_word_wrap_table_headers()
         self._setup_status_bar()
         self._setup_macros_analysis_ui()

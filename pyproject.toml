@@ -51,6 +51,7 @@ packages = ["src/harrix_swiss_knife"]
 "src/harrix_swiss_knife/assets/dictionaries/*" = "harrix_swiss_knife/assets/dictionaries"
 "src/harrix_swiss_knife/assets/fonts/*" = "harrix_swiss_knife/assets/fonts"
 "src/harrix_swiss_knife/assets/lucide/*" = "harrix_swiss_knife/assets/lucide"
+"src/harrix_swiss_knife/assets/caption/*" = "harrix_swiss_knife/assets/caption"
 "src/harrix_swiss_knife/assets/tabler/*" = "harrix_swiss_knife/assets/tabler"
 "src/harrix_swiss_knife/assets/actions/*" = "harrix_swiss_knife/assets/actions"
 
@@ -58,6 +59,7 @@ packages = ["src/harrix_swiss_knife"]
 "src/harrix_swiss_knife/assets/dictionaries" = "harrix_swiss_knife/assets/dictionaries"
 "src/harrix_swiss_knife/assets/fonts" = "harrix_swiss_knife/assets/fonts"
 "src/harrix_swiss_knife/assets/lucide" = "harrix_swiss_knife/assets/lucide"
+"src/harrix_swiss_knife/assets/caption" = "harrix_swiss_knife/assets/caption"
 "src/harrix_swiss_knife/assets/tabler" = "harrix_swiss_knife/assets/tabler"
 "src/harrix_swiss_knife/assets/actions" = "harrix_swiss_knife/assets/actions"
 

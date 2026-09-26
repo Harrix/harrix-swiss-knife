@@ -92,6 +92,52 @@ def frameless_stay_on_top_flags() -> Qt.WindowType:
     return Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint
 
 
+def native_local_point(widget: QWidget, native_x: int, native_y: int) -> QPoint | None:
+    """Map a native screen point to logical coordinates inside `widget`.
+
+    Args:
+
+    - `widget` (`QWidget`): Window that received `WM_NCHITTEST`.
+    - `native_x` (`int`): Screen X in physical pixels.
+    - `native_y` (`int`): Screen Y in physical pixels.
+
+    Returns:
+
+    - `QPoint | None`: Logical point inside `widget`, or `None` when the window
+      has no native handle.
+
+    """
+    return _nchittest_local_point(widget, native_x, native_y)
+
+
+def read_native_windows_message(
+    event_type: bytes | bytearray | memoryview | QByteArray | str,
+    message: Any,
+) -> Any | None:
+    """Return the Win32 `MSG` for a Qt `windows_generic_MSG` native event.
+
+    Args:
+
+    - `event_type`: Qt native-event type tag.
+    - `message` (`Any`): Platform message pointer passed to `nativeEvent`.
+
+    Returns:
+
+    - `Any | None`: A `MSG` view of the same memory, or `None` when this is not
+      a Windows message.
+
+    """
+    if sys.platform != "win32" or _event_type_to_bytes(event_type) != b"windows_generic_MSG":
+        return None
+    address = _message_address(message)
+    if address is None:
+        return None
+    try:
+        return wintypes.MSG.from_address(address)
+    except (TypeError, ValueError, OverflowError):
+        return None
+
+
 def try_handle_frameless_resize_native_event(
     widget: QWidget,
     event_type: bytes | bytearray | memoryview | QByteArray | str,
@@ -100,24 +146,13 @@ def try_handle_frameless_resize_native_event(
     border: int = _FRAMELESS_BORDER,
 ) -> tuple[bool, int] | None:
     """Handle WM_NCHITTEST so a frameless window can be resized from edges on Windows."""
-    if sys.platform != "win32" or _event_type_to_bytes(event_type) != b"windows_generic_MSG":
-        return None
-
-    address = _message_address(message)
-    if address is None:
-        return None
-
-    try:
-        msg = wintypes.MSG.from_address(address)
-    except (TypeError, ValueError, OverflowError):
-        return None
-
-    if msg.message != _WM_NCHITTEST:
+    msg = read_native_windows_message(event_type, message)
+    if msg is None or msg.message != _WM_NCHITTEST:
         return None
 
     global_x = ctypes.c_short(msg.lParam & 0xFFFF).value
     global_y = ctypes.c_short((msg.lParam >> 16) & 0xFFFF).value
-    local = _nchittest_local_point(widget, global_x, global_y)
+    local = native_local_point(widget, global_x, global_y)
     if local is None:
         return None
     if _blocks_frameless_resize(widget, local):

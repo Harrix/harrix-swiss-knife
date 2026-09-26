@@ -1,0 +1,6 @@
+Fluent UI System Icons
+Copyright (c) Microsoft Corporation
+
+These caption glyphs are from
+https://github.com/microsoft/fluentui-system-icons
+and are licensed under the MIT License.

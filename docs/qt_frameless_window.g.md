@@ -14,6 +14,8 @@ lang: en
 - [🔧 Function `frameless_hit_test`](#-function-frameless_hit_test)
 - [🔧 Function `frameless_local_from_native`](#-function-frameless_local_from_native)
 - [🔧 Function `frameless_stay_on_top_flags`](#-function-frameless_stay_on_top_flags)
+- [🔧 Function `native_local_point`](#-function-native_local_point)
+- [🔧 Function `read_native_windows_message`](#-function-read_native_windows_message)
 - [🔧 Function `try_handle_frameless_resize_native_event`](#-function-try_handle_frameless_resize_native_event)
 
 </details>
@@ -118,6 +120,74 @@ def frameless_stay_on_top_flags() -> Qt.WindowType:
 
 </details>
 
+## 🔧 Function `native_local_point`
+
+```python
+def native_local_point(widget: QWidget, native_x: int, native_y: int) -> QPoint | None
+```
+
+Map a native screen point to logical coordinates inside `widget`.
+
+Args:
+
+- `widget` (`QWidget`): Window that received `WM_NCHITTEST`.
+- `native_x` (`int`): Screen X in physical pixels.
+- `native_y` (`int`): Screen Y in physical pixels.
+
+Returns:
+
+- `QPoint | None`: Logical point inside `widget`, or `None` when the window
+  has no native handle.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def native_local_point(widget: QWidget, native_x: int, native_y: int) -> QPoint | None:
+    return _nchittest_local_point(widget, native_x, native_y)
+```
+
+</details>
+
+## 🔧 Function `read_native_windows_message`
+
+```python
+def read_native_windows_message(event_type: bytes | bytearray | memoryview | QByteArray | str, message: Any) -> Any | None
+```
+
+Return the Win32 `MSG` for a Qt `windows_generic_MSG` native event.
+
+Args:
+
+- `event_type`: Qt native-event type tag.
+- `message` (`Any`): Platform message pointer passed to `nativeEvent`.
+
+Returns:
+
+- `Any | None`: A `MSG` view of the same memory, or `None` when this is not
+  a Windows message.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def read_native_windows_message(
+    event_type: bytes | bytearray | memoryview | QByteArray | str,
+    message: Any,
+) -> Any | None:
+    if sys.platform != "win32" or _event_type_to_bytes(event_type) != b"windows_generic_MSG":
+        return None
+    address = _message_address(message)
+    if address is None:
+        return None
+    try:
+        return wintypes.MSG.from_address(address)
+    except (TypeError, ValueError, OverflowError):
+        return None
+```
+
+</details>
+
 ## 🔧 Function `try_handle_frameless_resize_native_event`
 
 ```python
@@ -137,24 +207,13 @@ def try_handle_frameless_resize_native_event(
     *,
     border: int = _FRAMELESS_BORDER,
 ) -> tuple[bool, int] | None:
-    if sys.platform != "win32" or _event_type_to_bytes(event_type) != b"windows_generic_MSG":
-        return None
-
-    address = _message_address(message)
-    if address is None:
-        return None
-
-    try:
-        msg = wintypes.MSG.from_address(address)
-    except (TypeError, ValueError, OverflowError):
-        return None
-
-    if msg.message != _WM_NCHITTEST:
+    msg = read_native_windows_message(event_type, message)
+    if msg is None or msg.message != _WM_NCHITTEST:
         return None
 
     global_x = ctypes.c_short(msg.lParam & 0xFFFF).value
     global_y = ctypes.c_short((msg.lParam >> 16) & 0xFFFF).value
-    local = _nchittest_local_point(widget, global_x, global_y)
+    local = native_local_point(widget, global_x, global_y)
     if local is None:
         return None
     if _blocks_frameless_resize(widget, local):

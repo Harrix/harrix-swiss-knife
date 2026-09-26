@@ -562,18 +562,17 @@ class ScreenshotPreviewWindow(QMainWindow):
         if tab is None or tab.canvas.tool != AnnotationTool.EYEDROPPER:
             return
         if not isinstance(color, QColor) or not color.isValid():
-            self._status.setText("Eyedropper: move over the screenshot · click to copy and use as the tool color")
+            self._status.setText("Eyedropper: move over the screenshot · click to copy the color")
             return
-        self._status.setText(f"{_format_pixel_color(color)} · click to copy and use as the tool color")
+        self._status.setText(f"{_format_pixel_color(color)} · click to copy")
 
     def _on_color_picked(self, color: QColor) -> None:
         if not color.isValid():
             return
-        self._set_annotation_color(color)
         clipboard = QApplication.clipboard()
         if clipboard is not None:
             clipboard.setText(color.name())
-        self._status.setText(f"Picked {_format_pixel_color(color)} · copied · set as the tool color")
+        self._status.setText(f"Copied {_format_pixel_color(color)}")
 
     def _on_crop_mode_changed(self, active: bool) -> None:  # noqa: FBT001
         self._set_crop_chrome_visible(active=active)
