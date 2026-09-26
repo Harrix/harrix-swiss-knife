@@ -22,19 +22,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.CleaningServices
-import androidx.compose.material.icons.filled.Crop
-import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Medication
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Movie
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -77,6 +64,7 @@ import dev.harrix.hsk.ui.about.AboutScreen
 import dev.harrix.hsk.ui.gallery.GalleryCleanerScreen
 import dev.harrix.hsk.ui.gallery.VideoCleanerScreen
 import dev.harrix.hsk.ui.health.HealthConnectScreen
+import dev.harrix.hsk.ui.icons.LucideIcons
 import dev.harrix.hsk.ui.medicinesearch.MedicineSearchScreen
 import dev.harrix.hsk.ui.movies.MoviesScreen
 import dev.harrix.hsk.ui.photoeditor.PhotoEditorScreen
@@ -180,43 +168,43 @@ fun MainScreen(
             UtilityCardItem(
                 titleRes = R.string.nav_drawer_gallery_cleaner,
                 descriptionRes = R.string.gallery_cleaner_card_description,
-                icon = Icons.Filled.CleaningServices,
+                icon = LucideIcons.CleaningServices,
                 destination = AppDestination.GalleryCleaner,
             ),
             UtilityCardItem(
                 titleRes = R.string.nav_drawer_video_cleaner,
                 descriptionRes = R.string.video_cleaner_card_description,
-                icon = Icons.Filled.VideoLibrary,
+                icon = LucideIcons.VideoLibrary,
                 destination = AppDestination.VideoCleaner,
             ),
             UtilityCardItem(
                 titleRes = R.string.nav_drawer_photo_editor,
                 descriptionRes = R.string.photo_editor_card_description,
-                icon = Icons.Filled.Crop,
+                icon = LucideIcons.Crop,
                 destination = AppDestination.PhotoEditor,
             ),
             UtilityCardItem(
                 titleRes = R.string.nav_drawer_speech_to_text,
                 descriptionRes = R.string.speech_to_text_card_description,
-                icon = Icons.Filled.Mic,
+                icon = LucideIcons.Mic,
                 destination = AppDestination.SpeechToText,
             ),
             UtilityCardItem(
                 titleRes = R.string.nav_drawer_medicine_search,
                 descriptionRes = R.string.medicine_search_card_description,
-                icon = Icons.Filled.Medication,
+                icon = LucideIcons.Medication,
                 destination = AppDestination.MedicineSearch,
             ),
             UtilityCardItem(
                 titleRes = R.string.nav_drawer_movies,
                 descriptionRes = R.string.movies_card_description,
-                icon = Icons.Filled.Movie,
+                icon = LucideIcons.Movie,
                 destination = AppDestination.Movies,
             ),
             UtilityCardItem(
                 titleRes = R.string.nav_drawer_health_connect,
                 descriptionRes = R.string.health_connect_card_description,
-                icon = Icons.Filled.FitnessCenter,
+                icon = LucideIcons.FitnessCenter,
                 destination = AppDestination.HealthConnect,
             ),
         )
@@ -346,7 +334,7 @@ fun MainScreen(
                                         },
                                     ) {
                                         Icon(
-                                            imageVector = Icons.Filled.Menu,
+                                            imageVector = LucideIcons.Menu,
                                             contentDescription =
                                             stringResource(R.string.nav_open),
                                         )
@@ -358,7 +346,7 @@ fun MainScreen(
                                             onClick = { homeMenuExpanded = true },
                                         ) {
                                             Icon(
-                                                imageVector = Icons.Filled.MoreVert,
+                                                imageVector = LucideIcons.MoreVert,
                                                 contentDescription =
                                                 stringResource(
                                                     R.string.nav_settings,
@@ -383,7 +371,7 @@ fun MainScreen(
                                                 },
                                                 leadingIcon = {
                                                     Icon(
-                                                        imageVector = Icons.Filled.Settings,
+                                                        imageVector = LucideIcons.Settings,
                                                         contentDescription = null,
                                                     )
                                                 },
@@ -591,7 +579,7 @@ private fun AppNavigationDrawerContent(
             )
             IconButton(onClick = onOpenSettings) {
                 Icon(
-                    imageVector = Icons.Filled.Settings,
+                    imageVector = LucideIcons.Settings,
                     contentDescription = stringResource(R.string.nav_settings),
                 )
             }
@@ -603,55 +591,55 @@ private fun AppNavigationDrawerContent(
             label = stringResource(R.string.nav_drawer_home),
             selected = selected == AppDestination.Home,
             onClick = { onNavigate(AppDestination.Home) },
-            icon = Icons.AutoMirrored.Filled.List,
+            icon = LucideIcons.List,
         )
         DrawerNavItem(
             label = stringResource(R.string.nav_drawer_gallery_cleaner),
             selected = selected == AppDestination.GalleryCleaner,
             onClick = { onNavigate(AppDestination.GalleryCleaner) },
-            icon = Icons.Filled.CleaningServices,
+            icon = LucideIcons.CleaningServices,
         )
         DrawerNavItem(
             label = stringResource(R.string.nav_drawer_video_cleaner),
             selected = selected == AppDestination.VideoCleaner,
             onClick = { onNavigate(AppDestination.VideoCleaner) },
-            icon = Icons.Filled.VideoLibrary,
+            icon = LucideIcons.VideoLibrary,
         )
         DrawerNavItem(
             label = stringResource(R.string.nav_drawer_photo_editor),
             selected = selected == AppDestination.PhotoEditor,
             onClick = { onNavigate(AppDestination.PhotoEditor) },
-            icon = Icons.Filled.Crop,
+            icon = LucideIcons.Crop,
         )
         DrawerNavItem(
             label = stringResource(R.string.nav_drawer_speech_to_text),
             selected = selected == AppDestination.SpeechToText,
             onClick = { onNavigate(AppDestination.SpeechToText) },
-            icon = Icons.Filled.Mic,
+            icon = LucideIcons.Mic,
         )
         DrawerNavItem(
             label = stringResource(R.string.nav_drawer_medicine_search),
             selected = selected == AppDestination.MedicineSearch,
             onClick = { onNavigate(AppDestination.MedicineSearch) },
-            icon = Icons.Filled.Medication,
+            icon = LucideIcons.Medication,
         )
         DrawerNavItem(
             label = stringResource(R.string.nav_drawer_movies),
             selected = selected == AppDestination.Movies,
             onClick = { onNavigate(AppDestination.Movies) },
-            icon = Icons.Filled.Movie,
+            icon = LucideIcons.Movie,
         )
         DrawerNavItem(
             label = stringResource(R.string.nav_drawer_health_connect),
             selected = selected == AppDestination.HealthConnect,
             onClick = { onNavigate(AppDestination.HealthConnect) },
-            icon = Icons.Filled.FitnessCenter,
+            icon = LucideIcons.FitnessCenter,
         )
         DrawerNavItem(
             label = stringResource(R.string.nav_drawer_about),
             selected = false,
             onClick = onAbout,
-            icon = Icons.Filled.Info,
+            icon = LucideIcons.Info,
         )
     }
 }

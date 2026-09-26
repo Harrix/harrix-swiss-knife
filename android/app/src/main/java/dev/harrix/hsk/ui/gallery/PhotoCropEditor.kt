@@ -21,26 +21,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Undo
-import androidx.compose.material.icons.filled.BlurOn
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Crop
-import androidx.compose.material.icons.filled.CropFree
-import androidx.compose.material.icons.filled.CropRotate
-import androidx.compose.material.icons.filled.Done
-import androidx.compose.material.icons.filled.FilterCenterFocus
-import androidx.compose.material.icons.filled.FitScreen
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.OpenWith
-import androidx.compose.material.icons.filled.RestartAlt
-import androidx.compose.material.icons.filled.Rotate90DegreesCcw
-import androidx.compose.material.icons.filled.Rotate90DegreesCw
-import androidx.compose.material.icons.filled.Save
-import androidx.compose.material.icons.filled.SaveAs
-import androidx.compose.material.icons.filled.ScreenLockRotation
-import androidx.compose.material.icons.filled.Transform
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -105,6 +85,7 @@ import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.HskDropdownMenuItem
 import dev.harrix.hsk.ui.OverflowTextTooltipBox
 import dev.harrix.hsk.ui.adaptiveBottomBarWidth
+import dev.harrix.hsk.ui.icons.LucideIcons
 import dev.harrix.hsk.ui.isCompactHeight
 import dev.harrix.hsk.ui.isCompactWidth
 import kotlinx.coroutines.Dispatchers
@@ -1306,7 +1287,7 @@ fun PhotoCropEditor(
                 ) {
                     EditToolbarIconButton(
                         onClick = { rotationLocked = !rotationLocked },
-                        icon = Icons.Filled.ScreenLockRotation,
+                        icon = LucideIcons.ScreenLockRotation,
                         label =
                         stringResource(
                             if (rotationLocked) {
@@ -1320,7 +1301,7 @@ fun PhotoCropEditor(
                     )
                     EditToolbarIconButton(
                         onClick = { toggleContainCropInImage() },
-                        icon = Icons.Filled.FilterCenterFocus,
+                        icon = LucideIcons.FilterCenterFocus,
                         label =
                         stringResource(
                             if (containCropInImage) {
@@ -1334,7 +1315,7 @@ fun PhotoCropEditor(
                     )
                     EditToolbarIconButton(
                         onClick = { cropMoveLocked = !cropMoveLocked },
-                        icon = Icons.Filled.OpenWith,
+                        icon = LucideIcons.OpenWith,
                         label =
                         stringResource(
                             if (cropMoveLocked) {
@@ -1360,7 +1341,7 @@ fun PhotoCropEditor(
                     if (showTrimBars) {
                         EditToolbarIconButton(
                             onClick = { trimEmptyZones() },
-                            icon = Icons.Filled.Crop,
+                            icon = LucideIcons.Crop,
                             label = stringResource(R.string.gallery_cleaner_edit_trim_empty),
                             tonal = true,
                         )
@@ -1385,7 +1366,7 @@ fun PhotoCropEditor(
                                     ),
                                 )
                             },
-                            icon = Icons.Filled.FitScreen,
+                            icon = LucideIcons.FitScreen,
                             label = stringResource(R.string.gallery_cleaner_edit_fit_frame),
                             tonal = true,
                         )
@@ -1551,7 +1532,7 @@ fun PhotoCropEditor(
                             if (!isPerspective && !isBlurMode) {
                                 EditToolbarIconButton(
                                     onClick = { rotateCropAspect90() },
-                                    icon = Icons.Filled.CropRotate,
+                                    icon = LucideIcons.CropRotate,
                                     label = aspectRotateLabel,
                                     enabled = canEditAspect,
                                     buttonSize = toolButtonSize,
@@ -1559,7 +1540,7 @@ fun PhotoCropEditor(
                                 if (showThreeFourChip) {
                                     EditToolbarIconButton(
                                         onClick = { applyOrResetThreeFourAspect() },
-                                        icon = Icons.Filled.Crop,
+                                        icon = LucideIcons.Crop,
                                         label = aspectThreeFourLabel,
                                         enabled = canEditAspect,
                                         selected = threeFourSelected,
@@ -1568,7 +1549,7 @@ fun PhotoCropEditor(
                                 }
                                 EditToolbarIconButton(
                                     onClick = { toggleFreeAspect() },
-                                    icon = Icons.Filled.CropFree,
+                                    icon = LucideIcons.CropFree,
                                     label = aspectFreeLabel,
                                     enabled = canEditAspect,
                                     selected = freeAspectSelected,
@@ -1578,7 +1559,7 @@ fun PhotoCropEditor(
                             if (!isBlurMode) {
                                 EditToolbarIconButton(
                                     onClick = { togglePerspectiveMode() },
-                                    icon = Icons.Filled.Transform,
+                                    icon = LucideIcons.Transform,
                                     label = perspectiveLabel,
                                     enabled = canTogglePerspective,
                                     selected = isPerspective,
@@ -1588,7 +1569,7 @@ fun PhotoCropEditor(
                             if (!isPerspective) {
                                 EditToolbarIconButton(
                                     onClick = { toggleBlurMode() },
-                                    icon = Icons.Filled.BlurOn,
+                                    icon = LucideIcons.BlurOn,
                                     label = blurLabel,
                                     enabled = canToggleBlur,
                                     selected = isBlurMode,
@@ -1602,7 +1583,7 @@ fun PhotoCropEditor(
                                             onBlurStrokesChange(blurStrokes.dropLast(1))
                                         }
                                     },
-                                    icon = Icons.AutoMirrored.Filled.Undo,
+                                    icon = LucideIcons.Undo,
                                     label = undoBlurStrokeLabel,
                                     enabled = !isSaving && blurStrokes.isNotEmpty(),
                                     buttonSize = toolButtonSize,
@@ -1611,21 +1592,21 @@ fun PhotoCropEditor(
                             if (!isPerspective && !isBlurMode) {
                                 EditToolbarIconButton(
                                     onClick = { onRotationDegreesChange(rotationDegrees - 90f) },
-                                    icon = Icons.Filled.Rotate90DegreesCcw,
+                                    icon = LucideIcons.Rotate90DegreesCcw,
                                     label = rotateCcwLabel,
                                     enabled = canRotate,
                                     buttonSize = toolButtonSize,
                                 )
                                 EditToolbarIconButton(
                                     onClick = { onRotationDegreesChange(0f) },
-                                    icon = Icons.Filled.RestartAlt,
+                                    icon = LucideIcons.RestartAlt,
                                     label = resetRotationLabel,
                                     enabled = canResetRotation,
                                     buttonSize = toolButtonSize,
                                 )
                                 EditToolbarIconButton(
                                     onClick = { onRotationDegreesChange(rotationDegrees + 90f) },
-                                    icon = Icons.Filled.Rotate90DegreesCw,
+                                    icon = LucideIcons.Rotate90DegreesCw,
                                     label = rotateCwLabel,
                                     enabled = canRotate,
                                     buttonSize = toolButtonSize,
@@ -1634,7 +1615,7 @@ fun PhotoCropEditor(
                             Box {
                                 EditToolbarIconButton(
                                     onClick = { moreMenuExpanded = true },
-                                    icon = Icons.Filled.MoreVert,
+                                    icon = LucideIcons.MoreVert,
                                     label = moreLabel,
                                     enabled = !isSaving,
                                     buttonSize = toolButtonSize,
@@ -1644,7 +1625,7 @@ fun PhotoCropEditor(
                                     onDismissRequest = { moreMenuExpanded = false },
                                 ) {
                                     EditOverflowMenuItem(
-                                        icon = Icons.Filled.CropRotate,
+                                        icon = LucideIcons.CropRotate,
                                         label = aspectRotateLabel,
                                         enabled = canEditAspect,
                                         onClick = {
@@ -1654,7 +1635,7 @@ fun PhotoCropEditor(
                                     )
                                     if (showThreeFourChip) {
                                         EditOverflowMenuItem(
-                                            icon = Icons.Filled.Crop,
+                                            icon = LucideIcons.Crop,
                                             label = aspectThreeFourLabel,
                                             enabled = canEditAspect,
                                             onClick = {
@@ -1664,7 +1645,7 @@ fun PhotoCropEditor(
                                         )
                                     }
                                     EditOverflowMenuItem(
-                                        icon = Icons.Filled.CropFree,
+                                        icon = LucideIcons.CropFree,
                                         label = aspectFreeLabel,
                                         enabled = canEditAspect,
                                         onClick = {
@@ -1673,7 +1654,7 @@ fun PhotoCropEditor(
                                         },
                                     )
                                     EditOverflowMenuItem(
-                                        icon = Icons.Filled.Transform,
+                                        icon = LucideIcons.Transform,
                                         label = perspectiveLabel,
                                         enabled = canTogglePerspective,
                                         onClick = {
@@ -1682,7 +1663,7 @@ fun PhotoCropEditor(
                                         },
                                     )
                                     EditOverflowMenuItem(
-                                        icon = Icons.Filled.BlurOn,
+                                        icon = LucideIcons.BlurOn,
                                         label = blurLabel,
                                         enabled = canToggleBlur,
                                         onClick = {
@@ -1692,7 +1673,7 @@ fun PhotoCropEditor(
                                     )
                                     if (isBlurMode) {
                                         EditOverflowMenuItem(
-                                            icon = Icons.AutoMirrored.Filled.Undo,
+                                            icon = LucideIcons.Undo,
                                             label = undoBlurStrokeLabel,
                                             enabled = blurStrokes.isNotEmpty() && !isSaving,
                                             onClick = {
@@ -1707,7 +1688,7 @@ fun PhotoCropEditor(
                                     }
                                     HorizontalDivider()
                                     EditOverflowMenuItem(
-                                        icon = Icons.Filled.Rotate90DegreesCcw,
+                                        icon = LucideIcons.Rotate90DegreesCcw,
                                         label = rotateCcwLabel,
                                         enabled = canRotate,
                                         onClick = {
@@ -1716,7 +1697,7 @@ fun PhotoCropEditor(
                                         },
                                     )
                                     EditOverflowMenuItem(
-                                        icon = Icons.Filled.RestartAlt,
+                                        icon = LucideIcons.RestartAlt,
                                         label = resetRotationLabel,
                                         enabled = canResetRotation,
                                         onClick = {
@@ -1725,7 +1706,7 @@ fun PhotoCropEditor(
                                         },
                                     )
                                     EditOverflowMenuItem(
-                                        icon = Icons.Filled.Rotate90DegreesCw,
+                                        icon = LucideIcons.Rotate90DegreesCw,
                                         label = rotateCwLabel,
                                         enabled = canRotate,
                                         onClick = {
@@ -1735,7 +1716,7 @@ fun PhotoCropEditor(
                                     )
                                     HorizontalDivider()
                                     EditOverflowMenuItem(
-                                        icon = Icons.Filled.Crop,
+                                        icon = LucideIcons.Crop,
                                         label = trimEmptyLabel,
                                         enabled = showTrimBars && !isSaving,
                                         onClick = {
@@ -1744,7 +1725,7 @@ fun PhotoCropEditor(
                                         },
                                     )
                                     EditOverflowMenuItem(
-                                        icon = Icons.Filled.FitScreen,
+                                        icon = LucideIcons.FitScreen,
                                         label = fitFrameLabel,
                                         enabled = canFitFrame && !isSaving,
                                         onClick = {
@@ -1754,7 +1735,7 @@ fun PhotoCropEditor(
                                     )
                                     HorizontalDivider()
                                     EditOverflowMenuItem(
-                                        icon = Icons.Filled.Close,
+                                        icon = LucideIcons.Close,
                                         label = discardLabel,
                                         enabled = !isSaving,
                                         onClick = {
@@ -1764,7 +1745,7 @@ fun PhotoCropEditor(
                                     )
                                     if (onSaveCopy != null && !isPerspective && !isBlurMode) {
                                         EditOverflowMenuItem(
-                                            icon = Icons.Filled.SaveAs,
+                                            icon = LucideIcons.SaveAs,
                                             label = saveCopyLabel,
                                             enabled = !isSaving,
                                             onClick = {
@@ -1774,7 +1755,7 @@ fun PhotoCropEditor(
                                         )
                                     }
                                     EditOverflowMenuItem(
-                                        icon = Icons.Filled.Info,
+                                        icon = LucideIcons.Info,
                                         label = fileDetailsLabel,
                                         enabled = !isPerspective && !isBlurMode,
                                         onClick = {
@@ -1785,9 +1766,9 @@ fun PhotoCropEditor(
                                     EditOverflowMenuItem(
                                         icon =
                                         if (isPerspective || isBlurMode) {
-                                            Icons.Filled.Done
+                                            LucideIcons.Done
                                         } else {
-                                            Icons.Filled.Save
+                                            LucideIcons.Save
                                         },
                                         label =
                                         when {
@@ -1814,7 +1795,7 @@ fun PhotoCropEditor(
                 ) {
                     EditToolbarIconButton(
                         onClick = onDiscard,
-                        icon = Icons.Filled.Close,
+                        icon = LucideIcons.Close,
                         label = discardLabel,
                         enabled = !isSaving,
                         outlined = true,
@@ -1823,7 +1804,7 @@ fun PhotoCropEditor(
                     if (onSaveCopy != null && !isPerspective && !isBlurMode) {
                         EditToolbarIconButton(
                             onClick = onSaveCopy,
-                            icon = Icons.Filled.SaveAs,
+                            icon = LucideIcons.SaveAs,
                             label = saveCopyLabel,
                             enabled = !isSaving,
                             outlined = true,
@@ -1836,7 +1817,7 @@ fun PhotoCropEditor(
                             !isSaving && (!isBlurMode || blurStrokes.isNotEmpty()),
                         ) {
                             Icon(
-                                imageVector = Icons.Filled.Done,
+                                imageVector = LucideIcons.Done,
                                 contentDescription = null,
                                 modifier = Modifier.size(18.dp),
                             )
@@ -1855,7 +1836,7 @@ fun PhotoCropEditor(
                     } else {
                         EditToolbarIconButton(
                             onClick = onSave,
-                            icon = Icons.Filled.Save,
+                            icon = LucideIcons.Save,
                             label = saveLabel,
                             enabled = !isSaving,
                             filled = true,

@@ -47,22 +47,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Deselect
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.SelectAll
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -125,6 +109,7 @@ import dev.harrix.hsk.ui.HskDropdownMenuItem
 import dev.harrix.hsk.ui.OverflowTextTooltipBox
 import dev.harrix.hsk.ui.TypeYesConfirmDialog
 import dev.harrix.hsk.ui.adaptiveBottomBarWidth
+import dev.harrix.hsk.ui.icons.LucideIcons
 import dev.harrix.hsk.ui.isCompactWidth
 import dev.harrix.hsk.ui.performLightActionHaptic
 import dev.harrix.hsk.ui.theme.HskTopAppBarHeight
@@ -143,10 +128,10 @@ enum class VideoSort(
     val labelRes: Int,
     val icon: ImageVector,
 ) {
-    DATE_DESC(R.string.video_cleaner_sort_date_desc, Icons.Filled.CalendarMonth),
-    DATE_ASC(R.string.video_cleaner_sort_date_asc, Icons.Filled.CalendarMonth),
-    SIZE_DESC(R.string.video_cleaner_sort_size_desc, Icons.Filled.ArrowDownward),
-    SIZE_ASC(R.string.video_cleaner_sort_size_asc, Icons.Filled.ArrowUpward),
+    DATE_DESC(R.string.video_cleaner_sort_date_desc, LucideIcons.CalendarMonth),
+    DATE_ASC(R.string.video_cleaner_sort_date_asc, LucideIcons.CalendarMonth),
+    SIZE_DESC(R.string.video_cleaner_sort_size_desc, LucideIcons.ArrowDownward),
+    SIZE_ASC(R.string.video_cleaner_sort_size_asc, LucideIcons.ArrowUpward),
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -526,7 +511,7 @@ fun VideoCleanerScreen(
                 navigationIcon = {
                     IconButton(onClick = { leaveCleaner() }) {
                         Icon(
-                            imageVector = Icons.Filled.Close,
+                            imageVector = LucideIcons.Close,
                             contentDescription = stringResource(R.string.video_cleaner_close),
                         )
                     }
@@ -535,7 +520,7 @@ fun VideoCleanerScreen(
                     Box {
                         IconButton(onClick = { sortMenuExpanded = true }) {
                             Icon(
-                                imageVector = Icons.Filled.MoreVert,
+                                imageVector = LucideIcons.MoreVert,
                                 contentDescription = stringResource(R.string.video_cleaner_settings),
                             )
                         }
@@ -565,7 +550,7 @@ fun VideoCleanerScreen(
                                 },
                                 leadingIcon = {
                                     Icon(
-                                        imageVector = Icons.Filled.BarChart,
+                                        imageVector = LucideIcons.BarChart,
                                         contentDescription = null,
                                     )
                                 },
@@ -580,7 +565,7 @@ fun VideoCleanerScreen(
                                 },
                                 leadingIcon = {
                                     Icon(
-                                        imageVector = Icons.Filled.Settings,
+                                        imageVector = LucideIcons.Settings,
                                         contentDescription = null,
                                     )
                                 },
@@ -688,13 +673,13 @@ fun VideoCleanerScreen(
                                 onClick = {
                                     selectedIds = sortedVideos.map { it.id }.toSet()
                                 },
-                                icon = Icons.Filled.SelectAll,
+                                icon = LucideIcons.SelectAll,
                                 label = stringResource(R.string.video_cleaner_select_all),
                                 modifier = Modifier.weight(1f, fill = false),
                             )
                             VideoSelectionTextButton(
                                 onClick = { selectedIds = emptySet() },
-                                icon = Icons.Filled.Deselect,
+                                icon = LucideIcons.Deselect,
                                 label = stringResource(R.string.video_cleaner_deselect_all),
                                 enabled = selectedIds.isNotEmpty(),
                                 modifier = Modifier.weight(1f, fill = false),
@@ -850,7 +835,7 @@ private fun VideoCleanerBottomBar(
             }
             CompactWideActionButton(
                 onClick = onDelete,
-                icon = Icons.Filled.Delete,
+                icon = LucideIcons.Delete,
                 label = deleteLabel,
                 enabled = selectedCount > 0,
                 colors = deleteColors,
@@ -935,7 +920,7 @@ private fun VideoGalleryItem(
                     modifier = Modifier.size(32.dp),
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.MoreVert,
+                        imageVector = LucideIcons.MoreVert,
                         contentDescription = stringResource(R.string.video_cleaner_more_actions),
                         tint = Color.White,
                         modifier =
@@ -960,7 +945,7 @@ private fun VideoGalleryItem(
                     },
                     leadingIcon = {
                         Icon(
-                            imageVector = Icons.Filled.PlayArrow,
+                            imageVector = LucideIcons.PlayArrow,
                             contentDescription = null,
                         )
                     },
@@ -975,7 +960,7 @@ private fun VideoGalleryItem(
                     },
                     leadingIcon = {
                         Icon(
-                            imageVector = Icons.Filled.Share,
+                            imageVector = LucideIcons.Share,
                             contentDescription = null,
                         )
                     },
@@ -993,7 +978,7 @@ private fun VideoGalleryItem(
                     },
                     leadingIcon = {
                         Icon(
-                            imageVector = Icons.Filled.Info,
+                            imageVector = LucideIcons.Info,
                             contentDescription = null,
                         )
                     },
@@ -1002,7 +987,7 @@ private fun VideoGalleryItem(
         }
         if (selected) {
             Icon(
-                imageVector = Icons.Filled.CheckCircle,
+                imageVector = LucideIcons.CheckCircle,
                 contentDescription = null,
                 tint = colorScheme.primary,
                 modifier =
@@ -1045,7 +1030,7 @@ private fun VideoThumbnail(
             )
         } else {
             Icon(
-                imageVector = Icons.Filled.Videocam,
+                imageVector = LucideIcons.Videocam,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(36.dp),
@@ -1123,7 +1108,7 @@ private fun VideoPlaybackDialog(
                     .padding(4.dp),
             ) {
                 Icon(
-                    imageVector = Icons.Filled.Close,
+                    imageVector = LucideIcons.Close,
                     contentDescription = stringResource(R.string.video_cleaner_play_close),
                     tint = Color.White,
                 )

@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -41,6 +39,7 @@ import dev.harrix.hsk.gallery.CameraGalleryRepository
 import dev.harrix.hsk.gallery.CameraVideo
 import dev.harrix.hsk.gallery.VideoFileDetails
 import dev.harrix.hsk.gallery.VideoFileDetailsLoader
+import dev.harrix.hsk.ui.icons.LucideIcons
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.text.DateFormat
@@ -214,7 +213,7 @@ private fun VideoCopyableDetailRow(
             modifier = Modifier.size(36.dp),
         ) {
             Icon(
-                imageVector = Icons.Filled.ContentCopy,
+                imageVector = LucideIcons.ContentCopy,
                 contentDescription = copyLabel,
                 modifier = Modifier.size(18.dp),
                 tint = MaterialTheme.colorScheme.primary,

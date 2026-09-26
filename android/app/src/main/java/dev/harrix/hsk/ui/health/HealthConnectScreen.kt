@@ -12,11 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
-import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -43,6 +38,7 @@ import dev.harrix.hsk.health.HealthConnectReader
 import dev.harrix.hsk.health.HealthConnectSnapshot
 import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.adaptiveContentWidth
+import dev.harrix.hsk.ui.icons.LucideIcons
 import dev.harrix.hsk.ui.theme.HskTopAppBarHeight
 import dev.harrix.hsk.ui.theme.hskScaffoldContainerColor
 import dev.harrix.hsk.ui.theme.hskScaffoldContentWindowInsets
@@ -85,7 +81,7 @@ fun HealthConnectScreen(
                 navigationIcon = {
                     IconButton(onClick = onClose) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            imageVector = LucideIcons.ArrowBack,
                             contentDescription = stringResource(R.string.health_connect_close),
                         )
                     }
@@ -96,7 +92,7 @@ fun HealthConnectScreen(
                         enabled = uiState !is HealthConnectUiState.Loading,
                     ) {
                         Icon(
-                            imageVector = Icons.Filled.Refresh,
+                            imageVector = LucideIcons.Refresh,
                             contentDescription = stringResource(R.string.health_connect_refresh),
                         )
                     }
@@ -241,7 +237,7 @@ private fun ReadyContent(
         }
 
         SectionHeader(
-            icon = Icons.AutoMirrored.Filled.DirectionsWalk,
+            icon = LucideIcons.DirectionsWalk,
             title = stringResource(R.string.health_connect_steps_section),
         )
         StepsSection(
@@ -251,7 +247,7 @@ private fun ReadyContent(
         )
 
         SectionHeader(
-            icon = Icons.Filled.FitnessCenter,
+            icon = LucideIcons.FitnessCenter,
             title = stringResource(R.string.health_connect_other_workouts_section),
         )
         SessionListSection(
@@ -281,7 +277,7 @@ private fun ReadyContent(
         )
 
         SectionHeader(
-            icon = Icons.Filled.FitnessCenter,
+            icon = LucideIcons.FitnessCenter,
             title = stringResource(R.string.health_connect_all_sessions_section),
         )
         SessionListSection(

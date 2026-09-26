@@ -21,13 +21,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Medication
-import androidx.compose.material.icons.filled.MoreHoriz
-import androidx.compose.material.icons.filled.Movie
-import androidx.compose.material.icons.filled.PhotoLibrary
-import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -88,6 +81,7 @@ import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.HskDropdownMenuItem
 import dev.harrix.hsk.ui.TypeYesConfirmDialog
 import dev.harrix.hsk.ui.adaptiveContentWidth
+import dev.harrix.hsk.ui.icons.LucideIcons
 import dev.harrix.hsk.ui.isCompactWidth
 import dev.harrix.hsk.ui.theme.AppLanguage
 import dev.harrix.hsk.ui.theme.HskTopAppBarHeight
@@ -226,7 +220,7 @@ fun SettingsScreen(
                 navigationIcon = {
                     IconButton(onClick = { goBack() }) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            imageVector = LucideIcons.ArrowBack,
                             contentDescription = stringResource(R.string.settings_back),
                         )
                     }
@@ -247,26 +241,26 @@ fun SettingsScreen(
                     SettingsHubRow(
                         title = stringResource(R.string.settings_general_title),
                         summary = stringResource(R.string.settings_general_summary),
-                        icon = Icons.Filled.Security,
+                        icon = LucideIcons.Security,
                         onClick = { page = HskSettingsPage.General },
                     )
                     HorizontalDivider()
                     SettingsHubRow(
                         title = stringResource(R.string.settings_gallery_cleaner_title),
                         summary = stringResource(R.string.settings_gallery_cleaner_summary),
-                        icon = Icons.Filled.PhotoLibrary,
+                        icon = LucideIcons.PhotoLibrary,
                         onClick = { page = HskSettingsPage.Gallery },
                     )
                     SettingsHubRow(
                         title = stringResource(R.string.settings_medicine_search_title),
                         summary = stringResource(R.string.settings_medicine_search_summary),
-                        icon = Icons.Filled.Medication,
+                        icon = LucideIcons.Medication,
                         onClick = { page = HskSettingsPage.MedicineSearch },
                     )
                     SettingsHubRow(
                         title = stringResource(R.string.settings_movies_title),
                         summary = stringResource(R.string.settings_movies_summary),
-                        icon = Icons.Filled.Movie,
+                        icon = LucideIcons.Movie,
                         onClick = { page = HskSettingsPage.Movies },
                     )
                     SettingsCategoryHeader(text = stringResource(R.string.settings_category_essential))
@@ -283,7 +277,7 @@ fun SettingsScreen(
                     SettingsHubRow(
                         title = stringResource(R.string.settings_other_title),
                         summary = stringResource(R.string.settings_other_summary),
-                        icon = Icons.Filled.MoreHoriz,
+                        icon = LucideIcons.MoreHoriz,
                         onClick = { page = HskSettingsPage.Other },
                     )
                 }

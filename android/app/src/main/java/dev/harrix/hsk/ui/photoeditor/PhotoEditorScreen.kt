@@ -23,9 +23,6 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -66,6 +63,7 @@ import dev.harrix.hsk.gallery.GalleryCleanerPreferences
 import dev.harrix.hsk.gallery.GalleryPermissions
 import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.gallery.EditablePhotoHost
+import dev.harrix.hsk.ui.icons.LucideIcons
 import dev.harrix.hsk.ui.theme.HskTopAppBarHeight
 import dev.harrix.hsk.ui.theme.hskScaffoldContainerColor
 import dev.harrix.hsk.ui.theme.hskScaffoldContentWindowInsets
@@ -236,9 +234,9 @@ fun PhotoEditorScreen(
                         Icon(
                             imageVector =
                             if (editing) {
-                                Icons.AutoMirrored.Filled.ArrowBack
+                                LucideIcons.ArrowBack
                             } else {
-                                Icons.Filled.Close
+                                LucideIcons.Close
                             },
                             contentDescription =
                             stringResource(

@@ -20,10 +20,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Map
-import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -62,6 +58,7 @@ import dev.harrix.hsk.gallery.OsmStaticMapPreview
 import dev.harrix.hsk.gallery.PhotoCaptureMode
 import dev.harrix.hsk.gallery.PhotoFileDetails
 import dev.harrix.hsk.gallery.PhotoFileDetailsLoader
+import dev.harrix.hsk.ui.icons.LucideIcons
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.text.DateFormat
@@ -350,7 +347,7 @@ private fun CopyableDetailRow(
             modifier = Modifier.size(36.dp),
         ) {
             Icon(
-                imageVector = Icons.Filled.ContentCopy,
+                imageVector = LucideIcons.ContentCopy,
                 contentDescription = copyLabel,
                 modifier = Modifier.size(18.dp),
                 tint = MaterialTheme.colorScheme.primary,
@@ -435,7 +432,7 @@ private fun PhotoLocationMapPreview(
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Icon(
-                            imageVector = Icons.Filled.Place,
+                            imageVector = LucideIcons.Place,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.error,
                             modifier = Modifier.size(40.dp),
@@ -463,7 +460,7 @@ private fun PhotoLocationMapPreview(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.Map,
+                        imageVector = LucideIcons.Map,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
                     )

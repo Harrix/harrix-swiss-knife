@@ -27,15 +27,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.FolderOpen
-import androidx.compose.material.icons.filled.Movie
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -80,6 +71,7 @@ import dev.harrix.hsk.movies.MoviesRatingGroup
 import dev.harrix.hsk.movies.MoviesYearGroup
 import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.adaptiveContentWidth
+import dev.harrix.hsk.ui.icons.LucideIcons
 import dev.harrix.hsk.ui.theme.HskTopAppBarHeight
 import dev.harrix.hsk.ui.theme.hskScaffoldContainerColor
 import dev.harrix.hsk.ui.theme.hskScaffoldContentWindowInsets
@@ -176,9 +168,9 @@ fun MoviesScreen(
                         Icon(
                             imageVector =
                             if (selectedMovie != null) {
-                                Icons.AutoMirrored.Filled.ArrowBack
+                                LucideIcons.ArrowBack
                             } else {
-                                Icons.Filled.Close
+                                LucideIcons.Close
                             },
                             contentDescription =
                             if (selectedMovie != null) {
@@ -193,7 +185,7 @@ fun MoviesScreen(
                     if (selectedMovie == null) {
                         IconButton(onClick = onOpenSettings) {
                             Icon(
-                                imageVector = Icons.Filled.Settings,
+                                imageVector = LucideIcons.Settings,
                                 contentDescription = stringResource(R.string.movies_settings),
                             )
                         }
@@ -294,7 +286,7 @@ private fun MoviesNavigationBar(
             onClick = { onSectionChange(MoviesNavSection.All) },
             icon = {
                 Icon(
-                    imageVector = Icons.Filled.Search,
+                    imageVector = LucideIcons.Search,
                     contentDescription = null,
                 )
             },
@@ -305,7 +297,7 @@ private fun MoviesNavigationBar(
             onClick = { onSectionChange(MoviesNavSection.Years) },
             icon = {
                 Icon(
-                    imageVector = Icons.Filled.DateRange,
+                    imageVector = LucideIcons.DateRange,
                     contentDescription = null,
                 )
             },
@@ -316,7 +308,7 @@ private fun MoviesNavigationBar(
             onClick = { onSectionChange(MoviesNavSection.Ratings) },
             icon = {
                 Icon(
-                    imageVector = Icons.Filled.Star,
+                    imageVector = LucideIcons.Star,
                     contentDescription = null,
                 )
             },
@@ -339,7 +331,7 @@ private fun MoviesEmptyFolder(
         verticalArrangement = Arrangement.Center,
     ) {
         Icon(
-            imageVector = Icons.Filled.Movie,
+            imageVector = LucideIcons.Movie,
             contentDescription = null,
             modifier = Modifier.size(48.dp),
             tint = MaterialTheme.colorScheme.primary,
@@ -360,7 +352,7 @@ private fun MoviesEmptyFolder(
         Spacer(modifier = Modifier.height(16.dp))
         Button(onClick = onPickFolder) {
             Icon(
-                imageVector = Icons.Filled.FolderOpen,
+                imageVector = LucideIcons.FolderOpen,
                 contentDescription = null,
                 modifier = Modifier.size(18.dp),
             )
@@ -405,7 +397,7 @@ private fun MoviesBrowsePane(
             singleLine = true,
             leadingIcon = {
                 Icon(
-                    imageVector = Icons.Filled.Search,
+                    imageVector = LucideIcons.Search,
                     contentDescription = null,
                 )
             },
@@ -778,7 +770,7 @@ private fun MoviePoster(
         if (posterPath.isNullOrBlank()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Icon(
-                    imageVector = Icons.Filled.Movie,
+                    imageVector = LucideIcons.Movie,
                     contentDescription = contentDescription,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

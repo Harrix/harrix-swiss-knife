@@ -26,18 +26,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Reply
-import androidx.compose.material.icons.filled.AddAPhoto
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Medication
-import androidx.compose.material.icons.filled.PhotoCamera
-import androidx.compose.material.icons.filled.PhotoLibrary
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -86,6 +74,7 @@ import dev.harrix.hsk.medicinesearch.MedicineSearchCamera
 import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.SimpleMarkdownText
 import dev.harrix.hsk.ui.adaptiveContentWidth
+import dev.harrix.hsk.ui.icons.LucideIcons
 import dev.harrix.hsk.ui.theme.HskTopAppBarHeight
 import dev.harrix.hsk.ui.theme.hskScaffoldContainerColor
 import dev.harrix.hsk.ui.theme.hskScaffoldContentWindowInsets
@@ -303,7 +292,7 @@ fun MedicineSearchScreen(
                 navigationIcon = {
                     IconButton(onClick = { leave() }) {
                         Icon(
-                            imageVector = Icons.Filled.Close,
+                            imageVector = LucideIcons.Close,
                             contentDescription = stringResource(R.string.medicine_search_close),
                         )
                     }
@@ -311,7 +300,7 @@ fun MedicineSearchScreen(
                 actions = {
                     IconButton(onClick = onOpenSettings, enabled = !busy) {
                         Icon(
-                            imageVector = Icons.Filled.Settings,
+                            imageVector = LucideIcons.Settings,
                             contentDescription =
                             stringResource(R.string.medicine_search_settings),
                         )
@@ -351,7 +340,7 @@ fun MedicineSearchScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Icon(
-                            imageVector = Icons.Filled.Medication,
+                            imageVector = LucideIcons.Medication,
                             contentDescription = null,
                             modifier = Modifier.size(48.dp),
                             tint = MaterialTheme.colorScheme.primary,
@@ -372,7 +361,7 @@ fun MedicineSearchScreen(
                             enabled = !busy,
                         ) {
                             Icon(
-                                imageVector = Icons.Filled.UploadFile,
+                                imageVector = LucideIcons.UploadFile,
                                 contentDescription = null,
                                 modifier = Modifier.size(18.dp),
                             )
@@ -448,7 +437,7 @@ fun MedicineSearchScreen(
                         )
                     } else {
                         Icon(
-                            imageVector = Icons.Filled.Search,
+                            imageVector = LucideIcons.Search,
                             contentDescription = null,
                             modifier = Modifier.size(18.dp),
                         )
@@ -518,7 +507,7 @@ fun MedicineSearchScreen(
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Icon(
-                            imageVector = Icons.Filled.PhotoLibrary,
+                            imageVector = LucideIcons.PhotoLibrary,
                             contentDescription = null,
                             modifier = Modifier.size(18.dp),
                         )
@@ -533,7 +522,7 @@ fun MedicineSearchScreen(
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Icon(
-                            imageVector = Icons.Filled.PhotoCamera,
+                            imageVector = LucideIcons.PhotoCamera,
                             contentDescription = null,
                             modifier = Modifier.size(18.dp),
                         )
@@ -635,7 +624,7 @@ private fun ConversationResult(
                         enabled = !busy && turn.answer.isNotBlank(),
                     ) {
                         Icon(
-                            imageVector = Icons.Filled.ContentCopy,
+                            imageVector = LucideIcons.ContentCopy,
                             contentDescription = stringResource(R.string.medicine_search_copy),
                         )
                     }
@@ -644,7 +633,7 @@ private fun ConversationResult(
                         enabled = !busy && turn.answer.isNotBlank(),
                     ) {
                         Icon(
-                            imageVector = Icons.Filled.Share,
+                            imageVector = LucideIcons.Share,
                             contentDescription = stringResource(R.string.medicine_search_share),
                         )
                     }
@@ -704,7 +693,7 @@ private fun ConversationResult(
                 )
             } else {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.Reply,
+                    imageVector = LucideIcons.Reply,
                     contentDescription = null,
                     modifier = Modifier.size(18.dp),
                 )
@@ -781,7 +770,7 @@ private fun AttachedPhotosRow(
                                 ),
                         ) {
                             Icon(
-                                imageVector = Icons.Filled.Close,
+                                imageVector = LucideIcons.Close,
                                 contentDescription =
                                 stringResource(R.string.medicine_search_remove_photo),
                                 modifier = Modifier.size(16.dp),
@@ -797,7 +786,7 @@ private fun AttachedPhotosRow(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Icon(
-                imageVector = Icons.Filled.AddAPhoto,
+                imageVector = LucideIcons.AddAPhoto,
                 contentDescription = null,
                 modifier = Modifier.size(18.dp),
             )

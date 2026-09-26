@@ -44,25 +44,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Undo
-import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.CropRotate
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Done
-import androidx.compose.material.icons.filled.FilterAlt
-import androidx.compose.material.icons.filled.FilterAltOff
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.SkipNext
-import androidx.compose.material.icons.filled.Today
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -129,6 +110,7 @@ import dev.harrix.hsk.ui.CompactBottomActionButton
 import dev.harrix.hsk.ui.HskDropdownMenuItem
 import dev.harrix.hsk.ui.TypeYesConfirmDialog
 import dev.harrix.hsk.ui.adaptiveBottomBarWidth
+import dev.harrix.hsk.ui.icons.LucideIcons
 import dev.harrix.hsk.ui.isCompactHeight
 import dev.harrix.hsk.ui.isCompactWidth
 import dev.harrix.hsk.ui.performLightActionHaptic
@@ -987,7 +969,7 @@ fun GalleryCleanerScreen(
                             },
                         ) {
                             Icon(
-                                imageVector = Icons.Filled.Close,
+                                imageVector = LucideIcons.Close,
                                 contentDescription = stringResource(R.string.gallery_cleaner_close),
                             )
                         }
@@ -1043,7 +1025,7 @@ fun GalleryCleanerScreen(
                             Box {
                                 IconButton(onClick = { menuExpanded = true }) {
                                     Icon(
-                                        imageVector = Icons.Filled.MoreVert,
+                                        imageVector = LucideIcons.MoreVert,
                                         contentDescription =
                                         stringResource(R.string.gallery_cleaner_menu),
                                     )
@@ -1063,7 +1045,7 @@ fun GalleryCleanerScreen(
                                         },
                                         leadingIcon = {
                                             Icon(
-                                                imageVector = Icons.Filled.FilterAlt,
+                                                imageVector = LucideIcons.FilterAlt,
                                                 contentDescription = null,
                                             )
                                         },
@@ -1084,7 +1066,7 @@ fun GalleryCleanerScreen(
                                             },
                                             leadingIcon = {
                                                 Icon(
-                                                    imageVector = Icons.Filled.Today,
+                                                    imageVector = LucideIcons.Today,
                                                     contentDescription = null,
                                                 )
                                             },
@@ -1109,7 +1091,7 @@ fun GalleryCleanerScreen(
                                             },
                                             leadingIcon = {
                                                 Icon(
-                                                    imageVector = Icons.Filled.FilterAltOff,
+                                                    imageVector = LucideIcons.FilterAltOff,
                                                     contentDescription = null,
                                                 )
                                             },
@@ -1141,9 +1123,9 @@ fun GalleryCleanerScreen(
                                             Icon(
                                                 imageVector =
                                                 if (unreviewedOnlyMode) {
-                                                    Icons.Filled.Visibility
+                                                    LucideIcons.Visibility
                                                 } else {
-                                                    Icons.Filled.VisibilityOff
+                                                    LucideIcons.VisibilityOff
                                                 },
                                                 contentDescription = null,
                                             )
@@ -1164,7 +1146,7 @@ fun GalleryCleanerScreen(
                                         },
                                         leadingIcon = {
                                             Icon(
-                                                imageVector = Icons.Filled.BarChart,
+                                                imageVector = LucideIcons.BarChart,
                                                 contentDescription = null,
                                             )
                                         },
@@ -1185,7 +1167,7 @@ fun GalleryCleanerScreen(
                                             },
                                             leadingIcon = {
                                                 Icon(
-                                                    imageVector = Icons.Filled.Info,
+                                                    imageVector = LucideIcons.Info,
                                                     contentDescription = null,
                                                 )
                                             },
@@ -1201,7 +1183,7 @@ fun GalleryCleanerScreen(
                                         },
                                         leadingIcon = {
                                             Icon(
-                                                imageVector = Icons.Filled.Settings,
+                                                imageVector = LucideIcons.Settings,
                                                 contentDescription = null,
                                             )
                                         },
@@ -1408,7 +1390,7 @@ private fun ReviewActionBar(
         ) {
             CompactBottomActionButton(
                 onClick = onDelete,
-                icon = Icons.Filled.Delete,
+                icon = LucideIcons.Delete,
                 label = stringResource(R.string.gallery_cleaner_action_delete),
                 colors =
                 ButtonDefaults.buttonColors(
@@ -1419,14 +1401,14 @@ private fun ReviewActionBar(
             if (onSkip != null) {
                 CompactBottomActionButton(
                     onClick = onSkip,
-                    icon = Icons.Filled.SkipNext,
+                    icon = LucideIcons.SkipNext,
                     label = stringResource(R.string.gallery_cleaner_action_skip),
                     outlined = true,
                 )
             }
             CompactBottomActionButton(
                 onClick = onKeep,
-                icon = Icons.Filled.Done,
+                icon = LucideIcons.Done,
                 label = stringResource(R.string.gallery_cleaner_action_keep),
                 colors =
                 ButtonDefaults.buttonColors(
@@ -1505,14 +1487,14 @@ private fun PhotoSecondaryActionsRow(
                 enabled = !isSavingEdit,
             ) {
                 Icon(
-                    imageVector = Icons.Filled.CropRotate,
+                    imageVector = LucideIcons.CropRotate,
                     contentDescription =
                     stringResource(R.string.gallery_cleaner_action_edit),
                 )
             }
             IconButton(onClick = onShare) {
                 Icon(
-                    imageVector = Icons.Filled.Share,
+                    imageVector = LucideIcons.Share,
                     contentDescription =
                     stringResource(R.string.gallery_cleaner_share),
                 )
@@ -1521,7 +1503,7 @@ private fun PhotoSecondaryActionsRow(
         if (!isEditing && canUndo) {
             IconButton(onClick = onUndo) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.Undo,
+                    imageVector = LucideIcons.Undo,
                     contentDescription =
                     stringResource(R.string.gallery_cleaner_undo_delete),
                 )
@@ -1715,7 +1697,7 @@ private fun SwipeablePhotoCard(
                 abs(displayOffset.x) >= abs(displayOffset.y)
             ) {
                 SwipeHint(
-                    icon = Icons.Filled.Delete,
+                    icon = LucideIcons.Delete,
                     label = stringResource(R.string.gallery_cleaner_swipe_left_hint),
                     color = MaterialTheme.colorScheme.error,
                     alpha = (-horizontalProgress).coerceIn(0f, 1f),
@@ -1727,7 +1709,7 @@ private fun SwipeablePhotoCard(
                 abs(displayOffset.x) >= abs(displayOffset.y)
             ) {
                 SwipeHint(
-                    icon = Icons.Filled.Done,
+                    icon = LucideIcons.Done,
                     label = stringResource(R.string.gallery_cleaner_swipe_right_hint),
                     color = MaterialTheme.colorScheme.secondary,
                     alpha = horizontalProgress.coerceIn(0f, 1f),
@@ -1739,7 +1721,7 @@ private fun SwipeablePhotoCard(
                 abs(displayOffset.y) > abs(displayOffset.x)
             ) {
                 SwipeHint(
-                    icon = Icons.Filled.KeyboardArrowUp,
+                    icon = LucideIcons.KeyboardArrowUp,
                     label = stringResource(R.string.gallery_cleaner_swipe_up_hint),
                     color = MaterialTheme.colorScheme.secondary,
                     alpha = upwardProgress.coerceIn(0f, 1f),
@@ -1751,7 +1733,7 @@ private fun SwipeablePhotoCard(
                 abs(displayOffset.y) > abs(displayOffset.x)
             ) {
                 SwipeHint(
-                    icon = Icons.Filled.KeyboardArrowDown,
+                    icon = LucideIcons.KeyboardArrowDown,
                     label = stringResource(R.string.gallery_cleaner_swipe_down_hint),
                     color = MaterialTheme.colorScheme.error,
                     alpha = downwardProgress.coerceIn(0f, 1f),

@@ -30,21 +30,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.automirrored.filled.ShortText
-import androidx.compose.material.icons.filled.AutoFixHigh
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Save
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Stop
-import androidx.compose.material.icons.filled.TaskAlt
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -100,6 +85,7 @@ import dev.harrix.hsk.speechtotext.SpeechToTextRepository
 import dev.harrix.hsk.speechtotext.WaveformBucket
 import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.CompactBottomActionButton
+import dev.harrix.hsk.ui.icons.LucideIcons
 import dev.harrix.hsk.ui.theme.HskTopAppBarHeight
 import dev.harrix.hsk.ui.theme.hskScaffoldContainerColor
 import dev.harrix.hsk.ui.theme.hskScaffoldContentWindowInsets
@@ -317,14 +303,14 @@ fun SpeechToTextScreen(
                     if (selectedItem != null) {
                         IconButton(onClick = { closeDetail() }) {
                             Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                imageVector = LucideIcons.ArrowBack,
                                 contentDescription = stringResource(R.string.speech_to_text_back),
                             )
                         }
                     } else {
                         IconButton(onClick = { leaveUtility() }) {
                             Icon(
-                                imageVector = Icons.Filled.Close,
+                                imageVector = LucideIcons.Close,
                                 contentDescription = stringResource(R.string.speech_to_text_close),
                             )
                         }
@@ -520,7 +506,7 @@ private fun SwipeToDeleteSpeechRow(
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Icon(
-                    imageVector = Icons.Filled.Delete,
+                    imageVector = LucideIcons.Delete,
                     contentDescription = null,
                     tint = Color.White,
                     modifier = Modifier.size(22.dp),
@@ -631,7 +617,7 @@ private fun SpeechMessageRow(
                 },
             )
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                imageVector = LucideIcons.KeyboardArrowRight,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -674,7 +660,7 @@ private fun SpeechMessageDetail(
             )
             IconButton(onClick = onDelete) {
                 Icon(
-                    imageVector = Icons.Filled.Delete,
+                    imageVector = LucideIcons.Delete,
                     contentDescription = stringResource(R.string.speech_to_text_delete_message),
                 )
             }
@@ -733,12 +719,12 @@ private fun SpeechMessageDetail(
                 ) {
                     CompactBottomActionButton(
                         onClick = onCopy,
-                        icon = Icons.Filled.ContentCopy,
+                        icon = LucideIcons.ContentCopy,
                         label = stringResource(R.string.speech_to_text_copy),
                     )
                     CompactBottomActionButton(
                         onClick = onShare,
-                        icon = Icons.Filled.Share,
+                        icon = LucideIcons.Share,
                         label = stringResource(R.string.speech_to_text_share),
                         outlined = true,
                     )
@@ -749,7 +735,7 @@ private fun SpeechMessageDetail(
                 ) {
                     CompactBottomActionButton(
                         onClick = onRewrite,
-                        icon = Icons.Filled.AutoFixHigh,
+                        icon = LucideIcons.AutoFixHigh,
                         label = stringResource(R.string.speech_to_text_rewrite),
                         outlined = true,
                         enabled = hasApiKey,
@@ -757,7 +743,7 @@ private fun SpeechMessageDetail(
                     if (SpeechToTextRepository.isMultiline(item.text)) {
                         CompactBottomActionButton(
                             onClick = onSingleLine,
-                            icon = Icons.AutoMirrored.Filled.ShortText,
+                            icon = LucideIcons.ShortText,
                             label = stringResource(R.string.speech_to_text_single_line),
                             outlined = true,
                         )
@@ -765,7 +751,7 @@ private fun SpeechMessageDetail(
                 }
                 OutlinedButton(onClick = onSendToTickTick, modifier = Modifier.fillMaxWidth()) {
                     Icon(
-                        imageVector = Icons.Filled.TaskAlt,
+                        imageVector = LucideIcons.TaskAlt,
                         contentDescription = null,
                         modifier = Modifier.size(18.dp),
                     )
@@ -774,7 +760,7 @@ private fun SpeechMessageDetail(
                 }
                 OutlinedButton(onClick = onSave, modifier = Modifier.fillMaxWidth()) {
                     Icon(
-                        imageVector = Icons.Filled.Save,
+                        imageVector = LucideIcons.Save,
                         contentDescription = null,
                         modifier = Modifier.size(18.dp),
                     )
@@ -818,7 +804,7 @@ private fun SpeechMessageDetail(
                 }
                 OutlinedButton(onClick = onSave, modifier = Modifier.fillMaxWidth()) {
                     Icon(
-                        imageVector = Icons.Filled.Save,
+                        imageVector = LucideIcons.Save,
                         contentDescription = null,
                         modifier = Modifier.size(18.dp),
                     )
@@ -905,7 +891,7 @@ private fun ComposerBar(
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Icon(
-                            imageVector = Icons.Filled.Stop,
+                            imageVector = LucideIcons.Stop,
                             contentDescription = null,
                             modifier = Modifier.size(20.dp),
                         )
@@ -955,7 +941,7 @@ private fun ComposerBar(
                             modifier = Modifier.weight(1f),
                         ) {
                             Icon(
-                                imageVector = Icons.Filled.Mic,
+                                imageVector = LucideIcons.Mic,
                                 contentDescription = null,
                                 modifier = Modifier.size(18.dp),
                             )
@@ -969,7 +955,7 @@ private fun ComposerBar(
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Icon(
-                            imageVector = Icons.Filled.Save,
+                            imageVector = LucideIcons.Save,
                             contentDescription = null,
                             modifier = Modifier.size(20.dp),
                         )
@@ -982,20 +968,20 @@ private fun ComposerBar(
                     ) {
                         CompactBottomActionButton(
                             onClick = onContinue,
-                            icon = Icons.Filled.PlayArrow,
+                            icon = LucideIcons.PlayArrow,
                             label = stringResource(R.string.speech_to_text_continue),
                             enabled = !busy,
                         )
                         CompactBottomActionButton(
                             onClick = onRerecord,
-                            icon = Icons.Filled.Refresh,
+                            icon = LucideIcons.Refresh,
                             label = stringResource(R.string.speech_to_text_rerecord),
                             outlined = true,
                             enabled = !busy,
                         )
                         CompactBottomActionButton(
                             onClick = onDiscard,
-                            icon = Icons.Filled.Delete,
+                            icon = LucideIcons.Delete,
                             label = stringResource(R.string.speech_to_text_discard_recording),
                             outlined = true,
                             enabled = !busy,
