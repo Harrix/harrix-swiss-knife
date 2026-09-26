@@ -1,0 +1,22 @@
+---
+description: New Android UI icons come from Lucide via LucideIcons
+alwaysApply: true
+---
+
+# Android icons are Lucide
+
+In `android/`, every new icon — commands, menus, buttons, toolbars, list rows, widgets — comes from Lucide.
+
+Use `dev.harrix.hsk.ui.icons.LucideIcons`. Do not add `Icons.Filled`, `Icons.Outlined`, `Icons.AutoMirrored`, or `androidx.compose.material:material-icons-extended`.
+
+Glyphs live in `src/harrix_swiss_knife/assets/lucide/{name}.svg`. If `LucideIcons` has no match, add a property with the existing `lucide()` helper: one SVG path (or rect/circle converted to a path) per argument, stroke 2 on a 24 viewport. Pass `autoMirror = true` for a directional icon that should flip in RTL.
+
+```kotlin
+Icon(imageVector = LucideIcons.Search, contentDescription = null)
+
+val Search: ImageVector by lazy {
+    lucide("search", "M21 21l-4.34-4.34", "M11 19a8 8 0 1 1 0-16a8 8 0 0 1 0 16z")
+}
+```
+
+Leave the app logo and launcher icons as they are. A home-screen widget drawable uses the same Lucide outline (white stroke), not a Material filled path.
