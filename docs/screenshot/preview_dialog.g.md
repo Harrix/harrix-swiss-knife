@@ -346,7 +346,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         menu = QMenu(button)
         for fmt, title, _file_filter in _SAVE_FORMATS:
             action = menu.addAction(title)
-            action.setIcon(create_tabler_icon(_FORMAT_ICONS[fmt]))
+            action.setIcon(create_lucide_icon(_FORMAT_ICON, DEFAULT_LUCIDE_MENU_ICON_SIZE))
             action.triggered.connect(lambda _checked=False, chosen=fmt: slot(chosen))
         apply_menu_icon_size(menu)
         button.setMenu(menu)

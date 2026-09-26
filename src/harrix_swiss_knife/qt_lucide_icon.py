@@ -44,7 +44,7 @@ from harrix_swiss_knife.qt_emoji_icon import split_leading_emoji
 
 logger = logging.getLogger(__name__)
 
-# Lucide and Tabler strokes are 2px on a 24px grid. Drawing them at 24 keeps the stroke
+# Lucide strokes are 2px on a 24px grid. Drawing them at 24 keeps the stroke
 # on whole pixels; 18px makes a 1.5px stroke that looks soft, and menus then scale it again.
 DEFAULT_LUCIDE_BUTTON_ICON_SIZE = 24
 DEFAULT_LUCIDE_MENU_ICON_SIZE = 24
@@ -468,48 +468,6 @@ def create_lucide_icon(
     return icon
 
 
-def create_tabler_icon(
-    name: str,
-    size: int = DEFAULT_LUCIDE_MENU_ICON_SIZE,
-    *,
-    color: QColor | str | None = None,
-    device_pixel_ratio: float | None = None,
-) -> QIcon:
-    """Create a square `QIcon` from a Tabler stroke SVG in `assets/tabler/`.
-
-    Args:
-
-    - `name` (`str`): Icon file stem, such as `file-type-png`.
-    - `size` (`int`): Logical side length in pixels.
-    - `color` (`QColor | str | None`): Stroke color. Defaults to the dark chrome color.
-    - `device_pixel_ratio` (`float | None`): Bitmap scale. Defaults to the screen scale.
-
-    Returns:
-
-    - `QIcon`: Painted icon, or a null icon when the SVG is missing.
-
-    """
-    ratio = device_pixel_ratio if device_pixel_ratio is not None else _lucide_device_pixel_ratio()
-    if ratio <= 0:
-        ratio = 1.0
-    paint_color = QColor(color) if color is not None else QColor(LUCIDE_COLOR_DARK)
-    cache_key = (f"tabler:{name}", size, paint_color.name(QColor.NameFormat.HexArgb), ratio)
-    cached = _CACHE.get(cache_key)
-    if cached is not None:
-        return cached
-    path = _tabler_dir() / f"{name}.svg"
-    if not _ICON_NAME_RE.fullmatch(name) or not path.is_file():
-        logger.warning("Unknown Tabler icon `%s`", name)
-        return QIcon()
-    hex_color = paint_color.name(QColor.NameFormat.HexRgb)
-    svg_bytes = path.read_text(encoding="utf-8").replace("currentColor", hex_color).encode("utf-8")
-    icon = _qicon_from_svg_bytes(svg_bytes, size, ratio, label=name)
-    if icon.isNull():
-        return icon
-    _CACHE[cache_key] = icon
-    return icon
-
-
 def is_clear_like_button_label(label: str) -> bool:
     """Return whether `label` is a Clear action (filter/input/list clear)."""
     folded = label.casefold().strip()
@@ -704,7 +662,3 @@ def _recolor_filled_button_icon(
             icon_size=icon_size,
             color=LUCIDE_COLOR_ON_FILLED,
         )
-
-
-def _tabler_dir() -> Path:
-    return Path(__file__).resolve().parent / "assets" / "tabler"

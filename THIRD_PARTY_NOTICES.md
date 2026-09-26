@@ -15,7 +15,6 @@ This repository is licensed under the MIT license (see `LICENSE.md`), but during
 
 - [Embedded assets (bundled in this repo)](#embedded-assets-bundled-in-this-repo)
 - [Lucide UI icons](#lucide-ui-icons)
-- [Tabler file-type icons](#tabler-file-type-icons)
 - [UI sounds (bundled WAV assets)](#ui-sounds-bundled-wav-assets)
   - [Habits (UI SFX cinematic)](#habits-ui-sfx-cinematic)
   - [Screenshot shutter](#screenshot-shutter)
@@ -43,14 +42,6 @@ Stroke SVG icons from **Lucide**, license **ISC**. Copies live under `src/harrix
 - Site: <https://lucide.dev/>
 - Package: <https://www.npmjs.com/package/lucide-static>
 - License file: `src/harrix_swiss_knife/assets/lucide/LICENSE.txt`
-
-## Tabler file-type icons
-
-Stroke SVG icons from **Tabler Icons**, license **MIT**. Copies of `file-type-png` and `file-type-jpg` live under `src/harrix_swiss_knife/assets/tabler/`. `file-type-avif` reuses the Tabler file outline; the AVIF letter strokes were added in this repository because Tabler has no AVIF icon.
-
-- Site: <https://tabler.io/icons>
-- Repository: <https://github.com/tabler/tabler-icons>
-- License file: `src/harrix_swiss_knife/assets/tabler/LICENSE.txt`
 
 ## UI sounds (bundled WAV assets)
 

@@ -48,7 +48,6 @@ from harrix_swiss_knife.qt_lucide_icon import (
     SAVE_BUTTON_ICON,
     apply_menu_icon_size,
     create_lucide_icon,
-    create_tabler_icon,
     make_lucide_push_button,
 )
 from harrix_swiss_knife.screenshot.annotation_colors import load_annotation_colors
@@ -91,12 +90,7 @@ _SAVE_FORMATS: tuple[tuple[_ScreenshotFormat, str, str], ...] = (
     ("avif_hq", "AVIF high quality", "AVIF Image (*.avif)"),
     ("avif_optimized", "AVIF optimized", "AVIF Image (*.avif)"),
 )
-_FORMAT_ICONS: dict[_ScreenshotFormat, str] = {
-    "png": "file-type-png",
-    "jpeg": "file-type-jpg",
-    "avif_hq": "file-type-avif",
-    "avif_optimized": "file-type-avif",
-}
+_FORMAT_ICON = "file-image"
 _JPEG_QUALITY = 95
 _JPEG_SUFFIXES = frozenset({".jpg", ".jpeg"})
 _RECOGNIZE_BUTTON_LABEL = "Recognize…"
@@ -450,7 +444,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         menu = QMenu(button)
         for fmt, title, _file_filter in _SAVE_FORMATS:
             action = menu.addAction(title)
-            action.setIcon(create_tabler_icon(_FORMAT_ICONS[fmt]))
+            action.setIcon(create_lucide_icon(_FORMAT_ICON, DEFAULT_LUCIDE_MENU_ICON_SIZE))
             action.triggered.connect(lambda _checked=False, chosen=fmt: slot(chosen))
         apply_menu_icon_size(menu)
         button.setMenu(menu)
