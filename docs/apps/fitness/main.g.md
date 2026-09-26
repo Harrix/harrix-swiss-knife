@@ -20,6 +20,7 @@ lang: en
   - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
   - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
   - [⚙️ Method `load_process_table`](#%EF%B8%8F-method-load_process_table)
+  - [⚙️ Method `nativeEvent`](#%EF%B8%8F-method-nativeevent)
   - [⚙️ Method `on_add_dumbbell_weight_types`](#%EF%B8%8F-method-on_add_dumbbell_weight_types)
   - [⚙️ Method `on_add_exercise`](#%EF%B8%8F-method-on_add_exercise)
   - [⚙️ Method `on_add_record`](#%EF%B8%8F-method-on_add_record)
@@ -522,6 +523,13 @@ class MainWindow(
     def load_process_table(self) -> None:
         """Load process table data with appropriate limit based on show_all_records flag."""
         self._load_process_page(reset=True)
+
+    def nativeEvent(self, event_type, message) -> tuple[bool, int]:  # noqa: ANN001, N802
+        """Drag, resize, and size the client area for the custom caption bar."""
+        handled = try_handle_win11_caption_native_event(self, event_type, message)
+        if handled is not None:
+            return handled
+        return cast("tuple[bool, int]", super().nativeEvent(event_type, message))
 
     @requires_database()
     def on_add_dumbbell_weight_types(self) -> None:
@@ -8097,6 +8105,7 @@ class MainWindow(
     def _setup_ui(self) -> None:
         """Set up additional UI elements after basic initialization."""
         self._place_menu_bar_on_tab_row()
+        install_win11_caption(self)
         self._install_word_wrap_table_headers()
         self._apply_exit_about_menu_emojis()
         self._setup_seconds_count_inputs()
@@ -9688,6 +9697,27 @@ Load process table data with appropriate limit based on show_all_records flag.
 ```python
 def load_process_table(self) -> None:
         self._load_process_page(reset=True)
+```
+
+</details>
+
+### ⚙️ Method `nativeEvent`
+
+```python
+def nativeEvent(self, event_type, message) -> tuple[bool, int]
+```
+
+Drag, resize, and size the client area for the custom caption bar.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def nativeEvent(self, event_type, message) -> tuple[bool, int]:  # noqa: ANN001, N802
+        handled = try_handle_win11_caption_native_event(self, event_type, message)
+        if handled is not None:
+            return handled
+        return cast("tuple[bool, int]", super().nativeEvent(event_type, message))
 ```
 
 </details>

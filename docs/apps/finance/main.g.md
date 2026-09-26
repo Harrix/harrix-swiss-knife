@@ -19,6 +19,7 @@ lang: en
   - [⚙️ Method `delete_record`](#%EF%B8%8F-method-delete_record)
   - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
   - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
+  - [⚙️ Method `nativeEvent`](#%EF%B8%8F-method-nativeevent)
   - [⚙️ Method `on_add_account`](#%EF%B8%8F-method-on_add_account)
   - [⚙️ Method `on_add_as_text_with_ai`](#%EF%B8%8F-method-on_add_as_text_with_ai)
   - [⚙️ Method `on_add_exchange`](#%EF%B8%8F-method-on_add_exchange)
@@ -534,6 +535,13 @@ class MainWindow(
             return
 
         super().keyPressEvent(event)
+
+    def nativeEvent(self, event_type, message) -> tuple[bool, int]:  # noqa: ANN001, N802
+        """Drag, resize, and size the client area for the custom caption bar."""
+        handled = try_handle_win11_caption_native_event(self, event_type, message)
+        if handled is not None:
+            return handled
+        return cast("tuple[bool, int]", super().nativeEvent(event_type, message))
 
     @requires_database()
     def on_add_account(self) -> None:
@@ -5188,6 +5196,7 @@ class MainWindow(
     def _setup_ui(self) -> None:
         """Set up additional UI elements."""
         self._place_menu_bar_on_tab_row()
+        install_win11_caption(self)
         self._install_word_wrap_table_headers()
         self._setup_status_bar()
         self._apply_exit_about_menu_emojis()
@@ -6885,6 +6894,27 @@ def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
             return
 
         super().keyPressEvent(event)
+```
+
+</details>
+
+### ⚙️ Method `nativeEvent`
+
+```python
+def nativeEvent(self, event_type, message) -> tuple[bool, int]
+```
+
+Drag, resize, and size the client area for the custom caption bar.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def nativeEvent(self, event_type, message) -> tuple[bool, int]:  # noqa: ANN001, N802
+        handled = try_handle_win11_caption_native_event(self, event_type, message)
+        if handled is not None:
+            return handled
+        return cast("tuple[bool, int]", super().nativeEvent(event_type, message))
 ```
 
 </details>

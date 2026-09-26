@@ -17,6 +17,7 @@ lang: en
   - [⚙️ Method `delete_record`](#%EF%B8%8F-method-delete_record)
   - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
   - [⚙️ Method `load_process_habits_table`](#%EF%B8%8F-method-load_process_habits_table)
+  - [⚙️ Method `nativeEvent`](#%EF%B8%8F-method-nativeevent)
   - [⚙️ Method `on_add_habit`](#%EF%B8%8F-method-on_add_habit)
   - [⚙️ Method `on_choose_habit_emoji`](#%EF%B8%8F-method-on_choose_habit_emoji)
   - [⚙️ Method `on_delete_habit`](#%EF%B8%8F-method-on_delete_habit)
@@ -482,6 +483,13 @@ class MainWindow(
                 process_habits_header.resizeSection(col_idx, PROCESS_HABIT_VALUE_COLUMN_MIN_WIDTH)
         if isinstance(process_habits_header, WordWrapHeaderView):
             process_habits_header.refresh_wrapped_height()
+
+    def nativeEvent(self, event_type, message) -> tuple[bool, int]:  # noqa: ANN001, N802
+        """Drag, resize, and size the client area for the custom caption bar."""
+        handled = try_handle_win11_caption_native_event(self, event_type, message)
+        if handled is not None:
+            return handled
+        return cast("tuple[bool, int]", super().nativeEvent(event_type, message))
 
     @requires_database()
     def on_add_habit(self) -> None:
@@ -1886,6 +1894,7 @@ class MainWindow(
     def _setup_ui(self) -> None:
         """Set up additional UI elements after basic initialization (habits only)."""
         self._place_menu_bar_on_tab_row()
+        install_win11_caption(self)
         self._apply_exit_about_menu_emojis()
 
         self._habit_dashboard = HabitDashboardWidget(self, app_config=self._app_config)
@@ -2809,6 +2818,27 @@ def load_process_habits_table(self, *, ignore_filter: bool = False) -> None:
                 process_habits_header.resizeSection(col_idx, PROCESS_HABIT_VALUE_COLUMN_MIN_WIDTH)
         if isinstance(process_habits_header, WordWrapHeaderView):
             process_habits_header.refresh_wrapped_height()
+```
+
+</details>
+
+### ⚙️ Method `nativeEvent`
+
+```python
+def nativeEvent(self, event_type, message) -> tuple[bool, int]
+```
+
+Drag, resize, and size the client area for the custom caption bar.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def nativeEvent(self, event_type, message) -> tuple[bool, int]:  # noqa: ANN001, N802
+        handled = try_handle_win11_caption_native_event(self, event_type, message)
+        if handled is not None:
+            return handled
+        return cast("tuple[bool, int]", super().nativeEvent(event_type, message))
 ```
 
 </details>

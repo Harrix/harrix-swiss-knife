@@ -16,7 +16,7 @@ from datetime import UTC, date, datetime, timedelta
 from functools import partial
 from pathlib import Path
 from time import sleep
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 import dayplot as dp
 import harrix_pylib as h
@@ -122,6 +122,7 @@ from harrix_swiss_knife.qt_lucide_icon import (
 )
 from harrix_swiss_knife.toast_progress_notification import ToastProgressNotification
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
+from harrix_swiss_knife.win11_caption import install_win11_caption, try_handle_win11_caption_native_event
 
 logger = logging.getLogger(__name__)
 
@@ -557,6 +558,13 @@ class MainWindow(
                 process_habits_header.resizeSection(col_idx, PROCESS_HABIT_VALUE_COLUMN_MIN_WIDTH)
         if isinstance(process_habits_header, WordWrapHeaderView):
             process_habits_header.refresh_wrapped_height()
+
+    def nativeEvent(self, event_type, message) -> tuple[bool, int]:  # noqa: ANN001, N802
+        """Drag, resize, and size the client area for the custom caption bar."""
+        handled = try_handle_win11_caption_native_event(self, event_type, message)
+        if handled is not None:
+            return handled
+        return cast("tuple[bool, int]", super().nativeEvent(event_type, message))
 
     @requires_database()
     def on_add_habit(self) -> None:
@@ -1961,6 +1969,7 @@ class MainWindow(
     def _setup_ui(self) -> None:
         """Set up additional UI elements after basic initialization (habits only)."""
         self._place_menu_bar_on_tab_row()
+        install_win11_caption(self)
         self._apply_exit_about_menu_emojis()
 
         self._habit_dashboard = HabitDashboardWidget(self, app_config=self._app_config)

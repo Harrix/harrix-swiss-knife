@@ -259,6 +259,7 @@ from harrix_swiss_knife.qt_lucide_icon import (
     set_action_text_with_lucide_icon,
 )
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
+from harrix_swiss_knife.win11_caption import install_win11_caption, try_handle_win11_caption_native_event
 
 logger = logging.getLogger(__name__)
 
@@ -707,6 +708,13 @@ class MainWindow(
     def load_process_table(self) -> None:
         """Load process table data with appropriate limit based on show_all_records flag."""
         self._load_process_page(reset=True)
+
+    def nativeEvent(self, event_type, message) -> tuple[bool, int]:  # noqa: ANN001, N802
+        """Drag, resize, and size the client area for the custom caption bar."""
+        handled = try_handle_win11_caption_native_event(self, event_type, message)
+        if handled is not None:
+            return handled
+        return cast("tuple[bool, int]", super().nativeEvent(event_type, message))
 
     @requires_database()
     def on_add_dumbbell_weight_types(self) -> None:
@@ -8282,6 +8290,7 @@ class MainWindow(
     def _setup_ui(self) -> None:
         """Set up additional UI elements after basic initialization."""
         self._place_menu_bar_on_tab_row()
+        install_win11_caption(self)
         self._install_word_wrap_table_headers()
         self._apply_exit_about_menu_emojis()
         self._setup_seconds_count_inputs()
