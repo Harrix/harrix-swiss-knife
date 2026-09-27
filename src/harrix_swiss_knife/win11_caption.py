@@ -119,6 +119,7 @@ _TAB_HOVER_BG = "#f2f8fb"
 _TAB_RADIUS = 4
 _TAB_TOP_GAP = 4
 _MENU_CHEVRON_ATTR = "_hsk_menu_chevron"
+_TAB_LINE_ATTR = "_hsk_caption_tab_line"
 _SUITE_NAME = "Harrix Swiss Knife"
 _LIGHTNESS_THRESHOLD = 128
 
@@ -304,60 +305,61 @@ class CaptionButton(QToolButton):
         return source.palette().color(QPalette.ColorRole.Window)
 
 
-class _CaptionBaseLine(QWidget):
-    """Hairline under a tabbed caption, broken beneath the active tab."""
+class _CaptionEdgeLine(QWidget):
+    """1px rule along the bottom of a caption corner, above its children."""
 
-    def __init__(self, tab_widget: QTabWidget) -> None:
-        super().__init__(tab_widget)
-        self.setObjectName("captionBaseLine")
+    def __init__(self, parent: QWidget) -> None:
+        super().__init__(parent)
+        self.setObjectName("captionEdgeLine")
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
         self.setAttribute(Qt.WidgetAttribute.WA_NoSystemBackground, on=True)
-        self._raise_pending = False
-        tab_widget.installEventFilter(self)
-        tab_bar = tab_widget.tabBar()
-        tab_bar.installEventFilter(self)
-        tab_bar.currentChanged.connect(self.update)
+        parent.installEventFilter(self)
         self.place()
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802, ARG002
-        """Keep the hairline across the window after the caption lays out."""
+        """Keep the rule on the bottom edge after the corner lays out."""
         if event.type() in {QEvent.Type.Resize, QEvent.Type.Show, QEvent.Type.LayoutRequest}:
-            self._schedule_raise()
+            self.place()
         return False
 
     def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
-        """Draw the rule, leaving the active tab's bottom edge open."""
-        tab_widget = self.parentWidget()
-        if not isinstance(tab_widget, QTabWidget) or tab_widget.count() == 0:
-            return
+        """Draw the corner's share of the caption rule."""
         painter = QPainter(self)
-        painter.fillRect(0, 0, self.width(), 1, QColor(_TAB_LINE_COLOR))
-        gap = _active_tab_gap(tab_widget.tabBar(), self)
-        if gap is None:
-            return
-        left, right = gap
-        opening = right - left - 2
-        if opening <= 0:
-            return
-        fill = tab_widget.palette().color(QPalette.ColorRole.Window)
-        painter.fillRect(left + 1, 0, opening, 1, fill)
+        painter.fillRect(self.rect(), QColor(_TAB_LINE_COLOR))
 
     def place(self) -> None:
-        """Stretch the hairline to the window and keep it above the caption."""
-        self._raise_pending = False
+        """Stretch the rule to the corner and keep it above the caption controls."""
         parent = self.parentWidget()
         if parent is None:
             return
-        self.setGeometry(0, CAPTION_BUTTON_HEIGHT - 1, parent.width(), 1)
+        self.setGeometry(0, max(0, parent.height() - 1), parent.width(), 1)
         self.raise_()
         self.update()
 
-    def _schedule_raise(self) -> None:
-        """Raise the hairline after Qt finishes laying out the caption."""
-        if self._raise_pending:
-            return
-        self._raise_pending = True
-        QTimer.singleShot(0, self.place)
+
+class _CaptionTabLine(QObject):
+    """Draw the caption rule on the tab bar, open under the active tab."""
+
+    def __init__(self, tab_bar: QTabBar) -> None:
+        super().__init__(tab_bar)
+        self._painting = False
+        tab_bar.installEventFilter(self)
+        tab_bar.currentChanged.connect(tab_bar.update)
+
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
+        """Paint the tab bar, then the rule in the tab bar's own coordinates."""
+        if event.type() != QEvent.Type.Paint or not isinstance(watched, QTabBar) or self._painting:
+            return False
+        if not isinstance(event, QPaintEvent):
+            return False
+        self._painting = True
+        try:
+            watched.paintEvent(event)
+        finally:
+            self._painting = False
+        if watched.count() > 0:
+            _paint_tab_bar_line(watched)
+        return True
 
 
 class _CaptionIconButton(QToolButton):
@@ -664,16 +666,21 @@ def write_nccalcsize_client_rect(address: int, left: int, top: int, right: int, 
     ctypes.memmove(address, ctypes.byref(rect), ctypes.sizeof(rect))
 
 
-def _active_tab_gap(tab_bar: QTabBar, line: QWidget) -> tuple[int, int] | None:
-    """Return the active tab's left and right edges in `line` coordinates."""
+def _paint_tab_bar_line(tab_bar: QTabBar) -> None:
+    """Draw the rule across the tab bar, leaving the active tab's bottom open."""
+    painter = QPainter(tab_bar)
+    color = QColor(_TAB_LINE_COLOR)
+    y = tab_bar.height() - 1
+    painter.fillRect(0, y, tab_bar.width(), 1, color)
     index = tab_bar.currentIndex()
     if index < 0:
-        return None
+        return
     rect = tab_bar.tabRect(index)
-    if rect.width() <= 0:
-        return None
-    left = tab_bar.mapTo(line, rect.topLeft()).x()
-    return left, left + rect.width()
+    opening = rect.width() - 2
+    if opening <= 0:
+        return
+    fill = tab_bar.palette().color(QPalette.ColorRole.Window)
+    painter.fillRect(rect.x() + 1, y, opening, 1, fill)
 
 
 def _apply_caption_title_style(label: QLabel) -> None:
@@ -938,16 +945,17 @@ def _dwmapi() -> ctypes.WinDLL:
 
 
 def _ensure_caption_base_line(tab_widget: QTabWidget) -> None:
-    """Show a full-width caption rule when the window has tabs."""
-    line = tab_widget.findChild(_CaptionBaseLine, "captionBaseLine")
+    """Run the caption rule across the window when tabs are showing."""
     if tab_widget.count() == 0:
-        if line is not None:
-            line.hide()
         return
-    if line is None:
-        line = _CaptionBaseLine(tab_widget)
-    line.show()
-    line.place()
+    tab_bar = tab_widget.tabBar()
+    if getattr(tab_bar, _TAB_LINE_ATTR, None) is None:
+        setattr(tab_bar, _TAB_LINE_ATTR, _CaptionTabLine(tab_bar))
+    for corner in (Qt.Corner.TopLeftCorner, Qt.Corner.TopRightCorner):
+        widget = tab_widget.cornerWidget(corner)
+        if widget is None or widget.findChild(_CaptionEdgeLine, "captionEdgeLine") is not None:
+            continue
+        _CaptionEdgeLine(widget)
 
 
 def _ensure_caption_title(window: QWidget, parent: QWidget | None = None) -> QLabel | None:
@@ -1616,7 +1624,7 @@ def _whiten_main_containers(window: QWidget) -> None:
                 _paint_container_white(viewport)
         if type(widget) not in {QWidget, QFrame, QSplitter, QStackedWidget}:
             continue
-        if isinstance(widget, _CaptionBaseLine):
+        if isinstance(widget, _CaptionEdgeLine):
             continue
         if _owned_by_native_control(widget):
             continue

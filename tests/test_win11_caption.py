@@ -221,19 +221,26 @@ def test_caption_tab_line_spans_the_window(qapp: QApplication) -> None:
     tabs.setCornerWidget(corner, Qt.Corner.TopLeftCorner)
     assert install_win11_caption(window)
     window.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, on=True)
-    window.resize(1200, 240)
+    window.resize(1600, 240)
     window.show()
+    tabs.setCurrentIndex(1)
     qapp.processEvents()
     image = tabs.grab().toImage()
-    assert _caption_line_color(image, 4) == "#dbdbdb"
-    assert _caption_line_color(image, image.width() - 4) == "#dbdbdb"
     tab_bar = tabs.tabBar()
     selected = tab_bar.tabRect(tab_bar.currentIndex())
     selected_x = tab_bar.mapTo(tabs, selected.center()).x()
     assert _caption_line_color(image, selected_x) == "#ffffff"
     last = tab_bar.tabRect(tab_bar.count() - 1)
-    gap_x = tab_bar.mapTo(tabs, last.bottomRight()).x() + 12
-    assert _caption_line_color(image, gap_x) == "#dbdbdb"
+    after_tabs = tab_bar.mapTo(tabs, last.bottomRight()).x() + 40
+    assert _caption_line_color(image, after_tabs) == "#dbdbdb"
+    right = tabs.cornerWidget(Qt.Corner.TopRightCorner)
+    assert right is not None
+    empty_x = (after_tabs + right.mapTo(tabs, QPoint(0, 0)).x()) // 2
+    assert _caption_line_color(image, empty_x) == "#dbdbdb"
+    edges = window.findChildren(QWidget, "captionEdgeLine")
+    assert len(edges) == 2
+    for edge in edges:
+        assert edge.grab().toImage().pixelColor(2, 0).name() == "#dbdbdb"
     close = window.findChild(CaptionButton, "captionCloseButton")
     assert close is not None
     assert tabs.childAt(close.mapTo(tabs, close.rect().center())) is close
