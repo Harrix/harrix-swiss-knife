@@ -63,6 +63,7 @@ REST_GLYPH_DARK = QColor(255, 255, 255)
 INACTIVE_GLYPH_LIGHT = QColor(0, 0, 0, 0x5C)
 INACTIVE_GLYPH_DARK = QColor(255, 255, 255, 0x5C)
 CLOSE_GLYPH_COLOR = QColor(255, 255, 255)
+_WINDOW_BACKGROUND = QColor(255, 255, 255)
 
 _GLYPH_FILES = {
     "dismiss": "dismiss_16_regular",
@@ -336,6 +337,7 @@ class _Win11CaptionController(QObject):
         elif event_type in {QEvent.Type.WindowActivate, QEvent.Type.WindowDeactivate}:
             _sync_caption_active(window)
         elif event_type == QEvent.Type.PaletteChange:
+            _apply_white_window_background(window)
             _sync_caption_palette(window)
         elif event_type == QEvent.Type.FontChange:
             _fit_caption_fonts(window)
@@ -461,6 +463,7 @@ def install_win11_caption(window: QWidget) -> bool:
         _build_menu_caption(window, controller, light=light)
     _flush_caption_to_frame(window)
     _fit_caption_fonts(window)
+    _apply_white_window_background(window)
     _sync_caption_palette(window)
     window.installEventFilter(controller)
     setattr(window, _INSTALLED_ATTR, True)
@@ -528,6 +531,15 @@ def _apply_maximized_nccalcsize(window: QWidget, lparam: int) -> None:
     if work is None:
         return
     write_nccalcsize_client_rect(_pointer_address(lparam), *work)
+
+
+def _apply_white_window_background(window: QWidget) -> None:
+    """Use white for the window color so the caption and client area are not system gray."""
+    palette = window.palette()
+    if palette.color(QPalette.ColorRole.Window) != _WINDOW_BACKGROUND:
+        palette.setColor(QPalette.ColorRole.Window, _WINDOW_BACKGROUND)
+        window.setPalette(palette)
+    window.setAutoFillBackground(True)
 
 
 def _apply_win32_frame(window: QWidget, *, full: bool) -> None:

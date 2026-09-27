@@ -599,6 +599,7 @@ def install_win11_caption(window: QWidget) -> bool:
         _build_menu_caption(window, controller, light=light)
     _flush_caption_to_frame(window)
     _fit_caption_fonts(window)
+    _apply_white_window_background(window)
     _sync_caption_palette(window)
     window.installEventFilter(controller)
     setattr(window, _INSTALLED_ATTR, True)

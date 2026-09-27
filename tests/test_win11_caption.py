@@ -135,7 +135,7 @@ def test_install_accepts_ui_central_widget_attribute(qapp: QApplication) -> None
 
 @pytest.mark.skipif(sys.platform != "win32", reason="Win11 caption is Windows-only")
 def test_caption_labels_are_centered_on_gray_tabs(qapp: QApplication) -> None:
-    """Menu titles and tab labels sit in the middle of the gray caption row."""
+    """Menu titles and tab labels sit in the middle of the white caption row."""
     window = _window_with_tabs()
     tabs = window.tabWidget
     corner = QWidget()
@@ -152,7 +152,8 @@ def test_caption_labels_are_centered_on_gray_tabs(qapp: QApplication) -> None:
     qapp.processEvents()
 
     background = window.palette().color(QPalette.ColorRole.Window)
-    assert background.name(QColor.NameFormat.HexRgb) in tabs.tabBar().styleSheet()
+    assert background.name(QColor.NameFormat.HexRgb) == "#ffffff"
+    assert "#ffffff" in tabs.tabBar().styleSheet()
     _assert_ink_centered(tabs.tabBar().grab(), background)
     _assert_ink_centered(menu.grab(), background)
     window.close()
