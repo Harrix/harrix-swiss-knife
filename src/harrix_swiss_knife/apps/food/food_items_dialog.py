@@ -44,6 +44,23 @@ _ROW_COLOR_EVEN = QColor(255, 255, 255)
 _ROW_COLOR_ODD = QColor(227, 242, 253)  # Light blue, matches Food accents
 
 
+def _format_optional_float(value: Any, *, digits: int) -> str:
+    number = _optional_float(value)
+    if number is None:
+        return ""
+    return f"{number:.{digits}f}"
+
+
+def _optional_float(value: Any) -> float | None:
+    """Parse a catalog number, or return `None` when the cell is blank."""
+    if value is None or (isinstance(value, str) and not value.strip()):
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
 class FoodItemsDialog(QDialog):
     """Show and edit the food items catalog in a table."""
 
@@ -88,9 +105,9 @@ class FoodItemsDialog(QDialog):
                 name=str(row[1] or ""),
                 name_en=str(row[2]) if row[2] else None,
                 is_drink=bool(row[3]),
-                calories_per_100g=float(row[4]) if row[4] is not None else None,
-                default_portion_weight=float(row[5]) if row[5] is not None else None,
-                default_portion_calories=float(row[6]) if row[6] is not None else None,
+                calories_per_100g=_optional_float(row[4]),
+                default_portion_weight=_optional_float(row[5]),
+                default_portion_calories=_optional_float(row[6]),
             )
         return None
 
@@ -179,9 +196,9 @@ class FoodItemsDialog(QDialog):
                     str(row[1] or ""),
                     str(row[2] or ""),
                     "Yes" if row[3] else "",
-                    f"{float(row[4]):.1f}" if row[4] is not None else "",
-                    f"{float(row[5]):.0f}" if row[5] is not None else "",
-                    f"{float(row[6]):.1f}" if row[6] is not None else "",
+                    _format_optional_float(row[4], digits=1),
+                    _format_optional_float(row[5], digits=0),
+                    _format_optional_float(row[6], digits=1),
                     row[0],
                     color,
                 ]
