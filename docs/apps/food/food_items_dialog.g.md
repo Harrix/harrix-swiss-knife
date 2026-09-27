@@ -71,9 +71,9 @@ class FoodItemsDialog(QDialog):
                 name=str(row[1] or ""),
                 name_en=str(row[2]) if row[2] else None,
                 is_drink=bool(row[3]),
-                calories_per_100g=float(row[4]) if row[4] is not None else None,
-                default_portion_weight=float(row[5]) if row[5] is not None else None,
-                default_portion_calories=float(row[6]) if row[6] is not None else None,
+                calories_per_100g=_optional_float(row[4]),
+                default_portion_weight=_optional_float(row[5]),
+                default_portion_calories=_optional_float(row[6]),
             )
         return None
 
@@ -162,9 +162,9 @@ class FoodItemsDialog(QDialog):
                     str(row[1] or ""),
                     str(row[2] or ""),
                     "Yes" if row[3] else "",
-                    f"{float(row[4]):.1f}" if row[4] is not None else "",
-                    f"{float(row[5]):.0f}" if row[5] is not None else "",
-                    f"{float(row[6]):.1f}" if row[6] is not None else "",
+                    _format_optional_float(row[4], digits=1),
+                    _format_optional_float(row[5], digits=0),
+                    _format_optional_float(row[6], digits=1),
                     row[0],
                     color,
                 ]

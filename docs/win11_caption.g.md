@@ -610,6 +610,8 @@ def install_win11_caption(window: QWidget) -> bool:
     _sync_caption_icon(window)
     _sync_zoom_glyph(window)
     _place_caption_title(window)
+    _bind_caption_menu_hover(window, controller)
+    setattr(window, _BUTTONS_ATTR, window.findChildren(CaptionButton))
     return True
 ```
 
@@ -646,6 +648,12 @@ def try_handle_win11_caption_native_event(
         return None
     msg = read_native_windows_message(event_type, message)
     if msg is None:
+        return None
+    if msg.message in {_WM_MOUSEMOVE, _WM_NCMOUSEMOVE}:
+        _sync_caption_button_hover(window)
+        return None
+    if msg.message in {_WM_MOUSELEAVE, _WM_NCMOUSELEAVE}:
+        _clear_caption_button_hover(window)
         return None
     if msg.message == _WM_NCCALCSIZE and msg.wParam:
         _apply_maximized_nccalcsize(window, int(msg.lParam))

@@ -21,6 +21,7 @@ lang: en
 - [🔧 Function `folder_date_modified`](#-function-folder_date_modified)
 - [🔧 Function `load_bookmarks`](#-function-load_bookmarks)
 - [🔧 Function `normalize_url`](#-function-normalize_url)
+- [🔧 Function `prune_empty_folders`](#-function-prune_empty_folders)
 - [🔧 Function `relocate_entries`](#-function-relocate_entries)
 - [🔧 Function `remove_urls`](#-function-remove_urls)
 - [🔧 Function `reorder_folder_children`](#-function-reorder_folder_children)
@@ -273,6 +274,35 @@ Return a comparison key for a bookmark URL.
 ```python
 def normalize_url(url: str) -> str:
     return url.strip()
+```
+
+</details>
+
+## 🔧 Function `prune_empty_folders`
+
+```python
+def prune_empty_folders(data: dict[str, Any]) -> list[tuple[str, tuple[str, ...]]]
+```
+
+Remove folders that contain no URL bookmarks. Return removed paths.
+
+Bookmark roots stay even when they have no children. A folder is empty when
+no `url` node exists anywhere under it, including inside subfolders.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def prune_empty_folders(data: dict[str, Any]) -> list[tuple[str, tuple[str, ...]]]:
+    removed: list[tuple[str, tuple[str, ...]]] = []
+    roots = data.get("roots")
+    if not isinstance(roots, dict):
+        return removed
+    for root_key in ROOT_KEYS:
+        node = roots.get(root_key)
+        if isinstance(node, dict):
+            _prune_empty_folders(node, root_key, (), removed)
+    return removed
 ```
 
 </details>

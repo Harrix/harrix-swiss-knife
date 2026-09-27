@@ -24,6 +24,42 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QFrame, QGroupBox,
     QWidget)
 
 class Ui_MainWindow(object):
+    # setupUi
+
+    def retranslateUi(self, MainWindow):
+        MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Habit tracker", None))
+        self.actionExit.setText(QCoreApplication.translate("MainWindow", u"Exit", None))
+        self.actionAbout.setText(QCoreApplication.translate("MainWindow", u"About", None))
+        self.action_habits_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh Habits", None))
+        self.action_habits_delete.setText(QCoreApplication.translate("MainWindow", u"Delete Habit", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_dashboard), QCoreApplication.translate("MainWindow", u"Dashboard", None))
+        self.groupBox_habits_5.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
+        self.pushButton_habits_delete.setText(QCoreApplication.translate("MainWindow", u"Delete selected", None))
+        self.pushButton_habits_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh Table", None))
+        self.pushButton_habits_show_all_records.setText(QCoreApplication.translate("MainWindow", u"Show All Records", None))
+        self.pushButton_habits_export_csv.setText(QCoreApplication.translate("MainWindow", u"Export Table", None))
+        self.groupBox_habits_2.setTitle(QCoreApplication.translate("MainWindow", u"Add New Habit", None))
+        self.label_habits_5.setText(QCoreApplication.translate("MainWindow", u"Name:", None))
+        self.label_habit_emoji.setText(QCoreApplication.translate("MainWindow", u"Emoji:", None))
+        self.lineEdit_habit_emoji.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Emoji", None))
+        self.pushButton_habit_choose_emoji.setText(QCoreApplication.translate("MainWindow", u"Choose\u2026", None))
+        self.checkBox_habit_is_bool.setText(QCoreApplication.translate("MainWindow", u"Boolean (0 or 1 only)", None))
+        self.pushButton_habit_add_new.setText(QCoreApplication.translate("MainWindow", u"Add", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_sets_of_habits), QCoreApplication.translate("MainWindow", u"Habits", None))
+        self.label_filter_habit.setText(QCoreApplication.translate("MainWindow", u"Habit:", None))
+        self.label_filter_habit_year.setText(QCoreApplication.translate("MainWindow", u"Year:", None))
+#if QT_CONFIG(tooltip)
+        self.pushButton_charts_heatmap_prev_year.setToolTip(QCoreApplication.translate("MainWindow", u"Previous year", None))
+#endif // QT_CONFIG(tooltip)
+        self.pushButton_charts_heatmap_prev_year.setText(QCoreApplication.translate("MainWindow", u"\u2190", None))
+#if QT_CONFIG(tooltip)
+        self.pushButton_charts_heatmap_next_year.setToolTip(QCoreApplication.translate("MainWindow", u"Next year", None))
+#endif // QT_CONFIG(tooltip)
+        self.pushButton_charts_heatmap_next_year.setText(QCoreApplication.translate("MainWindow", u"\u2192", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_charts), QCoreApplication.translate("MainWindow", u"Charts", None))
+        self.menuFile.setTitle(QCoreApplication.translate("MainWindow", u"File", None))
+        self.menuCommands.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
+        self.menuHelp.setTitle(QCoreApplication.translate("MainWindow", u"Help", None))
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
@@ -34,7 +70,16 @@ class Ui_MainWindow(object):
 "QMenu::item:selected { color: #202020; background-color: #f2f2f2; }\n"
 "QMenu::item:disabled { color: #767676; }\n"
 "QStatusBar { background: #ffffff; }\n"
-"QStatusBar QLabel { color: #202020; }")
+"QStatusBar QLabel { color: #202020; }\n"
+"QSplitter::handle:horizontal {\n"
+" background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n"
+" stop:0 #ffffff, stop:0.4 #ffffff, stop:0.5 #c0c0c0, stop:0.6 #ffffff, stop:1 #ffffff);\n"
+"}\n"
+"QSplitter::handle:vertical {\n"
+" background: qlineargradient(x1:0, y1:0, x2:0, y2:1,\n"
+" stop:0 #ffffff, stop:0.4 #ffffff, stop:0.5 #c0c0c0, stop:0.6 #ffffff, stop:1 #ffffff);\n"
+"}\n"
+"QSplitter::handle:hover { background: #c0c0c0; }")
         MainWindow.resize(972, 574)
         self.actionExit = QAction(MainWindow)
         self.actionExit.setObjectName(u"actionExit")
@@ -318,41 +363,4 @@ class Ui_MainWindow(object):
 
 
         QMetaObject.connectSlotsByName(MainWindow)
-    # setupUi
-
-    def retranslateUi(self, MainWindow):
-        MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Habit tracker", None))
-        self.actionExit.setText(QCoreApplication.translate("MainWindow", u"Exit", None))
-        self.actionAbout.setText(QCoreApplication.translate("MainWindow", u"About", None))
-        self.action_habits_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh Habits", None))
-        self.action_habits_delete.setText(QCoreApplication.translate("MainWindow", u"Delete Habit", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_dashboard), QCoreApplication.translate("MainWindow", u"Dashboard", None))
-        self.groupBox_habits_5.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
-        self.pushButton_habits_delete.setText(QCoreApplication.translate("MainWindow", u"Delete selected", None))
-        self.pushButton_habits_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh Table", None))
-        self.pushButton_habits_show_all_records.setText(QCoreApplication.translate("MainWindow", u"Show All Records", None))
-        self.pushButton_habits_export_csv.setText(QCoreApplication.translate("MainWindow", u"Export Table", None))
-        self.groupBox_habits_2.setTitle(QCoreApplication.translate("MainWindow", u"Add New Habit", None))
-        self.label_habits_5.setText(QCoreApplication.translate("MainWindow", u"Name:", None))
-        self.label_habit_emoji.setText(QCoreApplication.translate("MainWindow", u"Emoji:", None))
-        self.lineEdit_habit_emoji.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Emoji", None))
-        self.pushButton_habit_choose_emoji.setText(QCoreApplication.translate("MainWindow", u"Choose\u2026", None))
-        self.checkBox_habit_is_bool.setText(QCoreApplication.translate("MainWindow", u"Boolean (0 or 1 only)", None))
-        self.pushButton_habit_add_new.setText(QCoreApplication.translate("MainWindow", u"Add", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_sets_of_habits), QCoreApplication.translate("MainWindow", u"Habits", None))
-        self.label_filter_habit.setText(QCoreApplication.translate("MainWindow", u"Habit:", None))
-        self.label_filter_habit_year.setText(QCoreApplication.translate("MainWindow", u"Year:", None))
-#if QT_CONFIG(tooltip)
-        self.pushButton_charts_heatmap_prev_year.setToolTip(QCoreApplication.translate("MainWindow", u"Previous year", None))
-#endif // QT_CONFIG(tooltip)
-        self.pushButton_charts_heatmap_prev_year.setText(QCoreApplication.translate("MainWindow", u"\u2190", None))
-#if QT_CONFIG(tooltip)
-        self.pushButton_charts_heatmap_next_year.setToolTip(QCoreApplication.translate("MainWindow", u"Next year", None))
-#endif // QT_CONFIG(tooltip)
-        self.pushButton_charts_heatmap_next_year.setText(QCoreApplication.translate("MainWindow", u"\u2192", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_charts), QCoreApplication.translate("MainWindow", u"Charts", None))
-        self.menuFile.setTitle(QCoreApplication.translate("MainWindow", u"File", None))
-        self.menuCommands.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
-        self.menuHelp.setTitle(QCoreApplication.translate("MainWindow", u"Help", None))
-    # retranslateUi
 

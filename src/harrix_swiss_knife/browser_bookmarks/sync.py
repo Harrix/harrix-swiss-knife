@@ -5,7 +5,6 @@ from __future__ import annotations
 import copy
 import json
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
@@ -34,6 +33,7 @@ from harrix_swiss_knife.browser_bookmarks.paths import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping, Sequence
     from pathlib import Path
 
 _BULK_REVERT_MIN_SOURCES = 2
@@ -489,6 +489,17 @@ def _commit_tree_changes(
     return prune_empty_folders(chrome_data), prune_empty_folders(yandex_data)
 
 
+def _format_empty_folder_lines(folders: Sequence[tuple[str, tuple[str, ...]]]) -> list[str]:
+    lines: list[str] = []
+    for root, folder_path in folders[:_REPORT_LIST_LIMIT]:
+        folder = "/".join(folder_path) if folder_path else "(root)"
+        lines.append(f"  [{root}/{folder}]")
+    extra = len(folders) - _REPORT_LIST_LIMIT
+    if extra > 0:
+        lines.append(f"  … and {extra} more")
+    return lines
+
+
 def _format_entry_lines(entries: list[BookmarkEntry]) -> list[str]:
     lines: list[str] = []
     for entry in entries[:_REPORT_LIST_LIMIT]:
@@ -497,17 +508,6 @@ def _format_entry_lines(entries: list[BookmarkEntry]) -> list[str]:
         lines.append(f"  [{entry.root}/{folder}] {title}")
         lines.append(f"    {entry.url}")
     extra = len(entries) - _REPORT_LIST_LIMIT
-    if extra > 0:
-        lines.append(f"  … and {extra} more")
-    return lines
-
-
-def _format_empty_folder_lines(folders: Sequence[tuple[str, tuple[str, ...]]]) -> list[str]:
-    lines: list[str] = []
-    for root, folder_path in folders[:_REPORT_LIST_LIMIT]:
-        folder = "/".join(folder_path) if folder_path else "(root)"
-        lines.append(f"  [{root}/{folder}]")
-    extra = len(folders) - _REPORT_LIST_LIMIT
     if extra > 0:
         lines.append(f"  … and {extra} more")
     return lines

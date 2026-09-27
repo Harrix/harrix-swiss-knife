@@ -7,8 +7,8 @@ import sys
 from ctypes import wintypes
 
 import pytest
-from PySide6.QtCore import QPoint, QRect, QSize, Qt
-from PySide6.QtGui import QColor, QImage, QPalette, QPixmap
+from PySide6.QtCore import QEvent, QPoint, QRect, QSize, Qt
+from PySide6.QtGui import QColor, QHoverEvent, QImage, QPalette, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
     QGroupBox,
@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMenu,
     QMenuBar,
+    QSplitter,
     QTabWidget,
     QToolButton,
     QWidget,
@@ -236,6 +237,55 @@ def test_panels_and_menus_are_white(qapp: QApplication) -> None:
         page.show()
         qapp.processEvents()
         assert page.grab().toImage().pixelColor(8, 8).name() == "#ffffff"
+    finally:
+        window.close()
+        qapp.setStyle(previous_style)
+
+
+def _handle_colors(splitter: QSplitter) -> list[str]:
+    handle = splitter.handle(1)
+    image = splitter.grab().toImage()
+    geometry = handle.geometry()
+    if splitter.orientation() == Qt.Orientation.Horizontal:
+        y = geometry.center().y()
+        return [image.pixelColor(x, y).name() for x in range(geometry.left(), geometry.right() + 1)]
+    x = geometry.center().x()
+    return [image.pixelColor(x, y).name() for y in range(geometry.top(), geometry.bottom() + 1)]
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Win11 caption is Windows-only")
+def test_splitter_handle_keeps_width_with_gray_hairline(qapp: QApplication) -> None:
+    """Splitter handles stay 5px, with a 1px gray line that fills on hover."""
+    previous_style = qapp.style().objectName()
+    qapp.setStyle("windows11")
+    window = QMainWindow()
+    try:
+        window.setCentralWidget(QWidget())
+        assert install_win11_caption(window)
+        window.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, on=True)
+        window.resize(240, 200)
+        window.show()
+        hairline = ["#ffffff", "#ffffff", "#c0c0c0", "#ffffff", "#ffffff"]
+        filled = ["#c0c0c0", "#c0c0c0", "#c0c0c0", "#c0c0c0", "#c0c0c0"]
+        for orientation in (Qt.Orientation.Horizontal, Qt.Orientation.Vertical):
+            splitter = QSplitter(orientation, window)
+            splitter.addWidget(QWidget())
+            splitter.addWidget(QWidget())
+            splitter.setSizes([80, 80])
+            splitter.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, on=True)
+            splitter.resize(200, 160)
+            splitter.show()
+            qapp.processEvents()
+            handle = splitter.handle(1)
+            thickness = handle.width() if orientation == Qt.Orientation.Horizontal else handle.height()
+            assert thickness == 5
+            assert _handle_colors(splitter) == hairline
+            local = QPoint(2, 2)
+            qapp.sendEvent(handle, QHoverEvent(QEvent.Type.HoverEnter, local, local, QPoint(-1, -1)))
+            qapp.processEvents()
+            assert _handle_colors(splitter) == filled
+            splitter.hide()
+        assert "QScrollBar" not in window.styleSheet()
     finally:
         window.close()
         qapp.setStyle(previous_style)

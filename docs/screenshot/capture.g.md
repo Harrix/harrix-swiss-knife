@@ -88,6 +88,7 @@ def capture_region(
     if hide_app is None:
         hide_app = True
 
+    close_active_popups()
     session = _HideSession(
         hide_app=hide_app,
         show_preview=show_preview and not ocr_translate,
@@ -235,6 +236,7 @@ def select_region(
     if hide_app is None:
         hide_app = True
 
+    close_active_popups()
     session = _HideSession(
         hide_app=hide_app,
         show_preview=False,

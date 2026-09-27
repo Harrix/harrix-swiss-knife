@@ -106,6 +106,23 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
+        MainWindow.setStyleSheet(u"/* hsk-white-surfaces */\n"
+"QGroupBox { background-color: #ffffff; }\n"
+"QMenu { background-color: #ffffff; border: 1px solid #e0e0e0; color: #202020; }\n"
+"QMenu::item { color: #202020; background-color: transparent; }\n"
+"QMenu::item:selected { color: #202020; background-color: #f2f2f2; }\n"
+"QMenu::item:disabled { color: #767676; }\n"
+"QStatusBar { background: #ffffff; }\n"
+"QStatusBar QLabel { color: #202020; }\n"
+"QSplitter::handle:horizontal {\n"
+" background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n"
+" stop:0 #ffffff, stop:0.4 #ffffff, stop:0.5 #c0c0c0, stop:0.6 #ffffff, stop:1 #ffffff);\n"
+"}\n"
+"QSplitter::handle:vertical {\n"
+" background: qlineargradient(x1:0, y1:0, x2:0, y2:1,\n"
+" stop:0 #ffffff, stop:0.4 #ffffff, stop:0.5 #c0c0c0, stop:0.6 #ffffff, stop:1 #ffffff);\n"
+"}\n"
+"QSplitter::handle:hover { background: #c0c0c0; }")
         MainWindow.resize(1354, 600)
         self.action_refresh = QAction(MainWindow)
         self.action_refresh.setObjectName(u"action_refresh")
@@ -129,23 +146,29 @@ class Ui_MainWindow(object):
         self.actionAbout.setObjectName(u"actionAbout")
         self.centralWidget = QWidget(MainWindow)
         self.centralWidget.setObjectName(u"centralWidget")
+        self.centralWidget.setStyleSheet(u"QWidget#centralWidget { background-color: #ffffff; }")
         self.horizontalLayout = QHBoxLayout(self.centralWidget)
         self.horizontalLayout.setObjectName(u"horizontalLayout")
+        self.horizontalLayout.setContentsMargins(0, 0, 0, 0)
         self.tabWidget = QTabWidget(self.centralWidget)
         self.tabWidget.setObjectName(u"tabWidget")
         self.tab_food = QWidget()
         self.tab_food.setObjectName(u"tab_food")
+        self.tab_food.setStyleSheet(u"QWidget#tab_food { background-color: #ffffff; }")
         self.horizontalLayout_food = QHBoxLayout(self.tab_food)
         self.horizontalLayout_food.setObjectName(u"horizontalLayout_food")
+        self.horizontalLayout_food.setContentsMargins(0, 0, 0, 0)
         self.splitter_food = QSplitter(self.tab_food)
         self.splitter_food.setObjectName(u"splitter_food")
+        self.splitter_food.setStyleSheet(u"QWidget#splitter_food { background-color: #ffffff; }")
         self.splitter_food.setOrientation(Qt.Orientation.Horizontal)
         self.splitter_food.setChildrenCollapsible(False)
         self.frame_food_controls = QFrame(self.splitter_food)
         self.frame_food_controls.setObjectName(u"frame_food_controls")
+        self.frame_food_controls.setStyleSheet(u"QFrame#frame_food_controls { background-color: #ffffff; border: none; }")
         self.frame_food_controls.setMinimumSize(QSize(420, 0))
-        self.frame_food_controls.setFrameShape(QFrame.Shape.StyledPanel)
-        self.frame_food_controls.setFrameShadow(QFrame.Shadow.Raised)
+        self.frame_food_controls.setFrameShape(QFrame.Shape.NoFrame)
+        self.frame_food_controls.setFrameShadow(QFrame.Shadow.Plain)
         self.verticalLayout_food_controls = QVBoxLayout(self.frame_food_controls)
         self.verticalLayout_food_controls.setObjectName(u"verticalLayout_food_controls")
         self.groupBox_food_add = QGroupBox(self.frame_food_controls)
@@ -357,6 +380,7 @@ class Ui_MainWindow(object):
         self.splitter_food.addWidget(self.frame_food_controls)
         self.widget_food_middle = QWidget(self.splitter_food)
         self.widget_food_middle.setObjectName(u"widget_food_middle")
+        self.widget_food_middle.setStyleSheet(u"QWidget#widget_food_middle { background-color: #ffffff; }")
         self.verticalLayout_food_middle = QVBoxLayout(self.widget_food_middle)
         self.verticalLayout_food_middle.setObjectName(u"verticalLayout_food_middle")
         self.verticalLayout_food_middle.setContentsMargins(0, 0, 0, 0)
@@ -389,6 +413,7 @@ class Ui_MainWindow(object):
         self.splitter_food.addWidget(self.widget_food_middle)
         self.widget_food_log = QWidget(self.splitter_food)
         self.widget_food_log.setObjectName(u"widget_food_log")
+        self.widget_food_log.setStyleSheet(u"QWidget#widget_food_log { background-color: #ffffff; }")
         self.verticalLayout_food_log = QVBoxLayout(self.widget_food_log)
         self.verticalLayout_food_log.setSpacing(4)
         self.verticalLayout_food_log.setObjectName(u"verticalLayout_food_log")
@@ -492,18 +517,21 @@ class Ui_MainWindow(object):
         self.tabWidget.addTab(self.tab_food, "")
         self.tab_food_stats = QWidget()
         self.tab_food_stats.setObjectName(u"tab_food_stats")
+        self.tab_food_stats.setStyleSheet(u"QWidget#tab_food_stats { background-color: #ffffff; }")
         self.verticalLayout_food_stats_page = QVBoxLayout(self.tab_food_stats)
         self.verticalLayout_food_stats_page.setObjectName(u"verticalLayout_food_stats_page")
         self.verticalLayout_food_stats_page.setContentsMargins(0, 0, 0, 0)
         self.splitter_food_stats = QSplitter(self.tab_food_stats)
         self.splitter_food_stats.setObjectName(u"splitter_food_stats")
+        self.splitter_food_stats.setStyleSheet(u"QWidget#splitter_food_stats { background-color: #ffffff; }")
         self.splitter_food_stats.setOrientation(Qt.Orientation.Horizontal)
         self.splitter_food_stats.setChildrenCollapsible(False)
         self.frame = QFrame(self.splitter_food_stats)
         self.frame.setObjectName(u"frame")
+        self.frame.setStyleSheet(u"QFrame#frame { background-color: #ffffff; border: none; }")
         self.frame.setMinimumSize(QSize(480, 0))
-        self.frame.setFrameShape(QFrame.Shape.StyledPanel)
-        self.frame.setFrameShadow(QFrame.Shadow.Raised)
+        self.frame.setFrameShape(QFrame.Shape.NoFrame)
+        self.frame.setFrameShadow(QFrame.Shadow.Plain)
         self.verticalLayout_3 = QVBoxLayout(self.frame)
         self.verticalLayout_3.setObjectName(u"verticalLayout_3")
         self.label = QLabel(self.frame)
@@ -519,13 +547,15 @@ class Ui_MainWindow(object):
         self.splitter_food_stats.addWidget(self.frame)
         self.widget_food_stats_chart = QWidget(self.splitter_food_stats)
         self.widget_food_stats_chart.setObjectName(u"widget_food_stats_chart")
+        self.widget_food_stats_chart.setStyleSheet(u"QWidget#widget_food_stats_chart { background-color: #ffffff; }")
         self.verticalLayout_4 = QVBoxLayout(self.widget_food_stats_chart)
         self.verticalLayout_4.setObjectName(u"verticalLayout_4")
         self.verticalLayout_4.setContentsMargins(0, 0, 0, 0)
         self.frame_food_stats_controls = QFrame(self.widget_food_stats_chart)
         self.frame_food_stats_controls.setObjectName(u"frame_food_stats_controls")
-        self.frame_food_stats_controls.setFrameShape(QFrame.Shape.StyledPanel)
-        self.frame_food_stats_controls.setFrameShadow(QFrame.Shadow.Raised)
+        self.frame_food_stats_controls.setStyleSheet(u"QFrame#frame_food_stats_controls { background-color: #ffffff; border: none; }")
+        self.frame_food_stats_controls.setFrameShape(QFrame.Shape.NoFrame)
+        self.frame_food_stats_controls.setFrameShadow(QFrame.Shadow.Plain)
         self.verticalLayout_food_stats_controls = QVBoxLayout(self.frame_food_stats_controls)
         self.verticalLayout_food_stats_controls.setSpacing(4)
         self.verticalLayout_food_stats_controls.setObjectName(u"verticalLayout_food_stats_controls")
@@ -620,6 +650,7 @@ class Ui_MainWindow(object):
         self.scrollArea_food_stats.setWidgetResizable(True)
         self.scrollAreaWidgetContents_food_stats = QWidget()
         self.scrollAreaWidgetContents_food_stats.setObjectName(u"scrollAreaWidgetContents_food_stats")
+        self.scrollAreaWidgetContents_food_stats.setStyleSheet(u"QWidget#scrollAreaWidgetContents_food_stats { background-color: #ffffff; }")
         self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 1050, 441))
         self.verticalLayout_food_stats_content = QVBoxLayout(self.scrollAreaWidgetContents_food_stats)
         self.verticalLayout_food_stats_content.setObjectName(u"verticalLayout_food_stats_content")
@@ -774,6 +805,23 @@ _No docstring provided._
 def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
+        MainWindow.setStyleSheet(u"/* hsk-white-surfaces */\n"
+"QGroupBox { background-color: #ffffff; }\n"
+"QMenu { background-color: #ffffff; border: 1px solid #e0e0e0; color: #202020; }\n"
+"QMenu::item { color: #202020; background-color: transparent; }\n"
+"QMenu::item:selected { color: #202020; background-color: #f2f2f2; }\n"
+"QMenu::item:disabled { color: #767676; }\n"
+"QStatusBar { background: #ffffff; }\n"
+"QStatusBar QLabel { color: #202020; }\n"
+"QSplitter::handle:horizontal {\n"
+" background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n"
+" stop:0 #ffffff, stop:0.4 #ffffff, stop:0.5 #c0c0c0, stop:0.6 #ffffff, stop:1 #ffffff);\n"
+"}\n"
+"QSplitter::handle:vertical {\n"
+" background: qlineargradient(x1:0, y1:0, x2:0, y2:1,\n"
+" stop:0 #ffffff, stop:0.4 #ffffff, stop:0.5 #c0c0c0, stop:0.6 #ffffff, stop:1 #ffffff);\n"
+"}\n"
+"QSplitter::handle:hover { background: #c0c0c0; }")
         MainWindow.resize(1354, 600)
         self.action_refresh = QAction(MainWindow)
         self.action_refresh.setObjectName(u"action_refresh")
@@ -797,23 +845,29 @@ def setupUi(self, MainWindow):
         self.actionAbout.setObjectName(u"actionAbout")
         self.centralWidget = QWidget(MainWindow)
         self.centralWidget.setObjectName(u"centralWidget")
+        self.centralWidget.setStyleSheet(u"QWidget#centralWidget { background-color: #ffffff; }")
         self.horizontalLayout = QHBoxLayout(self.centralWidget)
         self.horizontalLayout.setObjectName(u"horizontalLayout")
+        self.horizontalLayout.setContentsMargins(0, 0, 0, 0)
         self.tabWidget = QTabWidget(self.centralWidget)
         self.tabWidget.setObjectName(u"tabWidget")
         self.tab_food = QWidget()
         self.tab_food.setObjectName(u"tab_food")
+        self.tab_food.setStyleSheet(u"QWidget#tab_food { background-color: #ffffff; }")
         self.horizontalLayout_food = QHBoxLayout(self.tab_food)
         self.horizontalLayout_food.setObjectName(u"horizontalLayout_food")
+        self.horizontalLayout_food.setContentsMargins(0, 0, 0, 0)
         self.splitter_food = QSplitter(self.tab_food)
         self.splitter_food.setObjectName(u"splitter_food")
+        self.splitter_food.setStyleSheet(u"QWidget#splitter_food { background-color: #ffffff; }")
         self.splitter_food.setOrientation(Qt.Orientation.Horizontal)
         self.splitter_food.setChildrenCollapsible(False)
         self.frame_food_controls = QFrame(self.splitter_food)
         self.frame_food_controls.setObjectName(u"frame_food_controls")
+        self.frame_food_controls.setStyleSheet(u"QFrame#frame_food_controls { background-color: #ffffff; border: none; }")
         self.frame_food_controls.setMinimumSize(QSize(420, 0))
-        self.frame_food_controls.setFrameShape(QFrame.Shape.StyledPanel)
-        self.frame_food_controls.setFrameShadow(QFrame.Shadow.Raised)
+        self.frame_food_controls.setFrameShape(QFrame.Shape.NoFrame)
+        self.frame_food_controls.setFrameShadow(QFrame.Shadow.Plain)
         self.verticalLayout_food_controls = QVBoxLayout(self.frame_food_controls)
         self.verticalLayout_food_controls.setObjectName(u"verticalLayout_food_controls")
         self.groupBox_food_add = QGroupBox(self.frame_food_controls)
@@ -1025,6 +1079,7 @@ def setupUi(self, MainWindow):
         self.splitter_food.addWidget(self.frame_food_controls)
         self.widget_food_middle = QWidget(self.splitter_food)
         self.widget_food_middle.setObjectName(u"widget_food_middle")
+        self.widget_food_middle.setStyleSheet(u"QWidget#widget_food_middle { background-color: #ffffff; }")
         self.verticalLayout_food_middle = QVBoxLayout(self.widget_food_middle)
         self.verticalLayout_food_middle.setObjectName(u"verticalLayout_food_middle")
         self.verticalLayout_food_middle.setContentsMargins(0, 0, 0, 0)
@@ -1057,6 +1112,7 @@ def setupUi(self, MainWindow):
         self.splitter_food.addWidget(self.widget_food_middle)
         self.widget_food_log = QWidget(self.splitter_food)
         self.widget_food_log.setObjectName(u"widget_food_log")
+        self.widget_food_log.setStyleSheet(u"QWidget#widget_food_log { background-color: #ffffff; }")
         self.verticalLayout_food_log = QVBoxLayout(self.widget_food_log)
         self.verticalLayout_food_log.setSpacing(4)
         self.verticalLayout_food_log.setObjectName(u"verticalLayout_food_log")
@@ -1160,18 +1216,21 @@ def setupUi(self, MainWindow):
         self.tabWidget.addTab(self.tab_food, "")
         self.tab_food_stats = QWidget()
         self.tab_food_stats.setObjectName(u"tab_food_stats")
+        self.tab_food_stats.setStyleSheet(u"QWidget#tab_food_stats { background-color: #ffffff; }")
         self.verticalLayout_food_stats_page = QVBoxLayout(self.tab_food_stats)
         self.verticalLayout_food_stats_page.setObjectName(u"verticalLayout_food_stats_page")
         self.verticalLayout_food_stats_page.setContentsMargins(0, 0, 0, 0)
         self.splitter_food_stats = QSplitter(self.tab_food_stats)
         self.splitter_food_stats.setObjectName(u"splitter_food_stats")
+        self.splitter_food_stats.setStyleSheet(u"QWidget#splitter_food_stats { background-color: #ffffff; }")
         self.splitter_food_stats.setOrientation(Qt.Orientation.Horizontal)
         self.splitter_food_stats.setChildrenCollapsible(False)
         self.frame = QFrame(self.splitter_food_stats)
         self.frame.setObjectName(u"frame")
+        self.frame.setStyleSheet(u"QFrame#frame { background-color: #ffffff; border: none; }")
         self.frame.setMinimumSize(QSize(480, 0))
-        self.frame.setFrameShape(QFrame.Shape.StyledPanel)
-        self.frame.setFrameShadow(QFrame.Shadow.Raised)
+        self.frame.setFrameShape(QFrame.Shape.NoFrame)
+        self.frame.setFrameShadow(QFrame.Shadow.Plain)
         self.verticalLayout_3 = QVBoxLayout(self.frame)
         self.verticalLayout_3.setObjectName(u"verticalLayout_3")
         self.label = QLabel(self.frame)
@@ -1187,13 +1246,15 @@ def setupUi(self, MainWindow):
         self.splitter_food_stats.addWidget(self.frame)
         self.widget_food_stats_chart = QWidget(self.splitter_food_stats)
         self.widget_food_stats_chart.setObjectName(u"widget_food_stats_chart")
+        self.widget_food_stats_chart.setStyleSheet(u"QWidget#widget_food_stats_chart { background-color: #ffffff; }")
         self.verticalLayout_4 = QVBoxLayout(self.widget_food_stats_chart)
         self.verticalLayout_4.setObjectName(u"verticalLayout_4")
         self.verticalLayout_4.setContentsMargins(0, 0, 0, 0)
         self.frame_food_stats_controls = QFrame(self.widget_food_stats_chart)
         self.frame_food_stats_controls.setObjectName(u"frame_food_stats_controls")
-        self.frame_food_stats_controls.setFrameShape(QFrame.Shape.StyledPanel)
-        self.frame_food_stats_controls.setFrameShadow(QFrame.Shadow.Raised)
+        self.frame_food_stats_controls.setStyleSheet(u"QFrame#frame_food_stats_controls { background-color: #ffffff; border: none; }")
+        self.frame_food_stats_controls.setFrameShape(QFrame.Shape.NoFrame)
+        self.frame_food_stats_controls.setFrameShadow(QFrame.Shadow.Plain)
         self.verticalLayout_food_stats_controls = QVBoxLayout(self.frame_food_stats_controls)
         self.verticalLayout_food_stats_controls.setSpacing(4)
         self.verticalLayout_food_stats_controls.setObjectName(u"verticalLayout_food_stats_controls")
@@ -1288,6 +1349,7 @@ def setupUi(self, MainWindow):
         self.scrollArea_food_stats.setWidgetResizable(True)
         self.scrollAreaWidgetContents_food_stats = QWidget()
         self.scrollAreaWidgetContents_food_stats.setObjectName(u"scrollAreaWidgetContents_food_stats")
+        self.scrollAreaWidgetContents_food_stats.setStyleSheet(u"QWidget#scrollAreaWidgetContents_food_stats { background-color: #ffffff; }")
         self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 1050, 441))
         self.verticalLayout_food_stats_content = QVBoxLayout(self.scrollAreaWidgetContents_food_stats)
         self.verticalLayout_food_stats_content.setObjectName(u"verticalLayout_food_stats_content")

@@ -44,23 +44,6 @@ _ROW_COLOR_EVEN = QColor(255, 255, 255)
 _ROW_COLOR_ODD = QColor(227, 242, 253)  # Light blue, matches Food accents
 
 
-def _format_optional_float(value: Any, *, digits: int) -> str:
-    number = _optional_float(value)
-    if number is None:
-        return ""
-    return f"{number:.{digits}f}"
-
-
-def _optional_float(value: Any) -> float | None:
-    """Parse a catalog number, or return `None` when the cell is blank."""
-    if value is None or (isinstance(value, str) and not value.strip()):
-        return None
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return None
-
-
 class FoodItemsDialog(QDialog):
     """Show and edit the food items catalog in a table."""
 
@@ -265,3 +248,20 @@ class FoodItemsDialog(QDialog):
         if viewport is None:
             return
         context_menu.exec_(viewport.mapToGlobal(position))
+
+
+def _format_optional_float(value: Any, *, digits: int) -> str:
+    number = _optional_float(value)
+    if number is None:
+        return ""
+    return f"{number:.{digits}f}"
+
+
+def _optional_float(value: Any) -> float | None:
+    """Parse a catalog number, or return `None` when the cell is blank."""
+    if value is None or (isinstance(value, str) and not value.strip()):
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None

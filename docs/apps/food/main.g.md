@@ -3850,7 +3850,6 @@ class MainWindow(
         """Ensure status bar is visible and readable on Windows 11 Mica backdrop."""
         status_bar = self.statusBar()
         status_bar.setVisible(True)
-        status_bar.setStyleSheet("QStatusBar { background: #ffffff; }QStatusBar QLabel { color: #202020; }")
 
     def _setup_ui(self) -> None:
         """Set up additional UI elements after basic initialization."""

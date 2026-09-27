@@ -120,6 +120,8 @@ class SyncPlan:
     move_in_yandex: list[BookmarkEntry] = field(default_factory=list)
     reorder_in_chrome: list[FolderOrder] = field(default_factory=list)
     reorder_in_yandex: list[FolderOrder] = field(default_factory=list)
+    remove_empty_in_chrome: list[tuple[str, tuple[str, ...]]] = field(default_factory=list)
+    remove_empty_in_yandex: list[tuple[str, tuple[str, ...]]] = field(default_factory=list)
     backup_path: Path | None = None
     browsers_running: list[str] = field(default_factory=list)
 
@@ -135,6 +137,8 @@ class SyncPlan:
             or self.move_in_yandex
             or self.reorder_in_chrome
             or self.reorder_in_yandex
+            or self.remove_empty_in_chrome
+            or self.remove_empty_in_yandex
         )
 ```
 
@@ -162,6 +166,8 @@ def has_writes(self) -> bool:
             or self.move_in_yandex
             or self.reorder_in_chrome
             or self.reorder_in_yandex
+            or self.remove_empty_in_chrome
+            or self.remove_empty_in_yandex
         )
 ```
 
@@ -188,21 +194,21 @@ def apply_sync_plan(plan: SyncPlan, *, create_backup: bool = True) -> list[Path]
     backup = create_bookmarks_backup(plan.chrome_path, plan.yandex_path) if create_backup else None
     plan.backup_path = backup
 
-    chrome_data = plan.chrome_data
-    yandex_data = plan.yandex_data
-    remove_urls(chrome_data, set(plan.delete_from_chrome))
-    remove_urls(yandex_data, set(plan.delete_from_yandex))
-    relocate_entries(chrome_data, plan.move_in_chrome)
-    relocate_entries(yandex_data, plan.move_in_yandex)
-    add_entries(chrome_data, plan.add_to_chrome)
-    add_entries(yandex_data, plan.add_to_yandex)
-    for order in plan.reorder_in_chrome:
-        reorder_folder_children(chrome_data, order.root, order.folder_path, order.children)
-    for order in plan.reorder_in_yandex:
-        reorder_folder_children(yandex_data, order.root, order.folder_path, order.children)
+    _commit_tree_changes(
+        plan.chrome_data,
+        plan.yandex_data,
+        delete_from_chrome=plan.delete_from_chrome,
+        delete_from_yandex=plan.delete_from_yandex,
+        move_in_chrome=plan.move_in_chrome,
+        move_in_yandex=plan.move_in_yandex,
+        add_to_chrome=plan.add_to_chrome,
+        add_to_yandex=plan.add_to_yandex,
+        reorder_in_chrome=plan.reorder_in_chrome,
+        reorder_in_yandex=plan.reorder_in_yandex,
+    )
 
-    write_bookmarks(plan.chrome_path, chrome_data)
-    write_bookmarks(plan.yandex_path, yandex_data)
+    write_bookmarks(plan.chrome_path, plan.chrome_data)
+    write_bookmarks(plan.yandex_path, plan.yandex_data)
 
     persist_snapshot(plan)
 
@@ -292,6 +298,18 @@ def build_sync_plan(
         deleted_either,
     )
     reorder_in_chrome, reorder_in_yandex = _plan_folder_orders(chrome_data, yandex_data, state)
+    remove_empty_in_chrome, remove_empty_in_yandex = _commit_tree_changes(
+        copy.deepcopy(chrome_data),
+        copy.deepcopy(yandex_data),
+        delete_from_chrome=delete_from_chrome,
+        delete_from_yandex=delete_from_yandex,
+        move_in_chrome=move_in_chrome,
+        move_in_yandex=move_in_yandex,
+        add_to_chrome=add_to_chrome,
+        add_to_yandex=add_to_yandex,
+        reorder_in_chrome=reorder_in_chrome,
+        reorder_in_yandex=reorder_in_yandex,
+    )
 
     return SyncPlan(
         chrome_path=chrome,
@@ -308,6 +326,8 @@ def build_sync_plan(
         move_in_yandex=move_in_yandex,
         reorder_in_chrome=reorder_in_chrome,
         reorder_in_yandex=reorder_in_yandex,
+        remove_empty_in_chrome=remove_empty_in_chrome,
+        remove_empty_in_yandex=remove_empty_in_yandex,
         browsers_running=running_browser_names(),
     )
 ```
@@ -335,7 +355,20 @@ def format_sync_report(plan: SyncPlan, *, applied: bool = False) -> str:
     move_yandex = len(plan.move_in_yandex)
     order_chrome = len(plan.reorder_in_chrome)
     order_yandex = len(plan.reorder_in_yandex)
-    total = add_chrome + add_yandex + del_chrome + del_yandex + move_chrome + move_yandex + order_chrome + order_yandex
+    empty_chrome = len(plan.remove_empty_in_chrome)
+    empty_yandex = len(plan.remove_empty_in_yandex)
+    total = (
+        add_chrome
+        + add_yandex
+        + del_chrome
+        + del_yandex
+        + move_chrome
+        + move_yandex
+        + order_chrome
+        + order_yandex
+        + empty_chrome
+        + empty_yandex
+    )
 
     if applied:
         lines = [
@@ -350,6 +383,8 @@ def format_sync_report(plan: SyncPlan, *, applied: bool = False) -> str:
             f"  Moved in Yandex: {move_yandex}",
             f"  Reordered in Chrome: {order_chrome}",
             f"  Reordered in Yandex: {order_yandex}",
+            f"  Removed empty folders in Chrome: {empty_chrome}",
+            f"  Removed empty folders in Yandex: {empty_yandex}",
             f"  Total bookmark changes: {total}",
             "",
         ]
@@ -370,13 +405,15 @@ def format_sync_report(plan: SyncPlan, *, applied: bool = False) -> str:
         f"  Will move in Yandex: {move_yandex}",
         f"  Will reorder in Chrome: {order_chrome}",
         f"  Will reorder in Yandex: {order_yandex}",
+        f"  Will remove empty folders in Chrome: {empty_chrome}",
+        f"  Will remove empty folders in Yandex: {empty_yandex}",
         f"  Total bookmark changes: {total}",
         "",
     ]
     if plan.first_run:
-        lines.append("Mode: first sync — merge missing URLs, then align folders and order.")
+        lines.append("Mode: first sync — merge missing URLs, then align folders and order, and remove empty folders.")
     else:
-        lines.append("Mode: sync additions, deletions, folder moves, and child order.")
+        lines.append("Mode: sync additions, deletions, folder moves, child order, and empty folders.")
     lines.append("")
 
     if plan.browsers_running:
@@ -418,6 +455,14 @@ def format_sync_report(plan: SyncPlan, *, applied: bool = False) -> str:
     if order_yandex:
         lines.append(f"Reorder in Yandex ({order_yandex}):")
         lines.extend(_format_order_lines(plan.reorder_in_yandex))
+        lines.append("")
+    if empty_chrome:
+        lines.append(f"Remove empty folders in Chrome ({empty_chrome}):")
+        lines.extend(_format_empty_folder_lines(plan.remove_empty_in_chrome))
+        lines.append("")
+    if empty_yandex:
+        lines.append(f"Remove empty folders in Yandex ({empty_yandex}):")
+        lines.extend(_format_empty_folder_lines(plan.remove_empty_in_yandex))
         lines.append("")
 
     if not plan.has_writes:

@@ -15,6 +15,8 @@ lang: en
 - [🏛️ Class `SuspendedModal`](#%EF%B8%8F-class-suspendedmodal)
 - [🔧 Function `bring_window_to_foreground`](#-function-bring_window_to_foreground)
 - [🔧 Function `claim_screenshot_keyboard`](#-function-claim_screenshot_keyboard)
+- [🔧 Function `close_active_popups`](#-function-close_active_popups)
+- [🔧 Function `defer_until_popups_close`](#-function-defer_until_popups_close)
 - [🔧 Function `has_visible_modal_dialog`](#-function-has_visible_modal_dialog)
 - [🔧 Function `hide_app_windows`](#-function-hide_app_windows)
 - [🔧 Function `is_screenshot_ui`](#-function-is_screenshot_ui)
@@ -125,6 +127,73 @@ def claim_screenshot_keyboard(widget: QWidget) -> None:
     bring_window_to_foreground(widget, delays_ms=())
     widget.setFocus(Qt.FocusReason.ActiveWindowFocusReason)
     widget.grabKeyboard()
+```
+
+</details>
+
+## 🔧 Function `close_active_popups`
+
+```python
+def close_active_popups() -> bool
+```
+
+Close open menus and drop their mouse grab.
+
+A capture hotkey can fire while a menu popup owns the mouse. The region
+overlay then never receives clicks, so selection looks frozen.
+
+Returns:
+
+- `bool`: `True` when at least one popup was closed. The caller must return
+  and retry after that popup loop unwinds.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def close_active_popups() -> bool:
+    app = QApplication.instance()
+    if app is None:
+        return False
+
+    closed = False
+    for _ in range(_MAX_POPUP_CLOSE):
+        popup = app.activePopupWidget()
+        if popup is None or not isValid(popup) or is_screenshot_ui(popup):
+            break
+        popup.close()
+        closed = True
+        app.processEvents()
+    _release_foreign_input_grab()
+    return closed
+```
+
+</details>
+
+## 🔧 Function `defer_until_popups_close`
+
+```python
+def defer_until_popups_close(retry: Callable[[], None], *, attempt: int) -> bool
+```
+
+Close an open menu and run `retry` on the next event-loop turn.
+
+Returns:
+
+- `bool`: `True` when `retry` was scheduled and the caller must return now.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def defer_until_popups_close(retry: Callable[[], None], *, attempt: int) -> bool:
+    if attempt >= _MAX_POPUP_DEFER_ATTEMPTS:
+        close_active_popups()
+        return False
+    if not close_active_popups():
+        return False
+    QTimer.singleShot(0, retry)
+    return True
 ```
 
 </details>

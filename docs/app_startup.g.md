@@ -312,7 +312,12 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
     if hotkey_manager is not None:
         action_by_name = {cls.__name__: cls for cls in iter_menu_structure(get_menu_structure())}
 
-        def run_hotkey_action(action_name: str) -> None:
+        def run_hotkey_action(action_name: str, _popup_attempt: int = 0) -> None:
+            if defer_until_popups_close(
+                lambda name=action_name, attempt=_popup_attempt + 1: run_hotkey_action(name, attempt),
+                attempt=_popup_attempt,
+            ):
+                return
             action_cls = action_by_name.get(action_name)
             if action_cls is None:
                 log.warning("Hotkey bound to unknown action %r", action_name)
@@ -322,7 +327,12 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
             except Exception:
                 log.exception("Hotkey action %s failed", action_name)
 
-        def run_capture_long_press(_action_name: str) -> None:
+        def run_capture_long_press(action_name: str, _popup_attempt: int = 0) -> None:
+            if defer_until_popups_close(
+                lambda name=action_name, attempt=_popup_attempt + 1: run_capture_long_press(name, attempt),
+                attempt=_popup_attempt,
+            ):
+                return
             prepare_capture_long_press_freeze()
             try:
                 try:
