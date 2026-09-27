@@ -102,6 +102,10 @@ _BUTTONS_ATTR = "_hsk_caption_buttons"
 _MENU_HOVER_ATTR = "_hsk_menu_hover_reset"
 _TITLE_COLOR = "#2e333d"
 _NAV_COLOR = "#404654"
+_TAB_ACTIVE_COLOR = "#2e86b7"
+_TAB_LINE_COLOR = "#dbdbdb"
+_TAB_HOVER_BG = "#f2f8fb"
+_TAB_RADIUS = 4
 _MENU_CHEVRON_ATTR = "_hsk_menu_chevron"
 _SUITE_NAME = "Harrix Swiss Knife"
 _LIGHTNESS_THRESHOLD = 128
@@ -1311,31 +1315,37 @@ def _style_caption_chrome(window: QWidget) -> None:
     hover = _shade_caption_color(color, light=light, amount=0.06).name(QColor.NameFormat.HexRgb)
     tab_widget = getattr(window, "tabWidget", None)
     if isinstance(tab_widget, QTabWidget):
-        tab_widget.setStyleSheet("QTabWidget::pane { border: none; margin: 0px; background: #ffffff; }")
+        tab_widget.setStyleSheet(f"QTabWidget::pane {{ border: none; margin: 0px; background: {rgb}; }}")
         tab_bar = tab_widget.tabBar()
         tab_bar.setDrawBase(False)
-        pad = _caption_label_padding(tab_bar)
+        text_height = QFontMetrics(tab_bar.font()).height()
+        pad = max(0, (CAPTION_BUTTON_HEIGHT - text_height - 2) // 2)
         tab_bar.setStyleSheet(
             f"""
             QTabBar {{
                 background: {rgb};
                 border: none;
+                border-bottom: 1px solid {_TAB_LINE_COLOR};
             }}
             QTabBar::tab {{
-                background: {rgb};
+                background: transparent;
                 color: {_NAV_COLOR};
-                border: none;
+                border: 1px solid transparent;
+                border-top-left-radius: {_TAB_RADIUS}px;
+                border-top-right-radius: {_TAB_RADIUS}px;
                 margin: 0px;
                 padding: {pad}px {_CAPTION_TAB_HPAD}px;
             }}
+            QTabBar::tab:hover:!selected {{
+                background: {_TAB_HOVER_BG};
+                color: {_TAB_ACTIVE_COLOR};
+            }}
             QTabBar::tab:selected {{
                 background: {rgb};
-                color: {_NAV_COLOR};
-                border: none;
-                border-bottom: 2px solid #202020;
-            }}
-            QTabBar::tab:hover:!selected {{
-                background: {hover};
+                color: {_TAB_ACTIVE_COLOR};
+                border: 1px solid {_TAB_LINE_COLOR};
+                border-bottom: 1px solid {rgb};
+                margin-bottom: -1px;
             }}
             """
         )
