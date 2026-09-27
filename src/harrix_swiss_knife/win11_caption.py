@@ -304,6 +304,62 @@ class CaptionButton(QToolButton):
         return source.palette().color(QPalette.ColorRole.Window)
 
 
+class _CaptionBaseLine(QWidget):
+    """Hairline under a tabbed caption, broken beneath the active tab."""
+
+    def __init__(self, tab_widget: QTabWidget) -> None:
+        super().__init__(tab_widget)
+        self.setObjectName("captionBaseLine")
+        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
+        self.setAttribute(Qt.WidgetAttribute.WA_NoSystemBackground, on=True)
+        self._raise_pending = False
+        tab_widget.installEventFilter(self)
+        tab_bar = tab_widget.tabBar()
+        tab_bar.installEventFilter(self)
+        tab_bar.currentChanged.connect(self.update)
+        self.place()
+
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802, ARG002
+        """Keep the hairline across the window after the caption lays out."""
+        if event.type() in {QEvent.Type.Resize, QEvent.Type.Show, QEvent.Type.LayoutRequest}:
+            self._schedule_raise()
+        return False
+
+    def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
+        """Draw the rule, leaving the active tab's bottom edge open."""
+        tab_widget = self.parentWidget()
+        if not isinstance(tab_widget, QTabWidget) or tab_widget.count() == 0:
+            return
+        painter = QPainter(self)
+        painter.fillRect(0, 0, self.width(), 1, QColor(_TAB_LINE_COLOR))
+        gap = _active_tab_gap(tab_widget.tabBar(), self)
+        if gap is None:
+            return
+        left, right = gap
+        opening = right - left - 2
+        if opening <= 0:
+            return
+        fill = tab_widget.palette().color(QPalette.ColorRole.Window)
+        painter.fillRect(left + 1, 0, opening, 1, fill)
+
+    def place(self) -> None:
+        """Stretch the hairline to the window and keep it above the caption."""
+        self._raise_pending = False
+        parent = self.parentWidget()
+        if parent is None:
+            return
+        self.setGeometry(0, CAPTION_BUTTON_HEIGHT - 1, parent.width(), 1)
+        self.raise_()
+        self.update()
+
+    def _schedule_raise(self) -> None:
+        """Raise the hairline after Qt finishes laying out the caption."""
+        if self._raise_pending:
+            return
+        self._raise_pending = True
+        QTimer.singleShot(0, self.place)
+
+
 class _CaptionIconButton(QToolButton):
     """App icon at the left of the caption. Click opens the system menu."""
 
@@ -608,6 +664,18 @@ def write_nccalcsize_client_rect(address: int, left: int, top: int, right: int, 
     ctypes.memmove(address, ctypes.byref(rect), ctypes.sizeof(rect))
 
 
+def _active_tab_gap(tab_bar: QTabBar, line: QWidget) -> tuple[int, int] | None:
+    """Return the active tab's left and right edges in `line` coordinates."""
+    index = tab_bar.currentIndex()
+    if index < 0:
+        return None
+    rect = tab_bar.tabRect(index)
+    if rect.width() <= 0:
+        return None
+    left = tab_bar.mapTo(line, rect.topLeft()).x()
+    return left, left + rect.width()
+
+
 def _apply_caption_title_style(label: QLabel) -> None:
     rule = (
         f"QLabel#captionTitleLabel {{ color: {_TITLE_COLOR}; background: transparent; "
@@ -867,6 +935,19 @@ def _dwmapi() -> ctypes.WinDLL:
     library.DwmSetWindowAttribute.restype = ctypes.c_long
     _dwmapi.library = library  # type: ignore[attr-defined]
     return library
+
+
+def _ensure_caption_base_line(tab_widget: QTabWidget) -> None:
+    """Show a full-width caption rule when the window has tabs."""
+    line = tab_widget.findChild(_CaptionBaseLine, "captionBaseLine")
+    if tab_widget.count() == 0:
+        if line is not None:
+            line.hide()
+        return
+    if line is None:
+        line = _CaptionBaseLine(tab_widget)
+    line.show()
+    line.place()
 
 
 def _ensure_caption_title(window: QWidget, parent: QWidget | None = None) -> QLabel | None:
@@ -1329,7 +1410,6 @@ def _style_caption_chrome(window: QWidget) -> None:
             QTabBar {{
                 background: {rgb};
                 border: none;
-                border-bottom: 1px solid {_TAB_LINE_COLOR};
             }}
             QTabBar::tab {{
                 background: transparent;
@@ -1357,6 +1437,7 @@ def _style_caption_chrome(window: QWidget) -> None:
             }}
             """
         )
+        _ensure_caption_base_line(tab_widget)
     menu = resolve_window_menu_bar(window)
     if menu is None:
         return
@@ -1534,6 +1615,8 @@ def _whiten_main_containers(window: QWidget) -> None:
             if type(viewport) is QWidget and not _owned_by_native_control(viewport):
                 _paint_container_white(viewport)
         if type(widget) not in {QWidget, QFrame, QSplitter, QStackedWidget}:
+            continue
+        if isinstance(widget, _CaptionBaseLine):
             continue
         if _owned_by_native_control(widget):
             continue

@@ -203,6 +203,63 @@ def test_caption_labels_are_centered_on_gray_tabs(qapp: QApplication) -> None:
     window.close()
 
 
+def _caption_line_color(image: QImage, x: int) -> str:
+    return image.pixelColor(x, CAPTION_BUTTON_HEIGHT - 1).name()
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Win11 caption is Windows-only")
+def test_caption_tab_line_spans_the_window(qapp: QApplication) -> None:
+    """The caption rule runs the full width and breaks under the active tab."""
+    window = _window_with_tabs()
+    tabs = window.tabWidget
+    corner = QWidget()
+    layout = QHBoxLayout(corner)
+    layout.setContentsMargins(0, 0, 0, 0)
+    menu = QMenuBar(corner)
+    menu.addMenu("File")
+    layout.addWidget(menu)
+    tabs.setCornerWidget(corner, Qt.Corner.TopLeftCorner)
+    assert install_win11_caption(window)
+    window.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, on=True)
+    window.resize(1200, 240)
+    window.show()
+    qapp.processEvents()
+    image = tabs.grab().toImage()
+    assert _caption_line_color(image, 4) == "#dbdbdb"
+    assert _caption_line_color(image, image.width() - 4) == "#dbdbdb"
+    tab_bar = tabs.tabBar()
+    selected = tab_bar.tabRect(tab_bar.currentIndex())
+    selected_x = tab_bar.mapTo(tabs, selected.center()).x()
+    assert _caption_line_color(image, selected_x) == "#ffffff"
+    last = tab_bar.tabRect(tab_bar.count() - 1)
+    gap_x = tab_bar.mapTo(tabs, last.bottomRight()).x() + 12
+    assert _caption_line_color(image, gap_x) == "#dbdbdb"
+    close = window.findChild(CaptionButton, "captionCloseButton")
+    assert close is not None
+    assert tabs.childAt(close.mapTo(tabs, close.rect().center())) is close
+    window.close()
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Win11 caption is Windows-only")
+def test_menu_only_caption_has_no_base_line(qapp: QApplication) -> None:
+    """A caption without tabs does not draw the tab rule."""
+    window = QMainWindow()
+    window.setWindowTitle("Vector Icons")
+    window.menuBar().addMenu("File")
+    window.setCentralWidget(QWidget())
+    assert install_win11_caption(window)
+    window.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, on=True)
+    window.resize(800, 240)
+    window.show()
+    qapp.processEvents()
+    host = window.findChild(QWidget, "captionBar")
+    assert host is not None
+    assert window.findChild(QWidget, "captionBaseLine") is None
+    image = host.grab().toImage()
+    assert _caption_line_color(image, 8) == "#ffffff"
+    window.close()
+
+
 @pytest.mark.skipif(sys.platform != "win32", reason="Win11 caption is Windows-only")
 def test_panels_and_menus_are_white(qapp: QApplication) -> None:
     """Group boxes and popup menus use a white background."""
