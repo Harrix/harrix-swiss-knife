@@ -924,8 +924,10 @@ def resolve_window_menu_bar(window: QWidget) -> QMenuBar | None:
                 return child
     tab_widget = getattr(window, "tabWidget", None)
     if isinstance(tab_widget, QTabWidget):
-        corner = tab_widget.cornerWidget(Qt.Corner.TopLeftCorner)
-        if corner is not None:
+        for corner_flag in (Qt.Corner.TopRightCorner, Qt.Corner.TopLeftCorner):
+            corner = tab_widget.cornerWidget(corner_flag)
+            if corner is None:
+                continue
             children = corner.findChildren(QMenuBar)
             if children:
                 return children[0]

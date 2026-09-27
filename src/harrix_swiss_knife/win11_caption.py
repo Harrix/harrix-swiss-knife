@@ -1,4 +1,4 @@
-"""Windows 11 caption row: icon, menu, tabs, and the window buttons.
+"""Windows 11 caption row: icon, title, tabs, menu, and the window buttons.
 
 The native title bar is removed. Dragging empty space in this row, resizing
 from the edges, and double-click maximize stay with the system via `WM_NCHITTEST`
@@ -15,15 +15,20 @@ from ctypes import wintypes
 from typing import TYPE_CHECKING, Any
 
 from PySide6.QtCore import QByteArray, QEvent, QObject, QPoint, QRect, QRectF, QSize, Qt
-from PySide6.QtGui import QColor, QFont, QFontMetrics, QIcon, QPainter, QPalette, QPixmap
+from PySide6.QtGui import QColor, QFont, QFontMetrics, QIcon, QPainter, QPaintEvent, QPalette, QPixmap
 from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import (
     QAbstractButton,
     QBoxLayout,
+    QFrame,
     QHBoxLayout,
+    QLabel,
     QMainWindow,
     QMenuBar,
+    QScrollArea,
     QSizePolicy,
+    QSplitter,
+    QStackedWidget,
     QTabBar,
     QTabWidget,
     QToolButton,
@@ -38,7 +43,7 @@ from harrix_swiss_knife.win11_backdrop import try_apply_system_backdrop
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from PySide6.QtGui import QEnterEvent, QMouseEvent, QPaintEvent
+    from PySide6.QtGui import QEnterEvent, QMouseEvent
 
 logger = logging.getLogger(__name__)
 
@@ -72,18 +77,6 @@ QMenu { background-color: #ffffff; border: 1px solid #e0e0e0; color: #202020; }
 QMenu::item { color: #202020; background-color: transparent; }
 QMenu::item:selected { color: #202020; background-color: #f2f2f2; }
 QMenu::item:disabled { color: #767676; }
-QHeaderView::section {
-    background-color: #ffffff;
-    color: #202020;
-    border: none;
-    border-bottom: 1px solid #e6e6e6;
-    border-right: 1px solid #e6e6e6;
-    padding: 4px;
-}
-QTabWidget QWidget { background-color: #ffffff; }
-QTabWidget QPushButton, QTabWidget QToolButton { background-color: palette(button); }
-QTabWidget QScrollBar { background-color: palette(button); }
-QTabWidget QCheckBox, QTabWidget QRadioButton, QTabWidget QLabel { background-color: transparent; }
 """
 
 _GLYPH_FILES = {
@@ -101,7 +94,12 @@ _FONT_FLOOR_PT = 6.0
 _FONT_FLOOR_PX = 8
 _CAPTION_FONT_SLACK = 4
 _CAPTION_MENU_HPAD = 8
+_CAPTION_MENU_ARROW_PAD = 16
 _CAPTION_TAB_HPAD = 12
+_TITLE_ATTR = "_hsk_caption_title"
+_TITLE_COLOR = "#2e333d"
+_NAV_COLOR = "#404654"
+_MENU_CHEVRON_ATTR = "_hsk_menu_chevron"
 _SUITE_NAME = "Harrix Swiss Knife"
 _LIGHTNESS_THRESHOLD = 128
 
@@ -308,6 +306,28 @@ class _CaptionIconButton(QToolButton):
         super().mousePressEvent(event)
 
 
+class _CaptionMenuChevron(QObject):
+    """Paint a down arrow on each caption menu so it does not read as a tab."""
+
+    def __init__(self, parent: QObject | None = None) -> None:
+        super().__init__(parent)
+        self._painting = False
+
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
+        """Draw the arrows after the menu bar paints its titles."""
+        if event.type() != QEvent.Type.Paint or not isinstance(watched, QMenuBar):
+            return False
+        if not isinstance(event, QPaintEvent) or self._painting:
+            return False
+        self._painting = True
+        try:
+            watched.paintEvent(event)
+        finally:
+            self._painting = False
+        _paint_menu_chevrons(watched)
+        return True
+
+
 class _MARGINS(ctypes.Structure):
     """Win32 `MARGINS` for `DwmExtendFrameIntoClientArea`."""
 
@@ -352,6 +372,9 @@ class _Win11CaptionController(QObject):
             _sync_caption_icon(window)
             _sync_zoom_glyph(window)
             _sync_caption_active(window)
+            _place_caption_title(window)
+        elif event_type == QEvent.Type.Resize:
+            _place_caption_title(window)
         elif event_type == QEvent.Type.WindowStateChange:
             _apply_win32_frame(window, full=False)
             _sync_zoom_glyph(window)
@@ -363,10 +386,12 @@ class _Win11CaptionController(QObject):
         elif event_type == QEvent.Type.FontChange:
             _fit_caption_fonts(window)
             _style_caption_chrome(window)
+            _place_caption_title(window)
         elif event_type == QEvent.Type.WindowIconChange:
             _sync_caption_icon(window)
         elif event_type == QEvent.Type.WindowTitleChange:
             _sync_caption_icon_tooltip(window)
+            _place_caption_title(window)
         return False
 
     def minimize(self) -> None:
@@ -455,9 +480,9 @@ def caption_hit_test(
 def install_win11_caption(window: QWidget) -> bool:
     """Replace the native title bar with the caption row plus Windows 11 buttons.
 
-    Tabbed apps keep the menu and tabs in that row. A main window without tabs
-    keeps its menu there. No-op outside Windows. The window title string stays
-    for the taskbar.
+    From the left: icon, bold app name, then tabs. From the right: the menu,
+    then the window buttons. No-op outside Windows. The window title string
+    stays for the taskbar.
 
     Args:
 
@@ -482,6 +507,8 @@ def install_win11_caption(window: QWidget) -> bool:
         _build_caption_row(window, tab_widget, controller, light=light)
     elif isinstance(window, QMainWindow):
         _build_menu_caption(window, controller, light=light)
+    _install_menu_chevrons(window)
+    _ensure_caption_title(window)
     _flush_caption_to_frame(window)
     _fit_caption_fonts(window)
     _apply_white_window_background(window)
@@ -492,6 +519,7 @@ def install_win11_caption(window: QWidget) -> bool:
     _collapse_native_menu_bar(window)
     _sync_caption_icon(window)
     _sync_zoom_glyph(window)
+    _place_caption_title(window)
     return True
 
 
@@ -544,6 +572,15 @@ def write_nccalcsize_client_rect(address: int, left: int, top: int, right: int, 
     ctypes.memmove(address, ctypes.byref(rect), ctypes.sizeof(rect))
 
 
+def _apply_caption_title_style(label: QLabel) -> None:
+    rule = (
+        f"QLabel#captionTitleLabel {{ color: {_TITLE_COLOR}; background: transparent; "
+        "font-weight: 700; padding: 0px 12px 0px 2px; }}"
+    )
+    if label.styleSheet() != rule:
+        label.setStyleSheet(rule)
+
+
 def _apply_maximized_nccalcsize(window: QWidget, lparam: int) -> None:
     hwnd = int(window.winId())
     if hwnd == 0 or not bool(_user32().IsZoomed(hwnd)):
@@ -555,16 +592,18 @@ def _apply_maximized_nccalcsize(window: QWidget, lparam: int) -> None:
 
 
 def _apply_white_surfaces(window: QWidget) -> None:
-    """Paint panels, tab pages, table headers, and popup menus white.
+    """Paint panels, tab pages, and popup menus white without restyling controls.
 
-    Windows 11 draws those with the system gray even when the window palette is white.
-    A later palette refresh must not append the rules again.
+    A stylesheet that matches every child makes Qt drop the Windows 11 scrollbar,
+    button, and header drawing. Each plain container gets a rule for its own object
+    name only. Group boxes and menus still need a background rule, because that
+    style ignores the palette.
 
     """
     sheet = window.styleSheet()
-    if _WHITE_SURFACE_MARK in sheet:
-        return
-    window.setStyleSheet(f"{sheet}\n{_WHITE_SURFACE_STYLE}")
+    if _WHITE_SURFACE_MARK not in sheet:
+        window.setStyleSheet(f"{sheet}\n{_WHITE_SURFACE_STYLE}")
+    _whiten_main_containers(window)
 
 
 def _apply_white_window_background(window: QWidget) -> None:
@@ -616,10 +655,11 @@ def _build_caption_row(
     icon_button.setIcon(window.windowIcon())
     icon_button.setToolTip(_caption_icon_tooltip(window))
     _insert_icon_button(tab_widget, icon_button)
-    tab_widget.setCornerWidget(
-        _make_caption_button_row(tab_widget, controller, light=light),
-        Qt.Corner.TopRightCorner,
-    )
+    _move_tab_menu_beside_buttons(tab_widget, controller, light=light)
+    left = tab_widget.cornerWidget(Qt.Corner.TopLeftCorner)
+    left_layout = left.layout() if left is not None else None
+    if isinstance(left_layout, QBoxLayout):
+        _insert_caption_title(window, left_layout)
 
 
 def _build_menu_caption(
@@ -639,6 +679,8 @@ def _build_menu_caption(
     icon_button.setIcon(window.windowIcon())
     icon_button.setToolTip(_caption_icon_tooltip(window))
     layout.addWidget(icon_button)
+    _insert_caption_title(window, layout)
+    layout.addStretch(1)
 
     menu = QMenuBar(host)
     menu.setNativeMenuBar(False)
@@ -655,7 +697,6 @@ def _build_menu_caption(
             submenu.setParent(menu, Qt.WindowType.Popup)
             submenu.hide()
     layout.addWidget(menu)
-    layout.addStretch(1)
     layout.addWidget(_make_caption_button_row(host, controller, light=light))
     window.setMenuWidget(host)
 
@@ -709,6 +750,16 @@ def _caption_strip_rect(window: QWidget) -> QRect:
     return QRect(0, top_left.y(), window.width(), height)
 
 
+def _caption_title_parent(window: QWidget) -> QWidget | None:
+    tab_widget = getattr(window, "tabWidget", None)
+    if isinstance(tab_widget, QTabWidget):
+        corner = tab_widget.cornerWidget(Qt.Corner.TopLeftCorner)
+        if corner is not None:
+            return corner
+        return tab_widget
+    return _caption_host(window)
+
+
 def _collapse_native_menu_bar(window: QWidget) -> None:
     if _caption_host(window) is not None:
         return
@@ -736,6 +787,28 @@ def _dwmapi() -> ctypes.WinDLL:
     library.DwmSetWindowAttribute.restype = ctypes.c_long
     _dwmapi.library = library  # type: ignore[attr-defined]
     return library
+
+
+def _ensure_caption_title(window: QWidget, parent: QWidget | None = None) -> QLabel | None:
+    """Create the bold caption title, parented to the left side of the row."""
+    existing = getattr(window, _TITLE_ATTR, None)
+    if isinstance(existing, QLabel):
+        return existing
+    host = parent if parent is not None else _caption_title_parent(window)
+    if host is None:
+        return None
+    label = QLabel(host)
+    label.setObjectName("captionTitleLabel")
+    label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
+    label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
+    label.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+    label.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Preferred)
+    font = QFont(window.font())
+    font.setBold(True)
+    label.setFont(font)
+    _apply_caption_title_style(label)
+    setattr(window, _TITLE_ATTR, label)
+    return label
 
 
 def _ensure_win32_style(hwnd: int) -> None:
@@ -770,6 +843,12 @@ def _fit_caption_fonts(window: QWidget) -> None:
     if menu is not None:
         menu.setFixedHeight(CAPTION_BUTTON_HEIGHT)
         _fit_widget_font(menu, CAPTION_BUTTON_HEIGHT - _CAPTION_FONT_SLACK)
+    label = getattr(window, _TITLE_ATTR, None)
+    if isinstance(label, QLabel):
+        font = QFont(window.font())
+        font.setBold(True)
+        label.setFont(font)
+        _fit_widget_font(label, CAPTION_BUTTON_HEIGHT - _CAPTION_FONT_SLACK)
 
 
 def _fit_widget_font(widget: QWidget, max_height: int) -> None:
@@ -812,6 +891,18 @@ def _icon_from_svg(svg_bytes: bytes, ratio: float, *, label: str) -> QIcon:
     return icon
 
 
+def _insert_caption_title(window: QWidget, layout: QBoxLayout) -> None:
+    parent = layout.parentWidget()
+    if not isinstance(parent, QWidget):
+        return
+    label = _ensure_caption_title(window, parent)
+    if label is None or layout.indexOf(label) >= 0:
+        return
+    layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+    layout.insertWidget(1 if layout.count() else 0, label)
+    _place_caption_title(window)
+
+
 def _insert_icon_button(tab_widget: QTabWidget, icon_button: QToolButton) -> None:
     corner = tab_widget.cornerWidget(Qt.Corner.TopLeftCorner)
     if corner is None:
@@ -831,6 +922,14 @@ def _insert_icon_button(tab_widget: QTabWidget, icon_button: QToolButton) -> Non
         else:
             icon_button.setParent(corner)
     corner.setFixedHeight(CAPTION_BUTTON_HEIGHT)
+
+
+def _install_menu_chevrons(window: QWidget) -> None:
+    menu = resolve_window_menu_bar(window)
+    if menu is None or getattr(menu, _MENU_CHEVRON_ATTR, False):
+        return
+    menu.installEventFilter(_CaptionMenuChevron(menu))
+    setattr(menu, _MENU_CHEVRON_ATTR, True)
 
 
 def _is_64_bit() -> bool:
@@ -874,6 +973,14 @@ def _make_caption_button_row(
     return row
 
 
+def _menu_glyph_center_y(menu: QMenuBar, rect: QRect) -> int:
+    """Return the vertical center of the menu title letters, not the item box."""
+    metrics = QFontMetrics(menu.font())
+    box_top = rect.top() + (rect.height() - metrics.height()) // 2
+    baseline = box_top + metrics.ascent()
+    return baseline - max(metrics.capHeight(), 1) // 2
+
+
 def _monitor_work_area(hwnd: int) -> tuple[int, int, int, int] | None:
     user32 = _user32()
     monitor = user32.MonitorFromWindow(hwnd, _MONITOR_DEFAULTTONEAREST)
@@ -887,8 +994,114 @@ def _monitor_work_area(hwnd: int) -> tuple[int, int, int, int] | None:
     return (int(rect.left), int(rect.top), int(rect.right), int(rect.bottom))
 
 
+def _move_tab_menu_beside_buttons(
+    tab_widget: QTabWidget,
+    controller: _Win11CaptionController,
+    *,
+    light: bool,
+) -> None:
+    """Put the main menu on the right, immediately before the window buttons."""
+    left = tab_widget.cornerWidget(Qt.Corner.TopLeftCorner)
+    menu: QMenuBar | None = None
+    if left is not None:
+        found = left.findChildren(QMenuBar)
+        menu = found[0] if found else None
+        layout = left.layout()
+        if isinstance(layout, QBoxLayout):
+            if menu is not None:
+                layout.removeWidget(menu)
+            _remove_caption_separators(layout)
+    right = QWidget(tab_widget)
+    right.setObjectName("captionRightCluster")
+    right.setFixedHeight(CAPTION_BUTTON_HEIGHT)
+    right_layout = QHBoxLayout(right)
+    right_layout.setContentsMargins(0, 0, 0, 0)
+    right_layout.setSpacing(0)
+    if menu is not None:
+        menu.setParent(right)
+        menu.setFixedHeight(CAPTION_BUTTON_HEIGHT)
+        menu.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+        right_layout.addWidget(menu)
+    right_layout.addWidget(_make_caption_button_row(right, controller, light=light))
+    tab_widget.setCornerWidget(right, Qt.Corner.TopRightCorner)
+
+
+def _owned_by_native_control(widget: QWidget) -> bool:
+    parent = widget.parentWidget()
+    while parent is not None:
+        if any(
+            parent.inherits(name)
+            for name in (
+                "QAbstractButton",
+                "QAbstractItemView",
+                "QAbstractSpinBox",
+                "QComboBox",
+                "QHeaderView",
+                "QScrollBar",
+                "QTabBar",
+                "QMenu",
+            )
+        ):
+            return True
+        parent = parent.parentWidget()
+    return False
+
+
+def _paint_container_white(widget: QWidget) -> None:
+    name = widget.objectName()
+    if not name:
+        name = f"hskWhiteSurface{id(widget)}"
+        widget.setObjectName(name)
+    rule = f"QWidget#{name} {{ background-color: #ffffff; }}"
+    sheet = widget.styleSheet()
+    if rule in sheet:
+        return
+    widget.setStyleSheet(f"{sheet}\n{rule}" if sheet else rule)
+
+
+def _paint_menu_chevrons(menu: QMenuBar) -> None:
+    painter = QPainter(menu)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
+    pen = painter.pen()
+    pen.setWidthF(1.3)
+    pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+    pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+    for action in menu.actions():
+        if not action.isVisible() or action.menu() is None:
+            continue
+        rect = menu.actionGeometry(action)
+        if rect.width() < _CAPTION_MENU_ARROW_PAD:
+            continue
+        pen.setColor(QColor(_NAV_COLOR if action.isEnabled() else "#767676"))
+        painter.setPen(pen)
+        center_x = rect.right() - _CAPTION_MENU_ARROW_PAD // 2
+        center_y = _menu_glyph_center_y(menu, rect)
+        span = 3
+        painter.drawPolyline(
+            [
+                QPoint(center_x - span, center_y - 2),
+                QPoint(center_x, center_y + 2),
+                QPoint(center_x + span, center_y - 2),
+            ]
+        )
+    painter.end()
+
+
 def _palette_is_light(window: QWidget) -> bool:
     return window.palette().color(QPalette.ColorRole.Window).lightness() >= _LIGHTNESS_THRESHOLD
+
+
+def _place_caption_title(window: QWidget) -> None:
+    """Keep the caption title equal to the icon tooltip."""
+    label = getattr(window, _TITLE_ATTR, None)
+    if not isinstance(label, QLabel):
+        return
+    full = _caption_icon_tooltip(window)
+    if label.text() != full:
+        label.setText(full)
+    if label.toolTip() != full:
+        label.setToolTip(full)
+    label.show()
 
 
 def _pointer_address(value: int) -> int:
@@ -933,6 +1146,18 @@ def _popup_system_menu(window: QWidget) -> None:
             user32.PostMessageW(hwnd, _WM_SYSCOMMAND, command, 0)
     except Exception:
         logger.exception("Could not open the window system menu")
+
+
+def _remove_caption_separators(layout: QBoxLayout) -> None:
+    for index in range(layout.count() - 1, -1, -1):
+        item = layout.itemAt(index)
+        if item is None:
+            continue
+        widget = item.widget()
+        if isinstance(widget, QFrame) and widget.frameShape() == QFrame.Shape.VLine:
+            layout.removeWidget(widget)
+            widget.setParent(None)
+            widget.deleteLater()
 
 
 def _resolve_central_widget(window: QWidget) -> QWidget | None:
@@ -1015,13 +1240,14 @@ def _style_caption_chrome(window: QWidget) -> None:
             }}
             QTabBar::tab {{
                 background: {rgb};
-                color: palette(window-text);
+                color: {_NAV_COLOR};
                 border: none;
                 margin: 0px;
                 padding: {pad}px {_CAPTION_TAB_HPAD}px;
             }}
             QTabBar::tab:selected {{
                 background: {rgb};
+                color: {_NAV_COLOR};
                 border: none;
                 border-bottom: 2px solid #202020;
             }}
@@ -1040,17 +1266,17 @@ def _style_caption_chrome(window: QWidget) -> None:
             background: {rgb};
             spacing: 0px;
             padding: 0px;
-            font-weight: 700;
+            font-weight: 400;
         }}
         QMenuBar::item {{
             background: transparent;
-            color: #202020;
-            padding: {pad}px {_CAPTION_MENU_HPAD}px;
+            color: {_NAV_COLOR};
+            padding: {pad}px {_CAPTION_MENU_ARROW_PAD}px {pad}px {_CAPTION_MENU_HPAD}px;
             margin: 0px;
         }}
         QMenuBar::item:selected {{
             background: {hover};
-            color: #202020;
+            color: {_NAV_COLOR};
         }}
         """
     )
@@ -1075,6 +1301,9 @@ def _sync_caption_active(window: QWidget) -> None:
     active = window.isActiveWindow()
     for button in window.findChildren(CaptionButton):
         button.set_window_active(active=active)
+    label = getattr(window, _TITLE_ATTR, None)
+    if isinstance(label, QLabel):
+        _apply_caption_title_style(label)
 
 
 def _sync_caption_icon(window: QWidget) -> None:
@@ -1174,6 +1403,20 @@ def _user32() -> ctypes.WinDLL:
     library.PostMessageW.restype = wintypes.BOOL
     _user32.library = library  # type: ignore[attr-defined]
     return library
+
+
+def _whiten_main_containers(window: QWidget) -> None:
+    """Fill tab pages and layout panels white while leaving controls on the native style."""
+    for widget in window.findChildren(QWidget):
+        if isinstance(widget, QScrollArea):
+            viewport = widget.viewport()
+            if type(viewport) is QWidget and not _owned_by_native_control(viewport):
+                _paint_container_white(viewport)
+        if type(widget) not in {QWidget, QFrame, QSplitter, QStackedWidget}:
+            continue
+        if _owned_by_native_control(widget):
+            continue
+        _paint_container_white(widget)
 
 
 def _window_is_zoomed(window: QWidget) -> bool:

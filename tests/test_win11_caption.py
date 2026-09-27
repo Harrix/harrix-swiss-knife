@@ -8,16 +8,15 @@ from ctypes import wintypes
 
 import pytest
 from PySide6.QtCore import QPoint, QRect, QSize, Qt
-from PySide6.QtGui import QColor, QPalette, QPixmap
+from PySide6.QtGui import QColor, QImage, QPalette, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
     QGroupBox,
     QHBoxLayout,
+    QLabel,
     QMainWindow,
     QMenu,
     QMenuBar,
-    QTableWidget,
-    QTableWidgetItem,
     QTabWidget,
     QToolButton,
     QWidget,
@@ -159,7 +158,7 @@ def test_caption_labels_are_centered_on_gray_tabs(qapp: QApplication) -> None:
     tabs.setCornerWidget(corner, Qt.Corner.TopLeftCorner)
     assert install_win11_caption(window)
     window.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, on=True)
-    window.resize(800, 240)
+    window.resize(1200, 240)
     window.show()
     qapp.processEvents()
 
@@ -169,6 +168,36 @@ def test_caption_labels_are_centered_on_gray_tabs(qapp: QApplication) -> None:
     _assert_ink_centered(tabs.tabBar().grab(), background)
     _assert_ink_centered(menu.grab(), background)
     assert "#ebebeb" not in tabs.tabBar().styleSheet().lower()
+    assert "font-weight: 400" in menu.styleSheet()
+    assert "#404654" in menu.styleSheet()
+    assert "#404654" in tabs.tabBar().styleSheet()
+    title = window.findChild(QLabel, "captionTitleLabel")
+    assert title is not None
+    assert title.isVisible()
+    assert title.text() == "Food tracker - Harrix Swiss Knife"
+    assert title.toolTip() == title.text()
+    assert "font-weight: 700" in title.styleSheet()
+    assert "#2e333d" in title.styleSheet()
+    left = tabs.cornerWidget(Qt.Corner.TopLeftCorner)
+    right = tabs.cornerWidget(Qt.Corner.TopRightCorner)
+    assert left is not None
+    assert right is not None
+    assert title.parentWidget() is left
+    assert menu.parentWidget() is right
+    icon = window.findChild(QToolButton, "captionIconButton")
+    row = window.findChild(QWidget, "captionButtonRow")
+    assert icon is not None
+    assert row is not None
+    assert icon.parentWidget() is left
+    assert title.geometry().left() >= icon.geometry().right() - 1
+    assert row.parentWidget() is right
+    assert menu.geometry().right() <= row.geometry().left()
+    title_right = title.mapTo(tabs, QPoint(title.width(), 0)).x()
+    tab_left = tabs.tabBar().mapTo(tabs, QPoint(0, 0)).x()
+    assert title_right <= tab_left
+    last = tabs.tabBar().tabRect(tabs.tabBar().count() - 1)
+    last_right = tabs.tabBar().mapTo(tabs, last.bottomRight()).x()
+    assert menu.mapTo(tabs, QPoint(0, 0)).x() >= last_right
     window.close()
 
 
@@ -197,24 +226,15 @@ def test_panels_and_menus_are_white(qapp: QApplication) -> None:
         qapp.processEvents()
         assert box.grab().toImage().pixelColor(40, 36).name() == "#ffffff"
         assert menu.grab().toImage().pixelColor(150, 20).name() == "#ffffff"
+        assert "QTabWidget QWidget" not in sheet
+        assert "QScrollBar" not in sheet
+        assert "QHeaderView" not in sheet
         page = window.tabWidget.widget(0)
-        nested = QWidget(page)
-        nested.resize(100, 40)
-        nested.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, on=True)
-        nested.show()
-        table = QTableWidget(1, 1, page)
-        colored = QTableWidgetItem("kcal")
-        colored.setBackground(QColor("#ffc0cb"))
-        table.setItem(0, 0, colored)
-        table.setColumnWidth(0, 160)
-        table.resize(180, 80)
-        table.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, on=True)
-        table.show()
+        page.resize(120, 80)
+        page.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, on=True)
+        page.show()
         qapp.processEvents()
-        assert nested.grab().toImage().pixelColor(8, 8).name() == "#ffffff"
-        assert table.horizontalHeader().grab().toImage().pixelColor(8, 4).name() == "#ffffff"
-        cell = table.viewport().grab().toImage().pixelColor(120, 8)
-        assert cell.name() == "#ffc0cb"
+        assert page.grab().toImage().pixelColor(8, 8).name() == "#ffffff"
     finally:
         window.close()
         qapp.setStyle(previous_style)
@@ -251,7 +271,36 @@ def test_install_caption_on_menu_only_window(qapp: QApplication) -> None:
         menu = host.findChild(QMenuBar)
         assert menu is not None
         assert menu.actions()[0].text() == "File"
+        assert "font-weight: 400" in menu.styleSheet()
+        assert "font-weight: 700" not in menu.styleSheet()
         file_rect = menu.actionGeometry(file_menu.menuAction())
+        menu_image = menu.grab().toImage()
+        chevron_ink = any(
+            _color_distance(menu_image.pixelColor(x, y), QColor("#ffffff")) > _INK_DISTANCE
+            for x in range(max(0, file_rect.right() - 12), file_rect.right())
+            for y in range(max(0, file_rect.center().y() - 4), file_rect.center().y() + 5)
+        )
+        assert chevron_ink, "menu title has no down arrow"
+        text_mid = _ink_center_y(menu_image, file_rect.adjusted(2, 0, -16, 0))
+        arrow_mid = _ink_center_y(menu_image, QRect(file_rect.right() - 14, file_rect.top(), 13, file_rect.height()))
+        assert text_mid is not None
+        assert arrow_mid is not None
+        assert abs(text_mid - arrow_mid) <= 2, f"arrow center {arrow_mid}, text center {text_mid}"
+        title = window.findChild(QLabel, "captionTitleLabel")
+        assert title is not None
+        assert title.isVisible()
+        assert title.text() == "Vector Icons - Harrix Swiss Knife"
+        assert title.toolTip() == title.text()
+        assert "font-weight: 700" in title.styleSheet()
+        assert "#2e333d" in title.styleSheet()
+        assert "#404654" in menu.styleSheet()
+        row = window.findChild(QWidget, "captionButtonRow")
+        icon = window.findChild(QToolButton, "captionIconButton")
+        assert row is not None
+        assert icon is not None
+        assert icon.geometry().right() <= title.geometry().left()
+        assert title.geometry().right() < menu.geometry().left()
+        assert menu.geometry().right() <= row.geometry().left()
         help_rect = menu.actionGeometry(help_menu.menuAction())
         assert file_rect.width() > 0
         assert help_rect.left() >= file_rect.right()
@@ -281,6 +330,20 @@ def test_maximize_button_swaps_to_restore_glyph(qapp: QApplication) -> None:
     qapp.processEvents()
     assert button.glyph_name() == "square_multiple"
     window.close()
+
+
+def _ink_center_y(image: QImage, rect: QRect) -> float | None:
+    rows = [
+        y
+        for y in range(rect.top(), rect.bottom() + 1)
+        if any(
+            _color_distance(image.pixelColor(x, y), QColor("#ffffff")) > _INK_DISTANCE
+            for x in range(max(0, rect.left()), min(image.width(), rect.right() + 1))
+        )
+    ]
+    if not rows:
+        return None
+    return (rows[0] + rows[-1]) / 2
 
 
 def _assert_ink_centered(pixmap: QPixmap, background: QColor) -> None:

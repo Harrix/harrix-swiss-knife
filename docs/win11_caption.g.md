@@ -566,9 +566,9 @@ def install_win11_caption(window: QWidget) -> bool
 
 Replace the native title bar with the caption row plus Windows 11 buttons.
 
-Tabbed apps keep the menu and tabs in that row. A main window without tabs
-keeps its menu there. No-op outside Windows. The window title string stays
-for the taskbar.
+From the left: icon, bold app name, then tabs. From the right: the menu,
+then the window buttons. No-op outside Windows. The window title string
+stays for the taskbar.
 
 Args:
 
@@ -597,6 +597,8 @@ def install_win11_caption(window: QWidget) -> bool:
         _build_caption_row(window, tab_widget, controller, light=light)
     elif isinstance(window, QMainWindow):
         _build_menu_caption(window, controller, light=light)
+    _install_menu_chevrons(window)
+    _ensure_caption_title(window)
     _flush_caption_to_frame(window)
     _fit_caption_fonts(window)
     _apply_white_window_background(window)
@@ -607,6 +609,7 @@ def install_win11_caption(window: QWidget) -> bool:
     _collapse_native_menu_bar(window)
     _sync_caption_icon(window)
     _sync_zoom_glyph(window)
+    _place_caption_title(window)
     return True
 ```
 
