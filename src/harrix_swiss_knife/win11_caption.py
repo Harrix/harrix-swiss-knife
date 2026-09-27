@@ -106,6 +106,7 @@ _TAB_ACTIVE_COLOR = "#2e86b7"
 _TAB_LINE_COLOR = "#dbdbdb"
 _TAB_HOVER_BG = "#f2f8fb"
 _TAB_RADIUS = 4
+_TAB_TOP_GAP = 4
 _MENU_CHEVRON_ATTR = "_hsk_menu_chevron"
 _SUITE_NAME = "Harrix Swiss Knife"
 _LIGHTNESS_THRESHOLD = 128
@@ -1319,7 +1320,7 @@ def _style_caption_chrome(window: QWidget) -> None:
         tab_bar = tab_widget.tabBar()
         tab_bar.setDrawBase(False)
         text_height = QFontMetrics(tab_bar.font()).height()
-        pad = max(0, (CAPTION_BUTTON_HEIGHT - text_height - 2) // 2)
+        pad = max(0, (CAPTION_BUTTON_HEIGHT - _TAB_TOP_GAP - text_height - 2) // 2)
         tab_bar.setStyleSheet(
             f"""
             QTabBar {{
@@ -1333,7 +1334,10 @@ def _style_caption_chrome(window: QWidget) -> None:
                 border: 1px solid transparent;
                 border-top-left-radius: {_TAB_RADIUS}px;
                 border-top-right-radius: {_TAB_RADIUS}px;
-                margin: 0px;
+                margin-top: {_TAB_TOP_GAP}px;
+                margin-right: 0px;
+                margin-bottom: 0px;
+                margin-left: 0px;
                 padding: {pad}px {_CAPTION_TAB_HPAD}px;
             }}
             QTabBar::tab:hover:!selected {{
@@ -1345,6 +1349,7 @@ def _style_caption_chrome(window: QWidget) -> None:
                 color: {_TAB_ACTIVE_COLOR};
                 border: 1px solid {_TAB_LINE_COLOR};
                 border-bottom: 1px solid {rgb};
+                margin-top: {_TAB_TOP_GAP}px;
                 margin-bottom: -1px;
             }}
             """
