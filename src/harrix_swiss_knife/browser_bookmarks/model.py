@@ -138,6 +138,24 @@ def normalize_url(url: str) -> str:
     return url.strip()
 
 
+def prune_empty_folders(data: dict[str, Any]) -> list[tuple[str, tuple[str, ...]]]:
+    """Remove folders that contain no URL bookmarks. Return removed paths.
+
+    Bookmark roots stay even when they have no children. A folder is empty when
+    no `url` node exists anywhere under it, including inside subfolders.
+
+    """
+    removed: list[tuple[str, tuple[str, ...]]] = []
+    roots = data.get("roots")
+    if not isinstance(roots, dict):
+        return removed
+    for root_key in ROOT_KEYS:
+        node = roots.get(root_key)
+        if isinstance(node, dict):
+            _prune_empty_folders(node, root_key, (), removed)
+    return removed
+
+
 def relocate_entries(data: dict[str, Any], entries: list[BookmarkEntry]) -> int:
     """Move existing URL bookmarks and/or update their titles. Return count changed."""
     if not entries:
@@ -284,6 +302,20 @@ def _collect_folder_orders(
         name = child.get("name")
         label = name if isinstance(name, str) else ""
         _collect_folder_orders(child, root, (*folder_path, label), out)
+
+
+def _contains_url(node: dict[str, Any]) -> bool:
+    children = node.get("children")
+    if not isinstance(children, list):
+        return False
+    for child in children:
+        if not isinstance(child, dict):
+            continue
+        if child.get("type") == "url":
+            return True
+        if child.get("type") == "folder" and _contains_url(child):
+            return True
+    return False
 
 
 def _ensure_folder(
@@ -461,6 +493,31 @@ def _node_date_modified(node: dict[str, Any]) -> str:
     if isinstance(added, str) and added.strip():
         return added.strip()
     return ""
+
+
+def _prune_empty_folders(
+    folder: dict[str, Any],
+    root: str,
+    folder_path: tuple[str, ...],
+    removed: list[tuple[str, tuple[str, ...]]],
+) -> None:
+    children = folder.get("children")
+    if not isinstance(children, list):
+        return
+    kept: list[Any] = []
+    for child in children:
+        if not isinstance(child, dict) or child.get("type") != "folder":
+            kept.append(child)
+            continue
+        name = child.get("name")
+        label = name if isinstance(name, str) else ""
+        child_path = (*folder_path, label)
+        _prune_empty_folders(child, root, child_path, removed)
+        if _contains_url(child):
+            kept.append(child)
+        else:
+            removed.append((root, child_path))
+    folder["children"] = kept
 
 
 def _remove_from_children(folder: dict[str, Any], urls: set[str]) -> int:

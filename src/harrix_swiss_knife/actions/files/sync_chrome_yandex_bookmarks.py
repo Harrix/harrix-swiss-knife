@@ -27,17 +27,19 @@ class OnSyncChromeYandexBookmarks(ActionBase):
     """Bidirectional Chrome ↔ Yandex bookmark sync with a deletion-aware snapshot.
 
     First run merges missing URLs and aligns folders, titles, and child order
-    so both bars match. Later runs use a LocalAppData snapshot so deletes,
-    folder moves, titles, and order propagate. A leftover mismatch that the
-    snapshot already recorded still converges (Yandex flattened `T/` folders
-    follow Chrome's deeper path). Preview shows Cancel / Apply; browsers must
-    be closed before Apply.
+    so both bars match, including bookmarks copied into a folder that did not
+    exist yet. Later runs use a LocalAppData snapshot so deletes, folder moves,
+    titles, and order propagate. Folders with no bookmarks anywhere inside are
+    deleted and are not copied across. A leftover mismatch that the snapshot
+    already recorded still converges (Yandex flattened `T/` folders follow
+    Chrome's deeper path). Preview shows Cancel / Apply; browsers must be
+    closed before Apply.
 
     """
 
     icon = "🔖"
     title = "Sync Chrome and Yandex bookmarks"
-    description = "Merge and sync bookmarks between Google Chrome and Yandex Browser."
+    description = "Merge Chrome and Yandex bookmarks, keep their order, and delete empty folders."
 
     @ActionBase.handle_exceptions("syncing Chrome and Yandex bookmarks")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002

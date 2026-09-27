@@ -14,8 +14,10 @@ from harrix_swiss_knife.actions.files.sync_chrome_yandex_bookmarks import OnSync
 from harrix_swiss_knife.browser_bookmarks.model import (
     BookmarkEntry,
     ChildRef,
+    find_folder,
     flatten_bookmarks,
     load_bookmarks,
+    prune_empty_folders,
     relocate_entries,
     reorder_folder_children,
     write_bookmarks,
@@ -560,6 +562,14 @@ def test_bookmark_bar_order_syncs_to_chrome(tmp_path: Path, monkeypatch: pytest.
     assert [item["url"] for item in yandex_bar if item.get("type") == "url"] == [_URL_A, _URL_KEEP]
 
 
+def _folder_child_urls(data: dict[str, Any], root: str, folder_path: tuple[str, ...]) -> list[str]:
+    folder = find_folder(data, root, folder_path)
+    assert folder is not None
+    children = folder.get("children")
+    assert isinstance(children, list)
+    return [child["url"] for child in children if isinstance(child, dict) and child.get("type") == "url"]
+
+
 def test_reorder_preserves_extra_children() -> None:
     data = _minimal_bookmarks(("A", _URL_A), ("Keep", _URL_KEEP), ("X", _URL_X))
     changed = reorder_folder_children(
@@ -571,3 +581,140 @@ def test_reorder_preserves_extra_children() -> None:
     assert changed
     urls = [item["url"] for item in data["roots"]["bookmark_bar"]["children"] if item.get("type") == "url"]
     assert urls == [_URL_KEEP, _URL_A, _URL_X]
+
+
+def test_nested_folder_order_copies_onto_new_folder(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("harrix_swiss_knife.browser_bookmarks.sync.running_browser_names", list)
+    chrome, yandex = _write_trees(
+        tmp_path,
+        _tree_with_urls(
+            [
+                ("B", "https://b.example/", ("Work",)),
+                ("A", "https://a.example/", ("Work",)),
+            ],
+        ),
+        _empty_bookmarks(),
+    )
+    snap = tmp_path / "snap.json"
+    plan = build_sync_plan(chrome_path=chrome, yandex_path=yandex, snapshot_file=snap)
+    work_orders = [item for item in plan.reorder_in_yandex if item.folder_path == ("Work",)]
+    assert work_orders
+    assert [child.value for child in work_orders[0].children] == ["https://b.example/", "https://a.example/"]
+    apply_sync_plan(plan, create_backup=False)
+    assert _folder_child_urls(load_bookmarks(yandex), "bookmark_bar", ("Work",)) == [
+        "https://b.example/",
+        "https://a.example/",
+    ]
+
+
+def test_existing_folder_order_propagates(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("harrix_swiss_knife.browser_bookmarks.sync.running_browser_names", list)
+    ordered = [
+        ("A", "https://a.example/", ("Work",)),
+        ("Keep", _URL_KEEP, ("Work",)),
+    ]
+    chrome, yandex = _write_trees(tmp_path, _tree_with_urls(ordered), _tree_with_urls(ordered))
+    snap = tmp_path / "snap.json"
+    apply_sync_plan(
+        build_sync_plan(chrome_path=chrome, yandex_path=yandex, snapshot_file=snap),
+        create_backup=False,
+    )
+    write_bookmarks(
+        chrome,
+        _tree_with_urls(
+            [
+                ("Keep", _URL_KEEP, ("Work",)),
+                ("A", "https://a.example/", ("Work",)),
+            ],
+        ),
+    )
+    plan = build_sync_plan(chrome_path=chrome, yandex_path=yandex, snapshot_file=snap)
+    assert [item.folder_path for item in plan.reorder_in_yandex] == [("Work",)]
+    assert [child.value for child in plan.reorder_in_yandex[0].children] == [_URL_KEEP, "https://a.example/"]
+    apply_sync_plan(plan, create_backup=False)
+    assert _folder_child_urls(load_bookmarks(yandex), "bookmark_bar", ("Work",)) == [
+        _URL_KEEP,
+        "https://a.example/",
+    ]
+
+
+def test_empty_folder_is_removed_and_not_copied(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("harrix_swiss_knife.browser_bookmarks.sync.running_browser_names", list)
+    chrome_data = _minimal_bookmarks(("A", _URL_A))
+    chrome_data["roots"]["bookmark_bar"]["children"].append(_folder_node("Empty", [], node_id="40"))
+    chrome, yandex = _write_trees(tmp_path, chrome_data, _minimal_bookmarks(("A", _URL_A)))
+    snap = tmp_path / "snap.json"
+    plan = build_sync_plan(chrome_path=chrome, yandex_path=yandex, snapshot_file=snap)
+    assert plan.remove_empty_in_chrome == [("bookmark_bar", ("Empty",))]
+    assert plan.remove_empty_in_yandex == []
+    assert "Remove empty folders in Chrome" in format_sync_report(plan)
+    apply_sync_plan(plan, create_backup=False)
+    chrome_children = load_bookmarks(chrome)["roots"]["bookmark_bar"]["children"]
+    yandex_children = load_bookmarks(yandex)["roots"]["bookmark_bar"]["children"]
+    assert all(child.get("type") != "folder" for child in chrome_children)
+    assert all(child.get("type") != "folder" for child in yandex_children)
+    again = build_sync_plan(chrome_path=chrome, yandex_path=yandex, snapshot_file=snap)
+    assert not again.has_writes
+
+
+def test_delete_removes_folder_left_without_bookmarks(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("harrix_swiss_knife.browser_bookmarks.sync.running_browser_names", list)
+    chrome, yandex = _write_trees(
+        tmp_path,
+        _tree_with_url("A", _URL_A, ("Work",)),
+        _tree_with_url("A", _URL_A, ("Work",)),
+    )
+    snap = tmp_path / "snap.json"
+    apply_sync_plan(
+        build_sync_plan(chrome_path=chrome, yandex_path=yandex, snapshot_file=snap),
+        create_backup=False,
+    )
+    write_bookmarks(chrome, _empty_bookmarks())
+    plan = build_sync_plan(chrome_path=chrome, yandex_path=yandex, snapshot_file=snap)
+    assert ("bookmark_bar", ("Work",)) in plan.remove_empty_in_yandex
+    apply_sync_plan(plan, create_backup=False)
+    assert find_folder(load_bookmarks(yandex), "bookmark_bar", ("Work",)) is None
+    assert load_bookmarks(yandex)["roots"]["bookmark_bar"]["type"] == "folder"
+
+
+def test_folder_with_nested_bookmark_is_kept(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("harrix_swiss_knife.browser_bookmarks.sync.running_browser_names", list)
+    chrome, yandex = _write_trees(
+        tmp_path,
+        _tree_with_url("A", _URL_A, ("Work", "Sub")),
+        _tree_with_url("A", _URL_A, ("Work", "Sub")),
+    )
+    snap = tmp_path / "snap.json"
+    apply_sync_plan(
+        build_sync_plan(chrome_path=chrome, yandex_path=yandex, snapshot_file=snap),
+        create_backup=False,
+    )
+    again = build_sync_plan(chrome_path=chrome, yandex_path=yandex, snapshot_file=snap)
+    assert again.remove_empty_in_chrome == []
+    assert again.remove_empty_in_yandex == []
+    assert not again.has_writes
+    loaded = load_bookmarks(chrome)
+    assert find_folder(loaded, "bookmark_bar", ("Work", "Sub")) is not None
+
+
+def test_chain_of_empty_folders_is_removed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("harrix_swiss_knife.browser_bookmarks.sync.running_browser_names", list)
+    chrome_data = _minimal_bookmarks(("A", _URL_A))
+    inner = _folder_node("Inner", [], node_id="41")
+    chrome_data["roots"]["bookmark_bar"]["children"].append(_folder_node("Outer", [inner], node_id="42"))
+    chrome, yandex = _write_trees(tmp_path, chrome_data, _minimal_bookmarks(("A", _URL_A)))
+    snap = tmp_path / "snap.json"
+    plan = build_sync_plan(chrome_path=chrome, yandex_path=yandex, snapshot_file=snap)
+    assert ("bookmark_bar", ("Outer", "Inner")) in plan.remove_empty_in_chrome
+    assert ("bookmark_bar", ("Outer",)) in plan.remove_empty_in_chrome
+    apply_sync_plan(plan, create_backup=False)
+    assert find_folder(load_bookmarks(chrome), "bookmark_bar", ("Outer",)) is None
+    assert _folder_child_urls(load_bookmarks(chrome), "bookmark_bar", ()) == [_URL_A]
+
+
+def test_prune_empty_folders_keeps_roots() -> None:
+    data = _empty_bookmarks()
+    data["roots"]["bookmark_bar"]["children"].append(_folder_node("Empty", [], node_id="40"))
+    assert prune_empty_folders(data) == [("bookmark_bar", ("Empty",))]
+    assert data["roots"]["bookmark_bar"]["children"] == []
+    assert data["roots"]["other"]["type"] == "folder"

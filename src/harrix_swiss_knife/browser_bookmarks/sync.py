@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import copy
 import json
 from collections import defaultdict
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
@@ -18,6 +20,7 @@ from harrix_swiss_knife.browser_bookmarks.model import (
     folder_date_modified,
     load_bookmarks,
     normalize_url,
+    prune_empty_folders,
     relocate_entries,
     remove_urls,
     reorder_folder_children,
@@ -86,6 +89,8 @@ class SyncPlan:
     move_in_yandex: list[BookmarkEntry] = field(default_factory=list)
     reorder_in_chrome: list[FolderOrder] = field(default_factory=list)
     reorder_in_yandex: list[FolderOrder] = field(default_factory=list)
+    remove_empty_in_chrome: list[tuple[str, tuple[str, ...]]] = field(default_factory=list)
+    remove_empty_in_yandex: list[tuple[str, tuple[str, ...]]] = field(default_factory=list)
     backup_path: Path | None = None
     browsers_running: list[str] = field(default_factory=list)
 
@@ -101,6 +106,8 @@ class SyncPlan:
             or self.move_in_yandex
             or self.reorder_in_chrome
             or self.reorder_in_yandex
+            or self.remove_empty_in_chrome
+            or self.remove_empty_in_yandex
         )
 
 
@@ -114,21 +121,21 @@ def apply_sync_plan(plan: SyncPlan, *, create_backup: bool = True) -> list[Path]
     backup = create_bookmarks_backup(plan.chrome_path, plan.yandex_path) if create_backup else None
     plan.backup_path = backup
 
-    chrome_data = plan.chrome_data
-    yandex_data = plan.yandex_data
-    remove_urls(chrome_data, set(plan.delete_from_chrome))
-    remove_urls(yandex_data, set(plan.delete_from_yandex))
-    relocate_entries(chrome_data, plan.move_in_chrome)
-    relocate_entries(yandex_data, plan.move_in_yandex)
-    add_entries(chrome_data, plan.add_to_chrome)
-    add_entries(yandex_data, plan.add_to_yandex)
-    for order in plan.reorder_in_chrome:
-        reorder_folder_children(chrome_data, order.root, order.folder_path, order.children)
-    for order in plan.reorder_in_yandex:
-        reorder_folder_children(yandex_data, order.root, order.folder_path, order.children)
+    _commit_tree_changes(
+        plan.chrome_data,
+        plan.yandex_data,
+        delete_from_chrome=plan.delete_from_chrome,
+        delete_from_yandex=plan.delete_from_yandex,
+        move_in_chrome=plan.move_in_chrome,
+        move_in_yandex=plan.move_in_yandex,
+        add_to_chrome=plan.add_to_chrome,
+        add_to_yandex=plan.add_to_yandex,
+        reorder_in_chrome=plan.reorder_in_chrome,
+        reorder_in_yandex=plan.reorder_in_yandex,
+    )
 
-    write_bookmarks(plan.chrome_path, chrome_data)
-    write_bookmarks(plan.yandex_path, yandex_data)
+    write_bookmarks(plan.chrome_path, plan.chrome_data)
+    write_bookmarks(plan.yandex_path, plan.yandex_data)
 
     persist_snapshot(plan)
 
@@ -205,6 +212,18 @@ def build_sync_plan(
         deleted_either,
     )
     reorder_in_chrome, reorder_in_yandex = _plan_folder_orders(chrome_data, yandex_data, state)
+    remove_empty_in_chrome, remove_empty_in_yandex = _commit_tree_changes(
+        copy.deepcopy(chrome_data),
+        copy.deepcopy(yandex_data),
+        delete_from_chrome=delete_from_chrome,
+        delete_from_yandex=delete_from_yandex,
+        move_in_chrome=move_in_chrome,
+        move_in_yandex=move_in_yandex,
+        add_to_chrome=add_to_chrome,
+        add_to_yandex=add_to_yandex,
+        reorder_in_chrome=reorder_in_chrome,
+        reorder_in_yandex=reorder_in_yandex,
+    )
 
     return SyncPlan(
         chrome_path=chrome,
@@ -221,6 +240,8 @@ def build_sync_plan(
         move_in_yandex=move_in_yandex,
         reorder_in_chrome=reorder_in_chrome,
         reorder_in_yandex=reorder_in_yandex,
+        remove_empty_in_chrome=remove_empty_in_chrome,
+        remove_empty_in_yandex=remove_empty_in_yandex,
         browsers_running=running_browser_names(),
     )
 
@@ -235,7 +256,20 @@ def format_sync_report(plan: SyncPlan, *, applied: bool = False) -> str:
     move_yandex = len(plan.move_in_yandex)
     order_chrome = len(plan.reorder_in_chrome)
     order_yandex = len(plan.reorder_in_yandex)
-    total = add_chrome + add_yandex + del_chrome + del_yandex + move_chrome + move_yandex + order_chrome + order_yandex
+    empty_chrome = len(plan.remove_empty_in_chrome)
+    empty_yandex = len(plan.remove_empty_in_yandex)
+    total = (
+        add_chrome
+        + add_yandex
+        + del_chrome
+        + del_yandex
+        + move_chrome
+        + move_yandex
+        + order_chrome
+        + order_yandex
+        + empty_chrome
+        + empty_yandex
+    )
 
     if applied:
         lines = [
@@ -250,6 +284,8 @@ def format_sync_report(plan: SyncPlan, *, applied: bool = False) -> str:
             f"  Moved in Yandex: {move_yandex}",
             f"  Reordered in Chrome: {order_chrome}",
             f"  Reordered in Yandex: {order_yandex}",
+            f"  Removed empty folders in Chrome: {empty_chrome}",
+            f"  Removed empty folders in Yandex: {empty_yandex}",
             f"  Total bookmark changes: {total}",
             "",
         ]
@@ -270,13 +306,15 @@ def format_sync_report(plan: SyncPlan, *, applied: bool = False) -> str:
         f"  Will move in Yandex: {move_yandex}",
         f"  Will reorder in Chrome: {order_chrome}",
         f"  Will reorder in Yandex: {order_yandex}",
+        f"  Will remove empty folders in Chrome: {empty_chrome}",
+        f"  Will remove empty folders in Yandex: {empty_yandex}",
         f"  Total bookmark changes: {total}",
         "",
     ]
     if plan.first_run:
-        lines.append("Mode: first sync — merge missing URLs, then align folders and order.")
+        lines.append("Mode: first sync — merge missing URLs, then align folders and order, and remove empty folders.")
     else:
-        lines.append("Mode: sync additions, deletions, folder moves, and child order.")
+        lines.append("Mode: sync additions, deletions, folder moves, child order, and empty folders.")
     lines.append("")
 
     if plan.browsers_running:
@@ -318,6 +356,14 @@ def format_sync_report(plan: SyncPlan, *, applied: bool = False) -> str:
     if order_yandex:
         lines.append(f"Reorder in Yandex ({order_yandex}):")
         lines.extend(_format_order_lines(plan.reorder_in_yandex))
+        lines.append("")
+    if empty_chrome:
+        lines.append(f"Remove empty folders in Chrome ({empty_chrome}):")
+        lines.extend(_format_empty_folder_lines(plan.remove_empty_in_chrome))
+        lines.append("")
+    if empty_yandex:
+        lines.append(f"Remove empty folders in Yandex ({empty_yandex}):")
+        lines.extend(_format_empty_folder_lines(plan.remove_empty_in_yandex))
         lines.append("")
 
     if not plan.has_writes:
@@ -416,6 +462,33 @@ def _chromium_timestamp(value: str) -> int:
     return 0
 
 
+def _commit_tree_changes(
+    chrome_data: dict[str, Any],
+    yandex_data: dict[str, Any],
+    *,
+    delete_from_chrome: list[str],
+    delete_from_yandex: list[str],
+    move_in_chrome: list[BookmarkEntry],
+    move_in_yandex: list[BookmarkEntry],
+    add_to_chrome: list[BookmarkEntry],
+    add_to_yandex: list[BookmarkEntry],
+    reorder_in_chrome: list[FolderOrder],
+    reorder_in_yandex: list[FolderOrder],
+) -> tuple[list[tuple[str, tuple[str, ...]]], list[tuple[str, tuple[str, ...]]]]:
+    """Apply planned edits, then drop folders that contain no bookmarks."""
+    remove_urls(chrome_data, set(delete_from_chrome))
+    remove_urls(yandex_data, set(delete_from_yandex))
+    relocate_entries(chrome_data, move_in_chrome)
+    relocate_entries(yandex_data, move_in_yandex)
+    add_entries(chrome_data, add_to_chrome)
+    add_entries(yandex_data, add_to_yandex)
+    for order in reorder_in_chrome:
+        reorder_folder_children(chrome_data, order.root, order.folder_path, order.children)
+    for order in reorder_in_yandex:
+        reorder_folder_children(yandex_data, order.root, order.folder_path, order.children)
+    return prune_empty_folders(chrome_data), prune_empty_folders(yandex_data)
+
+
 def _format_entry_lines(entries: list[BookmarkEntry]) -> list[str]:
     lines: list[str] = []
     for entry in entries[:_REPORT_LIST_LIMIT]:
@@ -424,6 +497,17 @@ def _format_entry_lines(entries: list[BookmarkEntry]) -> list[str]:
         lines.append(f"  [{entry.root}/{folder}] {title}")
         lines.append(f"    {entry.url}")
     extra = len(entries) - _REPORT_LIST_LIMIT
+    if extra > 0:
+        lines.append(f"  … and {extra} more")
+    return lines
+
+
+def _format_empty_folder_lines(folders: Sequence[tuple[str, tuple[str, ...]]]) -> list[str]:
+    lines: list[str] = []
+    for root, folder_path in folders[:_REPORT_LIST_LIMIT]:
+        folder = "/".join(folder_path) if folder_path else "(root)"
+        lines.append(f"  [{root}/{folder}]")
+    extra = len(folders) - _REPORT_LIST_LIMIT
     if extra > 0:
         lines.append(f"  … and {extra} more")
     return lines
@@ -462,16 +546,22 @@ def _location_payload(entry: BookmarkEntry) -> dict[str, Any]:
 
 def _order_winner(
     key: tuple[str, tuple[str, ...]],
-    chrome_order: list[ChildRef],
-    yandex_order: list[ChildRef],
+    chrome_order: Sequence[ChildRef],
+    yandex_order: Sequence[ChildRef],
     chrome_modified: str,
     yandex_modified: str,
     state: SnapshotState,
 ) -> str:
     snap_chrome = state.chrome_orders.get(key)
     snap_yandex = state.yandex_orders.get(key)
-    chrome_changed = snap_chrome is not None and tuple(chrome_order) != snap_chrome
-    yandex_changed = snap_yandex is not None and tuple(yandex_order) != snap_yandex
+    chrome_baseline = (
+        _without_empty_folder_refs(state.chrome_orders, key, snap_chrome) if snap_chrome is not None else None
+    )
+    yandex_baseline = (
+        _without_empty_folder_refs(state.yandex_orders, key, snap_yandex) if snap_yandex is not None else None
+    )
+    chrome_changed = chrome_baseline is not None and tuple(chrome_order) != chrome_baseline
+    yandex_changed = yandex_baseline is not None and tuple(yandex_order) != yandex_baseline
     if chrome_changed and not yandex_changed:
         return "chrome"
     if yandex_changed and not chrome_changed:
@@ -655,22 +745,38 @@ def _plan_folder_orders(
     yandex_orders = collect_folder_orders(yandex_data)
     reorder_in_chrome: list[FolderOrder] = []
     reorder_in_yandex: list[FolderOrder] = []
-    for key in sorted(set(chrome_orders) & set(yandex_orders)):
-        chrome_order = chrome_orders[key]
-        yandex_order = yandex_orders[key]
-        if chrome_order == yandex_order:
+    for key in sorted(set(chrome_orders) | set(yandex_orders)):
+        chrome_raw = chrome_orders.get(key)
+        yandex_raw = yandex_orders.get(key)
+        if chrome_raw is not None and yandex_raw is not None:
+            chrome_order = _without_empty_folder_refs(chrome_orders, key, chrome_raw)
+            yandex_order = _without_empty_folder_refs(yandex_orders, key, yandex_raw)
+            if chrome_order == yandex_order:
+                continue
+            winner = _order_winner(
+                key,
+                chrome_order,
+                yandex_order,
+                folder_date_modified(chrome_data, key[0], key[1]),
+                folder_date_modified(yandex_data, key[0], key[1]),
+                state,
+            )
+            desired = chrome_order if winner == "chrome" else yandex_order
+            folder_order = FolderOrder(root=key[0], folder_path=key[1], children=desired)
+            if winner == "chrome":
+                reorder_in_yandex.append(folder_order)
+            else:
+                reorder_in_chrome.append(folder_order)
             continue
-        winner = _order_winner(
-            key,
-            chrome_order,
-            yandex_order,
-            folder_date_modified(chrome_data, key[0], key[1]),
-            folder_date_modified(yandex_data, key[0], key[1]),
-            state,
-        )
-        desired = tuple(chrome_order if winner == "chrome" else yandex_order)
+        source_orders = chrome_orders if chrome_raw is not None else yandex_orders
+        source_raw = chrome_raw if chrome_raw is not None else yandex_raw
+        if source_raw is None:
+            continue
+        desired = _without_empty_folder_refs(source_orders, key, source_raw)
+        if not desired:
+            continue
         folder_order = FolderOrder(root=key[0], folder_path=key[1], children=desired)
-        if winner == "chrome":
+        if chrome_raw is not None:
             reorder_in_yandex.append(folder_order)
         else:
             reorder_in_chrome.append(folder_order)
@@ -721,3 +827,33 @@ def _stale_divergence_winner(chrome_entry: BookmarkEntry, yandex_entry: Bookmark
     if _prefer_yandex_timestamp(chrome_entry, yandex_entry):
         return "yandex"
     return "chrome"
+
+
+def _subtree_has_url(
+    orders: Mapping[tuple[str, tuple[str, ...]], Sequence[ChildRef]],
+    root: str,
+    folder_path: tuple[str, ...],
+) -> bool:
+    children = orders.get((root, folder_path))
+    if not children:
+        return False
+    for child in children:
+        if child.kind == "url":
+            return True
+        if child.kind == "folder" and _subtree_has_url(orders, root, (*folder_path, child.value)):
+            return True
+    return False
+
+
+def _without_empty_folder_refs(
+    orders: Mapping[tuple[str, tuple[str, ...]], Sequence[ChildRef]],
+    key: tuple[str, tuple[str, ...]],
+    children: Sequence[ChildRef],
+) -> tuple[ChildRef, ...]:
+    root, folder_path = key
+    kept: list[ChildRef] = []
+    for child in children:
+        if child.kind == "folder" and not _subtree_has_url(orders, root, (*folder_path, child.value)):
+            continue
+        kept.append(child)
+    return tuple(kept)
