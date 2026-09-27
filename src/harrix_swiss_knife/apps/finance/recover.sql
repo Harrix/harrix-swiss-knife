@@ -102,6 +102,7 @@ INSERT INTO categories (name, type, icon, name_local) VALUES ('Healthcare', 0, '
 INSERT INTO categories (name, type, icon, name_local) VALUES ('Hotels', 0, '🏨', 'Отели');
 INSERT INTO categories (name, type, icon, name_local) VALUES ('Household Goods', 0, '🏠', 'Хозтовары');
 INSERT INTO categories (name, type, icon, name_local) VALUES ('IT', 0, '💻', 'IT');
+INSERT INTO categories (name, type, icon, name_local) VALUES ('Legal', 0, '⚖️', 'Юридические услуги');
 INSERT INTO categories (name, type, icon, name_local) VALUES ('Miscellaneous', 0, '❓', 'Разное');
 INSERT INTO categories (name, type, icon, name_local) VALUES ('Personal', 0, '👤', 'Личное');
 INSERT INTO categories (name, type, icon, name_local) VALUES ('Pet Care', 0, '🐕', 'Питомцы');
