@@ -16,6 +16,8 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMenu,
     QMenuBar,
+    QTableWidget,
+    QTableWidgetItem,
     QTabWidget,
     QToolButton,
     QWidget,
@@ -195,6 +197,24 @@ def test_panels_and_menus_are_white(qapp: QApplication) -> None:
         qapp.processEvents()
         assert box.grab().toImage().pixelColor(40, 36).name() == "#ffffff"
         assert menu.grab().toImage().pixelColor(150, 20).name() == "#ffffff"
+        page = window.tabWidget.widget(0)
+        nested = QWidget(page)
+        nested.resize(100, 40)
+        nested.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, on=True)
+        nested.show()
+        table = QTableWidget(1, 1, page)
+        colored = QTableWidgetItem("kcal")
+        colored.setBackground(QColor("#ffc0cb"))
+        table.setItem(0, 0, colored)
+        table.setColumnWidth(0, 160)
+        table.resize(180, 80)
+        table.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, on=True)
+        table.show()
+        qapp.processEvents()
+        assert nested.grab().toImage().pixelColor(8, 8).name() == "#ffffff"
+        assert table.horizontalHeader().grab().toImage().pixelColor(8, 4).name() == "#ffffff"
+        cell = table.viewport().grab().toImage().pixelColor(120, 8)
+        assert cell.name() == "#ffc0cb"
     finally:
         window.close()
         qapp.setStyle(previous_style)

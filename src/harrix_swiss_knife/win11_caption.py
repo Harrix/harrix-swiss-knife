@@ -72,6 +72,18 @@ QMenu { background-color: #ffffff; border: 1px solid #e0e0e0; color: #202020; }
 QMenu::item { color: #202020; background-color: transparent; }
 QMenu::item:selected { color: #202020; background-color: #f2f2f2; }
 QMenu::item:disabled { color: #767676; }
+QHeaderView::section {
+    background-color: #ffffff;
+    color: #202020;
+    border: none;
+    border-bottom: 1px solid #e6e6e6;
+    border-right: 1px solid #e6e6e6;
+    padding: 4px;
+}
+QTabWidget QWidget { background-color: #ffffff; }
+QTabWidget QPushButton, QTabWidget QToolButton { background-color: palette(button); }
+QTabWidget QScrollBar { background-color: palette(button); }
+QTabWidget QCheckBox, QTabWidget QRadioButton, QTabWidget QLabel { background-color: transparent; }
 """
 
 _GLYPH_FILES = {
@@ -543,7 +555,7 @@ def _apply_maximized_nccalcsize(window: QWidget, lparam: int) -> None:
 
 
 def _apply_white_surfaces(window: QWidget) -> None:
-    """Paint group boxes and popup menus white.
+    """Paint panels, tab pages, table headers, and popup menus white.
 
     Windows 11 draws those with the system gray even when the window palette is white.
     A later palette refresh must not append the rules again.
@@ -991,7 +1003,7 @@ def _style_caption_chrome(window: QWidget) -> None:
     hover = _shade_caption_color(color, light=light, amount=0.06).name(QColor.NameFormat.HexRgb)
     tab_widget = getattr(window, "tabWidget", None)
     if isinstance(tab_widget, QTabWidget):
-        tab_widget.setStyleSheet("QTabWidget::pane { border: none; margin: 0px; }")
+        tab_widget.setStyleSheet("QTabWidget::pane { border: none; margin: 0px; background: #ffffff; }")
         tab_bar = tab_widget.tabBar()
         tab_bar.setDrawBase(False)
         pad = _caption_label_padding(tab_bar)
