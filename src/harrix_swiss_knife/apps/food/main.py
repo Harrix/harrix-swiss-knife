@@ -48,6 +48,7 @@ from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
     QFileDialog,
+    QFrame,
     QHBoxLayout,
     QInputDialog,
     QLabel,
@@ -4021,10 +4022,24 @@ class MainWindow(
         status_bar.setVisible(True)
         status_bar.setStyleSheet("QStatusBar { background: #ffffff; }QStatusBar QLabel { color: #202020; }")
 
+    def _whiten_food_tab_pages(self) -> None:
+        """Paint Food tab pages white and drop the gray StyledPanel frame fill."""
+        self.horizontalLayout.setContentsMargins(0, 0, 0, 0)
+        self.horizontalLayout_food.setContentsMargins(0, 0, 0, 0)
+        for frame in (self.frame_food_controls, self.frame, self.frame_food_stats_controls):
+            frame.setFrameShape(QFrame.Shape.NoFrame)
+            frame.setFrameShadow(QFrame.Shadow.Plain)
+            name = frame.objectName()
+            rule = f"QFrame#{name} {{ background-color: #ffffff; border: none; }}"
+            sheet = frame.styleSheet()
+            if rule not in sheet:
+                frame.setStyleSheet(f"{sheet}\n{rule}" if sheet else rule)
+
     def _setup_ui(self) -> None:
         """Set up additional UI elements after basic initialization."""
         self._place_menu_bar_on_tab_row()
         install_win11_caption(self)
+        self._whiten_food_tab_pages()
         self._install_word_wrap_table_headers()
         self._setup_status_bar()
         self._setup_macros_analysis_ui()

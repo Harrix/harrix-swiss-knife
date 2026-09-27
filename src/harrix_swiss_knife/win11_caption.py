@@ -1316,7 +1316,18 @@ def _style_caption_chrome(window: QWidget) -> None:
     hover = _shade_caption_color(color, light=light, amount=0.06).name(QColor.NameFormat.HexRgb)
     tab_widget = getattr(window, "tabWidget", None)
     if isinstance(tab_widget, QTabWidget):
-        tab_widget.setStyleSheet(f"QTabWidget::pane {{ border: none; margin: 0px; background: {rgb}; }}")
+        name = tab_widget.objectName() or "tabWidget"
+        if not tab_widget.objectName():
+            tab_widget.setObjectName(name)
+        tab_widget.setStyleSheet(
+            f"QTabWidget#{name} {{ background-color: {rgb}; border: none; }}"
+            f"QTabWidget::pane {{ border: none; margin: 0px; background: {rgb}; }}"
+        )
+        _fill_widget(tab_widget, color)
+        for index in range(tab_widget.count()):
+            page = tab_widget.widget(index)
+            if isinstance(page, QWidget):
+                _fill_widget(page, color)
         tab_bar = tab_widget.tabBar()
         tab_bar.setDrawBase(False)
         text_height = QFontMetrics(tab_bar.font()).height()
