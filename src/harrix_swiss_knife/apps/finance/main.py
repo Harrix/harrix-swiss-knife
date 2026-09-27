@@ -5287,7 +5287,6 @@ class MainWindow(
         """Ensure status bar is visible and readable on Windows 11 Mica backdrop."""
         status_bar = self.statusBar()
         status_bar.setVisible(True)
-        status_bar.setStyleSheet("QStatusBar { background: #ffffff; }QStatusBar QLabel { color: #202020; }")
         if self._transactions_selection_status_label is None:
             self._transactions_selection_status_label = QLabel("")
             self._transactions_selection_status_label.setObjectName("transactions_selection_status")

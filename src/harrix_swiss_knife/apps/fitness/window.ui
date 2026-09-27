@@ -1,7 +1,17 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <ui version="4.0">
  <class>MainWindow</class>
  <widget class="QMainWindow" name="MainWindow">
+  <property name="styleSheet">
+   <string notr="true">/* hsk-white-surfaces */
+QGroupBox { background-color: #ffffff; }
+QMenu { background-color: #ffffff; border: 1px solid #e0e0e0; color: #202020; }
+QMenu::item { color: #202020; background-color: transparent; }
+QMenu::item:selected { color: #202020; background-color: #f2f2f2; }
+QMenu::item:disabled { color: #767676; }
+QStatusBar { background: #ffffff; }
+QStatusBar QLabel { color: #202020; }</string>
+  </property>
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -14,6 +24,9 @@
    <string>Fitness tracker</string>
   </property>
   <widget class="QWidget" name="centralWidget">
+   <property name="styleSheet">
+    <string notr="true">QWidget#centralWidget { background-color: #ffffff; }</string>
+   </property>
    <layout class="QHBoxLayout" name="horizontalLayout">
     <item>
      <widget class="QTabWidget" name="tabWidget">
@@ -21,12 +34,18 @@
        <number>0</number>
       </property>
       <widget class="QWidget" name="tab">
+       <property name="styleSheet">
+        <string notr="true">QWidget#tab { background-color: #ffffff; }</string>
+       </property>
        <attribute name="title">
         <string>Sets</string>
        </attribute>
        <layout class="QHBoxLayout" name="horizontalLayout_main">
         <item>
          <widget class="QSplitter" name="splitter">
+          <property name="styleSheet">
+           <string notr="true">QWidget#splitter { background-color: #ffffff; }</string>
+          </property>
           <property name="orientation">
            <enum>Qt::Orientation::Horizontal</enum>
           </property>
@@ -34,6 +53,9 @@
            <bool>false</bool>
           </property>
           <widget class="QFrame" name="frame">
+           <property name="styleSheet">
+            <string notr="true">QFrame#frame { background-color: #ffffff; border: none; }</string>
+           </property>
            <property name="minimumSize">
             <size>
              <width>350</width>
@@ -47,10 +69,10 @@
             </size>
            </property>
            <property name="frameShape">
-            <enum>QFrame::Shape::StyledPanel</enum>
+            <enum>QFrame::Shape::NoFrame</enum>
            </property>
            <property name="frameShadow">
-            <enum>QFrame::Shadow::Raised</enum>
+            <enum>QFrame::Shadow::Plain</enum>
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_3">
             <item>
@@ -126,7 +148,7 @@
                 </layout>
                </item>
                <item>
-                <widget class="QComboBox" name="comboBox_type"/>
+                <widget class="QComboBox" name="comboBox_type" />
                </item>
                <item>
                 <layout class="QHBoxLayout" name="horizontalLayout_13">
@@ -281,6 +303,9 @@
            </layout>
           </widget>
           <widget class="QWidget" name="widget_middle">
+           <property name="styleSheet">
+            <string notr="true">QWidget#widget_middle { background-color: #ffffff; }</string>
+           </property>
            <layout class="QVBoxLayout" name="verticalLayout">
             <item>
              <widget class="QPushButton" name="pushButton_select_exercise">
@@ -332,6 +357,9 @@
            </layout>
           </widget>
           <widget class="QWidget" name="widget_process">
+           <property name="styleSheet">
+            <string notr="true">QWidget#widget_process { background-color: #ffffff; }</string>
+           </property>
            <layout class="QVBoxLayout" name="verticalLayout_process">
             <property name="spacing">
              <number>4</number>
@@ -351,7 +379,7 @@
             <item>
              <widget class="QGroupBox" name="groupBox_filter">
               <property name="title">
-               <string/>
+               <string />
               </property>
               <property name="flat">
                <bool>true</bool>
@@ -503,31 +531,68 @@
              </widget>
             </item>
             <item>
-             <widget class="QTableView" name="tableView_process"/>
+             <widget class="QTableView" name="tableView_process" />
             </item>
            </layout>
           </widget>
          </widget>
         </item>
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
        </layout>
       </widget>
       <widget class="QWidget" name="tab_workouts">
+       <property name="styleSheet">
+        <string notr="true">QWidget#tab_workouts { background-color: #ffffff; }</string>
+       </property>
        <attribute name="title">
         <string>Workouts</string>
        </attribute>
-       <layout class="QVBoxLayout" name="verticalLayout_workouts"/>
+       <layout class="QVBoxLayout" name="verticalLayout_workouts">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+       </layout>
       </widget>
       <widget class="QWidget" name="tab_charts">
+       <property name="styleSheet">
+        <string notr="true">QWidget#tab_charts { background-color: #ffffff; }</string>
+       </property>
        <attribute name="title">
         <string>Charts</string>
        </attribute>
        <layout class="QHBoxLayout" name="horizontalLayout_26">
         <item>
          <widget class="QSplitter" name="splitter_charts">
+          <property name="styleSheet">
+           <string notr="true">QWidget#splitter_charts { background-color: #ffffff; }</string>
+          </property>
           <property name="orientation">
            <enum>Qt::Orientation::Horizontal</enum>
           </property>
           <widget class="QWidget" name="widget_left_panel">
+           <property name="styleSheet">
+            <string notr="true">QWidget#widget_left_panel { background-color: #ffffff; }</string>
+           </property>
            <layout class="QVBoxLayout" name="verticalLayout_18">
             <item>
              <widget class="QLabel" name="label_chart_exercise">
@@ -658,11 +723,17 @@
            </layout>
           </widget>
           <widget class="QWidget" name="widget_right_panel">
+           <property name="styleSheet">
+            <string notr="true">QWidget#widget_right_panel { background-color: #ffffff; }</string>
+           </property>
            <layout class="QVBoxLayout" name="verticalLayout_20">
             <item>
              <layout class="QHBoxLayout" name="horizontalLayout_23">
               <item>
                <widget class="QFrame" name="frame_charts_controls">
+                <property name="styleSheet">
+                 <string notr="true">QFrame#frame_charts_controls { background-color: #ffffff; border: none; }</string>
+                </property>
                 <property name="maximumSize">
                  <size>
                   <width>16777215</width>
@@ -670,10 +741,10 @@
                  </size>
                 </property>
                 <property name="frameShape">
-                 <enum>QFrame::Shape::StyledPanel</enum>
+                 <enum>QFrame::Shape::NoFrame</enum>
                 </property>
                 <property name="frameShadow">
-                 <enum>QFrame::Shadow::Raised</enum>
+                 <enum>QFrame::Shadow::Plain</enum>
                 </property>
                 <layout class="QVBoxLayout" name="verticalLayout_charts_controls">
                  <item>
@@ -821,7 +892,7 @@
                     </widget>
                    </item>
                    <item>
-                    <widget class="QComboBox" name="comboBox_compare_same_months"/>
+                    <widget class="QComboBox" name="comboBox_compare_same_months" />
                    </item>
                   </layout>
                  </item>
@@ -855,7 +926,7 @@
             <item>
              <widget class="QLabel" name="label_chart_info">
               <property name="text">
-               <string/>
+               <string />
               </property>
              </widget>
             </item>
@@ -865,6 +936,9 @@
                <bool>true</bool>
               </property>
               <widget class="QWidget" name="scrollAreaWidgetContents_charts">
+               <property name="styleSheet">
+                <string notr="true">QWidget#scrollAreaWidgetContents_charts { background-color: #ffffff; }</string>
+               </property>
                <property name="geometry">
                 <rect>
                  <x>0</x>
@@ -873,7 +947,7 @@
                  <height>422</height>
                 </rect>
                </property>
-               <layout class="QVBoxLayout" name="verticalLayout_charts_content"/>
+               <layout class="QVBoxLayout" name="verticalLayout_charts_content" />
               </widget>
              </widget>
             </item>
@@ -881,15 +955,33 @@
           </widget>
          </widget>
         </item>
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
        </layout>
       </widget>
       <widget class="QWidget" name="tab_2">
+       <property name="styleSheet">
+        <string notr="true">QWidget#tab_2 { background-color: #ffffff; }</string>
+       </property>
        <attribute name="title">
         <string>Exercises</string>
        </attribute>
        <layout class="QHBoxLayout" name="horizontalLayout_4">
         <item>
          <widget class="QSplitter" name="splitter_2">
+          <property name="styleSheet">
+           <string notr="true">QWidget#splitter_2 { background-color: #ffffff; }</string>
+          </property>
           <property name="orientation">
            <enum>Qt::Orientation::Horizontal</enum>
           </property>
@@ -897,6 +989,9 @@
            <bool>false</bool>
           </property>
           <widget class="QWidget" name="widget_top">
+           <property name="styleSheet">
+            <string notr="true">QWidget#widget_top { background-color: #ffffff; }</string>
+           </property>
            <layout class="QVBoxLayout" name="verticalLayout_exercises_table">
             <property name="spacing">
              <number>4</number>
@@ -939,11 +1034,14 @@
              </layout>
             </item>
             <item>
-             <widget class="QTableView" name="tableView_exercises"/>
+             <widget class="QTableView" name="tableView_exercises" />
             </item>
            </layout>
           </widget>
           <widget class="QWidget" name="widget_bottom">
+           <property name="styleSheet">
+            <string notr="true">QWidget#widget_bottom { background-color: #ffffff; }</string>
+           </property>
            <layout class="QVBoxLayout" name="verticalLayout_exercise_types_table">
             <property name="spacing">
              <number>4</number>
@@ -986,21 +1084,39 @@
              </layout>
             </item>
             <item>
-             <widget class="QTableView" name="tableView_exercise_types"/>
+             <widget class="QTableView" name="tableView_exercise_types" />
             </item>
            </layout>
           </widget>
          </widget>
         </item>
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
        </layout>
       </widget>
       <widget class="QWidget" name="tab_5">
+       <property name="styleSheet">
+        <string notr="true">QWidget#tab_5 { background-color: #ffffff; }</string>
+       </property>
        <attribute name="title">
         <string>Weight</string>
        </attribute>
        <layout class="QHBoxLayout" name="horizontalLayout_5">
         <item>
          <widget class="QFrame" name="frame_4">
+          <property name="styleSheet">
+           <string notr="true">QFrame#frame_4 { background-color: #ffffff; border: none; }</string>
+          </property>
           <property name="minimumSize">
            <size>
             <width>250</width>
@@ -1014,10 +1130,10 @@
            </size>
           </property>
           <property name="frameShape">
-           <enum>QFrame::Shape::StyledPanel</enum>
+           <enum>QFrame::Shape::NoFrame</enum>
           </property>
           <property name="frameShadow">
-           <enum>QFrame::Shadow::Raised</enum>
+           <enum>QFrame::Shadow::Plain</enum>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_9">
            <item>
@@ -1110,7 +1226,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QTableView" name="tableView_weight"/>
+            <widget class="QTableView" name="tableView_weight" />
            </item>
           </layout>
          </widget>
@@ -1119,6 +1235,9 @@
          <layout class="QVBoxLayout" name="verticalLayout_6">
           <item>
            <widget class="QFrame" name="frame_weight_controls">
+            <property name="styleSheet">
+             <string notr="true">QFrame#frame_weight_controls { background-color: #ffffff; border: none; }</string>
+            </property>
             <property name="maximumSize">
              <size>
               <width>16777215</width>
@@ -1126,10 +1245,10 @@
              </size>
             </property>
             <property name="frameShape">
-             <enum>QFrame::Shape::StyledPanel</enum>
+             <enum>QFrame::Shape::NoFrame</enum>
             </property>
             <property name="frameShadow">
-             <enum>QFrame::Shadow::Raised</enum>
+             <enum>QFrame::Shadow::Plain</enum>
             </property>
             <layout class="QHBoxLayout" name="horizontalLayout_weight_controls">
              <item>
@@ -1216,6 +1335,9 @@
              <bool>true</bool>
             </property>
             <widget class="QWidget" name="scrollAreaWidgetContents_weight_chart">
+             <property name="styleSheet">
+              <string notr="true">QWidget#scrollAreaWidgetContents_weight_chart { background-color: #ffffff; }</string>
+             </property>
              <property name="geometry">
               <rect>
                <x>0</x>
@@ -1224,21 +1346,39 @@
                <height>482</height>
               </rect>
              </property>
-             <layout class="QVBoxLayout" name="verticalLayout_weight_chart_content"/>
+             <layout class="QVBoxLayout" name="verticalLayout_weight_chart_content" />
             </widget>
            </widget>
           </item>
          </layout>
         </item>
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
        </layout>
       </widget>
       <widget class="QWidget" name="tab_4">
+       <property name="styleSheet">
+        <string notr="true">QWidget#tab_4 { background-color: #ffffff; }</string>
+       </property>
        <attribute name="title">
         <string>Statistics</string>
        </attribute>
        <layout class="QHBoxLayout" name="horizontalLayout_6">
         <item>
          <widget class="QFrame" name="frame_5">
+          <property name="styleSheet">
+           <string notr="true">QFrame#frame_5 { background-color: #ffffff; border: none; }</string>
+          </property>
           <property name="minimumSize">
            <size>
             <width>300</width>
@@ -1252,10 +1392,10 @@
            </size>
           </property>
           <property name="frameShape">
-           <enum>QFrame::Shape::StyledPanel</enum>
+           <enum>QFrame::Shape::NoFrame</enum>
           </property>
           <property name="frameShadow">
-           <enum>QFrame::Shadow::Raised</enum>
+           <enum>QFrame::Shadow::Plain</enum>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_16">
            <item>
@@ -1271,7 +1411,7 @@
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_19">
               <item>
-               <widget class="QComboBox" name="comboBox_records_select_exercise"/>
+               <widget class="QComboBox" name="comboBox_records_select_exercise" />
               </item>
               <item>
                <layout class="QHBoxLayout" name="horizontalLayout_24">
@@ -1367,12 +1507,36 @@
          </widget>
         </item>
         <item>
-         <widget class="QTableView" name="tableView_statistics"/>
+         <widget class="QTableView" name="tableView_statistics" />
         </item>
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
        </layout>
       </widget>
      </widget>
     </item>
+    <property name="leftMargin">
+     <number>0</number>
+    </property>
+    <property name="topMargin">
+     <number>0</number>
+    </property>
+    <property name="rightMargin">
+     <number>0</number>
+    </property>
+    <property name="bottomMargin">
+     <number>0</number>
+    </property>
    </layout>
   </widget>
   <widget class="QMenuBar" name="menuBar">
@@ -1388,31 +1552,31 @@
     <property name="title">
      <string>File</string>
     </property>
-    <addaction name="actionExit"/>
+    <addaction name="actionExit" />
    </widget>
    <widget class="QMenu" name="menuCommanda">
     <property name="title">
      <string>Commands</string>
     </property>
-    <addaction name="actionShow_All_Set_Records"/>
-    <addaction name="actionRefresh_Set_Table"/>
-    <addaction name="actionExport_Set_Table"/>
-    <addaction name="separator"/>
-    <addaction name="actionAdd_Exercise"/>
-    <addaction name="actionRefresh_Exercises_Table"/>
-    <addaction name="separator"/>
-    <addaction name="actionAdd_Exercise_Type"/>
-    <addaction name="actionRefresh_Types_Table"/>
+    <addaction name="actionShow_All_Set_Records" />
+    <addaction name="actionRefresh_Set_Table" />
+    <addaction name="actionExport_Set_Table" />
+    <addaction name="separator" />
+    <addaction name="actionAdd_Exercise" />
+    <addaction name="actionRefresh_Exercises_Table" />
+    <addaction name="separator" />
+    <addaction name="actionAdd_Exercise_Type" />
+    <addaction name="actionRefresh_Types_Table" />
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
      <string>Help</string>
     </property>
-    <addaction name="actionAbout"/>
+    <addaction name="actionAbout" />
    </widget>
-   <addaction name="menuFile"/>
-   <addaction name="menuCommanda"/>
-   <addaction name="menuHelp"/>
+   <addaction name="menuFile" />
+   <addaction name="menuCommanda" />
+   <addaction name="menuHelp" />
   </widget>
   <action name="actionAbout">
    <property name="text">
@@ -1472,6 +1636,6 @@
    <header>harrix_swiss_knife.qt_compact_spin_box</header>
   </customwidget>
  </customwidgets>
- <resources/>
- <connections/>
+ <resources />
+ <connections />
 </ui>

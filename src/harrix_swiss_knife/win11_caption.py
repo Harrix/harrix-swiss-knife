@@ -78,6 +78,8 @@ QMenu { background-color: #ffffff; border: 1px solid #e0e0e0; color: #202020; }
 QMenu::item { color: #202020; background-color: transparent; }
 QMenu::item:selected { color: #202020; background-color: #f2f2f2; }
 QMenu::item:disabled { color: #767676; }
+QStatusBar { background: #ffffff; }
+QStatusBar QLabel { color: #202020; }
 """
 
 _GLYPH_FILES = {
@@ -682,10 +684,11 @@ def _apply_maximized_nccalcsize(window: QWidget, lparam: int) -> None:
 def _apply_white_surfaces(window: QWidget) -> None:
     """Paint panels, tab pages, and popup menus white without restyling controls.
 
-    A stylesheet that matches every child makes Qt drop the Windows 11 scrollbar,
-    button, and header drawing. Each plain container gets a rule for its own object
-    name only. Group boxes and menus still need a background rule, because that
-    style ignores the palette.
+    The same group-box, menu, and status-bar colors live on `QMainWindow` in
+    each app `window.ui`. This appends them only when the form did not. A
+    stylesheet that matches every child makes Qt drop the Windows 11 scrollbar,
+    button, and header drawing. Each plain container gets a rule for its own
+    object name only, unless that form widget already has a white background.
 
     """
     sheet = window.styleSheet()
@@ -1142,7 +1145,7 @@ def _paint_container_white(widget: QWidget) -> None:
         widget.setObjectName(name)
     rule = f"QWidget#{name} {{ background-color: #ffffff; }}"
     sheet = widget.styleSheet()
-    if rule in sheet:
+    if rule in sheet or (f"#{name}" in sheet and "#ffffff" in sheet):
         return
     widget.setStyleSheet(f"{sheet}\n{rule}" if sheet else rule)
 

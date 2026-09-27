@@ -1,7 +1,17 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <ui version="4.0">
  <class>MainWindow</class>
  <widget class="QMainWindow" name="MainWindow">
+  <property name="styleSheet">
+   <string notr="true">/* hsk-white-surfaces */
+QGroupBox { background-color: #ffffff; }
+QMenu { background-color: #ffffff; border: 1px solid #e0e0e0; color: #202020; }
+QMenu::item { color: #202020; background-color: transparent; }
+QMenu::item:selected { color: #202020; background-color: #f2f2f2; }
+QMenu::item:disabled { color: #767676; }
+QStatusBar { background: #ffffff; }
+QStatusBar QLabel { color: #202020; }</string>
+  </property>
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -14,6 +24,9 @@
    <string>Habit tracker</string>
   </property>
   <widget class="QWidget" name="centralWidget">
+   <property name="styleSheet">
+    <string notr="true">QWidget#centralWidget { background-color: #ffffff; }</string>
+   </property>
    <layout class="QHBoxLayout" name="horizontalLayout">
     <item>
      <widget class="QTabWidget" name="tabWidget">
@@ -21,6 +34,9 @@
        <number>0</number>
       </property>
       <widget class="QWidget" name="tab_dashboard">
+       <property name="styleSheet">
+        <string notr="true">QWidget#tab_dashboard { background-color: #ffffff; }</string>
+       </property>
        <attribute name="title">
         <string>Dashboard</string>
        </attribute>
@@ -40,16 +56,25 @@
        </layout>
       </widget>
       <widget class="QWidget" name="tab_sets_of_habits">
+       <property name="styleSheet">
+        <string notr="true">QWidget#tab_sets_of_habits { background-color: #ffffff; }</string>
+       </property>
        <attribute name="title">
         <string>Habits</string>
        </attribute>
        <layout class="QHBoxLayout" name="horizontalLayout_27">
         <item>
          <widget class="QSplitter" name="splitter_habits">
+          <property name="styleSheet">
+           <string notr="true">QWidget#splitter_habits { background-color: #ffffff; }</string>
+          </property>
           <property name="orientation">
            <enum>Qt::Orientation::Horizontal</enum>
           </property>
           <widget class="QFrame" name="frame_habits">
+           <property name="styleSheet">
+            <string notr="true">QFrame#frame_habits { background-color: #ffffff; border: none; }</string>
+           </property>
            <property name="minimumSize">
             <size>
              <width>350</width>
@@ -63,10 +88,10 @@
             </size>
            </property>
            <property name="frameShape">
-            <enum>QFrame::Shape::StyledPanel</enum>
+            <enum>QFrame::Shape::NoFrame</enum>
            </property>
            <property name="frameShadow">
-            <enum>QFrame::Shadow::Raised</enum>
+            <enum>QFrame::Shadow::Plain</enum>
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_23">
             <item>
@@ -259,26 +284,47 @@
              </widget>
             </item>
             <item>
-             <widget class="QTableView" name="tableView_habits"/>
+             <widget class="QTableView" name="tableView_habits" />
             </item>
            </layout>
           </widget>
-          <widget class="QTableView" name="tableView_process_habits"/>
+          <widget class="QTableView" name="tableView_process_habits" />
          </widget>
         </item>
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
        </layout>
       </widget>
       <widget class="QWidget" name="tab_charts">
+       <property name="styleSheet">
+        <string notr="true">QWidget#tab_charts { background-color: #ffffff; }</string>
+       </property>
        <attribute name="title">
         <string>Charts</string>
        </attribute>
        <layout class="QHBoxLayout" name="horizontalLayout_charts">
         <item>
          <widget class="QSplitter" name="splitter_charts">
+          <property name="styleSheet">
+           <string notr="true">QWidget#splitter_charts { background-color: #ffffff; }</string>
+          </property>
           <property name="orientation">
            <enum>Qt::Orientation::Horizontal</enum>
           </property>
           <widget class="QWidget" name="layoutWidget">
+           <property name="styleSheet">
+            <string notr="true">QWidget#layoutWidget { background-color: #ffffff; }</string>
+           </property>
            <property name="minimumSize">
             <size>
              <width>150</width>
@@ -294,7 +340,7 @@
              </widget>
             </item>
             <item>
-             <widget class="QListView" name="listView_filter_habit"/>
+             <widget class="QListView" name="listView_filter_habit" />
             </item>
             <item>
              <widget class="QLabel" name="label_filter_habit_year">
@@ -304,11 +350,14 @@
              </widget>
             </item>
             <item>
-             <widget class="QListView" name="listView_filter_habit_year"/>
+             <widget class="QListView" name="listView_filter_habit_year" />
             </item>
            </layout>
           </widget>
           <widget class="QWidget" name="widget_charts_heatmap">
+           <property name="styleSheet">
+            <string notr="true">QWidget#widget_charts_heatmap { background-color: #ffffff; }</string>
+           </property>
            <layout class="QVBoxLayout" name="verticalLayout_charts_heatmap">
             <property name="spacing">
              <number>8</number>
@@ -398,6 +447,9 @@
                <bool>true</bool>
               </property>
               <widget class="QWidget" name="scrollAreaWidgetContents_charts_process_habits">
+               <property name="styleSheet">
+                <string notr="true">QWidget#scrollAreaWidgetContents_charts_process_habits { background-color: #ffffff; }</string>
+               </property>
                <property name="geometry">
                 <rect>
                  <x>0</x>
@@ -406,7 +458,7 @@
                  <height>425</height>
                 </rect>
                </property>
-               <layout class="QVBoxLayout" name="verticalLayout_charts_process_habits_content"/>
+               <layout class="QVBoxLayout" name="verticalLayout_charts_process_habits_content" />
               </widget>
              </widget>
             </item>
@@ -414,10 +466,34 @@
           </widget>
          </widget>
         </item>
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
        </layout>
       </widget>
      </widget>
     </item>
+    <property name="leftMargin">
+     <number>0</number>
+    </property>
+    <property name="topMargin">
+     <number>0</number>
+    </property>
+    <property name="rightMargin">
+     <number>0</number>
+    </property>
+    <property name="bottomMargin">
+     <number>0</number>
+    </property>
    </layout>
   </widget>
   <widget class="QMenuBar" name="menuBar">
@@ -433,24 +509,24 @@
     <property name="title">
      <string>File</string>
     </property>
-    <addaction name="actionExit"/>
+    <addaction name="actionExit" />
    </widget>
    <widget class="QMenu" name="menuCommands">
     <property name="title">
      <string>Commands</string>
     </property>
-    <addaction name="action_habits_refresh"/>
-    <addaction name="action_habits_delete"/>
+    <addaction name="action_habits_refresh" />
+    <addaction name="action_habits_delete" />
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
      <string>Help</string>
     </property>
-    <addaction name="actionAbout"/>
+    <addaction name="actionAbout" />
    </widget>
-   <addaction name="menuFile"/>
-   <addaction name="menuCommands"/>
-   <addaction name="menuHelp"/>
+   <addaction name="menuFile" />
+   <addaction name="menuCommands" />
+   <addaction name="menuHelp" />
   </widget>
   <action name="actionExit">
    <property name="text">
@@ -473,6 +549,6 @@
    </property>
   </action>
  </widget>
- <resources/>
- <connections/>
+ <resources />
+ <connections />
 </ui>
