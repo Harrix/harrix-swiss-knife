@@ -119,6 +119,7 @@ _TAB_LINE_COLOR = "#dbdbdb"
 _TAB_HOVER_BG = "#f2f8fb"
 _TAB_RADIUS = 4
 _TAB_TOP_GAP = 4
+_TAB_CONTENT_GAP = 8
 _MENU_CHEVRON_ATTR = "_hsk_menu_chevron"
 _FITTING_ATTR = "_hsk_caption_fitting"
 _MENU_BUTTON_NAME = "captionMenuButton"
@@ -1519,7 +1520,7 @@ def _style_caption_chrome(window: QWidget) -> None:
             tab_widget.setObjectName(name)
         tab_widget.setStyleSheet(
             f"QTabWidget#{name} {{ background-color: {rgb}; border: none; }}"
-            f"QTabWidget::pane {{ border: none; margin: 0px; background: {rgb}; }}"
+            f"QTabWidget::pane {{ border: none; margin: 0px; margin-top: {_TAB_CONTENT_GAP}px; background: {rgb}; }}"
         )
         _fill_widget(tab_widget, color)
         for index in range(tab_widget.count()):

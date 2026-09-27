@@ -249,6 +249,21 @@ def test_caption_tab_line_spans_the_window(qapp: QApplication) -> None:
 
 
 @pytest.mark.skipif(sys.platform != "win32", reason="Win11 caption is Windows-only")
+def test_caption_content_sits_below_the_tab_line(qapp: QApplication) -> None:
+    """Tab pages start a few pixels below the caption rule."""
+    window = _window_with_tabs()
+    assert install_win11_caption(window)
+    window.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, on=True)
+    window.resize(900, 400)
+    window.show()
+    qapp.processEvents()
+    page = window.tabWidget.widget(0)
+    top = page.mapTo(window.tabWidget, QPoint(0, 0)).y()
+    assert top >= CAPTION_BUTTON_HEIGHT + 6
+    window.close()
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Win11 caption is Windows-only")
 def test_menu_only_caption_has_no_base_line(qapp: QApplication) -> None:
     """A caption without tabs does not draw the tab rule."""
     window = QMainWindow()
