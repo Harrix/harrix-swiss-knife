@@ -52,6 +52,7 @@ from harrix_swiss_knife.qt_lucide_icon import (
 )
 from harrix_swiss_knife.screenshot.annotation_colors import load_annotation_colors
 from harrix_swiss_knife.screenshot.annotations import AnnotationDocument, AnnotationTool
+from harrix_swiss_knife.screenshot.color_info import EyedropperColorDialog
 from harrix_swiss_knife.screenshot.dated_image_path import images_folder, next_dated_image_path
 from harrix_swiss_knife.screenshot.preview_canvas import ScreenshotPreviewCanvas
 from harrix_swiss_knife.screenshot.text_style import (
@@ -123,7 +124,7 @@ _TOOL_BUTTONS: tuple[tuple[AnnotationTool, str, str], ...] = (
     (AnnotationTool.PEN, "pencil", "Pen"),
     (AnnotationTool.HIGHLIGHT, "highlighter", "Highlight (Shift: square)"),
     (AnnotationTool.TEXT, "type", "Text"),
-    (AnnotationTool.EYEDROPPER, "pipette", "Eyedropper — click a pixel to copy its color"),
+    (AnnotationTool.EYEDROPPER, "pipette", "Eyedropper — click a pixel to copy HEX and open color formats"),
     (AnnotationTool.CROP, "crop", "Crop"),
 )
 
@@ -147,6 +148,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         color = QColor(text_color)
         self._annotation_color = color if color.isValid() else QColor(_DEFAULT_ANNOTATION_COLOR)
         self._tool_buttons: dict[AnnotationTool, QToolButton] = {}
+        self._color_dialog: EyedropperColorDialog | None = None
 
         central = QWidget(self)
         self.setCentralWidget(central)
@@ -556,9 +558,9 @@ class ScreenshotPreviewWindow(QMainWindow):
         if tab is None or tab.canvas.tool != AnnotationTool.EYEDROPPER:
             return
         if not isinstance(color, QColor) or not color.isValid():
-            self._status.setText("Eyedropper: move over the screenshot · click to copy the color")
+            self._status.setText("Eyedropper: move over the screenshot · click to copy HEX")
             return
-        self._status.setText(f"{_format_pixel_color(color)} · click to copy")
+        self._status.setText(f"{_format_pixel_color(color)} · click to copy HEX")
 
     def _on_color_picked(self, color: QColor) -> None:
         if not color.isValid():
@@ -567,6 +569,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         if clipboard is not None:
             clipboard.setText(color.name())
         self._status.setText(f"Copied {_format_pixel_color(color)}")
+        self._show_picked_color(color)
 
     def _on_crop_mode_changed(self, active: bool) -> None:  # noqa: FBT001
         self._set_crop_chrome_visible(active=active)
@@ -909,6 +912,13 @@ class ScreenshotPreviewWindow(QMainWindow):
             )
         elif tool != AnnotationTool.CROP:
             self._status.setText(f"Tool: {tip}")
+
+    def _show_picked_color(self, color: QColor) -> None:
+        dialog = self._color_dialog
+        if dialog is None or not isValid(dialog):
+            dialog = EyedropperColorDialog(self)
+            self._color_dialog = dialog
+        dialog.show_color(color)
 
     def _tab_label(self, saved_name: str | None, number: int) -> str:
         return saved_name or f"Screenshot {number}"

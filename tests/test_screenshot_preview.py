@@ -11,7 +11,7 @@ import pytest
 from PySide6.QtCore import QPoint, QPointF, QRect, QStandardPaths, Qt
 from PySide6.QtGui import QColor, QImage, QKeyEvent, QMouseEvent
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QFileDialog, QPushButton, QStyle, QTabWidget
+from PySide6.QtWidgets import QApplication, QFileDialog, QLineEdit, QPushButton, QStyle, QTabWidget, QToolButton
 
 from harrix_swiss_knife.apps.common.qt_main_window import compute_app_window_geometry
 from harrix_swiss_knife.screenshot import preview_dialog as preview_dialog_module
@@ -21,6 +21,7 @@ from harrix_swiss_knife.screenshot.annotations import (
     AnnotationStyle,
     AnnotationTool,
 )
+from harrix_swiss_knife.screenshot.color_info import EyedropperColorDialog, color_clipboard_formats
 from harrix_swiss_knife.screenshot.dated_image_path import images_folder, next_dated_image_path
 from harrix_swiss_knife.screenshot.preview_canvas import _ZOOM_STEP, ScreenshotPreviewCanvas
 from harrix_swiss_knife.screenshot.preview_dialog import (
@@ -250,6 +251,69 @@ def test_preview_window_eyedropper_copies_color_without_changing_tool(
     clipboard = qapp.clipboard()
     assert clipboard is not None
     assert clipboard.text() == "#aabbcc"
+    window.close()
+
+
+def test_color_clipboard_formats_for_pure_red(qapp: QApplication) -> None:  # noqa: ARG001
+    formats = dict(color_clipboard_formats(QColor("#ff0000")))
+    assert formats == {
+        "HEX": "#ff0000",
+        "RGB": "rgb(255, 0, 0)",
+        "HSL": "hsl(0, 100%, 50%)",
+        "HSV": "hsv(0, 100%, 100%)",
+        "CMYK": "cmyk(0%, 100%, 100%, 0%)",
+        "RGBA": "rgba(255, 0, 0, 1)",
+    }
+
+
+def test_color_clipboard_formats_keep_alpha(qapp: QApplication) -> None:  # noqa: ARG001
+    formats = dict(color_clipboard_formats(QColor(10, 20, 30, 128)))
+    assert formats["HEX"] == "#0a141e"
+    assert formats["RGB"] == "rgb(10, 20, 30)"
+    assert formats["RGBA"] == "rgba(10, 20, 30, 0.5)"
+
+
+def test_eyedropper_opens_color_formats_with_copy_buttons(qapp: QApplication) -> None:
+    image = QImage(20, 10, QImage.Format.Format_ARGB32)
+    image.fill(QColor("#112233"))
+    image.setPixelColor(4, 3, QColor("#ff0000"))
+    image.setPixelColor(1, 1, QColor("#00ff00"))
+    window = show_screenshot_preview(image)
+    window._set_tool(AnnotationTool.EYEDROPPER)
+    tab = window._current_tab()
+    assert tab is not None
+    qapp.processEvents()
+    _left_click(tab.canvas, _widget_pos_for_image_pixel(tab.canvas, 4, 3))
+    qapp.processEvents()
+    clipboard = qapp.clipboard()
+    assert clipboard is not None
+    assert clipboard.text() == "#ff0000"
+    dialogs = window.findChildren(EyedropperColorDialog)
+    assert len(dialogs) == 1
+    dialog = dialogs[0]
+    assert dialog.isVisible()
+    hex_edit = dialog.findChild(QLineEdit, "value_HEX")
+    hsl_edit = dialog.findChild(QLineEdit, "value_HSL")
+    rgb_edit = dialog.findChild(QLineEdit, "value_RGB")
+    assert hex_edit is not None
+    assert hsl_edit is not None
+    assert rgb_edit is not None
+    assert hex_edit.text() == "#ff0000"
+    assert rgb_edit.text() == "rgb(255, 0, 0)"
+    assert hsl_edit.text() == "hsl(0, 100%, 50%)"
+    hsl_button = dialog.findChild(QToolButton, "copy_HSL")
+    assert hsl_button is not None
+    QTest.mouseClick(hsl_button, Qt.MouseButton.LeftButton)
+    assert clipboard.text() == "hsl(0, 100%, 50%)"
+    hex_button = dialog.findChild(QToolButton, "copy_HEX")
+    assert hex_button is not None
+    QTest.mouseClick(hex_button, Qt.MouseButton.LeftButton)
+    assert clipboard.text() == "#ff0000"
+    _left_click(tab.canvas, _widget_pos_for_image_pixel(tab.canvas, 1, 1))
+    qapp.processEvents()
+    assert clipboard.text() == "#00ff00"
+    assert len(window.findChildren(EyedropperColorDialog)) == 1
+    assert hex_edit.text() == "#00ff00"
     window.close()
 
 
