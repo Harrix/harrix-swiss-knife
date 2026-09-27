@@ -47,6 +47,7 @@ from harrix_swiss_knife.screenshot.capture import (
     clear_pending_screen_freeze,
     prepare_capture_long_press_freeze,
 )
+from harrix_swiss_knife.screenshot.window_visibility import defer_until_popups_close
 from harrix_swiss_knife.single_instance import acquire_tray_instance
 from harrix_swiss_knife.tray_icon import TrayIcon
 from harrix_swiss_knife.win11_backdrop import ensure_windows_app_user_model_id
@@ -306,7 +307,12 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
     if hotkey_manager is not None:
         action_by_name = {cls.__name__: cls for cls in iter_menu_structure(get_menu_structure())}
 
-        def run_hotkey_action(action_name: str) -> None:
+        def run_hotkey_action(action_name: str, _popup_attempt: int = 0) -> None:
+            if defer_until_popups_close(
+                lambda name=action_name, attempt=_popup_attempt + 1: run_hotkey_action(name, attempt),
+                attempt=_popup_attempt,
+            ):
+                return
             action_cls = action_by_name.get(action_name)
             if action_cls is None:
                 log.warning("Hotkey bound to unknown action %r", action_name)
@@ -316,7 +322,12 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
             except Exception:
                 log.exception("Hotkey action %s failed", action_name)
 
-        def run_capture_long_press(_action_name: str) -> None:
+        def run_capture_long_press(action_name: str, _popup_attempt: int = 0) -> None:
+            if defer_until_popups_close(
+                lambda name=action_name, attempt=_popup_attempt + 1: run_capture_long_press(name, attempt),
+                attempt=_popup_attempt,
+            ):
+                return
             prepare_capture_long_press_freeze()
             try:
                 try:

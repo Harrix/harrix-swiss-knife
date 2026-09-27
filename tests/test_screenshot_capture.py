@@ -341,3 +341,22 @@ def test_show_toast_collapsed_starts_pinned(qapp: QApplication, monkeypatch: pyt
         "activate": False,
         "pinned": True,
     }
+
+
+def test_capture_region_closes_popups_before_hiding_windows(
+    qapp: QApplication,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    image = _sample_image()
+    order: list[str] = []
+    monkeypatch.setattr(capture, "close_active_popups", lambda: order.append("popup") or False)
+    monkeypatch.setattr(capture, "hide_app_windows", lambda: order.append("hide") or [])
+    monkeypatch.setattr(capture, "_wait_ms", lambda _ms: None)
+    monkeypatch.setattr(capture, "_capture_loop", lambda **_kwargs: image)
+    monkeypatch.setattr(capture, "restore_app_windows", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(capture, "bring_window_to_foreground", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(capture, "show_screenshot_preview", lambda _image: MagicMock())
+
+    capture.capture_region(show_preview=True, show_shutter_button=False)
+
+    assert order[:2] == ["popup", "hide"]

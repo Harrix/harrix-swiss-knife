@@ -22,6 +22,7 @@ from harrix_swiss_knife.screenshot.window_visibility import (
     PREVIEW_FOREGROUND_DELAYS_MS,
     ConcealedWindow,
     bring_window_to_foreground,
+    close_active_popups,
     hide_app_windows,
     restore_app_windows,
     restore_modal_blocking,
@@ -125,6 +126,7 @@ def capture_region(
     if hide_app is None:
         hide_app = True
 
+    close_active_popups()
     session = _HideSession(
         hide_app=hide_app,
         show_preview=show_preview and not ocr_translate,
@@ -226,6 +228,7 @@ def select_region(
     if hide_app is None:
         hide_app = True
 
+    close_active_popups()
     session = _HideSession(
         hide_app=hide_app,
         show_preview=False,
@@ -321,6 +324,7 @@ def _copy_image_to_clipboard(image: QImage) -> None:
 
 def _exec_overlay(overlay: RegionOverlay) -> int:
     """Run the overlay after clearing leftover modal event filters."""
+    close_active_popups()
     suspended = suspend_modal_blocking()
     try:
         return overlay.exec()

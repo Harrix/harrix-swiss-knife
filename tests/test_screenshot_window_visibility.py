@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import pytest
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtWidgets import QApplication, QDialog, QMessageBox, QWidget
+from PySide6.QtWidgets import QApplication, QDialog, QMenu, QMessageBox, QWidget
 
 from harrix_swiss_knife.screenshot.window_visibility import (
     ConcealedWindow,
     _pick_focus_target,
+    close_active_popups,
+    defer_until_popups_close,
     has_visible_modal_dialog,
     hide_app_windows,
     restore_app_windows,
@@ -26,6 +28,64 @@ def qapp() -> QApplication:
         msg = "QApplication.instance() returned a non-QApplication object."
         raise TypeError(msg)
     return app
+
+
+def test_close_active_popups_releases_open_menu(qapp: QApplication) -> None:
+    owner = QWidget()
+    owner.resize(240, 180)
+    owner.show()
+    menu = QMenu(owner)
+    menu.addAction("Fill")
+    state: dict[str, object] = {}
+
+    def during() -> None:
+        state["before"] = qapp.activePopupWidget()
+        state["closed"] = close_active_popups()
+        state["after"] = qapp.activePopupWidget()
+        state["grabber"] = QWidget.mouseGrabber()
+
+    menu.aboutToShow.connect(lambda: QTimer.singleShot(0, during))
+    QTimer.singleShot(1500, menu.close)
+    menu.exec(owner.mapToGlobal(owner.rect().center()))
+    assert state["before"] is not None
+    assert state["closed"] is True
+    assert state["after"] is None
+    assert state["grabber"] is None
+    owner.close()
+
+
+def test_defer_until_popups_close_retries_after_menu(qapp: QApplication) -> None:
+    owner = QWidget()
+    owner.resize(240, 180)
+    owner.show()
+    menu = QMenu(owner)
+    menu.addAction("New")
+    ran: list[object] = []
+
+    def during() -> None:
+        assert defer_until_popups_close(lambda: ran.append(qapp.activePopupWidget()), attempt=0) is True
+
+    menu.aboutToShow.connect(lambda: QTimer.singleShot(0, during))
+    QTimer.singleShot(1500, menu.close)
+    menu.exec(owner.mapToGlobal(owner.rect().center()))
+    for _ in range(5):
+        qapp.processEvents()
+    assert ran == [None]
+    owner.close()
+
+
+def test_defer_until_popups_close_stops_retrying(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        "harrix_swiss_knife.screenshot.window_visibility.close_active_popups",
+        lambda: True,
+    )
+    scheduled: list[bool] = []
+    monkeypatch.setattr(
+        "harrix_swiss_knife.screenshot.window_visibility.QTimer.singleShot",
+        lambda *_args: scheduled.append(True),
+    )
+    assert defer_until_popups_close(lambda: None, attempt=3) is False
+    assert scheduled == []
 
 
 def test_has_visible_modal_dialog_detects_shown_modal(qapp: QApplication) -> None:  # noqa: ARG001

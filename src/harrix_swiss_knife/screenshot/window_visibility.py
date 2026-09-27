@@ -4,11 +4,14 @@ from __future__ import annotations
 
 import sys
 from dataclasses import dataclass, replace
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import QApplication, QDialog, QMessageBox, QWidget
 from shiboken6 import isValid
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 if sys.platform == "win32":
     import ctypes
@@ -25,6 +28,8 @@ _SWP_SHOWWINDOW = 0x0040
 _ASFW_ANY = -1
 _REPIN_MODAL_DELAYS_MS = (0, 50)
 PREVIEW_FOREGROUND_DELAYS_MS = (0, 50, 150)
+_MAX_POPUP_CLOSE = 8
+_MAX_POPUP_DEFER_ATTEMPTS = 3
 
 
 @dataclass(frozen=True)
@@ -82,6 +87,51 @@ def claim_screenshot_keyboard(widget: QWidget) -> None:
     bring_window_to_foreground(widget, delays_ms=())
     widget.setFocus(Qt.FocusReason.ActiveWindowFocusReason)
     widget.grabKeyboard()
+
+
+def close_active_popups() -> bool:
+    """Close open menus and drop their mouse grab.
+
+    A capture hotkey can fire while a menu popup owns the mouse. The region
+    overlay then never receives clicks, so selection looks frozen.
+
+    Returns:
+
+    - `bool`: `True` when at least one popup was closed. The caller must return
+      and retry after that popup loop unwinds.
+
+    """
+    app = QApplication.instance()
+    if app is None:
+        return False
+
+    closed = False
+    for _ in range(_MAX_POPUP_CLOSE):
+        popup = app.activePopupWidget()
+        if popup is None or not isValid(popup) or is_screenshot_ui(popup):
+            break
+        popup.close()
+        closed = True
+        app.processEvents()
+    _release_foreign_input_grab()
+    return closed
+
+
+def defer_until_popups_close(retry: Callable[[], None], *, attempt: int) -> bool:
+    """Close an open menu and run `retry` on the next event-loop turn.
+
+    Returns:
+
+    - `bool`: `True` when `retry` was scheduled and the caller must return now.
+
+    """
+    if attempt >= _MAX_POPUP_DEFER_ATTEMPTS:
+        close_active_popups()
+        return False
+    if not close_active_popups():
+        return False
+    QTimer.singleShot(0, retry)
+    return True
 
 
 def has_visible_modal_dialog() -> bool:
@@ -504,6 +554,16 @@ def _pick_focus_target(widgets: list[ConcealedWindow]) -> QWidget | None:
     if active is not None:
         return active
     return last_visible
+
+
+def _release_foreign_input_grab() -> None:
+    """Release a mouse or keyboard grab that is not part of the screenshot UI."""
+    mouse = QWidget.mouseGrabber()
+    if mouse is not None and isValid(mouse) and not is_screenshot_ui(mouse):
+        mouse.releaseMouse()
+    keyboard = QWidget.keyboardGrabber()
+    if keyboard is not None and isValid(keyboard) and not is_screenshot_ui(keyboard):
+        keyboard.releaseKeyboard()
 
 
 def _restore_opacity_item(item: ConcealedWindow) -> None:
