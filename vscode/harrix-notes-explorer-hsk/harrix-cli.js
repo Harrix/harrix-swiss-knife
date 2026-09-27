@@ -52,6 +52,46 @@ function buildHarrixCliCommand(cliArgs) {
   return parts.join(' ');
 }
 
+/**
+ * @param {vscode.Terminal | undefined} terminal
+ * @returns {string}
+ */
+function terminalShellPath(terminal) {
+  const created = terminal?.creationOptions;
+  if (created && 'shellPath' in created && typeof created.shellPath === 'string' && created.shellPath) {
+    return created.shellPath;
+  }
+  return vscode.env.shell || '';
+}
+
+/**
+ * Windows PowerShell 5 rejects `&&`. PowerShell 7 (`pwsh`) accepts the `$LASTEXITCODE` form too.
+ * @param {string} shellPath
+ */
+function shellUsesPowerShellChain(shellPath) {
+  const base = path.win32.basename(String(shellPath)).toLowerCase();
+  return base === 'powershell.exe' || base === 'powershell' || base === 'pwsh.exe' || base === 'pwsh';
+}
+
+/**
+ * Join commands so the next runs only when the previous exit code is 0.
+ * @param {string[]} commands
+ * @param {string} shellPath
+ */
+function joinTerminalCommands(commands, shellPath) {
+  if (commands.length <= 1) {
+    return commands.join('');
+  }
+  if (shellUsesPowerShellChain(shellPath)) {
+    let chained = commands[commands.length - 1];
+    for (let i = commands.length - 2; i >= 0; i -= 1) {
+      chained = `${commands[i]}; if ($LASTEXITCODE -eq 0) { ${chained} }`;
+    }
+    return chained;
+  }
+  return commands.join(' && ');
+}
+
 /** @param {string[]} cliArgs */
 function runHarrixCliInTerminal(cliArgs) {
   const terminal = getOrCreateHarrixTerminal();
@@ -66,7 +106,8 @@ function runHarrixCliInTerminal(cliArgs) {
 function runHarrixCliCommandsInTerminal(commandsArgs) {
   const terminal = getOrCreateHarrixTerminal();
   terminal.show(true);
-  terminal.sendText(commandsArgs.map(buildHarrixCliCommand).join(' && '));
+  const commands = commandsArgs.map(buildHarrixCliCommand);
+  terminal.sendText(joinTerminalCommands(commands, terminalShellPath(terminal)));
 }
 
 /** @param {string} diaryRootPath */
