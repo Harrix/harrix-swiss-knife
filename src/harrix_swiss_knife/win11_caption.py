@@ -430,13 +430,15 @@ def caption_hit_test(
 
 
 def install_win11_caption(window: QWidget) -> bool:
-    """Replace the native title bar with the tab row plus Windows 11 buttons.
+    """Replace the native title bar with the caption row plus Windows 11 buttons.
 
-    No-op outside Windows. The window title string is left in place for the taskbar.
+    Tabbed apps keep the menu and tabs in that row. A main window without tabs
+    keeps its menu there. No-op outside Windows. The window title string stays
+    for the taskbar.
 
     Args:
 
-    - `window` (`QWidget`): Main window that already has `tabWidget`.
+    - `window` (`QWidget`): Main window. Tabbed apps already have `tabWidget`.
 
     Returns:
 
@@ -446,14 +448,17 @@ def install_win11_caption(window: QWidget) -> bool:
     if sys.platform != "win32" or getattr(window, _INSTALLED_ATTR, False):
         return False
     tab_widget = getattr(window, "tabWidget", None)
-    if not isinstance(tab_widget, QTabWidget):
-        logger.warning("Win11 caption needs a tabWidget")
+    if not isinstance(tab_widget, QTabWidget) and not isinstance(window, QMainWindow):
+        logger.warning("Win11 caption needs a tabWidget or a main window menu")
         return False
 
     light = _palette_is_light(window)
     controller = _Win11CaptionController(window)
     setattr(window, _CONTROLLER_ATTR, controller)
-    _build_caption_row(window, tab_widget, controller, light=light)
+    if isinstance(tab_widget, QTabWidget):
+        _build_caption_row(window, tab_widget, controller, light=light)
+    elif isinstance(window, QMainWindow):
+        _build_menu_caption(window, controller, light=light)
     _flush_caption_to_frame(window)
     _fit_caption_fonts(window)
     _sync_caption_palette(window)
@@ -564,23 +569,48 @@ def _build_caption_row(
     icon_button.setIcon(window.windowIcon())
     icon_button.setToolTip(_caption_icon_tooltip(window))
     _insert_icon_button(tab_widget, icon_button)
+    tab_widget.setCornerWidget(
+        _make_caption_button_row(tab_widget, controller, light=light),
+        Qt.Corner.TopRightCorner,
+    )
 
-    row = QWidget(tab_widget)
-    row.setObjectName("captionButtonRow")
-    row.setFixedHeight(CAPTION_BUTTON_HEIGHT)
-    layout = QHBoxLayout(row)
+
+def _build_menu_caption(
+    window: QMainWindow,
+    controller: _Win11CaptionController,
+    *,
+    light: bool,
+) -> None:
+    host = QWidget(window)
+    host.setObjectName("captionBar")
+    host.setFixedHeight(CAPTION_BUTTON_HEIGHT)
+    layout = QHBoxLayout(host)
     layout.setContentsMargins(0, 0, 0, 0)
     layout.setSpacing(0)
-    buttons = (
-        ("minimize", controller.minimize),
-        ("maximize", controller.toggle_zoom),
-        ("close", controller.close_window),
-    )
-    for kind, slot in buttons:
-        button = CaptionButton(kind=kind, light=light, parent=row)
-        button.clicked.connect(slot)
-        layout.addWidget(button)
-    tab_widget.setCornerWidget(row, Qt.Corner.TopRightCorner)
+
+    icon_button = _CaptionIconButton(controller.show_system_menu, host)
+    icon_button.setIcon(window.windowIcon())
+    icon_button.setToolTip(_caption_icon_tooltip(window))
+    layout.addWidget(icon_button)
+
+    menu = QMenuBar(host)
+    menu.setNativeMenuBar(False)
+    menu.setFixedHeight(CAPTION_BUTTON_HEIGHT)
+    menu.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+    native = window.menuBar()
+    for action in list(native.actions()):
+        native.removeAction(action)
+        menu.addAction(action)
+        # Menus stay children of the old bar. setMenuWidget deletes that bar.
+        # setParent(parent) clears Popup, so the menu would show inline.
+        submenu = action.menu()
+        if isinstance(submenu, QWidget):
+            submenu.setParent(menu, Qt.WindowType.Popup)
+            submenu.hide()
+    layout.addWidget(menu)
+    layout.addStretch(1)
+    layout.addWidget(_make_caption_button_row(host, controller, light=light))
+    window.setMenuWidget(host)
 
 
 def _caption_control_at(window: QWidget, local: QPoint) -> bool:
@@ -594,6 +624,13 @@ def _caption_control_at(window: QWidget, local: QPoint) -> bool:
             return child.actionAt(child.mapFrom(window, local)) is not None
         child = child.parentWidget()
     return False
+
+
+def _caption_host(window: QWidget) -> QWidget | None:
+    host = window.findChild(QWidget, "captionBar")
+    if isinstance(host, QWidget):
+        return host
+    return None
 
 
 def _caption_icon_tooltip(window: QWidget) -> str:
@@ -612,16 +649,22 @@ def _caption_label_padding(widget: QWidget) -> int:
 
 
 def _caption_strip_rect(window: QWidget) -> QRect:
-    tab_widget = getattr(window, "tabWidget", None)
-    if not isinstance(tab_widget, QTabWidget):
+    host = _caption_host(window)
+    anchor: QWidget | None = host
+    if anchor is None:
+        tab_widget = getattr(window, "tabWidget", None)
+        if isinstance(tab_widget, QTabWidget):
+            anchor = tab_widget.tabBar()
+    if anchor is None:
         return QRect()
-    bar = tab_widget.tabBar()
-    top_left = bar.mapTo(window, QPoint(0, 0))
-    height = max(bar.height(), CAPTION_BUTTON_HEIGHT)
+    top_left = anchor.mapTo(window, QPoint(0, 0))
+    height = max(anchor.height(), CAPTION_BUTTON_HEIGHT)
     return QRect(0, top_left.y(), window.width(), height)
 
 
 def _collapse_native_menu_bar(window: QWidget) -> None:
+    if _caption_host(window) is not None:
+        return
     raw = getattr(window, "menuBar", None)
     bar = raw if isinstance(raw, QMenuBar) else raw() if callable(raw) else None
     if not isinstance(bar, QMenuBar):
@@ -693,6 +736,8 @@ def _fit_widget_font(widget: QWidget, max_height: int) -> None:
 def _flush_caption_to_frame(window: QWidget) -> None:
     if not isinstance(window, QMainWindow):
         return
+    if not isinstance(getattr(window, "tabWidget", None), QTabWidget):
+        return
     central = _resolve_central_widget(window)
     tab_widget = getattr(window, "tabWidget", None)
     if central is None or central is tab_widget:
@@ -756,6 +801,30 @@ def _live_caption_hit_test(window: QWidget, local: QPoint) -> int:
     if _caption_control_at(window, local):
         interactive.append(QRect(local.x(), local.y(), 1, 1))
     return caption_hit_test(local, window.size(), caption=caption, interactive=interactive, maximized=maximized)
+
+
+def _make_caption_button_row(
+    parent: QWidget,
+    controller: _Win11CaptionController,
+    *,
+    light: bool,
+) -> QWidget:
+    row = QWidget(parent)
+    row.setObjectName("captionButtonRow")
+    row.setFixedHeight(CAPTION_BUTTON_HEIGHT)
+    layout = QHBoxLayout(row)
+    layout.setContentsMargins(0, 0, 0, 0)
+    layout.setSpacing(0)
+    buttons = (
+        ("minimize", controller.minimize),
+        ("maximize", controller.toggle_zoom),
+        ("close", controller.close_window),
+    )
+    for kind, slot in buttons:
+        button = CaptionButton(kind=kind, light=light, parent=row)
+        button.clicked.connect(slot)
+        layout.addWidget(button)
+    return row
 
 
 def _monitor_work_area(hwnd: int) -> tuple[int, int, int, int] | None:
@@ -977,14 +1046,16 @@ def _sync_caption_palette(window: QWidget) -> None:
     color = window.palette().color(QPalette.ColorRole.Window)
     for button in window.findChildren(CaptionButton):
         button.set_light(light=light)
+    host = _caption_host(window)
+    if host is not None:
+        _fill_widget(host, color)
     tab_widget = getattr(window, "tabWidget", None)
-    if not isinstance(tab_widget, QTabWidget):
-        return
-    _fill_widget(tab_widget.tabBar(), color)
-    for corner in (Qt.Corner.TopLeftCorner, Qt.Corner.TopRightCorner):
-        widget = tab_widget.cornerWidget(corner)
-        if widget is not None:
-            _fill_widget(widget, color)
+    if isinstance(tab_widget, QTabWidget):
+        _fill_widget(tab_widget.tabBar(), color)
+        for corner in (Qt.Corner.TopLeftCorner, Qt.Corner.TopRightCorner):
+            widget = tab_widget.cornerWidget(corner)
+            if widget is not None:
+                _fill_widget(widget, color)
     menu = resolve_window_menu_bar(window)
     if menu is not None:
         _fill_widget(menu, color)

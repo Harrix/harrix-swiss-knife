@@ -564,13 +564,15 @@ def caption_hit_test(
 def install_win11_caption(window: QWidget) -> bool
 ```
 
-Replace the native title bar with the tab row plus Windows 11 buttons.
+Replace the native title bar with the caption row plus Windows 11 buttons.
 
-No-op outside Windows. The window title string is left in place for the taskbar.
+Tabbed apps keep the menu and tabs in that row. A main window without tabs
+keeps its menu there. No-op outside Windows. The window title string stays
+for the taskbar.
 
 Args:
 
-- `window` (`QWidget`): Main window that already has `tabWidget`.
+- `window` (`QWidget`): Main window. Tabbed apps already have `tabWidget`.
 
 Returns:
 
@@ -584,14 +586,17 @@ def install_win11_caption(window: QWidget) -> bool:
     if sys.platform != "win32" or getattr(window, _INSTALLED_ATTR, False):
         return False
     tab_widget = getattr(window, "tabWidget", None)
-    if not isinstance(tab_widget, QTabWidget):
-        logger.warning("Win11 caption needs a tabWidget")
+    if not isinstance(tab_widget, QTabWidget) and not isinstance(window, QMainWindow):
+        logger.warning("Win11 caption needs a tabWidget or a main window menu")
         return False
 
     light = _palette_is_light(window)
     controller = _Win11CaptionController(window)
     setattr(window, _CONTROLLER_ATTR, controller)
-    _build_caption_row(window, tab_widget, controller, light=light)
+    if isinstance(tab_widget, QTabWidget):
+        _build_caption_row(window, tab_widget, controller, light=light)
+    elif isinstance(window, QMainWindow):
+        _build_menu_caption(window, controller, light=light)
     _flush_caption_to_frame(window)
     _fit_caption_fonts(window)
     _sync_caption_palette(window)

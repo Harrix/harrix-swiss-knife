@@ -16,6 +16,7 @@ lang: en
 - [🏛️ Class `MainWindow`](#%EF%B8%8F-class-mainwindow)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
   - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
+  - [⚙️ Method `nativeEvent`](#%EF%B8%8F-method-nativeevent)
 - [🔧 Function `main`](#-function-main)
 
 </details>
@@ -356,6 +357,13 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._stop_thumb_refresh()
         self._clear_clipboard_stage()
         super().closeEvent(event)
+
+    def nativeEvent(self, event_type, message) -> tuple[bool, int]:  # noqa: ANN001, N802
+        """Drag, resize, and size the client area for the custom caption bar."""
+        handled = try_handle_win11_caption_native_event(self, event_type, message)
+        if handled is not None:
+            return handled
+        return cast("tuple[bool, int]", super().nativeEvent(event_type, message))
 
     def _activate_category(self, text: str) -> None:
         if self._nav_syncing:
@@ -847,6 +855,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._rebuild_folder_menus()
         self._sync_folder_combo()
         self._sync_add_vector_menu_title()
+        install_win11_caption(self)
 
     @staticmethod
     def _cache_pixmap(cache: dict[str, QPixmap], key: str, pixmap: QPixmap) -> None:
@@ -3110,6 +3119,27 @@ def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         self._stop_thumb_refresh()
         self._clear_clipboard_stage()
         super().closeEvent(event)
+```
+
+</details>
+
+### ⚙️ Method `nativeEvent`
+
+```python
+def nativeEvent(self, event_type, message) -> tuple[bool, int]
+```
+
+Drag, resize, and size the client area for the custom caption bar.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def nativeEvent(self, event_type, message) -> tuple[bool, int]:  # noqa: ANN001, N802
+        handled = try_handle_win11_caption_native_event(self, event_type, message)
+        if handled is not None:
+            return handled
+        return cast("tuple[bool, int]", super().nativeEvent(event_type, message))
 ```
 
 </details>

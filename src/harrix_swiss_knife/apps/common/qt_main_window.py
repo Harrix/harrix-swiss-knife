@@ -787,6 +787,11 @@ def resolve_window_menu_bar(window: QWidget) -> QMenuBar | None:
     `QMainWindow.menuBar()`.
 
     """
+    host = window.findChild(QWidget, "captionBar")
+    if isinstance(host, QWidget):
+        for child in host.children():
+            if isinstance(child, QMenuBar):
+                return child
     tab_widget = getattr(window, "tabWidget", None)
     if isinstance(tab_widget, QTabWidget):
         corner = tab_widget.cornerWidget(Qt.Corner.TopLeftCorner)
