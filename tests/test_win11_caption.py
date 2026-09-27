@@ -9,7 +9,17 @@ from ctypes import wintypes
 import pytest
 from PySide6.QtCore import QPoint, QRect, QSize, Qt
 from PySide6.QtGui import QColor, QPalette, QPixmap
-from PySide6.QtWidgets import QApplication, QHBoxLayout, QMainWindow, QMenuBar, QTabWidget, QToolButton, QWidget
+from PySide6.QtWidgets import (
+    QApplication,
+    QGroupBox,
+    QHBoxLayout,
+    QMainWindow,
+    QMenu,
+    QMenuBar,
+    QTabWidget,
+    QToolButton,
+    QWidget,
+)
 
 from harrix_swiss_knife.win11_caption import (
     CAPTION_BUTTON_HEIGHT,
@@ -156,7 +166,38 @@ def test_caption_labels_are_centered_on_gray_tabs(qapp: QApplication) -> None:
     assert "#ffffff" in tabs.tabBar().styleSheet()
     _assert_ink_centered(tabs.tabBar().grab(), background)
     _assert_ink_centered(menu.grab(), background)
+    assert "#ebebeb" not in tabs.tabBar().styleSheet().lower()
     window.close()
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Win11 caption is Windows-only")
+def test_panels_and_menus_are_white(qapp: QApplication) -> None:
+    """Group boxes and popup menus use a white background."""
+    previous_style = qapp.style().objectName()
+    qapp.setStyle("windows11")
+    window = _window_with_tabs()
+    try:
+        assert install_win11_caption(window)
+        sheet = window.styleSheet()
+        assert "QGroupBox" in sheet
+        assert "QMenu" in sheet
+        assert "#ffffff" in sheet
+
+        box = QGroupBox(window)
+        box.resize(180, 72)
+        box.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, on=True)
+        box.show()
+        menu = QMenu(window)
+        menu.addAction("Refresh")
+        menu.resize(180, 48)
+        menu.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, on=True)
+        menu.show()
+        qapp.processEvents()
+        assert box.grab().toImage().pixelColor(40, 36).name() == "#ffffff"
+        assert menu.grab().toImage().pixelColor(150, 20).name() == "#ffffff"
+    finally:
+        window.close()
+        qapp.setStyle(previous_style)
 
 
 @pytest.mark.skipif(sys.platform != "win32", reason="Win11 caption is Windows-only")

@@ -64,6 +64,13 @@ INACTIVE_GLYPH_LIGHT = QColor(0, 0, 0, 0x5C)
 INACTIVE_GLYPH_DARK = QColor(255, 255, 255, 0x5C)
 CLOSE_GLYPH_COLOR = QColor(255, 255, 255)
 _WINDOW_BACKGROUND = QColor(255, 255, 255)
+_WHITE_SURFACE_MARK = "hsk-white-surfaces"
+_WHITE_SURFACE_STYLE = """
+/* hsk-white-surfaces */
+QGroupBox { background-color: #ffffff; }
+QMenu { background-color: #ffffff; border: 1px solid #e0e0e0; }
+QMenu::item:selected { background-color: #f2f2f2; }
+"""
 
 _GLYPH_FILES = {
     "dismiss": "dismiss_16_regular",
@@ -533,13 +540,27 @@ def _apply_maximized_nccalcsize(window: QWidget, lparam: int) -> None:
     write_nccalcsize_client_rect(_pointer_address(lparam), *work)
 
 
+def _apply_white_surfaces(window: QWidget) -> None:
+    """Paint group boxes and popup menus white.
+
+    Windows 11 draws those with the system gray even when the window palette is white.
+    A later palette refresh must not append the rules again.
+
+    """
+    sheet = window.styleSheet()
+    if _WHITE_SURFACE_MARK in sheet:
+        return
+    window.setStyleSheet(f"{sheet}\n{_WHITE_SURFACE_STYLE}")
+
+
 def _apply_white_window_background(window: QWidget) -> None:
-    """Use white for the window color so the caption and client area are not system gray."""
+    """Use white for the window, its panels, menus, and caption."""
     palette = window.palette()
     if palette.color(QPalette.ColorRole.Window) != _WINDOW_BACKGROUND:
         palette.setColor(QPalette.ColorRole.Window, _WINDOW_BACKGROUND)
         window.setPalette(palette)
     window.setAutoFillBackground(True)
+    _apply_white_surfaces(window)
 
 
 def _apply_win32_frame(window: QWidget, *, full: bool) -> None:
@@ -966,7 +987,6 @@ def _style_caption_chrome(window: QWidget) -> None:
     rgb = color.name(QColor.NameFormat.HexRgb)
     light = _palette_is_light(window)
     hover = _shade_caption_color(color, light=light, amount=0.06).name(QColor.NameFormat.HexRgb)
-    selected = _shade_caption_color(color, light=light, amount=0.08).name(QColor.NameFormat.HexRgb)
     tab_widget = getattr(window, "tabWidget", None)
     if isinstance(tab_widget, QTabWidget):
         tab_widget.setStyleSheet("QTabWidget::pane { border: none; margin: 0px; }")
@@ -987,7 +1007,9 @@ def _style_caption_chrome(window: QWidget) -> None:
                 padding: {pad}px {_CAPTION_TAB_HPAD}px;
             }}
             QTabBar::tab:selected {{
-                background: {selected};
+                background: {rgb};
+                border: none;
+                border-bottom: 2px solid #202020;
             }}
             QTabBar::tab:hover:!selected {{
                 background: {hover};
