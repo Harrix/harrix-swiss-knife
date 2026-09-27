@@ -31,6 +31,7 @@ from harrix_swiss_knife.win11_caption import (
     HTRIGHT,
     HTTOP,
     CaptionButton,
+    _sync_caption_button_hover,
     caption_hit_test,
     install_win11_caption,
     write_nccalcsize_client_rect,
@@ -293,6 +294,7 @@ def test_install_caption_on_menu_only_window(qapp: QApplication) -> None:
         assert title.toolTip() == title.text()
         assert "font-weight: 700" in title.styleSheet()
         assert "#2e333d" in title.styleSheet()
+        assert title.styleSheet().count("{") == title.styleSheet().count("}")
         assert "#404654" in menu.styleSheet()
         row = window.findChild(QWidget, "captionButtonRow")
         icon = window.findChild(QToolButton, "captionIconButton")
@@ -313,6 +315,27 @@ def test_install_caption_on_menu_only_window(qapp: QApplication) -> None:
     finally:
         window.close()
         qapp.setStyle(previous_style)
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Win11 caption is Windows-only")
+def test_caption_button_hover_tracks_pointer(qapp: QApplication) -> None:
+    """Caption buttons highlight from the pointer even when Qt hover events are stuck."""
+    window = _window_with_tabs()
+    assert install_win11_caption(window)
+    window.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, on=True)
+    window.resize(800, 240)
+    window.show()
+    qapp.processEvents()
+    close = window.findChild(CaptionButton, "captionCloseButton")
+    minimize = window.findChild(CaptionButton, "captionMinimizeButton")
+    assert close is not None
+    assert minimize is not None
+    _sync_caption_button_hover(window, close.mapToGlobal(close.rect().center()))
+    assert close.underMouse()
+    assert not minimize.underMouse()
+    _sync_caption_button_hover(window, QPoint(-10_000, -10_000))
+    assert not close.underMouse()
+    window.close()
 
 
 @pytest.mark.skipif(sys.platform != "win32", reason="Win11 caption is Windows-only")

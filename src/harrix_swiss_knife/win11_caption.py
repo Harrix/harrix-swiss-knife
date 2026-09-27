@@ -14,8 +14,8 @@ import sys
 from ctypes import wintypes
 from typing import TYPE_CHECKING, Any
 
-from PySide6.QtCore import QByteArray, QEvent, QObject, QPoint, QRect, QRectF, QSize, Qt
-from PySide6.QtGui import QColor, QFont, QFontMetrics, QIcon, QPainter, QPaintEvent, QPalette, QPixmap
+from PySide6.QtCore import QByteArray, QEvent, QObject, QPoint, QRect, QRectF, QSize, Qt, QTimer
+from PySide6.QtGui import QColor, QCursor, QFont, QFontMetrics, QIcon, QPainter, QPaintEvent, QPalette, QPixmap
 from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import (
     QAbstractButton,
@@ -24,6 +24,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QMainWindow,
+    QMenu,
     QMenuBar,
     QScrollArea,
     QSizePolicy,
@@ -97,6 +98,8 @@ _CAPTION_MENU_HPAD = 8
 _CAPTION_MENU_ARROW_PAD = 16
 _CAPTION_TAB_HPAD = 12
 _TITLE_ATTR = "_hsk_caption_title"
+_BUTTONS_ATTR = "_hsk_caption_buttons"
+_MENU_HOVER_ATTR = "_hsk_menu_hover_reset"
 _TITLE_COLOR = "#2e333d"
 _NAV_COLOR = "#404654"
 _MENU_CHEVRON_ATTR = "_hsk_menu_chevron"
@@ -105,6 +108,10 @@ _LIGHTNESS_THRESHOLD = 128
 
 _WM_NCCALCSIZE = 0x0083
 _WM_NCHITTEST = 0x0084
+_WM_MOUSEMOVE = 0x0200
+_WM_NCMOUSEMOVE = 0x00A0
+_WM_MOUSELEAVE = 0x02A3
+_WM_NCMOUSELEAVE = 0x02A2
 _WM_SYSCOMMAND = 0x0112
 _WM_NULL = 0x0000
 _GWL_STYLE = -16
@@ -361,6 +368,11 @@ class _Win11CaptionController(QObject):
         """Close the caption's window."""
         self._window.close()
 
+    def reset_button_hover(self) -> None:
+        """Restore caption-button hover after a menu popup closes."""
+        window = self._window
+        QTimer.singleShot(0, lambda: _sync_caption_button_hover(window))
+
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
         """Apply the frame on show and refresh caption chrome when state changes."""
         window = getattr(self, "_window", None)
@@ -520,6 +532,8 @@ def install_win11_caption(window: QWidget) -> bool:
     _sync_caption_icon(window)
     _sync_zoom_glyph(window)
     _place_caption_title(window)
+    _bind_caption_menu_hover(window, controller)
+    setattr(window, _BUTTONS_ATTR, window.findChildren(CaptionButton))
     return True
 
 
@@ -545,6 +559,12 @@ def try_handle_win11_caption_native_event(
         return None
     msg = read_native_windows_message(event_type, message)
     if msg is None:
+        return None
+    if msg.message in {_WM_MOUSEMOVE, _WM_NCMOUSEMOVE}:
+        _sync_caption_button_hover(window)
+        return None
+    if msg.message in {_WM_MOUSELEAVE, _WM_NCMOUSELEAVE}:
+        _clear_caption_button_hover(window)
         return None
     if msg.message == _WM_NCCALCSIZE and msg.wParam:
         _apply_maximized_nccalcsize(window, int(msg.lParam))
@@ -572,10 +592,73 @@ def write_nccalcsize_client_rect(address: int, left: int, top: int, right: int, 
     ctypes.memmove(address, ctypes.byref(rect), ctypes.sizeof(rect))
 
 
+def _bind_caption_menu_hover(window: QWidget, controller: _Win11CaptionController) -> None:
+    """Refresh caption-button hover when a menu popup closes."""
+    menu_bar = resolve_window_menu_bar(window)
+    if menu_bar is None:
+        return
+    for action in menu_bar.actions():
+        menu = action.menu()
+        if isinstance(menu, QMenu):
+            _bind_menu_hover_reset(menu, controller)
+
+
+def _bind_menu_hover_reset(menu: QMenu, controller: _Win11CaptionController) -> None:
+    if getattr(menu, _MENU_HOVER_ATTR, False):
+        return
+    menu.aboutToHide.connect(controller.reset_button_hover)
+    for action in menu.actions():
+        child = action.menu()
+        if isinstance(child, QMenu):
+            _bind_menu_hover_reset(child, controller)
+    setattr(menu, _MENU_HOVER_ATTR, True)
+
+
+def _caption_buttons(window: QWidget) -> list[CaptionButton]:
+    cached = getattr(window, _BUTTONS_ATTR, None)
+    if isinstance(cached, list):
+        return [button for button in cached if isinstance(button, CaptionButton)]
+    buttons = window.findChildren(CaptionButton)
+    setattr(window, _BUTTONS_ATTR, buttons)
+    return buttons
+
+
+def _clear_caption_button_hover(window: QWidget) -> None:
+    for button in _caption_buttons(window):
+        try:
+            hovered = button.testAttribute(Qt.WidgetAttribute.WA_UnderMouse)
+        except RuntimeError:
+            continue
+        if not hovered:
+            continue
+        button.setAttribute(Qt.WidgetAttribute.WA_UnderMouse, on=False)
+        button.update()
+
+
+def _sync_caption_button_hover(window: QWidget, global_pos: QPoint | None = None) -> None:
+    """Paint caption-button hover from the pointer, even after a menu steals it."""
+    try:
+        if not window.isVisible():
+            return
+    except RuntimeError:
+        return
+    point = QCursor.pos() if global_pos is None else global_pos
+    for button in _caption_buttons(window):
+        try:
+            inside = button.isVisible() and button.rect().contains(button.mapFromGlobal(point))
+            hovered = button.testAttribute(Qt.WidgetAttribute.WA_UnderMouse)
+        except RuntimeError:
+            continue
+        if hovered == inside:
+            continue
+        button.setAttribute(Qt.WidgetAttribute.WA_UnderMouse, on=inside)
+        button.update()
+
+
 def _apply_caption_title_style(label: QLabel) -> None:
     rule = (
         f"QLabel#captionTitleLabel {{ color: {_TITLE_COLOR}; background: transparent; "
-        "font-weight: 700; padding: 0px 12px 0px 2px; }}"
+        f"font-weight: 700; padding: 0px 12px 0px 2px; }}"
     )
     if label.styleSheet() != rule:
         label.setStyleSheet(rule)
