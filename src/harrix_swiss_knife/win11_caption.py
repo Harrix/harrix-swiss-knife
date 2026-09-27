@@ -1087,6 +1087,9 @@ def _sync_caption_palette(window: QWidget) -> None:
     host = _caption_host(window)
     if host is not None:
         _fill_widget(host, color)
+    row = window.findChild(QWidget, "captionButtonRow")
+    if isinstance(row, QWidget):
+        _fill_widget(row, color)
     tab_widget = getattr(window, "tabWidget", None)
     if isinstance(tab_widget, QTabWidget):
         _fill_widget(tab_widget.tabBar(), color)

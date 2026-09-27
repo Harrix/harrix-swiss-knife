@@ -203,40 +203,47 @@ def test_panels_and_menus_are_white(qapp: QApplication) -> None:
 @pytest.mark.skipif(sys.platform != "win32", reason="Win11 caption is Windows-only")
 def test_install_caption_on_menu_only_window(qapp: QApplication) -> None:
     """A window without tabs keeps File in the caption row next to the window buttons."""
+    previous_style = qapp.style().objectName()
+    qapp.setStyle("windows11")
     window = QMainWindow()
-    window.setWindowTitle("Vector Icons")
-    file_menu = window.menuBar().addMenu("File")
-    help_menu = window.menuBar().addMenu("Help")
-    pinned = file_menu.addMenu("Pinned")
-    window.setCentralWidget(QWidget())
-    assert install_win11_caption(window)
-    window.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, on=True)
-    window.resize(800, 240)
-    window.show()
-    qapp.processEvents()
-    assert not file_menu.isVisible()
-    assert not help_menu.isVisible()
-    assert not pinned.isVisible()
-    pinned.clear()
-    pinned.addAction("Folder")
-    assert pinned.actions()[0].text() == "Folder"
-    assert window.windowFlags() & Qt.WindowType.FramelessWindowHint
-    host = window.findChild(QWidget, "captionBar")
-    assert host is window.menuWidget()
-    assert host is not None
-    assert host.height() == CAPTION_BUTTON_HEIGHT
-    menu = host.findChild(QMenuBar)
-    assert menu is not None
-    assert menu.actions()[0].text() == "File"
-    file_rect = menu.actionGeometry(file_menu.menuAction())
-    help_rect = menu.actionGeometry(help_menu.menuAction())
-    assert file_rect.width() > 0
-    assert help_rect.left() >= file_rect.right()
-    icon = window.findChild(QToolButton, "captionIconButton")
-    assert icon is not None
-    assert icon.toolTip() == "Vector Icons - Harrix Swiss Knife"
-    assert window.findChild(CaptionButton, "captionCloseButton") is not None
-    window.close()
+    try:
+        window.setWindowTitle("Vector Icons")
+        file_menu = window.menuBar().addMenu("File")
+        help_menu = window.menuBar().addMenu("Help")
+        pinned = file_menu.addMenu("Pinned")
+        window.setCentralWidget(QWidget())
+        assert install_win11_caption(window)
+        window.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, on=True)
+        window.resize(800, 240)
+        window.show()
+        qapp.processEvents()
+        assert not file_menu.isVisible()
+        assert not help_menu.isVisible()
+        assert not pinned.isVisible()
+        pinned.clear()
+        pinned.addAction("Folder")
+        assert pinned.actions()[0].text() == "Folder"
+        assert window.windowFlags() & Qt.WindowType.FramelessWindowHint
+        host = window.findChild(QWidget, "captionBar")
+        assert host is window.menuWidget()
+        assert host is not None
+        assert host.height() == CAPTION_BUTTON_HEIGHT
+        menu = host.findChild(QMenuBar)
+        assert menu is not None
+        assert menu.actions()[0].text() == "File"
+        file_rect = menu.actionGeometry(file_menu.menuAction())
+        help_rect = menu.actionGeometry(help_menu.menuAction())
+        assert file_rect.width() > 0
+        assert help_rect.left() >= file_rect.right()
+        icon = window.findChild(QToolButton, "captionIconButton")
+        assert icon is not None
+        assert icon.toolTip() == "Vector Icons - Harrix Swiss Knife"
+        close = window.findChild(CaptionButton, "captionCloseButton")
+        assert close is not None
+        assert close.grab().toImage().pixelColor(4, 4).name() == "#ffffff"
+    finally:
+        window.close()
+        qapp.setStyle(previous_style)
 
 
 @pytest.mark.skipif(sys.platform != "win32", reason="Win11 caption is Windows-only")
