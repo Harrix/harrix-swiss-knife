@@ -180,7 +180,7 @@ def test_panels_and_menus_are_white(qapp: QApplication) -> None:
         assert install_win11_caption(window)
         sheet = window.styleSheet()
         assert "QGroupBox" in sheet
-        assert "QMenu" in sheet
+        assert "QMenu::item:selected { color: #202020;" in sheet
         assert "#ffffff" in sheet
 
         box = QGroupBox(window)

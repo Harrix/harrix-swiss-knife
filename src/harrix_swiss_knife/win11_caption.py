@@ -68,8 +68,10 @@ _WHITE_SURFACE_MARK = "hsk-white-surfaces"
 _WHITE_SURFACE_STYLE = """
 /* hsk-white-surfaces */
 QGroupBox { background-color: #ffffff; }
-QMenu { background-color: #ffffff; border: 1px solid #e0e0e0; }
-QMenu::item:selected { background-color: #f2f2f2; }
+QMenu { background-color: #ffffff; border: 1px solid #e0e0e0; color: #202020; }
+QMenu::item { color: #202020; background-color: transparent; }
+QMenu::item:selected { color: #202020; background-color: #f2f2f2; }
+QMenu::item:disabled { color: #767676; }
 """
 
 _GLYPH_FILES = {
@@ -1030,11 +1032,13 @@ def _style_caption_chrome(window: QWidget) -> None:
         }}
         QMenuBar::item {{
             background: transparent;
+            color: #202020;
             padding: {pad}px {_CAPTION_MENU_HPAD}px;
             margin: 0px;
         }}
         QMenuBar::item:selected {{
             background: {hover};
+            color: #202020;
         }}
         """
     )
