@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
     QApplication,
     QButtonGroup,
     QCheckBox,
+    QColorDialog,
     QDialog,
     QFileDialog,
     QFormLayout,
@@ -149,6 +150,8 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._annotation_color = color if color.isValid() else QColor(_DEFAULT_ANNOTATION_COLOR)
         self._tool_buttons: dict[AnnotationTool, QToolButton] = {}
         self._color_dialog: EyedropperColorDialog | None = None
+        self._color_pick_eyedropper = False
+        self._color_pick_return_tool = AnnotationTool.NONE
 
         central = QWidget(self)
         self.setCentralWidget(central)
@@ -222,6 +225,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._color_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self._color_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         self._color_menu = QMenu(self._color_button)
+        apply_menu_icon_size(self._color_menu)
         self._color_button.setMenu(self._color_menu)
         self._rebuild_color_menu()
         self._update_color_button()
@@ -361,7 +365,10 @@ class ScreenshotPreviewWindow(QMainWindow):
                 event.accept()
                 return
         if tab is not None and tab.canvas.tool == AnnotationTool.EYEDROPPER and event.key() == int(Qt.Key.Key_Escape):
-            self._set_tool(AnnotationTool.NONE)
+            if self._color_pick_eyedropper:
+                self._cancel_eyedropper_color_pick()
+            else:
+                self._set_tool(AnnotationTool.NONE)
             event.accept()
             return
         if (
@@ -482,6 +489,19 @@ class ScreenshotPreviewWindow(QMainWindow):
         tab.canvas.set_style(color=self._annotation_color)
         tab.canvas.set_tool(tool)
 
+    def _begin_eyedropper_color_pick(self) -> None:
+        """Next click sets the tool color and does not open the formats window."""
+        return_tool = AnnotationTool.NONE
+        checked = self._tool_group.checkedButton()
+        for candidate, button in self._tool_buttons.items():
+            if button is checked:
+                return_tool = candidate
+                break
+        self._color_pick_return_tool = return_tool
+        self._set_tool(AnnotationTool.EYEDROPPER)
+        self._color_pick_eyedropper = True
+        self._status.setText("Click a pixel to set the color · Esc to cancel")
+
     def _cancel_crop(self) -> None:
         tab = self._current_tab()
         if tab is None:
@@ -491,6 +511,11 @@ class ScreenshotPreviewWindow(QMainWindow):
         if select is not None:
             select.setChecked(True)
         self._status.setText("Crop cancelled")
+
+    def _cancel_eyedropper_color_pick(self) -> None:
+        return_tool = self._color_pick_return_tool
+        self._set_tool(return_tool)
+        self._status.setText("Color pick cancelled")
 
     def _close_current_tab(self) -> None:
         index = self._tabs.currentIndex()
@@ -539,6 +564,12 @@ class ScreenshotPreviewWindow(QMainWindow):
             return None
         return Path(desktop) / "Screenshots"
 
+    def _finish_eyedropper_color_pick(self, color: QColor) -> None:
+        return_tool = self._color_pick_return_tool
+        self._set_annotation_color(color)
+        self._set_tool(return_tool)
+        self._status.setText(f"Color {color.name()}")
+
     def _install_zoom_shortcuts(self) -> None:
         """Zoom with Ctrl++ and Ctrl+-, including Shift on the main plus key."""
         self._zoom_shortcuts: list[QShortcut] = []
@@ -557,6 +588,12 @@ class ScreenshotPreviewWindow(QMainWindow):
         tab = self._current_tab()
         if tab is None or tab.canvas.tool != AnnotationTool.EYEDROPPER:
             return
+        if self._color_pick_eyedropper:
+            if not isinstance(color, QColor) or not color.isValid():
+                self._status.setText("Click a pixel to set the color · Esc to cancel")
+                return
+            self._status.setText(f"{_format_pixel_color(color)} · click to set the color")
+            return
         if not isinstance(color, QColor) or not color.isValid():
             self._status.setText("Eyedropper: move over the screenshot · click to copy HEX")
             return
@@ -564,6 +601,9 @@ class ScreenshotPreviewWindow(QMainWindow):
 
     def _on_color_picked(self, color: QColor) -> None:
         if not color.isValid():
+            return
+        if self._color_pick_eyedropper:
+            self._finish_eyedropper_color_pick(color)
             return
         clipboard = QApplication.clipboard()
         if clipboard is not None:
@@ -638,6 +678,14 @@ class ScreenshotPreviewWindow(QMainWindow):
         if tab is not None:
             tab.canvas.set_style(style=settings_to_annotation_style(settings))
 
+    def _pick_color_from_dialog(self) -> None:
+        """Set the tool color from the standard color dialog."""
+        color = QColorDialog.getColor(self._annotation_color, self, "Choose color")
+        if not color.isValid():
+            return
+        self._set_annotation_color(color)
+        self._status.setText(f"Color {color.name()}")
+
     def _rebuild_color_menu(self) -> None:
         self._color_menu.clear()
         for hex_value, hint in load_annotation_colors():
@@ -647,6 +695,13 @@ class ScreenshotPreviewWindow(QMainWindow):
             label = f"{hex_value} — {hint}" if hint else hex_value
             action = self._color_menu.addAction(_color_swatch_icon(color, TOOLBAR_ICON_SIZE), label)
             action.triggered.connect(lambda _checked=False, c=color: self._set_annotation_color(c))
+        self._color_menu.addSeparator()
+        eyedropper = self._color_menu.addAction("Pick with eyedropper")
+        eyedropper.setIcon(create_lucide_icon("pipette", DEFAULT_LUCIDE_MENU_ICON_SIZE))
+        eyedropper.triggered.connect(self._begin_eyedropper_color_pick)
+        palette = self._color_menu.addAction("Choose color…")
+        palette.setIcon(create_lucide_icon("palette", DEFAULT_LUCIDE_MENU_ICON_SIZE))
+        palette.triggered.connect(self._pick_color_from_dialog)
 
     def _refit_tools_host(self) -> None:
         """Size the top tool strip so FlowLayout can wrap on narrow Windows."""
@@ -890,6 +945,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._save_all_desktop_button.setVisible(not active and multi)
 
     def _set_tool(self, tool: AnnotationTool) -> None:
+        self._color_pick_eyedropper = False
         button = self._tool_buttons.get(tool)
         if button is not None:
             button.setChecked(True)

@@ -254,6 +254,74 @@ def test_preview_window_eyedropper_copies_color_without_changing_tool(
     window.close()
 
 
+def test_color_menu_eyedropper_sets_tool_color_without_formats_window(
+    qapp: QApplication,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(preview_dialog_module, "save_tool_colors", lambda _colors: None)
+    image = QImage(20, 10, QImage.Format.Format_RGB32)
+    image.fill(QColor("#112233"))
+    image.setPixelColor(4, 3, QColor("#00aa00"))
+    window = show_screenshot_preview(image)
+    window.show()
+    qapp.processEvents()
+    labels = [action.text() for action in window._color_menu.actions() if not action.isSeparator()]
+    assert labels[-2:] == ["Pick with eyedropper", "Choose color…"]
+    window._set_tool(AnnotationTool.PEN)
+    previous = window._annotation_color.name()
+    clipboard = qapp.clipboard()
+    assert clipboard is not None
+    clipboard.setText("keep-me")
+    eyedropper = next(action for action in window._color_menu.actions() if action.text() == "Pick with eyedropper")
+    eyedropper.trigger()
+    tab = window._current_tab()
+    assert tab is not None
+    assert tab.canvas.tool == AnnotationTool.EYEDROPPER
+    QTest.keyClick(window, Qt.Key.Key_Escape)
+    assert tab.canvas.tool == AnnotationTool.PEN
+    assert window._annotation_color.name() == previous
+    eyedropper.trigger()
+    qapp.processEvents()
+    _left_click(tab.canvas, _widget_pos_for_image_pixel(tab.canvas, 4, 3))
+    qapp.processEvents()
+    assert window._annotation_color.name() == "#00aa00"
+    assert clipboard.text() == "keep-me"
+    assert tab.canvas.tool == AnnotationTool.PEN
+    assert window._color_dialog is None or not window._color_dialog.isVisible()
+    window.close()
+
+
+def test_color_menu_choose_color_uses_standard_dialog(
+    qapp: QApplication,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(preview_dialog_module, "save_tool_colors", lambda _colors: None)
+    image = QImage(20, 10, QImage.Format.Format_RGB32)
+    image.fill(Qt.GlobalColor.white)
+    window = show_screenshot_preview(image)
+    seen: dict[str, object] = {}
+
+    def fake_get_color(initial: QColor, parent: object, title: str, *_args: object) -> QColor:
+        seen["initial"] = QColor(initial).name()
+        seen["parent"] = parent
+        seen["title"] = title
+        return QColor("#abcdef")
+
+    monkeypatch.setattr(preview_dialog_module.QColorDialog, "getColor", fake_get_color)
+    choose = next(action for action in window._color_menu.actions() if action.text() == "Choose color…")
+    previous = window._annotation_color.name()
+    choose.trigger()
+    assert seen["title"] == "Choose color"
+    assert seen["parent"] is window
+    assert seen["initial"] == previous
+    assert window._annotation_color.name() == "#abcdef"
+
+    monkeypatch.setattr(preview_dialog_module.QColorDialog, "getColor", lambda *_args, **_kwargs: QColor())
+    choose.trigger()
+    assert window._annotation_color.name() == "#abcdef"
+    window.close()
+
+
 def test_color_clipboard_formats_for_pure_red(qapp: QApplication) -> None:  # noqa: ARG001
     formats = dict(color_clipboard_formats(QColor("#ff0000")))
     assert formats == {
