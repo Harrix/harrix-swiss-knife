@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife.apps.common.qt_main_window import resolve_window_menu_bar
 from harrix_swiss_knife.win11_caption import (
     CAPTION_BUTTON_HEIGHT,
     CAPTION_BUTTON_WIDTH,
@@ -264,6 +265,77 @@ def test_menu_only_caption_has_no_base_line(qapp: QApplication) -> None:
     assert window.findChild(QWidget, "captionBaseLine") is None
     image = host.grab().toImage()
     assert _caption_line_color(image, 8) == "#ffffff"
+    window.close()
+
+
+def _resize_caption(window: QMainWindow, qapp: QApplication, width: int) -> None:
+    window.setMinimumWidth(0)
+    window.resize(width, 320)
+    qapp.processEvents()
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Win11 caption is Windows-only")
+def test_caption_overflow_hides_title_then_menu(qapp: QApplication) -> None:
+    """A narrow caption drops the title first, then replaces the menu with a hamburger."""
+    window = _window_with_tabs()
+    tabs = window.tabWidget
+    corner = QWidget()
+    layout = QHBoxLayout(corner)
+    layout.setContentsMargins(0, 0, 0, 0)
+    menu_host = QMenuBar(corner)
+    menu_host.addMenu("File")
+    menu_host.addMenu("Help")
+    layout.addWidget(menu_host)
+    tabs.setCornerWidget(corner, Qt.Corner.TopLeftCorner)
+    assert install_win11_caption(window)
+    window.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, on=True)
+    window.show()
+    _resize_caption(window, qapp, 1600)
+    title = window.findChild(QLabel, "captionTitleLabel")
+    menu = resolve_window_menu_bar(window)
+    button = window.findChild(QToolButton, "captionMenuButton")
+    assert title is not None
+    assert menu is not None
+    assert button is not None
+    assert title.isVisible()
+    assert menu.isVisible()
+    assert not button.isVisible()
+
+    title_hidden = False
+    for width in range(1500, 240, -15):
+        _resize_caption(window, qapp, width)
+        if not title.isVisible() and menu.isVisible() and not button.isVisible():
+            title_hidden = True
+            break
+    assert title_hidden
+
+    menu_folded = False
+    for width in range(window.width(), 180, -15):
+        _resize_caption(window, qapp, width)
+        if not title.isVisible() and not menu.isVisible() and button.isVisible():
+            menu_folded = True
+            break
+    assert menu_folded
+    assert tabs.tabBar().isVisible()
+
+    button.click()
+    qapp.processEvents()
+    popup = button.findChild(QMenu, "captionOverflowMenu")
+    assert popup is not None
+    assert [action.text() for action in popup.actions()] == ["File", "Help"]
+    assert [action.text() for action in menu.actions()] == ["File", "Help"]
+
+    menu_restored = False
+    for width in range(window.width(), 1700, 15):
+        _resize_caption(window, qapp, width)
+        if menu.isVisible() and not button.isVisible():
+            menu_restored = True
+            assert not title.isVisible()
+            break
+    assert menu_restored
+    _resize_caption(window, qapp, 1700)
+    assert title.isVisible()
+    assert menu.isVisible()
     window.close()
 
 

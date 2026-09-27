@@ -39,6 +39,7 @@ from PySide6.QtWidgets import (
 from harrix_swiss_knife.apps.common.qt_main_window import resolve_window_menu_bar
 from harrix_swiss_knife.installer.icon_assets import apply_window_icon, asset_candidates
 from harrix_swiss_knife.qt_frameless_window import frameless_hit_test, native_local_point, read_native_windows_message
+from harrix_swiss_knife.qt_lucide_icon import apply_lucide_button_icon
 from harrix_swiss_knife.win11_backdrop import try_apply_system_backdrop
 
 if TYPE_CHECKING:
@@ -119,6 +120,8 @@ _TAB_HOVER_BG = "#f2f8fb"
 _TAB_RADIUS = 4
 _TAB_TOP_GAP = 4
 _MENU_CHEVRON_ATTR = "_hsk_menu_chevron"
+_FITTING_ATTR = "_hsk_caption_fitting"
+_MENU_BUTTON_NAME = "captionMenuButton"
 _TAB_LINE_ATTR = "_hsk_caption_tab_line"
 _SUITE_NAME = "Harrix Swiss Knife"
 _LIGHTNESS_THRESHOLD = 128
@@ -454,8 +457,10 @@ class _Win11CaptionController(QObject):
             _sync_zoom_glyph(window)
             _sync_caption_active(window)
             _place_caption_title(window)
+            _fit_caption_overflow(window)
         elif event_type == QEvent.Type.Resize:
             _place_caption_title(window)
+            _fit_caption_overflow(window)
         elif event_type == QEvent.Type.WindowStateChange:
             _apply_win32_frame(window, full=False)
             _sync_zoom_glyph(window)
@@ -468,11 +473,13 @@ class _Win11CaptionController(QObject):
             _fit_caption_fonts(window)
             _style_caption_chrome(window)
             _place_caption_title(window)
+            _fit_caption_overflow(window)
         elif event_type == QEvent.Type.WindowIconChange:
             _sync_caption_icon(window)
         elif event_type == QEvent.Type.WindowTitleChange:
             _sync_caption_icon_tooltip(window)
             _place_caption_title(window)
+            _fit_caption_overflow(window)
         return False
 
     def minimize(self) -> None:
@@ -789,7 +796,7 @@ def _build_caption_row(
     icon_button.setIcon(window.windowIcon())
     icon_button.setToolTip(_caption_icon_tooltip(window))
     _insert_icon_button(tab_widget, icon_button)
-    _move_tab_menu_beside_buttons(tab_widget, controller, light=light)
+    _move_tab_menu_beside_buttons(tab_widget, controller, light=light, window=window)
     left = tab_widget.cornerWidget(Qt.Corner.TopLeftCorner)
     left_layout = left.layout() if left is not None else None
     if isinstance(left_layout, QBoxLayout):
@@ -831,6 +838,7 @@ def _build_menu_caption(
             submenu.setParent(menu, Qt.WindowType.Popup)
             submenu.hide()
     layout.addWidget(menu)
+    layout.addWidget(_make_caption_menu_button(window, controller, host))
     layout.addWidget(_make_caption_button_row(host, controller, light=light))
     window.setMenuWidget(host)
 
@@ -1004,6 +1012,76 @@ def _fill_widget(widget: QWidget, color: QColor) -> None:
     widget.setAutoFillBackground(True)
 
 
+def _caption_available_width(window: QWidget) -> int:
+    """Return the width the caption row can use."""
+    host = _caption_host(window)
+    if host is not None and host.width() > 0:
+        return host.width()
+    tab_widget = getattr(window, "tabWidget", None)
+    if isinstance(tab_widget, QTabWidget) and tab_widget.width() > 0:
+        return tab_widget.width()
+    return window.width()
+
+
+def _caption_title_width(label: QLabel) -> int:
+    """Return the title width, including the caption padding."""
+    text = label.text()
+    if not text:
+        return 0
+    return QFontMetrics(label.font()).horizontalAdvance(text) + 14
+
+
+def _fill_caption_overflow_menu(window: QWidget, popup: QMenu) -> None:
+    """Copy the caption menu bar into the hamburger popup."""
+    popup.clear()
+    menu = resolve_window_menu_bar(window)
+    if menu is None:
+        return
+    for action in menu.actions():
+        popup.addAction(action)
+
+
+def _fit_caption_overflow(window: QWidget) -> None:
+    """Hide the title first, then fold the menu into a hamburger."""
+    if getattr(window, _FITTING_ATTR, False):
+        return
+    available = _caption_available_width(window)
+    if available <= 0:
+        return
+    setattr(window, _FITTING_ATTR, True)
+    try:
+        title = getattr(window, _TITLE_ATTR, None)
+        menu = resolve_window_menu_bar(window)
+        button = window.findChild(QToolButton, _MENU_BUTTON_NAME)
+        icon = window.findChild(QToolButton, "captionIconButton")
+        buttons = window.findChild(QWidget, "captionButtonRow")
+        icon_width = icon.width() if isinstance(icon, QToolButton) and icon.width() > 0 else CAPTION_BUTTON_HEIGHT
+        button_width = (
+            buttons.width() if isinstance(buttons, QWidget) and buttons.width() > 0 else CAPTION_BUTTON_WIDTH * 3
+        )
+        tabs_width = _tab_strip_width(getattr(window, "tabWidget", None))
+        if tabs_width is None:
+            return
+        title_width = _caption_title_width(title) if isinstance(title, QLabel) else 0
+        menu_width = _menu_bar_width(menu) if isinstance(menu, QMenuBar) else 0
+        show_title = title_width > 0
+        show_menu = menu_width > 0
+        if icon_width + title_width + tabs_width + menu_width + button_width > available:
+            show_title = False
+        if show_menu and icon_width + tabs_width + menu_width + button_width > available:
+            show_menu = False
+        if isinstance(title, QLabel) and title.isVisible() != show_title:
+            title.setVisible(show_title)
+        if isinstance(menu, QMenuBar) and menu_width > 0 and menu.isVisible() != show_menu:
+            menu.setVisible(show_menu)
+        if isinstance(button, QToolButton):
+            show_button = not show_menu and menu_width > 0
+            if button.isVisible() != show_button:
+                button.setVisible(show_button)
+    finally:
+        setattr(window, _FITTING_ATTR, False)
+
+
 def _fit_caption_fonts(window: QWidget) -> None:
     tab_widget = getattr(window, "tabWidget", None)
     if isinstance(tab_widget, QTabWidget):
@@ -1118,6 +1196,30 @@ def _live_caption_hit_test(window: QWidget, local: QPoint) -> int:
     return caption_hit_test(local, window.size(), caption=caption, interactive=interactive, maximized=maximized)
 
 
+def _make_caption_menu_button(
+    window: QWidget,
+    controller: _Win11CaptionController,
+    parent: QWidget,
+) -> QToolButton:
+    """Build the hamburger that replaces the caption menu when it no longer fits."""
+    button = QToolButton(parent)
+    button.setObjectName(_MENU_BUTTON_NAME)
+    button.setFixedSize(CAPTION_BUTTON_HEIGHT, CAPTION_BUTTON_HEIGHT)
+    button.setAutoRaise(True)
+    button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+    button.setAutoFillBackground(False)
+    button.setToolTip("Menu")
+    button.setCursor(Qt.CursorShape.ArrowCursor)
+    button.setVisible(False)
+    apply_lucide_button_icon(button, "menu", icon_size=CAPTION_ICON_SIZE, color=_NAV_COLOR)
+    popup = QMenu(button)
+    popup.setObjectName("captionOverflowMenu")
+    popup.aboutToShow.connect(lambda: _fill_caption_overflow_menu(window, popup))
+    popup.aboutToHide.connect(controller.reset_button_hover)
+    button.clicked.connect(lambda: popup.popup(button.mapToGlobal(QPoint(0, button.height()))))
+    return button
+
+
 def _make_caption_button_row(
     parent: QWidget,
     controller: _Win11CaptionController,
@@ -1140,6 +1242,19 @@ def _make_caption_button_row(
         button.clicked.connect(slot)
         layout.addWidget(button)
     return row
+
+
+def _menu_bar_width(menu: QMenuBar) -> int:
+    """Return the width of the caption menu titles."""
+    actions = [action for action in menu.actions() if action.isVisible()]
+    if not actions:
+        return 0
+    metrics = QFontMetrics(menu.font())
+    estimated = 0
+    for action in actions:
+        label = action.text().replace("&", "")
+        estimated += metrics.horizontalAdvance(label) + _CAPTION_MENU_HPAD + _CAPTION_MENU_ARROW_PAD
+    return max(menu.sizeHint().width(), estimated)
 
 
 def _menu_glyph_center_y(menu: QMenuBar, rect: QRect) -> int:
@@ -1168,6 +1283,7 @@ def _move_tab_menu_beside_buttons(
     controller: _Win11CaptionController,
     *,
     light: bool,
+    window: QWidget,
 ) -> None:
     """Put the main menu on the right, immediately before the window buttons."""
     left = tab_widget.cornerWidget(Qt.Corner.TopLeftCorner)
@@ -1191,6 +1307,7 @@ def _move_tab_menu_beside_buttons(
         menu.setFixedHeight(CAPTION_BUTTON_HEIGHT)
         menu.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
         right_layout.addWidget(menu)
+        right_layout.addWidget(_make_caption_menu_button(window, controller, right))
     right_layout.addWidget(_make_caption_button_row(right, controller, light=light))
     tab_widget.setCornerWidget(right, Qt.Corner.TopRightCorner)
 
@@ -1470,6 +1587,26 @@ def _style_caption_chrome(window: QWidget) -> None:
         }}
         """
     )
+    button = window.findChild(QToolButton, _MENU_BUTTON_NAME)
+    if isinstance(button, QToolButton):
+        button.setStyleSheet(
+            f"QToolButton#{_MENU_BUTTON_NAME} {{ background: transparent; border: none; }}"
+            f"QToolButton#{_MENU_BUTTON_NAME}:hover {{ background: {hover}; }}"
+        )
+
+
+def _tab_strip_width(tab_widget: QWidget | None) -> int | None:
+    """Return the width of every tab, or `None` before the bar has been laid out."""
+    if not isinstance(tab_widget, QTabWidget) or tab_widget.count() == 0:
+        return 0
+    tab_bar = tab_widget.tabBar()
+    total = 0
+    for index in range(tab_bar.count()):
+        width = tab_bar.tabRect(index).width()
+        if width <= 0:
+            return None
+        total += width
+    return total
 
 
 def _svg_bytes(name: str, color: QColor) -> bytes | None:
