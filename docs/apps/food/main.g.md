@@ -2444,6 +2444,7 @@ class MainWindow(
         for i in range(food_log_header.count()):
             food_log_header.setSectionResizeMode(i, food_log_header.ResizeMode.Interactive)
         self._adjust_food_log_table_columns()
+        apply_food_log_day_spans(self.tableView_food_log)
 
     def _load_more_food_log(self) -> None:
         """Append the next page of food log records when scrolling to the bottom."""
@@ -2459,6 +2460,7 @@ class MainWindow(
             proxy = cast("QSortFilterProxyModel", self.models["food_log"])
             source_model = cast("QStandardItemModel", proxy.sourceModel())
             self._append_food_log_rows_to_model(source_model, transformed_data)
+            apply_food_log_day_spans(self.tableView_food_log)
 
         self._food_log_pagination.load_more(
             load_more_count=self.food_log_load_more_count,
@@ -3242,6 +3244,7 @@ class MainWindow(
 
         refresh_food_log_calorie_columns(source_model)
         self._apply_food_log_daily_total_colors(source_model)
+        apply_food_log_day_spans(self.tableView_food_log)
         self.tableView_food_log.viewport().update()
 
         if date_column_changed or edited_summary_day:
@@ -4682,6 +4685,7 @@ class MainWindow(
             for i in range(food_log_header.count()):
                 food_log_header.setSectionResizeMode(i, food_log_header.ResizeMode.Interactive)
             self._adjust_food_log_table_columns()
+            apply_food_log_day_spans(self.tableView_food_log)
             self._food_log_pagination.record_first_page(len(food_log_rows), None, pagination_enabled=False)
             self._connect_table_selection_signals()
             self._connect_table_auto_save_signals()

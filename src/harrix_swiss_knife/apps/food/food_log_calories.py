@@ -6,12 +6,24 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from PySide6.QtGui import QStandardItemModel
+    from PySide6.QtWidgets import QTableView
 
 FOOD_LOG_COL_WEIGHT = 2
 FOOD_LOG_COL_CALORIES = 3
 FOOD_LOG_COL_DATE = 4
 FOOD_LOG_COL_NAME_EN = 5
 FOOD_LOG_COL_TOTAL_PER_DAY = 6
+
+
+def apply_food_log_day_spans(view: QTableView) -> None:
+    """Merge the Total per day column so each calendar day is one cell."""
+    model = view.model()
+    view.clearSpans()
+    if model is None:
+        return
+    dates = [str(model.index(row, FOOD_LOG_COL_DATE).data() or "") for row in range(model.rowCount())]
+    for start, row_count in food_log_day_row_spans(dates):
+        view.setSpan(start, FOOD_LOG_COL_TOTAL_PER_DAY, row_count, 1)
 
 
 def calculate_food_log_calories(
@@ -89,6 +101,22 @@ def effective_calories_per_100g(
     if calories_per_100g is not None and calories_per_100g == 0:
         return 0.0
     return None
+
+
+def food_log_day_row_spans(dates: list[str]) -> list[tuple[int, int]]:
+    """Return `(start_row, row_count)` for days that occupy more than one row."""
+    spans: list[tuple[int, int]] = []
+    start = 0
+    row_count = len(dates)
+    while start < row_count:
+        day = dates[start]
+        end = start + 1
+        while end < row_count and day and dates[end] == day:
+            end += 1
+        if day and end - start > 1:
+            spans.append((start, end - start))
+        start = end
+    return spans
 
 
 def parse_food_log_number(value: object) -> float | None:

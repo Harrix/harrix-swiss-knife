@@ -341,31 +341,6 @@ class _CaptionEdgeLine(QWidget):
         self.update()
 
 
-class _CaptionTabLine(QObject):
-    """Draw the caption rule on the tab bar, open under the active tab."""
-
-    def __init__(self, tab_bar: QTabBar) -> None:
-        super().__init__(tab_bar)
-        self._painting = False
-        tab_bar.installEventFilter(self)
-        tab_bar.currentChanged.connect(tab_bar.update)
-
-    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
-        """Paint the tab bar, then the rule in the tab bar's own coordinates."""
-        if event.type() != QEvent.Type.Paint or not isinstance(watched, QTabBar) or self._painting:
-            return False
-        if not isinstance(event, QPaintEvent):
-            return False
-        self._painting = True
-        try:
-            watched.paintEvent(event)
-        finally:
-            self._painting = False
-        if watched.count() > 0:
-            _paint_tab_bar_line(watched)
-        return True
-
-
 class _CaptionIconButton(QToolButton):
     """App icon at the left of the caption. Click opens the system menu."""
 
@@ -410,6 +385,31 @@ class _CaptionMenuChevron(QObject):
         finally:
             self._painting = False
         _paint_menu_chevrons(watched)
+        return True
+
+
+class _CaptionTabLine(QObject):
+    """Draw the caption rule on the tab bar, open under the active tab."""
+
+    def __init__(self, tab_bar: QTabBar) -> None:
+        super().__init__(tab_bar)
+        self._painting = False
+        tab_bar.installEventFilter(self)
+        tab_bar.currentChanged.connect(tab_bar.update)
+
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
+        """Paint the tab bar, then the rule in the tab bar's own coordinates."""
+        if event.type() != QEvent.Type.Paint or not isinstance(watched, QTabBar) or self._painting:
+            return False
+        if not isinstance(event, QPaintEvent):
+            return False
+        self._painting = True
+        try:
+            watched.paintEvent(event)
+        finally:
+            self._painting = False
+        if watched.count() > 0:
+            _paint_tab_bar_line(watched)
         return True
 
 
@@ -674,23 +674,6 @@ def write_nccalcsize_client_rect(address: int, left: int, top: int, right: int, 
     ctypes.memmove(address, ctypes.byref(rect), ctypes.sizeof(rect))
 
 
-def _paint_tab_bar_line(tab_bar: QTabBar) -> None:
-    """Draw the rule across the tab bar, leaving the active tab's bottom open."""
-    painter = QPainter(tab_bar)
-    color = QColor(_TAB_LINE_COLOR)
-    y = tab_bar.height() - 1
-    painter.fillRect(0, y, tab_bar.width(), 1, color)
-    index = tab_bar.currentIndex()
-    if index < 0:
-        return
-    rect = tab_bar.tabRect(index)
-    opening = rect.width() - 2
-    if opening <= 0:
-        return
-    fill = tab_bar.palette().color(QPalette.ColorRole.Window)
-    painter.fillRect(rect.x() + 1, y, opening, 1, fill)
-
-
 def _apply_caption_title_style(label: QLabel) -> None:
     rule = (
         f"QLabel#captionTitleLabel {{ color: {_TITLE_COLOR}; background: transparent; "
@@ -844,6 +827,17 @@ def _build_menu_caption(
     window.setMenuWidget(host)
 
 
+def _caption_available_width(window: QWidget) -> int:
+    """Return the width the caption row can use."""
+    host = _caption_host(window)
+    if host is not None and host.width() > 0:
+        return host.width()
+    tab_widget = getattr(window, "tabWidget", None)
+    if isinstance(tab_widget, QTabWidget) and tab_widget.width() > 0:
+        return tab_widget.width()
+    return window.width()
+
+
 def _caption_buttons(window: QWidget) -> list[CaptionButton]:
     cached = getattr(window, _BUTTONS_ATTR, None)
     if isinstance(cached, list):
@@ -910,6 +904,14 @@ def _caption_title_parent(window: QWidget) -> QWidget | None:
             return corner
         return tab_widget
     return _caption_host(window)
+
+
+def _caption_title_width(label: QLabel) -> int:
+    """Return the title width, including the caption padding."""
+    text = label.text()
+    if not text:
+        return 0
+    return QFontMetrics(label.font()).horizontalAdvance(text) + 14
 
 
 def _clear_caption_button_hover(window: QWidget) -> None:
@@ -1006,32 +1008,6 @@ def _extend_frame_for_shadow(hwnd: int) -> None:
     _dwmapi().DwmExtendFrameIntoClientArea(hwnd, ctypes.byref(margins))
 
 
-def _fill_widget(widget: QWidget, color: QColor) -> None:
-    palette = widget.palette()
-    palette.setColor(QPalette.ColorRole.Window, color)
-    widget.setPalette(palette)
-    widget.setAutoFillBackground(True)
-
-
-def _caption_available_width(window: QWidget) -> int:
-    """Return the width the caption row can use."""
-    host = _caption_host(window)
-    if host is not None and host.width() > 0:
-        return host.width()
-    tab_widget = getattr(window, "tabWidget", None)
-    if isinstance(tab_widget, QTabWidget) and tab_widget.width() > 0:
-        return tab_widget.width()
-    return window.width()
-
-
-def _caption_title_width(label: QLabel) -> int:
-    """Return the title width, including the caption padding."""
-    text = label.text()
-    if not text:
-        return 0
-    return QFontMetrics(label.font()).horizontalAdvance(text) + 14
-
-
 def _fill_caption_overflow_menu(window: QWidget, popup: QMenu) -> None:
     """Copy the caption menu bar into the hamburger popup."""
     popup.clear()
@@ -1040,6 +1016,29 @@ def _fill_caption_overflow_menu(window: QWidget, popup: QMenu) -> None:
         return
     for action in menu.actions():
         popup.addAction(action)
+
+
+def _fill_widget(widget: QWidget, color: QColor) -> None:
+    palette = widget.palette()
+    palette.setColor(QPalette.ColorRole.Window, color)
+    widget.setPalette(palette)
+    widget.setAutoFillBackground(True)
+
+
+def _fit_caption_fonts(window: QWidget) -> None:
+    tab_widget = getattr(window, "tabWidget", None)
+    if isinstance(tab_widget, QTabWidget):
+        _fit_widget_font(tab_widget.tabBar(), CAPTION_BUTTON_HEIGHT - _CAPTION_FONT_SLACK)
+    menu = resolve_window_menu_bar(window)
+    if menu is not None:
+        menu.setFixedHeight(CAPTION_BUTTON_HEIGHT)
+        _fit_widget_font(menu, CAPTION_BUTTON_HEIGHT - _CAPTION_FONT_SLACK)
+    label = getattr(window, _TITLE_ATTR, None)
+    if isinstance(label, QLabel):
+        font = QFont(window.font())
+        font.setBold(True)
+        label.setFont(font)
+        _fit_widget_font(label, CAPTION_BUTTON_HEIGHT - _CAPTION_FONT_SLACK)
 
 
 def _fit_caption_overflow(window: QWidget) -> None:
@@ -1081,22 +1080,6 @@ def _fit_caption_overflow(window: QWidget) -> None:
                 button.setVisible(show_button)
     finally:
         setattr(window, _FITTING_ATTR, False)
-
-
-def _fit_caption_fonts(window: QWidget) -> None:
-    tab_widget = getattr(window, "tabWidget", None)
-    if isinstance(tab_widget, QTabWidget):
-        _fit_widget_font(tab_widget.tabBar(), CAPTION_BUTTON_HEIGHT - _CAPTION_FONT_SLACK)
-    menu = resolve_window_menu_bar(window)
-    if menu is not None:
-        menu.setFixedHeight(CAPTION_BUTTON_HEIGHT)
-        _fit_widget_font(menu, CAPTION_BUTTON_HEIGHT - _CAPTION_FONT_SLACK)
-    label = getattr(window, _TITLE_ATTR, None)
-    if isinstance(label, QLabel):
-        font = QFont(window.font())
-        font.setBold(True)
-        label.setFont(font)
-        _fit_widget_font(label, CAPTION_BUTTON_HEIGHT - _CAPTION_FONT_SLACK)
 
 
 def _fit_widget_font(widget: QWidget, max_height: int) -> None:
@@ -1197,30 +1180,6 @@ def _live_caption_hit_test(window: QWidget, local: QPoint) -> int:
     return caption_hit_test(local, window.size(), caption=caption, interactive=interactive, maximized=maximized)
 
 
-def _make_caption_menu_button(
-    window: QWidget,
-    controller: _Win11CaptionController,
-    parent: QWidget,
-) -> QToolButton:
-    """Build the hamburger that replaces the caption menu when it no longer fits."""
-    button = QToolButton(parent)
-    button.setObjectName(_MENU_BUTTON_NAME)
-    button.setFixedSize(CAPTION_BUTTON_HEIGHT, CAPTION_BUTTON_HEIGHT)
-    button.setAutoRaise(True)
-    button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-    button.setAutoFillBackground(False)
-    button.setToolTip("Menu")
-    button.setCursor(Qt.CursorShape.ArrowCursor)
-    button.setVisible(False)
-    apply_lucide_button_icon(button, "menu", icon_size=CAPTION_ICON_SIZE, color=_NAV_COLOR)
-    popup = QMenu(button)
-    popup.setObjectName("captionOverflowMenu")
-    popup.aboutToShow.connect(lambda: _fill_caption_overflow_menu(window, popup))
-    popup.aboutToHide.connect(controller.reset_button_hover)
-    button.clicked.connect(lambda: popup.popup(button.mapToGlobal(QPoint(0, button.height()))))
-    return button
-
-
 def _make_caption_button_row(
     parent: QWidget,
     controller: _Win11CaptionController,
@@ -1243,6 +1202,30 @@ def _make_caption_button_row(
         button.clicked.connect(slot)
         layout.addWidget(button)
     return row
+
+
+def _make_caption_menu_button(
+    window: QWidget,
+    controller: _Win11CaptionController,
+    parent: QWidget,
+) -> QToolButton:
+    """Build the hamburger that replaces the caption menu when it no longer fits."""
+    button = QToolButton(parent)
+    button.setObjectName(_MENU_BUTTON_NAME)
+    button.setFixedSize(CAPTION_BUTTON_HEIGHT, CAPTION_BUTTON_HEIGHT)
+    button.setAutoRaise(True)
+    button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+    button.setAutoFillBackground(False)
+    button.setToolTip("Menu")
+    button.setCursor(Qt.CursorShape.ArrowCursor)
+    button.setVisible(False)
+    apply_lucide_button_icon(button, "menu", icon_size=CAPTION_ICON_SIZE, color=_NAV_COLOR)
+    popup = QMenu(button)
+    popup.setObjectName("captionOverflowMenu")
+    popup.aboutToShow.connect(lambda: _fill_caption_overflow_menu(window, popup))
+    popup.aboutToHide.connect(controller.reset_button_hover)
+    button.clicked.connect(lambda: popup.popup(button.mapToGlobal(QPoint(0, button.height()))))
+    return button
 
 
 def _menu_bar_width(menu: QMenuBar) -> int:
@@ -1372,6 +1355,23 @@ def _paint_menu_chevrons(menu: QMenuBar) -> None:
             ]
         )
     painter.end()
+
+
+def _paint_tab_bar_line(tab_bar: QTabBar) -> None:
+    """Draw the rule across the tab bar, leaving the active tab's bottom open."""
+    painter = QPainter(tab_bar)
+    color = QColor(_TAB_LINE_COLOR)
+    y = tab_bar.height() - 1
+    painter.fillRect(0, y, tab_bar.width(), 1, color)
+    index = tab_bar.currentIndex()
+    if index < 0:
+        return
+    rect = tab_bar.tabRect(index)
+    opening = rect.width() - 2
+    if opening <= 0:
+        return
+    fill = tab_bar.palette().color(QPalette.ColorRole.Window)
+    painter.fillRect(rect.x() + 1, y, opening, 1, fill)
 
 
 def _palette_is_light(window: QWidget) -> bool:
@@ -1596,20 +1596,6 @@ def _style_caption_chrome(window: QWidget) -> None:
         )
 
 
-def _tab_strip_width(tab_widget: QWidget | None) -> int | None:
-    """Return the width of every tab, or `None` before the bar has been laid out."""
-    if not isinstance(tab_widget, QTabWidget) or tab_widget.count() == 0:
-        return 0
-    tab_bar = tab_widget.tabBar()
-    total = 0
-    for index in range(tab_bar.count()):
-        width = tab_bar.tabRect(index).width()
-        if width <= 0:
-            return None
-        total += width
-    return total
-
-
 def _svg_bytes(name: str, color: QColor) -> bytes | None:
     stem = _GLYPH_FILES.get(name)
     if stem is None:
@@ -1696,6 +1682,20 @@ def _sync_zoom_glyph(window: QWidget) -> None:
     button = window.findChild(CaptionButton, "captionMaximizeButton")
     if isinstance(button, CaptionButton):
         button.set_glyph("square_multiple" if _window_is_zoomed(window) else "maximize")
+
+
+def _tab_strip_width(tab_widget: QWidget | None) -> int | None:
+    """Return the width of every tab, or `None` before the bar has been laid out."""
+    if not isinstance(tab_widget, QTabWidget) or tab_widget.count() == 0:
+        return 0
+    tab_bar = tab_widget.tabBar()
+    total = 0
+    for index in range(tab_bar.count()):
+        width = tab_bar.tabRect(index).width()
+        if width <= 0:
+            return None
+        total += width
+    return total
 
 
 def _user32() -> ctypes.WinDLL:

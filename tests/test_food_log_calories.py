@@ -4,14 +4,17 @@ from __future__ import annotations
 
 import pytest
 from PySide6.QtGui import QStandardItem, QStandardItemModel
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QTableView
 
 from harrix_swiss_knife.apps.food.food_log_calories import (
+    FOOD_LOG_COL_DATE,
     FOOD_LOG_COL_TOTAL_PER_DAY,
     FOOD_LOG_COL_WEIGHT,
+    apply_food_log_day_spans,
     calculate_food_log_calories,
     convert_calories_per_100g_to_portion,
     convert_portion_to_calories_per_100g,
+    food_log_day_row_spans,
     parse_food_log_number,
     refresh_food_log_calorie_columns,
 )
@@ -70,6 +73,42 @@ def test_refresh_food_log_calorie_columns_updates_day_total(qapp: QApplication) 
     assert model.item(0, FOOD_LOG_COL_TOTAL_PER_DAY).text() == "130.0"
     assert model.item(1, FOOD_LOG_COL_TOTAL_PER_DAY).text() == ""
     assert totals["2026-08-24"] == 10.0
+
+
+def test_food_log_day_row_spans_groups_consecutive_days() -> None:
+    dates = ["2026-08-25", "2026-08-25", "2026-08-24", "2026-08-24", "2026-08-24", "2026-08-23"]
+    assert food_log_day_row_spans(dates) == [(0, 2), (2, 3)]
+    assert food_log_day_row_spans(["2026-08-25"]) == []
+    assert food_log_day_row_spans(["", ""]) == []
+
+
+def test_apply_food_log_day_spans_merges_total_column(qapp: QApplication) -> None:  # noqa: ARG001
+    model = QStandardItemModel()
+    model.setColumnCount(7)
+    for date, total in (
+        ("2026-08-25", "130.0"),
+        ("2026-08-25", ""),
+        ("2026-08-24", "10.0"),
+        ("2026-08-24", ""),
+        ("2026-08-24", ""),
+    ):
+        row = [_item("") for _ in range(7)]
+        row[FOOD_LOG_COL_DATE].setText(date)
+        row[FOOD_LOG_COL_TOTAL_PER_DAY].setText(total)
+        model.appendRow(row)
+
+    view = QTableView()
+    view.setModel(model)
+    apply_food_log_day_spans(view)
+
+    assert view.rowSpan(0, FOOD_LOG_COL_TOTAL_PER_DAY) == 2
+    assert view.rowSpan(2, FOOD_LOG_COL_TOTAL_PER_DAY) == 3
+
+    model.item(2, FOOD_LOG_COL_DATE).setText("2026-08-23")
+    apply_food_log_day_spans(view)
+    assert view.rowSpan(0, FOOD_LOG_COL_TOTAL_PER_DAY) == 2
+    assert view.rowSpan(2, FOOD_LOG_COL_TOTAL_PER_DAY) == 1
+    assert view.rowSpan(3, FOOD_LOG_COL_TOTAL_PER_DAY) == 2
 
 
 def _item(value: str) -> QStandardItem:

@@ -11,12 +11,38 @@ lang: en
 
 ## Contents
 
+- [🔧 Function `apply_food_log_day_spans`](#-function-apply_food_log_day_spans)
 - [🔧 Function `calculate_food_log_calories`](#-function-calculate_food_log_calories)
 - [🔧 Function `convert_calories_per_100g_to_portion`](#-function-convert_calories_per_100g_to_portion)
 - [🔧 Function `convert_portion_to_calories_per_100g`](#-function-convert_portion_to_calories_per_100g)
 - [🔧 Function `effective_calories_per_100g`](#-function-effective_calories_per_100g)
+- [🔧 Function `food_log_day_row_spans`](#-function-food_log_day_row_spans)
 - [🔧 Function `parse_food_log_number`](#-function-parse_food_log_number)
 - [🔧 Function `refresh_food_log_calorie_columns`](#-function-refresh_food_log_calorie_columns)
+
+</details>
+
+## 🔧 Function `apply_food_log_day_spans`
+
+```python
+def apply_food_log_day_spans(view: QTableView) -> None
+```
+
+Merge the Total per day column so each calendar day is one cell.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def apply_food_log_day_spans(view: QTableView) -> None:
+    model = view.model()
+    view.clearSpans()
+    if model is None:
+        return
+    dates = [str(model.index(row, FOOD_LOG_COL_DATE).data() or "") for row in range(model.rowCount())]
+    for start, row_count in food_log_day_row_spans(dates):
+        view.setSpan(start, FOOD_LOG_COL_TOTAL_PER_DAY, row_count, 1)
+```
 
 </details>
 
@@ -139,6 +165,35 @@ def effective_calories_per_100g(
     if calories_per_100g is not None and calories_per_100g == 0:
         return 0.0
     return None
+```
+
+</details>
+
+## 🔧 Function `food_log_day_row_spans`
+
+```python
+def food_log_day_row_spans(dates: list[str]) -> list[tuple[int, int]]
+```
+
+Return `(start_row, row_count)` for days that occupy more than one row.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def food_log_day_row_spans(dates: list[str]) -> list[tuple[int, int]]:
+    spans: list[tuple[int, int]] = []
+    start = 0
+    row_count = len(dates)
+    while start < row_count:
+        day = dates[start]
+        end = start + 1
+        while end < row_count and day and dates[end] == day:
+            end += 1
+        if day and end - start > 1:
+            spans.append((start, end - start))
+        start = end
+    return spans
 ```
 
 </details>
