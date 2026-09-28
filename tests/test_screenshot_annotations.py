@@ -401,9 +401,9 @@ def test_blur_softens_pixels_inside_and_keeps_outside() -> None:
 
 @pytest.mark.usefixtures("qapp")
 def test_blur_follows_the_rectangle_instead_of_a_baked_patch() -> None:
-    image = _blank(100, 60)
+    image = _blank(200, 80)
     painter = QPainter(image)
-    painter.fillRect(40, 20, 20, 20, QColor(0, 0, 0))
+    painter.fillRect(140, 30, 20, 20, QColor(0, 0, 0))
     painter.end()
     doc = AnnotationDocument(image)
     doc.begin_draft(
@@ -415,10 +415,10 @@ def test_blur_follows_the_rectangle_instead_of_a_baked_patch() -> None:
     )
     assert doc.commit_draft()
     moved = doc.render(include_draft=False).pixelColor(14, 14)
-    assert moved.red() > 250
-    doc.annotations[0].points = [QPointF(30, 10), QPointF(70, 50)]
+    assert moved.red() == 255
+    doc.annotations[0].points = [QPointF(130, 20), QPointF(170, 60)]
     rendered = doc.render(include_draft=False)
-    assert rendered.pixelColor(50, 30).red() > 20
+    assert rendered.pixelColor(150, 40).red() > 20
     assert rendered.pixelColor(14, 14).red() == 255
 
 

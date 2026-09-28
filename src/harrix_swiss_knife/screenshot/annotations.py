@@ -26,8 +26,8 @@ _MIN_DRAG_MANHATTAN = 3
 _SHIFT_ANGLE_STEP = math.pi / 4
 _HIGHLIGHT_ALPHA = 96
 # ShareX blur tool: a rectangle that gaussian-blurs the pixels underneath.
-_BLUR_RADIUS = 15.0
-_BLUR_PAD_FACTOR = 2
+_BLUR_RADIUS = 40.0
+_BLUR_PAD_FACTOR = 3
 
 
 @dataclass(slots=True)
