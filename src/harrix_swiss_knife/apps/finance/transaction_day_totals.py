@@ -19,14 +19,14 @@ TRANSACTION_COL_CURRENCY = 4
 TRANSACTION_COL_DATE = 5
 TRANSACTION_COL_TOTAL_PER_DAY = 7
 _INCOME_MARKER = "(Income)"
-_TOTAL_ALIGN_TOP = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop
-_TOTAL_ALIGN_MIDDLE = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+_TOTAL_ALIGN_TOP = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop
+_TOTAL_ALIGN_MIDDLE = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
 
 
 def apply_transaction_day_spans(view: QTableView) -> None:
     """Merge the Total per day column so each calendar day is one cell.
 
-    The day's total stays right-aligned and sits at the top of the merged cell.
+    The day's total sits at the left and at the top of the merged cell.
 
     """
     model = view.model()

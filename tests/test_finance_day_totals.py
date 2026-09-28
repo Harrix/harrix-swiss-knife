@@ -178,7 +178,7 @@ def test_apply_transaction_day_spans_merges_total_column(qapp: QApplication) -> 
     assert view.rowSpan(2, TRANSACTION_COL_TOTAL_PER_DAY) == 3
     assert _vertical_alignment(model, 0) == Qt.AlignmentFlag.AlignTop
     assert _vertical_alignment(model, 2) == Qt.AlignmentFlag.AlignTop
-    assert _horizontal_alignment(model, 0) == Qt.AlignmentFlag.AlignRight
+    assert _horizontal_alignment(model, 0) == Qt.AlignmentFlag.AlignLeft
 
     model.item(2, TRANSACTION_COL_DATE).setText("2026-08-23")
     apply_transaction_day_spans(view)
@@ -190,14 +190,14 @@ def test_apply_transaction_day_spans_merges_total_column(qapp: QApplication) -> 
     assert _vertical_alignment(model, 3) == Qt.AlignmentFlag.AlignTop
 
 
-def test_total_per_day_alignment_defaults_to_right_center() -> None:
+def test_total_per_day_alignment_defaults_to_left_center() -> None:
     default = _total_per_day_alignment(None)
     assert (default & Qt.AlignmentFlag.AlignVertical_Mask) == Qt.AlignmentFlag.AlignVCenter
-    assert (default & Qt.AlignmentFlag.AlignHorizontal_Mask) == Qt.AlignmentFlag.AlignRight
-    stored = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop
+    assert (default & Qt.AlignmentFlag.AlignHorizontal_Mask) == Qt.AlignmentFlag.AlignLeft
+    stored = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop
     aligned = _total_per_day_alignment(stored)
     assert (aligned & Qt.AlignmentFlag.AlignVertical_Mask) == Qt.AlignmentFlag.AlignTop
-    assert (aligned & Qt.AlignmentFlag.AlignHorizontal_Mask) == Qt.AlignmentFlag.AlignRight
+    assert (aligned & Qt.AlignmentFlag.AlignHorizontal_Mask) == Qt.AlignmentFlag.AlignLeft
 
 
 def _horizontal_alignment(model: QStandardItemModel, row: int) -> Qt.AlignmentFlag:

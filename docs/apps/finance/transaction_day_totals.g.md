@@ -32,7 +32,7 @@ def apply_transaction_day_spans(view: QTableView) -> None
 
 Merge the Total per day column so each calendar day is one cell.
 
-The day's total stays right-aligned and sits at the top of the merged cell.
+The day's total sits at the left and at the top of the merged cell.
 
 <details>
 <summary>Code:</summary>

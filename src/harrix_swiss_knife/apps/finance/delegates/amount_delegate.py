@@ -304,8 +304,8 @@ class AmountDelegate(QStyledItemDelegate):
 
 
 def _total_per_day_alignment(stored: object) -> Qt.AlignmentFlag:
-    """Use the cell alignment, keeping totals right-aligned and centered by default."""
-    default = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+    """Use the cell alignment, keeping totals left-aligned and centered by default."""
+    default = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
     if isinstance(stored, Qt.AlignmentFlag):
         flags = stored
     elif isinstance(stored, int) and not isinstance(stored, bool) and stored != 0:
@@ -313,7 +313,7 @@ def _total_per_day_alignment(stored: object) -> Qt.AlignmentFlag:
     else:
         return default
     if not (flags & Qt.AlignmentFlag.AlignHorizontal_Mask):
-        flags |= Qt.AlignmentFlag.AlignRight
+        flags |= Qt.AlignmentFlag.AlignLeft
     if not (flags & Qt.AlignmentFlag.AlignVertical_Mask):
         flags |= Qt.AlignmentFlag.AlignVCenter
     return flags
