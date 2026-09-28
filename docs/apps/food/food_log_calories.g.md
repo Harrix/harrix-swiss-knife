@@ -30,6 +30,8 @@ def apply_food_log_day_spans(view: QTableView) -> None
 
 Merge the Total per day column so each calendar day is one cell.
 
+The day's total is aligned to the top of the merged cell.
+
 <details>
 <summary>Code:</summary>
 
@@ -40,8 +42,24 @@ def apply_food_log_day_spans(view: QTableView) -> None:
     if model is None:
         return
     dates = [str(model.index(row, FOOD_LOG_COL_DATE).data() or "") for row in range(model.rowCount())]
-    for start, row_count in food_log_day_row_spans(dates):
-        view.setSpan(start, FOOD_LOG_COL_TOTAL_PER_DAY, row_count, 1)
+    spans = food_log_day_row_spans(dates)
+    span_starts = {start for start, _row_count in spans}
+    source = _food_log_source_model(model)
+    if source is not None:
+        source.blockSignals(True)  # noqa: FBT003
+    try:
+        for row in range(model.rowCount()):
+            item = _food_log_total_item(model, row)
+            if item is None:
+                continue
+            alignment = _TOTAL_ALIGN_TOP if row in span_starts else _TOTAL_ALIGN_MIDDLE
+            if item.textAlignment() != alignment:
+                item.setTextAlignment(alignment)
+        for start, row_count in spans:
+            view.setSpan(start, FOOD_LOG_COL_TOTAL_PER_DAY, row_count, 1)
+    finally:
+        if source is not None:
+            source.blockSignals(False)  # noqa: FBT003
 ```
 
 </details>

@@ -4,8 +4,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QStandardItem, QStandardItemModel
+
 if TYPE_CHECKING:
-    from PySide6.QtGui import QStandardItemModel
     from PySide6.QtWidgets import QTableView
 
 FOOD_LOG_COL_WEIGHT = 2
@@ -14,16 +16,39 @@ FOOD_LOG_COL_DATE = 4
 FOOD_LOG_COL_NAME_EN = 5
 FOOD_LOG_COL_TOTAL_PER_DAY = 6
 
+_TOTAL_ALIGN_TOP = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop
+_TOTAL_ALIGN_MIDDLE = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+
 
 def apply_food_log_day_spans(view: QTableView) -> None:
-    """Merge the Total per day column so each calendar day is one cell."""
+    """Merge the Total per day column so each calendar day is one cell.
+
+    The day's total is aligned to the top of the merged cell.
+
+    """
     model = view.model()
     view.clearSpans()
     if model is None:
         return
     dates = [str(model.index(row, FOOD_LOG_COL_DATE).data() or "") for row in range(model.rowCount())]
-    for start, row_count in food_log_day_row_spans(dates):
-        view.setSpan(start, FOOD_LOG_COL_TOTAL_PER_DAY, row_count, 1)
+    spans = food_log_day_row_spans(dates)
+    span_starts = {start for start, _row_count in spans}
+    source = _food_log_source_model(model)
+    if source is not None:
+        source.blockSignals(True)  # noqa: FBT003
+    try:
+        for row in range(model.rowCount()):
+            item = _food_log_total_item(model, row)
+            if item is None:
+                continue
+            alignment = _TOTAL_ALIGN_TOP if row in span_starts else _TOTAL_ALIGN_MIDDLE
+            if item.textAlignment() != alignment:
+                item.setTextAlignment(alignment)
+        for start, row_count in spans:
+            view.setSpan(start, FOOD_LOG_COL_TOTAL_PER_DAY, row_count, 1)
+    finally:
+        if source is not None:
+            source.blockSignals(False)  # noqa: FBT003
 
 
 def calculate_food_log_calories(
@@ -185,6 +210,37 @@ def refresh_food_log_calorie_columns(model: QStandardItemModel) -> dict[str, flo
         model.blockSignals(False)  # noqa: FBT003
 
     return totals
+
+
+def _food_log_source_model(model: object) -> QStandardItemModel | None:
+    source_fn = getattr(model, "sourceModel", None)
+    if callable(source_fn):
+        source = source_fn()
+        if isinstance(source, QStandardItemModel):
+            return source
+    if isinstance(model, QStandardItemModel):
+        return model
+    return None
+
+
+def _food_log_total_item(model: object, row: int) -> QStandardItem | None:
+    index_fn = getattr(model, "index", None)
+    if not callable(index_fn):
+        return None
+    index = index_fn(row, FOOD_LOG_COL_TOTAL_PER_DAY)
+    item_model = model
+    item_row = row
+    map_fn = getattr(model, "mapToSource", None)
+    source_fn = getattr(model, "sourceModel", None)
+    if callable(map_fn) and callable(source_fn):
+        mapped = map_fn(index)
+        source = source_fn()
+        if isinstance(source, QStandardItemModel) and mapped.isValid():
+            item_model = source
+            item_row = mapped.row()
+    if not isinstance(item_model, QStandardItemModel):
+        return None
+    return item_model.item(item_row, FOOD_LOG_COL_TOTAL_PER_DAY)
 
 
 def _item_text(model: QStandardItemModel, row: int, column: int) -> str:

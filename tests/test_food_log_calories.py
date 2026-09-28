@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import QApplication, QTableView
 
@@ -103,13 +104,24 @@ def test_apply_food_log_day_spans_merges_total_column(qapp: QApplication) -> Non
 
     assert view.rowSpan(0, FOOD_LOG_COL_TOTAL_PER_DAY) == 2
     assert view.rowSpan(2, FOOD_LOG_COL_TOTAL_PER_DAY) == 3
+    assert _vertical_alignment(model, 0) == Qt.AlignmentFlag.AlignTop
+    assert _vertical_alignment(model, 2) == Qt.AlignmentFlag.AlignTop
 
     model.item(2, FOOD_LOG_COL_DATE).setText("2026-08-23")
     apply_food_log_day_spans(view)
     assert view.rowSpan(0, FOOD_LOG_COL_TOTAL_PER_DAY) == 2
     assert view.rowSpan(2, FOOD_LOG_COL_TOTAL_PER_DAY) == 1
     assert view.rowSpan(3, FOOD_LOG_COL_TOTAL_PER_DAY) == 2
+    assert _vertical_alignment(model, 0) == Qt.AlignmentFlag.AlignTop
+    assert _vertical_alignment(model, 2) == Qt.AlignmentFlag.AlignVCenter
+    assert _vertical_alignment(model, 3) == Qt.AlignmentFlag.AlignTop
 
 
 def _item(value: str) -> QStandardItem:
     return QStandardItem(value)
+
+
+def _vertical_alignment(model: QStandardItemModel, row: int) -> Qt.AlignmentFlag:
+    item = model.item(row, FOOD_LOG_COL_TOTAL_PER_DAY)
+    assert item is not None
+    return item.textAlignment() & Qt.AlignmentFlag.AlignVertical_Mask
