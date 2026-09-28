@@ -185,11 +185,17 @@ class AmountDelegate(QStyledItemDelegate):
                             currency_symbol = currency_info[2]
                 amount_text = self.displayText(raw_value, QLocale())
                 display_text = f"{amount_text}{currency_symbol}"
+                alignment = _total_per_day_alignment(index.data(Qt.ItemDataRole.TextAlignmentRole))
                 painter.save()
+                if alignment & Qt.AlignmentFlag.AlignTop:
+                    brush = index.data(Qt.ItemDataRole.BackgroundRole)
+                    if isinstance(brush, QBrush):
+                        painter.fillRect(option.rect, brush)
                 painter.setFont(option.font)
+                top_pad = 3 if alignment & Qt.AlignmentFlag.AlignTop else 0
                 painter.drawText(
-                    option.rect.adjusted(5, 0, -5, 0),
-                    Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight,
+                    option.rect.adjusted(5, top_pad, -5, 0),
+                    alignment,
                     display_text,
                 )
                 painter.restore()
@@ -506,11 +512,17 @@ def paint(
                             currency_symbol = currency_info[2]
                 amount_text = self.displayText(raw_value, QLocale())
                 display_text = f"{amount_text}{currency_symbol}"
+                alignment = _total_per_day_alignment(index.data(Qt.ItemDataRole.TextAlignmentRole))
                 painter.save()
+                if alignment & Qt.AlignmentFlag.AlignTop:
+                    brush = index.data(Qt.ItemDataRole.BackgroundRole)
+                    if isinstance(brush, QBrush):
+                        painter.fillRect(option.rect, brush)
                 painter.setFont(option.font)
+                top_pad = 3 if alignment & Qt.AlignmentFlag.AlignTop else 0
                 painter.drawText(
-                    option.rect.adjusted(5, 0, -5, 0),
-                    Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight,
+                    option.rect.adjusted(5, top_pad, -5, 0),
+                    alignment,
                     display_text,
                 )
                 painter.restore()

@@ -4,11 +4,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QStandardItem, QStandardItemModel
+
 from harrix_swiss_knife.apps.finance.number_utils import clean_number_text, format_amount
 from harrix_swiss_knife.apps.finance.transaction_helpers import convert_currency_amount
 
 if TYPE_CHECKING:
-    from PySide6.QtGui import QStandardItemModel
+    from PySide6.QtWidgets import QTableView
 
 TRANSACTION_COL_AMOUNT = 2
 TRANSACTION_COL_CATEGORY = 3
@@ -16,6 +19,39 @@ TRANSACTION_COL_CURRENCY = 4
 TRANSACTION_COL_DATE = 5
 TRANSACTION_COL_TOTAL_PER_DAY = 7
 _INCOME_MARKER = "(Income)"
+_TOTAL_ALIGN_TOP = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop
+_TOTAL_ALIGN_MIDDLE = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+
+
+def apply_transaction_day_spans(view: QTableView) -> None:
+    """Merge the Total per day column so each calendar day is one cell.
+
+    The day's total stays right-aligned and sits at the top of the merged cell.
+
+    """
+    model = view.model()
+    view.clearSpans()
+    if model is None:
+        return
+    dates = [str(model.index(row, TRANSACTION_COL_DATE).data() or "") for row in range(model.rowCount())]
+    spans = transaction_day_row_spans(dates)
+    span_starts = {start for start, _row_count in spans}
+    source = _transaction_source_model(model)
+    if source is not None:
+        source.blockSignals(True)  # noqa: FBT003
+    try:
+        for row in range(model.rowCount()):
+            item = _transaction_total_item(model, row)
+            if item is None:
+                continue
+            alignment = _TOTAL_ALIGN_TOP if row in span_starts else _TOTAL_ALIGN_MIDDLE
+            if item.textAlignment() != alignment:
+                item.setTextAlignment(alignment)
+        for start, row_count in spans:
+            view.setSpan(start, TRANSACTION_COL_TOTAL_PER_DAY, row_count, 1)
+    finally:
+        if source is not None:
+            source.blockSignals(False)  # noqa: FBT003
 
 
 def expense_in_default_currency(
@@ -234,6 +270,22 @@ def sum_transaction_rows_in_default_currency(
     return count, total
 
 
+def transaction_day_row_spans(dates: list[str]) -> list[tuple[int, int]]:
+    """Return `(start_row, row_count)` for days that occupy more than one row."""
+    spans: list[tuple[int, int]] = []
+    start = 0
+    row_count = len(dates)
+    while start < row_count:
+        day = dates[start]
+        end = start + 1
+        while end < row_count and day and dates[end] == day:
+            end += 1
+        if day and end - start > 1:
+            spans.append((start, end - start))
+        start = end
+    return spans
+
+
 def _item_text(model: QStandardItemModel, row: int, column: int) -> str:
     item = model.item(row, column)
     return item.text() if item is not None else ""
@@ -243,3 +295,34 @@ def _set_item_text(model: QStandardItemModel, row: int, column: int, text: str) 
     item = model.item(row, column)
     if item is not None:
         item.setText(text)
+
+
+def _transaction_source_model(model: object) -> QStandardItemModel | None:
+    source_fn = getattr(model, "sourceModel", None)
+    if callable(source_fn):
+        source = source_fn()
+        if isinstance(source, QStandardItemModel):
+            return source
+    if isinstance(model, QStandardItemModel):
+        return model
+    return None
+
+
+def _transaction_total_item(model: object, row: int) -> QStandardItem | None:
+    index_fn = getattr(model, "index", None)
+    if not callable(index_fn):
+        return None
+    index = index_fn(row, TRANSACTION_COL_TOTAL_PER_DAY)
+    item_model = model
+    item_row = row
+    map_fn = getattr(model, "mapToSource", None)
+    source_fn = getattr(model, "sourceModel", None)
+    if callable(map_fn) and callable(source_fn):
+        mapped = map_fn(index)
+        source = source_fn()
+        if isinstance(source, QStandardItemModel) and mapped.isValid():
+            item_model = source
+            item_row = mapped.row()
+    if not isinstance(item_model, QStandardItemModel):
+        return None
+    return item_model.item(item_row, TRANSACTION_COL_TOTAL_PER_DAY)

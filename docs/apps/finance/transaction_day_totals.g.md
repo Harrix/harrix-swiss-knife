@@ -11,6 +11,7 @@ lang: en
 
 ## Contents
 
+- [🔧 Function `apply_transaction_day_spans`](#-function-apply_transaction_day_spans)
 - [🔧 Function `expense_in_default_currency`](#-function-expense_in_default_currency)
 - [🔧 Function `format_transaction_day_total`](#-function-format_transaction_day_total)
 - [🔧 Function `format_transaction_selection_status`](#-function-format_transaction_selection_status)
@@ -19,6 +20,49 @@ lang: en
 - [🔧 Function `refresh_transaction_day_totals`](#-function-refresh_transaction_day_totals)
 - [🔧 Function `signed_amount_in_default_currency`](#-function-signed_amount_in_default_currency)
 - [🔧 Function `sum_transaction_rows_in_default_currency`](#-function-sum_transaction_rows_in_default_currency)
+- [🔧 Function `transaction_day_row_spans`](#-function-transaction_day_row_spans)
+
+</details>
+
+## 🔧 Function `apply_transaction_day_spans`
+
+```python
+def apply_transaction_day_spans(view: QTableView) -> None
+```
+
+Merge the Total per day column so each calendar day is one cell.
+
+The day's total stays right-aligned and sits at the top of the merged cell.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def apply_transaction_day_spans(view: QTableView) -> None:
+    model = view.model()
+    view.clearSpans()
+    if model is None:
+        return
+    dates = [str(model.index(row, TRANSACTION_COL_DATE).data() or "") for row in range(model.rowCount())]
+    spans = transaction_day_row_spans(dates)
+    span_starts = {start for start, _row_count in spans}
+    source = _transaction_source_model(model)
+    if source is not None:
+        source.blockSignals(True)  # noqa: FBT003
+    try:
+        for row in range(model.rowCount()):
+            item = _transaction_total_item(model, row)
+            if item is None:
+                continue
+            alignment = _TOTAL_ALIGN_TOP if row in span_starts else _TOTAL_ALIGN_MIDDLE
+            if item.textAlignment() != alignment:
+                item.setTextAlignment(alignment)
+        for start, row_count in spans:
+            view.setSpan(start, TRANSACTION_COL_TOTAL_PER_DAY, row_count, 1)
+    finally:
+        if source is not None:
+            source.blockSignals(False)  # noqa: FBT003
+```
 
 </details>
 
@@ -324,6 +368,35 @@ def sum_transaction_rows_in_default_currency(
         )
         count += 1
     return count, total
+```
+
+</details>
+
+## 🔧 Function `transaction_day_row_spans`
+
+```python
+def transaction_day_row_spans(dates: list[str]) -> list[tuple[int, int]]
+```
+
+Return `(start_row, row_count)` for days that occupy more than one row.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def transaction_day_row_spans(dates: list[str]) -> list[tuple[int, int]]:
+    spans: list[tuple[int, int]] = []
+    start = 0
+    row_count = len(dates)
+    while start < row_count:
+        day = dates[start]
+        end = start + 1
+        while end < row_count and day and dates[end] == day:
+            end += 1
+        if day and end - start > 1:
+            spans.append((start, end - start))
+        start = end
+    return spans
 ```
 
 </details>

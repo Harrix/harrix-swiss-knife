@@ -5,12 +5,16 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QStandardItem, QStandardItemModel
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QTableView
 
+from harrix_swiss_knife.apps.finance.delegates.amount_delegate import _total_per_day_alignment
 from harrix_swiss_knife.apps.finance.transaction_day_totals import (
     TRANSACTION_COL_AMOUNT,
+    TRANSACTION_COL_DATE,
     TRANSACTION_COL_TOTAL_PER_DAY,
+    apply_transaction_day_spans,
     expense_in_default_currency,
     format_transaction_day_total,
     format_transaction_selection_status,
@@ -19,6 +23,7 @@ from harrix_swiss_knife.apps.finance.transaction_day_totals import (
     refresh_transaction_day_totals,
     signed_amount_in_default_currency,
     sum_transaction_rows_in_default_currency,
+    transaction_day_row_spans,
 )
 
 
@@ -147,6 +152,64 @@ def test_sum_transaction_rows_in_default_currency(qapp: QApplication) -> None:  
     count, total = sum_transaction_rows_in_default_currency(model, [0, 1, 2], _FakeDbManager())
     assert count == 3
     assert total == 820.0
+
+
+def test_transaction_day_row_spans_groups_consecutive_days() -> None:
+    dates = ["2026-08-25", "2026-08-25", "2026-08-24", "2026-08-24", "2026-08-24", "2026-08-23"]
+    assert transaction_day_row_spans(dates) == [(0, 2), (2, 3)]
+    assert transaction_day_row_spans(["2026-08-25"]) == []
+    assert transaction_day_row_spans(["", ""]) == []
+
+
+def test_apply_transaction_day_spans_merges_total_column(qapp: QApplication) -> None:  # noqa: ARG001
+    model = QStandardItemModel()
+    model.setColumnCount(8)
+    for date in ("2026-08-25", "2026-08-25", "2026-08-24", "2026-08-24", "2026-08-24"):
+        row = [QStandardItem("") for _ in range(8)]
+        row[TRANSACTION_COL_DATE].setText(date)
+        row[TRANSACTION_COL_TOTAL_PER_DAY].setText("-10.00")
+        model.appendRow(row)
+
+    view = QTableView()
+    view.setModel(model)
+    apply_transaction_day_spans(view)
+
+    assert view.rowSpan(0, TRANSACTION_COL_TOTAL_PER_DAY) == 2
+    assert view.rowSpan(2, TRANSACTION_COL_TOTAL_PER_DAY) == 3
+    assert _vertical_alignment(model, 0) == Qt.AlignmentFlag.AlignTop
+    assert _vertical_alignment(model, 2) == Qt.AlignmentFlag.AlignTop
+    assert _horizontal_alignment(model, 0) == Qt.AlignmentFlag.AlignRight
+
+    model.item(2, TRANSACTION_COL_DATE).setText("2026-08-23")
+    apply_transaction_day_spans(view)
+    assert view.rowSpan(0, TRANSACTION_COL_TOTAL_PER_DAY) == 2
+    assert view.rowSpan(2, TRANSACTION_COL_TOTAL_PER_DAY) == 1
+    assert view.rowSpan(3, TRANSACTION_COL_TOTAL_PER_DAY) == 2
+    assert _vertical_alignment(model, 0) == Qt.AlignmentFlag.AlignTop
+    assert _vertical_alignment(model, 2) == Qt.AlignmentFlag.AlignVCenter
+    assert _vertical_alignment(model, 3) == Qt.AlignmentFlag.AlignTop
+
+
+def test_total_per_day_alignment_defaults_to_right_center() -> None:
+    default = _total_per_day_alignment(None)
+    assert (default & Qt.AlignmentFlag.AlignVertical_Mask) == Qt.AlignmentFlag.AlignVCenter
+    assert (default & Qt.AlignmentFlag.AlignHorizontal_Mask) == Qt.AlignmentFlag.AlignRight
+    stored = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop
+    aligned = _total_per_day_alignment(stored)
+    assert (aligned & Qt.AlignmentFlag.AlignVertical_Mask) == Qt.AlignmentFlag.AlignTop
+    assert (aligned & Qt.AlignmentFlag.AlignHorizontal_Mask) == Qt.AlignmentFlag.AlignRight
+
+
+def _horizontal_alignment(model: QStandardItemModel, row: int) -> Qt.AlignmentFlag:
+    item = model.item(row, TRANSACTION_COL_TOTAL_PER_DAY)
+    assert item is not None
+    return item.textAlignment() & Qt.AlignmentFlag.AlignHorizontal_Mask
+
+
+def _vertical_alignment(model: QStandardItemModel, row: int) -> Qt.AlignmentFlag:
+    item = model.item(row, TRANSACTION_COL_TOTAL_PER_DAY)
+    assert item is not None
+    return item.textAlignment() & Qt.AlignmentFlag.AlignVertical_Mask
 
 
 def _row(

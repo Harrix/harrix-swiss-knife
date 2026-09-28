@@ -5,7 +5,7 @@ import re
 from typing import cast
 
 from PySide6.QtCore import QAbstractItemModel, QLocale, QModelIndex, QPersistentModelIndex, Qt
-from PySide6.QtGui import QFont, QPainter
+from PySide6.QtGui import QBrush, QFont, QPainter
 from PySide6.QtWidgets import QDoubleSpinBox, QStyledItemDelegate, QStyleOptionViewItem, QWidget
 
 from harrix_swiss_knife.apps.common.ui_helpers import apply_white_editor_background
@@ -169,11 +169,17 @@ class AmountDelegate(QStyledItemDelegate):
                             currency_symbol = currency_info[2]
                 amount_text = self.displayText(raw_value, QLocale())
                 display_text = f"{amount_text}{currency_symbol}"
+                alignment = _total_per_day_alignment(index.data(Qt.ItemDataRole.TextAlignmentRole))
                 painter.save()
+                if alignment & Qt.AlignmentFlag.AlignTop:
+                    brush = index.data(Qt.ItemDataRole.BackgroundRole)
+                    if isinstance(brush, QBrush):
+                        painter.fillRect(option.rect, brush)
                 painter.setFont(option.font)
+                top_pad = 3 if alignment & Qt.AlignmentFlag.AlignTop else 0
                 painter.drawText(
-                    option.rect.adjusted(5, 0, -5, 0),
-                    Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight,
+                    option.rect.adjusted(5, top_pad, -5, 0),
+                    alignment,
                     display_text,
                 )
                 painter.restore()
@@ -295,3 +301,19 @@ class AmountDelegate(QStyledItemDelegate):
         # Set both DisplayRole and EditRole to ensure consistency
         model.setData(index, formatted_value, Qt.ItemDataRole.DisplayRole)
         model.setData(index, formatted_value, Qt.ItemDataRole.EditRole)
+
+
+def _total_per_day_alignment(stored: object) -> Qt.AlignmentFlag:
+    """Use the cell alignment, keeping totals right-aligned and centered by default."""
+    default = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+    if isinstance(stored, Qt.AlignmentFlag):
+        flags = stored
+    elif isinstance(stored, int) and not isinstance(stored, bool) and stored != 0:
+        flags = Qt.AlignmentFlag(stored)
+    else:
+        return default
+    if not (flags & Qt.AlignmentFlag.AlignHorizontal_Mask):
+        flags |= Qt.AlignmentFlag.AlignRight
+    if not (flags & Qt.AlignmentFlag.AlignVertical_Mask):
+        flags |= Qt.AlignmentFlag.AlignVCenter
+    return flags

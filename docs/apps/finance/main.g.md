@@ -3137,6 +3137,7 @@ class MainWindow(
             proxy = cast("QSortFilterProxyModel", self.models["transactions"])
             source_model = cast("QStandardItemModel", proxy.sourceModel())
             self._append_transformed_rows_to_model(source_model, transformed_data)
+            apply_transaction_day_spans(self.tableView_transactions)
 
         self._transactions_pagination.load_more(
             load_more_count=self.transactions_load_more_count,
@@ -3160,6 +3161,7 @@ class MainWindow(
             transformed_data, self.table_config["transactions"][2]
         )
         self.tableView_transactions.setModel(self.models["transactions"])
+        apply_transaction_day_spans(self.tableView_transactions)
         self._setup_transactions_table_delegates()
         self._setup_transactions_table_column_widths()
         self._connect_transaction_selection_signal()
@@ -4595,6 +4597,7 @@ class MainWindow(
                 break
 
         refresh_transaction_day_totals(source_model, self.db_manager)
+        apply_transaction_day_spans(self.tableView_transactions)
         self.tableView_transactions.viewport().update()
 
         self._mark_summary_dirty()
