@@ -1474,6 +1474,25 @@ class MainWindow(
             return
         self._bg_food_translate_timer.start(_BACKGROUND_FOOD_TRANSLATE_INTERVAL_MS)
 
+    def _cancel_day_macros_queue(self) -> None:
+        """Stop the macros queue and keep analyses that were already saved."""
+        saved = self._macros_analysis_done
+        self._macros_analysis_queue = []
+        self._macros_open_range_after_queue = False
+        self._end_day_macros_toast_pin_chain()
+        self._update_macros_analysis_table()
+        self._update_macros_status_label()
+        self._refresh_food_log_macros_buttons()
+        self._refresh_open_day_macros_dialog()
+        if self._macros_chart_nutrient is not None:
+            self._update_macros_chart()
+        if saved:
+            text = f"Stopped. Macros saved for {saved} day(s). The rest were left unchanged."
+        else:
+            text = "Stopped. Macros were left unchanged."
+        toast = toast_notification.ToastNotification(text, duration=3000, parent=self)
+        toast.present()
+
     def _clear_background_food_translate_status(self) -> None:
         """Clear the silent-translate status bar message when it is ours."""
         status_bar = self.statusBar()
@@ -2053,6 +2072,14 @@ class MainWindow(
         if limit is None:
             return self.db_manager.get_all_food_log_records()
         return self.db_manager.get_recent_food_log_records(limit, offset)
+
+    def _fill_selected_day_macros(self, days: list[str]) -> None:
+        """Analyze selected days that have no report or whose report is stale."""
+        targets = days_needing_macros(days, self._food_log_macros_statuses(days))
+        if not targets:
+            message_box.information(self, "Macros", "Selected days already have up-to-date macros.")
+            return
+        self._start_day_macros_queue(targets)
 
     def _filter_food_items(self, text: str) -> None:
         """Filter food items list based on input text.
@@ -3615,6 +3642,8 @@ class MainWindow(
             prompt_text,
             on_success,
             toast_message=f"Analyzing macros ({current}/{total}): {day}…",
+            on_cancelled=self._cancel_day_macros_queue,
+            offer_retry=False,
         )
         if not started:
             self._macros_analysis_queue = []
@@ -4130,19 +4159,18 @@ class MainWindow(
         ate_percent_action = context_menu.addAction("🍽️ I ate %…")
 
         analyze_day_macros_action = None
-        analyze_selected_days_action = None
+        fill_macros_action = None
+        recalculate_macros_action = None
         selected_days = self._selected_food_log_days() if multiple_rows_selected else []
-        if len(selected_days) > 1:
+        if multiple_rows_selected and selected_days:
+            days_to_fill = days_needing_macros(selected_days, self._food_log_macros_statuses(selected_days))
             add_separator(context_menu)
-            analyze_selected_days_action = context_menu.addAction(
-                f"📊 Analyze macros for {len(selected_days)} days",
-            )
-        elif date_value or len(selected_days) == 1:
-            if len(selected_days) == 1:
-                date_value = selected_days[0]
-            if date_value:
-                add_separator(context_menu)
-                analyze_day_macros_action = context_menu.addAction("📊 Analyze day macros")
+            fill_label = f"📊 Fill in macros ({len(days_to_fill)})" if days_to_fill else "📊 Fill in macros"
+            fill_macros_action = context_menu.addAction(fill_label)
+            recalculate_macros_action = context_menu.addAction(f"📊 Recalculate macros ({len(selected_days)})")
+        elif date_value:
+            add_separator(context_menu)
+            analyze_day_macros_action = context_menu.addAction("📊 Analyze day macros")
 
         add_separator(context_menu)
         recalc_calories_ai_action = context_menu.addAction("🤖 Recalculate calories with AI")
@@ -4213,7 +4241,9 @@ class MainWindow(
                 self._prompt_eaten_percent_and_apply()
             elif analyze_day_macros_action is not None and action == analyze_day_macros_action and date_value:
                 self._open_day_macros_dialog(date_value.strip()[:10])
-            elif analyze_selected_days_action is not None and action == analyze_selected_days_action:
+            elif fill_macros_action is not None and action == fill_macros_action:
+                self._fill_selected_day_macros(selected_days)
+            elif recalculate_macros_action is not None and action == recalculate_macros_action:
                 self._start_day_macros_queue(selected_days)
             elif action == recalc_calories_ai_action:
                 self._recalculate_selected_food_log_calories_with_ai()
@@ -4353,6 +4383,8 @@ class MainWindow(
         images: list[tuple[bytes, str]] | None = None,
         image: tuple[bytes, str] | None = None,
         toast_message: str = "Requesting BotHub…",
+        on_cancelled: Callable[[], None] | None = None,
+        offer_retry: bool = True,
     ) -> bool:
         """Run BotHub chat completion in a background worker."""
         return run_bothub_request(
@@ -4365,6 +4397,8 @@ class MainWindow(
             toast_message=toast_message,
             is_busy=lambda: self._bothub_state.worker is not None,
             state=self._bothub_state,
+            on_cancelled=on_cancelled,
+            offer_retry=offer_retry,
         )
 
     def _start_day_macros_queue(self, dates: list[str]) -> None:

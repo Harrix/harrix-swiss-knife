@@ -21,6 +21,7 @@ lang: en
 - [🔧 Function `calorie_band_rgb`](#-function-calorie_band_rgb)
 - [🔧 Function `calorie_thresholds_from_config`](#-function-calorie_thresholds_from_config)
 - [🔧 Function `day_macros_prompt_key`](#-function-day_macros_prompt_key)
+- [🔧 Function `days_needing_macros`](#-function-days_needing_macros)
 - [🔧 Function `fiber_tone`](#-function-fiber_tone)
 - [🔧 Function `food_day_input_hash`](#-function-food_day_input_hash)
 - [🔧 Function `food_range_input_hash`](#-function-food_range_input_hash)
@@ -287,6 +288,33 @@ Return the BotHub prompt key for day macros analysis.
 ```python
 def day_macros_prompt_key() -> str:
     return _PROMPT_KEY
+```
+
+</details>
+
+## 🔧 Function `days_needing_macros`
+
+```python
+def days_needing_macros(days: list[str], statuses: dict[str, DayMacrosStatus]) -> list[str]
+```
+
+Return dates that are missing a report or whose report is out of date.
+
+Args:
+
+- `days` (`list[str]`): Calendar dates, usually from the current selection.
+- `statuses` (`dict[str, DayMacrosStatus]`): Saved status for each date.
+
+Returns:
+
+- `list[str]`: Dates that still need analysis, in the same order.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def days_needing_macros(days: list[str], statuses: dict[str, DayMacrosStatus]) -> list[str]:
+    return [day for day in days if statuses.get(day, DayMacrosStatus.MISSING) is not DayMacrosStatus.OK]
 ```
 
 </details>

@@ -11,6 +11,7 @@ from harrix_swiss_knife.apps.food.day_macros import (
     FoodDayLogLine,
     FoodDayMacrosAnalysis,
     calorie_band_rgb,
+    days_needing_macros,
     fiber_tone,
     food_day_input_hash,
     format_day_menu_for_prompt,
@@ -25,6 +26,16 @@ from harrix_swiss_knife.apps.food.day_macros import (
     unique_calendar_days,
 )
 from harrix_swiss_knife.apps.food.schema import ensure_food_schema
+
+
+def test_days_needing_macros_skips_current_reports() -> None:
+    statuses = {
+        "2026-08-25": DayMacrosStatus.OK,
+        "2026-08-24": DayMacrosStatus.STALE,
+        "2026-08-23": DayMacrosStatus.MISSING,
+    }
+    days = ["2026-08-25", "2026-08-24", "2026-08-23", "2026-08-22"]
+    assert days_needing_macros(days, statuses) == ["2026-08-24", "2026-08-23", "2026-08-22"]
 
 
 def test_unique_calendar_days_keeps_selected_dates_only() -> None:

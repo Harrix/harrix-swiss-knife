@@ -162,6 +162,22 @@ def day_macros_prompt_key() -> str:
     return _PROMPT_KEY
 
 
+def days_needing_macros(days: list[str], statuses: dict[str, DayMacrosStatus]) -> list[str]:
+    """Return dates that are missing a report or whose report is out of date.
+
+    Args:
+
+    - `days` (`list[str]`): Calendar dates, usually from the current selection.
+    - `statuses` (`dict[str, DayMacrosStatus]`): Saved status for each date.
+
+    Returns:
+
+    - `list[str]`: Dates that still need analysis, in the same order.
+
+    """
+    return [day for day in days if statuses.get(day, DayMacrosStatus.MISSING) is not DayMacrosStatus.OK]
+
+
 def fiber_tone(value: float | None, norm: float | None) -> MacroTone:
     """Map fiber intake against a minimum daily target.
 
