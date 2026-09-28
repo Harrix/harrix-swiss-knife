@@ -503,3 +503,79 @@ def test_shift_makes_smart_eraser_square() -> None:
     end = constrain_shape_end(AnnotationTool.SMART_ERASER, QPointF(10, 10), QPointF(50, 30), shift=True)
     assert end.x() == pytest.approx(30.0)
     assert end.y() == pytest.approx(30.0)
+
+
+@pytest.mark.usefixtures("qapp")
+def test_pixelate_blocks_pixels_inside_and_keeps_outside() -> None:
+    image = _blank(40, 40)
+    painter = QPainter(image)
+    painter.fillRect(15, 0, 1, 40, QColor(0, 0, 0))
+    painter.end()
+    doc = AnnotationDocument(image)
+    doc.begin_draft(
+        Annotation(
+            tool=AnnotationTool.PIXELATE,
+            points=[QPointF(0, 0), QPointF(40, 40)],
+            style=AnnotationStyle(),
+        )
+    )
+    assert doc.commit_draft()
+    rendered = doc.render(include_draft=False)
+    block = rendered.pixelColor(12, 12)
+    assert block.red() < 250
+    assert block.red() > 100
+    assert rendered.pixelColor(19, 19).red() == block.red()
+    assert rendered.pixelColor(25, 12).red() == 255
+
+
+@pytest.mark.usefixtures("qapp")
+def test_pixelate_follows_the_rectangle_instead_of_a_baked_patch() -> None:
+    image = _blank(80, 40)
+    painter = QPainter(image)
+    painter.fillRect(50, 10, 10, 10, QColor(0, 0, 0))
+    painter.end()
+    doc = AnnotationDocument(image)
+    doc.begin_draft(
+        Annotation(
+            tool=AnnotationTool.PIXELATE,
+            points=[QPointF(0, 0), QPointF(20, 20)],
+            style=AnnotationStyle(),
+        )
+    )
+    assert doc.commit_draft()
+    assert doc.render(include_draft=False).pixelColor(5, 5).red() == 255
+    doc.annotations[0].points = [QPointF(40, 0), QPointF(70, 30)]
+    rendered = doc.render(include_draft=False)
+    assert rendered.pixelColor(5, 5).red() == 255
+    assert rendered.pixelColor(55, 15).red() < 255
+
+
+@pytest.mark.usefixtures("qapp")
+def test_shape_drawn_after_pixelate_stays_sharp() -> None:
+    image = _blank(40, 40)
+    doc = AnnotationDocument(image)
+    doc.begin_draft(
+        Annotation(
+            tool=AnnotationTool.PIXELATE,
+            points=[QPointF(0, 0), QPointF(40, 40)],
+            style=AnnotationStyle(),
+        )
+    )
+    assert doc.commit_draft()
+    doc.begin_draft(
+        Annotation(
+            tool=AnnotationTool.LINE,
+            points=[QPointF(4, 20), QPointF(36, 20)],
+            style=AnnotationStyle(color=QColor(255, 0, 0), width=4.0),
+        )
+    )
+    assert doc.commit_draft()
+    stroke = doc.render(include_draft=False).pixelColor(20, 20)
+    assert stroke.red() > 200
+    assert stroke.green() < 40
+
+
+def test_shift_makes_pixelate_square() -> None:
+    end = constrain_shape_end(AnnotationTool.PIXELATE, QPointF(10, 10), QPointF(50, 30), shift=True)
+    assert end.x() == pytest.approx(30.0)
+    assert end.y() == pytest.approx(30.0)

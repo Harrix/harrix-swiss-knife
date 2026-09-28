@@ -28,6 +28,8 @@ _HIGHLIGHT_ALPHA = 96
 # ShareX blur tool: a rectangle that gaussian-blurs the pixels underneath.
 _BLUR_RADIUS = 40.0
 _BLUR_PAD_FACTOR = 3
+# ShareX pixelate tool: averaged blocks, default size 10, over the pixels underneath.
+_PIXELATE_BLOCK = 10
 
 
 @dataclass(slots=True)
@@ -226,6 +228,7 @@ class AnnotationTool(Enum):
     PEN = "pen"
     HIGHLIGHT = "highlight"
     BLUR = "blur"
+    PIXELATE = "pixelate"
     SMART_ERASER = "smart_eraser"
     TEXT = "text"
     CROP = "crop"
@@ -238,18 +241,24 @@ class _HistoryEntry:
     annotations: list[Annotation]
 
 
+RASTER_EFFECT_TOOLS = frozenset({AnnotationTool.BLUR, AnnotationTool.PIXELATE})
+
+
 def composite_annotations(base: QImage, annotations: Sequence[Annotation]) -> QImage:
-    """Paint `annotations` onto a copy of `base`, blurring each blur rectangle in order."""
+    """Paint `annotations` onto a copy of `base`, applying blur and pixelate in order."""
     result = base.copy()
     if result.isNull() or not annotations:
         return result
     painter: QPainter | None = None
     for item in annotations:
-        if item.tool == AnnotationTool.BLUR:
+        if item.tool in RASTER_EFFECT_TOOLS:
             if painter is not None and painter.isActive():
                 painter.end()
                 painter = None
-            _apply_blur(result, item)
+            if item.tool == AnnotationTool.BLUR:
+                _apply_blur(result, item)
+            else:
+                _apply_pixelate(result, item)
             continue
         if painter is None or not painter.isActive():
             painter = QPainter(result)
@@ -325,7 +334,7 @@ def paint_annotation(painter: QPainter, annotation: Annotation) -> None:
         painter.setBrush(fill)
         painter.drawRect(rect)
         return
-    if tool == AnnotationTool.BLUR:
+    if tool in RASTER_EFFECT_TOOLS:
         return
     if tool == AnnotationTool.SMART_ERASER:
         painter.save()
@@ -372,6 +381,22 @@ def _apply_blur(image: QImage, annotation: Annotation) -> None:
     if rect.width() < _MIN_CROP_SIZE or rect.height() < _MIN_CROP_SIZE:
         return
     patch = _blurred_patch(image, rect, _BLUR_RADIUS)
+    if patch.isNull():
+        return
+    painter = QPainter(image)
+    painter.drawImage(rect.topLeft(), patch)
+    painter.end()
+
+
+def _apply_pixelate(image: QImage, annotation: Annotation) -> None:
+    """Pixelate the rectangle of `annotation` in place, keeping a hard edge."""
+    if len(annotation.points) < _MIN_SHAPE_POINTS or image.isNull():
+        return
+    rect = QRectF(annotation.points[0], annotation.points[-1]).normalized().toAlignedRect()
+    rect = rect.intersected(image.rect())
+    if rect.width() < _MIN_CROP_SIZE or rect.height() < _MIN_CROP_SIZE:
+        return
+    patch = _pixelate_patch(image, rect, _PIXELATE_BLOCK)
     if patch.isNull():
         return
     painter = QPainter(image)
@@ -546,6 +571,27 @@ def _paint_text_annotation(painter: QPainter, annotation: Annotation) -> None:
     painter.drawText(rect, flags, annotation.text or "")
 
 
+def _pixelate_patch(source: QImage, rect: QRect, block: int) -> QImage:
+    """Return `rect` as averaged blocks of `block` pixels, clipped to that rectangle."""
+    patch = source.copy(rect)
+    if patch.isNull() or block < _MIN_CROP_SIZE:
+        return patch
+    blocks_x = max(1, math.ceil(patch.width() / block))
+    blocks_y = max(1, math.ceil(patch.height() / block))
+    small = patch.scaled(
+        blocks_x,
+        blocks_y,
+        Qt.AspectRatioMode.IgnoreAspectRatio,
+        Qt.TransformationMode.SmoothTransformation,
+    )
+    return small.scaled(
+        patch.width(),
+        patch.height(),
+        Qt.AspectRatioMode.IgnoreAspectRatio,
+        Qt.TransformationMode.FastTransformation,
+    )
+
+
 def _snap_end_to_45_degrees(start: QPointF, end: QPointF) -> QPointF:
     """Snap `end` so the segment from `start` lies on a 45° multiple."""
     dx = end.x() - start.x()
@@ -580,6 +626,7 @@ _SQUARE_SHIFT_TOOLS = frozenset(
         AnnotationTool.BLUR,
         AnnotationTool.ELLIPSE,
         AnnotationTool.HIGHLIGHT,
+        AnnotationTool.PIXELATE,
         AnnotationTool.RECTANGLE,
         AnnotationTool.SMART_ERASER,
     }

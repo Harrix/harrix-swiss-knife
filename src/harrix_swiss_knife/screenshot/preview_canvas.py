@@ -36,6 +36,7 @@ from harrix_swiss_knife.screenshot.annotation_snap import (
     snap_shape_end,
 )
 from harrix_swiss_knife.screenshot.annotations import (
+    RASTER_EFFECT_TOOLS,
     Annotation,
     AnnotationStyle,
     AnnotationTool,
@@ -1100,9 +1101,9 @@ class ScreenshotPreviewCanvas(QWidget):
         self.update()
 
     def _paint_blur_draft_outline(self, painter: QPainter) -> None:
-        """Draw a dashed edge while a blur rectangle is still being dragged."""
+        """Draw a dashed edge while a blur or pixelate rectangle is still being dragged."""
         document = self._document
-        if document is None or document.draft is None or document.draft.tool != AnnotationTool.BLUR:
+        if document is None or document.draft is None or document.draft.tool not in RASTER_EFFECT_TOOLS:
             return
         points = document.draft.points
         if len(points) <= 1:
@@ -1162,7 +1163,7 @@ class ScreenshotPreviewCanvas(QWidget):
         scale_y = image_rect.height() / max(1, height)
         painter.scale(scale_x, scale_y)
         items = self._visible_annotations()
-        if any(item.tool == AnnotationTool.BLUR for item in items):
+        if any(item.tool in RASTER_EFFECT_TOOLS for item in items):
             image = composite_annotations(document.base_image, items)
             painter.drawImage(QPointF(0, 0), image)
             self._paint_blur_draft_outline(painter)

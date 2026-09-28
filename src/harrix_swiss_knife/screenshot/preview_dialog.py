@@ -105,7 +105,7 @@ _MARKDOWN_OCR_ICON = "scan-text"
 _TABLE_AI_ICON = "table"
 _TRANSLATE_ICON = "languages"
 _STATUS_HINT = (
-    "Tools: arrow / shapes / pen / highlight / blur / smart eraser / text / eyedropper / crop · "
+    "Tools: arrow / shapes / pen / highlight / blur / pixelate / smart eraser / text / eyedropper / crop · "
     "Click a shape to select · Delete removes · Shift constrains · Undo · Ctrl+wheel, Ctrl++ or Ctrl+- zoom · "
     "Middle-drag pan · Ctrl+S save to images"
 )
@@ -125,6 +125,7 @@ _TOOL_BUTTONS: tuple[tuple[AnnotationTool, str, str], ...] = (
     (AnnotationTool.PEN, "pencil", "Pen"),
     (AnnotationTool.HIGHLIGHT, "highlighter", "Highlight (Shift: square)"),
     (AnnotationTool.BLUR, "droplets", "Blur (Shift: square)"),
+    (AnnotationTool.PIXELATE, "grid-3x3", "Pixelate (Shift: square)"),
     (AnnotationTool.SMART_ERASER, "eraser", "Smart eraser (Shift: square)"),
     (AnnotationTool.TEXT, "type", "Text"),
     (AnnotationTool.EYEDROPPER, "pipette", "Eyedropper — click a pixel to copy HEX and open color formats"),

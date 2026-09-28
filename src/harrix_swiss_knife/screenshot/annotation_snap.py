@@ -20,6 +20,7 @@ _BOX_SHIFT_TOOLS = frozenset(
         AnnotationTool.BLUR,
         AnnotationTool.ELLIPSE,
         AnnotationTool.HIGHLIGHT,
+        AnnotationTool.PIXELATE,
         AnnotationTool.RECTANGLE,
         AnnotationTool.SMART_ERASER,
     }
@@ -232,6 +233,7 @@ def _snap_box_handles(
         AnnotationTool.BLUR,
         AnnotationTool.ELLIPSE,
         AnnotationTool.HIGHLIGHT,
+        AnnotationTool.PIXELATE,
         AnnotationTool.RECTANGLE,
         AnnotationTool.SMART_ERASER,
     }:
