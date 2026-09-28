@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from PySide6.QtCore import QSize, Qt, Signal
-from PySide6.QtGui import QColor
+from PySide6.QtGui import QColor, QFont
 from PySide6.QtWidgets import (
+    QApplication,
     QDialog,
     QDialogButtonBox,
     QFormLayout,
@@ -71,6 +72,9 @@ _ADVICE_BROWSER_STYLE = (
     "  padding: 8px;"
     "}"
 )
+_VERDICT_EXTRA_PT = 6.0
+_ADVICE_EXTRA_PT = 5.0
+_FALLBACK_POINT_SIZE = 10.0
 
 
 class AdviceMacrosDialogBase(QDialog):
@@ -149,6 +153,9 @@ class AdviceMacrosDialogBase(QDialog):
         self._verdict_local.setWordWrap(True)
         self._verdict_en = QLabel("")
         self._verdict_en.setWordWrap(True)
+        verdict_font = _recommendation_font(extra_points=_VERDICT_EXTRA_PT, weight=QFont.Weight.Medium)
+        self._verdict_local.setFont(verdict_font)
+        self._verdict_en.setFont(verdict_font)
         self._notes_local = _make_advice_browser()
         self._notes_en = _make_advice_browser()
 
@@ -374,6 +381,12 @@ class RangeMacrosDialog(AdviceMacrosDialogBase):
         )
 
 
+def _apply_advice_font(browser: QTextBrowser) -> None:
+    font = _recommendation_font(extra_points=_ADVICE_EXTRA_PT)
+    browser.setFont(font)
+    browser.document().setDefaultFont(font)
+
+
 def _format_vs_norm(value: float, norm: float, unit: str) -> str:
     pct = percent_of_norm(value, norm)
     pct_text = f" ({pct:.0f}% of norm)" if pct is not None else ""
@@ -387,13 +400,28 @@ def _make_advice_browser() -> QTextBrowser:
     browser.setMinimumHeight(220)
     browser.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
     browser.setStyleSheet(_ADVICE_BROWSER_STYLE)
+    _apply_advice_font(browser)
     return browser
+
+
+def _recommendation_font(*, extra_points: float, weight: QFont.Weight | None = None) -> QFont:
+    """Return the app font enlarged for the main macros recommendation text."""
+    font = QFont(QApplication.font())
+    point = font.pointSizeF()
+    if point <= 0:
+        point = _FALLBACK_POINT_SIZE
+    font.setPointSizeF(point + extra_points)
+    if weight is not None:
+        font.setWeight(weight)
+    return font
 
 
 def _set_advice_markdown(browser: QTextBrowser, text: str) -> None:
     """Show advice as simple Markdown (paragraphs, bold, italic)."""
     stripped = text.strip()
+    _apply_advice_font(browser)
     if not stripped:
         browser.clear()
         return
     browser.setMarkdown(stripped)
+    _apply_advice_font(browser)

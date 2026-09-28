@@ -5,6 +5,9 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
+import pytest
+from PySide6.QtWidgets import QApplication
+
 from harrix_swiss_knife.apps.food.day_macros import (
     CalorieThresholds,
     DayMacrosStatus,
@@ -26,6 +29,7 @@ from harrix_swiss_knife.apps.food.day_macros import (
     resolve_day_macros_status,
     unique_calendar_days,
 )
+from harrix_swiss_knife.apps.food.day_macros_dialog import DayMacrosDialog
 from harrix_swiss_knife.apps.food.schema import ensure_food_schema
 
 
@@ -378,3 +382,33 @@ def _table_exists(conn: sqlite3.Connection, table: str) -> bool:
         (table,),
     ).fetchone()
     return row is not None
+
+
+@pytest.fixture
+def qapp() -> QApplication:
+    app = QApplication.instance()
+    if app is None:
+        return QApplication([])
+    if not isinstance(app, QApplication):
+        msg = "QApplication.instance() returned a non-QApplication object."
+        raise TypeError(msg)
+    return app
+
+
+def test_macros_report_recommendation_font_is_larger_than_the_ui(qapp: QApplication) -> None:
+    dialog = DayMacrosDialog(None, "2026-09-01", None, DayMacrosStatus.MISSING)
+    app_point = qapp.font().pointSizeF()
+    assert dialog._verdict_local.font().pointSizeF() >= app_point + 6
+    assert dialog._notes_local.font().pointSizeF() >= app_point + 5
+    assert dialog._status_label.font().pointSizeF() == pytest.approx(app_point)
+    dialog._apply_text(
+        status=DayMacrosStatus.OK,
+        analysis_present=True,
+        verdict_local="Больше белка",
+        verdict_en="More protein",
+        notes_local="Добавьте творог.",
+        notes_en="Add cottage cheese.",
+        empty_message="",
+    )
+    assert dialog._notes_local.document().defaultFont().pointSizeF() >= app_point + 5
+    dialog.close()
