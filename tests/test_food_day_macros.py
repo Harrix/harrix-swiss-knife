@@ -18,6 +18,7 @@ from harrix_swiss_knife.apps.food.day_macros import (
     format_days_summary_for_range_prompt,
     kcal_tone,
     macro_tone,
+    macros_context_actions,
     parse_day_macros_response,
     parse_range_macros_response,
     percent_of_norm,
@@ -36,6 +37,40 @@ def test_days_needing_macros_skips_current_reports() -> None:
     }
     days = ["2026-08-25", "2026-08-24", "2026-08-23", "2026-08-22"]
     assert days_needing_macros(days, statuses) == ["2026-08-24", "2026-08-23", "2026-08-22"]
+
+
+def test_macros_context_hides_fill_when_period_is_current() -> None:
+    days = ["2026-09-03", "2026-09-01"]
+    statuses = dict.fromkeys(days, DayMacrosStatus.OK)
+    actions = macros_context_actions(days, statuses, focused_day="2026-09-03")
+    assert actions.fill_count == 0
+    assert actions.recalculate_count == len(days)
+    assert actions.period_from == "2026-09-01"
+    assert actions.period_to == "2026-09-03"
+    assert actions.day_label == "View macros"
+
+
+def test_macros_context_fill_counts_missing_and_stale_days() -> None:
+    days = ["2026-09-02", "2026-09-01", "2026-09-01"]
+    statuses = {
+        "2026-09-01": DayMacrosStatus.OK,
+        "2026-09-02": DayMacrosStatus.STALE,
+    }
+    actions = macros_context_actions(days, statuses, focused_day="2026-09-02")
+    assert actions.fill_count == 1
+    assert actions.recalculate_count == len(set(days))
+    assert actions.day_label == "Recalculate macros"
+    assert actions.period_from == "2026-09-01"
+
+
+def test_macros_context_single_day_has_analyze_label_and_no_period() -> None:
+    day = "2026-09-01"
+    actions = macros_context_actions([day], {day: DayMacrosStatus.MISSING}, focused_day=day)
+    assert actions.day_label == "Analyze macros"
+    assert actions.fill_count == 1
+    assert actions.recalculate_count == 1
+    assert actions.period_from == ""
+    assert actions.period_to == ""
 
 
 def test_unique_calendar_days_keeps_selected_dates_only() -> None:

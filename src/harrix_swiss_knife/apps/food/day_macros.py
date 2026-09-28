@@ -120,6 +120,23 @@ class FoodRangeMacrosAnalysis:
 
 
 @dataclass(frozen=True, slots=True)
+class MacrosContextActions:
+    """Which macros commands a context menu should show.
+
+    `fill_count` and `recalculate_count` are zero when that command is hidden.
+    `period_from` is empty when a period summary does not apply.
+    `day_label` is empty when no single date is focused.
+
+    """
+
+    day_label: str = ""
+    fill_count: int = 0
+    recalculate_count: int = 0
+    period_from: str = ""
+    period_to: str = ""
+
+
+@dataclass(frozen=True, slots=True)
 class RangeMacrosResult:
     """Parsed bilingual period-level macros advice."""
 
@@ -155,6 +172,15 @@ def calorie_thresholds_from_config(config: Mapping[str, Any] | None) -> CalorieT
         medium_low=_as_positive_float(raw.get("medium_low"), 2100.0),
         medium_high=_as_positive_float(raw.get("medium_high"), 2500.0),
     )
+
+
+def day_macros_menu_label(status: DayMacrosStatus) -> str:
+    """Return the Total-per-day button label for `status`."""
+    if status is DayMacrosStatus.OK:
+        return "View macros"
+    if status is DayMacrosStatus.STALE:
+        return "Recalculate macros"
+    return "Analyze macros"
 
 
 def day_macros_prompt_key() -> str:
@@ -287,6 +313,36 @@ def macro_tone_rgb(tone: MacroTone) -> tuple[int, int, int] | None:
     if tone == "bad":
         return (255, 192, 203)
     return None
+
+
+def macros_context_actions(
+    days: list[str],
+    statuses: dict[str, DayMacrosStatus],
+    *,
+    focused_day: str = "",
+) -> MacrosContextActions:
+    """Choose macros menu commands for `days`, plus an optional single-date command.
+
+    Fill-in is omitted when every day already has a current report. The period
+    command appears only when `days` cover more than one date.
+
+    """
+    shown = unique_calendar_days(days)
+    needing = days_needing_macros(shown, statuses)
+    focused = focused_day.strip()[:10]
+    day_label = day_macros_menu_label(statuses.get(focused, DayMacrosStatus.MISSING)) if focused else ""
+    period_from = ""
+    period_to = ""
+    if len(shown) > 1:
+        period_from = min(shown)
+        period_to = max(shown)
+    return MacrosContextActions(
+        day_label=day_label,
+        fill_count=len(needing),
+        recalculate_count=len(shown),
+        period_from=period_from,
+        period_to=period_to,
+    )
 
 
 def parse_day_macros_response(text: str) -> DayMacrosResult | None:

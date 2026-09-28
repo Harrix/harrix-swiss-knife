@@ -23,7 +23,7 @@ from PySide6.QtWidgets import (
     QTableView,
 )
 
-from harrix_swiss_knife.apps.food.day_macros import DayMacrosStatus
+from harrix_swiss_knife.apps.food.day_macros import DayMacrosStatus, day_macros_menu_label
 from harrix_swiss_knife.apps.food.food_log_calories import (
     FOOD_LOG_COL_DATE,
     FOOD_LOG_COL_TOTAL_PER_DAY,
@@ -291,9 +291,10 @@ def macros_button_appearance(status: DayMacrosStatus) -> MacrosButtonAppearance:
     - `MacrosButtonAppearance`: Text and colors for that state.
 
     """
+    label = day_macros_menu_label(status)
     if status is DayMacrosStatus.OK:
         return MacrosButtonAppearance(
-            "View macros",
+            label,
             QColor("#e8f5e9"),
             QColor("#43a047"),
             QColor("#1b5e20"),
@@ -301,14 +302,14 @@ def macros_button_appearance(status: DayMacrosStatus) -> MacrosButtonAppearance:
         )
     if status is DayMacrosStatus.STALE:
         return MacrosButtonAppearance(
-            "Recalculate macros",
+            label,
             QColor("#fff8e1"),
             QColor("#f9a825"),
             QColor("#e65100"),
             QColor("#ffecb3"),
         )
     return MacrosButtonAppearance(
-        "Analyze macros",
+        label,
         QColor("#1e88e5"),
         QColor("#1565c0"),
         QColor("#ffffff"),
