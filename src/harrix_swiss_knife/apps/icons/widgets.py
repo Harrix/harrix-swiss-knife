@@ -66,7 +66,11 @@ from harrix_swiss_knife.apps.icons.settings import (
     ICON_SIZE_WHEEL_STEP,
 )
 from harrix_swiss_knife.apps.icons.thumb_cache import DEFAULT_THUMB_SIZE, placeholder_pixmap, render_icon_to_image
-from harrix_swiss_knife.qt_lucide_icon import LUCIDE_COLOR_BLUE, apply_leading_chrome_icons
+from harrix_swiss_knife.qt_lucide_icon import (
+    LUCIDE_COLOR_BLUE,
+    apply_leading_chrome_icons,
+    set_action_text_with_lucide_icon,
+)
 
 if TYPE_CHECKING:
     from harrix_swiss_knife.apps.icons.catalog import IconFamily
@@ -140,6 +144,8 @@ class DraggableIconList(QListWidget):
     edit_keywords_requested = Signal(object, str)  # IconFamily, svg_path
     reveal_source_requested = Signal(object, str)  # IconFamily, svg_path
     open_source_requested = Signal(object, str)  # IconFamily, svg_path
+    open_default_requested = Signal(str)
+    open_illustrator_requested = Signal(str)
     set_category_icon_requested = Signal(object)  # IconFamily
     delete_requested = Signal(object)  # IconFamily
     toggle_trademark_requested = Signal(object)  # IconFamily
@@ -694,6 +700,8 @@ class DraggableIconList(QListWidget):
 
         menu = QMenu(self)
 
+        open_default_action = None
+        open_illustrator_action = None
         reveal_action = None
         details_action = None
         copy_file_action = None
@@ -705,6 +713,10 @@ class DraggableIconList(QListWidget):
         refresh_icons_action = None
 
         if has_path:
+            open_default_action = menu.addAction("Open with default program")
+            set_action_text_with_lucide_icon(open_default_action, "Open with default program", "external-link")
+            open_illustrator_action = menu.addAction("Open in Adobe Illustrator")
+            set_action_text_with_lucide_icon(open_illustrator_action, "Open in Adobe Illustrator", "pen-tool")
             reveal_action = add_reveal_in_explorer_action(menu)
             details_action = menu.addAction("ℹ️ Icon details")  # noqa: RUF001
             copy_file_action = menu.addAction("📋 Copy file")
@@ -771,7 +783,11 @@ class DraggableIconList(QListWidget):
             reset_size_action,
         ):
             return
-        if has_path and chosen is reveal_action:
+        if has_path and chosen is open_default_action:
+            self.open_default_requested.emit(path)
+        elif has_path and chosen is open_illustrator_action:
+            self.open_illustrator_requested.emit(path)
+        elif has_path and chosen is reveal_action:
             self.reveal_requested.emit(path)
         elif has_path and chosen is details_action:
             self.details_requested.emit(family, path)

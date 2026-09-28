@@ -1211,6 +1211,28 @@ class MainWindow(QMainWindow, AppWindowMixin):
             return False
         return is_note_icons_repo(self._repo_root)
 
+    def _launch_illustrator(self, file_path: Path) -> None:
+        """Open `file_path` in Adobe Illustrator from `path_vector_icons_source_app`."""
+        config: dict[str, Any] = h.dev.config_load(get_config_path_str())
+        raw_app = str(config.get("path_vector_icons_source_app") or "").strip()
+        if not raw_app or raw_app.startswith("<"):
+            QMessageBox.warning(
+                self,
+                "Vector Icons",
+                "Set `path_vector_icons_source_app` in config.json to the Adobe Illustrator executable.",
+            )
+            return
+        app_path = Path(raw_app)
+        if not app_path.is_file():
+            QMessageBox.warning(self, "Vector Icons", f"Adobe Illustrator not found:\n{app_path}")
+            return
+        try:
+            subprocess.Popen([str(app_path), str(file_path)], shell=False)
+        except OSError as exc:
+            QMessageBox.critical(self, "Vector Icons", f"Failed to open in Adobe Illustrator:\n{exc}")
+            return
+        self.statusBar().showMessage(f"Opened `{file_path.name}` in Adobe Illustrator")
+
     def _load_from_config(self) -> None:
         config: dict[str, Any] = h.dev.config_load(get_config_path_str())
         candidates: list[Path] = []
@@ -1940,6 +1962,13 @@ class MainWindow(QMainWindow, AppWindowMixin):
             return
         self._open_folder(Path(chosen))
 
+    def _on_open_in_illustrator(self, svg_path: str) -> None:
+        path = Path(svg_path)
+        if not path.is_file():
+            QMessageBox.warning(self, "Vector Icons", f"File not found:\n{path}")
+            return
+        self._launch_illustrator(path)
+
     def _on_open_license(self, url: object) -> None:
         text = str(url or "").strip()
         if not is_openable_license_url(text):
@@ -1979,32 +2008,23 @@ class MainWindow(QMainWindow, AppWindowMixin):
         if source is None:
             self._warn_source_not_found(family, svg_path)
             return
-        config: dict[str, Any] = h.dev.config_load(get_config_path_str())
-        raw_app = str(config.get("path_vector_icons_source_app") or "").strip()
-        if not raw_app or raw_app.startswith("<"):
-            QMessageBox.warning(
-                self,
-                "Vector Icons",
-                "Set `path_vector_icons_source_app` in config.json "
-                "to Adobe Illustrator (or another vector app) executable.",
-            )
-            return
-        app_path = Path(raw_app)
-        if not app_path.is_file():
-            QMessageBox.warning(self, "Vector Icons", f"Source app not found:\n{app_path}")
-            return
-        try:
-            subprocess.Popen([str(app_path), str(source)], shell=False)
-        except OSError as exc:
-            QMessageBox.critical(self, "Vector Icons", f"Failed to open source:\n{exc}")
-            return
-        self.statusBar().showMessage(f"Opened `{source.name}` in {app_path.name}")
+        self._launch_illustrator(source)
 
     def _on_open_thumbs_cache(self) -> None:
         path = default_cache_dir()
         path.mkdir(parents=True, exist_ok=True)
         h.file.open_file_or_folder(path)
         self.statusBar().showMessage(f"Opened `{path}`")
+
+    def _on_open_with_default_program(self, svg_path: str) -> None:
+        path = Path(svg_path)
+        if not path.is_file():
+            QMessageBox.warning(self, "Vector Icons", f"File not found:\n{path}")
+            return
+        if not QDesktopServices.openUrl(QUrl.fromLocalFile(str(path.resolve()))):
+            QMessageBox.warning(self, "Vector Icons", f"Could not open:\n{path}")
+            return
+        self.statusBar().showMessage(f"Opened `{path.name}`")
 
     def _on_optimize_svgs(self, paths: object) -> None:
         if not isinstance(paths, list) or not paths:
@@ -2977,6 +2997,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
         icon_list.toggle_trademark_requested.connect(self._on_toggle_trademark)
         icon_list.reveal_source_requested.connect(self._on_reveal_source)
         icon_list.open_source_requested.connect(self._on_open_source)
+        icon_list.open_default_requested.connect(self._on_open_with_default_program)
+        icon_list.open_illustrator_requested.connect(self._on_open_in_illustrator)
         icon_list.delete_requested.connect(self._on_delete_icon)
         icon_list.optimize_svgs_requested.connect(self._on_optimize_svgs)
         icon_list.refresh_variants_requested.connect(self._on_refresh_variants)
