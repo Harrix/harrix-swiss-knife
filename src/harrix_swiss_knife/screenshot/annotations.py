@@ -28,11 +28,11 @@ _HIGHLIGHT_ALPHA = 96
 # ShareX blur tool: a rectangle that gaussian-blurs the pixels underneath.
 _BLUR_RADIUS = 40.0
 _BLUR_PAD_FACTOR = 3
-# ShareX pixelate tool: averaged blocks, default size 10, over the pixels underneath.
-_PIXELATE_BLOCK = 10
-# ShareX step tool: a filled circle with the next number, stamped from the click.
-_STEP_DEFAULT_RADIUS = 32.0
-_STEP_MIN_RADIUS = 16.0
+# ShareX pixelate tool: averaged blocks over the pixels underneath. Larger than ShareX's 10.
+_PIXELATE_BLOCK = 20
+# ShareX step tool: a small filled circle with the next number, stamped from the click.
+_STEP_DEFAULT_RADIUS = 18.0
+_STEP_MIN_RADIUS = 10.0
 _STEP_FONT_RATIO = 0.58
 _STEP_LABEL_LUMINANCE = 160
 
@@ -247,9 +247,6 @@ class _HistoryEntry:
     annotations: list[Annotation]
 
 
-RASTER_EFFECT_TOOLS = frozenset({AnnotationTool.BLUR, AnnotationTool.PIXELATE})
-
-
 def composite_annotations(base: QImage, annotations: Sequence[Annotation]) -> QImage:
     """Paint `annotations` onto a copy of `base`, applying blur and pixelate in order."""
     result = base.copy()
@@ -275,48 +272,6 @@ def composite_annotations(base: QImage, annotations: Sequence[Annotation]) -> QI
     return result
 
 
-def sample_composited_color(base: QImage, annotations: Sequence[Annotation], point: QPointF) -> QColor:
-    """Return the pixel at `point` after painting `annotations` onto `base`."""
-    image = composite_annotations(base, annotations)
-    if image.isNull() or image.width() <= 0 or image.height() <= 0:
-        return QColor(255, 255, 255)
-    x = min(max(0, int(point.x())), image.width() - 1)
-    y = min(max(0, int(point.y())), image.height() - 1)
-    return QColor(image.pixelColor(x, y))
-
-
-def step_circle_points(center: QPointF, edge: QPointF, *, clicked: bool = False) -> list[QPointF]:
-    """Return the bounding square of a step circle centered on `center`.
-
-    A click uses the default radius. A drag uses the distance to `edge`, and never
-    shrinks below the minimum so the number still fits.
-
-    """
-    if clicked:
-        radius = _STEP_DEFAULT_RADIUS
-    else:
-        radius = math.hypot(edge.x() - center.x(), edge.y() - center.y())
-        radius = max(radius, _STEP_MIN_RADIUS)
-    return [
-        QPointF(center.x() - radius, center.y() - radius),
-        QPointF(center.x() + radius, center.y() + radius),
-    ]
-
-
-def next_step_number(annotations: Sequence[Annotation]) -> int:
-    """Return the next ShareX-style step number after the highest one already placed."""
-    highest = 0
-    for item in annotations:
-        if item.tool != AnnotationTool.STEP:
-            continue
-        try:
-            number = int(item.text)
-        except ValueError:
-            continue
-        highest = max(highest, number)
-    return highest + 1
-
-
 def constrain_shape_end(tool: AnnotationTool, start: QPointF, end: QPointF, *, shift: bool) -> QPointF:
     """Return the free or Shift-constrained end point for `tool`.
 
@@ -333,6 +288,20 @@ def constrain_shape_end(tool: AnnotationTool, start: QPointF, end: QPointF, *, s
     if tool in _SQUARE_SHIFT_TOOLS:
         return _snap_end_to_square(start, end)
     return QPointF(end)
+
+
+def next_step_number(annotations: Sequence[Annotation]) -> int:
+    """Return the next ShareX-style step number after the highest one already placed."""
+    highest = 0
+    for item in annotations:
+        if item.tool != AnnotationTool.STEP:
+            continue
+        try:
+            number = int(item.text)
+        except ValueError:
+            continue
+        highest = max(highest, number)
+    return highest + 1
 
 
 def paint_annotation(painter: QPainter, annotation: Annotation) -> None:
@@ -395,6 +364,34 @@ def paint_annotation(painter: QPainter, annotation: Annotation) -> None:
         pen.setStyle(Qt.PenStyle.DashLine)
         painter.setPen(pen)
         painter.drawRect(rect)
+
+
+def sample_composited_color(base: QImage, annotations: Sequence[Annotation], point: QPointF) -> QColor:
+    """Return the pixel at `point` after painting `annotations` onto `base`."""
+    image = composite_annotations(base, annotations)
+    if image.isNull() or image.width() <= 0 or image.height() <= 0:
+        return QColor(255, 255, 255)
+    x = min(max(0, int(point.x())), image.width() - 1)
+    y = min(max(0, int(point.y())), image.height() - 1)
+    return QColor(image.pixelColor(x, y))
+
+
+def step_circle_points(center: QPointF, edge: QPointF, *, clicked: bool = False) -> list[QPointF]:
+    """Return the bounding square of a step circle centered on `center`.
+
+    A click uses the default radius. A drag uses the distance to `edge`, and never
+    shrinks below the minimum so the number still fits.
+
+    """
+    if clicked:
+        radius = _STEP_DEFAULT_RADIUS
+    else:
+        radius = math.hypot(edge.x() - center.x(), edge.y() - center.y())
+        radius = max(radius, _STEP_MIN_RADIUS)
+    return [
+        QPointF(center.x() - radius, center.y() - radius),
+        QPointF(center.x() + radius, center.y() + radius),
+    ]
 
 
 def text_annotation_rect(annotation: Annotation) -> QRectF:
@@ -592,6 +589,23 @@ def _is_meaningful(annotation: Annotation) -> bool:
     return (end - start).manhattanLength() >= _MIN_DRAG_MANHATTAN
 
 
+def _paint_step(painter: QPainter, annotation: Annotation, rect: QRectF) -> None:
+    """Fill a circle and center its step number in a contrasting color."""
+    if rect.width() < 1 or rect.height() < 1:
+        return
+    fill = QColor(annotation.style.color)
+    painter.setPen(Qt.PenStyle.NoPen)
+    painter.setBrush(fill)
+    painter.drawEllipse(rect)
+    label = annotation.text.strip() or "1"
+    font = QFont()
+    font.setBold(True)
+    font.setPixelSize(_step_font_px(min(rect.width(), rect.height()), len(label)))
+    painter.setFont(font)
+    painter.setPen(QPen(_step_label_color(fill)))
+    painter.drawText(rect, int(Qt.AlignmentFlag.AlignCenter), label)
+
+
 def _paint_text_annotation(painter: QPainter, annotation: Annotation) -> None:
     from harrix_swiss_knife.screenshot.text_style import annotation_qfont  # noqa: PLC0415
 
@@ -612,23 +626,6 @@ def _paint_text_annotation(painter: QPainter, annotation: Annotation) -> None:
     else:
         flags |= int(Qt.AlignmentFlag.AlignLeft)
     painter.drawText(rect, flags, annotation.text or "")
-
-
-def _paint_step(painter: QPainter, annotation: Annotation, rect: QRectF) -> None:
-    """Fill a circle and center its step number in a contrasting color."""
-    if rect.width() < 1 or rect.height() < 1:
-        return
-    fill = QColor(annotation.style.color)
-    painter.setPen(Qt.PenStyle.NoPen)
-    painter.setBrush(fill)
-    painter.drawEllipse(rect)
-    label = annotation.text.strip() or "1"
-    font = QFont()
-    font.setBold(True)
-    font.setPixelSize(_step_font_px(min(rect.width(), rect.height()), len(label)))
-    painter.setFont(font)
-    painter.setPen(QPen(_step_label_color(fill)))
-    painter.drawText(rect, int(Qt.AlignmentFlag.AlignCenter), label)
 
 
 def _pixelate_patch(source: QImage, rect: QRect, block: int) -> QImage:
@@ -690,6 +687,9 @@ def _step_label_color(fill: QColor) -> QColor:
     if luminance >= _STEP_LABEL_LUMINANCE:
         return QColor(0, 0, 0)
     return QColor(255, 255, 255)
+
+
+RASTER_EFFECT_TOOLS = frozenset({AnnotationTool.BLUR, AnnotationTool.PIXELATE})
 
 
 _LINE_SHIFT_TOOLS = frozenset({AnnotationTool.ARROW, AnnotationTool.LINE})

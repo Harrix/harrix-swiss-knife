@@ -44,6 +44,9 @@ def annotation_bounds(annotation: Annotation) -> QRectF:
         AnnotationTool.HIGHLIGHT,
         AnnotationTool.BLUR,
         AnnotationTool.CROP,
+        AnnotationTool.PIXELATE,
+        AnnotationTool.SMART_ERASER,
+        AnnotationTool.STEP,
     }:
         if len(points) < _MIN_SHAPE_POINTS:
             return QRectF(points[0], points[0])
@@ -91,18 +94,27 @@ def apply_annotation_edit(
         delta = current - press
         return [QPointF(p.x() + delta.x(), p.y() + delta.y()) for p in origin_points]
     new_rect = _transform_rect(origin_rect, handle, press, current)
-    if shift and annotation.tool in {
-        AnnotationTool.BLUR,
-        AnnotationTool.ELLIPSE,
-        AnnotationTool.HIGHLIGHT,
-        AnnotationTool.RECTANGLE,
-    }:
+    if annotation.tool == AnnotationTool.STEP or (
+        shift
+        and annotation.tool
+        in {
+            AnnotationTool.BLUR,
+            AnnotationTool.ELLIPSE,
+            AnnotationTool.HIGHLIGHT,
+            AnnotationTool.PIXELATE,
+            AnnotationTool.RECTANGLE,
+            AnnotationTool.SMART_ERASER,
+        }
+    ):
         new_rect = _square_rect_from_handle(origin_rect, new_rect, handle)
     if annotation.tool in {
         AnnotationTool.RECTANGLE,
         AnnotationTool.ELLIPSE,
         AnnotationTool.HIGHLIGHT,
         AnnotationTool.BLUR,
+        AnnotationTool.PIXELATE,
+        AnnotationTool.SMART_ERASER,
+        AnnotationTool.STEP,
         AnnotationTool.TEXT,
     }:
         return [new_rect.topLeft(), new_rect.bottomRight()]
@@ -170,6 +182,9 @@ def hit_test_annotation(
         ).contains(pos):
             return "move"
         return None
+    if annotation.tool == AnnotationTool.STEP:
+        inflated = bounds.adjusted(-padding, -padding, padding, padding)
+        return "move" if _point_in_ellipse(inflated, pos) else None
     if annotation.tool == AnnotationTool.ELLIPSE:
         return "move" if _hit_ellipse_stroke(bounds, pos, padding) else None
     if annotation.tool in _FILLED_BOX_TOOLS:

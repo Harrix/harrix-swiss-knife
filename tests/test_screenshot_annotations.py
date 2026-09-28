@@ -585,8 +585,8 @@ def test_shift_makes_pixelate_square() -> None:
 
 def test_step_click_is_a_default_circle_and_drag_uses_the_radius() -> None:
     clicked = step_circle_points(QPointF(40, 50), QPointF(40, 50), clicked=True)
-    assert clicked[0].x() == pytest.approx(8.0)
-    assert clicked[1].x() == pytest.approx(72.0)
+    assert clicked[0].x() == pytest.approx(22.0)
+    assert clicked[1].x() == pytest.approx(58.0)
     assert clicked[1].y() - clicked[0].y() == pytest.approx(clicked[1].x() - clicked[0].x())
     dragged = step_circle_points(QPointF(40, 50), QPointF(70, 50))
     assert dragged[0].x() == pytest.approx(10.0)
@@ -616,7 +616,7 @@ def test_step_circle_is_filled_and_selectable_inside_only() -> None:
     )
     assert doc.commit_draft()
     rendered = doc.render(include_draft=False)
-    inside = rendered.pixelColor(58, 40)
+    inside = rendered.pixelColor(50, 40)
     assert inside.red() > 180
     assert inside.green() < 80
     corner = rendered.pixelColor(10, 10)

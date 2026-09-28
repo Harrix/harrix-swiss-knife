@@ -35,7 +35,10 @@ lang: en
 - [🏛️ Class `AnnotationTool`](#%EF%B8%8F-class-annotationtool)
 - [🔧 Function `composite_annotations`](#-function-composite_annotations)
 - [🔧 Function `constrain_shape_end`](#-function-constrain_shape_end)
+- [🔧 Function `next_step_number`](#-function-next_step_number)
 - [🔧 Function `paint_annotation`](#-function-paint_annotation)
+- [🔧 Function `sample_composited_color`](#-function-sample_composited_color)
+- [🔧 Function `step_circle_points`](#-function-step_circle_points)
 - [🔧 Function `text_annotation_rect`](#-function-text_annotation_rect)
 
 </details>
@@ -669,10 +672,13 @@ class AnnotationTool(Enum):
     ARROW = "arrow"
     RECTANGLE = "rectangle"
     ELLIPSE = "ellipse"
+    STEP = "step"
     LINE = "line"
     PEN = "pen"
     HIGHLIGHT = "highlight"
     BLUR = "blur"
+    PIXELATE = "pixelate"
+    SMART_ERASER = "smart_eraser"
     TEXT = "text"
     CROP = "crop"
     EYEDROPPER = "eyedropper"
@@ -686,7 +692,7 @@ class AnnotationTool(Enum):
 def composite_annotations(base: QImage, annotations: Sequence[Annotation]) -> QImage
 ```
 
-Paint [`annotations`](#%EF%B8%8F-method-annotations-property) onto a copy of `base`, blurring each blur rectangle in order.
+Paint [`annotations`](#%EF%B8%8F-method-annotations-property) onto a copy of `base`, applying blur and pixelate in order.
 
 <details>
 <summary>Code:</summary>
@@ -698,11 +704,14 @@ def composite_annotations(base: QImage, annotations: Sequence[Annotation]) -> QI
         return result
     painter: QPainter | None = None
     for item in annotations:
-        if item.tool == AnnotationTool.BLUR:
+        if item.tool in RASTER_EFFECT_TOOLS:
             if painter is not None and painter.isActive():
                 painter.end()
                 painter = None
-            _apply_blur(result, item)
+            if item.tool == AnnotationTool.BLUR:
+                _apply_blur(result, item)
+            else:
+                _apply_pixelate(result, item)
             continue
         if painter is None or not painter.isActive():
             painter = QPainter(result)
@@ -731,6 +740,8 @@ and ellipses square or circular, keeping the start corner fixed.
 
 ```python
 def constrain_shape_end(tool: AnnotationTool, start: QPointF, end: QPointF, *, shift: bool) -> QPointF:
+    if tool == AnnotationTool.STEP:
+        return _snap_end_to_square(start, end)
     if not shift:
         return QPointF(end)
     if tool in _LINE_SHIFT_TOOLS:
@@ -738,6 +749,33 @@ def constrain_shape_end(tool: AnnotationTool, start: QPointF, end: QPointF, *, s
     if tool in _SQUARE_SHIFT_TOOLS:
         return _snap_end_to_square(start, end)
     return QPointF(end)
+```
+
+</details>
+
+## 🔧 Function `next_step_number`
+
+```python
+def next_step_number(annotations: Sequence[Annotation]) -> int
+```
+
+Return the next ShareX-style step number after the highest one already placed.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def next_step_number(annotations: Sequence[Annotation]) -> int:
+    highest = 0
+    for item in annotations:
+        if item.tool != AnnotationTool.STEP:
+            continue
+        try:
+            number = int(item.text)
+        except ValueError:
+            continue
+        highest = max(highest, number)
+    return highest + 1
 ```
 
 </details>
@@ -785,6 +823,9 @@ def paint_annotation(painter: QPainter, annotation: Annotation) -> None:
         _draw_filled_arrow(painter, start, end, annotation.style.color, annotation.style.width)
         return
     rect = QRectF(start, end).normalized()
+    if tool == AnnotationTool.STEP:
+        _paint_step(painter, annotation, rect)
+        return
     if tool == AnnotationTool.HIGHLIGHT:
         fill = QColor(annotation.style.color)
         fill.setAlpha(_HIGHLIGHT_ALPHA)
@@ -792,7 +833,13 @@ def paint_annotation(painter: QPainter, annotation: Annotation) -> None:
         painter.setBrush(fill)
         painter.drawRect(rect)
         return
-    if tool == AnnotationTool.BLUR:
+    if tool in RASTER_EFFECT_TOOLS:
+        return
+    if tool == AnnotationTool.SMART_ERASER:
+        painter.save()
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=False)
+        painter.fillRect(rect.toAlignedRect(), QColor(annotation.style.color))
+        painter.restore()
         return
     if tool == AnnotationTool.RECTANGLE:
         painter.drawRect(rect)
@@ -804,6 +851,58 @@ def paint_annotation(painter: QPainter, annotation: Annotation) -> None:
         pen.setStyle(Qt.PenStyle.DashLine)
         painter.setPen(pen)
         painter.drawRect(rect)
+```
+
+</details>
+
+## 🔧 Function `sample_composited_color`
+
+```python
+def sample_composited_color(base: QImage, annotations: Sequence[Annotation], point: QPointF) -> QColor
+```
+
+Return the pixel at `point` after painting [`annotations`](#%EF%B8%8F-method-annotations-property) onto `base`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def sample_composited_color(base: QImage, annotations: Sequence[Annotation], point: QPointF) -> QColor:
+    image = composite_annotations(base, annotations)
+    if image.isNull() or image.width() <= 0 or image.height() <= 0:
+        return QColor(255, 255, 255)
+    x = min(max(0, int(point.x())), image.width() - 1)
+    y = min(max(0, int(point.y())), image.height() - 1)
+    return QColor(image.pixelColor(x, y))
+```
+
+</details>
+
+## 🔧 Function `step_circle_points`
+
+```python
+def step_circle_points(center: QPointF, edge: QPointF, *, clicked: bool = False) -> list[QPointF]
+```
+
+Return the bounding square of a step circle centered on `center`.
+
+A click uses the default radius. A drag uses the distance to `edge`, and never
+shrinks below the minimum so the number still fits.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def step_circle_points(center: QPointF, edge: QPointF, *, clicked: bool = False) -> list[QPointF]:
+    if clicked:
+        radius = _STEP_DEFAULT_RADIUS
+    else:
+        radius = math.hypot(edge.x() - center.x(), edge.y() - center.y())
+        radius = max(radius, _STEP_MIN_RADIUS)
+    return [
+        QPointF(center.x() - radius, center.y() - radius),
+        QPointF(center.x() + radius, center.y() + radius),
+    ]
 ```
 
 </details>

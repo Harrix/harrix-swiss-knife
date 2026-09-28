@@ -510,9 +510,10 @@ Returns:
 
 ```python
 def macros_button_appearance(status: DayMacrosStatus) -> MacrosButtonAppearance:
+    label = day_macros_menu_label(status)
     if status is DayMacrosStatus.OK:
         return MacrosButtonAppearance(
-            "View macros",
+            label,
             QColor("#e8f5e9"),
             QColor("#43a047"),
             QColor("#1b5e20"),
@@ -520,14 +521,14 @@ def macros_button_appearance(status: DayMacrosStatus) -> MacrosButtonAppearance:
         )
     if status is DayMacrosStatus.STALE:
         return MacrosButtonAppearance(
-            "Recalculate macros",
+            label,
             QColor("#fff8e1"),
             QColor("#f9a825"),
             QColor("#e65100"),
             QColor("#ffecb3"),
         )
     return MacrosButtonAppearance(
-        "Analyze macros",
+        label,
         QColor("#1e88e5"),
         QColor("#1565c0"),
         QColor("#ffffff"),

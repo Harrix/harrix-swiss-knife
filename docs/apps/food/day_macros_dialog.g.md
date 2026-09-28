@@ -113,6 +113,9 @@ class AdviceMacrosDialogBase(QDialog):
         self._verdict_local.setWordWrap(True)
         self._verdict_en = QLabel("")
         self._verdict_en.setWordWrap(True)
+        verdict_font = _recommendation_font(extra_points=_VERDICT_EXTRA_PT, weight=QFont.Weight.Medium)
+        self._verdict_local.setFont(verdict_font)
+        self._verdict_en.setFont(verdict_font)
         self._notes_local = _make_advice_browser()
         self._notes_en = _make_advice_browser()
 

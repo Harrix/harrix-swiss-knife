@@ -2437,6 +2437,33 @@ class MainWindow(
             QTimer.singleShot(50, self._update_food_calories_chart)
             QTimer.singleShot(80, self._update_macros_analysis_table)
 
+    def _kcal_per_day_displayed_days(self) -> list[str]:
+        """Return every date currently shown in the daily calories & macros table."""
+        model = self.tableView_kcal_per_day.model()
+        if model is None:
+            return []
+        values = [str(model.data(model.index(row, _STATS_DAY_DATE_COLUMN)) or "") for row in range(model.rowCount())]
+        return unique_calendar_days(values)
+
+    def _kcal_per_day_focused_day(self, position: QPoint) -> str:
+        """Return the date of the row under the cursor, or of the single selected row."""
+        view = self.tableView_kcal_per_day
+        index = view.indexAt(position)
+        model = view.model()
+        if model is None:
+            return ""
+        if not index.isValid():
+            selection = view.selectionModel()
+            selected = selection.selectedIndexes() if selection is not None else []
+            rows = {item.row() for item in selected}
+            if len(rows) != 1:
+                return ""
+            index = model.index(next(iter(rows)), _STATS_DAY_DATE_COLUMN)
+        if not index.isValid():
+            return ""
+        raw = model.data(model.index(index.row(), _STATS_DAY_DATE_COLUMN))
+        return str(raw or "").strip()[:10]
+
     def _layout_food_log_day_totals(self) -> None:
         """Merge each day's total, then fit and restyle the macros button under it."""
         apply_food_log_day_spans(self.tableView_food_log)
@@ -4169,15 +4196,17 @@ class MainWindow(
         period_macros_action = None
         selected_days = self._selected_food_log_days() if multiple_rows_selected else []
         if multiple_rows_selected and selected_days:
-            days_to_fill = days_needing_macros(selected_days, self._food_log_macros_statuses(selected_days))
+            menu_actions = macros_context_actions(selected_days, self._food_log_macros_statuses(selected_days))
             add_separator(context_menu)
-            fill_label = f"📊 Fill in macros ({len(days_to_fill)})" if days_to_fill else "📊 Fill in macros"
-            fill_macros_action = context_menu.addAction(fill_label)
-            recalculate_macros_action = context_menu.addAction(f"📊 Recalculate macros ({len(selected_days)})")
-            if len(selected_days) > 1:
-                date_from = min(selected_days)
-                date_to = max(selected_days)
-                period_macros_action = context_menu.addAction(f"📊 Period macros ({date_from} … {date_to})")
+            if menu_actions.fill_count:
+                fill_macros_action = context_menu.addAction(f"📊 Fill in macros ({menu_actions.fill_count})")
+            recalculate_macros_action = context_menu.addAction(
+                f"📊 Recalculate macros ({menu_actions.recalculate_count})"
+            )
+            if menu_actions.period_from:
+                period_macros_action = context_menu.addAction(
+                    f"📊 Period macros ({menu_actions.period_from} … {menu_actions.period_to})"
+                )
         elif date_value:
             add_separator(context_menu)
             analyze_day_macros_action = context_menu.addAction("📊 Analyze day macros")
@@ -4337,13 +4366,50 @@ class MainWindow(
         )
 
     def _show_kcal_per_day_context_menu(self, position: QPoint) -> None:
-        """Show context menu for the Daily calories & macros stats table."""
+        """Show context menu for the Daily calories & macros stats table.
+
+        Period commands cover every day currently shown in the table. A click on one
+        row adds the same View / Recalculate / Analyze command as the food-log total button.
+
+        """
+        displayed_days = self._kcal_per_day_displayed_days()
+        focused_day = self._kcal_per_day_focused_day(position)
+        status_days = [*displayed_days, focused_day] if focused_day else displayed_days
+        menu_actions = macros_context_actions(
+            displayed_days,
+            self._food_log_macros_statuses(status_days),
+            focused_day=focused_day,
+        )
         context_menu = QMenu(self)
+        day_action = context_menu.addAction(menu_actions.day_label) if menu_actions.day_label else None
+        fill_action = None
+        recalculate_action = None
+        period_action = None
+        if menu_actions.recalculate_count:
+            if day_action is not None:
+                add_separator(context_menu)
+            if menu_actions.fill_count:
+                fill_action = context_menu.addAction(f"📊 Fill in macros ({menu_actions.fill_count})")
+            recalculate_action = context_menu.addAction(f"📊 Recalculate macros ({menu_actions.recalculate_count})")
+            if menu_actions.period_from:
+                period_action = context_menu.addAction(
+                    f"📊 Period macros ({menu_actions.period_from} … {menu_actions.period_to})"
+                )
+        if day_action is not None or recalculate_action is not None:
+            add_separator(context_menu)
         refresh_action = context_menu.addAction("🔄 Update table and chart")
         export_excel_action = context_menu.addAction("📊 Export to Excel")
         apply_leading_chrome_icons(context_menu)
         action = context_menu.exec_(self.tableView_kcal_per_day.mapToGlobal(position))
-        if action == refresh_action:
+        if day_action is not None and action == day_action:
+            self._on_food_log_day_total_macros(focused_day)
+        elif fill_action is not None and action == fill_action:
+            self._fill_selected_day_macros(displayed_days)
+        elif recalculate_action is not None and action == recalculate_action:
+            self._start_day_macros_queue(displayed_days)
+        elif period_action is not None and action == period_action:
+            self._open_selected_period_macros(displayed_days)
+        elif action == refresh_action:
             self.on_food_stats_update()
         elif action == export_excel_action:
             self.on_export_food_stats_excel()
