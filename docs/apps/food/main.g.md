@@ -124,6 +124,7 @@ class MainWindow(
         self._macros_analysis_failed: list[str] = []
         self._macros_chart_nutrient: Literal["protein", "fat", "carb"] | None = None
         self._macros_open_range_after_queue = False
+        self._macros_open_day_after_queue: str | None = None
         self._day_macros_dialog: DayMacrosDialog | None = None
         self._range_macros_dialog: RangeMacrosDialog | None = None
         self.label_macros_status: QLabel | None = None
@@ -1479,6 +1480,7 @@ class MainWindow(
         saved = self._macros_analysis_done
         self._macros_analysis_queue = []
         self._macros_open_range_after_queue = False
+        self._macros_open_day_after_queue = None
         self._end_day_macros_toast_pin_chain()
         self._update_macros_analysis_table()
         self._update_macros_status_label()
@@ -2408,7 +2410,7 @@ class MainWindow(
         self.tableView_food_log.setItemDelegateForColumn(FOOD_LOG_COL_DATE, self._date_delegate)
 
         self._day_total_delegate = FoodLogDayTotalDelegate(self.tableView_food_log)
-        self._day_total_delegate.macros_requested.connect(self._open_day_macros_dialog)
+        self._day_total_delegate.macros_requested.connect(self._on_food_log_day_total_macros)
         self.tableView_food_log.setItemDelegateForColumn(FOOD_LOG_COL_TOTAL_PER_DAY, self._day_total_delegate)
 
     def _init_food_stats_dates(self) -> None:
@@ -2682,6 +2684,23 @@ class MainWindow(
                 return
         if image_paths:
             self.on_food_add_with_ai(initial_image_paths=image_paths)
+
+    def _on_food_log_day_total_macros(self, day: str) -> None:
+        """Open a day's macros from the food-log total button.
+
+        A stale report is recalculated first. The dialog opens with the new analysis.
+
+        """
+        day_key = day.strip()[:10]
+        if self.db_manager is None or not day_key or not self._validate_database_connection():
+            self._open_day_macros_dialog(day)
+            return
+        analysis = self.db_manager.get_food_day_nutrition_analysis(day_key)
+        status = resolve_day_macros_status(analysis, self.db_manager.get_food_day_input_hash(day_key))
+        if status is DayMacrosStatus.STALE:
+            self._start_day_macros_queue([day_key], open_day_when_done=day_key)
+            return
+        self._open_day_macros_dialog(day_key)
 
     def _on_food_log_scroll(self, value: int) -> None:
         """Trigger loading more food log rows when scrolled near the bottom."""
@@ -3555,6 +3574,9 @@ class MainWindow(
                 self._update_macros_chart()
             open_range = self._macros_open_range_after_queue
             self._macros_open_range_after_queue = False
+            open_day = self._macros_open_day_after_queue
+            self._macros_open_day_after_queue = None
+            show_saved_day = bool(open_day) and not self._macros_analysis_failed and bool(self._macros_analysis_done)
             if self._macros_analysis_failed:
                 preview = ", ".join(self._macros_analysis_failed[:_MACROS_FAILED_PREVIEW_LIMIT])
                 suffix = "…" if len(self._macros_analysis_failed) > _MACROS_FAILED_PREVIEW_LIMIT else ""
@@ -3563,13 +3585,15 @@ class MainWindow(
                     "Macros analysis",
                     f"Failed for {len(self._macros_analysis_failed)} day(s): {preview}{suffix}",
                 )
-            elif self._macros_analysis_done:
+            elif self._macros_analysis_done and not show_saved_day:
                 toast = toast_notification.ToastNotification(
                     f"Macros analysis saved for {self._macros_analysis_done} day(s).",
                     duration=2500,
                     parent=self,
                 )
                 toast.present(activate=not pinned, pinned=True if pinned else None)
+            if show_saved_day and open_day:
+                QTimer.singleShot(0, lambda day=open_day: self._open_day_macros_dialog(day))
             if open_range and not self._macros_analysis_failed:
                 date_from = self.dateEdit_food_stats_from.date().toString("yyyy-MM-dd")
                 date_to = self.dateEdit_food_stats_to.date().toString("yyyy-MM-dd")
@@ -3597,6 +3621,7 @@ class MainWindow(
             show_bothub_prompt_build_error(self, exc)
             self._macros_analysis_queue = []
             self._macros_open_range_after_queue = False
+            self._macros_open_day_after_queue = None
             self._end_day_macros_toast_pin_chain()
             self._refresh_open_day_macros_dialog()
             return
@@ -3648,6 +3673,7 @@ class MainWindow(
         if not started:
             self._macros_analysis_queue = []
             self._macros_open_range_after_queue = False
+            self._macros_open_day_after_queue = None
             self._end_day_macros_toast_pin_chain()
             self._refresh_open_day_macros_dialog()
 
@@ -4401,7 +4427,7 @@ class MainWindow(
             offer_retry=offer_retry,
         )
 
-    def _start_day_macros_queue(self, dates: list[str]) -> None:
+    def _start_day_macros_queue(self, dates: list[str], *, open_day_when_done: str | None = None) -> None:
         """Queue day macros AI requests for `dates` (unique, non-empty log days)."""
         if self.db_manager is None or not self._validate_database_connection():
             message_box.warning(self, "Error", "Database connection not available")
@@ -4424,6 +4450,7 @@ class MainWindow(
         self._macros_analysis_queue = unique_dates
         self._macros_analysis_done = 0
         self._macros_analysis_failed = []
+        self._macros_open_day_after_queue = (open_day_when_done or "").strip()[:10] or None
         # Keep collapse/expand across sequential day-analysis toasts in this queue.
         self._bothub_state.toast_pin_chain = True
         self._bothub_state.toast_pinned = None
@@ -5077,6 +5104,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
         self._macros_analysis_failed: list[str] = []
         self._macros_chart_nutrient: Literal["protein", "fat", "carb"] | None = None
         self._macros_open_range_after_queue = False
+        self._macros_open_day_after_queue: str | None = None
         self._day_macros_dialog: DayMacrosDialog | None = None
         self._range_macros_dialog: RangeMacrosDialog | None = None
         self.label_macros_status: QLabel | None = None
