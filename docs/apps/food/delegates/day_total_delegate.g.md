@@ -113,12 +113,7 @@ class FoodLogDayTotalDelegate(QStyledItemDelegate):
         )
         painter.save()
         painter.setFont(opt.font)
-        text_role = (
-            QPalette.ColorRole.HighlightedText
-            if opt.state & QStyle.StateFlag.State_Selected
-            else QPalette.ColorRole.Text
-        )
-        painter.setPen(opt.palette.color(text_role))
+        painter.setPen(opt.palette.color(QPalette.ColorRole.Text))
         painter.drawText(
             text_rect,
             int(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter),
@@ -336,12 +331,7 @@ def paint(
         )
         painter.save()
         painter.setFont(opt.font)
-        text_role = (
-            QPalette.ColorRole.HighlightedText
-            if opt.state & QStyle.StateFlag.State_Selected
-            else QPalette.ColorRole.Text
-        )
-        painter.setPen(opt.palette.color(text_role))
+        painter.setPen(opt.palette.color(QPalette.ColorRole.Text))
         painter.drawText(
             text_rect,
             int(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter),
