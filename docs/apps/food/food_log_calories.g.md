@@ -16,6 +16,7 @@ lang: en
 - [🔧 Function `convert_calories_per_100g_to_portion`](#-function-convert_calories_per_100g_to_portion)
 - [🔧 Function `convert_portion_to_calories_per_100g`](#-function-convert_portion_to_calories_per_100g)
 - [🔧 Function `effective_calories_per_100g`](#-function-effective_calories_per_100g)
+- [🔧 Function `food_log_day_groups`](#-function-food_log_day_groups)
 - [🔧 Function `food_log_day_row_spans`](#-function-food_log_day_row_spans)
 - [🔧 Function `parse_food_log_number`](#-function-parse_food_log_number)
 - [🔧 Function `refresh_food_log_calorie_columns`](#-function-refresh_food_log_calorie_columns)
@@ -187,6 +188,35 @@ def effective_calories_per_100g(
 
 </details>
 
+## 🔧 Function `food_log_day_groups`
+
+```python
+def food_log_day_groups(dates: list[str]) -> list[tuple[int, int]]
+```
+
+Return `(start_row, row_count)` for every non-empty calendar day, including single rows.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def food_log_day_groups(dates: list[str]) -> list[tuple[int, int]]:
+    groups: list[tuple[int, int]] = []
+    start = 0
+    row_count = len(dates)
+    while start < row_count:
+        day = dates[start]
+        end = start + 1
+        while end < row_count and day and dates[end] == day:
+            end += 1
+        if day:
+            groups.append((start, end - start))
+        start = end
+    return groups
+```
+
+</details>
+
 ## 🔧 Function `food_log_day_row_spans`
 
 ```python
@@ -200,18 +230,7 @@ Return `(start_row, row_count)` for days that occupy more than one row.
 
 ```python
 def food_log_day_row_spans(dates: list[str]) -> list[tuple[int, int]]:
-    spans: list[tuple[int, int]] = []
-    start = 0
-    row_count = len(dates)
-    while start < row_count:
-        day = dates[start]
-        end = start + 1
-        while end < row_count and day and dates[end] == day:
-            end += 1
-        if day and end - start > 1:
-            spans.append((start, end - start))
-        start = end
-    return spans
+    return [(start, count) for start, count in food_log_day_groups(dates) if count > 1]
 ```
 
 </details>

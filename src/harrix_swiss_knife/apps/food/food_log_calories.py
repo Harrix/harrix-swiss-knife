@@ -128,9 +128,9 @@ def effective_calories_per_100g(
     return None
 
 
-def food_log_day_row_spans(dates: list[str]) -> list[tuple[int, int]]:
-    """Return `(start_row, row_count)` for days that occupy more than one row."""
-    spans: list[tuple[int, int]] = []
+def food_log_day_groups(dates: list[str]) -> list[tuple[int, int]]:
+    """Return `(start_row, row_count)` for every non-empty calendar day, including single rows."""
+    groups: list[tuple[int, int]] = []
     start = 0
     row_count = len(dates)
     while start < row_count:
@@ -138,10 +138,15 @@ def food_log_day_row_spans(dates: list[str]) -> list[tuple[int, int]]:
         end = start + 1
         while end < row_count and day and dates[end] == day:
             end += 1
-        if day and end - start > 1:
-            spans.append((start, end - start))
+        if day:
+            groups.append((start, end - start))
         start = end
-    return spans
+    return groups
+
+
+def food_log_day_row_spans(dates: list[str]) -> list[tuple[int, int]]:
+    """Return `(start_row, row_count)` for days that occupy more than one row."""
+    return [(start, count) for start, count in food_log_day_groups(dates) if count > 1]
 
 
 def parse_food_log_number(value: object) -> float | None:

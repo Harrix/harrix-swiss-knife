@@ -113,6 +113,7 @@ from harrix_swiss_knife.apps.food.day_macros import (
     calorie_thresholds_from_config,
     day_macros_prompt_key,
     fiber_tone,
+    food_day_input_hash,
     food_range_input_hash,
     format_day_menu_for_prompt,
     format_days_summary_for_range_prompt,
@@ -125,7 +126,13 @@ from harrix_swiss_knife.apps.food.day_macros import (
     resolve_day_macros_status,
 )
 from harrix_swiss_knife.apps.food.day_macros_dialog import DayMacrosDialog, RangeMacrosDialog
-from harrix_swiss_knife.apps.food.delegates import DateDelegate, IsDrinkDelegate, parse_is_drink_cell
+from harrix_swiss_knife.apps.food.delegates import (
+    DateDelegate,
+    FoodLogDayTotalDelegate,
+    IsDrinkDelegate,
+    apply_food_log_macros_row_heights,
+    parse_is_drink_cell,
+)
 from harrix_swiss_knife.apps.food.eaten_fraction import (
     ATE_HALF,
     ATE_THIRD,
@@ -2015,6 +2022,7 @@ class MainWindow(
             return
         self._update_macros_analysis_table()
         self._update_macros_status_label()
+        self._refresh_food_log_macros_buttons()
         self._refresh_open_day_macros_dialog()
         if self._macros_chart_nutrient is not None:
             self._update_macros_chart()
@@ -2336,6 +2344,21 @@ class MainWindow(
             return True
         return self.checkBox_use_date_filter.isChecked()
 
+    def _food_log_macros_statuses(self, days: list[str]) -> dict[str, DayMacrosStatus]:
+        """Resolve view, refresh, or analyze states for the days shown in the food log."""
+        if not days or self.db_manager is None:
+            return dict.fromkeys(days, DayMacrosStatus.MISSING)
+        date_from = min(days)
+        date_to = max(days)
+        analyses = {
+            row.date: row for row in self.db_manager.get_food_day_nutrition_analyses_between(date_from, date_to)
+        }
+        lines_by_day = self.db_manager.get_food_day_log_lines_between(date_from, date_to)
+        return {
+            day: resolve_day_macros_status(analyses.get(day), food_day_input_hash(lines_by_day.get(day, [])))
+            for day in days
+        }
+
     def _food_log_partial_day_filter_is_active(self) -> bool:
         """Return whether the current filter hides some rows of a visible day."""
         if self.lineEdit_filter_name.text().strip():
@@ -2532,7 +2555,11 @@ class MainWindow(
         self.tableView_food_log.setItemDelegateForColumn(1, self._is_drink_delegate)
 
         self._date_delegate = DateDelegate(self.tableView_food_log)
-        self.tableView_food_log.setItemDelegateForColumn(6, self._date_delegate)
+        self.tableView_food_log.setItemDelegateForColumn(FOOD_LOG_COL_DATE, self._date_delegate)
+
+        self._day_total_delegate = FoodLogDayTotalDelegate(self.tableView_food_log)
+        self._day_total_delegate.macros_requested.connect(self._open_day_macros_dialog)
+        self.tableView_food_log.setItemDelegateForColumn(FOOD_LOG_COL_TOTAL_PER_DAY, self._day_total_delegate)
 
     def _init_food_stats_dates(self) -> None:
         """Initialize food stats date range with last month as default."""
@@ -2581,6 +2608,12 @@ class MainWindow(
             QTimer.singleShot(50, self._update_food_calories_chart)
             QTimer.singleShot(80, self._update_macros_analysis_table)
 
+    def _layout_food_log_day_totals(self) -> None:
+        """Merge each day's total, then fit and restyle the macros button under it."""
+        apply_food_log_day_spans(self.tableView_food_log)
+        apply_food_log_macros_row_heights(self.tableView_food_log)
+        self._refresh_food_log_macros_buttons()
+
     def _load_food_log_page(self, *, reset: bool = True) -> None:
         """Load the first page of food log records."""
         if self.db_manager is None:
@@ -2614,7 +2647,7 @@ class MainWindow(
         for i in range(food_log_header.count()):
             food_log_header.setSectionResizeMode(i, food_log_header.ResizeMode.Interactive)
         self._adjust_food_log_table_columns()
-        apply_food_log_day_spans(self.tableView_food_log)
+        self._layout_food_log_day_totals()
 
     def _load_more_food_log(self) -> None:
         """Append the next page of food log records when scrolling to the bottom."""
@@ -2630,7 +2663,7 @@ class MainWindow(
             proxy = cast("QSortFilterProxyModel", self.models["food_log"])
             source_model = cast("QStandardItemModel", proxy.sourceModel())
             self._append_food_log_rows_to_model(source_model, transformed_data)
-            apply_food_log_day_spans(self.tableView_food_log)
+            self._layout_food_log_day_totals()
 
         self._food_log_pagination.load_more(
             load_more_count=self.food_log_load_more_count,
@@ -3414,11 +3447,27 @@ class MainWindow(
 
         refresh_food_log_calorie_columns(source_model)
         self._apply_food_log_daily_total_colors(source_model)
-        apply_food_log_day_spans(self.tableView_food_log)
-        self.tableView_food_log.viewport().update()
+        self._layout_food_log_day_totals()
 
         if date_column_changed or edited_summary_day:
             self.update_food_calories_today()
+
+    def _refresh_food_log_macros_buttons(self) -> None:
+        """Reload macros-button states for the days currently loaded in the food log."""
+        view = self.tableView_food_log
+        model = view.model()
+        if model is None:
+            self._day_total_delegate.set_statuses({})
+            return
+        days: list[str] = []
+        seen: set[str] = set()
+        for row in range(model.rowCount()):
+            day = str(model.index(row, FOOD_LOG_COL_DATE).data() or "").strip()[:10]
+            if day and day not in seen:
+                seen.add(day)
+                days.append(day)
+        self._day_total_delegate.set_statuses(self._food_log_macros_statuses(days))
+        view.viewport().update()
 
     def _refresh_open_day_macros_dialog(self) -> None:
         """Reload analysis into the open day macros dialog, if any."""
@@ -3650,6 +3699,7 @@ class MainWindow(
             self._end_day_macros_toast_pin_chain()
             self._update_macros_analysis_table()
             self._update_macros_status_label()
+            self._refresh_food_log_macros_buttons()
             self._refresh_open_day_macros_dialog()
             if self._macros_chart_nutrient is not None:
                 self._update_macros_chart()
@@ -3733,6 +3783,7 @@ class MainWindow(
             )
             if self.db_manager.upsert_food_day_nutrition_analysis(analysis):
                 self._macros_analysis_done += 1
+                self._refresh_food_log_macros_buttons()
             else:
                 self._macros_analysis_failed.append(day)
             self._run_next_day_macros_request()
@@ -4855,7 +4906,7 @@ class MainWindow(
             for i in range(food_log_header.count()):
                 food_log_header.setSectionResizeMode(i, food_log_header.ResizeMode.Interactive)
             self._adjust_food_log_table_columns()
-            apply_food_log_day_spans(self.tableView_food_log)
+            self._layout_food_log_day_totals()
             self._food_log_pagination.record_first_page(len(food_log_rows), None, pagination_enabled=False)
             self._connect_table_selection_signals()
             self._connect_table_auto_save_signals()

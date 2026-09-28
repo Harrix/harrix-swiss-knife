@@ -36,6 +36,7 @@ lang: en
   - [⚙️ Method `get_food_calories_today`](#%EF%B8%8F-method-get_food_calories_today)
   - [⚙️ Method `get_food_day_input_hash`](#%EF%B8%8F-method-get_food_day_input_hash)
   - [⚙️ Method `get_food_day_log_lines`](#%EF%B8%8F-method-get_food_day_log_lines)
+  - [⚙️ Method `get_food_day_log_lines_between`](#%EF%B8%8F-method-get_food_day_log_lines_between)
   - [⚙️ Method `get_food_day_nutrition_analyses_between`](#%EF%B8%8F-method-get_food_day_nutrition_analyses_between)
   - [⚙️ Method `get_food_day_nutrition_analysis`](#%EF%B8%8F-method-get_food_day_nutrition_analysis)
   - [⚙️ Method `get_food_item_by_name`](#%EF%B8%8F-method-get_food_item_by_name)
@@ -601,6 +602,48 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
                 )
             )
         return result
+
+    def get_food_day_log_lines_between(
+        self,
+        date_from: str,
+        date_to: str,
+    ) -> dict[str, list[FoodDayLogLine]]:
+        """Return food_log rows grouped by date for an inclusive range.
+
+        Args:
+
+        - `date_from` (`str`): First calendar date `YYYY-MM-DD`.
+        - `date_to` (`str`): Last calendar date `YYYY-MM-DD`.
+
+        Returns:
+
+        - `dict[str, list[FoodDayLogLine]]`: Lines keyed by date. Days with no rows are absent.
+
+        """
+        rows = self.get_rows(
+            """
+            SELECT date, name, name_en, weight, calories_per_100g, is_drink
+            FROM food_log
+            WHERE date BETWEEN :date_from AND :date_to
+            ORDER BY date ASC, _id ASC
+            """,
+            {"date_from": date_from, "date_to": date_to},
+        )
+        grouped: dict[str, list[FoodDayLogLine]] = {}
+        for row in rows:
+            if not row or not row[0]:
+                continue
+            day = str(row[0])[:10]
+            grouped.setdefault(day, []).append(
+                FoodDayLogLine(
+                    name=str(row[1] or ""),
+                    name_en=str(row[2] or ""),
+                    weight=_optional_sql_float(row[3]),
+                    calories_per_100g=_optional_sql_float(row[4]),
+                    is_drink=bool(int(row[5] or 0)),
+                ),
+            )
+        return grouped
 
     def get_food_day_nutrition_analyses_between(
         self,
@@ -2292,6 +2335,60 @@ def get_food_day_log_lines(self, day: str) -> list[FoodDayLogLine]:
                 )
             )
         return result
+```
+
+</details>
+
+### ⚙️ Method `get_food_day_log_lines_between`
+
+```python
+def get_food_day_log_lines_between(self, date_from: str, date_to: str) -> dict[str, list[FoodDayLogLine]]
+```
+
+Return food_log rows grouped by date for an inclusive range.
+
+Args:
+
+- `date_from` (`str`): First calendar date `YYYY-MM-DD`.
+- `date_to` (`str`): Last calendar date `YYYY-MM-DD`.
+
+Returns:
+
+- `dict[str, list[FoodDayLogLine]]`: Lines keyed by date. Days with no rows are absent.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_food_day_log_lines_between(
+        self,
+        date_from: str,
+        date_to: str,
+    ) -> dict[str, list[FoodDayLogLine]]:
+        rows = self.get_rows(
+            """
+            SELECT date, name, name_en, weight, calories_per_100g, is_drink
+            FROM food_log
+            WHERE date BETWEEN :date_from AND :date_to
+            ORDER BY date ASC, _id ASC
+            """,
+            {"date_from": date_from, "date_to": date_to},
+        )
+        grouped: dict[str, list[FoodDayLogLine]] = {}
+        for row in rows:
+            if not row or not row[0]:
+                continue
+            day = str(row[0])[:10]
+            grouped.setdefault(day, []).append(
+                FoodDayLogLine(
+                    name=str(row[1] or ""),
+                    name_en=str(row[2] or ""),
+                    weight=_optional_sql_float(row[3]),
+                    calories_per_100g=_optional_sql_float(row[4]),
+                    is_drink=bool(int(row[5] or 0)),
+                ),
+            )
+        return grouped
 ```
 
 </details>
