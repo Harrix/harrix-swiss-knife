@@ -42,8 +42,10 @@ from harrix_swiss_knife.screenshot.annotations import (
     AnnotationTool,
     composite_annotations,
     constrain_shape_end,
+    next_step_number,
     paint_annotation,
     sample_composited_color,
+    step_circle_points,
     text_annotation_rect,
 )
 from harrix_swiss_knife.screenshot.selection_edit import (
@@ -436,6 +438,8 @@ class ScreenshotPreviewCanvas(QWidget):
                 return
             if draft.tool == AnnotationTool.PEN:
                 self._document.append_draft_point(image_pos)
+            elif draft.tool == AnnotationTool.STEP:
+                self._document.update_draft_points(step_circle_points(start, image_pos))
             else:
                 self._draw_current = image_pos
                 end = self._constrain_and_snap_draft_end(
@@ -782,17 +786,23 @@ class ScreenshotPreviewCanvas(QWidget):
         self.update()
         return True
 
-    def _begin_shape_draft(self, start: QPointF, current: QPointF) -> None:
+    def _begin_shape_draft(self, start: QPointF, current: QPointF, *, clicked: bool = False) -> None:
         if self._document is None:
             return
         style = copy_annotation_style(self._style)
         if self._tool == AnnotationTool.SMART_ERASER and self._smart_eraser_color is not None:
             style.color = QColor(self._smart_eraser_color)
+        points = [QPointF(start), QPointF(current)]
+        text = ""
+        if self._tool == AnnotationTool.STEP:
+            points = step_circle_points(start, current, clicked=clicked)
+            text = str(next_step_number(self._document.annotations))
         self._document.begin_draft(
             Annotation(
                 tool=self._tool,
-                points=[QPointF(start), QPointF(current)],
+                points=points,
                 style=style,
+                text=text,
             )
         )
 
@@ -998,6 +1008,8 @@ class ScreenshotPreviewCanvas(QWidget):
         if image_pos is not None and document.draft is not None:
             if document.draft.tool == AnnotationTool.PEN:
                 document.append_draft_point(image_pos)
+            elif document.draft.tool == AnnotationTool.STEP:
+                document.update_draft_points(step_circle_points(start, image_pos))
             else:
                 end = self._constrain_and_snap_draft_end(
                     start,
@@ -1006,6 +1018,8 @@ class ScreenshotPreviewCanvas(QWidget):
                     shift=shift,
                 )
                 document.update_draft_points([start, end])
+        elif self._tool == AnnotationTool.STEP:
+            self._begin_shape_draft(start, start, clicked=True)
         self._clear_snap_guides()
         if document.commit_draft():
             self._selected_index = len(document.annotations) - 1

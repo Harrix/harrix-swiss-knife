@@ -105,9 +105,9 @@ _MARKDOWN_OCR_ICON = "scan-text"
 _TABLE_AI_ICON = "table"
 _TRANSLATE_ICON = "languages"
 _STATUS_HINT = (
-    "Tools: arrow / shapes / pen / highlight / blur / pixelate / smart eraser / text / eyedropper / crop · "
-    "Click a shape to select · Delete removes · Shift constrains · Undo · Ctrl+wheel, Ctrl++ or Ctrl+- zoom · "
-    "Middle-drag pan · Ctrl+S save to images"
+    "Tools: arrow / shapes / step / pen / highlight / blur / pixelate / smart eraser / "
+    "text / eyedropper / crop · Click a shape to select · Delete removes · Shift constrains · "
+    "Undo · Ctrl+wheel, Ctrl++ or Ctrl+- zoom · Middle-drag pan · Ctrl+S save to images"
 )
 _VK_S = 0x53
 _KEY_CYRILLIC_YERU = 0x042B  # Cyrillic yeru (same physical key as Latin S)  # ignore: HP001
@@ -121,6 +121,7 @@ _TOOL_BUTTONS: tuple[tuple[AnnotationTool, str, str], ...] = (
     (AnnotationTool.ARROW, "arrow-right", "Arrow (Shift: 0° / 45°)"),
     (AnnotationTool.RECTANGLE, "square", "Rectangle (Shift: square)"),
     (AnnotationTool.ELLIPSE, "circle", "Ellipse (Shift: circle)"),
+    (AnnotationTool.STEP, "list-ordered", "Step — numbered circles"),
     (AnnotationTool.LINE, "minus", "Line (Shift: 0° / 45°)"),
     (AnnotationTool.PEN, "pencil", "Pen"),
     (AnnotationTool.HIGHLIGHT, "highlighter", "Highlight (Shift: square)"),

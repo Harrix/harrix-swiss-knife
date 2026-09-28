@@ -8,7 +8,7 @@ from enum import Enum
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QPointF, QRect, QRectF, Qt
-from PySide6.QtGui import QColor, QFontMetricsF, QImage, QPainter, QPainterPath, QPen, QPixmap, QPolygonF
+from PySide6.QtGui import QColor, QFont, QFontMetricsF, QImage, QPainter, QPainterPath, QPen, QPixmap, QPolygonF
 from PySide6.QtWidgets import QGraphicsBlurEffect, QGraphicsPixmapItem, QGraphicsScene
 
 if TYPE_CHECKING:
@@ -30,6 +30,11 @@ _BLUR_RADIUS = 40.0
 _BLUR_PAD_FACTOR = 3
 # ShareX pixelate tool: averaged blocks, default size 10, over the pixels underneath.
 _PIXELATE_BLOCK = 10
+# ShareX step tool: a filled circle with the next number, stamped from the click.
+_STEP_DEFAULT_RADIUS = 32.0
+_STEP_MIN_RADIUS = 16.0
+_STEP_FONT_RATIO = 0.58
+_STEP_LABEL_LUMINANCE = 160
 
 
 @dataclass(slots=True)
@@ -224,6 +229,7 @@ class AnnotationTool(Enum):
     ARROW = "arrow"
     RECTANGLE = "rectangle"
     ELLIPSE = "ellipse"
+    STEP = "step"
     LINE = "line"
     PEN = "pen"
     HIGHLIGHT = "highlight"
@@ -279,6 +285,38 @@ def sample_composited_color(base: QImage, annotations: Sequence[Annotation], poi
     return QColor(image.pixelColor(x, y))
 
 
+def step_circle_points(center: QPointF, edge: QPointF, *, clicked: bool = False) -> list[QPointF]:
+    """Return the bounding square of a step circle centered on `center`.
+
+    A click uses the default radius. A drag uses the distance to `edge`, and never
+    shrinks below the minimum so the number still fits.
+
+    """
+    if clicked:
+        radius = _STEP_DEFAULT_RADIUS
+    else:
+        radius = math.hypot(edge.x() - center.x(), edge.y() - center.y())
+        radius = max(radius, _STEP_MIN_RADIUS)
+    return [
+        QPointF(center.x() - radius, center.y() - radius),
+        QPointF(center.x() + radius, center.y() + radius),
+    ]
+
+
+def next_step_number(annotations: Sequence[Annotation]) -> int:
+    """Return the next ShareX-style step number after the highest one already placed."""
+    highest = 0
+    for item in annotations:
+        if item.tool != AnnotationTool.STEP:
+            continue
+        try:
+            number = int(item.text)
+        except ValueError:
+            continue
+        highest = max(highest, number)
+    return highest + 1
+
+
 def constrain_shape_end(tool: AnnotationTool, start: QPointF, end: QPointF, *, shift: bool) -> QPointF:
     """Return the free or Shift-constrained end point for `tool`.
 
@@ -286,6 +324,8 @@ def constrain_shape_end(tool: AnnotationTool, start: QPointF, end: QPointF, *, s
     and ellipses square or circular, keeping the start corner fixed.
 
     """
+    if tool == AnnotationTool.STEP:
+        return _snap_end_to_square(start, end)
     if not shift:
         return QPointF(end)
     if tool in _LINE_SHIFT_TOOLS:
@@ -327,6 +367,9 @@ def paint_annotation(painter: QPainter, annotation: Annotation) -> None:
         _draw_filled_arrow(painter, start, end, annotation.style.color, annotation.style.width)
         return
     rect = QRectF(start, end).normalized()
+    if tool == AnnotationTool.STEP:
+        _paint_step(painter, annotation, rect)
+        return
     if tool == AnnotationTool.HIGHLIGHT:
         fill = QColor(annotation.style.color)
         fill.setAlpha(_HIGHLIGHT_ALPHA)
@@ -571,6 +614,23 @@ def _paint_text_annotation(painter: QPainter, annotation: Annotation) -> None:
     painter.drawText(rect, flags, annotation.text or "")
 
 
+def _paint_step(painter: QPainter, annotation: Annotation, rect: QRectF) -> None:
+    """Fill a circle and center its step number in a contrasting color."""
+    if rect.width() < 1 or rect.height() < 1:
+        return
+    fill = QColor(annotation.style.color)
+    painter.setPen(Qt.PenStyle.NoPen)
+    painter.setBrush(fill)
+    painter.drawEllipse(rect)
+    label = annotation.text.strip() or "1"
+    font = QFont()
+    font.setBold(True)
+    font.setPixelSize(_step_font_px(min(rect.width(), rect.height()), len(label)))
+    painter.setFont(font)
+    painter.setPen(QPen(_step_label_color(fill)))
+    painter.drawText(rect, int(Qt.AlignmentFlag.AlignCenter), label)
+
+
 def _pixelate_patch(source: QImage, rect: QRect, block: int) -> QImage:
     """Return `rect` as averaged blocks of `block` pixels, clipped to that rectangle."""
     patch = source.copy(rect)
@@ -618,6 +678,18 @@ def _snap_end_to_square(start: QPointF, end: QPointF) -> QPointF:
     sx = math.copysign(size, dx) if dx != 0 else 0.0
     sy = math.copysign(size, dy) if dy != 0 else 0.0
     return QPointF(start.x() + sx, start.y() + sy)
+
+
+def _step_font_px(side: float, length: int) -> int:
+    digits = max(1, length)
+    return max(8, int(side * _STEP_FONT_RATIO / digits))
+
+
+def _step_label_color(fill: QColor) -> QColor:
+    luminance = 0.299 * fill.red() + 0.587 * fill.green() + 0.114 * fill.blue()
+    if luminance >= _STEP_LABEL_LUMINANCE:
+        return QColor(0, 0, 0)
+    return QColor(255, 255, 255)
 
 
 _LINE_SHIFT_TOOLS = frozenset({AnnotationTool.ARROW, AnnotationTool.LINE})

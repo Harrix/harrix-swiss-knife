@@ -91,7 +91,7 @@ def snap_annotation_edit(
         return _snap_line_endpoint(handle, points, x_guides, y_guides, threshold=threshold, shift=shift)
     if handle == "move":
         return _snap_translate(annotation, points, x_guides, y_guides, threshold=threshold)
-    if shift and annotation.tool in _BOX_SHIFT_TOOLS:
+    if annotation.tool == AnnotationTool.STEP or (shift and annotation.tool in _BOX_SHIFT_TOOLS):
         return AnnotationSnapResult([QPointF(p) for p in points])
     return _snap_box_handles(annotation, handle, points, x_guides, y_guides, threshold=threshold)
 

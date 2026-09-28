@@ -21,6 +21,7 @@ _COLOR_TOOL_VALUES: tuple[str, ...] = (
     AnnotationTool.PEN.value,
     AnnotationTool.TEXT.value,
     AnnotationTool.HIGHLIGHT.value,
+    AnnotationTool.STEP.value,
 )
 COLOR_TOOLS: frozenset[AnnotationTool] = frozenset(tool for tool in AnnotationTool if tool.value in _COLOR_TOOL_VALUES)
 

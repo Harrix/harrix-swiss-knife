@@ -23,7 +23,9 @@ from harrix_swiss_knife.screenshot.annotations import (
     AnnotationTool,
     _arrow_head_path,
     constrain_shape_end,
+    next_step_number,
     sample_composited_color,
+    step_circle_points,
 )
 
 
@@ -579,3 +581,57 @@ def test_shift_makes_pixelate_square() -> None:
     end = constrain_shape_end(AnnotationTool.PIXELATE, QPointF(10, 10), QPointF(50, 30), shift=True)
     assert end.x() == pytest.approx(30.0)
     assert end.y() == pytest.approx(30.0)
+
+
+def test_step_click_is_a_default_circle_and_drag_uses_the_radius() -> None:
+    clicked = step_circle_points(QPointF(40, 50), QPointF(40, 50), clicked=True)
+    assert clicked[0].x() == pytest.approx(8.0)
+    assert clicked[1].x() == pytest.approx(72.0)
+    assert clicked[1].y() - clicked[0].y() == pytest.approx(clicked[1].x() - clicked[0].x())
+    dragged = step_circle_points(QPointF(40, 50), QPointF(70, 50))
+    assert dragged[0].x() == pytest.approx(10.0)
+    assert dragged[1].x() == pytest.approx(70.0)
+    assert dragged[1].y() - dragged[0].y() == pytest.approx(60.0)
+
+
+def test_next_step_number_follows_the_highest_remaining_circle() -> None:
+    assert next_step_number([]) == 1
+    first = Annotation(tool=AnnotationTool.STEP, points=[], style=AnnotationStyle(), text="1")
+    third = Annotation(tool=AnnotationTool.STEP, points=[], style=AnnotationStyle(), text="3")
+    assert next_step_number([first, third]) == 4
+    assert next_step_number([first]) == 2
+
+
+@pytest.mark.usefixtures("qapp")
+def test_step_circle_is_filled_and_selectable_inside_only() -> None:
+    image = _blank(100, 100)
+    doc = AnnotationDocument(image)
+    doc.begin_draft(
+        Annotation(
+            tool=AnnotationTool.STEP,
+            points=step_circle_points(QPointF(40, 40), QPointF(40, 40), clicked=True),
+            style=AnnotationStyle(color=QColor(222, 43, 38)),
+            text="1",
+        )
+    )
+    assert doc.commit_draft()
+    rendered = doc.render(include_draft=False)
+    inside = rendered.pixelColor(58, 40)
+    assert inside.red() > 180
+    assert inside.green() < 80
+    corner = rendered.pixelColor(10, 10)
+    assert corner.red() == 255
+    assert corner.green() == 255
+    step = doc.annotations[0]
+    assert hit_test_annotation(step, QPointF(40, 40), handle_size=8) == "move"
+    assert hit_test_annotation(step, QPointF(90, 10), handle_size=8) is None
+    doc.begin_draft(
+        Annotation(
+            tool=AnnotationTool.STEP,
+            points=step_circle_points(QPointF(80, 80), QPointF(80, 80), clicked=True),
+            style=AnnotationStyle(color=QColor(222, 43, 38)),
+            text=str(next_step_number(doc.annotations)),
+        )
+    )
+    assert doc.commit_draft()
+    assert doc.annotations[1].text == "2"
