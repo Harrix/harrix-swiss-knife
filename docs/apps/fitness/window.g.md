@@ -346,10 +346,8 @@ class Ui_MainWindow(object):
         self.listView_exercises.setObjectName(u"listView_exercises")
         self.listView_exercises.setMaximumSize(QSize(16777215, 16777215))
         self.listView_exercises.setStyleSheet(u"QListView {\n"
-"                                border: 2px solid #4CAF50;\n"
-"                                border-radius: 4px;\n"
+"                                border: none;\n"
 "                                background-color: white;\n"
-"                                padding: 0px;\n"
 "                                }\n"
 "                                QListView::item {\n"
 "                                padding: 2px;\n"
@@ -1442,10 +1440,8 @@ def setupUi(self, MainWindow):
         self.listView_exercises.setObjectName(u"listView_exercises")
         self.listView_exercises.setMaximumSize(QSize(16777215, 16777215))
         self.listView_exercises.setStyleSheet(u"QListView {\n"
-"                                border: 2px solid #4CAF50;\n"
-"                                border-radius: 4px;\n"
+"                                border: none;\n"
 "                                background-color: white;\n"
-"                                padding: 0px;\n"
 "                                }\n"
 "                                QListView::item {\n"
 "                                padding: 2px;\n"
