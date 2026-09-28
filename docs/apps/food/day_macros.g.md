@@ -35,6 +35,7 @@ lang: en
 - [🔧 Function `range_day_hash_token`](#-function-range_day_hash_token)
 - [🔧 Function `range_macros_prompt_key`](#-function-range_macros_prompt_key)
 - [🔧 Function `resolve_day_macros_status`](#-function-resolve_day_macros_status)
+- [🔧 Function `unique_calendar_days`](#-function-unique_calendar_days)
 
 </details>
 
@@ -696,6 +697,40 @@ def resolve_day_macros_status(
     if analysis.input_hash != current_hash or analysis.fiber_g is None or analysis.norm_fiber_g is None:
         return DayMacrosStatus.STALE
     return DayMacrosStatus.OK
+```
+
+</details>
+
+## 🔧 Function `unique_calendar_days`
+
+```python
+def unique_calendar_days(values: list[str]) -> list[str]
+```
+
+Return unique calendar dates, skipping blanks and keeping first-seen order.
+
+Args:
+
+- [`values`](../snippets/item_edit_dialog.g.md#%EF%B8%8F-method-values) (`list[str]`): Date cell texts. Only the `YYYY-MM-DD` prefix is used.
+
+Returns:
+
+- `list[str]`: Distinct dates.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def unique_calendar_days(values: list[str]) -> list[str]:
+    days: list[str] = []
+    seen: set[str] = set()
+    for raw in values:
+        day = str(raw or "").strip()[:10]
+        if not day or day in seen:
+            continue
+        seen.add(day)
+        days.append(day)
+    return days
 ```
 
 </details>

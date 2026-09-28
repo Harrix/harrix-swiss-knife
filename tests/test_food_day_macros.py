@@ -22,8 +22,14 @@ from harrix_swiss_knife.apps.food.day_macros import (
     percent_of_norm,
     range_day_hash_token,
     resolve_day_macros_status,
+    unique_calendar_days,
 )
 from harrix_swiss_knife.apps.food.schema import ensure_food_schema
+
+
+def test_unique_calendar_days_keeps_selected_dates_only() -> None:
+    dates = ["2026-08-25", "2026-08-25", "", "2026-08-23", "2026-08-25 extra", "2026-08-24"]
+    assert unique_calendar_days(dates) == ["2026-08-25", "2026-08-23", "2026-08-24"]
 
 
 def test_food_day_input_hash_stable_and_sensitive_to_weight() -> None:

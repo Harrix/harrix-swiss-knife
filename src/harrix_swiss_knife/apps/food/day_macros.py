@@ -402,6 +402,29 @@ def resolve_day_macros_status(
     return DayMacrosStatus.OK
 
 
+def unique_calendar_days(values: list[str]) -> list[str]:
+    """Return unique calendar dates, skipping blanks and keeping first-seen order.
+
+    Args:
+
+    - `values` (`list[str]`): Date cell texts. Only the `YYYY-MM-DD` prefix is used.
+
+    Returns:
+
+    - `list[str]`: Distinct dates.
+
+    """
+    days: list[str] = []
+    seen: set[str] = set()
+    for raw in values:
+        day = str(raw or "").strip()[:10]
+        if not day or day in seen:
+            continue
+        seen.add(day)
+        days.append(day)
+    return days
+
+
 def _as_positive_float(value: Any, default: float) -> float:
     try:
         number = float(value)

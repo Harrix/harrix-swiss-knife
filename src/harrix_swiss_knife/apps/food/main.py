@@ -124,6 +124,7 @@ from harrix_swiss_knife.apps.food.day_macros import (
     range_day_hash_token,
     range_macros_prompt_key,
     resolve_day_macros_status,
+    unique_calendar_days,
 )
 from harrix_swiss_knife.apps.food.day_macros_dialog import DayMacrosDialog, RangeMacrosDialog
 from harrix_swiss_knife.apps.food.delegates import (
@@ -3868,6 +3869,21 @@ class MainWindow(
         self._update_clear_filter_button_visibility()
         self._name_filter_timer.start()
 
+    def _selected_food_log_days(self) -> list[str]:
+        """Return unique dates of the selected food-log rows, in table order.
+
+        Day analysis then loads every food_log row for those dates, including rows
+        that were not part of the selection.
+
+        """
+        model = self.tableView_food_log.model()
+        selection_model = self.tableView_food_log.selectionModel()
+        if model is None or selection_model is None:
+            return []
+        rows = sorted({index.row() for index in selection_model.selectedIndexes()})
+        raw_dates = [str(model.data(model.index(row, FOOD_LOG_COL_DATE)) or "") for row in rows]
+        return unique_calendar_days(raw_dates)
+
     def _send_food_log_to_ai(
         self,
         raw_text: str,
@@ -4292,9 +4308,19 @@ class MainWindow(
         ate_percent_action = context_menu.addAction("🍽️ I ate %…")
 
         analyze_day_macros_action = None
-        if date_value:
+        analyze_selected_days_action = None
+        selected_days = self._selected_food_log_days() if multiple_rows_selected else []
+        if len(selected_days) > 1:
             add_separator(context_menu)
-            analyze_day_macros_action = context_menu.addAction("📊 Analyze day macros")
+            analyze_selected_days_action = context_menu.addAction(
+                f"📊 Analyze macros for {len(selected_days)} days",
+            )
+        elif date_value or len(selected_days) == 1:
+            if len(selected_days) == 1:
+                date_value = selected_days[0]
+            if date_value:
+                add_separator(context_menu)
+                analyze_day_macros_action = context_menu.addAction("📊 Analyze day macros")
 
         add_separator(context_menu)
         recalc_calories_ai_action = context_menu.addAction("🤖 Recalculate calories with AI")
@@ -4365,6 +4391,8 @@ class MainWindow(
                 self._prompt_eaten_percent_and_apply()
             elif analyze_day_macros_action is not None and action == analyze_day_macros_action and date_value:
                 self._open_day_macros_dialog(date_value.strip()[:10])
+            elif analyze_selected_days_action is not None and action == analyze_selected_days_action:
+                self._start_day_macros_queue(selected_days)
             elif action == recalc_calories_ai_action:
                 self._recalculate_selected_food_log_calories_with_ai()
             elif action == delete_action:
