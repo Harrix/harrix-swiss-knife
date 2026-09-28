@@ -20,6 +20,7 @@ lang: en
 - [🏛️ Class `MacrosButtonAppearance`](#%EF%B8%8F-class-macrosbuttonappearance)
 - [🔧 Function `apply_food_log_macros_row_heights`](#-function-apply_food_log_macros_row_heights)
 - [🔧 Function `food_log_macros_row_height`](#-function-food_log_macros_row_height)
+- [🔧 Function `food_log_total_column_width`](#-function-food_log_total_column_width)
 - [🔧 Function `macros_button_appearance`](#-function-macros_button_appearance)
 - [🔧 Function `macros_button_rect`](#-function-macros_button_rect)
 
@@ -164,9 +165,13 @@ class FoodLogDayTotalDelegate(QStyledItemDelegate):
         painter.drawRoundedRect(rect.adjusted(0, 0, -1, -1), _BUTTON_RADIUS, _BUTTON_RADIUS)
         painter.setFont(font)
         painter.setPen(appearance.text)
-        label_width = max(0, rect.width() - 12)
+        label_width = max(0, rect.width() - (2 * _BUTTON_TEXT_PAD))
         label = QFontMetrics(font).elidedText(appearance.label, Qt.TextElideMode.ElideRight, label_width)
-        painter.drawText(rect.adjusted(6, 0, -6, 0), int(Qt.AlignmentFlag.AlignCenter), label)
+        painter.drawText(
+            rect.adjusted(_BUTTON_TEXT_PAD, 0, -_BUTTON_TEXT_PAD, 0),
+            int(Qt.AlignmentFlag.AlignCenter),
+            label,
+        )
         painter.restore()
 
     def _set_button_hover(self, view: QTableView, index: QModelIndex) -> None:
@@ -460,6 +465,36 @@ Returns:
 ```python
 def food_log_macros_row_height(font: QFont) -> int:
     return _CELL_TOP_PAD + QFontMetrics(font).height() + _BUTTON_GAP + _BUTTON_HEIGHT + _CELL_TOP_PAD
+```
+
+</details>
+
+## 🔧 Function `food_log_total_column_width`
+
+```python
+def food_log_total_column_width(font: QFont) -> int
+```
+
+Return the Total per day width that fits the widest macros button.
+
+Args:
+
+- `font` (`QFont`): Table font. The button label is drawn without bold.
+
+Returns:
+
+- `int`: Column width in pixels.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def food_log_total_column_width(font: QFont) -> int:
+    button_font = QFont(font)
+    button_font.setBold(False)
+    metrics = QFontMetrics(button_font)
+    text_width = max(metrics.horizontalAdvance(macros_button_appearance(status).label) for status in DayMacrosStatus)
+    return text_width + (2 * _BUTTON_TEXT_PAD) + (2 * _CELL_SIDE_PAD) + _BUTTON_BORDER
 ```
 
 </details>

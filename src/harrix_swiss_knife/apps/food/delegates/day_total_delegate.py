@@ -35,6 +35,8 @@ _CELL_SIDE_PAD = 6
 _BUTTON_GAP = 4
 _BUTTON_HEIGHT = 22
 _BUTTON_RADIUS = 4
+_BUTTON_TEXT_PAD = 6
+_BUTTON_BORDER = 2
 _MIN_BUTTON_SIZE = 8
 
 
@@ -166,9 +168,13 @@ class FoodLogDayTotalDelegate(QStyledItemDelegate):
         painter.drawRoundedRect(rect.adjusted(0, 0, -1, -1), _BUTTON_RADIUS, _BUTTON_RADIUS)
         painter.setFont(font)
         painter.setPen(appearance.text)
-        label_width = max(0, rect.width() - 12)
+        label_width = max(0, rect.width() - (2 * _BUTTON_TEXT_PAD))
         label = QFontMetrics(font).elidedText(appearance.label, Qt.TextElideMode.ElideRight, label_width)
-        painter.drawText(rect.adjusted(6, 0, -6, 0), int(Qt.AlignmentFlag.AlignCenter), label)
+        painter.drawText(
+            rect.adjusted(_BUTTON_TEXT_PAD, 0, -_BUTTON_TEXT_PAD, 0),
+            int(Qt.AlignmentFlag.AlignCenter),
+            label,
+        )
         painter.restore()
 
     def _set_button_hover(self, view: QTableView, index: QModelIndex) -> None:
@@ -257,6 +263,25 @@ def food_log_macros_row_height(font: QFont) -> int:
 
     """
     return _CELL_TOP_PAD + QFontMetrics(font).height() + _BUTTON_GAP + _BUTTON_HEIGHT + _CELL_TOP_PAD
+
+
+def food_log_total_column_width(font: QFont) -> int:
+    """Return the Total per day width that fits the widest macros button.
+
+    Args:
+
+    - `font` (`QFont`): Table font. The button label is drawn without bold.
+
+    Returns:
+
+    - `int`: Column width in pixels.
+
+    """
+    button_font = QFont(font)
+    button_font.setBold(False)
+    metrics = QFontMetrics(button_font)
+    text_width = max(metrics.horizontalAdvance(macros_button_appearance(status).label) for status in DayMacrosStatus)
+    return text_width + (2 * _BUTTON_TEXT_PAD) + (2 * _CELL_SIDE_PAD) + _BUTTON_BORDER
 
 
 def macros_button_appearance(status: DayMacrosStatus) -> MacrosButtonAppearance:

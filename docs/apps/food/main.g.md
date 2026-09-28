@@ -1246,7 +1246,7 @@ class MainWindow(
             logger.exception("Error adding food item from log record")
 
     def _adjust_food_log_table_columns(self) -> None:
-        """Adjust food log table column widths proportionally to window size."""
+        """Size food-log columns so English name stretches and the day total fits its button."""
         if not hasattr(self, "tableView_food_log") or not self.tableView_food_log.model():
             return
         # Hidden tabs report a dummy width; wait until Food is actually shown.
@@ -1257,29 +1257,31 @@ class MainWindow(
         if available_width <= 0:
             return
 
-        # Define proportional distribution; last column absorbs leftover via Stretch.
-        proportions = [
-            0.18,  # Name
-            0.06,  # Is Drink
-            0.08,  # Weight
-            0.14,  # kcal/100g
-            0.11,  # Date
-            0.20,  # English Name
-            0.12,  # Total per day
-        ]
+        # Shares of the viewport for the columns that stay fixed. English name takes the rest.
+        proportions = (
+            (0, 0.18),  # Name
+            (1, 0.06),  # Is Drink
+            (2, 0.08),  # Weight
+            (3, 0.14),  # kcal/100g
+            (4, 0.11),  # Date
+        )
 
         food_log_header = self.tableView_food_log.horizontalHeader()
-        last_column = food_log_header.count() - 1
-        for i in range(max(0, last_column)):
-            food_log_header.setSectionResizeMode(i, food_log_header.ResizeMode.Interactive)
-        if last_column >= 0:
-            food_log_header.setSectionResizeMode(last_column, food_log_header.ResizeMode.Stretch)
-            food_log_header.setStretchLastSection(True)
+        food_log_header.setStretchLastSection(False)
+        for column in range(food_log_header.count()):
+            if column == FOOD_LOG_COL_NAME_EN:
+                food_log_header.setSectionResizeMode(column, food_log_header.ResizeMode.Stretch)
+            elif column == FOOD_LOG_COL_TOTAL_PER_DAY:
+                food_log_header.setSectionResizeMode(column, food_log_header.ResizeMode.Fixed)
+            else:
+                food_log_header.setSectionResizeMode(column, food_log_header.ResizeMode.Interactive)
 
-        for i, prop in enumerate(proportions):
-            if i >= last_column:
-                break
-            self.tableView_food_log.setColumnWidth(i, max(40, int(available_width * prop)))
+        for column, prop in proportions:
+            self.tableView_food_log.setColumnWidth(column, max(40, int(available_width * prop)))
+        self.tableView_food_log.setColumnWidth(
+            FOOD_LOG_COL_TOTAL_PER_DAY,
+            food_log_total_column_width(self.tableView_food_log.font()),
+        )
         if isinstance(food_log_header, WordWrapHeaderView):
             food_log_header.refresh_wrapped_height()
 

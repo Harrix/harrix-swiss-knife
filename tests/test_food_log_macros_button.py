@@ -12,6 +12,7 @@ from harrix_swiss_knife.apps.food.delegates.day_total_delegate import (
     FoodLogDayTotalDelegate,
     apply_food_log_macros_row_heights,
     food_log_macros_row_height,
+    food_log_total_column_width,
     macros_button_appearance,
     macros_button_rect,
 )
@@ -31,6 +32,15 @@ def qapp() -> QApplication:
         msg = "QApplication.instance() returned a non-QApplication object."
         raise TypeError(msg)
     return app
+
+
+def test_total_column_width_fits_the_widest_macros_button(qapp: QApplication) -> None:  # noqa: ARG001
+    font = QFont()
+    width = food_log_total_column_width(font)
+    metrics = QFontMetrics(font)
+    assert width >= metrics.horizontalAdvance("Recalculate macros")
+    assert width >= metrics.horizontalAdvance("Analyze macros")
+    assert width > metrics.horizontalAdvance("View macros")
 
 
 def test_macros_button_states_use_distinct_labels_and_colors(qapp: QApplication) -> None:  # noqa: ARG001
