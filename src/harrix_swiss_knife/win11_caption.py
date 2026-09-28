@@ -72,24 +72,32 @@ INACTIVE_GLYPH_DARK = QColor(255, 255, 255, 0x5C)
 CLOSE_GLYPH_COLOR = QColor(255, 255, 255)
 _WINDOW_BACKGROUND = QColor(255, 255, 255)
 _WHITE_SURFACE_MARK = "hsk-white-surfaces"
-_WHITE_SURFACE_STYLE = """
-/* hsk-white-surfaces */
-QGroupBox { background-color: #ffffff; }
-QMenu { background-color: #ffffff; border: 1px solid #e0e0e0; color: #202020; }
-QMenu::item { color: #202020; background-color: transparent; }
-QMenu::item:selected { color: #202020; background-color: #f2f2f2; }
-QMenu::item:disabled { color: #767676; }
-QStatusBar { background: #ffffff; }
-QStatusBar QLabel { color: #202020; }
-QSplitter::handle:horizontal {
+_SPLITTER_HANDLE_PX = 17
+_SPLITTER_HANDLE_STYLE = f"""
+QSplitter::handle:horizontal {{
+    width: {_SPLITTER_HANDLE_PX}px;
     background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-        stop:0 #ffffff, stop:0.4 #ffffff, stop:0.5 #c0c0c0, stop:0.6 #ffffff, stop:1 #ffffff);
-}
-QSplitter::handle:vertical {
+        stop:0 #ffffff, stop:0.46 #ffffff, stop:0.49 #c0c0c0, stop:0.51 #c0c0c0,
+        stop:0.54 #ffffff, stop:1 #ffffff);
+}}
+QSplitter::handle:vertical {{
+    height: {_SPLITTER_HANDLE_PX}px;
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-        stop:0 #ffffff, stop:0.4 #ffffff, stop:0.5 #c0c0c0, stop:0.6 #ffffff, stop:1 #ffffff);
-}
-QSplitter::handle:hover { background: #c0c0c0; }
+        stop:0 #ffffff, stop:0.46 #ffffff, stop:0.49 #c0c0c0, stop:0.51 #c0c0c0,
+        stop:0.54 #ffffff, stop:1 #ffffff);
+}}
+QSplitter::handle:hover {{ background: #c0c0c0; }}
+"""
+_WHITE_SURFACE_STYLE = f"""
+/* hsk-white-surfaces */
+QGroupBox {{ background-color: #ffffff; }}
+QMenu {{ background-color: #ffffff; border: 1px solid #e0e0e0; color: #202020; }}
+QMenu::item {{ color: #202020; background-color: transparent; }}
+QMenu::item:selected {{ color: #202020; background-color: #f2f2f2; }}
+QMenu::item:disabled {{ color: #767676; }}
+QStatusBar {{ background: #ffffff; }}
+QStatusBar QLabel {{ color: #202020; }}
+{_SPLITTER_HANDLE_STYLE}
 """
 
 _GLYPH_FILES = {

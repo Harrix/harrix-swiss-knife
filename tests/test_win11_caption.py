@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife.apps.common.qt_main_window import resolve_window_menu_bar
 from harrix_swiss_knife.win11_caption import (
+    _SPLITTER_HANDLE_PX,
     CAPTION_BUTTON_HEIGHT,
     CAPTION_BUTTON_WIDTH,
     CLOSE_HOVER_COLOR,
@@ -406,7 +407,7 @@ def _handle_colors(splitter: QSplitter) -> list[str]:
 
 @pytest.mark.skipif(sys.platform != "win32", reason="Win11 caption is Windows-only")
 def test_splitter_handle_keeps_width_with_gray_hairline(qapp: QApplication) -> None:
-    """Splitter handles stay 5px, with a 1px gray line that fills on hover."""
+    """Splitter handles are a wide white gutter with a 1px gray line that fills on hover."""
     previous_style = qapp.style().objectName()
     qapp.setStyle("windows11")
     window = QMainWindow()
@@ -416,8 +417,6 @@ def test_splitter_handle_keeps_width_with_gray_hairline(qapp: QApplication) -> N
         window.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, on=True)
         window.resize(240, 200)
         window.show()
-        hairline = ["#ffffff", "#ffffff", "#c0c0c0", "#ffffff", "#ffffff"]
-        filled = ["#c0c0c0", "#c0c0c0", "#c0c0c0", "#c0c0c0", "#c0c0c0"]
         for orientation in (Qt.Orientation.Horizontal, Qt.Orientation.Vertical):
             splitter = QSplitter(orientation, window)
             splitter.addWidget(QWidget())
@@ -429,12 +428,15 @@ def test_splitter_handle_keeps_width_with_gray_hairline(qapp: QApplication) -> N
             qapp.processEvents()
             handle = splitter.handle(1)
             thickness = handle.width() if orientation == Qt.Orientation.Horizontal else handle.height()
-            assert thickness == 5
-            assert _handle_colors(splitter) == hairline
+            assert thickness == _SPLITTER_HANDLE_PX
+            colors = _handle_colors(splitter)
+            center = thickness // 2
+            assert colors[center] == "#c0c0c0"
+            assert all(color == "#ffffff" for index, color in enumerate(colors) if index != center)
             local = QPoint(2, 2)
             qapp.sendEvent(handle, QHoverEvent(QEvent.Type.HoverEnter, local, local, QPoint(-1, -1)))
             qapp.processEvents()
-            assert _handle_colors(splitter) == filled
+            assert _handle_colors(splitter) == ["#c0c0c0"] * thickness
             splitter.hide()
         assert "QScrollBar" not in window.styleSheet()
     finally:

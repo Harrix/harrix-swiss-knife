@@ -134,12 +134,14 @@ class Ui_MainWindow(object):
 "QStatusBar { background: #ffffff; }\n"
 "QStatusBar QLabel { color: #202020; }\n"
 "QSplitter::handle:horizontal {\n"
+" width: 17px;\n"
 " background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n"
-" stop:0 #ffffff, stop:0.4 #ffffff, stop:0.5 #c0c0c0, stop:0.6 #ffffff, stop:1 #ffffff);\n"
+" stop:0 #ffffff, stop:0.46 #ffffff, stop:0.49 #c0c0c0, stop:0.51 #c0c0c0, stop:0.54 #ffffff, stop:1 #ffffff);\n"
 "}\n"
 "QSplitter::handle:vertical {\n"
+" height: 17px;\n"
 " background: qlineargradient(x1:0, y1:0, x2:0, y2:1,\n"
-" stop:0 #ffffff, stop:0.4 #ffffff, stop:0.5 #c0c0c0, stop:0.6 #ffffff, stop:1 #ffffff);\n"
+" stop:0 #ffffff, stop:0.46 #ffffff, stop:0.49 #c0c0c0, stop:0.51 #c0c0c0, stop:0.54 #ffffff, stop:1 #ffffff);\n"
 "}\n"
 "QSplitter::handle:hover { background: #c0c0c0; }")
         MainWindow.resize(1392, 641)
