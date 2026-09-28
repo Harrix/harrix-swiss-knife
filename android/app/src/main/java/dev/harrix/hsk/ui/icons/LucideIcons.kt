@@ -96,17 +96,6 @@ object LucideIcons {
         )
     }
 
-    val CleaningServices: ImageVector by lazy {
-        lucide(
-            "broom",
-            "M13.5 10.5l8.5 -8.5",
-            "M14.734 13.841a2 2 0 0-0.314-2.42L12.58 9.58a2 2 0 0-2.421-0.314l-7.657 4.461A1 1 0 2.3 15.3l6.403 6" +
-                ".403a1 1 0 1.571-0.204z",
-            "M5 18l2 -2",
-            "M7.699 10.7l5.602 5.601",
-        )
-    }
-
     val Close: ImageVector by lazy {
         lucide(
             "x",
@@ -212,6 +201,15 @@ object LucideIcons {
         lucide(
             "check",
             "M20 6l-11 11l-5 -5",
+        )
+    }
+
+    val Eraser: ImageVector by lazy {
+        lucide(
+            "eraser",
+            "M21 21h-13a2 2 0 0 1 -1.42 -0.587l-3.994 -3.999a2 2 0 0 1 0 -2.828l10 -10a2 2 0 0 1 2.829 0l5.999 " +
+                "6a2 2 0 0 1 0 2.828l-8.58 8.586",
+            "M5.082 11.09l8.828 8.828",
         )
     }
 

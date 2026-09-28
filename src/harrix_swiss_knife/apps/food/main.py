@@ -305,6 +305,7 @@ class MainWindow(
         self._macros_analysis_failed: list[str] = []
         self._macros_chart_nutrient: Literal["protein", "fat", "carb"] | None = None
         self._macros_open_range_after_queue = False
+        self._macros_pending_range: tuple[str, str] | None = None
         self._macros_open_day_after_queue: str | None = None
         self._day_macros_dialog: DayMacrosDialog | None = None
         self._range_macros_dialog: RangeMacrosDialog | None = None
@@ -1663,6 +1664,7 @@ class MainWindow(
         saved = self._macros_analysis_done
         self._macros_analysis_queue = []
         self._macros_open_range_after_queue = False
+        self._macros_pending_range = None
         self._macros_open_day_after_queue = None
         self._end_day_macros_toast_pin_chain()
         self._update_macros_analysis_table()
@@ -3065,8 +3067,42 @@ class MainWindow(
             )
             if answer != QMessageBox.StandardButton.Yes:
                 return
-            self._macros_open_range_after_queue = True
-            self._start_day_macros_queue(targets)
+            self._queue_range_macros_then_show(date_from, date_to, targets)
+            return
+        self._show_range_macros_dialog(date_from, date_to)
+
+    def _open_selected_period_macros(self, days: list[str]) -> None:
+        """Open a combined macros summary from the earliest selected date through the latest.
+
+        Every food-log day in that span is included, with all rows of each day.
+
+        """
+        if self.db_manager is None or not self._validate_database_connection():
+            message_box.warning(self, "Error", "Database connection not available")
+            return
+        if len(days) <= 1:
+            return
+        date_from = min(days)
+        date_to = max(days)
+        log_dates = self.db_manager.get_dates_with_food_log_between(date_from, date_to)
+        if not log_dates:
+            message_box.information(self, "Period macros", "No food log days in the selected range.")
+            return
+        targets = days_needing_macros(log_dates, self._food_log_macros_statuses(log_dates))
+        if targets:
+            answer = message_box.question(
+                self,
+                "Period macros",
+                (
+                    f"{len(targets)} day(s) from {date_from} to {date_to} are missing or stale.\n\n"
+                    "Analyze/refresh them first, then build the period summary?"
+                ),
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.Yes,
+            )
+            if answer != QMessageBox.StandardButton.Yes:
+                return
+            self._queue_range_macros_then_show(date_from, date_to, targets)
             return
         self._show_range_macros_dialog(date_from, date_to)
 
@@ -3370,6 +3406,18 @@ class MainWindow(
         if not ok:
             return
         self._apply_eaten_fraction_to_selected_food_log(percent / 100.0)
+
+    def _queue_range_macros_then_show(self, date_from: str, date_to: str, targets: list[str]) -> None:
+        """Analyze `targets`, then open the period summary for `date_from` … `date_to`."""
+        if self._bothub_state.worker is not None:
+            self._start_day_macros_queue(targets)
+            return
+        self._macros_pending_range = (date_from, date_to)
+        self._macros_open_range_after_queue = True
+        self._start_day_macros_queue(targets)
+        if not self._macros_analysis_queue and self._bothub_state.worker is None:
+            self._macros_open_range_after_queue = False
+            self._macros_pending_range = None
 
     def _range_day_hash_pairs(self, days: list[str]) -> list[tuple[str, str]]:
         """Return `(date, hash token)` pairs, including fiber so a period summary can go stale."""
@@ -3756,7 +3804,9 @@ class MainWindow(
             if self._macros_chart_nutrient is not None:
                 self._update_macros_chart()
             open_range = self._macros_open_range_after_queue
+            pending_range = self._macros_pending_range
             self._macros_open_range_after_queue = False
+            self._macros_pending_range = None
             open_day = self._macros_open_day_after_queue
             self._macros_open_day_after_queue = None
             show_saved_day = bool(open_day) and not self._macros_analysis_failed and bool(self._macros_analysis_done)
@@ -3778,9 +3828,13 @@ class MainWindow(
             if show_saved_day and open_day:
                 QTimer.singleShot(0, lambda day=open_day: self._open_day_macros_dialog(day))
             if open_range and not self._macros_analysis_failed:
-                date_from = self.dateEdit_food_stats_from.date().toString("yyyy-MM-dd")
-                date_to = self.dateEdit_food_stats_to.date().toString("yyyy-MM-dd")
-                QTimer.singleShot(0, lambda: self._show_range_macros_dialog(date_from, date_to))
+                if pending_range is None:
+                    pending_range = (
+                        self.dateEdit_food_stats_from.date().toString("yyyy-MM-dd"),
+                        self.dateEdit_food_stats_to.date().toString("yyyy-MM-dd"),
+                    )
+                date_from, date_to = pending_range
+                QTimer.singleShot(0, lambda d0=date_from, d1=date_to: self._show_range_macros_dialog(d0, d1))
             return
 
         day = self._macros_analysis_queue[0]
@@ -3804,6 +3858,7 @@ class MainWindow(
             show_bothub_prompt_build_error(self, exc)
             self._macros_analysis_queue = []
             self._macros_open_range_after_queue = False
+            self._macros_pending_range = None
             self._macros_open_day_after_queue = None
             self._end_day_macros_toast_pin_chain()
             self._refresh_open_day_macros_dialog()
@@ -3856,6 +3911,7 @@ class MainWindow(
         if not started:
             self._macros_analysis_queue = []
             self._macros_open_range_after_queue = False
+            self._macros_pending_range = None
             self._macros_open_day_after_queue = None
             self._end_day_macros_toast_pin_chain()
             self._refresh_open_day_macros_dialog()
@@ -4370,6 +4426,7 @@ class MainWindow(
         analyze_day_macros_action = None
         fill_macros_action = None
         recalculate_macros_action = None
+        period_macros_action = None
         selected_days = self._selected_food_log_days() if multiple_rows_selected else []
         if multiple_rows_selected and selected_days:
             days_to_fill = days_needing_macros(selected_days, self._food_log_macros_statuses(selected_days))
@@ -4377,6 +4434,10 @@ class MainWindow(
             fill_label = f"📊 Fill in macros ({len(days_to_fill)})" if days_to_fill else "📊 Fill in macros"
             fill_macros_action = context_menu.addAction(fill_label)
             recalculate_macros_action = context_menu.addAction(f"📊 Recalculate macros ({len(selected_days)})")
+            if len(selected_days) > 1:
+                date_from = min(selected_days)
+                date_to = max(selected_days)
+                period_macros_action = context_menu.addAction(f"📊 Period macros ({date_from} … {date_to})")
         elif date_value:
             add_separator(context_menu)
             analyze_day_macros_action = context_menu.addAction("📊 Analyze day macros")
@@ -4454,6 +4515,8 @@ class MainWindow(
                 self._fill_selected_day_macros(selected_days)
             elif recalculate_macros_action is not None and action == recalculate_macros_action:
                 self._start_day_macros_queue(selected_days)
+            elif period_macros_action is not None and action == period_macros_action:
+                self._open_selected_period_macros(selected_days)
             elif action == recalc_calories_ai_action:
                 self._recalculate_selected_food_log_calories_with_ai()
             elif action == delete_action:
