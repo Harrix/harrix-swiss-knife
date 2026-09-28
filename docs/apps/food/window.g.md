@@ -392,8 +392,7 @@ class Ui_MainWindow(object):
         self.listView_food_items = QListView(self.widget_food_middle)
         self.listView_food_items.setObjectName(u"listView_food_items")
         self.listView_food_items.setStyleSheet(u"QListView {\n"
-"                                border: 2px solid #2196F3;\n"
-"                                border-radius: 4px;\n"
+"                                border: none;\n"
 "                                background-color: white;\n"
 "                                }\n"
 "                                QListView::item {\n"
@@ -1091,8 +1090,7 @@ def setupUi(self, MainWindow):
         self.listView_food_items = QListView(self.widget_food_middle)
         self.listView_food_items.setObjectName(u"listView_food_items")
         self.listView_food_items.setStyleSheet(u"QListView {\n"
-"                                border: 2px solid #2196F3;\n"
-"                                border-radius: 4px;\n"
+"                                border: none;\n"
 "                                background-color: white;\n"
 "                                }\n"
 "                                QListView::item {\n"
