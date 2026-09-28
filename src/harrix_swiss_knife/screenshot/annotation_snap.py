@@ -16,7 +16,13 @@ if TYPE_CHECKING:
 ANNOTATION_SNAP_THRESHOLD = 8.0
 
 _BOX_SHIFT_TOOLS = frozenset(
-    {AnnotationTool.BLUR, AnnotationTool.ELLIPSE, AnnotationTool.HIGHLIGHT, AnnotationTool.RECTANGLE}
+    {
+        AnnotationTool.BLUR,
+        AnnotationTool.ELLIPSE,
+        AnnotationTool.HIGHLIGHT,
+        AnnotationTool.RECTANGLE,
+        AnnotationTool.SMART_ERASER,
+    }
 )
 _LINE_TOOLS = frozenset({AnnotationTool.ARROW, AnnotationTool.LINE})
 _MIN_BOX = 2.0
@@ -227,6 +233,7 @@ def _snap_box_handles(
         AnnotationTool.ELLIPSE,
         AnnotationTool.HIGHLIGHT,
         AnnotationTool.RECTANGLE,
+        AnnotationTool.SMART_ERASER,
     }:
         return AnnotationSnapResult([snapped.topLeft(), snapped.bottomRight()], x_guide, y_guide)
     return AnnotationSnapResult(_map_points_from_rect(points, origin, snapped), x_guide, y_guide)

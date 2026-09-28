@@ -42,6 +42,7 @@ from harrix_swiss_knife.screenshot.annotations import (
     composite_annotations,
     constrain_shape_end,
     paint_annotation,
+    sample_composited_color,
     text_annotation_rect,
 )
 from harrix_swiss_knife.screenshot.selection_edit import (
@@ -110,6 +111,7 @@ class ScreenshotPreviewCanvas(QWidget):
         self._style = AnnotationStyle()
         self._draw_start: QPointF | None = None
         self._draw_current: QPointF | None = None
+        self._smart_eraser_color: QColor | None = None
         self._selected_index: int | None = None
         self._edit_handle: AnnotationHandle | None = None
         self._edit_origin_points: list[QPointF] | None = None
@@ -483,6 +485,12 @@ class ScreenshotPreviewCanvas(QWidget):
                 return
             self._selected_index = None
             snapped = self._snap_pointer(image_pos)
+            if self._tool == AnnotationTool.SMART_ERASER and self._document is not None:
+                self._smart_eraser_color = sample_composited_color(
+                    self._document.base_image,
+                    self._document.annotations,
+                    image_pos,
+                )
             if self._tool == AnnotationTool.TEXT:
                 self.begin_text_at(snapped)
                 event.accept()
@@ -776,11 +784,14 @@ class ScreenshotPreviewCanvas(QWidget):
     def _begin_shape_draft(self, start: QPointF, current: QPointF) -> None:
         if self._document is None:
             return
+        style = copy_annotation_style(self._style)
+        if self._tool == AnnotationTool.SMART_ERASER and self._smart_eraser_color is not None:
+            style.color = QColor(self._smart_eraser_color)
         self._document.begin_draft(
             Annotation(
                 tool=self._tool,
                 points=[QPointF(start), QPointF(current)],
-                style=copy_annotation_style(self._style),
+                style=style,
             )
         )
 

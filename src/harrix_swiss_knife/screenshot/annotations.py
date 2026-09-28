@@ -226,6 +226,7 @@ class AnnotationTool(Enum):
     PEN = "pen"
     HIGHLIGHT = "highlight"
     BLUR = "blur"
+    SMART_ERASER = "smart_eraser"
     TEXT = "text"
     CROP = "crop"
     EYEDROPPER = "eyedropper"
@@ -257,6 +258,16 @@ def composite_annotations(base: QImage, annotations: Sequence[Annotation]) -> QI
     if painter is not None and painter.isActive():
         painter.end()
     return result
+
+
+def sample_composited_color(base: QImage, annotations: Sequence[Annotation], point: QPointF) -> QColor:
+    """Return the pixel at `point` after painting `annotations` onto `base`."""
+    image = composite_annotations(base, annotations)
+    if image.isNull() or image.width() <= 0 or image.height() <= 0:
+        return QColor(255, 255, 255)
+    x = min(max(0, int(point.x())), image.width() - 1)
+    y = min(max(0, int(point.y())), image.height() - 1)
+    return QColor(image.pixelColor(x, y))
 
 
 def constrain_shape_end(tool: AnnotationTool, start: QPointF, end: QPointF, *, shift: bool) -> QPointF:
@@ -315,6 +326,12 @@ def paint_annotation(painter: QPainter, annotation: Annotation) -> None:
         painter.drawRect(rect)
         return
     if tool == AnnotationTool.BLUR:
+        return
+    if tool == AnnotationTool.SMART_ERASER:
+        painter.save()
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=False)
+        painter.fillRect(rect.toAlignedRect(), QColor(annotation.style.color))
+        painter.restore()
         return
     if tool == AnnotationTool.RECTANGLE:
         painter.drawRect(rect)
@@ -559,5 +576,11 @@ def _snap_end_to_square(start: QPointF, end: QPointF) -> QPointF:
 
 _LINE_SHIFT_TOOLS = frozenset({AnnotationTool.ARROW, AnnotationTool.LINE})
 _SQUARE_SHIFT_TOOLS = frozenset(
-    {AnnotationTool.BLUR, AnnotationTool.ELLIPSE, AnnotationTool.HIGHLIGHT, AnnotationTool.RECTANGLE}
+    {
+        AnnotationTool.BLUR,
+        AnnotationTool.ELLIPSE,
+        AnnotationTool.HIGHLIGHT,
+        AnnotationTool.RECTANGLE,
+        AnnotationTool.SMART_ERASER,
+    }
 )

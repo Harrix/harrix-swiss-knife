@@ -23,6 +23,7 @@ from harrix_swiss_knife.screenshot.annotations import (
     AnnotationTool,
     _arrow_head_path,
     constrain_shape_end,
+    sample_composited_color,
 )
 
 
@@ -453,5 +454,52 @@ def test_shape_drawn_after_blur_stays_sharp() -> None:
 
 def test_shift_makes_blur_square() -> None:
     end = constrain_shape_end(AnnotationTool.BLUR, QPointF(10, 10), QPointF(50, 30), shift=True)
+    assert end.x() == pytest.approx(30.0)
+    assert end.y() == pytest.approx(30.0)
+
+
+def test_smart_eraser_fills_with_the_color_where_the_drag_started() -> None:
+    image = _blank(40, 40)
+    painter = QPainter(image)
+    painter.fillRect(0, 0, 8, 40, QColor(0, 0, 220))
+    painter.end()
+    color = sample_composited_color(image, [], QPointF(2, 5))
+    assert color.blue() == 220
+    doc = AnnotationDocument(image)
+    doc.begin_draft(
+        Annotation(
+            tool=AnnotationTool.SMART_ERASER,
+            points=[QPointF(0, 4), QPointF(30, 20)],
+            style=AnnotationStyle(color=color),
+        )
+    )
+    assert doc.commit_draft()
+    rendered = doc.render(include_draft=False)
+    covered = rendered.pixelColor(20, 10)
+    assert covered.blue() == 220
+    assert covered.red() == 0
+    outside = rendered.pixelColor(35, 35)
+    assert outside.red() == 255
+    assert outside.blue() == 255
+
+
+def test_smart_eraser_samples_annotations_already_drawn() -> None:
+    image = _blank(40, 40)
+    doc = AnnotationDocument(image)
+    doc.begin_draft(
+        Annotation(
+            tool=AnnotationTool.LINE,
+            points=[QPointF(0, 8), QPointF(30, 8)],
+            style=AnnotationStyle(color=QColor(200, 10, 10), width=6.0),
+        )
+    )
+    assert doc.commit_draft()
+    color = sample_composited_color(doc.base_image, doc.annotations, QPointF(8, 8))
+    assert color.red() > 150
+    assert color.green() < 40
+
+
+def test_shift_makes_smart_eraser_square() -> None:
+    end = constrain_shape_end(AnnotationTool.SMART_ERASER, QPointF(10, 10), QPointF(50, 30), shift=True)
     assert end.x() == pytest.approx(30.0)
     assert end.y() == pytest.approx(30.0)

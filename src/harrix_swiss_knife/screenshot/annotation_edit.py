@@ -32,10 +32,13 @@ _BOX_TOOLS = frozenset(
         AnnotationTool.HIGHLIGHT,
         AnnotationTool.PEN,
         AnnotationTool.RECTANGLE,
+        AnnotationTool.SMART_ERASER,
         AnnotationTool.TEXT,
     }
 )
-_FILLED_BOX_TOOLS = frozenset({AnnotationTool.BLUR, AnnotationTool.HIGHLIGHT, AnnotationTool.TEXT})
+_FILLED_BOX_TOOLS = frozenset(
+    {AnnotationTool.BLUR, AnnotationTool.HIGHLIGHT, AnnotationTool.SMART_ERASER, AnnotationTool.TEXT}
+)
 _HIT_PADDING = 6.0
 _LINE_TOOLS = frozenset({AnnotationTool.ARROW, AnnotationTool.LINE})
 _MIN_BOX = 2.0
@@ -56,6 +59,7 @@ def annotation_bounds(annotation: Annotation) -> QRectF:
         AnnotationTool.HIGHLIGHT,
         AnnotationTool.BLUR,
         AnnotationTool.CROP,
+        AnnotationTool.SMART_ERASER,
     }:
         if len(points) < _MIN_SHAPE_POINTS:
             return QRectF(points[0], points[0])
@@ -95,6 +99,7 @@ def apply_annotation_edit(
         AnnotationTool.ELLIPSE,
         AnnotationTool.HIGHLIGHT,
         AnnotationTool.RECTANGLE,
+        AnnotationTool.SMART_ERASER,
     }:
         new_rect = _square_rect_from_handle(origin_rect, new_rect, handle)
     if annotation.tool in {
@@ -102,6 +107,7 @@ def apply_annotation_edit(
         AnnotationTool.ELLIPSE,
         AnnotationTool.HIGHLIGHT,
         AnnotationTool.BLUR,
+        AnnotationTool.SMART_ERASER,
         AnnotationTool.TEXT,
     }:
         return [new_rect.topLeft(), new_rect.bottomRight()]
