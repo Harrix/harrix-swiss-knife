@@ -105,7 +105,7 @@ _MARKDOWN_OCR_ICON = "scan-text"
 _TABLE_AI_ICON = "table"
 _TRANSLATE_ICON = "languages"
 _STATUS_HINT = (
-    "Tools: arrow / shapes / pen / highlight / text / eyedropper / crop · Click a shape to select · "
+    "Tools: arrow / shapes / pen / highlight / blur / text / eyedropper / crop · Click a shape to select · "
     "Delete removes · Shift constrains · Undo · Ctrl+wheel, Ctrl++ or Ctrl+- zoom · "
     "Middle-drag pan · Ctrl+S save to images"
 )
@@ -124,6 +124,7 @@ _TOOL_BUTTONS: tuple[tuple[AnnotationTool, str, str], ...] = (
     (AnnotationTool.LINE, "minus", "Line (Shift: 0° / 45°)"),
     (AnnotationTool.PEN, "pencil", "Pen"),
     (AnnotationTool.HIGHLIGHT, "highlighter", "Highlight (Shift: square)"),
+    (AnnotationTool.BLUR, "droplets", "Blur (Shift: square)"),
     (AnnotationTool.TEXT, "type", "Text"),
     (AnnotationTool.EYEDROPPER, "pipette", "Eyedropper — click a pixel to copy HEX and open color formats"),
     (AnnotationTool.CROP, "crop", "Crop"),

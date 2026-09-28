@@ -1072,6 +1072,21 @@ class ScreenshotPreviewCanvas(QWidget):
         self.text_editing_changed.emit(True)  # noqa: FBT003
         self.update()
 
+    def _paint_blur_draft_outline(self, painter: QPainter) -> None:
+        """Draw a dashed edge while a blur rectangle is still being dragged."""
+        document = self._document
+        if document is None or document.draft is None or document.draft.tool != AnnotationTool.BLUR:
+            return
+        points = document.draft.points
+        if len(points) <= 1:
+            return
+        pen = QPen(QColor(0, 0, 0), 1.0)
+        pen.setCosmetic(True)
+        pen.setStyle(Qt.PenStyle.DashLine)
+        painter.setPen(pen)
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawRect(QRectF(points[0], points[-1]).normalized())
+
     def _paint_crop_overlay(self, painter: QPainter, image_rect: QRectF) -> None:
         bounds = image_rect.toRect()
         crop = self._active_crop_rect()
@@ -1119,18 +1134,14 @@ class ScreenshotPreviewCanvas(QWidget):
         scale_x = image_rect.width() / max(1, width)
         scale_y = image_rect.height() / max(1, height)
         painter.scale(scale_x, scale_y)
-        for item in document.annotations:
-            if (
-                self._text_edit_active
-                and self._text_edit_index is not None
-                and item is document.annotations[self._text_edit_index]
-            ):
-                continue
-            paint_annotation(painter, item)
-        if document.draft is not None and not (
-            self._text_edit_active and self._text_edit_index is None and document.draft.tool == AnnotationTool.TEXT
-        ):
-            paint_annotation(painter, document.draft)
+        items = self._visible_annotations()
+        if any(item.tool == AnnotationTool.BLUR for item in items):
+            image = composite_annotations(document.base_image, items)
+            painter.drawImage(QPointF(0, 0), image)
+            self._paint_blur_draft_outline(painter)
+        else:
+            for item in items:
+                paint_annotation(painter, item)
         index = self._selected_index
         if index is not None and 0 <= index < len(document.annotations) and not self._text_edit_active:
             paint_annotation_selection(
@@ -1314,6 +1325,23 @@ class ScreenshotPreviewCanvas(QWidget):
         fit = add_lucide_action(menu, "Fit to view", "expand")
         fit.triggered.connect(lambda _checked=False: self.fit_to_view())
         return menu
+
+    def _visible_annotations(self) -> list[Annotation]:
+        """Return committed annotations plus the draft, omitting text open in the editor."""
+        document = self._document
+        if document is None:
+            return []
+        items: list[Annotation] = []
+        for index, item in enumerate(document.annotations):
+            if self._text_edit_active and self._text_edit_index is not None and index == self._text_edit_index:
+                continue
+            items.append(item)
+        draft = document.draft
+        if draft is not None and not (
+            self._text_edit_active and self._text_edit_index is None and draft.tool == AnnotationTool.TEXT
+        ):
+            items.append(draft)
+        return items
 
     def _widget_to_image(self, pos: QPointF) -> QPointF | None:
         rect = self._image_rect()

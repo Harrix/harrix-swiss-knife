@@ -33,6 +33,7 @@ lang: en
   - [⚙️ Method `update_draft_points`](#%EF%B8%8F-method-update_draft_points)
 - [🏛️ Class `AnnotationStyle`](#%EF%B8%8F-class-annotationstyle)
 - [🏛️ Class `AnnotationTool`](#%EF%B8%8F-class-annotationtool)
+- [🔧 Function `composite_annotations`](#-function-composite_annotations)
 - [🔧 Function `constrain_shape_end`](#-function-constrain_shape_end)
 - [🔧 Function `paint_annotation`](#-function-paint_annotation)
 - [🔧 Function `text_annotation_rect`](#-function-text_annotation_rect)
@@ -184,15 +185,10 @@ class AnnotationDocument:
         When `include_draft` is `True`, also paint the in-progress annotation.
 
         """
-        result = self._base.copy()
-        painter = QPainter(result)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
-        for item in self._annotations:
-            paint_annotation(painter, item)
+        items = list(self._annotations)
         if include_draft and self._draft is not None:
-            paint_annotation(painter, self._draft)
-        painter.end()
-        return result
+            items.append(self._draft)
+        return composite_annotations(self._base, items)
 
     def save_undo_checkpoint(self) -> None:
         """Snapshot the current document so the next mutation can be undone."""
@@ -518,15 +514,10 @@ When `include_draft` is `True`, also paint the in-progress annotation.
 
 ```python
 def render(self, *, include_draft: bool = True) -> QImage:
-        result = self._base.copy()
-        painter = QPainter(result)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
-        for item in self._annotations:
-            paint_annotation(painter, item)
+        items = list(self._annotations)
         if include_draft and self._draft is not None:
-            paint_annotation(painter, self._draft)
-        painter.end()
-        return result
+            items.append(self._draft)
+        return composite_annotations(self._base, items)
 ```
 
 </details>
@@ -681,9 +672,45 @@ class AnnotationTool(Enum):
     LINE = "line"
     PEN = "pen"
     HIGHLIGHT = "highlight"
+    BLUR = "blur"
     TEXT = "text"
     CROP = "crop"
     EYEDROPPER = "eyedropper"
+```
+
+</details>
+
+## 🔧 Function `composite_annotations`
+
+```python
+def composite_annotations(base: QImage, annotations: Sequence[Annotation]) -> QImage
+```
+
+Paint [`annotations`](#%EF%B8%8F-method-annotations-property) onto a copy of `base`, blurring each blur rectangle in order.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def composite_annotations(base: QImage, annotations: Sequence[Annotation]) -> QImage:
+    result = base.copy()
+    if result.isNull() or not annotations:
+        return result
+    painter: QPainter | None = None
+    for item in annotations:
+        if item.tool == AnnotationTool.BLUR:
+            if painter is not None and painter.isActive():
+                painter.end()
+                painter = None
+            _apply_blur(result, item)
+            continue
+        if painter is None or not painter.isActive():
+            painter = QPainter(result)
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
+        paint_annotation(painter, item)
+    if painter is not None and painter.isActive():
+        painter.end()
+    return result
 ```
 
 </details>
@@ -764,6 +791,8 @@ def paint_annotation(painter: QPainter, annotation: Annotation) -> None:
         painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(fill)
         painter.drawRect(rect)
+        return
+    if tool == AnnotationTool.BLUR:
         return
     if tool == AnnotationTool.RECTANGLE:
         painter.drawRect(rect)

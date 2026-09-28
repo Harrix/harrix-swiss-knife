@@ -6,7 +6,8 @@ import math
 
 import pytest
 from PySide6.QtCore import QPointF, QRectF
-from PySide6.QtGui import QColor, QImage
+from PySide6.QtGui import QColor, QImage, QPainter
+from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife.apps.snippets.seed import SEED_COLORS
 from harrix_swiss_knife.screenshot.annotation_colors import load_annotation_colors
@@ -29,6 +30,17 @@ def _blank(width: int = 100, height: int = 80) -> QImage:
     image = QImage(width, height, QImage.Format.Format_RGB32)
     image.fill(QColor(255, 255, 255))
     return image
+
+
+@pytest.fixture
+def qapp() -> QApplication:
+    app = QApplication.instance()
+    if app is None:
+        return QApplication([])
+    if not isinstance(app, QApplication):
+        msg = "QApplication.instance() returned a non-QApplication object."
+        raise TypeError(msg)
+    return app
 
 
 def test_arrow_commit_and_undo() -> None:
@@ -354,3 +366,92 @@ def test_drag_arrow_end_updates_tip() -> None:
     assert points[0].x() == pytest.approx(10.0)
     assert points[1].x() == pytest.approx(70.0)
     assert points[1].y() == pytest.approx(20.0)
+
+
+@pytest.mark.usefixtures("qapp")
+def test_blur_softens_pixels_inside_and_keeps_outside() -> None:
+    image = _blank(100, 60)
+    painter = QPainter(image)
+    painter.fillRect(40, 20, 20, 20, QColor(0, 0, 0))
+    painter.end()
+    doc = AnnotationDocument(image)
+    doc.begin_draft(
+        Annotation(
+            tool=AnnotationTool.BLUR,
+            points=[QPointF(30, 10), QPointF(70, 50)],
+            style=AnnotationStyle(),
+        )
+    )
+    assert doc.commit_draft()
+    rendered = doc.render(include_draft=False)
+    outside = rendered.pixelColor(29, 30)
+    assert outside.red() == 255
+    assert outside.green() == 255
+    assert outside.blue() == 255
+    center = rendered.pixelColor(50, 30)
+    assert center.alpha() == 255
+    assert center.red() > 20
+    nearby = rendered.pixelColor(36, 30)
+    assert nearby.alpha() == 255
+    assert nearby.red() < 250
+    assert doc.undo()
+    restored = doc.render(include_draft=False)
+    assert restored.pixelColor(50, 30).red() == 0
+
+
+@pytest.mark.usefixtures("qapp")
+def test_blur_follows_the_rectangle_instead_of_a_baked_patch() -> None:
+    image = _blank(100, 60)
+    painter = QPainter(image)
+    painter.fillRect(40, 20, 20, 20, QColor(0, 0, 0))
+    painter.end()
+    doc = AnnotationDocument(image)
+    doc.begin_draft(
+        Annotation(
+            tool=AnnotationTool.BLUR,
+            points=[QPointF(4, 4), QPointF(24, 24)],
+            style=AnnotationStyle(),
+        )
+    )
+    assert doc.commit_draft()
+    moved = doc.render(include_draft=False).pixelColor(14, 14)
+    assert moved.red() > 250
+    doc.annotations[0].points = [QPointF(30, 10), QPointF(70, 50)]
+    rendered = doc.render(include_draft=False)
+    assert rendered.pixelColor(50, 30).red() > 20
+    assert rendered.pixelColor(14, 14).red() == 255
+
+
+@pytest.mark.usefixtures("qapp")
+def test_shape_drawn_after_blur_stays_sharp() -> None:
+    image = _blank(100, 60)
+    painter = QPainter(image)
+    painter.fillRect(40, 20, 20, 20, QColor(0, 0, 0))
+    painter.end()
+    doc = AnnotationDocument(image)
+    doc.begin_draft(
+        Annotation(
+            tool=AnnotationTool.BLUR,
+            points=[QPointF(10, 10), QPointF(90, 50)],
+            style=AnnotationStyle(),
+        )
+    )
+    assert doc.commit_draft()
+    doc.begin_draft(
+        Annotation(
+            tool=AnnotationTool.LINE,
+            points=[QPointF(10, 30), QPointF(90, 30)],
+            style=AnnotationStyle(color=QColor(255, 0, 0), width=6.0),
+        )
+    )
+    assert doc.commit_draft()
+    stroke = doc.render(include_draft=False).pixelColor(50, 30)
+    assert stroke.red() > 200
+    assert stroke.green() < 40
+    assert stroke.blue() < 40
+
+
+def test_shift_makes_blur_square() -> None:
+    end = constrain_shape_end(AnnotationTool.BLUR, QPointF(10, 10), QPointF(50, 30), shift=True)
+    assert end.x() == pytest.approx(30.0)
+    assert end.y() == pytest.approx(30.0)

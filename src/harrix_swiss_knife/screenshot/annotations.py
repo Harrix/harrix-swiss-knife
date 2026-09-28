@@ -7,8 +7,9 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QPointF, QRectF, Qt
-from PySide6.QtGui import QColor, QFontMetricsF, QImage, QPainter, QPainterPath, QPen, QPolygonF
+from PySide6.QtCore import QPointF, QRect, QRectF, Qt
+from PySide6.QtGui import QColor, QFontMetricsF, QImage, QPainter, QPainterPath, QPen, QPixmap, QPolygonF
+from PySide6.QtWidgets import QGraphicsBlurEffect, QGraphicsPixmapItem, QGraphicsScene
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -24,6 +25,9 @@ _MIN_SHAPE_POINTS = 2
 _MIN_DRAG_MANHATTAN = 3
 _SHIFT_ANGLE_STEP = math.pi / 4
 _HIGHLIGHT_ALPHA = 96
+# ShareX blur tool: a rectangle that gaussian-blurs the pixels underneath.
+_BLUR_RADIUS = 15.0
+_BLUR_PAD_FACTOR = 2
 
 
 @dataclass(slots=True)
@@ -148,15 +152,10 @@ class AnnotationDocument:
         When `include_draft` is `True`, also paint the in-progress annotation.
 
         """
-        result = self._base.copy()
-        painter = QPainter(result)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
-        for item in self._annotations:
-            paint_annotation(painter, item)
+        items = list(self._annotations)
         if include_draft and self._draft is not None:
-            paint_annotation(painter, self._draft)
-        painter.end()
-        return result
+            items.append(self._draft)
+        return composite_annotations(self._base, items)
 
     def save_undo_checkpoint(self) -> None:
         """Snapshot the current document so the next mutation can be undone."""
@@ -226,6 +225,7 @@ class AnnotationTool(Enum):
     LINE = "line"
     PEN = "pen"
     HIGHLIGHT = "highlight"
+    BLUR = "blur"
     TEXT = "text"
     CROP = "crop"
     EYEDROPPER = "eyedropper"
@@ -235,6 +235,28 @@ class AnnotationTool(Enum):
 class _HistoryEntry:
     base: QImage
     annotations: list[Annotation]
+
+
+def composite_annotations(base: QImage, annotations: Sequence[Annotation]) -> QImage:
+    """Paint `annotations` onto a copy of `base`, blurring each blur rectangle in order."""
+    result = base.copy()
+    if result.isNull() or not annotations:
+        return result
+    painter: QPainter | None = None
+    for item in annotations:
+        if item.tool == AnnotationTool.BLUR:
+            if painter is not None and painter.isActive():
+                painter.end()
+                painter = None
+            _apply_blur(result, item)
+            continue
+        if painter is None or not painter.isActive():
+            painter = QPainter(result)
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
+        paint_annotation(painter, item)
+    if painter is not None and painter.isActive():
+        painter.end()
+    return result
 
 
 def constrain_shape_end(tool: AnnotationTool, start: QPointF, end: QPointF, *, shift: bool) -> QPointF:
@@ -292,6 +314,8 @@ def paint_annotation(painter: QPainter, annotation: Annotation) -> None:
         painter.setBrush(fill)
         painter.drawRect(rect)
         return
+    if tool == AnnotationTool.BLUR:
+        return
     if tool == AnnotationTool.RECTANGLE:
         painter.drawRect(rect)
         return
@@ -320,6 +344,22 @@ def text_annotation_rect(annotation: Annotation) -> QRectF:
     width = max(metrics.horizontalAdvance(text), 8.0)
     height = max(metrics.height(), 10.0)
     return QRectF(origin.x(), origin.y() - metrics.ascent(), width, height)
+
+
+def _apply_blur(image: QImage, annotation: Annotation) -> None:
+    """Gaussian-blur the rectangle of `annotation` in place, keeping a hard edge."""
+    if len(annotation.points) < _MIN_SHAPE_POINTS or image.isNull():
+        return
+    rect = QRectF(annotation.points[0], annotation.points[-1]).normalized().toAlignedRect()
+    rect = rect.intersected(image.rect())
+    if rect.width() < _MIN_CROP_SIZE or rect.height() < _MIN_CROP_SIZE:
+        return
+    patch = _blurred_patch(image, rect, _BLUR_RADIUS)
+    if patch.isNull():
+        return
+    painter = QPainter(image)
+    painter.drawImage(rect.topLeft(), patch)
+    painter.end()
 
 
 def _arrow_head_geometry(
@@ -365,6 +405,21 @@ def _arrow_head_path(start: QPointF, end: QPointF, stroke: float) -> QPainterPat
     path.quadTo(control, right)
     path.closeSubpath()
     return path
+
+
+def _blurred_patch(source: QImage, rect: QRect, radius: float) -> QImage:
+    """Return `rect` blurred from a padded copy so the edge stays opaque."""
+    pad = max(1, math.ceil(radius * _BLUR_PAD_FACTOR))
+    padded = QRect(rect).adjusted(-pad, -pad, pad, pad).intersected(source.rect())
+    if padded.isEmpty():
+        return QImage()
+    patch = source.copy(padded).convertToFormat(QImage.Format.Format_ARGB32_Premultiplied)
+    blurred = _gaussian_blur(patch, radius)
+    inner = QRect(rect.x() - padded.x(), rect.y() - padded.y(), rect.width(), rect.height())
+    inner = inner.intersected(blurred.rect())
+    if inner.isEmpty():
+        return QImage()
+    return blurred.copy(inner)
 
 
 def _clone_annotation(item: Annotation) -> Annotation:
@@ -422,6 +477,23 @@ def _draw_filled_arrow(
     painter.drawLine(start, control)
     painter.setBrush(color)
     painter.drawPath(head)
+
+
+def _gaussian_blur(image: QImage, radius: float) -> QImage:
+    """Blur `image` with Qt's gaussian effect and crop back to the original size."""
+    item = QGraphicsPixmapItem(QPixmap.fromImage(image))
+    effect = QGraphicsBlurEffect()
+    effect.setBlurRadius(radius)
+    effect.setBlurHints(QGraphicsBlurEffect.BlurHint.QualityHint)
+    item.setGraphicsEffect(effect)
+    scene = QGraphicsScene()
+    scene.addItem(item)
+    result = QImage(image.size(), QImage.Format.Format_ARGB32_Premultiplied)
+    result.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(result)
+    scene.render(painter, QRectF(result.rect()), QRectF(0, 0, image.width(), image.height()))
+    painter.end()
+    return result
 
 
 def _is_meaningful(annotation: Annotation) -> bool:
@@ -486,4 +558,6 @@ def _snap_end_to_square(start: QPointF, end: QPointF) -> QPointF:
 
 
 _LINE_SHIFT_TOOLS = frozenset({AnnotationTool.ARROW, AnnotationTool.LINE})
-_SQUARE_SHIFT_TOOLS = frozenset({AnnotationTool.ELLIPSE, AnnotationTool.HIGHLIGHT, AnnotationTool.RECTANGLE})
+_SQUARE_SHIFT_TOOLS = frozenset(
+    {AnnotationTool.BLUR, AnnotationTool.ELLIPSE, AnnotationTool.HIGHLIGHT, AnnotationTool.RECTANGLE}
+)
