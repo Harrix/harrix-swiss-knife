@@ -296,6 +296,7 @@
     "<YOUR_GITHUB_FOLDER>/Harrix-UI-Icons"
   ],
   "vector_icons_recent_folders_max": 12,
+  "vector_icons_background_keywords_limit": 1,
   "paths_combine_for_ai": [
     {
       "base_folder": "<YOUR_GITHUB_FOLDER>/harrix-swiss-knife",

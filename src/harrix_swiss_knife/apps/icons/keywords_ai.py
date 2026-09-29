@@ -135,6 +135,10 @@ def request_keywords_fill(
     on_not_started: Callable[[], None] | None = None,
     toast_message: str = "Processing keywords…",
     show_empty_warning: bool = True,
+    show_toast: bool = True,
+    show_validation_errors: bool = True,
+    offer_retry: bool = True,
+    owner_modal: bool = True,
 ) -> None:
     """Send a raster preview plus category/tags to BotHub and return keywords."""
     image = render_icon_to_image(icon_path, _RASTER_SIDE)
@@ -142,7 +146,7 @@ def request_keywords_fill(
         message = f"Could not rasterize icon:\n{icon_path}"
         if on_error is not None:
             on_error(message)
-        else:
+        elif show_empty_warning:
             message_box.warning(parent, "Process with AI", message)
         return
 
@@ -160,7 +164,7 @@ def request_keywords_fill(
     except ValueError as exc:
         if on_error is not None:
             on_error(str(exc))
-        else:
+        elif show_validation_errors:
             show_bothub_prompt_build_error(parent, exc)
         return
 
@@ -187,7 +191,7 @@ def request_keywords_fill(
         restore_button()
         if on_error is not None:
             on_error(error_message)
-        else:
+        elif show_validation_errors:
             message_box.critical(parent, "BotHub Error", error_message)
 
     def on_request_cancelled() -> None:
@@ -206,6 +210,10 @@ def request_keywords_fill(
         state=bothub_state,
         on_error=on_request_error,
         on_cancelled=on_request_cancelled,
+        offer_retry=offer_retry,
+        owner_modal=owner_modal,
+        show_toast=show_toast,
+        show_validation_errors=show_validation_errors,
     )
     if not started:
         restore_button()

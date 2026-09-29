@@ -9,7 +9,14 @@ from pathlib import Path
 import pytest
 from PySide6.QtWidgets import QApplication
 
-from harrix_swiss_knife.apps.icons.catalog import IconFamily, load_catalog, rebuild_catalog
+from harrix_swiss_knife.apps.icons.catalog import (
+    IconFamily,
+    iter_families_with_stale_hashes,
+    load_catalog,
+    rebuild_catalog,
+    refresh_hashes_for_paths,
+    write_catalog_json,
+)
 from harrix_swiss_knife.apps.icons.keywords_ai import KeywordsBatchRunner
 from harrix_swiss_knife.apps.icons.keywords_update import (
     parse_keywords_text,
@@ -92,6 +99,75 @@ def test_update_keywords_files_writes_note_and_catalog(tmp_path: Path) -> None:
     assert "---\n\n# Garage\n" in markdown
     catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
     assert catalog["icons"][0]["tags"] == ["garage", _RU_GARAGE, "building"]
+
+
+def test_iter_families_with_stale_hashes_detects_featured_change(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    note = repo / "icons" / "building__garage"
+    note.mkdir(parents=True)
+    featured = note / "featured-image.svg"
+    featured.write_text(_MIN_SVG, encoding="utf-8")
+    (note / "building__garage.md").write_text(
+        "---\ncategories: [building]\ntags: [garage]\n---\n\n# Garage\n",
+        encoding="utf-8",
+    )
+    catalog = rebuild_catalog(repo)
+    assert iter_families_with_stale_hashes(catalog, limit=10) == []
+
+    family = catalog.icons[0]
+    family.featured_hash = "0" * 64
+    write_catalog_json(catalog)
+    loaded = load_catalog(repo)
+    stale = iter_families_with_stale_hashes(loaded, limit=10)
+    assert [item.id for item in stale] == ["building__garage"]
+
+    featured.write_text(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32">'
+        '<circle cx="16" cy="16" r="8" fill="#112233"/></svg>',
+        encoding="utf-8",
+    )
+    stale_after_edit = iter_families_with_stale_hashes(catalog, limit=10)
+    assert [item.id for item in stale_after_edit] == ["building__garage"]
+
+    refresh_hashes_for_paths(catalog, [featured])
+    write_catalog_json(catalog)
+    assert iter_families_with_stale_hashes(catalog, limit=10) == []
+
+
+def test_silent_keywords_commit_updates_tags_and_clears_stale_hash(tmp_path: Path) -> None:
+    """Simulate the background commit: tags + hash refresh after AI keywords."""
+    repo = tmp_path / "repo"
+    note = repo / "icons" / "building__garage"
+    note.mkdir(parents=True)
+    featured = note / "featured-image.svg"
+    featured.write_text(_MIN_SVG, encoding="utf-8")
+    md_path = note / "building__garage.md"
+    md_path.write_text(
+        "---\ncategories: [building]\ntags: [garage]\n---\n\n# Garage\n",
+        encoding="utf-8",
+    )
+    catalog = rebuild_catalog(repo)
+    family = catalog.icons[0]
+    family.featured_hash = "stale"
+    assert iter_families_with_stale_hashes(catalog, limit=1)
+
+    new_tags = ["garage", _RU_GARAGE, "building"]
+    update_keywords_files(
+        md_path=md_path,
+        catalog_path=repo / "catalog.json",
+        family_id=family.id,
+        tags=new_tags,
+    )
+    family.tags = new_tags
+    family.refresh_search_blob()
+    refresh_hashes_for_paths(catalog, [featured])
+    write_catalog_json(catalog)
+
+    reloaded = load_catalog(repo)
+    assert reloaded.icons[0].tags == new_tags
+    assert iter_families_with_stale_hashes(reloaded, limit=10) == []
+    assert "garage" in reloaded.icons[0].search_blob
+    assert _RU_GARAGE in reloaded.icons[0].search_blob
 
 
 def test_rebuild_catalog_reads_block_tags(tmp_path: Path) -> None:

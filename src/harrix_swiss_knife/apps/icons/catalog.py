@@ -266,6 +266,29 @@ def is_openable_license_url(url: str) -> bool:
     return lower.startswith(("http://", "https://"))
 
 
+def iter_families_with_stale_hashes(catalog: IconCatalog, *, limit: int = 1) -> list[IconFamily]:
+    """Return note-catalog families whose featured/variant SHA no longer matches disk.
+
+    Flat catalogs are skipped (no durable `catalog.json` write-back for keywords).
+    Families without a readable featured file are skipped (nothing to rasterize for AI).
+
+    """
+    if catalog.kind != "note" or limit < 1:
+        return []
+    root = catalog.repo_root
+    stale: list[IconFamily] = []
+    for family in catalog.icons:
+        if not _family_hashes_are_stale(family, root, kind=catalog.kind):
+            continue
+        featured = family.featured_path(root)
+        if featured is None:
+            continue
+        stale.append(family)
+        if len(stale) >= limit:
+            break
+    return stale
+
+
 def iter_icon_note_dirs(icons_dir: Path) -> list[Path]:
     """Return note folders under `icons/` (public wrapper)."""
     return _iter_icon_note_dirs(icons_dir)
@@ -655,6 +678,20 @@ def _family_from_dict(data: dict[str, Any]) -> IconFamily:
     )
     family.search_blob = _build_search_blob(family)
     return family
+
+
+def _family_hashes_are_stale(family: IconFamily, repo_root: Path, *, kind: CatalogKind) -> bool:
+    """Return whether featured or any variant hash differs from the file on disk."""
+    featured = family.featured_path(repo_root)
+    if featured is not None and _hash_for_kind(featured, kind) != family.featured_hash:
+        return True
+    for variant in family.variants:
+        path = variant.absolute_path(repo_root, family.folder)
+        if not path.is_file():
+            continue
+        if _hash_for_kind(path, kind) != variant.hash:
+            return True
+    return False
 
 
 def _family_to_dict(family: IconFamily) -> dict[str, Any]:

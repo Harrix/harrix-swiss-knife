@@ -308,6 +308,11 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._maintenance_worker: RepoMaintenanceWorker | None = None
         self._maintenance_kind: MaintenanceKind | None = None
         self._keywords_batch_runner: KeywordsBatchRunner | None = None
+        self._bg_icon_keywords_state = BothubRequestState()
+        self._bg_icon_keywords_timer = QTimer(self)
+        self._bg_icon_keywords_timer.setSingleShot(True)
+        self._bg_icon_keywords_timer.timeout.connect(self._on_background_icon_keywords_timer)
+        self._is_closing = False
         self._thumb_refresh_done = 0
         self._thumb_refresh_total = 0
         self._thumb_dirty_families: set[str] = set()
@@ -349,6 +354,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._persist_icon_size()
         if self._hide_instead_of_close(event):
             return
+        self._is_closing = True
+        self._stop_background_icon_keywords_timer()
         self._stop_grid_fill()
         self._stop_catalog_load()
         self._stop_trademark_update()
@@ -483,6 +490,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
             selected = next((item for item in self._catalog.icons if item.id == selected_id), None)
             if selected is not None:
                 self._on_family_selected(selected, persist=False)
+        self._arm_background_icon_keywords_timer()
 
     def _apply_filters(self) -> None:
         self._search_filter_timer.stop()
@@ -614,6 +622,10 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._close_load_progress_toast()
         self._refresh_category_icons()
         self._start_thumb_refresh()
+        if catalog.kind == "note":
+            QTimer.singleShot(300, self._run_background_icon_keywords)
+        else:
+            self._stop_background_icon_keywords_timer()
         if refresh:
             category_count = len(catalog.categories())
             self.statusBar().showMessage(
@@ -622,6 +634,12 @@ class MainWindow(QMainWindow, AppWindowMixin):
             return
         kind = "flat dump" if catalog.kind == "flat" else "note repo"
         self.statusBar().showMessage(f"Opened {kind}: {catalog.repo_root} ({len(catalog.icons)} icons)")
+
+    def _arm_background_icon_keywords_timer(self) -> None:
+        """Start or restart the debounce before another silent keywords pass."""
+        if self._is_closing:
+            return
+        self._bg_icon_keywords_timer.start(_BACKGROUND_ICON_KEYWORDS_INTERVAL_MS)
 
     def _ask_collision_policy(self, collision_count: int) -> CollisionPolicy | None:
         """Ask how to handle filename collisions. Return `None` on cancel."""
@@ -648,6 +666,15 @@ class MainWindow(QMainWindow, AppWindowMixin):
         if clicked is rename_btn:
             return "rename"
         return None
+
+    def _background_icon_keywords_limit(self) -> int:
+        """Max stale families considered per silent pass (one AI call uses the first)."""
+        config: dict[str, Any] = h.dev.config_load(get_config_path_str())
+        raw = config.get("vector_icons_background_keywords_limit", _BACKGROUND_ICON_KEYWORDS_DEFAULT_LIMIT)
+        try:
+            return max(1, int(raw))
+        except (TypeError, ValueError):
+            return _BACKGROUND_ICON_KEYWORDS_DEFAULT_LIMIT
 
     def _build_ui(self) -> None:
         central = QWidget(self)
@@ -895,6 +922,10 @@ class MainWindow(QMainWindow, AppWindowMixin):
             ),
         )
 
+    def _clear_background_icon_keywords_status(self) -> None:
+        if self.statusBar().currentMessage() == _BACKGROUND_ICON_KEYWORDS_STATUS:
+            self.statusBar().clearMessage()
+
     def _clear_clipboard_stage(self) -> None:
         """Drop the temporary directory used for renamed clipboard file copies."""
         stage = self._clipboard_stage
@@ -942,6 +973,57 @@ class MainWindow(QMainWindow, AppWindowMixin):
                 continue
             self._visible_family_ids.add(entry.family.id)
             self._visible_families.append(entry.family)
+
+    def _commit_background_icon_keywords(self, family: IconFamily, tags: list[str]) -> None:
+        """Write AI tags, refresh hashes/thumbs, then continue or stop the silent loop."""
+        if self._is_closing or self._repo_root is None or self._catalog is None:
+            self._clear_background_icon_keywords_status()
+            return
+        live = next((item for item in self._catalog.icons if item.id == family.id), None)
+        if live is None:
+            self._clear_background_icon_keywords_status()
+            return
+        note_path = live.note_path(self._repo_root)
+        if note_path is None:
+            self._on_background_icon_keywords_failed()
+            return
+        try:
+            update_keywords_files(
+                md_path=note_path,
+                catalog_path=self._repo_root / "catalog.json",
+                family_id=live.id,
+                tags=tags,
+            )
+        except (OSError, ValueError, TypeError, json.JSONDecodeError):
+            logger.exception("Silent keywords save failed for %s", live.id)
+            self._on_background_icon_keywords_failed()
+            return
+
+        live.tags = tags
+        live.refresh_search_blob()
+
+        hash_paths = self._family_paths_for_hash_refresh(live)
+        if hash_paths:
+            refresh_hashes_for_paths(self._catalog, hash_paths)
+        try:
+            write_catalog_json(self._catalog)
+        except OSError:
+            logger.exception("Failed to write catalog.json after silent keywords for %s", live.id)
+            self._on_background_icon_keywords_failed()
+            return
+
+        self._pixmaps.pop(live.id, None)
+        self._thumb_cache.forget(live.id)
+        self._start_thumb_refresh()
+        if self._selected_family_id == live.id:
+            self._on_family_selected(live, persist=False)
+
+        self._clear_background_icon_keywords_status()
+        remaining = iter_families_with_stale_hashes(self._catalog, limit=1)
+        if remaining:
+            self._arm_background_icon_keywords_timer()
+        else:
+            self._stop_background_icon_keywords_timer()
 
     def _copy_icon_files(self, entries: list[tuple[str, str]]) -> None:
         """Put existing icon files on the clipboard as file URLs.
@@ -1027,6 +1109,19 @@ class MainWindow(QMainWindow, AppWindowMixin):
             return
         self.icon_list.reset_row_pixmaps(stale, placeholder=self._placeholder)
         self._loaded_rows.difference_update(stale)
+
+    def _family_paths_for_hash_refresh(self, family: IconFamily) -> list[Path]:
+        if self._repo_root is None:
+            return []
+        paths: list[Path] = []
+        featured = family.featured_path(self._repo_root)
+        if featured is not None:
+            paths.append(featured)
+        for variant in family.variants:
+            path = variant.absolute_path(self._repo_root, family.folder)
+            if path.is_file():
+                paths.append(path)
+        return paths
 
     def _fill_next_grid_chunk(self) -> None:
         """Append more tiles, but give the event loop a turn once the time budget is spent."""
@@ -1313,6 +1408,15 @@ class MainWindow(QMainWindow, AppWindowMixin):
             QMessageBox.information(self, "Vector Icons", "No SVG/AI/PDF/EPS files selected.")
             return
         self._import_vector_sources(sources)
+
+    def _on_background_icon_keywords_failed(self) -> None:
+        """Stop the silent keywords loop without dialogs."""
+        self._clear_background_icon_keywords_status()
+        self._stop_background_icon_keywords_timer()
+        logger.info("Background icon keywords update stopped")
+
+    def _on_background_icon_keywords_timer(self) -> None:
+        self._run_background_icon_keywords()
 
     def _on_batch_favorites(self, payload: object) -> None:
         if self._repo_root is None or not isinstance(payload, tuple) or len(payload) != _KEYWORD_TARGET_PAIR_LEN:
@@ -2105,6 +2209,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         count = len(family.variants)
         status = "updated" if changed else "unchanged"
         self.statusBar().showMessage(f"Variants {status} for `{family.id}` ({count})")
+        self._arm_background_icon_keywords_timer()
 
     def _on_reset_icon_size(self) -> None:
         """Restore the default icon size through the toolbar slider."""
@@ -2534,6 +2639,54 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._selected_family_id = None
         self.variants_panel.clear_variants()
 
+    def _run_background_icon_keywords(self) -> None:
+        """Refresh AI keywords for note families whose catalog hashes are stale."""
+        if self._is_closing or self._catalog is None or self._repo_root is None:
+            return
+        if self._catalog.kind != "note":
+            return
+        if self._bg_icon_keywords_state.worker is not None:
+            return
+        if self._keywords_batch_runner is not None and self._keywords_batch_runner.is_running:
+            return
+
+        stale = iter_families_with_stale_hashes(
+            self._catalog,
+            limit=self._background_icon_keywords_limit(),
+        )
+        if not stale:
+            self._clear_background_icon_keywords_status()
+            self._stop_background_icon_keywords_timer()
+            return
+
+        family = stale[0]
+        icon_path = family.featured_path(self._repo_root)
+        if icon_path is None or family.note_path(self._repo_root) is None:
+            self._on_background_icon_keywords_failed()
+            return
+
+        config: dict[str, Any] = h.dev.config_load(get_config_path_str())
+        self.statusBar().showMessage(_BACKGROUND_ICON_KEYWORDS_STATUS)
+        request_keywords_fill(
+            self,
+            app_config=config,
+            bothub_state=self._bg_icon_keywords_state,
+            icon_path=icon_path,
+            category=", ".join(family.categories) or family.id,
+            tags=list(family.tags),
+            fill_button=None,
+            on_tags=lambda tags, target=family: self._commit_background_icon_keywords(target, tags),
+            on_error=lambda _message: self._on_background_icon_keywords_failed(),
+            on_cancelled=self._on_background_icon_keywords_failed,
+            on_not_started=self._on_background_icon_keywords_failed,
+            toast_message=_BACKGROUND_ICON_KEYWORDS_STATUS,
+            show_empty_warning=False,
+            show_toast=False,
+            show_validation_errors=False,
+            offer_retry=False,
+            owner_modal=False,
+        )
+
     def _schedule_search_filter(self) -> None:
         """Restart debounce so the grid filters after typing pauses."""
         self._search_filter_timer.start()
@@ -2700,6 +2853,9 @@ class MainWindow(QMainWindow, AppWindowMixin):
             on_progress=self._on_thumb_progress,
             on_finished=self._on_thumb_finished,
         )
+
+    def _stop_background_icon_keywords_timer(self) -> None:
+        self._bg_icon_keywords_timer.stop()
 
     def _stop_catalog_load(self) -> None:
         self._catalog_load_generation += 1
@@ -3078,6 +3234,11 @@ def __init__(self, *, hide_on_close: bool = False) -> None:
         self._maintenance_worker: RepoMaintenanceWorker | None = None
         self._maintenance_kind: MaintenanceKind | None = None
         self._keywords_batch_runner: KeywordsBatchRunner | None = None
+        self._bg_icon_keywords_state = BothubRequestState()
+        self._bg_icon_keywords_timer = QTimer(self)
+        self._bg_icon_keywords_timer.setSingleShot(True)
+        self._bg_icon_keywords_timer.timeout.connect(self._on_background_icon_keywords_timer)
+        self._is_closing = False
         self._thumb_refresh_done = 0
         self._thumb_refresh_total = 0
         self._thumb_dirty_families: set[str] = set()
@@ -3133,6 +3294,8 @@ def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         self._persist_icon_size()
         if self._hide_instead_of_close(event):
             return
+        self._is_closing = True
+        self._stop_background_icon_keywords_timer()
         self._stop_grid_fill()
         self._stop_catalog_load()
         self._stop_trademark_update()

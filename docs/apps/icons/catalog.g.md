@@ -33,6 +33,7 @@ lang: en
 - [🔧 Function `folder_parts`](#-function-folder_parts)
 - [🔧 Function `is_note_icons_repo`](#-function-is_note_icons_repo)
 - [🔧 Function `is_openable_license_url`](#-function-is_openable_license_url)
+- [🔧 Function `iter_families_with_stale_hashes`](#-function-iter_families_with_stale_hashes)
 - [🔧 Function `iter_icon_note_dirs`](#-function-iter_icon_note_dirs)
 - [🔧 Function `load_catalog`](#-function-load_catalog)
 - [🔧 Function `open_icons_folder`](#-function-open_icons_folder)
@@ -635,6 +636,40 @@ def is_openable_license_url(url: str) -> bool:
     cleaned = url.strip()
     lower = cleaned.casefold()
     return lower.startswith(("http://", "https://"))
+```
+
+</details>
+
+## 🔧 Function `iter_families_with_stale_hashes`
+
+```python
+def iter_families_with_stale_hashes(catalog: IconCatalog, *, limit: int = 1) -> list[IconFamily]
+```
+
+Return note-catalog families whose featured/variant SHA no longer matches disk.
+
+Flat catalogs are skipped (no durable `catalog.json` write-back for keywords).
+Families without a readable featured file are skipped (nothing to rasterize for AI).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def iter_families_with_stale_hashes(catalog: IconCatalog, *, limit: int = 1) -> list[IconFamily]:
+    if catalog.kind != "note" or limit < 1:
+        return []
+    root = catalog.repo_root
+    stale: list[IconFamily] = []
+    for family in catalog.icons:
+        if not _family_hashes_are_stale(family, root, kind=catalog.kind):
+            continue
+        featured = family.featured_path(root)
+        if featured is None:
+            continue
+        stale.append(family)
+        if len(stale) >= limit:
+            break
+    return stale
 ```
 
 </details>
