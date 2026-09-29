@@ -19,6 +19,7 @@ lang: en
 - [🏛️ Class `FoodRangeMacrosAnalysis`](#%EF%B8%8F-class-foodrangemacrosanalysis)
 - [🏛️ Class `MacrosContextActions`](#%EF%B8%8F-class-macroscontextactions)
 - [🏛️ Class `RangeMacrosResult`](#%EF%B8%8F-class-rangemacrosresult)
+- [🔧 Function `calendar_week_bounds`](#-function-calendar_week_bounds)
 - [🔧 Function `calorie_band_rgb`](#-function-calorie_band_rgb)
 - [🔧 Function `calorie_thresholds_from_config`](#-function-calorie_thresholds_from_config)
 - [🔧 Function `day_macros_menu_label`](#-function-day_macros_menu_label)
@@ -248,6 +249,27 @@ class RangeMacrosResult:
     notes: str
     verdict_en: str
     notes_en: str
+```
+
+</details>
+
+## 🔧 Function `calendar_week_bounds`
+
+```python
+def calendar_week_bounds(today: date | None = None) -> tuple[str, str]
+```
+
+Return Monday…Sunday ISO dates for the calendar week containing `today`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def calendar_week_bounds(today: date | None = None) -> tuple[str, str]:
+    day = today or date.today()
+    monday = day - timedelta(days=day.weekday())
+    sunday = monday + timedelta(days=6)
+    return monday.isoformat(), sunday.isoformat()
 ```
 
 </details>

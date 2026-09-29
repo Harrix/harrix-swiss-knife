@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -13,6 +14,7 @@ from harrix_swiss_knife.apps.food.day_macros import (
     DayMacrosStatus,
     FoodDayLogLine,
     FoodDayMacrosAnalysis,
+    calendar_week_bounds,
     calorie_band_rgb,
     days_needing_macros,
     fiber_tone,
@@ -31,6 +33,13 @@ from harrix_swiss_knife.apps.food.day_macros import (
 )
 from harrix_swiss_knife.apps.food.day_macros_dialog import DayMacrosDialog
 from harrix_swiss_knife.apps.food.schema import ensure_food_schema
+
+
+def test_calendar_week_bounds_is_monday_through_sunday() -> None:
+    # Wednesday 2026-09-30 → week Mon 2026-09-28 … Sun 2026-10-04
+    assert calendar_week_bounds(date(2026, 9, 30)) == ("2026-09-28", "2026-10-04")
+    assert calendar_week_bounds(date(2026, 9, 28)) == ("2026-09-28", "2026-10-04")
+    assert calendar_week_bounds(date(2026, 10, 4)) == ("2026-09-28", "2026-10-04")
 
 
 def test_days_needing_macros_skips_current_reports() -> None:

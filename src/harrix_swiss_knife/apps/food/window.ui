@@ -358,6 +358,35 @@ QSplitter::handle:hover { background: #c0c0c0; }</string>
                  </property>
                 </widget>
                </item>
+               <item>
+                <widget class="QPushButton" name="pushButton_food_analyze_macros">
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>41</height>
+                  </size>
+                 </property>
+                 <property name="toolTip">
+                  <string>Analyze missing or outdated day macros for the current week, then open the week report</string>
+                 </property>
+                 <property name="styleSheet">
+                  <string notr="true">QPushButton {
+                                      background-color: #e8f5e9;
+                                      border: 1px solid #4caf50;
+                                      border-radius: 4px;
+                                      }
+                                      QPushButton:hover {
+                                      background-color: #c8e6c9;
+                                      }
+                                      QPushButton:pressed {
+                                      background-color: #a5d6a7;
+                                      }</string>
+                 </property>
+                 <property name="text">
+                  <string>Analyze macros</string>
+                 </property>
+                </widget>
+               </item>
               </layout>
              </widget>
             </item>

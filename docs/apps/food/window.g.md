@@ -61,6 +61,10 @@ class Ui_MainWindow(object):
         self.groupBox_food_commands.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
         self.pushButton_food_add_with_ai.setText(QCoreApplication.translate("MainWindow", u"Add with AI", None))
         self.pushButton_food_add_by_voice.setText(QCoreApplication.translate("MainWindow", u"Add by voice", None))
+#if QT_CONFIG(tooltip)
+        self.pushButton_food_analyze_macros.setToolTip(QCoreApplication.translate("MainWindow", u"Analyze missing or outdated day macros for the current week, then open the week report", None))
+#endif // QT_CONFIG(tooltip)
+        self.pushButton_food_analyze_macros.setText(QCoreApplication.translate("MainWindow", u"Analyze macros", None))
         self.groupBox_food_today.setTitle(QCoreApplication.translate("MainWindow", u"Today", None))
         self.label_food_today.setText(QCoreApplication.translate("MainWindow", u"0", None))
         self.groupBox_food_yesterday.setTitle(QCoreApplication.translate("MainWindow", u"Yesterday", None))
@@ -340,6 +344,23 @@ class Ui_MainWindow(object):
 "                                      }")
 
         self.verticalLayout_2.addWidget(self.pushButton_food_add_by_voice)
+
+        self.pushButton_food_analyze_macros = QPushButton(self.groupBox_food_commands)
+        self.pushButton_food_analyze_macros.setObjectName(u"pushButton_food_analyze_macros")
+        self.pushButton_food_analyze_macros.setMinimumSize(QSize(0, 41))
+        self.pushButton_food_analyze_macros.setStyleSheet(u"QPushButton {\n"
+"                                      background-color: #e8f5e9;\n"
+"                                      border: 1px solid #4caf50;\n"
+"                                      border-radius: 4px;\n"
+"                                      }\n"
+"                                      QPushButton:hover {\n"
+"                                      background-color: #c8e6c9;\n"
+"                                      }\n"
+"                                      QPushButton:pressed {\n"
+"                                      background-color: #a5d6a7;\n"
+"                                      }")
+
+        self.verticalLayout_2.addWidget(self.pushButton_food_analyze_macros)
 
 
         self.verticalLayout_food_controls.addWidget(self.groupBox_food_commands)
@@ -745,6 +766,10 @@ def retranslateUi(self, MainWindow):
         self.groupBox_food_commands.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
         self.pushButton_food_add_with_ai.setText(QCoreApplication.translate("MainWindow", u"Add with AI", None))
         self.pushButton_food_add_by_voice.setText(QCoreApplication.translate("MainWindow", u"Add by voice", None))
+#if QT_CONFIG(tooltip)
+        self.pushButton_food_analyze_macros.setToolTip(QCoreApplication.translate("MainWindow", u"Analyze missing or outdated day macros for the current week, then open the week report", None))
+#endif // QT_CONFIG(tooltip)
+        self.pushButton_food_analyze_macros.setText(QCoreApplication.translate("MainWindow", u"Analyze macros", None))
         self.groupBox_food_today.setTitle(QCoreApplication.translate("MainWindow", u"Today", None))
         self.label_food_today.setText(QCoreApplication.translate("MainWindow", u"0", None))
         self.groupBox_food_yesterday.setTitle(QCoreApplication.translate("MainWindow", u"Yesterday", None))
@@ -1040,6 +1065,23 @@ def setupUi(self, MainWindow):
 "                                      }")
 
         self.verticalLayout_2.addWidget(self.pushButton_food_add_by_voice)
+
+        self.pushButton_food_analyze_macros = QPushButton(self.groupBox_food_commands)
+        self.pushButton_food_analyze_macros.setObjectName(u"pushButton_food_analyze_macros")
+        self.pushButton_food_analyze_macros.setMinimumSize(QSize(0, 41))
+        self.pushButton_food_analyze_macros.setStyleSheet(u"QPushButton {\n"
+"                                      background-color: #e8f5e9;\n"
+"                                      border: 1px solid #4caf50;\n"
+"                                      border-radius: 4px;\n"
+"                                      }\n"
+"                                      QPushButton:hover {\n"
+"                                      background-color: #c8e6c9;\n"
+"                                      }\n"
+"                                      QPushButton:pressed {\n"
+"                                      background-color: #a5d6a7;\n"
+"                                      }")
+
+        self.verticalLayout_2.addWidget(self.pushButton_food_analyze_macros)
 
 
         self.verticalLayout_food_controls.addWidget(self.groupBox_food_commands)

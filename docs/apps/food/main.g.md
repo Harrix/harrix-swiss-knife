@@ -30,6 +30,7 @@ lang: en
   - [⚙️ Method `on_export_food_stats_excel`](#%EF%B8%8F-method-on_export_food_stats_excel)
   - [⚙️ Method `on_food_add_by_voice`](#%EF%B8%8F-method-on_food_add_by_voice)
   - [⚙️ Method `on_food_add_with_ai`](#%EF%B8%8F-method-on_food_add_with_ai)
+  - [⚙️ Method `on_food_analyze_macros`](#%EF%B8%8F-method-on_food_analyze_macros)
   - [⚙️ Method `on_food_item_double_clicked`](#%EF%B8%8F-method-on_food_item_double_clicked)
   - [⚙️ Method `on_food_log_table_cell_clicked`](#%EF%B8%8F-method-on_food_log_table_cell_clicked)
   - [⚙️ Method `on_food_stats_all_time`](#%EF%B8%8F-method-on_food_stats_all_time)
@@ -562,6 +563,30 @@ class MainWindow(
             source_dialog.get_raw_text(),
             source_dialog.get_images_bytes_and_mime(),
         )
+
+    @requires_database()
+    def on_food_analyze_macros(self) -> None:
+        """Fill missing/stale day macros for the current week, then open the week report."""
+        if self.db_manager is None or not self._validate_database_connection():
+            message_box.warning(self, "Error", "Database connection not available")
+            return
+        if self._bothub_state.worker is not None:
+            message_box.warning(self, "Busy", "Wait for the current BotHub request to finish.")
+            return
+        date_from, date_to = calendar_week_bounds()
+        log_dates = self.db_manager.get_dates_with_food_log_between(date_from, date_to)
+        if not log_dates:
+            message_box.information(
+                self,
+                "Analyze macros",
+                f"No food log days in the current week ({date_from} … {date_to}).",
+            )
+            return
+        targets = days_needing_macros(log_dates, self._food_log_macros_statuses(log_dates))
+        if targets:
+            self._queue_range_macros_then_show(date_from, date_to, targets)
+            return
+        self._show_range_macros_dialog(date_from, date_to)
 
     def on_food_item_double_clicked(self, _index: QModelIndex) -> None:
         """Handle double click on food item in the list view.
@@ -1586,6 +1611,7 @@ class MainWindow(
         self.pushButton_food_add.clicked.connect(self.on_add_food_log)
         self.pushButton_food_add_with_ai.clicked.connect(self.on_food_add_with_ai)
         self.pushButton_food_add_by_voice.clicked.connect(self.on_food_add_by_voice)
+        self.pushButton_food_analyze_macros.clicked.connect(self.on_food_analyze_macros)
         max_image_side = get_max_image_side(self._app_config)
         self._ai_image_drop_zone = ImagePicker(
             mode=ImagePickerMode.COMPACT,
@@ -3992,6 +4018,7 @@ class MainWindow(
         self.pushButton_food_add.setText(f"➕ {self.pushButton_food_add.text()}")  # noqa: RUF001
         self.pushButton_food_add_with_ai.setText(f"🤖 {self.pushButton_food_add_with_ai.text()}")
         self.pushButton_food_add_by_voice.setText(f"🎙️ {self.pushButton_food_add_by_voice.text()}")
+        self.pushButton_food_analyze_macros.setText(f"📊 {self.pushButton_food_analyze_macros.text()}")
         self.action_refresh.setText(f"🔄 {self.action_refresh.text()}")
         self.action_add_food_item.setText(f"➕ {self.action_add_food_item.text()}")  # noqa: RUF001
         self.action_show_food_items.setText(f"📋 {self.action_show_food_items.text()}")
@@ -4449,7 +4476,7 @@ class MainWindow(
         dialog.refresh_requested.connect(lambda: self._run_range_macros_request(date_from, date_to))
         dialog.delete_requested.connect(lambda: self._delete_range_macros_analysis(date_from, date_to))
         dialog.finished.connect(lambda *_args: self._clear_range_macros_dialog(dialog))
-        if status is DayMacrosStatus.MISSING:
+        if status in {DayMacrosStatus.MISSING, DayMacrosStatus.STALE}:
             QTimer.singleShot(0, lambda: self._run_range_macros_request(date_from, date_to))
         dialog.exec()
 
@@ -5826,6 +5853,43 @@ def on_food_add_with_ai(
             source_dialog.get_raw_text(),
             source_dialog.get_images_bytes_and_mime(),
         )
+```
+
+</details>
+
+### ⚙️ Method `on_food_analyze_macros`
+
+```python
+def on_food_analyze_macros(self) -> None
+```
+
+Fill missing/stale day macros for the current week, then open the week report.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_food_analyze_macros(self) -> None:
+        if self.db_manager is None or not self._validate_database_connection():
+            message_box.warning(self, "Error", "Database connection not available")
+            return
+        if self._bothub_state.worker is not None:
+            message_box.warning(self, "Busy", "Wait for the current BotHub request to finish.")
+            return
+        date_from, date_to = calendar_week_bounds()
+        log_dates = self.db_manager.get_dates_with_food_log_between(date_from, date_to)
+        if not log_dates:
+            message_box.information(
+                self,
+                "Analyze macros",
+                f"No food log days in the current week ({date_from} … {date_to}).",
+            )
+            return
+        targets = days_needing_macros(log_dates, self._food_log_macros_statuses(log_dates))
+        if targets:
+            self._queue_range_macros_then_show(date_from, date_to, targets)
+            return
+        self._show_range_macros_dialog(date_from, date_to)
 ```
 
 </details>

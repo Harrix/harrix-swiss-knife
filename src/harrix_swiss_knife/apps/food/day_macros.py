@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import re
 from dataclasses import dataclass
+from datetime import UTC, date, datetime, timedelta
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -144,6 +145,14 @@ class RangeMacrosResult:
     notes: str
     verdict_en: str
     notes_en: str
+
+
+def calendar_week_bounds(today: date | None = None) -> tuple[str, str]:
+    """Return Monday…Sunday ISO dates for the calendar week containing `today`."""
+    day = today if today is not None else datetime.now(UTC).astimezone().date()
+    monday = day - timedelta(days=day.weekday())
+    sunday = monday + timedelta(days=6)
+    return monday.isoformat(), sunday.isoformat()
 
 
 def calorie_band_rgb(kcal: float, thresholds: CalorieThresholds) -> tuple[int, int, int]:

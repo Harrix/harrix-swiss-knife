@@ -88,3 +88,5 @@ def test_food_setup_ui_does_not_raise_on_translate(qapp: QApplication) -> None: 
     ui.setupUi(window)
     assert ui.pushButton_clear_filter.text()
     assert ui.lineEdit_filter_name.objectName() == "lineEdit_filter_name"
+    assert ui.pushButton_food_analyze_macros.objectName() == "pushButton_food_analyze_macros"
+    assert "macros" in ui.pushButton_food_analyze_macros.text().lower()
