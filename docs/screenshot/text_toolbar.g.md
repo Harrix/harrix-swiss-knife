@@ -55,8 +55,6 @@ class ScreenshotTextToolbar(QWidget):
         self._family.setMinimumWidth(120)
         self._family.setMaximumWidth(180)
         self._family.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        for name in available_text_font_families():
-            self._family.addItem(name)
         family_completer = self._family.completer()
         if family_completer is not None:
             family_completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
@@ -68,6 +66,11 @@ class ScreenshotTextToolbar(QWidget):
             family_line.setClearButtonEnabled(True)
         self._family.currentTextChanged.connect(self._on_family_changed)
         row.addWidget(self._family)
+
+        self._cyrillic_only = QCheckBox("Cyrillic", self)
+        self._cyrillic_only.setToolTip("Show only fonts that support Cyrillic")
+        self._cyrillic_only.toggled.connect(self._on_cyrillic_toggled)
+        row.addWidget(self._cyrillic_only)
 
         self._size = QComboBox(self)
         self._size.setEditable(True)
@@ -112,6 +115,7 @@ class ScreenshotTextToolbar(QWidget):
         self._bg_fill.toggled.connect(self._on_bg_toggled)
         row.addWidget(self._bg_fill)
         row.addStretch(1)
+        self._refill_family_combo(keep_family=self._settings.font_family)
 
     def set_color(self, color: QColor) -> None:
         """Update the text color stored in settings (from the main color picker)."""
@@ -133,14 +137,10 @@ class ScreenshotTextToolbar(QWidget):
             align=settings.align,
             background_fill=settings.background_fill,
             color=settings.color,
+            cyrillic_fonts_only=settings.cyrillic_fonts_only,
         )
-        family = settings.font_family
-        index = self._family.findText(family)
-        if index < 0 and family:
-            self._family.addItem(family)
-            index = self._family.findText(family)
-        if index >= 0:
-            self._family.setCurrentIndex(index)
+        self._cyrillic_only.setChecked(settings.cyrillic_fonts_only)
+        self._refill_family_combo(keep_family=settings.font_family)
         size_value = settings.font_size
         size_text = str(int(size_value) if size_value == int(size_value) else size_value)
         size_index = self._size.findText(size_text)
@@ -179,6 +179,13 @@ class ScreenshotTextToolbar(QWidget):
         self._settings.background_fill = checked
         self._emit()
 
+    def _on_cyrillic_toggled(self, checked: bool) -> None:  # noqa: FBT001
+        if self._updating:
+            return
+        self._settings.cyrillic_fonts_only = checked
+        self._refill_family_combo(keep_family=self._settings.font_family)
+        self._emit()
+
     def _on_family_changed(self, family: str) -> None:
         if self._updating:
             return
@@ -209,6 +216,26 @@ class ScreenshotTextToolbar(QWidget):
         elif key == "strikeout":
             self._settings.strikeout = checked
         self._emit()
+
+    def _refill_family_combo(self, *, keep_family: str) -> None:
+        """Rebuild the font list; keep `keep_family` selected when possible."""
+        was_updating = self._updating
+        self._updating = True
+        current = keep_family.strip()
+        self._family.clear()
+        for name in available_text_font_families(cyrillic_only=self._settings.cyrillic_fonts_only):
+            self._family.addItem(name)
+        index = self._family.findText(current)
+        if index < 0 and current:
+            self._family.addItem(current)
+            index = self._family.findText(current)
+        if index >= 0:
+            self._family.setCurrentIndex(index)
+        elif self._family.count() > 0:
+            self._family.setCurrentIndex(0)
+            current = self._family.currentText().strip()
+            self._settings.font_family = current
+        self._updating = was_updating
 ```
 
 </details>
@@ -244,8 +271,6 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self._family.setMinimumWidth(120)
         self._family.setMaximumWidth(180)
         self._family.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        for name in available_text_font_families():
-            self._family.addItem(name)
         family_completer = self._family.completer()
         if family_completer is not None:
             family_completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
@@ -257,6 +282,11 @@ def __init__(self, parent: QWidget | None = None) -> None:
             family_line.setClearButtonEnabled(True)
         self._family.currentTextChanged.connect(self._on_family_changed)
         row.addWidget(self._family)
+
+        self._cyrillic_only = QCheckBox("Cyrillic", self)
+        self._cyrillic_only.setToolTip("Show only fonts that support Cyrillic")
+        self._cyrillic_only.toggled.connect(self._on_cyrillic_toggled)
+        row.addWidget(self._cyrillic_only)
 
         self._size = QComboBox(self)
         self._size.setEditable(True)
@@ -301,6 +331,7 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self._bg_fill.toggled.connect(self._on_bg_toggled)
         row.addWidget(self._bg_fill)
         row.addStretch(1)
+        self._refill_family_combo(keep_family=self._settings.font_family)
 ```
 
 </details>
@@ -350,14 +381,10 @@ def set_settings(self, settings: ScreenshotTextSettings) -> None:
             align=settings.align,
             background_fill=settings.background_fill,
             color=settings.color,
+            cyrillic_fonts_only=settings.cyrillic_fonts_only,
         )
-        family = settings.font_family
-        index = self._family.findText(family)
-        if index < 0 and family:
-            self._family.addItem(family)
-            index = self._family.findText(family)
-        if index >= 0:
-            self._family.setCurrentIndex(index)
+        self._cyrillic_only.setChecked(settings.cyrillic_fonts_only)
+        self._refill_family_combo(keep_family=settings.font_family)
         size_value = settings.font_size
         size_text = str(int(size_value) if size_value == int(size_value) else size_value)
         size_index = self._size.findText(size_text)

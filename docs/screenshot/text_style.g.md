@@ -48,6 +48,7 @@ class ScreenshotTextSettings:
     align: TextAlign = "left"
     background_fill: bool = False
     color: str = _DEFAULT_COLOR
+    cyrillic_fonts_only: bool = False
 ```
 
 </details>
@@ -82,7 +83,7 @@ def annotation_qfont(style: AnnotationStyle) -> QFont:
 ## 🔧 Function `annotation_style_to_settings`
 
 ```python
-def annotation_style_to_settings(style: AnnotationStyle) -> ScreenshotTextSettings
+def annotation_style_to_settings(style: AnnotationStyle, *, cyrillic_fonts_only: bool = False) -> ScreenshotTextSettings
 ```
 
 Snapshot text fields from `style` for the toolbar / config.
@@ -91,7 +92,11 @@ Snapshot text fields from `style` for the toolbar / config.
 <summary>Code:</summary>
 
 ```python
-def annotation_style_to_settings(style: AnnotationStyle) -> ScreenshotTextSettings:
+def annotation_style_to_settings(
+    style: AnnotationStyle,
+    *,
+    cyrillic_fonts_only: bool = False,
+) -> ScreenshotTextSettings:
     align: TextAlign = style.align if style.align in {"left", "center", "right"} else "left"
     return ScreenshotTextSettings(
         font_family=style.font_family or default_text_font_family(),
@@ -103,6 +108,7 @@ def annotation_style_to_settings(style: AnnotationStyle) -> ScreenshotTextSettin
         align=align,
         background_fill=style.background_fill,
         color=style.color.name() if style.color.isValid() else _DEFAULT_COLOR,
+        cyrillic_fonts_only=cyrillic_fonts_only,
     )
 ```
 
@@ -111,22 +117,28 @@ def annotation_style_to_settings(style: AnnotationStyle) -> ScreenshotTextSettin
 ## 🔧 Function `available_text_font_families`
 
 ```python
-def available_text_font_families() -> list[str]
+def available_text_font_families(*, cyrillic_only: bool = False) -> list[str]
 ```
 
 Return UI font list with JetBrains Mono / Arial preferred at the top.
+
+When `cyrillic_only` is `True`, keep families that declare Cyrillic via
+`QFontDatabase.writingSystems` (typically a few milliseconds for hundreds of fonts).
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def available_text_font_families() -> list[str]:
+def available_text_font_families(*, cyrillic_only: bool = False) -> list[str]:
     from PySide6.QtWidgets import QApplication  # noqa: PLC0415
 
     if QApplication.instance() is None:
         return [MONO_FONT_FAMILY, _FALLBACK_FAMILY]
     load_jetbrains_mono_fonts()
     families = sorted(QFontDatabase.families(), key=str.casefold)
+    if cyrillic_only:
+        cyrillic = _cyrillic_font_families()
+        families = [name for name in families if name in cyrillic]
     preferred = [name for name in (MONO_FONT_FAMILY, _FALLBACK_FAMILY) if name in families]
     rest = [name for name in families if name not in preferred]
     return [*preferred, *rest]
@@ -273,6 +285,7 @@ def load_screenshot_text_settings() -> ScreenshotTextSettings:
         align=align,
         background_fill=bool(raw.get("background_fill", False)),
         color=color,
+        cyrillic_fonts_only=bool(raw.get("cyrillic_fonts_only", False)),
     )
 ```
 
@@ -301,6 +314,7 @@ def save_screenshot_text_settings(settings: ScreenshotTextSettings) -> None:
         "align": settings.align,
         "background_fill": settings.background_fill,
         "color": settings.color,
+        "cyrillic_fonts_only": settings.cyrillic_fonts_only,
     }
     h.dev.config_update_value(_CONFIG_KEY, payload, get_config_path_str(), is_temp=True)
 ```

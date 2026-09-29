@@ -625,7 +625,10 @@ class ScreenshotPreviewWindow(QMainWindow):
         tab = self._current_tab()
         if tab is None or not active:
             return
-        settings = annotation_style_to_settings(tab.canvas.annotation_style)
+        settings = annotation_style_to_settings(
+            tab.canvas.annotation_style,
+            cyrillic_fonts_only=self._text_settings.cyrillic_fonts_only,
+        )
         self._text_settings = settings
         self._text_toolbar.set_settings(settings)
         color = QColor(settings.color)

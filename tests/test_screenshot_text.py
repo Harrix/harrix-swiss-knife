@@ -19,6 +19,7 @@ from harrix_swiss_knife.screenshot.annotations import (
 from harrix_swiss_knife.screenshot.text_style import (
     ScreenshotTextSettings,
     annotation_qfont,
+    available_text_font_families,
     default_text_box_points,
     default_text_font_family,
     settings_to_annotation_style,
@@ -51,6 +52,14 @@ def test_text_toolbar_font_combo_is_editable_for_search(qapp: QApplication) -> N
     completer = font_combo.completer()
     assert completer is not None
     assert completer.filterMode() == Qt.MatchFlag.MatchContains
+
+
+def test_cyrillic_font_filter_is_fast_and_narrower(qapp: QApplication) -> None:  # noqa: ARG001
+    all_fonts = available_text_font_families()
+    cyrillic = available_text_font_families(cyrillic_only=True)
+    assert cyrillic
+    assert len(cyrillic) <= len(all_fonts)
+    assert set(cyrillic) <= set(all_fonts)
 
 
 def test_text_annotation_uses_box_points(qapp: QApplication) -> None:  # noqa: ARG001

@@ -53,6 +53,7 @@ class ScreenshotTextSettings:
     align: TextAlign = "left"
     background_fill: bool = False
     color: str = _DEFAULT_COLOR
+    cyrillic_fonts_only: bool = False
 
 
 def annotation_qfont(style: AnnotationStyle) -> QFont:
@@ -69,7 +70,11 @@ def annotation_qfont(style: AnnotationStyle) -> QFont:
     return font
 
 
-def annotation_style_to_settings(style: AnnotationStyle) -> ScreenshotTextSettings:
+def annotation_style_to_settings(
+    style: AnnotationStyle,
+    *,
+    cyrillic_fonts_only: bool = False,
+) -> ScreenshotTextSettings:
     """Snapshot text fields from `style` for the toolbar / config."""
     align: TextAlign = style.align if style.align in {"left", "center", "right"} else "left"
     return ScreenshotTextSettings(
@@ -82,17 +87,26 @@ def annotation_style_to_settings(style: AnnotationStyle) -> ScreenshotTextSettin
         align=align,
         background_fill=style.background_fill,
         color=style.color.name() if style.color.isValid() else _DEFAULT_COLOR,
+        cyrillic_fonts_only=cyrillic_fonts_only,
     )
 
 
-def available_text_font_families() -> list[str]:
-    """Return UI font list with JetBrains Mono / Arial preferred at the top."""
+def available_text_font_families(*, cyrillic_only: bool = False) -> list[str]:
+    """Return UI font list with JetBrains Mono / Arial preferred at the top.
+
+    When `cyrillic_only` is `True`, keep families that declare Cyrillic via
+    `QFontDatabase.writingSystems` (typically a few milliseconds for hundreds of fonts).
+
+    """
     from PySide6.QtWidgets import QApplication  # noqa: PLC0415
 
     if QApplication.instance() is None:
         return [MONO_FONT_FAMILY, _FALLBACK_FAMILY]
     load_jetbrains_mono_fonts()
     families = sorted(QFontDatabase.families(), key=str.casefold)
+    if cyrillic_only:
+        cyrillic = _cyrillic_font_families()
+        families = [name for name in families if name in cyrillic]
     preferred = [name for name in (MONO_FONT_FAMILY, _FALLBACK_FAMILY) if name in families]
     rest = [name for name in families if name not in preferred]
     return [*preferred, *rest]
@@ -174,6 +188,7 @@ def load_screenshot_text_settings() -> ScreenshotTextSettings:
         align=align,
         background_fill=bool(raw.get("background_fill", False)),
         color=color,
+        cyrillic_fonts_only=bool(raw.get("cyrillic_fonts_only", False)),
     )
 
 
@@ -189,6 +204,7 @@ def save_screenshot_text_settings(settings: ScreenshotTextSettings) -> None:
         "align": settings.align,
         "background_fill": settings.background_fill,
         "color": settings.color,
+        "cyrillic_fonts_only": settings.cyrillic_fonts_only,
     }
     h.dev.config_update_value(_CONFIG_KEY, payload, get_config_path_str(), is_temp=True)
 
@@ -207,3 +223,18 @@ def settings_to_annotation_style(settings: ScreenshotTextSettings) -> Annotation
         align=settings.align,
         background_fill=settings.background_fill,
     )
+
+
+def _cyrillic_font_families() -> frozenset[str]:
+    """Return cached family names that support the Cyrillic writing system."""
+    global _cyrillic_family_cache  # noqa: PLW0603
+    if _cyrillic_family_cache is not None:
+        return _cyrillic_family_cache
+    writing = QFontDatabase.WritingSystem.Cyrillic
+    _cyrillic_family_cache = frozenset(
+        name for name in QFontDatabase.families() if writing in QFontDatabase.writingSystems(name)
+    )
+    return _cyrillic_family_cache
+
+
+_cyrillic_family_cache: frozenset[str] | None = None
