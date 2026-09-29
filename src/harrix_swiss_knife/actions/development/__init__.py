@@ -20,6 +20,7 @@ from harrix_swiss_knife.actions.development.transfer_private_data import OnTrans
 from harrix_swiss_knife.actions.development.update_harrix_swiss_knife import OnUpdateHarrixSwissKnife
 from harrix_swiss_knife.actions.development.update_node import OnUpdateNode
 from harrix_swiss_knife.actions.development.update_uv import OnUpdateUv
+from harrix_swiss_knife.actions.development.upgrade_uv_packages import OnUpgradeUvPackages
 from harrix_swiss_knife.actions.development.view_recent_action_logs import OnViewRecentActionLogs
 
 __all__ = [
@@ -41,5 +42,6 @@ __all__ = [
     "OnUpdateHarrixSwissKnife",
     "OnUpdateNode",
     "OnUpdateUv",
+    "OnUpgradeUvPackages",
     "OnViewRecentActionLogs",
 ]

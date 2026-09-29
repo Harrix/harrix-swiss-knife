@@ -37,6 +37,7 @@ from harrix_swiss_knife.actions.development.uninstall import OnUninstall
 from harrix_swiss_knife.actions.development.update_harrix_swiss_knife import OnUpdateHarrixSwissKnife
 from harrix_swiss_knife.actions.development.update_node import OnUpdateNode
 from harrix_swiss_knife.actions.development.update_uv import OnUpdateUv
+from harrix_swiss_knife.actions.development.upgrade_uv_packages import OnUpgradeUvPackages
 from harrix_swiss_knife.actions.development.view_recent_action_logs import OnViewRecentActionLogs
 from harrix_swiss_knife.actions.files.all_files_to_parent_folder import OnAllFilesToParentFolder
 from harrix_swiss_knife.actions.files.check_featured_image import OnCheckFeaturedImage
@@ -159,6 +160,7 @@ def get_menu_structure() -> list[Any]:
                 OnShowActionUsageStats,
                 OnClearTempFolder,
                 OnUpdateUv,
+                OnUpgradeUvPackages,
                 OnInstallCli,
                 OnQuickLauncher,
             ],

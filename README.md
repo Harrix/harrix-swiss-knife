@@ -83,6 +83,7 @@ _Figure 1: Screenshot_
   - 📥 Update Node.js
   - 📥 Update uv
   - 📦 Update/Install global NPM packages
+  - 📦 Upgrade packages (uv)
   - 📋 View recent action logs
 - **File operations**
   - 🎵 Check MusicBee playlists

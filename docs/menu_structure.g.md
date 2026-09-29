@@ -42,6 +42,7 @@ def get_menu_structure() -> list[Any]:
                 OnShowActionUsageStats,
                 OnClearTempFolder,
                 OnUpdateUv,
+                OnUpgradeUvPackages,
                 OnInstallCli,
                 OnQuickLauncher,
             ],
