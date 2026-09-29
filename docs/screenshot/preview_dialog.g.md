@@ -278,6 +278,9 @@ class ScreenshotPreviewWindow(QMainWindow):
 
     def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
         """Save on Ctrl+S; Delete selected; Enter/Esc for crop."""  # ignore: HP001
+        if _focus_accepts_text_input():
+            super().keyPressEvent(event)
+            return
         tab = self._current_tab()
         if tab is not None and tab.canvas.crop_mode:
             if event.key() in {int(Qt.Key.Key_Return), int(Qt.Key.Key_Enter)} and tab.canvas.crop_pending:
@@ -1303,6 +1306,9 @@ Save on Ctrl+S; Delete selected; Enter/Esc for crop.
 
 ```python
 def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
+        if _focus_accepts_text_input():
+            super().keyPressEvent(event)
+            return
         tab = self._current_tab()
         if tab is not None and tab.canvas.crop_mode:
             if event.key() in {int(Qt.Key.Key_Return), int(Qt.Key.Key_Enter)} and tab.canvas.crop_pending:

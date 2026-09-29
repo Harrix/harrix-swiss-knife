@@ -10,20 +10,25 @@ import harrix_pylib as h
 from PySide6.QtCore import QSize, QStandardPaths, Qt, QTimer
 from PySide6.QtGui import QCloseEvent, QColor, QIcon, QImage, QKeyEvent, QKeySequence, QPainter, QPixmap, QShortcut
 from PySide6.QtWidgets import (
+    QAbstractSpinBox,
     QApplication,
     QButtonGroup,
     QCheckBox,
     QColorDialog,
+    QComboBox,
     QDialog,
     QFileDialog,
     QFormLayout,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QMainWindow,
     QMenu,
+    QPlainTextEdit,
     QSizePolicy,
     QSpinBox,
     QTabWidget,
+    QTextEdit,
     QToolButton,
     QVBoxLayout,
     QWidget,
@@ -382,6 +387,9 @@ class ScreenshotPreviewWindow(QMainWindow):
 
     def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
         """Save on Ctrl+S; Delete selected; Enter/Esc for crop."""  # ignore: HP001
+        if _focus_accepts_text_input():
+            super().keyPressEvent(event)
+            return
         tab = self._current_tab()
         if tab is not None and tab.canvas.crop_mode:
             if event.key() in {int(Qt.Key.Key_Return), int(Qt.Key.Key_Enter)} and tab.canvas.crop_pending:
@@ -1230,6 +1238,17 @@ def _color_swatch_icon(color: QColor, size: int) -> QIcon:
     painter.drawRoundedRect(margin, margin, size - margin * 2 - 1, size - margin * 2 - 1, 3, 3)
     painter.end()
     return QIcon(pixmap)
+
+
+def _focus_accepts_text_input() -> bool:
+    """Return whether the focused widget should receive typing (font search, etc.)."""
+    focus = QApplication.focusWidget()
+    if focus is None or not isValid(focus):
+        return False
+    if isinstance(focus, (QLineEdit, QPlainTextEdit, QTextEdit, QAbstractSpinBox)):
+        return True
+    parent = focus.parentWidget()
+    return isinstance(parent, QComboBox) and parent.isEditable()
 
 
 def _format_pixel_color(color: QColor) -> str:

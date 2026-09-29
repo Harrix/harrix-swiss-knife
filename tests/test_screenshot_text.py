@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import pytest
-from PySide6.QtCore import QPointF
+from PySide6.QtCore import QPointF, Qt
 from PySide6.QtGui import QColor, QImage
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QComboBox
 
 from harrix_swiss_knife.qt_app_font import MONO_FONT_FAMILY
 from harrix_swiss_knife.screenshot.annotation_edit import annotation_bounds, apply_annotation_edit
@@ -23,6 +23,7 @@ from harrix_swiss_knife.screenshot.text_style import (
     default_text_font_family,
     settings_to_annotation_style,
 )
+from harrix_swiss_knife.screenshot.text_toolbar import ScreenshotTextToolbar
 
 
 @pytest.fixture
@@ -39,6 +40,17 @@ def qapp() -> QApplication:
 def test_default_text_font_prefers_jetbrains_or_arial(qapp: QApplication) -> None:  # noqa: ARG001
     family = default_text_font_family()
     assert family in {MONO_FONT_FAMILY, "Arial"} or bool(family)
+
+
+def test_text_toolbar_font_combo_is_editable_for_search(qapp: QApplication) -> None:  # noqa: ARG001
+    toolbar = ScreenshotTextToolbar()
+    combos = toolbar.findChildren(QComboBox)
+    assert combos
+    font_combo = combos[0]
+    assert font_combo.isEditable()
+    completer = font_combo.completer()
+    assert completer is not None
+    assert completer.filterMode() == Qt.MatchFlag.MatchContains
 
 
 def test_text_annotation_uses_box_points(qapp: QApplication) -> None:  # noqa: ARG001

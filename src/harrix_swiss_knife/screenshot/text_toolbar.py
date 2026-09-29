@@ -8,6 +8,7 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
+    QCompleter,
     QHBoxLayout,
     QLabel,
     QSizePolicy,
@@ -63,11 +64,22 @@ class ScreenshotTextToolbar(QWidget):
         row.setSpacing(8)
 
         self._family = QComboBox(self)
-        self._family.setMinimumWidth(100)
-        self._family.setMaximumWidth(140)
+        self._family.setEditable(True)
+        self._family.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
+        self._family.setMinimumWidth(120)
+        self._family.setMaximumWidth(180)
         self._family.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         for name in available_text_font_families():
             self._family.addItem(name)
+        family_completer = self._family.completer()
+        if family_completer is not None:
+            family_completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
+            family_completer.setFilterMode(Qt.MatchFlag.MatchContains)
+            family_completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        family_line = self._family.lineEdit()
+        if family_line is not None:
+            family_line.setPlaceholderText("Font")
+            family_line.setClearButtonEnabled(True)
         self._family.currentTextChanged.connect(self._on_family_changed)
         row.addWidget(self._family)
 
