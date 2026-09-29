@@ -55,6 +55,7 @@ class AnnotationDocument:
         self._base = image.copy()
         self._annotations: list[Annotation] = []
         self._history: list[_HistoryEntry] = []
+        self._redo: list[_HistoryEntry] = []
         self._draft: Annotation | None = None
 
     @property
@@ -121,6 +122,19 @@ class AnnotationDocument:
         """Start a new in-progress annotation."""
         self._draft = annotation
 
+    def bring_forward(self, indices: Sequence[int]) -> list[int] | None:
+        """Move selected annotations one step toward the front. Return new indices."""
+        return self._reorder_step(indices, direction=1)
+
+    def bring_to_front(self, indices: Sequence[int]) -> list[int] | None:
+        """Move selected annotations to the top of the stack. Return new indices."""
+        return self._move_selected_block(indices, to_front=True)
+
+    @property
+    def can_redo(self) -> bool:
+        """Whether `redo` can restore a later state."""
+        return bool(self._redo)
+
     @property
     def can_undo(self) -> bool:
         """Whether `undo` can restore a previous state."""
@@ -138,6 +152,15 @@ class AnnotationDocument:
             return False
         self._push_history()
         self._annotations.append(draft)
+        return True
+
+    def delete_all(self) -> bool:
+        """Remove every annotation in one undo step."""
+        if not self._annotations:
+            return False
+        self._push_history()
+        self._annotations = []
+        self._draft = None
         return True
 
     def delete_at(self, index: int) -> bool:
@@ -163,6 +186,35 @@ class AnnotationDocument:
         """In-progress annotation while the mouse is dragged."""
         return self._draft
 
+    def flatten(self) -> bool:
+        """Bake annotations into the base image and clear the annotation list."""
+        if not self._annotations:
+            return False
+        self._push_history()
+        self._base = composite_annotations(self._base, self._annotations)
+        self._annotations = []
+        self._draft = None
+        return True
+
+    def insert_annotations(self, items: Sequence[Annotation]) -> list[int]:
+        """Append clones of `items` and return their new indices."""
+        if not items:
+            return []
+        self._push_history()
+        start = len(self._annotations)
+        for item in items:
+            self._annotations.append(_clone_annotation(item))
+        return list(range(start, len(self._annotations)))
+
+    def redo(self) -> bool:
+        """Restore the next document state after an undo."""
+        if not self._redo:
+            return False
+        self._history.append(self._snapshot())
+        entry = self._redo.pop()
+        self._restore(entry)
+        return True
+
     def render(self, *, include_draft: bool = True) -> QImage:
         """Return base image with committed annotations painted.
 
@@ -178,6 +230,14 @@ class AnnotationDocument:
         """Snapshot the current document so the next mutation can be undone."""
         self._push_history()
 
+    def send_backward(self, indices: Sequence[int]) -> list[int] | None:
+        """Move selected annotations one step toward the back. Return new indices."""
+        return self._reorder_step(indices, direction=-1)
+
+    def send_to_back(self, indices: Sequence[int]) -> list[int] | None:
+        """Move selected annotations to the bottom of the stack. Return new indices."""
+        return self._move_selected_block(indices, to_front=False)
+
     def set_draft_text(self, text: str) -> None:
         """Set text on the current draft (for the text tool)."""
         if self._draft is not None:
@@ -187,10 +247,9 @@ class AnnotationDocument:
         """Restore the previous document state."""
         if not self._history:
             return False
+        self._redo.append(self._snapshot())
         entry = self._history.pop()
-        self._base = entry.base
-        self._annotations = entry.annotations
-        self._draft = None
+        self._restore(entry)
         return True
 
     def update_annotation_points(self, index: int, points: Sequence[QPointF]) -> None:
@@ -205,15 +264,61 @@ class AnnotationDocument:
             return
         self._draft.points = [QPointF(p) for p in points]
 
+    def _move_selected_block(self, indices: Sequence[int], *, to_front: bool) -> list[int] | None:
+        selected = sorted({index for index in indices if 0 <= index < len(self._annotations)})
+        if not selected:
+            return None
+        if to_front and selected == list(range(len(self._annotations) - len(selected), len(self._annotations))):
+            return None
+        if not to_front and selected == list(range(len(selected))):
+            return None
+        self._push_history()
+        items = [self._annotations[index] for index in selected]
+        for index in reversed(selected):
+            del self._annotations[index]
+        if to_front:
+            self._annotations.extend(items)
+            return list(range(len(self._annotations) - len(items), len(self._annotations)))
+        self._annotations[0:0] = items
+        return list(range(len(items)))
+
     def _push_history(self) -> None:
-        self._history.append(
-            _HistoryEntry(
-                base=self._base.copy(),
-                annotations=[_clone_annotation(item) for item in self._annotations],
-            )
-        )
+        self._history.append(self._snapshot())
+        self._redo.clear()
         if len(self._history) > _MAX_UNDO:
             del self._history[0]
+
+    def _reorder_step(self, indices: Sequence[int], *, direction: int) -> list[int] | None:
+        selected = {index for index in indices if 0 <= index < len(self._annotations)}
+        if not selected:
+            return None
+        order = sorted(selected, reverse=direction > 0)
+        moved = False
+        for index in order:
+            neighbor = index + direction
+            if neighbor < 0 or neighbor >= len(self._annotations) or neighbor in selected:
+                continue
+            if not moved:
+                self._push_history()
+                moved = True
+            self._annotations[index], self._annotations[neighbor] = (
+                self._annotations[neighbor],
+                self._annotations[index],
+            )
+            selected.remove(index)
+            selected.add(neighbor)
+        return sorted(selected) if moved else None
+
+    def _restore(self, entry: _HistoryEntry) -> None:
+        self._base = entry.base
+        self._annotations = entry.annotations
+        self._draft = None
+
+    def _snapshot(self) -> _HistoryEntry:
+        return _HistoryEntry(
+            base=self._base.copy(),
+            annotations=[_clone_annotation(item) for item in self._annotations],
+        )
 
 
 @dataclass(slots=True)
@@ -255,6 +360,11 @@ class AnnotationTool(Enum):
 class _HistoryEntry:
     base: QImage
     annotations: list[Annotation]
+
+
+def clone_annotation(item: Annotation) -> Annotation:
+    """Return a deep copy of `item`."""
+    return _clone_annotation(item)
 
 
 def composite_annotations(base: QImage, annotations: Sequence[Annotation]) -> QImage:

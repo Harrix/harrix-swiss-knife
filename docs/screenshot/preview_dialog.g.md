@@ -225,6 +225,30 @@ class ScreenshotPreviewWindow(QMainWindow):
         undo_shortcut = QShortcut(QKeySequence.StandardKey.Undo, self)
         undo_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
         undo_shortcut.activated.connect(self._undo)
+        redo_shortcut = QShortcut(QKeySequence.StandardKey.Redo, self)
+        redo_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
+        redo_shortcut.activated.connect(self._redo)
+        cut_shortcut = QShortcut(QKeySequence.StandardKey.Cut, self)
+        cut_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
+        cut_shortcut.activated.connect(self._cut_annotations)
+        copy_shortcut = QShortcut(QKeySequence.StandardKey.Copy, self)
+        copy_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
+        copy_shortcut.activated.connect(self._copy_annotations)
+        paste_shortcut = QShortcut(QKeySequence.StandardKey.Paste, self)
+        paste_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
+        paste_shortcut.activated.connect(self._paste_annotations)
+        for sequence, slot in (
+            ("Ctrl+D", self._duplicate_annotations),
+            ("Shift+Delete", self._delete_all_annotations),
+            ("Ctrl+Shift+F", self._flatten_annotations),
+            ("Home", self._bring_to_front),
+            ("PgUp", self._bring_forward),
+            ("PgDown", self._send_backward),
+            ("End", self._send_to_back),
+        ):
+            shortcut = QShortcut(QKeySequence(sequence), self)
+            shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
+            shortcut.activated.connect(slot)
         self._install_zoom_shortcuts()
         apply_app_window_size_and_position(self)
         QTimer.singleShot(0, self._refit_tools_host)
@@ -274,6 +298,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         if (
             tab is not None
             and event.key() in {int(Qt.Key.Key_Delete), int(Qt.Key.Key_Backspace)}
+            and not (event.modifiers() & Qt.KeyboardModifier.ShiftModifier)
             and tab.canvas.delete_selected()
         ):
             self._status.setText("Annotation deleted · Ctrl+Z undo")
@@ -402,6 +427,18 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._color_pick_eyedropper = True
         self._status.setText("Click a pixel to set the color · Esc to cancel")
 
+    def _bring_forward(self) -> None:
+        tab = self._current_tab()
+        if tab is None or tab.canvas.is_text_editing or not tab.canvas.bring_forward():
+            return
+        self._status.setText("Brought forward")
+
+    def _bring_to_front(self) -> None:
+        tab = self._current_tab()
+        if tab is None or tab.canvas.is_text_editing or not tab.canvas.bring_to_front():
+            return
+        self._status.setText("Brought to front")
+
     def _cancel_crop(self) -> None:
         tab = self._current_tab()
         if tab is None:
@@ -444,6 +481,12 @@ class ScreenshotPreviewWindow(QMainWindow):
             select.setChecked(True)
         self._status.setText("Crop applied" if ok else "Crop cancelled")
 
+    def _copy_annotations(self) -> None:
+        tab = self._current_tab()
+        if tab is None or tab.canvas.is_text_editing or not tab.canvas.copy_selected():
+            return
+        self._status.setText("Copied · Ctrl+V paste")
+
     def _copy_to_clipboard(self) -> None:
         tab = self._current_tab()
         if tab is None:
@@ -457,6 +500,18 @@ class ScreenshotPreviewWindow(QMainWindow):
         widget = self._tabs.currentWidget()
         return widget if isinstance(widget, _ScreenshotTab) else None
 
+    def _cut_annotations(self) -> None:
+        tab = self._current_tab()
+        if tab is None or tab.canvas.is_text_editing or not tab.canvas.cut_selected():
+            return
+        self._status.setText("Cut · Ctrl+V paste")
+
+    def _delete_all_annotations(self) -> None:
+        tab = self._current_tab()
+        if tab is None or tab.canvas.is_text_editing or not tab.canvas.delete_all():
+            return
+        self._status.setText("All annotations deleted · Ctrl+Z undo")
+
     def _desktop_folder(self) -> Path | None:
         desktop = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DesktopLocation)
         if not desktop:
@@ -464,11 +519,23 @@ class ScreenshotPreviewWindow(QMainWindow):
             return None
         return Path(desktop) / "Screenshots"
 
+    def _duplicate_annotations(self) -> None:
+        tab = self._current_tab()
+        if tab is None or tab.canvas.is_text_editing or not tab.canvas.duplicate_selected():
+            return
+        self._status.setText("Duplicated")
+
     def _finish_eyedropper_color_pick(self, color: QColor) -> None:
         return_tool = self._color_pick_return_tool
         self._set_annotation_color(color)
         self._set_tool(return_tool)
         self._status.setText(f"Color {color.name()}")
+
+    def _flatten_annotations(self) -> None:
+        tab = self._current_tab()
+        if tab is None or tab.canvas.is_text_editing or not tab.canvas.flatten_annotations():
+            return
+        self._status.setText("Flattened · Ctrl+Z undo")
 
     def _install_zoom_shortcuts(self) -> None:
         """Zoom with Ctrl++ and Ctrl+-, including Shift on the main plus key."""
@@ -578,6 +645,12 @@ class ScreenshotPreviewWindow(QMainWindow):
         if tab is not None:
             tab.canvas.set_style(style=settings_to_annotation_style(settings))
 
+    def _paste_annotations(self) -> None:
+        tab = self._current_tab()
+        if tab is None or tab.canvas.is_text_editing or not tab.canvas.paste_clipboard():
+            return
+        self._status.setText("Pasted")
+
     def _pick_color_from_dialog(self) -> None:
         """Set the tool color from the standard color dialog."""
         color = QColorDialog.getColor(self._annotation_color, self, "Choose color")
@@ -602,6 +675,13 @@ class ScreenshotPreviewWindow(QMainWindow):
         palette = self._color_menu.addAction("Choose color…")
         palette.setIcon(create_lucide_icon("palette", DEFAULT_LUCIDE_MENU_ICON_SIZE))
         palette.triggered.connect(self._pick_color_from_dialog)
+
+    def _redo(self) -> None:
+        tab = self._current_tab()
+        if tab is None or tab.canvas.is_text_editing or not tab.canvas.redo():
+            self._status.setText("Nothing to redo")
+            return
+        self._status.setText("Redone")
 
     def _refit_tools_host(self) -> None:
         """Size the top tool strip so FlowLayout can wrap on narrow Windows."""
@@ -818,6 +898,18 @@ class ScreenshotPreviewWindow(QMainWindow):
     def _save_to_images(self) -> None:
         self._save_dated(images_folder(h.dev.get_project_root()))
 
+    def _send_backward(self) -> None:
+        tab = self._current_tab()
+        if tab is None or tab.canvas.is_text_editing or not tab.canvas.send_backward():
+            return
+        self._status.setText("Sent backward")
+
+    def _send_to_back(self) -> None:
+        tab = self._current_tab()
+        if tab is None or tab.canvas.is_text_editing or not tab.canvas.send_to_back():
+            return
+        self._status.setText("Sent to back")
+
     def _set_annotation_color(self, color: QColor) -> None:
         if not color.isValid():
             return
@@ -881,10 +973,9 @@ class ScreenshotPreviewWindow(QMainWindow):
 
     def _undo(self) -> None:
         tab = self._current_tab()
-        if tab is None or not tab.document.undo():
+        if tab is None or tab.canvas.is_text_editing or not tab.canvas.undo():
             self._status.setText("Nothing to undo")
             return
-        tab.canvas.set_document(tab.document)
         self._status.setText("Undone")
 
     def _update_color_button(self) -> None:
@@ -1117,6 +1208,30 @@ def __init__(self, parent: QWidget | None = None) -> None:
         undo_shortcut = QShortcut(QKeySequence.StandardKey.Undo, self)
         undo_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
         undo_shortcut.activated.connect(self._undo)
+        redo_shortcut = QShortcut(QKeySequence.StandardKey.Redo, self)
+        redo_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
+        redo_shortcut.activated.connect(self._redo)
+        cut_shortcut = QShortcut(QKeySequence.StandardKey.Cut, self)
+        cut_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
+        cut_shortcut.activated.connect(self._cut_annotations)
+        copy_shortcut = QShortcut(QKeySequence.StandardKey.Copy, self)
+        copy_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
+        copy_shortcut.activated.connect(self._copy_annotations)
+        paste_shortcut = QShortcut(QKeySequence.StandardKey.Paste, self)
+        paste_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
+        paste_shortcut.activated.connect(self._paste_annotations)
+        for sequence, slot in (
+            ("Ctrl+D", self._duplicate_annotations),
+            ("Shift+Delete", self._delete_all_annotations),
+            ("Ctrl+Shift+F", self._flatten_annotations),
+            ("Home", self._bring_to_front),
+            ("PgUp", self._bring_forward),
+            ("PgDown", self._send_backward),
+            ("End", self._send_to_back),
+        ):
+            shortcut = QShortcut(QKeySequence(sequence), self)
+            shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
+            shortcut.activated.connect(slot)
         self._install_zoom_shortcuts()
         apply_app_window_size_and_position(self)
         QTimer.singleShot(0, self._refit_tools_host)
@@ -1208,6 +1323,7 @@ def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
         if (
             tab is not None
             and event.key() in {int(Qt.Key.Key_Delete), int(Qt.Key.Key_Backspace)}
+            and not (event.modifiers() & Qt.KeyboardModifier.ShiftModifier)
             and tab.canvas.delete_selected()
         ):
             self._status.setText("Annotation deleted · Ctrl+Z undo")

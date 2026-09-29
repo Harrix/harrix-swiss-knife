@@ -62,6 +62,46 @@ def test_arrow_commit_and_undo() -> None:
     assert doc.can_undo
     assert doc.undo()
     assert doc.annotations == []
+    assert doc.can_redo
+    assert doc.redo()
+    assert len(doc.annotations) == 1
+
+
+def test_flatten_bakes_annotations_into_the_base() -> None:
+    image = _blank(40, 40)
+    doc = AnnotationDocument(image)
+    doc.begin_draft(
+        Annotation(
+            tool=AnnotationTool.RECTANGLE,
+            points=[QPointF(5, 5), QPointF(20, 20)],
+            style=AnnotationStyle(color=QColor(255, 0, 0), width=2.0),
+        )
+    )
+    assert doc.commit_draft()
+    assert doc.flatten()
+    assert doc.annotations == []
+    assert doc.base_image.pixelColor(5, 5).red() > 200
+    assert doc.undo()
+    assert len(doc.annotations) == 1
+
+
+def test_bring_to_front_and_send_to_back_reorder_annotations() -> None:
+    doc = AnnotationDocument(_blank(40, 40))
+    for x in (4.0, 12.0, 20.0):
+        doc.begin_draft(
+            Annotation(
+                tool=AnnotationTool.LINE,
+                points=[QPointF(x, 4), QPointF(x, 30)],
+                style=AnnotationStyle(),
+            )
+        )
+        assert doc.commit_draft()
+    assert doc.bring_to_front([0]) == [2]
+    assert doc.annotations[2].points[0].x() == pytest.approx(4.0)
+    assert doc.send_to_back([2]) == [0]
+    assert doc.annotations[0].points[0].x() == pytest.approx(4.0)
+    assert doc.bring_forward([0]) == [1]
+    assert doc.send_backward([1]) == [0]
 
 
 def test_arrow_is_round_shaft_with_filled_head() -> None:

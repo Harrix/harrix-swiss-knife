@@ -14,6 +14,7 @@ from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QFileDialog, QLineEdit, QPushButton, QStyle, QTabWidget, QToolButton
 
 from harrix_swiss_knife.apps.common.qt_main_window import compute_app_window_geometry
+from harrix_swiss_knife.screenshot import preview_canvas as canvas_module
 from harrix_swiss_knife.screenshot import preview_dialog as preview_dialog_module
 from harrix_swiss_knife.screenshot.annotations import (
     Annotation,
@@ -1069,4 +1070,71 @@ def test_shift_click_selects_several_shapes_to_move_and_delete(qapp: QApplicatio
     assert document.annotations == []
     assert document.undo()
     assert len(document.annotations) == 2
+    canvas.close()
+
+
+def test_cut_copy_paste_and_duplicate_annotations(qapp: QApplication) -> None:
+    image = QImage(100, 80, QImage.Format.Format_RGB32)
+    image.fill(Qt.GlobalColor.white)
+    canvas = ScreenshotPreviewCanvas(image)
+    canvas.resize(100, 80)
+    document = AnnotationDocument(image)
+    document.begin_draft(
+        Annotation(
+            tool=AnnotationTool.HIGHLIGHT,
+            points=[QPointF(10, 10), QPointF(30, 30)],
+            style=AnnotationStyle(color=QColor(255, 0, 0)),
+        )
+    )
+    assert document.commit_draft()
+    canvas.set_document(document)
+    canvas.set_tool(AnnotationTool.NONE)
+    qapp.processEvents()
+    _click(canvas, QPointF(20, 20), Qt.KeyboardModifier.NoModifier)
+    assert canvas.selected_index == 0
+    assert canvas.copy_selected()
+    assert canvas.paste_clipboard()
+    assert len(document.annotations) == 2
+    assert document.annotations[1].points[0].x() == pytest.approx(20.0)
+    assert canvas.duplicate_selected()
+    assert len(document.annotations) == 3
+    assert canvas.cut_selected()
+    assert len(document.annotations) == 2
+    assert canvas.paste_clipboard()
+    assert len(document.annotations) == 3
+    canvas.close()
+
+
+def test_context_menu_enables_commands_for_selection(qapp: QApplication) -> None:
+    canvas_module._annotation_clipboard.clear()
+    image = QImage(100, 80, QImage.Format.Format_RGB32)
+    image.fill(Qt.GlobalColor.white)
+    canvas = ScreenshotPreviewCanvas(image)
+    canvas.resize(100, 80)
+    document = AnnotationDocument(image)
+    document.begin_draft(
+        Annotation(
+            tool=AnnotationTool.ARROW,
+            points=[QPointF(10, 40), QPointF(80, 40)],
+            style=AnnotationStyle(),
+        )
+    )
+    assert document.commit_draft()
+    canvas.set_document(document)
+    canvas.set_tool(AnnotationTool.NONE)
+    qapp.processEvents()
+    empty = canvas._annotation_menu()
+    labels = {action.text(): action for action in empty.actions() if action.text()}
+    assert not labels["Delete"].isEnabled()
+    assert labels["Delete all"].isEnabled()
+    assert not labels["Copy"].isEnabled()
+    assert not labels["Paste"].isEnabled()
+    _click(canvas, QPointF(45, 40), Qt.KeyboardModifier.NoModifier)
+    assert canvas.copy_selected()
+    selected = canvas._annotation_menu()
+    labels = {action.text(): action for action in selected.actions() if action.text()}
+    assert labels["Delete"].isEnabled()
+    assert labels["Copy"].isEnabled()
+    assert labels["Paste"].isEnabled()
+    assert labels["Copy"].shortcut().toString() == "Ctrl+C"
     canvas.close()

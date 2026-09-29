@@ -16,17 +16,24 @@ lang: en
   - [⚙️ Method `annotation_style (property)`](#%EF%B8%8F-method-annotation_style-property)
   - [⚙️ Method `begin_text_at`](#%EF%B8%8F-method-begin_text_at)
   - [⚙️ Method `begin_text_edit`](#%EF%B8%8F-method-begin_text_edit)
+  - [⚙️ Method `bring_forward`](#%EF%B8%8F-method-bring_forward)
+  - [⚙️ Method `bring_to_front`](#%EF%B8%8F-method-bring_to_front)
   - [⚙️ Method `cancel_crop`](#%EF%B8%8F-method-cancel_crop)
   - [⚙️ Method `cancel_text_edit`](#%EF%B8%8F-method-cancel_text_edit)
   - [⚙️ Method `clear_selection`](#%EF%B8%8F-method-clear_selection)
   - [⚙️ Method `commit_text_edit`](#%EF%B8%8F-method-commit_text_edit)
   - [⚙️ Method `confirm_crop`](#%EF%B8%8F-method-confirm_crop)
   - [⚙️ Method `contextMenuEvent`](#%EF%B8%8F-method-contextmenuevent)
+  - [⚙️ Method `copy_selected`](#%EF%B8%8F-method-copy_selected)
   - [⚙️ Method `crop_mode (property)`](#%EF%B8%8F-method-crop_mode-property)
   - [⚙️ Method `crop_pending (property)`](#%EF%B8%8F-method-crop_pending-property)
+  - [⚙️ Method `cut_selected`](#%EF%B8%8F-method-cut_selected)
+  - [⚙️ Method `delete_all`](#%EF%B8%8F-method-delete_all)
   - [⚙️ Method `delete_selected`](#%EF%B8%8F-method-delete_selected)
+  - [⚙️ Method `duplicate_selected`](#%EF%B8%8F-method-duplicate_selected)
   - [⚙️ Method `finish_text_at`](#%EF%B8%8F-method-finish_text_at)
   - [⚙️ Method `fit_to_view`](#%EF%B8%8F-method-fit_to_view)
+  - [⚙️ Method `flatten_annotations`](#%EF%B8%8F-method-flatten_annotations)
   - [⚙️ Method `is_text_editing (property)`](#%EF%B8%8F-method-is_text_editing-property)
   - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
   - [⚙️ Method `keyReleaseEvent`](#%EF%B8%8F-method-keyreleaseevent)
@@ -35,15 +42,20 @@ lang: en
   - [⚙️ Method `mousePressEvent`](#%EF%B8%8F-method-mousepressevent)
   - [⚙️ Method `mouseReleaseEvent`](#%EF%B8%8F-method-mousereleaseevent)
   - [⚙️ Method `paintEvent`](#%EF%B8%8F-method-paintevent)
+  - [⚙️ Method `paste_clipboard`](#%EF%B8%8F-method-paste_clipboard)
+  - [⚙️ Method `redo`](#%EF%B8%8F-method-redo)
   - [⚙️ Method `reset_to_original_size`](#%EF%B8%8F-method-reset_to_original_size)
   - [⚙️ Method `resizeEvent`](#%EF%B8%8F-method-resizeevent)
   - [⚙️ Method `sample_color_at`](#%EF%B8%8F-method-sample_color_at)
   - [⚙️ Method `selected_index (property)`](#%EF%B8%8F-method-selected_index-property)
   - [⚙️ Method `selected_indices (property)`](#%EF%B8%8F-method-selected_indices-property)
+  - [⚙️ Method `send_backward`](#%EF%B8%8F-method-send_backward)
+  - [⚙️ Method `send_to_back`](#%EF%B8%8F-method-send_to_back)
   - [⚙️ Method `set_document`](#%EF%B8%8F-method-set_document)
   - [⚙️ Method `set_style`](#%EF%B8%8F-method-set_style)
   - [⚙️ Method `set_tool`](#%EF%B8%8F-method-set_tool)
   - [⚙️ Method `tool (property)`](#%EF%B8%8F-method-tool-property)
+  - [⚙️ Method `undo`](#%EF%B8%8F-method-undo)
   - [⚙️ Method `wheelEvent`](#%EF%B8%8F-method-wheelevent)
   - [⚙️ Method `zoom (property)`](#%EF%B8%8F-method-zoom-property)
   - [⚙️ Method `zoom_by`](#%EF%B8%8F-method-zoom_by)
@@ -62,7 +74,7 @@ Show an image fitted with aspect ratio; Ctrl+wheel and Ctrl++ / Ctrl+- zoom; mid
 
 Left-drag draws with the active [`AnnotationTool`](annotations.g.md#%EF%B8%8F-class-annotationtool) when a document is attached.
 Crop mode uses the same dimmed blue selection frame as region capture.
-The right-click menu restores the opening size and can fit a small image into the view.
+Right-click opens annotation edit commands (undo, cut/copy/paste, layer order).
 Double-click in the view tool returns a zoomed image to that opening size.
 At the opening size, a small image is fitted into the view.
 
@@ -154,6 +166,14 @@ class ScreenshotPreviewCanvas(QWidget):
             style=annotation.style,
             image_rect=text_annotation_rect(annotation),
         )
+
+    def bring_forward(self) -> bool:
+        """Move the selection one step toward the front."""
+        return self._apply_z_order(lambda doc, indices: doc.bring_forward(indices))
+
+    def bring_to_front(self) -> bool:
+        """Move the selection to the front."""
+        return self._apply_z_order(lambda doc, indices: doc.bring_to_front(indices))
 
     def cancel_crop(self) -> None:
         """Discard crop selection and leave crop mode."""
@@ -253,9 +273,25 @@ class ScreenshotPreviewCanvas(QWidget):
         return True
 
     def contextMenuEvent(self, event: QContextMenuEvent) -> None:  # noqa: N802
-        """Offer original size and fit-to-view for the screenshot."""
-        self._view_menu().exec(event.globalPosition().toPoint())
+        """Show annotation edit commands; select the shape under the pointer when needed."""
+        if self._tool == AnnotationTool.CROP:
+            event.ignore()
+            return
+        image_pos = self._widget_to_image(event.position())
+        if image_pos is not None:
+            self._select_for_context_menu(image_pos)
+        self._annotation_menu().exec(event.globalPosition().toPoint())
         event.accept()
+
+    def copy_selected(self) -> bool:
+        """Copy selected annotations to the internal clipboard."""
+        document = self._document
+        indices = sorted(self._selection())
+        if document is None or not indices:
+            return False
+        _annotation_clipboard.clear()
+        _annotation_clipboard.extend(clone_annotation(document.annotations[index]) for index in indices)
+        return True
 
     @property
     def crop_mode(self) -> bool:
@@ -267,6 +303,25 @@ class ScreenshotPreviewCanvas(QWidget):
         """Whether a crop rectangle is waiting for confirmation."""
         return self._crop_pending
 
+    def cut_selected(self) -> bool:
+        """Copy selected annotations then delete them."""
+        if not self.copy_selected():
+            return False
+        return self.delete_selected()
+
+    def delete_all(self) -> bool:
+        """Remove every annotation. Return whether any were removed."""
+        document = self._document
+        if document is None or not document.annotations:
+            return False
+        self._clear_edit_state()
+        if not document.delete_all():
+            return False
+        self._set_only_selection(None)
+        self.update()
+        self.document_changed.emit()
+        return True
+
     def delete_selected(self) -> bool:
         """Delete every selected annotation. Return whether any were removed."""
         document = self._document
@@ -277,6 +332,24 @@ class ScreenshotPreviewCanvas(QWidget):
         if not document.delete_indices(sorted(indices)):
             return False
         self._set_only_selection(None)
+        self.update()
+        self.document_changed.emit()
+        return True
+
+    def duplicate_selected(self) -> bool:
+        """Paste clones of the selection offset from the originals."""
+        document = self._document
+        indices = sorted(self._selection())
+        if document is None or not indices:
+            return False
+        clones = [
+            _offset_annotation(clone_annotation(document.annotations[index]), _PASTE_OFFSET, _PASTE_OFFSET)
+            for index in indices
+        ]
+        new_indices = document.insert_annotations(clones)
+        if not new_indices:
+            return False
+        self._apply_selection_indices(new_indices)
         self.update()
         self.document_changed.emit()
         return True
@@ -305,6 +378,17 @@ class ScreenshotPreviewCanvas(QWidget):
         self._offset = QPointF()
         self._sync_text_editor_geometry()
         self.update()
+
+    def flatten_annotations(self) -> bool:
+        """Bake annotations into the base image."""
+        document = self._document
+        if document is None or not document.flatten():
+            return False
+        self._clear_edit_state()
+        self._set_only_selection(None)
+        self._refresh_pixmap()
+        self.document_changed.emit()
+        return True
 
     @property
     def is_text_editing(self) -> bool:
@@ -553,6 +637,33 @@ class ScreenshotPreviewCanvas(QWidget):
             self._paint_eyedrop_preview(painter)
         painter.end()
 
+    def paste_clipboard(self) -> bool:
+        """Paste annotations from the internal clipboard with a small offset."""
+        document = self._document
+        if document is None or not _annotation_clipboard:
+            return False
+        clones = [
+            _offset_annotation(clone_annotation(item), _PASTE_OFFSET, _PASTE_OFFSET) for item in _annotation_clipboard
+        ]
+        new_indices = document.insert_annotations(clones)
+        if not new_indices:
+            return False
+        self._apply_selection_indices(new_indices)
+        self.update()
+        self.document_changed.emit()
+        return True
+
+    def redo(self) -> bool:
+        """Redo the last undone change."""
+        document = self._document
+        if document is None or not document.redo():
+            return False
+        self._clear_edit_state()
+        self._set_only_selection(None)
+        self._refresh_pixmap()
+        self.document_changed.emit()
+        return True
+
     def reset_to_original_size(self) -> None:
         """Restore the opening view: native pixels when small, fitted down when large."""
         self._zoom = 1.0
@@ -594,6 +705,14 @@ class ScreenshotPreviewCanvas(QWidget):
     def selected_indices(self) -> set[int]:
         """Indices of every selected annotation."""
         return self._selection()
+
+    def send_backward(self) -> bool:
+        """Move the selection one step toward the back."""
+        return self._apply_z_order(lambda doc, indices: doc.send_backward(indices))
+
+    def send_to_back(self) -> bool:
+        """Move the selection to the back."""
+        return self._apply_z_order(lambda doc, indices: doc.send_to_back(indices))
 
     def set_document(self, document: AnnotationDocument | None) -> None:
         """Attach an annotation document; canvas displays its rendered image."""
@@ -670,6 +789,17 @@ class ScreenshotPreviewCanvas(QWidget):
         """Active annotation tool."""
         return self._tool
 
+    def undo(self) -> bool:
+        """Undo the last change on this canvas's document."""
+        document = self._document
+        if document is None or not document.undo():
+            return False
+        self._clear_edit_state()
+        self._set_only_selection(None)
+        self._refresh_pixmap()
+        self.document_changed.emit()
+        return True
+
     def wheelEvent(self, event: QWheelEvent) -> None:  # noqa: N802
         """Zoom with Ctrl+wheel around the pointer."""
         if not (event.modifiers() & Qt.KeyboardModifier.ControlModifier):
@@ -715,6 +845,86 @@ class ScreenshotPreviewCanvas(QWidget):
         if self._crop_origin is not None and self._crop_current is not None and self._crop_dragging:
             return self._crop_drag_rect()
         return self._crop_rect
+
+    def _annotation_menu(self) -> QMenu:
+        """Build the ShareX-style right-click menu for annotations."""
+        document = self._document
+        has_selection = bool(self._selection())
+        has_annotations = bool(document is not None and document.annotations)
+        can_undo = bool(document is not None and document.can_undo)
+        can_redo = bool(document is not None and document.can_redo)
+        can_paste = bool(_annotation_clipboard)
+        selected = sorted(self._selection()) if document is not None else []
+        at_front = bool(
+            selected
+            and document is not None
+            and selected == list(range(len(document.annotations) - len(selected), len(document.annotations)))
+        )
+        at_back = bool(selected and selected == list(range(len(selected))))
+
+        menu = QMenu(self)
+        undo = add_lucide_action(menu, "Undo", "undo-2")
+        undo.setShortcut(QKeySequence.StandardKey.Undo)
+        undo.setEnabled(can_undo)
+        undo.triggered.connect(lambda _checked=False: self.undo())
+        redo = add_lucide_action(menu, "Redo", "redo-2")
+        redo.setShortcut(QKeySequence.StandardKey.Redo)
+        redo.setEnabled(can_redo)
+        redo.triggered.connect(lambda _checked=False: self.redo())
+        menu.addSeparator()
+        delete = add_lucide_action(menu, "Delete", "trash-2")
+        delete.setShortcut(QKeySequence.StandardKey.Delete)
+        delete.setEnabled(has_selection)
+        delete.triggered.connect(lambda _checked=False: self.delete_selected())
+        delete_all = add_lucide_action(menu, "Delete all", "broom")
+        delete_all.setShortcut(QKeySequence("Shift+Delete"))
+        delete_all.setEnabled(has_annotations)
+        delete_all.triggered.connect(lambda _checked=False: self.delete_all())
+        flatten = add_lucide_action(menu, "Flatten", "layers")
+        flatten.setShortcut(QKeySequence("Ctrl+Shift+F"))
+        flatten.setEnabled(has_annotations)
+        flatten.triggered.connect(lambda _checked=False: self.flatten_annotations())
+        menu.addSeparator()
+        cut = add_lucide_action(menu, "Cut", "scissors")
+        cut.setShortcut(QKeySequence.StandardKey.Cut)
+        cut.setEnabled(has_selection)
+        cut.triggered.connect(lambda _checked=False: self.cut_selected())
+        copy = add_lucide_action(menu, "Copy", "clipboard-copy")
+        copy.setShortcut(QKeySequence.StandardKey.Copy)
+        copy.setEnabled(has_selection)
+        copy.triggered.connect(lambda _checked=False: self.copy_selected())
+        paste = add_lucide_action(menu, "Paste", "clipboard-paste")
+        paste.setShortcut(QKeySequence.StandardKey.Paste)
+        paste.setEnabled(can_paste)
+        paste.triggered.connect(lambda _checked=False: self.paste_clipboard())
+        duplicate = add_lucide_action(menu, "Duplicate", "copy-plus")
+        duplicate.setShortcut(QKeySequence("Ctrl+D"))
+        duplicate.setEnabled(has_selection)
+        duplicate.triggered.connect(lambda _checked=False: self.duplicate_selected())
+        menu.addSeparator()
+        to_front = add_lucide_action(menu, "Bring to front", "bring-to-front")
+        to_front.setShortcut(QKeySequence(Qt.Key.Key_Home))
+        to_front.setEnabled(has_selection and not at_front)
+        to_front.triggered.connect(lambda _checked=False: self.bring_to_front())
+        forward = add_lucide_action(menu, "Bring forward", "arrow-up")
+        forward.setShortcut(QKeySequence(Qt.Key.Key_PageUp))
+        forward.setEnabled(has_selection and not at_front)
+        forward.triggered.connect(lambda _checked=False: self.bring_forward())
+        backward = add_lucide_action(menu, "Send backward", "arrow-down")
+        backward.setShortcut(QKeySequence(Qt.Key.Key_PageDown))
+        backward.setEnabled(has_selection and not at_back)
+        backward.triggered.connect(lambda _checked=False: self.send_backward())
+        to_back = add_lucide_action(menu, "Send to back", "send-to-back")
+        to_back.setShortcut(QKeySequence(Qt.Key.Key_End))
+        to_back.setEnabled(has_selection and not at_back)
+        to_back.triggered.connect(lambda _checked=False: self.send_to_back())
+        menu.addSeparator()
+        if self._size_changed():
+            original = add_lucide_action(menu, "Original size", "undo-2")
+            original.triggered.connect(lambda _checked=False: self.reset_to_original_size())
+        fit = add_lucide_action(menu, "Fit to view", "expand")
+        fit.triggered.connect(lambda _checked=False: self.fit_to_view())
+        return menu
 
     def _annotation_snap_guides(self, *, exclude_indices: set[int] | None = None) -> tuple[list[float], list[float]]:
         document = self._document
@@ -768,6 +978,31 @@ class ScreenshotPreviewCanvas(QWidget):
                     [QPointF(point.x() + dx, point.y() + dy) for point in other_points],
                 )
         self.update()
+
+    def _apply_selection_indices(self, indices: Sequence[int]) -> None:
+        if not indices:
+            self._set_only_selection(None)
+            return
+        ordered = sorted(indices)
+        self._selected_index = ordered[-1]
+        self._selected_others = set(ordered[:-1])
+
+    def _apply_z_order(
+        self,
+        action: Callable[[AnnotationDocument, Sequence[int]], Sequence[int] | None],
+    ) -> bool:
+        document = self._document
+        indices = sorted(self._selection())
+        if document is None or not indices:
+            return False
+        new_indices = action(document, indices)
+        if new_indices is None:
+            return False
+        self._clear_edit_state()
+        self._apply_selection_indices(list(new_indices))
+        self.update()
+        self.document_changed.emit()
+        return True
 
     def _begin_annotation_edit(self, image_pos: QPointF, *, shift: bool = False) -> bool:
         document = self._document
@@ -1291,6 +1526,24 @@ class ScreenshotPreviewCanvas(QWidget):
         self._pixmap = QPixmap.fromImage(image)
         self.update()
 
+    def _select_for_context_menu(self, image_pos: QPointF) -> None:
+        document = self._document
+        if document is None or not document.annotations:
+            return
+        hit = hit_test_topmost(
+            document.annotations,
+            image_pos,
+            handle_size=self._handle_size_image(),
+            prefer_tool=self._prefer_tool(),
+            selected_index=self._selected_index,
+        )
+        if hit is None:
+            return
+        index, _handle = hit
+        if index not in self._selection():
+            self._set_only_selection(index)
+            self.update()
+
     def _select_full_image_crop(self) -> None:
         bounds = self._image_bounds()
         if not bounds.isValid() or bounds.isEmpty() or bounds.width() < _MIN_CROP or bounds.height() < _MIN_CROP:
@@ -1425,7 +1678,7 @@ class ScreenshotPreviewCanvas(QWidget):
             self.setCursor(Qt.CursorShape.CrossCursor)
 
     def _view_menu(self) -> QMenu:
-        """Context menu: original size when zoom changed, and fit into the view."""
+        """Zoom helpers kept for tests and as the trailing context-menu section."""
         menu = QMenu(self)
         if self._size_changed():
             original = add_lucide_action(menu, "Original size", "undo-2")
@@ -1606,6 +1859,42 @@ def begin_text_edit(self, index: int) -> None:
 
 </details>
 
+### ⚙️ Method `bring_forward`
+
+```python
+def bring_forward(self) -> bool
+```
+
+Move the selection one step toward the front.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def bring_forward(self) -> bool:
+        return self._apply_z_order(lambda doc, indices: doc.bring_forward(indices))
+```
+
+</details>
+
+### ⚙️ Method `bring_to_front`
+
+```python
+def bring_to_front(self) -> bool
+```
+
+Move the selection to the front.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def bring_to_front(self) -> bool:
+        return self._apply_z_order(lambda doc, indices: doc.bring_to_front(indices))
+```
+
+</details>
+
 ### ⚙️ Method `cancel_crop`
 
 ```python
@@ -1779,15 +2068,45 @@ def confirm_crop(self) -> bool:
 def contextMenuEvent(self, event: QContextMenuEvent) -> None
 ```
 
-Offer original size and fit-to-view for the screenshot.
+Show annotation edit commands; select the shape under the pointer when needed.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def contextMenuEvent(self, event: QContextMenuEvent) -> None:  # noqa: N802
-        self._view_menu().exec(event.globalPosition().toPoint())
+        if self._tool == AnnotationTool.CROP:
+            event.ignore()
+            return
+        image_pos = self._widget_to_image(event.position())
+        if image_pos is not None:
+            self._select_for_context_menu(image_pos)
+        self._annotation_menu().exec(event.globalPosition().toPoint())
         event.accept()
+```
+
+</details>
+
+### ⚙️ Method `copy_selected`
+
+```python
+def copy_selected(self) -> bool
+```
+
+Copy selected annotations to the internal clipboard.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def copy_selected(self) -> bool:
+        document = self._document
+        indices = sorted(self._selection())
+        if document is None or not indices:
+            return False
+        _annotation_clipboard.clear()
+        _annotation_clipboard.extend(clone_annotation(document.annotations[index]) for index in indices)
+        return True
 ```
 
 </details>
@@ -1828,6 +2147,53 @@ def crop_pending(self) -> bool:
 
 </details>
 
+### ⚙️ Method `cut_selected`
+
+```python
+def cut_selected(self) -> bool
+```
+
+Copy selected annotations then delete them.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def cut_selected(self) -> bool:
+        if not self.copy_selected():
+            return False
+        return self.delete_selected()
+```
+
+</details>
+
+### ⚙️ Method `delete_all`
+
+```python
+def delete_all(self) -> bool
+```
+
+Remove every annotation. Return whether any were removed.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def delete_all(self) -> bool:
+        document = self._document
+        if document is None or not document.annotations:
+            return False
+        self._clear_edit_state()
+        if not document.delete_all():
+            return False
+        self._set_only_selection(None)
+        self.update()
+        self.document_changed.emit()
+        return True
+```
+
+</details>
+
 ### ⚙️ Method `delete_selected`
 
 ```python
@@ -1849,6 +2215,38 @@ def delete_selected(self) -> bool:
         if not document.delete_indices(sorted(indices)):
             return False
         self._set_only_selection(None)
+        self.update()
+        self.document_changed.emit()
+        return True
+```
+
+</details>
+
+### ⚙️ Method `duplicate_selected`
+
+```python
+def duplicate_selected(self) -> bool
+```
+
+Paste clones of the selection offset from the originals.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def duplicate_selected(self) -> bool:
+        document = self._document
+        indices = sorted(self._selection())
+        if document is None or not indices:
+            return False
+        clones = [
+            _offset_annotation(clone_annotation(document.annotations[index]), _PASTE_OFFSET, _PASTE_OFFSET)
+            for index in indices
+        ]
+        new_indices = document.insert_annotations(clones)
+        if not new_indices:
+            return False
+        self._apply_selection_indices(new_indices)
         self.update()
         self.document_changed.emit()
         return True
@@ -1905,6 +2303,31 @@ def fit_to_view(self) -> None:
         self._offset = QPointF()
         self._sync_text_editor_geometry()
         self.update()
+```
+
+</details>
+
+### ⚙️ Method `flatten_annotations`
+
+```python
+def flatten_annotations(self) -> bool
+```
+
+Bake annotations into the base image.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def flatten_annotations(self) -> bool:
+        document = self._document
+        if document is None or not document.flatten():
+            return False
+        self._clear_edit_state()
+        self._set_only_selection(None)
+        self._refresh_pixmap()
+        self.document_changed.emit()
+        return True
 ```
 
 </details>
@@ -2267,6 +2690,61 @@ def paintEvent(self, event: QPaintEvent) -> None:  # noqa: ARG002, N802
 
 </details>
 
+### ⚙️ Method `paste_clipboard`
+
+```python
+def paste_clipboard(self) -> bool
+```
+
+Paste annotations from the internal clipboard with a small offset.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def paste_clipboard(self) -> bool:
+        document = self._document
+        if document is None or not _annotation_clipboard:
+            return False
+        clones = [
+            _offset_annotation(clone_annotation(item), _PASTE_OFFSET, _PASTE_OFFSET) for item in _annotation_clipboard
+        ]
+        new_indices = document.insert_annotations(clones)
+        if not new_indices:
+            return False
+        self._apply_selection_indices(new_indices)
+        self.update()
+        self.document_changed.emit()
+        return True
+```
+
+</details>
+
+### ⚙️ Method `redo`
+
+```python
+def redo(self) -> bool
+```
+
+Redo the last undone change.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def redo(self) -> bool:
+        document = self._document
+        if document is None or not document.redo():
+            return False
+        self._clear_edit_state()
+        self._set_only_selection(None)
+        self._refresh_pixmap()
+        self.document_changed.emit()
+        return True
+```
+
+</details>
+
 ### ⚙️ Method `reset_to_original_size`
 
 ```python
@@ -2373,6 +2851,42 @@ Indices of every selected annotation.
 ```python
 def selected_indices(self) -> set[int]:
         return self._selection()
+```
+
+</details>
+
+### ⚙️ Method `send_backward`
+
+```python
+def send_backward(self) -> bool
+```
+
+Move the selection one step toward the back.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def send_backward(self) -> bool:
+        return self._apply_z_order(lambda doc, indices: doc.send_backward(indices))
+```
+
+</details>
+
+### ⚙️ Method `send_to_back`
+
+```python
+def send_to_back(self) -> bool
+```
+
+Move the selection to the back.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def send_to_back(self) -> bool:
+        return self._apply_z_order(lambda doc, indices: doc.send_to_back(indices))
 ```
 
 </details>
@@ -2503,6 +3017,31 @@ Active annotation tool.
 ```python
 def tool(self) -> AnnotationTool:
         return self._tool
+```
+
+</details>
+
+### ⚙️ Method `undo`
+
+```python
+def undo(self) -> bool
+```
+
+Undo the last change on this canvas's document.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def undo(self) -> bool:
+        document = self._document
+        if document is None or not document.undo():
+            return False
+        self._clear_edit_state()
+        self._set_only_selection(None)
+        self._refresh_pixmap()
+        self.document_changed.emit()
+        return True
 ```
 
 </details>
