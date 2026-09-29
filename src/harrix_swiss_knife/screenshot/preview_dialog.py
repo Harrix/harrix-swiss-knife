@@ -106,7 +106,7 @@ _TABLE_AI_ICON = "table"
 _TRANSLATE_ICON = "languages"
 _STATUS_HINT = (
     "Tools: arrow / shapes / step / pen / highlight / blur / pixelate / smart eraser / "
-    "text / eyedropper / crop · Click a shape to select · Delete removes · Shift constrains · "
+    "text / eyedropper / crop · Shift+click selects several · Delete removes them · Shift constrains · "
     "Undo · Ctrl+wheel, Ctrl++ or Ctrl+- zoom · Middle-drag pan · Ctrl+S save to images"
 )
 _VK_S = 0x53
@@ -117,7 +117,7 @@ _DEFAULT_TITLE = "Screenshot"
 _DEFAULT_ANNOTATION_COLOR = QColor("#de2b26")
 
 _TOOL_BUTTONS: tuple[tuple[AnnotationTool, str, str], ...] = (
-    (AnnotationTool.NONE, "mouse-pointer-2", "Select / view"),
+    (AnnotationTool.NONE, "mouse-pointer-2", "Select / view (Shift+click: several)"),
     (AnnotationTool.ARROW, "arrow-right", "Arrow (Shift: 0° / 45°)"),
     (AnnotationTool.RECTANGLE, "square", "Rectangle (Shift: square)"),
     (AnnotationTool.ELLIPSE, "circle", "Ellipse (Shift: circle)"),

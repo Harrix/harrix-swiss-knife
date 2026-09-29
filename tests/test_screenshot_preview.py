@@ -984,3 +984,89 @@ def test_preview_canvas_selects_arrow_after_tool_switch(qapp: QApplication) -> N
     assert canvas.selected_index == 0
     assert len(document.annotations) == 1
     canvas.close()
+
+
+def _click(canvas: ScreenshotPreviewCanvas, pos: QPointF, modifiers: Qt.KeyboardModifier) -> None:
+    global_pos = canvas.mapToGlobal(pos.toPoint())
+    canvas.mousePressEvent(
+        QMouseEvent(
+            QMouseEvent.Type.MouseButtonPress,
+            pos,
+            global_pos,
+            Qt.MouseButton.LeftButton,
+            Qt.MouseButton.LeftButton,
+            modifiers,
+        )
+    )
+    canvas.mouseReleaseEvent(
+        QMouseEvent(
+            QMouseEvent.Type.MouseButtonRelease,
+            pos,
+            global_pos,
+            Qt.MouseButton.LeftButton,
+            Qt.MouseButton.NoButton,
+            modifiers,
+        )
+    )
+
+
+def test_shift_click_selects_several_shapes_to_move_and_delete(qapp: QApplication) -> None:
+    image = QImage(100, 80, QImage.Format.Format_RGB32)
+    image.fill(Qt.GlobalColor.white)
+    canvas = ScreenshotPreviewCanvas(image)
+    canvas.resize(100, 80)
+    document = AnnotationDocument(image)
+    for y in (20.0, 50.0):
+        document.begin_draft(
+            Annotation(
+                tool=AnnotationTool.ARROW,
+                points=[QPointF(10, y), QPointF(40, y)],
+                style=AnnotationStyle(),
+            )
+        )
+        assert document.commit_draft()
+    canvas.set_document(document)
+    canvas.set_tool(AnnotationTool.NONE)
+    qapp.processEvents()
+    _click(canvas, QPointF(25, 20), Qt.KeyboardModifier.NoModifier)
+    _click(canvas, QPointF(25, 50), Qt.KeyboardModifier.ShiftModifier)
+    assert canvas.selected_indices == {0, 1}
+    press = QPointF(25, 50)
+    move = QPointF(40, 50)
+    canvas.mousePressEvent(
+        QMouseEvent(
+            QMouseEvent.Type.MouseButtonPress,
+            press,
+            canvas.mapToGlobal(press.toPoint()),
+            Qt.MouseButton.LeftButton,
+            Qt.MouseButton.LeftButton,
+            Qt.KeyboardModifier.NoModifier,
+        )
+    )
+    canvas.mouseMoveEvent(
+        QMouseEvent(
+            QMouseEvent.Type.MouseMove,
+            move,
+            canvas.mapToGlobal(move.toPoint()),
+            Qt.MouseButton.NoButton,
+            Qt.MouseButton.LeftButton,
+            Qt.KeyboardModifier.NoModifier,
+        )
+    )
+    canvas.mouseReleaseEvent(
+        QMouseEvent(
+            QMouseEvent.Type.MouseButtonRelease,
+            move,
+            canvas.mapToGlobal(move.toPoint()),
+            Qt.MouseButton.LeftButton,
+            Qt.MouseButton.NoButton,
+            Qt.KeyboardModifier.NoModifier,
+        )
+    )
+    assert document.annotations[0].points[0].x() == pytest.approx(25.0)
+    assert document.annotations[1].points[0].x() == pytest.approx(25.0)
+    assert canvas.delete_selected()
+    assert document.annotations == []
+    assert document.undo()
+    assert len(document.annotations) == 2
+    canvas.close()

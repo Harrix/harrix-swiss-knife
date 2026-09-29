@@ -148,6 +148,16 @@ class AnnotationDocument:
         del self._annotations[index]
         return True
 
+    def delete_indices(self, indices: Sequence[int]) -> bool:
+        """Remove annotations at `indices` in one undo step. Return whether any were deleted."""
+        unique = sorted({index for index in indices if 0 <= index < len(self._annotations)}, reverse=True)
+        if not unique:
+            return False
+        self._push_history()
+        for index in unique:
+            del self._annotations[index]
+        return True
+
     @property
     def draft(self) -> Annotation | None:
         """In-progress annotation while the mouse is dragged."""

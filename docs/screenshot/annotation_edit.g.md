@@ -251,16 +251,22 @@ def hit_test_topmost(
 ## 🔧 Function `paint_annotation_selection`
 
 ```python
-def paint_annotation_selection(painter: QPainter, annotation: Annotation, *, handle_size: float) -> None
+def paint_annotation_selection(painter: QPainter, annotation: Annotation, *, handle_size: float, handles: bool = True) -> None
 ```
 
-Draw the selection frame and handles for `annotation`.
+Draw the selection frame for `annotation`, and handles when `handles` is true.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def paint_annotation_selection(painter: QPainter, annotation: Annotation, *, handle_size: float) -> None:
+def paint_annotation_selection(
+    painter: QPainter,
+    annotation: Annotation,
+    *,
+    handle_size: float,
+    handles: bool = True,
+) -> None:
     bounds = annotation_bounds(annotation)
     if bounds.isNull():
         return
@@ -271,6 +277,8 @@ def paint_annotation_selection(painter: QPainter, annotation: Annotation, *, han
     painter.setPen(pen)
     painter.setBrush(Qt.BrushStyle.NoBrush)
     painter.drawRect(frame)
+    if not handles:
+        return
     half = max(SELECTION_HANDLE_DRAW / 2, handle_size / 2)
     painter.setPen(Qt.PenStyle.NoPen)
     painter.setBrush(SELECTION_HANDLE_FILL)

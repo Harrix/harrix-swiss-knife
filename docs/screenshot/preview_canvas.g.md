@@ -39,6 +39,7 @@ lang: en
   - [⚙️ Method `resizeEvent`](#%EF%B8%8F-method-resizeevent)
   - [⚙️ Method `sample_color_at`](#%EF%B8%8F-method-sample_color_at)
   - [⚙️ Method `selected_index (property)`](#%EF%B8%8F-method-selected_index-property)
+  - [⚙️ Method `selected_indices (property)`](#%EF%B8%8F-method-selected_indices-property)
   - [⚙️ Method `set_document`](#%EF%B8%8F-method-set_document)
   - [⚙️ Method `set_style`](#%EF%B8%8F-method-set_style)
   - [⚙️ Method `set_tool`](#%EF%B8%8F-method-set_tool)
@@ -96,8 +97,10 @@ class ScreenshotPreviewCanvas(QWidget):
         self._draw_current: QPointF | None = None
         self._smart_eraser_color: QColor | None = None
         self._selected_index: int | None = None
+        self._selected_others: set[int] = set()
         self._edit_handle: AnnotationHandle | None = None
         self._edit_origin_points: list[QPointF] | None = None
+        self._edit_group_origins: dict[int, list[QPointF]] | None = None
         self._edit_press: QPointF | None = None
         self._edit_current: QPointF | None = None
         self._edit_history_saved = False
@@ -143,7 +146,7 @@ class ScreenshotPreviewCanvas(QWidget):
         if annotation.tool != AnnotationTool.TEXT:
             return
         self.commit_text_edit()
-        self._selected_index = index
+        self._set_only_selection(index)
         self._text_edit_index = index
         self._style = copy_annotation_style(annotation.style)
         self._open_text_editor(
@@ -159,7 +162,7 @@ class ScreenshotPreviewCanvas(QWidget):
             self._document.cancel_draft()
         self._clear_crop_state()
         self._clear_edit_state()
-        self._selected_index = None
+        self._set_only_selection(None)
         self._tool = AnnotationTool.NONE
         self.setCursor(Qt.CursorShape.ArrowCursor)
         self._refresh_pixmap()
@@ -178,11 +181,11 @@ class ScreenshotPreviewCanvas(QWidget):
         self.update()
 
     def clear_selection(self) -> bool:
-        """Deselect the current annotation. Return whether anything changed."""
-        if self._selected_index is None and self._edit_handle is None:
+        """Deselect every annotation. Return whether anything changed."""
+        if not self._selection() and self._edit_handle is None:
             return False
         self._clear_edit_state()
-        self._selected_index = None
+        self._set_only_selection(None)
         self.update()
         return True
 
@@ -196,12 +199,15 @@ class ScreenshotPreviewCanvas(QWidget):
             annotation = self._document.annotations[index]
             if not text.strip():
                 self._close_text_editor()
-                self.delete_selected()
+                if self._document.delete_at(index):
+                    self._drop_deleted_indices({index})
+                    self.update()
+                    self.document_changed.emit()
                 return False
             self._document.save_undo_checkpoint()
             annotation.text = text
             annotation.style = copy_annotation_style(self._style)
-            self._selected_index = index
+            self._set_only_selection(index)
             self._close_text_editor()
             self.update()
             self.document_changed.emit()
@@ -214,7 +220,7 @@ class ScreenshotPreviewCanvas(QWidget):
         draft.style = copy_annotation_style(self._style)
         self._close_text_editor()
         if self._document.commit_draft():
-            self._selected_index = len(self._document.annotations) - 1
+            self._set_only_selection(len(self._document.annotations) - 1)
             self.update()
             self.document_changed.emit()
             return True
@@ -262,15 +268,15 @@ class ScreenshotPreviewCanvas(QWidget):
         return self._crop_pending
 
     def delete_selected(self) -> bool:
-        """Delete the selected annotation. Return whether it was removed."""
+        """Delete every selected annotation. Return whether any were removed."""
         document = self._document
-        index = self._selected_index
-        if document is None or index is None:
+        indices = self._selection()
+        if document is None or not indices:
             return False
         self._clear_edit_state()
-        if not document.delete_at(index):
+        if not document.delete_indices(sorted(indices)):
             return False
-        self._selected_index = None
+        self._set_only_selection(None)
         self.update()
         self.document_changed.emit()
         return True
@@ -289,7 +295,7 @@ class ScreenshotPreviewCanvas(QWidget):
             )
         )
         if self._document.commit_draft():
-            self._selected_index = len(self._document.annotations) - 1
+            self._set_only_selection(len(self._document.annotations) - 1)
             self.update()
             self.document_changed.emit()
 
@@ -465,10 +471,10 @@ class ScreenshotPreviewCanvas(QWidget):
                     event.ignore()
                     return
                 self.commit_text_edit()
-            if self._begin_annotation_edit(image_pos):
+            if self._begin_annotation_edit(image_pos, shift=_shift_pressed(event.modifiers())):
                 event.accept()
                 return
-            self._selected_index = None
+            self._set_only_selection(None)
             snapped = self._snap_pointer(image_pos)
             if self._tool == AnnotationTool.SMART_ERASER and self._document is not None:
                 self._smart_eraser_color = sample_composited_color(
@@ -491,10 +497,13 @@ class ScreenshotPreviewCanvas(QWidget):
             self.setFocus(Qt.FocusReason.MouseFocusReason)
             if self._text_edit_active:
                 self.commit_text_edit()
-            if image_pos is not None and self._begin_annotation_edit(image_pos):
+            if image_pos is not None and self._begin_annotation_edit(
+                image_pos, shift=_shift_pressed(event.modifiers())
+            ):
                 event.accept()
                 return
-            self.clear_selection()
+            if not _shift_pressed(event.modifiers()):
+                self.clear_selection()
             event.accept()
             return
         super().mousePressEvent(event)
@@ -578,14 +587,19 @@ class ScreenshotPreviewCanvas(QWidget):
 
     @property
     def selected_index(self) -> int | None:
-        """Index of the selected annotation, or `None`."""
+        """Index of the primary selected annotation, or `None`."""
         return self._selected_index
+
+    @property
+    def selected_indices(self) -> set[int]:
+        """Indices of every selected annotation."""
+        return self._selection()
 
     def set_document(self, document: AnnotationDocument | None) -> None:
         """Attach an annotation document; canvas displays its rendered image."""
         self.commit_text_edit()
         self._clear_edit_state()
-        self._selected_index = None
+        self._set_only_selection(None)
         self._document = document
         self._rebuild_snap_edges()
         self._refresh_pixmap()
@@ -622,9 +636,9 @@ class ScreenshotPreviewCanvas(QWidget):
         if tool != AnnotationTool.EYEDROPPER:
             self._eyedrop_hover = None
         if tool == AnnotationTool.CROP:
-            self._selected_index = None
+            self._set_only_selection(None)
         if tool == AnnotationTool.EYEDROPPER:
-            self._selected_index = None
+            self._set_only_selection(None)
         if self._document is not None and tool != AnnotationTool.CROP:
             self._document.cancel_draft()
         if tool == AnnotationTool.CROP:
@@ -702,7 +716,7 @@ class ScreenshotPreviewCanvas(QWidget):
             return self._crop_drag_rect()
         return self._crop_rect
 
-    def _annotation_snap_guides(self, *, exclude_index: int | None = None) -> tuple[list[float], list[float]]:
+    def _annotation_snap_guides(self, *, exclude_indices: set[int] | None = None) -> tuple[list[float], list[float]]:
         document = self._document
         if document is None:
             return [], []
@@ -710,7 +724,9 @@ class ScreenshotPreviewCanvas(QWidget):
         frame = None
         if bounds.isValid() and not bounds.isEmpty():
             frame = QRectF(QPointF(bounds.left(), bounds.top()), QPointF(bounds.right(), bounds.bottom()))
-        return collect_annotation_guides(document.annotations, exclude_index=exclude_index, bounds=frame)
+        skip = exclude_indices or set()
+        annotations = [item for index, item in enumerate(document.annotations) if index not in skip]
+        return collect_annotation_guides(annotations, bounds=frame)
 
     def _apply_annotation_drag(self, image_pos: QPointF, *, shift: bool) -> None:
         document = self._document
@@ -728,7 +744,8 @@ class ScreenshotPreviewCanvas(QWidget):
             document.save_undo_checkpoint()
             self._edit_history_saved = True
         points = apply_annotation_edit(annotation, handle, origin, press, image_pos, shift=shift)
-        xs, ys = self._annotation_snap_guides(exclude_index=index)
+        exclude = self._selection() if handle == "move" else {index}
+        xs, ys = self._annotation_snap_guides(exclude_indices=exclude)
         snapped = snap_annotation_edit(
             annotation,
             handle,
@@ -741,9 +758,18 @@ class ScreenshotPreviewCanvas(QWidget):
         self._snap_x_guide = snapped.x_guide
         self._snap_y_guide = snapped.y_guide
         document.update_annotation_points(index, snapped.points)
+        origins = self._edit_group_origins
+        if handle == "move" and origins and origin:
+            dx = snapped.points[0].x() - origin[0].x()
+            dy = snapped.points[0].y() - origin[0].y()
+            for other, other_points in origins.items():
+                document.update_annotation_points(
+                    other,
+                    [QPointF(point.x() + dx, point.y() + dy) for point in other_points],
+                )
         self.update()
 
-    def _begin_annotation_edit(self, image_pos: QPointF) -> bool:
+    def _begin_annotation_edit(self, image_pos: QPointF, *, shift: bool = False) -> bool:
         document = self._document
         if document is None or not document.annotations:
             return False
@@ -757,12 +783,29 @@ class ScreenshotPreviewCanvas(QWidget):
         if hit is None:
             return False
         index, handle = hit
-        self._selected_index = index
+        if shift:
+            self._toggle_selection(index)
+            self._clear_edit_state()
+            self.update()
+            return True
+        keep_group = handle == "move" and index in self._selection()
+        if keep_group:
+            self._selected_others = self._selection() - {index}
+            self._selected_index = index
+        else:
+            self._set_only_selection(index)
         self._edit_handle = handle
-        self._edit_origin_points = [QPointF(p) for p in document.annotations[index].points]
+        self._edit_origin_points = [QPointF(point) for point in document.annotations[index].points]
         self._edit_press = QPointF(image_pos)
         self._edit_current = QPointF(image_pos)
         self._edit_history_saved = False
+        self._edit_group_origins = None
+        if keep_group:
+            self._edit_group_origins = {
+                other: [QPointF(point) for point in document.annotations[other].points]
+                for other in self._selected_others
+                if 0 <= other < len(document.annotations)
+            }
         self.update()
         return True
 
@@ -802,6 +845,7 @@ class ScreenshotPreviewCanvas(QWidget):
         self._edit_press = None
         self._edit_current = None
         self._edit_history_saved = False
+        self._edit_group_origins = None
         self._clear_snap_guides()
 
     def _clear_snap_guides(self) -> None:
@@ -969,6 +1013,20 @@ class ScreenshotPreviewCanvas(QWidget):
         self.setCursor(Qt.CursorShape.SizeAllCursor)
         self.update()
 
+    def _drop_deleted_indices(self, deleted: set[int]) -> None:
+        """Keep the selection after removing `deleted` indices, shifting the rest down."""
+        remaining: list[int] = []
+        for index in self._selection():
+            if index in deleted:
+                continue
+            shift = sum(1 for removed in deleted if removed < index)
+            remaining.append(index - shift)
+        if not remaining:
+            self._set_only_selection(None)
+            return
+        self._selected_index = remaining[-1]
+        self._selected_others = set(remaining[:-1])
+
     def _eyedrop_mouse_move(self, widget_pos: QPointF) -> None:
         color = self.sample_color_at(widget_pos)
         self._eyedrop_hover = (QPointF(widget_pos), color) if color is not None else None
@@ -1002,7 +1060,7 @@ class ScreenshotPreviewCanvas(QWidget):
             self._begin_shape_draft(start, start, clicked=True)
         self._clear_snap_guides()
         if document.commit_draft():
-            self._selected_index = len(document.annotations) - 1
+            self._set_only_selection(len(document.annotations) - 1)
             self.update()
             self.document_changed.emit()
         else:
@@ -1165,11 +1223,15 @@ class ScreenshotPreviewCanvas(QWidget):
             for item in items:
                 paint_annotation(painter, item)
         index = self._selected_index
-        if index is not None and 0 <= index < len(document.annotations) and not self._text_edit_active:
+        handle_size = self._handle_size_image()
+        for selected in sorted(self._selection()):
+            if self._text_edit_active or not 0 <= selected < len(document.annotations):
+                continue
             paint_annotation_selection(
                 painter,
-                document.annotations[index],
-                handle_size=self._handle_size_image(),
+                document.annotations[selected],
+                handle_size=handle_size,
+                handles=selected == index,
             )
         self._paint_snap_guides(painter, width, height)
         painter.restore()
@@ -1243,12 +1305,23 @@ class ScreenshotPreviewCanvas(QWidget):
         self.setCursor(Qt.CursorShape.SizeAllCursor)
         self.crop_pending_changed.emit(True)  # noqa: FBT003
 
+    def _selection(self) -> set[int]:
+        if self._selected_index is None:
+            return set(self._selected_others)
+        return {self._selected_index, *self._selected_others}
+
+    def _set_only_selection(self, index: int | None) -> None:
+        self._selected_index = index
+        self._selected_others.clear()
+
     def _size_changed(self) -> bool:
         """Whether zoom left the opening size."""
         return abs(self._zoom - 1.0) > _ZOOM_UNCHANGED
 
     def _snap_pointer(self, image_pos: QPointF, *, exclude_index: int | None = None) -> QPointF:
-        xs, ys = self._annotation_snap_guides(exclude_index=exclude_index)
+        xs, ys = self._annotation_snap_guides(
+            exclude_indices={exclude_index} if exclude_index is not None else None,
+        )
         snapped, x_guide, y_guide = snap_point(image_pos, xs, ys, threshold=_EDGE_SNAP_THRESHOLD)
         self._snap_x_guide = x_guide
         self._snap_y_guide = y_guide
@@ -1317,6 +1390,19 @@ class ScreenshotPreviewCanvas(QWidget):
             return
         if self._fit_zoom() > 1.0 + _ZOOM_UNCHANGED:
             self.fit_to_view()
+
+    def _toggle_selection(self, index: int) -> None:
+        selected = self._selection()
+        if index in selected:
+            selected.remove(index)
+        else:
+            selected.add(index)
+        if not selected:
+            self._set_only_selection(None)
+            return
+        primary = index if index in selected else max(selected)
+        self._selected_index = primary
+        self._selected_others = selected - {primary}
 
     def _update_hover_cursor(self, image_pos: QPointF | None) -> None:
         if image_pos is None or self._document is None:
@@ -1418,8 +1504,10 @@ def __init__(self, image: QImage, parent: QWidget | None = None) -> None:
         self._draw_current: QPointF | None = None
         self._smart_eraser_color: QColor | None = None
         self._selected_index: int | None = None
+        self._selected_others: set[int] = set()
         self._edit_handle: AnnotationHandle | None = None
         self._edit_origin_points: list[QPointF] | None = None
+        self._edit_group_origins: dict[int, list[QPointF]] | None = None
         self._edit_press: QPointF | None = None
         self._edit_current: QPointF | None = None
         self._edit_history_saved = False
@@ -1506,7 +1594,7 @@ def begin_text_edit(self, index: int) -> None:
         if annotation.tool != AnnotationTool.TEXT:
             return
         self.commit_text_edit()
-        self._selected_index = index
+        self._set_only_selection(index)
         self._text_edit_index = index
         self._style = copy_annotation_style(annotation.style)
         self._open_text_editor(
@@ -1536,7 +1624,7 @@ def cancel_crop(self) -> None:
             self._document.cancel_draft()
         self._clear_crop_state()
         self._clear_edit_state()
-        self._selected_index = None
+        self._set_only_selection(None)
         self._tool = AnnotationTool.NONE
         self.setCursor(Qt.CursorShape.ArrowCursor)
         self._refresh_pixmap()
@@ -1577,17 +1665,17 @@ def cancel_text_edit(self) -> None:
 def clear_selection(self) -> bool
 ```
 
-Deselect the current annotation. Return whether anything changed.
+Deselect every annotation. Return whether anything changed.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def clear_selection(self) -> bool:
-        if self._selected_index is None and self._edit_handle is None:
+        if not self._selection() and self._edit_handle is None:
             return False
         self._clear_edit_state()
-        self._selected_index = None
+        self._set_only_selection(None)
         self.update()
         return True
 ```
@@ -1615,12 +1703,15 @@ def commit_text_edit(self) -> bool:
             annotation = self._document.annotations[index]
             if not text.strip():
                 self._close_text_editor()
-                self.delete_selected()
+                if self._document.delete_at(index):
+                    self._drop_deleted_indices({index})
+                    self.update()
+                    self.document_changed.emit()
                 return False
             self._document.save_undo_checkpoint()
             annotation.text = text
             annotation.style = copy_annotation_style(self._style)
-            self._selected_index = index
+            self._set_only_selection(index)
             self._close_text_editor()
             self.update()
             self.document_changed.emit()
@@ -1633,7 +1724,7 @@ def commit_text_edit(self) -> bool:
         draft.style = copy_annotation_style(self._style)
         self._close_text_editor()
         if self._document.commit_draft():
-            self._selected_index = len(self._document.annotations) - 1
+            self._set_only_selection(len(self._document.annotations) - 1)
             self.update()
             self.document_changed.emit()
             return True
@@ -1743,7 +1834,7 @@ def crop_pending(self) -> bool:
 def delete_selected(self) -> bool
 ```
 
-Delete the selected annotation. Return whether it was removed.
+Delete every selected annotation. Return whether any were removed.
 
 <details>
 <summary>Code:</summary>
@@ -1751,13 +1842,13 @@ Delete the selected annotation. Return whether it was removed.
 ```python
 def delete_selected(self) -> bool:
         document = self._document
-        index = self._selected_index
-        if document is None or index is None:
+        indices = self._selection()
+        if document is None or not indices:
             return False
         self._clear_edit_state()
-        if not document.delete_at(index):
+        if not document.delete_indices(sorted(indices)):
             return False
-        self._selected_index = None
+        self._set_only_selection(None)
         self.update()
         self.document_changed.emit()
         return True
@@ -1790,7 +1881,7 @@ def finish_text_at(self, image_pos: QPointF, text: str) -> None:
             )
         )
         if self._document.commit_draft():
-            self._selected_index = len(self._document.annotations) - 1
+            self._set_only_selection(len(self._document.annotations) - 1)
             self.update()
             self.document_changed.emit()
 ```
@@ -2063,10 +2154,10 @@ def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
                     event.ignore()
                     return
                 self.commit_text_edit()
-            if self._begin_annotation_edit(image_pos):
+            if self._begin_annotation_edit(image_pos, shift=_shift_pressed(event.modifiers())):
                 event.accept()
                 return
-            self._selected_index = None
+            self._set_only_selection(None)
             snapped = self._snap_pointer(image_pos)
             if self._tool == AnnotationTool.SMART_ERASER and self._document is not None:
                 self._smart_eraser_color = sample_composited_color(
@@ -2089,10 +2180,13 @@ def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
             self.setFocus(Qt.FocusReason.MouseFocusReason)
             if self._text_edit_active:
                 self.commit_text_edit()
-            if image_pos is not None and self._begin_annotation_edit(image_pos):
+            if image_pos is not None and self._begin_annotation_edit(
+                image_pos, shift=_shift_pressed(event.modifiers())
+            ):
                 event.accept()
                 return
-            self.clear_selection()
+            if not _shift_pressed(event.modifiers()):
+                self.clear_selection()
             event.accept()
             return
         super().mousePressEvent(event)
@@ -2253,7 +2347,7 @@ def sample_color_at(self, widget_pos: QPointF) -> QColor | None:
 def selected_index(self) -> int | None
 ```
 
-Index of the selected annotation, or `None`.
+Index of the primary selected annotation, or `None`.
 
 <details>
 <summary>Code:</summary>
@@ -2261,6 +2355,24 @@ Index of the selected annotation, or `None`.
 ```python
 def selected_index(self) -> int | None:
         return self._selected_index
+```
+
+</details>
+
+### ⚙️ Method `selected_indices (property)`
+
+```python
+def selected_indices(self) -> set[int]
+```
+
+Indices of every selected annotation.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def selected_indices(self) -> set[int]:
+        return self._selection()
 ```
 
 </details>
@@ -2280,7 +2392,7 @@ Attach an annotation document; canvas displays its rendered image.
 def set_document(self, document: AnnotationDocument | None) -> None:
         self.commit_text_edit()
         self._clear_edit_state()
-        self._selected_index = None
+        self._set_only_selection(None)
         self._document = document
         self._rebuild_snap_edges()
         self._refresh_pixmap()
@@ -2345,9 +2457,9 @@ def set_tool(self, tool: AnnotationTool) -> None:
         if tool != AnnotationTool.EYEDROPPER:
             self._eyedrop_hover = None
         if tool == AnnotationTool.CROP:
-            self._selected_index = None
+            self._set_only_selection(None)
         if tool == AnnotationTool.EYEDROPPER:
-            self._selected_index = None
+            self._set_only_selection(None)
         if self._document is not None and tool != AnnotationTool.CROP:
             self._document.cancel_draft()
         if tool == AnnotationTool.CROP:

@@ -219,8 +219,14 @@ def hit_test_topmost(
     return None
 
 
-def paint_annotation_selection(painter: QPainter, annotation: Annotation, *, handle_size: float) -> None:
-    """Draw the selection frame and handles for `annotation`."""
+def paint_annotation_selection(
+    painter: QPainter,
+    annotation: Annotation,
+    *,
+    handle_size: float,
+    handles: bool = True,
+) -> None:
+    """Draw the selection frame for `annotation`, and handles when `handles` is true."""
     bounds = annotation_bounds(annotation)
     if bounds.isNull():
         return
@@ -231,6 +237,8 @@ def paint_annotation_selection(painter: QPainter, annotation: Annotation, *, han
     painter.setPen(pen)
     painter.setBrush(Qt.BrushStyle.NoBrush)
     painter.drawRect(frame)
+    if not handles:
+        return
     half = max(SELECTION_HANDLE_DRAW / 2, handle_size / 2)
     painter.setPen(Qt.PenStyle.NoPen)
     painter.setBrush(SELECTION_HANDLE_FILL)

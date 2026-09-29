@@ -24,6 +24,7 @@ lang: en
   - [⚙️ Method `cancel_draft`](#%EF%B8%8F-method-cancel_draft)
   - [⚙️ Method `commit_draft`](#%EF%B8%8F-method-commit_draft)
   - [⚙️ Method `delete_at`](#%EF%B8%8F-method-delete_at)
+  - [⚙️ Method `delete_indices`](#%EF%B8%8F-method-delete_indices)
   - [⚙️ Method `draft (property)`](#%EF%B8%8F-method-draft-property)
   - [⚙️ Method `render`](#%EF%B8%8F-method-render)
   - [⚙️ Method `save_undo_checkpoint`](#%EF%B8%8F-method-save_undo_checkpoint)
@@ -175,6 +176,16 @@ class AnnotationDocument:
             return False
         self._push_history()
         del self._annotations[index]
+        return True
+
+    def delete_indices(self, indices: Sequence[int]) -> bool:
+        """Remove annotations at `indices` in one undo step. Return whether any were deleted."""
+        unique = sorted({index for index in indices if 0 <= index < len(self._annotations)}, reverse=True)
+        if not unique:
+            return False
+        self._push_history()
+        for index in unique:
+            del self._annotations[index]
         return True
 
     @property
@@ -479,6 +490,30 @@ def delete_at(self, index: int) -> bool:
             return False
         self._push_history()
         del self._annotations[index]
+        return True
+```
+
+</details>
+
+### ⚙️ Method `delete_indices`
+
+```python
+def delete_indices(self, indices: Sequence[int]) -> bool
+```
+
+Remove annotations at `indices` in one undo step. Return whether any were deleted.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def delete_indices(self, indices: Sequence[int]) -> bool:
+        unique = sorted({index for index in indices if 0 <= index < len(self._annotations)}, reverse=True)
+        if not unique:
+            return False
+        self._push_history()
+        for index in unique:
+            del self._annotations[index]
         return True
 ```
 

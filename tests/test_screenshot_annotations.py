@@ -577,6 +577,25 @@ def test_shape_drawn_after_pixelate_stays_sharp() -> None:
     assert stroke.green() < 40
 
 
+def test_delete_indices_removes_several_annotations_in_one_undo() -> None:
+    image = _blank(20, 20)
+    doc = AnnotationDocument(image)
+    for x in (2.0, 8.0, 14.0):
+        doc.begin_draft(
+            Annotation(
+                tool=AnnotationTool.LINE,
+                points=[QPointF(x, 2), QPointF(x, 16)],
+                style=AnnotationStyle(),
+            )
+        )
+        assert doc.commit_draft()
+    assert doc.delete_indices([0, 2])
+    assert len(doc.annotations) == 1
+    assert doc.annotations[0].points[0].x() == pytest.approx(8.0)
+    assert doc.undo()
+    assert len(doc.annotations) == 3
+
+
 def test_shift_makes_pixelate_square() -> None:
     end = constrain_shape_end(AnnotationTool.PIXELATE, QPointF(10, 10), QPointF(50, 30), shift=True)
     assert end.x() == pytest.approx(30.0)
