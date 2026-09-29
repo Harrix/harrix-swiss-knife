@@ -8,6 +8,7 @@ from PySide6.QtGui import QColor, QImage
 from PySide6.QtWidgets import QApplication, QComboBox
 
 from harrix_swiss_knife.qt_app_font import MONO_FONT_FAMILY
+from harrix_swiss_knife.screenshot import font_preview as font_preview_mod
 from harrix_swiss_knife.screenshot.annotation_edit import annotation_bounds, apply_annotation_edit
 from harrix_swiss_knife.screenshot.annotations import (
     Annotation,
@@ -60,6 +61,18 @@ def test_cyrillic_font_filter_is_fast_and_narrower(qapp: QApplication) -> None: 
     assert cyrillic
     assert len(cyrillic) <= len(all_fonts)
     assert set(cyrillic) <= set(all_fonts)
+
+
+def test_font_preview_pixmap_is_cached(qapp: QApplication, tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:  # noqa: ARG001
+    monkeypatch.setattr(font_preview_mod, "_font_preview_root", lambda: tmp_path / "previews")
+    font_preview_mod.clear_font_preview_memory()
+    text = "Example Пример Йё35"
+    first = font_preview_mod.font_preview_pixmap("Arial", text)
+    second = font_preview_mod.font_preview_pixmap("Arial", text)
+    assert not first.isNull()
+    assert first.cacheKey() == second.cacheKey()
+    disk_files = list((tmp_path / "previews").rglob("*.png"))
+    assert len(disk_files) == 1
 
 
 def test_text_annotation_uses_box_points(qapp: QApplication) -> None:  # noqa: ARG001

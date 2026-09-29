@@ -40,6 +40,7 @@ class ScreenshotTextToolbar(QWidget):
         super().__init__(parent)
         self._updating = False
         self._settings = ScreenshotTextSettings()
+        self._preview_text = load_font_preview_text()
         self.setObjectName("hskScreenshotTextToolbar")
         self.setStyleSheet(
             "#hskScreenshotTextToolbar {  background: #f7f7f8;  border: 1px solid #d0d0d4;  border-radius: 10px;}"
@@ -65,6 +66,11 @@ class ScreenshotTextToolbar(QWidget):
             family_line.setPlaceholderText("Font")
             family_line.setClearButtonEnabled(True)
         self._family.currentTextChanged.connect(self._on_family_changed)
+        self._family.setItemDelegate(FontPreviewDelegate(self._preview_text, self._family))
+        view = self._family.view()
+        if view is not None:
+            view.setMinimumWidth(380)
+            view.setUniformItemSizes(True)
         row.addWidget(self._family)
 
         self._cyrillic_only = QCheckBox("Cyrillic", self)
@@ -221,6 +227,10 @@ class ScreenshotTextToolbar(QWidget):
         """Rebuild the font list; keep `keep_family` selected when possible."""
         was_updating = self._updating
         self._updating = True
+        preview_text = load_font_preview_text()
+        if preview_text != self._preview_text:
+            self._preview_text = preview_text
+            self._family.setItemDelegate(FontPreviewDelegate(preview_text, self._family))
         current = keep_family.strip()
         self._family.clear()
         for name in available_text_font_families(cyrillic_only=self._settings.cyrillic_fonts_only):
@@ -256,6 +266,7 @@ def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._updating = False
         self._settings = ScreenshotTextSettings()
+        self._preview_text = load_font_preview_text()
         self.setObjectName("hskScreenshotTextToolbar")
         self.setStyleSheet(
             "#hskScreenshotTextToolbar {  background: #f7f7f8;  border: 1px solid #d0d0d4;  border-radius: 10px;}"
@@ -281,6 +292,11 @@ def __init__(self, parent: QWidget | None = None) -> None:
             family_line.setPlaceholderText("Font")
             family_line.setClearButtonEnabled(True)
         self._family.currentTextChanged.connect(self._on_family_changed)
+        self._family.setItemDelegate(FontPreviewDelegate(self._preview_text, self._family))
+        view = self._family.view()
+        if view is not None:
+            view.setMinimumWidth(380)
+            view.setUniformItemSizes(True)
         row.addWidget(self._family)
 
         self._cyrillic_only = QCheckBox("Cyrillic", self)

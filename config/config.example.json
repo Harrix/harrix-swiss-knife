@@ -70,6 +70,7 @@
   ],
   "quick_launcher_markdown_in_panel": true,
   "screenshot_shutter_sound": true,
+  "screenshot_font_preview_text": "Example Пример Йё35",
   "editor": "cursor",
   "editor-notes": "code-insiders",
   "food_calorie_thresholds": {
