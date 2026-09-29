@@ -277,10 +277,10 @@ class ScreenshotPreviewCanvas(QWidget):
         if self._tool == AnnotationTool.CROP:
             event.ignore()
             return
-        image_pos = self._widget_to_image(event.position())
+        image_pos = self._widget_to_image(QPointF(event.pos()))
         if image_pos is not None:
             self._select_for_context_menu(image_pos)
-        self._annotation_menu().exec(event.globalPosition().toPoint())
+        self._annotation_menu().exec(event.globalPos())
         event.accept()
 
     def copy_selected(self) -> bool:
@@ -2078,10 +2078,10 @@ def contextMenuEvent(self, event: QContextMenuEvent) -> None:  # noqa: N802
         if self._tool == AnnotationTool.CROP:
             event.ignore()
             return
-        image_pos = self._widget_to_image(event.position())
+        image_pos = self._widget_to_image(QPointF(event.pos()))
         if image_pos is not None:
             self._select_for_context_menu(image_pos)
-        self._annotation_menu().exec(event.globalPosition().toPoint())
+        self._annotation_menu().exec(event.globalPos())
         event.accept()
 ```
 
