@@ -100,10 +100,11 @@ class OnUpgradeUvPackages(ActionBase):
             log_path=log_path,
         )
 
-        cmd_exe = os.environ.get("ComSpec") or str(
-            Path(os.environ.get("SystemRoot", r"C:\Windows")) / "System32" / "cmd.exe"
+        cmd_exe = os.environ.get("COMSPEC") or str(
+            Path(os.environ.get("SYSTEMROOT", r"C:\Windows")) / "System32" / "cmd.exe"
         )
-        creation = subprocess.CREATE_NEW_CONSOLE | subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
+        # CREATE_NEW_CONSOLE and DETACHED_PROCESS are mutually exclusive (WinError 87).
+        creation = subprocess.CREATE_NEW_CONSOLE | subprocess.CREATE_NEW_PROCESS_GROUP
         try:
             subprocess.Popen(
                 [cmd_exe, "/c", str(cmd_path)],
@@ -202,10 +203,11 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             log_path=log_path,
         )
 
-        cmd_exe = os.environ.get("ComSpec") or str(
-            Path(os.environ.get("SystemRoot", r"C:\Windows")) / "System32" / "cmd.exe"
+        cmd_exe = os.environ.get("COMSPEC") or str(
+            Path(os.environ.get("SYSTEMROOT", r"C:\Windows")) / "System32" / "cmd.exe"
         )
-        creation = subprocess.CREATE_NEW_CONSOLE | subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
+        # CREATE_NEW_CONSOLE and DETACHED_PROCESS are mutually exclusive (WinError 87).
+        creation = subprocess.CREATE_NEW_CONSOLE | subprocess.CREATE_NEW_PROCESS_GROUP
         try:
             subprocess.Popen(
                 [cmd_exe, "/c", str(cmd_path)],
