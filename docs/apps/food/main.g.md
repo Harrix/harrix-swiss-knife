@@ -566,7 +566,11 @@ class MainWindow(
 
     @requires_database()
     def on_food_analyze_macros(self) -> None:
-        """Fill missing/stale day macros for the current week, then open the week report."""
+        """Fill missing/stale day macros for the current week, then open the week report.
+
+        An up-to-date week report is shown from the cache without calling BotHub again.
+
+        """
         if self.db_manager is None or not self._validate_database_connection():
             message_box.warning(self, "Error", "Database connection not available")
             return
@@ -4476,6 +4480,7 @@ class MainWindow(
         dialog.refresh_requested.connect(lambda: self._run_range_macros_request(date_from, date_to))
         dialog.delete_requested.connect(lambda: self._delete_range_macros_analysis(date_from, date_to))
         dialog.finished.connect(lambda *_args: self._clear_range_macros_dialog(dialog))
+        # Missing or stale period summaries are refreshed; an up-to-date cache is shown as-is.
         if status in {DayMacrosStatus.MISSING, DayMacrosStatus.STALE}:
             QTimer.singleShot(0, lambda: self._run_range_macros_request(date_from, date_to))
         dialog.exec()
@@ -5864,6 +5869,8 @@ def on_food_analyze_macros(self) -> None
 ```
 
 Fill missing/stale day macros for the current week, then open the week report.
+
+An up-to-date week report is shown from the cache without calling BotHub again.
 
 <details>
 <summary>Code:</summary>

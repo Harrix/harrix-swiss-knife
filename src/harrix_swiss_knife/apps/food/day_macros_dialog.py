@@ -40,9 +40,9 @@ from harrix_swiss_knife.qt_lucide_icon import (
     make_lucide_push_button,
 )
 
-_DAY_MACROS_WIDTH_RATIO = 0.5
-_DAY_MACROS_HEIGHT_RATIO = 0.8
-_DAY_MACROS_FALLBACK_SIZE = QSize(600, 720)
+_MACROS_DIALOG_WIDTH_RATIO = 0.5
+_MACROS_DIALOG_HEIGHT_RATIO = 0.8
+_MACROS_DIALOG_FALLBACK_SIZE = QSize(600, 720)
 
 _TONE_COLORS: dict[MacroTone, str] = {
     # In-range numbers: black bold. Icon may still use a calm green check.
@@ -95,10 +95,11 @@ class AdviceMacrosDialogBase(QDialog):
         super().__init__(parent)
         self.setWindowTitle(title)
         self.setMinimumSize(400, 400)
-        self.resize(600, 720)
+        self.resize(_MACROS_DIALOG_FALLBACK_SIZE)
         qt_modality.set_owner_window_modal(self)
         self._local_tab_label = local_language_label.strip() or "Local"
         self._build_ui(show_macro_rows=show_macro_rows)
+        self._size_and_center_on_parent()
 
     def set_busy(self, *, busy: bool) -> None:
         """Disable action buttons while a BotHub request is in flight."""
@@ -211,6 +212,20 @@ class AdviceMacrosDialogBase(QDialog):
     def _set_macro_row(self, row: MacroValueRow, text: str, tone: MacroTone) -> None:
         row.set_value(text, tone)
 
+    def _size_and_center_on_parent(self) -> None:
+        """Resize to 50% width and 80% height of the parent window and center on it."""
+        parent = self.parentWidget()
+        if parent is None:
+            self.resize(_MACROS_DIALOG_FALLBACK_SIZE)
+            return
+        area = parent.frameGeometry()
+        size = QSize(
+            max(1, int(area.width() * _MACROS_DIALOG_WIDTH_RATIO)),
+            max(1, int(area.height() * _MACROS_DIALOG_HEIGHT_RATIO)),
+        )
+        self.resize(size)
+        self.move(centered_top_left(area, size))
+
 
 class DayMacrosDialog(AdviceMacrosDialogBase):
     """Show one day's approximate P/F/C/fiber intake against AI daily norms."""
@@ -232,7 +247,6 @@ class DayMacrosDialog(AdviceMacrosDialogBase):
             local_language_label=local_language_label,
             show_macro_rows=True,
         )
-        self._size_and_center_on_parent()
         self.set_analysis(analysis, status)
 
     def set_analysis(self, analysis: FoodDayMacrosAnalysis | None, status: DayMacrosStatus) -> None:
@@ -291,20 +305,6 @@ class DayMacrosDialog(AdviceMacrosDialogBase):
             notes_en=analysis.notes_en.strip(),
             empty_message="",
         )
-
-    def _size_and_center_on_parent(self) -> None:
-        """Resize to 50% width and 80% height of the parent window and center on it."""
-        parent = self.parentWidget()
-        if parent is None:
-            self.resize(_DAY_MACROS_FALLBACK_SIZE)
-            return
-        area = parent.frameGeometry()
-        size = QSize(
-            max(1, int(area.width() * _DAY_MACROS_WIDTH_RATIO)),
-            max(1, int(area.height() * _DAY_MACROS_HEIGHT_RATIO)),
-        )
-        self.resize(size)
-        self.move(centered_top_left(area, size))
 
 
 class MacroValueRow(QWidget):

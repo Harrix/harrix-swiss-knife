@@ -266,7 +266,7 @@ Return Monday…Sunday ISO dates for the calendar week containing `today`.
 
 ```python
 def calendar_week_bounds(today: date | None = None) -> tuple[str, str]:
-    day = today or date.today()
+    day = today if today is not None else datetime.now(UTC).astimezone().date()
     monday = day - timedelta(days=day.weekday())
     sunday = monday + timedelta(days=6)
     return monday.isoformat(), sunday.isoformat()

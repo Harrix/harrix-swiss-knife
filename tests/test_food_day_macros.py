@@ -7,7 +7,7 @@ from datetime import date
 from pathlib import Path
 
 import pytest
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QWidget
 
 from harrix_swiss_knife.apps.food.day_macros import (
     CalorieThresholds,
@@ -31,7 +31,7 @@ from harrix_swiss_knife.apps.food.day_macros import (
     resolve_day_macros_status,
     unique_calendar_days,
 )
-from harrix_swiss_knife.apps.food.day_macros_dialog import DayMacrosDialog
+from harrix_swiss_knife.apps.food.day_macros_dialog import DayMacrosDialog, RangeMacrosDialog
 from harrix_swiss_knife.apps.food.schema import ensure_food_schema
 
 
@@ -421,3 +421,19 @@ def test_macros_report_recommendation_font_is_larger_than_the_ui(qapp: QApplicat
     )
     assert dialog._notes_local.document().defaultFont().pointSizeF() >= app_point + 5
     dialog.close()
+
+
+def test_day_and_range_macros_dialogs_share_parent_relative_size(qapp: QApplication) -> None:
+    parent = QWidget()
+    parent.resize(1000, 800)
+    parent.show()
+    qapp.processEvents()
+    day = DayMacrosDialog(parent, "2026-09-01", None, DayMacrosStatus.MISSING)
+    period = RangeMacrosDialog(parent, "2026-09-01", "2026-09-07", None, DayMacrosStatus.MISSING)
+    assert day.size() == period.size()
+    area = parent.frameGeometry()
+    assert day.width() == max(1, int(area.width() * 0.5))
+    assert day.height() == max(1, int(area.height() * 0.8))
+    day.close()
+    period.close()
+    parent.close()
