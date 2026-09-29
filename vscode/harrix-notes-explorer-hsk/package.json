@@ -227,6 +227,13 @@
           "default": false,
           "markdownDescription": "Show dates under titles in the **Notes Icons Browse** list (`@hsk-sync:notes-browse`)."
         },
+        "harrixNotesExplorerHsk.pinned.maxItems": {
+          "type": "number",
+          "default": 20,
+          "minimum": 1,
+          "maximum": 50,
+          "markdownDescription": "Maximum number of pinned folders and notes in **Notes Pinned** (Android pinned bar analogue)."
+        },
         "harrixNotesExplorerHsk.openNotesInPreview": {
           "type": "boolean",
           "default": true,
@@ -399,6 +406,24 @@
         "title": "Open in Notes Icons Browse",
         "category": "Harrix Notes HSK",
         "icon": "$(layout-grid)"
+      },
+      {
+        "command": "harrixNotesExplorerHsk.openPinnedBrowse",
+        "title": "Open Notes Pinned",
+        "category": "Harrix Notes HSK",
+        "icon": "$(pinned)"
+      },
+      {
+        "command": "harrixNotesExplorerHsk.pinItem",
+        "title": "Pin",
+        "category": "Harrix Notes HSK",
+        "icon": "$(pin)"
+      },
+      {
+        "command": "harrixNotesExplorerHsk.unpinItem",
+        "title": "Unpin",
+        "category": "Harrix Notes HSK",
+        "icon": "$(pinned)"
       },
       {
         "command": "harrixNotesExplorerHsk.revealInOS",
@@ -629,12 +654,32 @@
           "group": "navigation"
         },
         {
+          "command": "harrixNotesExplorerHsk.openPinnedBrowse",
+          "when": "view == harrixNotesExplorerHsk",
+          "group": "navigation"
+        },
+        {
           "command": "harrixNotesExplorerHsk.hideAllNoteAssets",
           "when": "view == harrixNotesExplorerHsk",
           "group": "1_attachments"
         }
       ],
       "editor/title": [
+        {
+          "command": "harrixNotesExplorerHsk.pinItem",
+          "when": "resourceLangId == markdown && !harrixNotesExplorerHsk.activeNotePinned",
+          "group": "navigation@15"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.unpinItem",
+          "when": "resourceLangId == markdown && harrixNotesExplorerHsk.activeNotePinned",
+          "group": "navigation@15"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.openPinnedBrowse",
+          "when": "resourceLangId == markdown",
+          "group": "navigation@16"
+        },
         {
           "command": "harrixNotesExplorerHsk.openNoteInVisualEditor",
           "when": "resourceLangId == markdown && activeCustomEditorId != 'harrixNotesExplorerHsk.visualMarkdown'",
@@ -835,6 +880,16 @@
           "command": "harrixNotesExplorerHsk.openIconsBrowse",
           "when": "view == harrixNotesExplorerHsk && (viewItem == noteNamedFolder || viewItem == noteHasAttachmentsNamedFolder || viewItem == noteWithAssetsNamedFolder || viewItem == gitNoteNamedFolder || viewItem == gitNoteHasAttachmentsNamedFolder || viewItem == gitNoteWithAssetsNamedFolder)",
           "group": "0_open@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.pinItem",
+          "when": "view == harrixNotesExplorerHsk && harrixNotesExplorerHsk.treeSelectionPinnable && !harrixNotesExplorerHsk.treeSelectionPinned",
+          "group": "0_open@2"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.unpinItem",
+          "when": "view == harrixNotesExplorerHsk && harrixNotesExplorerHsk.treeSelectionPinnable && harrixNotesExplorerHsk.treeSelectionPinned",
+          "group": "0_open@2"
         },
         {
           "command": "harrixNotesExplorerHsk.createNote",

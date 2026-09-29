@@ -1,0 +1,218 @@
+:root {
+  color-scheme: light dark;
+  --hne-gap: 12px;
+  --hne-cell-min: 96px;
+  --hne-radius: 8px;
+  --hne-fg: var(--vscode-foreground);
+  --hne-muted: var(--vscode-descriptionForeground);
+  --hne-bg: var(--vscode-editor-background);
+  --hne-hover: var(--vscode-list-hoverBackground);
+  --hne-active: var(--vscode-list-activeSelectionBackground);
+  --hne-border: var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
+  --hne-focus: var(--vscode-focusBorder);
+  --hne-btn-bg: var(--vscode-button-secondaryBackground);
+  --hne-btn-fg: var(--vscode-button-secondaryForeground);
+  --hne-btn-hover: var(--vscode-button-secondaryHoverBackground);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--hne-bg);
+  color: var(--hne-fg);
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.chrome {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--hne-border);
+  flex-shrink: 0;
+}
+
+.chrome-title {
+  font-weight: 600;
+}
+
+.chrome-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.chrome .icon-btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid transparent;
+  background: var(--hne-btn-bg);
+  color: var(--hne-btn-fg);
+  border-radius: 4px;
+  padding: 4px;
+  width: 28px;
+  height: 28px;
+  line-height: 0;
+  cursor: pointer;
+}
+
+.chrome .icon-btn:hover {
+  background: var(--hne-btn-hover);
+}
+
+.chrome .icon-btn:focus-visible {
+  outline: 1px solid var(--hne-focus);
+  outline-offset: 1px;
+}
+
+.main {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 14px;
+}
+
+.status {
+  color: var(--hne-muted);
+  padding: 24px 8px;
+  text-align: center;
+  line-height: 1.45;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--hne-cell-min), 1fr));
+  gap: var(--hne-gap);
+}
+
+.cell {
+  appearance: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 12px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--hne-radius);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-align: center;
+  min-width: 0;
+}
+
+.cell:hover {
+  background: var(--hne-hover);
+}
+
+.cell:focus-visible {
+  outline: 1px solid var(--hne-focus);
+  outline-offset: 1px;
+}
+
+.cell.missing {
+  opacity: 0.45;
+}
+
+.glyph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  font-size: 28px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.glyph img,
+.glyph svg {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.glyph.home svg {
+  width: 36px;
+  height: 36px;
+}
+
+.label {
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  word-break: break-word;
+  line-height: 1.25;
+}
+
+.caption {
+  width: 100%;
+  color: var(--hne-muted);
+  font-size: 0.85em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ctx-menu {
+  position: fixed;
+  z-index: 1000;
+  min-width: 180px;
+  max-width: min(320px, calc(100vw - 16px));
+  max-height: calc(100vh - 16px);
+  overflow: auto;
+  padding: 4px 0;
+  border: 1px solid var(--hne-border);
+  border-radius: 6px;
+  background: var(--vscode-menu-background, var(--hne-bg));
+  color: var(--vscode-menu-foreground, var(--hne-fg));
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.ctx-item {
+  appearance: none;
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 6px 14px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ctx-item:hover {
+  background: var(--vscode-menu-selectionBackground, var(--hne-active));
+  color: var(--vscode-menu-selectionForeground, inherit);
+}
+
+.ctx-sep {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--hne-border);
+}

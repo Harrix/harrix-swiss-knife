@@ -9,6 +9,8 @@ const CMD = {
   openNoteInEditor: 'harrixNotesExplorerHsk.openNoteInEditor',
   openNoteInPreview: 'harrixNotesExplorerHsk.openNoteInPreview',
   openNoteInVisualEditor: 'harrixNotesExplorerHsk.openNoteInVisualEditor',
+  pinItem: 'harrixNotesExplorerHsk.pinItem',
+  unpinItem: 'harrixNotesExplorerHsk.unpinItem',
   createNote: 'harrixNotesExplorerHsk.createNote',
   createMarpNote: 'harrixNotesExplorerHsk.createMarpNote',
   createJupyterNote: 'harrixNotesExplorerHsk.createJupyterNote',
@@ -85,6 +87,7 @@ function sep() {
  *   openNotesInPreview?: boolean,
  *   isWorkspaceRoot?: boolean,
  *   background?: boolean,
+ *   isPinned?: boolean,
  * }} [opts]
  * @returns {Array<{ type: 'item', command: string, title: string } | { type: 'separator' }>}
  */
@@ -93,8 +96,14 @@ function buildIconsBrowseContextMenu(contextValue, opts) {
   const canPaste = opts?.canPaste === true;
   const openNotesInPreview = opts?.openNotesInPreview !== false;
   const isWorkspaceRoot = opts?.isWorkspaceRoot === true;
+  const pinned = opts?.isPinned === true;
   /** @type {Array<{ type: 'item', command: string, title: string } | { type: 'separator' }>} */
   const out = [];
+
+  const pushPin = () => {
+    out.push(item(pinned ? CMD.unpinItem : CMD.pinItem, pinned ? 'Unpin' : 'Pin'));
+    out.push(sep());
+  };
 
   const pushCommonNav = () => {
     out.push(item(CMD.copyPath, 'Copy Path'));
@@ -190,6 +199,7 @@ function buildIconsBrowseContextMenu(contextValue, opts) {
   }
 
   if (base.startsWith('notesFolder')) {
+    pushPin();
     out.push(item(CMD.createNote, 'New Note…'));
     out.push(item(CMD.createMarpNote, 'New Marp Presentation…'));
     out.push(item(CMD.createJupyterNote, 'New Jupyter Notebook…'));
@@ -219,6 +229,7 @@ function buildIconsBrowseContextMenu(contextValue, opts) {
   }
 
   if (base.startsWith('note')) {
+    pushPin();
     out.push(item(CMD.openNote, 'Open'));
     if (openNotesInPreview) {
       out.push(item(CMD.openNoteInEditor, 'Open in Editor'));

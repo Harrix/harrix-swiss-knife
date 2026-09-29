@@ -15,6 +15,7 @@ const { activateNewNote } = require('./new-note');
 /** @hsk-sync:note-meta — title/date resolution (keep synced with pyssg + Android) */
 const noteMeta = require('./note-meta');
 const { activateIconsBrowse, refreshIconsBrowseIfOpen } = require('./icons-browse');
+const { activatePinnedBrowse, refreshPinnedBrowseIfOpen } = require('./pinned-browse');
 const { activateVisualEditor } = require('./visual-editor');
 const { isMarpMarkdown, renderMarpPreviewHtml, renderMarpPresentWebview } = require('./marp-deck');
 const { isJupyterMarkdown, renderJupyterPreviewHtml } = require('./jupyter-notebook');
@@ -2126,6 +2127,11 @@ class NotesProvider {
    * @param {FolderExpansionMemory | null} expansionMemory
    * @param {NoteAssetsVisibility | null} assetsVisibility
    */
+  /**
+   * @param {WorkspaceRootEntry[]} rootEntries
+   * @param {FolderExpansionMemory | null} expansionMemory
+   * @param {NoteAssetsVisibility | null} assetsVisibility
+   */
   constructor(rootEntries, expansionMemory, assetsVisibility) {
     /** @type {WorkspaceRootEntry[]} */
     this.rootEntries = Array.isArray(rootEntries) ? rootEntries.slice() : [];
@@ -4020,6 +4026,31 @@ async function activateWorkbench(context) {
   });
   context.subscriptions.push(view);
 
+  const updateTreePinContext = () => {
+    const el = view.selection?.[0];
+    let fsPath = '';
+    let pinnable = false;
+    if (el?.isNoteItem && el.resourceUri?.fsPath) {
+      fsPath = el.resourceUri.fsPath;
+      pinnable = isMd(path.basename(fsPath));
+    } else if (typeof el?.dirPath === 'string' && el.dirPath && !el.isAssetFolder) {
+      fsPath = el.dirPath;
+      pinnable = true;
+    }
+    let pinned = false;
+    if (pinnable && fsPath) {
+      try {
+        pinned = require('./pinned-browse').getPinnedStore()?.isPinned(fsPath) === true;
+      } catch {
+        pinned = false;
+      }
+    }
+    void vscode.commands.executeCommand('setContext', 'harrixNotesExplorerHsk.treeSelectionPinnable', pinnable);
+    void vscode.commands.executeCommand('setContext', 'harrixNotesExplorerHsk.treeSelectionPinned', pinned);
+  };
+  context.subscriptions.push(view.onDidChangeSelection(() => updateTreePinContext()));
+  updateTreePinContext();
+
   context.subscriptions.push(
     vscode.workspace.onDidChangeWorkspaceFolders(() => {
       provider.setRootEntries(getWorkspaceRootEntries());
@@ -4102,10 +4133,12 @@ async function activateWorkbench(context) {
         e.affectsConfiguration('harrixNotesExplorerHsk.iconStyle') ||
         e.affectsConfiguration('harrixNotesExplorerHsk.sortDateNamesNewestFirst') ||
         e.affectsConfiguration('harrixNotesExplorerHsk.iconsBrowse') ||
+        e.affectsConfiguration('harrixNotesExplorerHsk.pinned') ||
         e.affectsConfiguration('harrixNotesExplorerHsk.openNotesInPreview')
       ) {
         provider.refresh();
         refreshIconsBrowseIfOpen();
+        refreshPinnedBrowseIfOpen();
       }
       if (e.affectsConfiguration('harrixNotesExplorerHsk.autoReveal')) {
         queueAutoReveal();
@@ -4124,6 +4157,23 @@ async function activateWorkbench(context) {
     openNote: async (uri) => {
       await openHarrixNote(uri, 'primary');
     },
+  });
+
+  activatePinnedBrowse({
+    context,
+    provider,
+    openNote: async (uri) => {
+      await openHarrixNote(uri, 'primary');
+    },
+    getNoteDisplayLabel,
+    getNoteIcon: (filePath) => noteTitleCache.getIconFast(filePath) || '',
+    findFeaturedImagePath: (noteDir) => findFeaturedImagePath(noteDir) || '',
+    noteStemFromPath,
+    isMd,
+    isDirectoryPath,
+    isFilePath,
+    uriToFsPath,
+    noteUriFromTreeArg,
   });
 
   context.subscriptions.push(
@@ -4741,6 +4791,16 @@ async function activateWorkbench(context) {
       if (choice !== 'Delete') return;
 
       await vscode.workspace.fs.delete(vscode.Uri.file(fsPath), { recursive: isDir, useTrash: true });
+      try {
+        const pinned = require('./pinned-browse');
+        const pinnedStore = pinned.getPinnedStore?.();
+        if (pinnedStore) {
+          await pinnedStore.unpin(fsPath);
+          pinned.refreshPinnedBrowseIfOpen?.();
+        }
+      } catch {
+        // pinned module optional during teardown
+      }
       provider.refresh();
     }),
   );
@@ -4750,6 +4810,7 @@ async function activateWorkbench(context) {
   const refreshTreeAndIconsBrowse = () => {
     provider.refresh();
     refreshIconsBrowseIfOpen();
+    refreshPinnedBrowseIfOpen();
   };
   watcher.onDidCreate(refreshTreeAndIconsBrowse);
   watcher.onDidDelete(refreshTreeAndIconsBrowse);

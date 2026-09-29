@@ -573,6 +573,7 @@ function postState() {
       canPaste,
       openNotesInPreview,
       isWorkspaceRoot: entry.isWorkspaceRoot === true,
+      isPinned: isPathPinned(entry.path),
     }),
   }));
   const iconStyle = getNotesIconStyleFromConfig();
@@ -794,6 +795,22 @@ function enrichBrowseEntry(entry, browse) {
 }
 
 /**
+ * @param {string} fsPath
+ * @returns {boolean}
+ */
+function isPathPinned(fsPath) {
+  if (!fsPath) {
+    return false;
+  }
+  try {
+    const { getPinnedStore } = require('./pinned-browse');
+    return getPinnedStore()?.isPinned(fsPath) === true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * @param {string | undefined} key
  * @param {unknown} value
  */
@@ -963,6 +980,7 @@ function postContextMenu(msg) {
     openNotesInPreview,
     isWorkspaceRoot,
     background,
+    isPinned: isPathPinned(targetPath),
   });
   void panel.webview.postMessage({
     type: 'contextMenu',
