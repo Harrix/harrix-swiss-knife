@@ -516,7 +516,7 @@ Create a push button with a Lucide icon.
 
 Labels that are Delete / Clear / Remove / Discard (or start with those words)
 get the shared red chrome and a white icon on that fill. Clear labels use the
-eraser icon when a trash ID was passed by mistake.
+broom icon when a trash ID was passed by mistake.
 
 <details>
 <summary>Code:</summary>

@@ -168,7 +168,7 @@ fun MainScreen(
             UtilityCardItem(
                 titleRes = R.string.nav_drawer_gallery_cleaner,
                 descriptionRes = R.string.gallery_cleaner_card_description,
-                icon = LucideIcons.Eraser,
+                icon = LucideIcons.Broom,
                 destination = AppDestination.GalleryCleaner,
             ),
             UtilityCardItem(
@@ -597,7 +597,7 @@ private fun AppNavigationDrawerContent(
             label = stringResource(R.string.nav_drawer_gallery_cleaner),
             selected = selected == AppDestination.GalleryCleaner,
             onClick = { onNavigate(AppDestination.GalleryCleaner) },
-            icon = LucideIcons.Eraser,
+            icon = LucideIcons.Broom,
         )
         DrawerNavItem(
             label = stringResource(R.string.nav_drawer_video_cleaner),
