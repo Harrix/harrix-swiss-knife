@@ -25,7 +25,7 @@ lang: en
 class ScreenshotTextToolbar(QWidget)
 ```
 
-Compact font / style strip shown while the text tool is active.
+Compact font / style strip shown while editing text or the text tool is active.
 
 <details>
 <summary>Code:</summary>

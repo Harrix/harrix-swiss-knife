@@ -158,6 +158,36 @@ def test_eyedropper_zoom_draws_unsmoothed_pixels(qapp: QApplication) -> None:
     canvas.close()
 
 
+def test_text_settings_bar_shows_while_editing_even_if_another_tool_is_selected(
+    qapp: QApplication,  # noqa: ARG001
+) -> None:
+    image = QImage(120, 80, QImage.Format.Format_RGB32)
+    image.fill(Qt.GlobalColor.white)
+    window = show_screenshot_preview(image)
+    tab = window._current_tab()
+    assert tab is not None
+    document = tab.canvas._document
+    assert document is not None
+    document.begin_draft(
+        Annotation(
+            tool=AnnotationTool.TEXT,
+            points=[QPointF(10, 10), QPointF(100, 50)],
+            text="Hello",
+            style=AnnotationStyle(color=QColor("#de2b26"), font_family="Arial", font_size=16),
+        )
+    )
+    assert document.commit_draft()
+    window._set_tool(AnnotationTool.ARROW)
+    assert not window._text_bar_host.isVisible()
+    tab.canvas.begin_text_edit(0)
+    assert window._text_bar_host.isVisible()
+    tab.canvas.cancel_text_edit()
+    assert not window._text_bar_host.isVisible()
+    window._set_tool(AnnotationTool.TEXT)
+    assert window._text_bar_host.isVisible()
+    window.close()
+
+
 def test_each_drawing_tool_keeps_its_own_color(
     qapp: QApplication,  # noqa: ARG001
     monkeypatch: pytest.MonkeyPatch,

@@ -48,6 +48,8 @@ from harrix_swiss_knife.screenshot.annotations import (
     paint_annotation,
     sample_composited_color,
     step_circle_points,
+    step_circle_radius,
+    step_points_for_shared_radius,
     text_annotation_rect,
 )
 from harrix_swiss_knife.screenshot.selection_edit import (
@@ -990,6 +992,14 @@ class ScreenshotPreviewCanvas(QWidget):
                     other,
                     [QPointF(point.x() + dx, point.y() + dy) for point in other_points],
                 )
+        elif annotation.tool == AnnotationTool.STEP and handle != "move":
+            radius = step_circle_radius(snapped.points)
+            for other_index, points in step_points_for_shared_radius(
+                document.annotations,
+                radius,
+                exclude_index=index,
+            ).items():
+                document.update_annotation_points(other_index, points)
         self.update()
 
     def _apply_selection_indices(self, indices: Sequence[int]) -> None:

@@ -49,7 +49,10 @@ lang: en
 - [🔧 Function `next_step_number`](#-function-next_step_number)
 - [🔧 Function `paint_annotation`](#-function-paint_annotation)
 - [🔧 Function `sample_composited_color`](#-function-sample_composited_color)
+- [🔧 Function `step_circle_at_radius`](#-function-step_circle_at_radius)
 - [🔧 Function `step_circle_points`](#-function-step_circle_points)
+- [🔧 Function `step_circle_radius`](#-function-step_circle_radius)
+- [🔧 Function `step_points_for_shared_radius`](#-function-step_points_for_shared_radius)
 - [🔧 Function `text_annotation_rect`](#-function-text_annotation_rect)
 
 </details>
@@ -1230,6 +1233,28 @@ def sample_composited_color(base: QImage, annotations: Sequence[Annotation], poi
 
 </details>
 
+## 🔧 Function `step_circle_at_radius`
+
+```python
+def step_circle_at_radius(center: QPointF, radius: float) -> list[QPointF]
+```
+
+Return the bounding square of a step circle with fixed `center` and `radius`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def step_circle_at_radius(center: QPointF, radius: float) -> list[QPointF]:
+    radius = max(radius, _STEP_MIN_RADIUS)
+    return [
+        QPointF(center.x() - radius, center.y() - radius),
+        QPointF(center.x() + radius, center.y() + radius),
+    ]
+```
+
+</details>
+
 ## 🔧 Function `step_circle_points`
 
 ```python
@@ -1246,15 +1271,62 @@ shrinks below the minimum so the number still fits.
 
 ```python
 def step_circle_points(center: QPointF, edge: QPointF, *, clicked: bool = False) -> list[QPointF]:
-    if clicked:
-        radius = _STEP_DEFAULT_RADIUS
-    else:
-        radius = math.hypot(edge.x() - center.x(), edge.y() - center.y())
-        radius = max(radius, _STEP_MIN_RADIUS)
-    return [
-        QPointF(center.x() - radius, center.y() - radius),
-        QPointF(center.x() + radius, center.y() + radius),
-    ]
+    radius = _STEP_DEFAULT_RADIUS if clicked else math.hypot(edge.x() - center.x(), edge.y() - center.y())
+    return step_circle_at_radius(center, radius)
+```
+
+</details>
+
+## 🔧 Function `step_circle_radius`
+
+```python
+def step_circle_radius(points: Sequence[QPointF]) -> float
+```
+
+Return the radius of a step circle from its bounding-square points.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def step_circle_radius(points: Sequence[QPointF]) -> float:
+    if len(points) < _MIN_SHAPE_POINTS:
+        return _STEP_DEFAULT_RADIUS
+    rect = QRectF(points[0], points[-1]).normalized()
+    return max(rect.width(), rect.height()) / 2.0
+```
+
+</details>
+
+## 🔧 Function `step_points_for_shared_radius`
+
+```python
+def step_points_for_shared_radius(annotations: Sequence[Annotation], radius: float, *, exclude_index: int | None = None) -> dict[int, list[QPointF]]
+```
+
+Return new points for every STEP circle so they share `radius` from their centers.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def step_points_for_shared_radius(
+    annotations: Sequence[Annotation],
+    radius: float,
+    *,
+    exclude_index: int | None = None,
+) -> dict[int, list[QPointF]]:
+    updates: dict[int, list[QPointF]] = {}
+    for index, item in enumerate(annotations):
+        if index == exclude_index or item.tool != AnnotationTool.STEP:
+            continue
+        if len(item.points) < _MIN_SHAPE_POINTS:
+            continue
+        rect = QRectF(item.points[0], item.points[-1]).normalized()
+        if rect.isEmpty():
+            continue
+        updates[index] = step_circle_at_radius(rect.center(), radius)
+    return updates
 ```
 
 </details>

@@ -13,6 +13,7 @@ from harrix_swiss_knife.screenshot.annotations import (
     Annotation,
     AnnotationTool,
     constrain_shape_end,
+    step_circle_at_radius,
     text_annotation_rect,
 )
 from harrix_swiss_knife.screenshot.selection_edit import cursor_for_handle
@@ -103,19 +104,21 @@ def apply_annotation_edit(
     if origin_rect.isEmpty():
         delta = current - press
         return [QPointF(p.x() + delta.x(), p.y() + delta.y()) for p in origin_points]
+    if annotation.tool == AnnotationTool.STEP:
+        # Resize from the center: half-side is the Chebyshev distance to the pointer
+        # so corner and edge handles keep the same radius when the drag starts.
+        center = origin_rect.center()
+        half = max(abs(current.x() - center.x()), abs(current.y() - center.y()))
+        return step_circle_at_radius(center, half)
     new_rect = _transform_rect(origin_rect, handle, press, current)
-    if annotation.tool == AnnotationTool.STEP or (
-        shift
-        and annotation.tool
-        in {
-            AnnotationTool.BLUR,
-            AnnotationTool.ELLIPSE,
-            AnnotationTool.HIGHLIGHT,
-            AnnotationTool.PIXELATE,
-            AnnotationTool.RECTANGLE,
-            AnnotationTool.SMART_ERASER,
-        }
-    ):
+    if shift and annotation.tool in {
+        AnnotationTool.BLUR,
+        AnnotationTool.ELLIPSE,
+        AnnotationTool.HIGHLIGHT,
+        AnnotationTool.PIXELATE,
+        AnnotationTool.RECTANGLE,
+        AnnotationTool.SMART_ERASER,
+    }:
         new_rect = _square_rect_from_handle(origin_rect, new_rect, handle)
     if annotation.tool in {
         AnnotationTool.RECTANGLE,
@@ -124,7 +127,6 @@ def apply_annotation_edit(
         AnnotationTool.BLUR,
         AnnotationTool.PIXELATE,
         AnnotationTool.SMART_ERASER,
-        AnnotationTool.STEP,
         AnnotationTool.TEXT,
     }:
         return [new_rect.topLeft(), new_rect.bottomRight()]

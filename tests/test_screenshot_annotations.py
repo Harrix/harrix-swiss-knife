@@ -25,7 +25,10 @@ from harrix_swiss_knife.screenshot.annotations import (
     constrain_shape_end,
     next_step_number,
     sample_composited_color,
+    step_circle_at_radius,
     step_circle_points,
+    step_circle_radius,
+    step_points_for_shared_radius,
 )
 
 
@@ -651,6 +654,49 @@ def test_step_click_is_a_default_circle_and_drag_uses_the_radius() -> None:
     assert dragged[0].x() == pytest.approx(10.0)
     assert dragged[1].x() == pytest.approx(70.0)
     assert dragged[1].y() - dragged[0].y() == pytest.approx(60.0)
+
+
+def test_resize_step_keeps_center_and_uses_chebyshev_radius() -> None:
+    origin = step_circle_at_radius(QPointF(40, 50), 18.0)
+    center = QRectF(origin[0], origin[1]).center()
+    resized = apply_annotation_edit(
+        Annotation(tool=AnnotationTool.STEP, points=origin, style=AnnotationStyle(), text="1"),
+        "se",
+        origin,
+        QPointF(58, 68),
+        QPointF(70, 80),
+        shift=False,
+    )
+    new_center = QRectF(resized[0], resized[1]).center()
+    assert new_center.x() == pytest.approx(center.x())
+    assert new_center.y() == pytest.approx(center.y())
+    assert step_circle_radius(resized) == pytest.approx(30.0)
+
+
+def test_step_points_for_shared_radius_keeps_centers() -> None:
+    first = Annotation(
+        tool=AnnotationTool.STEP,
+        points=step_circle_at_radius(QPointF(30, 30), 12.0),
+        style=AnnotationStyle(),
+        text="1",
+    )
+    second = Annotation(
+        tool=AnnotationTool.STEP,
+        points=step_circle_at_radius(QPointF(80, 60), 20.0),
+        style=AnnotationStyle(),
+        text="2",
+    )
+    rect = Annotation(
+        tool=AnnotationTool.RECTANGLE,
+        points=[QPointF(0, 0), QPointF(10, 10)],
+        style=AnnotationStyle(),
+    )
+    updates = step_points_for_shared_radius([first, rect, second], 25.0, exclude_index=0)
+    assert 0 not in updates
+    assert 1 not in updates
+    assert step_circle_radius(updates[2]) == pytest.approx(25.0)
+    assert QRectF(updates[2][0], updates[2][1]).center().x() == pytest.approx(80.0)
+    assert QRectF(updates[2][0], updates[2][1]).center().y() == pytest.approx(60.0)
 
 
 def test_next_step_number_follows_the_highest_remaining_circle() -> None:

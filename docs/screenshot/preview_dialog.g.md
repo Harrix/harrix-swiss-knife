@@ -623,18 +623,23 @@ class ScreenshotPreviewWindow(QMainWindow):
 
     def _on_text_editing_changed(self, active: bool) -> None:  # noqa: FBT001
         tab = self._current_tab()
-        if tab is None or not active:
+        if active:
+            if tab is not None:
+                settings = annotation_style_to_settings(
+                    tab.canvas.annotation_style,
+                    cyrillic_fonts_only=self._text_settings.cyrillic_fonts_only,
+                )
+                self._text_settings = settings
+                self._text_toolbar.set_settings(settings)
+                color = QColor(settings.color)
+                if color.isValid():
+                    self._annotation_color = color
+                    self._update_color_button()
+            self._text_bar_host.setVisible(True)
             return
-        settings = annotation_style_to_settings(
-            tab.canvas.annotation_style,
-            cyrillic_fonts_only=self._text_settings.cyrillic_fonts_only,
-        )
-        self._text_settings = settings
-        self._text_toolbar.set_settings(settings)
-        color = QColor(settings.color)
-        if color.isValid():
-            self._annotation_color = color
-            self._update_color_button()
+        text_button = self._tool_buttons.get(AnnotationTool.TEXT)
+        text_tool_active = text_button is not None and text_button.isChecked()
+        self._text_bar_host.setVisible(text_tool_active and not self._crop_bar.isVisible())
 
     def _on_text_settings_changed(self, settings: object) -> None:
         if not isinstance(settings, ScreenshotTextSettings):
