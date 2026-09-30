@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -17,10 +18,14 @@ from harrix_swiss_knife.apps.food.calorie_thresholds_calc import (
     round_kcal,
 )
 from harrix_swiss_knife.apps.food.calorie_thresholds_config import (
+    StoredAgeHeight,
+    estimate_age_from_recorded,
     food_calorie_thresholds_are_configured,
+    load_food_person_age_height,
     load_food_person_profile,
     load_food_person_profile_for_setup,
     load_latest_fitness_weight_kg,
+    resolve_age_for_save,
     save_food_calorie_threshold_setup,
 )
 from harrix_swiss_knife.apps.food.day_macros import CalorieThresholds
@@ -50,9 +55,37 @@ def test_round_kcal_steps_and_minimum() -> None:
 
 
 def test_person_profile_round_trip() -> None:
-    profile = PersonProfile(sex="female", age=42, height_cm=168.5, weight_kg=61.2, activity="light")
+    profile = PersonProfile(
+        sex="female",
+        age=42,
+        height_cm=168.5,
+        weight_kg=61.2,
+        activity="light",
+        want_to_lose_weight=True,
+    )
     restored = person_profile_from_mapping(person_profile_to_mapping(profile))
     assert restored == profile
+
+
+def test_estimate_calorie_bands_lose_weight_scales_down() -> None:
+    base = PersonProfile(sex="male", age=30, height_cm=175.0, weight_kg=70.0, activity="moderate")
+    lose = PersonProfile(
+        sex="male",
+        age=30,
+        height_cm=175.0,
+        weight_kg=70.0,
+        activity="moderate",
+        want_to_lose_weight=True,
+    )
+    maintenance = estimate_calorie_bands(base)
+    deficit = estimate_calorie_bands(lose)
+    assert deficit.tdee == pytest.approx(maintenance.tdee)
+    assert deficit.thresholds.low == float(round_kcal(maintenance.tdee * 0.85 * 0.85))
+    assert deficit.thresholds.medium_low == float(round_kcal(maintenance.tdee * 0.85))
+    assert deficit.thresholds.medium_high == float(round_kcal(maintenance.tdee * 1.2 * 0.85))
+    assert deficit.thresholds.low < maintenance.thresholds.low
+    assert deficit.thresholds.medium_low < maintenance.thresholds.medium_low
+    assert deficit.thresholds.medium_high < maintenance.thresholds.medium_high
 
 
 def test_person_profile_from_mapping_rejects_invalid() -> None:
@@ -86,6 +119,7 @@ def test_save_food_calorie_threshold_setup_writes_flag_profile_and_bands(tmp_pat
         thresholds=thresholds,
         profile=profile,
         config_path=str(config_path),
+        today=date(2026, 3, 15),
     )
 
     assert updated["food_calorie_thresholds_configured"] is True
@@ -94,6 +128,87 @@ def test_save_food_calorie_threshold_setup_writes_flag_profile_and_bands(tmp_pat
     written = json.loads(config_path.read_text(encoding="utf-8"))
     assert written["food_calorie_thresholds_configured"] is True
     assert written["food_person_profile"]["age"] == 35
+    stored = load_food_person_age_height(config_path=str(config_path))
+    assert stored == StoredAgeHeight(age=35, height_cm=180.0, age_recorded_on=date(2026, 3, 15))
+
+
+def test_estimate_age_from_recorded_advances_on_anniversary() -> None:
+    recorded = date(2024, 6, 10)
+    assert estimate_age_from_recorded(30, recorded, today=date(2024, 6, 9)) == 30
+    assert estimate_age_from_recorded(30, recorded, today=date(2024, 6, 10)) == 30
+    assert estimate_age_from_recorded(30, recorded, today=date(2025, 6, 9)) == 30
+    assert estimate_age_from_recorded(30, recorded, today=date(2025, 6, 10)) == 31
+    assert estimate_age_from_recorded(30, recorded, today=date(2027, 6, 11)) == 33
+
+
+def test_resolve_age_for_save_keeps_base_when_estimate_matches() -> None:
+    previous = StoredAgeHeight(age=30, height_cm=175.0, age_recorded_on=date(2024, 1, 1))
+    age, recorded = resolve_age_for_save(31, previous, today=date(2025, 1, 1))
+    assert age == 30
+    assert recorded == date(2024, 1, 1)
+    age, recorded = resolve_age_for_save(40, previous, today=date(2025, 1, 1))
+    assert age == 40
+    assert recorded == date(2025, 1, 1)
+
+
+def test_load_food_person_profile_for_setup_estimates_age_from_temp(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.json"
+    config_path.write_text(
+        json.dumps(
+            {
+                "food_person_profile": {
+                    "sex": "female",
+                    "age": 40,
+                    "height_cm": 160,
+                    "weight_kg": 70,
+                    "activity": "light",
+                },
+            },
+        ),
+        encoding="utf-8",
+    )
+    (tmp_path / "config-temp.json").write_text(
+        json.dumps(
+            {
+                "food_person_age_height": {
+                    "age": 40,
+                    "height_cm": 165.5,
+                    "age_recorded_on": "2024-09-30",
+                },
+            },
+        ),
+        encoding="utf-8",
+    )
+    profile = load_food_person_profile_for_setup(
+        json.loads(config_path.read_text(encoding="utf-8")),
+        config_path=str(config_path),
+        today=date(2026, 9, 30),
+    )
+    assert profile is not None
+    assert profile.sex == "female"
+    assert profile.age == 42
+    assert profile.height_cm == pytest.approx(165.5)
+
+
+def test_save_keeps_age_recorded_on_when_estimated_age_unchanged(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.json"
+    config_path.write_text("{}", encoding="utf-8")
+    profile = PersonProfile(sex="male", age=35, height_cm=180.0, weight_kg=80.0)
+    thresholds = CalorieThresholds(low=2000.0, medium_low=2400.0, medium_high=2900.0)
+    save_food_calorie_threshold_setup(
+        thresholds=thresholds,
+        profile=profile,
+        config_path=str(config_path),
+        today=date(2024, 3, 1),
+    )
+    save_food_calorie_threshold_setup(
+        thresholds=thresholds,
+        profile=PersonProfile(sex="male", age=36, height_cm=181.0, weight_kg=80.0),
+        config_path=str(config_path),
+        today=date(2025, 3, 1),
+    )
+    stored = load_food_person_age_height(config_path=str(config_path))
+    assert stored == StoredAgeHeight(age=35, height_cm=181.0, age_recorded_on=date(2024, 3, 1))
 
 
 def test_load_latest_fitness_weight_kg_uses_newest_row(tmp_path: Path) -> None:
@@ -133,7 +248,7 @@ def test_load_food_person_profile_for_setup_prefers_fitness_weight(tmp_path: Pat
             "activity": "light",
         },
     }
-    profile = load_food_person_profile_for_setup(config)
+    profile = load_food_person_profile_for_setup(config, config_path=str(tmp_path / "config.json"))
     assert profile is not None
     assert profile.sex == "female"
     assert profile.age == 40

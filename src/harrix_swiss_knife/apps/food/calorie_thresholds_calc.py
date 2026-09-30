@@ -28,6 +28,7 @@ ACTIVITY_LABELS: tuple[tuple[ActivityLevel, str], ...] = (
 
 _LOW_RATIO = 0.85
 _HIGH_RATIO = 1.2
+_LOSE_WEIGHT_RATIO = 0.85
 _ROUND_STEP = 50
 _AGE_MIN = 10
 _AGE_MAX = 120
@@ -55,6 +56,7 @@ class PersonProfile:
     height_cm: float
     weight_kg: float
     activity: ActivityLevel = "moderate"
+    want_to_lose_weight: bool = False
 
 
 def estimate_calorie_bands(profile: PersonProfile) -> CalorieEstimate:
@@ -62,16 +64,18 @@ def estimate_calorie_bands(profile: PersonProfile) -> CalorieEstimate:
 
     Uses Mifflin St Jeor BMR and a standard activity multiplier. Suggested
     bands: low ~ 85% of TDEE, medium_low ~ TDEE, medium_high ~ 120% of TDEE,
-    each rounded to the nearest 50 kcal.
+    each rounded to the nearest 50 kcal. When `want_to_lose_weight` is set,
+    all three bands are scaled by 85% (~15% deficit).
 
     """
     bmr = mifflin_st_jeor_bmr(profile)
     factor = ACTIVITY_FACTORS[profile.activity]
     tdee = bmr * factor
+    band_scale = _LOSE_WEIGHT_RATIO if profile.want_to_lose_weight else 1.0
     thresholds = CalorieThresholds(
-        low=float(round_kcal(tdee * _LOW_RATIO)),
-        medium_low=float(round_kcal(tdee)),
-        medium_high=float(round_kcal(tdee * _HIGH_RATIO)),
+        low=float(round_kcal(tdee * _LOW_RATIO * band_scale)),
+        medium_low=float(round_kcal(tdee * band_scale)),
+        medium_high=float(round_kcal(tdee * _HIGH_RATIO * band_scale)),
     )
     return CalorieEstimate(bmr=bmr, tdee=tdee, thresholds=thresholds)
 
@@ -120,6 +124,7 @@ def person_profile_from_mapping(raw: object) -> PersonProfile | None:
         height_cm=height_cm,
         weight_kg=weight_kg,
         activity=activity,  # type: ignore[arg-type]
+        want_to_lose_weight=bool(raw.get("want_to_lose_weight")),
     )
 
 
@@ -131,6 +136,7 @@ def person_profile_to_mapping(profile: PersonProfile) -> dict[str, object]:
         "height_cm": round(profile.height_cm, 1),
         "weight_kg": round(profile.weight_kg, 1),
         "activity": profile.activity,
+        "want_to_lose_weight": profile.want_to_lose_weight,
     }
 
 

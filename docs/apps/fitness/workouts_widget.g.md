@@ -251,6 +251,9 @@ class WorkoutsWidget(QWidget):
             cell.setPalette(palette)
 
     def _build_ui(self) -> None:
+        self.setObjectName("workoutsWidget")
+        self.setStyleSheet(f"QWidget#workoutsWidget {{ {_WHITE_SURFACE} }}")
+
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
@@ -308,9 +311,13 @@ class WorkoutsWidget(QWidget):
         root.addWidget(self._session_bar)
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
+        splitter.setObjectName("workoutsSplitter")
+        splitter.setStyleSheet(f"QWidget#workoutsSplitter {{ {_WHITE_SURFACE} }}")
         root.addWidget(splitter, 1)
 
         left = QWidget()
+        left.setObjectName("workoutsLeftPanel")
+        left.setStyleSheet(f"QWidget#workoutsLeftPanel {{ {_WHITE_SURFACE} }}")
         left_layout = QVBoxLayout(left)
         left_layout.setContentsMargins(8, 8, 8, 8)
         left_layout.addWidget(QLabel("Workouts"))
@@ -343,6 +350,8 @@ class WorkoutsWidget(QWidget):
         splitter.addWidget(left)
 
         right = QWidget()
+        right.setObjectName("workoutsRightPanel")
+        right.setStyleSheet(f"QWidget#workoutsRightPanel {{ {_WHITE_SURFACE} }}")
         right_layout = QVBoxLayout(right)
         right_layout.setContentsMargins(8, 8, 8, 8)
         title_row = QHBoxLayout()

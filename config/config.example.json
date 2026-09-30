@@ -84,7 +84,8 @@
     "age": 30,
     "height_cm": 175,
     "weight_kg": 70,
-    "activity": "moderate"
+    "activity": "moderate",
+    "want_to_lose_weight": false
   },
   "apps": {
     "fitness_image_max_size": 330,

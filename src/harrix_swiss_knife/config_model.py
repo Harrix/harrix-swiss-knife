@@ -148,6 +148,14 @@ class FoodCalorieThresholds(TypedDict, total=False):
     medium_high: int
 
 
+class FoodPersonAgeHeight(TypedDict, total=False):
+    """Age / height snapshot in `config-temp.json` (`food_person_age_height`)."""
+
+    age: int
+    height_cm: float
+    age_recorded_on: str
+
+
 class FoodPersonProfile(TypedDict, total=False):
     """Body metrics used to estimate `food_calorie_thresholds`."""
 
@@ -156,6 +164,7 @@ class FoodPersonProfile(TypedDict, total=False):
     height_cm: float
     weight_kg: float
     activity: str
+    want_to_lose_weight: bool
 
 
 class GeminiSettings(TypedDict, total=False):

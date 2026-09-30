@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from PySide6.QtWidgets import (
+    QCheckBox,
     QComboBox,
     QDialog,
     QDialogButtonBox,
@@ -91,6 +92,11 @@ class CalorieThresholdsSetupDialog(QDialog):
         self._activity.setCurrentIndex(max(activity_index, 0))
         form.addRow("Activity:", self._activity)
 
+        self._want_to_lose_weight = QCheckBox("I want to lose weight")
+        self._want_to_lose_weight.setChecked(initial.want_to_lose_weight)
+        self._want_to_lose_weight.setToolTip("Lowers all three calorie bands by about 15%.")
+        form.addRow("", self._want_to_lose_weight)
+
         self._estimate_label = QLabel("")
         self._estimate_label.setWordWrap(True)
         form.addRow("Estimate:", self._estimate_label)
@@ -102,9 +108,9 @@ class CalorieThresholdsSetupDialog(QDialog):
             spin.setRange(500, 10000)
             spin.setSingleStep(50)
             spin.setSuffix(" kcal")
-        form.addRow("Low (≤ green):", self._low)
-        form.addRow("Medium-low (≤ yellow):", self._medium_low)
-        form.addRow("Medium-high (≤ orange):", self._medium_high)
+        form.addRow("Low (<= green):", self._low)
+        form.addRow("Medium-low (<= yellow):", self._medium_low)
+        form.addRow("Medium-high (<= orange):", self._medium_high)
         layout.addLayout(form)
 
         buttons = QDialogButtonBox(
@@ -120,6 +126,7 @@ class CalorieThresholdsSetupDialog(QDialog):
                 widget.currentIndexChanged.connect(self._recalculate)
             else:
                 widget.valueChanged.connect(self._recalculate)
+        self._want_to_lose_weight.toggled.connect(self._recalculate)
 
         self._recalculate()
         if thresholds is not None:
@@ -137,6 +144,7 @@ class CalorieThresholdsSetupDialog(QDialog):
             height_cm=float(self._height.value()),
             weight_kg=float(self._weight.value()),
             activity=activity,  # type: ignore[arg-type]
+            want_to_lose_weight=self._want_to_lose_weight.isChecked(),
         )
 
     def result_thresholds(self) -> CalorieThresholds:
@@ -154,8 +162,9 @@ class CalorieThresholdsSetupDialog(QDialog):
         if self._syncing:
             return
         estimate = estimate_calorie_bands(self.result_profile())
+        deficit_note = " · lose-weight -15%" if self._want_to_lose_weight.isChecked() else ""
         self._estimate_label.setText(
-            f"BMR ≈ {estimate.bmr:.0f} kcal/day · TDEE ≈ {estimate.tdee:.0f} kcal/day",
+            f"BMR ~ {estimate.bmr:.0f} kcal/day · TDEE ~ {estimate.tdee:.0f} kcal/day{deficit_note}",
         )
         self._set_threshold_spins(estimate.thresholds)
 

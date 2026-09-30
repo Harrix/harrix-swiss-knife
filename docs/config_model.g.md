@@ -17,6 +17,7 @@ lang: en
 - [🏛️ Class `AppConfig`](#%EF%B8%8F-class-appconfig)
 - [🏛️ Class `BothubSettings`](#%EF%B8%8F-class-bothubsettings)
 - [🏛️ Class `FoodCalorieThresholds`](#%EF%B8%8F-class-foodcaloriethresholds)
+- [🏛️ Class `FoodPersonAgeHeight`](#%EF%B8%8F-class-foodpersonageheight)
 - [🏛️ Class `FoodPersonProfile`](#%EF%B8%8F-class-foodpersonprofile)
 - [🏛️ Class `GeminiSettings`](#%EF%B8%8F-class-geminisettings)
 - [🏛️ Class `HotkeyEntry`](#%EF%B8%8F-class-hotkeyentry)
@@ -226,6 +227,27 @@ class FoodCalorieThresholds(TypedDict, total=False):
 
 </details>
 
+## 🏛️ Class `FoodPersonAgeHeight`
+
+```python
+class FoodPersonAgeHeight(TypedDict, total=False)
+```
+
+Age / height snapshot in `config-temp.json` (`food_person_age_height`).
+
+<details>
+<summary>Code:</summary>
+
+```python
+class FoodPersonAgeHeight(TypedDict, total=False):
+
+    age: int
+    height_cm: float
+    age_recorded_on: str
+```
+
+</details>
+
 ## 🏛️ Class `FoodPersonProfile`
 
 ```python
@@ -245,6 +267,7 @@ class FoodPersonProfile(TypedDict, total=False):
     height_cm: float
     weight_kg: float
     activity: str
+    want_to_lose_weight: bool
 ```
 
 </details>
