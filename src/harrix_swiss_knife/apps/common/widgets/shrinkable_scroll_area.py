@@ -24,6 +24,9 @@ class ShrinkableScrollArea(QScrollArea):
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.setStyleSheet("QScrollArea { background-color: #ffffff; border: none; }")
+        self.viewport().setAutoFillBackground(True)
+        self.viewport().setStyleSheet("background-color: #ffffff;")
 
     def minimumSizeHint(self) -> QSize:  # noqa: N802
         """Allow the parent to shrink below the inner widget minimum."""
@@ -58,6 +61,9 @@ def wrap_widget_contents_in_shrinkable_scroll(host: QWidget) -> ShrinkableScroll
     """
     existing = host.layout()
     inner = QWidget()
+    inner.setObjectName("shrinkableScrollInner")
+    inner.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
+    inner.setStyleSheet("QWidget#shrinkableScrollInner { background-color: #ffffff; }")
     if existing is not None:
         inner.setLayout(existing)
     scroll = ShrinkableScrollArea(host)

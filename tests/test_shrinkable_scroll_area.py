@@ -35,6 +35,8 @@ def test_wrap_widget_contents_allows_host_to_shrink(qapp: QApplication) -> None:
     assert host.minimumSizeHint().width() < 800
     assert scroll.widget() is not None
     assert scroll.widget().minimumSizeHint().width() >= 800
+    assert "ffffff" in scroll.styleSheet().lower()
+    assert scroll.widget().objectName() == "shrinkableScrollInner"
     host.close()
 
 
