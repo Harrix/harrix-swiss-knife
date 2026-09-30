@@ -7,7 +7,10 @@ Search filters both panes. Sort mode can flatten the catalog by added-at date.
 
 from __future__ import annotations
 
+import tempfile
 from dataclasses import dataclass
+from functools import lru_cache
+from pathlib import Path
 from typing import cast
 
 from PySide6.QtCore import QEvent, QObject, QPoint, QSize, Qt, QTimer
@@ -75,32 +78,8 @@ from harrix_swiss_knife.win11_caption import (
 _SORT_COMBO_ICON_SIZE = 14
 _CAPTION_CONTROL_HEIGHT = CAPTION_BUTTON_HEIGHT - 6
 _CAPTION_SEARCH_MIN_WIDTH = 160
-_CAPTION_TOOLS_STYLE = f"""
-QWidget#captionTools {{
-    background: transparent;
-}}
-QLineEdit#captionSearchEdit {{
-    padding: 1px 8px;
-    border: 1px solid #c8c8c8;
-    border-radius: 3px;
-    background: #ffffff;
-    min-height: {_CAPTION_CONTROL_HEIGHT - 2}px;
-    max-height: {_CAPTION_CONTROL_HEIGHT}px;
-}}
-QComboBox#captionSortCombo {{
-    padding: 1px 6px;
-    border: 1px solid #c8c8c8;
-    border-radius: 3px;
-    background: #ffffff;
-    min-height: {_CAPTION_CONTROL_HEIGHT - 2}px;
-    max-height: {_CAPTION_CONTROL_HEIGHT}px;
-}}
-QToolButton#captionClearButton {{
-    border: none;
-    background: transparent;
-    padding: 0;
-}}
-"""
+_CAPTION_ARROW_SIZE = 12
+_CAPTION_ARROW_COLOR = "#5c5c5c"
 
 
 class MainWindow(QMainWindow):
@@ -314,7 +293,7 @@ class MainWindow(QMainWindow):
         tools.setObjectName("captionTools")
         tools.setFixedHeight(CAPTION_BUTTON_HEIGHT)
         tools.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        tools.setStyleSheet(_CAPTION_TOOLS_STYLE)
+        tools.setStyleSheet(_caption_tools_style())
 
         row = QHBoxLayout(tools)
         row.setContentsMargins(8, 3, 8, 3)
@@ -764,6 +743,64 @@ class _CommandSection:
     widget: QWidget | None = None
     divider: QWidget | None = None
     show_in_list: bool = True
+
+
+@lru_cache(maxsize=1)
+def _caption_combo_arrow_url() -> str:
+    """Return a stylesheet file URL for a flat Lucide chevron."""
+    icon = create_lucide_icon("chevron-down", _CAPTION_ARROW_SIZE, color=_CAPTION_ARROW_COLOR)
+    pixmap = icon.pixmap(_CAPTION_ARROW_SIZE, _CAPTION_ARROW_SIZE)
+    if pixmap.isNull():
+        return ""
+    path = Path(tempfile.gettempdir()) / "hsk_caption_combo_chevron_down.png"
+    pixmap.save(str(path), "PNG")
+    return path.resolve().as_posix()
+
+
+def _caption_tools_style() -> str:
+    """Return caption search/sort stylesheet with a flat Lucide combo arrow."""
+    arrow_url = _caption_combo_arrow_url()
+    arrow_rule = (
+        f'image: url("{arrow_url}"); width: {_CAPTION_ARROW_SIZE}px; height: {_CAPTION_ARROW_SIZE}px;'
+        if arrow_url
+        else "image: none; width: 0; height: 0;"
+    )
+    return f"""
+QWidget#captionTools {{
+    background: transparent;
+}}
+QLineEdit#captionSearchEdit {{
+    padding: 1px 8px;
+    border: 1px solid #c8c8c8;
+    border-radius: 3px;
+    background: #ffffff;
+    min-height: {_CAPTION_CONTROL_HEIGHT - 2}px;
+    max-height: {_CAPTION_CONTROL_HEIGHT}px;
+}}
+QComboBox#captionSortCombo {{
+    padding: 1px 20px 1px 6px;
+    border: 1px solid #c8c8c8;
+    border-radius: 3px;
+    background: #ffffff;
+    min-height: {_CAPTION_CONTROL_HEIGHT - 2}px;
+    max-height: {_CAPTION_CONTROL_HEIGHT}px;
+}}
+QComboBox#captionSortCombo::drop-down {{
+    subcontrol-origin: padding;
+    subcontrol-position: center right;
+    width: 18px;
+    border: none;
+    background: transparent;
+}}
+QComboBox#captionSortCombo::down-arrow {{
+    {arrow_rule}
+}}
+QToolButton#captionClearButton {{
+    border: none;
+    background: transparent;
+    padding: 0;
+}}
+"""
 
 
 def _collect_leaf_actions(menu: QMenu) -> list[QAction]:

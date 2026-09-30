@@ -247,7 +247,7 @@ class MainWindow(QMainWindow):
         tools.setObjectName("captionTools")
         tools.setFixedHeight(CAPTION_BUTTON_HEIGHT)
         tools.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        tools.setStyleSheet(_CAPTION_TOOLS_STYLE)
+        tools.setStyleSheet(_caption_tools_style())
 
         row = QHBoxLayout(tools)
         row.setContentsMargins(8, 3, 8, 3)
