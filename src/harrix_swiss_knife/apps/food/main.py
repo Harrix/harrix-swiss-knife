@@ -106,7 +106,7 @@ from harrix_swiss_knife.apps.food import database_manager, window
 from harrix_swiss_knife.apps.food.ai_source_dialog import AiSourceDialog
 from harrix_swiss_knife.apps.food.calorie_thresholds_config import (
     food_calorie_thresholds_are_configured,
-    load_food_person_profile,
+    load_food_person_profile_for_setup,
     save_food_calorie_threshold_setup,
 )
 from harrix_swiss_knife.apps.food.calorie_thresholds_dialog import CalorieThresholdsSetupDialog
@@ -3762,7 +3762,7 @@ class MainWindow(
             return
         dialog = CalorieThresholdsSetupDialog(
             self,
-            profile=load_food_person_profile(self._app_config),
+            profile=load_food_person_profile_for_setup(self._app_config),
         )
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return

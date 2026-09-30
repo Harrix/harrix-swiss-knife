@@ -3571,7 +3571,7 @@ class MainWindow(
             return
         dialog = CalorieThresholdsSetupDialog(
             self,
-            profile=load_food_person_profile(self._app_config),
+            profile=load_food_person_profile_for_setup(self._app_config),
         )
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return

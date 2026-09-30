@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 from pathlib import Path
 
 import pytest
@@ -18,6 +19,8 @@ from harrix_swiss_knife.apps.food.calorie_thresholds_calc import (
 from harrix_swiss_knife.apps.food.calorie_thresholds_config import (
     food_calorie_thresholds_are_configured,
     load_food_person_profile,
+    load_food_person_profile_for_setup,
+    load_latest_fitness_weight_kg,
     save_food_calorie_threshold_setup,
 )
 from harrix_swiss_knife.apps.food.day_macros import CalorieThresholds
@@ -91,3 +94,47 @@ def test_save_food_calorie_threshold_setup_writes_flag_profile_and_bands(tmp_pat
     written = json.loads(config_path.read_text(encoding="utf-8"))
     assert written["food_calorie_thresholds_configured"] is True
     assert written["food_person_profile"]["age"] == 35
+
+
+def test_load_latest_fitness_weight_kg_uses_newest_row(tmp_path: Path) -> None:
+    db_path = tmp_path / "fitness.db"
+    connection = sqlite3.connect(str(db_path))
+    try:
+        connection.execute("CREATE TABLE weight (_id INTEGER PRIMARY KEY, value REAL, date TEXT)")
+        connection.execute("INSERT INTO weight (value, date) VALUES (81.2, '2026-01-01')")
+        connection.execute("INSERT INTO weight (value, date) VALUES (79.4, '2026-03-15')")
+        connection.execute("INSERT INTO weight (value, date) VALUES (80.1, '2026-02-01')")
+        connection.commit()
+    finally:
+        connection.close()
+
+    assert load_latest_fitness_weight_kg({"sqlite_fitness": str(db_path)}) == pytest.approx(79.4)
+    assert load_latest_fitness_weight_kg({"sqlite_fitness": str(tmp_path / "missing.db")}) is None
+    assert load_latest_fitness_weight_kg({}) is None
+
+
+def test_load_food_person_profile_for_setup_prefers_fitness_weight(tmp_path: Path) -> None:
+    db_path = tmp_path / "fitness.db"
+    connection = sqlite3.connect(str(db_path))
+    try:
+        connection.execute("CREATE TABLE weight (_id INTEGER PRIMARY KEY, value REAL, date TEXT)")
+        connection.execute("INSERT INTO weight (value, date) VALUES (88.5, '2026-09-01')")
+        connection.commit()
+    finally:
+        connection.close()
+
+    config = {
+        "sqlite_fitness": str(db_path),
+        "food_person_profile": {
+            "sex": "female",
+            "age": 40,
+            "height_cm": 165,
+            "weight_kg": 70,
+            "activity": "light",
+        },
+    }
+    profile = load_food_person_profile_for_setup(config)
+    assert profile is not None
+    assert profile.sex == "female"
+    assert profile.age == 40
+    assert profile.weight_kg == pytest.approx(88.5)
