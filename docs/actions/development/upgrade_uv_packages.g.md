@@ -26,9 +26,10 @@ Upgrade uv and sync packages in the three Harrix projects after exit.
 
 Writes a temporary `.cmd`, starts it in a new console, releases the tray
 singleton, and quits so `.venv` files are not locked. The script waits for
-this PID, runs `uv self update`, then `uv python upgrade` and
-`uv sync --upgrade` in each configured project, then relaunches with the
-same argv.
+this PID, closes Cursor if it is running (it can lock uv-managed Python),
+runs `uv self update`, then per project `uv python upgrade` (from
+`.python-version` when present) and `uv sync --upgrade`, then relaunches
+with the same argv.
 
 <details>
 <summary>Code:</summary>
@@ -77,6 +78,7 @@ class OnUpgradeUvPackages(ActionBase):
             "  uv python upgrade\n"
             "  uv sync --upgrade\n\n"
             f"in:\n{project_lines}\n\n"
+            "If Cursor is open, it will be closed first (save your work).\n"
             "When finished, the same app launch will start again.\n\n"
             "Continue?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
@@ -180,6 +182,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             "  uv python upgrade\n"
             "  uv sync --upgrade\n\n"
             f"in:\n{project_lines}\n\n"
+            "If Cursor is open, it will be closed first (save your work).\n"
             "When finished, the same app launch will start again.\n\n"
             "Continue?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,

@@ -14,6 +14,7 @@ lang: en
 - [🔧 Function `build_relaunch_command`](#-function-build_relaunch_command)
 - [🔧 Function `build_uv_upgrade_cmd`](#-function-build_uv_upgrade_cmd)
 - [🔧 Function `quote_cmd_arg`](#-function-quote_cmd_arg)
+- [🔧 Function `read_python_version_pin`](#-function-read_python_version_pin)
 - [🔧 Function `resolve_upgrade_projects`](#-function-resolve_upgrade_projects)
 - [🔧 Function `write_uv_upgrade_cmd`](#-function-write_uv_upgrade_cmd)
 
@@ -40,13 +41,15 @@ def build_relaunch_command(argv: Sequence[str]) -> str:
 ## 🔧 Function `build_uv_upgrade_cmd`
 
 ```python
-def build_uv_upgrade_cmd(*, wait_pid: int, uv_exe: Path, project_dirs: Sequence[Path], relaunch_argv: Sequence[str], log_path: Path | None = None, wait_timeout_seconds: int = WAIT_TIMEOUT_SECONDS) -> str
+def build_uv_upgrade_cmd(*, wait_pid: int, uv_exe: Path, project_dirs: Sequence[Path], relaunch_argv: Sequence[str], log_path: Path | None = None, wait_timeout_seconds: int = WAIT_TIMEOUT_SECONDS, close_cursor: bool = True) -> str
 ```
 
 Return the text of a `.cmd` that waits for HSK, upgrades, then relaunches.
 
-On failure the script still relaunches after [`pause`](apps/fitness/lightbox_logic.g.md#%EF%B8%8F-method-pause) so the user is not left
-without the app. Progress is echoed and appended to `log_path`.
+Optionally closes Cursor first so uv-managed Python installs are not locked.
+`uv python upgrade` is scoped to each project's `.python-version` when present
+and is non-fatal so `uv sync --upgrade` can still run. On hard failure the
+script still relaunches after [`pause`](apps/fitness/lightbox_logic.g.md#%EF%B8%8F-method-pause).
 
 <details>
 <summary>Code:</summary>
@@ -60,6 +63,7 @@ def build_uv_upgrade_cmd(
     relaunch_argv: Sequence[str],
     log_path: Path | None = None,
     wait_timeout_seconds: int = WAIT_TIMEOUT_SECONDS,
+    close_cursor: bool = True,
 ) -> str:
     uv = str(uv_exe)
     log = str(log_path) if log_path is not None else str(Path(os.environ.get("TEMP", ".")) / _LOG_NAME)
@@ -71,6 +75,7 @@ def build_uv_upgrade_cmd(
         f'set "LOG={log}"',
         f"set WAIT_PID={wait_pid}",
         f"set WAIT_MAX={wait_timeout_seconds}",
+        f'set "CURSOR_EXE={CURSOR_PROCESS_NAME}"',
         'echo HSK uv package upgrade > "%LOG%"',
         "echo Waiting for process %WAIT_PID% to exit...",
         'echo Waiting for process %WAIT_PID% to exit...>> "%LOG%"',
@@ -87,31 +92,72 @@ def build_uv_upgrade_cmd(
         "set /a waited+=1",
         "goto wait_loop",
         ":wait_done",
-        "echo.",
-        "echo === uv self update ===",
-        'echo === uv self update ===>> "%LOG%"',
-        '"%UV%" self update',
-        "if errorlevel 1 (",
-        '  echo uv self update failed.>> "%LOG%"',
-        "  goto fail",
-        ")",
     ]
-    for project in project_dirs:
-        root = str(project)
+    if close_cursor:
         lines.extend(
             [
                 "echo.",
-                f"echo === {project.name}: uv python upgrade ===",
-                f'echo === {project.name}: uv python upgrade ===>> "%LOG%"',
+                "echo === Closing Cursor if running ===",
+                'echo === Closing Cursor if running ===>> "%LOG%"',
+                'tasklist /FI "IMAGENAME eq %CURSOR_EXE%" 2>nul | find /I "%CURSOR_EXE%" >nul',
+                "if errorlevel 1 (",
+                "  echo Cursor is not running.",
+                '  echo Cursor is not running.>> "%LOG%"',
+                "  goto cursor_done",
+                ")",
+                "echo Closing %CURSOR_EXE% so Python installs are not locked...",
+                'echo Closing %CURSOR_EXE% so Python installs are not locked...>> "%LOG%"',
+                'taskkill /IM "%CURSOR_EXE%" /T /F >> "%LOG%" 2>&1',
+                "set /a waited=0",
+                ":cursor_wait",
+                'tasklist /FI "IMAGENAME eq %CURSOR_EXE%" 2>nul | find /I "%CURSOR_EXE%" >nul',
+                "if errorlevel 1 goto cursor_gone",
+                "if %waited% geq %WAIT_MAX% (",
+                '  echo Timed out waiting for Cursor to exit.>> "%LOG%"',
+                "  echo Timed out waiting for Cursor to exit. Continuing anyway.",
+                "  goto cursor_done",
+                ")",
+                "timeout /t 1 /nobreak >nul",
+                "set /a waited+=1",
+                "goto cursor_wait",
+                ":cursor_gone",
+                "echo Cursor closed.",
+                'echo Cursor closed.>> "%LOG%"',
+                f"timeout /t {_POST_CLOSE_SETTLE_SECONDS} /nobreak >nul",
+                ":cursor_done",
+            ]
+        )
+    lines.extend(
+        [
+            "echo.",
+            "echo === uv self update ===",
+            'echo === uv self update ===>> "%LOG%"',
+            '"%UV%" self update',
+            "if errorlevel 1 (",
+            '  echo uv self update failed.>> "%LOG%"',
+            "  goto fail",
+            ")",
+        ]
+    )
+    for project in project_dirs:
+        root = str(project)
+        pin = read_python_version_pin(project)
+        upgrade_args = f" {pin}" if pin else ""
+        pin_note = f" ({pin})" if pin else " (all installed)"
+        lines.extend(
+            [
+                "echo.",
+                f"echo === {project.name}: uv python upgrade{pin_note} ===",
+                f'echo === {project.name}: uv python upgrade{pin_note} ===>> "%LOG%"',
                 f"cd /d {quote_cmd_arg(root)}",
                 "if errorlevel 1 (",
                 f'  echo cd failed for {project.name}.>> "%LOG%"',
                 "  goto fail",
                 ")",
-                '"%UV%" python upgrade',
+                f'"%UV%" python upgrade{upgrade_args}',
                 "if errorlevel 1 (",
-                f'  echo uv python upgrade failed in {project.name}.>> "%LOG%"',
-                "  goto fail",
+                f'  echo WARNING: uv python upgrade failed in {project.name}; continuing with sync.>> "%LOG%"',
+                f"  echo WARNING: uv python upgrade failed in {project.name}; continuing with sync.",
                 ")",
                 f"echo === {project.name}: uv sync --upgrade ===",
                 f'echo === {project.name}: uv sync --upgrade ===>> "%LOG%"',
@@ -170,6 +216,35 @@ def quote_cmd_arg(value: str) -> str:
 
 </details>
 
+## 🔧 Function `read_python_version_pin`
+
+```python
+def read_python_version_pin(project_dir: Path) -> str | None
+```
+
+Return the first non-empty line from `.python-version`, if any.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def read_python_version_pin(project_dir: Path) -> str | None:
+    path = project_dir / ".python-version"
+    if not path.is_file():
+        return None
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    for line in text.splitlines():
+        pin = line.strip()
+        if pin and not pin.startswith("#"):
+            return pin
+    return None
+```
+
+</details>
+
 ## 🔧 Function `resolve_upgrade_projects`
 
 ```python
@@ -211,7 +286,7 @@ def resolve_upgrade_projects(paths_python_projects: Sequence[object]) -> list[Pa
 ## 🔧 Function `write_uv_upgrade_cmd`
 
 ```python
-def write_uv_upgrade_cmd(path: Path, *, wait_pid: int, uv_exe: Path, project_dirs: Sequence[Path], relaunch_argv: Sequence[str], log_path: Path | None = None, wait_timeout_seconds: int = WAIT_TIMEOUT_SECONDS) -> Path
+def write_uv_upgrade_cmd(path: Path, *, wait_pid: int, uv_exe: Path, project_dirs: Sequence[Path], relaunch_argv: Sequence[str], log_path: Path | None = None, wait_timeout_seconds: int = WAIT_TIMEOUT_SECONDS, close_cursor: bool = True) -> Path
 ```
 
 Write the upgrade `.cmd` to `path` and return `path`.
@@ -229,6 +304,7 @@ def write_uv_upgrade_cmd(
     relaunch_argv: Sequence[str],
     log_path: Path | None = None,
     wait_timeout_seconds: int = WAIT_TIMEOUT_SECONDS,
+    close_cursor: bool = True,
 ) -> Path:
     text = build_uv_upgrade_cmd(
         wait_pid=wait_pid,
@@ -237,6 +313,7 @@ def write_uv_upgrade_cmd(
         relaunch_argv=relaunch_argv,
         log_path=log_path,
         wait_timeout_seconds=wait_timeout_seconds,
+        close_cursor=close_cursor,
     )
     path.write_text(text, encoding="utf-8", newline="")
     return path

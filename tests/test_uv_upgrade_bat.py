@@ -9,6 +9,7 @@ from harrix_swiss_knife.uv_upgrade_bat import (
     build_relaunch_command,
     build_uv_upgrade_cmd,
     quote_cmd_arg,
+    read_python_version_pin,
     resolve_upgrade_projects,
     write_uv_upgrade_cmd,
 )
@@ -48,6 +49,7 @@ def test_build_uv_upgrade_cmd_contains_wait_uv_and_projects(tmp_path: Path) -> N
     pyssg = tmp_path / "harrix-pyssg"
     for folder in (knife, pylib, pyssg):
         folder.mkdir()
+    (knife / ".python-version").write_text("3.13\n", encoding="utf-8")
     log = tmp_path / "upgrade.log"
     text = build_uv_upgrade_cmd(
         wait_pid=4242,
@@ -61,8 +63,11 @@ def test_build_uv_upgrade_cmd_contains_wait_uv_and_projects(tmp_path: Path) -> N
     assert "set WAIT_MAX=90" in text
     assert 'tasklist /FI "PID eq %WAIT_PID%"' in text
     assert f'set "UV={uv}"' in text
+    assert "Closing Cursor if running" in text
+    assert 'taskkill /IM "%CURSOR_EXE%" /T /F' in text
     assert "self update" in text
-    assert "python upgrade" in text
+    assert "python upgrade 3.13" in text
+    assert "WARNING: uv python upgrade failed" in text
     assert "sync --upgrade" in text
     assert str(knife) in text
     assert str(pylib) in text
@@ -72,6 +77,14 @@ def test_build_uv_upgrade_cmd_contains_wait_uv_and_projects(tmp_path: Path) -> N
     assert "pause" in text
     assert 'start ""' in text
     assert str(log) in text
+
+
+def test_read_python_version_pin(tmp_path: Path) -> None:
+    project = tmp_path / "proj"
+    project.mkdir()
+    assert read_python_version_pin(project) is None
+    (project / ".python-version").write_text("# comment\n3.12\n", encoding="utf-8")
+    assert read_python_version_pin(project) == "3.12"
 
 
 def test_write_uv_upgrade_cmd_creates_file(tmp_path: Path) -> None:
