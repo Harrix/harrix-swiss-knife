@@ -17,6 +17,7 @@ lang: en
   - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
   - [⚙️ Method `focus_initial_input`](#%EF%B8%8F-method-focus_initial_input)
   - [⚙️ Method `focus_search`](#%EF%B8%8F-method-focus_search)
+  - [⚙️ Method `nativeEvent`](#%EF%B8%8F-method-nativeevent)
   - [⚙️ Method `on_item_clicked`](#%EF%B8%8F-method-on_item_clicked)
   - [⚙️ Method `resizeEvent`](#%EF%B8%8F-method-resizeevent)
   - [⚙️ Method `showEvent`](#%EF%B8%8F-method-showevent)
@@ -49,6 +50,7 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         self.setWindowTitle("Harrix Swiss Knife")
+        apply_window_icon(self)
         try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
 
         self._sections: list[_CommandSection] = []
@@ -64,7 +66,10 @@ class MainWindow(QMainWindow):
         root_layout.setContentsMargins(12, 12, 12, 12)
         root_layout.setSpacing(12)
 
-        root_layout.addLayout(self._build_header_row())
+        caption_tools = self._build_caption_tools()
+        self._caption_tools = caption_tools
+        if not install_win11_caption(self, trailing_widgets=[caption_tools]):
+            root_layout.addWidget(caption_tools)
         root_layout.addWidget(self._build_body_widget(), stretch=1)
         self._build_sections_from_menu(menu)
         self._sync_sort_combo()
@@ -93,6 +98,13 @@ class MainWindow(QMainWindow):
         """Move keyboard focus to the search field."""
         self._search_edit.setFocus(Qt.FocusReason.ActiveWindowFocusReason)
         self._search_edit.selectAll()
+
+    def nativeEvent(self, event_type, message) -> tuple[bool, int]:  # noqa: ANN001, N802
+        """Drag, resize, and size the client area for the custom caption bar."""
+        handled = try_handle_win11_caption_native_event(self, event_type, message)
+        if handled is not None:
+            return handled
+        return cast("tuple[bool, int]", super().nativeEvent(event_type, message))
 
     def on_item_clicked(self, item: QListWidgetItem) -> None:
         """Handle click on a command or section header in the list pane."""
@@ -229,6 +241,71 @@ class MainWindow(QMainWindow):
         body_layout.addWidget(splitter)
         return body
 
+    def _build_caption_tools(self) -> QWidget:
+        """Build compact search and sort controls for the caption row."""
+        tools = QWidget()
+        tools.setObjectName("captionTools")
+        tools.setFixedHeight(CAPTION_BUTTON_HEIGHT)
+        tools.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        tools.setStyleSheet(_CAPTION_TOOLS_STYLE)
+
+        row = QHBoxLayout(tools)
+        row.setContentsMargins(8, 3, 8, 3)
+        row.setSpacing(6)
+
+        search_icon = QLabel()
+        search_icon.setPixmap(create_lucide_icon("search", 14).pixmap(14, 14))
+        search_icon.setFixedSize(16, 16)
+        row.addWidget(search_icon)
+
+        self._search_edit = QLineEdit()
+        self._search_edit.setObjectName("captionSearchEdit")
+        self._search_edit.setPlaceholderText("Search commands…")
+        self._search_edit.setClearButtonEnabled(False)
+        self._search_edit.setMinimumWidth(_CAPTION_SEARCH_MIN_WIDTH)
+        self._search_edit.setFixedHeight(_CAPTION_CONTROL_HEIGHT)
+        self._search_edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        compact = QFont(self._search_edit.font())
+        if compact.pointSizeF() > 0:
+            compact.setPointSizeF(max(8.0, compact.pointSizeF() - 1.0))
+        self._search_edit.setFont(compact)
+        self._search_edit.textChanged.connect(self._on_search_changed)
+        row.addWidget(self._search_edit, stretch=1)
+
+        self._clear_button = QToolButton()
+        self._clear_button.setObjectName("captionClearButton")
+        self._clear_button.setText("")
+        self._clear_button.setFixedSize(_CAPTION_CONTROL_HEIGHT, _CAPTION_CONTROL_HEIGHT)
+        apply_lucide_button_icon(self._clear_button, "x", icon_size=14)
+        self._clear_button.setToolTip("Clear search")
+        self._clear_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._clear_button.setAutoRaise(True)
+        self._clear_button.clicked.connect(self._search_edit.clear)
+        self._clear_button.hide()
+        row.addWidget(self._clear_button)
+
+        self._sort_combo = QComboBox()
+        self._sort_combo.setObjectName("captionSortCombo")
+        self._sort_combo.setIconSize(QSize(_SORT_COMBO_ICON_SIZE, _SORT_COMBO_ICON_SIZE))
+        self._sort_combo.addItem(
+            create_lucide_icon("list-tree", _SORT_COMBO_ICON_SIZE),
+            "Menu order",
+            MAIN_WINDOW_SORT_MODE_MENU,
+        )
+        self._sort_combo.addItem(
+            create_lucide_icon("list-clock", _SORT_COMBO_ICON_SIZE),
+            "Newest first",
+            MAIN_WINDOW_SORT_MODE_NEWEST,
+        )
+        self._sort_combo.setToolTip("Sort commands by menu structure or date added")
+        self._sort_combo.setFixedHeight(_CAPTION_CONTROL_HEIGHT)
+        self._sort_combo.setFont(compact)
+        self._sort_combo.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+        self._sort_combo.currentIndexChanged.connect(self._on_sort_mode_changed)
+        row.addWidget(self._sort_combo)
+
+        return tools
+
     def _build_cards_pane(self) -> QWidget:
         cards_pane = QWidget()
         apply_opaque_white(cards_pane)
@@ -285,51 +362,6 @@ class MainWindow(QMainWindow):
         footer_row.addWidget(self._startup_checkbox)
         footer_row.addStretch(1)
         return footer_row
-
-    def _build_header_row(self) -> QHBoxLayout:
-        header_row = QHBoxLayout()
-        header_row.setSpacing(8)
-
-        search_icon = QLabel()
-        search_icon.setPixmap(create_lucide_icon("search", 22).pixmap(22, 22))
-        search_icon.setFixedSize(24, 24)
-        header_row.addWidget(search_icon)
-
-        self._search_edit = QLineEdit()
-        self._search_edit.setPlaceholderText("Search commands…")
-        self._search_edit.setClearButtonEnabled(False)
-        style_overlay_line_edit(self._search_edit)
-        self._search_edit.textChanged.connect(self._on_search_changed)
-        header_row.addWidget(self._search_edit, stretch=1)
-
-        self._clear_button = QToolButton()
-        self._clear_button.setText("")
-        apply_lucide_button_icon(self._clear_button, "x")
-        self._clear_button.setToolTip("Clear search")
-        self._clear_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._clear_button.setAutoRaise(True)
-        self._clear_button.clicked.connect(self._search_edit.clear)
-        self._clear_button.hide()
-        header_row.addWidget(self._clear_button)
-
-        self._sort_combo = QComboBox()
-        self._sort_combo.setIconSize(QSize(_SORT_COMBO_ICON_SIZE, _SORT_COMBO_ICON_SIZE))
-        self._sort_combo.addItem(
-            create_lucide_icon("list-tree", _SORT_COMBO_ICON_SIZE),
-            "Menu order",
-            MAIN_WINDOW_SORT_MODE_MENU,
-        )
-        self._sort_combo.addItem(
-            create_lucide_icon("list-clock", _SORT_COMBO_ICON_SIZE),
-            "Newest first",
-            MAIN_WINDOW_SORT_MODE_NEWEST,
-        )
-        self._sort_combo.setToolTip("Sort commands by menu structure or date added")
-        self._sort_combo.setMinimumHeight(self._search_edit.minimumHeight())
-        self._sort_combo.currentIndexChanged.connect(self._on_sort_mode_changed)
-        header_row.addWidget(self._sort_combo)
-
-        return header_row
 
     def _build_list_pane(self) -> QWidget:
         list_pane = QWidget()
@@ -676,6 +708,7 @@ def __init__(self, menu: QMenu) -> None:
         super().__init__()
 
         self.setWindowTitle("Harrix Swiss Knife")
+        apply_window_icon(self)
         try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
 
         self._sections: list[_CommandSection] = []
@@ -691,7 +724,10 @@ def __init__(self, menu: QMenu) -> None:
         root_layout.setContentsMargins(12, 12, 12, 12)
         root_layout.setSpacing(12)
 
-        root_layout.addLayout(self._build_header_row())
+        caption_tools = self._build_caption_tools()
+        self._caption_tools = caption_tools
+        if not install_win11_caption(self, trailing_widgets=[caption_tools]):
+            root_layout.addWidget(caption_tools)
         root_layout.addWidget(self._build_body_widget(), stretch=1)
         self._build_sections_from_menu(menu)
         self._sync_sort_combo()
@@ -776,6 +812,27 @@ Move keyboard focus to the search field.
 def focus_search(self) -> None:
         self._search_edit.setFocus(Qt.FocusReason.ActiveWindowFocusReason)
         self._search_edit.selectAll()
+```
+
+</details>
+
+### ⚙️ Method `nativeEvent`
+
+```python
+def nativeEvent(self, event_type, message) -> tuple[bool, int]
+```
+
+Drag, resize, and size the client area for the custom caption bar.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def nativeEvent(self, event_type, message) -> tuple[bool, int]:  # noqa: ANN001, N802
+        handled = try_handle_win11_caption_native_event(self, event_type, message)
+        if handled is not None:
+            return handled
+        return cast("tuple[bool, int]", super().nativeEvent(event_type, message))
 ```
 
 </details>

@@ -11,6 +11,7 @@ from PySide6.QtWidgets import QApplication, QListWidgetItem, QMenu, QWidget
 
 from harrix_swiss_knife.config_model import MAIN_WINDOW_SORT_MODE_MENU
 from harrix_swiss_knife.main_window import MainWindow
+from harrix_swiss_knife.win11_caption import CAPTION_BUTTON_HEIGHT
 
 
 @pytest.fixture
@@ -45,6 +46,7 @@ def _build_window(qapp: QApplication) -> MainWindow:  # noqa: ARG001
         patch("harrix_swiss_knife.main_window.get_show_main_window_on_startup", return_value=False),
         patch("harrix_swiss_knife.main_window.apply_app_window_size_and_position"),
         patch("harrix_swiss_knife.main_window.try_apply_system_backdrop"),
+        patch("harrix_swiss_knife.main_window.apply_window_icon"),
         patch("harrix_swiss_knife.main_window.list_recent_gui_action_names", return_value=[]),
     ):
         menu = _menu_with_sections()
@@ -65,8 +67,10 @@ def _section_header(window: MainWindow, title: str) -> QListWidgetItem | None:
 def test_sort_combo_matches_search_field_height(qapp: QApplication) -> None:
     window = _build_window(qapp)
     try:
-        assert window._sort_combo.minimumHeight() == window._search_edit.minimumHeight()
-        assert window._sort_combo.minimumHeight() > 0
+        assert window._sort_combo.maximumHeight() == window._search_edit.maximumHeight()
+        assert window._search_edit.maximumHeight() < CAPTION_BUTTON_HEIGHT
+        assert window._caption_tools.objectName() == "captionTools"
+        assert window._caption_tools.maximumHeight() == CAPTION_BUTTON_HEIGHT
     finally:
         window.close()
         window.deleteLater()

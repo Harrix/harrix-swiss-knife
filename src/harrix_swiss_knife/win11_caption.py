@@ -19,10 +19,13 @@ from PySide6.QtGui import QColor, QCursor, QFont, QFontMetrics, QIcon, QPainter,
 from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import (
     QAbstractButton,
+    QAbstractSpinBox,
     QBoxLayout,
+    QComboBox,
     QFrame,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QMainWindow,
     QMenu,
     QMenuBar,
@@ -43,7 +46,7 @@ from harrix_swiss_knife.qt_lucide_icon import apply_lucide_button_icon
 from harrix_swiss_knife.win11_backdrop import try_apply_system_backdrop
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Sequence
 
     from PySide6.QtGui import QEnterEvent, QMouseEvent
 
@@ -579,16 +582,23 @@ def caption_hit_test(
     return HTCLIENT
 
 
-def install_win11_caption(window: QWidget) -> bool:
+def install_win11_caption(
+    window: QWidget,
+    *,
+    trailing_widgets: Sequence[QWidget] | None = None,
+) -> bool:
     """Replace the native title bar with the caption row plus Windows 11 buttons.
 
-    From the left: icon, bold app name, then tabs. From the right: the menu,
-    then the window buttons. No-op outside Windows. The window title string
-    stays for the taskbar.
+    From the left: icon, bold app name, then tabs. From the right: optional
+    trailing controls (search, sort, …), the menu, then the window buttons.
+    No-op outside Windows. The window title string stays for the taskbar.
 
     Args:
 
     - `window` (`QWidget`): Main window. Tabbed apps already have `tabWidget`.
+    - `trailing_widgets` (`Sequence[QWidget] | None`): Extra controls placed
+      in the caption before the menu and window buttons. Used by the tray
+      command window for search and sort. Ignored for tabbed captions.
 
     Returns:
 
@@ -608,7 +618,7 @@ def install_win11_caption(window: QWidget) -> bool:
     if isinstance(tab_widget, QTabWidget):
         _build_caption_row(window, tab_widget, controller, light=light)
     elif isinstance(window, QMainWindow):
-        _build_menu_caption(window, controller, light=light)
+        _build_menu_caption(window, controller, light=light, trailing_widgets=trailing_widgets)
     _install_menu_chevrons(window)
     _ensure_caption_title(window)
     _flush_caption_to_frame(window)
@@ -800,6 +810,7 @@ def _build_menu_caption(
     controller: _Win11CaptionController,
     *,
     light: bool,
+    trailing_widgets: Sequence[QWidget] | None = None,
 ) -> None:
     host = QWidget(window)
     host.setObjectName("captionBar")
@@ -813,24 +824,35 @@ def _build_menu_caption(
     icon_button.setToolTip(_caption_icon_tooltip(window))
     layout.addWidget(icon_button)
     _insert_caption_title(window, layout)
-    layout.addStretch(1)
 
-    menu = QMenuBar(host)
-    menu.setNativeMenuBar(False)
-    menu.setFixedHeight(CAPTION_BUTTON_HEIGHT)
-    menu.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
-    native = window.menuBar()
-    for action in list(native.actions()):
-        native.removeAction(action)
-        menu.addAction(action)
-        # Menus stay children of the old bar. setMenuWidget deletes that bar.
-        # setParent(parent) clears Popup, so the menu would show inline.
-        submenu = action.menu()
-        if isinstance(submenu, QWidget):
-            submenu.setParent(menu, Qt.WindowType.Popup)
-            submenu.hide()
-    layout.addWidget(menu)
-    layout.addWidget(_make_caption_menu_button(window, controller, host))
+    trailing = list(trailing_widgets) if trailing_widgets else []
+    if trailing:
+        for widget in trailing:
+            stretch = 1 if widget.sizePolicy().horizontalPolicy() == QSizePolicy.Policy.Expanding else 0
+            layout.addWidget(widget, stretch=stretch)
+    else:
+        layout.addStretch(1)
+
+    # Do not call window.menuBar() here: it installs a QMenuBar as the menu
+    # widget and would replace the caption host we are about to set.
+    native = _existing_main_window_menu_bar(window)
+    menu_actions = list(native.actions()) if native is not None else []
+    if menu_actions and native is not None:
+        menu = QMenuBar(host)
+        menu.setNativeMenuBar(False)
+        menu.setFixedHeight(CAPTION_BUTTON_HEIGHT)
+        menu.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+        for action in menu_actions:
+            native.removeAction(action)
+            menu.addAction(action)
+            # Menus stay children of the old bar. setMenuWidget deletes that bar.
+            # setParent(parent) clears Popup, so the menu would show inline.
+            submenu = action.menu()
+            if isinstance(submenu, QWidget):
+                submenu.setParent(menu, Qt.WindowType.Popup)
+                submenu.hide()
+        layout.addWidget(menu)
+        layout.addWidget(_make_caption_menu_button(window, controller, host))
     layout.addWidget(_make_caption_button_row(host, controller, light=light))
     window.setMenuWidget(host)
 
@@ -858,7 +880,7 @@ def _caption_buttons(window: QWidget) -> list[CaptionButton]:
 def _caption_control_at(window: QWidget, local: QPoint) -> bool:
     child = window.childAt(local)
     while child is not None and child is not window:
-        if isinstance(child, QAbstractButton):
+        if isinstance(child, (QAbstractButton, QLineEdit, QComboBox, QAbstractSpinBox)):
             return True
         if isinstance(child, QTabBar):
             return child.tabAt(child.mapFrom(window, local)) >= 0
@@ -872,6 +894,10 @@ def _caption_host(window: QWidget) -> QWidget | None:
     host = window.findChild(QWidget, "captionBar")
     if isinstance(host, QWidget):
         return host
+    if isinstance(window, QMainWindow):
+        menu_widget = window.menuWidget()
+        if isinstance(menu_widget, QWidget) and menu_widget.objectName() == "captionBar":
+            return menu_widget
     return None
 
 
@@ -937,8 +963,7 @@ def _clear_caption_button_hover(window: QWidget) -> None:
 def _collapse_native_menu_bar(window: QWidget) -> None:
     if _caption_host(window) is not None:
         return
-    raw = getattr(window, "menuBar", None)
-    bar = raw if isinstance(raw, QMenuBar) else raw() if callable(raw) else None
+    bar = _existing_main_window_menu_bar(window)
     if not isinstance(bar, QMenuBar):
         return
     tab_widget = getattr(window, "tabWidget", None)
@@ -1011,6 +1036,21 @@ def _ensure_win32_style(hwnd: int) -> None:
     user32.SetWindowPos(hwnd, 0, 0, 0, 0, 0, _SWP_FLAGS)
 
 
+def _existing_main_window_menu_bar(window: QWidget) -> QMenuBar | None:
+    """Return an already-created main-window menu bar without calling `menuBar()`."""
+    menu_bar = getattr(window, "menuBar", None)
+    if isinstance(menu_bar, QMenuBar):
+        return menu_bar
+    for child in window.children():
+        if isinstance(child, QMenuBar):
+            return child
+    if isinstance(window, QMainWindow):
+        menu_widget = window.menuWidget()
+        if isinstance(menu_widget, QMenuBar):
+            return menu_widget
+    return None
+
+
 def _extend_frame_for_shadow(hwnd: int) -> None:
     margins = _MARGINS(0, 0, 0, 1)
     _dwmapi().DwmExtendFrameIntoClientArea(hwnd, ctypes.byref(margins))
@@ -1072,11 +1112,16 @@ def _fit_caption_overflow(window: QWidget) -> None:
             return
         title_width = _caption_title_width(title) if isinstance(title, QLabel) else 0
         menu_width = _menu_bar_width(menu) if isinstance(menu, QMenuBar) else 0
+        tools_width = 0
+        host = _caption_host(window)
+        tools = host.findChild(QWidget, "captionTools") if host is not None else None
+        if isinstance(tools, QWidget) and tools.isVisibleTo(window):
+            tools_width = max(tools.minimumSizeHint().width(), tools.sizeHint().width())
         show_title = title_width > 0
         show_menu = menu_width > 0
-        if icon_width + title_width + tabs_width + menu_width + button_width > available:
+        if icon_width + title_width + tabs_width + menu_width + tools_width + button_width > available:
             show_title = False
-        if show_menu and icon_width + tabs_width + menu_width + button_width > available:
+        if show_menu and icon_width + tabs_width + menu_width + tools_width + button_width > available:
             show_menu = False
         if isinstance(title, QLabel) and title.isVisible() != show_title:
             title.setVisible(show_title)

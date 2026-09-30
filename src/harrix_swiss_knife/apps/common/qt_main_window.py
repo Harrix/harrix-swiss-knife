@@ -784,14 +784,23 @@ def resolve_window_menu_bar(window: QWidget) -> QMenuBar | None:
     """Return the visible app menu bar, including the tab-row corner bar.
 
     Generated UI files assign `self.menuBar` to a `QMenuBar`, which shadows
-    `QMainWindow.menuBar()`.
+    `QMainWindow.menuBar()`. When a custom `captionBar` menu widget is installed
+    without a menu, do not call `QMainWindow.menuBar()` — that replaces the
+    caption widget with a new empty bar.
 
     """
     host = window.findChild(QWidget, "captionBar")
+    if host is None:
+        menu_widget_getter = getattr(window, "menuWidget", None)
+        if callable(menu_widget_getter):
+            menu_widget = menu_widget_getter()
+            if isinstance(menu_widget, QWidget) and menu_widget.objectName() == "captionBar":
+                host = menu_widget
     if isinstance(host, QWidget):
         for child in host.children():
             if isinstance(child, QMenuBar):
                 return child
+        return None
     tab_widget = getattr(window, "tabWidget", None)
     if isinstance(tab_widget, QTabWidget):
         for corner_flag in (Qt.Corner.TopRightCorner, Qt.Corner.TopLeftCorner):

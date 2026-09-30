@@ -561,18 +561,21 @@ def caption_hit_test(
 ## 🔧 Function `install_win11_caption`
 
 ```python
-def install_win11_caption(window: QWidget) -> bool
+def install_win11_caption(window: QWidget, *, trailing_widgets: Sequence[QWidget] | None = None) -> bool
 ```
 
 Replace the native title bar with the caption row plus Windows 11 buttons.
 
-From the left: icon, bold app name, then tabs. From the right: the menu,
-then the window buttons. No-op outside Windows. The window title string
-stays for the taskbar.
+From the left: icon, bold app name, then tabs. From the right: optional
+trailing controls (search, sort, …), the menu, then the window buttons.
+No-op outside Windows. The window title string stays for the taskbar.
 
 Args:
 
 - `window` (`QWidget`): Main window. Tabbed apps already have `tabWidget`.
+- `trailing_widgets` (`Sequence[QWidget] | None`): Extra controls placed
+  in the caption before the menu and window buttons. Used by the tray
+  command window for search and sort. Ignored for tabbed captions.
 
 Returns:
 
@@ -582,7 +585,11 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def install_win11_caption(window: QWidget) -> bool:
+def install_win11_caption(
+    window: QWidget,
+    *,
+    trailing_widgets: Sequence[QWidget] | None = None,
+) -> bool:
     if sys.platform != "win32" or getattr(window, _INSTALLED_ATTR, False):
         return False
     tab_widget = getattr(window, "tabWidget", None)
@@ -596,7 +603,7 @@ def install_win11_caption(window: QWidget) -> bool:
     if isinstance(tab_widget, QTabWidget):
         _build_caption_row(window, tab_widget, controller, light=light)
     elif isinstance(window, QMainWindow):
-        _build_menu_caption(window, controller, light=light)
+        _build_menu_caption(window, controller, light=light, trailing_widgets=trailing_widgets)
     _install_menu_chevrons(window)
     _ensure_caption_title(window)
     _flush_caption_to_frame(window)

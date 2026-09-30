@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMenu,
     QMenuBar,
+    QSizePolicy,
     QSplitter,
     QTabWidget,
     QToolButton,
@@ -281,6 +282,35 @@ def test_menu_only_caption_has_no_base_line(qapp: QApplication) -> None:
     assert window.findChild(QWidget, "captionBaseLine") is None
     image = host.grab().toImage()
     assert _caption_line_color(image, 8) == "#ffffff"
+    window.close()
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Win11 caption is Windows-only")
+def test_menu_caption_accepts_trailing_widgets(qapp: QApplication) -> None:
+    """Trailing caption controls sit between the title and the window buttons."""
+    window = QMainWindow()
+    window.setWindowTitle("Harrix Swiss Knife")
+    window.setCentralWidget(QWidget())
+    tools = QWidget()
+    tools.setObjectName("captionTools")
+    tools.setFixedHeight(CAPTION_BUTTON_HEIGHT)
+    tools.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+    assert install_win11_caption(window, trailing_widgets=[tools])
+    window.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, on=True)
+    window.resize(900, 240)
+    window.show()
+    qapp.processEvents()
+
+    host = window.menuWidget()
+    row = window.findChild(QWidget, "captionButtonRow")
+    title = window.findChild(QLabel, "captionTitleLabel")
+    assert host is not None
+    assert host.objectName() == "captionBar"
+    assert row is not None
+    assert title is not None
+    assert tools.parentWidget() is host
+    assert tools.geometry().left() >= title.geometry().right() - 1
+    assert tools.geometry().right() <= row.geometry().left() + 1
     window.close()
 
 
