@@ -11,9 +11,35 @@ lang: en
 
 ## Contents
 
+- [🔧 Function `is_bothub_api_failover_error`](#-function-is_bothub_api_failover_error)
 - [🔧 Function `persist_ai_provider`](#-function-persist_ai_provider)
 - [🔧 Function `prepare_bothub_router`](#-function-prepare_bothub_router)
 - [🔧 Function `probe_bothub_site`](#-function-probe_bothub_site)
+- [🔧 Function `switch_bothub_router_after_api_failure`](#-function-switch_bothub_router_after_api_failure)
+
+</details>
+
+## 🔧 Function `is_bothub_api_failover_error`
+
+```python
+def is_bothub_api_failover_error(message: str) -> bool
+```
+
+Return whether an API error should be retried on the other BotHub site.
+
+Network/timeouts (no HTTP status) and selected HTTP statuses (5xx, 401/403,
+429, …) qualify. Client validation errors such as 400 do not.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def is_bothub_api_failover_error(message: str) -> bool:
+    match = _HTTP_STATUS_RE.search(message or "")
+    if match is None:
+        return True
+    return int(match.group(1)) in _FAILOVER_HTTP_STATUSES
+```
 
 </details>
 
@@ -161,6 +187,57 @@ def probe_bothub_site(url: str, proxy_url: str | None = None) -> bool:
     except (OSError, URLError, TimeoutError, ValueError):
         return False
     return True
+```
+
+</details>
+
+## 🔧 Function `switch_bothub_router_after_api_failure`
+
+```python
+def switch_bothub_router_after_api_failure(config: dict[str, Any], *, for_speech: bool = False, persist: Callable[[ProviderName, str | None], None] | None = None, config_path: Path | None = None) -> ProviderName | None
+```
+
+Force-switch to the other BotHub router after a failed API call.
+
+Unlike [`prepare_bothub_router`](#-function-prepare_bothub_router), this does not prefer the configured site when
+its homepage still answers — use it only after the live request failed.
+
+Args:
+
+- [`config`](../../actions/common/base.g.md#%EF%B8%8F-method-config-property) (`dict[str, Any]`): In-memory config (mutated on switch).
+- `for_speech` (`bool`): Use the speech provider. Defaults to `False`.
+- `persist` (`Callable | None`): Override temp writer (tests).
+- `config_path` (`Path | None`): Main config file for temp write.
+
+Returns:
+
+- `ProviderName | None`: The new live router, or `None` when no switch.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def switch_bothub_router_after_api_failure(
+    config: dict[str, Any],
+    *,
+    for_speech: bool = False,
+    persist: Callable[[ProviderName, str | None], None] | None = None,
+    config_path: Path | None = None,
+) -> ProviderName | None:
+    current = get_speech_provider(config) if for_speech else get_chat_provider(config)
+    if not is_bothub_router(current):
+        return None
+    alternate = other_bothub_router(current)
+    if not _has_usable_key(config, alternate):
+        return None
+    path = config_path or get_config_path()
+    return _commit_router_if_changed(
+        config,
+        alternate,
+        for_speech=for_speech,
+        persist=persist,
+        config_path=path,
+    )
 ```
 
 </details>

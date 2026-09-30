@@ -130,7 +130,19 @@ class Ui_MainWindow(object):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
         MainWindow.setStyleSheet(u"/* hsk-white-surfaces */\n"
-"QGroupBox { background-color: #ffffff; }\n"
+"QGroupBox {\n"
+" background-color: #ffffff;\n"
+" border: 1px solid #e0e0e0;\n"
+" border-radius: 4px;\n"
+" margin-top: 0.6em;\n"
+" padding-top: 4px;\n"
+"}\n"
+"QGroupBox::title {\n"
+" subcontrol-origin: margin;\n"
+" left: 8px;\n"
+" padding: 0 4px;\n"
+" background-color: #ffffff;\n"
+"}\n"
 "QMenu { background-color: #ffffff; border: 1px solid #e0e0e0; color: #202020; }\n"
 "QMenu::item { color: #202020; background-color: transparent; }\n"
 "QMenu::item:selected { color: #202020; background-color: #f2f2f2; }\n"
@@ -145,7 +157,8 @@ class Ui_MainWindow(object):
 "QSplitter::handle:vertical {\n"
 " height: 17px;\n"
 " background: qlineargradient(x1:0, y1:0, x2:0, y2:1,\n"
-" stop:0 #ffffff, stop:0.46 #ffffff, stop:0.49 #c0c0c0, stop:0.51 #c0c0c0, stop:0.54 #ffffff, stop:1 #ffffff);\n"
+" stop:0 #ffffff, st"
+                        "op:0.46 #ffffff, stop:0.49 #c0c0c0, stop:0.51 #c0c0c0, stop:0.54 #ffffff, stop:1 #ffffff);\n"
 "}\n"
 "QSplitter::handle:hover { background: #c0c0c0; }")
         MainWindow.resize(1392, 641)
@@ -957,6 +970,7 @@ class Ui_MainWindow(object):
 
         self.scrollArea_weight_chart = QScrollArea(self.tab_5)
         self.scrollArea_weight_chart.setObjectName(u"scrollArea_weight_chart")
+        self.scrollArea_weight_chart.setStyleSheet(u"QScrollArea#scrollArea_weight_chart { background-color: #ffffff; border: none; }")
         self.scrollArea_weight_chart.setWidgetResizable(True)
         self.scrollAreaWidgetContents_weight_chart = QWidget()
         self.scrollAreaWidgetContents_weight_chart.setObjectName(u"scrollAreaWidgetContents_weight_chart")
@@ -1226,7 +1240,19 @@ def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
         MainWindow.setStyleSheet(u"/* hsk-white-surfaces */\n"
-"QGroupBox { background-color: #ffffff; }\n"
+"QGroupBox {\n"
+" background-color: #ffffff;\n"
+" border: 1px solid #e0e0e0;\n"
+" border-radius: 4px;\n"
+" margin-top: 0.6em;\n"
+" padding-top: 4px;\n"
+"}\n"
+"QGroupBox::title {\n"
+" subcontrol-origin: margin;\n"
+" left: 8px;\n"
+" padding: 0 4px;\n"
+" background-color: #ffffff;\n"
+"}\n"
 "QMenu { background-color: #ffffff; border: 1px solid #e0e0e0; color: #202020; }\n"
 "QMenu::item { color: #202020; background-color: transparent; }\n"
 "QMenu::item:selected { color: #202020; background-color: #f2f2f2; }\n"
@@ -1241,7 +1267,8 @@ def setupUi(self, MainWindow):
 "QSplitter::handle:vertical {\n"
 " height: 17px;\n"
 " background: qlineargradient(x1:0, y1:0, x2:0, y2:1,\n"
-" stop:0 #ffffff, stop:0.46 #ffffff, stop:0.49 #c0c0c0, stop:0.51 #c0c0c0, stop:0.54 #ffffff, stop:1 #ffffff);\n"
+" stop:0 #ffffff, st"
+                        "op:0.46 #ffffff, stop:0.49 #c0c0c0, stop:0.51 #c0c0c0, stop:0.54 #ffffff, stop:1 #ffffff);\n"
 "}\n"
 "QSplitter::handle:hover { background: #c0c0c0; }")
         MainWindow.resize(1392, 641)
@@ -2053,6 +2080,7 @@ def setupUi(self, MainWindow):
 
         self.scrollArea_weight_chart = QScrollArea(self.tab_5)
         self.scrollArea_weight_chart.setObjectName(u"scrollArea_weight_chart")
+        self.scrollArea_weight_chart.setStyleSheet(u"QScrollArea#scrollArea_weight_chart { background-color: #ffffff; border: none; }")
         self.scrollArea_weight_chart.setWidgetResizable(True)
         self.scrollAreaWidgetContents_weight_chart = QWidget()
         self.scrollAreaWidgetContents_weight_chart.setObjectName(u"scrollAreaWidgetContents_weight_chart")
