@@ -9,6 +9,7 @@ import harrix_pylib as h
 from PySide6.QtCore import QEvent, QObject, QPoint, QSize, Qt
 from PySide6.QtGui import QFont, QKeyEvent, QMouseEvent
 from PySide6.QtWidgets import (
+    QApplication,
     QDialog,
     QHBoxLayout,
     QLabel,
@@ -118,6 +119,7 @@ class SnippetsDialog(QDialog):
     def __init__(self, parent: QWidget | None = None) -> None:
         """Build the overlay and open the snippets database."""
         super().__init__(parent)
+        self._default_parent = parent
         self.setModal(False)
         self.setWindowModality(Qt.WindowModality.NonModal)
         self.setWindowFlags(_WINDOW_FLAGS)
@@ -181,6 +183,11 @@ class SnippetsDialog(QDialog):
         self._activate_zone(ZONES[index])
         return True
 
+    def hide(self) -> None:
+        """Hide the overlay and detach from any modal parent."""
+        super().hide()
+        self._detach_modal_parent()
+
     def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
         """Hide the overlay on Escape."""
         if event.key() == Qt.Key.Key_Escape:
@@ -228,6 +235,7 @@ class SnippetsDialog(QDialog):
             panel.reset_keyboard_session()
             panel.clear_filter()
         self._emoji.clear_ai_candidates()
+        self._retarget_to_active_modal_parent()
         self._center_on_screen()
         self.show()
         self.raise_()
@@ -445,6 +453,14 @@ class SnippetsDialog(QDialog):
         self.db_manager.delete_item(snippet.item_id)
         self._reload_zone(snippet.zone, self._panels[snippet.zone])
 
+    def _detach_modal_parent(self) -> None:
+        """Restore the default parent so the singleton outlives closed modals."""
+        if self.parentWidget() is self._default_parent:
+            return
+        self.setParent(self._default_parent, _WINDOW_FLAGS)
+        self.setModal(False)
+        self.setWindowModality(Qt.WindowModality.NonModal)
+
     def _edit_all(self, zone: str) -> None:
         if self.db_manager is None:
             return
@@ -596,6 +612,28 @@ class SnippetsDialog(QDialog):
         items = sort_items(self.db_manager.list_items(zone), zone_sort.mode, descending=zone_sort.descending)
         panel.set_items(items)
         panel.set_sort_state(zone_sort)
+
+    def _retarget_to_active_modal_parent(self) -> None:
+        """Parent overlay to active modal dialog so it stays interactive.
+
+        Application-modal dialogs (for example Git commit message) block input
+        to sibling Windows. Parenting Quick paste under the modal keeps it in
+        the modal's window hierarchy so clicks and typing work while the modal
+        stays open underneath.
+
+        """
+        modal_parent = QApplication.activeModalWidget()
+        if modal_parent is self:
+            modal_parent = None
+        target_parent = modal_parent if modal_parent is not None else self._default_parent
+
+        flags = _WINDOW_FLAGS
+        if self.parentWidget() is not target_parent:
+            self.setParent(target_parent, flags)
+        else:
+            self.setWindowFlags(flags)
+        self.setModal(False)
+        self.setWindowModality(Qt.WindowModality.NonModal)
 
     def _set_input_text(self, text: str) -> None:
         self._syncing_input = True

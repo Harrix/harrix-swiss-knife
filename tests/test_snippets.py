@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 from PySide6.QtCore import QEvent, QPointF, QRect, Qt
 from PySide6.QtGui import QColor, QKeyEvent, QMouseEvent, QPainter, QPalette, QPixmap
-from PySide6.QtWidgets import QApplication, QMenu, QSplitter, QStyle, QStyleOptionViewItem, QToolButton
+from PySide6.QtWidgets import QApplication, QDialog, QMenu, QSplitter, QStyle, QStyleOptionViewItem, QToolButton
 
 from harrix_swiss_knife.actions.apps.snippets import OnSnippets
 from harrix_swiss_knife.actions.common.quick_launcher_registry import iter_menu_structure
@@ -338,6 +338,32 @@ def test_emoji_pick_button_appears_when_input_has_text(qapp: QApplication, monke
     dialog._input.clear()
     QApplication.processEvents()
     assert not pick.isVisible()
+    dialog.close()
+
+
+def test_present_parents_under_active_modal(qapp: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:
+    assert qapp is not None
+    monkeypatch.setattr(SnippetsDialog, "_init_database", lambda _dialog: None)
+    modal = QDialog()
+    modal.setWindowModality(Qt.WindowModality.ApplicationModal)
+    modal.show()
+    QApplication.processEvents()
+    assert QApplication.activeModalWidget() is modal
+
+    dialog = SnippetsDialog()
+    dialog.present()
+    QApplication.processEvents()
+
+    assert dialog.parentWidget() is modal
+    assert dialog.isVisible()
+    assert dialog.windowModality() == Qt.WindowModality.NonModal
+    assert dialog.isEnabled()
+
+    dialog.hide()
+    QApplication.processEvents()
+    assert dialog.parentWidget() is None
+
+    modal.close()
     dialog.close()
 
 

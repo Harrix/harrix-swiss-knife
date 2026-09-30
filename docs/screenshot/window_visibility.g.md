@@ -363,7 +363,7 @@ Restored widgets are raised and the window that started the capture (or its
 modal dialog) is activated so the user returns to Finance / Fill with AI /
 an error `QMessageBox` — not a stay-on-top sibling such as the command cards.
 
-Non-modal (`hide`) Windows are restored first; opacity-concealed owners
+Non-modal ([`hide`](../apps/snippets/dialog.g.md#%EF%B8%8F-method-hide)) Windows are restored first; opacity-concealed owners
 next; modal dialogs last so they stay above the owner chain. Stay-on-top
 is cleared on siblings of the focus target so they cannot cover it.
 
