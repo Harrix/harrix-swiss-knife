@@ -403,13 +403,16 @@
       },
       {
         "command": "harrixNotesExplorerHsk.openIconsBrowse",
-        "title": "Open in Notes Icons Browse",
+        "title": "Notes Icons Browse",
         "category": "Harrix Notes HSK",
-        "icon": "$(layout-grid)"
+        "icon": {
+          "light": "media/icons/view-icons-browse.svg",
+          "dark": "media/icons/view-icons-browse.svg"
+        }
       },
       {
         "command": "harrixNotesExplorerHsk.openPinnedBrowse",
-        "title": "Open Notes Pinned",
+        "title": "Notes Pinned",
         "category": "Harrix Notes HSK",
         "icon": "$(pinned)"
       },
@@ -644,19 +647,19 @@
     "menus": {
       "view/title": [
         {
-          "command": "harrixNotesExplorerHsk.refresh",
-          "when": "view == harrixNotesExplorerHsk",
-          "group": "navigation"
-        },
-        {
           "command": "harrixNotesExplorerHsk.openIconsBrowse",
           "when": "view == harrixNotesExplorerHsk",
-          "group": "navigation"
+          "group": "navigation@1"
         },
         {
           "command": "harrixNotesExplorerHsk.openPinnedBrowse",
           "when": "view == harrixNotesExplorerHsk",
-          "group": "navigation"
+          "group": "navigation@2"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.refresh",
+          "when": "view == harrixNotesExplorerHsk",
+          "group": "navigation@3"
         },
         {
           "command": "harrixNotesExplorerHsk.hideAllNoteAssets",
