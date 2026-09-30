@@ -103,9 +103,9 @@
   "finance_transactions_translate_descriptions_limit": 250,
   "fitness_names_translate_local_limit": 250,
   "food_calorie_thresholds": {
-    "low": 1800,
-    "medium_high": 2500,
-    "medium_low": 2100
+    "low": 1950,
+    "medium_low": 2300,
+    "medium_high": 2800
   },
   "food_log_translate_names_limit": 250,
   "github_token": "snippet:api-keys/github-token.txt",
@@ -444,5 +444,14 @@
   "ui_font_size_pt": 10,
   "vector_icons_recent_folders_max": 12,
   "vscode_workspace_articles": "D:/Dropbox/Programs/vscode_workspaces/_content__harrix-dev.code-workspace",
-  "vscode_workspace_notes": "D:/Dropbox/Programs/vscode_workspaces/Notes.code-workspace"
+  "vscode_workspace_notes": "D:/Dropbox/Programs/vscode_workspaces/Notes.code-workspace",
+  "food_calorie_thresholds_configured": true,
+  "food_person_profile": {
+    "sex": "male",
+    "age": 40,
+    "height_cm": 172.0,
+    "weight_kg": 87.9,
+    "activity": "moderate",
+    "want_to_lose_weight": true
+  }
 }

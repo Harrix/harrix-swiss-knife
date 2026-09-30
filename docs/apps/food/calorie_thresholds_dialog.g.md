@@ -43,7 +43,7 @@ class CalorieThresholdsSetupDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Calorie thresholds")
         qt_modality.set_owner_window_modal(self)
-        self.setMinimumWidth(460)
+        self.setMinimumWidth(520)
 
         initial = profile or PersonProfile(sex="male", age=30, height_cm=175.0, weight_kg=70.0)
         self._syncing = False
@@ -97,11 +97,21 @@ class CalorieThresholdsSetupDialog(QDialog):
         self._want_to_lose_weight.setChecked(initial.want_to_lose_weight)
         self._want_to_lose_weight.setToolTip("Lowers all three calorie bands by about 15%.")
         form.addRow("", self._want_to_lose_weight)
+        layout.addLayout(form)
 
+        estimate_row = QHBoxLayout()
+        estimate_caption = QLabel("Estimate:")
+        estimate_caption.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        estimate_row.addWidget(estimate_caption)
         self._estimate_label = QLabel("")
         self._estimate_label.setWordWrap(True)
-        form.addRow("Estimate:", self._estimate_label)
+        self._estimate_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self._estimate_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        self._estimate_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        estimate_row.addWidget(self._estimate_label, 1)
+        layout.addLayout(estimate_row)
 
+        thresholds_form = QFormLayout()
         self._low = QSpinBox()
         self._medium_low = QSpinBox()
         self._medium_high = QSpinBox()
@@ -109,10 +119,10 @@ class CalorieThresholdsSetupDialog(QDialog):
             spin.setRange(500, 10000)
             spin.setSingleStep(50)
             spin.setSuffix(" kcal")
-        form.addRow("Low (<= green):", self._low)
-        form.addRow("Medium-low (<= yellow):", self._medium_low)
-        form.addRow("Medium-high (<= orange):", self._medium_high)
-        layout.addLayout(form)
+        thresholds_form.addRow("Low (<= green):", self._low)
+        thresholds_form.addRow("Medium-low (<= yellow):", self._medium_low)
+        thresholds_form.addRow("Medium-high (<= orange):", self._medium_high)
+        layout.addLayout(thresholds_form)
 
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
@@ -163,10 +173,12 @@ class CalorieThresholdsSetupDialog(QDialog):
         if self._syncing:
             return
         estimate = estimate_calorie_bands(self.result_profile())
-        deficit_note = " · lose-weight -15%" if self._want_to_lose_weight.isChecked() else ""
-        self._estimate_label.setText(
-            f"BMR ~ {estimate.bmr:.0f} kcal/day · TDEE ~ {estimate.tdee:.0f} kcal/day{deficit_note}",
-        )
+        lines = [
+            f"BMR ~ {estimate.bmr:.0f} kcal/day · TDEE ~ {estimate.tdee:.0f} kcal/day",
+        ]
+        if self._want_to_lose_weight.isChecked():
+            lines.append("lose-weight -15%")
+        self._estimate_label.setText("\n".join(lines))
         self._set_threshold_spins(estimate.thresholds)
 
     def _set_threshold_spins(self, thresholds: CalorieThresholds) -> None:
@@ -203,7 +215,7 @@ def __init__(
         super().__init__(parent)
         self.setWindowTitle("Calorie thresholds")
         qt_modality.set_owner_window_modal(self)
-        self.setMinimumWidth(460)
+        self.setMinimumWidth(520)
 
         initial = profile or PersonProfile(sex="male", age=30, height_cm=175.0, weight_kg=70.0)
         self._syncing = False
@@ -257,11 +269,21 @@ def __init__(
         self._want_to_lose_weight.setChecked(initial.want_to_lose_weight)
         self._want_to_lose_weight.setToolTip("Lowers all three calorie bands by about 15%.")
         form.addRow("", self._want_to_lose_weight)
+        layout.addLayout(form)
 
+        estimate_row = QHBoxLayout()
+        estimate_caption = QLabel("Estimate:")
+        estimate_caption.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        estimate_row.addWidget(estimate_caption)
         self._estimate_label = QLabel("")
         self._estimate_label.setWordWrap(True)
-        form.addRow("Estimate:", self._estimate_label)
+        self._estimate_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self._estimate_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        self._estimate_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        estimate_row.addWidget(self._estimate_label, 1)
+        layout.addLayout(estimate_row)
 
+        thresholds_form = QFormLayout()
         self._low = QSpinBox()
         self._medium_low = QSpinBox()
         self._medium_high = QSpinBox()
@@ -269,10 +291,10 @@ def __init__(
             spin.setRange(500, 10000)
             spin.setSingleStep(50)
             spin.setSuffix(" kcal")
-        form.addRow("Low (<= green):", self._low)
-        form.addRow("Medium-low (<= yellow):", self._medium_low)
-        form.addRow("Medium-high (<= orange):", self._medium_high)
-        layout.addLayout(form)
+        thresholds_form.addRow("Low (<= green):", self._low)
+        thresholds_form.addRow("Medium-low (<= yellow):", self._medium_low)
+        thresholds_form.addRow("Medium-high (<= orange):", self._medium_high)
+        layout.addLayout(thresholds_form)
 
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
