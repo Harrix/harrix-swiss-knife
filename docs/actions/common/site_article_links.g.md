@@ -477,7 +477,7 @@ def extract_first_h1(markdown: str) -> str:
 def find_dual_links(text: str) -> list[DualLinkMatch]
 ```
 
-Return all dual-link matches in `text`.
+Return all dual-link matches in [`text`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-text).
 
 <details>
 <summary>Code:</summary>

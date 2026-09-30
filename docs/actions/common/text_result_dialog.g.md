@@ -231,7 +231,7 @@ def collapse_text_to_single_line(text: str) -> str:
 def is_multiline_text(text: str) -> bool
 ```
 
-Return `True` when trimmed `text` contains more than one line.
+Return `True` when trimmed [`text`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-text) contains more than one line.
 
 A trailing newline alone does not count as a second line.
 

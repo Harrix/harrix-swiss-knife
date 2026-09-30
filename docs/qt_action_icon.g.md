@@ -52,7 +52,7 @@ def action_svg_path(name: str) -> Path | None:
 def create_action_icon(action_cls: type, size: int = 32) -> QIcon
 ```
 
-Build the GUI `QIcon` for an action class (`icon_svg`, else `icon`).
+Build the GUI `QIcon` for an action class (`icon_svg`, else [`icon`](qt_split_menu_button.g.md#%EF%B8%8F-method-icon)).
 
 <details>
 <summary>Code:</summary>
@@ -143,7 +143,7 @@ def create_svg_file_icon(
 def resolve_ui_icon_spec(action_cls: type) -> str
 ```
 
-Return the GUI icon spec: existing `icon_svg` file, else emoji `icon`.
+Return the GUI icon spec: existing `icon_svg` file, else emoji [`icon`](qt_split_menu_button.g.md#%EF%B8%8F-method-icon).
 
 <details>
 <summary>Code:</summary>

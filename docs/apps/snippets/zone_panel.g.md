@@ -1305,7 +1305,7 @@ def set_ai_pick_visible(self, *, visible: bool) -> None:
 def set_filter_query(self, text: str) -> None
 ```
 
-Filter this zone by `text` and clear the current highlight.
+Filter this zone by [`text`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-text) and clear the current highlight.
 
 <details>
 <summary>Code:</summary>

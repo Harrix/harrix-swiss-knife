@@ -246,7 +246,7 @@ Parse text input and convert to purchase items.
 
 Args:
 
-- `text` (`str`): Text input to parse.
+- [`text`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-text) (`str`): Text input to parse.
 
 Returns:
 

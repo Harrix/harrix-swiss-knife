@@ -196,7 +196,7 @@ Parse a stored amount cell, ignoring the expense minus sign.
 
 Args:
 
-- `text` (`str`): Amount text from the table model.
+- [`text`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-text) (`str`): Amount text from the table model.
 
 Returns:
 

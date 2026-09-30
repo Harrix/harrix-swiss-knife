@@ -51,7 +51,7 @@ def clone_clipboard_mime() -> QMimeData:
 def paste_text_then_restore_clipboard(text: str, saved: QMimeData, *, on_finished: Callable[[], None] | None = None, paste_delay_ms: int = _PASTE_DELAY_MS, restore_delay_ms: int = _RESTORE_DELAY_MS) -> None
 ```
 
-Set clipboard to `text`, paste, then restore `saved`.
+Set clipboard to [`text`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-text), paste, then restore `saved`.
 
 <details>
 <summary>Code:</summary>

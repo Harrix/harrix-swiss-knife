@@ -41,7 +41,7 @@ def iter_skip_spans(text: str) -> list[tuple[int, int]]:
 def iter_word_spans(text: str) -> list[tuple[int, int, str]]
 ```
 
-Return `(start, end, word)` spans for spellcheckable tokens in `text`.
+Return `(start, end, word)` spans for spellcheckable tokens in [`text`](../qt_split_menu_button.g.md#%EF%B8%8F-method-text).
 
 Words may contain letters, digits, and internal `'` / `-`. Pure digit tokens,
 and tokens inside URL/email/path runs, are omitted.

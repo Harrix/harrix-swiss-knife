@@ -165,7 +165,7 @@ def apply_leading_chrome_icon(
 def apply_leading_chrome_icons(menu: QMenu | QMenuBar, *, icon_size: int = DEFAULT_LUCIDE_MENU_ICON_SIZE) -> None
 ```
 
-Convert leading chrome emoji prefixes on `menu` actions into Lucide icons.
+Convert leading chrome emoji prefixes on [`menu`](qt_split_menu_button.g.md#%EF%B8%8F-method-menu) actions into Lucide icons.
 
 <details>
 <summary>Code:</summary>
@@ -548,7 +548,7 @@ def set_action_text_with_lucide_icon(action: QAction, text: str, name: str | Non
 
 Set action text and a Lucide icon.
 
-When `name` is omitted, a leading chrome emoji on `text` is mapped to Lucide
+When `name` is omitted, a leading chrome emoji on [`text`](qt_split_menu_button.g.md#%EF%B8%8F-method-text) is mapped to Lucide
 and stripped from the visible label.
 
 <details>

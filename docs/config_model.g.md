@@ -395,7 +395,7 @@ def clamp_ui_font_size_pt(value: float) -> float:
 def get_main_window_sort_mode(temp_config: dict[str, Any] | None = None) -> str
 ```
 
-Return commands-window sort mode (`menu` or `newest`) from `config-temp.json`.
+Return commands-window sort mode ([`menu`](qt_split_menu_button.g.md#%EF%B8%8F-method-menu) or `newest`) from `config-temp.json`.
 
 <details>
 <summary>Code:</summary>

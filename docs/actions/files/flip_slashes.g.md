@@ -115,7 +115,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 def flip_slashes(text: str) -> str
 ```
 
-Return `text` with slashes flipped to the opposite direction.
+Return [`text`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-text) with slashes flipped to the opposite direction.
 
 - `/` becomes `\`, and a single `\` becomes `/`.
 - A doubled `\\` outside a protocol becomes one `\` and is not flipped again.

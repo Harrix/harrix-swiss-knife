@@ -189,7 +189,7 @@ Initialize the dialog.
 Args:
 
 - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
-- `category_data` (`dict | None`): Category fields (`id`, `name`, `type`, `icon`, `name_local`).
+- `category_data` (`dict | None`): Category fields (`id`, `name`, `type`, [`icon`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-icon), `name_local`).
 - `app_config` (`dict[str, Any] | None`): App config for BotHub translation.
 - `bothub_state` (`BothubRequestState | None`): Shared in-flight BotHub request state.
 

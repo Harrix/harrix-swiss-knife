@@ -790,7 +790,7 @@ Parse text input and convert to food items.
 
 Args:
 
-- `text` (`str`): Text input to parse.
+- [`text`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-text) (`str`): Text input to parse.
 - `db_manager` (`Any | None`): Database manager for looking up existing items. Defaults to `None`.
 - `default_date` (`str | None`): Default date to use if no date is found in text. Defaults to `None`.
 - `correct_unparseable_line` (`Callable[[str], str | None] | None`): Optional callback that can

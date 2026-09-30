@@ -653,7 +653,7 @@ Parse AI output: intake TSV, norms TSV, bilingual verdict/notes.
 
 Args:
 
-- `text` (`str`): Raw BotHub response.
+- [`text`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-text) (`str`): Raw BotHub response.
 
 Returns:
 

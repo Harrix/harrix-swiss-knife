@@ -253,7 +253,7 @@ Parse TSV lines `Exercise`, `Type`, `Value` (type may be empty).
 
 Args:
 
-- `text` (`str`): BotHub or preview-dialog table text.
+- [`text`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-text) (`str`): BotHub or preview-dialog table text.
 
 Returns:
 

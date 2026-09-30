@@ -40,7 +40,7 @@ Args:
 - `api_key` (`str`): Provider access token.
 - `base_url` (`str`): API base URL.
 - `model` (`str`): Model ID.
-- `text` (`str`): User message text (prompt).
+- [`text`](../qt_split_menu_button.g.md#%EF%B8%8F-method-text) (`str`): User message text (prompt).
 - `images` (`Sequence[tuple[bytes, str]] | None`): Optional vision inputs.
 - `image` (`tuple[bytes, str] | None`): Optional single vision input.
 - `audio` (`tuple[bytes, str] | None`): Optional speech input.

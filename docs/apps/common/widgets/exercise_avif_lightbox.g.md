@@ -604,13 +604,13 @@ def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
 def parse_speed_text(text: str) -> float | None
 ```
 
-Parse a playback-speed multiplier from `text`.
+Parse a playback-speed multiplier from [`text`](../../../qt_split_menu_button.g.md#%EF%B8%8F-method-text).
 
 Accepts a plain number, an optional trailing `x`, and a comma decimal.
 
 Args:
 
-- `text` (`str`): Raw field text.
+- [`text`](../../../qt_split_menu_button.g.md#%EF%B8%8F-method-text) (`str`): Raw field text.
 
 Returns:
 

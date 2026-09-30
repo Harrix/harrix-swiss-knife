@@ -20,7 +20,7 @@ Args:
 - `api_key`: Provider access token.
 - `base_url`: API base URL.
 - `model`: Model ID (or Whisper model for OpenAI speech).
-- `text`: User prompt text.
+- [`text`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-text): User prompt text.
 - `images` / `image`: Optional vision inputs `(bytes, mime_type)`.
 - `audio`: Optional speech input `(bytes, mime_type)`.
 - `timeout_sec`: HTTP timeout in seconds.

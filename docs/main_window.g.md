@@ -666,7 +666,7 @@ Initialize the main window from the tray menu structure.
 
 Args:
 
-- `menu` (`QMenu`): Tray menu whose actions are shown in the window.
+- [`menu`](qt_split_menu_button.g.md#%EF%B8%8F-method-menu) (`QMenu`): Tray menu whose actions are shown in the window.
 
 <details>
 <summary>Code:</summary>

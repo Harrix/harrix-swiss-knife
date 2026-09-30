@@ -57,7 +57,7 @@ Parse TSV lines Name<TAB>EnglishName into a name-to-translation map.
 
 Args:
 
-- `text` (`str`): Raw BotHub response.
+- [`text`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-text) (`str`): Raw BotHub response.
 
 Returns:
 

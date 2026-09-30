@@ -166,7 +166,7 @@ def misspelled_word_at(
 def populate_spellcheck_menu(menu: QMenu, widget: TextEditor, *, engine: SpellEngine | None = None, global_pos: QPoint | None = None, on_changed: Callable[[], None] | None = None, suggest_limit: int = _DEFAULT_SUGGEST_LIMIT) -> int
 ```
 
-Insert suggestions and Add to dictionary at the top of `menu`.
+Insert suggestions and Add to dictionary at the top of [`menu`](../qt_split_menu_button.g.md#%EF%B8%8F-method-menu).
 
 Returns the number of spellcheck actions added (0 when the word is fine).
 

@@ -26,11 +26,11 @@ lang: en
 def combine_utf16_surrogates(text: str) -> str
 ```
 
-Turn UTF-16 surrogate code points in `text` into real Unicode characters.
+Turn UTF-16 surrogate code points in [`text`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-text) into real Unicode characters.
 
 Args:
 
-- `text` (`str`): String that may contain high+low surrogate pairs.
+- [`text`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-text) (`str`): String that may contain high+low surrogate pairs.
 
 Returns:
 

@@ -149,7 +149,7 @@ def apply_leading_emoji_icon(
 def apply_leading_emoji_icons(menu: QMenu | QMenuBar, *, icon_size: int = DEFAULT_EMOJI_MENU_ICON_SIZE) -> None
 ```
 
-Convert leading emoji prefixes on `menu` actions into `QIcon`s.
+Convert leading emoji prefixes on [`menu`](qt_split_menu_button.g.md#%EF%B8%8F-method-menu) actions into `QIcon`s.
 
 <details>
 <summary>Code:</summary>

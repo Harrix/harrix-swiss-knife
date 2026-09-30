@@ -35,7 +35,7 @@ retrieve icons, and generate documentation for menu items in a README file.
 
 Attributes:
 
-- `menu` (`QMenu`): The main menu object for the application, initialized in `__init__`.
+- [`menu`](qt_split_menu_button.g.md#%EF%B8%8F-method-menu) (`QMenu`): The main menu object for the application, initialized in `__init__`.
 - [`config`](actions/common/base.g.md#%EF%B8%8F-method-config-property) (`dict`): The configuration dictionary loaded from the config file.
 
 <details>
@@ -327,7 +327,7 @@ Add multiple items to the given menu with sorting by title within groups.
 
 Args:
 
-- `menu` (`QMenu`): The menu to which the actions will be added.
+- [`menu`](qt_split_menu_button.g.md#%EF%B8%8F-method-menu) (`QMenu`): The menu to which the actions will be added.
 - `items` (`list`): List of callables or separators. Use `-` string for separator.
 
 <details>
@@ -505,7 +505,7 @@ Retrieve an icon for menu items.
 
 Args:
 
-- `icon` (`str`): Action SVG under `assets/actions/`, Qt resource SVG
+- [`icon`](qt_split_menu_button.g.md#%EF%B8%8F-method-icon) (`str`): Action SVG under `assets/actions/`, Qt resource SVG
   (`resources_rc.py`), or emoji. Example: `object__palette.svg`, `py.svg`, `🏆`.
 - [`size`](apps/icons/lightbox_cache.g.md#%EF%B8%8F-method-size-property) (`int`): The size of the icon in pixels. Defaults to `32`.
 
@@ -534,7 +534,7 @@ Create and return a new QMenu with a title and an icon.
 Args:
 
 - `title` (`str`): The title of the new menu.
-- `icon` (`str`): Path in `resources_rc.py`, action SVG, or emoji. Example: `uv.svg`, `🏆`.
+- [`icon`](qt_split_menu_button.g.md#%EF%B8%8F-method-icon) (`str`): Path in `resources_rc.py`, action SVG, or emoji. Example: `uv.svg`, `🏆`.
 
 Returns:
 

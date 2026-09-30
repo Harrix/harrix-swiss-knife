@@ -482,7 +482,7 @@ def set_comment(self, habit_id: int, date_str: str, text: str, *, habit_name: st
 
 Write or delete the comment for one habit day.
 
-Empty `text` removes that date. Returns the Markdown path, or `None`
+Empty [`text`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-text) removes that date. Returns the Markdown path, or `None`
 when storage is not configured.
 
 <details>

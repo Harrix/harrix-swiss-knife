@@ -69,10 +69,10 @@ file operations, and user interface interactions.
 
 Attributes:
 
-- `icon` (`str`): Emoji for Markdown/docs (README list of commands). Defaults to `""`.
+- [`icon`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-icon) (`str`): Emoji for Markdown/docs (README list of commands). Defaults to `""`.
 - `icon_svg` (`str`): Optional GUI icon filename under `assets/actions/`
   (with or without `.svg`). When the file exists, tray/menu/cards use it and
-  keep `icon` for documentation. Defaults to `""`.
+  keep [`icon`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-icon) for documentation. Defaults to `""`.
 - `title` (`str`): Action title. May include Markdown inline code (`` `name` ``)
   for README generation; Qt UI shows it without backticks via [`display_title`](#%EF%B8%8F-method-display_title-property).
   Defaults to `""`.
@@ -1943,7 +1943,7 @@ Copy the given text to the system clipboard.
 
 Args:
 
-- `text` (`str`): The text to be copied to the clipboard.
+- [`text`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-text) (`str`): The text to be copied to the clipboard.
 
 Returns:
 

@@ -112,7 +112,7 @@ def createMimeDataFromSelection(self) -> QMimeData:  # noqa: N802
 def set_plain_result(self, text: str) -> None
 ```
 
-Show `text` with auto-linked URLs.
+Show [`text`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-text) with auto-linked URLs.
 
 <details>
 <summary>Code:</summary>
@@ -130,10 +130,10 @@ def set_plain_result(self, text: str) -> None:
 def plain_text_to_result_html(text: str) -> str
 ```
 
-Escape `text` and wrap http(s) URLs in blue underlined anchors.
+Escape [`text`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-text) and wrap http(s) URLs in blue underlined anchors.
 
 Trailing sentence punctuation is kept outside the link. The visible URL text
-stays the same as in the log so `QTextBrowser.toPlainText()` matches `text`.
+stays the same as in the log so `QTextBrowser.toPlainText()` matches [`text`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-text).
 
 <details>
 <summary>Code:</summary>

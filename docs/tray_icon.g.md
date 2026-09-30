@@ -31,7 +31,7 @@ Attributes:
 
 - `main_window` (`main_window.MainWindow | None`):
   The main window associated with the tray icon. Defaults to `None`.
-- `menu` (`QMenu`):
+- [`menu`](qt_split_menu_button.g.md#%EF%B8%8F-method-menu) (`QMenu`):
   The context menu displayed when interacting with the tray icon.
 
 <details>
@@ -109,9 +109,9 @@ Initialize the [`TrayIcon`](#%EF%B8%8F-class-trayicon) with the given icon and m
 
 Args:
 
-- `icon` (`QIcon`):
+- [`icon`](qt_split_menu_button.g.md#%EF%B8%8F-method-icon) (`QIcon`):
   The icon to display in the system tray.
-- `menu` (`QMenu`):
+- [`menu`](qt_split_menu_button.g.md#%EF%B8%8F-method-menu) (`QMenu`):
   The context menu to associate with the tray icon.
 - `parent` (`QWidget | None`):
   The parent widget. Defaults to `None`.

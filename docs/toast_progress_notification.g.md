@@ -562,7 +562,7 @@ Set the status line under the progress bar.
 
 Args:
 
-- `text` (`str`): Current operation, for example a habit name. Empty hides the line.
+- [`text`](qt_split_menu_button.g.md#%EF%B8%8F-method-text) (`str`): Current operation, for example a habit name. Empty hides the line.
 
 <details>
 <summary>Code:</summary>

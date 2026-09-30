@@ -414,7 +414,7 @@ def install_word_wrap_headers(
 def wrapped_header_text_size(text: str, width: int, font_metrics: QFontMetrics, *, padding: int = _TEXT_PADDING) -> QSize
 ```
 
-Return the size of `text` wrapped into `width` pixels.
+Return the size of [`text`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-text) wrapped into `width` pixels.
 
 <details>
 <summary>Code:</summary>

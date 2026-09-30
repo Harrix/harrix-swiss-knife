@@ -546,7 +546,7 @@ def get_result(self) -> tuple[str, str, bool, float, str, bool, str, bool] | Non
 def contains_cyrillic(text: str) -> bool
 ```
 
-Return `True` if `text` includes at least one Cyrillic letter.
+Return `True` if [`text`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-text) includes at least one Cyrillic letter.
 
 <details>
 <summary>Code:</summary>

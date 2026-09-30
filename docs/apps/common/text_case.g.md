@@ -26,7 +26,7 @@ Uppercase the first letter, skipping leading quotes and emoji.
 
 Args:
 
-- `text` (`str`): Value from a food name or finance description field.
+- [`text`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-text) (`str`): Value from a food name or finance description field.
 
 Returns:
 

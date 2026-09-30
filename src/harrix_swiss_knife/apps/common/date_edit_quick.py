@@ -1,25 +1,32 @@
-"""Date edit with a quick preset / offset menu button."""
+"""Date edit with a quick preset / offset split menu button."""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QDate, QPoint, QSize, Qt
-from PySide6.QtWidgets import QDateEdit, QHBoxLayout, QMenu, QPushButton, QVBoxLayout
+from PySide6.QtWidgets import QDateEdit, QHBoxLayout, QMenu, QVBoxLayout
 
 from harrix_swiss_knife.qt_lucide_icon import add_lucide_action, apply_leading_chrome_button_icon
+from harrix_swiss_knife.qt_split_menu_button import SplitMenuButton
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from PySide6.QtWidgets import QLayout, QWidget
 
 
-def attach_date_edit_quick_controls(date_edit: QDateEdit, *, button_object_name: str | None = None) -> QPushButton:
-    """Replace a bare `QDateEdit` with date field + dropdown quick button.
+def attach_date_edit_quick_controls(
+    date_edit: QDateEdit,
+    *,
+    button_object_name: str | None = None,
+) -> SplitMenuButton:
+    """Replace a bare `QDateEdit` with date field + split quick button.
 
-    Inserts a menu button after `date_edit` in its parent layout, wires the same
-    Today / Yesterday / ±1 day actions into the button menu and into the date
-    field context menu (keeping standard edit commands), and keeps the button
-    caption in sync with the selected date.
+    Inserts a split menu button after `date_edit` in its parent layout. The main
+    zone runs the caption action (Today / Yesterday / Add + 1); the arrow opens
+    the full Today / Yesterday / ±1 day menu. The same actions are also added to
+    the date field context menu. The date field height is matched to the button.
 
     Args:
 
@@ -29,10 +36,10 @@ def attach_date_edit_quick_controls(date_edit: QDateEdit, *, button_object_name:
 
     Returns:
 
-    - `QPushButton`: The created quick-controls button.
+    - `SplitMenuButton`: The created quick-controls button.
 
     """
-    button = QPushButton(date_edit.parentWidget())
+    button = SplitMenuButton(date_edit.parentWidget())
     name = button_object_name or f"{date_edit.objectName()}_quick"
     button.setObjectName(name)
     button.setMinimumSize(QSize(61, 0))
@@ -60,13 +67,27 @@ def attach_date_edit_quick_controls(date_edit: QDateEdit, *, button_object_name:
         minus_action = add_lucide_action(menu, "Subtract 1 day", "minus")
         minus_action.triggered.connect(subtract_one_day)
 
+    def primary_action() -> Callable[[], None]:
+        return date_quick_primary_action(
+            date_edit.date(),
+            set_today=set_today,
+            set_yesterday=set_yesterday,
+            add_one_day=add_one_day,
+        )
+
     def refresh_button_text() -> None:
         button.setText(date_quick_button_label(date_edit.date()))
-        apply_leading_chrome_button_icon(button)
+        apply_leading_chrome_button_icon(button.main_button)
+        _match_widget_heights(date_edit, button)
 
     menu = QMenu(button)
     populate_date_actions(menu)
     button.setMenu(menu)
+
+    def on_primary_clicked() -> None:
+        primary_action()()
+
+    button.clicked.connect(on_primary_clicked)
 
     def show_context_menu(position: QPoint) -> None:
         line_edit = date_edit.lineEdit()
@@ -98,6 +119,23 @@ def date_quick_button_label(selected: QDate, *, today: QDate | None = None) -> s
     if selected == reference.addDays(-1):
         return "📅 Yesterday"
     return "➕ Add + 1"  # noqa: RUF001
+
+
+def date_quick_primary_action(
+    selected: QDate,
+    *,
+    set_today: Callable[[], None],
+    set_yesterday: Callable[[], None],
+    add_one_day: Callable[[], None],
+    today: QDate | None = None,
+) -> Callable[[], None]:
+    """Return the main-zone callback matching `date_quick_button_label`."""
+    reference = today if today is not None else QDate.currentDate()
+    if selected == reference:
+        return set_today
+    if selected == reference.addDays(-1):
+        return set_yesterday
+    return add_one_day
 
 
 def _find_layout_index(widget: QWidget) -> tuple[QLayout, int] | None:
@@ -137,3 +175,12 @@ def _insert_widget_after(anchor: QWidget, new_widget: QWidget) -> None:
         return
     layout, index = found
     layout.insertWidget(index + 1, new_widget)
+
+
+def _match_widget_heights(left: QWidget, right: QWidget) -> None:
+    """Make `left` and `right` share the taller size hint height."""
+    height = max(left.sizeHint().height(), right.sizeHint().height(), left.minimumHeight(), right.minimumHeight())
+    left.setMinimumHeight(height)
+    right.setMinimumHeight(height)
+    left.setMaximumHeight(height)
+    right.setMaximumHeight(height)

@@ -2705,7 +2705,7 @@ Args:
 
 - `name` (`str`): Category name.
 - `category_type` (`int`): Category type (0 = expense, 1 = income).
-- `icon` (`str`): Category icon. Defaults to `""`.
+- [`icon`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-icon) (`str`): Category icon. Defaults to `""`.
 - `name_local` (`str`): Local-language category name. Defaults to `""`.
 
 Returns:
@@ -5491,7 +5491,7 @@ Args:
 - `category_id` (`int`): Category ID.
 - `name` (`str`): Category name.
 - `category_type` (`int`): Category type.
-- `icon` (`str`): Category icon. Defaults to `""`.
+- [`icon`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-icon) (`str`): Category icon. Defaults to `""`.
 - `name_local` (`str`): Local-language category name. Defaults to `""`.
 
 Returns:

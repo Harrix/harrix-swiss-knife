@@ -297,7 +297,7 @@ def start_text_translation(action: ActionBase, original: str) -> None:
 def text_needs_translation(text: str, local_language_code: str) -> bool
 ```
 
-Return whether `text` looks unlike the configured local language.
+Return whether [`text`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-text) looks unlike the configured local language.
 
 <details>
 <summary>Code:</summary>

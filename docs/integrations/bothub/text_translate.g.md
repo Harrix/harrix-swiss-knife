@@ -22,7 +22,7 @@ lang: en
 def build_text_translate_prompt(text: str, config: dict[str, Any]) -> str
 ```
 
-Build BotHub prompt to translate `text` into the local language.
+Build BotHub prompt to translate [`text`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-text) into the local language.
 
 Raises:
 
