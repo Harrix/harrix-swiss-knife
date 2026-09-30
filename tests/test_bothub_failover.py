@@ -10,8 +10,10 @@ from typing import Any
 from harrix_swiss_knife.integrations.ai.bothub_failover import (
     TEMP_ACTIVE_PROVIDER_KEY,
     TEMP_ACTIVE_SPEECH_PROVIDER_KEY,
+    is_bothub_api_failover_error,
     persist_ai_provider,
     prepare_bothub_router,
+    switch_bothub_router_after_api_failure,
 )
 from harrix_swiss_knife.integrations.ai.config import get_chat_provider, get_preferred_chat_provider
 
@@ -200,3 +202,41 @@ def test_persist_ai_provider_keeps_main_config_formatting(tmp_path: Path) -> Non
     temp = json.loads((tmp_path / "config-temp.json").read_text(encoding="utf-8"))
     assert temp[TEMP_ACTIVE_PROVIDER_KEY] == "bothub.ru"
     assert temp[TEMP_ACTIVE_SPEECH_PROVIDER_KEY] == "bothub.ru"
+
+
+def test_is_bothub_api_failover_error_for_gateway_and_network() -> None:
+    assert is_bothub_api_failover_error("HTTP 502: <html>Bad Gateway</html>")
+    assert is_bothub_api_failover_error("HTTP 503: unavailable")
+    assert is_bothub_api_failover_error("HTTP 401: UNAUTHORIZED")
+    assert is_bothub_api_failover_error("Network error: timed out")
+    assert not is_bothub_api_failover_error("HTTP 400: bad request")
+    assert not is_bothub_api_failover_error("HTTP 404: missing")
+
+
+def test_switch_bothub_router_after_api_failure_from_ru_to_chat(tmp_path: Path) -> None:
+    config = _bothub_pair_config()
+    config["ai"]["provider"] = "bothub.ru"
+    config["ai"]["active_provider"] = "bothub.ru"
+    persisted: list[str] = []
+    switched = switch_bothub_router_after_api_failure(
+        config,
+        persist=lambda provider, _speech: persisted.append(provider),
+        config_path=_isolated_config_path(tmp_path),
+    )
+    assert switched == "bothub"
+    assert get_preferred_chat_provider(config) == "bothub.ru"
+    assert get_chat_provider(config) == "bothub"
+    assert persisted == ["bothub"]
+
+
+def test_switch_bothub_router_after_api_failure_without_alternate_key(tmp_path: Path) -> None:
+    config = _bothub_pair_config()
+    config["ai"]["provider"] = "bothub.ru"
+    config["ai"]["active_provider"] = "bothub.ru"
+    config["bothub_api_key"] = ""
+    switched = switch_bothub_router_after_api_failure(
+        config,
+        config_path=_isolated_config_path(tmp_path),
+    )
+    assert switched is None
+    assert get_chat_provider(config) == "bothub.ru"

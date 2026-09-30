@@ -1,8 +1,9 @@
-"""One-shot BotHub site failover when bothub.chat or bothub.ru is unreachable."""
+"""BotHub.chat / BotHub.ru failover: site probe and API-error retry."""
 
 from __future__ import annotations
 
 import json
+import re
 from contextlib import suppress
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -39,6 +40,22 @@ _ACTIVE_PROVIDER_KEY = "active_provider"
 _ACTIVE_SPEECH_PROVIDER_KEY = "active_speech_provider"
 _PROBE_TIMEOUT_SEC = 5
 _PROBE_UA = "Harrix-Swiss-Knife/1.0 (AI router probe)"
+_HTTP_STATUS_RE = re.compile(r"HTTP\s+(\d{3})\b", re.IGNORECASE)
+# Auth / rate-limit / gateway failures often work on the other BotHub site.
+_FAILOVER_HTTP_STATUSES = frozenset({401, 403, 408, 425, 429, 500, 502, 503, 504})
+
+
+def is_bothub_api_failover_error(message: str) -> bool:
+    """Return whether an API error should be retried on the other BotHub site.
+
+    Network/timeouts (no HTTP status) and selected HTTP statuses (5xx, 401/403,
+    429, …) qualify. Client validation errors such as 400 do not.
+
+    """
+    match = _HTTP_STATUS_RE.search(message or "")
+    if match is None:
+        return True
+    return int(match.group(1)) in _FAILOVER_HTTP_STATUSES
 
 
 def persist_ai_provider(
@@ -154,6 +171,46 @@ def probe_bothub_site(url: str, proxy_url: str | None = None) -> bool:
     except (OSError, URLError, TimeoutError, ValueError):
         return False
     return True
+
+
+def switch_bothub_router_after_api_failure(
+    config: dict[str, Any],
+    *,
+    for_speech: bool = False,
+    persist: Callable[[ProviderName, str | None], None] | None = None,
+    config_path: Path | None = None,
+) -> ProviderName | None:
+    """Force-switch to the other BotHub router after a failed API call.
+
+    Unlike `prepare_bothub_router`, this does not prefer the configured site when
+    its homepage still answers — use it only after the live request failed.
+
+    Args:
+
+    - `config` (`dict[str, Any]`): In-memory config (mutated on switch).
+    - `for_speech` (`bool`): Use the speech provider. Defaults to `False`.
+    - `persist` (`Callable | None`): Override temp writer (tests).
+    - `config_path` (`Path | None`): Main config file for temp write.
+
+    Returns:
+
+    - `ProviderName | None`: The new live router, or `None` when no switch.
+
+    """
+    current = get_speech_provider(config) if for_speech else get_chat_provider(config)
+    if not is_bothub_router(current):
+        return None
+    alternate = other_bothub_router(current)
+    if not _has_usable_key(config, alternate):
+        return None
+    path = config_path or get_config_path()
+    return _commit_router_if_changed(
+        config,
+        alternate,
+        for_speech=for_speech,
+        persist=persist,
+        config_path=path,
+    )
 
 
 def _apply_router_in_memory(config: dict[str, Any], provider: ProviderName) -> None:

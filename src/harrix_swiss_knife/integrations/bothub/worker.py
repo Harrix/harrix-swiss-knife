@@ -6,8 +6,16 @@ from typing import TYPE_CHECKING, Any
 
 from PySide6.QtCore import QThread, Signal
 
-from harrix_swiss_knife.integrations.ai.bothub_failover import prepare_bothub_router
-from harrix_swiss_knife.integrations.ai.config import format_ai_error_message, get_provider_settings
+from harrix_swiss_knife.integrations.ai.bothub_failover import (
+    is_bothub_api_failover_error,
+    prepare_bothub_router,
+    switch_bothub_router_after_api_failure,
+)
+from harrix_swiss_knife.integrations.ai.config import (
+    format_ai_error_message,
+    get_provider_settings,
+    is_bothub_router,
+)
 from harrix_swiss_knife.integrations.bothub.config import (
     get_active_provider,
     get_connection_params,
@@ -109,29 +117,14 @@ class BothubChatWorker(QThread):
             conn.close()
 
     def run(self) -> None:
-        """Execute the API request."""
+        """Execute the API request; on BotHub gateway failures retry the other site once."""
         if self.should_stop:
             self.finished_cancelled.emit()
             return
 
         self._prepare_router_connection()
-        should_cancel = (lambda: self.should_stop) if self._cancellable else None
-        on_connection = self._store_connection if self._cancellable else None
-
         try:
-            result = chat_completion(
-                api_key=self._api_key,
-                base_url=self._base_url,
-                model=self._model,
-                text=self._prompt_text,
-                images=self._images,
-                audio=self._audio,
-                proxy_url=self._proxy_url,
-                should_cancel=should_cancel,
-                on_connection=on_connection,
-                provider=self._provider,
-                max_tokens=self._max_tokens,
-            )
+            result = self._run_chat_completion_with_optional_failover()
         except RequestCancelledError:
             self.finished_cancelled.emit()
             return
@@ -155,13 +148,15 @@ class BothubChatWorker(QThread):
             return
         self.finished_success.emit(result)
 
-    def _prepare_router_connection(self) -> None:
-        """Probe BotHub failover and refresh keys/URLs off the UI thread."""
+    def _apply_active_connection(self) -> None:
+        """Refresh keys/URL/model from the live BotHub (or other) provider."""
         config = self._config
         if config is None:
             return
-        prepare_bothub_router(config, for_speech=self._for_speech, proxy_url=get_proxy_url(config))
-        api_key, base_url, default_model, proxy_url = get_connection_params(config, for_speech=self._for_speech)
+        api_key, base_url, default_model, proxy_url = get_connection_params(
+            config,
+            for_speech=self._for_speech,
+        )
         self._api_key = api_key
         self._base_url = base_url
         self._model = self._model_override if self._model_override is not None else default_model
@@ -170,6 +165,61 @@ class BothubChatWorker(QThread):
         settings = get_provider_settings(config, self._provider)
         max_tokens_raw = settings.get("max_tokens")
         self._max_tokens = int(max_tokens_raw) if max_tokens_raw is not None else None
+
+    def _failover_to_alternate_router(self, error_message: str) -> bool:
+        """Switch to the other BotHub site after a failed request; return whether to retry."""
+        config = self._config
+        if config is None or self.should_stop:
+            return False
+        if not is_bothub_router(self._provider):
+            return False
+        if not is_bothub_api_failover_error(error_message):
+            return False
+        switched = switch_bothub_router_after_api_failure(config, for_speech=self._for_speech)
+        if switched is None:
+            return False
+        # Do not call prepare_bothub_router here — it would fail back to the preferred site.
+        self._apply_active_connection()
+        return True
+
+    def _prepare_router_connection(self) -> None:
+        """Probe BotHub failover and refresh keys/URLs off the UI thread."""
+        config = self._config
+        if config is None:
+            return
+        prepare_bothub_router(config, for_speech=self._for_speech, proxy_url=get_proxy_url(config))
+        self._apply_active_connection()
+
+    def _run_chat_completion(self) -> str:
+        should_cancel = (lambda: self.should_stop) if self._cancellable else None
+        on_connection = self._store_connection if self._cancellable else None
+        return chat_completion(
+            api_key=self._api_key,
+            base_url=self._base_url,
+            model=self._model,
+            text=self._prompt_text,
+            images=self._images,
+            audio=self._audio,
+            proxy_url=self._proxy_url,
+            should_cancel=should_cancel,
+            on_connection=on_connection,
+            provider=self._provider,
+            max_tokens=self._max_tokens,
+        )
+
+    def _run_chat_completion_with_optional_failover(self) -> str:
+        try:
+            return self._run_chat_completion()
+        except RequestCancelledError:
+            raise
+        except BotHubApiError as exc:
+            if not self._failover_to_alternate_router(str(exc)):
+                raise
+            return self._run_chat_completion()
+        except Exception as exc:
+            if not self._failover_to_alternate_router(str(exc)):
+                raise
+            return self._run_chat_completion()
 
     def _store_connection(self, conn: http.client.HTTPConnection) -> None:
         self._conn = conn

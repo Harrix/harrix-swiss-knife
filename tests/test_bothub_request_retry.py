@@ -15,6 +15,7 @@ from harrix_swiss_knife.integrations.bothub.qt_runner import (
     _offer_retry_or_finish,
 )
 from harrix_swiss_knife.integrations.bothub.worker import BothubChatWorker
+from harrix_swiss_knife.integrations.bothub_client import BotHubApiError
 
 
 @pytest.fixture
@@ -213,4 +214,75 @@ def test_chat_worker_probes_router_off_ui_thread(qapp: QApplication, monkeypatch
     assert worker._api_key == "key"
     assert worker._base_url == "https://example.test"
     assert worker._model == "model-b"
+    worker.deleteLater()
+
+
+def test_chat_worker_retries_other_bothub_site_after_502(
+    qapp: QApplication,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    assert qapp is not None
+    calls: list[str] = []
+
+    def fake_chat_completion(**kwargs: object) -> str:
+        provider = str(kwargs.get("provider"))
+        calls.append(provider)
+        if provider == "bothub.ru":
+            msg = "AI provider: bothub.ru\n\nHTTP 502: Bad Gateway"
+            raise BotHubApiError(msg)
+        return "ok-from-chat"
+
+    monkeypatch.setattr(
+        "harrix_swiss_knife.integrations.bothub.worker.prepare_bothub_router",
+        lambda *_args, **_kwargs: None,
+    )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.integrations.bothub.worker.get_connection_params",
+        lambda config, **_kwargs: (
+            "key",
+            "https://openai.bothub.ru/v1"
+            if config["ai"].get("active_provider") == "bothub.ru"
+            else "https://bothub.chat/api",
+            "model",
+            None,
+        ),
+    )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.integrations.bothub.worker.get_active_provider",
+        lambda config, **_kwargs: config["ai"].get("active_provider", "bothub.ru"),
+    )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.integrations.bothub.worker.get_provider_settings",
+        lambda *_args, **_kwargs: {},
+    )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.integrations.bothub.worker.chat_completion",
+        fake_chat_completion,
+    )
+
+    def fake_switch(config: dict[str, Any], **_kwargs: object) -> str:
+        config["ai"]["active_provider"] = "bothub"
+        return "bothub"
+
+    monkeypatch.setattr(
+        "harrix_swiss_knife.integrations.bothub.worker.switch_bothub_router_after_api_failure",
+        fake_switch,
+    )
+
+    worker = BothubChatWorker(
+        api_key="key",
+        base_url="https://openai.bothub.ru/v1",
+        model="model",
+        prompt_text="prompt",
+        provider="bothub.ru",
+        config={"ai": {"provider": "bothub.ru", "active_provider": "bothub.ru"}, "bothub_api_key": "k"},
+    )
+    successes: list[str] = []
+    errors: list[str] = []
+    worker.finished_success.connect(successes.append)
+    worker.finished_error.connect(errors.append)
+    worker.run()
+    assert successes == ["ok-from-chat"]
+    assert errors == []
+    assert calls == ["bothub.ru", "bothub"]
     worker.deleteLater()

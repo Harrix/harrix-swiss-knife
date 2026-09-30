@@ -4,10 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from harrix_swiss_knife.integrations.ai.bothub_failover import prepare_bothub_router
-from harrix_swiss_knife.integrations.bothub.config import get_active_provider, get_connection_params, get_proxy_url
+from harrix_swiss_knife.integrations.bothub.chat_failover import chat_completion_with_bothub_failover
 from harrix_swiss_knife.integrations.bothub.prompts import build_prompt, get_prompt_template
-from harrix_swiss_knife.integrations.bothub_client import chat_completion
 
 PROMPT_MISSING_MSG = "Prompt text_rewrite_ru is not configured in config.json."
 
@@ -37,15 +35,4 @@ def rewrite_text_sync(input_text: str, config: dict[str, Any]) -> str:
     - `BotHubApiError`: API or network failure.
 
     """
-    prompt_text = build_text_rewrite_prompt(input_text, config)
-    prepare_bothub_router(config, proxy_url=get_proxy_url(config))
-    provider = get_active_provider(config)
-    api_key, base_url, model, proxy_url = get_connection_params(config)
-    return chat_completion(
-        api_key=api_key,
-        base_url=base_url,
-        model=model,
-        text=prompt_text,
-        proxy_url=proxy_url,
-        provider=provider,
-    )
+    return chat_completion_with_bothub_failover(config, build_text_rewrite_prompt(input_text, config))
