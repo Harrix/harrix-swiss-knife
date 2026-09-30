@@ -14,6 +14,7 @@ from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QFileDialog, QLineEdit, QPushButton, QStyle, QTabWidget, QToolButton
 
 from harrix_swiss_knife.apps.common.qt_main_window import compute_app_window_geometry
+from harrix_swiss_knife.qt_split_menu_button import SplitMenuButton
 from harrix_swiss_knife.screenshot import preview_canvas as canvas_module
 from harrix_swiss_knife.screenshot import preview_dialog as preview_dialog_module
 from harrix_swiss_knife.screenshot.annotations import (
@@ -666,7 +667,7 @@ def test_save_buttons_offer_format_menus(qapp: QApplication) -> None:  # noqa: A
     window = show_screenshot_preview(image)
     labels = ["PNG", "JPEG", "AVIF high quality", "AVIF optimized"]
     for text in ("Save as…", "Save to desktop", "Save all to desktop"):
-        button = next(item for item in window.findChildren(QPushButton) if item.text() == text)
+        button = next(item for item in window.findChildren(SplitMenuButton) if item.text() == text)
         menu = button.menu()
         assert menu is not None
         assert [action.text() for action in menu.actions()] == labels
@@ -679,7 +680,7 @@ def test_reduce_size_button_offers_menu_and_halves_image(qapp: QApplication) -> 
     image = QImage(40, 20, QImage.Format.Format_RGB32)
     image.fill(Qt.GlobalColor.red)
     window = show_screenshot_preview(image)
-    button = next(item for item in window.findChildren(QPushButton) if item.text() == "Reduce size…")
+    button = next(item for item in window.findChildren(SplitMenuButton) if item.text() == "Reduce size")
     menu = button.menu()
     assert menu is not None
     assert [action.text() for action in menu.actions()] == ["Half size", "Max 1024 px", "Custom size…"]
@@ -709,7 +710,7 @@ def test_recognize_button_offers_recognition_menu(qapp: QApplication) -> None:  
     image = QImage(8, 8, QImage.Format.Format_RGB32)
     image.fill(Qt.GlobalColor.white)
     window = show_screenshot_preview(image)
-    button = next(item for item in window.findChildren(QPushButton) if item.text() == "Recognize…")
+    button = next(item for item in window.findChildren(SplitMenuButton) if item.text() == "Recognize")
     menu = button.menu()
     assert menu is not None
     assert [action.text() for action in menu.actions()] == [

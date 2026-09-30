@@ -7,10 +7,10 @@ from typing import TYPE_CHECKING
 from PySide6.QtCore import QPoint, QSize, Qt, Signal
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QPushButton, QSizePolicy, QToolButton, QWidget
 
-from harrix_swiss_knife.qt_lucide_icon import apply_lucide_button_icon
+from harrix_swiss_knife.qt_lucide_icon import DEFAULT_LUCIDE_BUTTON_ICON_SIZE, apply_lucide_button_icon
 
 if TYPE_CHECKING:
-    from PySide6.QtGui import QIcon
+    from PySide6.QtGui import QColor, QIcon
     from PySide6.QtWidgets import QMenu
 
 _ARROW_WIDTH = 28
@@ -160,3 +160,17 @@ class SplitMenuButton(QWidget):
         if self._menu is None:
             return
         self._menu.exec(self._arrow.mapToGlobal(QPoint(0, self._arrow.height())))
+
+
+def make_lucide_split_menu_button(
+    label: str,
+    name: str,
+    *,
+    icon_size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE,
+    color: QColor | str | None = None,
+    parent: QWidget | None = None,
+) -> SplitMenuButton:
+    """Create a split menu button with a Lucide icon on the main zone."""
+    button = SplitMenuButton(parent, text=label)
+    apply_lucide_button_icon(button.main_button, name, icon_size=icon_size, color=color)
+    return button

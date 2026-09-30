@@ -77,6 +77,7 @@ from harrix_swiss_knife.qt_lucide_icon import (
     make_lucide_push_button,
     style_accept_button,
 )
+from harrix_swiss_knife.qt_split_menu_button import make_lucide_split_menu_button
 from harrix_swiss_knife.template_ai_fill import (
     format_fields_for_prompt,
     is_ai_fill_candidate,
@@ -433,22 +434,26 @@ class TemplateDialog(QDialog):
         row_layout.setContentsMargins(0, 0, 0, 0)
         row_layout.addWidget(line_edit, 1)
 
-        check_button = make_lucide_push_button("Check", "map")
+        check_button = make_lucide_split_menu_button("Check", "map")
         check_button.setToolTip("Open the current coordinates in a map service")
         check_menu = QMenu(check_button)
-        for label, icon_name, builder in (
+        check_builders = (
             ("Google", "globe", build_google_maps_url),
             ("Yandex", "map", build_yandex_maps_url),
             ("OSM", "map", build_openstreetmap_url),
-        ):
+        )
+        for label, icon_name, builder in check_builders:
             action = add_lucide_action(check_menu, label, icon_name)
             action.triggered.connect(
                 lambda _checked=False, b=builder: self._on_check_coordinates(line_edit, b),
             )
         check_button.setMenu(check_menu)
+        check_button.clicked.connect(
+            lambda: self._on_check_coordinates(line_edit, build_google_maps_url),
+        )
         row_layout.addWidget(check_button)
 
-        extract_button = make_lucide_push_button("Extract", "map-pin")
+        extract_button = make_lucide_split_menu_button("Extract", "map-pin")
         extract_button.setToolTip("Extract coordinates from a map link or from images")
         extract_menu = QMenu(extract_button)
         for label, icon_name, service in (
@@ -465,6 +470,9 @@ class TemplateDialog(QDialog):
             lambda _checked=False: self._on_extract_coordinates_from_images(line_edit),
         )
         extract_button.setMenu(extract_menu)
+        extract_button.clicked.connect(
+            lambda: self._on_extract_coordinates_from_map(line_edit, "Google Maps"),
+        )
         row_layout.addWidget(extract_button)
 
         offer_frame = QFrame()

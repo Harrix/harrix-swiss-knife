@@ -24,6 +24,7 @@ lang: en
   - [⚙️ Method `setText`](#%EF%B8%8F-method-settext)
   - [⚙️ Method `sizeHint`](#%EF%B8%8F-method-sizehint)
   - [⚙️ Method `text`](#%EF%B8%8F-method-text)
+- [🔧 Function `make_lucide_split_menu_button`](#-function-make_lucide_split_menu_button)
 
 </details>
 
@@ -402,6 +403,33 @@ Return the main-zone caption.
 ```python
 def text(self) -> str:
         return self._main.text()
+```
+
+</details>
+
+## 🔧 Function `make_lucide_split_menu_button`
+
+```python
+def make_lucide_split_menu_button(label: str, name: str, *, icon_size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE, color: QColor | str | None = None, parent: QWidget | None = None) -> SplitMenuButton
+```
+
+Create a split menu button with a Lucide icon on the main zone.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def make_lucide_split_menu_button(
+    label: str,
+    name: str,
+    *,
+    icon_size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE,
+    color: QColor | str | None = None,
+    parent: QWidget | None = None,
+) -> SplitMenuButton:
+    button = SplitMenuButton(parent, text=label)
+    apply_lucide_button_icon(button.main_button, name, icon_size=icon_size, color=color)
+    return button
 ```
 
 </details>

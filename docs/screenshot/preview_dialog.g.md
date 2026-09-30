@@ -161,7 +161,7 @@ class ScreenshotPreviewWindow(QMainWindow):
             v_spacing=6,
             alignment=Qt.AlignmentFlag.AlignRight,
         )
-        self._action_buttons: list[QPushButton] = []
+        self._action_buttons: list[QPushButton | SplitMenuButton] = []
         self._add_footer_button(
             make_lucide_push_button(COPY_BUTTON_LABEL, COPY_BUTTON_ICON),
             self._copy_to_clipboard,
@@ -328,9 +328,9 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._action_buttons.append(button)
 
     def _add_recognize_menu_button(self) -> None:
-        """Add a footer button whose click opens text and table recognition."""
-        button = make_lucide_push_button(_RECOGNIZE_BUTTON_LABEL, _RECOGNIZE_BUTTON_ICON)
-        button.setToolTip("Recognize text or a table. Choose AI, local OCR, or OCR with translation.")
+        """Add a footer split button for text and table recognition."""
+        button = make_lucide_split_menu_button(_RECOGNIZE_BUTTON_LABEL, _RECOGNIZE_BUTTON_ICON)
+        button.setToolTip("Recognize text or a table. Main: AI text. Arrow: AI, OCR, or translate.")
         menu = QMenu(button)
         items: tuple[tuple[str, str, str | None, Callable[[], None]], ...] = (
             ("Recognize text (AI)", _MARKDOWN_AI_ICON, AI_BUTTON_ICON_COLOR, self._run_markdown_with_ai),
@@ -344,14 +344,15 @@ class ScreenshotPreviewWindow(QMainWindow):
             action.triggered.connect(lambda _checked=False, chosen=slot: chosen())
         apply_menu_icon_size(menu)
         button.setMenu(menu)
+        button.clicked.connect(self._run_markdown_with_ai)
         button.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
         self._buttons.addWidget(button)
         self._action_buttons.append(button)
 
     def _add_reduce_size_menu_button(self) -> None:
-        """Add a footer button whose click opens screenshot size reduction."""
-        button = make_lucide_push_button(_REDUCE_BUTTON_LABEL, _REDUCE_BUTTON_ICON)
-        button.setToolTip("Reduce the screenshot pixel size. Choose half, 1024 px, or a custom size.")
+        """Add a footer split button for screenshot size reduction."""
+        button = make_lucide_split_menu_button(_REDUCE_BUTTON_LABEL, _REDUCE_BUTTON_ICON)
+        button.setToolTip("Reduce the screenshot pixel size. Main: half. Arrow: 1024 px or custom.")
         menu = QMenu(button)
         items: tuple[tuple[str, str, Callable[[], None]], ...] = (
             ("Half size", "shrink", self._resize_half),
@@ -364,6 +365,7 @@ class ScreenshotPreviewWindow(QMainWindow):
             action.triggered.connect(lambda _checked=False, chosen=slot: chosen())
         apply_menu_icon_size(menu)
         button.setMenu(menu)
+        button.clicked.connect(self._resize_half)
         button.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
         self._buttons.addWidget(button)
         self._action_buttons.append(button)
@@ -374,9 +376,9 @@ class ScreenshotPreviewWindow(QMainWindow):
         icon_name: str,
         tooltip: str,
         slot: Callable[[_ScreenshotFormat], None],
-    ) -> QPushButton:
-        """Add a footer button whose click opens the screenshot format menu."""
-        button = make_lucide_push_button(label, icon_name)
+    ) -> SplitMenuButton:
+        """Add a footer split button for screenshot format save actions."""
+        button = make_lucide_split_menu_button(label, icon_name)
         button.setToolTip(tooltip)
         menu = QMenu(button)
         for fmt, title, _file_filter in _SAVE_FORMATS:
@@ -385,6 +387,8 @@ class ScreenshotPreviewWindow(QMainWindow):
             action.triggered.connect(lambda _checked=False, chosen=fmt: slot(chosen))
         apply_menu_icon_size(menu)
         button.setMenu(menu)
+        default_format = _SAVE_FORMATS[0][0]
+        button.clicked.connect(lambda: slot(default_format))
         button.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
         self._buttons.addWidget(button)
         self._action_buttons.append(button)
@@ -1155,7 +1159,7 @@ def __init__(self, parent: QWidget | None = None) -> None:
             v_spacing=6,
             alignment=Qt.AlignmentFlag.AlignRight,
         )
-        self._action_buttons: list[QPushButton] = []
+        self._action_buttons: list[QPushButton | SplitMenuButton] = []
         self._add_footer_button(
             make_lucide_push_button(COPY_BUTTON_LABEL, COPY_BUTTON_ICON),
             self._copy_to_clipboard,

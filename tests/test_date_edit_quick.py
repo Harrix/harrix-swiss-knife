@@ -11,7 +11,7 @@ from harrix_swiss_knife.apps.common.date_edit_quick import (
     date_quick_button_label,
     date_quick_primary_action,
 )
-from harrix_swiss_knife.qt_split_menu_button import SplitMenuButton
+from harrix_swiss_knife.qt_split_menu_button import SplitMenuButton, make_lucide_split_menu_button
 
 
 @pytest.fixture
@@ -91,6 +91,14 @@ def test_split_menu_button_set_menu_and_text(qapp: QApplication) -> None:
     assert button.menu() is menu
     assert button.text() == "Primary"
     assert button.arrow_button.focusPolicy() == Qt.FocusPolicy.NoFocus
+    button.close()
+
+
+def test_make_lucide_split_menu_button_sets_icon(qapp: QApplication) -> None:
+    assert qapp is not None
+    button = make_lucide_split_menu_button("Check", "map")
+    assert button.text() == "Check"
+    assert not button.main_button.icon().isNull()
     button.close()
 
 
