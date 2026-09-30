@@ -22,6 +22,7 @@ lang: en
   - [⚙️ Method `on_add_as_text`](#%EF%B8%8F-method-on_add_as_text)
   - [⚙️ Method `on_add_food_item`](#%EF%B8%8F-method-on_add_food_item)
   - [⚙️ Method `on_add_food_log`](#%EF%B8%8F-method-on_add_food_log)
+  - [⚙️ Method `on_calorie_thresholds_setup`](#%EF%B8%8F-method-on_calorie_thresholds_setup)
   - [⚙️ Method `on_check_problematic_records`](#%EF%B8%8F-method-on_check_problematic_records)
   - [⚙️ Method `on_clear_food_manual_name`](#%EF%B8%8F-method-on_clear_food_manual_name)
   - [⚙️ Method `on_export_csv`](#%EF%B8%8F-method-on_export_csv)
@@ -474,6 +475,10 @@ class MainWindow(
 
         except Exception as e:
             message_box.warning(self, "Database Error", f"Failed to add food log record: {e}")
+
+    def on_calorie_thresholds_setup(self) -> None:
+        """Open the calorie-threshold setup dialog (Commands menu)."""
+        self._run_calorie_thresholds_setup()
 
     def on_check_problematic_records(self) -> None:
         """Filter food log table to show only problematic records."""
@@ -2158,6 +2163,8 @@ class MainWindow(
         self.activateWindow()
         # Silent translate of missing food_log name_en values (status bar only).
         QTimer.singleShot(300, self._run_background_food_translate)
+        # Prompt for calorie bands when the user has not confirmed them yet.
+        QTimer.singleShot(0, self._prompt_calorie_thresholds_setup_if_needed)
         # The stats chart is already scheduled by _init_food_stats_dates once the date
         # range is known; scheduling it again here would rebuild it twice on startup.
 
@@ -3212,6 +3219,12 @@ class MainWindow(
             )
             toast.present()
 
+    def _prompt_calorie_thresholds_setup_if_needed(self) -> None:
+        """Show the calorie-threshold dialog once when the configured flag is unset."""
+        if self._is_closing or food_calorie_thresholds_are_configured(self._app_config):
+            return
+        self._run_calorie_thresholds_setup()
+
     def _prompt_eaten_percent_and_apply(self) -> None:
         """Ask for a percent eaten (default 50) and scale selected food log rows."""
         percent, ok = QInputDialog.getDouble(
@@ -3551,6 +3564,33 @@ class MainWindow(
         )
         if not started:
             self._on_background_food_translate_failed()
+
+    def _run_calorie_thresholds_setup(self) -> None:
+        """Estimate bands from body metrics, let the user edit them, and save to config."""
+        if self._is_closing:
+            return
+        dialog = CalorieThresholdsSetupDialog(
+            self,
+            profile=load_food_person_profile(self._app_config),
+        )
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        try:
+            self._app_config = save_food_calorie_threshold_setup(
+                thresholds=dialog.result_thresholds(),
+                profile=dialog.result_profile(),
+            )
+        except Exception as exc:
+            logger.exception("Failed to save food calorie thresholds")
+            message_box.warning(
+                self,
+                "Calorie thresholds",
+                f"Could not save calorie thresholds to config.json:\n{exc}",
+            )
+            return
+        self.update_food_data()
+        self._update_food_calories_chart()
+        self._update_kcal_per_day_table()
 
     def _run_food_add_by_voice(self, *, large_ui: bool = False) -> None:
         """Record speech, transcribe via BotHub, convert to food log TSV, then open preview dialog."""
@@ -3934,6 +3974,18 @@ class MainWindow(
         self.lineEdit_food_manual_name.textEdited.connect(self._on_food_name_text_edited)
         self.food_completer.activated.connect(self._on_autocomplete_selected)
 
+    def _setup_calorie_thresholds_action(self) -> None:
+        """Add Commands → Recalculate calorie thresholds."""
+        menu = getattr(self, "menuCommands", None)
+        if menu is None:
+            return
+        menu.addSeparator()
+        action = QAction("Recalculate calorie thresholds", self)
+        action.setObjectName("action_calorie_thresholds_setup")
+        action.triggered.connect(self.on_calorie_thresholds_setup)
+        menu.addAction(action)
+        set_action_text_with_lucide_icon(action, "Recalculate calorie thresholds", "flame")
+
     def _setup_macros_analysis_ui(self) -> None:
         """Add macros status badge, notes under the combined stats table, and buttons."""
         self.label_macros_status = QLabel("")
@@ -4031,6 +4083,7 @@ class MainWindow(
         self.action_add_as_text.setText(f"📝 {self.action_add_as_text.text()}")
         self.action_show_all_records.setText(f"📊 {self.action_show_all_records.text()}")
         self.action_check.setText(f"🔍 {self.action_check.text()}")
+        self._setup_calorie_thresholds_action()
         self._setup_open_photos_action()
         self._apply_exit_about_menu_emojis()
         self.pushButton_food_manual_name_clear.setToolTip("Clear food name input")
@@ -5658,6 +5711,24 @@ def on_add_food_log(self) -> None:
 
         except Exception as e:
             message_box.warning(self, "Database Error", f"Failed to add food log record: {e}")
+```
+
+</details>
+
+### ⚙️ Method `on_calorie_thresholds_setup`
+
+```python
+def on_calorie_thresholds_setup(self) -> None
+```
+
+Open the calorie-threshold setup dialog (Commands menu).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_calorie_thresholds_setup(self) -> None:
+        self._run_calorie_thresholds_setup()
 ```
 
 </details>

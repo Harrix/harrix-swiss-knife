@@ -109,6 +109,8 @@ class AppConfig(TypedDict, total=False):
     sqlite_snippets: str
     habits_sport_lookback_days: NotRequired[int]
     food_calorie_thresholds: FoodCalorieThresholds
+    food_calorie_thresholds_configured: NotRequired[bool]
+    food_person_profile: NotRequired[FoodPersonProfile]
     block_drives: list[str]
     markdown_templates: dict[str, Any]
     personal_data: PersonalDataSettings
@@ -144,6 +146,16 @@ class FoodCalorieThresholds(TypedDict, total=False):
     low: int
     medium_low: int
     medium_high: int
+
+
+class FoodPersonProfile(TypedDict, total=False):
+    """Body metrics used to estimate `food_calorie_thresholds`."""
+
+    sex: str
+    age: int
+    height_cm: float
+    weight_kg: float
+    activity: str
 
 
 class GeminiSettings(TypedDict, total=False):

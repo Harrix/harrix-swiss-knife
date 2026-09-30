@@ -75,8 +75,16 @@
   "editor-notes": "code-insiders",
   "food_calorie_thresholds": {
     "low": 1800,
-    "medium_high": 2500,
-    "medium_low": 2100
+    "medium_low": 2100,
+    "medium_high": 2500
+  },
+  "food_calorie_thresholds_configured": false,
+  "food_person_profile": {
+    "sex": "male",
+    "age": 30,
+    "height_cm": 175,
+    "weight_kg": 70,
+    "activity": "moderate"
   },
   "apps": {
     "fitness_image_max_size": 330,

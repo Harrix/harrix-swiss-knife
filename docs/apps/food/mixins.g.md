@@ -211,11 +211,18 @@ class ChartOperations(ChartOperationsBase):
             return
 
         if period not in {"Months", "Years"}:
+            thresholds = calorie_thresholds_from_config(getattr(self, "_app_config", None))
             ax.axhline(
-                y=1800, color="green", linestyle="--", linewidth=1, alpha=0.5, zorder=1, label="Low calories limit"
+                y=thresholds.low,
+                color="green",
+                linestyle="--",
+                linewidth=1,
+                alpha=0.5,
+                zorder=1,
+                label="Low calories limit",
             )
             ax.axhline(
-                y=2100,
+                y=thresholds.medium_low,
                 color="orange",
                 linestyle="--",
                 linewidth=1,
@@ -224,7 +231,7 @@ class ChartOperations(ChartOperationsBase):
                 label="Medium-low calories limit",
             )
             ax.axhline(
-                y=2500,
+                y=thresholds.medium_high,
                 color="red",
                 linestyle="--",
                 linewidth=1,
@@ -243,15 +250,13 @@ class ChartOperations(ChartOperationsBase):
             return
 
         point_colors: list[str] = []
-        level_low_calories = 1800
-        level_medium_low_calories = 2100
-        level_medium_high_calories = 2500
+        thresholds = calorie_thresholds_from_config(getattr(self, "_app_config", None))
         for y in plotted_y:
-            if y <= level_low_calories:
+            if y <= thresholds.low:
                 point_colors.append("#90EE90")
-            elif y <= level_medium_low_calories:
+            elif y <= thresholds.medium_low:
                 point_colors.append("#FFFFE0")
-            elif y <= level_medium_high_calories:
+            elif y <= thresholds.medium_high:
                 point_colors.append("#FFE4C4")
             else:
                 point_colors.append("#FFC0CB")

@@ -17,6 +17,7 @@ lang: en
 - [🏛️ Class `AppConfig`](#%EF%B8%8F-class-appconfig)
 - [🏛️ Class `BothubSettings`](#%EF%B8%8F-class-bothubsettings)
 - [🏛️ Class `FoodCalorieThresholds`](#%EF%B8%8F-class-foodcaloriethresholds)
+- [🏛️ Class `FoodPersonProfile`](#%EF%B8%8F-class-foodpersonprofile)
 - [🏛️ Class `GeminiSettings`](#%EF%B8%8F-class-geminisettings)
 - [🏛️ Class `HotkeyEntry`](#%EF%B8%8F-class-hotkeyentry)
 - [🏛️ Class `MusicBeeConfig`](#%EF%B8%8F-class-musicbeeconfig)
@@ -158,6 +159,8 @@ class AppConfig(TypedDict, total=False):
     sqlite_snippets: str
     habits_sport_lookback_days: NotRequired[int]
     food_calorie_thresholds: FoodCalorieThresholds
+    food_calorie_thresholds_configured: NotRequired[bool]
+    food_person_profile: NotRequired[FoodPersonProfile]
     block_drives: list[str]
     markdown_templates: dict[str, Any]
     personal_data: PersonalDataSettings
@@ -219,6 +222,29 @@ class FoodCalorieThresholds(TypedDict, total=False):
     low: int
     medium_low: int
     medium_high: int
+```
+
+</details>
+
+## 🏛️ Class `FoodPersonProfile`
+
+```python
+class FoodPersonProfile(TypedDict, total=False)
+```
+
+Body metrics used to estimate `food_calorie_thresholds`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class FoodPersonProfile(TypedDict, total=False):
+
+    sex: str
+    age: int
+    height_cm: float
+    weight_kg: float
+    activity: str
 ```
 
 </details>
