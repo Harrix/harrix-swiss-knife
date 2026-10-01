@@ -28,6 +28,7 @@ from harrix_swiss_knife.actions.common.dialog_geometry import center_widget_on_a
 from harrix_swiss_knife.actions.common.quick_launcher_settings import load_quick_launcher_markdown_in_panel
 from harrix_swiss_knife.actions.markdown.new_markdown import OnNewMarkdown
 from harrix_swiss_knife.cli_menu import show_action_class_context_menu
+from harrix_swiss_knife.installer.icon_assets import apply_window_icon
 from harrix_swiss_knife.qt_action_card_grid import (
     CARD_ICON_SIZE,
     configure_action_card_grid,
@@ -46,14 +47,20 @@ from harrix_swiss_knife.qt_frameless_window import frameless_stay_on_top_flags, 
 from harrix_swiss_knife.qt_lucide_icon import CLOSE_BUTTON_ICON, apply_lucide_button_icon
 from harrix_swiss_knife.qt_markdown_choice_cards import populate_icon_choice_cards
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
+from harrix_swiss_knife.win11_caption import (
+    CAPTION_BUTTON_HEIGHT,
+    install_win11_caption,
+    try_handle_win11_caption_native_event,
+)
 
 if TYPE_CHECKING:
+    from PySide6.QtGui import QCloseEvent
+
     from harrix_swiss_knife.action_output_bus import ActionOutputBus
     from harrix_swiss_knife.actions.common.base import ActionBase
 
 _OVERLAY_MIN_SIZE = QSize(900, 560)
 _OVERLAY_DEFAULT_SIZE = QSize(1024, 720)
-_WINDOW_FLAGS = frameless_stay_on_top_flags()
 _DIALOG_BORDER_STYLE = "#quickLauncherDialog { background-color: #ffffff; border: 1px solid #c0c0c0;}"
 
 
@@ -68,7 +75,9 @@ class QuickLauncherDialog(QDialog):
         self._default_parent = parent
         self.setModal(False)
         self.setWindowModality(Qt.WindowModality.NonModal)
-        self.setWindowFlags(_WINDOW_FLAGS)
+        self.setWindowTitle("Quick launcher")
+        apply_window_icon(self)
+        self.setWindowFlags(_overlay_window_flags())
         self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, on=False)
         self.setMinimumSize(_OVERLAY_MIN_SIZE)
         self.resize(_OVERLAY_DEFAULT_SIZE)
@@ -78,6 +87,8 @@ class QuickLauncherDialog(QDialog):
         self._action_classes: list[type[ActionBase]] = []
         self._dragging = False
         self._drag_position = QPoint()
+        self._win11_caption = False
+        self._close_button: QPushButton | None = None
 
         apply_opaque_white(self)
         self.setObjectName("quickLauncherDialog")
@@ -85,34 +96,18 @@ class QuickLauncherDialog(QDialog):
         self.setStyleSheet(_DIALOG_BORDER_STYLE)
 
         self._layout = QVBoxLayout(self)
-        self._layout.setContentsMargins(16, 16, 16, 16)
-        self._layout.setSpacing(12)
+        self._layout.setContentsMargins(0, 0, 0, 0)
+        self._layout.setSpacing(0)
 
-        title = QLabel("Quick launcher")
-        title_font = QFont(title.font())
-        grow_qfont(title_font)
-        title_font.setBold(True)
-        title.setFont(title_font)
-        title.setCursor(Qt.CursorShape.OpenHandCursor)
+        content = QWidget(self)
+        apply_opaque_white(content)
+        self._content_layout = QVBoxLayout(content)
+        self._content_layout.setContentsMargins(16, 12, 16, 16)
+        self._content_layout.setSpacing(12)
 
-        self._close_button = QPushButton("")
-        self._close_button.setFixedSize(28, 28)
-        self._close_button.setFlat(True)
-        self._close_button.setToolTip("Close")
-        self._close_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        apply_lucide_button_icon(self._close_button, CLOSE_BUTTON_ICON, icon_size=18)
-        self._close_button.clicked.connect(self.hide)
-
-        header_spacer = QWidget(self)
-        header_spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        header_spacer.setCursor(Qt.CursorShape.OpenHandCursor)
-
-        header = QHBoxLayout()
-        header.setContentsMargins(0, 0, 0, 0)
-        header.addWidget(title)
-        header.addWidget(header_spacer, stretch=1)
-        header.addWidget(self._close_button)
-        self._layout.addLayout(header)
+        self._win11_caption = install_win11_caption(self)
+        if not self._win11_caption:
+            self._build_fallback_header()
 
         self._cards = QListWidget(self)
         configure_action_card_grid(self._cards)
@@ -122,10 +117,10 @@ class QuickLauncherDialog(QDialog):
         self._cards.customContextMenuRequested.connect(self._on_cards_context_menu)
         self._actions_section, _, actions_layout = create_command_section(title="Actions", bordered=False)
         actions_layout.addWidget(self._cards)
-        self._layout.addWidget(self._actions_section, stretch=1)
+        self._content_layout.addWidget(self._actions_section, stretch=1)
 
         self._actions_divider = create_command_section_divider()
-        self._layout.addWidget(self._actions_divider)
+        self._content_layout.addWidget(self._actions_divider)
 
         self._markdown_cards = QListWidget(self)
         configure_action_card_grid(self._markdown_cards)
@@ -137,7 +132,7 @@ class QuickLauncherDialog(QDialog):
         if self._markdown_section_label is not None:
             self._markdown_section_label.setCursor(Qt.CursorShape.OpenHandCursor)
         markdown_layout.addWidget(self._markdown_cards)
-        self._layout.addWidget(self._markdown_section, stretch=1)
+        self._content_layout.addWidget(self._markdown_section, stretch=1)
 
         self._hint = QLabel(self)
         self._hint.setStyleSheet("color: palette(mid);")
@@ -149,9 +144,11 @@ class QuickLauncherDialog(QDialog):
         footer.addWidget(self._hint, stretch=1)
         self._size_grip = QSizeGrip(self)
         footer.addWidget(self._size_grip, alignment=Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom)
-        self._layout.addLayout(footer)
+        self._content_layout.addLayout(footer)
 
-        draggable_widgets: list[QWidget] = [title, header_spacer, self._hint]
+        self._layout.addWidget(content, stretch=1)
+
+        draggable_widgets: list[QWidget] = [self._hint]
         if self._markdown_section_label is not None:
             draggable_widgets.append(self._markdown_section_label)
         for draggable_widget in draggable_widgets:
@@ -161,6 +158,11 @@ class QuickLauncherDialog(QDialog):
         self.setMouseTracking(True)
         self.setCursor(Qt.CursorShape.OpenHandCursor)
         self._center_on_screen()
+
+    def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
+        """Hide the overlay instead of destroying it."""
+        event.ignore()
+        self.hide()
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
         """Start window drag from passive header and hint widgets."""
@@ -228,7 +230,10 @@ class QuickLauncherDialog(QDialog):
         super().mouseReleaseEvent(event)
 
     def nativeEvent(self, event_type, message) -> tuple[bool, int]:  # noqa: ANN001, N802
-        """Allow edge resize for this frameless window on Windows."""
+        """Allow caption drag and edge resize for this frameless window on Windows."""
+        caption = try_handle_win11_caption_native_event(self, event_type, message)
+        if caption is not None:
+            return caption
         handled = try_handle_frameless_resize_native_event(self, event_type, message)
         if handled is not None:
             return handled
@@ -308,8 +313,40 @@ class QuickLauncherDialog(QDialog):
         if enabled:
             configure_action_card_grid(self._markdown_cards)
             style_transparent_icon_grid(self._markdown_cards)
-        self._layout.setStretch(self._layout.indexOf(self._actions_section), 1)
-        self._layout.setStretch(self._layout.indexOf(self._markdown_section), 1 if enabled else 0)
+        self._content_layout.setStretch(self._content_layout.indexOf(self._actions_section), 1)
+        self._content_layout.setStretch(self._content_layout.indexOf(self._markdown_section), 1 if enabled else 0)
+
+    def _build_fallback_header(self) -> None:
+        """Build a simple title row when Win11 caption is unavailable."""
+        title = QLabel("Quick launcher")
+        title_font = QFont(title.font())
+        grow_qfont(title_font)
+        title_font.setBold(True)
+        title.setFont(title_font)
+        title.setCursor(Qt.CursorShape.OpenHandCursor)
+
+        close_button = QPushButton("")
+        close_button.setFixedSize(28, 28)
+        close_button.setFlat(True)
+        close_button.setToolTip("Close")
+        close_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        apply_lucide_button_icon(close_button, CLOSE_BUTTON_ICON, icon_size=18)
+        close_button.clicked.connect(self.hide)
+        self._close_button = close_button
+
+        header_spacer = QWidget(self)
+        header_spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        header_spacer.setCursor(Qt.CursorShape.OpenHandCursor)
+
+        header = QHBoxLayout()
+        header.setContentsMargins(0, 0, 0, 0)
+        header.addWidget(title)
+        header.addWidget(header_spacer, stretch=1)
+        header.addWidget(close_button)
+        self._content_layout.addLayout(header)
+
+        for draggable_widget in (title, header_spacer):
+            draggable_widget.installEventFilter(self)
 
     def _can_start_drag_at(self, local_pos: QPoint) -> bool:
         child = self.childAt(local_pos)
@@ -332,8 +369,17 @@ class QuickLauncherDialog(QDialog):
         actions_chrome = _section_chrome_height(self._actions_section)
         markdown_chrome = _section_chrome_height(self._markdown_section) if split else 0
         divider_height = self._actions_divider.height() if self._actions_divider.isVisible() else 0
-        window_chrome = _layout_vertical_chrome(self._layout)
-        spacing_total = _layout_spacing_total(self._layout, split=split)
+        window_chrome = _layout_vertical_chrome(
+            self._content_layout,
+            has_fallback_header=not self._win11_caption,
+        )
+        if self._win11_caption:
+            window_chrome += CAPTION_BUTTON_HEIGHT
+        spacing_total = _layout_spacing_total(
+            self._content_layout,
+            split=split,
+            has_fallback_header=not self._win11_caption,
+        )
         sections_chrome = actions_chrome + markdown_chrome + divider_height
         grids_natural = cards_natural + markdown_natural
         content_height = window_chrome + spacing_total + sections_chrome + grids_natural
@@ -405,7 +451,10 @@ class QuickLauncherDialog(QDialog):
         self.resize(width, target_height)
 
     def _is_drag_excluded_widget(self, widget: QWidget) -> bool:
-        if widget is self._close_button or self._close_button.isAncestorOf(widget):
+        if self._close_button is not None and (widget is self._close_button or self._close_button.isAncestorOf(widget)):
+            return True
+        caption = self.findChild(QWidget, "captionBar")
+        if caption is not None and (widget is caption or caption.isAncestorOf(widget)):
             return True
         if widget is self._cards or self._cards.isAncestorOf(widget):
             return True
@@ -501,7 +550,7 @@ class QuickLauncherDialog(QDialog):
             modal_parent = None
         target_parent = modal_parent if modal_parent is not None else self._default_parent
 
-        flags = _WINDOW_FLAGS
+        flags = _overlay_window_flags()
         if self.parentWidget() is not target_parent:
             self.setParent(target_parent, flags)
         else:
@@ -588,19 +637,33 @@ def _apply_card_grid_height(
         grid.horizontalScrollBar().setRange(0, 0)
 
 
-def _layout_spacing_total(layout: QVBoxLayout, *, split: bool) -> int:
-    # header, actions section, divider, [markdown section], footer
-    visible_items = 4 + (1 if split else 0)
+def _layout_spacing_total(layout: QVBoxLayout, *, split: bool, has_fallback_header: bool = True) -> int:
+    # [fallback header,] actions section, divider, [markdown section], footer
+    visible_items = (4 if has_fallback_header else 3) + (1 if split else 0)
     return layout.spacing() * max(0, visible_items - 1)
 
 
-def _layout_vertical_chrome(layout: QVBoxLayout) -> int:
+def _layout_vertical_chrome(layout: QVBoxLayout, *, has_fallback_header: bool = True) -> int:
     margins = layout.contentsMargins()
-    header_layout = layout.itemAt(0).layout()
-    header_height = header_layout.sizeHint().height() if header_layout is not None else 0
-    footer_layout = layout.itemAt(layout.count() - 1).layout()
+    header_height = 0
+    if has_fallback_header and layout.count() > 0:
+        header_item = layout.itemAt(0)
+        header_layout = header_item.layout() if header_item is not None else None
+        header_height = header_layout.sizeHint().height() if header_layout is not None else 0
+    footer_layout = layout.itemAt(layout.count() - 1).layout() if layout.count() > 0 else None
     footer_height = footer_layout.sizeHint().height() if footer_layout is not None else 0
     return margins.top() + margins.bottom() + header_height + footer_height
+
+
+def _overlay_window_flags() -> Qt.WindowType:
+    """Return frameless stay-on-top flags with caption button hints."""
+    return (
+        frameless_stay_on_top_flags()
+        | Qt.WindowType.WindowSystemMenuHint
+        | Qt.WindowType.WindowMinimizeButtonHint
+        | Qt.WindowType.WindowMaximizeButtonHint
+        | Qt.WindowType.WindowCloseButtonHint
+    )
 
 
 def _section_chrome_height(section: QFrame) -> int:

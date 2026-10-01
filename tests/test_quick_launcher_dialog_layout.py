@@ -29,8 +29,10 @@ def test_layout_spacing_total_without_markdown_panel(qapp: QApplication) -> None
     layout = QVBoxLayout(widget)
     layout.setSpacing(12)
 
-    # header, actions, divider, combined footer → 3 spacings
+    # header, actions, divider, footer → 3 spacings
     assert _layout_spacing_total(layout, split=False) == 36
+    # actions, divider, footer → 2 spacings
+    assert _layout_spacing_total(layout, split=False, has_fallback_header=False) == 24
 
 
 def test_layout_spacing_total_with_markdown_panel(qapp: QApplication) -> None:  # noqa: ARG001
@@ -38,8 +40,10 @@ def test_layout_spacing_total_with_markdown_panel(qapp: QApplication) -> None:  
     layout = QVBoxLayout(widget)
     layout.setSpacing(12)
 
-    # header, actions, divider, markdown, combined footer → 4 spacings
+    # header, actions, divider, markdown, footer → 4 spacings
     assert _layout_spacing_total(layout, split=True) == 48
+    # actions, divider, markdown, footer → 3 spacings
+    assert _layout_spacing_total(layout, split=True, has_fallback_header=False) == 36
 
 
 def test_action_card_metrics_shrink_mildly_to_fit_extra_column() -> None:
@@ -50,11 +54,17 @@ def test_action_card_metrics_shrink_mildly_to_fit_extra_column() -> None:
 
 def test_quick_launcher_hint_and_size_grip_share_footer(qapp: QApplication) -> None:  # noqa: ARG001
     dialog = QuickLauncherDialog()
-    footer = dialog._layout.itemAt(dialog._layout.count() - 1).layout()
+    footer = dialog._content_layout.itemAt(dialog._content_layout.count() - 1).layout()
 
     assert footer is not None
     assert footer.indexOf(dialog._hint) >= 0
     assert footer.indexOf(dialog._size_grip) >= 0
+    if dialog._win11_caption:
+        assert dialog.findChild(QWidget, "captionBar") is not None
+        assert dialog.findChild(QWidget, "captionButtonRow") is not None
+        assert dialog._close_button is None
+    else:
+        assert dialog._close_button is not None
     dialog.close()
 
 
