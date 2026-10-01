@@ -6,6 +6,9 @@ from harrix_swiss_knife.apps.common.delegates.checkbox_display_delegate import (
 )
 from harrix_swiss_knife.apps.common.delegates.combo_box_delegate import ComboBoxDelegate
 from harrix_swiss_knife.apps.common.delegates.date_delegate import DateDelegate
+from harrix_swiss_knife.apps.common.delegates.lucide_checkable_item_delegate import (
+    LucideCheckableItemDelegate,
+)
 from harrix_swiss_knife.apps.common.delegates.name_local_list_delegate import (
     NAME_LOCAL_ROLE,
     NameLocalLayout,
@@ -18,6 +21,7 @@ __all__ = [
     "CheckboxDisplayDelegate",
     "ComboBoxDelegate",
     "DateDelegate",
+    "LucideCheckableItemDelegate",
     "NameLocalLayout",
     "NameLocalListDelegate",
     "YesNoComboDelegate",

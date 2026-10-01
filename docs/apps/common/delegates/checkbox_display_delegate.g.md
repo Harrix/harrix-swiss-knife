@@ -24,7 +24,7 @@ lang: en
 class CheckboxDisplayDelegate(QStyledItemDelegate)
 ```
 
-Paint a centered native checkbox instead of raw 1/0 text.
+Paint a centered Lucide checkbox instead of raw 1/0 text.
 
 <details>
 <summary>Code:</summary>
@@ -42,29 +42,26 @@ class CheckboxDisplayDelegate(QStyledItemDelegate):
         option: QStyleOptionViewItem,
         index: QModelIndex | QPersistentModelIndex,
     ) -> None:
-        """Draw the row background and a centered checkbox indicator."""
+        """Draw the row background and a centered Lucide checkbox indicator."""
         self.initStyleOption(option, index)
         option.text = ""
         widget = option.widget
         style = widget.style() if widget is not None else QApplication.style()
         style.drawPrimitive(QStyle.PrimitiveElement.PE_PanelItemViewItem, option, painter, widget)
 
-        indicator = QStyleOptionButton()
-        indicator.state = QStyle.StateFlag.State_Enabled
-        if is_checkbox_cell_checked(index.data(Qt.ItemDataRole.DisplayRole)):
-            indicator.state |= QStyle.StateFlag.State_On
-        else:
-            indicator.state |= QStyle.StateFlag.State_Off
-        size = style.sizeFromContents(QStyle.ContentsType.CT_CheckBox, indicator, QSize(), widget)
-        if size.width() <= 0 or size.height() <= 0:
-            size = QSize(16, 16)
-        indicator.rect = QRect(
-            option.rect.x() + (option.rect.width() - size.width()) // 2,
-            option.rect.y() + (option.rect.height() - size.height()) // 2,
-            size.width(),
-            size.height(),
+        size = CHECKBOX_INDICATOR_PX
+        rect = QRect(
+            option.rect.x() + (option.rect.width() - size) // 2,
+            option.rect.y() + (option.rect.height() - size) // 2,
+            size,
+            size,
         )
-        style.drawControl(QStyle.ControlElement.CE_CheckBox, indicator, painter, widget)
+        paint_lucide_checkbox(
+            painter,
+            rect,
+            checked=is_checkbox_cell_checked(index.data(Qt.ItemDataRole.DisplayRole)),
+            enabled=bool(option.state & QStyle.StateFlag.State_Enabled),
+        )
 ```
 
 </details>
@@ -93,7 +90,7 @@ def displayText(self, _value: object, _locale: QLocale | QLocale.Language) -> st
 def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> None
 ```
 
-Draw the row background and a centered checkbox indicator.
+Draw the row background and a centered Lucide checkbox indicator.
 
 <details>
 <summary>Code:</summary>
@@ -111,22 +108,19 @@ def paint(
         style = widget.style() if widget is not None else QApplication.style()
         style.drawPrimitive(QStyle.PrimitiveElement.PE_PanelItemViewItem, option, painter, widget)
 
-        indicator = QStyleOptionButton()
-        indicator.state = QStyle.StateFlag.State_Enabled
-        if is_checkbox_cell_checked(index.data(Qt.ItemDataRole.DisplayRole)):
-            indicator.state |= QStyle.StateFlag.State_On
-        else:
-            indicator.state |= QStyle.StateFlag.State_Off
-        size = style.sizeFromContents(QStyle.ContentsType.CT_CheckBox, indicator, QSize(), widget)
-        if size.width() <= 0 or size.height() <= 0:
-            size = QSize(16, 16)
-        indicator.rect = QRect(
-            option.rect.x() + (option.rect.width() - size.width()) // 2,
-            option.rect.y() + (option.rect.height() - size.height()) // 2,
-            size.width(),
-            size.height(),
+        size = CHECKBOX_INDICATOR_PX
+        rect = QRect(
+            option.rect.x() + (option.rect.width() - size) // 2,
+            option.rect.y() + (option.rect.height() - size) // 2,
+            size,
+            size,
         )
-        style.drawControl(QStyle.ControlElement.CE_CheckBox, indicator, painter, widget)
+        paint_lucide_checkbox(
+            painter,
+            rect,
+            checked=is_checkbox_cell_checked(index.data(Qt.ItemDataRole.DisplayRole)),
+            enabled=bool(option.state & QStyle.StateFlag.State_Enabled),
+        )
 ```
 
 </details>

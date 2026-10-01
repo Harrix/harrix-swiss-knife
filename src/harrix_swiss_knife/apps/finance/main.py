@@ -86,6 +86,7 @@ from harrix_swiss_knife.apps.common.date_edit_quick import (
     match_layout_control_heights_many,
 )
 from harrix_swiss_knife.apps.common.db_init import init_tracker_database
+from harrix_swiss_knife.apps.common.delegates import LucideCheckableItemDelegate
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.scroll_pagination import ScrollPagination, on_scroll_load_more
 from harrix_swiss_knife.apps.common.table_context_menu import (
@@ -2022,6 +2023,7 @@ class MainWindow(
         self.comboBox_compare_same_months.currentIndexChanged.connect(self._update_finance_chart)
 
         self.list_chart_categories.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.list_chart_categories.setItemDelegate(LucideCheckableItemDelegate(self.list_chart_categories))
         self.list_chart_categories.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.list_chart_categories.customContextMenuRequested.connect(self._show_chart_categories_context_menu)
         self.pushButton_select_all.clicked.connect(partial(self._set_chart_categories_check_state, checked=True))

@@ -768,6 +768,9 @@ def _apply_white_surfaces(window: QWidget) -> None:
         # Older form stylesheets omit radio rules; checked indicators then vanish.
         window.setStyleSheet(f"{sheet}\n{_RADIO_BUTTON_STYLE}")
     _whiten_main_containers(window)
+    from harrix_swiss_knife.qt_lucide_checkbox import apply_lucide_checkboxes  # noqa: PLC0415
+
+    apply_lucide_checkboxes(window)
 
 
 def _apply_white_window_background(window: QWidget) -> None:
