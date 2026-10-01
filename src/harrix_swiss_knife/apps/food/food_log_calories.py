@@ -72,6 +72,39 @@ def calculate_food_log_calories(
     return 0.0
 
 
+def calories_per_100g_for_storage(
+    calories: float | None,
+    *,
+    keep_zero: bool = False,
+) -> float | None:
+    """Normalize kcal/100g for database storage.
+
+    Positive values are always kept. Zero is kept only when `keep_zero` is set
+    (food-log form entry, or drinks such as water). Otherwise `0` means the
+    spinbox was left empty and is stored as `None`.
+
+    Args:
+
+    - `calories` (`float | None`): Raw kcal/100g from the UI or parser.
+    - `keep_zero` (`bool`): Store `0` instead of `None`. Defaults to `False`.
+
+    Returns:
+
+    - `float | None`: Value to store, or `None` when missing.
+
+    """
+    if calories is None:
+        return None
+    value = float(calories)
+    if value < 0:
+        return None
+    if value > 0:
+        return value
+    if keep_zero:
+        return 0.0
+    return None
+
+
 def convert_calories_per_100g_to_portion(
     *,
     weight: float,

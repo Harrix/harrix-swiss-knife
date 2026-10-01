@@ -13,6 +13,7 @@ from harrix_swiss_knife.apps.food.food_log_calories import (
     FOOD_LOG_COL_WEIGHT,
     apply_food_log_day_spans,
     calculate_food_log_calories,
+    calories_per_100g_for_storage,
     convert_calories_per_100g_to_portion,
     convert_portion_to_calories_per_100g,
     food_log_day_row_spans,
@@ -38,6 +39,14 @@ def test_weight_mode_uses_calories_per_100g() -> None:
 
 def test_zero_calories_per_100g() -> None:
     assert calculate_food_log_calories(weight=100, calories_per_100g=0) == 0
+
+
+def test_calories_per_100g_for_storage_keeps_zero_when_requested() -> None:
+    assert calories_per_100g_for_storage(0, keep_zero=True) == 0.0
+    assert calories_per_100g_for_storage(0, keep_zero=False) is None
+    assert calories_per_100g_for_storage(12.5) == 12.5
+    assert calories_per_100g_for_storage(-1) is None
+    assert calories_per_100g_for_storage(None) is None
 
 
 def test_convert_portion_to_calories_per_100g() -> None:

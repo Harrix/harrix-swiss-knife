@@ -376,7 +376,8 @@ class MainWindow(
             is_drink = self.checkBox_food_is_drink.isChecked()
             weight = float(self.spinBox_food_weight.value())
             calories_value = float(self.doubleSpinBox_food_calories.value())
-            calories_per_100g = calories_value if calories_value > 0 else None
+            # Catalog items: keep 0 for drinks (water); food still treats 0 as empty.
+            calories_per_100g = calories_per_100g_for_storage(calories_value, keep_zero=is_drink)
 
             prefill = database_manager.FoodLogItemByNameRow(
                 name=name,
@@ -438,7 +439,8 @@ class MainWindow(
             return
 
         try:
-            calories_per_100g = max(0, calories) if calories > 0 else None
+            # Persist the spinbox value as entered, including 0 kcal (e.g. water).
+            calories_per_100g = calories_per_100g_for_storage(calories, keep_zero=True)
 
             # Reuse an existing English translation for the same food name, if any.
             known_translations = self.db_manager.lookup_existing_name_en_for_names([food_name])
@@ -1213,13 +1215,14 @@ class MainWindow(
                 except (ValueError, TypeError):
                     weight = None
 
-            # Parse calories per 100g
+            # Parse calories per 100g (0 is valid for drinks such as water)
             calories_per_100g = None
             if calories_per_100g_str.strip():
                 try:
-                    calories_per_100g = float(calories_per_100g_str)
-                    if calories_per_100g <= 0:
-                        calories_per_100g = None
+                    calories_per_100g = calories_per_100g_for_storage(
+                        float(calories_per_100g_str),
+                        keep_zero=is_drink,
+                    )
                 except (ValueError, TypeError):
                     calories_per_100g = None
 
@@ -1244,7 +1247,7 @@ class MainWindow(
                 # Show success message with details
                 weight_info = f" with weight {weight}g" if include_weight and weight else " without weight"
                 calories_info = ""
-                if final_calories_per_100g:
+                if final_calories_per_100g is not None:
                     calories_info += f", {final_calories_per_100g} kcal/100g"
                 if default_portion_calories:
                     calories_info += f", {default_portion_calories} kcal/portion"
@@ -5671,7 +5674,8 @@ def on_add_food_item(self) -> None:
             is_drink = self.checkBox_food_is_drink.isChecked()
             weight = float(self.spinBox_food_weight.value())
             calories_value = float(self.doubleSpinBox_food_calories.value())
-            calories_per_100g = calories_value if calories_value > 0 else None
+            # Catalog items: keep 0 for drinks (water); food still treats 0 as empty.
+            calories_per_100g = calories_per_100g_for_storage(calories_value, keep_zero=is_drink)
 
             prefill = database_manager.FoodLogItemByNameRow(
                 name=name,
@@ -5746,7 +5750,8 @@ def on_add_food_log(self) -> None:
             return
 
         try:
-            calories_per_100g = max(0, calories) if calories > 0 else None
+            # Persist the spinbox value as entered, including 0 kcal (e.g. water).
+            calories_per_100g = calories_per_100g_for_storage(calories, keep_zero=True)
 
             # Reuse an existing English translation for the same food name, if any.
             known_translations = self.db_manager.lookup_existing_name_en_for_names([food_name])

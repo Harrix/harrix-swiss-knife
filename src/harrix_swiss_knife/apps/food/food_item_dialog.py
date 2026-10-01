@@ -23,6 +23,7 @@ from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.text_case import capitalize_first_letter
 from harrix_swiss_knife.apps.food.database_manager import FoodItemByNameRow, FoodLogItemByNameRow
+from harrix_swiss_knife.apps.food.food_log_calories import calories_per_100g_for_storage
 from harrix_swiss_knife.qt_compact_spin_box import (
     CompactDoubleSpinBox as QDoubleSpinBox,
 )
@@ -97,11 +98,12 @@ class FoodItemDialog(QDialog):
             message_box.warning(self, "Validation Error", "Name is required!")
             return
 
-        # Check if at least one of calories fields is filled
+        # Check if at least one of calories fields is filled (0 is OK for drinks)
         calories_per_100g = self.calories_per_100g_spinbox.value()
         default_portion_calories = self.default_portion_calories_spinbox.value()
+        is_drink = self.is_drink_checkbox.isChecked()
 
-        if calories_per_100g == 0 and default_portion_calories == 0:
+        if calories_per_100g == 0 and default_portion_calories == 0 and not is_drink:
             message_box.warning(
                 self, "Validation Error", "Please fill either 'Calories per 100g' or 'Default Portion Calories'!"
             )
@@ -142,7 +144,10 @@ class FoodItemDialog(QDialog):
             "name": capitalize_first_letter(self.name_edit.text()),
             "name_en": capitalize_first_letter(self.name_en_edit.text()) or None,
             "is_drink": self.is_drink_checkbox.isChecked(),
-            "calories_per_100g": self.calories_per_100g_spinbox.value() or None,
+            "calories_per_100g": calories_per_100g_for_storage(
+                self.calories_per_100g_spinbox.value(),
+                keep_zero=self.is_drink_checkbox.isChecked(),
+            ),
             "default_portion_weight": self.default_portion_weight_spinbox.value() or None,
             "default_portion_calories": self.default_portion_calories_spinbox.value() or None,
         }
