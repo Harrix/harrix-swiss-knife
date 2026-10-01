@@ -282,7 +282,7 @@ def lucide_checkbox_pixmap(
     else:
         name = "square"
         color = _DISABLED_COLOR if not enabled else LUCIDE_COLOR_DARK
-    return create_lucide_icon(name, size, color=color).pixmap(size, size)
+    return _lucide_indicator_pixmap(name, color, size)
 ```
 
 </details>
@@ -329,7 +329,7 @@ def lucide_radio_pixmap(
     else:
         name = "circle"
         color = _DISABLED_COLOR if not enabled else LUCIDE_COLOR_DARK
-    return create_lucide_icon(name, size, color=color).pixmap(size, size)
+    return _lucide_indicator_pixmap(name, color, size)
 ```
 
 </details>

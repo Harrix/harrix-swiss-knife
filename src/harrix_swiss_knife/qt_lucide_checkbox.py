@@ -12,8 +12,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QRect
-from PySide6.QtGui import QPainter, QPixmap
+from PySide6.QtCore import QByteArray, QRect, QRectF, Qt
+from PySide6.QtGui import QColor, QGuiApplication, QPainter, QPixmap
+from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import (
     QCheckBox,
     QProxyStyle,
@@ -26,15 +27,19 @@ from PySide6.QtWidgets import (
 from harrix_swiss_knife.qt_lucide_icon import (
     LUCIDE_COLOR_DARK,
     LUCIDE_COLOR_GREEN,
-    create_lucide_icon,
+    lucide_svg_path,
 )
 
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QWidget
 
-CHECKBOX_INDICATOR_PX = 16
-RADIO_INDICATOR_PX = 16
+# Native Lucide grid (stroke 2 on 24). Smaller sizes soft-scale into a gray double outline.
+CHECKBOX_INDICATOR_PX = 24
+RADIO_INDICATOR_PX = 24
 _DISABLED_COLOR = "#767676"
+_FRINGE_ALPHA_CUTOFF = 140
+_OPAQUE_ALPHA = 255
+_INDICATOR_PIXMAP_CACHE: dict[tuple[str, str, int, float], QPixmap] = {}
 
 
 class LucideToggleStyle(QProxyStyle):
@@ -140,7 +145,7 @@ def lucide_checkbox_pixmap(
     else:
         name = "square"
         color = _DISABLED_COLOR if not enabled else LUCIDE_COLOR_DARK
-    return create_lucide_icon(name, size, color=color).pixmap(size, size)
+    return _lucide_indicator_pixmap(name, color, size)
 
 
 def lucide_checkbox_widget_style() -> LucideToggleStyle:
@@ -161,7 +166,7 @@ def lucide_radio_pixmap(
     else:
         name = "circle"
         color = _DISABLED_COLOR if not enabled else LUCIDE_COLOR_DARK
-    return create_lucide_icon(name, size, color=color).pixmap(size, size)
+    return _lucide_indicator_pixmap(name, color, size)
 
 
 def lucide_toggle_widget_style() -> LucideToggleStyle:
@@ -224,6 +229,49 @@ def paint_lucide_radio_from_style_option(painter: QPainter, option: QStyleOption
     paint_lucide_radio(painter, option.rect, checked=checked, enabled=enabled)
 
 
+def _lucide_indicator_device_pixel_ratio() -> float:
+    app = QGuiApplication.instance()
+    if app is not None:
+        screen = app.primaryScreen()
+        if screen is not None:
+            ratio = float(screen.devicePixelRatio())
+            if ratio > 0:
+                return ratio
+    return 1.0
+
+
+def _lucide_indicator_pixmap(name: str, color: str, size: int) -> QPixmap:
+    """Render a Lucide glyph at `size` (prefer 24 so stroke stays on whole pixels)."""
+    ratio = _lucide_indicator_device_pixel_ratio()
+    cache_key = (name, color, size, ratio)
+    cached = _INDICATOR_PIXMAP_CACHE.get(cache_key)
+    if cached is not None:
+        return cached
+
+    path = lucide_svg_path(name)
+    if path is None:
+        return QPixmap()
+
+    hex_color = QColor(color).name(QColor.NameFormat.HexRgb)
+    svg_text = path.read_text(encoding="utf-8").replace("currentColor", hex_color)
+
+    physical = max(1, round(size * ratio))
+    renderer = QSvgRenderer(QByteArray(svg_text.encode("utf-8")))
+    if not renderer.isValid():
+        return QPixmap()
+
+    pixmap = QPixmap(physical, physical)
+    pixmap.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
+    renderer.render(painter, QRectF(0.0, 0.0, float(physical), float(physical)))
+    painter.end()
+    pixmap.setDevicePixelRatio(ratio)
+    pixmap = _strip_indicator_fringe(pixmap)
+    _INDICATOR_PIXMAP_CACHE[cache_key] = pixmap
+    return pixmap
+
+
 def _paint_centered_pixmap(painter: QPainter, rect: QRect, pixmap: QPixmap, size: int) -> None:
     if pixmap.isNull():
         return
@@ -234,9 +282,29 @@ def _paint_centered_pixmap(painter: QPainter, rect: QRect, pixmap: QPixmap, size
         size,
     )
     painter.save()
-    painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
+    # Pre-rasterized glyph; SmoothPixmapTransform would reintroduce a soft fringe.
+    painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, on=False)
     painter.drawPixmap(target, pixmap)
     painter.restore()
+
+
+def _strip_indicator_fringe(pixmap: QPixmap) -> QPixmap:
+    """Remove gray antialias fringe so the outline is one solid stroke."""
+    image = pixmap.toImage()
+    for y in range(image.height()):
+        for x in range(image.width()):
+            color = image.pixelColor(x, y)
+            alpha = color.alpha()
+            if alpha == 0:
+                continue
+            if alpha < _FRINGE_ALPHA_CUTOFF:
+                image.setPixelColor(x, y, QColor(0, 0, 0, 0))
+            elif alpha < _OPAQUE_ALPHA:
+                color.setAlpha(_OPAQUE_ALPHA)
+                image.setPixelColor(x, y, color)
+    cleaned = QPixmap.fromImage(image)
+    cleaned.setDevicePixelRatio(pixmap.devicePixelRatio())
+    return cleaned
 
 
 # Backward-compatible alias used by tests and older imports.

@@ -12,6 +12,7 @@ lang: en
 ## Contents
 
 - [🏛️ Class `LucideCheckableItemDelegate`](#%EF%B8%8F-class-lucidecheckableitemdelegate)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `paint`](#%EF%B8%8F-method-paint)
 
 </details>
@@ -22,10 +23,10 @@ lang: en
 class LucideCheckableItemDelegate(QStyledItemDelegate)
 ```
 
-Draw Lucide square / square-check over checkable item-view rows.
+Draw Lucide square / square-check for checkable item-view rows.
 
-Parent window stylesheets often leave `PE_IndicatorItemViewItemCheck` blank.
-This delegate keeps the normal row paint, then overlays a Lucide checkbox.
+Applies the shared [`LucideToggleStyle`](../../../qt_lucide_checkbox.g.md#%EF%B8%8F-class-lucidetogglestyle) to the parent view so
+`PE_IndicatorItemViewItemCheck` is Lucide only (no native gray box underneath).
 
 <details>
 <summary>Code:</summary>
@@ -33,42 +34,40 @@ This delegate keeps the normal row paint, then overlays a Lucide checkbox.
 ```python
 class LucideCheckableItemDelegate(QStyledItemDelegate):
 
+    def __init__(self, parent: QWidget | None = None) -> None:
+        """Install on `parent` and give that view the Lucide toggle style."""
+        super().__init__(parent)
+        if parent is not None and not isinstance(parent.style(), LucideToggleStyle):
+            parent.setStyle(lucide_toggle_widget_style())
+
     def paint(
         self,
         painter: QPainter,
         option: QStyleOptionViewItem,
         index: QModelIndex | QPersistentModelIndex,
     ) -> None:
-        """Paint the row, then overlay a Lucide checkbox when the item is checkable."""
-        self.initStyleOption(option, index)
-        widget = option.widget
-        style = widget.style() if widget is not None else QApplication.style()
-        style.drawControl(QStyle.ControlElement.CE_ItemViewItem, option, painter, widget)
+        """Paint the row; the view style draws the Lucide check indicator."""
+        super().paint(painter, option, index)
+```
 
-        check_value = index.data(Qt.ItemDataRole.CheckStateRole)
-        if check_value is None and not (option.features & QStyleOptionViewItem.ViewItemFeature.HasCheckIndicator):
-            return
+</details>
 
-        rect = style.subElementRect(QStyle.SubElement.SE_ItemViewItemCheckIndicator, option, widget)
-        if not rect.isValid() or rect.width() <= 0 or rect.height() <= 0:
-            size = CHECKBOX_INDICATOR_PX
-            rect = QRect(
-                option.rect.x() + 4,
-                option.rect.y() + (option.rect.height() - size) // 2,
-                size,
-                size,
-            )
+### ⚙️ Method `__init__`
 
-        state = Qt.CheckState.Unchecked
-        if check_value is not None:
-            state = check_value if isinstance(check_value, Qt.CheckState) else Qt.CheckState(int(check_value))
-        paint_lucide_checkbox(
-            painter,
-            rect,
-            checked=state == Qt.CheckState.Checked,
-            partial=state == Qt.CheckState.PartiallyChecked,
-            enabled=bool(option.state & QStyle.StateFlag.State_Enabled),
-        )
+```python
+def __init__(self, parent: QWidget | None = None) -> None
+```
+
+Install on `parent` and give that view the Lucide toggle style.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        if parent is not None and not isinstance(parent.style(), LucideToggleStyle):
+            parent.setStyle(lucide_toggle_widget_style())
 ```
 
 </details>
@@ -79,7 +78,7 @@ class LucideCheckableItemDelegate(QStyledItemDelegate):
 def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> None
 ```
 
-Paint the row, then overlay a Lucide checkbox when the item is checkable.
+Paint the row; the view style draws the Lucide check indicator.
 
 <details>
 <summary>Code:</summary>
@@ -91,35 +90,7 @@ def paint(
         option: QStyleOptionViewItem,
         index: QModelIndex | QPersistentModelIndex,
     ) -> None:
-        self.initStyleOption(option, index)
-        widget = option.widget
-        style = widget.style() if widget is not None else QApplication.style()
-        style.drawControl(QStyle.ControlElement.CE_ItemViewItem, option, painter, widget)
-
-        check_value = index.data(Qt.ItemDataRole.CheckStateRole)
-        if check_value is None and not (option.features & QStyleOptionViewItem.ViewItemFeature.HasCheckIndicator):
-            return
-
-        rect = style.subElementRect(QStyle.SubElement.SE_ItemViewItemCheckIndicator, option, widget)
-        if not rect.isValid() or rect.width() <= 0 or rect.height() <= 0:
-            size = CHECKBOX_INDICATOR_PX
-            rect = QRect(
-                option.rect.x() + 4,
-                option.rect.y() + (option.rect.height() - size) // 2,
-                size,
-                size,
-            )
-
-        state = Qt.CheckState.Unchecked
-        if check_value is not None:
-            state = check_value if isinstance(check_value, Qt.CheckState) else Qt.CheckState(int(check_value))
-        paint_lucide_checkbox(
-            painter,
-            rect,
-            checked=state == Qt.CheckState.Checked,
-            partial=state == Qt.CheckState.PartiallyChecked,
-            enabled=bool(option.state & QStyle.StateFlag.State_Enabled),
-        )
+        super().paint(painter, option, index)
 ```
 
 </details>

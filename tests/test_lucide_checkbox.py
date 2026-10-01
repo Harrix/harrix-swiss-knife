@@ -154,4 +154,5 @@ def test_lucide_checkable_item_delegate_constructs() -> None:
     host = QWidget()
     delegate = LucideCheckableItemDelegate(host)
     assert isinstance(delegate, LucideCheckableItemDelegate)
+    assert isinstance(host.style(), LucideToggleStyle)
     host.close()
