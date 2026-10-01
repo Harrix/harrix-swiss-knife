@@ -917,6 +917,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._add_variants_action = file_menu.addAction("📥 Add icon variants…")
         self._add_variants_action.triggered.connect(self._on_add_icon_variants)
         paste_action = file_menu.addAction("Paste vectors from clipboard")
+        set_action_text_with_lucide_icon(paste_action, "Paste vectors from clipboard", "clipboard-paste")
         paste_action.setShortcut(QKeySequence.StandardKey.Paste)
         paste_action.triggered.connect(self._on_paste_vectors)
         refresh_action = file_menu.addAction("Refresh catalog")
