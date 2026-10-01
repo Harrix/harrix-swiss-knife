@@ -159,7 +159,23 @@ class Ui_MainWindow(object):
 " stop:0 #ffffff, st"
                         "op:0.46 #ffffff, stop:0.49 #f4f4f4, stop:0.51 #f4f4f4, stop:0.54 #ffffff, stop:1 #ffffff);\n"
 "}\n"
-"QSplitter::handle:hover { background: #f4f4f4; }")
+"QSplitter::handle:hover { background: #f4f4f4; }\n"
+"QRadioButton::indicator {\n"
+" width: 14px;\n"
+" height: 14px;\n"
+" border-radius: 7px;\n"
+" border: 1px solid #767676;\n"
+" background-color: #ffffff;\n"
+"}\n"
+"QRadioButton::indicator:hover {\n"
+" border-color: #404040;\n"
+"}\n"
+"QRadioButton::indicator:checked {\n"
+" border: 1px solid #202020;\n"
+" background-color: qradialgradient(\n"
+"  cx: 0.5, cy: 0.5, fx: 0.5, fy: 0.5, radius: 0.5,\n"
+"  stop: 0 #ffffff, stop: 0.32 #ffffff, stop: 0.38 #202020, stop: 1 #202020);\n"
+"}\n")
         MainWindow.resize(1392, 641)
         self.actionAbout = QAction(MainWindow)
         self.actionAbout.setObjectName(u"actionAbout")

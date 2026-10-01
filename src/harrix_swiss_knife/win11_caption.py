@@ -93,6 +93,24 @@ QSplitter::handle:vertical {{
 }}
 QSplitter::handle:hover {{ background: #f4f4f4; }}
 """
+_RADIO_BUTTON_STYLE = """
+QRadioButton::indicator {
+ width: 14px;
+ height: 14px;
+ border-radius: 7px;
+ border: 1px solid #767676;
+ background-color: #ffffff;
+}
+QRadioButton::indicator:hover {
+ border-color: #404040;
+}
+QRadioButton::indicator:checked {
+ border: 1px solid #202020;
+ background-color: qradialgradient(
+  cx: 0.5, cy: 0.5, fx: 0.5, fy: 0.5, radius: 0.5,
+  stop: 0 #ffffff, stop: 0.32 #ffffff, stop: 0.38 #202020, stop: 1 #202020);
+}
+"""
 _WHITE_SURFACE_STYLE = f"""
 /* hsk-white-surfaces */
 QGroupBox {{
@@ -118,6 +136,7 @@ QMenu::item:disabled {{ color: #767676; }}
 QStatusBar {{ background: #ffffff; }}
 QStatusBar QLabel {{ color: #202020; }}
 {_SPLITTER_HANDLE_STYLE}
+{_RADIO_BUTTON_STYLE}
 """
 
 _GLYPH_FILES = {
@@ -745,6 +764,9 @@ def _apply_white_surfaces(window: QWidget) -> None:
     sheet = window.styleSheet()
     if _WHITE_SURFACE_MARK not in sheet:
         window.setStyleSheet(f"{sheet}\n{_WHITE_SURFACE_STYLE}")
+    elif "QRadioButton::indicator" not in sheet:
+        # Older form stylesheets omit radio rules; checked indicators then vanish.
+        window.setStyleSheet(f"{sheet}\n{_RADIO_BUTTON_STYLE}")
     _whiten_main_containers(window)
 
 
