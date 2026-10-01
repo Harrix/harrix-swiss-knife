@@ -30,8 +30,11 @@ def test_with_flat_scrollbars_appends_once() -> None:
     assert once.startswith(base)
     assert "QScrollBar:vertical" in once
     assert "border-radius: 5px" in once
+    assert "QAbstractScrollArea::corner" in once
+    assert "background: #ffffff" in once
     assert twice == once
     assert with_flat_scrollbars("") == FLAT_SCROLLBAR_STYLE
+    assert "QAbstractScrollArea::corner" in FLAT_SCROLLBAR_STYLE
 
 
 def test_apply_flat_scrollbars_covers_styled_and_plain_views(qapp: QApplication) -> None:

@@ -81,6 +81,10 @@ QScrollBar::right-arrow:horizontal {
     background: none;
     border: none;
 }
+QAbstractScrollArea::corner {
+    background: #ffffff;
+    border: none;
+}
 """.strip()
 
 
