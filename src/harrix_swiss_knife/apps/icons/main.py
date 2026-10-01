@@ -172,6 +172,7 @@ from harrix_swiss_knife.apps.icons.widgets import (
     CategoryDropList,
     DraggableIconList,
     VariantsPanel,
+    apply_frameless_item_view,
     read_svg_text,
     stage_clipboard_icon_file,
 )
@@ -826,6 +827,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         left_splitter.setMaximumWidth(260)
 
         self.folder_tree = QTreeWidget()
+        apply_frameless_item_view(self.folder_tree)
         self.folder_tree.setHeaderHidden(True)
         self.folder_tree.setRootIsDecorated(True)
         self.folder_tree.setUniformRowHeights(True)

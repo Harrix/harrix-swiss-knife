@@ -91,6 +91,13 @@ FALLBACK_ICON_OPACITY = 0.38
 FALLBACK_TITLE_ALPHA = 120
 FALLBACK_SUBTITLE_ALPHA = 90
 FAMILY_IDS_MIME = "application/x-harrix-icon-family-ids"
+_ITEM_VIEW_NO_BORDER = "QAbstractItemView { border: none; outline: none; }"
+
+
+def apply_frameless_item_view(view: QAbstractItemView) -> None:
+    """Remove the default gray frame around folders / categories / icons lists."""
+    view.setFrameShape(QFrame.Shape.NoFrame)
+    view.setStyleSheet(_ITEM_VIEW_NO_BORDER)
 
 
 class CategoryDropList(QListWidget):
@@ -101,6 +108,7 @@ class CategoryDropList(QListWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         """Enable drops of Vector Icons family IDs onto category rows."""
         super().__init__(parent)
+        apply_frameless_item_view(self)
         self.setAcceptDrops(True)
         self.viewport().setAcceptDrops(True)
 
@@ -177,6 +185,7 @@ class DraggableIconList(QListWidget):
     ) -> None:
         """Configure icon mode and drag-only outward behavior."""
         super().__init__(parent)
+        apply_frameless_item_view(self)
         self._icon_size = icon_size
         self._emit_family_selection = emit_family_selection
         self._dual_line_labels = dual_line_labels
