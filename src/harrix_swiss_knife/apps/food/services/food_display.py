@@ -70,8 +70,8 @@ def format_food_name_with_calories(
 def partition_food_item_indexes_by_filter(texts: Sequence[str], query: str) -> tuple[list[int], list[int]]:
     """Split list indexes into autocomplete matches first, then the rest.
 
-    Empty `query` treats every row as a match. Relative order inside each group
-    is preserved.
+    Empty `query` treats every row as a match. Both groups are sorted
+    alphabetically by food name (emoji and calorie suffixes ignored).
 
     Args:
 
@@ -91,6 +91,12 @@ def partition_food_item_indexes_by_filter(texts: Sequence[str], query: str) -> t
             matched.append(index)
         else:
             unmatched.append(index)
+
+    def sort_key(index: int) -> str:
+        return extract_food_name_from_display(texts[index]).casefold()
+
+    matched.sort(key=sort_key)
+    unmatched.sort(key=sort_key)
     return matched, unmatched
 
 

@@ -78,14 +78,21 @@ def test_format_food_name_with_calories_recipe_prefix() -> None:
 
 
 def test_partition_food_item_indexes_by_filter_keeps_matches_first() -> None:
-    texts = ["Apple", "Banana", "Apricot", "Berry"]
+    texts = ["Banana", "Apricot", "Berry", "Apple"]
     matched, unmatched = partition_food_item_indexes_by_filter(texts, "ap")
-    assert matched == [0, 2]
-    assert unmatched == [1, 3]
+    assert matched == [3, 1]  # Apple, Apricot
+    assert unmatched == [0, 2]  # Banana, Berry
+
+
+def test_partition_food_item_indexes_by_filter_sorts_dimmed_alphabetically() -> None:
+    texts = ["Zucchini", "Milk", "Apple", "Yogurt"]
+    matched, unmatched = partition_food_item_indexes_by_filter(texts, "milk")
+    assert matched == [1]
+    assert unmatched == [2, 3, 0]  # Apple, Yogurt, Zucchini
 
 
 def test_partition_food_item_indexes_by_filter_empty_query_matches_all() -> None:
-    texts = ["Apple", "Banana"]
+    texts = ["Banana", "Apple"]
     matched, unmatched = partition_food_item_indexes_by_filter(texts, "  ")
-    assert matched == [0, 1]
+    assert matched == [1, 0]  # Apple, Banana
     assert unmatched == []
