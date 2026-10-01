@@ -53,6 +53,7 @@ from harrix_swiss_knife.qt_compact_spin_box import (
 )
 from harrix_swiss_knife.qt_compact_spin_box import CompactSpinBox as QSpinBox
 from harrix_swiss_knife.qt_flat_scrollbar import with_flat_scrollbars
+from harrix_swiss_knife.qt_lucide_checkbox import apply_lucide_indicators
 from harrix_swiss_knife.qt_lucide_icon import (
     apply_leading_chrome_icons,
     make_lucide_push_button,
@@ -352,6 +353,7 @@ class RecipesWidget(QWidget):
         splitter.setStretchFactor(0, 1)
         splitter.setStretchFactor(1, 0)
         splitter.setStretchFactor(2, 3)
+        apply_lucide_indicators(self)
 
     def _clear_editor(self) -> None:
         self._current_recipe_id = None

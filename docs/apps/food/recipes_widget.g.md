@@ -267,6 +267,7 @@ class RecipesWidget(QWidget):
         splitter.setStretchFactor(0, 1)
         splitter.setStretchFactor(1, 0)
         splitter.setStretchFactor(2, 3)
+        apply_lucide_indicators(self)
 
     def _clear_editor(self) -> None:
         self._current_recipe_id = None

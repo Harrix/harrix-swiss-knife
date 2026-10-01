@@ -93,24 +93,6 @@ QSplitter::handle:vertical {{
 }}
 QSplitter::handle:hover {{ background: #f4f4f4; }}
 """
-_RADIO_BUTTON_STYLE = """
-QRadioButton::indicator {
- width: 14px;
- height: 14px;
- border-radius: 7px;
- border: 1px solid #767676;
- background-color: #ffffff;
-}
-QRadioButton::indicator:hover {
- border-color: #404040;
-}
-QRadioButton::indicator:checked {
- border: 1px solid #202020;
- background-color: qradialgradient(
-  cx: 0.5, cy: 0.5, fx: 0.5, fy: 0.5, radius: 0.5,
-  stop: 0 #ffffff, stop: 0.32 #ffffff, stop: 0.38 #202020, stop: 1 #202020);
-}
-"""
 _WHITE_SURFACE_STYLE = f"""
 /* hsk-white-surfaces */
 QGroupBox {{
@@ -136,7 +118,6 @@ QMenu::item:disabled {{ color: #767676; }}
 QStatusBar {{ background: #ffffff; }}
 QStatusBar QLabel {{ color: #202020; }}
 {_SPLITTER_HANDLE_STYLE}
-{_RADIO_BUTTON_STYLE}
 """
 
 _GLYPH_FILES = {
@@ -761,16 +742,15 @@ def _apply_white_surfaces(window: QWidget) -> None:
     its own object name only, unless that form widget already has a white background.
 
     """
-    sheet = window.styleSheet()
+    sheet = _strip_radio_indicator_qss(window.styleSheet())
     if _WHITE_SURFACE_MARK not in sheet:
-        window.setStyleSheet(f"{sheet}\n{_WHITE_SURFACE_STYLE}")
-    elif "QRadioButton::indicator" not in sheet:
-        # Older form stylesheets omit radio rules; checked indicators then vanish.
-        window.setStyleSheet(f"{sheet}\n{_RADIO_BUTTON_STYLE}")
+        sheet = f"{sheet}\n{_WHITE_SURFACE_STYLE}"
+    if sheet != window.styleSheet():
+        window.setStyleSheet(sheet)
     _whiten_main_containers(window)
-    from harrix_swiss_knife.qt_lucide_checkbox import apply_lucide_checkboxes  # noqa: PLC0415
+    from harrix_swiss_knife.qt_lucide_checkbox import apply_lucide_indicators  # noqa: PLC0415
 
-    apply_lucide_checkboxes(window)
+    apply_lucide_indicators(window)
 
 
 def _apply_white_window_background(window: QWidget) -> None:
@@ -1644,6 +1624,18 @@ def _shrunk_font(font: QFont, max_height: int) -> QFont:
         while QFontMetrics(fitted).height() > max_height and fitted.pixelSize() > _FONT_FLOOR_PX:
             fitted.setPixelSize(fitted.pixelSize() - 1)
     return fitted
+
+
+def _strip_radio_indicator_qss(sheet: str) -> str:
+    """Remove `QRadioButton::indicator` rules so Lucide radio style can paint."""
+    import re  # noqa: PLC0415
+
+    pattern = re.compile(r"\s*QRadioButton::indicator(?::[^{\s]+)?\s*\{[^{}]*\}", re.MULTILINE)
+    previous = None
+    while previous != sheet:
+        previous = sheet
+        sheet = pattern.sub("", sheet)
+    return sheet
 
 
 def _style_caption_chrome(window: QWidget) -> None:
