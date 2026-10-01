@@ -4026,31 +4026,6 @@ async function activateWorkbench(context) {
   });
   context.subscriptions.push(view);
 
-  const updateTreePinContext = () => {
-    const el = view.selection?.[0];
-    let fsPath = '';
-    let pinnable = false;
-    if (el?.isNoteItem && el.resourceUri?.fsPath) {
-      fsPath = el.resourceUri.fsPath;
-      pinnable = isMd(path.basename(fsPath));
-    } else if (typeof el?.dirPath === 'string' && el.dirPath && !el.isAssetFolder) {
-      fsPath = el.dirPath;
-      pinnable = true;
-    }
-    let pinned = false;
-    if (pinnable && fsPath) {
-      try {
-        pinned = require('./pinned-browse').getPinnedStore()?.isPinned(fsPath) === true;
-      } catch {
-        pinned = false;
-      }
-    }
-    void vscode.commands.executeCommand('setContext', 'harrixNotesExplorerHsk.treeSelectionPinnable', pinnable);
-    void vscode.commands.executeCommand('setContext', 'harrixNotesExplorerHsk.treeSelectionPinned', pinned);
-  };
-  context.subscriptions.push(view.onDidChangeSelection(() => updateTreePinContext()));
-  updateTreePinContext();
-
   context.subscriptions.push(
     vscode.workspace.onDidChangeWorkspaceFolders(() => {
       provider.setRootEntries(getWorkspaceRootEntries());

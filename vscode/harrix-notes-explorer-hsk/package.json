@@ -429,6 +429,12 @@
         "icon": "$(pinned)"
       },
       {
+        "command": "harrixNotesExplorerHsk.togglePinItem",
+        "title": "Pin / Unpin",
+        "category": "Harrix Notes HSK",
+        "icon": "$(pin)"
+      },
+      {
         "command": "harrixNotesExplorerHsk.revealInOS",
         "title": "Reveal in File Explorer",
         "category": "Harrix Notes HSK"
@@ -885,13 +891,8 @@
           "group": "0_open@1"
         },
         {
-          "command": "harrixNotesExplorerHsk.pinItem",
-          "when": "view == harrixNotesExplorerHsk && harrixNotesExplorerHsk.treeSelectionPinnable && !harrixNotesExplorerHsk.treeSelectionPinned",
-          "group": "0_open@2"
-        },
-        {
-          "command": "harrixNotesExplorerHsk.unpinItem",
-          "when": "view == harrixNotesExplorerHsk && harrixNotesExplorerHsk.treeSelectionPinnable && harrixNotesExplorerHsk.treeSelectionPinned",
+          "command": "harrixNotesExplorerHsk.togglePinItem",
+          "when": "view == harrixNotesExplorerHsk && (viewItem =~ /^(git)?notesFolder/ || (viewItem =~ /^(git)?note/ && !(viewItem =~ /Asset/)))",
           "group": "0_open@2"
         },
         {

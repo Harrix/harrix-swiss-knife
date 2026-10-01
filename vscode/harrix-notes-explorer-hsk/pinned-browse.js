@@ -70,6 +70,12 @@ function activatePinnedBrowse(nextDeps) {
   );
 
   context.subscriptions.push(
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.togglePinItem', async (treeItemOrUri) => {
+      await togglePinFromArg(treeItemOrUri);
+    }),
+  );
+
+  context.subscriptions.push(
     vscode.window.registerWebviewPanelSerializer(PANEL_VIEW_TYPE, {
       async deserializeWebviewPanel(webviewPanel, _state) {
         panel = webviewPanel;
@@ -400,9 +406,8 @@ function resolvePinTarget(treeItemOrUri) {
 }
 
 /**
- * @param {{ treePinned?: boolean }} [opts]
  */
-async function afterPinChange(opts) {
+async function afterPinChange() {
   if (!deps) {
     return;
   }
@@ -410,9 +415,6 @@ async function afterPinChange(opts) {
     deps.provider.refresh();
   }
   await updateActivePinnedContext();
-  if (typeof opts?.treePinned === 'boolean') {
-    await vscode.commands.executeCommand('setContext', 'harrixNotesExplorerHsk.treeSelectionPinned', opts.treePinned);
-  }
   refreshPinnedBrowseIfOpen();
   try {
     const { refreshIconsBrowseIfOpen } = require('./icons-browse');
@@ -420,18 +422,6 @@ async function afterPinChange(opts) {
   } catch {
     // ignore
   }
-}
-
-/**
- * @param {unknown} treeItemOrUri
- * @returns {boolean}
- */
-function argLooksLikeTreeItem(treeItemOrUri) {
-  return Boolean(
-    treeItemOrUri &&
-      typeof treeItemOrUri === 'object' &&
-      (treeItemOrUri.isNoteItem === true || typeof treeItemOrUri.dirPath === 'string'),
-  );
 }
 
 /**
@@ -447,7 +437,6 @@ async function pinFromArg(treeItemOrUri) {
     return;
   }
   if (store.isPinned(target.path)) {
-    void vscode.window.showInformationMessage('Already pinned.');
     return;
   }
 
@@ -490,7 +479,7 @@ async function pinFromArg(treeItemOrUri) {
     return;
   }
 
-  await afterPinChange(argLooksLikeTreeItem(treeItemOrUri) ? { treePinned: true } : undefined);
+  await afterPinChange();
 }
 
 /**
@@ -504,7 +493,7 @@ async function unpinFromArg(treeItemOrUri) {
   if (treeItemOrUri && typeof treeItemOrUri === 'object' && typeof treeItemOrUri.id === 'string') {
     const byId = await store.unpin(treeItemOrUri.id);
     if (byId.ok) {
-      await afterPinChange(argLooksLikeTreeItem(treeItemOrUri) ? { treePinned: false } : undefined);
+      await afterPinChange();
       return;
     }
   }
@@ -516,10 +505,28 @@ async function unpinFromArg(treeItemOrUri) {
   }
   const result = await store.unpin(target.path);
   if (!result.ok) {
-    void vscode.window.showInformationMessage('Not pinned.');
     return;
   }
-  await afterPinChange(argLooksLikeTreeItem(treeItemOrUri) ? { treePinned: false } : undefined);
+  await afterPinChange();
+}
+
+/**
+ * @param {unknown} treeItemOrUri
+ */
+async function togglePinFromArg(treeItemOrUri) {
+  if (!deps || !store) {
+    return;
+  }
+  const target = resolvePinTarget(treeItemOrUri);
+  if (!target) {
+    void vscode.window.showErrorMessage('Select a notes folder or markdown note to pin or unpin.');
+    return;
+  }
+  if (store.isPinned(target.path)) {
+    await unpinFromArg(treeItemOrUri);
+  } else {
+    await pinFromArg(treeItemOrUri);
+  }
 }
 
 /**
