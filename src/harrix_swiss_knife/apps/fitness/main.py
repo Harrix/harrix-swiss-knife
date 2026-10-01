@@ -98,7 +98,10 @@ from harrix_swiss_knife.apps.common.apps_config import (
     set_apps_fitness_workout_gender,
 )
 from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
-from harrix_swiss_knife.apps.common.date_edit_quick import attach_date_edit_quick_controls
+from harrix_swiss_knife.apps.common.date_edit_quick import (
+    attach_date_edit_quick_controls,
+    match_layout_control_heights_many,
+)
 from harrix_swiss_knife.apps.common.db_init import init_tracker_database
 from harrix_swiss_knife.apps.common.delegates import CheckboxDisplayDelegate, DateDelegate
 from harrix_swiss_knife.apps.common.delegates.name_local_list_delegate import (
@@ -8340,6 +8343,15 @@ class MainWindow(
             f"🎯 {self.pushButton_exercise_goal_recommendations.text()}"
         )
         apply_leading_chrome_buttons(self)
+        match_layout_control_heights_many(
+            (
+                self.horizontalLayout_filter,
+                self.horizontalLayout_13,
+                self.horizontalLayout_charts_controls_1,
+                self.horizontalLayout_charts_controls_2,
+                self.horizontalLayout_weight_controls,
+            ),
+        )
 
         # Configure splitter proportions.
         # Filter bar above the process table has a wide sizeHint; without explicit

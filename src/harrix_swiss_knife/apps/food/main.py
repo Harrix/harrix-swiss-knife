@@ -74,7 +74,10 @@ from harrix_swiss_knife.apps.common.apps_config import (
     get_apps_local_language_display_name,
 )
 from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
-from harrix_swiss_knife.apps.common.date_edit_quick import attach_date_edit_quick_controls
+from harrix_swiss_knife.apps.common.date_edit_quick import (
+    attach_date_edit_quick_controls,
+    match_layout_control_heights_many,
+)
 from harrix_swiss_knife.apps.common.db_init import init_tracker_database
 from harrix_swiss_knife.apps.common.dialogs.simple_recording_dialog import SimpleRecordingDialog
 from harrix_swiss_knife.apps.common.qt_database_manager_base import QtSqliteDatabaseManagerBase
@@ -4396,6 +4399,14 @@ class MainWindow(
         self._init_filter_controls()
         self._update_clear_filter_button_visibility()
         apply_leading_chrome_buttons(self)
+        match_layout_control_heights_many(
+            (
+                self.horizontalLayout_filter,
+                self.horizontalLayout_food_date,
+                self.horizontalLayout_food_stats_period,
+                self.horizontalLayout_food_stats_charts,
+            ),
+        )
 
         self.update_calories_calculation()
 

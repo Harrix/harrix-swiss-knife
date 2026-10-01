@@ -14,6 +14,9 @@ lang: en
 - [🔧 Function `attach_date_edit_quick_controls`](#-function-attach_date_edit_quick_controls)
 - [🔧 Function `date_quick_button_label`](#-function-date_quick_button_label)
 - [🔧 Function `date_quick_primary_action`](#-function-date_quick_primary_action)
+- [🔧 Function `match_control_heights`](#-function-match_control_heights)
+- [🔧 Function `match_layout_control_heights`](#-function-match_layout_control_heights)
+- [🔧 Function `match_layout_control_heights_many`](#-function-match_layout_control_heights_many)
 
 </details>
 
@@ -88,7 +91,7 @@ def attach_date_edit_quick_controls(
     def refresh_button_text() -> None:
         button.setText(date_quick_button_label(date_edit.date()))
         apply_leading_chrome_button_icon(button.main_button)
-        _match_widget_heights(date_edit, button)
+        match_control_heights(date_edit, button)
 
     menu = QMenu(button)
     populate_date_actions(menu)
@@ -170,6 +173,94 @@ def date_quick_primary_action(
     if selected == reference.addDays(-1):
         return set_yesterday
     return add_one_day
+```
+
+</details>
+
+## 🔧 Function `match_control_heights`
+
+```python
+def match_control_heights(*widgets: QWidget | None) -> int
+```
+
+Make every widget share the tallest size-hint height in the group.
+
+Labels are vertically centered so text sits on the same baseline row as
+buttons and date fields.
+
+Args:
+
+- `widgets` (`QWidget | None`): Controls in one toolbar/filter row.
+
+Returns:
+
+- `int`: Applied height, or `0` when no widgets were given.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def match_control_heights(*widgets: QWidget | None) -> int:
+    visible = [widget for widget in widgets if widget is not None]
+    if not visible:
+        return 0
+    height = max(
+        _MIN_CONTROL_HEIGHT,
+        *(max(widget.sizeHint().height(), widget.minimumHeight()) for widget in visible),
+    )
+    for widget in visible:
+        widget.setMinimumHeight(height)
+        widget.setMaximumHeight(height)
+        if isinstance(widget, QLabel):
+            widget.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
+    return height
+```
+
+</details>
+
+## 🔧 Function `match_layout_control_heights`
+
+```python
+def match_layout_control_heights(layout: QLayout | None) -> int
+```
+
+Match heights of every widget inside a horizontal toolbar layout.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def match_layout_control_heights(layout: QLayout | None) -> int:
+    if layout is None:
+        return 0
+    widgets: list[QWidget] = []
+    for index in range(layout.count()):
+        item = layout.itemAt(index)
+        if item is None:
+            continue
+        widget = item.widget()
+        if isinstance(widget, QWidget):
+            widgets.append(widget)
+    return match_control_heights(*widgets)
+```
+
+</details>
+
+## 🔧 Function `match_layout_control_heights_many`
+
+```python
+def match_layout_control_heights_many(layouts: Iterable[QLayout | None]) -> None
+```
+
+Apply [`match_layout_control_heights`](#-function-match_layout_control_heights) to each layout.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def match_layout_control_heights_many(layouts: Iterable[QLayout | None]) -> None:
+    for layout in layouts:
+        match_layout_control_heights(layout)
 ```
 
 </details>

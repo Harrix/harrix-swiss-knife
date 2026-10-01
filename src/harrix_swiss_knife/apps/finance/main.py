@@ -81,7 +81,10 @@ from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.app_entry import run_app_main
 from harrix_swiss_knife.apps.common.apps_config import get_apps_list_limits
 from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
-from harrix_swiss_knife.apps.common.date_edit_quick import attach_date_edit_quick_controls
+from harrix_swiss_knife.apps.common.date_edit_quick import (
+    attach_date_edit_quick_controls,
+    match_layout_control_heights_many,
+)
 from harrix_swiss_knife.apps.common.db_init import init_tracker_database
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.scroll_pagination import ScrollPagination, on_scroll_load_more
@@ -5430,6 +5433,18 @@ class MainWindow(
         self.pushButton_calculate_fee.setText(f"💰 {self.pushButton_calculate_fee.text()}")
         self.pushButton_rates_refresh.setText(f"🔄 {self.pushButton_rates_refresh.text()}")
         apply_leading_chrome_buttons(self)
+        match_layout_control_heights_many(
+            (
+                self.horizontalLayout_filter,
+                self.horizontalLayout_date,
+                self.horizontalLayout_exchange_date,
+                self.horizontalLayout_16,
+                self.horizontalLayout_exchange_item_rate,
+                self.horizontalLayout_exchange_rates_controls,
+                self.horizontalLayout_charts_controls_1,
+                self.horizontalLayout_charts_controls_2,
+            ),
+        )
 
         # Connect double-click signal for exchange table
         self.tableView_exchange.doubleClicked.connect(self._on_exchange_table_double_clicked)

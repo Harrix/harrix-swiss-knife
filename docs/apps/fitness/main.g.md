@@ -8155,6 +8155,15 @@ class MainWindow(
             f"🎯 {self.pushButton_exercise_goal_recommendations.text()}"
         )
         apply_leading_chrome_buttons(self)
+        match_layout_control_heights_many(
+            (
+                self.horizontalLayout_filter,
+                self.horizontalLayout_13,
+                self.horizontalLayout_charts_controls_1,
+                self.horizontalLayout_charts_controls_2,
+                self.horizontalLayout_weight_controls,
+            ),
+        )
 
         # Configure splitter proportions.
         # Filter bar above the process table has a wide sizeHint; without explicit

@@ -5,15 +5,17 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QDate, QPoint, QSize, Qt
-from PySide6.QtWidgets import QDateEdit, QHBoxLayout, QMenu, QVBoxLayout
+from PySide6.QtWidgets import QDateEdit, QHBoxLayout, QLabel, QMenu, QVBoxLayout, QWidget
 
 from harrix_swiss_knife.qt_lucide_icon import add_lucide_action, apply_leading_chrome_button_icon
 from harrix_swiss_knife.qt_split_menu_button import SplitMenuButton
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Iterable
 
-    from PySide6.QtWidgets import QLayout, QWidget
+    from PySide6.QtWidgets import QLayout
+
+_MIN_CONTROL_HEIGHT = 24
 
 
 def attach_date_edit_quick_controls(
@@ -78,7 +80,7 @@ def attach_date_edit_quick_controls(
     def refresh_button_text() -> None:
         button.setText(date_quick_button_label(date_edit.date()))
         apply_leading_chrome_button_icon(button.main_button)
-        _match_widget_heights(date_edit, button)
+        match_control_heights(date_edit, button)
 
     menu = QMenu(button)
     populate_date_actions(menu)
@@ -138,6 +140,57 @@ def date_quick_primary_action(
     return add_one_day
 
 
+def match_control_heights(*widgets: QWidget | None) -> int:
+    """Make every widget share the tallest size-hint height in the group.
+
+    Labels are vertically centered so text sits on the same baseline row as
+    buttons and date fields.
+
+    Args:
+
+    - `widgets` (`QWidget | None`): Controls in one toolbar/filter row.
+
+    Returns:
+
+    - `int`: Applied height, or `0` when no widgets were given.
+
+    """
+    visible = [widget for widget in widgets if widget is not None]
+    if not visible:
+        return 0
+    height = max(
+        _MIN_CONTROL_HEIGHT,
+        *(max(widget.sizeHint().height(), widget.minimumHeight()) for widget in visible),
+    )
+    for widget in visible:
+        widget.setMinimumHeight(height)
+        widget.setMaximumHeight(height)
+        if isinstance(widget, QLabel):
+            widget.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
+    return height
+
+
+def match_layout_control_heights(layout: QLayout | None) -> int:
+    """Match heights of every widget inside a horizontal toolbar layout."""
+    if layout is None:
+        return 0
+    widgets: list[QWidget] = []
+    for index in range(layout.count()):
+        item = layout.itemAt(index)
+        if item is None:
+            continue
+        widget = item.widget()
+        if isinstance(widget, QWidget):
+            widgets.append(widget)
+    return match_control_heights(*widgets)
+
+
+def match_layout_control_heights_many(layouts: Iterable[QLayout | None]) -> None:
+    """Apply `match_layout_control_heights` to each layout."""
+    for layout in layouts:
+        match_layout_control_heights(layout)
+
+
 def _find_layout_index(widget: QWidget) -> tuple[QLayout, int] | None:
     parent = widget.parentWidget()
     if parent is None:
@@ -175,12 +228,3 @@ def _insert_widget_after(anchor: QWidget, new_widget: QWidget) -> None:
         return
     layout, index = found
     layout.insertWidget(index + 1, new_widget)
-
-
-def _match_widget_heights(left: QWidget, right: QWidget) -> None:
-    """Make `left` and `right` share the taller size hint height."""
-    height = max(left.sizeHint().height(), right.sizeHint().height(), left.minimumHeight(), right.minimumHeight())
-    left.setMinimumHeight(height)
-    right.setMinimumHeight(height)
-    left.setMaximumHeight(height)
-    right.setMaximumHeight(height)

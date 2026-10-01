@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import pytest
 from PySide6.QtCore import QDate, Qt
-from PySide6.QtWidgets import QApplication, QDateEdit, QHBoxLayout, QMenu, QWidget
+from PySide6.QtWidgets import QApplication, QDateEdit, QHBoxLayout, QLabel, QMenu, QPushButton, QWidget
 
 from harrix_swiss_knife.apps.common.date_edit_quick import (
     attach_date_edit_quick_controls,
     date_quick_button_label,
     date_quick_primary_action,
+    match_control_heights,
+    match_layout_control_heights,
 )
 from harrix_swiss_knife.qt_split_menu_button import SplitMenuButton, make_lucide_split_menu_button
 
@@ -134,5 +136,34 @@ def test_attach_date_edit_quick_controls_uses_split_and_matches_height(
     button.main_button.click()
     QApplication.processEvents()
     assert date_edit.date() == before.addDays(-2)
+
+    host.close()
+
+
+def test_match_control_heights_aligns_label_and_date_with_button(qapp: QApplication) -> None:
+    assert qapp is not None
+    host = QWidget()
+    layout = QHBoxLayout(host)
+    label = QLabel("From:")
+    date_edit = QDateEdit()
+    date_edit.setCalendarPopup(True)
+    button = QPushButton("📅 Last Month")
+    layout.addWidget(label)
+    layout.addWidget(date_edit)
+    layout.addWidget(button)
+    host.show()
+    QApplication.processEvents()
+
+    height = match_layout_control_heights(layout)
+    QApplication.processEvents()
+
+    assert height >= 24
+    assert label.minimumHeight() == height
+    assert date_edit.minimumHeight() == height
+    assert button.minimumHeight() == height
+    assert label.maximumHeight() == height
+    assert date_edit.maximumHeight() == height
+    assert button.maximumHeight() == height
+    assert match_control_heights() == 0
 
     host.close()

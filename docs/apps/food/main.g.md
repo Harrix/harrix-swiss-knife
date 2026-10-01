@@ -4203,6 +4203,14 @@ class MainWindow(
         self._init_filter_controls()
         self._update_clear_filter_button_visibility()
         apply_leading_chrome_buttons(self)
+        match_layout_control_heights_many(
+            (
+                self.horizontalLayout_filter,
+                self.horizontalLayout_food_date,
+                self.horizontalLayout_food_stats_period,
+                self.horizontalLayout_food_stats_charts,
+            ),
+        )
 
         self.update_calories_calculation()
 

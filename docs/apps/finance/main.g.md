@@ -5274,6 +5274,18 @@ class MainWindow(
         self.pushButton_calculate_fee.setText(f"💰 {self.pushButton_calculate_fee.text()}")
         self.pushButton_rates_refresh.setText(f"🔄 {self.pushButton_rates_refresh.text()}")
         apply_leading_chrome_buttons(self)
+        match_layout_control_heights_many(
+            (
+                self.horizontalLayout_filter,
+                self.horizontalLayout_date,
+                self.horizontalLayout_exchange_date,
+                self.horizontalLayout_16,
+                self.horizontalLayout_exchange_item_rate,
+                self.horizontalLayout_exchange_rates_controls,
+                self.horizontalLayout_charts_controls_1,
+                self.horizontalLayout_charts_controls_2,
+            ),
+        )
 
         # Connect double-click signal for exchange table
         self.tableView_exchange.doubleClicked.connect(self._on_exchange_table_double_clicked)
