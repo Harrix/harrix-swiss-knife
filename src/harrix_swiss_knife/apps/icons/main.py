@@ -186,6 +186,7 @@ from harrix_swiss_knife.qt_lucide_icon import (
     apply_leading_chrome_icons,
     apply_lucide_dialog_buttons,
     make_lucide_push_button,
+    make_search_icon_label,
     set_action_text_with_lucide_icon,
 )
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
@@ -803,7 +804,13 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.search_edit.setPlaceholderText("Search icons (title, tags, id)…")
         self.search_edit.textChanged.connect(self._schedule_search_filter)
         self.search_edit.returnPressed.connect(self._apply_filters)
-        toolbar.addWidget(self.search_edit, stretch=1)
+        search_row = QWidget()
+        search_layout = QHBoxLayout(search_row)
+        search_layout.setContentsMargins(0, 0, 0, 0)
+        search_layout.setSpacing(6)
+        search_layout.addWidget(make_search_icon_label(), alignment=Qt.AlignmentFlag.AlignVCenter)
+        search_layout.addWidget(self.search_edit, stretch=1)
+        toolbar.addWidget(search_row, stretch=1)
 
         self.refresh_btn = make_lucide_push_button("Refresh catalog", "refresh-cw")
         self.refresh_btn.clicked.connect(self._on_refresh_catalog)
@@ -815,10 +822,11 @@ class MainWindow(QMainWindow, AppWindowMixin):
         for widget in (
             self.folder_combo,
             self.variant_view_combo,
-            self.search_edit,
+            search_row,
             self.refresh_btn,
         ):
             widget.setFixedHeight(toolbar_h)
+        self.search_edit.setFixedHeight(toolbar_h)
         root.addWidget(toolbar_widget, stretch=0)
 
         splitter = QSplitter(Qt.Orientation.Horizontal)

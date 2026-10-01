@@ -30,6 +30,7 @@ from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import (
     QAbstractButton,
     QDialogButtonBox,
+    QLabel,
     QMenu,
     QMenuBar,
     QProxyStyle,
@@ -546,6 +547,20 @@ def make_lucide_push_button(
     if is_delete_like_button_label(label) or icon_name in {"trash", "trash-2"}:
         style_delete_button(button, icon_size=icon_size)
     return button
+
+
+def make_search_icon_label(
+    *,
+    icon_size: int = 14,
+    box_size: int = 16,
+    parent: QWidget | None = None,
+) -> QLabel:
+    """Return a Lucide search glyph for placing beside a search field."""
+    label = QLabel(parent)
+    label.setPixmap(create_lucide_icon("search", icon_size).pixmap(icon_size, icon_size))
+    label.setFixedSize(box_size, box_size)
+    label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+    return label
 
 
 def set_action_text_with_lucide_icon(

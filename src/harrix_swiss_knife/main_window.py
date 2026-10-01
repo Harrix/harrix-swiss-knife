@@ -68,7 +68,7 @@ from harrix_swiss_knife.qt_described_choice_cards import (
     sync_described_choice_card_grid,
 )
 from harrix_swiss_knife.qt_flat_scrollbar import apply_flat_scrollbars, with_flat_scrollbars
-from harrix_swiss_knife.qt_lucide_icon import apply_lucide_button_icon, create_lucide_icon
+from harrix_swiss_knife.qt_lucide_icon import apply_lucide_button_icon, create_lucide_icon, make_search_icon_label
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
 from harrix_swiss_knife.win11_caption import (
     CAPTION_BUTTON_HEIGHT,
@@ -301,10 +301,7 @@ class MainWindow(QMainWindow):
         row.setContentsMargins(8, 3, 8, 3)
         row.setSpacing(6)
 
-        search_icon = QLabel()
-        search_icon.setPixmap(create_lucide_icon("search", 14).pixmap(14, 14))
-        search_icon.setFixedSize(16, 16)
-        row.addWidget(search_icon)
+        row.addWidget(make_search_icon_label())
 
         self._search_edit = QLineEdit()
         self._search_edit.setObjectName("captionSearchEdit")

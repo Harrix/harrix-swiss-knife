@@ -386,7 +386,12 @@ class SnippetsDialog(QDialog):
         self._input.textChanged.connect(self._on_input_text_changed)
         self._input.installEventFilter(self)
         style_overlay_line_edit(self._input)
-        self._content_layout.addWidget(self._input)
+        row = QHBoxLayout()
+        row.setContentsMargins(0, 0, 0, 0)
+        row.setSpacing(8)
+        row.addWidget(make_search_icon_label(), alignment=Qt.AlignmentFlag.AlignVCenter)
+        row.addWidget(self._input, stretch=1)
+        self._content_layout.addLayout(row)
 
     def _center_on_screen(self) -> None:
         center_widget_on_available_screen(self)

@@ -29,6 +29,7 @@ lang: en
 - [🔧 Function `lucide_svg_path`](#-function-lucide_svg_path)
 - [🔧 Function `make_ai_lucide_push_button`](#-function-make_ai_lucide_push_button)
 - [🔧 Function `make_lucide_push_button`](#-function-make_lucide_push_button)
+- [🔧 Function `make_search_icon_label`](#-function-make_search_icon_label)
 - [🔧 Function `set_action_text_with_lucide_icon`](#-function-set_action_text_with_lucide_icon)
 - [🔧 Function `style_accept_button`](#-function-style_accept_button)
 - [🔧 Function `style_cancel_button`](#-function-style_cancel_button)
@@ -536,6 +537,33 @@ def make_lucide_push_button(
     if is_delete_like_button_label(label) or icon_name in {"trash", "trash-2"}:
         style_delete_button(button, icon_size=icon_size)
     return button
+```
+
+</details>
+
+## 🔧 Function `make_search_icon_label`
+
+```python
+def make_search_icon_label(*, icon_size: int = 14, box_size: int = 16, parent: QWidget | None = None) -> QLabel
+```
+
+Return a Lucide search glyph for placing beside a search field.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def make_search_icon_label(
+    *,
+    icon_size: int = 14,
+    box_size: int = 16,
+    parent: QWidget | None = None,
+) -> QLabel:
+    label = QLabel(parent)
+    label.setPixmap(create_lucide_icon("search", icon_size).pixmap(icon_size, icon_size))
+    label.setFixedSize(box_size, box_size)
+    label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+    return label
 ```
 
 </details>
