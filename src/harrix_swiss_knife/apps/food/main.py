@@ -207,6 +207,7 @@ from harrix_swiss_knife.apps.food.schema import ensure_food_indexes, ensure_food
 from harrix_swiss_knife.apps.food.services.food_display import (
     extract_food_name_from_display,
     format_food_name_with_calories,
+    partition_food_item_indexes_by_filter,
 )
 from harrix_swiss_knife.apps.food.text_input_dialog import TextInputDialog
 from harrix_swiss_knife.installer.icon_assets import apply_window_icon
@@ -220,7 +221,6 @@ from harrix_swiss_knife.integrations.bothub import (
     run_bothub_request,
     show_bothub_prompt_build_error,
 )
-from harrix_swiss_knife.keyboard_layout_search import text_matches_autocomplete
 from harrix_swiss_knife.paths import get_config_path_str
 from harrix_swiss_knife.qt_lucide_icon import (
     CANCEL_BUTTON_ICON,
@@ -249,6 +249,8 @@ _FOOD_LOG_QUERY_MIN_COLS_FOR_WEIGHT = _FOOD_LOG_QUERY_COL_WEIGHT + 1
 _FOOD_LOG_QUERY_MIN_COLS_FOR_CALORIES = _FOOD_LOG_QUERY_COL_IS_DRINK + 1
 # Columns from `get_all_food_items`: _id, name, name_en, is_drink, …
 _FOOD_ITEM_COL_IS_DRINK = 3
+_FOOD_ITEM_ORDER_ROLE = Qt.ItemDataRole.UserRole + 21
+_FOOD_ITEM_FILTER_DIM = QColor("#b0b0b0")
 # Debounce interval after food_log inserts before another silent AI translate pass.
 _BACKGROUND_FOOD_TRANSLATE_INTERVAL_MS = 1 * 60 * 1000
 _BACKGROUND_FOOD_TRANSLATE_STATUS = "Translating food names…"
@@ -1605,6 +1607,58 @@ class MainWindow(
             return
         message_box.warning(self, "Error", "Failed to update selected food log rows")
 
+    def _apply_food_items_filter(self, text: str) -> None:
+        """Reorder food items: matches first (opaque), non-matches dimmed below."""
+        model = self.food_items_list_model
+        if model is None:
+            return
+
+        selected_name = self._get_current_selected_food_item()
+        selection_model = self.listView_food_items.selectionModel()
+        if selection_model is not None:
+            selection_model.blockSignals(True)  # noqa: FBT003
+        model.blockSignals(True)  # noqa: FBT003
+        try:
+            taken_rows: list[list[QStandardItem]] = []
+            while model.rowCount() > 0:
+                taken_rows.append(model.takeRow(0))
+
+            texts = [row[0].text() if row and row[0] is not None else "" for row in taken_rows]
+            query = text.strip()
+            if query:
+                matched_indexes, unmatched_indexes = partition_food_item_indexes_by_filter(texts, query)
+                ordered_indexes = matched_indexes + unmatched_indexes
+                unmatched_set = set(unmatched_indexes)
+            else:
+                ordered_indexes = sorted(
+                    range(len(taken_rows)),
+                    key=lambda index: (
+                        int(taken_rows[index][0].data(_FOOD_ITEM_ORDER_ROLE) or index)
+                        if taken_rows[index] and taken_rows[index][0] is not None
+                        else index
+                    ),
+                )
+                unmatched_set = set()
+
+            dim_brush = QBrush(_FOOD_ITEM_FILTER_DIM)
+            default_brush = QBrush()
+            for source_index in ordered_indexes:
+                row_items = taken_rows[source_index]
+                item = row_items[0] if row_items else None
+                if item is not None:
+                    item.setForeground(dim_brush if source_index in unmatched_set else default_brush)
+                model.appendRow(row_items)
+
+            for row in range(model.rowCount()):
+                self.listView_food_items.setRowHidden(row, False)  # noqa: FBT003
+        finally:
+            model.blockSignals(False)  # noqa: FBT003
+            if selection_model is not None:
+                selection_model.blockSignals(False)  # noqa: FBT003
+
+        if selected_name:
+            self._reselect_food_item_by_name(selected_name)
+
     def _apply_food_log_daily_total_colors(self, model: QStandardItemModel) -> None:
         """Color Total-per-day cells from `food_calorie_thresholds` in config."""
         thresholds = calorie_thresholds_from_config(self._app_config)
@@ -2289,23 +2343,18 @@ class MainWindow(
     def _filter_food_items(self, text: str) -> None:
         """Filter food items list based on input text.
 
+        Matches stay opaque at the top. Non-matches stay visible below them in a
+        dimmed color so the catalog is never hidden.
+
         Args:
 
         - `text` (`str`): Filter text from lineEdit_food_manual_name.
 
         """
-        if not text:
+        if not text.strip():
             self._show_all_food_items()
             return
-
-        if self.food_items_list_model:
-            for i in range(self.food_items_list_model.rowCount()):
-                item = self.food_items_list_model.item(i)
-                if item:
-                    self.listView_food_items.setRowHidden(
-                        i,
-                        not text_matches_autocomplete(item.text(), text),
-                    )
+        self._apply_food_items_filter(text)
 
     def _filter_food_log_by_column(self, column: int, value: str) -> None:
         """Apply a toolbar filter from a context-menu cell value."""
@@ -3690,6 +3739,20 @@ class MainWindow(
             return
         self._update_macros_chart()
 
+    def _reselect_food_item_by_name(self, food_name: str) -> None:
+        """Restore list selection after a filter reorder."""
+        model = self.food_items_list_model
+        if model is None or not food_name:
+            return
+        for row in range(model.rowCount()):
+            item = model.item(row)
+            if item is None:
+                continue
+            if extract_food_name_from_display(item.text()) == food_name:
+                index = model.index(row, 0)
+                self.listView_food_items.setCurrentIndex(index)
+                return
+
     def _reset_food_log_pagination_state(self) -> None:
         """Reset pagination counters and display state for food log table."""
         self._food_log_pagination.reset()
@@ -4368,10 +4431,8 @@ class MainWindow(
         install_shrinkable_tab_scroll(self, self.tabWidget)
 
     def _show_all_food_items(self) -> None:
-        """Show all food items in the list (remove filtering)."""
-        if self.food_items_list_model:
-            for i in range(self.food_items_list_model.rowCount()):
-                self.listView_food_items.setRowHidden(i, False)  # noqa: FBT003
+        """Restore catalog order and clear dimming after the name filter is cleared."""
+        self._apply_food_items_filter("")
 
     def _show_food_log_context_menu(self, position: QPoint) -> None:
         """Show context menu for food log table.
@@ -5096,11 +5157,16 @@ class MainWindow(
                         is_drink=is_drink,
                     )
                     item = QStandardItem(display_name)
+                    item.setData(self.food_items_list_model.rowCount(), _FOOD_ITEM_ORDER_ROLE)
                     self.food_items_list_model.appendRow(item)
 
             # Unblock signals
             if selection_model:
                 selection_model.blockSignals(False)  # noqa: FBT003
+
+            filter_text = self.lineEdit_food_manual_name.text().strip()
+            if filter_text:
+                self._apply_food_items_filter(filter_text)
 
         except Exception:
             logger.exception("Error updating food items list")

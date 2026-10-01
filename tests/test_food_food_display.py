@@ -10,6 +10,7 @@ from harrix_swiss_knife.apps.food.services.food_display import (
     RECIPE_EMOJI,
     extract_food_name_from_display,
     format_food_name_with_calories,
+    partition_food_item_indexes_by_filter,
 )
 
 
@@ -74,3 +75,17 @@ def test_format_food_name_with_calories_recipe_prefix() -> None:
         format_food_name_with_calories("Smoothie", 60.0, None, is_drink=True, is_recipe=True)
         == f"{RECIPE_EMOJI} {DRINK_EMOJI} Smoothie (60 kcal/100g)"
     )
+
+
+def test_partition_food_item_indexes_by_filter_keeps_matches_first() -> None:
+    texts = ["Apple", "Banana", "Apricot", "Berry"]
+    matched, unmatched = partition_food_item_indexes_by_filter(texts, "ap")
+    assert matched == [0, 2]
+    assert unmatched == [1, 3]
+
+
+def test_partition_food_item_indexes_by_filter_empty_query_matches_all() -> None:
+    texts = ["Apple", "Banana"]
+    matched, unmatched = partition_food_item_indexes_by_filter(texts, "  ")
+    assert matched == [0, 1]
+    assert unmatched == []

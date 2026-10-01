@@ -13,6 +13,7 @@ lang: en
 
 - [🔧 Function `extract_food_name_from_display`](#-function-extract_food_name_from_display)
 - [🔧 Function `format_food_name_with_calories`](#-function-format_food_name_with_calories)
+- [🔧 Function `partition_food_item_indexes_by_filter`](#-function-partition_food_item_indexes_by_filter)
 
 </details>
 
@@ -88,6 +89,44 @@ def format_food_name_with_calories(
     if is_recipe:
         result = f"{RECIPE_EMOJI} {result}"
     return result
+```
+
+</details>
+
+## 🔧 Function `partition_food_item_indexes_by_filter`
+
+```python
+def partition_food_item_indexes_by_filter(texts: Sequence[str], query: str) -> tuple[list[int], list[int]]
+```
+
+Split list indexes into autocomplete matches first, then the rest.
+
+Empty `query` treats every row as a match. Relative order inside each group
+is preserved.
+
+Args:
+
+- `texts` (`Sequence[str]`): Display texts for each list row.
+- `query` (`str`): Filter from the food name field.
+
+Returns:
+
+- `tuple[list[int], list[int]]`: Matching indexes, then non-matching indexes.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def partition_food_item_indexes_by_filter(texts: Sequence[str], query: str) -> tuple[list[int], list[int]]:
+    needle = query.strip()
+    matched: list[int] = []
+    unmatched: list[int] = []
+    for index, text in enumerate(texts):
+        if not needle or text_matches_autocomplete(text, needle):
+            matched.append(index)
+        else:
+            unmatched.append(index)
+    return matched, unmatched
 ```
 
 </details>
