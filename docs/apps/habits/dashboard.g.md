@@ -178,7 +178,7 @@ class HabitDashboardWidget(QWidget):
             """
             QFrame#habitDashLeft {
                 background: #FFFFFF;
-                border-right: 1px solid #E5E7EB;
+                border: none;
             }
             """
         )

@@ -18,10 +18,13 @@ from harrix_swiss_knife.apps.icons.settings import (
     RECENT_FOLDERS_KEY,
     load_last_folder,
     load_last_icon,
+    load_pinned_folders,
     pin_folder,
     remember_recent_folder,
     save_last_folder,
     save_last_icon,
+    save_pinned_folders,
+    unpin_folder,
 )
 from harrix_swiss_knife.apps.icons.variant_view import GridEntry
 from harrix_swiss_knife.apps.icons.widgets import DraggableIconList, placeholder_pixmap
@@ -126,6 +129,42 @@ def test_pin_folder_saves_posix_style_paths(tmp_path: Path, monkeypatch: pytest.
     assert str(first.resolve().as_posix()) in raw
     assert str(second.resolve().as_posix()) in raw
     assert all("\\" not in item for item in raw if isinstance(item, str))
+
+
+def test_save_and_unpin_pinned_folders(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    store: dict[str, Any] = {}
+
+    def fake_load(_path: str, *, is_temp: bool = False) -> dict[str, Any]:
+        _ = is_temp
+        return dict(store)
+
+    def fake_update(key: str, value: object, _path: str, *, is_temp: bool = False) -> None:
+        _ = is_temp
+        store[key] = value
+
+    monkeypatch.setattr(h.dev, "config_load", fake_load)
+    monkeypatch.setattr(h.dev, "config_update_value", fake_update)
+
+    first = tmp_path / "repo-a"
+    second = tmp_path / "repo-b"
+    first.mkdir()
+    second.mkdir()
+
+    saved = save_pinned_folders([first, second, first])
+    assert saved == [first.resolve(), second.resolve()]
+    assert store[PINNED_FOLDERS_KEY] == [
+        str(first.resolve().as_posix()),
+        str(second.resolve().as_posix()),
+    ]
+
+    remaining = unpin_folder(first)
+    assert remaining == [second.resolve()]
+    assert store[PINNED_FOLDERS_KEY] == [str(second.resolve().as_posix())]
+
+    empty = save_pinned_folders([])
+    assert empty == []
+    assert store[PINNED_FOLDERS_KEY] == []
+    assert load_pinned_folders() == []
 
 
 def test_remember_recent_folder_saves_posix_paths(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

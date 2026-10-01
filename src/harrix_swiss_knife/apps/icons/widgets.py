@@ -94,12 +94,6 @@ FAMILY_IDS_MIME = "application/x-harrix-icon-family-ids"
 _ITEM_VIEW_NO_BORDER = "QAbstractItemView { border: none; outline: none; }"
 
 
-def apply_frameless_item_view(view: QAbstractItemView) -> None:
-    """Remove the default gray frame around folders / categories / icons lists."""
-    view.setFrameShape(QFrame.Shape.NoFrame)
-    view.setStyleSheet(_ITEM_VIEW_NO_BORDER)
-
-
 class CategoryDropList(QListWidget):
     """Category sidebar that accepts icon-family drops from the grid."""
 
@@ -1151,6 +1145,12 @@ class VariantsPanel(QWidget):
         chrome = self._header_scroll.frameWidth() * 2
         target = min(VARIANT_HEADER_SCROLL_MAX_HEIGHT, content_h + chrome)
         self._header_scroll.setFixedHeight(max(target, 24))
+
+
+def apply_frameless_item_view(view: QAbstractItemView) -> None:
+    """Remove the default gray frame around folders / categories / icons lists."""
+    view.setFrameShape(QFrame.Shape.NoFrame)
+    view.setStyleSheet(_ITEM_VIEW_NO_BORDER)
 
 
 def batch_context_action_texts(count: int, *, all_favorites: bool = False) -> list[str]:

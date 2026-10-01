@@ -2121,6 +2121,20 @@ class MainWindow(QMainWindow, AppWindowMixin):
             self._on_refresh_catalog()
         self._show_text_result(title, text)
 
+    def _on_manage_pinned_folders(self) -> None:
+        """Open the dialog to add or remove pinned icon folders."""
+        from harrix_swiss_knife.apps.icons.pinned_folders_dialog import (  # noqa: PLC0415
+            ManagePinnedFoldersDialog,
+        )
+
+        dialog = ManagePinnedFoldersDialog(self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        self._sync_folder_combo()
+        self._rebuild_folder_menus()
+        count = len(dialog.saved_paths())
+        self.statusBar().showMessage(f"Pinned folders updated ({count})")
+
     def _on_meta_filter_requested(self, kind: str, value: str) -> None:
         cleaned_kind = str(kind or "").strip()
         cleaned_value = str(value or "").strip()
@@ -2608,12 +2622,18 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._pinned_menu.clear()
         pinned = load_pinned_folders()
         if not pinned:
-            empty = self._pinned_menu.addAction("(none in config.json)")
+            empty = self._pinned_menu.addAction("(none)")
             empty.setEnabled(False)
         else:
             for path in pinned:
+                if not path.is_dir():
+                    continue
                 action = self._pinned_menu.addAction(self._folder_label(path))
                 action.triggered.connect(lambda _checked=False, target=path: self._open_folder(target))
+        self._pinned_menu.addSeparator()
+        manage_action = self._pinned_menu.addAction("Manage pinned folders…")
+        set_action_text_with_lucide_icon(manage_action, "Manage pinned folders…", "folder-cog")
+        manage_action.triggered.connect(self._on_manage_pinned_folders)
         self._recent_menu.clear()
         recent = load_recent_folders()
         if not recent:
@@ -3024,6 +3044,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
             except OSError:
                 current_key = str(self._repo_root)
         for path in pinned:
+            if not path.is_dir():
+                continue
             try:
                 key = str(path.resolve())
             except OSError:

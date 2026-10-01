@@ -49,6 +49,7 @@ lang: en
   - [⚙️ Method `set_catalog_icons`](#%EF%B8%8F-method-set_catalog_icons)
   - [⚙️ Method `set_thumb_size`](#%EF%B8%8F-method-set_thumb_size)
   - [⚙️ Method `show_family`](#%EF%B8%8F-method-show_family)
+- [🔧 Function `apply_frameless_item_view`](#-function-apply_frameless_item_view)
 - [🔧 Function `batch_context_action_texts`](#-function-batch_context_action_texts)
 - [🔧 Function `decode_family_ids_mime`](#-function-decode_family_ids_mime)
 - [🔧 Function `encode_family_ids_mime`](#-function-encode_family_ids_mime)
@@ -79,6 +80,7 @@ class CategoryDropList(QListWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         """Enable drops of Vector Icons family IDs onto category rows."""
         super().__init__(parent)
+        apply_frameless_item_view(self)
         self.setAcceptDrops(True)
         self.viewport().setAcceptDrops(True)
 
@@ -123,6 +125,7 @@ Enable drops of Vector Icons family IDs onto category rows.
 ```python
 def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        apply_frameless_item_view(self)
         self.setAcceptDrops(True)
         self.viewport().setAcceptDrops(True)
 ```
@@ -254,6 +257,7 @@ class DraggableIconList(QListWidget):
     ) -> None:
         """Configure icon mode and drag-only outward behavior."""
         super().__init__(parent)
+        apply_frameless_item_view(self)
         self._icon_size = icon_size
         self._emit_family_selection = emit_family_selection
         self._dual_line_labels = dual_line_labels
@@ -948,6 +952,7 @@ def __init__(
         variants_context: bool = False,
     ) -> None:
         super().__init__(parent)
+        apply_frameless_item_view(self)
         self._icon_size = icon_size
         self._emit_family_selection = emit_family_selection
         self._dual_line_labels = dual_line_labels
@@ -2210,6 +2215,25 @@ def show_family(self, family: IconFamily | None, repo_root: Path | None) -> None
             item.setToolTip(str(path))
             self.list.addItem(item)
         self.list.doItemsLayout()
+```
+
+</details>
+
+## 🔧 Function `apply_frameless_item_view`
+
+```python
+def apply_frameless_item_view(view: QAbstractItemView) -> None
+```
+
+Remove the default gray frame around folders / categories / icons lists.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def apply_frameless_item_view(view: QAbstractItemView) -> None:
+    view.setFrameShape(QFrame.Shape.NoFrame)
+    view.setStyleSheet(_ITEM_VIEW_NO_BORDER)
 ```
 
 </details>

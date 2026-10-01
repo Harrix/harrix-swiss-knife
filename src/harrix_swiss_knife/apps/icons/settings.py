@@ -202,17 +202,17 @@ def load_last_icons() -> dict[str, str]:
 def load_pinned_folders() -> list[Path]:
     """Load pinned folders from `config.json` (`path_vector_icons_pinned`).
 
-    When the pinned list is empty, fall back to `path_vector_icons` and
-    `path_vector_icons_ai` when those paths exist.
+    When the key is absent, fall back to `path_vector_icons` and
+    `path_vector_icons_ai` when those paths exist. An explicit empty list in
+    config stays empty (no fallback).
 
     """
     try:
         config = h.dev.config_load(get_config_path_str())
     except (FileNotFoundError, OSError, ValueError):
         return []
-    pinned = _parse_path_list(config.get(PINNED_FOLDERS_KEY))
-    if pinned:
-        return pinned
+    if PINNED_FOLDERS_KEY in config:
+        return _parse_path_list(config.get(PINNED_FOLDERS_KEY), existing_only=False)
     fallback: list[Path] = []
     for key in ("path_vector_icons", "path_vector_icons_ai"):
         raw = str(config.get(key) or "").strip()
@@ -261,17 +261,13 @@ def pin_folder(path: Path) -> list[Path]:
         config = h.dev.config_load(get_config_path_str())
     except (FileNotFoundError, OSError, ValueError):
         config = {}
-    existing = _parse_path_list(config.get(PINNED_FOLDERS_KEY))
-    if not existing:
+    if PINNED_FOLDERS_KEY in config:
+        existing = _parse_path_list(config.get(PINNED_FOLDERS_KEY), existing_only=False)
+    else:
         # Materialize fallback defaults before appending.
         existing = load_pinned_folders()
     updated = [resolved, *[item for item in existing if item.resolve() != resolved]]
-    h.dev.config_update_value(
-        PINNED_FOLDERS_KEY,
-        [_path_to_config_string(item) for item in updated],
-        get_config_path_str(),
-    )
-    return updated
+    return save_pinned_folders(updated)
 
 
 def remember_recent_folder(path: Path) -> list[Path]:
@@ -419,6 +415,28 @@ def save_last_icon(folder: Path, family_id: str) -> None:
     )
 
 
+def save_pinned_folders(paths: list[Path]) -> list[Path]:
+    """Replace pinned folders in `config.json` and return the saved list."""
+    updated: list[Path] = []
+    seen: set[str] = set()
+    for path in paths:
+        try:
+            resolved = path.expanduser().resolve()
+        except OSError:
+            resolved = path.expanduser()
+        key = _path_to_config_string(resolved)
+        if key in seen:
+            continue
+        seen.add(key)
+        updated.append(resolved)
+    h.dev.config_update_value(
+        PINNED_FOLDERS_KEY,
+        [_path_to_config_string(item) for item in updated],
+        get_config_path_str(),
+    )
+    return updated
+
+
 def save_show_numbers(*, enabled: bool) -> None:
     """Persist main-grid number visibility in `config-temp.json`."""
     _ensure_temp_config()
@@ -462,6 +480,13 @@ def toggle_favorite(folder: Path, family_id: str) -> tuple[list[str], bool]:
     return save_favorites(folder, [*current, cleaned]), True
 
 
+def unpin_folder(path: Path) -> list[Path]:
+    """Remove `path` from pinned folders in `config.json` and return the new list."""
+    target = _path_to_config_string(path)
+    updated = [item for item in load_pinned_folders() if _path_to_config_string(item) != target]
+    return save_pinned_folders(updated)
+
+
 def _clean_family_ids(raw: object) -> list[str]:
     if isinstance(raw, str):
         values = [raw]
@@ -498,7 +523,7 @@ def _normalize_folder_key(raw: str) -> str:
     return _path_to_config_string(Path(text))
 
 
-def _parse_path_list(raw: object) -> list[Path]:
+def _parse_path_list(raw: object, *, existing_only: bool = True) -> list[Path]:
     if not isinstance(raw, list):
         return []
     result: list[Path] = []
@@ -512,8 +537,9 @@ def _parse_path_list(raw: object) -> list[Path]:
         if key in seen:
             continue
         seen.add(key)
-        if path.is_dir():
-            result.append(path)
+        if existing_only and not path.is_dir():
+            continue
+        result.append(path)
     return result
 
 
