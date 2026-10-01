@@ -609,6 +609,7 @@ def install_win11_caption(
     _flush_caption_to_frame(window)
     _fit_caption_fonts(window)
     _apply_white_window_background(window)
+    apply_flat_scrollbars_to_styled_item_views(window)
     _sync_caption_palette(window)
     window.installEventFilter(controller)
     setattr(window, _INSTALLED_ATTR, True)

@@ -52,6 +52,7 @@ from harrix_swiss_knife.qt_compact_spin_box import (
     CompactDoubleSpinBox as QDoubleSpinBox,
 )
 from harrix_swiss_knife.qt_compact_spin_box import CompactSpinBox as QSpinBox
+from harrix_swiss_knife.qt_flat_scrollbar import with_flat_scrollbars
 from harrix_swiss_knife.qt_lucide_icon import (
     apply_leading_chrome_icons,
     make_lucide_push_button,
@@ -77,7 +78,8 @@ QPushButton:pressed {
     background-color: #90caf9;
 }
 """
-_LIST_STYLE = """
+_LIST_STYLE = with_flat_scrollbars(
+    """
 QListView {
     border: 2px solid #2196F3;
     border-radius: 4px;
@@ -95,6 +97,7 @@ QListView::item:hover {
     background-color: #bbdefb;
 }
 """
+)
 _CONTROLS_MIN_WIDTH = 350
 _COL_NAME = 0
 _COL_WEIGHT = 1

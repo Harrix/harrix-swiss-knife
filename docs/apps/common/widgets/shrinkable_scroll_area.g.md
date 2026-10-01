@@ -45,7 +45,9 @@ class ShrinkableScrollArea(QScrollArea):
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.setStyleSheet("QScrollArea { background-color: #ffffff; border: none; }")
+        self.setStyleSheet(
+            with_flat_scrollbars("QScrollArea { background-color: #ffffff; border: none; }"),
+        )
         self.viewport().setAutoFillBackground(True)
         self.viewport().setStyleSheet("background-color: #ffffff;")
 
@@ -75,7 +77,9 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.setStyleSheet("QScrollArea { background-color: #ffffff; border: none; }")
+        self.setStyleSheet(
+            with_flat_scrollbars("QScrollArea { background-color: #ffffff; border: none; }"),
+        )
         self.viewport().setAutoFillBackground(True)
         self.viewport().setStyleSheet("background-color: #ffffff;")
 ```

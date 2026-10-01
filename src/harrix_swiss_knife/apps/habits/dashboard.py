@@ -56,6 +56,7 @@ from harrix_swiss_knife.apps.habits.habit_day_picker import HabitDayPickerPopup
 from harrix_swiss_knife.apps.habits.habit_edit_dialog import HabitEditDialog
 from harrix_swiss_knife.apps.habits.habit_emojis import normalize_habit_emoji
 from harrix_swiss_knife.apps.habits.sport_habit_sync import habit_names_match
+from harrix_swiss_knife.qt_flat_scrollbar import with_flat_scrollbars
 from harrix_swiss_knife.qt_lucide_icon import add_lucide_action, make_lucide_push_button
 
 if TYPE_CHECKING:
@@ -67,7 +68,8 @@ _EMOJI_COLUMN = 4
 _IS_BOOL_COLUMN = 2
 _NAME_COLUMN = 1
 
-_LIST_SCROLL_STYLE = """
+_LIST_SCROLL_STYLE = with_flat_scrollbars(
+    """
 QScrollArea#habitDashListScroll {
     background: #FFFFFF;
     border: none;
@@ -75,42 +77,8 @@ QScrollArea#habitDashListScroll {
 QScrollArea#habitDashListScroll > QWidget > QWidget {
     background: #FFFFFF;
 }
-QScrollArea#habitDashListScroll QScrollBar:vertical {
-    background: transparent;
-    border: none;
-    width: 8px;
-    margin: 0;
-}
-QScrollArea#habitDashListScroll QScrollBar::handle:vertical {
-    background: #D1D5DB;
-    border: none;
-    border-radius: 4px;
-    min-height: 32px;
-    margin: 2px 1px;
-}
-QScrollArea#habitDashListScroll QScrollBar::handle:vertical:hover {
-    background: #9CA3AF;
-}
-QScrollArea#habitDashListScroll QScrollBar::add-line:vertical,
-QScrollArea#habitDashListScroll QScrollBar::sub-line:vertical {
-    height: 0;
-    width: 0;
-    border: none;
-    background: none;
-}
-QScrollArea#habitDashListScroll QScrollBar::add-page:vertical,
-QScrollArea#habitDashListScroll QScrollBar::sub-page:vertical {
-    background: none;
-    border: none;
-}
-QScrollArea#habitDashListScroll QScrollBar::up-arrow:vertical,
-QScrollArea#habitDashListScroll QScrollBar::down-arrow:vertical {
-    width: 0;
-    height: 0;
-    background: none;
-    border: none;
-}
 """
+)
 
 
 class HabitDashboardWidget(QWidget):

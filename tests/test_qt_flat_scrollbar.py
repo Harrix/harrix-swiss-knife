@@ -1,0 +1,46 @@
+"""Tests for flat scrollbar stylesheet helpers."""
+
+from __future__ import annotations
+
+import pytest
+from PySide6.QtWidgets import QApplication, QListView, QWidget
+
+from harrix_swiss_knife.qt_flat_scrollbar import (
+    FLAT_SCROLLBAR_STYLE,
+    apply_flat_scrollbars_to_styled_item_views,
+    with_flat_scrollbars,
+)
+
+
+@pytest.fixture
+def qapp() -> QApplication:
+    app = QApplication.instance()
+    if app is None:
+        return QApplication([])
+    if not isinstance(app, QApplication):
+        msg = "QApplication.instance() returned a non-QApplication object."
+        raise TypeError(msg)
+    return app
+
+
+def test_with_flat_scrollbars_appends_once() -> None:
+    base = "QListView { border: none; }"
+    once = with_flat_scrollbars(base)
+    twice = with_flat_scrollbars(once)
+    assert once.startswith(base)
+    assert "QScrollBar:vertical" in once
+    assert "border-radius: 5px" in once
+    assert twice == once
+    assert with_flat_scrollbars("") == FLAT_SCROLLBAR_STYLE
+
+
+def test_apply_flat_scrollbars_to_styled_item_views(qapp: QApplication) -> None:
+    assert qapp is not None
+    root = QWidget()
+    styled = QListView(root)
+    styled.setStyleSheet("QListView { background: white; }")
+    plain = QListView(root)
+    apply_flat_scrollbars_to_styled_item_views(root)
+    assert "QScrollBar:vertical" in styled.styleSheet()
+    assert plain.styleSheet() == ""
+    root.close()

@@ -50,6 +50,7 @@ from harrix_swiss_knife.apps.fitness.lightbox_logic import (
 )
 from harrix_swiss_knife.apps.fitness.lightbox_sounds import play_fitness_timer_cue
 from harrix_swiss_knife.apps.fitness.workouts_ai import estimate_workout_duration_min
+from harrix_swiss_knife.qt_flat_scrollbar import with_flat_scrollbars
 from harrix_swiss_knife.qt_lucide_icon import apply_leading_chrome_icons, create_lucide_icon
 
 if TYPE_CHECKING:
@@ -134,7 +135,8 @@ QFrame#workoutsSessionBar {
     border-radius: 6px;
 }
 """
-_LIST_STYLE = """
+_LIST_STYLE = with_flat_scrollbars(
+    """
 QListView {
     border: 2px solid #4CAF50;
     border-radius: 4px;
@@ -152,6 +154,7 @@ QListView::item:hover {
     background-color: #c8e6c9;
 }
 """
+)
 _WHITE_SURFACE = "background-color: #ffffff;"
 
 

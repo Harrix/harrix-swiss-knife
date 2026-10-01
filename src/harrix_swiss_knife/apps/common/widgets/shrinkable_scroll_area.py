@@ -5,6 +5,8 @@ from __future__ import annotations
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtWidgets import QFrame, QScrollArea, QSizePolicy, QTabWidget, QVBoxLayout, QWidget
 
+from harrix_swiss_knife.qt_flat_scrollbar import with_flat_scrollbars
+
 _MIN_VIEWPORT = 160
 
 
@@ -24,7 +26,9 @@ class ShrinkableScrollArea(QScrollArea):
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.setStyleSheet("QScrollArea { background-color: #ffffff; border: none; }")
+        self.setStyleSheet(
+            with_flat_scrollbars("QScrollArea { background-color: #ffffff; border: none; }"),
+        )
         self.viewport().setAutoFillBackground(True)
         self.viewport().setStyleSheet("background-color: #ffffff;")
 
