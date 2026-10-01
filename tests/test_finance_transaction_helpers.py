@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Any, cast
 
 from harrix_swiss_knife.apps.finance.transaction_helpers import (
+    compute_balance_compare_last_years,
     compute_balance_series,
     iter_period_buckets,
     iter_period_end_dates,
@@ -76,3 +78,30 @@ def test_compute_balance_series_single_currency() -> None:
     ]
     series = compute_balance_series(transactions, [], cast("Any", db), ["2024-01-31"])
     assert series == [("2024-01-31", 60.0)]
+
+
+def test_compute_balance_compare_last_years_aligns_months() -> None:
+    db = _FakeDbManager()
+    transactions = [
+        [1, 100_00, "income", "Salary", "RUB", "2023-01-10", "", 1, "", "₽"],
+        [2, 20_00, "expense", "Food", "RUB", "2023-06-15", "", 0, "", "₽"],
+        [3, 50_00, "income", "Salary", "RUB", "2024-03-01", "", 1, "", "₽"],
+    ]
+    yearly_data, labels, colors = compute_balance_compare_last_years(
+        transactions,
+        [],
+        cast("Any", db),
+        2,
+        today=date(2024, 4, 15),
+    )
+    assert len(yearly_data) == 2
+    assert len(labels) == 2
+    assert colors[0] == "red"
+    assert "(Current)" in labels[0]
+    # Current year through April: Jan..Apr → 4 points
+    assert [point[0] for point in yearly_data[0]] == [1, 2, 3, 4]
+    assert yearly_data[0][-1][1] == 130.0  # 100 - 20 + 50
+    # Previous full year: 12 months, ending balance 80
+    assert len(yearly_data[1]) == 12
+    assert yearly_data[1][-1][1] == 80.0
+    assert yearly_data[1][5][1] == 80.0  # June 2023 after expense

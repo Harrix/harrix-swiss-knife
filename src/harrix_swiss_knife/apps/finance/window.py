@@ -125,6 +125,7 @@ class Ui_MainWindow(object):
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_exchange_rates), QCoreApplication.translate("MainWindow", u"Exchange Rates", None))
         self.groupBox_type_of_charts.setTitle(QCoreApplication.translate("MainWindow", u"Type Of Chart", None))
         self.radioButton_type_of_chart_balance.setText(QCoreApplication.translate("MainWindow", u"Balance", None))
+        self.radioButton_type_of_chart_balance_compare_last_years.setText(QCoreApplication.translate("MainWindow", u"Balance (compare last years)", None))
         self.radioButton_expense_and_income.setText(QCoreApplication.translate("MainWindow", u"Expense and Income", None))
         self.radioButton_expense_and_income_compare_last_years.setText(QCoreApplication.translate("MainWindow", u"Expense and Income (compare last years)", None))
         self.radioButton_type_of_chart_category.setText(QCoreApplication.translate("MainWindow", u"Category", None))
@@ -1197,6 +1198,11 @@ class Ui_MainWindow(object):
         self.radioButton_type_of_chart_balance.setChecked(True)
 
         self.verticalLayout_23.addWidget(self.radioButton_type_of_chart_balance)
+
+        self.radioButton_type_of_chart_balance_compare_last_years = QRadioButton(self.groupBox_type_of_charts)
+        self.radioButton_type_of_chart_balance_compare_last_years.setObjectName(u"radioButton_type_of_chart_balance_compare_last_years")
+
+        self.verticalLayout_23.addWidget(self.radioButton_type_of_chart_balance_compare_last_years)
 
         self.radioButton_expense_and_income = QRadioButton(self.groupBox_type_of_charts)
         self.radioButton_expense_and_income.setObjectName(u"radioButton_expense_and_income")

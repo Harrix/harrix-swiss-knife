@@ -1868,6 +1868,7 @@ class MainWindow(
 
         # Auto-update chart when parameters change
         self.radioButton_type_of_chart_balance.toggled.connect(self._update_finance_chart)
+        self.radioButton_type_of_chart_balance_compare_last_years.toggled.connect(self._update_finance_chart)
         self.radioButton_expense_and_income.toggled.connect(self._update_finance_chart)
         self.radioButton_expense_and_income_compare_last_years.toggled.connect(self._update_finance_chart)
         self.radioButton_type_of_chart_category.toggled.connect(self._update_finance_chart)
@@ -2212,6 +2213,90 @@ class MainWindow(
         ax.grid(visible=True, alpha=0.3)
         self._format_chart_x_axis(ax, x_values, period)
         self._add_finance_chart_stats_box(ax, y_values, currency_symbol)
+        self._add_chart_canvas(fig)
+
+    def _draw_balance_compare_last_years_chart(
+        self,
+        years_count: int,
+        currency_symbol: str,
+        transaction_rows: list[list[Any]],
+        exchange_rows: list[list[Any]],
+        chart_ctx: ChartComputeContext,
+    ) -> None:
+        """Draw month-end balance with one line per recent fiscal year."""
+        if self.db_manager is None:
+            return
+
+        year_start_month = self._compare_last_years_start_month
+        year_start_day = self._compare_last_years_start_day
+        self.label_compare_last.setText("Number of years:")
+
+        yearly_data, labels, colors = compute_balance_compare_last_years(
+            transaction_rows,
+            exchange_rows,
+            self.db_manager,
+            years_count,
+            year_start_month=year_start_month,
+            year_start_day=year_start_day,
+            ctx=chart_ctx,
+        )
+        if not yearly_data or all(len(series) == 0 for series in yearly_data):
+            self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected period")
+            return
+
+        max_period = max((series[-1][0] for series in yearly_data if series), default=1)
+        if year_start_month == 1 and year_start_day == 1:
+            chart_title = f"Balance (Last {years_count} years comparison)"
+        else:
+            chart_title = f"Balance (Last {years_count} years from {year_start_day:02d}.{year_start_month:02d})"
+
+        fig = Figure(figsize=(12, 6), dpi=100)
+        ax = fig.add_subplot(111)
+        pending_current: list[tuple[list[tuple[int, float, str]], str, str]] = []
+        for series, color, label in zip(yearly_data, colors, labels, strict=False):
+            if not series:
+                continue
+            if "(Current)" in label:
+                pending_current.append((series, color, label))
+                continue
+            self._plot_compare_flow_series_line(
+                ax,
+                series,
+                fig,
+                color=color,
+                label=label,
+                period="Months",
+                currency_symbol=currency_symbol,
+            )
+
+        for series, color, label in pending_current:
+            self._plot_compare_flow_series_line(
+                ax,
+                series,
+                fig,
+                color=color,
+                label=label,
+                period="Months",
+                currency_symbol=currency_symbol,
+                linestyle="-",
+                linewidth=3,
+            )
+
+        ax.set_xlim(1, max(max_period, 1))
+        ticks = self._sparse_integer_ticks(max_period)
+        ax.set_xticks(ticks)
+        month_labels = fiscal_period_month_labels_by_index(
+            datetime.now(UTC).astimezone().date(),
+            "Months",
+            year_start_month=year_start_month,
+            year_start_day=year_start_day,
+        )
+        ax.set_xticklabels([month_labels.get(tick, str(tick)) for tick in ticks], rotation=45, ha="right")
+        ax.set_xlabel("Month", fontsize=12)
+        ax.set_ylabel(f"Balance ({currency_symbol})", fontsize=12)
+        ax.set_title(chart_title, fontsize=14, fontweight="bold")
+        ax.grid(visible=True, alpha=0.3)
+        ax.legend(loc="best", fontsize=9)
         self._add_chart_canvas(fig)
 
     def _draw_category_chart(
@@ -2865,6 +2950,7 @@ class MainWindow(
             self.spinBox_compare_last,
             self.checkBox_chart_show_labels,
             self.radioButton_type_of_chart_balance,
+            self.radioButton_type_of_chart_balance_compare_last_years,
             self.radioButton_expense_and_income,
             self.radioButton_expense_and_income_compare_last_years,
             self.radioButton_type_of_chart_category,
@@ -6218,6 +6304,7 @@ class MainWindow(
             return
 
         year_start_radios = (
+            self.radioButton_type_of_chart_balance_compare_last_years,
             self.radioButton_type_of_chart_compare_last_years,
             self.radioButton_expense_and_income_compare_last_years,
             self.radioButton_type_of_chart_average_salary,
@@ -6277,6 +6364,18 @@ class MainWindow(
                     )
                     return
                 self._draw_balance_chart(series, period, currency_symbol)
+                return
+
+            if self.radioButton_type_of_chart_balance_compare_last_years.isChecked():
+                exchange_rows = self.db_manager.get_all_currency_exchanges()
+                years_count = self.spinBox_compare_last.value()
+                self._draw_balance_compare_last_years_chart(
+                    years_count,
+                    currency_symbol,
+                    transaction_rows,
+                    exchange_rows,
+                    chart_ctx,
+                )
                 return
 
             if self.radioButton_type_of_chart_compare_last.isChecked():
