@@ -94,7 +94,22 @@ QSplitter::handle:hover {{ background: #c0c0c0; }}
 """
 _WHITE_SURFACE_STYLE = f"""
 /* hsk-white-surfaces */
-QGroupBox {{ background-color: #ffffff; }}
+QGroupBox {{
+ background-color: #ffffff;
+ border: none;
+ border-bottom: 1px solid #c0c0c0;
+ border-radius: 0;
+ margin-top: 0.8em;
+ padding-top: 4px;
+ padding-bottom: 6px;
+}}
+QGroupBox::title {{
+ subcontrol-origin: margin;
+ subcontrol-position: top left;
+ left: 0px;
+ padding: 0;
+ background-color: #ffffff;
+}}
 QMenu {{ background-color: #ffffff; border: 1px solid #e0e0e0; color: #202020; }}
 QMenu::item {{ color: #202020; background-color: transparent; }}
 QMenu::item:selected {{ color: #202020; background-color: #f2f2f2; }}
