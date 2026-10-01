@@ -67,6 +67,7 @@ from harrix_swiss_knife.qt_described_choice_cards import (
     described_card_column_count,
     sync_described_choice_card_grid,
 )
+from harrix_swiss_knife.qt_flat_scrollbar import apply_flat_scrollbars, with_flat_scrollbars
 from harrix_swiss_knife.qt_lucide_icon import apply_lucide_button_icon, create_lucide_icon
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
 from harrix_swiss_knife.win11_caption import (
@@ -121,6 +122,7 @@ class MainWindow(QMainWindow):
         self._sync_sort_combo()
         self._apply_catalog_view()
         self._setup_window_size_and_position()
+        apply_flat_scrollbars(self)
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Hide the window instead of closing the application."""
@@ -417,7 +419,9 @@ class MainWindow(QMainWindow):
 
         self.list_widget = QListWidget()
         self.list_widget.setFrameShape(QListWidget.Shape.NoFrame)
-        self.list_widget.setStyleSheet("QListWidget { border: none; background: transparent; }")
+        self.list_widget.setStyleSheet(
+            with_flat_scrollbars("QListWidget { border: none; background: transparent; }"),
+        )
         self.list_widget.itemClicked.connect(self.on_item_clicked)
         self.list_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.list_widget.customContextMenuRequested.connect(self._on_list_context_menu)

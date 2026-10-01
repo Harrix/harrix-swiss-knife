@@ -302,15 +302,17 @@ def style_transparent_icon_grid(grid: QListWidget) -> None:
     grid.setAutoFillBackground(False)
     grid.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=False)
     grid.setStyleSheet(
-        "QListWidget {"
-        " background: transparent;"
-        " border: none;"
-        "}"
-        "QListWidget::item {"
-        " padding-top: 0px;"
-        " padding-bottom: 0px;"
-        " margin: 0px;"
-        "}",
+        with_flat_scrollbars(
+            "QListWidget {"
+            " background: transparent;"
+            " border: none;"
+            "}"
+            "QListWidget::item {"
+            " padding-top: 0px;"
+            " padding-bottom: 0px;"
+            " margin: 0px;"
+            "}",
+        ),
     )
 ```
 

@@ -7,6 +7,7 @@ from PySide6.QtGui import QColor, QFont, QPalette
 from PySide6.QtWidgets import QFrame, QLabel, QListWidget, QSizePolicy, QVBoxLayout, QWidget
 
 from harrix_swiss_knife.qt_action_card_grid import CARD_GRID_CELL_HEIGHT
+from harrix_swiss_knife.qt_flat_scrollbar import with_flat_scrollbars
 
 COMMAND_SECTION_OBJECT_NAME = "commandSection"
 COMMAND_SECTION_DIVIDER_OBJECT_NAME = "commandSectionDivider"
@@ -197,13 +198,15 @@ def style_transparent_icon_grid(grid: QListWidget) -> None:
     grid.setAutoFillBackground(False)
     grid.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=False)
     grid.setStyleSheet(
-        "QListWidget {"
-        " background: transparent;"
-        " border: none;"
-        "}"
-        "QListWidget::item {"
-        " padding-top: 0px;"
-        " padding-bottom: 0px;"
-        " margin: 0px;"
-        "}",
+        with_flat_scrollbars(
+            "QListWidget {"
+            " background: transparent;"
+            " border: none;"
+            "}"
+            "QListWidget::item {"
+            " padding-top: 0px;"
+            " padding-bottom: 0px;"
+            " margin: 0px;"
+            "}",
+        ),
     )

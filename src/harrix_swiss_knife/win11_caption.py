@@ -42,7 +42,7 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife.apps.common.qt_main_window import resolve_window_menu_bar
 from harrix_swiss_knife.installer.icon_assets import apply_window_icon, asset_candidates
-from harrix_swiss_knife.qt_flat_scrollbar import apply_flat_scrollbars_to_styled_item_views
+from harrix_swiss_knife.qt_flat_scrollbar import apply_flat_scrollbars
 from harrix_swiss_knife.qt_frameless_window import frameless_hit_test, native_local_point, read_native_windows_message
 from harrix_swiss_knife.qt_lucide_icon import apply_lucide_button_icon
 from harrix_swiss_knife.win11_backdrop import try_apply_system_backdrop
@@ -644,7 +644,7 @@ def install_win11_caption(
     _flush_caption_to_frame(window)
     _fit_caption_fonts(window)
     _apply_white_window_background(window)
-    apply_flat_scrollbars_to_styled_item_views(window)
+    apply_flat_scrollbars(window)
     _sync_caption_palette(window)
     window.installEventFilter(controller)
     setattr(window, _INSTALLED_ATTR, True)

@@ -50,6 +50,7 @@ from harrix_swiss_knife.apps.snippets.parse import (
 )
 from harrix_swiss_knife.qt_app_font import apply_mono_font
 from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
+from harrix_swiss_knife.qt_flat_scrollbar import with_flat_scrollbars
 from harrix_swiss_knife.qt_flow_layout import FlowLayout
 from harrix_swiss_knife.qt_lucide_icon import add_lucide_action, create_ai_lucide_icon
 
@@ -80,7 +81,7 @@ _ZONE_PANEL_MARGINS = (10, 8, 10, 0)
 _SELECTION_BG = "#e9e9e9"
 _SELECTION_OUTLINE = "#b0b0b0"
 _SELECTION_RADIUS = 4
-_LIST_SELECTION_STYLE = (
+_LIST_SELECTION_STYLE = with_flat_scrollbars(
     "QListWidget {"
     " outline: none;"
     " show-decoration-selected: 0;"

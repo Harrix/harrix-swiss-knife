@@ -75,6 +75,7 @@ class MainWindow(QMainWindow):
         self._sync_sort_combo()
         self._apply_catalog_view()
         self._setup_window_size_and_position()
+        apply_flat_scrollbars(self)
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Hide the window instead of closing the application."""
@@ -371,7 +372,9 @@ class MainWindow(QMainWindow):
 
         self.list_widget = QListWidget()
         self.list_widget.setFrameShape(QListWidget.Shape.NoFrame)
-        self.list_widget.setStyleSheet("QListWidget { border: none; background: transparent; }")
+        self.list_widget.setStyleSheet(
+            with_flat_scrollbars("QListWidget { border: none; background: transparent; }"),
+        )
         self.list_widget.itemClicked.connect(self.on_item_clicked)
         self.list_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.list_widget.customContextMenuRequested.connect(self._on_list_context_menu)
@@ -733,6 +736,7 @@ def __init__(self, menu: QMenu) -> None:
         self._sync_sort_combo()
         self._apply_catalog_view()
         self._setup_window_size_and_position()
+        apply_flat_scrollbars(self)
 ```
 
 </details>

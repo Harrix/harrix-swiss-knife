@@ -7,7 +7,7 @@ from PySide6.QtWidgets import QApplication, QListView, QWidget
 
 from harrix_swiss_knife.qt_flat_scrollbar import (
     FLAT_SCROLLBAR_STYLE,
-    apply_flat_scrollbars_to_styled_item_views,
+    apply_flat_scrollbars,
     with_flat_scrollbars,
 )
 
@@ -34,13 +34,13 @@ def test_with_flat_scrollbars_appends_once() -> None:
     assert with_flat_scrollbars("") == FLAT_SCROLLBAR_STYLE
 
 
-def test_apply_flat_scrollbars_to_styled_item_views(qapp: QApplication) -> None:
+def test_apply_flat_scrollbars_covers_styled_and_plain_views(qapp: QApplication) -> None:
     assert qapp is not None
     root = QWidget()
     styled = QListView(root)
     styled.setStyleSheet("QListView { background: white; }")
     plain = QListView(root)
-    apply_flat_scrollbars_to_styled_item_views(root)
+    apply_flat_scrollbars(root)
     assert "QScrollBar:vertical" in styled.styleSheet()
-    assert plain.styleSheet() == ""
+    assert "QScrollBar:vertical" in plain.styleSheet()
     root.close()

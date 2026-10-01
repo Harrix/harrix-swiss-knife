@@ -1,14 +1,14 @@
 """Flat QScrollBar rules for widgets that already use a stylesheet.
 
-A stylesheet on `QListView` / `QScrollArea` makes Qt drop Windows 11 native
-scrollbar drawing and fall back to classic beveled bars. Append these rules so
-those widgets keep a modern flat look.
+A stylesheet on `QListView` / `QTableView` / `QScrollArea` makes Qt drop
+Windows 11 native scrollbar drawing and fall back to classic beveled bars.
+Append these rules so those widgets keep a modern flat look matching Quick paste.
 
 """
 
 from __future__ import annotations
 
-from PySide6.QtWidgets import QAbstractItemView, QWidget
+from PySide6.QtWidgets import QAbstractScrollArea, QWidget
 
 FLAT_SCROLLBAR_STYLE = """
 QScrollBar:vertical {
@@ -84,15 +84,23 @@ QScrollBar::right-arrow:horizontal {
 """.strip()
 
 
-def apply_flat_scrollbars_to_styled_item_views(root: QWidget) -> None:
-    """Append flat scrollbar rules to every styled item view under `root`."""
-    for view in root.findChildren(QAbstractItemView):
-        sheet = view.styleSheet().strip()
-        if not sheet:
-            continue
+def apply_flat_scrollbars(root: QWidget) -> None:
+    """Append flat scrollbar rules to every scroll area under `root`.
+
+    Covers item views, `QScrollArea`, and text edits — including widgets with
+    no stylesheet yet, so parent window stylesheets cannot leave classic bars.
+
+    """
+    for widget in root.findChildren(QAbstractScrollArea):
+        sheet = widget.styleSheet().strip()
         updated = with_flat_scrollbars(sheet)
         if updated != sheet:
-            view.setStyleSheet(updated)
+            widget.setStyleSheet(updated)
+
+
+def apply_flat_scrollbars_to_styled_item_views(root: QWidget) -> None:
+    """Apply flat scrollbars under `root` (alias kept for older call sites)."""
+    apply_flat_scrollbars(root)
 
 
 def with_flat_scrollbars(style: str) -> str:
