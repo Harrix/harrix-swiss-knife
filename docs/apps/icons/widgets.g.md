@@ -31,6 +31,7 @@ lang: en
   - [⚙️ Method `set_display_icon_size`](#%EF%B8%8F-method-set_display_icon_size)
   - [⚙️ Method `set_favorite_family_ids`](#%EF%B8%8F-method-set_favorite_family_ids)
   - [⚙️ Method `set_grid_entries`](#%EF%B8%8F-method-set_grid_entries)
+  - [⚙️ Method `set_note_repo_features`](#%EF%B8%8F-method-set_note_repo_features)
   - [⚙️ Method `set_repo_root`](#%EF%B8%8F-method-set_repo_root)
   - [⚙️ Method `set_variants_family`](#%EF%B8%8F-method-set_variants_family)
   - [⚙️ Method `set_view_options`](#%EF%B8%8F-method-set_view_options)
@@ -245,6 +246,9 @@ class DraggableIconList(QListWidget):
     sort_mode_requested = Signal(str)
     sort_reverse_toggled = Signal(bool)
     viewport_changed = Signal()
+    delete_selected_requested = Signal()
+    paste_requested = Signal()
+    favorite_selected_requested = Signal()
 
     def __init__(
         self,
@@ -265,6 +269,7 @@ class DraggableIconList(QListWidget):
         self._variants_family: IconFamily | None = None
         self._favorite_family_ids: set[str] = set()
         self._repo_root: Path | None = None
+        self._note_repo_features = True
         self._show_numbers = False
         self._sort_mode = GRID_SORT_MODES[0][0]
         self._sort_reverse = False
@@ -329,13 +334,36 @@ class DraggableIconList(QListWidget):
             self.blockSignals(False)  # noqa: FBT003
 
     def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
-        """Copy selected icon files when the standard Copy shortcut is pressed."""
+        """Handle Copy, Paste, Delete, and favorite shortcuts on the grid."""
         if event.matches(QKeySequence.StandardKey.Copy):
             entries = self.selected_copy_entries()
             if entries:
                 self.copy_files_requested.emit(entries)
                 event.accept()
                 return
+        if event.matches(QKeySequence.StandardKey.Paste):
+            self.paste_requested.emit()
+            event.accept()
+            return
+        if (
+            event.matches(QKeySequence.StandardKey.Delete) or event.key() == Qt.Key.Key_Delete
+        ) and self.selectedItems():
+            self.delete_selected_requested.emit()
+            event.accept()
+            return
+        modifiers = event.modifiers()
+        if event.key() == Qt.Key.Key_D and modifiers == Qt.KeyboardModifier.ControlModifier and self.selectedItems():
+            self.favorite_selected_requested.emit()
+            event.accept()
+            return
+        if (
+            event.key() == Qt.Key.Key_F
+            and modifiers == (Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.ShiftModifier)
+            and self.selectedItems()
+        ):
+            self.favorite_selected_requested.emit()
+            event.accept()
+            return
         super().keyPressEvent(event)
 
     def preview_paths(self) -> list[Path]:
@@ -449,6 +477,10 @@ class DraggableIconList(QListWidget):
             )
         self.setCurrentRow(-1)
         self.blockSignals(False)  # noqa: FBT003
+
+    def set_note_repo_features(self, *, enabled: bool) -> None:
+        """Enable note-repo-only context actions (edit, trademark, AI keywords)."""
+        self._note_repo_features = bool(enabled)
 
     def set_repo_root(self, repo_root: Path | None) -> None:
         """Remember the open icons folder for license lookup from notes."""
@@ -642,7 +674,9 @@ class DraggableIconList(QListWidget):
         selected_ids = {family.id for family, _path in targets}
         all_favorites = bool(selected_ids) and selected_ids.issubset(self._favorite_family_ids)
         labels = batch_context_action_texts(len(targets), all_favorites=all_favorites)
-        batch_ai_action = menu.addAction(labels[0])
+        batch_ai_action = None
+        if self._note_repo_features:
+            batch_ai_action = menu.addAction(labels[0])
         favorite_action = menu.addAction(labels[1])
         optimize_action = None
         if any(family_has_svg_files(family) for family, _path in targets):
@@ -652,7 +686,7 @@ class DraggableIconList(QListWidget):
         reset_size_action = self._add_reset_icon_size_action(menu)
         apply_leading_chrome_icons(menu)
         chosen = menu.exec_(self.mapToGlobal(pos))
-        if chosen is batch_ai_action:
+        if batch_ai_action is not None and chosen is batch_ai_action:
             self.batch_keywords_ai_requested.emit(targets)
         elif chosen is favorite_action:
             self.batch_favorites_requested.emit((targets, not all_favorites))
@@ -800,57 +834,68 @@ class DraggableIconList(QListWidget):
             set_action_text_with_lucide_icon(open_illustrator_action, "Open in Adobe Illustrator", "pen-tool")
             reveal_action = add_reveal_in_explorer_action(menu)
             details_action = menu.addAction("ℹ️ Icon details")  # noqa: RUF001
-            copy_file_action = menu.addAction("📋 Copy file")
+            copy_menu = menu.addMenu("📋 Copy")
+            copy_file_action = copy_menu.addAction("Copy file")
             if is_svg_icon_path(path):
-                copy_contents_action = menu.addAction("📋 Copy contents")
-            copy_filename_action = menu.addAction("📋 Copy filename")
-            copy_path_action = menu.addAction("📋 Copy path")
+                copy_contents_action = copy_menu.addAction("Copy contents")
+            copy_filename_action = copy_menu.addAction("Copy filename")
+            copy_path_action = copy_menu.addAction("Copy path")
             menu.addSeparator()
 
-        if self._variants_context:
-            refresh_action = menu.addAction("🔄 Refresh variants")
-            if has_path and is_svg_icon_path(path):
-                optimize_action = menu.addAction("🚀 Optimize SVG")
-            menu.addSeparator()
-        else:
-            refresh_icons_action = menu.addAction("🔄 Refresh icons")
-            if family_has_svg_files(family):
-                optimize_action = menu.addAction("🚀 Optimize SVG")
-            menu.addSeparator()
-
-        open_note_action = menu.addAction("📝 Open note in editor")
-        edit_keywords_action = menu.addAction("✏️ Edit icon…")
-        set_category_action = menu.addAction("🏷️ Set as category icon")
         is_favorite = str(getattr(family, "id", "")).strip() in self._favorite_family_ids
         favorite_action = menu.addAction("⭐ Remove from favorites" if is_favorite else "⭐ Add to favorites")
 
-        is_trademark = getattr(family, "trademark", False)
-        toggle_trademark_text = "Remove trademark warning" if is_trademark else "Add trademark warning"
-        toggle_trademark_action = menu.addAction(f"⚠️ {toggle_trademark_text}")
+        if self._variants_context:
+            refresh_action = menu.addAction("🔄 Refresh variants")
+        else:
+            refresh_icons_action = menu.addAction("🔄 Refresh icons")
 
-        menu.addSeparator()
-
+        open_note_action = None
+        edit_keywords_action = None
+        set_category_action = None
+        toggle_trademark_action = None
         reveal_source_action = None
         open_source_action = None
-        if has_path:
-            reveal_source_action = menu.addAction("📂 Reveal source in File Explorer")
-            open_source_action = menu.addAction("🎨 Open source")
-            menu.addSeparator()
-
-        copy_folder_path_action = menu.addAction("📋 Copy path to current folder")
-        reveal_folder_action = menu.addAction("📂 Reveal current folder in File Explorer")
-        menu.addSeparator()
-
-        numbers_action, sort_actions, reverse_action, reset_size_action = self._add_main_view_menu_actions(menu)
-        if numbers_action is not None or sort_actions or reset_size_action is not None:
-            menu.addSeparator()
-
-        license_name, license_url = family_license_info(family, self._repo_root)
         license_action = None
+
+        more_menu = menu.addMenu("More…")
+        more_has_items = False
+        if self._note_repo_features:
+            open_note_action = more_menu.addAction("📝 Open note in editor")
+            edit_keywords_action = more_menu.addAction("✏️ Edit icon…")
+            set_category_action = more_menu.addAction("🏷️ Set as category icon")
+            is_trademark = getattr(family, "trademark", False)
+            toggle_trademark_text = "Remove trademark warning" if is_trademark else "Add trademark warning"
+            toggle_trademark_action = more_menu.addAction(f"⚠️ {toggle_trademark_text}")
+            more_menu.addSeparator()
+            more_has_items = True
+        can_optimize = (self._variants_context and has_path and is_svg_icon_path(path)) or (
+            not self._variants_context and family_has_svg_files(family)
+        )
+        if can_optimize:
+            optimize_action = more_menu.addAction("🚀 Optimize SVG")
+            more_has_items = True
+        if has_path:
+            reveal_source_action = more_menu.addAction("📂 Reveal source in File Explorer")
+            open_source_action = more_menu.addAction("🎨 Open source")
+            more_has_items = True
+        license_name, license_url = family_license_info(family, self._repo_root)
         if license_name:
-            license_action = menu.addAction(f"📜 License: {license_name}")
+            license_action = more_menu.addAction(f"📜 License: {license_name}")
             if not is_openable_license_url(license_url):
                 license_action.setEnabled(False)
+            more_has_items = True
+        if not more_has_items:
+            menu.removeAction(more_menu.menuAction())
+
+        menu.addSeparator()
+        copy_folder_path_action = menu.addAction("📋 Copy path to current folder")
+        reveal_folder_action = menu.addAction("📂 Reveal current folder in File Explorer")
+
+        view_menu = menu.addMenu("View options")
+        numbers_action, sort_actions, reverse_action, reset_size_action = self._add_main_view_menu_actions(view_menu)
+        if numbers_action is None and not sort_actions and reset_size_action is None:
+            menu.removeAction(view_menu.menuAction())
 
         delete_action = add_delete_action(menu)
         apply_leading_chrome_icons(menu)
@@ -892,17 +937,17 @@ class DraggableIconList(QListWidget):
                 self.optimize_svgs_requested.emit([path])
             else:
                 self._emit_optimize_for_families([family])
-        elif chosen is open_note_action:
+        elif open_note_action is not None and chosen is open_note_action:
             self.open_note_requested.emit(family)
-        elif chosen is edit_keywords_action:
+        elif edit_keywords_action is not None and chosen is edit_keywords_action:
             self.edit_keywords_requested.emit(family, path if has_path else "")
-        elif chosen is set_category_action:
+        elif set_category_action is not None and chosen is set_category_action:
             self.set_category_icon_requested.emit(family)
         elif chosen is favorite_action:
             self.favorite_toggled.emit(family)
         elif license_action is not None and chosen is license_action:
             self.license_requested.emit(license_url)
-        elif chosen is toggle_trademark_action:
+        elif toggle_trademark_action is not None and chosen is toggle_trademark_action:
             self.toggle_trademark_requested.emit(family)
         elif has_path and chosen is reveal_source_action:
             self.reveal_source_requested.emit(family, path)
@@ -960,6 +1005,7 @@ def __init__(
         self._variants_family: IconFamily | None = None
         self._favorite_family_ids: set[str] = set()
         self._repo_root: Path | None = None
+        self._note_repo_features = True
         self._show_numbers = False
         self._sort_mode = GRID_SORT_MODES[0][0]
         self._sort_reverse = False
@@ -1046,7 +1092,7 @@ def append_grid_entries(
 def keyPressEvent(self, event: QKeyEvent) -> None
 ```
 
-Copy selected icon files when the standard Copy shortcut is pressed.
+Handle Copy, Paste, Delete, and favorite shortcuts on the grid.
 
 <details>
 <summary>Code:</summary>
@@ -1059,6 +1105,29 @@ def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
                 self.copy_files_requested.emit(entries)
                 event.accept()
                 return
+        if event.matches(QKeySequence.StandardKey.Paste):
+            self.paste_requested.emit()
+            event.accept()
+            return
+        if (
+            event.matches(QKeySequence.StandardKey.Delete) or event.key() == Qt.Key.Key_Delete
+        ) and self.selectedItems():
+            self.delete_selected_requested.emit()
+            event.accept()
+            return
+        modifiers = event.modifiers()
+        if event.key() == Qt.Key.Key_D and modifiers == Qt.KeyboardModifier.ControlModifier and self.selectedItems():
+            self.favorite_selected_requested.emit()
+            event.accept()
+            return
+        if (
+            event.key() == Qt.Key.Key_F
+            and modifiers == (Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.ShiftModifier)
+            and self.selectedItems()
+        ):
+            self.favorite_selected_requested.emit()
+            event.accept()
+            return
         super().keyPressEvent(event)
 ```
 
@@ -1326,6 +1395,24 @@ def set_grid_entries(
             )
         self.setCurrentRow(-1)
         self.blockSignals(False)  # noqa: FBT003
+```
+
+</details>
+
+### ⚙️ Method `set_note_repo_features`
+
+```python
+def set_note_repo_features(self, *, enabled: bool) -> None
+```
+
+Enable note-repo-only context actions (edit, trademark, AI keywords).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_note_repo_features(self, *, enabled: bool) -> None:
+        self._note_repo_features = bool(enabled)
 ```
 
 </details>

@@ -38,6 +38,8 @@ VARIANT_VIEW_MODES: tuple[tuple[str, str], ...] = (
     (MODE_ALL, "All variants"),
 )
 
+VARIANT_VIEW_MODE_IDS = frozenset(mode_id for mode_id, _label in VARIANT_VIEW_MODES)
+
 _LINE_RE = re.compile(r"_line-(\d+)-?(?:_|$)", re.IGNORECASE)
 _COLOR_TOKEN_RE = re.compile(r"(?:^|_)(white|black|gray|grey)(?:_|$)", re.IGNORECASE)
 

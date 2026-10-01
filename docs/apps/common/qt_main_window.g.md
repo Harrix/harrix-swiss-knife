@@ -12,8 +12,10 @@ lang: en
 ## Contents
 
 - [🏛️ Class `AppWindowMixin`](#%EF%B8%8F-class-appwindowmixin)
+  - [⚙️ Method `keyboard_shortcut_help_entries`](#%EF%B8%8F-method-keyboard_shortcut_help_entries)
   - [⚙️ Method `on_about`](#%EF%B8%8F-method-on_about)
   - [⚙️ Method `on_exit`](#%EF%B8%8F-method-on_exit)
+  - [⚙️ Method `on_keyboard_shortcuts`](#%EF%B8%8F-method-on_keyboard_shortcuts)
   - [⚙️ Method `on_reveal_database`](#%EF%B8%8F-method-on_reveal_database)
   - [⚙️ Method `on_settings`](#%EF%B8%8F-method-on_settings)
 - [🔧 Function `apply_app_window_size_and_position`](#-function-apply_app_window_size_and_position)
@@ -50,8 +52,16 @@ class AppWindowMixin:
 
     actionAbout: QAction  # noqa: N815
     actionExit: QAction  # noqa: N815
+    actionKeyboardShortcuts: QAction  # noqa: N815
     db_manager: Any
     _hide_on_close: bool
+
+    def keyboard_shortcut_help_entries(self) -> list[ShortcutHelpEntry]:
+        """Return shortcuts for Help → Keyboard shortcuts (override per app)."""
+        return merge_shortcut_help(
+            collect_documented_shortcuts(cast("QWidget", self)),
+            default_tracker_app_shortcut_help(),
+        )
 
     def on_about(self) -> None:
         """Show the About dialog with app information."""
@@ -88,6 +98,14 @@ class AppWindowMixin:
     def on_exit(self) -> None:
         """Close the application window."""
         self.close()  # type: ignore[attr-defined]
+
+    def on_keyboard_shortcuts(self) -> None:
+        """Show a non-modal list of this window's keyboard shortcuts."""
+        show_keyboard_shortcuts_help(
+            cast("QWidget", self),
+            f"{type(self).about_app_name} — Keyboard shortcuts",
+            self.keyboard_shortcut_help_entries(),
+        )
 
     def on_reveal_database(self) -> None:
         """Open the system file manager with this app's SQLite database selected."""
@@ -130,6 +148,9 @@ class AppWindowMixin:
         """Set Lucide icons on Exit and About, then convert other menu prefixes."""
         apply_lucide_action_icon(self.actionExit, "log-out")
         apply_lucide_action_icon(self.actionAbout, "info")
+        shortcuts_action = getattr(self, "actionKeyboardShortcuts", None)
+        if isinstance(shortcuts_action, QAction):
+            apply_lucide_action_icon(shortcuts_action, "keyboard")
         self._apply_menu_bar_emoji_icons()
 
     def _apply_menu_bar_emoji_icons(self) -> None:
@@ -146,6 +167,7 @@ class AppWindowMixin:
         """Wire Exit and About menu actions to their handlers."""
         self.actionExit.triggered.connect(self.on_exit)
         self.actionAbout.triggered.connect(self.on_about)
+        self._setup_keyboard_shortcuts_help_action()
         self._setup_reveal_database_action()
         self._setup_settings_action()
 
@@ -396,6 +418,29 @@ class AppWindowMixin:
             return None
         return Path(str(filename)).expanduser()
 
+    def _setup_keyboard_shortcuts_help_action(self) -> None:
+        """Add Help → Keyboard shortcuts when a Help menu is available."""
+        if getattr(self, "actionKeyboardShortcuts", None) is not None:
+            return
+        menu = getattr(self, "menuHelp", None)
+        if not isinstance(menu, QMenu):
+            return
+        about = getattr(self, "actionAbout", None)
+        before = about if isinstance(about, QAction) else None
+        self.actionKeyboardShortcuts = add_keyboard_shortcuts_help_action(
+            menu,
+            cast("QWidget", self),
+            before=before,
+            slot=self.on_keyboard_shortcuts,
+        )
+        install_documented_shortcut(
+            cast("QWidget", self),
+            QKeySequence.StandardKey.HelpContents,
+            self.on_keyboard_shortcuts,
+            description="Show keyboard shortcuts help",
+            category="Help",
+        )
+
     def _setup_reveal_database_action(self) -> None:
         """Add File → Show database in folder for tracker apps with SQLite."""
         if not hasattr(self, "db_manager"):
@@ -469,6 +514,27 @@ class AppWindowMixin:
 
 </details>
 
+### ⚙️ Method `keyboard_shortcut_help_entries`
+
+```python
+def keyboard_shortcut_help_entries(self) -> list[ShortcutHelpEntry]
+```
+
+Return shortcuts for Help → Keyboard shortcuts (override per app).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def keyboard_shortcut_help_entries(self) -> list[ShortcutHelpEntry]:
+        return merge_shortcut_help(
+            collect_documented_shortcuts(cast("QWidget", self)),
+            default_tracker_app_shortcut_help(),
+        )
+```
+
+</details>
+
 ### ⚙️ Method `on_about`
 
 ```python
@@ -529,6 +595,28 @@ Close the application window.
 ```python
 def on_exit(self) -> None:
         self.close()  # type: ignore[attr-defined]
+```
+
+</details>
+
+### ⚙️ Method `on_keyboard_shortcuts`
+
+```python
+def on_keyboard_shortcuts(self) -> None
+```
+
+Show a non-modal list of this window's keyboard shortcuts.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_keyboard_shortcuts(self) -> None:
+        show_keyboard_shortcuts_help(
+            cast("QWidget", self),
+            f"{type(self).about_app_name} — Keyboard shortcuts",
+            self.keyboard_shortcut_help_entries(),
+        )
 ```
 
 </details>

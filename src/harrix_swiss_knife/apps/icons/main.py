@@ -12,7 +12,7 @@ from typing import Any, Literal, cast
 
 import harrix_pylib as h
 from PySide6.QtCore import QMimeData, QPoint, QSize, Qt, QThread, QTimer, QUrl, Signal
-from PySide6.QtGui import QCloseEvent, QDesktopServices, QIcon, QPixmap
+from PySide6.QtGui import QCloseEvent, QDesktopServices, QIcon, QKeySequence, QPixmap
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
@@ -54,6 +54,12 @@ from harrix_swiss_knife import (
 from harrix_swiss_knife.actions.common.open_in_editor import open_in_editor
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.app_entry import run_app_main
+from harrix_swiss_knife.apps.common.keyboard_shortcuts import (
+    ShortcutHelpEntry,
+    collect_documented_shortcuts,
+    install_documented_shortcut,
+    merge_shortcut_help,
+)
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.table_context_menu import add_reveal_in_explorer_action
 from harrix_swiss_knife.apps.common.ui_helpers import reveal_in_file_explorer
@@ -93,7 +99,7 @@ from harrix_swiss_knife.apps.icons.catalog import (
 from harrix_swiss_knife.apps.icons.catalog_load import CatalogLoadWorker
 from harrix_swiss_knife.apps.icons.choose_family_dialog import ChooseIconFamilyDialog
 from harrix_swiss_knife.apps.icons.edit_icon import reassign_icon_category, update_icon_note
-from harrix_swiss_knife.apps.icons.keywords_ai import KeywordsBatchRunner, request_keywords_fill
+from harrix_swiss_knife.apps.icons.keywords_ai import KeywordsBatchRunner
 from harrix_swiss_knife.apps.icons.keywords_update import update_keywords_files
 from harrix_swiss_knife.apps.icons.lightbox import IconLightboxDialog
 from harrix_swiss_knife.apps.icons.meta_filter import (
@@ -125,9 +131,12 @@ from harrix_swiss_knife.apps.icons.settings import (
     load_icon_size,
     load_last_folder,
     load_last_icon,
+    load_left_splitter_sizes,
     load_pinned_folders,
     load_recent_folders,
     load_show_numbers,
+    load_splitter_sizes,
+    load_variant_view_mode,
     pin_folder,
     remember_recent_folder,
     remove_favorites,
@@ -137,7 +146,10 @@ from harrix_swiss_knife.apps.icons.settings import (
     save_icon_size,
     save_last_folder,
     save_last_icon,
+    save_left_splitter_sizes,
     save_show_numbers,
+    save_splitter_sizes,
+    save_variant_view_mode,
     set_category_icon,
     sidebar_category_names,
     toggle_favorite,
@@ -160,6 +172,7 @@ from harrix_swiss_knife.apps.icons.thumb_cache import (
 from harrix_swiss_knife.apps.icons.trademark_update import TrademarkUpdateWorker
 from harrix_swiss_knife.apps.icons.variant_view import (
     MODE_FEATURED,
+    VARIANT_VIEW_MODE_IDS,
     VARIANT_VIEW_MODES,
     GridEntry,
     available_variant_view_modes,
@@ -177,7 +190,6 @@ from harrix_swiss_knife.apps.icons.widgets import (
     stage_clipboard_icon_file,
 )
 from harrix_swiss_knife.installer.icon_assets import apply_window_icon
-from harrix_swiss_knife.integrations.bothub import BothubRequestState
 from harrix_swiss_knife.paths import get_config_path_str
 from harrix_swiss_knife.qt_lucide_icon import (
     COPY_BUTTON_ICON,
@@ -213,9 +225,10 @@ PRIME_PIXMAP_LIMIT = LARGE_CATALOG_LIMIT
 THUMB_UPDATE_FLUSH_MS = 200
 SEARCH_DEBOUNCE_MS = 400
 ADD_SVGS_RESULT_PREVIEW_LIMIT = 40
-_BACKGROUND_ICON_KEYWORDS_DEFAULT_LIMIT = 1
-_BACKGROUND_ICON_KEYWORDS_INTERVAL_MS = 1 * 60 * 1000
+_BACKGROUND_ICON_KEYWORDS_DEFAULT_LIMIT = 8
+_BACKGROUND_ICON_KEYWORDS_INTERVAL_MS = 15 * 1000
 _BACKGROUND_ICON_KEYWORDS_STATUS = "Updating icon keywords…"
+_BACKGROUND_ICON_KEYWORDS_FOLLOWUP_MS = 500
 _KEYWORD_TARGET_PAIR_LEN = 2
 _MIN_BATCH_KEYWORD_ICONS = 2
 _VECTOR_FILE_FILTER = "Vector images (*.svg *.ai *.pdf *.eps);;All files (*.*)"
@@ -349,6 +362,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._meta_filter: tuple[str, str] | None = None
         self._icon_details_dialog: KeyValueTableDialog | None = None
         self._clipboard_stage: TemporaryDirectory[str] | None = None
+        self._paste_stage: TemporaryDirectory[str] | None = None
         self._catalog: IconCatalog | None = None
         self._repo_root: Path | None = None
         self._thumb_cache = ThumbnailCache(size=DEFAULT_THUMB_SIZE)
@@ -364,11 +378,19 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._category_icons = load_category_icons()
         self._favorite_ids: list[str] = []
         self._default_category_family_ids: dict[str, str] = {}
-        self._variant_view_mode = MODE_FEATURED
+        saved_view = load_variant_view_mode()
+        self._variant_view_mode = saved_view if saved_view in VARIANT_VIEW_MODE_IDS else MODE_FEATURED
         self._variant_pixmaps: dict[str, QPixmap] = {}
         self._view_mode_examples: dict[str, tuple[IconFamily, Path]] = {}
         self._view_combo_signature: tuple[str, ...] = ()
         self._load_progress_toast: toast_progress_notification.ToastProgressNotification | None = None
+        self._main_splitter: QSplitter | None = None
+        self._left_splitter: QSplitter | None = None
+        self._empty_state: QWidget | None = None
+        self._empty_state_label: QLabel | None = None
+        self._empty_state_primary_btn: QPushButton | None = None
+        self._empty_state_secondary_btn: QPushButton | None = None
+        self._empty_state_mode: str | None = None
         self._catalog_load_thread: QThread | None = None
         self._catalog_load_worker: CatalogLoadWorker | None = None
         self._catalog_load_generation = 0
@@ -386,7 +408,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._maintenance_worker: RepoMaintenanceWorker | None = None
         self._maintenance_kind: MaintenanceKind | None = None
         self._keywords_batch_runner: KeywordsBatchRunner | None = None
-        self._bg_icon_keywords_state = BothubRequestState()
+        self._bg_keywords_batch_runner: KeywordsBatchRunner | None = None
         self._bg_icon_keywords_timer = QTimer(self)
         self._bg_icon_keywords_timer.setSingleShot(True)
         self._bg_icon_keywords_timer.timeout.connect(self._on_background_icon_keywords_timer)
@@ -430,10 +452,12 @@ class MainWindow(QMainWindow, AppWindowMixin):
         """Stop background work and optionally hide instead of closing."""
         self._search_filter_timer.stop()
         self._persist_icon_size()
+        self._persist_layout_settings()
         if self._hide_instead_of_close(event):
             return
         self._is_closing = True
         self._stop_background_icon_keywords_timer()
+        self._stop_background_keywords_batch()
         self._stop_grid_fill()
         self._stop_catalog_load()
         self._stop_trademark_update()
@@ -441,7 +465,22 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._stop_keywords_batch()
         self._stop_thumb_refresh()
         self._clear_clipboard_stage()
+        self._clear_paste_stage()
         super().closeEvent(event)
+
+    def keyboard_shortcut_help_entries(self) -> list[ShortcutHelpEntry]:
+        """Return Vector Icons shortcuts for Help → Keyboard shortcuts."""
+        return merge_shortcut_help(
+            collect_documented_shortcuts(self),
+            [
+                ShortcutHelpEntry("Ctrl+C", "Copy selected icon file(s) to the clipboard", "Grid"),
+                ShortcutHelpEntry("Ctrl+V", "Paste SVG/AI/PDF/EPS files or SVG text into the open folder", "Grid"),
+                ShortcutHelpEntry("Delete", "Delete selected icons", "Grid"),
+                ShortcutHelpEntry("Ctrl+D", "Toggle favorites for selected icons", "Grid"),
+                ShortcutHelpEntry("Ctrl+Shift+F", "Toggle favorites for selected icons", "Grid"),
+                ShortcutHelpEntry("F1", "Show this keyboard shortcuts help", "Help"),
+            ],
+        )
 
     def nativeEvent(self, event_type, message) -> tuple[bool, int]:  # noqa: ANN001, N802
         """Drag, resize, and size the client area for the custom caption bar."""
@@ -580,6 +619,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
             self._grid_entries = []
             self._loaded_rows = set()
             self._sync_variant_view_combo()
+            self._sync_empty_state()
             return
         selected_id = self._selected_family_id
         query = self.search_edit.text()
@@ -628,6 +668,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._visible_family_ids = set()
         self._collect_visible_families(first_chunk)
         self._update_grid_counters()
+        self._sync_empty_state()
         self._selected_family_id = selected_id
         self._restore_or_clear_selection(
             [entry.family for entry in first_chunk],
@@ -746,7 +787,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         return None
 
     def _background_icon_keywords_limit(self) -> int:
-        """Max stale families considered per silent pass (one AI call uses the first)."""
+        """Max stale families processed per silent background batch."""
         config: dict[str, Any] = h.dev.config_load(get_config_path_str())
         raw = config.get("vector_icons_background_keywords_limit", _BACKGROUND_ICON_KEYWORDS_DEFAULT_LIMIT)
         try:
@@ -830,7 +871,9 @@ class MainWindow(QMainWindow, AppWindowMixin):
         root.addWidget(toolbar_widget, stretch=0)
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
+        self._main_splitter = splitter
         left_splitter = QSplitter(Qt.Orientation.Vertical)
+        self._left_splitter = left_splitter
         left_splitter.setMinimumWidth(160)
         left_splitter.setMaximumWidth(260)
 
@@ -856,7 +899,6 @@ class MainWindow(QMainWindow, AppWindowMixin):
 
         left_splitter.setStretchFactor(0, 1)
         left_splitter.setStretchFactor(1, 1)
-        left_splitter.setSizes([220, 280])
         splitter.addWidget(left_splitter)
 
         center = QWidget()
@@ -885,9 +927,28 @@ class MainWindow(QMainWindow, AppWindowMixin):
         )
         self.icon_list.family_selected.connect(self._on_family_selected)
         self.icon_list.viewport_changed.connect(self._schedule_viewport_pixmaps)
-        self._wire_icon_list_actions(self.icon_list)
+        self._wire_icon_list_actions(self.icon_list, main_grid=True)
         install_url_drop_handlers(self.icon_list, self._on_icon_files_dropped, filter_path=_is_vector_drop_path)
-        center_layout.addWidget(self.icon_list)
+        center_layout.addWidget(self.icon_list, stretch=1)
+
+        self._empty_state = QWidget()
+        empty_layout = QVBoxLayout(self._empty_state)
+        empty_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._empty_state_label = QLabel("")
+        self._empty_state_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._empty_state_label.setWordWrap(True)
+        empty_layout.addWidget(self._empty_state_label)
+        empty_buttons = QHBoxLayout()
+        empty_buttons.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._empty_state_primary_btn = QPushButton("Open folder…")
+        self._empty_state_primary_btn.clicked.connect(self._on_empty_state_primary)
+        empty_buttons.addWidget(self._empty_state_primary_btn)
+        self._empty_state_secondary_btn = QPushButton("Clear")
+        self._empty_state_secondary_btn.clicked.connect(self._on_empty_state_secondary)
+        empty_buttons.addWidget(self._empty_state_secondary_btn)
+        empty_layout.addLayout(empty_buttons)
+        self._empty_state.hide()
+        center_layout.addWidget(self._empty_state, stretch=1)
         splitter.addWidget(center)
 
         self.variants_panel = VariantsPanel(thumb_size=self._variant_thumb_size(self._icon_size))
@@ -909,7 +970,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
         splitter.setStretchFactor(0, 0)
         splitter.setStretchFactor(1, 1)
         splitter.setStretchFactor(2, 0)
-        splitter.setSizes([200, 900, 320])
+        left_splitter.setSizes(load_left_splitter_sizes())
+        splitter.setSizes(load_splitter_sizes())
         root.addWidget(splitter, stretch=1)
 
         status = QStatusBar()
@@ -943,8 +1005,12 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._add_vector_action.triggered.connect(self._on_add_vector_images)
         self._add_variants_action = file_menu.addAction("📥 Add icon variants…")
         self._add_variants_action.triggered.connect(self._on_add_icon_variants)
+        paste_action = file_menu.addAction("Paste vectors from clipboard")
+        paste_action.setShortcut(QKeySequence.StandardKey.Paste)
+        paste_action.triggered.connect(self._on_paste_vectors)
         refresh_action = file_menu.addAction("Refresh catalog")
         set_action_text_with_lucide_icon(refresh_action, "Refresh catalog", "refresh-cw")
+        refresh_action.setShortcut(QKeySequence.StandardKey.Refresh)
         refresh_action.triggered.connect(self._on_refresh_catalog)
         file_menu.addSeparator()
         self._check_images_action = file_menu.addAction("🚧 Check images")
@@ -958,16 +1024,17 @@ class MainWindow(QMainWindow, AppWindowMixin):
         cache_stats_action.triggered.connect(self._on_cache_statistics)
         file_menu.addSeparator()
         self.actionExit = file_menu.addAction("E&xit")
-        help_menu = self.menuBar().addMenu("&Help")
-        self.actionAbout = help_menu.addAction("&About")
+        self.menuHelp = self.menuBar().addMenu("&Help")
+        self.actionAbout = self.menuHelp.addAction("&About")
         apply_leading_chrome_icons(file_menu)
-        apply_leading_chrome_icons(help_menu)
+        apply_leading_chrome_icons(self.menuHelp)
         self._style_window_menu_bar()
         self._connect_exit_about_actions()
         self._apply_exit_about_menu_emojis()
         self._rebuild_folder_menus()
         self._sync_folder_combo()
         self._sync_add_vector_menu_title()
+        self._install_window_shortcuts()
         install_win11_caption(self)
 
     @staticmethod
@@ -1009,7 +1076,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
         )
 
     def _clear_background_icon_keywords_status(self) -> None:
-        if self.statusBar().currentMessage() == _BACKGROUND_ICON_KEYWORDS_STATUS:
+        message = self.statusBar().currentMessage()
+        if message.startswith(_BACKGROUND_ICON_KEYWORDS_STATUS):
             self.statusBar().clearMessage()
 
     def _clear_clipboard_stage(self) -> None:
@@ -1032,6 +1100,46 @@ class MainWindow(QMainWindow, AppWindowMixin):
         if apply:
             self._apply_filters()
             self._start_thumb_refresh()
+
+    def _clear_paste_stage(self) -> None:
+        """Drop temp files created while pasting SVG text from the clipboard."""
+        stage = self._paste_stage
+        self._paste_stage = None
+        if stage is None:
+            return
+        try:
+            stage.cleanup()
+        except OSError:
+            logger.debug("Could not clean paste stage directory", exc_info=True)
+
+    def _clipboard_vector_sources(self) -> list[Path]:
+        """Return vector paths from clipboard file URLs or SVG text."""
+        clipboard = QApplication.clipboard()
+        if clipboard is None:
+            return []
+        mime = clipboard.mimeData()
+        if mime is None:
+            return []
+        paths: list[str] = []
+        if mime.hasUrls():
+            paths.extend(url.toLocalFile() for url in mime.urls() if url.isLocalFile())
+        if paths:
+            return collect_vector_sources(paths)
+        text = mime.text().strip() if mime.hasText() else ""
+        if not text:
+            return []
+        lowered = text.lstrip().casefold()
+        if not lowered.startswith(("<svg", "<?xml")):
+            return []
+        self._clear_paste_stage()
+        self._paste_stage = TemporaryDirectory(prefix="hsk-icons-paste-")
+        target = Path(self._paste_stage.name) / "pasted-icon.svg"
+        try:
+            target.write_text(text, encoding="utf-8")
+        except OSError:
+            self._clear_paste_stage()
+            return []
+        return [target]
 
     def _close_load_progress_toast(self) -> None:
         toast = self._load_progress_toast
@@ -1061,17 +1169,14 @@ class MainWindow(QMainWindow, AppWindowMixin):
             self._visible_families.append(entry.family)
 
     def _commit_background_icon_keywords(self, family: IconFamily, tags: list[str]) -> None:
-        """Write AI tags, refresh hashes/thumbs, then continue or stop the silent loop."""
+        """Write AI tags and refresh hashes/thumbs for one background keywords item."""
         if self._is_closing or self._repo_root is None or self._catalog is None:
-            self._clear_background_icon_keywords_status()
             return
         live = next((item for item in self._catalog.icons if item.id == family.id), None)
         if live is None:
-            self._clear_background_icon_keywords_status()
             return
         note_path = live.note_path(self._repo_root)
         if note_path is None:
-            self._on_background_icon_keywords_failed()
             return
         try:
             update_keywords_files(
@@ -1082,7 +1187,6 @@ class MainWindow(QMainWindow, AppWindowMixin):
             )
         except (OSError, ValueError, TypeError, json.JSONDecodeError):
             logger.exception("Silent keywords save failed for %s", live.id)
-            self._on_background_icon_keywords_failed()
             return
 
         live.tags = tags
@@ -1095,7 +1199,6 @@ class MainWindow(QMainWindow, AppWindowMixin):
             write_catalog_json(self._catalog)
         except OSError:
             logger.exception("Failed to write catalog.json after silent keywords for %s", live.id)
-            self._on_background_icon_keywords_failed()
             return
 
         self._pixmaps.pop(live.id, None)
@@ -1103,13 +1206,6 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._start_thumb_refresh()
         if self._selected_family_id == live.id:
             self._on_family_selected(live, persist=False)
-
-        self._clear_background_icon_keywords_status()
-        remaining = iter_families_with_stale_hashes(self._catalog, limit=1)
-        if remaining:
-            self._arm_background_icon_keywords_timer()
-        else:
-            self._stop_background_icon_keywords_timer()
 
     def _copy_icon_files(self, entries: list[tuple[str, str]]) -> None:
         """Put existing icon files on the clipboard as file URLs.
@@ -1253,6 +1349,12 @@ class MainWindow(QMainWindow, AppWindowMixin):
         if example_ids & families:
             self._refresh_variant_view_icons()
 
+    def _focus_search(self) -> None:
+        """Move keyboard focus to the toolbar search field."""
+        if hasattr(self, "search_edit"):
+            self.search_edit.setFocus(Qt.FocusReason.ShortcutFocusReason)
+            self.search_edit.selectAll()
+
     @staticmethod
     def _folder_display_name(path: Path) -> str:
         r"""Short label for folder combo/menus; `src` shows parent\src."""
@@ -1385,6 +1487,37 @@ class MainWindow(QMainWindow, AppWindowMixin):
             QMessageBox.information(self, "Vector Icons", preview)
             self.statusBar().showMessage(messages[0])
 
+    def _install_window_shortcuts(self) -> None:
+        """Bind window-level shortcuts that should work outside the grid focus."""
+        install_documented_shortcut(
+            self,
+            QKeySequence.StandardKey.Find,
+            self._focus_search,
+            description="Focus the search field",
+            category="Navigation",
+        )
+        install_documented_shortcut(
+            self,
+            QKeySequence.StandardKey.Refresh,
+            self._on_refresh_catalog,
+            description="Refresh the icon catalog",
+            category="Catalog",
+        )
+        install_documented_shortcut(
+            self,
+            QKeySequence(Qt.Key.Key_Escape),
+            self._on_escape_pressed,
+            description="Clear search (when focused) or clear the meta filter",
+            category="Navigation",
+        )
+        install_documented_shortcut(
+            self,
+            QKeySequence.StandardKey.Paste,
+            self._on_paste_vectors,
+            description="Paste SVG/AI/PDF/EPS files or SVG text into the open folder",
+            category="Import",
+        )
+
     def _is_note_repo_open(self) -> bool:
         if self._repo_root is None:
             return False
@@ -1443,6 +1576,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.statusBar().showMessage("No icon folder configured")
         self._sync_folder_combo()
         self._rebuild_folder_menus()
+        self._sync_empty_state()
 
     def _on_add_icon_variants(self) -> None:
         """Pick vector files and add them as variants of an existing note."""
@@ -1498,11 +1632,35 @@ class MainWindow(QMainWindow, AppWindowMixin):
     def _on_background_icon_keywords_failed(self) -> None:
         """Stop the silent keywords loop without dialogs."""
         self._clear_background_icon_keywords_status()
+        self._stop_background_keywords_batch()
         self._stop_background_icon_keywords_timer()
         logger.info("Background icon keywords update stopped")
 
     def _on_background_icon_keywords_timer(self) -> None:
         self._run_background_icon_keywords()
+
+    def _on_background_keywords_batch_finished(self, updated: int, failed: int, *, cancelled: bool) -> None:
+        """Clear status after a silent batch and schedule another pass when needed."""
+        self._bg_keywords_batch_runner = None
+        self._clear_background_icon_keywords_status()
+        if self._is_closing or cancelled:
+            self._stop_background_icon_keywords_timer()
+            if cancelled:
+                logger.info("Background icon keywords cancelled (updated=%s, failed=%s)", updated, failed)
+            return
+        if self._catalog is None or self._catalog.kind != "note":
+            self._stop_background_icon_keywords_timer()
+            return
+        remaining = iter_families_with_stale_hashes(self._catalog, limit=1)
+        if remaining:
+            QTimer.singleShot(_BACKGROUND_ICON_KEYWORDS_FOLLOWUP_MS, self._run_background_icon_keywords)
+        else:
+            self._stop_background_icon_keywords_timer()
+            if updated or failed:
+                self.statusBar().showMessage(
+                    f"Background keywords done. Updated {updated}, failed {failed}.",
+                    4000,
+                )
 
     def _on_batch_favorites(self, payload: object) -> None:
         if self._repo_root is None or not isinstance(payload, tuple) or len(payload) != _KEYWORD_TARGET_PAIR_LEN:
@@ -1787,6 +1945,57 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._on_refresh_catalog(allow_empty=True)
         self.statusBar().showMessage(f"Deleted `{family.id}`")
 
+    def _on_delete_selected(self) -> None:
+        """Delete all selected main-grid families after one confirmation."""
+        if self._repo_root is None or self._catalog is None:
+            return
+        families: list[IconFamily] = []
+        seen: set[str] = set()
+        for item in self.icon_list.selectedItems():
+            family = item.data(Qt.ItemDataRole.UserRole)
+            if not isinstance(family, IconFamily) or family.id in seen:
+                continue
+            seen.add(family.id)
+            families.append(family)
+        if not families:
+            current = self.icon_list.currentItem()
+            if current is not None:
+                family = current.data(Qt.ItemDataRole.UserRole)
+                if isinstance(family, IconFamily):
+                    families = [family]
+        if not families:
+            return
+        if len(families) == 1:
+            self._on_delete_icon(families[0])
+            return
+        kind = self._catalog.kind
+        detail = (
+            "This will permanently remove the selected note folders and variants."
+            if kind == "note"
+            else "This will permanently remove the selected icon file(s) from disk."
+        )
+        reply = message_box.question(
+            self,
+            "Vector Icons",
+            f"Delete {len(families)} selected icons?\n\n{detail}",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+        self._stop_thumb_refresh()
+        errors: list[str] = []
+        for family in families:
+            try:
+                delete_icon_family(family, self._repo_root, kind=kind)
+            except (OSError, ValueError) as exc:
+                errors.append(f"{family.id}: {exc}")
+        self._on_refresh_catalog(allow_empty=True)
+        if errors:
+            QMessageBox.warning(self, "Vector Icons", "Some icons could not be deleted:\n" + "\n".join(errors[:8]))
+        else:
+            self.statusBar().showMessage(f"Deleted {len(families)} icons")
+
     def _on_edit_keywords(self, family: object, svg_path: str) -> None:
         if not isinstance(family, IconFamily):
             return
@@ -1856,6 +2065,31 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.statusBar().showMessage(message)
         toast = toast_notification.ToastNotification(message, duration=2000, parent=self)
         toast.present()
+
+    def _on_empty_state_primary(self) -> None:
+        mode = self._empty_state_mode
+        if mode == "no_folder":
+            self._on_open_folder()
+        elif mode == "no_search":
+            self.search_edit.clear()
+            self._apply_filters()
+        elif mode == "no_meta":
+            self._clear_meta_filter(apply=True)
+
+    def _on_empty_state_secondary(self) -> None:
+        mode = self._empty_state_mode
+        if mode in {"no_search", "no_meta"}:
+            self.search_edit.clear()
+            self._clear_meta_filter(apply=True)
+
+    def _on_escape_pressed(self) -> None:
+        """Clear meta filter, or clear search when the search field has focus."""
+        if hasattr(self, "search_edit") and self.search_edit.hasFocus() and self.search_edit.text().strip():
+            self.search_edit.clear()
+            self._apply_filters()
+            return
+        if self._meta_filter is not None:
+            self._clear_meta_filter(apply=True)
 
     def _on_families_dropped_on_category(self, category: str, family_ids: object) -> None:
         if not isinstance(family_ids, list):
@@ -1937,6 +2171,30 @@ class MainWindow(QMainWindow, AppWindowMixin):
             save_last_icon(self._repo_root, chosen.id)
         self.variants_panel.show_family(chosen, self._repo_root)
         self.statusBar().showMessage(f"{chosen.id}: {len(chosen.variants)} variants")
+
+    def _on_favorite_selected(self) -> None:
+        """Toggle favorites for all selected main-grid families."""
+        if self._repo_root is None:
+            return
+        families: list[IconFamily] = []
+        seen: set[str] = set()
+        for item in self.icon_list.selectedItems():
+            family = item.data(Qt.ItemDataRole.UserRole)
+            if not isinstance(family, IconFamily) or family.id in seen:
+                continue
+            seen.add(family.id)
+            families.append(family)
+        if not families:
+            return
+        selected_ids = {family.id for family in families}
+        all_favorites = selected_ids.issubset(set(self._favorite_ids))
+        if all_favorites:
+            self._favorite_ids = remove_favorites(self._repo_root, list(selected_ids))
+            self.statusBar().showMessage(f"Removed {len(selected_ids)} icon(s) from favorites")
+        else:
+            self._favorite_ids = add_favorites(self._repo_root, list(selected_ids))
+            self.statusBar().showMessage(f"Added {len(selected_ids)} icon(s) to favorites")
+        self._after_favorites_changed()
 
     def _on_favorite_toggled(self, family: object) -> None:
         if not isinstance(family, IconFamily) or self._repo_root is None:
@@ -2252,6 +2510,21 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._show_text_result("Optimize SVG", report)
         self._after_optimize_svgs(svg_paths)
 
+    def _on_paste_vectors(self) -> None:
+        """Import vector files (or SVG text) from the system clipboard."""
+        if self._repo_root is None:
+            QMessageBox.warning(self, "Vector Icons", "No icons folder is open.")
+            return
+        sources = self._clipboard_vector_sources()
+        if not sources:
+            QMessageBox.information(
+                self,
+                "Vector Icons",
+                "Clipboard has no SVG/AI/PDF/EPS files (or SVG text) to paste.",
+            )
+            return
+        self._import_vector_sources(sources)
+
     def _on_pin_current_folder(self) -> None:
         if self._repo_root is None:
             QMessageBox.warning(self, "Vector Icons", "No folder is open.")
@@ -2502,6 +2775,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
     def _on_variant_view_changed(self, _index: int) -> None:
         mode = self.variant_view_combo.currentData()
         self._variant_view_mode = str(mode) if mode else MODE_FEATURED
+        if self._variant_view_mode in VARIANT_VIEW_MODE_IDS:
+            save_variant_view_mode(self._variant_view_mode)
         self._apply_filters()
 
     def _open_folder(self, path: Path, *, remember: bool = True) -> None:
@@ -2511,6 +2786,15 @@ class MainWindow(QMainWindow, AppWindowMixin):
     def _persist_icon_size(self) -> None:
         self._icon_size_save_timer.stop()
         save_icon_size(self.size_slider.value())
+
+    def _persist_layout_settings(self) -> None:
+        """Save splitter sizes and current View mode."""
+        if self._main_splitter is not None:
+            save_splitter_sizes(self._main_splitter.sizes())
+        if self._left_splitter is not None:
+            save_left_splitter_sizes(self._left_splitter.sizes())
+        if self._variant_view_mode in VARIANT_VIEW_MODE_IDS:
+            save_variant_view_mode(self._variant_view_mode)
 
     def _populate_categories(self, *, preferred_category: str | None = None) -> None:
         previous = preferred_category if preferred_category is not None else self._current_category
@@ -2751,47 +3035,38 @@ class MainWindow(QMainWindow, AppWindowMixin):
             return
         if self._catalog.kind != "note":
             return
-        if self._bg_icon_keywords_state.worker is not None:
+        if self._bg_keywords_batch_runner is not None and self._bg_keywords_batch_runner.is_running:
             return
         if self._keywords_batch_runner is not None and self._keywords_batch_runner.is_running:
             return
 
-        stale = iter_families_with_stale_hashes(
-            self._catalog,
-            limit=self._background_icon_keywords_limit(),
-        )
+        limit = self._background_icon_keywords_limit()
+        stale = iter_families_with_stale_hashes(self._catalog, limit=limit)
         if not stale:
             self._clear_background_icon_keywords_status()
             self._stop_background_icon_keywords_timer()
             return
 
-        family = stale[0]
-        icon_path = family.featured_path(self._repo_root)
-        if icon_path is None or family.note_path(self._repo_root) is None:
+        jobs: list[tuple[IconFamily, Path]] = []
+        for family in stale:
+            icon_path = family.featured_path(self._repo_root)
+            if icon_path is None or family.note_path(self._repo_root) is None:
+                continue
+            jobs.append((family, icon_path))
+        if not jobs:
             self._on_background_icon_keywords_failed()
             return
 
         config: dict[str, Any] = h.dev.config_load(get_config_path_str())
-        self.statusBar().showMessage(_BACKGROUND_ICON_KEYWORDS_STATUS)
-        request_keywords_fill(
+        self.statusBar().showMessage(f"{_BACKGROUND_ICON_KEYWORDS_STATUS} (batch of {len(jobs)})")
+        self._bg_keywords_batch_runner = KeywordsBatchRunner(
             self,
             app_config=config,
-            bothub_state=self._bg_icon_keywords_state,
-            icon_path=icon_path,
-            category=", ".join(family.categories) or family.id,
-            tags=list(family.tags),
-            fill_button=None,
-            on_tags=lambda tags, target=family: self._commit_background_icon_keywords(target, tags),
-            on_error=lambda _message: self._on_background_icon_keywords_failed(),
-            on_cancelled=self._on_background_icon_keywords_failed,
-            on_not_started=self._on_background_icon_keywords_failed,
-            toast_message=_BACKGROUND_ICON_KEYWORDS_STATUS,
-            show_empty_warning=False,
-            show_toast=False,
-            show_validation_errors=False,
-            offer_retry=False,
-            owner_modal=False,
+            jobs=jobs,
+            on_item_success=self._commit_background_icon_keywords,
+            on_finished=self._on_background_keywords_batch_finished,
         )
+        self._bg_keywords_batch_runner.start()
 
     def _schedule_search_filter(self) -> None:
         """Restart debounce so the grid filters after typing pauses."""
@@ -2963,6 +3238,13 @@ class MainWindow(QMainWindow, AppWindowMixin):
     def _stop_background_icon_keywords_timer(self) -> None:
         self._bg_icon_keywords_timer.stop()
 
+    def _stop_background_keywords_batch(self) -> None:
+        runner = self._bg_keywords_batch_runner
+        if runner is not None and runner.is_running:
+            runner.cancel()
+        self._bg_keywords_batch_runner = None
+        self._clear_background_icon_keywords_status()
+
     def _stop_catalog_load(self) -> None:
         self._catalog_load_generation += 1
         if self._catalog_load_worker is not None:
@@ -3031,6 +3313,33 @@ class MainWindow(QMainWindow, AppWindowMixin):
             self._check_images_action.setEnabled(note_repo)
             self._beautify_optimize_action.setEnabled(note_repo)
 
+    def _sync_empty_state(self) -> None:
+        """Show or hide the center empty-state CTA over the icon grid."""
+        if self._empty_state is None or self._empty_state_label is None:
+            return
+        if not hasattr(self, "icon_list"):
+            return
+        mode, message, primary, secondary = empty_grid_cta(
+            has_folder=self._repo_root is not None and self._catalog is not None,
+            entry_count=self._grid_total_entries if self._catalog is not None else 0,
+            search_query=self.search_edit.text() if hasattr(self, "search_edit") else "",
+            has_meta_filter=self._meta_filter is not None,
+        )
+        self._empty_state_mode = mode
+        if mode is None:
+            self._empty_state.hide()
+            self.icon_list.show()
+            return
+        self._empty_state_label.setText(message)
+        if self._empty_state_primary_btn is not None:
+            self._empty_state_primary_btn.setText(primary or "Open folder…")
+            self._empty_state_primary_btn.setVisible(bool(primary))
+        if self._empty_state_secondary_btn is not None:
+            self._empty_state_secondary_btn.setText(secondary or "Clear")
+            self._empty_state_secondary_btn.setVisible(bool(secondary))
+        self.icon_list.hide()
+        self._empty_state.show()
+
     def _sync_favorite_ids_to_lists(self) -> None:
         ids = set(self._favorite_ids)
         if hasattr(self, "icon_list"):
@@ -3092,10 +3401,13 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._meta_filter_bar.show()
 
     def _sync_repo_root_to_lists(self) -> None:
+        note_features = self._is_note_repo_open()
         if hasattr(self, "icon_list"):
             self.icon_list.set_repo_root(self._repo_root)
+            self.icon_list.set_note_repo_features(enabled=note_features)
         if hasattr(self, "variants_panel"):
             self.variants_panel.list.set_repo_root(self._repo_root)
+            self.variants_panel.list.set_note_repo_features(enabled=note_features)
 
     def _sync_sidebar_source(self) -> None:
         if self._meta_filter is not None:
@@ -3241,7 +3553,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
             f"Source file not found for `{family.id}`.\n\nTried stems: {stems}\nSearch folders:\n{dirs}{hint}",
         )
 
-    def _wire_icon_list_actions(self, icon_list: DraggableIconList) -> None:
+    def _wire_icon_list_actions(self, icon_list: DraggableIconList, *, main_grid: bool = False) -> None:
         icon_list.reveal_requested.connect(self._on_reveal_in_explorer)
         icon_list.details_requested.connect(self._on_icon_details)
         icon_list.copy_requested.connect(self._on_copy_svg)
@@ -3264,6 +3576,10 @@ class MainWindow(QMainWindow, AppWindowMixin):
         icon_list.open_default_requested.connect(self._on_open_with_default_program)
         icon_list.open_illustrator_requested.connect(self._on_open_in_illustrator)
         icon_list.delete_requested.connect(self._on_delete_icon)
+        if main_grid:
+            icon_list.delete_selected_requested.connect(self._on_delete_selected)
+            icon_list.favorite_selected_requested.connect(self._on_favorite_selected)
+        icon_list.paste_requested.connect(self._on_paste_vectors)
         icon_list.optimize_svgs_requested.connect(self._on_optimize_svgs)
         icon_list.refresh_variants_requested.connect(self._on_refresh_variants)
         icon_list.refresh_icons_requested.connect(self._on_refresh_catalog)
@@ -3275,6 +3591,56 @@ class MainWindow(QMainWindow, AppWindowMixin):
         icon_list.preview_requested.connect(
             lambda path, source=icon_list: self._on_preview_icon(path, source),
         )
+
+
+def empty_grid_cta(
+    *,
+    has_folder: bool,
+    entry_count: int,
+    search_query: str,
+    has_meta_filter: bool,
+) -> tuple[str | None, str, str | None, str | None]:
+    """Return empty-state `(mode, message, primary_label, secondary_label)`.
+
+    `mode` is `None` when the grid should show tiles instead of the placeholder.
+
+    """
+    if not has_folder:
+        return (
+            "no_folder",
+            "No icons folder is open.\nUse File → Open folder… or configure path_vector_icons.",
+            "Open folder…",
+            None,
+        )
+    if entry_count > 0:
+        return (None, "", None, None)
+    if search_query.strip() and has_meta_filter:
+        return (
+            "no_search",
+            "No icons match the current search and meta filter.",
+            "Clear search",
+            "Clear all filters",
+        )
+    if search_query.strip():
+        return (
+            "no_search",
+            "No icons match the current search.",
+            "Clear search",
+            None,
+        )
+    if has_meta_filter:
+        return (
+            "no_meta",
+            "No icons match the current meta filter.",
+            "Clear filter",
+            None,
+        )
+    return (
+        "no_icons",
+        "No icons in this view.\nTry another folder or category, or add vector images.",
+        None,
+        None,
+    )
 
 
 def _is_vector_drop_path(path: str) -> bool:

@@ -20,12 +20,17 @@ RECENT_FOLDERS_MAX_KEY = "vector_icons_recent_folders_max"
 GRID_SORT_KEY = "vector_icons_grid_sort"
 GRID_SORT_REVERSE_KEY = "vector_icons_grid_sort_reverse"
 SHOW_NUMBERS_KEY = "vector_icons_show_numbers"
+VARIANT_VIEW_MODE_KEY = "vector_icons_variant_view_mode"
+SPLITTER_SIZES_KEY = "vector_icons_splitter_sizes"
+LEFT_SPLITTER_SIZES_KEY = "vector_icons_left_splitter_sizes"
 ICON_SIZE_MIN = 64
 ICON_SIZE_MAX = 256
 ICON_SIZE_DEFAULT = 160
 ICON_SIZE_WHEEL_STEP = 8
 RECENT_FOLDERS_MAX_DEFAULT = 12
 RECENT_FOLDERS_MAX_LIMIT = 50
+SPLITTER_SIZES_DEFAULT = (200, 900, 320)
+LEFT_SPLITTER_SIZES_DEFAULT = (220, 280)
 
 GRID_SORT_DEFAULT = "default"
 GRID_SORT_ALPHA = "alpha"
@@ -199,6 +204,11 @@ def load_last_icons() -> dict[str, str]:
     return result
 
 
+def load_left_splitter_sizes() -> list[int]:
+    """Return left vertical splitter sizes (folders, categories)."""
+    return _load_int_list(LEFT_SPLITTER_SIZES_KEY, list(LEFT_SPLITTER_SIZES_DEFAULT), expected_len=2)
+
+
 def load_pinned_folders() -> list[Path]:
     """Load pinned folders from `config.json` (`path_vector_icons_pinned`).
 
@@ -250,6 +260,21 @@ def load_show_numbers() -> bool:
     except (FileNotFoundError, OSError, ValueError):
         return False
     return bool(config.get(SHOW_NUMBERS_KEY, False))
+
+
+def load_splitter_sizes() -> list[int]:
+    """Return main horizontal splitter sizes (left, center, right)."""
+    return _load_int_list(SPLITTER_SIZES_KEY, list(SPLITTER_SIZES_DEFAULT), expected_len=3)
+
+
+def load_variant_view_mode() -> str:
+    """Return persisted View combobox mode ID, or `featured`."""
+    try:
+        config = h.dev.config_load(get_config_path_str(), is_temp=True)
+    except (FileNotFoundError, OSError, ValueError):
+        return "featured"
+    raw = str(config.get(VARIANT_VIEW_MODE_KEY) or "").strip().casefold()
+    return raw or "featured"
 
 
 def pin_folder(path: Path) -> list[Path]:
@@ -415,6 +440,19 @@ def save_last_icon(folder: Path, family_id: str) -> None:
     )
 
 
+def save_left_splitter_sizes(sizes: list[int]) -> list[int]:
+    """Persist left vertical splitter sizes in `config-temp.json`."""
+    cleaned = _clean_positive_ints(sizes, expected_len=2, fallback=list(LEFT_SPLITTER_SIZES_DEFAULT))
+    _ensure_temp_config()
+    h.dev.config_update_value(
+        LEFT_SPLITTER_SIZES_KEY,
+        cleaned,
+        get_config_path_str(),
+        is_temp=True,
+    )
+    return cleaned
+
+
 def save_pinned_folders(paths: list[Path]) -> list[Path]:
     """Replace pinned folders in `config.json` and return the saved list."""
     updated: list[Path] = []
@@ -446,6 +484,32 @@ def save_show_numbers(*, enabled: bool) -> None:
         get_config_path_str(),
         is_temp=True,
     )
+
+
+def save_splitter_sizes(sizes: list[int]) -> list[int]:
+    """Persist main horizontal splitter sizes in `config-temp.json`."""
+    cleaned = _clean_positive_ints(sizes, expected_len=3, fallback=list(SPLITTER_SIZES_DEFAULT))
+    _ensure_temp_config()
+    h.dev.config_update_value(
+        SPLITTER_SIZES_KEY,
+        cleaned,
+        get_config_path_str(),
+        is_temp=True,
+    )
+    return cleaned
+
+
+def save_variant_view_mode(mode: str) -> str:
+    """Persist View combobox mode ID in `config-temp.json`."""
+    cleaned = mode.strip().casefold() or "featured"
+    _ensure_temp_config()
+    h.dev.config_update_value(
+        VARIANT_VIEW_MODE_KEY,
+        cleaned,
+        get_config_path_str(),
+        is_temp=True,
+    )
+    return cleaned
 
 
 def set_category_icon(category: str, family_id: str) -> dict[str, str]:
@@ -505,6 +569,20 @@ def _clean_family_ids(raw: object) -> list[str]:
     return result
 
 
+def _clean_positive_ints(values: list[int], *, expected_len: int, fallback: list[int]) -> list[int]:
+    cleaned: list[int] = []
+    for value in values:
+        try:
+            number = int(value)
+        except (TypeError, ValueError):
+            continue
+        if number > 0:
+            cleaned.append(number)
+    if len(cleaned) != expected_len:
+        return list(fallback)
+    return cleaned
+
+
 def _ensure_temp_config() -> None:
     temp_config_path = get_temp_config_path()
     temp_config_path.parent.mkdir(parents=True, exist_ok=True)
@@ -514,6 +592,17 @@ def _ensure_temp_config() -> None:
 
 def _folder_key(path: Path) -> str:
     return _path_to_config_string(path)
+
+
+def _load_int_list(key: str, fallback: list[int], *, expected_len: int) -> list[int]:
+    try:
+        config = h.dev.config_load(get_config_path_str(), is_temp=True)
+    except (FileNotFoundError, OSError, ValueError):
+        return list(fallback)
+    raw = config.get(key)
+    if not isinstance(raw, list):
+        return list(fallback)
+    return _clean_positive_ints(raw, expected_len=expected_len, fallback=fallback)
 
 
 def _normalize_folder_key(raw: str) -> str:

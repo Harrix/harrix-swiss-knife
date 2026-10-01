@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, ClassVar, cast
 
 from PySide6.QtCore import QEvent, QObject, QPoint, QSize, Qt, QTimer
-from PySide6.QtGui import QFont, QIcon, QKeyEvent, QMouseEvent, QResizeEvent
+from PySide6.QtGui import QFont, QIcon, QKeyEvent, QKeySequence, QMouseEvent, QResizeEvent
 from PySide6.QtWidgets import (
     QApplication,
     QDialog,
@@ -15,9 +15,11 @@ from PySide6.QtWidgets import (
     QLabel,
     QListWidget,
     QListWidgetItem,
+    QMenu,
     QPushButton,
     QSizeGrip,
     QSizePolicy,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -27,6 +29,12 @@ from harrix_swiss_knife.action_title import strip_md_inline_code_markers
 from harrix_swiss_knife.actions.common.dialog_geometry import center_widget_on_available_screen
 from harrix_swiss_knife.actions.common.quick_launcher_settings import load_quick_launcher_markdown_in_panel
 from harrix_swiss_knife.actions.markdown.new_markdown import OnNewMarkdown
+from harrix_swiss_knife.apps.common.keyboard_shortcuts import (
+    ShortcutHelpEntry,
+    add_keyboard_shortcuts_help_action,
+    install_documented_shortcut,
+    show_keyboard_shortcuts_help,
+)
 from harrix_swiss_knife.cli_menu import show_action_class_context_menu
 from harrix_swiss_knife.installer.icon_assets import apply_window_icon
 from harrix_swiss_knife.qt_action_card_grid import (
@@ -44,7 +52,7 @@ from harrix_swiss_knife.qt_command_section import (
     style_transparent_icon_grid,
 )
 from harrix_swiss_knife.qt_frameless_window import frameless_stay_on_top_flags, try_handle_frameless_resize_native_event
-from harrix_swiss_knife.qt_lucide_icon import CLOSE_BUTTON_ICON, apply_lucide_button_icon
+from harrix_swiss_knife.qt_lucide_icon import CLOSE_BUTTON_ICON, apply_lucide_button_icon, create_lucide_icon
 from harrix_swiss_knife.qt_markdown_choice_cards import populate_icon_choice_cards
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
 from harrix_swiss_knife.win11_caption import (
@@ -105,9 +113,10 @@ class QuickLauncherDialog(QDialog):
         self._content_layout.setContentsMargins(16, 12, 16, 16)
         self._content_layout.setSpacing(12)
 
-        self._win11_caption = install_win11_caption(self)
+        menu_button = self._build_menu_button()
+        self._win11_caption = install_win11_caption(self, trailing_widgets=[menu_button])
         if not self._win11_caption:
-            self._build_fallback_header()
+            self._build_fallback_header(menu_button)
 
         self._cards = QListWidget(self)
         configure_action_card_grid(self._cards)
@@ -158,6 +167,13 @@ class QuickLauncherDialog(QDialog):
         self.setMouseTracking(True)
         self.setCursor(Qt.CursorShape.OpenHandCursor)
         self._center_on_screen()
+        install_documented_shortcut(
+            self,
+            QKeySequence.StandardKey.HelpContents,
+            self._show_keyboard_shortcuts,
+            description="Show keyboard shortcuts help",
+            category="Help",
+        )
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Hide the overlay instead of destroying it."""
@@ -316,7 +332,7 @@ class QuickLauncherDialog(QDialog):
         self._content_layout.setStretch(self._content_layout.indexOf(self._actions_section), 1)
         self._content_layout.setStretch(self._content_layout.indexOf(self._markdown_section), 1 if enabled else 0)
 
-    def _build_fallback_header(self) -> None:
+    def _build_fallback_header(self, menu_button: QToolButton) -> None:
         """Build a simple title row when Win11 caption is unavailable."""
         title = QLabel("Quick launcher")
         title_font = QFont(title.font())
@@ -340,6 +356,7 @@ class QuickLauncherDialog(QDialog):
 
         header = QHBoxLayout()
         header.setContentsMargins(0, 0, 0, 0)
+        header.addWidget(menu_button)
         header.addWidget(title)
         header.addWidget(header_spacer, stretch=1)
         header.addWidget(close_button)
@@ -347,6 +364,21 @@ class QuickLauncherDialog(QDialog):
 
         for draggable_widget in (title, header_spacer):
             draggable_widget.installEventFilter(self)
+
+    def _build_menu_button(self) -> QToolButton:
+        menu_button = QToolButton(self)
+        menu_button.setIcon(create_lucide_icon("menu", 18))
+        menu_button.setIconSize(QSize(18, 18))
+        menu_button.setFixedSize(CAPTION_BUTTON_HEIGHT, CAPTION_BUTTON_HEIGHT)
+        menu_button.setAutoRaise(True)
+        menu_button.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
+        menu_button.setToolTip("Menu")
+        menu_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        menu_button.setStyleSheet("QToolButton::menu-indicator { image: none; width: 0px; }")
+        header_menu = QMenu(menu_button)
+        add_keyboard_shortcuts_help_action(header_menu, self, slot=self._show_keyboard_shortcuts)
+        menu_button.setMenu(header_menu)
+        return menu_button
 
     def _can_start_drag_at(self, local_pos: QPoint) -> bool:
         child = self.childAt(local_pos)
@@ -586,6 +618,18 @@ class QuickLauncherDialog(QDialog):
             ai_screenshot_titles=ai_screenshot_titles,
             on_select=lambda title: self._run_markdown_choice(title, ai_screenshot=False),
             on_ai_screenshot=self._on_markdown_ai_screenshot,
+        )
+
+    def _show_keyboard_shortcuts(self) -> None:
+        show_keyboard_shortcuts_help(
+            self,
+            "Quick launcher — Keyboard shortcuts",
+            [
+                ShortcutHelpEntry("Esc", "Hide Quick launcher", "Window"),
+                ShortcutHelpEntry("Enter", "Run the selected action card", "Actions"),
+                ShortcutHelpEntry("Arrow keys", "Move between action cards", "Actions"),
+                ShortcutHelpEntry("F1", "Show this keyboard shortcuts help", "Help"),
+            ],
         )
 
     def _start_drag(self, global_pos: QPoint) -> None:

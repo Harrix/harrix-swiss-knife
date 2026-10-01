@@ -41,6 +41,14 @@ from harrix_swiss_knife.actions.common.text_result_dialog import (
     COPY_BUTTON_LABEL,
     OK_BUTTON_LABEL,
 )
+from harrix_swiss_knife.apps.common.keyboard_shortcuts import (
+    ShortcutHelpEntry,
+    add_keyboard_shortcuts_help_action,
+    collect_documented_shortcuts,
+    install_documented_shortcut,
+    merge_shortcut_help,
+    show_keyboard_shortcuts_help,
+)
 from harrix_swiss_knife.apps.common.qt_main_window import apply_app_window_size_and_position
 from harrix_swiss_knife.paths import get_config_path_str, get_temp_config_path
 from harrix_swiss_knife.qt_flow_layout import FlowLayout
@@ -329,37 +337,73 @@ class ScreenshotPreviewWindow(QMainWindow):
         footer.addWidget(self._status)
         root.addLayout(footer)
 
-        save_shortcut = QShortcut(QKeySequence.StandardKey.Save, self)
-        save_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
-        save_shortcut.activated.connect(self._save_to_images)
-        undo_shortcut = QShortcut(QKeySequence.StandardKey.Undo, self)
-        undo_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
-        undo_shortcut.activated.connect(self._undo)
-        redo_shortcut = QShortcut(QKeySequence.StandardKey.Redo, self)
-        redo_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
-        redo_shortcut.activated.connect(self._redo)
-        cut_shortcut = QShortcut(QKeySequence.StandardKey.Cut, self)
-        cut_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
-        cut_shortcut.activated.connect(self._cut_annotations)
-        copy_shortcut = QShortcut(QKeySequence.StandardKey.Copy, self)
-        copy_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
-        copy_shortcut.activated.connect(self._copy_annotations)
-        paste_shortcut = QShortcut(QKeySequence.StandardKey.Paste, self)
-        paste_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
-        paste_shortcut.activated.connect(self._paste_annotations)
-        for sequence, slot in (
-            ("Ctrl+D", self._duplicate_annotations),
-            ("Shift+Delete", self._delete_all_annotations),
-            ("Ctrl+Shift+F", self._flatten_annotations),
-            ("Home", self._bring_to_front),
-            ("PgUp", self._bring_forward),
-            ("PgDown", self._send_backward),
-            ("End", self._send_to_back),
+        install_documented_shortcut(
+            self,
+            QKeySequence.StandardKey.Save,
+            self._save_to_images,
+            description="Save the current tab image to the images folder",
+            category="File",
+        )
+        install_documented_shortcut(
+            self,
+            QKeySequence.StandardKey.Undo,
+            self._undo,
+            description="Undo the last annotation change",
+            category="Edit",
+        )
+        install_documented_shortcut(
+            self,
+            QKeySequence.StandardKey.Redo,
+            self._redo,
+            description="Redo the last undone annotation change",
+            category="Edit",
+        )
+        install_documented_shortcut(
+            self,
+            QKeySequence.StandardKey.Cut,
+            self._cut_annotations,
+            description="Cut selected annotations",
+            category="Edit",
+        )
+        install_documented_shortcut(
+            self,
+            QKeySequence.StandardKey.Copy,
+            self._copy_annotations,
+            description="Copy selected annotations",
+            category="Edit",
+        )
+        install_documented_shortcut(
+            self,
+            QKeySequence.StandardKey.Paste,
+            self._paste_annotations,
+            description="Paste annotations",
+            category="Edit",
+        )
+        for sequence, slot, description in (
+            ("Ctrl+D", self._duplicate_annotations, "Duplicate selected annotations"),
+            ("Shift+Delete", self._delete_all_annotations, "Delete all annotations on the current tab"),
+            ("Ctrl+Shift+F", self._flatten_annotations, "Flatten annotations into the image"),
+            ("Home", self._bring_to_front, "Bring selected annotations to front"),
+            ("PgUp", self._bring_forward, "Bring selected annotations forward"),
+            ("PgDown", self._send_backward, "Send selected annotations backward"),
+            ("End", self._send_to_back, "Send selected annotations to back"),
         ):
-            shortcut = QShortcut(QKeySequence(sequence), self)
-            shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
-            shortcut.activated.connect(slot)
+            install_documented_shortcut(
+                self,
+                sequence,
+                slot,
+                description=description,
+                category="Edit",
+            )
         self._install_zoom_shortcuts()
+        install_documented_shortcut(
+            self,
+            QKeySequence.StandardKey.HelpContents,
+            self._show_keyboard_shortcuts,
+            description="Show keyboard shortcuts help",
+            category="Help",
+        )
+        self._build_help_menu()
         apply_app_window_size_and_position(self)
         QTimer.singleShot(0, self._refit_tools_host)
 
@@ -556,6 +600,10 @@ class ScreenshotPreviewWindow(QMainWindow):
             return
         self._status.setText("Brought to front")
 
+    def _build_help_menu(self) -> None:
+        help_menu = self.menuBar().addMenu("&Help")
+        add_keyboard_shortcuts_help_action(help_menu, self, slot=self._show_keyboard_shortcuts)
+
     def _cancel_crop(self) -> None:
         tab = self._current_tab()
         if tab is None:
@@ -658,14 +706,22 @@ class ScreenshotPreviewWindow(QMainWindow):
         """Zoom with Ctrl++ and Ctrl+-, including Shift on the main plus key."""
         self._zoom_shortcuts: list[QShortcut] = []
         for sequence in _zoom_in_sequences():
-            shortcut = QShortcut(sequence, self)
-            shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
-            shortcut.activated.connect(self._zoom_in)
+            shortcut = install_documented_shortcut(
+                self,
+                sequence,
+                self._zoom_in,
+                description="Zoom in",
+                category="View",
+            )
             self._zoom_shortcuts.append(shortcut)
         for sequence in _zoom_out_sequences():
-            shortcut = QShortcut(sequence, self)
-            shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
-            shortcut.activated.connect(self._zoom_out)
+            shortcut = install_documented_shortcut(
+                self,
+                sequence,
+                self._zoom_out,
+                description="Zoom out",
+                category="View",
+            )
             self._zoom_shortcuts.append(shortcut)
 
     def _on_color_hovered(self, color: object) -> None:
@@ -1085,6 +1141,25 @@ class ScreenshotPreviewWindow(QMainWindow):
             )
         elif tool != AnnotationTool.CROP:
             self._status.setText(f"Tool: {tip}")
+
+    def _show_keyboard_shortcuts(self) -> None:
+        show_keyboard_shortcuts_help(
+            self,
+            "Screenshot — Keyboard shortcuts",
+            merge_shortcut_help(
+                collect_documented_shortcuts(self),
+                [
+                    ShortcutHelpEntry("Delete / Backspace", "Delete selected annotations", "Edit"),
+                    ShortcutHelpEntry("Esc", "Cancel crop / eyedropper, or clear selection", "Tools"),
+                    ShortcutHelpEntry("Enter", "Confirm crop when a crop region is ready", "Tools"),
+                    ShortcutHelpEntry("Shift+click", "Select several annotations", "Tools"),
+                    ShortcutHelpEntry("Shift (while drawing)", "Constrain shapes / angles", "Tools"),
+                    ShortcutHelpEntry("Ctrl+wheel", "Zoom the canvas", "View"),
+                    ShortcutHelpEntry("Middle-drag", "Pan the canvas", "View"),
+                    ShortcutHelpEntry("F1", "Show this keyboard shortcuts help", "Help"),
+                ],
+            ),
+        )
 
     def _show_picked_color(self, color: QColor) -> None:
         dialog = self._color_dialog

@@ -99,6 +99,13 @@ class SnippetsDialog(QDialog):
         self.setMouseTracking(True)
         self._init_database()
         self.reload_all()
+        install_documented_shortcut(
+            self,
+            QKeySequence.StandardKey.HelpContents,
+            self._show_keyboard_shortcuts,
+            description="Show keyboard shortcuts help",
+            category="Help",
+        )
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Hide the overlay instead of destroying it."""
@@ -469,6 +476,8 @@ class SnippetsDialog(QDialog):
         menu.addSeparator()
         mode, descending = self._shared_zone_sort()
         add_sort_menu_actions(menu, mode=mode, descending=descending, on_sort=self._sort_all_zones)
+        menu.addSeparator()
+        add_keyboard_shortcuts_help_action(menu, self, slot=self._show_keyboard_shortcuts)
 
     def _handle_title_drag(self, watched: QObject, event: QEvent) -> bool:
         if (
@@ -618,6 +627,19 @@ class SnippetsDialog(QDialog):
         self._set_input_text(snippet.value)
         self._input.selectAll()
 
+    def _show_keyboard_shortcuts(self) -> None:
+        show_keyboard_shortcuts_help(
+            self,
+            "Quick paste — Keyboard shortcuts",
+            [
+                ShortcutHelpEntry("Esc", "Hide Quick paste", "Window"),
+                ShortcutHelpEntry("Enter", "Paste the highlighted item from the active zone", "List"),
+                ShortcutHelpEntry("↑ / ↓", "Move highlight in the active zone (from the search field)", "List"),
+                ShortcutHelpEntry("Tab / Shift+Tab", "Cycle Phrases → Emoji → Symbols → Colors", "Zones"),
+                ShortcutHelpEntry("F1", "Show this keyboard shortcuts help", "Help"),
+            ],
+        )
+
     def _sort_all_zones(self, mode: str) -> None:
         if self.db_manager is None:
             return
@@ -747,6 +769,13 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self.setMouseTracking(True)
         self._init_database()
         self.reload_all()
+        install_documented_shortcut(
+            self,
+            QKeySequence.StandardKey.HelpContents,
+            self._show_keyboard_shortcuts,
+            description="Show keyboard shortcuts help",
+            category="Help",
+        )
 ```
 
 </details>

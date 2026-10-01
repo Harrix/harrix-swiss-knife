@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, cast
 
 import harrix_pylib as h
 from PySide6.QtCore import QEvent, QObject, QPoint, QSize, Qt
-from PySide6.QtGui import QFont, QKeyEvent, QMouseEvent
+from PySide6.QtGui import QFont, QKeyEvent, QKeySequence, QMouseEvent
 from PySide6.QtWidgets import (
     QApplication,
     QDialog,
@@ -30,6 +30,12 @@ from harrix_swiss_knife.actions.common.dialog_geometry import center_widget_on_a
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.db_init import init_tracker_database
 from harrix_swiss_knife.apps.common.dialogs.text_input_dialog import TextInputDialog
+from harrix_swiss_knife.apps.common.keyboard_shortcuts import (
+    ShortcutHelpEntry,
+    add_keyboard_shortcuts_help_action,
+    install_documented_shortcut,
+    show_keyboard_shortcuts_help,
+)
 from harrix_swiss_knife.apps.snippets import database_manager
 from harrix_swiss_knife.apps.snippets.constants import (
     SORT_ADDED,
@@ -159,6 +165,13 @@ class SnippetsDialog(QDialog):
         self.setMouseTracking(True)
         self._init_database()
         self.reload_all()
+        install_documented_shortcut(
+            self,
+            QKeySequence.StandardKey.HelpContents,
+            self._show_keyboard_shortcuts,
+            description="Show keyboard shortcuts help",
+            category="Help",
+        )
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Hide the overlay instead of destroying it."""
@@ -529,6 +542,8 @@ class SnippetsDialog(QDialog):
         menu.addSeparator()
         mode, descending = self._shared_zone_sort()
         add_sort_menu_actions(menu, mode=mode, descending=descending, on_sort=self._sort_all_zones)
+        menu.addSeparator()
+        add_keyboard_shortcuts_help_action(menu, self, slot=self._show_keyboard_shortcuts)
 
     def _handle_title_drag(self, watched: QObject, event: QEvent) -> bool:
         if (
@@ -677,6 +692,19 @@ class SnippetsDialog(QDialog):
             return
         self._set_input_text(snippet.value)
         self._input.selectAll()
+
+    def _show_keyboard_shortcuts(self) -> None:
+        show_keyboard_shortcuts_help(
+            self,
+            "Quick paste — Keyboard shortcuts",
+            [
+                ShortcutHelpEntry("Esc", "Hide Quick paste", "Window"),
+                ShortcutHelpEntry("Enter", "Paste the highlighted item from the active zone", "List"),
+                ShortcutHelpEntry("↑ / ↓", "Move highlight in the active zone (from the search field)", "List"),
+                ShortcutHelpEntry("Tab / Shift+Tab", "Cycle Phrases → Emoji → Symbols → Colors", "Zones"),
+                ShortcutHelpEntry("F1", "Show this keyboard shortcuts help", "Help"),
+            ],
+        )
 
     def _sort_all_zones(self, mode: str) -> None:
         if self.db_manager is None:

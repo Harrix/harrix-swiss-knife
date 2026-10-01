@@ -28,7 +28,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, cast
 
 import harrix_pylib as h
 from PySide6.QtCore import QEvent, QEventLoop, QObject, QRect, Qt, QTimer
-from PySide6.QtGui import QAction, QCursor, QGuiApplication, QScreen, QWindowStateChangeEvent
+from PySide6.QtGui import QAction, QCursor, QGuiApplication, QKeySequence, QScreen, QWindowStateChangeEvent
 from PySide6.QtWidgets import (
     QApplication,
     QFrame,
@@ -44,6 +44,15 @@ from PySide6.QtWidgets import (
 from shiboken6 import isValid
 
 from harrix_swiss_knife.apps.common import message_box
+from harrix_swiss_knife.apps.common.keyboard_shortcuts import (
+    ShortcutHelpEntry,
+    add_keyboard_shortcuts_help_action,
+    collect_documented_shortcuts,
+    default_tracker_app_shortcut_help,
+    install_documented_shortcut,
+    merge_shortcut_help,
+    show_keyboard_shortcuts_help,
+)
 from harrix_swiss_knife.apps.common.ui_helpers import reveal_in_file_explorer
 from harrix_swiss_knife.apps.common.word_wrap_header import install_word_wrap_headers
 from harrix_swiss_knife.qt_app_font import apply_ui_font_scale
@@ -70,8 +79,16 @@ class AppWindowMixin:
 
     actionAbout: QAction  # noqa: N815
     actionExit: QAction  # noqa: N815
+    actionKeyboardShortcuts: QAction  # noqa: N815
     db_manager: Any
     _hide_on_close: bool
+
+    def keyboard_shortcut_help_entries(self) -> list[ShortcutHelpEntry]:
+        """Return shortcuts for Help → Keyboard shortcuts (override per app)."""
+        return merge_shortcut_help(
+            collect_documented_shortcuts(cast("QWidget", self)),
+            default_tracker_app_shortcut_help(),
+        )
 
     def on_about(self) -> None:
         """Show the About dialog with app information."""
@@ -108,6 +125,14 @@ class AppWindowMixin:
     def on_exit(self) -> None:
         """Close the application window."""
         self.close()  # type: ignore[attr-defined]
+
+    def on_keyboard_shortcuts(self) -> None:
+        """Show a non-modal list of this window's keyboard shortcuts."""
+        show_keyboard_shortcuts_help(
+            cast("QWidget", self),
+            f"{type(self).about_app_name} — Keyboard shortcuts",
+            self.keyboard_shortcut_help_entries(),
+        )
 
     def on_reveal_database(self) -> None:
         """Open the system file manager with this app's SQLite database selected."""
@@ -150,6 +175,9 @@ class AppWindowMixin:
         """Set Lucide icons on Exit and About, then convert other menu prefixes."""
         apply_lucide_action_icon(self.actionExit, "log-out")
         apply_lucide_action_icon(self.actionAbout, "info")
+        shortcuts_action = getattr(self, "actionKeyboardShortcuts", None)
+        if isinstance(shortcuts_action, QAction):
+            apply_lucide_action_icon(shortcuts_action, "keyboard")
         self._apply_menu_bar_emoji_icons()
 
     def _apply_menu_bar_emoji_icons(self) -> None:
@@ -166,6 +194,7 @@ class AppWindowMixin:
         """Wire Exit and About menu actions to their handlers."""
         self.actionExit.triggered.connect(self.on_exit)
         self.actionAbout.triggered.connect(self.on_about)
+        self._setup_keyboard_shortcuts_help_action()
         self._setup_reveal_database_action()
         self._setup_settings_action()
 
@@ -415,6 +444,29 @@ class AppWindowMixin:
         if not filename:
             return None
         return Path(str(filename)).expanduser()
+
+    def _setup_keyboard_shortcuts_help_action(self) -> None:
+        """Add Help → Keyboard shortcuts when a Help menu is available."""
+        if getattr(self, "actionKeyboardShortcuts", None) is not None:
+            return
+        menu = getattr(self, "menuHelp", None)
+        if not isinstance(menu, QMenu):
+            return
+        about = getattr(self, "actionAbout", None)
+        before = about if isinstance(about, QAction) else None
+        self.actionKeyboardShortcuts = add_keyboard_shortcuts_help_action(
+            menu,
+            cast("QWidget", self),
+            before=before,
+            slot=self.on_keyboard_shortcuts,
+        )
+        install_documented_shortcut(
+            cast("QWidget", self),
+            QKeySequence.StandardKey.HelpContents,
+            self.on_keyboard_shortcuts,
+            description="Show keyboard shortcuts help",
+            category="Help",
+        )
 
     def _setup_reveal_database_action(self) -> None:
         """Add File → Show database in folder for tracker apps with SQLite."""

@@ -118,6 +118,7 @@ from harrix_swiss_knife.apps.common.exercise_media import (
     has_missing_static_thumbnails,
     is_exercise_media_path,
 )
+from harrix_swiss_knife.apps.common.keyboard_shortcuts import ShortcutHelpEntry, merge_shortcut_help
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.scroll_pagination import ScrollPagination, on_scroll_load_more
 from harrix_swiss_knife.apps.common.table_context_menu import (
@@ -312,6 +313,7 @@ class MainWindow(
     )
     about_app_name = "Fitness tracker"
     about_description = "Track workouts, exercises, weight, and progress."
+
     settings_app_id = "fitness"
     defer_initial_show = True
 
@@ -706,6 +708,17 @@ class MainWindow(
             return
 
         super().keyPressEvent(event)
+
+    def keyboard_shortcut_help_entries(self) -> list[ShortcutHelpEntry]:
+        """Return Fitness shortcuts including workouts Delete and lightbox Space."""
+        return merge_shortcut_help(
+            super().keyboard_shortcut_help_entries(),
+            [
+                ShortcutHelpEntry("Delete", "Remove selected items in the workout sets table", "Workouts"),
+                ShortcutHelpEntry("Space", "Start or pause the timer in the exercise lightbox", "Lightbox"),
+                ShortcutHelpEntry("F1", "Show this keyboard shortcuts help", "Help"),
+            ],
+        )
 
     @requires_database()
     def load_process_table(self) -> None:

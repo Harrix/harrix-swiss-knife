@@ -80,9 +80,10 @@ class QuickLauncherDialog(QDialog):
         self._content_layout.setContentsMargins(16, 12, 16, 16)
         self._content_layout.setSpacing(12)
 
-        self._win11_caption = install_win11_caption(self)
+        menu_button = self._build_menu_button()
+        self._win11_caption = install_win11_caption(self, trailing_widgets=[menu_button])
         if not self._win11_caption:
-            self._build_fallback_header()
+            self._build_fallback_header(menu_button)
 
         self._cards = QListWidget(self)
         configure_action_card_grid(self._cards)
@@ -133,6 +134,13 @@ class QuickLauncherDialog(QDialog):
         self.setMouseTracking(True)
         self.setCursor(Qt.CursorShape.OpenHandCursor)
         self._center_on_screen()
+        install_documented_shortcut(
+            self,
+            QKeySequence.StandardKey.HelpContents,
+            self._show_keyboard_shortcuts,
+            description="Show keyboard shortcuts help",
+            category="Help",
+        )
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Hide the overlay instead of destroying it."""
@@ -291,7 +299,7 @@ class QuickLauncherDialog(QDialog):
         self._content_layout.setStretch(self._content_layout.indexOf(self._actions_section), 1)
         self._content_layout.setStretch(self._content_layout.indexOf(self._markdown_section), 1 if enabled else 0)
 
-    def _build_fallback_header(self) -> None:
+    def _build_fallback_header(self, menu_button: QToolButton) -> None:
         """Build a simple title row when Win11 caption is unavailable."""
         title = QLabel("Quick launcher")
         title_font = QFont(title.font())
@@ -315,6 +323,7 @@ class QuickLauncherDialog(QDialog):
 
         header = QHBoxLayout()
         header.setContentsMargins(0, 0, 0, 0)
+        header.addWidget(menu_button)
         header.addWidget(title)
         header.addWidget(header_spacer, stretch=1)
         header.addWidget(close_button)
@@ -322,6 +331,21 @@ class QuickLauncherDialog(QDialog):
 
         for draggable_widget in (title, header_spacer):
             draggable_widget.installEventFilter(self)
+
+    def _build_menu_button(self) -> QToolButton:
+        menu_button = QToolButton(self)
+        menu_button.setIcon(create_lucide_icon("menu", 18))
+        menu_button.setIconSize(QSize(18, 18))
+        menu_button.setFixedSize(CAPTION_BUTTON_HEIGHT, CAPTION_BUTTON_HEIGHT)
+        menu_button.setAutoRaise(True)
+        menu_button.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
+        menu_button.setToolTip("Menu")
+        menu_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        menu_button.setStyleSheet("QToolButton::menu-indicator { image: none; width: 0px; }")
+        header_menu = QMenu(menu_button)
+        add_keyboard_shortcuts_help_action(header_menu, self, slot=self._show_keyboard_shortcuts)
+        menu_button.setMenu(header_menu)
+        return menu_button
 
     def _can_start_drag_at(self, local_pos: QPoint) -> bool:
         child = self.childAt(local_pos)
@@ -563,6 +587,18 @@ class QuickLauncherDialog(QDialog):
             on_ai_screenshot=self._on_markdown_ai_screenshot,
         )
 
+    def _show_keyboard_shortcuts(self) -> None:
+        show_keyboard_shortcuts_help(
+            self,
+            "Quick launcher — Keyboard shortcuts",
+            [
+                ShortcutHelpEntry("Esc", "Hide Quick launcher", "Window"),
+                ShortcutHelpEntry("Enter", "Run the selected action card", "Actions"),
+                ShortcutHelpEntry("Arrow keys", "Move between action cards", "Actions"),
+                ShortcutHelpEntry("F1", "Show this keyboard shortcuts help", "Help"),
+            ],
+        )
+
     def _start_drag(self, global_pos: QPoint) -> None:
         self._dragging = True
         self._drag_position = global_pos - self.frameGeometry().topLeft()
@@ -629,9 +665,10 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self._content_layout.setContentsMargins(16, 12, 16, 16)
         self._content_layout.setSpacing(12)
 
-        self._win11_caption = install_win11_caption(self)
+        menu_button = self._build_menu_button()
+        self._win11_caption = install_win11_caption(self, trailing_widgets=[menu_button])
         if not self._win11_caption:
-            self._build_fallback_header()
+            self._build_fallback_header(menu_button)
 
         self._cards = QListWidget(self)
         configure_action_card_grid(self._cards)
@@ -682,6 +719,13 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self.setMouseTracking(True)
         self.setCursor(Qt.CursorShape.OpenHandCursor)
         self._center_on_screen()
+        install_documented_shortcut(
+            self,
+            QKeySequence.StandardKey.HelpContents,
+            self._show_keyboard_shortcuts,
+            description="Show keyboard shortcuts help",
+            category="Help",
+        )
 ```
 
 </details>

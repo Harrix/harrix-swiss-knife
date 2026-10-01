@@ -24,10 +24,13 @@ lang: en
 - [🔧 Function `load_last_folder`](#-function-load_last_folder)
 - [🔧 Function `load_last_icon`](#-function-load_last_icon)
 - [🔧 Function `load_last_icons`](#-function-load_last_icons)
+- [🔧 Function `load_left_splitter_sizes`](#-function-load_left_splitter_sizes)
 - [🔧 Function `load_pinned_folders`](#-function-load_pinned_folders)
 - [🔧 Function `load_recent_folders`](#-function-load_recent_folders)
 - [🔧 Function `load_recent_folders_max`](#-function-load_recent_folders_max)
 - [🔧 Function `load_show_numbers`](#-function-load_show_numbers)
+- [🔧 Function `load_splitter_sizes`](#-function-load_splitter_sizes)
+- [🔧 Function `load_variant_view_mode`](#-function-load_variant_view_mode)
 - [🔧 Function `pin_folder`](#-function-pin_folder)
 - [🔧 Function `remember_recent_folder`](#-function-remember_recent_folder)
 - [🔧 Function `remove_favorites`](#-function-remove_favorites)
@@ -39,8 +42,11 @@ lang: en
 - [🔧 Function `save_icon_size`](#-function-save_icon_size)
 - [🔧 Function `save_last_folder`](#-function-save_last_folder)
 - [🔧 Function `save_last_icon`](#-function-save_last_icon)
+- [🔧 Function `save_left_splitter_sizes`](#-function-save_left_splitter_sizes)
 - [🔧 Function `save_pinned_folders`](#-function-save_pinned_folders)
 - [🔧 Function `save_show_numbers`](#-function-save_show_numbers)
+- [🔧 Function `save_splitter_sizes`](#-function-save_splitter_sizes)
+- [🔧 Function `save_variant_view_mode`](#-function-save_variant_view_mode)
 - [🔧 Function `set_category_icon`](#-function-set_category_icon)
 - [🔧 Function `sidebar_category_names`](#-function-sidebar_category_names)
 - [🔧 Function `toggle_favorite`](#-function-toggle_favorite)
@@ -377,6 +383,24 @@ def load_last_icons() -> dict[str, str]:
 
 </details>
 
+## 🔧 Function `load_left_splitter_sizes`
+
+```python
+def load_left_splitter_sizes() -> list[int]
+```
+
+Return left vertical splitter sizes (folders, categories).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def load_left_splitter_sizes() -> list[int]:
+    return _load_int_list(LEFT_SPLITTER_SIZES_KEY, list(LEFT_SPLITTER_SIZES_DEFAULT), expected_len=2)
+```
+
+</details>
+
 ## 🔧 Function `load_pinned_folders`
 
 ```python
@@ -476,6 +500,47 @@ def load_show_numbers() -> bool:
     except (FileNotFoundError, OSError, ValueError):
         return False
     return bool(config.get(SHOW_NUMBERS_KEY, False))
+```
+
+</details>
+
+## 🔧 Function `load_splitter_sizes`
+
+```python
+def load_splitter_sizes() -> list[int]
+```
+
+Return main horizontal splitter sizes (left, center, right).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def load_splitter_sizes() -> list[int]:
+    return _load_int_list(SPLITTER_SIZES_KEY, list(SPLITTER_SIZES_DEFAULT), expected_len=3)
+```
+
+</details>
+
+## 🔧 Function `load_variant_view_mode`
+
+```python
+def load_variant_view_mode() -> str
+```
+
+Return persisted View combobox mode ID, or `featured`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def load_variant_view_mode() -> str:
+    try:
+        config = h.dev.config_load(get_config_path_str(), is_temp=True)
+    except (FileNotFoundError, OSError, ValueError):
+        return "featured"
+    raw = str(config.get(VARIANT_VIEW_MODE_KEY) or "").strip().casefold()
+    return raw or "featured"
 ```
 
 </details>
@@ -786,6 +851,32 @@ def save_last_icon(folder: Path, family_id: str) -> None:
 
 </details>
 
+## 🔧 Function `save_left_splitter_sizes`
+
+```python
+def save_left_splitter_sizes(sizes: list[int]) -> list[int]
+```
+
+Persist left vertical splitter sizes in `config-temp.json`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def save_left_splitter_sizes(sizes: list[int]) -> list[int]:
+    cleaned = _clean_positive_ints(sizes, expected_len=2, fallback=list(LEFT_SPLITTER_SIZES_DEFAULT))
+    _ensure_temp_config()
+    h.dev.config_update_value(
+        LEFT_SPLITTER_SIZES_KEY,
+        cleaned,
+        get_config_path_str(),
+        is_temp=True,
+    )
+    return cleaned
+```
+
+</details>
+
 ## 🔧 Function `save_pinned_folders`
 
 ```python
@@ -841,6 +932,58 @@ def save_show_numbers(*, enabled: bool) -> None:
         get_config_path_str(),
         is_temp=True,
     )
+```
+
+</details>
+
+## 🔧 Function `save_splitter_sizes`
+
+```python
+def save_splitter_sizes(sizes: list[int]) -> list[int]
+```
+
+Persist main horizontal splitter sizes in `config-temp.json`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def save_splitter_sizes(sizes: list[int]) -> list[int]:
+    cleaned = _clean_positive_ints(sizes, expected_len=3, fallback=list(SPLITTER_SIZES_DEFAULT))
+    _ensure_temp_config()
+    h.dev.config_update_value(
+        SPLITTER_SIZES_KEY,
+        cleaned,
+        get_config_path_str(),
+        is_temp=True,
+    )
+    return cleaned
+```
+
+</details>
+
+## 🔧 Function `save_variant_view_mode`
+
+```python
+def save_variant_view_mode(mode: str) -> str
+```
+
+Persist View combobox mode ID in `config-temp.json`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def save_variant_view_mode(mode: str) -> str:
+    cleaned = mode.strip().casefold() or "featured"
+    _ensure_temp_config()
+    h.dev.config_update_value(
+        VARIANT_VIEW_MODE_KEY,
+        cleaned,
+        get_config_path_str(),
+        is_temp=True,
+    )
+    return cleaned
 ```
 
 </details>

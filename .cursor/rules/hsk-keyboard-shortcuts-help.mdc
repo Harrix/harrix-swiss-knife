@@ -1,0 +1,16 @@
+---
+description: When adding keyboard shortcuts in Qt apps/overlays, document them in Help
+globs: src/harrix_swiss_knife/**/*.{py}
+alwaysApply: false
+---
+
+# Keyboard shortcuts help
+
+When you add, change, or remove a keyboard shortcut in a Qt window (apps, Quick paste, Quick launcher, screenshot editor, overlays):
+
+1. Prefer `install_documented_shortcut(...)` from `harrix_swiss_knife.apps.common.keyboard_shortcuts` for `QShortcut` bindings so Help can auto-collect them via `whatsThis` / `collect_documented_shortcuts`.
+2. For shortcuts handled only in `keyPressEvent` / event filters (no `QShortcut`), add a matching `ShortcutHelpEntry` to that window’s help list (for example `keyboard_shortcut_help_entries()`, or the list passed to `show_keyboard_shortcuts_help`).
+3. Ensure Help still exposes the list: **Help → Keyboard shortcuts** (or the overlay menu equivalent). The help window must stay **non-modal** so the user can work with it open.
+4. Keep the description short and action-focused (what it does), not an implementation note.
+
+Do not leave a new shortcut without a help row.

@@ -19,6 +19,7 @@ lang: en
   - [⚙️ Method `delete_record`](#%EF%B8%8F-method-delete_record)
   - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
   - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
+  - [⚙️ Method `keyboard_shortcut_help_entries`](#%EF%B8%8F-method-keyboard_shortcut_help_entries)
   - [⚙️ Method `load_process_table`](#%EF%B8%8F-method-load_process_table)
   - [⚙️ Method `nativeEvent`](#%EF%B8%8F-method-nativeevent)
   - [⚙️ Method `on_add_dumbbell_weight_types`](#%EF%B8%8F-method-on_add_dumbbell_weight_types)
@@ -124,6 +125,7 @@ class MainWindow(
     )
     about_app_name = "Fitness tracker"
     about_description = "Track workouts, exercises, weight, and progress."
+
     settings_app_id = "fitness"
     defer_initial_show = True
 
@@ -518,6 +520,17 @@ class MainWindow(
             return
 
         super().keyPressEvent(event)
+
+    def keyboard_shortcut_help_entries(self) -> list[ShortcutHelpEntry]:
+        """Return Fitness shortcuts including workouts Delete and lightbox Space."""
+        return merge_shortcut_help(
+            super().keyboard_shortcut_help_entries(),
+            [
+                ShortcutHelpEntry("Delete", "Remove selected items in the workout sets table", "Workouts"),
+                ShortcutHelpEntry("Space", "Start or pause the timer in the exercise lightbox", "Lightbox"),
+                ShortcutHelpEntry("F1", "Show this keyboard shortcuts help", "Help"),
+            ],
+        )
 
     @requires_database()
     def load_process_table(self) -> None:
@@ -9691,6 +9704,31 @@ def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
             return
 
         super().keyPressEvent(event)
+```
+
+</details>
+
+### ⚙️ Method `keyboard_shortcut_help_entries`
+
+```python
+def keyboard_shortcut_help_entries(self) -> list[ShortcutHelpEntry]
+```
+
+Return Fitness shortcuts including workouts Delete and lightbox Space.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def keyboard_shortcut_help_entries(self) -> list[ShortcutHelpEntry]:
+        return merge_shortcut_help(
+            super().keyboard_shortcut_help_entries(),
+            [
+                ShortcutHelpEntry("Delete", "Remove selected items in the workout sets table", "Workouts"),
+                ShortcutHelpEntry("Space", "Start or pause the timer in the exercise lightbox", "Lightbox"),
+                ShortcutHelpEntry("F1", "Show this keyboard shortcuts help", "Help"),
+            ],
+        )
 ```
 
 </details>
