@@ -1705,6 +1705,26 @@ class MainWindow(
         self.listView_categories.doItemsLayout()
         self.listView_categories.viewport().update()
 
+    def _apply_charts_exchange_splitter_sizes(self) -> None:
+        """Keep Charts and Exchange Rates left panes at the same width."""
+        if getattr(self, "_is_closing", False):
+            return
+        if not hasattr(self, "splitter_6") or not hasattr(self, "splitter_7"):
+            return
+
+        left = max(
+            self.frame_accounts_2.sizeHint().width(),
+            self.frame_rates.minimumWidth(),
+            360,
+        )
+        for splitter in (self.splitter_6, self.splitter_7):
+            total = splitter.width()
+            if total <= 0:
+                total = max(self.width(), 1200)
+            left_width = min(left, max(total // 2, 300))
+            right_width = max(total - left_width, 200)
+            splitter.setSizes([left_width, right_width])
+
     def _apply_transactions_splitter_sizes(self) -> None:
         """Restore Transactions-tab splitter widths so categories list is not squeezed."""
         if getattr(self, "_is_closing", False) or not hasattr(self, "splitter"):
@@ -5512,9 +5532,13 @@ class MainWindow(
         self.splitter_5.setStretchFactor(0, 1)  # frame_5 gets less space
         self.splitter_5.setStretchFactor(1, 3)  # tableView_reports gets more space
 
-        # Configure splitter_6 proportions (frame_rates narrow, widget_exchange_rates_right wide)
-        self.splitter_6.setStretchFactor(0, 1)  # frame_rates gets less space
-        self.splitter_6.setStretchFactor(1, 3)  # widget_exchange_rates_right gets more space
+        # Charts + Exchange Rates: same left-column width (sidebar / rates table).
+        self.splitter_6.setStretchFactor(0, 0)
+        self.splitter_6.setStretchFactor(1, 1)
+        self.splitter_7.setStretchFactor(0, 0)
+        self.splitter_7.setStretchFactor(1, 1)
+        self._apply_charts_exchange_splitter_sizes()
+        QTimer.singleShot(60, self._apply_charts_exchange_splitter_sizes)
 
         # Set default values
         self.doubleSpinBox_amount.setValue(100.0)
