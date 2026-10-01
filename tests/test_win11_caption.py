@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
     QSplitter,
     QTabWidget,
     QToolButton,
+    QVBoxLayout,
     QWidget,
 )
 
@@ -311,6 +312,35 @@ def test_menu_caption_accepts_trailing_widgets(qapp: QApplication) -> None:
     assert tools.parentWidget() is host
     assert tools.geometry().left() >= title.geometry().right() - 1
     assert tools.geometry().right() <= row.geometry().left() + 1
+    window.close()
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Win11 caption is Windows-only")
+def test_layout_caption_places_compact_trailing_before_buttons(qapp: QApplication) -> None:
+    """Box-layout windows get a caption strip; compact trailing sits before the buttons."""
+    window = QWidget()
+    window.setWindowTitle("Quick paste")
+    window.setWindowFlags(Qt.WindowType.Window)
+    layout = QVBoxLayout(window)
+    layout.setContentsMargins(0, 0, 0, 0)
+    menu = QToolButton(window)
+    menu.setObjectName("quickPasteMenu")
+    menu.setFixedSize(CAPTION_BUTTON_HEIGHT, CAPTION_BUTTON_HEIGHT)
+    assert install_win11_caption(window, trailing_widgets=[menu])
+    window.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, on=True)
+    window.resize(720, 360)
+    window.show()
+    qapp.processEvents()
+
+    host = window.findChild(QWidget, "captionBar")
+    row = window.findChild(QWidget, "captionButtonRow")
+    title = window.findChild(QLabel, "captionTitleLabel")
+    assert host is not None
+    assert row is not None
+    assert title is not None
+    assert menu.parentWidget() is host
+    assert menu.geometry().left() >= title.geometry().right() - 1
+    assert menu.geometry().right() <= row.geometry().left() + 1
     window.close()
 
 

@@ -36,6 +36,7 @@ from PySide6.QtWidgets import (
     QTabBar,
     QTabWidget,
     QToolButton,
+    QVBoxLayout,
     QWidget,
 )
 
@@ -611,10 +612,11 @@ def install_win11_caption(
 
     Args:
 
-    - `window` (`QWidget`): Main window. Tabbed apps already have `tabWidget`.
+    - `window` (`QWidget`): Main window, tabbed app, or any window with a box
+      layout (for example Quick paste). Tabbed apps already have `tabWidget`.
     - `trailing_widgets` (`Sequence[QWidget] | None`): Extra controls placed
       in the caption before the menu and window buttons. Used by the tray
-      command window for search and sort. Ignored for tabbed captions.
+      command window for search and sort, and by layout captions for menus.
 
     Returns:
 
@@ -624,10 +626,6 @@ def install_win11_caption(
     if sys.platform != "win32" or getattr(window, _INSTALLED_ATTR, False):
         return False
     tab_widget = getattr(window, "tabWidget", None)
-    if not isinstance(tab_widget, QTabWidget) and not isinstance(window, QMainWindow):
-        logger.warning("Win11 caption needs a tabWidget or a main window menu")
-        return False
-
     light = _palette_is_light(window)
     controller = _Win11CaptionController(window)
     setattr(window, _CONTROLLER_ATTR, controller)
@@ -635,6 +633,12 @@ def install_win11_caption(
         _build_caption_row(window, tab_widget, controller, light=light)
     elif isinstance(window, QMainWindow):
         _build_menu_caption(window, controller, light=light, trailing_widgets=trailing_widgets)
+    elif window.layout() is None or isinstance(window.layout(), QBoxLayout):
+        _build_layout_caption(window, controller, light=light, trailing_widgets=trailing_widgets)
+    else:
+        logger.warning("Win11 caption needs a tabWidget, main window menu, or box layout")
+        return False
+
     _install_menu_chevrons(window)
     _ensure_caption_title(window)
     _flush_caption_to_frame(window)
@@ -822,6 +826,45 @@ def _build_caption_row(
         _insert_caption_title(window, left_layout)
 
 
+def _build_layout_caption(
+    window: QWidget,
+    controller: _Win11CaptionController,
+    *,
+    light: bool,
+    trailing_widgets: Sequence[QWidget] | None = None,
+) -> None:
+    """Insert a caption strip at the top of `window`'s box layout."""
+    host = QWidget(window)
+    host.setObjectName("captionBar")
+    host.setFixedHeight(CAPTION_BUTTON_HEIGHT)
+    layout = QHBoxLayout(host)
+    layout.setContentsMargins(0, 0, 0, 0)
+    layout.setSpacing(0)
+
+    icon_button = _CaptionIconButton(controller.show_system_menu, host)
+    icon_button.setIcon(window.windowIcon())
+    icon_button.setToolTip(_caption_icon_tooltip(window))
+    layout.addWidget(icon_button)
+    _insert_caption_title(window, layout)
+
+    trailing = list(trailing_widgets) if trailing_widgets else []
+    has_expanding = any(widget.sizePolicy().horizontalPolicy() == QSizePolicy.Policy.Expanding for widget in trailing)
+    if not has_expanding:
+        layout.addStretch(1)
+    for widget in trailing:
+        stretch = 1 if widget.sizePolicy().horizontalPolicy() == QSizePolicy.Policy.Expanding else 0
+        layout.addWidget(widget, stretch=stretch)
+
+    layout.addWidget(_make_caption_button_row(host, controller, light=light))
+
+    root = window.layout()
+    if not isinstance(root, QBoxLayout):
+        root = QVBoxLayout(window)
+        root.setContentsMargins(0, 0, 0, 0)
+        root.setSpacing(0)
+    root.insertWidget(0, host)
+
+
 def _build_menu_caption(
     window: QMainWindow,
     controller: _Win11CaptionController,
@@ -843,12 +886,12 @@ def _build_menu_caption(
     _insert_caption_title(window, layout)
 
     trailing = list(trailing_widgets) if trailing_widgets else []
-    if trailing:
-        for widget in trailing:
-            stretch = 1 if widget.sizePolicy().horizontalPolicy() == QSizePolicy.Policy.Expanding else 0
-            layout.addWidget(widget, stretch=stretch)
-    else:
+    has_expanding = any(widget.sizePolicy().horizontalPolicy() == QSizePolicy.Policy.Expanding for widget in trailing)
+    if not has_expanding:
         layout.addStretch(1)
+    for widget in trailing:
+        stretch = 1 if widget.sizePolicy().horizontalPolicy() == QSizePolicy.Policy.Expanding else 0
+        layout.addWidget(widget, stretch=stretch)
 
     # Do not call window.menuBar() here: it installs a QMenuBar as the menu
     # widget and would replace the caption host we are about to set.

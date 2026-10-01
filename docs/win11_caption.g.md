@@ -572,10 +572,11 @@ No-op outside Windows. The window title string stays for the taskbar.
 
 Args:
 
-- `window` (`QWidget`): Main window. Tabbed apps already have `tabWidget`.
+- `window` (`QWidget`): Main window, tabbed app, or any window with a box
+  layout (for example Quick paste). Tabbed apps already have `tabWidget`.
 - `trailing_widgets` (`Sequence[QWidget] | None`): Extra controls placed
   in the caption before the menu and window buttons. Used by the tray
-  command window for search and sort. Ignored for tabbed captions.
+  command window for search and sort, and by layout captions for menus.
 
 Returns:
 
@@ -593,10 +594,6 @@ def install_win11_caption(
     if sys.platform != "win32" or getattr(window, _INSTALLED_ATTR, False):
         return False
     tab_widget = getattr(window, "tabWidget", None)
-    if not isinstance(tab_widget, QTabWidget) and not isinstance(window, QMainWindow):
-        logger.warning("Win11 caption needs a tabWidget or a main window menu")
-        return False
-
     light = _palette_is_light(window)
     controller = _Win11CaptionController(window)
     setattr(window, _CONTROLLER_ATTR, controller)
@@ -604,6 +601,12 @@ def install_win11_caption(
         _build_caption_row(window, tab_widget, controller, light=light)
     elif isinstance(window, QMainWindow):
         _build_menu_caption(window, controller, light=light, trailing_widgets=trailing_widgets)
+    elif window.layout() is None or isinstance(window.layout(), QBoxLayout):
+        _build_layout_caption(window, controller, light=light, trailing_widgets=trailing_widgets)
+    else:
+        logger.warning("Win11 caption needs a tabWidget, main window menu, or box layout")
+        return False
+
     _install_menu_chevrons(window)
     _ensure_caption_title(window)
     _flush_caption_to_frame(window)

@@ -50,7 +50,9 @@ class SnippetsDialog(QDialog):
         self._default_parent = parent
         self.setModal(False)
         self.setWindowModality(Qt.WindowModality.NonModal)
-        self.setWindowFlags(_WINDOW_FLAGS)
+        self.setWindowTitle("Quick paste")
+        apply_window_icon(self)
+        self.setWindowFlags(_overlay_window_flags())
         self.setMinimumSize(_OVERLAY_MIN_SIZE)
         self.resize(_OVERLAY_DEFAULT_SIZE)
         try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
@@ -62,6 +64,8 @@ class SnippetsDialog(QDialog):
         self._app_config: dict[str, Any] = {}
         self._bothub_state = BothubRequestState()
         self._ai_request_in_progress = False
+        self._win11_caption = False
+        self._close_button: QPushButton | None = None
 
         apply_opaque_white(self)
         self.setObjectName("snippetsDialog")
@@ -75,12 +79,23 @@ class SnippetsDialog(QDialog):
         self._input = QLineEdit(self)
 
         self._layout = QVBoxLayout(self)
-        self._layout.setContentsMargins(16, 16, 16, 16)
-        self._layout.setSpacing(12)
-        self._build_header()
+        self._layout.setContentsMargins(0, 0, 0, 0)
+        self._layout.setSpacing(0)
+
+        content = QWidget(self)
+        apply_opaque_white(content)
+        self._content_layout = QVBoxLayout(content)
+        self._content_layout.setContentsMargins(16, 12, 16, 16)
+        self._content_layout.setSpacing(12)
+
+        menu_button = self._build_menu_button()
+        self._win11_caption = install_win11_caption(self, trailing_widgets=[menu_button])
+        if not self._win11_caption:
+            self._build_fallback_header(menu_button)
         self._build_shared_input()
         self._build_body()
         self._build_resize_row()
+        self._layout.addWidget(content, stretch=1)
         self.setMouseTracking(True)
         self._init_database()
         self.reload_all()
@@ -101,6 +116,8 @@ class SnippetsDialog(QDialog):
                 if event.key() in {Qt.Key.Key_Return, Qt.Key.Key_Enter}:
                     self._active_panel().activate_current_or_first()
                     return True
+            return super().eventFilter(watched, event)
+        if self._win11_caption:
             return super().eventFilter(watched, event)
         return self._handle_title_drag(watched, event)
 
@@ -149,7 +166,10 @@ class SnippetsDialog(QDialog):
         super().mouseReleaseEvent(event)
 
     def nativeEvent(self, event_type, message) -> tuple[bool, int]:  # noqa: ANN001, N802
-        """Allow edge resize for this frameless window on Windows."""
+        """Allow caption drag and edge resize for this frameless window on Windows."""
+        caption = try_handle_win11_caption_native_event(self, event_type, message)
+        if caption is not None:
+            return caption
         handled = try_handle_frameless_resize_native_event(self, event_type, message)
         if handled is not None:
             return handled
@@ -304,24 +324,10 @@ class SnippetsDialog(QDialog):
         columns.setStretchFactor(1, 2)
         columns.setStretchFactor(2, 2)
         _style_snippets_splitter(columns)
-        self._layout.addWidget(columns, stretch=1)
+        self._content_layout.addWidget(columns, stretch=1)
 
-    def _build_header(self) -> None:
-        menu_button = QToolButton(self)
-        menu_button.setIcon(create_lucide_icon("menu", 18))
-        menu_button.setIconSize(QSize(18, 18))
-        menu_button.setFixedSize(28, 28)
-        menu_button.setAutoRaise(True)
-        menu_button.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
-        menu_button.setToolTip("Menu")
-        menu_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
-        menu_button.setStyleSheet("QToolButton::menu-indicator { image: none; width: 0px; }")
-        header_menu = QMenu(menu_button)
-        header_menu.aboutToShow.connect(self._fill_header_menu)
-        menu_button.setMenu(header_menu)
-        self._menu_button = menu_button
-        self._header_menu = header_menu
-
+    def _build_fallback_header(self, menu_button: QToolButton) -> None:
+        """Build a simple title row when Win11 caption is unavailable."""
         title = QLabel("Quick paste")
         title_font = QFont(title.font())
         grow_qfont(title_font)
@@ -350,20 +356,37 @@ class SnippetsDialog(QDialog):
         header.addWidget(title)
         header.addWidget(header_spacer, stretch=1)
         header.addWidget(close_button)
-        self._layout.addLayout(header)
+        self._content_layout.addLayout(header)
+
+    def _build_menu_button(self) -> QToolButton:
+        menu_button = QToolButton(self)
+        menu_button.setIcon(create_lucide_icon("menu", 18))
+        menu_button.setIconSize(QSize(18, 18))
+        menu_button.setFixedSize(CAPTION_BUTTON_HEIGHT, CAPTION_BUTTON_HEIGHT)
+        menu_button.setAutoRaise(True)
+        menu_button.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
+        menu_button.setToolTip("Menu")
+        menu_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        menu_button.setStyleSheet("QToolButton::menu-indicator { image: none; width: 0px; }")
+        header_menu = QMenu(menu_button)
+        header_menu.aboutToShow.connect(self._fill_header_menu)
+        menu_button.setMenu(header_menu)
+        self._menu_button = menu_button
+        self._header_menu = header_menu
+        return menu_button
 
     def _build_resize_row(self) -> None:
         resize_row = QHBoxLayout()
         resize_row.addStretch()
         resize_row.addWidget(QSizeGrip(self), alignment=Qt.AlignmentFlag.AlignRight)
-        self._layout.addLayout(resize_row)
+        self._content_layout.addLayout(resize_row)
 
     def _build_shared_input(self) -> None:
         self._input.setPlaceholderText(_ZONE_TITLES[ZONE_PHRASE])
         self._input.textChanged.connect(self._on_input_text_changed)
         self._input.installEventFilter(self)
         style_overlay_line_edit(self._input)
-        self._layout.addWidget(self._input)
+        self._content_layout.addWidget(self._input)
 
     def _center_on_screen(self) -> None:
         center_widget_on_available_screen(self)
@@ -385,7 +408,7 @@ class SnippetsDialog(QDialog):
         """Restore the default parent so the singleton outlives closed modals."""
         if self.parentWidget() is self._default_parent:
             return
-        self.setParent(self._default_parent, _WINDOW_FLAGS)
+        self.setParent(self._default_parent, _overlay_window_flags())
         self.setModal(False)
         self.setWindowModality(Qt.WindowModality.NonModal)
 
@@ -555,7 +578,7 @@ class SnippetsDialog(QDialog):
             modal_parent = None
         target_parent = modal_parent if modal_parent is not None else self._default_parent
 
-        flags = _WINDOW_FLAGS
+        flags = _overlay_window_flags()
         if self.parentWidget() is not target_parent:
             self.setParent(target_parent, flags)
         else:
@@ -670,7 +693,9 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self._default_parent = parent
         self.setModal(False)
         self.setWindowModality(Qt.WindowModality.NonModal)
-        self.setWindowFlags(_WINDOW_FLAGS)
+        self.setWindowTitle("Quick paste")
+        apply_window_icon(self)
+        self.setWindowFlags(_overlay_window_flags())
         self.setMinimumSize(_OVERLAY_MIN_SIZE)
         self.resize(_OVERLAY_DEFAULT_SIZE)
         try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
@@ -682,6 +707,8 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self._app_config: dict[str, Any] = {}
         self._bothub_state = BothubRequestState()
         self._ai_request_in_progress = False
+        self._win11_caption = False
+        self._close_button: QPushButton | None = None
 
         apply_opaque_white(self)
         self.setObjectName("snippetsDialog")
@@ -695,12 +722,23 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self._input = QLineEdit(self)
 
         self._layout = QVBoxLayout(self)
-        self._layout.setContentsMargins(16, 16, 16, 16)
-        self._layout.setSpacing(12)
-        self._build_header()
+        self._layout.setContentsMargins(0, 0, 0, 0)
+        self._layout.setSpacing(0)
+
+        content = QWidget(self)
+        apply_opaque_white(content)
+        self._content_layout = QVBoxLayout(content)
+        self._content_layout.setContentsMargins(16, 12, 16, 16)
+        self._content_layout.setSpacing(12)
+
+        menu_button = self._build_menu_button()
+        self._win11_caption = install_win11_caption(self, trailing_widgets=[menu_button])
+        if not self._win11_caption:
+            self._build_fallback_header(menu_button)
         self._build_shared_input()
         self._build_body()
         self._build_resize_row()
+        self._layout.addWidget(content, stretch=1)
         self.setMouseTracking(True)
         self._init_database()
         self.reload_all()
@@ -749,6 +787,8 @@ def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
                 if event.key() in {Qt.Key.Key_Return, Qt.Key.Key_Enter}:
                     self._active_panel().activate_current_or_first()
                     return True
+            return super().eventFilter(watched, event)
+        if self._win11_caption:
             return super().eventFilter(watched, event)
         return self._handle_title_drag(watched, event)
 ```
@@ -889,13 +929,16 @@ def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
 def nativeEvent(self, event_type, message) -> tuple[bool, int]
 ```
 
-Allow edge resize for this frameless window on Windows.
+Allow caption drag and edge resize for this frameless window on Windows.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def nativeEvent(self, event_type, message) -> tuple[bool, int]:  # noqa: ANN001, N802
+        caption = try_handle_win11_caption_native_event(self, event_type, message)
+        if caption is not None:
+            return caption
         handled = try_handle_frameless_resize_native_event(self, event_type, message)
         if handled is not None:
             return handled

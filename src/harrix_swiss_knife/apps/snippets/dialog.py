@@ -55,6 +55,7 @@ from harrix_swiss_knife.apps.snippets.paste import clone_clipboard_mime, paste_t
 from harrix_swiss_knife.apps.snippets.seed import ensure_seed_emojis
 from harrix_swiss_knife.apps.snippets.sort import sort_items
 from harrix_swiss_knife.apps.snippets.zone_panel import ZonePanel, add_sort_menu_actions
+from harrix_swiss_knife.installer.icon_assets import apply_window_icon
 from harrix_swiss_knife.integrations.bothub import BothubRequestState
 from harrix_swiss_knife.paths import get_config_path_str
 from harrix_swiss_knife.qt_app_font import apply_mono_font, style_overlay_line_edit
@@ -67,6 +68,11 @@ from harrix_swiss_knife.qt_lucide_icon import (
     create_lucide_icon,
 )
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
+from harrix_swiss_knife.win11_caption import (
+    CAPTION_BUTTON_HEIGHT,
+    install_win11_caption,
+    try_handle_win11_caption_native_event,
+)
 
 if TYPE_CHECKING:
     from PySide6.QtGui import QCloseEvent
@@ -78,7 +84,6 @@ _EMOJI_SYMBOL_SPLIT_UNIT = 140
 _OVERLAY_MIN_SIZE = QSize(1100, 640)
 _OVERLAY_DEFAULT_SIZE = QSize(1280, 760)
 _SYMBOL_SPLIT_RATIO = 1
-_WINDOW_FLAGS = frameless_stay_on_top_flags()
 _DIALOG_BORDER_STYLE = "#snippetsDialog { background-color: #ffffff; border: 1px solid #c0c0c0;}"
 _SPLITTER_HANDLE_STYLE = (
     "QSplitter::handle {"
@@ -91,24 +96,6 @@ _SPLITTER_HANDLE_STYLE = (
     "QSplitter::handle:vertical { height: 1px; }"
 )
 _DUPLICATE_PREVIEW_LIMIT = 8
-_ZONE_TITLES = {
-    ZONE_PHRASE: "Phrases",
-    ZONE_EMOJI: "Emoji",
-    ZONE_SYMBOL: "Symbols",
-    ZONE_COLOR: "Colors",
-}
-_ZONE_ADD_TITLES = {
-    ZONE_PHRASE: "Add phrase",
-    ZONE_EMOJI: "Add emoji",
-    ZONE_SYMBOL: "Add symbol",
-    ZONE_COLOR: "Add color",
-}
-_ZONE_KIND = {
-    ZONE_PHRASE: "phrase",
-    ZONE_EMOJI: "emoji",
-    ZONE_SYMBOL: "symbol",
-    ZONE_COLOR: "color",
-}
 
 
 class SnippetsDialog(QDialog):
@@ -122,7 +109,9 @@ class SnippetsDialog(QDialog):
         self._default_parent = parent
         self.setModal(False)
         self.setWindowModality(Qt.WindowModality.NonModal)
-        self.setWindowFlags(_WINDOW_FLAGS)
+        self.setWindowTitle("Quick paste")
+        apply_window_icon(self)
+        self.setWindowFlags(_overlay_window_flags())
         self.setMinimumSize(_OVERLAY_MIN_SIZE)
         self.resize(_OVERLAY_DEFAULT_SIZE)
         try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
@@ -134,6 +123,8 @@ class SnippetsDialog(QDialog):
         self._app_config: dict[str, Any] = {}
         self._bothub_state = BothubRequestState()
         self._ai_request_in_progress = False
+        self._win11_caption = False
+        self._close_button: QPushButton | None = None
 
         apply_opaque_white(self)
         self.setObjectName("snippetsDialog")
@@ -147,12 +138,23 @@ class SnippetsDialog(QDialog):
         self._input = QLineEdit(self)
 
         self._layout = QVBoxLayout(self)
-        self._layout.setContentsMargins(16, 16, 16, 16)
-        self._layout.setSpacing(12)
-        self._build_header()
+        self._layout.setContentsMargins(0, 0, 0, 0)
+        self._layout.setSpacing(0)
+
+        content = QWidget(self)
+        apply_opaque_white(content)
+        self._content_layout = QVBoxLayout(content)
+        self._content_layout.setContentsMargins(16, 12, 16, 16)
+        self._content_layout.setSpacing(12)
+
+        menu_button = self._build_menu_button()
+        self._win11_caption = install_win11_caption(self, trailing_widgets=[menu_button])
+        if not self._win11_caption:
+            self._build_fallback_header(menu_button)
         self._build_shared_input()
         self._build_body()
         self._build_resize_row()
+        self._layout.addWidget(content, stretch=1)
         self.setMouseTracking(True)
         self._init_database()
         self.reload_all()
@@ -173,6 +175,8 @@ class SnippetsDialog(QDialog):
                 if event.key() in {Qt.Key.Key_Return, Qt.Key.Key_Enter}:
                     self._active_panel().activate_current_or_first()
                     return True
+            return super().eventFilter(watched, event)
+        if self._win11_caption:
             return super().eventFilter(watched, event)
         return self._handle_title_drag(watched, event)
 
@@ -221,7 +225,10 @@ class SnippetsDialog(QDialog):
         super().mouseReleaseEvent(event)
 
     def nativeEvent(self, event_type, message) -> tuple[bool, int]:  # noqa: ANN001, N802
-        """Allow edge resize for this frameless window on Windows."""
+        """Allow caption drag and edge resize for this frameless window on Windows."""
+        caption = try_handle_win11_caption_native_event(self, event_type, message)
+        if caption is not None:
+            return caption
         handled = try_handle_frameless_resize_native_event(self, event_type, message)
         if handled is not None:
             return handled
@@ -376,24 +383,10 @@ class SnippetsDialog(QDialog):
         columns.setStretchFactor(1, 2)
         columns.setStretchFactor(2, 2)
         _style_snippets_splitter(columns)
-        self._layout.addWidget(columns, stretch=1)
+        self._content_layout.addWidget(columns, stretch=1)
 
-    def _build_header(self) -> None:
-        menu_button = QToolButton(self)
-        menu_button.setIcon(create_lucide_icon("menu", 18))
-        menu_button.setIconSize(QSize(18, 18))
-        menu_button.setFixedSize(28, 28)
-        menu_button.setAutoRaise(True)
-        menu_button.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
-        menu_button.setToolTip("Menu")
-        menu_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
-        menu_button.setStyleSheet("QToolButton::menu-indicator { image: none; width: 0px; }")
-        header_menu = QMenu(menu_button)
-        header_menu.aboutToShow.connect(self._fill_header_menu)
-        menu_button.setMenu(header_menu)
-        self._menu_button = menu_button
-        self._header_menu = header_menu
-
+    def _build_fallback_header(self, menu_button: QToolButton) -> None:
+        """Build a simple title row when Win11 caption is unavailable."""
         title = QLabel("Quick paste")
         title_font = QFont(title.font())
         grow_qfont(title_font)
@@ -422,20 +415,37 @@ class SnippetsDialog(QDialog):
         header.addWidget(title)
         header.addWidget(header_spacer, stretch=1)
         header.addWidget(close_button)
-        self._layout.addLayout(header)
+        self._content_layout.addLayout(header)
+
+    def _build_menu_button(self) -> QToolButton:
+        menu_button = QToolButton(self)
+        menu_button.setIcon(create_lucide_icon("menu", 18))
+        menu_button.setIconSize(QSize(18, 18))
+        menu_button.setFixedSize(CAPTION_BUTTON_HEIGHT, CAPTION_BUTTON_HEIGHT)
+        menu_button.setAutoRaise(True)
+        menu_button.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
+        menu_button.setToolTip("Menu")
+        menu_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        menu_button.setStyleSheet("QToolButton::menu-indicator { image: none; width: 0px; }")
+        header_menu = QMenu(menu_button)
+        header_menu.aboutToShow.connect(self._fill_header_menu)
+        menu_button.setMenu(header_menu)
+        self._menu_button = menu_button
+        self._header_menu = header_menu
+        return menu_button
 
     def _build_resize_row(self) -> None:
         resize_row = QHBoxLayout()
         resize_row.addStretch()
         resize_row.addWidget(QSizeGrip(self), alignment=Qt.AlignmentFlag.AlignRight)
-        self._layout.addLayout(resize_row)
+        self._content_layout.addLayout(resize_row)
 
     def _build_shared_input(self) -> None:
         self._input.setPlaceholderText(_ZONE_TITLES[ZONE_PHRASE])
         self._input.textChanged.connect(self._on_input_text_changed)
         self._input.installEventFilter(self)
         style_overlay_line_edit(self._input)
-        self._layout.addWidget(self._input)
+        self._content_layout.addWidget(self._input)
 
     def _center_on_screen(self) -> None:
         center_widget_on_available_screen(self)
@@ -457,7 +467,7 @@ class SnippetsDialog(QDialog):
         """Restore the default parent so the singleton outlives closed modals."""
         if self.parentWidget() is self._default_parent:
             return
-        self.setParent(self._default_parent, _WINDOW_FLAGS)
+        self.setParent(self._default_parent, _overlay_window_flags())
         self.setModal(False)
         self.setWindowModality(Qt.WindowModality.NonModal)
 
@@ -627,7 +637,7 @@ class SnippetsDialog(QDialog):
             modal_parent = None
         target_parent = modal_parent if modal_parent is not None else self._default_parent
 
-        flags = _WINDOW_FLAGS
+        flags = _overlay_window_flags()
         if self.parentWidget() is not target_parent:
             self.setParent(target_parent, flags)
         else:
@@ -723,7 +733,38 @@ class SnippetsDialog(QDialog):
         message_box.warning(self, "Already exists", f"Skipped duplicate {kind}{plural}: {preview}")
 
 
+def _overlay_window_flags() -> Qt.WindowType:
+    """Return frameless stay-on-top flags with caption button hints."""
+    return (
+        frameless_stay_on_top_flags()
+        | Qt.WindowType.WindowSystemMenuHint
+        | Qt.WindowType.WindowMinimizeButtonHint
+        | Qt.WindowType.WindowMaximizeButtonHint
+        | Qt.WindowType.WindowCloseButtonHint
+    )
+
+
 def _style_snippets_splitter(splitter: QSplitter) -> None:
     """Keep pane stretch/sizes; draw handles as 1px gray rules like section dividers."""
     splitter.setHandleWidth(1)
     splitter.setStyleSheet(_SPLITTER_HANDLE_STYLE)
+
+
+_ZONE_TITLES = {
+    ZONE_PHRASE: "Phrases",
+    ZONE_EMOJI: "Emoji",
+    ZONE_SYMBOL: "Symbols",
+    ZONE_COLOR: "Colors",
+}
+_ZONE_ADD_TITLES = {
+    ZONE_PHRASE: "Add phrase",
+    ZONE_EMOJI: "Add emoji",
+    ZONE_SYMBOL: "Add symbol",
+    ZONE_COLOR: "Add color",
+}
+_ZONE_KIND = {
+    ZONE_PHRASE: "phrase",
+    ZONE_EMOJI: "emoji",
+    ZONE_SYMBOL: "symbol",
+    ZONE_COLOR: "color",
+}

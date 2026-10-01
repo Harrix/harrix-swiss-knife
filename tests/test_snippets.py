@@ -10,7 +10,16 @@ from pathlib import Path
 import pytest
 from PySide6.QtCore import QEvent, QPointF, QRect, Qt
 from PySide6.QtGui import QColor, QKeyEvent, QMouseEvent, QPainter, QPalette, QPixmap
-from PySide6.QtWidgets import QApplication, QDialog, QMenu, QSplitter, QStyle, QStyleOptionViewItem, QToolButton
+from PySide6.QtWidgets import (
+    QApplication,
+    QDialog,
+    QMenu,
+    QSplitter,
+    QStyle,
+    QStyleOptionViewItem,
+    QToolButton,
+    QWidget,
+)
 
 from harrix_swiss_knife.actions.apps.snippets import OnSnippets
 from harrix_swiss_knife.actions.common.quick_launcher_registry import iter_menu_structure
@@ -541,8 +550,14 @@ def test_header_menu_includes_add_and_sort(qapp: QApplication, monkeypatch: pyte
     dialog = SnippetsDialog()
     assert dialog._menu_button.toolTip() == "Menu"
     assert "menu-indicator" in dialog._menu_button.styleSheet()
-    assert dialog._close_button.text() == ""
-    assert not dialog._close_button.icon().isNull()
+    if dialog._win11_caption:
+        assert dialog.findChild(QWidget, "captionBar") is not None
+        assert dialog.findChild(QWidget, "captionButtonRow") is not None
+        assert dialog._close_button is None
+    else:
+        assert dialog._close_button is not None
+        assert dialog._close_button.text() == ""
+        assert not dialog._close_button.icon().isNull()
     splitters = dialog.findChildren(QSplitter)
     assert splitters
     assert all(splitter.handleWidth() == 1 for splitter in splitters)
