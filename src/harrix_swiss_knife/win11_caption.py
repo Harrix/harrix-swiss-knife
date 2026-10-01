@@ -82,23 +82,23 @@ _SPLITTER_HANDLE_STYLE = f"""
 QSplitter::handle:horizontal {{
     width: {_SPLITTER_HANDLE_PX}px;
     background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-        stop:0 #ffffff, stop:0.46 #ffffff, stop:0.49 #c0c0c0, stop:0.51 #c0c0c0,
+        stop:0 #ffffff, stop:0.46 #ffffff, stop:0.49 #f4f4f4, stop:0.51 #f4f4f4,
         stop:0.54 #ffffff, stop:1 #ffffff);
 }}
 QSplitter::handle:vertical {{
     height: {_SPLITTER_HANDLE_PX}px;
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-        stop:0 #ffffff, stop:0.46 #ffffff, stop:0.49 #c0c0c0, stop:0.51 #c0c0c0,
+        stop:0 #ffffff, stop:0.46 #ffffff, stop:0.49 #f4f4f4, stop:0.51 #f4f4f4,
         stop:0.54 #ffffff, stop:1 #ffffff);
 }}
-QSplitter::handle:hover {{ background: #c0c0c0; }}
+QSplitter::handle:hover {{ background: #f4f4f4; }}
 """
 _WHITE_SURFACE_STYLE = f"""
 /* hsk-white-surfaces */
 QGroupBox {{
  background-color: #ffffff;
  border: none;
- border-bottom: 1px solid #c0c0c0;
+ border-bottom: 1px solid #f4f4f4;
  border-radius: 0;
  margin-top: 0.8em;
  padding-top: 4px;
@@ -143,7 +143,7 @@ _MENU_HOVER_ATTR = "_hsk_menu_hover_reset"
 _TITLE_COLOR = "#2e333d"
 _NAV_COLOR = "#404654"
 _TAB_ACTIVE_COLOR = "#2e86b7"
-_TAB_LINE_COLOR = "#dbdbdb"
+_TAB_LINE_COLOR = "#f4f4f4"
 _TAB_HOVER_BG = "#f2f8fb"
 _TAB_RADIUS = 4
 _TAB_TOP_GAP = 4

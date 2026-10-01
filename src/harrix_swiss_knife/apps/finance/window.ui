@@ -7,7 +7,7 @@
 QGroupBox {
  background-color: #ffffff;
  border: none;
- border-bottom: 1px solid #c0c0c0;
+ border-bottom: 1px solid #f4f4f4;
  border-radius: 0;
  margin-top: 0.8em;
  padding-top: 4px;
@@ -29,14 +29,14 @@ QStatusBar QLabel { color: #202020; }
 QSplitter::handle:horizontal {
  width: 17px;
  background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
- stop:0 #ffffff, stop:0.46 #ffffff, stop:0.49 #c0c0c0, stop:0.51 #c0c0c0, stop:0.54 #ffffff, stop:1 #ffffff);
+ stop:0 #ffffff, stop:0.46 #ffffff, stop:0.49 #f4f4f4, stop:0.51 #f4f4f4, stop:0.54 #ffffff, stop:1 #ffffff);
 }
 QSplitter::handle:vertical {
  height: 17px;
  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
- stop:0 #ffffff, stop:0.46 #ffffff, stop:0.49 #c0c0c0, stop:0.51 #c0c0c0, stop:0.54 #ffffff, stop:1 #ffffff);
+ stop:0 #ffffff, stop:0.46 #ffffff, stop:0.49 #f4f4f4, stop:0.51 #f4f4f4, stop:0.54 #ffffff, stop:1 #ffffff);
 }
-QSplitter::handle:hover { background: #c0c0c0; }</string>
+QSplitter::handle:hover { background: #f4f4f4; }</string>
   </property>
   <property name="geometry">
    <rect>

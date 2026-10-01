@@ -236,15 +236,15 @@ def test_caption_tab_line_spans_the_window(qapp: QApplication) -> None:
     assert _caption_line_color(image, selected_x) == "#ffffff"
     last = tab_bar.tabRect(tab_bar.count() - 1)
     after_tabs = tab_bar.mapTo(tabs, last.bottomRight()).x() + 40
-    assert _caption_line_color(image, after_tabs) == "#dbdbdb"
+    assert _caption_line_color(image, after_tabs) == "#f4f4f4"
     right = tabs.cornerWidget(Qt.Corner.TopRightCorner)
     assert right is not None
     empty_x = (after_tabs + right.mapTo(tabs, QPoint(0, 0)).x()) // 2
-    assert _caption_line_color(image, empty_x) == "#dbdbdb"
+    assert _caption_line_color(image, empty_x) == "#f4f4f4"
     edges = window.findChildren(QWidget, "captionEdgeLine")
     assert len(edges) == 2
     for edge in edges:
-        assert edge.grab().toImage().pixelColor(2, 0).name() == "#dbdbdb"
+        assert edge.grab().toImage().pixelColor(2, 0).name() == "#f4f4f4"
     close = window.findChild(CaptionButton, "captionCloseButton")
     assert close is not None
     assert tabs.childAt(close.mapTo(tabs, close.rect().center())) is close
@@ -491,12 +491,12 @@ def test_splitter_handle_keeps_width_with_gray_hairline(qapp: QApplication) -> N
             assert thickness == _SPLITTER_HANDLE_PX
             colors = _handle_colors(splitter)
             center = thickness // 2
-            assert colors[center] == "#c0c0c0"
+            assert colors[center] == "#f4f4f4"
             assert all(color == "#ffffff" for index, color in enumerate(colors) if index != center)
             local = QPoint(2, 2)
             qapp.sendEvent(handle, QHoverEvent(QEvent.Type.HoverEnter, local, local, QPoint(-1, -1)))
             qapp.processEvents()
-            assert _handle_colors(splitter) == ["#c0c0c0"] * thickness
+            assert _handle_colors(splitter) == ["#f4f4f4"] * thickness
             splitter.hide()
         assert "QScrollBar" not in window.styleSheet()
     finally:

@@ -133,7 +133,7 @@ class Ui_MainWindow(object):
 "QGroupBox {\n"
 " background-color: #ffffff;\n"
 " border: none;\n"
-" border-bottom: 1px solid #c0c0c0;\n"
+" border-bottom: 1px solid #f4f4f4;\n"
 " border-radius: 0;\n"
 " margin-top: 0.8em;\n"
 " padding-top: 4px;\n"
@@ -155,15 +155,15 @@ class Ui_MainWindow(object):
 "QSplitter::handle:horizontal {\n"
 " width: 17px;\n"
 " background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n"
-" stop:0 #ffffff, stop:0.46 #ffffff, stop:0.49 #c0c0c0, stop:0.51 #c0c0c0, stop:0.54 #ffffff, stop:1 #ffffff);\n"
+" stop:0 #ffffff, stop:0.46 #ffffff, stop:0.49 #f4f4f4, stop:0.51 #f4f4f4, stop:0.54 #ffffff, stop:1 #ffffff);\n"
 "}\n"
 "QSplitter::handle:vertical {\n"
 " height: 17px;\n"
 " background: qlineargradient(x1:0, y1:0, x2:0, y2:1,\n"
 " stop:0 #ffffff, st"
-                        "op:0.46 #ffffff, stop:0.49 #c0c0c0, stop:0.51 #c0c0c0, stop:0.54 #ffffff, stop:1 #ffffff);\n"
+                        "op:0.46 #ffffff, stop:0.49 #f4f4f4, stop:0.51 #f4f4f4, stop:0.54 #ffffff, stop:1 #ffffff);\n"
 "}\n"
-"QSplitter::handle:hover { background: #c0c0c0; }")
+"QSplitter::handle:hover { background: #f4f4f4; }")
         MainWindow.resize(1392, 641)
         self.actionAbout = QAction(MainWindow)
         self.actionAbout.setObjectName(u"actionAbout")
@@ -1246,7 +1246,7 @@ def setupUi(self, MainWindow):
 "QGroupBox {\n"
 " background-color: #ffffff;\n"
 " border: none;\n"
-" border-bottom: 1px solid #c0c0c0;\n"
+" border-bottom: 1px solid #f4f4f4;\n"
 " border-radius: 0;\n"
 " margin-top: 0.8em;\n"
 " padding-top: 4px;\n"
@@ -1268,15 +1268,15 @@ def setupUi(self, MainWindow):
 "QSplitter::handle:horizontal {\n"
 " width: 17px;\n"
 " background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n"
-" stop:0 #ffffff, stop:0.46 #ffffff, stop:0.49 #c0c0c0, stop:0.51 #c0c0c0, stop:0.54 #ffffff, stop:1 #ffffff);\n"
+" stop:0 #ffffff, stop:0.46 #ffffff, stop:0.49 #f4f4f4, stop:0.51 #f4f4f4, stop:0.54 #ffffff, stop:1 #ffffff);\n"
 "}\n"
 "QSplitter::handle:vertical {\n"
 " height: 17px;\n"
 " background: qlineargradient(x1:0, y1:0, x2:0, y2:1,\n"
 " stop:0 #ffffff, st"
-                        "op:0.46 #ffffff, stop:0.49 #c0c0c0, stop:0.51 #c0c0c0, stop:0.54 #ffffff, stop:1 #ffffff);\n"
+                        "op:0.46 #ffffff, stop:0.49 #f4f4f4, stop:0.51 #f4f4f4, stop:0.54 #ffffff, stop:1 #ffffff);\n"
 "}\n"
-"QSplitter::handle:hover { background: #c0c0c0; }")
+"QSplitter::handle:hover { background: #f4f4f4; }")
         MainWindow.resize(1392, 641)
         self.actionAbout = QAction(MainWindow)
         self.actionAbout.setObjectName(u"actionAbout")
