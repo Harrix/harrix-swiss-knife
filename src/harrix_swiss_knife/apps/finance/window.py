@@ -422,8 +422,7 @@ class Ui_MainWindow(object):
         self.listView_categories.setObjectName(u"listView_categories")
         self.listView_categories.setMaximumSize(QSize(16777215, 16777215))
         self.listView_categories.setStyleSheet(u"QListView {\n"
-"                                border: 2px solid #7DB68A;\n"
-"                                border-radius: 4px;\n"
+"                                border: none;\n"
 "                                background-color: white;\n"
 "                                }\n"
 "                                QListView::item {\n"

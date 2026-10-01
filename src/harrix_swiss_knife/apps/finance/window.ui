@@ -399,8 +399,7 @@ QSplitter::handle:hover { background: #c0c0c0; }</string>
               </property>
               <property name="styleSheet">
                <string notr="true">QListView {
-                                border: 2px solid #7DB68A;
-                                border-radius: 4px;
+                                border: none;
                                 background-color: white;
                                 }
                                 QListView::item {

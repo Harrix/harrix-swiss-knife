@@ -29,8 +29,6 @@ Append flat scrollbar rules to every styled item view under [`root`](apps/habits
 
 ```python
 def apply_flat_scrollbars_to_styled_item_views(root: QWidget) -> None:
-    from PySide6.QtWidgets import QAbstractItemView
-
     for view in root.findChildren(QAbstractItemView):
         sheet = view.styleSheet().strip()
         if not sheet:
