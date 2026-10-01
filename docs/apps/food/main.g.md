@@ -4702,7 +4702,8 @@ class MainWindow(
                 date_to_color[date_str] = self.date_colors[color_index % len(self.date_colors)]
                 color_index += 1
 
-            calories_display = calories_per_100g if calories_per_100g is not None else ""
+            # Keep "0" visible for zero-kcal drinks (water); do not use truthiness.
+            calories_display = "" if calories_per_100g is None else f"{float(calories_per_100g):g}"
 
             is_first_of_day = date_str not in dates_with_totals
             if is_first_of_day:

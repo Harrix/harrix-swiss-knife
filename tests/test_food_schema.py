@@ -116,6 +116,58 @@ def test_ensure_food_schema_creates_recipes_on_current_db(tmp_path: Path) -> Non
         assert {"_id", "name", "calories_per_100g", "total_weight"}.issubset(cols)
 
 
+def test_ensure_food_schema_fills_null_drink_calories(tmp_path: Path) -> None:
+    """Drinks with NULL kcal/100g become 0; food rows stay NULL."""
+    db_path = tmp_path / "food_null_drink.db"
+    with sqlite3.connect(str(db_path)) as conn:
+        conn.executescript(
+            """
+            CREATE TABLE food_items (
+                _id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE,
+                name_en TEXT,
+                is_drink INTEGER NOT NULL DEFAULT 0,
+                calories_per_100g REAL,
+                default_portion_weight REAL,
+                default_portion_calories REAL
+            );
+            CREATE TABLE food_log (
+                _id INTEGER PRIMARY KEY AUTOINCREMENT,
+                date TEXT,
+                weight REAL,
+                calories_per_100g REAL,
+                name TEXT,
+                name_en TEXT,
+                is_drink INTEGER NOT NULL DEFAULT 0
+            );
+            INSERT INTO food_items (name, is_drink, calories_per_100g)
+            VALUES ('Water', 1, NULL), ('Bread', 0, NULL);
+            INSERT INTO food_log (date, weight, calories_per_100g, name, is_drink)
+            VALUES
+                ('2026-10-01', 250, NULL, 'Water', 1),
+                ('2026-10-01', 50, NULL, 'Bread', 0);
+            """
+        )
+        conn.commit()
+
+    assert ensure_food_schema(db_path) is True
+    assert ensure_food_schema(db_path) is False
+
+    with sqlite3.connect(str(db_path)) as conn:
+        water_log = conn.execute("SELECT calories_per_100g FROM food_log WHERE name = 'Water'").fetchone()
+        bread_log = conn.execute("SELECT calories_per_100g FROM food_log WHERE name = 'Bread'").fetchone()
+        water_item = conn.execute("SELECT calories_per_100g FROM food_items WHERE name = 'Water'").fetchone()
+        bread_item = conn.execute("SELECT calories_per_100g FROM food_items WHERE name = 'Bread'").fetchone()
+        assert water_log is not None
+        assert float(water_log[0]) == 0.0
+        assert bread_log is not None
+        assert bread_log[0] is None
+        assert water_item is not None
+        assert float(water_item[0]) == 0.0
+        assert bread_item is not None
+        assert bread_item[0] is None
+
+
 def _table_exists_names(conn: sqlite3.Connection, table: str) -> bool:
     row = conn.execute(
         "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ? LIMIT 1",

@@ -53,8 +53,9 @@ Migrate a legacy Food database and ensure recipe tables exist.
 Legacy `recover.sql` used `id` / `datetime` / `calories` / `food_item_id`. The app
 expects `_id` / `date` / [`calories_per_100g`](portion_calories_dialog.g.md#%EF%B8%8F-method-calories_per_100g) on denormalized `food_log` rows.
 Older databases that still have [`portion_calories`](portion_calories_dialog.g.md#%EF%B8%8F-method-portion_calories) convert those values into
-[`calories_per_100g`](portion_calories_dialog.g.md#%EF%B8%8F-method-calories_per_100g) and drop the column. Existing databases also gain
-`recipes` / `recipe_ingredients` when missing.
+[`calories_per_100g`](portion_calories_dialog.g.md#%EF%B8%8F-method-calories_per_100g) and drop the column. Drinks that were stored with
+`NULL` kcal/100g (legacy zero → NULL) are filled with `0`. Existing databases
+also gain `recipes` / `recipe_ingredients` when missing.
 
 Args:
 
@@ -145,6 +146,9 @@ def ensure_food_schema(db_path: Path) -> bool:
             logger.info("Food schema migration finished for %s", db_path)
 
         if _migrate_food_log_drop_portion_calories(conn):
+            changed = True
+
+        if _migrate_drink_null_calories_to_zero(conn):
             changed = True
 
         if _ensure_recipes_tables(conn):

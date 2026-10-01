@@ -18,3 +18,13 @@ def test_year_start_prompt_only_when_switching_chart_type() -> None:
     """Changing compare count must not re-open the year-start dialog."""
     source = inspect.getsource(MainWindow._update_finance_chart)
     assert "if sender in year_start_radios and not self._prompt_compare_last_years_start()" in source
+    assert "radioButton_type_of_chart_balance_compare_last_years" in source
+
+
+def test_balance_compare_last_years_uses_spinbox_years() -> None:
+    source = inspect.getsource(MainWindow._update_finance_chart)
+    assert "radioButton_type_of_chart_balance_compare_last_years.isChecked()" in source
+    assert "_draw_balance_compare_last_years_chart" in source
+    draw_source = inspect.getsource(MainWindow._draw_balance_compare_last_years_chart)
+    assert "compute_balance_compare_last_years" in draw_source
+    assert 'setText("Number of years:")' in draw_source

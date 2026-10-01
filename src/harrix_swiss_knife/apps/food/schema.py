@@ -134,8 +134,9 @@ def ensure_food_schema(db_path: Path) -> bool:
     Legacy `recover.sql` used `id` / `datetime` / `calories` / `food_item_id`. The app
     expects `_id` / `date` / `calories_per_100g` on denormalized `food_log` rows.
     Older databases that still have `portion_calories` convert those values into
-    `calories_per_100g` and drop the column. Existing databases also gain
-    `recipes` / `recipe_ingredients` when missing.
+    `calories_per_100g` and drop the column. Drinks that were stored with
+    `NULL` kcal/100g (legacy zero → NULL) are filled with `0`. Existing databases
+    also gain `recipes` / `recipe_ingredients` when missing.
 
     Args:
 
@@ -222,6 +223,9 @@ def ensure_food_schema(db_path: Path) -> bool:
             logger.info("Food schema migration finished for %s", db_path)
 
         if _migrate_food_log_drop_portion_calories(conn):
+            changed = True
+
+        if _migrate_drink_null_calories_to_zero(conn):
             changed = True
 
         if _ensure_recipes_tables(conn):
@@ -340,6 +344,43 @@ def _legacy_portion_calories_expression(columns: set[str]) -> str:
     if "calories" in columns:
         return "calories"
     return "NULL"
+
+
+def _migrate_drink_null_calories_to_zero(conn: sqlite3.Connection) -> bool:
+    """Set `calories_per_100g = 0` for drinks that were stored as NULL.
+
+    Older builds converted a spinbox value of `0` into `NULL`, so water and
+    similar drinks showed an empty calories cell in `tableView_food_log`.
+
+    """
+    changed = False
+    if _table_exists(conn, "food_log") and "calories_per_100g" in _column_names(conn, "food_log"):
+        cursor = conn.execute(
+            """
+            UPDATE food_log
+            SET calories_per_100g = 0
+            WHERE is_drink = 1
+              AND calories_per_100g IS NULL
+            """
+        )
+        if cursor.rowcount > 0:
+            changed = True
+            logger.info("Filled NULL calories_per_100g with 0 for %s drink log row(s)", cursor.rowcount)
+
+    if _table_exists(conn, "food_items") and "calories_per_100g" in _column_names(conn, "food_items"):
+        cursor = conn.execute(
+            """
+            UPDATE food_items
+            SET calories_per_100g = 0
+            WHERE is_drink = 1
+              AND calories_per_100g IS NULL
+            """
+        )
+        if cursor.rowcount > 0:
+            changed = True
+            logger.info("Filled NULL calories_per_100g with 0 for %s drink catalog item(s)", cursor.rowcount)
+
+    return changed
 
 
 def _migrate_food_log_drop_portion_calories(conn: sqlite3.Connection) -> bool:

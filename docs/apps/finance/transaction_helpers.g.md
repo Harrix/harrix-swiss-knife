@@ -22,6 +22,7 @@ lang: en
 - [🔧 Function `calculate_exchange_loss_cached`](#-function-calculate_exchange_loss_cached)
 - [🔧 Function `calculate_exchange_loss_in_source_currency`](#-function-calculate_exchange_loss_in_source_currency)
 - [🔧 Function `compute_average_salary_by_year`](#-function-compute_average_salary_by_year)
+- [🔧 Function `compute_balance_compare_last_years`](#-function-compute_balance_compare_last_years)
 - [🔧 Function `compute_balance_series`](#-function-compute_balance_series)
 - [🔧 Function `compute_cumulative_compare_last_months`](#-function-compute_cumulative_compare_last_months)
 - [🔧 Function `compute_cumulative_compare_last_years`](#-function-compute_cumulative_compare_last_years)
@@ -525,6 +526,98 @@ def compute_average_salary_by_year(
         fiscal_start = _add_calendar_years(fiscal_start, 1)
 
     return rows
+```
+
+</details>
+
+## 🔧 Function `compute_balance_compare_last_years`
+
+```python
+def compute_balance_compare_last_years(transaction_rows: list[list[Any]], exchange_rows: list[list[Any]], db_manager: DatabaseManager | None, years_count: int, *, year_start_month: int = 1, year_start_day: int = 1, today: date | None = None, ctx: ChartComputeContext | None = None) -> tuple[list[list[tuple[int, float, str]]], list[str], list[str]]
+```
+
+Month-end balance for each of the last N fiscal years (shared month index).
+
+Each series is `(month_index, balance, period_end_date)` so years line up on
+the same X axis for month-by-month comparison.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def compute_balance_compare_last_years(
+    transaction_rows: list[list[Any]],
+    exchange_rows: list[list[Any]],
+    db_manager: DatabaseManager | None,
+    years_count: int,
+    *,
+    year_start_month: int = 1,
+    year_start_day: int = 1,
+    today: date | None = None,
+    ctx: ChartComputeContext | None = None,
+) -> tuple[list[list[tuple[int, float, str]]], list[str], list[str]]:
+    if db_manager is None or years_count <= 0:
+        return [], [], []
+
+    today_date = today or datetime.now(UTC).astimezone().date()
+    calendar_year_start = year_start_month == 1 and year_start_day == 1
+    current_fiscal_start = _fiscal_year_start_containing(
+        today_date,
+        start_month=year_start_month,
+        start_day=year_start_day,
+    )
+
+    year_period_ends: list[list[str]] = []
+    labels: list[str] = []
+    colors: list[str] = []
+    all_ends: set[str] = set()
+
+    for i in range(years_count):
+        fiscal_start = _add_calendar_years(current_fiscal_start, -i)
+        fiscal_end_full = _fiscal_year_end(fiscal_start)
+        period_end = today_date if i == 0 else fiscal_end_full
+        ends = iter_period_end_dates(
+            fiscal_start.strftime("%Y-%m-%d"),
+            period_end.strftime("%Y-%m-%d"),
+            "Months",
+        )
+        year_period_ends.append(ends)
+        all_ends.update(ends)
+
+        label = _format_compare_year_label(
+            fiscal_start,
+            fiscal_end_full,
+            is_current=i == 0,
+            calendar_year_start=calendar_year_start,
+        )
+        if i == 0:
+            colors.append("red")
+        else:
+            color_index = (i - 1) % len(CHART_COMPARE_COLOR_PALETTE)
+            colors.append(CHART_COMPARE_COLOR_PALETTE[color_index])
+        labels.append(label)
+
+    if not all_ends:
+        return [], [], []
+
+    balance_by_date = dict(
+        compute_balance_series(
+            transaction_rows,
+            exchange_rows,
+            db_manager,
+            sorted(all_ends),
+            ctx=ctx,
+        )
+    )
+
+    yearly_data: list[list[tuple[int, float, str]]] = []
+    for ends in year_period_ends:
+        series: list[tuple[int, float, str]] = [
+            (index, balance_by_date.get(period_end, 0.0), period_end) for index, period_end in enumerate(ends, start=1)
+        ]
+        yearly_data.append(series)
+
+    return yearly_data, labels, colors
 ```
 
 </details>
