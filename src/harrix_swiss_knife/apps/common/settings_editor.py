@@ -36,6 +36,7 @@ from harrix_swiss_knife.action_hotkeys import load_action_hotkeys
 from harrix_swiss_knife.actions.common.dialog_geometry import text_content_height
 from harrix_swiss_knife.actions.common.open_in_editor import open_in_editor
 from harrix_swiss_knife.actions.common.text_result_dialog import OPEN_FOLDER_BUTTON_ICON
+from harrix_swiss_knife.actions.development.open_config_json import open_config_json_in_editor
 from harrix_swiss_knife.app_restart import restart_current_application
 from harrix_swiss_knife.config_model import restart_required_config_keys
 from harrix_swiss_knife.global_hotkey import hotkey_string_from_event
@@ -51,9 +52,11 @@ if TYPE_CHECKING:
     from PySide6.QtGui import QFocusEvent, QKeyEvent, QResizeEvent, QShowEvent
 
 OPEN_FOLDER_BUTTON_OBJECT_NAME = "settingsOpenFolderButton"
+OPEN_JSON_BUTTON_OBJECT_NAME = "settingsOpenJsonButton"
 OPEN_SNIPPET_BUTTON_OBJECT_NAME = "settingsOpenSnippetButton"
 SNIPPET_CONTENT_OBJECT_NAME = "settingsSnippetContent"
 FIELD_SAVE_BUTTON_OBJECT_NAME = "settingsFieldSaveButton"
+OPEN_JSON_BUTTON_ICON = "braces"
 OPEN_SNIPPET_BUTTON_ICON = "notebook-pen"
 _SNIPPET_PREFIX = "snippet:"
 STATUS_LABEL_OBJECT_NAME = "settingsSaveStatus"
@@ -521,6 +524,35 @@ class SettingsEditorDialog(QDialog):
         self._snippet_dirty.add(widget_key)
         self._mark_dirty(widget_key)
 
+    def _open_config_json(self) -> None:
+        """Open `config.json` in the configured text editor (VS Code JSON mode)."""
+        self._save_current_category()
+        if self._dirty:
+            box = QMessageBox(self)
+            box.setIcon(QMessageBox.Icon.Question)
+            box.setWindowTitle("Open Settings (JSON)")
+            box.setText("You have unsaved changes in the visual editor.")
+            box.setInformativeText("Save them before opening config.json?")
+            save_btn = box.addButton("Save and open", QMessageBox.ButtonRole.AcceptRole)
+            open_btn = box.addButton("Open without saving", QMessageBox.ButtonRole.ActionRole)
+            cancel_btn = box.addButton(QMessageBox.StandardButton.Cancel)
+            box.exec()
+            clicked = box.clickedButton()
+            if clicked is None or clicked is cancel_btn:
+                return
+            if clicked is save_btn and not self._persist_config():
+                return
+            _ = open_btn
+        lines = open_config_json_in_editor(
+            config_path=self.config_path,
+            preferred_editor=str(self.config_data.get("editor") or "").strip() or None,
+        )
+        if any(line.startswith("❌") for line in lines):
+            QMessageBox.warning(self, "Open Settings (JSON)", "\n".join(lines))
+            return
+        if hasattr(self, "status_label"):
+            self.status_label.setText("Opened config.json in editor")
+
     def _open_folder_path(self, path_text: str) -> None:
         folder = folder_path_from_text(path_text)
         if folder is None:
@@ -734,11 +766,19 @@ class SettingsEditorDialog(QDialog):
     def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
 
-        # Search bar
+        search_row = QHBoxLayout()
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("Search settings...")
         self.search_input.textChanged.connect(self._on_search)
-        layout.addWidget(self.search_input)
+        search_row.addWidget(self.search_input, 1)
+        open_json = make_lucide_push_button("Open Settings (JSON)", OPEN_JSON_BUTTON_ICON)
+        open_json.setObjectName(OPEN_JSON_BUTTON_OBJECT_NAME)
+        open_json.setToolTip("Open config.json in the configured editor")
+        open_json.setAutoDefault(False)
+        open_json.setDefault(False)
+        open_json.clicked.connect(self._open_config_json)
+        search_row.addWidget(open_json)
+        layout.addLayout(search_row)
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
         layout.addWidget(splitter)

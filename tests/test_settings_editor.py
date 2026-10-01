@@ -19,6 +19,7 @@ from harrix_swiss_knife.apps.common.settings_editor import (
     HOTKEY_BINDINGS_OBJECT_NAME,
     HOTKEY_EDIT_OBJECT_NAME,
     OPEN_FOLDER_BUTTON_OBJECT_NAME,
+    OPEN_JSON_BUTTON_OBJECT_NAME,
     OPEN_SNIPPET_BUTTON_OBJECT_NAME,
     SAVE_ALL_BUTTON_OBJECT_NAME,
     SNIPPET_CONTENT_OBJECT_NAME,
@@ -68,6 +69,33 @@ def _open_settings_dialog(monkeypatch: pytest.MonkeyPatch, config: dict[str, Any
     QApplication.processEvents()
     dialog._fit_multiline_widgets()
     return dialog
+
+
+def test_open_settings_json_button_opens_config(
+    qapp: QApplication,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    opened: list[str] = []
+
+    def fake_open(*, config_path: str | Path | None = None, preferred_editor: str | None = None) -> list[str]:
+        opened.append(f"{config_path}|{preferred_editor}")
+        return ["Opened: config.json"]
+
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.common.settings_editor.open_config_json_in_editor",
+        fake_open,
+    )
+    dialog = _open_settings_dialog(monkeypatch, {"editor": "cursor"})
+    try:
+        button = dialog.findChild(QPushButton, OPEN_JSON_BUTTON_OBJECT_NAME)
+        assert button is not None
+        assert "JSON" in button.text()
+        button.click()
+        QApplication.processEvents()
+        assert opened
+        assert dialog.status_label.text() == "Opened config.json in editor"
+    finally:
+        dialog.close()
 
 
 def test_assemble_config_keeps_key_order_and_nested_objects() -> None:
