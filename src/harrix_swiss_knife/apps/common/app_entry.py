@@ -32,6 +32,7 @@ from harrix_swiss_knife.apps.common.uic_compile import install_safe_qt_translate
 from harrix_swiss_knife.installer.icon_assets import apply_window_icon
 from harrix_swiss_knife.qt_app_font import install_app_fonts
 from harrix_swiss_knife.qt_flexible_decimal import install_flexible_decimal_separators
+from harrix_swiss_knife.qt_ui_effects import install_ui_effects
 from harrix_swiss_knife.win11_backdrop import ensure_windows_app_user_model_id
 
 if TYPE_CHECKING:
@@ -71,6 +72,7 @@ def run_app_main(
     install_flexible_decimal_separators(app)
     install_spellcheck(app)
     install_app_fonts(app)
+    install_ui_effects(app)
     install_safe_qt_translate()
     try:
         with app_loading_toast_scope(app_loading_title(main_window_factory)):

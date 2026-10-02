@@ -46,6 +46,7 @@ def run_app_main(
     install_flexible_decimal_separators(app)
     install_spellcheck(app)
     install_app_fonts(app)
+    install_ui_effects(app)
     install_safe_qt_translate()
     try:
         with app_loading_toast_scope(app_loading_title(main_window_factory)):

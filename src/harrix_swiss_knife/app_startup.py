@@ -43,6 +43,7 @@ from harrix_swiss_knife.menu_structure import get_menu_structure
 from harrix_swiss_knife.paths import get_config_path_str, prune_action_output_dir
 from harrix_swiss_knife.qt_app_font import install_app_fonts
 from harrix_swiss_knife.qt_flexible_decimal import install_flexible_decimal_separators
+from harrix_swiss_knife.qt_ui_effects import install_ui_effects
 from harrix_swiss_knife.screenshot.capture import (
     clear_pending_screen_freeze,
     prepare_capture_long_press_freeze,
@@ -209,6 +210,7 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
     install_flexible_decimal_separators(app)
     install_spellcheck(app)
     install_app_fonts(app)
+    install_ui_effects(app)
     install_safe_qt_translate()
     if early_splash_hwnd():
         _log_startup_phase(log, "Startup splash already visible", startup_t0)

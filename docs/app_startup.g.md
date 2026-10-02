@@ -214,6 +214,7 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
     install_flexible_decimal_separators(app)
     install_spellcheck(app)
     install_app_fonts(app)
+    install_ui_effects(app)
     install_safe_qt_translate()
     if early_splash_hwnd():
         _log_startup_phase(log, "Startup splash already visible", startup_t0)
