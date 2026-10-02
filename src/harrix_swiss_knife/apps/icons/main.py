@@ -852,17 +852,12 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.search_edit.returnPressed.connect(self._apply_filters)
         # View combo is taller because of preview icons; match the rest of the row to it.
         toolbar_h = max(self.variant_view_combo.sizeHint().height(), VIEW_COMBO_ICON_SIZE + 8)
-        # Icon matches the search field chrome, not the taller View combo row.
-        search_field_h = max(16, self.search_edit.sizeHint().height())
         search_row = QWidget()
         search_layout = QHBoxLayout(search_row)
         search_layout.setContentsMargins(0, 0, 0, 0)
         search_layout.setSpacing(6)
-        search_layout.addWidget(
-            make_search_icon_label(icon_size=search_field_h, box_size=search_field_h),
-            alignment=Qt.AlignmentFlag.AlignVCenter,
-        )
-        search_layout.addWidget(self.search_edit, stretch=1, alignment=Qt.AlignmentFlag.AlignVCenter)
+        search_layout.addWidget(make_search_icon_label(), alignment=Qt.AlignmentFlag.AlignVCenter)
+        search_layout.addWidget(self.search_edit, stretch=1)
         toolbar.addWidget(search_row, stretch=1)
 
         self.refresh_btn = make_lucide_push_button("Refresh catalog", "refresh-cw")
@@ -881,6 +876,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         ):
             widget.setFixedHeight(toolbar_h)
         self.refresh_btn.setFixedWidth(toolbar_h)
+        self.search_edit.setFixedHeight(toolbar_h)
         root.addWidget(toolbar_widget, stretch=0)
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
