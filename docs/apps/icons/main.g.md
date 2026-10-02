@@ -745,9 +745,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.variant_view_combo = QComboBox()
         self.variant_view_combo.setMinimumWidth(260)
         self.variant_view_combo.setIconSize(QSize(VIEW_COMBO_ICON_SIZE, VIEW_COMBO_ICON_SIZE))
-        for mode_id, label in VARIANT_VIEW_MODES:
-            self.variant_view_combo.addItem(label, mode_id)
-        self.variant_view_combo.setCurrentIndex(0)
+        # Items are filled once in `_sync_variant_view_combo` (avoids clear+rebuild blink).
         self.variant_view_combo.currentIndexChanged.connect(self._on_variant_view_changed)
         self._variant_view_label.setVisible(False)
         self.variant_view_combo.setVisible(False)
@@ -3446,19 +3444,23 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._view_mode_examples = examples
         self._view_combo_signature = signature
         labels = dict(VARIANT_VIEW_MODES)
+        self.variant_view_combo.setUpdatesEnabled(False)
         self.variant_view_combo.blockSignals(True)  # noqa: FBT003
-        self.variant_view_combo.clear()
-        selected = 0
-        for mode_id in available:
-            self.variant_view_combo.addItem(
-                self._variant_view_mode_icon(mode_id),
-                labels.get(mode_id, mode_id),
-                mode_id,
-            )
-            if mode_id == self._variant_view_mode:
-                selected = self.variant_view_combo.count() - 1
-        self.variant_view_combo.setCurrentIndex(selected)
-        self.variant_view_combo.blockSignals(False)  # noqa: FBT003
+        try:
+            self.variant_view_combo.clear()
+            selected = 0
+            for mode_id in available:
+                self.variant_view_combo.addItem(
+                    self._variant_view_mode_icon(mode_id),
+                    labels.get(mode_id, mode_id),
+                    mode_id,
+                )
+                if mode_id == self._variant_view_mode:
+                    selected = self.variant_view_combo.count() - 1
+            self.variant_view_combo.setCurrentIndex(selected)
+        finally:
+            self.variant_view_combo.blockSignals(False)  # noqa: FBT003
+            self.variant_view_combo.setUpdatesEnabled(True)
 
     def _target_category_for_icon(self, family: IconFamily) -> str | None:
         if is_favorites_category(self._current_category):

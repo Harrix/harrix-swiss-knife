@@ -152,7 +152,7 @@ from harrix_swiss_knife.apps.common.table_models import (
     create_table_proxy_model,
     sort_table_by_header_click,
 )
-from harrix_swiss_knife.apps.common.ui_helpers import reveal_in_file_explorer
+from harrix_swiss_knife.apps.common.ui_helpers import reveal_in_file_explorer, set_combo_plain_items
 from harrix_swiss_knife.apps.common.widgets.exercise_list_hover_preview import (
     ExerciseListHoverPreview,
     exercise_at_table_image,
@@ -1772,14 +1772,6 @@ class MainWindow(
             # Get all types for this exercise
             types = self.db_manager.get_exercise_types(ex_id)
 
-            # Clear and populate the combobox
-            self.comboBox_type.clear()
-            self.comboBox_type.addItem("")
-            self.comboBox_type.addItems(types)
-
-            # Enable/disable comboBox_type based on whether types are available
-            self.comboBox_type.setEnabled(len(types) > 0)
-
             # Find the most recently used type and value for this exercise
             try:
                 last_type = ""
@@ -1794,10 +1786,13 @@ class MainWindow(
                     last_used=last_type,
                     type_required=self.db_manager.is_exercise_type_required(ex_id),
                 )
-                if selected_type:
-                    type_index = self.comboBox_type.findText(selected_type)
-                    if type_index >= 0:
-                        self.comboBox_type.setCurrentIndex(type_index)
+                set_combo_plain_items(
+                    self.comboBox_type,
+                    types,
+                    leading_empty=True,
+                    select=selected_type,
+                )
+                self.comboBox_type.setEnabled(len(types) > 0)
 
                 if last_record:
                     # Set spinBox_count value based on exercise _id
@@ -3435,18 +3430,13 @@ class MainWindow(
 
         try:
             current_exercise = self.comboBox_filter_exercise.currentText()
-
-            self.comboBox_filter_exercise.blockSignals(True)  # noqa: FBT003
-            self.comboBox_filter_exercise.clear()
-            self.comboBox_filter_exercise.addItem("")  # all exercises
             exercises = self.db_manager.get_exercises_by_frequency(500)
-            self.comboBox_filter_exercise.addItems(exercises)
-            if current_exercise:
-                idx = self.comboBox_filter_exercise.findText(current_exercise)
-                if idx >= 0:
-                    self.comboBox_filter_exercise.setCurrentIndex(idx)
-            self.comboBox_filter_exercise.blockSignals(False)  # noqa: FBT003
-
+            set_combo_plain_items(
+                self.comboBox_filter_exercise,
+                exercises,
+                leading_empty=True,
+                select=current_exercise,
+            )
             self.update_filter_type_combobox()
 
         except Exception:
@@ -3473,9 +3463,6 @@ class MainWindow(
 
         try:
             current_type = self.comboBox_filter_type.currentText()
-            self.comboBox_filter_type.blockSignals(True)  # noqa: FBT003
-            self.comboBox_filter_type.clear()
-            self.comboBox_filter_type.addItem("")
 
             exercise = self.comboBox_filter_exercise.currentText()
             types: list[str] = []
@@ -3484,7 +3471,6 @@ class MainWindow(
                 ex_id = self.db_manager.get_id("exercises", "name", exercise)
                 if ex_id is not None:
                     types = self.db_manager.get_exercise_types(ex_id)
-                    self.comboBox_filter_type.addItems(types)
 
             selected_type = current_type
             if apply_type_default and ex_id is not None:
@@ -3498,14 +3484,14 @@ class MainWindow(
                     last_used=last_used,
                     type_required=self.db_manager.is_exercise_type_required(ex_id),
                 )
-            if selected_type:
-                idx = self.comboBox_filter_type.findText(selected_type)
-                if idx >= 0:
-                    self.comboBox_filter_type.setCurrentIndex(idx)
-            self.comboBox_filter_type.blockSignals(False)  # noqa: FBT003
+            set_combo_plain_items(
+                self.comboBox_filter_type,
+                types,
+                leading_empty=True,
+                select=selected_type,
+            )
 
         except Exception:
-            self.comboBox_filter_type.blockSignals(False)  # noqa: FBT003
             logger.exception("Error updating filter type combobox")
 
     def update_sets_count_today(self) -> None:
@@ -3541,26 +3527,13 @@ class MainWindow(
         try:
             # Get exercises sorted by frequency
             exercises = self.db_manager.get_exercises_by_frequency(500)
-
-            # Block signals during update
-            self.comboBox_records_select_exercise.blockSignals(True)  # noqa: FBT003
-
-            # Store current selection
             current_exercise = self.comboBox_records_select_exercise.currentText()
-
-            # Clear and populate combobox
-            self.comboBox_records_select_exercise.clear()
-            self.comboBox_records_select_exercise.addItem("")  # Empty option for all exercises
-            self.comboBox_records_select_exercise.addItems(exercises)
-
-            # Restore selection if it still exists
-            if current_exercise:
-                index = self.comboBox_records_select_exercise.findText(current_exercise)
-                if index >= 0:
-                    self.comboBox_records_select_exercise.setCurrentIndex(index)
-
-            # Unblock signals
-            self.comboBox_records_select_exercise.blockSignals(False)  # noqa: FBT003
+            set_combo_plain_items(
+                self.comboBox_records_select_exercise,
+                exercises,
+                leading_empty=True,
+                select=current_exercise,
+            )
 
         except Exception:
             logger.exception("Error updating statistics exercise combobox")
@@ -5121,8 +5094,8 @@ class MainWindow(
         # Exercise type combobox for statistics sync
         self.comboBox_type.currentIndexChanged.connect(self.on_exercise_type_changed)
 
-        # Statistics exercise combobox
-        self.comboBox_records_select_exercise.currentIndexChanged.connect(self.update_statistics_exercise_combobox)
+        # Statistics exercise combobox — do not reconnect update_statistics_exercise_combobox
+        # here; rebuilding the list on every index change caused flicker.
         self.comboBox_records_select_exercise.currentIndexChanged.connect(self._update_statistics_avif)
         self.comboBox_records_select_exercise.currentIndexChanged.connect(self.on_statistics_exercise_combobox_changed)
 
@@ -9157,13 +9130,13 @@ class MainWindow(
                         last_used=last_used,
                         type_required=self.db_manager.is_exercise_type_required(ex_id),
                     )
-                    self.comboBox_type.clear()
-                    self.comboBox_type.addItem("")
-                    self.comboBox_type.addItems(types)
+                    set_combo_plain_items(
+                        self.comboBox_type,
+                        types,
+                        leading_empty=True,
+                        select=chosen_type,
+                    )
                     self.comboBox_type.setEnabled(len(types) > 0)
-                    t_idx = self.comboBox_type.findText(chosen_type)
-                    if t_idx >= 0:
-                        self.comboBox_type.setCurrentIndex(t_idx)
             # If no specific selection, select the first exercise by default
             elif exercises:
                 self._select_exercise_in_list(exercises[0])

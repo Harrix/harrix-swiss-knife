@@ -108,6 +108,7 @@ from harrix_swiss_knife.apps.common.table_context_menu import (
 from harrix_swiss_knife.apps.common.table_export import export_table_via_dialog
 from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
 from harrix_swiss_knife.apps.common.text_case import capitalize_first_letter
+from harrix_swiss_knife.apps.common.ui_helpers import set_combo_plain_items
 from harrix_swiss_knife.apps.common.widgets.image_picker import ImagePicker, ImagePickerMode
 from harrix_swiss_knife.apps.common.widgets.shrinkable_scroll_area import install_shrinkable_tab_scroll
 from harrix_swiss_knife.apps.common.word_wrap_header import install_word_wrap_header
@@ -1346,21 +1347,21 @@ class MainWindow(
             categories: list[str] = self.db_manager.get_categories_by_type(0) + self.db_manager.get_categories_by_type(
                 1
             )
-
-            self.comboBox_filter_category.blockSignals(True)  # noqa: FBT003
-            self.comboBox_filter_category.clear()
-            self.comboBox_filter_category.addItem("")  # All categories
-            self.comboBox_filter_category.addItems(categories)
-            self.comboBox_filter_category.blockSignals(False)  # noqa: FBT003
+            set_combo_plain_items(
+                self.comboBox_filter_category,
+                categories,
+                leading_empty=True,
+                select=self.comboBox_filter_category.currentText(),
+            )
 
             # Update currency filter
             currencies: list[str] = [row[1] for row in self.db_manager.get_all_currencies()]  # Get codes
-
-            self.comboBox_filter_currency.blockSignals(True)  # noqa: FBT003
-            self.comboBox_filter_currency.clear()
-            self.comboBox_filter_currency.addItem("")  # All currencies
-            self.comboBox_filter_currency.addItems(currencies)
-            self.comboBox_filter_currency.blockSignals(False)  # noqa: FBT003
+            set_combo_plain_items(
+                self.comboBox_filter_currency,
+                currencies,
+                leading_empty=True,
+                select=self.comboBox_filter_currency.currentText(),
+            )
 
         except Exception:
             logger.exception("Error updating filter comboboxes")
@@ -6386,8 +6387,7 @@ class MainWindow(
                 self.comboBox_exchange_from,
                 self.comboBox_exchange_to,
             ]:
-                combo.clear()
-                combo.addItems(currencies)
+                set_combo_plain_items(combo, currencies, select=combo.currentText())
 
             # Update categories list view with icons
             expense_categories: list[tuple[str, str, str]] = self.db_manager.get_categories_with_icons_by_type(0)

@@ -1185,21 +1185,21 @@ class MainWindow(
             categories: list[str] = self.db_manager.get_categories_by_type(0) + self.db_manager.get_categories_by_type(
                 1
             )
-
-            self.comboBox_filter_category.blockSignals(True)  # noqa: FBT003
-            self.comboBox_filter_category.clear()
-            self.comboBox_filter_category.addItem("")  # All categories
-            self.comboBox_filter_category.addItems(categories)
-            self.comboBox_filter_category.blockSignals(False)  # noqa: FBT003
+            set_combo_plain_items(
+                self.comboBox_filter_category,
+                categories,
+                leading_empty=True,
+                select=self.comboBox_filter_category.currentText(),
+            )
 
             # Update currency filter
             currencies: list[str] = [row[1] for row in self.db_manager.get_all_currencies()]  # Get codes
-
-            self.comboBox_filter_currency.blockSignals(True)  # noqa: FBT003
-            self.comboBox_filter_currency.clear()
-            self.comboBox_filter_currency.addItem("")  # All currencies
-            self.comboBox_filter_currency.addItems(currencies)
-            self.comboBox_filter_currency.blockSignals(False)  # noqa: FBT003
+            set_combo_plain_items(
+                self.comboBox_filter_currency,
+                currencies,
+                leading_empty=True,
+                select=self.comboBox_filter_currency.currentText(),
+            )
 
         except Exception:
             logger.exception("Error updating filter comboboxes")
@@ -6225,8 +6225,7 @@ class MainWindow(
                 self.comboBox_exchange_from,
                 self.comboBox_exchange_to,
             ]:
-                combo.clear()
-                combo.addItems(currencies)
+                set_combo_plain_items(combo, currencies, select=combo.currentText())
 
             # Update categories list view with icons
             expense_categories: list[tuple[str, str, str]] = self.db_manager.get_categories_with_icons_by_type(0)
@@ -8082,21 +8081,21 @@ def update_filter_comboboxes(self) -> None:
             categories: list[str] = self.db_manager.get_categories_by_type(0) + self.db_manager.get_categories_by_type(
                 1
             )
-
-            self.comboBox_filter_category.blockSignals(True)  # noqa: FBT003
-            self.comboBox_filter_category.clear()
-            self.comboBox_filter_category.addItem("")  # All categories
-            self.comboBox_filter_category.addItems(categories)
-            self.comboBox_filter_category.blockSignals(False)  # noqa: FBT003
+            set_combo_plain_items(
+                self.comboBox_filter_category,
+                categories,
+                leading_empty=True,
+                select=self.comboBox_filter_category.currentText(),
+            )
 
             # Update currency filter
             currencies: list[str] = [row[1] for row in self.db_manager.get_all_currencies()]  # Get codes
-
-            self.comboBox_filter_currency.blockSignals(True)  # noqa: FBT003
-            self.comboBox_filter_currency.clear()
-            self.comboBox_filter_currency.addItem("")  # All currencies
-            self.comboBox_filter_currency.addItems(currencies)
-            self.comboBox_filter_currency.blockSignals(False)  # noqa: FBT003
+            set_combo_plain_items(
+                self.comboBox_filter_currency,
+                currencies,
+                leading_empty=True,
+                select=self.comboBox_filter_currency.currentText(),
+            )
 
         except Exception:
             logger.exception("Error updating filter comboboxes")

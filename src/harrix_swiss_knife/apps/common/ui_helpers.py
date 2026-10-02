@@ -5,6 +5,7 @@
 - `iter_stripped_non_empty_lines`: iterate over lines of text yielding only
   the non-empty stripped variants.
 - `reveal_in_file_explorer`: open the OS file manager and select a file.
+- `set_combo_plain_items`: refill a `QComboBox` only when item texts change.
 
 """
 
@@ -15,8 +16,10 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from PySide6.QtWidgets import QComboBox
+
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Iterator, Sequence
 
     from PySide6.QtWidgets import QAbstractItemView, QWidget
 else:
@@ -120,6 +123,75 @@ def reveal_in_file_explorer(path: Path | str) -> None:
 
     folder = target if target.is_dir() else target.parent
     subprocess.run(["xdg-open", str(folder)], check=False)  # noqa: S607
+
+
+def set_combo_plain_items(
+    combo: QComboBox,
+    items: Sequence[str],
+    *,
+    leading_empty: bool = False,
+    select: str | None = None,
+    block_signals: bool = True,
+) -> bool:
+    """Replace plain-text combo items only when the list actually changes.
+
+    Skips `clear()` when `combo` already shows the same texts, which avoids
+    visible flicker from double populate on app open / refresh. Optionally
+    selects `select` (or keeps the current text when `select` is `None`).
+
+    Args:
+
+    - `combo` (`QComboBox`): Target combo.
+    - `items` (`Sequence[str]`): Item labels after an optional leading empty.
+    - `leading_empty` (`bool`): When `True`, prepend an empty "" item.
+    - `select` (`str | None`): Text to select after update. When `None`, keep
+      the previous `currentText` if it still exists.
+    - `block_signals` (`bool`): Block `currentIndexChanged` during mutation.
+
+    Returns:
+
+    - `bool`: `True` when items were cleared and rebuilt.
+
+    """
+    desired = ["", *list(items)] if leading_empty else list(items)
+    current = [combo.itemText(i) for i in range(combo.count())]
+    selection = combo.currentText() if select is None else select
+
+    def _apply_selection() -> None:
+        if not selection:
+            if combo.currentIndex() != 0 and combo.count() > 0 and combo.itemText(0) == "":
+                combo.setCurrentIndex(0)
+            return
+        index = combo.findText(selection)
+        if index >= 0 and combo.currentIndex() != index:
+            combo.setCurrentIndex(index)
+
+    if current == desired:
+        if block_signals:
+            combo.blockSignals(True)  # noqa: FBT003
+        try:
+            _apply_selection()
+        finally:
+            if block_signals:
+                combo.blockSignals(False)  # noqa: FBT003
+        return False
+
+    combo.setUpdatesEnabled(False)
+    if block_signals:
+        combo.blockSignals(True)  # noqa: FBT003
+    try:
+        combo.clear()
+        if leading_empty:
+            combo.addItem("")
+            combo.addItems(list(items))
+        else:
+            combo.addItems(list(items))
+        _apply_selection()
+    finally:
+        if block_signals:
+            combo.blockSignals(False)  # noqa: FBT003
+        combo.setUpdatesEnabled(True)
+    return True
 
 
 def _active_table_editor(view: QAbstractItemView) -> QWidget | None:
