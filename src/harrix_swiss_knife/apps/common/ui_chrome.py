@@ -7,6 +7,7 @@ toolbars feel consistent across Harrix Swiss Knife surfaces.
 
 from __future__ import annotations
 
+from PySide6.QtGui import QColor, QPalette
 from PySide6.QtWidgets import QAbstractItemView, QListView, QListWidget, QWidget
 
 # Soft blue selection (matches Icons tiles / chips).
@@ -14,6 +15,8 @@ SELECTION_BG = "#e8f4fc"
 SELECTION_BORDER = "#2e86b7"
 SELECTION_HOVER = "#f3f8fb"
 SELECTION_TEXT = "#1a1a1a"
+# Secondary labels — avoid palette(mid), which is nearly white on some light themes.
+MUTED_TEXT = "#5c6370"
 
 # Compact chip / filter control.
 CHIP_BG = "#f0f4f8"
@@ -65,6 +68,7 @@ QListWidget::item {{
     border-radius: 8px;
     border: 1px solid transparent;
     background: transparent;
+    color: {SELECTION_TEXT};
 }}
 QListWidget::item:hover:!selected {{
     background: {SELECTION_HOVER};
@@ -73,8 +77,20 @@ QListWidget::item:hover:!selected {{
 QListWidget::item:selected {{
     background: {SELECTION_BG};
     border: 1px solid {SELECTION_BORDER};
+    color: {SELECTION_TEXT};
 }}
 """.strip()
+
+
+def apply_readable_selection_palette(view: QAbstractItemView) -> None:
+    """Keep selected-item text dark on soft blue highlights (not system white)."""
+    palette = view.palette()
+    text = QColor(SELECTION_TEXT)
+    highlight = QColor(SELECTION_BG)
+    for group in (QPalette.ColorGroup.Active, QPalette.ColorGroup.Inactive, QPalette.ColorGroup.Disabled):
+        palette.setColor(group, QPalette.ColorRole.Highlight, highlight)
+        palette.setColor(group, QPalette.ColorRole.HighlightedText, text)
+    view.setPalette(palette)
 
 
 def apply_soft_item_selection(view: QAbstractItemView) -> None:
@@ -82,6 +98,7 @@ def apply_soft_item_selection(view: QAbstractItemView) -> None:
     existing = (view.styleSheet() or "").rstrip()
     fragment = _LIST_WIDGET_ITEM_SELECTION_QSS if isinstance(view, QListWidget) else _LIST_ITEM_SELECTION_QSS
     view.setStyleSheet(f"{existing}\n{fragment}" if existing else fragment)
+    apply_readable_selection_palette(view)
 
 
 def apply_soft_list_selection_chrome(root: QWidget) -> None:
@@ -163,7 +180,7 @@ QListWidget::item:selected:active,
 QListWidget::item:selected:!active,
 QListWidget::item:selected:hover {{
     background-color: {SELECTION_BG};
-    color: palette(text);
+    color: {SELECTION_TEXT};
     border: 1px solid {SELECTION_BORDER};
     border-radius: 6px;
 }}

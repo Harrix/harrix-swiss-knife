@@ -35,6 +35,7 @@ from harrix_swiss_knife.apps.common.keyboard_shortcuts import (
     install_documented_shortcut,
     show_keyboard_shortcuts_help,
 )
+from harrix_swiss_knife.apps.common.ui_chrome import MUTED_TEXT
 from harrix_swiss_knife.cli_menu import show_action_class_context_menu
 from harrix_swiss_knife.installer.icon_assets import apply_window_icon
 from harrix_swiss_knife.qt_action_card_grid import (
@@ -144,7 +145,7 @@ class QuickLauncherDialog(QDialog):
         self._content_layout.addWidget(self._markdown_section, stretch=1)
 
         self._hint = QLabel(self)
-        self._hint.setStyleSheet("color: palette(mid);")
+        self._hint.setStyleSheet(f"color: {MUTED_TEXT};")
         self._hint.setCursor(Qt.CursorShape.OpenHandCursor)
         self._update_hint()
 

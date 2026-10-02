@@ -111,7 +111,7 @@ class QuickLauncherDialog(QDialog):
         self._content_layout.addWidget(self._markdown_section, stretch=1)
 
         self._hint = QLabel(self)
-        self._hint.setStyleSheet("color: palette(mid);")
+        self._hint.setStyleSheet(f"color: {MUTED_TEXT};")
         self._hint.setCursor(Qt.CursorShape.OpenHandCursor)
         self._update_hint()
 
@@ -696,7 +696,7 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self._content_layout.addWidget(self._markdown_section, stretch=1)
 
         self._hint = QLabel(self)
-        self._hint.setStyleSheet("color: palette(mid);")
+        self._hint.setStyleSheet(f"color: {MUTED_TEXT};")
         self._hint.setCursor(Qt.CursorShape.OpenHandCursor)
         self._update_hint()
 

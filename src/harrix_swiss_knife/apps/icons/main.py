@@ -62,7 +62,7 @@ from harrix_swiss_knife.apps.common.keyboard_shortcuts import (
 )
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.table_context_menu import add_reveal_in_explorer_action
-from harrix_swiss_knife.apps.common.ui_chrome import SELECTION_BG
+from harrix_swiss_knife.apps.common.ui_chrome import MUTED_TEXT, SELECTION_BG
 from harrix_swiss_knife.apps.common.ui_helpers import reveal_in_file_explorer
 from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import install_url_drop_handlers
 from harrix_swiss_knife.apps.icons.add_vector import (
@@ -947,7 +947,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._meta_filter_bar.hide()
         center_layout.addWidget(self._meta_filter_bar)
         self.count_label = QLabel("")
-        self.count_label.setStyleSheet("color: palette(mid);")
+        self.count_label.setStyleSheet(f"color: {MUTED_TEXT};")
         center_layout.addWidget(self.count_label)
         self.icon_list = DraggableIconList(icon_size=self._icon_size, dual_line_labels=True)
         self.icon_list.set_view_options(
@@ -3177,7 +3177,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         if hint:
             hint_label = QLabel(hint)
             hint_label.setWordWrap(True)
-            hint_label.setStyleSheet("color: palette(mid); font-size: 11px;")
+            hint_label.setStyleSheet(f"color: {MUTED_TEXT}; font-size: 11px;")
             layout.addWidget(hint_label)
         layout.addWidget(widget, stretch=1)
         return panel

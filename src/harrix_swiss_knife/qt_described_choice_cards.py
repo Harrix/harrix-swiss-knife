@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife.apps.common.ui_chrome import MUTED_TEXT
 from harrix_swiss_knife.qt_action_card_grid import CARD_SPACING, configure_action_card_grid
 from harrix_swiss_knife.qt_action_icon import create_menu_icon
 
@@ -114,7 +115,7 @@ class DescribedChoiceCard(QWidget):
             self._section_label.setWordWrap(True)
             self._section_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
             self._section_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
-            self._section_label.setStyleSheet("color: palette(mid);")
+            self._section_label.setStyleSheet(f"color: {MUTED_TEXT};")
             self._section_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
             self._text_column.addWidget(self._section_label)
 
@@ -129,7 +130,7 @@ class DescribedChoiceCard(QWidget):
             self._desc_label.setWordWrap(True)
             self._desc_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
             self._desc_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
-            self._desc_label.setStyleSheet("color: palette(mid);")
+            self._desc_label.setStyleSheet(f"color: {MUTED_TEXT};")
             self._desc_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
             self._text_column.addWidget(self._desc_label)
 

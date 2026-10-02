@@ -100,7 +100,7 @@ class CaptureActionPickerDialog(QDialog):
         self._layout.addWidget(self._actions_section, stretch=0)
 
         self._hint = QLabel("Hold a capture hotkey to open · Esc to close")
-        self._hint.setStyleSheet("color: palette(mid);")
+        self._hint.setStyleSheet(f"color: {MUTED_TEXT};")
         self._hint.setCursor(Qt.CursorShape.OpenHandCursor)
 
         footer = QHBoxLayout()
@@ -363,7 +363,7 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self._layout.addWidget(self._actions_section, stretch=0)
 
         self._hint = QLabel("Hold a capture hotkey to open · Esc to close")
-        self._hint.setStyleSheet("color: palette(mid);")
+        self._hint.setStyleSheet(f"color: {MUTED_TEXT};")
         self._hint.setCursor(Qt.CursorShape.OpenHandCursor)
 
         footer = QHBoxLayout()

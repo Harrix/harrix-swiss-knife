@@ -6,7 +6,7 @@ from PySide6.QtCore import QObject, Qt
 from PySide6.QtGui import QColor, QFont, QPalette
 from PySide6.QtWidgets import QFrame, QLabel, QListWidget, QSizePolicy, QVBoxLayout, QWidget
 
-from harrix_swiss_knife.apps.common.ui_chrome import action_card_selection_qss
+from harrix_swiss_knife.apps.common.ui_chrome import action_card_selection_qss, apply_readable_selection_palette
 from harrix_swiss_knife.qt_action_card_grid import CARD_GRID_CELL_HEIGHT
 from harrix_swiss_knife.qt_flat_scrollbar import with_flat_scrollbars
 
@@ -199,3 +199,4 @@ def style_transparent_icon_grid(grid: QListWidget) -> None:
     grid.setAutoFillBackground(False)
     grid.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=False)
     grid.setStyleSheet(with_flat_scrollbars(action_card_selection_qss()))
+    apply_readable_selection_palette(grid)

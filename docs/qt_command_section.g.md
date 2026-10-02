@@ -302,6 +302,7 @@ def style_transparent_icon_grid(grid: QListWidget) -> None:
     grid.setAutoFillBackground(False)
     grid.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=False)
     grid.setStyleSheet(with_flat_scrollbars(action_card_selection_qss()))
+    apply_readable_selection_palette(grid)
 ```
 
 </details>

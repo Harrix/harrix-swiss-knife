@@ -26,6 +26,7 @@ from harrix_swiss_knife.actions.images.screenshot_region import OnScreenshotRegi
 from harrix_swiss_knife.actions.images.screenshot_region_clipboard import OnScreenshotRegionClipboard
 from harrix_swiss_knife.actions.images.screenshot_region_keep_windows import OnScreenshotRegionKeepWindows
 from harrix_swiss_knife.actions.images.screenshot_region_translate import OnScreenshotRegionTranslate
+from harrix_swiss_knife.apps.common.ui_chrome import MUTED_TEXT
 from harrix_swiss_knife.cli_menu import show_action_class_context_menu
 from harrix_swiss_knife.qt_action_card_grid import (
     CARD_ICON_SIZE,
@@ -125,7 +126,7 @@ class CaptureActionPickerDialog(QDialog):
         self._layout.addWidget(self._actions_section, stretch=0)
 
         self._hint = QLabel("Hold a capture hotkey to open · Esc to close")
-        self._hint.setStyleSheet("color: palette(mid);")
+        self._hint.setStyleSheet(f"color: {MUTED_TEXT};")
         self._hint.setCursor(Qt.CursorShape.OpenHandCursor)
 
         footer = QHBoxLayout()

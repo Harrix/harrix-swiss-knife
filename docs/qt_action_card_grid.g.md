@@ -42,6 +42,7 @@ def configure_action_card_grid(list_widget: QListWidget, *, min_height: int | No
     list_widget.setWordWrap(True)
     list_widget.setUniformItemSizes(False)
     list_widget.setStyleSheet(action_card_selection_qss())
+    apply_readable_selection_palette(list_widget)
     list_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
     list_widget.setFrameShape(QListWidget.Shape.NoFrame)
 ```

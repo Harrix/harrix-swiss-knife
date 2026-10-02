@@ -857,7 +857,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._meta_filter_bar.hide()
         center_layout.addWidget(self._meta_filter_bar)
         self.count_label = QLabel("")
-        self.count_label.setStyleSheet("color: palette(mid);")
+        self.count_label.setStyleSheet(f"color: {MUTED_TEXT};")
         center_layout.addWidget(self.count_label)
         self.icon_list = DraggableIconList(icon_size=self._icon_size, dual_line_labels=True)
         self.icon_list.set_view_options(
@@ -3087,7 +3087,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         if hint:
             hint_label = QLabel(hint)
             hint_label.setWordWrap(True)
-            hint_label.setStyleSheet("color: palette(mid); font-size: 11px;")
+            hint_label.setStyleSheet(f"color: {MUTED_TEXT}; font-size: 11px;")
             layout.addWidget(hint_label)
         layout.addWidget(widget, stretch=1)
         return panel
