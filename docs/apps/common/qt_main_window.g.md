@@ -852,9 +852,11 @@ def compute_maximize_pin_geometry(available: QRect, *, standard_width: int = 192
 
 Return a frame-safe client rect used to map the HWND before maximize.
 
-The pin must stay inside the work area. Using the full work area as the
-client rectangle makes the title bar and bottom border spill outside
-(including under the taskbar) until `showMaximized` runs.
+The pin must stay inside the work area and must not fill it completely.
+A frameless pin glued to the full work area prevents Windows from expanding
+to the normal maximized frame (typically 8px outside the work area). Qt then
+keeps 8px frame margins and the client sits inset, so Mica edges show the
+desktop and the window looks unrestored.
 
 Args:
 
@@ -884,10 +886,10 @@ def compute_maximize_pin_geometry(
     return compute_restore_window_geometry(
         available,
         standard_width=standard_width,
-        frame_left=frame_left,
-        frame_top=frame_top,
-        frame_right=frame_right,
-        frame_bottom=frame_bottom,
+        frame_left=max(frame_left, _MAXIMIZE_PIN_INSET),
+        frame_top=max(frame_top, _MAXIMIZE_PIN_INSET),
+        frame_right=max(frame_right, _MAXIMIZE_PIN_INSET),
+        frame_bottom=max(frame_bottom, _MAXIMIZE_PIN_INSET),
     )
 ```
 

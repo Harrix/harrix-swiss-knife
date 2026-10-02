@@ -110,6 +110,12 @@ def test_compute_maximize_pin_geometry_stays_inside_work_area() -> None:
     ) == QRect(8, 32, 1904, 992)
 
 
+def test_compute_maximize_pin_geometry_insets_frameless() -> None:
+    """Frameless pins stay slightly inside the work area so maximize can expand."""
+    available = QRect(0, 0, 1920, 1032)
+    assert compute_maximize_pin_geometry(available) == QRect(8, 8, 1904, 1016)
+
+
 def test_compute_app_window_geometry_maximizes_on_standard_1080p() -> None:
     """A standard 1920-wide work area should maximize instead of floating."""
     assert compute_app_window_geometry(QRect(0, 0, 1920, 1032)) is None

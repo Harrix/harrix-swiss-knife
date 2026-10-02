@@ -257,6 +257,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
     about_app_name = "Vector Icons"
     about_description = "Browse and drag SVG/AI/PDF/EPS icon folders (Harrix-Vector-Icons or flat dumps)."
     settings_app_id = "icons"
+    defer_initial_show = True
 
     def __init__(self, *, hide_on_close: bool = False) -> None:
         """Build the browser UI and load catalog from config path."""
@@ -359,6 +360,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._build_ui()
         self._load_from_config()
         self._setup_window_size_and_position()
+        QTimer.singleShot(0, self._finish_window_initialization)
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Stop background work and optionally hide instead of closing."""
@@ -711,6 +713,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         central = QWidget(self)
         self.setCentralWidget(central)
         root = QVBoxLayout(central)
+        root.setContentsMargins(0, 0, 0, 0)
 
         toolbar_widget = QWidget()
         toolbar_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
@@ -755,12 +758,19 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.search_edit.setPlaceholderText("Search icons (title, tags, id)…")
         self.search_edit.textChanged.connect(self._schedule_search_filter)
         self.search_edit.returnPressed.connect(self._apply_filters)
+        # View combo is taller because of preview icons; match the rest of the row to it.
+        toolbar_h = max(self.variant_view_combo.sizeHint().height(), VIEW_COMBO_ICON_SIZE + 8)
+        # Icon matches the search field chrome, not the taller View combo row.
+        search_field_h = max(16, self.search_edit.sizeHint().height())
         search_row = QWidget()
         search_layout = QHBoxLayout(search_row)
         search_layout.setContentsMargins(0, 0, 0, 0)
         search_layout.setSpacing(6)
-        search_layout.addWidget(make_search_icon_label(), alignment=Qt.AlignmentFlag.AlignVCenter)
-        search_layout.addWidget(self.search_edit, stretch=1)
+        search_layout.addWidget(
+            make_search_icon_label(icon_size=search_field_h, box_size=search_field_h),
+            alignment=Qt.AlignmentFlag.AlignVCenter,
+        )
+        search_layout.addWidget(self.search_edit, stretch=1, alignment=Qt.AlignmentFlag.AlignVCenter)
         toolbar.addWidget(search_row, stretch=1)
 
         self.refresh_btn = make_lucide_push_button("Refresh catalog", "refresh-cw")
@@ -770,9 +780,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.refresh_btn.clicked.connect(self._on_refresh_catalog)
         toolbar.addWidget(self.refresh_btn)
 
-        # View combo is taller because of preview icons; match the rest of the row to it.
         # Keep the slider at a compact height and vertically centered (stretching misaligns the groove).
-        toolbar_h = max(self.variant_view_combo.sizeHint().height(), VIEW_COMBO_ICON_SIZE + 8)
         for widget in (
             self.folder_combo,
             self.variant_view_combo,
@@ -781,7 +789,6 @@ class MainWindow(QMainWindow, AppWindowMixin):
         ):
             widget.setFixedHeight(toolbar_h)
         self.refresh_btn.setFixedWidth(toolbar_h)
-        self.search_edit.setFixedHeight(toolbar_h)
         root.addWidget(toolbar_widget, stretch=0)
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
@@ -1271,6 +1278,17 @@ class MainWindow(QMainWindow, AppWindowMixin):
             self._restore_or_clear_selection(self._visible_families)
         self._refresh_viewport_pixmaps()
         self._start_thumb_refresh()
+
+    def _finish_window_initialization(self) -> None:
+        """Show and place the window after construction (same path as other apps)."""
+        if self._is_closing:
+            return
+        self._prepare_layout_before_first_show()
+        if self._is_closing:
+            return
+        self._show_placed_window()
+        self.raise_()
+        self.activateWindow()
 
     def _flush_thumb_updates(self) -> None:
         """Apply thumbnails finished since the last flush with a single repaint."""
@@ -3714,6 +3732,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:
         self._build_ui()
         self._load_from_config()
         self._setup_window_size_and_position()
+        QTimer.singleShot(0, self._finish_window_initialization)
 ```
 
 </details>
