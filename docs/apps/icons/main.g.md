@@ -1297,6 +1297,59 @@ class MainWindow(QMainWindow, AppWindowMixin):
             self.search_edit.setFocus(Qt.FocusReason.ShortcutFocusReason)
             self.search_edit.selectAll()
 
+    def _folder_combo_current_key(self) -> str:
+        """Return the resolved path key for the open (or last) folder."""
+        candidate = self._repo_root
+        if candidate is None:
+            candidate = load_last_folder()
+        if candidate is None:
+            return ""
+        try:
+            return str(candidate.resolve())
+        except OSError:
+            return str(candidate)
+
+    def _folder_combo_entries(self) -> list[tuple[str, str, str]]:
+        """Return `(label, path_str, resolve_key)` rows for the Folder combo."""
+        pinned = load_pinned_folders()
+        seen: set[str] = set()
+        entries: list[tuple[str, str, str]] = []
+        current_key = self._folder_combo_current_key()
+        for path in pinned:
+            if not path.is_dir():
+                continue
+            try:
+                key = str(path.resolve())
+            except OSError:
+                key = str(path)
+            if key in seen:
+                continue
+            seen.add(key)
+            entries.append((self._folder_display_name(path), str(path), key))
+        if self._repo_root is not None and current_key not in seen:
+            label = f"{self._folder_display_name(self._repo_root)} (current)"
+            entries.insert(0, (label, str(self._repo_root), current_key))
+        elif self._repo_root is None and current_key and current_key not in seen:
+            last = load_last_folder()
+            if last is not None and last.is_dir():
+                label = f"{self._folder_display_name(last)} (current)"
+                entries.insert(0, (label, str(last), current_key))
+        return entries
+
+    def _folder_combo_matches(self, desired: list[tuple[str, str, str]], selected: int) -> bool:
+        """Return whether the combo already shows `desired` with `selected` index."""
+        combo = self.folder_combo
+        if combo.count() != len(desired):
+            return False
+        if selected >= 0 and combo.currentIndex() != selected:
+            return False
+        for index, (label, raw, _key) in enumerate(desired):
+            if combo.itemText(index) != label:
+                return False
+            if str(combo.itemData(index) or "") != raw:
+                return False
+        return True
+
     @staticmethod
     def _folder_display_name(path: Path) -> str:
         r"""Short label for folder combo/menus; `src` shows parent\src."""
@@ -3308,46 +3361,34 @@ class MainWindow(QMainWindow, AppWindowMixin):
             self.variants_panel.list.set_favorite_family_ids(ids)
 
     def _sync_folder_combo(self) -> None:
+        """Refresh the Folder toolbar combo without clearing when nothing changed."""
         if not hasattr(self, "folder_combo"):
             return
-        self.folder_combo.blockSignals(True)  # noqa: FBT003
-        self.folder_combo.clear()
-        pinned = load_pinned_folders()
-        seen: set[str] = set()
-        current_key = ""
-        if self._repo_root is not None:
-            try:
-                current_key = str(self._repo_root.resolve())
-            except OSError:
-                current_key = str(self._repo_root)
-        for path in pinned:
-            if not path.is_dir():
-                continue
-            try:
-                key = str(path.resolve())
-            except OSError:
-                key = str(path)
-            if key in seen:
-                continue
-            seen.add(key)
-            self.folder_combo.addItem(self._folder_display_name(path), str(path))
-        if self._repo_root is not None and current_key not in seen:
-            label = f"{self._folder_display_name(self._repo_root)} (current)"
-            self.folder_combo.insertItem(0, label, str(self._repo_root))
-        # Select current folder when present.
+        desired = self._folder_combo_entries()
+        current_key = self._folder_combo_current_key()
         selected = -1
-        for index in range(self.folder_combo.count()):
-            raw = str(self.folder_combo.itemData(index) or "")
-            try:
-                key = str(Path(raw).resolve()) if raw else ""
-            except OSError:
-                key = raw
+        for index, (_label, _raw, key) in enumerate(desired):
             if key == current_key:
                 selected = index
                 break
-        if selected >= 0:
-            self.folder_combo.setCurrentIndex(selected)
-        self.folder_combo.blockSignals(False)  # noqa: FBT003
+        if selected < 0 and desired:
+            selected = 0
+
+        if self._folder_combo_matches(desired, selected):
+            return
+
+        combo = self.folder_combo
+        combo.setUpdatesEnabled(False)
+        combo.blockSignals(True)  # noqa: FBT003
+        try:
+            combo.clear()
+            for label, raw, _key in desired:
+                combo.addItem(label, raw)
+            if selected >= 0:
+                combo.setCurrentIndex(selected)
+        finally:
+            combo.blockSignals(False)  # noqa: FBT003
+            combo.setUpdatesEnabled(True)
 
     def _sync_meta_filter_bar(self) -> None:
         if not hasattr(self, "_meta_filter_bar"):
