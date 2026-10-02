@@ -53,6 +53,7 @@ from harrix_swiss_knife.apps.common.keyboard_shortcuts import (
     merge_shortcut_help,
     show_keyboard_shortcuts_help,
 )
+from harrix_swiss_knife.apps.common.ui_chrome import apply_soft_list_selection_chrome
 from harrix_swiss_knife.apps.common.ui_helpers import reveal_in_file_explorer
 from harrix_swiss_knife.apps.common.word_wrap_header import install_word_wrap_headers
 from harrix_swiss_knife.qt_app_font import apply_ui_font_scale
@@ -189,6 +190,10 @@ class AppWindowMixin:
             menu = getattr(self, name, None)
             if isinstance(menu, QMenu):
                 apply_leading_chrome_icons(menu)
+
+    def _apply_soft_list_selection_chrome(self) -> None:
+        """Unify QListView selection with Icons soft-blue chrome."""
+        apply_soft_list_selection_chrome(cast("QMainWindow", self))
 
     def _connect_exit_about_actions(self) -> None:
         """Wire Exit and About menu actions to their handlers."""

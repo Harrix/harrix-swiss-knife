@@ -62,6 +62,7 @@ from harrix_swiss_knife.apps.common.keyboard_shortcuts import (
 )
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.table_context_menu import add_reveal_in_explorer_action
+from harrix_swiss_knife.apps.common.ui_chrome import SELECTION_BG
 from harrix_swiss_knife.apps.common.ui_helpers import reveal_in_file_explorer
 from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import install_url_drop_handlers
 from harrix_swiss_knife.apps.icons.add_vector import (
@@ -854,6 +855,9 @@ class MainWindow(QMainWindow, AppWindowMixin):
         toolbar.addWidget(search_row, stretch=1)
 
         self.refresh_btn = make_lucide_push_button("Refresh catalog", "refresh-cw")
+        self.refresh_btn.setText("")
+        self.refresh_btn.setToolTip("Refresh catalog")
+        self.refresh_btn.setAccessibleName("Refresh catalog")
         self.refresh_btn.clicked.connect(self._on_refresh_catalog)
         toolbar.addWidget(self.refresh_btn)
 
@@ -867,6 +871,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
             self.refresh_btn,
         ):
             widget.setFixedHeight(toolbar_h)
+        self.refresh_btn.setFixedWidth(toolbar_h)
         self.search_edit.setFixedHeight(toolbar_h)
         root.addWidget(toolbar_widget, stretch=0)
 
@@ -888,14 +893,26 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.folder_tree.customContextMenuRequested.connect(self._on_folder_tree_context_menu)
         self.folder_tree.currentItemChanged.connect(self._on_folder_tree_changed)
         self.folder_tree.itemClicked.connect(self._on_folder_item_clicked)
-        left_splitter.addWidget(self._sidebar_panel("Folders:", self.folder_tree))
+        left_splitter.addWidget(
+            self._sidebar_panel(
+                "Folders",
+                self.folder_tree,
+                hint="Folder and category filters are exclusive.",
+            ),
+        )
 
         self.category_list = CategoryDropList()
         self.category_list.setIconSize(QSize(CATEGORY_LIST_ICON_SIZE, CATEGORY_LIST_ICON_SIZE))
         self.category_list.currentTextChanged.connect(self._on_category_changed)
         self.category_list.itemClicked.connect(self._on_category_item_clicked)
         self.category_list.families_dropped.connect(self._on_families_dropped_on_category)
-        left_splitter.addWidget(self._sidebar_panel("Categories:", self.category_list))
+        left_splitter.addWidget(
+            self._sidebar_panel(
+                "Categories",
+                self.category_list,
+                hint="Choosing a category clears the folder filter.",
+            ),
+        )
 
         left_splitter.setStretchFactor(0, 1)
         left_splitter.setStretchFactor(1, 1)
@@ -904,12 +921,24 @@ class MainWindow(QMainWindow, AppWindowMixin):
         center = QWidget()
         center_layout = QVBoxLayout(center)
         center_layout.setContentsMargins(0, 0, 0, 0)
+        center_layout.setSpacing(8)
         self._meta_filter_bar = QWidget()
+        self._meta_filter_bar.setObjectName("metaFilterBar")
+        self._meta_filter_bar.setStyleSheet(
+            "#metaFilterBar {"
+            f" background-color: {SELECTION_BG};"
+            " border: 1px solid #c5dde9;"
+            " border-radius: 8px;"
+            "}"
+            "#metaFilterBar QLabel {"
+            f" color: {LUCIDE_COLOR_BLUE};"
+            " font-weight: 500;"
+            "}",
+        )
         meta_filter_layout = QHBoxLayout(self._meta_filter_bar)
-        meta_filter_layout.setContentsMargins(0, 0, 0, 0)
+        meta_filter_layout.setContentsMargins(10, 4, 4, 4)
         meta_filter_layout.setSpacing(8)
         self._meta_filter_label = QLabel("")
-        self._meta_filter_label.setStyleSheet(f"color: {LUCIDE_COLOR_BLUE};")
         self._meta_filter_label.setWordWrap(True)
         meta_filter_layout.addWidget(self._meta_filter_label, stretch=1)
         self._meta_filter_clear_btn = make_lucide_push_button("Clear filter", "x")
@@ -918,6 +947,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._meta_filter_bar.hide()
         center_layout.addWidget(self._meta_filter_bar)
         self.count_label = QLabel("")
+        self.count_label.setStyleSheet("color: palette(mid);")
         center_layout.addWidget(self.count_label)
         self.icon_list = DraggableIconList(icon_size=self._icon_size, dual_line_labels=True)
         self.icon_list.set_view_options(
@@ -3133,14 +3163,23 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.statusBar().showMessage(summary_lines[0] if summary_lines else "Done")
 
     @staticmethod
-    def _sidebar_panel(title: str, widget: QWidget) -> QWidget:
+    def _sidebar_panel(title: str, widget: QWidget, *, hint: str | None = None) -> QWidget:
         """Return a labeled sidebar pane for the left vertical splitter."""
         panel = QWidget()
         layout = QVBoxLayout(panel)
-        layout.setContentsMargins(4, 4, 0, 0)
+        layout.setContentsMargins(8, 8, 4, 4)
         layout.setSpacing(4)
-        layout.addWidget(QLabel(title))
-        layout.addWidget(widget)
+        title_label = QLabel(title)
+        title_font = title_label.font()
+        title_font.setBold(True)
+        title_label.setFont(title_font)
+        layout.addWidget(title_label)
+        if hint:
+            hint_label = QLabel(hint)
+            hint_label.setWordWrap(True)
+            hint_label.setStyleSheet("color: palette(mid); font-size: 11px;")
+            layout.addWidget(hint_label)
+        layout.addWidget(widget, stretch=1)
         return panel
 
     def _start_catalog_load(
@@ -3474,13 +3513,17 @@ class MainWindow(QMainWindow, AppWindowMixin):
         shown = str(total) if complete else f"{loaded} of {total}"
         if self._grid_fallback:
             self.count_label.setText(f"{shown} tiles ({self._grid_matched} match, {self._grid_fallback} fallback)")
+        elif total == self._grid_total_families:
+            self.count_label.setText(f"{shown} icons")
         else:
-            self.count_label.setText(f"{shown} tiles / {self._grid_total_families} families")
+            self.count_label.setText(f"{shown} tiles · {self._grid_total_families} families")
         catalog_total = len(self._catalog.icons) if self._catalog is not None else 0
         suffix = "" if complete else " — loading…"
-        self.statusBar().showMessage(
-            f"Showing {shown} tiles ({self._grid_total_families} families) / {catalog_total}{suffix}",
-        )
+        if total == self._grid_total_families:
+            status = f"Showing {shown} icons / {catalog_total}{suffix}"
+        else:
+            status = f"Showing {shown} tiles ({self._grid_total_families} families) / {catalog_total}{suffix}"
+        self.statusBar().showMessage(status)
 
     def _update_load_toast(
         self,

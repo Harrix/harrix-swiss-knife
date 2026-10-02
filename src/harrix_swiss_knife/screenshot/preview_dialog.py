@@ -50,6 +50,7 @@ from harrix_swiss_knife.apps.common.keyboard_shortcuts import (
     show_keyboard_shortcuts_help,
 )
 from harrix_swiss_knife.apps.common.qt_main_window import apply_app_window_size_and_position
+from harrix_swiss_knife.apps.common.ui_chrome import SELECTION_BG, SELECTION_BORDER, SELECTION_HOVER
 from harrix_swiss_knife.paths import get_config_path_str, get_temp_config_path
 from harrix_swiss_knife.qt_flow_layout import FlowLayout
 from harrix_swiss_knife.qt_lucide_icon import (
@@ -178,7 +179,23 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._tabs = QTabWidget(central)
         self._tabs.setTabsClosable(True)
         self._tabs.setDocumentMode(True)
-        self._tabs.setStyleSheet("QTabWidget::pane { border: none; background: transparent; }")
+        self._tabs.setStyleSheet(
+            "QTabWidget::pane { border: none; background: transparent; }"
+            "QTabBar::tab {"
+            " background: transparent;"
+            " border: 1px solid transparent;"
+            " border-radius: 6px;"
+            " padding: 4px 10px;"
+            " margin-right: 2px;"
+            "}"
+            "QTabBar::tab:hover {"
+            f" background: {SELECTION_HOVER};"
+            "}"
+            "QTabBar::tab:selected {"
+            f" background: {SELECTION_BG};"
+            f" border-color: {SELECTION_BORDER};"
+            "}",
+        )
         self._tabs.tabCloseRequested.connect(self._close_tab_at)
         self._tabs.currentChanged.connect(self._on_tab_changed)
         tab_bar = self._tabs.tabBar()
@@ -333,6 +350,15 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._status.setWordWrap(True)
         self._status.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         self._status.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        self._status.setStyleSheet(
+            f"QLabel {{"
+            f" background-color: {SELECTION_BG};"
+            f" border: 1px solid {SELECTION_BORDER};"
+            " border-radius: 8px;"
+            " padding: 6px 10px;"
+            " color: #1a5f7a;"
+            "}",
+        )
         self._status.setText(_STATUS_HINT)
         footer.addWidget(self._status)
         root.addLayout(footer)

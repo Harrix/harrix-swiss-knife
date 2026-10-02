@@ -33,6 +33,7 @@ from PySide6.QtWidgets import (
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.table_context_menu import add_delete_action
 from harrix_swiss_knife.apps.common.text_case import capitalize_first_letter
+from harrix_swiss_knife.apps.common.ui_chrome import list_view_panel_qss
 from harrix_swiss_knife.apps.food.database_manager import merge_food_autocomplete_entries
 from harrix_swiss_knife.apps.food.delegates import IsDrinkDelegate, is_drink_to_model, parse_is_drink_cell
 from harrix_swiss_knife.apps.food.food_log_calories import calculate_food_log_calories
@@ -79,26 +80,7 @@ QPushButton:pressed {
     background-color: #90caf9;
 }
 """
-_LIST_STYLE = with_flat_scrollbars(
-    """
-QListView {
-    border: 2px solid #2196F3;
-    border-radius: 4px;
-    background-color: white;
-}
-QListView::item {
-    padding: 4px;
-    border-bottom: 1px solid #e0e0e0;
-}
-QListView::item:selected {
-    background-color: #e3f2fd;
-    color: black;
-}
-QListView::item:hover {
-    background-color: #bbdefb;
-}
-"""
-)
+_LIST_STYLE = with_flat_scrollbars(list_view_panel_qss(border_color="#2196F3"))
 _CONTROLS_MIN_WIDTH = 350
 _COL_NAME = 0
 _COL_WEIGHT = 1

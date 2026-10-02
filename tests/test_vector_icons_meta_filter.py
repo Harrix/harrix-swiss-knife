@@ -56,10 +56,12 @@ def test_build_variants_header_html_links_when_others_exist() -> None:
     ]
     html = build_variants_header_html(icons[0], icons)
     assert 'href="hsk-meta:category/building"' in html
-    assert "building (2)" in html
+    assert "building" in html
+    assert "(2)" in html
     assert 'href="hsk-meta:date/2020-07-19"' in html
     assert "garage" in html
-    assert "garage (" not in html  # unique tag, no link
+    assert "garage (" not in html  # unique tag, no count link
+    assert "border-radius:10px" in html
 
 
 def test_build_meta_field_html_helpers() -> None:
@@ -67,9 +69,13 @@ def test_build_meta_field_html_helpers() -> None:
         _family("a", categories=["building"], tags=["garage"], date="2020-07-19"),
         _family("b", categories=["building"], tags=["house"], date="2020-07-19"),
     ]
-    assert "building (2)" in build_meta_list_html(icons, META_KIND_CATEGORY, ["building"])
+    category_html = build_meta_list_html(icons, META_KIND_CATEGORY, ["building"])
+    assert "building" in category_html
+    assert "(2)" in category_html
     assert build_meta_list_html(icons, META_KIND_TAG, []) == "—"
-    assert "2020-07-19 (2)" in build_meta_date_html(icons, "2020-07-19")
+    date_html = build_meta_date_html(icons, "2020-07-19")
+    assert "2020-07-19" in date_html
+    assert "(2)" in date_html
     assert build_meta_date_html(icons, "") == "—"
 
 

@@ -1682,25 +1682,33 @@ class IconLabelDelegate(QStyledItemDelegate):
         )
 
         if subtitle_text:
-            muted = opt.palette.color(opt.palette.ColorRole.PlaceholderText)
+            muted = opt.palette.color(opt.palette.ColorRole.Mid)
+            if not muted.isValid() or muted.alpha() == 0:
+                muted = opt.palette.color(opt.palette.ColorRole.PlaceholderText)
             if not muted.isValid() or muted.alpha() == 0:
                 muted = QColor(opt.palette.color(opt.palette.ColorRole.Text))
-                muted.setAlpha(160)
+                muted.setAlpha(140)
             if is_fallback:
                 muted = QColor(muted)
                 muted.setAlpha(FALLBACK_SUBTITLE_ALPHA)
             painter.setPen(muted)
             painter.setFont(subtitle_font)
+            metrics = painter.fontMetrics()
             subtitle_rect = QRect(
-                text_rect.left(),
+                text_rect.left() + 2,
                 title_rect.bottom() + 1,
-                text_rect.width(),
-                max(0, text_rect.bottom() - title_rect.bottom()),
+                max(0, text_rect.width() - 4),
+                metrics.height() + 2,
+            )
+            elided = metrics.elidedText(
+                subtitle_text,
+                Qt.TextElideMode.ElideMiddle,
+                subtitle_rect.width(),
             )
             painter.drawText(
                 subtitle_rect,
-                int(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop | Qt.TextFlag.TextWrapAnywhere),
-                subtitle_text,
+                int(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop),
+                elided,
             )
 
         is_trademark = bool(index.data(ROLE_TRADEMARK))
@@ -1832,25 +1840,33 @@ def paint(
         )
 
         if subtitle_text:
-            muted = opt.palette.color(opt.palette.ColorRole.PlaceholderText)
+            muted = opt.palette.color(opt.palette.ColorRole.Mid)
+            if not muted.isValid() or muted.alpha() == 0:
+                muted = opt.palette.color(opt.palette.ColorRole.PlaceholderText)
             if not muted.isValid() or muted.alpha() == 0:
                 muted = QColor(opt.palette.color(opt.palette.ColorRole.Text))
-                muted.setAlpha(160)
+                muted.setAlpha(140)
             if is_fallback:
                 muted = QColor(muted)
                 muted.setAlpha(FALLBACK_SUBTITLE_ALPHA)
             painter.setPen(muted)
             painter.setFont(subtitle_font)
+            metrics = painter.fontMetrics()
             subtitle_rect = QRect(
-                text_rect.left(),
+                text_rect.left() + 2,
                 title_rect.bottom() + 1,
-                text_rect.width(),
-                max(0, text_rect.bottom() - title_rect.bottom()),
+                max(0, text_rect.width() - 4),
+                metrics.height() + 2,
+            )
+            elided = metrics.elidedText(
+                subtitle_text,
+                Qt.TextElideMode.ElideMiddle,
+                subtitle_rect.width(),
             )
             painter.drawText(
                 subtitle_rect,
-                int(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop | Qt.TextFlag.TextWrapAnywhere),
-                subtitle_text,
+                int(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop),
+                elided,
             )
 
         is_trademark = bool(index.data(ROLE_TRADEMARK))
@@ -1947,28 +1963,65 @@ class VariantsPanel(QWidget):
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        self.header = QLabel("Select an icon to see variants")
-        self.header.setWordWrap(True)
-        self.header.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
-        self.header.setTextFormat(Qt.TextFormat.RichText)
-        self.header.setTextInteractionFlags(
-            Qt.TextInteractionFlag.TextBrowserInteraction | Qt.TextInteractionFlag.LinksAccessibleByMouse,
-        )
-        self.header.setOpenExternalLinks(False)
-        self.header.setStyleSheet(
-            "QLabel {"
-            " background: transparent;"
-            "}"
-            "QLabel a {"
-            f" color: {LUCIDE_COLOR_BLUE};"
-            " text-decoration: none;"
-            "}"
-            "QLabel a:hover {"
-            " text-decoration: underline;"
-            "}",
-        )
-        self.header.linkActivated.connect(self._on_header_link_activated)
-        self.header.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.MinimumExpanding)
+        layout.setSpacing(8)
+
+        self.header = QWidget()
+        header_layout = QVBoxLayout(self.header)
+        header_layout.setContentsMargins(0, 0, 4, 0)
+        header_layout.setSpacing(6)
+
+        self._header_empty = QLabel("Select an icon to see variants")
+        self._header_empty.setWordWrap(True)
+        self._header_empty.setStyleSheet("color: palette(mid);")
+        header_layout.addWidget(self._header_empty)
+
+        self._header_body = QWidget()
+        body_layout = QVBoxLayout(self._header_body)
+        body_layout.setContentsMargins(0, 0, 0, 0)
+        body_layout.setSpacing(6)
+
+        self._title_label = QLabel()
+        title_font = self._title_label.font()
+        title_font.setBold(True)
+        title_font.setPointSize(max(title_font.pointSize(), 11))
+        self._title_label.setFont(title_font)
+        self._title_label.setWordWrap(True)
+        body_layout.addWidget(self._title_label)
+
+        self._id_label = QLabel()
+        self._id_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self._id_label.setStyleSheet("color: palette(mid); font-size: 11px;")
+        self._id_label.setWordWrap(True)
+        body_layout.addWidget(self._id_label)
+
+        self._date_row = QWidget()
+        date_layout = QHBoxLayout(self._date_row)
+        date_layout.setContentsMargins(0, 0, 0, 0)
+        date_layout.setSpacing(6)
+        date_caption = QLabel("Date")
+        date_caption.setStyleSheet("color: palette(mid); font-size: 11px;")
+        date_layout.addWidget(date_caption, alignment=Qt.AlignmentFlag.AlignVCenter)
+        self._date_chips = QWidget()
+        self._date_chips_layout = FlowLayout(self._date_chips, margin=0, h_spacing=4, v_spacing=4)
+        date_layout.addWidget(self._date_chips, stretch=1)
+        body_layout.addWidget(self._date_row)
+
+        self._categories_caption = QLabel("Categories")
+        self._categories_caption.setStyleSheet("color: palette(mid); font-size: 11px;")
+        body_layout.addWidget(self._categories_caption)
+        self._categories_chips = QWidget()
+        self._categories_layout = FlowLayout(self._categories_chips, margin=0, h_spacing=4, v_spacing=4)
+        body_layout.addWidget(self._categories_chips)
+
+        self._tags_caption = QLabel("Tags")
+        self._tags_caption.setStyleSheet("color: palette(mid); font-size: 11px;")
+        body_layout.addWidget(self._tags_caption)
+        self._tags_chips = QWidget()
+        self._tags_layout = FlowLayout(self._tags_chips, margin=0, h_spacing=4, v_spacing=4)
+        body_layout.addWidget(self._tags_chips)
+
+        self._header_body.hide()
+        header_layout.addWidget(self._header_body)
 
         self._header_scroll = QScrollArea()
         self._header_scroll.setWidget(self.header)
@@ -1993,9 +2046,7 @@ class VariantsPanel(QWidget):
         self._family = None
         self.list.set_variants_family(None)
         self.list.clear()
-        self.header.setTextFormat(Qt.TextFormat.PlainText)
-        self.header.setText("Select an icon to see variants")
-        self.header.setTextFormat(Qt.TextFormat.RichText)
+        self._show_empty_header()
         self._sync_header_scroll_height()
 
     @property
@@ -2035,9 +2086,7 @@ class VariantsPanel(QWidget):
         self.list.set_variants_family(family)
         self.list.clear()
         if family is None or repo_root is None:
-            self.header.setTextFormat(Qt.TextFormat.PlainText)
-            self.header.setText("Select an icon to see variants")
-            self.header.setTextFormat(Qt.TextFormat.RichText)
+            self._show_empty_header()
             self._sync_header_scroll_height()
             return
 
@@ -2055,12 +2104,37 @@ class VariantsPanel(QWidget):
             self.list.addItem(item)
         self.list.doItemsLayout()
 
-    def _on_header_link_activated(self, href: str) -> None:
-        parsed = parse_meta_link(href)
-        if parsed is None:
-            return
-        kind, value = parsed
-        self.meta_filter_requested.emit(kind, value)
+    def _add_meta_chips(
+        self,
+        layout: FlowLayout,
+        *,
+        kind: str,
+        values: list[str],
+    ) -> None:
+        while layout.count():
+            item = layout.takeAt(0)
+            widget = item.widget() if item is not None else None
+            if widget is not None:
+                widget.deleteLater()
+        for value in values:
+            total = count_families_for_meta(self._catalog_icons, kind, value)
+            clickable = total > 1
+            label = f"{value} ({total})" if clickable else value
+            chip = QToolButton(self.header)
+            chip.setText(label)
+            chip.setCursor(Qt.CursorShape.PointingHandCursor if clickable else Qt.CursorShape.ArrowCursor)
+            chip.setEnabled(clickable)
+            chip.setAutoRaise(False)
+            chip.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
+            chip.setStyleSheet(_META_CHIP_STYLE)
+            if clickable:
+                chip.clicked.connect(
+                    lambda _checked=False, meta_kind=kind, meta_value=value: self.meta_filter_requested.emit(
+                        meta_kind,
+                        meta_value,
+                    ),
+                )
+            layout.addWidget(chip)
 
     @staticmethod
     def _preview(path: Path, size: int) -> QPixmap:
@@ -2072,17 +2146,50 @@ class VariantsPanel(QWidget):
     def _refresh_header(self) -> None:
         family = self._family
         if family is None:
+            self._show_empty_header()
             return
-        self.header.setTextFormat(Qt.TextFormat.RichText)
-        self.header.setText(build_variants_header_html(family, self._catalog_icons))
+        self._header_empty.hide()
+        self._header_body.show()
+        self._title_label.setText(family.title)
+        self._id_label.setText(family.id)
+        date = family.date.strip()
+        self._date_row.setVisible(bool(date))
+        if date:
+            self._add_meta_chips(self._date_chips_layout, kind=META_KIND_DATE, values=[date])
+        categories = [item.strip() for item in family.categories if item.strip()]
+        self._categories_caption.setVisible(True)
+        self._categories_chips.setVisible(True)
+        if categories:
+            self._add_meta_chips(self._categories_layout, kind=META_KIND_CATEGORY, values=categories)
+        else:
+            self._add_meta_chips(self._categories_layout, kind=META_KIND_CATEGORY, values=[])
+            empty = QLabel("—")
+            empty.setStyleSheet("color: palette(mid);")
+            self._categories_layout.addWidget(empty)
+        tags = [item.strip() for item in family.tags if item.strip()]
+        self._tags_caption.setVisible(True)
+        self._tags_chips.setVisible(True)
+        if tags:
+            self._add_meta_chips(self._tags_layout, kind=META_KIND_TAG, values=tags)
+        else:
+            self._add_meta_chips(self._tags_layout, kind=META_KIND_TAG, values=[])
+            empty = QLabel("—")
+            empty.setStyleSheet("color: palette(mid);")
+            self._tags_layout.addWidget(empty)
         self._sync_header_scroll_height()
+
+    def _show_empty_header(self) -> None:
+        self._header_body.hide()
+        self._header_empty.show()
+        self._header_empty.setText("Select an icon to see variants")
 
     def _sync_header_scroll_height(self) -> None:
         """Fit the header scroll area to content, capped so the variants list keeps space."""
         viewport_w = self._header_scroll.viewport().width()
         width = viewport_w if viewport_w > 1 else max(self.width() - self._header_scroll.frameWidth() * 2, 1)
         self.header.setFixedWidth(width)
-        content_h = max(self.header.heightForWidth(width), self.header.sizeHint().height(), 1)
+        self.header.adjustSize()
+        content_h = max(self.header.sizeHint().height(), 1)
         self.header.setFixedHeight(content_h)
         chrome = self._header_scroll.frameWidth() * 2
         target = min(VARIANT_HEADER_SCROLL_MAX_HEIGHT, content_h + chrome)
@@ -2112,28 +2219,65 @@ def __init__(self, parent: QWidget | None = None, *, thumb_size: int = VARIANT_T
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        self.header = QLabel("Select an icon to see variants")
-        self.header.setWordWrap(True)
-        self.header.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
-        self.header.setTextFormat(Qt.TextFormat.RichText)
-        self.header.setTextInteractionFlags(
-            Qt.TextInteractionFlag.TextBrowserInteraction | Qt.TextInteractionFlag.LinksAccessibleByMouse,
-        )
-        self.header.setOpenExternalLinks(False)
-        self.header.setStyleSheet(
-            "QLabel {"
-            " background: transparent;"
-            "}"
-            "QLabel a {"
-            f" color: {LUCIDE_COLOR_BLUE};"
-            " text-decoration: none;"
-            "}"
-            "QLabel a:hover {"
-            " text-decoration: underline;"
-            "}",
-        )
-        self.header.linkActivated.connect(self._on_header_link_activated)
-        self.header.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.MinimumExpanding)
+        layout.setSpacing(8)
+
+        self.header = QWidget()
+        header_layout = QVBoxLayout(self.header)
+        header_layout.setContentsMargins(0, 0, 4, 0)
+        header_layout.setSpacing(6)
+
+        self._header_empty = QLabel("Select an icon to see variants")
+        self._header_empty.setWordWrap(True)
+        self._header_empty.setStyleSheet("color: palette(mid);")
+        header_layout.addWidget(self._header_empty)
+
+        self._header_body = QWidget()
+        body_layout = QVBoxLayout(self._header_body)
+        body_layout.setContentsMargins(0, 0, 0, 0)
+        body_layout.setSpacing(6)
+
+        self._title_label = QLabel()
+        title_font = self._title_label.font()
+        title_font.setBold(True)
+        title_font.setPointSize(max(title_font.pointSize(), 11))
+        self._title_label.setFont(title_font)
+        self._title_label.setWordWrap(True)
+        body_layout.addWidget(self._title_label)
+
+        self._id_label = QLabel()
+        self._id_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self._id_label.setStyleSheet("color: palette(mid); font-size: 11px;")
+        self._id_label.setWordWrap(True)
+        body_layout.addWidget(self._id_label)
+
+        self._date_row = QWidget()
+        date_layout = QHBoxLayout(self._date_row)
+        date_layout.setContentsMargins(0, 0, 0, 0)
+        date_layout.setSpacing(6)
+        date_caption = QLabel("Date")
+        date_caption.setStyleSheet("color: palette(mid); font-size: 11px;")
+        date_layout.addWidget(date_caption, alignment=Qt.AlignmentFlag.AlignVCenter)
+        self._date_chips = QWidget()
+        self._date_chips_layout = FlowLayout(self._date_chips, margin=0, h_spacing=4, v_spacing=4)
+        date_layout.addWidget(self._date_chips, stretch=1)
+        body_layout.addWidget(self._date_row)
+
+        self._categories_caption = QLabel("Categories")
+        self._categories_caption.setStyleSheet("color: palette(mid); font-size: 11px;")
+        body_layout.addWidget(self._categories_caption)
+        self._categories_chips = QWidget()
+        self._categories_layout = FlowLayout(self._categories_chips, margin=0, h_spacing=4, v_spacing=4)
+        body_layout.addWidget(self._categories_chips)
+
+        self._tags_caption = QLabel("Tags")
+        self._tags_caption.setStyleSheet("color: palette(mid); font-size: 11px;")
+        body_layout.addWidget(self._tags_caption)
+        self._tags_chips = QWidget()
+        self._tags_layout = FlowLayout(self._tags_chips, margin=0, h_spacing=4, v_spacing=4)
+        body_layout.addWidget(self._tags_chips)
+
+        self._header_body.hide()
+        header_layout.addWidget(self._header_body)
 
         self._header_scroll = QScrollArea()
         self._header_scroll.setWidget(self.header)
@@ -2172,9 +2316,7 @@ def clear_variants(self) -> None:
         self._family = None
         self.list.set_variants_family(None)
         self.list.clear()
-        self.header.setTextFormat(Qt.TextFormat.PlainText)
-        self.header.setText("Select an icon to see variants")
-        self.header.setTextFormat(Qt.TextFormat.RichText)
+        self._show_empty_header()
         self._sync_header_scroll_height()
 ```
 
@@ -2283,9 +2425,7 @@ def show_family(self, family: IconFamily | None, repo_root: Path | None) -> None
         self.list.set_variants_family(family)
         self.list.clear()
         if family is None or repo_root is None:
-            self.header.setTextFormat(Qt.TextFormat.PlainText)
-            self.header.setText("Select an icon to see variants")
-            self.header.setTextFormat(Qt.TextFormat.RichText)
+            self._show_empty_header()
             self._sync_header_scroll_height()
             return
 
@@ -2312,7 +2452,7 @@ def show_family(self, family: IconFamily | None, repo_root: Path | None) -> None
 def apply_frameless_item_view(view: QAbstractItemView) -> None
 ```
 
-Remove the default gray frame around folders / categories / icons lists.
+Remove the default gray frame and apply soft selection / hover chrome.
 
 <details>
 <summary>Code:</summary>

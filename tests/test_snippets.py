@@ -402,16 +402,16 @@ def test_emoji_zone_items_have_icon_without_caption(qapp: QApplication) -> None:
 
 def test_list_highlight_is_flat_without_inverted_text(qapp: QApplication) -> None:
     assert qapp is not None
-    assert _SELECTION_BG == "#e9e9e9"
-    assert _SELECTION_OUTLINE == "#b0b0b0"
+    assert _SELECTION_BG == "#e8f4fc"
+    assert _SELECTION_OUTLINE == "#2e86b7"
     assert "item:hover" in _LIST_SELECTION_STYLE
-    assert "border: none" in _LIST_SELECTION_STYLE
+    assert "border: 1px solid #2e86b7" in _LIST_SELECTION_STYLE
     assert "#6a6a6a" not in _LIST_SELECTION_STYLE
     emoji = ZonePanel(zone=ZONE_EMOJI, title="Emoji")
     assert isinstance(emoji._list.itemDelegate(), IconItemDelegate)
     phrase = ZonePanel(zone=ZONE_PHRASE, title="Phrases")
     highlight = phrase._list.palette().color(QPalette.ColorRole.Highlight)
-    assert highlight.name() == "#e9e9e9"
+    assert highlight.name() == "#e8f4fc"
     text = phrase._list.palette().color(QPalette.ColorRole.Text)
     highlighted_text = phrase._list.palette().color(QPalette.ColorRole.HighlightedText)
     assert highlighted_text == text

@@ -163,6 +163,10 @@ class AppWindowMixin:
             if isinstance(menu, QMenu):
                 apply_leading_chrome_icons(menu)
 
+    def _apply_soft_list_selection_chrome(self) -> None:
+        """Unify QListView selection with Icons soft-blue chrome."""
+        apply_soft_list_selection_chrome(cast("QMainWindow", self))
+
     def _connect_exit_about_actions(self) -> None:
         """Wire Exit and About menu actions to their handlers."""
         self.actionExit.triggered.connect(self.on_exit)

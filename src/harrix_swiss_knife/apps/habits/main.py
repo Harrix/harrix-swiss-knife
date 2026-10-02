@@ -1968,6 +1968,7 @@ class MainWindow(
 
     def _setup_ui(self) -> None:
         """Set up additional UI elements after basic initialization (habits only)."""
+        self._apply_soft_list_selection_chrome()
         self._place_menu_bar_on_tab_row()
         install_win11_caption(self)
         self._apply_exit_about_menu_emojis()

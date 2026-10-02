@@ -16,6 +16,14 @@ META_KIND_TAG = "tag"
 META_KIND_DATE = "date"
 META_LINK_SCHEME = "hsk-meta"
 _META_KINDS = frozenset({META_KIND_CATEGORY, META_KIND_TAG, META_KIND_DATE})
+_CHIP_LINK_STYLE = (
+    "background-color:#e8f4fc;color:#1a5f7a;text-decoration:none;"
+    "border:1px solid #c5dde9;border-radius:10px;padding:1px 7px;margin:1px;"
+)
+_CHIP_PLAIN_STYLE = (
+    "background-color:#f2f2f2;color:#444444;border:1px solid #e0e0e0;border-radius:10px;padding:1px 7px;margin:1px;"
+)
+_CHIP_COUNT_STYLE = "color:#6a6a6a;"
 
 
 def build_meta_date_html(icons: Sequence[IconFamily], date: str) -> str:
@@ -31,28 +39,33 @@ def build_meta_list_html(icons: Sequence[IconFamily], kind: str, values: Sequenc
     cleaned = [item.strip() for item in values if item.strip()]
     if not cleaned:
         return "—"
-    return ", ".join(_meta_value_html(icons, kind, item) for item in cleaned)
+    return " ".join(_meta_value_html(icons, kind, item) for item in cleaned)
 
 
 def build_variants_header_html(family: IconFamily, icons: Sequence[IconFamily]) -> str:
-    """Return rich-text header with blue links when multiple icons share meta values."""
+    """Return rich-text header with chip-style meta links when values are shared."""
     lines = [
-        html.escape(family.title),
-        html.escape(family.id),
+        f'<div style="font-weight:600;">{html.escape(family.title)}</div>',
+        f'<div style="color:#666666;font-size:11px;">{html.escape(family.id)}</div>',
     ]
     if family.date.strip():
-        lines.append(f"Date: {build_meta_date_html(icons, family.date)}")
+        lines.append(f'<div style="margin-top:6px;">Date: {build_meta_date_html(icons, family.date)}</div>')
     categories = [item.strip() for item in family.categories if item.strip()]
     if categories:
-        lines.append(f"Categories: {build_meta_list_html(icons, META_KIND_CATEGORY, categories)}")
+        lines.append(
+            '<div style="margin-top:4px;">Categories:<br/>'
+            f"{build_meta_list_html(icons, META_KIND_CATEGORY, categories)}</div>",
+        )
     else:
-        lines.append("Categories: —")
+        lines.append('<div style="margin-top:4px;">Categories: —</div>')
     tags = [item.strip() for item in family.tags if item.strip()]
     if tags:
-        lines.append(f"Tags: {build_meta_list_html(icons, META_KIND_TAG, tags)}")
+        lines.append(
+            f'<div style="margin-top:4px;">Tags:<br/>{build_meta_list_html(icons, META_KIND_TAG, tags)}</div>',
+        )
     else:
-        lines.append("Tags: —")
-    return "<br/>".join(lines)
+        lines.append('<div style="margin-top:4px;">Tags: —</div>')
+    return "".join(lines)
 
 
 def count_families_for_meta(icons: Sequence[IconFamily], kind: str, value: str) -> int:
@@ -119,6 +132,7 @@ def _meta_value_html(icons: Sequence[IconFamily], kind: str, value: str) -> str:
     escaped = html.escape(value)
     total = count_families_for_meta(icons, kind, value)
     if total <= 1:
-        return escaped
+        return f'<span style="{_CHIP_PLAIN_STYLE}">{escaped}</span>'
     href = html.escape(meta_link_href(kind, value), quote=True)
-    return f'<a href="{href}">{escaped} ({total})</a>'
+    count = html.escape(f"({total})")
+    return f'<a href="{href}" style="{_CHIP_LINK_STYLE}">{escaped} <span style="{_CHIP_COUNT_STYLE}">{count}</span></a>'

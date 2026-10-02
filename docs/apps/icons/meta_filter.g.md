@@ -60,7 +60,7 @@ def build_meta_list_html(icons: Sequence[IconFamily], kind: str, values: Sequenc
     cleaned = [item.strip() for item in values if item.strip()]
     if not cleaned:
         return "—"
-    return ", ".join(_meta_value_html(icons, kind, item) for item in cleaned)
+    return " ".join(_meta_value_html(icons, kind, item) for item in cleaned)
 ```
 
 </details>
@@ -71,7 +71,7 @@ def build_meta_list_html(icons: Sequence[IconFamily], kind: str, values: Sequenc
 def build_variants_header_html(family: IconFamily, icons: Sequence[IconFamily]) -> str
 ```
 
-Return rich-text header with blue links when multiple icons share meta values.
+Return rich-text header with chip-style meta links when values are shared.
 
 <details>
 <summary>Code:</summary>
@@ -79,22 +79,27 @@ Return rich-text header with blue links when multiple icons share meta values.
 ```python
 def build_variants_header_html(family: IconFamily, icons: Sequence[IconFamily]) -> str:
     lines = [
-        html.escape(family.title),
-        html.escape(family.id),
+        f'<div style="font-weight:600;">{html.escape(family.title)}</div>',
+        f'<div style="color:#666666;font-size:11px;">{html.escape(family.id)}</div>',
     ]
     if family.date.strip():
-        lines.append(f"Date: {build_meta_date_html(icons, family.date)}")
+        lines.append(f'<div style="margin-top:6px;">Date: {build_meta_date_html(icons, family.date)}</div>')
     categories = [item.strip() for item in family.categories if item.strip()]
     if categories:
-        lines.append(f"Categories: {build_meta_list_html(icons, META_KIND_CATEGORY, categories)}")
+        lines.append(
+            '<div style="margin-top:4px;">Categories:<br/>'
+            f"{build_meta_list_html(icons, META_KIND_CATEGORY, categories)}</div>",
+        )
     else:
-        lines.append("Categories: —")
+        lines.append('<div style="margin-top:4px;">Categories: —</div>')
     tags = [item.strip() for item in family.tags if item.strip()]
     if tags:
-        lines.append(f"Tags: {build_meta_list_html(icons, META_KIND_TAG, tags)}")
+        lines.append(
+            f'<div style="margin-top:4px;">Tags:<br/>{build_meta_list_html(icons, META_KIND_TAG, tags)}</div>',
+        )
     else:
-        lines.append("Tags: —")
-    return "<br/>".join(lines)
+        lines.append('<div style="margin-top:4px;">Tags: —</div>')
+    return "".join(lines)
 ```
 
 </details>

@@ -60,7 +60,23 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._tabs = QTabWidget(central)
         self._tabs.setTabsClosable(True)
         self._tabs.setDocumentMode(True)
-        self._tabs.setStyleSheet("QTabWidget::pane { border: none; background: transparent; }")
+        self._tabs.setStyleSheet(
+            "QTabWidget::pane { border: none; background: transparent; }"
+            "QTabBar::tab {"
+            " background: transparent;"
+            " border: 1px solid transparent;"
+            " border-radius: 6px;"
+            " padding: 4px 10px;"
+            " margin-right: 2px;"
+            "}"
+            "QTabBar::tab:hover {"
+            f" background: {SELECTION_HOVER};"
+            "}"
+            "QTabBar::tab:selected {"
+            f" background: {SELECTION_BG};"
+            f" border-color: {SELECTION_BORDER};"
+            "}",
+        )
         self._tabs.tabCloseRequested.connect(self._close_tab_at)
         self._tabs.currentChanged.connect(self._on_tab_changed)
         tab_bar = self._tabs.tabBar()
@@ -215,6 +231,15 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._status.setWordWrap(True)
         self._status.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         self._status.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        self._status.setStyleSheet(
+            f"QLabel {{"
+            f" background-color: {SELECTION_BG};"
+            f" border: 1px solid {SELECTION_BORDER};"
+            " border-radius: 8px;"
+            " padding: 6px 10px;"
+            " color: #1a5f7a;"
+            "}",
+        )
         self._status.setText(_STATUS_HINT)
         footer.addWidget(self._status)
         root.addLayout(footer)
@@ -1125,7 +1150,23 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self._tabs = QTabWidget(central)
         self._tabs.setTabsClosable(True)
         self._tabs.setDocumentMode(True)
-        self._tabs.setStyleSheet("QTabWidget::pane { border: none; background: transparent; }")
+        self._tabs.setStyleSheet(
+            "QTabWidget::pane { border: none; background: transparent; }"
+            "QTabBar::tab {"
+            " background: transparent;"
+            " border: 1px solid transparent;"
+            " border-radius: 6px;"
+            " padding: 4px 10px;"
+            " margin-right: 2px;"
+            "}"
+            "QTabBar::tab:hover {"
+            f" background: {SELECTION_HOVER};"
+            "}"
+            "QTabBar::tab:selected {"
+            f" background: {SELECTION_BG};"
+            f" border-color: {SELECTION_BORDER};"
+            "}",
+        )
         self._tabs.tabCloseRequested.connect(self._close_tab_at)
         self._tabs.currentChanged.connect(self._on_tab_changed)
         tab_bar = self._tabs.tabBar()
@@ -1280,6 +1321,15 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self._status.setWordWrap(True)
         self._status.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         self._status.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        self._status.setStyleSheet(
+            f"QLabel {{"
+            f" background-color: {SELECTION_BG};"
+            f" border: 1px solid {SELECTION_BORDER};"
+            " border-radius: 8px;"
+            " padding: 6px 10px;"
+            " color: #1a5f7a;"
+            "}",
+        )
         self._status.setText(_STATUS_HINT)
         footer.addWidget(self._status)
         root.addLayout(footer)

@@ -5,6 +5,8 @@ from __future__ import annotations
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtWidgets import QAbstractItemView, QListWidget, QSizePolicy
 
+from harrix_swiss_knife.apps.common.ui_chrome import action_card_selection_qss
+
 CARD_ICON_SIZE = 64
 CARD_SPACING = 8
 # Wider cells so command titles wrap on fewer lines (default IconMode width ≈ icon size).
@@ -30,9 +32,7 @@ def configure_action_card_grid(list_widget: QListWidget, *, min_height: int | No
     list_widget.setGridSize(QSize(CARD_GRID_CELL_WIDTH, CARD_GRID_CELL_HEIGHT))
     list_widget.setWordWrap(True)
     list_widget.setUniformItemSizes(False)
-    list_widget.setStyleSheet(
-        "QListWidget::item { padding-top: 0px; padding-bottom: 0px; margin: 0px; }",
-    )
+    list_widget.setStyleSheet(action_card_selection_qss())
     list_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
     list_widget.setFrameShape(QListWidget.Shape.NoFrame)
 

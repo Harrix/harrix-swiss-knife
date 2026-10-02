@@ -301,19 +301,7 @@ Keep icon grids frameless so the parent section owns chrome.
 def style_transparent_icon_grid(grid: QListWidget) -> None:
     grid.setAutoFillBackground(False)
     grid.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=False)
-    grid.setStyleSheet(
-        with_flat_scrollbars(
-            "QListWidget {"
-            " background: transparent;"
-            " border: none;"
-            "}"
-            "QListWidget::item {"
-            " padding-top: 0px;"
-            " padding-bottom: 0px;"
-            " margin: 0px;"
-            "}",
-        ),
-    )
+    grid.setStyleSheet(with_flat_scrollbars(action_card_selection_qss()))
 ```
 
 </details>

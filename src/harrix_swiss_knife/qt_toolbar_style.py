@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from harrix_swiss_knife.apps.common.ui_chrome import SELECTION_BG, SELECTION_BORDER, SELECTION_HOVER
+
 TOOLBAR_BUTTON_SIZE = 40
 TOOLBAR_TOGGLE_WIDTH = 64
 TOOLBAR_BUTTON_GAP = 6
@@ -10,7 +12,7 @@ TOOLBAR_EDGE_MARGIN = 12
 TOOLBAR_BORDER_RADIUS = 6
 TOOLBAR_TOGGLE_RADIUS = TOOLBAR_BUTTON_SIZE // 2
 
-# Default: light plate. Checked/selected: accent fill + matching border.
+# Default: light plate. Checked/selected: soft blue fill (Icons selection chrome).
 TOOLBAR_BUTTON_STYLE = f"""
 QPushButton, QToolButton {{
     background-color: #F5F5F7;
@@ -28,16 +30,16 @@ QPushButton:pressed, QToolButton:pressed {{
     border-color: #C8C8CC;
 }}
 QPushButton:checked, QToolButton:checked {{
-    background-color: #0072CA;
-    border: 1px solid #0072CA;
+    background-color: {SELECTION_BG};
+    border: 1px solid {SELECTION_BORDER};
 }}
 QPushButton:checked:hover, QToolButton:checked:hover {{
-    background-color: #0060AB;
-    border-color: #0060AB;
+    background-color: {SELECTION_HOVER};
+    border-color: {SELECTION_BORDER};
 }}
 """
 
-# Pill toggles: round ends + clear on/off fill (screenshot shutter tools).
+# Pill toggles: round ends + soft on/off fill (screenshot shutter tools).
 TOOLBAR_TOGGLE_STYLE = f"""
 QPushButton {{
     background-color: #F5F5F7;
@@ -55,11 +57,11 @@ QPushButton:pressed {{
     border-color: #C8C8CC;
 }}
 QPushButton:checked {{
-    background-color: #0072CA;
-    border: 1px solid #0072CA;
+    background-color: {SELECTION_BG};
+    border: 1px solid {SELECTION_BORDER};
 }}
 QPushButton:checked:hover {{
-    background-color: #0060AB;
-    border-color: #0060AB;
+    background-color: {SELECTION_HOVER};
+    border-color: {SELECTION_BORDER};
 }}
 """

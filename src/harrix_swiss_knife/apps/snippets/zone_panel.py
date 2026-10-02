@@ -31,6 +31,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife.apps.common.ui_chrome import SELECTION_BG, SELECTION_BORDER, snippet_list_selection_qss
 from harrix_swiss_knife.apps.snippets.constants import (
     DEFAULT_SORT_MODE,
     SORT_ADDED,
@@ -78,30 +79,10 @@ _LIGHT_TEXT_THRESHOLD = 160
 _MIN_COLOR_ROW_HEIGHT = 28
 _ZONE_TITLE_COLOR = "#202020"
 _ZONE_PANEL_MARGINS = (10, 8, 10, 0)
-_SELECTION_BG = "#e9e9e9"
-_SELECTION_OUTLINE = "#b0b0b0"
-_SELECTION_RADIUS = 4
-_LIST_SELECTION_STYLE = with_flat_scrollbars(
-    "QListWidget {"
-    " outline: none;"
-    " show-decoration-selected: 0;"
-    "}"
-    "QListWidget::item {"
-    " border: none;"
-    f" border-radius: {_SELECTION_RADIUS}px;"
-    " color: palette(text);"
-    "}"
-    "QListWidget::item:hover,"
-    "QListWidget::item:selected,"
-    "QListWidget::item:selected:active,"
-    "QListWidget::item:selected:!active,"
-    "QListWidget::item:selected:hover {"
-    f" background-color: {_SELECTION_BG};"
-    " color: palette(text);"
-    " border: none;"
-    f" border-radius: {_SELECTION_RADIUS}px;"
-    "}"
-)
+_SELECTION_BG = SELECTION_BG
+_SELECTION_OUTLINE = SELECTION_BORDER
+_SELECTION_RADIUS = 6
+_LIST_SELECTION_STYLE = with_flat_scrollbars(snippet_list_selection_qss())
 _SORT_BUTTONS: tuple[tuple[SortMode, str, str], ...] = (
     (SORT_USED, "clock", "Sort by last used"),
     (SORT_ADDED, "calendar", "Sort by date added"),
