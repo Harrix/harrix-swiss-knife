@@ -40,15 +40,24 @@ class KeywordsBatchRunner:
         on_item_success: Callable[[IconFamily, list[str]], None],
         on_finished: Callable[..., None],
         request_fn: Callable[..., None] | None = None,
+        silent: bool = False,
     ) -> None:
-        """Store batch jobs and callbacks."""
+        """Store batch jobs and callbacks.
+
+        Args:
+
+        - `silent`: When `True`, skip BotHub toasts and do not modal-block the owner
+          window (used for background keyword refresh after catalog open).
+
+        """
         self._parent = parent
         self._app_config = app_config
         self._jobs = jobs
         self._on_item_success = on_item_success
         self._on_finished = on_finished
         self._request_fn = request_fn or request_keywords_fill
-        self._state = BothubRequestState(toast_pin_chain=True)
+        self._silent = silent
+        self._state = BothubRequestState(toast_pin_chain=not silent)
         self._index = 0
         self._updated = 0
         self._failed = 0
@@ -117,6 +126,10 @@ class KeywordsBatchRunner:
             on_not_started=self._on_not_started,
             toast_message=f"Processing keywords… {self._index + 1}/{len(self._jobs)} — {family.id}",
             show_empty_warning=False,
+            show_toast=not self._silent,
+            show_validation_errors=not self._silent,
+            offer_retry=not self._silent,
+            owner_modal=not self._silent,
         )
 
 

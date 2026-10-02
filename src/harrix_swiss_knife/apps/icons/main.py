@@ -229,6 +229,7 @@ SEARCH_DEBOUNCE_MS = 400
 ADD_SVGS_RESULT_PREVIEW_LIMIT = 40
 _BACKGROUND_ICON_KEYWORDS_DEFAULT_LIMIT = 8
 _BACKGROUND_ICON_KEYWORDS_INTERVAL_MS = 15 * 1000
+_BACKGROUND_ICON_KEYWORDS_START_DELAY_MS = 8 * 1000
 _BACKGROUND_ICON_KEYWORDS_STATUS = "Updating icon keywords…"
 _BACKGROUND_ICON_KEYWORDS_FOLLOWUP_MS = 500
 _KEYWORD_TARGET_PAIR_LEN = 2
@@ -411,6 +412,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._maintenance_kind: MaintenanceKind | None = None
         self._keywords_batch_runner: KeywordsBatchRunner | None = None
         self._bg_keywords_batch_runner: KeywordsBatchRunner | None = None
+        self._bg_keywords_dirty_thumbs: set[str] = set()
         self._bg_icon_keywords_timer = QTimer(self)
         self._bg_icon_keywords_timer.setSingleShot(True)
         self._bg_icon_keywords_timer.timeout.connect(self._on_background_icon_keywords_timer)
@@ -744,7 +746,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._refresh_category_icons()
         self._start_thumb_refresh()
         if catalog.kind == "note":
-            QTimer.singleShot(300, self._run_background_icon_keywords)
+            QTimer.singleShot(_BACKGROUND_ICON_KEYWORDS_START_DELAY_MS, self._run_background_icon_keywords)
         else:
             self._stop_background_icon_keywords_timer()
         if refresh:
@@ -1235,7 +1237,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
 
         self._pixmaps.pop(live.id, None)
         self._thumb_cache.forget(live.id)
-        self._start_thumb_refresh()
+        self._bg_keywords_dirty_thumbs.add(live.id)
         if self._selected_family_id == live.id:
             self._on_family_selected(live, persist=False)
 
@@ -1675,6 +1677,10 @@ class MainWindow(QMainWindow, AppWindowMixin):
         """Clear status after a silent batch and schedule another pass when needed."""
         self._bg_keywords_batch_runner = None
         self._clear_background_icon_keywords_status()
+        dirty = self._bg_keywords_dirty_thumbs
+        self._bg_keywords_dirty_thumbs = set()
+        if dirty and not self._is_closing:
+            self._start_thumb_refresh()
         if self._is_closing or cancelled:
             self._stop_background_icon_keywords_timer()
             if cancelled:
@@ -3093,12 +3099,14 @@ class MainWindow(QMainWindow, AppWindowMixin):
 
         config: dict[str, Any] = h.dev.config_load(get_config_path_str())
         self.statusBar().showMessage(f"{_BACKGROUND_ICON_KEYWORDS_STATUS} (batch of {len(jobs)})")
+        self._bg_keywords_dirty_thumbs.clear()
         self._bg_keywords_batch_runner = KeywordsBatchRunner(
             self,
             app_config=config,
             jobs=jobs,
             on_item_success=self._commit_background_icon_keywords,
             on_finished=self._on_background_keywords_batch_finished,
+            silent=True,
         )
         self._bg_keywords_batch_runner.start()
 
@@ -3286,6 +3294,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         if runner is not None and runner.is_running:
             runner.cancel()
         self._bg_keywords_batch_runner = None
+        self._bg_keywords_dirty_thumbs.clear()
         self._clear_background_icon_keywords_status()
 
     def _stop_catalog_load(self) -> None:
