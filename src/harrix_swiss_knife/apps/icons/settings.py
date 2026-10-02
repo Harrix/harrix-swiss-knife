@@ -23,6 +23,7 @@ SHOW_NUMBERS_KEY = "vector_icons_show_numbers"
 VARIANT_VIEW_MODE_KEY = "vector_icons_variant_view_mode"
 SPLITTER_SIZES_KEY = "vector_icons_splitter_sizes"
 LEFT_SPLITTER_SIZES_KEY = "vector_icons_left_splitter_sizes"
+VARIANTS_SPLITTER_SIZES_KEY = "vector_icons_variants_splitter_sizes"
 ICON_SIZE_MIN = 64
 ICON_SIZE_MAX = 256
 ICON_SIZE_DEFAULT = 160
@@ -31,6 +32,7 @@ RECENT_FOLDERS_MAX_DEFAULT = 12
 RECENT_FOLDERS_MAX_LIMIT = 50
 SPLITTER_SIZES_DEFAULT = (200, 900, 320)
 LEFT_SPLITTER_SIZES_DEFAULT = (220, 280)
+VARIANTS_SPLITTER_SIZES_DEFAULT = (180, 420)
 
 GRID_SORT_DEFAULT = "default"
 GRID_SORT_ALPHA = "alpha"
@@ -277,6 +279,11 @@ def load_variant_view_mode() -> str:
     return raw or "featured"
 
 
+def load_variants_splitter_sizes() -> list[int]:
+    """Return right-panel vertical splitter sizes (meta header, variants grid)."""
+    return _load_int_list(VARIANTS_SPLITTER_SIZES_KEY, list(VARIANTS_SPLITTER_SIZES_DEFAULT), expected_len=2)
+
+
 def pin_folder(path: Path) -> list[Path]:
     """Add `path` to pinned folders in `config.json` and return the new list."""
     resolved = path.expanduser().resolve()
@@ -505,6 +512,19 @@ def save_variant_view_mode(mode: str) -> str:
     _ensure_temp_config()
     h.dev.config_update_value(
         VARIANT_VIEW_MODE_KEY,
+        cleaned,
+        get_config_path_str(),
+        is_temp=True,
+    )
+    return cleaned
+
+
+def save_variants_splitter_sizes(sizes: list[int]) -> list[int]:
+    """Persist right-panel vertical splitter sizes in `config-temp.json`."""
+    cleaned = _clean_positive_ints(sizes, expected_len=2, fallback=list(VARIANTS_SPLITTER_SIZES_DEFAULT))
+    _ensure_temp_config()
+    h.dev.config_update_value(
+        VARIANTS_SPLITTER_SIZES_KEY,
         cleaned,
         get_config_path_str(),
         is_temp=True,

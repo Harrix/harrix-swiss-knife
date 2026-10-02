@@ -31,6 +31,7 @@ lang: en
 - [🔧 Function `load_show_numbers`](#-function-load_show_numbers)
 - [🔧 Function `load_splitter_sizes`](#-function-load_splitter_sizes)
 - [🔧 Function `load_variant_view_mode`](#-function-load_variant_view_mode)
+- [🔧 Function `load_variants_splitter_sizes`](#-function-load_variants_splitter_sizes)
 - [🔧 Function `pin_folder`](#-function-pin_folder)
 - [🔧 Function `remember_recent_folder`](#-function-remember_recent_folder)
 - [🔧 Function `remove_favorites`](#-function-remove_favorites)
@@ -47,6 +48,7 @@ lang: en
 - [🔧 Function `save_show_numbers`](#-function-save_show_numbers)
 - [🔧 Function `save_splitter_sizes`](#-function-save_splitter_sizes)
 - [🔧 Function `save_variant_view_mode`](#-function-save_variant_view_mode)
+- [🔧 Function `save_variants_splitter_sizes`](#-function-save_variants_splitter_sizes)
 - [🔧 Function `set_category_icon`](#-function-set_category_icon)
 - [🔧 Function `sidebar_category_names`](#-function-sidebar_category_names)
 - [🔧 Function `toggle_favorite`](#-function-toggle_favorite)
@@ -545,6 +547,24 @@ def load_variant_view_mode() -> str:
 
 </details>
 
+## 🔧 Function `load_variants_splitter_sizes`
+
+```python
+def load_variants_splitter_sizes() -> list[int]
+```
+
+Return right-panel vertical splitter sizes (meta header, variants grid).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def load_variants_splitter_sizes() -> list[int]:
+    return _load_int_list(VARIANTS_SPLITTER_SIZES_KEY, list(VARIANTS_SPLITTER_SIZES_DEFAULT), expected_len=2)
+```
+
+</details>
+
 ## 🔧 Function `pin_folder`
 
 ```python
@@ -979,6 +999,32 @@ def save_variant_view_mode(mode: str) -> str:
     _ensure_temp_config()
     h.dev.config_update_value(
         VARIANT_VIEW_MODE_KEY,
+        cleaned,
+        get_config_path_str(),
+        is_temp=True,
+    )
+    return cleaned
+```
+
+</details>
+
+## 🔧 Function `save_variants_splitter_sizes`
+
+```python
+def save_variants_splitter_sizes(sizes: list[int]) -> list[int]
+```
+
+Persist right-panel vertical splitter sizes in `config-temp.json`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def save_variants_splitter_sizes(sizes: list[int]) -> list[int]:
+    cleaned = _clean_positive_ints(sizes, expected_len=2, fallback=list(VARIANTS_SPLITTER_SIZES_DEFAULT))
+    _ensure_temp_config()
+    h.dev.config_update_value(
+        VARIANTS_SPLITTER_SIZES_KEY,
         cleaned,
         get_config_path_str(),
         is_temp=True,

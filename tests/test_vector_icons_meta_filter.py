@@ -61,7 +61,7 @@ def test_build_variants_header_html_links_when_others_exist() -> None:
     assert 'href="hsk-meta:date/2020-07-19"' in html
     assert "garage" in html
     assert "garage (" not in html  # unique tag, no count link
-    assert "border-radius:10px" in html
+    assert "border-radius:8px" in html
 
 
 def test_build_meta_field_html_helpers() -> None:

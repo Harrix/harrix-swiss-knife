@@ -151,6 +151,7 @@ from harrix_swiss_knife.apps.icons.settings import (
     save_show_numbers,
     save_splitter_sizes,
     save_variant_view_mode,
+    save_variants_splitter_sizes,
     set_category_icon,
     sidebar_category_names,
     toggle_favorite,
@@ -2824,6 +2825,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
             save_splitter_sizes(self._main_splitter.sizes())
         if self._left_splitter is not None:
             save_left_splitter_sizes(self._left_splitter.sizes())
+        if hasattr(self, "variants_panel"):
+            save_variants_splitter_sizes(self.variants_panel.splitter_sizes())
         if self._variant_view_mode in VARIANT_VIEW_MODE_IDS:
             save_variant_view_mode(self._variant_view_mode)
 

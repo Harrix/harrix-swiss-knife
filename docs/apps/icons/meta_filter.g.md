@@ -80,25 +80,25 @@ Return rich-text header with chip-style meta links when values are shared.
 def build_variants_header_html(family: IconFamily, icons: Sequence[IconFamily]) -> str:
     lines = [
         f'<div style="font-weight:600;">{html.escape(family.title)}</div>',
-        f'<div style="color:#666666;font-size:11px;">{html.escape(family.id)}</div>',
+        f'<div style="color:#5c6370;font-size:11px;">{html.escape(family.id)}</div>',
     ]
     if family.date.strip():
-        lines.append(f'<div style="margin-top:6px;">Date: {build_meta_date_html(icons, family.date)}</div>')
+        lines.append(f'<div style="margin-top:4px;">Date: {build_meta_date_html(icons, family.date)}</div>')
     categories = [item.strip() for item in family.categories if item.strip()]
     if categories:
         lines.append(
-            '<div style="margin-top:4px;">Categories:<br/>'
+            '<div style="margin-top:2px;">Categories:<br/>'
             f"{build_meta_list_html(icons, META_KIND_CATEGORY, categories)}</div>",
         )
     else:
-        lines.append('<div style="margin-top:4px;">Categories: —</div>')
+        lines.append('<div style="margin-top:2px;">Categories: —</div>')
     tags = [item.strip() for item in family.tags if item.strip()]
     if tags:
         lines.append(
-            f'<div style="margin-top:4px;">Tags:<br/>{build_meta_list_html(icons, META_KIND_TAG, tags)}</div>',
+            f'<div style="margin-top:2px;">Tags:<br/>{build_meta_list_html(icons, META_KIND_TAG, tags)}</div>',
         )
     else:
-        lines.append('<div style="margin-top:4px;">Tags: —</div>')
+        lines.append('<div style="margin-top:2px;">Tags: —</div>')
     return "".join(lines)
 ```
 

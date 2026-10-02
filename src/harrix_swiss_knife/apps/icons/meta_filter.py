@@ -17,12 +17,9 @@ META_KIND_DATE = "date"
 META_LINK_SCHEME = "hsk-meta"
 _META_KINDS = frozenset({META_KIND_CATEGORY, META_KIND_TAG, META_KIND_DATE})
 _CHIP_LINK_STYLE = (
-    "background-color:#e8f4fc;color:#1a5f7a;text-decoration:none;"
-    "border:1px solid #c5dde9;border-radius:10px;padding:1px 7px;margin:1px;"
+    "background-color:#e8f4fc;color:#1a5f7a;text-decoration:none;border-radius:8px;padding:1px 6px;margin:0 2px 2px 0;"
 )
-_CHIP_PLAIN_STYLE = (
-    "background-color:#f2f2f2;color:#444444;border:1px solid #e0e0e0;border-radius:10px;padding:1px 7px;margin:1px;"
-)
+_CHIP_PLAIN_STYLE = "background-color:#f2f2f2;color:#444444;border-radius:8px;padding:1px 6px;margin:0 2px 2px 0;"
 _CHIP_COUNT_STYLE = "color:#6a6a6a;"
 
 
@@ -46,25 +43,25 @@ def build_variants_header_html(family: IconFamily, icons: Sequence[IconFamily]) 
     """Return rich-text header with chip-style meta links when values are shared."""
     lines = [
         f'<div style="font-weight:600;">{html.escape(family.title)}</div>',
-        f'<div style="color:#666666;font-size:11px;">{html.escape(family.id)}</div>',
+        f'<div style="color:#5c6370;font-size:11px;">{html.escape(family.id)}</div>',
     ]
     if family.date.strip():
-        lines.append(f'<div style="margin-top:6px;">Date: {build_meta_date_html(icons, family.date)}</div>')
+        lines.append(f'<div style="margin-top:4px;">Date: {build_meta_date_html(icons, family.date)}</div>')
     categories = [item.strip() for item in family.categories if item.strip()]
     if categories:
         lines.append(
-            '<div style="margin-top:4px;">Categories:<br/>'
+            '<div style="margin-top:2px;">Categories:<br/>'
             f"{build_meta_list_html(icons, META_KIND_CATEGORY, categories)}</div>",
         )
     else:
-        lines.append('<div style="margin-top:4px;">Categories: —</div>')
+        lines.append('<div style="margin-top:2px;">Categories: —</div>')
     tags = [item.strip() for item in family.tags if item.strip()]
     if tags:
         lines.append(
-            f'<div style="margin-top:4px;">Tags:<br/>{build_meta_list_html(icons, META_KIND_TAG, tags)}</div>',
+            f'<div style="margin-top:2px;">Tags:<br/>{build_meta_list_html(icons, META_KIND_TAG, tags)}</div>',
         )
     else:
-        lines.append('<div style="margin-top:4px;">Tags: —</div>')
+        lines.append('<div style="margin-top:2px;">Tags: —</div>')
     return "".join(lines)
 
 

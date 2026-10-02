@@ -38,17 +38,16 @@ from PySide6.QtGui import (
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QFrame,
-    QHBoxLayout,
     QLabel,
     QListWidget,
     QListWidgetItem,
     QMenu,
     QScrollArea,
     QSizePolicy,
+    QSplitter,
     QStyle,
     QStyledItemDelegate,
     QStyleOptionViewItem,
-    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -68,21 +67,18 @@ from harrix_swiss_knife.apps.icons.catalog import (
     family_svg_paths,
     is_openable_license_url,
 )
-from harrix_swiss_knife.apps.icons.meta_filter import (
-    META_KIND_CATEGORY,
-    META_KIND_DATE,
-    META_KIND_TAG,
-    count_families_for_meta,
-)
+from harrix_swiss_knife.apps.icons.meta_filter import build_variants_header_html, parse_meta_link
 from harrix_swiss_knife.apps.icons.settings import (
     GRID_SORT_DATE,
     GRID_SORT_MODES,
     ICON_SIZE_DEFAULT,
     ICON_SIZE_WHEEL_STEP,
+    VARIANTS_SPLITTER_SIZES_DEFAULT,
+    load_variants_splitter_sizes,
 )
 from harrix_swiss_knife.apps.icons.thumb_cache import DEFAULT_THUMB_SIZE, placeholder_pixmap, render_icon_to_image
-from harrix_swiss_knife.qt_flow_layout import FlowLayout
 from harrix_swiss_knife.qt_lucide_icon import (
+    LUCIDE_COLOR_BLUE,
     apply_leading_chrome_icons,
     set_action_text_with_lucide_icon,
 )
@@ -92,7 +88,8 @@ if TYPE_CHECKING:
     from harrix_swiss_knife.apps.icons.variant_view import GridEntry
 
 VARIANT_THUMB_SIZE = 112
-VARIANT_HEADER_SCROLL_MAX_HEIGHT = 180
+VARIANT_HEADER_MAX_SHARE = 1 / 3
+VARIANT_HEADER_MIN_HEIGHT = 48
 VARIANT_LABEL_EXTRA_HEIGHT = 28
 VIEWPORT_SIGNAL_DEBOUNCE_MS = 60
 _WHEEL_NOTCH = 120
@@ -110,13 +107,6 @@ FAMILY_IDS_MIME = "application/x-harrix-icon-family-ids"
 _SELECTION_FILL = SELECTION_BG
 _SELECTION_BORDER = SELECTION_BORDER
 _HOVER_FILL = SELECTION_HOVER
-_CHIP_FILL = SELECTION_BG
-_CHIP_BORDER = "#c5dde9"
-_CHIP_TEXT = "#1a5f7a"
-_CHIP_MUTED_FILL = "#f2f2f2"
-_CHIP_MUTED_BORDER = "#e0e0e0"
-_CHIP_MUTED_TEXT = "#444444"
-_MUTED_LABEL = f"color: {MUTED_TEXT}; font-size: 11px;"
 _ITEM_VIEW_NO_BORDER = (
     "QAbstractItemView {"
     " border: none;"
@@ -135,26 +125,6 @@ _ITEM_VIEW_NO_BORDER = (
     "QAbstractItemView::item:hover:!selected {"
     f" background-color: {_HOVER_FILL};"
     " border-radius: 6px;"
-    "}"
-)
-_META_CHIP_STYLE = (
-    "QToolButton {"
-    f" background-color: {_CHIP_FILL};"
-    f" border: 1px solid {_CHIP_BORDER};"
-    " border-radius: 8px;"
-    " padding: 0px 6px;"
-    " min-height: 18px;"
-    " max-height: 20px;"
-    f" color: {_CHIP_TEXT};"
-    " font-size: 10px;"
-    "}"
-    "QToolButton:hover {"
-    " background-color: #d5ecf7;"
-    "}"
-    "QToolButton:disabled {"
-    f" background-color: {_CHIP_MUTED_FILL};"
-    f" border-color: {_CHIP_MUTED_BORDER};"
-    f" color: {_CHIP_MUTED_TEXT};"
     "}"
 )
 
@@ -1118,68 +1088,34 @@ class VariantsPanel(QWidget):
         self._repo_root: Path | None = None
         self._family: IconFamily | None = None
         self._catalog_icons: list[IconFamily] = []
+        self._fit_header_to_content = True
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(8)
+        layout.setSpacing(0)
 
-        self.header = QWidget()
-        header_layout = QVBoxLayout(self.header)
-        header_layout.setContentsMargins(0, 0, 4, 0)
-        header_layout.setSpacing(6)
-
-        self._header_empty = QLabel("Select an icon to see variants")
-        self._header_empty.setWordWrap(True)
-        self._header_empty.setStyleSheet(_MUTED_LABEL)
-        header_layout.addWidget(self._header_empty)
-
-        self._header_body = QWidget()
-        body_layout = QVBoxLayout(self._header_body)
-        body_layout.setContentsMargins(0, 0, 0, 0)
-        body_layout.setSpacing(2)
-
-        self._title_label = QLabel()
-        title_font = self._title_label.font()
-        title_font.setBold(True)
-        title_font.setPointSize(max(title_font.pointSize(), 11))
-        self._title_label.setFont(title_font)
-        self._title_label.setWordWrap(True)
-        body_layout.addWidget(self._title_label)
-
-        self._id_label = QLabel()
-        self._id_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        self._id_label.setStyleSheet(_MUTED_LABEL)
-        self._id_label.setWordWrap(True)
-        body_layout.addWidget(self._id_label)
-
-        self._date_row = QWidget()
-        date_layout = QHBoxLayout(self._date_row)
-        date_layout.setContentsMargins(0, 0, 0, 0)
-        date_layout.setSpacing(4)
-        date_caption = QLabel("Date")
-        date_caption.setStyleSheet(_MUTED_LABEL)
-        date_layout.addWidget(date_caption, alignment=Qt.AlignmentFlag.AlignVCenter)
-        self._date_chips = QWidget()
-        self._date_chips_layout = FlowLayout(self._date_chips, margin=0, h_spacing=3, v_spacing=2)
-        date_layout.addWidget(self._date_chips, stretch=1)
-        body_layout.addWidget(self._date_row)
-
-        self._categories_caption = QLabel("Categories")
-        self._categories_caption.setStyleSheet(_MUTED_LABEL)
-        body_layout.addWidget(self._categories_caption)
-        self._categories_chips = QWidget()
-        self._categories_layout = FlowLayout(self._categories_chips, margin=0, h_spacing=3, v_spacing=2)
-        body_layout.addWidget(self._categories_chips)
-
-        self._tags_caption = QLabel("Tags")
-        self._tags_caption.setStyleSheet(_MUTED_LABEL)
-        body_layout.addWidget(self._tags_caption)
-        self._tags_chips = QWidget()
-        self._tags_layout = FlowLayout(self._tags_chips, margin=0, h_spacing=3, v_spacing=2)
-        body_layout.addWidget(self._tags_chips)
-
-        self._header_body.hide()
-        header_layout.addWidget(self._header_body)
+        self.header = QLabel("Select an icon to see variants")
+        self.header.setWordWrap(True)
+        self.header.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+        self.header.setTextFormat(Qt.TextFormat.RichText)
+        self.header.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextBrowserInteraction | Qt.TextInteractionFlag.LinksAccessibleByMouse,
+        )
+        self.header.setOpenExternalLinks(False)
+        self.header.setStyleSheet(
+            "QLabel {"
+            " background: transparent;"
+            "}"
+            "QLabel a {"
+            f" color: {LUCIDE_COLOR_BLUE};"
+            " text-decoration: none;"
+            "}"
+            "QLabel a:hover {"
+            " text-decoration: underline;"
+            "}",
+        )
+        self.header.linkActivated.connect(self._on_header_link_activated)
+        self.header.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
 
         self._header_scroll = QScrollArea()
         self._header_scroll.setWidget(self.header)
@@ -1187,9 +1123,8 @@ class VariantsPanel(QWidget):
         self._header_scroll.setFrameShape(QFrame.Shape.NoFrame)
         self._header_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self._header_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        self._header_scroll.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
-        layout.addWidget(self._header_scroll)
-        self._sync_header_scroll_height()
+        self._header_scroll.setMinimumHeight(VARIANT_HEADER_MIN_HEIGHT)
+        self._header_scroll.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
 
         self.list = DraggableIconList(
             icon_size=thumb_size,
@@ -1197,14 +1132,26 @@ class VariantsPanel(QWidget):
             variants_context=True,
         )
         self.list.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        layout.addWidget(self.list, stretch=1)
+
+        self._splitter = QSplitter(Qt.Orientation.Vertical)
+        self._splitter.setChildrenCollapsible(False)
+        self._splitter.addWidget(self._header_scroll)
+        self._splitter.addWidget(self.list)
+        self._splitter.setStretchFactor(0, 0)
+        self._splitter.setStretchFactor(1, 1)
+        self._splitter.setSizes(load_variants_splitter_sizes())
+        self._splitter.splitterMoved.connect(self._on_splitter_moved)
+        layout.addWidget(self._splitter)
 
     def clear_variants(self) -> None:
         """Clear the variants list and reset the header."""
         self._family = None
         self.list.set_variants_family(None)
         self.list.clear()
-        self._show_empty_header()
+        self.header.setTextFormat(Qt.TextFormat.PlainText)
+        self.header.setText("Select an icon to see variants")
+        self.header.setTextFormat(Qt.TextFormat.RichText)
+        self._fit_header_to_content = True
         self._sync_header_scroll_height()
 
     @property
@@ -1244,10 +1191,14 @@ class VariantsPanel(QWidget):
         self.list.set_variants_family(family)
         self.list.clear()
         if family is None or repo_root is None:
-            self._show_empty_header()
+            self.header.setTextFormat(Qt.TextFormat.PlainText)
+            self.header.setText("Select an icon to see variants")
+            self.header.setTextFormat(Qt.TextFormat.RichText)
+            self._fit_header_to_content = True
             self._sync_header_scroll_height()
             return
 
+        self._fit_header_to_content = True
         self._refresh_header()
         for variant in family.variants:
             path = variant.absolute_path(repo_root, family.folder)
@@ -1262,37 +1213,19 @@ class VariantsPanel(QWidget):
             self.list.addItem(item)
         self.list.doItemsLayout()
 
-    def _add_meta_chips(
-        self,
-        layout: FlowLayout,
-        *,
-        kind: str,
-        values: list[str],
-    ) -> None:
-        while layout.count():
-            item = layout.takeAt(0)
-            widget = item.widget() if item is not None else None
-            if widget is not None:
-                widget.deleteLater()
-        for value in values:
-            total = count_families_for_meta(self._catalog_icons, kind, value)
-            clickable = total > 1
-            label = f"{value} ({total})" if clickable else value
-            chip = QToolButton(self.header)
-            chip.setText(label)
-            chip.setCursor(Qt.CursorShape.PointingHandCursor if clickable else Qt.CursorShape.ArrowCursor)
-            chip.setEnabled(clickable)
-            chip.setAutoRaise(False)
-            chip.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
-            chip.setStyleSheet(_META_CHIP_STYLE)
-            if clickable:
-                chip.clicked.connect(
-                    lambda _checked=False, meta_kind=kind, meta_value=value: self.meta_filter_requested.emit(
-                        meta_kind,
-                        meta_value,
-                    ),
-                )
-            layout.addWidget(chip)
+    def splitter_sizes(self) -> list[int]:
+        """Return current meta-header / variants-grid splitter sizes."""
+        return self._splitter.sizes()
+
+    def _on_header_link_activated(self, href: str) -> None:
+        parsed = parse_meta_link(href)
+        if parsed is None:
+            return
+        kind, value = parsed
+        self.meta_filter_requested.emit(kind, value)
+
+    def _on_splitter_moved(self, _pos: int, _index: int) -> None:
+        self._fit_header_to_content = False
 
     @staticmethod
     def _preview(path: Path, size: int) -> QPixmap:
@@ -1304,50 +1237,35 @@ class VariantsPanel(QWidget):
     def _refresh_header(self) -> None:
         family = self._family
         if family is None:
-            self._show_empty_header()
             return
-        self._header_empty.hide()
-        self._header_body.show()
-        self._title_label.setText(family.title)
-        self._id_label.setText(family.id)
-        date = family.date.strip()
-        self._date_row.setVisible(bool(date))
-        if date:
-            self._add_meta_chips(self._date_chips_layout, kind=META_KIND_DATE, values=[date])
-        categories = [item.strip() for item in family.categories if item.strip()]
-        has_categories = bool(categories)
-        self._categories_caption.setVisible(has_categories)
-        self._categories_chips.setVisible(has_categories)
-        if has_categories:
-            self._add_meta_chips(self._categories_layout, kind=META_KIND_CATEGORY, values=categories)
-        tags = [item.strip() for item in family.tags if item.strip()]
-        has_tags = bool(tags)
-        self._tags_caption.setVisible(has_tags)
-        self._tags_chips.setVisible(has_tags)
-        if has_tags:
-            self._add_meta_chips(self._tags_layout, kind=META_KIND_TAG, values=tags)
+        self.header.setTextFormat(Qt.TextFormat.RichText)
+        self.header.setText(build_variants_header_html(family, self._catalog_icons))
         self._sync_header_scroll_height()
 
-    def _show_empty_header(self) -> None:
-        self._header_body.hide()
-        self._header_empty.show()
-        self._header_empty.setText("Select an icon to see variants")
-
     def _sync_header_scroll_height(self) -> None:
-        """Fit the header scroll area to content, capped so the variants list keeps space."""
+        """Size the meta header to content, capped at one third of the panel."""
         viewport_w = self._header_scroll.viewport().width()
         width = viewport_w if viewport_w > 1 else max(self.width() - self._header_scroll.frameWidth() * 2, 1)
         self.header.setFixedWidth(width)
-        layout = self.header.layout()
-        if layout is not None and layout.hasHeightForWidth():
-            content_h = max(layout.heightForWidth(width), 1)
-        else:
-            self.header.adjustSize()
-            content_h = max(self.header.sizeHint().height(), 1)
+        content_h = max(self.header.heightForWidth(width), self.header.sizeHint().height(), 1)
         self.header.setFixedHeight(content_h)
         chrome = self._header_scroll.frameWidth() * 2
-        target = min(VARIANT_HEADER_SCROLL_MAX_HEIGHT, content_h + chrome)
-        self._header_scroll.setFixedHeight(max(target, 24))
+        content_needed = content_h + chrome
+
+        panel_h = self._splitter.height() if self._splitter.height() > 1 else self.height()
+        if panel_h <= 1:
+            return
+        max_header = max(VARIANT_HEADER_MIN_HEIGHT, int(panel_h * VARIANT_HEADER_MAX_SHARE))
+        if self._fit_header_to_content:
+            desired = max(VARIANT_HEADER_MIN_HEIGHT, min(content_needed, max_header))
+            self._splitter.setSizes([desired, max(panel_h - desired, 1)])
+            return
+        current = self._splitter.sizes()
+        if len(current) < len(VARIANTS_SPLITTER_SIZES_DEFAULT):
+            return
+        header_h = min(current[0], max_header)
+        if header_h != current[0]:
+            self._splitter.setSizes([header_h, max(panel_h - header_h, 1)])
 
 
 def apply_frameless_item_view(view: QAbstractItemView) -> None:
