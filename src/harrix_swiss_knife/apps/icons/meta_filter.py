@@ -19,8 +19,8 @@ _META_KINDS = frozenset({META_KIND_CATEGORY, META_KIND_TAG, META_KIND_DATE})
 _CHIP_LINK_STYLE = (
     "background-color:#e8f4fc;color:#1a5f7a;text-decoration:none;border-radius:8px;padding:1px 6px;margin:0 2px 2px 0;"
 )
-_CHIP_PLAIN_STYLE = "background-color:#f2f2f2;color:#444444;border-radius:8px;padding:1px 6px;margin:0 2px 2px 0;"
 _CHIP_COUNT_STYLE = "color:#6a6a6a;"
+_PLAIN_VALUE_STYLE = "color:#444444;margin:0 2px 2px 0;"
 
 
 def build_meta_date_html(icons: Sequence[IconFamily], date: str) -> str:
@@ -129,7 +129,8 @@ def _meta_value_html(icons: Sequence[IconFamily], kind: str, value: str) -> str:
     escaped = html.escape(value)
     total = count_families_for_meta(icons, kind, value)
     if total <= 1:
-        return f'<span style="{_CHIP_PLAIN_STYLE}">{escaped}</span>'
+        # Unique values are plain text — only shared (filterable) values get a chip.
+        return f'<span style="{_PLAIN_VALUE_STYLE}">{escaped}</span>'
     href = html.escape(meta_link_href(kind, value), quote=True)
     count = html.escape(f"({total})")
     return f'<a href="{href}" style="{_CHIP_LINK_STYLE}">{escaped} <span style="{_CHIP_COUNT_STYLE}">{count}</span></a>'
