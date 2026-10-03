@@ -6,6 +6,8 @@ import html
 from typing import TYPE_CHECKING
 from urllib.parse import quote, unquote
 
+from harrix_swiss_knife.apps.common.ui_chrome import BRAND_INK, SELECTION_BG
+
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
@@ -17,7 +19,8 @@ META_KIND_DATE = "date"
 META_LINK_SCHEME = "hsk-meta"
 _META_KINDS = frozenset({META_KIND_CATEGORY, META_KIND_TAG, META_KIND_DATE})
 _CHIP_LINK_STYLE = (
-    "background-color:#e8f4fc;color:#1a5f7a;text-decoration:none;border-radius:8px;padding:1px 6px;margin:0 2px 2px 0;"
+    f"background-color:{SELECTION_BG};color:{BRAND_INK};text-decoration:none;"
+    "border-radius:8px;padding:1px 6px;margin:0 2px 2px 0;"
 )
 _CHIP_COUNT_STYLE = "color:#6a6a6a;"
 _PLAIN_VALUE_STYLE = "color:#444444;margin:0 2px 2px 0;"

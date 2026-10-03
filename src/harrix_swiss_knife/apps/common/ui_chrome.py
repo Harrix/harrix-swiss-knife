@@ -1,7 +1,7 @@
 """Shared selection and list chrome for tracker apps and overlays.
 
-Colors align with the Icons app soft-blue selection so lists, cards, and
-toolbars feel consistent across Harrix Swiss Knife surfaces.
+Soft-blue tokens match Icons tiles/chips and Harrix-HTML-Template brand
+(`$h-primary` / `$h-soft-bg` / `$h-soft-hover` / `$h-brand-ink`).
 
 """
 
@@ -10,11 +10,13 @@ from __future__ import annotations
 from PySide6.QtGui import QColor, QPalette
 from PySide6.QtWidgets import QAbstractItemView, QListView, QListWidget, QWidget
 
-# Soft blue selection (matches Icons tiles / chips).
+# Soft blue selection (matches Icons tiles / chips; site `$h-soft-*`).
 SELECTION_BG = "#e8f4fc"
 SELECTION_BORDER = "#2e86b7"
 SELECTION_HOVER = "#f3f8fb"
 SELECTION_TEXT = "#1a1a1a"
+# Text on soft-blue chips / status labels (site `$h-brand-ink`).
+BRAND_INK = "#1a5f7a"
 # Secondary labels — avoid palette(mid), which is nearly white on some light themes.
 MUTED_TEXT = "#5c6370"
 

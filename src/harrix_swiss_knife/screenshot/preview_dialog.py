@@ -50,7 +50,12 @@ from harrix_swiss_knife.apps.common.keyboard_shortcuts import (
     show_keyboard_shortcuts_help,
 )
 from harrix_swiss_knife.apps.common.qt_main_window import apply_app_window_size_and_position
-from harrix_swiss_knife.apps.common.ui_chrome import SELECTION_BG, SELECTION_BORDER, SELECTION_HOVER
+from harrix_swiss_knife.apps.common.ui_chrome import (
+    BRAND_INK,
+    SELECTION_BG,
+    SELECTION_BORDER,
+    SELECTION_HOVER,
+)
 from harrix_swiss_knife.paths import get_config_path_str, get_temp_config_path
 from harrix_swiss_knife.qt_flow_layout import FlowLayout
 from harrix_swiss_knife.qt_lucide_icon import (
@@ -356,7 +361,7 @@ class ScreenshotPreviewWindow(QMainWindow):
             f" border: 1px solid {SELECTION_BORDER};"
             " border-radius: 8px;"
             " padding: 6px 10px;"
-            " color: #1a5f7a;"
+            f" color: {BRAND_INK};"
             "}",
         )
         self._status.setText(_STATUS_HINT)
