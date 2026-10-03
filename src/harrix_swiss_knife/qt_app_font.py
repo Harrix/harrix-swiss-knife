@@ -13,9 +13,9 @@ from harrix_swiss_knife.qt_command_section import grow_qfont
 
 APP_FONT_FAMILY = "Roboto"
 MONO_FONT_FAMILY = "JetBrains Mono"
-OVERLAY_LINE_EDIT_FONT_DELTA = 4
-OVERLAY_LINE_EDIT_STYLE = "QLineEdit { padding: 10px 14px; }"
-_OVERLAY_LINE_EDIT_EXTRA_HEIGHT = 22
+OVERLAY_LINE_EDIT_FONT_DELTA = 0
+OVERLAY_LINE_EDIT_STYLE = "QLineEdit { padding: 4px 10px; }"
+_OVERLAY_LINE_EDIT_EXTRA_HEIGHT = 10
 _FONT_DIR = Path(__file__).resolve().parent / "assets" / "fonts"
 _QRC_FONT_PREFIX = ":/assets/fonts"
 _UI_FONT_FILES = (
@@ -152,7 +152,7 @@ def scale_explicit_widget_font(widget: QWidget) -> None:
 
 
 def style_overlay_line_edit(edit: QLineEdit) -> None:
-    """Apply the Quick paste / tray-search line-edit look (mono, padding, taller field)."""
+    """Apply the Quick paste line-edit look (mono, compact padding and height)."""
     apply_mono_font(edit)
     font = edit.font()
     grow_qfont(font, delta=OVERLAY_LINE_EDIT_FONT_DELTA)
