@@ -50,7 +50,6 @@ class Ui_MainWindow(object):
         self.groupBox_transaction.setTitle(QCoreApplication.translate("MainWindow", u"Transaction Details", None))
         self.label_category_now.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
         self.lineEdit_description.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Description", None))
-        self.pushButton_description_clear.setText("")
         self.dateEdit.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
         self.pushButton_add.setText(QCoreApplication.translate("MainWindow", u"Add Transaction", None))
         self.label_tag.setText(QCoreApplication.translate("MainWindow", u"Tag:", None))
@@ -280,12 +279,6 @@ class Ui_MainWindow(object):
         self.lineEdit_description.setFont(font1)
 
         self.horizontalLayout_2.addWidget(self.lineEdit_description)
-
-        self.pushButton_description_clear = QPushButton(self.groupBox_transaction)
-        self.pushButton_description_clear.setObjectName(u"pushButton_description_clear")
-        self.pushButton_description_clear.setMaximumSize(QSize(32, 16777215))
-
-        self.horizontalLayout_2.addWidget(self.pushButton_description_clear)
 
 
         self.verticalLayout_3.addLayout(self.horizontalLayout_2)
@@ -1569,7 +1562,6 @@ def retranslateUi(self, MainWindow):
         self.groupBox_transaction.setTitle(QCoreApplication.translate("MainWindow", u"Transaction Details", None))
         self.label_category_now.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
         self.lineEdit_description.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Description", None))
-        self.pushButton_description_clear.setText("")
         self.dateEdit.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
         self.pushButton_add.setText(QCoreApplication.translate("MainWindow", u"Add Transaction", None))
         self.label_tag.setText(QCoreApplication.translate("MainWindow", u"Tag:", None))
@@ -1815,12 +1807,6 @@ def setupUi(self, MainWindow):
         self.lineEdit_description.setFont(font1)
 
         self.horizontalLayout_2.addWidget(self.lineEdit_description)
-
-        self.pushButton_description_clear = QPushButton(self.groupBox_transaction)
-        self.pushButton_description_clear.setObjectName(u"pushButton_description_clear")
-        self.pushButton_description_clear.setMaximumSize(QSize(32, 16777215))
-
-        self.horizontalLayout_2.addWidget(self.pushButton_description_clear)
 
 
         self.verticalLayout_3.addLayout(self.horizontalLayout_2)

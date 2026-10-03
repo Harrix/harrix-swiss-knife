@@ -1700,7 +1700,12 @@ class MainWindow(
         self.pushButton_kcal_with_ai.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.pushButton_kcal_with_ai.customContextMenuRequested.connect(self._show_kcal_with_ai_context_menu)
 
-        self.pushButton_food_manual_name_clear.clicked.connect(self.on_clear_food_manual_name)
+        install_line_edit_search_chrome(
+            self.lineEdit_food_manual_name,
+            leading_icon="utensils",
+            clear_tooltip="Clear food name input",
+            on_clear=self.on_clear_food_manual_name,
+        )
 
         self.pushButton_portion_calories.clicked.connect(self.on_open_portion_calories_dialog)
         self.spinBox_food_weight.valueChanged.connect(self.update_calories_calculation)
@@ -4152,9 +4157,6 @@ class MainWindow(
         self._setup_calorie_thresholds_action()
         self._setup_open_photos_action()
         self._apply_exit_about_menu_emojis()
-        self.pushButton_food_manual_name_clear.setToolTip("Clear food name input")
-        apply_lucide_button_icon(self.pushButton_food_manual_name_clear, CLEAR_BUTTON_ICON)
-        self.pushButton_food_manual_name_clear.setText("")
         self.pushButton_kcal_with_ai.setText("🤖")
         self.pushButton_kcal_with_ai.setToolTip(
             "Look up calories, drink flag, weight, and entry mode via AI from the food name",
@@ -4235,11 +4237,6 @@ class MainWindow(
         # Initialize add button appearance
         self._update_add_button_appearance()
 
-        # Set tab order for groupBox_food_add so that pushButton_food_manual_name_clear is last
-        # Current order: lineEdit_food_manual_name -> pushButton_food_manual_name_clear -> spinBox_food_weight -> ...
-        # Desired order: lineEdit_food_manual_name -> spinBox_food_weight -> ... -> pushButton_food_manual_name_clear
-
-        # Set tab order to make pushButton_food_manual_name_clear the last element
         QWidget.setTabOrder(self.lineEdit_food_manual_name, self.spinBox_food_weight)
         QWidget.setTabOrder(self.spinBox_food_weight, self.doubleSpinBox_food_calories)
         QWidget.setTabOrder(self.doubleSpinBox_food_calories, self.checkBox_food_is_drink)
@@ -4247,7 +4244,6 @@ class MainWindow(
         QWidget.setTabOrder(self.pushButton_portion_calories, self.dateEdit_food)
         QWidget.setTabOrder(self.dateEdit_food, self.pushButton_food_date_quick)
         QWidget.setTabOrder(self.pushButton_food_date_quick, self.pushButton_food_add)
-        QWidget.setTabOrder(self.pushButton_food_add, self.pushButton_food_manual_name_clear)
         install_shrinkable_tab_scroll(self, self.tabWidget)
 
     def _show_all_food_items(self) -> None:

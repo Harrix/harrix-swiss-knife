@@ -1979,7 +1979,12 @@ class MainWindow(
             max_image_side=max_image_side,
         )
         self.verticalLayout_2.insertWidget(1, self._ai_image_drop_zone)
-        self.pushButton_description_clear.clicked.connect(self.on_clear_description)
+        install_line_edit_search_chrome(
+            self.lineEdit_description,
+            leading_icon="notepad-text",
+            clear_tooltip="Clear description",
+            on_clear=self.on_clear_description,
+        )
 
         # Calculate amount from expression
         self.doubleSpinBox_amount.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -5412,9 +5417,7 @@ class MainWindow(
             status_bar.addPermanentWidget(self._transactions_selection_status_label)
 
     def _setup_tab_order(self) -> None:
-        """Se tup tab order for widgets in groupBox_transaction."""
-        # Set tab order for widgets in groupBox_transaction
-        # Make pushButton_description_clear the last in tab order
+        """Set up tab order for widgets in groupBox_transaction."""
         QWidget.setTabOrder(self.lineEdit_description, self.doubleSpinBox_amount)
         QWidget.setTabOrder(self.doubleSpinBox_amount, self.comboBox_currency)
         QWidget.setTabOrder(self.comboBox_currency, self.dateEdit)
@@ -5430,7 +5433,6 @@ class MainWindow(
         QWidget.setTabOrder(self.dateEdit_filter_from, self.dateEdit_filter_to)
         QWidget.setTabOrder(self.dateEdit_filter_to, self.checkBox_use_date_filter)
         QWidget.setTabOrder(self.checkBox_use_date_filter, self.pushButton_clear_filter)
-        QWidget.setTabOrder(self.pushButton_clear_filter, self.pushButton_description_clear)
 
     def _setup_transactions_table_column_widths(self) -> None:
         """Configure column resize modes for the transactions table."""
@@ -5511,9 +5513,6 @@ class MainWindow(
         clear_h = max(self.pushButton_clear_filter.sizeHint().height(), 24)
         self.pushButton_clear_filter.setFixedSize(clear_h, clear_h)
         self._update_clear_filter_button_visibility()
-        apply_lucide_button_icon(self.pushButton_description_clear, CLEAR_BUTTON_ICON)
-        self.pushButton_description_clear.setText("")
-        self.pushButton_description_clear.setToolTip("Clear description")
         # Multi-line natural currency summaries (Quick Summary / today)
         self.label_total_income.setWordWrap(True)
         self.label_total_expenses.setWordWrap(True)

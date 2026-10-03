@@ -15,6 +15,7 @@ from __future__ import annotations
 import logging
 import re
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QByteArray, QRectF, QSize, Qt
 from PySide6.QtGui import (
@@ -43,6 +44,9 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife.qt_emoji_icon import split_leading_emoji
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 logger = logging.getLogger(__name__)
 
@@ -473,37 +477,43 @@ def create_lucide_icon(
 def install_line_edit_search_chrome(
     line_edit: QLineEdit,
     *,
+    leading_icon: str = "search",
     icon_size: int = 14,
     clear_tooltip: str = "Clear",
+    on_clear: Callable[[], None] | None = None,
 ) -> QAction:
-    """Put a Lucide search glyph inside `line_edit` and a clear (x) for non-empty text.
+    """Put a leading Lucide glyph inside `line_edit` and a clear (x) for non-empty text.
 
-    The search action is leading and decorative. The clear action is trailing and
-    visible only while the field has text; it calls `line_edit.clear`.
+    The leading action is decorative. The clear action is trailing and visible
+    only while the field has text. By default it calls `line_edit.clear`; pass
+    `on_clear` when clearing must also reset related UI state.
 
     Args:
 
     - `line_edit` (`QLineEdit`): Target field.
+    - `leading_icon` (`str`): Lucide ID for the leading glyph. Defaults to `search`.
     - `icon_size` (`int`): Lucide paint size for both glyphs. Defaults to `14`.
     - `clear_tooltip` (`str`): Tooltip on the clear action. Defaults to `Clear`.
+    - `on_clear` (`Callable[[], None] | None`): Optional clear handler instead of
+      `line_edit.clear`.
 
     Returns:
 
-    - `QAction`: The clear action (already wired to `line_edit.clear`).
+    - `QAction`: The clear action (already wired).
 
     """
     line_edit.setClearButtonEnabled(False)
 
-    search_action = QAction(line_edit)
-    search_action.setIcon(create_lucide_icon("search", icon_size))
+    leading_action = QAction(line_edit)
+    leading_action.setIcon(create_lucide_icon(leading_icon, icon_size))
     # Decorative leading glyph — do not steal clicks from the field.
-    search_action.setEnabled(False)
-    line_edit.addAction(search_action, QLineEdit.ActionPosition.LeadingPosition)
+    leading_action.setEnabled(False)
+    line_edit.addAction(leading_action, QLineEdit.ActionPosition.LeadingPosition)
 
     clear_action = QAction(create_lucide_icon("x", icon_size), "", line_edit)
     clear_action.setToolTip(clear_tooltip)
     clear_action.setVisible(bool(line_edit.text()))
-    clear_action.triggered.connect(line_edit.clear)
+    clear_action.triggered.connect(on_clear if on_clear is not None else line_edit.clear)
     line_edit.addAction(clear_action, QLineEdit.ActionPosition.TrailingPosition)
 
     def _sync_clear_visibility(text: str) -> None:

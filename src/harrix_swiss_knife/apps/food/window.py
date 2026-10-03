@@ -43,7 +43,6 @@ class Ui_MainWindow(object):
         self.groupBox_food_add.setTitle(QCoreApplication.translate("MainWindow", u"Add Food Entry", None))
         self.lineEdit_food_manual_name.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Enter food name", None))
         self.pushButton_kcal_with_ai.setText("")
-        self.pushButton_food_manual_name_clear.setText("")
         self.label_food_weight_unit.setText(QCoreApplication.translate("MainWindow", u"g", None))
         self.label_food_calories.setText(QCoreApplication.translate("MainWindow", u"kcal/100g", None))
 #if QT_CONFIG(tooltip)
@@ -209,12 +208,6 @@ class Ui_MainWindow(object):
         self.pushButton_kcal_with_ai.setMaximumSize(QSize(32, 16777215))
 
         self.horizontalLayout_food_manual_name.addWidget(self.pushButton_kcal_with_ai)
-
-        self.pushButton_food_manual_name_clear = QPushButton(self.groupBox_food_add)
-        self.pushButton_food_manual_name_clear.setObjectName(u"pushButton_food_manual_name_clear")
-        self.pushButton_food_manual_name_clear.setMaximumSize(QSize(32, 16777215))
-
-        self.horizontalLayout_food_manual_name.addWidget(self.pushButton_food_manual_name_clear)
 
 
         self.verticalLayout.addLayout(self.horizontalLayout_food_manual_name)
