@@ -212,7 +212,7 @@ What the online installer does:
 2. Installs managed CPython with **`uv python install`** when selected (pin from `.python-version`)
 3. Clones **harrix-pylib**, **harrix-pyssg**, and **harrix-swiss-knife** as siblings (full `git clone`)
 4. Runs `uv sync` in each repo
-5. Runs `uv tool install -e` (global **`hsk`** CLI; ensures `%USERPROFILE%\.local\bin` is on the user PATH)
+5. Runs `uv tool install -e .` (global **`hsk`** CLI; ensures `%USERPROFILE%\.local\bin` is on the user PATH)
 6. Creates a **desktop shortcut** and/or **Windows Startup** shortcut when checked (defaults on)
 7. Downloads **ffmpeg** / **libavif** executables into the project root (or copies them from the embedded `dependencies\` when present)
 8. Registers the app in **Apps & Features** for uninstall (databases are kept on uninstall)
