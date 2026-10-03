@@ -4913,6 +4913,7 @@ class MainWindow(
 
         # Connect double-click signal for exercises list to open the media lightbox
         self.listView_exercises.doubleClicked.connect(self._on_exercises_list_double_clicked)
+        install_line_edit_search_chrome(self.lineEdit_exercises_filter, clear_tooltip="Clear filter")
         self.lineEdit_exercises_filter.textChanged.connect(self._filter_exercises_list)
         self.lineEdit_exercises_filter.textChanged.connect(self._hide_exercise_list_hover_preview)
 

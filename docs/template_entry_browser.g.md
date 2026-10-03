@@ -141,6 +141,7 @@ class TemplateEntryBrowserWidget(QWidget):
 
         self._filter_edit = QLineEdit()
         self._filter_edit.setPlaceholderText("Filter entries…")
+        install_line_edit_search_chrome(self._filter_edit, clear_tooltip="Clear filter")
         self._filter_edit.textChanged.connect(self._apply_filter)
         layout.addWidget(self._filter_edit)
 

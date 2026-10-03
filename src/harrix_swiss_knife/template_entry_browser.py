@@ -15,6 +15,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife.qt_lucide_icon import install_line_edit_search_chrome
+
 ADD_NEW_ENTRY_LABEL = "➕ Add new Entry"  # noqa: RUF001
 ADD_NEW_ENTRY_ROLE = "__add_new_entry__"
 
@@ -117,6 +119,7 @@ class TemplateEntryBrowserWidget(QWidget):
 
         self._filter_edit = QLineEdit()
         self._filter_edit.setPlaceholderText("Filter entries…")
+        install_line_edit_search_chrome(self._filter_edit, clear_tooltip="Clear filter")
         self._filter_edit.textChanged.connect(self._apply_filter)
         layout.addWidget(self._filter_edit)
 

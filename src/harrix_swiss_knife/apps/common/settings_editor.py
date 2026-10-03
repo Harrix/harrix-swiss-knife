@@ -44,6 +44,7 @@ from harrix_swiss_knife.paths import get_config_path_str, get_project_root
 from harrix_swiss_knife.qt_lucide_icon import (
     DELETE_BUTTON_ICON,
     SAVE_BUTTON_ICON,
+    install_line_edit_search_chrome,
     make_lucide_push_button,
     style_accept_button,
 )
@@ -769,6 +770,7 @@ class SettingsEditorDialog(QDialog):
         search_row = QHBoxLayout()
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("Search settings...")
+        install_line_edit_search_chrome(self.search_input, clear_tooltip="Clear search")
         self.search_input.textChanged.connect(self._on_search)
         search_row.addWidget(self.search_input, 1)
         open_json = make_lucide_push_button("Open Settings (JSON)", OPEN_JSON_BUTTON_ICON)

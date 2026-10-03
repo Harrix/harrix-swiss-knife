@@ -31,6 +31,7 @@ from PySide6.QtWidgets import (
     QAbstractButton,
     QDialogButtonBox,
     QLabel,
+    QLineEdit,
     QMenu,
     QMenuBar,
     QProxyStyle,
@@ -469,6 +470,49 @@ def create_lucide_icon(
     return icon
 
 
+def install_line_edit_search_chrome(
+    line_edit: QLineEdit,
+    *,
+    icon_size: int = 14,
+    clear_tooltip: str = "Clear",
+) -> QAction:
+    """Put a Lucide search glyph inside `line_edit` and a clear (x) for non-empty text.
+
+    The search action is leading and decorative. The clear action is trailing and
+    visible only while the field has text; it calls `line_edit.clear`.
+
+    Args:
+
+    - `line_edit` (`QLineEdit`): Target field.
+    - `icon_size` (`int`): Lucide paint size for both glyphs. Defaults to `14`.
+    - `clear_tooltip` (`str`): Tooltip on the clear action. Defaults to `Clear`.
+
+    Returns:
+
+    - `QAction`: The clear action (already wired to `line_edit.clear`).
+
+    """
+    line_edit.setClearButtonEnabled(False)
+
+    search_action = QAction(line_edit)
+    search_action.setIcon(create_lucide_icon("search", icon_size))
+    # Decorative leading glyph — do not steal clicks from the field.
+    search_action.setEnabled(False)
+    line_edit.addAction(search_action, QLineEdit.ActionPosition.LeadingPosition)
+
+    clear_action = QAction(create_lucide_icon("x", icon_size), "", line_edit)
+    clear_action.setToolTip(clear_tooltip)
+    clear_action.setVisible(bool(line_edit.text()))
+    clear_action.triggered.connect(line_edit.clear)
+    line_edit.addAction(clear_action, QLineEdit.ActionPosition.TrailingPosition)
+
+    def _sync_clear_visibility(text: str) -> None:
+        clear_action.setVisible(bool(text))
+
+    line_edit.textChanged.connect(_sync_clear_visibility)
+    return clear_action
+
+
 def is_clear_like_button_label(label: str) -> bool:
     """Return whether `label` is a Clear action (filter/input/list clear)."""
     folded = label.casefold().strip()
@@ -555,7 +599,11 @@ def make_search_icon_label(
     box_size: int = 16,
     parent: QWidget | None = None,
 ) -> QLabel:
-    """Return a Lucide search glyph for placing beside a search field."""
+    """Return a Lucide search glyph for placing beside a search field.
+
+    Prefer `install_line_edit_search_chrome` for new search fields.
+
+    """
     label = QLabel(parent)
     label.setPixmap(create_lucide_icon("search", icon_size).pixmap(icon_size, icon_size))
     label.setFixedSize(box_size, box_size)

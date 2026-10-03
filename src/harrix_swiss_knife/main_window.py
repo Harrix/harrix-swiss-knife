@@ -29,7 +29,6 @@ from PySide6.QtWidgets import (
     QScrollArea,
     QSizePolicy,
     QSplitter,
-    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -68,7 +67,7 @@ from harrix_swiss_knife.qt_described_choice_cards import (
     sync_described_choice_card_grid,
 )
 from harrix_swiss_knife.qt_flat_scrollbar import apply_flat_scrollbars, with_flat_scrollbars
-from harrix_swiss_knife.qt_lucide_icon import apply_lucide_button_icon, create_lucide_icon, make_search_icon_label
+from harrix_swiss_knife.qt_lucide_icon import create_lucide_icon, install_line_edit_search_chrome
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
 from harrix_swiss_knife.win11_caption import (
     CAPTION_BUTTON_HEIGHT,
@@ -301,12 +300,9 @@ class MainWindow(QMainWindow):
         row.setContentsMargins(8, 3, 8, 3)
         row.setSpacing(6)
 
-        row.addWidget(make_search_icon_label())
-
         self._search_edit = QLineEdit()
         self._search_edit.setObjectName("captionSearchEdit")
         self._search_edit.setPlaceholderText("Search commands…")
-        self._search_edit.setClearButtonEnabled(False)
         self._search_edit.setMinimumWidth(_CAPTION_SEARCH_MIN_WIDTH)
         self._search_edit.setFixedHeight(_CAPTION_CONTROL_HEIGHT)
         self._search_edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
@@ -314,20 +310,9 @@ class MainWindow(QMainWindow):
         if compact.pointSizeF() > 0:
             compact.setPointSizeF(max(8.0, compact.pointSizeF() - 1.0))
         self._search_edit.setFont(compact)
+        install_line_edit_search_chrome(self._search_edit, clear_tooltip="Clear search")
         self._search_edit.textChanged.connect(self._on_search_changed)
         row.addWidget(self._search_edit, stretch=1)
-
-        self._clear_button = QToolButton()
-        self._clear_button.setObjectName("captionClearButton")
-        self._clear_button.setText("")
-        self._clear_button.setFixedSize(_CAPTION_CONTROL_HEIGHT, _CAPTION_CONTROL_HEIGHT)
-        apply_lucide_button_icon(self._clear_button, "x", icon_size=14)
-        self._clear_button.setToolTip("Clear search")
-        self._clear_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._clear_button.setAutoRaise(True)
-        self._clear_button.clicked.connect(self._search_edit.clear)
-        self._clear_button.hide()
-        row.addWidget(self._clear_button)
 
         self._sort_combo = QComboBox()
         self._sort_combo.setObjectName("captionSortCombo")
@@ -563,7 +548,6 @@ class MainWindow(QMainWindow):
 
     def _on_search_changed(self, text: str) -> None:
         query = text.strip()
-        self._clear_button.setVisible(bool(text))
         self._apply_list_search(query)
         self._apply_card_search(query)
 
@@ -795,11 +779,6 @@ QComboBox#captionSortCombo::drop-down {{
 }}
 QComboBox#captionSortCombo::down-arrow {{
     {arrow_rule}
-}}
-QToolButton#captionClearButton {{
-    border: none;
-    background: transparent;
-    padding: 0;
 }}
 """
 

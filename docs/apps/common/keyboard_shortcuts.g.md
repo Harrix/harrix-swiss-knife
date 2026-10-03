@@ -62,14 +62,11 @@ class KeyboardShortcutsDialog(QDialog):
         hint.setWordWrap(True)
         root.addWidget(hint)
 
-        filter_row = QHBoxLayout()
-        filter_row.addWidget(QLabel("Filter:", self))
         self._filter = QLineEdit(self)
         self._filter.setPlaceholderText("Search keys or actions…")
-        self._filter.setClearButtonEnabled(True)
+        install_line_edit_search_chrome(self._filter, clear_tooltip="Clear search")
         self._filter.textChanged.connect(self._apply_filter)
-        filter_row.addWidget(self._filter, stretch=1)
-        root.addLayout(filter_row)
+        root.addWidget(self._filter)
 
         self._table = QTableWidget(0, 3, self)
         self._table.setHorizontalHeaderLabels(["Category", "Shortcut", "Action"])
@@ -151,14 +148,11 @@ def __init__(
         hint.setWordWrap(True)
         root.addWidget(hint)
 
-        filter_row = QHBoxLayout()
-        filter_row.addWidget(QLabel("Filter:", self))
         self._filter = QLineEdit(self)
         self._filter.setPlaceholderText("Search keys or actions…")
-        self._filter.setClearButtonEnabled(True)
+        install_line_edit_search_chrome(self._filter, clear_tooltip="Clear search")
         self._filter.textChanged.connect(self._apply_filter)
-        filter_row.addWidget(self._filter, stretch=1)
-        root.addLayout(filter_row)
+        root.addWidget(self._filter)
 
         self._table = QTableWidget(0, 3, self)
         self._table.setHorizontalHeaderLabels(["Category", "Shortcut", "Action"])

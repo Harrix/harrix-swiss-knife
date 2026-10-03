@@ -16,7 +16,11 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife import qt_modality
-from harrix_swiss_knife.qt_lucide_icon import make_lucide_push_button, style_accept_button
+from harrix_swiss_knife.qt_lucide_icon import (
+    install_line_edit_search_chrome,
+    make_lucide_push_button,
+    style_accept_button,
+)
 
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QWidget
@@ -74,6 +78,7 @@ class ChooseIconFamilyDialog(QDialog):
         layout.addWidget(QLabel("Select the icon that should receive the new variants:"))
         self._filter = QLineEdit()
         self._filter.setPlaceholderText("Search by title, tags, id…")
+        install_line_edit_search_chrome(self._filter, clear_tooltip="Clear search")
         self._filter.textChanged.connect(self._on_filter_changed)
         layout.addWidget(self._filter)
         self._list = QListWidget()

@@ -260,6 +260,7 @@ from harrix_swiss_knife.qt_lucide_icon import (
     apply_leading_chrome_icons,
     apply_lucide_button_icon,
     apply_lucide_dialog_buttons,
+    install_line_edit_search_chrome,
     set_action_text_with_lucide_icon,
 )
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
@@ -5101,6 +5102,7 @@ class MainWindow(
 
         # Connect double-click signal for exercises list to open the media lightbox
         self.listView_exercises.doubleClicked.connect(self._on_exercises_list_double_clicked)
+        install_line_edit_search_chrome(self.lineEdit_exercises_filter, clear_tooltip="Clear filter")
         self.lineEdit_exercises_filter.textChanged.connect(self._filter_exercises_list)
         self.lineEdit_exercises_filter.textChanged.connect(self._hide_exercise_list_hover_preview)
 

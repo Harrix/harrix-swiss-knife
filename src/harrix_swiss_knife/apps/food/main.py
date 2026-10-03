@@ -235,6 +235,7 @@ from harrix_swiss_knife.qt_lucide_icon import (
     apply_leading_chrome_icons,
     apply_lucide_button_icon,
     apply_lucide_dialog_buttons,
+    install_line_edit_search_chrome,
     make_lucide_push_button,
     set_action_text_with_lucide_icon,
     style_accept_button,
@@ -1924,6 +1925,7 @@ class MainWindow(
 
         self.pushButton_clear_filter.clicked.connect(self.clear_filter)
         self.comboBox_filter_type.currentIndexChanged.connect(self.apply_filter)
+        install_line_edit_search_chrome(self.lineEdit_filter_name, clear_tooltip="Clear filter")
         self.lineEdit_filter_name.textChanged.connect(self._schedule_name_filter)
         self.dateEdit_filter_from.dateChanged.connect(self.apply_filter)
         self.dateEdit_filter_to.dateChanged.connect(self.apply_filter)

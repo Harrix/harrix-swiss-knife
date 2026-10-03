@@ -78,6 +78,7 @@ class ChooseIconFamilyDialog(QDialog):
         layout.addWidget(QLabel("Select the icon that should receive the new variants:"))
         self._filter = QLineEdit()
         self._filter.setPlaceholderText("Search by title, tags, id…")
+        install_line_edit_search_chrome(self._filter, clear_tooltip="Clear search")
         self._filter.textChanged.connect(self._on_filter_changed)
         layout.addWidget(self._filter)
         self._list = QListWidget()

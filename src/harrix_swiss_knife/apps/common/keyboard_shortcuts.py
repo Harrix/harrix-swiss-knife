@@ -22,7 +22,11 @@ from PySide6.QtWidgets import (
 )
 from shiboken6 import isValid
 
-from harrix_swiss_knife.qt_lucide_icon import apply_lucide_action_icon, create_lucide_icon
+from harrix_swiss_knife.qt_lucide_icon import (
+    apply_lucide_action_icon,
+    create_lucide_icon,
+    install_line_edit_search_chrome,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -55,14 +59,11 @@ class KeyboardShortcutsDialog(QDialog):
         hint.setWordWrap(True)
         root.addWidget(hint)
 
-        filter_row = QHBoxLayout()
-        filter_row.addWidget(QLabel("Filter:", self))
         self._filter = QLineEdit(self)
         self._filter.setPlaceholderText("Search keys or actions…")
-        self._filter.setClearButtonEnabled(True)
+        install_line_edit_search_chrome(self._filter, clear_tooltip="Clear search")
         self._filter.textChanged.connect(self._apply_filter)
-        filter_row.addWidget(self._filter, stretch=1)
-        root.addLayout(filter_row)
+        root.addWidget(self._filter)
 
         self._table = QTableWidget(0, 3, self)
         self._table.setHorizontalHeaderLabels(["Category", "Shortcut", "Action"])

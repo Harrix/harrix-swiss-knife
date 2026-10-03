@@ -22,6 +22,7 @@ lang: en
 - [🔧 Function `apply_menu_icon_size`](#-function-apply_menu_icon_size)
 - [🔧 Function `create_ai_lucide_icon`](#-function-create_ai_lucide_icon)
 - [🔧 Function `create_lucide_icon`](#-function-create_lucide_icon)
+- [🔧 Function `install_line_edit_search_chrome`](#-function-install_line_edit_search_chrome)
 - [🔧 Function `is_clear_like_button_label`](#-function-is_clear_like_button_label)
 - [🔧 Function `is_delete_like_button_label`](#-function-is_delete_like_button_label)
 - [🔧 Function `lucide_color_for`](#-function-lucide_color_for)
@@ -372,6 +373,60 @@ def create_lucide_icon(
 
 </details>
 
+## 🔧 Function `install_line_edit_search_chrome`
+
+```python
+def install_line_edit_search_chrome(line_edit: QLineEdit, *, icon_size: int = 14, clear_tooltip: str = 'Clear') -> QAction
+```
+
+Put a Lucide search glyph inside `line_edit` and a clear (x) for non-empty text.
+
+The search action is leading and decorative. The clear action is trailing and
+visible only while the field has text; it calls `line_edit.clear`.
+
+Args:
+
+- `line_edit` (`QLineEdit`): Target field.
+- `icon_size` (`int`): Lucide paint size for both glyphs. Defaults to `14`.
+- `clear_tooltip` (`str`): Tooltip on the clear action. Defaults to `Clear`.
+
+Returns:
+
+- `QAction`: The clear action (already wired to `line_edit.clear`).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def install_line_edit_search_chrome(
+    line_edit: QLineEdit,
+    *,
+    icon_size: int = 14,
+    clear_tooltip: str = "Clear",
+) -> QAction:
+    line_edit.setClearButtonEnabled(False)
+
+    search_action = QAction(line_edit)
+    search_action.setIcon(create_lucide_icon("search", icon_size))
+    # Decorative leading glyph — do not steal clicks from the field.
+    search_action.setEnabled(False)
+    line_edit.addAction(search_action, QLineEdit.ActionPosition.LeadingPosition)
+
+    clear_action = QAction(create_lucide_icon("x", icon_size), "", line_edit)
+    clear_action.setToolTip(clear_tooltip)
+    clear_action.setVisible(bool(line_edit.text()))
+    clear_action.triggered.connect(line_edit.clear)
+    line_edit.addAction(clear_action, QLineEdit.ActionPosition.TrailingPosition)
+
+    def _sync_clear_visibility(text: str) -> None:
+        clear_action.setVisible(bool(text))
+
+    line_edit.textChanged.connect(_sync_clear_visibility)
+    return clear_action
+```
+
+</details>
+
 ## 🔧 Function `is_clear_like_button_label`
 
 ```python
@@ -548,6 +603,8 @@ def make_search_icon_label(*, icon_size: int = 14, box_size: int = 16, parent: Q
 ```
 
 Return a Lucide search glyph for placing beside a search field.
+
+Prefer [`install_line_edit_search_chrome`](#-function-install_line_edit_search_chrome) for new search fields.
 
 <details>
 <summary>Code:</summary>

@@ -30,6 +30,7 @@ from harrix_swiss_knife.qt_lucide_icon import (
     CLEAR_BUTTON_ICON,
     apply_lucide_dialog_buttons,
     create_lucide_icon,
+    install_line_edit_search_chrome,
     make_lucide_push_button,
 )
 
@@ -104,7 +105,7 @@ class ExerciseSelectionDialog(QDialog):
 
         self.filter_edit = QLineEdit(self)
         self.filter_edit.setPlaceholderText("Filter exercises…")
-        self.filter_edit.setClearButtonEnabled(True)
+        install_line_edit_search_chrome(self.filter_edit, clear_tooltip="Clear filter")
         self.filter_edit.textChanged.connect(self._filter_exercises)
         layout.addWidget(self.filter_edit)
 

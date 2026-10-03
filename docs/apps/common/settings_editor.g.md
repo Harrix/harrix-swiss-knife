@@ -884,6 +884,7 @@ class SettingsEditorDialog(QDialog):
         search_row = QHBoxLayout()
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("Search settings...")
+        install_line_edit_search_chrome(self.search_input, clear_tooltip="Clear search")
         self.search_input.textChanged.connect(self._on_search)
         search_row.addWidget(self.search_input, 1)
         open_json = make_lucide_push_button("Open Settings (JSON)", OPEN_JSON_BUTTON_ICON)

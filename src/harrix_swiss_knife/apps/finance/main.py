@@ -209,6 +209,7 @@ from harrix_swiss_knife.qt_lucide_icon import (
     apply_lucide_button_icon,
     apply_lucide_dialog_buttons,
     create_lucide_icon,
+    install_line_edit_search_chrome,
     make_lucide_push_button,
     set_action_text_with_lucide_icon,
 )
@@ -2018,6 +2019,7 @@ class MainWindow(
         self.comboBox_filter_type.currentIndexChanged.connect(self.apply_filter)
         self.comboBox_filter_category.currentIndexChanged.connect(self.apply_filter)
         self.comboBox_filter_currency.currentIndexChanged.connect(self.apply_filter)
+        install_line_edit_search_chrome(self.lineEdit_filter_description, clear_tooltip="Clear filter")
         self.lineEdit_filter_description.textChanged.connect(self._schedule_description_filter)
         self.dateEdit_filter_from.dateChanged.connect(self.apply_filter)
         self.dateEdit_filter_to.dateChanged.connect(self.apply_filter)

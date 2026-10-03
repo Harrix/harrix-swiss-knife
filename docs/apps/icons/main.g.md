@@ -756,18 +756,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
 
         self.search_edit = QLineEdit()
         self.search_edit.setPlaceholderText("Search icons (title, tags, id)…")
-        self.search_edit.setClearButtonEnabled(False)
-        search_icon_action = QAction(self.search_edit)
-        search_icon_action.setIcon(create_lucide_icon("search", 14))
-        # Decorative leading glyph — do not steal clicks from the field.
-        search_icon_action.setEnabled(False)
-        self.search_edit.addAction(search_icon_action, QLineEdit.ActionPosition.LeadingPosition)
-        self._search_clear_action = QAction(create_lucide_icon("x", 14), "", self.search_edit)
-        self._search_clear_action.setToolTip("Clear search")
-        self._search_clear_action.setVisible(False)
-        self._search_clear_action.triggered.connect(self.search_edit.clear)
-        self.search_edit.addAction(self._search_clear_action, QLineEdit.ActionPosition.TrailingPosition)
-        self.search_edit.textChanged.connect(self._on_search_text_changed)
+        install_line_edit_search_chrome(self.search_edit, clear_tooltip="Clear search")
+        self.search_edit.textChanged.connect(self._schedule_search_filter)
         self.search_edit.returnPressed.connect(self._apply_filters)
         # View combo is taller because of preview icons; match the rest of the row to it.
         toolbar_h = max(self.variant_view_combo.sizeHint().height(), VIEW_COMBO_ICON_SIZE + 8)
@@ -2632,12 +2622,6 @@ class MainWindow(QMainWindow, AppWindowMixin):
             QMessageBox.warning(self, "Vector Icons", str(exc))
             return
         self.statusBar().showMessage(f"Revealed source `{source.name}`")
-
-    def _on_search_text_changed(self, text: str) -> None:
-        """Show the clear action only while the search field has text, then debounce."""
-        if hasattr(self, "_search_clear_action"):
-            self._search_clear_action.setVisible(bool(text))
-        self._schedule_search_filter()
 
     def _on_set_as_category_icon(self, family: object) -> None:
         if not isinstance(family, IconFamily):

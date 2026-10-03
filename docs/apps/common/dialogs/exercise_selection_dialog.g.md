@@ -86,7 +86,7 @@ class ExerciseSelectionDialog(QDialog):
 
         self.filter_edit = QLineEdit(self)
         self.filter_edit.setPlaceholderText("Filter exercises…")
-        self.filter_edit.setClearButtonEnabled(True)
+        install_line_edit_search_chrome(self.filter_edit, clear_tooltip="Clear filter")
         self.filter_edit.textChanged.connect(self._filter_exercises)
         layout.addWidget(self.filter_edit)
 
@@ -540,7 +540,7 @@ def __init__(
 
         self.filter_edit = QLineEdit(self)
         self.filter_edit.setPlaceholderText("Filter exercises…")
-        self.filter_edit.setClearButtonEnabled(True)
+        install_line_edit_search_chrome(self.filter_edit, clear_tooltip="Clear filter")
         self.filter_edit.textChanged.connect(self._filter_exercises)
         layout.addWidget(self.filter_edit)
 
