@@ -12,7 +12,7 @@ from typing import Any, Literal, cast
 
 import harrix_pylib as h
 from PySide6.QtCore import QMimeData, QPoint, QSize, Qt, QThread, QTimer, QUrl, Signal
-from PySide6.QtGui import QCloseEvent, QDesktopServices, QIcon, QKeySequence, QPixmap
+from PySide6.QtGui import QAction, QCloseEvent, QDesktopServices, QIcon, QKeySequence, QPixmap
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
@@ -199,8 +199,8 @@ from harrix_swiss_knife.qt_lucide_icon import (
     apply_leading_chrome_button_icon,
     apply_leading_chrome_icons,
     apply_lucide_dialog_buttons,
+    create_lucide_icon,
     make_lucide_push_button,
-    make_search_icon_label,
     set_action_text_with_lucide_icon,
 )
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
@@ -848,17 +848,22 @@ class MainWindow(QMainWindow, AppWindowMixin):
 
         self.search_edit = QLineEdit()
         self.search_edit.setPlaceholderText("Search icons (title, tags, id)…")
-        self.search_edit.textChanged.connect(self._schedule_search_filter)
+        self.search_edit.setClearButtonEnabled(False)
+        search_icon_action = QAction(self.search_edit)
+        search_icon_action.setIcon(create_lucide_icon("search", 14))
+        # Decorative leading glyph — do not steal clicks from the field.
+        search_icon_action.setEnabled(False)
+        self.search_edit.addAction(search_icon_action, QLineEdit.ActionPosition.LeadingPosition)
+        self._search_clear_action = QAction(create_lucide_icon("x", 14), "", self.search_edit)
+        self._search_clear_action.setToolTip("Clear search")
+        self._search_clear_action.setVisible(False)
+        self._search_clear_action.triggered.connect(self.search_edit.clear)
+        self.search_edit.addAction(self._search_clear_action, QLineEdit.ActionPosition.TrailingPosition)
+        self.search_edit.textChanged.connect(self._on_search_text_changed)
         self.search_edit.returnPressed.connect(self._apply_filters)
         # View combo is taller because of preview icons; match the rest of the row to it.
         toolbar_h = max(self.variant_view_combo.sizeHint().height(), VIEW_COMBO_ICON_SIZE + 8)
-        search_row = QWidget()
-        search_layout = QHBoxLayout(search_row)
-        search_layout.setContentsMargins(0, 0, 0, 0)
-        search_layout.setSpacing(6)
-        search_layout.addWidget(make_search_icon_label(), alignment=Qt.AlignmentFlag.AlignVCenter)
-        search_layout.addWidget(self.search_edit, stretch=1)
-        toolbar.addWidget(search_row, stretch=1)
+        toolbar.addWidget(self.search_edit, stretch=1)
 
         self.refresh_btn = make_lucide_push_button("Refresh catalog", "refresh-cw")
         self.refresh_btn.setText("")
@@ -871,12 +876,11 @@ class MainWindow(QMainWindow, AppWindowMixin):
         for widget in (
             self.folder_combo,
             self.variant_view_combo,
-            search_row,
+            self.search_edit,
             self.refresh_btn,
         ):
             widget.setFixedHeight(toolbar_h)
         self.refresh_btn.setFixedWidth(toolbar_h)
-        self.search_edit.setFixedHeight(toolbar_h)
         root.addWidget(toolbar_widget, stretch=0)
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
@@ -2720,6 +2724,12 @@ class MainWindow(QMainWindow, AppWindowMixin):
             QMessageBox.warning(self, "Vector Icons", str(exc))
             return
         self.statusBar().showMessage(f"Revealed source `{source.name}`")
+
+    def _on_search_text_changed(self, text: str) -> None:
+        """Show the clear action only while the search field has text, then debounce."""
+        if hasattr(self, "_search_clear_action"):
+            self._search_clear_action.setVisible(bool(text))
+        self._schedule_search_filter()
 
     def _on_set_as_category_icon(self, family: object) -> None:
         if not isinstance(family, IconFamily):
