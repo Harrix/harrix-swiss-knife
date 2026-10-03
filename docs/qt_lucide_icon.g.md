@@ -420,13 +420,20 @@ def install_line_edit_search_chrome(
 
     clear_action = QAction(create_lucide_icon("x", icon_size), "", line_edit)
     clear_action.setToolTip(clear_tooltip)
-    clear_action.setVisible(bool(line_edit.text()))
     clear_action.triggered.connect(on_clear if on_clear is not None else line_edit.clear)
+    # addAction always shows the side button; set visibility only after that.
     line_edit.addAction(clear_action, QLineEdit.ActionPosition.TrailingPosition)
 
-    def _sync_clear_visibility(text: str) -> None:
-        clear_action.setVisible(bool(text))
+    def _sync_clear_visibility(text: str = "") -> None:
+        visible = bool(text)
+        clear_action.setVisible(visible)
+        # addAction always shows the side button; QAction visibility alone can miss
+        # that QToolButton. Skip the line edit itself in associatedObjects().
+        for obj in clear_action.associatedObjects():
+            if isinstance(obj, QAbstractButton):
+                obj.setVisible(visible)
 
+    _sync_clear_visibility(line_edit.text())
     line_edit.textChanged.connect(_sync_clear_visibility)
     return clear_action
 ```
