@@ -21,7 +21,10 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife import qt_modality
-from harrix_swiss_knife.apps.common.date_edit_quick import attach_date_edit_quick_controls
+from harrix_swiss_knife.apps.common.date_edit_quick import (
+    attach_date_edit_quick_controls,
+    match_date_edit_form_height,
+)
 from harrix_swiss_knife.apps.icons.add_vector_ai import AddVectorAiFill, request_add_vector_fill
 from harrix_swiss_knife.apps.icons.add_vector_meta import (
     NoteMeta,
@@ -256,6 +259,7 @@ class AddVectorImageDialog(QDialog):
         date_layout.setContentsMargins(0, 0, 0, 0)
         date_layout.addWidget(self._date_edit)
         attach_date_edit_quick_controls(self._date_edit)
+        match_date_edit_form_height(self._date_edit, self._filename_edit, self._name_edit)
         form.addRow("date", date_row)
 
         self._category_edit = self._editable_combo(self._defaults.categories)

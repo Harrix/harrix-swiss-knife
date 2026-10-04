@@ -100,6 +100,7 @@ from harrix_swiss_knife.apps.common.apps_config import (
 from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
 from harrix_swiss_knife.apps.common.date_edit_quick import (
     attach_date_edit_quick_controls,
+    match_date_edit_form_height,
     match_layout_control_heights_many,
 )
 from harrix_swiss_knife.apps.common.db_init import init_tracker_database
@@ -8291,6 +8292,7 @@ class MainWindow(
         self._setup_seconds_count_inputs()
 
         attach_date_edit_quick_controls(self.dateEdit)
+        attach_date_edit_quick_controls(self.dateEdit_weight)
 
         # Set emoji for buttons
         self.pushButton_add.setText(f"➕  {self.pushButton_add.text()}")  # noqa: RUF001
@@ -8328,10 +8330,11 @@ class MainWindow(
             f"🎯 {self.pushButton_exercise_goal_recommendations.text()}"
         )
         apply_leading_chrome_buttons(self)
+        match_date_edit_form_height(self.dateEdit, self.spinBox_count)
+        match_date_edit_form_height(self.dateEdit_weight, self.doubleSpinBox_weight)
         match_layout_control_heights_many(
             (
                 self.horizontalLayout_filter,
-                self.horizontalLayout_13,
                 self.horizontalLayout_charts_controls_1,
                 self.horizontalLayout_charts_controls_2,
                 self.horizontalLayout_weight_controls,

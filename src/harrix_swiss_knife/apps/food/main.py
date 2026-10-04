@@ -76,7 +76,7 @@ from harrix_swiss_knife.apps.common.apps_config import (
 from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
 from harrix_swiss_knife.apps.common.date_edit_quick import (
     attach_date_edit_quick_controls,
-    match_control_heights,
+    match_date_edit_form_height,
     match_layout_control_heights,
     match_layout_control_heights_many,
 )
@@ -4336,8 +4336,6 @@ class MainWindow(
         self._setup_macros_analysis_ui()
 
         attach_date_edit_quick_controls(self.dateEdit_food)
-        # Same 12pt face as name/weight — default QDateEdit is shorter than those fields.
-        self.dateEdit_food.setFont(self.lineEdit_food_manual_name.font())
 
         # Set emoji for buttons
         self.pushButton_food_add.setText(f"➕ {self.pushButton_food_add.text()}")  # noqa: RUF001
@@ -4415,8 +4413,7 @@ class MainWindow(
                 self.horizontalLayout_food_stats_charts,
             ),
         )
-        # Match add-entry date to name/weight height (12pt); stats dates stay on their toolbar row.
-        match_control_heights(
+        match_date_edit_form_height(
             self.dateEdit_food,
             self.dateEdit_food_stats_from,
             self.lineEdit_food_manual_name,

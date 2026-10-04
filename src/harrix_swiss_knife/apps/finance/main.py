@@ -83,6 +83,7 @@ from harrix_swiss_knife.apps.common.apps_config import get_apps_list_limits
 from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
 from harrix_swiss_knife.apps.common.date_edit_quick import (
     attach_date_edit_quick_controls,
+    match_date_edit_form_height,
     match_layout_control_heights_many,
 )
 from harrix_swiss_knife.apps.common.db_init import init_tracker_database
@@ -5537,10 +5538,20 @@ class MainWindow(
         self.pushButton_calculate_fee.setText(f"💰 {self.pushButton_calculate_fee.text()}")
         self.pushButton_rates_refresh.setText(f"🔄 {self.pushButton_rates_refresh.text()}")
         apply_leading_chrome_buttons(self)
+        match_date_edit_form_height(
+            self.dateEdit,
+            self.lineEdit_description,
+            self.doubleSpinBox_amount,
+        )
+        match_date_edit_form_height(
+            self.dateEdit_exchange,
+            self.lineEdit_exchange_description,
+            self.doubleSpinBox_exchange_from,
+            self.doubleSpinBox_exchange_to,
+        )
         match_layout_control_heights_many(
             (
                 self.horizontalLayout_filter,
-                self.horizontalLayout_date,
                 self.horizontalLayout_exchange_date,
                 self.horizontalLayout_16,
                 self.horizontalLayout_exchange_item_rate,

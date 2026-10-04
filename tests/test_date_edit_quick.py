@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import pytest
 from PySide6.QtCore import QDate, Qt
+from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QApplication, QDateEdit, QHBoxLayout, QLabel, QMenu, QPushButton, QWidget
 
 from harrix_swiss_knife.apps.common.date_edit_quick import (
     attach_date_edit_quick_controls,
     match_control_heights,
+    match_date_edit_form_height,
     match_layout_control_heights,
 )
 from harrix_swiss_knife.qt_date_calendar import SoftCalendarWidget
@@ -110,5 +112,32 @@ def test_match_control_heights_aligns_label_and_date_with_button(qapp: QApplicat
     assert date_edit.maximumHeight() == height
     assert button.maximumHeight() == height
     assert match_control_heights() == 0
+
+    host.close()
+
+
+def test_match_date_edit_form_height_copies_peer_font(qapp: QApplication) -> None:
+    assert qapp is not None
+    host = QWidget()
+    layout = QHBoxLayout(host)
+    peer = QPushButton("Amount")
+    peer_font = QFont(peer.font())
+    peer_font.setPointSize(12)
+    peer.setFont(peer_font)
+    date_edit = QDateEdit()
+    date_edit.setCalendarPopup(True)
+    layout.addWidget(peer)
+    layout.addWidget(date_edit)
+    host.show()
+    QApplication.processEvents()
+
+    height = match_date_edit_form_height(date_edit, peer)
+    QApplication.processEvents()
+
+    assert height >= 24
+    assert date_edit.font().pointSize() == 12
+    assert date_edit.minimumHeight() == height
+    assert peer.minimumHeight() == height
+    assert match_date_edit_form_height(date_edit) == 0
 
     host.close()

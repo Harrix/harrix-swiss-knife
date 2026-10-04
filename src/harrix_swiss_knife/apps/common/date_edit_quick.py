@@ -26,7 +26,8 @@ def attach_date_edit_quick_controls(date_edit: QDateEdit) -> None:
     """Apply calendar popup and a leading calendar icon on `date_edit`.
 
     Quick presets (Yesterday, Today, ±1 day) live in the calendar footer, not
-    next to the field. The date field keeps the same height as other inputs.
+    next to the field. Call `match_date_edit_form_height` afterward so the field
+    matches neighboring form inputs.
 
     Args:
 
@@ -65,6 +66,31 @@ def match_control_heights(*widgets: QWidget | None) -> int:
         if isinstance(widget, QLabel):
             widget.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
     return height
+
+
+def match_date_edit_form_height(date_edit: QDateEdit, *peers: QWidget | None) -> int:
+    """Copy form-input font onto `date_edit` and match heights with peers.
+
+    Default `QDateEdit` is shorter than 12pt name/amount fields. Use a peer from
+    the same form (line edit, spin box, or another date field) as the height
+    reference.
+
+    Args:
+
+    - `date_edit` (`QDateEdit`): Date field to resize.
+    - `peers` (`QWidget | None`): Neighboring form controls to match.
+
+    Returns:
+
+    - `int`: Applied height, or `0` when nothing was resized.
+
+    """
+    visible_peers = [widget for widget in peers if widget is not None]
+    if not visible_peers:
+        return 0
+    reference = max(visible_peers, key=lambda widget: widget.font().pointSizeF())
+    date_edit.setFont(reference.font())
+    return match_control_heights(date_edit, *visible_peers)
 
 
 def match_layout_control_heights(layout: QLayout | None) -> int:

@@ -239,6 +239,7 @@ class AddVectorImageDialog(QDialog):
         date_layout.setContentsMargins(0, 0, 0, 0)
         date_layout.addWidget(self._date_edit)
         attach_date_edit_quick_controls(self._date_edit)
+        match_date_edit_form_height(self._date_edit, self._filename_edit, self._name_edit)
         form.addRow("date", date_row)
 
         self._category_edit = self._editable_combo(self._defaults.categories)
