@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from PySide6.QtCore import QDate, QEvent, QPointF, Qt
 from PySide6.QtGui import QMouseEvent
-from PySide6.QtWidgets import QApplication, QDateEdit, QLabel, QPushButton, QTableView, QWidget
+from PySide6.QtWidgets import QApplication, QDateEdit, QPushButton, QTableView, QWidget
 
 from harrix_swiss_knife.qt_date_calendar import (
     SoftCalendarWidget,
@@ -38,12 +38,6 @@ def test_apply_date_calendar_popup_replaces_widget(qapp: QApplication) -> None: 
     assert calendar.findChild(QPushButton) is not None
     labels = {button.text() for button in calendar.findChildren(QPushButton)}
     assert {"Yesterday", "Today", "+1 day", "-1 day"} <= labels
-    footer = calendar.findChild(QWidget, "hskCalendarFooter")
-    assert footer is not None
-    assert footer.height() == 36
-    icon = calendar.findChild(QLabel, "hskCalendarFooterIcon")
-    assert icon is not None
-    assert not icon.pixmap().isNull()
     # Idempotent.
     apply_date_calendar_popup(date_edit)
     assert date_edit.calendarWidget() is calendar

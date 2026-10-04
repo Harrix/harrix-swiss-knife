@@ -129,22 +129,9 @@ class SoftCalendarWidget(QCalendarWidget):
 
         footer = QWidget(self)
         footer.setObjectName("hskCalendarFooter")
-        footer.setFixedHeight(_FOOTER_HEIGHT)
         footer_layout = QHBoxLayout(footer)
-        footer_layout.setContentsMargins(8, 0, 4, 0)
+        footer_layout.setContentsMargins(4, 0, 4, 0)
         footer_layout.setSpacing(0)
-        footer_icon = QLabel(footer)
-        footer_icon.setObjectName("hskCalendarFooterIcon")
-        footer_icon.setPixmap(
-            create_lucide_icon("calendar", _NAV_ICON_SIZE, color=SELECTION_BORDER).pixmap(
-                _NAV_ICON_SIZE,
-                _NAV_ICON_SIZE,
-            )
-        )
-        footer_icon.setFixedSize(_NAV_ICON_SIZE + 4, _FOOTER_HEIGHT)
-        footer_icon.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
-        footer_icon.setStyleSheet("background: transparent; border: none;")
-        footer_layout.addWidget(footer_icon)
         footer_layout.addWidget(self._yesterday_button, stretch=1)
         footer_layout.addWidget(self._today_button, stretch=1)
         footer_layout.addWidget(self._plus_day_button, stretch=1)
@@ -354,7 +341,6 @@ class SoftCalendarWidget(QCalendarWidget):
         button = QPushButton(text, self)
         button.setCursor(Qt.CursorShape.PointingHandCursor)
         button.setFlat(True)
-        button.setFixedHeight(_FOOTER_HEIGHT)
         button.setStyleSheet(
             f"QPushButton {{ color: {SELECTION_BORDER}; border: none; background: transparent;"
             " padding: 8px 4px; font-weight: 500; }"
@@ -715,22 +701,9 @@ def __init__(self, parent: QWidget | None = None) -> None:
 
         footer = QWidget(self)
         footer.setObjectName("hskCalendarFooter")
-        footer.setFixedHeight(_FOOTER_HEIGHT)
         footer_layout = QHBoxLayout(footer)
-        footer_layout.setContentsMargins(8, 0, 4, 0)
+        footer_layout.setContentsMargins(4, 0, 4, 0)
         footer_layout.setSpacing(0)
-        footer_icon = QLabel(footer)
-        footer_icon.setObjectName("hskCalendarFooterIcon")
-        footer_icon.setPixmap(
-            create_lucide_icon("calendar", _NAV_ICON_SIZE, color=SELECTION_BORDER).pixmap(
-                _NAV_ICON_SIZE,
-                _NAV_ICON_SIZE,
-            )
-        )
-        footer_icon.setFixedSize(_NAV_ICON_SIZE + 4, _FOOTER_HEIGHT)
-        footer_icon.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
-        footer_icon.setStyleSheet("background: transparent; border: none;")
-        footer_layout.addWidget(footer_icon)
         footer_layout.addWidget(self._yesterday_button, stretch=1)
         footer_layout.addWidget(self._today_button, stretch=1)
         footer_layout.addWidget(self._plus_day_button, stretch=1)

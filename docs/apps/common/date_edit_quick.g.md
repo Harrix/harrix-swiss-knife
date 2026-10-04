@@ -24,10 +24,11 @@ lang: en
 def attach_date_edit_quick_controls(date_edit: QDateEdit) -> None
 ```
 
-Apply the shared calendar popup to `date_edit`.
+Apply calendar popup, leading calendar icon, and toolbar field height.
 
 Quick presets (Yesterday, Today, ±1 day) live in the calendar footer, not
-next to the field.
+next to the field. The date field itself gets a Lucide calendar glyph on
+the left and a height close to the former quick-button row.
 
 Args:
 
@@ -39,6 +40,7 @@ Args:
 ```python
 def attach_date_edit_quick_controls(date_edit: QDateEdit) -> None:
     apply_date_calendar_popup(date_edit)
+    _apply_date_edit_field_chrome(date_edit)
 ```
 
 </details>
