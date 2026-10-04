@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import QSize, Qt
-from PySide6.QtWidgets import QAbstractItemView, QListWidget, QSizePolicy
+from PySide6.QtWidgets import QAbstractItemView, QListWidget, QSizePolicy, QWidget
 
 from harrix_swiss_knife.apps.common.ui_chrome import action_card_selection_qss, apply_readable_selection_palette
 
@@ -15,7 +15,8 @@ CARD_TEXT_AREA_HEIGHT = 36
 CARD_GRID_CELL_HEIGHT = CARD_ICON_SIZE + CARD_TEXT_AREA_HEIGHT
 CARD_MIN_SCALE = 0.82
 _TEXT_WIDTH_INSET = 24
-_TEXT_HEIGHT_PAD = 8
+# Includes room for QSS item padding (2px top/bottom) under the selection border.
+_TEXT_HEIGHT_PAD = 12
 _ICON_TEXT_GAP = 8
 
 
@@ -71,21 +72,57 @@ def sync_action_card_grid(list_widget: QListWidget) -> bool:
         CARD_TEXT_AREA_HEIGHT,
         _max_wrapped_text_height(list_widget, cell_width, icon_size) + _TEXT_HEIGHT_PAD + _ICON_TEXT_GAP,
     )
-    grid_size = QSize(cell_width, icon_size + text_area)
+    grid_height = max(
+        icon_size + text_area,
+        _max_widget_card_height(list_widget, cell_width, icon_size),
+    )
+    grid_size = QSize(cell_width, grid_height)
     icon_qsize = QSize(icon_size, icon_size)
     changed = list_widget.gridSize() != grid_size or list_widget.iconSize() != icon_qsize
     list_widget.setIconSize(icon_qsize)
     list_widget.setGridSize(grid_size)
     for index in range(list_widget.count()):
         item = list_widget.item(index)
-        if item is None or list_widget.itemWidget(item) is not None:
+        if item is None:
             continue
         if item.sizeHint() != grid_size:
             item.setSizeHint(grid_size)
             changed = True
+        widget = list_widget.itemWidget(item)
+        if widget is not None and _apply_widget_grid_metrics(widget, cell_width, icon_size, grid_height):
+            changed = True
     if changed:
         list_widget.doItemsLayout()
     return changed
+
+
+def _apply_widget_grid_metrics(widget: QWidget, cell_width: int, icon_size: int, cell_height: int) -> bool:
+    apply = getattr(widget, "apply_grid_metrics", None)
+    if not callable(apply):
+        if widget.width() != cell_width or widget.height() != cell_height:
+            widget.setFixedSize(cell_width, cell_height)
+            return True
+        return False
+    before = widget.size()
+    apply(cell_width, icon_size, cell_height)
+    return widget.size() != before
+
+
+def _max_widget_card_height(list_widget: QListWidget, cell_width: int, icon_size: int) -> int:
+    tallest = 0
+    for index in range(list_widget.count()):
+        item = list_widget.item(index)
+        if item is None:
+            continue
+        widget = list_widget.itemWidget(item)
+        if widget is None:
+            continue
+        preferred = getattr(widget, "preferred_height", None)
+        if callable(preferred):
+            tallest = max(tallest, int(preferred(cell_width, icon_size)))
+        else:
+            tallest = max(tallest, widget.sizeHint().height(), widget.minimumHeight())
+    return tallest
 
 
 def _max_wrapped_text_height(list_widget: QListWidget, cell_width: int, icon_size: int) -> int:

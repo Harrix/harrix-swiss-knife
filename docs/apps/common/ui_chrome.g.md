@@ -41,8 +41,8 @@ QListWidget {{
     border: none;
 }}
 QListWidget::item {{
-    margin: 4px;
-    padding: 0px;
+    margin: 0px;
+    padding: 2px;
     border-radius: 8px;
     border: 1px solid transparent;
     background: transparent;

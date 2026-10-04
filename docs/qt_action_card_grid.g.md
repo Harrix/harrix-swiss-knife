@@ -104,17 +104,24 @@ def sync_action_card_grid(list_widget: QListWidget) -> bool:
         CARD_TEXT_AREA_HEIGHT,
         _max_wrapped_text_height(list_widget, cell_width, icon_size) + _TEXT_HEIGHT_PAD + _ICON_TEXT_GAP,
     )
-    grid_size = QSize(cell_width, icon_size + text_area)
+    grid_height = max(
+        icon_size + text_area,
+        _max_widget_card_height(list_widget, cell_width, icon_size),
+    )
+    grid_size = QSize(cell_width, grid_height)
     icon_qsize = QSize(icon_size, icon_size)
     changed = list_widget.gridSize() != grid_size or list_widget.iconSize() != icon_qsize
     list_widget.setIconSize(icon_qsize)
     list_widget.setGridSize(grid_size)
     for index in range(list_widget.count()):
         item = list_widget.item(index)
-        if item is None or list_widget.itemWidget(item) is not None:
+        if item is None:
             continue
         if item.sizeHint() != grid_size:
             item.setSizeHint(grid_size)
+            changed = True
+        widget = list_widget.itemWidget(item)
+        if widget is not None and _apply_widget_grid_metrics(widget, cell_width, icon_size, grid_height):
             changed = True
     if changed:
         list_widget.doItemsLayout()

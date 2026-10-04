@@ -5,12 +5,15 @@ from PySide6.QtWidgets import QApplication, QListWidget, QListWidgetItem, QVBoxL
 
 from harrix_swiss_knife.actions.common.quick_launcher_dialog import QuickLauncherDialog, _layout_spacing_total
 from harrix_swiss_knife.qt_action_card_grid import (
+    CARD_GRID_CELL_HEIGHT,
     CARD_ICON_SIZE,
     CARD_TEXT_AREA_HEIGHT,
     configure_action_card_grid,
     resolve_action_card_grid_metrics,
     sync_action_card_grid,
 )
+from harrix_swiss_knife.qt_command_section import style_transparent_icon_grid
+from harrix_swiss_knife.qt_markdown_choice_cards import IconChoiceCard, populate_icon_choice_cards
 
 
 @pytest.fixture
@@ -88,4 +91,34 @@ def test_action_card_grid_grows_for_wrapped_captions(qapp: QApplication) -> None
     assert grid.visualItemRect(item).height() >= item.sizeHint().height() - 2
     # Caption needs more than the default one-line text strip under a shrunk icon.
     assert grid.gridSize().height() - grid.iconSize().height() > CARD_TEXT_AREA_HEIGHT
+    host.close()
+
+
+def test_icon_choice_cards_grow_for_wrapped_titles(qapp: QApplication) -> None:
+    host = QWidget()
+    host.resize(460, 360)
+    grid = QListWidget(host)
+    configure_action_card_grid(grid)
+    style_transparent_icon_grid(grid)
+    grid.setGeometry(0, 0, 440, 320)
+    populate_icon_choice_cards(
+        grid,
+        [
+            ("📚", "Book"),
+            ("📑", "New Marp presentation"),
+        ],
+    )
+    host.show()
+    qapp.processEvents()
+    sync_action_card_grid(grid)
+    qapp.processEvents()
+
+    long_item = grid.item(1)
+    assert long_item is not None
+    card = grid.itemWidget(long_item)
+    assert isinstance(card, IconChoiceCard)
+    assert grid.gridSize().height() > CARD_GRID_CELL_HEIGHT
+    assert long_item.sizeHint().height() == grid.gridSize().height()
+    assert card.height() == grid.gridSize().height()
+    assert card.height() >= card.preferred_height(grid.gridSize().width(), grid.iconSize().width())
     host.close()
