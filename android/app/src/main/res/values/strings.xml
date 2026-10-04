@@ -295,6 +295,7 @@
     <string name="speech_to_text_share">Share</string>
     <string name="speech_to_text_share_failed">No app available to share text</string>
     <string name="speech_to_text_send_to_ticktick">Send to TickTick</string>
+    <string name="speech_to_text_sent_to_ticktick">Sent to TickTick</string>
     <string name="speech_to_text_ticktick_unavailable">TickTick is not installed or cannot receive this text</string>
     <string name="speech_to_text_rewrite">Rewrite with AI</string>
     <string name="speech_to_text_single_line">To single line</string>

@@ -181,7 +181,10 @@ fun SpeechToTextScreen(
         }
     }
 
-    fun sendResultToTickTick(text: String) {
+    fun sendResultToTickTick(
+        id: String,
+        text: String,
+    ) {
         val payload = text.trim()
         if (payload.isEmpty()) {
             return
@@ -194,6 +197,7 @@ fun SpeechToTextScreen(
             }
         try {
             context.startActivity(tickTickIntent)
+            viewModel.markSentToTickTick(id)
         } catch (_: ActivityNotFoundException) {
             showToast(tickTickUnavailableMessage)
         }
@@ -341,7 +345,7 @@ fun SpeechToTextScreen(
                     showToast(copiedMessage)
                 },
                 onShare = { shareResultText(selectedItem.text) },
-                onSendToTickTick = { sendResultToTickTick(selectedItem.text) },
+                onSendToTickTick = { sendResultToTickTick(selectedItem.id, selectedItem.text) },
                 onRewrite = { viewModel.rewriteItem(selectedItem.id) },
                 onSingleLine = { viewModel.collapseItemToSingleLine(selectedItem.id) },
                 onSave = {
@@ -616,6 +620,14 @@ private fun SpeechMessageRow(
                     else -> MaterialTheme.colorScheme.onSurface
                 },
             )
+            if (item.sentToTickTick) {
+                Icon(
+                    imageVector = LucideIcons.TaskAlt,
+                    contentDescription = stringResource(R.string.speech_to_text_sent_to_ticktick),
+                    modifier = Modifier.size(18.dp),
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
             Icon(
                 imageVector = LucideIcons.KeyboardArrowRight,
                 contentDescription = null,

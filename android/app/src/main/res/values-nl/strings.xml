@@ -294,6 +294,7 @@
     <string name="speech_to_text_share">Delen</string>
     <string name="speech_to_text_share_failed">Geen app beschikbaar om tekst te delen</string>
     <string name="speech_to_text_send_to_ticktick">Naar TickTick sturen</string>
+    <string name="speech_to_text_sent_to_ticktick">Verstuurd naar TickTick</string>
     <string name="speech_to_text_ticktick_unavailable">TickTick is niet geïnstalleerd of kan deze tekst niet ontvangen</string>
     <string name="speech_to_text_rewrite">Rewrite with AI</string>
     <string name="speech_to_text_single_line">To single line</string>

@@ -326,6 +326,20 @@ class SpeechToTextViewModel(
         persistItem(updated)
     }
 
+    fun markSentToTickTick(id: String) {
+        val index = items.indexOfFirst { it.id == id }
+        if (index < 0) {
+            return
+        }
+        val current = items[index]
+        if (current.sentToTickTick) {
+            return
+        }
+        val updated = current.copy(sentToTickTick = true)
+        replaceItem(updated)
+        persistItem(updated)
+    }
+
     fun collapseItemToSingleLine(id: String) {
         val index = items.indexOfFirst { it.id == id }
         if (index < 0) {

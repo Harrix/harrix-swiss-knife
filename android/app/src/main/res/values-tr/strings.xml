@@ -294,6 +294,7 @@
     <string name="speech_to_text_share">Paylaş</string>
     <string name="speech_to_text_share_failed">Metin paylaşmak için uygulama yok</string>
     <string name="speech_to_text_send_to_ticktick">TickTick’e gönder</string>
+    <string name="speech_to_text_sent_to_ticktick">TickTick’e gönderildi</string>
     <string name="speech_to_text_ticktick_unavailable">TickTick yüklü değil veya bu metni alamıyor</string>
     <string name="speech_to_text_rewrite">Rewrite with AI</string>
     <string name="speech_to_text_single_line">To single line</string>

@@ -235,6 +235,7 @@ class SpeechToTextQueueStore(
             recognitionStartedAtMs = 0L,
             recognitionElapsedMs = 0L,
             lastRecognitionDurationMs = obj.optLong(KEY_LAST_RECOGNITION_MS, 0L),
+            sentToTickTick = obj.optBoolean(KEY_SENT_TO_TICKTICK, false),
         )
     }
 
@@ -254,6 +255,7 @@ class SpeechToTextQueueStore(
         .put(KEY_ERROR, errorMessage)
         .put(KEY_CREATED_AT, createdAtMs)
         .put(KEY_LAST_RECOGNITION_MS, lastRecognitionDurationMs)
+        .put(KEY_SENT_TO_TICKTICK, sentToTickTick)
 
     companion object {
         fun expectedRecognitionMs(
@@ -284,6 +286,7 @@ class SpeechToTextQueueStore(
         private const val KEY_ERROR = "error"
         private const val KEY_CREATED_AT = "created_at"
         private const val KEY_LAST_RECOGNITION_MS = "last_recognition_ms"
+        private const val KEY_SENT_TO_TICKTICK = "sent_to_ticktick"
         private const val MIN_VALID_FILE_BYTES = 44L
         private const val LEGACY_PREFS = "speech_to_text_pending"
         private const val LEGACY_WAV = "pending-speech.wav"

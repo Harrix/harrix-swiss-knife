@@ -294,6 +294,7 @@
     <string name="speech_to_text_share">Sdílet</string>
     <string name="speech_to_text_share_failed">Žádná aplikace pro sdílení textu</string>
     <string name="speech_to_text_send_to_ticktick">Odeslat do TickTick</string>
+    <string name="speech_to_text_sent_to_ticktick">Odesláno do TickTick</string>
     <string name="speech_to_text_ticktick_unavailable">TickTick není nainstalován nebo nemůže přijmout tento text</string>
     <string name="speech_to_text_rewrite">Rewrite with AI</string>
     <string name="speech_to_text_single_line">To single line</string>

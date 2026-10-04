@@ -22,4 +22,5 @@ data class SpeechQueueItem(
     val recognitionStartedAtMs: Long = 0L,
     val recognitionElapsedMs: Long = 0L,
     val lastRecognitionDurationMs: Long = 0L,
+    val sentToTickTick: Boolean = false,
 )

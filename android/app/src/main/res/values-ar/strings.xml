@@ -294,6 +294,7 @@
     <string name="speech_to_text_share">مشاركة</string>
     <string name="speech_to_text_share_failed">لا يوجد تطبيق لمشاركة النص</string>
     <string name="speech_to_text_send_to_ticktick">إرسال إلى TickTick</string>
+    <string name="speech_to_text_sent_to_ticktick">تم الإرسال إلى TickTick</string>
     <string name="speech_to_text_ticktick_unavailable">تطبيق TickTick غير مثبت أو لا يمكنه استلام هذا النص</string>
     <string name="speech_to_text_rewrite">Rewrite with AI</string>
     <string name="speech_to_text_single_line">To single line</string>
