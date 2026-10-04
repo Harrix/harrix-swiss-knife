@@ -9,6 +9,8 @@ from PySide6.QtWidgets import QApplication, QDateEdit, QPushButton, QTableView, 
 from harrix_swiss_knife.qt_date_calendar import (
     SoftCalendarWidget,
     apply_date_calendar_popup,
+    decade_panel_years,
+    decade_start,
     install_date_calendar_popups,
 )
 from harrix_swiss_knife.qt_ui_effects import install_ui_effects
@@ -47,7 +49,7 @@ def test_soft_calendar_today_and_month_title(qapp: QApplication) -> None:  # noq
     assert calendar.selectedDate() == today
     assert calendar.yearShown() == today.year()
     assert calendar.monthShown() == today.month()
-    assert calendar._title.text()
+    assert str(today.year()) == calendar._title_year.text()
 
 
 def test_soft_calendar_keeps_seven_equal_day_columns(qapp: QApplication) -> None:
@@ -116,3 +118,38 @@ def test_install_ui_effects_wires_calendar_popups(qapp: QApplication) -> None:
     install_date_calendar_popups(qapp)  # second call is a no-op
     apply_date_calendar_popup(date_edit)
     assert isinstance(date_edit.calendarWidget(), SoftCalendarWidget)
+
+
+def test_decade_panel_years_includes_adjacent_years() -> None:
+    start, years = decade_panel_years(2026)
+    assert start == 2020
+    assert decade_start(2026) == 2020
+    assert years == [2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026, 2027, 2028, 2029, 2030]
+
+
+def test_soft_calendar_year_title_opens_decade_panel(qapp: QApplication) -> None:
+    calendar = SoftCalendarWidget()
+    calendar.setCurrentPage(2026, 6)
+    calendar.show()
+    qapp.processEvents()
+
+    calendar._title_year.click()
+    qapp.processEvents()
+
+    panel = calendar.findChild(QWidget, "hskCalendarYearPanel")
+    assert panel is not None
+    assert panel.isVisible()
+    assert calendar._title_year.text() == "2020-2029"
+    assert calendar._title_month.isHidden()
+    labels = [button.text() for button in calendar._year_buttons]
+    assert labels[0] == "2019"
+    assert labels[-1] == "2030"
+    assert "2026" in labels
+
+    calendar._year_buttons[labels.index("2024")].click()
+    qapp.processEvents()
+    assert calendar.yearShown() == 2024
+    assert calendar.monthShown() == 6
+    assert not panel.isVisible()
+    assert calendar._title_year.text() == "2024"
+    calendar.close()
