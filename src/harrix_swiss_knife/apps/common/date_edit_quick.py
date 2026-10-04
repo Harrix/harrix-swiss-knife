@@ -18,17 +18,15 @@ if TYPE_CHECKING:
     from PySide6.QtWidgets import QLayout
 
 _MIN_CONTROL_HEIGHT = 24
-_DATE_FIELD_MIN_HEIGHT = 28
-_DATE_FIELD_ICON_SIZE = 16
+_DATE_FIELD_ICON_SIZE = 14
 _PROP_FIELD_CHROME = "hskDateEditFieldChrome"
 
 
 def attach_date_edit_quick_controls(date_edit: QDateEdit) -> None:
-    """Apply calendar popup, leading calendar icon, and toolbar field height.
+    """Apply calendar popup and a leading calendar icon on `date_edit`.
 
     Quick presets (Yesterday, Today, ±1 day) live in the calendar footer, not
-    next to the field. The date field itself gets a Lucide calendar glyph on
-    the left and a height close to the former quick-button row.
+    next to the field. The date field keeps the same height as other inputs.
 
     Args:
 
@@ -101,6 +99,4 @@ def _apply_date_edit_field_chrome(date_edit: QDateEdit) -> None:
         action.setToolTip("Open calendar")
         action.triggered.connect(lambda: show_date_calendar_popup(date_edit))
         line_edit.addAction(action, QLineEdit.ActionPosition.LeadingPosition)
-    height = max(date_edit.sizeHint().height(), date_edit.minimumHeight(), _DATE_FIELD_MIN_HEIGHT)
-    date_edit.setMinimumHeight(height)
     date_edit.setProperty(_PROP_FIELD_CHROME, True)  # noqa: FBT003

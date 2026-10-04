@@ -76,7 +76,6 @@ def test_attach_date_edit_quick_controls_applies_calendar(qapp: QApplication) ->
     labels = {button.text() for button in calendar.findChildren(QPushButton)}
     assert {"Yesterday", "Today", "+1 day", "-1 day"} <= labels
     assert host.findChild(SplitMenuButton) is None
-    assert date_edit.minimumHeight() >= 28
     line_edit = date_edit.lineEdit()
     assert line_edit is not None
     leading = [action for action in line_edit.actions() if action.objectName() == "hskDateEditCalendarIcon"]

@@ -24,11 +24,10 @@ lang: en
 def attach_date_edit_quick_controls(date_edit: QDateEdit) -> None
 ```
 
-Apply calendar popup, leading calendar icon, and toolbar field height.
+Apply calendar popup and a leading calendar icon on `date_edit`.
 
 Quick presets (Yesterday, Today, ±1 day) live in the calendar footer, not
-next to the field. The date field itself gets a Lucide calendar glyph on
-the left and a height close to the former quick-button row.
+next to the field. The date field keeps the same height as other inputs.
 
 Args:
 
