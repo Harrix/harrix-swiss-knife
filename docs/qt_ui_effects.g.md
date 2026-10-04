@@ -12,7 +12,7 @@ lang: en
 def install_ui_effects(app: QApplication) -> None
 ```
 
-Disable the combo box popup slide animation.
+Disable combo popup slide animation and install shared date calendars.
 
 On the `windows11` style the animated popup is painted once, then grabbed
 and scrolled open, which reads as a blink every time a combo opens.
@@ -27,6 +27,7 @@ Args:
 ```python
 def install_ui_effects(app: QApplication) -> None:
     app.setEffectEnabled(Qt.UIEffect.UI_AnimateCombo, enable=False)
+    install_date_calendar_popups(app)
 ```
 
 </details>

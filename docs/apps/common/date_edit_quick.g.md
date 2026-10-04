@@ -113,6 +113,7 @@ def attach_date_edit_quick_controls(
     date_edit.customContextMenuRequested.connect(show_context_menu)
     date_edit.dateChanged.connect(lambda *_args: refresh_button_text())
     refresh_button_text()
+    apply_date_calendar_popup(date_edit)
 
     _insert_widget_after(date_edit, button)
     return button

@@ -1,0 +1,666 @@
+---
+author: Anton Sergienko
+author-email: anton.b.sergienko@gmail.com
+lang: en
+---
+
+# 📄 File `qt_date_calendar.py`
+
+<details>
+<summary>📖 Contents ⬇️</summary>
+
+## Contents
+
+- [🏛️ Class `SoftCalendarWidget`](#%EF%B8%8F-class-softcalendarwidget)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
+  - [⚙️ Method `minimumSizeHint`](#%EF%B8%8F-method-minimumsizehint)
+  - [⚙️ Method `paintCell`](#%EF%B8%8F-method-paintcell)
+  - [⚙️ Method `showEvent`](#%EF%B8%8F-method-showevent)
+  - [⚙️ Method `sizeHint`](#%EF%B8%8F-method-sizehint)
+- [🔧 Function `apply_date_calendar_popup`](#-function-apply_date_calendar_popup)
+- [🔧 Function `install_date_calendar_popups`](#-function-install_date_calendar_popups)
+
+</details>
+
+## 🏛️ Class `SoftCalendarWidget`
+
+```python
+class SoftCalendarWidget(QCalendarWidget)
+```
+
+Month grid with Ant-like chrome around Qt native day table.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class SoftCalendarWidget(QCalendarWidget):
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        """Build restyled navigation, native day grid, and Today footer."""
+        super().__init__(parent)
+        self._hover_date: QDate | None = None
+        self._grid_view: QTableView | None = None
+
+        self.setVerticalHeaderFormat(QCalendarWidget.VerticalHeaderFormat.NoVerticalHeader)
+        # Own weekday labels — QHeaderView collapses/overlaps after selection on Windows.
+        self.setHorizontalHeaderFormat(QCalendarWidget.HorizontalHeaderFormat.NoHorizontalHeader)
+        self.setGridVisible(False)
+        self.setFirstDayOfWeek(Qt.DayOfWeek.Sunday)
+        self.setLocale(_UI_LOCALE)
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
+        fusion = QStyleFactory.create("Fusion")
+        if fusion is not None:
+            self.setStyle(fusion)
+
+        self.setNavigationBarVisible(False)
+        self._detach_default_nav_bar()
+
+        self._title = QLabel(self)
+        title_font = QFont(self._title.font())
+        title_font.setBold(True)
+        self._title.setFont(title_font)
+        self._title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._title.setStyleSheet(f"color: {SELECTION_TEXT}; background: transparent;")
+
+        self._prev_year = self._nav_button("chevrons-left", "Previous year")
+        self._prev_month = self._nav_button("chevron-left", "Previous month")
+        self._next_month = self._nav_button("chevron-right", "Next month")
+        self._next_year = self._nav_button("chevrons-right", "Next year")
+        self._prev_year.clicked.connect(lambda: self._shift_page(years=-1))
+        self._prev_month.clicked.connect(lambda: self._shift_page(months=-1))
+        self._next_month.clicked.connect(lambda: self._shift_page(months=1))
+        self._next_year.clicked.connect(lambda: self._shift_page(years=1))
+
+        header = QWidget(self)
+        header.setObjectName("hskCalendarHeader")
+        header_layout = QHBoxLayout(header)
+        header_layout.setContentsMargins(8, 8, 8, 8)
+        header_layout.setSpacing(2)
+        header_layout.addWidget(self._prev_year)
+        header_layout.addWidget(self._prev_month)
+        header_layout.addWidget(self._title, stretch=1)
+        header_layout.addWidget(self._next_month)
+        header_layout.addWidget(self._next_year)
+
+        header_line = _hairline(self)
+        self._weekdays = self._build_weekdays()
+        footer_line = _hairline(self)
+
+        self._today_button = QPushButton("Today", self)
+        self._today_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._today_button.setFlat(True)
+        self._today_button.setStyleSheet(
+            f"QPushButton {{ color: {SELECTION_BORDER}; border: none; background: transparent;"
+            " padding: 8px 12px; font-weight: 500; }"
+            f"QPushButton:hover {{ color: {SELECTION_TEXT}; background: {SELECTION_HOVER}; }}"
+        )
+        self._today_button.clicked.connect(self._go_today)
+
+        footer = QWidget(self)
+        footer.setObjectName("hskCalendarFooter")
+        footer_layout = QHBoxLayout(footer)
+        footer_layout.setContentsMargins(0, 0, 0, 0)
+        footer_layout.addStretch(1)
+        footer_layout.addWidget(self._today_button)
+        footer_layout.addStretch(1)
+
+        root = self.layout()
+        if isinstance(root, QVBoxLayout):
+            root.setContentsMargins(8, 0, 8, 0)
+            root.setSpacing(0)
+            root.insertWidget(0, header)
+            root.insertWidget(1, header_line)
+            root.insertWidget(2, self._weekdays)
+            root.addWidget(footer_line)
+            root.addWidget(footer)
+
+        self.setStyleSheet(
+            f"""
+            SoftCalendarWidget {{
+                background: #ffffff;
+                border: 1px solid {_PANEL_BORDER};
+                border-radius: 8px;
+            }}
+            SoftCalendarWidget QWidget#hskCalendarHeader,
+            SoftCalendarWidget QWidget#hskCalendarFooter,
+            SoftCalendarWidget QWidget#hskCalendarWeekdays {{
+                background: #ffffff;
+                border: none;
+            }}
+            SoftCalendarWidget QAbstractItemView {{
+                background: #ffffff;
+                outline: none;
+                border: none;
+                selection-background-color: transparent;
+                selection-color: {SELECTION_TEXT};
+            }}
+            """.strip()
+        )
+
+        self.setMinimumSize(_POPUP_WIDTH, self._popup_height())
+        self.currentPageChanged.connect(self._on_page_changed)
+        self.selectionChanged.connect(self._on_selection_changed)
+        self._refresh_title()
+        self._tune_grid()
+        self._install_hover_tracking()
+
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
+        """Track hovered day cells for soft-blue hover fill."""
+        view = self._grid_view
+        if view is not None and watched is view.viewport():
+            event_type = event.type()
+            if event_type == QEvent.Type.MouseMove and isinstance(event, QMouseEvent):
+                self._set_hover_date(self._date_at_pos(event))
+            elif event_type == QEvent.Type.Leave:
+                self._set_hover_date(None)
+        return super().eventFilter(watched, event)
+
+    def minimumSizeHint(self) -> QSize:  # noqa: N802
+        """Keep the QDateEdit popup wide enough for seven day columns."""
+        return QSize(_POPUP_WIDTH, self._popup_height())
+
+    def paintCell(self, painter: QPainter, rect: QRect, date: QDate) -> None:  # noqa: N802
+        """Draw Ant-like day cells: hover, outline selection, soft today, muted outsiders."""
+        painter.save()
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
+        painter.fillRect(rect, QColor("#ffffff"))
+
+        selected = date == self.selectedDate()
+        today = date == QDate.currentDate()
+        hovered = self._hover_date is not None and date == self._hover_date
+        in_month = date.month() == self.monthShown() and date.year() == self.yearShown()
+        cell = rect.adjusted(3, 3, -3, -3)
+
+        if selected:
+            painter.setPen(QPen(QColor(SELECTION_BORDER), 1.5))
+            painter.setBrush(QColor("#ffffff"))
+            painter.drawRoundedRect(cell, 4, 4)
+            text_color = QColor(SELECTION_TEXT)
+        elif today:
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(QColor(SELECTION_BG))
+            painter.drawRoundedRect(cell, 4, 4)
+            text_color = QColor(SELECTION_BORDER)
+        elif hovered:
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(QColor(SELECTION_HOVER))
+            painter.drawRoundedRect(cell, 4, 4)
+            text_color = QColor(SELECTION_TEXT if in_month else _DAY_OUTSIDE)
+        elif in_month:
+            text_color = QColor(SELECTION_TEXT)
+        else:
+            text_color = QColor(_DAY_OUTSIDE)
+
+        painter.setPen(text_color)
+        painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, str(date.day()))
+        painter.restore()
+
+    def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
+        """Re-apply equal column metrics when the popup opens."""
+        super().showEvent(event)
+        self._tune_grid()
+        self._install_hover_tracking()
+        parent = self.parentWidget()
+        if parent is not None and parent.objectName() == "qt_datetimedit_calendar":
+            parent.setFixedSize(self.minimumSizeHint())
+        self.setFixedSize(self.minimumSizeHint())
+
+    def sizeHint(self) -> QSize:  # noqa: N802
+        """Return the fixed Ant-like popup size."""
+        return QSize(_POPUP_WIDTH, self._popup_height())
+
+    def _build_weekdays(self) -> QWidget:
+        row = QWidget(self)
+        row.setObjectName("hskCalendarWeekdays")
+        row.setFixedHeight(_WEEKDAY_ROW_HEIGHT)
+        layout = QHBoxLayout(row)
+        layout.setContentsMargins(0, 4, 0, 2)
+        layout.setSpacing(0)
+        first = Qt.DayOfWeek.Sunday.value
+        for offset in range(_WEEK_COLUMNS):
+            day = ((first - 1 + offset) % _WEEK_COLUMNS) + 1
+            label = QLabel(_UI_LOCALE.dayName(day, QLocale.FormatType.ShortFormat))
+            label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            label.setStyleSheet(f"color: {MUTED_TEXT}; background: transparent; border: none;")
+            layout.addWidget(label, stretch=1)
+        return row
+
+    def _date_at(self, row: int, column: int) -> QDate | None:
+        if row < 0 or column < 0 or row >= _WEEK_ROWS or column >= _WEEK_COLUMNS:
+            return None
+        first = QDate(self.yearShown(), self.monthShown(), 1)
+        start_dow = self.firstDayOfWeek().value
+        offset = (first.dayOfWeek() - start_dow) % _WEEK_COLUMNS
+        return first.addDays(row * _WEEK_COLUMNS + column - offset)
+
+    def _date_at_pos(self, event: QMouseEvent) -> QDate | None:
+        view = self._grid_view
+        if view is None:
+            return None
+        index = view.indexAt(event.position().toPoint())
+        if not index.isValid():
+            return None
+        return self._date_at(index.row(), index.column())
+
+    def _detach_default_nav_bar(self) -> None:
+        nav = self.findChild(QWidget, "qt_calendar_navigationbar")
+        if nav is None:
+            return
+        root = self.layout()
+        if isinstance(root, QVBoxLayout):
+            root.removeWidget(nav)
+        nav.hide()
+        nav.setParent(self)
+        for spin in nav.findChildren(QSpinBox):
+            spin.setEnabled(False)
+
+    def _go_today(self) -> None:
+        today = QDate.currentDate()
+        self.setCurrentPage(today.year(), today.month())
+        self.setSelectedDate(today)
+        self.activated.emit(today)
+
+    def _install_hover_tracking(self) -> None:
+        view = self.findChild(QTableView, "qt_calendar_calendarview")
+        if view is None:
+            return
+        if self._grid_view is not None and self._grid_view is not view:
+            old_viewport = self._grid_view.viewport()
+            if old_viewport is not None:
+                old_viewport.removeEventFilter(self)
+        self._grid_view = view
+        view.setMouseTracking(True)
+        viewport = view.viewport()
+        if viewport is not None:
+            viewport.setMouseTracking(True)
+            viewport.installEventFilter(self)
+
+    def _nav_button(self, icon_name: str, tooltip: str) -> QToolButton:
+        button = QToolButton(self)
+        button.setCursor(Qt.CursorShape.PointingHandCursor)
+        button.setAutoRaise(True)
+        button.setToolTip(tooltip)
+        button.setIcon(create_lucide_icon(icon_name, _NAV_ICON_SIZE, color=MUTED_TEXT))
+        button.setIconSize(QSize(_NAV_ICON_SIZE, _NAV_ICON_SIZE))
+        button.setFixedSize(28, 28)
+        button.setStyleSheet(
+            "QToolButton { border: none; border-radius: 4px; background: transparent; padding: 4px; }"
+            f"QToolButton:hover {{ background: {SELECTION_HOVER}; }}"
+        )
+        return button
+
+    def _on_page_changed(self, *_args: object) -> None:
+        self._hover_date = None
+        self._refresh_title()
+        self._tune_grid()
+
+    def _on_selection_changed(self) -> None:
+        self._tune_grid()
+        view = self._grid_view
+        if view is not None:
+            view.viewport().update()
+
+    def _popup_height(self) -> int:
+        # header + separators + weekday row + 6 week rows + Today footer
+        return 44 + 1 + _WEEKDAY_ROW_HEIGHT + (_CELL_SIZE * _WEEK_ROWS) + 1 + 36
+
+    def _refresh_title(self, *_args: object) -> None:
+        page = QDate(self.yearShown(), self.monthShown(), 1)
+        self._title.setText(_UI_LOCALE.toString(page, "MMM yyyy"))
+
+    def _set_hover_date(self, date: QDate | None) -> None:
+        if date == self._hover_date:
+            return
+        self._hover_date = date
+        view = self._grid_view
+        if view is None:
+            return
+        viewport = view.viewport()
+        if viewport is not None:
+            # Full viewport update is cheap for a 7x6 grid and avoids stale cells.
+            viewport.update()
+
+    def _shift_page(self, *, months: int = 0, years: int = 0) -> None:
+        page = QDate(self.yearShown(), self.monthShown(), 1).addMonths(months).addYears(years)
+        self.setCurrentPage(page.year(), page.month())
+
+    def _tune_grid(self) -> None:
+        view = self.findChild(QTableView, "qt_calendar_calendarview")
+        if view is None:
+            return
+        self._grid_view = view
+        view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        header = view.horizontalHeader()
+        vheader = view.verticalHeader()
+        if header is not None:
+            header.hide()
+            header.setFixedHeight(0)
+        if vheader is not None:
+            vheader.setMinimumSectionSize(_CELL_SIZE)
+            vheader.setDefaultSectionSize(_CELL_SIZE)
+            vheader.setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
+            for row in range(_WEEK_ROWS):
+                vheader.resizeSection(row, _CELL_SIZE)
+        # Stretch columns across the content width (popup margins are on the outer layout).
+        h_header = view.horizontalHeader()
+        if h_header is not None:
+            h_header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+            h_header.setMinimumSectionSize(_CELL_SIZE)
+            h_header.setDefaultSectionSize(_CELL_SIZE)
+        view.setFixedHeight(_CELL_SIZE * _WEEK_ROWS)
+```
+
+</details>
+
+### ⚙️ Method `__init__`
+
+```python
+def __init__(self, parent: QWidget | None = None) -> None
+```
+
+Build restyled navigation, native day grid, and Today footer.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self._hover_date: QDate | None = None
+        self._grid_view: QTableView | None = None
+
+        self.setVerticalHeaderFormat(QCalendarWidget.VerticalHeaderFormat.NoVerticalHeader)
+        # Own weekday labels — QHeaderView collapses/overlaps after selection on Windows.
+        self.setHorizontalHeaderFormat(QCalendarWidget.HorizontalHeaderFormat.NoHorizontalHeader)
+        self.setGridVisible(False)
+        self.setFirstDayOfWeek(Qt.DayOfWeek.Sunday)
+        self.setLocale(_UI_LOCALE)
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
+        fusion = QStyleFactory.create("Fusion")
+        if fusion is not None:
+            self.setStyle(fusion)
+
+        self.setNavigationBarVisible(False)
+        self._detach_default_nav_bar()
+
+        self._title = QLabel(self)
+        title_font = QFont(self._title.font())
+        title_font.setBold(True)
+        self._title.setFont(title_font)
+        self._title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._title.setStyleSheet(f"color: {SELECTION_TEXT}; background: transparent;")
+
+        self._prev_year = self._nav_button("chevrons-left", "Previous year")
+        self._prev_month = self._nav_button("chevron-left", "Previous month")
+        self._next_month = self._nav_button("chevron-right", "Next month")
+        self._next_year = self._nav_button("chevrons-right", "Next year")
+        self._prev_year.clicked.connect(lambda: self._shift_page(years=-1))
+        self._prev_month.clicked.connect(lambda: self._shift_page(months=-1))
+        self._next_month.clicked.connect(lambda: self._shift_page(months=1))
+        self._next_year.clicked.connect(lambda: self._shift_page(years=1))
+
+        header = QWidget(self)
+        header.setObjectName("hskCalendarHeader")
+        header_layout = QHBoxLayout(header)
+        header_layout.setContentsMargins(8, 8, 8, 8)
+        header_layout.setSpacing(2)
+        header_layout.addWidget(self._prev_year)
+        header_layout.addWidget(self._prev_month)
+        header_layout.addWidget(self._title, stretch=1)
+        header_layout.addWidget(self._next_month)
+        header_layout.addWidget(self._next_year)
+
+        header_line = _hairline(self)
+        self._weekdays = self._build_weekdays()
+        footer_line = _hairline(self)
+
+        self._today_button = QPushButton("Today", self)
+        self._today_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._today_button.setFlat(True)
+        self._today_button.setStyleSheet(
+            f"QPushButton {{ color: {SELECTION_BORDER}; border: none; background: transparent;"
+            " padding: 8px 12px; font-weight: 500; }"
+            f"QPushButton:hover {{ color: {SELECTION_TEXT}; background: {SELECTION_HOVER}; }}"
+        )
+        self._today_button.clicked.connect(self._go_today)
+
+        footer = QWidget(self)
+        footer.setObjectName("hskCalendarFooter")
+        footer_layout = QHBoxLayout(footer)
+        footer_layout.setContentsMargins(0, 0, 0, 0)
+        footer_layout.addStretch(1)
+        footer_layout.addWidget(self._today_button)
+        footer_layout.addStretch(1)
+
+        root = self.layout()
+        if isinstance(root, QVBoxLayout):
+            root.setContentsMargins(8, 0, 8, 0)
+            root.setSpacing(0)
+            root.insertWidget(0, header)
+            root.insertWidget(1, header_line)
+            root.insertWidget(2, self._weekdays)
+            root.addWidget(footer_line)
+            root.addWidget(footer)
+
+        self.setStyleSheet(
+            f"""
+            SoftCalendarWidget {{
+                background: #ffffff;
+                border: 1px solid {_PANEL_BORDER};
+                border-radius: 8px;
+            }}
+            SoftCalendarWidget QWidget#hskCalendarHeader,
+            SoftCalendarWidget QWidget#hskCalendarFooter,
+            SoftCalendarWidget QWidget#hskCalendarWeekdays {{
+                background: #ffffff;
+                border: none;
+            }}
+            SoftCalendarWidget QAbstractItemView {{
+                background: #ffffff;
+                outline: none;
+                border: none;
+                selection-background-color: transparent;
+                selection-color: {SELECTION_TEXT};
+            }}
+            """.strip()
+        )
+
+        self.setMinimumSize(_POPUP_WIDTH, self._popup_height())
+        self.currentPageChanged.connect(self._on_page_changed)
+        self.selectionChanged.connect(self._on_selection_changed)
+        self._refresh_title()
+        self._tune_grid()
+        self._install_hover_tracking()
+```
+
+</details>
+
+### ⚙️ Method `eventFilter`
+
+```python
+def eventFilter(self, watched: QObject, event: QEvent) -> bool
+```
+
+Track hovered day cells for soft-blue hover fill.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
+        view = self._grid_view
+        if view is not None and watched is view.viewport():
+            event_type = event.type()
+            if event_type == QEvent.Type.MouseMove and isinstance(event, QMouseEvent):
+                self._set_hover_date(self._date_at_pos(event))
+            elif event_type == QEvent.Type.Leave:
+                self._set_hover_date(None)
+        return super().eventFilter(watched, event)
+```
+
+</details>
+
+### ⚙️ Method `minimumSizeHint`
+
+```python
+def minimumSizeHint(self) -> QSize
+```
+
+Keep the QDateEdit popup wide enough for seven day columns.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def minimumSizeHint(self) -> QSize:  # noqa: N802
+        return QSize(_POPUP_WIDTH, self._popup_height())
+```
+
+</details>
+
+### ⚙️ Method `paintCell`
+
+```python
+def paintCell(self, painter: QPainter, rect: QRect, date: QDate) -> None
+```
+
+Draw Ant-like day cells: hover, outline selection, soft today, muted outsiders.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def paintCell(self, painter: QPainter, rect: QRect, date: QDate) -> None:  # noqa: N802
+        painter.save()
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
+        painter.fillRect(rect, QColor("#ffffff"))
+
+        selected = date == self.selectedDate()
+        today = date == QDate.currentDate()
+        hovered = self._hover_date is not None and date == self._hover_date
+        in_month = date.month() == self.monthShown() and date.year() == self.yearShown()
+        cell = rect.adjusted(3, 3, -3, -3)
+
+        if selected:
+            painter.setPen(QPen(QColor(SELECTION_BORDER), 1.5))
+            painter.setBrush(QColor("#ffffff"))
+            painter.drawRoundedRect(cell, 4, 4)
+            text_color = QColor(SELECTION_TEXT)
+        elif today:
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(QColor(SELECTION_BG))
+            painter.drawRoundedRect(cell, 4, 4)
+            text_color = QColor(SELECTION_BORDER)
+        elif hovered:
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(QColor(SELECTION_HOVER))
+            painter.drawRoundedRect(cell, 4, 4)
+            text_color = QColor(SELECTION_TEXT if in_month else _DAY_OUTSIDE)
+        elif in_month:
+            text_color = QColor(SELECTION_TEXT)
+        else:
+            text_color = QColor(_DAY_OUTSIDE)
+
+        painter.setPen(text_color)
+        painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, str(date.day()))
+        painter.restore()
+```
+
+</details>
+
+### ⚙️ Method `showEvent`
+
+```python
+def showEvent(self, event: QShowEvent) -> None
+```
+
+Re-apply equal column metrics when the popup opens.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
+        super().showEvent(event)
+        self._tune_grid()
+        self._install_hover_tracking()
+        parent = self.parentWidget()
+        if parent is not None and parent.objectName() == "qt_datetimedit_calendar":
+            parent.setFixedSize(self.minimumSizeHint())
+        self.setFixedSize(self.minimumSizeHint())
+```
+
+</details>
+
+### ⚙️ Method `sizeHint`
+
+```python
+def sizeHint(self) -> QSize
+```
+
+Return the fixed Ant-like popup size.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def sizeHint(self) -> QSize:  # noqa: N802
+        return QSize(_POPUP_WIDTH, self._popup_height())
+```
+
+</details>
+
+## 🔧 Function `apply_date_calendar_popup`
+
+```python
+def apply_date_calendar_popup(date_edit: QDateEdit) -> None
+```
+
+Replace the popup calendar on `date_edit` with the soft Ant-like widget.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def apply_date_calendar_popup(date_edit: QDateEdit) -> None:
+    if date_edit.property(_PROP_APPLIED) is True:
+        return
+    if not date_edit.calendarPopup():
+        return
+    calendar = SoftCalendarWidget(date_edit)
+    date_edit.setCalendarWidget(calendar)
+    date_edit.setProperty(_PROP_APPLIED, True)  # noqa: FBT003
+    popup = calendar.parentWidget()
+    if popup is not None and popup.objectName() == "qt_datetimedit_calendar":
+        popup.setMinimumSize(calendar.minimumSizeHint())
+```
+
+</details>
+
+## 🔧 Function `install_date_calendar_popups`
+
+```python
+def install_date_calendar_popups(app: QApplication) -> None
+```
+
+Style every `QDateEdit` calendar popup that uses `setCalendarPopup(True)`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def install_date_calendar_popups(app: QApplication) -> None:
+    if app.property("_hskDateCalendarFilter") is not None:
+        return
+    filtr = _DateEditCalendarFilter(app)
+    app.installEventFilter(filtr)
+    app.setProperty("_hskDateCalendarFilter", filtr)
+    for widget in app.allWidgets():
+        if isinstance(widget, QDateEdit):
+            apply_date_calendar_popup(widget)
+```
+
+</details>

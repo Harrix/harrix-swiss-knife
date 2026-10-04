@@ -68,6 +68,7 @@ class DateDelegate(QStyledItemDelegate):
         editor.setDisplayFormat("yyyy-MM-dd")
 
         apply_white_editor_background(editor, "QDateEdit")
+        apply_date_calendar_popup(editor)
 
         return editor
 
@@ -166,6 +167,7 @@ def createEditor(  # noqa: N802
         editor.setDisplayFormat("yyyy-MM-dd")
 
         apply_white_editor_background(editor, "QDateEdit")
+        apply_date_calendar_popup(editor)
 
         return editor
 ```

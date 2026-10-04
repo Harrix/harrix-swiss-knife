@@ -278,7 +278,8 @@ def lucide_checkbox_pixmap(
         color = _DISABLED_COLOR if not enabled else LUCIDE_COLOR_DARK
     elif checked:
         name = "square-check"
-        color = _DISABLED_COLOR if not enabled else LUCIDE_COLOR_GREEN
+        # Brand blue (same as primary buttons), not success green
+        color = _DISABLED_COLOR if not enabled else LUCIDE_COLOR_BLUE
     else:
         name = "square"
         color = _DISABLED_COLOR if not enabled else LUCIDE_COLOR_DARK
@@ -325,7 +326,8 @@ def lucide_radio_pixmap(
 ) -> QPixmap:
     if checked:
         name = "circle-dot"
-        color = _DISABLED_COLOR if not enabled else LUCIDE_COLOR_GREEN
+        # Brand blue (same as primary buttons), not success green
+        color = _DISABLED_COLOR if not enabled else LUCIDE_COLOR_BLUE
     else:
         name = "circle"
         color = _DISABLED_COLOR if not enabled else LUCIDE_COLOR_DARK

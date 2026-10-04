@@ -7,6 +7,7 @@ from PySide6.QtCore import QAbstractItemModel, QDate, QModelIndex, QObject, QPer
 from PySide6.QtWidgets import QDateEdit, QStyledItemDelegate, QStyleOptionViewItem, QWidget
 
 from harrix_swiss_knife.apps.common.ui_helpers import apply_white_editor_background
+from harrix_swiss_knife.qt_date_calendar import apply_date_calendar_popup
 
 
 class DateDelegate(QStyledItemDelegate):
@@ -47,6 +48,7 @@ class DateDelegate(QStyledItemDelegate):
         editor.setDisplayFormat("yyyy-MM-dd")
 
         apply_white_editor_background(editor, "QDateEdit")
+        apply_date_calendar_popup(editor)
 
         return editor
 

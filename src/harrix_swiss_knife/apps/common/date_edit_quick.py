@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 from PySide6.QtCore import QDate, QPoint, QSize, Qt
 from PySide6.QtWidgets import QDateEdit, QHBoxLayout, QLabel, QMenu, QVBoxLayout, QWidget
 
+from harrix_swiss_knife.qt_date_calendar import apply_date_calendar_popup
 from harrix_swiss_knife.qt_lucide_icon import add_lucide_action, apply_leading_chrome_button_icon
 from harrix_swiss_knife.qt_split_menu_button import SplitMenuButton
 
@@ -102,6 +103,7 @@ def attach_date_edit_quick_controls(
     date_edit.customContextMenuRequested.connect(show_context_menu)
     date_edit.dateChanged.connect(lambda *_args: refresh_button_text())
     refresh_button_text()
+    apply_date_calendar_popup(date_edit)
 
     _insert_widget_after(date_edit, button)
     return button
