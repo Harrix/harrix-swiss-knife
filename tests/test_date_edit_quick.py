@@ -1,4 +1,4 @@
-"""Tests for date-edit quick button labels and split menu button."""
+"""Tests for date-edit calendar wiring and split menu button."""
 
 from __future__ import annotations
 
@@ -8,11 +8,10 @@ from PySide6.QtWidgets import QApplication, QDateEdit, QHBoxLayout, QLabel, QMen
 
 from harrix_swiss_knife.apps.common.date_edit_quick import (
     attach_date_edit_quick_controls,
-    date_quick_button_label,
-    date_quick_primary_action,
     match_control_heights,
     match_layout_control_heights,
 )
+from harrix_swiss_knife.qt_date_calendar import SoftCalendarWidget
 from harrix_swiss_knife.qt_split_menu_button import SplitMenuButton, make_lucide_split_menu_button
 
 
@@ -25,51 +24,6 @@ def qapp() -> QApplication:
         msg = "QApplication.instance() returned a non-QApplication object."
         raise TypeError(msg)
     return app
-
-
-def test_date_quick_button_label_today_yesterday_and_other() -> None:
-    today = QDate(2026, 8, 16)
-    assert date_quick_button_label(today, today=today) == "📅 Today"
-    assert date_quick_button_label(today.addDays(-1), today=today) == "📅 Yesterday"
-    assert date_quick_button_label(today.addDays(-2), today=today) == "➕ Add + 1"  # noqa: RUF001
-    assert date_quick_button_label(today.addDays(1), today=today) == "➕ Add + 1"  # noqa: RUF001
-
-
-def test_date_quick_primary_action_matches_label() -> None:
-    today = QDate(2026, 8, 16)
-    calls: list[str] = []
-
-    def set_today() -> None:
-        calls.append("today")
-
-    def set_yesterday() -> None:
-        calls.append("yesterday")
-
-    def add_one_day() -> None:
-        calls.append("add")
-
-    date_quick_primary_action(
-        today,
-        set_today=set_today,
-        set_yesterday=set_yesterday,
-        add_one_day=add_one_day,
-        today=today,
-    )()
-    date_quick_primary_action(
-        today.addDays(-1),
-        set_today=set_today,
-        set_yesterday=set_yesterday,
-        add_one_day=add_one_day,
-        today=today,
-    )()
-    date_quick_primary_action(
-        today.addDays(2),
-        set_today=set_today,
-        set_yesterday=set_yesterday,
-        add_one_day=add_one_day,
-        today=today,
-    )()
-    assert calls == ["today", "yesterday", "add"]
 
 
 def test_split_menu_button_main_click_does_not_require_menu(qapp: QApplication) -> None:
@@ -104,9 +58,7 @@ def test_make_lucide_split_menu_button_sets_icon(qapp: QApplication) -> None:
     button.close()
 
 
-def test_attach_date_edit_quick_controls_uses_split_and_matches_height(
-    qapp: QApplication,
-) -> None:
+def test_attach_date_edit_quick_controls_applies_calendar(qapp: QApplication) -> None:
     assert qapp is not None
     host = QWidget()
     layout = QHBoxLayout(host)
@@ -116,26 +68,14 @@ def test_attach_date_edit_quick_controls_uses_split_and_matches_height(
     date_edit.setDate(QDate.currentDate())
     layout.addWidget(date_edit)
 
-    button = attach_date_edit_quick_controls(date_edit, button_object_name="pushButton_food_date_quick")
+    attach_date_edit_quick_controls(date_edit)
     QApplication.processEvents()
 
-    assert isinstance(button, SplitMenuButton)
-    assert button.objectName() == "pushButton_food_date_quick"
-    assert button.menu() is not None
-    assert date_edit.minimumHeight() == button.minimumHeight()
-    assert date_edit.maximumHeight() == button.maximumHeight()
-    assert date_edit.height() == button.height() or date_edit.minimumHeight() == button.minimumHeight()
-
-    before = date_edit.date()
-    button.main_button.click()
-    QApplication.processEvents()
-    assert date_edit.date() == before  # today → primary is set_today
-
-    date_edit.setDate(before.addDays(-3))
-    QApplication.processEvents()
-    button.main_button.click()
-    QApplication.processEvents()
-    assert date_edit.date() == before.addDays(-2)
+    calendar = date_edit.calendarWidget()
+    assert isinstance(calendar, SoftCalendarWidget)
+    labels = {button.text() for button in calendar.findChildren(QPushButton)}
+    assert {"Yesterday", "Today", "+1 day", "-1 day"} <= labels
+    assert host.findChild(SplitMenuButton) is None
 
     host.close()
 

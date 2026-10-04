@@ -5421,8 +5421,7 @@ class MainWindow(
         QWidget.setTabOrder(self.lineEdit_description, self.doubleSpinBox_amount)
         QWidget.setTabOrder(self.doubleSpinBox_amount, self.comboBox_currency)
         QWidget.setTabOrder(self.comboBox_currency, self.dateEdit)
-        QWidget.setTabOrder(self.dateEdit, self.pushButton_date_quick)
-        QWidget.setTabOrder(self.pushButton_date_quick, self.pushButton_add)
+        QWidget.setTabOrder(self.dateEdit, self.pushButton_add)
         QWidget.setTabOrder(self.pushButton_add, self.lineEdit_tag)
         QWidget.setTabOrder(self.lineEdit_tag, self.listView_categories)
         QWidget.setTabOrder(self.listView_categories, self.lineEdit_filter_description)
@@ -5476,15 +5475,8 @@ class MainWindow(
         self._apply_exit_about_menu_emojis()
         self._setup_report_type_list()
 
-        # Date fields: attach quick preset/offset menu buttons (removed from .ui)
-        self.pushButton_date_quick = attach_date_edit_quick_controls(
-            self.dateEdit,
-            button_object_name="pushButton_date_quick",
-        )
-        self.pushButton_exchange_date_quick = attach_date_edit_quick_controls(
-            self.dateEdit_exchange,
-            button_object_name="pushButton_exchange_date_quick",
-        )
+        attach_date_edit_quick_controls(self.dateEdit)
+        attach_date_edit_quick_controls(self.dateEdit_exchange)
 
         # Set emoji for buttons
         self.pushButton_add.setText(f"➕ {self.pushButton_add.text()}")  # noqa: RUF001

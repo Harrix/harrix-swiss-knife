@@ -4333,11 +4333,7 @@ class MainWindow(
         self._setup_status_bar()
         self._setup_macros_analysis_ui()
 
-        # Date field: attach quick preset/offset menu button (removed from .ui)
-        self.pushButton_food_date_quick = attach_date_edit_quick_controls(
-            self.dateEdit_food,
-            button_object_name="pushButton_food_date_quick",
-        )
+        attach_date_edit_quick_controls(self.dateEdit_food)
 
         # Set emoji for buttons
         self.pushButton_food_add.setText(f"➕ {self.pushButton_food_add.text()}")  # noqa: RUF001
@@ -4440,8 +4436,7 @@ class MainWindow(
         QWidget.setTabOrder(self.doubleSpinBox_food_calories, self.checkBox_food_is_drink)
         QWidget.setTabOrder(self.checkBox_food_is_drink, self.pushButton_portion_calories)
         QWidget.setTabOrder(self.pushButton_portion_calories, self.dateEdit_food)
-        QWidget.setTabOrder(self.dateEdit_food, self.pushButton_food_date_quick)
-        QWidget.setTabOrder(self.pushButton_food_date_quick, self.pushButton_food_add)
+        QWidget.setTabOrder(self.dateEdit_food, self.pushButton_food_add)
         install_shrinkable_tab_scroll(self, self.tabWidget)
 
     def _show_all_food_items(self) -> None:

@@ -8290,11 +8290,7 @@ class MainWindow(
         self._apply_exit_about_menu_emojis()
         self._setup_seconds_count_inputs()
 
-        # Date field: attach quick preset/offset menu button (removed from .ui)
-        self.pushButton_date_quick = attach_date_edit_quick_controls(
-            self.dateEdit,
-            button_object_name="pushButton_date_quick",
-        )
+        attach_date_edit_quick_controls(self.dateEdit)
 
         # Set emoji for buttons
         self.pushButton_add.setText(f"➕  {self.pushButton_add.text()}")  # noqa: RUF001

@@ -34,7 +34,8 @@ def test_apply_date_calendar_popup_replaces_widget(qapp: QApplication) -> None: 
     calendar = date_edit.calendarWidget()
     assert isinstance(calendar, SoftCalendarWidget)
     assert calendar.findChild(QPushButton) is not None
-    assert "Today" in {button.text() for button in calendar.findChildren(QPushButton)}
+    labels = {button.text() for button in calendar.findChildren(QPushButton)}
+    assert {"Yesterday", "Today", "+1 day", "-1 day"} <= labels
     # Idempotent.
     apply_date_calendar_popup(date_edit)
     assert date_edit.calendarWidget() is calendar
@@ -50,6 +51,20 @@ def test_soft_calendar_today_and_month_title(qapp: QApplication) -> None:  # noq
     assert calendar.yearShown() == today.year()
     assert calendar.monthShown() == today.month()
     assert str(today.year()) == calendar._title_year.text()
+
+
+def test_soft_calendar_footer_presets(qapp: QApplication) -> None:  # noqa: ARG001
+    calendar = SoftCalendarWidget()
+    calendar.setSelectedDate(QDate(2026, 6, 15))
+    calendar.setCurrentPage(2026, 6)
+    calendar._go_yesterday()
+    yesterday = QDate.currentDate().addDays(-1)
+    assert calendar.selectedDate() == yesterday
+    calendar._go_plus_one_day()
+    assert calendar.selectedDate() == yesterday.addDays(1)
+    calendar._go_minus_one_day()
+    assert calendar.selectedDate() == yesterday
+    calendar.close()
 
 
 def test_soft_calendar_keeps_seven_equal_day_columns(qapp: QApplication) -> None:

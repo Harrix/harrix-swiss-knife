@@ -40,7 +40,7 @@ Month grid with Ant-like chrome around Qt native day table.
 class SoftCalendarWidget(QCalendarWidget):
 
     def __init__(self, parent: QWidget | None = None) -> None:
-        """Build restyled navigation, native day grid, and Today footer."""
+        """Build restyled navigation, native day grid, and preset footer."""
         super().__init__(parent)
         self._hover_date: QDate | None = None
         self._grid_view: QTableView | None = None
@@ -121,23 +121,20 @@ class SoftCalendarWidget(QCalendarWidget):
         self._year_panel = self._build_year_panel()
         footer_line = _hairline(self)
 
-        self._today_button = QPushButton("Today", self)
-        self._today_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._today_button.setFlat(True)
-        self._today_button.setStyleSheet(
-            f"QPushButton {{ color: {SELECTION_BORDER}; border: none; background: transparent;"
-            " padding: 8px 12px; font-weight: 500; }"
-            f"QPushButton:hover {{ color: {SELECTION_TEXT}; background: {SELECTION_HOVER}; }}"
-        )
-        self._today_button.clicked.connect(self._go_today)
+        self._yesterday_button = self._footer_preset_button("Yesterday", self._go_yesterday)
+        self._today_button = self._footer_preset_button("Today", self._go_today)
+        self._plus_day_button = self._footer_preset_button("+1 day", self._go_plus_one_day)
+        self._minus_day_button = self._footer_preset_button("-1 day", self._go_minus_one_day)
 
         footer = QWidget(self)
         footer.setObjectName("hskCalendarFooter")
         footer_layout = QHBoxLayout(footer)
-        footer_layout.setContentsMargins(0, 0, 0, 0)
-        footer_layout.addStretch(1)
-        footer_layout.addWidget(self._today_button)
-        footer_layout.addStretch(1)
+        footer_layout.setContentsMargins(4, 0, 4, 0)
+        footer_layout.setSpacing(0)
+        footer_layout.addWidget(self._yesterday_button, stretch=1)
+        footer_layout.addWidget(self._today_button, stretch=1)
+        footer_layout.addWidget(self._plus_day_button, stretch=1)
+        footer_layout.addWidget(self._minus_day_button, stretch=1)
 
         root = self.layout()
         if isinstance(root, QVBoxLayout):
@@ -257,6 +254,12 @@ class SoftCalendarWidget(QCalendarWidget):
         """Return the fixed Ant-like popup size."""
         return QSize(_POPUP_WIDTH, self._popup_height())
 
+    def _apply_preset_date(self, date: QDate) -> None:
+        self.setCurrentPage(date.year(), date.month())
+        self.setSelectedDate(date)
+        self._show_day_panel()
+        self.activated.emit(date)
+
     def _build_choice_grid(self, object_name: str, on_clicked: Callable[[], None]) -> tuple[QWidget, list[QPushButton]]:
         panel = QWidget(self)
         panel.setObjectName(object_name)
@@ -333,12 +336,32 @@ class SoftCalendarWidget(QCalendarWidget):
         for spin in nav.findChildren(QSpinBox):
             spin.setEnabled(False)
 
+    def _footer_preset_button(self, text: str, on_clicked: Callable[[], None]) -> QPushButton:
+        button = QPushButton(text, self)
+        button.setCursor(Qt.CursorShape.PointingHandCursor)
+        button.setFlat(True)
+        button.setStyleSheet(
+            f"QPushButton {{ color: {SELECTION_BORDER}; border: none; background: transparent;"
+            " padding: 6px 2px; font-weight: 500; font-size: 12px; }"
+            f"QPushButton:hover {{ color: {SELECTION_TEXT}; background: {SELECTION_HOVER}; }}"
+        )
+        button.clicked.connect(on_clicked)
+        return button
+
+    def _go_minus_one_day(self) -> None:
+        self._go_offset(-1)
+
+    def _go_offset(self, days: int) -> None:
+        self._apply_preset_date(self.selectedDate().addDays(days))
+
+    def _go_plus_one_day(self) -> None:
+        self._go_offset(1)
+
     def _go_today(self) -> None:
-        today = QDate.currentDate()
-        self.setCurrentPage(today.year(), today.month())
-        self.setSelectedDate(today)
-        self._show_day_panel()
-        self.activated.emit(today)
+        self._apply_preset_date(QDate.currentDate())
+
+    def _go_yesterday(self) -> None:
+        self._apply_preset_date(QDate.currentDate().addDays(-1))
 
     def _install_hover_tracking(self) -> None:
         view = self.findChild(QTableView, "qt_calendar_calendarview")
@@ -429,7 +452,7 @@ class SoftCalendarWidget(QCalendarWidget):
         self._show_month_pick_panel()
 
     def _popup_height(self) -> int:
-        # header + separators + weekday row + 6 week rows + Today footer
+        # header + separators + weekday row + 6 week rows + preset footer
         return 44 + 1 + _WEEKDAY_ROW_HEIGHT + (_CELL_SIZE * _WEEK_ROWS) + 1 + 36
 
     def _rebuild_month_cells(self) -> None:
@@ -583,7 +606,7 @@ class SoftCalendarWidget(QCalendarWidget):
 def __init__(self, parent: QWidget | None = None) -> None
 ```
 
-Build restyled navigation, native day grid, and Today footer.
+Build restyled navigation, native day grid, and preset footer.
 
 <details>
 <summary>Code:</summary>
@@ -670,23 +693,20 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self._year_panel = self._build_year_panel()
         footer_line = _hairline(self)
 
-        self._today_button = QPushButton("Today", self)
-        self._today_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._today_button.setFlat(True)
-        self._today_button.setStyleSheet(
-            f"QPushButton {{ color: {SELECTION_BORDER}; border: none; background: transparent;"
-            " padding: 8px 12px; font-weight: 500; }"
-            f"QPushButton:hover {{ color: {SELECTION_TEXT}; background: {SELECTION_HOVER}; }}"
-        )
-        self._today_button.clicked.connect(self._go_today)
+        self._yesterday_button = self._footer_preset_button("Yesterday", self._go_yesterday)
+        self._today_button = self._footer_preset_button("Today", self._go_today)
+        self._plus_day_button = self._footer_preset_button("+1 day", self._go_plus_one_day)
+        self._minus_day_button = self._footer_preset_button("-1 day", self._go_minus_one_day)
 
         footer = QWidget(self)
         footer.setObjectName("hskCalendarFooter")
         footer_layout = QHBoxLayout(footer)
-        footer_layout.setContentsMargins(0, 0, 0, 0)
-        footer_layout.addStretch(1)
-        footer_layout.addWidget(self._today_button)
-        footer_layout.addStretch(1)
+        footer_layout.setContentsMargins(4, 0, 4, 0)
+        footer_layout.setSpacing(0)
+        footer_layout.addWidget(self._yesterday_button, stretch=1)
+        footer_layout.addWidget(self._today_button, stretch=1)
+        footer_layout.addWidget(self._plus_day_button, stretch=1)
+        footer_layout.addWidget(self._minus_day_button, stretch=1)
 
         root = self.layout()
         if isinstance(root, QVBoxLayout):
