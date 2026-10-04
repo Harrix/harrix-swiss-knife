@@ -42,6 +42,7 @@ from harrix_swiss_knife.apps.common.audio_recording import (
     format_recording_duration,
     load_saved_microphone_id,
 )
+from harrix_swiss_knife.apps.common.ui_chrome import button_primary_qss
 from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import install_url_drop_handlers
 from harrix_swiss_knife.integrations.bothub.speech import audio_format_from_suffix
 from harrix_swiss_knife.paths import get_project_root
@@ -51,15 +52,7 @@ from harrix_swiss_knife.qt_lucide_icon import (
     make_lucide_push_button,
 )
 
-RECOGNIZE_BUTTON_STYLE = """QPushButton {
-    background-color: #C1ECDD;
-}
-QPushButton:hover {
-    background-color: #D1F5E8;
-}
-QPushButton:pressed {
-    background-color: #A8E0C7;
-}"""
+RECOGNIZE_BUTTON_STYLE = button_primary_qss()
 
 _AUDIO_FILTER = "Audio files (*.wav *.mp3 *.m4a *.ogg *.webm)"
 

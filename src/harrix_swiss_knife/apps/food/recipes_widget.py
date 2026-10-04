@@ -33,7 +33,12 @@ from PySide6.QtWidgets import (
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.table_context_menu import add_delete_action
 from harrix_swiss_knife.apps.common.text_case import capitalize_first_letter
-from harrix_swiss_knife.apps.common.ui_chrome import list_view_panel_qss
+from harrix_swiss_knife.apps.common.ui_chrome import (
+    SELECTION_BORDER,
+    button_primary_qss,
+    list_view_panel_qss,
+    soft_field_qss,
+)
 from harrix_swiss_knife.apps.food.database_manager import merge_food_autocomplete_entries
 from harrix_swiss_knife.apps.food.delegates import IsDrinkDelegate, is_drink_to_model, parse_is_drink_cell
 from harrix_swiss_knife.apps.food.food_log_calories import calculate_food_log_calories
@@ -65,22 +70,10 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-_SPINBOX_STYLE = "QSpinBox { background-color: #e3f2fd; }"
-_DOUBLE_SPINBOX_STYLE = "QDoubleSpinBox { background-color: #e3f2fd; }"
-_FOOD_BUTTON_STYLE = """
-QPushButton {
-    background-color: #e3f2fd;
-    border: 1px solid #2196F3;
-    border-radius: 4px;
-}
-QPushButton:hover {
-    background-color: #bbdefb;
-}
-QPushButton:pressed {
-    background-color: #90caf9;
-}
-"""
-_LIST_STYLE = with_flat_scrollbars(list_view_panel_qss(border_color="#2196F3"))
+_SPINBOX_STYLE = soft_field_qss("QSpinBox")
+_DOUBLE_SPINBOX_STYLE = soft_field_qss("QDoubleSpinBox")
+_FOOD_BUTTON_STYLE = button_primary_qss()
+_LIST_STYLE = with_flat_scrollbars(list_view_panel_qss(border_color=SELECTION_BORDER))
 _CONTROLS_MIN_WIDTH = 350
 _COL_NAME = 0
 _COL_WEIGHT = 1

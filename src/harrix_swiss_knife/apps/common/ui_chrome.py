@@ -1,7 +1,7 @@
-"""Shared selection and list chrome for tracker apps and overlays.
+"""Shared selection, buttons, and list chrome for tracker apps and overlays.
 
-Soft-blue tokens match Icons tiles/chips and Harrix-HTML-Template brand
-(`$h-primary` / `$h-soft-bg` / `$h-soft-hover` / `$h-brand-ink`).
+Soft-blue and neutrals match Harrix-HTML-Template (`$h-*` in `_variables.scss`).
+See `.cursor/design-tokens.md` for the cross-repo table.
 
 """
 
@@ -10,7 +10,7 @@ from __future__ import annotations
 from PySide6.QtGui import QColor, QPalette
 from PySide6.QtWidgets import QAbstractItemView, QListView, QListWidget, QWidget
 
-# Soft blue selection (matches Icons tiles / chips; site `$h-soft-*`).
+# Soft blue selection (site `$h-soft-*` / `$h-primary`).
 SELECTION_BG = "#e8f4fc"
 SELECTION_BORDER = "#2e86b7"
 SELECTION_HOVER = "#f3f8fb"
@@ -19,6 +19,27 @@ SELECTION_TEXT = "#1a1a1a"
 BRAND_INK = "#1a5f7a"
 # Secondary labels — avoid palette(mid), which is nearly white on some light themes.
 MUTED_TEXT = "#5c6370"
+SURFACE = "#ffffff"
+
+# Neutrals (site `$h-border` / `$h-hairline` / `$h-separator`).
+INPUT_BORDER = "#dbdbdb"
+HAIRLINE = "#f0f0f0"
+SEPARATOR = "#e0e0e0"
+INPUT_RADIUS = 6
+PANEL_RADIUS = 4
+
+# Solid primary / secondary / semantic buttons (site Bulma `.is-primary` / light).
+BUTTON_PRIMARY_BG = SELECTION_BORDER
+BUTTON_PRIMARY_BORDER = SELECTION_BORDER
+BUTTON_PRIMARY_FG = "#ffffff"
+BUTTON_PRIMARY_HOVER = BRAND_INK
+BUTTON_SECONDARY_BG = "#f5f5f5"
+BUTTON_SECONDARY_HOVER = "#ececec"
+BUTTON_SECONDARY_PRESSED = "#e2e2e2"
+BUTTON_SECONDARY_BORDER = INPUT_BORDER
+BUTTON_SECONDARY_FG = SELECTION_TEXT
+BUTTON_SUCCESS_BG = "#4caf50"
+BUTTON_DANGER_BG = "#cc584c"
 
 # Compact chip / filter control.
 CHIP_BG = "#f0f4f8"
@@ -109,6 +130,86 @@ def apply_soft_list_selection_chrome(root: QWidget) -> None:
         apply_soft_item_selection(view)
 
 
+def button_danger_qss(*, radius: int = PANEL_RADIUS) -> str:
+    """Return solid danger `QPushButton` stylesheet (site `$h-danger`)."""
+    return f"""
+QPushButton {{
+    background-color: {BUTTON_DANGER_BG};
+    color: {BUTTON_PRIMARY_FG};
+    border: 1px solid {BUTTON_DANGER_BG};
+    border-radius: {radius}px;
+}}
+QPushButton:hover {{
+    background-color: #b54d43;
+    border-color: #b54d43;
+}}
+QPushButton:pressed {{
+    background-color: #9e433a;
+    border-color: #9e433a;
+}}
+""".strip()
+
+
+def button_primary_qss(*, radius: int = PANEL_RADIUS) -> str:
+    """Return solid primary `QPushButton` stylesheet (site `.button.is-primary`)."""
+    return f"""
+QPushButton {{
+    background-color: {BUTTON_PRIMARY_BG};
+    color: {BUTTON_PRIMARY_FG};
+    border: 1px solid {BUTTON_PRIMARY_BORDER};
+    border-radius: {radius}px;
+}}
+QPushButton:hover {{
+    background-color: {BUTTON_PRIMARY_HOVER};
+    border-color: {BUTTON_PRIMARY_HOVER};
+}}
+QPushButton:pressed {{
+    background-color: {BUTTON_PRIMARY_HOVER};
+    border-color: {BUTTON_PRIMARY_HOVER};
+}}
+""".strip()
+
+
+def button_secondary_qss(*, radius: int = PANEL_RADIUS) -> str:
+    """Return light secondary `QPushButton` stylesheet (site `.button.is-light`)."""
+    return f"""
+QPushButton {{
+    background-color: {BUTTON_SECONDARY_BG};
+    color: {BUTTON_SECONDARY_FG};
+    border: 1px solid {BUTTON_SECONDARY_BORDER};
+    border-radius: {radius}px;
+}}
+QPushButton:hover {{
+    background-color: {BUTTON_SECONDARY_HOVER};
+    border-color: {BUTTON_SECONDARY_BORDER};
+}}
+QPushButton:pressed {{
+    background-color: {BUTTON_SECONDARY_PRESSED};
+    border-color: {BUTTON_SECONDARY_BORDER};
+}}
+""".strip()
+
+
+def button_success_qss(*, radius: int = PANEL_RADIUS) -> str:
+    """Return solid success `QPushButton` stylesheet (site `$h-success`)."""
+    return f"""
+QPushButton {{
+    background-color: {BUTTON_SUCCESS_BG};
+    color: {BUTTON_PRIMARY_FG};
+    border: 1px solid {BUTTON_SUCCESS_BG};
+    border-radius: {radius}px;
+}}
+QPushButton:hover {{
+    background-color: #43a047;
+    border-color: #43a047;
+}}
+QPushButton:pressed {{
+    background-color: #388e3c;
+    border-color: #388e3c;
+}}
+""".strip()
+
+
 def list_view_item_selection_qss(*, with_row_separators: bool = False) -> str:
     """Return QSS for `QListView::item` selected / hover states.
 
@@ -122,7 +223,7 @@ def list_view_item_selection_qss(*, with_row_separators: bool = False) -> str:
     - `str`: Stylesheet fragment for list items (does not set the outer list border).
 
     """
-    separator = "border-bottom: 1px solid #e0e0e0;" if with_row_separators else ""
+    separator = f"border-bottom: 1px solid {SEPARATOR};" if with_row_separators else ""
     return f"""
 QListView::item {{
     padding: 4px 6px;
@@ -156,8 +257,8 @@ def list_view_panel_qss(*, border_color: str, with_row_separators: bool = True) 
     return f"""
 QListView {{
     border: 2px solid {border_color};
-    border-radius: 4px;
-    background-color: white;
+    border-radius: {PANEL_RADIUS}px;
+    background-color: {SURFACE};
     outline: none;
 }}
 {list_view_item_selection_qss(with_row_separators=with_row_separators)}
@@ -185,5 +286,14 @@ QListWidget::item:selected:hover {{
     color: {SELECTION_TEXT};
     border: 1px solid {SELECTION_BORDER};
     border-radius: 6px;
+}}
+""".strip()
+
+
+def soft_field_qss(selector: str = "QWidget") -> str:
+    """Return soft-blue fill for highlighted form fields (spin boxes, etc.)."""
+    return f"""
+{selector} {{
+    background-color: {SELECTION_BG};
 }}
 """.strip()

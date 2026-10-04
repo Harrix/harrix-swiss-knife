@@ -158,10 +158,10 @@ class Ui_MainWindow(object):
 " stop:0 #ffffff, stop:0.46 #ffffff, stop:0.49 #f4f4f4, stop:0.51 #f4f4f4, stop:0.54 #ffffff, stop:1 #ffffff);\n"
 "}\n"
 "QSplitter::handle:vertical {\n"
-" height: 17px;\n"
+" height: 17px"
+                        ";\n"
 " background: qlineargradient(x1:0, y1:0, x2:0, y2:1,\n"
-" stop:0 #ffffff, st"
-                        "op:0.46 #ffffff, stop:0.49 #f4f4f4, stop:0.51 #f4f4f4, stop:0.54 #ffffff, stop:1 #ffffff);\n"
+" stop:0 #ffffff, stop:0.46 #ffffff, stop:0.49 #f4f4f4, stop:0.51 #f4f4f4, stop:0.54 #ffffff, stop:1 #ffffff);\n"
 "}\n"
 "QSplitter::handle:hover { background: #f4f4f4; }\n"
 "")
@@ -239,7 +239,7 @@ class Ui_MainWindow(object):
         font1.setBold(True)
         self.spinBox_count.setFont(font1)
         self.spinBox_count.setStyleSheet(u"QSpinBox {\n"
-"                                          background-color: lightgreen;\n"
+"                                          background-color: #e8f4fc;\n"
 "                                          }")
         self.spinBox_count.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
         self.spinBox_count.setMaximum(1000000)
@@ -279,15 +279,18 @@ class Ui_MainWindow(object):
         self.pushButton_add.setMinimumSize(QSize(0, 41))
         self.pushButton_add.setFont(font1)
         self.pushButton_add.setStyleSheet(u"QPushButton {\n"
-"                                      background-color: lightgreen;\n"
-"                                      border: 1px solid #4CAF50;\n"
+"                                      background-color: #2e86b7;\n"
+"                                      color: #ffffff;\n"
+"                                      border: 1px solid #2e86b7;\n"
 "                                      border-radius: 4px;\n"
 "                                      }\n"
 "                                      QPushButton:hover {\n"
-"                                      background-color: #90EE90;\n"
+"                                      background-color: #1a5f7a;\n"
+"                                      border-color: #1a5f7a;\n"
 "                                      }\n"
 "                                      QPushButton:pressed {\n"
-"                                      background-color: #7FDD7F;\n"
+"                                      background-color: #1a5f7a;\n"
+"                                      border-color: #1a5f7a;\n"
 "                                      }")
 
         self.verticalLayout_5.addWidget(self.pushButton_add)
@@ -296,15 +299,18 @@ class Ui_MainWindow(object):
         self.pushButton_add_by_voice.setObjectName(u"pushButton_add_by_voice")
         self.pushButton_add_by_voice.setMinimumSize(QSize(0, 41))
         self.pushButton_add_by_voice.setStyleSheet(u"QPushButton {\n"
-"                                      background-color: #e3f2fd;\n"
-"                                      border: 1px solid #2196F3;\n"
+"                                      background-color: #2e86b7;\n"
+"                                      color: #ffffff;\n"
+"                                      border: 1px solid #2e86b7;\n"
 "                                      border-radius: 4px;\n"
 "                                      }\n"
 "                                      QPushButton:hover {\n"
-"                                      background-color: #bbdefb;\n"
+"                                      background-color: #1a5f7a;\n"
+"                                      border-color: #1a5f7a;\n"
 "                                      }\n"
 "                                      QPushButton:pressed {\n"
-"                                      background-color: #90caf9;\n"
+"                                      background-color: #1a5f7a;\n"
+"                                      border-color: #1a5f7a;\n"
 "                                      }")
 
         self.verticalLayout_5.addWidget(self.pushButton_add_by_voice)
@@ -1272,10 +1278,10 @@ def setupUi(self, MainWindow):
 " stop:0 #ffffff, stop:0.46 #ffffff, stop:0.49 #f4f4f4, stop:0.51 #f4f4f4, stop:0.54 #ffffff, stop:1 #ffffff);\n"
 "}\n"
 "QSplitter::handle:vertical {\n"
-" height: 17px;\n"
+" height: 17px"
+                        ";\n"
 " background: qlineargradient(x1:0, y1:0, x2:0, y2:1,\n"
-" stop:0 #ffffff, st"
-                        "op:0.46 #ffffff, stop:0.49 #f4f4f4, stop:0.51 #f4f4f4, stop:0.54 #ffffff, stop:1 #ffffff);\n"
+" stop:0 #ffffff, stop:0.46 #ffffff, stop:0.49 #f4f4f4, stop:0.51 #f4f4f4, stop:0.54 #ffffff, stop:1 #ffffff);\n"
 "}\n"
 "QSplitter::handle:hover { background: #f4f4f4; }\n"
 "")
@@ -1353,7 +1359,7 @@ def setupUi(self, MainWindow):
         font1.setBold(True)
         self.spinBox_count.setFont(font1)
         self.spinBox_count.setStyleSheet(u"QSpinBox {\n"
-"                                          background-color: lightgreen;\n"
+"                                          background-color: #e8f4fc;\n"
 "                                          }")
         self.spinBox_count.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
         self.spinBox_count.setMaximum(1000000)
@@ -1393,15 +1399,18 @@ def setupUi(self, MainWindow):
         self.pushButton_add.setMinimumSize(QSize(0, 41))
         self.pushButton_add.setFont(font1)
         self.pushButton_add.setStyleSheet(u"QPushButton {\n"
-"                                      background-color: lightgreen;\n"
-"                                      border: 1px solid #4CAF50;\n"
+"                                      background-color: #2e86b7;\n"
+"                                      color: #ffffff;\n"
+"                                      border: 1px solid #2e86b7;\n"
 "                                      border-radius: 4px;\n"
 "                                      }\n"
 "                                      QPushButton:hover {\n"
-"                                      background-color: #90EE90;\n"
+"                                      background-color: #1a5f7a;\n"
+"                                      border-color: #1a5f7a;\n"
 "                                      }\n"
 "                                      QPushButton:pressed {\n"
-"                                      background-color: #7FDD7F;\n"
+"                                      background-color: #1a5f7a;\n"
+"                                      border-color: #1a5f7a;\n"
 "                                      }")
 
         self.verticalLayout_5.addWidget(self.pushButton_add)
@@ -1410,15 +1419,18 @@ def setupUi(self, MainWindow):
         self.pushButton_add_by_voice.setObjectName(u"pushButton_add_by_voice")
         self.pushButton_add_by_voice.setMinimumSize(QSize(0, 41))
         self.pushButton_add_by_voice.setStyleSheet(u"QPushButton {\n"
-"                                      background-color: #e3f2fd;\n"
-"                                      border: 1px solid #2196F3;\n"
+"                                      background-color: #2e86b7;\n"
+"                                      color: #ffffff;\n"
+"                                      border: 1px solid #2e86b7;\n"
 "                                      border-radius: 4px;\n"
 "                                      }\n"
 "                                      QPushButton:hover {\n"
-"                                      background-color: #bbdefb;\n"
+"                                      background-color: #1a5f7a;\n"
+"                                      border-color: #1a5f7a;\n"
 "                                      }\n"
 "                                      QPushButton:pressed {\n"
-"                                      background-color: #90caf9;\n"
+"                                      background-color: #1a5f7a;\n"
+"                                      border-color: #1a5f7a;\n"
 "                                      }")
 
         self.verticalLayout_5.addWidget(self.pushButton_add_by_voice)

@@ -157,7 +157,7 @@ QSplitter::handle:hover { background: #f4f4f4; }
                    </property>
                    <property name="styleSheet">
                     <string notr="true">QDoubleSpinBox {
-                                          background-color: #C1ECDD;
+                                          background-color: #e8f4fc;
                                           }</string>
                    </property>
                    <property name="alignment">
@@ -219,15 +219,18 @@ QSplitter::handle:hover { background: #f4f4f4; }
                  </property>
                  <property name="styleSheet">
                   <string notr="true">QPushButton {
-                                      background-color: #C1ECDD;
-                                      border: 1px solid #7DB68A;
+                                      background-color: #2e86b7;
+                                      color: #ffffff;
+                                      border: 1px solid #2e86b7;
                                       border-radius: 4px;
                                       }
                                       QPushButton:hover {
-                                      background-color: #D1F5E8;
+                                      background-color: #1a5f7a;
+                                      border-color: #1a5f7a;
                                       }
                                       QPushButton:pressed {
-                                      background-color: #A8E0C7;
+                                      background-color: #1a5f7a;
+                                      border-color: #1a5f7a;
                                       }</string>
                  </property>
                  <property name="text">
@@ -286,13 +289,18 @@ QSplitter::handle:hover { background: #f4f4f4; }
                  </property>
                  <property name="styleSheet">
                   <string notr="true">QPushButton {
-                                      background-color: #C1ECDD;
+                                      background-color: #2e86b7;
+                                      color: #ffffff;
+                                      border: 1px solid #2e86b7;
+                                      border-radius: 4px;
                                       }
                                       QPushButton:hover {
-                                      background-color: #D1F5E8;
+                                      background-color: #1a5f7a;
+                                      border-color: #1a5f7a;
                                       }
                                       QPushButton:pressed {
-                                      background-color: #A8E0C7;
+                                      background-color: #1a5f7a;
+                                      border-color: #1a5f7a;
                                       }</string>
                  </property>
                  <property name="text">
@@ -769,15 +777,18 @@ QSplitter::handle:hover { background: #f4f4f4; }
               </property>
               <property name="styleSheet">
                <string notr="true">QPushButton {
-                                      background-color: #C1ECDD;
-                                      border: 1px solid #7DB68A;
+                                      background-color: #2e86b7;
+                                      color: #ffffff;
+                                      border: 1px solid #2e86b7;
                                       border-radius: 4px;
                                       }
                                       QPushButton:hover {
-                                      background-color: #D1F5E8;
+                                      background-color: #1a5f7a;
+                                      border-color: #1a5f7a;
                                       }
                                       QPushButton:pressed {
-                                      background-color: #A8E0C7;
+                                      background-color: #1a5f7a;
+                                      border-color: #1a5f7a;
                                       }</string>
               </property>
               <property name="text">
@@ -1115,16 +1126,19 @@ QSplitter::handle:hover { background: #f4f4f4; }
                  </property>
                  <property name="styleSheet">
                   <string notr="true">QPushButton {
-                                    background-color: #C1ECDD;
-                                    border: 1px solid #7DB68A;
-                                    border-radius: 4px;
-                                    }
-                                    QPushButton:hover {
-                                    background-color: #D1F5E8;
-                                    }
-                                    QPushButton:pressed {
-                                    background-color: #A8E0C7;
-                                    }</string>
+                                      background-color: #2e86b7;
+                                      color: #ffffff;
+                                      border: 1px solid #2e86b7;
+                                      border-radius: 4px;
+                                      }
+                                      QPushButton:hover {
+                                      background-color: #1a5f7a;
+                                      border-color: #1a5f7a;
+                                      }
+                                      QPushButton:pressed {
+                                      background-color: #1a5f7a;
+                                      border-color: #1a5f7a;
+                                      }</string>
                  </property>
                  <property name="text">
                   <string>Add Exchange</string>
@@ -1259,16 +1273,19 @@ QSplitter::handle:hover { background: #f4f4f4; }
                     </property>
                     <property name="styleSheet">
                      <string notr="true">QPushButton {
-                                            background-color: #C1ECDD;
-                                            border: 1px solid #7DB68A;
-                                            border-radius: 4px;
-                                            }
-                                            QPushButton:hover {
-                                            background-color: #D1F5E8;
-                                            }
-                                            QPushButton:pressed {
-                                            background-color: #A8E0C7;
-                                            }</string>
+                                      background-color: #2e86b7;
+                                      color: #ffffff;
+                                      border: 1px solid #2e86b7;
+                                      border-radius: 4px;
+                                      }
+                                      QPushButton:hover {
+                                      background-color: #1a5f7a;
+                                      border-color: #1a5f7a;
+                                      }
+                                      QPushButton:pressed {
+                                      background-color: #1a5f7a;
+                                      border-color: #1a5f7a;
+                                      }</string>
                     </property>
                     <property name="text">
                      <string>Update</string>

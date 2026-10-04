@@ -41,6 +41,7 @@ from harrix_swiss_knife.action_added_at import (
 from harrix_swiss_knife.action_usage import list_recent_gui_action_names
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.qt_main_window import apply_app_window_size_and_position
+from harrix_swiss_knife.apps.common.ui_chrome import INPUT_BORDER, INPUT_RADIUS, SURFACE
 from harrix_swiss_knife.cli_menu import get_action_identity_parts, show_action_item_context_menu
 from harrix_swiss_knife.config_model import (
     MAIN_WINDOW_SORT_MODE_MENU,
@@ -756,17 +757,17 @@ QWidget#captionTools {{
 }}
 QLineEdit#captionSearchEdit {{
     padding: 1px 8px;
-    border: 1px solid #c8c8c8;
-    border-radius: 3px;
-    background: #ffffff;
+    border: 1px solid {INPUT_BORDER};
+    border-radius: {INPUT_RADIUS}px;
+    background: {SURFACE};
     min-height: {_CAPTION_CONTROL_HEIGHT - 2}px;
     max-height: {_CAPTION_CONTROL_HEIGHT}px;
 }}
 QComboBox#captionSortCombo {{
     padding: 1px 20px 1px 6px;
-    border: 1px solid #c8c8c8;
-    border-radius: 3px;
-    background: #ffffff;
+    border: 1px solid {INPUT_BORDER};
+    border-radius: {INPUT_RADIUS}px;
+    background: {SURFACE};
     min-height: {_CAPTION_CONTROL_HEIGHT - 2}px;
     max-height: {_CAPTION_CONTROL_HEIGHT}px;
 }}

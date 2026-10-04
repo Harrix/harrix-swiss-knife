@@ -78,8 +78,13 @@ LUCIDE_COLOR_DARK = "#122a3a"
 LUCIDE_COLOR_ON_FILLED = "#f4f4f4"
 
 AI_BUTTON_ICON_COLOR = LUCIDE_COLOR_BLUE
-ACCEPT_BUTTON_STYLE = "QPushButton { background-color: #4CAF50; color: white; }"
-DELETE_BUTTON_STYLE = "QPushButton { background-color: #ff6b6b; color: white; }"
+# Solid semantic buttons — shared with ui_chrome / HTML `$h-success` / `$h-danger`.
+ACCEPT_BUTTON_STYLE = (
+    "QPushButton { background-color: #4caf50; color: white; border: 1px solid #4caf50; border-radius: 4px; }"
+)
+DELETE_BUTTON_STYLE = (
+    "QPushButton { background-color: #cc584c; color: white; border: 1px solid #cc584c; border-radius: 4px; }"
+)
 # Kept for callers/tests that still import the name; Cancel is no longer filled red.
 CANCEL_BUTTON_STYLE = ""
 

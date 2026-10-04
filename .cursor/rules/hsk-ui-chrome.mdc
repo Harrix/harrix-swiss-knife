@@ -5,32 +5,44 @@ alwaysApply: true
 
 # Soft-blue UI chrome
 
-Desktop selection / hover / toolbar-checked chrome uses soft blue, not system highlight.
-
-## Source of truth
-
-`src/harrix_swiss_knife/apps/common/ui_chrome.py`:
+Desktop selection / hover / toolbar-checked chrome uses soft blue, not system highlight.  
+**Source of visual truth for shared tokens:** Harrix-HTML-Template `src/scss/_variables.scss`.  
+Desktop mirror: `src/harrix_swiss_knife/apps/common/ui_chrome.py`. Table: `.cursor/design-tokens.md`.
 
 | Token | Hex | Role |
 | --- | --- | --- |
 | `SELECTION_BG` | `#e8f4fc` | Selected fill |
-| `SELECTION_BORDER` | `#2e86b7` | Selected outline / brand accent |
+| `SELECTION_BORDER` / `BUTTON_PRIMARY_BG` | `#2e86b7` | Brand / solid primary |
 | `SELECTION_HOVER` | `#f3f8fb` | Hover fill |
-| `BRAND_INK` | `#1a5f7a` | Text on soft-blue chips / status |
+| `BRAND_INK` / `BUTTON_PRIMARY_HOVER` | `#1a5f7a` | Ink / primary hover |
 | `MUTED_TEXT` | `#5c6370` | Secondary labels |
+| `INPUT_BORDER` | `#dbdbdb` | Inputs / secondary border |
+| `HAIRLINE` | `#f0f0f0` | Light separators |
+| `SEPARATOR` | `#e0e0e0` | Row separators |
+| `BUTTON_SECONDARY_BG` | `#f5f5f5` | Light secondary / toolbar plate |
+| `BUTTON_SUCCESS_BG` | `#4caf50` | Success solid |
+| `BUTTON_DANGER_BG` | `#cc584c` | Danger solid |
 
-Also: `LUCIDE_COLOR_BLUE` / caption active tab = `#2e86b7`. Same brand as Harrix-HTML-Template `$h-primary` / `$h-soft-*`.
+Also: `LUCIDE_COLOR_BLUE` / caption active tab = `#2e86b7`.
+
+## Buttons
+
+- Primary CTA: solid brand via `button_primary_qss()` — **not** mint/Material soft-fill with a different border color.
+- Secondary / toolbar idle: `BUTTON_SECONDARY_*` / `button_secondary_qss()`.
+- Prefer helpers in `ui_chrome` over hardcoding button QSS in `.ui` files.
 
 ## Rules
 
-- Reuse `ui_chrome` tokens for lists, cards, Quick paste/launcher, toolbar checked, caption accents.
+- Reuse `ui_chrome` tokens for lists, cards, Quick paste/launcher, toolbar checked, caption accents, CTAs.
 - Selected items: soft fill + border, dark text on highlight (`SELECTION_TEXT` / readable palette helper).
 - Do not invent a different “brand blue” for chrome.
-- Prefer importing tokens over hardcoding `#e8f4fc` / `#2e86b7` / `#1a5f7a`.
+- Prefer importing tokens over hardcoding `#e8f4fc` / `#2e86b7` / `#1a5f7a` / `#dbdbdb`.
+- When changing shared tokens: update HTML `_variables.scss` first, then this file and `.cursor/design-tokens.md`.
 
 ## Do not unify
 
 - Screenshot region overlay (`#00AEFF` in `selection_paint.py`) — capture guide, not chrome
-- Per-app panel accents in `.ui` files
+- Desktop caption height (32px) / Win11 caption buttons — not site navbar
 - Shared CSS package with the website — keep tokens conceptually aligned only
 - Site TOC pattern (text + left border) — desktop keeps fill selection
+- Per-app *content* accents that are not CTAs (charts, category tags) unless explicitly shared

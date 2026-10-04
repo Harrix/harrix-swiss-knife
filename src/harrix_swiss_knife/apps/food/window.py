@@ -134,7 +134,8 @@ class Ui_MainWindow(object):
 " stop:0 #ffffff, stop:0.46 #ffffff, stop:0.49 #f4f4f4, stop:0.51 #f4f4f4, stop:0.54 #ffffff, stop:1 #ffffff);\n"
 "}\n"
 "QSplitter::handle:vertical {\n"
-" height: 17px;\n"
+" height: 17px"
+                        ";\n"
 " background: qlineargradient(x1:0, y1:0, x2:0, y2:1,\n"
 " stop:0 #ffffff, stop:0.46 #ffffff, stop:0.49 #f4f4f4, stop:0.51 #f4f4f4, stop:0.54 #ffffff, stop:1 #ffffff);\n"
 "}\n"
@@ -221,7 +222,7 @@ class Ui_MainWindow(object):
         font1.setBold(True)
         self.spinBox_food_weight.setFont(font1)
         self.spinBox_food_weight.setStyleSheet(u"QSpinBox {\n"
-"                                          background-color: #e3f2fd;\n"
+"                                          background-color: #e8f4fc;\n"
 "                                          }")
         self.spinBox_food_weight.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
         self.spinBox_food_weight.setMaximum(10000)
@@ -238,7 +239,7 @@ class Ui_MainWindow(object):
         self.doubleSpinBox_food_calories.setObjectName(u"doubleSpinBox_food_calories")
         self.doubleSpinBox_food_calories.setFont(font1)
         self.doubleSpinBox_food_calories.setStyleSheet(u"QDoubleSpinBox {\n"
-"                                          background-color: #e3f2fd;\n"
+"                                          background-color: #e8f4fc;\n"
 "                                          }")
         self.doubleSpinBox_food_calories.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
         self.doubleSpinBox_food_calories.setMaximum(10000.000000000000000)
@@ -293,15 +294,18 @@ class Ui_MainWindow(object):
         self.pushButton_food_add.setMinimumSize(QSize(0, 41))
         self.pushButton_food_add.setFont(font1)
         self.pushButton_food_add.setStyleSheet(u"QPushButton {\n"
-"                                      background-color: #e3f2fd;\n"
-"                                      border: 1px solid #2196F3;\n"
+"                                      background-color: #2e86b7;\n"
+"                                      color: #ffffff;\n"
+"                                      border: 1px solid #2e86b7;\n"
 "                                      border-radius: 4px;\n"
 "                                      }\n"
 "                                      QPushButton:hover {\n"
-"                                      background-color: #bbdefb;\n"
+"                                      background-color: #1a5f7a;\n"
+"                                      border-color: #1a5f7a;\n"
 "                                      }\n"
 "                                      QPushButton:pressed {\n"
-"                                      background-color: #90caf9;\n"
+"                                      background-color: #1a5f7a;\n"
+"                                      border-color: #1a5f7a;\n"
 "                                      }")
 
         self.horizontalLayout_6.addWidget(self.pushButton_food_add)
@@ -320,15 +324,18 @@ class Ui_MainWindow(object):
         self.pushButton_food_add_with_ai.setObjectName(u"pushButton_food_add_with_ai")
         self.pushButton_food_add_with_ai.setMinimumSize(QSize(0, 41))
         self.pushButton_food_add_with_ai.setStyleSheet(u"QPushButton {\n"
-"                                      background-color: #e3f2fd;\n"
-"                                      border: 1px solid #2196F3;\n"
+"                                      background-color: #2e86b7;\n"
+"                                      color: #ffffff;\n"
+"                                      border: 1px solid #2e86b7;\n"
 "                                      border-radius: 4px;\n"
 "                                      }\n"
 "                                      QPushButton:hover {\n"
-"                                      background-color: #bbdefb;\n"
+"                                      background-color: #1a5f7a;\n"
+"                                      border-color: #1a5f7a;\n"
 "                                      }\n"
 "                                      QPushButton:pressed {\n"
-"                                      background-color: #90caf9;\n"
+"                                      background-color: #1a5f7a;\n"
+"                                      border-color: #1a5f7a;\n"
 "                                      }")
 
         self.verticalLayout_2.addWidget(self.pushButton_food_add_with_ai)
@@ -337,15 +344,18 @@ class Ui_MainWindow(object):
         self.pushButton_food_add_by_voice.setObjectName(u"pushButton_food_add_by_voice")
         self.pushButton_food_add_by_voice.setMinimumSize(QSize(0, 41))
         self.pushButton_food_add_by_voice.setStyleSheet(u"QPushButton {\n"
-"                                      background-color: #e3f2fd;\n"
-"                                      border: 1px solid #2196F3;\n"
+"                                      background-color: #2e86b7;\n"
+"                                      color: #ffffff;\n"
+"                                      border: 1px solid #2e86b7;\n"
 "                                      border-radius: 4px;\n"
 "                                      }\n"
 "                                      QPushButton:hover {\n"
-"                                      background-color: #bbdefb;\n"
+"                                      background-color: #1a5f7a;\n"
+"                                      border-color: #1a5f7a;\n"
 "                                      }\n"
 "                                      QPushButton:pressed {\n"
-"                                      background-color: #90caf9;\n"
+"                                      background-color: #1a5f7a;\n"
+"                                      border-color: #1a5f7a;\n"
 "                                      }")
 
         self.verticalLayout_2.addWidget(self.pushButton_food_add_by_voice)
@@ -354,15 +364,18 @@ class Ui_MainWindow(object):
         self.pushButton_food_analyze_macros.setObjectName(u"pushButton_food_analyze_macros")
         self.pushButton_food_analyze_macros.setMinimumSize(QSize(0, 41))
         self.pushButton_food_analyze_macros.setStyleSheet(u"QPushButton {\n"
-"                                      background-color: #e8f5e9;\n"
-"                                      border: 1px solid #4caf50;\n"
+"                                      background-color: #2e86b7;\n"
+"                                      color: #ffffff;\n"
+"                                      border: 1px solid #2e86b7;\n"
 "                                      border-radius: 4px;\n"
 "                                      }\n"
 "                                      QPushButton:hover {\n"
-"                                      background-color: #c8e6c9;\n"
+"                                      background-color: #1a5f7a;\n"
+"                                      border-color: #1a5f7a;\n"
 "                                      }\n"
 "                                      QPushButton:pressed {\n"
-"                                      background-color: #a5d6a7;\n"
+"                                      background-color: #1a5f7a;\n"
+"                                      border-color: #1a5f7a;\n"
 "                                      }")
 
         self.verticalLayout_2.addWidget(self.pushButton_food_analyze_macros)
@@ -428,7 +441,7 @@ class Ui_MainWindow(object):
 "                                border-bottom: 1px solid #e0e0e0;\n"
 "                                }\n"
 "                                QListView::item:selected {\n"
-"                                background-color: #e3f2fd;\n"
+"                                background-color: #e8f4fc;\n"
 "                                color: black;\n"
 "                                }\n"
 "                                QListView::item:hover {\n"

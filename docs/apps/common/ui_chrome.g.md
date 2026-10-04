@@ -15,9 +15,14 @@ lang: en
 - [🔧 Function `apply_readable_selection_palette`](#-function-apply_readable_selection_palette)
 - [🔧 Function `apply_soft_item_selection`](#-function-apply_soft_item_selection)
 - [🔧 Function `apply_soft_list_selection_chrome`](#-function-apply_soft_list_selection_chrome)
+- [🔧 Function `button_danger_qss`](#-function-button_danger_qss)
+- [🔧 Function `button_primary_qss`](#-function-button_primary_qss)
+- [🔧 Function `button_secondary_qss`](#-function-button_secondary_qss)
+- [🔧 Function `button_success_qss`](#-function-button_success_qss)
 - [🔧 Function `list_view_item_selection_qss`](#-function-list_view_item_selection_qss)
 - [🔧 Function `list_view_panel_qss`](#-function-list_view_panel_qss)
 - [🔧 Function `snippet_list_selection_qss`](#-function-snippet_list_selection_qss)
+- [🔧 Function `soft_field_qss`](#-function-soft_field_qss)
 
 </details>
 
@@ -126,6 +131,138 @@ def apply_soft_list_selection_chrome(root: QWidget) -> None:
 
 </details>
 
+## 🔧 Function `button_danger_qss`
+
+```python
+def button_danger_qss(*, radius: int = PANEL_RADIUS) -> str
+```
+
+Return solid danger `QPushButton` stylesheet (site `$h-danger`).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def button_danger_qss(*, radius: int = PANEL_RADIUS) -> str:
+    return f"""
+QPushButton {{
+    background-color: {BUTTON_DANGER_BG};
+    color: {BUTTON_PRIMARY_FG};
+    border: 1px solid {BUTTON_DANGER_BG};
+    border-radius: {radius}px;
+}}
+QPushButton:hover {{
+    background-color: #b54d43;
+    border-color: #b54d43;
+}}
+QPushButton:pressed {{
+    background-color: #9e433a;
+    border-color: #9e433a;
+}}
+""".strip()
+```
+
+</details>
+
+## 🔧 Function `button_primary_qss`
+
+```python
+def button_primary_qss(*, radius: int = PANEL_RADIUS) -> str
+```
+
+Return solid primary `QPushButton` stylesheet (site `.button.is-primary`).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def button_primary_qss(*, radius: int = PANEL_RADIUS) -> str:
+    return f"""
+QPushButton {{
+    background-color: {BUTTON_PRIMARY_BG};
+    color: {BUTTON_PRIMARY_FG};
+    border: 1px solid {BUTTON_PRIMARY_BORDER};
+    border-radius: {radius}px;
+}}
+QPushButton:hover {{
+    background-color: {BUTTON_PRIMARY_HOVER};
+    border-color: {BUTTON_PRIMARY_HOVER};
+}}
+QPushButton:pressed {{
+    background-color: {BUTTON_PRIMARY_HOVER};
+    border-color: {BUTTON_PRIMARY_HOVER};
+}}
+""".strip()
+```
+
+</details>
+
+## 🔧 Function `button_secondary_qss`
+
+```python
+def button_secondary_qss(*, radius: int = PANEL_RADIUS) -> str
+```
+
+Return light secondary `QPushButton` stylesheet (site `.button.is-light`).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def button_secondary_qss(*, radius: int = PANEL_RADIUS) -> str:
+    return f"""
+QPushButton {{
+    background-color: {BUTTON_SECONDARY_BG};
+    color: {BUTTON_SECONDARY_FG};
+    border: 1px solid {BUTTON_SECONDARY_BORDER};
+    border-radius: {radius}px;
+}}
+QPushButton:hover {{
+    background-color: {BUTTON_SECONDARY_HOVER};
+    border-color: {BUTTON_SECONDARY_BORDER};
+}}
+QPushButton:pressed {{
+    background-color: {BUTTON_SECONDARY_PRESSED};
+    border-color: {BUTTON_SECONDARY_BORDER};
+}}
+""".strip()
+```
+
+</details>
+
+## 🔧 Function `button_success_qss`
+
+```python
+def button_success_qss(*, radius: int = PANEL_RADIUS) -> str
+```
+
+Return solid success `QPushButton` stylesheet (site `$h-success`).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def button_success_qss(*, radius: int = PANEL_RADIUS) -> str:
+    return f"""
+QPushButton {{
+    background-color: {BUTTON_SUCCESS_BG};
+    color: {BUTTON_PRIMARY_FG};
+    border: 1px solid {BUTTON_SUCCESS_BG};
+    border-radius: {radius}px;
+}}
+QPushButton:hover {{
+    background-color: #43a047;
+    border-color: #43a047;
+}}
+QPushButton:pressed {{
+    background-color: #388e3c;
+    border-color: #388e3c;
+}}
+""".strip()
+```
+
+</details>
+
 ## 🔧 Function `list_view_item_selection_qss`
 
 ```python
@@ -148,7 +285,7 @@ Returns:
 
 ```python
 def list_view_item_selection_qss(*, with_row_separators: bool = False) -> str:
-    separator = "border-bottom: 1px solid #e0e0e0;" if with_row_separators else ""
+    separator = f"border-bottom: 1px solid {SEPARATOR};" if with_row_separators else ""
     return f"""
 QListView::item {{
     padding: 4px 6px;
@@ -193,8 +330,8 @@ def list_view_panel_qss(*, border_color: str, with_row_separators: bool = True) 
     return f"""
 QListView {{
     border: 2px solid {border_color};
-    border-radius: 4px;
-    background-color: white;
+    border-radius: {PANEL_RADIUS}px;
+    background-color: {SURFACE};
     outline: none;
 }}
 {list_view_item_selection_qss(with_row_separators=with_row_separators)}
@@ -235,6 +372,28 @@ QListWidget::item:selected:hover {{
     color: {SELECTION_TEXT};
     border: 1px solid {SELECTION_BORDER};
     border-radius: 6px;
+}}
+""".strip()
+```
+
+</details>
+
+## 🔧 Function `soft_field_qss`
+
+```python
+def soft_field_qss(selector: str = 'QWidget') -> str
+```
+
+Return soft-blue fill for highlighted form fields (spin boxes, etc.).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def soft_field_qss(selector: str = "QWidget") -> str:
+    return f"""
+{selector} {{
+    background-color: {SELECTION_BG};
 }}
 """.strip()
 ```

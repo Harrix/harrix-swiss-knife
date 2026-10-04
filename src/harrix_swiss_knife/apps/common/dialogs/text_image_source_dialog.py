@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife import qt_modality
+from harrix_swiss_knife.apps.common.ui_chrome import button_primary_qss
 from harrix_swiss_knife.apps.common.widgets.image_picker import ImagePicker, ImagePickerMode
 from harrix_swiss_knife.qt_lucide_icon import (
     AI_BUTTON_ICON,
@@ -26,15 +27,7 @@ from harrix_swiss_knife.qt_lucide_icon import (
     style_accept_button,
 )
 
-SEND_TO_AI_BUTTON_STYLE = """QPushButton {
-    background-color: #C1ECDD;
-}
-QPushButton:hover {
-    background-color: #D1F5E8;
-}
-QPushButton:pressed {
-    background-color: #A8E0C7;
-}"""
+SEND_TO_AI_BUTTON_STYLE = button_primary_qss()
 
 
 class TextImageSourceDialog(QDialog):

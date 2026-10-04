@@ -104,6 +104,7 @@ from harrix_swiss_knife.apps.common.table_context_menu import (
 from harrix_swiss_knife.apps.common.table_export import export_table_via_dialog
 from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
 from harrix_swiss_knife.apps.common.text_case import capitalize_first_letter
+from harrix_swiss_knife.apps.common.ui_chrome import button_primary_qss
 from harrix_swiss_knife.apps.common.widgets.image_picker import ImagePicker, ImagePickerMode, is_image_file_path
 from harrix_swiss_knife.apps.common.widgets.shrinkable_scroll_area import install_shrinkable_tab_scroll
 from harrix_swiss_knife.apps.common.word_wrap_header import WordWrapHeaderView
@@ -4935,41 +4936,11 @@ class MainWindow(
         is_drink = self.checkBox_food_is_drink.isChecked()
 
         if is_drink:
-            # Drink mode: blue color and drink icon
             self.pushButton_food_add.setText("🥤 Add Drink")
-            apply_leading_chrome_button_icon(self.pushButton_food_add)
-            self.pushButton_food_add.setStyleSheet(
-                "QPushButton {\n"
-                "    background-color: #e8f5e8;\n"
-                "    border: 1px solid #4CAF50;\n"
-                "    border-radius: 4px;\n"
-                "    color: #2E7D32;\n"
-                "    }\n"
-                "    QPushButton:hover {\n"
-                "    background-color: #c8e6c9;\n"
-                "    }\n"
-                "    QPushButton:pressed {\n"
-                "    background-color: #a5d6a7;\n"
-                "    }"
-            )
         else:
-            # Food mode: default blue color and food icon
             self.pushButton_food_add.setText("➕ Add Food")  # noqa: RUF001
-            apply_leading_chrome_button_icon(self.pushButton_food_add)
-            self.pushButton_food_add.setStyleSheet(
-                "QPushButton {\n"
-                "    background-color: #e3f2fd;\n"
-                "    border: 1px solid #2196F3;\n"
-                "    border-radius: 4px;\n"
-                "    color: #000000;\n"
-                "    }\n"
-                "    QPushButton:hover {\n"
-                "    background-color: #bbdefb;\n"
-                "    }\n"
-                "    QPushButton:pressed {\n"
-                "    background-color: #90caf9;\n"
-                "    }"
-            )
+        apply_leading_chrome_button_icon(self.pushButton_food_add)
+        self.pushButton_food_add.setStyleSheet(button_primary_qss())
 
     def _update_autocomplete_data(self) -> None:
         """Update autocomplete data from database."""

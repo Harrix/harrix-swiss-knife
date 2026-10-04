@@ -41,6 +41,14 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.table_context_menu import add_delete_action, add_lightbox_action
+from harrix_swiss_knife.apps.common.ui_chrome import (
+    SELECTION_BG,
+    SELECTION_BORDER,
+    button_danger_qss,
+    button_primary_qss,
+    button_secondary_qss,
+    list_view_panel_qss,
+)
 from harrix_swiss_knife.apps.common.widgets.exercise_list_hover_preview import exercise_at_table_image
 from harrix_swiss_knife.apps.fitness.lightbox_logic import (
     ExerciseStopwatch,
@@ -78,83 +86,36 @@ _ROW_COLOR_CURRENT = QColor(255, 236, 179)  # Amber highlight for the active exe
 _COL_TYPE_WIDTH = 140
 _COL_VALUE_WIDTH = 90
 _COL_UNIT_WIDTH = 90
-_GREEN_BUTTON_STYLE = """
-QPushButton {
-    background-color: lightgreen;
-    border: 1px solid #4CAF50;
-    border-radius: 4px;
-}
-QPushButton:hover {
-    background-color: #90EE90;
-}
-QPushButton:pressed {
-    background-color: #7FDD7F;
-}
+_GREEN_BUTTON_STYLE = (
+    button_primary_qss()
+    + """
 QPushButton:disabled {
     background-color: #e8e8e8;
     border: 1px solid #bdbdbd;
     color: #9e9e9e;
 }
 """
-_GREY_BUTTON_STYLE = """
-QPushButton {
-    background-color: #e8e8e8;
-    border: 1px solid #bdbdbd;
-    border-radius: 4px;
-}
-QPushButton:hover {
-    background-color: #d6d6d6;
-}
-QPushButton:pressed {
-    background-color: #c4c4c4;
-}
+)
+_GREY_BUTTON_STYLE = (
+    button_secondary_qss()
+    + """
 QPushButton:disabled {
     background-color: #f3f3f3;
     border: 1px solid #d0d0d0;
     color: #9e9e9e;
 }
 """
-_CONTINUE_BUTTON_STYLE = _GREEN_BUTTON_STYLE
-_STOP_BUTTON_STYLE = """
-QPushButton {
-    background-color: #ffebee;
-    border: 1px solid #e57373;
-    border-radius: 4px;
-}
-QPushButton:hover {
-    background-color: #ffcdd2;
-}
-QPushButton:pressed {
-    background-color: #ef9a9a;
-}
-"""
-_SESSION_BAR_STYLE = """
-QFrame#workoutsSessionBar {
-    background-color: #e8f5e9;
-    border: 1px solid #81c784;
-    border-radius: 6px;
-}
-"""
-_LIST_STYLE = with_flat_scrollbars(
-    """
-QListView {
-    border: 2px solid #4CAF50;
-    border-radius: 4px;
-    background-color: white;
-}
-QListView::item {
-    padding: 4px;
-    border-bottom: 1px solid #e0e0e0;
-}
-QListView::item:selected {
-    background-color: #e8f5e9;
-    color: black;
-}
-QListView::item:hover {
-    background-color: #c8e6c9;
-}
-"""
 )
+_CONTINUE_BUTTON_STYLE = _GREEN_BUTTON_STYLE
+_STOP_BUTTON_STYLE = button_danger_qss()
+_SESSION_BAR_STYLE = f"""
+QFrame#workoutsSessionBar {{
+    background-color: {SELECTION_BG};
+    border: 1px solid {SELECTION_BORDER};
+    border-radius: 6px;
+}}
+"""
+_LIST_STYLE = with_flat_scrollbars(list_view_panel_qss(border_color=SELECTION_BORDER))
 _WHITE_SURFACE = "background-color: #ffffff;"
 
 
