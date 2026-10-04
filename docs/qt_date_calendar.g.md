@@ -45,9 +45,11 @@ class SoftCalendarWidget(QCalendarWidget):
         self._hover_date: QDate | None = None
         self._grid_view: QTableView | None = None
         self._painted_cells: list[tuple[QRect, QDate]] = []
-        self._panel_mode = _PANEL_MONTH
+        self._panel_mode = _PANEL_DAY
         self._decade_start = decade_start(QDate.currentDate().year())
+        self._month_pick_year = QDate.currentDate().year()
         self._year_buttons: list[QPushButton] = []
+        self._month_buttons: list[QPushButton] = []
 
         self.setVerticalHeaderFormat(QCalendarWidget.VerticalHeaderFormat.NoVerticalHeader)
         # Own weekday labels — QHeaderView collapses/overlaps after selection on Windows.
@@ -63,23 +65,23 @@ class SoftCalendarWidget(QCalendarWidget):
         self.setNavigationBarVisible(False)
         self._detach_default_nav_bar()
 
-        self._title_month = QLabel(self)
-        title_font = QFont(self._title_month.font())
+        title_font = QFont(self.font())
         title_font.setBold(True)
+        self._title_month = QPushButton(self)
+        self._title_month.setObjectName("hskCalendarMonth")
+        self._title_month.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._title_month.setFlat(True)
         self._title_month.setFont(title_font)
-        self._title_month.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._title_month.setStyleSheet(f"color: {SELECTION_TEXT}; background: transparent; padding: 2px 4px;")
+        self._title_month.setStyleSheet(_title_chip_qss("hskCalendarMonth"))
+        self._title_month.setToolTip("Choose month")
+        self._title_month.clicked.connect(self._on_title_month_clicked)
 
         self._title_year = QPushButton(self)
         self._title_year.setObjectName("hskCalendarYear")
         self._title_year.setCursor(Qt.CursorShape.PointingHandCursor)
         self._title_year.setFlat(True)
         self._title_year.setFont(title_font)
-        self._title_year.setStyleSheet(
-            f"QPushButton#hskCalendarYear {{ color: {SELECTION_TEXT}; background: transparent;"
-            " border: none; border-radius: 4px; padding: 2px 6px; font-weight: 700; }"
-            f"QPushButton#hskCalendarYear:hover {{ background: {SELECTION_HOVER}; color: {SELECTION_BORDER}; }}"
-        )
+        self._title_year.setStyleSheet(_title_chip_qss("hskCalendarYear"))
         self._title_year.clicked.connect(self._on_title_year_clicked)
         self._title = self._title_year
 
@@ -115,6 +117,7 @@ class SoftCalendarWidget(QCalendarWidget):
 
         header_line = _hairline(self)
         self._weekdays = self._build_weekdays()
+        self._month_panel = self._build_month_panel()
         self._year_panel = self._build_year_panel()
         footer_line = _hairline(self)
 
@@ -143,7 +146,8 @@ class SoftCalendarWidget(QCalendarWidget):
             root.insertWidget(0, header)
             root.insertWidget(1, header_line)
             root.insertWidget(2, self._weekdays)
-            root.insertWidget(3, self._year_panel)
+            root.insertWidget(3, self._month_panel)
+            root.insertWidget(4, self._year_panel)
             root.addWidget(footer_line)
             root.addWidget(footer)
 
@@ -158,6 +162,7 @@ class SoftCalendarWidget(QCalendarWidget):
             SoftCalendarWidget QWidget#hskCalendarFooter,
             SoftCalendarWidget QWidget#hskCalendarWeekdays,
             SoftCalendarWidget QWidget#hskCalendarYearPanel,
+            SoftCalendarWidget QWidget#hskCalendarMonthPanel,
             SoftCalendarWidget QWidget#hskCalendarTitle {{
                 background: #ffffff;
                 border: none;
@@ -172,6 +177,7 @@ class SoftCalendarWidget(QCalendarWidget):
             """.strip()
         )
 
+        self._month_panel.hide()
         self._year_panel.hide()
         self.setMinimumSize(_POPUP_WIDTH, self._popup_height())
         self.currentPageChanged.connect(self._on_page_changed)
@@ -239,7 +245,7 @@ class SoftCalendarWidget(QCalendarWidget):
     def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
         """Re-apply equal column metrics when the popup opens."""
         super().showEvent(event)
-        self._show_month_panel()
+        self._show_day_panel()
         self._tune_grid()
         self._install_hover_tracking()
         parent = self.parentWidget()
@@ -250,6 +256,30 @@ class SoftCalendarWidget(QCalendarWidget):
     def sizeHint(self) -> QSize:  # noqa: N802
         """Return the fixed Ant-like popup size."""
         return QSize(_POPUP_WIDTH, self._popup_height())
+
+    def _build_choice_grid(self, object_name: str, on_clicked: Callable[[], None]) -> tuple[QWidget, list[QPushButton]]:
+        panel = QWidget(self)
+        panel.setObjectName(object_name)
+        panel.setFixedHeight(_WEEKDAY_ROW_HEIGHT + _CELL_SIZE * _WEEK_ROWS)
+        grid = QGridLayout(panel)
+        grid.setContentsMargins(8, 12, 8, 12)
+        grid.setHorizontalSpacing(8)
+        grid.setVerticalSpacing(12)
+        buttons: list[QPushButton] = []
+        for index in range(_YEAR_PANEL_ROWS * _YEAR_PANEL_COLUMNS):
+            button = QPushButton(panel)
+            button.setCursor(Qt.CursorShape.PointingHandCursor)
+            button.setFlat(True)
+            button.setMinimumHeight(40)
+            row, column = divmod(index, _YEAR_PANEL_COLUMNS)
+            grid.addWidget(button, row, column)
+            button.clicked.connect(on_clicked)
+            buttons.append(button)
+        return panel, buttons
+
+    def _build_month_panel(self) -> QWidget:
+        panel, self._month_buttons = self._build_choice_grid("hskCalendarMonthPanel", self._on_month_button_clicked)
+        return panel
 
     def _build_weekdays(self) -> QWidget:
         row = QWidget(self)
@@ -268,23 +298,7 @@ class SoftCalendarWidget(QCalendarWidget):
         return row
 
     def _build_year_panel(self) -> QWidget:
-        panel = QWidget(self)
-        panel.setObjectName("hskCalendarYearPanel")
-        panel.setFixedHeight(_WEEKDAY_ROW_HEIGHT + _CELL_SIZE * _WEEK_ROWS)
-        grid = QGridLayout(panel)
-        grid.setContentsMargins(8, 12, 8, 12)
-        grid.setHorizontalSpacing(8)
-        grid.setVerticalSpacing(12)
-        self._year_buttons = []
-        for index in range(_YEAR_PANEL_ROWS * _YEAR_PANEL_COLUMNS):
-            button = QPushButton(panel)
-            button.setCursor(Qt.CursorShape.PointingHandCursor)
-            button.setFlat(True)
-            button.setMinimumHeight(40)
-            row, column = divmod(index, _YEAR_PANEL_COLUMNS)
-            grid.addWidget(button, row, column)
-            button.clicked.connect(self._on_year_button_clicked)
-            self._year_buttons.append(button)
+        panel, self._year_buttons = self._build_choice_grid("hskCalendarYearPanel", self._on_year_button_clicked)
         return panel
 
     def _date_at(self, row: int, column: int) -> QDate | None:
@@ -323,7 +337,7 @@ class SoftCalendarWidget(QCalendarWidget):
         today = QDate.currentDate()
         self.setCurrentPage(today.year(), today.month())
         self.setSelectedDate(today)
-        self._show_month_panel()
+        self._show_day_panel()
         self.activated.emit(today)
 
     def _install_hover_tracking(self) -> None:
@@ -355,9 +369,22 @@ class SoftCalendarWidget(QCalendarWidget):
         )
         return button
 
+    def _on_month_button_clicked(self) -> None:
+        button = self.sender()
+        if not isinstance(button, QPushButton):
+            return
+        month = button.property("hskMonth")
+        if not isinstance(month, int):
+            return
+        self.setCurrentPage(self._month_pick_year, month)
+        self._show_day_panel()
+
     def _on_next_jump(self) -> None:
         if self._panel_mode == _PANEL_YEAR:
             self._shift_decade(1)
+            return
+        if self._panel_mode == _PANEL_MONTH_PICK:
+            self._shift_month_pick_year(1)
             return
         self._shift_page(years=1)
 
@@ -370,6 +397,9 @@ class SoftCalendarWidget(QCalendarWidget):
         if self._panel_mode == _PANEL_YEAR:
             self._shift_decade(-1)
             return
+        if self._panel_mode == _PANEL_MONTH_PICK:
+            self._shift_month_pick_year(-1)
+            return
         self._shift_page(years=-1)
 
     def _on_selection_changed(self) -> None:
@@ -378,9 +408,13 @@ class SoftCalendarWidget(QCalendarWidget):
         if view is not None:
             view.viewport().update()
 
+    def _on_title_month_clicked(self) -> None:
+        if self._panel_mode == _PANEL_DAY:
+            self._show_month_pick_panel()
+
     def _on_title_year_clicked(self) -> None:
         if self._panel_mode == _PANEL_YEAR:
-            self._show_month_panel()
+            self._show_day_panel()
             return
         self._show_year_panel()
 
@@ -392,11 +426,22 @@ class SoftCalendarWidget(QCalendarWidget):
         if not isinstance(year, int):
             return
         self.setCurrentPage(year, self.monthShown())
-        self._show_month_panel()
+        self._show_month_pick_panel()
 
     def _popup_height(self) -> int:
         # header + separators + weekday row + 6 week rows + Today footer
         return 44 + 1 + _WEEKDAY_ROW_HEIGHT + (_CELL_SIZE * _WEEK_ROWS) + 1 + 36
+
+    def _rebuild_month_cells(self) -> None:
+        today = QDate.currentDate()
+        for month in range(1, _MONTHS_IN_YEAR + 1):
+            button = self._month_buttons[month - 1]
+            label = _UI_LOCALE.toString(QDate(2000, month, 1), "MMM")
+            selected = month == self.monthShown() and self._month_pick_year == self.yearShown()
+            is_current = month == today.month() and self._month_pick_year == today.year()
+            button.setText(label)
+            button.setProperty("hskMonth", month)
+            button.setStyleSheet(_year_cell_qss(muted=False, selected=selected, current=is_current))
 
     def _rebuild_year_cells(self) -> None:
         _start, years = decade_panel_years(self._decade_start)
@@ -418,6 +463,12 @@ class SoftCalendarWidget(QCalendarWidget):
             self._title_year.setText(f"{start}-{start + _DECADE_LENGTH - 1}")
             self._title_year.setToolTip("")
             self._title_year.setCursor(Qt.CursorShape.ArrowCursor)
+            return
+        if self._panel_mode == _PANEL_MONTH_PICK:
+            self._title_month.hide()
+            self._title_year.setText(str(self._month_pick_year))
+            self._title_year.setToolTip("Choose year")
+            self._title_year.setCursor(Qt.CursorShape.PointingHandCursor)
             return
         self._title_month.show()
         self._title_month.setText(_UI_LOCALE.toString(page, "MMM"))
@@ -442,33 +493,50 @@ class SoftCalendarWidget(QCalendarWidget):
         self._rebuild_year_cells()
         self._refresh_title()
 
+    def _shift_month_pick_year(self, steps: int) -> None:
+        self._month_pick_year += steps
+        self._rebuild_month_cells()
+        self._refresh_title()
+
     def _shift_page(self, *, months: int = 0, years: int = 0) -> None:
         page = QDate(self.yearShown(), self.monthShown(), 1).addMonths(months).addYears(years)
         self.setCurrentPage(page.year(), page.month())
 
-    def _show_month_panel(self) -> None:
-        self._panel_mode = _PANEL_MONTH
-        self._year_panel.hide()
-        self._weekdays.show()
+    def _show_day_grid(self, *, visible: bool) -> None:
+        self._weekdays.setVisible(visible)
         view = self.findChild(QTableView, "qt_calendar_calendarview")
         if view is not None:
-            view.show()
-        self._prev_month.show()
-        self._next_month.show()
+            view.setVisible(visible)
+        self._prev_month.setVisible(visible)
+        self._next_month.setVisible(visible)
+
+    def _show_day_panel(self) -> None:
+        self._panel_mode = _PANEL_DAY
+        self._month_panel.hide()
+        self._year_panel.hide()
+        self._show_day_grid(visible=True)
         self._prev_year.setToolTip("Previous year")
         self._next_year.setToolTip("Next year")
         self._refresh_title()
         self._tune_grid()
 
+    def _show_month_pick_panel(self) -> None:
+        self._panel_mode = _PANEL_MONTH_PICK
+        self._month_pick_year = self.yearShown()
+        self._year_panel.hide()
+        self._show_day_grid(visible=False)
+        self._month_panel.show()
+        self._prev_year.setToolTip("Previous year")
+        self._next_year.setToolTip("Next year")
+        self._rebuild_month_cells()
+        self._refresh_title()
+
     def _show_year_panel(self) -> None:
+        year = self._month_pick_year if self._panel_mode == _PANEL_MONTH_PICK else self.yearShown()
         self._panel_mode = _PANEL_YEAR
-        self._decade_start = decade_start(self.yearShown())
-        self._weekdays.hide()
-        view = self.findChild(QTableView, "qt_calendar_calendarview")
-        if view is not None:
-            view.hide()
-        self._prev_month.hide()
-        self._next_month.hide()
+        self._decade_start = decade_start(year)
+        self._month_panel.hide()
+        self._show_day_grid(visible=False)
         self._year_panel.show()
         self._prev_year.setToolTip("Previous decade")
         self._next_year.setToolTip("Next decade")
@@ -526,9 +594,11 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self._hover_date: QDate | None = None
         self._grid_view: QTableView | None = None
         self._painted_cells: list[tuple[QRect, QDate]] = []
-        self._panel_mode = _PANEL_MONTH
+        self._panel_mode = _PANEL_DAY
         self._decade_start = decade_start(QDate.currentDate().year())
+        self._month_pick_year = QDate.currentDate().year()
         self._year_buttons: list[QPushButton] = []
+        self._month_buttons: list[QPushButton] = []
 
         self.setVerticalHeaderFormat(QCalendarWidget.VerticalHeaderFormat.NoVerticalHeader)
         # Own weekday labels — QHeaderView collapses/overlaps after selection on Windows.
@@ -544,23 +614,23 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self.setNavigationBarVisible(False)
         self._detach_default_nav_bar()
 
-        self._title_month = QLabel(self)
-        title_font = QFont(self._title_month.font())
+        title_font = QFont(self.font())
         title_font.setBold(True)
+        self._title_month = QPushButton(self)
+        self._title_month.setObjectName("hskCalendarMonth")
+        self._title_month.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._title_month.setFlat(True)
         self._title_month.setFont(title_font)
-        self._title_month.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._title_month.setStyleSheet(f"color: {SELECTION_TEXT}; background: transparent; padding: 2px 4px;")
+        self._title_month.setStyleSheet(_title_chip_qss("hskCalendarMonth"))
+        self._title_month.setToolTip("Choose month")
+        self._title_month.clicked.connect(self._on_title_month_clicked)
 
         self._title_year = QPushButton(self)
         self._title_year.setObjectName("hskCalendarYear")
         self._title_year.setCursor(Qt.CursorShape.PointingHandCursor)
         self._title_year.setFlat(True)
         self._title_year.setFont(title_font)
-        self._title_year.setStyleSheet(
-            f"QPushButton#hskCalendarYear {{ color: {SELECTION_TEXT}; background: transparent;"
-            " border: none; border-radius: 4px; padding: 2px 6px; font-weight: 700; }"
-            f"QPushButton#hskCalendarYear:hover {{ background: {SELECTION_HOVER}; color: {SELECTION_BORDER}; }}"
-        )
+        self._title_year.setStyleSheet(_title_chip_qss("hskCalendarYear"))
         self._title_year.clicked.connect(self._on_title_year_clicked)
         self._title = self._title_year
 
@@ -596,6 +666,7 @@ def __init__(self, parent: QWidget | None = None) -> None:
 
         header_line = _hairline(self)
         self._weekdays = self._build_weekdays()
+        self._month_panel = self._build_month_panel()
         self._year_panel = self._build_year_panel()
         footer_line = _hairline(self)
 
@@ -624,7 +695,8 @@ def __init__(self, parent: QWidget | None = None) -> None:
             root.insertWidget(0, header)
             root.insertWidget(1, header_line)
             root.insertWidget(2, self._weekdays)
-            root.insertWidget(3, self._year_panel)
+            root.insertWidget(3, self._month_panel)
+            root.insertWidget(4, self._year_panel)
             root.addWidget(footer_line)
             root.addWidget(footer)
 
@@ -639,6 +711,7 @@ def __init__(self, parent: QWidget | None = None) -> None:
             SoftCalendarWidget QWidget#hskCalendarFooter,
             SoftCalendarWidget QWidget#hskCalendarWeekdays,
             SoftCalendarWidget QWidget#hskCalendarYearPanel,
+            SoftCalendarWidget QWidget#hskCalendarMonthPanel,
             SoftCalendarWidget QWidget#hskCalendarTitle {{
                 background: #ffffff;
                 border: none;
@@ -653,6 +726,7 @@ def __init__(self, parent: QWidget | None = None) -> None:
             """.strip()
         )
 
+        self._month_panel.hide()
         self._year_panel.hide()
         self.setMinimumSize(_POPUP_WIDTH, self._popup_height())
         self.currentPageChanged.connect(self._on_page_changed)
@@ -776,7 +850,7 @@ Re-apply equal column metrics when the popup opens.
 ```python
 def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
         super().showEvent(event)
-        self._show_month_panel()
+        self._show_day_panel()
         self._tune_grid()
         self._install_hover_tracking()
         parent = self.parentWidget()

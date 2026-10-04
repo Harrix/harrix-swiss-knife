@@ -151,5 +151,40 @@ def test_soft_calendar_year_title_opens_decade_panel(qapp: QApplication) -> None
     assert calendar.yearShown() == 2024
     assert calendar.monthShown() == 6
     assert not panel.isVisible()
+    month_panel = calendar.findChild(QWidget, "hskCalendarMonthPanel")
+    assert month_panel is not None
+    assert month_panel.isVisible()
     assert calendar._title_year.text() == "2024"
+    assert calendar._title_month.isHidden()
+    calendar.close()
+
+
+def test_soft_calendar_month_title_opens_month_panel(qapp: QApplication) -> None:
+    calendar = SoftCalendarWidget()
+    calendar.setCurrentPage(2026, 6)
+    calendar.show()
+    qapp.processEvents()
+
+    calendar._title_month.click()
+    qapp.processEvents()
+
+    panel = calendar.findChild(QWidget, "hskCalendarMonthPanel")
+    assert panel is not None
+    assert panel.isVisible()
+    assert calendar._title_month.isHidden()
+    assert calendar._title_year.text() == "2026"
+    labels = [button.text() for button in calendar._month_buttons]
+    assert labels == ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+    calendar._next_year.click()
+    qapp.processEvents()
+    assert calendar._title_year.text() == "2027"
+
+    calendar._month_buttons[labels.index("Oct")].click()
+    qapp.processEvents()
+    assert calendar.yearShown() == 2027
+    assert calendar.monthShown() == 10
+    assert not panel.isVisible()
+    assert calendar._title_month.text() == "Oct"
+    assert calendar._title_year.text() == "2027"
     calendar.close()
