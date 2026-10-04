@@ -818,7 +818,7 @@ def test_snippets_tab_cycles_shared_input_emoji_symbols_colors(
     assert dialog._input.placeholderText() != "Filter and search…"
     assert dialog._input.text() == ""
     assert "padding" in dialog._input.styleSheet()
-    assert dialog._input.minimumHeight() >= dialog._input.fontMetrics().height() + 22
+    assert dialog._input.minimumHeight() >= dialog._input.fontMetrics().height() + 10
     dialog.focusNextPrevChild(True)  # noqa: FBT003
     QApplication.processEvents()
     assert dialog._input.hasFocus()

@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from shiboken6 import isValid
 
 from harrix_swiss_knife.action_hotkeys import load_hotkeys_for_action
 from harrix_swiss_knife.action_title import strip_md_inline_code_markers
@@ -98,6 +99,7 @@ class QuickLauncherDialog(QDialog):
         self._drag_position = QPoint()
         self._win11_caption = False
         self._close_button: QPushButton | None = None
+        self._allow_destroy = False
 
         apply_opaque_white(self)
         self.setObjectName("quickLauncherDialog")
@@ -176,10 +178,30 @@ class QuickLauncherDialog(QDialog):
             category="Help",
         )
 
+    def allow_destroy(self) -> None:
+        """Allow the next close to destroy this overlay instead of hiding it."""
+        self._allow_destroy = True
+
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
-        """Hide the overlay instead of destroying it."""
+        """Hide the overlay instead of destroying it, unless disposing the singleton."""
+        if self._allow_destroy:
+            event.accept()
+            super().closeEvent(event)
+            return
         event.ignore()
         self.hide()
+
+    @classmethod
+    def dispose_instance(cls) -> None:
+        """Destroy the singleton through Qt before application shutdown."""
+        dialog = cls._instance
+        cls._instance = None
+        if dialog is None or not isValid(dialog):
+            return
+        dialog.allow_destroy()
+        dialog.hide()
+        dialog.close()
+        dialog.deleteLater()
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
         """Start window drag from passive header and hint widgets."""
@@ -292,7 +314,7 @@ class QuickLauncherDialog(QDialog):
         action_classes: list[type[ActionBase]],
     ) -> None:
         """Show or hide the singleton quick launcher dialog."""
-        if cls._instance is None:
+        if cls._instance is None or not isValid(cls._instance):
             cls._instance = cls(parent)
         dialog = cls._instance
         dialog.update_session(output_bus=output_bus, action_classes=action_classes)
@@ -585,8 +607,9 @@ class QuickLauncherDialog(QDialog):
 
         flags = _overlay_window_flags()
         if self.parentWidget() is not target_parent:
+            # setParent recreates the HWND; skip when already attached correctly.
             self.setParent(target_parent, flags)
-        else:
+        elif self.windowFlags() != flags:
             self.setWindowFlags(flags)
         self.setModal(False)
         self.setWindowModality(Qt.WindowModality.NonModal)

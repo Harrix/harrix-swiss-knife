@@ -237,7 +237,7 @@ class ScreenshotPreviewWindow(QMainWindow):
             f" border: 1px solid {SELECTION_BORDER};"
             " border-radius: 8px;"
             " padding: 6px 10px;"
-            " color: #1a5f7a;"
+            f" color: {BRAND_INK};"
             "}",
         )
         self._status.setText(_STATUS_HINT)
@@ -1327,7 +1327,7 @@ def __init__(self, parent: QWidget | None = None) -> None:
             f" border: 1px solid {SELECTION_BORDER};"
             " border-radius: 8px;"
             " padding: 6px 10px;"
-            " color: #1a5f7a;"
+            f" color: {BRAND_INK};"
             "}",
         )
         self._status.setText(_STATUS_HINT)

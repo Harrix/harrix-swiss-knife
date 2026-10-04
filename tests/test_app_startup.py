@@ -30,6 +30,10 @@ def test_is_ignored_qt_message_filters_svg_noise() -> None:
         'font file.) for QFontDef(Family="8514oem", stylename=Regular, pointsize=9, pixelsize=20, '
         "styleHint=5, weight=400, stretch=100, hintingPreference=1)",
     )
+    assert is_ignored_qt_message(
+        'External WM_DESTROY received for  QWidgetWindow(0x164abc29de0, name="snippetsDialogWindow") '
+        ", parent:  QWindow(0x0) , transient parent:  QWindow(0x0) (None:0)",
+    )
     assert not is_ignored_qt_message("QPainter::begin: Paint device returned engine == 0")
     assert not is_ignored_qt_message("")
 

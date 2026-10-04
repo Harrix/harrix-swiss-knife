@@ -262,7 +262,7 @@ def scale_explicit_widget_font(widget: QWidget) -> None:
 def style_overlay_line_edit(edit: QLineEdit) -> None
 ```
 
-Apply the Quick paste / tray-search line-edit look (mono, padding, taller field).
+Apply the Quick paste line-edit look (mono, compact padding and height).
 
 <details>
 <summary>Code:</summary>

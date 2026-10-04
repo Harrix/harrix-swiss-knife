@@ -365,6 +365,8 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
             Qt.ConnectionType.QueuedConnection,
         )
 
+    app.aboutToQuit.connect(_dispose_overlay_singletons)
+
     _log_startup_phase(log, "Entering Qt event loop", startup_t0)
     rc = app.exec()
     log.info("Qt event loop exited with code %s", rc)

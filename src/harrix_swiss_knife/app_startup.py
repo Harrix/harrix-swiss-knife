@@ -63,8 +63,9 @@ if TYPE_CHECKING:
 _FAULTHANDLER_FILE: TextIO | None = None
 
 
-# Harmless Qt noise: phantom displays, QSvg from stock/Illustrator dumps, and
-# DirectWrite failing on old Windows bitmap OEM fonts (e.g. 8514oem).
+# Harmless Qt noise: phantom displays, QSvg from stock/Illustrator dumps,
+# DirectWrite failing on old Windows bitmap OEM fonts (e.g. 8514oem), and
+# Windows destroying overlay HWNDs outside Qt's WithinDestroy path.
 _QT_IGNORED_SUBSTRINGS = (
     "monitorData: Unable to obtain handle for monitor",
     "Could not resolve property:",
@@ -75,6 +76,7 @@ _QT_IGNORED_SUBSTRINGS = (
     "AUDCLNT_E_DEVICE_INVALIDATED",
     "IAudioClient3::GetCurrentPadding failed",
     "DirectWrite: CreateFontFaceFromHDC() failed",
+    "External WM_DESTROY received for",
 )
 
 
@@ -361,6 +363,8 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
             Qt.ConnectionType.QueuedConnection,
         )
 
+    app.aboutToQuit.connect(_dispose_overlay_singletons)
+
     _log_startup_phase(log, "Entering Qt event loop", startup_t0)
     rc = app.exec()
     log.info("Qt event loop exited with code %s", rc)
@@ -390,6 +394,18 @@ def show_fatal_error_dialog(text: str) -> None:
         QMessageBox.critical(None, "Harrix Swiss Knife - Error", text)
     except Exception:
         logging.getLogger(__name__).debug("Failed to show Qt error dialog.", exc_info=True)
+
+
+def _dispose_overlay_singletons() -> None:
+    """Tear down frameless overlay singletons before Qt tears down the event loop."""
+    # Lazy: overlay modules are heavy and unused unless the user opened them.
+    from harrix_swiss_knife.actions.common.quick_launcher_dialog import (  # noqa: PLC0415
+        QuickLauncherDialog,
+    )
+    from harrix_swiss_knife.apps.snippets.dialog import SnippetsDialog  # noqa: PLC0415
+
+    QuickLauncherDialog.dispose_instance()
+    SnippetsDialog.dispose_instance()
 
 
 def _enable_faulthandler(log: logging.Logger) -> None:

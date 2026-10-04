@@ -132,6 +132,7 @@ class SnippetsDialog(QDialog):
         self._ai_request_in_progress = False
         self._win11_caption = False
         self._close_button: QPushButton | None = None
+        self._allow_destroy = False
 
         apply_opaque_white(self)
         self.setObjectName("snippetsDialog")
@@ -173,10 +174,30 @@ class SnippetsDialog(QDialog):
             category="Help",
         )
 
+    def allow_destroy(self) -> None:
+        """Allow the next close to destroy this overlay instead of hiding it."""
+        self._allow_destroy = True
+
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
-        """Hide the overlay instead of destroying it."""
+        """Hide the overlay instead of destroying it, unless disposing the singleton."""
+        if self._allow_destroy:
+            event.accept()
+            super().closeEvent(event)
+            return
         event.ignore()
         self.hide()
+
+    @classmethod
+    def dispose_instance(cls) -> None:
+        """Destroy the singleton through Qt before application shutdown."""
+        dialog = cls._instance
+        cls._instance = None
+        if dialog is None or not isValid(dialog):
+            return
+        dialog.allow_destroy()
+        dialog.hide()
+        dialog.close()
+        dialog.deleteLater()
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
         """Start window drag from the title, and navigate from the shared input."""
@@ -656,8 +677,9 @@ class SnippetsDialog(QDialog):
 
         flags = _overlay_window_flags()
         if self.parentWidget() is not target_parent:
+            # setParent recreates the HWND; skip when already attached correctly.
             self.setParent(target_parent, flags)
-        else:
+        elif self.windowFlags() != flags:
             self.setWindowFlags(flags)
         self.setModal(False)
         self.setWindowModality(Qt.WindowModality.NonModal)
