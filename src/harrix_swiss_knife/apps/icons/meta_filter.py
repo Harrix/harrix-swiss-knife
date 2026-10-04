@@ -53,7 +53,7 @@ def build_variants_header_html(family: IconFamily, icons: Sequence[IconFamily]) 
     categories = [item.strip() for item in family.categories if item.strip()]
     if categories:
         lines.append(
-            '<div style="margin-top:2px;">Categories:<br/>'
+            '<div style="margin-top:2px;">Categories: '
             f"{build_meta_list_html(icons, META_KIND_CATEGORY, categories)}</div>",
         )
     else:
@@ -61,7 +61,7 @@ def build_variants_header_html(family: IconFamily, icons: Sequence[IconFamily]) 
     tags = [item.strip() for item in family.tags if item.strip()]
     if tags:
         lines.append(
-            f'<div style="margin-top:2px;">Tags:<br/>{build_meta_list_html(icons, META_KIND_TAG, tags)}</div>',
+            f'<div style="margin-top:2px;">Tags: {build_meta_list_html(icons, META_KIND_TAG, tags)}</div>',
         )
     else:
         lines.append('<div style="margin-top:2px;">Tags: —</div>')
