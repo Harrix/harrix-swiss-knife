@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import pytest
-from PySide6.QtCore import QDate
-from PySide6.QtWidgets import QApplication, QDateEdit, QPushButton, QTableView, QWidget
+from PySide6.QtCore import QDate, QEvent, QPointF, Qt
+from PySide6.QtGui import QMouseEvent
+from PySide6.QtWidgets import QApplication, QDateEdit, QLabel, QPushButton, QTableView, QWidget
 
 from harrix_swiss_knife.qt_date_calendar import (
     SoftCalendarWidget,
@@ -12,6 +13,7 @@ from harrix_swiss_knife.qt_date_calendar import (
     decade_panel_years,
     decade_start,
     install_date_calendar_popups,
+    show_date_calendar_popup,
 )
 from harrix_swiss_knife.qt_ui_effects import install_ui_effects
 
@@ -36,6 +38,12 @@ def test_apply_date_calendar_popup_replaces_widget(qapp: QApplication) -> None: 
     assert calendar.findChild(QPushButton) is not None
     labels = {button.text() for button in calendar.findChildren(QPushButton)}
     assert {"Yesterday", "Today", "+1 day", "-1 day"} <= labels
+    footer = calendar.findChild(QWidget, "hskCalendarFooter")
+    assert footer is not None
+    assert footer.height() == 36
+    icon = calendar.findChild(QLabel, "hskCalendarFooterIcon")
+    assert icon is not None
+    assert not icon.pixmap().isNull()
     # Idempotent.
     apply_date_calendar_popup(date_edit)
     assert date_edit.calendarWidget() is calendar
@@ -65,6 +73,56 @@ def test_soft_calendar_footer_presets(qapp: QApplication) -> None:  # noqa: ARG0
     calendar._go_minus_one_day()
     assert calendar.selectedDate() == yesterday
     calendar.close()
+
+
+def test_date_edit_double_click_opens_calendar(qapp: QApplication) -> None:
+    host = QWidget()
+    date_edit = QDateEdit(host)
+    date_edit.setCalendarPopup(True)
+    date_edit.setDate(QDate(2026, 6, 15))
+    host.resize(280, 40)
+    host.show()
+    date_edit.show()
+    qapp.processEvents()
+    apply_date_calendar_popup(date_edit)
+
+    line_edit = date_edit.lineEdit()
+    assert line_edit is not None
+    pos = QPointF(line_edit.width() / 2, line_edit.height() / 2)
+    double_click = QMouseEvent(
+        QEvent.Type.MouseButtonDblClick,
+        pos,
+        line_edit.mapToGlobal(pos.toPoint()),
+        Qt.MouseButton.LeftButton,
+        Qt.MouseButton.LeftButton,
+        Qt.KeyboardModifier.NoModifier,
+    )
+    QApplication.sendEvent(line_edit, double_click)
+    qapp.processEvents()
+
+    calendar = date_edit.calendarWidget()
+    assert isinstance(calendar, SoftCalendarWidget)
+    popup = calendar.parentWidget()
+    assert popup is not None
+    assert popup.isVisible()
+    host.close()
+
+
+def test_show_date_calendar_popup_opens_panel(qapp: QApplication) -> None:
+    host = QWidget()
+    date_edit = QDateEdit(host)
+    date_edit.setCalendarPopup(True)
+    host.show()
+    date_edit.show()
+    qapp.processEvents()
+    show_date_calendar_popup(date_edit)
+    qapp.processEvents()
+    calendar = date_edit.calendarWidget()
+    assert isinstance(calendar, SoftCalendarWidget)
+    popup = calendar.parentWidget()
+    assert popup is not None
+    assert popup.isVisible()
+    host.close()
 
 
 def test_soft_calendar_keeps_seven_equal_day_columns(qapp: QApplication) -> None:

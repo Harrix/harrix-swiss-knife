@@ -22,6 +22,7 @@ lang: en
 - [🔧 Function `decade_panel_years`](#-function-decade_panel_years)
 - [🔧 Function `decade_start`](#-function-decade_start)
 - [🔧 Function `install_date_calendar_popups`](#-function-install_date_calendar_popups)
+- [🔧 Function `show_date_calendar_popup`](#-function-show_date_calendar_popup)
 
 </details>
 
@@ -128,9 +129,22 @@ class SoftCalendarWidget(QCalendarWidget):
 
         footer = QWidget(self)
         footer.setObjectName("hskCalendarFooter")
+        footer.setFixedHeight(_FOOTER_HEIGHT)
         footer_layout = QHBoxLayout(footer)
-        footer_layout.setContentsMargins(4, 0, 4, 0)
+        footer_layout.setContentsMargins(8, 0, 4, 0)
         footer_layout.setSpacing(0)
+        footer_icon = QLabel(footer)
+        footer_icon.setObjectName("hskCalendarFooterIcon")
+        footer_icon.setPixmap(
+            create_lucide_icon("calendar", _NAV_ICON_SIZE, color=SELECTION_BORDER).pixmap(
+                _NAV_ICON_SIZE,
+                _NAV_ICON_SIZE,
+            )
+        )
+        footer_icon.setFixedSize(_NAV_ICON_SIZE + 4, _FOOTER_HEIGHT)
+        footer_icon.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
+        footer_icon.setStyleSheet("background: transparent; border: none;")
+        footer_layout.addWidget(footer_icon)
         footer_layout.addWidget(self._yesterday_button, stretch=1)
         footer_layout.addWidget(self._today_button, stretch=1)
         footer_layout.addWidget(self._plus_day_button, stretch=1)
@@ -340,9 +354,10 @@ class SoftCalendarWidget(QCalendarWidget):
         button = QPushButton(text, self)
         button.setCursor(Qt.CursorShape.PointingHandCursor)
         button.setFlat(True)
+        button.setFixedHeight(_FOOTER_HEIGHT)
         button.setStyleSheet(
             f"QPushButton {{ color: {SELECTION_BORDER}; border: none; background: transparent;"
-            " padding: 6px 2px; font-weight: 500; font-size: 12px; }"
+            " padding: 8px 4px; font-weight: 500; }"
             f"QPushButton:hover {{ color: {SELECTION_TEXT}; background: {SELECTION_HOVER}; }}"
         )
         button.clicked.connect(on_clicked)
@@ -453,7 +468,7 @@ class SoftCalendarWidget(QCalendarWidget):
 
     def _popup_height(self) -> int:
         # header + separators + weekday row + 6 week rows + preset footer
-        return 44 + 1 + _WEEKDAY_ROW_HEIGHT + (_CELL_SIZE * _WEEK_ROWS) + 1 + 36
+        return 44 + 1 + _WEEKDAY_ROW_HEIGHT + (_CELL_SIZE * _WEEK_ROWS) + 1 + _FOOTER_HEIGHT
 
     def _rebuild_month_cells(self) -> None:
         today = QDate.currentDate()
@@ -700,9 +715,22 @@ def __init__(self, parent: QWidget | None = None) -> None:
 
         footer = QWidget(self)
         footer.setObjectName("hskCalendarFooter")
+        footer.setFixedHeight(_FOOTER_HEIGHT)
         footer_layout = QHBoxLayout(footer)
-        footer_layout.setContentsMargins(4, 0, 4, 0)
+        footer_layout.setContentsMargins(8, 0, 4, 0)
         footer_layout.setSpacing(0)
+        footer_icon = QLabel(footer)
+        footer_icon.setObjectName("hskCalendarFooterIcon")
+        footer_icon.setPixmap(
+            create_lucide_icon("calendar", _NAV_ICON_SIZE, color=SELECTION_BORDER).pixmap(
+                _NAV_ICON_SIZE,
+                _NAV_ICON_SIZE,
+            )
+        )
+        footer_icon.setFixedSize(_NAV_ICON_SIZE + 4, _FOOTER_HEIGHT)
+        footer_icon.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
+        footer_icon.setStyleSheet("background: transparent; border: none;")
+        footer_layout.addWidget(footer_icon)
         footer_layout.addWidget(self._yesterday_button, stretch=1)
         footer_layout.addWidget(self._today_button, stretch=1)
         footer_layout.addWidget(self._plus_day_button, stretch=1)
@@ -912,16 +940,16 @@ Replace the popup calendar on `date_edit` with the soft Ant-like widget.
 
 ```python
 def apply_date_calendar_popup(date_edit: QDateEdit) -> None:
-    if date_edit.property(_PROP_APPLIED) is True:
-        return
     if not date_edit.calendarPopup():
         return
-    calendar = SoftCalendarWidget(date_edit)
-    date_edit.setCalendarWidget(calendar)
-    date_edit.setProperty(_PROP_APPLIED, True)  # noqa: FBT003
-    popup = calendar.parentWidget()
-    if popup is not None and popup.objectName() == "qt_datetimedit_calendar":
-        popup.setMinimumSize(calendar.minimumSizeHint())
+    if date_edit.property(_PROP_APPLIED) is not True:
+        calendar = SoftCalendarWidget(date_edit)
+        date_edit.setCalendarWidget(calendar)
+        date_edit.setProperty(_PROP_APPLIED, True)  # noqa: FBT003
+        popup = calendar.parentWidget()
+        if popup is not None and popup.objectName() == "qt_datetimedit_calendar":
+            popup.setMinimumSize(calendar.minimumSizeHint())
+    _install_date_edit_open_on_double_click(date_edit)
 ```
 
 </details>
@@ -985,6 +1013,60 @@ def install_date_calendar_popups(app: QApplication) -> None:
     for widget in app.allWidgets():
         if isinstance(widget, QDateEdit):
             apply_date_calendar_popup(widget)
+```
+
+</details>
+
+## 🔧 Function `show_date_calendar_popup`
+
+```python
+def show_date_calendar_popup(date_edit: QDateEdit) -> None
+```
+
+Show the `QDateEdit` calendar popup the same way as the dropdown arrow.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def show_date_calendar_popup(date_edit: QDateEdit) -> None:
+    apply_date_calendar_popup(date_edit)
+    if not date_edit.calendarPopup():
+        return
+    date_edit.setFocus(Qt.FocusReason.MouseFocusReason)
+    option = QStyleOptionSpinBox()
+    date_edit.initStyleOption(option)
+    style = date_edit.style()
+    if style is None:
+        return
+    arrow = style.subControlRect(
+        QStyle.ComplexControl.CC_SpinBox,
+        option,
+        QStyle.SubControl.SC_SpinBoxDown,
+        date_edit,
+    )
+    if arrow.isNull() or not arrow.isValid():
+        calendar = date_edit.calendarWidget()
+        popup = calendar.parentWidget() if calendar is not None else None
+        if calendar is None or popup is None:
+            return
+        popup.move(date_edit.mapToGlobal(QPoint(0, date_edit.height())))
+        popup.show()
+        calendar.show()
+        return
+    center = arrow.center()
+    local_pos = QPointF(center)
+    global_pos = date_edit.mapToGlobal(center)
+    for event_type in (QEvent.Type.MouseButtonPress, QEvent.Type.MouseButtonRelease):
+        mouse = QMouseEvent(
+            event_type,
+            local_pos,
+            global_pos,
+            Qt.MouseButton.LeftButton,
+            Qt.MouseButton.LeftButton,
+            Qt.KeyboardModifier.NoModifier,
+        )
+        QApplication.sendEvent(date_edit, mouse)
 ```
 
 </details>
