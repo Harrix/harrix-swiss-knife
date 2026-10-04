@@ -91,6 +91,24 @@ def test_soft_calendar_tracks_hover_date(qapp: QApplication) -> None:
     calendar.close()
 
 
+def test_soft_calendar_hover_matches_painted_cell(qapp: QApplication) -> None:
+    calendar = SoftCalendarWidget()
+    calendar.setCurrentPage(2026, 6)
+    calendar.setSelectedDate(QDate(2026, 6, 15))
+    calendar.show()
+    qapp.processEvents()
+    calendar._tune_grid()
+    calendar._install_hover_tracking()
+    calendar.update()
+    qapp.processEvents()
+
+    painted = [(rect, date) for rect, date in calendar._painted_cells if date == QDate(2026, 6, 10)]
+    assert painted
+    rect, date = painted[0]
+    assert calendar._date_at_viewport_pos(rect.center()) == date
+    calendar.close()
+
+
 def test_install_ui_effects_wires_calendar_popups(qapp: QApplication) -> None:
     date_edit = QDateEdit()
     date_edit.setCalendarPopup(True)

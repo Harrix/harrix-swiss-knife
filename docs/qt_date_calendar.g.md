@@ -42,6 +42,7 @@ class SoftCalendarWidget(QCalendarWidget):
         super().__init__(parent)
         self._hover_date: QDate | None = None
         self._grid_view: QTableView | None = None
+        self._painted_cells: list[tuple[QRect, QDate]] = []
 
         self.setVerticalHeaderFormat(QCalendarWidget.VerticalHeaderFormat.NoVerticalHeader)
         # Own weekday labels — QHeaderView collapses/overlaps after selection on Windows.
@@ -149,10 +150,14 @@ class SoftCalendarWidget(QCalendarWidget):
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
         """Track hovered day cells for soft-blue hover fill."""
         view = self._grid_view
-        if view is not None and watched is view.viewport():
+        viewport = view.viewport() if view is not None else None
+        if view is not None and watched is viewport:
             event_type = event.type()
-            if event_type == QEvent.Type.MouseMove and isinstance(event, QMouseEvent):
-                self._set_hover_date(self._date_at_pos(event))
+            if event_type == QEvent.Type.Paint:
+                self._painted_cells = []
+            elif event_type == QEvent.Type.MouseMove and isinstance(event, QMouseEvent):
+                pos = viewport.mapFromGlobal(event.globalPosition().toPoint())
+                self._set_hover_date(self._date_at_viewport_pos(pos))
             elif event_type == QEvent.Type.Leave:
                 self._set_hover_date(None)
         return super().eventFilter(watched, event)
@@ -163,6 +168,7 @@ class SoftCalendarWidget(QCalendarWidget):
 
     def paintCell(self, painter: QPainter, rect: QRect, date: QDate) -> None:  # noqa: N802
         """Draw Ant-like day cells: hover, outline selection, soft today, muted outsiders."""
+        self._painted_cells.append((QRect(rect), date))
         painter.save()
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
         painter.fillRect(rect, QColor("#ffffff"))
@@ -235,11 +241,14 @@ class SoftCalendarWidget(QCalendarWidget):
         offset = (first.dayOfWeek() - start_dow) % _WEEK_COLUMNS
         return first.addDays(row * _WEEK_COLUMNS + column - offset)
 
-    def _date_at_pos(self, event: QMouseEvent) -> QDate | None:
+    def _date_at_viewport_pos(self, pos: QPoint) -> QDate | None:
+        for cell_rect, date in self._painted_cells:
+            if cell_rect.contains(pos):
+                return date
         view = self._grid_view
         if view is None:
             return None
-        index = view.indexAt(event.position().toPoint())
+        index = view.indexAt(pos)
         if not index.isValid():
             return None
         return self._date_at(index.row(), index.column())
@@ -337,8 +346,11 @@ class SoftCalendarWidget(QCalendarWidget):
         vheader = view.verticalHeader()
         if header is not None:
             header.hide()
+            header.setMinimumHeight(0)
+            header.setMaximumHeight(0)
             header.setFixedHeight(0)
         if vheader is not None:
+            vheader.hide()
             vheader.setMinimumSectionSize(_CELL_SIZE)
             vheader.setDefaultSectionSize(_CELL_SIZE)
             vheader.setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
@@ -350,6 +362,8 @@ class SoftCalendarWidget(QCalendarWidget):
             h_header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
             h_header.setMinimumSectionSize(_CELL_SIZE)
             h_header.setDefaultSectionSize(_CELL_SIZE)
+        view.setViewportMargins(0, 0, 0, 0)
+        view.updateGeometries()
         view.setFixedHeight(_CELL_SIZE * _WEEK_ROWS)
 ```
 
@@ -371,6 +385,7 @@ def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._hover_date: QDate | None = None
         self._grid_view: QTableView | None = None
+        self._painted_cells: list[tuple[QRect, QDate]] = []
 
         self.setVerticalHeaderFormat(QCalendarWidget.VerticalHeaderFormat.NoVerticalHeader)
         # Own weekday labels — QHeaderView collapses/overlaps after selection on Windows.
@@ -492,10 +507,14 @@ Track hovered day cells for soft-blue hover fill.
 ```python
 def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
         view = self._grid_view
-        if view is not None and watched is view.viewport():
+        viewport = view.viewport() if view is not None else None
+        if view is not None and watched is viewport:
             event_type = event.type()
-            if event_type == QEvent.Type.MouseMove and isinstance(event, QMouseEvent):
-                self._set_hover_date(self._date_at_pos(event))
+            if event_type == QEvent.Type.Paint:
+                self._painted_cells = []
+            elif event_type == QEvent.Type.MouseMove and isinstance(event, QMouseEvent):
+                pos = viewport.mapFromGlobal(event.globalPosition().toPoint())
+                self._set_hover_date(self._date_at_viewport_pos(pos))
             elif event_type == QEvent.Type.Leave:
                 self._set_hover_date(None)
         return super().eventFilter(watched, event)
@@ -534,6 +553,7 @@ Draw Ant-like day cells: hover, outline selection, soft today, muted outsiders.
 
 ```python
 def paintCell(self, painter: QPainter, rect: QRect, date: QDate) -> None:  # noqa: N802
+        self._painted_cells.append((QRect(rect), date))
         painter.save()
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
         painter.fillRect(rect, QColor("#ffffff"))
