@@ -215,6 +215,15 @@ object LucideIcons {
         )
     }
 
+    val Edit: ImageVector by lazy {
+        lucide(
+            "pencil",
+            "M21.174 6.812a1 1 0 0 0 -3.986 -3.987l-13.346 13.349a2 2 0 0 0 -0.5 0.83l-1.321 4.352a0.5 0.5 0 0 0 " +
+                "0.623 0.622l4.353 -1.32a2 2 0 0 0 0.83 -0.497z",
+            "M15 5l4 4",
+        )
+    }
+
     val FilterAlt: ImageVector by lazy {
         lucide(
             "funnel",

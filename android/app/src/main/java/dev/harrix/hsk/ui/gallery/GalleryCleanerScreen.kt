@@ -1487,7 +1487,7 @@ private fun PhotoSecondaryActionsRow(
                 enabled = !isSavingEdit,
             ) {
                 Icon(
-                    imageVector = LucideIcons.CropRotate,
+                    imageVector = LucideIcons.Edit,
                     contentDescription =
                     stringResource(R.string.gallery_cleaner_action_edit),
                 )
