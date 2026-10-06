@@ -226,6 +226,11 @@
     <string name="movies_nav_all">Усі</string>
     <string name="movies_nav_years">Роки</string>
     <string name="movies_nav_ratings">Оцінки</string>
+    <string name="movies_sort">Сортування фільмів</string>
+    <string name="movies_sort_date">Дата перегляду</string>
+    <string name="movies_sort_title">Назва</string>
+    <string name="movies_sort_rating">Оцінка</string>
+    <string name="movies_sort_invert">Інвертувати сортування</string>
     <string name="movies_watched_once">Дивилися 1 раз</string>
     <string name="movies_watched_times">Дивилися %1$d разів</string>
     <string name="movies_last_watched">Останній перегляд: %1$s</string>

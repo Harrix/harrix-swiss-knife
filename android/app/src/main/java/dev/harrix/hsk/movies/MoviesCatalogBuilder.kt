@@ -46,6 +46,30 @@ object MoviesCatalogBuilder {
         }
     }
 
+    fun sorted(
+        titles: List<MovieTitle>,
+        field: MoviesSortField,
+        descending: Boolean,
+    ): List<MovieTitle> {
+        val titleOrder = compareBy<MovieTitle, String>(String.CASE_INSENSITIVE_ORDER) { it.title }
+        val missingLast =
+            compareBy<MovieTitle> { title ->
+                when (field) {
+                    MoviesSortField.Date -> title.latestDate.isNullOrBlank()
+                    MoviesSortField.Title -> false
+                    MoviesSortField.Rating -> title.latestRating == null
+                }
+            }
+        val valueOrder =
+            when (field) {
+                MoviesSortField.Date -> compareBy<MovieTitle> { dateSortKey(it.latestDate) }
+                MoviesSortField.Title -> titleOrder
+                MoviesSortField.Rating -> compareBy { it.latestRating ?: 0.0 }
+            }
+        val orderedValue = if (descending) valueOrder.reversed() else valueOrder
+        return titles.sortedWith(missingLast.then(orderedValue).then(titleOrder).thenBy { it.id })
+    }
+
     private fun matchesQuery(
         title: MovieTitle,
         needle: String,

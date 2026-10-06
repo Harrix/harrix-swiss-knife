@@ -13,6 +13,7 @@ import dev.harrix.hsk.movies.MoviesCatalogBuilder
 import dev.harrix.hsk.movies.MoviesNavSection
 import dev.harrix.hsk.movies.MoviesPreferences
 import dev.harrix.hsk.movies.MoviesRepository
+import dev.harrix.hsk.movies.MoviesSortField
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -46,18 +47,25 @@ class MoviesViewModel(
     val folderLabel = mutableStateOf<String?>(null)
     val errorMessage = mutableStateOf<String?>(null)
     val posters = mutableStateOf<Map<String, String>>(emptyMap())
+    val sortField = mutableStateOf(preferences.getSortField())
+    val sortDescending = mutableStateOf(preferences.isSortDescending())
 
     private var catalog = MoviesCatalog(emptyList(), emptyList(), emptyList())
     private var loadJob: Job? = null
 
     val visibleTitles: List<MovieTitle>
         get() =
-            MoviesCatalogBuilder.filter(
-                catalog = catalog,
-                query = queryText.value,
-                section = section.value,
-                year = selectedYear.value,
-                bucket = selectedRating.value,
+            MoviesCatalogBuilder.sorted(
+                titles =
+                MoviesCatalogBuilder.filter(
+                    catalog = catalog,
+                    query = queryText.value,
+                    section = section.value,
+                    year = selectedYear.value,
+                    bucket = selectedRating.value,
+                ),
+                field = sortField.value,
+                descending = sortDescending.value,
             )
 
     val years get() = catalog.years
@@ -75,6 +83,8 @@ class MoviesViewModel(
     }
 
     fun reloadFromPreferences() {
+        sortField.value = preferences.getSortField()
+        sortDescending.value = preferences.isSortDescending()
         val uri = preferences.getFolderUri()
         if (uri == null) {
             clearFolderState()
@@ -125,6 +135,17 @@ class MoviesViewModel(
     fun onRatingSelected(bucket: MovieRatingBucket) {
         selectedRating.value = bucket
         selectedMovieId.value = null
+    }
+
+    fun onSortFieldChange(field: MoviesSortField) {
+        sortField.value = field
+        preferences.setSortField(field)
+    }
+
+    fun onInvertSort() {
+        val next = !sortDescending.value
+        sortDescending.value = next
+        preferences.setSortDescending(next)
     }
 
     fun onMovieSelected(movie: MovieTitle) {

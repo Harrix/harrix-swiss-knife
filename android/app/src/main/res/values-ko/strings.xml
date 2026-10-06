@@ -226,6 +226,11 @@
     <string name="movies_nav_all">All</string>
     <string name="movies_nav_years">Years</string>
     <string name="movies_nav_ratings">Ratings</string>
+    <string name="movies_sort">영화 정렬</string>
+    <string name="movies_sort_date">시청일</string>
+    <string name="movies_sort_title">제목</string>
+    <string name="movies_sort_rating">평점</string>
+    <string name="movies_sort_invert">정렬 순서 반전</string>
     <string name="movies_watched_once">Watched once</string>
     <string name="movies_watched_times">Watched %1$d times</string>
     <string name="movies_last_watched">Last watched: %1$s</string>

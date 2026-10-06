@@ -75,6 +75,12 @@ enum class MoviesNavSection {
     Ratings,
 }
 
+enum class MoviesSortField {
+    Date,
+    Title,
+    Rating,
+}
+
 data class MoviesYearGroup(
     val label: String,
     val count: Int,

@@ -35,10 +35,32 @@ class MoviesPreferences(
 
     fun resetSettingsToDefaults() {
         clearFolderUri()
+        prefs
+            .edit()
+            .remove(KEY_SORT_FIELD)
+            .remove(KEY_SORT_DESCENDING)
+            .apply()
+    }
+
+    fun getSortField(): MoviesSortField {
+        val stored = prefs.getString(KEY_SORT_FIELD, null)
+        return MoviesSortField.entries.firstOrNull { it.name == stored } ?: MoviesSortField.Date
+    }
+
+    fun setSortField(field: MoviesSortField) {
+        prefs.edit().putString(KEY_SORT_FIELD, field.name).apply()
+    }
+
+    fun isSortDescending(): Boolean = prefs.getBoolean(KEY_SORT_DESCENDING, true)
+
+    fun setSortDescending(descending: Boolean) {
+        prefs.edit().putBoolean(KEY_SORT_DESCENDING, descending).apply()
     }
 
     companion object {
         private const val PREFS_NAME = "movies"
         private const val KEY_FOLDER_URI = "folder_uri"
+        private const val KEY_SORT_FIELD = "sort_field"
+        private const val KEY_SORT_DESCENDING = "sort_descending"
     }
 }

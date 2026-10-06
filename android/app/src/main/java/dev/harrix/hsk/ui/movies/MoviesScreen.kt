@@ -29,6 +29,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -45,7 +46,10 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -68,8 +72,10 @@ import dev.harrix.hsk.movies.MovieWatch
 import dev.harrix.hsk.movies.MoviesMarkdownParser
 import dev.harrix.hsk.movies.MoviesNavSection
 import dev.harrix.hsk.movies.MoviesRatingGroup
+import dev.harrix.hsk.movies.MoviesSortField
 import dev.harrix.hsk.movies.MoviesYearGroup
 import dev.harrix.hsk.ui.AutoFitText
+import dev.harrix.hsk.ui.HskDropdownMenuItem
 import dev.harrix.hsk.ui.adaptiveContentWidth
 import dev.harrix.hsk.ui.icons.LucideIcons
 import dev.harrix.hsk.ui.theme.HskTopAppBarHeight
@@ -96,6 +102,8 @@ fun MoviesScreen(
     val folderLabel by viewModel.folderLabel
     val errorMessage by viewModel.errorMessage
     val posters by viewModel.posters
+    val sortField by viewModel.sortField
+    val sortDescending by viewModel.sortDescending
     val selectedMovie = viewModel.selectedMovie
     val titles = viewModel.visibleTitles
     val years = viewModel.years
@@ -183,6 +191,12 @@ fun MoviesScreen(
                 },
                 actions = {
                     if (selectedMovie == null) {
+                        MoviesSortActions(
+                            sortField = sortField,
+                            sortDescending = sortDescending,
+                            onSortFieldChange = viewModel::onSortFieldChange,
+                            onInvertSort = viewModel::onInvertSort,
+                        )
                         IconButton(onClick = onOpenSettings) {
                             Icon(
                                 imageVector = LucideIcons.Settings,
@@ -272,6 +286,80 @@ fun MoviesScreen(
             }
         }
     }
+}
+
+@Composable
+private fun MoviesSortActions(
+    sortField: MoviesSortField,
+    sortDescending: Boolean,
+    onSortFieldChange: (MoviesSortField) -> Unit,
+    onInvertSort: () -> Unit,
+) {
+    var menuExpanded by remember { mutableStateOf(false) }
+    Row {
+        Box {
+            IconButton(onClick = { menuExpanded = true }) {
+                Icon(
+                    imageVector = sortFieldIcon(sortField),
+                    contentDescription = stringResource(R.string.movies_sort),
+                )
+            }
+            DropdownMenu(
+                expanded = menuExpanded,
+                onDismissRequest = { menuExpanded = false },
+            ) {
+                MoviesSortField.entries.forEach { field ->
+                    HskDropdownMenuItem(
+                        text = { AutoFitText(text = stringResource(sortFieldLabel(field)), maxLines = 1) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = sortFieldIcon(field),
+                                contentDescription = null,
+                            )
+                        },
+                        trailingIcon =
+                        if (field == sortField) {
+                            {
+                                Icon(
+                                    imageVector = LucideIcons.Done,
+                                    contentDescription = null,
+                                )
+                            }
+                        } else {
+                            null
+                        },
+                        onClick = {
+                            onSortFieldChange(field)
+                            menuExpanded = false
+                        },
+                    )
+                }
+            }
+        }
+        IconButton(onClick = onInvertSort) {
+            Icon(
+                imageVector =
+                if (sortDescending) {
+                    LucideIcons.ArrowDownward
+                } else {
+                    LucideIcons.ArrowUpward
+                },
+                contentDescription = stringResource(R.string.movies_sort_invert),
+            )
+        }
+    }
+}
+
+private fun sortFieldIcon(field: MoviesSortField) = when (field) {
+    MoviesSortField.Date -> LucideIcons.CalendarMonth
+    MoviesSortField.Title -> LucideIcons.ShortText
+    MoviesSortField.Rating -> LucideIcons.Star
+}
+
+private fun sortFieldLabel(field: MoviesSortField): Int = when (field) {
+    MoviesSortField.Date -> R.string.movies_sort_date
+    MoviesSortField.Title -> R.string.movies_sort_title
+    MoviesSortField.Rating -> R.string.movies_sort_rating
 }
 
 @Composable

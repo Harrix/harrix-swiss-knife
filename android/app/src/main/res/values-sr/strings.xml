@@ -226,6 +226,11 @@
     <string name="movies_nav_all">All</string>
     <string name="movies_nav_years">Years</string>
     <string name="movies_nav_ratings">Ratings</string>
+    <string name="movies_sort">Сортирај филмове</string>
+    <string name="movies_sort_date">Датум гледања</string>
+    <string name="movies_sort_title">Наслов</string>
+    <string name="movies_sort_rating">Оцена</string>
+    <string name="movies_sort_invert">Обрни сортирање</string>
     <string name="movies_watched_once">Watched once</string>
     <string name="movies_watched_times">Watched %1$d times</string>
     <string name="movies_last_watched">Last watched: %1$s</string>
