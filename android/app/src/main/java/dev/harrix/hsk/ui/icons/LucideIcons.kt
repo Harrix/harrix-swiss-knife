@@ -592,9 +592,8 @@ object LucideIcons {
 
     val Stop: ImageVector by lazy {
         lucide(
-            "square-stop",
+            "square",
             "M5 3H19A2 2 0 0 1 21 5V19A2 2 0 0 1 19 21H5A2 2 0 0 1 3 19V5A2 2 0 0 1 5 3Z",
-            "M10 9H14A1 1 0 0 1 15 10V14A1 1 0 0 1 14 15H10A1 1 0 0 1 9 14V10A1 1 0 0 1 10 9Z",
         )
     }
 
