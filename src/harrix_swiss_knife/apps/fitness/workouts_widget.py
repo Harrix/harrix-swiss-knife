@@ -62,7 +62,6 @@ from harrix_swiss_knife.qt_flat_scrollbar import with_flat_scrollbars
 from harrix_swiss_knife.qt_lucide_icon import (
     apply_leading_chrome_icons,
     apply_lucide_button_icon,
-    create_lucide_icon,
 )
 
 if TYPE_CHECKING:
@@ -442,20 +441,20 @@ class WorkoutsWidget(QWidget):
         self.label_title.setFont(title_font)
         title_row.addWidget(self.label_title, 1)
         self.button_add_exercise = QPushButton("Add exercise")
-        self.button_add_exercise.setIcon(create_lucide_icon("dumbbell"))
         self.button_add_exercise.setMinimumHeight(41)
         self.button_add_exercise.setMinimumWidth(150)
         self.button_add_exercise.setFont(standard_bold_font)
         self.button_add_exercise.setStyleSheet(_GREY_BUTTON_STYLE)
+        apply_lucide_button_icon(self.button_add_exercise, "dumbbell")
         self.button_add_exercise.setToolTip("Add one or more exercises from the Select Exercise dialog")
         self.button_add_exercise.clicked.connect(self._request_add_exercise)
         title_row.addWidget(self.button_add_exercise)
         self.button_start = QPushButton("Start")
-        self.button_start.setIcon(create_lucide_icon("play"))
         self.button_start.setMinimumHeight(41)
         self.button_start.setMinimumWidth(120)
         self.button_start.setFont(standard_bold_font)
         self.button_start.setStyleSheet(_GREEN_BUTTON_STYLE)
+        apply_lucide_button_icon(self.button_start, "play")
         self.button_start.clicked.connect(self._start_workout_session)
         title_row.addWidget(self.button_start)
         right_layout.addLayout(title_row)
