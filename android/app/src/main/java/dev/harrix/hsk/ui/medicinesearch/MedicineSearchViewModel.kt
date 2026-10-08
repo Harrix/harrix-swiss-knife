@@ -56,6 +56,7 @@ class MedicineSearchViewModel(
     private var searchJob: Job? = null
 
     init {
+        queryText.value = queryPrefix()
         reloadFromPreferences()
     }
 
@@ -64,12 +65,14 @@ class MedicineSearchViewModel(
     }
 
     fun onQueryChange(value: String) {
-        queryText.value = value
+        queryText.value = withQueryPrefix(value)
     }
 
     fun onFollowUpChange(value: String) {
         followUpText.value = value
     }
+
+    fun hasAskableInput(): Boolean = hasMeaningfulQuery(queryText.value) || attachedPhotos.value.isNotEmpty()
 
     fun addPhotos(uris: List<Uri>) {
         if (uris.isEmpty()) {
@@ -137,7 +140,7 @@ class MedicineSearchViewModel(
     fun search() {
         val query = queryText.value.trim()
         val photos = attachedPhotos.value
-        if ((query.isEmpty() && photos.isEmpty()) || isBusy()) {
+        if ((!hasMeaningfulQuery(query) && photos.isEmpty()) || isBusy()) {
             return
         }
         startSearch(
@@ -167,7 +170,7 @@ class MedicineSearchViewModel(
         searchJob = null
         fileJob?.cancel()
         fileJob = null
-        queryText.value = ""
+        queryText.value = queryPrefix()
         followUpText.value = ""
         attachedPhotos.value = emptyList()
         conversation.value = emptyList()
@@ -176,6 +179,27 @@ class MedicineSearchViewModel(
         errorMessage.value = null
         phase.value = MedicineSearchPhase.Idle
         reloadFromPreferences()
+    }
+
+    private fun queryPrefix(): String = getApplication<Application>().getString(R.string.medicine_search_query_prefix)
+
+    private fun withQueryPrefix(value: String): String {
+        val prefix = queryPrefix()
+        if (value.startsWith(prefix)) {
+            return value
+        }
+        if (prefix.startsWith(value)) {
+            return prefix
+        }
+        return prefix + value
+    }
+
+    private fun hasMeaningfulQuery(query: String): Boolean {
+        val trimmed = query.trim()
+        if (trimmed.isEmpty()) {
+            return false
+        }
+        return trimmed != queryPrefix().trim()
     }
 
     private fun startSearch(

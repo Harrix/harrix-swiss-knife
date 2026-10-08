@@ -177,7 +177,8 @@
     <string name="medicine_search_open_with">Адкрыць файл з лекамі</string>
     <string name="medicine_search_open_failed">Не атрымалася адкрыць файл з лекамі</string>
     <string name="medicine_search_query_label">Вопрос</string>
-    <string name="medicine_search_query_hint">У меня болит голова, что из лекарств принять?</string>
+    <string name="medicine_search_query_prefix">У мяне баліць </string>
+    <string name="medicine_search_query_hint">галава, што з лекаў прыняць?</string>
     <string name="medicine_search_add_photo">Добавить фото</string>
     <string name="medicine_search_choose_gallery">Выбрать из галереи</string>
     <string name="medicine_search_take_photo">Сделать фото</string>

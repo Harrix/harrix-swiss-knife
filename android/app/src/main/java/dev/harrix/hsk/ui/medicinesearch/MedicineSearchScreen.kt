@@ -124,10 +124,7 @@ fun MedicineSearchScreen(
     val isLoadingFile = phase == MedicineSearchPhase.LoadingFile
     val busy = isSearching || isLoadingFile
     val showResult = resultText.isNotBlank() || conversation.isNotEmpty()
-    val canAsk =
-        hasApiKey &&
-            !busy &&
-            (queryText.isNotBlank() || attachedPhotos.isNotEmpty())
+    val canAsk = hasApiKey && !busy && viewModel.hasAskableInput()
     val canFollowUp = hasApiKey && !busy && followUpText.isNotBlank() && conversation.isNotEmpty()
 
     fun leave() {

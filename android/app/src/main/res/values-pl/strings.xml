@@ -177,6 +177,7 @@
     <string name="medicine_search_open_with">Open medicines file</string>
     <string name="medicine_search_open_failed">Could not open medicines file</string>
     <string name="medicine_search_query_label">Question</string>
+    <string name="medicine_search_query_prefix">I have a pain in </string>
     <string name="medicine_search_query_hint">I have a headache. What from my medicines can I take?</string>
     <string name="medicine_search_add_photo">Add photo</string>
     <string name="medicine_search_choose_gallery">Choose from gallery</string>
