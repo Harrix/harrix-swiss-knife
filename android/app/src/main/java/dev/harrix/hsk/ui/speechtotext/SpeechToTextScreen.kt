@@ -421,7 +421,7 @@ fun SpeechToTextScreen(
                         saveTargetId = null
                         saveAudioLauncher.launch(viewModel.suggestedAudioFileName())
                     },
-                    onDiscard = { viewModel.discardDraft() },
+                    onDelete = { viewModel.discardDraft() },
                 )
             }
         }
@@ -843,7 +843,7 @@ private fun ComposerBar(
     onRecognize: () -> Unit,
     onRecordNew: () -> Unit,
     onSaveDraft: () -> Unit,
-    onDiscard: () -> Unit,
+    onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -992,9 +992,9 @@ private fun ComposerBar(
                             enabled = !busy,
                         )
                         CompactBottomActionButton(
-                            onClick = onDiscard,
+                            onClick = onDelete,
                             icon = LucideIcons.Delete,
-                            label = stringResource(R.string.speech_to_text_discard_recording),
+                            label = stringResource(R.string.speech_to_text_swipe_delete),
                             outlined = true,
                             enabled = !busy,
                         )

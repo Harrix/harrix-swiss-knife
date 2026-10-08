@@ -287,7 +287,6 @@
     <string name="speech_to_text_continue">Continue</string>
     <string name="speech_to_text_rerecord">Re-record</string>
     <string name="speech_to_text_recognize">Recognize</string>
-    <string name="speech_to_text_discard_recording">Discard</string>
     <string name="speech_to_text_save_audio">Save audio</string>
     <string name="speech_to_text_audio_saved">Audio saved</string>
     <string name="speech_to_text_save_audio_failed">Could not save audio</string>

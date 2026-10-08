@@ -286,7 +286,6 @@
     <string name="speech_to_text_continue">Continue</string>
     <string name="speech_to_text_rerecord">Re-record</string>
     <string name="speech_to_text_recognize">Recognize</string>
-    <string name="speech_to_text_discard_recording">Discard</string>
     <string name="speech_to_text_save_audio">حفظ الصوت</string>
     <string name="speech_to_text_audio_saved">تم حفظ الصوت</string>
     <string name="speech_to_text_save_audio_failed">تعذر حفظ الصوت</string>

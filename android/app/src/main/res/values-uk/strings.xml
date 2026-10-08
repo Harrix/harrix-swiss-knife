@@ -286,7 +286,6 @@
     <string name="speech_to_text_continue">Продовжити</string>
     <string name="speech_to_text_rerecord">Перезаписати</string>
     <string name="speech_to_text_recognize">Розпізнати</string>
-    <string name="speech_to_text_discard_recording">Скасувати</string>
     <string name="speech_to_text_save_audio">Зберегти аудіо</string>
     <string name="speech_to_text_audio_saved">Аудіозапис збережено</string>
     <string name="speech_to_text_save_audio_failed">Не вдалося зберегти аудіозапис</string>
