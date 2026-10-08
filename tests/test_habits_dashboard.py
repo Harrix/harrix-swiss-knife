@@ -427,6 +427,25 @@ def test_check_circle_future_date_not_editable(qapp: QApplication) -> None:
     assert received == [True]
 
 
+def test_check_circle_middle_click_sets_not_done(qapp: QApplication) -> None:
+    """Middle-click on an editable day circle sets Not done without the picker."""
+    assert qapp is not None
+    circle = CheckCircle()
+    values: list[object] = []
+    clicks: list[bool] = []
+    circle.value_set.connect(values.append)
+    circle.clicked.connect(lambda: clicks.append(True))
+
+    QTest.mouseClick(circle, Qt.MouseButton.MiddleButton)
+    assert values == [0]
+    assert clicks == []
+
+    circle.set_editable(editable=False)
+    values.clear()
+    QTest.mouseClick(circle, Qt.MouseButton.MiddleButton)
+    assert values == []
+
+
 def test_month_calendar_blocks_future_dates(qapp: QApplication) -> None:
     """Future month days are not editable and the next-month button stops at today."""
     assert qapp is not None

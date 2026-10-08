@@ -170,9 +170,21 @@ class CheckCircle(QWidget):
         super().leaveEvent(event)
 
     def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        """Emit clicked on left press when the day is editable."""
-        if event.button() == Qt.MouseButton.LeftButton and self._editable:
+        """Left click toggles; middle click sets Not done without opening the picker."""
+        if not self._editable:
+            super().mousePressEvent(event)
+            return
+        if event.button() == Qt.MouseButton.LeftButton:
             self.clicked.emit()
+            super().mousePressEvent(event)
+            return
+        if event.button() == Qt.MouseButton.MiddleButton:
+            from harrix_swiss_knife.apps.habits.habit_day_picker import HabitDayPickerPopup  # noqa: PLC0415
+
+            HabitDayPickerPopup.hide_active()
+            self.value_set.emit(0)
+            event.accept()
+            return
         super().mousePressEvent(event)
 
     def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
@@ -460,15 +472,27 @@ def leaveEvent(self, event: QEvent) -> None:  # noqa: N802
 def mousePressEvent(self, event: QMouseEvent) -> None
 ```
 
-Emit clicked on left press when the day is editable.
+Left click toggles; middle click sets Not done without opening the picker.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        if event.button() == Qt.MouseButton.LeftButton and self._editable:
+        if not self._editable:
+            super().mousePressEvent(event)
+            return
+        if event.button() == Qt.MouseButton.LeftButton:
             self.clicked.emit()
+            super().mousePressEvent(event)
+            return
+        if event.button() == Qt.MouseButton.MiddleButton:
+            from harrix_swiss_knife.apps.habits.habit_day_picker import HabitDayPickerPopup  # noqa: PLC0415
+
+            HabitDayPickerPopup.hide_active()
+            self.value_set.emit(0)
+            event.accept()
+            return
         super().mousePressEvent(event)
 ```
 
