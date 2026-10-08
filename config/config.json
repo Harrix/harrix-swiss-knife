@@ -453,5 +453,6 @@
     "weight_kg": 87.9,
     "activity": "moderate",
     "want_to_lose_weight": true
-  }
+  },
+  "habits_sport_habit_name": "Sport"
 }

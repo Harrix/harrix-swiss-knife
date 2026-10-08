@@ -202,21 +202,20 @@ def get_habits_sport_habit_name(
     *,
     config_path: str | None = None,
 ) -> str:
-    """Return the sport habit name from `config-temp.json`.
+    """Return the sport habit name from `config.json`.
 
-    When `config` includes the key (tests or leftover `config.json`), that
-    value wins — including an empty string — so callers stay isolated from
-    the machine temp file. Otherwise the name is read from temp, then from
-    `config.json`.
+    When `config` includes the key (tests or an in-memory app config), that
+    value wins — including an empty string. Otherwise the name is read from
+    `config.json`, then from a leftover `config-temp.json` entry.
 
     """
     if config is not None and HABITS_SPORT_HABIT_NAME_KEY in config:
         return str(config.get(HABITS_SPORT_HABIT_NAME_KEY) or "").strip()
     path = config_path or get_config_path_str()
-    name = _read_config_key(path, HABITS_SPORT_HABIT_NAME_KEY, is_temp=True)
+    name = _read_config_key(path, HABITS_SPORT_HABIT_NAME_KEY, is_temp=False)
     if name:
         return name
-    return _read_config_key(path, HABITS_SPORT_HABIT_NAME_KEY, is_temp=False)
+    return _read_config_key(path, HABITS_SPORT_HABIT_NAME_KEY, is_temp=True)
 
 
 def get_habits_sport_lookback_days(config: dict[str, Any]) -> int:
@@ -318,9 +317,10 @@ def set_habits_sport_habit_name(
     config: dict[str, Any] | None = None,
     config_path: str | None = None,
 ) -> None:
-    """Write the sport habit name into `config-temp.json`.
+    """Write the sport habit name into `config.json`.
 
-    Also removes a leftover copy from `config.json` when present.
+    Also removes a leftover copy from `config-temp.json` when present so the
+    assignment survives temp-file resets.
 
     Args:
 
@@ -331,19 +331,10 @@ def set_habits_sport_habit_name(
     """
     value = str(name or "").strip()
     path_str = config_path or get_config_path_str()
-    _ensure_temp_config_file(path_str)
-    h.dev.config_update_value(HABITS_SPORT_HABIT_NAME_KEY, value, path_str, is_temp=True)
-    _strip_key_from_config_file(path_str, HABITS_SPORT_HABIT_NAME_KEY)
+    h.dev.config_update_value(HABITS_SPORT_HABIT_NAME_KEY, value, path_str, is_temp=False)
+    _strip_key_from_temp_config_file(path_str, HABITS_SPORT_HABIT_NAME_KEY)
     if config is not None:
         config[HABITS_SPORT_HABIT_NAME_KEY] = value
-
-
-def _ensure_temp_config_file(config_path: str) -> None:
-    """Create an empty sibling `*-temp.json` when the temp config is missing."""
-    temp_path = _sibling_temp_config_path(config_path)
-    temp_path.parent.mkdir(parents=True, exist_ok=True)
-    if not temp_path.exists() or temp_path.stat().st_size == 0:
-        temp_path.write_text("{}", encoding="utf-8")
 
 
 def _read_config_key(config_path: str, key: str, *, is_temp: bool) -> str:
@@ -371,9 +362,8 @@ def _sibling_temp_config_path(config_path: str) -> Path:
     return path.with_name(f"{path.stem}-temp{path.suffix}")
 
 
-def _strip_key_from_config_file(config_path: str, key: str) -> None:
-    """Remove `key` from the main config file when it is present."""
-    path = _resolve_config_file(config_path)
+def _strip_key_from_json_file(path: Path, key: str) -> None:
+    """Remove `key` from a JSON object file when present."""
     if not path.is_file():
         return
     try:
@@ -385,3 +375,8 @@ def _strip_key_from_config_file(config_path: str, key: str) -> None:
         return
     del data[key]
     path.write_text(h.dev.dumps_pretty_json(data), encoding="utf-8")
+
+
+def _strip_key_from_temp_config_file(config_path: str, key: str) -> None:
+    """Remove `key` from the sibling temp config when it is present."""
+    _strip_key_from_json_file(_sibling_temp_config_path(config_path), key)

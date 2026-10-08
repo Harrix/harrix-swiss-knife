@@ -197,21 +197,29 @@ def test_habits_sport_config_helpers(tmp_path: Path) -> None:
         json.dumps({"editor": "cursor", HABITS_SPORT_HABIT_NAME_KEY: "Old"}),
         encoding="utf-8",
     )
+    (tmp_path / "config-temp.json").write_text(
+        json.dumps({HABITS_SPORT_HABIT_NAME_KEY: "TempOnly"}),
+        encoding="utf-8",
+    )
     live: dict[str, Any] = {}
     set_habits_sport_habit_name("Sport", config=live, config_path=str(path))
     written = json.loads(path.read_text(encoding="utf-8"))
-    assert HABITS_SPORT_HABIT_NAME_KEY not in written
+    assert written[HABITS_SPORT_HABIT_NAME_KEY] == "Sport"
     assert written["editor"] == "cursor"
     temp = json.loads((tmp_path / "config-temp.json").read_text(encoding="utf-8"))
-    assert temp[HABITS_SPORT_HABIT_NAME_KEY] == "Sport"
+    assert HABITS_SPORT_HABIT_NAME_KEY not in temp
     assert live[HABITS_SPORT_HABIT_NAME_KEY] == "Sport"
     assert get_habits_sport_habit_name(live) == "Sport"
     assert get_habits_sport_habit_name(config_path=str(path)) == "Sport"
 
 
-def test_habits_sport_habit_name_falls_back_to_main_config(tmp_path: Path) -> None:
+def test_habits_sport_habit_name_falls_back_to_temp_config(tmp_path: Path) -> None:
     path = tmp_path / "config.json"
-    path.write_text(json.dumps({HABITS_SPORT_HABIT_NAME_KEY: "Walk"}), encoding="utf-8")
+    path.write_text(json.dumps({}), encoding="utf-8")
+    (tmp_path / "config-temp.json").write_text(
+        json.dumps({HABITS_SPORT_HABIT_NAME_KEY: "Walk"}),
+        encoding="utf-8",
+    )
     assert get_habits_sport_habit_name(config_path=str(path)) == "Walk"
 
 

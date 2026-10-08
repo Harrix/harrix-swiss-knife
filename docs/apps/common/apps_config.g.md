@@ -311,12 +311,11 @@ def get_apps_local_language_display_name(config: dict[str, Any]) -> str:
 def get_habits_sport_habit_name(config: dict[str, Any] | None = None, *, config_path: str | None = None) -> str
 ```
 
-Return the sport habit name from `config-temp.json`.
+Return the sport habit name from `config.json`.
 
-When [`config`](../../actions/common/base.g.md#%EF%B8%8F-method-config-property) includes the key (tests or leftover `config.json`), that
-value wins — including an empty string — so callers stay isolated from
-the machine temp file. Otherwise the name is read from temp, then from
-`config.json`.
+When [`config`](../../actions/common/base.g.md#%EF%B8%8F-method-config-property) includes the key (tests or an in-memory app config), that
+value wins — including an empty string. Otherwise the name is read from
+`config.json`, then from a leftover `config-temp.json` entry.
 
 <details>
 <summary>Code:</summary>
@@ -330,10 +329,10 @@ def get_habits_sport_habit_name(
     if config is not None and HABITS_SPORT_HABIT_NAME_KEY in config:
         return str(config.get(HABITS_SPORT_HABIT_NAME_KEY) or "").strip()
     path = config_path or get_config_path_str()
-    name = _read_config_key(path, HABITS_SPORT_HABIT_NAME_KEY, is_temp=True)
+    name = _read_config_key(path, HABITS_SPORT_HABIT_NAME_KEY, is_temp=False)
     if name:
         return name
-    return _read_config_key(path, HABITS_SPORT_HABIT_NAME_KEY, is_temp=False)
+    return _read_config_key(path, HABITS_SPORT_HABIT_NAME_KEY, is_temp=True)
 ```
 
 </details>
@@ -472,9 +471,10 @@ def set_apps_fitness_workout_gender(
 def set_habits_sport_habit_name(name: str, *, config: dict[str, Any] | None = None, config_path: str | None = None) -> None
 ```
 
-Write the sport habit name into `config-temp.json`.
+Write the sport habit name into `config.json`.
 
-Also removes a leftover copy from `config.json` when present.
+Also removes a leftover copy from `config-temp.json` when present so the
+assignment survives temp-file resets.
 
 Args:
 
@@ -494,9 +494,8 @@ def set_habits_sport_habit_name(
 ) -> None:
     value = str(name or "").strip()
     path_str = config_path or get_config_path_str()
-    _ensure_temp_config_file(path_str)
-    h.dev.config_update_value(HABITS_SPORT_HABIT_NAME_KEY, value, path_str, is_temp=True)
-    _strip_key_from_config_file(path_str, HABITS_SPORT_HABIT_NAME_KEY)
+    h.dev.config_update_value(HABITS_SPORT_HABIT_NAME_KEY, value, path_str, is_temp=False)
+    _strip_key_from_temp_config_file(path_str, HABITS_SPORT_HABIT_NAME_KEY)
     if config is not None:
         config[HABITS_SPORT_HABIT_NAME_KEY] = value
 ```
