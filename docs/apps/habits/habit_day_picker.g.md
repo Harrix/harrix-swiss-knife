@@ -22,6 +22,7 @@ lang: en
   - [⚙️ Method `cancel_reposition`](#%EF%B8%8F-method-cancel_reposition)
   - [⚙️ Method `choices`](#%EF%B8%8F-method-choices)
   - [⚙️ Method `enterEvent`](#%EF%B8%8F-method-enterevent)
+  - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
   - [⚙️ Method `hide_active (classmethod)`](#%EF%B8%8F-method-hide_active-classmethod)
   - [⚙️ Method `is_attached_to`](#%EF%B8%8F-method-is_attached_to)
   - [⚙️ Method `leaveEvent`](#%EF%B8%8F-method-leaveevent)
@@ -38,6 +39,7 @@ lang: en
 - [🔧 Function `habit_day_choice_caption`](#-function-habit_day_choice_caption)
 - [🔧 Function `habit_day_choices`](#-function-habit_day_choices)
 - [🔧 Function `habit_picker_date_parts`](#-function-habit_picker_date_parts)
+- [🔧 Function `is_not_done_hotkey`](#-function-is_not_done_hotkey)
 - [🔧 Function `pointer_is_over_widget`](#-function-pointer_is_over_widget)
 
 </details>
@@ -189,6 +191,7 @@ Speech-bubble picker shown above a dashboard day circle.
 class HabitDayPickerPopup(QWidget):
 
     _hide_timer: QTimer | None = None
+    _hotkey_filter_installed = False
     _instance: HabitDayPickerPopup | None = None
     _pending: CheckCircle | None = None
     _show_timer: QTimer | None = None
@@ -263,11 +266,18 @@ class HabitDayPickerPopup(QWidget):
         self.request_keep()
         super().enterEvent(event)
 
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
+        """Apply Not done when X or Cyrillic che is pressed while the panel is open."""
+        if event.type() == QEvent.Type.KeyPress and isinstance(event, QKeyEvent) and self._try_not_done_hotkey(event):
+            return True
+        return super().eventFilter(watched, event)
+
     @classmethod
     def hide_active(cls) -> None:
         """Hide the open picker immediately."""
         cls._cancel_timers()
         cls._set_pending(None)
+        cls._set_hotkey_filter_enabled(enabled=False)
         if cls._instance is not None:
             cls._instance.cancel_reposition()
             cls._instance.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, on=True)
@@ -349,6 +359,7 @@ class HabitDayPickerPopup(QWidget):
         cls._instance.show()
         cls._instance.raise_()
         cls._instance.refresh_geometry()
+        cls._set_hotkey_filter_enabled(enabled=True)
         return cls._instance
 
     def _anchor_edges(self) -> tuple[int, int, int]:
@@ -405,6 +416,10 @@ class HabitDayPickerPopup(QWidget):
             cls._show_timer.stop()
         if cls._hide_timer is not None:
             cls._hide_timer.stop()
+
+    def _choices_page_is_active(self) -> bool:
+        """Return whether the day-state circles (not the number stepper) are shown."""
+        return self.isVisible() and self._choices_page.isVisible() and not self._stepper.isVisible()
 
     def _clear_layout(self, layout: QLayout) -> None:
         while layout.count():
@@ -512,6 +527,20 @@ class HabitDayPickerPopup(QWidget):
         """Reposition after Qt finishes layout of the just-shown bubble."""
         self._reposition_timer.start(0)
 
+    @classmethod
+    def _set_hotkey_filter_enabled(cls, *, enabled: bool) -> None:
+        """Install or remove the app-wide X / Cyrillic-che Not done filter."""
+        app = QApplication.instance()
+        if app is None or cls._instance is None:
+            return
+        if enabled == cls._hotkey_filter_installed:
+            return
+        if enabled:
+            app.installEventFilter(cls._instance)
+        else:
+            app.removeEventFilter(cls._instance)
+        cls._hotkey_filter_installed = enabled
+
     def _set_panel_margins(self, *, triangle_on_top: bool) -> None:
         extra = _TRIANGLE_HEIGHT
         if triangle_on_top:
@@ -573,6 +602,13 @@ class HabitDayPickerPopup(QWidget):
             self._content_row.addWidget(page, 0, Qt.AlignmentFlag.AlignCenter)
         page.show()
         self._fit_to_content()
+
+    def _try_not_done_hotkey(self, event: QKeyEvent) -> bool:
+        """Set Not done and close when X or Cyrillic che is pressed on choices."""
+        if not self._choices_page_is_active() or not is_not_done_hotkey(event):
+            return False
+        self._apply_choice(_NOT_DONE_VALUE)
+        return True
 
     def _update_date_labels(self) -> None:
         day = self._anchor.day() if self._anchor is not None else None
@@ -757,6 +793,26 @@ def enterEvent(self, event: QEnterEvent) -> None:  # noqa: N802
 
 </details>
 
+### ⚙️ Method `eventFilter`
+
+```python
+def eventFilter(self, watched: QObject, event: QEvent) -> bool
+```
+
+Apply Not done when X or Cyrillic che is pressed while the panel is open.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
+        if event.type() == QEvent.Type.KeyPress and isinstance(event, QKeyEvent) and self._try_not_done_hotkey(event):
+            return True
+        return super().eventFilter(watched, event)
+```
+
+</details>
+
 ### ⚙️ Method `hide_active (classmethod)`
 
 ```python
@@ -772,6 +828,7 @@ Hide the open picker immediately.
 def hide_active(cls) -> None:
         cls._cancel_timers()
         cls._set_pending(None)
+        cls._set_hotkey_filter_enabled(enabled=False)
         if cls._instance is not None:
             cls._instance.cancel_reposition()
             cls._instance.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, on=True)
@@ -975,6 +1032,7 @@ def show_for(cls, circle: CheckCircle) -> HabitDayPickerPopup:
         cls._instance.show()
         cls._instance.raise_()
         cls._instance.refresh_geometry()
+        cls._set_hotkey_filter_enabled(enabled=True)
         return cls._instance
 ```
 
@@ -1247,6 +1305,29 @@ Return compact ``DD.MM`` and English weekday for the hover picker.
 ```python
 def habit_picker_date_parts(day: date) -> tuple[str, str]:
     return (f"{day.day:02d}.{day.month:02d}", weekday_short(day.weekday()))
+```
+
+</details>
+
+## 🔧 Function `is_not_done_hotkey`
+
+```python
+def is_not_done_hotkey(event: QKeyEvent) -> bool
+```
+
+Return whether ``event`` is Latin X or Cyrillic che without Ctrl/Alt/Meta.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def is_not_done_hotkey(event: QKeyEvent) -> bool:
+    if event.modifiers() & _HOTKEY_BLOCKING_MODIFIERS:
+        return False
+    text = event.text().casefold()
+    if text in _NOT_DONE_HOTKEY_CHARS:
+        return True
+    return event.key() == Qt.Key.Key_X
 ```
 
 </details>

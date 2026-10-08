@@ -7,8 +7,16 @@ from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import QPoint, QRectF, Qt
-from PySide6.QtGui import QContextMenuEvent, QCursor, QImage, QPainter, QStandardItem, QStandardItemModel
+from PySide6.QtCore import QEvent, QPoint, QRectF, Qt
+from PySide6.QtGui import (
+    QContextMenuEvent,
+    QCursor,
+    QImage,
+    QKeyEvent,
+    QPainter,
+    QStandardItem,
+    QStandardItemModel,
+)
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import (
     QApplication,
@@ -45,6 +53,7 @@ from harrix_swiss_knife.apps.habits.habit_day_picker import (
     habit_day_choice_caption,
     habit_day_choices,
     habit_picker_date_parts,
+    is_not_done_hotkey,
 )
 
 RECOVER_SQL = Path(__file__).resolve().parents[1] / "src/harrix_swiss_knife/apps/habits/recover.sql"
@@ -592,6 +601,42 @@ def test_habit_day_picker_selects_alternative(qapp: QApplication) -> None:
     assert popup.choices() == [None, 0, 1, "number"]
     zero = next(option for option in popup.findChildren(DayChoiceCircle) if option.choice() == 0)
     QTest.mouseClick(zero, Qt.MouseButton.LeftButton)
+    assert received == [0]
+    assert not popup.isVisible()
+    HabitDayPickerPopup.hide_active()
+
+
+def test_habit_day_picker_x_sets_not_done(qapp: QApplication) -> None:
+    """X or Cyrillic che while the hover picker is open sets Not done."""
+    assert qapp is not None
+    che = "\u0447"
+    che_upper = "\u0427"
+    for text, key in (
+        ("x", Qt.Key.Key_X),
+        (che, Qt.Key.Key_unknown),
+        ("X", Qt.Key.Key_X),
+        (che_upper, Qt.Key.Key_unknown),
+    ):
+        assert is_not_done_hotkey(QKeyEvent(QEvent.Type.KeyPress, key, Qt.KeyboardModifier.NoModifier, text))
+
+    assert not is_not_done_hotkey(
+        QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_X, Qt.KeyboardModifier.ControlModifier, "x")
+    )
+
+    circle = CheckCircle()
+    received: list[object] = []
+    circle.value_set.connect(received.append)
+
+    popup = HabitDayPickerPopup.show_for(circle)
+    QTest.keyClick(qapp.focusWidget() or circle, Qt.Key.Key_X)
+    assert received == [0]
+    assert not popup.isVisible()
+    HabitDayPickerPopup.hide_active()
+
+    received.clear()
+    popup = HabitDayPickerPopup.show_for(circle)
+    event = QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_unknown, Qt.KeyboardModifier.NoModifier, che)
+    assert popup.eventFilter(qapp, event)
     assert received == [0]
     assert not popup.isVisible()
     HabitDayPickerPopup.hide_active()
