@@ -35,6 +35,7 @@ lang: en
 - [🔧 Function `style_accept_button`](#-function-style_accept_button)
 - [🔧 Function `style_cancel_button`](#-function-style_cancel_button)
 - [🔧 Function `style_delete_button`](#-function-style_delete_button)
+- [🔧 Function `sync_button_icon_to_fill`](#-function-sync_button_icon_to_fill)
 
 </details>
 
@@ -96,6 +97,7 @@ def apply_leading_chrome_button_icon(
     color = AI_BUTTON_ICON_COLOR if _is_ai_chrome_emoji(emoji) else None
     apply_lucide_button_icon(button, name, icon_size=icon_size, color=color)
     button.setText(rest)
+    sync_button_icon_to_fill(button, icon_size=icon_size)
     return True
 ```
 
@@ -224,6 +226,9 @@ def apply_lucide_button_icon(button: QAbstractButton, name: str, *, icon_size: i
 
 Set a Lucide icon on an existing button.
 
+When `color` is omitted, a solid fill from the button stylesheet forces a
+matching light/dark stroke; ordinary gray buttons keep semantic colors.
+
 <details>
 <summary>Code:</summary>
 
@@ -235,7 +240,10 @@ def apply_lucide_button_icon(
     icon_size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE,
     color: QColor | str | None = None,
 ) -> None:
-    button.setIcon(create_lucide_icon(name, icon_size, color=color))
+    resolved = color
+    if resolved is None:
+        resolved = button_icon_color_for_bg(button_fill_from_stylesheet(button.styleSheet()))
+    button.setIcon(create_lucide_icon(name, icon_size, color=resolved))
     button.setIconSize(QSize(icon_size, icon_size))
     button.setProperty(_LUCIDE_NAME_PROP, name)
 ```
@@ -687,7 +695,7 @@ def style_accept_button(
     icon_size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE,
 ) -> None:
     button.setStyleSheet(ACCEPT_BUTTON_STYLE)
-    _recolor_filled_button_icon(button, icon_size=icon_size)
+    sync_button_icon_to_fill(button, icon_size=icon_size)
 ```
 
 </details>
@@ -735,7 +743,33 @@ def style_delete_button(
     icon_size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE,
 ) -> None:
     button.setStyleSheet(DELETE_BUTTON_STYLE)
-    _recolor_filled_button_icon(button, icon_size=icon_size)
+    sync_button_icon_to_fill(button, icon_size=icon_size)
+```
+
+</details>
+
+## 🔧 Function `sync_button_icon_to_fill`
+
+```python
+def sync_button_icon_to_fill(button: QAbstractButton, *, icon_size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE) -> None
+```
+
+Recolor the Lucide icon to match text contrast on the button fill.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def sync_button_icon_to_fill(
+    button: QAbstractButton,
+    *,
+    icon_size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE,
+) -> None:
+    name = button.property(_LUCIDE_NAME_PROP)
+    if not isinstance(name, str) or not name.strip():
+        return
+    forced = button_icon_color_for_bg(button_fill_from_stylesheet(button.styleSheet()))
+    apply_lucide_button_icon(button, name, icon_size=icon_size, color=forced)
 ```
 
 </details>

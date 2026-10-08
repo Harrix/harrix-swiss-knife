@@ -104,7 +104,7 @@ from harrix_swiss_knife.apps.common.table_context_menu import (
 from harrix_swiss_knife.apps.common.table_export import export_table_via_dialog
 from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
 from harrix_swiss_knife.apps.common.text_case import capitalize_first_letter
-from harrix_swiss_knife.apps.common.ui_chrome import button_primary_qss
+from harrix_swiss_knife.apps.common.ui_chrome import button_cta_cyan_qss
 from harrix_swiss_knife.apps.common.widgets.image_picker import ImagePicker, ImagePickerMode, is_image_file_path
 from harrix_swiss_knife.apps.common.widgets.shrinkable_scroll_area import install_shrinkable_tab_scroll
 from harrix_swiss_knife.apps.common.word_wrap_header import WordWrapHeaderView
@@ -4939,8 +4939,8 @@ class MainWindow(
             self.pushButton_food_add.setText("🥤 Add Drink")
         else:
             self.pushButton_food_add.setText("➕ Add Food")  # noqa: RUF001
+        self.pushButton_food_add.setStyleSheet(button_cta_cyan_qss())
         apply_leading_chrome_button_icon(self.pushButton_food_add)
-        self.pushButton_food_add.setStyleSheet(button_primary_qss())
 
     def _update_autocomplete_data(self) -> None:
         """Update autocomplete data from database."""

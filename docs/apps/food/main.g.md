@@ -4738,8 +4738,8 @@ class MainWindow(
             self.pushButton_food_add.setText("🥤 Add Drink")
         else:
             self.pushButton_food_add.setText("➕ Add Food")  # noqa: RUF001
+        self.pushButton_food_add.setStyleSheet(button_cta_cyan_qss())
         apply_leading_chrome_button_icon(self.pushButton_food_add)
-        self.pushButton_food_add.setStyleSheet(button_primary_qss())
 
     def _update_autocomplete_data(self) -> None:
         """Update autocomplete data from database."""

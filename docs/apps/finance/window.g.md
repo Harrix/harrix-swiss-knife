@@ -327,18 +327,21 @@ class Ui_MainWindow(object):
         self.pushButton_add.setMinimumSize(QSize(0, 41))
         self.pushButton_add.setFont(font2)
         self.pushButton_add.setStyleSheet(u"QPushButton {\n"
-"                                      background-color: #2e86b7;\n"
+"                                      background-color: #3aaf9d;\n"
 "                                      color: #ffffff;\n"
-"                                      border: 1px solid #2e86b7;\n"
+"                                      border: 1px solid #3aaf9d;\n"
 "                                      border-radius: 4px;\n"
+"                                      padding: 5px 14px;\n"
 "                                      }\n"
 "                                      QPushButton:hover {\n"
-"                                      background-color: #1a5f7a;\n"
-"                                      border-color: #1a5f7a;\n"
+"                                      background-color: #038387;\n"
+"                                      color: #ffffff;\n"
+"                                      border-color: #038387;\n"
 "                                      }\n"
 "                                      QPushButton:pressed {\n"
-"                                      background-color: #1a5f7a;\n"
-"                                      border-color: #1a5f7a;\n"
+"                                      background-color: #026a6d;\n"
+"                                      color: #ffffff;\n"
+"                                      border-color: #026a6d;\n"
 "                                      }")
 
         self.verticalLayout_3.addWidget(self.pushButton_add)
@@ -372,18 +375,21 @@ class Ui_MainWindow(object):
         self.pushButton_add_as_text_with_ai.setMinimumSize(QSize(0, 41))
         self.pushButton_add_as_text_with_ai.setFont(font)
         self.pushButton_add_as_text_with_ai.setStyleSheet(u"QPushButton {\n"
-"                                      background-color: #2e86b7;\n"
+"                                      background-color: #3aaf9d;\n"
 "                                      color: #ffffff;\n"
-"                                      border: 1px solid #2e86b7;\n"
+"                                      border: 1px solid #3aaf9d;\n"
 "                                      border-radius: 4px;\n"
+"                                      padding: 5px 14px;\n"
 "                                      }\n"
 "                                      QPushButton:hover {\n"
-"                                      background-color: #1a5f7a;\n"
-"                                      border-color: #1a5f7a;\n"
+"                                      background-color: #038387;\n"
+"                                      color: #ffffff;\n"
+"                                      border-color: #038387;\n"
 "                                      }\n"
 "                                      QPushButton:pressed {\n"
-"                                      background-color: #1a5f7a;\n"
-"                                      border-color: #1a5f7a;\n"
+"                                      background-color: #026a6d;\n"
+"                                      color: #ffffff;\n"
+"                                      border-color: #026a6d;\n"
 "                                      }")
 
         self.verticalLayout_2.addWidget(self.pushButton_add_as_text_with_ai)
@@ -639,18 +645,21 @@ class Ui_MainWindow(object):
         self.pushButton_balance_check.setMinimumSize(QSize(0, 41))
         self.pushButton_balance_check.setFont(font)
         self.pushButton_balance_check.setStyleSheet(u"QPushButton {\n"
-"                                      background-color: #2e86b7;\n"
+"                                      background-color: #3aaf9d;\n"
 "                                      color: #ffffff;\n"
-"                                      border: 1px solid #2e86b7;\n"
+"                                      border: 1px solid #3aaf9d;\n"
 "                                      border-radius: 4px;\n"
+"                                      padding: 5px 14px;\n"
 "                                      }\n"
 "                                      QPushButton:hover {\n"
-"                                      background-color: #1a5f7a;\n"
-"                                      border-color: #1a5f7a;\n"
+"                                      background-color: #038387;\n"
+"                                      color: #ffffff;\n"
+"                                      border-color: #038387;\n"
 "                                      }\n"
 "                                      QPushButton:pressed {\n"
-"                                      background-color: #1a5f7a;\n"
-"                                      border-color: #1a5f7a;\n"
+"                                      background-color: #026a6d;\n"
+"                                      color: #ffffff;\n"
+"                                      border-color: #026a6d;\n"
 "                                      }")
 
         self.verticalLayout_21.addWidget(self.pushButton_balance_check)
@@ -830,18 +839,21 @@ class Ui_MainWindow(object):
         self.pushButton_exchange_add.setMinimumSize(QSize(0, 41))
         self.pushButton_exchange_add.setFont(font)
         self.pushButton_exchange_add.setStyleSheet(u"QPushButton {\n"
-"                                      background-color: #2e86b7;\n"
+"                                      background-color: #3aaf9d;\n"
 "                                      color: #ffffff;\n"
-"                                      border: 1px solid #2e86b7;\n"
+"                                      border: 1px solid #3aaf9d;\n"
 "                                      border-radius: 4px;\n"
+"                                      padding: 5px 14px;\n"
 "                                      }\n"
 "                                      QPushButton:hover {\n"
-"                                      background-color: #1a5f7a;\n"
-"                                      border-color: #1a5f7a;\n"
+"                                      background-color: #038387;\n"
+"                                      color: #ffffff;\n"
+"                                      border-color: #038387;\n"
 "                                      }\n"
 "                                      QPushButton:pressed {\n"
-"                                      background-color: #1a5f7a;\n"
-"                                      border-color: #1a5f7a;\n"
+"                                      background-color: #026a6d;\n"
+"                                      color: #ffffff;\n"
+"                                      border-color: #026a6d;\n"
 "                                      }")
 
         self.verticalLayout_exchange_operation.addWidget(self.pushButton_exchange_add)
@@ -899,18 +911,21 @@ class Ui_MainWindow(object):
         self.pushButton_exchange_update.setMinimumSize(QSize(0, 24))
         self.pushButton_exchange_update.setFont(font)
         self.pushButton_exchange_update.setStyleSheet(u"QPushButton {\n"
-"                                      background-color: #2e86b7;\n"
+"                                      background-color: #3aaf9d;\n"
 "                                      color: #ffffff;\n"
-"                                      border: 1px solid #2e86b7;\n"
+"                                      border: 1px solid #3aaf9d;\n"
 "                                      border-radius: 4px;\n"
+"                                      padding: 5px 14px;\n"
 "                                      }\n"
 "                                      QPushButton:hover {\n"
-"                                      background-color: #1a5f7a;\n"
-"                                      border-color: #1a5f7a;\n"
+"                                      background-color: #038387;\n"
+"                                      color: #ffffff;\n"
+"                                      border-color: #038387;\n"
 "                                      }\n"
 "                                      QPushButton:pressed {\n"
-"                                      background-color: #1a5f7a;\n"
-"                                      border-color: #1a5f7a;\n"
+"                                      background-color: #026a6d;\n"
+"                                      color: #ffffff;\n"
+"                                      border-color: #026a6d;\n"
 "                                      }")
 
         self.verticalLayout_13.addWidget(self.pushButton_exchange_update)
@@ -1873,18 +1888,21 @@ def setupUi(self, MainWindow):
         self.pushButton_add.setMinimumSize(QSize(0, 41))
         self.pushButton_add.setFont(font2)
         self.pushButton_add.setStyleSheet(u"QPushButton {\n"
-"                                      background-color: #2e86b7;\n"
+"                                      background-color: #3aaf9d;\n"
 "                                      color: #ffffff;\n"
-"                                      border: 1px solid #2e86b7;\n"
+"                                      border: 1px solid #3aaf9d;\n"
 "                                      border-radius: 4px;\n"
+"                                      padding: 5px 14px;\n"
 "                                      }\n"
 "                                      QPushButton:hover {\n"
-"                                      background-color: #1a5f7a;\n"
-"                                      border-color: #1a5f7a;\n"
+"                                      background-color: #038387;\n"
+"                                      color: #ffffff;\n"
+"                                      border-color: #038387;\n"
 "                                      }\n"
 "                                      QPushButton:pressed {\n"
-"                                      background-color: #1a5f7a;\n"
-"                                      border-color: #1a5f7a;\n"
+"                                      background-color: #026a6d;\n"
+"                                      color: #ffffff;\n"
+"                                      border-color: #026a6d;\n"
 "                                      }")
 
         self.verticalLayout_3.addWidget(self.pushButton_add)
@@ -1918,18 +1936,21 @@ def setupUi(self, MainWindow):
         self.pushButton_add_as_text_with_ai.setMinimumSize(QSize(0, 41))
         self.pushButton_add_as_text_with_ai.setFont(font)
         self.pushButton_add_as_text_with_ai.setStyleSheet(u"QPushButton {\n"
-"                                      background-color: #2e86b7;\n"
+"                                      background-color: #3aaf9d;\n"
 "                                      color: #ffffff;\n"
-"                                      border: 1px solid #2e86b7;\n"
+"                                      border: 1px solid #3aaf9d;\n"
 "                                      border-radius: 4px;\n"
+"                                      padding: 5px 14px;\n"
 "                                      }\n"
 "                                      QPushButton:hover {\n"
-"                                      background-color: #1a5f7a;\n"
-"                                      border-color: #1a5f7a;\n"
+"                                      background-color: #038387;\n"
+"                                      color: #ffffff;\n"
+"                                      border-color: #038387;\n"
 "                                      }\n"
 "                                      QPushButton:pressed {\n"
-"                                      background-color: #1a5f7a;\n"
-"                                      border-color: #1a5f7a;\n"
+"                                      background-color: #026a6d;\n"
+"                                      color: #ffffff;\n"
+"                                      border-color: #026a6d;\n"
 "                                      }")
 
         self.verticalLayout_2.addWidget(self.pushButton_add_as_text_with_ai)
@@ -2185,18 +2206,21 @@ def setupUi(self, MainWindow):
         self.pushButton_balance_check.setMinimumSize(QSize(0, 41))
         self.pushButton_balance_check.setFont(font)
         self.pushButton_balance_check.setStyleSheet(u"QPushButton {\n"
-"                                      background-color: #2e86b7;\n"
+"                                      background-color: #3aaf9d;\n"
 "                                      color: #ffffff;\n"
-"                                      border: 1px solid #2e86b7;\n"
+"                                      border: 1px solid #3aaf9d;\n"
 "                                      border-radius: 4px;\n"
+"                                      padding: 5px 14px;\n"
 "                                      }\n"
 "                                      QPushButton:hover {\n"
-"                                      background-color: #1a5f7a;\n"
-"                                      border-color: #1a5f7a;\n"
+"                                      background-color: #038387;\n"
+"                                      color: #ffffff;\n"
+"                                      border-color: #038387;\n"
 "                                      }\n"
 "                                      QPushButton:pressed {\n"
-"                                      background-color: #1a5f7a;\n"
-"                                      border-color: #1a5f7a;\n"
+"                                      background-color: #026a6d;\n"
+"                                      color: #ffffff;\n"
+"                                      border-color: #026a6d;\n"
 "                                      }")
 
         self.verticalLayout_21.addWidget(self.pushButton_balance_check)
@@ -2376,18 +2400,21 @@ def setupUi(self, MainWindow):
         self.pushButton_exchange_add.setMinimumSize(QSize(0, 41))
         self.pushButton_exchange_add.setFont(font)
         self.pushButton_exchange_add.setStyleSheet(u"QPushButton {\n"
-"                                      background-color: #2e86b7;\n"
+"                                      background-color: #3aaf9d;\n"
 "                                      color: #ffffff;\n"
-"                                      border: 1px solid #2e86b7;\n"
+"                                      border: 1px solid #3aaf9d;\n"
 "                                      border-radius: 4px;\n"
+"                                      padding: 5px 14px;\n"
 "                                      }\n"
 "                                      QPushButton:hover {\n"
-"                                      background-color: #1a5f7a;\n"
-"                                      border-color: #1a5f7a;\n"
+"                                      background-color: #038387;\n"
+"                                      color: #ffffff;\n"
+"                                      border-color: #038387;\n"
 "                                      }\n"
 "                                      QPushButton:pressed {\n"
-"                                      background-color: #1a5f7a;\n"
-"                                      border-color: #1a5f7a;\n"
+"                                      background-color: #026a6d;\n"
+"                                      color: #ffffff;\n"
+"                                      border-color: #026a6d;\n"
 "                                      }")
 
         self.verticalLayout_exchange_operation.addWidget(self.pushButton_exchange_add)
@@ -2445,18 +2472,21 @@ def setupUi(self, MainWindow):
         self.pushButton_exchange_update.setMinimumSize(QSize(0, 24))
         self.pushButton_exchange_update.setFont(font)
         self.pushButton_exchange_update.setStyleSheet(u"QPushButton {\n"
-"                                      background-color: #2e86b7;\n"
+"                                      background-color: #3aaf9d;\n"
 "                                      color: #ffffff;\n"
-"                                      border: 1px solid #2e86b7;\n"
+"                                      border: 1px solid #3aaf9d;\n"
 "                                      border-radius: 4px;\n"
+"                                      padding: 5px 14px;\n"
 "                                      }\n"
 "                                      QPushButton:hover {\n"
-"                                      background-color: #1a5f7a;\n"
-"                                      border-color: #1a5f7a;\n"
+"                                      background-color: #038387;\n"
+"                                      color: #ffffff;\n"
+"                                      border-color: #038387;\n"
 "                                      }\n"
 "                                      QPushButton:pressed {\n"
-"                                      background-color: #1a5f7a;\n"
-"                                      border-color: #1a5f7a;\n"
+"                                      background-color: #026a6d;\n"
+"                                      color: #ffffff;\n"
+"                                      border-color: #026a6d;\n"
 "                                      }")
 
         self.verticalLayout_13.addWidget(self.pushButton_exchange_update)

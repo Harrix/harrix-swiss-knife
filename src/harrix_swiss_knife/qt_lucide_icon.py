@@ -43,6 +43,13 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife.apps.common.ui_chrome import (
+    BUTTON_ON_DARK_ICON,
+    button_danger_qss,
+    button_fill_from_stylesheet,
+    button_icon_color_for_bg,
+    button_success_qss,
+)
 from harrix_swiss_knife.qt_emoji_icon import split_leading_emoji
 
 if TYPE_CHECKING:
@@ -75,16 +82,12 @@ LUCIDE_COLOR_RED = "#cc584c"
 LUCIDE_COLOR_ORANGE = "#ffa000"
 LUCIDE_COLOR_YELLOW = "#eec646"
 LUCIDE_COLOR_DARK = "#122a3a"
-LUCIDE_COLOR_ON_FILLED = "#f4f4f4"
+LUCIDE_COLOR_ON_FILLED = BUTTON_ON_DARK_ICON
 
 AI_BUTTON_ICON_COLOR = LUCIDE_COLOR_BLUE
 # Solid semantic buttons — shared with ui_chrome / HTML `$h-success` / `$h-danger`.
-ACCEPT_BUTTON_STYLE = (
-    "QPushButton { background-color: #4caf50; color: white; border: 1px solid #4caf50; border-radius: 4px; }"
-)
-DELETE_BUTTON_STYLE = (
-    "QPushButton { background-color: #cc584c; color: white; border: 1px solid #cc584c; border-radius: 4px; }"
-)
+ACCEPT_BUTTON_STYLE = button_success_qss()
+DELETE_BUTTON_STYLE = button_danger_qss()
 # Kept for callers/tests that still import the name; Cancel is no longer filled red.
 CANCEL_BUTTON_STYLE = ""
 
@@ -315,6 +318,7 @@ def apply_leading_chrome_button_icon(
     color = AI_BUTTON_ICON_COLOR if _is_ai_chrome_emoji(emoji) else None
     apply_lucide_button_icon(button, name, icon_size=icon_size, color=color)
     button.setText(rest)
+    sync_button_icon_to_fill(button, icon_size=icon_size)
     return True
 
 
@@ -390,8 +394,16 @@ def apply_lucide_button_icon(
     icon_size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE,
     color: QColor | str | None = None,
 ) -> None:
-    """Set a Lucide icon on an existing button."""
-    button.setIcon(create_lucide_icon(name, icon_size, color=color))
+    """Set a Lucide icon on an existing button.
+
+    When `color` is omitted, a solid fill from the button stylesheet forces a
+    matching light/dark stroke; ordinary gray buttons keep semantic colors.
+
+    """
+    resolved = color
+    if resolved is None:
+        resolved = button_icon_color_for_bg(button_fill_from_stylesheet(button.styleSheet()))
+    button.setIcon(create_lucide_icon(name, icon_size, color=resolved))
     button.setIconSize(QSize(icon_size, icon_size))
     button.setProperty(_LUCIDE_NAME_PROP, name)
 
@@ -660,7 +672,7 @@ def style_accept_button(
 ) -> None:
     """Paint an accept action (OK / Apply / Save) with the shared green chrome."""
     button.setStyleSheet(ACCEPT_BUTTON_STYLE)
-    _recolor_filled_button_icon(button, icon_size=icon_size)
+    sync_button_icon_to_fill(button, icon_size=icon_size)
 
 
 def style_cancel_button(
@@ -682,7 +694,20 @@ def style_delete_button(
 ) -> None:
     """Paint a delete/clear/remove action with the shared red chrome."""
     button.setStyleSheet(DELETE_BUTTON_STYLE)
-    _recolor_filled_button_icon(button, icon_size=icon_size)
+    sync_button_icon_to_fill(button, icon_size=icon_size)
+
+
+def sync_button_icon_to_fill(
+    button: QAbstractButton,
+    *,
+    icon_size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE,
+) -> None:
+    """Recolor the Lucide icon to match text contrast on the button fill."""
+    name = button.property(_LUCIDE_NAME_PROP)
+    if not isinstance(name, str) or not name.strip():
+        return
+    forced = button_icon_color_for_bg(button_fill_from_stylesheet(button.styleSheet()))
+    apply_lucide_button_icon(button, name, icon_size=icon_size, color=forced)
 
 
 def _is_ai_chrome_emoji(emoji: str) -> bool:
@@ -731,19 +756,3 @@ def _qicon_from_svg_bytes(svg_bytes: bytes, size: int, ratio: float, *, label: s
     icon = QIcon()
     icon.addPixmap(pixmap)
     return icon
-
-
-def _recolor_filled_button_icon(
-    button: QAbstractButton,
-    *,
-    icon_size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE,
-) -> None:
-    """Force a white Lucide icon when the button sits on green/red fill."""
-    name = button.property(_LUCIDE_NAME_PROP)
-    if isinstance(name, str) and name:
-        apply_lucide_button_icon(
-            button,
-            name,
-            icon_size=icon_size,
-            color=LUCIDE_COLOR_ON_FILLED,
-        )

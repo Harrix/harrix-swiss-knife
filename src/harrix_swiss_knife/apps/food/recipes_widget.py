@@ -35,7 +35,7 @@ from harrix_swiss_knife.apps.common.table_context_menu import add_delete_action
 from harrix_swiss_knife.apps.common.text_case import capitalize_first_letter
 from harrix_swiss_knife.apps.common.ui_chrome import (
     SELECTION_BORDER,
-    button_primary_qss,
+    button_cta_cyan_qss,
     list_view_panel_qss,
     soft_field_qss,
 )
@@ -72,7 +72,7 @@ logger = logging.getLogger(__name__)
 
 _SPINBOX_STYLE = soft_field_qss("QSpinBox")
 _DOUBLE_SPINBOX_STYLE = soft_field_qss("QDoubleSpinBox")
-_FOOD_BUTTON_STYLE = button_primary_qss()
+_FOOD_BUTTON_STYLE = button_cta_cyan_qss()
 _LIST_STYLE = with_flat_scrollbars(list_view_panel_qss(border_color=SELECTION_BORDER))
 _CONTROLS_MIN_WIDTH = 350
 _COL_NAME = 0

@@ -22,12 +22,17 @@ Desktop mirror: `src/harrix_swiss_knife/apps/common/ui_chrome.py`. Table: `.curs
 | `BUTTON_SECONDARY_BG` | `#f5f5f5` | Light secondary / toolbar plate |
 | `BUTTON_SUCCESS_BG` | `#4caf50` | Success solid |
 | `BUTTON_DANGER_BG` | `#cc584c` | Danger solid |
+| `BUTTON_CTA_CYAN_BG` | `#79b1d1` | App CTAs (was soft `#e3f2fd`) |
+| `BUTTON_CTA_GREEN_BG` | `#4caf50` | App CTAs (was lightgreen) |
+| `BUTTON_CTA_MINT_BG` | `#3aaf9d` | Finance CTAs (was `#C1ECDD`) |
 
 Also: `LUCIDE_COLOR_BLUE` / caption active tab = `#2e86b7`.
 
 ## Buttons
 
-- Primary CTA: solid brand via `button_primary_qss()` — **not** mint/Material soft-fill with a different border color.
+- Solid fills via `solid_button_qss()` / `button_*_qss()`: same-color border (no accent outline), `padding: 5px 14px`, `min-height: 28px`.
+- App CTAs: `button_cta_cyan_qss()` / `button_cta_green_qss()` / `button_cta_mint_qss()` — nearest CodeStyle hex of the old soft fills.
+- Text and Lucide icons on a colored fill match contrast (`button_content_colors` / `sync_button_icon_to_fill`): white on dark, dark on light; ordinary gray keeps semantic icon colors.
 - Secondary / toolbar idle: `BUTTON_SECONDARY_*` / `button_secondary_qss()`.
 - Prefer helpers in `ui_chrome` over hardcoding button QSS in `.ui` files.
 

@@ -275,18 +275,21 @@ class Ui_MainWindow(object):
         self.pushButton_add.setMinimumSize(QSize(0, 41))
         self.pushButton_add.setFont(font1)
         self.pushButton_add.setStyleSheet(u"QPushButton {\n"
-"                                      background-color: #2e86b7;\n"
+"                                      background-color: #4caf50;\n"
 "                                      color: #ffffff;\n"
-"                                      border: 1px solid #2e86b7;\n"
+"                                      border: 1px solid #4caf50;\n"
 "                                      border-radius: 4px;\n"
+"                                      padding: 5px 14px;\n"
 "                                      }\n"
 "                                      QPushButton:hover {\n"
-"                                      background-color: #1a5f7a;\n"
-"                                      border-color: #1a5f7a;\n"
+"                                      background-color: #35965f;\n"
+"                                      color: #ffffff;\n"
+"                                      border-color: #35965f;\n"
 "                                      }\n"
 "                                      QPushButton:pressed {\n"
-"                                      background-color: #1a5f7a;\n"
-"                                      border-color: #1a5f7a;\n"
+"                                      background-color: #2e7d4f;\n"
+"                                      color: #ffffff;\n"
+"                                      border-color: #2e7d4f;\n"
 "                                      }")
 
         self.verticalLayout_5.addWidget(self.pushButton_add)
@@ -295,17 +298,20 @@ class Ui_MainWindow(object):
         self.pushButton_add_by_voice.setObjectName(u"pushButton_add_by_voice")
         self.pushButton_add_by_voice.setMinimumSize(QSize(0, 41))
         self.pushButton_add_by_voice.setStyleSheet(u"QPushButton {\n"
-"                                      background-color: #2e86b7;\n"
+"                                      background-color: #79b1d1;\n"
 "                                      color: #ffffff;\n"
-"                                      border: 1px solid #2e86b7;\n"
+"                                      border: 1px solid #79b1d1;\n"
 "                                      border-radius: 4px;\n"
+"                                      padding: 5px 14px;\n"
 "                                      }\n"
 "                                      QPushButton:hover {\n"
-"                                      background-color: #1a5f7a;\n"
-"                                      border-color: #1a5f7a;\n"
+"                                      background-color: #2e86b7;\n"
+"                                      color: #ffffff;\n"
+"                                      border-color: #2e86b7;\n"
 "                                      }\n"
 "                                      QPushButton:pressed {\n"
 "                                      background-color: #1a5f7a;\n"
+"                                      color: #ffffff;\n"
 "                                      border-color: #1a5f7a;\n"
 "                                      }")
 

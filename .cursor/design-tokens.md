@@ -41,6 +41,11 @@ Model: **solid primary** (Bulma `.button.is-primary`) — filled brand, no contr
 | Secondary border | `$h-border` | `BUTTON_SECONDARY_BORDER` | `#dbdbdb` |
 | Success solid | `$h-success` | `BUTTON_SUCCESS_BG` | `#4caf50` |
 | Danger solid | `$h-danger` | `BUTTON_DANGER_BG` | `#cc584c` |
+| App CTA cyan (was soft `#e3f2fd`) | — | `BUTTON_CTA_CYAN_BG` | `#79b1d1` |
+| App CTA green (was lightgreen / soft green) | — | `BUTTON_CTA_GREEN_BG` | `#4caf50` |
+| App CTA mint (was `#C1ECDD`) | — | `BUTTON_CTA_MINT_BG` | `#3aaf9d` |
+
+Solid button QSS always sets `padding: 5px 14px` and `min-height: 28px` so filled buttons match unstyled dialog height. Text/icon on fill: white/`#f4f4f4` when luminance &lt; 0.55, else `#122a3a`; low-chroma gray fills keep semantic Lucide icon colors.
 
 ## Do not unify across platforms
 

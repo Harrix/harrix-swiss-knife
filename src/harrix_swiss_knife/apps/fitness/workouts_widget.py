@@ -44,8 +44,8 @@ from harrix_swiss_knife.apps.common.table_context_menu import add_delete_action,
 from harrix_swiss_knife.apps.common.ui_chrome import (
     SELECTION_BG,
     SELECTION_BORDER,
+    button_cta_green_qss,
     button_danger_qss,
-    button_primary_qss,
     button_secondary_qss,
     list_view_panel_qss,
 )
@@ -59,7 +59,11 @@ from harrix_swiss_knife.apps.fitness.lightbox_logic import (
 from harrix_swiss_knife.apps.fitness.lightbox_sounds import play_fitness_timer_cue
 from harrix_swiss_knife.apps.fitness.workouts_ai import estimate_workout_duration_min
 from harrix_swiss_knife.qt_flat_scrollbar import with_flat_scrollbars
-from harrix_swiss_knife.qt_lucide_icon import apply_leading_chrome_icons, create_lucide_icon
+from harrix_swiss_knife.qt_lucide_icon import (
+    apply_leading_chrome_icons,
+    apply_lucide_button_icon,
+    create_lucide_icon,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -87,7 +91,7 @@ _COL_TYPE_WIDTH = 140
 _COL_VALUE_WIDTH = 90
 _COL_UNIT_WIDTH = 90
 _GREEN_BUTTON_STYLE = (
-    button_primary_qss()
+    button_cta_green_qss()
     + """
 QPushButton:disabled {
     background-color: #e8e8e8;
@@ -370,19 +374,19 @@ class WorkoutsWidget(QWidget):
         self.label_exercise_timer.hide()
         session_layout.addWidget(self.label_exercise_timer)
         self.button_continue = QPushButton("Continue")
-        self.button_continue.setIcon(create_lucide_icon("play"))
         self.button_continue.setMinimumHeight(41)
         self.button_continue.setMinimumWidth(120)
         self.button_continue.setFont(standard_bold_font)
         self.button_continue.setStyleSheet(_CONTINUE_BUTTON_STYLE)
+        apply_lucide_button_icon(self.button_continue, "play")
         self.button_continue.clicked.connect(self._continue_workout_session)
         session_layout.addWidget(self.button_continue)
         self.button_stop = QPushButton("Stop")
-        self.button_stop.setIcon(create_lucide_icon("square-stop"))
         self.button_stop.setMinimumHeight(41)
         self.button_stop.setMinimumWidth(110)
         self.button_stop.setFont(standard_bold_font)
         self.button_stop.setStyleSheet(_STOP_BUTTON_STYLE)
+        apply_lucide_button_icon(self.button_stop, "square")
         self.button_stop.clicked.connect(lambda: self.stop_workout_session(completed=False))
         session_layout.addWidget(self.button_stop)
         session_layout.addStretch(1)
@@ -402,18 +406,18 @@ class WorkoutsWidget(QWidget):
         left_layout.addWidget(QLabel("Workouts"))
         new_row = QHBoxLayout()
         self.button_new = QPushButton("New")
-        self.button_new.setIcon(create_lucide_icon("sparkles"))
         self.button_new.setMinimumHeight(41)
         self.button_new.setFont(standard_bold_font)
         self.button_new.setStyleSheet(_GREEN_BUTTON_STYLE)
+        apply_lucide_button_icon(self.button_new, "sparkles")
         self.button_new.setToolTip("Generate a workout with AI")
         self.button_new.clicked.connect(self.generate_requested.emit)
         new_row.addWidget(self.button_new, 1)
         self.button_new_empty = QPushButton("Empty")
-        self.button_new_empty.setIcon(create_lucide_icon("file"))
         self.button_new_empty.setMinimumHeight(41)
         self.button_new_empty.setFont(standard_bold_font)
         self.button_new_empty.setStyleSheet(_GREY_BUTTON_STYLE)
+        apply_lucide_button_icon(self.button_new_empty, "file")
         self.button_new_empty.setToolTip("Create an empty workout")
         self.button_new_empty.clicked.connect(self.empty_requested.emit)
         new_row.addWidget(self.button_new_empty, 1)
