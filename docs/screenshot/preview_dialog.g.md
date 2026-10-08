@@ -17,6 +17,7 @@ lang: en
   - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
   - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
   - [⚙️ Method `resizeEvent`](#%EF%B8%8F-method-resizeevent)
+- [🔧 Function `print_screenshot_image`](#-function-print_screenshot_image)
 - [🔧 Function `show_screenshot_preview`](#-function-show_screenshot_preview)
 
 </details>
@@ -182,6 +183,10 @@ class ScreenshotPreviewWindow(QMainWindow):
             make_lucide_push_button(COPY_BUTTON_LABEL, COPY_BUTTON_ICON),
             self._copy_to_clipboard,
         )
+        self._add_footer_button(
+            make_lucide_push_button(_PRINT_BUTTON_LABEL, _PRINT_BUTTON_ICON),
+            self._print_screenshot,
+        )
         self._add_save_menu_button(
             _SAVE_DESKTOP_BUTTON_LABEL,
             _SAVE_DESKTOP_BUTTON_ICON,
@@ -249,6 +254,13 @@ class ScreenshotPreviewWindow(QMainWindow):
             QKeySequence.StandardKey.Save,
             self._save_to_images,
             description="Save the current tab image to the images folder",
+            category="File",
+        )
+        install_documented_shortcut(
+            self,
+            QKeySequence.StandardKey.Print,
+            self._print_screenshot,
+            description="Print the current screenshot",
             category="File",
         )
         install_documented_shortcut(
@@ -746,6 +758,24 @@ class ScreenshotPreviewWindow(QMainWindow):
             return
         self._set_annotation_color(color)
         self._status.setText(f"Color {color.name()}")
+
+    def _print_screenshot(self) -> None:
+        tab = self._current_tab()
+        if tab is None:
+            return
+        image = tab.image
+        if image.isNull():
+            self._status.setText("Nothing to print")
+            return
+        printer = QPrinter(QPrinter.PrinterMode.HighResolution)
+        dialog = QPrintDialog(printer, self)
+        dialog.setWindowTitle("Print screenshot")
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        if not print_screenshot_image(image, printer):
+            self._status.setText("Print failed")
+            return
+        self._status.setText("Sent to printer")
 
     def _rebuild_color_menu(self) -> None:
         self._color_menu.clear()
@@ -1272,6 +1302,10 @@ def __init__(self, parent: QWidget | None = None) -> None:
             make_lucide_push_button(COPY_BUTTON_LABEL, COPY_BUTTON_ICON),
             self._copy_to_clipboard,
         )
+        self._add_footer_button(
+            make_lucide_push_button(_PRINT_BUTTON_LABEL, _PRINT_BUTTON_ICON),
+            self._print_screenshot,
+        )
         self._add_save_menu_button(
             _SAVE_DESKTOP_BUTTON_LABEL,
             _SAVE_DESKTOP_BUTTON_ICON,
@@ -1339,6 +1373,13 @@ def __init__(self, parent: QWidget | None = None) -> None:
             QKeySequence.StandardKey.Save,
             self._save_to_images,
             description="Save the current tab image to the images folder",
+            category="File",
+        )
+        install_documented_shortcut(
+            self,
+            QKeySequence.StandardKey.Print,
+            self._print_screenshot,
+            description="Print the current screenshot",
             category="File",
         )
         install_documented_shortcut(
@@ -1527,6 +1568,46 @@ Reflow the top tool row when the window width changes.
 def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
         super().resizeEvent(event)
         self._refit_tools_host()
+```
+
+</details>
+
+## 🔧 Function `print_screenshot_image`
+
+```python
+def print_screenshot_image(image: QImage, printer: QPrinter) -> bool
+```
+
+Draw `image` scaled to fit and centered on the printer page.
+
+Returns `False` when `image` is empty or painting fails.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def print_screenshot_image(image: QImage, printer: QPrinter) -> bool:
+    if image.isNull():
+        return False
+    page = printer.pageRect(QPrinter.Unit.DevicePixel)
+    page_width = max(1, int(page.width()))
+    page_height = max(1, int(page.height()))
+    scaled = QPixmap.fromImage(image).scaled(
+        page_width,
+        page_height,
+        Qt.AspectRatioMode.KeepAspectRatio,
+        Qt.TransformationMode.SmoothTransformation,
+    )
+    painter = QPainter(printer)
+    if not painter.isActive():
+        return False
+    try:
+        x = int(page.x() + (page_width - scaled.width()) / 2)
+        y = int(page.y() + (page_height - scaled.height()) / 2)
+        painter.drawPixmap(x, y, scaled)
+    finally:
+        painter.end()
+    return True
 ```
 
 </details>

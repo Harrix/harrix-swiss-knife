@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Literal
 import harrix_pylib as h
 from PySide6.QtCore import QSize, QStandardPaths, Qt, QTimer
 from PySide6.QtGui import QCloseEvent, QColor, QIcon, QImage, QKeyEvent, QKeySequence, QPainter, QPixmap, QShortcut
+from PySide6.QtPrintSupport import QPrintDialog, QPrinter
 from PySide6.QtWidgets import (
     QAbstractSpinBox,
     QApplication,
@@ -120,6 +121,8 @@ _RECOGNIZE_BUTTON_ICON = "scan-text"
 _REDUCE_BUTTON_LABEL = "Reduce size"
 _REDUCE_BUTTON_ICON = "shrink"
 _REDUCE_MAX_SIDE = 1024
+_PRINT_BUTTON_LABEL = "Print"
+_PRINT_BUTTON_ICON = "printer"
 _MARKDOWN_AI_ICON = AI_BUTTON_ICON
 _MARKDOWN_OCR_ICON = "scan-text"
 _TABLE_AI_ICON = "table"
@@ -306,6 +309,10 @@ class ScreenshotPreviewWindow(QMainWindow):
             make_lucide_push_button(COPY_BUTTON_LABEL, COPY_BUTTON_ICON),
             self._copy_to_clipboard,
         )
+        self._add_footer_button(
+            make_lucide_push_button(_PRINT_BUTTON_LABEL, _PRINT_BUTTON_ICON),
+            self._print_screenshot,
+        )
         self._add_save_menu_button(
             _SAVE_DESKTOP_BUTTON_LABEL,
             _SAVE_DESKTOP_BUTTON_ICON,
@@ -373,6 +380,13 @@ class ScreenshotPreviewWindow(QMainWindow):
             QKeySequence.StandardKey.Save,
             self._save_to_images,
             description="Save the current tab image to the images folder",
+            category="File",
+        )
+        install_documented_shortcut(
+            self,
+            QKeySequence.StandardKey.Print,
+            self._print_screenshot,
+            description="Print the current screenshot",
             category="File",
         )
         install_documented_shortcut(
@@ -871,6 +885,24 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._set_annotation_color(color)
         self._status.setText(f"Color {color.name()}")
 
+    def _print_screenshot(self) -> None:
+        tab = self._current_tab()
+        if tab is None:
+            return
+        image = tab.image
+        if image.isNull():
+            self._status.setText("Nothing to print")
+            return
+        printer = QPrinter(QPrinter.PrinterMode.HighResolution)
+        dialog = QPrintDialog(printer, self)
+        dialog.setWindowTitle("Print screenshot")
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        if not print_screenshot_image(image, printer):
+            self._status.setText("Print failed")
+            return
+        self._status.setText("Sent to printer")
+
     def _rebuild_color_menu(self) -> None:
         self._color_menu.clear()
         for hex_value, hint in load_annotation_colors():
@@ -1325,6 +1357,35 @@ class _ScreenshotTab(QWidget):
     def image(self) -> QImage:
         """Current image with annotations baked in (for save / copy / OCR)."""
         return self.document.render(include_draft=False)
+
+
+def print_screenshot_image(image: QImage, printer: QPrinter) -> bool:
+    """Draw `image` scaled to fit and centered on the printer page.
+
+    Returns `False` when `image` is empty or painting fails.
+
+    """
+    if image.isNull():
+        return False
+    page = printer.pageRect(QPrinter.Unit.DevicePixel)
+    page_width = max(1, int(page.width()))
+    page_height = max(1, int(page.height()))
+    scaled = QPixmap.fromImage(image).scaled(
+        page_width,
+        page_height,
+        Qt.AspectRatioMode.KeepAspectRatio,
+        Qt.TransformationMode.SmoothTransformation,
+    )
+    painter = QPainter(printer)
+    if not painter.isActive():
+        return False
+    try:
+        x = int(page.x() + (page_width - scaled.width()) / 2)
+        y = int(page.y() + (page_height - scaled.height()) / 2)
+        painter.drawPixmap(x, y, scaled)
+    finally:
+        painter.end()
+    return True
 
 
 def show_screenshot_preview(image: QImage) -> ScreenshotPreviewWindow:

@@ -11,7 +11,16 @@ import pytest
 from PySide6.QtCore import QPoint, QPointF, QRect, QStandardPaths, Qt
 from PySide6.QtGui import QColor, QImage, QKeyEvent, QMouseEvent
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QFileDialog, QLineEdit, QPushButton, QStyle, QTabWidget, QToolButton
+from PySide6.QtWidgets import (
+    QApplication,
+    QDialog,
+    QFileDialog,
+    QLineEdit,
+    QPushButton,
+    QStyle,
+    QTabWidget,
+    QToolButton,
+)
 
 from harrix_swiss_knife.apps.common.qt_main_window import compute_app_window_geometry
 from harrix_swiss_knife.qt_split_menu_button import SplitMenuButton
@@ -567,6 +576,50 @@ def test_preview_window_saves_dated_png_and_updates_title(
     assert files[0].stem.endswith("_01")
     assert window.windowTitle() == f"Screenshot — {files[0].name}"
     window.close()
+
+
+def test_preview_window_print_button_sends_image(
+    qapp: QApplication,  # noqa: ARG001
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    image = QImage(12, 8, QImage.Format.Format_RGB32)
+    image.fill(Qt.GlobalColor.cyan)
+    window = show_screenshot_preview(image)
+    print_buttons = [button for button in window.findChildren(QPushButton) if button.text() == "Print"]
+    assert len(print_buttons) == 1
+
+    pdf_path = tmp_path / "shot.pdf"
+
+    class FakeDialog:
+        def __init__(self, printer: preview_dialog_module.QPrinter, _parent: object = None) -> None:
+            printer.setOutputFormat(preview_dialog_module.QPrinter.OutputFormat.PdfFormat)
+            printer.setOutputFileName(str(pdf_path))
+
+        def setWindowTitle(self, _title: str) -> None:  # noqa: N802
+            return None
+
+        def exec(self) -> int:
+            return int(QDialog.DialogCode.Accepted)
+
+    monkeypatch.setattr(preview_dialog_module, "QPrintDialog", FakeDialog)
+    window._print_screenshot()
+    assert pdf_path.is_file()
+    assert pdf_path.stat().st_size > 0
+    assert "printer" in window._status.text().casefold()
+    window.close()
+
+
+def test_print_screenshot_image_scales_to_pdf(tmp_path: Path, qapp: QApplication) -> None:  # noqa: ARG001
+    image = QImage(30, 10, QImage.Format.Format_RGB32)
+    image.fill(Qt.GlobalColor.blue)
+    printer = preview_dialog_module.QPrinter(preview_dialog_module.QPrinter.PrinterMode.HighResolution)
+    printer.setOutputFormat(preview_dialog_module.QPrinter.OutputFormat.PdfFormat)
+    pdf_path = tmp_path / "scaled.pdf"
+    printer.setOutputFileName(str(pdf_path))
+    assert preview_dialog_module.print_screenshot_image(image, printer)
+    assert pdf_path.stat().st_size > 0
+    assert not preview_dialog_module.print_screenshot_image(QImage(), printer)
 
 
 def test_preview_window_saves_dated_png_to_desktop(
