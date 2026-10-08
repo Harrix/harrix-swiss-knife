@@ -309,10 +309,6 @@ class ScreenshotPreviewWindow(QMainWindow):
             make_lucide_push_button(COPY_BUTTON_LABEL, COPY_BUTTON_ICON),
             self._copy_to_clipboard,
         )
-        self._add_footer_button(
-            make_lucide_push_button(_PRINT_BUTTON_LABEL, _PRINT_BUTTON_ICON),
-            self._print_screenshot,
-        )
         self._add_save_menu_button(
             _SAVE_DESKTOP_BUTTON_LABEL,
             _SAVE_DESKTOP_BUTTON_ICON,
@@ -334,6 +330,10 @@ class ScreenshotPreviewWindow(QMainWindow):
         )
         self._add_recognize_menu_button()
         self._add_reduce_size_menu_button()
+        self._add_footer_button(
+            make_lucide_push_button(_PRINT_BUTTON_LABEL, _PRINT_BUTTON_ICON),
+            self._print_screenshot,
+        )
         self._add_footer_button(
             make_lucide_push_button(OK_BUTTON_LABEL, OK_BUTTON_ICON),
             self._close_current_tab,
