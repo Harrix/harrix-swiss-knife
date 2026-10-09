@@ -331,6 +331,9 @@ class MainWindow(
 
         self._is_closing = True
         self._stop_background_transaction_translate_timer()
+        bg_worker = getattr(self, "_bg_tx_translate_state", None)
+        if bg_worker is not None and bg_worker.worker is not None:
+            bg_worker.worker.cancel()
 
         scheduler = getattr(self, "_ui_refresh_scheduler", None)
         if scheduler is not None:
@@ -1518,8 +1521,8 @@ class MainWindow(
         descriptions_for_ai: list[str],
     ) -> None:
         """Parse a silent BotHub response, commit matches, then continue or stop."""
-        if self._is_closing or self.db_manager is None:
-            self._clear_background_transaction_translate_status()
+        if not isValid(self) or self._is_closing or self.db_manager is None:
+            # Window may already be torn down; never touch statusBar after close.
             return
 
         translations = align_translations_to_descriptions(
@@ -1691,7 +1694,11 @@ class MainWindow(
 
     def _clear_background_transaction_translate_status(self) -> None:
         """Clear the silent-translate status bar message when it is ours."""
+        if not isValid(self) or self._is_closing:
+            return
         status_bar = self.statusBar()
+        if status_bar is None:
+            return
         if status_bar.currentMessage() == _BACKGROUND_TX_TRANSLATE_STATUS:
             status_bar.clearMessage()
 
@@ -3596,6 +3603,8 @@ class MainWindow(
 
     def _on_background_transaction_translate_failed(self) -> None:
         """Stop the silent translate timer after an AI/parse/config failure (no user dialog)."""
+        if not isValid(self):
+            return
         self._clear_background_transaction_translate_status()
         self._stop_background_transaction_translate_timer()
         logger.info("Background transaction description translation stopped after a silent failure")
@@ -4797,7 +4806,7 @@ class MainWindow(
 
     def _run_background_transaction_translate(self) -> None:
         """Fill missing transactions.description_en in the background without dialogs or toasts."""
-        if self._is_closing or self.db_manager is None:
+        if not isValid(self) or self._is_closing or self.db_manager is None:
             return
         if self._bg_tx_translate_state.worker is not None:
             return
@@ -4834,10 +4843,24 @@ class MainWindow(
             self._on_background_transaction_translate_failed()
             return
 
+        if not isValid(self) or self._is_closing:
+            return
         self.statusBar().showMessage(_BACKGROUND_TX_TRANSLATE_STATUS)
 
         def on_success(response_text: str) -> None:
+            if not isValid(self):
+                return
             self._apply_background_transaction_translate_response(response_text, descriptions_for_ai)
+
+        def on_error(_message: str) -> None:
+            if not isValid(self):
+                return
+            self._on_background_transaction_translate_failed()
+
+        def on_cancelled() -> None:
+            if not isValid(self):
+                return
+            self._on_background_transaction_translate_failed()
 
         started = run_bothub_request(
             self,
@@ -4845,10 +4868,10 @@ class MainWindow(
             prompt_text,
             on_success,
             toast_message=_BACKGROUND_TX_TRANSLATE_STATUS,
-            is_busy=lambda: self._bg_tx_translate_state.worker is not None,
+            is_busy=lambda: isValid(self) and self._bg_tx_translate_state.worker is not None,
             state=self._bg_tx_translate_state,
-            on_error=lambda _message: self._on_background_transaction_translate_failed(),
-            on_cancelled=self._on_background_transaction_translate_failed,
+            on_error=on_error,
+            on_cancelled=on_cancelled,
             offer_retry=False,
             owner_modal=False,
             show_toast=False,
@@ -6100,7 +6123,11 @@ class MainWindow(
 
     def _stop_background_transaction_translate_timer(self) -> None:
         """Cancel the silent translate debounce timer."""
-        self._bg_tx_translate_timer.stop()
+        if not isValid(self):
+            return
+        timer = getattr(self, "_bg_tx_translate_timer", None)
+        if timer is not None and isValid(timer):
+            timer.stop()
 
     def _sync_amount_spin_limit(self, *_args: object) -> None:
         """Raise the amount field to the largest value a SQLite INTEGER can store."""
@@ -6793,6 +6820,9 @@ def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
 
         self._is_closing = True
         self._stop_background_transaction_translate_timer()
+        bg_worker = getattr(self, "_bg_tx_translate_state", None)
+        if bg_worker is not None and bg_worker.worker is not None:
+            bg_worker.worker.cancel()
 
         scheduler = getattr(self, "_ui_refresh_scheduler", None)
         if scheduler is not None:
