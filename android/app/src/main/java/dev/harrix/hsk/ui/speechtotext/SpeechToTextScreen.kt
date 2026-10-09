@@ -736,6 +736,12 @@ private fun SpeechMessageDetail(
                     }
                 }
                 OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) {
+                    Icon(
+                        imageVector = LucideIcons.Close,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(modifier = Modifier.size(6.dp))
                     Text(stringResource(R.string.speech_to_text_cancel_recognition))
                 }
             }
@@ -849,6 +855,12 @@ private fun SpeechMessageDetail(
                     enabled = hasApiKey,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
+                    Icon(
+                        imageVector = LucideIcons.ScanText,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(modifier = Modifier.size(6.dp))
                     Text(stringResource(R.string.speech_to_text_recognize))
                 }
                 OutlinedButton(onClick = onSave, modifier = Modifier.fillMaxWidth()) {
@@ -982,6 +994,12 @@ private fun ComposerBar(
                             enabled = hasApiKey && !busy,
                             modifier = Modifier.weight(1f),
                         ) {
+                            Icon(
+                                imageVector = LucideIcons.ScanText,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Spacer(modifier = Modifier.size(6.dp))
                             Text(stringResource(R.string.speech_to_text_recognize))
                         }
                         OutlinedButton(
