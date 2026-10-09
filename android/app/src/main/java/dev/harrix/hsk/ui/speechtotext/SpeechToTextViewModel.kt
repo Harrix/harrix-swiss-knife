@@ -12,6 +12,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dev.harrix.hsk.R
 import dev.harrix.hsk.ai.AiConfig
+import dev.harrix.hsk.ai.AiModelInfo
+import dev.harrix.hsk.ai.AskAiModelStore
 import dev.harrix.hsk.bothub.BothubConfig
 import dev.harrix.hsk.speechtotext.AudioCompress
 import dev.harrix.hsk.speechtotext.AudioRecorder
@@ -45,6 +47,7 @@ class SpeechToTextViewModel(
     private val audioRecorder = AudioRecorder(application.applicationContext)
     private val repository = SpeechToTextRepository(application.applicationContext)
     private val queueStore = SpeechToTextQueueStore(application.applicationContext)
+    private val askAiModelStore = AskAiModelStore(application.applicationContext)
     private val mainHandler = Handler(Looper.getMainLooper())
     private val recognition =
         SpeechRecognitionCoordinator(
@@ -63,6 +66,19 @@ class SpeechToTextViewModel(
                 }
             },
         )
+
+    val usesAskModelPicker: Boolean
+        get() = AiConfig.isBothubRouter(AiConfig.provider)
+
+    fun resolvedAskModel(): String = askAiModelStore.resolve()
+
+    suspend fun loadAskChatModels(): List<AiModelInfo> = withContext(Dispatchers.IO) {
+        repository.listChatModels()
+    }
+
+    fun saveAskModel(modelId: String) {
+        askAiModelStore.save(modelId)
+    }
 
     val items = mutableStateListOf<SpeechQueueItem>()
     val composerPhase = mutableStateOf(ComposerPhase.Idle)
@@ -399,7 +415,10 @@ class SpeechToTextViewModel(
         recognition.rewrite(item)
     }
 
-    fun answerItem(id: String) {
+    fun answerItem(
+        id: String,
+        model: String? = null,
+    ) {
         val item = items.firstOrNull { it.id == id } ?: return
         if (!hasApiKey.value) {
             errorMessage.value =
@@ -407,7 +426,14 @@ class SpeechToTextViewModel(
             return
         }
         askMode = false
-        recognition.answer(item)
+        val resolved =
+            model?.trim()?.ifEmpty { null }
+                ?: if (usesAskModelPicker) {
+                    askAiModelStore.resolve()
+                } else {
+                    null
+                }
+        recognition.answer(item, model = resolved)
     }
 
     fun suggestedAudioFileName(id: String? = null): String {

@@ -2,6 +2,7 @@ package dev.harrix.hsk.bothub
 
 import dev.harrix.hsk.ai.AiApiException
 import dev.harrix.hsk.ai.AiClient
+import dev.harrix.hsk.ai.AiModelInfo
 import okhttp3.OkHttpClient
 
 class BothubApiException(
@@ -30,6 +31,20 @@ class BothubClient(
             text = text,
             audio = audio,
             images = images,
+            cancellationKey = cancellationKey,
+        )
+    } catch (error: AiApiException) {
+        throw BothubApiException(error.message ?: "AI request failed", error)
+    }
+
+    fun listModels(
+        forSpeech: Boolean = false,
+        chatOnly: Boolean = true,
+        cancellationKey: String? = null,
+    ): List<AiModelInfo> = try {
+        aiClient.listModels(
+            forSpeech = forSpeech,
+            chatOnly = chatOnly,
             cancellationKey = cancellationKey,
         )
     } catch (error: AiApiException) {

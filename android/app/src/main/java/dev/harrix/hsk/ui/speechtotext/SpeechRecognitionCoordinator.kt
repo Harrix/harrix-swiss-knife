@@ -124,11 +124,20 @@ class SpeechRecognitionCoordinator(
         )
     }
 
-    fun answer(item: SpeechQueueItem) {
+    fun answer(
+        item: SpeechQueueItem,
+        model: String? = null,
+    ) {
         transformText(
             item = item,
             kind = SpeechProcessingKind.Answer,
-            transform = { text, key -> repository.answerQuestion(text, cancellationKey = key) },
+            transform = { text, key ->
+                repository.answerQuestion(
+                    text = text,
+                    model = model,
+                    cancellationKey = key,
+                )
+            },
         )
     }
 

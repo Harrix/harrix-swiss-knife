@@ -3,6 +3,7 @@ package dev.harrix.hsk.speechtotext
 import android.content.Context
 import dev.harrix.hsk.ai.AiClient
 import dev.harrix.hsk.ai.AiConfig
+import dev.harrix.hsk.ai.AiModelInfo
 import dev.harrix.hsk.bothub.BothubApiException
 import dev.harrix.hsk.bothub.BothubClient
 import dev.harrix.hsk.bothub.BothubConfig
@@ -102,12 +103,14 @@ class SpeechToTextRepository(
 
     fun answerQuestion(
         text: String,
+        model: String? = null,
         cancellationKey: String? = null,
     ): String {
         requireApiKey()
+        val resolvedModel = model?.trim()?.ifEmpty { null } ?: BothubConfig.model
         val answer =
             client.chatCompletion(
-                model = BothubConfig.model,
+                model = resolvedModel,
                 text = BothubPrompts.buildSpeechAnswerPrompt(context, text),
                 cancellationKey = cancellationKey,
             )
@@ -115,6 +118,11 @@ class SpeechToTextRepository(
             throw BothubApiException("Empty response from AI")
         }
         return answer
+    }
+
+    fun listChatModels(cancellationKey: String? = null): List<AiModelInfo> {
+        requireApiKey()
+        return client.listModels(chatOnly = true, cancellationKey = cancellationKey)
     }
 
     fun cancel(cancellationKey: String) {

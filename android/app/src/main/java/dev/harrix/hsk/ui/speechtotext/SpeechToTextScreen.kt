@@ -34,9 +34,12 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -77,6 +80,8 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.harrix.hsk.R
+import dev.harrix.hsk.ai.AiConfig
+import dev.harrix.hsk.ai.AiModelInfo
 import dev.harrix.hsk.speechtotext.AudioRecorder
 import dev.harrix.hsk.speechtotext.SpeechMessageStatus
 import dev.harrix.hsk.speechtotext.SpeechProcessingKind
@@ -86,6 +91,7 @@ import dev.harrix.hsk.speechtotext.SpeechToTextRepository
 import dev.harrix.hsk.speechtotext.WaveformBucket
 import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.CompactBottomActionButton
+import dev.harrix.hsk.ui.HskDropdownMenuItem
 import dev.harrix.hsk.ui.icons.LucideIcons
 import dev.harrix.hsk.ui.theme.HskTopAppBarHeight
 import dev.harrix.hsk.ui.theme.hskScaffoldContainerColor
@@ -152,6 +158,7 @@ fun SpeechToTextScreen(
     var pendingMicAction by remember { mutableStateOf<MicAction?>(null) }
     var saveTargetId by remember { mutableStateOf<String?>(null) }
     var selectedItemId by remember { mutableStateOf<String?>(null) }
+    var askModelItemId by remember { mutableStateOf<String?>(null) }
     val selectedItem = items.firstOrNull { it.id == selectedItemId }
 
     fun leaveUtility() {
@@ -364,7 +371,13 @@ fun SpeechToTextScreen(
                 onShare = { shareResultText(selectedItem.text) },
                 onSendToTickTick = { sendResultToTickTick(selectedItem.id, selectedItem.text) },
                 onRewrite = { viewModel.rewriteItem(selectedItem.id) },
-                onAsk = { viewModel.answerItem(selectedItem.id) },
+                onAsk = {
+                    if (viewModel.usesAskModelPicker) {
+                        askModelItemId = selectedItem.id
+                    } else {
+                        viewModel.answerItem(selectedItem.id)
+                    }
+                },
                 onSingleLine = { viewModel.collapseItemToSingleLine(selectedItem.id) },
                 onSave = {
                     saveTargetId = selectedItem.id
@@ -454,6 +467,24 @@ fun SpeechToTextScreen(
                 TextButton(onClick = { viewModel.clearError() }) {
                     Text(stringResource(R.string.speech_to_text_error_ok))
                 }
+            },
+        )
+    }
+
+    askModelItemId?.let { itemId ->
+        AskAiModelDialog(
+            initialModel = viewModel.resolvedAskModel(),
+            settingsModel = AiConfig.model,
+            onLoadModels = { viewModel.loadAskChatModels() },
+            onDismiss = { askModelItemId = null },
+            onAsk = { modelId ->
+                viewModel.saveAskModel(modelId)
+                askModelItemId = null
+                viewModel.answerItem(itemId, model = modelId)
+            },
+            onAskWithSettingsModel = {
+                askModelItemId = null
+                viewModel.answerItem(itemId, model = AiConfig.model)
             },
         )
     }
@@ -1198,4 +1229,163 @@ private fun formatElapsed(elapsedMs: Long): String {
     val minutes = totalSeconds / 60
     val seconds = totalSeconds % 60
     return "%d:%02d".format(minutes, seconds)
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AskAiModelDialog(
+    initialModel: String,
+    settingsModel: String,
+    onLoadModels: suspend () -> List<AiModelInfo>,
+    onDismiss: () -> Unit,
+    onAsk: (String) -> Unit,
+    onAskWithSettingsModel: () -> Unit,
+) {
+    var loading by remember { mutableStateOf(true) }
+    var loadError by remember { mutableStateOf<String?>(null) }
+    var models by remember { mutableStateOf<List<AiModelInfo>>(emptyList()) }
+    var selectedModel by remember { mutableStateOf(initialModel) }
+    var menuExpanded by remember { mutableStateOf(false) }
+    val onLoadModelsState = rememberUpdatedState(onLoadModels)
+
+    LaunchedEffect(Unit) {
+        loading = true
+        loadError = null
+        val outcome = runCatching { onLoadModelsState.value() }
+        outcome
+            .onSuccess { loaded ->
+                models = loaded
+                if (loaded.isEmpty()) {
+                    loadError = null
+                    selectedModel = settingsModel.ifBlank { initialModel }
+                } else {
+                    val preferred =
+                        listOf(initialModel, settingsModel)
+                            .map { it.trim() }
+                            .firstOrNull { preferredId ->
+                                preferredId.isNotEmpty() &&
+                                    loaded.any { it.id == preferredId }
+                            }
+                    selectedModel = preferred ?: loaded.first().id
+                }
+                loading = false
+            }.onFailure { error ->
+                loadError = error.message ?: error.toString()
+                models = emptyList()
+                selectedModel = settingsModel.ifBlank { initialModel }
+                loading = false
+            }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.speech_to_text_ask_ai_model_title)) },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                when {
+                    loading -> {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                            Text(stringResource(R.string.speech_to_text_ask_ai_model_loading))
+                        }
+                    }
+
+                    loadError != null -> {
+                        Text(
+                            text =
+                            stringResource(R.string.speech_to_text_ask_ai_model_error) +
+                                "\n" +
+                                loadError.orEmpty(),
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+
+                    models.isEmpty() -> {
+                        Text(
+                            text =
+                            stringResource(R.string.speech_to_text_ask_ai_model_error) +
+                                "\n" +
+                                settingsModel,
+                        )
+                    }
+
+                    else -> {
+                        Text(
+                            text = stringResource(R.string.speech_to_text_ask_ai_model_label),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        ExposedDropdownMenuBox(
+                            expanded = menuExpanded,
+                            onExpandedChange = { menuExpanded = it },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            OutlinedTextField(
+                                value = selectedModel,
+                                onValueChange = {},
+                                readOnly = true,
+                                trailingIcon = {
+                                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = menuExpanded)
+                                },
+                                modifier =
+                                Modifier
+                                    .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                                    .fillMaxWidth(),
+                            )
+                            ExposedDropdownMenu(
+                                expanded = menuExpanded,
+                                onDismissRequest = { menuExpanded = false },
+                            ) {
+                                models.forEach { model ->
+                                    HskDropdownMenuItem(
+                                        text = {
+                                            AutoFitText(
+                                                text = model.id,
+                                                maxLines = 1,
+                                            )
+                                        },
+                                        onClick = {
+                                            selectedModel = model.id
+                                            menuExpanded = false
+                                        },
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            when {
+                loading -> Unit
+
+                loadError != null || models.isEmpty() -> {
+                    TextButton(onClick = onAskWithSettingsModel) {
+                        Text(stringResource(R.string.speech_to_text_ask_ai_model_use_settings))
+                    }
+                }
+
+                else -> {
+                    TextButton(
+                        onClick = { onAsk(selectedModel) },
+                        enabled = selectedModel.isNotBlank(),
+                    ) {
+                        Text(stringResource(R.string.speech_to_text_ask_ai))
+                    }
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.confirm_cancel))
+            }
+        },
+    )
 }

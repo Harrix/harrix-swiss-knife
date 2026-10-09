@@ -305,6 +305,11 @@
     <string name="speech_to_text_ticktick_unavailable">TickTick がインストールされていないか、このテキストを受信できません</string>
     <string name="speech_to_text_rewrite">Rewrite with AI</string>
     <string name="speech_to_text_ask_ai">Ask AI</string>
+    <string name="speech_to_text_ask_ai_model_title">Ask AI</string>
+    <string name="speech_to_text_ask_ai_model_label">Model</string>
+    <string name="speech_to_text_ask_ai_model_loading">Loading models…</string>
+    <string name="speech_to_text_ask_ai_model_error">Could not load models</string>
+    <string name="speech_to_text_ask_ai_model_use_settings">Use settings model</string>
     <string name="speech_to_text_answering">Answering…</string>
     <string name="speech_to_text_single_line">To single line</string>
     <string name="speech_to_text_record_new">Record new</string>

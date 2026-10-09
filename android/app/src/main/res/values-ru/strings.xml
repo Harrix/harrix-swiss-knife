@@ -305,6 +305,11 @@
     <string name="speech_to_text_ticktick_unavailable">TickTick не установлен или не может принять этот текст</string>
     <string name="speech_to_text_rewrite">Рерайт с AI</string>
     <string name="speech_to_text_ask_ai">Спросить AI</string>
+    <string name="speech_to_text_ask_ai_model_title">Спросить AI</string>
+    <string name="speech_to_text_ask_ai_model_label">Модель</string>
+    <string name="speech_to_text_ask_ai_model_loading">Загрузка моделей…</string>
+    <string name="speech_to_text_ask_ai_model_error">Не удалось загрузить модели</string>
+    <string name="speech_to_text_ask_ai_model_use_settings">Модель из настроек</string>
     <string name="speech_to_text_answering">Ответ AI…</string>
     <string name="speech_to_text_single_line">В одну строку</string>
     <string name="speech_to_text_record_new">Новая запись</string>

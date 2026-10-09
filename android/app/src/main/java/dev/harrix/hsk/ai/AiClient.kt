@@ -23,6 +23,7 @@ class AiApiException(
  * Multi-provider AI client (BotHub / OpenAI / Anthropic / Gemini).
  * Mirrors desktop `harrix_swiss_knife.integrations.ai`.
  */
+@Suppress("LargeClass")
 class AiClient(
     private val httpClient: OkHttpClient = defaultHttpClient(),
 ) {
@@ -103,9 +104,73 @@ class AiClient(
         }
     }
 
+    /**
+     * Lists models from OpenAI-compatible `GET /models` (BotHub, OpenAI, OpenRouter).
+     * When [chatOnly] is true, filters to chat/text models.
+     */
+    fun listModels(
+        forSpeech: Boolean = false,
+        chatOnly: Boolean = true,
+        cancellationKey: String? = null,
+    ): List<AiModelInfo> {
+        BothubFailover.prepare(forSpeech)
+        val provider = if (forSpeech) AiConfig.speechProvider else AiConfig.provider
+        val apiKey = if (forSpeech) AiConfig.speechApiKey else AiConfig.apiKey
+        val baseUrl = if (forSpeech) AiConfig.speechBaseUrl else AiConfig.baseUrl
+        if (!AiConfig.isUsableApiKey(apiKey)) {
+            throw AiApiException(missingKeyMessage(provider))
+        }
+        return when (AiConfig.normalizeProvider(provider)) {
+            AiConfig.PROVIDER_OPENAI,
+            AiConfig.PROVIDER_OPENROUTER,
+            AiConfig.PROVIDER_BOTHUB,
+            AiConfig.PROVIDER_BOTHUB_RU,
+            -> {
+                val models =
+                    openaiListModels(
+                        apiKey = apiKey,
+                        baseUrl = baseUrl,
+                        cancellationKey = cancellationKey,
+                        extraHeaders = extraHeadersFor(provider),
+                    )
+                val filtered =
+                    if (chatOnly) {
+                        models.filter { it.isChatModel }
+                    } else {
+                        models
+                    }
+                filtered.sortedBy { it.id.lowercase() }
+            }
+
+            else ->
+                throw AiApiException(
+                    "Listing models is not supported for provider '$provider'.",
+                )
+        }
+    }
+
     /** Cancel an in-flight request previously started with [cancellationKey]. */
     fun cancel(cancellationKey: String) {
         activeCalls.remove(cancellationKey)?.cancel()
+    }
+
+    private fun openaiListModels(
+        apiKey: String,
+        baseUrl: String,
+        cancellationKey: String? = null,
+        extraHeaders: Map<String, String> = emptyMap(),
+    ): List<AiModelInfo> {
+        val url = baseUrl.trimEnd('/') + "/models"
+        val builder =
+            Request
+                .Builder()
+                .url(url)
+                .get()
+                .header("Authorization", "Bearer ${apiKey.trim()}")
+                .header("Accept", "application/json")
+        extraHeaders.forEach { (name, value) -> builder.header(name, value) }
+        val raw = execute(builder.build(), cancellationKey)
+        return AiModelInfo.parseOpenAiListResponse(raw, ::errorMessage)
     }
 
     private fun openaiChat(
