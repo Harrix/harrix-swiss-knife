@@ -371,12 +371,12 @@ fun SpeechToTextScreen(
                 onShare = { shareResultText(selectedItem.text) },
                 onSendToTickTick = { sendResultToTickTick(selectedItem.id, selectedItem.text) },
                 onRewrite = { viewModel.rewriteItem(selectedItem.id) },
-                onAsk = {
-                    if (viewModel.usesAskModelPicker) {
-                        askModelItemId = selectedItem.id
-                    } else {
-                        viewModel.answerItem(selectedItem.id)
-                    }
+                onAsk = { viewModel.answerItem(selectedItem.id) },
+                onAskLongPress =
+                if (viewModel.usesAskModelPicker) {
+                    { askModelItemId = selectedItem.id }
+                } else {
+                    null
                 },
                 onSingleLine = { viewModel.collapseItemToSingleLine(selectedItem.id) },
                 onSave = {
@@ -707,6 +707,7 @@ private fun SpeechMessageDetail(
     onSingleLine: () -> Unit,
     onSave: () -> Unit,
     modifier: Modifier = Modifier,
+    onAskLongPress: (() -> Unit)? = null,
 ) {
     val isSlow =
         item.status == SpeechMessageStatus.Processing &&
@@ -821,6 +822,7 @@ private fun SpeechMessageDetail(
                     )
                     CompactBottomActionButton(
                         onClick = onAsk,
+                        onLongClick = onAskLongPress,
                         icon = LucideIcons.MessageCircleQuestion,
                         label = stringResource(R.string.speech_to_text_ask_ai),
                         outlined = true,

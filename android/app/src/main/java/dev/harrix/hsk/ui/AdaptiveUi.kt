@@ -1,5 +1,8 @@
 package dev.harrix.hsk.ui
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -8,6 +11,7 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -18,6 +22,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -25,8 +30,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.harrix.hsk.ui.theme.ActionButtonShape
@@ -81,6 +88,7 @@ fun videoGridColumnCount(): Int {
  * fit on narrow phones; longer translations shrink (then ellipsis) instead of wrapping.
  * Grows evenly in a [RowScope].
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun RowScope.CompactBottomActionButton(
     onClick: () -> Unit,
@@ -89,6 +97,7 @@ fun RowScope.CompactBottomActionButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     outlined: Boolean = false,
+    onLongClick: (() -> Unit)? = null,
     colors: ButtonColors =
         if (outlined) {
             ButtonDefaults.outlinedButtonColors()
@@ -120,9 +129,10 @@ fun RowScope.CompactBottomActionButton(
             )
         }
     }
-    val buttonModifier = Modifier
-        .fillMaxWidth()
-        .heightIn(min = 56.dp)
+    val buttonModifier =
+        Modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp)
     val padding = PaddingValues(horizontal = 8.dp, vertical = 10.dp)
     // TooltipBox is not a direct Row child; keep weight on this Box.
     Box(modifier = modifier.weight(1f)) {
@@ -131,7 +141,59 @@ fun RowScope.CompactBottomActionButton(
             enabled = labelOverflows,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            if (outlined) {
+            if (onLongClick != null) {
+                val contentColor =
+                    when {
+                        !enabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                        outlined -> MaterialTheme.colorScheme.primary
+                        else -> MaterialTheme.colorScheme.onPrimary
+                    }
+                val containerColor =
+                    when {
+                        !enabled && !outlined ->
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+
+                        outlined -> Color.Transparent
+
+                        else -> MaterialTheme.colorScheme.primary
+                    }
+                Surface(
+                    modifier =
+                    buttonModifier.combinedClickable(
+                        enabled = enabled,
+                        onClick = onClick,
+                        onLongClick = onLongClick,
+                        role = Role.Button,
+                    ),
+                    shape = ActionButtonShape,
+                    color = containerColor,
+                    contentColor = contentColor,
+                    border =
+                    if (outlined) {
+                        BorderStroke(
+                            width = 1.dp,
+                            color =
+                            if (enabled) {
+                                MaterialTheme.colorScheme.outline
+                            } else {
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+                            },
+                        )
+                    } else {
+                        null
+                    },
+                ) {
+                    Box(
+                        modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(padding),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        content()
+                    }
+                }
+            } else if (outlined) {
                 OutlinedButton(
                     onClick = onClick,
                     enabled = enabled,

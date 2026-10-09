@@ -62,7 +62,16 @@ class SpeechToTextViewModel(
             onErrorMessage = { errorMessage.value = it },
             onRecognized = { item ->
                 if (answerAfterRecognizeIds.remove(item.id)) {
-                    answerItem(item.id)
+                    // Widget / ask pipeline: last picked model when BotHub, else settings default.
+                    answerItem(
+                        item.id,
+                        model =
+                        if (usesAskModelPicker) {
+                            askAiModelStore.resolve()
+                        } else {
+                            null
+                        },
+                    )
                 }
             },
         )
@@ -426,14 +435,7 @@ class SpeechToTextViewModel(
             return
         }
         askMode = false
-        val resolved =
-            model?.trim()?.ifEmpty { null }
-                ?: if (usesAskModelPicker) {
-                    askAiModelStore.resolve()
-                } else {
-                    null
-                }
-        recognition.answer(item, model = resolved)
+        recognition.answer(item, model = model?.trim()?.ifEmpty { null })
     }
 
     fun suggestedAudioFileName(id: String? = null): String {
