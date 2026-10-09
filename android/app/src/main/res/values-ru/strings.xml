@@ -276,6 +276,8 @@
     <string name="speech_to_text_title">Speech to Text with AI</string>
     <string name="speech_to_text_widget_label">Speech to Text</string>
     <string name="speech_to_text_widget_description">Открыть Speech to Text with AI</string>
+    <string name="speech_to_text_ask_widget_label">Вопрос AI голосом</string>
+    <string name="speech_to_text_ask_widget_description">Запись вопроса, распознавание и ответ AI</string>
     <string name="speech_to_text_close">Выйти из Speech to Text</string>
     <string name="speech_to_text_back">К списку записей</string>
     <string name="speech_to_text_idle_message">Нажмите «Начать запись», когда будете готовы. Следующую запись можно начать, пока предыдущие ещё обрабатываются.</string>
@@ -302,6 +304,8 @@
     <string name="speech_to_text_sent_to_ticktick">Отправлено в TickTick</string>
     <string name="speech_to_text_ticktick_unavailable">TickTick не установлен или не может принять этот текст</string>
     <string name="speech_to_text_rewrite">Рерайт с AI</string>
+    <string name="speech_to_text_ask_ai">Спросить AI</string>
+    <string name="speech_to_text_answering">Ответ AI…</string>
     <string name="speech_to_text_single_line">В одну строку</string>
     <string name="speech_to_text_record_new">Новая запись</string>
     <string name="speech_to_text_error_title">Ошибка AI</string>

@@ -1,6 +1,7 @@
 package dev.harrix.hsk.ui.speechtotext
 
 import dev.harrix.hsk.speechtotext.SpeechMessageStatus
+import dev.harrix.hsk.speechtotext.SpeechProcessingKind
 import dev.harrix.hsk.speechtotext.SpeechQueueItem
 import dev.harrix.hsk.speechtotext.SpeechToTextQueueStore
 import dev.harrix.hsk.speechtotext.SpeechToTextRepository
@@ -13,7 +14,7 @@ import kotlinx.coroutines.withContext
 import kotlin.coroutines.cancellation.CancellationException
 
 /**
- * Runs per-item speech recognition / rewrite jobs with cancellable HTTP.
+ * Runs per-item speech recognition / rewrite / answer jobs with cancellable HTTP.
  */
 class SpeechRecognitionCoordinator(
     private val scope: CoroutineScope,
@@ -22,6 +23,7 @@ class SpeechRecognitionCoordinator(
     private val onItemChanged: (SpeechQueueItem) -> Unit,
     private val onAverageChanged: (Long) -> Unit,
     private val onErrorMessage: (String) -> Unit,
+    private val onRecognized: (SpeechQueueItem) -> Unit = {},
 ) {
     private val jobs = mutableMapOf<String, Job>()
 
@@ -36,6 +38,7 @@ class SpeechRecognitionCoordinator(
         val processing =
             item.copy(
                 status = SpeechMessageStatus.Processing,
+                processingKind = SpeechProcessingKind.Recognize,
                 errorMessage = "",
                 recognitionStartedAtMs = startedAt,
                 recognitionElapsedMs = 0L,
@@ -75,21 +78,24 @@ class SpeechRecognitionCoordinator(
                             )
                         }
                         onAverageChanged(queueStore.averageMsPerAudioSecond() ?: 0L)
-                        onItemChanged(
+                        val done =
                             processing.copy(
                                 status = SpeechMessageStatus.Done,
+                                processingKind = SpeechProcessingKind.None,
                                 text = fixed,
                                 errorMessage = "",
                                 recognitionStartedAtMs = 0L,
                                 recognitionElapsedMs = durationMs,
                                 lastRecognitionDurationMs = durationMs,
-                            ),
-                        )
+                            )
+                        onItemChanged(done)
+                        onRecognized(done)
                     }.onFailure { error ->
                         if (error is CancellationException) {
                             onItemChanged(
                                 processing.copy(
                                     status = SpeechMessageStatus.Cancelled,
+                                    processingKind = SpeechProcessingKind.None,
                                     recognitionStartedAtMs = 0L,
                                     recognitionElapsedMs = 0L,
                                 ),
@@ -98,6 +104,7 @@ class SpeechRecognitionCoordinator(
                             onItemChanged(
                                 processing.copy(
                                     status = SpeechMessageStatus.Error,
+                                    processingKind = SpeechProcessingKind.None,
                                     errorMessage = error.message ?: error.toString(),
                                     recognitionStartedAtMs = 0L,
                                     recognitionElapsedMs = 0L,
@@ -110,6 +117,38 @@ class SpeechRecognitionCoordinator(
     }
 
     fun rewrite(item: SpeechQueueItem) {
+        transformText(
+            item = item,
+            kind = SpeechProcessingKind.Rewrite,
+            transform = { text, key -> repository.rewrite(text, cancellationKey = key) },
+        )
+    }
+
+    fun answer(item: SpeechQueueItem) {
+        transformText(
+            item = item,
+            kind = SpeechProcessingKind.Answer,
+            transform = { text, key -> repository.answerQuestion(text, cancellationKey = key) },
+        )
+    }
+
+    fun cancel(id: String) {
+        repository.cancel(id)
+        jobs.remove(id)?.cancel()
+    }
+
+    fun cancelAll() {
+        jobs.keys.toList().forEach { id ->
+            repository.cancel(id)
+            jobs.remove(id)?.cancel()
+        }
+    }
+
+    private fun transformText(
+        item: SpeechQueueItem,
+        kind: SpeechProcessingKind,
+        transform: suspend (String, String) -> String,
+    ) {
         if (item.status != SpeechMessageStatus.Done || item.text.isBlank()) {
             return
         }
@@ -119,6 +158,7 @@ class SpeechRecognitionCoordinator(
         val processing =
             item.copy(
                 status = SpeechMessageStatus.Processing,
+                processingKind = kind,
                 recognitionStartedAtMs = startedAt,
                 recognitionElapsedMs = 0L,
                 errorMessage = "",
@@ -128,19 +168,20 @@ class SpeechRecognitionCoordinator(
             scope.launch {
                 val outcome =
                     runCatching {
-                        val rewritten =
+                        val result =
                             withContext(Dispatchers.IO) {
-                                repository.rewrite(originalText, cancellationKey = item.id)
+                                transform(originalText, item.id)
                             }
                         ensureActive()
-                        rewritten
+                        result
                     }
                 outcome
-                    .onSuccess { rewritten ->
+                    .onSuccess { result ->
                         onItemChanged(
                             processing.copy(
                                 status = SpeechMessageStatus.Done,
-                                text = rewritten,
+                                processingKind = SpeechProcessingKind.None,
+                                text = result,
                                 recognitionStartedAtMs = 0L,
                                 recognitionElapsedMs = 0L,
                             ),
@@ -149,6 +190,7 @@ class SpeechRecognitionCoordinator(
                         onItemChanged(
                             processing.copy(
                                 status = SpeechMessageStatus.Done,
+                                processingKind = SpeechProcessingKind.None,
                                 text = originalText,
                                 errorMessage =
                                 if (error is CancellationException) {
@@ -166,17 +208,5 @@ class SpeechRecognitionCoordinator(
                     }
                 jobs.remove(item.id)
             }
-    }
-
-    fun cancel(id: String) {
-        repository.cancel(id)
-        jobs.remove(id)?.cancel()
-    }
-
-    fun cancelAll() {
-        jobs.keys.toList().forEach { id ->
-            repository.cancel(id)
-            jobs.remove(id)?.cancel()
-        }
     }
 }

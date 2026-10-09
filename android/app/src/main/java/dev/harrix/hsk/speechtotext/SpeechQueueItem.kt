@@ -10,6 +10,13 @@ enum class SpeechMessageStatus {
     Error,
 }
 
+enum class SpeechProcessingKind {
+    None,
+    Recognize,
+    Rewrite,
+    Answer,
+}
+
 data class SpeechQueueItem(
     val id: String,
     val audioFile: File,
@@ -23,4 +30,5 @@ data class SpeechQueueItem(
     val recognitionElapsedMs: Long = 0L,
     val lastRecognitionDurationMs: Long = 0L,
     val sentToTickTick: Boolean = false,
+    val processingKind: SpeechProcessingKind = SpeechProcessingKind.None,
 )

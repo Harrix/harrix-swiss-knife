@@ -24,6 +24,7 @@ object BothubPrompts {
     private const val HISTORY_PLACEHOLDER = "{{HISTORY}}"
     private const val ASSET_FIX = "prompts/text-fix-ru.md"
     private const val ASSET_REWRITE = "prompts/text-rewrite-ru.md"
+    private const val ASSET_ANSWER = "prompts/speech-answer.md"
     private const val ASSET_MEDICINE_SEARCH = "prompts/medicine-search.md"
     private const val ASSET_TRANSCRIPTION = "prompts/speech-transcription.md"
     private const val EMPTY_MEDICINES_MARKER = "(список лекарств не задан)"
@@ -44,6 +45,11 @@ object BothubPrompts {
         context: Context,
         text: String,
     ): String = applyTextPlaceholder(loadAsset(context, ASSET_REWRITE), text)
+
+    fun buildSpeechAnswerPrompt(
+        context: Context,
+        text: String,
+    ): String = applyTextPlaceholder(loadAsset(context, ASSET_ANSWER), text)
 
     fun buildMedicineSearchPrompt(
         context: Context,

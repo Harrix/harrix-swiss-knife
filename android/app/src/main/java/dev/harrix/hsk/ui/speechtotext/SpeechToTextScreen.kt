@@ -79,6 +79,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.harrix.hsk.R
 import dev.harrix.hsk.speechtotext.AudioRecorder
 import dev.harrix.hsk.speechtotext.SpeechMessageStatus
+import dev.harrix.hsk.speechtotext.SpeechProcessingKind
 import dev.harrix.hsk.speechtotext.SpeechQueueItem
 import dev.harrix.hsk.speechtotext.SpeechToTextQueueStore
 import dev.harrix.hsk.speechtotext.SpeechToTextRepository
@@ -128,6 +129,8 @@ fun SpeechToTextScreen(
     modifier: Modifier = Modifier,
     autoStartRecording: Boolean = false,
     onAutoStartRecordingConsume: () -> Unit = {},
+    askMode: Boolean = false,
+    onAskModeConsume: () -> Unit = {},
     viewModel: SpeechToTextViewModel = viewModel(),
 ) {
     val composerPhase by viewModel.composerPhase
@@ -255,6 +258,14 @@ fun SpeechToTextScreen(
     }
 
     val onAutoStartRecordingConsumeState = rememberUpdatedState(onAutoStartRecordingConsume)
+    val onAskModeConsumeState = rememberUpdatedState(onAskModeConsume)
+    LaunchedEffect(askMode) {
+        if (!askMode) {
+            return@LaunchedEffect
+        }
+        viewModel.enableAskMode()
+        onAskModeConsumeState.value()
+    }
     LaunchedEffect(autoStartRecording) {
         if (!autoStartRecording) {
             return@LaunchedEffect
@@ -266,6 +277,12 @@ fun SpeechToTextScreen(
             ComposerPhase.Idle -> startOrRequestMic()
         }
         onAutoStartRecordingConsumeState.value()
+    }
+
+    val pendingOpenItemId by viewModel.pendingOpenItemId
+    LaunchedEffect(pendingOpenItemId) {
+        val id = viewModel.consumePendingOpenItemId() ?: return@LaunchedEffect
+        selectedItemId = id
     }
 
     LaunchedEffect(selectedItemId, items.size) {
@@ -347,6 +364,7 @@ fun SpeechToTextScreen(
                 onShare = { shareResultText(selectedItem.text) },
                 onSendToTickTick = { sendResultToTickTick(selectedItem.id, selectedItem.text) },
                 onRewrite = { viewModel.rewriteItem(selectedItem.id) },
+                onAsk = { viewModel.answerItem(selectedItem.id) },
                 onSingleLine = { viewModel.collapseItemToSingleLine(selectedItem.id) },
                 onSave = {
                     saveTargetId = selectedItem.id
@@ -567,9 +585,13 @@ private fun SpeechMessageRow(
                 item.text.ifBlank { stringResource(R.string.speech_to_text_result_label) }
 
             SpeechMessageStatus.Processing ->
-                stringResource(R.string.speech_to_text_recognizing) +
-                    " · " +
-                    formatElapsed(item.recognitionElapsedMs)
+                stringResource(
+                    when (item.processingKind) {
+                        SpeechProcessingKind.Rewrite -> R.string.speech_to_text_rewriting
+                        SpeechProcessingKind.Answer -> R.string.speech_to_text_answering
+                        else -> R.string.speech_to_text_recognizing
+                    },
+                ) + " · " + formatElapsed(item.recognitionElapsedMs)
 
             SpeechMessageStatus.Cancelled -> stringResource(R.string.speech_to_text_status_cancelled)
 
@@ -650,6 +672,7 @@ private fun SpeechMessageDetail(
     onShare: () -> Unit,
     onSendToTickTick: () -> Unit,
     onRewrite: () -> Unit,
+    onAsk: () -> Unit,
     onSingleLine: () -> Unit,
     onSave: () -> Unit,
     modifier: Modifier = Modifier,
@@ -693,7 +716,14 @@ private fun SpeechMessageDetail(
                         style = MaterialTheme.typography.titleMedium,
                     )
                     Text(
-                        text = stringResource(R.string.speech_to_text_recognizing),
+                        text =
+                        stringResource(
+                            when (item.processingKind) {
+                                SpeechProcessingKind.Rewrite -> R.string.speech_to_text_rewriting
+                                SpeechProcessingKind.Answer -> R.string.speech_to_text_answering
+                                else -> R.string.speech_to_text_recognizing
+                            },
+                        ),
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     if (isSlow) {
@@ -751,6 +781,13 @@ private fun SpeechMessageDetail(
                         label = stringResource(R.string.speech_to_text_rewrite),
                         outlined = true,
                         enabled = hasApiKey,
+                    )
+                    CompactBottomActionButton(
+                        onClick = onAsk,
+                        icon = LucideIcons.MessageCircleQuestion,
+                        label = stringResource(R.string.speech_to_text_ask_ai),
+                        outlined = true,
+                        enabled = hasApiKey && item.text.isNotBlank(),
                     )
                     if (SpeechToTextRepository.isMultiline(item.text)) {
                         CompactBottomActionButton(

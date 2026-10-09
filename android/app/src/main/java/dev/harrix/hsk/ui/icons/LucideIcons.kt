@@ -348,6 +348,16 @@ object LucideIcons {
         )
     }
 
+    val MessageCircleQuestion: ImageVector by lazy {
+        lucide(
+            "message-circle-question",
+            "M2.992 16.342a2 2 0 0 1 0.094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413 -0.998" +
+                "a2 2 0 0 1 1.099 0.092a10 10 0 1 0 -4.777 -4.719",
+            "M9.09 9a3 3 0 0 1 5.83 1c0 2 -3 3 -3 3",
+            "M12 17h0.01",
+        )
+    }
+
     val Menu: ImageVector by lazy {
         lucide(
             "menu",

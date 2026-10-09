@@ -122,6 +122,8 @@ fun MainScreen(
     onPendingImageUriConsume: () -> Unit = {},
     pendingOpenSpeechToText: Boolean = false,
     onPendingOpenSpeechToTextConsume: () -> Unit = {},
+    pendingOpenSpeechAsk: Boolean = false,
+    onPendingOpenSpeechAskConsume: () -> Unit = {},
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -137,7 +139,10 @@ fun MainScreen(
     val onPendingImageUriConsumeState = rememberUpdatedState(onPendingImageUriConsume)
     val onPendingOpenSpeechToTextConsumeState =
         rememberUpdatedState(onPendingOpenSpeechToTextConsume)
+    val onPendingOpenSpeechAskConsumeState =
+        rememberUpdatedState(onPendingOpenSpeechAskConsume)
     var autoStartSpeechRecording by remember { mutableStateOf(false) }
+    var speechAskMode by remember { mutableStateOf(false) }
 
     LaunchedEffect(pendingImageUri) {
         val uri = pendingImageUri ?: return@LaunchedEffect
@@ -155,8 +160,21 @@ fun MainScreen(
         destination = AppDestination.SpeechToText
         showAbout = false
         settingsSection = null
+        speechAskMode = false
         autoStartSpeechRecording = true
         onPendingOpenSpeechToTextConsumeState.value()
+    }
+
+    LaunchedEffect(pendingOpenSpeechAsk) {
+        if (!pendingOpenSpeechAsk) {
+            return@LaunchedEffect
+        }
+        destination = AppDestination.SpeechToText
+        showAbout = false
+        settingsSection = null
+        speechAskMode = true
+        autoStartSpeechRecording = true
+        onPendingOpenSpeechAskConsumeState.value()
     }
 
     BackHandler(enabled = drawerState.isOpen) {
@@ -249,10 +267,13 @@ fun MainScreen(
                 SpeechToTextScreen(
                     onClose = {
                         autoStartSpeechRecording = false
+                        speechAskMode = false
                         destination = AppDestination.Home
                     },
                     autoStartRecording = autoStartSpeechRecording,
                     onAutoStartRecordingConsume = { autoStartSpeechRecording = false },
+                    askMode = speechAskMode,
+                    onAskModeConsume = { speechAskMode = false },
                     modifier = Modifier.fillMaxSize(),
                 )
             }

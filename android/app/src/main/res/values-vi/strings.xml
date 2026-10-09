@@ -276,6 +276,8 @@
     <string name="speech_to_text_title">Speech to Text with AI</string>
     <string name="speech_to_text_widget_label">Speech to Text</string>
     <string name="speech_to_text_widget_description">Open Speech to Text with AI</string>
+    <string name="speech_to_text_ask_widget_label">Ask AI by voice</string>
+    <string name="speech_to_text_ask_widget_description">Record a question, recognize it, then get an AI answer</string>
     <string name="speech_to_text_close">Exit Speech to Text</string>
     <string name="speech_to_text_back">Back to recordings</string>
     <string name="speech_to_text_idle_message">Tap Start recording when ready. You can start the next recording while previous ones are still processing.</string>
@@ -302,6 +304,8 @@
     <string name="speech_to_text_sent_to_ticktick">Đã gửi đến TickTick</string>
     <string name="speech_to_text_ticktick_unavailable">TickTick chưa được cài đặt hoặc không thể nhận văn bản này</string>
     <string name="speech_to_text_rewrite">Rewrite with AI</string>
+    <string name="speech_to_text_ask_ai">Ask AI</string>
+    <string name="speech_to_text_answering">Answering…</string>
     <string name="speech_to_text_single_line">To single line</string>
     <string name="speech_to_text_record_new">Record new</string>
     <string name="speech_to_text_error_title">AI Error</string>

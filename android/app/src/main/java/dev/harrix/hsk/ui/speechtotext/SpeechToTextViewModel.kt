@@ -17,6 +17,7 @@ import dev.harrix.hsk.speechtotext.AudioCompress
 import dev.harrix.hsk.speechtotext.AudioRecorder
 import dev.harrix.hsk.speechtotext.AudioRecorderException
 import dev.harrix.hsk.speechtotext.SpeechMessageStatus
+import dev.harrix.hsk.speechtotext.SpeechProcessingKind
 import dev.harrix.hsk.speechtotext.SpeechQueueItem
 import dev.harrix.hsk.speechtotext.SpeechToTextQueueStore
 import dev.harrix.hsk.speechtotext.SpeechToTextRepository
@@ -56,6 +57,11 @@ class SpeechToTextViewModel(
             },
             onAverageChanged = { averageMsPerAudioSecond.longValue = it },
             onErrorMessage = { errorMessage.value = it },
+            onRecognized = { item ->
+                if (answerAfterRecognizeIds.remove(item.id)) {
+                    answerItem(item.id)
+                }
+            },
         )
 
     val items = mutableStateListOf<SpeechQueueItem>()
@@ -67,6 +73,7 @@ class SpeechToTextViewModel(
     val recordingDurationSeconds = mutableFloatStateOf(0f)
     val waveformBuckets = mutableStateListOf<WaveformBucket>()
     val averageMsPerAudioSecond = mutableLongStateOf(queueStore.averageMsPerAudioSecond() ?: 0L)
+    val pendingOpenItemId = mutableStateOf<String?>(null)
 
     private var draftFile: File? = null
     private var draftMime: String = AudioRecorder.MIME_WAV
@@ -74,6 +81,8 @@ class SpeechToTextViewModel(
     private var elapsedTickerJob: Job? = null
     private val pendingEnvelopes = ArrayDeque<WaveformBucket>()
     private var envelopeFlushPosted = false
+    private var askMode = false
+    private val answerAfterRecognizeIds = mutableSetOf<String>()
 
     init {
         items.addAll(queueStore.loadAll())
@@ -115,6 +124,21 @@ class SpeechToTextViewModel(
         infoMessage.value = null
     }
 
+    fun enableAskMode() {
+        askMode = true
+    }
+
+    fun clearAskMode() {
+        askMode = false
+        answerAfterRecognizeIds.clear()
+    }
+
+    fun consumePendingOpenItemId(): String? {
+        val id = pendingOpenItemId.value
+        pendingOpenItemId.value = null
+        return id
+    }
+
     fun startRecording(append: Boolean = false) {
         if (composerPhase.value == ComposerPhase.Recording) {
             return
@@ -154,12 +178,14 @@ class SpeechToTextViewModel(
                 withContext(Dispatchers.IO) {
                     runCatching { audioRecorder.stop() }
                 }
+            var startAskPipeline = false
             outcome
                 .onSuccess { stopped ->
                     draftFile = stopped.first
                     draftMime = stopped.second
                     recordingDurationSeconds.floatValue = audioRecorder.durationSeconds()
                     composerPhase.value = ComposerPhase.Recorded
+                    startAskPipeline = askMode
                 }.onFailure { e ->
                     errorMessage.value = e.message
                     composerPhase.value =
@@ -170,6 +196,9 @@ class SpeechToTextViewModel(
                         }
                 }
             composerBusy.value = false
+            if (startAskPipeline) {
+                enqueueDraftAndRecognize(thenAnswer = true)
+            }
         }
     }
 
@@ -205,6 +234,7 @@ class SpeechToTextViewModel(
         waveformBuckets.clear()
         recordingDurationSeconds.floatValue = 0f
         composerPhase.value = ComposerPhase.Idle
+        clearAskMode()
     }
 
     fun discardDraft() {
@@ -217,9 +247,10 @@ class SpeechToTextViewModel(
         composerPhase.value = ComposerPhase.Idle
     }
 
-    fun enqueueDraftAndRecognize() {
+    fun enqueueDraftAndRecognize(thenAnswer: Boolean = false) {
         enqueueDraft { item ->
-            recognize(item.id)
+            pendingOpenItemId.value = item.id
+            recognize(item.id, thenAnswer = thenAnswer)
         }
     }
 
@@ -271,12 +302,18 @@ class SpeechToTextViewModel(
         }
     }
 
-    fun recognize(id: String) {
+    fun recognize(
+        id: String,
+        thenAnswer: Boolean = false,
+    ) {
         val item = items.firstOrNull { it.id == id } ?: return
         if (!hasApiKey.value) {
             errorMessage.value =
                 getApplication<Application>().getString(R.string.speech_to_text_missing_api_key)
             return
+        }
+        if (thenAnswer) {
+            answerAfterRecognizeIds.add(id)
         }
         recognition.recognize(item)
     }
@@ -360,6 +397,17 @@ class SpeechToTextViewModel(
             return
         }
         recognition.rewrite(item)
+    }
+
+    fun answerItem(id: String) {
+        val item = items.firstOrNull { it.id == id } ?: return
+        if (!hasApiKey.value) {
+            errorMessage.value =
+                getApplication<Application>().getString(R.string.speech_to_text_missing_api_key)
+            return
+        }
+        askMode = false
+        recognition.answer(item)
     }
 
     fun suggestedAudioFileName(id: String? = null): String {
@@ -458,11 +506,18 @@ class SpeechToTextViewModel(
 
     fun leaveScreen() {
         recognition.cancelAll()
+        clearAskMode()
         items.forEachIndexed { index, item ->
             if (item.status == SpeechMessageStatus.Processing) {
                 val restored =
                     item.copy(
-                        status = SpeechMessageStatus.Recorded,
+                        status =
+                        if (item.text.isNotBlank()) {
+                            SpeechMessageStatus.Done
+                        } else {
+                            SpeechMessageStatus.Recorded
+                        },
+                        processingKind = SpeechProcessingKind.None,
                         recognitionStartedAtMs = 0L,
                         recognitionElapsedMs = 0L,
                     )

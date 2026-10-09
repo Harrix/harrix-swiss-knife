@@ -15,6 +15,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import dev.harrix.hsk.speechtotext.SpeechToTextAskWidgetProvider
 import dev.harrix.hsk.speechtotext.SpeechToTextWidgetProvider
 import dev.harrix.hsk.ui.MainScreen
 import dev.harrix.hsk.ui.theme.AppLanguage
@@ -23,6 +24,7 @@ import dev.harrix.hsk.ui.theme.HskAndroidTheme
 class MainActivity : AppCompatActivity() {
     private var pendingImageUriState = mutableStateOf<Uri?>(null)
     private var pendingOpenSpeechToTextState = mutableStateOf(false)
+    private var pendingOpenSpeechAskState = mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val preferences = AppPreferences(this)
@@ -49,6 +51,7 @@ class MainActivity : AppCompatActivity() {
             val darkTheme = themeMode.resolveDarkTheme(isSystemInDarkTheme())
             var pendingImageUri by pendingImageUriState
             var pendingOpenSpeechToText by pendingOpenSpeechToTextState
+            var pendingOpenSpeechAsk by pendingOpenSpeechAskState
             HskAndroidTheme(darkTheme = darkTheme) {
                 MainScreen(
                     themeMode = themeMode,
@@ -68,6 +71,10 @@ class MainActivity : AppCompatActivity() {
                     onPendingOpenSpeechToTextConsume = {
                         pendingOpenSpeechToTextState.value = false
                     },
+                    pendingOpenSpeechAsk = pendingOpenSpeechAsk,
+                    onPendingOpenSpeechAskConsume = {
+                        pendingOpenSpeechAskState.value = false
+                    },
                     modifier = Modifier.fillMaxSize(),
                 )
             }
@@ -84,9 +91,16 @@ class MainActivity : AppCompatActivity() {
         if (intent == null) {
             return
         }
-        if (intent.action == SpeechToTextWidgetProvider.ACTION_OPEN_SPEECH_TO_TEXT) {
-            pendingOpenSpeechToTextState.value = true
-            return
+        when (intent.action) {
+            SpeechToTextWidgetProvider.ACTION_OPEN_SPEECH_TO_TEXT -> {
+                pendingOpenSpeechToTextState.value = true
+                return
+            }
+
+            SpeechToTextAskWidgetProvider.ACTION_OPEN_SPEECH_ASK -> {
+                pendingOpenSpeechAskState.value = true
+                return
+            }
         }
         val uri = IncomingImageIntents.extractImageUri(intent) ?: return
         tryTakePersistableReadPermission(uri, intent.flags)

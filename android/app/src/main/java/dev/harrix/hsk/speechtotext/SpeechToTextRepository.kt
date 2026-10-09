@@ -100,6 +100,23 @@ class SpeechToTextRepository(
         return rewritten
     }
 
+    fun answerQuestion(
+        text: String,
+        cancellationKey: String? = null,
+    ): String {
+        requireApiKey()
+        val answer =
+            client.chatCompletion(
+                model = BothubConfig.model,
+                text = BothubPrompts.buildSpeechAnswerPrompt(context, text),
+                cancellationKey = cancellationKey,
+            )
+        if (answer.isBlank()) {
+            throw BothubApiException("Empty response from AI")
+        }
+        return answer
+    }
+
     fun cancel(cancellationKey: String) {
         client.cancel(cancellationKey)
     }
