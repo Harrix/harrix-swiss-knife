@@ -60,7 +60,7 @@ BUTTON_CTA_MINT_HOVER = "#038387"
 BUTTON_ON_DARK_FG = "#ffffff"
 BUTTON_ON_DARK_ICON = "#f4f4f4"
 BUTTON_ON_LIGHT_FG = "#122a3a"
-# Keep colored QPushButton height close to unstyled dialog buttons.
+# Shared metrics for solid and secondary `QPushButton` chrome.
 BUTTON_PADDING = "5px 14px"
 BUTTON_MIN_HEIGHT_PX = 28
 # Contrast / “ordinary gray” thresholds for solid fills.

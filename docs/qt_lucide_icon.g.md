@@ -258,8 +258,8 @@ def apply_lucide_dialog_buttons(buttons: QDialogButtonBox, *, icon_size: int = D
 
 Set Lucide icons on standard `QDialogButtonBox` buttons when present.
 
-Also paints OK / Apply / Save / Yes green and Delete-like actions red.
-Cancel / No / Close stay on the default (gray) chrome.
+Also paints OK / Apply / Save / Yes green, Delete-like actions red, and
+Cancel / No / Close / other roles with shared secondary chrome.
 
 <details>
 <summary>Code:</summary>
@@ -293,6 +293,8 @@ def apply_lucide_dialog_buttons(
             style_accept_button(button, icon_size=icon_size)
         elif role == QDialogButtonBox.ButtonRole.DestructiveRole or is_delete_like_button_label(button.text()):
             style_delete_button(button, icon_size=icon_size)
+        else:
+            style_cancel_button(button, icon_size=icon_size)
 ```
 
 </details>
@@ -592,8 +594,9 @@ def make_lucide_push_button(label: str, name: str, *, icon_size: int = DEFAULT_L
 Create a push button with a Lucide icon.
 
 Labels that are Delete / Clear / Remove / Discard (or start with those words)
-get the shared red chrome and a white icon on that fill. Clear labels use the
-broom icon when a trash ID was passed by mistake.
+get the shared red chrome and a white icon on that fill. Other labels get the
+shared secondary chrome (same padding / min-height as solid fills). Clear
+labels use the broom icon when a trash ID was passed by mistake.
 
 <details>
 <summary>Code:</summary>
@@ -612,6 +615,10 @@ def make_lucide_push_button(
     apply_lucide_button_icon(button, icon_name, icon_size=icon_size, color=color)
     if is_delete_like_button_label(label) or icon_name in {"trash", "trash-2"}:
         style_delete_button(button, icon_size=icon_size)
+    else:
+        style_cancel_button(button, icon_size=icon_size)
+        if color is not None:
+            apply_lucide_button_icon(button, icon_name, icon_size=icon_size, color=color)
     return button
 ```
 
@@ -706,7 +713,7 @@ def style_accept_button(
 def style_cancel_button(button: QAbstractButton, *, icon_size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE) -> None
 ```
 
-Reset cancel/close chrome to the default gray button (not red).
+Paint cancel / close / copy / idle actions with shared secondary chrome.
 
 <details>
 <summary>Code:</summary>
