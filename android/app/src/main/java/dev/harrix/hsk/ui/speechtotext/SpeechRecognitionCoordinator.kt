@@ -87,6 +87,7 @@ class SpeechRecognitionCoordinator(
                                 recognitionStartedAtMs = 0L,
                                 recognitionElapsedMs = durationMs,
                                 lastRecognitionDurationMs = durationMs,
+                                markdownAnswer = false,
                             )
                         onItemChanged(done)
                         onRecognized(done)
@@ -184,6 +185,7 @@ class SpeechRecognitionCoordinator(
                         ensureActive()
                         result
                     }
+                val originalMarkdownAnswer = item.markdownAnswer
                 outcome
                     .onSuccess { result ->
                         onItemChanged(
@@ -193,6 +195,7 @@ class SpeechRecognitionCoordinator(
                                 text = result,
                                 recognitionStartedAtMs = 0L,
                                 recognitionElapsedMs = 0L,
+                                markdownAnswer = kind == SpeechProcessingKind.Answer,
                             ),
                         )
                     }.onFailure { error ->
@@ -209,6 +212,7 @@ class SpeechRecognitionCoordinator(
                                 },
                                 recognitionStartedAtMs = 0L,
                                 recognitionElapsedMs = 0L,
+                                markdownAnswer = originalMarkdownAnswer,
                             ),
                         )
                         if (error !is CancellationException) {

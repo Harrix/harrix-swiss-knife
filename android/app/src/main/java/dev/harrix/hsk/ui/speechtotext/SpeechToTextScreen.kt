@@ -92,6 +92,7 @@ import dev.harrix.hsk.speechtotext.WaveformBucket
 import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.CompactBottomActionButton
 import dev.harrix.hsk.ui.HskDropdownMenuItem
+import dev.harrix.hsk.ui.SimpleMarkdownText
 import dev.harrix.hsk.ui.icons.LucideIcons
 import dev.harrix.hsk.ui.theme.HskTopAppBarHeight
 import dev.harrix.hsk.ui.theme.hskScaffoldContainerColor
@@ -779,13 +780,25 @@ private fun SpeechMessageDetail(
             }
 
             SpeechMessageStatus.Done -> {
-                OutlinedTextField(
-                    value = item.text,
-                    onValueChange = onTextChange,
-                    modifier = Modifier.fillMaxWidth().height(180.dp),
-                    textStyle = MaterialTheme.typography.bodyMedium,
-                    label = { Text(stringResource(R.string.speech_to_text_result_label)) },
-                )
+                if (item.markdownAnswer) {
+                    Text(
+                        text = stringResource(R.string.speech_to_text_result_label),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    SimpleMarkdownText(
+                        markdown = item.text,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                } else {
+                    OutlinedTextField(
+                        value = item.text,
+                        onValueChange = onTextChange,
+                        modifier = Modifier.fillMaxWidth().height(180.dp),
+                        textStyle = MaterialTheme.typography.bodyMedium,
+                        label = { Text(stringResource(R.string.speech_to_text_result_label)) },
+                    )
+                }
                 if (item.lastRecognitionDurationMs > 0L) {
                     Text(
                         text = formatElapsed(item.lastRecognitionDurationMs),

@@ -383,7 +383,7 @@ class SpeechToTextViewModel(
         if (index < 0) {
             return
         }
-        val updated = items[index].copy(text = text)
+        val updated = items[index].copy(text = text, markdownAnswer = false)
         replaceItem(updated)
         persistItem(updated)
     }

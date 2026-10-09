@@ -31,4 +31,6 @@ data class SpeechQueueItem(
     val lastRecognitionDurationMs: Long = 0L,
     val sentToTickTick: Boolean = false,
     val processingKind: SpeechProcessingKind = SpeechProcessingKind.None,
+    /** True when [text] is an Ask AI answer that should render as simple Markdown. */
+    val markdownAnswer: Boolean = false,
 )
