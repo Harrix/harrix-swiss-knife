@@ -42,7 +42,7 @@ from harrix_swiss_knife.apps.common.audio_recording import (
     format_recording_duration,
     load_saved_microphone_id,
 )
-from harrix_swiss_knife.apps.common.ui_chrome import button_primary_qss
+from harrix_swiss_knife.apps.common.ui_chrome import button_primary_qss, drop_zone_qss
 from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import install_url_drop_handlers
 from harrix_swiss_knife.integrations.bothub.speech import audio_format_from_suffix
 from harrix_swiss_knife.paths import get_project_root
@@ -56,23 +56,8 @@ RECOGNIZE_BUTTON_STYLE = button_primary_qss()
 
 _AUDIO_FILTER = "Audio files (*.wav *.mp3 *.m4a *.ogg *.webm)"
 
-_EMPTY_DROP_STYLE = """
-    QLabel {
-        border: 2px dashed #ccc;
-        border-radius: 5px;
-        padding: 20px;
-        background-color: #f9f9f9;
-    }
-"""
-
-_SELECTED_DROP_STYLE = """
-    QLabel {
-        border: 2px solid #4CAF50;
-        border-radius: 5px;
-        padding: 10px;
-        background-color: #f0f8f0;
-    }
-"""
+_EMPTY_DROP_STYLE = drop_zone_qss()
+_SELECTED_DROP_STYLE = drop_zone_qss(selected=True, padding="10px")
 
 
 class AudioFileDropWidget(QWidget):

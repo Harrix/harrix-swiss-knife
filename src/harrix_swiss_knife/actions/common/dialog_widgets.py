@@ -29,6 +29,12 @@ from harrix_swiss_knife.actions.common.dialog_geometry import (
     fit_widget_height,
     list_content_height,
 )
+from harrix_swiss_knife.apps.common.ui_chrome import (
+    MUTED_TEXT,
+    SELECTION_BORDER,
+    SELECTION_HOVER,
+    drop_zone_qss,
+)
 from harrix_swiss_knife.qt_app_font import APP_FONT_FAMILY
 from harrix_swiss_knife.qt_lucide_icon import CLEAR_BUTTON_ICON, apply_lucide_dialog_buttons, make_lucide_push_button
 
@@ -221,21 +227,21 @@ class DragDropFileDialog(QDialog):
         layout.addWidget(title_label)
 
         self.drop_area = QLabel("Drag files here or click 'Select Files' button")
-        self.drop_area.setStyleSheet("""
-            QLabel {
-                border: 2px dashed #aaa;
-                border-radius: 10px;
-                padding: 40px;
+        empty = drop_zone_qss(padding="40px", radius=10)
+        self.drop_area.setStyleSheet(
+            f"""
+            {empty}
+            QLabel {{
                 text-align: center;
-                background-color: #f9f9f9;
-                color: #666;
+                color: {MUTED_TEXT};
                 font-size: 12px;
-            }
-            QLabel:hover {
-                border-color: #007acc;
-                background-color: #f0f8ff;
-            }
-        """)
+            }}
+            QLabel:hover {{
+                border-color: {SELECTION_BORDER};
+                background-color: {SELECTION_HOVER};
+            }}
+            """.strip()
+        )
         self.drop_area.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.drop_area.setMinimumHeight(_DROP_AREA_MIN_HEIGHT)
         self.drop_area.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)

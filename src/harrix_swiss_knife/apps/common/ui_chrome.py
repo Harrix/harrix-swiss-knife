@@ -200,6 +200,30 @@ def apply_soft_list_selection_chrome(root: QWidget) -> None:
         apply_soft_item_selection(view)
 
 
+def apply_white_surface_palette(widget: QWidget) -> None:
+    """Paint `widget` with the shared white surface (dialogs / panels).
+
+    Sets `Window` / `Base` / `AlternateBase` to `SURFACE` so modal forms are not
+    system gray. Idempotent.
+
+    """
+    white = QColor(SURFACE)
+    palette = widget.palette()
+    changed = False
+    for role in (
+        QPalette.ColorRole.Window,
+        QPalette.ColorRole.Base,
+        QPalette.ColorRole.AlternateBase,
+    ):
+        if palette.color(role) != white:
+            palette.setColor(role, white)
+            changed = True
+    if changed:
+        widget.setPalette(palette)
+    if not widget.autoFillBackground():
+        widget.setAutoFillBackground(True)
+
+
 def button_content_colors(bg_hex: str) -> tuple[str, str]:
     """Return `(text_hex, icon_hex)` for a solid fill.
 
@@ -280,6 +304,17 @@ def button_icon_color_for_bg(bg_hex: str | None) -> str | None:
     return button_content_colors(bg_hex)[1]
 
 
+def button_idle_qss(*, radius: int = PANEL_RADIUS) -> str:
+    """Return white outlined idle `QPushButton` chrome (Cancel / Copy / Add row)."""
+    return solid_button_qss(
+        SURFACE,
+        hover=SELECTION_HOVER,
+        pressed=BUTTON_SECONDARY_HOVER,
+        border=INPUT_BORDER,
+        radius=radius,
+    )
+
+
 def button_primary_qss(*, radius: int = PANEL_RADIUS) -> str:
     """Return solid primary `QPushButton` stylesheet (site `.button.is-primary`)."""
     return solid_button_qss(
@@ -309,6 +344,34 @@ def button_success_qss(*, radius: int = PANEL_RADIUS) -> str:
         pressed="#2e7d4f",
         radius=radius,
     )
+
+
+def drop_zone_qss(
+    *,
+    selected: bool = False,
+    focused: bool = False,
+    padding: str = "20px",
+    radius: int = 5,
+    selector: str = "QLabel",
+) -> str:
+    """Return white drop-zone QSS (replaces legacy gray `#f9f9f9` panels)."""
+    if selected:
+        border = f"2px solid {BUTTON_SUCCESS_BG}"
+        background = SELECTION_HOVER
+    elif focused:
+        border = f"2px dashed {MUTED_TEXT}"
+        background = HAIRLINE
+    else:
+        border = f"2px dashed {INPUT_BORDER}"
+        background = SURFACE
+    return f"""
+{selector} {{
+    border: {border};
+    border-radius: {radius}px;
+    padding: {padding};
+    background-color: {background};
+}}
+""".strip()
 
 
 def list_view_item_selection_qss(*, with_row_separators: bool = False) -> str:

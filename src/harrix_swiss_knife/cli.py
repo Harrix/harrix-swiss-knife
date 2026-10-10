@@ -1077,6 +1077,7 @@ def _cli_action_failed(result_lines: list[object]) -> bool:
 
 def _ensure_qt_app() -> QApplication:
     """Ensure a QApplication exists (required for interactive dialogs)."""
+    from harrix_swiss_knife.qt_ui_effects import install_ui_effects  # noqa: PLC0415
     from harrix_swiss_knife.spellcheck import install_spellcheck  # noqa: PLC0415
 
     app = cast("QApplication | None", QApplication.instance())
@@ -1086,6 +1087,7 @@ def _ensure_qt_app() -> QApplication:
     install_flexible_decimal_separators(app)
     install_spellcheck(app)
     install_app_fonts(app)
+    install_ui_effects(app)
     return app
 
 

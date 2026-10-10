@@ -33,7 +33,10 @@ Also: `LUCIDE_COLOR_BLUE` / caption active tab = `#2e86b7`.
 - Solid fills via `solid_button_qss()` / `button_*_qss()`: same-color border (no accent outline), `padding: 5px 14px`, `min-height: 28px`.
 - App CTAs: `button_cta_cyan_qss()` / `button_cta_green_qss()` / `button_cta_mint_qss()` — nearest CodeStyle hex of the old soft fills.
 - Text and Lucide icons on a colored fill match contrast (`button_content_colors` / `sync_button_icon_to_fill`): white on dark, dark on light; ordinary gray keeps semantic icon colors.
-- Secondary / toolbar idle: `BUTTON_SECONDARY_*` / `button_secondary_qss()`.
+- Secondary / toolbar plate: `BUTTON_SECONDARY_*` / `button_secondary_qss()`.
+- Dialog idle (Cancel / Copy / Add): `button_idle_qss()` — white `SURFACE` + `INPUT_BORDER`, same metrics.
+- Drop zones: `drop_zone_qss()` (white surface, not gray `#f9f9f9`).
+- Checkboxes / radios: Lucide indicators via `qt_form_chrome.install_form_chrome` (app polish filter).
 - Prefer helpers in `ui_chrome` over hardcoding button QSS in `.ui` files.
 
 ## Rules

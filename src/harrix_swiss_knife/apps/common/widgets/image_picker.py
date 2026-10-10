@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife.apps.common.avif_manager import load_image_pixmap
+from harrix_swiss_knife.apps.common.ui_chrome import drop_zone_qss
 from harrix_swiss_knife.apps.common.widgets.image_filename_row import ImageFilenameRow
 from harrix_swiss_knife.apps.common.widgets.image_lightbox_dialog import show_image_lightbox
 from harrix_swiss_knife.apps.common.widgets.image_picker_mode import ImagePickerMode
@@ -92,29 +93,9 @@ QPushButton:hover {
 
 _SCREENSHOT_BUTTON_ICON = "camera"
 
-_DROP_NORMAL_STYLE = """
-#ImagePickerDropArea {
-    border: 2px dashed #ccc;
-    border-radius: 5px;
-    background-color: #f9f9f9;
-}
-"""
-
-_DROP_FOCUSED_STYLE = """
-#ImagePickerDropArea {
-    border: 2px dashed #888;
-    border-radius: 5px;
-    background-color: #eeeeee;
-}
-"""
-
-_DROP_SELECTED_STYLE = """
-#ImagePickerDropArea {
-    border: 2px solid #4CAF50;
-    border-radius: 5px;
-    background-color: #f0f8f0;
-}
-"""
+_DROP_NORMAL_STYLE = drop_zone_qss(selector="#ImagePickerDropArea", padding="0px")
+_DROP_FOCUSED_STYLE = drop_zone_qss(selector="#ImagePickerDropArea", focused=True, padding="0px")
+_DROP_SELECTED_STYLE = drop_zone_qss(selector="#ImagePickerDropArea", selected=True, padding="0px")
 
 _IMAGE_FILTER = "Images (*.png *.jpg *.jpeg *.gif *.bmp *.svg *.webp *.avif);;All files (*)"
 

@@ -15,6 +15,7 @@ lang: en
 - [🔧 Function `apply_readable_selection_palette`](#-function-apply_readable_selection_palette)
 - [🔧 Function `apply_soft_item_selection`](#-function-apply_soft_item_selection)
 - [🔧 Function `apply_soft_list_selection_chrome`](#-function-apply_soft_list_selection_chrome)
+- [🔧 Function `apply_white_surface_palette`](#-function-apply_white_surface_palette)
 - [🔧 Function `button_content_colors`](#-function-button_content_colors)
 - [🔧 Function `button_cta_cyan_qss`](#-function-button_cta_cyan_qss)
 - [🔧 Function `button_cta_green_qss`](#-function-button_cta_green_qss)
@@ -23,9 +24,11 @@ lang: en
 - [🔧 Function `button_fill_from_stylesheet`](#-function-button_fill_from_stylesheet)
 - [🔧 Function `button_fill_is_ordinary`](#-function-button_fill_is_ordinary)
 - [🔧 Function `button_icon_color_for_bg`](#-function-button_icon_color_for_bg)
+- [🔧 Function `button_idle_qss`](#-function-button_idle_qss)
 - [🔧 Function `button_primary_qss`](#-function-button_primary_qss)
 - [🔧 Function `button_secondary_qss`](#-function-button_secondary_qss)
 - [🔧 Function `button_success_qss`](#-function-button_success_qss)
+- [🔧 Function `drop_zone_qss`](#-function-drop_zone_qss)
 - [🔧 Function `list_view_item_selection_qss`](#-function-list_view_item_selection_qss)
 - [🔧 Function `list_view_panel_qss`](#-function-list_view_panel_qss)
 - [🔧 Function `nearest_codestyle_color`](#-function-nearest_codestyle_color)
@@ -138,6 +141,41 @@ Apply soft selection chrome to every `QListView` under [`root`](../habits/habit_
 def apply_soft_list_selection_chrome(root: QWidget) -> None:
     for view in root.findChildren(QListView):
         apply_soft_item_selection(view)
+```
+
+</details>
+
+## 🔧 Function `apply_white_surface_palette`
+
+```python
+def apply_white_surface_palette(widget: QWidget) -> None
+```
+
+Paint `widget` with the shared white surface (dialogs / panels).
+
+Sets `Window` / `Base` / `AlternateBase` to `SURFACE` so modal forms are not
+system gray. Idempotent.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def apply_white_surface_palette(widget: QWidget) -> None:
+    white = QColor(SURFACE)
+    palette = widget.palette()
+    changed = False
+    for role in (
+        QPalette.ColorRole.Window,
+        QPalette.ColorRole.Base,
+        QPalette.ColorRole.AlternateBase,
+    ):
+        if palette.color(role) != white:
+            palette.setColor(role, white)
+            changed = True
+    if changed:
+        widget.setPalette(palette)
+    if not widget.autoFillBackground():
+        widget.setAutoFillBackground(True)
 ```
 
 </details>
@@ -324,6 +362,30 @@ def button_icon_color_for_bg(bg_hex: str | None) -> str | None:
 
 </details>
 
+## 🔧 Function `button_idle_qss`
+
+```python
+def button_idle_qss(*, radius: int = PANEL_RADIUS) -> str
+```
+
+Return white outlined idle `QPushButton` chrome (Cancel / Copy / Add row).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def button_idle_qss(*, radius: int = PANEL_RADIUS) -> str:
+    return solid_button_qss(
+        SURFACE,
+        hover=SELECTION_HOVER,
+        pressed=BUTTON_SECONDARY_HOVER,
+        border=INPUT_BORDER,
+        radius=radius,
+    )
+```
+
+</details>
+
 ## 🔧 Function `button_primary_qss`
 
 ```python
@@ -390,6 +452,47 @@ def button_success_qss(*, radius: int = PANEL_RADIUS) -> str:
         pressed="#2e7d4f",
         radius=radius,
     )
+```
+
+</details>
+
+## 🔧 Function `drop_zone_qss`
+
+```python
+def drop_zone_qss(*, selected: bool = False, focused: bool = False, padding: str = '20px', radius: int = 5, selector: str = 'QLabel') -> str
+```
+
+Return white drop-zone QSS (replaces legacy gray `#f9f9f9` panels).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def drop_zone_qss(
+    *,
+    selected: bool = False,
+    focused: bool = False,
+    padding: str = "20px",
+    radius: int = 5,
+    selector: str = "QLabel",
+) -> str:
+    if selected:
+        border = f"2px solid {BUTTON_SUCCESS_BG}"
+        background = SELECTION_HOVER
+    elif focused:
+        border = f"2px dashed {MUTED_TEXT}"
+        background = HAIRLINE
+    else:
+        border = f"2px dashed {INPUT_BORDER}"
+        background = SURFACE
+    return f"""
+{selector} {{
+    border: {border};
+    border-radius: {radius}px;
+    padding: {padding};
+    background-color: {background};
+}}
+""".strip()
 ```
 
 </details>

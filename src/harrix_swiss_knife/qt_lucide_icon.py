@@ -48,7 +48,7 @@ from harrix_swiss_knife.apps.common.ui_chrome import (
     button_danger_qss,
     button_fill_from_stylesheet,
     button_icon_color_for_bg,
-    button_secondary_qss,
+    button_idle_qss,
     button_success_qss,
 )
 from harrix_swiss_knife.qt_emoji_icon import split_leading_emoji
@@ -89,8 +89,8 @@ AI_BUTTON_ICON_COLOR = LUCIDE_COLOR_BLUE
 # Solid semantic buttons — shared with ui_chrome / HTML `$h-success` / `$h-danger`.
 ACCEPT_BUTTON_STYLE = button_success_qss()
 DELETE_BUTTON_STYLE = button_danger_qss()
-# Idle / cancel / copy — same padding and min-height as solid fills (not red).
-CANCEL_BUTTON_STYLE = button_secondary_qss()
+# Idle / cancel / copy — white outlined chrome, same metrics as solid fills.
+CANCEL_BUTTON_STYLE = button_idle_qss()
 
 _LUCIDE_NAME_PROP = "_harrix_lucide_name"
 

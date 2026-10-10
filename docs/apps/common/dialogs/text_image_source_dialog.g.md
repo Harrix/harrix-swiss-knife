@@ -228,11 +228,12 @@ class TextImageSourceDialog(QDialog):
 
         layout.addLayout(button_layout)
         if self._large_ui:
-            self.setStyleSheet(
-                """
-                QPushButton { min-height: 52px; padding: 8px 20px; }
-                """
-            )
+            # Child buttons keep their own stylesheets, so bump metrics on each
+            # button instead of a dialog-level QPushButton rule that they ignore.
+            large_metrics = "QPushButton { min-height: 52px; padding: 8px 20px; }"
+            for button in self.findChildren(QPushButton):
+                sheet = (button.styleSheet() or "").strip()
+                button.setStyleSheet(f"{sheet}\n{large_metrics}" if sheet else large_metrics)
         self._update_ok_enabled()
 
     def _update_ok_enabled(self) -> None:

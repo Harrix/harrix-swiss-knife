@@ -47,6 +47,8 @@ Model: **solid primary** (Bulma `.button.is-primary`) — filled brand, no contr
 
 Solid button QSS always sets `padding: 5px 14px` and `min-height: 28px` so filled buttons match unstyled dialog height. Text/icon on fill: white/`#f4f4f4` when luminance &lt; 0.55, else `#122a3a`; low-chroma gray fills keep semantic Lucide icon colors.
 
+Dialog idle buttons use `button_idle_qss()` (`SURFACE` + `INPUT_BORDER`). Drop zones use `drop_zone_qss()` (white, not `#f9f9f9`). `QCheckBox` / `QRadioButton` get Lucide indicators app-wide via `qt_form_chrome`.
+
 ## Do not unify across platforms
 
 - Site navbar height / logo width vs desktop caption 32px + Win11 window buttons

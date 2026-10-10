@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife.apps.common.ui_chrome import drop_zone_qss
 from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import install_url_drop_handlers
 from harrix_swiss_knife.qt_lucide_icon import (
     CLEAR_BUTTON_ICON,
@@ -205,20 +206,5 @@ class FilesListWidget(QWidget):
         self.setLayout(layout)
 
 
-_EMPTY_DROP_STYLE = """
-    QLabel {
-        border: 2px dashed #ccc;
-        border-radius: 5px;
-        padding: 20px;
-        background-color: #f9f9f9;
-    }
-"""
-
-_SELECTED_DROP_STYLE = """
-    QLabel {
-        border: 2px solid #4CAF50;
-        border-radius: 5px;
-        padding: 10px;
-        background-color: #f0f8f0;
-    }
-"""
+_EMPTY_DROP_STYLE = drop_zone_qss()
+_SELECTED_DROP_STYLE = drop_zone_qss(selected=True, padding="10px")
