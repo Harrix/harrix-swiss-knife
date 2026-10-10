@@ -60,6 +60,7 @@ from harrix_swiss_knife.actions.common.dialog_widgets import (
 from harrix_swiss_knife.actions.common.result_html import ResultTextBrowser
 from harrix_swiss_knife.actions.common.text_diff_dialog import build_text_diff_side_by_side
 from harrix_swiss_knife.actions.common.text_result_dialog import (
+    ASK_AI_DIALOG_CODE,
     COPY_TRANSLATION_BUTTON_LABEL,
     OK_BUTTON_LABEL,
     RERUN_BUTTON_ICON,
@@ -1667,6 +1668,7 @@ class ActionDialogService:
         rerun_button_label: str = RERUN_BUTTON_LABEL,
         rerun_button_icon: str = RERUN_BUTTON_ICON,
         rewrite_button: bool = False,
+        ask_ai_button: bool = False,
         translate_button: bool = False,
         remove_paragraphs_button: bool = False,
         save_button: bool = False,
@@ -1675,16 +1677,25 @@ class ActionDialogService:
         ok_button_label: str = OK_BUTTON_LABEL,
         ok_button_icon: str = OK_BUTTON_ICON,
         ok_button_before_actions: bool = False,
+        use_markdown: bool = False,
     ) -> str | tuple[str | None, int] | None:
         """Show read-only multi-line text dialog and return text if accepted."""
-        has_action_buttons = rerun_button or rewrite_button or translate_button or remove_paragraphs_button
+        has_action_buttons = (
+            rerun_button or rewrite_button or ask_ai_button or translate_button or remove_paragraphs_button
+        )
         folder_to_open = Path(open_folder_path) if open_folder_path is not None else None
         current_text = text
+
+        def _apply_result_text(browser: ResultTextBrowser, value: str) -> None:
+            if use_markdown:
+                browser.set_markdown_result(value)
+            else:
+                browser.set_plain_result(value)
 
         def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
             nonlocal current_text
             text_edit = ResultTextBrowser()
-            text_edit.set_plain_result(current_text)
+            _apply_result_text(text_edit, current_text)
             text_edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
             text_edit.setMinimumHeight(self._default_size.height() - 120)
             text_edit.moveCursor(QTextCursor.MoveOperation.End)
@@ -1739,7 +1750,7 @@ class ActionDialogService:
             def on_remove_paragraphs() -> None:
                 nonlocal current_text
                 current_text = collapse_text_to_single_line(text_edit.toPlainText())
-                text_edit.set_plain_result(current_text)
+                _apply_result_text(text_edit, current_text)
                 QGuiApplication.clipboard().setText(current_text)
                 self._show_toast("Converted to single line")
                 if remove_paragraphs_btn is not None:
@@ -1755,6 +1766,7 @@ class ActionDialogService:
                     rerun_button_label=rerun_button_label,
                     rerun_button_icon=rerun_button_icon,
                     rewrite_button=rewrite_button,
+                    ask_ai_button=ask_ai_button,
                     translate_button=translate_button,
                     remove_paragraphs_button=remove_paragraphs_button,
                     on_remove_paragraphs=on_remove_paragraphs if remove_paragraphs_button else None,
@@ -1780,7 +1792,12 @@ class ActionDialogService:
 
         result, _dialog = self._exec_standard_dialog(title, _build, stretch_row=0, adaptive=False)
         if has_action_buttons:
-            if result in (RERUN_DIALOG_CODE, REWRITE_DIALOG_CODE, TRANSLATE_DIALOG_CODE):
+            if result in (
+                RERUN_DIALOG_CODE,
+                REWRITE_DIALOG_CODE,
+                ASK_AI_DIALOG_CODE,
+                TRANSLATE_DIALOG_CODE,
+            ):
                 return current_text, result
             return (current_text if result == QDialog.DialogCode.Accepted else None, result)
         return current_text if result == QDialog.DialogCode.Accepted else None

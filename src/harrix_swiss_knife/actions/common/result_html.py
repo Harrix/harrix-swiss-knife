@@ -36,6 +36,14 @@ class ResultTextBrowser(QTextBrowser):
         mime.setText(self.textCursor().selectedText().replace("\u2029", "\n"))
         return mime
 
+    def set_markdown_result(self, text: str) -> None:
+        """Show `text` as simple Markdown (paragraphs, bold, lists)."""
+        stripped = text.strip()
+        if not stripped:
+            self.clear()
+            return
+        self.setMarkdown(stripped)
+
     def set_plain_result(self, text: str) -> None:
         """Show `text` with auto-linked URLs."""
         self.setHtml(plain_text_to_result_html(text))

@@ -78,6 +78,36 @@ class OnSpeechToTextWithAI(ActionBase):
 
         self._process_audio_path(store, audio_path)
 
+    def _ask_ai(self, question_text: str) -> None:
+        """Answer the transcribed question with BotHub and show Markdown result."""
+        try:
+            prompt_text = build_speech_answer_prompt(question_text, self.config)
+        except ValueError as exc:
+            msg = str(exc)
+            if msg == SPEECH_ANSWER_PROMPT_MISSING_MSG:
+                message_box.warning(None, "Prompt", msg)
+            else:
+                message_box.critical(None, "BotHub API Key", msg)
+            return
+
+        def on_success(answer_text: str) -> None:
+            if not answer_text.strip():
+                message_box.critical(None, "BotHub Error", "Empty response from BotHub.")
+                return
+            self._show_speech_result(answer_text, use_markdown=True)
+
+        def on_error(message: str) -> None:
+            message_box.critical(None, "BotHub Error", message)
+
+        run_bothub_request(
+            None,
+            self.config,
+            prompt_text,
+            on_success,
+            toast_message="Answering…",
+            on_error=on_error,
+        )
+
     def _collect_audio_path(self) -> str | None:
         dialog = AudioSourceDialog()
         if dialog.exec() != dialog.DialogCode.Accepted:
@@ -141,35 +171,7 @@ class OnSpeechToTextWithAI(ActionBase):
                 return
 
             store.clear()
-            current = fixed_text
-            self.text_to_clipboard(current)
-            dialog_result = self.show_text_multiline(
-                current,
-                title="Speech to text result",
-                rerun_button=True,
-                rerun_button_label="Record new",
-                rerun_button_icon="mic",
-                rewrite_button=True,
-                translate_button=text_needs_translation(
-                    current,
-                    local_language_code_from_config(self.config),
-                ),
-                remove_paragraphs_button=True,
-            )
-            if not isinstance(dialog_result, tuple):
-                return
-            result_text, action_code = dialog_result
-            if result_text is not None:
-                current = result_text
-            resolve_text_result_dialog_action(
-                action_code,
-                current,
-                on_rerun=self,
-                on_rewrite=lambda current=current: OnRewriteTextWithAI(output_bus=self._output_bus)(
-                    initial_text=current
-                ),
-                on_translate=lambda current=current: start_text_translation(self, current),
-            )
+            self._show_speech_result(fixed_text)
 
         def on_transcription_success(transcribed_text: str) -> None:
             if not transcribed_text.strip():
@@ -231,6 +233,39 @@ class OnSpeechToTextWithAI(ActionBase):
                     store,
                     "Could not start recognition. The unsent recording was kept.",
                 )
+
+    def _show_speech_result(self, text: str, *, use_markdown: bool = False) -> None:
+        """Show speech/Ask AI result and dispatch result-dialog actions."""
+        current = text
+        self.text_to_clipboard(current)
+        dialog_result = self.show_text_multiline(
+            current,
+            title="Ask AI answer" if use_markdown else "Speech to text result",
+            rerun_button=True,
+            rerun_button_label="Record new",
+            rerun_button_icon="mic",
+            rewrite_button=not use_markdown,
+            ask_ai_button=not use_markdown,
+            translate_button=text_needs_translation(
+                current,
+                local_language_code_from_config(self.config),
+            ),
+            remove_paragraphs_button=True,
+            use_markdown=use_markdown,
+        )
+        if not isinstance(dialog_result, tuple):
+            return
+        result_text, action_code = dialog_result
+        if result_text is not None:
+            current = result_text
+        resolve_text_result_dialog_action(
+            action_code,
+            current,
+            on_rerun=self,
+            on_rewrite=lambda current=current: OnRewriteTextWithAI(output_bus=self._output_bus)(initial_text=current),
+            on_ask_ai=lambda current=current: self._ask_ai(current),
+            on_translate=lambda current=current: start_text_translation(self, current),
+        )
 ```
 
 </details>

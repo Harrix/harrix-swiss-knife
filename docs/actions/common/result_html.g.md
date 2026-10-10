@@ -14,6 +14,7 @@ lang: en
 - [🏛️ Class `ResultTextBrowser`](#%EF%B8%8F-class-resulttextbrowser)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `createMimeDataFromSelection`](#%EF%B8%8F-method-createmimedatafromselection)
+  - [⚙️ Method `set_markdown_result`](#%EF%B8%8F-method-set_markdown_result)
   - [⚙️ Method `set_plain_result`](#%EF%B8%8F-method-set_plain_result)
 - [🔧 Function `plain_text_to_result_html`](#-function-plain_text_to_result_html)
 
@@ -51,6 +52,14 @@ class ResultTextBrowser(QTextBrowser):
         mime = QMimeData()
         mime.setText(self.textCursor().selectedText().replace("\u2029", "\n"))
         return mime
+
+    def set_markdown_result(self, text: str) -> None:
+        """Show `text` as simple Markdown (paragraphs, bold, lists)."""
+        stripped = text.strip()
+        if not stripped:
+            self.clear()
+            return
+        self.setMarkdown(stripped)
 
     def set_plain_result(self, text: str) -> None:
         """Show `text` with auto-linked URLs."""
@@ -102,6 +111,28 @@ def createMimeDataFromSelection(self) -> QMimeData:  # noqa: N802
         mime = QMimeData()
         mime.setText(self.textCursor().selectedText().replace("\u2029", "\n"))
         return mime
+```
+
+</details>
+
+### ⚙️ Method `set_markdown_result`
+
+```python
+def set_markdown_result(self, text: str) -> None
+```
+
+Show [`text`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-text) as simple Markdown (paragraphs, bold, lists).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_markdown_result(self, text: str) -> None:
+        stripped = text.strip()
+        if not stripped:
+            self.clear()
+            return
+        self.setMarkdown(stripped)
 ```
 
 </details>

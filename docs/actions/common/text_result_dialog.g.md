@@ -147,10 +147,10 @@ def add_save_markdown_button(button_layout: QHBoxLayout, click_handler: Callable
 ## 🔧 Function `append_result_action_buttons`
 
 ```python
-def append_result_action_buttons(dialog: QDialog, button_layout: QHBoxLayout, *, rerun_button: bool = False, rerun_button_label: str = RERUN_BUTTON_LABEL, rerun_button_icon: str = RERUN_BUTTON_ICON, rewrite_button: bool = False, translate_button: bool = False, remove_paragraphs_button: bool = False, on_remove_paragraphs: Callable[[], None] | None = None, remove_paragraphs_source_text: str = '') -> QPushButton | None
+def append_result_action_buttons(dialog: QDialog, button_layout: QHBoxLayout, *, rerun_button: bool = False, rerun_button_label: str = RERUN_BUTTON_LABEL, rerun_button_icon: str = RERUN_BUTTON_ICON, rewrite_button: bool = False, ask_ai_button: bool = False, translate_button: bool = False, remove_paragraphs_button: bool = False, on_remove_paragraphs: Callable[[], None] | None = None, remove_paragraphs_source_text: str = '') -> QPushButton | None
 ```
 
-Add optional rerun/rewrite/translate buttons and in-place remove-paragraphs action.
+Add optional rerun/rewrite/Ask AI/translate buttons and in-place remove-paragraphs action.
 
 The "To single line" button is created only when requested and the source text
 has more than one line after trimming.
@@ -167,6 +167,7 @@ def append_result_action_buttons(
     rerun_button_label: str = RERUN_BUTTON_LABEL,
     rerun_button_icon: str = RERUN_BUTTON_ICON,
     rewrite_button: bool = False,
+    ask_ai_button: bool = False,
     translate_button: bool = False,
     remove_paragraphs_button: bool = False,
     on_remove_paragraphs: Callable[[], None] | None = None,
@@ -184,6 +185,15 @@ def append_result_action_buttons(
         rewrite_btn = make_lucide_push_button(REWRITE_BUTTON_LABEL, REWRITE_BUTTON_ICON)
         rewrite_btn.clicked.connect(lambda: dialog.done(REWRITE_DIALOG_CODE))
         button_layout.addWidget(rewrite_btn)
+
+    if ask_ai_button:
+        ask_btn = make_lucide_push_button(
+            ASK_AI_BUTTON_LABEL,
+            ASK_AI_BUTTON_ICON,
+            color=AI_BUTTON_ICON_COLOR,
+        )
+        ask_btn.clicked.connect(lambda: dialog.done(ASK_AI_DIALOG_CODE))
+        button_layout.addWidget(ask_btn)
 
     if translate_button:
         translate_btn = make_lucide_push_button(TRANSLATE_BUTTON_LABEL, TRANSLATE_BUTTON_ICON)
@@ -248,7 +258,7 @@ def is_multiline_text(text: str) -> bool:
 ## 🔧 Function `resolve_text_result_dialog_action`
 
 ```python
-def resolve_text_result_dialog_action(action_code: int, _current_text: str, *, on_rerun: Callable[[], None] | None = None, on_rewrite: Callable[[], None] | None = None, on_translate: Callable[[], None] | None = None) -> str | None
+def resolve_text_result_dialog_action(action_code: int, _current_text: str, *, on_rerun: Callable[[], None] | None = None, on_rewrite: Callable[[], None] | None = None, on_ask_ai: Callable[[], None] | None = None, on_translate: Callable[[], None] | None = None) -> str | None
 ```
 
 Handle custom dialog codes. Always returns `None` after optional callbacks.
@@ -263,6 +273,7 @@ def resolve_text_result_dialog_action(
     *,
     on_rerun: Callable[[], None] | None = None,
     on_rewrite: Callable[[], None] | None = None,
+    on_ask_ai: Callable[[], None] | None = None,
     on_translate: Callable[[], None] | None = None,
 ) -> str | None:
     if action_code == RERUN_DIALOG_CODE:
@@ -272,6 +283,10 @@ def resolve_text_result_dialog_action(
     if action_code == REWRITE_DIALOG_CODE:
         if on_rewrite is not None:
             on_rewrite()
+        return None
+    if action_code == ASK_AI_DIALOG_CODE:
+        if on_ask_ai is not None:
+            on_ask_ai()
         return None
     if action_code == TRANSLATE_DIALOG_CODE:
         if on_translate is not None:

@@ -33,6 +33,7 @@
       "markdown_template_fields_from_source": "snippet:config/prompts/markdown-template-fields-from-source.md",
       "snippets_emoji_suggest": "snippet:config/prompts/snippets-emoji-suggest.md",
       "speech_transcription": "snippet:config/prompts/speech-transcription.md",
+      "speech_answer": "snippet:config/prompts/speech-answer.md",
       "text_fix_ru": "snippet:config/prompts/text-fix-ru.md",
       "text_fix_ru_clipboard": "snippet:config/prompts/text-fix-ru-clipboard.md",
       "text_rewrite_ru": "snippet:config/prompts/text-rewrite-ru.md",

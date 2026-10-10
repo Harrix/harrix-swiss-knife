@@ -45,6 +45,10 @@ from harrix_swiss_knife.integrations.bothub.speech import (
     audio_format_from_suffix,
     build_transcription_prompt,
 )
+from harrix_swiss_knife.integrations.bothub.speech_answer import (
+    build_speech_answer_prompt,
+    get_speech_answer_prompt_template,
+)
 from harrix_swiss_knife.integrations.bothub.text_fix import (
     CLIPBOARD_PROMPT_MISSING_MSG,
     PROMPT_MISSING_MSG,
@@ -80,6 +84,7 @@ __all__ = [
     "build_image_ocr_translate_prompt",
     "build_image_table_prompt",
     "build_prompt",
+    "build_speech_answer_prompt",
     "build_text_fix_from_clipboard_prompt",
     "build_text_fix_prompt",
     "build_text_rewrite_prompt",
@@ -94,6 +99,7 @@ __all__ = [
     "get_image_table_prompt_template",
     "get_max_image_side",
     "get_prompt_template",
+    "get_speech_answer_prompt_template",
     "get_speech_model",
     "get_text_fix_from_clipboard_prompt_template",
     "get_text_fix_prompt_template",
