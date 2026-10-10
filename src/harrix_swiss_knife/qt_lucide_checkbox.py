@@ -33,12 +33,10 @@ from harrix_swiss_knife.qt_lucide_icon import (
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QWidget
 
-# Native Lucide grid (stroke 2 on 24). Smaller sizes soft-scale into a gray double outline.
+# Native Lucide grid (stroke 2 on 24). Keep SVG antialias (no alpha hard-threshold).
 CHECKBOX_INDICATOR_PX = 24
 RADIO_INDICATOR_PX = 24
 _DISABLED_COLOR = "#767676"
-_FRINGE_ALPHA_CUTOFF = 140
-_OPAQUE_ALPHA = 255
 _INDICATOR_PIXMAP_CACHE: dict[tuple[str, str, int, float], QPixmap] = {}
 
 
@@ -266,10 +264,10 @@ def _lucide_indicator_pixmap(name: str, color: str, size: int) -> QPixmap:
     pixmap.fill(Qt.GlobalColor.transparent)
     painter = QPainter(pixmap)
     painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
+    painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, on=True)
     renderer.render(painter, QRectF(0.0, 0.0, float(physical), float(physical)))
     painter.end()
     pixmap.setDevicePixelRatio(ratio)
-    pixmap = _strip_indicator_fringe(pixmap)
     _INDICATOR_PIXMAP_CACHE[cache_key] = pixmap
     return pixmap
 
@@ -284,29 +282,9 @@ def _paint_centered_pixmap(painter: QPainter, rect: QRect, pixmap: QPixmap, size
         size,
     )
     painter.save()
-    # Pre-rasterized glyph; SmoothPixmapTransform would reintroduce a soft fringe.
-    painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, on=False)
+    painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, on=True)
     painter.drawPixmap(target, pixmap)
     painter.restore()
-
-
-def _strip_indicator_fringe(pixmap: QPixmap) -> QPixmap:
-    """Remove gray antialias fringe so the outline is one solid stroke."""
-    image = pixmap.toImage()
-    for y in range(image.height()):
-        for x in range(image.width()):
-            color = image.pixelColor(x, y)
-            alpha = color.alpha()
-            if alpha == 0:
-                continue
-            if alpha < _FRINGE_ALPHA_CUTOFF:
-                image.setPixelColor(x, y, QColor(0, 0, 0, 0))
-            elif alpha < _OPAQUE_ALPHA:
-                color.setAlpha(_OPAQUE_ALPHA)
-                image.setPixelColor(x, y, color)
-    cleaned = QPixmap.fromImage(image)
-    cleaned.setDevicePixelRatio(pixmap.devicePixelRatio())
-    return cleaned
 
 
 # Backward-compatible alias used by tests and older imports.

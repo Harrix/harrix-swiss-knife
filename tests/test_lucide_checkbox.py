@@ -53,6 +53,22 @@ def test_lucide_radio_pixmap_checked_and_unchecked() -> None:
     assert unchecked.toImage() != checked.toImage()
 
 
+def test_lucide_indicator_pixmaps_keep_antialias_fringe() -> None:
+    """Circles must keep soft alpha edges (no hard alpha threshold)."""
+    assert _qapp() is not None
+    for pixmap in (
+        lucide_radio_pixmap(checked=False),
+        lucide_radio_pixmap(checked=True),
+        lucide_checkbox_pixmap(checked=False),
+        lucide_checkbox_pixmap(checked=True),
+    ):
+        image = pixmap.toImage()
+        soft = any(
+            0 < image.pixelColor(x, y).alpha() < 255 for y in range(image.height()) for x in range(image.width())
+        )
+        assert soft, "expected antialiased edge pixels with partial alpha"
+
+
 def test_apply_lucide_indicators_sets_checkbox_and_radio_styles() -> None:
     app = _qapp()
     before = app.style()
