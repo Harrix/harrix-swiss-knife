@@ -12,6 +12,7 @@ lang: en
 ## Contents
 
 - [🔧 Function `add_lucide_action`](#-function-add_lucide_action)
+- [🔧 Function `apply_button_stylesheet`](#-function-apply_button_stylesheet)
 - [🔧 Function `apply_leading_chrome_button_icon`](#-function-apply_leading_chrome_button_icon)
 - [🔧 Function `apply_leading_chrome_buttons`](#-function-apply_leading_chrome_buttons)
 - [🔧 Function `apply_leading_chrome_icon`](#-function-apply_leading_chrome_icon)
@@ -62,6 +63,33 @@ def add_lucide_action(
     apply_lucide_action_icon(action, name, icon_size=icon_size)
     apply_menu_icon_size(menu, icon_size)
     return action
+```
+
+</details>
+
+## 🔧 Function `apply_button_stylesheet`
+
+```python
+def apply_button_stylesheet(button: QAbstractButton, stylesheet: str, *, icon_size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE) -> None
+```
+
+Set button QSS and recolor the Lucide icon for fill contrast.
+
+Solid fills (primary / success / danger / CTAs) get white or dark icons to
+match the text; ordinary gray / white idle chrome keeps semantic colors.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def apply_button_stylesheet(
+    button: QAbstractButton,
+    stylesheet: str,
+    *,
+    icon_size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE,
+) -> None:
+    button.setStyleSheet(stylesheet)
+    sync_button_icon_to_fill(button, icon_size=icon_size)
 ```
 
 </details>
@@ -701,8 +729,7 @@ def style_accept_button(
     *,
     icon_size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE,
 ) -> None:
-    button.setStyleSheet(ACCEPT_BUTTON_STYLE)
-    sync_button_icon_to_fill(button, icon_size=icon_size)
+    apply_button_stylesheet(button, ACCEPT_BUTTON_STYLE, icon_size=icon_size)
 ```
 
 </details>
@@ -749,8 +776,7 @@ def style_delete_button(
     *,
     icon_size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE,
 ) -> None:
-    button.setStyleSheet(DELETE_BUTTON_STYLE)
-    sync_button_icon_to_fill(button, icon_size=icon_size)
+    apply_button_stylesheet(button, DELETE_BUTTON_STYLE, icon_size=icon_size)
 ```
 
 </details>

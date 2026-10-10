@@ -297,6 +297,22 @@ def add_lucide_action(
     return action
 
 
+def apply_button_stylesheet(
+    button: QAbstractButton,
+    stylesheet: str,
+    *,
+    icon_size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE,
+) -> None:
+    """Set button QSS and recolor the Lucide icon for fill contrast.
+
+    Solid fills (primary / success / danger / CTAs) get white or dark icons to
+    match the text; ordinary gray / white idle chrome keeps semantic colors.
+
+    """
+    button.setStyleSheet(stylesheet)
+    sync_button_icon_to_fill(button, icon_size=icon_size)
+
+
 def apply_leading_chrome_button_icon(
     button: QAbstractButton,
     *,
@@ -679,8 +695,7 @@ def style_accept_button(
     icon_size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE,
 ) -> None:
     """Paint an accept action (OK / Apply / Save) with the shared green chrome."""
-    button.setStyleSheet(ACCEPT_BUTTON_STYLE)
-    sync_button_icon_to_fill(button, icon_size=icon_size)
+    apply_button_stylesheet(button, ACCEPT_BUTTON_STYLE, icon_size=icon_size)
 
 
 def style_cancel_button(
@@ -701,8 +716,7 @@ def style_delete_button(
     icon_size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE,
 ) -> None:
     """Paint a delete/clear/remove action with the shared red chrome."""
-    button.setStyleSheet(DELETE_BUTTON_STYLE)
-    sync_button_icon_to_fill(button, icon_size=icon_size)
+    apply_button_stylesheet(button, DELETE_BUTTON_STYLE, icon_size=icon_size)
 
 
 def sync_button_icon_to_fill(

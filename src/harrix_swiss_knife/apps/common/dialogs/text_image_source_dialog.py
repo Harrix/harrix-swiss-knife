@@ -21,11 +21,11 @@ from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common.ui_chrome import button_primary_qss
 from harrix_swiss_knife.apps.common.widgets.image_picker import ImagePicker, ImagePickerMode
 from harrix_swiss_knife.qt_lucide_icon import (
-    AI_BUTTON_ICON,
-    AI_BUTTON_ICON_COLOR,
     OK_BUTTON_ICON,
+    apply_button_stylesheet,
     make_lucide_push_button,
     style_accept_button,
+    sync_button_icon_to_fill,
 )
 
 SEND_TO_AI_BUTTON_STYLE = button_primary_qss()
@@ -209,17 +209,16 @@ class TextImageSourceDialog(QDialog):
         cancel_button.clicked.connect(self.reject)
         button_layout.addWidget(cancel_button)
 
-        accept_color = AI_BUTTON_ICON_COLOR if self._accept_button_icon == AI_BUTTON_ICON else None
+        # Solid fills force contrast icons; do not keep semantic AI blue on primary.
         self._ok_button = make_lucide_push_button(
             self._accept_button_text,
             self._accept_button_icon,
-            color=accept_color,
         )
         accept_font = QFont()
         accept_font.setBold(True)
         self._ok_button.setFont(accept_font)
         if self._accept_button_style:
-            self._ok_button.setStyleSheet(self._accept_button_style)
+            apply_button_stylesheet(self._ok_button, self._accept_button_style)
         else:
             style_accept_button(self._ok_button)
         self._ok_button.setEnabled(False)
@@ -235,6 +234,7 @@ class TextImageSourceDialog(QDialog):
             for button in self.findChildren(QPushButton):
                 sheet = (button.styleSheet() or "").strip()
                 button.setStyleSheet(f"{sheet}\n{large_metrics}" if sheet else large_metrics)
+                sync_button_icon_to_fill(button)
         self._update_ok_enabled()
 
     def _update_ok_enabled(self) -> None:

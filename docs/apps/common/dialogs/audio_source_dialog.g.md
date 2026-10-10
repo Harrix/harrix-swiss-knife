@@ -719,7 +719,7 @@ class AudioSourceDialog(QDialog):
         recognize_font = QFont()
         recognize_font.setBold(True)
         self._recognize_button.setFont(recognize_font)
-        self._recognize_button.setStyleSheet(RECOGNIZE_BUTTON_STYLE)
+        apply_button_stylesheet(self._recognize_button, RECOGNIZE_BUTTON_STYLE)
         self._recognize_button.setEnabled(False)
         self._recognize_button.clicked.connect(self._on_accept)
         button_layout.addWidget(self._recognize_button)

@@ -8,8 +8,10 @@ from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QApplication, QDialogButtonBox, QMenu
 
 from harrix_swiss_knife import qt_lucide_icon as lucide_mod
+from harrix_swiss_knife.apps.common.ui_chrome import button_primary_qss
 from harrix_swiss_knife.qt_lucide_icon import (
     ACCEPT_BUTTON_STYLE,
+    AI_BUTTON_ICON,
     CANCEL_BUTTON_STYLE,
     DELETE_BUTTON_STYLE,
     LUCIDE_COLOR_BLUE,
@@ -18,6 +20,7 @@ from harrix_swiss_knife.qt_lucide_icon import (
     LUCIDE_COLOR_ON_FILLED,
     LUCIDE_COLOR_RED,
     add_lucide_action,
+    apply_button_stylesheet,
     apply_leading_chrome_icons,
     apply_lucide_dialog_buttons,
     create_ai_lucide_icon,
@@ -228,6 +231,31 @@ def test_style_accept_button_sets_shared_green(qapp: QApplication) -> None:
     button = make_lucide_push_button("OK", "circle-check")
     style_accept_button(button)
     assert button.styleSheet() == ACCEPT_BUTTON_STYLE
+
+
+def test_apply_button_stylesheet_forces_on_filled_icon_for_primary(qapp: QApplication) -> None:
+    assert qapp is not None
+    lucide_mod._CACHE.clear()
+    button = make_lucide_push_button("Send to AI", AI_BUTTON_ICON, color="#2e86b7")
+    apply_button_stylesheet(button, button_primary_qss())
+    pixmap = button.icon().pixmap(QSize(18, 18), 1.0)
+    image = pixmap.toImage()
+    pixel = None
+    for y in range(image.height()):
+        for x in range(image.width()):
+            sample = QColor(image.pixelColor(x, y))
+            if sample.alpha() < 32:
+                continue
+            pixel = sample
+            break
+        if pixel is not None:
+            break
+    assert pixel is not None
+    on_filled = QColor(LUCIDE_COLOR_ON_FILLED)
+    assert abs(pixel.red() - on_filled.red()) < 40
+    assert abs(pixel.green() - on_filled.green()) < 40
+    assert abs(pixel.blue() - on_filled.blue()) < 40
+    lucide_mod._CACHE.clear()
 
 
 def test_filled_accept_and_delete_use_on_filled_white_icons(qapp: QApplication) -> None:
