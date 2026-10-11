@@ -27,7 +27,7 @@ lang: en
 class LightboxImageCache
 ```
 
-Keep recent high-resolution lightbox rasters keyed by path fingerprint.
+Keep recent lightbox rasters for AI/PDF/EPS keyed by path fingerprint.
 
 <details>
 <summary>Code:</summary>
@@ -40,7 +40,7 @@ class LightboxImageCache:
 
         Args:
 
-        - `max_entries` (`int`): Maximum retained images. Defaults to `48`.
+        - `max_entries` (`int`): Maximum retained images. Defaults to `12`.
 
         """
         self._max_entries = max(1, max_entries)
@@ -116,7 +116,7 @@ Create an empty LRU store.
 
 Args:
 
-- `max_entries` (`int`): Maximum retained images. Defaults to `48`.
+- `max_entries` (`int`): Maximum retained images. Defaults to `12`.
 
 <details>
 <summary>Code:</summary>

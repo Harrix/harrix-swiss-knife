@@ -1,4 +1,9 @@
-"""In-memory LRU cache for Vector Icons lightbox previews."""
+"""In-memory LRU cache for non-SVG Vector Icons lightbox rasters.
+
+SVG lightbox previews paint with `QSvgRenderer` and do not use this cache.
+AI/PDF/EPS still rasterize once and reuse the result while browsing.
+
+"""
 
 from __future__ import annotations
 
@@ -11,19 +16,19 @@ if TYPE_CHECKING:
 
     from PySide6.QtGui import QImage
 
-DEFAULT_MAX_ENTRIES = 48
-PREVIEW_RENDER_SIZE = 2048
+DEFAULT_MAX_ENTRIES = 12
+PREVIEW_RENDER_SIZE = 1280
 
 
 class LightboxImageCache:
-    """Keep recent high-resolution lightbox rasters keyed by path fingerprint."""
+    """Keep recent lightbox rasters for AI/PDF/EPS keyed by path fingerprint."""
 
     def __init__(self, *, max_entries: int = DEFAULT_MAX_ENTRIES) -> None:
         """Create an empty LRU store.
 
         Args:
 
-        - `max_entries` (`int`): Maximum retained images. Defaults to `48`.
+        - `max_entries` (`int`): Maximum retained images. Defaults to `12`.
 
         """
         self._max_entries = max(1, max_entries)
