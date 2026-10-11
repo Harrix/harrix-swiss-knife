@@ -6,6 +6,7 @@ import time
 from collections.abc import Iterator
 from pathlib import Path
 
+import pymupdf
 import pytest
 from PySide6.QtGui import QImage
 from PySide6.QtTest import QTest
@@ -20,6 +21,16 @@ from harrix_swiss_knife.apps.icons.lightbox_cache import (
 )
 
 
+def _write_pdf(path: Path) -> None:
+    document = pymupdf.open()
+    try:
+        page = document.new_page(width=100, height=100)
+        page.draw_rect(page.rect, color=(0, 0, 0), fill=(0, 0, 0))
+        document.save(path)
+    finally:
+        document.close()
+
+
 def _write_svg(path: Path) -> None:
     path.write_text(
         '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24">'
@@ -28,13 +39,13 @@ def _write_svg(path: Path) -> None:
     )
 
 
-def _wait_for_image(dialog: IconLightboxDialog, qapp: QApplication, *, timeout_ms: int = 5000) -> None:
+def _wait_for_preview(dialog: IconLightboxDialog, qapp: QApplication, *, timeout_ms: int = 5000) -> None:
     elapsed = 0
-    while dialog.canvas._image is None and elapsed < timeout_ms:
+    while not dialog.canvas.has_preview() and elapsed < timeout_ms:
         qapp.processEvents()
         QTest.qWait(20)
         elapsed += 20
-    assert dialog.canvas._image is not None
+    assert dialog.canvas.has_preview()
 
 
 @pytest.fixture(autouse=True)
@@ -84,13 +95,43 @@ def test_lightbox_image_cache_evicts_oldest(tmp_path: Path) -> None:
     assert cache.get(paths[2], PREVIEW_RENDER_SIZE) is not None
 
 
-def test_icon_lightbox_reuses_cached_preview(
+def test_icon_lightbox_svg_uses_live_renderer_without_raster(
     tmp_path: Path,
     qapp: QApplication,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     svg = tmp_path / "icon.svg"
     _write_svg(svg)
+    calls: list[Path] = []
+
+    def counting_render(path: Path, size: int) -> QImage | None:
+        calls.append(path)
+        return QImage(size, size, QImage.Format.Format_ARGB32)
+
+    monkeypatch.setattr(lightbox_module, "render_icon_to_image", counting_render)
+
+    dialog = IconLightboxDialog([svg])
+    qapp.processEvents()
+    assert dialog.canvas.has_preview()
+    assert dialog.canvas._svg_renderer is not None
+    assert dialog.canvas._svg_renderer.isValid()
+    assert dialog.canvas._image is None
+    assert calls == []
+
+    dialog.canvas.zoom_by(4.0)
+    qapp.processEvents()
+    assert dialog.canvas.zoom == 4.0
+    assert calls == []
+    dialog.close()
+
+
+def test_icon_lightbox_reuses_cached_raster_preview(
+    tmp_path: Path,
+    qapp: QApplication,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pdf = tmp_path / "icon.pdf"
+    _write_pdf(pdf)
     calls: list[Path] = []
     original = lightbox_module.render_icon_to_image
 
@@ -100,13 +141,14 @@ def test_icon_lightbox_reuses_cached_preview(
 
     monkeypatch.setattr(lightbox_module, "render_icon_to_image", counting_render)
 
-    first = IconLightboxDialog([svg])
-    _wait_for_image(first, qapp)
+    first = IconLightboxDialog([pdf])
+    _wait_for_preview(first, qapp)
     assert len(calls) == 1
     first.close()
     qapp.processEvents()
 
-    second = IconLightboxDialog([svg])
+    second = IconLightboxDialog([pdf])
+    assert second.canvas.has_preview()
     assert second.canvas._image is not None
     assert len(calls) == 1
     second.close()
@@ -117,8 +159,8 @@ def test_icon_lightbox_shows_toast_after_one_second(
     qapp: QApplication,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    svg = tmp_path / "slow.svg"
-    _write_svg(svg)
+    pdf = tmp_path / "slow.pdf"
+    _write_pdf(pdf)
     original = lightbox_module.render_icon_to_image
 
     def slow_render(path: Path, size: int) -> QImage | None:
@@ -128,7 +170,7 @@ def test_icon_lightbox_shows_toast_after_one_second(
     monkeypatch.setattr(lightbox_module, "render_icon_to_image", slow_render)
     monkeypatch.setattr(lightbox_module, "_LOAD_TOAST_DELAY_MS", 200)
 
-    dialog = IconLightboxDialog([svg])
+    dialog = IconLightboxDialog([pdf])
     qapp.processEvents()
     assert dialog._load_toast is not None
     assert not dialog._load_toast.isVisible()
@@ -138,6 +180,6 @@ def test_icon_lightbox_shows_toast_after_one_second(
     assert dialog._load_toast is not None
     assert dialog._load_toast.isVisible()
 
-    _wait_for_image(dialog, qapp, timeout_ms=5000)
+    _wait_for_preview(dialog, qapp, timeout_ms=5000)
     assert dialog._load_toast is None
     dialog.close()

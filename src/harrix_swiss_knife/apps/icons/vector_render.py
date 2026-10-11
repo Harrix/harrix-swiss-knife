@@ -44,6 +44,40 @@ def fitted_content_rect(renderer: QSvgRenderer, bounds: QRectF) -> QRectF:
     return QRectF(x, y, draw_w, draw_h)
 
 
+def is_svg_path(path: Path) -> bool:
+    """Return whether `path` looks like an SVG file by suffix."""
+    return path.suffix.casefold() in _SVG_SUFFIXES
+
+
+def paint_svg_preview(
+    painter: QPainter,
+    renderer: QSvgRenderer,
+    tile: QRectF,
+    *,
+    contrast_background: bool,
+) -> None:
+    """Paint an SVG into `tile`, optionally on a rounded gray backdrop.
+
+    Non-square SVGs keep their aspect ratio and are centered (letterboxed).
+    White variants use a rounded gray tile with an inset so strokes do not
+    touch the edges. Callers should enable antialiasing on `painter`.
+
+    """
+    if not renderer.isValid() or tile.width() <= 0 or tile.height() <= 0:
+        return
+    if contrast_background:
+        side = min(tile.width(), tile.height())
+        radius = max(4.0, side * PREVIEW_CORNER_RADIUS_RATIO)
+        path = QPainterPath()
+        path.addRoundedRect(tile, radius, radius)
+        painter.fillPath(path, PREVIEW_BACKGROUND)
+        inset = max(2.0, side * PREVIEW_ICON_INSET_RATIO)
+        bounds = tile.adjusted(inset, inset, -inset, -inset)
+    else:
+        bounds = tile
+    renderer.render(painter, fitted_content_rect(renderer, bounds))
+
+
 def render_icon_to_image(path: Path, size: int) -> QImage | None:
     """Rasterize an icon file into a square ARGB image.
 
@@ -80,13 +114,12 @@ def render_svg_to_image(svg_path: Path, size: int) -> QImage | None:
     image.fill(Qt.GlobalColor.transparent)
     painter = QPainter(image)
     painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
-    if svg_needs_contrast_background(svg_path):
-        _paint_rounded_preview_background(painter, size)
-        inset = max(2.0, size * PREVIEW_ICON_INSET_RATIO)
-        bounds = QRectF(inset, inset, size - 2 * inset, size - 2 * inset)
-    else:
-        bounds = QRectF(0, 0, size, size)
-    renderer.render(painter, fitted_content_rect(renderer, bounds))
+    paint_svg_preview(
+        painter,
+        renderer,
+        QRectF(0, 0, size, size),
+        contrast_background=svg_needs_contrast_background(svg_path),
+    )
     painter.end()
     return image
 
@@ -133,14 +166,6 @@ def _ghostscript_executable() -> str | None:
         if found:
             return found
     return None
-
-
-def _paint_rounded_preview_background(painter: QPainter, size: int) -> None:
-    """Fill a rounded rectangle used behind white icons."""
-    radius = max(4.0, size * PREVIEW_CORNER_RADIUS_RATIO)
-    path = QPainterPath()
-    path.addRoundedRect(QRectF(0, 0, size, size), radius, radius)
-    painter.fillPath(path, PREVIEW_BACKGROUND)
 
 
 def _pil_to_qimage(image: Image.Image) -> QImage:

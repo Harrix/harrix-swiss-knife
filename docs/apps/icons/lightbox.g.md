@@ -14,6 +14,7 @@ lang: en
 - [🏛️ Class `IconLightboxCanvas`](#%EF%B8%8F-class-iconlightboxcanvas)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `clear_image`](#%EF%B8%8F-method-clear_image)
+  - [⚙️ Method `has_preview`](#%EF%B8%8F-method-has_preview)
   - [⚙️ Method `mouseDoubleClickEvent`](#%EF%B8%8F-method-mousedoubleclickevent)
   - [⚙️ Method `mouseMoveEvent`](#%EF%B8%8F-method-mousemoveevent)
   - [⚙️ Method `mousePressEvent`](#%EF%B8%8F-method-mousepressevent)
@@ -21,6 +22,7 @@ lang: en
   - [⚙️ Method `paintEvent`](#%EF%B8%8F-method-paintevent)
   - [⚙️ Method `set_image`](#%EF%B8%8F-method-set_image)
   - [⚙️ Method `set_path`](#%EF%B8%8F-method-set_path)
+  - [⚙️ Method `set_svg`](#%EF%B8%8F-method-set_svg)
   - [⚙️ Method `wheelEvent`](#%EF%B8%8F-method-wheelevent)
   - [⚙️ Method `zoom (property)`](#%EF%B8%8F-method-zoom-property)
   - [⚙️ Method `zoom_by`](#%EF%B8%8F-method-zoom_by)
@@ -38,7 +40,10 @@ lang: en
 class IconLightboxCanvas(QWidget)
 ```
 
-Paint, zoom, and drag one high-resolution icon preview.
+Paint, zoom, and drag one icon preview.
+
+SVG files are painted with `QSvgRenderer` into the current zoom rect so
+magnification stays sharp. AI/PDF/EPS previews use a high-resolution raster.
 
 <details>
 <summary>Code:</summary>
@@ -55,6 +60,8 @@ class IconLightboxCanvas(QWidget):
         self.setCursor(Qt.CursorShape.ArrowCursor)
         self._path: Path | None = None
         self._image: QImage | None = None
+        self._svg_renderer: QSvgRenderer | None = None
+        self._svg_contrast_background = False
         self._zoom = 1.0
         self._offset = QPointF()
         self._drag_start: QPointF | None = None
@@ -65,9 +72,17 @@ class IconLightboxCanvas(QWidget):
         """Remove the current preview while keeping zoom state reset."""
         self._path = None
         self._image = None
+        self._svg_renderer = None
+        self._svg_contrast_background = False
         self._zoom = 1.0
         self._offset = QPointF()
         self.update()
+
+    def has_preview(self) -> bool:
+        """Return whether a raster or SVG preview is ready to paint."""
+        if self._svg_renderer is not None and self._svg_renderer.isValid():
+            return True
+        return self._image is not None and not self._image.isNull()
 
     def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         """Close the lightbox on a left double-click (image or backdrop)."""
@@ -126,21 +141,40 @@ class IconLightboxCanvas(QWidget):
         """Draw the preview over the transparent canvas."""
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
-        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, on=True)
-        if self._image is not None and not self._image.isNull():
-            painter.drawImage(self._image_rect(), self._image)
+        painter.setRenderHint(QPainter.RenderHint.TextAntialiasing, on=True)
+        tile = self._image_rect()
+        if self._svg_renderer is not None and self._svg_renderer.isValid():
+            # Paint vectors into the zoomed tile — never upscale a pre-baked PNG.
+            paint_svg_preview(
+                painter,
+                self._svg_renderer,
+                tile,
+                contrast_background=self._svg_contrast_background,
+            )
+        elif self._image is not None and not self._image.isNull():
+            painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, on=True)
+            painter.drawImage(tile, self._image)
         painter.end()
 
     def set_image(self, path: Path, image: QImage | None) -> None:
-        """Show a pre-rendered image and reset the viewport."""
+        """Show a pre-rendered raster preview and reset the viewport."""
         self._path = path
         self._zoom = 1.0
         self._offset = QPointF()
         self._image = image
+        self._svg_renderer = None
+        self._svg_contrast_background = False
         self.update()
 
     def set_path(self, path: Path) -> None:
         """Load a new icon synchronously (used by tests and fallbacks)."""
+        if is_svg_path(path):
+            renderer = QSvgRenderer(str(path))
+            if renderer.isValid():
+                self.set_svg(path, renderer, contrast_background=svg_needs_contrast_background(path))
+                return
+            self.clear_image()
+            return
         cache = lightbox_image_cache()
         image = cache.get(path, PREVIEW_RENDER_SIZE)
         if image is None:
@@ -148,6 +182,16 @@ class IconLightboxCanvas(QWidget):
             if image is not None and not image.isNull():
                 cache.put(path, PREVIEW_RENDER_SIZE, image)
         self.set_image(path, image)
+
+    def set_svg(self, path: Path, renderer: QSvgRenderer, *, contrast_background: bool) -> None:
+        """Show a live SVG renderer and reset the viewport."""
+        self._path = path
+        self._zoom = 1.0
+        self._offset = QPointF()
+        self._image = None
+        self._svg_renderer = renderer
+        self._svg_contrast_background = contrast_background
+        self.update()
 
     def wheelEvent(self, event: QWheelEvent) -> None:  # noqa: N802
         """Zoom around the mouse pointer."""
@@ -205,6 +249,8 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self.setCursor(Qt.CursorShape.ArrowCursor)
         self._path: Path | None = None
         self._image: QImage | None = None
+        self._svg_renderer: QSvgRenderer | None = None
+        self._svg_contrast_background = False
         self._zoom = 1.0
         self._offset = QPointF()
         self._drag_start: QPointF | None = None
@@ -229,9 +275,31 @@ Remove the current preview while keeping zoom state reset.
 def clear_image(self) -> None:
         self._path = None
         self._image = None
+        self._svg_renderer = None
+        self._svg_contrast_background = False
         self._zoom = 1.0
         self._offset = QPointF()
         self.update()
+```
+
+</details>
+
+### ⚙️ Method `has_preview`
+
+```python
+def has_preview(self) -> bool
+```
+
+Return whether a raster or SVG preview is ready to paint.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def has_preview(self) -> bool:
+        if self._svg_renderer is not None and self._svg_renderer.isValid():
+            return True
+        return self._image is not None and not self._image.isNull()
 ```
 
 </details>
@@ -360,9 +428,19 @@ Draw the preview over the transparent canvas.
 def paintEvent(self, event: QPaintEvent) -> None:  # noqa: ARG002, N802
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
-        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, on=True)
-        if self._image is not None and not self._image.isNull():
-            painter.drawImage(self._image_rect(), self._image)
+        painter.setRenderHint(QPainter.RenderHint.TextAntialiasing, on=True)
+        tile = self._image_rect()
+        if self._svg_renderer is not None and self._svg_renderer.isValid():
+            # Paint vectors into the zoomed tile — never upscale a pre-baked PNG.
+            paint_svg_preview(
+                painter,
+                self._svg_renderer,
+                tile,
+                contrast_background=self._svg_contrast_background,
+            )
+        elif self._image is not None and not self._image.isNull():
+            painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, on=True)
+            painter.drawImage(tile, self._image)
         painter.end()
 ```
 
@@ -374,7 +452,7 @@ def paintEvent(self, event: QPaintEvent) -> None:  # noqa: ARG002, N802
 def set_image(self, path: Path, image: QImage | None) -> None
 ```
 
-Show a pre-rendered image and reset the viewport.
+Show a pre-rendered raster preview and reset the viewport.
 
 <details>
 <summary>Code:</summary>
@@ -385,6 +463,8 @@ def set_image(self, path: Path, image: QImage | None) -> None:
         self._zoom = 1.0
         self._offset = QPointF()
         self._image = image
+        self._svg_renderer = None
+        self._svg_contrast_background = False
         self.update()
 ```
 
@@ -403,6 +483,13 @@ Load a new icon synchronously (used by tests and fallbacks).
 
 ```python
 def set_path(self, path: Path) -> None:
+        if is_svg_path(path):
+            renderer = QSvgRenderer(str(path))
+            if renderer.isValid():
+                self.set_svg(path, renderer, contrast_background=svg_needs_contrast_background(path))
+                return
+            self.clear_image()
+            return
         cache = lightbox_image_cache()
         image = cache.get(path, PREVIEW_RENDER_SIZE)
         if image is None:
@@ -410,6 +497,30 @@ def set_path(self, path: Path) -> None:
             if image is not None and not image.isNull():
                 cache.put(path, PREVIEW_RENDER_SIZE, image)
         self.set_image(path, image)
+```
+
+</details>
+
+### ⚙️ Method `set_svg`
+
+```python
+def set_svg(self, path: Path, renderer: QSvgRenderer, *, contrast_background: bool) -> None
+```
+
+Show a live SVG renderer and reset the viewport.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_svg(self, path: Path, renderer: QSvgRenderer, *, contrast_background: bool) -> None:
+        self._path = path
+        self._zoom = 1.0
+        self._offset = QPointF()
+        self._image = None
+        self._svg_renderer = renderer
+        self._svg_contrast_background = contrast_background
+        self.update()
 ```
 
 </details>
@@ -526,7 +637,7 @@ class IconLightboxDialog(AppWindowLightboxDialog):
         return "No icon to display"
 
     def show_item(self, index: int) -> None:
-        """Load the icon at `index` from cache or a background render."""
+        """Load the icon at `index` (SVG live, other formats via raster cache)."""
         path = self._paths[index]
         self.setWindowTitle(path.name)
         self.set_caption(f"{path.name}  ·  {index + 1} / {len(self._paths)}")
@@ -565,6 +676,19 @@ class IconLightboxDialog(AppWindowLightboxDialog):
         QTimer.singleShot(0, self, partial(self._complete_load, token, future))
 
     def _start_load(self, path: Path) -> None:
+        if is_svg_path(path):
+            self._cancel_load()
+            renderer = QSvgRenderer(str(path))
+            if renderer.isValid():
+                self.canvas.set_svg(
+                    path,
+                    renderer,
+                    contrast_background=svg_needs_contrast_background(path),
+                )
+            else:
+                self.canvas.clear_image()
+            return
+
         cached = lightbox_image_cache().get(path, PREVIEW_RENDER_SIZE)
         if cached is not None:
             self._cancel_load()
@@ -669,7 +793,7 @@ def empty_caption(self) -> str:
 def show_item(self, index: int) -> None
 ```
 
-Load the icon at `index` from cache or a background render.
+Load the icon at `index` (SVG live, other formats via raster cache).
 
 <details>
 <summary>Code:</summary>

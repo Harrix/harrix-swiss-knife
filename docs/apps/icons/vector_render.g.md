@@ -12,6 +12,8 @@ lang: en
 ## Contents
 
 - [🔧 Function `fitted_content_rect`](#-function-fitted_content_rect)
+- [🔧 Function `is_svg_path`](#-function-is_svg_path)
+- [🔧 Function `paint_svg_preview`](#-function-paint_svg_preview)
 - [🔧 Function `render_icon_to_image`](#-function-render_icon_to_image)
 - [🔧 Function `render_svg_to_image`](#-function-render_svg_to_image)
 - [🔧 Function `render_vector_document_to_image`](#-function-render_vector_document_to_image)
@@ -46,6 +48,64 @@ def fitted_content_rect(renderer: QSvgRenderer, bounds: QRectF) -> QRectF:
     x = bounds.x() + (bounds.width() - draw_w) / 2
     y = bounds.y() + (bounds.height() - draw_h) / 2
     return QRectF(x, y, draw_w, draw_h)
+```
+
+</details>
+
+## 🔧 Function `is_svg_path`
+
+```python
+def is_svg_path(path: Path) -> bool
+```
+
+Return whether `path` looks like an SVG file by suffix.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def is_svg_path(path: Path) -> bool:
+    return path.suffix.casefold() in _SVG_SUFFIXES
+```
+
+</details>
+
+## 🔧 Function `paint_svg_preview`
+
+```python
+def paint_svg_preview(painter: QPainter, renderer: QSvgRenderer, tile: QRectF, *, contrast_background: bool) -> None
+```
+
+Paint an SVG into `tile`, optionally on a rounded gray backdrop.
+
+Non-square SVGs keep their aspect ratio and are centered (letterboxed).
+White variants use a rounded gray tile with an inset so strokes do not
+touch the edges. Callers should enable antialiasing on `painter`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def paint_svg_preview(
+    painter: QPainter,
+    renderer: QSvgRenderer,
+    tile: QRectF,
+    *,
+    contrast_background: bool,
+) -> None:
+    if not renderer.isValid() or tile.width() <= 0 or tile.height() <= 0:
+        return
+    if contrast_background:
+        side = min(tile.width(), tile.height())
+        radius = max(4.0, side * PREVIEW_CORNER_RADIUS_RATIO)
+        path = QPainterPath()
+        path.addRoundedRect(tile, radius, radius)
+        painter.fillPath(path, PREVIEW_BACKGROUND)
+        inset = max(2.0, side * PREVIEW_ICON_INSET_RATIO)
+        bounds = tile.adjusted(inset, inset, -inset, -inset)
+    else:
+        bounds = tile
+    renderer.render(painter, fitted_content_rect(renderer, bounds))
 ```
 
 </details>
@@ -106,13 +166,12 @@ def render_svg_to_image(svg_path: Path, size: int) -> QImage | None:
     image.fill(Qt.GlobalColor.transparent)
     painter = QPainter(image)
     painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
-    if svg_needs_contrast_background(svg_path):
-        _paint_rounded_preview_background(painter, size)
-        inset = max(2.0, size * PREVIEW_ICON_INSET_RATIO)
-        bounds = QRectF(inset, inset, size - 2 * inset, size - 2 * inset)
-    else:
-        bounds = QRectF(0, 0, size, size)
-    renderer.render(painter, fitted_content_rect(renderer, bounds))
+    paint_svg_preview(
+        painter,
+        renderer,
+        QRectF(0, 0, size, size),
+        contrast_background=svg_needs_contrast_background(svg_path),
+    )
     painter.end()
     return image
 ```
