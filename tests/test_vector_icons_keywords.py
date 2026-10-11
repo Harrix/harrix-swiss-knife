@@ -7,6 +7,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 import pytest
+from PySide6.QtGui import QImage
 from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife.apps.icons.catalog import (
@@ -22,6 +23,11 @@ from harrix_swiss_knife.apps.icons.keywords_update import (
     parse_keywords_text,
     replace_frontmatter_list,
     update_keywords_files,
+)
+from harrix_swiss_knife.apps.icons.keywords_workers import (
+    KeywordsCatalogCommitWorker,
+    KeywordsRasterizeWorker,
+    StaleKeywordsScanWorker,
 )
 from harrix_swiss_knife.apps.icons.variant_view import GridEntry
 from harrix_swiss_knife.apps.icons.widgets import (
@@ -160,14 +166,49 @@ def test_silent_keywords_commit_updates_tags_and_clears_stale_hash(tmp_path: Pat
     )
     family.tags = new_tags
     family.refresh_search_blob()
-    refresh_hashes_for_paths(catalog, [featured])
-    write_catalog_json(catalog)
+    worker = KeywordsCatalogCommitWorker(catalog, family.id, [featured])
+    worker.run()
 
     reloaded = load_catalog(repo)
     assert reloaded.icons[0].tags == new_tags
     assert iter_families_with_stale_hashes(reloaded, limit=10) == []
     assert "garage" in reloaded.icons[0].search_blob
     assert _RU_GARAGE in reloaded.icons[0].search_blob
+
+
+def test_stale_keywords_scan_worker_finds_stale_family(qapp: QApplication, tmp_path: Path) -> None:
+    assert qapp is not None
+    repo = tmp_path / "repo"
+    note = repo / "icons" / "building__garage"
+    note.mkdir(parents=True)
+    (note / "featured-image.svg").write_text(_MIN_SVG, encoding="utf-8")
+    (note / "building__garage.md").write_text(
+        "---\ncategories: [building]\ntags: [garage]\n---\n\n# Garage\n",
+        encoding="utf-8",
+    )
+    catalog = rebuild_catalog(repo)
+    catalog.icons[0].featured_hash = "0" * 64
+    found: list[list[IconFamily]] = []
+    worker = StaleKeywordsScanWorker(catalog, limit=10, generation=1)
+    worker.succeeded.connect(lambda stale, _gen: found.append(list(stale)))
+    worker.run()
+    assert len(found) == 1
+    assert [item.id for item in found[0]] == ["building__garage"]
+
+
+def test_keywords_rasterize_worker_renders_svg(qapp: QApplication, tmp_path: Path) -> None:
+    assert qapp is not None
+    svg = tmp_path / "icon.svg"
+    svg.write_text(_MIN_SVG, encoding="utf-8")
+    images: list[QImage] = []
+    errors: list[str] = []
+    worker = KeywordsRasterizeWorker(svg, side=32)
+    worker.succeeded.connect(lambda image: images.append(image) if isinstance(image, QImage) else None)
+    worker.failed.connect(errors.append)
+    worker.run()
+    assert not errors
+    assert len(images) == 1
+    assert not images[0].isNull()
 
 
 def test_rebuild_catalog_reads_block_tags(tmp_path: Path) -> None:
@@ -269,4 +310,59 @@ def test_keywords_batch_runner_updates_then_reports_failures(qapp: QApplication,
     runner.start()
     assert updated == [("building__garage", ["garage", _RU_GARAGE])]
     assert finished == [(1, 1, False)]
+    assert not runner.is_running
+
+
+def test_keywords_batch_runner_awaits_item_success_before_next(qapp: QApplication, tmp_path: Path) -> None:
+    assert qapp is not None
+    first = _family("building__garage", ["garage"])
+    second = _family("fiction__ufo", ["ufo"])
+    first_svg = tmp_path / "a.svg"
+    second_svg = tmp_path / "b.svg"
+    first_svg.write_text(_MIN_SVG, encoding="utf-8")
+    second_svg.write_text(_MIN_SVG, encoding="utf-8")
+    order: list[str] = []
+    pending_done: list[Callable[[], None]] = []
+
+    def fake_request(
+        _parent: object,
+        *,
+        icon_path: Path,
+        on_tags: Callable[[list[str]], None],
+        **_kwargs: object,
+    ) -> None:
+        order.append(f"request:{icon_path.name}")
+        if icon_path == first_svg:
+            on_tags(["garage"])
+            return
+        on_tags(["ufo"])
+
+    def on_success(family: IconFamily, _tags: list[str], done: Callable[[], None]) -> None:
+        order.append(f"commit:{family.id}")
+        pending_done.append(done)
+
+    finished: list[tuple[int, int, bool]] = []
+    runner = KeywordsBatchRunner(
+        None,
+        app_config={},
+        jobs=[(first, first_svg), (second, second_svg)],
+        on_item_success=on_success,
+        on_finished=lambda updated_count, failed, *, cancelled: finished.append((updated_count, failed, cancelled)),
+        request_fn=fake_request,
+        await_item_success=True,
+    )
+    runner.start()
+    assert order == ["request:a.svg", "commit:building__garage"]
+    assert runner.is_running
+    assert pending_done
+    pending_done[0]()
+    assert order == [
+        "request:a.svg",
+        "commit:building__garage",
+        "request:b.svg",
+        "commit:fiction__ufo",
+    ]
+    assert runner.is_running
+    pending_done[1]()
+    assert finished == [(2, 0, False)]
     assert not runner.is_running

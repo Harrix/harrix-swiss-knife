@@ -8,7 +8,7 @@ import subprocess
 import time
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Any, Literal, cast
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import harrix_pylib as h
 from PySide6.QtCore import QMimeData, QPoint, QSize, Qt, QThread, QTimer, QUrl, Signal
@@ -90,7 +90,6 @@ from harrix_swiss_knife.apps.icons.catalog import (
     folder_disk_path,
     is_note_icons_repo,
     is_openable_license_url,
-    iter_families_with_stale_hashes,
     parse_note_frontmatter,
     preferred_sidebar_folder,
     refresh_hashes_for_paths,
@@ -102,6 +101,10 @@ from harrix_swiss_knife.apps.icons.choose_family_dialog import ChooseIconFamilyD
 from harrix_swiss_knife.apps.icons.edit_icon import reassign_icon_category, update_icon_note
 from harrix_swiss_knife.apps.icons.keywords_ai import KeywordsBatchRunner
 from harrix_swiss_knife.apps.icons.keywords_update import update_keywords_files
+from harrix_swiss_knife.apps.icons.keywords_workers import (
+    KeywordsCatalogCommitWorker,
+    StaleKeywordsScanWorker,
+)
 from harrix_swiss_knife.apps.icons.lightbox import IconLightboxDialog
 from harrix_swiss_knife.apps.icons.meta_filter import (
     META_KIND_CATEGORY,
@@ -205,6 +208,9 @@ from harrix_swiss_knife.qt_lucide_icon import (
 )
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
 from harrix_swiss_knife.win11_caption import install_win11_caption, try_handle_win11_caption_native_event
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 logger = logging.getLogger(__name__)
 
@@ -414,6 +420,15 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._keywords_batch_runner: KeywordsBatchRunner | None = None
         self._bg_keywords_batch_runner: KeywordsBatchRunner | None = None
         self._bg_keywords_dirty_thumbs: set[str] = set()
+        self._bg_keywords_scan_thread: QThread | None = None
+        self._bg_keywords_scan_worker: StaleKeywordsScanWorker | None = None
+        self._bg_keywords_scan_generation = 0
+        self._bg_keywords_scan_followup = False
+        self._bg_keywords_commit_thread: QThread | None = None
+        self._bg_keywords_commit_worker: KeywordsCatalogCommitWorker | None = None
+        self._bg_keywords_commit_done: Callable[[], None] | None = None
+        self._bg_keywords_last_batch_updated = 0
+        self._bg_keywords_last_batch_failed = 0
         self._bg_icon_keywords_timer = QTimer(self)
         self._bg_icon_keywords_timer.setSingleShot(True)
         self._bg_icon_keywords_timer.timeout.connect(self._on_background_icon_keywords_timer)
@@ -464,6 +479,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._is_closing = True
         self._stop_background_icon_keywords_timer()
         self._stop_background_keywords_batch()
+        self._stop_background_keywords_scan()
+        self._stop_background_keywords_commit()
         self._stop_grid_fill()
         self._stop_catalog_load()
         self._stop_trademark_update()
@@ -1197,15 +1214,28 @@ class MainWindow(QMainWindow, AppWindowMixin):
             self._visible_family_ids.add(entry.family.id)
             self._visible_families.append(entry.family)
 
-    def _commit_background_icon_keywords(self, family: IconFamily, tags: list[str]) -> None:
-        """Write AI tags and refresh hashes/thumbs for one background keywords item."""
+    def _commit_background_icon_keywords(
+        self,
+        family: IconFamily,
+        tags: list[str],
+        done: Callable[[], None] | None = None,
+    ) -> None:
+        """Write AI tags on the UI thread; hash refresh + `catalog.json` on a worker."""
+
+        def finish_item() -> None:
+            if done is not None:
+                done()
+
         if self._is_closing or self._repo_root is None or self._catalog is None:
+            finish_item()
             return
         live = next((item for item in self._catalog.icons if item.id == family.id), None)
         if live is None:
+            finish_item()
             return
         note_path = live.note_path(self._repo_root)
         if note_path is None:
+            finish_item()
             return
         try:
             update_keywords_files(
@@ -1216,25 +1246,13 @@ class MainWindow(QMainWindow, AppWindowMixin):
             )
         except (OSError, ValueError, TypeError, json.JSONDecodeError):
             logger.exception("Silent keywords save failed for %s", live.id)
+            finish_item()
             return
 
         live.tags = tags
         live.refresh_search_blob()
-
         hash_paths = self._family_paths_for_hash_refresh(live)
-        if hash_paths:
-            refresh_hashes_for_paths(self._catalog, hash_paths)
-        try:
-            write_catalog_json(self._catalog)
-        except OSError:
-            logger.exception("Failed to write catalog.json after silent keywords for %s", live.id)
-            return
-
-        self._pixmaps.pop(live.id, None)
-        self._thumb_cache.forget(live.id)
-        self._bg_keywords_dirty_thumbs.add(live.id)
-        if self._selected_family_id == live.id:
-            self._on_family_selected(live, persist=False)
+        self._start_background_keywords_commit(live, hash_paths, on_done=finish_item)
 
     def _copy_icon_files(self, entries: list[tuple[str, str]]) -> None:
         """Put existing icon files on the clipboard as file URLs.
@@ -1748,16 +1766,81 @@ class MainWindow(QMainWindow, AppWindowMixin):
         if self._catalog is None or self._catalog.kind != "note":
             self._stop_background_icon_keywords_timer()
             return
-        remaining = iter_families_with_stale_hashes(self._catalog, limit=1)
-        if remaining:
-            QTimer.singleShot(_BACKGROUND_ICON_KEYWORDS_FOLLOWUP_MS, self._run_background_icon_keywords)
-        else:
+        self._bg_keywords_last_batch_updated = updated
+        self._bg_keywords_last_batch_failed = failed
+        QTimer.singleShot(
+            _BACKGROUND_ICON_KEYWORDS_FOLLOWUP_MS,
+            lambda: self._run_background_icon_keywords(followup=True),
+        )
+
+    def _on_background_keywords_commit_failed(self, family_id: str, message: str) -> None:
+        logger.warning("Background keywords catalog commit failed for %s: %s", family_id, message)
+        done = self._bg_keywords_commit_done
+        self._bg_keywords_commit_done = None
+        if done is not None:
+            done()
+
+    def _on_background_keywords_commit_finished(self) -> None:
+        self._bg_keywords_commit_thread = None
+        self._bg_keywords_commit_worker = None
+
+    def _on_background_keywords_commit_succeeded(self, family_id: str) -> None:
+        if self._catalog is not None:
+            live = next((item for item in self._catalog.icons if item.id == family_id), None)
+            if live is not None and not self._is_closing:
+                self._pixmaps.pop(live.id, None)
+                self._thumb_cache.forget(live.id)
+                self._bg_keywords_dirty_thumbs.add(live.id)
+                if self._selected_family_id == live.id:
+                    self._on_family_selected(live, persist=False)
+        done = self._bg_keywords_commit_done
+        self._bg_keywords_commit_done = None
+        if done is not None:
+            done()
+
+    def _on_background_keywords_scan_cancelled(self, generation: int) -> None:
+        if generation != self._bg_keywords_scan_generation:
+            return
+        self._bg_keywords_scan_followup = False
+
+    def _on_background_keywords_scan_failed(self, message: str, generation: int) -> None:
+        if generation != self._bg_keywords_scan_generation:
+            return
+        logger.warning("Background keywords stale scan failed: %s", message)
+        if self._bg_keywords_scan_followup:
             self._stop_background_icon_keywords_timer()
+            self._bg_keywords_scan_followup = False
+            return
+        self._on_background_icon_keywords_failed()
+
+    def _on_background_keywords_scan_finished(self) -> None:
+        self._bg_keywords_scan_thread = None
+        self._bg_keywords_scan_worker = None
+
+    def _on_background_keywords_scan_succeeded(self, stale: object, generation: int) -> None:
+        if generation != self._bg_keywords_scan_generation or self._is_closing:
+            return
+        followup = self._bg_keywords_scan_followup
+        self._bg_keywords_scan_followup = False
+        families = stale if isinstance(stale, list) else []
+        if followup:
+            if families:
+                QTimer.singleShot(0, self._run_background_icon_keywords)
+                return
+            self._stop_background_icon_keywords_timer()
+            updated = self._bg_keywords_last_batch_updated
+            failed = self._bg_keywords_last_batch_failed
             if updated or failed:
                 self.statusBar().showMessage(
                     f"Background keywords done. Updated {updated}, failed {failed}.",
                     4000,
                 )
+            return
+        if not families:
+            self._clear_background_icon_keywords_status()
+            self._stop_background_icon_keywords_timer()
+            return
+        self._start_background_keywords_batch(families)
 
     def _on_batch_favorites(self, payload: object) -> None:
         if self._repo_root is None or not isinstance(payload, tuple) or len(payload) != _KEYWORD_TARGET_PAIR_LEN:
@@ -3128,7 +3211,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._selected_family_id = None
         self.variants_panel.clear_variants()
 
-    def _run_background_icon_keywords(self) -> None:
+    def _run_background_icon_keywords(self, *, followup: bool = False) -> None:
         """Refresh AI keywords for note families whose catalog hashes are stale."""
         if self._is_closing or self._catalog is None or self._repo_root is None:
             return
@@ -3138,36 +3221,12 @@ class MainWindow(QMainWindow, AppWindowMixin):
             return
         if self._keywords_batch_runner is not None and self._keywords_batch_runner.is_running:
             return
-
-        limit = self._background_icon_keywords_limit()
-        stale = iter_families_with_stale_hashes(self._catalog, limit=limit)
-        if not stale:
-            self._clear_background_icon_keywords_status()
-            self._stop_background_icon_keywords_timer()
+        if self._bg_keywords_scan_worker is not None:
             return
 
-        jobs: list[tuple[IconFamily, Path]] = []
-        for family in stale:
-            icon_path = family.featured_path(self._repo_root)
-            if icon_path is None or family.note_path(self._repo_root) is None:
-                continue
-            jobs.append((family, icon_path))
-        if not jobs:
-            self._on_background_icon_keywords_failed()
-            return
-
-        config: dict[str, Any] = h.dev.config_load(get_config_path_str())
-        self.statusBar().showMessage(f"{_BACKGROUND_ICON_KEYWORDS_STATUS} (batch of {len(jobs)})")
-        self._bg_keywords_dirty_thumbs.clear()
-        self._bg_keywords_batch_runner = KeywordsBatchRunner(
-            self,
-            app_config=config,
-            jobs=jobs,
-            on_item_success=self._commit_background_icon_keywords,
-            on_finished=self._on_background_keywords_batch_finished,
-            silent=True,
-        )
-        self._bg_keywords_batch_runner.start()
+        limit = 1 if followup else self._background_icon_keywords_limit()
+        self._bg_keywords_scan_followup = followup
+        self._start_background_keywords_scan(limit=limit)
 
     def _schedule_search_filter(self) -> None:
         """Restart debounce so the grid filters after typing pauses."""
@@ -3251,6 +3310,82 @@ class MainWindow(QMainWindow, AppWindowMixin):
             layout.addWidget(hint_label)
         layout.addWidget(widget, stretch=1)
         return panel
+
+    def _start_background_keywords_batch(self, stale: list[object]) -> None:
+        if self._is_closing or self._catalog is None or self._repo_root is None:
+            return
+        jobs: list[tuple[IconFamily, Path]] = []
+        for item in stale:
+            if not isinstance(item, IconFamily):
+                continue
+            icon_path = item.featured_path(self._repo_root)
+            if icon_path is None or item.note_path(self._repo_root) is None:
+                continue
+            jobs.append((item, icon_path))
+        if not jobs:
+            self._on_background_icon_keywords_failed()
+            return
+
+        config: dict[str, Any] = h.dev.config_load(get_config_path_str())
+        self.statusBar().showMessage(f"{_BACKGROUND_ICON_KEYWORDS_STATUS} (batch of {len(jobs)})")
+        self._bg_keywords_dirty_thumbs.clear()
+        self._bg_keywords_batch_runner = KeywordsBatchRunner(
+            self,
+            app_config=config,
+            jobs=jobs,
+            on_item_success=self._commit_background_icon_keywords,
+            on_finished=self._on_background_keywords_batch_finished,
+            silent=True,
+            await_item_success=True,
+        )
+        self._bg_keywords_batch_runner.start()
+
+    def _start_background_keywords_commit(
+        self,
+        family: IconFamily,
+        hash_paths: list[Path],
+        *,
+        on_done: Callable[[], None],
+    ) -> None:
+        if self._catalog is None or self._is_closing:
+            on_done()
+            return
+        self._stop_background_keywords_commit()
+        self._bg_keywords_commit_done = on_done
+        thread = QThread(self)
+        worker = KeywordsCatalogCommitWorker(self._catalog, family.id, hash_paths)
+        worker.moveToThread(thread)
+        worker.succeeded.connect(self._on_background_keywords_commit_succeeded)
+        worker.failed.connect(self._on_background_keywords_commit_failed)
+        worker.finished.connect(thread.quit)
+        worker.finished.connect(worker.deleteLater)
+        thread.finished.connect(self._on_background_keywords_commit_finished)
+        thread.finished.connect(thread.deleteLater)
+        thread.started.connect(worker.run)
+        self._bg_keywords_commit_thread = thread
+        self._bg_keywords_commit_worker = worker
+        thread.start()
+
+    def _start_background_keywords_scan(self, *, limit: int) -> None:
+        if self._catalog is None or self._is_closing:
+            return
+        self._stop_background_keywords_scan()
+        self._bg_keywords_scan_generation += 1
+        generation = self._bg_keywords_scan_generation
+        thread = QThread(self)
+        worker = StaleKeywordsScanWorker(self._catalog, limit=limit, generation=generation)
+        worker.moveToThread(thread)
+        worker.succeeded.connect(self._on_background_keywords_scan_succeeded)
+        worker.failed.connect(self._on_background_keywords_scan_failed)
+        worker.cancelled.connect(self._on_background_keywords_scan_cancelled)
+        worker.finished.connect(thread.quit)
+        worker.finished.connect(worker.deleteLater)
+        thread.finished.connect(self._on_background_keywords_scan_finished)
+        thread.finished.connect(thread.deleteLater)
+        thread.started.connect(worker.run)
+        self._bg_keywords_scan_thread = thread
+        self._bg_keywords_scan_worker = worker
+        thread.start()
 
     def _start_catalog_load(
         self,
@@ -3355,6 +3490,25 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._bg_keywords_batch_runner = None
         self._bg_keywords_dirty_thumbs.clear()
         self._clear_background_icon_keywords_status()
+
+    def _stop_background_keywords_commit(self) -> None:
+        thread = self._bg_keywords_commit_thread
+        self._bg_keywords_commit_worker = None
+        self._bg_keywords_commit_done = None
+        self._bg_keywords_commit_thread = None
+        if thread is not None and thread.isRunning():
+            thread.wait(3000)
+
+    def _stop_background_keywords_scan(self) -> None:
+        self._bg_keywords_scan_generation += 1
+        if self._bg_keywords_scan_worker is not None:
+            self._bg_keywords_scan_worker.request_cancel()
+        thread = self._bg_keywords_scan_thread
+        if thread is not None and thread.isRunning():
+            thread.wait(3000)
+        self._bg_keywords_scan_thread = None
+        self._bg_keywords_scan_worker = None
+        self._bg_keywords_scan_followup = False
 
     def _stop_catalog_load(self) -> None:
         self._catalog_load_generation += 1

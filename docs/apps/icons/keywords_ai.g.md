@@ -40,10 +40,11 @@ class KeywordsBatchRunner:
         *,
         app_config: dict[str, Any],
         jobs: list[tuple[IconFamily, Path]],
-        on_item_success: Callable[[IconFamily, list[str]], None],
+        on_item_success: Callable[..., None],
         on_finished: Callable[..., None],
         request_fn: Callable[..., None] | None = None,
         silent: bool = False,
+        await_item_success: bool = False,
     ) -> None:
         """Store batch jobs and callbacks.
 
@@ -51,6 +52,8 @@ class KeywordsBatchRunner:
 
         - `silent`: When `True`, skip BotHub toasts and do not modal-block the owner
           window (used for background keyword refresh after catalog open).
+        - `await_item_success`: When `True`, `on_item_success(family, tags, done)` must
+          call `done()` before the next job starts (background catalog commits).
 
         """
         self._parent = parent
@@ -60,6 +63,7 @@ class KeywordsBatchRunner:
         self._on_finished = on_finished
         self._request_fn = request_fn or request_keywords_fill
         self._silent = silent
+        self._await_item_success = await_item_success
         self._state = BothubRequestState(toast_pin_chain=not silent)
         self._index = 0
         self._updated = 0
@@ -86,6 +90,11 @@ class KeywordsBatchRunner:
         self._running = True
         self._process_next()
 
+    def _after_item_success(self) -> None:
+        self._updated += 1
+        self._index += 1
+        self._process_next()
+
     def _finish(self) -> None:
         self._running = False
         self._on_finished(self._updated, self._failed, cancelled=self._cancelled)
@@ -105,10 +114,11 @@ class KeywordsBatchRunner:
 
     def _on_tags(self, tags: list[str]) -> None:
         family, _icon_path = self._jobs[self._index]
+        if self._await_item_success:
+            self._on_item_success(family, tags, self._after_item_success)
+            return
         self._on_item_success(family, tags)
-        self._updated += 1
-        self._index += 1
-        self._process_next()
+        self._after_item_success()
 
     def _process_next(self) -> None:
         if self._cancelled or self._index >= len(self._jobs):
@@ -141,7 +151,7 @@ class KeywordsBatchRunner:
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None, *, app_config: dict[str, Any], jobs: list[tuple[IconFamily, Path]], on_item_success: Callable[[IconFamily, list[str]], None], on_finished: Callable[..., None], request_fn: Callable[..., None] | None = None, silent: bool = False) -> None
+def __init__(self, parent: QWidget | None, *, app_config: dict[str, Any], jobs: list[tuple[IconFamily, Path]], on_item_success: Callable[..., None], on_finished: Callable[..., None], request_fn: Callable[..., None] | None = None, silent: bool = False, await_item_success: bool = False) -> None
 ```
 
 Store batch jobs and callbacks.
@@ -150,6 +160,8 @@ Args:
 
 - `silent`: When `True`, skip BotHub toasts and do not modal-block the owner
   window (used for background keyword refresh after catalog open).
+- `await_item_success`: When `True`, `on_item_success(family, tags, done)` must
+  call `done()` before the next job starts (background catalog commits).
 
 <details>
 <summary>Code:</summary>
@@ -161,10 +173,11 @@ def __init__(
         *,
         app_config: dict[str, Any],
         jobs: list[tuple[IconFamily, Path]],
-        on_item_success: Callable[[IconFamily, list[str]], None],
+        on_item_success: Callable[..., None],
         on_finished: Callable[..., None],
         request_fn: Callable[..., None] | None = None,
         silent: bool = False,
+        await_item_success: bool = False,
     ) -> None:
         self._parent = parent
         self._app_config = app_config
@@ -173,6 +186,7 @@ def __init__(
         self._on_finished = on_finished
         self._request_fn = request_fn or request_keywords_fill
         self._silent = silent
+        self._await_item_success = await_item_success
         self._state = BothubRequestState(toast_pin_chain=not silent)
         self._index = 0
         self._updated = 0
@@ -275,33 +289,6 @@ def request_keywords_fill(
     offer_retry: bool = True,
     owner_modal: bool = True,
 ) -> None:
-    image = render_icon_to_image(icon_path, _RASTER_SIDE)
-    if image is None or image.isNull():
-        message = f"Could not rasterize icon:\n{icon_path}"
-        if on_error is not None:
-            on_error(message)
-        elif show_empty_warning:
-            message_box.warning(parent, "Process with AI", message)
-        return
-
-    try:
-        image_data = qimage_bytes_and_mime(image, max_image_side=_max_image_side(app_config))
-        prompt_text = build_prompt(
-            app_config,
-            PROMPT_KEY,
-            {
-                "CATEGORY": category,
-                "TAGS": "\n".join(tags),
-            },
-            prompt_display_name="vector_icons_keywords",
-        )
-    except ValueError as exc:
-        if on_error is not None:
-            on_error(str(exc))
-        elif show_validation_errors:
-            show_bothub_prompt_build_error(parent, exc)
-        return
-
     if fill_button is not None:
         fill_button.setEnabled(False)
 
@@ -309,50 +296,98 @@ def request_keywords_fill(
         if fill_button is not None:
             fill_button.setEnabled(True)
 
-    def on_success(response_text: str) -> None:
-        restore_button()
-        parsed = parse_keywords_text(response_text)
-        if not parsed:
-            message = "BotHub returned no keywords."
-            if show_empty_warning:
-                message_box.warning(parent, "Process with AI", message)
-            if on_error is not None:
-                on_error(message)
-            return
-        on_tags(parsed)
-
-    def on_request_error(error_message: str) -> None:
+    def fail(message: str) -> None:
         restore_button()
         if on_error is not None:
-            on_error(error_message)
-        elif show_validation_errors:
-            message_box.critical(parent, "BotHub Error", error_message)
+            on_error(message)
+        elif show_empty_warning:
+            message_box.warning(parent, "Process with AI", message)
 
-    def on_request_cancelled() -> None:
-        restore_button()
-        if on_cancelled is not None:
-            on_cancelled()
+    def start_bothub(image: QImage) -> None:
+        try:
+            image_data = qimage_bytes_and_mime(image, max_image_side=_max_image_side(app_config))
+            prompt_text = build_prompt(
+                app_config,
+                PROMPT_KEY,
+                {
+                    "CATEGORY": category,
+                    "TAGS": "\n".join(tags),
+                },
+                prompt_display_name="vector_icons_keywords",
+            )
+        except ValueError as exc:
+            restore_button()
+            if on_error is not None:
+                on_error(str(exc))
+            elif show_validation_errors:
+                show_bothub_prompt_build_error(parent, exc)
+            return
 
-    started = run_bothub_request(
-        parent,
-        app_config,
-        prompt_text,
-        on_success,
-        image=image_data,
-        toast_message=toast_message,
-        is_busy=lambda: bothub_state.worker is not None,
-        state=bothub_state,
-        on_error=on_request_error,
-        on_cancelled=on_request_cancelled,
-        offer_retry=offer_retry,
-        owner_modal=owner_modal,
-        show_toast=show_toast,
-        show_validation_errors=show_validation_errors,
-    )
-    if not started:
-        restore_button()
-        if on_not_started is not None:
-            on_not_started()
+        def on_success(response_text: str) -> None:
+            restore_button()
+            parsed = parse_keywords_text(response_text)
+            if not parsed:
+                message = "BotHub returned no keywords."
+                if show_empty_warning:
+                    message_box.warning(parent, "Process with AI", message)
+                if on_error is not None:
+                    on_error(message)
+                return
+            on_tags(parsed)
+
+        def on_request_error(error_message: str) -> None:
+            restore_button()
+            if on_error is not None:
+                on_error(error_message)
+            elif show_validation_errors:
+                message_box.critical(parent, "BotHub Error", error_message)
+
+        def on_request_cancelled() -> None:
+            restore_button()
+            if on_cancelled is not None:
+                on_cancelled()
+
+        started = run_bothub_request(
+            parent,
+            app_config,
+            prompt_text,
+            on_success,
+            image=image_data,
+            toast_message=toast_message,
+            is_busy=lambda: bothub_state.worker is not None,
+            state=bothub_state,
+            on_error=on_request_error,
+            on_cancelled=on_request_cancelled,
+            offer_retry=offer_retry,
+            owner_modal=owner_modal,
+            show_toast=show_toast,
+            show_validation_errors=show_validation_errors,
+        )
+        if not started:
+            restore_button()
+            if on_not_started is not None:
+                on_not_started()
+
+    thread = QThread(parent)
+    worker = KeywordsRasterizeWorker(icon_path, side=_RASTER_SIDE)
+    worker.moveToThread(thread)
+
+    def on_raster_ok(image: object) -> None:
+        if isinstance(image, QImage) and not image.isNull():
+            start_bothub(image)
+        else:
+            fail(f"Could not rasterize icon:\n{icon_path}")
+
+    def on_raster_fail(message: str) -> None:
+        fail(message)
+
+    worker.succeeded.connect(on_raster_ok)
+    worker.failed.connect(on_raster_fail)
+    worker.finished.connect(thread.quit)
+    worker.finished.connect(worker.deleteLater)
+    thread.finished.connect(thread.deleteLater)
+    thread.started.connect(worker.run)
+    thread.start()
 ```
 
 </details>
