@@ -1,0 +1,16 @@
+#!/bin/bash
+# Check out the pushed main branch into the live web root.
+set -euo pipefail
+
+GIT_DIR="/var/git/harrix.dev.git"
+TARGET="/var/www/harrix.dev"
+BRANCH="main"
+
+while read -r _oldrev _newrev refname; do
+  if [[ "${refname}" == "refs/heads/${BRANCH}" ]]; then
+    mkdir -p "${TARGET}"
+    git --git-dir="${GIT_DIR}" --work-tree="${TARGET}" checkout -f "${BRANCH}"
+    git --git-dir="${GIT_DIR}" --work-tree="${TARGET}" clean -fdq
+    echo "Deployed ${BRANCH} to ${TARGET}"
+  fi
+done

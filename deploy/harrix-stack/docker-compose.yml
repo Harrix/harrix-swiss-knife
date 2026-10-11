@@ -1,0 +1,45 @@
+# Portable stack for harrix.dev (Caddy + static site + optional FastAPI).
+# Site files live on the host at /var/www/harrix.dev (git post-receive checkout).
+# TLS: Cloudflare Origin CA certificate in ./certs (origin.pem / origin.key).
+
+services:
+  caddy:
+    image: caddy:2.10-alpine
+    container_name: harrix-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:-harrix.dev}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./certs:/certs:ro
+      - /var/www/harrix.dev:/srv:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - harrix
+
+  # Optional API (search / sync later). Enable with:
+  #   docker compose --profile api up -d --build
+  api:
+    profiles: ["api"]
+    build: ./api
+    container_name: harrix-api
+    restart: unless-stopped
+    environment:
+      API_RATE_LIMIT: ${API_RATE_LIMIT:-30/minute}
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://harrix.dev,https://www.harrix.dev}
+    expose:
+      - "8000"
+    networks:
+      - harrix
+
+networks:
+  harrix:
+    name: harrix-net
+
+volumes:
+  caddy_data:
+  caddy_config:
