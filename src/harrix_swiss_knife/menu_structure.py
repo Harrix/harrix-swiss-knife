@@ -96,7 +96,6 @@ from harrix_swiss_knife.actions.markdown.decrease_heading_level_content import O
 from harrix_swiss_knife.actions.markdown.download_and_replace_images import OnDownloadAndReplaceImages
 from harrix_swiss_knife.actions.markdown.fix_md_with_quotes import OnFixMdWithQuotes
 from harrix_swiss_knife.actions.markdown.generate_short_note_toc_with_links import OnGenerateShortNoteTocWithLinks
-from harrix_swiss_knife.actions.markdown.generate_static_site import OnGenerateStaticSite
 from harrix_swiss_knife.actions.markdown.get_list_movies_books import OnGetListMoviesBooks
 from harrix_swiss_knife.actions.markdown.get_set_variables_from_yaml import OnGetSetVariablesFromYaml
 from harrix_swiss_knife.actions.markdown.increase_heading_level_content import OnIncreaseHeadingLevelContent
@@ -119,6 +118,7 @@ from harrix_swiss_knife.actions.quick_launcher.action import OnQuickLauncher
 from harrix_swiss_knife.actions.site import (
     OnAddSiteContentSubmodule,
     OnFixSiteArticleLinkTitles,
+    OnGenerateStaticSite,
     OnPullSiteSubmodules,
     OnSliceHtmlTemplate,
 )
@@ -264,7 +264,6 @@ def get_menu_structure() -> list[Any]:
                 OnDownloadAndReplaceImages,
                 OnFixMdWithQuotes,
                 OnGenerateShortNoteTocWithLinks,
-                OnGenerateStaticSite,
                 OnGetSetVariablesFromYaml,
                 OnOptimizeImagesInMd,
                 OnOptimizeSelectedImages,
@@ -277,6 +276,7 @@ def get_menu_structure() -> list[Any]:
             [
                 OnAddSiteContentSubmodule,
                 OnFixSiteArticleLinkTitles,
+                OnGenerateStaticSite,
                 OnPullSiteSubmodules,
                 OnSliceHtmlTemplate,
             ],

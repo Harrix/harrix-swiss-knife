@@ -146,7 +146,6 @@ def get_menu_structure() -> list[Any]:
                 OnDownloadAndReplaceImages,
                 OnFixMdWithQuotes,
                 OnGenerateShortNoteTocWithLinks,
-                OnGenerateStaticSite,
                 OnGetSetVariablesFromYaml,
                 OnOptimizeImagesInMd,
                 OnOptimizeSelectedImages,
@@ -159,6 +158,7 @@ def get_menu_structure() -> list[Any]:
             [
                 OnAddSiteContentSubmodule,
                 OnFixSiteArticleLinkTitles,
+                OnGenerateStaticSite,
                 OnPullSiteSubmodules,
                 OnSliceHtmlTemplate,
             ],
