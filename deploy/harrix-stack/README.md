@@ -11,6 +11,7 @@ Docker Compose + Git deploy for <https://harrix.dev> (Time4VPS, Ubuntu 24.04, be
 - [Install or update](#install-or-update)
 - [HSK settings](#hsk-settings)
 - [API (`/api`)](#api-api)
+- [Password login alerts](#password-login-alerts)
 - [Move to another VPS](#move-to-another-vps)
 - [Apps sync (food / fitness / finance)](#apps-sync-food--fitness--finance)
 
@@ -92,9 +93,23 @@ Protection layers for public endpoints:
 
 For heavy search later: client-side debounce, cached responses, and a Cloudflare rate limiting rule on `/api/*`.
 
+## Password login alerts
+
+`host/login-alert/` installs a host service (not Docker) that sends a Telegram message on every successful password login: SSH with a password or the Time4VPS Emergency Console. Key-based SSH logins and failed attempts are ignored.
+
+`push-stack.ps1` installs it automatically. One-time setup:
+
+1. In Telegram, create a bot with @BotFather (`/newbot`) and copy the token.
+2. Open the new bot and press **Start**.
+3. On the VPS: `nano /etc/default/harrix-login-alert`, set `TELEGRAM_BOT_TOKEN=…`.
+4. `harrix-login-alert --chat-id` prints your chat ID; set `TELEGRAM_CHAT_ID=…` in the same file.
+5. `harrix-login-alert --test`: a test message should arrive.
+
+The config is read on every alert, so no restart is needed. Service logs: `journalctl -u harrix-login-alert`.
+
 ## Move to another VPS
 
-1. Copy `/opt/harrix-stack` (with `certs/` and `.env`) and `/var/git/harrix.dev.git` to the new host.
+1. Copy `/opt/harrix-stack` (with `certs/` and `.env`), `/var/git/harrix.dev.git`, and `/etc/default/harrix-login-alert` to the new host.
 2. Run `bash /opt/harrix-stack/scripts/install.sh`.
 3. Re-deploy from HSK (or copy `/var/www/harrix.dev`).
 4. Switch the Cloudflare DNS record and `deploy_remote` to the new IP.

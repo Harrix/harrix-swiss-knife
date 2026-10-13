@@ -1,0 +1,12 @@
+[Unit]
+Description=Telegram alert on successful password logins
+After=network-online.target systemd-journald.service
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/local/bin/harrix-login-alert
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
