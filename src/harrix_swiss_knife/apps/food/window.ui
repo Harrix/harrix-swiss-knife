@@ -1,7 +1,18 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>MainWindow</class>
  <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1354</width>
+    <height>944</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Food tracker</string>
+  </property>
   <property name="styleSheet">
    <string notr="true">/* hsk-white-surfaces */
 QGroupBox {
@@ -39,22 +50,23 @@ QSplitter::handle:vertical {
 QSplitter::handle:hover { background: #f4f4f4; }
 </string>
   </property>
-  <property name="geometry">
-   <rect>
-    <x>0</x>
-    <y>0</y>
-    <width>1354</width>
-    <height>600</height>
-   </rect>
-  </property>
-  <property name="windowTitle">
-   <string>Food tracker</string>
-  </property>
   <widget class="QWidget" name="centralWidget">
    <property name="styleSheet">
     <string notr="true">QWidget#centralWidget { background-color: #ffffff; }</string>
    </property>
    <layout class="QHBoxLayout" name="horizontalLayout">
+    <property name="leftMargin">
+     <number>0</number>
+    </property>
+    <property name="topMargin">
+     <number>0</number>
+    </property>
+    <property name="rightMargin">
+     <number>0</number>
+    </property>
+    <property name="bottomMargin">
+     <number>0</number>
+    </property>
     <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
@@ -68,6 +80,18 @@ QSplitter::handle:hover { background: #f4f4f4; }
         <string>Food</string>
        </attribute>
        <layout class="QHBoxLayout" name="horizontalLayout_food">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
         <item>
          <widget class="QSplitter" name="splitter_food">
           <property name="styleSheet">
@@ -80,14 +104,14 @@ QSplitter::handle:hover { background: #f4f4f4; }
            <bool>false</bool>
           </property>
           <widget class="QFrame" name="frame_food_controls">
-           <property name="styleSheet">
-            <string notr="true">QFrame#frame_food_controls { background-color: #ffffff; border: none; }</string>
-           </property>
            <property name="minimumSize">
             <size>
              <width>420</width>
              <height>0</height>
             </size>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QFrame#frame_food_controls { background-color: #ffffff; border: none; }</string>
            </property>
            <property name="frameShape">
             <enum>QFrame::Shape::NoFrame</enum>
@@ -131,7 +155,7 @@ QSplitter::handle:hover { background: #f4f4f4; }
                     </size>
                    </property>
                    <property name="text">
-                    <string />
+                    <string/>
                    </property>
                   </widget>
                  </item>
@@ -216,7 +240,7 @@ QSplitter::handle:hover { background: #f4f4f4; }
                     <string>From portion: enter weight and portion calories to compute kcal/100g</string>
                    </property>
                    <property name="text">
-                    <string />
+                    <string/>
                    </property>
                   </widget>
                  </item>
@@ -262,10 +286,6 @@ QSplitter::handle:hover { background: #f4f4f4; }
                    </property>
                   </widget>
                  </item>
-                </layout>
-               </item>
-               <item>
-                <layout class="QHBoxLayout" name="horizontalLayout_6">
                  <item>
                   <widget class="QPushButton" name="pushButton_food_add">
                    <property name="minimumSize">
@@ -316,15 +336,17 @@ QSplitter::handle:hover { background: #f4f4f4; }
               </property>
               <layout class="QVBoxLayout" name="verticalLayout_2">
                <item>
-                <widget class="QPushButton" name="pushButton_food_add_with_ai">
-                 <property name="minimumSize">
-                  <size>
-                   <width>0</width>
-                   <height>41</height>
-                  </size>
-                 </property>
-                 <property name="styleSheet">
-                  <string notr="true">QPushButton {
+                <layout class="QHBoxLayout" name="horizontalLayout_2">
+                 <item>
+                  <widget class="QPushButton" name="pushButton_food_add_with_ai">
+                   <property name="minimumSize">
+                    <size>
+                     <width>0</width>
+                     <height>41</height>
+                    </size>
+                   </property>
+                   <property name="styleSheet">
+                    <string notr="true">QPushButton {
                                       background-color: #79b1d1;
                                       color: #ffffff;
                                       border: 1px solid #79b1d1;
@@ -341,22 +363,22 @@ QSplitter::handle:hover { background: #f4f4f4; }
                                       color: #ffffff;
                                       border-color: #1a5f7a;
                                       }</string>
-                 </property>
-                 <property name="text">
-                  <string>Add with AI</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QPushButton" name="pushButton_food_add_by_voice">
-                 <property name="minimumSize">
-                  <size>
-                   <width>0</width>
-                   <height>41</height>
-                  </size>
-                 </property>
-                 <property name="styleSheet">
-                  <string notr="true">QPushButton {
+                   </property>
+                   <property name="text">
+                    <string>Add with AI</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QPushButton" name="pushButton_food_add_by_voice">
+                   <property name="minimumSize">
+                    <size>
+                     <width>0</width>
+                     <height>41</height>
+                    </size>
+                   </property>
+                   <property name="styleSheet">
+                    <string notr="true">QPushButton {
                                       background-color: #79b1d1;
                                       color: #ffffff;
                                       border: 1px solid #79b1d1;
@@ -373,25 +395,25 @@ QSplitter::handle:hover { background: #f4f4f4; }
                                       color: #ffffff;
                                       border-color: #1a5f7a;
                                       }</string>
-                 </property>
-                 <property name="text">
-                  <string>Add by voice</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QPushButton" name="pushButton_food_analyze_macros">
-                 <property name="minimumSize">
-                  <size>
-                   <width>0</width>
-                   <height>41</height>
-                  </size>
-                 </property>
-                 <property name="toolTip">
-                  <string>Analyze missing or outdated day macros for the current week, then open the week report</string>
-                 </property>
-                 <property name="styleSheet">
-                  <string notr="true">QPushButton {
+                   </property>
+                   <property name="text">
+                    <string>Add by voice</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QPushButton" name="pushButton_food_analyze_macros">
+                   <property name="minimumSize">
+                    <size>
+                     <width>0</width>
+                     <height>41</height>
+                    </size>
+                   </property>
+                   <property name="toolTip">
+                    <string>Analyze missing or outdated day macros for the current week, then open the week report</string>
+                   </property>
+                   <property name="styleSheet">
+                    <string notr="true">QPushButton {
                                       background-color: #4caf50;
                                       color: #ffffff;
                                       border: 1px solid #4caf50;
@@ -408,11 +430,13 @@ QSplitter::handle:hover { background: #f4f4f4; }
                                       color: #ffffff;
                                       border-color: #2e7d4f;
                                       }</string>
-                 </property>
-                 <property name="text">
-                  <string>Analyze macros</string>
-                 </property>
-                </widget>
+                   </property>
+                   <property name="text">
+                    <string>Analyze macros</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
                </item>
               </layout>
              </widget>
@@ -540,7 +564,7 @@ QSplitter::handle:hover { background: #f4f4f4; }
             <item>
              <widget class="QGroupBox" name="groupBox_filter">
               <property name="title">
-               <string />
+               <string/>
               </property>
               <property name="flat">
                <bool>true</bool>
@@ -707,24 +731,12 @@ QSplitter::handle:hover { background: #f4f4f4; }
              </widget>
             </item>
             <item>
-             <widget class="QTableView" name="tableView_food_log" />
+             <widget class="QTableView" name="tableView_food_log"/>
             </item>
            </layout>
           </widget>
          </widget>
         </item>
-        <property name="leftMargin">
-         <number>0</number>
-        </property>
-        <property name="topMargin">
-         <number>0</number>
-        </property>
-        <property name="rightMargin">
-         <number>0</number>
-        </property>
-        <property name="bottomMargin">
-         <number>0</number>
-        </property>
        </layout>
       </widget>
       <widget class="QWidget" name="tab_food_stats">
@@ -759,14 +771,14 @@ QSplitter::handle:hover { background: #f4f4f4; }
            <bool>false</bool>
           </property>
           <widget class="QFrame" name="frame">
-           <property name="styleSheet">
-            <string notr="true">QFrame#frame { background-color: #ffffff; border: none; }</string>
-           </property>
            <property name="minimumSize">
             <size>
              <width>480</width>
              <height>0</height>
             </size>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QFrame#frame { background-color: #ffffff; border: none; }</string>
            </property>
            <property name="frameShape">
             <enum>QFrame::Shape::NoFrame</enum>
@@ -783,7 +795,7 @@ QSplitter::handle:hover { background: #f4f4f4; }
              </widget>
             </item>
             <item>
-             <widget class="QTableView" name="tableView_kcal_per_day" />
+             <widget class="QTableView" name="tableView_kcal_per_day"/>
             </item>
            </layout>
           </widget>
@@ -952,18 +964,18 @@ QSplitter::handle:hover { background: #f4f4f4; }
                <bool>true</bool>
               </property>
               <widget class="QWidget" name="scrollAreaWidgetContents_food_stats">
-               <property name="styleSheet">
-                <string notr="true">QWidget#scrollAreaWidgetContents_food_stats { background-color: #ffffff; }</string>
-               </property>
                <property name="geometry">
                 <rect>
                  <x>0</x>
                  <y>0</y>
-                 <width>1050</width>
-                 <height>441</height>
+                 <width>845</width>
+                 <height>791</height>
                 </rect>
                </property>
-               <layout class="QVBoxLayout" name="verticalLayout_food_stats_content" />
+               <property name="styleSheet">
+                <string notr="true">QWidget#scrollAreaWidgetContents_food_stats { background-color: #ffffff; }</string>
+               </property>
+               <layout class="QVBoxLayout" name="verticalLayout_food_stats_content"/>
               </widget>
              </widget>
             </item>
@@ -975,18 +987,6 @@ QSplitter::handle:hover { background: #f4f4f4; }
       </widget>
      </widget>
     </item>
-    <property name="leftMargin">
-     <number>0</number>
-    </property>
-    <property name="topMargin">
-     <number>0</number>
-    </property>
-    <property name="rightMargin">
-     <number>0</number>
-    </property>
-    <property name="bottomMargin">
-     <number>0</number>
-    </property>
    </layout>
   </widget>
   <widget class="QMenuBar" name="menuBar">
@@ -1002,31 +1002,31 @@ QSplitter::handle:hover { background: #f4f4f4; }
     <property name="title">
      <string>Commands</string>
     </property>
-    <addaction name="action_refresh" />
-    <addaction name="action_add_food_item" />
-    <addaction name="action_show_food_items" />
-    <addaction name="action_show_recipes" />
-    <addaction name="separator" />
-    <addaction name="action_translate_with_ai" />
-    <addaction name="action_add_as_text" />
-    <addaction name="action_show_all_records" />
-    <addaction name="action_check" />
+    <addaction name="action_refresh"/>
+    <addaction name="action_add_food_item"/>
+    <addaction name="action_show_food_items"/>
+    <addaction name="action_show_recipes"/>
+    <addaction name="separator"/>
+    <addaction name="action_translate_with_ai"/>
+    <addaction name="action_add_as_text"/>
+    <addaction name="action_show_all_records"/>
+    <addaction name="action_check"/>
    </widget>
    <widget class="QMenu" name="menuFile">
     <property name="title">
      <string>File</string>
     </property>
-    <addaction name="actionExit" />
+    <addaction name="actionExit"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
      <string>Help</string>
     </property>
-    <addaction name="actionAbout" />
+    <addaction name="actionAbout"/>
    </widget>
-   <addaction name="menuFile" />
-   <addaction name="menuCommands" />
-   <addaction name="menuHelp" />
+   <addaction name="menuFile"/>
+   <addaction name="menuCommands"/>
+   <addaction name="menuHelp"/>
   </widget>
   <action name="action_refresh">
    <property name="text">
@@ -1091,6 +1091,6 @@ QSplitter::handle:hover { background: #f4f4f4; }
    <header>harrix_swiss_knife.qt_compact_spin_box</header>
   </customwidget>
  </customwidgets>
- <resources />
- <connections />
+ <resources/>
+ <connections/>
 </ui>

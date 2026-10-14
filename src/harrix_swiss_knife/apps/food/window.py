@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'window.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.11.2
+## Created by: Qt User Interface Compiler version 6.12.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -105,6 +105,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
+        MainWindow.resize(1354, 944)
         MainWindow.setStyleSheet(u"/* hsk-white-surfaces */\n"
 "QGroupBox {\n"
 " background-color: #ffffff;\n"
@@ -141,7 +142,6 @@ class Ui_MainWindow(object):
 "}\n"
 "QSplitter::handle:hover { background: #f4f4f4; }\n"
 "")
-        MainWindow.resize(1354, 600)
         self.action_refresh = QAction(MainWindow)
         self.action_refresh.setObjectName(u"action_refresh")
         self.action_add_food_item = QAction(MainWindow)
@@ -183,8 +183,8 @@ class Ui_MainWindow(object):
         self.splitter_food.setChildrenCollapsible(False)
         self.frame_food_controls = QFrame(self.splitter_food)
         self.frame_food_controls.setObjectName(u"frame_food_controls")
-        self.frame_food_controls.setStyleSheet(u"QFrame#frame_food_controls { background-color: #ffffff; border: none; }")
         self.frame_food_controls.setMinimumSize(QSize(420, 0))
+        self.frame_food_controls.setStyleSheet(u"QFrame#frame_food_controls { background-color: #ffffff; border: none; }")
         self.frame_food_controls.setFrameShape(QFrame.Shape.NoFrame)
         self.frame_food_controls.setFrameShadow(QFrame.Shadow.Plain)
         self.verticalLayout_food_controls = QVBoxLayout(self.frame_food_controls)
@@ -284,11 +284,6 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_food_date.addWidget(self.dateEdit_food)
 
-
-        self.verticalLayout.addLayout(self.horizontalLayout_food_date)
-
-        self.horizontalLayout_6 = QHBoxLayout()
-        self.horizontalLayout_6.setObjectName(u"horizontalLayout_6")
         self.pushButton_food_add = QPushButton(self.groupBox_food_add)
         self.pushButton_food_add.setObjectName(u"pushButton_food_add")
         self.pushButton_food_add.setMinimumSize(QSize(0, 41))
@@ -311,10 +306,10 @@ class Ui_MainWindow(object):
 "                                      border-color: #1a5f7a;\n"
 "                                      }")
 
-        self.horizontalLayout_6.addWidget(self.pushButton_food_add)
+        self.horizontalLayout_food_date.addWidget(self.pushButton_food_add)
 
 
-        self.verticalLayout.addLayout(self.horizontalLayout_6)
+        self.verticalLayout.addLayout(self.horizontalLayout_food_date)
 
 
         self.verticalLayout_food_controls.addWidget(self.groupBox_food_add)
@@ -323,6 +318,8 @@ class Ui_MainWindow(object):
         self.groupBox_food_commands.setObjectName(u"groupBox_food_commands")
         self.verticalLayout_2 = QVBoxLayout(self.groupBox_food_commands)
         self.verticalLayout_2.setObjectName(u"verticalLayout_2")
+        self.horizontalLayout_2 = QHBoxLayout()
+        self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
         self.pushButton_food_add_with_ai = QPushButton(self.groupBox_food_commands)
         self.pushButton_food_add_with_ai.setObjectName(u"pushButton_food_add_with_ai")
         self.pushButton_food_add_with_ai.setMinimumSize(QSize(0, 41))
@@ -344,7 +341,7 @@ class Ui_MainWindow(object):
 "                                      border-color: #1a5f7a;\n"
 "                                      }")
 
-        self.verticalLayout_2.addWidget(self.pushButton_food_add_with_ai)
+        self.horizontalLayout_2.addWidget(self.pushButton_food_add_with_ai)
 
         self.pushButton_food_add_by_voice = QPushButton(self.groupBox_food_commands)
         self.pushButton_food_add_by_voice.setObjectName(u"pushButton_food_add_by_voice")
@@ -367,7 +364,7 @@ class Ui_MainWindow(object):
 "                                      border-color: #1a5f7a;\n"
 "                                      }")
 
-        self.verticalLayout_2.addWidget(self.pushButton_food_add_by_voice)
+        self.horizontalLayout_2.addWidget(self.pushButton_food_add_by_voice)
 
         self.pushButton_food_analyze_macros = QPushButton(self.groupBox_food_commands)
         self.pushButton_food_analyze_macros.setObjectName(u"pushButton_food_analyze_macros")
@@ -390,7 +387,10 @@ class Ui_MainWindow(object):
 "                                      border-color: #2e7d4f;\n"
 "                                      }")
 
-        self.verticalLayout_2.addWidget(self.pushButton_food_analyze_macros)
+        self.horizontalLayout_2.addWidget(self.pushButton_food_analyze_macros)
+
+
+        self.verticalLayout_2.addLayout(self.horizontalLayout_2)
 
 
         self.verticalLayout_food_controls.addWidget(self.groupBox_food_commands)
@@ -580,8 +580,8 @@ class Ui_MainWindow(object):
         self.splitter_food_stats.setChildrenCollapsible(False)
         self.frame = QFrame(self.splitter_food_stats)
         self.frame.setObjectName(u"frame")
-        self.frame.setStyleSheet(u"QFrame#frame { background-color: #ffffff; border: none; }")
         self.frame.setMinimumSize(QSize(480, 0))
+        self.frame.setStyleSheet(u"QFrame#frame { background-color: #ffffff; border: none; }")
         self.frame.setFrameShape(QFrame.Shape.NoFrame)
         self.frame.setFrameShadow(QFrame.Shadow.Plain)
         self.verticalLayout_3 = QVBoxLayout(self.frame)
@@ -702,8 +702,8 @@ class Ui_MainWindow(object):
         self.scrollArea_food_stats.setWidgetResizable(True)
         self.scrollAreaWidgetContents_food_stats = QWidget()
         self.scrollAreaWidgetContents_food_stats.setObjectName(u"scrollAreaWidgetContents_food_stats")
+        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 845, 791))
         self.scrollAreaWidgetContents_food_stats.setStyleSheet(u"QWidget#scrollAreaWidgetContents_food_stats { background-color: #ffffff; }")
-        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 1050, 441))
         self.verticalLayout_food_stats_content = QVBoxLayout(self.scrollAreaWidgetContents_food_stats)
         self.verticalLayout_food_stats_content.setObjectName(u"verticalLayout_food_stats_content")
         self.scrollArea_food_stats.setWidget(self.scrollAreaWidgetContents_food_stats)
