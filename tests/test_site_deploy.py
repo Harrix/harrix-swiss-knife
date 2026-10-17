@@ -48,7 +48,7 @@ def test_deploy_generated_site_commits_and_pushes(tmp_path: Path) -> None:
     assert subject == DEPLOY_COMMIT_MESSAGE
 
 
-def test_deploy_generated_site_skips_when_clean(tmp_path: Path) -> None:
+def test_deploy_generated_site_pushes_when_clean(tmp_path: Path) -> None:
     site = tmp_path / "site"
     site.mkdir()
     (site / "index.html").write_text("<h1>Hello</h1>\n", encoding="utf-8")
@@ -60,6 +60,30 @@ def test_deploy_generated_site_skips_when_clean(tmp_path: Path) -> None:
     ok, log = deploy_generated_site(site, remote_url=str(bare))
     assert ok, log
     assert "No changes to commit." in log
+    assert "Pushed" in log
+
+
+def test_deploy_generated_site_retries_unpushed_commit(tmp_path: Path) -> None:
+    site = tmp_path / "site"
+    site.mkdir()
+    (site / "index.html").write_text("<h1>Hello</h1>\n", encoding="utf-8")
+    bare = tmp_path / "remote.git"
+    _git(tmp_path, "init", "--bare", str(bare))
+    ok, log = deploy_generated_site(site, remote_url=str(bare))
+    assert ok, log
+
+    (site / "index.html").write_text("<h1>Updated</h1>\n", encoding="utf-8")
+    _git(site, "add", "-A")
+    _git(site, "-c", "commit.gpgsign=false", "commit", "-m", "local only")
+
+    ok, log = deploy_generated_site(site, remote_url=str(bare))
+    assert ok, log
+    assert "No changes to commit." in log
+    assert "Pushed" in log
+
+    clone = tmp_path / "clone"
+    _git(tmp_path, "clone", str(bare), str(clone))
+    assert (clone / "index.html").read_text(encoding="utf-8") == "<h1>Updated</h1>\n"
 
 
 def test_deploy_generated_site_updates_remote_url(tmp_path: Path) -> None:

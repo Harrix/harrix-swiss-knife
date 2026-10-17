@@ -74,13 +74,12 @@ def deploy_generated_site(
     if not ok:
         lines.append(porcelain)
         return False, _join_log(lines)
-    if not porcelain.strip():
+    if porcelain.strip():
+        _ensure_git_identity(folder)
+        if not _log_git(lines, folder, "-c", "commit.gpgsign=false", "commit", "-m", commit_message):
+            return False, _join_log(lines)
+    else:
         lines.append("No changes to commit.")
-        return True, _join_log(lines)
-
-    _ensure_git_identity(folder)
-    if not _log_git(lines, folder, "-c", "commit.gpgsign=false", "commit", "-m", commit_message):
-        return False, _join_log(lines)
 
     if not _log_git(lines, folder, "push", "-u", remote_name, branch, timeout=_GIT_PUSH_TIMEOUT):
         return False, _join_log(lines)
