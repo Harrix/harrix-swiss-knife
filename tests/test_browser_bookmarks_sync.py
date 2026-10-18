@@ -718,3 +718,43 @@ def test_prune_empty_folders_keeps_roots() -> None:
     assert prune_empty_folders(data) == [("bookmark_bar", ("Empty",))]
     assert data["roots"]["bookmark_bar"]["children"] == []
     assert data["roots"]["other"]["type"] == "folder"
+
+
+def test_prune_empty_folders_ignores_url_nodes_without_url() -> None:
+    data = _empty_bookmarks()
+    ghost = {"id": "50", "name": "Ghost", "type": "url", "url": "  "}
+    missing = {"id": "51", "name": "Missing", "type": "url"}
+    data["roots"]["bookmark_bar"]["children"].append(_folder_node("Ghosts", [ghost, missing], node_id="40"))
+    assert prune_empty_folders(data) == [("bookmark_bar", ("Ghosts",))]
+    assert data["roots"]["bookmark_bar"]["children"] == []
+
+
+def test_reorder_drops_empty_leftover_folders() -> None:
+    data = _minimal_bookmarks(("A", _URL_A))
+    data["roots"]["bookmark_bar"]["children"].append(_folder_node("Empty", [], node_id="40"))
+    assert reorder_folder_children(data, "bookmark_bar", (), [ChildRef("url", _URL_A)])
+    assert _folder_child_urls(data, "bookmark_bar", ()) == [_URL_A]
+    assert find_folder(data, "bookmark_bar", ("Empty",)) is None
+
+
+def test_empty_folder_in_both_browsers_is_removed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("harrix_swiss_knife.browser_bookmarks.sync.running_browser_names", list)
+    trees = []
+    for node_id in ("40", "41"):
+        data = _minimal_bookmarks(("A", _URL_A))
+        inner = _folder_node("Inner", [], node_id=str(int(node_id) + 10))
+        data["roots"]["other"]["children"].append(_folder_node("Science", [inner], node_id=node_id))
+        trees.append(data)
+    chrome, yandex = _write_trees(tmp_path, trees[0], trees[1])
+    snap = tmp_path / "snap.json"
+    plan = build_sync_plan(chrome_path=chrome, yandex_path=yandex, snapshot_file=snap)
+    for removed in (plan.remove_empty_in_chrome, plan.remove_empty_in_yandex):
+        assert ("other", ("Science", "Inner")) in removed
+        assert ("other", ("Science",)) in removed
+    apply_sync_plan(plan, create_backup=False)
+    for path in (chrome, yandex):
+        loaded = load_bookmarks(path)
+        assert find_folder(loaded, "other", ("Science",)) is None
+        assert _URL_A in flatten_bookmarks(loaded)
+    again = build_sync_plan(chrome_path=chrome, yandex_path=yandex, snapshot_file=snap)
+    assert not again.has_writes

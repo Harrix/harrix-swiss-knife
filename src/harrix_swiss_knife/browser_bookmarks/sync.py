@@ -482,11 +482,16 @@ def _commit_tree_changes(
     relocate_entries(yandex_data, move_in_yandex)
     add_entries(chrome_data, add_to_chrome)
     add_entries(yandex_data, add_to_yandex)
+    # Prune before reorder too: reorder drops empty leftovers silently, so the report would miss them.
+    removed_chrome = prune_empty_folders(chrome_data)
+    removed_yandex = prune_empty_folders(yandex_data)
     for order in reorder_in_chrome:
         reorder_folder_children(chrome_data, order.root, order.folder_path, order.children)
     for order in reorder_in_yandex:
         reorder_folder_children(yandex_data, order.root, order.folder_path, order.children)
-    return prune_empty_folders(chrome_data), prune_empty_folders(yandex_data)
+    removed_chrome.extend(prune_empty_folders(chrome_data))
+    removed_yandex.extend(prune_empty_folders(yandex_data))
+    return removed_chrome, removed_yandex
 
 
 def _format_empty_folder_lines(folders: Sequence[tuple[str, tuple[str, ...]]]) -> list[str]:

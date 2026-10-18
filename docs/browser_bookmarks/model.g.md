@@ -392,7 +392,8 @@ def reorder_folder_children(data: dict[str, Any], root: str, folder_path: tuple[
 Reorder a folder's children to match `desired`. Return whether the list changed.
 
 Children not mentioned in `desired` stay after the matched ones, in the same
-relative order. Unknown node types are kept with those leftovers.
+relative order. Unknown node types are kept with those leftovers. Leftover
+folders with no bookmarks anywhere inside are dropped.
 
 <details>
 <summary>Code:</summary>
@@ -416,7 +417,11 @@ def reorder_folder_children(
         match = _take_child_ref(unused, ref)
         if match is not None:
             new_children.append(match)
-    new_children.extend(unused)
+    new_children.extend(
+        child
+        for child in unused
+        if not (isinstance(child, dict) and child.get("type") == "folder" and not _contains_url(child))
+    )
     if new_children == children:
         return False
     folder["children"] = new_children
