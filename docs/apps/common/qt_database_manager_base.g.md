@@ -323,7 +323,7 @@ class QtSqliteDatabaseManagerBase:
         return result
 
     @contextmanager
-    def sql_transaction(self) -> Iterator[None]:
+    def sql_transaction(self) -> Generator[None, None, None]:
         """Run multiple statements in a single SQLite transaction."""
         if not self._ensure_connection() or self.db is None:
             raise DatabaseConnectionUnavailableError
@@ -825,7 +825,7 @@ def rows_from_query(self, query: QSqlQuery) -> list[list[Any]]:
 ### ⚙️ Method `sql_transaction`
 
 ```python
-def sql_transaction(self) -> Iterator[None]
+def sql_transaction(self) -> Generator[None, None, None]
 ```
 
 Run multiple statements in a single SQLite transaction.
@@ -834,7 +834,7 @@ Run multiple statements in a single SQLite transaction.
 <summary>Code:</summary>
 
 ```python
-def sql_transaction(self) -> Iterator[None]:
+def sql_transaction(self) -> Generator[None, None, None]:
         if not self._ensure_connection() or self.db is None:
             raise DatabaseConnectionUnavailableError
         if not self.db.transaction():

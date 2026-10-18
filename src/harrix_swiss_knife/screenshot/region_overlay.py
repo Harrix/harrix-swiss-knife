@@ -474,7 +474,7 @@ class RegionOverlay(QDialog):
 
     def paint_screen_pane(self, pane: _ScreenPane) -> None:
         """Paint one monitor pane with that screen's grab and the shared selection."""
-        grab = pane.grab
+        grab = pane.screen_grab
         painter = QPainter(pane)
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, on=False)
         offset = grab.geometry.topLeft() - self._virtual_origin
@@ -693,7 +693,7 @@ class RegionOverlay(QDialog):
     def _pane_at_virtual(self, pos: QPoint) -> _ScreenPane | None:
         global_pos = QPoint(pos.x() + self._virtual_origin.x(), pos.y() + self._virtual_origin.y())
         for pane in self._panes:
-            if pane.grab.geometry.contains(global_pos):
+            if pane.screen_grab.geometry.contains(global_pos):
                 return pane
         return None
 
@@ -778,7 +778,7 @@ class RegionOverlay(QDialog):
         pane = self._pane_at_virtual(box.center())
         if pane is not None:
             self._size_editor.setParent(pane)
-            offset = pane.grab.geometry.topLeft() - self._virtual_origin
+            offset = pane.screen_grab.geometry.topLeft() - self._virtual_origin
             local_box = box.translated(-offset.x(), -offset.y())
             self._size_editor.setGeometry(self._size_editor_geometry(local_box, pane.rect()))
         else:
@@ -828,11 +828,6 @@ class _ScreenPane(QWidget):
             self.setScreen(screen)
         self.setGeometry(grab.geometry)
 
-    @property
-    def grab(self) -> ScreenGrab:
-        """Native grab painted by this pane."""
-        return self._grab
-
     def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
         self._overlay.keyPressEvent(event)
 
@@ -850,6 +845,11 @@ class _ScreenPane(QWidget):
 
     def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802, ARG002
         self._overlay.paint_screen_pane(self)
+
+    @property
+    def screen_grab(self) -> ScreenGrab:
+        """Native grab painted by this pane."""
+        return self._grab
 
 
 def _is_arrow_key(event: QEvent) -> bool:

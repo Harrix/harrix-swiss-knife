@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager
 from types import SimpleNamespace
 from typing import cast
@@ -155,7 +155,7 @@ def test_open_select_exercise_dialog_shows_loading_toast(
     titles: list[str] = []
 
     @contextmanager
-    def fake_scope(title: str) -> Iterator[None]:
+    def fake_scope(title: str) -> Generator[None, None, None]:
         titles.append(title)
         yield None
 

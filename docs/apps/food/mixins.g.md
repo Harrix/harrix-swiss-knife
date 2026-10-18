@@ -35,10 +35,6 @@ Mixin class for auto-save operations.
 class AutoSaveOperations(AutoSaveMixin):
 
     db_manager: Any
-    _validate_database_connection: Callable[[], bool]
-    _update_comboboxes: Callable[[], None]
-    update_filter_comboboxes: Callable[[], None]
-    _is_valid_date: Callable[[str], bool]
 
     def _get_save_handlers(self) -> dict[str, Callable[..., None]]:
         return {"food_log": self._save_food_log_data}

@@ -13,7 +13,7 @@ from harrix_swiss_knife.actions.apps.habits import OnHabits
 from harrix_swiss_knife.apps.finance.main import MainWindow
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Generator
 
     import pytest
 
@@ -55,7 +55,7 @@ def test_app_launcher_shows_loading_toast_while_creating_window(monkeypatch: pyt
     stopped: list[object] = []
 
     @contextmanager
-    def fake_scope(title: str) -> Iterator[None]:
+    def fake_scope(title: str) -> Generator[None, None, None]:
         started.append(title)
         yield
         stopped.append(True)
@@ -93,7 +93,7 @@ def test_app_launcher_skips_show_when_window_defers_initial_show(monkeypatch: py
             super().show()
 
     @contextmanager
-    def fake_scope(_title: str) -> Iterator[None]:
+    def fake_scope(_title: str) -> Generator[None, None, None]:
         yield
 
     monkeypatch.setattr(OnHabits, "get_main_window_class", classmethod(lambda _cls: DeferredWindow))

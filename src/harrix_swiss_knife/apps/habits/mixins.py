@@ -37,9 +37,6 @@ class AutoSaveOperations(AutoSaveMixin):
     """Mixin class for auto-save operations."""
 
     db_manager: Any
-    _validate_database_connection: Callable[[], bool]
-    update_habits_filter_combobox: Callable[[], None]
-    _is_valid_date: Callable[[str], bool]
 
     def _get_save_handlers(self) -> dict[str, Callable[..., None]]:
         return {"habits": self._save_habit_data}

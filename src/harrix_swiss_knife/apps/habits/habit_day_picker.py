@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from shiboken6 import isValid
 
 from harrix_swiss_knife.apps.habits.dashboard_widgets import (
     COLOR_PRIMARY,
@@ -200,7 +201,7 @@ class HabitDayPickerPopup(QWidget):
         cls._cancel_timers()
         cls._set_pending(None)
         cls._set_hotkey_filter_enabled(enabled=False)
-        if cls._instance is not None:
+        if cls._instance is not None and isValid(cls._instance):
             cls._instance.cancel_reposition()
             cls._instance.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, on=True)
             cls._instance.hide()
@@ -334,9 +335,9 @@ class HabitDayPickerPopup(QWidget):
 
     @classmethod
     def _cancel_timers(cls) -> None:
-        if cls._show_timer is not None:
+        if cls._show_timer is not None and isValid(cls._show_timer):
             cls._show_timer.stop()
-        if cls._hide_timer is not None:
+        if cls._hide_timer is not None and isValid(cls._hide_timer):
             cls._hide_timer.stop()
 
     def _choices_page_is_active(self) -> bool:
@@ -390,7 +391,7 @@ class HabitDayPickerPopup(QWidget):
     @classmethod
     def _on_pending_destroyed(cls) -> None:
         cls._pending = None
-        if cls._show_timer is not None:
+        if cls._show_timer is not None and isValid(cls._show_timer):
             cls._show_timer.stop()
 
     @classmethod

@@ -34,10 +34,9 @@ Mixin with shared auto-save infrastructure for tracker table views.
 class AutoSaveMixin:
 
     models: dict[str, Any]
-    _SAFE_TABLES: set[str]
-    _validate_database_connection: Callable[[], bool]
+    _SAFE_TABLES: frozenset[str]
     _auto_save_handlers: dict[str, Callable[..., None]]
-    _auto_save_source_models: dict[str, QStandardItemModel]
+    _auto_save_source_models: dict[str, QObject | None]
 
     def _after_table_data_changed(
         self,
@@ -187,7 +186,6 @@ Mixin class for date widget helpers.
 class DateMixin:
 
     db_manager: Any
-    _validate_database_connection: Callable[[], bool]
 
     def _get_earliest_date_for_chart_range(self, from_widget: QDateEdit) -> str | None:
         """Resolve earliest available date for an all-time chart range."""
@@ -275,7 +273,6 @@ class TableOperations:
 
     table_config: dict[str, tuple[Any, str, list[str]]]
     models: dict[str, Any]
-    _create_table_model: Callable[[list, list[str]], Any]
 
     def _connect_table_signals(self, table_name: str, selection_handler: Callable) -> None:
         """Connect selection change signal for a table.

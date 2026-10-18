@@ -14,7 +14,7 @@ lang: en
 - [🏛️ Class `ToastProgressNotification`](#%EF%B8%8F-class-toastprogressnotification)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
-  - [⚙️ Method `done (property)`](#%EF%B8%8F-method-done-property)
+  - [⚙️ Method `completed_count (property)`](#%EF%B8%8F-method-completed_count-property)
   - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
   - [⚙️ Method `mark_completed`](#%EF%B8%8F-method-mark_completed)
   - [⚙️ Method `reposition_action_buttons`](#%EF%B8%8F-method-reposition_action_buttons)
@@ -35,7 +35,7 @@ Countdown toast that also shows `done / total` progress.
 
 Attributes:
 
-- `done` (`int`): Completed work units.
+- [`completed_count`](#%EF%B8%8F-method-completed_count-property) (`int`): Completed work units.
 - [`total`](#%EF%B8%8F-method-total-property) (`int`): Total work units (0 means unknown / indeterminate).
 - `progress_bar` (`QProgressBar`): Determinate progress indicator under the label.
 - `cancel_requested` (`Signal`): Emitted once when a cancellable toast is cancelled.
@@ -111,7 +111,7 @@ class ToastProgressNotification(toast_countdown_notification.ToastCountdownNotif
         super().closeEvent(event)
 
     @property
-    def done(self) -> int:
+    def completed_count(self) -> int:
         """Number of completed work units."""
         return self._done
 
@@ -456,10 +456,10 @@ def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
 
 </details>
 
-### ⚙️ Method `done (property)`
+### ⚙️ Method `completed_count (property)`
 
 ```python
-def done(self) -> int
+def completed_count(self) -> int
 ```
 
 Number of completed work units.
@@ -468,7 +468,7 @@ Number of completed work units.
 <summary>Code:</summary>
 
 ```python
-def done(self) -> int:
+def completed_count(self) -> int:
         return self._done
 ```
 

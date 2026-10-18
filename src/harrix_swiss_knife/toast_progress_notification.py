@@ -21,7 +21,7 @@ class ToastProgressNotification(toast_countdown_notification.ToastCountdownNotif
 
     Attributes:
 
-    - `done` (`int`): Completed work units.
+    - `completed_count` (`int`): Completed work units.
     - `total` (`int`): Total work units (0 means unknown / indeterminate).
     - `progress_bar` (`QProgressBar`): Determinate progress indicator under the label.
     - `cancel_requested` (`Signal`): Emitted once when a cancellable toast is cancelled.
@@ -93,7 +93,7 @@ class ToastProgressNotification(toast_countdown_notification.ToastCountdownNotif
         super().closeEvent(event)
 
     @property
-    def done(self) -> int:
+    def completed_count(self) -> int:
         """Number of completed work units."""
         return self._done
 

@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any
 from harrix_swiss_knife.toast_countdown_notification import ToastCountdownNotification
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Generator
 
 DEFAULT_APP_LOADING_TITLE = "Application"
 _PUMP_INTERVAL_S = 0.2
@@ -91,7 +91,7 @@ def app_loading_title(source: object) -> str:
 
 
 @contextmanager
-def app_loading_toast_scope(app_title: str) -> Iterator[ToastCountdownNotification]:
+def app_loading_toast_scope(app_title: str) -> Generator[ToastCountdownNotification, None, None]:
     """Show a loading toast and keep its elapsed clock updating until exit."""
     toast = start_app_loading_toast(app_title)
     pumper = AppLoadingToastPumper(toast)

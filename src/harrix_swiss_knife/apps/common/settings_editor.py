@@ -36,7 +36,6 @@ from harrix_swiss_knife.action_hotkeys import load_action_hotkeys
 from harrix_swiss_knife.actions.common.dialog_geometry import text_content_height
 from harrix_swiss_knife.actions.common.open_in_editor import open_in_editor
 from harrix_swiss_knife.actions.common.text_result_dialog import OPEN_FOLDER_BUTTON_ICON
-from harrix_swiss_knife.actions.development.open_config_json import open_config_json_in_editor
 from harrix_swiss_knife.app_restart import restart_current_application
 from harrix_swiss_knife.config_model import restart_required_config_keys
 from harrix_swiss_knife.global_hotkey import hotkey_string_from_event
@@ -51,81 +50,6 @@ from harrix_swiss_knife.qt_lucide_icon import (
 
 if TYPE_CHECKING:
     from PySide6.QtGui import QFocusEvent, QKeyEvent, QResizeEvent, QShowEvent
-
-OPEN_FOLDER_BUTTON_OBJECT_NAME = "settingsOpenFolderButton"
-OPEN_JSON_BUTTON_OBJECT_NAME = "settingsOpenJsonButton"
-OPEN_SNIPPET_BUTTON_OBJECT_NAME = "settingsOpenSnippetButton"
-SNIPPET_CONTENT_OBJECT_NAME = "settingsSnippetContent"
-FIELD_SAVE_BUTTON_OBJECT_NAME = "settingsFieldSaveButton"
-OPEN_JSON_BUTTON_ICON = "braces"
-OPEN_SNIPPET_BUTTON_ICON = "notebook-pen"
-_SNIPPET_PREFIX = "snippet:"
-STATUS_LABEL_OBJECT_NAME = "settingsSaveStatus"
-CLOSE_BUTTON_OBJECT_NAME = "settingsCloseButton"
-SAVE_ALL_BUTTON_OBJECT_NAME = "settingsSaveAllButton"
-HOTKEY_EDIT_OBJECT_NAME = "settingsHotkeyEdit"
-HOTKEY_ACTION_OBJECT_NAME = "settingsHotkeyAction"
-HOTKEY_BINDINGS_OBJECT_NAME = "settingsHotkeyBindings"
-ADD_HOTKEY_BUTTON_OBJECT_NAME = "settingsAddHotkeyButton"
-REMOVE_HOTKEY_BUTTON_OBJECT_NAME = "settingsRemoveHotkeyButton"
-
-_MIN_HOTKEY_PARTS = 2
-_HOTKEY_MODIFIERS = frozenset({"alt", "cmd", "command", "control", "ctrl", "meta", "shift", "win"})
-_HOTKEY_SPECIAL_KEYS = frozenset(
-    {
-        "backspace",
-        "delete",
-        "down",
-        "end",
-        "enter",
-        "esc",
-        "escape",
-        "home",
-        "ins",
-        "insert",
-        "left",
-        "minus",
-        "pagedown",
-        "pageup",
-        "plus",
-        "return",
-        "right",
-        "space",
-        "tab",
-        "up",
-    }
-)
-_MODIFIER_KEYS = frozenset(
-    {
-        Qt.Key.Key_Alt,
-        Qt.Key.Key_Control,
-        Qt.Key.Key_Meta,
-        Qt.Key.Key_Shift,
-        Qt.Key.Key_unknown,
-    }
-)
-
-_FILE_PATH_KEYS = frozenset({"path_totalcmd_ini"})
-_FILE_PATH_KEY_PREFIXES = ("sqlite_", "vscode_workspace")
-_FILE_PATH_SUFFIXES = frozenset(
-    {
-        ".code-workspace",
-        ".db",
-        ".ini",
-        ".json",
-        ".md",
-        ".sqlite",
-        ".txt",
-        ".yaml",
-        ".yml",
-    }
-)
-SHARED_APPS_SETTING_KEYS = frozenset({"initial_count", "load_more_count", "local_language"})
-TRACKER_APP_IDS = frozenset({"finance", "fitness", "food", "habits"})
-_APP_EXTRA_KEY_PREFIXES: dict[str, tuple[str, ...]] = {
-    "habits": ("habit_", "path_habit_"),
-    "icons": ("path_vector_icons", "vector_icons_"),
-}
 
 
 class HotkeyBindingsWidget(QWidget):
@@ -1005,6 +929,33 @@ def nested_setting_belongs_to_app(category: str, key: str, app_id: str) -> bool:
     return config_key_belongs_to_app(key, app_id)
 
 
+def open_config_json_in_editor(
+    *,
+    config_path: str | Path | None = None,
+    preferred_editor: str | None = None,
+) -> list[str]:
+    """Open `config.json` in the configured editor.
+
+    Loaded lazily so this module can finish importing before the development
+    action package imports `SettingsEditorDialog`.
+
+    Args:
+
+    - `config_path` (`str | Path | None`): Config file to open. Defaults to the app config.
+    - `preferred_editor` (`str | None`): Editor command to try first.
+
+    Returns:
+
+    - `list[str]`: Status lines from the open attempt.
+
+    """
+    from harrix_swiss_knife.actions.development.open_config_json import (  # noqa: PLC0415
+        open_config_json_in_editor as open_in_development,
+    )
+
+    return open_in_development(config_path=config_path, preferred_editor=preferred_editor)
+
+
 def snippet_path_from_text(text: str, *, project_root: Path | None = None) -> Path | None:
     """Return the project-relative snippet path, or `None` if `text` is not a snippet."""
     stripped = text.strip()
@@ -1037,3 +988,79 @@ def _is_hotkey_binding_item(item: object) -> bool:
 def _is_hotkey_key_name(key: str) -> bool:
     key_norm = key.lower().replace("-", "_")
     return key_norm == "hotkey" or key_norm.endswith("_hotkey")
+
+
+OPEN_FOLDER_BUTTON_OBJECT_NAME = "settingsOpenFolderButton"
+OPEN_JSON_BUTTON_OBJECT_NAME = "settingsOpenJsonButton"
+OPEN_SNIPPET_BUTTON_OBJECT_NAME = "settingsOpenSnippetButton"
+SNIPPET_CONTENT_OBJECT_NAME = "settingsSnippetContent"
+FIELD_SAVE_BUTTON_OBJECT_NAME = "settingsFieldSaveButton"
+OPEN_JSON_BUTTON_ICON = "braces"
+OPEN_SNIPPET_BUTTON_ICON = "notebook-pen"
+_SNIPPET_PREFIX = "snippet:"
+STATUS_LABEL_OBJECT_NAME = "settingsSaveStatus"
+CLOSE_BUTTON_OBJECT_NAME = "settingsCloseButton"
+SAVE_ALL_BUTTON_OBJECT_NAME = "settingsSaveAllButton"
+HOTKEY_EDIT_OBJECT_NAME = "settingsHotkeyEdit"
+HOTKEY_ACTION_OBJECT_NAME = "settingsHotkeyAction"
+HOTKEY_BINDINGS_OBJECT_NAME = "settingsHotkeyBindings"
+ADD_HOTKEY_BUTTON_OBJECT_NAME = "settingsAddHotkeyButton"
+REMOVE_HOTKEY_BUTTON_OBJECT_NAME = "settingsRemoveHotkeyButton"
+
+_MIN_HOTKEY_PARTS = 2
+_HOTKEY_MODIFIERS = frozenset({"alt", "cmd", "command", "control", "ctrl", "meta", "shift", "win"})
+_HOTKEY_SPECIAL_KEYS = frozenset(
+    {
+        "backspace",
+        "delete",
+        "down",
+        "end",
+        "enter",
+        "esc",
+        "escape",
+        "home",
+        "ins",
+        "insert",
+        "left",
+        "minus",
+        "pagedown",
+        "pageup",
+        "plus",
+        "return",
+        "right",
+        "space",
+        "tab",
+        "up",
+    }
+)
+_MODIFIER_KEYS = frozenset(
+    {
+        Qt.Key.Key_Alt,
+        Qt.Key.Key_Control,
+        Qt.Key.Key_Meta,
+        Qt.Key.Key_Shift,
+        Qt.Key.Key_unknown,
+    }
+)
+
+_FILE_PATH_KEYS = frozenset({"path_totalcmd_ini"})
+_FILE_PATH_KEY_PREFIXES = ("sqlite_", "vscode_workspace")
+_FILE_PATH_SUFFIXES = frozenset(
+    {
+        ".code-workspace",
+        ".db",
+        ".ini",
+        ".json",
+        ".md",
+        ".sqlite",
+        ".txt",
+        ".yaml",
+        ".yml",
+    }
+)
+SHARED_APPS_SETTING_KEYS = frozenset({"initial_count", "load_more_count", "local_language"})
+TRACKER_APP_IDS = frozenset({"finance", "fitness", "food", "habits"})
+_APP_EXTRA_KEY_PREFIXES: dict[str, tuple[str, ...]] = {
+    "habits": ("habit_", "path_habit_"),
+    "icons": ("path_vector_icons", "vector_icons_"),
+}

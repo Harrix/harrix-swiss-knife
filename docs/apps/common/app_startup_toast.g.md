@@ -214,7 +214,7 @@ def app_loading_title(source: object) -> str:
 ## 🔧 Function `app_loading_toast_scope`
 
 ```python
-def app_loading_toast_scope(app_title: str) -> Iterator[ToastCountdownNotification]
+def app_loading_toast_scope(app_title: str) -> Generator[ToastCountdownNotification, None, None]
 ```
 
 Show a loading toast and keep its elapsed clock updating until exit.
@@ -223,7 +223,7 @@ Show a loading toast and keep its elapsed clock updating until exit.
 <summary>Code:</summary>
 
 ```python
-def app_loading_toast_scope(app_title: str) -> Iterator[ToastCountdownNotification]:
+def app_loading_toast_scope(app_title: str) -> Generator[ToastCountdownNotification, None, None]:
     toast = start_app_loading_toast(app_title)
     pumper = AppLoadingToastPumper(toast)
     pumper.start()

@@ -128,7 +128,7 @@ def test_overlay_builds_one_pane_per_screen_grab(qapp: QApplication) -> None:  #
     overlay = RegionOverlay(grabs[0].pixmap, _VIRTUAL, screen_grabs=grabs)
     try:
         assert overlay.geometry() == QRect(-16, -16, 1, 1)
-        assert [pane.grab.geometry for pane in overlay._panes] == [_K4_LOGICAL, _UW_LOGICAL]
+        assert [pane.screen_grab.geometry for pane in overlay._panes] == [_K4_LOGICAL, _UW_LOGICAL]
     finally:
         overlay.close()
 

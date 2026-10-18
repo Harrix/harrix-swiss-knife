@@ -64,7 +64,7 @@ def test_pixmap_load_from_data_accepts_str_format(qapp: QApplication) -> None:
     device.open(QIODevice.OpenModeFlag.WriteOnly)
     assert image.save(device, "JPG")  # ty: ignore[no-matching-overload]
     pixmap = QPixmap()
-    assert pixmap.loadFromData(buffer, "JPG")  # ty: ignore[no-matching-overload]
+    assert pixmap.loadFromData(buffer, "JPG")
     assert not pixmap.isNull()
 
 

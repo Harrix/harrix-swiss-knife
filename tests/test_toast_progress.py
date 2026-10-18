@@ -22,21 +22,21 @@ def qapp() -> QApplication:
 def test_progress_toast_updates_bar(qapp: QApplication) -> None:  # noqa: ARG001
     toast = ToastProgressNotification("Rendering…", total=10)
     assert toast.total == 10
-    assert toast.done == 0
+    assert toast.completed_count == 0
     assert toast.progress_bar.maximum() == 10
     assert toast.progress_bar.value() == 0
 
     toast.set_progress(4)
-    assert toast.done == 4
+    assert toast.completed_count == 4
     assert toast.progress_bar.value() == 4
 
     toast.set_progress(12)
-    assert toast.done == 10
+    assert toast.completed_count == 10
     assert toast.progress_bar.value() == 10
 
     toast.set_progress(3, total=20)
     assert toast.total == 20
-    assert toast.done == 3
+    assert toast.completed_count == 3
     assert toast.progress_bar.maximum() == 20
     toast.close()
 
@@ -46,7 +46,7 @@ def test_progress_toast_zero_total_is_indeterminate(qapp: QApplication) -> None:
     assert toast.progress_bar.minimum() == 0
     assert toast.progress_bar.maximum() == 0
     toast.set_progress(5)
-    assert toast.done == 5
+    assert toast.completed_count == 5
     toast.close()
 
 

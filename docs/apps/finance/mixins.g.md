@@ -43,12 +43,7 @@ dispatches to the handler for the given table name.
 ```python
 class AutoSaveOperations(AutoSaveMixin):
 
-    # Expected attributes from main class
     db_manager: Any
-    _validate_database_connection: Callable[[], bool]
-    _update_comboboxes: Callable[[], None]
-    update_filter_comboboxes: Callable[[], None]
-    _is_valid_date: Callable[[str], bool]
 
     def _get_save_handlers(self) -> dict[str, Callable[..., None]]:
         """Return map of table name to save handler `(model, row, row_id) -> None`."""

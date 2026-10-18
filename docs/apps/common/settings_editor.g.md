@@ -35,6 +35,7 @@ lang: en
 - [🔧 Function `load_raw_config`](#-function-load_raw_config)
 - [🔧 Function `merge_filtered_config`](#-function-merge_filtered_config)
 - [🔧 Function `nested_setting_belongs_to_app`](#-function-nested_setting_belongs_to_app)
+- [🔧 Function `open_config_json_in_editor`](#-function-open_config_json_in_editor)
 - [🔧 Function `snippet_path_from_text`](#-function-snippet_path_from_text)
 
 </details>
@@ -1387,6 +1388,44 @@ def nested_setting_belongs_to_app(category: str, key: str, app_id: str) -> bool:
     if category == "apps" and key in SHARED_APPS_SETTING_KEYS:
         return app_id in TRACKER_APP_IDS
     return config_key_belongs_to_app(key, app_id)
+```
+
+</details>
+
+## 🔧 Function `open_config_json_in_editor`
+
+```python
+def open_config_json_in_editor(*, config_path: str | Path | None = None, preferred_editor: str | None = None) -> list[str]
+```
+
+Open `config.json` in the configured editor.
+
+Loaded lazily so this module can finish importing before the development
+action package imports [`SettingsEditorDialog`](#%EF%B8%8F-class-settingseditordialog).
+
+Args:
+
+- `config_path` (`str | Path | None`): Config file to open. Defaults to the app config.
+- `preferred_editor` (`str | None`): Editor command to try first.
+
+Returns:
+
+- `list[str]`: Status lines from the open attempt.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def open_config_json_in_editor(
+    *,
+    config_path: str | Path | None = None,
+    preferred_editor: str | None = None,
+) -> list[str]:
+    from harrix_swiss_knife.actions.development.open_config_json import (  # noqa: PLC0415
+        open_config_json_in_editor as open_in_development,
+    )
+
+    return open_in_development(config_path=config_path, preferred_editor=preferred_editor)
 ```
 
 </details>

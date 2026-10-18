@@ -105,9 +105,9 @@ class CompleterPopupTooltipHelper(QObject):
         self._viewport = None
 
     def _hide_tooltip(self) -> None:
-        if self._show_timer is not None:
+        if self._show_timer is not None and isValid(self._show_timer):
             self._show_timer.stop()
-        if self._tooltip is not None:
+        if self._tooltip is not None and isValid(self._tooltip):
             self._tooltip.hide()
         self._hover_index = QPersistentModelIndex()
 

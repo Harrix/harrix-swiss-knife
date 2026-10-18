@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING, Any
 import harrix_pylib as h
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Generator
 
 from PySide6.QtSql import QSqlDatabase, QSqlQuery
 
@@ -283,7 +283,7 @@ class QtSqliteDatabaseManagerBase:
         return result
 
     @contextmanager
-    def sql_transaction(self) -> Iterator[None]:
+    def sql_transaction(self) -> Generator[None, None, None]:
         """Run multiple statements in a single SQLite transaction."""
         if not self._ensure_connection() or self.db is None:
             raise DatabaseConnectionUnavailableError
