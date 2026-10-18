@@ -92,7 +92,9 @@ import dev.harrix.hsk.speechtotext.WaveformBucket
 import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.CompactBottomActionButton
 import dev.harrix.hsk.ui.HskDropdownMenuItem
+import dev.harrix.hsk.ui.HubUtilityIcons
 import dev.harrix.hsk.ui.SimpleMarkdownText
+import dev.harrix.hsk.ui.UtilityTopBarTitle
 import dev.harrix.hsk.ui.icons.LucideIcons
 import dev.harrix.hsk.ui.theme.HskTopAppBarHeight
 import dev.harrix.hsk.ui.theme.hskScaffoldContainerColor
@@ -320,9 +322,9 @@ fun SpeechToTextScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    AutoFitText(
-                        text = stringResource(R.string.speech_to_text_title),
-                        maxLines = 1,
+                    UtilityTopBarTitle(
+                        icon = HubUtilityIcons.SpeechToText,
+                        title = stringResource(R.string.speech_to_text_title),
                     )
                 },
                 colors = hskTopAppBarColors(),

@@ -106,8 +106,10 @@ import dev.harrix.hsk.gallery.VideoCleanerPreferences
 import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.CompactWideActionButton
 import dev.harrix.hsk.ui.HskDropdownMenuItem
+import dev.harrix.hsk.ui.HubUtilityIcons
 import dev.harrix.hsk.ui.OverflowTextTooltipBox
 import dev.harrix.hsk.ui.TypeYesConfirmDialog
+import dev.harrix.hsk.ui.UtilityTopBarTitle
 import dev.harrix.hsk.ui.adaptiveBottomBarWidth
 import dev.harrix.hsk.ui.icons.LucideIcons
 import dev.harrix.hsk.ui.isCompactWidth
@@ -485,25 +487,20 @@ fun VideoCleanerScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Column {
-                        AutoFitText(
-                            text = stringResource(R.string.video_cleaner_title),
-                            maxLines = 1,
-                        )
+                    UtilityTopBarTitle(
+                        icon = HubUtilityIcons.VideoCleaner,
+                        title = stringResource(R.string.video_cleaner_title),
+                        subtitle =
                         if (hasPermission) {
-                            AutoFitText(
-                                text =
-                                stringResource(
-                                    R.string.video_cleaner_header_sizes,
-                                    CameraGalleryRepository.formatFileSize(totalBytes),
-                                    CameraGalleryRepository.formatFileSize(selectedBytes),
-                                ),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
+                            stringResource(
+                                R.string.video_cleaner_header_sizes,
+                                CameraGalleryRepository.formatFileSize(totalBytes),
+                                CameraGalleryRepository.formatFileSize(selectedBytes),
                             )
-                        }
-                    }
+                        } else {
+                            null
+                        },
+                    )
                 },
                 colors = hskTopAppBarColors(),
                 windowInsets = hskTopAppBarWindowInsets(),

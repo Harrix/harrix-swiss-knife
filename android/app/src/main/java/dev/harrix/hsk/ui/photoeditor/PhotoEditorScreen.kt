@@ -62,6 +62,8 @@ import dev.harrix.hsk.gallery.EditableImageCache
 import dev.harrix.hsk.gallery.GalleryCleanerPreferences
 import dev.harrix.hsk.gallery.GalleryPermissions
 import dev.harrix.hsk.ui.AutoFitText
+import dev.harrix.hsk.ui.HubUtilityIcons
+import dev.harrix.hsk.ui.UtilityTopBarTitle
 import dev.harrix.hsk.ui.gallery.EditablePhotoHost
 import dev.harrix.hsk.ui.icons.LucideIcons
 import dev.harrix.hsk.ui.theme.HskTopAppBarHeight
@@ -212,9 +214,9 @@ fun PhotoEditorScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    AutoFitText(
-                        text = stringResource(R.string.photo_editor_title),
-                        maxLines = 1,
+                    UtilityTopBarTitle(
+                        icon = HubUtilityIcons.PhotoEditor,
+                        title = stringResource(R.string.photo_editor_title),
                     )
                 },
                 colors = hskTopAppBarColors(),

@@ -108,7 +108,9 @@ import dev.harrix.hsk.gallery.PhotoEditSaver
 import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.CompactBottomActionButton
 import dev.harrix.hsk.ui.HskDropdownMenuItem
+import dev.harrix.hsk.ui.HubUtilityIcons
 import dev.harrix.hsk.ui.TypeYesConfirmDialog
+import dev.harrix.hsk.ui.UtilityTopBarTitle
 import dev.harrix.hsk.ui.adaptiveBottomBarWidth
 import dev.harrix.hsk.ui.icons.LucideIcons
 import dev.harrix.hsk.ui.isCompactHeight
@@ -973,29 +975,20 @@ fun GalleryCleanerScreen(
                                 contentDescription = stringResource(R.string.gallery_cleaner_close),
                             )
                         }
-                        Column(
+                        UtilityTopBarTitle(
+                            icon = HubUtilityIcons.GalleryCleaner,
+                            title = stringResource(R.string.gallery_cleaner_title),
+                            subtitle =
+                            stringResource(
+                                R.string.gallery_cleaner_session_stats,
+                                sessionDeletedCount,
+                                CameraGalleryRepository.formatFileSize(sessionFreedBytes),
+                            ),
                             modifier =
                             Modifier
                                 .weight(1f)
                                 .padding(end = 8.dp),
-                        ) {
-                            AutoFitText(
-                                text = stringResource(R.string.gallery_cleaner_title),
-                                style = MaterialTheme.typography.titleLarge,
-                                maxLines = 1,
-                            )
-                            AutoFitText(
-                                text =
-                                stringResource(
-                                    R.string.gallery_cleaner_session_stats,
-                                    sessionDeletedCount,
-                                    CameraGalleryRepository.formatFileSize(sessionFreedBytes),
-                                ),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                            )
-                        }
+                        )
                         if (hasPermission && remainingCount > 0 && !isEditing) {
                             val compact = isCompactWidth()
                             AutoFitText(

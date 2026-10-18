@@ -110,6 +110,18 @@ private data class UtilityCardItem(
     val destination: AppDestination,
 )
 
+/** Same order as [HubUtilities]. */
+private val HubDestinations =
+    listOf(
+        AppDestination.GalleryCleaner,
+        AppDestination.VideoCleaner,
+        AppDestination.PhotoEditor,
+        AppDestination.SpeechToText,
+        AppDestination.MedicineSearch,
+        AppDestination.Movies,
+        AppDestination.HealthConnect,
+    )
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
@@ -182,50 +194,14 @@ fun MainScreen(
     }
 
     val utilities =
-        listOf(
+        HubUtilities.zip(HubDestinations) { item, destination ->
             UtilityCardItem(
-                titleRes = R.string.nav_drawer_gallery_cleaner,
-                descriptionRes = R.string.gallery_cleaner_card_description,
-                icon = LucideIcons.Broom,
-                destination = AppDestination.GalleryCleaner,
-            ),
-            UtilityCardItem(
-                titleRes = R.string.nav_drawer_video_cleaner,
-                descriptionRes = R.string.video_cleaner_card_description,
-                icon = LucideIcons.VideoLibrary,
-                destination = AppDestination.VideoCleaner,
-            ),
-            UtilityCardItem(
-                titleRes = R.string.nav_drawer_photo_editor,
-                descriptionRes = R.string.photo_editor_card_description,
-                icon = LucideIcons.Crop,
-                destination = AppDestination.PhotoEditor,
-            ),
-            UtilityCardItem(
-                titleRes = R.string.nav_drawer_speech_to_text,
-                descriptionRes = R.string.speech_to_text_card_description,
-                icon = LucideIcons.Mic,
-                destination = AppDestination.SpeechToText,
-            ),
-            UtilityCardItem(
-                titleRes = R.string.nav_drawer_medicine_search,
-                descriptionRes = R.string.medicine_search_card_description,
-                icon = LucideIcons.Medication,
-                destination = AppDestination.MedicineSearch,
-            ),
-            UtilityCardItem(
-                titleRes = R.string.nav_drawer_movies,
-                descriptionRes = R.string.movies_card_description,
-                icon = LucideIcons.Movie,
-                destination = AppDestination.Movies,
-            ),
-            UtilityCardItem(
-                titleRes = R.string.nav_drawer_health_connect,
-                descriptionRes = R.string.health_connect_card_description,
-                icon = LucideIcons.FitnessCenter,
-                destination = AppDestination.HealthConnect,
-            ),
-        )
+                titleRes = item.titleRes,
+                descriptionRes = item.descriptionRes,
+                icon = item.icon,
+                destination = destination,
+            )
+        }
 
     Box(modifier = modifier.fillMaxSize()) {
         when (destination) {
@@ -614,48 +590,14 @@ private fun AppNavigationDrawerContent(
             onClick = { onNavigate(AppDestination.Home) },
             icon = LucideIcons.List,
         )
-        DrawerNavItem(
-            label = stringResource(R.string.nav_drawer_gallery_cleaner),
-            selected = selected == AppDestination.GalleryCleaner,
-            onClick = { onNavigate(AppDestination.GalleryCleaner) },
-            icon = LucideIcons.Broom,
-        )
-        DrawerNavItem(
-            label = stringResource(R.string.nav_drawer_video_cleaner),
-            selected = selected == AppDestination.VideoCleaner,
-            onClick = { onNavigate(AppDestination.VideoCleaner) },
-            icon = LucideIcons.VideoLibrary,
-        )
-        DrawerNavItem(
-            label = stringResource(R.string.nav_drawer_photo_editor),
-            selected = selected == AppDestination.PhotoEditor,
-            onClick = { onNavigate(AppDestination.PhotoEditor) },
-            icon = LucideIcons.Crop,
-        )
-        DrawerNavItem(
-            label = stringResource(R.string.nav_drawer_speech_to_text),
-            selected = selected == AppDestination.SpeechToText,
-            onClick = { onNavigate(AppDestination.SpeechToText) },
-            icon = LucideIcons.Mic,
-        )
-        DrawerNavItem(
-            label = stringResource(R.string.nav_drawer_medicine_search),
-            selected = selected == AppDestination.MedicineSearch,
-            onClick = { onNavigate(AppDestination.MedicineSearch) },
-            icon = LucideIcons.Medication,
-        )
-        DrawerNavItem(
-            label = stringResource(R.string.nav_drawer_movies),
-            selected = selected == AppDestination.Movies,
-            onClick = { onNavigate(AppDestination.Movies) },
-            icon = LucideIcons.Movie,
-        )
-        DrawerNavItem(
-            label = stringResource(R.string.nav_drawer_health_connect),
-            selected = selected == AppDestination.HealthConnect,
-            onClick = { onNavigate(AppDestination.HealthConnect) },
-            icon = LucideIcons.FitnessCenter,
-        )
+        HubUtilities.zip(HubDestinations).forEach { (item, destination) ->
+            DrawerNavItem(
+                label = stringResource(item.titleRes),
+                selected = selected == destination,
+                onClick = { onNavigate(destination) },
+                icon = item.icon,
+            )
+        }
         DrawerNavItem(
             label = stringResource(R.string.nav_drawer_about),
             selected = false,

@@ -76,6 +76,8 @@ import dev.harrix.hsk.movies.MoviesSortField
 import dev.harrix.hsk.movies.MoviesYearGroup
 import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.HskDropdownMenuItem
+import dev.harrix.hsk.ui.HubUtilityIcons
+import dev.harrix.hsk.ui.UtilityTopBarTitle
 import dev.harrix.hsk.ui.adaptiveContentWidth
 import dev.harrix.hsk.ui.icons.LucideIcons
 import dev.harrix.hsk.ui.theme.HskTopAppBarHeight
@@ -158,14 +160,14 @@ fun MoviesScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    AutoFitText(
-                        text =
+                    UtilityTopBarTitle(
+                        icon = HubUtilityIcons.Movies,
+                        title =
                         if (selectedMovie != null) {
                             selectedMovie.title
                         } else {
                             stringResource(R.string.movies_title)
                         },
-                        maxLines = 1,
                     )
                 },
                 colors = hskTopAppBarColors(),

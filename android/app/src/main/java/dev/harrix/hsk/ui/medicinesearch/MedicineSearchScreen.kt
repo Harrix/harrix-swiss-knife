@@ -72,7 +72,9 @@ import coil.size.Size
 import dev.harrix.hsk.R
 import dev.harrix.hsk.medicinesearch.MedicineSearchCamera
 import dev.harrix.hsk.ui.AutoFitText
+import dev.harrix.hsk.ui.HubUtilityIcons
 import dev.harrix.hsk.ui.SimpleMarkdownText
+import dev.harrix.hsk.ui.UtilityTopBarTitle
 import dev.harrix.hsk.ui.adaptiveContentWidth
 import dev.harrix.hsk.ui.icons.LucideIcons
 import dev.harrix.hsk.ui.theme.HskTopAppBarHeight
@@ -278,9 +280,9 @@ fun MedicineSearchScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    AutoFitText(
-                        text = stringResource(R.string.medicine_search_title),
-                        maxLines = 1,
+                    UtilityTopBarTitle(
+                        icon = HubUtilityIcons.MedicineSearch,
+                        title = stringResource(R.string.medicine_search_title),
                     )
                 },
                 colors = hskTopAppBarColors(),

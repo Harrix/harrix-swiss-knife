@@ -37,6 +37,8 @@ import dev.harrix.hsk.health.HealthConnectAvailability
 import dev.harrix.hsk.health.HealthConnectReader
 import dev.harrix.hsk.health.HealthConnectSnapshot
 import dev.harrix.hsk.ui.AutoFitText
+import dev.harrix.hsk.ui.HubUtilityIcons
+import dev.harrix.hsk.ui.UtilityTopBarTitle
 import dev.harrix.hsk.ui.adaptiveContentWidth
 import dev.harrix.hsk.ui.icons.LucideIcons
 import dev.harrix.hsk.ui.theme.HskTopAppBarHeight
@@ -72,10 +74,9 @@ fun HealthConnectScreen(
                 windowInsets = hskTopAppBarWindowInsets(),
                 colors = hskTopAppBarColors(),
                 title = {
-                    AutoFitText(
-                        text = stringResource(R.string.health_connect_title),
-                        style = MaterialTheme.typography.titleLarge,
-                        maxLines = 1,
+                    UtilityTopBarTitle(
+                        icon = HubUtilityIcons.HealthConnect,
+                        title = stringResource(R.string.health_connect_title),
                     )
                 },
                 navigationIcon = {
