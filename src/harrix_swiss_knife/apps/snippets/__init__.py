@@ -1,1 +1,1 @@
-"""Quick paste overlay: phrases, emoji, symbols, and colors."""
+"""Quick paste overlay: phrases, emoji, symbols, colors, and scripts."""

@@ -1,4 +1,4 @@
-"""Frameless Quick paste overlay with phrases, emoji, symbols, and colors."""
+"""Frameless Quick paste overlay with phrases, emoji, symbols, colors, and scripts."""
 
 from __future__ import annotations
 
@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
     QSizeGrip,
     QSizePolicy,
     QSplitter,
+    QTabWidget,
     QToolButton,
     QVBoxLayout,
     QWidget,
@@ -36,6 +37,7 @@ from harrix_swiss_knife.apps.common.keyboard_shortcuts import (
     install_documented_shortcut,
     show_keyboard_shortcuts_help,
 )
+from harrix_swiss_knife.apps.common.ui_chrome import SELECTION_BG, SELECTION_BORDER, SELECTION_HOVER
 from harrix_swiss_knife.apps.snippets import database_manager
 from harrix_swiss_knife.apps.snippets.constants import (
     SORT_ADDED,
@@ -58,6 +60,7 @@ from harrix_swiss_knife.apps.snippets.parse import (
     serialize_items,
 )
 from harrix_swiss_knife.apps.snippets.paste import clone_clipboard_mime, paste_text_then_restore_clipboard
+from harrix_swiss_knife.apps.snippets.scripts import ScriptsPanel
 from harrix_swiss_knife.apps.snippets.seed import ensure_seed_emojis
 from harrix_swiss_knife.apps.snippets.sort import sort_items
 from harrix_swiss_knife.apps.snippets.zone_panel import ZonePanel, add_sort_menu_actions
@@ -101,6 +104,23 @@ _SPLITTER_HANDLE_STYLE = (
     "}"
     "QSplitter::handle:horizontal { width: 1px; }"
     "QSplitter::handle:vertical { height: 1px; }"
+)
+_PAGE_TAB_STYLE = (
+    "QTabWidget::pane { border: none; background: transparent; }"
+    "QTabBar::tab {"
+    " background: transparent;"
+    " border: 1px solid transparent;"
+    " border-radius: 6px;"
+    " padding: 4px 10px;"
+    " margin-right: 2px;"
+    "}"
+    "QTabBar::tab:hover {"
+    f" background: {SELECTION_HOVER};"
+    "}"
+    "QTabBar::tab:selected {"
+    f" background: {SELECTION_BG};"
+    f" border-color: {SELECTION_BORDER};"
+    "}"
 )
 _DUPLICATE_PREVIEW_LIMIT = 8
 
@@ -217,6 +237,8 @@ class SnippetsDialog(QDialog):
 
     def focusNextPrevChild(self, next: bool) -> bool:  # noqa: A002, FBT001, N802
         """Cycle Tab between phrases, emoji, symbols, and colors in the shared input."""
+        if self._page_tabs.currentWidget() is self._scripts:
+            return super().focusNextPrevChild(next)
         index = ZONES.index(self._active_zone)
         index = (index + (1 if next else -1)) % len(ZONES)
         self._activate_zone(ZONES[index])
@@ -272,6 +294,9 @@ class SnippetsDialog(QDialog):
     def present(self) -> None:
         """Show the overlay and focus the shared input on phrases."""
         self.reload_all()
+        self._scripts.clear()
+        self._page_tabs.setCurrentIndex(0)
+        self._input.setVisible(True)
         self._zone_input_text = dict.fromkeys(ZONES, "")
         for panel in self._panels.values():
             panel.reset_keyboard_session()
@@ -418,7 +443,22 @@ class SnippetsDialog(QDialog):
         columns.setStretchFactor(1, 2)
         columns.setStretchFactor(2, 2)
         _style_snippets_splitter(columns)
-        self._content_layout.addWidget(columns, stretch=1)
+
+        snippets_page = QWidget(self)
+        snippets_layout = QVBoxLayout(snippets_page)
+        snippets_layout.setContentsMargins(0, 0, 0, 0)
+        snippets_layout.addWidget(columns)
+
+        self._scripts = ScriptsPanel(self)
+        self._scripts.add_requested.connect(self._paste_scripts)
+
+        self._page_tabs = QTabWidget(self)
+        self._page_tabs.setDocumentMode(True)
+        self._page_tabs.setStyleSheet(_PAGE_TAB_STYLE)
+        self._page_tabs.addTab(snippets_page, "Snippets")
+        self._page_tabs.addTab(self._scripts, "Scripts")
+        self._page_tabs.currentChanged.connect(self._on_page_changed)
+        self._content_layout.addWidget(self._page_tabs, stretch=1)
 
     def _build_fallback_header(self, menu_button: QToolButton) -> None:
         """Build a simple title row when Win11 caption is unavailable."""
@@ -623,6 +663,15 @@ class SnippetsDialog(QDialog):
         self._refresh_input_match()
         self._update_ai_pick_button()
 
+    def _on_page_changed(self, index: int) -> None:
+        """Hide the snippet field on the Scripts tab and focus its composer."""
+        scripts = self._page_tabs.widget(index) is self._scripts
+        self._input.setVisible(not scripts)
+        if scripts:
+            self._scripts.focus_composer()
+            return
+        self._input.setFocus()
+
     def _paste_ai_emoji(self, emoji: str) -> None:
         if not emoji.strip():
             return
@@ -643,6 +692,15 @@ class SnippetsDialog(QDialog):
             self._saved_clipboard,
             on_finished=lambda: self._mark_used(snippet.item_id),
         )
+
+    def _paste_scripts(self, text: str) -> None:
+        """Paste the composed script string into the previous field."""
+        if not text:
+            return
+        self._saved_clipboard = clone_clipboard_mime()
+        self.hide()
+        paste_text_then_restore_clipboard(text, self._saved_clipboard)
+        self._scripts.clear()
 
     def _refresh_ai_candidates(self) -> None:
         existing = [item.value for item in self.db_manager.list_items(ZONE_EMOJI)] if self.db_manager else []

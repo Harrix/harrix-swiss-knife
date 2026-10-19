@@ -45,6 +45,7 @@ from harrix_swiss_knife.apps.snippets.parse import (
     parse_bulk_lines,
     parse_value_hint_line,
 )
+from harrix_swiss_knife.apps.snippets.scripts import SCRIPT_SECTIONS
 from harrix_swiss_knife.apps.snippets.seed import (
     SEED_EMOJIS_BASE,
     SEED_PHRASES,
@@ -840,6 +841,54 @@ def test_snippets_tab_cycles_shared_input_emoji_symbols_colors(
     QApplication.processEvents()
     assert dialog._input.hasFocus()
     assert dialog._input.placeholderText() == "Phrases"
+    dialog.close()
+
+
+def test_script_glyphs_are_unique_single_characters() -> None:
+    chars: list[str] = []
+    for title, glyphs in SCRIPT_SECTIONS:
+        assert title
+        for glyph, base in glyphs:
+            assert len(glyph) == 1
+            assert base.strip()
+            chars.append(glyph)
+    assert len(chars) == len(set(chars))
+    assert "²" in chars
+    assert "₂" in chars
+    assert "ⁿ" in chars
+    assert "ₐ" in chars
+
+
+def test_scripts_tab_add_pastes_composed_text(qapp: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:
+    assert qapp is not None
+    monkeypatch.setattr(SnippetsDialog, "_init_database", lambda _dialog: None)
+    pasted: list[str] = []
+
+    def capture(text: str, _saved: object, **_kwargs: object) -> None:
+        pasted.append(text)
+
+    monkeypatch.setattr("harrix_swiss_knife.apps.snippets.dialog.paste_text_then_restore_clipboard", capture)
+    dialog = SnippetsDialog()
+    dialog.show()
+    qapp.processEvents()
+    assert dialog._page_tabs.tabText(0) == "Snippets"
+    assert dialog._page_tabs.tabText(1) == "Scripts"
+    assert dialog._input.isVisible()
+    assert not dialog._scripts._add_button.isVisible()
+
+    dialog._page_tabs.setCurrentWidget(dialog._scripts)
+    qapp.processEvents()
+    assert not dialog._input.isVisible()
+    assert dialog._scripts._add_button.isVisible()
+    dialog._scripts.append_glyph("²")
+    dialog._scripts.append_glyph("₃")
+    assert dialog._scripts.composed_text() == "²₃"
+    dialog._scripts._add_button.click()
+    qapp.processEvents()
+    assert pasted == ["²₃"]
+    assert dialog._scripts.composed_text() == ""
+    dialog._scripts._add_button.click()
+    assert pasted == ["²₃"]
     dialog.close()
 
 
