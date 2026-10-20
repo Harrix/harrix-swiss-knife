@@ -875,11 +875,17 @@ def test_scripts_tab_add_pastes_composed_text(qapp: QApplication, monkeypatch: p
     assert dialog._page_tabs.tabText(1) == "Scripts"
     assert dialog._input.isVisible()
     assert not dialog._scripts._add_button.isVisible()
+    tab_bar = dialog._page_tabs.tabBar()
+    tab_bottom = tab_bar.mapTo(dialog, tab_bar.rect().bottomLeft()).y()
+    input_top = dialog._input.mapTo(dialog, dialog._input.rect().topLeft()).y()
+    assert tab_bottom <= input_top
 
     dialog._page_tabs.setCurrentWidget(dialog._scripts)
     qapp.processEvents()
     assert not dialog._input.isVisible()
     assert dialog._scripts._add_button.isVisible()
+    composer_top = dialog._scripts._edit.mapTo(dialog, dialog._scripts._edit.rect().topLeft()).y()
+    assert tab_bottom <= composer_top
     dialog._scripts.append_glyph("²")
     dialog._scripts.append_glyph("₃")
     assert dialog._scripts.composed_text() == "²₃"

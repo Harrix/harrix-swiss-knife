@@ -212,7 +212,6 @@ class SnippetsDialog(QDialog):
         self.reload_all()
         self._scripts.clear()
         self._page_tabs.setCurrentIndex(0)
-        self._input.setVisible(True)
         self._zone_input_text = dict.fromkeys(ZONES, "")
         for panel in self._panels.values():
             panel.reset_keyboard_session()
@@ -362,8 +361,10 @@ class SnippetsDialog(QDialog):
 
         snippets_page = QWidget(self)
         snippets_layout = QVBoxLayout(snippets_page)
-        snippets_layout.setContentsMargins(0, 0, 0, 0)
-        snippets_layout.addWidget(columns)
+        snippets_layout.setContentsMargins(0, 8, 0, 0)
+        snippets_layout.setSpacing(12)
+        snippets_layout.addWidget(self._input)
+        snippets_layout.addWidget(columns, stretch=1)
 
         self._scripts = ScriptsPanel(self)
         self._scripts.add_requested.connect(self._paste_scripts)
@@ -437,7 +438,6 @@ class SnippetsDialog(QDialog):
         self._input.textChanged.connect(self._on_input_text_changed)
         self._input.installEventFilter(self)
         style_overlay_line_edit(self._input)
-        self._content_layout.addWidget(self._input)
 
     def _center_on_screen(self) -> None:
         center_widget_on_available_screen(self)
@@ -580,10 +580,8 @@ class SnippetsDialog(QDialog):
         self._update_ai_pick_button()
 
     def _on_page_changed(self, index: int) -> None:
-        """Hide the snippet field on the Scripts tab and focus its composer."""
-        scripts = self._page_tabs.widget(index) is self._scripts
-        self._input.setVisible(not scripts)
-        if scripts:
+        """Focus the composer on Scripts, or the snippet field on Snippets."""
+        if self._page_tabs.widget(index) is self._scripts:
             self._scripts.focus_composer()
             return
         self._input.setFocus()
@@ -1105,7 +1103,6 @@ def present(self) -> None:
         self.reload_all()
         self._scripts.clear()
         self._page_tabs.setCurrentIndex(0)
-        self._input.setVisible(True)
         self._zone_input_text = dict.fromkeys(ZONES, "")
         for panel in self._panels.values():
             panel.reset_keyboard_session()
