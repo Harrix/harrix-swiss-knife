@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QApplication,
     QDoubleSpinBox,
@@ -16,6 +17,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife.qt_lucide_icon import install_line_edit_search_chrome
 from harrix_swiss_knife.spellcheck.context_menu import replace_word_span
 from harrix_swiss_knife.spellcheck.engine import (
     SpellEngine,
@@ -23,6 +25,7 @@ from harrix_swiss_knife.spellcheck.engine import (
     reset_spell_engine_for_tests,
 )
 from harrix_swiss_knife.spellcheck.install import should_attach_spellcheck, widget_is_inside_item_view
+from harrix_swiss_knife.spellcheck.line_edit import LineEditSpellController
 from harrix_swiss_knife.spellcheck.tokenize import iter_word_spans, word_at_index
 from harrix_swiss_knife.spellcheck.user_dict import add_user_word, load_user_words, save_user_words
 
@@ -144,3 +147,61 @@ def test_attach_allowed_for_normal_line_edit(qapp: QApplication) -> None:  # noq
     line = QLineEdit()
     layout.addWidget(line)
     assert should_attach_spellcheck(line)
+
+
+class _MarkAllMisspelled(SpellEngine):
+    def lookup(self, word: str) -> bool:
+        return not word
+
+
+def _wave_min_x(line: QLineEdit) -> float:
+    image = line.grab().toImage()
+    ratio = image.devicePixelRatio() or 1.0
+    xs = [
+        x
+        for y in range(image.height())
+        for x in range(image.width())
+        if _is_wave_pixel(image.pixelColor(x, y))
+    ]
+    assert xs, "spellcheck wave was not painted"
+    return min(xs) / ratio
+
+
+def _is_wave_pixel(color: QColor) -> bool:
+    return color.red() > 180 and color.green() < 90 and color.blue() < 90
+
+
+def test_line_edit_underline_starts_at_word_when_icon_present(qapp: QApplication) -> None:
+    assert qapp is not None
+    line = QLineEdit()
+    install_line_edit_search_chrome(line, leading_icon="notepad-text")
+    line.setText("Бякаяя")
+    line.resize(280, 36)
+    line.show()
+    qapp.processEvents()
+    LineEditSpellController(line, engine=_MarkAllMisspelled())
+    qapp.processEvents()
+    line.setCursorPosition(0)
+    text_left = line.cursorRect().x()
+    line.setCursorPosition(len(line.text()))
+    wave_left = _wave_min_x(line)
+    assert wave_left >= text_left - 1
+    assert wave_left <= text_left + 3
+    line.close()
+
+
+def test_line_edit_underline_starts_at_word_without_icon(qapp: QApplication) -> None:
+    assert qapp is not None
+    line = QLineEdit("Бякаяя")
+    line.resize(280, 36)
+    line.show()
+    qapp.processEvents()
+    LineEditSpellController(line, engine=_MarkAllMisspelled())
+    qapp.processEvents()
+    line.setCursorPosition(0)
+    text_left = line.cursorRect().x()
+    line.setCursorPosition(len(line.text()))
+    wave_left = _wave_min_x(line)
+    assert wave_left >= text_left - 1
+    assert wave_left <= text_left + 3
+    line.close()

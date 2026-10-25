@@ -6,7 +6,7 @@ import contextlib
 
 from PySide6.QtCore import QObject, QRect, QTimer
 from PySide6.QtGui import QColor, QFontMetrics, QPainter, QPainterPath, QPaintEvent, QPen
-from PySide6.QtWidgets import QLineEdit, QStyle, QStyleOptionFrame
+from PySide6.QtWidgets import QLineEdit, QStyle, QStyleOptionFrame, QWidget
 
 from harrix_swiss_knife.spellcheck.engine import SpellEngine, get_spell_engine
 from harrix_swiss_knife.spellcheck.tokenize import iter_word_spans
@@ -60,19 +60,21 @@ class LineEditSpellController(QObject):
         line_edit.initStyleOption(option)
         contents = line_edit.style().subElementRect(QStyle.SubElement.SE_LineEditContents, option, line_edit)
         margins = line_edit.textMargins()
-        left = contents.left() + margins.left()
+        clip_left, clip_right = _line_edit_text_clip_x(line_edit, contents, margins.left(), margins.right())
         fm = line_edit.fontMetrics()
-        scroll_x = _line_edit_scroll_x(line_edit, contents.x() + margins.left())
+        origin = _line_edit_text_origin_x(line_edit, clip_left)
         underline_y = _line_edit_underline_y(line_edit, contents, margins.top(), margins.bottom(), fm)
-        painter.setClipRect(contents)
+        painter.setClipRect(QRect(clip_left, contents.top(), max(0, clip_right - clip_left), contents.height()))
         painter.setPen(QPen(_WAVE_COLOR, 1))
         for start, end in self._misspellings:
-            x1 = left + fm.horizontalAdvance(text[:start]) - scroll_x
-            x2 = left + fm.horizontalAdvance(text[:end]) - scroll_x
-            if x2 <= contents.left() or x1 >= contents.right():
+            x1 = origin + fm.horizontalAdvance(text[:start])
+            x2 = origin + fm.horizontalAdvance(text[:end])
+            if x2 < x1:
+                x1, x2 = x2, x1
+            if x2 <= clip_left or x1 >= clip_right:
                 continue
-            x1 = max(x1, float(contents.left()))
-            x2 = min(x2, float(contents.right()))
+            x1 = max(x1, float(clip_left))
+            x2 = min(x2, float(clip_right))
             _draw_wave(painter, x1, x2, float(underline_y))
 
     def _paint_event(self, event: QPaintEvent) -> None:
@@ -115,13 +117,51 @@ def _draw_wave(painter: QPainter, x1: float, x2: float, y: float) -> None:
     painter.drawPath(path)
 
 
-def _line_edit_scroll_x(line_edit: QLineEdit, content_left: int) -> int:
-    """Estimate horizontal scroll from cursor rect vs. text advance."""
-    cursor = line_edit.cursorPosition()
+def _line_edit_text_clip_x(
+    line_edit: QLineEdit,
+    contents: QRect,
+    margin_left: int,
+    margin_right: int,
+) -> tuple[int, int]:
+    """Return the visible text span, inside leading and trailing action buttons.
+
+    `clip_right` is exclusive. Side icons sit in the contents rect but are not part of the text.
+
+    """
+    left = contents.left() + margin_left
+    right = contents.left() + contents.width() - margin_right
+    mid = line_edit.width() / 2
+    for action in line_edit.actions():
+        if not action.isVisible():
+            continue
+        for obj in action.associatedObjects():
+            if not isinstance(obj, QWidget) or obj is line_edit or not obj.isVisible():
+                continue
+            geo = obj.geometry()
+            if geo.width() <= 0:
+                continue
+            if geo.center().x() <= mid:
+                left = max(left, geo.right() + 1)
+            else:
+                right = min(right, geo.left())
+    return left, right
+
+
+def _line_edit_text_origin_x(line_edit: QLineEdit, fallback_left: int) -> float:
+    """Return the x of text index 0.
+
+    A leading icon shifts glyphs away from `textMargins()`. The caret already sits
+    on the visible glyph, so the origin is the caret x minus the advance before it.
+    That same difference includes horizontal scroll.
+
+    """
     text = line_edit.text()
+    cursor = min(max(line_edit.cursorPosition(), 0), len(text))
+    cursor_rect = line_edit.cursorRect()
+    if cursor_rect.height() <= 0:
+        return float(fallback_left)
     advance = line_edit.fontMetrics().horizontalAdvance(text[:cursor])
-    cursor_x = line_edit.cursorRect().x()
-    return max(0, advance - (cursor_x - content_left))
+    return float(cursor_rect.x()) - float(advance)
 
 
 def _line_edit_underline_y(
