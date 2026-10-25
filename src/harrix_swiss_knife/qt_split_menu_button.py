@@ -29,6 +29,7 @@ if TYPE_CHECKING:
 _ARROW_WIDTH = 28
 _ARROW_ICON_SIZE = 16
 _FRAME_PX = 1
+_INNER_RADIUS = PANEL_RADIUS - _FRAME_PX
 # Same white idle chrome as `button_idle_qss` / `make_lucide_push_button`.
 # The outer frame owns the border; the inner zones keep the shared padding and min-height
 # without a second border, so the control matches a plain button's height.
@@ -51,20 +52,33 @@ SplitMenuButton QPushButton#splitMenuMain {{
 }}
 SplitMenuButton QToolButton#splitMenuArrow {{
     border: none;
-    background: transparent;
+    background-color: transparent;
     color: {SELECTION_TEXT};
     padding: 0;
-    min-height: {BUTTON_MIN_HEIGHT_PX}px;
+    margin: 0;
+    min-height: 0;
     min-width: {_ARROW_WIDTH}px;
     max-width: {_ARROW_WIDTH}px;
 }}
-SplitMenuButton QPushButton#splitMenuMain:hover,
+SplitMenuButton QPushButton#splitMenuMain:hover {{
+    background-color: {SELECTION_BG};
+    border-top-left-radius: {_INNER_RADIUS}px;
+    border-bottom-left-radius: {_INNER_RADIUS}px;
+}}
 SplitMenuButton QToolButton#splitMenuArrow:hover {{
     background-color: {SELECTION_BG};
+    border-top-right-radius: {_INNER_RADIUS}px;
+    border-bottom-right-radius: {_INNER_RADIUS}px;
 }}
-SplitMenuButton QPushButton#splitMenuMain:pressed,
+SplitMenuButton QPushButton#splitMenuMain:pressed {{
+    background-color: {BUTTON_SECONDARY_HOVER};
+    border-top-left-radius: {_INNER_RADIUS}px;
+    border-bottom-left-radius: {_INNER_RADIUS}px;
+}}
 SplitMenuButton QToolButton#splitMenuArrow:pressed {{
     background-color: {BUTTON_SECONDARY_HOVER};
+    border-top-right-radius: {_INNER_RADIUS}px;
+    border-bottom-right-radius: {_INNER_RADIUS}px;
 }}
 SplitMenuButton QFrame#splitMenuSeparator {{
     background-color: {INPUT_BORDER};
@@ -101,19 +115,22 @@ class SplitMenuButton(QWidget):
         self._main.setCursor(Qt.CursorShape.PointingHandCursor)
         self._main.setAutoDefault(False)
         self._main.setDefault(False)
+        self._main.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
         self._main.clicked.connect(self.clicked.emit)
 
         self._separator = QFrame(self)
         self._separator.setObjectName("splitMenuSeparator")
         self._separator.setFrameShape(QFrame.Shape.NoFrame)
         self._separator.setFixedWidth(1)
+        self._separator.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
 
         self._arrow = QToolButton(self)
         self._arrow.setObjectName("splitMenuArrow")
         self._arrow.setCursor(Qt.CursorShape.PointingHandCursor)
         self._arrow.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self._arrow.setAutoRaise(True)
+        self._arrow.setAutoRaise(False)
         self._arrow.setFixedWidth(_ARROW_WIDTH)
+        self._arrow.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
         self._arrow.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
         apply_lucide_button_icon(self._arrow, "chevron-down", icon_size=_ARROW_ICON_SIZE)
         self._arrow.clicked.connect(self._show_menu)

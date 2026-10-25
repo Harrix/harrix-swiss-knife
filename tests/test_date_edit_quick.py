@@ -13,7 +13,7 @@ from harrix_swiss_knife.apps.common.date_edit_quick import (
     match_date_edit_form_height,
     match_layout_control_heights,
 )
-from harrix_swiss_knife.apps.common.ui_chrome import INPUT_BORDER, SURFACE
+from harrix_swiss_knife.apps.common.ui_chrome import INPUT_BORDER, SELECTION_BG, SURFACE
 from harrix_swiss_knife.qt_date_calendar import SoftCalendarWidget
 from harrix_swiss_knife.qt_lucide_icon import make_lucide_push_button
 from harrix_swiss_knife.qt_split_menu_button import SplitMenuButton, make_lucide_split_menu_button
@@ -64,6 +64,27 @@ def test_split_menu_button_matches_idle_push_button(qapp: QApplication) -> None:
     assert INPUT_BORDER in sheet
     assert "#f3f3f3" not in sheet
     plain.close()
+    split.close()
+
+
+def test_split_menu_arrow_hover_fills_inner_height(qapp: QApplication) -> None:
+    assert qapp is not None
+    split = make_lucide_split_menu_button("Reduce size", "shrink")
+    split.resize(split.sizeHint())
+    split.show()
+    qapp.processEvents()
+    arrow = split.arrow_button
+    assert arrow.y() == 1
+    assert arrow.height() == split.height() - 2
+    split.setAttribute(Qt.WidgetAttribute.WA_UnderMouse, True)
+    arrow.setAttribute(Qt.WidgetAttribute.WA_UnderMouse, True)
+    image = split.grab().toImage()
+    ratio = image.devicePixelRatio()
+    x = int((arrow.x() + 4) * ratio)
+    top = image.pixelColor(x, int(2 * ratio)).name()
+    bottom = image.pixelColor(x, int((split.height() - 3) * ratio)).name()
+    assert top == SELECTION_BG
+    assert bottom == SELECTION_BG
     split.close()
 
 
