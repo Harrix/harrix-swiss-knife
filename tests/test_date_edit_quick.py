@@ -13,7 +13,9 @@ from harrix_swiss_knife.apps.common.date_edit_quick import (
     match_date_edit_form_height,
     match_layout_control_heights,
 )
+from harrix_swiss_knife.apps.common.ui_chrome import INPUT_BORDER, SURFACE
 from harrix_swiss_knife.qt_date_calendar import SoftCalendarWidget
+from harrix_swiss_knife.qt_lucide_icon import make_lucide_push_button
 from harrix_swiss_knife.qt_split_menu_button import SplitMenuButton, make_lucide_split_menu_button
 
 
@@ -50,6 +52,19 @@ def test_split_menu_button_set_menu_and_text(qapp: QApplication) -> None:
     assert button.text() == "Primary"
     assert button.arrow_button.focusPolicy() == Qt.FocusPolicy.NoFocus
     button.close()
+
+
+def test_split_menu_button_matches_idle_push_button(qapp: QApplication) -> None:
+    assert qapp is not None
+    plain = make_lucide_push_button("Copy to Clipboard", "copy")
+    split = make_lucide_split_menu_button("Save to desktop", "monitor")
+    assert split.sizeHint().height() == plain.sizeHint().height()
+    sheet = split.styleSheet()
+    assert SURFACE in sheet
+    assert INPUT_BORDER in sheet
+    assert "#f3f3f3" not in sheet
+    plain.close()
+    split.close()
 
 
 def test_make_lucide_split_menu_button_sets_icon(qapp: QApplication) -> None:

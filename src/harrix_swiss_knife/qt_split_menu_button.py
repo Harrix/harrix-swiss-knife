@@ -2,11 +2,24 @@
 
 from __future__ import annotations
 
+from functools import lru_cache
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QPoint, QSize, Qt, Signal
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QPushButton, QSizePolicy, QToolButton, QWidget
 
+from harrix_swiss_knife.apps.common.ui_chrome import (
+    BUTTON_MIN_HEIGHT_PX,
+    BUTTON_PADDING,
+    BUTTON_SECONDARY_HOVER,
+    INPUT_BORDER,
+    PANEL_RADIUS,
+    SELECTION_BG,
+    SELECTION_HOVER,
+    SELECTION_TEXT,
+    SURFACE,
+    button_idle_qss,
+)
 from harrix_swiss_knife.qt_lucide_icon import DEFAULT_LUCIDE_BUTTON_ICON_SIZE, apply_lucide_button_icon
 
 if TYPE_CHECKING:
@@ -15,37 +28,46 @@ if TYPE_CHECKING:
 
 _ARROW_WIDTH = 28
 _ARROW_ICON_SIZE = 16
-_SEPARATOR_COLOR = "#c0c0c0"
+_FRAME_PX = 1
+# Same white idle chrome as `button_idle_qss` / `make_lucide_push_button`.
+# The outer frame owns the border; the inner zones keep the shared padding and min-height
+# without a second border, so the control matches a plain button's height.
 _STYLE = f"""
 SplitMenuButton {{
-    border: 1px solid #adadad;
-    border-radius: 4px;
-    background-color: #f3f3f3;
+    border: 1px solid {INPUT_BORDER};
+    border-radius: {PANEL_RADIUS}px;
+    background-color: {SURFACE};
 }}
 SplitMenuButton:hover {{
-    background-color: #e9e9e9;
-    border-color: #9a9a9a;
+    background-color: {SELECTION_HOVER};
+    border-color: {INPUT_BORDER};
 }}
 SplitMenuButton QPushButton#splitMenuMain {{
     border: none;
     background: transparent;
-    padding: 4px 10px;
+    color: {SELECTION_TEXT};
+    padding: {BUTTON_PADDING};
+    min-height: {BUTTON_MIN_HEIGHT_PX}px;
 }}
 SplitMenuButton QToolButton#splitMenuArrow {{
     border: none;
     background: transparent;
-    padding: 4px 2px;
+    color: {SELECTION_TEXT};
+    padding: 0;
+    min-height: {BUTTON_MIN_HEIGHT_PX}px;
+    min-width: {_ARROW_WIDTH}px;
+    max-width: {_ARROW_WIDTH}px;
 }}
 SplitMenuButton QPushButton#splitMenuMain:hover,
 SplitMenuButton QToolButton#splitMenuArrow:hover {{
-    background-color: rgba(0, 0, 0, 0.06);
+    background-color: {SELECTION_BG};
 }}
 SplitMenuButton QPushButton#splitMenuMain:pressed,
 SplitMenuButton QToolButton#splitMenuArrow:pressed {{
-    background-color: rgba(0, 0, 0, 0.10);
+    background-color: {BUTTON_SECONDARY_HOVER};
 }}
 SplitMenuButton QFrame#splitMenuSeparator {{
-    background-color: {_SEPARATOR_COLOR};
+    background-color: {INPUT_BORDER};
     border: none;
     max-width: 1px;
     min-width: 1px;
@@ -70,6 +92,7 @@ class SplitMenuButton(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
         self.setStyleSheet(_STYLE)
         self.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+        self.setMinimumHeight(_idle_push_button_height())
 
         self._menu: QMenu | None = None
 
@@ -96,7 +119,7 @@ class SplitMenuButton(QWidget):
         self._arrow.clicked.connect(self._show_menu)
 
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(_FRAME_PX, _FRAME_PX, _FRAME_PX, _FRAME_PX)
         layout.setSpacing(0)
         layout.addWidget(self._main, stretch=1)
         layout.addWidget(self._separator)
@@ -148,8 +171,8 @@ class SplitMenuButton(QWidget):
         """Return the size of main zone plus separator and arrow."""
         main = self._main.sizeHint()
         arrow = self._arrow.sizeHint()
-        height = max(main.height(), arrow.height(), self._separator.sizeHint().height())
-        width = main.width() + self._separator.width() + max(arrow.width(), _ARROW_WIDTH)
+        height = max(main.height() + _FRAME_PX * 2, arrow.height() + _FRAME_PX * 2, _idle_push_button_height())
+        width = main.width() + self._separator.width() + max(arrow.width(), _ARROW_WIDTH) + _FRAME_PX * 2
         return QSize(width, height)
 
     def text(self) -> str:
@@ -174,3 +197,11 @@ def make_lucide_split_menu_button(
     button = SplitMenuButton(parent, text=label)
     apply_lucide_button_icon(button.main_button, name, icon_size=icon_size, color=color)
     return button
+
+
+@lru_cache(maxsize=1)
+def _idle_push_button_height() -> int:
+    """Return the height of a shared idle `QPushButton`."""
+    probe = QPushButton("Ag")
+    probe.setStyleSheet(button_idle_qss())
+    return probe.sizeHint().height()
