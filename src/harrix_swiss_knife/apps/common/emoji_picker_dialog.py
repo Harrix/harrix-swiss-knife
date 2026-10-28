@@ -20,22 +20,16 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common.emoji_presets import POPULAR_EMOJI_PRESETS
+from harrix_swiss_knife.fluent.theme import bind_theme, css, palette_for
+from harrix_swiss_knife.fluent.tokens import RADIUS_CARD, RADIUS_CONTROL
 from harrix_swiss_knife.qt_lucide_icon import apply_lucide_dialog_buttons
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from harrix_swiss_knife.fluent.tokens import FluentPalette
+
 _GRID_COLUMNS = 8
-_PREVIEW_STYLE = "QLabel { font-size: 28px; border: 1px solid #D1D5DB; border-radius: 8px; background: #F9FAFB; }"
-_CELL_STYLE = """
-    QPushButton {
-        font-size: 20px;
-        border: 1px solid #E5E7EB;
-        border-radius: 8px;
-        background: #FFFFFF;
-    }
-    QPushButton:hover { background: #EFF6FF; border-color: #93C5FD; }
-"""
 
 
 class EmojiChoiceRow(QWidget):
@@ -143,7 +137,6 @@ class EmojiPickerDialog(QDialog):
         self._preview = QLabel(self._selected)
         self._preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._preview.setFixedSize(48, 48)
-        self._preview.setStyleSheet(_PREVIEW_STYLE)
         preview_row.addWidget(preview_label)
         preview_row.addWidget(self._preview)
         preview_row.addStretch(1)
@@ -159,11 +152,12 @@ class EmojiPickerDialog(QDialog):
         grid_host = QWidget()
         grid = QGridLayout(grid_host)
         grid.setSpacing(6)
+        self._cells: list[QPushButton] = []
         for index, emoji in enumerate(self._presets):
             button = QPushButton(emoji)
             button.setFixedSize(40, 40)
             button.setCursor(Qt.CursorShape.PointingHandCursor)
-            button.setStyleSheet(_CELL_STYLE)
+            self._cells.append(button)
             button.clicked.connect(lambda _checked=False, value=emoji: self._select_emoji(value))
             grid.addWidget(button, index // _GRID_COLUMNS, index % _GRID_COLUMNS)
         scroll.setWidget(grid_host)
@@ -183,6 +177,15 @@ class EmojiPickerDialog(QDialog):
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         root.addWidget(buttons)
+        bind_theme(self, self.refresh_theme)
+
+    def refresh_theme(self) -> None:
+        """Re-color the preview and grid cells for the current window theme."""
+        palette = palette_for(self)
+        self._preview.setStyleSheet(emoji_preview_style(palette))
+        cell_style = emoji_cell_style(palette)
+        for button in self._cells:
+            button.setStyleSheet(cell_style)
 
     def selected_emoji(self) -> str:
         """Return the chosen emoji, possibly empty when `allow_empty` is set."""
@@ -204,3 +207,25 @@ class EmojiPickerDialog(QDialog):
         self._custom_edit.blockSignals(True)  # noqa: FBT003
         self._custom_edit.setText(self._selected)
         self._custom_edit.blockSignals(False)  # noqa: FBT003
+
+
+def emoji_cell_style(palette: FluentPalette) -> str:
+    """Return the Fluent card-like stylesheet for one emoji grid cell."""
+    return f"""
+QPushButton {{
+    font-size: 20px;
+    border: 1px solid {css(palette.card_stroke)};
+    border-radius: {RADIUS_CONTROL}px;
+    background: {css(palette.card_bg)};
+}}
+QPushButton:hover {{ background: {css(palette.card_bg_hover)}; }}
+QPushButton:pressed {{ background: {css(palette.card_bg_pressed)}; }}
+"""
+
+
+def emoji_preview_style(palette: FluentPalette) -> str:
+    """Return the Fluent stylesheet for the selected-emoji preview."""
+    return (
+        f"QLabel {{ font-size: 28px; border: 1px solid {css(palette.card_stroke)};"
+        f" border-radius: {RADIUS_CARD}px; background: {css(palette.card_bg)}; }}"
+    )

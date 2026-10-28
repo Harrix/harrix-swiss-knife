@@ -10,6 +10,9 @@ from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QApplication, QListWidgetItem, QMenu, QWidget
 
 from harrix_swiss_knife.config_model import MAIN_WINDOW_SORT_MODE_MENU
+from harrix_swiss_knife.fluent import is_fluent_themed
+from harrix_swiss_knife.fluent.tokens import CARD_GRID_SPACING, COMMAND_CARD_WIDTH
+from harrix_swiss_knife.fluent.widgets import FluentCommandCard
 from harrix_swiss_knife.main_window import MainWindow
 from harrix_swiss_knife.win11_caption import CAPTION_BUTTON_HEIGHT
 
@@ -45,7 +48,6 @@ def _build_window(qapp: QApplication) -> MainWindow:  # noqa: ARG001
         patch("harrix_swiss_knife.main_window.get_main_window_sort_mode", return_value=MAIN_WINDOW_SORT_MODE_MENU),
         patch("harrix_swiss_knife.main_window.get_show_main_window_on_startup", return_value=False),
         patch("harrix_swiss_knife.main_window.apply_app_window_size_and_position"),
-        patch("harrix_swiss_knife.main_window.try_apply_system_backdrop"),
         patch("harrix_swiss_knife.main_window.apply_window_icon"),
         patch("harrix_swiss_knife.main_window.list_recent_gui_action_names", return_value=[]),
     ):
@@ -124,13 +126,11 @@ def test_clicking_section_header_in_search_scrolls_to_first_card(qapp: QApplicat
         assert images_item is not None
 
         first_images_widget: QWidget | None = None
-        for index in range(window._search_grid.count()):
-            item = window._search_grid.item(index)
-            assert item is not None
-            action = item.data(Qt.ItemDataRole.UserRole)
+        for card in window._search_grid.cards():
+            action = getattr(card, "user_data", None)
             assert isinstance(action, QAction)
             if window._action_sections.get(action) == "Images":
-                first_images_widget = window._search_grid.itemWidget(item)
+                first_images_widget = card
                 break
         assert first_images_widget is not None
 
@@ -160,6 +160,32 @@ def test_scroll_cards_to_widget_sets_scrollbar_value(qapp: QApplication) -> None
 
         widget.mapTo.assert_called_once()
         bar.setValue.assert_called_once_with(250)
+    finally:
+        window.close()
+        window.deleteLater()
+        qapp.processEvents()
+
+
+def test_window_is_fluent_themed_without_white_surfaces(qapp: QApplication) -> None:
+    window = _build_window(qapp)
+    try:
+        assert is_fluent_themed(window)
+        assert "hsk-white-surfaces" not in window.styleSheet()
+        images_section = next(section for section in window._sections if section.title == "Images")
+        assert images_section.grid is not None
+        assert images_section.grid.count() == 4
+        assert all(isinstance(card, FluentCommandCard) for card in images_section.grid.cards())
+    finally:
+        window.close()
+        window.deleteLater()
+        qapp.processEvents()
+
+
+def test_recent_shows_at_most_one_row(qapp: QApplication) -> None:
+    window = _build_window(qapp)
+    try:
+        window._grouped_widget.resize(COMMAND_CARD_WIDTH * 2 + CARD_GRID_SPACING + 10, 100)
+        assert window._recent_column_count() == 2
     finally:
         window.close()
         window.deleteLater()

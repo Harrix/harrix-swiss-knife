@@ -7,6 +7,8 @@ from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QAbstractButton, QMessageBox, QWidget
 
 from harrix_swiss_knife import qt_modality
+from harrix_swiss_knife.fluent.style import accent_button_qss, push_button_qss
+from harrix_swiss_knife.fluent.theme import bind_theme, is_fluent_themed, palette_for
 from harrix_swiss_knife.qt_lucide_icon import (
     style_accept_button,
     style_cancel_button,
@@ -15,6 +17,11 @@ from harrix_swiss_knife.qt_lucide_icon import (
 
 _COPY_BUTTON_ATTR = "_harrix_copy_button_added"
 _CLIPBOARD_TEXT_ATTR = "_harrix_clipboard_text"
+_PRIMARY_ROLES = (
+    QMessageBox.ButtonRole.AcceptRole,
+    QMessageBox.ButtonRole.YesRole,
+    QMessageBox.ButtonRole.ApplyRole,
+)
 
 
 def add_copy_button(box: QMessageBox) -> QAbstractButton:
@@ -132,13 +139,12 @@ def prepare_box(box: QMessageBox) -> None:
     if not getattr(box, _COPY_BUTTON_ATTR, False):
         add_copy_button(box)
         setattr(box, _COPY_BUTTON_ATTR, True)
+    if is_fluent_themed(box):
+        bind_theme(box, lambda: _style_fluent_buttons(box))
+        return
     for button in box.buttons():
         role = box.buttonRole(button)
-        if role in (
-            QMessageBox.ButtonRole.AcceptRole,
-            QMessageBox.ButtonRole.YesRole,
-            QMessageBox.ButtonRole.ApplyRole,
-        ):
+        if role in _PRIMARY_ROLES:
             style_accept_button(button)
         elif role == QMessageBox.ButtonRole.DestructiveRole:
             style_delete_button(button)
@@ -185,3 +191,12 @@ def _exec_box(box: QMessageBox) -> QMessageBox.StandardButton:
         return QMessageBox.StandardButton.Cancel
     sb = box.standardButton(clicked)
     return QMessageBox.StandardButton(sb)
+
+
+def _style_fluent_buttons(box: QMessageBox) -> None:
+    palette = palette_for(box)
+    primary = accent_button_qss(palette)
+    standard = push_button_qss(palette)
+    for button in box.buttons():
+        role = box.buttonRole(button)
+        button.setStyleSheet(primary if role in _PRIMARY_ROLES else standard)

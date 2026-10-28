@@ -41,6 +41,7 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife.apps.common.qt_main_window import resolve_window_menu_bar
+from harrix_swiss_knife.fluent.theme import bind_theme, is_fluent_themed, mix, palette_for
 from harrix_swiss_knife.installer.icon_assets import apply_window_icon, asset_candidates
 from harrix_swiss_knife.qt_flat_scrollbar import apply_flat_scrollbars
 from harrix_swiss_knife.qt_frameless_window import frameless_hit_test, native_local_point, read_native_windows_message
@@ -145,6 +146,7 @@ _NAV_COLOR = "#404654"
 _TAB_ACTIVE_COLOR = "#2e86b7"
 _TAB_LINE_COLOR = "#f4f4f4"
 _TAB_HOVER_BG = "#f2f8fb"
+_DISABLED_NAV_COLOR = "#767676"
 _TAB_RADIUS = 4
 _TAB_TOP_GAP = 4
 _TAB_CONTENT_GAP = 8
@@ -337,6 +339,21 @@ class CaptionButton(QToolButton):
         return source.palette().color(QPalette.ColorRole.Window)
 
 
+class CaptionColors:
+    """Hex colors of the caption title, menus, and tab chrome for one window."""
+
+    __slots__ = ("disabled", "nav", "tab_active", "tab_hover", "tab_line", "title")
+
+    def __init__(self, *, title: str, nav: str, tab_active: str, tab_line: str, tab_hover: str, disabled: str) -> None:
+        """Store caption colors."""
+        self.title = title
+        self.nav = nav
+        self.tab_active = tab_active
+        self.tab_line = tab_line
+        self.tab_hover = tab_hover
+        self.disabled = disabled
+
+
 class _CaptionEdgeLine(QWidget):
     """1px rule along the bottom of a caption corner, above its children."""
 
@@ -357,7 +374,7 @@ class _CaptionEdgeLine(QWidget):
     def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
         """Draw the corner's share of the caption rule."""
         painter = QPainter(self)
-        painter.fillRect(self.rect(), QColor(_TAB_LINE_COLOR))
+        painter.fillRect(self.rect(), QColor(caption_colors(self).tab_line))
 
     def place(self) -> None:
         """Stretch the rule to the corner and keep it above the caption controls."""
@@ -496,7 +513,8 @@ class _Win11CaptionController(QObject):
         elif event_type in {QEvent.Type.WindowActivate, QEvent.Type.WindowDeactivate}:
             _sync_caption_active(window)
         elif event_type == QEvent.Type.PaletteChange:
-            _apply_white_window_background(window)
+            if not is_fluent_themed(window):
+                _apply_white_window_background(window)
             _sync_caption_palette(window)
         elif event_type == QEvent.Type.FontChange:
             _fit_caption_fonts(window)
@@ -531,6 +549,29 @@ class _Win11CaptionController(QObject):
             window.showNormal()
         else:
             window.showMaximized()
+
+
+def caption_colors(widget: QWidget) -> CaptionColors:
+    """Return caption colors: Fluent tokens in themed Windows, Harrix chrome otherwise."""
+    if not is_fluent_themed(widget):
+        return CaptionColors(
+            title=_TITLE_COLOR,
+            nav=_NAV_COLOR,
+            tab_active=_TAB_ACTIVE_COLOR,
+            tab_line=_TAB_LINE_COLOR,
+            tab_hover=_TAB_HOVER_BG,
+            disabled=_DISABLED_NAV_COLOR,
+        )
+    palette = palette_for(widget)
+    base = palette.window_bg
+    return CaptionColors(
+        title=mix(base, palette.text_primary).name(),
+        nav=mix(base, palette.text_secondary).name(),
+        tab_active=mix(base, palette.accent_text).name(),
+        tab_line=mix(base, palette.divider).name(),
+        tab_hover=mix(base, palette.subtle_hover).name(),
+        disabled=mix(base, palette.text_disabled).name(),
+    )
 
 
 def caption_glyph_icon(name: str, color: QColor, dpr: float) -> QIcon:
@@ -643,8 +684,10 @@ def install_win11_caption(
     _ensure_caption_title(window)
     _flush_caption_to_frame(window)
     _fit_caption_fonts(window)
-    _apply_white_window_background(window)
-    apply_flat_scrollbars(window)
+    themed = is_fluent_themed(window)
+    if not themed:
+        _apply_white_window_background(window)
+        apply_flat_scrollbars(window)
     _sync_caption_palette(window)
     window.installEventFilter(controller)
     setattr(window, _INSTALLED_ATTR, True)
@@ -655,7 +698,26 @@ def install_win11_caption(
     _place_caption_title(window)
     _bind_caption_menu_hover(window, controller)
     setattr(window, _BUTTONS_ATTR, window.findChildren(CaptionButton))
+    if themed:
+        bind_theme(window, lambda: refresh_win11_caption(window))
     return True
+
+
+def refresh_win11_caption(window: QWidget) -> None:
+    """Re-sync caption buttons, title, menus, and rules after the window palette changed."""
+    if not getattr(window, _INSTALLED_ATTR, False):
+        return
+    _sync_caption_palette(window)
+    label = getattr(window, _TITLE_ATTR, None)
+    if isinstance(label, QLabel):
+        _apply_caption_title_style(label)
+    button = window.findChild(QToolButton, _MENU_BUTTON_NAME)
+    if isinstance(button, QToolButton):
+        apply_lucide_button_icon(button, "menu", icon_size=CAPTION_ICON_SIZE, color=caption_colors(window).nav)
+    for line in window.findChildren(_CaptionEdgeLine):
+        line.update()
+    for button in window.findChildren(CaptionButton):
+        button.update()
 
 
 def try_handle_win11_caption_native_event(
@@ -715,7 +777,7 @@ def write_nccalcsize_client_rect(address: int, left: int, top: int, right: int, 
 
 def _apply_caption_title_style(label: QLabel) -> None:
     rule = (
-        f"QLabel#captionTitleLabel {{ color: {_TITLE_COLOR}; background: transparent; "
+        f"QLabel#captionTitleLabel {{ color: {caption_colors(label).title}; background: transparent; "
         f"font-weight: 700; padding: 0px 12px 0px 2px; }}"
     )
     if label.styleSheet() != rule:
@@ -1337,7 +1399,7 @@ def _make_caption_menu_button(
     button.setToolTip("Menu")
     button.setCursor(Qt.CursorShape.ArrowCursor)
     button.setVisible(False)
-    apply_lucide_button_icon(button, "menu", icon_size=CAPTION_ICON_SIZE, color=_NAV_COLOR)
+    apply_lucide_button_icon(button, "menu", icon_size=CAPTION_ICON_SIZE, color=caption_colors(window).nav)
     popup = QMenu(button)
     popup.setObjectName("captionOverflowMenu")
     popup.aboutToShow.connect(lambda: _fill_caption_overflow_menu(window, popup))
@@ -1460,7 +1522,8 @@ def _paint_menu_chevrons(menu: QMenuBar) -> None:
         rect = menu.actionGeometry(action)
         if rect.width() < _CAPTION_MENU_ARROW_PAD:
             continue
-        pen.setColor(QColor(_NAV_COLOR if action.isEnabled() else "#767676"))
+        colors = caption_colors(menu)
+        pen.setColor(QColor(colors.nav if action.isEnabled() else colors.disabled))
         painter.setPen(pen)
         center_x = rect.right() - _CAPTION_MENU_ARROW_PAD // 2
         center_y = _menu_glyph_center_y(menu, rect)
@@ -1478,7 +1541,7 @@ def _paint_menu_chevrons(menu: QMenuBar) -> None:
 def _paint_tab_bar_line(tab_bar: QTabBar) -> None:
     """Draw the rule across the tab bar, leaving the active tab's bottom open."""
     painter = QPainter(tab_bar)
-    color = QColor(_TAB_LINE_COLOR)
+    color = QColor(caption_colors(tab_bar).tab_line)
     y = tab_bar.height() - 1
     painter.fillRect(0, y, tab_bar.width(), 1, color)
     index = tab_bar.currentIndex()
@@ -1643,6 +1706,7 @@ def _style_caption_chrome(window: QWidget) -> None:
     rgb = color.name(QColor.NameFormat.HexRgb)
     light = _palette_is_light(window)
     hover = _shade_caption_color(color, light=light, amount=0.06).name(QColor.NameFormat.HexRgb)
+    colors = caption_colors(window)
     tab_widget = getattr(window, "tabWidget", None)
     if isinstance(tab_widget, QTabWidget):
         name = tab_widget.objectName() or "tabWidget"
@@ -1669,7 +1733,7 @@ def _style_caption_chrome(window: QWidget) -> None:
             }}
             QTabBar::tab {{
                 background: transparent;
-                color: {_NAV_COLOR};
+                color: {colors.nav};
                 border: 1px solid transparent;
                 border-top-left-radius: {_TAB_RADIUS}px;
                 border-top-right-radius: {_TAB_RADIUS}px;
@@ -1680,13 +1744,13 @@ def _style_caption_chrome(window: QWidget) -> None:
                 padding: {pad}px {_CAPTION_TAB_HPAD}px;
             }}
             QTabBar::tab:hover:!selected {{
-                background: {_TAB_HOVER_BG};
-                color: {_TAB_ACTIVE_COLOR};
+                background: {colors.tab_hover};
+                color: {colors.tab_active};
             }}
             QTabBar::tab:selected {{
                 background: {rgb};
-                color: {_TAB_ACTIVE_COLOR};
-                border: 1px solid {_TAB_LINE_COLOR};
+                color: {colors.tab_active};
+                border: 1px solid {colors.tab_line};
                 border-bottom: 1px solid {rgb};
                 margin-top: {_TAB_TOP_GAP}px;
                 margin-bottom: -1px;
@@ -1708,13 +1772,13 @@ def _style_caption_chrome(window: QWidget) -> None:
         }}
         QMenuBar::item {{
             background: transparent;
-            color: {_NAV_COLOR};
+            color: {colors.nav};
             padding: {pad}px {_CAPTION_MENU_ARROW_PAD}px {pad}px {_CAPTION_MENU_HPAD}px;
             margin: 0px;
         }}
         QMenuBar::item:selected {{
             background: {hover};
-            color: {_NAV_COLOR};
+            color: {colors.nav};
         }}
         """
     )

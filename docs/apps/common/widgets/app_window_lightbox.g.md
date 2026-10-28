@@ -320,7 +320,7 @@ Args:
 
 - `parent` (`QWidget | None`): Widget whose top-level window is covered.
 - `item_count` (`int`): Number of browsable items. Defaults to `0`.
-- [`current_index`](#%EF%B8%8F-method-current_index-property) (`int`): Initial item index. Defaults to `0`.
+- `current_index` (`int`): Initial item index. Defaults to `0`.
 
 <details>
 <summary>Code:</summary>

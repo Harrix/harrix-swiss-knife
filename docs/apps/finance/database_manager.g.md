@@ -2739,7 +2739,7 @@ Add a new currency to the database.
 
 Args:
 
-- `code` (`str`): Currency code (e.g., USD, EUR).
+- [`code`](../../fluent/widgets/inputs.g.md#%EF%B8%8F-method-code) (`str`): Currency code (e.g., USD, EUR).
 - `name` (`str`): Currency name.
 - `symbol` (`str`): Currency symbol.
 - `subdivision` (`int`): Number of minor units in one major unit (e.g., 100 for USD cents). Defaults to `100`.
@@ -2784,7 +2784,7 @@ Args:
 - `exchange_rate` (`float`): Exchange rate.
 - `fee` (`float`): Exchange fee.
 - `date` (`str`): Date in YYYY-MM-DD format.
-- `description` (`str`): Exchange description. Defaults to `""`.
+- [`description`](../../fluent/widgets/cards.g.md#%EF%B8%8F-method-description) (`str`): Exchange description. Defaults to `""`.
 
 Returns:
 
@@ -2905,7 +2905,7 @@ Args:
 
 - `amount` (`float`): Transaction amount in major units. Ignored when
   `amount_minor` is set.
-- `description` (`str`): Transaction description.
+- [`description`](../../fluent/widgets/cards.g.md#%EF%B8%8F-method-description) (`str`): Transaction description.
 - `category_id` (`int`): Category ID.
 - `currency_id` (`int`): Currency ID.
 - `date` (`str`): Date in YYYY-MM-DD format.
@@ -3930,7 +3930,7 @@ Get currency information by code.
 
 Args:
 
-- `code` (`str`): Currency code.
+- [`code`](../../fluent/widgets/inputs.g.md#%EF%B8%8F-method-code) (`str`): Currency code.
 
 Returns:
 
@@ -5538,7 +5538,7 @@ Update an existing currency.
 Args:
 
 - `currency_id` (`int`): Currency ID.
-- `code` (`str`): Currency code.
+- [`code`](../../fluent/widgets/inputs.g.md#%EF%B8%8F-method-code) (`str`): Currency code.
 - `name` (`str`): Currency name.
 - `symbol` (`str`): Currency symbol.
 
@@ -5583,7 +5583,7 @@ Args:
 - `exchange_rate` (`float`): Exchange rate.
 - `fee` (`float`): Exchange fee (in major units).
 - `date` (`str`): Date in YYYY-MM-DD format.
-- `description` (`str`): Exchange description. Defaults to `""`.
+- [`description`](../../fluent/widgets/cards.g.md#%EF%B8%8F-method-description) (`str`): Exchange description. Defaults to `""`.
 
 Returns:
 
@@ -5810,7 +5810,7 @@ Args:
 
 - `transaction_id` (`int`): Transaction ID.
 - `amount` (`float`): Transaction amount.
-- `description` (`str`): Transaction description.
+- [`description`](../../fluent/widgets/cards.g.md#%EF%B8%8F-method-description) (`str`): Transaction description.
 - `category_id` (`int`): Category ID.
 - `currency_id` (`int`): Currency ID.
 - `date` (`str`): Date in YYYY-MM-DD format.

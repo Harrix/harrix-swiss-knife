@@ -477,7 +477,7 @@ def extract_first_h1(markdown: str) -> str:
 def find_dual_links(text: str) -> list[DualLinkMatch]
 ```
 
-Return all dual-link matches in [`text`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-text).
+Return all dual-link matches in `text`.
 
 <details>
 <summary>Code:</summary>
@@ -735,7 +735,7 @@ def parse_site_url_or_path(raw: str, settings: SiteLinkSettings) -> ContentArtic
 def replace_dual_link_title(original: str, match: DualLinkMatch, new_title: str) -> str
 ```
 
-Return `original` with the dual-link title at `match` replaced by `new_title`.
+Return `original` with the dual-link title at [`match`](../../fluent/infra.g.md#%EF%B8%8F-method-match) replaced by `new_title`.
 
 <details>
 <summary>Code:</summary>

@@ -259,7 +259,7 @@ def __init__(
 def addItem(self, item: QLayoutItem) -> None
 ```
 
-Append `item` to the flow.
+Append [`item`](fluent/widgets/navigation.g.md#%EF%B8%8F-method-item) to the flow.
 
 <details>
 <summary>Code:</summary>

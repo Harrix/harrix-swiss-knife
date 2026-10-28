@@ -217,7 +217,7 @@ def select_region(*, show_shutter_button: bool = True, hide_app: bool | None = N
 
 Select a screen region and return its global logical rectangle.
 
-Same overlay workflow as [`capture_region`](#-function-capture_region), but does not crop an image or copy
+Same overlay workflow as `capture_region`, but does not crop an image or copy
 to the clipboard. Used before screen recording.
 
 <details>

@@ -254,7 +254,7 @@ def apply_lucide_button_icon(button: QAbstractButton, name: str, *, icon_size: i
 
 Set a Lucide icon on an existing button.
 
-When `color` is omitted, a solid fill from the button stylesheet forces a
+When [`color`](fluent/widgets/dialogs.g.md#%EF%B8%8F-method-color) is omitted, a solid fill from the button stylesheet forces a
 matching light/dark stroke; ordinary gray buttons keep semantic colors.
 
 <details>
@@ -376,7 +376,7 @@ def create_lucide_icon(name: str, size: int = 64, *, color: QColor | str | None 
 
 Create a square `QIcon` from a Lucide SVG ID.
 
-When `color` is omitted, uses the CodeStyle semantic color for `name`.
+When [`color`](fluent/widgets/dialogs.g.md#%EF%B8%8F-method-color) is omitted, uses the CodeStyle semantic color for `name`.
 Unknown names log a warning and return an empty icon.
 
 <details>
@@ -689,7 +689,7 @@ def set_action_text_with_lucide_icon(action: QAction, text: str, name: str | Non
 
 Set action text and a Lucide icon.
 
-When `name` is omitted, a leading chrome emoji on [`text`](qt_split_menu_button.g.md#%EF%B8%8F-method-text) is mapped to Lucide
+When `name` is omitted, a leading chrome emoji on `text` is mapped to Lucide
 and stripped from the visible label.
 
 <details>

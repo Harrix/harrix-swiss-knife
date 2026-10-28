@@ -295,7 +295,7 @@ class HotkeyEdit(QLineEdit):
 def __init__(self, text: str = '', parent: QWidget | None = None) -> None
 ```
 
-Create a hotkey capture field with the current combination [`text`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-text).
+Create a hotkey capture field with the current combination `text`.
 
 <details>
 <summary>Code:</summary>
@@ -1184,7 +1184,7 @@ def filter_config_categories(categories: dict[str, dict[str, Any]], app_id: str)
 def folder_path_from_text(text: str) -> Path | None
 ```
 
-Return an existing directory for [`text`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-text), or `None` if it is not a folder.
+Return an existing directory for `text`, or `None` if it is not a folder.
 
 <details>
 <summary>Code:</summary>
@@ -1436,7 +1436,7 @@ def open_config_json_in_editor(
 def snippet_path_from_text(text: str, *, project_root: Path | None = None) -> Path | None
 ```
 
-Return the project-relative snippet path, or `None` if [`text`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-text) is not a snippet.
+Return the project-relative snippet path, or `None` if `text` is not a snippet.
 
 <details>
 <summary>Code:</summary>

@@ -75,19 +75,21 @@ class LineEditSpellController(QObject):
         line_edit.initStyleOption(option)
         contents = line_edit.style().subElementRect(QStyle.SubElement.SE_LineEditContents, option, line_edit)
         margins = line_edit.textMargins()
-        left = contents.left() + margins.left()
+        clip_left, clip_right = _line_edit_text_clip_x(line_edit, contents, margins.left(), margins.right())
         fm = line_edit.fontMetrics()
-        scroll_x = _line_edit_scroll_x(line_edit, contents.x() + margins.left())
+        origin = _line_edit_text_origin_x(line_edit, clip_left)
         underline_y = _line_edit_underline_y(line_edit, contents, margins.top(), margins.bottom(), fm)
-        painter.setClipRect(contents)
+        painter.setClipRect(QRect(clip_left, contents.top(), max(0, clip_right - clip_left), contents.height()))
         painter.setPen(QPen(_WAVE_COLOR, 1))
         for start, end in self._misspellings:
-            x1 = left + fm.horizontalAdvance(text[:start]) - scroll_x
-            x2 = left + fm.horizontalAdvance(text[:end]) - scroll_x
-            if x2 <= contents.left() or x1 >= contents.right():
+            x1 = origin + fm.horizontalAdvance(text[:start])
+            x2 = origin + fm.horizontalAdvance(text[:end])
+            if x2 < x1:
+                x1, x2 = x2, x1
+            if x2 <= clip_left or x1 >= clip_right:
                 continue
-            x1 = max(x1, float(contents.left()))
-            x2 = min(x2, float(contents.right()))
+            x1 = max(x1, float(clip_left))
+            x2 = min(x2, float(clip_right))
             _draw_wave(painter, x1, x2, float(underline_y))
 
     def _paint_event(self, event: QPaintEvent) -> None:

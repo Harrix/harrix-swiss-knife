@@ -29,6 +29,7 @@ from PySide6.QtWidgets import QApplication
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.app_startup_toast import app_loading_title, app_loading_toast_scope
 from harrix_swiss_knife.apps.common.uic_compile import install_safe_qt_translate
+from harrix_swiss_knife.fluent.theme import FluentTheme
 from harrix_swiss_knife.installer.icon_assets import apply_window_icon
 from harrix_swiss_knife.qt_app_font import install_app_fonts
 from harrix_swiss_knife.qt_flexible_decimal import install_flexible_decimal_separators
@@ -74,6 +75,7 @@ def run_app_main(
     install_app_fonts(app)
     install_ui_effects(app)
     install_safe_qt_translate()
+    FluentTheme.instance().load_from_config()
     try:
         with app_loading_toast_scope(app_loading_title(main_window_factory)):
             win = main_window_factory()

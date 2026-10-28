@@ -27,12 +27,20 @@ Append flat scrollbar rules to every scroll area under [`root`](apps/habits/habi
 
 Covers item views, `QScrollArea`, and text edits — including widgets with
 no stylesheet yet, so parent window stylesheets cannot leave classic bars.
+In Fluent-themed Windows the rules use the current Fluent palette and are
+re-applied on theme change.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def apply_flat_scrollbars(root: QWidget) -> None:
+    if is_fluent_themed(root):
+        _apply_fluent_scrollbars(root)
+        if not root.property(_FLUENT_BOUND_PROP):
+            root.setProperty(_FLUENT_BOUND_PROP, True)  # noqa: FBT003
+            bind_theme(root, lambda: _apply_fluent_scrollbars(root))
+        return
     for widget in root.findChildren(QAbstractScrollArea):
         sheet = widget.styleSheet().strip()
         updated = with_flat_scrollbars(sheet)

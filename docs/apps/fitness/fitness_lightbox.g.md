@@ -357,7 +357,7 @@ Args:
 - `avif_manager` ([`AvifManager`](../common/avif_manager.g.md#%EF%B8%8F-class-avifmanager)): Loader for static and animated AVIF files.
 - `details_loader` (`DetailsLoader`): Loads types, unit, and default value.
 - `confirm_handler` (`ConfirmHandler`): Persists a completed set.
-- [`current_index`](../common/widgets/app_window_lightbox.g.md#%EF%B8%8F-method-current_index-property) (`int`): Initial exercise index. Defaults to `0`.
+- `current_index` (`int`): Initial exercise index. Defaults to `0`.
 - `parent` (`QWidget | None`): Widget whose top-level window is covered.
 - `countdown_seconds` (`int`): Ready countdown before the stopwatch.
 - `workout_items` (`Sequence[WorkoutItemRow] | None`): Workout rows when

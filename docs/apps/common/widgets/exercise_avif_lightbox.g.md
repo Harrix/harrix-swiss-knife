@@ -308,7 +308,7 @@ Args:
 
 - `exercises` (`Sequence[str]`): Exercise names in navigation order.
 - `avif_manager` ([`AvifManager`](../avif_manager.g.md#%EF%B8%8F-class-avifmanager)): Loader for static and animated AVIF files.
-- [`current_index`](app_window_lightbox.g.md#%EF%B8%8F-method-current_index-property) (`int`): Initial exercise index. Defaults to `0`.
+- `current_index` (`int`): Initial exercise index. Defaults to `0`.
 - `parent` (`QWidget | None`): Widget whose top-level window is covered.
 - `show_speed_slider` (`bool`): When `True`, show a speed slider for
   animated AVIFs (Fitness lightbox only). Defaults to `False`.
@@ -604,13 +604,13 @@ def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
 def parse_speed_text(text: str) -> float | None
 ```
 
-Parse a playback-speed multiplier from [`text`](../../../qt_split_menu_button.g.md#%EF%B8%8F-method-text).
+Parse a playback-speed multiplier from `text`.
 
 Accepts a plain number, an optional trailing `x`, and a comma decimal.
 
 Args:
 
-- [`text`](../../../qt_split_menu_button.g.md#%EF%B8%8F-method-text) (`str`): Raw field text.
+- `text` (`str`): Raw field text.
 
 Returns:
 

@@ -3977,7 +3977,7 @@ def empty_grid_cta(*, has_folder: bool, entry_count: int, search_query: str, has
 
 Return empty-state `(mode, message, primary_label, secondary_label)`.
 
-[`mode`](../common/widgets/image_picker.g.md#%EF%B8%8F-method-mode-property) is `None` when the grid should show tiles instead of the placeholder.
+`mode` is `None` when the grid should show tiles instead of the placeholder.
 
 <details>
 <summary>Code:</summary>

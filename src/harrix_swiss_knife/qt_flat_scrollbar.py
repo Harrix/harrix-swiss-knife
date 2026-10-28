@@ -3,12 +3,23 @@
 A stylesheet on `QListView` / `QTableView` / `QScrollArea` makes Qt drop
 Windows 11 native scrollbar drawing and fall back to classic beveled bars.
 Append these rules so those widgets keep a modern flat look matching Quick paste.
+Inside Fluent-themed Windows the rules follow the light / dark Fluent palette.
 
 """
 
 from __future__ import annotations
 
+import re
+
 from PySide6.QtWidgets import QAbstractScrollArea, QWidget
+
+from harrix_swiss_knife.fluent.style import scroll_bar_qss
+from harrix_swiss_knife.fluent.theme import bind_theme, is_fluent_themed, palette_for
+
+_FLUENT_BEGIN = "/* hsk-fluent-scrollbars */"
+_FLUENT_END = "/* /hsk-fluent-scrollbars */"
+_FLUENT_BLOCK = re.compile(re.escape(_FLUENT_BEGIN) + r".*?" + re.escape(_FLUENT_END), re.DOTALL)
+_FLUENT_BOUND_PROP = "_hskFluentScrollbarsBound"
 
 FLAT_SCROLLBAR_STYLE = """
 QScrollBar:vertical {
@@ -93,8 +104,16 @@ def apply_flat_scrollbars(root: QWidget) -> None:
 
     Covers item views, `QScrollArea`, and text edits — including widgets with
     no stylesheet yet, so parent window stylesheets cannot leave classic bars.
+    In Fluent-themed Windows the rules use the current Fluent palette and are
+    re-applied on theme change.
 
     """
+    if is_fluent_themed(root):
+        _apply_fluent_scrollbars(root)
+        if not root.property(_FLUENT_BOUND_PROP):
+            root.setProperty(_FLUENT_BOUND_PROP, True)  # noqa: FBT003
+            bind_theme(root, lambda: _apply_fluent_scrollbars(root))
+        return
     for widget in root.findChildren(QAbstractScrollArea):
         sheet = widget.styleSheet().strip()
         updated = with_flat_scrollbars(sheet)
@@ -115,3 +134,14 @@ def with_flat_scrollbars(style: str) -> str:
     if not sheet:
         return FLAT_SCROLLBAR_STYLE
     return f"{sheet}\n{FLAT_SCROLLBAR_STYLE}"
+
+
+def _apply_fluent_scrollbars(root: QWidget) -> None:
+    block = f"{_FLUENT_BEGIN}\n{scroll_bar_qss(palette_for(root)).strip()}\n{_FLUENT_END}"
+    for widget in root.findChildren(QAbstractScrollArea):
+        base = _FLUENT_BLOCK.sub("", widget.styleSheet()).strip()
+        if "QScrollBar:vertical" in base:
+            continue
+        updated = f"{base}\n{block}" if base else block
+        if updated != widget.styleSheet():
+            widget.setStyleSheet(updated)

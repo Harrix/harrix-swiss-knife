@@ -24,6 +24,7 @@ from PySide6.QtWidgets import (
     QStyleOption,
 )
 
+from harrix_swiss_knife.fluent.theme import is_fluent_themed, palette_for
 from harrix_swiss_knife.qt_lucide_icon import (
     LUCIDE_COLOR_BLUE,
     LUCIDE_COLOR_DARK,
@@ -38,6 +39,16 @@ CHECKBOX_INDICATOR_PX = 24
 RADIO_INDICATOR_PX = 24
 _DISABLED_COLOR = "#767676"
 _INDICATOR_PIXMAP_CACHE: dict[tuple[str, str, int, float], QPixmap] = {}
+
+
+class IndicatorColors:
+    """Hex colors for idle, checked, and disabled toggle indicators."""
+
+    def __init__(self, idle: str, checked: str, disabled: str) -> None:
+        """Store the three indicator colors."""
+        self.idle = idle
+        self.checked = checked
+        self.disabled = disabled
 
 
 class LucideToggleStyle(QProxyStyle):
@@ -55,10 +66,10 @@ class LucideToggleStyle(QProxyStyle):
             QStyle.PrimitiveElement.PE_IndicatorCheckBox,
             QStyle.PrimitiveElement.PE_IndicatorItemViewItemCheck,
         ):
-            paint_lucide_checkbox_from_style_option(painter, option)
+            paint_lucide_checkbox_from_style_option(painter, option, widget)
             return
         if element == QStyle.PrimitiveElement.PE_IndicatorRadioButton:
-            paint_lucide_radio_from_style_option(painter, option)
+            paint_lucide_radio_from_style_option(painter, option, widget)
             return
         super().drawPrimitive(element, option, painter, widget)
 
@@ -126,25 +137,39 @@ def apply_lucide_radios(root: QWidget) -> None:
         apply_lucide_radio_style(radio)
 
 
+def indicator_colors(widget: QWidget | None = None) -> IndicatorColors:
+    """Return indicator colors: Fluent tokens in themed Windows, Harrix brand colors elsewhere."""
+    if is_fluent_themed(widget):
+        palette = palette_for(widget)
+        return IndicatorColors(
+            palette.text_secondary.name(),
+            palette.accent.name(),
+            palette.text_disabled.name(),
+        )
+    return IndicatorColors(LUCIDE_COLOR_DARK, LUCIDE_COLOR_BLUE, _DISABLED_COLOR)
+
+
 def lucide_checkbox_pixmap(
     *,
     checked: bool = False,
     partial: bool = False,
     enabled: bool = True,
     size: int = CHECKBOX_INDICATOR_PX,
+    colors: IndicatorColors | None = None,
 ) -> QPixmap:
     """Return a Lucide checkbox pixmap for the given check state."""
+    colors = colors or indicator_colors()
     if partial:
         name = "square-minus"
-        color = _DISABLED_COLOR if not enabled else LUCIDE_COLOR_DARK
+        color = colors.idle
     elif checked:
         name = "square-check"
         # Brand blue (same as primary buttons), not success green
-        color = _DISABLED_COLOR if not enabled else LUCIDE_COLOR_BLUE
+        color = colors.checked
     else:
         name = "square"
-        color = _DISABLED_COLOR if not enabled else LUCIDE_COLOR_DARK
-    return _lucide_indicator_pixmap(name, color, size)
+        color = colors.idle
+    return _lucide_indicator_pixmap(name, color if enabled else colors.disabled, size)
 
 
 def lucide_checkbox_widget_style() -> LucideToggleStyle:
@@ -157,16 +182,18 @@ def lucide_radio_pixmap(
     checked: bool = False,
     enabled: bool = True,
     size: int = RADIO_INDICATOR_PX,
+    colors: IndicatorColors | None = None,
 ) -> QPixmap:
     """Return a Lucide radio pixmap for the given check state."""
+    colors = colors or indicator_colors()
     if checked:
         name = "circle-dot"
         # Brand blue (same as primary buttons), not success green
-        color = _DISABLED_COLOR if not enabled else LUCIDE_COLOR_BLUE
+        color = colors.checked
     else:
         name = "circle"
-        color = _DISABLED_COLOR if not enabled else LUCIDE_COLOR_DARK
-    return _lucide_indicator_pixmap(name, color, size)
+        color = colors.idle
+    return _lucide_indicator_pixmap(name, color if enabled else colors.disabled, size)
 
 
 def lucide_toggle_widget_style() -> LucideToggleStyle:
@@ -187,13 +214,18 @@ def paint_lucide_checkbox(
     partial: bool = False,
     enabled: bool = True,
     size: int = CHECKBOX_INDICATOR_PX,
+    colors: IndicatorColors | None = None,
 ) -> None:
     """Center a Lucide checkbox pixmap inside `rect`."""
-    pixmap = lucide_checkbox_pixmap(checked=checked, partial=partial, enabled=enabled, size=size)
+    pixmap = lucide_checkbox_pixmap(checked=checked, partial=partial, enabled=enabled, size=size, colors=colors)
     _paint_centered_pixmap(painter, rect, pixmap, size)
 
 
-def paint_lucide_checkbox_from_style_option(painter: QPainter, option: QStyleOption) -> None:
+def paint_lucide_checkbox_from_style_option(
+    painter: QPainter,
+    option: QStyleOption,
+    widget: QWidget | None = None,
+) -> None:
     """Paint a Lucide checkbox using `option.state` and `option.rect`."""
     state = option.state
     partial = bool(state & QStyle.StateFlag.State_NoChange)
@@ -205,6 +237,7 @@ def paint_lucide_checkbox_from_style_option(painter: QPainter, option: QStyleOpt
         checked=checked,
         partial=partial,
         enabled=enabled,
+        colors=indicator_colors(widget),
     )
 
 
@@ -215,18 +248,23 @@ def paint_lucide_radio(
     checked: bool = False,
     enabled: bool = True,
     size: int = RADIO_INDICATOR_PX,
+    colors: IndicatorColors | None = None,
 ) -> None:
     """Center a Lucide radio pixmap inside `rect`."""
-    pixmap = lucide_radio_pixmap(checked=checked, enabled=enabled, size=size)
+    pixmap = lucide_radio_pixmap(checked=checked, enabled=enabled, size=size, colors=colors)
     _paint_centered_pixmap(painter, rect, pixmap, size)
 
 
-def paint_lucide_radio_from_style_option(painter: QPainter, option: QStyleOption) -> None:
+def paint_lucide_radio_from_style_option(
+    painter: QPainter,
+    option: QStyleOption,
+    widget: QWidget | None = None,
+) -> None:
     """Paint a Lucide radio using `option.state` and `option.rect`."""
     state = option.state
     checked = bool(state & QStyle.StateFlag.State_On)
     enabled = bool(state & QStyle.StateFlag.State_Enabled)
-    paint_lucide_radio(painter, option.rect, checked=checked, enabled=enabled)
+    paint_lucide_radio(painter, option.rect, checked=checked, enabled=enabled, colors=indicator_colors(widget))
 
 
 def _lucide_indicator_device_pixel_ratio() -> float:

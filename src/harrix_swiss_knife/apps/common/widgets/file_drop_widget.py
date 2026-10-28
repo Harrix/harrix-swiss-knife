@@ -18,6 +18,8 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife.apps.common.ui_chrome import drop_zone_qss
 from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import install_url_drop_handlers
+from harrix_swiss_knife.fluent.theme import bind_theme, css, is_fluent_themed, palette_for
+from harrix_swiss_knife.fluent.tokens import RADIUS_CONTROL
 from harrix_swiss_knife.qt_lucide_icon import (
     CLEAR_BUTTON_ICON,
     make_lucide_push_button,
@@ -85,7 +87,7 @@ class FileDropWidget(QWidget):
         changed = bool(self.file_path)
         self.file_path = ""
         self.file_label.setText(self._hint_text)
-        self.file_label.setStyleSheet(_EMPTY_DROP_STYLE)
+        self._refresh_drop_style()
         if changed:
             self.file_changed.emit()
 
@@ -101,10 +103,13 @@ class FileDropWidget(QWidget):
         if self._is_allowed_path(paths[0]):
             self._set_file(paths[0])
 
+    def _refresh_drop_style(self) -> None:
+        self.file_label.setStyleSheet(drop_style(self, selected=bool(self.file_path)))
+
     def _set_file(self, file_path: str) -> None:
         self.file_path = file_path
         self.file_label.setText(f"File: {Path(file_path).name}")
-        self.file_label.setStyleSheet(_SELECTED_DROP_STYLE)
+        self._refresh_drop_style()
         self.file_changed.emit()
 
     def _setup_ui(self) -> None:
@@ -112,7 +117,6 @@ class FileDropWidget(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         self.file_label = QLabel(self._hint_text)
         self.file_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.file_label.setStyleSheet(_EMPTY_DROP_STYLE)
         self.file_label.setMinimumHeight(60)
         self.file_label.setWordWrap(True)
         install_url_drop_handlers(
@@ -132,6 +136,7 @@ class FileDropWidget(QWidget):
         layout.addWidget(self.file_label)
         layout.addLayout(button_layout)
         self.setLayout(layout)
+        bind_theme(self, self._refresh_drop_style)
 
 
 class FilesListWidget(QWidget):
@@ -206,5 +211,18 @@ class FilesListWidget(QWidget):
         self.setLayout(layout)
 
 
-_EMPTY_DROP_STYLE = drop_zone_qss()
-_SELECTED_DROP_STYLE = drop_zone_qss(selected=True, padding="10px")
+def drop_style(widget: QWidget, *, selected: bool) -> str:
+    """Return drop-zone QSS: Fluent card colors in themed Windows, Harrix white zone elsewhere."""
+    if not is_fluent_themed(widget):
+        return drop_zone_qss(selected=selected, padding="10px" if selected else "20px")
+    palette = palette_for(widget)
+    border = f"2px solid {css(palette.success)}" if selected else f"2px dashed {css(palette.control_strong_stroke)}"
+    return f"""
+QLabel {{
+    border: {border};
+    border-radius: {RADIUS_CONTROL}px;
+    padding: {"10px" if selected else "20px"};
+    background-color: {css(palette.card_bg)};
+    color: {css(palette.text_primary)};
+}}
+""".strip()

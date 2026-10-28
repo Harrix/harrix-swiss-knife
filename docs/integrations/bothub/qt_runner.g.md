@@ -143,7 +143,7 @@ Args:
 - `audio`: Optional speech input `(bytes, mime_type)`.
 - `model`: Optional model override; defaults to provider model from config.
 - `toast_message`: Toast label while waiting.
-- `is_busy`: If provided and returns `True`, the request is not started.
+- [`is_busy`](../../fluent/widgets/display.g.md#%EF%B8%8F-method-is_busy): If provided and returns `True`, the request is not started.
 - `state`: Optional holder updated with worker/toast refs; cleared on completion.
 - `on_error`: If set, called with the error message instead of the default critical dialog.
   When `offer_retry` is `True`, called only after the user closes the retry dialog.
@@ -153,7 +153,7 @@ Args:
   finishing. Defaults to `True`.
 - `owner_modal`: When `True` (default), the toast blocks the owner window.
   Use `False` for background fills so the UI stays interactive.
-- [`show_toast`](../../actions/common/base.g.md#%EF%B8%8F-method-show_toast): When `False`, run without a BotHub toast.
+- `show_toast`: When `False`, run without a BotHub toast.
 - `show_validation_errors`: When `False`, missing API key does not show a dialog.
 
 <details>

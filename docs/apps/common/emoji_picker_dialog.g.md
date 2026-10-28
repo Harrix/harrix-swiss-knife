@@ -17,7 +17,10 @@ lang: en
   - [⚙️ Method `set_emoji`](#%EF%B8%8F-method-set_emoji)
 - [🏛️ Class `EmojiPickerDialog`](#%EF%B8%8F-class-emojipickerdialog)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
+  - [⚙️ Method `refresh_theme`](#%EF%B8%8F-method-refresh_theme)
   - [⚙️ Method `selected_emoji`](#%EF%B8%8F-method-selected_emoji)
+- [🔧 Function `emoji_cell_style`](#-function-emoji_cell_style)
+- [🔧 Function `emoji_preview_style`](#-function-emoji_preview_style)
 
 </details>
 
@@ -240,7 +243,6 @@ class EmojiPickerDialog(QDialog):
         self._preview = QLabel(self._selected)
         self._preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._preview.setFixedSize(48, 48)
-        self._preview.setStyleSheet(_PREVIEW_STYLE)
         preview_row.addWidget(preview_label)
         preview_row.addWidget(self._preview)
         preview_row.addStretch(1)
@@ -256,11 +258,12 @@ class EmojiPickerDialog(QDialog):
         grid_host = QWidget()
         grid = QGridLayout(grid_host)
         grid.setSpacing(6)
+        self._cells: list[QPushButton] = []
         for index, emoji in enumerate(self._presets):
             button = QPushButton(emoji)
             button.setFixedSize(40, 40)
             button.setCursor(Qt.CursorShape.PointingHandCursor)
-            button.setStyleSheet(_CELL_STYLE)
+            self._cells.append(button)
             button.clicked.connect(lambda _checked=False, value=emoji: self._select_emoji(value))
             grid.addWidget(button, index // _GRID_COLUMNS, index % _GRID_COLUMNS)
         scroll.setWidget(grid_host)
@@ -280,6 +283,15 @@ class EmojiPickerDialog(QDialog):
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         root.addWidget(buttons)
+        bind_theme(self, self.refresh_theme)
+
+    def refresh_theme(self) -> None:
+        """Re-color the preview and grid cells for the current window theme."""
+        palette = palette_for(self)
+        self._preview.setStyleSheet(emoji_preview_style(palette))
+        cell_style = emoji_cell_style(palette)
+        for button in self._cells:
+            button.setStyleSheet(cell_style)
 
     def selected_emoji(self) -> str:
         """Return the chosen emoji, possibly empty when `allow_empty` is set."""
@@ -351,7 +363,6 @@ def __init__(
         self._preview = QLabel(self._selected)
         self._preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._preview.setFixedSize(48, 48)
-        self._preview.setStyleSheet(_PREVIEW_STYLE)
         preview_row.addWidget(preview_label)
         preview_row.addWidget(self._preview)
         preview_row.addStretch(1)
@@ -367,11 +378,12 @@ def __init__(
         grid_host = QWidget()
         grid = QGridLayout(grid_host)
         grid.setSpacing(6)
+        self._cells: list[QPushButton] = []
         for index, emoji in enumerate(self._presets):
             button = QPushButton(emoji)
             button.setFixedSize(40, 40)
             button.setCursor(Qt.CursorShape.PointingHandCursor)
-            button.setStyleSheet(_CELL_STYLE)
+            self._cells.append(button)
             button.clicked.connect(lambda _checked=False, value=emoji: self._select_emoji(value))
             grid.addWidget(button, index // _GRID_COLUMNS, index % _GRID_COLUMNS)
         scroll.setWidget(grid_host)
@@ -391,6 +403,29 @@ def __init__(
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         root.addWidget(buttons)
+        bind_theme(self, self.refresh_theme)
+```
+
+</details>
+
+### ⚙️ Method `refresh_theme`
+
+```python
+def refresh_theme(self) -> None
+```
+
+Re-color the preview and grid cells for the current window theme.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def refresh_theme(self) -> None:
+        palette = palette_for(self)
+        self._preview.setStyleSheet(emoji_preview_style(palette))
+        cell_style = emoji_cell_style(palette)
+        for button in self._cells:
+            button.setStyleSheet(cell_style)
 ```
 
 </details>
@@ -409,6 +444,54 @@ Return the chosen emoji, possibly empty when `allow_empty` is set.
 ```python
 def selected_emoji(self) -> str:
         return self._selected.strip()
+```
+
+</details>
+
+## 🔧 Function `emoji_cell_style`
+
+```python
+def emoji_cell_style(palette: FluentPalette) -> str
+```
+
+Return the Fluent card-like stylesheet for one emoji grid cell.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def emoji_cell_style(palette: FluentPalette) -> str:
+    return f"""
+QPushButton {{
+    font-size: 20px;
+    border: 1px solid {css(palette.card_stroke)};
+    border-radius: {RADIUS_CONTROL}px;
+    background: {css(palette.card_bg)};
+}}
+QPushButton:hover {{ background: {css(palette.card_bg_hover)}; }}
+QPushButton:pressed {{ background: {css(palette.card_bg_pressed)}; }}
+"""
+```
+
+</details>
+
+## 🔧 Function `emoji_preview_style`
+
+```python
+def emoji_preview_style(palette: FluentPalette) -> str
+```
+
+Return the Fluent stylesheet for the selected-emoji preview.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def emoji_preview_style(palette: FluentPalette) -> str:
+    return (
+        f"QLabel {{ font-size: 28px; border: 1px solid {css(palette.card_stroke)};"
+        f" border-radius: {RADIUS_CARD}px; background: {css(palette.card_bg)}; }}"
+    )
 ```
 
 </details>

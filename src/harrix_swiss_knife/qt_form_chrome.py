@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife.apps.common.ui_chrome import apply_white_surface_palette
+from harrix_swiss_knife.fluent.theme import FLUENT_THEMED_PROPERTY, enable_fluent_theme, is_fluent_themed
 from harrix_swiss_knife.qt_lucide_checkbox import (
     apply_lucide_checkbox_style,
     apply_lucide_radio_style,
@@ -50,5 +51,9 @@ def install_form_chrome(app: QApplication) -> None:
 
 def _apply_dialog_surface(dialog: QWidget) -> None:
     if dialog.testAttribute(Qt.WidgetAttribute.WA_TranslucentBackground):
+        return
+    if is_fluent_themed(dialog):
+        if not dialog.property(FLUENT_THEMED_PROPERTY):
+            enable_fluent_theme(dialog)
         return
     apply_white_surface_palette(dialog)

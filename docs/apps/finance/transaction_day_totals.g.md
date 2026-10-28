@@ -146,7 +146,7 @@ Format the status-bar text for selected transaction rows.
 
 Args:
 
-- [`count`](../../qt_flow_layout.g.md#%EF%B8%8F-method-count) (`int`): Number of selected rows.
+- `count` (`int`): Number of selected rows.
 - [`total`](../../toast_progress_notification.g.md#%EF%B8%8F-method-total-property) (`float`): Signed sum in the default currency (income +, expense -).
 - `currency_symbol` (`str`): Default currency symbol.
 
@@ -196,7 +196,7 @@ Parse a stored amount cell, ignoring the expense minus sign.
 
 Args:
 
-- [`text`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-text) (`str`): Amount text from the table model.
+- `text` (`str`): Amount text from the table model.
 
 Returns:
 

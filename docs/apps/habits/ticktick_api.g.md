@@ -364,7 +364,7 @@ Args:
 
 - [`habit_id`](dashboard_widgets.g.md#%EF%B8%8F-method-habit_id) (`str`): TickTick habit ID.
 - `icon_res` (`str`): Built-in icon key. Defaults to `habit_reading`.
-- `color` (`str`): Habit color. Defaults to the TickTick docs blue.
+- [`color`](../../fluent/widgets/dialogs.g.md#%EF%B8%8F-method-color) (`str`): Habit color. Defaults to the TickTick docs blue.
 
 <details>
 <summary>Code:</summary>

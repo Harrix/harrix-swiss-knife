@@ -26,7 +26,7 @@ class OnOpenConfigJson(ActionBase)
 Open the application's configuration file.
 
 Opens `config.json` in the editor from `editor`. If that command or path is
-missing, tries `cursor`, `code` (VS Code), `code-insiders` in order, writes
+missing, tries `cursor`, [`code`](../../fluent/widgets/inputs.g.md#%EF%B8%8F-method-code) (VS Code), `code-insiders` in order, writes
 the first match back to `config.json` under `editor`, then opens the file.
 If none are available on Windows, uses Notepad and persists `editor` as
 `notepad`. On other platforms, opens the file with the default application when
@@ -90,7 +90,7 @@ def open_config_json_in_editor(*, config_path: str | Path | None = None, preferr
 Open `config.json` in the configured editor and return status lines.
 
 Uses `preferred_editor` or the `editor` key from config. If that command or
-path is missing, tries `cursor`, `code`, `code-insiders` in order, writes the
+path is missing, tries `cursor`, [`code`](../../fluent/widgets/inputs.g.md#%EF%B8%8F-method-code), `code-insiders` in order, writes the
 first match back to `config.json` under `editor`, then opens the file. On
 Windows, falls back to Notepad. On other platforms, opens with the default
 application when no editor is found.

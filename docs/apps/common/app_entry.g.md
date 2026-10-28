@@ -48,6 +48,7 @@ def run_app_main(
     install_app_fonts(app)
     install_ui_effects(app)
     install_safe_qt_translate()
+    FluentTheme.instance().load_from_config()
     try:
         with app_loading_toast_scope(app_loading_title(main_window_factory)):
             win = main_window_factory()

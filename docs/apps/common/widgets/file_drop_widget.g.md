@@ -20,6 +20,7 @@ lang: en
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
   - [⚙️ Method `get_file_paths`](#%EF%B8%8F-method-get_file_paths)
   - [⚙️ Method `set_file_paths`](#%EF%B8%8F-method-set_file_paths)
+- [🔧 Function `drop_style`](#-function-drop_style)
 
 </details>
 
@@ -92,7 +93,7 @@ class FileDropWidget(QWidget):
         changed = bool(self.file_path)
         self.file_path = ""
         self.file_label.setText(self._hint_text)
-        self.file_label.setStyleSheet(_EMPTY_DROP_STYLE)
+        self._refresh_drop_style()
         if changed:
             self.file_changed.emit()
 
@@ -108,10 +109,13 @@ class FileDropWidget(QWidget):
         if self._is_allowed_path(paths[0]):
             self._set_file(paths[0])
 
+    def _refresh_drop_style(self) -> None:
+        self.file_label.setStyleSheet(drop_style(self, selected=bool(self.file_path)))
+
     def _set_file(self, file_path: str) -> None:
         self.file_path = file_path
         self.file_label.setText(f"File: {Path(file_path).name}")
-        self.file_label.setStyleSheet(_SELECTED_DROP_STYLE)
+        self._refresh_drop_style()
         self.file_changed.emit()
 
     def _setup_ui(self) -> None:
@@ -119,7 +123,6 @@ class FileDropWidget(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         self.file_label = QLabel(self._hint_text)
         self.file_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.file_label.setStyleSheet(_EMPTY_DROP_STYLE)
         self.file_label.setMinimumHeight(60)
         self.file_label.setWordWrap(True)
         install_url_drop_handlers(
@@ -139,6 +142,7 @@ class FileDropWidget(QWidget):
         layout.addWidget(self.file_label)
         layout.addLayout(button_layout)
         self.setLayout(layout)
+        bind_theme(self, self._refresh_drop_style)
 ```
 
 </details>
@@ -381,6 +385,36 @@ def set_file_paths(self, paths: list[str]) -> None:
         for path in paths:
             if Path(path).exists():
                 self._add_file_path(path)
+```
+
+</details>
+
+## 🔧 Function `drop_style`
+
+```python
+def drop_style(widget: QWidget, *, selected: bool) -> str
+```
+
+Return drop-zone QSS: Fluent card colors in themed Windows, Harrix white zone elsewhere.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def drop_style(widget: QWidget, *, selected: bool) -> str:
+    if not is_fluent_themed(widget):
+        return drop_zone_qss(selected=selected, padding="10px" if selected else "20px")
+    palette = palette_for(widget)
+    border = f"2px solid {css(palette.success)}" if selected else f"2px dashed {css(palette.control_strong_stroke)}"
+    return f"""
+QLabel {{
+    border: {border};
+    border-radius: {RADIUS_CONTROL}px;
+    padding: {"10px" if selected else "20px"};
+    background-color: {css(palette.card_bg)};
+    color: {css(palette.text_primary)};
+}}
+""".strip()
 ```
 
 </details>

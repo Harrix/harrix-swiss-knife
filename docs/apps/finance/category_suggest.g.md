@@ -12,7 +12,7 @@ lang: en
 def suggest_categories(description: str, history_pairs: Sequence[tuple[str, str, int]], category_names: Sequence[str], *, category_aliases: Mapping[str, Sequence[str]] | None = None, limit: int = _DEFAULT_LIMIT, min_score: float = _DEFAULT_MIN_SCORE, min_length: int = _DEFAULT_MIN_LENGTH) -> list[str]
 ```
 
-Return up to `limit` category names suggested for `description`.
+Return up to `limit` category names suggested for [`description`](../../fluent/widgets/cards.g.md#%EF%B8%8F-method-description).
 
 Prefers close matches to past descriptions (weighted by how often that pair
 was used), then category English/local names. Token prefix and typo-tolerant

@@ -753,7 +753,7 @@ Args:
 - `name` (`str`): Food item name.
 - `weight_str` (`str`): Weight in grams.
 - `calories_str` (`str`): Calories (per 100g or per portion, depending on mode).
-- [`mode`](../common/widgets/image_picker.g.md#%EF%B8%8F-method-mode-property) (`str`): `weight` or `portion`.
+- `mode` (`str`): `weight` or `portion`.
 - `drink` (`str`): `yes` / `no` (and common aliases).
 - `default_date` (`str`): Date in YYYY-MM-DD format.
 
@@ -790,7 +790,7 @@ Parse text input and convert to food items.
 
 Args:
 
-- [`text`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-text) (`str`): Text input to parse.
+- `text` (`str`): Text input to parse.
 - `db_manager` (`Any | None`): Database manager for looking up existing items. Defaults to `None`.
 - `default_date` (`str | None`): Default date to use if no date is found in text. Defaults to `None`.
 - `correct_unparseable_line` (`Callable[[str], str | None] | None`): Optional callback that can

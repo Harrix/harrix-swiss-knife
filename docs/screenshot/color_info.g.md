@@ -246,7 +246,7 @@ def __init__(self, parent: QWidget | None = None) -> None:
 def set_color(self, color: QColor) -> None
 ```
 
-Fill the format fields and swatch from `color`.
+Fill the format fields and swatch from [`color`](../fluent/widgets/dialogs.g.md#%EF%B8%8F-method-color).
 
 <details>
 <summary>Code:</summary>
@@ -272,7 +272,7 @@ def set_color(self, color: QColor) -> None:
 def show_color(self, color: QColor) -> None
 ```
 
-Show `color`. HEX is already on the clipboard.
+Show [`color`](../fluent/widgets/dialogs.g.md#%EF%B8%8F-method-color). HEX is already on the clipboard.
 
 <details>
 <summary>Code:</summary>
@@ -301,7 +301,7 @@ def show_color(self, color: QColor) -> None:
 def color_clipboard_formats(color: QColor) -> tuple[tuple[str, str], ...]
 ```
 
-Return `(label, clipboard text)` pairs for `color`.
+Return `(label, clipboard text)` pairs for [`color`](../fluent/widgets/dialogs.g.md#%EF%B8%8F-method-color).
 
 HEX matches `QColor.name()` (`#rrggbb`). RGB, HSL, HSV, CMYK, and RGBA follow.
 

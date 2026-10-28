@@ -1029,7 +1029,7 @@ class AnnotationTool(Enum):
 def clone_annotation(item: Annotation) -> Annotation
 ```
 
-Return a deep copy of `item`.
+Return a deep copy of [`item`](../fluent/widgets/navigation.g.md#%EF%B8%8F-method-item).
 
 <details>
 <summary>Code:</summary>

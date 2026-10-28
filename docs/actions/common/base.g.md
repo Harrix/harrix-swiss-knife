@@ -76,7 +76,7 @@ Attributes:
 - `title` (`str`): Action title. May include Markdown inline code (`` `name` ``)
   for README generation; Qt UI shows it without backticks via [`display_title`](#%EF%B8%8F-method-display_title-property).
   Defaults to `""`.
-- `description` (`str`): Short UI description for icon cards. Defaults to `""`
+- [`description`](../../fluent/widgets/cards.g.md#%EF%B8%8F-method-description) (`str`): Short UI description for icon cards. Defaults to `""`
   (falls back to the first docstring line via [`resolve_description`](#%EF%B8%8F-method-resolve_description-classmethod)).
 - `cli_available` (`bool`): Whether the action is available via `hsk`. Defaults to `False`.
 - `cli_hint` (`str`): Short CLI example for menu tooltip. Defaults to `""`.
@@ -1652,7 +1652,7 @@ def resolve_config_value(self, key: Any, value: Any) -> Any:
 def resolve_description(cls) -> str
 ```
 
-Return UI description from `description` or the first docstring line.
+Return UI description from [`description`](../../fluent/widgets/cards.g.md#%EF%B8%8F-method-description) or the first docstring line.
 
 <details>
 <summary>Code:</summary>
@@ -1943,7 +1943,7 @@ Copy the given text to the system clipboard.
 
 Args:
 
-- [`text`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-text) (`str`): The text to be copied to the clipboard.
+- `text` (`str`): The text to be copied to the clipboard.
 
 Returns:
 

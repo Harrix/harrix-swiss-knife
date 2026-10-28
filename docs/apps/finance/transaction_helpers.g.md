@@ -1617,10 +1617,10 @@ Args:
 
 Returns:
 
-- `list[dict[str, Any]]`: One dict per currency with keys `currency_id`, `code`,
+- `list[dict[str, Any]]`: One dict per currency with keys `currency_id`, [`code`](../../fluent/widgets/inputs.g.md#%EF%B8%8F-method-code),
 
 `symbol`, `journal_minor`, `accounts_minor`, `diff_minor`
-(`diff_minor = accounts_minor - journal_minor`). Sorted by `code`.
+(`diff_minor = accounts_minor - journal_minor`). Sorted by [`code`](../../fluent/widgets/inputs.g.md#%EF%B8%8F-method-code).
 
 <details>
 <summary>Code:</summary>

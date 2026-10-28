@@ -22,7 +22,7 @@ lang: en
 def build_git_commit_subject_prompt(description: str, config: dict[str, Any]) -> str
 ```
 
-Build the commit-subject prompt for `description`.
+Build the commit-subject prompt for [`description`](../../fluent/widgets/cards.g.md#%EF%B8%8F-method-description).
 
 Raises:
 

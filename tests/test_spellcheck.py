@@ -157,12 +157,7 @@ class _MarkAllMisspelled(SpellEngine):
 def _wave_min_x(line: QLineEdit) -> float:
     image = line.grab().toImage()
     ratio = image.devicePixelRatio() or 1.0
-    xs = [
-        x
-        for y in range(image.height())
-        for x in range(image.width())
-        if _is_wave_pixel(image.pixelColor(x, y))
-    ]
+    xs = [x for y in range(image.height()) for x in range(image.width()) if _is_wave_pixel(image.pixelColor(x, y))]
     assert xs, "spellcheck wave was not painted"
     return min(xs) / ratio
 

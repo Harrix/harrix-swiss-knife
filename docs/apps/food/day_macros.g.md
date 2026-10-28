@@ -653,7 +653,7 @@ Parse AI output: intake TSV, norms TSV, bilingual verdict/notes.
 
 Args:
 
-- [`text`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-text) (`str`): Raw BotHub response.
+- `text` (`str`): Raw BotHub response.
 
 Returns:
 
@@ -854,7 +854,7 @@ Return unique calendar dates, skipping blanks and keeping first-seen order.
 
 Args:
 
-- [`values`](../snippets/item_edit_dialog.g.md#%EF%B8%8F-method-values) (`list[str]`): Date cell texts. Only the `YYYY-MM-DD` prefix is used.
+- `values` (`list[str]`): Date cell texts. Only the `YYYY-MM-DD` prefix is used.
 
 Returns:
 

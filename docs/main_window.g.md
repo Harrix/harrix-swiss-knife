@@ -31,7 +31,7 @@ lang: en
 class MainWindow(QMainWindow)
 ```
 
-Tray-click window with a command list and action cards.
+Tray-click window with a command list and Fluent command cards.
 
 <details>
 <summary>Code:</summary>
@@ -51,7 +51,7 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle("Harrix Swiss Knife")
         apply_window_icon(self)
-        try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
+        enable_fluent_theme(self)
 
         self._sections: list[_CommandSection] = []
         self._recent_section: _CommandSection | None = None
@@ -60,11 +60,10 @@ class MainWindow(QMainWindow):
         self._sort_mode = get_main_window_sort_mode()
 
         central_widget = QWidget()
-        apply_opaque_white(central_widget)
         self.setCentralWidget(central_widget)
         root_layout = QVBoxLayout(central_widget)
-        root_layout.setContentsMargins(12, 12, 12, 12)
-        root_layout.setSpacing(12)
+        root_layout.setContentsMargins(0, 0, 0, 0)
+        root_layout.setSpacing(0)
 
         caption_tools = self._build_caption_tools()
         self._caption_tools = caption_tools
@@ -75,7 +74,7 @@ class MainWindow(QMainWindow):
         self._sync_sort_combo()
         self._apply_catalog_view()
         self._setup_window_size_and_position()
-        apply_flat_scrollbars(self)
+        bind_theme(self, self._refresh_theme_icons)
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Hide the window instead of closing the application."""
@@ -83,12 +82,9 @@ class MainWindow(QMainWindow):
         self.hide()
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
-        """Forward wheel events from icon grids and refit Recent when the cards pane resizes."""
+        """Refit Recent when the cards pane resizes."""
         if event.type() == QEvent.Type.Resize and watched is self._scroll.viewport():
             QTimer.singleShot(0, self._on_cards_layout_changed)
-        if event.type() == QEvent.Type.Wheel and self._is_icon_grid_wheel_target(watched):
-            QApplication.sendEvent(self._scroll.viewport(), event)
-            return True
         return super().eventFilter(watched, event)
 
     def focus_initial_input(self) -> None:
@@ -117,7 +113,7 @@ class MainWindow(QMainWindow):
             self._scroll_to_section(data)
 
     def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
-        """Refit Recent and icon grid heights when the window width changes."""
+        """Refit Recent when the window width changes."""
         super().resizeEvent(event)
         QTimer.singleShot(0, self._on_cards_layout_changed)
 
@@ -137,35 +133,6 @@ class MainWindow(QMainWindow):
             return True
         description = getattr(action, "action_description", "") or ""
         return bool(description) and command_matches_search(description, query)
-
-    def _add_action_item(
-        self,
-        grid: QListWidget,
-        action: QAction,
-        *,
-        show_added_at: bool = False,
-        show_section: bool = False,
-    ) -> None:
-        icon_name = getattr(action, "icon_name", "") or ""
-        description = getattr(action, "action_description", "") or ""
-        if show_added_at:
-            parts = get_action_identity_parts(action)
-            if parts is not None:
-                date_text = format_added_at_date(added_at_for(parts.class_name))
-                if date_text:
-                    added_line = f"Added {date_text}"
-                    description = f"{description}\n{added_line}" if description else added_line
-        section = self._action_sections.get(action, "") if show_section else ""
-        add_described_action_card(
-            grid,
-            icon=icon_name,
-            title=action.text(),
-            description=description,
-            section=section,
-            user_data=action,
-            on_select=lambda listed=action: self._run_listed_action(listed),
-            on_context_menu=self._on_card_context_menu,
-        )
 
     def _add_list_action_item(self, action: QAction, *, indent_level: int = 0) -> None:
         item = QListWidgetItem(("    " * indent_level) + action.text())
@@ -198,14 +165,8 @@ class MainWindow(QMainWindow):
         self._grouped_widget.hide()
         self._search_grid.clear()
         for action in self._ordered_catalog_actions(query):
-            self._add_action_item(
-                self._search_grid,
-                action,
-                show_added_at=newest,
-                show_section=True,
-            )
+            self._search_grid.add_card(self._create_card(action, show_added_at=newest, show_section=True))
         self._search_grid.show()
-        QTimer.singleShot(0, lambda: self._fit_grid_height(self._search_grid))
 
     def _apply_catalog_view(self) -> None:
         """Refresh list and cards for the current search text and sort mode."""
@@ -228,141 +189,97 @@ class MainWindow(QMainWindow):
             self._add_list_action_item(action, indent_level=1 if section else 0)
 
     def _build_body_widget(self) -> QWidget:
-        body = QWidget()
-        apply_opaque_white(body)
-        body_layout = QHBoxLayout(body)
-        body_layout.setContentsMargins(0, 0, 0, 0)
-
-        splitter = QSplitter()
+        splitter = FluentSplitter()
         splitter.addWidget(self._build_list_pane())
         splitter.addWidget(self._build_cards_pane())
         splitter.setStretchFactor(0, 0)
         splitter.setStretchFactor(1, 1)
-        splitter.setSizes([300, 700])
-        body_layout.addWidget(splitter)
-        return body
+        splitter.setSizes([_LIST_PANE_WIDTH, _CARDS_PANE_WIDTH])
+        return splitter
 
     def _build_caption_tools(self) -> QWidget:
-        """Build compact search and sort controls for the caption row."""
+        """Build compact search, sort, and theme controls for the caption row."""
         tools = QWidget()
         tools.setObjectName("captionTools")
         tools.setFixedHeight(CAPTION_BUTTON_HEIGHT)
         tools.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        tools.setStyleSheet(_caption_tools_style())
 
         row = QHBoxLayout(tools)
-        row.setContentsMargins(8, 3, 8, 3)
-        row.setSpacing(6)
+        row.setContentsMargins(SPACE_S, 0, SPACE_S, 0)
+        row.setSpacing(SPACE_XS)
 
-        self._search_edit = QLineEdit()
+        self._search_edit = FluentSearchLineEdit(tools, placeholder="Search commands…", compact=True)
         self._search_edit.setObjectName("captionSearchEdit")
-        self._search_edit.setPlaceholderText("Search commands…")
         self._search_edit.setMinimumWidth(_CAPTION_SEARCH_MIN_WIDTH)
-        self._search_edit.setFixedHeight(_CAPTION_CONTROL_HEIGHT)
         self._search_edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        compact = QFont(self._search_edit.font())
-        if compact.pointSizeF() > 0:
-            compact.setPointSizeF(max(8.0, compact.pointSizeF() - 1.0))
-        self._search_edit.setFont(compact)
-        install_line_edit_search_chrome(self._search_edit, clear_tooltip="Clear search")
         self._search_edit.textChanged.connect(self._on_search_changed)
         row.addWidget(self._search_edit, stretch=1)
 
-        self._sort_combo = QComboBox()
+        self._sort_combo = FluentComboBox(tools, compact=True)
         self._sort_combo.setObjectName("captionSortCombo")
-        self._sort_combo.setIconSize(QSize(_SORT_COMBO_ICON_SIZE, _SORT_COMBO_ICON_SIZE))
-        self._sort_combo.addItem(
-            create_lucide_icon("list-tree", _SORT_COMBO_ICON_SIZE),
-            "Menu order",
-            MAIN_WINDOW_SORT_MODE_MENU,
-        )
-        self._sort_combo.addItem(
-            create_lucide_icon("list-clock", _SORT_COMBO_ICON_SIZE),
-            "Newest first",
-            MAIN_WINDOW_SORT_MODE_NEWEST,
-        )
+        for mode, label, _icon in _SORT_MODES:
+            self._sort_combo.addItem(label, mode)
         self._sort_combo.setToolTip("Sort commands by menu structure or date added")
-        self._sort_combo.setFixedHeight(_CAPTION_CONTROL_HEIGHT)
-        self._sort_combo.setFont(compact)
         self._sort_combo.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
         self._sort_combo.currentIndexChanged.connect(self._on_sort_mode_changed)
         row.addWidget(self._sort_combo)
 
+        self._theme_button = FluentIconButton("moon", tools)
+        self._theme_button.clicked.connect(self._on_theme_toggled)
+        row.addWidget(self._theme_button)
+
         return tools
 
     def _build_cards_pane(self) -> QWidget:
-        cards_pane = QWidget()
-        apply_opaque_white(cards_pane)
+        layer = FluentLayerPanel()
+        layer_layout = QVBoxLayout(layer)
+        layer_layout.setContentsMargins(1, 1, 0, 0)
+        layer_layout.setSpacing(0)
 
-        cards_layout = QVBoxLayout(cards_pane)
-        cards_layout.setContentsMargins(0, 0, 0, 0)
-        cards_layout.setSpacing(0)
-
-        self._scroll = QScrollArea()
-        self._scroll.setWidgetResizable(True)
-        self._scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        self._scroll = FluentScrollArea(layer)
         self._scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        apply_opaque_white(self._scroll)
-        apply_opaque_white(self._scroll.viewport())
         self._scroll.viewport().installEventFilter(self)
-        cards_layout.addWidget(self._scroll)
+        layer_layout.addWidget(self._scroll)
 
         self._content = QWidget()
-        apply_opaque_white(self._content)
         self._content_layout = QVBoxLayout(self._content)
-        self._content_layout.setContentsMargins(0, 0, 0, 0)
-        self._content_layout.setSpacing(8)
+        self._content_layout.setContentsMargins(SPACE_XL, SPACE_L, SPACE_XL, SPACE_XL)
+        self._content_layout.setSpacing(SPACE_XL)
         self._content_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self._scroll.setWidget(self._content)
 
-        self._grouped_widget = QWidget()
-        apply_opaque_white(self._grouped_widget)
+        self._grouped_widget = QWidget(self._content)
         self._grouped_layout = QVBoxLayout(self._grouped_widget)
         self._grouped_layout.setContentsMargins(0, 0, 0, 0)
-        self._grouped_layout.setSpacing(12)
+        self._grouped_layout.setSpacing(SPACE_XL)
         self._grouped_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        self._content_layout.addWidget(self._grouped_widget, 0, Qt.AlignmentFlag.AlignTop)
+        self._content_layout.addWidget(self._grouped_widget)
 
-        self._search_grid = QListWidget()
-        configure_described_choice_card_grid(self._search_grid)
-        prepare_icon_grid(self._search_grid, event_filter=self)
-        self._search_grid.itemClicked.connect(self._on_icon_item_clicked)
-        self._search_grid.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self._search_grid.customContextMenuRequested.connect(
-            lambda pos: self._on_grid_context_menu(self._search_grid, pos),
-        )
+        self._search_grid = FluentCardGrid(self._content)
         self._search_grid.hide()
-        self._content_layout.addWidget(self._search_grid, 0, Qt.AlignmentFlag.AlignTop)
+        self._content_layout.addWidget(self._search_grid)
         self._content_layout.addStretch(1)
 
-        return cards_pane
-
-    def _build_footer_row(self) -> QHBoxLayout:
-        footer_row = QHBoxLayout()
-        self._startup_checkbox = QCheckBox("Show at program startup")
-        self._startup_checkbox.setToolTip("Open this window when Harrix Swiss Knife starts")
-        self._startup_checkbox.setChecked(get_show_main_window_on_startup())
-        self._startup_checkbox.toggled.connect(self._on_show_on_startup_toggled)
-        footer_row.addWidget(self._startup_checkbox)
-        footer_row.addStretch(1)
-        return footer_row
+        return layer
 
     def _build_list_pane(self) -> QWidget:
         list_pane = QWidget()
-        apply_opaque_white(list_pane)
         list_layout = QVBoxLayout(list_pane)
-        list_layout.setContentsMargins(0, 0, 0, 0)
+        list_layout.setContentsMargins(SPACE_XS, SPACE_XS, 0, SPACE_M)
+        list_layout.setSpacing(SPACE_S)
 
-        self.list_widget = QListWidget()
-        self.list_widget.setFrameShape(QListWidget.Shape.NoFrame)
-        self.list_widget.setStyleSheet(
-            with_flat_scrollbars("QListWidget { border: none; background: transparent; }"),
-        )
+        self.list_widget = FluentListWidget(list_pane)
         self.list_widget.itemClicked.connect(self.on_item_clicked)
         self.list_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.list_widget.customContextMenuRequested.connect(self._on_list_context_menu)
-        list_layout.addWidget(self.list_widget)
-        list_layout.addLayout(self._build_footer_row())
+        list_layout.addWidget(self.list_widget, stretch=1)
+
+        self._startup_checkbox = FluentCheckBox("Show at program startup", list_pane)
+        self._startup_checkbox.setToolTip("Open this window when Harrix Swiss Knife starts")
+        self._startup_checkbox.setChecked(get_show_main_window_on_startup())
+        self._startup_checkbox.toggled.connect(self._on_show_on_startup_toggled)
+        list_layout.addWidget(self._startup_checkbox)
+        list_layout.setAlignment(self._startup_checkbox, Qt.AlignmentFlag.AlignLeft)
         return list_pane
 
     def _build_sections_from_menu(self, menu: QMenu) -> None:
@@ -392,18 +309,42 @@ class MainWindow(QMainWindow):
             show_in_list=False,
         )
 
-    def _cards_row_width(self) -> int:
-        """Return the catalog card-grid width, not the Recent grid's current contents."""
-        for section in self._sections:
-            if not section.show_in_list or section.grid is None or not section.grid.isVisible():
-                continue
-            width = section.grid.viewport().width()
-            if width > 0:
-                return width
-        viewport_width = self._scroll.viewport().width()
-        if viewport_width <= 0:
-            return 0
-        return max(1, viewport_width - 16)
+    def _create_card(
+        self,
+        action: QAction,
+        *,
+        show_added_at: bool = False,
+        show_section: bool = False,
+    ) -> FluentCommandCard:
+        """Build a command card that runs `action` and offers its copy menu."""
+        overline_parts: list[str] = []
+        if show_section:
+            section = self._action_sections.get(action, "")
+            if section:
+                overline_parts.append(section)
+        if show_added_at:
+            parts = get_action_identity_parts(action)
+            date_text = format_added_at_date(added_at_for(parts.class_name)) if parts is not None else ""
+            if date_text:
+                overline_parts.append(f"Added {date_text}")
+        icon_name = getattr(action, "icon_name", "") or ""
+        icon = create_menu_icon(icon_name, CARD_ICON_SIZE) if icon_name else None
+        card = FluentCommandCard(
+            action.text(),
+            getattr(action, "action_description", "") or "",
+            icon=icon if icon is not None and not icon.isNull() else None,
+            overline=" · ".join(overline_parts),
+            user_data=action,
+        )
+        card.clicked.connect(lambda listed=action: self._run_listed_action(listed))
+        card.context_menu_requested.connect(
+            lambda global_pos, listed=action: show_action_item_context_menu(
+                parent=self,
+                global_pos=global_pos,
+                action=listed,
+            ),
+        )
+        return card
 
     def _create_section(
         self,
@@ -414,87 +355,46 @@ class MainWindow(QMainWindow):
         insert_at: int | None = None,
         show_in_list: bool = True,
     ) -> _CommandSection:
-        section_widget, label, section_layout = create_command_section(title=title, bordered=False)
+        section_widget = QWidget(self._grouped_widget)
+        section_layout = QVBoxLayout(section_widget)
+        section_layout.setContentsMargins(0, 0, 0, 0)
+        section_layout.setSpacing(SPACE_M)
+        label = SubtitleLabel(title, section_widget)
+        section_layout.addWidget(label)
 
-        grid = QListWidget()
-        configure_described_choice_card_grid(grid)
-        prepare_icon_grid(grid, event_filter=self)
-        grid.itemClicked.connect(self._on_icon_item_clicked)
-        grid.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        grid.customContextMenuRequested.connect(lambda pos, g=grid: self._on_grid_context_menu(g, pos))
-
+        grid = FluentCardGrid(section_widget)
         for action in actions:
-            self._add_action_item(grid, action)
+            grid.add_card(self._create_card(action))
             if track_in_all:
                 self._all_actions.append(action)
                 self._action_sections[action] = title
-
         section_layout.addWidget(grid)
-        divider = create_command_section_divider()
+
         section = _CommandSection(
             title=title,
             actions=actions,
             label=label,
             grid=grid,
             widget=section_widget,
-            divider=divider,
             show_in_list=show_in_list,
         )
         if insert_at is None:
             self._grouped_layout.addWidget(section_widget)
-            self._grouped_layout.addWidget(divider)
             self._sections.append(section)
         else:
             self._grouped_layout.insertWidget(insert_at, section_widget)
-            self._grouped_layout.insertWidget(insert_at + 1, divider)
             self._sections.insert(insert_at, section)
         if not actions:
             section_widget.hide()
-            divider.hide()
-        if actions:
-            QTimer.singleShot(0, lambda g=grid: self._fit_grid_height(g))
         return section
-
-    def _fit_grid_height(self, grid: QListWidget) -> None:
-        """Rescale described cards to the viewport, then fit section height."""
-        sync_described_choice_card_grid(grid)
-        fit_icon_grid_height(grid)
-
-    def _fit_visible_grids(self) -> None:
-        if self._search_grid.isVisible():
-            self._fit_grid_height(self._search_grid)
-            return
-        for section in self._sections:
-            if section.grid is not None and section.grid.isVisible():
-                self._fit_grid_height(section.grid)
-
-    def _is_icon_grid_wheel_target(self, watched: QObject) -> bool:
-        grids = [self._search_grid]
-        grids.extend(section.grid for section in self._sections if section.grid is not None)
-        return any(watched is grid or watched is grid.viewport() for grid in grids)
 
     def _is_newest_sort(self) -> bool:
         return self._sort_mode == MAIN_WINDOW_SORT_MODE_NEWEST
 
-    def _on_card_context_menu(self, user_data: object, global_pos: QPoint) -> None:
-        """Show copy name/class/path for the action bound to a command card."""
-        if isinstance(user_data, QAction):
-            show_action_item_context_menu(parent=self, global_pos=global_pos, action=user_data)
-
     def _on_cards_layout_changed(self) -> None:
-        """Fit catalog cards first, then size Recent to that row width."""
-        self._fit_visible_grids()
+        """Size Recent to one row of the catalog grid."""
         if not self._is_newest_sort() and not self._search_edit.text().strip():
             self._refresh_recent_section()
-
-    def _on_grid_context_menu(self, grid: QListWidget, pos: QPoint) -> None:
-        """Show copy name/class/path and CLI command for the card under the cursor."""
-        self._show_list_item_context_menu(grid, pos)
-
-    def _on_icon_item_clicked(self, item: QListWidgetItem) -> None:
-        action = item.data(Qt.ItemDataRole.UserRole)
-        if isinstance(action, QAction):
-            self._run_listed_action(action)
 
     def _on_list_context_menu(self, pos: QPoint) -> None:
         """Show copy name/class/path and CLI command for the list item under the cursor."""
@@ -531,6 +431,13 @@ class MainWindow(QMainWindow):
             return
         self._apply_catalog_view()
 
+    def _on_theme_toggled(self) -> None:
+        """Flip light / dark and persist `ui_theme` to `config.json`."""
+        try:
+            FluentTheme.instance().toggle(persist=True)
+        except (OSError, TypeError, ValueError) as exc:
+            message_box.warning(self, "Settings", f"Could not save config.json:\n{exc}")
+
     def _ordered_catalog_actions(self, query: str = "") -> list[QAction]:
         """Return catalog actions, optionally filtered and newest-first."""
         actions = [action for action in self._all_actions if not query or self._action_matches_search(action, query)]
@@ -554,15 +461,12 @@ class MainWindow(QMainWindow):
                 self._add_list_action_item(action, indent_level=1)
 
     def _recent_column_count(self) -> int:
-        """Return how many Recent cards fit in one catalog row."""
-        laid_out = 0
-        for section in self._sections:
-            if not section.show_in_list or section.grid is None or not section.grid.isVisible():
-                continue
-            laid_out = max(laid_out, count_icon_grid_first_row(section.grid))
-        if laid_out > 0:
-            return laid_out
-        return described_card_column_count(self._cards_row_width())
+        """Return how many command cards fit in one row of the cards pane."""
+        width = self._grouped_widget.width()
+        if width <= 0:
+            margins = self._content_layout.contentsMargins()
+            width = self._scroll.viewport().width() - margins.left() - margins.right()
+        return max(1, (width + CARD_GRID_SPACING) // (COMMAND_CARD_WIDTH + CARD_GRID_SPACING))
 
     def _recent_gui_actions(self) -> list[QAction]:
         """Return catalog actions last used from the GUI, newest first, one row at most."""
@@ -583,25 +487,25 @@ class MainWindow(QMainWindow):
         if section is None or section.grid is None:
             return
         actions = self._recent_gui_actions()
-        visible = bool(actions)
         if section.widget is not None:
-            section.widget.setVisible(visible)
-        if section.divider is not None:
-            section.divider.setVisible(visible)
-        if not actions:
-            section.actions = []
-            section.grid.clear()
-            return
+            section.widget.setVisible(bool(actions))
         if section.actions == actions and section.grid.count() == len(actions):
-            if section.grid.isVisible():
-                QTimer.singleShot(0, lambda grid=section.grid: self._fit_grid_height(grid))
             return
         section.actions = actions
         section.grid.clear()
         for action in actions:
-            self._add_action_item(section.grid, action)
-        if section.grid.isVisible():
-            QTimer.singleShot(0, lambda grid=section.grid: self._fit_grid_height(grid))
+            section.grid.add_card(self._create_card(action))
+
+    def _refresh_theme_icons(self) -> None:
+        """Re-tint the sort and theme glyphs for the current palette."""
+        palette = palette_for(self)
+        for index, (_mode, _label, icon_name) in enumerate(_SORT_MODES):
+            self._sort_combo.setItemIcon(index, themed_icon(icon_name, palette))
+        dark = palette.dark
+        self._theme_button.set_icon_name("sun" if dark else "moon")
+        tooltip = "Switch to light theme" if dark else "Switch to dark theme"
+        self._theme_button.setToolTip(tooltip)
+        self._theme_button.setAccessibleName(tooltip)
 
     def _run_listed_action(self, action: QAction) -> None:
         """Run a catalog action and refresh the Recent section."""
@@ -629,19 +533,11 @@ class MainWindow(QMainWindow):
                     target = section.widget
                 break
         elif not self._search_grid.isHidden():
-            for index in range(self._search_grid.count()):
-                item = self._search_grid.item(index)
-                if item is None:
-                    continue
-                action = item.data(Qt.ItemDataRole.UserRole)
-                if not isinstance(action, QAction):
-                    continue
-                if self._action_sections.get(action) != title:
-                    continue
-                widget = self._search_grid.itemWidget(item)
-                if widget is not None:
-                    target = widget
-                break
+            for card in self._search_grid.cards():
+                action = getattr(card, "user_data", None)
+                if isinstance(action, QAction) and self._action_sections.get(action) == title:
+                    target = card
+                    break
         if target is not None:
             self._scroll_cards_to_widget(target)
 
@@ -694,7 +590,7 @@ def __init__(self, menu: QMenu) -> None:
 
         self.setWindowTitle("Harrix Swiss Knife")
         apply_window_icon(self)
-        try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
+        enable_fluent_theme(self)
 
         self._sections: list[_CommandSection] = []
         self._recent_section: _CommandSection | None = None
@@ -703,11 +599,10 @@ def __init__(self, menu: QMenu) -> None:
         self._sort_mode = get_main_window_sort_mode()
 
         central_widget = QWidget()
-        apply_opaque_white(central_widget)
         self.setCentralWidget(central_widget)
         root_layout = QVBoxLayout(central_widget)
-        root_layout.setContentsMargins(12, 12, 12, 12)
-        root_layout.setSpacing(12)
+        root_layout.setContentsMargins(0, 0, 0, 0)
+        root_layout.setSpacing(0)
 
         caption_tools = self._build_caption_tools()
         self._caption_tools = caption_tools
@@ -718,7 +613,7 @@ def __init__(self, menu: QMenu) -> None:
         self._sync_sort_combo()
         self._apply_catalog_view()
         self._setup_window_size_and_position()
-        apply_flat_scrollbars(self)
+        bind_theme(self, self._refresh_theme_icons)
 ```
 
 </details>
@@ -748,7 +643,7 @@ def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
 def eventFilter(self, watched: QObject, event: QEvent) -> bool
 ```
 
-Forward wheel events from icon grids and refit Recent when the cards pane resizes.
+Refit Recent when the cards pane resizes.
 
 <details>
 <summary>Code:</summary>
@@ -757,9 +652,6 @@ Forward wheel events from icon grids and refit Recent when the cards pane resize
 def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
         if event.type() == QEvent.Type.Resize and watched is self._scroll.viewport():
             QTimer.singleShot(0, self._on_cards_layout_changed)
-        if event.type() == QEvent.Type.Wheel and self._is_icon_grid_wheel_target(watched):
-            QApplication.sendEvent(self._scroll.viewport(), event)
-            return True
         return super().eventFilter(watched, event)
 ```
 
@@ -852,7 +744,7 @@ def on_item_clicked(self, item: QListWidgetItem) -> None:
 def resizeEvent(self, event: QResizeEvent) -> None
 ```
 
-Refit Recent and icon grid heights when the window width changes.
+Refit Recent when the window width changes.
 
 <details>
 <summary>Code:</summary>

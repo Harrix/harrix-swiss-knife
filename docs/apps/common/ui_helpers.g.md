@@ -77,14 +77,14 @@ def close_table_editor_if_open(view: QAbstractItemView) -> None:
 def enumerate_stripped_non_empty_lines(text: str, start: int = 1) -> Iterator[tuple[int, str]]
 ```
 
-Yield `(line_number, stripped_line)` pairs for non-empty lines in [`text`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-text).
+Yield `(line_number, stripped_line)` pairs for non-empty lines in `text`.
 
 Line numbers correspond to positions in the original text (including blank
 lines), so they remain useful for user-facing error messages.
 
 Args:
 
-- [`text`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-text) (`str`): Input text.
+- `text` (`str`): Input text.
 - `start` (`int`): Starting index for the line counter. Defaults to `1`.
 
 Yields:
@@ -110,11 +110,11 @@ def enumerate_stripped_non_empty_lines(text: str, start: int = 1) -> Iterator[tu
 def iter_stripped_non_empty_lines(text: str) -> Iterator[str]
 ```
 
-Yield stripped, non-empty lines from [`text`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-text).
+Yield stripped, non-empty lines from `text`.
 
 Args:
 
-- [`text`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-text) (`str`): Input text.
+- `text` (`str`): Input text.
 
 Yields:
 

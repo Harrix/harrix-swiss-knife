@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from functools import lru_cache
 from typing import TYPE_CHECKING
 
@@ -20,6 +21,7 @@ from harrix_swiss_knife.apps.common.ui_chrome import (
     SURFACE,
     button_idle_qss,
 )
+from harrix_swiss_knife.fluent.theme import bind_theme, css, is_fluent_themed, palette_for
 from harrix_swiss_knife.qt_lucide_icon import DEFAULT_LUCIDE_BUTTON_ICON_SIZE, apply_lucide_button_icon
 
 if TYPE_CHECKING:
@@ -30,63 +32,19 @@ _ARROW_WIDTH = 28
 _ARROW_ICON_SIZE = 16
 _FRAME_PX = 1
 _INNER_RADIUS = PANEL_RADIUS - _FRAME_PX
-# Same white idle chrome as `button_idle_qss` / `make_lucide_push_button`.
-# The outer frame owns the border; the inner zones keep the shared padding and min-height
-# without a second border, so the control matches a plain button's height.
-_STYLE = f"""
-SplitMenuButton {{
-    border: 1px solid {INPUT_BORDER};
-    border-radius: {PANEL_RADIUS}px;
-    background-color: {SURFACE};
-}}
-SplitMenuButton:hover {{
-    background-color: {SELECTION_HOVER};
-    border-color: {INPUT_BORDER};
-}}
-SplitMenuButton QPushButton#splitMenuMain {{
-    border: none;
-    background: transparent;
-    color: {SELECTION_TEXT};
-    padding: {BUTTON_PADDING};
-    min-height: {BUTTON_MIN_HEIGHT_PX}px;
-}}
-SplitMenuButton QToolButton#splitMenuArrow {{
-    border: none;
-    background-color: transparent;
-    color: {SELECTION_TEXT};
-    padding: 0;
-    margin: 0;
-    min-height: 0;
-    min-width: {_ARROW_WIDTH}px;
-    max-width: {_ARROW_WIDTH}px;
-}}
-SplitMenuButton QPushButton#splitMenuMain:hover {{
-    background-color: {SELECTION_BG};
-    border-top-left-radius: {_INNER_RADIUS}px;
-    border-bottom-left-radius: {_INNER_RADIUS}px;
-}}
-SplitMenuButton QToolButton#splitMenuArrow:hover {{
-    background-color: {SELECTION_BG};
-    border-top-right-radius: {_INNER_RADIUS}px;
-    border-bottom-right-radius: {_INNER_RADIUS}px;
-}}
-SplitMenuButton QPushButton#splitMenuMain:pressed {{
-    background-color: {BUTTON_SECONDARY_HOVER};
-    border-top-left-radius: {_INNER_RADIUS}px;
-    border-bottom-left-radius: {_INNER_RADIUS}px;
-}}
-SplitMenuButton QToolButton#splitMenuArrow:pressed {{
-    background-color: {BUTTON_SECONDARY_HOVER};
-    border-top-right-radius: {_INNER_RADIUS}px;
-    border-bottom-right-radius: {_INNER_RADIUS}px;
-}}
-SplitMenuButton QFrame#splitMenuSeparator {{
-    background-color: {INPUT_BORDER};
-    border: none;
-    max-width: 1px;
-    min-width: 1px;
-}}
-"""
+
+
+@dataclass(frozen=True, slots=True)
+class SplitColors:
+    """CSS colors for the split button chrome."""
+
+    border: str
+    background: str
+    hover: str
+    zone_hover: str
+    pressed: str
+    text: str
+    separator: str
 
 
 class SplitMenuButton(QWidget):
@@ -104,7 +62,7 @@ class SplitMenuButton(QWidget):
         super().__init__(parent)
         self.setObjectName("splitMenuButton")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
-        self.setStyleSheet(_STYLE)
+        self.setStyleSheet(split_style(_HARRIX_COLORS))
         self.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
         self.setMinimumHeight(_idle_push_button_height())
 
@@ -143,6 +101,7 @@ class SplitMenuButton(QWidget):
         layout.addWidget(self._arrow)
 
         self.setFocusProxy(self._main)
+        bind_theme(self, self.refresh_theme)
 
     @property
     def arrow_button(self) -> QToolButton:
@@ -165,6 +124,14 @@ class SplitMenuButton(QWidget):
     def minimumSizeHint(self) -> QSize:  # noqa: N802
         """Prefer the combined main + separator + arrow width."""
         return self.sizeHint()
+
+    def refresh_theme(self) -> None:
+        """Re-apply chrome colors for the current window theme."""
+        colors = split_colors(self)
+        sheet = split_style(colors)
+        if sheet != self.styleSheet():
+            self.setStyleSheet(sheet)
+            apply_lucide_button_icon(self._arrow, "chevron-down", icon_size=_ARROW_ICON_SIZE, color=colors.text)
 
     def setIcon(self, icon: QIcon) -> None:  # noqa: N802
         """Set the Lucide / chrome icon on the main zone."""
@@ -216,9 +183,99 @@ def make_lucide_split_menu_button(
     return button
 
 
+def split_colors(widget: QWidget | None) -> SplitColors:
+    """Return Fluent control colors in themed Windows and the Harrix idle chrome elsewhere."""
+    if not is_fluent_themed(widget):
+        return _HARRIX_COLORS
+    palette = palette_for(widget)
+    return SplitColors(
+        border=css(palette.control_stroke),
+        background=css(palette.control_fill),
+        hover=css(palette.control_fill),
+        zone_hover=css(palette.control_fill_hover),
+        pressed=css(palette.control_fill_pressed),
+        text=css(palette.text_primary),
+        separator=css(palette.divider),
+    )
+
+
+def split_style(colors: SplitColors) -> str:
+    """Return the split button stylesheet.
+
+    The outer frame owns the border; the inner zones keep the shared padding and
+    min-height without a second border, so the control matches a plain button's height.
+
+    """
+    return f"""
+SplitMenuButton {{
+    border: 1px solid {colors.border};
+    border-radius: {PANEL_RADIUS}px;
+    background-color: {colors.background};
+}}
+SplitMenuButton:hover {{
+    background-color: {colors.hover};
+    border-color: {colors.border};
+}}
+SplitMenuButton QPushButton#splitMenuMain {{
+    border: none;
+    background: transparent;
+    color: {colors.text};
+    padding: {BUTTON_PADDING};
+    min-height: {BUTTON_MIN_HEIGHT_PX}px;
+}}
+SplitMenuButton QToolButton#splitMenuArrow {{
+    border: none;
+    background-color: transparent;
+    color: {colors.text};
+    padding: 0;
+    margin: 0;
+    min-height: 0;
+    min-width: {_ARROW_WIDTH}px;
+    max-width: {_ARROW_WIDTH}px;
+}}
+SplitMenuButton QPushButton#splitMenuMain:hover {{
+    background-color: {colors.zone_hover};
+    border-top-left-radius: {_INNER_RADIUS}px;
+    border-bottom-left-radius: {_INNER_RADIUS}px;
+}}
+SplitMenuButton QToolButton#splitMenuArrow:hover {{
+    background-color: {colors.zone_hover};
+    border-top-right-radius: {_INNER_RADIUS}px;
+    border-bottom-right-radius: {_INNER_RADIUS}px;
+}}
+SplitMenuButton QPushButton#splitMenuMain:pressed {{
+    background-color: {colors.pressed};
+    border-top-left-radius: {_INNER_RADIUS}px;
+    border-bottom-left-radius: {_INNER_RADIUS}px;
+}}
+SplitMenuButton QToolButton#splitMenuArrow:pressed {{
+    background-color: {colors.pressed};
+    border-top-right-radius: {_INNER_RADIUS}px;
+    border-bottom-right-radius: {_INNER_RADIUS}px;
+}}
+SplitMenuButton QFrame#splitMenuSeparator {{
+    background-color: {colors.separator};
+    border: none;
+    max-width: 1px;
+    min-width: 1px;
+}}
+"""
+
+
 @lru_cache(maxsize=1)
 def _idle_push_button_height() -> int:
     """Return the height of a shared idle `QPushButton`."""
     probe = QPushButton("Ag")
     probe.setStyleSheet(button_idle_qss())
     return probe.sizeHint().height()
+
+
+_HARRIX_COLORS = SplitColors(
+    border=INPUT_BORDER,
+    background=SURFACE,
+    hover=SELECTION_HOVER,
+    zone_hover=SELECTION_BG,
+    pressed=BUTTON_SECONDARY_HOVER,
+    text=SELECTION_TEXT,
+    separator=INPUT_BORDER,
+)

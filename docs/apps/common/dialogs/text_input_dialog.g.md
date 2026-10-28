@@ -182,7 +182,7 @@ Args:
 
 - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
 - `title` (`str`): Window title. Defaults to `Add Text`.
-- `description` (`str | None`): Optional description label shown above the text area.
+- [`description`](../../../fluent/widgets/cards.g.md#%EF%B8%8F-method-description) (`str | None`): Optional description label shown above the text area.
 - `placeholder` (`str | None`): Optional placeholder text for the text area.
 - `show_date` (`bool`): Whether to show a `QDateEdit`. Defaults to `False`.
 - `default_date` (`QDate | None`): Default value for the date picker.

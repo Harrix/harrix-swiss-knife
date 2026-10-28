@@ -159,7 +159,7 @@ def build_grid_entries(
 def classify_variant_kind(stem: str) -> str
 ```
 
-Return kind token for an SVG stem (`color`, `white`, `line-16`, …).
+Return kind token for an SVG stem ([`color`](../../fluent/widgets/dialogs.g.md#%EF%B8%8F-method-color), `white`, `line-16`, …).
 
 <details>
 <summary>Code:</summary>

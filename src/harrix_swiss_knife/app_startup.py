@@ -36,6 +36,7 @@ from harrix_swiss_knife.data_for_hsk import (
     relocate_sqlite_paths,
 )
 from harrix_swiss_knife.early_splash import close_early_splash, early_splash_hwnd
+from harrix_swiss_knife.fluent.theme import FluentTheme
 from harrix_swiss_knife.global_hotkey import GlobalHotkeyManager
 from harrix_swiss_knife.installer.icon_assets import apply_window_icon, make_window_icon
 from harrix_swiss_knife.main_menu_base import set_menu_tooltips_visible_recursive
@@ -214,6 +215,7 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
     install_app_fonts(app)
     install_ui_effects(app)
     install_safe_qt_translate()
+    FluentTheme.instance().load_from_config(config)
     if early_splash_hwnd():
         _log_startup_phase(log, "Startup splash already visible", startup_t0)
 

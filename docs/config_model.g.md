@@ -31,10 +31,12 @@ lang: en
 - [🔧 Function `get_show_main_window_on_startup`](#-function-get_show_main_window_on_startup)
 - [🔧 Function `get_ui_font_scale`](#-function-get_ui_font_scale)
 - [🔧 Function `get_ui_font_size_pt`](#-function-get_ui_font_size_pt)
+- [🔧 Function `get_ui_theme`](#-function-get_ui_theme)
 - [🔧 Function `load_app_config`](#-function-load_app_config)
 - [🔧 Function `restart_required_config_keys`](#-function-restart_required_config_keys)
 - [🔧 Function `set_main_window_sort_mode`](#-function-set_main_window_sort_mode)
 - [🔧 Function `set_show_main_window_on_startup`](#-function-set_show_main_window_on_startup)
+- [🔧 Function `set_ui_theme`](#-function-set_ui_theme)
 - [🔧 Function `validate_app_config`](#-function-validate_app_config)
 
 </details>
@@ -168,6 +170,7 @@ class AppConfig(TypedDict, total=False):
     show_main_window_on_startup: bool
     ui_font_size_pt: NotRequired[float]
     ui_font_scale: NotRequired[float]
+    ui_theme: NotRequired[str]
     data_for_hsk_root: NotRequired[str]
     data_for_hsk_notes_folders: NotRequired[list[str]]
     data_for_hsk_setup_done: NotRequired[bool]
@@ -559,6 +562,33 @@ def get_ui_font_size_pt(config: dict[str, Any] | None = None) -> float | None:
 
 </details>
 
+## 🔧 Function `get_ui_theme`
+
+```python
+def get_ui_theme(config: dict[str, Any] | None = None) -> str
+```
+
+Return the Fluent UI theme (`light` or `dark`) from `config.json`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_ui_theme(config: dict[str, Any] | None = None) -> str:
+    data = config
+    if data is None:
+        try:
+            data = load_app_config()
+        except (OSError, TypeError, ValueError):
+            return UI_THEME_DEFAULT
+    value = data.get(UI_THEME_KEY, UI_THEME_DEFAULT)
+    if isinstance(value, str) and value.strip().casefold() in UI_THEMES:
+        return value.strip().casefold()
+    return UI_THEME_DEFAULT
+```
+
+</details>
+
 ## 🔧 Function `load_app_config`
 
 ```python
@@ -658,6 +688,34 @@ def set_show_main_window_on_startup(*, enabled: bool, config_path: str | None = 
         msg = f"Config root must be a JSON object: {path}"
         raise TypeError(msg)
     data[SHOW_MAIN_WINDOW_ON_STARTUP_KEY] = bool(enabled)
+    path.write_text(h.dev.dumps_pretty_json(data), encoding="utf-8")
+```
+
+</details>
+
+## 🔧 Function `set_ui_theme`
+
+```python
+def set_ui_theme(*, theme: str, config_path: str | None = None) -> None
+```
+
+Write `ui_theme` (`light` or `dark`) to `config.json`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_ui_theme(*, theme: str, config_path: str | None = None) -> None:
+    if theme not in UI_THEMES:
+        msg = f"Invalid ui_theme: {theme!r}"
+        raise ValueError(msg)
+    path = Path(config_path or get_config_path_str())
+    with path.open(encoding="utf-8") as handle:
+        data = json.load(handle)
+    if not isinstance(data, dict):
+        msg = f"Config root must be a JSON object: {path}"
+        raise TypeError(msg)
+    data[UI_THEME_KEY] = theme
     path.write_text(h.dev.dumps_pretty_json(data), encoding="utf-8")
 ```
 

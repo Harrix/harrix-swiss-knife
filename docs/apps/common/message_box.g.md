@@ -59,7 +59,7 @@ Args:
 
 - `parent` (`QWidget | None`): Parent for modality.
 - `title` (`str`): Dialog title.
-- [`text`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-text) (`str`): Explanation (error message or cancel note).
+- `text` (`str`): Explanation (error message or cancel note).
 - [`critical`](#-function-critical) (`bool`): When `True`, use a critical icon. Defaults to `False`.
 
 Returns:
@@ -158,10 +158,10 @@ Like `QMessageBox.information` with a Copy button.
 
 Args:
 
-- `rich_text` (`bool`): When `True`, interpret [`text`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-text) as HTML rich text
+- `rich_text` (`bool`): When `True`, interpret `text` as HTML rich text
   (so links are clickable). Defaults to `False`.
 - `clipboard_text` (`str | None`): Plain text for the Copy button when
-  [`text`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-text) is HTML. Defaults to `None` (copy from dialog fields).
+  `text` is HTML. Defaults to `None` (copy from dialog fields).
 
 <details>
 <summary>Code:</summary>
@@ -209,13 +209,12 @@ def prepare_box(box: QMessageBox) -> None:
     if not getattr(box, _COPY_BUTTON_ATTR, False):
         add_copy_button(box)
         setattr(box, _COPY_BUTTON_ATTR, True)
+    if is_fluent_themed(box):
+        bind_theme(box, lambda: _style_fluent_buttons(box))
+        return
     for button in box.buttons():
         role = box.buttonRole(button)
-        if role in (
-            QMessageBox.ButtonRole.AcceptRole,
-            QMessageBox.ButtonRole.YesRole,
-            QMessageBox.ButtonRole.ApplyRole,
-        ):
+        if role in _PRIMARY_ROLES:
             style_accept_button(button)
         elif role == QMessageBox.ButtonRole.DestructiveRole:
             style_delete_button(button)

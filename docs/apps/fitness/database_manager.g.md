@@ -2279,7 +2279,7 @@ Append one exercise row to a saved workout.
 Args:
 
 - `workout_id` (`int`): Parent workout `_id`.
-- `item` ([`WorkoutItemInput`](#%EF%B8%8F-class-workoutiteminput)): Exercise, type, and target value.
+- [`item`](../../fluent/widgets/navigation.g.md#%EF%B8%8F-method-item) ([`WorkoutItemInput`](#%EF%B8%8F-class-workoutiteminput)): Exercise, type, and target value.
 
 Returns:
 

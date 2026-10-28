@@ -24,9 +24,13 @@ lang: en
   - [⚙️ Method `set_glyph`](#%EF%B8%8F-method-set_glyph)
   - [⚙️ Method `set_light`](#%EF%B8%8F-method-set_light)
   - [⚙️ Method `set_window_active`](#%EF%B8%8F-method-set_window_active)
+- [🏛️ Class `CaptionColors`](#%EF%B8%8F-class-captioncolors)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
+- [🔧 Function `caption_colors`](#-function-caption_colors)
 - [🔧 Function `caption_glyph_icon`](#-function-caption_glyph_icon)
 - [🔧 Function `caption_hit_test`](#-function-caption_hit_test)
 - [🔧 Function `install_win11_caption`](#-function-install_win11_caption)
+- [🔧 Function `refresh_win11_caption`](#-function-refresh_win11_caption)
 - [🔧 Function `try_handle_win11_caption_native_event`](#-function-try_handle_win11_caption_native_event)
 - [🔧 Function `write_nccalcsize_client_rect`](#-function-write_nccalcsize_client_rect)
 
@@ -470,6 +474,93 @@ def set_window_active(self, *, active: bool) -> None:
 
 </details>
 
+## 🏛️ Class `CaptionColors`
+
+```python
+class CaptionColors
+```
+
+Hex colors of the caption title, menus, and tab chrome for one window.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class CaptionColors:
+
+    __slots__ = ("disabled", "nav", "tab_active", "tab_hover", "tab_line", "title")
+
+    def __init__(self, *, title: str, nav: str, tab_active: str, tab_line: str, tab_hover: str, disabled: str) -> None:
+        """Store caption colors."""
+        self.title = title
+        self.nav = nav
+        self.tab_active = tab_active
+        self.tab_line = tab_line
+        self.tab_hover = tab_hover
+        self.disabled = disabled
+```
+
+</details>
+
+### ⚙️ Method `__init__`
+
+```python
+def __init__(self, *, title: str, nav: str, tab_active: str, tab_line: str, tab_hover: str, disabled: str) -> None
+```
+
+Store caption colors.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __init__(self, *, title: str, nav: str, tab_active: str, tab_line: str, tab_hover: str, disabled: str) -> None:
+        self.title = title
+        self.nav = nav
+        self.tab_active = tab_active
+        self.tab_line = tab_line
+        self.tab_hover = tab_hover
+        self.disabled = disabled
+```
+
+</details>
+
+## 🔧 Function `caption_colors`
+
+```python
+def caption_colors(widget: QWidget) -> CaptionColors
+```
+
+Return caption colors: Fluent tokens in themed Windows, Harrix chrome otherwise.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def caption_colors(widget: QWidget) -> CaptionColors:
+    if not is_fluent_themed(widget):
+        return CaptionColors(
+            title=_TITLE_COLOR,
+            nav=_NAV_COLOR,
+            tab_active=_TAB_ACTIVE_COLOR,
+            tab_line=_TAB_LINE_COLOR,
+            tab_hover=_TAB_HOVER_BG,
+            disabled=_DISABLED_NAV_COLOR,
+        )
+    palette = palette_for(widget)
+    base = palette.window_bg
+    return CaptionColors(
+        title=mix(base, palette.text_primary).name(),
+        nav=mix(base, palette.text_secondary).name(),
+        tab_active=mix(base, palette.accent_text).name(),
+        tab_line=mix(base, palette.divider).name(),
+        tab_hover=mix(base, palette.subtle_hover).name(),
+        disabled=mix(base, palette.text_disabled).name(),
+    )
+```
+
+</details>
+
 ## 🔧 Function `caption_glyph_icon`
 
 ```python
@@ -481,7 +572,7 @@ Paint one Fluent caption glyph.
 Args:
 
 - `name` (`str`): Glyph stem (`dismiss`, `subtract`, `maximize`, `square_multiple`).
-- `color` (`QColor`): Fill color, including alpha.
+- [`color`](fluent/widgets/dialogs.g.md#%EF%B8%8F-method-color) (`QColor`): Fill color, including alpha.
 - `dpr` (`float`): Device pixel ratio of the button.
 
 Returns:
@@ -611,8 +702,10 @@ def install_win11_caption(
     _ensure_caption_title(window)
     _flush_caption_to_frame(window)
     _fit_caption_fonts(window)
-    _apply_white_window_background(window)
-    apply_flat_scrollbars(window)
+    themed = is_fluent_themed(window)
+    if not themed:
+        _apply_white_window_background(window)
+        apply_flat_scrollbars(window)
     _sync_caption_palette(window)
     window.installEventFilter(controller)
     setattr(window, _INSTALLED_ATTR, True)
@@ -623,7 +716,39 @@ def install_win11_caption(
     _place_caption_title(window)
     _bind_caption_menu_hover(window, controller)
     setattr(window, _BUTTONS_ATTR, window.findChildren(CaptionButton))
+    if themed:
+        bind_theme(window, lambda: refresh_win11_caption(window))
     return True
+```
+
+</details>
+
+## 🔧 Function `refresh_win11_caption`
+
+```python
+def refresh_win11_caption(window: QWidget) -> None
+```
+
+Re-sync caption buttons, title, menus, and rules after the window palette changed.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def refresh_win11_caption(window: QWidget) -> None:
+    if not getattr(window, _INSTALLED_ATTR, False):
+        return
+    _sync_caption_palette(window)
+    label = getattr(window, _TITLE_ATTR, None)
+    if isinstance(label, QLabel):
+        _apply_caption_title_style(label)
+    button = window.findChild(QToolButton, _MENU_BUTTON_NAME)
+    if isinstance(button, QToolButton):
+        apply_lucide_button_icon(button, "menu", icon_size=CAPTION_ICON_SIZE, color=caption_colors(window).nav)
+    for line in window.findChildren(_CaptionEdgeLine):
+        line.update()
+    for button in window.findChildren(CaptionButton):
+        button.update()
 ```
 
 </details>

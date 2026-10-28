@@ -466,6 +466,7 @@
   "pypi_token": "snippet:api-keys/pypi-token.txt",
   "show_main_window_on_startup": false,
   "ui_font_size_pt": 10,
+  "ui_theme": "light",
   "sqlite_finance": "<YOUR_GITHUB_FOLDER>/data-for-hsk/databases/finance.db",
   "sqlite_fitness": "<YOUR_GITHUB_FOLDER>/data-for-hsk/databases/fitness.db",
   "sqlite_food": "<YOUR_GITHUB_FOLDER>/data-for-hsk/databases/food.db",

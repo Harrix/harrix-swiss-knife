@@ -13,6 +13,7 @@ lang: en
 
 - [🏛️ Class `SystemBackdrop`](#%EF%B8%8F-class-systembackdrop)
 - [🔧 Function `ensure_windows_app_user_model_id`](#-function-ensure_windows_app_user_model_id)
+- [🔧 Function `set_window_dark_mode`](#-function-set_window_dark_mode)
 - [🔧 Function `try_apply_system_backdrop`](#-function-try_apply_system_backdrop)
 
 </details>
@@ -63,6 +64,45 @@ def ensure_windows_app_user_model_id() -> None:
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(_APP_USER_MODEL_ID)
     except Exception:
         logger.debug("SetCurrentProcessExplicitAppUserModelID failed", exc_info=True)
+```
+
+</details>
+
+## 🔧 Function `set_window_dark_mode`
+
+```python
+def set_window_dark_mode(window: Any, *, dark: bool) -> bool
+```
+
+Ask DWM to draw the window frame, border, and shadow for a dark or light theme.
+
+Args:
+
+- `window`: A top-level Qt widget.
+- `dark` (`bool`): `True` for the dark frame (`DWMWA_USE_IMMERSIVE_DARK_MODE`).
+
+Returns:
+
+- `bool`: `True` if DWM accepted the attribute.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_window_dark_mode(window: Any, *, dark: bool) -> bool:
+    if sys.platform != "win32":
+        return False
+    try:
+        hwnd = int(window.winId())
+        dwmapi = ctypes.WinDLL("dwmapi")
+    except Exception:
+        return False
+    dwm_set_window_attribute = dwmapi.DwmSetWindowAttribute
+    dwm_set_window_attribute.argtypes = [wintypes.HWND, wintypes.DWORD, wintypes.LPCVOID, wintypes.DWORD]
+    dwm_set_window_attribute.restype = ctypes.c_long
+    value = ctypes.c_int(1 if dark else 0)
+    hr = dwm_set_window_attribute(hwnd, _DWMWA_USE_IMMERSIVE_DARK_MODE, ctypes.byref(value), ctypes.sizeof(value))
+    return hr == 0
 ```
 
 </details>
