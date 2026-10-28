@@ -84,24 +84,26 @@ class CategorySuggestDelegate(QStyledItemDelegate):
         show_button = bool(category_name and category_name in self._suggested)
         reserved = (self._button_width(opt) + _BUTTON_MARGIN) if show_button else 0
 
+        host = self._host_widget(option)
+        fluent = palette_for(host)
+        text_color = mix(fluent.window_bg, fluent.text_primary)
         if opt.state & QStyle.StateFlag.State_Selected:
-            background = _ROW_SELECTED_BG
-            text_color = QColor("#000000")
+            background = list_item_selected(fluent)
         elif opt.state & QStyle.StateFlag.State_MouseOver:
-            background = _ROW_HOVER_BG
-            text_color = opt.palette.text().color()
+            background = list_item_hover(fluent)
         else:
-            background = opt.palette.base().color()
-            text_color = opt.palette.text().color()
+            background = QColor(0, 0, 0, 0)
 
         painter.save()
-        painter.fillRect(option.rect, background)
+        if background.alpha() > 0:
+            painter.fillRect(option.rect, background)
 
         text_rect = option.rect.adjusted(6, 0, -(reserved + 4), 0)
-        self._paint_category_label(painter, opt, index, text_rect, text_color)
+        secondary = mix(fluent.window_bg, fluent.text_secondary)
+        self._paint_category_label(painter, opt, index, text_rect, text_color, secondary)
 
         if show_button:
-            self._paint_use_button(painter, opt)
+            self._paint_use_button(painter, opt, host)
         painter.restore()
 
     def set_suggested_categories(self, category_names: Collection[str]) -> None:
@@ -145,6 +147,13 @@ class CategorySuggestDelegate(QStyledItemDelegate):
         text = str(value).strip()
         return text or None
 
+    def _host_widget(self, option: QStyleOptionViewItem) -> QWidget | None:
+        widget = option.widget
+        if isinstance(widget, QWidget):
+            return widget
+        parent = self.parent()
+        return parent if isinstance(parent, QWidget) else None
+
     def _paint_category_label(
         self,
         painter: QPainter,
@@ -152,6 +161,7 @@ class CategorySuggestDelegate(QStyledItemDelegate):
         index: QModelIndex | QPersistentModelIndex,
         text_rect: QRect,
         text_color: QColor,
+        secondary_color: QColor,
     ) -> None:
         """Draw main category text and optional gray smaller local name."""
         main_text = option.text
@@ -187,7 +197,7 @@ class CategorySuggestDelegate(QStyledItemDelegate):
         if main_width + local_width <= available:
             painter.drawText(text_rect, flags, main_text)
             local_rect = QRect(text_rect.left() + main_width, text_rect.top(), local_width, text_rect.height())
-            painter.setPen(_NAME_LOCAL_COLOR)
+            painter.setPen(secondary_color)
             painter.setFont(local_font)
             painter.drawText(local_rect, flags, local_text)
             return
@@ -204,7 +214,7 @@ class CategorySuggestDelegate(QStyledItemDelegate):
                 available - elided_main_width,
                 text_rect.height(),
             )
-            painter.setPen(_NAME_LOCAL_COLOR)
+            painter.setPen(secondary_color)
             painter.setFont(local_font)
             painter.drawText(
                 local_rect,
@@ -212,13 +222,14 @@ class CategorySuggestDelegate(QStyledItemDelegate):
                 local_metrics.elidedText(local_text, Qt.TextElideMode.ElideRight, local_rect.width()),
             )
 
-    def _paint_use_button(self, painter: QPainter, option: QStyleOptionViewItem) -> None:
+    def _paint_use_button(self, painter: QPainter, option: QStyleOptionViewItem, host: QWidget | None) -> None:
+        fluent = palette_for(host)
         button_rect = self._button_rect(option.rect, option)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
-        painter.setPen(QPen(_BUTTON_BORDER, 1))
-        painter.setBrush(_BUTTON_BG)
+        painter.setPen(QPen(fluent.accent, 1))
+        painter.setBrush(mix(fluent.window_bg, fluent.subtle_hover))
         painter.drawRoundedRect(button_rect.adjusted(0, 0, -1, -1), 4, 4)
-        painter.setPen(_BUTTON_TEXT_COLOR)
+        painter.setPen(fluent.accent_text)
         painter.setFont(option.font)
         painter.drawText(button_rect, int(Qt.AlignmentFlag.AlignCenter), _BUTTON_TEXT)
 ```
@@ -325,24 +336,26 @@ def paint(
         show_button = bool(category_name and category_name in self._suggested)
         reserved = (self._button_width(opt) + _BUTTON_MARGIN) if show_button else 0
 
+        host = self._host_widget(option)
+        fluent = palette_for(host)
+        text_color = mix(fluent.window_bg, fluent.text_primary)
         if opt.state & QStyle.StateFlag.State_Selected:
-            background = _ROW_SELECTED_BG
-            text_color = QColor("#000000")
+            background = list_item_selected(fluent)
         elif opt.state & QStyle.StateFlag.State_MouseOver:
-            background = _ROW_HOVER_BG
-            text_color = opt.palette.text().color()
+            background = list_item_hover(fluent)
         else:
-            background = opt.palette.base().color()
-            text_color = opt.palette.text().color()
+            background = QColor(0, 0, 0, 0)
 
         painter.save()
-        painter.fillRect(option.rect, background)
+        if background.alpha() > 0:
+            painter.fillRect(option.rect, background)
 
         text_rect = option.rect.adjusted(6, 0, -(reserved + 4), 0)
-        self._paint_category_label(painter, opt, index, text_rect, text_color)
+        secondary = mix(fluent.window_bg, fluent.text_secondary)
+        self._paint_category_label(painter, opt, index, text_rect, text_color, secondary)
 
         if show_button:
-            self._paint_use_button(painter, opt)
+            self._paint_use_button(painter, opt, host)
         painter.restore()
 ```
 

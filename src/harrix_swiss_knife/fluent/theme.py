@@ -260,7 +260,9 @@ def to_qpalette(palette: FluentPalette, base: QPalette | None = None) -> QPalett
 def _apply_window_palette(window: QWidget) -> None:
     palette = palette_for(window)
     window.setPalette(to_qpalette(palette, window.palette()))
-    window.setAutoFillBackground(True)
+    # Do not auto-fill with the opaque Window role: Fluent app chrome paints a
+    # transparent QMainWindow stylesheet so Windows 11 Mica can show through.
+    window.setAutoFillBackground(False)
     if window.isWindow():
         set_window_dark_mode(window, dark=palette.dark)
     window.update()

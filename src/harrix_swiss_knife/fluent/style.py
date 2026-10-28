@@ -94,8 +94,15 @@ def combo_box_qss(palette: FluentPalette, selector: str = "QComboBox", *, height
 
 
 def item_view_qss(palette: FluentPalette, selector: str, *, transparent: bool = True) -> str:
-    """Return a list/tree/table stylesheet with Fluent rounded selection."""
+    """Return a list/tree/table stylesheet with Fluent rounded selection.
+
+    Hover / selected fills are stronger than `subtle_hover` so lists read like
+    Windows 11 Settings navigation (clear pill on hover and selection).
+
+    """
     background = "transparent" if transparent else css(palette.card_bg)
+    hover = css(list_item_hover(palette))
+    selected = css(list_item_selected(palette))
     return f"""
 {selector} {{
     background: {background};
@@ -109,9 +116,9 @@ def item_view_qss(palette: FluentPalette, selector: str, *, transparent: bool = 
     margin: 1px 4px;
     color: {css(palette.text_primary)};
 }}
-{selector}::item:hover {{ background: {css(palette.subtle_hover)}; }}
-{selector}::item:selected {{ background: {css(palette.subtle_hover)}; color: {css(palette.text_primary)}; }}
-{selector}::item:selected:hover {{ background: {css(palette.subtle_pressed)}; }}
+{selector}::item:hover {{ background: {hover}; }}
+{selector}::item:selected {{ background: {selected}; color: {css(palette.text_primary)}; }}
+{selector}::item:selected:hover {{ background: {selected}; }}
 {selector}::item:disabled {{ color: {css(palette.text_disabled)}; }}
 {scroll_bar_qss(palette)}
 """
@@ -138,6 +145,18 @@ def line_edit_qss(palette: FluentPalette, selector: str = "QLineEdit", *, height
 }}
 {selector}:disabled {{ color: {css(palette.text_disabled)}; background-color: {css(palette.control_fill_disabled)}; }}
 """
+
+
+def list_item_hover(palette: FluentPalette) -> QColor:
+    """Return a Win11-Settings-like hover fill (stronger than `subtle_hover`)."""
+    overlay = QColor(255, 255, 255, 18) if palette.dark else QColor(0, 0, 0, 28)
+    return mix(palette.window_bg, overlay)
+
+
+def list_item_selected(palette: FluentPalette) -> QColor:
+    """Return a Win11-Settings-like selected fill."""
+    overlay = QColor(255, 255, 255, 32) if palette.dark else QColor(0, 0, 0, 42)
+    return mix(palette.window_bg, overlay)
 
 
 def lucide_qss_url(name: str, color: QColor, size: int = ICON_SIZE) -> str:

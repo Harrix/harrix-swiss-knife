@@ -63,7 +63,8 @@ from harrix_swiss_knife.apps.snippets.zone_panel import (
     chip_border_color,
     color_hex_label,
 )
-from harrix_swiss_knife.fluent.theme import mix, palette_for
+from harrix_swiss_knife.fluent.style import list_item_selected
+from harrix_swiss_knife.fluent.theme import palette_for
 from harrix_swiss_knife.fluent.tokens import CONTROL_HEIGHT
 from harrix_swiss_knife.menu_structure import get_menu_structure
 from harrix_swiss_knife.qt_app_font import MONO_FONT_FAMILY
@@ -408,8 +409,7 @@ def test_list_highlight_is_flat_without_inverted_text(qapp: QApplication) -> Non
     assert "item:hover" in style
     assert "#6a6a6a" not in style
     fluent = palette_for(phrase)
-    surface = mix(fluent.window_bg, fluent.card_bg)
-    expected = mix(surface, fluent.subtle_hover)
+    expected = list_item_selected(fluent)
     highlight = phrase._list.palette().color(QPalette.ColorRole.Highlight)
     assert highlight.name() == expected.name()
     text = phrase._list.palette().color(QPalette.ColorRole.Text)

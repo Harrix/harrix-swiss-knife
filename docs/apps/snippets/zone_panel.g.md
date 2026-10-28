@@ -1515,8 +1515,7 @@ def paint_snippet_highlight(
     widget: QWidget | None = None,
 ) -> None:
     fluent = palette_for(widget)
-    surface = mix(fluent.window_bg, fluent.card_bg)
-    fill = mix(surface, fluent.subtle_hover)
+    fill = list_item_selected(fluent) if outlined else list_item_hover(fluent)
     painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
     painter.setBrush(fill)
     if outlined:

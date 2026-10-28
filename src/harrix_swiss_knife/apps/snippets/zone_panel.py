@@ -48,7 +48,7 @@ from harrix_swiss_knife.apps.snippets.parse import (
     item_values_equal,
     strip_wrapping_brackets,
 )
-from harrix_swiss_knife.fluent.style import item_view_qss
+from harrix_swiss_knife.fluent.style import item_view_qss, list_item_hover, list_item_selected
 from harrix_swiss_knife.fluent.theme import bind_theme, css, mix, palette_for
 from harrix_swiss_knife.fluent.tokens import RADIUS_CONTROL
 from harrix_swiss_knife.qt_app_font import apply_mono_font
@@ -690,8 +690,7 @@ def paint_snippet_highlight(
 ) -> None:
     """Fill the item with Fluent hover/selection, optionally with an accent outline."""
     fluent = palette_for(widget)
-    surface = mix(fluent.window_bg, fluent.card_bg)
-    fill = mix(surface, fluent.subtle_hover)
+    fill = list_item_selected(fluent) if outlined else list_item_hover(fluent)
     painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
     painter.setBrush(fill)
     if outlined:
@@ -705,8 +704,7 @@ def paint_snippet_highlight(
 
 def _apply_list_highlight_palette(widget: QListWidget) -> None:
     fluent = palette_for(widget)
-    surface = mix(fluent.window_bg, fluent.card_bg)
-    highlight = mix(surface, fluent.subtle_hover)
+    highlight = list_item_selected(fluent)
     palette = widget.palette()
     text = palette.color(QPalette.ColorRole.Text)
     for group in (QPalette.ColorGroup.Active, QPalette.ColorGroup.Inactive, QPalette.ColorGroup.Disabled):

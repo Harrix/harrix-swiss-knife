@@ -15,6 +15,8 @@ lang: en
 - [🔧 Function `combo_box_qss`](#-function-combo_box_qss)
 - [🔧 Function `item_view_qss`](#-function-item_view_qss)
 - [🔧 Function `line_edit_qss`](#-function-line_edit_qss)
+- [🔧 Function `list_item_hover`](#-function-list_item_hover)
+- [🔧 Function `list_item_selected`](#-function-list_item_selected)
 - [🔧 Function `lucide_qss_url`](#-function-lucide_qss_url)
 - [🔧 Function `menu_qss`](#-function-menu_qss)
 - [🔧 Function `push_button_qss`](#-function-push_button_qss)
@@ -125,12 +127,17 @@ def item_view_qss(palette: FluentPalette, selector: str, *, transparent: bool = 
 
 Return a list/tree/table stylesheet with Fluent rounded selection.
 
+Hover / selected fills are stronger than `subtle_hover` so lists read like
+Windows 11 Settings navigation (clear pill on hover and selection).
+
 <details>
 <summary>Code:</summary>
 
 ```python
 def item_view_qss(palette: FluentPalette, selector: str, *, transparent: bool = True) -> str:
     background = "transparent" if transparent else css(palette.card_bg)
+    hover = css(list_item_hover(palette))
+    selected = css(list_item_selected(palette))
     return f"""
 {selector} {{
     background: {background};
@@ -144,9 +151,9 @@ def item_view_qss(palette: FluentPalette, selector: str, *, transparent: bool = 
     margin: 1px 4px;
     color: {css(palette.text_primary)};
 }}
-{selector}::item:hover {{ background: {css(palette.subtle_hover)}; }}
-{selector}::item:selected {{ background: {css(palette.subtle_hover)}; color: {css(palette.text_primary)}; }}
-{selector}::item:selected:hover {{ background: {css(palette.subtle_pressed)}; }}
+{selector}::item:hover {{ background: {hover}; }}
+{selector}::item:selected {{ background: {selected}; color: {css(palette.text_primary)}; }}
+{selector}::item:selected:hover {{ background: {selected}; }}
 {selector}::item:disabled {{ color: {css(palette.text_disabled)}; }}
 {scroll_bar_qss(palette)}
 """
@@ -186,6 +193,44 @@ def line_edit_qss(palette: FluentPalette, selector: str = "QLineEdit", *, height
 }}
 {selector}:disabled {{ color: {css(palette.text_disabled)}; background-color: {css(palette.control_fill_disabled)}; }}
 """
+```
+
+</details>
+
+## 🔧 Function `list_item_hover`
+
+```python
+def list_item_hover(palette: FluentPalette) -> QColor
+```
+
+Return a Win11-Settings-like hover fill (stronger than `subtle_hover`).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def list_item_hover(palette: FluentPalette) -> QColor:
+    overlay = QColor(255, 255, 255, 18) if palette.dark else QColor(0, 0, 0, 28)
+    return mix(palette.window_bg, overlay)
+```
+
+</details>
+
+## 🔧 Function `list_item_selected`
+
+```python
+def list_item_selected(palette: FluentPalette) -> QColor
+```
+
+Return a Win11-Settings-like selected fill.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def list_item_selected(palette: FluentPalette) -> QColor:
+    overlay = QColor(255, 255, 255, 32) if palette.dark else QColor(0, 0, 0, 42)
+    return mix(palette.window_bg, overlay)
 ```
 
 </details>
