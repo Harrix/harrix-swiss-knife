@@ -31,6 +31,7 @@ lang: en
 - [🔧 Function `text_edit_qss`](#-function-text_edit_qss)
 - [🔧 Function `themed_icon`](#-function-themed_icon)
 - [🔧 Function `tooltip_qss`](#-function-tooltip_qss)
+- [🔧 Function `wallpaper_fill`](#-function-wallpaper_fill)
 - [🔧 Function `wallpaper_qss`](#-function-wallpaper_qss)
 
 </details>
@@ -672,6 +673,27 @@ QToolTip {{
 
 </details>
 
+## 🔧 Function `wallpaper_fill`
+
+```python
+def wallpaper_fill(palette: FluentPalette) -> str
+```
+
+Return the qfluent-style gradient value (no selector).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def wallpaper_fill(palette: FluentPalette) -> str:
+    top, mid, bottom = _wallpaper_stops(palette)
+    return (
+        f"qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 {top.name()}, stop:0.45 {mid.name()}, stop:1 {bottom.name()})"
+    )
+```
+
+</details>
+
 ## 🔧 Function `wallpaper_qss`
 
 ```python
@@ -685,13 +707,7 @@ Return the soft window gradient used behind Fluent app content.
 
 ```python
 def wallpaper_qss(palette: FluentPalette) -> str:
-    top, mid, bottom = _wallpaper_stops(palette)
-    return (
-        "QMainWindow, QDialog {"
-        " background: qlineargradient(x1:0, y1:0, x2:1, y2:1,"
-        f" stop:0 {top.name()}, stop:0.45 {mid.name()}, stop:1 {bottom.name()});"
-        " }"
-    )
+    return f"QMainWindow, QDialog {{ background: {wallpaper_fill(palette)}; }}"
 ```
 
 </details>

@@ -513,6 +513,8 @@ class MainWindow(QMainWindow):
             self._sort_combo.setItemIcon(index, themed_icon(icon_name, palette))
         dark = palette.dark
         self.setStyleSheet(wallpaper_qss(palette))
+        self.setPalette(to_qpalette(palette, self.palette()))
+        self.setAutoFillBackground(False)
         body = self.centralWidget()
         if body is not None:
             body.setObjectName("commandWindowBody")

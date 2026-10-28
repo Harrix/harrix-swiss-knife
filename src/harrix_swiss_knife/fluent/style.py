@@ -413,15 +413,17 @@ QToolTip {{
 """
 
 
-def wallpaper_qss(palette: FluentPalette) -> str:
-    """Return the soft window gradient used behind Fluent app content."""
+def wallpaper_fill(palette: FluentPalette) -> str:
+    """Return the qfluent-style gradient value (no selector)."""
     top, mid, bottom = _wallpaper_stops(palette)
     return (
-        "QMainWindow, QDialog {"
-        " background: qlineargradient(x1:0, y1:0, x2:1, y2:1,"
-        f" stop:0 {top.name()}, stop:0.45 {mid.name()}, stop:1 {bottom.name()});"
-        " }"
+        f"qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 {top.name()}, stop:0.45 {mid.name()}, stop:1 {bottom.name()})"
     )
+
+
+def wallpaper_qss(palette: FluentPalette) -> str:
+    """Return the soft window gradient used behind Fluent app content."""
+    return f"QMainWindow, QDialog {{ background: {wallpaper_fill(palette)}; }}"
 
 
 def _fade(color: QColor, alpha: int) -> QColor:

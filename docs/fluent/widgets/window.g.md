@@ -215,7 +215,11 @@ class FluentNavigationWindow(QMainWindow):
 
     def _apply_wallpaper(self) -> None:
         """Paint the qfluent-style window gradient behind the navigation and layer."""
-        self.setStyleSheet(wallpaper_qss(palette_for(self)))
+        palette = palette_for(self)
+        self.setStyleSheet(wallpaper_qss(palette))
+        # setStyleSheet polishes the widget and can replace the palette with the system one.
+        self.setPalette(to_qpalette(palette, self.palette()))
+        self.setAutoFillBackground(False)
         body = self.centralWidget()
         if body is not None:
             body.setStyleSheet("QWidget#fluentNavigationBody { background: transparent; }")

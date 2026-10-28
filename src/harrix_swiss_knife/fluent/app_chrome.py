@@ -13,7 +13,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QSize
-from PySide6.QtGui import QFont, QPalette
+from PySide6.QtGui import QColor, QFont, QPalette
 from PySide6.QtWidgets import (
     QAbstractButton,
     QAbstractItemView,
@@ -51,6 +51,7 @@ from harrix_swiss_knife.fluent.style import (
     semantic_button_qss,
     spin_box_qss,
     text_edit_qss,
+    wallpaper_fill,
     wallpaper_qss,
 )
 from harrix_swiss_knife.fluent.theme import bind_theme, css, enable_fluent_theme, mix, palette_for, to_qpalette
@@ -69,6 +70,8 @@ if TYPE_CHECKING:
     from harrix_swiss_knife.fluent.tokens import FluentPalette
 
 _PROP_BOUND = "_hskFluentAppChromeBound"
+_PROP_CANVAS = "_hskFluentCanvas"
+_TABLE_TEXT = "#1a1a1a"
 _KEEP_LARGE_FONT = frozenset(
     {
         "label_today_expense",
@@ -152,9 +155,13 @@ def _apply_fluent_surfaces(window: QWidget, palette: FluentPalette) -> None:
             continue
         lowered = child_sheet.lower()
         clear_sheet = False
-        if name and f"#{name}" in child_sheet and ("#ffffff" in lowered or "background-color: white" in lowered):
-            child.setStyleSheet(f"QWidget#{name} {{ background-color: transparent; border: none; }}")
-            child.setAutoFillBackground(False)
+        if child.property(_PROP_CANVAS) or (
+            name
+            and f"#{name}" in child_sheet
+            and ("#ffffff" in lowered or "background-color: white" in lowered)
+            and not isinstance(child, (QAbstractButton, QAbstractItemView, QLineEdit, QAbstractSpinBox, QComboBox))
+        ):
+            _paint_canvas(child, palette)
             continue
         if ("background-color: #ffffff" in lowered and isinstance(child, (QGroupBox, QStatusBar))) or (
             name and "listview" in name.lower() and ("#e8f5e8" in lowered or "background-color: white" in lowered)
@@ -211,6 +218,22 @@ def _button_kind(sheet: str) -> str | None:
     return None
 
 
+def _card_color(palette: FluentPalette) -> QColor:
+    """Return an opaque card fill. Translucent tokens paint as white on a light style."""
+    if palette.dark:
+        return QColor(palette.solid_tertiary_bg)
+    return QColor(palette.solid_quarternary_bg)
+
+
+def _clear_viewport(view: QAbstractItemView, palette: FluentPalette) -> None:
+    """Paint the list viewport with the window gradient instead of the system base."""
+    text = css(mix(palette.window_bg, palette.text_primary))
+    view.setAutoFillBackground(False)
+    viewport = view.viewport()
+    viewport.setAutoFillBackground(False)
+    viewport.setStyleSheet(f"background: {wallpaper_fill(palette)}; color: {text};")
+
+
 def _fluent_surface_qss(palette: FluentPalette) -> str:
     text = css(mix(palette.window_bg, palette.text_primary))
     secondary = css(mix(palette.window_bg, palette.text_secondary))
@@ -221,6 +244,10 @@ def _fluent_surface_qss(palette: FluentPalette) -> str:
     return f"""
 /* hsk-fluent-surfaces */
 {wallpaper_qss(palette)}
+QLabel, QCheckBox, QRadioButton {{
+ color: {text};
+ background: transparent;
+}}
 QGroupBox {{
  background: transparent;
  border: none;
@@ -290,6 +317,30 @@ def _normalize_control_metrics(root: QWidget) -> None:
                 widget.setMaximumHeight(CONTROL_HEIGHT)
         if isinstance(widget, QAbstractButton) and widget.iconSize().width() > ICON_SIZE:
             widget.setIconSize(QSize(ICON_SIZE, ICON_SIZE))
+
+
+def _paint_canvas(widget: QWidget, palette: FluentPalette) -> None:
+    """Paint the window gradient on a structural panel that used to be flat white."""
+    name = widget.objectName()
+    if not name:
+        name = f"hskCanvas{id(widget)}"
+        widget.setObjectName(name)
+    text = css(mix(palette.window_bg, palette.text_primary))
+    widget.setStyleSheet(f"QWidget#{name} {{ background: {wallpaper_fill(palette)}; color: {text}; border: none; }}")
+    widget.setAutoFillBackground(False)
+    widget.setProperty(_PROP_CANVAS, True)  # noqa: FBT003
+
+
+def _paint_viewport(view: QAbstractItemView, color: QColor, text: QColor) -> None:
+    """Fill the scroll viewport so empty rows are not the system white."""
+    viewport = view.viewport()
+    tuned = viewport.palette()
+    for group in (QPalette.ColorGroup.Active, QPalette.ColorGroup.Inactive):
+        tuned.setColor(group, QPalette.ColorRole.Base, color)
+        tuned.setColor(group, QPalette.ColorRole.Text, text)
+    viewport.setPalette(tuned)
+    viewport.setAutoFillBackground(True)
+    view.setPalette(tuned)
 
 
 def _restyle_buttons(root: QWidget, palette: FluentPalette) -> None:
@@ -448,18 +499,16 @@ def _style_item_view(view: QAbstractItemView, palette: FluentPalette) -> None:
 """,
     )
     _apply_list_palette(view, palette)
+    _clear_viewport(view, palette)
 
 
 def _style_table(table: QTableView, palette: FluentPalette) -> None:
     selector_base = table.metaObject().className()
     name = table.objectName()
     selector = f"{selector_base}#{name}" if name else selector_base
-    hover = css(list_item_hover(palette))
-    selected = css(list_item_selected(palette))
-    text = css(mix(palette.window_bg, palette.text_primary))
     secondary = css(mix(palette.window_bg, palette.text_secondary))
     divider = css(mix(palette.window_bg, palette.divider))
-    card = css(palette.card_bg)
+    card = _card_color(palette)
     stroke = css(palette.card_stroke)
     table.setShowGrid(False)
     table.setAlternatingRowColors(False)
@@ -473,20 +522,13 @@ def _style_table(table: QTableView, palette: FluentPalette) -> None:
     table.setStyleSheet(
         f"""
 {selector} {{
- background: {card};
- color: {text};
+ background: {card.name()};
+ color: {_TABLE_TEXT};
  border: 1px solid {stroke};
  border-radius: {RADIUS_CARD}px;
  outline: none;
  gridline-color: transparent;
 }}
-{selector}::item {{
- border: none;
- border-bottom: 1px solid {divider};
- padding: 0px 8px;
-}}
-{selector}::item:hover {{ background: {hover}; }}
-{selector}::item:selected {{ background: {selected}; color: {text}; }}
 {selector} QHeaderView::section {{
  background: transparent;
  color: {secondary};
@@ -499,3 +541,5 @@ def _style_table(table: QTableView, palette: FluentPalette) -> None:
 {scroll_bar_qss(palette)}
 """,
     )
+    # No ::item background: that stylesheet replaces the model's row tint.
+    _paint_viewport(table, card, QColor(_TABLE_TEXT))

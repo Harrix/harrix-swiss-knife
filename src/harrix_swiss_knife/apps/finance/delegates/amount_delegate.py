@@ -171,10 +171,9 @@ class AmountDelegate(QStyledItemDelegate):
                 display_text = f"{amount_text}{currency_symbol}"
                 alignment = _total_per_day_alignment(index.data(Qt.ItemDataRole.TextAlignmentRole))
                 painter.save()
-                if alignment & Qt.AlignmentFlag.AlignTop:
-                    brush = index.data(Qt.ItemDataRole.BackgroundRole)
-                    if isinstance(brush, QBrush):
-                        painter.fillRect(option.rect, brush)
+                brush = index.data(Qt.ItemDataRole.BackgroundRole)
+                if isinstance(brush, QBrush) and brush.style() != Qt.BrushStyle.NoBrush:
+                    painter.fillRect(option.rect, brush)
                 painter.setFont(option.font)
                 top_pad = 3 if alignment & Qt.AlignmentFlag.AlignTop else 0
                 painter.drawText(
