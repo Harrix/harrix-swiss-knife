@@ -754,6 +754,9 @@ def refresh_win11_caption(window: QWidget) -> None:
         line.update()
     for button in window.findChildren(CaptionButton):
         button.update()
+    for button in window.findChildren(QToolButton, "themeToggleButton"):
+        if button.property("_hskThemeToggle"):
+            _sync_theme_toggle_icon(button)
 ```
 
 </details>

@@ -725,7 +725,7 @@ def test_save_buttons_offer_format_menus(qapp: QApplication) -> None:  # noqa: A
         assert menu is not None
         assert [action.text() for action in menu.actions()] == labels
         assert all(not action.icon().isNull() for action in menu.actions())
-        assert menu.style().pixelMetric(QStyle.PixelMetric.PM_SmallIconSize, None, menu) == 24
+        assert menu.style().pixelMetric(QStyle.PixelMetric.PM_SmallIconSize, None, menu) == 16
     window.close()
 
 

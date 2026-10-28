@@ -12,8 +12,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from PySide6.QtCore import QSize
 from PySide6.QtGui import QFont, QPalette
 from PySide6.QtWidgets import (
+    QAbstractButton,
     QAbstractItemView,
     QAbstractSpinBox,
     QApplication,
@@ -36,19 +38,30 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife.fluent.style import (
-    accent_button_qss,
+    chrome_bottom_color,
+    chrome_top_color,
     combo_box_qss,
+    date_edit_qss,
     line_edit_qss,
     list_item_hover,
     list_item_selected,
     menu_qss,
     push_button_qss,
     scroll_bar_qss,
+    semantic_button_qss,
     spin_box_qss,
     text_edit_qss,
+    wallpaper_qss,
 )
-from harrix_swiss_knife.fluent.theme import bind_theme, css, enable_fluent_theme, mix, palette_for
-from harrix_swiss_knife.fluent.tokens import CONTROL_HEIGHT, RADIUS_CARD, RADIUS_CONTROL, SPACE_S
+from harrix_swiss_knife.fluent.theme import bind_theme, css, enable_fluent_theme, mix, palette_for, to_qpalette
+from harrix_swiss_knife.fluent.tokens import (
+    CONTROL_HEIGHT,
+    CONTROL_HEIGHT_COMPACT,
+    ICON_SIZE,
+    RADIUS_CARD,
+    RADIUS_CONTROL,
+    SPACE_S,
+)
 from harrix_swiss_knife.qt_flat_scrollbar import apply_flat_scrollbars
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
 
@@ -61,18 +74,31 @@ _KEEP_LARGE_FONT = frozenset(
         "label_today_expense",
     },
 )
-# Legacy solid fills that should become Fluent AccentButton.
-_ACCENT_MARKERS = (
-    "#79b1d1",
-    "#3aaf9d",
-    "#4caf50",
-    "#2e86b7",
-    "#038387",
-    "#026a6d",
-    "button_cta_",
-    "hsk-fluent-cta",
-    "BUTTON_PRIMARY",
-    "background-color: #005fb8",
+# First solid fill in a button stylesheet maps to a Fluent role.
+# Text-only uses of these hexes (calendar links) must not match.
+_FILL_KINDS = {
+    "3aaf9d": "mint",
+    "038387": "mint",
+    "026a6d": "mint",
+    "79b1d1": "info",
+    "4caf50": "success",
+    "2e7d32": "success",
+    "cc584c": "danger",
+    "c42b1c": "danger",
+    "2e86b7": "accent",
+    "005fb8": "accent",
+    "1a5f7a": "accent",
+}
+_KIND_MARKERS = (
+    ("button_cta_mint", "mint"),
+    ("button_cta_green", "success"),
+    ("button_cta_cyan", "info"),
+    ("hsk-fluent-mint", "mint"),
+    ("hsk-fluent-info", "info"),
+    ("hsk-fluent-success", "success"),
+    ("hsk-fluent-danger", "danger"),
+    ("hsk-fluent-cta", "accent"),
+    ("button_cta_", "accent"),
 )
 _SECONDARY_MARKERS = (
     "#f5f5f5",
@@ -115,6 +141,8 @@ def _apply_fluent_list_selection(root: QWidget, palette: FluentPalette) -> None:
 def _apply_fluent_surfaces(window: QWidget, palette: FluentPalette) -> None:
     """Replace opaque white chrome with translucent Fluent layers so Mica shows."""
     window.setStyleSheet(_fluent_surface_qss(palette))
+    # setStyleSheet polishes the widget and can replace the palette with the system one.
+    window.setPalette(to_qpalette(palette, window.palette()))
     window.setAutoFillBackground(False)
 
     for child in window.findChildren(QWidget):
@@ -137,8 +165,18 @@ def _apply_fluent_surfaces(window: QWidget, palette: FluentPalette) -> None:
             "#e8f4fc" in lowered or "#3aaf9d" in lowered or "background-color: #" in lowered
         ):
             clear_sheet = True
-        if clear_sheet:
+        if clear_sheet and not isinstance(child, QPushButton):
             child.setStyleSheet("")
+    status = window.findChild(QStatusBar)
+    if status is not None:
+        color = chrome_bottom_color(palette)
+        text = mix(palette.window_bg, palette.text_primary)
+        status_palette = status.palette()
+        for group in (QPalette.ColorGroup.Active, QPalette.ColorGroup.Inactive):
+            status_palette.setColor(group, QPalette.ColorRole.Window, color)
+            status_palette.setColor(group, QPalette.ColorRole.WindowText, text)
+        status.setPalette(status_palette)
+        status.setAutoFillBackground(True)
 
 
 def _apply_list_palette(view: QAbstractItemView, palette: FluentPalette) -> None:
@@ -151,37 +189,60 @@ def _apply_list_palette(view: QAbstractItemView, palette: FluentPalette) -> None
     view.setPalette(qp)
 
 
+def _button_kind(sheet: str) -> str | None:
+    """Map the first solid button fill to a Fluent role."""
+    lowered = sheet.lower()
+    for marker, kind in _KIND_MARKERS:
+        if marker in lowered:
+            return kind
+    index = lowered.find("background-color:")
+    key = "background-color:"
+    if index < 0:
+        index = lowered.find("background:")
+        key = "background:"
+    if index < 0:
+        return None
+    chunk = lowered[index + len(key) : index + len(key) + 28]
+    if "transparent" in chunk or "#fff" in chunk or "white" in chunk:
+        return None
+    for hex_key, kind in _FILL_KINDS.items():
+        if hex_key in chunk:
+            return kind
+    return None
+
+
 def _fluent_surface_qss(palette: FluentPalette) -> str:
     text = css(mix(palette.window_bg, palette.text_primary))
     secondary = css(mix(palette.window_bg, palette.text_secondary))
     divider = css(mix(palette.window_bg, palette.divider))
     hover = css(list_item_hover(palette))
-    card = css(palette.card_bg)
+    status = chrome_bottom_color(palette).name()
+    bar = chrome_top_color(palette).name()
     return f"""
 /* hsk-fluent-surfaces */
-QMainWindow, QDialog {{
- background-color: transparent;
-}}
+{wallpaper_qss(palette)}
 QGroupBox {{
- background-color: {card};
- border: 1px solid {css(palette.card_stroke)};
- border-radius: {RADIUS_CONTROL}px;
- margin-top: 0.9em;
- padding-top: 6px;
- padding-bottom: 6px;
+ background: transparent;
+ border: none;
+ border-bottom: 1px solid {divider};
+ border-radius: 0px;
+ margin-top: 10px;
+ padding-top: 2px;
+ padding-bottom: 4px;
  color: {text};
+ font-weight: 600;
 }}
 QGroupBox::title {{
  subcontrol-origin: margin;
  subcontrol-position: top left;
- left: 8px;
- padding: 0 4px;
- background-color: transparent;
+ left: 0px;
+ padding: 0px;
+ background: transparent;
  color: {text};
 }}
 {menu_qss(palette)}
-QStatusBar {{ background: transparent; color: {text}; }}
-QStatusBar QLabel {{ color: {text}; }}
+QStatusBar {{ background: {status}; color: {text}; border: none; }}
+QStatusBar QLabel {{ color: {text}; background: transparent; }}
 QSplitter::handle:horizontal {{
  width: 1px;
  background: {divider};
@@ -191,7 +252,7 @@ QSplitter::handle:vertical {{
  background: {divider};
 }}
 QMenuBar {{
- background: transparent;
+ background: {bar};
  color: {text};
 }}
 QMenuBar::item {{
@@ -202,6 +263,12 @@ QMenuBar::item {{
 QMenuBar::item:selected {{ background: {hover}; }}
 QMenuBar::item:disabled {{ color: {secondary}; }}
 """
+
+
+def _lock_control_height(widget: QWidget) -> None:
+    """Keep filter fields at the compact Fluent height so a row can fit."""
+    widget.setMinimumHeight(CONTROL_HEIGHT_COMPACT)
+    widget.setMaximumHeight(CONTROL_HEIGHT_COMPACT)
 
 
 def _normalize_control_metrics(root: QWidget) -> None:
@@ -216,55 +283,58 @@ def _normalize_control_metrics(root: QWidget) -> None:
             font = QFont(base_font)
             font.setBold(False)
             widget.setFont(font)
-        if isinstance(widget, QPushButton):
-            if widget.minimumHeight() > CONTROL_HEIGHT + 2:
+        if isinstance(widget, QPushButton) and not _skip_fluent_button(widget):
+            if widget.minimumHeight() > CONTROL_HEIGHT:
                 widget.setMinimumHeight(CONTROL_HEIGHT)
-            if widget.maximumHeight() < CONTROL_HEIGHT and widget.maximumHeight() > 0:
-                widget.setMaximumHeight(16777215)
+            if 0 < widget.maximumHeight() < CONTROL_HEIGHT:
+                widget.setMaximumHeight(CONTROL_HEIGHT)
+        if isinstance(widget, QAbstractButton) and widget.iconSize().width() > ICON_SIZE:
+            widget.setIconSize(QSize(ICON_SIZE, ICON_SIZE))
 
 
 def _restyle_buttons(root: QWidget, palette: FluentPalette) -> None:
-    accent = accent_button_qss(palette)
     secondary = push_button_qss(palette)
     for button in root.findChildren(QPushButton):
+        if _skip_fluent_button(button):
+            continue
         sheet = button.styleSheet() or ""
-        lowered = sheet.lower()
-        if any(marker.lower() in lowered for marker in _ACCENT_MARKERS) or any(
-            marker.lower() in sheet for marker in _ACCENT_MARKERS
-        ):
-            button.setStyleSheet(f"/* hsk-fluent-cta */\n{accent}")
-            button.setMinimumHeight(CONTROL_HEIGHT)
-            button.setProperty("_hskFluentButton", "accent")
-        elif any(marker.lower() in lowered for marker in _SECONDARY_MARKERS):
+        kind = _button_kind(sheet) or button.property("_hskFluentButton")
+        if isinstance(kind, str) and kind in {"accent", "mint", "info", "success", "danger"}:
+            button.setStyleSheet(f"/* hsk-fluent-{kind} */\n{semantic_button_qss(palette, kind)}")
+            button.setMinimumHeight(CONTROL_HEIGHT_COMPACT)
+            button.setMaximumHeight(CONTROL_HEIGHT)
+            button.setProperty("_hskFluentButton", kind)
+        elif any(marker.lower() in sheet.lower() for marker in _SECONDARY_MARKERS):
             button.setStyleSheet(secondary)
-            button.setMinimumHeight(CONTROL_HEIGHT)
+            button.setMinimumHeight(CONTROL_HEIGHT_COMPACT)
+            button.setMaximumHeight(CONTROL_HEIGHT)
             button.setProperty("_hskFluentButton", "secondary")
-        elif button.property("_hskFluentButton") == "accent":
-            button.setStyleSheet(f"/* hsk-fluent-cta */\n{accent}")
-        elif button.property("_hskFluentButton") == "secondary":
+        elif kind == "secondary":
             button.setStyleSheet(secondary)
 
 
 def _restyle_inputs(root: QWidget, palette: FluentPalette) -> None:
-    line = line_edit_qss(palette)
-    spin = spin_box_qss(palette)
-    combo = combo_box_qss(palette)
+    line = line_edit_qss(palette, height=CONTROL_HEIGHT_COMPACT)
+    spin = spin_box_qss(palette, height=CONTROL_HEIGHT_COMPACT)
+    combo = combo_box_qss(palette, height=CONTROL_HEIGHT_COMPACT)
     for edit in root.findChildren(QLineEdit):
         if edit.parentWidget() is not None and isinstance(edit.parentWidget(), QAbstractSpinBox):
             continue
         if edit.parentWidget() is not None and isinstance(edit.parentWidget(), QComboBox):
             continue
         edit.setStyleSheet(line)
-        edit.setMinimumHeight(CONTROL_HEIGHT)
+        _lock_control_height(edit)
     for box in root.findChildren(QAbstractSpinBox):
+        if isinstance(box, QDateEdit):
+            continue
         box.setStyleSheet(spin)
-        box.setMinimumHeight(CONTROL_HEIGHT)
+        _lock_control_height(box)
     for box in root.findChildren(QComboBox):
         box.setStyleSheet(combo)
-        box.setMinimumHeight(CONTROL_HEIGHT)
+        _lock_control_height(box)
     for box in root.findChildren(QDateEdit):
-        box.setStyleSheet(spin_box_qss(palette, "QDateEdit"))
-        box.setMinimumHeight(CONTROL_HEIGHT)
+        box.setStyleSheet(date_edit_qss(palette, height=CONTROL_HEIGHT_COMPACT))
+        _lock_control_height(box)
     for edit in root.findChildren(QPlainTextEdit):
         edit.setStyleSheet(text_edit_qss(palette, "QPlainTextEdit"))
     for edit in root.findChildren(QTextEdit):
@@ -336,6 +406,18 @@ QTabBar::tab:selected {{
         )
 
 
+def _skip_fluent_button(button: QWidget) -> bool:
+    """Leave calendar chips and in-cell controls on their own stylesheet."""
+    if button.property("_hskSkipFluentButton"):
+        return True
+    parent = button.parentWidget()
+    while parent is not None:
+        if parent.metaObject().className() == "SoftCalendarWidget" or parent.inherits("QAbstractItemView"):
+            return True
+        parent = parent.parentWidget()
+    return False
+
+
 def _style_item_view(view: QAbstractItemView, palette: FluentPalette) -> None:
     selector = view.metaObject().className()
     name = view.objectName()
@@ -343,6 +425,8 @@ def _style_item_view(view: QAbstractItemView, palette: FluentPalette) -> None:
     hover = css(list_item_hover(palette))
     selected = css(list_item_selected(palette))
     text = css(mix(palette.window_bg, palette.text_primary))
+    view.setIconSize(QSize(ICON_SIZE, ICON_SIZE))
+    view.setSpacing(0)
     view.setStyleSheet(
         f"""
 {target} {{
@@ -353,8 +437,8 @@ def _style_item_view(view: QAbstractItemView, palette: FluentPalette) -> None:
 }}
 {target}::item {{
  border-radius: {RADIUS_CONTROL}px;
- padding: 6px 8px;
- margin: 1px 4px;
+ padding: 1px 8px;
+ margin: 0px;
  color: {text};
 }}
 {target}::item:hover {{ background: {hover}; }}

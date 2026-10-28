@@ -149,6 +149,7 @@ class FluentNavigationWindow(QMainWindow):
         super().__init__(parent)
         self.setWindowTitle(title)
         enable_fluent_theme(self)
+        bind_theme(self, self._apply_wallpaper)
         body = QWidget(self)
         row = QHBoxLayout(body)
         row.setContentsMargins(0, 0, 0, 0)
@@ -163,6 +164,11 @@ class FluentNavigationWindow(QMainWindow):
         row.addWidget(self.navigation)
         row.addWidget(self.layer, 1)
         self.setCentralWidget(body)
+        body.setObjectName("fluentNavigationBody")
+        body.setAutoFillBackground(False)
+        self.navigation.setAutoFillBackground(False)
+        self.stack.setAutoFillBackground(False)
+        self._apply_wallpaper()
         self._pages: dict[str, QWidget] = {}
         self.navigation.current_changed.connect(self.show_page)
         self.caption_installed = False
@@ -206,6 +212,13 @@ class FluentNavigationWindow(QMainWindow):
             self.stack.setCurrentWidget(page)
             if self.navigation.current() != key:
                 self.navigation.set_current(key)
+
+    def _apply_wallpaper(self) -> None:
+        """Paint the qfluent-style window gradient behind the navigation and layer."""
+        self.setStyleSheet(wallpaper_qss(palette_for(self)))
+        body = self.centralWidget()
+        if body is not None:
+            body.setStyleSheet("QWidget#fluentNavigationBody { background: transparent; }")
 ```
 
 </details>
@@ -233,6 +246,7 @@ def __init__(
         super().__init__(parent)
         self.setWindowTitle(title)
         enable_fluent_theme(self)
+        bind_theme(self, self._apply_wallpaper)
         body = QWidget(self)
         row = QHBoxLayout(body)
         row.setContentsMargins(0, 0, 0, 0)
@@ -247,6 +261,11 @@ def __init__(
         row.addWidget(self.navigation)
         row.addWidget(self.layer, 1)
         self.setCentralWidget(body)
+        body.setObjectName("fluentNavigationBody")
+        body.setAutoFillBackground(False)
+        self.navigation.setAutoFillBackground(False)
+        self.stack.setAutoFillBackground(False)
+        self._apply_wallpaper()
         self._pages: dict[str, QWidget] = {}
         self.navigation.current_changed.connect(self.show_page)
         self.caption_installed = False

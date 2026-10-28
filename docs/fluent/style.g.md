@@ -12,7 +12,11 @@ lang: en
 ## Contents
 
 - [🔧 Function `accent_button_qss`](#-function-accent_button_qss)
+- [🔧 Function `chrome_bottom_color`](#-function-chrome_bottom_color)
+- [🔧 Function `chrome_top_color`](#-function-chrome_top_color)
 - [🔧 Function `combo_box_qss`](#-function-combo_box_qss)
+- [🔧 Function `date_edit_qss`](#-function-date_edit_qss)
+- [🔧 Function `filled_button_qss`](#-function-filled_button_qss)
 - [🔧 Function `item_view_qss`](#-function-item_view_qss)
 - [🔧 Function `line_edit_qss`](#-function-line_edit_qss)
 - [🔧 Function `list_item_hover`](#-function-list_item_hover)
@@ -21,11 +25,13 @@ lang: en
 - [🔧 Function `menu_qss`](#-function-menu_qss)
 - [🔧 Function `push_button_qss`](#-function-push_button_qss)
 - [🔧 Function `scroll_bar_qss`](#-function-scroll_bar_qss)
+- [🔧 Function `semantic_button_qss`](#-function-semantic_button_qss)
 - [🔧 Function `spin_box_qss`](#-function-spin_box_qss)
 - [🔧 Function `subtle_button_qss`](#-function-subtle_button_qss)
 - [🔧 Function `text_edit_qss`](#-function-text_edit_qss)
 - [🔧 Function `themed_icon`](#-function-themed_icon)
 - [🔧 Function `tooltip_qss`](#-function-tooltip_qss)
+- [🔧 Function `wallpaper_qss`](#-function-wallpaper_qss)
 
 </details>
 
@@ -64,6 +70,42 @@ def accent_button_qss(palette: FluentPalette, selector: str = "QPushButton") -> 
     color: {css(palette.text_on_accent if palette.dark else QColor(255, 255, 255))};
 }}
 """
+```
+
+</details>
+
+## 🔧 Function `chrome_bottom_color`
+
+```python
+def chrome_bottom_color(palette: FluentPalette) -> QColor
+```
+
+Return the solid color used for the status bar.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def chrome_bottom_color(palette: FluentPalette) -> QColor:
+    return _wallpaper_stops(palette)[2]
+```
+
+</details>
+
+## 🔧 Function `chrome_top_color`
+
+```python
+def chrome_top_color(palette: FluentPalette) -> QColor
+```
+
+Return the solid color used for the caption and tab strip.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def chrome_top_color(palette: FluentPalette) -> QColor:
+    return _wallpaper_stops(palette)[0]
 ```
 
 </details>
@@ -113,6 +155,74 @@ def combo_box_qss(palette: FluentPalette, selector: str = "QComboBox", *, height
     outline: none;
     selection-background-color: {css(palette.subtle_hover)};
     selection-color: {css(palette.text_primary)};
+}}
+"""
+```
+
+</details>
+
+## 🔧 Function `date_edit_qss`
+
+```python
+def date_edit_qss(palette: FluentPalette, *, height: int = CONTROL_HEIGHT) -> str
+```
+
+Return a Fluent date field with a flat chevron instead of a beveled arrow.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def date_edit_qss(palette: FluentPalette, *, height: int = CONTROL_HEIGHT) -> str:
+    arrow = lucide_qss_url("chevron-down", mix(palette.window_bg, palette.text_secondary), 12)
+    return f"""
+{line_edit_qss(palette, "QDateEdit", height=height)}
+QDateEdit::drop-down {{
+    subcontrol-origin: padding;
+    subcontrol-position: center right;
+    width: 22px;
+    border: none;
+    background: transparent;
+}}
+QDateEdit::down-arrow {{ image: url("{arrow}"); width: 12px; height: 12px; }}
+QDateEdit::up-button, QDateEdit::down-button {{ width: 0px; height: 0px; border: none; }}
+"""
+```
+
+</details>
+
+## 🔧 Function `filled_button_qss`
+
+```python
+def filled_button_qss(palette: FluentPalette, fill: QColor, ink: QColor, selector: str = 'QPushButton') -> str
+```
+
+Return a Fluent solid button in `fill` with `ink` text.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def filled_button_qss(palette: FluentPalette, fill: QColor, ink: QColor, selector: str = "QPushButton") -> str:
+    hover = mix(fill, QColor(255, 255, 255, 48) if palette.dark else QColor(0, 0, 0, 36))
+    pressed = mix(fill, QColor(0, 0, 0, 48))
+    return f"""
+{selector} {{
+    background-color: {css(fill)};
+    color: {css(ink)};
+    border: 1px solid {css(fill)};
+    border-bottom-color: {css(pressed)};
+    border-radius: {RADIUS_CONTROL}px;
+    padding: 0px {CONTROL_PADDING_H}px;
+    min-height: {CONTROL_HEIGHT_COMPACT}px;
+    max-height: {CONTROL_HEIGHT}px;
+}}
+{selector}:hover {{ background-color: {css(hover)}; border-color: {css(hover)}; }}
+{selector}:pressed {{ background-color: {css(pressed)}; border-color: {css(pressed)}; }}
+{selector}:disabled {{
+    background-color: {css(palette.accent_disabled)};
+    border-color: {css(palette.accent_disabled)};
+    color: {css(palette.text_disabled)};
 }}
 """
 ```
@@ -269,7 +379,7 @@ def lucide_qss_url(name: str, color: QColor, size: int = ICON_SIZE) -> str:
     path = Path(tempfile.gettempdir()) / stem
     if not pixmap.isNull():
         pixmap.save(str(path), "PNG")
-    url = path.resolve().as_posix()
+    url = "file:///" + path.resolve().as_posix()
     _URL_CACHE[key] = url
     return url
 ```
@@ -392,10 +502,29 @@ QAbstractScrollArea::corner {{ background: transparent; border: none; }}
 
 </details>
 
+## 🔧 Function `semantic_button_qss`
+
+```python
+def semantic_button_qss(palette: FluentPalette, kind: str, selector: str = 'QPushButton') -> str
+```
+
+Return a Fluent button for `accent`, `mint`, `info`, `success`, or `danger`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def semantic_button_qss(palette: FluentPalette, kind: str, selector: str = "QPushButton") -> str:
+    fill, ink = _semantic_button_colors(palette, kind)
+    return filled_button_qss(palette, fill, ink, selector)
+```
+
+</details>
+
 ## 🔧 Function `spin_box_qss`
 
 ```python
-def spin_box_qss(palette: FluentPalette, selector: str = 'QAbstractSpinBox') -> str
+def spin_box_qss(palette: FluentPalette, selector: str = 'QAbstractSpinBox', *, height: int = CONTROL_HEIGHT) -> str
 ```
 
 Return the Fluent number box stylesheet with Lucide up/down glyphs.
@@ -404,11 +533,11 @@ Return the Fluent number box stylesheet with Lucide up/down glyphs.
 <summary>Code:</summary>
 
 ```python
-def spin_box_qss(palette: FluentPalette, selector: str = "QAbstractSpinBox") -> str:
+def spin_box_qss(palette: FluentPalette, selector: str = "QAbstractSpinBox", *, height: int = CONTROL_HEIGHT) -> str:
     up = lucide_qss_url("chevron-up", palette.text_secondary, 10)
     down = lucide_qss_url("chevron-down", palette.text_secondary, 10)
     return f"""
-{line_edit_qss(palette, selector)}
+{line_edit_qss(palette, selector, height=height)}
 {selector} {{ padding-right: 24px; }}
 {selector}::up-button, {selector}::down-button {{
     subcontrol-origin: border;
@@ -539,6 +668,30 @@ QToolTip {{
     padding: 4px 8px;
 }}
 """
+```
+
+</details>
+
+## 🔧 Function `wallpaper_qss`
+
+```python
+def wallpaper_qss(palette: FluentPalette) -> str
+```
+
+Return the soft window gradient used behind Fluent app content.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def wallpaper_qss(palette: FluentPalette) -> str:
+    top, mid, bottom = _wallpaper_stops(palette)
+    return (
+        "QMainWindow, QDialog {"
+        " background: qlineargradient(x1:0, y1:0, x2:1, y2:1,"
+        f" stop:0 {top.name()}, stop:0.45 {mid.name()}, stop:1 {bottom.name()});"
+        " }"
+    )
 ```
 
 </details>

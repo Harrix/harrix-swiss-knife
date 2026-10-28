@@ -240,6 +240,7 @@ class FluentNavigationBar(QWidget):
         self._indicator.valueChanged.connect(self._on_indicator)
         self._scroll_offset = 0
         self.setMouseTracking(True)
+        self.setAutoFillBackground(False)
         self.setMinimumWidth(_NAV_COMPACT_WIDTH)
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
         layout = QVBoxLayout(self)

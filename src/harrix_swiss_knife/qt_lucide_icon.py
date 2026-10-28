@@ -60,8 +60,8 @@ logger = logging.getLogger(__name__)
 
 # Lucide strokes are 2px on a 24px grid. Drawing them at 24 keeps the stroke
 # on whole pixels; 18px makes a 1.5px stroke that looks soft, and menus then scale it again.
-DEFAULT_LUCIDE_BUTTON_ICON_SIZE = 24
-DEFAULT_LUCIDE_MENU_ICON_SIZE = 24
+DEFAULT_LUCIDE_BUTTON_ICON_SIZE = 16
+DEFAULT_LUCIDE_MENU_ICON_SIZE = 16
 
 OK_BUTTON_ICON = "circle-check"
 APPLY_BUTTON_ICON = "circle-check"
@@ -744,8 +744,8 @@ def _lucide_device_pixel_ratio() -> float:
         if screen is not None:
             ratio = screen.devicePixelRatio()
             if ratio > 0:
-                return float(ratio)
-    return 1.0
+                return max(2.0, float(ratio))
+    return 2.0
 
 
 def _lucide_dir() -> Path:

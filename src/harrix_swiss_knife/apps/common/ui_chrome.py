@@ -240,21 +240,21 @@ def button_content_colors(bg_hex: str) -> tuple[str, str]:
 
 
 def button_cta_cyan_qss(*, radius: int = PANEL_RADIUS) -> str:
-    """Accent CTA fill (Fluent primary). `radius` is kept for call-site compatibility."""
+    """Info CTA fill. `radius` is kept for call-site compatibility."""
     del radius
-    return _fluent_cta_button_qss()
+    return _fluent_role_button_qss("info")
 
 
 def button_cta_green_qss(*, radius: int = PANEL_RADIUS) -> str:
-    """Accent CTA fill (Fluent primary). `radius` is kept for call-site compatibility."""
+    """Success CTA fill. `radius` is kept for call-site compatibility."""
     del radius
-    return _fluent_cta_button_qss()
+    return _fluent_role_button_qss("success")
 
 
 def button_cta_mint_qss(*, radius: int = PANEL_RADIUS) -> str:
-    """Accent CTA fill (Fluent primary). `radius` is kept for call-site compatibility."""
+    """Mint CTA fill. `radius` is kept for call-site compatibility."""
     del radius
-    return _fluent_cta_button_qss()
+    return _fluent_role_button_qss("mint")
 
 
 def button_danger_qss(*, radius: int = PANEL_RADIUS) -> str:
@@ -546,10 +546,15 @@ def _color_distance(a: tuple[int, int, int], b: tuple[int, int, int]) -> float:
 
 def _fluent_cta_button_qss() -> str:
     """Return Fluent accent button QSS tagged for theme refresh."""
-    from harrix_swiss_knife.fluent.style import accent_button_qss  # noqa: PLC0415
+    return _fluent_role_button_qss("accent")
+
+
+def _fluent_role_button_qss(kind: str) -> str:
+    """Return a theme-aware solid button tagged so app chrome keeps its role."""
+    from harrix_swiss_knife.fluent.style import semantic_button_qss  # noqa: PLC0415
     from harrix_swiss_knife.fluent.theme import FluentTheme  # noqa: PLC0415
 
-    return f"/* hsk-fluent-cta */\n{accent_button_qss(FluentTheme.instance().palette())}"
+    return f"/* hsk-fluent-{kind} */\n{semantic_button_qss(FluentTheme.instance().palette(), kind)}"
 
 
 def _parse_rgb(hex_color: str | None) -> tuple[int, int, int] | None:

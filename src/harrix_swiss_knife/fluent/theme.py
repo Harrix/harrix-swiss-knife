@@ -260,8 +260,7 @@ def to_qpalette(palette: FluentPalette, base: QPalette | None = None) -> QPalett
 def _apply_window_palette(window: QWidget) -> None:
     palette = palette_for(window)
     window.setPalette(to_qpalette(palette, window.palette()))
-    # Do not auto-fill with the opaque Window role: Fluent app chrome paints a
-    # transparent QMainWindow stylesheet so Windows 11 Mica can show through.
+    # The window stylesheet paints the wallpaper. Auto-fill would hide it.
     window.setAutoFillBackground(False)
     # Creating the native handle here, before the frameless caption flags are
     # set, destroys that handle and leaves Qt flushing a dead HWND.

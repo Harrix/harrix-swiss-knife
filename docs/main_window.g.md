@@ -75,6 +75,7 @@ class MainWindow(QMainWindow):
         self._apply_catalog_view()
         self._setup_window_size_and_position()
         bind_theme(self, self._refresh_theme_icons)
+        self._refresh_theme_icons()
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Hide the window instead of closing the application."""
@@ -190,6 +191,8 @@ class MainWindow(QMainWindow):
 
     def _build_body_widget(self) -> QWidget:
         splitter = FluentSplitter()
+        splitter.setObjectName("commandWindowSplitter")
+        splitter.setAutoFillBackground(False)
         splitter.addWidget(self._build_list_pane())
         splitter.addWidget(self._build_cards_pane())
         splitter.setStretchFactor(0, 0)
@@ -225,6 +228,7 @@ class MainWindow(QMainWindow):
         row.addWidget(self._sort_combo)
 
         self._theme_button = FluentIconButton("moon", tools)
+        self._theme_button.setObjectName("themeToggleButton")
         self._theme_button.clicked.connect(self._on_theme_toggled)
         row.addWidget(self._theme_button)
 
@@ -242,6 +246,9 @@ class MainWindow(QMainWindow):
         layer_layout.addWidget(self._scroll)
 
         self._content = QWidget()
+        self._content.setObjectName("commandCardContent")
+        self._content.setAutoFillBackground(False)
+        self._content.setStyleSheet("QWidget#commandCardContent { background: transparent; }")
         self._content_layout = QVBoxLayout(self._content)
         self._content_layout.setContentsMargins(SPACE_XL, SPACE_L, SPACE_XL, SPACE_XL)
         self._content_layout.setSpacing(SPACE_XL)
@@ -264,6 +271,9 @@ class MainWindow(QMainWindow):
 
     def _build_list_pane(self) -> QWidget:
         list_pane = QWidget()
+        list_pane.setObjectName("commandListPane")
+        list_pane.setAutoFillBackground(False)
+        list_pane.setStyleSheet("QWidget#commandListPane { background: transparent; }")
         list_layout = QVBoxLayout(list_pane)
         list_layout.setContentsMargins(SPACE_XS, SPACE_XS, 0, SPACE_M)
         list_layout.setSpacing(SPACE_S)
@@ -502,6 +512,12 @@ class MainWindow(QMainWindow):
         for index, (_mode, _label, icon_name) in enumerate(_SORT_MODES):
             self._sort_combo.setItemIcon(index, themed_icon(icon_name, palette))
         dark = palette.dark
+        self.setStyleSheet(wallpaper_qss(palette))
+        body = self.centralWidget()
+        if body is not None:
+            body.setObjectName("commandWindowBody")
+            body.setAutoFillBackground(False)
+            body.setStyleSheet("QWidget#commandWindowBody { background: transparent; }")
         self._theme_button.set_icon_name("sun" if dark else "moon")
         tooltip = "Switch to light theme" if dark else "Switch to dark theme"
         self._theme_button.setToolTip(tooltip)
@@ -614,6 +630,7 @@ def __init__(self, menu: QMenu) -> None:
         self._apply_catalog_view()
         self._setup_window_size_and_position()
         bind_theme(self, self._refresh_theme_icons)
+        self._refresh_theme_icons()
 ```
 
 </details>

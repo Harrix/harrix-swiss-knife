@@ -98,6 +98,7 @@ class FluentTheme(QObject):
             from harrix_swiss_knife.config_model import set_ui_theme  # noqa: PLC0415
 
             set_ui_theme(theme=resolved.value)
+        _apply_qt_color_scheme(resolved)
         if resolved == self._mode:
             return
         self._mode = resolved
@@ -252,6 +253,7 @@ def set_mode(self, mode: ThemeMode | str, *, persist: bool = False) -> None:
             from harrix_swiss_knife.config_model import set_ui_theme  # noqa: PLC0415
 
             set_ui_theme(theme=resolved.value)
+        _apply_qt_color_scheme(resolved)
         if resolved == self._mode:
             return
         self._mode = resolved

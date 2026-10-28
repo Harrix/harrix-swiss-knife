@@ -41,7 +41,8 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife.apps.common.qt_main_window import resolve_window_menu_bar
-from harrix_swiss_knife.fluent.theme import bind_theme, is_fluent_themed, mix, palette_for
+from harrix_swiss_knife.fluent.style import chrome_top_color
+from harrix_swiss_knife.fluent.theme import FluentTheme, bind_theme, is_fluent_themed, mix, palette_for
 from harrix_swiss_knife.installer.icon_assets import apply_window_icon, asset_candidates
 from harrix_swiss_knife.qt_flat_scrollbar import apply_flat_scrollbars
 from harrix_swiss_knife.qt_frameless_window import frameless_hit_test, native_local_point, read_native_windows_message
@@ -757,6 +758,9 @@ def refresh_win11_caption(window: QWidget) -> None:
         line.update()
     for button in window.findChildren(CaptionButton):
         button.update()
+    for button in window.findChildren(QToolButton, "themeToggleButton"):
+        if button.property("_hskThemeToggle"):
+            _sync_theme_toggle_icon(button)
 
 
 def try_handle_win11_caption_native_event(
@@ -968,6 +972,8 @@ def _build_layout_caption(
         stretch = 1 if widget.sizePolicy().horizontalPolicy() == QSizePolicy.Policy.Expanding else 0
         layout.addWidget(widget, stretch=stretch)
 
+    if is_fluent_themed(window) and not _trailing_has_theme_toggle(trailing):
+        layout.addWidget(_make_theme_toggle(host))
     layout.addWidget(_make_caption_button_row(host, controller, light=light))
 
     root = window.layout()
@@ -1026,6 +1032,8 @@ def _build_menu_caption(
                 submenu.hide()
         layout.addWidget(menu)
         layout.addWidget(_make_caption_menu_button(window, controller, host))
+    if is_fluent_themed(window) and not _trailing_has_theme_toggle(trailing):
+        layout.addWidget(_make_theme_toggle(host))
     layout.addWidget(_make_caption_button_row(host, controller, light=light))
     window.setMenuWidget(host)
 
@@ -1101,6 +1109,13 @@ def _caption_strip_rect(window: QWidget) -> QRect:
     top_left = anchor.mapTo(window, QPoint(0, 0))
     height = max(anchor.height(), CAPTION_BUTTON_HEIGHT)
     return QRect(0, top_left.y(), window.width(), height)
+
+
+def _caption_surface(window: QWidget) -> QColor:
+    """Return the caption fill: wallpaper top when Fluent, otherwise the window color."""
+    if is_fluent_themed(window):
+        return chrome_top_color(palette_for(window))
+    return window.palette().color(QPalette.ColorRole.Window)
 
 
 def _caption_title_parent(window: QWidget) -> QWidget | None:
@@ -1454,6 +1469,21 @@ def _make_caption_menu_button(
     return button
 
 
+def _make_theme_toggle(parent: QWidget) -> QToolButton:
+    """Build the caption button that flips `ui_theme`."""
+    button = QToolButton(parent)
+    button.setObjectName("themeToggleButton")
+    button.setProperty("_hskThemeToggle", True)  # noqa: FBT003
+    button.setFixedSize(CAPTION_BUTTON_HEIGHT, CAPTION_BUTTON_HEIGHT)
+    button.setAutoRaise(True)
+    button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+    button.setCursor(Qt.CursorShape.PointingHandCursor)
+    button.setStyleSheet("QToolButton#themeToggleButton { background: transparent; border: none; }")
+    button.clicked.connect(lambda: _on_theme_toggle_clicked(button))
+    _sync_theme_toggle_icon(button)
+    return button
+
+
 def _menu_bar_width(menu: QMenuBar) -> int:
     """Return the width of the caption menu titles."""
     actions = [action for action in menu.actions() if action.isVisible()]
@@ -1518,8 +1548,15 @@ def _move_tab_menu_beside_buttons(
         menu.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
         right_layout.addWidget(menu)
         right_layout.addWidget(_make_caption_menu_button(window, controller, right))
+    if is_fluent_themed(window) and window.findChild(QWidget, "themeToggleButton") is None:
+        right_layout.addWidget(_make_theme_toggle(right))
     right_layout.addWidget(_make_caption_button_row(right, controller, light=light))
     tab_widget.setCornerWidget(right, Qt.Corner.TopRightCorner)
+
+
+def _on_theme_toggle_clicked(button: QToolButton) -> None:
+    FluentTheme.instance().toggle(persist=True)
+    _sync_theme_toggle_icon(button)
 
 
 def _owned_by_native_control(widget: QWidget) -> bool:
@@ -1602,6 +1639,8 @@ def _paint_tab_bar_line(tab_bar: QTabBar) -> None:
 
 
 def _palette_is_light(window: QWidget) -> bool:
+    if is_fluent_themed(window):
+        return not palette_for(window).dark
     return window.palette().color(QPalette.ColorRole.Window).lightness() >= _LIGHTNESS_THRESHOLD
 
 
@@ -1748,8 +1787,9 @@ def _strip_radio_indicator_qss(sheet: str) -> str:
 
 
 def _style_caption_chrome(window: QWidget) -> None:
-    color = window.palette().color(QPalette.ColorRole.Window)
+    color = _caption_surface(window)
     rgb = color.name(QColor.NameFormat.HexRgb)
+    fluent = is_fluent_themed(window)
     light = _palette_is_light(window)
     hover = _shade_caption_color(color, light=light, amount=0.06).name(QColor.NameFormat.HexRgb)
     colors = caption_colors(window)
@@ -1758,15 +1798,23 @@ def _style_caption_chrome(window: QWidget) -> None:
         name = tab_widget.objectName() or "tabWidget"
         if not tab_widget.objectName():
             tab_widget.setObjectName(name)
+        pane = "transparent" if fluent else rgb
         tab_widget.setStyleSheet(
-            f"QTabWidget#{name} {{ background-color: {rgb}; border: none; }}"
-            f"QTabWidget::pane {{ border: none; margin: 0px; margin-top: {_TAB_CONTENT_GAP}px; background: {rgb}; }}"
+            f"QTabWidget#{name} {{ background-color: {pane}; border: none; }}"
+            f"QTabWidget::pane {{ border: none; margin: 0px; margin-top: {_TAB_CONTENT_GAP}px; background: {pane}; }}"
         )
-        _fill_widget(tab_widget, color)
-        for index in range(tab_widget.count()):
-            page = tab_widget.widget(index)
-            if isinstance(page, QWidget):
-                _fill_widget(page, color)
+        if fluent:
+            tab_widget.setAutoFillBackground(False)
+            for index in range(tab_widget.count()):
+                page = tab_widget.widget(index)
+                if isinstance(page, QWidget):
+                    page.setAutoFillBackground(False)
+        else:
+            _fill_widget(tab_widget, color)
+            for index in range(tab_widget.count()):
+                page = tab_widget.widget(index)
+                if isinstance(page, QWidget):
+                    _fill_widget(page, color)
         tab_bar = tab_widget.tabBar()
         tab_bar.setDrawBase(False)
         text_height = QFontMetrics(tab_bar.font()).height()
@@ -1896,7 +1944,7 @@ def _sync_caption_icon_tooltip(window: QWidget) -> None:
 
 def _sync_caption_palette(window: QWidget) -> None:
     light = _palette_is_light(window)
-    color = window.palette().color(QPalette.ColorRole.Window)
+    color = _caption_surface(window)
     for button in window.findChildren(CaptionButton):
         button.set_light(light=light)
     host = _caption_host(window)
@@ -1918,6 +1966,12 @@ def _sync_caption_palette(window: QWidget) -> None:
     _style_caption_chrome(window)
 
 
+def _sync_theme_toggle_icon(button: QToolButton) -> None:
+    dark = FluentTheme.instance().is_dark()
+    apply_lucide_button_icon(button, "sun" if dark else "moon", icon_size=CAPTION_ICON_SIZE)
+    button.setToolTip("Switch to light theme" if dark else "Switch to dark theme")
+
+
 def _sync_zoom_glyph(window: QWidget) -> None:
     button = window.findChild(CaptionButton, "captionMaximizeButton")
     if isinstance(button, CaptionButton):
@@ -1936,6 +1990,13 @@ def _tab_strip_width(tab_widget: QWidget | None) -> int | None:
             return None
         total += width
     return total
+
+
+def _trailing_has_theme_toggle(widgets: Sequence[QWidget]) -> bool:
+    for widget in widgets:
+        if widget.objectName() == "themeToggleButton" or widget.findChild(QWidget, "themeToggleButton") is not None:
+            return True
+    return False
 
 
 def _user32() -> ctypes.WinDLL:

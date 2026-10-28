@@ -104,6 +104,7 @@ class SoftCalendarWidget(QCalendarWidget):
         self._title_month.setCursor(Qt.CursorShape.PointingHandCursor)
         self._title_month.setFlat(True)
         self._title_month.setFont(title_font)
+        self._title_month.setProperty("_hskSkipFluentButton", True)  # noqa: FBT003
         self._title_month.setStyleSheet(_title_chip_qss("hskCalendarMonth"))
         self._title_month.setToolTip("Choose month")
         self._title_month.clicked.connect(self._on_title_month_clicked)
@@ -113,6 +114,7 @@ class SoftCalendarWidget(QCalendarWidget):
         self._title_year.setCursor(Qt.CursorShape.PointingHandCursor)
         self._title_year.setFlat(True)
         self._title_year.setFont(title_font)
+        self._title_year.setProperty("_hskSkipFluentButton", True)  # noqa: FBT003
         self._title_year.setStyleSheet(_title_chip_qss("hskCalendarYear"))
         self._title_year.clicked.connect(self._on_title_year_clicked)
         self._title = self._title_year
@@ -303,6 +305,7 @@ class SoftCalendarWidget(QCalendarWidget):
         buttons: list[QPushButton] = []
         for index in range(_YEAR_PANEL_ROWS * _YEAR_PANEL_COLUMNS):
             button = QPushButton(panel)
+            button.setProperty("_hskSkipFluentButton", True)  # noqa: FBT003
             button.setCursor(Qt.CursorShape.PointingHandCursor)
             button.setFlat(True)
             button.setMinimumHeight(40)
@@ -370,6 +373,8 @@ class SoftCalendarWidget(QCalendarWidget):
 
     def _footer_preset_button(self, text: str, on_clicked: Callable[[], None]) -> QPushButton:
         button = QPushButton(text, self)
+        button.setProperty("_hskSkipFluentButton", True)  # noqa: FBT003
+        button.setMaximumHeight(28)
         button.setCursor(Qt.CursorShape.PointingHandCursor)
         button.setFlat(True)
         button.setStyleSheet(
