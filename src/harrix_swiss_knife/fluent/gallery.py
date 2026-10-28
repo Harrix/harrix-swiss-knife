@@ -16,7 +16,7 @@ from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QApplication, QMenu, QTableWidgetItem, QTreeWidgetItem, QVBoxLayout, QWidget
 
 from harrix_swiss_knife.fluent import widgets as fw
-from harrix_swiss_knife.fluent.theme import FluentTheme
+from harrix_swiss_knife.fluent.theme import FluentTheme, ThemeMode
 from harrix_swiss_knife.fluent.tokens import SPACE_L, SPACE_M, SPACE_XL
 from harrix_swiss_knife.qt_app_font import install_app_fonts
 from harrix_swiss_knife.qt_flow_layout import FlowLayout
@@ -32,9 +32,11 @@ _PROP_SHOWCASE = "_hskShowcaseLabel"
 def build_gallery() -> fw.FluentNavigationWindow:
     """Build the gallery window with one page per widget category."""
     _SHOWCASE_COUNTS.clear()
-    theme_button = fw.FluentIconButton("moon", tooltip="Toggle theme")
-    window = fw.FluentNavigationWindow("Fluent gallery", trailing_widgets=[theme_button])
-    theme_button.clicked.connect(lambda: FluentTheme.instance().toggle(persist=False))
+    theme_button = fw.FluentIconButton("sun" if FluentTheme.instance().is_dark() else "moon", tooltip="Toggle theme")
+    window = fw.FluentNavigationWindow("Fluent gallery", install_caption=False)
+    _install_main_menu(window, theme_button)
+    window.install_caption(trailing_widgets=[theme_button])
+    theme_button.clicked.connect(lambda: _toggle_gallery_theme(theme_button))
     window.resize(*_GALLERY_SIZE)
     pages = (
         ("basic", "Basic input", "mouse-pointer-click", _basic_page()),
@@ -253,6 +255,18 @@ def _expander() -> QWidget:
     return expander
 
 
+def _install_main_menu(window: fw.FluentNavigationWindow, theme_button: fw.FluentIconButton) -> None:
+    """Add File and View to the caption. Must run before `install_caption`."""
+    bar = window.menuBar()
+    bar.setNativeMenuBar(False)
+    file_menu = bar.addMenu("&File")
+    close_action = file_menu.addAction("Close")
+    close_action.triggered.connect(window.close)
+    view_menu = bar.addMenu("&View")
+    theme_action = view_menu.addAction("Toggle theme")
+    theme_action.triggered.connect(lambda: _toggle_gallery_theme(theme_button))
+
+
 def _navigation_page() -> QWidget:
     tabs = fw.FluentTabWidget()
     tabs.add_tab(fw.BodyLabel("First page"), "First")
@@ -405,6 +419,12 @@ def _text_page() -> QWidget:
             _section("Transfer", fw.FluentTransfer(source=["One", "Two", "Three"]), flow=False),
         ],
     )
+
+
+def _toggle_gallery_theme(theme_button: fw.FluentIconButton) -> None:
+    """Flip light and dark for this window only, and update the caption icon."""
+    mode = FluentTheme.instance().toggle(persist=False)
+    theme_button.set_icon_name("sun" if mode == ThemeMode.DARK else "moon")
 
 
 def _views_page() -> QWidget:

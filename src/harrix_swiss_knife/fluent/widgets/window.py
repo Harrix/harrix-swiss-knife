@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, cast
 
 from PySide6.QtCore import QRectF, Qt
 from PySide6.QtGui import QPainterPath
-from PySide6.QtWidgets import QHBoxLayout, QStackedWidget, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QHBoxLayout, QMainWindow, QStackedWidget, QVBoxLayout, QWidget
 
 from harrix_swiss_knife.fluent.paint import antialiased_painter
 from harrix_swiss_knife.fluent.theme import bind_theme, enable_fluent_theme, palette_for
@@ -56,17 +56,27 @@ class FluentLayerPanel(QWidget):
         painter.end()
 
 
-class FluentNavigationWindow(QWidget):
-    """Top-level Fluent window: Win11 caption, navigation bar, and a layer with pages."""
+class FluentNavigationWindow(QMainWindow):
+    """Top-level Fluent window: Win11 caption, navigation bar, and a layer with pages.
 
-    def __init__(self, title: str, parent: QWidget | None = None, *, trailing_widgets: Sequence[QWidget] = ()) -> None:
+    The shell is a `QMainWindow` so the caption uses the same menu-bar path as
+    the other Harrix Windows (drag, resize, and the min / max / close buttons).
+    Call `menuBar()` before `install_caption` when the window should show a menu.
+
+    """
+
+    def __init__(
+        self,
+        title: str,
+        parent: QWidget | None = None,
+        *,
+        trailing_widgets: Sequence[QWidget] = (),
+        install_caption: bool = True,
+    ) -> None:
         """Create the window (pages are added with `add_page`)."""
         super().__init__(parent)
         self.setWindowTitle(title)
         enable_fluent_theme(self)
-        root = QVBoxLayout(self)
-        root.setContentsMargins(0, 0, 0, 0)
-        root.setSpacing(0)
         body = QWidget(self)
         row = QHBoxLayout(body)
         row.setContentsMargins(0, 0, 0, 0)
@@ -80,10 +90,12 @@ class FluentNavigationWindow(QWidget):
         layer_layout.addWidget(self.stack)
         row.addWidget(self.navigation)
         row.addWidget(self.layer, 1)
-        root.addWidget(body, 1)
+        self.setCentralWidget(body)
         self._pages: dict[str, QWidget] = {}
         self.navigation.current_changed.connect(self.show_page)
-        self.caption_installed = install_win11_caption(self, trailing_widgets=list(trailing_widgets))
+        self.caption_installed = False
+        if install_caption:
+            self.install_caption(trailing_widgets)
 
     def add_page(self, key: str, text: str, widget: QWidget, *, icon: str = "", scroll: bool = True) -> QWidget:
         """Register a page (wrapped in a transparent scroll area by default)."""
@@ -98,6 +110,11 @@ class FluentNavigationWindow(QWidget):
         if len(self._pages) == 1:
             self.stack.setCurrentWidget(page)
         return page
+
+    def install_caption(self, trailing_widgets: Sequence[QWidget] = ()) -> bool:
+        """Install the Win11 caption. Add menus with `menuBar()` before calling this."""
+        self.caption_installed = install_win11_caption(self, trailing_widgets=list(trailing_widgets))
+        return self.caption_installed
 
     def nativeEvent(self, event_type, message) -> tuple[bool, int]:  # noqa: ANN001, N802
         """Route caption hit-testing to the Win11 caption."""

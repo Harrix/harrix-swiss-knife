@@ -12,7 +12,7 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QEvent, QObject, Signal
+from PySide6.QtCore import QEvent, QObject, Qt, Signal
 from PySide6.QtGui import QColor, QFont, QPalette
 
 from harrix_swiss_knife.fluent.tokens import DARK_PALETTE, LIGHT_PALETTE, FluentPalette
@@ -263,6 +263,8 @@ def _apply_window_palette(window: QWidget) -> None:
     # Do not auto-fill with the opaque Window role: Fluent app chrome paints a
     # transparent QMainWindow stylesheet so Windows 11 Mica can show through.
     window.setAutoFillBackground(False)
-    if window.isWindow():
+    # Creating the native handle here, before the frameless caption flags are
+    # set, destroys that handle and leaves Qt flushing a dead HWND.
+    if window.isWindow() and window.testAttribute(Qt.WidgetAttribute.WA_WState_Created):
         set_window_dark_mode(window, dark=palette.dark)
     window.update()

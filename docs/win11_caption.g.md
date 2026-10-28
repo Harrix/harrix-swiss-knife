@@ -718,6 +718,11 @@ def install_win11_caption(
     setattr(window, _BUTTONS_ATTR, window.findChildren(CaptionButton))
     if themed:
         bind_theme(window, lambda: refresh_win11_caption(window))
+    host = _caption_host(window)
+    if host is not None:
+        drag_filter = _CaptionDragFilter(window, host)
+        setattr(window, _DRAG_FILTER_ATTR, drag_filter)
+        host.installEventFilter(drag_filter)
     return True
 ```
 
@@ -782,26 +787,33 @@ def try_handle_win11_caption_native_event(
 ) -> tuple[bool, int] | None:
     if sys.platform != "win32" or not getattr(window, _INSTALLED_ATTR, False):
         return None
+    # winId() inside this handler sends another native event. Ignore the nested one.
+    if getattr(window, _NATIVE_GUARD_ATTR, False):
+        return None
     msg = read_native_windows_message(event_type, message)
     if msg is None:
         return None
-    if msg.message in {_WM_MOUSEMOVE, _WM_NCMOUSEMOVE}:
-        _sync_caption_button_hover(window)
-        return None
-    if msg.message in {_WM_MOUSELEAVE, _WM_NCMOUSELEAVE}:
-        _clear_caption_button_hover(window)
-        return None
-    if msg.message == _WM_NCCALCSIZE and msg.wParam:
-        _apply_maximized_nccalcsize(window, int(msg.lParam))
-        return True, 0
-    if msg.message != _WM_NCHITTEST:
-        return None
-    global_x = ctypes.c_short(msg.lParam & 0xFFFF).value
-    global_y = ctypes.c_short((msg.lParam >> 16) & 0xFFFF).value
-    local = native_local_point(window, global_x, global_y)
-    if local is None:
-        return None
-    return True, _live_caption_hit_test(window, local)
+    setattr(window, _NATIVE_GUARD_ATTR, True)
+    try:
+        if msg.message in {_WM_MOUSEMOVE, _WM_NCMOUSEMOVE}:
+            _sync_caption_button_hover(window)
+            return None
+        if msg.message in {_WM_MOUSELEAVE, _WM_NCMOUSELEAVE}:
+            _clear_caption_button_hover(window)
+            return None
+        if msg.message == _WM_NCCALCSIZE and msg.wParam:
+            _apply_maximized_nccalcsize(int(msg.hWnd or 0), int(msg.lParam))
+            return True, 0
+        if msg.message != _WM_NCHITTEST:
+            return None
+        global_x = ctypes.c_short(msg.lParam & 0xFFFF).value
+        global_y = ctypes.c_short((msg.lParam >> 16) & 0xFFFF).value
+        local = native_local_point(window, global_x, global_y)
+        if local is None:
+            return None
+        return True, _live_caption_hit_test(window, local)
+    finally:
+        setattr(window, _NATIVE_GUARD_ATTR, False)
 ```
 
 </details>

@@ -78,6 +78,8 @@ _QT_IGNORED_SUBSTRINGS = (
     "IAudioClient3::GetCurrentPadding failed",
     "DirectWrite: CreateFontFaceFromHDC() failed",
     "External WM_DESTROY received for",
+    # Frameless windows flush once while DWM recreates the HWND. Harmless.
+    "QWindowsBackingStore::flush: GetDC failed",
 )
 
 

@@ -33,7 +33,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
     from datetime import datetime
 
-    from PySide6.QtGui import QMouseEvent, QPainter, QPaintEvent
+    from PySide6.QtGui import QHideEvent, QMouseEvent, QPainter, QPaintEvent, QShowEvent
 
     from harrix_swiss_knife.fluent.tokens import FluentPalette
 from harrix_swiss_knife.fluent.widgets.enums import Severity, SkeletonShape, Trend
@@ -356,6 +356,11 @@ class FluentProgressBar(QWidget):
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         bind_theme(self, self.update)
 
+    def hideEvent(self, event: QHideEvent) -> None:  # noqa: N802
+        """Stop the indeterminate animation while the bar is not on screen."""
+        super().hideEvent(event)
+        self._sync_busy_timer()
+
     def is_busy(self) -> bool:
         """Return whether the indeterminate animation runs."""
         return self._busy
@@ -384,10 +389,7 @@ class FluentProgressBar(QWidget):
     def set_busy(self, *, busy: bool) -> None:
         """Start or stop the indeterminate animation."""
         self._busy = busy
-        if busy:
-            self._timer.start()
-        else:
-            self._timer.stop()
+        self._sync_busy_timer()
         self.update()
 
     def set_error(self, *, error: bool) -> None:
@@ -410,6 +412,11 @@ class FluentProgressBar(QWidget):
         self._value = max(self._minimum, min(self._maximum, value))
         self.update()
 
+    def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
+        """Resume the indeterminate animation when the bar is shown."""
+        super().showEvent(event)
+        self._sync_busy_timer()
+
     def value(self) -> int:
         """Return the progress value."""
         return self._value
@@ -417,6 +424,13 @@ class FluentProgressBar(QWidget):
     def _advance(self) -> None:
         self._phase = (self._phase + 0.012) % 1.0
         self.update()
+
+    def _sync_busy_timer(self) -> None:
+        if self._busy and self.isVisible():
+            if not self._timer.isActive():
+                self._timer.start()
+        elif self._timer.isActive():
+            self._timer.stop()
 
 
 class FluentProgressRing(QWidget):
@@ -434,6 +448,11 @@ class FluentProgressRing(QWidget):
         self._timer.timeout.connect(self._advance)
         self.setFixedSize(size, size)
         bind_theme(self, self.update)
+
+    def hideEvent(self, event: QHideEvent) -> None:  # noqa: N802
+        """Stop the spin while the ring is not on screen."""
+        super().hideEvent(event)
+        self._sync_busy_timer()
 
     def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
         """Paint the track and arc."""
@@ -461,16 +480,18 @@ class FluentProgressRing(QWidget):
     def set_busy(self, *, busy: bool) -> None:
         """Start or stop the spinning animation."""
         self._busy = busy
-        if busy:
-            self._timer.start()
-        else:
-            self._timer.stop()
+        self._sync_busy_timer()
         self.update()
 
     def set_value(self, value: int) -> None:
         """Set the percentage (0-100)."""
         self._value = max(0, min(100, value))
         self.update()
+
+    def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
+        """Resume the spin when the ring is shown."""
+        super().showEvent(event)
+        self._sync_busy_timer()
 
     def value(self) -> int:
         """Return the percentage."""
@@ -479,6 +500,13 @@ class FluentProgressRing(QWidget):
     def _advance(self) -> None:
         self._angle = (self._angle + 6) % 360
         self.update()
+
+    def _sync_busy_timer(self) -> None:
+        if self._busy and self.isVisible():
+            if not self._timer.isActive():
+                self._timer.start()
+        elif self._timer.isActive():
+            self._timer.stop()
 
 
 class FluentQRCode(QWidget):
@@ -558,7 +586,6 @@ class FluentSkeleton(QWidget):
         self._timer = QTimer(self)
         self._timer.setInterval(_BUSY_INTERVAL_MS * 2)
         self._timer.timeout.connect(self._advance)
-        self._timer.start()
         if shape == SkeletonShape.TEXT:
             self.setFixedHeight(14)
         elif shape == SkeletonShape.CIRCLE:
@@ -566,6 +593,11 @@ class FluentSkeleton(QWidget):
         else:
             self.setMinimumHeight(80)
         bind_theme(self, self.update)
+
+    def hideEvent(self, event: QHideEvent) -> None:  # noqa: N802
+        """Stop the shimmer while the placeholder is not on screen."""
+        super().hideEvent(event)
+        self._timer.stop()
 
     def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
         """Paint the shape with a gradient band moving across it."""
@@ -588,6 +620,12 @@ class FluentSkeleton(QWidget):
         painter.setBrush(gradient)
         painter.drawRoundedRect(rect, radius, radius)
         painter.end()
+
+    def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
+        """Resume the shimmer when the placeholder is shown."""
+        super().showEvent(event)
+        if not self._timer.isActive():
+            self._timer.start()
 
     def stop(self) -> None:
         """Stop the shimmer animation."""

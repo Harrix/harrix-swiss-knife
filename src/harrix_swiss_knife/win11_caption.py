@@ -46,7 +46,7 @@ from harrix_swiss_knife.installer.icon_assets import apply_window_icon, asset_ca
 from harrix_swiss_knife.qt_flat_scrollbar import apply_flat_scrollbars
 from harrix_swiss_knife.qt_frameless_window import frameless_hit_test, native_local_point, read_native_windows_message
 from harrix_swiss_knife.qt_lucide_icon import apply_lucide_button_icon
-from harrix_swiss_knife.win11_backdrop import try_apply_system_backdrop
+from harrix_swiss_knife.win11_backdrop import set_window_dark_mode, try_apply_system_backdrop
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -197,6 +197,8 @@ _SC_RESTORE = 0xF120
 _INSTALLED_ATTR = "_hsk_win11_caption"
 _CONTROLLER_ATTR = "_hsk_win11_caption_controller"
 _FRAME_GUARD_ATTR = "_hsk_win11_frame_applying"
+_NATIVE_GUARD_ATTR = "_hsk_win11_native_handling"
+_DRAG_FILTER_ATTR = "_hsk_caption_drag_filter"
 _ICON_CACHE: dict[tuple[str, int, float], QIcon] = {}
 
 
@@ -352,6 +354,38 @@ class CaptionColors:
         self.tab_line = tab_line
         self.tab_hover = tab_hover
         self.disabled = disabled
+
+
+class _CaptionDragFilter(QObject):
+    """Start a system move when empty caption space gets a client-area press.
+
+    `WM_NCHITTEST` returning `HTCAPTION` moves the window when Windows delivers
+    that hit. When the press stays in the client area, the caption widgets
+    receive it and nothing drags. This filter covers that path without taking
+    clicks away from buttons, menus, or the theme control.
+
+    """
+
+    def __init__(self, window: QWidget, host: QWidget) -> None:
+        super().__init__(window)
+        self._window = window
+        self._host = host
+
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
+        """Drag from empty caption space."""
+        host = getattr(self, "_host", None)
+        window = getattr(self, "_window", None)
+        if host is None or window is None or watched is not host or event.type() != QEvent.Type.MouseButtonPress:
+            return False
+        button = getattr(event, "button", None)
+        position = getattr(event, "position", None)
+        if button is None or position is None or button() != Qt.MouseButton.LeftButton:
+            return False
+        local = host.mapTo(window, position().toPoint())
+        if _caption_control_at(window, local):
+            return False
+        handle = window.windowHandle()
+        return bool(handle is not None and handle.startSystemMove())
 
 
 class _CaptionEdgeLine(QWidget):
@@ -700,6 +734,11 @@ def install_win11_caption(
     setattr(window, _BUTTONS_ATTR, window.findChildren(CaptionButton))
     if themed:
         bind_theme(window, lambda: refresh_win11_caption(window))
+    host = _caption_host(window)
+    if host is not None:
+        drag_filter = _CaptionDragFilter(window, host)
+        setattr(window, _DRAG_FILTER_ATTR, drag_filter)
+        host.installEventFilter(drag_filter)
     return True
 
 
@@ -740,26 +779,33 @@ def try_handle_win11_caption_native_event(
     """
     if sys.platform != "win32" or not getattr(window, _INSTALLED_ATTR, False):
         return None
+    # winId() inside this handler sends another native event. Ignore the nested one.
+    if getattr(window, _NATIVE_GUARD_ATTR, False):
+        return None
     msg = read_native_windows_message(event_type, message)
     if msg is None:
         return None
-    if msg.message in {_WM_MOUSEMOVE, _WM_NCMOUSEMOVE}:
-        _sync_caption_button_hover(window)
-        return None
-    if msg.message in {_WM_MOUSELEAVE, _WM_NCMOUSELEAVE}:
-        _clear_caption_button_hover(window)
-        return None
-    if msg.message == _WM_NCCALCSIZE and msg.wParam:
-        _apply_maximized_nccalcsize(window, int(msg.lParam))
-        return True, 0
-    if msg.message != _WM_NCHITTEST:
-        return None
-    global_x = ctypes.c_short(msg.lParam & 0xFFFF).value
-    global_y = ctypes.c_short((msg.lParam >> 16) & 0xFFFF).value
-    local = native_local_point(window, global_x, global_y)
-    if local is None:
-        return None
-    return True, _live_caption_hit_test(window, local)
+    setattr(window, _NATIVE_GUARD_ATTR, True)
+    try:
+        if msg.message in {_WM_MOUSEMOVE, _WM_NCMOUSEMOVE}:
+            _sync_caption_button_hover(window)
+            return None
+        if msg.message in {_WM_MOUSELEAVE, _WM_NCMOUSELEAVE}:
+            _clear_caption_button_hover(window)
+            return None
+        if msg.message == _WM_NCCALCSIZE and msg.wParam:
+            _apply_maximized_nccalcsize(int(msg.hWnd or 0), int(msg.lParam))
+            return True, 0
+        if msg.message != _WM_NCHITTEST:
+            return None
+        global_x = ctypes.c_short(msg.lParam & 0xFFFF).value
+        global_y = ctypes.c_short((msg.lParam >> 16) & 0xFFFF).value
+        local = native_local_point(window, global_x, global_y)
+        if local is None:
+            return None
+        return True, _live_caption_hit_test(window, local)
+    finally:
+        setattr(window, _NATIVE_GUARD_ATTR, False)
 
 
 def write_nccalcsize_client_rect(address: int, left: int, top: int, right: int, bottom: int) -> None:
@@ -784,8 +830,7 @@ def _apply_caption_title_style(label: QLabel) -> None:
         label.setStyleSheet(rule)
 
 
-def _apply_maximized_nccalcsize(window: QWidget, lparam: int) -> None:
-    hwnd = int(window.winId())
+def _apply_maximized_nccalcsize(hwnd: int, lparam: int) -> None:
     if hwnd == 0 or not bool(_user32().IsZoomed(hwnd)):
         return
     work = _monitor_work_area(hwnd)
@@ -839,6 +884,7 @@ def _apply_win32_frame(window: QWidget, *, full: bool) -> None:
         _extend_frame_for_shadow(hwnd)
         _round_window_corners(hwnd)
         try_apply_system_backdrop(window)
+        set_window_dark_mode(window, dark=not _palette_is_light(window))
         apply_window_icon(window)
     except Exception:
         logger.exception("Could not apply the Win11 caption frame")
