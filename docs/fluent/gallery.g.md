@@ -29,6 +29,7 @@ Build the gallery window with one page per widget category.
 
 ```python
 def build_gallery() -> fw.FluentNavigationWindow:
+    _SHOWCASE_COUNTS.clear()
     theme_button = fw.FluentIconButton("moon", tooltip="Toggle theme")
     window = fw.FluentNavigationWindow("Fluent gallery", trailing_widgets=[theme_button])
     theme_button.clicked.connect(lambda: FluentTheme.instance().toggle(persist=False))
@@ -46,6 +47,7 @@ def build_gallery() -> fw.FluentNavigationWindow:
     )
     for key, text, icon, page in pages:
         window.add_page(key, text, page, icon=icon)
+    _register_showcase(theme_button, "themeToggleButton")
     return window
 ```
 

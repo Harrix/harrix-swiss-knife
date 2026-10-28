@@ -44,6 +44,7 @@ def get_menu_structure() -> list[Any]:
                 OnUpdateUv,
                 OnUpgradeUvPackages,
                 OnInstallCli,
+                OnFluentGallery,
                 OnQuickLauncher,
             ],
         ),

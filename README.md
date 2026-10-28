@@ -70,6 +70,7 @@ _Figure 1: Screenshot_
   - 🧹 Clear temp folder
   - 🔗 Create desktop shortcut
   - ⬇️ Download ffmpeg, avifenc, avifdec
+  - 🧩 Fluent widget gallery
   - ⌨️ Install CLI (hsk on PATH) ꟲᴸᴵ
   - ⚙️ Open `config.json`
   - ⚡ Quick launcher…

@@ -23,6 +23,7 @@ from harrix_swiss_knife.actions.development.clear_temp_folder import OnClearTemp
 from harrix_swiss_knife.actions.development.create_desktop_shortcut import OnCreateDesktopShortcut
 from harrix_swiss_knife.actions.development.download_optimize_dependencies import OnDownloadOptimizeDependencies
 from harrix_swiss_knife.actions.development.exit_ import OnExit
+from harrix_swiss_knife.actions.development.fluent_gallery import OnFluentGallery
 from harrix_swiss_knife.actions.development.install_cli import OnInstallCli
 from harrix_swiss_knife.actions.development.npm_manage_packages import OnNpmManagePackages
 from harrix_swiss_knife.actions.development.open_config_json import OnOpenConfigJson
@@ -162,6 +163,7 @@ def get_menu_structure() -> list[Any]:
                 OnUpdateUv,
                 OnUpgradeUvPackages,
                 OnInstallCli,
+                OnFluentGallery,
                 OnQuickLauncher,
             ],
         ),

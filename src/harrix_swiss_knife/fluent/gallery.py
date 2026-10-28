@@ -2,6 +2,8 @@
 
 Run with `python -m harrix_swiss_knife.fluent.gallery`.
 
+Each showcase control has a context menu to copy its object name or class name.
+
 """
 
 from __future__ import annotations
@@ -9,8 +11,9 @@ from __future__ import annotations
 import sys
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QDate, QPointF, QRectF, QTime
-from PySide6.QtWidgets import QApplication, QTableWidgetItem, QTreeWidgetItem, QVBoxLayout, QWidget
+from PySide6.QtCore import QDate, QPoint, QPointF, QRectF, Qt, QTime
+from PySide6.QtGui import QGuiApplication
+from PySide6.QtWidgets import QApplication, QMenu, QTableWidgetItem, QTreeWidgetItem, QVBoxLayout, QWidget
 
 from harrix_swiss_knife.fluent import widgets as fw
 from harrix_swiss_knife.fluent.theme import FluentTheme
@@ -22,10 +25,13 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
 _GALLERY_SIZE = (1200, 820)
+_SHOWCASE_COUNTS: dict[str, int] = {}
+_PROP_SHOWCASE = "_hskShowcaseLabel"
 
 
 def build_gallery() -> fw.FluentNavigationWindow:
     """Build the gallery window with one page per widget category."""
+    _SHOWCASE_COUNTS.clear()
     theme_button = fw.FluentIconButton("moon", tooltip="Toggle theme")
     window = fw.FluentNavigationWindow("Fluent gallery", trailing_widgets=[theme_button])
     theme_button.clicked.connect(lambda: FluentTheme.instance().toggle(persist=False))
@@ -43,6 +49,7 @@ def build_gallery() -> fw.FluentNavigationWindow:
     )
     for key, text, icon, page in pages:
         window.add_page(key, text, page, icon=icon)
+    _register_showcase(theme_button, "themeToggleButton")
     return window
 
 
@@ -98,6 +105,12 @@ def _cards_page() -> QWidget:
             _section("Expander", _expander(), flow=False),
         ],
     )
+
+
+def _copy_text(value: str) -> None:
+    clipboard = QGuiApplication.clipboard()
+    if clipboard is not None:
+        clipboard.setText(value)
 
 
 def _dialogs_page(window: QWidget) -> QWidget:
@@ -309,6 +322,20 @@ def _pickers_page() -> QWidget:
     )
 
 
+def _register_showcase(widget: QWidget, label: str | None = None) -> QWidget:
+    """Tag `widget` for the gallery and attach the copy-name context menu."""
+    class_name = type(widget).__name__
+    count = _SHOWCASE_COUNTS.get(class_name, 0) + 1
+    _SHOWCASE_COUNTS[class_name] = count
+    name = label or (class_name if count == 1 else f"{class_name}_{count}")
+    if not widget.objectName():
+        widget.setObjectName(name)
+    widget.setProperty(_PROP_SHOWCASE, name)
+    widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+    widget.customContextMenuRequested.connect(lambda pos, host=widget: _show_showcase_menu(host, pos))
+    return widget
+
+
 def _section(title: str, *widgets: QWidget, flow: bool = True) -> QWidget:
     box = QWidget()
     column = QVBoxLayout(box)
@@ -321,9 +348,27 @@ def _section(title: str, *widgets: QWidget, flow: bool = True) -> QWidget:
         layout.setContentsMargins(0, 0, 0, 0)
     for widget in widgets:
         widget.setParent(holder)
+        _register_showcase(widget)
         layout.addWidget(widget)
     column.addWidget(holder)
     return box
+
+
+def _show_showcase_menu(widget: QWidget, pos: QPoint) -> None:
+    label = str(widget.property(_PROP_SHOWCASE) or widget.objectName() or type(widget).__name__)
+    class_name = type(widget).__qualname__
+    module_name = type(widget).__module__
+    menu = QMenu(widget)
+    copy_name = menu.addAction(f"Copy object name ({label})")
+    copy_class = menu.addAction(f"Copy class name ({class_name})")
+    copy_qual = menu.addAction("Copy module.Class")
+    chosen = menu.exec(widget.mapToGlobal(pos))
+    if chosen is copy_name:
+        _copy_text(label)
+    elif chosen is copy_class:
+        _copy_text(class_name)
+    elif chosen is copy_qual:
+        _copy_text(f"{module_name}.{class_name}")
 
 
 def _text_page() -> QWidget:
