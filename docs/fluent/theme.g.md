@@ -309,6 +309,7 @@ def bind_theme(widget: QWidget, refresh: Callable[[], None]) -> None
 Call `refresh` now and whenever `widget`'s resolved palette changes.
 
 `refresh` should read colors through `palette_for(widget)`.
+Multiple bindings on one widget are allowed (each keeps its own refresher).
 
 <details>
 <summary>Code:</summary>

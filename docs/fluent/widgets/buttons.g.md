@@ -61,7 +61,7 @@ lang: en
 class FluentCheckBox(QCheckBox)
 ```
 
-Checkbox using the shared Lucide indicator and Fluent text color.
+Checkbox using the shared Fluent indicator and Fluent text color.
 
 <details>
 <summary>Code:</summary>
@@ -749,7 +749,7 @@ def refresh_theme(self) -> None:
 class FluentRadioButton(QRadioButton)
 ```
 
-Radio button using the shared Lucide indicator and Fluent text color.
+Radio button using the shared Fluent indicator and Fluent text color.
 
 <details>
 <summary>Code:</summary>

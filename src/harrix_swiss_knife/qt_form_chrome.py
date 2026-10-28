@@ -1,4 +1,4 @@
-"""App-wide white dialog surfaces and Lucide checkbox / radio indicators."""
+"""App-wide dialog surfaces and Fluent checkbox / radio indicators."""
 
 from __future__ import annotations
 

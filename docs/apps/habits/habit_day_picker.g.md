@@ -238,6 +238,7 @@ class HabitDayPickerPopup(QWidget):
         self._reposition_timer = QTimer(self)
         self._reposition_timer.setSingleShot(True)
         self._reposition_timer.timeout.connect(self._update_geometry)
+        bind_theme(self, self._refresh_theme)
 
     def attach(self, circle: CheckCircle) -> None:
         """Rebuild choices for ``circle`` and point the bubble at it."""
@@ -297,14 +298,17 @@ class HabitDayPickerPopup(QWidget):
         """Draw the rounded bubble and the pointer triangle."""
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        palette = palette_for(self)
+        surface = mix(palette.window_bg, palette.popup_bg)
+        stroke = mix(surface, palette.popup_stroke)
         path = self._bubble_path()
         shadow = QPainterPath(path)
         shadow.translate(0, 1)
         painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(QColor(17, 24, 39, 28))
+        painter.setBrush(palette.shadow)
         painter.drawPath(shadow)
-        painter.setPen(QPen(COLOR_TRACK, 1))
-        painter.setBrush(QColor("white"))
+        painter.setPen(QPen(stroke, 1))
+        painter.setBrush(surface)
         painter.drawPath(path)
 
     def refresh_geometry(self) -> None:
@@ -381,6 +385,37 @@ class HabitDayPickerPopup(QWidget):
         if self._anchor is not None:
             self._anchor.value_set.emit(typed)
         self.hide_active()
+
+    def _apply_choice_chrome(self) -> None:
+        """Style choice captions and the note button from the Fluent palette."""
+        palette = palette_for(self)
+        secondary = css(mix(palette.window_bg, palette.text_secondary))
+        caption_style = f"color: {secondary}; font-size: 11px;"
+        for caption in self.findChildren(QLabel, "habitDayChoiceCaption"):
+            caption.setStyleSheet(caption_style)
+        note = self.findChild(QPushButton, "habitDayNoteButton")
+        if note is None:
+            return
+        fill = css(palette.caution_bg)
+        border = css(palette.caution)
+        hover = css(
+            mix(
+                palette.caution_bg,
+                QColor(palette.caution.red(), palette.caution.green(), palette.caution.blue(), 40),
+            )
+        )
+        note.setIcon(create_lucide_icon("message-square", 14, color=palette.caution))
+        note.setStyleSheet(
+            f"""
+            QPushButton#habitDayNoteButton {{
+                background: {fill};
+                border: 1px solid {border};
+                border-radius: 13px;
+                padding: 0px;
+            }}
+            QPushButton#habitDayNoteButton:hover {{ background: {hover}; }}
+            """
+        )
 
     def _bubble_path(self) -> QPainterPath:
         width = float(self.width())
@@ -490,7 +525,7 @@ class HabitDayPickerPopup(QWidget):
             circle.selected.connect(self._apply_choice)
             caption = QLabel(habit_day_choice_caption(choice))
             caption.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-            caption.setStyleSheet("color: #6B7280; font-size: 11px;")
+            caption.setObjectName("habitDayChoiceCaption")
             column.addWidget(circle, 0, Qt.AlignmentFlag.AlignHCenter)
             column.addWidget(caption, 0, Qt.AlignmentFlag.AlignHCenter)
             self._choices_layout.addLayout(column)
@@ -499,29 +534,25 @@ class HabitDayPickerPopup(QWidget):
         comment_column.setSpacing(4)
         comment_column.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         comment_button = QPushButton()
+        comment_button.setObjectName("habitDayNoteButton")
         comment_button.setIcon(create_lucide_icon("message-square", 14))
         comment_button.setIconSize(QSize(14, 14))
         comment_button.setFixedSize(_OPTION_CIRCLE_SIZE, _OPTION_CIRCLE_SIZE)
         comment_button.setCursor(Qt.CursorShape.PointingHandCursor)
         comment_button.setToolTip("Comment")
-        comment_button.setStyleSheet(
-            """
-            QPushButton {
-                background: #FFFBEB;
-                border: 1px solid #F59E0B;
-                border-radius: 13px;
-                padding: 0px;
-            }
-            QPushButton:hover { background: #FEF3C7; }
-            """
-        )
         comment_button.clicked.connect(self._on_comment_clicked)
         comment_caption = QLabel("Note")
         comment_caption.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        comment_caption.setStyleSheet("color: #6B7280; font-size: 11px;")
+        comment_caption.setObjectName("habitDayChoiceCaption")
         comment_column.addWidget(comment_button, 0, Qt.AlignmentFlag.AlignHCenter)
         comment_column.addWidget(comment_caption, 0, Qt.AlignmentFlag.AlignHCenter)
         self._choices_layout.addLayout(comment_column)
+        self._apply_choice_chrome()
+
+    def _refresh_theme(self) -> None:
+        """Repaint the bubble and recolor choice chrome for the current theme."""
+        self._apply_choice_chrome()
+        self.update()
 
     def _schedule_geometry_update(self) -> None:
         """Reposition after Qt finishes layout of the just-shown bubble."""
@@ -706,6 +737,7 @@ def __init__(self) -> None:  # noqa: D107
         self._reposition_timer = QTimer(self)
         self._reposition_timer.setSingleShot(True)
         self._reposition_timer.timeout.connect(self._update_geometry)
+        bind_theme(self, self._refresh_theme)
 ```
 
 </details>
@@ -890,14 +922,17 @@ Draw the rounded bubble and the pointer triangle.
 def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        palette = palette_for(self)
+        surface = mix(palette.window_bg, palette.popup_bg)
+        stroke = mix(surface, palette.popup_stroke)
         path = self._bubble_path()
         shadow = QPainterPath(path)
         shadow.translate(0, 1)
         painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(QColor(17, 24, 39, 28))
+        painter.setBrush(palette.shadow)
         painter.drawPath(shadow)
-        painter.setPen(QPen(COLOR_TRACK, 1))
-        painter.setBrush(QColor("white"))
+        painter.setPen(QPen(stroke, 1))
+        painter.setBrush(surface)
         painter.drawPath(path)
 ```
 
@@ -1066,24 +1101,12 @@ class HabitNumberStepper(QWidget):
         row = QHBoxLayout()
         row.setSpacing(8)
         row.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._minus = _RoundStepButton("-", COLOR_TRACK, COLOR_TEXT)
-        self._plus = _RoundStepButton("+", COLOR_SUCCESS, QColor("white"))
+        self._minus = _RoundStepButton("-", role="neutral")
+        self._plus = _RoundStepButton("+", role="success")
         self._edit = QLineEdit()
         self._edit.setValidator(QIntValidator(_NUMBER_MIN, _NUMBER_MAX, self._edit))
         self._edit.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._edit.setFixedSize(72, 32)
-        self._edit.setStyleSheet(
-            """
-            QLineEdit {
-                background: #F9FAFB;
-                border: 1px solid #E5E7EB;
-                border-radius: 10px;
-                color: #111827;
-                font-size: 14px;
-                font-weight: 700;
-            }
-            """
-        )
         self._minus.clicked.connect(self._on_minus)
         self._plus.clicked.connect(self._on_plus)
         self._edit.returnPressed.connect(self._on_confirm)
@@ -1095,24 +1118,9 @@ class HabitNumberStepper(QWidget):
         self._set_btn = QPushButton("Set")
         self._set_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._set_btn.setFixedHeight(28)
-        self._set_btn.setStyleSheet(
-            f"""
-            QPushButton {{
-                background: {COLOR_PRIMARY.name()};
-                border: none;
-                border-radius: 8px;
-                color: white;
-                font-size: 11px;
-                font-weight: 700;
-                padding: 0 16px;
-            }}
-            QPushButton:hover {{
-                background: #2563EB;
-            }}
-            """
-        )
         self._set_btn.clicked.connect(self._on_confirm)
         root.addWidget(self._set_btn, 0, Qt.AlignmentFlag.AlignHCenter)
+        bind_theme(self, self._refresh_theme)
 
     def set_value(self, value: int) -> None:
         """Show ``value`` in the editor."""
@@ -1143,6 +1151,33 @@ class HabitNumberStepper(QWidget):
             return int(self._edit.text().strip())
         except ValueError:
             return self._value
+
+    def _refresh_theme(self) -> None:
+        palette = palette_for(self)
+        self._edit.setStyleSheet(
+            line_edit_qss(palette)
+            + f"""
+QLineEdit {{
+    border-radius: {RADIUS_CONTROL + 2}px;
+    font-size: 14px;
+    font-weight: 700;
+}}
+"""
+        )
+        self._set_btn.setStyleSheet(
+            accent_button_qss(palette)
+            + f"""
+QPushButton {{
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: {RADIUS_CONTROL}px;
+    padding: 0 {SPACE_L}px;
+    min-height: 26px;
+}}
+"""
+        )
+        self._minus.refresh_theme()
+        self._plus.refresh_theme()
 ```
 
 </details>
@@ -1170,24 +1205,12 @@ def __init__(self, parent: QWidget | None = None) -> None:  # noqa: D107
         row = QHBoxLayout()
         row.setSpacing(8)
         row.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._minus = _RoundStepButton("-", COLOR_TRACK, COLOR_TEXT)
-        self._plus = _RoundStepButton("+", COLOR_SUCCESS, QColor("white"))
+        self._minus = _RoundStepButton("-", role="neutral")
+        self._plus = _RoundStepButton("+", role="success")
         self._edit = QLineEdit()
         self._edit.setValidator(QIntValidator(_NUMBER_MIN, _NUMBER_MAX, self._edit))
         self._edit.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._edit.setFixedSize(72, 32)
-        self._edit.setStyleSheet(
-            """
-            QLineEdit {
-                background: #F9FAFB;
-                border: 1px solid #E5E7EB;
-                border-radius: 10px;
-                color: #111827;
-                font-size: 14px;
-                font-weight: 700;
-            }
-            """
-        )
         self._minus.clicked.connect(self._on_minus)
         self._plus.clicked.connect(self._on_plus)
         self._edit.returnPressed.connect(self._on_confirm)
@@ -1199,24 +1222,9 @@ def __init__(self, parent: QWidget | None = None) -> None:  # noqa: D107
         self._set_btn = QPushButton("Set")
         self._set_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._set_btn.setFixedHeight(28)
-        self._set_btn.setStyleSheet(
-            f"""
-            QPushButton {{
-                background: {COLOR_PRIMARY.name()};
-                border: none;
-                border-radius: 8px;
-                color: white;
-                font-size: 11px;
-                font-weight: 700;
-                padding: 0 16px;
-            }}
-            QPushButton:hover {{
-                background: #2563EB;
-            }}
-            """
-        )
         self._set_btn.clicked.connect(self._on_confirm)
         root.addWidget(self._set_btn, 0, Qt.AlignmentFlag.AlignHCenter)
+        bind_theme(self, self._refresh_theme)
 ```
 
 </details>

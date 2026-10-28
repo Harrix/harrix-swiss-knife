@@ -1,7 +1,7 @@
 """Fluent buttons: standard, accent, subtle, hyperlink, icon, tool, toggle, switch, copy.
 
-Checkboxes and radio buttons bridge to the shared Lucide indicators from
-`qt_lucide_checkbox`, which follow the same theme.
+Checkboxes and radio buttons use the shared Fluent indicators from
+`qt_lucide_checkbox` (WinUI rounded square / circle), theme-aware.
 
 """
 
@@ -39,7 +39,7 @@ _COPY_FEEDBACK_MS = 1500
 
 
 class FluentCheckBox(QCheckBox):
-    """Checkbox using the shared Lucide indicator and Fluent text color."""
+    """Checkbox using the shared Fluent indicator and Fluent text color."""
 
     def __init__(self, text: str = "", parent: QWidget | None = None) -> None:
         """Create a checkbox."""
@@ -246,7 +246,7 @@ class FluentPrimaryButton(FluentPushButton):
 
 
 class FluentRadioButton(QRadioButton):
-    """Radio button using the shared Lucide indicator and Fluent text color."""
+    """Radio button using the shared Fluent indicator and Fluent text color."""
 
     def __init__(self, text: str = "", parent: QWidget | None = None) -> None:
         """Create a radio button."""

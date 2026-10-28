@@ -153,6 +153,10 @@ class AppWindowMixin:
             apply_lucide_action_icon(shortcuts_action, "keyboard")
         self._apply_menu_bar_emoji_icons()
 
+    def _apply_fluent_window_chrome(self) -> None:
+        """Opt this app window into Fluent theme, surfaces, and list selection."""
+        install_fluent_app_window(cast("QMainWindow", self))
+
     def _apply_menu_bar_emoji_icons(self) -> None:
         """Move leading emoji from File / Commands / Help action text onto icons."""
         menu_bar = resolve_window_menu_bar(cast("QWidget", self))
@@ -164,8 +168,8 @@ class AppWindowMixin:
                 apply_leading_chrome_icons(menu)
 
     def _apply_soft_list_selection_chrome(self) -> None:
-        """Unify QListView selection with Icons soft-blue chrome."""
-        apply_soft_list_selection_chrome(cast("QMainWindow", self))
+        """Apply Fluent list selection (kept for older call sites)."""
+        self._apply_fluent_window_chrome()
 
     def _connect_exit_about_actions(self) -> None:
         """Wire Exit and About menu actions to their handlers."""

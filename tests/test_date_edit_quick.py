@@ -76,8 +76,8 @@ def test_split_menu_arrow_hover_fills_inner_height(qapp: QApplication) -> None:
     arrow = split.arrow_button
     assert arrow.y() == 1
     assert arrow.height() == split.height() - 2
-    split.setAttribute(Qt.WidgetAttribute.WA_UnderMouse, True)
-    arrow.setAttribute(Qt.WidgetAttribute.WA_UnderMouse, True)
+    split.setAttribute(Qt.WidgetAttribute.WA_UnderMouse, on=True)
+    arrow.setAttribute(Qt.WidgetAttribute.WA_UnderMouse, on=True)
     image = split.grab().toImage()
     ratio = image.devicePixelRatio()
     x = int((arrow.x() + 4) * ratio)

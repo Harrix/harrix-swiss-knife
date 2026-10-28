@@ -148,10 +148,10 @@ def _line_edit_text_clip_x(
 
 
 def _line_edit_text_origin_x(line_edit: QLineEdit, fallback_left: int) -> float:
-    """Return the × of text index 0.
+    """Return the horizontal pixel origin of text index 0.
 
     A leading icon shifts glyphs away from `textMargins()`. The caret already sits
-    on the visible glyph, so the origin is the caret × minus the advance before it.
+    on the visible glyph, so the origin is caret position minus the advance before it.
     That same difference includes horizontal scroll.
 
     """

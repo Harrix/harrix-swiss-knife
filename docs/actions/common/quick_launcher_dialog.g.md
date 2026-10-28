@@ -58,8 +58,6 @@ class QuickLauncherDialog(QDialog):
         self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, on=False)
         self.setMinimumSize(_OVERLAY_MIN_SIZE)
         self.resize(_OVERLAY_DEFAULT_SIZE)
-        try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
-
         self._output_bus: ActionOutputBus | None = None
         self._action_classes: list[type[ActionBase]] = []
         self._dragging = False
@@ -68,22 +66,21 @@ class QuickLauncherDialog(QDialog):
         self._close_button: QPushButton | None = None
         self._allow_destroy = False
 
-        apply_opaque_white(self)
         self.setObjectName("quickLauncherDialog")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
-        self.setStyleSheet(_DIALOG_BORDER_STYLE)
 
         self._layout = QVBoxLayout(self)
         self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.setSpacing(0)
 
         content = QWidget(self)
-        apply_opaque_white(content)
         self._content_layout = QVBoxLayout(content)
-        self._content_layout.setContentsMargins(16, 12, 16, 16)
-        self._content_layout.setSpacing(12)
+        self._content_layout.setContentsMargins(SPACE_L, SPACE_M, SPACE_L, SPACE_L)
+        self._content_layout.setSpacing(SPACE_M)
 
         menu_button = self._build_menu_button()
+        install_fluent_app_window(self)
+        bind_theme(self, self._refresh_overlay_theme)
         self._win11_caption = install_win11_caption(self, trailing_widgets=[menu_button])
         if not self._win11_caption:
             self._build_fallback_header(menu_button)
@@ -114,9 +111,9 @@ class QuickLauncherDialog(QDialog):
         self._content_layout.addWidget(self._markdown_section, stretch=1)
 
         self._hint = QLabel(self)
-        self._hint.setStyleSheet(f"color: {MUTED_TEXT};")
         self._hint.setCursor(Qt.CursorShape.OpenHandCursor)
         self._update_hint()
+        self._refresh_overlay_theme()
 
         footer = QHBoxLayout()
         footer.setContentsMargins(0, 0, 0, 0)
@@ -565,6 +562,19 @@ class QuickLauncherDialog(QDialog):
                 allocated=max(120, available_for_grids),
             )
 
+    def _refresh_overlay_theme(self) -> None:
+        """Apply Fluent overlay border for the current theme."""
+        palette = palette_for(self)
+        border = css(mix(palette.window_bg, palette.popup_stroke))
+        window = css(palette.window_bg)
+        muted = css(mix(palette.window_bg, palette.text_secondary))
+        self.setStyleSheet(
+            f"#quickLauncherDialog {{ background-color: {window}; border: 1px solid {border}; }}",
+        )
+        hint = getattr(self, "_hint", None)
+        if hint is not None:
+            hint.setStyleSheet(f"color: {muted};")
+
     def _retarget_to_active_modal_parent(self) -> None:
         """Parent launcher to active modal dialog so it stays interactive."""
         modal_parent = QApplication.activeModalWidget()
@@ -665,8 +675,6 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, on=False)
         self.setMinimumSize(_OVERLAY_MIN_SIZE)
         self.resize(_OVERLAY_DEFAULT_SIZE)
-        try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
-
         self._output_bus: ActionOutputBus | None = None
         self._action_classes: list[type[ActionBase]] = []
         self._dragging = False
@@ -675,22 +683,21 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self._close_button: QPushButton | None = None
         self._allow_destroy = False
 
-        apply_opaque_white(self)
         self.setObjectName("quickLauncherDialog")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
-        self.setStyleSheet(_DIALOG_BORDER_STYLE)
 
         self._layout = QVBoxLayout(self)
         self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.setSpacing(0)
 
         content = QWidget(self)
-        apply_opaque_white(content)
         self._content_layout = QVBoxLayout(content)
-        self._content_layout.setContentsMargins(16, 12, 16, 16)
-        self._content_layout.setSpacing(12)
+        self._content_layout.setContentsMargins(SPACE_L, SPACE_M, SPACE_L, SPACE_L)
+        self._content_layout.setSpacing(SPACE_M)
 
         menu_button = self._build_menu_button()
+        install_fluent_app_window(self)
+        bind_theme(self, self._refresh_overlay_theme)
         self._win11_caption = install_win11_caption(self, trailing_widgets=[menu_button])
         if not self._win11_caption:
             self._build_fallback_header(menu_button)
@@ -721,9 +728,9 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self._content_layout.addWidget(self._markdown_section, stretch=1)
 
         self._hint = QLabel(self)
-        self._hint.setStyleSheet(f"color: {MUTED_TEXT};")
         self._hint.setCursor(Qt.CursorShape.OpenHandCursor)
         self._update_hint()
+        self._refresh_overlay_theme()
 
         footer = QHBoxLayout()
         footer.setContentsMargins(0, 0, 0, 0)

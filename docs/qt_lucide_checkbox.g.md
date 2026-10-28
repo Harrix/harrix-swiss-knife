@@ -82,7 +82,7 @@ def __init__(self, idle: str, checked: str, disabled: str) -> None:
 class LucideToggleStyle(QProxyStyle)
 ```
 
-Draw Lucide glyphs for checkbox/radio indicators; leave other primitives alone.
+Draw Fluent glyphs for checkbox/radio indicators; leave other primitives alone.
 
 <details>
 <summary>Code:</summary>
@@ -97,7 +97,7 @@ class LucideToggleStyle(QProxyStyle):
         painter: QPainter,
         widget: QWidget | None = None,
     ) -> None:
-        """Paint Lucide for check/radio indicators; otherwise delegate to the base style."""
+        """Paint Fluent check/radio indicators; otherwise delegate to the base style."""
         if element in (
             QStyle.PrimitiveElement.PE_IndicatorCheckBox,
             QStyle.PrimitiveElement.PE_IndicatorItemViewItemCheck,
@@ -137,7 +137,7 @@ class LucideToggleStyle(QProxyStyle):
 def drawPrimitive(self, element: QStyle.PrimitiveElement, option: QStyleOption, painter: QPainter, widget: QWidget | None = None) -> None
 ```
 
-Paint Lucide for check/radio indicators; otherwise delegate to the base style.
+Paint Fluent check/radio indicators; otherwise delegate to the base style.
 
 <details>
 <summary>Code:</summary>
@@ -203,7 +203,7 @@ def pixelMetric(  # noqa: N802
 def apply_lucide_checkbox_style(checkbox: QCheckBox) -> None
 ```
 
-Apply the shared Lucide toggle style to one `QCheckBox`.
+Apply the shared Fluent toggle style to one `QCheckBox`.
 
 <details>
 <summary>Code:</summary>
@@ -224,7 +224,7 @@ def apply_lucide_checkbox_style(checkbox: QCheckBox) -> None:
 def apply_lucide_checkboxes(root: QWidget) -> None
 ```
 
-Apply Lucide checkbox style to every `QCheckBox` under [`root`](apps/habits/habit_comments.g.md#%EF%B8%8F-method-root).
+Apply Fluent checkbox style to every `QCheckBox` under [`root`](apps/habits/habit_comments.g.md#%EF%B8%8F-method-root).
 
 <details>
 <summary>Code:</summary>
@@ -245,7 +245,7 @@ def apply_lucide_checkboxes(root: QWidget) -> None:
 def apply_lucide_indicators(root: QWidget) -> None
 ```
 
-Apply Lucide styles to checkboxes and radio buttons under [`root`](apps/habits/habit_comments.g.md#%EF%B8%8F-method-root).
+Apply Fluent styles to checkboxes and radio buttons under [`root`](apps/habits/habit_comments.g.md#%EF%B8%8F-method-root).
 
 <details>
 <summary>Code:</summary>
@@ -264,7 +264,7 @@ def apply_lucide_indicators(root: QWidget) -> None:
 def apply_lucide_radio_style(radio: QRadioButton) -> None
 ```
 
-Apply the shared Lucide toggle style to one `QRadioButton`.
+Apply the shared Fluent toggle style to one `QRadioButton`.
 
 <details>
 <summary>Code:</summary>
@@ -285,7 +285,7 @@ def apply_lucide_radio_style(radio: QRadioButton) -> None:
 def apply_lucide_radios(root: QWidget) -> None
 ```
 
-Apply Lucide radio style to every `QRadioButton` under [`root`](apps/habits/habit_comments.g.md#%EF%B8%8F-method-root).
+Apply Fluent radio style to every `QRadioButton` under [`root`](apps/habits/habit_comments.g.md#%EF%B8%8F-method-root).
 
 <details>
 <summary>Code:</summary>
@@ -306,7 +306,7 @@ def apply_lucide_radios(root: QWidget) -> None:
 def indicator_colors(widget: QWidget | None = None) -> IndicatorColors
 ```
 
-Return indicator colors: Fluent tokens in themed Windows, Harrix brand colors elsewhere.
+Return indicator colors: Fluent tokens in themed Windows, brand blue elsewhere.
 
 <details>
 <summary>Code:</summary>
@@ -316,9 +316,9 @@ def indicator_colors(widget: QWidget | None = None) -> IndicatorColors:
     if is_fluent_themed(widget):
         palette = palette_for(widget)
         return IndicatorColors(
-            palette.text_secondary.name(),
+            mix(palette.window_bg, palette.control_strong_stroke).name(),
             palette.accent.name(),
-            palette.text_disabled.name(),
+            mix(palette.window_bg, palette.text_disabled).name(),
         )
     return IndicatorColors(LUCIDE_COLOR_DARK, LUCIDE_COLOR_BLUE, _DISABLED_COLOR)
 ```
@@ -331,7 +331,7 @@ def indicator_colors(widget: QWidget | None = None) -> IndicatorColors:
 def lucide_checkbox_pixmap(*, checked: bool = False, partial: bool = False, enabled: bool = True, size: int = CHECKBOX_INDICATOR_PX, colors: IndicatorColors | None = None) -> QPixmap
 ```
 
-Return a Lucide checkbox pixmap for the given check state.
+Return a Fluent checkbox pixmap for the given check state.
 
 <details>
 <summary>Code:</summary>
@@ -346,17 +346,14 @@ def lucide_checkbox_pixmap(
     colors: IndicatorColors | None = None,
 ) -> QPixmap:
     colors = colors or indicator_colors()
-    if partial:
-        name = "square-minus"
-        color = colors.idle
-    elif checked:
-        name = "square-check"
-        # Brand blue (same as primary buttons), not success green
-        color = colors.checked
-    else:
-        name = "square"
-        color = colors.idle
-    return _lucide_indicator_pixmap(name, color if enabled else colors.disabled, size)
+    return _fluent_indicator_pixmap(
+        kind="checkbox",
+        checked=checked,
+        partial=partial,
+        enabled=enabled,
+        size=size,
+        colors=colors,
+    )
 ```
 
 </details>
@@ -367,7 +364,7 @@ def lucide_checkbox_pixmap(
 def lucide_checkbox_widget_style() -> LucideToggleStyle
 ```
 
-Return the shared Lucide toggle style (lazy, process-wide).
+Return the shared Fluent toggle style (lazy, process-wide).
 
 <details>
 <summary>Code:</summary>
@@ -385,7 +382,7 @@ def lucide_checkbox_widget_style() -> LucideToggleStyle:
 def lucide_radio_pixmap(*, checked: bool = False, enabled: bool = True, size: int = RADIO_INDICATOR_PX, colors: IndicatorColors | None = None) -> QPixmap
 ```
 
-Return a Lucide radio pixmap for the given check state.
+Return a Fluent radio pixmap for the given check state.
 
 <details>
 <summary>Code:</summary>
@@ -399,14 +396,14 @@ def lucide_radio_pixmap(
     colors: IndicatorColors | None = None,
 ) -> QPixmap:
     colors = colors or indicator_colors()
-    if checked:
-        name = "circle-dot"
-        # Brand blue (same as primary buttons), not success green
-        color = colors.checked
-    else:
-        name = "circle"
-        color = colors.idle
-    return _lucide_indicator_pixmap(name, color if enabled else colors.disabled, size)
+    return _fluent_indicator_pixmap(
+        kind="radio",
+        checked=checked,
+        partial=False,
+        enabled=enabled,
+        size=size,
+        colors=colors,
+    )
 ```
 
 </details>
@@ -417,7 +414,7 @@ def lucide_radio_pixmap(
 def lucide_toggle_widget_style() -> LucideToggleStyle
 ```
 
-Return the shared Lucide checkbox/radio style (lazy, process-wide).
+Return the shared Fluent checkbox/radio style (lazy, process-wide).
 
 <details>
 <summary>Code:</summary>
@@ -440,7 +437,7 @@ def lucide_toggle_widget_style() -> LucideToggleStyle:
 def paint_lucide_checkbox(painter: QPainter, rect: QRect, *, checked: bool = False, partial: bool = False, enabled: bool = True, size: int = CHECKBOX_INDICATOR_PX, colors: IndicatorColors | None = None) -> None
 ```
 
-Center a Lucide checkbox pixmap inside `rect`.
+Center a Fluent checkbox pixmap inside `rect`.
 
 <details>
 <summary>Code:</summary>
@@ -468,7 +465,7 @@ def paint_lucide_checkbox(
 def paint_lucide_checkbox_from_style_option(painter: QPainter, option: QStyleOption, widget: QWidget | None = None) -> None
 ```
 
-Paint a Lucide checkbox using `option.state` and `option.rect`.
+Paint a Fluent checkbox using `option.state` and `option.rect`.
 
 <details>
 <summary>Code:</summary>
@@ -501,7 +498,7 @@ def paint_lucide_checkbox_from_style_option(
 def paint_lucide_radio(painter: QPainter, rect: QRect, *, checked: bool = False, enabled: bool = True, size: int = RADIO_INDICATOR_PX, colors: IndicatorColors | None = None) -> None
 ```
 
-Center a Lucide radio pixmap inside `rect`.
+Center a Fluent radio pixmap inside `rect`.
 
 <details>
 <summary>Code:</summary>
@@ -528,7 +525,7 @@ def paint_lucide_radio(
 def paint_lucide_radio_from_style_option(painter: QPainter, option: QStyleOption, widget: QWidget | None = None) -> None
 ```
 
-Paint a Lucide radio using `option.state` and `option.rect`.
+Paint a Fluent radio using `option.state` and `option.rect`.
 
 <details>
 <summary>Code:</summary>

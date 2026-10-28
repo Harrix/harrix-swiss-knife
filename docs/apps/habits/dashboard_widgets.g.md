@@ -675,7 +675,7 @@ class HabitIconBadge(QWidget):
         side = max(18, round(self._size * 0.78))
         x = (self.width() - side) // 2
         y = (self.height() - side) // 2
-        painter.setPen(COLOR_TEXT)
+        painter.setPen(_text_primary(palette_for(self)))
         create_emoji_icon(self._glyph, side).paint(painter, x, y, side, side)
 
     def set_habit(self, habit_id: int, glyph: str | None = None) -> None:
@@ -732,7 +732,7 @@ def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
         side = max(18, round(self._size * 0.78))
         x = (self.width() - side) // 2
         y = (self.height() - side) // 2
-        painter.setPen(COLOR_TEXT)
+        painter.setPen(_text_primary(palette_for(self)))
         create_emoji_icon(self._glyph, side).paint(painter, x, y, side, side)
 ```
 
@@ -790,26 +790,23 @@ class HabitRow(QFrame):
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.setMinimumHeight(64)
-        self._apply_style()
 
         root = QHBoxLayout(self)
-        root.setContentsMargins(12, 8, 12, 8)
-        root.setSpacing(12)
+        root.setContentsMargins(SPACE_M, SPACE_S, SPACE_M, SPACE_S)
+        root.setSpacing(SPACE_M)
 
         self._icon = HabitIconBadge(size=40)
         self._icon.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
         root.addWidget(self._icon)
 
         text_col = QVBoxLayout()
-        text_col.setSpacing(2)
+        text_col.setSpacing(SPACE_XXS)
         self._name_label = QLabel("")
         self._name_label.setAutoFillBackground(False)
         self._name_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
-        self._name_label.setStyleSheet("background: transparent; color: #111827; font-weight: 700;")
         self._meta_label = QLabel("")
         self._meta_label.setAutoFillBackground(False)
         self._meta_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
-        self._meta_label.setStyleSheet("background: transparent; color: #6B7280;")
         text_col.addWidget(self._name_label)
         text_col.addWidget(self._meta_label)
         root.addLayout(text_col, 1)
@@ -826,6 +823,7 @@ class HabitRow(QFrame):
             self._checks.append(circle)
             self._checks_layout.addWidget(circle)
         root.addLayout(self._checks_layout)
+        bind_theme(self, self._apply_style)
 
     def contextMenuEvent(self, event: QContextMenuEvent) -> None:  # noqa: N802
         """Select the habit and ask the dashboard to show the row menu."""
@@ -909,13 +907,24 @@ class HabitRow(QFrame):
         self._apply_style()
 
     def _apply_style(self) -> None:
-        bg = "#EFF6FF" if self._selected else "#FFFFFF"
+        palette = palette_for(self)
+        surface = _card_surface(palette)
+        selected = mix(
+            surface,
+            QColor(palette.accent.red(), palette.accent.green(), palette.accent.blue(), 36),
+        )
+        bg = css(selected if self._selected else surface)
+        divider = css(mix(surface, palette.divider))
+        primary = css(_text_primary(palette))
+        secondary = css(_text_secondary(palette))
+        self._name_label.setStyleSheet(f"background: transparent; color: {primary}; font-weight: 700;")
+        self._meta_label.setStyleSheet(f"background: transparent; color: {secondary};")
         self.setStyleSheet(
             f"""
             QFrame#habitRow {{
                 background: {bg};
                 border: none;
-                border-bottom: 1px solid {COLOR_TRACK.name()};
+                border-bottom: 1px solid {divider};
                 border-radius: 0px;
             }}
             QFrame#habitRow QLabel {{
@@ -983,26 +992,23 @@ def __init__(self, parent: QWidget | None = None) -> None:  # noqa: D107
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.setMinimumHeight(64)
-        self._apply_style()
 
         root = QHBoxLayout(self)
-        root.setContentsMargins(12, 8, 12, 8)
-        root.setSpacing(12)
+        root.setContentsMargins(SPACE_M, SPACE_S, SPACE_M, SPACE_S)
+        root.setSpacing(SPACE_M)
 
         self._icon = HabitIconBadge(size=40)
         self._icon.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
         root.addWidget(self._icon)
 
         text_col = QVBoxLayout()
-        text_col.setSpacing(2)
+        text_col.setSpacing(SPACE_XXS)
         self._name_label = QLabel("")
         self._name_label.setAutoFillBackground(False)
         self._name_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
-        self._name_label.setStyleSheet("background: transparent; color: #111827; font-weight: 700;")
         self._meta_label = QLabel("")
         self._meta_label.setAutoFillBackground(False)
         self._meta_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
-        self._meta_label.setStyleSheet("background: transparent; color: #6B7280;")
         text_col.addWidget(self._name_label)
         text_col.addWidget(self._meta_label)
         root.addLayout(text_col, 1)
@@ -1019,6 +1025,7 @@ def __init__(self, parent: QWidget | None = None) -> None:  # noqa: D107
             self._checks.append(circle)
             self._checks_layout.addWidget(circle)
         root.addLayout(self._checks_layout)
+        bind_theme(self, self._apply_style)
 ```
 
 </details>
@@ -1223,12 +1230,11 @@ class HabitRowListHost(QWidget):
         self.setObjectName("habitDashListHost")
         self.setAcceptDrops(True)
         self.setAutoFillBackground(True)
-        self.setStyleSheet("QWidget#habitDashListHost { background: #FFFFFF; }")
         self._drop_line = QFrame(self)
         self._drop_line.setObjectName("habitDashDropLine")
         self._drop_line.setFixedHeight(2)
-        self._drop_line.setStyleSheet("background: #3B82F6;")
         self._drop_line.hide()
+        bind_theme(self, self._apply_style)
 
     def dragEnterEvent(self, event: QDragEnterEvent) -> None:  # noqa: N802
         """Accept an internal habit-row drag."""
@@ -1281,6 +1287,12 @@ class HabitRowListHost(QWidget):
                 rows.append(widget)
         return rows
 
+    def _apply_style(self) -> None:
+        palette = palette_for(self)
+        surface = css(_card_surface(palette))
+        self.setStyleSheet(f"QWidget#habitDashListHost {{ background: {surface}; }}")
+        self._drop_line.setStyleSheet(f"background: {css(palette.accent)};")
+
     def _move_drop_line(self, y: int) -> None:
         rows = self.habit_rows()
         insert_index = habit_drop_insert_index([row.geometry().center().y() for row in rows], y)
@@ -1314,12 +1326,11 @@ def __init__(self, parent: QWidget | None = None) -> None:  # noqa: D107
         self.setObjectName("habitDashListHost")
         self.setAcceptDrops(True)
         self.setAutoFillBackground(True)
-        self.setStyleSheet("QWidget#habitDashListHost { background: #FFFFFF; }")
         self._drop_line = QFrame(self)
         self._drop_line.setObjectName("habitDashDropLine")
         self._drop_line.setFixedHeight(2)
-        self._drop_line.setStyleSheet("background: #3B82F6;")
         self._drop_line.hide()
+        bind_theme(self, self._apply_style)
 ```
 
 </details>
@@ -1478,7 +1489,7 @@ class MonthCalendarGrid(QWidget):
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
-        root.setSpacing(8)
+        root.setSpacing(SPACE_S)
 
         header = QHBoxLayout()
         self._prev_btn = QPushButton("←")
@@ -1497,7 +1508,6 @@ class MonthCalendarGrid(QWidget):
         title_font = QFont(self._title.font())
         title_font.setBold(True)
         self._title.setFont(title_font)
-        self._title.setStyleSheet("color: #111827;")
         self._title.installEventFilter(self)
         header.addWidget(self._prev_btn)
         header.addWidget(self._title, 1)
@@ -1508,13 +1518,14 @@ class MonthCalendarGrid(QWidget):
         self._next_btn.clicked.connect(self._on_next)
 
         weekdays = QHBoxLayout()
+        self._weekday_labels: list[QLabel] = []
         for name in ("M", "T", "W", "T", "F", "S", "S"):
             lab = QLabel(name)
             lab.setAlignment(Qt.AlignmentFlag.AlignCenter)
             weekday_font = QFont(lab.font())
             weekday_font.setBold(True)
             lab.setFont(weekday_font)
-            lab.setStyleSheet("color: #6B7280;")
+            self._weekday_labels.append(lab)
             weekdays.addWidget(lab, 1)
         root.addLayout(weekdays)
 
@@ -1525,10 +1536,12 @@ class MonthCalendarGrid(QWidget):
             self._grid.setColumnStretch(column, 1)
         root.addLayout(self._grid)
         self._day_cells: list[tuple[CheckCircle | None, QLabel, str | None]] = []
+        bind_theme(self, self._apply_chrome_style)
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
         """Return to the current month when the title is double-clicked."""
-        if watched is self._title and event.type() == QEvent.Type.MouseButtonDblClick:
+        title = getattr(self, "_title", None)
+        if title is not None and watched is title and event.type() == QEvent.Type.MouseButtonDblClick:
             self._on_title_double_clicked()
             return True
         return super().eventFilter(watched, event)
@@ -1567,6 +1580,18 @@ class MonthCalendarGrid(QWidget):
 
     def _absent_dates_this_month(self) -> list[str]:
         return absent_dates_in_month(self._year, self._month, self._day_values, self._today)
+
+    def _apply_chrome_style(self) -> None:
+        title = getattr(self, "_title", None)
+        labels = getattr(self, "_weekday_labels", None)
+        if title is None or labels is None:
+            return
+        palette = palette_for(self)
+        primary = css(_text_primary(palette))
+        secondary = css(_text_secondary(palette))
+        title.setStyleSheet(f"color: {primary};")
+        for lab in labels:
+            lab.setStyleSheet(f"color: {secondary};")
 
     def _build_title_menu(self) -> QMenu:
         """Build the month-title context menu for current month and years."""
@@ -1672,7 +1697,9 @@ class MonthCalendarGrid(QWidget):
                 day_font = QFont(day_label.font())
                 day_font.setWeight(QFont.Weight.DemiBold)
                 day_label.setFont(day_font)
-                day_label.setStyleSheet("color: #D1D5DB;" if not editable else "color: #4B5563;")
+                day_palette = palette_for(self)
+                day_color = css(_text_disabled(day_palette)) if not editable else css(_text_secondary(day_palette))
+                day_label.setStyleSheet(f"color: {day_color};")
                 cell_layout.addWidget(circle, 0, Qt.AlignmentFlag.AlignHCenter)
                 cell_layout.addWidget(day_label)
                 self._grid.addWidget(cell, row_index, column_index)
@@ -1711,7 +1738,7 @@ def __init__(self, parent: QWidget | None = None) -> None:  # noqa: D107
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
-        root.setSpacing(8)
+        root.setSpacing(SPACE_S)
 
         header = QHBoxLayout()
         self._prev_btn = QPushButton("←")
@@ -1730,7 +1757,6 @@ def __init__(self, parent: QWidget | None = None) -> None:  # noqa: D107
         title_font = QFont(self._title.font())
         title_font.setBold(True)
         self._title.setFont(title_font)
-        self._title.setStyleSheet("color: #111827;")
         self._title.installEventFilter(self)
         header.addWidget(self._prev_btn)
         header.addWidget(self._title, 1)
@@ -1741,13 +1767,14 @@ def __init__(self, parent: QWidget | None = None) -> None:  # noqa: D107
         self._next_btn.clicked.connect(self._on_next)
 
         weekdays = QHBoxLayout()
+        self._weekday_labels: list[QLabel] = []
         for name in ("M", "T", "W", "T", "F", "S", "S"):
             lab = QLabel(name)
             lab.setAlignment(Qt.AlignmentFlag.AlignCenter)
             weekday_font = QFont(lab.font())
             weekday_font.setBold(True)
             lab.setFont(weekday_font)
-            lab.setStyleSheet("color: #6B7280;")
+            self._weekday_labels.append(lab)
             weekdays.addWidget(lab, 1)
         root.addLayout(weekdays)
 
@@ -1758,6 +1785,7 @@ def __init__(self, parent: QWidget | None = None) -> None:  # noqa: D107
             self._grid.setColumnStretch(column, 1)
         root.addLayout(self._grid)
         self._day_cells: list[tuple[CheckCircle | None, QLabel, str | None]] = []
+        bind_theme(self, self._apply_chrome_style)
 ```
 
 </details>
@@ -1775,7 +1803,8 @@ Return to the current month when the title is double-clicked.
 
 ```python
 def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
-        if watched is self._title and event.type() == QEvent.Type.MouseButtonDblClick:
+        title = getattr(self, "_title", None)
+        if title is not None and watched is title and event.type() == QEvent.Type.MouseButtonDblClick:
             self._on_title_double_clicked()
             return True
         return super().eventFilter(watched, event)
@@ -1870,7 +1899,8 @@ class ProgressRing(QWidget):
         margin = pen_width / 2 + 1
         rect = QRectF(margin, margin, self.width() - 2 * margin, self.height() - 2 * margin)
 
-        track_pen = QPen(COLOR_TRACK, pen_width)
+        palette = palette_for(self)
+        track_pen = QPen(_track_color(palette), pen_width)
         track_pen.setCapStyle(Qt.PenCapStyle.RoundCap)
         painter.setPen(track_pen)
         painter.drawEllipse(rect)
@@ -1878,7 +1908,7 @@ class ProgressRing(QWidget):
         if self._ratio <= 0:
             return
 
-        progress_pen = QPen(COLOR_PRIMARY, pen_width)
+        progress_pen = QPen(palette.accent, pen_width)
         progress_pen.setCapStyle(Qt.PenCapStyle.RoundCap)
         painter.setPen(progress_pen)
         # Qt arcs: 0° at 3 o'clock, counter-clockwise; start at 12 o'clock
@@ -1935,7 +1965,8 @@ def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
         margin = pen_width / 2 + 1
         rect = QRectF(margin, margin, self.width() - 2 * margin, self.height() - 2 * margin)
 
-        track_pen = QPen(COLOR_TRACK, pen_width)
+        palette = palette_for(self)
+        track_pen = QPen(_track_color(palette), pen_width)
         track_pen.setCapStyle(Qt.PenCapStyle.RoundCap)
         painter.setPen(track_pen)
         painter.drawEllipse(rect)
@@ -1943,7 +1974,7 @@ def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
         if self._ratio <= 0:
             return
 
-        progress_pen = QPen(COLOR_PRIMARY, pen_width)
+        progress_pen = QPen(palette.accent, pen_width)
         progress_pen.setCapStyle(Qt.PenCapStyle.RoundCap)
         painter.setPen(progress_pen)
         # Qt arcs: 0° at 3 o'clock, counter-clockwise; start at 12 o'clock
@@ -1991,42 +2022,50 @@ class StatCard(QFrame):
         self,
         title: str,
         icon_text: str,
-        icon_color: QColor,
+        accent: StatAccent,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("habitStatCard")
-        self.setStyleSheet(
-            """
-            QFrame#habitStatCard {
-                background: #FFFFFF;
-                border: 1px solid #E5E7EB;
-                border-radius: 10px;
-            }
-            """
-        )
+        self._accent = accent
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(12, 10, 12, 10)
-        layout.setSpacing(4)
+        layout.setContentsMargins(SPACE_M, 10, SPACE_M, 10)
+        layout.setSpacing(SPACE_XS)
 
         top = QHBoxLayout()
         top.setSpacing(6)
-        icon = QLabel(icon_text)
-        icon.setStyleSheet(f"color: {icon_color.name()}; font-size: 14px; font-weight: 700;")
-        title_label = QLabel(title)
-        title_label.setStyleSheet("color: #6B7280;")
-        title_label.setWordWrap(True)
-        top.addWidget(icon, 0, Qt.AlignmentFlag.AlignTop)
-        top.addWidget(title_label, 1)
+        self._icon = QLabel(icon_text)
+        self._title_label = QLabel(title)
+        self._title_label.setWordWrap(True)
+        top.addWidget(self._icon, 0, Qt.AlignmentFlag.AlignTop)
+        top.addWidget(self._title_label, 1)
         layout.addLayout(top)
 
         self._value_label = QLabel("-")
-        self._value_label.setStyleSheet("color: #111827; font-weight: 700;")
         layout.addWidget(self._value_label)
+        bind_theme(self, self._apply_style)
 
     def set_value(self, text: str) -> None:
         """Update the large value text."""
         self._value_label.setText(text)
+
+    def _apply_style(self) -> None:
+        palette = palette_for(self)
+        surface = _card_surface(palette)
+        stroke = mix(surface, palette.card_stroke)
+        icon_color = _stat_accent_color(palette, self._accent)
+        self.setStyleSheet(
+            f"""
+            QFrame#habitStatCard {{
+                background: {css(surface)};
+                border: 1px solid {css(stroke)};
+                border-radius: {RADIUS_CARD}px;
+            }}
+            """
+        )
+        self._icon.setStyleSheet(f"color: {css(icon_color)}; font-size: 14px; font-weight: 700;")
+        self._title_label.setStyleSheet(f"color: {css(_text_secondary(palette))};")
+        self._value_label.setStyleSheet(f"color: {css(_text_primary(palette))}; font-weight: 700;")
 ```
 
 </details>
@@ -2034,7 +2073,7 @@ class StatCard(QFrame):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, title: str, icon_text: str, icon_color: QColor, parent: QWidget | None = None) -> None
+def __init__(self, title: str, icon_text: str, accent: StatAccent, parent: QWidget | None = None) -> None
 ```
 
 _No docstring provided._
@@ -2047,38 +2086,28 @@ def __init__(  # noqa: D107
         self,
         title: str,
         icon_text: str,
-        icon_color: QColor,
+        accent: StatAccent,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("habitStatCard")
-        self.setStyleSheet(
-            """
-            QFrame#habitStatCard {
-                background: #FFFFFF;
-                border: 1px solid #E5E7EB;
-                border-radius: 10px;
-            }
-            """
-        )
+        self._accent = accent
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(12, 10, 12, 10)
-        layout.setSpacing(4)
+        layout.setContentsMargins(SPACE_M, 10, SPACE_M, 10)
+        layout.setSpacing(SPACE_XS)
 
         top = QHBoxLayout()
         top.setSpacing(6)
-        icon = QLabel(icon_text)
-        icon.setStyleSheet(f"color: {icon_color.name()}; font-size: 14px; font-weight: 700;")
-        title_label = QLabel(title)
-        title_label.setStyleSheet("color: #6B7280;")
-        title_label.setWordWrap(True)
-        top.addWidget(icon, 0, Qt.AlignmentFlag.AlignTop)
-        top.addWidget(title_label, 1)
+        self._icon = QLabel(icon_text)
+        self._title_label = QLabel(title)
+        self._title_label.setWordWrap(True)
+        top.addWidget(self._icon, 0, Qt.AlignmentFlag.AlignTop)
+        top.addWidget(self._title_label, 1)
         layout.addLayout(top)
 
         self._value_label = QLabel("-")
-        self._value_label.setStyleSheet("color: #111827; font-weight: 700;")
         layout.addWidget(self._value_label)
+        bind_theme(self, self._apply_style)
 ```
 
 </details>
@@ -2117,26 +2146,32 @@ class WeekDayHeader(QWidget):
 
     def __init__(self, parent: QWidget | None = None) -> None:  # noqa: D107
         super().__init__(parent)
+        self._is_today = False
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(4, 0, 4, 0)
-        layout.setSpacing(4)
+        layout.setContentsMargins(SPACE_XS, 0, SPACE_XS, 0)
+        layout.setSpacing(SPACE_XS)
         layout.setAlignment(Qt.AlignmentFlag.AlignHCenter)
 
         self._label = QLabel("-")
         self._label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        self._label.setStyleSheet("color: #6B7280;")
         self._ring = ProgressRing(size=34)
         layout.addWidget(self._label)
         layout.addWidget(self._ring, 0, Qt.AlignmentFlag.AlignHCenter)
+        bind_theme(self, self._apply_label_style)
 
     def set_day(self, caption: str, ratio: float, *, is_today: bool) -> None:
         """Update caption, ring, and today highlight."""
         self._label.setText(caption)
         self._ring.set_ratio(ratio)
-        if is_today:
-            self._label.setStyleSheet("color: #2563EB; font-weight: 700;")
-        else:
-            self._label.setStyleSheet("color: #6B7280;")
+        self._is_today = is_today
+        self._apply_label_style()
+
+    def _apply_label_style(self) -> None:
+        palette = palette_for(self)
+        if self._is_today:
+            self._label.setStyleSheet(f"color: {css(palette.accent_text)}; font-weight: 700;")
+            return
+        self._label.setStyleSheet(f"color: {css(_text_secondary(palette))};")
 ```
 
 </details>
@@ -2155,17 +2190,18 @@ _No docstring provided._
 ```python
 def __init__(self, parent: QWidget | None = None) -> None:  # noqa: D107
         super().__init__(parent)
+        self._is_today = False
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(4, 0, 4, 0)
-        layout.setSpacing(4)
+        layout.setContentsMargins(SPACE_XS, 0, SPACE_XS, 0)
+        layout.setSpacing(SPACE_XS)
         layout.setAlignment(Qt.AlignmentFlag.AlignHCenter)
 
         self._label = QLabel("-")
         self._label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        self._label.setStyleSheet("color: #6B7280;")
         self._ring = ProgressRing(size=34)
         layout.addWidget(self._label)
         layout.addWidget(self._ring, 0, Qt.AlignmentFlag.AlignHCenter)
+        bind_theme(self, self._apply_label_style)
 ```
 
 </details>
@@ -2185,10 +2221,8 @@ Update caption, ring, and today highlight.
 def set_day(self, caption: str, ratio: float, *, is_today: bool) -> None:
         self._label.setText(caption)
         self._ring.set_ratio(ratio)
-        if is_today:
-            self._label.setStyleSheet("color: #2563EB; font-weight: 700;")
-        else:
-            self._label.setStyleSheet("color: #6B7280;")
+        self._is_today = is_today
+        self._apply_label_style()
 ```
 
 </details>
@@ -2408,7 +2442,7 @@ def habit_glyph(habit_id: int) -> str:
 ## 🔧 Function `paint_habit_day_circle`
 
 ```python
-def paint_habit_day_circle(painter: QPainter, rect: QRectF, value: int | None, *, font: QFont | None = None, text: str | None = None) -> None
+def paint_habit_day_circle(painter: QPainter, rect: QRectF, value: int | None, *, font: QFont | None = None, text: str | None = None, palette: FluentPalette | None = None) -> None
 ```
 
 Draw a dashboard-style day circle for a stored process-habit value.
@@ -2424,12 +2458,15 @@ def paint_habit_day_circle(
     *,
     font: QFont | None = None,
     text: str | None = None,
+    palette: FluentPalette | None = None,
 ) -> None:
+    colors = palette if palette is not None else _palette_from_painter(painter)
     state = habit_day_state(value)
     size = min(rect.width(), rect.height())
+    on_fill = colors.text_on_accent
 
     if state == "absent":
-        pen = QPen(COLOR_TRACK, 1.5)
+        pen = QPen(_track_color(colors), 1.5)
         pen.setStyle(Qt.PenStyle.DashLine)
         painter.setPen(pen)
         painter.setBrush(Qt.BrushStyle.NoBrush)
@@ -2438,9 +2475,9 @@ def paint_habit_day_circle(
 
     if state == "zero":
         painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(COLOR_NOT_DONE)
+        painter.setBrush(_not_done_fill(colors))
         painter.drawEllipse(rect)
-        pen = QPen(QColor("white"), max(1.8, size * 0.1))
+        pen = QPen(on_fill, max(1.8, size * 0.1))
         pen.setCapStyle(Qt.PenCapStyle.RoundCap)
         painter.setPen(pen)
         inset_x = rect.width() * 0.30
@@ -2457,9 +2494,9 @@ def paint_habit_day_circle(
 
     if state == "one":
         painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(COLOR_PRIMARY)
+        painter.setBrush(colors.accent)
         painter.drawEllipse(rect)
-        pen = QPen(QColor("white"), max(1.8, size * 0.1))
+        pen = QPen(on_fill, max(1.8, size * 0.1))
         pen.setCapStyle(Qt.PenCapStyle.RoundCap)
         pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
         painter.setPen(pen)
@@ -2474,7 +2511,7 @@ def paint_habit_day_circle(
         return
 
     painter.setPen(Qt.PenStyle.NoPen)
-    painter.setBrush(COLOR_SUCCESS)
+    painter.setBrush(colors.success)
     painter.drawEllipse(rect)
     display = text if text is not None else str(value)
     draw_font = QFont(font) if font is not None else QFont()
@@ -2482,7 +2519,7 @@ def paint_habit_day_circle(
     draw_font.setPointSizeF(max(5.0, size * min(0.42, 0.64 / digit_count)))
     draw_font.setBold(True)
     painter.setFont(draw_font)
-    painter.setPen(QColor("white"))
+    painter.setPen(on_fill)
     painter.drawText(rect, int(Qt.AlignmentFlag.AlignCenter), display)
 ```
 
@@ -2532,7 +2569,7 @@ def reorder_habit_ids(habit_ids: Sequence[int], moved_id: int, insert_index: int
 def style_calendar_nav_button(button: QPushButton) -> None
 ```
 
-Apply dashboard-style prev/next arrow look to a calendar nav button.
+Apply Fluent prev/next arrow look to a calendar nav button.
 
 <details>
 <summary>Code:</summary>
@@ -2541,7 +2578,23 @@ Apply dashboard-style prev/next arrow look to a calendar nav button.
 def style_calendar_nav_button(button: QPushButton) -> None:
     button.setFixedSize(34, 34)
     button.setCursor(Qt.CursorShape.PointingHandCursor)
-    button.setStyleSheet(CALENDAR_NAV_BUTTON_STYLE)
+
+    def refresh() -> None:
+        palette = palette_for(button)
+        button.setStyleSheet(
+            push_button_qss(palette)
+            + f"""
+QPushButton {{
+    font-size: 18px;
+    font-weight: 700;
+    padding: 0px;
+    min-height: 32px;
+    border-radius: {RADIUS_CONTROL}px;
+}}
+"""
+        )
+
+    bind_theme(button, refresh)
 ```
 
 </details>

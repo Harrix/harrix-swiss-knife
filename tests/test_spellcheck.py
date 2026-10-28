@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
-from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QApplication,
     QDoubleSpinBox,
@@ -28,6 +28,9 @@ from harrix_swiss_knife.spellcheck.install import should_attach_spellcheck, widg
 from harrix_swiss_knife.spellcheck.line_edit import LineEditSpellController
 from harrix_swiss_knife.spellcheck.tokenize import iter_word_spans, word_at_index
 from harrix_swiss_knife.spellcheck.user_dict import add_user_word, load_user_words, save_user_words
+
+if TYPE_CHECKING:
+    from PySide6.QtGui import QColor
 
 
 @pytest.fixture

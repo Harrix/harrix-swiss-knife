@@ -57,9 +57,8 @@ class HabitDayCommentDialog(QDialog):
         self._deleted = False
 
         root = QVBoxLayout(self)
-        heading = QLabel(f"{habit_name} · {date_str}")
-        heading.setStyleSheet("color: #111827; font-weight: 700;")
-        root.addWidget(heading)
+        self._heading = QLabel(f"{habit_name} · {date_str}")
+        root.addWidget(self._heading)
 
         self._edit = QPlainTextEdit(text)
         self._edit.setPlaceholderText("Write a comment for this day…")
@@ -80,6 +79,7 @@ class HabitDayCommentDialog(QDialog):
         root.addLayout(buttons)
 
         self._edit.setFocus()
+        bind_theme(self, self._refresh_theme)
 
     def comment_text(self) -> str:
         """Return the edited comment, empty when deleted or cleared."""
@@ -98,6 +98,11 @@ class HabitDayCommentDialog(QDialog):
         if reply == QMessageBox.StandardButton.Yes:
             self._deleted = True
             self.accept()
+
+    def _refresh_theme(self) -> None:
+        palette = palette_for(self)
+        primary = css(mix(palette.window_bg, palette.text_primary))
+        self._heading.setStyleSheet(f"color: {primary}; font-weight: 700;")
 ```
 
 </details>
@@ -137,9 +142,8 @@ def __init__(
         self._deleted = False
 
         root = QVBoxLayout(self)
-        heading = QLabel(f"{habit_name} · {date_str}")
-        heading.setStyleSheet("color: #111827; font-weight: 700;")
-        root.addWidget(heading)
+        self._heading = QLabel(f"{habit_name} · {date_str}")
+        root.addWidget(self._heading)
 
         self._edit = QPlainTextEdit(text)
         self._edit.setPlaceholderText("Write a comment for this day…")
@@ -160,6 +164,7 @@ def __init__(
         root.addLayout(buttons)
 
         self._edit.setFocus()
+        bind_theme(self, self._refresh_theme)
 ```
 
 </details>

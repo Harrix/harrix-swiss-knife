@@ -206,7 +206,6 @@ from harrix_swiss_knife.qt_lucide_icon import (
     make_lucide_push_button,
     set_action_text_with_lucide_icon,
 )
-from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
 from harrix_swiss_knife.win11_caption import install_win11_caption, try_handle_win11_caption_native_event
 
 if TYPE_CHECKING:
@@ -360,7 +359,6 @@ class MainWindow(QMainWindow, AppWindowMixin):
     def __init__(self, *, hide_on_close: bool = False) -> None:
         """Build the browser UI and load catalog from config path."""
         super().__init__()
-        try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
         self.setWindowTitle("Vector Icons")
         apply_window_icon(self)
         self._init_hide_on_close(hide_on_close=hide_on_close)
@@ -1081,6 +1079,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._sync_folder_combo()
         self._sync_add_vector_menu_title()
         self._install_window_shortcuts()
+        self._apply_fluent_window_chrome()
         install_win11_caption(self)
 
     @staticmethod

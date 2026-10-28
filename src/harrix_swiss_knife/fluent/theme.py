@@ -2,8 +2,8 @@
 
 The mode is stored in `config.json` (`ui_theme`: `"light"` or `"dark"`).
 Only Windows that call `enable_fluent_theme` follow the dark mode; Fluent
-widgets placed in any other window keep the light palette, so tracker apps
-that are not migrated yet never get dark islands inside white forms.
+widgets placed in any other window keep the light palette so unmigrated
+forms never get dark islands inside light chrome.
 
 """
 
@@ -110,12 +110,22 @@ class _ThemeRefresher(QObject):
         self._widget = widget
         self._refresh = refresh
         self._dark: bool | None = None
+        self._running = False
         widget.installEventFilter(self)
         FluentTheme.instance().changed.connect(self.on_theme_changed)
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
         """Refresh when the widget moves into a window with a different theme."""
-        if watched is self._widget and event.type() in {QEvent.Type.ParentChange, QEvent.Type.Show}:
+        widget = getattr(self, "_widget", None)
+        if (
+            widget is not None
+            and watched is widget
+            and event.type()
+            in {
+                QEvent.Type.ParentChange,
+                QEvent.Type.Show,
+            }
+        ):
             self.run(force=False)
         return False
 
@@ -125,20 +135,31 @@ class _ThemeRefresher(QObject):
 
     def run(self, *, force: bool) -> None:
         """Call the refresh callback when the resolved palette changed."""
+        if getattr(self, "_running", False):
+            return
+        widget = getattr(self, "_widget", None)
+        refresh = getattr(self, "_refresh", None)
+        if widget is None or refresh is None:
+            return
         try:
-            dark = palette_for(self._widget).dark
+            dark = palette_for(widget).dark
         except RuntimeError:
             return
         if not force and dark == self._dark:
             return
         self._dark = dark
-        self._refresh()
+        self._running = True
+        try:
+            refresh()
+        finally:
+            self._running = False
 
 
 def bind_theme(widget: QWidget, refresh: Callable[[], None]) -> None:
     """Call `refresh` now and whenever `widget`'s resolved palette changes.
 
     `refresh` should read colors through `palette_for(widget)`.
+    Multiple bindings on one widget are allowed (each keeps its own refresher).
 
     """
     refresher = _ThemeRefresher(widget, refresh)

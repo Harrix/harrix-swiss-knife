@@ -1,10 +1,12 @@
-"""Lucide checkbox and radio indicators via style painting (no application QSS).
+"""Fluent checkbox and radio indicators via style painting (no application QSS).
 
 Window stylesheets often blank or replace native Qt indicators. This module paints
-Lucide glyphs through a shared `QProxyStyle` applied to each `QCheckBox` /
-`QRadioButton`, and helpers for item-view delegates. It never uses `url(...)` QSS
-(that previously broke fonts) and never calls `QApplication.setStyle`
-(crash-prone).
+WinUI-style checkboxes and radios through a shared `QProxyStyle` applied to each
+`QCheckBox` / `QRadioButton`, and helpers for item-view delegates. It never uses
+`url(...)` QSS and never calls `QApplication.setStyle`.
+
+Public names keep the historical `lucide_*` prefixes so call sites and tests stay
+stable; the glyphs are Fluent rounded squares / circles, not Lucide SVG strokes.
 
 """
 
@@ -12,9 +14,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QByteArray, QRect, QRectF, Qt
-from PySide6.QtGui import QColor, QGuiApplication, QPainter, QPixmap
-from PySide6.QtSvg import QSvgRenderer
+from PySide6.QtCore import QRect, QRectF, Qt
+from PySide6.QtGui import QColor, QGuiApplication, QPainter, QPainterPath, QPen, QPixmap
 from PySide6.QtWidgets import (
     QCheckBox,
     QProxyStyle,
@@ -24,21 +25,21 @@ from PySide6.QtWidgets import (
     QStyleOption,
 )
 
-from harrix_swiss_knife.fluent.theme import is_fluent_themed, palette_for
+from harrix_swiss_knife.fluent.theme import is_fluent_themed, mix, palette_for
+from harrix_swiss_knife.fluent.tokens import RADIUS_CONTROL
 from harrix_swiss_knife.qt_lucide_icon import (
     LUCIDE_COLOR_BLUE,
     LUCIDE_COLOR_DARK,
-    lucide_svg_path,
 )
 
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QWidget
 
-# Native Lucide grid (stroke 2 on 24). Keep SVG antialias (no alpha hard-threshold).
-CHECKBOX_INDICATOR_PX = 24
-RADIO_INDICATOR_PX = 24
+# WinUI checkbox / radio indicator size.
+CHECKBOX_INDICATOR_PX = 20
+RADIO_INDICATOR_PX = 20
 _DISABLED_COLOR = "#767676"
-_INDICATOR_PIXMAP_CACHE: dict[tuple[str, str, int, float], QPixmap] = {}
+_INDICATOR_PIXMAP_CACHE: dict[tuple[str, str, str, int, float, bool, bool], QPixmap] = {}
 
 
 class IndicatorColors:
@@ -52,7 +53,7 @@ class IndicatorColors:
 
 
 class LucideToggleStyle(QProxyStyle):
-    """Draw Lucide glyphs for checkbox/radio indicators; leave other primitives alone."""
+    """Draw Fluent glyphs for checkbox/radio indicators; leave other primitives alone."""
 
     def drawPrimitive(  # noqa: N802
         self,
@@ -61,7 +62,7 @@ class LucideToggleStyle(QProxyStyle):
         painter: QPainter,
         widget: QWidget | None = None,
     ) -> None:
-        """Paint Lucide for check/radio indicators; otherwise delegate to the base style."""
+        """Paint Fluent check/radio indicators; otherwise delegate to the base style."""
         if element in (
             QStyle.PrimitiveElement.PE_IndicatorCheckBox,
             QStyle.PrimitiveElement.PE_IndicatorItemViewItemCheck,
@@ -94,13 +95,13 @@ class LucideToggleStyle(QProxyStyle):
 
 
 class _SharedToggleStyle:
-    """Process-wide Lucide toggle style holder (avoids QApplication.setProperty)."""
+    """Process-wide Fluent toggle style holder (avoids QApplication.setProperty)."""
 
     instance: LucideToggleStyle | None = None
 
 
 def apply_lucide_checkbox_style(checkbox: QCheckBox) -> None:
-    """Apply the shared Lucide toggle style to one `QCheckBox`."""
+    """Apply the shared Fluent toggle style to one `QCheckBox`."""
     style = lucide_toggle_widget_style()
     if checkbox.style() is style:
         return
@@ -108,7 +109,7 @@ def apply_lucide_checkbox_style(checkbox: QCheckBox) -> None:
 
 
 def apply_lucide_checkboxes(root: QWidget) -> None:
-    """Apply Lucide checkbox style to every `QCheckBox` under `root`."""
+    """Apply Fluent checkbox style to every `QCheckBox` under `root`."""
     if isinstance(root, QCheckBox):
         apply_lucide_checkbox_style(root)
     for checkbox in root.findChildren(QCheckBox):
@@ -116,13 +117,13 @@ def apply_lucide_checkboxes(root: QWidget) -> None:
 
 
 def apply_lucide_indicators(root: QWidget) -> None:
-    """Apply Lucide styles to checkboxes and radio buttons under `root`."""
+    """Apply Fluent styles to checkboxes and radio buttons under `root`."""
     apply_lucide_checkboxes(root)
     apply_lucide_radios(root)
 
 
 def apply_lucide_radio_style(radio: QRadioButton) -> None:
-    """Apply the shared Lucide toggle style to one `QRadioButton`."""
+    """Apply the shared Fluent toggle style to one `QRadioButton`."""
     style = lucide_toggle_widget_style()
     if radio.style() is style:
         return
@@ -130,7 +131,7 @@ def apply_lucide_radio_style(radio: QRadioButton) -> None:
 
 
 def apply_lucide_radios(root: QWidget) -> None:
-    """Apply Lucide radio style to every `QRadioButton` under `root`."""
+    """Apply Fluent radio style to every `QRadioButton` under `root`."""
     if isinstance(root, QRadioButton):
         apply_lucide_radio_style(root)
     for radio in root.findChildren(QRadioButton):
@@ -138,13 +139,13 @@ def apply_lucide_radios(root: QWidget) -> None:
 
 
 def indicator_colors(widget: QWidget | None = None) -> IndicatorColors:
-    """Return indicator colors: Fluent tokens in themed Windows, Harrix brand colors elsewhere."""
+    """Return indicator colors: Fluent tokens in themed Windows, brand blue elsewhere."""
     if is_fluent_themed(widget):
         palette = palette_for(widget)
         return IndicatorColors(
-            palette.text_secondary.name(),
+            mix(palette.window_bg, palette.control_strong_stroke).name(),
             palette.accent.name(),
-            palette.text_disabled.name(),
+            mix(palette.window_bg, palette.text_disabled).name(),
         )
     return IndicatorColors(LUCIDE_COLOR_DARK, LUCIDE_COLOR_BLUE, _DISABLED_COLOR)
 
@@ -157,23 +158,20 @@ def lucide_checkbox_pixmap(
     size: int = CHECKBOX_INDICATOR_PX,
     colors: IndicatorColors | None = None,
 ) -> QPixmap:
-    """Return a Lucide checkbox pixmap for the given check state."""
+    """Return a Fluent checkbox pixmap for the given check state."""
     colors = colors or indicator_colors()
-    if partial:
-        name = "square-minus"
-        color = colors.idle
-    elif checked:
-        name = "square-check"
-        # Brand blue (same as primary buttons), not success green
-        color = colors.checked
-    else:
-        name = "square"
-        color = colors.idle
-    return _lucide_indicator_pixmap(name, color if enabled else colors.disabled, size)
+    return _fluent_indicator_pixmap(
+        kind="checkbox",
+        checked=checked,
+        partial=partial,
+        enabled=enabled,
+        size=size,
+        colors=colors,
+    )
 
 
 def lucide_checkbox_widget_style() -> LucideToggleStyle:
-    """Return the shared Lucide toggle style (lazy, process-wide)."""
+    """Return the shared Fluent toggle style (lazy, process-wide)."""
     return lucide_toggle_widget_style()
 
 
@@ -184,20 +182,20 @@ def lucide_radio_pixmap(
     size: int = RADIO_INDICATOR_PX,
     colors: IndicatorColors | None = None,
 ) -> QPixmap:
-    """Return a Lucide radio pixmap for the given check state."""
+    """Return a Fluent radio pixmap for the given check state."""
     colors = colors or indicator_colors()
-    if checked:
-        name = "circle-dot"
-        # Brand blue (same as primary buttons), not success green
-        color = colors.checked
-    else:
-        name = "circle"
-        color = colors.idle
-    return _lucide_indicator_pixmap(name, color if enabled else colors.disabled, size)
+    return _fluent_indicator_pixmap(
+        kind="radio",
+        checked=checked,
+        partial=False,
+        enabled=enabled,
+        size=size,
+        colors=colors,
+    )
 
 
 def lucide_toggle_widget_style() -> LucideToggleStyle:
-    """Return the shared Lucide checkbox/radio style (lazy, process-wide)."""
+    """Return the shared Fluent checkbox/radio style (lazy, process-wide)."""
     if _SharedToggleStyle.instance is None:
         base = QStyleFactory.create("Fusion")
         if base is None:
@@ -216,7 +214,7 @@ def paint_lucide_checkbox(
     size: int = CHECKBOX_INDICATOR_PX,
     colors: IndicatorColors | None = None,
 ) -> None:
-    """Center a Lucide checkbox pixmap inside `rect`."""
+    """Center a Fluent checkbox pixmap inside `rect`."""
     pixmap = lucide_checkbox_pixmap(checked=checked, partial=partial, enabled=enabled, size=size, colors=colors)
     _paint_centered_pixmap(painter, rect, pixmap, size)
 
@@ -226,7 +224,7 @@ def paint_lucide_checkbox_from_style_option(
     option: QStyleOption,
     widget: QWidget | None = None,
 ) -> None:
-    """Paint a Lucide checkbox using `option.state` and `option.rect`."""
+    """Paint a Fluent checkbox using `option.state` and `option.rect`."""
     state = option.state
     partial = bool(state & QStyle.StateFlag.State_NoChange)
     checked = bool(state & QStyle.StateFlag.State_On) and not partial
@@ -250,7 +248,7 @@ def paint_lucide_radio(
     size: int = RADIO_INDICATOR_PX,
     colors: IndicatorColors | None = None,
 ) -> None:
-    """Center a Lucide radio pixmap inside `rect`."""
+    """Center a Fluent radio pixmap inside `rect`."""
     pixmap = lucide_radio_pixmap(checked=checked, enabled=enabled, size=size, colors=colors)
     _paint_centered_pixmap(painter, rect, pixmap, size)
 
@@ -260,14 +258,55 @@ def paint_lucide_radio_from_style_option(
     option: QStyleOption,
     widget: QWidget | None = None,
 ) -> None:
-    """Paint a Lucide radio using `option.state` and `option.rect`."""
+    """Paint a Fluent radio using `option.state` and `option.rect`."""
     state = option.state
     checked = bool(state & QStyle.StateFlag.State_On)
     enabled = bool(state & QStyle.StateFlag.State_Enabled)
     paint_lucide_radio(painter, option.rect, checked=checked, enabled=enabled, colors=indicator_colors(widget))
 
 
-def _lucide_indicator_device_pixel_ratio() -> float:
+def _draw_checkbox(painter: QPainter, size: int, *, checked: bool, partial: bool, fill: QColor, stroke: QColor) -> None:
+    box = QRectF(1.5, 1.5, size - 3.0, size - 3.0)
+    radius = float(RADIUS_CONTROL)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
+    if checked or partial:
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(fill)
+        painter.drawRoundedRect(box, radius, radius)
+        painter.setPen(
+            QPen(QColor("#ffffff"), 1.75, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
+        )
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        if partial:
+            y = box.center().y()
+            painter.drawLine(int(box.left() + 3.5), int(y), int(box.right() - 3.5), int(y))
+        else:
+            path = QPainterPath()
+            path.moveTo(box.left() + 3.5, box.center().y())
+            path.lineTo(box.left() + 7.0, box.bottom() - 4.5)
+            path.lineTo(box.right() - 3.5, box.top() + 4.0)
+            painter.drawPath(path)
+    else:
+        painter.setPen(QPen(stroke, 1.5))
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawRoundedRect(box, radius, radius)
+
+
+def _draw_radio(painter: QPainter, size: int, *, checked: bool, fill: QColor, stroke: QColor) -> None:
+    outer = QRectF(1.5, 1.5, size - 3.0, size - 3.0)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
+    painter.setPen(QPen(fill if checked else stroke, 1.5))
+    painter.setBrush(Qt.BrushStyle.NoBrush)
+    painter.drawEllipse(outer)
+    if checked:
+        inset = 5.0
+        inner = outer.adjusted(inset, inset, -inset, -inset)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(fill)
+        painter.drawEllipse(inner)
+
+
+def _fluent_indicator_device_pixel_ratio() -> float:
     app = QGuiApplication.instance()
     if app is not None:
         screen = app.primaryScreen()
@@ -278,32 +317,36 @@ def _lucide_indicator_device_pixel_ratio() -> float:
     return 1.0
 
 
-def _lucide_indicator_pixmap(name: str, color: str, size: int) -> QPixmap:
-    """Render a Lucide glyph at `size` (prefer 24 so stroke stays on whole pixels)."""
-    ratio = _lucide_indicator_device_pixel_ratio()
-    cache_key = (name, color, size, ratio)
+def _fluent_indicator_pixmap(
+    *,
+    kind: str,
+    checked: bool,
+    partial: bool,
+    enabled: bool,
+    size: int,
+    colors: IndicatorColors,
+) -> QPixmap:
+    """Rasterize a Fluent checkbox or radio at `size`."""
+    ratio = _fluent_indicator_device_pixel_ratio()
+    fill_hex = colors.checked if enabled else colors.disabled
+    stroke_hex = colors.idle if enabled else colors.disabled
+    cache_key = (kind, fill_hex, stroke_hex, size, ratio, checked, partial)
     cached = _INDICATOR_PIXMAP_CACHE.get(cache_key)
     if cached is not None:
         return cached
 
-    path = lucide_svg_path(name)
-    if path is None:
-        return QPixmap()
-
-    hex_color = QColor(color).name(QColor.NameFormat.HexRgb)
-    svg_text = path.read_text(encoding="utf-8").replace("currentColor", hex_color)
-
     physical = max(1, round(size * ratio))
-    renderer = QSvgRenderer(QByteArray(svg_text.encode("utf-8")))
-    if not renderer.isValid():
-        return QPixmap()
-
     pixmap = QPixmap(physical, physical)
     pixmap.fill(Qt.GlobalColor.transparent)
     painter = QPainter(pixmap)
     painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
-    painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, on=True)
-    renderer.render(painter, QRectF(0.0, 0.0, float(physical), float(physical)))
+    painter.scale(ratio, ratio)
+    fill = QColor(fill_hex)
+    stroke = QColor(stroke_hex)
+    if kind == "radio":
+        _draw_radio(painter, size, checked=checked, fill=fill, stroke=stroke)
+    else:
+        _draw_checkbox(painter, size, checked=checked, partial=partial, fill=fill, stroke=stroke)
     painter.end()
     pixmap.setDevicePixelRatio(ratio)
     _INDICATOR_PIXMAP_CACHE[cache_key] = pixmap

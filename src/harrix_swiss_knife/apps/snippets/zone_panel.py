@@ -31,7 +31,6 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from harrix_swiss_knife.apps.common.ui_chrome import SELECTION_BG, SELECTION_BORDER, snippet_list_selection_qss
 from harrix_swiss_knife.apps.snippets.constants import (
     DEFAULT_SORT_MODE,
     SORT_ADDED,
@@ -49,6 +48,9 @@ from harrix_swiss_knife.apps.snippets.parse import (
     item_values_equal,
     strip_wrapping_brackets,
 )
+from harrix_swiss_knife.fluent.style import item_view_qss
+from harrix_swiss_knife.fluent.theme import bind_theme, css, mix, palette_for
+from harrix_swiss_knife.fluent.tokens import RADIUS_CONTROL
 from harrix_swiss_knife.qt_app_font import apply_mono_font
 from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
 from harrix_swiss_knife.qt_flat_scrollbar import with_flat_scrollbars
@@ -73,16 +75,10 @@ _CHIP_RADIUS = 6
 _CHIP_ROW_MARGIN = 8
 _CANDIDATE_CHIP_SIZE = 28
 _CANDIDATE_EMOJI_SIZE = 22
-_PLUS_BADGE_COLOR = "#22c55e"
 _PLUS_BADGE_SIZE = 11
 _LIGHT_TEXT_THRESHOLD = 160
 _MIN_COLOR_ROW_HEIGHT = 28
-_ZONE_TITLE_COLOR = "#202020"
 _ZONE_PANEL_MARGINS = (10, 8, 10, 0)
-_SELECTION_BG = SELECTION_BG
-_SELECTION_OUTLINE = SELECTION_BORDER
-_SELECTION_RADIUS = 6
-_LIST_SELECTION_STYLE = with_flat_scrollbars(snippet_list_selection_qss())
 _SORT_BUTTONS: tuple[tuple[SortMode, str, str], ...] = (
     (SORT_USED, "clock", "Sort by last used"),
     (SORT_ADDED, "calendar", "Sort by date added"),
@@ -105,7 +101,7 @@ class ColorItemDelegate(QStyledItemDelegate):
         painter.save()
         matches = _item_matches_input(index, option)
         if matches or _item_is_highlighted(option):
-            paint_snippet_highlight(painter, option.rect, outlined=matches)
+            paint_snippet_highlight(painter, option.rect, outlined=matches, widget=option.widget)
 
         hex_value = strip_wrapping_brackets(str(index.data(_COLOR_ROLE) or ""))
         color = QColor(hex_value) if hex_value else QColor("#ffffff")
@@ -162,7 +158,7 @@ class HighlightItemDelegate(QStyledItemDelegate):
         painter.save()
         matches = _item_matches_input(index, opt)
         if matches or _item_is_highlighted(opt):
-            paint_snippet_highlight(painter, opt.rect, outlined=matches)
+            paint_snippet_highlight(painter, opt.rect, outlined=matches, widget=opt.widget)
         opt.state &= ~_HIGHLIGHT_STATES
         widget = opt.widget
         style = widget.style() if widget is not None else None
@@ -200,7 +196,7 @@ class IconItemDelegate(QStyledItemDelegate):
         painter.save()
         matches = _item_matches_input(index, option)
         if matches or _item_is_highlighted(option):
-            paint_snippet_highlight(painter, option.rect, outlined=matches)
+            paint_snippet_highlight(painter, option.rect, outlined=matches, widget=option.widget)
         icon = index.data(Qt.ItemDataRole.DecorationRole)
         if isinstance(icon, QIcon) and not icon.isNull():
             size = (
@@ -263,11 +259,9 @@ class ZonePanel(QWidget):
 
         self._list = QListWidget(self)
         self._list.setFrameShape(QListWidget.Shape.NoFrame)
-        self._list.setStyleSheet(_LIST_SELECTION_STYLE)
         self._list.setMouseTracking(True)
         self._list.viewport().setMouseTracking(True)
         self._list.setAttribute(Qt.WidgetAttribute.WA_Hover, on=True)
-        _apply_list_highlight_palette(self._list)
         self._list.installEventFilter(self)
         apply_mono_font(self._list)
         if zone in {ZONE_EMOJI, ZONE_SYMBOL}:
@@ -292,12 +286,11 @@ class ZonePanel(QWidget):
 
         header = QHBoxLayout()
         header.setContentsMargins(0, 0, 0, 0)
-        title_label = QLabel(title)
-        title_font = title_label.font()
+        self._title_label = QLabel(title)
+        title_font = self._title_label.font()
         title_font.setBold(True)
-        title_label.setFont(title_font)
-        title_label.setStyleSheet(f"color: {_ZONE_TITLE_COLOR};")
-        header.addWidget(title_label)
+        self._title_label.setFont(title_font)
+        header.addWidget(self._title_label)
         if zone == ZONE_EMOJI:
             pick = QToolButton(self)
             pick.setIcon(create_ai_lucide_icon(18))
@@ -338,6 +331,7 @@ class ZonePanel(QWidget):
             self._ai_candidates = panel
             layout.addWidget(panel)
         layout.addWidget(self._list, stretch=1)
+        bind_theme(self, self._refresh_theme)
 
     def activate_current_or_first(self) -> None:
         """Paste the selected item, or the first visible item when none is selected."""
@@ -630,6 +624,15 @@ class ZonePanel(QWidget):
             )
         host.show()
 
+    def _refresh_theme(self) -> None:
+        """Apply Fluent list selection and title colors."""
+        palette = palette_for(self)
+        primary = css(mix(palette.window_bg, palette.text_primary))
+        self._title_label.setStyleSheet(f"color: {primary};")
+        self._list.setStyleSheet(with_flat_scrollbars(item_view_qss(palette, "QListWidget", transparent=True)))
+        _apply_list_highlight_palette(self._list)
+        self._list.viewport().update()
+
     def _remember_current(self) -> None:
         snippet = self.current_snippet()
         self._remembered_id = snippet.item_id if snippet is not None else None
@@ -678,38 +681,50 @@ def color_hex_label(value: str) -> str:
     return strip_wrapping_brackets(value)
 
 
-def paint_snippet_highlight(painter: QPainter, rect: QRect, *, outlined: bool = False) -> None:
-    """Fill the item with the hover/selection color, optionally with a 1 px gray outline."""
+def paint_snippet_highlight(
+    painter: QPainter,
+    rect: QRect,
+    *,
+    outlined: bool = False,
+    widget: QWidget | None = None,
+) -> None:
+    """Fill the item with Fluent hover/selection, optionally with an accent outline."""
+    fluent = palette_for(widget)
+    surface = mix(fluent.window_bg, fluent.card_bg)
+    fill = mix(surface, fluent.subtle_hover)
     painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
-    painter.setBrush(QColor(_SELECTION_BG))
+    painter.setBrush(fill)
     if outlined:
-        painter.setPen(QPen(QColor(_SELECTION_OUTLINE), 1))
+        painter.setPen(QPen(fluent.accent, 1))
         inner = rect.adjusted(1, 1, -2, -2)
     else:
         painter.setPen(Qt.PenStyle.NoPen)
         inner = rect.adjusted(1, 1, -1, -1)
-    painter.drawRoundedRect(inner, _SELECTION_RADIUS, _SELECTION_RADIUS)
+    painter.drawRoundedRect(inner, RADIUS_CONTROL, RADIUS_CONTROL)
 
 
 def _apply_list_highlight_palette(widget: QListWidget) -> None:
+    fluent = palette_for(widget)
+    surface = mix(fluent.window_bg, fluent.card_bg)
+    highlight = mix(surface, fluent.subtle_hover)
     palette = widget.palette()
     text = palette.color(QPalette.ColorRole.Text)
-    highlight = QColor(_SELECTION_BG)
     for group in (QPalette.ColorGroup.Active, QPalette.ColorGroup.Inactive, QPalette.ColorGroup.Disabled):
         palette.setColor(group, QPalette.ColorRole.Highlight, highlight)
         palette.setColor(group, QPalette.ColorRole.HighlightedText, text)
     widget.setPalette(palette)
 
 
-def _green_plus_icon(size: int) -> QIcon:
+def _green_plus_icon(size: int, *, widget: QWidget | None = None) -> QIcon:
+    fluent = palette_for(widget)
     pixmap = QPixmap(size, size)
     pixmap.fill(Qt.GlobalColor.transparent)
     painter = QPainter(pixmap)
     painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
     painter.setPen(Qt.PenStyle.NoPen)
-    painter.setBrush(QColor(_PLUS_BADGE_COLOR))
+    painter.setBrush(fluent.success)
     painter.drawEllipse(0, 0, size - 1, size - 1)
-    painter.setPen(QPen(QColor("#ffffff"), max(1.2, size / 6), Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
+    painter.setPen(QPen(fluent.text_on_accent, max(1.2, size / 6), Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
     pad = size * 0.28
     mid = (size - 1) / 2
     painter.drawLine(QPointF(pad, mid), QPointF(size - 1 - pad, mid))
@@ -752,7 +767,7 @@ def _make_emoji_candidate_chip(
     glyph.clicked.connect(lambda _checked=False, value=emoji: on_paste(value))
     if can_add:
         plus = QToolButton(chip)
-        plus.setIcon(_green_plus_icon(_PLUS_BADGE_SIZE))
+        plus.setIcon(_green_plus_icon(_PLUS_BADGE_SIZE, widget=chip))
         plus.setIconSize(QSize(_PLUS_BADGE_SIZE, _PLUS_BADGE_SIZE))
         plus.setGeometry(
             _CANDIDATE_CHIP_SIZE - _PLUS_BADGE_SIZE,

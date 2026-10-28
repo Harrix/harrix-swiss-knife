@@ -121,7 +121,6 @@ from harrix_swiss_knife.qt_lucide_icon import (
     apply_leading_chrome_icons,
 )
 from harrix_swiss_knife.toast_progress_notification import ToastProgressNotification
-from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
 from harrix_swiss_knife.win11_caption import install_win11_caption, try_handle_win11_caption_native_event
 
 logger = logging.getLogger(__name__)
@@ -172,7 +171,6 @@ class MainWindow(
 
     def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107  (inherited from Qt widgets)
         super().__init__()
-        try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
         self.setupUi(self)
         self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
         self._setup_ui()
@@ -1968,7 +1966,7 @@ class MainWindow(
 
     def _setup_ui(self) -> None:
         """Set up additional UI elements after basic initialization (habits only)."""
-        self._apply_soft_list_selection_chrome()
+        self._apply_fluent_window_chrome()
         self._place_menu_bar_on_tab_row()
         install_win11_caption(self)
         self._apply_exit_about_menu_emojis()

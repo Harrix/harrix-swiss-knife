@@ -56,9 +56,6 @@ from harrix_swiss_knife.apps.snippets.seed import (
 )
 from harrix_swiss_knife.apps.snippets.sort import dash_length_rank, sort_items
 from harrix_swiss_knife.apps.snippets.zone_panel import (
-    _LIST_SELECTION_STYLE,
-    _SELECTION_BG,
-    _SELECTION_OUTLINE,
     HighlightItemDelegate,
     IconItemDelegate,
     ZonePanel,
@@ -66,9 +63,10 @@ from harrix_swiss_knife.apps.snippets.zone_panel import (
     chip_border_color,
     color_hex_label,
 )
+from harrix_swiss_knife.fluent.theme import mix, palette_for
+from harrix_swiss_knife.fluent.tokens import CONTROL_HEIGHT
 from harrix_swiss_knife.menu_structure import get_menu_structure
 from harrix_swiss_knife.qt_app_font import MONO_FONT_FAMILY
-from harrix_swiss_knife.qt_command_section import COMMAND_SECTION_BORDER_COLOR
 
 _ROOT = Path(__file__).resolve().parents[1]
 _RECOVER_SQL = _ROOT / "src" / "harrix_swiss_knife" / "apps" / "snippets" / "recover.sql"
@@ -403,16 +401,17 @@ def test_emoji_zone_items_have_icon_without_caption(qapp: QApplication) -> None:
 
 def test_list_highlight_is_flat_without_inverted_text(qapp: QApplication) -> None:
     assert qapp is not None
-    assert _SELECTION_BG == "#e8f4fc"
-    assert _SELECTION_OUTLINE == "#2e86b7"
-    assert "item:hover" in _LIST_SELECTION_STYLE
-    assert "border: 1px solid #2e86b7" in _LIST_SELECTION_STYLE
-    assert "#6a6a6a" not in _LIST_SELECTION_STYLE
     emoji = ZonePanel(zone=ZONE_EMOJI, title="Emoji")
     assert isinstance(emoji._list.itemDelegate(), IconItemDelegate)
     phrase = ZonePanel(zone=ZONE_PHRASE, title="Phrases")
+    style = phrase._list.styleSheet()
+    assert "item:hover" in style
+    assert "#6a6a6a" not in style
+    fluent = palette_for(phrase)
+    surface = mix(fluent.window_bg, fluent.card_bg)
+    expected = mix(surface, fluent.subtle_hover)
     highlight = phrase._list.palette().color(QPalette.ColorRole.Highlight)
-    assert highlight.name() == "#e8f4fc"
+    assert highlight.name() == expected.name()
     text = phrase._list.palette().color(QPalette.ColorRole.Text)
     highlighted_text = phrase._list.palette().color(QPalette.ColorRole.HighlightedText)
     assert highlighted_text == text
@@ -562,7 +561,8 @@ def test_header_menu_includes_add_and_sort(qapp: QApplication, monkeypatch: pyte
     splitters = dialog.findChildren(QSplitter)
     assert splitters
     assert all(splitter.handleWidth() == 1 for splitter in splitters)
-    assert all(COMMAND_SECTION_BORDER_COLOR in splitter.styleSheet() for splitter in splitters)
+    assert all("QSplitter::handle" in splitter.styleSheet() for splitter in splitters)
+    assert all("background:" in splitter.styleSheet() for splitter in splitters)
     dialog._fill_header_menu()
     texts = [action.text() for action in dialog._header_menu.actions() if action.text()]
     assert texts[:4] == ["Add phrase", "Add emoji", "Add symbol", "Add color"]
@@ -819,7 +819,7 @@ def test_snippets_tab_cycles_shared_input_emoji_symbols_colors(
     assert dialog._input.placeholderText() != "Filter and search…"
     assert dialog._input.text() == ""
     assert "padding" in dialog._input.styleSheet()
-    assert dialog._input.minimumHeight() >= dialog._input.fontMetrics().height() + 10
+    assert dialog._input.minimumHeight() >= CONTROL_HEIGHT - 2
     dialog.focusNextPrevChild(True)  # noqa: FBT003
     QApplication.processEvents()
     assert dialog._input.hasFocus()

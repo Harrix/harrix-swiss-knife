@@ -54,8 +54,8 @@ class HabitDashboardWidget(QWidget):
         self._week_values_cache: dict[int, dict[str, int]] | None = None
 
         self.setAutoFillBackground(True)
-        self.setStyleSheet("HabitDashboardWidget { background: #FFFFFF; }")
         self._build_ui()
+        bind_theme(self, self._refresh_theme)
         preload_habit_checkin_sounds()
 
     def add_habit(self) -> None:
@@ -118,82 +118,46 @@ class HabitDashboardWidget(QWidget):
         """Build a full-dashboard call-to-action shown when there are no habits."""
         pane = QFrame()
         pane.setObjectName("habitDashEmptyState")
-        pane.setStyleSheet(
-            """
-            QFrame#habitDashEmptyState {
-                background: #F8FAFC;
-                border: 1px solid #E5E7EB;
-                border-radius: 16px;
-            }
-            """
-        )
         layout = QVBoxLayout(pane)
-        layout.setContentsMargins(32, 48, 32, 48)
-        layout.setSpacing(16)
+        layout.setContentsMargins(SPACE_XL + SPACE_S, SPACE_XXL + SPACE_M, SPACE_XL + SPACE_S, SPACE_XXL + SPACE_M)
+        layout.setSpacing(SPACE_L)
 
-        title = QLabel("No habits yet")
-        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title.setStyleSheet("color: #111827; font-weight: 800;")
+        self._empty_title = QLabel("No habits yet")
+        self._empty_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        subtitle = QLabel("Add your first habit to start tracking days, streaks, and check-ins.")
-        subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        subtitle.setWordWrap(True)
-        subtitle.setStyleSheet("color: #6B7280;")
+        self._empty_subtitle = QLabel("Add your first habit to start tracking days, streaks, and check-ins.")
+        self._empty_subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._empty_subtitle.setWordWrap(True)
 
-        button = make_lucide_push_button("Add habit", "plus")
-        button.setObjectName("habitDashAddHabitButton")
-        button.setCursor(Qt.CursorShape.PointingHandCursor)
-        button.setMinimumSize(280, 64)
-        button.setStyleSheet(
-            """
-            QPushButton#habitDashAddHabitButton {
-                background: #3B82F6;
-                color: #FFFFFF;
-                font-weight: 700;
-                border: none;
-                border-radius: 14px;
-                padding: 16px 32px;
-            }
-            QPushButton#habitDashAddHabitButton:hover {
-                background: #2563EB;
-            }
-            QPushButton#habitDashAddHabitButton:pressed {
-                background: #1D4ED8;
-            }
-            """
-        )
-        button.clicked.connect(self.add_habit)
+        self._empty_add_button = make_lucide_push_button("Add habit", "plus")
+        self._empty_add_button.setObjectName("habitDashAddHabitButton")
+        self._empty_add_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._empty_add_button.setMinimumSize(280, 64)
+        self._empty_add_button.clicked.connect(self.add_habit)
 
         layout.addStretch(1)
-        layout.addWidget(title)
-        layout.addWidget(subtitle)
-        layout.addWidget(button, 0, Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(self._empty_title)
+        layout.addWidget(self._empty_subtitle)
+        layout.addWidget(self._empty_add_button, 0, Qt.AlignmentFlag.AlignHCenter)
         layout.addStretch(1)
+        self._empty_state_pane = pane
         return pane
 
     def _build_left_pane(self) -> QWidget:
         pane = QFrame()
         pane.setObjectName("habitDashLeft")
-        pane.setStyleSheet(
-            """
-            QFrame#habitDashLeft {
-                background: #FFFFFF;
-                border: none;
-            }
-            """
-        )
+        self._left_pane = pane
         layout = QVBoxLayout(pane)
-        layout.setContentsMargins(16, 12, 16, 12)
-        layout.setSpacing(12)
+        layout.setContentsMargins(SPACE_L, SPACE_M, SPACE_L, SPACE_M)
+        layout.setSpacing(SPACE_M)
 
         header = QHBoxLayout()
-        title = QLabel("Habit")
-        title.setStyleSheet("color: #111827; font-weight: 700;")
-        header.addWidget(title)
+        self._list_title = QLabel("Habit")
+        header.addWidget(self._list_title)
         layout.addLayout(header)
 
         week_row = QHBoxLayout()
-        week_row.setSpacing(4)
+        week_row.setSpacing(SPACE_XS)
         self._week_headers: list[WeekDayHeader] = []
         for _ in range(7):
             cell = WeekDayHeader()
@@ -201,62 +165,50 @@ class HabitDashboardWidget(QWidget):
             week_row.addWidget(cell, 1)
         layout.addLayout(week_row)
 
-        scroll = QScrollArea()
-        scroll.setObjectName("habitDashListScroll")
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.Shape.NoFrame)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        scroll.setStyleSheet(_LIST_SCROLL_STYLE)
+        self._list_scroll = QScrollArea()
+        self._list_scroll.setObjectName("habitDashListScroll")
+        self._list_scroll.setWidgetResizable(True)
+        self._list_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self._list_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self._list_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self._list_host = HabitRowListHost()
         self._list_host.habits_reordered.connect(self._on_habits_reordered)
         self._list_layout = QVBoxLayout(self._list_host)
         self._list_layout.setContentsMargins(0, 0, 0, 0)
         self._list_layout.setSpacing(0)
         self._list_layout.addStretch(1)
-        scroll.setWidget(self._list_host)
-        scroll.viewport().setAutoFillBackground(True)
-        scroll.viewport().setStyleSheet("background: #FFFFFF;")
-        layout.addWidget(scroll, 1)
+        self._list_scroll.setWidget(self._list_host)
+        self._list_scroll.viewport().setAutoFillBackground(True)
+        layout.addWidget(self._list_scroll, 1)
         return pane
 
     def _build_right_pane(self) -> QWidget:
         pane = QFrame()
         pane.setObjectName("habitDashRight")
-        pane.setStyleSheet("QFrame#habitDashRight { background: #FFFFFF; }")
+        self._right_pane = pane
         layout = QVBoxLayout(pane)
-        layout.setContentsMargins(20, 12, 20, 12)
+        layout.setContentsMargins(20, SPACE_M, 20, SPACE_M)
         layout.setSpacing(14)
 
         header = QHBoxLayout()
         self._detail_icon = HabitIconBadge(size=44)
         self._detail_name = QLabel("Select a habit")
-        self._detail_name.setStyleSheet("color: #111827; font-weight: 700;")
         self._detail_name.setWordWrap(True)
         header.addWidget(self._detail_icon)
         header.addWidget(self._detail_name, 1)
         self._detail_more = QPushButton("⋯")
-        self._detail_more.setFixedSize(32, 32)
+        self._detail_more.setFixedSize(CONTROL_HEIGHT, CONTROL_HEIGHT)
         self._detail_more.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._detail_more.setStyleSheet(
-            """
-            QPushButton {
-                background: transparent; border: none; color: #6B7280;
-                font-size: 16px; border-radius: 8px;
-            }
-            QPushButton:hover { background: #F3F4F6; color: #111827; }
-            """
-        )
         self._detail_more.clicked.connect(self._on_detail_menu)
         header.addWidget(self._detail_more)
         layout.addLayout(header)
 
         stats = QGridLayout()
         stats.setSpacing(10)
-        self._stat_monthly = StatCard("Monthly check-ins", "✓", COLOR_SUCCESS)
-        self._stat_total = StatCard("Total check-ins", "⚡", COLOR_PRIMARY)
-        self._stat_rate = StatCard("Monthly check-in rate", "%", COLOR_RATE)
-        self._stat_streak = StatCard("Streak", "🔥", COLOR_STREAK)
+        self._stat_monthly = StatCard("Monthly check-ins", "✓", "success")
+        self._stat_total = StatCard("Total check-ins", "⚡", "accent")
+        self._stat_rate = StatCard("Monthly check-in rate", "%", "caution")
+        self._stat_streak = StatCard("Streak", "🔥", "critical")
         stats.addWidget(self._stat_monthly, 0, 0)
         stats.addWidget(self._stat_total, 0, 1)
         stats.addWidget(self._stat_rate, 1, 0)
@@ -275,19 +227,16 @@ class HabitDashboardWidget(QWidget):
         log_header = QHBoxLayout()
         log_title = QLabel("Habit Log on —.")
         log_title.setObjectName("habitLogTitle")
-        log_title.setStyleSheet("color: #111827; font-weight: 700;")
         self._log_title = log_title
         log_header.addWidget(log_title, 1)
         self._all_comments_button = QPushButton("All comments…")
         self._all_comments_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self._all_comments_button.setFlat(True)
-        self._all_comments_button.setStyleSheet("color: #2563EB;")
         self._all_comments_button.clicked.connect(self._show_all_comments)
         log_header.addWidget(self._all_comments_button)
         layout.addLayout(log_header)
 
         self._log_placeholder = QLabel("No comments this month yet.")
-        self._log_placeholder.setStyleSheet("color: #9CA3AF;")
         self._log_placeholder.setWordWrap(True)
         layout.addWidget(self._log_placeholder)
 
@@ -304,7 +253,7 @@ class HabitDashboardWidget(QWidget):
 
     def _build_ui(self) -> None:
         root = QHBoxLayout(self)
-        root.setContentsMargins(8, 8, 8, 8)
+        root.setContentsMargins(SPACE_S, SPACE_S, SPACE_S, SPACE_S)
         root.setSpacing(0)
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
@@ -743,6 +692,74 @@ class HabitDashboardWidget(QWidget):
             row.setData(Qt.ItemDataRole.UserRole, date_str)
             self._log_list.addItem(row)
 
+    def _refresh_theme(self) -> None:
+        """Apply Fluent window/layer/text colors to dashboard chrome."""
+        palette = palette_for(self)
+        surface = _card_surface(palette)
+        layer = mix(palette.window_bg, palette.layer_bg)
+        primary = css(_text_primary(palette))
+        secondary = css(_text_secondary(palette))
+        tertiary = css(_text_tertiary(palette))
+        surface_css = css(surface)
+        self.setStyleSheet(f"HabitDashboardWidget {{ background: {surface_css}; }}")
+        self._left_pane.setStyleSheet(f"QFrame#habitDashLeft {{ background: {surface_css}; border: none; }}")
+        self._right_pane.setStyleSheet(f"QFrame#habitDashRight {{ background: {surface_css}; }}")
+        self._list_title.setStyleSheet(f"color: {primary}; font-weight: 700;")
+        self._detail_name.setStyleSheet(f"color: {primary}; font-weight: 700;")
+        self._log_title.setStyleSheet(f"color: {primary}; font-weight: 700;")
+        self._log_placeholder.setStyleSheet(f"color: {tertiary};")
+        self._all_comments_button.setStyleSheet(
+            f"QPushButton {{ background: transparent; border: none; color: {css(palette.accent_text)}; }}"
+            f"QPushButton:hover {{ color: {css(palette.accent)}; }}"
+        )
+        hover = css(mix(surface, palette.subtle_hover))
+        self._detail_more.setStyleSheet(
+            f"""
+            QPushButton {{
+                background: transparent; border: none; color: {secondary};
+                font-size: 16px; border-radius: {RADIUS_CONTROL}px;
+            }}
+            QPushButton:hover {{ background: {hover}; color: {primary}; }}
+            """
+        )
+        scroll_style = with_flat_scrollbars(
+            f"""
+QScrollArea#habitDashListScroll {{
+    background: {surface_css};
+    border: none;
+}}
+QScrollArea#habitDashListScroll > QWidget > QWidget {{
+    background: {surface_css};
+}}
+"""
+        )
+        self._list_scroll.setStyleSheet(scroll_style)
+        self._list_scroll.viewport().setStyleSheet(f"background: {surface_css};")
+        self._log_list.setStyleSheet(item_view_qss(palette, "QListWidget#habitLogList", transparent=False))
+        empty_border = css(mix(layer, palette.card_stroke))
+        self._empty_state_pane.setStyleSheet(
+            f"""
+            QFrame#habitDashEmptyState {{
+                background: {css(layer)};
+                border: 1px solid {empty_border};
+                border-radius: {RADIUS_CARD + RADIUS_CONTROL}px;
+            }}
+            """
+        )
+        self._empty_title.setStyleSheet(f"color: {primary}; font-weight: 800;")
+        self._empty_subtitle.setStyleSheet(f"color: {secondary};")
+        self._empty_add_button.setStyleSheet(
+            accent_button_qss(palette, "QPushButton#habitDashAddHabitButton")
+            + f"""
+QPushButton#habitDashAddHabitButton {{
+    font-weight: 700;
+    border-radius: {RADIUS_CARD + SPACE_XS}px;
+    padding: {SPACE_L}px {SPACE_XL}px;
+    min-height: 64px;
+}}
+"""
+        )
+
     def _reload_comment_index(self) -> None:
         if self._db is None or not self._comments.is_configured():
             self._comment_index = {}
@@ -922,8 +939,8 @@ def __init__(self, parent: QWidget | None = None, *, app_config: dict[str, Any] 
         self._week_values_cache: dict[int, dict[str, int]] | None = None
 
         self.setAutoFillBackground(True)
-        self.setStyleSheet("HabitDashboardWidget { background: #FFFFFF; }")
         self._build_ui()
+        bind_theme(self, self._refresh_theme)
         preload_habit_checkin_sounds()
 ```
 

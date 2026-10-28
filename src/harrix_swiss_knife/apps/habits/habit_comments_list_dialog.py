@@ -17,6 +17,8 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.habits.habit_comments import preview_habit_comment
+from harrix_swiss_knife.fluent.style import item_view_qss
+from harrix_swiss_knife.fluent.theme import bind_theme, css, mix, palette_for
 from harrix_swiss_knife.qt_lucide_icon import apply_lucide_dialog_buttons
 
 if TYPE_CHECKING:
@@ -52,9 +54,8 @@ class HabitCommentsListDialog(QDialog):
         self._chosen_date: str | None = None
 
         root = QVBoxLayout(self)
-        hint = QLabel("Double-click a day to view or edit the comment.")
-        hint.setStyleSheet("color: #6B7280;")
-        root.addWidget(hint)
+        self._hint = QLabel("Double-click a day to view or edit the comment.")
+        root.addWidget(self._hint)
 
         self._list = QListWidget()
         self._list.itemDoubleClicked.connect(self._on_item_activated)
@@ -75,6 +76,7 @@ class HabitCommentsListDialog(QDialog):
         buttons.rejected.connect(self.reject)
         buttons.accepted.connect(self.reject)
         root.addWidget(buttons)
+        bind_theme(self, self._refresh_theme)
 
     def chosen_date(self) -> str | None:
         """Return the date selected for editing, if any."""
@@ -86,3 +88,9 @@ class HabitCommentsListDialog(QDialog):
             return
         self._chosen_date = date_str
         self.accept()
+
+    def _refresh_theme(self) -> None:
+        palette = palette_for(self)
+        secondary = css(mix(palette.window_bg, palette.text_secondary))
+        self._hint.setStyleSheet(f"color: {secondary};")
+        self._list.setStyleSheet(item_view_qss(palette, "QListWidget", transparent=False))

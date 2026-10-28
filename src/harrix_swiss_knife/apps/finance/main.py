@@ -215,7 +215,6 @@ from harrix_swiss_knife.qt_lucide_icon import (
     make_lucide_push_button,
     set_action_text_with_lucide_icon,
 )
-from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
 from harrix_swiss_knife.win11_caption import install_win11_caption, try_handle_win11_caption_native_event
 
 logger = logging.getLogger(__name__)
@@ -273,7 +272,6 @@ class MainWindow(
     def __init__(self, *, hide_on_close: bool = False) -> None:
         """Initialize main window for finance tracking application."""
         super().__init__()
-        try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
         self.setupUi(self)
         self._is_closing = False
         self.db_manager: database_manager.DatabaseManager | None = None
@@ -5492,7 +5490,7 @@ class MainWindow(
 
     def _setup_ui(self) -> None:
         """Set up additional UI elements."""
-        self._apply_soft_list_selection_chrome()
+        self._apply_fluent_window_chrome()
         self._place_menu_bar_on_tab_row()
         install_win11_caption(self)
         self._install_word_wrap_table_headers()

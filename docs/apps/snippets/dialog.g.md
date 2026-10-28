@@ -57,8 +57,6 @@ class SnippetsDialog(QDialog):
         self.setWindowFlags(_overlay_window_flags())
         self.setMinimumSize(_OVERLAY_MIN_SIZE)
         self.resize(_OVERLAY_DEFAULT_SIZE)
-        try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
-
         self._dragging = False
         self._drag_position = QPoint()
         self._saved_clipboard = None
@@ -70,11 +68,9 @@ class SnippetsDialog(QDialog):
         self._close_button: QPushButton | None = None
         self._allow_destroy = False
 
-        apply_opaque_white(self)
         self.setObjectName("snippetsDialog")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
         self.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips, on=True)
-        self.setStyleSheet(_DIALOG_BORDER_STYLE)
 
         self._active_zone: ZoneName = ZONE_PHRASE
         self._zone_input_text = dict.fromkeys(ZONES, "")
@@ -86,12 +82,13 @@ class SnippetsDialog(QDialog):
         self._layout.setSpacing(0)
 
         content = QWidget(self)
-        apply_opaque_white(content)
         self._content_layout = QVBoxLayout(content)
-        self._content_layout.setContentsMargins(16, 12, 16, 16)
-        self._content_layout.setSpacing(12)
+        self._content_layout.setContentsMargins(SPACE_L, SPACE_M, SPACE_L, SPACE_L)
+        self._content_layout.setSpacing(SPACE_M)
 
         menu_button = self._build_menu_button()
+        install_fluent_app_window(self)
+        bind_theme(self, self._refresh_overlay_theme)
         self._win11_caption = install_win11_caption(self, trailing_widgets=[menu_button])
         if not self._win11_caption:
             self._build_fallback_header(menu_button)
@@ -371,11 +368,11 @@ class SnippetsDialog(QDialog):
 
         self._page_tabs = QTabWidget(self)
         self._page_tabs.setDocumentMode(True)
-        self._page_tabs.setStyleSheet(_PAGE_TAB_STYLE)
         self._page_tabs.addTab(snippets_page, "Snippets")
         self._page_tabs.addTab(self._scripts, "Scripts")
         self._page_tabs.currentChanged.connect(self._on_page_changed)
         self._content_layout.addWidget(self._page_tabs, stretch=1)
+        self._refresh_overlay_theme()
 
     def _build_fallback_header(self, menu_button: QToolButton) -> None:
         """Build a simple title row when Win11 caption is unavailable."""
@@ -625,6 +622,43 @@ class SnippetsDialog(QDialog):
         for zone, panel in self._panels.items():
             panel.set_input_match(text if zone == self._active_zone else "")
 
+    def _refresh_overlay_theme(self) -> None:
+        """Apply Fluent overlay border, tabs, splitter, and input chrome."""
+        palette = palette_for(self)
+        border = css(mix(palette.window_bg, palette.popup_stroke))
+        window = css(palette.window_bg)
+        hover = css(mix(palette.window_bg, palette.subtle_hover))
+        selected = css(mix(palette.window_bg, palette.subtle_pressed))
+        accent = css(palette.accent)
+        divider = css(mix(palette.window_bg, palette.divider))
+        self.setStyleSheet(
+            f"#snippetsDialog {{ background-color: {window}; border: 1px solid {border}; }}",
+        )
+        pages = getattr(self, "_page_tabs", None)
+        if pages is not None:
+            pages.setStyleSheet(
+                "QTabWidget::pane { border: none; background: transparent; }"
+                "QTabBar::tab {"
+                " background: transparent;"
+                f" border: 1px solid transparent; border-radius: {RADIUS_CONTROL}px;"
+                f" padding: {SPACE_XS}px {SPACE_S + 2}px; margin-right: {SPACE_XXS}px;"
+                "}"
+                f"QTabBar::tab:hover {{ background: {hover}; }}"
+                f"QTabBar::tab:selected {{ background: {selected}; border-color: {accent}; }}",
+            )
+        for splitter in self.findChildren(QSplitter):
+            splitter.setHandleWidth(1)
+            splitter.setStyleSheet(
+                "QSplitter::handle {"
+                f" background: {divider};"
+                " border: none; margin: 0; padding: 0;"
+                "}"
+                "QSplitter::handle:horizontal { width: 1px; }"
+                "QSplitter::handle:vertical { height: 1px; }",
+            )
+        if getattr(self, "_input", None) is not None:
+            self._input.setStyleSheet(line_edit_qss(palette))
+
     def _reload_zone(self, zone: str, panel: ZonePanel) -> None:
         if self.db_manager is None:
             return
@@ -781,8 +815,6 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self.setWindowFlags(_overlay_window_flags())
         self.setMinimumSize(_OVERLAY_MIN_SIZE)
         self.resize(_OVERLAY_DEFAULT_SIZE)
-        try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
-
         self._dragging = False
         self._drag_position = QPoint()
         self._saved_clipboard = None
@@ -794,11 +826,9 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self._close_button: QPushButton | None = None
         self._allow_destroy = False
 
-        apply_opaque_white(self)
         self.setObjectName("snippetsDialog")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
         self.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips, on=True)
-        self.setStyleSheet(_DIALOG_BORDER_STYLE)
 
         self._active_zone: ZoneName = ZONE_PHRASE
         self._zone_input_text = dict.fromkeys(ZONES, "")
@@ -810,12 +840,13 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self._layout.setSpacing(0)
 
         content = QWidget(self)
-        apply_opaque_white(content)
         self._content_layout = QVBoxLayout(content)
-        self._content_layout.setContentsMargins(16, 12, 16, 16)
-        self._content_layout.setSpacing(12)
+        self._content_layout.setContentsMargins(SPACE_L, SPACE_M, SPACE_L, SPACE_L)
+        self._content_layout.setSpacing(SPACE_M)
 
         menu_button = self._build_menu_button()
+        install_fluent_app_window(self)
+        bind_theme(self, self._refresh_overlay_theme)
         self._win11_caption = install_win11_caption(self, trailing_widgets=[menu_button])
         if not self._win11_caption:
             self._build_fallback_header(menu_button)

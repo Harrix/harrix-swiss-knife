@@ -240,33 +240,21 @@ def button_content_colors(bg_hex: str) -> tuple[str, str]:
 
 
 def button_cta_cyan_qss(*, radius: int = PANEL_RADIUS) -> str:
-    """Soft-blue app CTA fill (`#e3f2fd` → nearest brand `#79b1d1`)."""
-    return solid_button_qss(
-        BUTTON_CTA_CYAN_BG,
-        hover=BUTTON_CTA_CYAN_HOVER,
-        pressed=BUTTON_PRIMARY_HOVER,
-        radius=radius,
-    )
+    """Accent CTA fill (Fluent primary). `radius` is kept for call-site compatibility."""
+    del radius
+    return _fluent_cta_button_qss()
 
 
 def button_cta_green_qss(*, radius: int = PANEL_RADIUS) -> str:
-    """Soft-green app CTA fill (lightgreen / `#e8f5e9` → `#4caf50`)."""
-    return solid_button_qss(
-        BUTTON_CTA_GREEN_BG,
-        hover=BUTTON_CTA_GREEN_HOVER,
-        pressed="#2e7d4f",
-        radius=radius,
-    )
+    """Accent CTA fill (Fluent primary). `radius` is kept for call-site compatibility."""
+    del radius
+    return _fluent_cta_button_qss()
 
 
 def button_cta_mint_qss(*, radius: int = PANEL_RADIUS) -> str:
-    """Finance mint CTA fill (`#C1ECDD` → nearest brand `#3aaf9d`)."""
-    return solid_button_qss(
-        BUTTON_CTA_MINT_BG,
-        hover=BUTTON_CTA_MINT_HOVER,
-        pressed="#026a6d",
-        radius=radius,
-    )
+    """Accent CTA fill (Fluent primary). `radius` is kept for call-site compatibility."""
+    del radius
+    return _fluent_cta_button_qss()
 
 
 def button_danger_qss(*, radius: int = PANEL_RADIUS) -> str:
@@ -554,6 +542,14 @@ def _color_distance(a: tuple[int, int, int], b: tuple[int, int, int]) -> float:
     dh = min(abs(ha - hb), 1 - abs(ha - hb))
     weight_h = 3.0 if sa > _HSL_SATURATION_CHROMA_MIN and sb > _HSL_SATURATION_CHROMA_MIN else 0.5
     return (weight_h * dh) ** 2 + (la - lb) ** 2 + (sa - sb) ** 2
+
+
+def _fluent_cta_button_qss() -> str:
+    """Return Fluent accent button QSS tagged for theme refresh."""
+    from harrix_swiss_knife.fluent.style import accent_button_qss  # noqa: PLC0415
+    from harrix_swiss_knife.fluent.theme import FluentTheme  # noqa: PLC0415
+
+    return f"/* hsk-fluent-cta */\n{accent_button_qss(FluentTheme.instance().palette())}"
 
 
 def _parse_rgb(hex_color: str | None) -> tuple[int, int, int] | None:

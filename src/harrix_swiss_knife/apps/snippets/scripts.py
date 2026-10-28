@@ -7,8 +7,9 @@ from typing import TYPE_CHECKING
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QLineEdit, QPushButton, QScrollArea, QVBoxLayout, QWidget
 
-from harrix_swiss_knife.apps.common.ui_chrome import MUTED_TEXT, button_primary_qss, button_secondary_qss
-from harrix_swiss_knife.qt_app_font import style_overlay_line_edit
+from harrix_swiss_knife.fluent.style import accent_button_qss, line_edit_qss, push_button_qss
+from harrix_swiss_knife.fluent.theme import bind_theme, css, mix, palette_for
+from harrix_swiss_knife.fluent.tokens import SPACE_S, SPACE_XS
 from harrix_swiss_knife.qt_flow_layout import FlowLayout
 
 if TYPE_CHECKING:
@@ -131,7 +132,6 @@ class ScriptsPanel(QWidget):
         self._edit = QLineEdit(self)
         self._edit.setPlaceholderText("Click characters, then Add")
         self._edit.setClearButtonEnabled(True)
-        style_overlay_line_edit(self._edit)
         self._edit.returnPressed.connect(self._emit_add)
 
         self._add_button = QPushButton("Add", self)
@@ -139,7 +139,6 @@ class ScriptsPanel(QWidget):
         self._add_button.setAutoDefault(False)
         self._add_button.setDefault(False)
         self._add_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._add_button.setStyleSheet(button_primary_qss())
         self._add_button.clicked.connect(self._emit_add)
 
         composer = QHBoxLayout()
@@ -150,10 +149,16 @@ class ScriptsPanel(QWidget):
         sections = QWidget(self)
         sections_layout = QVBoxLayout(sections)
         sections_layout.setContentsMargins(0, 0, 0, 0)
-        sections_layout.setSpacing(8)
+        sections_layout.setSpacing(SPACE_S)
+        self._section_labels: list[QLabel] = []
+        self._glyph_buttons: list[QPushButton] = []
         for title, glyphs in SCRIPT_SECTIONS:
-            sections_layout.addWidget(_section_label(title, sections))
-            sections_layout.addWidget(_glyph_flow(glyphs, title, self._append_glyph, sections))
+            label = _section_label(title, sections)
+            self._section_labels.append(label)
+            sections_layout.addWidget(label)
+            flow = _glyph_flow(glyphs, title, self._append_glyph, sections)
+            self._glyph_buttons.extend(flow.findChildren(QPushButton))
+            sections_layout.addWidget(flow)
         sections_layout.addStretch(1)
 
         scroll = QScrollArea(self)
@@ -162,9 +167,10 @@ class ScriptsPanel(QWidget):
         scroll.setWidget(sections)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 8, 0, 0)
+        layout.setContentsMargins(0, SPACE_S, 0, 0)
         layout.addLayout(composer)
         layout.addWidget(scroll, stretch=1)
+        bind_theme(self, self._refresh_theme)
 
     def append_glyph(self, char: str) -> None:
         """Insert `char` at the composer caret."""
@@ -198,6 +204,17 @@ class ScriptsPanel(QWidget):
             return
         self.add_requested.emit(text)
 
+    def _refresh_theme(self) -> None:
+        palette = palette_for(self)
+        self._edit.setStyleSheet(line_edit_qss(palette))
+        self._add_button.setStyleSheet(accent_button_qss(palette, "QPushButton#scriptsAddButton"))
+        secondary = css(mix(palette.window_bg, palette.text_secondary))
+        for label in self._section_labels:
+            label.setStyleSheet(f"color: {secondary};")
+        glyph_qss = push_button_qss(palette) + f"QPushButton {{ padding: 0 {SPACE_XS}px; }}"
+        for button in self._glyph_buttons:
+            button.setStyleSheet(glyph_qss)
+
 
 def _glyph_button(glyph: str, base: str, section: str, on_click: Callable[[str], None]) -> QPushButton:
     """Return a button that inserts `glyph` and names `base` in the tooltip."""
@@ -206,7 +223,6 @@ def _glyph_button(glyph: str, base: str, section: str, on_click: Callable[[str],
     button.setDefault(False)
     button.setCursor(Qt.CursorShape.PointingHandCursor)
     button.setToolTip(f"{section} {base}")
-    button.setStyleSheet(button_secondary_qss())
     font = button.font()
     if font.pointSize() > 0:
         font.setPointSize(font.pointSize() + _GLYPH_POINT_DELTA)
@@ -231,6 +247,4 @@ def _glyph_flow(
 
 def _section_label(title: str, parent: QWidget) -> QLabel:
     """Return a muted heading for one glyph section."""
-    label = QLabel(title, parent)
-    label.setStyleSheet(f"color: {MUTED_TEXT};")
-    return label
+    return QLabel(title, parent)

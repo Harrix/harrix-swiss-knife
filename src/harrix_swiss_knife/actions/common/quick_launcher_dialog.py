@@ -36,8 +36,10 @@ from harrix_swiss_knife.apps.common.keyboard_shortcuts import (
     install_documented_shortcut,
     show_keyboard_shortcuts_help,
 )
-from harrix_swiss_knife.apps.common.ui_chrome import MUTED_TEXT
 from harrix_swiss_knife.cli_menu import show_action_class_context_menu
+from harrix_swiss_knife.fluent.app_chrome import install_fluent_app_window
+from harrix_swiss_knife.fluent.theme import bind_theme, css, mix, palette_for
+from harrix_swiss_knife.fluent.tokens import SPACE_L, SPACE_M
 from harrix_swiss_knife.installer.icon_assets import apply_window_icon
 from harrix_swiss_knife.qt_action_card_grid import (
     CARD_ICON_SIZE,
@@ -46,7 +48,6 @@ from harrix_swiss_knife.qt_action_card_grid import (
 )
 from harrix_swiss_knife.qt_action_icon import create_action_icon
 from harrix_swiss_knife.qt_command_section import (
-    apply_opaque_white,
     create_command_section,
     create_command_section_divider,
     grow_qfont,
@@ -56,7 +57,6 @@ from harrix_swiss_knife.qt_command_section import (
 from harrix_swiss_knife.qt_frameless_window import frameless_stay_on_top_flags, try_handle_frameless_resize_native_event
 from harrix_swiss_knife.qt_lucide_icon import CLOSE_BUTTON_ICON, apply_lucide_button_icon, create_lucide_icon
 from harrix_swiss_knife.qt_markdown_choice_cards import populate_icon_choice_cards
-from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
 from harrix_swiss_knife.win11_caption import (
     CAPTION_BUTTON_HEIGHT,
     install_win11_caption,
@@ -71,7 +71,6 @@ if TYPE_CHECKING:
 
 _OVERLAY_MIN_SIZE = QSize(900, 560)
 _OVERLAY_DEFAULT_SIZE = QSize(1024, 720)
-_DIALOG_BORDER_STYLE = "#quickLauncherDialog { background-color: #ffffff; border: 1px solid #c0c0c0;}"
 
 
 class QuickLauncherDialog(QDialog):
@@ -91,8 +90,6 @@ class QuickLauncherDialog(QDialog):
         self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, on=False)
         self.setMinimumSize(_OVERLAY_MIN_SIZE)
         self.resize(_OVERLAY_DEFAULT_SIZE)
-        try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
-
         self._output_bus: ActionOutputBus | None = None
         self._action_classes: list[type[ActionBase]] = []
         self._dragging = False
@@ -101,22 +98,21 @@ class QuickLauncherDialog(QDialog):
         self._close_button: QPushButton | None = None
         self._allow_destroy = False
 
-        apply_opaque_white(self)
         self.setObjectName("quickLauncherDialog")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
-        self.setStyleSheet(_DIALOG_BORDER_STYLE)
 
         self._layout = QVBoxLayout(self)
         self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.setSpacing(0)
 
         content = QWidget(self)
-        apply_opaque_white(content)
         self._content_layout = QVBoxLayout(content)
-        self._content_layout.setContentsMargins(16, 12, 16, 16)
-        self._content_layout.setSpacing(12)
+        self._content_layout.setContentsMargins(SPACE_L, SPACE_M, SPACE_L, SPACE_L)
+        self._content_layout.setSpacing(SPACE_M)
 
         menu_button = self._build_menu_button()
+        install_fluent_app_window(self)
+        bind_theme(self, self._refresh_overlay_theme)
         self._win11_caption = install_win11_caption(self, trailing_widgets=[menu_button])
         if not self._win11_caption:
             self._build_fallback_header(menu_button)
@@ -147,9 +143,9 @@ class QuickLauncherDialog(QDialog):
         self._content_layout.addWidget(self._markdown_section, stretch=1)
 
         self._hint = QLabel(self)
-        self._hint.setStyleSheet(f"color: {MUTED_TEXT};")
         self._hint.setCursor(Qt.CursorShape.OpenHandCursor)
         self._update_hint()
+        self._refresh_overlay_theme()
 
         footer = QHBoxLayout()
         footer.setContentsMargins(0, 0, 0, 0)
@@ -597,6 +593,19 @@ class QuickLauncherDialog(QDialog):
                 natural=metrics.cards_natural,
                 allocated=max(120, available_for_grids),
             )
+
+    def _refresh_overlay_theme(self) -> None:
+        """Apply Fluent overlay border for the current theme."""
+        palette = palette_for(self)
+        border = css(mix(palette.window_bg, palette.popup_stroke))
+        window = css(palette.window_bg)
+        muted = css(mix(palette.window_bg, palette.text_secondary))
+        self.setStyleSheet(
+            f"#quickLauncherDialog {{ background-color: {window}; border: 1px solid {border}; }}",
+        )
+        hint = getattr(self, "_hint", None)
+        if hint is not None:
+            hint.setStyleSheet(f"color: {muted};")
 
     def _retarget_to_active_modal_parent(self) -> None:
         """Parent launcher to active modal dialog so it stays interactive."""
