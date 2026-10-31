@@ -22,6 +22,7 @@ lang: en
 - [🔧 Function `decade_panel_years`](#-function-decade_panel_years)
 - [🔧 Function `decade_start`](#-function-decade_start)
 - [🔧 Function `install_date_calendar_popups`](#-function-install_date_calendar_popups)
+- [🔧 Function `install_date_edit_double_click_popup`](#-function-install_date_edit_double_click_popup)
 - [🔧 Function `show_date_calendar_popup`](#-function-show_date_calendar_popup)
 
 </details>
@@ -929,7 +930,7 @@ def apply_date_calendar_popup(date_edit: QDateEdit) -> None:
         popup = calendar.parentWidget()
         if popup is not None and popup.objectName() == "qt_datetimedit_calendar":
             popup.setMinimumSize(calendar.minimumSizeHint())
-    _install_date_edit_open_on_double_click(date_edit)
+    install_date_edit_double_click_popup(date_edit)
 ```
 
 </details>
@@ -993,6 +994,31 @@ def install_date_calendar_popups(app: QApplication) -> None:
     for widget in app.allWidgets():
         if isinstance(widget, QDateEdit):
             apply_date_calendar_popup(widget)
+```
+
+</details>
+
+## 🔧 Function `install_date_edit_double_click_popup`
+
+```python
+def install_date_edit_double_click_popup(date_edit: QDateEdit) -> None
+```
+
+Open the calendar popup when the user double-clicks `date_edit`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def install_date_edit_double_click_popup(date_edit: QDateEdit) -> None:
+    if date_edit.property(_PROP_OPEN_FILTER) is not None:
+        return
+    filtr = _DateEditOpenCalendarFilter(date_edit)
+    date_edit.installEventFilter(filtr)
+    line_edit = date_edit.lineEdit()
+    if line_edit is not None:
+        line_edit.installEventFilter(filtr)
+    date_edit.setProperty(_PROP_OPEN_FILTER, filtr)
 ```
 
 </details>

@@ -509,7 +509,7 @@ class ExchangeRatesOperations:
             self._clear_layout(self.verticalLayout_exchange_rates_content)
 
             # Create matplotlib figure with proper cleanup
-            fig = Figure(figsize=(12, 6), dpi=100)
+            fig = themed_figure(figsize=(12, 6), dpi=100)
             canvas = FigureCanvas(fig)
             ax = fig.add_subplot(111)
 
@@ -577,7 +577,7 @@ class ExchangeRatesOperations:
                     xy=(date_numeric[0], transformed_rates[0]),
                     xytext=(10, 10),
                     textcoords="offset points",
-                    bbox={"boxstyle": "round,pad=0.3", "facecolor": "white", "alpha": 0.9},
+                    bbox={"boxstyle": "round,pad=0.3", "facecolor": chart_label_face(), "alpha": 0.9},
                     fontsize=10,
                 )
 
@@ -587,7 +587,7 @@ class ExchangeRatesOperations:
                     xy=(date_numeric[-1], transformed_rates[-1]),
                     xytext=(10, 10),
                     textcoords="offset points",
-                    bbox={"boxstyle": "round,pad=0.3", "facecolor": "white", "alpha": 0.9},
+                    bbox={"boxstyle": "round,pad=0.3", "facecolor": chart_label_face(), "alpha": 0.9},
                     fontsize=10,
                 )
 
@@ -599,7 +599,7 @@ class ExchangeRatesOperations:
                         xy=(date_numeric[min_index], min_rate),
                         xytext=(10, -20),
                         textcoords="offset points",
-                        bbox={"boxstyle": "round,pad=0.3", "facecolor": "white", "alpha": 0.9},
+                        bbox={"boxstyle": "round,pad=0.3", "facecolor": chart_label_face(), "alpha": 0.9},
                         fontsize=10,
                         color="red",
                     )
@@ -612,7 +612,7 @@ class ExchangeRatesOperations:
                         xy=(date_numeric[max_index], max_rate),
                         xytext=(10, 20),
                         textcoords="offset points",
-                        bbox={"boxstyle": "round,pad=0.3", "facecolor": "white", "alpha": 0.9},
+                        bbox={"boxstyle": "round,pad=0.3", "facecolor": chart_label_face(), "alpha": 0.9},
                         fontsize=10,
                         color="green",
                     )

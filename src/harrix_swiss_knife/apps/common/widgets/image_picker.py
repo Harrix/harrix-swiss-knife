@@ -9,7 +9,7 @@ from tempfile import NamedTemporaryFile
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QEvent, QObject, Qt, Signal
-from PySide6.QtGui import QImage, QKeyEvent, QMouseEvent, QPixmap
+from PySide6.QtGui import QImage, QKeyEvent, QMouseEvent, QPixmap, QShowEvent
 from PySide6.QtWidgets import (
     QApplication,
     QComboBox,
@@ -39,6 +39,8 @@ from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import (
     unique_path_in_folder,
     unique_path_numbered,
 )
+from harrix_swiss_knife.fluent.style import drop_zone_qss as fluent_drop_zone_qss
+from harrix_swiss_knife.fluent.theme import bind_theme, is_fluent_themed, palette_for
 from harrix_swiss_knife.qt_lucide_icon import (
     CLEAR_BUTTON_ICON,
     apply_lucide_button_icon,
@@ -186,6 +188,7 @@ class ImagePicker(QWidget):
             self._setup_compact_ui()
         else:
             self._setup_picker_ui()
+        bind_theme(self, self._refresh_drop_style)
 
     def configure_filename_row(
         self,
@@ -437,6 +440,11 @@ class ImagePicker(QWidget):
     def set_save_dir(self, save_dir: Path | None) -> None:
         """Update target directory for copied images."""
         self._save_dir = Path(save_dir) if save_dir else None
+
+    def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
+        """Pick the Fluent or white drop style once the picker sits in its window."""
+        self._refresh_drop_style()
+        super().showEvent(event)
 
     def _add_images_dialog(self) -> None:
         file_paths, _ = QFileDialog.getOpenFileNames(self, "Select Images", "", _IMAGE_FILTER)
@@ -769,12 +777,23 @@ class ImagePicker(QWidget):
     def _refresh_drop_style(self) -> None:
         if not hasattr(self, "_drop_area"):
             return
-        if self._mode == ImagePickerMode.SINGLE and self.image_path:
-            self._drop_area.setStyleSheet(_DROP_SELECTED_STYLE)
-        elif self._drop_has_focus:
-            self._drop_area.setStyleSheet(_DROP_FOCUSED_STYLE)
+        selected = self._mode == ImagePickerMode.SINGLE and bool(self.image_path)
+        focused = not selected and self._drop_has_focus
+        if is_fluent_themed(self):
+            sheet = fluent_drop_zone_qss(
+                palette_for(self),
+                "#ImagePickerDropArea",
+                selected=selected,
+                focused=focused,
+            )
+        elif selected:
+            sheet = _DROP_SELECTED_STYLE
+        elif focused:
+            sheet = _DROP_FOCUSED_STYLE
         else:
-            self._drop_area.setStyleSheet(_DROP_NORMAL_STYLE)
+            sheet = _DROP_NORMAL_STYLE
+        if self._drop_area.styleSheet() != sheet:
+            self._drop_area.setStyleSheet(sheet)
 
     def _refresh_single_removal_ui(self) -> None:
         if not hasattr(self, "_preview_label"):

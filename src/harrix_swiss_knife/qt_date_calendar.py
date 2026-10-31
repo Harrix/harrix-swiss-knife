@@ -66,6 +66,8 @@ _PANEL_DAY = "day"
 _PANEL_MONTH_PICK = "month_pick"
 _PANEL_YEAR = "year"
 _MONTHS_IN_YEAR = 12
+# QDateTimeEdit opens its popup from an arrow press or F4 / Alt+Down.
+_DATE_EDIT_OPEN_EVENTS = frozenset({QEvent.Type.MouseButtonPress, QEvent.Type.KeyPress})
 
 
 class SoftCalendarWidget(QCalendarWidget):
@@ -636,14 +638,22 @@ class SoftCalendarWidget(QCalendarWidget):
 
 
 class _DateEditCalendarFilter(QObject):
+    """Swap in `SoftCalendarWidget` right before a date field can open its popup.
+
+    Building the calendar costs tens of milliseconds, and tracker Windows have
+    a dozen date fields, so it is not done on polish.
+
+    """
+
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
-        if isinstance(watched, QDateEdit) and event.type() in {
-            QEvent.Type.Show,
-            QEvent.Type.Polish,
-            QEvent.Type.WinIdChange,
-        }:
+        if not isinstance(watched, QDateEdit):
+            return False
+        event_type = event.type()
+        if event_type in _DATE_EDIT_OPEN_EVENTS:
             apply_date_calendar_popup(watched)
-        return super().eventFilter(watched, event)
+        elif event_type == QEvent.Type.Polish:
+            install_date_edit_double_click_popup(watched)
+        return False
 
 
 class _DateEditOpenCalendarFilter(QObject):
@@ -671,7 +681,7 @@ def apply_date_calendar_popup(date_edit: QDateEdit) -> None:
         popup = calendar.parentWidget()
         if popup is not None and popup.objectName() == "qt_datetimedit_calendar":
             popup.setMinimumSize(calendar.minimumSizeHint())
-    _install_date_edit_open_on_double_click(date_edit)
+    install_date_edit_double_click_popup(date_edit)
 
 
 def decade_panel_years(year: int) -> tuple[int, list[int]]:
@@ -696,6 +706,18 @@ def install_date_calendar_popups(app: QApplication) -> None:
     for widget in app.allWidgets():
         if isinstance(widget, QDateEdit):
             apply_date_calendar_popup(widget)
+
+
+def install_date_edit_double_click_popup(date_edit: QDateEdit) -> None:
+    """Open the calendar popup when the user double-clicks `date_edit`."""
+    if date_edit.property(_PROP_OPEN_FILTER) is not None:
+        return
+    filtr = _DateEditOpenCalendarFilter(date_edit)
+    date_edit.installEventFilter(filtr)
+    line_edit = date_edit.lineEdit()
+    if line_edit is not None:
+        line_edit.installEventFilter(filtr)
+    date_edit.setProperty(_PROP_OPEN_FILTER, filtr)
 
 
 def show_date_calendar_popup(date_edit: QDateEdit) -> None:
@@ -745,17 +767,6 @@ def _hairline(parent: QWidget) -> QFrame:
     line.setFixedHeight(1)
     line.setStyleSheet(f"background-color: {_HEADER_SEP}; border: none; color: {_HEADER_SEP};")
     return line
-
-
-def _install_date_edit_open_on_double_click(date_edit: QDateEdit) -> None:
-    if date_edit.property(_PROP_OPEN_FILTER) is not None:
-        return
-    filtr = _DateEditOpenCalendarFilter(date_edit)
-    date_edit.installEventFilter(filtr)
-    line_edit = date_edit.lineEdit()
-    if line_edit is not None:
-        line_edit.installEventFilter(filtr)
-    date_edit.setProperty(_PROP_OPEN_FILTER, filtr)
 
 
 def _title_chip_qss(object_name: str) -> str:

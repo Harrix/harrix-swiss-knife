@@ -118,6 +118,7 @@ from harrix_swiss_knife.actions.python.sort_ruff_fmt_python_code import OnSortRu
 from harrix_swiss_knife.actions.quick_launcher.action import OnQuickLauncher
 from harrix_swiss_knife.actions.site import (
     OnAddSiteContentSubmodule,
+    OnCheckSiteBlocking,
     OnFixSiteArticleLinkTitles,
     OnGenerateStaticSite,
     OnPullSiteSubmodules,
@@ -277,6 +278,7 @@ def get_menu_structure() -> list[Any]:
             "🌐",
             [
                 OnAddSiteContentSubmodule,
+                OnCheckSiteBlocking,
                 OnFixSiteArticleLinkTitles,
                 OnGenerateStaticSite,
                 OnPullSiteSubmodules,

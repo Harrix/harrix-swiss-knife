@@ -22,16 +22,18 @@ class ChartOperationsBase:
 
     max_count_points_in_charts: int
 
-    def _add_stats_box(self, ax: Axes, stats_text: str, color: str = "lightgray") -> None:
+    def _add_stats_box(self, ax: Axes, stats_text: str, color: str | None = None) -> None:
         """Add a statistics box at the bottom-center of an axes.
 
         Args:
 
         - `ax` (`Axes`): Matplotlib axes object.
         - `stats_text` (`str`): Text to display.
-        - `color` (`str`): Background color. Defaults to `lightgray`.
+        - `color` (`str | None`): Background color. Defaults to the themed chart label fill.
 
         """
+        if color is None:
+            color = chart_label_face()
         ax.text(
             0.5,
             0.02,
@@ -109,7 +111,7 @@ class ChartOperationsBase:
             )
 
         # Create matplotlib figure
-        fig = Figure(figsize=(12, 6), dpi=100)
+        fig = themed_figure(figsize=(12, 6), dpi=100)
         canvas = FigureCanvas(fig)
         ax = fig.add_subplot(111)
 
@@ -441,7 +443,12 @@ class ChartOperationsBase:
                         fontsize=9,
                         alpha=0.8,
                         # Add white outline for better readability
-                        bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+                        bbox={
+                            "boxstyle": "round,pad=0.2",
+                            "facecolor": chart_label_face(),
+                            "edgecolor": "none",
+                            "alpha": 0.7,
+                        },
                     )
         else:
             ax.plot(x_nums, y_values, color=plot_color, linestyle="-", linewidth=2, alpha=0.8)  # Use numerical x-values
@@ -473,7 +480,12 @@ class ChartOperationsBase:
                         fontsize=9,
                         alpha=0.8,
                         # Add white outline for better readability
-                        bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+                        bbox={
+                            "boxstyle": "round,pad=0.2",
+                            "facecolor": chart_label_face(),
+                            "edgecolor": "none",
+                            "alpha": 0.7,
+                        },
                     )
 
     def _set_y_axis_limits(self, ax: Axes, y_values: list[float]) -> None:

@@ -55,7 +55,7 @@ from harrix_swiss_knife.apps.common.keyboard_shortcuts import (
 )
 from harrix_swiss_knife.apps.common.ui_helpers import reveal_in_file_explorer
 from harrix_swiss_knife.apps.common.word_wrap_header import install_word_wrap_headers
-from harrix_swiss_knife.fluent.app_chrome import install_fluent_app_window
+from harrix_swiss_knife.fluent.app_chrome import install_fluent_app_window, prepare_fluent_app_window
 from harrix_swiss_knife.qt_app_font import apply_ui_font_scale
 from harrix_swiss_knife.qt_lucide_icon import (
     apply_leading_chrome_icons,
@@ -182,8 +182,13 @@ class AppWindowMixin:
         self._apply_menu_bar_emoji_icons()
 
     def _apply_fluent_window_chrome(self) -> None:
-        """Opt this app window into Fluent theme, surfaces, and list selection."""
-        install_fluent_app_window(cast("QMainWindow", self))
+        """Opt this app window into the Fluent theme before the caption is built.
+
+        Call `_finish_fluent_window_chrome` once the layout is complete; that
+        restyles every child in one pass.
+
+        """
+        prepare_fluent_app_window(cast("QMainWindow", self))
 
     def _apply_menu_bar_emoji_icons(self) -> None:
         """Move leading emoji from File / Commands / Help action text onto icons."""
@@ -197,7 +202,7 @@ class AppWindowMixin:
 
     def _apply_soft_list_selection_chrome(self) -> None:
         """Apply Fluent list selection (kept for older call sites)."""
-        self._apply_fluent_window_chrome()
+        self._finish_fluent_window_chrome()
 
     def _connect_exit_about_actions(self) -> None:
         """Wire Exit and About menu actions to their handlers."""
@@ -248,6 +253,10 @@ class AppWindowMixin:
             if clipboard is not None:
                 clipboard.setText(final_text)
                 logger.info("%s", f"Copied {len(clipboard_text)} rows to clipboard")
+
+    def _finish_fluent_window_chrome(self) -> None:
+        """Restyle surfaces, controls, lists, and tables once the layout is complete."""
+        install_fluent_app_window(cast("QMainWindow", self))
 
     def _get_version_from_pyproject(self) -> str:
         """Get version from `pyproject.toml`.

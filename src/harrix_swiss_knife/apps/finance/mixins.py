@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, Any, cast
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.chart_extrema_labels import annotate_chart_extrema_labels
 from harrix_swiss_knife.apps.common.chart_operations import ChartOperationsBase
+from harrix_swiss_knife.apps.common.chart_theme import chart_label_face
 from harrix_swiss_knife.apps.common.db_guard import requires_database
 from harrix_swiss_knife.apps.common.qt_mixins import (
     AutoSaveMixin,
@@ -431,7 +432,7 @@ class ChartOperations(ChartOperationsBase):
             ha="center",
             fontsize=9,
             alpha=0.8,
-            bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+            bbox={"boxstyle": "round,pad=0.2", "facecolor": chart_label_face(), "edgecolor": "none", "alpha": 0.7},
         )
 
     def _annotate_compare_flow_chart_extrema(

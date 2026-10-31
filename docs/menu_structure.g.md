@@ -158,6 +158,7 @@ def get_menu_structure() -> list[Any]:
             "🌐",
             [
                 OnAddSiteContentSubmodule,
+                OnCheckSiteBlocking,
                 OnFixSiteArticleLinkTitles,
                 OnGenerateStaticSite,
                 OnPullSiteSubmodules,

@@ -62,7 +62,7 @@ from harrix_swiss_knife.apps.common.keyboard_shortcuts import (
 )
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.table_context_menu import add_reveal_in_explorer_action
-from harrix_swiss_knife.apps.common.ui_chrome import MUTED_TEXT, SELECTION_BG
+from harrix_swiss_knife.apps.common.ui_chrome import MUTED_TEXT
 from harrix_swiss_knife.apps.common.ui_helpers import reveal_in_file_explorer
 from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import install_url_drop_handlers
 from harrix_swiss_knife.apps.icons.add_vector import (
@@ -194,11 +194,12 @@ from harrix_swiss_knife.apps.icons.widgets import (
     read_svg_text,
     stage_clipboard_icon_file,
 )
+from harrix_swiss_knife.fluent.style import list_item_selected
+from harrix_swiss_knife.fluent.theme import bind_theme, css, mix, palette_for
 from harrix_swiss_knife.installer.icon_assets import apply_window_icon
 from harrix_swiss_knife.paths import get_config_path_str
 from harrix_swiss_knife.qt_lucide_icon import (
     COPY_BUTTON_ICON,
-    LUCIDE_COLOR_BLUE,
     apply_leading_chrome_button_icon,
     apply_leading_chrome_icons,
     apply_lucide_dialog_buttons,
@@ -937,17 +938,6 @@ class MainWindow(QMainWindow, AppWindowMixin):
         center_layout.setSpacing(8)
         self._meta_filter_bar = QWidget()
         self._meta_filter_bar.setObjectName("metaFilterBar")
-        self._meta_filter_bar.setStyleSheet(
-            "#metaFilterBar {"
-            f" background-color: {SELECTION_BG};"
-            " border: 1px solid #c5dde9;"
-            " border-radius: 8px;"
-            "}"
-            "#metaFilterBar QLabel {"
-            f" color: {LUCIDE_COLOR_BLUE};"
-            " font-weight: 500;"
-            "}",
-        )
         meta_filter_layout = QHBoxLayout(self._meta_filter_bar)
         meta_filter_layout.setContentsMargins(10, 4, 4, 4)
         meta_filter_layout.setSpacing(8)
@@ -960,8 +950,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._meta_filter_bar.hide()
         center_layout.addWidget(self._meta_filter_bar)
         self.count_label = QLabel("")
-        self.count_label.setStyleSheet(f"color: {MUTED_TEXT};")
         center_layout.addWidget(self.count_label)
+        bind_theme(center, self._refresh_center_chrome)
         self.icon_list = DraggableIconList(icon_size=self._icon_size, dual_line_labels=True)
         self.icon_list.set_view_options(
             show_numbers=self._show_numbers,
@@ -1081,6 +1071,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._install_window_shortcuts()
         self._apply_fluent_window_chrome()
         install_win11_caption(self)
+        self._finish_fluent_window_chrome()
 
     @staticmethod
     def _cache_pixmap(cache: dict[str, QPixmap], key: str, pixmap: QPixmap) -> None:
@@ -3127,6 +3118,24 @@ class MainWindow(QMainWindow, AppWindowMixin):
                 item.setIcon(QIcon(":/assets/logo.svg"))
                 continue
             item.setIcon(self._category_pixmap_icon(name))
+
+    def _refresh_center_chrome(self) -> None:
+        """Paint the meta filter bar and count label from the current Fluent palette."""
+        palette = palette_for(self._meta_filter_bar)
+        fill = mix(palette.window_bg, list_item_selected(palette))
+        stroke = mix(palette.window_bg, palette.card_stroke)
+        self._meta_filter_bar.setStyleSheet(
+            "#metaFilterBar {"
+            f" background-color: {css(fill)};"
+            f" border: 1px solid {css(stroke)};"
+            " border-radius: 8px;"
+            "}"
+            "#metaFilterBar QLabel {"
+            f" color: {css(palette.accent_text)};"
+            " font-weight: 500;"
+            "}",
+        )
+        self.count_label.setStyleSheet(f"color: {css(mix(palette.window_bg, palette.text_secondary))};")
 
     def _refresh_variant_view_icons(self) -> None:
         """Update example icons already shown in the View combobox."""

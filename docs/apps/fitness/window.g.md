@@ -129,42 +129,6 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.setStyleSheet(u"/* hsk-white-surfaces */\n"
-"QGroupBox {\n"
-" background-color: #ffffff;\n"
-" border: none;\n"
-" border-bottom: 1px solid #f4f4f4;\n"
-" border-radius: 0;\n"
-" margin-top: 0.8em;\n"
-" padding-top: 4px;\n"
-" padding-bottom: 6px;\n"
-"}\n"
-"QGroupBox::title {\n"
-" subcontrol-origin: margin;\n"
-" subcontrol-position: top left;\n"
-" left: 0px;\n"
-" padding: 0;\n"
-" background-color: #ffffff;\n"
-"}\n"
-"QMenu { background-color: #ffffff; border: 1px solid #e0e0e0; color: #202020; }\n"
-"QMenu::item { color: #202020; background-color: transparent; }\n"
-"QMenu::item:selected { color: #202020; background-color: #f2f2f2; }\n"
-"QMenu::item:disabled { color: #767676; }\n"
-"QStatusBar { background: #ffffff; }\n"
-"QStatusBar QLabel { color: #202020; }\n"
-"QSplitter::handle:horizontal {\n"
-" width: 17px;\n"
-" background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n"
-" stop:0 #ffffff, stop:0.46 #ffffff, stop:0.49 #f4f4f4, stop:0.51 #f4f4f4, stop:0.54 #ffffff, stop:1 #ffffff);\n"
-"}\n"
-"QSplitter::handle:vertical {\n"
-" height: 17px"
-                        ";\n"
-" background: qlineargradient(x1:0, y1:0, x2:0, y2:1,\n"
-" stop:0 #ffffff, stop:0.46 #ffffff, stop:0.49 #f4f4f4, stop:0.51 #f4f4f4, stop:0.54 #ffffff, stop:1 #ffffff);\n"
-"}\n"
-"QSplitter::handle:hover { background: #f4f4f4; }\n"
-"")
         MainWindow.resize(1392, 641)
         self.actionAbout = QAction(MainWindow)
         self.actionAbout.setObjectName(u"actionAbout")
@@ -186,7 +150,6 @@ class Ui_MainWindow(object):
         self.actionRefresh_Types_Table.setObjectName(u"actionRefresh_Types_Table")
         self.centralWidget = QWidget(MainWindow)
         self.centralWidget.setObjectName(u"centralWidget")
-        self.centralWidget.setStyleSheet(u"QWidget#centralWidget { background-color: #ffffff; }")
         self.horizontalLayout = QHBoxLayout(self.centralWidget)
         self.horizontalLayout.setObjectName(u"horizontalLayout")
         self.horizontalLayout.setContentsMargins(0, 0, 0, 0)
@@ -194,18 +157,16 @@ class Ui_MainWindow(object):
         self.tabWidget.setObjectName(u"tabWidget")
         self.tab = QWidget()
         self.tab.setObjectName(u"tab")
-        self.tab.setStyleSheet(u"QWidget#tab { background-color: #ffffff; }")
         self.horizontalLayout_main = QHBoxLayout(self.tab)
         self.horizontalLayout_main.setObjectName(u"horizontalLayout_main")
         self.horizontalLayout_main.setContentsMargins(0, 0, 0, 0)
         self.splitter = QSplitter(self.tab)
         self.splitter.setObjectName(u"splitter")
-        self.splitter.setStyleSheet(u"QWidget#splitter { background-color: #ffffff; }")
         self.splitter.setOrientation(Qt.Orientation.Horizontal)
         self.splitter.setChildrenCollapsible(False)
         self.frame = QFrame(self.splitter)
         self.frame.setObjectName(u"frame")
-        self.frame.setStyleSheet(u"QFrame#frame { background-color: #ffffff; border: none; }")
+        self.frame.setStyleSheet(u"QFrame#frame { border: none; }")
         self.frame.setMinimumSize(QSize(350, 0))
         self.frame.setMaximumSize(QSize(16777215, 16777215))
         self.frame.setFrameShape(QFrame.Shape.NoFrame)
@@ -358,7 +319,6 @@ class Ui_MainWindow(object):
         self.splitter.addWidget(self.frame)
         self.widget_middle = QWidget(self.splitter)
         self.widget_middle.setObjectName(u"widget_middle")
-        self.widget_middle.setStyleSheet(u"QWidget#widget_middle { background-color: #ffffff; }")
         self.verticalLayout = QVBoxLayout(self.widget_middle)
         self.verticalLayout.setObjectName(u"verticalLayout")
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)
@@ -398,7 +358,6 @@ class Ui_MainWindow(object):
         self.splitter.addWidget(self.widget_middle)
         self.widget_process = QWidget(self.splitter)
         self.widget_process.setObjectName(u"widget_process")
-        self.widget_process.setStyleSheet(u"QWidget#widget_process { background-color: #ffffff; }")
         self.verticalLayout_process = QVBoxLayout(self.widget_process)
         self.verticalLayout_process.setSpacing(4)
         self.verticalLayout_process.setObjectName(u"verticalLayout_process")
@@ -499,24 +458,20 @@ class Ui_MainWindow(object):
         self.tabWidget.addTab(self.tab, "")
         self.tab_workouts = QWidget()
         self.tab_workouts.setObjectName(u"tab_workouts")
-        self.tab_workouts.setStyleSheet(u"QWidget#tab_workouts { background-color: #ffffff; }")
         self.verticalLayout_workouts = QVBoxLayout(self.tab_workouts)
         self.verticalLayout_workouts.setObjectName(u"verticalLayout_workouts")
         self.verticalLayout_workouts.setContentsMargins(0, 0, 0, 0)
         self.tabWidget.addTab(self.tab_workouts, "")
         self.tab_charts = QWidget()
         self.tab_charts.setObjectName(u"tab_charts")
-        self.tab_charts.setStyleSheet(u"QWidget#tab_charts { background-color: #ffffff; }")
         self.horizontalLayout_26 = QHBoxLayout(self.tab_charts)
         self.horizontalLayout_26.setObjectName(u"horizontalLayout_26")
         self.horizontalLayout_26.setContentsMargins(0, 0, 0, 0)
         self.splitter_charts = QSplitter(self.tab_charts)
         self.splitter_charts.setObjectName(u"splitter_charts")
-        self.splitter_charts.setStyleSheet(u"QWidget#splitter_charts { background-color: #ffffff; }")
         self.splitter_charts.setOrientation(Qt.Orientation.Horizontal)
         self.widget_left_panel = QWidget(self.splitter_charts)
         self.widget_left_panel.setObjectName(u"widget_left_panel")
-        self.widget_left_panel.setStyleSheet(u"QWidget#widget_left_panel { background-color: #ffffff; }")
         self.verticalLayout_18 = QVBoxLayout(self.widget_left_panel)
         self.verticalLayout_18.setObjectName(u"verticalLayout_18")
         self.verticalLayout_18.setContentsMargins(0, 0, 0, 0)
@@ -611,7 +566,6 @@ class Ui_MainWindow(object):
         self.splitter_charts.addWidget(self.widget_left_panel)
         self.widget_right_panel = QWidget(self.splitter_charts)
         self.widget_right_panel.setObjectName(u"widget_right_panel")
-        self.widget_right_panel.setStyleSheet(u"QWidget#widget_right_panel { background-color: #ffffff; }")
         self.verticalLayout_20 = QVBoxLayout(self.widget_right_panel)
         self.verticalLayout_20.setObjectName(u"verticalLayout_20")
         self.verticalLayout_20.setContentsMargins(0, 0, 0, 0)
@@ -619,7 +573,7 @@ class Ui_MainWindow(object):
         self.horizontalLayout_23.setObjectName(u"horizontalLayout_23")
         self.frame_charts_controls = QFrame(self.widget_right_panel)
         self.frame_charts_controls.setObjectName(u"frame_charts_controls")
-        self.frame_charts_controls.setStyleSheet(u"QFrame#frame_charts_controls { background-color: #ffffff; border: none; }")
+        self.frame_charts_controls.setStyleSheet(u"QFrame#frame_charts_controls { border: none; }")
         self.frame_charts_controls.setMaximumSize(QSize(16777215, 120))
         self.frame_charts_controls.setFrameShape(QFrame.Shape.NoFrame)
         self.frame_charts_controls.setFrameShadow(QFrame.Shadow.Plain)
@@ -745,7 +699,6 @@ class Ui_MainWindow(object):
         self.scrollArea_charts.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts = QWidget()
         self.scrollAreaWidgetContents_charts.setObjectName(u"scrollAreaWidgetContents_charts")
-        self.scrollAreaWidgetContents_charts.setStyleSheet(u"QWidget#scrollAreaWidgetContents_charts { background-color: #ffffff; }")
         self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1036, 422))
         self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
         self.verticalLayout_charts_content.setObjectName(u"verticalLayout_charts_content")
@@ -760,18 +713,15 @@ class Ui_MainWindow(object):
         self.tabWidget.addTab(self.tab_charts, "")
         self.tab_2 = QWidget()
         self.tab_2.setObjectName(u"tab_2")
-        self.tab_2.setStyleSheet(u"QWidget#tab_2 { background-color: #ffffff; }")
         self.horizontalLayout_4 = QHBoxLayout(self.tab_2)
         self.horizontalLayout_4.setObjectName(u"horizontalLayout_4")
         self.horizontalLayout_4.setContentsMargins(0, 0, 0, 0)
         self.splitter_2 = QSplitter(self.tab_2)
         self.splitter_2.setObjectName(u"splitter_2")
-        self.splitter_2.setStyleSheet(u"QWidget#splitter_2 { background-color: #ffffff; }")
         self.splitter_2.setOrientation(Qt.Orientation.Horizontal)
         self.splitter_2.setChildrenCollapsible(False)
         self.widget_top = QWidget(self.splitter_2)
         self.widget_top.setObjectName(u"widget_top")
-        self.widget_top.setStyleSheet(u"QWidget#widget_top { background-color: #ffffff; }")
         self.verticalLayout_exercises_table = QVBoxLayout(self.widget_top)
         self.verticalLayout_exercises_table.setSpacing(4)
         self.verticalLayout_exercises_table.setObjectName(u"verticalLayout_exercises_table")
@@ -808,7 +758,6 @@ class Ui_MainWindow(object):
         self.splitter_2.addWidget(self.widget_top)
         self.widget_bottom = QWidget(self.splitter_2)
         self.widget_bottom.setObjectName(u"widget_bottom")
-        self.widget_bottom.setStyleSheet(u"QWidget#widget_bottom { background-color: #ffffff; }")
         self.verticalLayout_exercise_types_table = QVBoxLayout(self.widget_bottom)
         self.verticalLayout_exercise_types_table.setSpacing(4)
         self.verticalLayout_exercise_types_table.setObjectName(u"verticalLayout_exercise_types_table")
@@ -846,13 +795,12 @@ class Ui_MainWindow(object):
         self.tabWidget.addTab(self.tab_2, "")
         self.tab_5 = QWidget()
         self.tab_5.setObjectName(u"tab_5")
-        self.tab_5.setStyleSheet(u"QWidget#tab_5 { background-color: #ffffff; }")
         self.horizontalLayout_5 = QHBoxLayout(self.tab_5)
         self.horizontalLayout_5.setObjectName(u"horizontalLayout_5")
         self.horizontalLayout_5.setContentsMargins(0, 0, 0, 0)
         self.frame_4 = QFrame(self.tab_5)
         self.frame_4.setObjectName(u"frame_4")
-        self.frame_4.setStyleSheet(u"QFrame#frame_4 { background-color: #ffffff; border: none; }")
+        self.frame_4.setStyleSheet(u"QFrame#frame_4 { border: none; }")
         self.frame_4.setMinimumSize(QSize(250, 0))
         self.frame_4.setMaximumSize(QSize(250, 16777215))
         self.frame_4.setFrameShape(QFrame.Shape.NoFrame)
@@ -929,7 +877,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_6.setObjectName(u"verticalLayout_6")
         self.frame_weight_controls = QFrame(self.tab_5)
         self.frame_weight_controls.setObjectName(u"frame_weight_controls")
-        self.frame_weight_controls.setStyleSheet(u"QFrame#frame_weight_controls { background-color: #ffffff; border: none; }")
+        self.frame_weight_controls.setStyleSheet(u"QFrame#frame_weight_controls { border: none; }")
         self.frame_weight_controls.setMaximumSize(QSize(16777215, 80))
         self.frame_weight_controls.setFrameShape(QFrame.Shape.NoFrame)
         self.frame_weight_controls.setFrameShadow(QFrame.Shadow.Plain)
@@ -986,11 +934,9 @@ class Ui_MainWindow(object):
 
         self.scrollArea_weight_chart = QScrollArea(self.tab_5)
         self.scrollArea_weight_chart.setObjectName(u"scrollArea_weight_chart")
-        self.scrollArea_weight_chart.setStyleSheet(u"QScrollArea#scrollArea_weight_chart { background-color: #ffffff; border: none; }")
         self.scrollArea_weight_chart.setWidgetResizable(True)
         self.scrollAreaWidgetContents_weight_chart = QWidget()
         self.scrollAreaWidgetContents_weight_chart.setObjectName(u"scrollAreaWidgetContents_weight_chart")
-        self.scrollAreaWidgetContents_weight_chart.setStyleSheet(u"QWidget#scrollAreaWidgetContents_weight_chart { background-color: #ffffff; }")
         self.scrollAreaWidgetContents_weight_chart.setGeometry(QRect(0, 0, 1088, 482))
         self.verticalLayout_weight_chart_content = QVBoxLayout(self.scrollAreaWidgetContents_weight_chart)
         self.verticalLayout_weight_chart_content.setObjectName(u"verticalLayout_weight_chart_content")
@@ -1004,13 +950,12 @@ class Ui_MainWindow(object):
         self.tabWidget.addTab(self.tab_5, "")
         self.tab_4 = QWidget()
         self.tab_4.setObjectName(u"tab_4")
-        self.tab_4.setStyleSheet(u"QWidget#tab_4 { background-color: #ffffff; }")
         self.horizontalLayout_6 = QHBoxLayout(self.tab_4)
         self.horizontalLayout_6.setObjectName(u"horizontalLayout_6")
         self.horizontalLayout_6.setContentsMargins(0, 0, 0, 0)
         self.frame_5 = QFrame(self.tab_4)
         self.frame_5.setObjectName(u"frame_5")
-        self.frame_5.setStyleSheet(u"QFrame#frame_5 { background-color: #ffffff; border: none; }")
+        self.frame_5.setStyleSheet(u"QFrame#frame_5 { border: none; }")
         self.frame_5.setMinimumSize(QSize(300, 0))
         self.frame_5.setMaximumSize(QSize(300, 16777215))
         self.frame_5.setFrameShape(QFrame.Shape.NoFrame)
@@ -1255,42 +1200,6 @@ _No docstring provided._
 def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.setStyleSheet(u"/* hsk-white-surfaces */\n"
-"QGroupBox {\n"
-" background-color: #ffffff;\n"
-" border: none;\n"
-" border-bottom: 1px solid #f4f4f4;\n"
-" border-radius: 0;\n"
-" margin-top: 0.8em;\n"
-" padding-top: 4px;\n"
-" padding-bottom: 6px;\n"
-"}\n"
-"QGroupBox::title {\n"
-" subcontrol-origin: margin;\n"
-" subcontrol-position: top left;\n"
-" left: 0px;\n"
-" padding: 0;\n"
-" background-color: #ffffff;\n"
-"}\n"
-"QMenu { background-color: #ffffff; border: 1px solid #e0e0e0; color: #202020; }\n"
-"QMenu::item { color: #202020; background-color: transparent; }\n"
-"QMenu::item:selected { color: #202020; background-color: #f2f2f2; }\n"
-"QMenu::item:disabled { color: #767676; }\n"
-"QStatusBar { background: #ffffff; }\n"
-"QStatusBar QLabel { color: #202020; }\n"
-"QSplitter::handle:horizontal {\n"
-" width: 17px;\n"
-" background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n"
-" stop:0 #ffffff, stop:0.46 #ffffff, stop:0.49 #f4f4f4, stop:0.51 #f4f4f4, stop:0.54 #ffffff, stop:1 #ffffff);\n"
-"}\n"
-"QSplitter::handle:vertical {\n"
-" height: 17px"
-                        ";\n"
-" background: qlineargradient(x1:0, y1:0, x2:0, y2:1,\n"
-" stop:0 #ffffff, stop:0.46 #ffffff, stop:0.49 #f4f4f4, stop:0.51 #f4f4f4, stop:0.54 #ffffff, stop:1 #ffffff);\n"
-"}\n"
-"QSplitter::handle:hover { background: #f4f4f4; }\n"
-"")
         MainWindow.resize(1392, 641)
         self.actionAbout = QAction(MainWindow)
         self.actionAbout.setObjectName(u"actionAbout")
@@ -1312,7 +1221,6 @@ def setupUi(self, MainWindow):
         self.actionRefresh_Types_Table.setObjectName(u"actionRefresh_Types_Table")
         self.centralWidget = QWidget(MainWindow)
         self.centralWidget.setObjectName(u"centralWidget")
-        self.centralWidget.setStyleSheet(u"QWidget#centralWidget { background-color: #ffffff; }")
         self.horizontalLayout = QHBoxLayout(self.centralWidget)
         self.horizontalLayout.setObjectName(u"horizontalLayout")
         self.horizontalLayout.setContentsMargins(0, 0, 0, 0)
@@ -1320,18 +1228,16 @@ def setupUi(self, MainWindow):
         self.tabWidget.setObjectName(u"tabWidget")
         self.tab = QWidget()
         self.tab.setObjectName(u"tab")
-        self.tab.setStyleSheet(u"QWidget#tab { background-color: #ffffff; }")
         self.horizontalLayout_main = QHBoxLayout(self.tab)
         self.horizontalLayout_main.setObjectName(u"horizontalLayout_main")
         self.horizontalLayout_main.setContentsMargins(0, 0, 0, 0)
         self.splitter = QSplitter(self.tab)
         self.splitter.setObjectName(u"splitter")
-        self.splitter.setStyleSheet(u"QWidget#splitter { background-color: #ffffff; }")
         self.splitter.setOrientation(Qt.Orientation.Horizontal)
         self.splitter.setChildrenCollapsible(False)
         self.frame = QFrame(self.splitter)
         self.frame.setObjectName(u"frame")
-        self.frame.setStyleSheet(u"QFrame#frame { background-color: #ffffff; border: none; }")
+        self.frame.setStyleSheet(u"QFrame#frame { border: none; }")
         self.frame.setMinimumSize(QSize(350, 0))
         self.frame.setMaximumSize(QSize(16777215, 16777215))
         self.frame.setFrameShape(QFrame.Shape.NoFrame)
@@ -1484,7 +1390,6 @@ def setupUi(self, MainWindow):
         self.splitter.addWidget(self.frame)
         self.widget_middle = QWidget(self.splitter)
         self.widget_middle.setObjectName(u"widget_middle")
-        self.widget_middle.setStyleSheet(u"QWidget#widget_middle { background-color: #ffffff; }")
         self.verticalLayout = QVBoxLayout(self.widget_middle)
         self.verticalLayout.setObjectName(u"verticalLayout")
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)
@@ -1524,7 +1429,6 @@ def setupUi(self, MainWindow):
         self.splitter.addWidget(self.widget_middle)
         self.widget_process = QWidget(self.splitter)
         self.widget_process.setObjectName(u"widget_process")
-        self.widget_process.setStyleSheet(u"QWidget#widget_process { background-color: #ffffff; }")
         self.verticalLayout_process = QVBoxLayout(self.widget_process)
         self.verticalLayout_process.setSpacing(4)
         self.verticalLayout_process.setObjectName(u"verticalLayout_process")
@@ -1625,24 +1529,20 @@ def setupUi(self, MainWindow):
         self.tabWidget.addTab(self.tab, "")
         self.tab_workouts = QWidget()
         self.tab_workouts.setObjectName(u"tab_workouts")
-        self.tab_workouts.setStyleSheet(u"QWidget#tab_workouts { background-color: #ffffff; }")
         self.verticalLayout_workouts = QVBoxLayout(self.tab_workouts)
         self.verticalLayout_workouts.setObjectName(u"verticalLayout_workouts")
         self.verticalLayout_workouts.setContentsMargins(0, 0, 0, 0)
         self.tabWidget.addTab(self.tab_workouts, "")
         self.tab_charts = QWidget()
         self.tab_charts.setObjectName(u"tab_charts")
-        self.tab_charts.setStyleSheet(u"QWidget#tab_charts { background-color: #ffffff; }")
         self.horizontalLayout_26 = QHBoxLayout(self.tab_charts)
         self.horizontalLayout_26.setObjectName(u"horizontalLayout_26")
         self.horizontalLayout_26.setContentsMargins(0, 0, 0, 0)
         self.splitter_charts = QSplitter(self.tab_charts)
         self.splitter_charts.setObjectName(u"splitter_charts")
-        self.splitter_charts.setStyleSheet(u"QWidget#splitter_charts { background-color: #ffffff; }")
         self.splitter_charts.setOrientation(Qt.Orientation.Horizontal)
         self.widget_left_panel = QWidget(self.splitter_charts)
         self.widget_left_panel.setObjectName(u"widget_left_panel")
-        self.widget_left_panel.setStyleSheet(u"QWidget#widget_left_panel { background-color: #ffffff; }")
         self.verticalLayout_18 = QVBoxLayout(self.widget_left_panel)
         self.verticalLayout_18.setObjectName(u"verticalLayout_18")
         self.verticalLayout_18.setContentsMargins(0, 0, 0, 0)
@@ -1737,7 +1637,6 @@ def setupUi(self, MainWindow):
         self.splitter_charts.addWidget(self.widget_left_panel)
         self.widget_right_panel = QWidget(self.splitter_charts)
         self.widget_right_panel.setObjectName(u"widget_right_panel")
-        self.widget_right_panel.setStyleSheet(u"QWidget#widget_right_panel { background-color: #ffffff; }")
         self.verticalLayout_20 = QVBoxLayout(self.widget_right_panel)
         self.verticalLayout_20.setObjectName(u"verticalLayout_20")
         self.verticalLayout_20.setContentsMargins(0, 0, 0, 0)
@@ -1745,7 +1644,7 @@ def setupUi(self, MainWindow):
         self.horizontalLayout_23.setObjectName(u"horizontalLayout_23")
         self.frame_charts_controls = QFrame(self.widget_right_panel)
         self.frame_charts_controls.setObjectName(u"frame_charts_controls")
-        self.frame_charts_controls.setStyleSheet(u"QFrame#frame_charts_controls { background-color: #ffffff; border: none; }")
+        self.frame_charts_controls.setStyleSheet(u"QFrame#frame_charts_controls { border: none; }")
         self.frame_charts_controls.setMaximumSize(QSize(16777215, 120))
         self.frame_charts_controls.setFrameShape(QFrame.Shape.NoFrame)
         self.frame_charts_controls.setFrameShadow(QFrame.Shadow.Plain)
@@ -1871,7 +1770,6 @@ def setupUi(self, MainWindow):
         self.scrollArea_charts.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts = QWidget()
         self.scrollAreaWidgetContents_charts.setObjectName(u"scrollAreaWidgetContents_charts")
-        self.scrollAreaWidgetContents_charts.setStyleSheet(u"QWidget#scrollAreaWidgetContents_charts { background-color: #ffffff; }")
         self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1036, 422))
         self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
         self.verticalLayout_charts_content.setObjectName(u"verticalLayout_charts_content")
@@ -1886,18 +1784,15 @@ def setupUi(self, MainWindow):
         self.tabWidget.addTab(self.tab_charts, "")
         self.tab_2 = QWidget()
         self.tab_2.setObjectName(u"tab_2")
-        self.tab_2.setStyleSheet(u"QWidget#tab_2 { background-color: #ffffff; }")
         self.horizontalLayout_4 = QHBoxLayout(self.tab_2)
         self.horizontalLayout_4.setObjectName(u"horizontalLayout_4")
         self.horizontalLayout_4.setContentsMargins(0, 0, 0, 0)
         self.splitter_2 = QSplitter(self.tab_2)
         self.splitter_2.setObjectName(u"splitter_2")
-        self.splitter_2.setStyleSheet(u"QWidget#splitter_2 { background-color: #ffffff; }")
         self.splitter_2.setOrientation(Qt.Orientation.Horizontal)
         self.splitter_2.setChildrenCollapsible(False)
         self.widget_top = QWidget(self.splitter_2)
         self.widget_top.setObjectName(u"widget_top")
-        self.widget_top.setStyleSheet(u"QWidget#widget_top { background-color: #ffffff; }")
         self.verticalLayout_exercises_table = QVBoxLayout(self.widget_top)
         self.verticalLayout_exercises_table.setSpacing(4)
         self.verticalLayout_exercises_table.setObjectName(u"verticalLayout_exercises_table")
@@ -1934,7 +1829,6 @@ def setupUi(self, MainWindow):
         self.splitter_2.addWidget(self.widget_top)
         self.widget_bottom = QWidget(self.splitter_2)
         self.widget_bottom.setObjectName(u"widget_bottom")
-        self.widget_bottom.setStyleSheet(u"QWidget#widget_bottom { background-color: #ffffff; }")
         self.verticalLayout_exercise_types_table = QVBoxLayout(self.widget_bottom)
         self.verticalLayout_exercise_types_table.setSpacing(4)
         self.verticalLayout_exercise_types_table.setObjectName(u"verticalLayout_exercise_types_table")
@@ -1972,13 +1866,12 @@ def setupUi(self, MainWindow):
         self.tabWidget.addTab(self.tab_2, "")
         self.tab_5 = QWidget()
         self.tab_5.setObjectName(u"tab_5")
-        self.tab_5.setStyleSheet(u"QWidget#tab_5 { background-color: #ffffff; }")
         self.horizontalLayout_5 = QHBoxLayout(self.tab_5)
         self.horizontalLayout_5.setObjectName(u"horizontalLayout_5")
         self.horizontalLayout_5.setContentsMargins(0, 0, 0, 0)
         self.frame_4 = QFrame(self.tab_5)
         self.frame_4.setObjectName(u"frame_4")
-        self.frame_4.setStyleSheet(u"QFrame#frame_4 { background-color: #ffffff; border: none; }")
+        self.frame_4.setStyleSheet(u"QFrame#frame_4 { border: none; }")
         self.frame_4.setMinimumSize(QSize(250, 0))
         self.frame_4.setMaximumSize(QSize(250, 16777215))
         self.frame_4.setFrameShape(QFrame.Shape.NoFrame)
@@ -2055,7 +1948,7 @@ def setupUi(self, MainWindow):
         self.verticalLayout_6.setObjectName(u"verticalLayout_6")
         self.frame_weight_controls = QFrame(self.tab_5)
         self.frame_weight_controls.setObjectName(u"frame_weight_controls")
-        self.frame_weight_controls.setStyleSheet(u"QFrame#frame_weight_controls { background-color: #ffffff; border: none; }")
+        self.frame_weight_controls.setStyleSheet(u"QFrame#frame_weight_controls { border: none; }")
         self.frame_weight_controls.setMaximumSize(QSize(16777215, 80))
         self.frame_weight_controls.setFrameShape(QFrame.Shape.NoFrame)
         self.frame_weight_controls.setFrameShadow(QFrame.Shadow.Plain)
@@ -2112,11 +2005,9 @@ def setupUi(self, MainWindow):
 
         self.scrollArea_weight_chart = QScrollArea(self.tab_5)
         self.scrollArea_weight_chart.setObjectName(u"scrollArea_weight_chart")
-        self.scrollArea_weight_chart.setStyleSheet(u"QScrollArea#scrollArea_weight_chart { background-color: #ffffff; border: none; }")
         self.scrollArea_weight_chart.setWidgetResizable(True)
         self.scrollAreaWidgetContents_weight_chart = QWidget()
         self.scrollAreaWidgetContents_weight_chart.setObjectName(u"scrollAreaWidgetContents_weight_chart")
-        self.scrollAreaWidgetContents_weight_chart.setStyleSheet(u"QWidget#scrollAreaWidgetContents_weight_chart { background-color: #ffffff; }")
         self.scrollAreaWidgetContents_weight_chart.setGeometry(QRect(0, 0, 1088, 482))
         self.verticalLayout_weight_chart_content = QVBoxLayout(self.scrollAreaWidgetContents_weight_chart)
         self.verticalLayout_weight_chart_content.setObjectName(u"verticalLayout_weight_chart_content")
@@ -2130,13 +2021,12 @@ def setupUi(self, MainWindow):
         self.tabWidget.addTab(self.tab_5, "")
         self.tab_4 = QWidget()
         self.tab_4.setObjectName(u"tab_4")
-        self.tab_4.setStyleSheet(u"QWidget#tab_4 { background-color: #ffffff; }")
         self.horizontalLayout_6 = QHBoxLayout(self.tab_4)
         self.horizontalLayout_6.setObjectName(u"horizontalLayout_6")
         self.horizontalLayout_6.setContentsMargins(0, 0, 0, 0)
         self.frame_5 = QFrame(self.tab_4)
         self.frame_5.setObjectName(u"frame_5")
-        self.frame_5.setStyleSheet(u"QFrame#frame_5 { background-color: #ffffff; border: none; }")
+        self.frame_5.setStyleSheet(u"QFrame#frame_5 { border: none; }")
         self.frame_5.setMinimumSize(QSize(300, 0))
         self.frame_5.setMaximumSize(QSize(300, 16777215))
         self.frame_5.setFrameShape(QFrame.Shape.NoFrame)

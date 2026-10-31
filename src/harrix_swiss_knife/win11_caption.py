@@ -41,6 +41,7 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife.apps.common.qt_main_window import resolve_window_menu_bar
+from harrix_swiss_knife.fluent.app_chrome import CAPTION_TABS_PROPERTY
 from harrix_swiss_knife.fluent.style import chrome_top_color
 from harrix_swiss_knife.fluent.theme import FluentTheme, bind_theme, is_fluent_themed, mix, palette_for
 from harrix_swiss_knife.installer.icon_assets import apply_window_icon, asset_candidates
@@ -701,46 +702,10 @@ def install_win11_caption(
     """
     if sys.platform != "win32" or getattr(window, _INSTALLED_ATTR, False):
         return False
-    tab_widget = getattr(window, "tabWidget", None)
-    light = _palette_is_light(window)
-    controller = _Win11CaptionController(window)
-    setattr(window, _CONTROLLER_ATTR, controller)
-    if isinstance(tab_widget, QTabWidget):
-        _build_caption_row(window, tab_widget, controller, light=light)
-    elif isinstance(window, QMainWindow):
-        _build_menu_caption(window, controller, light=light, trailing_widgets=trailing_widgets)
-    elif window.layout() is None or isinstance(window.layout(), QBoxLayout):
-        _build_layout_caption(window, controller, light=light, trailing_widgets=trailing_widgets)
-    else:
-        logger.warning("Win11 caption needs a tabWidget, main window menu, or box layout")
-        return False
+    from harrix_swiss_knife.qt_ui_effects import suspended_polish_filters  # noqa: PLC0415
 
-    _install_menu_chevrons(window)
-    _ensure_caption_title(window)
-    _flush_caption_to_frame(window)
-    _fit_caption_fonts(window)
-    themed = is_fluent_themed(window)
-    if not themed:
-        _apply_white_window_background(window)
-        apply_flat_scrollbars(window)
-    _sync_caption_palette(window)
-    window.installEventFilter(controller)
-    setattr(window, _INSTALLED_ATTR, True)
-    _set_frameless_window_flags(window)
-    _collapse_native_menu_bar(window)
-    _sync_caption_icon(window)
-    _sync_zoom_glyph(window)
-    _place_caption_title(window)
-    _bind_caption_menu_hover(window, controller)
-    setattr(window, _BUTTONS_ATTR, window.findChildren(CaptionButton))
-    if themed:
-        bind_theme(window, lambda: refresh_win11_caption(window))
-    host = _caption_host(window)
-    if host is not None:
-        drag_filter = _CaptionDragFilter(window, host)
-        setattr(window, _DRAG_FILTER_ATTR, drag_filter)
-        host.installEventFilter(drag_filter)
-    return True
+    with suspended_polish_filters(window):
+        return _install_caption(window, trailing_widgets=trailing_widgets)
 
 
 def refresh_win11_caption(window: QWidget) -> None:
@@ -1256,8 +1221,9 @@ def _fill_caption_overflow_menu(window: QWidget, popup: QMenu) -> None:
 
 def _fill_widget(widget: QWidget, color: QColor) -> None:
     palette = widget.palette()
-    palette.setColor(QPalette.ColorRole.Window, color)
-    widget.setPalette(palette)
+    if palette.color(QPalette.ColorRole.Window) != color:
+        palette.setColor(QPalette.ColorRole.Window, color)
+        widget.setPalette(palette)
     widget.setAutoFillBackground(True)
 
 
@@ -1394,6 +1360,53 @@ def _insert_icon_button(tab_widget: QTabWidget, icon_button: QToolButton) -> Non
         else:
             icon_button.setParent(corner)
     corner.setFixedHeight(CAPTION_BUTTON_HEIGHT)
+
+
+def _install_caption(
+    window: QWidget,
+    *,
+    trailing_widgets: Sequence[QWidget] | None,
+) -> bool:
+    tab_widget = getattr(window, "tabWidget", None)
+    light = _palette_is_light(window)
+    controller = _Win11CaptionController(window)
+    setattr(window, _CONTROLLER_ATTR, controller)
+    if isinstance(tab_widget, QTabWidget):
+        _build_caption_row(window, tab_widget, controller, light=light)
+    elif isinstance(window, QMainWindow):
+        _build_menu_caption(window, controller, light=light, trailing_widgets=trailing_widgets)
+    elif window.layout() is None or isinstance(window.layout(), QBoxLayout):
+        _build_layout_caption(window, controller, light=light, trailing_widgets=trailing_widgets)
+    else:
+        logger.warning("Win11 caption needs a tabWidget, main window menu, or box layout")
+        return False
+
+    _install_menu_chevrons(window)
+    _ensure_caption_title(window)
+    _flush_caption_to_frame(window)
+    _fit_caption_fonts(window)
+    themed = is_fluent_themed(window)
+    if not themed:
+        _apply_white_window_background(window)
+        apply_flat_scrollbars(window)
+    _sync_caption_palette(window)
+    window.installEventFilter(controller)
+    setattr(window, _INSTALLED_ATTR, True)
+    _set_frameless_window_flags(window)
+    _collapse_native_menu_bar(window)
+    _sync_caption_icon(window)
+    _sync_zoom_glyph(window)
+    _place_caption_title(window)
+    _bind_caption_menu_hover(window, controller)
+    setattr(window, _BUTTONS_ATTR, window.findChildren(CaptionButton))
+    if themed:
+        bind_theme(window, lambda: refresh_win11_caption(window))
+    host = _caption_host(window)
+    if host is not None:
+        drag_filter = _CaptionDragFilter(window, host)
+        setattr(window, _DRAG_FILTER_ATTR, drag_filter)
+        host.installEventFilter(drag_filter)
+    return True
 
 
 def _install_menu_chevrons(window: QWidget) -> None:
@@ -1753,6 +1766,12 @@ def _set_menu_item(user32: Any, menu: int, command: int, *, enabled: bool) -> No
     user32.EnableMenuItem(menu, command, flags)
 
 
+def _set_style_sheet(widget: QWidget, sheet: str) -> None:
+    """Assign `sheet` only when it changed; each assignment re-polishes the subtree."""
+    if widget.styleSheet() != sheet:
+        widget.setStyleSheet(sheet)
+
+
 def _shade_caption_color(color: QColor, *, light: bool, amount: float) -> QColor:
     toward = 0 if light else 255
     return QColor(
@@ -1799,9 +1818,11 @@ def _style_caption_chrome(window: QWidget) -> None:
         if not tab_widget.objectName():
             tab_widget.setObjectName(name)
         pane = "transparent" if fluent else rgb
-        tab_widget.setStyleSheet(
+        tab_widget.setProperty(CAPTION_TABS_PROPERTY, True)  # noqa: FBT003
+        _set_style_sheet(
+            tab_widget,
             f"QTabWidget#{name} {{ background-color: {pane}; border: none; }}"
-            f"QTabWidget::pane {{ border: none; margin: 0px; margin-top: {_TAB_CONTENT_GAP}px; background: {pane}; }}"
+            f"QTabWidget::pane {{ border: none; margin: 0px; margin-top: {_TAB_CONTENT_GAP}px; background: {pane}; }}",
         )
         if fluent:
             tab_widget.setAutoFillBackground(False)
@@ -1819,7 +1840,8 @@ def _style_caption_chrome(window: QWidget) -> None:
         tab_bar.setDrawBase(False)
         text_height = QFontMetrics(tab_bar.font()).height()
         pad = max(0, (CAPTION_BUTTON_HEIGHT - _TAB_TOP_GAP - text_height - 2) // 2)
-        tab_bar.setStyleSheet(
+        _set_style_sheet(
+            tab_bar,
             f"""
             QTabBar {{
                 background: {rgb};
@@ -1849,14 +1871,15 @@ def _style_caption_chrome(window: QWidget) -> None:
                 margin-top: {_TAB_TOP_GAP}px;
                 margin-bottom: -1px;
             }}
-            """
+            """,
         )
         _ensure_caption_base_line(tab_widget)
     menu = resolve_window_menu_bar(window)
     if menu is None:
         return
     pad = _caption_label_padding(menu)
-    menu.setStyleSheet(
+    _set_style_sheet(
+        menu,
         f"""
         QMenuBar {{
             background: {rgb};
@@ -1874,13 +1897,14 @@ def _style_caption_chrome(window: QWidget) -> None:
             background: {hover};
             color: {colors.nav};
         }}
-        """
+        """,
     )
     button = window.findChild(QToolButton, _MENU_BUTTON_NAME)
     if isinstance(button, QToolButton):
-        button.setStyleSheet(
+        _set_style_sheet(
+            button,
             f"QToolButton#{_MENU_BUTTON_NAME} {{ background: transparent; border: none; }}"
-            f"QToolButton#{_MENU_BUTTON_NAME}:hover {{ background: {hover}; }}"
+            f"QToolButton#{_MENU_BUTTON_NAME}:hover {{ background: {hover}; }}",
         )
 
 

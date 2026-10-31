@@ -38,6 +38,7 @@ from harrix_swiss_knife.actions.python import (
 )
 from harrix_swiss_knife.actions.site import (
     OnAddSiteContentSubmodule,
+    OnCheckSiteBlocking,
     OnFixSiteArticleLinkTitles,
     OnPullSiteSubmodules,
     OnSliceHtmlTemplate,
@@ -937,6 +938,16 @@ def site_add_submodule(folder: Path) -> None:
     action = OnAddSiteContentSubmodule()
     action(folder_path=folder, noninteractive=True)
     _finish_timed_action(action)
+
+
+@site_group.command("check-blocking")
+@click.argument("url", required=False, default=None)
+def site_check_blocking(url: str | None) -> None:
+    """Check where URL is blocked from this computer (DNS, router, Cloudflare, server)."""
+    _ensure_qt_app()
+    action = OnCheckSiteBlocking()
+    action(url=url, noninteractive=True)
+    _exit_if_action_failed(action)
 
 
 @site_group.command("fix-article-links")

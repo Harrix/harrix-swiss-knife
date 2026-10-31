@@ -184,7 +184,7 @@ def annotate_chart_extrema_labels(
             ha="center",
             fontsize=cfg.label_fontsize,
             alpha=0.8,
-            bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+            bbox={"boxstyle": "round,pad=0.2", "facecolor": chart_label_face(), "edgecolor": "none", "alpha": 0.7},
             arrowprops=arrowprops,
         )
         placed_boxes.append(

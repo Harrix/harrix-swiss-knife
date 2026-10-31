@@ -108,6 +108,7 @@ class MainWindow(
     def __init__(self, *, hide_on_close: bool = False) -> None:
         """Initialize main window for finance tracking application."""
         super().__init__()
+        self._apply_fluent_window_chrome()
         self.setupUi(self)
         self._is_closing = False
         self.db_manager: database_manager.DatabaseManager | None = None
@@ -117,6 +118,7 @@ class MainWindow(
         self._transaction_selection_selection_model: QItemSelectionModel | None = None
         self._transactions_selection_status_label: QLabel | None = None
         self._setup_ui()
+        self._finish_fluent_window_chrome()
         apply_window_icon(self)
         self._init_hide_on_close(hide_on_close=hide_on_close)
 
@@ -2128,7 +2130,7 @@ class MainWindow(
             self._add_average_salary_series_controls()
             return
 
-        fig = Figure(figsize=(12, 6), dpi=100)
+        fig = themed_figure(figsize=(12, 6), dpi=100)
         ax = fig.add_subplot(111)
         labels = [label for label, _average, _annual in year_rows]
         averages = [average for _label, average, _annual in year_rows]
@@ -2205,7 +2207,7 @@ class MainWindow(
         period: str,
         currency_symbol: str,
     ) -> None:
-        fig = Figure(figsize=(12, 6), dpi=100)
+        fig = themed_figure(figsize=(12, 6), dpi=100)
         ax = fig.add_subplot(111)
         x_values = [datetime.fromisoformat(date_str).replace(tzinfo=UTC) for date_str, _value in series]
         y_values = [value for _date_str, value in series]
@@ -2262,7 +2264,7 @@ class MainWindow(
         else:
             chart_title = f"Balance (Last {years_count} years from {year_start_day:02d}.{year_start_month:02d})"
 
-        fig = Figure(figsize=(12, 6), dpi=100)
+        fig = themed_figure(figsize=(12, 6), dpi=100)
         ax = fig.add_subplot(111)
         pending_current: list[tuple[list[tuple[int, float, str]], str, str]] = []
         for series, color, label in zip(yearly_data, colors, labels, strict=False):
@@ -2317,7 +2319,7 @@ class MainWindow(
         period: str,
         currency_symbol: str,
     ) -> None:
-        fig = Figure(figsize=(12, 6), dpi=100)
+        fig = themed_figure(figsize=(12, 6), dpi=100)
         ax = fig.add_subplot(111)
         color_palette = [
             "blue",
@@ -2467,7 +2469,7 @@ class MainWindow(
                 if data:
                     max_days_in_all_periods = max(max_days_in_all_periods, data[-1][0])
 
-            fig = Figure(figsize=(12, 6), dpi=100)
+            fig = themed_figure(figsize=(12, 6), dpi=100)
             ax = fig.add_subplot(111)
             self._plot_compare_series_on_axes(
                 ax,
@@ -2495,7 +2497,7 @@ class MainWindow(
         if reference_series is None:
             return
 
-        fig = Figure(figsize=(12, 6), dpi=100)
+        fig = themed_figure(figsize=(12, 6), dpi=100)
         ax = fig.add_subplot(111)
         x_values = [datetime.fromisoformat(date_str).replace(tzinfo=UTC) for date_str, _value in reference_series]
         x_nums = self._chart_date_nums(x_values)
@@ -2605,7 +2607,7 @@ class MainWindow(
                 f"Expense and Income (Last {years_count} years from {year_start_day:02d}.{year_start_month:02d})"
             )
 
-        fig = Figure(figsize=(12, 6), dpi=100)
+        fig = themed_figure(figsize=(12, 6), dpi=100)
         ax = fig.add_subplot(111)
         pending_current: list[tuple[list[tuple[int, float, str]], str, str]] = []
         for series, color, label in zip(all_series, all_colors, all_labels, strict=False):
@@ -5326,7 +5328,6 @@ class MainWindow(
 
     def _setup_ui(self) -> None:
         """Set up additional UI elements."""
-        self._apply_fluent_window_chrome()
         self._place_menu_bar_on_tab_row()
         install_win11_caption(self)
         self._install_word_wrap_table_headers()
@@ -5449,6 +5450,7 @@ class MainWindow(
             # Replace in layout
             layout.removeWidget(old_label)
             layout.insertWidget(layout_index, new_label)
+            old_label.hide()
             old_label.deleteLater()
             self.label_category_now = new_label
 
@@ -6557,6 +6559,7 @@ Initialize main window for finance tracking application.
 ```python
 def __init__(self, *, hide_on_close: bool = False) -> None:
         super().__init__()
+        self._apply_fluent_window_chrome()
         self.setupUi(self)
         self._is_closing = False
         self.db_manager: database_manager.DatabaseManager | None = None
@@ -6566,6 +6569,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:
         self._transaction_selection_selection_model: QItemSelectionModel | None = None
         self._transactions_selection_status_label: QLabel | None = None
         self._setup_ui()
+        self._finish_fluent_window_chrome()
         apply_window_icon(self)
         self._init_hide_on_close(hide_on_close=hide_on_close)
 

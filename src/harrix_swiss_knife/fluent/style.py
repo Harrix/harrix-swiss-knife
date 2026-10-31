@@ -19,6 +19,7 @@ from harrix_swiss_knife.fluent.tokens import (
     CONTROL_HEIGHT_COMPACT,
     CONTROL_PADDING_H,
     ICON_SIZE,
+    RADIUS_CARD,
     RADIUS_CONTROL,
     RADIUS_OVERLAY,
     SCROLLBAR_THICKNESS,
@@ -119,6 +120,35 @@ QDateEdit::drop-down {{
 QDateEdit::down-arrow {{ image: url("{arrow}"); width: 12px; height: 12px; }}
 QDateEdit::up-button, QDateEdit::down-button {{ width: 0px; height: 0px; border: none; }}
 """
+
+
+def drop_zone_qss(
+    palette: FluentPalette,
+    selector: str,
+    *,
+    selected: bool = False,
+    focused: bool = False,
+    padding: str = "0px",
+) -> str:
+    """Return a dashed drop target on a subtle layer fill (light and dark)."""
+    if selected:
+        border = f"2px solid {css(palette.success)}"
+        fill = mix(palette.window_bg, palette.success_bg)
+    elif focused:
+        border = f"2px dashed {css(palette.accent)}"
+        fill = mix(palette.window_bg, palette.control_fill_input_active)
+    else:
+        border = f"2px dashed {css(mix(palette.window_bg, palette.control_strong_stroke))}"
+        fill = mix(palette.window_bg, palette.control_alt_fill)
+    return f"""
+{selector} {{
+    border: {border};
+    border-radius: {RADIUS_CARD}px;
+    padding: {padding};
+    background-color: {css(fill)};
+    color: {css(mix(palette.window_bg, palette.text_secondary))};
+}}
+""".strip()
 
 
 def filled_button_qss(palette: FluentPalette, fill: QColor, ink: QColor, selector: str = "QPushButton") -> str:

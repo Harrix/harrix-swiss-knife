@@ -1,9 +1,9 @@
 """Install Fluent chrome on tracker apps and overlay dialogs.
 
-Call `install_fluent_app_window` after `setupUi` (or equivalent layout build)
-and before `install_win11_caption`. It opts the window into light/dark theme,
-applies Mica so the wallpaper tint shows through, replaces legacy white-surface /
-CTA stylesheets with Fluent tokens, restyles inputs / tables / tabs / menus, and
+Tracker Windows call `prepare_fluent_app_window` before `install_win11_caption`
+and `install_fluent_app_window` once the layout is complete. The install opts the
+window into light/dark theme, replaces legacy white-surface / CTA stylesheets
+with Fluent tokens, restyles inputs / tables / tabs / menus in a single pass, and
 keeps everything in sync when the theme changes.
 
 """
@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QSize
+from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QColor, QFont, QPalette
 from PySide6.QtWidgets import (
     QAbstractButton,
@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (
     QListWidget,
     QPlainTextEdit,
     QPushButton,
+    QScrollArea,
     QStatusBar,
     QTabBar,
     QTableView,
@@ -69,6 +70,7 @@ from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_b
 if TYPE_CHECKING:
     from harrix_swiss_knife.fluent.tokens import FluentPalette
 
+CAPTION_TABS_PROPERTY = "_hskCaptionTabs"
 _PROP_BOUND = "_hskFluentAppChromeBound"
 _PROP_CANVAS = "_hskFluentCanvas"
 _TABLE_TEXT = "#1a1a1a"
@@ -111,26 +113,76 @@ _SECONDARY_MARKERS = (
 
 
 def install_fluent_app_window(window: QWidget) -> None:
-    """Opt `window` into Fluent theme, Mica, and standardized control chrome."""
+    """Opt `window` into Fluent theme and standardized control chrome.
+
+    Restyles the window once now and again only when the resolved theme changes.
+    Call it after the layout is complete; `prepare_fluent_app_window` alone is
+    enough for code that only needs `is_fluent_themed` (for example the caption).
+
+    """
+    if window.property(_PROP_BOUND):
+        refresh_fluent_app_window(window)
+        return
+    # Mark first: the polish replay below re-enters through `install_fluent_dialog_chrome`.
+    window.setProperty(_PROP_BOUND, True)  # noqa: FBT003
+    prepare_fluent_app_window(window)
+    if window.testAttribute(Qt.WidgetAttribute.WA_WState_Created):
+        try_apply_system_backdrop(window, backdrop=SystemBackdrop.MICA)
+    bind_theme(window, lambda: refresh_fluent_app_window(window))
+
+
+def install_fluent_dialog_chrome(dialog: QWidget) -> bool:
+    """Give `dialog` the same chrome as the app window that owns it.
+
+    Only dialogs owned by a window that ran `install_fluent_app_window` are
+    restyled, so Fluent widget-library dialogs keep their own controls.
+
+    Returns:
+
+    - `bool`: `True` when the chrome was installed now.
+
+    """
+    if dialog.property(_PROP_BOUND):
+        return False
+    owner = dialog.parentWidget()
+    if owner is None or not owner.window().property(_PROP_BOUND):
+        return False
+    install_fluent_app_window(dialog)
+    return True
+
+
+def prepare_fluent_app_window(window: QWidget) -> None:
+    """Mark `window` as Fluent-themed and swap in the Fluent window stylesheet.
+
+    Children are restyled later by `install_fluent_app_window`. Replacing the
+    legacy form stylesheet before anything is polished keeps the first (and most
+    expensive) polish of the whole tree on the final rules.
+
+    """
+    from harrix_swiss_knife.qt_ui_effects import suspended_polish_filters  # noqa: PLC0415
+
     enable_fluent_theme(window)
-    try_apply_system_backdrop(window, backdrop=SystemBackdrop.MICA)
-    if not window.property(_PROP_BOUND):
-        bind_theme(window, lambda: refresh_fluent_app_window(window))
-        window.setProperty(_PROP_BOUND, True)  # noqa: FBT003
-    refresh_fluent_app_window(window)
+    palette = palette_for(window)
+    with suspended_polish_filters(window):
+        _set_sheet(window, _fluent_surface_qss(palette))
+        window.setPalette(to_qpalette(palette, window.palette()))
+    window.setAutoFillBackground(False)
 
 
 def refresh_fluent_app_window(window: QWidget) -> None:
     """Re-apply Fluent surfaces, controls, lists, tables, and buttons."""
+    from harrix_swiss_knife.qt_ui_effects import suspended_polish_filters  # noqa: PLC0415
+
     palette = palette_for(window)
-    _apply_fluent_surfaces(window, palette)
-    _normalize_control_metrics(window)
-    _restyle_inputs(window, palette)
-    _restyle_tables(window, palette)
-    _restyle_tabs(window, palette)
-    _apply_fluent_list_selection(window, palette)
-    _restyle_buttons(window, palette)
-    apply_flat_scrollbars(window)
+    with suspended_polish_filters(window):
+        _apply_fluent_surfaces(window, palette)
+        _normalize_control_metrics(window)
+        _restyle_inputs(window, palette)
+        _restyle_tables(window, palette)
+        _restyle_tabs(window, palette)
+        _apply_fluent_list_selection(window, palette)
+        _restyle_buttons(window, palette)
+        apply_flat_scrollbars(window)
     window.update()
 
 
@@ -143,7 +195,7 @@ def _apply_fluent_list_selection(root: QWidget, palette: FluentPalette) -> None:
 
 def _apply_fluent_surfaces(window: QWidget, palette: FluentPalette) -> None:
     """Replace opaque white chrome with translucent Fluent layers so Mica shows."""
-    window.setStyleSheet(_fluent_surface_qss(palette))
+    _set_sheet(window, _fluent_surface_qss(palette))
     # setStyleSheet polishes the widget and can replace the palette with the system one.
     window.setPalette(to_qpalette(palette, window.palette()))
     window.setAutoFillBackground(False)
@@ -174,6 +226,17 @@ def _apply_fluent_surfaces(window: QWidget, palette: FluentPalette) -> None:
             clear_sheet = True
         if clear_sheet and not isinstance(child, QPushButton):
             child.setStyleSheet("")
+    for area in window.findChildren(QScrollArea):
+        if "#ffffff" in area.styleSheet().lower():
+            _set_sheet(area, "QScrollArea { background: transparent; border: none; }")
+        viewport = area.viewport()
+        if "#ffffff" in viewport.styleSheet().lower():
+            _set_sheet(viewport, "")
+        # setWidget turns autofill on, which paints a flat Window rect over the gradient.
+        viewport.setAutoFillBackground(False)
+        inner = area.widget()
+        if inner is not None:
+            inner.setAutoFillBackground(False)
     status = window.findChild(QStatusBar)
     if status is not None:
         color = chrome_bottom_color(palette)
@@ -231,7 +294,7 @@ def _clear_viewport(view: QAbstractItemView, palette: FluentPalette) -> None:
     view.setAutoFillBackground(False)
     viewport = view.viewport()
     viewport.setAutoFillBackground(False)
-    viewport.setStyleSheet(f"background: {wallpaper_fill(palette)}; color: {text};")
+    _set_sheet(viewport, f"background: {wallpaper_fill(palette)}; color: {text};")
 
 
 def _fluent_surface_qss(palette: FluentPalette) -> str:
@@ -253,7 +316,7 @@ QGroupBox {{
  border: none;
  border-bottom: 1px solid {divider};
  border-radius: 0px;
- margin-top: 10px;
+ margin-top: 1.5em;
  padding-top: 2px;
  padding-bottom: 4px;
  color: {text};
@@ -320,13 +383,13 @@ def _normalize_control_metrics(root: QWidget) -> None:
 
 
 def _paint_canvas(widget: QWidget, palette: FluentPalette) -> None:
-    """Paint the window gradient on a structural panel that used to be flat white."""
+    """Let the window gradient show through a structural panel that used to be flat white."""
     name = widget.objectName()
     if not name:
         name = f"hskCanvas{id(widget)}"
         widget.setObjectName(name)
     text = css(mix(palette.window_bg, palette.text_primary))
-    widget.setStyleSheet(f"QWidget#{name} {{ background: {wallpaper_fill(palette)}; color: {text}; border: none; }}")
+    _set_sheet(widget, f"QWidget#{name} {{ background: transparent; color: {text}; border: none; }}")
     widget.setAutoFillBackground(False)
     widget.setProperty(_PROP_CANVAS, True)  # noqa: FBT003
 
@@ -351,17 +414,17 @@ def _restyle_buttons(root: QWidget, palette: FluentPalette) -> None:
         sheet = button.styleSheet() or ""
         kind = _button_kind(sheet) or button.property("_hskFluentButton")
         if isinstance(kind, str) and kind in {"accent", "mint", "info", "success", "danger"}:
-            button.setStyleSheet(f"/* hsk-fluent-{kind} */\n{semantic_button_qss(palette, kind)}")
+            _set_sheet(button, f"/* hsk-fluent-{kind} */\n{semantic_button_qss(palette, kind)}")
             button.setMinimumHeight(CONTROL_HEIGHT_COMPACT)
             button.setMaximumHeight(CONTROL_HEIGHT)
             button.setProperty("_hskFluentButton", kind)
         elif any(marker.lower() in sheet.lower() for marker in _SECONDARY_MARKERS):
-            button.setStyleSheet(secondary)
+            _set_sheet(button, secondary)
             button.setMinimumHeight(CONTROL_HEIGHT_COMPACT)
             button.setMaximumHeight(CONTROL_HEIGHT)
             button.setProperty("_hskFluentButton", "secondary")
         elif kind == "secondary":
-            button.setStyleSheet(secondary)
+            _set_sheet(button, secondary)
 
 
 def _restyle_inputs(root: QWidget, palette: FluentPalette) -> None:
@@ -373,23 +436,26 @@ def _restyle_inputs(root: QWidget, palette: FluentPalette) -> None:
             continue
         if edit.parentWidget() is not None and isinstance(edit.parentWidget(), QComboBox):
             continue
-        edit.setStyleSheet(line)
+        _set_sheet(edit, line)
         _lock_control_height(edit)
     for box in root.findChildren(QAbstractSpinBox):
         if isinstance(box, QDateEdit):
             continue
-        box.setStyleSheet(spin)
+        _set_sheet(box, spin)
         _lock_control_height(box)
     for box in root.findChildren(QComboBox):
-        box.setStyleSheet(combo)
+        _set_sheet(box, combo)
         _lock_control_height(box)
+    date = date_edit_qss(palette, height=CONTROL_HEIGHT_COMPACT)
     for box in root.findChildren(QDateEdit):
-        box.setStyleSheet(date_edit_qss(palette, height=CONTROL_HEIGHT_COMPACT))
+        _set_sheet(box, date)
         _lock_control_height(box)
+    plain = text_edit_qss(palette, "QPlainTextEdit")
     for edit in root.findChildren(QPlainTextEdit):
-        edit.setStyleSheet(text_edit_qss(palette, "QPlainTextEdit"))
+        _set_sheet(edit, plain)
+    rich = text_edit_qss(palette, "QTextEdit")
     for edit in root.findChildren(QTextEdit):
-        edit.setStyleSheet(text_edit_qss(palette, "QTextEdit"))
+        _set_sheet(edit, rich)
 
 
 def _restyle_tables(root: QWidget, palette: FluentPalette) -> None:
@@ -405,9 +471,12 @@ def _restyle_tabs(root: QWidget, palette: FluentPalette) -> None:
     text = css(mix(palette.window_bg, palette.text_primary))
     accent = css(palette.accent)
     for tabs in root.findChildren(QTabWidget):
-        name = tabs.objectName() or "tabWidget"
         tabs.setDocumentMode(True)
-        tabs.setStyleSheet(
+        if tabs.property(CAPTION_TABS_PROPERTY):
+            continue
+        name = tabs.objectName() or "tabWidget"
+        _set_sheet(
+            tabs,
             f"""
 QTabWidget#{name}::pane {{
  background: transparent;
@@ -438,7 +507,8 @@ QTabWidget#{name} > QTabBar::tab:selected {{
     for bar in root.findChildren(QTabBar):
         if isinstance(bar.parentWidget(), QTabWidget):
             continue
-        bar.setStyleSheet(
+        _set_sheet(
+            bar,
             f"""
 QTabBar::tab {{
  background: transparent;
@@ -455,6 +525,12 @@ QTabBar::tab:selected {{
 }}
 """,
         )
+
+
+def _set_sheet(widget: QWidget, sheet: str) -> None:
+    """Assign `sheet` only when it changed; each assignment re-polishes the subtree."""
+    if widget.styleSheet() != sheet:
+        widget.setStyleSheet(sheet)
 
 
 def _skip_fluent_button(button: QWidget) -> bool:
@@ -478,7 +554,8 @@ def _style_item_view(view: QAbstractItemView, palette: FluentPalette) -> None:
     text = css(mix(palette.window_bg, palette.text_primary))
     view.setIconSize(QSize(ICON_SIZE, ICON_SIZE))
     view.setSpacing(0)
-    view.setStyleSheet(
+    _set_sheet(
+        view,
         f"""
 {target} {{
  background: transparent;
@@ -519,7 +596,8 @@ def _style_table(table: QTableView, palette: FluentPalette) -> None:
         header.setMinimumHeight(CONTROL_HEIGHT)
     table.verticalHeader().setVisible(False)
     table.verticalHeader().setDefaultSectionSize(CONTROL_HEIGHT + SPACE_S)
-    table.setStyleSheet(
+    _set_sheet(
+        table,
         f"""
 {selector} {{
  background: {card.name()};
@@ -529,8 +607,9 @@ def _style_table(table: QTableView, palette: FluentPalette) -> None:
  outline: none;
  gridline-color: transparent;
 }}
+{selector} QHeaderView {{ background: {card.name()}; color: {secondary}; border: none; }}
 {selector} QHeaderView::section {{
- background: transparent;
+ background: {card.name()};
  color: {secondary};
  border: none;
  border-bottom: 1px solid {divider};
@@ -543,3 +622,13 @@ def _style_table(table: QTableView, palette: FluentPalette) -> None:
     )
     # No ::item background: that stylesheet replaces the model's row tint.
     _paint_viewport(table, card, QColor(_TABLE_TEXT))
+    # Custom headers (word-wrap) paint from the palette, not from the section QSS.
+    ink = mix(palette.window_bg, palette.text_secondary)
+    tuned = header.palette()
+    for group in (QPalette.ColorGroup.Active, QPalette.ColorGroup.Inactive):
+        for role in (QPalette.ColorRole.Button, QPalette.ColorRole.Window, QPalette.ColorRole.Base):
+            tuned.setColor(group, role, card)
+        for role in (QPalette.ColorRole.ButtonText, QPalette.ColorRole.WindowText, QPalette.ColorRole.Text):
+            tuned.setColor(group, role, ink)
+    header.setPalette(tuned)
+    header.viewport().setPalette(tuned)

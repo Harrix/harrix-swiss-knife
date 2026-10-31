@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'window.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.11.2
+## Created by: Qt User Interface Compiler version 6.12.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -163,42 +163,6 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.setStyleSheet(u"/* hsk-white-surfaces */\n"
-"QGroupBox {\n"
-" background-color: #ffffff;\n"
-" border: none;\n"
-" border-bottom: 1px solid #f4f4f4;\n"
-" border-radius: 0;\n"
-" margin-top: 0.8em;\n"
-" padding-top: 4px;\n"
-" padding-bottom: 6px;\n"
-"}\n"
-"QGroupBox::title {\n"
-" subcontrol-origin: margin;\n"
-" subcontrol-position: top left;\n"
-" left: 0px;\n"
-" padding: 0;\n"
-" background-color: #ffffff;\n"
-"}\n"
-"QMenu { background-color: #ffffff; border: 1px solid #e0e0e0; color: #202020; }\n"
-"QMenu::item { color: #202020; background-color: transparent; }\n"
-"QMenu::item:selected { color: #202020; background-color: #f2f2f2; }\n"
-"QMenu::item:disabled { color: #767676; }\n"
-"QStatusBar { background: #ffffff; }\n"
-"QStatusBar QLabel { color: #202020; }\n"
-"QSplitter::handle:horizontal {\n"
-" width: 17px;\n"
-" background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n"
-" stop:0 #ffffff, stop:0.46 #ffffff, stop:0.49 #f4f4f4, stop:0.51 #f4f4f4, stop:0.54 #ffffff, stop:1 #ffffff);\n"
-"}\n"
-"QSplitter::handle:vertical {\n"
-" height: 17px"
-                        ";\n"
-" background: qlineargradient(x1:0, y1:0, x2:0, y2:1,\n"
-" stop:0 #ffffff, stop:0.46 #ffffff, stop:0.49 #f4f4f4, stop:0.51 #f4f4f4, stop:0.54 #ffffff, stop:1 #ffffff);\n"
-"}\n"
-"QSplitter::handle:hover { background: #f4f4f4; }\n"
-"")
         MainWindow.resize(1410, 859)
         self.action_categories = QAction(MainWindow)
         self.action_categories.setObjectName(u"action_categories")
@@ -228,7 +192,6 @@ class Ui_MainWindow(object):
         self.actionAbout.setObjectName(u"actionAbout")
         self.centralWidget = QWidget(MainWindow)
         self.centralWidget.setObjectName(u"centralWidget")
-        self.centralWidget.setStyleSheet(u"QWidget#centralWidget { background-color: #ffffff; }")
         self.horizontalLayout = QHBoxLayout(self.centralWidget)
         self.horizontalLayout.setObjectName(u"horizontalLayout")
         self.horizontalLayout.setContentsMargins(0, 0, 0, 0)
@@ -236,18 +199,16 @@ class Ui_MainWindow(object):
         self.tabWidget.setObjectName(u"tabWidget")
         self.tab_transactions = QWidget()
         self.tab_transactions.setObjectName(u"tab_transactions")
-        self.tab_transactions.setStyleSheet(u"QWidget#tab_transactions { background-color: #ffffff; }")
         self.horizontalLayout_main = QHBoxLayout(self.tab_transactions)
         self.horizontalLayout_main.setObjectName(u"horizontalLayout_main")
         self.horizontalLayout_main.setContentsMargins(0, 0, 0, 0)
         self.splitter = QSplitter(self.tab_transactions)
         self.splitter.setObjectName(u"splitter")
-        self.splitter.setStyleSheet(u"QWidget#splitter { background-color: #ffffff; }")
         self.splitter.setOrientation(Qt.Orientation.Horizontal)
         self.splitter.setChildrenCollapsible(False)
         self.frame = QFrame(self.splitter)
         self.frame.setObjectName(u"frame")
-        self.frame.setStyleSheet(u"QFrame#frame { background-color: #ffffff; border: none; }")
+        self.frame.setStyleSheet(u"QFrame#frame { border: none; }")
         self.frame.setMinimumSize(QSize(380, 0))
         self.frame.setMaximumSize(QSize(16777215, 16777215))
         self.frame.setFrameShape(QFrame.Shape.NoFrame)
@@ -434,7 +395,6 @@ class Ui_MainWindow(object):
         self.splitter.addWidget(self.frame)
         self.widget_middle = QWidget(self.splitter)
         self.widget_middle.setObjectName(u"widget_middle")
-        self.widget_middle.setStyleSheet(u"QWidget#widget_middle { background-color: #ffffff; }")
         self.verticalLayout = QVBoxLayout(self.widget_middle)
         self.verticalLayout.setObjectName(u"verticalLayout")
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)
@@ -467,7 +427,6 @@ class Ui_MainWindow(object):
         self.splitter.addWidget(self.widget_middle)
         self.widget_transactions = QWidget(self.splitter)
         self.widget_transactions.setObjectName(u"widget_transactions")
-        self.widget_transactions.setStyleSheet(u"QWidget#widget_transactions { background-color: #ffffff; }")
         self.verticalLayout_transactions = QVBoxLayout(self.widget_transactions)
         self.verticalLayout_transactions.setSpacing(4)
         self.verticalLayout_transactions.setObjectName(u"verticalLayout_transactions")
@@ -600,17 +559,15 @@ class Ui_MainWindow(object):
         self.tabWidget.addTab(self.tab_transactions, "")
         self.tab_accounts = QWidget()
         self.tab_accounts.setObjectName(u"tab_accounts")
-        self.tab_accounts.setStyleSheet(u"QWidget#tab_accounts { background-color: #ffffff; }")
         self.verticalLayout_22 = QVBoxLayout(self.tab_accounts)
         self.verticalLayout_22.setObjectName(u"verticalLayout_22")
         self.verticalLayout_22.setContentsMargins(0, 0, 0, 0)
         self.splitter_2 = QSplitter(self.tab_accounts)
         self.splitter_2.setObjectName(u"splitter_2")
-        self.splitter_2.setStyleSheet(u"QWidget#splitter_2 { background-color: #ffffff; }")
         self.splitter_2.setOrientation(Qt.Orientation.Horizontal)
         self.frame_accounts = QFrame(self.splitter_2)
         self.frame_accounts.setObjectName(u"frame_accounts")
-        self.frame_accounts.setStyleSheet(u"QFrame#frame_accounts { background-color: #ffffff; border: none; }")
+        self.frame_accounts.setStyleSheet(u"QFrame#frame_accounts { border: none; }")
         self.frame_accounts.setMinimumSize(QSize(300, 0))
         self.frame_accounts.setMaximumSize(QSize(16777215, 16777215))
         self.frame_accounts.setFrameShape(QFrame.Shape.NoFrame)
@@ -675,17 +632,15 @@ class Ui_MainWindow(object):
         self.tabWidget.addTab(self.tab_accounts, "")
         self.tab_currencies = QWidget()
         self.tab_currencies.setObjectName(u"tab_currencies")
-        self.tab_currencies.setStyleSheet(u"QWidget#tab_currencies { background-color: #ffffff; }")
         self.horizontalLayout_10 = QHBoxLayout(self.tab_currencies)
         self.horizontalLayout_10.setObjectName(u"horizontalLayout_10")
         self.horizontalLayout_10.setContentsMargins(0, 0, 0, 0)
         self.splitter_4 = QSplitter(self.tab_currencies)
         self.splitter_4.setObjectName(u"splitter_4")
-        self.splitter_4.setStyleSheet(u"QWidget#splitter_4 { background-color: #ffffff; }")
         self.splitter_4.setOrientation(Qt.Orientation.Horizontal)
         self.frame_exchange = QFrame(self.splitter_4)
         self.frame_exchange.setObjectName(u"frame_exchange")
-        self.frame_exchange.setStyleSheet(u"QFrame#frame_exchange { background-color: #ffffff; border: none; }")
+        self.frame_exchange.setStyleSheet(u"QFrame#frame_exchange { border: none; }")
         self.frame_exchange.setMinimumSize(QSize(350, 0))
         self.frame_exchange.setMaximumSize(QSize(16777215, 16777215))
         self.frame_exchange.setFrameShape(QFrame.Shape.NoFrame)
@@ -872,17 +827,15 @@ class Ui_MainWindow(object):
         self.tabWidget.addTab(self.tab_currencies, "")
         self.tab_exchange_rates = QWidget()
         self.tab_exchange_rates.setObjectName(u"tab_exchange_rates")
-        self.tab_exchange_rates.setStyleSheet(u"QWidget#tab_exchange_rates { background-color: #ffffff; }")
         self.horizontalLayout_28 = QHBoxLayout(self.tab_exchange_rates)
         self.horizontalLayout_28.setObjectName(u"horizontalLayout_28")
         self.horizontalLayout_28.setContentsMargins(0, 0, 0, 0)
         self.splitter_6 = QSplitter(self.tab_exchange_rates)
         self.splitter_6.setObjectName(u"splitter_6")
-        self.splitter_6.setStyleSheet(u"QWidget#splitter_6 { background-color: #ffffff; }")
         self.splitter_6.setOrientation(Qt.Orientation.Horizontal)
         self.frame_rates = QFrame(self.splitter_6)
         self.frame_rates.setObjectName(u"frame_rates")
-        self.frame_rates.setStyleSheet(u"QFrame#frame_rates { background-color: #ffffff; border: none; }")
+        self.frame_rates.setStyleSheet(u"QFrame#frame_rates { border: none; }")
         self.frame_rates.setMinimumSize(QSize(300, 0))
         self.frame_rates.setMaximumSize(QSize(16777215, 16777215))
         self.frame_rates.setFrameShape(QFrame.Shape.NoFrame)
@@ -891,7 +844,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_14.setObjectName(u"verticalLayout_14")
         self.frame_3 = QFrame(self.frame_rates)
         self.frame_3.setObjectName(u"frame_3")
-        self.frame_3.setStyleSheet(u"QFrame#frame_3 { background-color: #ffffff; border: none; }")
+        self.frame_3.setStyleSheet(u"QFrame#frame_3 { border: none; }")
         self.frame_3.setFrameShape(QFrame.Shape.NoFrame)
         self.frame_3.setFrameShadow(QFrame.Shadow.Plain)
         self.verticalLayout_rate_panels = QVBoxLayout(self.frame_3)
@@ -1111,13 +1064,12 @@ class Ui_MainWindow(object):
         self.splitter_6.addWidget(self.frame_rates)
         self.widget_exchange_rates_right = QWidget(self.splitter_6)
         self.widget_exchange_rates_right.setObjectName(u"widget_exchange_rates_right")
-        self.widget_exchange_rates_right.setStyleSheet(u"QWidget#widget_exchange_rates_right { background-color: #ffffff; }")
         self.verticalLayout_12 = QVBoxLayout(self.widget_exchange_rates_right)
         self.verticalLayout_12.setObjectName(u"verticalLayout_12")
         self.verticalLayout_12.setContentsMargins(0, 0, 0, 0)
         self.frame_exchange_rates_controls = QFrame(self.widget_exchange_rates_right)
         self.frame_exchange_rates_controls.setObjectName(u"frame_exchange_rates_controls")
-        self.frame_exchange_rates_controls.setStyleSheet(u"QFrame#frame_exchange_rates_controls { background-color: #ffffff; border: none; }")
+        self.frame_exchange_rates_controls.setStyleSheet(u"QFrame#frame_exchange_rates_controls { border: none; }")
         self.frame_exchange_rates_controls.setMaximumSize(QSize(16777215, 80))
         self.frame_exchange_rates_controls.setFrameShape(QFrame.Shape.NoFrame)
         self.frame_exchange_rates_controls.setFrameShadow(QFrame.Shadow.Plain)
@@ -1182,7 +1134,6 @@ class Ui_MainWindow(object):
         self.scrollArea_xchange_rates.setWidgetResizable(True)
         self.scrollAreaWidgetContents_food_stats = QWidget()
         self.scrollAreaWidgetContents_food_stats.setObjectName(u"scrollAreaWidgetContents_food_stats")
-        self.scrollAreaWidgetContents_food_stats.setStyleSheet(u"QWidget#scrollAreaWidgetContents_food_stats { background-color: #ffffff; }")
         self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 712, 679))
         self.verticalLayout_exchange_rates_content = QVBoxLayout(self.scrollAreaWidgetContents_food_stats)
         self.verticalLayout_exchange_rates_content.setObjectName(u"verticalLayout_exchange_rates_content")
@@ -1197,17 +1148,15 @@ class Ui_MainWindow(object):
         self.tabWidget.addTab(self.tab_exchange_rates, "")
         self.tab_charts = QWidget()
         self.tab_charts.setObjectName(u"tab_charts")
-        self.tab_charts.setStyleSheet(u"QWidget#tab_charts { background-color: #ffffff; }")
         self.horizontalLayout_29 = QHBoxLayout(self.tab_charts)
         self.horizontalLayout_29.setObjectName(u"horizontalLayout_29")
         self.horizontalLayout_29.setContentsMargins(0, 0, 0, 0)
         self.splitter_7 = QSplitter(self.tab_charts)
         self.splitter_7.setObjectName(u"splitter_7")
-        self.splitter_7.setStyleSheet(u"QWidget#splitter_7 { background-color: #ffffff; }")
         self.splitter_7.setOrientation(Qt.Orientation.Horizontal)
         self.frame_accounts_2 = QFrame(self.splitter_7)
         self.frame_accounts_2.setObjectName(u"frame_accounts_2")
-        self.frame_accounts_2.setStyleSheet(u"QFrame#frame_accounts_2 { background-color: #ffffff; border: none; }")
+        self.frame_accounts_2.setStyleSheet(u"QFrame#frame_accounts_2 { border: none; }")
         self.frame_accounts_2.setMinimumSize(QSize(300, 0))
         self.frame_accounts_2.setMaximumSize(QSize(16777215, 16777215))
         self.frame_accounts_2.setFrameShape(QFrame.Shape.NoFrame)
@@ -1306,13 +1255,12 @@ class Ui_MainWindow(object):
         self.splitter_7.addWidget(self.frame_accounts_2)
         self.layoutWidget = QWidget(self.splitter_7)
         self.layoutWidget.setObjectName(u"layoutWidget")
-        self.layoutWidget.setStyleSheet(u"QWidget#layoutWidget { background-color: #ffffff; }")
         self.verticalLayout_18 = QVBoxLayout(self.layoutWidget)
         self.verticalLayout_18.setObjectName(u"verticalLayout_18")
         self.verticalLayout_18.setContentsMargins(0, 0, 0, 0)
         self.frame_charts_controls = QFrame(self.layoutWidget)
         self.frame_charts_controls.setObjectName(u"frame_charts_controls")
-        self.frame_charts_controls.setStyleSheet(u"QFrame#frame_charts_controls { background-color: #ffffff; border: none; }")
+        self.frame_charts_controls.setStyleSheet(u"QFrame#frame_charts_controls { border: none; }")
         self.frame_charts_controls.setMaximumSize(QSize(16777215, 120))
         self.frame_charts_controls.setFrameShape(QFrame.Shape.NoFrame)
         self.frame_charts_controls.setFrameShadow(QFrame.Shadow.Plain)
@@ -1417,7 +1365,6 @@ class Ui_MainWindow(object):
         self.scrollArea_charts.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts = QWidget()
         self.scrollAreaWidgetContents_charts.setObjectName(u"scrollAreaWidgetContents_charts")
-        self.scrollAreaWidgetContents_charts.setStyleSheet(u"QWidget#scrollAreaWidgetContents_charts { background-color: #ffffff; }")
         self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 919, 643))
         self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
         self.verticalLayout_charts_content.setObjectName(u"verticalLayout_charts_content")
@@ -1432,17 +1379,15 @@ class Ui_MainWindow(object):
         self.tabWidget.addTab(self.tab_charts, "")
         self.tab_reports = QWidget()
         self.tab_reports.setObjectName(u"tab_reports")
-        self.tab_reports.setStyleSheet(u"QWidget#tab_reports { background-color: #ffffff; }")
         self.horizontalLayout_6 = QHBoxLayout(self.tab_reports)
         self.horizontalLayout_6.setObjectName(u"horizontalLayout_6")
         self.horizontalLayout_6.setContentsMargins(0, 0, 0, 0)
         self.splitter_5 = QSplitter(self.tab_reports)
         self.splitter_5.setObjectName(u"splitter_5")
-        self.splitter_5.setStyleSheet(u"QWidget#splitter_5 { background-color: #ffffff; }")
         self.splitter_5.setOrientation(Qt.Orientation.Horizontal)
         self.frame_5 = QFrame(self.splitter_5)
         self.frame_5.setObjectName(u"frame_5")
-        self.frame_5.setStyleSheet(u"QFrame#frame_5 { background-color: #ffffff; border: none; }")
+        self.frame_5.setStyleSheet(u"QFrame#frame_5 { border: none; }")
         self.frame_5.setMinimumSize(QSize(300, 0))
         self.frame_5.setMaximumSize(QSize(16777215, 16777215))
         self.frame_5.setFrameShape(QFrame.Shape.NoFrame)

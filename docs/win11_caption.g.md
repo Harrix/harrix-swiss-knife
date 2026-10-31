@@ -684,46 +684,10 @@ def install_win11_caption(
 ) -> bool:
     if sys.platform != "win32" or getattr(window, _INSTALLED_ATTR, False):
         return False
-    tab_widget = getattr(window, "tabWidget", None)
-    light = _palette_is_light(window)
-    controller = _Win11CaptionController(window)
-    setattr(window, _CONTROLLER_ATTR, controller)
-    if isinstance(tab_widget, QTabWidget):
-        _build_caption_row(window, tab_widget, controller, light=light)
-    elif isinstance(window, QMainWindow):
-        _build_menu_caption(window, controller, light=light, trailing_widgets=trailing_widgets)
-    elif window.layout() is None or isinstance(window.layout(), QBoxLayout):
-        _build_layout_caption(window, controller, light=light, trailing_widgets=trailing_widgets)
-    else:
-        logger.warning("Win11 caption needs a tabWidget, main window menu, or box layout")
-        return False
+    from harrix_swiss_knife.qt_ui_effects import suspended_polish_filters  # noqa: PLC0415
 
-    _install_menu_chevrons(window)
-    _ensure_caption_title(window)
-    _flush_caption_to_frame(window)
-    _fit_caption_fonts(window)
-    themed = is_fluent_themed(window)
-    if not themed:
-        _apply_white_window_background(window)
-        apply_flat_scrollbars(window)
-    _sync_caption_palette(window)
-    window.installEventFilter(controller)
-    setattr(window, _INSTALLED_ATTR, True)
-    _set_frameless_window_flags(window)
-    _collapse_native_menu_bar(window)
-    _sync_caption_icon(window)
-    _sync_zoom_glyph(window)
-    _place_caption_title(window)
-    _bind_caption_menu_hover(window, controller)
-    setattr(window, _BUTTONS_ATTR, window.findChildren(CaptionButton))
-    if themed:
-        bind_theme(window, lambda: refresh_win11_caption(window))
-    host = _caption_host(window)
-    if host is not None:
-        drag_filter = _CaptionDragFilter(window, host)
-        setattr(window, _DRAG_FILTER_ATTR, drag_filter)
-        host.installEventFilter(drag_filter)
-    return True
+    with suspended_polish_filters(window):
+        return _install_caption(window, trailing_widgets=trailing_widgets)
 ```
 
 </details>

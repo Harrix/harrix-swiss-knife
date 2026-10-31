@@ -115,6 +115,7 @@ class MainWindow(
 
     def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
         super().__init__()
+        self._apply_fluent_window_chrome()
         self.setupUi(self)
         self._macros_analysis_queue: list[str] = []
         self._macros_analysis_done = 0
@@ -128,6 +129,7 @@ class MainWindow(
         self.label_macros_status: QLabel | None = None
         self.label_macros_notes: QLabel | None = None
         self._setup_ui()
+        self._finish_fluent_window_chrome()
 
         apply_window_icon(self)
 
@@ -4127,7 +4129,6 @@ class MainWindow(
 
     def _setup_ui(self) -> None:
         """Set up additional UI elements after basic initialization."""
-        self._apply_fluent_window_chrome()
         self._place_menu_bar_on_tab_row()
         install_win11_caption(self)
         self._install_word_wrap_table_headers()
@@ -5280,6 +5281,7 @@ _No docstring provided._
 ```python
 def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
         super().__init__()
+        self._apply_fluent_window_chrome()
         self.setupUi(self)
         self._macros_analysis_queue: list[str] = []
         self._macros_analysis_done = 0
@@ -5293,6 +5295,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
         self.label_macros_status: QLabel | None = None
         self.label_macros_notes: QLabel | None = None
         self._setup_ui()
+        self._finish_fluent_window_chrome()
 
         apply_window_icon(self)
 

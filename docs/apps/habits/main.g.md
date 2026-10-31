@@ -97,9 +97,11 @@ class MainWindow(
 
     def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107  (inherited from Qt widgets)
         super().__init__()
+        self._apply_fluent_window_chrome()
         self.setupUi(self)
         self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
         self._setup_ui()
+        self._finish_fluent_window_chrome()
 
         apply_window_icon(self)
 
@@ -1550,7 +1552,7 @@ class MainWindow(
         min_px = 200
         width_px = max(int(viewport.width()), min_px)
         height_px = max(int(viewport.height()), min_px)
-        return Figure(figsize=(width_px / dpi, height_px / dpi), dpi=dpi)
+        return themed_figure(figsize=(width_px / dpi, height_px / dpi), dpi=dpi)
 
     def _habit_id_from_table_index(self, index: QModelIndex) -> int | None:
         """Return habit database ID for a habits table model index."""
@@ -1892,7 +1894,6 @@ class MainWindow(
 
     def _setup_ui(self) -> None:
         """Set up additional UI elements after basic initialization (habits only)."""
-        self._apply_fluent_window_chrome()
         self._place_menu_bar_on_tab_row()
         install_win11_caption(self)
         self._apply_exit_about_menu_emojis()
@@ -2386,9 +2387,11 @@ _No docstring provided._
 ```python
 def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107  (inherited from Qt widgets)
         super().__init__()
+        self._apply_fluent_window_chrome()
         self.setupUi(self)
         self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
         self._setup_ui()
+        self._finish_fluent_window_chrome()
 
         apply_window_icon(self)
 

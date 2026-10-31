@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife.apps.common.ui_chrome import apply_white_surface_palette
+from harrix_swiss_knife.fluent.app_chrome import install_fluent_dialog_chrome
 from harrix_swiss_knife.fluent.theme import FLUENT_THEMED_PROPERTY, enable_fluent_theme, is_fluent_themed
 from harrix_swiss_knife.qt_lucide_checkbox import (
     apply_lucide_checkbox_style,
@@ -28,13 +29,16 @@ class _FormChromeFilter(QObject):
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
         if event.type() != QEvent.Type.Polish or not isinstance(watched, QWidget):
             return False
-        if isinstance(watched, QCheckBox):
-            apply_lucide_checkbox_style(watched)
-        elif isinstance(watched, QRadioButton):
-            apply_lucide_radio_style(watched)
-        elif isinstance(watched, (QDialog, QMessageBox)):
-            _apply_dialog_surface(watched)
+        _apply_widget_chrome(watched)
         return False
+
+
+def apply_form_chrome(root: QWidget) -> None:
+    """Apply Lucide toggles and dialog surfaces to `root` and its children now."""
+    _apply_widget_chrome(root)
+    for widget in root.findChildren(QWidget):
+        if isinstance(widget, (QCheckBox, QRadioButton)):
+            _apply_widget_chrome(widget)
 
 
 def install_form_chrome(app: QApplication) -> None:
@@ -55,5 +59,15 @@ def _apply_dialog_surface(dialog: QWidget) -> None:
     if is_fluent_themed(dialog):
         if not dialog.property(FLUENT_THEMED_PROPERTY):
             enable_fluent_theme(dialog)
+        install_fluent_dialog_chrome(dialog)
         return
     apply_white_surface_palette(dialog)
+
+
+def _apply_widget_chrome(widget: QWidget) -> None:
+    if isinstance(widget, QCheckBox):
+        apply_lucide_checkbox_style(widget)
+    elif isinstance(widget, QRadioButton):
+        apply_lucide_radio_style(widget)
+    elif isinstance(widget, (QDialog, QMessageBox)):
+        _apply_dialog_surface(widget)

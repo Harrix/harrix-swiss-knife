@@ -2,43 +2,6 @@
 <ui version="4.0">
  <class>MainWindow</class>
  <widget class="QMainWindow" name="MainWindow">
-  <property name="styleSheet">
-   <string notr="true">/* hsk-white-surfaces */
-QGroupBox {
- background-color: #ffffff;
- border: none;
- border-bottom: 1px solid #f4f4f4;
- border-radius: 0;
- margin-top: 0.8em;
- padding-top: 4px;
- padding-bottom: 6px;
-}
-QGroupBox::title {
- subcontrol-origin: margin;
- subcontrol-position: top left;
- left: 0px;
- padding: 0;
- background-color: #ffffff;
-}
-QMenu { background-color: #ffffff; border: 1px solid #e0e0e0; color: #202020; }
-QMenu::item { color: #202020; background-color: transparent; }
-QMenu::item:selected { color: #202020; background-color: #f2f2f2; }
-QMenu::item:disabled { color: #767676; }
-QStatusBar { background: #ffffff; }
-QStatusBar QLabel { color: #202020; }
-QSplitter::handle:horizontal {
- width: 17px;
- background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
- stop:0 #ffffff, stop:0.46 #ffffff, stop:0.49 #f4f4f4, stop:0.51 #f4f4f4, stop:0.54 #ffffff, stop:1 #ffffff);
-}
-QSplitter::handle:vertical {
- height: 17px;
- background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
- stop:0 #ffffff, stop:0.46 #ffffff, stop:0.49 #f4f4f4, stop:0.51 #f4f4f4, stop:0.54 #ffffff, stop:1 #ffffff);
-}
-QSplitter::handle:hover { background: #f4f4f4; }
-</string>
-  </property>
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -51,9 +14,6 @@ QSplitter::handle:hover { background: #f4f4f4; }
    <string>Fitness tracker</string>
   </property>
   <widget class="QWidget" name="centralWidget">
-   <property name="styleSheet">
-    <string notr="true">QWidget#centralWidget { background-color: #ffffff; }</string>
-   </property>
    <layout class="QHBoxLayout" name="horizontalLayout">
     <item>
      <widget class="QTabWidget" name="tabWidget">
@@ -61,18 +21,12 @@ QSplitter::handle:hover { background: #f4f4f4; }
        <number>0</number>
       </property>
       <widget class="QWidget" name="tab">
-       <property name="styleSheet">
-        <string notr="true">QWidget#tab { background-color: #ffffff; }</string>
-       </property>
        <attribute name="title">
         <string>Sets</string>
        </attribute>
        <layout class="QHBoxLayout" name="horizontalLayout_main">
         <item>
          <widget class="QSplitter" name="splitter">
-          <property name="styleSheet">
-           <string notr="true">QWidget#splitter { background-color: #ffffff; }</string>
-          </property>
           <property name="orientation">
            <enum>Qt::Orientation::Horizontal</enum>
           </property>
@@ -81,7 +35,7 @@ QSplitter::handle:hover { background: #f4f4f4; }
           </property>
           <widget class="QFrame" name="frame">
            <property name="styleSheet">
-            <string notr="true">QFrame#frame { background-color: #ffffff; border: none; }</string>
+            <string notr="true">QFrame#frame { border: none; }</string>
            </property>
            <property name="minimumSize">
             <size>
@@ -342,9 +296,6 @@ QSplitter::handle:hover { background: #f4f4f4; }
            </layout>
           </widget>
           <widget class="QWidget" name="widget_middle">
-           <property name="styleSheet">
-            <string notr="true">QWidget#widget_middle { background-color: #ffffff; }</string>
-           </property>
            <layout class="QVBoxLayout" name="verticalLayout">
             <item>
              <widget class="QPushButton" name="pushButton_select_exercise">
@@ -394,9 +345,6 @@ QSplitter::handle:hover { background: #f4f4f4; }
            </layout>
           </widget>
           <widget class="QWidget" name="widget_process">
-           <property name="styleSheet">
-            <string notr="true">QWidget#widget_process { background-color: #ffffff; }</string>
-           </property>
            <layout class="QVBoxLayout" name="verticalLayout_process">
             <property name="spacing">
              <number>4</number>
@@ -589,9 +537,6 @@ QSplitter::handle:hover { background: #f4f4f4; }
        </layout>
       </widget>
       <widget class="QWidget" name="tab_workouts">
-       <property name="styleSheet">
-        <string notr="true">QWidget#tab_workouts { background-color: #ffffff; }</string>
-       </property>
        <attribute name="title">
         <string>Workouts</string>
        </attribute>
@@ -611,25 +556,16 @@ QSplitter::handle:hover { background: #f4f4f4; }
        </layout>
       </widget>
       <widget class="QWidget" name="tab_charts">
-       <property name="styleSheet">
-        <string notr="true">QWidget#tab_charts { background-color: #ffffff; }</string>
-       </property>
        <attribute name="title">
         <string>Charts</string>
        </attribute>
        <layout class="QHBoxLayout" name="horizontalLayout_26">
         <item>
          <widget class="QSplitter" name="splitter_charts">
-          <property name="styleSheet">
-           <string notr="true">QWidget#splitter_charts { background-color: #ffffff; }</string>
-          </property>
           <property name="orientation">
            <enum>Qt::Orientation::Horizontal</enum>
           </property>
           <widget class="QWidget" name="widget_left_panel">
-           <property name="styleSheet">
-            <string notr="true">QWidget#widget_left_panel { background-color: #ffffff; }</string>
-           </property>
            <layout class="QVBoxLayout" name="verticalLayout_18">
             <item>
              <widget class="QLabel" name="label_chart_exercise">
@@ -760,16 +696,13 @@ QSplitter::handle:hover { background: #f4f4f4; }
            </layout>
           </widget>
           <widget class="QWidget" name="widget_right_panel">
-           <property name="styleSheet">
-            <string notr="true">QWidget#widget_right_panel { background-color: #ffffff; }</string>
-           </property>
            <layout class="QVBoxLayout" name="verticalLayout_20">
             <item>
              <layout class="QHBoxLayout" name="horizontalLayout_23">
               <item>
                <widget class="QFrame" name="frame_charts_controls">
                 <property name="styleSheet">
-                 <string notr="true">QFrame#frame_charts_controls { background-color: #ffffff; border: none; }</string>
+                 <string notr="true">QFrame#frame_charts_controls { border: none; }</string>
                 </property>
                 <property name="maximumSize">
                  <size>
@@ -973,9 +906,6 @@ QSplitter::handle:hover { background: #f4f4f4; }
                <bool>true</bool>
               </property>
               <widget class="QWidget" name="scrollAreaWidgetContents_charts">
-               <property name="styleSheet">
-                <string notr="true">QWidget#scrollAreaWidgetContents_charts { background-color: #ffffff; }</string>
-               </property>
                <property name="geometry">
                 <rect>
                  <x>0</x>
@@ -1007,18 +937,12 @@ QSplitter::handle:hover { background: #f4f4f4; }
        </layout>
       </widget>
       <widget class="QWidget" name="tab_2">
-       <property name="styleSheet">
-        <string notr="true">QWidget#tab_2 { background-color: #ffffff; }</string>
-       </property>
        <attribute name="title">
         <string>Exercises</string>
        </attribute>
        <layout class="QHBoxLayout" name="horizontalLayout_4">
         <item>
          <widget class="QSplitter" name="splitter_2">
-          <property name="styleSheet">
-           <string notr="true">QWidget#splitter_2 { background-color: #ffffff; }</string>
-          </property>
           <property name="orientation">
            <enum>Qt::Orientation::Horizontal</enum>
           </property>
@@ -1026,9 +950,6 @@ QSplitter::handle:hover { background: #f4f4f4; }
            <bool>false</bool>
           </property>
           <widget class="QWidget" name="widget_top">
-           <property name="styleSheet">
-            <string notr="true">QWidget#widget_top { background-color: #ffffff; }</string>
-           </property>
            <layout class="QVBoxLayout" name="verticalLayout_exercises_table">
             <property name="spacing">
              <number>4</number>
@@ -1076,9 +997,6 @@ QSplitter::handle:hover { background: #f4f4f4; }
            </layout>
           </widget>
           <widget class="QWidget" name="widget_bottom">
-           <property name="styleSheet">
-            <string notr="true">QWidget#widget_bottom { background-color: #ffffff; }</string>
-           </property>
            <layout class="QVBoxLayout" name="verticalLayout_exercise_types_table">
             <property name="spacing">
              <number>4</number>
@@ -1142,9 +1060,6 @@ QSplitter::handle:hover { background: #f4f4f4; }
        </layout>
       </widget>
       <widget class="QWidget" name="tab_5">
-       <property name="styleSheet">
-        <string notr="true">QWidget#tab_5 { background-color: #ffffff; }</string>
-       </property>
        <attribute name="title">
         <string>Weight</string>
        </attribute>
@@ -1152,7 +1067,7 @@ QSplitter::handle:hover { background: #f4f4f4; }
         <item>
          <widget class="QFrame" name="frame_4">
           <property name="styleSheet">
-           <string notr="true">QFrame#frame_4 { background-color: #ffffff; border: none; }</string>
+           <string notr="true">QFrame#frame_4 { border: none; }</string>
           </property>
           <property name="minimumSize">
            <size>
@@ -1273,7 +1188,7 @@ QSplitter::handle:hover { background: #f4f4f4; }
           <item>
            <widget class="QFrame" name="frame_weight_controls">
             <property name="styleSheet">
-             <string notr="true">QFrame#frame_weight_controls { background-color: #ffffff; border: none; }</string>
+             <string notr="true">QFrame#frame_weight_controls { border: none; }</string>
             </property>
             <property name="maximumSize">
              <size>
@@ -1368,16 +1283,10 @@ QSplitter::handle:hover { background: #f4f4f4; }
           </item>
           <item>
            <widget class="QScrollArea" name="scrollArea_weight_chart">
-            <property name="styleSheet">
-             <string notr="true">QScrollArea#scrollArea_weight_chart { background-color: #ffffff; border: none; }</string>
-            </property>
             <property name="widgetResizable">
              <bool>true</bool>
             </property>
             <widget class="QWidget" name="scrollAreaWidgetContents_weight_chart">
-             <property name="styleSheet">
-              <string notr="true">QWidget#scrollAreaWidgetContents_weight_chart { background-color: #ffffff; }</string>
-             </property>
              <property name="geometry">
               <rect>
                <x>0</x>
@@ -1407,9 +1316,6 @@ QSplitter::handle:hover { background: #f4f4f4; }
        </layout>
       </widget>
       <widget class="QWidget" name="tab_4">
-       <property name="styleSheet">
-        <string notr="true">QWidget#tab_4 { background-color: #ffffff; }</string>
-       </property>
        <attribute name="title">
         <string>Statistics</string>
        </attribute>
@@ -1417,7 +1323,7 @@ QSplitter::handle:hover { background: #f4f4f4; }
         <item>
          <widget class="QFrame" name="frame_5">
           <property name="styleSheet">
-           <string notr="true">QFrame#frame_5 { background-color: #ffffff; border: none; }</string>
+           <string notr="true">QFrame#frame_5 { border: none; }</string>
           </property>
           <property name="minimumSize">
            <size>

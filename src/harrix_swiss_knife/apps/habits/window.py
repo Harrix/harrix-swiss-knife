@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'window.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.11.2
+## Created by: Qt User Interface Compiler version 6.12.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -63,41 +63,6 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.setStyleSheet(u"/* hsk-white-surfaces */\n"
-"QGroupBox {\n"
-" background-color: #ffffff;\n"
-" border: none;\n"
-" border-bottom: 1px solid #f4f4f4;\n"
-" border-radius: 0;\n"
-" margin-top: 0.8em;\n"
-" padding-top: 4px;\n"
-" padding-bottom: 6px;\n"
-"}\n"
-"QGroupBox::title {\n"
-" subcontrol-origin: margin;\n"
-" subcontrol-position: top left;\n"
-" left: 0px;\n"
-" padding: 0;\n"
-" background-color: #ffffff;\n"
-"}\n"
-"QMenu { background-color: #ffffff; border: 1px solid #e0e0e0; color: #202020; }\n"
-"QMenu::item { color: #202020; background-color: transparent; }\n"
-"QMenu::item:selected { color: #202020; background-color: #f2f2f2; }\n"
-"QMenu::item:disabled { color: #767676; }\n"
-"QStatusBar { background: #ffffff; }\n"
-"QStatusBar QLabel { color: #202020; }\n"
-"QSplitter::handle:horizontal {\n"
-" width: 17px;\n"
-" background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n"
-" stop:0 #ffffff, stop:0.46 #ffffff, stop:0.49 #f4f4f4, stop:0.51 #f4f4f4, stop:0.54 #ffffff, stop:1 #ffffff);\n"
-"}\n"
-"QSplitter::handle:vertical {\n"
-" height: 17px;\n"
-" background: qlineargradient(x1:0, y1:0, x2:0, y2:1,\n"
-" stop:0 #ffffff, stop:0.46 #ffffff, stop:0.49 #f4f4f4, stop:0.51 #f4f4f4, stop:0.54 #ffffff, stop:1 #ffffff);\n"
-"}\n"
-"QSplitter::handle:hover { background: #f4f4f4; }\n"
-"")
         MainWindow.resize(972, 574)
         self.actionExit = QAction(MainWindow)
         self.actionExit.setObjectName(u"actionExit")
@@ -109,7 +74,6 @@ class Ui_MainWindow(object):
         self.action_habits_delete.setObjectName(u"action_habits_delete")
         self.centralWidget = QWidget(MainWindow)
         self.centralWidget.setObjectName(u"centralWidget")
-        self.centralWidget.setStyleSheet(u"QWidget#centralWidget { background-color: #ffffff; }")
         self.horizontalLayout = QHBoxLayout(self.centralWidget)
         self.horizontalLayout.setObjectName(u"horizontalLayout")
         self.horizontalLayout.setContentsMargins(0, 0, 0, 0)
@@ -117,24 +81,21 @@ class Ui_MainWindow(object):
         self.tabWidget.setObjectName(u"tabWidget")
         self.tab_dashboard = QWidget()
         self.tab_dashboard.setObjectName(u"tab_dashboard")
-        self.tab_dashboard.setStyleSheet(u"QWidget#tab_dashboard { background-color: #ffffff; }")
         self.verticalLayout_dashboard = QVBoxLayout(self.tab_dashboard)
         self.verticalLayout_dashboard.setObjectName(u"verticalLayout_dashboard")
         self.verticalLayout_dashboard.setContentsMargins(0, 0, 0, 0)
         self.tabWidget.addTab(self.tab_dashboard, "")
         self.tab_sets_of_habits = QWidget()
         self.tab_sets_of_habits.setObjectName(u"tab_sets_of_habits")
-        self.tab_sets_of_habits.setStyleSheet(u"QWidget#tab_sets_of_habits { background-color: #ffffff; }")
         self.horizontalLayout_27 = QHBoxLayout(self.tab_sets_of_habits)
         self.horizontalLayout_27.setObjectName(u"horizontalLayout_27")
         self.horizontalLayout_27.setContentsMargins(0, 0, 0, 0)
         self.splitter_habits = QSplitter(self.tab_sets_of_habits)
         self.splitter_habits.setObjectName(u"splitter_habits")
-        self.splitter_habits.setStyleSheet(u"QWidget#splitter_habits { background-color: #ffffff; }")
         self.splitter_habits.setOrientation(Qt.Orientation.Horizontal)
         self.frame_habits = QFrame(self.splitter_habits)
         self.frame_habits.setObjectName(u"frame_habits")
-        self.frame_habits.setStyleSheet(u"QFrame#frame_habits { background-color: #ffffff; border: none; }")
+        self.frame_habits.setStyleSheet(u"QFrame#frame_habits { border: none; }")
         self.frame_habits.setMinimumSize(QSize(350, 0))
         self.frame_habits.setMaximumSize(QSize(16777215, 16777215))
         self.frame_habits.setFrameShape(QFrame.Shape.NoFrame)
@@ -267,17 +228,14 @@ class Ui_MainWindow(object):
         self.tabWidget.addTab(self.tab_sets_of_habits, "")
         self.tab_charts = QWidget()
         self.tab_charts.setObjectName(u"tab_charts")
-        self.tab_charts.setStyleSheet(u"QWidget#tab_charts { background-color: #ffffff; }")
         self.horizontalLayout_charts = QHBoxLayout(self.tab_charts)
         self.horizontalLayout_charts.setObjectName(u"horizontalLayout_charts")
         self.horizontalLayout_charts.setContentsMargins(0, 0, 0, 0)
         self.splitter_charts = QSplitter(self.tab_charts)
         self.splitter_charts.setObjectName(u"splitter_charts")
-        self.splitter_charts.setStyleSheet(u"QWidget#splitter_charts { background-color: #ffffff; }")
         self.splitter_charts.setOrientation(Qt.Orientation.Horizontal)
         self.layoutWidget = QWidget(self.splitter_charts)
         self.layoutWidget.setObjectName(u"layoutWidget")
-        self.layoutWidget.setStyleSheet(u"QWidget#layoutWidget { background-color: #ffffff; }")
         self.layoutWidget.setMinimumSize(QSize(150, 0))
         self.verticalLayout_24 = QVBoxLayout(self.layoutWidget)
         self.verticalLayout_24.setObjectName(u"verticalLayout_24")
@@ -305,7 +263,6 @@ class Ui_MainWindow(object):
         self.splitter_charts.addWidget(self.layoutWidget)
         self.widget_charts_heatmap = QWidget(self.splitter_charts)
         self.widget_charts_heatmap.setObjectName(u"widget_charts_heatmap")
-        self.widget_charts_heatmap.setStyleSheet(u"QWidget#widget_charts_heatmap { background-color: #ffffff; }")
         self.verticalLayout_charts_heatmap = QVBoxLayout(self.widget_charts_heatmap)
         self.verticalLayout_charts_heatmap.setSpacing(8)
         self.verticalLayout_charts_heatmap.setObjectName(u"verticalLayout_charts_heatmap")
@@ -339,7 +296,6 @@ class Ui_MainWindow(object):
         self.scrollArea_charts_process_habits.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts_process_habits = QWidget()
         self.scrollAreaWidgetContents_charts_process_habits.setObjectName(u"scrollAreaWidgetContents_charts_process_habits")
-        self.scrollAreaWidgetContents_charts_process_habits.setStyleSheet(u"QWidget#scrollAreaWidgetContents_charts_process_habits { background-color: #ffffff; }")
         self.scrollAreaWidgetContents_charts_process_habits.setGeometry(QRect(0, 0, 294, 425))
         self.verticalLayout_charts_process_habits_content = QVBoxLayout(self.scrollAreaWidgetContents_charts_process_habits)
         self.verticalLayout_charts_process_habits_content.setObjectName(u"verticalLayout_charts_process_habits_content")

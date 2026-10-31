@@ -133,6 +133,7 @@ class MainWindow(
         super().__init__()
         self._workouts_widget: WorkoutsWidget | None = None
         self._exercise_list_hover: ExerciseListHoverPreview | None = None
+        self._apply_fluent_window_chrome()
         self.setupUi(self)
         # Install event filter for chart info label to handle double-click
         self.label_chart_info.installEventFilter(self)
@@ -145,6 +146,7 @@ class MainWindow(
         self.label_exercise_avif_5.setCursor(Qt.CursorShape.PointingHandCursor)
         self.label_exercise_avif_5.setToolTip("Double-click to open in lightbox")
         self._setup_ui()
+        self._finish_fluent_window_chrome()
 
         apply_window_icon(self)
 
@@ -1041,7 +1043,7 @@ class MainWindow(
         self._clear_layout(self.verticalLayout_charts_content)
 
         # Create matplotlib figure
-        fig = Figure(figsize=(12, 6), dpi=100)
+        fig = themed_figure(figsize=(12, 6), dpi=100)
         canvas = FigureCanvas(fig)
         ax = fig.add_subplot(111)
 
@@ -1097,7 +1099,12 @@ class MainWindow(
                     ha="center",
                     fontsize=9,
                     alpha=0.8,
-                    bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+                    bbox={
+                        "boxstyle": "round,pad=0.2",
+                        "facecolor": chart_label_face(),
+                        "edgecolor": "none",
+                        "alpha": 0.7,
+                    },
                 )
 
         # Plot current month last to appear on top
@@ -1135,7 +1142,12 @@ class MainWindow(
                     ha="center",
                     fontsize=9,
                     alpha=0.8,
-                    bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+                    bbox={
+                        "boxstyle": "round,pad=0.2",
+                        "facecolor": chart_label_face(),
+                        "edgecolor": "none",
+                        "alpha": 0.7,
+                    },
                 )
 
         # Customize plot
@@ -1312,7 +1324,7 @@ class MainWindow(
         self._clear_layout(self.verticalLayout_charts_content)
 
         # Create matplotlib figure
-        fig = Figure(figsize=(12, 6), dpi=100)
+        fig = themed_figure(figsize=(12, 6), dpi=100)
         canvas = FigureCanvas(fig)
         ax = fig.add_subplot(111)
 
@@ -1373,7 +1385,12 @@ class MainWindow(
                         ha="center",
                         fontsize=9,
                         alpha=0.8,
-                        bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+                        bbox={
+                            "boxstyle": "round,pad=0.2",
+                            "facecolor": chart_label_face(),
+                            "edgecolor": "none",
+                            "alpha": 0.7,
+                        },
                     )
 
         # Now plot the current year last (so it appears on top)
@@ -1414,7 +1431,12 @@ class MainWindow(
                     ha="center",
                     fontsize=9,
                     alpha=0.8,
-                    bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+                    bbox={
+                        "boxstyle": "round,pad=0.2",
+                        "facecolor": chart_label_face(),
+                        "edgecolor": "none",
+                        "alpha": 0.7,
+                    },
                 )
 
         # Customize plot
@@ -3399,7 +3421,7 @@ class MainWindow(
         self._clear_layout(self.verticalLayout_weight_chart_content)
 
         # Create matplotlib figure with custom Y-axis formatting
-        fig = Figure(figsize=(12, 6), dpi=100)
+        fig = themed_figure(figsize=(12, 6), dpi=100)
         canvas = FigureCanvas(fig)
         ax = fig.add_subplot(111)
 
@@ -8093,7 +8115,6 @@ class MainWindow(
 
     def _setup_ui(self) -> None:
         """Set up additional UI elements after basic initialization."""
-        self._apply_fluent_window_chrome()
         self._place_menu_bar_on_tab_row()
         install_win11_caption(self)
         self._install_word_wrap_table_headers()
@@ -9217,6 +9238,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
         super().__init__()
         self._workouts_widget: WorkoutsWidget | None = None
         self._exercise_list_hover: ExerciseListHoverPreview | None = None
+        self._apply_fluent_window_chrome()
         self.setupUi(self)
         # Install event filter for chart info label to handle double-click
         self.label_chart_info.installEventFilter(self)
@@ -9229,6 +9251,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
         self.label_exercise_avif_5.setCursor(Qt.CursorShape.PointingHandCursor)
         self.label_exercise_avif_5.setToolTip("Double-click to open in lightbox")
         self._setup_ui()
+        self._finish_fluent_window_chrome()
 
         apply_window_icon(self)
 
@@ -10349,7 +10372,7 @@ def on_compare_last_months(self) -> None:
         self._clear_layout(self.verticalLayout_charts_content)
 
         # Create matplotlib figure
-        fig = Figure(figsize=(12, 6), dpi=100)
+        fig = themed_figure(figsize=(12, 6), dpi=100)
         canvas = FigureCanvas(fig)
         ax = fig.add_subplot(111)
 
@@ -10405,7 +10428,12 @@ def on_compare_last_months(self) -> None:
                     ha="center",
                     fontsize=9,
                     alpha=0.8,
-                    bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+                    bbox={
+                        "boxstyle": "round,pad=0.2",
+                        "facecolor": chart_label_face(),
+                        "edgecolor": "none",
+                        "alpha": 0.7,
+                    },
                 )
 
         # Plot current month last to appear on top
@@ -10443,7 +10471,12 @@ def on_compare_last_months(self) -> None:
                     ha="center",
                     fontsize=9,
                     alpha=0.8,
-                    bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+                    bbox={
+                        "boxstyle": "round,pad=0.2",
+                        "facecolor": chart_label_face(),
+                        "edgecolor": "none",
+                        "alpha": 0.7,
+                    },
                 )
 
         # Customize plot
@@ -10631,7 +10664,7 @@ def on_compare_same_months(self) -> None:
         self._clear_layout(self.verticalLayout_charts_content)
 
         # Create matplotlib figure
-        fig = Figure(figsize=(12, 6), dpi=100)
+        fig = themed_figure(figsize=(12, 6), dpi=100)
         canvas = FigureCanvas(fig)
         ax = fig.add_subplot(111)
 
@@ -10692,7 +10725,12 @@ def on_compare_same_months(self) -> None:
                         ha="center",
                         fontsize=9,
                         alpha=0.8,
-                        bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+                        bbox={
+                            "boxstyle": "round,pad=0.2",
+                            "facecolor": chart_label_face(),
+                            "edgecolor": "none",
+                            "alpha": 0.7,
+                        },
                     )
 
         # Now plot the current year last (so it appears on top)
@@ -10733,7 +10771,12 @@ def on_compare_same_months(self) -> None:
                     ha="center",
                     fontsize=9,
                     alpha=0.8,
-                    bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+                    bbox={
+                        "boxstyle": "round,pad=0.2",
+                        "facecolor": chart_label_face(),
+                        "edgecolor": "none",
+                        "alpha": 0.7,
+                    },
                 )
 
         # Customize plot
@@ -13237,7 +13280,7 @@ def update_weight_chart(self) -> None:
         self._clear_layout(self.verticalLayout_weight_chart_content)
 
         # Create matplotlib figure with custom Y-axis formatting
-        fig = Figure(figsize=(12, 6), dpi=100)
+        fig = themed_figure(figsize=(12, 6), dpi=100)
         canvas = FigureCanvas(fig)
         ax = fig.add_subplot(111)
 

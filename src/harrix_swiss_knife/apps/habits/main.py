@@ -16,14 +16,13 @@ from datetime import UTC, date, datetime, timedelta
 from functools import partial
 from pathlib import Path
 from time import sleep
-from typing import Any, Literal, cast
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import dayplot as dp
 import harrix_pylib as h
 import pandas as pd
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.colors import LinearSegmentedColormap, Normalize, to_rgb
-from matplotlib.figure import Figure
 from matplotlib.patches import Patch
 from PySide6.QtCore import (
     QDate,
@@ -62,6 +61,7 @@ from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.app_entry import run_app_main
 from harrix_swiss_knife.apps.common.apps_config import get_apps_list_limits, set_habits_sport_habit_name
 from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
+from harrix_swiss_knife.apps.common.chart_theme import themed_figure
 from harrix_swiss_knife.apps.common.db_init import init_tracker_database
 from harrix_swiss_knife.apps.common.qt_database_manager_base import QtSqliteDatabaseManagerBase
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
@@ -123,6 +123,9 @@ from harrix_swiss_knife.qt_lucide_icon import (
 from harrix_swiss_knife.toast_progress_notification import ToastProgressNotification
 from harrix_swiss_knife.win11_caption import install_win11_caption, try_handle_win11_caption_native_event
 
+if TYPE_CHECKING:
+    from matplotlib.figure import Figure
+
 logger = logging.getLogger(__name__)
 
 PROCESS_HABIT_VALUE_COLUMN_MIN_WIDTH = 86
@@ -171,9 +174,11 @@ class MainWindow(
 
     def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107  (inherited from Qt widgets)
         super().__init__()
+        self._apply_fluent_window_chrome()
         self.setupUi(self)
         self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
         self._setup_ui()
+        self._finish_fluent_window_chrome()
 
         apply_window_icon(self)
 
@@ -1624,7 +1629,7 @@ class MainWindow(
         min_px = 200
         width_px = max(int(viewport.width()), min_px)
         height_px = max(int(viewport.height()), min_px)
-        return Figure(figsize=(width_px / dpi, height_px / dpi), dpi=dpi)
+        return themed_figure(figsize=(width_px / dpi, height_px / dpi), dpi=dpi)
 
     def _habit_id_from_table_index(self, index: QModelIndex) -> int | None:
         """Return habit database ID for a habits table model index."""
@@ -1966,7 +1971,6 @@ class MainWindow(
 
     def _setup_ui(self) -> None:
         """Set up additional UI elements after basic initialization (habits only)."""
-        self._apply_fluent_window_chrome()
         self._place_menu_bar_on_tab_row()
         install_win11_caption(self)
         self._apply_exit_about_menu_emojis()

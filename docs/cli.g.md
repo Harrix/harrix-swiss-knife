@@ -54,6 +54,7 @@ lang: en
 - [🔧 Function `python_ruff_sort_docs`](#-function-python_ruff_sort_docs)
 - [🔧 Function `site_group`](#-function-site_group)
 - [🔧 Function `site_add_submodule`](#-function-site_add_submodule)
+- [🔧 Function `site_check_blocking`](#-function-site_check_blocking)
 - [🔧 Function `site_fix_article_links`](#-function-site_fix_article_links)
 - [🔧 Function `site_pull_submodules`](#-function-site_pull_submodules)
 - [🔧 Function `site_slice_html_template`](#-function-site_slice_html_template)
@@ -1068,6 +1069,27 @@ def site_add_submodule(folder: Path) -> None:
     action = OnAddSiteContentSubmodule()
     action(folder_path=folder, noninteractive=True)
     _finish_timed_action(action)
+```
+
+</details>
+
+## 🔧 Function `site_check_blocking`
+
+```python
+def site_check_blocking(url: str | None) -> None
+```
+
+Check where URL is blocked from this computer (DNS, router, Cloudflare, server).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def site_check_blocking(url: str | None) -> None:
+    _ensure_qt_app()
+    action = OnCheckSiteBlocking()
+    action(url=url, noninteractive=True)
+    _exit_if_action_failed(action)
 ```
 
 </details>

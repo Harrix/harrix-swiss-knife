@@ -5,6 +5,7 @@ from __future__ import annotations
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtWidgets import QFrame, QScrollArea, QSizePolicy, QTabWidget, QVBoxLayout, QWidget
 
+from harrix_swiss_knife.fluent.theme import is_fluent_themed
 from harrix_swiss_knife.qt_flat_scrollbar import with_flat_scrollbars
 
 _MIN_VIEWPORT = 160
@@ -18,14 +19,27 @@ class ShrinkableScrollArea(QScrollArea):
 
     """
 
-    def __init__(self, parent: QWidget | None = None) -> None:
-        """Create a frameless expanding scroll area."""
+    def __init__(self, parent: QWidget | None = None, *, transparent: bool = False) -> None:
+        """Create a frameless expanding scroll area.
+
+        Args:
+
+        - `parent` (`QWidget | None`): Owner widget.
+        - `transparent` (`bool`): Let the Fluent window wallpaper show through
+          instead of painting a white page. Defaults to `False`.
+
+        """
         super().__init__(parent)
         self.setFrameShape(QFrame.Shape.NoFrame)
         self.setWidgetResizable(True)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        if transparent:
+            # Fluent scrollbar rules are appended by `apply_flat_scrollbars`.
+            self.setStyleSheet("QScrollArea { background: transparent; border: none; }")
+            self.viewport().setAutoFillBackground(False)
+            return
         self.setStyleSheet(
             with_flat_scrollbars("QScrollArea { background-color: #ffffff; border: none; }"),
         )
@@ -63,15 +77,20 @@ def wrap_widget_contents_in_shrinkable_scroll(host: QWidget) -> ShrinkableScroll
     - `ShrinkableScrollArea`: The scroll area now filling `host`.
 
     """
+    transparent = is_fluent_themed(host)
     existing = host.layout()
     inner = QWidget()
     inner.setObjectName("shrinkableScrollInner")
     inner.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
-    inner.setStyleSheet("QWidget#shrinkableScrollInner { background-color: #ffffff; }")
+    # Style the empty widget first: restyling it after the layout moves in re-polishes every child.
+    background = "transparent" if transparent else "#ffffff"
+    inner.setStyleSheet(f"QWidget#shrinkableScrollInner {{ background-color: {background}; }}")
     if existing is not None:
         inner.setLayout(existing)
-    scroll = ShrinkableScrollArea(host)
+    scroll = ShrinkableScrollArea(host, transparent=transparent)
     scroll.setWidget(inner)
+    if transparent:
+        inner.setAutoFillBackground(False)
     outer = QVBoxLayout(host)
     outer.setContentsMargins(0, 0, 0, 0)
     outer.setSpacing(0)

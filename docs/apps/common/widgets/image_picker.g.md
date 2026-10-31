@@ -31,6 +31,7 @@ lang: en
   - [⚙️ Method `set_image_paths`](#%EF%B8%8F-method-set_image_paths)
   - [⚙️ Method `set_on_paths_added`](#%EF%B8%8F-method-set_on_paths_added)
   - [⚙️ Method `set_save_dir`](#%EF%B8%8F-method-set_save_dir)
+  - [⚙️ Method `showEvent`](#%EF%B8%8F-method-showevent)
 - [🔧 Function `downscale_qimage`](#-function-downscale_qimage)
 - [🔧 Function `is_image_file_path`](#-function-is_image_file_path)
 - [🔧 Function `save_clipboard_image_to_temp_file`](#-function-save_clipboard_image_to_temp_file)
@@ -135,6 +136,7 @@ class ImagePicker(QWidget):
             self._setup_compact_ui()
         else:
             self._setup_picker_ui()
+        bind_theme(self, self._refresh_drop_style)
 
     def configure_filename_row(
         self,
@@ -386,6 +388,11 @@ class ImagePicker(QWidget):
     def set_save_dir(self, save_dir: Path | None) -> None:
         """Update target directory for copied images."""
         self._save_dir = Path(save_dir) if save_dir else None
+
+    def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
+        """Pick the Fluent or white drop style once the picker sits in its window."""
+        self._refresh_drop_style()
+        super().showEvent(event)
 
     def _add_images_dialog(self) -> None:
         file_paths, _ = QFileDialog.getOpenFileNames(self, "Select Images", "", _IMAGE_FILTER)
@@ -718,12 +725,23 @@ class ImagePicker(QWidget):
     def _refresh_drop_style(self) -> None:
         if not hasattr(self, "_drop_area"):
             return
-        if self._mode == ImagePickerMode.SINGLE and self.image_path:
-            self._drop_area.setStyleSheet(_DROP_SELECTED_STYLE)
-        elif self._drop_has_focus:
-            self._drop_area.setStyleSheet(_DROP_FOCUSED_STYLE)
+        selected = self._mode == ImagePickerMode.SINGLE and bool(self.image_path)
+        focused = not selected and self._drop_has_focus
+        if is_fluent_themed(self):
+            sheet = fluent_drop_zone_qss(
+                palette_for(self),
+                "#ImagePickerDropArea",
+                selected=selected,
+                focused=focused,
+            )
+        elif selected:
+            sheet = _DROP_SELECTED_STYLE
+        elif focused:
+            sheet = _DROP_FOCUSED_STYLE
         else:
-            self._drop_area.setStyleSheet(_DROP_NORMAL_STYLE)
+            sheet = _DROP_NORMAL_STYLE
+        if self._drop_area.styleSheet() != sheet:
+            self._drop_area.setStyleSheet(sheet)
 
     def _refresh_single_removal_ui(self) -> None:
         if not hasattr(self, "_preview_label"):
@@ -994,6 +1012,7 @@ def __init__(
             self._setup_compact_ui()
         else:
             self._setup_picker_ui()
+        bind_theme(self, self._refresh_drop_style)
 ```
 
 </details>
@@ -1496,6 +1515,25 @@ Update target directory for copied images.
 ```python
 def set_save_dir(self, save_dir: Path | None) -> None:
         self._save_dir = Path(save_dir) if save_dir else None
+```
+
+</details>
+
+### ⚙️ Method `showEvent`
+
+```python
+def showEvent(self, event: QShowEvent) -> None
+```
+
+Pick the Fluent or white drop style once the picker sits in its window.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
+        self._refresh_drop_style()
+        super().showEvent(event)
 ```
 
 </details>

@@ -164,6 +164,7 @@ _Figure 1: Screenshot_
   - 🌟 ★ Ruff sort, ruff format, sort, make docs PY in … ꟲᴸᴵ
 - **Site**
   - 📦 Add site content submodule… ꟲᴸᴵ
+  - 🔍 Check why a site is blocked… ꟲᴸᴵ
   - 🔗 Fix site article link titles in … ꟲᴸᴵ
   - 🌐 Generate static site…
   - ⬇️ Pull site submodules ꟲᴸᴵ
@@ -410,6 +411,8 @@ Folder arguments are optional (default: current directory) for commands that tak
 | Icon | Command                                                              | Description                                              |
 | ---- | -------------------------------------------------------------------- | -------------------------------------------------------- |
 | 📦   | `hsk site add-submodule PATH`                                        | Add folder as Git submodule of `path_site_repo`          |
+| 🔍   | `hsk site check-blocking`                                            | Check where a site is blocked from this computer         |
+| 🔍   | `hsk site check-blocking URL`                                        | Same check for an explicit URL, without the input dialog |
 | 🔗   | `hsk site fix-article-links [FOLDER]`                                | Fix titles in site article dual links                    |
 | ⬇️    | `hsk site pull-submodules`                                           | Pull `origin main` in each submodule of `path_site_repo` |
 | ⬇️    | `hsk site pull-submodules PATH`                                      | Same for an explicit site repo folder                    |

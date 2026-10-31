@@ -431,7 +431,7 @@ class ChartOperations(ChartOperationsBase):
             ha="center",
             fontsize=9,
             alpha=0.8,
-            bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+            bbox={"boxstyle": "round,pad=0.2", "facecolor": chart_label_face(), "edgecolor": "none", "alpha": 0.7},
         )
 
     def _annotate_compare_flow_chart_extrema(
