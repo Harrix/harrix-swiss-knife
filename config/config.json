@@ -31,6 +31,7 @@
       "image_ocr_translate": "snippet:config/prompts/image-ocr-translate.md",
       "image_table_to_excel": "snippet:config/prompts/image-table-to-excel.md",
       "markdown_template_fields_from_source": "snippet:config/prompts/markdown-template-fields-from-source.md",
+      "site_blocking_check": "snippet:config/prompts/site-blocking-check.md",
       "snippets_emoji_suggest": "snippet:config/prompts/snippets-emoji-suggest.md",
       "speech_transcription": "snippet:config/prompts/speech-transcription.md",
       "speech_answer": "snippet:config/prompts/speech-answer.md",

@@ -12,6 +12,8 @@ from typing import TYPE_CHECKING, Any
 
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 
+from harrix_swiss_knife.apps.common.chart_theme import chart_label_face
+
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
@@ -160,7 +162,7 @@ def annotate_chart_extrema_labels(
             ha="center",
             fontsize=cfg.label_fontsize,
             alpha=0.8,
-            bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+            bbox={"boxstyle": "round,pad=0.2", "facecolor": chart_label_face(), "edgecolor": "none", "alpha": 0.7},
             arrowprops=arrowprops,
         )
         placed_boxes.append(
@@ -496,7 +498,7 @@ def _measure_label_bbox(
         ha="center",
         fontsize=cfg.label_fontsize,
         alpha=0.8,
-        bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+        bbox={"boxstyle": "round,pad=0.2", "facecolor": chart_label_face(), "edgecolor": "none", "alpha": 0.7},
     )
     try:
         return annotation.get_window_extent(renderer).expanded(1.06, 1.14)
