@@ -382,7 +382,7 @@ def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
 class SettingsEditorDialog(QDialog)
 ```
 
-A VS Code style settings editor for `config.json`.
+A Windows Settings — style editor for `config.json`.
 
 <details>
 <summary>Code:</summary>
@@ -434,8 +434,10 @@ class SettingsEditorDialog(QDialog):
         self._field_save_buttons: dict[str, QPushButton] = {}
         self._dirty: set[str] = set()
         self._saved_snapshot = copy.deepcopy(self.config_data)
+        self._page_title: TitleLabel | None = None
 
         self._setup_ui()
+        install_fluent_app_window(self)
 
     def reject(self) -> None:
         """Close after confirming when there are unsaved edits."""
@@ -571,9 +573,9 @@ class SettingsEditorDialog(QDialog):
         self._dirty.add(widget_key)
         self._refresh_save_ui()
 
-    def _on_category_changed(self, row: int) -> None:
+    def _on_category_changed(self, cat_name: str) -> None:
         if self.search_input.text():
-            self.search_input.clear()  # This will trigger _on_search and render the category
+            self.search_input.clear()  # Triggers _on_search and re-renders the category
             return
 
         self._save_current_category()
@@ -581,8 +583,6 @@ class SettingsEditorDialog(QDialog):
         self.input_widgets.clear()
         self._snippet_editors.clear()
         self._field_save_buttons.clear()
-
-        cat_name = self.list_categories.item(row).text()
         self._render_category(cat_name)
 
     def _on_field_save(self, widget_key: str) -> None:  # noqa: ARG002
@@ -609,18 +609,15 @@ class SettingsEditorDialog(QDialog):
         self._field_save_buttons.clear()
 
         if not search_term:
-            # If search is cleared, show current category
-            row = self.list_categories.currentRow()
-            if row >= 0:
-                self._render_category(self.list_categories.item(row).text())
+            current = self.list_categories.current()
+            if current:
+                self._render_category(current)
             return
 
-        # Show matching settings across all categories
         for cat_name, settings in self.categories.items():
             matching_settings = {k: v for k, v in settings.items() if search_term in k.lower()}
             if matching_settings:
-                title = QLabel(f"<h2>{cat_name}</h2>")
-                self.settings_layout.addWidget(title)
+                self.settings_layout.addWidget(TitleLabel(cat_name))
                 self._render_settings(cat_name, matching_settings)
 
     def _on_snippet_path_changed(
@@ -770,38 +767,41 @@ class SettingsEditorDialog(QDialog):
         self._fit_multiline_widget(editor)
 
     def _render_category(self, cat_name: str) -> None:
-        title = QLabel(f"<h2>{cat_name}</h2>")
-        self.settings_layout.addWidget(title)
+        if self._page_title is not None:
+            self._page_title.setText(cat_name)
         self._render_settings(cat_name, self.categories[cat_name])
 
     def _render_settings(self, cat_name: str, settings: dict[str, Any]) -> None:
         for key, value in settings.items():
-            setting_layout = QVBoxLayout()
-            self.settings_layout.addLayout(setting_layout)
-            label = QLabel(f"<b>{key}</b>")
-            setting_layout.addWidget(label)
-
             widget_key = f"{cat_name}::{key}"
+            card = FluentSettingEditorCard(
+                key,
+                self.settings_container,
+                description=_setting_description(key, value),
+                icon=_setting_icon(key, value),
+            )
+            self.settings_layout.addWidget(card)
 
             if isinstance(value, bool):
                 widget = QCheckBox()
                 widget.setChecked(value)
                 self.input_widgets[widget_key] = widget
-                setting_layout.addLayout(self._setting_value_row(widget_key, widget))
+                card.trailing_layout.addWidget(widget, 0, Qt.AlignmentFlag.AlignVCenter)
+                card.trailing_layout.addWidget(self._make_field_save_button(widget_key))
             elif is_hotkey_bindings_setting(key, value):
                 widget = HotkeyBindingsWidget(value if isinstance(value, list) else [])
                 self.input_widgets[widget_key] = widget
-                setting_layout.addWidget(widget)
-                setting_layout.addWidget(self._make_field_save_button(widget_key), alignment=Qt.AlignmentFlag.AlignLeft)
+                card.body_layout.addWidget(widget)
+                card.trailing_layout.addWidget(self._make_field_save_button(widget_key))
             elif is_hotkey_setting(key, value):
                 widget = HotkeyEdit(str(value))
                 self.input_widgets[widget_key] = widget
-                setting_layout.addLayout(self._setting_value_row(widget_key, widget))
+                card.body_layout.addLayout(self._setting_value_row(widget_key, widget))
             elif isinstance(value, (int, float, str)):
                 widget = QLineEdit(str(value))
                 self.input_widgets[widget_key] = widget
                 if isinstance(value, str) and is_snippet_setting(value):
-                    self._add_snippet_setting(setting_layout, widget_key, widget)
+                    self._add_snippet_setting(card.body_layout, widget_key, widget)
                 elif isinstance(value, str) and is_folder_path_setting(key, value):
                     row = QHBoxLayout()
                     row.setContentsMargins(0, 0, 0, 0)
@@ -819,11 +819,10 @@ class SettingsEditorDialog(QDialog):
                     open_button.setEnabled(folder_path_from_text(widget.text()) is not None)
                     row.addWidget(open_button)
                     row.addWidget(self._make_field_save_button(widget_key))
-                    setting_layout.addLayout(row)
+                    card.body_layout.addLayout(row)
                 else:
-                    setting_layout.addLayout(self._setting_value_row(widget_key, widget))
+                    card.body_layout.addLayout(self._setting_value_row(widget_key, widget))
             else:
-                # Lists or complex objects
                 widget = QTextEdit()
                 widget.setAcceptRichText(False)
                 widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
@@ -831,11 +830,11 @@ class SettingsEditorDialog(QDialog):
                 widget.setPlainText(json.dumps(value, indent=2, ensure_ascii=False))
                 widget.textChanged.connect(self._on_multiline_text_changed)
                 self.input_widgets[widget_key] = widget
-                setting_layout.addWidget(widget)
-                setting_layout.addWidget(self._make_field_save_button(widget_key), alignment=Qt.AlignmentFlag.AlignLeft)
+                card.body_layout.addWidget(widget)
+                card.trailing_layout.addWidget(self._make_field_save_button(widget_key))
 
             self._connect_dirty(widget_key, widget)
-            self.settings_layout.addSpacing(10)
+            self.settings_layout.addSpacing(SPACE_XS)
 
         self._fit_multiline_widgets()
 
@@ -881,10 +880,13 @@ class SettingsEditorDialog(QDialog):
 
     def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(SPACE_M, SPACE_M, SPACE_M, SPACE_M)
+        layout.setSpacing(SPACE_M)
 
         search_row = QHBoxLayout()
+        search_row.setSpacing(SPACE_S)
         self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText("Search settings...")
+        self.search_input.setPlaceholderText("Find a setting")
         install_line_edit_search_chrome(self.search_input, clear_tooltip="Clear search")
         self.search_input.textChanged.connect(self._on_search)
         search_row.addWidget(self.search_input, 1)
@@ -897,29 +899,40 @@ class SettingsEditorDialog(QDialog):
         search_row.addWidget(open_json)
         layout.addLayout(search_row)
 
-        splitter = QSplitter(Qt.Orientation.Horizontal)
-        layout.addWidget(splitter)
+        body = QHBoxLayout()
+        body.setSpacing(SPACE_M)
+        layout.addLayout(body, 1)
 
-        # Left pane: Categories
-        self.list_categories = QListWidget()
+        self.list_categories = FluentNavigationBar(self, collapsible=False)
+        self.list_categories.setFixedWidth(240)
+        self.list_categories.setObjectName("settingsNav")
         for cat in self.categories:
-            self.list_categories.addItem(cat)
-        self.list_categories.currentRowChanged.connect(self._on_category_changed)
-        splitter.addWidget(self.list_categories)
+            self.list_categories.add_item(cat, cat, icon=_CATEGORY_ICONS.get(cat, "sliders-horizontal"))
+        self.list_categories.current_changed.connect(self._on_category_changed)
+        body.addWidget(self.list_categories)
 
-        # Right pane: Settings
+        page = QWidget(self)
+        page_layout = QVBoxLayout(page)
+        page_layout.setContentsMargins(0, 0, 0, 0)
+        page_layout.setSpacing(SPACE_S)
+        self._page_title = TitleLabel("")
+        page_layout.addWidget(self._page_title)
+        page_layout.addWidget(CaptionLabel("Edit values for this category. Save a card or use Save all."))
+
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setFrameShape(QScrollArea.Shape.NoFrame)
         self.settings_container = QWidget()
         self.settings_layout = QVBoxLayout(self.settings_container)
+        self.settings_layout.setContentsMargins(0, SPACE_S, SPACE_S, SPACE_L)
+        self.settings_layout.setSpacing(SPACE_XS)
         self.settings_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.scroll_area.setWidget(self.settings_container)
-        splitter.addWidget(self.scroll_area)
+        page_layout.addWidget(self.scroll_area, 1)
+        body.addWidget(page, 1)
 
-        splitter.setSizes([200, 700])
-
-        # Bottom buttons
         btn_layout = QHBoxLayout()
+        btn_layout.setSpacing(SPACE_S)
         self.status_label = QLabel("")
         self.status_label.setObjectName(STATUS_LABEL_OBJECT_NAME)
         btn_layout.addWidget(self.status_label, 1)
@@ -938,8 +951,10 @@ class SettingsEditorDialog(QDialog):
         btn_layout.addWidget(btn_close)
         layout.addLayout(btn_layout)
 
-        if self.list_categories.count() > 0:
-            self.list_categories.setCurrentRow(0)
+        first = next(iter(self.categories), "")
+        if first:
+            self.list_categories.set_current(first)
+            self._render_category(first)
 
     def _show_restart_required(self, keys: list[str]) -> None:
         """Tell the user that saved keys apply only after an application restart.
@@ -1028,8 +1043,10 @@ def __init__(
         self._field_save_buttons: dict[str, QPushButton] = {}
         self._dirty: set[str] = set()
         self._saved_snapshot = copy.deepcopy(self.config_data)
+        self._page_title: TitleLabel | None = None
 
         self._setup_ui()
+        install_fluent_app_window(self)
 ```
 
 </details>

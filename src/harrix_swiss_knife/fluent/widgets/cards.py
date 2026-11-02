@@ -583,6 +583,58 @@ class FluentSettingCard(FluentInteractiveCard):
             QDesktopServices.openUrl(QUrl(self._url))
 
 
+class FluentSettingEditorCard(FluentCard):
+    """Windows Settings detail card: title, optional description, and an editor body.
+
+    Use `trailing_layout` for compact controls (toggle, Save) and `body_layout` for
+    the main field. Unlike `FluentSettingCard`, this is not a navigation row.
+
+    """
+
+    def __init__(
+        self,
+        title: str,
+        parent: QWidget | None = None,
+        *,
+        description: str = "",
+        icon: str = "",
+    ) -> None:
+        """Create an editor setting card.
+
+        Args:
+
+        - `title` (`str`): Primary label.
+        - `parent` (`QWidget | None`): Optional parent.
+        - `description` (`str`): Secondary caption under the title.
+        - `icon` (`str`): Optional Lucide ID on the left.
+
+        """
+        super().__init__(parent)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        root = QVBoxLayout(self)
+        root.setContentsMargins(SPACE_L, SPACE_M, SPACE_L, SPACE_M)
+        root.setSpacing(SPACE_S)
+        header = QHBoxLayout()
+        header.setSpacing(SPACE_M)
+        if icon:
+            header.addWidget(_IconView(icon, self), 0, Qt.AlignmentFlag.AlignTop)
+        text_column = QVBoxLayout()
+        text_column.setSpacing(2)
+        text_column.addWidget(FluentText(title, self, style=TextStyle.BODY_STRONG))
+        if description:
+            text_column.addWidget(FluentText(description, self, role=TextRole.SECONDARY, word_wrap=True))
+        header.addLayout(text_column, 1)
+        self.trailing_layout = QHBoxLayout()
+        self.trailing_layout.setSpacing(SPACE_S)
+        self.trailing_layout.setContentsMargins(0, 0, 0, 0)
+        header.addLayout(self.trailing_layout, 0)
+        root.addLayout(header)
+        self.body_layout = QVBoxLayout()
+        self.body_layout.setSpacing(SPACE_S)
+        self.body_layout.setContentsMargins(ICON_SIZE_LARGE + SPACE_M if icon else 0, 0, 0, 0)
+        root.addLayout(self.body_layout)
+
+
 class FluentSettingHyperlinkCard(FluentSettingCard):
     """Settings-style row that opens a URL (trailing `external-link` glyph)."""
 

@@ -44,8 +44,10 @@ lang: en
   - [⚙️ Method `sizeHint`](#%EF%B8%8F-method-sizehint-1)
   - [⚙️ Method `title`](#%EF%B8%8F-method-title-1)
   - [⚙️ Method `url`](#%EF%B8%8F-method-url-1)
-- [🏛️ Class `FluentSettingHyperlinkCard`](#%EF%B8%8F-class-fluentsettinghyperlinkcard)
+- [🏛️ Class `FluentSettingEditorCard`](#%EF%B8%8F-class-fluentsettingeditorcard)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-7)
+- [🏛️ Class `FluentSettingHyperlinkCard`](#%EF%B8%8F-class-fluentsettinghyperlinkcard)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-8)
 - [🔧 Function `elide_lines`](#-function-elide_lines)
 
 </details>
@@ -1513,6 +1515,124 @@ Return the optional URL opened on click.
 ```python
 def url(self) -> str:
         return self._url
+```
+
+</details>
+
+## 🏛️ Class `FluentSettingEditorCard`
+
+```python
+class FluentSettingEditorCard(FluentCard)
+```
+
+Windows Settings detail card: title, optional description, and an editor body.
+
+Use `trailing_layout` for compact controls (toggle, Save) and `body_layout` for
+the main field. Unlike [`FluentSettingCard`](#%EF%B8%8F-class-fluentsettingcard), this is not a navigation row.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class FluentSettingEditorCard(FluentCard):
+
+    def __init__(
+        self,
+        title: str,
+        parent: QWidget | None = None,
+        *,
+        description: str = "",
+        icon: str = "",
+    ) -> None:
+        """Create an editor setting card.
+
+        Args:
+
+        - `title` (`str`): Primary label.
+        - `parent` (`QWidget | None`): Optional parent.
+        - `description` (`str`): Secondary caption under the title.
+        - `icon` (`str`): Optional Lucide ID on the left.
+
+        """
+        super().__init__(parent)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        root = QVBoxLayout(self)
+        root.setContentsMargins(SPACE_L, SPACE_M, SPACE_L, SPACE_M)
+        root.setSpacing(SPACE_S)
+        header = QHBoxLayout()
+        header.setSpacing(SPACE_M)
+        if icon:
+            header.addWidget(_IconView(icon, self), 0, Qt.AlignmentFlag.AlignTop)
+        text_column = QVBoxLayout()
+        text_column.setSpacing(2)
+        text_column.addWidget(FluentText(title, self, style=TextStyle.BODY_STRONG))
+        if description:
+            text_column.addWidget(FluentText(description, self, role=TextRole.SECONDARY, word_wrap=True))
+        header.addLayout(text_column, 1)
+        self.trailing_layout = QHBoxLayout()
+        self.trailing_layout.setSpacing(SPACE_S)
+        self.trailing_layout.setContentsMargins(0, 0, 0, 0)
+        header.addLayout(self.trailing_layout, 0)
+        root.addLayout(header)
+        self.body_layout = QVBoxLayout()
+        self.body_layout.setSpacing(SPACE_S)
+        self.body_layout.setContentsMargins(ICON_SIZE_LARGE + SPACE_M if icon else 0, 0, 0, 0)
+        root.addLayout(self.body_layout)
+```
+
+</details>
+
+### ⚙️ Method `__init__`
+
+```python
+def __init__(self, title: str, parent: QWidget | None = None, *, description: str = '', icon: str = '') -> None
+```
+
+Create an editor setting card.
+
+Args:
+
+- `title` (`str`): Primary label.
+- `parent` (`QWidget | None`): Optional parent.
+- [`description`](#%EF%B8%8F-method-description) (`str`): Secondary caption under the title.
+- [`icon`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-icon) (`str`): Optional Lucide ID on the left.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __init__(
+        self,
+        title: str,
+        parent: QWidget | None = None,
+        *,
+        description: str = "",
+        icon: str = "",
+    ) -> None:
+        super().__init__(parent)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        root = QVBoxLayout(self)
+        root.setContentsMargins(SPACE_L, SPACE_M, SPACE_L, SPACE_M)
+        root.setSpacing(SPACE_S)
+        header = QHBoxLayout()
+        header.setSpacing(SPACE_M)
+        if icon:
+            header.addWidget(_IconView(icon, self), 0, Qt.AlignmentFlag.AlignTop)
+        text_column = QVBoxLayout()
+        text_column.setSpacing(2)
+        text_column.addWidget(FluentText(title, self, style=TextStyle.BODY_STRONG))
+        if description:
+            text_column.addWidget(FluentText(description, self, role=TextRole.SECONDARY, word_wrap=True))
+        header.addLayout(text_column, 1)
+        self.trailing_layout = QHBoxLayout()
+        self.trailing_layout.setSpacing(SPACE_S)
+        self.trailing_layout.setContentsMargins(0, 0, 0, 0)
+        header.addLayout(self.trailing_layout, 0)
+        root.addLayout(header)
+        self.body_layout = QVBoxLayout()
+        self.body_layout.setSpacing(SPACE_S)
+        self.body_layout.setContentsMargins(ICON_SIZE_LARGE + SPACE_M if icon else 0, 0, 0, 0)
+        root.addLayout(self.body_layout)
 ```
 
 </details>

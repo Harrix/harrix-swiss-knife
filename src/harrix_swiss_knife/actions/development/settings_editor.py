@@ -15,7 +15,7 @@ class OnSettingsEditor(ActionBase):
     icon = "⚙️"
     icon_svg = "object__gear.svg"
     title = "Settings Editor"
-    description = "Edit config.json in a VS Code style settings editor."
+    description = "Edit config.json in a Windows Settings-style editor."
 
     @ActionBase.handle_exceptions("settings editor")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002

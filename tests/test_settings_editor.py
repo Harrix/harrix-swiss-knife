@@ -172,11 +172,7 @@ def test_snippet_setting_shows_open_button_and_content(
         },
     )
     try:
-        for row in range(dialog.list_categories.count()):
-            item = dialog.list_categories.item(row)
-            if item is not None and item.text() == "prompts":
-                dialog.list_categories.setCurrentRow(row)
-                break
+        dialog.list_categories.set_current("prompts")
         QApplication.processEvents()
         path_edit = dialog.input_widgets["prompts::finance_category_translate_local"]
         assert isinstance(path_edit, QLineEdit)
@@ -733,11 +729,7 @@ def test_app_settings_save_keeps_other_app_keys(
     dialog.show()
     QApplication.processEvents()
     try:
-        for row in range(dialog.list_categories.count()):
-            item = dialog.list_categories.item(row)
-            if item is not None and item.text() == "apps":
-                dialog.list_categories.setCurrentRow(row)
-                break
+        dialog.list_categories.set_current("apps")
         QApplication.processEvents()
         size = dialog.input_widgets["apps::fitness_image_max_size"]
         assert isinstance(size, QLineEdit)

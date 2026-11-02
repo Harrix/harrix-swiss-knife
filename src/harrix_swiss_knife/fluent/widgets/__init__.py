@@ -31,6 +31,7 @@ from harrix_swiss_knife.fluent.widgets.cards import (
     FluentPromotionCard,
     FluentReminderCard,
     FluentSettingCard,
+    FluentSettingEditorCard,
     FluentSettingHyperlinkCard,
     elide_lines,
 )
@@ -305,6 +306,7 @@ __all__ = [
     "FluentSearchLineEdit",
     "FluentSelectorBar",
     "FluentSettingCard",
+    "FluentSettingEditorCard",
     "FluentSettingHyperlinkCard",
     "FluentSheetPanel",
     "FluentSkeleton",
