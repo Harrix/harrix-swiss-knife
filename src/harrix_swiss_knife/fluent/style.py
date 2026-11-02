@@ -69,8 +69,8 @@ def chrome_top_color(palette: FluentPalette) -> QColor:
 
 def combo_box_qss(palette: FluentPalette, selector: str = "QComboBox", *, height: int = CONTROL_HEIGHT) -> str:
     """Return the Fluent drop-down (combo box) stylesheet with a Lucide chevron."""
-    # Mix onto the page so the PNG is opaque; translucent tokens wash out in QSS.
-    arrow = lucide_qss_url("chevron-down", mix(palette.window_bg, palette.text_secondary), 12)
+    # Mix onto the field fill so the PNG is opaque and readable on control chrome.
+    arrow = lucide_qss_url("chevron-down", mix(palette.control_fill, palette.text_primary), 12)
     return f"""
 {selector} {{
     background-color: {css(palette.control_fill)};
@@ -78,7 +78,7 @@ def combo_box_qss(palette: FluentPalette, selector: str = "QComboBox", *, height
     border: 1px solid {css(palette.control_stroke)};
     border-bottom-color: {css(palette.control_stroke_bottom)};
     border-radius: {RADIUS_CONTROL}px;
-    padding: 0px 20px 0px 8px;
+    padding: 0px 28px 0px 8px;
     min-height: {height - 2}px;
 }}
 {selector}:hover {{ background-color: {css(palette.control_fill_hover)}; }}
@@ -88,7 +88,7 @@ def combo_box_qss(palette: FluentPalette, selector: str = "QComboBox", *, height
 {selector}::drop-down {{
     subcontrol-origin: padding;
     subcontrol-position: center right;
-    width: 18px;
+    width: 24px;
     border: none;
     background: transparent;
 }}
@@ -108,13 +108,13 @@ def combo_box_qss(palette: FluentPalette, selector: str = "QComboBox", *, height
 
 def date_edit_qss(palette: FluentPalette, *, height: int = CONTROL_HEIGHT) -> str:
     """Return a Fluent date field with a flat chevron instead of a beveled arrow."""
-    arrow = lucide_qss_url("chevron-down", mix(palette.window_bg, palette.text_secondary), 12)
+    arrow = lucide_qss_url("chevron-down", mix(palette.control_fill, palette.text_primary), 12)
     return f"""
 {line_edit_qss(palette, "QDateEdit", height=height)}
 QDateEdit::drop-down {{
     subcontrol-origin: padding;
     subcontrol-position: center right;
-    width: 22px;
+    width: 24px;
     border: none;
     background: transparent;
 }}
@@ -245,9 +245,11 @@ def list_item_selected(palette: FluentPalette) -> QColor:
 
 
 def lucide_qss_url(name: str, color: QColor, size: int = ICON_SIZE) -> str:
-    """Render a Lucide glyph to a cached PNG and return a QSS-ready file URL.
+    """Render a Lucide glyph to a cached PNG and return a QSS `url()` path.
 
-    Translucent token colors keep their alpha in the PNG.
+    Qt stylesheets on Windows ignore `file:///…` for `image:` / `border-image:`;
+    a plain absolute POSIX path (`C:/…/glyph.png`) paints correctly. Translucent
+    token colors keep their alpha in the PNG.
 
     """
     key = (name, color.name(QColor.NameFormat.HexArgb), size)
@@ -269,7 +271,8 @@ def lucide_qss_url(name: str, color: QColor, size: int = ICON_SIZE) -> str:
     path = Path(tempfile.gettempdir()) / stem
     if not pixmap.isNull():
         pixmap.save(str(path), "PNG")
-    url = "file:///" + path.resolve().as_posix()
+    # No file:/// prefix — Windows QSS only loads bare absolute paths here.
+    url = path.resolve().as_posix()
     _URL_CACHE[key] = url
     return url
 
@@ -373,7 +376,7 @@ def spin_box_qss(
     sheet = line_edit_qss(palette, selector, height=height)
     if not arrows:
         return sheet
-    ink = mix(palette.window_bg, palette.text_secondary)
+    ink = mix(palette.control_fill, palette.text_primary)
     up = lucide_qss_url("chevron-up", ink, 10)
     down = lucide_qss_url("chevron-down", ink, 10)
     return f"""

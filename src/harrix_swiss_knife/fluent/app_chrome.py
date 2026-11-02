@@ -72,7 +72,6 @@ from harrix_swiss_knife.fluent.tokens import (
     RADIUS_CONTROL,
     SPACE_S,
 )
-from harrix_swiss_knife.qt_compact_spin_box import CompactDoubleSpinBox, CompactSpinBox
 from harrix_swiss_knife.qt_flat_scrollbar import apply_flat_scrollbars
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
 
@@ -462,7 +461,6 @@ def _restyle_buttons(root: QWidget, palette: FluentPalette) -> None:
 def _restyle_inputs(root: QWidget, palette: FluentPalette) -> None:
     line = line_edit_qss(palette, height=CONTROL_HEIGHT)
     spin = spin_box_qss(palette, height=CONTROL_HEIGHT)
-    spin_surface = spin_box_qss(palette, height=CONTROL_HEIGHT, arrows=False)
     combo = combo_box_qss(palette, height=CONTROL_HEIGHT)
     for edit in root.findChildren(QLineEdit):
         if edit.parentWidget() is not None and isinstance(edit.parentWidget(), QAbstractSpinBox):
@@ -474,10 +472,9 @@ def _restyle_inputs(root: QWidget, palette: FluentPalette) -> None:
     for box in root.findChildren(QAbstractSpinBox):
         if isinstance(box, QDateEdit):
             continue
-        # Compact spins own narrow stacked buttons via QProxyStyle; Lucide arrow QSS
-        # replaces that painting and at short heights the glyphs disappear.
-        sheet = spin_surface if isinstance(box, (CompactSpinBox, CompactDoubleSpinBox)) else spin
-        _set_sheet(box, sheet)
+        # Height is locked to CONTROL_HEIGHT so Lucide chevrons fit; CompactSpinBox
+        # still keeps its narrow button geometry via QProxyStyle.
+        _set_sheet(box, spin)
         _lock_control_height(box)
     for box in root.findChildren(QComboBox):
         _set_sheet(box, combo)
