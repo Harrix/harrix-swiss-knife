@@ -8064,6 +8064,7 @@ class MainWindow(
 
     def _setup_process_table_header(self) -> None:
         """Configure process table header and column widths."""
+        self.tableView_process.verticalHeader().setVisible(True)
         self._adjust_process_table_columns()
 
     def _setup_seconds_count_inputs(self) -> None:

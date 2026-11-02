@@ -812,6 +812,7 @@ class ZonePanel(QWidget):
         self._title_label.setStyleSheet(f"color: {primary};")
         self._list.setStyleSheet(with_flat_scrollbars(item_view_qss(palette, "QListWidget", transparent=True)))
         _apply_list_highlight_palette(self._list)
+        _paint_zone_viewport(self._list, palette)
         self._list.viewport().update()
 
     def _remember_current(self) -> None:

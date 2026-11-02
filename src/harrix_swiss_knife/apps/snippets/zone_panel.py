@@ -61,6 +61,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
     from harrix_swiss_knife.apps.snippets.database_manager import SnippetItem, ZoneSort
+    from harrix_swiss_knife.fluent.tokens import FluentPalette
 
 _ITEM_ROLE = Qt.ItemDataRole.UserRole
 _COLOR_ROLE = Qt.ItemDataRole.UserRole + 1
@@ -631,6 +632,7 @@ class ZonePanel(QWidget):
         self._title_label.setStyleSheet(f"color: {primary};")
         self._list.setStyleSheet(with_flat_scrollbars(item_view_qss(palette, "QListWidget", transparent=True)))
         _apply_list_highlight_palette(self._list)
+        _paint_zone_viewport(self._list, palette)
         self._list.viewport().update()
 
     def _remember_current(self) -> None:
@@ -782,3 +784,18 @@ def _make_emoji_candidate_chip(
         plus.clicked.connect(lambda _checked=False, value=emoji: on_add(value))
         plus.raise_()
     return chip
+
+
+def _paint_zone_viewport(widget: QListWidget, palette: FluentPalette) -> None:
+    """Fill the list viewport with the page color so Qt's default white base does not show."""
+    page = palette.window_bg
+    text = mix(palette.window_bg, palette.text_primary)
+    viewport = widget.viewport()
+    viewport.setAutoFillBackground(True)
+    tuned = viewport.palette()
+    for group in (QPalette.ColorGroup.Active, QPalette.ColorGroup.Inactive):
+        tuned.setColor(group, QPalette.ColorRole.Base, page)
+        tuned.setColor(group, QPalette.ColorRole.Window, page)
+        tuned.setColor(group, QPalette.ColorRole.Text, text)
+    viewport.setPalette(tuned)
+    viewport.setStyleSheet(f"background: {css(page)};")

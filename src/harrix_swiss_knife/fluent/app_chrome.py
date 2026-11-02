@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
     QDateEdit,
     QGroupBox,
     QHeaderView,
+    QLabel,
     QLineEdit,
     QListView,
     QListWidget,
@@ -38,6 +39,13 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife.apps.common.ui_chrome import (
+    INPUT_BORDER,
+    SELECTION_BG,
+    SELECTION_HOVER,
+    SELECTION_TEXT,
+    SURFACE,
+)
 from harrix_swiss_knife.fluent.style import (
     chrome_bottom_color,
     chrome_top_color,
@@ -74,6 +82,8 @@ CAPTION_TABS_PROPERTY = "_hskCaptionTabs"
 _PROP_BOUND = "_hskFluentAppChromeBound"
 _PROP_CANVAS = "_hskFluentCanvas"
 _TABLE_TEXT = "#1a1a1a"
+_MEDIA_PLATE_NAMES = frozenset({"label_exercise_avif", "label_exercise_avif_4", "label_exercise_avif_5"})
+_MEDIA_LIST_NAMES = frozenset({"listView_exercises"})
 _KEEP_LARGE_FONT = frozenset(
     {
         "label_today_expense",
@@ -207,6 +217,8 @@ def _apply_fluent_surfaces(window: QWidget, palette: FluentPalette) -> None:
             continue
         lowered = child_sheet.lower()
         clear_sheet = False
+        if name in _MEDIA_PLATE_NAMES:
+            continue
         if child.property(_PROP_CANVAS) or (
             name
             and f"#{name}" in child_sheet
@@ -237,6 +249,7 @@ def _apply_fluent_surfaces(window: QWidget, palette: FluentPalette) -> None:
         inner = area.widget()
         if inner is not None:
             inner.setAutoFillBackground(False)
+    _apply_media_plates(window)
     status = window.findChild(QStatusBar)
     if status is not None:
         color = chrome_bottom_color(palette)
@@ -257,6 +270,19 @@ def _apply_list_palette(view: QAbstractItemView, palette: FluentPalette) -> None
         qp.setColor(group, QPalette.ColorRole.Highlight, highlight)
         qp.setColor(group, QPalette.ColorRole.HighlightedText, text)
     view.setPalette(qp)
+
+
+def _apply_media_plates(window: QWidget) -> None:
+    """Keep exercise previews on a white plate so white GIF frames match the surface."""
+    for name in _MEDIA_PLATE_NAMES:
+        label = window.findChild(QLabel, name)
+        if label is None:
+            continue
+        _set_sheet(
+            label,
+            f"QLabel#{name} {{ background-color: {SURFACE}; border: 1px solid {INPUT_BORDER}; }}",
+        )
+        label.setAutoFillBackground(True)
 
 
 def _button_kind(sheet: str) -> str | None:
@@ -353,6 +379,11 @@ QMenuBar::item {{
 QMenuBar::item:selected {{ background: {hover}; }}
 QMenuBar::item:disabled {{ color: {secondary}; }}
 """
+
+
+def _is_icon_grid(view: QAbstractItemView) -> bool:
+    """Return whether `view` is a tile grid that owns its icon size and selection."""
+    return isinstance(view, QListView) and view.viewMode() == QListView.ViewMode.IconMode
 
 
 def _lock_control_height(widget: QWidget) -> None:
@@ -546,13 +577,21 @@ def _skip_fluent_button(button: QWidget) -> bool:
 
 
 def _style_item_view(view: QAbstractItemView, palette: FluentPalette) -> None:
-    selector = view.metaObject().className()
+    if _is_icon_grid(view):
+        _clear_viewport(view, palette)
+        return
+    if view.objectName() in _MEDIA_LIST_NAMES:
+        _style_media_list(view, palette)
+        return
     name = view.objectName()
+    selector = view.metaObject().className()
     target = f"{selector}#{name}" if name else selector
     hover = css(list_item_hover(palette))
     selected = css(list_item_selected(palette))
     text = css(mix(palette.window_bg, palette.text_primary))
-    view.setIconSize(QSize(ICON_SIZE, ICON_SIZE))
+    icon = view.iconSize()
+    if icon.width() <= ICON_SIZE:
+        view.setIconSize(QSize(ICON_SIZE, ICON_SIZE))
     view.setSpacing(0)
     _set_sheet(
         view,
@@ -579,6 +618,43 @@ def _style_item_view(view: QAbstractItemView, palette: FluentPalette) -> None:
     _clear_viewport(view, palette)
 
 
+def _style_media_list(view: QAbstractItemView, palette: FluentPalette) -> None:
+    """Keep a thumbnail list on white with the shared soft-blue selection."""
+    name = view.objectName()
+    selector = view.metaObject().className()
+    target = f"{selector}#{name}" if name else selector
+    icon = view.iconSize()
+    if icon.width() <= ICON_SIZE:
+        view.setIconSize(QSize(ICON_SIZE, ICON_SIZE))
+    _set_sheet(
+        view,
+        f"""
+{target} {{
+ background: {SURFACE};
+ color: {SELECTION_TEXT};
+ border: none;
+ outline: none;
+}}
+{target}::item {{
+ padding: 2px;
+ margin: 0px;
+ color: {SELECTION_TEXT};
+ border-bottom: 1px solid #e0e0e0;
+}}
+{target}::item:hover {{ background: {SELECTION_HOVER}; }}
+{target}::item:selected {{ background: {SELECTION_BG}; color: {SELECTION_TEXT}; }}
+{target}::item:selected:hover {{ background: {SELECTION_BG}; }}
+{scroll_bar_qss(palette)}
+""",
+    )
+    tuned = view.palette()
+    for group in (QPalette.ColorGroup.Active, QPalette.ColorGroup.Inactive, QPalette.ColorGroup.Disabled):
+        tuned.setColor(group, QPalette.ColorRole.Highlight, QColor(SELECTION_BG))
+        tuned.setColor(group, QPalette.ColorRole.HighlightedText, QColor(SELECTION_TEXT))
+    view.setPalette(tuned)
+    _paint_viewport(view, QColor(SURFACE), QColor(SELECTION_TEXT))
+
+
 def _style_table(table: QTableView, palette: FluentPalette) -> None:
     selector_base = table.metaObject().className()
     name = table.objectName()
@@ -594,8 +670,11 @@ def _style_table(table: QTableView, palette: FluentPalette) -> None:
     header.setDefaultAlignment(header.defaultAlignment())
     if isinstance(header, QHeaderView):
         header.setMinimumHeight(CONTROL_HEIGHT)
-    table.verticalHeader().setVisible(False)
-    table.verticalHeader().setDefaultSectionSize(CONTROL_HEIGHT + SPACE_S)
+    vertical = table.verticalHeader()
+    vertical.setVisible(_table_shows_record_ids(table))
+    floor = CONTROL_HEIGHT + SPACE_S
+    if vertical.defaultSectionSize() < floor:
+        vertical.setDefaultSectionSize(floor)
     _set_sheet(
         table,
         f"""
@@ -632,3 +711,17 @@ def _style_table(table: QTableView, palette: FluentPalette) -> None:
             tuned.setColor(group, role, ink)
     header.setPalette(tuned)
     header.viewport().setPalette(tuned)
+
+
+def _table_shows_record_ids(table: QTableView) -> bool:
+    """Return whether the vertical header carries labels other than row numbers."""
+    model = table.model()
+    if model is None:
+        return False
+    sample = min(model.rowCount(), 8)
+    for row in range(sample):
+        value = model.headerData(row, Qt.Orientation.Vertical, Qt.ItemDataRole.DisplayRole)
+        text = "" if value is None else str(value).strip()
+        if text and text != str(row + 1):
+            return True
+    return False
