@@ -78,7 +78,9 @@ def combo_box_qss(palette: FluentPalette, selector: str = "QComboBox", *, height
     border: 1px solid {css(palette.control_stroke)};
     border-bottom-color: {css(palette.control_stroke_bottom)};
     border-radius: {RADIUS_CONTROL}px;
-    padding: 0px 28px 0px 8px;
+    /* Keep right pad small: ::drop-down width already reserves the chevron gutter.
+       Large padding-right double-counts and clips text in narrow combos (e.g. 80px RUB). */
+    padding: 0px 4px 0px 8px;
     min-height: {height - 2}px;
 }}
 {selector}:hover {{ background-color: {css(palette.control_fill_hover)}; }}
@@ -88,7 +90,7 @@ def combo_box_qss(palette: FluentPalette, selector: str = "QComboBox", *, height
 {selector}::drop-down {{
     subcontrol-origin: padding;
     subcontrol-position: center right;
-    width: 24px;
+    width: 22px;
     border: none;
     background: transparent;
 }}
