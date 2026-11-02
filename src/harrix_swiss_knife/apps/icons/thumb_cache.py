@@ -9,7 +9,7 @@ import os
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QObject, QRectF, Qt, QThread, Signal
+from PySide6.QtCore import QCoreApplication, QObject, QRectF, Qt, QThread, Signal
 from PySide6.QtGui import QImage, QPainter, QPainterPath, QPixmap
 
 from harrix_swiss_knife.apps.icons.vector_render import (
@@ -271,7 +271,7 @@ def start_thumbnail_refresh(
     on_finished: object | None = None,
 ) -> tuple[QThread, ThumbnailWorker]:
     """Start a QThread that refreshes thumbnails; returns (thread, worker)."""
-    thread = QThread()
+    thread = QThread(QCoreApplication.instance())
     worker = ThumbnailWorker(catalog, cache, families)
     worker.moveToThread(thread)
     thread.started.connect(worker.run)

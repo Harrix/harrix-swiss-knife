@@ -72,6 +72,7 @@ from harrix_swiss_knife.fluent.tokens import (
     RADIUS_CONTROL,
     SPACE_S,
 )
+from harrix_swiss_knife.qt_compact_spin_box import CompactDoubleSpinBox, CompactSpinBox
 from harrix_swiss_knife.qt_flat_scrollbar import apply_flat_scrollbars
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
 
@@ -387,9 +388,9 @@ def _is_icon_grid(view: QAbstractItemView) -> bool:
 
 
 def _lock_control_height(widget: QWidget) -> None:
-    """Keep filter fields at the compact Fluent height so a row can fit."""
-    widget.setMinimumHeight(CONTROL_HEIGHT_COMPACT)
-    widget.setMaximumHeight(CONTROL_HEIGHT_COMPACT)
+    """Keep inputs at the standard Fluent control height so spin arrows fit."""
+    widget.setMinimumHeight(CONTROL_HEIGHT)
+    widget.setMaximumHeight(CONTROL_HEIGHT)
 
 
 def _normalize_control_metrics(root: QWidget) -> None:
@@ -459,9 +460,10 @@ def _restyle_buttons(root: QWidget, palette: FluentPalette) -> None:
 
 
 def _restyle_inputs(root: QWidget, palette: FluentPalette) -> None:
-    line = line_edit_qss(palette, height=CONTROL_HEIGHT_COMPACT)
-    spin = spin_box_qss(palette, height=CONTROL_HEIGHT_COMPACT)
-    combo = combo_box_qss(palette, height=CONTROL_HEIGHT_COMPACT)
+    line = line_edit_qss(palette, height=CONTROL_HEIGHT)
+    spin = spin_box_qss(palette, height=CONTROL_HEIGHT)
+    spin_surface = spin_box_qss(palette, height=CONTROL_HEIGHT, arrows=False)
+    combo = combo_box_qss(palette, height=CONTROL_HEIGHT)
     for edit in root.findChildren(QLineEdit):
         if edit.parentWidget() is not None and isinstance(edit.parentWidget(), QAbstractSpinBox):
             continue
@@ -472,12 +474,15 @@ def _restyle_inputs(root: QWidget, palette: FluentPalette) -> None:
     for box in root.findChildren(QAbstractSpinBox):
         if isinstance(box, QDateEdit):
             continue
-        _set_sheet(box, spin)
+        # Compact spins own narrow stacked buttons via QProxyStyle; Lucide arrow QSS
+        # replaces that painting and at short heights the glyphs disappear.
+        sheet = spin_surface if isinstance(box, (CompactSpinBox, CompactDoubleSpinBox)) else spin
+        _set_sheet(box, sheet)
         _lock_control_height(box)
     for box in root.findChildren(QComboBox):
         _set_sheet(box, combo)
         _lock_control_height(box)
-    date = date_edit_qss(palette, height=CONTROL_HEIGHT_COMPACT)
+    date = date_edit_qss(palette, height=CONTROL_HEIGHT)
     for box in root.findChildren(QDateEdit):
         _set_sheet(box, date)
         _lock_control_height(box)

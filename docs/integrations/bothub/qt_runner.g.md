@@ -17,6 +17,7 @@ lang: en
 - [🔧 Function `remember_toast_pin`](#-function-remember_toast_pin)
 - [🔧 Function `run_bothub_request`](#-function-run_bothub_request)
 - [🔧 Function `run_bothub_request_blocking`](#-function-run_bothub_request_blocking)
+- [🔧 Function `stop_active_bothub_workers`](#-function-stop_active_bothub_workers)
 
 </details>
 
@@ -272,6 +273,30 @@ def run_bothub_request_blocking(
 
     loop.exec()
     return outcome["text"]
+```
+
+</details>
+
+## 🔧 Function `stop_active_bothub_workers`
+
+```python
+def stop_active_bothub_workers(*, timeout_ms: int = 3000) -> None
+```
+
+Cancel and join BotHub workers before Qt tears down QThreads on quit.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def stop_active_bothub_workers(*, timeout_ms: int = 3000) -> None:
+    for worker in list(_active_bothub_workers):
+        worker.cancel()
+        if worker.isRunning() and not worker.wait(timeout_ms):
+            worker.terminate()
+            worker.wait(1000)
+        with suppress(ValueError):
+            _active_bothub_workers.remove(worker)
 ```
 
 </details>

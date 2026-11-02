@@ -209,6 +209,17 @@ def run_bothub_request_blocking(
     return outcome["text"]
 
 
+def stop_active_bothub_workers(*, timeout_ms: int = 3000) -> None:
+    """Cancel and join BotHub workers before Qt tears down QThreads on quit."""
+    for worker in list(_active_bothub_workers):
+        worker.cancel()
+        if worker.isRunning() and not worker.wait(timeout_ms):
+            worker.terminate()
+            worker.wait(1000)
+        with suppress(ValueError):
+            _active_bothub_workers.remove(worker)
+
+
 def _finish_cancelled(spec: BothubRequestSpec) -> None:
     """Invoke the caller's cancel path after retry was declined or disabled."""
     print("❌ Request cancelled by user.")
@@ -270,9 +281,10 @@ def _release_bothub_worker(worker: BothubChatWorker) -> None:
     """Drop the tracking ref and schedule safe Qt deletion after the thread stops."""
     with suppress(ValueError):
         _active_bothub_workers.remove(worker)
-    worker.finished.connect(worker.deleteLater)
-    if not worker.isRunning():
-        worker.deleteLater()
+    # Qt 6.12 qFatal's if a still-Running QThread is destroyed; join before deleteLater.
+    if worker.isRunning():
+        worker.wait(3000)
+    worker.deleteLater()
 
 
 def _resolve_toast_parent(parent: QWidget | None) -> QWidget | None:

@@ -55,24 +55,6 @@ _output_path_local = threading.local()
 # Keep strong refs until the thread finishes; otherwise Python GC can destroy QThread early.
 _active_action_workers: list[_WorkerForThread] = []
 
-# Fatal / programming errors that must not be swallowed by `@handle_exceptions`.
-_RERAISE_EXCEPTIONS: tuple[type[BaseException], ...] = (
-    AssertionError,
-    MemoryError,
-    RecursionError,
-    SyntaxError,
-    SystemError,
-)
-
-# NOTE: Avoid importing app modules at runtime from here (ruff TC001/TC003).
-if TYPE_CHECKING:
-    from harrix_swiss_knife.action_output_bus import ActionOutputBus
-
-# Type variables for decorators
-P = ParamSpec("P")
-R = TypeVar("R")
-SelfT = TypeVar("SelfT")
-
 
 class ActionBase(ABC):
     """Base class for actions that can be executed and produce output.
@@ -696,6 +678,8 @@ class ActionBase(ABC):
         def _cleanup_worker() -> None:
             with contextlib.suppress(ValueError):
                 _active_action_workers.remove(worker)
+            # Qt 6.12 qFatal's if a still-Running QThread is destroyed; join first.
+            worker.wait(3000)
             worker.deleteLater()
 
         worker.finished.connect(_cleanup_worker)
@@ -893,3 +877,33 @@ class _WorkerForThread(QThread):
         finally:
             if getattr(_output_path_local, "file", None) is self._output_path:
                 delattr(_output_path_local, "file")
+
+
+def stop_active_action_workers(*, timeout_ms: int = 3000) -> None:
+    """Cancel and join background action workers before Qt tears down QThreads."""
+    for worker in list(_active_action_workers):
+        worker.cancel()
+        if worker.isRunning() and not worker.wait(timeout_ms):
+            worker.terminate()
+            worker.wait(1000)
+        with contextlib.suppress(ValueError):
+            _active_action_workers.remove(worker)
+
+
+# Fatal / programming errors that must not be swallowed by `@handle_exceptions`.
+_RERAISE_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    AssertionError,
+    MemoryError,
+    RecursionError,
+    SyntaxError,
+    SystemError,
+)
+
+# NOTE: Avoid importing app modules at runtime from here (ruff TC001/TC003).
+if TYPE_CHECKING:
+    from harrix_swiss_knife.action_output_bus import ActionOutputBus
+
+# Type variables for decorators
+P = ParamSpec("P")
+R = TypeVar("R")
+SelfT = TypeVar("SelfT")

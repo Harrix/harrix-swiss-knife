@@ -53,6 +53,7 @@ lang: en
   - [⚙️ Method `start_thread`](#%EF%B8%8F-method-start_thread)
   - [⚙️ Method `text_to_clipboard`](#%EF%B8%8F-method-text_to_clipboard)
   - [⚙️ Method `thread_after_show_result`](#%EF%B8%8F-method-thread_after_show_result)
+- [🔧 Function `stop_active_action_workers`](#-function-stop_active_action_workers)
 
 </details>
 
@@ -687,6 +688,8 @@ class ActionBase(ABC):
         def _cleanup_worker() -> None:
             with contextlib.suppress(ValueError):
                 _active_action_workers.remove(worker)
+            # Qt 6.12 qFatal's if a still-Running QThread is destroyed; join first.
+            worker.wait(3000)
             worker.deleteLater()
 
         worker.finished.connect(_cleanup_worker)
@@ -1919,6 +1922,8 @@ def start_thread(
         def _cleanup_worker() -> None:
             with contextlib.suppress(ValueError):
                 _active_action_workers.remove(worker)
+            # Qt 6.12 qFatal's if a still-Running QThread is destroyed; join first.
+            worker.wait(3000)
             worker.deleteLater()
 
         worker.finished.connect(_cleanup_worker)
@@ -1981,6 +1986,30 @@ def thread_after_show_result(self, result: Any, toast: str | None = None) -> Non
         if toast:
             self.show_toast(toast)
         self.show_result()
+```
+
+</details>
+
+## 🔧 Function `stop_active_action_workers`
+
+```python
+def stop_active_action_workers(*, timeout_ms: int = 3000) -> None
+```
+
+Cancel and join background action workers before Qt tears down QThreads.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def stop_active_action_workers(*, timeout_ms: int = 3000) -> None:
+    for worker in list(_active_action_workers):
+        worker.cancel()
+        if worker.isRunning() and not worker.wait(timeout_ms):
+            worker.terminate()
+            worker.wait(1000)
+        with contextlib.suppress(ValueError):
+            _active_action_workers.remove(worker)
 ```
 
 </details>

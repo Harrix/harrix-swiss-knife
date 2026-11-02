@@ -642,7 +642,7 @@ def start_thumbnail_refresh(
     on_progress: object | None = None,
     on_finished: object | None = None,
 ) -> tuple[QThread, ThumbnailWorker]:
-    thread = QThread()
+    thread = QThread(QCoreApplication.instance())
     worker = ThumbnailWorker(catalog, cache, families)
     worker.moveToThread(thread)
     thread.started.connect(worker.run)

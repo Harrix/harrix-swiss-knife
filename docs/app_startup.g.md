@@ -366,7 +366,9 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
             Qt.ConnectionType.QueuedConnection,
         )
 
-    app.aboutToQuit.connect(_dispose_overlay_singletons)
+    if hotkey_manager is not None:
+        app.aboutToQuit.connect(hotkey_manager.unregister_all)
+    app.aboutToQuit.connect(_on_about_to_quit)
 
     _log_startup_phase(log, "Entering Qt event loop", startup_t0)
     rc = app.exec()

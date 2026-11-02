@@ -367,7 +367,9 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
             Qt.ConnectionType.QueuedConnection,
         )
 
-    app.aboutToQuit.connect(_dispose_overlay_singletons)
+    if hotkey_manager is not None:
+        app.aboutToQuit.connect(hotkey_manager.unregister_all)
+    app.aboutToQuit.connect(_on_about_to_quit)
 
     _log_startup_phase(log, "Entering Qt event loop", startup_t0)
     rc = app.exec()
@@ -447,6 +449,25 @@ def _make_placeholder_menu() -> CliContextMenu:
     exit_action.triggered.connect(QApplication.quit)
     menu.addAction(exit_action)
     return menu
+
+
+def _on_about_to_quit() -> None:
+    """Stop background QThreads, then drop overlay singletons.
+
+    Qt 6.12 calls `qFatal` when a still-running `QThread` is destroyed, which
+    aborts the process during tray Exit / restart. Join workers first.
+
+    """
+    from harrix_swiss_knife.actions.common.base import stop_active_action_workers  # noqa: PLC0415
+    from harrix_swiss_knife.integrations.bothub.qt_runner import (  # noqa: PLC0415
+        stop_active_bothub_workers,
+    )
+    from harrix_swiss_knife.single_instance import release_held_instance  # noqa: PLC0415
+
+    stop_active_bothub_workers()
+    stop_active_action_workers()
+    release_held_instance()
+    _dispose_overlay_singletons()
 
 
 def _usable_stderr() -> TextIO | None:
