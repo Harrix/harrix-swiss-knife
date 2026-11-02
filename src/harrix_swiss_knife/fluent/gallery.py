@@ -93,6 +93,7 @@ def _cards_page() -> QWidget:
         "Cards",
         [
             _section("Command cards", grid, flow=False),
+            _section("Setting cards", _setting_cards(), flow=False),
             _section(
                 "Other cards",
                 fw.FluentPopularCard("Popular", "Hover for details", icon="star", details="Details shown on hover"),
@@ -367,6 +368,25 @@ def _section(title: str, *widgets: QWidget, flow: bool = True) -> QWidget:
         layout.addWidget(widget)
     column.addWidget(holder)
     return box
+
+
+def _setting_cards() -> QWidget:
+    group = fw.FluentGroupBox("System")
+    for title, content, icon in (
+        ("Display", "Monitors, brightness, night light, display profile", "monitor"),
+        ("Sound", "Volume levels, output, input, sound devices", "volume-2"),
+        ("Notifications", "Alerts from apps and system", "bell"),
+    ):
+        group.add_widget(fw.FluentSettingCard(title, content, icon=icon))
+    group.add_widget(
+        fw.FluentSettingHyperlinkCard(
+            "Documentation",
+            "https://github.com/Harrix/harrix-swiss-knife",
+            "Open project docs on GitHub",
+            icon="book-open",
+        )
+    )
+    return group
 
 
 def _show_showcase_menu(widget: QWidget, pos: QPoint) -> None:

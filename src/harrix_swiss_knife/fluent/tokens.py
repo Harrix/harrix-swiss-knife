@@ -220,6 +220,8 @@ SCROLLBAR_THICKNESS_HOVER = 8
 # Command / setting card metrics.
 COMMAND_CARD_WIDTH = 320
 COMMAND_CARD_HEIGHT = 88
+SETTING_CARD_HEIGHT = 64
+SETTING_CARD_HEIGHT_COMPACT = 48
 CARD_GRID_SPACING = SPACE_S
 
 # Type ramp relative to the application body font (WinUI: Caption 12, Body 14,

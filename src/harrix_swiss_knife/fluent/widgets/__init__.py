@@ -25,10 +25,13 @@ from harrix_swiss_knife.fluent.widgets.card_base import (
 from harrix_swiss_knife.fluent.widgets.cards import (
     FluentAcrylicUrlCard,
     FluentCommandCard,
+    FluentHyperlinkCard,
     FluentImageCard,
     FluentPopularCard,
     FluentPromotionCard,
     FluentReminderCard,
+    FluentSettingCard,
+    FluentSettingHyperlinkCard,
     elide_lines,
 )
 from harrix_swiss_knife.fluent.widgets.dialog_base import (
@@ -244,6 +247,7 @@ __all__ = [
     "FluentGraphicsView",
     "FluentGroupBox",
     "FluentHyperlinkButton",
+    "FluentHyperlinkCard",
     "FluentHyperlinkLabel",
     "FluentIconButton",
     "FluentIconMixin",
@@ -300,6 +304,8 @@ __all__ = [
     "FluentScrollPageArea",
     "FluentSearchLineEdit",
     "FluentSelectorBar",
+    "FluentSettingCard",
+    "FluentSettingHyperlinkCard",
     "FluentSheetPanel",
     "FluentSkeleton",
     "FluentSlider",

@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 import pytest
 from PySide6.QtCore import QCoreApplication, QEvent
 from PySide6.QtWidgets import QApplication, QWidget
+from shiboken6 import isValid
 
 from harrix_swiss_knife.fluent import FluentTheme, ThemeMode, is_fluent_themed, palette_for
 from harrix_swiss_knife.fluent.gallery import build_gallery
@@ -15,9 +16,12 @@ from harrix_swiss_knife.fluent.widgets import (
     FluentCardGrid,
     FluentCommandCard,
     FluentContentDialog,
+    FluentGroupBox,
     FluentMenu,
     FluentMessageBar,
     FluentNavigationBar,
+    FluentSettingCard,
+    FluentSettingHyperlinkCard,
     Severity,
 )
 
@@ -50,7 +54,11 @@ def light_theme(qapp: QApplication) -> Iterator[FluentTheme]:
 
 
 def _dispose(qapp: QApplication, widget: QWidget) -> None:
+    if not isValid(widget):
+        return
     widget.close()
+    if not isValid(widget):
+        return
     widget.deleteLater()
     QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
     qapp.processEvents()
@@ -110,6 +118,23 @@ def test_command_cards_and_navigation(qapp: QApplication, light_theme: FluentThe
     assert changed == ["b"]
     _dispose(qapp, grid)
     _dispose(qapp, nav)
+
+
+def test_setting_cards(qapp: QApplication, light_theme: FluentTheme) -> None:
+    del light_theme
+    group = FluentGroupBox("System")
+    display = FluentSettingCard("Display", "Monitors and brightness", icon="monitor")
+    link = FluentSettingHyperlinkCard("Docs", "https://example.com", "Project docs", icon="book-open")
+    opened: list[str] = []
+    display.clicked.connect(lambda: opened.append(display.title()))
+    group.add_widget(display)
+    group.add_widget(link)
+    assert display.title() == "Display"
+    assert display.content() == "Monitors and brightness"
+    assert link.url() == "https://example.com"
+    display.clicked.emit()
+    assert opened == ["Display"]
+    _dispose(qapp, group)
 
 
 def test_popups_instantiate(qapp: QApplication, light_theme: FluentTheme) -> None:

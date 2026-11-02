@@ -1,4 +1,4 @@
-"""Fluent cards: plain, interactive, command, popular, image, URL, promotion, and reminder cards."""
+"""Fluent cards: plain, interactive, command, setting, popular, image, URL, promotion, and reminder cards."""
 
 from __future__ import annotations
 
@@ -18,6 +18,8 @@ from harrix_swiss_knife.fluent.tokens import (
     ICON_SIZE,
     ICON_SIZE_LARGE,
     RADIUS_CARD,
+    SETTING_CARD_HEIGHT,
+    SETTING_CARD_HEIGHT_COMPACT,
     SPACE_L,
     SPACE_M,
     SPACE_S,
@@ -448,6 +450,164 @@ class FluentReminderCard(FluentCard):
         self.hide()
 
 
+class FluentSettingCard(FluentInteractiveCard):
+    """Full-width Windows Settings row: icon, title, description, and a trailing chevron.
+
+    Stack these inside `FluentGroupBox` for Settings-style category lists. Click
+    emits `clicked`; set `url` (or use `FluentSettingHyperlinkCard`) to open a link.
+
+    """
+
+    def __init__(
+        self,
+        title: str,
+        content: str = "",
+        parent: QWidget | None = None,
+        *,
+        icon: QIcon | str | None = None,
+        url: str = "",
+        trailing_icon: str = "chevron-right",
+        user_data: object = None,
+    ) -> None:
+        """Create a setting / navigation card.
+
+        Args:
+
+        - `title` (`str`): Primary label (one line, elided).
+        - `content` (`str`): Secondary description (one line, elided).
+        - `parent` (`QWidget | None`): Optional parent.
+        - `icon` (`QIcon | str | None`): Ready icon, or a Lucide ID.
+        - `url` (`str`): When set, clicking also opens this URL.
+        - `trailing_icon` (`str`): Lucide ID on the right (`chevron-right` by default).
+        - `user_data` (`object`): Arbitrary payload for the click handler.
+
+        """
+        self._title = title
+        self._content = content
+        self._icon = icon
+        self._url = url
+        self._trailing_icon = trailing_icon
+        self.user_data = user_data
+        super().__init__(parent)
+        height = SETTING_CARD_HEIGHT if content else SETTING_CARD_HEIGHT_COMPACT
+        self.setFixedHeight(height)
+        self.setMinimumWidth(280)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        tip = "\n".join(part for part in (title, content, url) if part)
+        self.setToolTip(tip)
+        if url:
+            self.clicked.connect(self._open_url)
+
+    def content(self) -> str:
+        """Return the secondary description text."""
+        return self._content
+
+    def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
+        """Paint the surface, leading icon, title/content, and trailing glyph."""
+        palette = palette_for(self)
+        painter = antialiased_painter(self)
+        self.paint_background(painter, palette)
+        left = SPACE_L
+        icon = _icon_for(self._icon, palette, ICON_SIZE_LARGE)
+        if icon is not None:
+            icon.paint(
+                painter,
+                QRect(left, (self.height() - ICON_SIZE_LARGE) // 2, ICON_SIZE_LARGE, ICON_SIZE_LARGE),
+            )
+            left += ICON_SIZE_LARGE + SPACE_L
+        trailing = SPACE_L + ICON_SIZE
+        width = max(0, self.width() - left - trailing - SPACE_S)
+        title_font = fluent_font(self.font(), TYPE_BODY)
+        caption_font = fluent_font(self.font(), TYPE_CAPTION)
+        title_metrics = QFontMetrics(title_font)
+        caption_metrics = QFontMetrics(caption_font)
+        title = title_metrics.elidedText(self._title, Qt.TextElideMode.ElideRight, width)
+        content = caption_metrics.elidedText(self._content, Qt.TextElideMode.ElideRight, width) if self._content else ""
+        body_h = title_metrics.height()
+        caption_h = caption_metrics.height() if content else 0
+        y = (self.height() - body_h - caption_h) / 2
+        painter.setFont(title_font)
+        painter.setPen(palette.text_primary)
+        painter.drawText(
+            QRectF(left, y, width, body_h),
+            int(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter),
+            title,
+        )
+        if content:
+            painter.setFont(caption_font)
+            painter.setPen(palette.text_secondary)
+            painter.drawText(
+                QRectF(left, y + body_h, width, caption_h),
+                int(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter),
+                content,
+            )
+        themed_icon(self._trailing_icon, palette, palette.text_secondary, ICON_SIZE).paint(
+            painter,
+            self.width() - SPACE_L - ICON_SIZE,
+            (self.height() - ICON_SIZE) // 2,
+            ICON_SIZE,
+            ICON_SIZE,
+        )
+        painter.end()
+
+    def set_content(self, content: str) -> None:
+        """Replace the secondary description and adjust height."""
+        self._content = content
+        self.setFixedHeight(SETTING_CARD_HEIGHT if content else SETTING_CARD_HEIGHT_COMPACT)
+        self.update()
+
+    def set_icon(self, icon: QIcon | str | None) -> None:
+        """Replace the leading icon."""
+        self._icon = icon
+        self.update()
+
+    def set_title(self, title: str) -> None:
+        """Replace the title text."""
+        self._title = title
+        self.update()
+
+    def sizeHint(self) -> QSize:  # noqa: N802
+        """Return a wide settings-row size."""
+        return QSize(480, self.height())
+
+    def title(self) -> str:
+        """Return the title text."""
+        return self._title
+
+    def url(self) -> str:
+        """Return the optional URL opened on click."""
+        return self._url
+
+    def _open_url(self) -> None:
+        if self._url:
+            QDesktopServices.openUrl(QUrl(self._url))
+
+
+class FluentSettingHyperlinkCard(FluentSettingCard):
+    """Settings-style row that opens a URL (trailing `external-link` glyph)."""
+
+    def __init__(
+        self,
+        title: str,
+        url: str,
+        content: str = "",
+        parent: QWidget | None = None,
+        *,
+        icon: QIcon | str | None = "link",
+        user_data: object = None,
+    ) -> None:
+        """Create a hyperlink setting card."""
+        super().__init__(
+            title,
+            content or url,
+            parent,
+            icon=icon,
+            url=url,
+            trailing_icon="external-link",
+            user_data=user_data,
+        )
+
+
 class _IconView(QWidget):
     def __init__(self, icon: str, parent: QWidget) -> None:
         super().__init__(parent)
@@ -503,3 +663,7 @@ def _icon_for(icon: QIcon | str | None, palette: FluentPalette, size: int) -> QI
     if icon:
         return themed_icon(icon, palette, palette.text_primary, size)
     return None
+
+
+# Stable public alias (matches qfluentwidgets `HyperlinkCard` naming).
+FluentHyperlinkCard = FluentSettingHyperlinkCard
