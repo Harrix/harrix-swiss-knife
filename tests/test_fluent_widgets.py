@@ -78,6 +78,8 @@ def test_gallery_builds_and_toggles_theme(qapp: QApplication, light_theme: Fluen
         qapp.processEvents()
         assert window.navigation.current() == key
 
+    assert window.navigation.property("_hskShowcaseLabel") == "fluentNavigationBar"
+
     light_theme.set_mode(ThemeMode.DARK)
     qapp.processEvents()
     assert palette_for(window) is DARK_PALETTE
