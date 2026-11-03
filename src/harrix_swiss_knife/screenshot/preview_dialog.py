@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from tempfile import NamedTemporaryFile, TemporaryDirectory
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal, cast
 
 import harrix_pylib as h
 from PySide6.QtCore import QSize, QStandardPaths, Qt, QTimer
@@ -47,7 +47,11 @@ from harrix_swiss_knife.apps.common.keyboard_shortcuts import (
     show_keyboard_shortcuts_help,
 )
 from harrix_swiss_knife.apps.common.qt_main_window import apply_app_window_size_and_position
-from harrix_swiss_knife.fluent.app_chrome import install_fluent_app_window, install_fluent_dialog_chrome
+from harrix_swiss_knife.fluent.app_chrome import (
+    install_fluent_app_window,
+    install_fluent_dialog_chrome,
+    prepare_fluent_app_window,
+)
 from harrix_swiss_knife.fluent.style import (
     css,
     fluent_tab_bar_qss,
@@ -67,6 +71,7 @@ from harrix_swiss_knife.fluent.widgets.buttons import (
 )
 from harrix_swiss_knife.fluent.widgets.inputs import FluentSpinBox
 from harrix_swiss_knife.fluent.widgets.menus import FluentMenu, FluentMenuBar
+from harrix_swiss_knife.installer.icon_assets import apply_window_icon
 from harrix_swiss_knife.paths import get_config_path_str, get_temp_config_path
 from harrix_swiss_knife.qt_flow_layout import FlowLayout
 from harrix_swiss_knife.qt_lucide_icon import (
@@ -93,6 +98,7 @@ from harrix_swiss_knife.screenshot.text_style import (
 )
 from harrix_swiss_knife.screenshot.text_toolbar import ScreenshotTextToolbar
 from harrix_swiss_knife.screenshot.tool_colors import COLOR_TOOLS, load_tool_colors, save_tool_colors
+from harrix_swiss_knife.win11_caption import install_win11_caption, try_handle_win11_caption_native_event
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -167,6 +173,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         """Build an empty preview window; call `add_image` before showing."""
         super().__init__(parent)
         self.setWindowTitle(_DEFAULT_TITLE)
+        apply_window_icon(self)
         self.setMinimumSize(_MIN_WINDOW_WIDTH, _MIN_WINDOW_HEIGHT)
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, on=True)
         self._text_settings = load_screenshot_text_settings()
@@ -409,6 +416,8 @@ class ScreenshotPreviewWindow(QMainWindow):
             category="Help",
         )
         self._build_help_menu()
+        prepare_fluent_app_window(self)
+        install_win11_caption(self)
         install_fluent_app_window(self)
         self._tab_bar.setDrawBase(False)
         self._tab_bar.setAutoFillBackground(False)
@@ -432,6 +441,13 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._apply_tool_to_current()
         self._update_window_title()
         self._update_multi_tab_chrome()
+
+    def nativeEvent(self, event_type, message) -> tuple[bool, int]:  # noqa: ANN001, N802
+        """Drag, resize, and size the client area for the custom caption bar."""
+        handled = try_handle_win11_caption_native_event(self, event_type, message)
+        if handled is not None:
+            return handled
+        return cast("tuple[bool, int]", super().nativeEvent(event_type, message))
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Clear the process-wide preview reference when the window closes."""

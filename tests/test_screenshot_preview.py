@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sys
 from collections.abc import Iterator
 from datetime import date
 from pathlib import Path
@@ -16,6 +17,7 @@ from PySide6.QtWidgets import (
     QDialog,
     QFileDialog,
     QLineEdit,
+    QMenuBar,
     QPushButton,
     QStyle,
     QTabWidget,
@@ -45,6 +47,7 @@ from harrix_swiss_knife.screenshot.preview_dialog import (
     show_screenshot_preview,
 )
 from harrix_swiss_knife.screenshot.tool_colors import load_tool_colors, save_tool_colors
+from harrix_swiss_knife.win11_caption import CaptionButton
 
 
 @pytest.fixture
@@ -892,6 +895,30 @@ def test_show_screenshot_preview_adds_tabs(qapp: QApplication) -> None:
     assert not bar.drawBase()
     assert not bar.autoFillBackground()
     assert "background: transparent" in bar.styleSheet()
+    window.close()
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Win11 caption is Windows-only")
+def test_screenshot_preview_merges_help_menu_into_win11_caption(qapp: QApplication) -> None:
+    image = QImage(8, 8, QImage.Format.Format_RGB32)
+    image.fill(Qt.GlobalColor.blue)
+    window = show_screenshot_preview(image)
+    window.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, on=True)
+    qapp.processEvents()
+    assert window.windowFlags() & Qt.WindowType.FramelessWindowHint
+    host = window.menuWidget()
+    assert host is not None
+    assert host.objectName() == "captionBar"
+    close = window.findChild(CaptionButton, "captionCloseButton")
+    assert close is not None
+    assert host.isAncestorOf(close)
+    menu_bars = host.findChildren(QMenuBar)
+    assert menu_bars
+    assert any(
+        "Help" in action.text().replace("&", "")
+        for menu_bar in menu_bars
+        for action in menu_bar.actions()
+    )
     window.close()
 
 
