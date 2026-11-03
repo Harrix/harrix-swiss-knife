@@ -4,6 +4,10 @@ A Win32 window on a background thread can appear as soon as `pythonw` starts.
 The Qt toast cannot: it waits until `QApplication` and the rest of the package
 are imported, which is most of the delay on a slow machine.
 
+After `AUTO_MINIMIZE_SECONDS`, or when the minimize control is clicked, the
+splash collapses into a compact toast at the bottom-right of the work area.
+Click the expand control on the toast to restore the centered splash.
+
 """
 
 from __future__ import annotations
@@ -23,18 +27,32 @@ _SECONDS_PER_HOUR = 3600
 _SECONDS_PER_MINUTE = 60
 _WIDTH_DIP = 400
 _HEIGHT_DIP = 160
+_TOAST_WIDTH_DIP = 300
+_TOAST_HEIGHT_DIP = 72
+_TOAST_MARGIN_DIP = 20
 _RADIUS_DIP = 8
 _LOGO_DIP = 72
+_TOAST_LOGO_DIP = 40
 _PAD_DIP = 28
+_TOAST_PAD_DIP = 14
 _GAP_DIP = 20
+_BUTTON_DIP = 28
 _TITLE_PT = 20
 _BODY_PT = 16
+_TOAST_TITLE_PT = 14
+_TOAST_BODY_PT = 12
+AUTO_MINIMIZE_SECONDS = 3.0
 _WM_CLOSE = 0x0010
 _WM_DESTROY = 0x0002
 _WM_PAINT = 0x000F
 _WM_ERASEBKGND = 0x0014
 _WM_DPICHANGED = 0x02E0
 _WM_QUIT = 0x0012
+_WM_LBUTTONUP = 0x0202
+_WM_MOUSEMOVE = 0x0200
+_WM_SETCURSOR = 0x0020
+_WM_APP = 0x8000
+_WM_SET_MINIMIZED = _WM_APP + 1
 _WS_POPUP = 0x80000000
 _WS_EX_COMPOSITED = 0x02000000
 _WS_EX_NOACTIVATE = 0x08000000
@@ -43,9 +61,11 @@ _WS_EX_TOPMOST = 0x00000008
 _SW_SHOWNOACTIVATE = 4
 _SWP_NOACTIVATE = 0x0010
 _HWND_TOPMOST = -1
+_HTCLIENT = 1
 _PM_REMOVE = 0x0001
 _SPI_GETWORKAREA = 0x0030
 _IDC_ARROW = 32512
+_IDC_HAND = 32649
 _ERROR_CLASS_ALREADY_EXISTS = 1410
 _PS_SOLID = 0
 _SRCCOPY = 0x00CC0020
@@ -64,9 +84,12 @@ _POLL_S = 0.05
 _CLASS_NAME = "HskStartupSplash"
 _FILL_COLOR = 0x00282828
 _BORDER_COLOR = 0x004A4A4A
+_BUTTON_HOVER_COLOR = 0x00404040
 _TEXT_COLOR = 0x00FFFFFF
 _DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 = -4
 _PROCESS_PER_MONITOR_DPI_AWARE = 2
+_MINIMIZE_GLYPH = "\u2212"
+_EXPAND_GLYPH = "\u25a1"
 
 _LRESULT = ctypes.c_ssize_t
 _WNDPROC = ctypes.WINFUNCTYPE(_LRESULT, wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM)
@@ -87,12 +110,14 @@ class _SplashRuntime:
     """Mutable splash process state."""
 
     bg_brush: int = 0
+    button_hover: bool = False
     class_info: Any = None
     hwnd: int = 0
     last_clock: str = ""
     last_rect: tuple[int, int, int, int] = (0, 0, 0, 0)
     logo_icon: int = 0
     logo_px: int = 0
+    minimized: bool = False
     region_size: tuple[int, int] = (0, 0)
     started_at: float = 0.0
     stop: threading.Event = threading.Event()
@@ -129,6 +154,8 @@ def close_early_splash() -> None:
     with _lock:
         _runtime.hwnd = 0
         _runtime.thread = None
+        _runtime.minimized = False
+        _runtime.button_hover = False
 
 
 def early_splash_hwnd() -> int:
@@ -152,6 +179,11 @@ def ensure_early_splash() -> None:
         close_early_splash()
 
 
+def expand_early_splash() -> None:
+    """Restore the centered splash from the toast form."""
+    _set_minimized(minimized=False)
+
+
 def format_splash_clock(seconds: int) -> str:
     """Format elapsed seconds as `MM:SS`, or `HH:MM:SS` after 60 minutes."""
     total = max(0, int(seconds))
@@ -161,6 +193,17 @@ def format_splash_clock(seconds: int) -> str:
         return f"{hours:02d}:{minutes:02d}:{secs:02d}"
     minutes, secs = divmod(total, _SECONDS_PER_MINUTE)
     return f"{minutes:02d}:{secs:02d}"
+
+
+def is_early_splash_minimized() -> bool:
+    """Return whether the splash is showing as a bottom-right toast."""
+    with _lock:
+        return bool(_runtime.hwnd) and _runtime.minimized
+
+
+def minimize_early_splash() -> None:
+    """Collapse the splash into a toast at the bottom-right of the work area."""
+    _set_minimized(minimized=True)
 
 
 def splash_logo_path() -> Path | None:
@@ -184,17 +227,35 @@ def _apply_round_region(hwnd: int, width: int, height: int) -> None:
 
 
 def _apply_window_geometry(user32: ctypes.WinDLL, hwnd: int) -> bool:
-    x, y, width, height = _centered_rect(hwnd)
+    x, y, width, height = _window_rect(hwnd)
     target = (x, y, width, height)
     current = _current_rect(hwnd)
     if current == target and _runtime.last_rect == target:
         return False
     size_changed = current[2:] != target[2:] or _runtime.last_rect[2:] != target[2:]
-    user32.SetWindowPos(hwnd, _HWND_TOPMOST, x, y, width, height, _SWP_NOACTIVATE)
+    if not user32.SetWindowPos(
+        hwnd,
+        wintypes.HWND(_HWND_TOPMOST),
+        x,
+        y,
+        width,
+        height,
+        _SWP_NOACTIVATE,
+    ):
+        return False
     _runtime.last_rect = target
     if size_changed or _runtime.region_size != (width, height):
         _apply_round_region(hwnd, width, height)
     return True
+
+
+def _button_rect(hwnd: int) -> wintypes.RECT:
+    dpi = _dpi_for_hwnd(hwnd)
+    size = _dip(_BUTTON_DIP, dpi)
+    pad = _dip(8 if _runtime.minimized else 12, dpi)
+    client = _client_rect(hwnd)
+    width = int(client.right - client.left)
+    return _rect(width - pad - size, pad, size, size)
 
 
 def _centered_rect(hwnd: int) -> tuple[int, int, int, int]:
@@ -261,6 +322,23 @@ def _dpi_for_hwnd(hwnd: int) -> int:
     return _system_dpi()
 
 
+def _draw_chrome_button(
+    user32: ctypes.WinDLL,
+    gdi32: ctypes.WinDLL,
+    hdc: int,
+    hwnd: int,
+    font: int,
+) -> None:
+    box = _button_rect(hwnd)
+    if _runtime.button_hover:
+        fill = gdi32.CreateSolidBrush(_BUTTON_HOVER_COLOR)
+        if fill:
+            user32.FillRect(hdc, ctypes.byref(box), fill)
+            gdi32.DeleteObject(fill)
+    glyph = _EXPAND_GLYPH if _runtime.minimized else _MINIMIZE_GLYPH
+    _draw_line(user32, gdi32, hdc, glyph, box, font, align=_DT_CENTER)
+
+
 def _draw_line(
     user32: ctypes.WinDLL,
     gdi32: ctypes.WinDLL,
@@ -319,6 +397,11 @@ def _gdi32() -> ctypes.WinDLL:
     return ctypes.WinDLL("gdi32", use_last_error=True)
 
 
+def _hit_button(hwnd: int, x: int, y: int) -> bool:
+    box = _button_rect(hwnd)
+    return int(box.left) <= x < int(box.right) and int(box.top) <= y < int(box.bottom)
+
+
 def _invalidate_if_clock_changed(user32: ctypes.WinDLL, hwnd: int) -> None:
     clock = format_splash_clock(int(time.monotonic() - _runtime.started_at))
     if clock == _runtime.last_clock:
@@ -328,6 +411,20 @@ def _invalidate_if_clock_changed(user32: ctypes.WinDLL, hwnd: int) -> None:
 
 def _kernel32() -> ctypes.WinDLL:
     return ctypes.WinDLL("kernel32", use_last_error=True)
+
+
+def _maybe_auto_minimize() -> None:
+    if _runtime.minimized or not _runtime.hwnd:
+        return
+    if time.monotonic() - _runtime.started_at < AUTO_MINIMIZE_SECONDS:
+        return
+    _set_minimized(minimized=True)
+
+
+def _mouse_point(lparam: int) -> tuple[int, int]:
+    x = ctypes.c_short(lparam & 0xFFFF).value
+    y = ctypes.c_short((lparam >> 16) & 0xFFFF).value
+    return int(x), int(y)
 
 
 def _paint(hwnd: int) -> None:
@@ -364,38 +461,12 @@ def _paint(hwnd: int) -> None:
         gdi32.SetBkMode(target, _TRANSPARENT)
         gdi32.SetTextColor(target, _TEXT_COLOR)
         dpi = _dpi_for_hwnd(hwnd)
-        title_font = _create_font(gdi32, point_size=_TITLE_PT, dpi=dpi)
-        body_font = _create_font(gdi32, point_size=_BODY_PT, dpi=dpi)
         title, status, clock = splash_status_lines(int(time.monotonic() - _runtime.started_at))
         _runtime.last_clock = clock
-        pad = _dip(_PAD_DIP, dpi)
-        logo_size = _dip(_LOGO_DIP, dpi)
-        has_logo = bool(_ensure_logo_icon(logo_size))
-        text_x = pad
-        text_w = width - pad * 2
-        align = _DT_CENTER
-        if has_logo:
-            logo_y = max(0, (height - logo_size) // 2)
-            _draw_logo(user32, target, pad, logo_y, logo_size)
-            text_x = pad + logo_size + _dip(_GAP_DIP, dpi)
-            text_w = max(1, width - text_x - pad)
-            align = _DT_LEFT
-        band = max(1, height // 3)
-        _draw_line(user32, gdi32, target, title, _rect(text_x, band // 8, text_w, band), title_font, align=align)
-        _draw_line(user32, gdi32, target, status, _rect(text_x, band, text_w, band), body_font, align=align)
-        _draw_line(
-            user32,
-            gdi32,
-            target,
-            clock,
-            _rect(text_x, band * 2 - band // 8, text_w, band),
-            body_font,
-            align=align,
-        )
-        if title_font:
-            gdi32.DeleteObject(title_font)
-        if body_font:
-            gdi32.DeleteObject(body_font)
+        if _runtime.minimized:
+            _paint_toast_content(user32, gdi32, target, hwnd, height, dpi, title, status, clock)
+        else:
+            _paint_full_content(user32, gdi32, target, hwnd, height, dpi, title, status, clock)
         if mem_dc and bitmap:
             gdi32.BitBlt(hdc, 0, 0, width, height, mem_dc, 0, 0, _SRCCOPY)
             gdi32.SelectObject(mem_dc, old_bitmap)
@@ -403,6 +474,98 @@ def _paint(hwnd: int) -> None:
             gdi32.DeleteObject(mem_dc)
     finally:
         user32.EndPaint(hwnd, ctypes.byref(paint))
+
+
+def _paint_full_content(
+    user32: ctypes.WinDLL,
+    gdi32: ctypes.WinDLL,
+    hdc: int,
+    hwnd: int,
+    height: int,
+    dpi: int,
+    title: str,
+    status: str,
+    clock: str,
+) -> None:
+    title_font = _create_font(gdi32, point_size=_TITLE_PT, dpi=dpi)
+    body_font = _create_font(gdi32, point_size=_BODY_PT, dpi=dpi)
+    button_font = _create_font(gdi32, point_size=_BODY_PT, dpi=dpi)
+    pad = _dip(_PAD_DIP, dpi)
+    logo_size = _dip(_LOGO_DIP, dpi)
+    button = _button_rect(hwnd)
+    has_logo = bool(_ensure_logo_icon(logo_size))
+    text_x = pad
+    text_w = max(1, int(button.left) - pad - _dip(8, dpi))
+    align = _DT_CENTER
+    if has_logo:
+        logo_y = max(0, (height - logo_size) // 2)
+        _draw_logo(user32, hdc, pad, logo_y, logo_size)
+        text_x = pad + logo_size + _dip(_GAP_DIP, dpi)
+        text_w = max(1, int(button.left) - text_x - _dip(8, dpi))
+        align = _DT_LEFT
+    band = max(1, height // 3)
+    _draw_line(user32, gdi32, hdc, title, _rect(text_x, band // 8, text_w, band), title_font, align=align)
+    _draw_line(user32, gdi32, hdc, status, _rect(text_x, band, text_w, band), body_font, align=align)
+    _draw_line(
+        user32,
+        gdi32,
+        hdc,
+        clock,
+        _rect(text_x, band * 2 - band // 8, text_w, band),
+        body_font,
+        align=align,
+    )
+    _draw_chrome_button(user32, gdi32, hdc, hwnd, button_font)
+    if title_font:
+        gdi32.DeleteObject(title_font)
+    if body_font:
+        gdi32.DeleteObject(body_font)
+    if button_font:
+        gdi32.DeleteObject(button_font)
+
+
+def _paint_toast_content(
+    user32: ctypes.WinDLL,
+    gdi32: ctypes.WinDLL,
+    hdc: int,
+    hwnd: int,
+    height: int,
+    dpi: int,
+    title: str,
+    status: str,
+    clock: str,
+) -> None:
+    title_font = _create_font(gdi32, point_size=_TOAST_TITLE_PT, dpi=dpi)
+    body_font = _create_font(gdi32, point_size=_TOAST_BODY_PT, dpi=dpi)
+    button_font = _create_font(gdi32, point_size=_TOAST_BODY_PT, dpi=dpi)
+    pad = _dip(_TOAST_PAD_DIP, dpi)
+    logo_size = _dip(_TOAST_LOGO_DIP, dpi)
+    button = _button_rect(hwnd)
+    has_logo = bool(_ensure_logo_icon(logo_size))
+    text_x = pad
+    if has_logo:
+        logo_y = max(0, (height - logo_size) // 2)
+        _draw_logo(user32, hdc, pad, logo_y, logo_size)
+        text_x = pad + logo_size + _dip(12, dpi)
+    text_w = max(1, int(button.left) - text_x - _dip(6, dpi))
+    mid = height // 2
+    _draw_line(user32, gdi32, hdc, title, _rect(text_x, 4, text_w, mid - 2), title_font, align=_DT_LEFT)
+    _draw_line(
+        user32,
+        gdi32,
+        hdc,
+        f"{status}  {clock}",
+        _rect(text_x, mid - 2, text_w, mid - 2),
+        body_font,
+        align=_DT_LEFT,
+    )
+    _draw_chrome_button(user32, gdi32, hdc, hwnd, button_font)
+    if title_font:
+        gdi32.DeleteObject(title_font)
+    if body_font:
+        gdi32.DeleteObject(body_font)
+    if button_font:
+        gdi32.DeleteObject(button_font)
 
 
 def _pump_once(user32: ctypes.WinDLL, msg: wintypes.MSG) -> bool:
@@ -482,11 +645,14 @@ def _run_message_loop() -> None:
         return
     with _lock:
         _runtime.hwnd = hwnd
+        _runtime.minimized = False
+        _runtime.button_hover = False
     _apply_window_geometry(user32, hwnd)
     user32.UpdateWindow(hwnd)
     user32.ShowWindow(hwnd, _SW_SHOWNOACTIVATE)
     msg = wintypes.MSG()
     while not _runtime.stop.is_set() and _pump_once(user32, msg):
+        _maybe_auto_minimize()
         if _apply_window_geometry(user32, hwnd):
             user32.InvalidateRect(hwnd, None, False)  # noqa: FBT003
         _invalidate_if_clock_changed(user32, hwnd)
@@ -496,11 +662,45 @@ def _run_message_loop() -> None:
     with _lock:
         if _runtime.hwnd == hwnd:
             _runtime.hwnd = 0
+        _runtime.minimized = False
+        _runtime.button_hover = False
+
+
+def _set_button_hover(hwnd: int, *, hover: bool) -> None:
+    if _runtime.button_hover == hover:
+        return
+    _runtime.button_hover = hover
+    with contextlib.suppress(OSError):
+        _user32().InvalidateRect(hwnd, ctypes.byref(_button_rect(hwnd)), False)  # noqa: FBT003
+
+
+def _set_minimized(*, minimized: bool) -> None:
+    with _lock:
+        hwnd = _runtime.hwnd
+        thread = _runtime.thread
+        if not hwnd:
+            return
+        if _runtime.minimized == minimized:
+            return
+        if thread is not None and threading.current_thread() is not thread:
+            with contextlib.suppress(OSError):
+                _user32().PostMessageW(hwnd, _WM_SET_MINIMIZED, 1 if minimized else 0, 0)
+            return
+        _runtime.minimized = minimized
+        _runtime.button_hover = False
+        _runtime.last_rect = (0, 0, 0, 0)
+    with contextlib.suppress(OSError):
+        user32 = _user32()
+        _apply_window_geometry(user32, hwnd)
+        user32.InvalidateRect(hwnd, None, False)  # noqa: FBT003
 
 
 def _start_thread() -> None:
     _runtime.stop = threading.Event()
     _runtime.started_at = time.monotonic()
+    _runtime.minimized = False
+    _runtime.button_hover = False
+    _runtime.last_rect = (0, 0, 0, 0)
     thread = threading.Thread(target=_run_message_loop, name="hsk-startup-splash", daemon=True)
     with _lock:
         _runtime.thread = thread
@@ -515,11 +715,40 @@ def _system_dpi() -> int:
     return 96
 
 
+def _toast_rect(hwnd: int) -> tuple[int, int, int, int]:
+    dpi = _dpi_for_hwnd(hwnd)
+    width = _dip(_TOAST_WIDTH_DIP, dpi)
+    height = _dip(_TOAST_HEIGHT_DIP, dpi)
+    margin = _dip(_TOAST_MARGIN_DIP, dpi)
+    left, top, right, bottom = _work_area()
+    x = max(left + margin, right - width - margin)
+    y = max(top + margin, bottom - height - margin)
+    return x, y, width, height
+
+
 def _user32() -> ctypes.WinDLL:
     lib = ctypes.WinDLL("user32", use_last_error=True)
     lib.DefWindowProcW.restype = _LRESULT
     lib.DefWindowProcW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
     lib.CreateWindowExW.restype = wintypes.HWND
+    lib.GetCursorPos.argtypes = [ctypes.POINTER(wintypes.POINT)]
+    lib.GetCursorPos.restype = wintypes.BOOL
+    lib.GetWindowRect.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.RECT)]
+    lib.GetWindowRect.restype = wintypes.BOOL
+    lib.ScreenToClient.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.POINT)]
+    lib.ScreenToClient.restype = wintypes.BOOL
+    lib.SetCursor.argtypes = [wintypes.HANDLE]
+    lib.SetCursor.restype = wintypes.HANDLE
+    lib.SetWindowPos.argtypes = [
+        wintypes.HWND,
+        wintypes.HWND,
+        ctypes.c_int,
+        ctypes.c_int,
+        ctypes.c_int,
+        ctypes.c_int,
+        wintypes.UINT,
+    ]
+    lib.SetWindowPos.restype = wintypes.BOOL
     lib.LoadImageW.restype = wintypes.HANDLE
     lib.LoadImageW.argtypes = [
         wintypes.HINSTANCE,
@@ -543,16 +772,41 @@ def _user32() -> ctypes.WinDLL:
     return lib
 
 
+def _window_rect(hwnd: int) -> tuple[int, int, int, int]:
+    if _runtime.minimized:
+        return _toast_rect(hwnd)
+    return _centered_rect(hwnd)
+
+
 def _wndproc(hwnd: int, message: int, wparam: int, lparam: int) -> int:
     user32 = _user32()
+    handle = int(hwnd)
     if message == _WM_ERASEBKGND:
         return 1
     if message == _WM_PAINT:
-        _paint(int(hwnd))
+        _paint(handle)
         return 0
     if message == _WM_DPICHANGED:
-        _apply_window_geometry(user32, int(hwnd))
+        _apply_window_geometry(user32, handle)
         return 0
+    if message == _WM_MOUSEMOVE:
+        x, y = _mouse_point(int(lparam))
+        _set_button_hover(handle, hover=_hit_button(handle, x, y))
+        return 0
+    if message == _WM_LBUTTONUP:
+        x, y = _mouse_point(int(lparam))
+        if _hit_button(handle, x, y):
+            _set_minimized(minimized=not _runtime.minimized)
+        return 0
+    if message == _WM_SET_MINIMIZED:
+        _set_minimized(minimized=bool(int(wparam)))
+        return 0
+    if message == _WM_SETCURSOR and (int(lparam) & 0xFFFF) == _HTCLIENT:
+        point = wintypes.POINT()
+        if user32.GetCursorPos(ctypes.byref(point)) and user32.ScreenToClient(handle, ctypes.byref(point)):
+            cursor_id = _IDC_HAND if _hit_button(handle, int(point.x), int(point.y)) else _IDC_ARROW
+            user32.SetCursor(user32.LoadCursorW(None, ctypes.c_void_p(cursor_id)))
+            return 1
     if message == _WM_CLOSE:
         user32.DestroyWindow(hwnd)
         return 0

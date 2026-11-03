@@ -14,7 +14,10 @@ lang: en
 - [🔧 Function `close_early_splash`](#-function-close_early_splash)
 - [🔧 Function `early_splash_hwnd`](#-function-early_splash_hwnd)
 - [🔧 Function `ensure_early_splash`](#-function-ensure_early_splash)
+- [🔧 Function `expand_early_splash`](#-function-expand_early_splash)
 - [🔧 Function `format_splash_clock`](#-function-format_splash_clock)
+- [🔧 Function `is_early_splash_minimized`](#-function-is_early_splash_minimized)
+- [🔧 Function `minimize_early_splash`](#-function-minimize_early_splash)
 - [🔧 Function `splash_logo_path`](#-function-splash_logo_path)
 - [🔧 Function `splash_status_lines`](#-function-splash_status_lines)
 
@@ -45,6 +48,8 @@ def close_early_splash() -> None:
     with _lock:
         _runtime.hwnd = 0
         _runtime.thread = None
+        _runtime.minimized = False
+        _runtime.button_hover = False
 ```
 
 </details>
@@ -96,6 +101,24 @@ def ensure_early_splash() -> None:
 
 </details>
 
+## 🔧 Function `expand_early_splash`
+
+```python
+def expand_early_splash() -> None
+```
+
+Restore the centered splash from the toast form.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def expand_early_splash() -> None:
+    _set_minimized(minimized=False)
+```
+
+</details>
+
 ## 🔧 Function `format_splash_clock`
 
 ```python
@@ -116,6 +139,43 @@ def format_splash_clock(seconds: int) -> str:
         return f"{hours:02d}:{minutes:02d}:{secs:02d}"
     minutes, secs = divmod(total, _SECONDS_PER_MINUTE)
     return f"{minutes:02d}:{secs:02d}"
+```
+
+</details>
+
+## 🔧 Function `is_early_splash_minimized`
+
+```python
+def is_early_splash_minimized() -> bool
+```
+
+Return whether the splash is showing as a bottom-right toast.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def is_early_splash_minimized() -> bool:
+    with _lock:
+        return bool(_runtime.hwnd) and _runtime.minimized
+```
+
+</details>
+
+## 🔧 Function `minimize_early_splash`
+
+```python
+def minimize_early_splash() -> None
+```
+
+Collapse the splash into a toast at the bottom-right of the work area.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def minimize_early_splash() -> None:
+    _set_minimized(minimized=True)
 ```
 
 </details>
