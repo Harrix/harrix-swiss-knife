@@ -1324,7 +1324,9 @@ class ScreenshotPreviewCanvas(QWidget):
             self._begin_shape_draft(start, start, clicked=True)
         self._clear_snap_guides()
         if document.commit_draft():
-            self._set_only_selection(len(document.annotations) - 1)
+            # Keep the new shape unselected so the selection frame appears only
+            # when the pointer tool (or an explicit select) chooses it.
+            self._set_only_selection(None)
             self.update()
             self.document_changed.emit()
         else:

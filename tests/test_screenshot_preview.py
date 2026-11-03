@@ -1100,8 +1100,8 @@ def test_drawing_tool_starts_new_shape_over_existing(qapp: QApplication) -> None
         )
     )
     assert len(document.annotations) == 2
+    assert canvas.selected_index is None
     canvas.set_tool(AnnotationTool.NONE)
-    canvas.clear_selection()
     qapp.processEvents()
     # First arrow only: left side, away from the second stroke.
     _left_click(canvas, QPointF(20, 40))
