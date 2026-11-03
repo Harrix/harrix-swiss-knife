@@ -445,15 +445,15 @@ def menu_qss(palette: FluentPalette, selector: str = 'QMenu') -> str
 
 Return the Fluent context menu stylesheet.
 
-Left item padding must clear the Lucide icon column; a short padding
-(e.g. 12px) makes icons paint on top of the label under Qt style sheets.
+Icon width/padding live on `::icon` so labels sit just after the glyph.
+Inflating `::item` padding-left instead stacks on the icon column and
+leaves a wide empty gap (or, if too small, paints the icon on the text).
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def menu_qss(palette: FluentPalette, selector: str = "QMenu") -> str:
-    icon_column = SPACE_S + ICON_SIZE + SPACE_S
     return f"""
 {selector} {{
     background-color: {css(palette.popup_bg)};
@@ -466,12 +466,17 @@ def menu_qss(palette: FluentPalette, selector: str = "QMenu") -> str:
     background: transparent;
     color: {css(palette.text_primary)};
     border-radius: {RADIUS_CONTROL}px;
-    padding: 6px {SPACE_XL}px 6px {icon_column}px;
+    padding: 6px {SPACE_XL}px 6px {SPACE_S}px;
     margin: 1px 0px;
 }}
 {selector}::item:selected {{ background: {css(palette.subtle_hover)}; }}
 {selector}::item:disabled {{ color: {css(palette.text_disabled)}; }}
-{selector}::icon {{ padding-left: {SPACE_S}px; }}
+{selector}::icon {{
+    width: {ICON_SIZE}px;
+    height: {ICON_SIZE}px;
+    padding-left: {SPACE_S}px;
+    padding-right: {SPACE_XS}px;
+}}
 {selector}::separator {{ height: 1px; background: {css(palette.divider)}; margin: 4px 0px; }}
 """
 ```
