@@ -435,6 +435,7 @@ class SettingsEditorDialog(QDialog):
         self._dirty: set[str] = set()
         self._saved_snapshot = copy.deepcopy(self.config_data)
         self._page_title: TitleLabel | None = None
+        self._page_caption: CaptionLabel | None = None
 
         self._setup_ui()
         install_fluent_app_window(self)
@@ -456,8 +457,16 @@ class SettingsEditorDialog(QDialog):
         super().showEvent(event)
         self._fit_multiline_widgets()
 
-    def _add_snippet_setting(self, setting_layout: QVBoxLayout, widget_key: str, path_edit: QLineEdit) -> None:
-        content = QTextEdit(self.settings_container)
+    def _add_snippet_setting(
+        self,
+        setting_layout: QVBoxLayout,
+        widget_key: str,
+        path_edit: QLineEdit,
+        *,
+        trailing_layout: QHBoxLayout | None = None,
+        parent: QWidget | None = None,
+    ) -> None:
+        content = QTextEdit(parent or self.settings_container)
         content.setObjectName(SNIPPET_CONTENT_OBJECT_NAME)
         content.setAcceptRichText(False)
         content.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
@@ -474,15 +483,18 @@ class SettingsEditorDialog(QDialog):
         open_button.setDefault(False)
         open_button.setFixedWidth(36)
         open_button.clicked.connect(lambda _checked=False, line=path_edit: self._open_snippet_in_editor(line.text()))
-
-        row = QHBoxLayout()
-        row.setContentsMargins(0, 0, 0, 0)
-        row.addWidget(path_edit, 1)
-        row.addWidget(open_button)
-        row.addWidget(
-            self._make_field_save_button(widget_key, tooltip="Save this setting and snippet file"),
-        )
-        setting_layout.addLayout(row)
+        save_button = self._make_field_save_button(widget_key, tooltip="Save this setting and snippet file")
+        if trailing_layout is not None:
+            trailing_layout.addWidget(open_button)
+            trailing_layout.addWidget(save_button)
+            setting_layout.addWidget(path_edit)
+        else:
+            row = QHBoxLayout()
+            row.setContentsMargins(0, 0, 0, 0)
+            row.addWidget(path_edit, 1)
+            row.addWidget(open_button)
+            row.addWidget(save_button)
+            setting_layout.addLayout(row)
         setting_layout.addWidget(content)
         path_edit.textChanged.connect(
             lambda _text="", key=widget_key, line=path_edit, editor=content, button=open_button: (
@@ -527,8 +539,8 @@ class SettingsEditorDialog(QDialog):
         return answer == QMessageBox.StandardButton.Yes
 
     def _connect_dirty(self, widget_key: str, widget: QWidget) -> None:
-        if isinstance(widget, QCheckBox):
-            widget.stateChanged.connect(lambda _state=0, key=widget_key: self._mark_dirty(key))
+        if isinstance(widget, FluentToggleSwitch):
+            widget.toggled.connect(lambda _checked=False, key=widget_key: self._mark_dirty(key))
         elif isinstance(widget, HotkeyBindingsWidget):
             widget.changed.connect(lambda key=widget_key: self._mark_dirty(key))
         elif isinstance(widget, QLineEdit):
@@ -614,6 +626,7 @@ class SettingsEditorDialog(QDialog):
                 self._render_category(current)
             return
 
+        self._set_page_header("Search results", "Settings whose names match the query.")
         for cat_name, settings in self.categories.items():
             matching_settings = {k: v for k, v in settings.items() if search_term in k.lower()}
             if matching_settings:
@@ -766,83 +779,116 @@ class SettingsEditorDialog(QDialog):
             self._snippet_reloading.discard(widget_key)
         self._fit_multiline_widget(editor)
 
+    def _render_advanced_setting(self, group: FluentGroupBox, cat_name: str, key: str, value: object) -> None:
+        widget_key = f"{cat_name}::{key}"
+        expander = FluentExpander(
+            key,
+            self.settings_container,
+            caption=_setting_description(key, value),
+            icon=_setting_icon(key, value),
+        )
+        group.add_widget(expander)
+        if is_hotkey_bindings_setting(key, value):
+            widget = HotkeyBindingsWidget(value if isinstance(value, list) else [])
+            expander.content_layout.addWidget(widget)
+            expander.trailing_layout.addWidget(self._make_field_save_button(widget_key))
+        elif isinstance(value, str) and is_snippet_setting(value):
+            widget = QLineEdit(value)
+            self._add_snippet_setting(
+                expander.content_layout,
+                widget_key,
+                widget,
+                trailing_layout=expander.trailing_layout,
+                parent=expander.content,
+            )
+        else:
+            widget = QTextEdit()
+            widget.setAcceptRichText(False)
+            widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+            widget.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+            widget.setPlainText(json.dumps(value, indent=2, ensure_ascii=False))
+            widget.textChanged.connect(self._on_multiline_text_changed)
+            expander.content_layout.addWidget(widget)
+            expander.trailing_layout.addWidget(self._make_field_save_button(widget_key))
+        self.input_widgets[widget_key] = widget
+        self._connect_dirty(widget_key, widget)
+
     def _render_category(self, cat_name: str) -> None:
-        if self._page_title is not None:
-            self._page_title.setText(cat_name)
+        self._set_page_header(cat_name, _category_description(cat_name))
         self._render_settings(cat_name, self.categories[cat_name])
 
     def _render_settings(self, cat_name: str, settings: dict[str, Any]) -> None:
+        simple: dict[str, Any] = {}
+        advanced: dict[str, Any] = {}
         for key, value in settings.items():
-            widget_key = f"{cat_name}::{key}"
-            card = FluentSettingEditorCard(
-                key,
-                self.settings_container,
-                description=_setting_description(key, value),
-                icon=_setting_icon(key, value),
-            )
-            self.settings_layout.addWidget(card)
-
-            if isinstance(value, bool):
-                widget = QCheckBox()
-                widget.setChecked(value)
-                self.input_widgets[widget_key] = widget
-                card.trailing_layout.addWidget(widget, 0, Qt.AlignmentFlag.AlignVCenter)
-                card.trailing_layout.addWidget(self._make_field_save_button(widget_key))
-            elif is_hotkey_bindings_setting(key, value):
-                widget = HotkeyBindingsWidget(value if isinstance(value, list) else [])
-                self.input_widgets[widget_key] = widget
-                card.body_layout.addWidget(widget)
-                card.trailing_layout.addWidget(self._make_field_save_button(widget_key))
-            elif is_hotkey_setting(key, value):
-                widget = HotkeyEdit(str(value))
-                self.input_widgets[widget_key] = widget
-                card.body_layout.addLayout(self._setting_value_row(widget_key, widget))
-            elif isinstance(value, (int, float, str)):
-                widget = QLineEdit(str(value))
-                self.input_widgets[widget_key] = widget
-                if isinstance(value, str) and is_snippet_setting(value):
-                    self._add_snippet_setting(card.body_layout, widget_key, widget)
-                elif isinstance(value, str) and is_folder_path_setting(key, value):
-                    row = QHBoxLayout()
-                    row.setContentsMargins(0, 0, 0, 0)
-                    row.addWidget(widget, 1)
-                    open_button = make_lucide_push_button("", OPEN_FOLDER_BUTTON_ICON)
-                    open_button.setObjectName(OPEN_FOLDER_BUTTON_OBJECT_NAME)
-                    open_button.setToolTip("Open folder")
-                    open_button.setAutoDefault(False)
-                    open_button.setDefault(False)
-                    open_button.setFixedWidth(36)
-                    open_button.clicked.connect(lambda _checked=False, line=widget: self._open_folder_path(line.text()))
-                    widget.textChanged.connect(
-                        lambda text, button=open_button: button.setEnabled(folder_path_from_text(text) is not None),
-                    )
-                    open_button.setEnabled(folder_path_from_text(widget.text()) is not None)
-                    row.addWidget(open_button)
-                    row.addWidget(self._make_field_save_button(widget_key))
-                    card.body_layout.addLayout(row)
-                else:
-                    card.body_layout.addLayout(self._setting_value_row(widget_key, widget))
+            if _is_advanced_setting(key, value):
+                advanced[key] = value
             else:
-                widget = QTextEdit()
-                widget.setAcceptRichText(False)
-                widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-                widget.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-                widget.setPlainText(json.dumps(value, indent=2, ensure_ascii=False))
-                widget.textChanged.connect(self._on_multiline_text_changed)
-                self.input_widgets[widget_key] = widget
-                card.body_layout.addWidget(widget)
-                card.trailing_layout.addWidget(self._make_field_save_button(widget_key))
-
-            self._connect_dirty(widget_key, widget)
-            self.settings_layout.addSpacing(SPACE_XS)
-
+                simple[key] = value
+        if simple:
+            group = FluentGroupBox("Options", self.settings_container)
+            self.settings_layout.addWidget(group)
+            for key, value in simple.items():
+                self._render_simple_setting(group, cat_name, key, value)
+        if advanced:
+            group = FluentGroupBox("Advanced", self.settings_container)
+            self.settings_layout.addWidget(group)
+            for key, value in advanced.items():
+                self._render_advanced_setting(group, cat_name, key, value)
         self._fit_multiline_widgets()
+
+    def _render_simple_setting(self, group: FluentGroupBox, cat_name: str, key: str, value: object) -> None:
+        widget_key = f"{cat_name}::{key}"
+        card = FluentSettingEditorCard(
+            key,
+            self.settings_container,
+            description=_setting_description(key, value),
+            icon=_setting_icon(key, value),
+        )
+        group.add_widget(card)
+        if isinstance(value, bool):
+            toggle = FluentToggleSwitch(on_text="", off_text="")
+            toggle.setChecked(value)
+            widget: QWidget = toggle
+            card.trailing_layout.addWidget(toggle, 0, Qt.AlignmentFlag.AlignVCenter)
+            card.trailing_layout.addWidget(self._make_field_save_button(widget_key))
+        elif is_hotkey_setting(key, value):
+            widget = HotkeyEdit(str(value))
+            widget.setMinimumWidth(_COMPACT_EDITOR_MIN_WIDTH)
+            card.trailing_layout.addWidget(widget)
+            card.trailing_layout.addWidget(self._make_field_save_button(widget_key))
+        elif isinstance(value, str) and is_folder_path_setting(key, value):
+            widget = QLineEdit(value)
+            row = QHBoxLayout()
+            row.setContentsMargins(0, 0, 0, 0)
+            row.addWidget(widget, 1)
+            open_button = make_lucide_push_button("", OPEN_FOLDER_BUTTON_ICON)
+            open_button.setObjectName(OPEN_FOLDER_BUTTON_OBJECT_NAME)
+            open_button.setToolTip("Open folder")
+            open_button.setAutoDefault(False)
+            open_button.setDefault(False)
+            open_button.setFixedWidth(36)
+            open_button.clicked.connect(lambda _checked=False, line=widget: self._open_folder_path(line.text()))
+            widget.textChanged.connect(
+                lambda text, button=open_button: button.setEnabled(folder_path_from_text(text) is not None),
+            )
+            open_button.setEnabled(folder_path_from_text(widget.text()) is not None)
+            row.addWidget(open_button)
+            row.addWidget(self._make_field_save_button(widget_key))
+            card.body_layout.addLayout(row)
+        else:
+            widget = QLineEdit(str(value))
+            widget.setMinimumWidth(_COMPACT_EDITOR_MIN_WIDTH)
+            card.trailing_layout.addWidget(widget)
+            card.trailing_layout.addWidget(self._make_field_save_button(widget_key))
+        self.input_widgets[widget_key] = widget
+        self._connect_dirty(widget_key, widget)
 
     def _save_current_category(self) -> None:
         for widget_key, widget in self.input_widgets.items():
             cat_name, key = widget_key.split("::", 1)
 
-            if isinstance(widget, QCheckBox):
+            if isinstance(widget, FluentToggleSwitch):
                 self.categories[cat_name][key] = widget.isChecked()
             elif isinstance(widget, HotkeyBindingsWidget):
                 self.categories[cat_name][key] = widget.bindings_value()
@@ -871,12 +917,11 @@ class SettingsEditorDialog(QDialog):
             if widget_key in self._snippet_dirty:
                 self._snippet_drafts[widget_key] = editor.toPlainText()
 
-    def _setting_value_row(self, widget_key: str, widget: QWidget) -> QHBoxLayout:
-        row = QHBoxLayout()
-        row.setContentsMargins(0, 0, 0, 0)
-        row.addWidget(widget, 1)
-        row.addWidget(self._make_field_save_button(widget_key))
-        return row
+    def _set_page_header(self, title: str, caption: str) -> None:
+        if self._page_title is not None:
+            self._page_title.setText(title)
+        if self._page_caption is not None:
+            self._page_caption.setText(caption)
 
     def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
@@ -916,8 +961,10 @@ class SettingsEditorDialog(QDialog):
         page_layout.setContentsMargins(0, 0, 0, 0)
         page_layout.setSpacing(SPACE_S)
         self._page_title = TitleLabel("")
+        self._page_caption = CaptionLabel("")
+        self._page_caption.setWordWrap(True)
         page_layout.addWidget(self._page_title)
-        page_layout.addWidget(CaptionLabel("Edit values for this category. Save a card or use Save all."))
+        page_layout.addWidget(self._page_caption)
 
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
@@ -1044,6 +1091,7 @@ def __init__(
         self._dirty: set[str] = set()
         self._saved_snapshot = copy.deepcopy(self.config_data)
         self._page_title: TitleLabel | None = None
+        self._page_caption: CaptionLabel | None = None
 
         self._setup_ui()
         install_fluent_app_window(self)

@@ -347,7 +347,7 @@ def set_items(self, items: Sequence[str]) -> None:
 class FluentExpander(QWidget)
 ```
 
-Card with a header row (icon, title, caption, chevron) that expands to show content.
+Card with a header row (icon, title, caption, trailing, chevron) that expands to show content.
 
 <details>
 <summary>Code:</summary>
@@ -358,7 +358,7 @@ class FluentExpander(QWidget):
     expanded_changed = Signal(bool)
 
     def __init__(self, title: str, parent: QWidget | None = None, *, caption: str = "", icon: str = "") -> None:
-        """Create an expander; put content into `content_layout`."""
+        """Create an expander; put compact controls in `trailing_layout` and body into `content_layout`."""
         super().__init__(parent)
         self._expanded = False
         self._icon = icon
@@ -367,6 +367,7 @@ class FluentExpander(QWidget):
         layout.setSpacing(0)
         self._header = _ExpanderHeader(title, caption, icon, self)
         self._header.clicked.connect(self.toggle)
+        self.trailing_layout = self._header.trailing_layout
         self.content = QWidget(self)
         self.content_layout = QVBoxLayout(self.content)
         self.content_layout.setContentsMargins(SPACE_L * 3, SPACE_M, SPACE_L, SPACE_M)
@@ -412,7 +413,7 @@ class FluentExpander(QWidget):
 def __init__(self, title: str, parent: QWidget | None = None, *, caption: str = '', icon: str = '') -> None
 ```
 
-Create an expander; put content into `content_layout`.
+Create an expander; put compact controls in `trailing_layout` and body into `content_layout`.
 
 <details>
 <summary>Code:</summary>
@@ -427,6 +428,7 @@ def __init__(self, title: str, parent: QWidget | None = None, *, caption: str = 
         layout.setSpacing(0)
         self._header = _ExpanderHeader(title, caption, icon, self)
         self._header.clicked.connect(self.toggle)
+        self.trailing_layout = self._header.trailing_layout
         self.content = QWidget(self)
         self.content_layout = QVBoxLayout(self.content)
         self.content_layout.setContentsMargins(SPACE_L * 3, SPACE_M, SPACE_L, SPACE_M)

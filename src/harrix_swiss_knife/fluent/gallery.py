@@ -266,6 +266,7 @@ def _editors_page() -> QWidget:
 
 def _expander() -> QWidget:
     expander = fw.FluentExpander("Advanced", caption="More options", icon="sliders-horizontal")
+    expander.trailing_layout.addWidget(fw.FluentToggleSwitch(on_text="", off_text=""))
     expander.content_layout.addWidget(fw.FluentToggleSwitch())
     return expander
 

@@ -39,6 +39,7 @@ from harrix_swiss_knife.apps.common.settings_editor import (
     merge_filtered_config,
     snippet_path_from_text,
 )
+from harrix_swiss_knife.fluent.widgets import FluentExpander, FluentGroupBox, FluentToggleSwitch
 
 _LONG_LIST = [f"item-{index}" for index in range(12)]
 
@@ -128,9 +129,14 @@ def test_load_raw_config_keeps_snippet_references(tmp_path: Path) -> None:
 def test_multiline_field_height_shows_all_text(qapp: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:  # noqa: ARG001
     dialog = _open_settings_dialog(monkeypatch, {"block_drives": _LONG_LIST})
     try:
+        expander = dialog.findChild(FluentExpander)
+        assert expander is not None
+        expander.set_expanded(expanded=True)
+        QApplication.processEvents()
+        dialog._fit_multiline_widgets()
         widget = dialog.input_widgets["General::block_drives"]
         assert isinstance(widget, QTextEdit)
-        needed = text_content_height(widget, width=widget.width())
+        needed = text_content_height(widget, width=max(widget.width(), 50))
         assert widget.height() >= needed
         assert widget.height() > 100
         assert widget.verticalScrollBar().maximum() == 0
@@ -745,5 +751,62 @@ def test_app_settings_save_keeps_other_app_keys(
         assert written["prompts"]["food_kcal_lookup"] == "snippet:b.md"
         assert written["apps"]["fitness_image_max_size"] == 640
         assert written["apps"]["local_language"] == "ru"
+    finally:
+        dialog.close()
+
+
+def test_bool_setting_uses_toggle_switch(qapp: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:  # noqa: ARG001
+    dialog = _open_settings_dialog(monkeypatch, {"show_tray": True, "editor": "cursor"})
+    try:
+        widget = dialog.input_widgets["General::show_tray"]
+        assert isinstance(widget, FluentToggleSwitch)
+        assert widget.isChecked()
+        titles = [group.title_label.text() for group in dialog.findChildren(FluentGroupBox)]
+        assert "Options" in titles
+        assert dialog.findChild(FluentExpander) is None
+    finally:
+        dialog.close()
+
+
+def test_advanced_settings_use_expander(qapp: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:  # noqa: ARG001
+    dialog = _open_settings_dialog(
+        monkeypatch,
+        {
+            "editor": "cursor",
+            "hotkeys": [{"action": "OnQuickLauncher", "hotkeys": ["Ctrl+Shift+F1"]}],
+            "block_drives": ["C"],
+        },
+    )
+    try:
+        expanders = dialog.findChildren(FluentExpander)
+        assert len(expanders) == 2
+        titles = [group.title_label.text() for group in dialog.findChildren(FluentGroupBox)]
+        assert "Options" in titles
+        assert "Advanced" in titles
+        assert isinstance(dialog.input_widgets["General::hotkeys"], HotkeyBindingsWidget)
+        assert isinstance(dialog.input_widgets["General::block_drives"], QTextEdit)
+    finally:
+        dialog._dirty.clear()
+        dialog.close()
+
+
+def test_page_caption_follows_category(qapp: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:  # noqa: ARG001
+    dialog = _open_settings_dialog(
+        monkeypatch,
+        {
+            "editor": "cursor",
+            "prompts": {"text_fix_ru": "snippet:config/prompts/text-fix-ru.md"},
+        },
+    )
+    try:
+        assert dialog._page_title is not None
+        assert dialog._page_caption is not None
+        assert dialog._page_title.text() == "General"
+        assert dialog._page_caption.text() == "App-wide settings and defaults."
+        dialog.list_categories.set_current("prompts")
+        QApplication.processEvents()
+        assert dialog._page_title.text() == "prompts"
+        assert dialog._page_caption.text() == "Prompt snippets sent to AI actions."
+        assert dialog.findChild(FluentExpander) is not None
     finally:
         dialog.close()

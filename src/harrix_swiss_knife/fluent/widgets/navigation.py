@@ -144,12 +144,12 @@ class FluentBreadcrumb(QWidget):
 
 
 class FluentExpander(QWidget):
-    """Card with a header row (icon, title, caption, chevron) that expands to show content."""
+    """Card with a header row (icon, title, caption, trailing, chevron) that expands to show content."""
 
     expanded_changed = Signal(bool)
 
     def __init__(self, title: str, parent: QWidget | None = None, *, caption: str = "", icon: str = "") -> None:
-        """Create an expander; put content into `content_layout`."""
+        """Create an expander; put compact controls in `trailing_layout` and body into `content_layout`."""
         super().__init__(parent)
         self._expanded = False
         self._icon = icon
@@ -158,6 +158,7 @@ class FluentExpander(QWidget):
         layout.setSpacing(0)
         self._header = _ExpanderHeader(title, caption, icon, self)
         self._header.clicked.connect(self.toggle)
+        self.trailing_layout = self._header.trailing_layout
         self.content = QWidget(self)
         self.content_layout = QVBoxLayout(self.content)
         self.content_layout.setContentsMargins(SPACE_L * 3, SPACE_M, SPACE_L, SPACE_M)
@@ -795,6 +796,18 @@ class _ExpanderHeader(QWidget):
         self._hover = False
         self.setFixedHeight(64 if caption else 48)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, SPACE_L, 0)
+        layout.setSpacing(SPACE_S)
+        layout.addStretch(1)
+        self._trailing_host = QWidget(self)
+        self._trailing_host.setCursor(Qt.CursorShape.ArrowCursor)
+        self._trailing_host.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
+        self.trailing_layout = QHBoxLayout(self._trailing_host)
+        self.trailing_layout.setContentsMargins(0, 0, 0, 0)
+        self.trailing_layout.setSpacing(SPACE_S)
+        layout.addWidget(self._trailing_host, 0, Qt.AlignmentFlag.AlignVCenter)
+        layout.addSpacing(12)
         bind_theme(self, self.update)
 
     def enterEvent(self, event: QEnterEvent) -> None:  # noqa: N802
@@ -808,8 +821,9 @@ class _ExpanderHeader(QWidget):
         super().leaveEvent(event)
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        if event.button() == Qt.MouseButton.LeftButton:
+        if event.button() == Qt.MouseButton.LeftButton and not self._trailing_contains(event):
             self.clicked.emit()
+        super().mouseReleaseEvent(event)
 
     def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
         palette = palette_for(self)
@@ -827,7 +841,8 @@ class _ExpanderHeader(QWidget):
         body_h = QFontMetrics(body).height()
         caption_h = QFontMetrics(caption).height() if self._caption else 0
         y = (self.height() - body_h - caption_h) / 2
-        width = self.width() - x - 48
+        trailing_left = self._trailing_host.x() if self._trailing_host.width() else self.width() - SPACE_L - 12
+        width = max(0, trailing_left - x - SPACE_S)
         painter.setFont(body)
         painter.setPen(palette.text_primary)
         painter.drawText(
@@ -850,3 +865,6 @@ class _ExpanderHeader(QWidget):
     def set_expanded(self, *, expanded: bool) -> None:
         self._expanded = expanded
         self.update()
+
+    def _trailing_contains(self, event: QMouseEvent) -> bool:
+        return self._trailing_host.geometry().contains(event.position().toPoint())

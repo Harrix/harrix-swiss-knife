@@ -16,12 +16,14 @@ from harrix_swiss_knife.fluent.widgets import (
     FluentCardGrid,
     FluentCommandCard,
     FluentContentDialog,
+    FluentExpander,
     FluentGroupBox,
     FluentMenu,
     FluentMessageBar,
     FluentNavigationBar,
     FluentSettingCard,
     FluentSettingHyperlinkCard,
+    FluentToggleSwitch,
     Severity,
 )
 
@@ -135,6 +137,24 @@ def test_setting_cards(qapp: QApplication, light_theme: FluentTheme) -> None:
     display.clicked.emit()
     assert opened == ["Display"]
     _dispose(qapp, group)
+
+
+def test_expander_trailing_does_not_toggle(qapp: QApplication, light_theme: FluentTheme) -> None:
+    del light_theme
+    expander = FluentExpander("Advanced", caption="More options", icon="sliders-horizontal")
+    toggle = FluentToggleSwitch(on_text="", off_text="")
+    expander.trailing_layout.addWidget(toggle)
+    expander.show()
+    qapp.processEvents()
+    assert not expander.is_expanded()
+    toggle.click()
+    qapp.processEvents()
+    assert not expander.is_expanded()
+    assert toggle.isChecked()
+    expander.toggle()
+    qapp.processEvents()
+    assert expander.is_expanded()
+    _dispose(qapp, expander)
 
 
 def test_popups_instantiate(qapp: QApplication, light_theme: FluentTheme) -> None:
