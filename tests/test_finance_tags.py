@@ -7,12 +7,14 @@ from pathlib import Path
 
 import pytest
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QStandardItemModel
-from PySide6.QtWidgets import QApplication, QLineEdit, QListWidget, QStyleOptionViewItem, QWidget
+from PySide6.QtGui import QPainter, QPixmap, QStandardItemModel
+from PySide6.QtWidgets import QApplication, QStyleOptionViewItem, QWidget
 
 from harrix_swiss_knife.apps.finance.database_manager import DatabaseManager
 from harrix_swiss_knife.apps.finance.delegates.tag_delegate import TagDelegate
 from harrix_swiss_knife.apps.finance.tags import format_tag_text, parse_tag_text
+from harrix_swiss_knife.fluent.widgets.buttons import FluentCheckBox
+from harrix_swiss_knife.fluent.widgets.input_base import FluentLineEdit
 
 RECOVER_SQL = Path(__file__).resolve().parents[1] / "src" / "harrix_swiss_knife" / "apps" / "finance" / "recover.sql"
 RUB_ID = 1
@@ -44,20 +46,39 @@ def test_tag_delegate_writes_checked_and_typed_tags(qapp: QApplication) -> None:
     index = model.index(0, 0)
     editor = delegate.createEditor(parent, QStyleOptionViewItem(), index)
     delegate.setEditorData(editor, index)
-    tag_list = editor.findChild(QListWidget)
-    assert tag_list is not None
-    for row in range(tag_list.count()):
-        item = tag_list.item(row)
-        assert item is not None
-        if item.text() == "trip":
-            item.setCheckState(Qt.CheckState.Checked)
-    field = editor.findChild(QLineEdit)
+    boxes = editor.findChildren(FluentCheckBox)
+    assert {box.text() for box in boxes} == {"gift", "trip"}
+    for box in boxes:
+        if box.text() == "trip":
+            box.setChecked(True)
+        if box.text() == "gift":
+            assert box.isChecked()
+    field = editor.findChild(FluentLineEdit)
     assert field is not None
     field.setText("cafe")
     delegate.setModelData(editor, model, index)
     assert model.data(index) == "cafe, gift, trip"
     editor.close()
     parent.close()
+
+
+def test_tag_delegate_paints_chips_without_plain_text(qapp: QApplication) -> None:
+    assert qapp is not None
+    model = QStandardItemModel(1, 1)
+    model.setData(model.index(0, 0), "trip, food")
+    delegate = TagDelegate(None, tags=["trip", "food"])
+    option = QStyleOptionViewItem()
+    option.rect = option.rect.adjusted(0, 0, 200, 28)
+    option.rect.setRect(0, 0, 200, 28)
+    pixmap = QPixmap(200, 28)
+    pixmap.fill(Qt.GlobalColor.white)
+    painter = QPainter(pixmap)
+    delegate.paint(painter, option, model.index(0, 0))
+    painter.end()
+    image = pixmap.toImage()
+    assert any(
+        image.pixelColor(x, y) != Qt.GlobalColor.white for y in range(image.height()) for x in range(image.width())
+    )
 
 
 @pytest.fixture

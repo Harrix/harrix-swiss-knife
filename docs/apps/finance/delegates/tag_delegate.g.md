@@ -14,6 +14,7 @@ lang: en
 - [🏛️ Class `TagDelegate`](#%EF%B8%8F-class-tagdelegate)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `createEditor`](#%EF%B8%8F-method-createeditor)
+  - [⚙️ Method `paint`](#%EF%B8%8F-method-paint)
   - [⚙️ Method `setEditorData`](#%EF%B8%8F-method-seteditordata)
   - [⚙️ Method `setModelData`](#%EF%B8%8F-method-setmodeldata)
   - [⚙️ Method `tags (property)`](#%EF%B8%8F-method-tags-property)
@@ -28,7 +29,7 @@ lang: en
 class TagDelegate(QStyledItemDelegate)
 ```
 
-Edit a transaction tag cell as a check list of several tags.
+Paint tags as Fluent chips and edit them with a check list.
 
 <details>
 <summary>Code:</summary>
@@ -63,24 +64,39 @@ class TagDelegate(QStyledItemDelegate):
         _option: QStyleOptionViewItem,
         index: QModelIndex | QPersistentModelIndex,
     ) -> QWidget:
-        """Open a check list of known tags with the current cell values checked."""
+        """Open a Fluent check list of known tags with the current cell values checked."""
         raw = index.data()
         selected = parse_tag_text(str(raw) if raw is not None else "")
         return _TagCheckListEditor(self._known_tags(), selected, parent)
+
+    def paint(
+        self,
+        painter: QPainter,
+        option: QStyleOptionViewItem,
+        index: QModelIndex | QPersistentModelIndex,
+    ) -> None:
+        """Draw soft accent chips instead of plain comma-separated text."""
+        opt = QStyleOptionViewItem(option)
+        self.initStyleOption(opt, index)
+        opt.text = ""
+        widget = opt.widget
+        style = widget.style() if widget is not None else None
+        if style is not None:
+            style.drawControl(QStyle.ControlElement.CE_ItemViewItem, opt, painter, widget)
+        else:
+            super().paint(painter, opt, index)
+
+        raw = index.data()
+        names = parse_tag_text(str(raw) if raw is not None else "")
+        if not names:
+            return
+        _paint_tag_chips(painter, opt.rect, names, palette_for(widget))
 
     def setEditorData(self, editor: QWidget, index: QModelIndex | QPersistentModelIndex) -> None:  # noqa: N802
         """Check the tags currently stored in the cell."""
         checklist = cast("_TagCheckListEditor", editor)
         raw = index.data()
-        selected = {name.casefold() for name in parse_tag_text(str(raw) if raw is not None else "")}
-        tag_list = checklist.findChild(QListWidget)
-        if tag_list is None:
-            return
-        for row in range(tag_list.count()):
-            item = tag_list.item(row)
-            if item is None:
-                continue
-            item.setCheckState(Qt.CheckState.Checked if item.text().casefold() in selected else Qt.CheckState.Unchecked)
+        checklist.set_selected_tags(parse_tag_text(str(raw) if raw is not None else ""))
 
     def setModelData(  # noqa: N802
         self,
@@ -107,8 +123,8 @@ class TagDelegate(QStyledItemDelegate):
         option: QStyleOptionViewItem,
         _index: QModelIndex | QPersistentModelIndex,
     ) -> None:
-        """Give the check list enough height to show several tags."""
-        rect = option.rect
+        """Place a Fluent-sized popup over the cell without clipping off-screen."""
+        rect = QRect(option.rect)
         height = _EDITOR_HEIGHT
         width = max(rect.width(), _EDITOR_MIN_WIDTH)
         parent = editor.parentWidget()
@@ -172,7 +188,7 @@ def __init__(
 def createEditor(self, parent: QWidget, _option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> QWidget
 ```
 
-Open a check list of known tags with the current cell values checked.
+Open a Fluent check list of known tags with the current cell values checked.
 
 <details>
 <summary>Code:</summary>
@@ -187,6 +203,43 @@ def createEditor(  # noqa: N802
         raw = index.data()
         selected = parse_tag_text(str(raw) if raw is not None else "")
         return _TagCheckListEditor(self._known_tags(), selected, parent)
+```
+
+</details>
+
+### ⚙️ Method `paint`
+
+```python
+def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> None
+```
+
+Draw soft accent chips instead of plain comma-separated text.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def paint(
+        self,
+        painter: QPainter,
+        option: QStyleOptionViewItem,
+        index: QModelIndex | QPersistentModelIndex,
+    ) -> None:
+        opt = QStyleOptionViewItem(option)
+        self.initStyleOption(opt, index)
+        opt.text = ""
+        widget = opt.widget
+        style = widget.style() if widget is not None else None
+        if style is not None:
+            style.drawControl(QStyle.ControlElement.CE_ItemViewItem, opt, painter, widget)
+        else:
+            super().paint(painter, opt, index)
+
+        raw = index.data()
+        names = parse_tag_text(str(raw) if raw is not None else "")
+        if not names:
+            return
+        _paint_tag_chips(painter, opt.rect, names, palette_for(widget))
 ```
 
 </details>
@@ -206,15 +259,7 @@ Check the tags currently stored in the cell.
 def setEditorData(self, editor: QWidget, index: QModelIndex | QPersistentModelIndex) -> None:  # noqa: N802
         checklist = cast("_TagCheckListEditor", editor)
         raw = index.data()
-        selected = {name.casefold() for name in parse_tag_text(str(raw) if raw is not None else "")}
-        tag_list = checklist.findChild(QListWidget)
-        if tag_list is None:
-            return
-        for row in range(tag_list.count()):
-            item = tag_list.item(row)
-            if item is None:
-                continue
-            item.setCheckState(Qt.CheckState.Checked if item.text().casefold() in selected else Qt.CheckState.Unchecked)
+        checklist.set_selected_tags(parse_tag_text(str(raw) if raw is not None else ""))
 ```
 
 </details>
@@ -285,7 +330,7 @@ def tags(self, value: list[str] | None) -> None:
 def updateEditorGeometry(self, editor: QWidget, option: QStyleOptionViewItem, _index: QModelIndex | QPersistentModelIndex) -> None
 ```
 
-Give the check list enough height to show several tags.
+Place a Fluent-sized popup over the cell without clipping off-screen.
 
 <details>
 <summary>Code:</summary>
@@ -297,7 +342,7 @@ def updateEditorGeometry(  # noqa: N802
         option: QStyleOptionViewItem,
         _index: QModelIndex | QPersistentModelIndex,
     ) -> None:
-        rect = option.rect
+        rect = QRect(option.rect)
         height = _EDITOR_HEIGHT
         width = max(rect.width(), _EDITOR_MIN_WIDTH)
         parent = editor.parentWidget()
