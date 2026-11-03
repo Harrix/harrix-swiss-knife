@@ -319,7 +319,7 @@ class QuickLauncherDialog(QDialog):
         self._content_layout.setStretch(self._content_layout.indexOf(self._actions_section), 1)
         self._content_layout.setStretch(self._content_layout.indexOf(self._markdown_section), 1 if enabled else 0)
 
-    def _build_fallback_header(self, menu_button: QToolButton) -> None:
+    def _build_fallback_header(self, menu_button: FluentToolButton) -> None:
         """Build a simple title row when Win11 caption is unavailable."""
         title = QLabel("Quick launcher")
         title_font = QFont(title.font())
@@ -352,19 +352,15 @@ class QuickLauncherDialog(QDialog):
         for draggable_widget in (title, header_spacer):
             draggable_widget.installEventFilter(self)
 
-    def _build_menu_button(self) -> QToolButton:
-        menu_button = QToolButton(self)
-        menu_button.setIcon(create_lucide_icon("menu", 18))
-        menu_button.setIconSize(QSize(18, 18))
+    def _build_menu_button(self) -> FluentToolButton:
+        header_menu = FluentMenu("", self)
+        add_keyboard_shortcuts_help_action(header_menu, self, slot=self._show_keyboard_shortcuts)
+        menu_button = FluentToolButton("", self, icon="menu", menu=header_menu)
+        menu_button.setObjectName("quickLauncherMenuButton")
         menu_button.setFixedSize(CAPTION_BUTTON_HEIGHT, CAPTION_BUTTON_HEIGHT)
-        menu_button.setAutoRaise(True)
         menu_button.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
         menu_button.setToolTip("Menu")
-        menu_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
-        menu_button.setStyleSheet("QToolButton::menu-indicator { image: none; width: 0px; }")
-        header_menu = QMenu(menu_button)
-        add_keyboard_shortcuts_help_action(header_menu, self, slot=self._show_keyboard_shortcuts)
-        menu_button.setMenu(header_menu)
+        menu_button.setAccessibleName("Menu")
         return menu_button
 
     def _can_start_drag_at(self, local_pos: QPoint) -> bool:

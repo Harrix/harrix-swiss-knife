@@ -14,14 +14,12 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
-    QMenu,
     QMessageBox,
     QPushButton,
     QSizeGrip,
     QSizePolicy,
     QSplitter,
     QTabWidget,
-    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -67,6 +65,8 @@ from harrix_swiss_knife.fluent.app_chrome import install_fluent_app_window
 from harrix_swiss_knife.fluent.style import line_edit_qss
 from harrix_swiss_knife.fluent.theme import bind_theme, css, mix, palette_for
 from harrix_swiss_knife.fluent.tokens import RADIUS_CONTROL, SPACE_L, SPACE_M, SPACE_S, SPACE_XS, SPACE_XXS
+from harrix_swiss_knife.fluent.widgets.buttons import FluentToolButton
+from harrix_swiss_knife.fluent.widgets.menus import FluentMenu
 from harrix_swiss_knife.installer.icon_assets import apply_window_icon
 from harrix_swiss_knife.integrations.bothub import BothubRequestState
 from harrix_swiss_knife.paths import get_config_path_str
@@ -77,7 +77,6 @@ from harrix_swiss_knife.qt_lucide_icon import (
     CLOSE_BUTTON_ICON,
     add_lucide_action,
     apply_lucide_button_icon,
-    create_lucide_icon,
     install_line_edit_search_chrome,
 )
 from harrix_swiss_knife.win11_caption import (
@@ -432,7 +431,7 @@ class SnippetsDialog(QDialog):
         self._content_layout.addWidget(self._page_tabs, stretch=1)
         self._refresh_overlay_theme()
 
-    def _build_fallback_header(self, menu_button: QToolButton) -> None:
+    def _build_fallback_header(self, menu_button: FluentToolButton) -> None:
         """Build a simple title row when Win11 caption is unavailable."""
         title = QLabel("Quick paste")
         title_font = QFont(title.font())
@@ -464,19 +463,15 @@ class SnippetsDialog(QDialog):
         header.addWidget(close_button)
         self._content_layout.addLayout(header)
 
-    def _build_menu_button(self) -> QToolButton:
-        menu_button = QToolButton(self)
-        menu_button.setIcon(create_lucide_icon("menu", 18))
-        menu_button.setIconSize(QSize(18, 18))
+    def _build_menu_button(self) -> FluentToolButton:
+        header_menu = FluentMenu("", self)
+        header_menu.aboutToShow.connect(self._fill_header_menu)
+        menu_button = FluentToolButton("", self, icon="menu", menu=header_menu)
+        menu_button.setObjectName("snippetsMenuButton")
         menu_button.setFixedSize(CAPTION_BUTTON_HEIGHT, CAPTION_BUTTON_HEIGHT)
-        menu_button.setAutoRaise(True)
         menu_button.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
         menu_button.setToolTip("Menu")
-        menu_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
-        menu_button.setStyleSheet("QToolButton::menu-indicator { image: none; width: 0px; }")
-        header_menu = QMenu(menu_button)
-        header_menu.aboutToShow.connect(self._fill_header_menu)
-        menu_button.setMenu(header_menu)
+        menu_button.setAccessibleName("Menu")
         self._menu_button = menu_button
         self._header_menu = header_menu
         return menu_button
