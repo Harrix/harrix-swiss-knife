@@ -42,17 +42,12 @@ class ScreenshotTextToolbar(QWidget):
         self._settings = ScreenshotTextSettings()
         self._preview_text = load_font_preview_text()
         self.setObjectName("hskScreenshotTextToolbar")
-        self.setStyleSheet(
-            "#hskScreenshotTextToolbar {  background: #f7f7f8;  border: 1px solid #d0d0d4;  border-radius: 10px;}"
-        )
 
         row = QHBoxLayout(self)
-        row.setContentsMargins(10, 6, 10, 6)
-        row.setSpacing(8)
+        row.setContentsMargins(SPACE_S, SPACE_XS, SPACE_S, SPACE_XS)
+        row.setSpacing(SPACE_XS)
 
-        self._family = QComboBox(self)
-        self._family.setEditable(True)
-        self._family.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
+        self._family = FluentEditableComboBox(self)
         self._family.setMinimumWidth(120)
         self._family.setMaximumWidth(180)
         self._family.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
@@ -73,54 +68,50 @@ class ScreenshotTextToolbar(QWidget):
             view.setUniformItemSizes(True)
         row.addWidget(self._family)
 
-        self._cyrillic_only = QCheckBox("Cyrillic", self)
+        self._cyrillic_only = FluentCheckBox("Cyrillic", self)
         self._cyrillic_only.setToolTip("Show only fonts that support Cyrillic")
         self._cyrillic_only.toggled.connect(self._on_cyrillic_toggled)
         row.addWidget(self._cyrillic_only)
 
-        self._size = QComboBox(self)
-        self._size.setEditable(True)
+        self._size = FluentEditableComboBox(self)
         self._size.setMinimumWidth(64)
         for size in font_size_choices():
             self._size.addItem(str(int(size) if size == int(size) else size))
         self._size.currentTextChanged.connect(self._on_size_changed)
         row.addWidget(self._size)
 
-        row.addWidget(_vsep(self))
+        self._separators: list[QLabel] = []
+        row.addWidget(self._add_separator())
 
-        self._style_buttons: dict[str, QToolButton] = {}
+        self._style_buttons: dict[str, FluentToolButton] = {}
         for key, label, tip in _STYLE_BUTTONS:
-            button = QToolButton(self)
-            button.setText(label)
+            button = FluentToolButton(label, self)
             button.setCheckable(True)
             button.setToolTip(tip)
-            button.setFixedSize(TOOLBAR_BUTTON_SIZE, TOOLBAR_BUTTON_SIZE)
-            button.setStyleSheet(TOOLBAR_BUTTON_STYLE)
+            button.setFixedSize(CONTROL_HEIGHT, CONTROL_HEIGHT)
             button.toggled.connect(lambda checked, k=key: self._on_style_toggled(k, checked=checked))
             self._style_buttons[key] = button
             row.addWidget(button)
 
-        row.addWidget(_vsep(self))
+        row.addWidget(self._add_separator())
 
-        self._align_buttons: dict[str, QToolButton] = {}
+        self._align_buttons: dict[str, FluentIconButton] = {}
         for key, icon_name, tip in _ALIGN_BUTTONS:
-            button = QToolButton(self)
+            button = FluentIconButton(icon_name, self, tooltip=tip)
             button.setCheckable(True)
             button.setAutoExclusive(True)
-            button.setToolTip(tip)
-            button.setFixedSize(TOOLBAR_BUTTON_SIZE, TOOLBAR_BUTTON_SIZE)
-            button.setStyleSheet(TOOLBAR_BUTTON_STYLE)
-            button.setIcon(create_lucide_icon(icon_name, size=TOOLBAR_ICON_SIZE))
             button.toggled.connect(lambda checked, k=key: self._on_align_toggled(k, checked=checked))
             self._align_buttons[key] = button
             row.addWidget(button)
 
-        row.addWidget(_vsep(self))
+        row.addWidget(self._add_separator())
 
-        self._bg_fill = QCheckBox("Background fill", self)
+        self._bg_fill = FluentCheckBox("Background fill", self)
         self._bg_fill.toggled.connect(self._on_bg_toggled)
         row.addWidget(self._bg_fill)
         row.addStretch(1)
+        bind_theme(self, self._refresh_theme)
+        self._refresh_theme()
         self._refill_family_combo(keep_family=self._settings.font_family)
 
     def set_color(self, color: QColor) -> None:
@@ -166,6 +157,12 @@ class ScreenshotTextToolbar(QWidget):
     def settings(self) -> ScreenshotTextSettings:
         """Return the current toolbar settings."""
         return self._settings
+
+    def _add_separator(self) -> QLabel:
+        sep = QLabel("|", self)
+        sep.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._separators.append(sep)
+        return sep
 
     def _emit(self) -> None:
         if self._updating:
@@ -246,6 +243,22 @@ class ScreenshotTextToolbar(QWidget):
             current = self._family.currentText().strip()
             self._settings.font_family = current
         self._updating = was_updating
+
+    def _refresh_theme(self) -> None:
+        palette = palette_for(self)
+        self.setStyleSheet(
+            f"#hskScreenshotTextToolbar {{"
+            f" background: {css(palette.card_bg)};"
+            f" border: 1px solid {css(palette.card_stroke)};"
+            f" border-radius: {RADIUS_CONTROL + 4}px;"
+            "}",
+        )
+        for sep in self._separators:
+            sep.setStyleSheet(f"color: {css(palette.text_tertiary)}; padding: 0 {SPACE_XS // 2}px;")
+        for button in self._style_buttons.values():
+            button.setStyleSheet(
+                subtle_button_qss(palette, "QToolButton") + "QToolButton { padding: 0px; min-width: 0px; }",
+            )
 ```
 
 </details>
@@ -268,17 +281,12 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self._settings = ScreenshotTextSettings()
         self._preview_text = load_font_preview_text()
         self.setObjectName("hskScreenshotTextToolbar")
-        self.setStyleSheet(
-            "#hskScreenshotTextToolbar {  background: #f7f7f8;  border: 1px solid #d0d0d4;  border-radius: 10px;}"
-        )
 
         row = QHBoxLayout(self)
-        row.setContentsMargins(10, 6, 10, 6)
-        row.setSpacing(8)
+        row.setContentsMargins(SPACE_S, SPACE_XS, SPACE_S, SPACE_XS)
+        row.setSpacing(SPACE_XS)
 
-        self._family = QComboBox(self)
-        self._family.setEditable(True)
-        self._family.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
+        self._family = FluentEditableComboBox(self)
         self._family.setMinimumWidth(120)
         self._family.setMaximumWidth(180)
         self._family.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
@@ -299,54 +307,50 @@ def __init__(self, parent: QWidget | None = None) -> None:
             view.setUniformItemSizes(True)
         row.addWidget(self._family)
 
-        self._cyrillic_only = QCheckBox("Cyrillic", self)
+        self._cyrillic_only = FluentCheckBox("Cyrillic", self)
         self._cyrillic_only.setToolTip("Show only fonts that support Cyrillic")
         self._cyrillic_only.toggled.connect(self._on_cyrillic_toggled)
         row.addWidget(self._cyrillic_only)
 
-        self._size = QComboBox(self)
-        self._size.setEditable(True)
+        self._size = FluentEditableComboBox(self)
         self._size.setMinimumWidth(64)
         for size in font_size_choices():
             self._size.addItem(str(int(size) if size == int(size) else size))
         self._size.currentTextChanged.connect(self._on_size_changed)
         row.addWidget(self._size)
 
-        row.addWidget(_vsep(self))
+        self._separators: list[QLabel] = []
+        row.addWidget(self._add_separator())
 
-        self._style_buttons: dict[str, QToolButton] = {}
+        self._style_buttons: dict[str, FluentToolButton] = {}
         for key, label, tip in _STYLE_BUTTONS:
-            button = QToolButton(self)
-            button.setText(label)
+            button = FluentToolButton(label, self)
             button.setCheckable(True)
             button.setToolTip(tip)
-            button.setFixedSize(TOOLBAR_BUTTON_SIZE, TOOLBAR_BUTTON_SIZE)
-            button.setStyleSheet(TOOLBAR_BUTTON_STYLE)
+            button.setFixedSize(CONTROL_HEIGHT, CONTROL_HEIGHT)
             button.toggled.connect(lambda checked, k=key: self._on_style_toggled(k, checked=checked))
             self._style_buttons[key] = button
             row.addWidget(button)
 
-        row.addWidget(_vsep(self))
+        row.addWidget(self._add_separator())
 
-        self._align_buttons: dict[str, QToolButton] = {}
+        self._align_buttons: dict[str, FluentIconButton] = {}
         for key, icon_name, tip in _ALIGN_BUTTONS:
-            button = QToolButton(self)
+            button = FluentIconButton(icon_name, self, tooltip=tip)
             button.setCheckable(True)
             button.setAutoExclusive(True)
-            button.setToolTip(tip)
-            button.setFixedSize(TOOLBAR_BUTTON_SIZE, TOOLBAR_BUTTON_SIZE)
-            button.setStyleSheet(TOOLBAR_BUTTON_STYLE)
-            button.setIcon(create_lucide_icon(icon_name, size=TOOLBAR_ICON_SIZE))
             button.toggled.connect(lambda checked, k=key: self._on_align_toggled(k, checked=checked))
             self._align_buttons[key] = button
             row.addWidget(button)
 
-        row.addWidget(_vsep(self))
+        row.addWidget(self._add_separator())
 
-        self._bg_fill = QCheckBox("Background fill", self)
+        self._bg_fill = FluentCheckBox("Background fill", self)
         self._bg_fill.toggled.connect(self._on_bg_toggled)
         row.addWidget(self._bg_fill)
         row.addStretch(1)
+        bind_theme(self, self._refresh_theme)
+        self._refresh_theme()
         self._refill_family_combo(keep_family=self._settings.font_family)
 ```
 

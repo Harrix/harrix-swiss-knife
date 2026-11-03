@@ -41,18 +41,19 @@ class EyedropperColorDialog(QDialog):
         self.setWindowModality(Qt.WindowModality.NonModal)
         self._anchored = False
         self._edits: dict[str, QLineEdit] = {}
+        self._copy_buttons: dict[str, FluentCopyButton] = {}
 
         root = QVBoxLayout(self)
-        root.setContentsMargins(16, 16, 16, 16)
-        root.setSpacing(12)
+        root.setContentsMargins(SPACE_M, SPACE_M, SPACE_M, SPACE_M)
+        root.setSpacing(SPACE_S)
 
         header = QHBoxLayout()
-        header.setSpacing(12)
+        header.setSpacing(SPACE_S)
         self._swatch = QLabel(self)
         self._swatch.setFixedSize(_SWATCH_SIZE, _SWATCH_SIZE)
         header.addWidget(self._swatch, 0, Qt.AlignmentFlag.AlignTop)
         titles = QVBoxLayout()
-        titles.setSpacing(2)
+        titles.setSpacing(SPACE_XS // 2)
         self._headline = QLabel("Picked color", self)
         headline_font = self._headline.font()
         headline_font.setBold(True)
@@ -60,7 +61,6 @@ class EyedropperColorDialog(QDialog):
         self._status = QLabel(self)
         self._status.setObjectName("color_copy_status")
         self._status.setWordWrap(True)
-        self._status.setStyleSheet("color: #666666;")
         titles.addWidget(self._headline)
         titles.addWidget(self._status)
         titles.addStretch(1)
@@ -68,8 +68,8 @@ class EyedropperColorDialog(QDialog):
         root.addLayout(header)
 
         grid = QGridLayout()
-        grid.setHorizontalSpacing(8)
-        grid.setVerticalSpacing(6)
+        grid.setHorizontalSpacing(SPACE_XS)
+        grid.setVerticalSpacing(SPACE_XS)
         grid.setColumnStretch(1, 1)
         for row, label in enumerate(COLOR_FORMAT_LABELS):
             name = QLabel(label, self)
@@ -78,18 +78,13 @@ class EyedropperColorDialog(QDialog):
             edit.setReadOnly(True)
             edit.setFont(mono_qfont())
             edit.setObjectName(f"value_{label}")
-            edit.setStyleSheet(_VALUE_STYLE)
             edit.setMinimumWidth(220)
-            button = QToolButton(self)
+            button = FluentCopyButton(parent=self)
             button.setObjectName(f"copy_{label}")
-            button.setIcon(create_lucide_icon(COPY_BUTTON_ICON, _COPY_ICON_SIZE))
-            button.setIconSize(QSize(_COPY_ICON_SIZE, _COPY_ICON_SIZE))
-            button.setFixedSize(_COPY_BUTTON_SIZE, _COPY_BUTTON_SIZE)
             button.setToolTip(f"Copy {label} to clipboard")
-            button.setCursor(Qt.CursorShape.PointingHandCursor)
-            button.setStyleSheet(TOOLBAR_BUTTON_STYLE)
-            button.clicked.connect(lambda _checked=False, name=label: self._copy_format(name))
+            button.copied.connect(lambda text, name=label, field=edit: self._on_copied(name, field, text))
             self._edits[label] = edit
+            self._copy_buttons[label] = button
             grid.addWidget(name, row, 0)
             grid.addWidget(edit, row, 1)
             grid.addWidget(button, row, 2)
@@ -97,12 +92,15 @@ class EyedropperColorDialog(QDialog):
 
         buttons = QHBoxLayout()
         buttons.addStretch(1)
-        close = make_lucide_push_button("Close", CLOSE_BUTTON_ICON, parent=self)
+        close = FluentPushButton("Close", self, icon=CLOSE_BUTTON_ICON)
         close.setAutoDefault(False)
         close.setDefault(False)
         close.clicked.connect(self.hide)
         buttons.addWidget(close)
         root.addLayout(buttons)
+        bind_theme(self._status, self._refresh_status_theme)
+        self._refresh_status_theme()
+        install_fluent_dialog_chrome(self)
 
     def set_color(self, color: QColor) -> None:
         """Fill the format fields and swatch from `color`."""
@@ -110,9 +108,11 @@ class EyedropperColorDialog(QDialog):
             return
         values = dict(color_clipboard_formats(color))
         for label, edit in self._edits.items():
-            edit.setText(values.get(label, ""))
+            text = values.get(label, "")
+            edit.setText(text)
             edit.deselect()
             edit.setCursorPosition(0)
+            self._copy_buttons[label].set_text_to_copy(text)
         self._swatch.setPixmap(_swatch_pixmap(color, _SWATCH_SIZE))
         self._headline.setText(values.get("HEX", "Picked color"))
 
@@ -139,18 +139,13 @@ class EyedropperColorDialog(QDialog):
         frame.moveCenter(parent.frameGeometry().center())
         self.move(frame.topLeft())
 
-    def _copy_format(self, label: str) -> None:
-        edit = self._edits.get(label)
-        if edit is None:
-            return
-        text = edit.text()
-        if not text:
-            return
-        clipboard = QApplication.clipboard()
-        if clipboard is not None:
-            clipboard.setText(text)
+    def _on_copied(self, label: str, edit: QLineEdit, text: str) -> None:
         edit.selectAll()
-        self._status.setText(f"Copied {text}")
+        self._status.setText(f"Copied {text}" if text else f"Copied {label}")
+
+    def _refresh_status_theme(self) -> None:
+        palette = palette_for(self)
+        self._status.setStyleSheet(f"color: {css(palette.text_secondary)};")
 ```
 
 </details>
@@ -174,18 +169,19 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self.setWindowModality(Qt.WindowModality.NonModal)
         self._anchored = False
         self._edits: dict[str, QLineEdit] = {}
+        self._copy_buttons: dict[str, FluentCopyButton] = {}
 
         root = QVBoxLayout(self)
-        root.setContentsMargins(16, 16, 16, 16)
-        root.setSpacing(12)
+        root.setContentsMargins(SPACE_M, SPACE_M, SPACE_M, SPACE_M)
+        root.setSpacing(SPACE_S)
 
         header = QHBoxLayout()
-        header.setSpacing(12)
+        header.setSpacing(SPACE_S)
         self._swatch = QLabel(self)
         self._swatch.setFixedSize(_SWATCH_SIZE, _SWATCH_SIZE)
         header.addWidget(self._swatch, 0, Qt.AlignmentFlag.AlignTop)
         titles = QVBoxLayout()
-        titles.setSpacing(2)
+        titles.setSpacing(SPACE_XS // 2)
         self._headline = QLabel("Picked color", self)
         headline_font = self._headline.font()
         headline_font.setBold(True)
@@ -193,7 +189,6 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self._status = QLabel(self)
         self._status.setObjectName("color_copy_status")
         self._status.setWordWrap(True)
-        self._status.setStyleSheet("color: #666666;")
         titles.addWidget(self._headline)
         titles.addWidget(self._status)
         titles.addStretch(1)
@@ -201,8 +196,8 @@ def __init__(self, parent: QWidget | None = None) -> None:
         root.addLayout(header)
 
         grid = QGridLayout()
-        grid.setHorizontalSpacing(8)
-        grid.setVerticalSpacing(6)
+        grid.setHorizontalSpacing(SPACE_XS)
+        grid.setVerticalSpacing(SPACE_XS)
         grid.setColumnStretch(1, 1)
         for row, label in enumerate(COLOR_FORMAT_LABELS):
             name = QLabel(label, self)
@@ -211,18 +206,13 @@ def __init__(self, parent: QWidget | None = None) -> None:
             edit.setReadOnly(True)
             edit.setFont(mono_qfont())
             edit.setObjectName(f"value_{label}")
-            edit.setStyleSheet(_VALUE_STYLE)
             edit.setMinimumWidth(220)
-            button = QToolButton(self)
+            button = FluentCopyButton(parent=self)
             button.setObjectName(f"copy_{label}")
-            button.setIcon(create_lucide_icon(COPY_BUTTON_ICON, _COPY_ICON_SIZE))
-            button.setIconSize(QSize(_COPY_ICON_SIZE, _COPY_ICON_SIZE))
-            button.setFixedSize(_COPY_BUTTON_SIZE, _COPY_BUTTON_SIZE)
             button.setToolTip(f"Copy {label} to clipboard")
-            button.setCursor(Qt.CursorShape.PointingHandCursor)
-            button.setStyleSheet(TOOLBAR_BUTTON_STYLE)
-            button.clicked.connect(lambda _checked=False, name=label: self._copy_format(name))
+            button.copied.connect(lambda text, name=label, field=edit: self._on_copied(name, field, text))
             self._edits[label] = edit
+            self._copy_buttons[label] = button
             grid.addWidget(name, row, 0)
             grid.addWidget(edit, row, 1)
             grid.addWidget(button, row, 2)
@@ -230,12 +220,15 @@ def __init__(self, parent: QWidget | None = None) -> None:
 
         buttons = QHBoxLayout()
         buttons.addStretch(1)
-        close = make_lucide_push_button("Close", CLOSE_BUTTON_ICON, parent=self)
+        close = FluentPushButton("Close", self, icon=CLOSE_BUTTON_ICON)
         close.setAutoDefault(False)
         close.setDefault(False)
         close.clicked.connect(self.hide)
         buttons.addWidget(close)
         root.addLayout(buttons)
+        bind_theme(self._status, self._refresh_status_theme)
+        self._refresh_status_theme()
+        install_fluent_dialog_chrome(self)
 ```
 
 </details>
@@ -257,9 +250,11 @@ def set_color(self, color: QColor) -> None:
             return
         values = dict(color_clipboard_formats(color))
         for label, edit in self._edits.items():
-            edit.setText(values.get(label, ""))
+            text = values.get(label, "")
+            edit.setText(text)
             edit.deselect()
             edit.setCursorPosition(0)
+            self._copy_buttons[label].set_text_to_copy(text)
         self._swatch.setPixmap(_swatch_pixmap(color, _SWATCH_SIZE))
         self._headline.setText(values.get("HEX", "Picked color"))
 ```

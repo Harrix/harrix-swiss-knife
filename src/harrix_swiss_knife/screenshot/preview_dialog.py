@@ -14,7 +14,6 @@ from PySide6.QtWidgets import (
     QAbstractSpinBox,
     QApplication,
     QButtonGroup,
-    QCheckBox,
     QColorDialog,
     QComboBox,
     QDialog,
@@ -24,13 +23,10 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QMainWindow,
-    QMenu,
     QPlainTextEdit,
     QSizePolicy,
-    QSpinBox,
     QTabWidget,
     QTextEdit,
-    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -51,14 +47,26 @@ from harrix_swiss_knife.apps.common.keyboard_shortcuts import (
     show_keyboard_shortcuts_help,
 )
 from harrix_swiss_knife.apps.common.qt_main_window import apply_app_window_size_and_position
-from harrix_swiss_knife.apps.common.ui_chrome import (
-    BRAND_INK,
-    SELECTION_BG,
-    SELECTION_BORDER,
+from harrix_swiss_knife.fluent.app_chrome import install_fluent_app_window, install_fluent_dialog_chrome
+from harrix_swiss_knife.fluent.style import (
+    css,
+    fluent_tab_bar_qss,
+    list_item_hover,
+    list_item_selected,
+    subtle_button_qss,
 )
-from harrix_swiss_knife.fluent.style import fluent_tab_bar_qss
-from harrix_swiss_knife.fluent.theme import palette_for
-from harrix_swiss_knife.fluent.tokens import SPACE_XS
+from harrix_swiss_knife.fluent.theme import bind_theme, palette_for
+from harrix_swiss_knife.fluent.tokens import CONTROL_HEIGHT, ICON_SIZE_LARGE, SPACE_S, SPACE_XS
+from harrix_swiss_knife.fluent.widgets.buttons import (
+    FluentCheckBox,
+    FluentIconButton,
+    FluentPrimaryButton,
+    FluentPushButton,
+    FluentSplitButton,
+    FluentToolButton,
+)
+from harrix_swiss_knife.fluent.widgets.inputs import FluentSpinBox
+from harrix_swiss_knife.fluent.widgets.menus import FluentMenu, FluentMenuBar
 from harrix_swiss_knife.paths import get_config_path_str, get_temp_config_path
 from harrix_swiss_knife.qt_flow_layout import FlowLayout
 from harrix_swiss_knife.qt_lucide_icon import (
@@ -69,11 +77,8 @@ from harrix_swiss_knife.qt_lucide_icon import (
     DEFAULT_LUCIDE_MENU_ICON_SIZE,
     OK_BUTTON_ICON,
     SAVE_BUTTON_ICON,
-    apply_menu_icon_size,
     create_lucide_icon,
-    make_lucide_push_button,
 )
-from harrix_swiss_knife.qt_split_menu_button import SplitMenuButton, make_lucide_split_menu_button
 from harrix_swiss_knife.screenshot.annotation_colors import load_annotation_colors
 from harrix_swiss_knife.screenshot.annotations import AnnotationDocument, AnnotationTool
 from harrix_swiss_knife.screenshot.color_info import EyedropperColorDialog
@@ -88,18 +93,11 @@ from harrix_swiss_knife.screenshot.text_style import (
 )
 from harrix_swiss_knife.screenshot.text_toolbar import ScreenshotTextToolbar
 from harrix_swiss_knife.screenshot.tool_colors import COLOR_TOOLS, load_tool_colors, save_tool_colors
-from harrix_swiss_knife.screenshot.toolbar_style import (
-    TOOLBAR_BUTTON_GAP,
-    TOOLBAR_BUTTON_SIZE,
-    TOOLBAR_BUTTON_STYLE,
-    TOOLBAR_ICON_SIZE,
-)
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
     from PySide6.QtGui import QResizeEvent
-    from PySide6.QtWidgets import QPushButton
 
 _SAVE_BUTTON_ICON = SAVE_BUTTON_ICON
 _SAVE_BUTTON_LABEL = "Save as…"
@@ -177,7 +175,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._text_settings.color = text_color
         color = QColor(text_color)
         self._annotation_color = color if color.isValid() else QColor(_DEFAULT_ANNOTATION_COLOR)
-        self._tool_buttons: dict[AnnotationTool, QToolButton] = {}
+        self._tool_buttons: dict[AnnotationTool, FluentIconButton] = {}
         self._color_dialog: EyedropperColorDialog | None = None
         self._color_pick_eyedropper = False
         self._color_pick_return_tool = AnnotationTool.NONE
@@ -185,6 +183,8 @@ class ScreenshotPreviewWindow(QMainWindow):
         central = QWidget(self)
         self.setCentralWidget(central)
         root = QVBoxLayout(central)
+        root.setContentsMargins(SPACE_S, SPACE_XS, SPACE_S, SPACE_S)
+        root.setSpacing(SPACE_S)
 
         self._tabs = QTabWidget(central)
         self._tabs.setTabsClosable(True)
@@ -208,24 +208,16 @@ class ScreenshotPreviewWindow(QMainWindow):
         tools_layout = FlowLayout(
             tools_host,
             margin=0,
-            h_spacing=TOOLBAR_BUTTON_GAP,
-            v_spacing=TOOLBAR_BUTTON_GAP,
+            h_spacing=SPACE_XS,
+            v_spacing=SPACE_XS,
             alignment=Qt.AlignmentFlag.AlignHCenter,
         )
         self._tool_group = QButtonGroup(self)
         self._tool_group.setExclusive(True)
-        icon_size = QSize(TOOLBAR_ICON_SIZE, TOOLBAR_ICON_SIZE)
-        eyedropper_button: QToolButton | None = None
+        eyedropper_button: FluentIconButton | None = None
         for tool, icon_name, tip in _TOOL_BUTTONS:
-            button = QToolButton(tools_host)
-            button.setIcon(create_lucide_icon(icon_name, TOOLBAR_ICON_SIZE))
-            button.setIconSize(icon_size)
-            button.setToolTip(tip)
+            button = _annotation_tool_button(icon_name, tip, tools_host)
             button.setCheckable(True)
-            button.setAutoRaise(False)
-            button.setFixedSize(TOOLBAR_BUTTON_SIZE, TOOLBAR_BUTTON_SIZE)
-            button.setStyleSheet(TOOLBAR_BUTTON_STYLE)
-            button.setCursor(Qt.CursorShape.PointingHandCursor)
             if tool == AnnotationTool.NONE:
                 button.setChecked(True)
             self._tool_group.addButton(button)
@@ -236,28 +228,14 @@ class ScreenshotPreviewWindow(QMainWindow):
                 continue
             tools_layout.addWidget(button)
 
-        undo_button = QToolButton(tools_host)
-        undo_button.setIcon(create_lucide_icon("undo-2", TOOLBAR_ICON_SIZE))
-        undo_button.setIconSize(icon_size)
-        undo_button.setToolTip("Undo")
-        undo_button.setAutoRaise(False)
-        undo_button.setFixedSize(TOOLBAR_BUTTON_SIZE, TOOLBAR_BUTTON_SIZE)
-        undo_button.setStyleSheet(TOOLBAR_BUTTON_STYLE)
-        undo_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        undo_button.clicked.connect(self._undo)
-        tools_layout.addWidget(undo_button)
+        self._undo_button = _annotation_tool_button("undo-2", "Undo", tools_host)
+        self._undo_button.clicked.connect(self._undo)
+        tools_layout.addWidget(self._undo_button)
 
-        self._color_button = QToolButton(tools_host)
+        self._color_menu = FluentMenu("", tools_host)
+        self._color_button = FluentToolButton("", tools_host, menu=self._color_menu)
         self._color_button.setToolTip("Tool color")
-        self._color_button.setAutoRaise(False)
-        self._color_button.setFixedSize(TOOLBAR_BUTTON_SIZE, TOOLBAR_BUTTON_SIZE)
-        self._color_button.setIconSize(icon_size)
-        self._color_button.setStyleSheet(TOOLBAR_BUTTON_STYLE)
-        self._color_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._color_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
-        self._color_menu = QMenu(self._color_button)
-        apply_menu_icon_size(self._color_menu)
-        self._color_button.setMenu(self._color_menu)
+        self._color_button.setFixedSize(CONTROL_HEIGHT, CONTROL_HEIGHT)
         self._rebuild_color_menu()
         self._update_color_button()
         tools_layout.addWidget(self._color_button)
@@ -283,18 +261,18 @@ class ScreenshotPreviewWindow(QMainWindow):
         root.addWidget(self._tabs, stretch=1)
 
         footer = QVBoxLayout()
-        footer.setSpacing(8)
+        footer.setSpacing(SPACE_S)
 
         buttons_host = QWidget(central)
         self._buttons = FlowLayout(
             buttons_host,
-            h_spacing=6,
-            v_spacing=6,
+            h_spacing=SPACE_XS,
+            v_spacing=SPACE_XS,
             alignment=Qt.AlignmentFlag.AlignRight,
         )
-        self._action_buttons: list[QPushButton | SplitMenuButton] = []
+        self._action_buttons: list[FluentPushButton | FluentPrimaryButton | FluentSplitButton] = []
         self._add_footer_button(
-            make_lucide_push_button(COPY_BUTTON_LABEL, COPY_BUTTON_ICON),
+            FluentPushButton(COPY_BUTTON_LABEL, icon=COPY_BUTTON_ICON),
             self._copy_to_clipboard,
         )
         self._add_save_menu_button(
@@ -319,11 +297,11 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._add_recognize_menu_button()
         self._add_reduce_size_menu_button()
         self._add_footer_button(
-            make_lucide_push_button(_PRINT_BUTTON_LABEL, _PRINT_BUTTON_ICON),
+            FluentPushButton(_PRINT_BUTTON_LABEL, icon=_PRINT_BUTTON_ICON),
             self._print_screenshot,
         )
         self._add_footer_button(
-            make_lucide_push_button(OK_BUTTON_LABEL, OK_BUTTON_ICON),
+            FluentPrimaryButton(OK_BUTTON_LABEL, icon=OK_BUTTON_ICON),
             self._close_current_tab,
         )
         self._buttons_host = buttons_host
@@ -333,12 +311,12 @@ class ScreenshotPreviewWindow(QMainWindow):
         crop_row = QHBoxLayout(self._crop_bar)
         crop_row.setContentsMargins(0, 0, 0, 0)
         crop_row.addStretch(1)
-        self._crop_ok_button = make_lucide_push_button(OK_BUTTON_LABEL, OK_BUTTON_ICON)
+        self._crop_ok_button = FluentPrimaryButton(OK_BUTTON_LABEL, icon=OK_BUTTON_ICON)
         self._crop_ok_button.setToolTip("Apply crop (Enter)")
         self._crop_ok_button.setEnabled(False)
         self._crop_ok_button.clicked.connect(self._confirm_crop)
         crop_row.addWidget(self._crop_ok_button)
-        self._crop_cancel_button = make_lucide_push_button(CANCEL_BUTTON_LABEL, CANCEL_BUTTON_ICON)
+        self._crop_cancel_button = FluentPushButton(CANCEL_BUTTON_LABEL, icon=CANCEL_BUTTON_ICON)
         self._crop_cancel_button.setToolTip("Cancel crop (Esc)")
         self._crop_cancel_button.clicked.connect(self._cancel_crop)
         crop_row.addWidget(self._crop_cancel_button)
@@ -350,16 +328,9 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._status.setWordWrap(True)
         self._status.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         self._status.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        self._status.setStyleSheet(
-            f"QLabel {{"
-            f" background-color: {SELECTION_BG};"
-            f" border: 1px solid {SELECTION_BORDER};"
-            " border-radius: 8px;"
-            " padding: 6px 10px;"
-            f" color: {BRAND_INK};"
-            "}",
-        )
         self._status.setText(_STATUS_HINT)
+        bind_theme(self._status, self._refresh_status_theme)
+        self._refresh_status_theme()
         footer.addWidget(self._status)
         root.addLayout(footer)
 
@@ -437,6 +408,10 @@ class ScreenshotPreviewWindow(QMainWindow):
             category="Help",
         )
         self._build_help_menu()
+        install_fluent_app_window(self)
+        self._tab_bar.setDrawBase(False)
+        self._tab_bar.setAutoFillBackground(False)
+        self._refresh_annotation_tool_icons()
         apply_app_window_size_and_position(self)
         QTimer.singleShot(0, self._refit_tools_host)
 
@@ -508,7 +483,11 @@ class ScreenshotPreviewWindow(QMainWindow):
         super().resizeEvent(event)
         self._refit_tools_host()
 
-    def _add_footer_button(self, button: QPushButton, slot: Callable[[], None]) -> None:
+    def _add_footer_button(
+        self,
+        button: FluentPushButton | FluentPrimaryButton,
+        slot: Callable[[], None],
+    ) -> None:
         button.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
         button.clicked.connect(slot)
         self._buttons.addWidget(button)
@@ -516,9 +495,7 @@ class ScreenshotPreviewWindow(QMainWindow):
 
     def _add_recognize_menu_button(self) -> None:
         """Add a footer split button for text and table recognition."""
-        button = make_lucide_split_menu_button(_RECOGNIZE_BUTTON_LABEL, _RECOGNIZE_BUTTON_ICON)
-        button.setToolTip("Recognize text or a table. Main: AI text. Arrow: AI, OCR, or translate.")
-        menu = QMenu(button)
+        menu = FluentMenu("", self)
         items: tuple[tuple[str, str, str | None, Callable[[], None]], ...] = (
             ("Recognize text (AI)", _MARKDOWN_AI_ICON, AI_BUTTON_ICON_COLOR, self._run_markdown_with_ai),
             ("Recognize table (AI)", _TABLE_AI_ICON, AI_BUTTON_ICON_COLOR, self._run_table_with_ai),
@@ -526,11 +503,14 @@ class ScreenshotPreviewWindow(QMainWindow):
             ("OCR + translate", _TRANSLATE_ICON, None, self._run_ocr_translate),
         )
         for title, icon_name, color, slot in items:
+            if color is None:
+                menu.add_lucide_action(title, icon_name, slot)
+                continue
             action = menu.addAction(title)
             action.setIcon(create_lucide_icon(icon_name, DEFAULT_LUCIDE_MENU_ICON_SIZE, color=color))
             action.triggered.connect(lambda _checked=False, chosen=slot: chosen())
-        apply_menu_icon_size(menu)
-        button.setMenu(menu)
+        button = FluentSplitButton(_RECOGNIZE_BUTTON_LABEL, self, icon=_RECOGNIZE_BUTTON_ICON, menu=menu)
+        button.setToolTip("Recognize text or a table. Main: AI text. Arrow: AI, OCR, or translate.")
         button.clicked.connect(self._run_markdown_with_ai)
         button.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
         self._buttons.addWidget(button)
@@ -538,20 +518,16 @@ class ScreenshotPreviewWindow(QMainWindow):
 
     def _add_reduce_size_menu_button(self) -> None:
         """Add a footer split button for screenshot size reduction."""
-        button = make_lucide_split_menu_button(_REDUCE_BUTTON_LABEL, _REDUCE_BUTTON_ICON)
-        button.setToolTip("Reduce the screenshot pixel size. Main: half. Arrow: 1024 px or custom.")
-        menu = QMenu(button)
+        menu = FluentMenu("", self)
         items: tuple[tuple[str, str, Callable[[], None]], ...] = (
             ("Half size", "shrink", self._resize_half),
             ("Max 1024 px", "scaling", self._resize_max_side),
             ("Custom size…", "proportions", self._resize_custom),
         )
         for title, icon_name, slot in items:
-            action = menu.addAction(title)
-            action.setIcon(create_lucide_icon(icon_name, DEFAULT_LUCIDE_MENU_ICON_SIZE))
-            action.triggered.connect(lambda _checked=False, chosen=slot: chosen())
-        apply_menu_icon_size(menu)
-        button.setMenu(menu)
+            menu.add_lucide_action(title, icon_name, slot)
+        button = FluentSplitButton(_REDUCE_BUTTON_LABEL, self, icon=_REDUCE_BUTTON_ICON, menu=menu)
+        button.setToolTip("Reduce the screenshot pixel size. Main: half. Arrow: 1024 px or custom.")
         button.clicked.connect(self._resize_half)
         button.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
         self._buttons.addWidget(button)
@@ -563,17 +539,13 @@ class ScreenshotPreviewWindow(QMainWindow):
         icon_name: str,
         tooltip: str,
         slot: Callable[[_ScreenshotFormat], None],
-    ) -> SplitMenuButton:
+    ) -> FluentSplitButton:
         """Add a footer split button for screenshot format save actions."""
-        button = make_lucide_split_menu_button(label, icon_name)
-        button.setToolTip(tooltip)
-        menu = QMenu(button)
+        menu = FluentMenu("", self)
         for fmt, title, _file_filter in _SAVE_FORMATS:
-            action = menu.addAction(title)
-            action.setIcon(create_lucide_icon(_FORMAT_ICON, DEFAULT_LUCIDE_MENU_ICON_SIZE))
-            action.triggered.connect(lambda _checked=False, chosen=fmt: slot(chosen))
-        apply_menu_icon_size(menu)
-        button.setMenu(menu)
+            menu.add_lucide_action(title, _FORMAT_ICON, lambda chosen=fmt: slot(chosen))
+        button = FluentSplitButton(label, self, icon=icon_name, menu=menu)
+        button.setToolTip(tooltip)
         default_format = _SAVE_FORMATS[0][0]
         button.clicked.connect(lambda: slot(default_format))
         button.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
@@ -634,7 +606,10 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._status.setText("Brought to front")
 
     def _build_help_menu(self) -> None:
-        help_menu = self.menuBar().addMenu("&Help")
+        menu_bar = FluentMenuBar(self)
+        self.setMenuBar(menu_bar)
+        help_menu = FluentMenu("&Help", self)
+        menu_bar.addMenu(help_menu)
         add_keyboard_shortcuts_help_action(help_menu, self, slot=self._show_keyboard_shortcuts)
 
     def _cancel_crop(self) -> None:
@@ -898,15 +873,11 @@ class ScreenshotPreviewWindow(QMainWindow):
             if not color.isValid():
                 continue
             label = f"{hex_value} — {hint}" if hint else hex_value
-            action = self._color_menu.addAction(_color_swatch_icon(color, TOOLBAR_ICON_SIZE), label)
+            action = self._color_menu.addAction(_color_swatch_icon(color, ICON_SIZE_LARGE), label)
             action.triggered.connect(lambda _checked=False, c=color: self._set_annotation_color(c))
         self._color_menu.addSeparator()
-        eyedropper = self._color_menu.addAction("Pick with eyedropper")
-        eyedropper.setIcon(create_lucide_icon("pipette", DEFAULT_LUCIDE_MENU_ICON_SIZE))
-        eyedropper.triggered.connect(self._begin_eyedropper_color_pick)
-        palette = self._color_menu.addAction("Choose color…")
-        palette.setIcon(create_lucide_icon("palette", DEFAULT_LUCIDE_MENU_ICON_SIZE))
-        palette.triggered.connect(self._pick_color_from_dialog)
+        self._color_menu.add_lucide_action("Pick with eyedropper", "pipette", self._begin_eyedropper_color_pick)
+        self._color_menu.add_lucide_action("Choose color…", "palette", self._pick_color_from_dialog)
 
     def _redo(self) -> None:
         tab = self._current_tab()
@@ -917,10 +888,34 @@ class ScreenshotPreviewWindow(QMainWindow):
 
     def _refit_tools_host(self) -> None:
         """Size the top tool strip so FlowLayout can wrap on narrow Windows."""
-        width = max(TOOLBAR_BUTTON_SIZE, self._tools_host.width())
-        height = max(TOOLBAR_BUTTON_SIZE, self._tools_layout.heightForWidth(width))
+        width = max(CONTROL_HEIGHT, self._tools_host.width())
+        height = max(CONTROL_HEIGHT, self._tools_layout.heightForWidth(width))
         self._tools_host.setMinimumHeight(height)
         self._tools_host.updateGeometry()
+
+    def _refresh_annotation_tool_icons(self) -> None:
+        """Restore large tool icons after Fluent chrome normalizes icon sizes."""
+        for button in self._tool_buttons.values():
+            if isinstance(button, _AnnotationToolButton):
+                button.refresh_theme()
+        if isinstance(self._undo_button, _AnnotationToolButton):
+            self._undo_button.refresh_theme()
+
+    def _refresh_status_theme(self) -> None:
+        """Paint the hint strip with Fluent card / selection chrome."""
+        palette = palette_for(self)
+        background = css(list_item_selected(palette))
+        border = css(palette.accent)
+        text = css(palette.accent_text if not palette.dark else palette.text_primary)
+        self._status.setStyleSheet(
+            f"QLabel {{"
+            f" background-color: {background};"
+            f" border: 1px solid {border};"
+            " border-radius: 8px;"
+            " padding: 6px 10px;"
+            f" color: {text};"
+            "}",
+        )
 
     def _relabel_untitled_tabs(self) -> None:
         for index in range(self._tabs.count()):
@@ -1230,7 +1225,8 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._status.setText("Undone")
 
     def _update_color_button(self) -> None:
-        self._color_button.setIcon(_color_swatch_icon(self._annotation_color, TOOLBAR_ICON_SIZE))
+        self._color_button.setIcon(_color_swatch_icon(self._annotation_color, ICON_SIZE_LARGE))
+        self._color_button.setIconSize(QSize(ICON_SIZE_LARGE, ICON_SIZE_LARGE))
         self._color_button.setToolTip(f"Color ({self._annotation_color.name()})")
 
     def _update_multi_tab_chrome(self) -> None:
@@ -1256,6 +1252,24 @@ class ScreenshotPreviewWindow(QMainWindow):
             tab.canvas.zoom_out()
 
 
+class _AnnotationToolButton(FluentIconButton):
+    """Fluent icon button with large glyphs and clear checked chrome for tools."""
+
+    def refresh_theme(self) -> None:
+        """Re-apply subtle chrome with a stronger checked fill."""
+        palette = palette_for(self)
+        selected = css(list_item_selected(palette))
+        hover = css(list_item_hover(palette))
+        self.setStyleSheet(
+            subtle_button_qss(palette, "QToolButton")
+            + "QToolButton { padding: 0px; }"
+            + f"QToolButton:checked {{ background-color: {selected}; border: 1px solid {css(palette.accent)}; }}"
+            + f"QToolButton:checked:hover {{ background-color: {hover}; border-color: {css(palette.accent)}; }}",
+        )
+        self.setIcon(create_lucide_icon(self._icon_name, ICON_SIZE_LARGE, color=palette.text_primary))
+        self.setIconSize(QSize(ICON_SIZE_LARGE, ICON_SIZE_LARGE))
+
+
 class _ReduceSizeDialog(QDialog):
     """Ask for a smaller width and height, keeping the aspect ratio unless unlocked."""
 
@@ -1267,15 +1281,15 @@ class _ReduceSizeDialog(QDialog):
         self._ratio = self._source_h / self._source_w
         self._syncing = False
 
-        self._width = QSpinBox(self)
+        self._width = FluentSpinBox(self)
         self._width.setRange(1, self._source_w)
         self._width.setValue(self._source_w)
         self._width.setSuffix(" px")
-        self._height = QSpinBox(self)
+        self._height = FluentSpinBox(self)
         self._height.setRange(1, self._source_h)
         self._height.setValue(self._source_h)
         self._height.setSuffix(" px")
-        self._lock = QCheckBox("Keep aspect ratio", self)
+        self._lock = FluentCheckBox("Keep aspect ratio", self)
         self._lock.setChecked(True)
 
         form = QFormLayout()
@@ -1283,9 +1297,9 @@ class _ReduceSizeDialog(QDialog):
         form.addRow("Height", self._height)
         form.addRow(self._lock)
 
-        self._ok = make_lucide_push_button(OK_BUTTON_LABEL, OK_BUTTON_ICON)
+        self._ok = FluentPrimaryButton(OK_BUTTON_LABEL, icon=OK_BUTTON_ICON)
         self._ok.setEnabled(False)
-        cancel = make_lucide_push_button(CANCEL_BUTTON_LABEL, CANCEL_BUTTON_ICON)
+        cancel = FluentPushButton(CANCEL_BUTTON_LABEL, icon=CANCEL_BUTTON_ICON)
         buttons = QHBoxLayout()
         buttons.addStretch(1)
         buttons.addWidget(self._ok)
@@ -1299,6 +1313,7 @@ class _ReduceSizeDialog(QDialog):
         self._height.valueChanged.connect(self._on_height_changed)
         self._ok.clicked.connect(self.accept)
         cancel.clicked.connect(self.reject)
+        install_fluent_dialog_chrome(self)
 
     def size_pixels(self) -> tuple[int, int]:
         """Chosen width and height in pixels."""
@@ -1314,7 +1329,7 @@ class _ReduceSizeDialog(QDialog):
             self._set_paired(self._height, max(1, round(width * self._ratio)))
         self._update_ok()
 
-    def _set_paired(self, box: QSpinBox, value: int) -> None:
+    def _set_paired(self, box: FluentSpinBox, value: int) -> None:
         if self._syncing:
             return
         self._syncing = True
@@ -1393,6 +1408,10 @@ def _accepted_suffixes(fmt: _ScreenshotFormat) -> frozenset[str]:
     if fmt == "jpeg":
         return _JPEG_SUFFIXES
     return frozenset({_format_suffix(fmt)})
+
+
+def _annotation_tool_button(icon: str, tooltip: str, parent: QWidget) -> FluentIconButton:
+    return _AnnotationToolButton(icon, parent, tooltip=tooltip)
 
 
 def _color_swatch_icon(color: QColor, size: int) -> QIcon:

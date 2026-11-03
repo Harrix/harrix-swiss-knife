@@ -23,7 +23,7 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife.apps.common.qt_main_window import compute_app_window_geometry
-from harrix_swiss_knife.qt_split_menu_button import SplitMenuButton
+from harrix_swiss_knife.fluent.widgets.buttons import FluentSplitButton
 from harrix_swiss_knife.screenshot import preview_canvas as canvas_module
 from harrix_swiss_knife.screenshot import preview_dialog as preview_dialog_module
 from harrix_swiss_knife.screenshot.annotations import (
@@ -637,9 +637,11 @@ def test_preview_window_saves_dated_png_to_desktop(
         lambda _location: str(desktop),
     )
     window = show_screenshot_preview(image)
-    desktop_buttons = [button for button in window.findChildren(QPushButton) if button.text() == "Save to desktop"]
+    desktop_buttons = [
+        button for button in window.findChildren(FluentSplitButton) if button.text() == "Save to desktop"
+    ]
     assert len(desktop_buttons) == 1
-    save_all = [button for button in window.findChildren(QPushButton) if button.text() == "Save all to desktop"]
+    save_all = [button for button in window.findChildren(FluentSplitButton) if button.text() == "Save all to desktop"]
     assert len(save_all) == 1
     assert not save_all[0].isVisible()
     window._save_to_desktop()
@@ -720,7 +722,7 @@ def test_save_buttons_offer_format_menus(qapp: QApplication) -> None:  # noqa: A
     window = show_screenshot_preview(image)
     labels = ["PNG", "JPEG", "AVIF high quality", "AVIF optimized"]
     for text in ("Save as…", "Save to desktop", "Save all to desktop"):
-        button = next(item for item in window.findChildren(SplitMenuButton) if item.text() == text)
+        button = next(item for item in window.findChildren(FluentSplitButton) if item.text() == text)
         menu = button.menu()
         assert menu is not None
         assert [action.text() for action in menu.actions()] == labels
@@ -733,7 +735,7 @@ def test_reduce_size_button_offers_menu_and_halves_image(qapp: QApplication) -> 
     image = QImage(40, 20, QImage.Format.Format_RGB32)
     image.fill(Qt.GlobalColor.red)
     window = show_screenshot_preview(image)
-    button = next(item for item in window.findChildren(SplitMenuButton) if item.text() == "Reduce size")
+    button = next(item for item in window.findChildren(FluentSplitButton) if item.text() == "Reduce size")
     menu = button.menu()
     assert menu is not None
     assert [action.text() for action in menu.actions()] == ["Half size", "Max 1024 px", "Custom size…"]
@@ -763,7 +765,7 @@ def test_recognize_button_offers_recognition_menu(qapp: QApplication) -> None:  
     image = QImage(8, 8, QImage.Format.Format_RGB32)
     image.fill(Qt.GlobalColor.white)
     window = show_screenshot_preview(image)
-    button = next(item for item in window.findChildren(SplitMenuButton) if item.text() == "Recognize")
+    button = next(item for item in window.findChildren(FluentSplitButton) if item.text() == "Recognize")
     menu = button.menu()
     assert menu is not None
     assert [action.text() for action in menu.actions()] == [
@@ -837,7 +839,9 @@ def test_preview_window_save_all_to_desktop(
     second.fill(Qt.GlobalColor.blue)
     window = show_screenshot_preview(first)
     show_screenshot_preview(second)
-    save_all = next(button for button in window.findChildren(QPushButton) if button.text() == "Save all to desktop")
+    save_all = next(
+        button for button in window.findChildren(FluentSplitButton) if button.text() == "Save all to desktop"
+    )
     assert save_all.isVisible()
     window._save_all_to_desktop()
     screenshots = desktop / "Screenshots"
@@ -963,16 +967,17 @@ def test_preview_footer_wraps_buttons_and_keeps_full_width_status(qapp: QApplica
     window.resize(520, 400)
     qapp.processEvents()
     assert window._status.width() >= window.centralWidget().width() - 40
-    for button in window._action_buttons:
+    visible_actions = [button for button in window._action_buttons if button.isVisible()]
+    for button in visible_actions:
         assert button.width() >= button.sizeHint().width() - 2
         assert "…" not in button.text() or button.text().endswith("…")
         assert button.width() >= button.fontMetrics().horizontalAdvance(button.text()[:8])
     # Narrow window: buttons still keep their natural width (wrap instead of clip).
     window.resize(_MIN_WINDOW_WIDTH, 400)
     qapp.processEvents()
-    for button in window._action_buttons:
+    for button in visible_actions:
         assert button.width() >= button.sizeHint().width() - 2
-    assert window._buttons.heightForWidth(window._buttons.geometry().width()) >= button.sizeHint().height()
+    assert window._buttons.heightForWidth(window._buttons.geometry().width()) >= visible_actions[-1].sizeHint().height()
     window.close()
 
 
