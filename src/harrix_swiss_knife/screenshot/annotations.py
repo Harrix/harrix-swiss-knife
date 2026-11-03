@@ -640,18 +640,27 @@ def _arrow_head_path(start: QPointF, end: QPointF, stroke: float) -> QPainterPat
 
 
 def _blurred_patch(source: QImage, rect: QRect, radius: float) -> QImage:
-    """Return `rect` blurred from a padded copy so the edge stays opaque."""
-    pad = max(1, math.ceil(radius * _BLUR_PAD_FACTOR))
-    padded = QRect(rect).adjusted(-pad, -pad, pad, pad).intersected(source.rect())
-    if padded.isEmpty():
+    """Return `rect` blurred uniformly, with a hard edge.
+
+    Padding clamps the selection's own edge pixels instead of sampling the
+    surrounding sharp image. Otherwise the blur kernel mixes in readable
+    outside text near the border and the effect looks weaker there.
+
+    """
+    if rect.isEmpty():
         return QImage()
-    patch = source.copy(padded).convertToFormat(QImage.Format.Format_ARGB32_Premultiplied)
+    core = source.copy(rect).convertToFormat(QImage.Format.Format_ARGB32_Premultiplied)
+    if core.isNull():
+        return QImage()
+    pad = max(1, math.ceil(radius * _BLUR_PAD_FACTOR))
+    patch = _pad_image_clamp_edges(core, pad)
     blurred = _gaussian_blur(patch, radius)
-    inner = QRect(rect.x() - padded.x(), rect.y() - padded.y(), rect.width(), rect.height())
-    inner = inner.intersected(blurred.rect())
+    inner = QRect(pad, pad, core.width(), core.height()).intersected(blurred.rect())
     if inner.isEmpty():
         return QImage()
-    return blurred.copy(inner)
+    # RGB32 drops soft alpha from QGraphicsBlurEffect so original pixels cannot
+    # show through at the selection edge.
+    return blurred.copy(inner).convertToFormat(QImage.Format.Format_RGB32)
 
 
 def _clone_annotation(item: Annotation) -> Annotation:
@@ -720,12 +729,37 @@ def _gaussian_blur(image: QImage, radius: float) -> QImage:
     item.setGraphicsEffect(effect)
     scene = QGraphicsScene()
     scene.addItem(item)
-    result = QImage(image.size(), QImage.Format.Format_ARGB32_Premultiplied)
-    result.fill(Qt.GlobalColor.transparent)
+    # Seed with the source so the effect does not fade toward transparent.
+    result = image.copy().convertToFormat(QImage.Format.Format_ARGB32_Premultiplied)
     painter = QPainter(result)
     scene.render(painter, QRectF(result.rect()), QRectF(0, 0, image.width(), image.height()))
     painter.end()
     return result
+
+
+def _pad_image_clamp_edges(image: QImage, pad: int) -> QImage:
+    """Return `image` surrounded by `pad` pixels that repeat each edge color."""
+    if pad <= 0 or image.isNull():
+        return image
+    width = image.width()
+    height = image.height()
+    out = QImage(width + pad * 2, height + pad * 2, QImage.Format.Format_ARGB32_Premultiplied)
+    out.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(out)
+    painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, on=False)
+    # Corners.
+    painter.drawImage(QRect(0, 0, pad, pad), image, QRect(0, 0, 1, 1))
+    painter.drawImage(QRect(pad + width, 0, pad, pad), image, QRect(width - 1, 0, 1, 1))
+    painter.drawImage(QRect(0, pad + height, pad, pad), image, QRect(0, height - 1, 1, 1))
+    painter.drawImage(QRect(pad + width, pad + height, pad, pad), image, QRect(width - 1, height - 1, 1, 1))
+    # Edges.
+    painter.drawImage(QRect(pad, 0, width, pad), image, QRect(0, 0, width, 1))
+    painter.drawImage(QRect(pad, pad + height, width, pad), image, QRect(0, height - 1, width, 1))
+    painter.drawImage(QRect(0, pad, pad, height), image, QRect(0, 0, 1, height))
+    painter.drawImage(QRect(pad + width, pad, pad, height), image, QRect(width - 1, 0, 1, height))
+    painter.drawImage(pad, pad, image)
+    painter.end()
+    return out
 
 
 def _is_meaningful(annotation: Annotation) -> bool:

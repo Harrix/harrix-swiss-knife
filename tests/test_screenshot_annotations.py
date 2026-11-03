@@ -446,6 +446,40 @@ def test_blur_softens_pixels_inside_and_keeps_outside() -> None:
 
 
 @pytest.mark.usefixtures("qapp")
+def test_blur_stays_strong_at_selection_edge() -> None:
+    """Edge pixels must not stay readable by mixing with sharp outside content."""
+    image = _blank(120, 40)
+    painter = QPainter(image)
+    # High-contrast vertical stripes across the whole image (like text stems).
+    for x in range(0, 120, 4):
+        painter.fillRect(x, 0, 2, 40, QColor(0, 0, 0))
+    painter.end()
+    outside_left = image.pixelColor(39, 20).red()
+    inside_left = image.pixelColor(40, 20).red()
+    doc = AnnotationDocument(image)
+    doc.begin_draft(
+        Annotation(
+            tool=AnnotationTool.BLUR,
+            points=[QPointF(40, 5), QPointF(80, 35)],
+            style=AnnotationStyle(),
+        )
+    )
+    assert doc.commit_draft()
+    rendered = doc.render(include_draft=False)
+    # Just inside the left edge of the blur rect — must not match the sharp stripe.
+    edge = rendered.pixelColor(41, 20)
+    center = rendered.pixelColor(60, 20)
+    assert edge.alpha() == 255
+    assert center.alpha() == 255
+    assert abs(edge.red() - inside_left) > 40
+    # Center and near-edge should both be softened (grayish), not a sharp black/white.
+    assert 40 < edge.red() < 220
+    assert 40 < center.red() < 220
+    # Outside the selection stays sharp.
+    assert rendered.pixelColor(39, 20).red() == outside_left
+
+
+@pytest.mark.usefixtures("qapp")
 def test_blur_follows_the_rectangle_instead_of_a_baked_patch() -> None:
     image = _blank(200, 80)
     painter = QPainter(image)
