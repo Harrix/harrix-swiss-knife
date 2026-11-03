@@ -42,6 +42,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife.actions.common.about_fluent_dialog import FluentAboutDialog
 from harrix_swiss_knife.actions.common.action_log_browser import build_action_output_log_browser
 from harrix_swiss_knife.actions.common.action_usage_stats_browser import build_action_usage_stats_browser
 from harrix_swiss_knife.actions.common.dialog_geometry import (
@@ -106,9 +107,6 @@ from harrix_swiss_knife.qt_markdown_choice_cards import (
 
 COMMIT_OFFER_CREATE_CODE = 10
 COMMIT_OFFER_COPY_CODE = 11
-_ABOUT_LOGO_SIZE = 192
-_ABOUT_TEXT_MIN_HEIGHT = 320
-_ABOUT_LOGO_RESOURCE = ":/assets/logo.svg"
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Collection
@@ -1345,66 +1343,20 @@ class ActionDialogService:
         license_text: str = "",
         github: str = "",
     ) -> str | None:
-        """Show about dialog and return rendered text if accepted."""
-        about_text = f"# {app_name}\n\n"
-
-        if version:
-            about_text += f"Version: {version}\n\n"
-        if description:
-            about_text += f"{description}\n\n"
-        if author:
-            about_text += f"Author: {author}\n\n"
-        if license_text:
-            about_text += f"License: {license_text}\n\n"
-        if github:
-            about_text += f"GitHub: [{github}]({github})\n\n"
-
-        def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
-            logo_label = QLabel()
-            logo_label.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter)
-            logo_label.setPixmap(QIcon(_ABOUT_LOGO_RESOURCE).pixmap(QSize(_ABOUT_LOGO_SIZE, _ABOUT_LOGO_SIZE)))
-            logo_label.setFixedHeight(_ABOUT_LOGO_SIZE + 16)
-            layout.addWidget(logo_label)
-
-            text_browser = QTextBrowser()
-            text_browser.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-            text_browser.setMarkdown(about_text)
-            text_browser.setOpenExternalLinks(True)
-
-            font = QFont()
-            font.setPointSize(10)
-            text_browser.setFont(font)
-            fit_widget_height(
-                text_browser,
-                text_content_height(text_browser),
-                minimum=_ABOUT_TEXT_MIN_HEIGHT,
-                maximum=self._default_size.height() - 160,
-            )
-
-            layout.addWidget(text_browser)
-
-            button_layout = QHBoxLayout()
-            button_layout.addStretch(1)
-            copy_button = make_lucide_push_button("Copy to Clipboard", COPY_BUTTON_ICON)
-            copy_button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-
-            def click_copy_button() -> None:
-                QGuiApplication.clipboard().setText(about_text)
-                self._show_toast("About information copied to Clipboard")
-
-            copy_button.clicked.connect(click_copy_button)
-            button_layout.addWidget(copy_button)
-
-            ok_button = make_lucide_push_button("OK", OK_BUTTON_ICON)
-            ok_button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-            ok_button.clicked.connect(dialog.accept)
-            style_accept_button(ok_button)
-            button_layout.addWidget(ok_button)
-
-            layout.addLayout(button_layout)
-
-        result, _dialog = self._exec_standard_dialog(title, _build, stretch_row=1)
-        return about_text if result == QDialog.DialogCode.Accepted else None
+        """Show the Fluent About dialog and return clipboard text if accepted."""
+        dialog = FluentAboutDialog(
+            app_name=app_name,
+            version=version,
+            description=description,
+            author=author,
+            license_text=license_text,
+            github=github,
+            parent=QApplication.activeWindow(),
+            window_title=title,
+            on_copied=lambda: self._show_toast("About information copied to Clipboard"),
+        )
+        result = dialog.exec()
+        return dialog.clipboard_text() if result == QDialog.DialogCode.Accepted else None
 
     def show_action_output_log_browser(
         self,
