@@ -159,6 +159,7 @@ from harrix_swiss_knife.apps.finance.number_utils import format_amount, sqlite_m
 from harrix_swiss_knife.apps.finance.report_operations import ReportOperations
 from harrix_swiss_knife.apps.finance.services.account_balance import format_total_accounts_balance_details
 from harrix_swiss_knife.apps.finance.standard_items_dialog import StandardItemsDialog
+from harrix_swiss_knife.apps.finance.tags import parse_tag_text
 from harrix_swiss_knife.apps.finance.text_input_dialog import TextInputDialog
 from harrix_swiss_knife.apps.finance.transaction_day_totals import (
     TRANSACTION_COL_DATE,
@@ -5480,8 +5481,10 @@ class MainWindow(
         self.date_delegate = DateDelegate(self.tableView_transactions)
         self.tableView_transactions.setItemDelegateForColumn(5, self.date_delegate)
 
-        tags: list[str] = self._get_tags_for_delegate()
-        self.tag_delegate = TagDelegate(self.tableView_transactions, tags)
+        self.tag_delegate = TagDelegate(
+            self.tableView_transactions,
+            tags_provider=self._get_tags_for_delegate,
+        )
         self.tableView_transactions.setItemDelegateForColumn(6, self.tag_delegate)
 
         self.amount_delegate = AmountDelegate(self.tableView_transactions, self.db_manager)
@@ -6048,13 +6051,13 @@ class MainWindow(
             if tx_id is None:
                 return
             menu: QMenu = QMenu(transactions_table)
-            remove_action = menu.addAction("🏷️ Remove tag from this transaction")
+            remove_action = menu.addAction("🏷️ Remove this tag from the transaction")
             chosen = cast("Any", menu).exec(transactions_table.mapToGlobal(position))
             if chosen != remove_action:
                 return
             if self.db_manager is None:
                 return
-            if not self.db_manager.clear_transaction_tag(int(tx_id)):
+            if not self.db_manager.remove_transaction_tag(int(tx_id), tag_combo.currentText()):
                 message_box.warning(dialog, "Tag", "Could not clear tag for this transaction.")
                 return
             self.apply_filter()
@@ -6111,7 +6114,8 @@ class MainWindow(
             if index.column() == tag_column_index and tag_index.isValid():
                 raw_tag = self.tableView_transactions.model().data(tag_index)
                 if raw_tag is not None and str(raw_tag).strip():
-                    tag_for_dialog = str(raw_tag).strip()
+                    parsed_tags = parse_tag_text(str(raw_tag))
+                    tag_for_dialog = parsed_tags[0] if parsed_tags else ""
                 show_by_tag_action = context_menu.addAction("🏷️ Show transactions by tag")
                 show_by_tag_action.triggered.connect(
                     lambda _checked=False, t=tag_for_dialog: self._show_transactions_by_tag_dialog(t or None)

@@ -101,10 +101,10 @@ def test_expense_for_date_sums_only_expense_categories(finance_db: DatabaseManag
 def test_distinct_transaction_tags_are_trimmed_and_sorted(finance_db: DatabaseManager) -> None:
     assert finance_db.get_distinct_transaction_tags() == []
 
-    finance_db.execute_simple_query("UPDATE transactions SET tag = ' work ' WHERE _id = 1")
-    finance_db.execute_simple_query("UPDATE transactions SET tag = 'food' WHERE _id = 2")
-    finance_db.execute_simple_query("UPDATE transactions SET tag = 'work' WHERE _id = 3")
-    finance_db.execute_simple_query("UPDATE transactions SET tag = '   ' WHERE _id = 4")
+    finance_db.set_transaction_tags(1, " work ")
+    finance_db.set_transaction_tags(2, "food")
+    finance_db.set_transaction_tags(3, "work")
+    finance_db.set_transaction_tags(4, "   ")
 
     assert finance_db.get_distinct_transaction_tags() == ["food", "work"]
 

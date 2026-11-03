@@ -92,7 +92,9 @@ lang: en
   - [⚙️ Method `get_usd_to_currency_rate`](#%EF%B8%8F-method-get_usd_to_currency_rate)
   - [⚙️ Method `has_exchange_rates_data`](#%EF%B8%8F-method-has_exchange_rates_data)
   - [⚙️ Method `lookup_existing_description_en_for_descriptions`](#%EF%B8%8F-method-lookup_existing_description_en_for_descriptions)
+  - [⚙️ Method `remove_transaction_tag`](#%EF%B8%8F-method-remove_transaction_tag)
   - [⚙️ Method `set_default_currency`](#%EF%B8%8F-method-set_default_currency)
+  - [⚙️ Method `set_transaction_tags`](#%EF%B8%8F-method-set_transaction_tags)
   - [⚙️ Method `should_update_exchange_rates`](#%EF%B8%8F-method-should_update_exchange_rates)
   - [⚙️ Method `update_account`](#%EF%B8%8F-method-update_account)
   - [⚙️ Method `update_category`](#%EF%B8%8F-method-update_category)
@@ -158,6 +160,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         self._ensure_system_categories()
         self._ensure_seed_categories()
         self._ensure_performance_indexes()
+        self._ensure_transaction_tags()
 
         # Cached default currency (code, id); loaded once from DB, updated only by set_default_currency
         self._default_currency_cache: tuple[str, int] | None = None
@@ -353,7 +356,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `category_id` (`int`): Category ID.
         - `currency_id` (`int`): Currency ID.
         - `date` (`str`): Date in YYYY-MM-DD format.
-        - `tag` (`str`): Transaction tag. Defaults to `""`.
+        - `tag` (`str`): One tag, or several names separated by commas. Defaults to `""`.
         - `description_en` (`str`): English transaction description. Defaults to `""`.
         - `amount_minor` (`int | None`): Exact amount in minor units. When set,
           skip float conversion so a one-kopeck revision stays `1`.
@@ -374,10 +377,15 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             "category_id": category_id,
             "currency_id": currency_id,
             "date": date,
-            "tag": tag,
+            "tag": "",
             "description_en": description_en.strip() or None,
         }
-        return self.execute_simple_query(query, params)
+        if not self.execute_simple_query(query, params):
+            return False
+        rows = self.get_rows("SELECT last_insert_rowid()")
+        if not rows or rows[0][0] is None:
+            return False
+        return self.set_transaction_tags(int(rows[0][0]), tag)
 
     def check_exchange_rate_exists(self, currency_id: int, date: str) -> bool:
         """Check if exchange rate to USD exists for given currency and date.
@@ -405,7 +413,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         return self.exchange_rates.clean_invalid_exchange_rates()
 
     def clear_transaction_tag(self, transaction_id: int) -> bool:
-        """Remove tag text from a transaction (set to empty string).
+        """Remove every tag from a transaction.
 
         Args:
 
@@ -416,10 +424,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `bool`: `True` if the update succeeded.
 
         """
-        return self.execute_simple_query(
-            "UPDATE transactions SET tag = '' WHERE _id = :id",
-            {"id": transaction_id},
-        )
+        return self.set_transaction_tags(transaction_id, "")
 
     def close(self) -> None:
         """Close the database connection."""
@@ -589,6 +594,10 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `bool`: `True` if successful, `False` otherwise.
 
         """
+        self.execute_simple_query(
+            "DELETE FROM transaction_tags WHERE _id_transactions = :id",
+            {"id": transaction_id},
+        )
         query = "DELETE FROM transactions WHERE _id = :id"
         return self.execute_simple_query(query, {"id": transaction_id})
 
@@ -1104,10 +1113,11 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         rows = self.get_rows(
             """
-            SELECT DISTINCT TRIM(tag)
-            FROM transactions
-            WHERE tag IS NOT NULL AND TRIM(tag) != ''
-            ORDER BY TRIM(tag)
+            SELECT tg.name
+            FROM tags tg
+            JOIN transaction_tags tt ON tt._id_tags = tg._id
+            GROUP BY tg._id, tg.name
+            ORDER BY tg.name COLLATE NOCASE
             """
         )
         return [str(row[0]) for row in rows]
@@ -1658,19 +1668,19 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Args:
 
-        - `tag` (`str`): Tag string as stored in `transactions.tag`.
+        - `tag` (`str`): Tag name stored in `tags`.
 
         Returns:
 
         - `list[tuple[int, str, str, int]]`: `(currency_id, code, symbol, sum_minor)` sorted by code.
 
         """
-        query = """
+        query = f"""
             SELECT t._id_currencies, c.code, c.symbol, SUM(t.amount) AS total_minor
             FROM transactions t
             JOIN categories cat ON t._id_categories = cat._id
             JOIN currencies c ON t._id_currencies = c._id
-            WHERE t.tag = :tag AND cat.type = 0
+            WHERE {_TRANSACTION_HAS_TAG_SQL} AND cat.type = 0
             GROUP BY t._id_currencies, c.code, c.symbol
             ORDER BY c.code
         """
@@ -1686,11 +1696,12 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         """
         query = """
-            SELECT tag
-            FROM transactions
-            WHERE tag IS NOT NULL AND tag != ''
-            GROUP BY tag
-            ORDER BY MAX(date) DESC, MAX(_id) DESC
+            SELECT tg.name
+            FROM tags tg
+            JOIN transaction_tags tt ON tt._id_tags = tg._id
+            JOIN transactions t ON t._id = tt._id_transactions
+            GROUP BY tg._id, tg.name
+            ORDER BY MAX(t.date) DESC, MAX(t._id) DESC
         """
         rows = self.get_rows(query)
         return [str(row[0]) for row in rows if row[0]]
@@ -1776,7 +1787,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Args:
 
-        - `tag` (`str`): Tag string as stored in `transactions.tag`.
+        - `tag` (`str`): Tag name stored in `tags`.
 
         Returns:
 
@@ -1784,12 +1795,12 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
           newest first.
 
         """
-        query = """
+        query = f"""
             SELECT t._id, t.date, t.description, t.amount, t._id_currencies, c.code, c.symbol, cat.name
             FROM transactions t
             JOIN categories cat ON t._id_categories = cat._id
             JOIN currencies c ON t._id_currencies = c._id
-            WHERE t.tag = :tag
+            WHERE {_TRANSACTION_HAS_TAG_SQL}
             ORDER BY t.date DESC, t._id DESC
         """
         return self.get_rows(query, {"tag": tag})
@@ -1898,6 +1909,28 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
                 result[description] = english
         return result
 
+    def remove_transaction_tag(self, transaction_id: int, tag: str) -> bool:
+        """Unlink one tag from a transaction.
+
+        Other tags on the same transaction stay. The display column is rewritten
+        from the remaining links.
+
+        Args:
+
+        - `transaction_id` (`int`): Transaction primary key.
+        - `tag` (`str`): Tag name to remove. Matching ignores case.
+
+        Returns:
+
+        - `bool`: `True` when the tag was absent or the row was updated.
+
+        """
+        key = " ".join(tag.split()).casefold()
+        if not key:
+            return False
+        remaining = [name for name in self._linked_tag_names(transaction_id) if name.casefold() != key]
+        return self.set_transaction_tags(transaction_id, ", ".join(remaining))
+
     def set_default_currency(self, currency_code: str) -> bool:
         """Set the default currency.
 
@@ -1933,6 +1966,30 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             self._default_currency_cache = (currency_code, currency_info[0])
             return True
         return False
+
+    def set_transaction_tags(self, transaction_id: int, tag_text: str) -> bool:
+        """Replace a transaction's tags from a comma-separated field.
+
+        `tags` and `transaction_tags` store the links. `transactions.tag` is rewritten
+        to the same names so the transactions table can show every tag in one cell.
+
+        Args:
+
+        - `transaction_id` (`int`): Transaction primary key.
+        - `tag_text` (`str`): One name, several names separated by commas, or empty.
+
+        Returns:
+
+        - `bool`: `True` when the links and the display column were saved.
+
+        """
+        if not self._replace_transaction_tag_links(transaction_id, parse_tag_text(tag_text)):
+            return False
+        canonical = format_tag_text(self._linked_tag_names(transaction_id))
+        return self.execute_simple_query(
+            "UPDATE transactions SET tag = :tag WHERE _id = :id",
+            {"tag": canonical, "id": transaction_id},
+        )
 
     def should_update_exchange_rates(self) -> bool:
         """Check if exchange rates need to be updated based on today's date.
@@ -2237,7 +2294,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `category_id` (`int`): Category ID.
         - `currency_id` (`int`): Currency ID.
         - `date` (`str`): Date in YYYY-MM-DD format.
-        - `tag` (`str`): Transaction tag. Defaults to `""`.
+        - `tag` (`str`): One tag, or several names separated by commas. Defaults to `""`.
         - `description_en` (`str`): English transaction description. Defaults to `""`.
 
         Returns:
@@ -2247,18 +2304,19 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         query = """UPDATE transactions SET amount = :amount, description = :description,
                    _id_categories = :category_id, _id_currencies = :currency_id,
-                   date = :date, tag = :tag, description_en = :description_en WHERE _id = :id"""
+                   date = :date, description_en = :description_en WHERE _id = :id"""
         params = {
             "amount": self.convert_to_minor_units(amount, currency_id),
             "description": description.strip(),
             "category_id": category_id,
             "currency_id": currency_id,
             "date": date,
-            "tag": tag,
             "description_en": description_en.strip() or None,
             "id": transaction_id,
         }
-        return self.execute_simple_query(query, params)
+        if not self.execute_simple_query(query, params):
+            return False
+        return self.set_transaction_tags(transaction_id, tag)
 
     def update_transaction_description_en_by_description(self, description: str, description_en: str) -> bool:
         """Fill English description for all matching untranslated transactions."""
@@ -2436,6 +2494,27 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         except Exception:
             logger.exception("Could not ensure system categories")
 
+    def _ensure_tag_id(self, name: str) -> int | None:
+        """Return the ID of `name`, inserting it when the catalog has no case-insensitive match."""
+        rows = self.get_rows(
+            """
+            SELECT _id
+            FROM tags
+            WHERE name = :name COLLATE NOCASE
+            ORDER BY _id
+            LIMIT 1
+            """,
+            {"name": name},
+        )
+        if rows and rows[0][0] is not None:
+            return int(rows[0][0])
+        if not self.execute_simple_query("INSERT INTO tags (name) VALUES (:name)", {"name": name}):
+            return None
+        inserted = self.get_rows("SELECT last_insert_rowid()")
+        if not inserted or inserted[0][0] is None:
+            return None
+        return int(inserted[0][0])
+
     def _ensure_transaction_description_en_column(self) -> None:
         """Ensure `description_en` exists on transactions."""
         try:
@@ -2450,6 +2529,59 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
                 logger.error("Failed to add transactions.description_en column")
         except Exception:
             logger.exception("Could not ensure transactions.description_en column")
+
+    def _ensure_transaction_tags(self) -> None:
+        """Create tag tables and copy `transactions.tag` for rows that have no links yet."""
+        try:
+            if not self.execute_simple_query(
+                """
+                CREATE TABLE IF NOT EXISTS tags (
+                    _id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL UNIQUE
+                )
+                """
+            ):
+                logger.error("Failed to create tags table")
+                return
+            if not self.execute_simple_query(
+                """
+                CREATE TABLE IF NOT EXISTS transaction_tags (
+                    _id_transactions INTEGER NOT NULL,
+                    _id_tags INTEGER NOT NULL,
+                    PRIMARY KEY (_id_transactions, _id_tags),
+                    FOREIGN KEY (_id_transactions) REFERENCES transactions(_id) ON DELETE CASCADE,
+                    FOREIGN KEY (_id_tags) REFERENCES tags(_id) ON DELETE CASCADE
+                )
+                """
+            ):
+                logger.error("Failed to create transaction_tags table")
+                return
+            self.execute_simple_query(
+                "CREATE INDEX IF NOT EXISTS idx_transaction_tags_tag ON transaction_tags(_id_tags)"
+            )
+            columns = {
+                str(row[1])
+                for row in self.get_rows("PRAGMA table_info(transactions)")
+                if row and len(row) > 1 and row[1] is not None
+            }
+            if "tag" not in columns:
+                return
+            pending = self.get_rows(
+                """
+                SELECT t._id, t.tag
+                FROM transactions t
+                WHERE t.tag IS NOT NULL AND TRIM(t.tag) != ''
+                  AND NOT EXISTS (
+                      SELECT 1 FROM transaction_tags tt WHERE tt._id_transactions = t._id
+                  )
+                """
+            )
+            for transaction_id, tag_text in pending:
+                if transaction_id is None:
+                    continue
+                self.set_transaction_tags(int(transaction_id), str(tag_text or ""))
+        except Exception:
+            logger.exception("Could not ensure transaction tags")
 
     def _get_currency_conversion_sql(
         self,
@@ -2547,6 +2679,20 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """Drop the cached currency catalog after a write to the `currencies` table."""
         self._currencies_cache = None
 
+    def _linked_tag_names(self, transaction_id: int) -> list[str]:
+        """Return tag names linked to one transaction, ordered without case."""
+        rows = self.get_rows(
+            """
+            SELECT tg.name
+            FROM transaction_tags tt
+            JOIN tags tg ON tg._id = tt._id_tags
+            WHERE tt._id_transactions = :id
+            ORDER BY tg.name COLLATE NOCASE
+            """,
+            {"id": transaction_id},
+        )
+        return [str(row[0]) for row in rows if row and row[0]]
+
     def _load_default_currency_cache(self) -> None:
         """Load default currency from DB into cache (once per run)."""
         if self._default_currency_cache is not None:
@@ -2604,6 +2750,27 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             balance_id,
             revision_id,
         )
+
+    def _replace_transaction_tag_links(self, transaction_id: int, names: list[str]) -> bool:
+        """Replace every tag link for one transaction. Names are created when missing."""
+        if not self.execute_simple_query(
+            "DELETE FROM transaction_tags WHERE _id_transactions = :id",
+            {"id": transaction_id},
+        ):
+            return False
+        for name in names:
+            tag_id = self._ensure_tag_id(name)
+            if tag_id is None:
+                return False
+            if not self.execute_simple_query(
+                """
+                INSERT OR IGNORE INTO transaction_tags (_id_transactions, _id_tags)
+                VALUES (:tx, :tag)
+                """,
+                {"tx": transaction_id, "tag": tag_id},
+            ):
+                return False
+        return True
 ```
 
 </details>
@@ -2645,6 +2812,7 @@ def __init__(self, db_filename: str) -> None:
         self._ensure_system_categories()
         self._ensure_seed_categories()
         self._ensure_performance_indexes()
+        self._ensure_transaction_tags()
 
         # Cached default currency (code, id); loaded once from DB, updated only by set_default_currency
         self._default_currency_cache: tuple[str, int] | None = None
@@ -2909,7 +3077,7 @@ Args:
 - `category_id` (`int`): Category ID.
 - `currency_id` (`int`): Currency ID.
 - `date` (`str`): Date in YYYY-MM-DD format.
-- `tag` (`str`): Transaction tag. Defaults to `""`.
+- `tag` (`str`): One tag, or several names separated by commas. Defaults to `""`.
 - `description_en` (`str`): English transaction description. Defaults to `""`.
 - `amount_minor` (`int | None`): Exact amount in minor units. When set,
   skip float conversion so a one-kopeck revision stays `1`.
@@ -2945,10 +3113,15 @@ def add_transaction(
             "category_id": category_id,
             "currency_id": currency_id,
             "date": date,
-            "tag": tag,
+            "tag": "",
             "description_en": description_en.strip() or None,
         }
-        return self.execute_simple_query(query, params)
+        if not self.execute_simple_query(query, params):
+            return False
+        rows = self.get_rows("SELECT last_insert_rowid()")
+        if not rows or rows[0][0] is None:
+            return False
+        return self.set_transaction_tags(int(rows[0][0]), tag)
 ```
 
 </details>
@@ -3008,7 +3181,7 @@ def clean_invalid_exchange_rates(self) -> int:
 def clear_transaction_tag(self, transaction_id: int) -> bool
 ```
 
-Remove tag text from a transaction (set to empty string).
+Remove every tag from a transaction.
 
 Args:
 
@@ -3023,10 +3196,7 @@ Returns:
 
 ```python
 def clear_transaction_tag(self, transaction_id: int) -> bool:
-        return self.execute_simple_query(
-            "UPDATE transactions SET tag = '' WHERE _id = :id",
-            {"id": transaction_id},
-        )
+        return self.set_transaction_tags(transaction_id, "")
 ```
 
 </details>
@@ -3344,6 +3514,10 @@ Returns:
 
 ```python
 def delete_transaction(self, transaction_id: int) -> bool:
+        self.execute_simple_query(
+            "DELETE FROM transaction_tags WHERE _id_transactions = :id",
+            {"id": transaction_id},
+        )
         query = "DELETE FROM transactions WHERE _id = :id"
         return self.execute_simple_query(query, {"id": transaction_id})
 ```
@@ -4187,10 +4361,11 @@ Returns:
 def get_distinct_transaction_tags(self) -> list[str]:
         rows = self.get_rows(
             """
-            SELECT DISTINCT TRIM(tag)
-            FROM transactions
-            WHERE tag IS NOT NULL AND TRIM(tag) != ''
-            ORDER BY TRIM(tag)
+            SELECT tg.name
+            FROM tags tg
+            JOIN transaction_tags tt ON tt._id_tags = tg._id
+            GROUP BY tg._id, tg.name
+            ORDER BY tg.name COLLATE NOCASE
             """
         )
         return [str(row[0]) for row in rows]
@@ -4985,7 +5160,7 @@ Sum expense transaction amounts per currency (minor units) for this tag.
 
 Args:
 
-- `tag` (`str`): Tag string as stored in `transactions.tag`.
+- `tag` (`str`): Tag name stored in `tags`.
 
 Returns:
 
@@ -4996,12 +5171,12 @@ Returns:
 
 ```python
 def get_tag_expense_totals_by_currency(self, tag: str) -> list[tuple[int, str, str, int]]:
-        query = """
+        query = f"""
             SELECT t._id_currencies, c.code, c.symbol, SUM(t.amount) AS total_minor
             FROM transactions t
             JOIN categories cat ON t._id_categories = cat._id
             JOIN currencies c ON t._id_currencies = c._id
-            WHERE t.tag = :tag AND cat.type = 0
+            WHERE {_TRANSACTION_HAS_TAG_SQL} AND cat.type = 0
             GROUP BY t._id_currencies, c.code, c.symbol
             ORDER BY c.code
         """
@@ -5029,11 +5204,12 @@ Returns:
 ```python
 def get_tags_sorted_by_last_used(self) -> list[str]:
         query = """
-            SELECT tag
-            FROM transactions
-            WHERE tag IS NOT NULL AND tag != ''
-            GROUP BY tag
-            ORDER BY MAX(date) DESC, MAX(_id) DESC
+            SELECT tg.name
+            FROM tags tg
+            JOIN transaction_tags tt ON tt._id_tags = tg._id
+            JOIN transactions t ON t._id = tt._id_transactions
+            GROUP BY tg._id, tg.name
+            ORDER BY MAX(t.date) DESC, MAX(t._id) DESC
         """
         rows = self.get_rows(query)
         return [str(row[0]) for row in rows if row[0]]
@@ -5179,7 +5355,7 @@ Return all transactions with this exact tag for reporting.
 
 Args:
 
-- `tag` (`str`): Tag string as stored in `transactions.tag`.
+- `tag` (`str`): Tag name stored in `tags`.
 
 Returns:
 
@@ -5191,12 +5367,12 @@ Returns:
 
 ```python
 def get_transactions_for_tag(self, tag: str) -> list[list[Any]]:
-        query = """
+        query = f"""
             SELECT t._id, t.date, t.description, t.amount, t._id_currencies, c.code, c.symbol, cat.name
             FROM transactions t
             JOIN categories cat ON t._id_categories = cat._id
             JOIN currencies c ON t._id_currencies = c._id
-            WHERE t.tag = :tag
+            WHERE {_TRANSACTION_HAS_TAG_SQL}
             ORDER BY t.date DESC, t._id DESC
         """
         return self.get_rows(query, {"tag": tag})
@@ -5358,6 +5534,40 @@ def lookup_existing_description_en_for_descriptions(self, descriptions: list[str
 
 </details>
 
+### ⚙️ Method `remove_transaction_tag`
+
+```python
+def remove_transaction_tag(self, transaction_id: int, tag: str) -> bool
+```
+
+Unlink one tag from a transaction.
+
+Other tags on the same transaction stay. The display column is rewritten
+from the remaining links.
+
+Args:
+
+- `transaction_id` (`int`): Transaction primary key.
+- `tag` (`str`): Tag name to remove. Matching ignores case.
+
+Returns:
+
+- `bool`: `True` when the tag was absent or the row was updated.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def remove_transaction_tag(self, transaction_id: int, tag: str) -> bool:
+        key = " ".join(tag.split()).casefold()
+        if not key:
+            return False
+        remaining = [name for name in self._linked_tag_names(transaction_id) if name.casefold() != key]
+        return self.set_transaction_tags(transaction_id, ", ".join(remaining))
+```
+
+</details>
+
 ### ⚙️ Method `set_default_currency`
 
 ```python
@@ -5402,6 +5612,42 @@ def set_default_currency(self, currency_code: str) -> bool:
             self._default_currency_cache = (currency_code, currency_info[0])
             return True
         return False
+```
+
+</details>
+
+### ⚙️ Method `set_transaction_tags`
+
+```python
+def set_transaction_tags(self, transaction_id: int, tag_text: str) -> bool
+```
+
+Replace a transaction's tags from a comma-separated field.
+
+`tags` and `transaction_tags` store the links. `transactions.tag` is rewritten
+to the same names so the transactions table can show every tag in one cell.
+
+Args:
+
+- `transaction_id` (`int`): Transaction primary key.
+- `tag_text` (`str`): One name, several names separated by commas, or empty.
+
+Returns:
+
+- `bool`: `True` when the links and the display column were saved.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_transaction_tags(self, transaction_id: int, tag_text: str) -> bool:
+        if not self._replace_transaction_tag_links(transaction_id, parse_tag_text(tag_text)):
+            return False
+        canonical = format_tag_text(self._linked_tag_names(transaction_id))
+        return self.execute_simple_query(
+            "UPDATE transactions SET tag = :tag WHERE _id = :id",
+            {"tag": canonical, "id": transaction_id},
+        )
 ```
 
 </details>
@@ -5814,7 +6060,7 @@ Args:
 - `category_id` (`int`): Category ID.
 - `currency_id` (`int`): Currency ID.
 - `date` (`str`): Date in YYYY-MM-DD format.
-- `tag` (`str`): Transaction tag. Defaults to `""`.
+- `tag` (`str`): One tag, or several names separated by commas. Defaults to `""`.
 - `description_en` (`str`): English transaction description. Defaults to `""`.
 
 Returns:
@@ -5838,18 +6084,19 @@ def update_transaction(
     ) -> bool:
         query = """UPDATE transactions SET amount = :amount, description = :description,
                    _id_categories = :category_id, _id_currencies = :currency_id,
-                   date = :date, tag = :tag, description_en = :description_en WHERE _id = :id"""
+                   date = :date, description_en = :description_en WHERE _id = :id"""
         params = {
             "amount": self.convert_to_minor_units(amount, currency_id),
             "description": description.strip(),
             "category_id": category_id,
             "currency_id": currency_id,
             "date": date,
-            "tag": tag,
             "description_en": description_en.strip() or None,
             "id": transaction_id,
         }
-        return self.execute_simple_query(query, params)
+        if not self.execute_simple_query(query, params):
+            return False
+        return self.set_transaction_tags(transaction_id, tag)
 ```
 
 </details>

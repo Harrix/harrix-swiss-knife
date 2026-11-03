@@ -149,3 +149,18 @@ INSERT INTO standard_items (name, name_en, _id_categories) SELECT 'Чаевые 
 -- End standard_items seed
 
 INSERT INTO settings (key, value) VALUES ('default_currency', '1');
+
+CREATE TABLE IF NOT EXISTS tags (
+    _id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE
+);
+
+CREATE TABLE IF NOT EXISTS transaction_tags (
+    _id_transactions INTEGER NOT NULL,
+    _id_tags INTEGER NOT NULL,
+    PRIMARY KEY (_id_transactions, _id_tags),
+    FOREIGN KEY (_id_transactions) REFERENCES transactions(_id) ON DELETE CASCADE,
+    FOREIGN KEY (_id_tags) REFERENCES tags(_id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_transaction_tags_tag ON transaction_tags(_id_tags);

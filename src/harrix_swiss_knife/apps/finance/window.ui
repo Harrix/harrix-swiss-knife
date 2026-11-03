@@ -210,7 +210,7 @@
                  <item>
                   <widget class="QLineEdit" name="lineEdit_tag">
                    <property name="placeholderText">
-                    <string>Optional</string>
+                    <string>Optional, comma-separated</string>
                    </property>
                   </widget>
                  </item>
