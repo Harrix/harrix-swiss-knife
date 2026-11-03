@@ -358,6 +358,28 @@ def test_layout_caption_places_compact_trailing_before_buttons(qapp: QApplicatio
     window.close()
 
 
+@pytest.mark.skipif(sys.platform != "win32", reason="Win11 caption is Windows-only")
+def test_tab_caption_places_trailing_before_buttons(qapp: QApplication) -> None:
+    """Tabbed captions put trailing controls in the right cluster before window buttons."""
+    window = _window_with_tabs()
+    menu = QToolButton(window)
+    menu.setObjectName("quickPasteMenu")
+    menu.setFixedSize(CAPTION_BUTTON_HEIGHT, CAPTION_BUTTON_HEIGHT)
+    assert install_win11_caption(window, trailing_widgets=[menu])
+    window.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, on=True)
+    window.resize(720, 360)
+    window.show()
+    qapp.processEvents()
+
+    cluster = window.findChild(QWidget, "captionRightCluster")
+    row = window.findChild(QWidget, "captionButtonRow")
+    assert cluster is not None
+    assert row is not None
+    assert menu.parentWidget() is cluster
+    assert menu.geometry().right() <= row.geometry().left() + 1
+    window.close()
+
+
 def _resize_caption(window: QMainWindow, qapp: QApplication, width: int) -> None:
     window.setFixedWidth(max(width, 1))
     qapp.processEvents()

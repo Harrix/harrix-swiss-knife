@@ -831,6 +831,7 @@ def _build_caption_row(
     controller: _Win11CaptionController,
     *,
     light: bool,
+    trailing_widgets: Sequence[QWidget] | None = None,
 ) -> None:
     tab_bar = tab_widget.tabBar()
     tab_bar.setExpanding(False)
@@ -843,7 +844,13 @@ def _build_caption_row(
     icon_button.setIcon(window.windowIcon())
     icon_button.setToolTip(_caption_icon_tooltip(window))
     _insert_icon_button(tab_widget, icon_button)
-    _move_tab_menu_beside_buttons(tab_widget, controller, light=light, window=window)
+    _move_tab_menu_beside_buttons(
+        tab_widget,
+        controller,
+        light=light,
+        window=window,
+        trailing_widgets=trailing_widgets,
+    )
     left = tab_widget.cornerWidget(Qt.Corner.TopLeftCorner)
     left_layout = left.layout() if left is not None else None
     if isinstance(left_layout, QBoxLayout):
@@ -1300,7 +1307,13 @@ def _install_caption(
     controller = _Win11CaptionController(window)
     setattr(window, _CONTROLLER_ATTR, controller)
     if isinstance(tab_widget, QTabWidget):
-        _build_caption_row(window, tab_widget, controller, light=light)
+        _build_caption_row(
+            window,
+            tab_widget,
+            controller,
+            light=light,
+            trailing_widgets=trailing_widgets,
+        )
     elif isinstance(window, QMainWindow):
         _build_menu_caption(window, controller, light=light, trailing_widgets=trailing_widgets)
     elif window.layout() is None or isinstance(window.layout(), QBoxLayout):
@@ -1464,8 +1477,9 @@ def _move_tab_menu_beside_buttons(
     *,
     light: bool,
     window: QWidget,
+    trailing_widgets: Sequence[QWidget] | None = None,
 ) -> None:
-    """Put the main menu on the right, immediately before the window buttons."""
+    """Put the main menu and trailing tools on the right, before the window buttons."""
     left = tab_widget.cornerWidget(Qt.Corner.TopLeftCorner)
     menu: QMenuBar | None = None
     if left is not None:
@@ -1488,7 +1502,14 @@ def _move_tab_menu_beside_buttons(
         menu.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
         right_layout.addWidget(menu)
         right_layout.addWidget(_make_caption_menu_button(window, controller, right))
-    if is_fluent_themed(window) and window.findChild(QWidget, "themeToggleButton") is None:
+    trailing = list(trailing_widgets) if trailing_widgets else []
+    for widget in trailing:
+        right_layout.addWidget(widget)
+    if (
+        is_fluent_themed(window)
+        and not _trailing_has_theme_toggle(trailing)
+        and window.findChild(QWidget, "themeToggleButton") is None
+    ):
         right_layout.addWidget(_make_theme_toggle(right))
     right_layout.addWidget(_make_caption_button_row(right, controller, light=light))
     tab_widget.setCornerWidget(right, Qt.Corner.TopRightCorner)

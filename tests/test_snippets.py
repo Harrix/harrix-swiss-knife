@@ -551,8 +551,10 @@ def test_header_menu_includes_add_and_sort(qapp: QApplication, monkeypatch: pyte
     assert dialog._menu_button.toolTip() == "Menu"
     assert "menu-indicator" in dialog._menu_button.styleSheet()
     if dialog._win11_caption:
-        assert dialog.findChild(QWidget, "captionBar") is not None
+        assert dialog.tabWidget is dialog._page_tabs
+        assert dialog.findChild(QWidget, "captionRightCluster") is not None
         assert dialog.findChild(QWidget, "captionButtonRow") is not None
+        assert dialog._menu_button.parentWidget() is dialog.findChild(QWidget, "captionRightCluster")
         assert dialog._close_button is None
     else:
         assert dialog._close_button is not None
@@ -879,8 +881,12 @@ def test_scripts_tab_add_pastes_composed_text(qapp: QApplication, monkeypatch: p
     tab_bottom = tab_bar.mapTo(dialog, tab_bar.rect().bottomLeft()).y()
     input_top = dialog._input.mapTo(dialog, dialog._input.rect().topLeft()).y()
     assert tab_bottom <= input_top
+    if dialog._win11_caption:
+        row = dialog.findChild(QWidget, "captionButtonRow")
+        assert row is not None
+        assert abs(tab_bar.mapTo(dialog, tab_bar.rect().center()).y() - row.mapTo(dialog, row.rect().center()).y()) <= 4
 
-    dialog._page_tabs.setCurrentWidget(dialog._scripts)
+    dialog._page_tabs.setCurrentIndex(dialog._scripts_tab_index)
     qapp.processEvents()
     assert not dialog._input.isVisible()
     assert dialog._scripts._add_button.isVisible()

@@ -61,7 +61,7 @@ from harrix_swiss_knife.apps.snippets.scripts import ScriptsPanel
 from harrix_swiss_knife.apps.snippets.seed import ensure_seed_emojis
 from harrix_swiss_knife.apps.snippets.sort import sort_items
 from harrix_swiss_knife.apps.snippets.zone_panel import ZonePanel, add_sort_menu_actions
-from harrix_swiss_knife.fluent.app_chrome import install_fluent_app_window
+from harrix_swiss_knife.fluent.app_chrome import CAPTION_TABS_PROPERTY, install_fluent_app_window
 from harrix_swiss_knife.fluent.style import fluent_tab_bar_qss, line_edit_qss
 from harrix_swiss_knife.fluent.theme import bind_theme, css, mix, palette_for
 from harrix_swiss_knife.fluent.tokens import SPACE_L, SPACE_M, SPACE_XS
@@ -138,21 +138,18 @@ class SnippetsDialog(QDialog):
         self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.setSpacing(0)
 
-        content = QWidget(self)
-        self._content_layout = QVBoxLayout(content)
-        self._content_layout.setContentsMargins(SPACE_L, SPACE_M, SPACE_L, SPACE_L)
-        self._content_layout.setSpacing(SPACE_M)
-
         menu_button = self._build_menu_button()
         install_fluent_app_window(self)
         bind_theme(self, self._refresh_overlay_theme)
+        self._build_shared_input()
+        self._build_body()
+        self.tabWidget = self._page_tabs
         self._win11_caption = install_win11_caption(self, trailing_widgets=[menu_button])
         if not self._win11_caption:
             self._build_fallback_header(menu_button)
-        self._build_shared_input()
-        self._build_body()
+        self._layout.addWidget(self._page_tabs, stretch=1)
         self._build_resize_row()
-        self._layout.addWidget(content, stretch=1)
+        self._refresh_overlay_theme()
         self.setMouseTracking(True)
         self._init_database()
         self.reload_all()
@@ -207,7 +204,7 @@ class SnippetsDialog(QDialog):
 
     def focusNextPrevChild(self, next: bool) -> bool:  # noqa: A002, FBT001, N802
         """Cycle Tab between phrases, emoji, symbols, and colors in the shared input."""
-        if self._page_tabs.currentWidget() is self._scripts:
+        if self._page_tabs.currentIndex() == self._scripts_tab_index:
             return super().focusNextPrevChild(next)
         index = ZONES.index(self._active_zone)
         index = (index + (1 if next else -1)) % len(ZONES)
@@ -415,21 +412,26 @@ class SnippetsDialog(QDialog):
 
         snippets_page = QWidget(self)
         snippets_layout = QVBoxLayout(snippets_page)
-        snippets_layout.setContentsMargins(0, 8, 0, 0)
-        snippets_layout.setSpacing(12)
+        snippets_layout.setContentsMargins(SPACE_L, SPACE_M, SPACE_L, SPACE_L)
+        snippets_layout.setSpacing(SPACE_M)
         snippets_layout.addWidget(self._input)
         snippets_layout.addWidget(columns, stretch=1)
 
         self._scripts = ScriptsPanel(self)
         self._scripts.add_requested.connect(self._paste_scripts)
+        scripts_page = QWidget(self)
+        scripts_layout = QVBoxLayout(scripts_page)
+        scripts_layout.setContentsMargins(SPACE_L, SPACE_M, SPACE_L, SPACE_L)
+        scripts_layout.setSpacing(SPACE_M)
+        scripts_layout.addWidget(self._scripts)
 
         self._page_tabs = QTabWidget(self)
+        self._page_tabs.setObjectName("tabWidget")
         self._page_tabs.setDocumentMode(True)
         self._page_tabs.addTab(snippets_page, "Snippets")
-        self._page_tabs.addTab(self._scripts, "Scripts")
+        self._page_tabs.addTab(scripts_page, "Scripts")
         self._page_tabs.currentChanged.connect(self._on_page_changed)
-        self._content_layout.addWidget(self._page_tabs, stretch=1)
-        self._refresh_overlay_theme()
+        self._scripts_tab_index = 1
 
     def _build_fallback_header(self, menu_button: FluentToolButton) -> None:
         """Build a simple title row when Win11 caption is unavailable."""
@@ -456,12 +458,15 @@ class SnippetsDialog(QDialog):
         header_spacer.setCursor(Qt.CursorShape.OpenHandCursor)
         header_spacer.installEventFilter(self)
 
-        header = QHBoxLayout()
+        header_host = QWidget(self)
+        header = QHBoxLayout(header_host)
+        header.setContentsMargins(SPACE_L, SPACE_M, SPACE_L, 0)
+        header.setSpacing(SPACE_M)
         header.addWidget(menu_button)
         header.addWidget(title)
         header.addWidget(header_spacer, stretch=1)
         header.addWidget(close_button)
-        self._content_layout.addLayout(header)
+        self._layout.insertWidget(0, header_host)
 
     def _build_menu_button(self) -> FluentToolButton:
         header_menu = FluentMenu("", self)
@@ -477,10 +482,13 @@ class SnippetsDialog(QDialog):
         return menu_button
 
     def _build_resize_row(self) -> None:
-        resize_row = QHBoxLayout()
+        footer = QWidget(self)
+        resize_row = QHBoxLayout(footer)
+        resize_row.setContentsMargins(SPACE_L, 0, SPACE_L, SPACE_M)
+        resize_row.setSpacing(0)
         resize_row.addStretch()
-        resize_row.addWidget(QSizeGrip(self), alignment=Qt.AlignmentFlag.AlignRight)
-        self._content_layout.addLayout(resize_row)
+        resize_row.addWidget(QSizeGrip(footer), alignment=Qt.AlignmentFlag.AlignRight)
+        self._layout.addWidget(footer)
 
     def _build_shared_input(self) -> None:
         self._input.setPlaceholderText(_ZONE_TITLES[ZONE_PHRASE])
@@ -631,7 +639,7 @@ class SnippetsDialog(QDialog):
 
     def _on_page_changed(self, index: int) -> None:
         """Focus the composer on Scripts, or the snippet field on Snippets."""
-        if self._page_tabs.widget(index) is self._scripts:
+        if index == self._scripts_tab_index:
             self._scripts.focus_composer()
             return
         self._input.setFocus()
@@ -685,7 +693,7 @@ class SnippetsDialog(QDialog):
             f"#snippetsDialog {{ background-color: {window}; border: 1px solid {border}; }}",
         )
         pages = getattr(self, "_page_tabs", None)
-        if pages is not None:
+        if pages is not None and not pages.property(CAPTION_TABS_PROPERTY):
             pages.setStyleSheet(
                 "QTabWidget::pane { border: none; background: transparent; }"
                 + fluent_tab_bar_qss(palette, pad_v=SPACE_XS),
