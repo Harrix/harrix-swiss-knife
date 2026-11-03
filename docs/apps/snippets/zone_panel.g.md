@@ -16,6 +16,7 @@ lang: en
   - [⚙️ Method `sizeHint`](#%EF%B8%8F-method-sizehint)
 - [🏛️ Class `HighlightItemDelegate`](#%EF%B8%8F-class-highlightitemdelegate)
   - [⚙️ Method `paint`](#%EF%B8%8F-method-paint-1)
+  - [⚙️ Method `sizeHint`](#%EF%B8%8F-method-sizehint-1)
 - [🏛️ Class `IconItemDelegate`](#%EF%B8%8F-class-iconitemdelegate)
   - [⚙️ Method `paint`](#%EF%B8%8F-method-paint-2)
 - [🏛️ Class `ZonePanel`](#%EF%B8%8F-class-zonepanel)
@@ -110,9 +111,10 @@ class ColorItemDelegate(QStyledItemDelegate):
         painter.restore()
 
     def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> QSize:  # noqa: N802
-        """Keep color rows tall enough for the rounded chip."""
+        """Keep color rows tall enough for the chip, without the loose QSS row height."""
         hint = super().sizeHint(option, index)
-        return QSize(hint.width(), max(hint.height(), _MIN_COLOR_ROW_HEIGHT))
+        chip = option.fontMetrics.height() + 2 * _CHIP_PADDING_Y + 2 * _LIST_ROW_TEXT_PAD
+        return QSize(hint.width(), max(chip, _MIN_COLOR_ROW_HEIGHT))
 ```
 
 </details>
@@ -184,7 +186,7 @@ def paint(
 def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> QSize
 ```
 
-Keep color rows tall enough for the rounded chip.
+Keep color rows tall enough for the chip, without the loose QSS row height.
 
 <details>
 <summary>Code:</summary>
@@ -192,7 +194,8 @@ Keep color rows tall enough for the rounded chip.
 ```python
 def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> QSize:  # noqa: N802
         hint = super().sizeHint(option, index)
-        return QSize(hint.width(), max(hint.height(), _MIN_COLOR_ROW_HEIGHT))
+        chip = option.fontMetrics.height() + 2 * _CHIP_PADDING_Y + 2 * _LIST_ROW_TEXT_PAD
+        return QSize(hint.width(), max(chip, _MIN_COLOR_ROW_HEIGHT))
 ```
 
 </details>
@@ -245,6 +248,12 @@ class HighlightItemDelegate(QStyledItemDelegate):
             painter.setPen(opt.palette.color(QPalette.ColorRole.Text))
             painter.drawText(opt.rect, Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft, opt.text)
         painter.restore()
+
+    def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> QSize:  # noqa: N802
+        """Use a dense row height; stylesheet padding alone stays too tall on Windows."""
+        hint = super().sizeHint(option, index)
+        height = option.fontMetrics.height() + 2 * _LIST_ROW_TEXT_PAD
+        return QSize(hint.width(), height)
 ```
 
 </details>
@@ -294,6 +303,26 @@ def paint(
             painter.setPen(opt.palette.color(QPalette.ColorRole.Text))
             painter.drawText(opt.rect, Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft, opt.text)
         painter.restore()
+```
+
+</details>
+
+### ⚙️ Method `sizeHint`
+
+```python
+def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> QSize
+```
+
+Use a dense row height; stylesheet padding alone stays too tall on Windows.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> QSize:  # noqa: N802
+        hint = super().sizeHint(option, index)
+        height = option.fontMetrics.height() + 2 * _LIST_ROW_TEXT_PAD
+        return QSize(hint.width(), height)
 ```
 
 </details>
@@ -810,7 +839,9 @@ class ZonePanel(QWidget):
         palette = palette_for(self)
         primary = css(mix(palette.window_bg, palette.text_primary))
         self._title_label.setStyleSheet(f"color: {primary};")
-        self._list.setStyleSheet(with_flat_scrollbars(item_view_qss(palette, "QListWidget", transparent=True)))
+        self._list.setStyleSheet(
+            with_flat_scrollbars(item_view_qss(palette, "QListWidget", transparent=True, compact=True)),
+        )
         _apply_list_highlight_palette(self._list)
         _paint_zone_viewport(self._list, palette)
         self._list.viewport().update()

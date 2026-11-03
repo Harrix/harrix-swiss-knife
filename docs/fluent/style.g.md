@@ -280,7 +280,7 @@ def filled_button_qss(palette: FluentPalette, fill: QColor, ink: QColor, selecto
 ## 🔧 Function `item_view_qss`
 
 ```python
-def item_view_qss(palette: FluentPalette, selector: str, *, transparent: bool = True) -> str
+def item_view_qss(palette: FluentPalette, selector: str, *, transparent: bool = True, compact: bool = False) -> str
 ```
 
 Return a list/tree/table stylesheet with Fluent rounded selection.
@@ -288,14 +288,28 @@ Return a list/tree/table stylesheet with Fluent rounded selection.
 Hover / selected fills are stronger than `subtle_hover` so lists read like
 Windows 11 Settings navigation (clear pill on hover and selection).
 
+Args:
+
+- `transparent` (`bool`): Use a clear view background. Defaults to `True`.
+- `compact` (`bool`): Tight row padding (Quick paste / dense lists). Defaults
+  to `False` (Settings-like comfortable rows).
+
 <details>
 <summary>Code:</summary>
 
 ```python
-def item_view_qss(palette: FluentPalette, selector: str, *, transparent: bool = True) -> str:
+def item_view_qss(
+    palette: FluentPalette,
+    selector: str,
+    *,
+    transparent: bool = True,
+    compact: bool = False,
+) -> str:
     background = "transparent" if transparent else css(palette.card_bg)
     hover = css(list_item_hover(palette))
     selected = css(list_item_selected(palette))
+    # Match `app_chrome._style_item_view` when compact so overlays stay dense.
+    item_box = "padding: 1px 8px; margin: 0px;" if compact else "padding: 6px 8px; margin: 1px 4px;"
     return f"""
 {selector} {{
     background: {background};
@@ -305,8 +319,7 @@ def item_view_qss(palette: FluentPalette, selector: str, *, transparent: bool = 
 }}
 {selector}::item {{
     border-radius: {RADIUS_CONTROL}px;
-    padding: 6px 8px;
-    margin: 1px 4px;
+    {item_box}
     color: {css(palette.text_primary)};
 }}
 {selector}::item:hover {{ background: {hover}; }}

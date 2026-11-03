@@ -78,7 +78,9 @@ _CANDIDATE_CHIP_SIZE = 28
 _CANDIDATE_EMOJI_SIZE = 22
 _PLUS_BADGE_SIZE = 11
 _LIGHT_TEXT_THRESHOLD = 160
-_MIN_COLOR_ROW_HEIGHT = 28
+# Dense Quick paste rows: QSS padding alone still yields ~32-44 px via the style.
+_LIST_ROW_TEXT_PAD = 2
+_MIN_COLOR_ROW_HEIGHT = 22
 _ZONE_PANEL_MARGINS = (10, 8, 10, 0)
 _SORT_BUTTONS: tuple[tuple[SortMode, str, str], ...] = (
     (SORT_USED, "clock", "Sort by last used"),
@@ -139,9 +141,10 @@ class ColorItemDelegate(QStyledItemDelegate):
         painter.restore()
 
     def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> QSize:  # noqa: N802
-        """Keep color rows tall enough for the rounded chip."""
+        """Keep color rows tall enough for the chip, without the loose QSS row height."""
         hint = super().sizeHint(option, index)
-        return QSize(hint.width(), max(hint.height(), _MIN_COLOR_ROW_HEIGHT))
+        chip = option.fontMetrics.height() + 2 * _CHIP_PADDING_Y + 2 * _LIST_ROW_TEXT_PAD
+        return QSize(hint.width(), max(chip, _MIN_COLOR_ROW_HEIGHT))
 
 
 class HighlightItemDelegate(QStyledItemDelegate):
@@ -181,6 +184,12 @@ class HighlightItemDelegate(QStyledItemDelegate):
             painter.setPen(opt.palette.color(QPalette.ColorRole.Text))
             painter.drawText(opt.rect, Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft, opt.text)
         painter.restore()
+
+    def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> QSize:  # noqa: N802
+        """Use a dense row height; stylesheet padding alone stays too tall on Windows."""
+        hint = super().sizeHint(option, index)
+        height = option.fontMetrics.height() + 2 * _LIST_ROW_TEXT_PAD
+        return QSize(hint.width(), height)
 
 
 class IconItemDelegate(QStyledItemDelegate):
@@ -630,7 +639,9 @@ class ZonePanel(QWidget):
         palette = palette_for(self)
         primary = css(mix(palette.window_bg, palette.text_primary))
         self._title_label.setStyleSheet(f"color: {primary};")
-        self._list.setStyleSheet(with_flat_scrollbars(item_view_qss(palette, "QListWidget", transparent=True)))
+        self._list.setStyleSheet(
+            with_flat_scrollbars(item_view_qss(palette, "QListWidget", transparent=True, compact=True)),
+        )
         _apply_list_highlight_palette(self._list)
         _paint_zone_viewport(self._list, palette)
         self._list.viewport().update()
