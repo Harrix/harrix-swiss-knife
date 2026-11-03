@@ -510,19 +510,75 @@ def create_lucide_icon(
     return icon
 
 
+_LINE_EDIT_CLEAR_PROP = "_hskLucideClearAction"
+_LINE_EDIT_CLEAR_ICON_SIZE = 14
+
+
+def install_line_edit_clear_button(
+    line_edit: QLineEdit,
+    *,
+    icon_size: int = _LINE_EDIT_CLEAR_ICON_SIZE,
+    clear_tooltip: str = "Clear",
+    on_clear: Callable[[], None] | None = None,
+) -> QAction:
+    """Install the shared Lucide clear (red `x`) for ordinary text fields.
+
+    Replaces Qt's stock clear button. The action is trailing and visible only
+    while the field has text. Calling this twice on the same field reuses the
+    existing action. Prefer this (or `FluentLineEdit`) over
+    `setClearButtonEnabled(True)`.
+
+    Args:
+
+    - `line_edit` (`QLineEdit`): Target field.
+    - `icon_size` (`int`): Lucide paint size. Defaults to `14`.
+    - `clear_tooltip` (`str`): Tooltip on the clear action. Defaults to `Clear`.
+    - `on_clear` (`Callable[[], None] | None`): Optional clear handler instead of
+      `line_edit.clear`.
+
+    Returns:
+
+    - `QAction`: The clear action (already wired).
+
+    """
+    existing = line_edit.property(_LINE_EDIT_CLEAR_PROP)
+    if isinstance(existing, QAction):
+        return existing
+
+    line_edit.setClearButtonEnabled(False)
+    clear_action = QAction(create_lucide_icon("x", icon_size), "", line_edit)
+    clear_action.setToolTip(clear_tooltip)
+    clear_action.triggered.connect(on_clear if on_clear is not None else line_edit.clear)
+    # addAction always shows the side button; set visibility only after that.
+    line_edit.addAction(clear_action, QLineEdit.ActionPosition.TrailingPosition)
+
+    def _sync_clear_visibility(text: str = "") -> None:
+        visible = bool(text)
+        clear_action.setVisible(visible)
+        # addAction always shows the side button; QAction visibility alone can miss
+        # that QToolButton. Skip the line edit itself in associatedObjects().
+        for obj in clear_action.associatedObjects():
+            if isinstance(obj, QAbstractButton):
+                obj.setVisible(visible)
+
+    _sync_clear_visibility(line_edit.text())
+    line_edit.textChanged.connect(_sync_clear_visibility)
+    line_edit.setProperty(_LINE_EDIT_CLEAR_PROP, clear_action)
+    return clear_action
+
+
 def install_line_edit_search_chrome(
     line_edit: QLineEdit,
     *,
     leading_icon: str = "search",
-    icon_size: int = 14,
+    icon_size: int = _LINE_EDIT_CLEAR_ICON_SIZE,
     clear_tooltip: str = "Clear",
     on_clear: Callable[[], None] | None = None,
 ) -> QAction:
-    """Put a leading Lucide glyph inside `line_edit` and a clear (x) for non-empty text.
+    """Put a leading Lucide glyph inside `line_edit` and the shared clear button.
 
-    The leading action is decorative. The clear action is trailing and visible
-    only while the field has text. By default it calls `line_edit.clear`; pass
-    `on_clear` when clearing must also reset related UI state.
+    The leading action is decorative. The clear action comes from
+    `install_line_edit_clear_button` (red `x`, only while non-empty).
 
     Args:
 
@@ -546,24 +602,12 @@ def install_line_edit_search_chrome(
     leading_action.setEnabled(False)
     line_edit.addAction(leading_action, QLineEdit.ActionPosition.LeadingPosition)
 
-    clear_action = QAction(create_lucide_icon("x", icon_size), "", line_edit)
-    clear_action.setToolTip(clear_tooltip)
-    clear_action.triggered.connect(on_clear if on_clear is not None else line_edit.clear)
-    # addAction always shows the side button; set visibility only after that.
-    line_edit.addAction(clear_action, QLineEdit.ActionPosition.TrailingPosition)
-
-    def _sync_clear_visibility(text: str = "") -> None:
-        visible = bool(text)
-        clear_action.setVisible(visible)
-        # addAction always shows the side button; QAction visibility alone can miss
-        # that QToolButton. Skip the line edit itself in associatedObjects().
-        for obj in clear_action.associatedObjects():
-            if isinstance(obj, QAbstractButton):
-                obj.setVisible(visible)
-
-    _sync_clear_visibility(line_edit.text())
-    line_edit.textChanged.connect(_sync_clear_visibility)
-    return clear_action
+    return install_line_edit_clear_button(
+        line_edit,
+        icon_size=icon_size,
+        clear_tooltip=clear_tooltip,
+        on_clear=on_clear,
+    )
 
 
 def is_clear_like_button_label(label: str) -> bool:

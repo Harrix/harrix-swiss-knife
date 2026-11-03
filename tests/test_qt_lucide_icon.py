@@ -5,10 +5,11 @@ from __future__ import annotations
 import pytest
 from PySide6.QtCore import QSize
 from PySide6.QtGui import QColor
-from PySide6.QtWidgets import QApplication, QDialogButtonBox, QMenu
+from PySide6.QtWidgets import QAbstractButton, QApplication, QDialogButtonBox, QLineEdit, QMenu
 
 from harrix_swiss_knife import qt_lucide_icon as lucide_mod
 from harrix_swiss_knife.apps.common.ui_chrome import button_primary_qss
+from harrix_swiss_knife.fluent.widgets.input_base import FluentLineEdit
 from harrix_swiss_knife.qt_lucide_icon import (
     ACCEPT_BUTTON_STYLE,
     AI_BUTTON_ICON,
@@ -25,6 +26,8 @@ from harrix_swiss_knife.qt_lucide_icon import (
     apply_lucide_dialog_buttons,
     create_ai_lucide_icon,
     create_lucide_icon,
+    install_line_edit_clear_button,
+    install_line_edit_search_chrome,
     lucide_color_for,
     lucide_name_for_chrome_emoji,
     lucide_svg_path,
@@ -306,3 +309,33 @@ def test_make_lucide_push_button_paints_delete_red_not_cancel(qapp: QApplication
     assert cancel.styleSheet() == CANCEL_BUTTON_STYLE
     style_delete_button(cancel)
     assert cancel.styleSheet() == DELETE_BUTTON_STYLE
+
+
+def test_line_edit_clear_button_visible_only_with_text(qapp: QApplication) -> None:
+    assert qapp is not None
+    edit = QLineEdit()
+    edit.show()
+    action = install_line_edit_clear_button(edit)
+    assert not edit.isClearButtonEnabled()
+    assert not action.isVisible()
+    edit.setText("hello")
+    qapp.processEvents()
+    assert action.isVisible()
+    buttons = [obj for obj in action.associatedObjects() if isinstance(obj, QAbstractButton)]
+    assert buttons
+    assert any(button.isVisible() for button in buttons)
+    edit.clear()
+    qapp.processEvents()
+    assert not action.isVisible()
+    assert install_line_edit_clear_button(edit) is action
+    search = install_line_edit_search_chrome(edit)
+    assert search is action
+    fluent = FluentLineEdit(clearable=True)
+    fluent.show()
+    fluent_action = install_line_edit_clear_button(fluent)
+    assert not fluent_action.isVisible()
+    fluent.setText("x")
+    qapp.processEvents()
+    assert fluent_action.isVisible()
+    edit.close()
+    fluent.close()

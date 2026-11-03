@@ -460,6 +460,8 @@ def _restyle_buttons(root: QWidget, palette: FluentPalette) -> None:
 
 
 def _restyle_inputs(root: QWidget, palette: FluentPalette) -> None:
+    from harrix_swiss_knife.qt_lucide_icon import install_line_edit_clear_button  # noqa: PLC0415
+
     line = line_edit_qss(palette, height=CONTROL_HEIGHT)
     spin = spin_box_qss(palette, height=CONTROL_HEIGHT)
     combo = combo_box_qss(palette, height=CONTROL_HEIGHT)
@@ -468,6 +470,9 @@ def _restyle_inputs(root: QWidget, palette: FluentPalette) -> None:
             continue
         if edit.parentWidget() is not None and isinstance(edit.parentWidget(), QComboBox):
             continue
+        # Replace Qt's stock clear glyph with the shared Lucide red `x`.
+        if edit.isClearButtonEnabled():
+            install_line_edit_clear_button(edit)
         _set_sheet(edit, line)
         _lock_control_height(edit)
     for box in root.findChildren(QAbstractSpinBox):

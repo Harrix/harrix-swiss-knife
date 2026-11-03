@@ -18,6 +18,7 @@ from harrix_swiss_knife.fluent.theme import bind_theme, palette_for
 from harrix_swiss_knife.fluent.tokens import CONTROL_HEIGHT, RADIUS_CONTROL, SPACE_S, SPACE_XS
 from harrix_swiss_knife.fluent.widgets.buttons import FluentCheckBox, FluentIconButton, FluentToolButton
 from harrix_swiss_knife.fluent.widgets.inputs import FluentEditableComboBox
+from harrix_swiss_knife.qt_lucide_icon import install_line_edit_clear_button
 from harrix_swiss_knife.screenshot.font_preview import FontPreviewDelegate, load_font_preview_text
 from harrix_swiss_knife.screenshot.text_style import (
     ScreenshotTextSettings,
@@ -74,7 +75,7 @@ class ScreenshotTextToolbar(QWidget):
         family_line = self._family.lineEdit()
         if family_line is not None:
             family_line.setPlaceholderText("Font")
-            family_line.setClearButtonEnabled(True)
+            install_line_edit_clear_button(family_line)
         self._family.currentTextChanged.connect(self._on_family_changed)
         self._family.setItemDelegate(FontPreviewDelegate(self._preview_text, self._family))
         view = self._family.view()

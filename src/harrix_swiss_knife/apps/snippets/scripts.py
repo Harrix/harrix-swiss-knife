@@ -11,6 +11,7 @@ from harrix_swiss_knife.fluent.style import accent_button_qss, line_edit_qss, pu
 from harrix_swiss_knife.fluent.theme import bind_theme, css, mix, palette_for
 from harrix_swiss_knife.fluent.tokens import SPACE_S, SPACE_XS
 from harrix_swiss_knife.qt_flow_layout import FlowLayout
+from harrix_swiss_knife.qt_lucide_icon import install_line_edit_clear_button
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -131,7 +132,7 @@ class ScriptsPanel(QWidget):
         super().__init__(parent)
         self._edit = QLineEdit(self)
         self._edit.setPlaceholderText("Click characters, then Add")
-        self._edit.setClearButtonEnabled(True)
+        install_line_edit_clear_button(self._edit)
         self._edit.returnPressed.connect(self._emit_add)
 
         self._add_button = QPushButton("Add", self)

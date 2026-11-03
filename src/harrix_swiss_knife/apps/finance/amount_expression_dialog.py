@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.finance.number_utils import try_evaluate_arithmetic_expression
-from harrix_swiss_knife.qt_lucide_icon import apply_lucide_dialog_buttons
+from harrix_swiss_knife.qt_lucide_icon import apply_lucide_dialog_buttons, install_line_edit_clear_button
 
 
 class AmountExpressionDialog(QDialog):
@@ -51,7 +51,7 @@ class AmountExpressionDialog(QDialog):
         layout.addWidget(QLabel("Expression:", self))
         self._expression_edit = QLineEdit(self)
         self._expression_edit.setPlaceholderText("e.g. 6522/2-600")
-        self._expression_edit.setClearButtonEnabled(True)
+        install_line_edit_clear_button(self._expression_edit)
         layout.addWidget(self._expression_edit)
 
         self._result_label = QLabel(self)
