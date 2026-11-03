@@ -410,7 +410,10 @@ class _CaptionEdgeLine(QWidget):
     def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
         """Draw the corner's share of the caption rule."""
         painter = QPainter(self)
-        painter.fillRect(self.rect(), QColor(caption_colors(self).tab_line))
+        try:
+            painter.fillRect(self.rect(), QColor(caption_colors(self).tab_line))
+        finally:
+            painter.end()
 
     def place(self) -> None:
         """Stretch the rule to the corner and keep it above the caption controls."""
@@ -1637,18 +1640,21 @@ def _paint_menu_chevrons(menu: QMenuBar) -> None:
 def _paint_tab_bar_line(tab_bar: QTabBar) -> None:
     """Draw the rule across the tab bar, leaving the active tab's bottom open."""
     painter = QPainter(tab_bar)
-    color = QColor(caption_colors(tab_bar).tab_line)
-    y = tab_bar.height() - 1
-    painter.fillRect(0, y, tab_bar.width(), 1, color)
-    index = tab_bar.currentIndex()
-    if index < 0:
-        return
-    rect = tab_bar.tabRect(index)
-    opening = rect.width() - 2
-    if opening <= 0:
-        return
-    fill = tab_bar.palette().color(QPalette.ColorRole.Window)
-    painter.fillRect(rect.x() + 1, y, opening, 1, fill)
+    try:
+        color = QColor(caption_colors(tab_bar).tab_line)
+        y = tab_bar.height() - 1
+        painter.fillRect(0, y, tab_bar.width(), 1, color)
+        index = tab_bar.currentIndex()
+        if index < 0:
+            return
+        rect = tab_bar.tabRect(index)
+        opening = rect.width() - 2
+        if opening <= 0:
+            return
+        fill = tab_bar.palette().color(QPalette.ColorRole.Window)
+        painter.fillRect(rect.x() + 1, y, opening, 1, fill)
+    finally:
+        painter.end()
 
 
 def _palette_is_light(window: QWidget) -> bool:

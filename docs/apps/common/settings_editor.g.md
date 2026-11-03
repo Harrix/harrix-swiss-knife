@@ -382,7 +382,7 @@ def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
 class SettingsEditorDialog(QDialog)
 ```
 
-A Windows Settings — style editor for `config.json`.
+A Windows Settings-style editor for `config.json`.
 
 <details>
 <summary>Code:</summary>

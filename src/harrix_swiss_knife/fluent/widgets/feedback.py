@@ -10,8 +10,6 @@ from PySide6.QtGui import QColor, QCursor, QPainterPath, QPolygonF
 from PySide6.QtWidgets import (
     QApplication,
     QFrame,
-    QGraphicsDropShadowEffect,
-    QGraphicsOpacityEffect,
     QHBoxLayout,
     QVBoxLayout,
     QWidget,
@@ -71,11 +69,6 @@ class FluentFloatButton(QWidget):
         self.setFixedSize(48, 48)
         self.setToolTip(tooltip)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        shadow = QGraphicsDropShadowEffect(self)
-        shadow.setBlurRadius(18)
-        shadow.setOffset(0, 4)
-        shadow.setColor(QColor(0, 0, 0, 70))
-        self.setGraphicsEffect(shadow)
         parent.installEventFilter(self)
         self._place()
         bind_theme(self, self.update)
@@ -256,11 +249,6 @@ class FluentMessageBar(FluentInfoBar):
         self._window = window
         self._position = position
         self.setFixedWidth(min(_BAR_WIDTH, max(200, window.width() - 2 * SPACE_XL)))
-        shadow = QGraphicsDropShadowEffect(self)
-        shadow.setBlurRadius(24)
-        shadow.setOffset(0, 4)
-        shadow.setColor(QColor(0, 0, 0, 50))
-        self.setGraphicsEffect(shadow)
         self._timer = QTimer(self)
         self._timer.setSingleShot(True)
         self._timer.timeout.connect(self.close_bar)
@@ -673,9 +661,8 @@ class FluentToast(QFrame):
         self.bar.setFixedWidth(_BAR_WIDTH)
         layout.addWidget(self.bar)
         self._duration = duration_ms
-        self._opacity = QGraphicsOpacityEffect(self.bar)
-        self.bar.setGraphicsEffect(self._opacity)
-        self._fade = QPropertyAnimation(self._opacity, b"opacity", self)
+        # Window opacity avoids QGraphicsOpacityEffect on FluentInfoBar's paintEvent.
+        self._fade = QPropertyAnimation(self, b"windowOpacity", self)
         self._fade.setDuration(ANIMATION_SLOW)
 
     def show_toast(self) -> None:
@@ -685,11 +672,13 @@ class FluentToast(QFrame):
         if screen is not None:
             area = screen.availableGeometry()
             self.move(area.right() - self.width() - SPACE_L, area.bottom() - self.height() - SPACE_L)
+        self.setWindowOpacity(1.0)
         self.show()
         if self._duration > 0:
             QTimer.singleShot(self._duration, self._fade_out)
 
     def _fade_out(self) -> None:
+        self._fade.stop()
         self._fade.setStartValue(1.0)
         self._fade.setEndValue(0.0)
         self._fade.finished.connect(self.close)
@@ -802,15 +791,16 @@ class _ToolTipFilter(QObject):
 
 
 def fade_in(widget: QWidget, duration_ms: int = ANIMATION_NORMAL) -> None:
-    """Fade `widget` in with a temporary opacity effect."""
-    effect = QGraphicsOpacityEffect(widget)
-    widget.setGraphicsEffect(effect)
-    animation = QPropertyAnimation(effect, b"opacity", widget)
+    """Fade a top-level `widget` in via window opacity (safe with custom `paintEvent`)."""
+    if not widget.isWindow():
+        widget.show()
+        return
+    widget.setWindowOpacity(0.0)
+    animation = QPropertyAnimation(widget, b"windowOpacity", widget)
     animation.setDuration(duration_ms)
     animation.setStartValue(0.0)
     animation.setEndValue(1.0)
     animation.setEasingCurve(QEasingCurve.Type.OutCubic)
-    animation.finished.connect(lambda: widget.setGraphicsEffect(None))  # ty: ignore[invalid-argument-type]
     animation.start(QPropertyAnimation.DeletionPolicy.DeleteWhenStopped)
 
 

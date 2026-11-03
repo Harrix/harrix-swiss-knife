@@ -255,10 +255,13 @@ class FluentContentDialog(QWidget):
         shadow.setOffset(0, 10)
         shadow.setColor(QColor(0, 0, 0, 80))
         self.card.setGraphicsEffect(shadow)
-        self._opacity = QGraphicsOpacityEffect(self)
-        self._fade = QPropertyAnimation(self._opacity, b"opacity", self)
+        # Fade smoke in paintEvent — QGraphicsOpacityEffect on this widget fights
+        # paintEvent and QWidgetEffectSourcePrivate ("painter already active").
+        self._reveal = 0.0
+        self._fade = QVariantAnimation(self)
         self._fade.setDuration(ANIMATION_NORMAL)
         self._fade.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self._fade.valueChanged.connect(self._on_reveal_changed)
         window.installEventFilter(self)
         bind_theme(self, self.refresh_theme)
 
@@ -275,19 +278,21 @@ class FluentContentDialog(QWidget):
     def open(self) -> None:
         """Show the dialog over the host window."""
         self._sync_geometry()
-        self.setGraphicsEffect(self._opacity)
-        self._opacity.setOpacity(0.0)
+        self._reveal = 0.0
         self.show()
         self.raise_()
+        self._fade.stop()
         self._fade.setStartValue(0.0)
         self._fade.setEndValue(1.0)
         self._fade.start()
         self.primary_button.setFocus()
 
     def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
-        """Paint the smoke layer."""
+        """Paint the smoke layer at the current reveal opacity."""
+        smoke = QColor(palette_for(self).smoke)
+        smoke.setAlpha(int(smoke.alpha() * self._reveal))
         painter = QPainter(self)
-        painter.fillRect(self.rect(), palette_for(self).smoke)
+        painter.fillRect(self.rect(), smoke)
         painter.end()
 
     def refresh_theme(self) -> None:
@@ -309,6 +314,10 @@ class FluentContentDialog(QWidget):
         (self.accepted if accepted else self.rejected).emit()
         self.finished.emit(accepted)
         self.close()
+
+    def _on_reveal_changed(self, value: object) -> None:
+        self._reveal = max(0.0, min(1.0, float(value)))  # ty: ignore[invalid-argument-type]
+        self.update()
 
     def _sync_geometry(self) -> None:
         self.setGeometry(self._host.rect())
@@ -364,10 +373,13 @@ def __init__(
         shadow.setOffset(0, 10)
         shadow.setColor(QColor(0, 0, 0, 80))
         self.card.setGraphicsEffect(shadow)
-        self._opacity = QGraphicsOpacityEffect(self)
-        self._fade = QPropertyAnimation(self._opacity, b"opacity", self)
+        # Fade smoke in paintEvent — QGraphicsOpacityEffect on this widget fights
+        # paintEvent and QWidgetEffectSourcePrivate ("painter already active").
+        self._reveal = 0.0
+        self._fade = QVariantAnimation(self)
         self._fade.setDuration(ANIMATION_NORMAL)
         self._fade.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self._fade.valueChanged.connect(self._on_reveal_changed)
         window.installEventFilter(self)
         bind_theme(self, self.refresh_theme)
 ```
@@ -426,10 +438,10 @@ Show the dialog over the host window.
 ```python
 def open(self) -> None:
         self._sync_geometry()
-        self.setGraphicsEffect(self._opacity)
-        self._opacity.setOpacity(0.0)
+        self._reveal = 0.0
         self.show()
         self.raise_()
+        self._fade.stop()
         self._fade.setStartValue(0.0)
         self._fade.setEndValue(1.0)
         self._fade.start()
@@ -444,15 +456,17 @@ def open(self) -> None:
 def paintEvent(self, _event: QPaintEvent) -> None
 ```
 
-Paint the smoke layer.
+Paint the smoke layer at the current reveal opacity.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
+        smoke = QColor(palette_for(self).smoke)
+        smoke.setAlpha(int(smoke.alpha() * self._reveal))
         painter = QPainter(self)
-        painter.fillRect(self.rect(), palette_for(self).smoke)
+        painter.fillRect(self.rect(), smoke)
         painter.end()
 ```
 
