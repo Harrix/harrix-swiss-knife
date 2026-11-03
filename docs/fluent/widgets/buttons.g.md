@@ -38,20 +38,23 @@ lang: en
 - [🏛️ Class `FluentRadioButton`](#%EF%B8%8F-class-fluentradiobutton)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-6)
   - [⚙️ Method `refresh_theme`](#%EF%B8%8F-method-refresh_theme-7)
-- [🏛️ Class `FluentToggleButton`](#%EF%B8%8F-class-fluenttogglebutton)
+- [🏛️ Class `FluentSplitButton`](#%EF%B8%8F-class-fluentsplitbutton)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-7)
   - [⚙️ Method `refresh_theme`](#%EF%B8%8F-method-refresh_theme-8)
-- [🏛️ Class `FluentToggleSwitch`](#%EF%B8%8F-class-fluenttoggleswitch)
+- [🏛️ Class `FluentToggleButton`](#%EF%B8%8F-class-fluenttogglebutton)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-8)
+  - [⚙️ Method `refresh_theme`](#%EF%B8%8F-method-refresh_theme-9)
+- [🏛️ Class `FluentToggleSwitch`](#%EF%B8%8F-class-fluenttoggleswitch)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-9)
   - [⚙️ Method `get_knob`](#%EF%B8%8F-method-get_knob)
   - [⚙️ Method `paintEvent`](#%EF%B8%8F-method-paintevent-1)
   - [⚙️ Method `set_knob`](#%EF%B8%8F-method-set_knob)
   - [⚙️ Method `sizeHint`](#%EF%B8%8F-method-sizehint)
 - [🏛️ Class `FluentToolButton`](#%EF%B8%8F-class-fluenttoolbutton)
-  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-9)
-  - [⚙️ Method `refresh_theme`](#%EF%B8%8F-method-refresh_theme-9)
-- [🏛️ Class `FluentTransparentButton`](#%EF%B8%8F-class-fluenttransparentbutton)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-10)
   - [⚙️ Method `refresh_theme`](#%EF%B8%8F-method-refresh_theme-10)
+- [🏛️ Class `FluentTransparentButton`](#%EF%B8%8F-class-fluenttransparentbutton)
+  - [⚙️ Method `refresh_theme`](#%EF%B8%8F-method-refresh_theme-11)
 
 </details>
 
@@ -816,6 +819,143 @@ def refresh_theme(self) -> None:
             f"QRadioButton:disabled {{ color: {css(palette.text_disabled)}; }}",
         )
         self.update()
+```
+
+</details>
+
+## 🏛️ Class `FluentSplitButton`
+
+```python
+class FluentSplitButton(FluentIconMixin, QToolButton)
+```
+
+Primary action on the left; a chevron opens an optional menu on the right.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class FluentSplitButton(FluentIconMixin, QToolButton):
+
+    def __init__(
+        self,
+        text: str = "",
+        parent: QWidget | None = None,
+        *,
+        icon: str = "",
+        menu: QMenu | None = None,
+    ) -> None:
+        """Create a split button.
+
+        Args:
+
+        - `text` (`str`): Caption on the main face.
+        - `parent` (`QWidget | None`): Optional parent.
+        - `icon` (`str`): Optional Lucide icon ID.
+        - `menu` (`QMenu | None`): Menu opened from the chevron side.
+
+        """
+        super().__init__(parent)
+        self._icon_name = icon
+        self.setText(text)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        self.setPopupMode(QToolButton.ToolButtonPopupMode.MenuButtonPopup)
+        self.setMinimumHeight(CONTROL_HEIGHT)
+        if menu is not None:
+            self.setMenu(menu)
+        bind_theme(self, self.refresh_theme)
+
+    def refresh_theme(self) -> None:
+        """Re-apply push-button chrome with a visible menu split."""
+        self.setStyleSheet(
+            push_button_qss(palette_for(self), "QToolButton")
+            + "QToolButton { padding-right: 4px; }"
+            + "QToolButton::menu-button { width: 24px; border: none; border-left: 1px solid transparent; }"
+            + "QToolButton::menu-arrow { image: none; width: 0px; }",
+        )
+        self._sync_icon()
+        if self.menu() is not None:
+            palette = palette_for(self)
+            sheet = self.styleSheet()
+            self.setStyleSheet(
+                sheet
+                + f"QToolButton::menu-button {{ border-left: 1px solid {css(palette.control_stroke)}; }}"
+                + f"QToolButton::menu-button:hover {{ background: {css(palette.control_fill_hover)}; }}",
+            )
+```
+
+</details>
+
+### ⚙️ Method `__init__`
+
+```python
+def __init__(self, text: str = '', parent: QWidget | None = None, *, icon: str = '', menu: QMenu | None = None) -> None
+```
+
+Create a split button.
+
+Args:
+
+- `text` (`str`): Caption on the main face.
+- `parent` (`QWidget | None`): Optional parent.
+- [`icon`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-icon) (`str`): Optional Lucide icon ID.
+- [`menu`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-menu) (`QMenu | None`): Menu opened from the chevron side.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __init__(
+        self,
+        text: str = "",
+        parent: QWidget | None = None,
+        *,
+        icon: str = "",
+        menu: QMenu | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self._icon_name = icon
+        self.setText(text)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        self.setPopupMode(QToolButton.ToolButtonPopupMode.MenuButtonPopup)
+        self.setMinimumHeight(CONTROL_HEIGHT)
+        if menu is not None:
+            self.setMenu(menu)
+        bind_theme(self, self.refresh_theme)
+```
+
+</details>
+
+### ⚙️ Method `refresh_theme`
+
+```python
+def refresh_theme(self) -> None
+```
+
+Re-apply push-button chrome with a visible menu split.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def refresh_theme(self) -> None:
+        self.setStyleSheet(
+            push_button_qss(palette_for(self), "QToolButton")
+            + "QToolButton { padding-right: 4px; }"
+            + "QToolButton::menu-button { width: 24px; border: none; border-left: 1px solid transparent; }"
+            + "QToolButton::menu-arrow { image: none; width: 0px; }",
+        )
+        self._sync_icon()
+        if self.menu() is not None:
+            palette = palette_for(self)
+            sheet = self.styleSheet()
+            self.setStyleSheet(
+                sheet
+                + f"QToolButton::menu-button {{ border-left: 1px solid {css(palette.control_stroke)}; }}"
+                + f"QToolButton::menu-button:hover {{ background: {css(palette.control_fill_hover)}; }}",
+            )
 ```
 
 </details>

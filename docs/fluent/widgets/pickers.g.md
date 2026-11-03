@@ -24,8 +24,10 @@ lang: en
   - [⚙️ Method `date`](#%EF%B8%8F-method-date-1)
   - [⚙️ Method `format_values`](#%EF%B8%8F-method-format_values)
   - [⚙️ Method `set_date`](#%EF%B8%8F-method-set_date-1)
-- [🏛️ Class `FluentTimePicker`](#%EF%B8%8F-class-fluenttimepicker)
+- [🏛️ Class `FluentEmojiPicker`](#%EF%B8%8F-class-fluentemojipicker)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-3)
+- [🏛️ Class `FluentTimePicker`](#%EF%B8%8F-class-fluenttimepicker)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-4)
   - [⚙️ Method `set_time`](#%EF%B8%8F-method-set_time)
   - [⚙️ Method `time`](#%EF%B8%8F-method-time)
 
@@ -494,6 +496,131 @@ def set_date(self, date: QDate) -> None:
         current = self.date()
         if current is not None:
             self.setText(current.toString("yyyy-MM-dd"))
+```
+
+</details>
+
+## 🏛️ Class `FluentEmojiPicker`
+
+```python
+class FluentEmojiPicker(FluentPushButton)
+```
+
+Button that opens a compact emoji grid; emits the chosen glyph.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class FluentEmojiPicker(FluentPushButton):
+
+    emoji_selected = Signal(str)
+
+    def __init__(
+        self,
+        parent: QWidget | None = None,
+        *,
+        emojis: list[str] | None = None,
+        placeholder: str = "Emoji",
+    ) -> None:
+        """Create an emoji picker button."""
+        super().__init__(placeholder, parent, icon="smile")
+        self._emojis = list(emojis) if emojis is not None else list(_EMOJI_DEFAULT)
+        self._popup = QFrame(
+            self,
+            Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint | Qt.WindowType.NoDropShadowWindowHint,
+        )
+        self._popup.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, on=True)
+        self._popup.setObjectName("FluentEmojiPopup")
+        outer = QVBoxLayout(self._popup)
+        outer.setContentsMargins(SPACE_XS, SPACE_XS, SPACE_XS, SPACE_XS)
+        host = QWidget(self._popup)
+        self._flow = FlowLayout(host, margin=SPACE_S, h_spacing=SPACE_XS, v_spacing=SPACE_XS)
+        outer.addWidget(host)
+        for glyph in self._emojis:
+            cell = QToolButton(host)
+            cell.setText(glyph)
+            cell.setFixedSize(_EMOJI_CELL, _EMOJI_CELL)
+            cell.setAutoRaise(True)
+            cell.setCursor(Qt.CursorShape.PointingHandCursor)
+            cell.clicked.connect(lambda _checked=False, value=glyph: self._pick(value))
+            self._flow.addWidget(cell)
+        self.clicked.connect(self._open)
+        bind_theme(self, self._refresh_popup)
+
+    def _open(self) -> None:
+        self._refresh_popup()
+        self._popup.adjustSize()
+        self._popup.setFixedWidth(8 * _EMOJI_CELL + 2 * SPACE_M)
+        origin = self.mapToGlobal(QPoint(0, self.height()))
+        self._popup.move(origin)
+        self._popup.show()
+
+    def _pick(self, glyph: str) -> None:
+        self._icon_name = ""
+        self.setIcon(QIcon())
+        self.setText(glyph)
+        self.emoji_selected.emit(glyph)
+        self._popup.hide()
+
+    def _refresh_popup(self) -> None:
+        palette = palette_for(self)
+        self._popup.setStyleSheet(
+            f"""
+QFrame#FluentEmojiPopup {{
+    background: {css(palette.popup_bg)};
+    border: 1px solid {css(palette.popup_stroke)};
+    border-radius: {RADIUS_OVERLAY}px;
+}}
+{subtle_button_qss(palette, "QToolButton")}
+""",
+        )
+```
+
+</details>
+
+### ⚙️ Method `__init__`
+
+```python
+def __init__(self, parent: QWidget | None = None, *, emojis: list[str] | None = None, placeholder: str = 'Emoji') -> None
+```
+
+Create an emoji picker button.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __init__(
+        self,
+        parent: QWidget | None = None,
+        *,
+        emojis: list[str] | None = None,
+        placeholder: str = "Emoji",
+    ) -> None:
+        super().__init__(placeholder, parent, icon="smile")
+        self._emojis = list(emojis) if emojis is not None else list(_EMOJI_DEFAULT)
+        self._popup = QFrame(
+            self,
+            Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint | Qt.WindowType.NoDropShadowWindowHint,
+        )
+        self._popup.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, on=True)
+        self._popup.setObjectName("FluentEmojiPopup")
+        outer = QVBoxLayout(self._popup)
+        outer.setContentsMargins(SPACE_XS, SPACE_XS, SPACE_XS, SPACE_XS)
+        host = QWidget(self._popup)
+        self._flow = FlowLayout(host, margin=SPACE_S, h_spacing=SPACE_XS, v_spacing=SPACE_XS)
+        outer.addWidget(host)
+        for glyph in self._emojis:
+            cell = QToolButton(host)
+            cell.setText(glyph)
+            cell.setFixedSize(_EMOJI_CELL, _EMOJI_CELL)
+            cell.setAutoRaise(True)
+            cell.setCursor(Qt.CursorShape.PointingHandCursor)
+            cell.clicked.connect(lambda _checked=False, value=glyph: self._pick(value))
+            self._flow.addWidget(cell)
+        self.clicked.connect(self._open)
+        bind_theme(self, self._refresh_popup)
 ```
 
 </details>

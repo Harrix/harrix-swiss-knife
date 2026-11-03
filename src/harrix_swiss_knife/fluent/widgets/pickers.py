@@ -1,9 +1,9 @@
-"""Fluent date and time pickers: calendar, calendar picker, roller, roller / time / date pickers."""
+"""Fluent date and time pickers: calendar, calendar picker, roller, roller / time / date pickers, emoji."""
 
 from __future__ import annotations
 
 from PySide6.QtCore import QDate, QLocale, QPoint, QSize, Qt, QTime, Signal
-from PySide6.QtGui import QFont, QTextCharFormat
+from PySide6.QtGui import QFont, QIcon, QTextCharFormat
 from PySide6.QtWidgets import (
     QCalendarWidget,
     QFrame,
@@ -12,19 +12,62 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from harrix_swiss_knife.fluent.style import lucide_qss_url
+from harrix_swiss_knife.fluent.style import lucide_qss_url, subtle_button_qss
 from harrix_swiss_knife.fluent.theme import bind_theme, css, mix, palette_for
 from harrix_swiss_knife.fluent.tokens import (
     CONTROL_HEIGHT,
     RADIUS_CONTROL,
     RADIUS_OVERLAY,
+    SPACE_M,
+    SPACE_S,
     SPACE_XS,
 )
 from harrix_swiss_knife.fluent.widgets.button_base import FluentPushButton
 from harrix_swiss_knife.fluent.widgets.picker_base import FluentRollerPicker
+from harrix_swiss_knife.qt_flow_layout import FlowLayout
 
 _CALENDAR_SIZE = QSize(320, 300)
 _CLICK_SLOP_PX = 3
+_EMOJI_CELL = 36
+_EMOJI_DEFAULT = [
+    "😀",
+    "😃",
+    "😄",
+    "😁",
+    "😅",
+    "😂",
+    "🤣",
+    "😊",
+    "😇",
+    "🙂",
+    "😉",
+    "😍",
+    "😘",
+    "😜",
+    "🤔",
+    "😎",
+    "🤝",
+    "👍",
+    "👎",
+    "👏",
+    "🙏",
+    "💪",
+    "✅",
+    "❌",
+    "⭐",
+    "🔥",
+    "💡",
+    "📌",
+    "📎",
+    "📝",
+    "📦",
+    "🚀",
+    "🎉",
+    "☕",
+    "🍕",
+    "🌈",
+    "☀️",
+]
 _ROLLER_ROW_HEIGHT = 40
 _ROLLER_VISIBLE_ROWS = 7
 _ROLLER_WIDTH = 80
@@ -189,6 +232,72 @@ class FluentDatePicker(FluentRollerPicker):
         current = self.date()
         if current is not None:
             self.date_changed.emit(current)
+
+
+class FluentEmojiPicker(FluentPushButton):
+    """Button that opens a compact emoji grid; emits the chosen glyph."""
+
+    emoji_selected = Signal(str)
+
+    def __init__(
+        self,
+        parent: QWidget | None = None,
+        *,
+        emojis: list[str] | None = None,
+        placeholder: str = "Emoji",
+    ) -> None:
+        """Create an emoji picker button."""
+        super().__init__(placeholder, parent, icon="smile")
+        self._emojis = list(emojis) if emojis is not None else list(_EMOJI_DEFAULT)
+        self._popup = QFrame(
+            self,
+            Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint | Qt.WindowType.NoDropShadowWindowHint,
+        )
+        self._popup.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, on=True)
+        self._popup.setObjectName("FluentEmojiPopup")
+        outer = QVBoxLayout(self._popup)
+        outer.setContentsMargins(SPACE_XS, SPACE_XS, SPACE_XS, SPACE_XS)
+        host = QWidget(self._popup)
+        self._flow = FlowLayout(host, margin=SPACE_S, h_spacing=SPACE_XS, v_spacing=SPACE_XS)
+        outer.addWidget(host)
+        for glyph in self._emojis:
+            cell = QToolButton(host)
+            cell.setText(glyph)
+            cell.setFixedSize(_EMOJI_CELL, _EMOJI_CELL)
+            cell.setAutoRaise(True)
+            cell.setCursor(Qt.CursorShape.PointingHandCursor)
+            cell.clicked.connect(lambda _checked=False, value=glyph: self._pick(value))
+            self._flow.addWidget(cell)
+        self.clicked.connect(self._open)
+        bind_theme(self, self._refresh_popup)
+
+    def _open(self) -> None:
+        self._refresh_popup()
+        self._popup.adjustSize()
+        self._popup.setFixedWidth(8 * _EMOJI_CELL + 2 * SPACE_M)
+        origin = self.mapToGlobal(QPoint(0, self.height()))
+        self._popup.move(origin)
+        self._popup.show()
+
+    def _pick(self, glyph: str) -> None:
+        self._icon_name = ""
+        self.setIcon(QIcon())
+        self.setText(glyph)
+        self.emoji_selected.emit(glyph)
+        self._popup.hide()
+
+    def _refresh_popup(self) -> None:
+        palette = palette_for(self)
+        self._popup.setStyleSheet(
+            f"""
+QFrame#FluentEmojiPopup {{
+    background: {css(palette.popup_bg)};
+    border: 1px solid {css(palette.popup_stroke)};
+    border-radius: {RADIUS_OVERLAY}px;
+}}
+{subtle_button_qss(palette, "QToolButton")}
+""",
+        )
 
 
 class FluentTimePicker(FluentRollerPicker):

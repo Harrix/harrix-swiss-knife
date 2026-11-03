@@ -11,7 +11,7 @@ from __future__ import annotations
 import sys
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QDate, QPoint, QPointF, QRectF, Qt, QTime
+from PySide6.QtCore import QDate, QPoint, QPointF, QRectF, QStringListModel, Qt, QTime, QTimer
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QApplication, QMenu, QTableWidgetItem, QTreeWidgetItem, QVBoxLayout, QWidget
 
@@ -53,6 +53,8 @@ def build_gallery() -> fw.FluentNavigationWindow:
     for key, text, icon, page in pages:
         window.add_page(key, text, page, icon=icon)
     _register_showcase(theme_button, "themeToggleButton")
+    fab = fw.FluentFloatButton("plus", window, tooltip="Floating action")
+    _register_showcase(fab, "fluentFloatButton")
     return window
 
 
@@ -72,9 +74,11 @@ def _basic_page() -> QWidget:
                 fw.FluentToggleButton("Toggle"),
                 fw.FluentHyperlinkButton("Hyperlink", "https://github.com"),
                 fw.FluentDropDownButton("Drop-down", menu=menu),
+                fw.FluentSplitButton("Split", menu=menu),
                 fw.FluentIconButton("settings", tooltip="Settings"),
                 fw.FluentToolButton("Tool", icon="wrench"),
                 fw.FluentCopyButton("copied text", label="Copy"),
+                fw.FluentEmojiPicker(),
             ),
             _section("Toggles", fw.FluentToggleSwitch(), fw.FluentCheckBox("Check box"), fw.FluentRadioButton("Radio")),
             _section("Rating and slider", fw.FluentRatingControl(), fw.FluentSlider()),
@@ -161,12 +165,18 @@ def _dialogs_page(window: QWidget) -> QWidget:
                 fw.FluentMessageButton(
                     "Message bar", title="Saved", message="All changes saved", severity=fw.Severity.SUCCESS
                 ),
+                button(
+                    "Floating message",
+                    lambda: fw.FluentMessageBar.show_message(window, "Saved", "All changes saved"),
+                ),
                 button("Toast", lambda: fw.FluentToast("Toast", "Shown at the screen corner").show_toast()),
                 button(
                     "Snackbar", lambda: fw.FluentSnackbar("Item archived", window, action_text="Undo").show_snackbar()
                 ),
                 button("Drawer", drawer.open_drawer),
                 button("Sheet", sheet.open_sheet),
+                button("Splash", _show_splash),
+                button("Spotlight", lambda: _start_spotlight(window, tip_button)),
             ),
             _section(
                 "Info bars",
@@ -176,6 +186,7 @@ def _dialogs_page(window: QWidget) -> QWidget:
                 fw.FluentInfoBar("Error", "Something failed", severity=fw.Severity.CRITICAL),
                 flow=False,
             ),
+            _section("Notification center", _notification_center(), flow=False),
         ],
     )
 
@@ -219,6 +230,8 @@ def _display_page() -> QWidget:
             _section("Timeline", timeline, flow=False),
             _section("Numbers and codes", lcd, countdown, fw.FluentQRCode("https://github.com/Harrix")),
             _section("Dividers", fw.FluentDivider(), fw.FluentDivider(text="Section"), flow=False),
+            _section("Hyperlink label", fw.FluentHyperlinkLabel("Open GitHub", "https://github.com/Harrix")),
+            _section("Watermark sample", _watermark_sample(), flow=False),
         ],
     )
 
@@ -305,9 +318,18 @@ def _navigation_page() -> QWidget:
             _section("Command bar", command_bar, flow=False),
             _section("Menu bar and tool bar", menu_bar, toolbar, flow=False),
             _section("Ribbon", ribbon, flow=False),
+            _section("Splitter", _splitter_sample(), flow=False),
             _section("Status bar", fw.FluentStatusBar(), flow=False),
         ],
     )
+
+
+def _notification_center() -> QWidget:
+    center = fw.FluentNotificationCenter()
+    center.setFixedHeight(220)
+    center.add(fw.Notification("Update ready", "Restart to finish installing", severity=fw.Severity.SUCCESS))
+    center.add(fw.Notification("Sync paused", "Check your network connection", severity=fw.Severity.CAUTION))
+    return center
 
 
 def _page(title: str, sections: list[QWidget]) -> QWidget:
@@ -334,6 +356,10 @@ def _pickers_page() -> QWidget:
             ),
             _section("Calendar", fw.FluentCalendar(), flow=False),
             _section("Roller", fw.FluentRoller(items=[str(value) for value in range(1, 31)], looping=True)),
+            _section(
+                "Roller picker",
+                fw.FluentRollerPicker(columns=(["A", "B", "C"], ["1", "2", "3"]), placeholder="Pick pair"),
+            ),
         ],
     )
 
@@ -386,6 +412,9 @@ def _setting_cards() -> QWidget:
             icon="book-open",
         )
     )
+    editor = fw.FluentSettingEditorCard("Theme", description="Choose light or dark", icon="palette")
+    editor.trailing_layout.addWidget(fw.FluentToggleSwitch())
+    group.add_widget(editor)
     return group
 
 
@@ -404,6 +433,32 @@ def _show_showcase_menu(widget: QWidget, pos: QPoint) -> None:
         _copy_text(class_name)
     elif chosen is copy_qual:
         _copy_text(f"{module_name}.{class_name}")
+
+
+def _show_splash() -> None:
+    splash = fw.FluentSplashScreen("Fluent gallery", subtitle="Loading sample…")
+    splash.set_status("Almost ready")
+    splash.show()
+    QTimer.singleShot(1200, splash.close)
+
+
+def _splitter_sample() -> QWidget:
+    splitter = fw.FluentSplitter()
+    left = fw.BodyLabel("Left pane")
+    right = fw.BodyLabel("Right pane")
+    left.setMinimumWidth(120)
+    right.setMinimumWidth(120)
+    splitter.addWidget(left)
+    splitter.addWidget(right)
+    splitter.setFixedHeight(80)
+    return splitter
+
+
+def _start_spotlight(window: QWidget, target: QWidget) -> None:
+    tour = fw.FluentSpotlight(
+        window, [fw.SpotlightStep(target, "Teaching tip button", "Spotlight highlights a control.")]
+    )
+    tour.start()
 
 
 def _text_page() -> QWidget:
@@ -476,17 +531,35 @@ def _views_page() -> QWidget:
     scene.addItem(fw.FluentGraphicsLineItem(first, second))
     graphics = fw.FluentGraphicsView(scene)
     graphics.setFixedHeight(220)
+    list_view = fw.FluentListView()
+    list_view.setModel(QStringListModel([f"View item {index}" for index in range(1, 6)]))
+    list_view.setFixedHeight(140)
+    upload = fw.FluentUploadArea()
+    upload.setFixedHeight(100)
     return _page(
         "Collections",
         [
             _section("List", list_widget, flow=False),
+            _section("List view", list_view, flow=False),
             _section("Table", table, flow=False),
             _section("Tree", tree, flow=False),
             _section("Virtual list (100 000 rows)", virtual, flow=False),
             _section("Graphics", graphics, flow=False),
             _section("Carousel", fw.FluentPromotionView(), flow=False),
+            _section("Upload area", upload, flow=False),
         ],
     )
+
+
+def _watermark_sample() -> QWidget:
+    host = QWidget()
+    host.setMinimumHeight(100)
+    host.setStyleSheet("background: transparent;")
+    label = fw.BodyLabel("Content under a watermark", host)
+    layout = QVBoxLayout(host)
+    layout.addWidget(label)
+    fw.FluentWatermark("CONFIDENTIAL", host)
+    return host
 
 
 def _wizard(window: QWidget) -> fw.FluentWizard:

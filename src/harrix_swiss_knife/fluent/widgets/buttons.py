@@ -265,6 +265,57 @@ class FluentRadioButton(QRadioButton):
         self.update()
 
 
+class FluentSplitButton(FluentIconMixin, QToolButton):
+    """Primary action on the left; a chevron opens an optional menu on the right."""
+
+    def __init__(
+        self,
+        text: str = "",
+        parent: QWidget | None = None,
+        *,
+        icon: str = "",
+        menu: QMenu | None = None,
+    ) -> None:
+        """Create a split button.
+
+        Args:
+
+        - `text` (`str`): Caption on the main face.
+        - `parent` (`QWidget | None`): Optional parent.
+        - `icon` (`str`): Optional Lucide icon ID.
+        - `menu` (`QMenu | None`): Menu opened from the chevron side.
+
+        """
+        super().__init__(parent)
+        self._icon_name = icon
+        self.setText(text)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        self.setPopupMode(QToolButton.ToolButtonPopupMode.MenuButtonPopup)
+        self.setMinimumHeight(CONTROL_HEIGHT)
+        if menu is not None:
+            self.setMenu(menu)
+        bind_theme(self, self.refresh_theme)
+
+    def refresh_theme(self) -> None:
+        """Re-apply push-button chrome with a visible menu split."""
+        self.setStyleSheet(
+            push_button_qss(palette_for(self), "QToolButton")
+            + "QToolButton { padding-right: 4px; }"
+            + "QToolButton::menu-button { width: 24px; border: none; border-left: 1px solid transparent; }"
+            + "QToolButton::menu-arrow { image: none; width: 0px; }",
+        )
+        self._sync_icon()
+        if self.menu() is not None:
+            palette = palette_for(self)
+            sheet = self.styleSheet()
+            self.setStyleSheet(
+                sheet
+                + f"QToolButton::menu-button {{ border-left: 1px solid {css(palette.control_stroke)}; }}"
+                + f"QToolButton::menu-button:hover {{ background: {css(palette.control_fill_hover)}; }}",
+            )
+
+
 class FluentToggleButton(FluentPushButton):
     """Button that toggles between rest and accent (checked) states."""
 

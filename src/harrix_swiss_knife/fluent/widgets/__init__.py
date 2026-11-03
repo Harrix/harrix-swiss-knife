@@ -13,6 +13,7 @@ from harrix_swiss_knife.fluent.widgets.buttons import (
     FluentPillButton,
     FluentPrimaryButton,
     FluentRadioButton,
+    FluentSplitButton,
     FluentToggleButton,
     FluentToggleSwitch,
     FluentToolButton,
@@ -154,6 +155,7 @@ from harrix_swiss_knife.fluent.widgets.panels import (
     FluentDrawerArea,
     FluentSheetPanel,
     FluentSplashScreen,
+    FluentUploadArea,
     FluentWatermark,
 )
 from harrix_swiss_knife.fluent.widgets.picker_base import (
@@ -164,6 +166,7 @@ from harrix_swiss_knife.fluent.widgets.pickers import (
     FluentCalendar,
     FluentCalendarPicker,
     FluentDatePicker,
+    FluentEmojiPicker,
     FluentTimePicker,
 )
 from harrix_swiss_knife.fluent.widgets.text import (
@@ -239,6 +242,7 @@ __all__ = [
     "FluentDrawerArea",
     "FluentDropDownButton",
     "FluentEditableComboBox",
+    "FluentEmojiPicker",
     "FluentExpander",
     "FluentFloatButton",
     "FluentFlyout",
@@ -314,6 +318,7 @@ __all__ = [
     "FluentSnackbar",
     "FluentSpinBox",
     "FluentSplashScreen",
+    "FluentSplitButton",
     "FluentSplitter",
     "FluentSpotlight",
     "FluentStatCard",
@@ -342,6 +347,7 @@ __all__ = [
     "FluentTreeSelect",
     "FluentTreeView",
     "FluentTreeWidget",
+    "FluentUploadArea",
     "FluentVirtualList",
     "FluentWatermark",
     "FluentWizard",

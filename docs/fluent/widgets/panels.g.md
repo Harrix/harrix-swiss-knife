@@ -35,8 +35,15 @@ lang: en
   - [⚙️ Method `paintEvent`](#%EF%B8%8F-method-paintevent-2)
   - [⚙️ Method `set_status`](#%EF%B8%8F-method-set_status)
   - [⚙️ Method `showEvent`](#%EF%B8%8F-method-showevent)
-- [🏛️ Class `FluentWatermark`](#%EF%B8%8F-class-fluentwatermark)
+- [🏛️ Class `FluentUploadArea`](#%EF%B8%8F-class-fluentuploadarea)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-4)
+  - [⚙️ Method `dragEnterEvent`](#%EF%B8%8F-method-dragenterevent)
+  - [⚙️ Method `dragLeaveEvent`](#%EF%B8%8F-method-dragleaveevent)
+  - [⚙️ Method `dropEvent`](#%EF%B8%8F-method-dropevent)
+  - [⚙️ Method `mouseReleaseEvent`](#%EF%B8%8F-method-mousereleaseevent)
+  - [⚙️ Method `refresh_theme`](#%EF%B8%8F-method-refresh_theme-1)
+- [🏛️ Class `FluentWatermark`](#%EF%B8%8F-class-fluentwatermark)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-5)
   - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter-2)
   - [⚙️ Method `paintEvent`](#%EF%B8%8F-method-paintevent-3)
   - [⚙️ Method `set_text`](#%EF%B8%8F-method-set_text)
@@ -882,6 +889,247 @@ def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
         if screen is not None:
             self.move(screen.availableGeometry().center() - self.rect().center())
         super().showEvent(event)
+```
+
+</details>
+
+## 🏛️ Class `FluentUploadArea`
+
+```python
+class FluentUploadArea(QWidget)
+```
+
+Dashed drop target that accepts file paths (and optional click-to-browse).
+
+<details>
+<summary>Code:</summary>
+
+```python
+class FluentUploadArea(QWidget):
+
+    files_dropped = Signal(list)
+
+    def __init__(
+        self,
+        parent: QWidget | None = None,
+        *,
+        caption: str = "Drop files here",
+        hint: str = "or click to browse",
+    ) -> None:
+        """Create an upload / drop area."""
+        super().__init__(parent)
+        self._caption = caption
+        self._hint = hint
+        self._focused = False
+        self.setObjectName("FluentUploadArea")
+        self.setAcceptDrops(True)
+        self.setMinimumHeight(_UPLOAD_MIN_HEIGHT)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(SPACE_L, SPACE_M, SPACE_L, SPACE_M)
+        layout.setSpacing(SPACE_XS)
+        self._title = FluentText(caption, self, style=TextStyle.BODY_STRONG)
+        self._title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._subtitle = CaptionLabel(hint, self)
+        self._subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addStretch(1)
+        layout.addWidget(self._title)
+        layout.addWidget(self._subtitle)
+        layout.addStretch(1)
+        bind_theme(self, self.refresh_theme)
+
+    def dragEnterEvent(self, event: QDragEnterEvent) -> None:  # noqa: N802
+        """Accept file drops."""
+        if event.mimeData() is not None and event.mimeData().hasUrls():
+            event.acceptProposedAction()
+            self._focused = True
+            self.refresh_theme()
+
+    def dragLeaveEvent(self, event: QEvent) -> None:  # noqa: N802, ARG002
+        """Clear the focused chrome."""
+        self._focused = False
+        self.refresh_theme()
+
+    def dropEvent(self, event: QDropEvent) -> None:  # noqa: N802
+        """Emit local file paths from the drop."""
+        self._focused = False
+        self.refresh_theme()
+        mime = event.mimeData()
+        if mime is None:
+            return
+        paths = [Path(url.toLocalFile()) for url in mime.urls() if url.isLocalFile()]
+        if paths:
+            self.files_dropped.emit(paths)
+            event.acceptProposedAction()
+
+    def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        """Ask for files when the area is clicked."""
+        from PySide6.QtWidgets import QFileDialog  # noqa: PLC0415
+
+        if event.button() != Qt.MouseButton.LeftButton:
+            return
+        paths, _ = QFileDialog.getOpenFileNames(self, "Choose files")
+        if paths:
+            self.files_dropped.emit([Path(path) for path in paths])
+
+    def refresh_theme(self) -> None:
+        """Re-apply the dashed drop-zone chrome."""
+        self.setStyleSheet(
+            drop_zone_qss(palette_for(self), "QWidget#FluentUploadArea", focused=self._focused, padding="0px"),
+        )
+```
+
+</details>
+
+### ⚙️ Method `__init__`
+
+```python
+def __init__(self, parent: QWidget | None = None, *, caption: str = 'Drop files here', hint: str = 'or click to browse') -> None
+```
+
+Create an upload / drop area.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __init__(
+        self,
+        parent: QWidget | None = None,
+        *,
+        caption: str = "Drop files here",
+        hint: str = "or click to browse",
+    ) -> None:
+        super().__init__(parent)
+        self._caption = caption
+        self._hint = hint
+        self._focused = False
+        self.setObjectName("FluentUploadArea")
+        self.setAcceptDrops(True)
+        self.setMinimumHeight(_UPLOAD_MIN_HEIGHT)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(SPACE_L, SPACE_M, SPACE_L, SPACE_M)
+        layout.setSpacing(SPACE_XS)
+        self._title = FluentText(caption, self, style=TextStyle.BODY_STRONG)
+        self._title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._subtitle = CaptionLabel(hint, self)
+        self._subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addStretch(1)
+        layout.addWidget(self._title)
+        layout.addWidget(self._subtitle)
+        layout.addStretch(1)
+        bind_theme(self, self.refresh_theme)
+```
+
+</details>
+
+### ⚙️ Method `dragEnterEvent`
+
+```python
+def dragEnterEvent(self, event: QDragEnterEvent) -> None
+```
+
+Accept file drops.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def dragEnterEvent(self, event: QDragEnterEvent) -> None:  # noqa: N802
+        if event.mimeData() is not None and event.mimeData().hasUrls():
+            event.acceptProposedAction()
+            self._focused = True
+            self.refresh_theme()
+```
+
+</details>
+
+### ⚙️ Method `dragLeaveEvent`
+
+```python
+def dragLeaveEvent(self, event: QEvent) -> None
+```
+
+Clear the focused chrome.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def dragLeaveEvent(self, event: QEvent) -> None:  # noqa: N802, ARG002
+        self._focused = False
+        self.refresh_theme()
+```
+
+</details>
+
+### ⚙️ Method `dropEvent`
+
+```python
+def dropEvent(self, event: QDropEvent) -> None
+```
+
+Emit local file paths from the drop.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def dropEvent(self, event: QDropEvent) -> None:  # noqa: N802
+        self._focused = False
+        self.refresh_theme()
+        mime = event.mimeData()
+        if mime is None:
+            return
+        paths = [Path(url.toLocalFile()) for url in mime.urls() if url.isLocalFile()]
+        if paths:
+            self.files_dropped.emit(paths)
+            event.acceptProposedAction()
+```
+
+</details>
+
+### ⚙️ Method `mouseReleaseEvent`
+
+```python
+def mouseReleaseEvent(self, event: QMouseEvent) -> None
+```
+
+Ask for files when the area is clicked.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        from PySide6.QtWidgets import QFileDialog  # noqa: PLC0415
+
+        if event.button() != Qt.MouseButton.LeftButton:
+            return
+        paths, _ = QFileDialog.getOpenFileNames(self, "Choose files")
+        if paths:
+            self.files_dropped.emit([Path(path) for path in paths])
+```
+
+</details>
+
+### ⚙️ Method `refresh_theme`
+
+```python
+def refresh_theme(self) -> None
+```
+
+Re-apply the dashed drop-zone chrome.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def refresh_theme(self) -> None:
+        self.setStyleSheet(
+            drop_zone_qss(palette_for(self), "QWidget#FluentUploadArea", focused=self._focused, padding="0px"),
+        )
 ```
 
 </details>
