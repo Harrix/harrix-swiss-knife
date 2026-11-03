@@ -144,5 +144,5 @@ print("ok")
     assert "ok" in completed.stdout
 
 
-def test_auto_minimize_delay_is_five_seconds() -> None:
-    assert AUTO_MINIMIZE_SECONDS == 5.0
+def test_auto_minimize_delay_is_three_seconds() -> None:
+    assert AUTO_MINIMIZE_SECONDS == 3.0
