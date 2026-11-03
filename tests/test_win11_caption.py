@@ -26,6 +26,8 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife.apps.common.qt_main_window import resolve_window_menu_bar
+from harrix_swiss_knife.fluent.theme import enable_fluent_theme
+from harrix_swiss_knife.fluent.widgets.buttons import FluentIconButton
 from harrix_swiss_knife.win11_caption import (
     _SPLITTER_HANDLE_PX,
     CAPTION_BUTTON_HEIGHT,
@@ -96,6 +98,20 @@ def test_write_nccalcsize_client_rect_updates_first_rect() -> None:
     assert params.rgrc[0].top == 20
     assert params.rgrc[0].right == 30
     assert params.rgrc[0].bottom == 40
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Win11 caption is Windows-only")
+def test_fluent_caption_theme_toggle_is_fluent_icon_button(qapp: QApplication) -> None:  # noqa: ARG001
+    """Fluent apps get the Gallery-style theme button with subtle hover fill."""
+    window = _window_with_tabs()
+    enable_fluent_theme(window)
+    assert install_win11_caption(window)
+    toggle = window.findChild(QToolButton, "themeToggleButton")
+    assert isinstance(toggle, FluentIconButton)
+    assert toggle.property("_hskThemeToggle")
+    assert toggle.height() == CAPTION_BUTTON_HEIGHT
+    assert ":hover" in toggle.styleSheet()
+    window.close()
 
 
 @pytest.mark.skipif(sys.platform != "win32", reason="Win11 caption is Windows-only")

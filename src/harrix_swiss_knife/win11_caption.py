@@ -55,6 +55,8 @@ if TYPE_CHECKING:
 
     from PySide6.QtGui import QEnterEvent, QMouseEvent
 
+    from harrix_swiss_knife.fluent.widgets.buttons import FluentIconButton
+
 logger = logging.getLogger(__name__)
 
 CAPTION_BUTTON_WIDTH = 46
@@ -1485,18 +1487,17 @@ def _make_caption_menu_button(
     return button
 
 
-def _make_theme_toggle(parent: QWidget) -> QToolButton:
-    """Build the caption button that flips `ui_theme`."""
-    button = QToolButton(parent)
+def _make_theme_toggle(parent: QWidget) -> FluentIconButton:
+    """Build the caption theme button (`FluentIconButton`, same as Gallery / main window)."""
+    from harrix_swiss_knife.fluent.widgets.buttons import FluentIconButton as IconButton  # noqa: PLC0415
+
+    dark = FluentTheme.instance().is_dark()
+    button = IconButton("sun" if dark else "moon", parent, tooltip=_theme_toggle_tooltip(dark=dark))
     button.setObjectName("themeToggleButton")
     button.setProperty("_hskThemeToggle", True)  # noqa: FBT003
     button.setFixedSize(CAPTION_BUTTON_HEIGHT, CAPTION_BUTTON_HEIGHT)
-    button.setAutoRaise(True)
     button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-    button.setCursor(Qt.CursorShape.PointingHandCursor)
-    button.setStyleSheet("QToolButton#themeToggleButton { background: transparent; border: none; }")
     button.clicked.connect(lambda: _on_theme_toggle_clicked(button))
-    _sync_theme_toggle_icon(button)
     return button
 
 
@@ -1570,7 +1571,7 @@ def _move_tab_menu_beside_buttons(
     tab_widget.setCornerWidget(right, Qt.Corner.TopRightCorner)
 
 
-def _on_theme_toggle_clicked(button: QToolButton) -> None:
+def _on_theme_toggle_clicked(button: QAbstractButton) -> None:
     FluentTheme.instance().toggle(persist=True)
     _sync_theme_toggle_icon(button)
 
@@ -1996,10 +1997,17 @@ def _sync_caption_palette(window: QWidget) -> None:
     _style_caption_chrome(window)
 
 
-def _sync_theme_toggle_icon(button: QToolButton) -> None:
+def _sync_theme_toggle_icon(button: QAbstractButton) -> None:
     dark = FluentTheme.instance().is_dark()
-    apply_lucide_button_icon(button, "sun" if dark else "moon", icon_size=CAPTION_ICON_SIZE)
-    button.setToolTip("Switch to light theme" if dark else "Switch to dark theme")
+    name = "sun" if dark else "moon"
+    tooltip = _theme_toggle_tooltip(dark=dark)
+    set_icon_name = getattr(button, "set_icon_name", None)
+    if callable(set_icon_name):
+        set_icon_name(name)
+    else:
+        apply_lucide_button_icon(button, name, icon_size=CAPTION_ICON_SIZE)
+    button.setToolTip(tooltip)
+    button.setAccessibleName(tooltip)
 
 
 def _sync_zoom_glyph(window: QWidget) -> None:
@@ -2020,6 +2028,10 @@ def _tab_strip_width(tab_widget: QWidget | None) -> int | None:
             return None
         total += width
     return total
+
+
+def _theme_toggle_tooltip(*, dark: bool) -> str:
+    return "Switch to light theme" if dark else "Switch to dark theme"
 
 
 def _trailing_has_theme_toggle(widgets: Sequence[QWidget]) -> bool:
