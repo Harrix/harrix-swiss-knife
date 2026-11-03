@@ -94,8 +94,9 @@ class ScreenshotPreviewCanvas(QWidget):
     Left-drag draws with the active `AnnotationTool` when a document is attached.
     Crop mode uses the same dimmed blue selection frame as region capture.
     Right-click opens annotation edit commands (undo, cut/copy/paste, layer order).
-    Double-click in the view tool returns a zoomed image to that opening size.
-    At the opening size, a small image is fitted into the view.
+    Double-click on the image in the view tool returns a zoomed image to that
+    opening size; at the opening size, a small image is fitted into the view.
+    Double-click in the empty margin beside the image pans it flush to that edge.
 
     """
 
@@ -457,11 +458,14 @@ class ScreenshotPreviewCanvas(QWidget):
         super().keyReleaseEvent(event)
 
     def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        """Edit text, or toggle the opening size and fit-to-view."""
+        """Edit text, align to an empty margin, or toggle the opening size and fit-to-view."""
         if event.button() != Qt.MouseButton.LeftButton:
             super().mouseDoubleClickEvent(event)
             return
-        image_pos = self._widget_to_image(event.position())
+        pointer = event.position()
+        image_rect = self._image_rect()
+        outside_image = image_rect.isEmpty() or not image_rect.contains(pointer)
+        image_pos = None if outside_image else self._widget_to_image(pointer)
         document = self._document
         if image_pos is not None and document is not None:
             hit = hit_test_topmost(
@@ -476,6 +480,9 @@ class ScreenshotPreviewCanvas(QWidget):
                 event.accept()
                 return
         if self._tool == AnnotationTool.NONE and not self._text_edit_active:
+            if outside_image and self._align_image_to_empty_margin(pointer):
+                event.accept()
+                return
             self._toggle_opening_view()
             event.accept()
             return
@@ -1666,6 +1673,29 @@ class ScreenshotPreviewCanvas(QWidget):
             document.annotations[self._text_edit_index].style = copy_annotation_style(style)
         elif document.draft is not None and document.draft.tool == AnnotationTool.TEXT:
             document.draft.style = copy_annotation_style(style)
+
+    def _align_image_to_empty_margin(self, pos: QPointF) -> bool:
+        """Pan so the image edge next to the empty click sits flush with the view edge."""
+        rect = self._image_rect()
+        if rect.isEmpty():
+            return False
+        view = self.rect()
+        dx = 0.0
+        dy = 0.0
+        if pos.x() < rect.left():
+            dx = -rect.left()
+        elif pos.x() > rect.right():
+            dx = view.width() - rect.right()
+        if pos.y() < rect.top():
+            dy = -rect.top()
+        elif pos.y() > rect.bottom():
+            dy = view.height() - rect.bottom()
+        if dx == 0.0 and dy == 0.0:
+            return False
+        self._offset = QPointF(self._offset.x() + dx, self._offset.y() + dy)
+        self._sync_text_editor_geometry()
+        self.update()
+        return True
 
     def _toggle_opening_view(self) -> None:
         """Return a zoomed image to the opening size, or fit a small image into the view."""

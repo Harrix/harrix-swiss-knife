@@ -466,6 +466,27 @@ def test_double_click_restores_large_image_without_upscaling(qapp: QApplication)
     canvas.close()
 
 
+def test_double_click_empty_margin_aligns_image_to_edge(qapp: QApplication) -> None:  # noqa: ARG001
+    image = QImage(40, 20, QImage.Format.Format_RGB32)
+    image.fill(Qt.GlobalColor.red)
+    canvas = ScreenshotPreviewCanvas(image)
+    canvas.resize(400, 300)
+    centered = canvas._image_rect()
+    assert centered.top() > 1.0
+    assert centered.bottom() < 299.0
+    zoom_before = canvas.zoom
+    _double_click(canvas, QPointF(200, 5))
+    top_aligned = canvas._image_rect()
+    assert canvas.zoom == pytest.approx(zoom_before)
+    assert top_aligned.top() == pytest.approx(0.0, abs=0.5)
+    assert top_aligned.left() == pytest.approx(centered.left(), abs=0.5)
+    _double_click(canvas, QPointF(200, 295))
+    bottom_aligned = canvas._image_rect()
+    assert bottom_aligned.bottom() == pytest.approx(300.0, abs=0.5)
+    assert bottom_aligned.left() == pytest.approx(centered.left(), abs=0.5)
+    canvas.close()
+
+
 def test_ctrl_plus_and_minus_zoom_like_wheel(qapp: QApplication) -> None:
     image = QImage(40, 20, QImage.Format.Format_RGB32)
     image.fill(Qt.GlobalColor.red)
