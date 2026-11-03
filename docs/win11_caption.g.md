@@ -714,8 +714,6 @@ def refresh_win11_caption(window: QWidget) -> None:
     button = window.findChild(QToolButton, _MENU_BUTTON_NAME)
     if isinstance(button, QToolButton):
         apply_lucide_button_icon(button, "menu", icon_size=CAPTION_ICON_SIZE, color=caption_colors(window).nav)
-    for line in window.findChildren(_CaptionEdgeLine):
-        line.update()
     for button in window.findChildren(CaptionButton):
         button.update()
     for button in window.findChildren(QToolButton, "themeToggleButton"):

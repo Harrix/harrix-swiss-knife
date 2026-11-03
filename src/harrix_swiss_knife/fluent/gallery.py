@@ -311,10 +311,10 @@ def _navigation_page() -> QWidget:
         "Navigation",
         [
             _section("Breadcrumb", fw.FluentBreadcrumb(items=["Home", "Documents", "Notes"]), flow=False),
-            _section("Pivot", fw.FluentPivot(items=["All", "Unread", "Flagged"]), flow=False),
+            _section("Tabs", fw.FluentPivot(items=["All", "Unread", "Flagged"]), flow=False),
             _section("Pagination", fw.FluentPagination(pages=12), flow=False),
             _section("Navigation bar", nav, flow=False),
-            _section("Tabs", tabs, flow=False),
+            _section("Tab widget", tabs, flow=False),
             _section("Command bar", command_bar, flow=False),
             _section("Menu bar and tool bar", menu_bar, toolbar, flow=False),
             _section("Ribbon", ribbon, flow=False),

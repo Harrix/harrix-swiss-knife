@@ -62,9 +62,9 @@ from harrix_swiss_knife.apps.snippets.seed import ensure_seed_emojis
 from harrix_swiss_knife.apps.snippets.sort import sort_items
 from harrix_swiss_knife.apps.snippets.zone_panel import ZonePanel, add_sort_menu_actions
 from harrix_swiss_knife.fluent.app_chrome import install_fluent_app_window
-from harrix_swiss_knife.fluent.style import line_edit_qss
+from harrix_swiss_knife.fluent.style import fluent_tab_bar_qss, line_edit_qss
 from harrix_swiss_knife.fluent.theme import bind_theme, css, mix, palette_for
-from harrix_swiss_knife.fluent.tokens import RADIUS_CONTROL, SPACE_L, SPACE_M, SPACE_S, SPACE_XS, SPACE_XXS
+from harrix_swiss_knife.fluent.tokens import SPACE_L, SPACE_M, SPACE_XS
 from harrix_swiss_knife.fluent.widgets.buttons import FluentToolButton
 from harrix_swiss_knife.fluent.widgets.menus import FluentMenu
 from harrix_swiss_knife.installer.icon_assets import apply_window_icon
@@ -680,9 +680,6 @@ class SnippetsDialog(QDialog):
         palette = palette_for(self)
         border = css(mix(palette.window_bg, palette.popup_stroke))
         window = css(palette.window_bg)
-        hover = css(mix(palette.window_bg, palette.subtle_hover))
-        selected = css(mix(palette.window_bg, palette.subtle_pressed))
-        accent = css(palette.accent)
         divider = css(mix(palette.window_bg, palette.divider))
         self.setStyleSheet(
             f"#snippetsDialog {{ background-color: {window}; border: 1px solid {border}; }}",
@@ -691,13 +688,7 @@ class SnippetsDialog(QDialog):
         if pages is not None:
             pages.setStyleSheet(
                 "QTabWidget::pane { border: none; background: transparent; }"
-                "QTabBar::tab {"
-                " background: transparent;"
-                f" border: 1px solid transparent; border-radius: {RADIUS_CONTROL}px;"
-                f" padding: {SPACE_XS}px {SPACE_S + 2}px; margin-right: {SPACE_XXS}px;"
-                "}"
-                f"QTabBar::tab:hover {{ background: {hover}; }}"
-                f"QTabBar::tab:selected {{ background: {selected}; border-color: {accent}; }}",
+                + fluent_tab_bar_qss(palette, pad_v=SPACE_XS),
             )
         for splitter in self.findChildren(QSplitter):
             splitter.setHandleWidth(1)

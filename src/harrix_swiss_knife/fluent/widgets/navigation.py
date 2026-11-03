@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife.fluent.paint import antialiased_painter, paint_surface
-from harrix_swiss_knife.fluent.style import lucide_qss_url, themed_icon
+from harrix_swiss_knife.fluent.style import fluent_tab_bar_qss, themed_icon
 from harrix_swiss_knife.fluent.theme import bind_theme, css, fluent_font, palette_for
 from harrix_swiss_knife.fluent.tokens import (
     ANIMATION_NORMAL,
@@ -33,6 +33,7 @@ from harrix_swiss_knife.fluent.tokens import (
     SPACE_M,
     SPACE_S,
     SPACE_XS,
+    TAB_INDICATOR_HEIGHT,
     TYPE_BODY,
     TYPE_BODY_LARGE,
     TYPE_CAPTION,
@@ -568,7 +569,7 @@ class FluentPagination(QWidget):
 
 
 class FluentPivot(QWidget):
-    """Top text tabs with an accent underline that slides between items."""
+    """Fluent Tabs: text items with an accent underline that slides between them."""
 
     current_changed = Signal(int)
 
@@ -618,6 +619,8 @@ class FluentPivot(QWidget):
         painter.setFont(font)
         rects = self._rects(QFontMetrics(font))
         for index, (text, rect) in enumerate(zip(self._items, rects, strict=True)):
+            weight = QFont.Weight.DemiBold if index == self._current else QFont.Weight.Normal
+            painter.setFont(fluent_font(self.font(), TYPE_BODY_LARGE, weight=weight))
             if index in (self._current, self._hover):
                 painter.setPen(palette.text_primary)
             else:
@@ -626,7 +629,8 @@ class FluentPivot(QWidget):
         if rects and 0 <= self._current < len(rects):
             if self._line_x < 0:
                 self._line_x = rects[self._current].center().x()
-            line = QRectF(self._line_x - 8, self.height() - 3, 16, 3)
+            width = rects[self._current].width() - 2 * SPACE_M + SPACE_XS
+            line = QRectF(self._line_x - width / 2, self.height() - TAB_INDICATOR_HEIGHT, width, TAB_INDICATOR_HEIGHT)
             paint_surface(painter, line, palette.accent, None, 1.5)
         painter.end()
 
@@ -658,7 +662,7 @@ class FluentPivot(QWidget):
         x = 0.0
         for text in self._items:
             width = metrics.horizontalAdvance(text) + 2 * SPACE_M
-            rects.append(QRectF(x, 0, width, self.height() - 3))
+            rects.append(QRectF(x, 0, width, self.height() - TAB_INDICATOR_HEIGHT))
             x += width
         return rects
 
@@ -683,7 +687,7 @@ class FluentSplitter(QSplitter):
 
 
 class FluentTabBar(QTabBar):
-    """Document tabs: rounded top corners, selected tab joins the content surface."""
+    """Fluent Tabs strip: text tabs with an accent underline under the selected one."""
 
     def __init__(self, parent: QWidget | None = None, *, closable: bool = True) -> None:
         """Create a tab bar."""
@@ -698,34 +702,7 @@ class FluentTabBar(QTabBar):
 
     def refresh_theme(self) -> None:
         """Re-apply tab chrome."""
-        palette = palette_for(self)
-        close = lucide_qss_url("x", palette.text_secondary, 12)
-        self.setStyleSheet(f"""
-QTabBar {{ background: transparent; }}
-QTabBar::tab {{
-    background: transparent;
-    color: {css(palette.text_secondary)};
-    border: 1px solid transparent;
-    border-top-left-radius: {RADIUS_CARD}px;
-    border-top-right-radius: {RADIUS_CARD}px;
-    padding: 0px 12px;
-    min-height: {CONTROL_HEIGHT}px;
-    min-width: 96px;
-    max-width: 240px;
-}}
-QTabBar::tab:hover {{ background: {css(palette.subtle_hover)}; color: {css(palette.text_primary)}; }}
-QTabBar::tab:selected {{
-    background: {css(palette.solid_tertiary_bg if palette.dark else palette.solid_quarternary_bg)};
-    color: {css(palette.text_primary)};
-    border-color: {css(palette.card_stroke)};
-    border-bottom-color: transparent;
-}}
-QTabBar::close-button {{
-    image: url("{close}"); subcontrol-position: right; border-radius: {RADIUS_CONTROL}px;
-    width: 16px; height: 16px; padding: 2px;
-}}
-QTabBar::close-button:hover {{ background: {css(palette.subtle_hover)}; }}
-""")
+        self.setStyleSheet(fluent_tab_bar_qss(palette_for(self), closable=self.tabsClosable()))
 
 
 class FluentTabWidget(QWidget):
@@ -765,15 +742,9 @@ class FluentTabWidget(QWidget):
         return self.tab_bar.currentIndex()
 
     def refresh_theme(self) -> None:
-        """Re-color the content surface."""
-        palette = palette_for(self)
-        fill = palette.solid_tertiary_bg if palette.dark else palette.solid_quarternary_bg
+        """Keep the page stack borderless; the tab bar already shows the underline."""
         self.stack.setObjectName("FluentTabStack")
-        self.stack.setStyleSheet(
-            f"QStackedWidget#FluentTabStack {{ background: {css(fill)}; border: 1px solid {css(palette.card_stroke)};"
-            f" border-top-right-radius: {RADIUS_CARD}px; border-bottom-left-radius: {RADIUS_CARD}px;"
-            f" border-bottom-right-radius: {RADIUS_CARD}px; }}",
-        )
+        self.stack.setStyleSheet("QStackedWidget#FluentTabStack { background: transparent; border: none; }")
 
     def remove_tab(self, index: int) -> None:
         """Close the page at `index`."""

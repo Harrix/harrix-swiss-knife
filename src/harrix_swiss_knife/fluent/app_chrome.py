@@ -51,6 +51,7 @@ from harrix_swiss_knife.fluent.style import (
     chrome_top_color,
     combo_box_qss,
     date_edit_qss,
+    fluent_tab_bar_qss,
     line_edit_qss,
     list_item_hover,
     list_item_selected,
@@ -499,65 +500,25 @@ def _restyle_tables(root: QWidget, palette: FluentPalette) -> None:
 
 
 def _restyle_tabs(root: QWidget, palette: FluentPalette) -> None:
-    hover = css(list_item_hover(palette))
-    selected = css(list_item_selected(palette))
-    text = css(mix(palette.window_bg, palette.text_primary))
-    accent = css(palette.accent)
     for tabs in root.findChildren(QTabWidget):
         tabs.setDocumentMode(True)
         if tabs.property(CAPTION_TABS_PROPERTY):
             continue
         name = tabs.objectName() or "tabWidget"
+        if not tabs.objectName():
+            tabs.setObjectName(name)
         _set_sheet(
             tabs,
-            f"""
-QTabWidget#{name}::pane {{
- background: transparent;
- border: none;
- top: -1px;
-}}
-QTabWidget#{name} > QTabBar::tab {{
- background: transparent;
- color: {text};
- border: none;
- border-radius: {RADIUS_CONTROL}px;
- padding: 6px 12px;
- margin-right: 2px;
- min-height: {CONTROL_HEIGHT - 8}px;
-}}
-QTabWidget#{name} > QTabBar::tab:hover {{ background: {hover}; }}
-QTabWidget#{name} > QTabBar::tab:selected {{
- background: {selected};
- color: {text};
-}}
-QTabWidget#{name} > QTabBar::tab:selected {{
- border-bottom: 2px solid {accent};
- border-bottom-left-radius: 0;
- border-bottom-right-radius: 0;
-}}
-""",
+            f"QTabWidget#{name}::pane {{ background: transparent; border: none; top: -1px; }}"
+            + fluent_tab_bar_qss(palette, f"QTabWidget#{name} > QTabBar", closable=tabs.tabsClosable()),
         )
     for bar in root.findChildren(QTabBar):
-        if isinstance(bar.parentWidget(), QTabWidget):
+        if bar.property(CAPTION_TABS_PROPERTY):
             continue
-        _set_sheet(
-            bar,
-            f"""
-QTabBar::tab {{
- background: transparent;
- color: {text};
- border: none;
- border-radius: {RADIUS_CONTROL}px;
- padding: 6px 12px;
- margin-right: 2px;
-}}
-QTabBar::tab:hover {{ background: {hover}; }}
-QTabBar::tab:selected {{
- background: {selected};
- border-bottom: 2px solid {accent};
-}}
-""",
-        )
+        parent = bar.parentWidget()
+        if isinstance(parent, QTabWidget) and parent.tabBar() is bar:
+            continue
+        _set_sheet(bar, fluent_tab_bar_qss(palette, closable=bar.tabsClosable()))
 
 
 def _set_sheet(widget: QWidget, sheet: str) -> None:

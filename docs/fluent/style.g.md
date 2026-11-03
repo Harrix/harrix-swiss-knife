@@ -18,6 +18,7 @@ lang: en
 - [🔧 Function `date_edit_qss`](#-function-date_edit_qss)
 - [🔧 Function `drop_zone_qss`](#-function-drop_zone_qss)
 - [🔧 Function `filled_button_qss`](#-function-filled_button_qss)
+- [🔧 Function `fluent_tab_bar_qss`](#-function-fluent_tab_bar_qss)
 - [🔧 Function `item_view_qss`](#-function-item_view_qss)
 - [🔧 Function `line_edit_qss`](#-function-line_edit_qss)
 - [🔧 Function `list_item_hover`](#-function-list_item_hover)
@@ -29,6 +30,7 @@ lang: en
 - [🔧 Function `semantic_button_qss`](#-function-semantic_button_qss)
 - [🔧 Function `spin_box_qss`](#-function-spin_box_qss)
 - [🔧 Function `subtle_button_qss`](#-function-subtle_button_qss)
+- [🔧 Function `tab_bar_qss`](#-function-tab_bar_qss)
 - [🔧 Function `text_edit_qss`](#-function-text_edit_qss)
 - [🔧 Function `themed_icon`](#-function-themed_icon)
 - [🔧 Function `tooltip_qss`](#-function-tooltip_qss)
@@ -273,6 +275,43 @@ def filled_button_qss(palette: FluentPalette, fill: QColor, ink: QColor, selecto
     color: {css(palette.text_disabled)};
 }}
 """
+```
+
+</details>
+
+## 🔧 Function `fluent_tab_bar_qss`
+
+```python
+def fluent_tab_bar_qss(palette: FluentPalette, selector: str = 'QTabBar', *, pad_v: int = 6, min_height: int = 0, closable: bool = False, gap: int = TAB_GAP) -> str
+```
+
+Return [`tab_bar_qss`](#-function-tab_bar_qss) with Fluent palette colors (shared by every section tab strip).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def fluent_tab_bar_qss(
+    palette: FluentPalette,
+    selector: str = "QTabBar",
+    *,
+    pad_v: int = 6,
+    min_height: int = 0,
+    closable: bool = False,
+    gap: int = TAB_GAP,
+) -> str:
+    return tab_bar_qss(
+        selector,
+        idle=css(palette.text_secondary),
+        active=css(palette.text_primary),
+        accent=css(palette.accent),
+        hover=css(palette.control_stroke),
+        pad_v=pad_v,
+        min_height=min_height,
+        close_icon=lucide_qss_url("x", palette.text_secondary, 12) if closable else "",
+        close_hover=css(palette.subtle_hover),
+        gap=gap,
+    )
 ```
 
 </details>
@@ -668,6 +707,69 @@ def subtle_button_qss(palette: FluentPalette, selector: str = "QAbstractButton")
 {selector}:checked {{ background-color: {css(palette.subtle_hover)}; color: {css(palette.accent_text)}; }}
 {selector}:disabled {{ color: {css(palette.text_disabled)}; }}
 """
+```
+
+</details>
+
+## 🔧 Function `tab_bar_qss`
+
+```python
+def tab_bar_qss(selector: str = 'QTabBar', *, idle: str, active: str, accent: str, hover: str = 'transparent', pad_v: int = 6, min_height: int = 0, close_icon: str = '', close_hover: str = 'transparent', gap: int = TAB_GAP) -> str
+```
+
+Return Fluent Tabs chrome: plain text tabs, accent underline under the selected one.
+
+Colors are CSS strings so the caption can pass its own (non-Fluent) hex colors.
+`selector` is the tab bar selector, e.g. `QTabWidget#pages > QTabBar`. The top
+padding includes the indicator height so the label stays vertically centered.
+`min_height` is the content (label) height. `gap` is the space between tabs.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def tab_bar_qss(
+    selector: str = "QTabBar",
+    *,
+    idle: str,
+    active: str,
+    accent: str,
+    hover: str = "transparent",
+    pad_v: int = 6,
+    min_height: int = 0,
+    close_icon: str = "",
+    close_hover: str = "transparent",
+    gap: int = TAB_GAP,
+) -> str:
+    height = f" min-height: {min_height}px;" if min_height else ""
+    side = max(0, gap // 2)
+    close = (
+        f"""
+{selector}::close-button {{
+    image: url("{close_icon}"); subcontrol-position: right; border-radius: {RADIUS_CONTROL}px;
+    width: 16px; height: 16px; padding: 2px; margin-left: {SPACE_XS}px;
+}}
+{selector}::close-button:hover {{ background: {close_hover}; }}
+"""
+        if close_icon
+        else ""
+    )
+    return f"""
+{selector} {{ background: transparent; border: none; }}
+{selector}::tab {{
+    background: transparent;
+    color: {idle};
+    border: none;
+    border-bottom: {TAB_INDICATOR_HEIGHT}px solid transparent;
+    border-radius: 0px;
+    margin: 0px {side}px;
+    padding: {pad_v + TAB_INDICATOR_HEIGHT}px {SPACE_XS // 2}px {pad_v}px;{height}
+}}
+{selector}::tab:first {{ margin-left: 0px; }}
+{selector}::tab:hover:!selected {{ color: {active}; border-bottom-color: {hover}; }}
+{selector}::tab:selected {{ color: {active}; font-weight: 600; border-bottom-color: {accent}; }}
+{selector}::tab:disabled {{ color: {idle}; }}
+{close}"""
 ```
 
 </details>

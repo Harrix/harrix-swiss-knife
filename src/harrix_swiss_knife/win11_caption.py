@@ -42,8 +42,9 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife.apps.common.qt_main_window import resolve_window_menu_bar
 from harrix_swiss_knife.fluent.app_chrome import CAPTION_TABS_PROPERTY
-from harrix_swiss_knife.fluent.style import chrome_top_color
+from harrix_swiss_knife.fluent.style import chrome_top_color, tab_bar_qss
 from harrix_swiss_knife.fluent.theme import FluentTheme, bind_theme, is_fluent_themed, mix, palette_for
+from harrix_swiss_knife.fluent.tokens import TAB_INDICATOR_HEIGHT
 from harrix_swiss_knife.installer.icon_assets import apply_window_icon, asset_candidates
 from harrix_swiss_knife.qt_flat_scrollbar import apply_flat_scrollbars
 from harrix_swiss_knife.qt_frameless_window import frameless_hit_test, native_local_point, read_native_windows_message
@@ -142,6 +143,7 @@ _CAPTION_FONT_SLACK = 4
 _CAPTION_MENU_HPAD = 8
 _CAPTION_MENU_ARROW_PAD = 16
 _CAPTION_TAB_HPAD = 12
+_CAPTION_TAB_GAP = 8
 _TITLE_ATTR = "_hsk_caption_title"
 _BUTTONS_ATTR = "_hsk_caption_buttons"
 _MENU_HOVER_ATTR = "_hsk_menu_hover_reset"
@@ -151,13 +153,10 @@ _TAB_ACTIVE_COLOR = "#2e86b7"
 _TAB_LINE_COLOR = "#f4f4f4"
 _TAB_HOVER_BG = "#f2f8fb"
 _DISABLED_NAV_COLOR = "#767676"
-_TAB_RADIUS = 4
-_TAB_TOP_GAP = 4
 _TAB_CONTENT_GAP = 8
 _MENU_CHEVRON_ATTR = "_hsk_menu_chevron"
 _FITTING_ATTR = "_hsk_caption_fitting"
 _MENU_BUTTON_NAME = "captionMenuButton"
-_TAB_LINE_ATTR = "_hsk_caption_tab_line"
 _SUITE_NAME = "Harrix Swiss Knife"
 _LIGHTNESS_THRESHOLD = 128
 
@@ -392,41 +391,6 @@ class _CaptionDragFilter(QObject):
         return bool(handle is not None and handle.startSystemMove())
 
 
-class _CaptionEdgeLine(QWidget):
-    """1px rule along the bottom of a caption corner, above its children."""
-
-    def __init__(self, parent: QWidget) -> None:
-        super().__init__(parent)
-        self.setObjectName("captionEdgeLine")
-        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
-        self.setAttribute(Qt.WidgetAttribute.WA_NoSystemBackground, on=True)
-        parent.installEventFilter(self)
-        self.place()
-
-    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802, ARG002
-        """Keep the rule on the bottom edge after the corner lays out."""
-        if event.type() in {QEvent.Type.Resize, QEvent.Type.Show, QEvent.Type.LayoutRequest}:
-            self.place()
-        return False
-
-    def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
-        """Draw the corner's share of the caption rule."""
-        painter = QPainter(self)
-        try:
-            painter.fillRect(self.rect(), QColor(caption_colors(self).tab_line))
-        finally:
-            painter.end()
-
-    def place(self) -> None:
-        """Stretch the rule to the corner and keep it above the caption controls."""
-        parent = self.parentWidget()
-        if parent is None:
-            return
-        self.setGeometry(0, max(0, parent.height() - 1), parent.width(), 1)
-        self.raise_()
-        self.update()
-
-
 class _CaptionIconButton(QToolButton):
     """App icon at the left of the caption. Click opens the system menu."""
 
@@ -471,31 +435,6 @@ class _CaptionMenuChevron(QObject):
         finally:
             self._painting = False
         _paint_menu_chevrons(watched)
-        return True
-
-
-class _CaptionTabLine(QObject):
-    """Draw the caption rule on the tab bar, open under the active tab."""
-
-    def __init__(self, tab_bar: QTabBar) -> None:
-        super().__init__(tab_bar)
-        self._painting = False
-        tab_bar.installEventFilter(self)
-        tab_bar.currentChanged.connect(tab_bar.update)
-
-    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
-        """Paint the tab bar, then the rule in the tab bar's own coordinates."""
-        if event.type() != QEvent.Type.Paint or not isinstance(watched, QTabBar) or self._painting:
-            return False
-        if not isinstance(event, QPaintEvent):
-            return False
-        self._painting = True
-        try:
-            watched.paintEvent(event)
-        finally:
-            self._painting = False
-        if watched.count() > 0:
-            _paint_tab_bar_line(watched)
         return True
 
 
@@ -724,8 +663,6 @@ def refresh_win11_caption(window: QWidget) -> None:
     button = window.findChild(QToolButton, _MENU_BUTTON_NAME)
     if isinstance(button, QToolButton):
         apply_lucide_button_icon(button, "menu", icon_size=CAPTION_ICON_SIZE, color=caption_colors(window).nav)
-    for line in window.findChildren(_CaptionEdgeLine):
-        line.update()
     for button in window.findChildren(CaptionButton):
         button.update()
     for button in window.findChildren(QToolButton, "themeToggleButton"):
@@ -1144,20 +1081,6 @@ def _dwmapi() -> ctypes.WinDLL:
     library.DwmSetWindowAttribute.restype = ctypes.c_long
     _dwmapi.library = library  # type: ignore[attr-defined]
     return library
-
-
-def _ensure_caption_base_line(tab_widget: QTabWidget) -> None:
-    """Run the caption rule across the window when tabs are showing."""
-    if tab_widget.count() == 0:
-        return
-    tab_bar = tab_widget.tabBar()
-    if getattr(tab_bar, _TAB_LINE_ATTR, None) is None:
-        setattr(tab_bar, _TAB_LINE_ATTR, _CaptionTabLine(tab_bar))
-    for corner in (Qt.Corner.TopLeftCorner, Qt.Corner.TopRightCorner):
-        widget = tab_widget.cornerWidget(corner)
-        if widget is None or widget.findChild(_CaptionEdgeLine, "captionEdgeLine") is not None:
-            continue
-        _CaptionEdgeLine(widget)
 
 
 def _ensure_caption_title(window: QWidget, parent: QWidget | None = None) -> QLabel | None:
@@ -1638,26 +1561,6 @@ def _paint_menu_chevrons(menu: QMenuBar) -> None:
     painter.end()
 
 
-def _paint_tab_bar_line(tab_bar: QTabBar) -> None:
-    """Draw the rule across the tab bar, leaving the active tab's bottom open."""
-    painter = QPainter(tab_bar)
-    try:
-        color = QColor(caption_colors(tab_bar).tab_line)
-        y = tab_bar.height() - 1
-        painter.fillRect(0, y, tab_bar.width(), 1, color)
-        index = tab_bar.currentIndex()
-        if index < 0:
-            return
-        rect = tab_bar.tabRect(index)
-        opening = rect.width() - 2
-        if opening <= 0:
-            return
-        fill = tab_bar.palette().color(QPalette.ColorRole.Window)
-        painter.fillRect(rect.x() + 1, y, opening, 1, fill)
-    finally:
-        painter.end()
-
-
 def _palette_is_light(window: QWidget) -> bool:
     if is_fluent_themed(window):
         return not palette_for(window).dark
@@ -1846,41 +1749,21 @@ def _style_caption_chrome(window: QWidget) -> None:
         tab_bar = tab_widget.tabBar()
         tab_bar.setDrawBase(False)
         text_height = QFontMetrics(tab_bar.font()).height()
-        pad = max(0, (CAPTION_BUTTON_HEIGHT - _TAB_TOP_GAP - text_height - 2) // 2)
+        pad = max(0, (CAPTION_BUTTON_HEIGHT - text_height - 2 * TAB_INDICATOR_HEIGHT) // 2)
         _set_style_sheet(
             tab_bar,
-            f"""
-            QTabBar {{
-                background: {rgb};
-                border: none;
-            }}
-            QTabBar::tab {{
-                background: transparent;
-                color: {colors.nav};
-                border: 1px solid transparent;
-                border-top-left-radius: {_TAB_RADIUS}px;
-                border-top-right-radius: {_TAB_RADIUS}px;
-                margin-top: {_TAB_TOP_GAP}px;
-                margin-right: 0px;
-                margin-bottom: 0px;
-                margin-left: 0px;
-                padding: {pad}px {_CAPTION_TAB_HPAD}px;
-            }}
-            QTabBar::tab:hover:!selected {{
-                background: {colors.tab_hover};
-                color: {colors.tab_active};
-            }}
-            QTabBar::tab:selected {{
-                background: {rgb};
-                color: {colors.tab_active};
-                border: 1px solid {colors.tab_line};
-                border-bottom: 1px solid {rgb};
-                margin-top: {_TAB_TOP_GAP}px;
-                margin-bottom: -1px;
-            }}
-            """,
+            tab_bar_qss(
+                idle=colors.nav,
+                active=colors.title,
+                accent=colors.tab_active,
+                hover=colors.tab_line,
+                pad_v=pad,
+                min_height=CAPTION_BUTTON_HEIGHT - 2 * pad - 2 * TAB_INDICATOR_HEIGHT,
+                gap=_CAPTION_TAB_GAP,
+            )
+            + f"QTabBar {{ background: {rgb}; }}"
+            + f"QTabBar::tab:first {{ margin-left: {_CAPTION_TAB_HPAD}px; }}",
         )
-        _ensure_caption_base_line(tab_widget)
     menu = resolve_window_menu_bar(window)
     if menu is None:
         return
@@ -2025,9 +1908,13 @@ def _tab_strip_width(tab_widget: QWidget | None) -> int | None:
     for index in range(tab_bar.count()):
         width = tab_bar.tabRect(index).width()
         if width <= 0:
+            width = tab_bar.tabSizeHint(index).width()
+        if width <= 0:
             return None
         total += width
-    return total
+    if tab_bar.count() > 1:
+        total += _CAPTION_TAB_GAP * (tab_bar.count() - 1)
+    return total + _CAPTION_TAB_HPAD
 
 
 def _theme_toggle_tooltip(*, dark: bool) -> str:
@@ -2104,8 +1991,6 @@ def _whiten_main_containers(window: QWidget) -> None:
             if type(viewport) is QWidget and not _owned_by_native_control(viewport):
                 _paint_container_white(viewport)
         if type(widget) not in {QWidget, QFrame, QSplitter, QStackedWidget}:
-            continue
-        if isinstance(widget, _CaptionEdgeLine):
             continue
         if _owned_by_native_control(widget):
             continue

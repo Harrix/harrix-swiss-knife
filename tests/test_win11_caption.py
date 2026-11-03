@@ -229,7 +229,7 @@ def _caption_line_color(image: QImage, x: int) -> str:
 
 @pytest.mark.skipif(sys.platform != "win32", reason="Win11 caption is Windows-only")
 def test_caption_tab_line_spans_the_window(qapp: QApplication) -> None:
-    """The caption rule runs the full width and breaks under the active tab."""
+    """The selected caption tab shows the Fluent accent underline; no document-tab rule."""
     window = _window_with_tabs()
     tabs = window.tabWidget
     corner = QWidget()
@@ -249,18 +249,16 @@ def test_caption_tab_line_spans_the_window(qapp: QApplication) -> None:
     tab_bar = tabs.tabBar()
     selected = tab_bar.tabRect(tab_bar.currentIndex())
     selected_x = tab_bar.mapTo(tabs, selected.center()).x()
-    assert _caption_line_color(image, selected_x) == "#ffffff"
+    assert _caption_line_color(image, selected_x) == "#2e86b7"
     last = tab_bar.tabRect(tab_bar.count() - 1)
     after_tabs = tab_bar.mapTo(tabs, last.bottomRight()).x() + 40
-    assert _caption_line_color(image, after_tabs) == "#f4f4f4"
+    assert _caption_line_color(image, after_tabs) != "#2e86b7"
+    assert _caption_line_color(image, after_tabs) != "#f4f4f4"
     right = tabs.cornerWidget(Qt.Corner.TopRightCorner)
     assert right is not None
     empty_x = (after_tabs + right.mapTo(tabs, QPoint(0, 0)).x()) // 2
-    assert _caption_line_color(image, empty_x) == "#f4f4f4"
-    edges = window.findChildren(QWidget, "captionEdgeLine")
-    assert len(edges) == 2
-    for edge in edges:
-        assert edge.grab().toImage().pixelColor(2, 0).name() == "#f4f4f4"
+    assert _caption_line_color(image, empty_x) != "#f4f4f4"
+    assert window.findChildren(QWidget, "captionEdgeLine") == []
     close = window.findChild(CaptionButton, "captionCloseButton")
     assert close is not None
     assert tabs.childAt(close.mapTo(tabs, close.rect().center())) is close
@@ -361,8 +359,7 @@ def test_layout_caption_places_compact_trailing_before_buttons(qapp: QApplicatio
 
 
 def _resize_caption(window: QMainWindow, qapp: QApplication, width: int) -> None:
-    window.setMinimumWidth(0)
-    window.resize(width, 320)
+    window.setFixedWidth(max(width, 1))
     qapp.processEvents()
 
 
@@ -402,7 +399,7 @@ def test_caption_overflow_hides_title_then_menu(qapp: QApplication) -> None:
     assert title_hidden
 
     menu_folded = False
-    for width in range(window.width(), 180, -15):
+    for width in range(window.width(), 80, -15):
         _resize_caption(window, qapp, width)
         if not title.isVisible() and not menu.isVisible() and button.isVisible():
             menu_folded = True

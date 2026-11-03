@@ -1621,7 +1621,7 @@ def visible_pages(self) -> list[int]:
 class FluentPivot(QWidget)
 ```
 
-Top text tabs with an accent underline that slides between items.
+Fluent Tabs: text items with an accent underline that slides between them.
 
 <details>
 <summary>Code:</summary>
@@ -1677,6 +1677,8 @@ class FluentPivot(QWidget):
         painter.setFont(font)
         rects = self._rects(QFontMetrics(font))
         for index, (text, rect) in enumerate(zip(self._items, rects, strict=True)):
+            weight = QFont.Weight.DemiBold if index == self._current else QFont.Weight.Normal
+            painter.setFont(fluent_font(self.font(), TYPE_BODY_LARGE, weight=weight))
             if index in (self._current, self._hover):
                 painter.setPen(palette.text_primary)
             else:
@@ -1685,7 +1687,8 @@ class FluentPivot(QWidget):
         if rects and 0 <= self._current < len(rects):
             if self._line_x < 0:
                 self._line_x = rects[self._current].center().x()
-            line = QRectF(self._line_x - 8, self.height() - 3, 16, 3)
+            width = rects[self._current].width() - 2 * SPACE_M + SPACE_XS
+            line = QRectF(self._line_x - width / 2, self.height() - TAB_INDICATOR_HEIGHT, width, TAB_INDICATOR_HEIGHT)
             paint_surface(painter, line, palette.accent, None, 1.5)
         painter.end()
 
@@ -1717,7 +1720,7 @@ class FluentPivot(QWidget):
         x = 0.0
         for text in self._items:
             width = metrics.horizontalAdvance(text) + 2 * SPACE_M
-            rects.append(QRectF(x, 0, width, self.height() - 3))
+            rects.append(QRectF(x, 0, width, self.height() - TAB_INDICATOR_HEIGHT))
             x += width
         return rects
 ```
@@ -1851,6 +1854,8 @@ def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
         painter.setFont(font)
         rects = self._rects(QFontMetrics(font))
         for index, (text, rect) in enumerate(zip(self._items, rects, strict=True)):
+            weight = QFont.Weight.DemiBold if index == self._current else QFont.Weight.Normal
+            painter.setFont(fluent_font(self.font(), TYPE_BODY_LARGE, weight=weight))
             if index in (self._current, self._hover):
                 painter.setPen(palette.text_primary)
             else:
@@ -1859,7 +1864,8 @@ def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
         if rects and 0 <= self._current < len(rects):
             if self._line_x < 0:
                 self._line_x = rects[self._current].center().x()
-            line = QRectF(self._line_x - 8, self.height() - 3, 16, 3)
+            width = rects[self._current].width() - 2 * SPACE_M + SPACE_XS
+            line = QRectF(self._line_x - width / 2, self.height() - TAB_INDICATOR_HEIGHT, width, TAB_INDICATOR_HEIGHT)
             paint_surface(painter, line, palette.accent, None, 1.5)
         painter.end()
 ```
@@ -1974,7 +1980,7 @@ def refresh_theme(self) -> None:
 class FluentTabBar(QTabBar)
 ```
 
-Document tabs: rounded top corners, selected tab joins the content surface.
+Fluent Tabs strip: text tabs with an accent underline under the selected one.
 
 <details>
 <summary>Code:</summary>
@@ -1995,34 +2001,7 @@ class FluentTabBar(QTabBar):
 
     def refresh_theme(self) -> None:
         """Re-apply tab chrome."""
-        palette = palette_for(self)
-        close = lucide_qss_url("x", palette.text_secondary, 12)
-        self.setStyleSheet(f"""
-QTabBar {{ background: transparent; }}
-QTabBar::tab {{
-    background: transparent;
-    color: {css(palette.text_secondary)};
-    border: 1px solid transparent;
-    border-top-left-radius: {RADIUS_CARD}px;
-    border-top-right-radius: {RADIUS_CARD}px;
-    padding: 0px 12px;
-    min-height: {CONTROL_HEIGHT}px;
-    min-width: 96px;
-    max-width: 240px;
-}}
-QTabBar::tab:hover {{ background: {css(palette.subtle_hover)}; color: {css(palette.text_primary)}; }}
-QTabBar::tab:selected {{
-    background: {css(palette.solid_tertiary_bg if palette.dark else palette.solid_quarternary_bg)};
-    color: {css(palette.text_primary)};
-    border-color: {css(palette.card_stroke)};
-    border-bottom-color: transparent;
-}}
-QTabBar::close-button {{
-    image: url("{close}"); subcontrol-position: right; border-radius: {RADIUS_CONTROL}px;
-    width: 16px; height: 16px; padding: 2px;
-}}
-QTabBar::close-button:hover {{ background: {css(palette.subtle_hover)}; }}
-""")
+        self.setStyleSheet(fluent_tab_bar_qss(palette_for(self), closable=self.tabsClosable()))
 ```
 
 </details>
@@ -2065,34 +2044,7 @@ Re-apply tab chrome.
 
 ```python
 def refresh_theme(self) -> None:
-        palette = palette_for(self)
-        close = lucide_qss_url("x", palette.text_secondary, 12)
-        self.setStyleSheet(f"""
-QTabBar {{ background: transparent; }}
-QTabBar::tab {{
-    background: transparent;
-    color: {css(palette.text_secondary)};
-    border: 1px solid transparent;
-    border-top-left-radius: {RADIUS_CARD}px;
-    border-top-right-radius: {RADIUS_CARD}px;
-    padding: 0px 12px;
-    min-height: {CONTROL_HEIGHT}px;
-    min-width: 96px;
-    max-width: 240px;
-}}
-QTabBar::tab:hover {{ background: {css(palette.subtle_hover)}; color: {css(palette.text_primary)}; }}
-QTabBar::tab:selected {{
-    background: {css(palette.solid_tertiary_bg if palette.dark else palette.solid_quarternary_bg)};
-    color: {css(palette.text_primary)};
-    border-color: {css(palette.card_stroke)};
-    border-bottom-color: transparent;
-}}
-QTabBar::close-button {{
-    image: url("{close}"); subcontrol-position: right; border-radius: {RADIUS_CONTROL}px;
-    width: 16px; height: 16px; padding: 2px;
-}}
-QTabBar::close-button:hover {{ background: {css(palette.subtle_hover)}; }}
-""")
+        self.setStyleSheet(fluent_tab_bar_qss(palette_for(self), closable=self.tabsClosable()))
 ```
 
 </details>
@@ -2145,15 +2097,9 @@ class FluentTabWidget(QWidget):
         return self.tab_bar.currentIndex()
 
     def refresh_theme(self) -> None:
-        """Re-color the content surface."""
-        palette = palette_for(self)
-        fill = palette.solid_tertiary_bg if palette.dark else palette.solid_quarternary_bg
+        """Keep the page stack borderless; the tab bar already shows the underline."""
         self.stack.setObjectName("FluentTabStack")
-        self.stack.setStyleSheet(
-            f"QStackedWidget#FluentTabStack {{ background: {css(fill)}; border: 1px solid {css(palette.card_stroke)};"
-            f" border-top-right-radius: {RADIUS_CARD}px; border-bottom-left-radius: {RADIUS_CARD}px;"
-            f" border-bottom-right-radius: {RADIUS_CARD}px; }}",
-        )
+        self.stack.setStyleSheet("QStackedWidget#FluentTabStack { background: transparent; border: none; }")
 
     def remove_tab(self, index: int) -> None:
         """Close the page at `index`."""
@@ -2275,21 +2221,15 @@ def current_index(self) -> int:
 def refresh_theme(self) -> None
 ```
 
-Re-color the content surface.
+Keep the page stack borderless; the tab bar already shows the underline.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def refresh_theme(self) -> None:
-        palette = palette_for(self)
-        fill = palette.solid_tertiary_bg if palette.dark else palette.solid_quarternary_bg
         self.stack.setObjectName("FluentTabStack")
-        self.stack.setStyleSheet(
-            f"QStackedWidget#FluentTabStack {{ background: {css(fill)}; border: 1px solid {css(palette.card_stroke)};"
-            f" border-top-right-radius: {RADIUS_CARD}px; border-bottom-left-radius: {RADIUS_CARD}px;"
-            f" border-bottom-right-radius: {RADIUS_CARD}px; }}",
-        )
+        self.stack.setStyleSheet("QStackedWidget#FluentTabStack { background: transparent; border: none; }")
 ```
 
 </details>

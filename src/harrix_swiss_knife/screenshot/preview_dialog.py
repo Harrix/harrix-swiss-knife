@@ -55,8 +55,10 @@ from harrix_swiss_knife.apps.common.ui_chrome import (
     BRAND_INK,
     SELECTION_BG,
     SELECTION_BORDER,
-    SELECTION_HOVER,
 )
+from harrix_swiss_knife.fluent.style import fluent_tab_bar_qss
+from harrix_swiss_knife.fluent.theme import palette_for
+from harrix_swiss_knife.fluent.tokens import SPACE_XS
 from harrix_swiss_knife.paths import get_config_path_str, get_temp_config_path
 from harrix_swiss_knife.qt_flow_layout import FlowLayout
 from harrix_swiss_knife.qt_lucide_icon import (
@@ -187,23 +189,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._tabs = QTabWidget(central)
         self._tabs.setTabsClosable(True)
         self._tabs.setDocumentMode(True)
-        self._tabs.setStyleSheet(
-            "QTabWidget::pane { border: none; background: transparent; }"
-            "QTabBar::tab {"
-            " background: transparent;"
-            " border: 1px solid transparent;"
-            " border-radius: 6px;"
-            " padding: 4px 10px;"
-            " margin-right: 2px;"
-            "}"
-            "QTabBar::tab:hover {"
-            f" background: {SELECTION_HOVER};"
-            "}"
-            "QTabBar::tab:selected {"
-            f" background: {SELECTION_BG};"
-            f" border-color: {SELECTION_BORDER};"
-            "}",
-        )
+        self._tabs.setStyleSheet("QTabWidget::pane { border: none; background: transparent; }")
         self._tabs.tabCloseRequested.connect(self._close_tab_at)
         self._tabs.currentChanged.connect(self._on_tab_changed)
         tab_bar = self._tabs.tabBar()
@@ -212,7 +198,9 @@ class ScreenshotPreviewWindow(QMainWindow):
         tab_bar.setAutoFillBackground(False)
         tab_bar.setExpanding(False)
         tab_bar.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
-        tab_bar.setStyleSheet("QTabBar { background: transparent; }")
+        tab_bar.setStyleSheet(
+            fluent_tab_bar_qss(palette_for(self), closable=True, pad_v=SPACE_XS),
+        )
         self._tab_bar = tab_bar
         root.addWidget(tab_bar)
 
