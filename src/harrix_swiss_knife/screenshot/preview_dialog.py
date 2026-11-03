@@ -129,8 +129,9 @@ _TABLE_AI_ICON = "table"
 _TRANSLATE_ICON = "languages"
 _STATUS_HINT = (
     "Tools: arrow / shapes / step / pen / highlight / blur / pixelate / smart eraser / "
-    "text / eyedropper / crop · Shift+click selects several · Delete removes them · Shift constrains · "
-    "Undo · Ctrl+wheel, Ctrl++ or Ctrl+- zoom · Middle-drag pan · Ctrl+S save to images"
+    "text / eyedropper / crop · Pointer selects (Shift+click: several) · drawing tools always draw · "
+    "Delete removes selection · Shift constrains · Undo · Ctrl+wheel, Ctrl++ or Ctrl+- zoom · "
+    "Middle-drag pan · Ctrl+S save to images"
 )
 _VK_S = 0x53
 _KEY_CYRILLIC_YERU = 0x042B  # Cyrillic yeru (same physical key as Latin S)  # ignore: HP001

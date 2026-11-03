@@ -555,9 +555,15 @@ class ScreenshotPreviewCanvas(QWidget):
                     event.ignore()
                     return
                 self.commit_text_edit()
-            if self._begin_annotation_edit(image_pos, shift=_shift_pressed(event.modifiers())):
+            # Drawing tools always start a new shape. Hit-testing for select/move is
+            # only for the pointer tool (and text, so existing labels stay editable).
+            if self._tool == AnnotationTool.TEXT and self._begin_annotation_edit(
+                image_pos,
+                shift=_shift_pressed(event.modifiers()),
+            ):
                 event.accept()
                 return
+            self._clear_edit_state()
             self._set_only_selection(None)
             snapped = self._snap_pointer(image_pos)
             if self._tool == AnnotationTool.SMART_ERASER and self._document is not None:
@@ -1668,6 +1674,15 @@ class ScreenshotPreviewCanvas(QWidget):
     def _update_hover_cursor(self, image_pos: QPointF | None) -> None:
         if image_pos is None or self._document is None:
             return
+        # Drawing tools keep a crosshair so overlapping shapes do not look selectable.
+        if self._tool not in {
+            AnnotationTool.NONE,
+            AnnotationTool.CROP,
+            AnnotationTool.EYEDROPPER,
+            AnnotationTool.TEXT,
+        }:
+            self.setCursor(Qt.CursorShape.CrossCursor)
+            return
         hit = hit_test_topmost(
             self._document.annotations,
             image_pos,
@@ -2585,9 +2600,15 @@ def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
                     event.ignore()
                     return
                 self.commit_text_edit()
-            if self._begin_annotation_edit(image_pos, shift=_shift_pressed(event.modifiers())):
+            # Drawing tools always start a new shape. Hit-testing for select/move is
+            # only for the pointer tool (and text, so existing labels stay editable).
+            if self._tool == AnnotationTool.TEXT and self._begin_annotation_edit(
+                image_pos,
+                shift=_shift_pressed(event.modifiers()),
+            ):
                 event.accept()
                 return
+            self._clear_edit_state()
             self._set_only_selection(None)
             snapped = self._snap_pointer(image_pos)
             if self._tool == AnnotationTool.SMART_ERASER and self._document is not None:

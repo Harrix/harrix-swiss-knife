@@ -1037,7 +1037,7 @@ def test_preview_canvas_selects_and_deletes_arrow(qapp: QApplication) -> None:
     )
     assert document.commit_draft()
     canvas.set_document(document)
-    canvas.set_tool(AnnotationTool.ARROW)
+    canvas.set_tool(AnnotationTool.NONE)
     qapp.processEvents()
     _left_click(canvas, QPointF(45, 40))
     assert canvas.selected_index == 0
@@ -1047,7 +1047,8 @@ def test_preview_canvas_selects_and_deletes_arrow(qapp: QApplication) -> None:
     canvas.close()
 
 
-def test_preview_canvas_selects_arrow_after_tool_switch(qapp: QApplication) -> None:
+def test_drawing_tool_starts_new_shape_over_existing(qapp: QApplication) -> None:
+    """Drawing tools must draw, not select, when clicking an existing shape."""
     image = QImage(200, 160, QImage.Format.Format_RGB32)
     image.fill(Qt.GlobalColor.white)
     canvas = ScreenshotPreviewCanvas(image)
@@ -1064,15 +1065,47 @@ def test_preview_canvas_selects_arrow_after_tool_switch(qapp: QApplication) -> N
     canvas.set_document(document)
     canvas.set_tool(AnnotationTool.ARROW)
     qapp.processEvents()
-    _left_click(canvas, QPointF(50, 40))
-    assert canvas.selected_index == 0
-    canvas.set_tool(AnnotationTool.RECTANGLE)
-    canvas.set_tool(AnnotationTool.ARROW)
+    start = QPointF(50, 40)
+    end = QPointF(80, 60)
+    canvas.mousePressEvent(
+        QMouseEvent(
+            QMouseEvent.Type.MouseButtonPress,
+            start,
+            canvas.mapToGlobal(start.toPoint()),
+            Qt.MouseButton.LeftButton,
+            Qt.MouseButton.LeftButton,
+            Qt.KeyboardModifier.NoModifier,
+        )
+    )
+    assert canvas.selected_index is None
+    assert canvas._draw_start is not None
+    canvas.mouseMoveEvent(
+        QMouseEvent(
+            QMouseEvent.Type.MouseMove,
+            end,
+            canvas.mapToGlobal(end.toPoint()),
+            Qt.MouseButton.LeftButton,
+            Qt.MouseButton.LeftButton,
+            Qt.KeyboardModifier.NoModifier,
+        )
+    )
+    canvas.mouseReleaseEvent(
+        QMouseEvent(
+            QMouseEvent.Type.MouseButtonRelease,
+            end,
+            canvas.mapToGlobal(end.toPoint()),
+            Qt.MouseButton.LeftButton,
+            Qt.MouseButton.LeftButton,
+            Qt.KeyboardModifier.NoModifier,
+        )
+    )
+    assert len(document.annotations) == 2
+    canvas.set_tool(AnnotationTool.NONE)
     canvas.clear_selection()
     qapp.processEvents()
-    _left_click(canvas, QPointF(50, 40))
+    # First arrow only: left side, away from the second stroke.
+    _left_click(canvas, QPointF(20, 40))
     assert canvas.selected_index == 0
-    assert len(document.annotations) == 1
     canvas.close()
 
 
