@@ -171,12 +171,12 @@ def bind_column_fill_on_resize(table: QTableView, refill: Callable[[QTableView],
         if table.property(_COLUMN_FILL_GUARD_PROP) or old_size == new_size:
             return
         if QGuiApplication.mouseButtons() & Qt.MouseButton.LeftButton:
-            table.setProperty(_USER_SIZED_COLUMNS_PROP, True)
+            table.setProperty(_USER_SIZED_COLUMNS_PROP, 1)
 
     header.sectionResized.connect(_on_section_resized)
 
     class _ResizeHook(QObject):
-        def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
+        def eventFilter(self, _watched: QObject, event: QEvent) -> bool:  # noqa: N802
             if (
                 event.type() == QEvent.Type.Resize
                 and not user_resized_columns(table)
@@ -204,7 +204,7 @@ def bind_column_fill_on_resize(table: QTableView, refill: Callable[[QTableView],
 def columns_fill_viewport(table: QTableView) -> bool
 ```
 
-Return whether section widths already cover the table viewport.
+Return whether section widths match the viewport, with no gap and no overflow.
 
 <details>
 <summary>Code:</summary>
@@ -215,7 +215,7 @@ def columns_fill_viewport(table: QTableView) -> bool:
     viewport_w = table.viewport().width()
     if viewport_w <= 0 or header.count() <= 0:
         return False
-    return header.length() >= viewport_w - _COLUMN_FILL_SLACK_PX
+    return abs(header.length() - viewport_w) <= _COLUMN_FILL_SLACK_PX
 ```
 
 </details>
@@ -443,7 +443,7 @@ def make_table_columns_resizable(
         return
 
     min_size = header.minimumSectionSize()
-    table.setProperty(_COLUMN_FILL_GUARD_PROP, True)
+    table.setProperty(_COLUMN_FILL_GUARD_PROP, 1)
     try:
         _assign_resizable_column_widths(
             table,
@@ -453,7 +453,7 @@ def make_table_columns_resizable(
             min_size=min_size,
         )
     finally:
-        table.setProperty(_COLUMN_FILL_GUARD_PROP, False)
+        table.setProperty(_COLUMN_FILL_GUARD_PROP, 0)
 ```
 
 </details>

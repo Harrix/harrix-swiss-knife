@@ -8247,30 +8247,27 @@ def apply_transactions_table_column_widths(table_view: QTableView) -> None:
         return
 
     header.setStretchLastSection(False)
+    header.setMinimumSectionSize(min(header.minimumSectionSize(), 24))
     min_size = header.minimumSectionSize()
     tag_idx = count - _TRANSACTIONS_FIXED_COLUMN_COUNT if count >= _TRANSACTIONS_FIXED_COLUMN_COUNT else None
     total_idx = count - 1
-    reserved = _TRANSACTIONS_TOTAL_COLUMN_WIDTH
-    if tag_idx is not None:
-        reserved += _TRANSACTIONS_TAG_COLUMN_WIDTH
-
     flexible = [i for i in range(count) if i not in {tag_idx, total_idx}]
-    remaining = max(viewport_w - reserved, len(flexible) * min_size)
-    base = remaining // len(flexible) if flexible else 0
-    extra = remaining - base * len(flexible) if flexible else 0
+    widths = _transaction_column_widths(
+        viewport_w,
+        count,
+        flexible=flexible,
+        tag_idx=tag_idx,
+        total_idx=total_idx,
+        min_size=min_size,
+    )
 
-    table_view.setProperty("hskColumnFillGuard", True)
+    table_view.setProperty("hskColumnFillGuard", 1)
     try:
-        for i in range(count):
-            header.setSectionResizeMode(i, header.ResizeMode.Interactive)
-        for index, column in enumerate(flexible):
-            width = base + (extra if index == len(flexible) - 1 else 0)
-            table_view.setColumnWidth(column, max(width, min_size))
-        if tag_idx is not None:
-            table_view.setColumnWidth(tag_idx, _TRANSACTIONS_TAG_COLUMN_WIDTH)
-        table_view.setColumnWidth(total_idx, _TRANSACTIONS_TOTAL_COLUMN_WIDTH)
+        for column, width in enumerate(widths):
+            header.setSectionResizeMode(column, header.ResizeMode.Interactive)
+            table_view.setColumnWidth(column, width)
     finally:
-        table_view.setProperty("hskColumnFillGuard", False)
+        table_view.setProperty("hskColumnFillGuard", 0)
 ```
 
 </details>

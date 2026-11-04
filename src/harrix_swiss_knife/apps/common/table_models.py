@@ -115,12 +115,12 @@ def bind_column_fill_on_resize(table: QTableView, refill: Callable[[QTableView],
 
 
 def columns_fill_viewport(table: QTableView) -> bool:
-    """Return whether section widths already cover the table viewport."""
+    """Return whether section widths match the viewport, with no gap and no overflow."""
     header = table.horizontalHeader()
     viewport_w = table.viewport().width()
     if viewport_w <= 0 or header.count() <= 0:
         return False
-    return header.length() >= viewport_w - _COLUMN_FILL_SLACK_PX
+    return abs(header.length() - viewport_w) <= _COLUMN_FILL_SLACK_PX
 
 
 def create_colored_table_proxy_model(

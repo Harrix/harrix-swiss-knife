@@ -6727,30 +6727,59 @@ def apply_transactions_table_column_widths(table_view: QTableView) -> None:
         return
 
     header.setStretchLastSection(False)
+    header.setMinimumSectionSize(min(header.minimumSectionSize(), 24))
     min_size = header.minimumSectionSize()
     tag_idx = count - _TRANSACTIONS_FIXED_COLUMN_COUNT if count >= _TRANSACTIONS_FIXED_COLUMN_COUNT else None
     total_idx = count - 1
-    reserved = _TRANSACTIONS_TOTAL_COLUMN_WIDTH
-    if tag_idx is not None:
-        reserved += _TRANSACTIONS_TAG_COLUMN_WIDTH
-
     flexible = [i for i in range(count) if i not in {tag_idx, total_idx}]
-    remaining = max(viewport_w - reserved, len(flexible) * min_size)
-    base = remaining // len(flexible) if flexible else 0
-    extra = remaining - base * len(flexible) if flexible else 0
+    widths = _transaction_column_widths(
+        viewport_w,
+        count,
+        flexible=flexible,
+        tag_idx=tag_idx,
+        total_idx=total_idx,
+        min_size=min_size,
+    )
 
     table_view.setProperty("hskColumnFillGuard", 1)
     try:
-        for i in range(count):
-            header.setSectionResizeMode(i, header.ResizeMode.Interactive)
-        for index, column in enumerate(flexible):
-            width = base + (extra if index == len(flexible) - 1 else 0)
-            table_view.setColumnWidth(column, max(width, min_size))
-        if tag_idx is not None:
-            table_view.setColumnWidth(tag_idx, _TRANSACTIONS_TAG_COLUMN_WIDTH)
-        table_view.setColumnWidth(total_idx, _TRANSACTIONS_TOTAL_COLUMN_WIDTH)
+        for column, width in enumerate(widths):
+            header.setSectionResizeMode(column, header.ResizeMode.Interactive)
+            table_view.setColumnWidth(column, width)
     finally:
         table_view.setProperty("hskColumnFillGuard", 0)
+
+
+def _transaction_column_widths(
+    viewport_w: int,
+    count: int,
+    *,
+    flexible: list[int],
+    tag_idx: int | None,
+    total_idx: int,
+    min_size: int,
+) -> list[int]:
+    """Split `viewport_w` so Tag and Total stay compact and the row still fits."""
+    widths = [min_size] * count
+    tag_w = _TRANSACTIONS_TAG_COLUMN_WIDTH if tag_idx is not None else 0
+    total_w = _TRANSACTIONS_TOTAL_COLUMN_WIDTH
+    flex_min = len(flexible) * min_size
+    if tag_w + total_w + flex_min > viewport_w:
+        leftover = max(viewport_w - flex_min, 0)
+        tag_w = min(tag_w, leftover // 2) if tag_idx is not None else 0
+        total_w = leftover - tag_w
+    flex_budget = max(viewport_w - tag_w - total_w, flex_min)
+    base = flex_budget // len(flexible) if flexible else 0
+    extra = flex_budget - base * len(flexible) if flexible else 0
+    for index, column in enumerate(flexible):
+        widths[column] = base + (extra if index == len(flexible) - 1 else 0)
+    if tag_idx is not None:
+        widths[tag_idx] = tag_w
+    widths[total_idx] = max(total_w, 0)
+    drift = viewport_w - sum(widths)
+    if flexible and drift != 0:
+        widths[flexible[-1]] = max(widths[flexible[-1]] + drift, min_size)
+    return widths
 
 
 if __name__ == "__main__":
