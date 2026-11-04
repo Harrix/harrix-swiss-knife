@@ -7,13 +7,14 @@ including loading, updating, filtering, and chart creation.
 
 from __future__ import annotations
 
+import contextlib
 import logging
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, cast
 
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.dates import date2num
-from PySide6.QtCore import QDate, QSortFilterProxyModel, QThread, QTimer
+from PySide6.QtCore import QDate, QSortFilterProxyModel, QThread, QTimer, Signal
 from PySide6.QtGui import QColor, QStandardItemModel
 from PySide6.QtWidgets import QAbstractItemView, QMessageBox, QWidget
 
@@ -30,7 +31,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-_EXCHANGE_RATE_THREAD_JOIN_MS = 120_000
+_released_qthreads: list[QThread] = []
+_released_qthread_ids: set[int] = set()
 
 
 class DbFilenameUnavailableForWorkerThreadError(RuntimeError):
@@ -314,8 +316,7 @@ class ExchangeRatesOperations:
                     QMessageBox.StandardButton.No,
                 )
                 if reply == QMessageBox.StandardButton.Yes:
-                    self.exchange_rate_worker.stop()
-                    self.exchange_rate_worker.wait()
+                    stop_running_qthread(self.exchange_rate_worker)
                 else:
                     return
 
@@ -913,24 +914,51 @@ class ExchangeRatesOperations:
         return rates_transformed_data
 
 
-def stop_running_qthread(worker: QThread | None, *, timeout_ms: int = _EXCHANGE_RATE_THREAD_JOIN_MS) -> None:
-    """Request stop and join a worker so Qt 6.12 does not qFatal on destroy.
+def stop_running_qthread(worker: QThread | None) -> None:
+    """Ask a worker to stop and detach it so closing the window does not wait.
+
+    A running `QThread` must not be destroyed with its window (Qt 6.12 calls
+    `qFatal`). The thread keeps running until the current network call returns
+    and sees the stop flag. The UI thread does not join it.
 
     Args:
 
-    - `worker` (`QThread | None`): Thread to stop.
-    - `timeout_ms` (`int`): First wait budget after `stop()`. Defaults to 120s.
+    - `worker` (`QThread | None`): Thread to stop and detach.
 
     """
-    if worker is None or not worker.isRunning():
+    if worker is None or id(worker) in _released_qthread_ids:
         return
     stop = getattr(worker, "stop", None)
     if callable(stop):
         stop()
-    if worker.wait(timeout_ms):
+    if not worker.isRunning():
         return
-    logger.warning("QThread still running after %s ms; waiting until it finishes", timeout_ms)
-    worker.wait()
+    _released_qthread_ids.add(id(worker))
+    _disconnect_emitted_signals(worker)
+    worker.setParent(None)
+    _released_qthreads.append(worker)
+
+    def _drop_released() -> None:
+        _released_qthread_ids.discard(id(worker))
+        with contextlib.suppress(ValueError):
+            _released_qthreads.remove(worker)
+
+    worker.finished.connect(_drop_released)
+    if not worker.isRunning():
+        _drop_released()
+
+
+def _disconnect_emitted_signals(worker: QThread) -> None:
+    """Drop Python signal slots so a detached worker cannot call a closed window."""
+    for cls in type(worker).__mro__:
+        for name, attr in vars(cls).items():
+            if not isinstance(attr, Signal):
+                continue
+            signal = getattr(worker, name, None)
+            if signal is None:
+                continue
+            with contextlib.suppress(RuntimeError, TypeError):
+                signal.disconnect()
 
 
 def _require_db_filename_for_worker(db_manager: object) -> str:

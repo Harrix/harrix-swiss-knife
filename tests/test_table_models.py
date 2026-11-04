@@ -35,7 +35,7 @@ def qapp() -> QApplication:
 def test_next_table_sort_order_toggles_same_column() -> None:
     """A second click on the same column reverses the order."""
     assert next_table_sort_order(2, Qt.SortOrder.AscendingOrder, 2) == Qt.SortOrder.DescendingOrder
-    assert next_table_sort_order(2, Qt.SortOrder.DescendingOrder, 2) == Qt.SortOrder.AscendingOrder
+    assert next_table_sort_order(2, Qt.SortOrder.DescendingOrder, 2) is None
     assert next_table_sort_order(1, Qt.SortOrder.DescendingOrder, 3) == Qt.SortOrder.AscendingOrder
     assert next_table_sort_order(-1, Qt.SortOrder.AscendingOrder, 1) == Qt.SortOrder.AscendingOrder
 
@@ -107,6 +107,16 @@ def test_sort_table_by_header_click_image_column_sorts_by_id(qapp: QApplication)
     assert second == (0, Qt.SortOrder.DescendingOrder)
     assert [proxy.index(row, 1).data() for row in range(3)] == ["Zulu", "Mike", "Alpha"]
 
+    third = sort_table_by_header_click(
+        table,
+        0,
+        current_section=second[0],
+        current_order=second[1],
+    )
+    assert third == (-1, Qt.SortOrder.AscendingOrder)
+    assert table.horizontalHeader().isSortIndicatorShown() is False
+    assert [proxy.index(row, 1).data() for row in range(3)] == ["Zulu", "Alpha", "Mike"]
+
 
 def test_append_colored_table_row(qapp: QApplication) -> None:
     assert qapp is not None
@@ -139,6 +149,8 @@ def test_enable_table_header_sorting_toggles_and_restores(qapp: QApplication) ->
     enable_table_header_sorting(table)  # idempotent
 
     header = table.horizontalHeader()
+    assert header.isSortIndicatorShown() is False
+
     header.sectionClicked.emit(1)
     assert get_stored_table_header_sort(table) == (1, Qt.SortOrder.AscendingOrder)
     assert [proxy.index(row, 1).data() for row in range(2)] == ["Alpha", "Zulu"]
@@ -156,6 +168,11 @@ def test_enable_table_header_sorting_toggles_and_restores(qapp: QApplication) ->
     )
     table.setModel(reloaded)
     apply_stored_table_header_sort(table)
+    assert [reloaded.index(row, 1).data() for row in range(2)] == ["Zulu", "Alpha"]
+
+    header.sectionClicked.emit(1)
+    assert get_stored_table_header_sort(table) is None
+    assert header.isSortIndicatorShown() is False
     assert [reloaded.index(row, 1).data() for row in range(2)] == ["Zulu", "Alpha"]
 
 

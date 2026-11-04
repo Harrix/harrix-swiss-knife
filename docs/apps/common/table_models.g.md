@@ -16,6 +16,7 @@ lang: en
 - [🔧 Function `append_colored_table_row`](#-function-append_colored_table_row)
 - [🔧 Function `apply_stored_table_header_sort`](#-function-apply_stored_table_header_sort)
 - [🔧 Function `bind_column_fill_on_resize`](#-function-bind_column_fill_on_resize)
+- [🔧 Function `clear_stored_table_header_sort`](#-function-clear_stored_table_header_sort)
 - [🔧 Function `columns_fill_viewport`](#-function-columns_fill_viewport)
 - [🔧 Function `create_colored_table_proxy_model`](#-function-create_colored_table_proxy_model)
 - [🔧 Function `create_table_proxy_model`](#-function-create_table_proxy_model)
@@ -198,6 +199,24 @@ def bind_column_fill_on_resize(table: QTableView, refill: Callable[[QTableView],
 
 </details>
 
+## 🔧 Function `clear_stored_table_header_sort`
+
+```python
+def clear_stored_table_header_sort(table: QTableView) -> None
+```
+
+Forget the header sort so the table stays in source order.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def clear_stored_table_header_sort(table: QTableView) -> None:
+    table.setProperty(_HEADER_SORT_SECTION_PROP, -1)
+```
+
+</details>
+
 ## 🔧 Function `columns_fill_viewport`
 
 ```python
@@ -311,7 +330,7 @@ def create_table_proxy_model(
 def enable_table_header_sorting(table: QTableView, *, skip_section: int | None = None) -> None
 ```
 
-Allow single clicks on the header to sort ascending, then descending.
+Allow single clicks on the header to sort ascending, then descending, then unsorted.
 
 Safe to call more than once for the same header. Sort state is stored on the
 table so [`apply_stored_table_header_sort`](#-function-apply_stored_table_header_sort) can restore it after a model reload.
@@ -332,7 +351,8 @@ def enable_table_header_sorting(
 ) -> None:
     header = table.horizontalHeader()
     header.setSectionsClickable(True)
-    header.setSortIndicatorShown(True)
+    if get_stored_table_header_sort(table) is None:
+        header.setSortIndicatorShown(False)
     table.setProperty(
         _HEADER_SORT_SKIP_PROP,
         skip_section if skip_section is not None else _NO_SKIP_SECTION,
@@ -354,11 +374,15 @@ def enable_table_header_sorting(
         )
         if result is None:
             if stored is None:
-                header.setSortIndicator(-1, Qt.SortOrder.AscendingOrder)
+                header.setSortIndicatorShown(False)
             else:
                 header.setSortIndicator(*stored)
             return
-        set_stored_table_header_sort(table, *result)
+        section, order = result
+        if section < 0:
+            clear_stored_table_header_sort(table)
+            return
+        set_stored_table_header_sort(table, section, order)
 
     header.sectionClicked.connect(_on_section_clicked)
     header.setProperty(_HEADER_SORT_CONNECTED_PROP, 1)
@@ -461,13 +485,13 @@ def make_table_columns_resizable(
 ## 🔧 Function `next_table_sort_order`
 
 ```python
-def next_table_sort_order(current_section: int, current_order: Qt.SortOrder, clicked_section: int) -> Qt.SortOrder
+def next_table_sort_order(current_section: int, current_order: Qt.SortOrder, clicked_section: int) -> Qt.SortOrder | None
 ```
 
 Return the sort order after a header click.
 
-A new column starts ascending. A second click on the same column reverses
-the current order.
+A new column starts ascending. The same column then goes descending, and a
+third click clears the sort (`None`).
 
 Args:
 
@@ -477,7 +501,7 @@ Args:
 
 Returns:
 
-- `Qt.SortOrder`: Order to apply to `clicked_section`.
+- `Qt.SortOrder | None`: Order to apply, or `None` to restore source order.
 
 <details>
 <summary>Code:</summary>
@@ -487,12 +511,12 @@ def next_table_sort_order(
     current_section: int,
     current_order: Qt.SortOrder,
     clicked_section: int,
-) -> Qt.SortOrder:
-    if clicked_section == current_section:
-        if current_order == Qt.SortOrder.AscendingOrder:
-            return Qt.SortOrder.DescendingOrder
+) -> Qt.SortOrder | None:
+    if clicked_section != current_section:
         return Qt.SortOrder.AscendingOrder
-    return Qt.SortOrder.AscendingOrder
+    if current_order == Qt.SortOrder.AscendingOrder:
+        return Qt.SortOrder.DescendingOrder
+    return None
 ```
 
 </details>
@@ -542,7 +566,8 @@ Args:
 
 Returns:
 
-- `tuple[int, Qt.SortOrder] | None`: Applied column and order, or `None` when skipped.
+- `tuple[int, Qt.SortOrder] | None`: Applied column and order, `(-1, …)` when the
+  sort was cleared, or `None` when skipped.
 
 <details>
 <summary>Code:</summary>
@@ -564,6 +589,12 @@ def sort_table_by_header_click(
     if current_order is None:
         current_order = Qt.SortOrder.AscendingOrder
     order = next_table_sort_order(current_section, current_order, section)
+    if order is None:
+        model = table.model()
+        if model is not None:
+            model.sort(-1)
+        header.setSortIndicatorShown(False)
+        return -1, Qt.SortOrder.AscendingOrder
     table.sortByColumn(section, order)
     header.setSortIndicatorShown(True)
     header.setSortIndicator(section, order)

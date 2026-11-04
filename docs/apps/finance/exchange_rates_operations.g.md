@@ -351,8 +351,7 @@ class ExchangeRatesOperations:
                     QMessageBox.StandardButton.No,
                 )
                 if reply == QMessageBox.StandardButton.Yes:
-                    self.exchange_rate_worker.stop()
-                    self.exchange_rate_worker.wait()
+                    stop_running_qthread(self.exchange_rate_worker)
                 else:
                     return
 
@@ -1359,8 +1358,7 @@ def on_update_exchange_rates(self) -> None:
                     QMessageBox.StandardButton.No,
                 )
                 if reply == QMessageBox.StandardButton.Yes:
-                    self.exchange_rate_worker.stop()
-                    self.exchange_rate_worker.wait()
+                    stop_running_qthread(self.exchange_rate_worker)
                 else:
                     return
 
@@ -1413,30 +1411,44 @@ def on_update_exchange_rates(self) -> None:
 ## 🔧 Function `stop_running_qthread`
 
 ```python
-def stop_running_qthread(worker: QThread | None, *, timeout_ms: int = _EXCHANGE_RATE_THREAD_JOIN_MS) -> None
+def stop_running_qthread(worker: QThread | None) -> None
 ```
 
-Request stop and join a worker so Qt 6.12 does not qFatal on destroy.
+Ask a worker to stop and detach it so closing the window does not wait.
+
+A running `QThread` must not be destroyed with its window (Qt 6.12 calls
+`qFatal`). The thread keeps running until the current network call returns
+and sees the stop flag. The UI thread does not join it.
 
 Args:
 
-- `worker` (`QThread | None`): Thread to stop.
-- `timeout_ms` (`int`): First wait budget after `stop()`. Defaults to 120s.
+- `worker` (`QThread | None`): Thread to stop and detach.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def stop_running_qthread(worker: QThread | None, *, timeout_ms: int = _EXCHANGE_RATE_THREAD_JOIN_MS) -> None:
-    if worker is None or not worker.isRunning():
+def stop_running_qthread(worker: QThread | None) -> None:
+    if worker is None or id(worker) in _released_qthread_ids:
         return
     stop = getattr(worker, "stop", None)
     if callable(stop):
         stop()
-    if worker.wait(timeout_ms):
+    if not worker.isRunning():
         return
-    logger.warning("QThread still running after %s ms; waiting until it finishes", timeout_ms)
-    worker.wait()
+    _released_qthread_ids.add(id(worker))
+    _disconnect_emitted_signals(worker)
+    worker.setParent(None)
+    _released_qthreads.append(worker)
+
+    def _drop_released() -> None:
+        _released_qthread_ids.discard(id(worker))
+        with contextlib.suppress(ValueError):
+            _released_qthreads.remove(worker)
+
+    worker.finished.connect(_drop_released)
+    if not worker.isRunning():
+        _drop_released()
 ```
 
 </details>

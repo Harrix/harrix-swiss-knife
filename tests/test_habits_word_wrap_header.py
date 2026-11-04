@@ -73,3 +73,26 @@ def test_install_word_wrap_header_replaces_default_header(qapp: QApplication) ->
     expected = wrapped_header_text_size(_LONG_HABIT_NAME, 86, header.fontMetrics())
     assert first.width() == expected.width()
     assert first.height() == expected.height()
+
+
+def test_word_wrap_header_finds_interactive_column_boundary(qapp: QApplication) -> None:
+    """The resize mark sits on an interactive edge and skips the table's outer edge."""
+    assert qapp is not None
+    table = QTableView()
+    model = QStandardItemModel()
+    model.setHorizontalHeaderLabels(["A", "B", "C"])
+    table.setModel(model)
+    header = install_word_wrap_header(table)
+    table.resize(360, 180)
+    table.show()
+    qapp.processEvents()
+    for section in range(header.count()):
+        header.setSectionResizeMode(section, header.ResizeMode.Interactive)
+        header.resizeSection(section, 80)
+    qapp.processEvents()
+
+    edge = header.sectionViewportPosition(0) + header.sectionSize(0)
+    assert header._boundary_x_at(edge) == edge
+    assert header._boundary_x_at(edge + 40) is None
+    last_edge = header.sectionViewportPosition(header.count() - 1) + header.sectionSize(header.count() - 1)
+    assert header._boundary_x_at(last_edge) is None

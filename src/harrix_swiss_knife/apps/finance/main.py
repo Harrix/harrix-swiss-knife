@@ -6288,7 +6288,7 @@ class MainWindow(
             timer.stop()
 
     def _stop_exchange_rate_threads(self) -> None:
-        """Join exchange-rate QThreads before Qt destroys them (Qt 6.12 qFatal)."""
+        """Detach exchange-rate threads so closing the window does not wait on the network."""
         stop_running_qthread(getattr(self, "exchange_rate_worker", None))
         stop_running_qthread(getattr(self, "exchange_rate_checker", None))
         stop_running_qthread(getattr(self, "startup_exchange_rate_worker", None))

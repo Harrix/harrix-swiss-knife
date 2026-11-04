@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import QAbstractItemModel, QRect, QSize, Qt
-from PySide6.QtGui import QFontMetrics, QPainter, QPalette
+from PySide6.QtCore import QAbstractItemModel, QEvent, QRect, QSize, Qt
+from PySide6.QtGui import QColor, QFontMetrics, QMouseEvent, QPainter, QPaintEvent, QPalette, QPen
 from PySide6.QtWidgets import QHeaderView, QStyle, QStyleOptionHeader, QTableView, QWidget
 
+from harrix_swiss_knife.apps.common.ui_chrome import SELECTION_BORDER
+
 HEADER_TEXT_FLAGS = Qt.AlignmentFlag.AlignCenter | Qt.TextFlag.TextWordWrap
+_BOUNDARY_GRIP_PX = 5
 _TEXT_PADDING = 8
 _TEXT_INSET = 4
 
@@ -36,13 +39,42 @@ class WordWrapHeaderView(QHeaderView):
         self._wrap_width = wrap_width
         self._wrap_first_section = wrap_first_section
         self._updating_height = False
+        self._hover_boundary_x: int | None = None
         self.setDefaultAlignment(Qt.AlignmentFlag.AlignCenter)
         self.setTextElideMode(Qt.TextElideMode.ElideNone)
+        self.setMouseTracking(True)
+        self.viewport().setMouseTracking(True)
         self.sectionResized.connect(self._on_section_resized)
+
+    def leaveEvent(self, event: QEvent) -> None:  # noqa: N802
+        """Hide the column-boundary mark when the pointer leaves the header."""
+        self._set_hover_boundary(None)
+        super().leaveEvent(event)
 
     def minimumSizeHint(self) -> QSize:  # noqa: N802
         """Use the wrapped height as the minimum header size."""
         return self.sizeHint()
+
+    def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        """Show a vertical mark and resize cursor on the boundary between columns."""
+        super().mouseMoveEvent(event)
+        boundary = self._boundary_x_at(int(event.position().x()))
+        self._set_hover_boundary(boundary)
+        if boundary is not None:
+            self.setCursor(Qt.CursorShape.SplitHCursor)
+        elif self.cursor().shape() == Qt.CursorShape.SplitHCursor:
+            self.unsetCursor()
+
+    def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
+        """Paint wrapped titles, then the hovered column boundary."""
+        super().paintEvent(event)
+        if self._hover_boundary_x is None:
+            return
+        painter = QPainter(self.viewport())
+        painter.setPen(QPen(QColor(SELECTION_BORDER), 2))
+        x = self._hover_boundary_x
+        painter.drawLine(x, 0, x, self.viewport().height())
+        painter.end()
 
     def paintSection(self, painter: QPainter, rect: QRect, logical_index: int) -> None:  # noqa: N802
         """Paint the section chrome, then draw the title with wrapping."""
@@ -93,6 +125,28 @@ class WordWrapHeaderView(QHeaderView):
         hint = super().sizeHint()
         return QSize(hint.width(), max(hint.height(), self._max_wrapped_height()))
 
+    def viewportEvent(self, event: QEvent) -> bool:  # noqa: N802
+        """Clear the boundary mark when the pointer leaves the header viewport."""
+        handled = super().viewportEvent(event)
+        if event.type() in {QEvent.Type.Leave, QEvent.Type.HoverLeave}:
+            self._set_hover_boundary(None)
+            if self.cursor().shape() == Qt.CursorShape.SplitHCursor:
+                self.unsetCursor()
+        return handled
+
+    def _boundary_x_at(self, viewport_x: int) -> int | None:
+        """Return the position of an interactive section edge near the pointer."""
+        last = self.count() - 1
+        for logical in range(self.count()):
+            if self.isSectionHidden(logical) or logical == last:
+                continue
+            if self.sectionResizeMode(logical) != QHeaderView.ResizeMode.Interactive:
+                continue
+            right = self.sectionViewportPosition(logical) + self.sectionSize(logical)
+            if abs(viewport_x - right) <= _BOUNDARY_GRIP_PX:
+                return right
+        return None
+
     def _max_wrapped_height(self) -> int:
         if self.count() == 0:
             return 0
@@ -118,6 +172,12 @@ class WordWrapHeaderView(QHeaderView):
             return ""
         value = model.headerData(logical_index, self.orientation(), Qt.ItemDataRole.DisplayRole)
         return "" if value is None else str(value)
+
+    def _set_hover_boundary(self, boundary_x: int | None) -> None:
+        if boundary_x == self._hover_boundary_x:
+            return
+        self._hover_boundary_x = boundary_x
+        self.viewport().update()
 
     def _should_wrap_section(self, logical_index: int) -> bool:
         return self._wrap_first_section or logical_index > 0
