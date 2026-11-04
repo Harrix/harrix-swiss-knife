@@ -23,7 +23,7 @@ lang: en
 class FluentLineEdit(QLineEdit)
 ```
 
-Single-line Fluent text box with an optional clear button.
+Single-line Fluent text box with the shared Lucide clear button.
 
 <details>
 <summary>Code:</summary>
@@ -45,14 +45,18 @@ class FluentLineEdit(QLineEdit):
 
         - `parent` (`QWidget | None`): Optional parent.
         - `placeholder` (`str`): Placeholder text.
-        - `clearable` (`bool`): Show a clear button while non-empty. Defaults to `True`.
-        - `compact` (`bool`): Use the compact control height (title bars, toolbars). Defaults to `False`.
+        - `clearable` (`bool`): Show the shared red Lucide clear button while
+          non-empty. Defaults to `True`.
+        - `compact` (`bool`): Use the compact control height (title bars, toolbars).
+          Defaults to `False`.
 
         """
         super().__init__(parent)
         self._height = CONTROL_HEIGHT_COMPACT if compact else CONTROL_HEIGHT
         self.setPlaceholderText(placeholder)
-        self.setClearButtonEnabled(clearable)
+        self.setClearButtonEnabled(False)
+        if clearable:
+            install_line_edit_clear_button(self)
         if compact:
             self.setFixedHeight(self._height)
         else:
@@ -78,8 +82,10 @@ Args:
 
 - `parent` (`QWidget | None`): Optional parent.
 - `placeholder` (`str`): Placeholder text.
-- `clearable` (`bool`): Show a clear button while non-empty. Defaults to `True`.
-- `compact` (`bool`): Use the compact control height (title bars, toolbars). Defaults to `False`.
+- `clearable` (`bool`): Show the shared red Lucide clear button while
+  non-empty. Defaults to `True`.
+- `compact` (`bool`): Use the compact control height (title bars, toolbars).
+  Defaults to `False`.
 
 <details>
 <summary>Code:</summary>
@@ -96,7 +102,9 @@ def __init__(
         super().__init__(parent)
         self._height = CONTROL_HEIGHT_COMPACT if compact else CONTROL_HEIGHT
         self.setPlaceholderText(placeholder)
-        self.setClearButtonEnabled(clearable)
+        self.setClearButtonEnabled(False)
+        if clearable:
+            install_line_edit_clear_button(self)
         if compact:
             self.setFixedHeight(self._height)
         else:

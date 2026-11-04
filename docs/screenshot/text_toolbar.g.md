@@ -59,7 +59,7 @@ class ScreenshotTextToolbar(QWidget):
         family_line = self._family.lineEdit()
         if family_line is not None:
             family_line.setPlaceholderText("Font")
-            family_line.setClearButtonEnabled(True)
+            install_line_edit_clear_button(family_line)
         self._family.currentTextChanged.connect(self._on_family_changed)
         self._family.setItemDelegate(FontPreviewDelegate(self._preview_text, self._family))
         view = self._family.view()
@@ -298,7 +298,7 @@ def __init__(self, parent: QWidget | None = None) -> None:
         family_line = self._family.lineEdit()
         if family_line is not None:
             family_line.setPlaceholderText("Font")
-            family_line.setClearButtonEnabled(True)
+            install_line_edit_clear_button(family_line)
         self._family.currentTextChanged.connect(self._on_family_changed)
         self._family.setItemDelegate(FontPreviewDelegate(self._preview_text, self._family))
         view = self._family.view()

@@ -16,6 +16,7 @@ lang: en
   - [⚙️ Method `add_image`](#%EF%B8%8F-method-add_image)
   - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
   - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
+  - [⚙️ Method `nativeEvent`](#%EF%B8%8F-method-nativeevent)
   - [⚙️ Method `resizeEvent`](#%EF%B8%8F-method-resizeevent)
 - [🔧 Function `print_screenshot_image`](#-function-print_screenshot_image)
 - [🔧 Function `show_screenshot_preview`](#-function-show_screenshot_preview)
@@ -40,6 +41,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         """Build an empty preview window; call `add_image` before showing."""
         super().__init__(parent)
         self.setWindowTitle(_DEFAULT_TITLE)
+        apply_window_icon(self)
         self.setMinimumSize(_MIN_WINDOW_WIDTH, _MIN_WINDOW_HEIGHT)
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, on=True)
         self._text_settings = load_screenshot_text_settings()
@@ -282,6 +284,8 @@ class ScreenshotPreviewWindow(QMainWindow):
             category="Help",
         )
         self._build_help_menu()
+        prepare_fluent_app_window(self)
+        install_win11_caption(self)
         install_fluent_app_window(self)
         self._tab_bar.setDrawBase(False)
         self._tab_bar.setAutoFillBackground(False)
@@ -351,6 +355,13 @@ class ScreenshotPreviewWindow(QMainWindow):
             event.accept()
             return
         super().keyPressEvent(event)
+
+    def nativeEvent(self, event_type, message) -> tuple[bool, int]:  # noqa: ANN001, N802
+        """Drag, resize, and size the client area for the custom caption bar."""
+        handled = try_handle_win11_caption_native_event(self, event_type, message)
+        if handled is not None:
+            return handled
+        return cast("tuple[bool, int]", super().nativeEvent(event_type, message))
 
     def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
         """Reflow the top tool row when the window width changes."""
@@ -1143,6 +1154,7 @@ Build an empty preview window; call [`add_image`](#%EF%B8%8F-method-add_image) b
 def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle(_DEFAULT_TITLE)
+        apply_window_icon(self)
         self.setMinimumSize(_MIN_WINDOW_WIDTH, _MIN_WINDOW_HEIGHT)
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, on=True)
         self._text_settings = load_screenshot_text_settings()
@@ -1385,6 +1397,8 @@ def __init__(self, parent: QWidget | None = None) -> None:
             category="Help",
         )
         self._build_help_menu()
+        prepare_fluent_app_window(self)
+        install_win11_caption(self)
         install_fluent_app_window(self)
         self._tab_bar.setDrawBase(False)
         self._tab_bar.setAutoFillBackground(False)
@@ -1496,6 +1510,27 @@ def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
             event.accept()
             return
         super().keyPressEvent(event)
+```
+
+</details>
+
+### ⚙️ Method `nativeEvent`
+
+```python
+def nativeEvent(self, event_type, message) -> tuple[bool, int]
+```
+
+Drag, resize, and size the client area for the custom caption bar.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def nativeEvent(self, event_type, message) -> tuple[bool, int]:  # noqa: ANN001, N802
+        handled = try_handle_win11_caption_native_event(self, event_type, message)
+        if handled is not None:
+            return handled
+        return cast("tuple[bool, int]", super().nativeEvent(event_type, message))
 ```
 
 </details>

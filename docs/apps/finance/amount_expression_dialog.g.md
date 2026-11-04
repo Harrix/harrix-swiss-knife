@@ -62,7 +62,7 @@ class AmountExpressionDialog(QDialog):
         layout.addWidget(QLabel("Expression:", self))
         self._expression_edit = QLineEdit(self)
         self._expression_edit.setPlaceholderText("e.g. 6522/2-600")
-        self._expression_edit.setClearButtonEnabled(True)
+        install_line_edit_clear_button(self._expression_edit)
         layout.addWidget(self._expression_edit)
 
         self._result_label = QLabel(self)
@@ -188,7 +188,7 @@ def __init__(
         layout.addWidget(QLabel("Expression:", self))
         self._expression_edit = QLineEdit(self)
         self._expression_edit.setPlaceholderText("e.g. 6522/2-600")
-        self._expression_edit.setClearButtonEnabled(True)
+        install_line_edit_clear_button(self._expression_edit)
         layout.addWidget(self._expression_edit)
 
         self._result_label = QLabel(self)

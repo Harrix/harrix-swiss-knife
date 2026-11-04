@@ -935,11 +935,7 @@ def test_screenshot_preview_merges_help_menu_into_win11_caption(qapp: QApplicati
     assert host.isAncestorOf(close)
     menu_bars = host.findChildren(QMenuBar)
     assert menu_bars
-    assert any(
-        "Help" in action.text().replace("&", "")
-        for menu_bar in menu_bars
-        for action in menu_bar.actions()
-    )
+    assert any("Help" in action.text().replace("&", "") for menu_bar in menu_bars for action in menu_bar.actions())
     window.close()
 
 

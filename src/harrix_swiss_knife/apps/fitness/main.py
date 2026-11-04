@@ -150,8 +150,11 @@ from harrix_swiss_knife.apps.common.table_context_menu import (
 from harrix_swiss_knife.apps.common.table_export import export_table_via_dialog
 from harrix_swiss_knife.apps.common.table_models import (
     append_colored_table_row,
+    apply_stored_table_header_sort,
     create_table_proxy_model,
-    sort_table_by_header_click,
+    enable_table_header_sorting,
+    get_stored_table_header_sort,
+    set_stored_table_header_sort,
 )
 from harrix_swiss_knife.apps.common.ui_helpers import reveal_in_file_explorer, set_combo_plain_items
 from harrix_swiss_knife.apps.common.widgets.exercise_list_hover_preview import (
@@ -379,11 +382,6 @@ class MainWindow(
             "weight": None,
             "statistics": None,
         }
-        self._exercise_table_sort: dict[str, tuple[int, Qt.SortOrder]] = {
-            "exercises": (_EXERCISE_TABLE_IMAGE_COLUMN, Qt.SortOrder.AscendingOrder),
-            "types": (_EXERCISE_TABLE_NAME_COLUMN, Qt.SortOrder.AscendingOrder),
-        }
-
         # Process table display mode flag
         initial_count, load_more_count = get_apps_list_limits(self._app_config)
         self.count_records_to_show: int = initial_count
@@ -1088,6 +1086,7 @@ class MainWindow(
 
             # Disable alternating row colors since we have custom colors
             self.tableView_statistics.setAlternatingRowColors(False)
+            apply_stored_table_header_sort(self.tableView_statistics)
 
             # Update statistics AVIF
             self._update_statistics_avif()
@@ -2321,6 +2320,7 @@ class MainWindow(
 
             # Disable alternating row colors since we have custom colors
             self.tableView_statistics.setAlternatingRowColors(False)
+            apply_stored_table_header_sort(self.tableView_statistics)
 
             # Update statistics AVIF
             self._update_statistics_avif()
@@ -2575,6 +2575,7 @@ class MainWindow(
 
             # Disable alternating row colors since we have custom color coding
             self.tableView_statistics.setAlternatingRowColors(False)
+            apply_stored_table_header_sort(self.tableView_statistics)
 
             # Update statistics AVIF
             self._update_statistics_avif()
@@ -2723,6 +2724,7 @@ class MainWindow(
 
             # Disable alternating row colors since we have custom colors
             self.tableView_statistics.setAlternatingRowColors(False)
+            apply_stored_table_header_sort(self.tableView_statistics)
 
             # Update statistics AVIF
             self._update_statistics_avif()
@@ -3137,13 +3139,11 @@ class MainWindow(
 
             # Configure weight table header - mixed approach: interactive + stretch last
             weight_header = self.tableView_weight.horizontalHeader()
-            # Set first column to interactive (resizable)
             weight_header.setSectionResizeMode(0, weight_header.ResizeMode.Interactive)
-            # Set last column to stretch to fill remaining space
             weight_header.setSectionResizeMode(1, weight_header.ResizeMode.Stretch)
-            # Set default width for resizable column
             self.tableView_weight.setColumnWidth(0, 100)  # Weight
-            # Date column will stretch automatically
+            enable_table_header_sorting(self.tableView_weight)
+            apply_stored_table_header_sort(self.tableView_weight)
 
             # Configure exercises table header - image + interactive + stretch last
             if self._exercises_catalog_loaded:
@@ -3156,7 +3156,7 @@ class MainWindow(
                         4: 120,
                     },
                 )
-                self._apply_stored_exercise_table_sort("exercises")
+                apply_stored_table_header_sort(self.tableView_exercises)
 
             # Connect selection change signals after models are set
             self._connect_table_selection_signals()
@@ -4703,18 +4703,6 @@ class MainWindow(
             middle = remaining - right
         self.splitter.setSizes([left, middle, right])
 
-    def _apply_stored_exercise_table_sort(self, table_key: str) -> None:
-        """Re-apply the last header sort after a table model refresh."""
-        stored = self._exercise_table_sort.get(table_key)
-        if stored is None:
-            return
-        table_view, _, _ = self.table_config[table_key]
-        column, order = stored
-        table_view.sortByColumn(column, order)
-        header = table_view.horizontalHeader()
-        header.setSortIndicatorShown(True)
-        header.setSortIndicator(column, order)
-
     def _attach_workouts_hover(self) -> None:
         """Watch workout-table thumbnails once both the table and hover preview exist."""
         if self._exercise_list_hover is None or self._workouts_widget is None:
@@ -5144,6 +5132,7 @@ class MainWindow(
         # Add context menu for statistics table
         self.tableView_statistics.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tableView_statistics.customContextMenuRequested.connect(self._show_statistics_context_menu)
+        enable_table_header_sorting(self.tableView_statistics)
 
         # Add context menu for exercises table
         self.tableView_exercises.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -5160,6 +5149,8 @@ class MainWindow(
         # Add context menu for weight table
         self.tableView_weight.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tableView_weight.customContextMenuRequested.connect(self._show_weight_context_menu)
+        enable_table_header_sorting(self.tableView_weight)
+        enable_table_header_sorting(self.tableView_process)
 
     def _connect_table_selection_signals(self) -> None:
         """Connect selection change signals for all tables."""
@@ -5472,12 +5463,10 @@ class MainWindow(
 
     def _enable_exercise_table_header_sorting(self, table_view: QTableView, table_key: str) -> None:
         """Allow header clicks to sort columns; the image column sorts by ID."""
-        header = table_view.horizontalHeader()
-        header.setSectionsClickable(True)
-        header.setSortIndicatorShown(True)
-        header.sectionClicked.connect(
-            lambda section, key=table_key: self._on_exercise_table_header_clicked(key, section)
-        )
+        enable_table_header_sorting(table_view)
+        if get_stored_table_header_sort(table_view) is None:
+            default_section = _EXERCISE_TABLE_IMAGE_COLUMN if table_key == "exercises" else _EXERCISE_TABLE_NAME_COLUMN
+            set_stored_table_header_sort(table_view, default_section, Qt.SortOrder.AscendingOrder)
 
     def _ensure_exercises_catalog_loaded(self) -> None:
         """Populate Exercises and Types tables on first visit to that tab."""
@@ -6917,25 +6906,6 @@ class MainWindow(
             success_message=f"Media saved for '{exercise_name}'",
         )
 
-    def _on_exercise_table_header_clicked(self, table_key: str, section: int) -> None:
-        table_view, _, _ = self.table_config[table_key]
-        stored = self._exercise_table_sort.get(table_key)
-        current_section, current_order = stored if stored is not None else (None, None)
-        result = sort_table_by_header_click(
-            table_view,
-            section,
-            current_section=current_section,
-            current_order=current_order,
-        )
-        if result is None:
-            header = table_view.horizontalHeader()
-            if stored is None:
-                header.setSortIndicator(-1, Qt.SortOrder.AscendingOrder)
-            else:
-                header.setSortIndicator(*stored)
-            return
-        self._exercise_table_sort[table_key] = result
-
     def _on_exercise_types_table_double_clicked(self, index: QModelIndex) -> None:
         """Open lightbox on the thumbnail, or the type edit dialog otherwise."""
         if not index.isValid():
@@ -7577,7 +7547,7 @@ class MainWindow(
                 4: 120,
             },
         )
-        self._apply_stored_exercise_table_sort("exercises")
+        apply_stored_table_header_sort(self.tableView_exercises)
         self._reload_types_table(dumbbell_names=dumbbell_names)
         self._update_exercises_catalog_count_labels()
         if self._exercise_icons_defer_decode:
@@ -7770,7 +7740,7 @@ class MainWindow(
                 3: 120,
             },
         )
-        self._apply_stored_exercise_table_sort("types")
+        apply_stored_table_header_sort(self.tableView_exercise_types)
         self._connect_table_auto_save_signal("types")
         self._update_exercises_catalog_count_labels()
 
@@ -8255,6 +8225,8 @@ class MainWindow(
         """Configure process table header and column widths."""
         self.tableView_process.verticalHeader().setVisible(True)
         self._adjust_process_table_columns()
+        enable_table_header_sorting(self.tableView_process)
+        apply_stored_table_header_sort(self.tableView_process)
 
     def _setup_seconds_count_inputs(self) -> None:
         self._count_input_is_seconds = False

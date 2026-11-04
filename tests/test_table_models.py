@@ -9,8 +9,13 @@ from PySide6.QtWidgets import QApplication, QTableView
 
 from harrix_swiss_knife.apps.common.table_models import (
     append_colored_table_row,
+    apply_stored_table_header_sort,
     create_colored_table_proxy_model,
+    enable_table_header_sorting,
+    get_stored_table_header_sort,
+    make_table_columns_resizable,
     next_table_sort_order,
+    set_stored_table_header_sort,
     sort_table_by_header_click,
 )
 
@@ -116,3 +121,61 @@ def test_append_colored_table_row(qapp: QApplication) -> None:
     assert proxy.rowCount() == 2
     names = {proxy.index(row, 1).data() for row in range(2)}
     assert names == {"Alpha", "Zulu"}
+
+
+def test_enable_table_header_sorting_toggles_and_restores(qapp: QApplication) -> None:
+    """Header clicks sort via the shared helper and survive a model reload."""
+    assert qapp is not None
+    proxy = create_colored_table_proxy_model(
+        [
+            [QIcon(), "Zulu", "2.0", 1, QColor("white")],
+            [QIcon(), "Alpha", "1.0", 2, QColor("white")],
+        ],
+        ["", "Exercise", "Value"],
+    )
+    table = QTableView()
+    table.setModel(proxy)
+    enable_table_header_sorting(table)
+    enable_table_header_sorting(table)  # idempotent
+
+    header = table.horizontalHeader()
+    header.sectionClicked.emit(1)
+    assert get_stored_table_header_sort(table) == (1, Qt.SortOrder.AscendingOrder)
+    assert [proxy.index(row, 1).data() for row in range(2)] == ["Alpha", "Zulu"]
+
+    header.sectionClicked.emit(1)
+    assert get_stored_table_header_sort(table) == (1, Qt.SortOrder.DescendingOrder)
+    assert [proxy.index(row, 1).data() for row in range(2)] == ["Zulu", "Alpha"]
+
+    reloaded = create_colored_table_proxy_model(
+        [
+            [QIcon(), "Zulu", "2.0", 1, QColor("white")],
+            [QIcon(), "Alpha", "1.0", 2, QColor("white")],
+        ],
+        ["", "Exercise", "Value"],
+    )
+    table.setModel(reloaded)
+    apply_stored_table_header_sort(table)
+    assert [reloaded.index(row, 1).data() for row in range(2)] == ["Zulu", "Alpha"]
+
+
+def test_make_table_columns_resizable_preserves_user_widths(qapp: QApplication) -> None:
+    """Interactive columns keep dragged widths on a second layout pass."""
+    assert qapp is not None
+    proxy = create_colored_table_proxy_model(
+        [[QIcon(), "Alpha", "1.0", 1, QColor("white")]],
+        ["", "Exercise", "Value"],
+    )
+    table = QTableView()
+    table.setModel(proxy)
+    table.resize(600, 200)
+    make_table_columns_resizable(table, stretch_last=True)
+    header = table.horizontalHeader()
+    assert header.sectionResizeMode(0) == header.ResizeMode.Interactive
+    assert header.sectionResizeMode(header.count() - 1) == header.ResizeMode.Stretch
+    table.setColumnWidth(0, 180)
+    make_table_columns_resizable(table, stretch_last=True)
+    assert table.columnWidth(0) == 180
+
+    set_stored_table_header_sort(table, 1, Qt.SortOrder.DescendingOrder)
+    assert get_stored_table_header_sort(table) == (1, Qt.SortOrder.DescendingOrder)

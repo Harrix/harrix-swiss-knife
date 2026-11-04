@@ -442,13 +442,6 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._update_window_title()
         self._update_multi_tab_chrome()
 
-    def nativeEvent(self, event_type, message) -> tuple[bool, int]:  # noqa: ANN001, N802
-        """Drag, resize, and size the client area for the custom caption bar."""
-        handled = try_handle_win11_caption_native_event(self, event_type, message)
-        if handled is not None:
-            return handled
-        return cast("tuple[bool, int]", super().nativeEvent(event_type, message))
-
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Clear the process-wide preview reference when the window closes."""
         if _preview_holder["window"] is self:
@@ -494,6 +487,13 @@ class ScreenshotPreviewWindow(QMainWindow):
             event.accept()
             return
         super().keyPressEvent(event)
+
+    def nativeEvent(self, event_type, message) -> tuple[bool, int]:  # noqa: ANN001, N802
+        """Drag, resize, and size the client area for the custom caption bar."""
+        handled = try_handle_win11_caption_native_event(self, event_type, message)
+        if handled is not None:
+            return handled
+        return cast("tuple[bool, int]", super().nativeEvent(event_type, message))
 
     def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
         """Reflow the top tool row when the window width changes."""

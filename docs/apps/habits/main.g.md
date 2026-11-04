@@ -475,13 +475,14 @@ class MainWindow(
         # Configure header (habit value columns need room for hover picker UI)
         process_habits_header = self.tableView_process_habits.horizontalHeader()
         process_habits_header.setMinimumSectionSize(PROCESS_HABIT_VALUE_COLUMN_MIN_WIDTH)
-        for i in range(process_habits_header.count()):
-            process_habits_header.setSectionResizeMode(i, process_habits_header.ResizeMode.Interactive)
+        make_table_columns_resizable(self.tableView_process_habits, force_reinit=True)
+        enable_table_header_sorting(self.tableView_process_habits)
         self.tableView_process_habits.verticalHeader().setDefaultSectionSize(30)
         self.tableView_process_habits.resizeColumnsToContents()
         for col_idx in self._process_habits_bool_columns | self._process_habits_int_columns:
             if process_habits_header.sectionSize(col_idx) < PROCESS_HABIT_VALUE_COLUMN_MIN_WIDTH:
                 process_habits_header.resizeSection(col_idx, PROCESS_HABIT_VALUE_COLUMN_MIN_WIDTH)
+        apply_stored_table_header_sort(self.tableView_process_habits)
         if isinstance(process_habits_header, WordWrapHeaderView):
             process_habits_header.refresh_wrapped_height()
 
@@ -1416,11 +1417,14 @@ class MainWindow(
         header = self.tableView_habits.horizontalHeader()
         if header.count() < len(self.table_config["habits"][2]):
             return
-        header.setStretchLastSection(False)
-        header.setSectionResizeMode(0, header.ResizeMode.Stretch)
-        header.setSectionResizeMode(1, header.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(2, header.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(3, header.ResizeMode.ResizeToContents)
+        was_interactive = all(
+            header.sectionResizeMode(i) == header.ResizeMode.Interactive for i in range(header.count())
+        )
+        make_table_columns_resizable(self.tableView_habits, stretch_last=False)
+        if not was_interactive:
+            self.tableView_habits.setColumnWidth(0, max(header.sectionSize(0), 160))
+        enable_table_header_sorting(self.tableView_habits)
+        apply_stored_table_header_sort(self.tableView_habits)
 
     @requires_database(is_show_warning=False)
     @requires_database()
@@ -1929,8 +1933,8 @@ class MainWindow(
             self.tableView_process_habits,
             wrap_width=PROCESS_HABIT_VALUE_COLUMN_MIN_WIDTH,
         )
-        process_habits_header.setSectionsClickable(True)
         self.tableView_process_habits.setHorizontalHeader(process_habits_header)
+        enable_table_header_sorting(self.tableView_process_habits)
 
         self.splitter_habits.setStretchFactor(0, 1)
         self.splitter_habits.setStretchFactor(1, 3)
@@ -2811,13 +2815,14 @@ def load_process_habits_table(self, *, ignore_filter: bool = False) -> None:
         # Configure header (habit value columns need room for hover picker UI)
         process_habits_header = self.tableView_process_habits.horizontalHeader()
         process_habits_header.setMinimumSectionSize(PROCESS_HABIT_VALUE_COLUMN_MIN_WIDTH)
-        for i in range(process_habits_header.count()):
-            process_habits_header.setSectionResizeMode(i, process_habits_header.ResizeMode.Interactive)
+        make_table_columns_resizable(self.tableView_process_habits, force_reinit=True)
+        enable_table_header_sorting(self.tableView_process_habits)
         self.tableView_process_habits.verticalHeader().setDefaultSectionSize(30)
         self.tableView_process_habits.resizeColumnsToContents()
         for col_idx in self._process_habits_bool_columns | self._process_habits_int_columns:
             if process_habits_header.sectionSize(col_idx) < PROCESS_HABIT_VALUE_COLUMN_MIN_WIDTH:
                 process_habits_header.resizeSection(col_idx, PROCESS_HABIT_VALUE_COLUMN_MIN_WIDTH)
+        apply_stored_table_header_sort(self.tableView_process_habits)
         if isinstance(process_habits_header, WordWrapHeaderView):
             process_habits_header.refresh_wrapped_height()
 ```

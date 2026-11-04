@@ -329,7 +329,7 @@ class Ui_MainWindow(object):
 
         self.lineEdit_exercises_filter = QLineEdit(self.widget_middle)
         self.lineEdit_exercises_filter.setObjectName(u"lineEdit_exercises_filter")
-        self.lineEdit_exercises_filter.setClearButtonEnabled(True)
+        # Clear chrome comes from install_line_edit_search_chrome / Fluent app chrome.
 
         self.verticalLayout.addWidget(self.lineEdit_exercises_filter)
 
@@ -1400,7 +1400,7 @@ def setupUi(self, MainWindow):
 
         self.lineEdit_exercises_filter = QLineEdit(self.widget_middle)
         self.lineEdit_exercises_filter.setObjectName(u"lineEdit_exercises_filter")
-        self.lineEdit_exercises_filter.setClearButtonEnabled(True)
+        # Clear chrome comes from install_line_edit_search_chrome / Fluent app chrome.
 
         self.verticalLayout.addWidget(self.lineEdit_exercises_filter)
 

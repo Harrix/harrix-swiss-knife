@@ -37,7 +37,8 @@ def test_fluent_about_dialog_builds_content_and_copy_text(qapp: QApplication) ->
     titles = dialog.findChildren(TitleLabel)
     assert any(label.text() == "Harrix Swiss Knife" for label in titles)
     links = dialog.findChildren(FluentHyperlinkLabel)
-    assert links and links[0].url() == "https://github.com/harrix/harrix-swiss-knife"
+    assert links
+    assert links[0].url() == "https://github.com/harrix/harrix-swiss-knife"
     assert isinstance(dialog.primary_button, FluentPrimaryButton)
     copy_buttons = [button for button in dialog.findChildren(FluentPushButton) if button.text() == "Copy"]
     assert copy_buttons

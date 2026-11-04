@@ -12,6 +12,12 @@ if TYPE_CHECKING:
 
     from PySide6.QtWidgets import QTableView
 
+_HEADER_SORT_CONNECTED_PROP = "hskHeaderSortConnected"
+_HEADER_SORT_ORDER_PROP = "hskHeaderSortOrder"
+_HEADER_SORT_SECTION_PROP = "hskHeaderSortSection"
+_HEADER_SORT_SKIP_PROP = "hskHeaderSortSkipSection"
+_NO_SKIP_SECTION = -999
+
 
 class ColoredTableProxyModel(QSortFilterProxyModel):
     """Proxy that sorts an icon-only first column by the row database ID."""
@@ -51,6 +57,18 @@ def append_colored_table_row(
     items = [_colored_standard_item(row_list[col_idx], row_color, row_id=row_id) for col_idx in display_indices]
     source.appendRow(items)
     source.setVerticalHeaderItem(source.rowCount() - 1, QStandardItem(str(row_id)))
+
+
+def apply_stored_table_header_sort(table: QTableView) -> None:
+    """Re-apply the last header sort after the table model was replaced."""
+    stored = get_stored_table_header_sort(table)
+    if stored is None:
+        return
+    section, order = stored
+    table.sortByColumn(section, order)
+    header = table.horizontalHeader()
+    header.setSortIndicatorShown(True)
+    header.setSortIndicator(section, order)
 
 
 def create_colored_table_proxy_model(
@@ -116,6 +134,127 @@ def create_table_proxy_model(
     return proxy
 
 
+def enable_table_header_sorting(
+    table: QTableView,
+    *,
+    skip_section: int | None = None,
+) -> None:
+    """Allow single clicks on the header to sort ascending, then descending.
+
+    Safe to call more than once for the same header. Sort state is stored on the
+    table so `apply_stored_table_header_sort` can restore it after a model reload.
+
+    Args:
+
+    - `table` (`QTableView`): Table whose model supports `sort`.
+    - `skip_section` (`int | None`): Column that must not sort. Defaults to none.
+
+    """
+    header = table.horizontalHeader()
+    header.setSectionsClickable(True)
+    header.setSortIndicatorShown(True)
+    table.setProperty(
+        _HEADER_SORT_SKIP_PROP,
+        skip_section if skip_section is not None else _NO_SKIP_SECTION,
+    )
+    if bool(header.property(_HEADER_SORT_CONNECTED_PROP)):
+        return
+
+    def _on_section_clicked(section: int) -> None:
+        skip_raw = table.property(_HEADER_SORT_SKIP_PROP)
+        skip = skip_raw if isinstance(skip_raw, int) and skip_raw >= 0 else None
+        stored = get_stored_table_header_sort(table)
+        current_section, current_order = stored if stored is not None else (None, None)
+        result = sort_table_by_header_click(
+            table,
+            section,
+            skip_section=skip,
+            current_section=current_section,
+            current_order=current_order,
+        )
+        if result is None:
+            if stored is None:
+                header.setSortIndicator(-1, Qt.SortOrder.AscendingOrder)
+            else:
+                header.setSortIndicator(*stored)
+            return
+        set_stored_table_header_sort(table, *result)
+
+    header.sectionClicked.connect(_on_section_clicked)
+    header.setProperty(_HEADER_SORT_CONNECTED_PROP, 1)
+
+
+def get_stored_table_header_sort(table: QTableView) -> tuple[int, Qt.SortOrder] | None:
+    """Return the last header sort stored on `table`, if any."""
+    section = table.property(_HEADER_SORT_SECTION_PROP)
+    order_raw = table.property(_HEADER_SORT_ORDER_PROP)
+    if not isinstance(section, int) or section < 0:
+        return None
+    if not isinstance(order_raw, int):
+        return None
+    return section, Qt.SortOrder(order_raw)
+
+
+def make_table_columns_resizable(
+    table: QTableView,
+    *,
+    stretch_last: bool = False,
+    keep_fixed_sections: Sequence[int] | None = None,
+    force_reinit: bool = False,
+) -> None:
+    """Allow dragging header edges to change column width.
+
+    Converts Stretch / ResizeToContents modes to Interactive while keeping the
+    current pixel widths. Optionally leaves some sections Fixed and/or stretches
+    the last section. When columns are already Interactive, existing widths are
+    kept unless `force_reinit` is set.
+
+    Args:
+
+    - `table` (`QTableView`): Table whose horizontal header should be resizable.
+    - `stretch_last` (`bool`): Keep the last column in Stretch mode. Defaults to
+      `False`.
+    - `keep_fixed_sections` (`Sequence[int] | None`): Columns that stay Fixed.
+    - `force_reinit` (`bool`): Rebuild Interactive modes even when already set.
+
+    """
+    header = table.horizontalHeader()
+    count = header.count()
+    if count <= 0:
+        return
+
+    fixed = set(keep_fixed_sections or ())
+    last = count - 1
+    interactive_mode = header.ResizeMode.Interactive
+    already_interactive = all(
+        (i in fixed and header.sectionResizeMode(i) == header.ResizeMode.Fixed)
+        or (stretch_last and i == last and header.sectionResizeMode(i) == header.ResizeMode.Stretch)
+        or (i not in fixed and not (stretch_last and i == last) and header.sectionResizeMode(i) == interactive_mode)
+        for i in range(count)
+    )
+    if already_interactive and not force_reinit:
+        return
+
+    # Stretch first so hidden or freshly modeled tables get reasonable widths.
+    for i in range(count):
+        if i not in fixed:
+            header.setSectionResizeMode(i, header.ResizeMode.Stretch)
+    header.setStretchLastSection(False)
+    widths = [max(header.sectionSize(i), header.minimumSectionSize()) for i in range(count)]
+
+    for i in range(count):
+        if i in fixed:
+            header.setSectionResizeMode(i, header.ResizeMode.Fixed)
+            continue
+        if stretch_last and i == last:
+            header.setSectionResizeMode(i, header.ResizeMode.Stretch)
+            continue
+        header.setSectionResizeMode(i, interactive_mode)
+        table.setColumnWidth(i, widths[i])
+    if stretch_last:
+        header.setStretchLastSection(True)
+
+
 def next_table_sort_order(
     current_section: int,
     current_order: Qt.SortOrder,
@@ -142,6 +281,16 @@ def next_table_sort_order(
             return Qt.SortOrder.DescendingOrder
         return Qt.SortOrder.AscendingOrder
     return Qt.SortOrder.AscendingOrder
+
+
+def set_stored_table_header_sort(
+    table: QTableView,
+    section: int,
+    order: Qt.SortOrder,
+) -> None:
+    """Remember a header sort so it can be restored after a model reload."""
+    table.setProperty(_HEADER_SORT_SECTION_PROP, section)
+    table.setProperty(_HEADER_SORT_ORDER_PROP, int(order.value))
 
 
 def sort_table_by_header_click(

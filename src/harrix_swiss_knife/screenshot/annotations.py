@@ -737,6 +737,17 @@ def _gaussian_blur(image: QImage, radius: float) -> QImage:
     return result
 
 
+def _is_meaningful(annotation: Annotation) -> bool:
+    if annotation.tool == AnnotationTool.TEXT:
+        return bool(annotation.text.strip()) and bool(annotation.points)
+    if annotation.tool == AnnotationTool.PEN:
+        return len(annotation.points) >= 1
+    if len(annotation.points) < _MIN_SHAPE_POINTS:
+        return False
+    start, end = annotation.points[0], annotation.points[-1]
+    return (end - start).manhattanLength() >= _MIN_DRAG_MANHATTAN
+
+
 def _pad_image_clamp_edges(image: QImage, pad: int) -> QImage:
     """Return `image` surrounded by `pad` pixels that repeat each edge color."""
     if pad <= 0 or image.isNull():
@@ -760,17 +771,6 @@ def _pad_image_clamp_edges(image: QImage, pad: int) -> QImage:
     painter.drawImage(pad, pad, image)
     painter.end()
     return out
-
-
-def _is_meaningful(annotation: Annotation) -> bool:
-    if annotation.tool == AnnotationTool.TEXT:
-        return bool(annotation.text.strip()) and bool(annotation.points)
-    if annotation.tool == AnnotationTool.PEN:
-        return len(annotation.points) >= 1
-    if len(annotation.points) < _MIN_SHAPE_POINTS:
-        return False
-    start, end = annotation.points[0], annotation.points[-1]
-    return (end - start).manhattanLength() >= _MIN_DRAG_MANHATTAN
 
 
 def _paint_step(painter: QPainter, annotation: Annotation, rect: QRectF) -> None:

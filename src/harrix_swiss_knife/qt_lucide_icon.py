@@ -93,6 +93,8 @@ DELETE_BUTTON_STYLE = button_danger_qss()
 CANCEL_BUTTON_STYLE = button_idle_qss()
 
 _LUCIDE_NAME_PROP = "_harrix_lucide_name"
+_LINE_EDIT_CLEAR_PROP = "_hskLucideClearAction"
+_LINE_EDIT_CLEAR_ICON_SIZE = 14
 
 # Semantic Lucide ID → CodeStyle hex (unlisted IDs use LUCIDE_COLOR_DARK).
 LUCIDE_ICON_COLORS: dict[str, str] = {
@@ -508,10 +510,6 @@ def create_lucide_icon(
         return icon
     _CACHE[cache_key] = icon
     return icon
-
-
-_LINE_EDIT_CLEAR_PROP = "_hskLucideClearAction"
-_LINE_EDIT_CLEAR_ICON_SIZE = 14
 
 
 def install_line_edit_clear_button(

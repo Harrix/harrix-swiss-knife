@@ -102,7 +102,12 @@ from harrix_swiss_knife.apps.common.table_context_menu import (
     begin_filters_block,
 )
 from harrix_swiss_knife.apps.common.table_export import export_table_via_dialog
-from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
+from harrix_swiss_knife.apps.common.table_models import (
+    apply_stored_table_header_sort,
+    create_table_proxy_model,
+    enable_table_header_sorting,
+    make_table_columns_resizable,
+)
 from harrix_swiss_knife.apps.common.text_case import capitalize_first_letter
 from harrix_swiss_knife.apps.common.ui_chrome import button_cta_cyan_qss
 from harrix_swiss_knife.apps.common.widgets.image_picker import ImagePicker, ImagePickerMode, is_image_file_path
@@ -161,7 +166,6 @@ from harrix_swiss_knife.apps.food.food_items_dialog import FoodItemsDialog
 from harrix_swiss_knife.apps.food.food_log_calories import (
     FOOD_LOG_COL_CALORIES,
     FOOD_LOG_COL_DATE,
-    FOOD_LOG_COL_NAME_EN,
     FOOD_LOG_COL_TOTAL_PER_DAY,
     apply_food_log_day_spans,
     calculate_food_log_calories,
@@ -1475,31 +1479,33 @@ class MainWindow(
         if available_width <= 0:
             return
 
-        # Shares of the viewport for the columns that stay fixed. English name takes the rest.
-        proportions = (
-            (0, 0.18),  # Name
-            (1, 0.06),  # Is Drink
-            (2, 0.08),  # Weight
-            (3, 0.14),  # kcal/100g
-            (4, 0.11),  # Date
-        )
-
         food_log_header = self.tableView_food_log.horizontalHeader()
-        food_log_header.setStretchLastSection(False)
-        for column in range(food_log_header.count()):
-            if column == FOOD_LOG_COL_NAME_EN:
-                food_log_header.setSectionResizeMode(column, food_log_header.ResizeMode.Stretch)
-            elif column == FOOD_LOG_COL_TOTAL_PER_DAY:
-                food_log_header.setSectionResizeMode(column, food_log_header.ResizeMode.Fixed)
-            else:
+        already_interactive = all(
+            food_log_header.sectionResizeMode(column) == food_log_header.ResizeMode.Interactive
+            for column in range(food_log_header.count())
+        )
+        if not already_interactive:
+            # Shares of the viewport for the columns that stay fixed. English name takes the rest.
+            proportions = (
+                (0, 0.18),  # Name
+                (1, 0.06),  # Is Drink
+                (2, 0.08),  # Weight
+                (3, 0.14),  # kcal/100g
+                (4, 0.11),  # Date
+            )
+
+            food_log_header.setStretchLastSection(False)
+            for column in range(food_log_header.count()):
                 food_log_header.setSectionResizeMode(column, food_log_header.ResizeMode.Interactive)
 
-        for column, prop in proportions:
-            self.tableView_food_log.setColumnWidth(column, max(40, int(available_width * prop)))
-        self.tableView_food_log.setColumnWidth(
-            FOOD_LOG_COL_TOTAL_PER_DAY,
-            food_log_total_column_width(self.tableView_food_log.font()),
-        )
+            for column, prop in proportions:
+                self.tableView_food_log.setColumnWidth(column, max(40, int(available_width * prop)))
+            self.tableView_food_log.setColumnWidth(
+                FOOD_LOG_COL_TOTAL_PER_DAY,
+                food_log_total_column_width(self.tableView_food_log.font()),
+            )
+        enable_table_header_sorting(self.tableView_food_log)
+        apply_stored_table_header_sort(self.tableView_food_log)
         if isinstance(food_log_header, WordWrapHeaderView):
             food_log_header.refresh_wrapped_height()
 
@@ -1510,17 +1516,25 @@ class MainWindow(
 
         # Date plus vertical header must stay readable at 125% DPI.
         self.tableView_kcal_per_day.verticalHeader().setMinimumWidth(28)
-        self.tableView_kcal_per_day.setColumnWidth(_STATS_DAY_DATE_COLUMN, 90)
-        self.tableView_kcal_per_day.setColumnWidth(_STATS_DAY_CALORIES_COLUMN, 64)
-        for column in (
-            _STATS_DAY_PROTEIN_COLUMN,
-            _STATS_DAY_FAT_COLUMN,
-            _STATS_DAY_CARB_COLUMN,
-            _STATS_DAY_FIBER_COLUMN,
-            _STATS_DAY_KCAL_COLUMN,
-        ):
-            self.tableView_kcal_per_day.setColumnWidth(column, 44)
-        self.tableView_kcal_per_day.horizontalHeader().setStretchLastSection(True)
+        header = self.tableView_kcal_per_day.horizontalHeader()
+        already_interactive = header.count() > 0 and all(
+            (column == header.count() - 1 and header.sectionResizeMode(column) == header.ResizeMode.Stretch)
+            or header.sectionResizeMode(column) == header.ResizeMode.Interactive
+            for column in range(header.count())
+        )
+        if not already_interactive:
+            make_table_columns_resizable(self.tableView_kcal_per_day, stretch_last=True, force_reinit=True)
+            self.tableView_kcal_per_day.setColumnWidth(_STATS_DAY_DATE_COLUMN, 90)
+            self.tableView_kcal_per_day.setColumnWidth(_STATS_DAY_CALORIES_COLUMN, 64)
+            for column in (
+                _STATS_DAY_PROTEIN_COLUMN,
+                _STATS_DAY_FAT_COLUMN,
+                _STATS_DAY_CARB_COLUMN,
+                _STATS_DAY_FIBER_COLUMN,
+            ):
+                self.tableView_kcal_per_day.setColumnWidth(column, 44)
+        enable_table_header_sorting(self.tableView_kcal_per_day)
+        apply_stored_table_header_sort(self.tableView_kcal_per_day)
 
     def _after_table_data_changed(
         self,

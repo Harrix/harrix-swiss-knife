@@ -160,7 +160,7 @@ Args:
 
 - `rich_text` (`bool`): When `True`, interpret `text` as HTML rich text
   (so links are clickable). Defaults to `False`.
-- `clipboard_text` (`str | None`): Plain text for the Copy button when
+- [`clipboard_text`](../../actions/common/about_fluent_dialog.g.md#%EF%B8%8F-method-clipboard_text) (`str | None`): Plain text for the Copy button when
   `text` is HTML. Defaults to `None` (copy from dialog fields).
 
 <details>

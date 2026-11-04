@@ -110,7 +110,12 @@ from harrix_swiss_knife.apps.common.table_context_menu import (
     begin_filters_block,
 )
 from harrix_swiss_knife.apps.common.table_export import export_table_via_dialog
-from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
+from harrix_swiss_knife.apps.common.table_models import (
+    apply_stored_table_header_sort,
+    create_table_proxy_model,
+    enable_table_header_sorting,
+    make_table_columns_resizable,
+)
 from harrix_swiss_knife.apps.common.text_case import capitalize_first_letter
 from harrix_swiss_knife.apps.common.ui_helpers import set_combo_plain_items
 from harrix_swiss_knife.apps.common.widgets.image_picker import ImagePicker, ImagePickerMode
@@ -3452,6 +3457,8 @@ class MainWindow(
         apply_transaction_day_spans(self.tableView_transactions)
         self._setup_transactions_table_delegates()
         self._setup_transactions_table_column_widths()
+        enable_table_header_sorting(self.tableView_transactions)
+        apply_stored_table_header_sort(self.tableView_transactions)
         self._connect_transaction_selection_signal()
 
         self._transactions_pagination.record_first_page(
@@ -4903,7 +4910,7 @@ class MainWindow(
             self._connect_table_auto_save_signals()
 
     def _refresh_visible_table_column_widths(self) -> None:
-        """Re-apply stretch/fixed column modes after a hidden tab becomes visible."""
+        """Re-apply resizable column modes after a hidden tab becomes visible."""
         if self._is_current_tab("tab_transactions"):
             self._setup_transactions_table_column_widths()
             return
@@ -4915,13 +4922,9 @@ class MainWindow(
         for table_view, stretch_last in tables:
             if not table_view.isVisible() or table_view.model() is None:
                 continue
-            header = table_view.horizontalHeader()
-            if header.count() <= 0:
-                continue
-            for i in range(header.count()):
-                header.setSectionResizeMode(i, header.ResizeMode.Stretch)
-            if not stretch_last:
-                header.setStretchLastSection(False)
+            make_table_columns_resizable(table_view, stretch_last=stretch_last)
+            enable_table_header_sorting(table_view)
+            apply_stored_table_header_sort(table_view)
 
     def _report_transaction_translate_completion(self, *, prefix: str = "") -> None:
         """Report remaining untranslated rows and offer another batch."""
@@ -5399,22 +5402,19 @@ class MainWindow(
         *,
         stretch_last: bool = True,
     ) -> None:
-        """Set model on table view and stretch all columns.
+        """Set model on table view with resizable, sortable headers.
 
         Args:
 
         - `table_view` (`QTableView`): Table view to configure.
         - `model` (`QSortFilterProxyModel`): Model to set.
-        - `stretch_last` (`bool`): If `False`, call `setStretchLastSection(False)`. Defaults to `True`.
+        - `stretch_last` (`bool`): If `True`, keep the last column stretching. Defaults to `True`.
 
         """
         table_view.setModel(model)
-        header = table_view.horizontalHeader()
-        if header.count() > 0:
-            for i in range(header.count()):
-                header.setSectionResizeMode(i, header.ResizeMode.Stretch)
-            if not stretch_last:
-                header.setStretchLastSection(False)
+        make_table_columns_resizable(table_view, stretch_last=stretch_last)
+        enable_table_header_sorting(table_view)
+        apply_stored_table_header_sort(table_view)
 
     def _setup_autocomplete(self) -> None:
         """Set up autocomplete functionality for description input."""
@@ -6714,9 +6714,10 @@ class MainWindow(
 
 
 def apply_transactions_table_column_widths(table_view: QTableView) -> None:
-    """Stretch description columns; keep Tag and Total per day at a fixed width.
+    """Make transaction columns resizable; seed Tag and Total preferred widths.
 
     Hidden views report a dummy size, so this is a no-op until the table is visible.
+    User-dragged widths are kept once columns are already Interactive.
 
     """
     if not table_view.isVisible():
@@ -6725,14 +6726,19 @@ def apply_transactions_table_column_widths(table_view: QTableView) -> None:
     count = header.count()
     if count <= 0:
         return
+    already_interactive = all(header.sectionResizeMode(i) == header.ResizeMode.Interactive for i in range(count))
+    if already_interactive:
+        return
     header.setStretchLastSection(False)
     stretch_count = max(count - _TRANSACTIONS_FIXED_COLUMN_COUNT, 0)
     for i in range(stretch_count):
         header.setSectionResizeMode(i, header.ResizeMode.Stretch)
+    widths = [max(header.sectionSize(i), header.minimumSectionSize()) for i in range(count)]
+    for i in range(count):
+        header.setSectionResizeMode(i, header.ResizeMode.Interactive)
+        table_view.setColumnWidth(i, widths[i])
     if count >= _TRANSACTIONS_FIXED_COLUMN_COUNT:
-        header.setSectionResizeMode(count - _TRANSACTIONS_FIXED_COLUMN_COUNT, header.ResizeMode.Fixed)
         table_view.setColumnWidth(count - _TRANSACTIONS_FIXED_COLUMN_COUNT, _TRANSACTIONS_TAG_COLUMN_WIDTH)
-    header.setSectionResizeMode(count - 1, header.ResizeMode.Fixed)
     table_view.setColumnWidth(count - 1, _TRANSACTIONS_TOTAL_COLUMN_WIDTH)
 
 

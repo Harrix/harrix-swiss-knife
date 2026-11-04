@@ -2008,7 +2008,7 @@ def value(self) -> int:
 class FluentSearchLineEdit(FluentLineEdit)
 ```
 
-Text box with a trailing search glyph; emits `search_requested` on Enter.
+Search box with a leading search glyph and the shared clear button.
 
 <details>
 <summary>Code:</summary>
@@ -2019,19 +2019,20 @@ class FluentSearchLineEdit(FluentLineEdit):
     search_requested = Signal(str)
 
     def __init__(self, parent: QWidget | None = None, *, placeholder: str = "Search", compact: bool = False) -> None:
-        """Create a search box."""
+        """Create a search box (clearable; Enter emits `search_requested`)."""
         self._search_action: QAction | None = None
-        super().__init__(parent, placeholder=placeholder, compact=compact)
+        super().__init__(parent, placeholder=placeholder, clearable=True, compact=compact)
         self.returnPressed.connect(lambda: self.search_requested.emit(self.text()))
 
     def refresh_theme(self) -> None:
-        """Re-apply chrome and the search glyph color."""
+        """Re-apply chrome and the leading search glyph color."""
         super().refresh_theme()
         palette = palette_for(self)
         icon = themed_icon("search", palette, palette.text_secondary)
         if self._search_action is None:
-            self._search_action = self.addAction(icon, QLineEdit.ActionPosition.TrailingPosition)
-            self._search_action.triggered.connect(lambda: self.search_requested.emit(self.text()))
+            self._search_action = QAction(icon, "", self)
+            self._search_action.setEnabled(False)
+            self.addAction(self._search_action, QLineEdit.ActionPosition.LeadingPosition)
         else:
             self._search_action.setIcon(icon)
 ```
@@ -2044,7 +2045,7 @@ class FluentSearchLineEdit(FluentLineEdit):
 def __init__(self, parent: QWidget | None = None, *, placeholder: str = 'Search', compact: bool = False) -> None
 ```
 
-Create a search box.
+Create a search box (clearable; Enter emits `search_requested`).
 
 <details>
 <summary>Code:</summary>
@@ -2052,7 +2053,7 @@ Create a search box.
 ```python
 def __init__(self, parent: QWidget | None = None, *, placeholder: str = "Search", compact: bool = False) -> None:
         self._search_action: QAction | None = None
-        super().__init__(parent, placeholder=placeholder, compact=compact)
+        super().__init__(parent, placeholder=placeholder, clearable=True, compact=compact)
         self.returnPressed.connect(lambda: self.search_requested.emit(self.text()))
 ```
 
@@ -2064,7 +2065,7 @@ def __init__(self, parent: QWidget | None = None, *, placeholder: str = "Search"
 def refresh_theme(self) -> None
 ```
 
-Re-apply chrome and the search glyph color.
+Re-apply chrome and the leading search glyph color.
 
 <details>
 <summary>Code:</summary>
@@ -2075,8 +2076,9 @@ def refresh_theme(self) -> None:
         palette = palette_for(self)
         icon = themed_icon("search", palette, palette.text_secondary)
         if self._search_action is None:
-            self._search_action = self.addAction(icon, QLineEdit.ActionPosition.TrailingPosition)
-            self._search_action.triggered.connect(lambda: self.search_requested.emit(self.text()))
+            self._search_action = QAction(icon, "", self)
+            self._search_action.setEnabled(False)
+            self.addAction(self._search_action, QLineEdit.ActionPosition.LeadingPosition)
         else:
             self._search_action.setIcon(icon)
 ```

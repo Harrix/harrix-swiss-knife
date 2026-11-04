@@ -874,6 +874,29 @@ class ScreenshotPreviewCanvas(QWidget):
             return self._crop_drag_rect()
         return self._crop_rect
 
+    def _align_image_to_empty_margin(self, pos: QPointF) -> bool:
+        """Pan so the image edge next to the empty click sits flush with the view edge."""
+        rect = self._image_rect()
+        if rect.isEmpty():
+            return False
+        view = self.rect()
+        dx = 0.0
+        dy = 0.0
+        if pos.x() < rect.left():
+            dx = -rect.left()
+        elif pos.x() > rect.right():
+            dx = view.width() - rect.right()
+        if pos.y() < rect.top():
+            dy = -rect.top()
+        elif pos.y() > rect.bottom():
+            dy = view.height() - rect.bottom()
+        if dx == 0.0 and dy == 0.0:
+            return False
+        self._offset = QPointF(self._offset.x() + dx, self._offset.y() + dy)
+        self._sync_text_editor_geometry()
+        self.update()
+        return True
+
     def _annotation_menu(self) -> QMenu:
         """Build the ShareX-style right-click menu for annotations."""
         document = self._document
@@ -1673,29 +1696,6 @@ class ScreenshotPreviewCanvas(QWidget):
             document.annotations[self._text_edit_index].style = copy_annotation_style(style)
         elif document.draft is not None and document.draft.tool == AnnotationTool.TEXT:
             document.draft.style = copy_annotation_style(style)
-
-    def _align_image_to_empty_margin(self, pos: QPointF) -> bool:
-        """Pan so the image edge next to the empty click sits flush with the view edge."""
-        rect = self._image_rect()
-        if rect.isEmpty():
-            return False
-        view = self.rect()
-        dx = 0.0
-        dy = 0.0
-        if pos.x() < rect.left():
-            dx = -rect.left()
-        elif pos.x() > rect.right():
-            dx = view.width() - rect.right()
-        if pos.y() < rect.top():
-            dy = -rect.top()
-        elif pos.y() > rect.bottom():
-            dy = view.height() - rect.bottom()
-        if dx == 0.0 and dy == 0.0:
-            return False
-        self._offset = QPointF(self._offset.x() + dx, self._offset.y() + dy)
-        self._sync_text_editor_geometry()
-        self.update()
-        return True
 
     def _toggle_opening_view(self) -> None:
         """Return a zoomed image to the opening size, or fit a small image into the view."""

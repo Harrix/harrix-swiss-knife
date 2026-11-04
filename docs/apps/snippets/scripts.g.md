@@ -41,7 +41,7 @@ class ScriptsPanel(QWidget):
         super().__init__(parent)
         self._edit = QLineEdit(self)
         self._edit.setPlaceholderText("Click characters, then Add")
-        self._edit.setClearButtonEnabled(True)
+        install_line_edit_clear_button(self._edit)
         self._edit.returnPressed.connect(self._emit_add)
 
         self._add_button = QPushButton("Add", self)
@@ -144,7 +144,7 @@ def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._edit = QLineEdit(self)
         self._edit.setPlaceholderText("Click characters, then Add")
-        self._edit.setClearButtonEnabled(True)
+        install_line_edit_clear_button(self._edit)
         self._edit.returnPressed.connect(self._emit_add)
 
         self._add_button = QPushButton("Add", self)
