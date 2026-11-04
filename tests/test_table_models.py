@@ -169,12 +169,16 @@ def test_make_table_columns_resizable_preserves_user_widths(qapp: QApplication) 
     table = QTableView()
     table.setModel(proxy)
     table.resize(600, 200)
-    make_table_columns_resizable(table, stretch_last=True)
+    table.show()
+    qapp.processEvents()
+    make_table_columns_resizable(table, stretch_last=False)
     header = table.horizontalHeader()
+    assert header.length() >= table.viewport().width() - 4
+    make_table_columns_resizable(table, stretch_last=True)
     assert header.sectionResizeMode(0) == header.ResizeMode.Interactive
     assert header.sectionResizeMode(header.count() - 1) == header.ResizeMode.Stretch
-    assert table.columnWidth(0) >= header.minimumSectionSize()
     table.setColumnWidth(0, 180)
+    table.setProperty("hskUserSizedColumns", 1)
     make_table_columns_resizable(table, stretch_last=True)
     assert table.columnWidth(0) == 180
 

@@ -382,7 +382,7 @@ class ExchangeRatesOperations:
             self.exchange_rate_checker = ExchangeRateCheckerWorker(
                 db_filename,
                 check_from_first_transaction=check_from_first_transaction,
-                parent=cast(QObject, self),
+                parent=cast("QObject", self),
             )
 
             # Connect checker signals
@@ -453,7 +453,7 @@ class ExchangeRatesOperations:
             self.startup_exchange_rate_checker = ExchangeRateCheckerWorker(
                 db_filename,
                 check_from_first_transaction=check_from_first_transaction,
-                parent=cast(QObject, self),
+                parent=cast("QObject", self),
             )
 
             # Connect signals
@@ -874,7 +874,7 @@ class ExchangeRatesOperations:
             self.exchange_rate_worker = ExchangeRateUpdateWorker(
                 db_filename,
                 currencies_to_process,
-                parent=cast(QObject, self),
+                parent=cast("QObject", self),
             )
 
             # Connect signals
@@ -921,7 +921,7 @@ class ExchangeRatesOperations:
             self.startup_exchange_rate_worker = ExchangeRateUpdateWorker(
                 db_filename,
                 currencies_to_process,
-                parent=cast(QObject, self),
+                parent=cast("QObject", self),
             )
 
             # Connect signals
@@ -1390,7 +1390,7 @@ def on_update_exchange_rates(self) -> None:
             self.exchange_rate_checker = ExchangeRateCheckerWorker(
                 db_filename,
                 check_from_first_transaction=check_from_first_transaction,
-                parent=cast(QObject, self),
+                parent=cast("QObject", self),
             )
 
             # Connect checker signals

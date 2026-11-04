@@ -15,6 +15,8 @@ lang: en
   - [⚙️ Method `lessThan`](#%EF%B8%8F-method-lessthan)
 - [🔧 Function `append_colored_table_row`](#-function-append_colored_table_row)
 - [🔧 Function `apply_stored_table_header_sort`](#-function-apply_stored_table_header_sort)
+- [🔧 Function `bind_column_fill_on_resize`](#-function-bind_column_fill_on_resize)
+- [🔧 Function `columns_fill_viewport`](#-function-columns_fill_viewport)
 - [🔧 Function `create_colored_table_proxy_model`](#-function-create_colored_table_proxy_model)
 - [🔧 Function `create_table_proxy_model`](#-function-create_table_proxy_model)
 - [🔧 Function `enable_table_header_sorting`](#-function-enable_table_header_sorting)
@@ -23,6 +25,7 @@ lang: en
 - [🔧 Function `next_table_sort_order`](#-function-next_table_sort_order)
 - [🔧 Function `set_stored_table_header_sort`](#-function-set_stored_table_header_sort)
 - [🔧 Function `sort_table_by_header_click`](#-function-sort_table_by_header_click)
+- [🔧 Function `user_resized_columns`](#-function-user_resized_columns)
 
 </details>
 
@@ -140,6 +143,79 @@ def apply_stored_table_header_sort(table: QTableView) -> None:
     header = table.horizontalHeader()
     header.setSortIndicatorShown(True)
     header.setSortIndicator(section, order)
+```
+
+</details>
+
+## 🔧 Function `bind_column_fill_on_resize`
+
+```python
+def bind_column_fill_on_resize(table: QTableView, refill: Callable[[QTableView], None]) -> None
+```
+
+Refill column widths when the table resizes, until the user drags a section.
+
+Qt's default resize mode is already Interactive, so a one-shot layout often
+runs before the viewport has its final width and then never runs again.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def bind_column_fill_on_resize(table: QTableView, refill: Callable[[QTableView], None]) -> None:
+    if getattr(table, "_hsk_column_fill_hook", None) is not None:
+        return
+    header = table.horizontalHeader()
+
+    def _on_section_resized(_logical: int, old_size: int, new_size: int) -> None:
+        if table.property(_COLUMN_FILL_GUARD_PROP) or old_size == new_size:
+            return
+        if QGuiApplication.mouseButtons() & Qt.MouseButton.LeftButton:
+            table.setProperty(_USER_SIZED_COLUMNS_PROP, True)
+
+    header.sectionResized.connect(_on_section_resized)
+
+    class _ResizeHook(QObject):
+        def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
+            if (
+                event.type() == QEvent.Type.Resize
+                and not user_resized_columns(table)
+                and not table.property(_COLUMN_FILL_GUARD_PROP)
+            ):
+                QTimer.singleShot(0, _refill_if_alive)
+            return False
+
+    def _refill_if_alive() -> None:
+        try:
+            refill(table)
+        except RuntimeError:
+            return
+
+    hook = _ResizeHook(table)
+    table.installEventFilter(hook)
+    table._hsk_column_fill_hook = hook  # type: ignore[attr-defined]  # noqa: SLF001
+```
+
+</details>
+
+## 🔧 Function `columns_fill_viewport`
+
+```python
+def columns_fill_viewport(table: QTableView) -> bool
+```
+
+Return whether section widths already cover the table viewport.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def columns_fill_viewport(table: QTableView) -> bool:
+    header = table.horizontalHeader()
+    viewport_w = table.viewport().width()
+    if viewport_w <= 0 or header.count() <= 0:
+        return False
+    return header.length() >= viewport_w - _COLUMN_FILL_SLACK_PX
 ```
 
 </details>
@@ -360,40 +436,24 @@ def make_table_columns_resizable(
         or (i not in fixed and not (stretch_last and i == last) and header.sectionResizeMode(i) == interactive_mode)
         for i in range(count)
     )
-    if already_interactive and not force_reinit:
+    # Default Qt mode is Interactive, so "already interactive" is not a finished layout.
+    if user_resized_columns(table) or bool(table.property(_COLUMN_FILL_GUARD_PROP)):
+        return
+    if already_interactive and columns_fill_viewport(table) and not force_reinit:
         return
 
     min_size = header.minimumSectionSize()
-    header.setStretchLastSection(False)
-    for i in fixed:
-        header.setSectionResizeMode(i, header.ResizeMode.Fixed)
-        table.setColumnWidth(i, max(header.sectionSize(i), min_size))
-
-    flexible = [i for i in range(count) if i not in fixed and not (stretch_last and i == last)]
-    viewport_w = table.viewport().width()
-    if viewport_w <= 0:
-        viewport_w = max(table.width(), 0)
-    fixed_total = sum(max(header.sectionSize(i), min_size) for i in fixed)
-
-    if stretch_last:
-        slots = len(flexible) + 1
-        share = max((viewport_w - fixed_total) // slots, min_size) if viewport_w > 0 else min_size
-        for i in flexible:
-            header.setSectionResizeMode(i, interactive_mode)
-            table.setColumnWidth(i, share)
-        header.setSectionResizeMode(last, header.ResizeMode.Stretch)
-        header.setStretchLastSection(True)
-        return
-
-    if not flexible:
-        return
-    remaining = max(viewport_w - fixed_total, len(flexible) * min_size) if viewport_w > 0 else len(flexible) * min_size
-    base = remaining // len(flexible)
-    extra = remaining - base * len(flexible)
-    for index, column in enumerate(flexible):
-        header.setSectionResizeMode(column, interactive_mode)
-        width = base + (extra if index == len(flexible) - 1 else 0)
-        table.setColumnWidth(column, max(width, min_size))
+    table.setProperty(_COLUMN_FILL_GUARD_PROP, True)
+    try:
+        _assign_resizable_column_widths(
+            table,
+            fixed=fixed,
+            last=last,
+            stretch_last=stretch_last,
+            min_size=min_size,
+        )
+    finally:
+        table.setProperty(_COLUMN_FILL_GUARD_PROP, False)
 ```
 
 </details>
@@ -508,6 +568,24 @@ def sort_table_by_header_click(
     header.setSortIndicatorShown(True)
     header.setSortIndicator(section, order)
     return section, order
+```
+
+</details>
+
+## 🔧 Function `user_resized_columns`
+
+```python
+def user_resized_columns(table: QTableView) -> bool
+```
+
+Return whether the user has dragged a column edge on `table`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def user_resized_columns(table: QTableView) -> bool:
+    return bool(table.property(_USER_SIZED_COLUMNS_PROP))
 ```
 
 </details>

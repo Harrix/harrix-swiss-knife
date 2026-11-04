@@ -8226,26 +8226,24 @@ def apply_transactions_table_column_widths(table_view: QTableView) -> None
 
 Fill the viewport like Stretch, then make every column Interactive.
 
-Hidden views report a dummy size, so this is a no-op until the table is visible.
-User-dragged widths are kept once columns are already Interactive.
+Hidden views report a dummy size, so widths are skipped until the table is visible.
+Qt's default mode is already Interactive, so that alone is not treated as a finished
+layout. Widths are reapplied when the table grows until the user drags a column.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def apply_transactions_table_column_widths(table_view: QTableView) -> None:
-    if not table_view.isVisible():
+    bind_column_fill_on_resize(table_view, apply_transactions_table_column_widths)
+    if not table_view.isVisible() or user_resized_columns(table_view):
         return
     header = table_view.horizontalHeader()
     count = header.count()
-    if count <= 0:
+    if count <= 0 or table_view.property("hskColumnFillGuard"):
         return
-    already_interactive = all(header.sectionResizeMode(i) == header.ResizeMode.Interactive for i in range(count))
-    if already_interactive:
-        return
-
     viewport_w = table_view.viewport().width()
-    if viewport_w <= 0:
+    if viewport_w <= 0 or columns_fill_viewport(table_view):
         return
 
     header.setStretchLastSection(False)
@@ -8261,14 +8259,18 @@ def apply_transactions_table_column_widths(table_view: QTableView) -> None:
     base = remaining // len(flexible) if flexible else 0
     extra = remaining - base * len(flexible) if flexible else 0
 
-    for i in range(count):
-        header.setSectionResizeMode(i, header.ResizeMode.Interactive)
-    for index, column in enumerate(flexible):
-        width = base + (extra if index == len(flexible) - 1 else 0)
-        table_view.setColumnWidth(column, max(width, min_size))
-    if tag_idx is not None:
-        table_view.setColumnWidth(tag_idx, _TRANSACTIONS_TAG_COLUMN_WIDTH)
-    table_view.setColumnWidth(total_idx, _TRANSACTIONS_TOTAL_COLUMN_WIDTH)
+    table_view.setProperty("hskColumnFillGuard", True)
+    try:
+        for i in range(count):
+            header.setSectionResizeMode(i, header.ResizeMode.Interactive)
+        for index, column in enumerate(flexible):
+            width = base + (extra if index == len(flexible) - 1 else 0)
+            table_view.setColumnWidth(column, max(width, min_size))
+        if tag_idx is not None:
+            table_view.setColumnWidth(tag_idx, _TRANSACTIONS_TAG_COLUMN_WIDTH)
+        table_view.setColumnWidth(total_idx, _TRANSACTIONS_TOTAL_COLUMN_WIDTH)
+    finally:
+        table_view.setProperty("hskColumnFillGuard", False)
 ```
 
 </details>
