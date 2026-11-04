@@ -121,6 +121,9 @@ class MainWindow(
         self._finish_fluent_window_chrome()
         apply_window_icon(self)
         self._init_hide_on_close(hide_on_close=hide_on_close)
+        app = QApplication.instance()
+        if app is not None:
+            app.aboutToQuit.connect(self._stop_exchange_rate_threads)
 
         # Table models dictionary
         self.models: dict[str, QSortFilterProxyModel | None] = {
@@ -340,28 +343,8 @@ class MainWindow(
         if scheduler is not None:
             scheduler.stop()
 
-        # Stop any running worker threads
-        if hasattr(self, "exchange_rate_worker") and self.exchange_rate_worker.isRunning():
-            self.exchange_rate_worker.stop()
-            self.exchange_rate_worker.wait(3000)  # Wait up to 3 seconds
-
-        # Stop checker thread if running
-        if hasattr(self, "exchange_rate_checker") and self.exchange_rate_checker.isRunning():
-            self.exchange_rate_checker.stop()
-            self.exchange_rate_checker.wait(3000)  # Wait up to 3 seconds
-
-        # Stop startup threads if running
-        if hasattr(self, "startup_exchange_rate_worker") and self.startup_exchange_rate_worker.isRunning():
-            self.startup_exchange_rate_worker.stop()
-            self.startup_exchange_rate_worker.wait(3000)  # Wait up to 3 seconds
-
-        if hasattr(self, "startup_exchange_rate_checker") and self.startup_exchange_rate_checker.isRunning():
-            self.startup_exchange_rate_checker.stop()
-            self.startup_exchange_rate_checker.wait(3000)  # Wait up to 3 seconds
-
-        report_worker = getattr(self, "_report_build_worker", None)
-        if report_worker is not None and report_worker.isRunning():
-            report_worker.wait(3000)
+        self._stop_exchange_rate_threads()
+        stop_running_qthread(getattr(self, "_report_build_worker", None))
 
         self._close_report_build_toast()
 
@@ -6128,6 +6111,13 @@ class MainWindow(
         if timer is not None and isValid(timer):
             timer.stop()
 
+    def _stop_exchange_rate_threads(self) -> None:
+        """Join exchange-rate QThreads before Qt destroys them (Qt 6.12 qFatal)."""
+        stop_running_qthread(getattr(self, "exchange_rate_worker", None))
+        stop_running_qthread(getattr(self, "exchange_rate_checker", None))
+        stop_running_qthread(getattr(self, "startup_exchange_rate_worker", None))
+        stop_running_qthread(getattr(self, "startup_exchange_rate_checker", None))
+
     def _sync_amount_spin_limit(self, *_args: object) -> None:
         """Raise the amount field to the largest value a SQLite INTEGER can store."""
         subdivision = 100
@@ -6570,6 +6560,9 @@ def __init__(self, *, hide_on_close: bool = False) -> None:
         self._finish_fluent_window_chrome()
         apply_window_icon(self)
         self._init_hide_on_close(hide_on_close=hide_on_close)
+        app = QApplication.instance()
+        if app is not None:
+            app.aboutToQuit.connect(self._stop_exchange_rate_threads)
 
         # Table models dictionary
         self.models: dict[str, QSortFilterProxyModel | None] = {
@@ -6828,28 +6821,8 @@ def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         if scheduler is not None:
             scheduler.stop()
 
-        # Stop any running worker threads
-        if hasattr(self, "exchange_rate_worker") and self.exchange_rate_worker.isRunning():
-            self.exchange_rate_worker.stop()
-            self.exchange_rate_worker.wait(3000)  # Wait up to 3 seconds
-
-        # Stop checker thread if running
-        if hasattr(self, "exchange_rate_checker") and self.exchange_rate_checker.isRunning():
-            self.exchange_rate_checker.stop()
-            self.exchange_rate_checker.wait(3000)  # Wait up to 3 seconds
-
-        # Stop startup threads if running
-        if hasattr(self, "startup_exchange_rate_worker") and self.startup_exchange_rate_worker.isRunning():
-            self.startup_exchange_rate_worker.stop()
-            self.startup_exchange_rate_worker.wait(3000)  # Wait up to 3 seconds
-
-        if hasattr(self, "startup_exchange_rate_checker") and self.startup_exchange_rate_checker.isRunning():
-            self.startup_exchange_rate_checker.stop()
-            self.startup_exchange_rate_checker.wait(3000)  # Wait up to 3 seconds
-
-        report_worker = getattr(self, "_report_build_worker", None)
-        if report_worker is not None and report_worker.isRunning():
-            report_worker.wait(3000)
+        self._stop_exchange_rate_threads()
+        stop_running_qthread(getattr(self, "_report_build_worker", None))
 
         self._close_report_build_toast()
 
@@ -8251,7 +8224,7 @@ def update_summary_labels(self) -> None:
 def apply_transactions_table_column_widths(table_view: QTableView) -> None
 ```
 
-Make transaction columns resizable; seed Tag and Total preferred widths.
+Fill the viewport like Stretch, then make every column Interactive.
 
 Hidden views report a dummy size, so this is a no-op until the table is visible.
 User-dragged widths are kept once columns are already Interactive.
@@ -8270,17 +8243,32 @@ def apply_transactions_table_column_widths(table_view: QTableView) -> None:
     already_interactive = all(header.sectionResizeMode(i) == header.ResizeMode.Interactive for i in range(count))
     if already_interactive:
         return
+
+    viewport_w = table_view.viewport().width()
+    if viewport_w <= 0:
+        return
+
     header.setStretchLastSection(False)
-    stretch_count = max(count - _TRANSACTIONS_FIXED_COLUMN_COUNT, 0)
-    for i in range(stretch_count):
-        header.setSectionResizeMode(i, header.ResizeMode.Stretch)
-    widths = [max(header.sectionSize(i), header.minimumSectionSize()) for i in range(count)]
+    min_size = header.minimumSectionSize()
+    tag_idx = count - _TRANSACTIONS_FIXED_COLUMN_COUNT if count >= _TRANSACTIONS_FIXED_COLUMN_COUNT else None
+    total_idx = count - 1
+    reserved = _TRANSACTIONS_TOTAL_COLUMN_WIDTH
+    if tag_idx is not None:
+        reserved += _TRANSACTIONS_TAG_COLUMN_WIDTH
+
+    flexible = [i for i in range(count) if i not in {tag_idx, total_idx}]
+    remaining = max(viewport_w - reserved, len(flexible) * min_size)
+    base = remaining // len(flexible) if flexible else 0
+    extra = remaining - base * len(flexible) if flexible else 0
+
     for i in range(count):
         header.setSectionResizeMode(i, header.ResizeMode.Interactive)
-        table_view.setColumnWidth(i, widths[i])
-    if count >= _TRANSACTIONS_FIXED_COLUMN_COUNT:
-        table_view.setColumnWidth(count - _TRANSACTIONS_FIXED_COLUMN_COUNT, _TRANSACTIONS_TAG_COLUMN_WIDTH)
-    table_view.setColumnWidth(count - 1, _TRANSACTIONS_TOTAL_COLUMN_WIDTH)
+    for index, column in enumerate(flexible):
+        width = base + (extra if index == len(flexible) - 1 else 0)
+        table_view.setColumnWidth(column, max(width, min_size))
+    if tag_idx is not None:
+        table_view.setColumnWidth(tag_idx, _TRANSACTIONS_TAG_COLUMN_WIDTH)
+    table_view.setColumnWidth(total_idx, _TRANSACTIONS_TOTAL_COLUMN_WIDTH)
 ```
 
 </details>

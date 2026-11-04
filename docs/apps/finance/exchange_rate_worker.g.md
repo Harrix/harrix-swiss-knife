@@ -53,16 +53,22 @@ class ExchangeRateUpdateWorker(QThread):
     should_stop: bool
     unresolved_rates: dict[str, list[str]]
 
-    def __init__(self, db_filename: str, currencies_to_process: list) -> None:
+    def __init__(
+        self,
+        db_filename: str,
+        currencies_to_process: list,
+        parent: QObject | None = None,
+    ) -> None:
         """Initialize the exchange rate update worker.
 
         Args:
 
         - `db_filename` (`str`): Path to SQLite database file.
         - `currencies_to_process` (`list`): List of tuples (currency_id, code, records_dict).
+        - `parent` (`QObject | None`): Optional Qt parent so the thread is owned by the window.
 
         """
-        super().__init__()
+        super().__init__(parent)
         self.db_filename = db_filename
         self.currencies_to_process = currencies_to_process  # List of (currency_id, code, records_dict)
         self.should_stop = False
@@ -408,7 +414,7 @@ class ExchangeRateUpdateWorker(QThread):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, db_filename: str, currencies_to_process: list) -> None
+def __init__(self, db_filename: str, currencies_to_process: list, parent: QObject | None = None) -> None
 ```
 
 Initialize the exchange rate update worker.
@@ -417,13 +423,19 @@ Args:
 
 - `db_filename` (`str`): Path to SQLite database file.
 - `currencies_to_process` (`list`): List of tuples (currency_id, code, records_dict).
+- `parent` (`QObject | None`): Optional Qt parent so the thread is owned by the window.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def __init__(self, db_filename: str, currencies_to_process: list) -> None:
-        super().__init__()
+def __init__(
+        self,
+        db_filename: str,
+        currencies_to_process: list,
+        parent: QObject | None = None,
+    ) -> None:
+        super().__init__(parent)
         self.db_filename = db_filename
         self.currencies_to_process = currencies_to_process  # List of (currency_id, code, records_dict)
         self.should_stop = False

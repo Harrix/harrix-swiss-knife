@@ -160,7 +160,7 @@ def test_enable_table_header_sorting_toggles_and_restores(qapp: QApplication) ->
 
 
 def test_make_table_columns_resizable_preserves_user_widths(qapp: QApplication) -> None:
-    """Interactive columns keep dragged widths on a second layout pass."""
+    """Interactive columns fill the viewport, then keep dragged widths."""
     assert qapp is not None
     proxy = create_colored_table_proxy_model(
         [[QIcon(), "Alpha", "1.0", 1, QColor("white")]],
@@ -173,6 +173,7 @@ def test_make_table_columns_resizable_preserves_user_widths(qapp: QApplication) 
     header = table.horizontalHeader()
     assert header.sectionResizeMode(0) == header.ResizeMode.Interactive
     assert header.sectionResizeMode(header.count() - 1) == header.ResizeMode.Stretch
+    assert table.columnWidth(0) >= header.minimumSectionSize()
     table.setColumnWidth(0, 180)
     make_table_columns_resizable(table, stretch_last=True)
     assert table.columnWidth(0) == 180

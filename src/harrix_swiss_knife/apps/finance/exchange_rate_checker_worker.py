@@ -1,10 +1,16 @@
 """Worker thread for checking exchange rates that need updates."""
 
+from __future__ import annotations
+
 from datetime import UTC, date, datetime, timedelta
+from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QThread, Signal
 
 from harrix_swiss_knife.apps.finance.database_manager import DatabaseManager
+
+if TYPE_CHECKING:
+    from PySide6.QtCore import QObject
 
 
 class ExchangeRateCheckerWorker(QThread):
@@ -28,7 +34,13 @@ class ExchangeRateCheckerWorker(QThread):
     check_from_first_transaction: bool
     should_stop: bool
 
-    def __init__(self, db_filename: str, *, check_from_first_transaction: bool = True) -> None:
+    def __init__(
+        self,
+        db_filename: str,
+        *,
+        check_from_first_transaction: bool = True,
+        parent: QObject | None = None,
+    ) -> None:
         """Initialize the checker worker.
 
         Args:
@@ -36,9 +48,10 @@ class ExchangeRateCheckerWorker(QThread):
         - `db_filename` (`str`): Path to SQLite database file.
         - `check_from_first_transaction` (`bool`): If `True`, check from first transaction;
           if `False`, check from last exchange rate. Defaults to `True`.
+        - `parent` (`QObject | None`): Optional Qt parent so the thread is owned by the window.
 
         """
-        super().__init__()
+        super().__init__(parent)
         self.db_filename = db_filename
         self.check_from_first_transaction = check_from_first_transaction
         self.should_stop = False

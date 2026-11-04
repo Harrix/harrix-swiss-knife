@@ -204,10 +204,10 @@ def make_table_columns_resizable(
 ) -> None:
     """Allow dragging header edges to change column width.
 
-    Converts Stretch / ResizeToContents modes to Interactive while keeping the
-    current pixel widths. Optionally leaves some sections Fixed and/or stretches
-    the last section. When columns are already Interactive, existing widths are
-    kept unless `force_reinit` is set.
+    Fills the viewport first (like Stretch), then switches flexible columns to
+    Interactive so the user can drag edges. Optionally leaves some sections Fixed
+    and/or keeps the last column stretching. When columns are already Interactive,
+    existing widths are kept unless `force_reinit` is set.
 
     Args:
 
@@ -235,24 +235,37 @@ def make_table_columns_resizable(
     if already_interactive and not force_reinit:
         return
 
-    # Stretch first so hidden or freshly modeled tables get reasonable widths.
-    for i in range(count):
-        if i not in fixed:
-            header.setSectionResizeMode(i, header.ResizeMode.Stretch)
+    min_size = header.minimumSectionSize()
     header.setStretchLastSection(False)
-    widths = [max(header.sectionSize(i), header.minimumSectionSize()) for i in range(count)]
+    for i in fixed:
+        header.setSectionResizeMode(i, header.ResizeMode.Fixed)
+        table.setColumnWidth(i, max(header.sectionSize(i), min_size))
 
-    for i in range(count):
-        if i in fixed:
-            header.setSectionResizeMode(i, header.ResizeMode.Fixed)
-            continue
-        if stretch_last and i == last:
-            header.setSectionResizeMode(i, header.ResizeMode.Stretch)
-            continue
-        header.setSectionResizeMode(i, interactive_mode)
-        table.setColumnWidth(i, widths[i])
+    flexible = [i for i in range(count) if i not in fixed and not (stretch_last and i == last)]
+    viewport_w = table.viewport().width()
+    if viewport_w <= 0:
+        viewport_w = max(table.width(), 0)
+    fixed_total = sum(max(header.sectionSize(i), min_size) for i in fixed)
+
     if stretch_last:
+        slots = len(flexible) + 1
+        share = max((viewport_w - fixed_total) // slots, min_size) if viewport_w > 0 else min_size
+        for i in flexible:
+            header.setSectionResizeMode(i, interactive_mode)
+            table.setColumnWidth(i, share)
+        header.setSectionResizeMode(last, header.ResizeMode.Stretch)
         header.setStretchLastSection(True)
+        return
+
+    if not flexible:
+        return
+    remaining = max(viewport_w - fixed_total, len(flexible) * min_size) if viewport_w > 0 else len(flexible) * min_size
+    base = remaining // len(flexible)
+    extra = remaining - base * len(flexible)
+    for index, column in enumerate(flexible):
+        header.setSectionResizeMode(column, interactive_mode)
+        width = base + (extra if index == len(flexible) - 1 else 0)
+        table.setColumnWidth(column, max(width, min_size))
 
 
 def next_table_sort_order(

@@ -24,6 +24,7 @@ lang: en
   - [⚙️ Method `on_filter_exchange_rates_apply`](#%EF%B8%8F-method-on_filter_exchange_rates_apply)
   - [⚙️ Method `on_filter_exchange_rates_clear`](#%EF%B8%8F-method-on_filter_exchange_rates_clear)
   - [⚙️ Method `on_update_exchange_rates`](#%EF%B8%8F-method-on_update_exchange_rates)
+- [🔧 Function `stop_running_qthread`](#-function-stop_running_qthread)
 
 </details>
 
@@ -377,8 +378,11 @@ class ExchangeRatesOperations:
 
             # Create and start checker thread
             db_filename = _require_db_filename_for_worker(self.db_manager)
+            stop_running_qthread(getattr(self, "exchange_rate_checker", None))
             self.exchange_rate_checker = ExchangeRateCheckerWorker(
-                db_filename, check_from_first_transaction=check_from_first_transaction
+                db_filename,
+                check_from_first_transaction=check_from_first_transaction,
+                parent=cast(QObject, self),
             )
 
             # Connect checker signals
@@ -445,8 +449,11 @@ class ExchangeRatesOperations:
 
             # Create and start checker thread
             db_filename = _require_db_filename_for_worker(self.db_manager)
+            stop_running_qthread(getattr(self, "startup_exchange_rate_checker", None))
             self.startup_exchange_rate_checker = ExchangeRateCheckerWorker(
-                db_filename, check_from_first_transaction=check_from_first_transaction
+                db_filename,
+                check_from_first_transaction=check_from_first_transaction,
+                parent=cast(QObject, self),
             )
 
             # Connect signals
@@ -863,7 +870,12 @@ class ExchangeRatesOperations:
 
             # Create and start worker thread
             db_filename = _require_db_filename_for_worker(self.db_manager)
-            self.exchange_rate_worker = ExchangeRateUpdateWorker(db_filename, currencies_to_process)
+            stop_running_qthread(getattr(self, "exchange_rate_worker", None))
+            self.exchange_rate_worker = ExchangeRateUpdateWorker(
+                db_filename,
+                currencies_to_process,
+                parent=cast(QObject, self),
+            )
 
             # Connect signals
             self.exchange_rate_worker.progress_updated.connect(self._on_progress_updated)
@@ -905,7 +917,12 @@ class ExchangeRatesOperations:
 
             # Create and start worker thread
             db_filename = _require_db_filename_for_worker(self.db_manager)
-            self.startup_exchange_rate_worker = ExchangeRateUpdateWorker(db_filename, currencies_to_process)
+            stop_running_qthread(getattr(self, "startup_exchange_rate_worker", None))
+            self.startup_exchange_rate_worker = ExchangeRateUpdateWorker(
+                db_filename,
+                currencies_to_process,
+                parent=cast(QObject, self),
+            )
 
             # Connect signals
             self.startup_exchange_rate_worker.progress_updated.connect(self._on_startup_progress_updated)
@@ -1369,8 +1386,11 @@ def on_update_exchange_rates(self) -> None:
 
             # Create and start checker thread
             db_filename = _require_db_filename_for_worker(self.db_manager)
+            stop_running_qthread(getattr(self, "exchange_rate_checker", None))
             self.exchange_rate_checker = ExchangeRateCheckerWorker(
-                db_filename, check_from_first_transaction=check_from_first_transaction
+                db_filename,
+                check_from_first_transaction=check_from_first_transaction,
+                parent=cast(QObject, self),
             )
 
             # Connect checker signals
@@ -1386,6 +1406,37 @@ def on_update_exchange_rates(self) -> None:
                 self.check_progress_dialog.close()
             message_box.critical(cast("QWidget", self), "Check Error", f"Failed to start exchange rate check: {e}")
             logger.exception("❌ Exchange rate check error")
+```
+
+</details>
+
+## 🔧 Function `stop_running_qthread`
+
+```python
+def stop_running_qthread(worker: QThread | None, *, timeout_ms: int = _EXCHANGE_RATE_THREAD_JOIN_MS) -> None
+```
+
+Request stop and join a worker so Qt 6.12 does not qFatal on destroy.
+
+Args:
+
+- `worker` (`QThread | None`): Thread to stop.
+- `timeout_ms` (`int`): First wait budget after `stop()`. Defaults to 120s.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def stop_running_qthread(worker: QThread | None, *, timeout_ms: int = _EXCHANGE_RATE_THREAD_JOIN_MS) -> None:
+    if worker is None or not worker.isRunning():
+        return
+    stop = getattr(worker, "stop", None)
+    if callable(stop):
+        stop()
+    if worker.wait(timeout_ms):
+        return
+    logger.warning("QThread still running after %s ms; waiting until it finishes", timeout_ms)
+    worker.wait()
 ```
 
 </details>
