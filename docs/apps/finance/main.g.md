@@ -148,9 +148,6 @@ class MainWindow(
         self._bg_tx_translate_timer.setSingleShot(True)
         self._bg_tx_translate_timer.timeout.connect(self._on_background_transaction_translate_timer)
 
-        # Generate pastel colors for date-based coloring
-        self.date_colors: list[QColor] = generate_pastel_qcolors(50)
-
         # Initialize mouse button tracking
         self._right_click_in_progress: bool = False
 
@@ -1460,11 +1457,11 @@ class MainWindow(
 
             for value in display_data:
                 item: QStandardItem = QStandardItem(str(value) if value is not None else "")
-                item.setBackground(QBrush(row_color))
+                set_day_band(item, row_color)
                 items.append(item)
 
             model.appendRow(items)
-            model.setVerticalHeaderItem(row_idx, QStandardItem(str(row_id)))
+            model.setVerticalHeaderItem(row_idx, day_band_id_item(row_id, row_color))
 
     def _append_transformed_rows_to_model(
         self,
@@ -1483,7 +1480,7 @@ class MainWindow(
 
             for col_idx, value in enumerate(display_data):
                 item: QStandardItem = QStandardItem(str(value) if value is not None else "")
-                item.setBackground(QBrush(row_color))
+                set_day_band(item, row_color)
 
                 if col_idx == self._TRANSACTION_AMOUNT_COLUMN:
                     original_value: str = (
@@ -1497,7 +1494,7 @@ class MainWindow(
                 items.append(item)
 
             model.appendRow(items)
-            model.setVerticalHeaderItem(row_idx, QStandardItem(str(row_id)))
+            model.setVerticalHeaderItem(row_idx, day_band_id_item(row_id, row_color))
 
     def _apply_background_transaction_translate_response(
         self,
@@ -2050,9 +2047,7 @@ class MainWindow(
 
             for col_idx, value in enumerate(display_data):
                 item: QStandardItem = QStandardItem(str(value) if value is not None else "")
-
-                # Set background color for the item
-                item.setBackground(QBrush(row_color))
+                set_day_band(item, row_color)
 
                 # For amount column, store original value without minus sign for editing
                 if col_idx == self._TRANSACTION_AMOUNT_COLUMN:
@@ -2071,10 +2066,7 @@ class MainWindow(
             model.appendRow(items)
 
             # Set the ID in vertical header
-            model.setVerticalHeaderItem(
-                row_idx,
-                QStandardItem(str(row_id)),
-            )
+            model.setVerticalHeaderItem(row_idx, day_band_id_item(row_id, row_color))
 
         proxy: QSortFilterProxyModel = RecordIdSortProxyModel()
         proxy.setSourceModel(model)
@@ -6162,7 +6154,7 @@ class MainWindow(
         result = transform_transaction_data_helper(
             rows,
             daily_expenses,
-            self.date_colors,
+            day_band_colors(),
             self.db_manager,
             dates_with_totals=self._transactions_dates_with_totals if append_state else None,
             date_to_color_index=self._transactions_date_color_map if append_state else None,
@@ -6586,9 +6578,6 @@ def __init__(self, *, hide_on_close: bool = False) -> None:
         self._bg_tx_translate_timer = QTimer(self)
         self._bg_tx_translate_timer.setSingleShot(True)
         self._bg_tx_translate_timer.timeout.connect(self._on_background_transaction_translate_timer)
-
-        # Generate pastel colors for date-based coloring
-        self.date_colors: list[QColor] = generate_pastel_qcolors(50)
 
         # Initialize mouse button tracking
         self._right_click_in_progress: bool = False

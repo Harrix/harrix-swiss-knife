@@ -39,6 +39,11 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife.apps.common.day_bands import (
+    install_day_band_vertical_header,
+    refresh_day_bands,
+    table_surface_color,
+)
 from harrix_swiss_knife.apps.common.table_models import enable_record_id_corner_sort
 from harrix_swiss_knife.apps.common.ui_chrome import (
     INPUT_BORDER,
@@ -83,7 +88,6 @@ if TYPE_CHECKING:
 CAPTION_TABS_PROPERTY = "_hskCaptionTabs"
 _PROP_BOUND = "_hskFluentAppChromeBound"
 _PROP_CANVAS = "_hskFluentCanvas"
-_TABLE_TEXT = "#1a1a1a"
 _MEDIA_PLATE_NAMES = frozenset({"label_exercise_avif", "label_exercise_avif_4", "label_exercise_avif_5"})
 _MEDIA_LIST_NAMES = frozenset({"listView_exercises"})
 _KEEP_LARGE_FONT = frozenset(
@@ -309,13 +313,6 @@ def _button_kind(sheet: str) -> str | None:
     return None
 
 
-def _card_color(palette: FluentPalette) -> QColor:
-    """Return an opaque card fill. Translucent tokens paint as white on a light style."""
-    if palette.dark:
-        return QColor(palette.solid_tertiary_bg)
-    return QColor(palette.solid_quarternary_bg)
-
-
 def _clear_viewport(view: QAbstractItemView, palette: FluentPalette) -> None:
     """Paint the list viewport with the window gradient instead of the system base."""
     text = css(mix(palette.window_bg, palette.text_primary))
@@ -501,8 +498,10 @@ def _restyle_inputs(root: QWidget, palette: FluentPalette) -> None:
 def _restyle_tables(root: QWidget, palette: FluentPalette) -> None:
     for table in root.findChildren(QTableView):
         _style_table(table, palette)
+        refresh_day_bands(table)
     for table in root.findChildren(QTableWidget):
         _style_table(table, palette)
+        refresh_day_bands(table)
 
 
 def _restyle_tabs(root: QWidget, palette: FluentPalette) -> None:
@@ -630,7 +629,8 @@ def _style_table(table: QTableView, palette: FluentPalette) -> None:
     selector = f"{selector_base}#{name}" if name else selector_base
     secondary = css(mix(palette.window_bg, palette.text_secondary))
     divider = css(mix(palette.window_bg, palette.divider))
-    card = _card_color(palette)
+    text = mix(palette.window_bg, palette.text_primary)
+    surface = table_surface_color(palette)
     stroke = css(palette.card_stroke)
     table.setShowGrid(False)
     table.setAlternatingRowColors(False)
@@ -639,6 +639,7 @@ def _style_table(table: QTableView, palette: FluentPalette) -> None:
     header.setDefaultAlignment(header.defaultAlignment())
     if isinstance(header, QHeaderView):
         header.setMinimumHeight(CONTROL_HEIGHT)
+    install_day_band_vertical_header(table)
     vertical = table.verticalHeader()
     vertical.setProperty("hskRecordIds", "true")
     _watch_record_id_header(table)
@@ -654,16 +655,16 @@ def _style_table(table: QTableView, palette: FluentPalette) -> None:
         table,
         f"""
 {selector} {{
- background: {card.name()};
- color: {_TABLE_TEXT};
+ background: {surface.name()};
+ color: {css(text)};
  border: 1px solid {stroke};
  border-radius: {RADIUS_CARD}px;
  outline: none;
  gridline-color: transparent;
 }}
-{selector} QHeaderView {{ background: {card.name()}; color: {secondary}; border: none; }}
+{selector} QHeaderView {{ background: {surface.name()}; color: {secondary}; border: none; }}
 {selector} QHeaderView::section {{
- background: {card.name()};
+ background: {surface.name()};
  color: {secondary};
  border: none;
  border-bottom: 1px solid {divider};
@@ -680,17 +681,19 @@ def _style_table(table: QTableView, palette: FluentPalette) -> None:
 """,
     )
     # No ::item background: that stylesheet replaces the model's row tint.
-    _paint_viewport(table, card, QColor(_TABLE_TEXT))
+    _paint_viewport(table, surface, text)
     # Custom headers (word-wrap) paint from the palette, not from the section QSS.
     ink = mix(palette.window_bg, palette.text_secondary)
     tuned = header.palette()
     for group in (QPalette.ColorGroup.Active, QPalette.ColorGroup.Inactive):
         for role in (QPalette.ColorRole.Button, QPalette.ColorRole.Window, QPalette.ColorRole.Base):
-            tuned.setColor(group, role, card)
+            tuned.setColor(group, role, surface)
         for role in (QPalette.ColorRole.ButtonText, QPalette.ColorRole.WindowText, QPalette.ColorRole.Text):
             tuned.setColor(group, role, ink)
     header.setPalette(tuned)
     header.viewport().setPalette(tuned)
+    vertical.setPalette(tuned)
+    vertical.viewport().setPalette(tuned)
 
 
 def _sync_record_id_header(table: QTableView) -> None:

@@ -141,9 +141,6 @@ class MainWindow(
         self._process_habit_bool_delegate: ProcessHabitBoolDelegate | None = None
         self._process_habit_int_delegate: ProcessHabitIntDelegate | None = None
 
-        # Define colors for different dates (used in process_habits table)
-        self.exercise_colors = generate_pastel_qcolors(50)
-
         # Chart configuration (for heatmap / ChartOperations mixin)
         self.max_count_points_in_charts = 40
 
@@ -405,8 +402,7 @@ class MainWindow(
         # Assign colors to dates
         date_to_color = {}
         for idx, date_str in enumerate(sorted_dates):
-            color_index = idx % len(self.exercise_colors)
-            date_to_color[date_str] = self.exercise_colors[color_index]
+            date_to_color[date_str] = day_band_color(idx)
 
         # Create headers: Date + all habit names
         headers = ["Date"] + [h_name for _, h_name, _is_bool in habits]
@@ -421,7 +417,7 @@ class MainWindow(
 
             # Date column (not editable)
             date_item = QStandardItem(date_str)
-            date_item.setBackground(QBrush(row_color))
+            set_day_band(date_item, row_color)
             date_item.setEditable(False)
             model.setItem(row_idx, 0, date_item)
 
@@ -432,7 +428,7 @@ class MainWindow(
                 # Create item with value or empty
                 item = QStandardItem(str(value)) if value is not None else QStandardItem("")
 
-                item.setBackground(QBrush(row_color))
+                set_day_band(item, row_color)
                 item.setEditable(not is_bool_habit)
 
                 # Store record_id and habit_id in UserRole for auto-save
@@ -2435,9 +2431,6 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107  (inhe
         self._process_habit_bool_delegate: ProcessHabitBoolDelegate | None = None
         self._process_habit_int_delegate: ProcessHabitIntDelegate | None = None
 
-        # Define colors for different dates (used in process_habits table)
-        self.exercise_colors = generate_pastel_qcolors(50)
-
         # Chart configuration (for heatmap / ChartOperations mixin)
         self.max_count_points_in_charts = 40
 
@@ -2745,8 +2738,7 @@ def load_process_habits_table(self, *, ignore_filter: bool = False) -> None:
         # Assign colors to dates
         date_to_color = {}
         for idx, date_str in enumerate(sorted_dates):
-            color_index = idx % len(self.exercise_colors)
-            date_to_color[date_str] = self.exercise_colors[color_index]
+            date_to_color[date_str] = day_band_color(idx)
 
         # Create headers: Date + all habit names
         headers = ["Date"] + [h_name for _, h_name, _is_bool in habits]
@@ -2761,7 +2753,7 @@ def load_process_habits_table(self, *, ignore_filter: bool = False) -> None:
 
             # Date column (not editable)
             date_item = QStandardItem(date_str)
-            date_item.setBackground(QBrush(row_color))
+            set_day_band(date_item, row_color)
             date_item.setEditable(False)
             model.setItem(row_idx, 0, date_item)
 
@@ -2772,7 +2764,7 @@ def load_process_habits_table(self, *, ignore_filter: bool = False) -> None:
                 # Create item with value or empty
                 item = QStandardItem(str(value)) if value is not None else QStandardItem("")
 
-                item.setBackground(QBrush(row_color))
+                set_day_band(item, row_color)
                 item.setEditable(not is_bool_habit)
 
                 # Store record_id and habit_id in UserRole for auto-save

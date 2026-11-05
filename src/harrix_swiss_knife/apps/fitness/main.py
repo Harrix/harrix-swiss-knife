@@ -96,13 +96,13 @@ from harrix_swiss_knife.apps.common.apps_config import (
     set_apps_fitness_workout_duration_min,
     set_apps_fitness_workout_gender,
 )
-from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
 from harrix_swiss_knife.apps.common.chart_theme import chart_label_face, themed_figure
 from harrix_swiss_knife.apps.common.date_edit_quick import (
     attach_date_edit_quick_controls,
     match_date_edit_form_height,
     match_layout_control_heights_many,
 )
+from harrix_swiss_knife.apps.common.day_bands import day_band_color, day_band_id_item, set_day_band
 from harrix_swiss_knife.apps.common.db_init import init_tracker_database
 from harrix_swiss_knife.apps.common.delegates import CheckboxDisplayDelegate, DateDelegate
 from harrix_swiss_knife.apps.common.delegates.name_local_list_delegate import (
@@ -443,9 +443,6 @@ class MainWindow(
             "weight": (self.tableView_weight, "weight", ["Weight", "Date"]),
             "statistics": (self.tableView_statistics, "statistics", ["Exercise", "Type", "Value", "Unit", "Date"]),
         }
-
-        # Define colors for different exercises (expanded palette)
-        self.exercise_colors = generate_pastel_qcolors(50)
 
         # For charts
         self._chart_update_timer = QTimer(self)
@@ -4625,7 +4622,7 @@ class MainWindow(
             id_col_date = 3
             for col_idx, value in enumerate(row[:4]):
                 item = QStandardItem(str(value) if value is not None else "")
-                item.setBackground(QBrush(row_color))
+                set_day_band(item, row_color)
 
                 if col_idx == id_col_date and str(value) == today:
                     font = item.font()
@@ -4635,7 +4632,7 @@ class MainWindow(
                 items.append(item)
 
             model.appendRow(items)
-            model.setVerticalHeaderItem(row_idx, QStandardItem(str(row_id)))
+            model.setVerticalHeaderItem(row_idx, day_band_id_item(row_id, row_color))
 
     def _apply_count_input_mode(self, unit: str) -> None:
         seconds_mode = is_seconds_exercise_unit(unit)
@@ -5262,9 +5259,7 @@ class MainWindow(
             items = []
             for col_idx, value in enumerate(row[:4]):  # Only first 4 elements for display
                 item = QStandardItem(str(value) if value is not None else "")
-
-                # Set background color for the item
-                item.setBackground(QBrush(row_color))
+                set_day_band(item, row_color)
 
                 # Check if this is today's record and make it bold
                 today = QDateTime.currentDateTime().toString("yyyy-MM-dd")
@@ -5279,10 +5274,7 @@ class MainWindow(
             model.appendRow(items)
 
             # Set the ID in vertical header
-            model.setVerticalHeaderItem(
-                row_idx,
-                QStandardItem(str(row_id)),
-            )
+            model.setVerticalHeaderItem(row_idx, day_band_id_item(row_id, row_color))
 
         proxy = RecordIdSortProxyModel()
         proxy.setSourceModel(model)
@@ -8979,7 +8971,7 @@ class MainWindow(
         for row in rows:
             date_str = row[5]
             if date_str and date_str not in date_to_color:
-                date_to_color[date_str] = self.exercise_colors[color_index % len(self.exercise_colors)]
+                date_to_color[date_str] = day_band_color(color_index)
                 color_index += 1
 
             date_color = date_to_color.get(date_str, QColor(255, 255, 255))

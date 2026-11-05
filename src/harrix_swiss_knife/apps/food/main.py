@@ -73,13 +73,13 @@ from harrix_swiss_knife.apps.common.apps_config import (
     get_apps_list_limits,
     get_apps_local_language_display_name,
 )
-from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
 from harrix_swiss_knife.apps.common.date_edit_quick import (
     attach_date_edit_quick_controls,
     match_date_edit_form_height,
     match_layout_control_heights,
     match_layout_control_heights_many,
 )
+from harrix_swiss_knife.apps.common.day_bands import clear_day_band, day_band_color, day_band_id_item, set_day_band
 from harrix_swiss_knife.apps.common.db_init import init_tracker_database
 from harrix_swiss_knife.apps.common.dialogs.simple_recording_dialog import SimpleRecordingDialog
 from harrix_swiss_knife.apps.common.qt_database_manager_base import QtSqliteDatabaseManagerBase
@@ -401,7 +401,6 @@ class MainWindow(
         }
 
         # Define colors for different dates (expanded palette)
-        self.date_colors = generate_pastel_qcolors(50)
 
         # Chart configuration
         self.max_count_points_in_charts = 50
@@ -1561,7 +1560,7 @@ class MainWindow(
 
             for col_idx, value in enumerate(row[:7]):
                 item = QStandardItem(str(value) if value is not None else "")
-                item.setBackground(QBrush(row_color))
+                set_day_band(item, row_color)
 
                 if col_idx == FOOD_LOG_COL_TOTAL_PER_DAY:
                     item.setEditable(False)
@@ -1573,7 +1572,7 @@ class MainWindow(
                 items.append(item)
 
             model.appendRow(items)
-            model.setVerticalHeaderItem(row_idx, QStandardItem(str(row_id)))
+            model.setVerticalHeaderItem(row_idx, day_band_id_item(row_id, row_color))
 
     def _apply_background_food_translate_response(
         self,
@@ -1699,6 +1698,7 @@ class MainWindow(
                 total_text = total_item.text().strip()
                 if not total_text:
                     total_item.setBackground(date_brush)
+                    clear_day_band(total_item)
                     font = total_item.font()
                     font.setBold(False)
                     total_item.setFont(font)
@@ -1707,8 +1707,10 @@ class MainWindow(
                     band = calorie_band_rgb(float(total_text), thresholds)
                 except (TypeError, ValueError):
                     total_item.setBackground(date_brush)
+                    clear_day_band(total_item)
                     continue
                 total_item.setBackground(QBrush(QColor(*band)))
+                clear_day_band(total_item)
                 font = total_item.font()
                 font.setBold(True)
                 total_item.setFont(font)
@@ -2014,9 +2016,7 @@ class MainWindow(
             items = []
             for col_idx, value in enumerate(row[:7]):
                 item = QStandardItem(str(value) if value is not None else "")
-
-                # Set background color for the item
-                item.setBackground(QBrush(row_color))
+                set_day_band(item, row_color)
 
                 # Make total per day column non-editable
                 if col_idx == FOOD_LOG_COL_TOTAL_PER_DAY:
@@ -2026,6 +2026,7 @@ class MainWindow(
                         try:
                             band = calorie_band_rgb(float(total_text), thresholds)
                             item.setBackground(QBrush(QColor(*band)))
+                            clear_day_band(item)
                             font = item.font()
                             font.setBold(True)
                             item.setFont(font)
@@ -2045,10 +2046,7 @@ class MainWindow(
             model.appendRow(items)
 
             # Set the ID in vertical header
-            model.setVerticalHeaderItem(
-                row_idx,
-                QStandardItem(str(row_id)),
-            )
+            model.setVerticalHeaderItem(row_idx, day_band_id_item(row_id, row_color))
 
         proxy = RecordIdSortProxyModel()
         proxy.setSourceModel(model)
@@ -4915,7 +4913,7 @@ class MainWindow(
             date_str = row[1]
 
             if date_str not in date_to_color:
-                date_to_color[date_str] = self.date_colors[color_index % len(self.date_colors)]
+                date_to_color[date_str] = day_band_color(color_index)
                 color_index += 1
 
             # Keep "0" visible for zero-kcal drinks (water); do not use truthiness.

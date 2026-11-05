@@ -34,7 +34,6 @@ from PySide6.QtCore import (
     QTimer,
 )
 from PySide6.QtGui import (
-    QBrush,
     QCloseEvent,
     QColor,
     QKeyEvent,
@@ -60,8 +59,8 @@ from harrix_swiss_knife import resources_rc  # noqa: F401
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.app_entry import run_app_main
 from harrix_swiss_knife.apps.common.apps_config import get_apps_list_limits, set_habits_sport_habit_name
-from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
 from harrix_swiss_knife.apps.common.chart_theme import themed_figure
+from harrix_swiss_knife.apps.common.day_bands import day_band_color, set_day_band
 from harrix_swiss_knife.apps.common.db_init import init_tracker_database
 from harrix_swiss_knife.apps.common.qt_database_manager_base import QtSqliteDatabaseManagerBase
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
@@ -222,9 +221,6 @@ class MainWindow(
         self._process_habits_int_columns: set[int] = set()
         self._process_habit_bool_delegate: ProcessHabitBoolDelegate | None = None
         self._process_habit_int_delegate: ProcessHabitIntDelegate | None = None
-
-        # Define colors for different dates (used in process_habits table)
-        self.exercise_colors = generate_pastel_qcolors(50)
 
         # Chart configuration (for heatmap / ChartOperations mixin)
         self.max_count_points_in_charts = 40
@@ -487,8 +483,7 @@ class MainWindow(
         # Assign colors to dates
         date_to_color = {}
         for idx, date_str in enumerate(sorted_dates):
-            color_index = idx % len(self.exercise_colors)
-            date_to_color[date_str] = self.exercise_colors[color_index]
+            date_to_color[date_str] = day_band_color(idx)
 
         # Create headers: Date + all habit names
         headers = ["Date"] + [h_name for _, h_name, _is_bool in habits]
@@ -503,7 +498,7 @@ class MainWindow(
 
             # Date column (not editable)
             date_item = QStandardItem(date_str)
-            date_item.setBackground(QBrush(row_color))
+            set_day_band(date_item, row_color)
             date_item.setEditable(False)
             model.setItem(row_idx, 0, date_item)
 
@@ -514,7 +509,7 @@ class MainWindow(
                 # Create item with value or empty
                 item = QStandardItem(str(value)) if value is not None else QStandardItem("")
 
-                item.setBackground(QBrush(row_color))
+                set_day_band(item, row_color)
                 item.setEditable(not is_bool_habit)
 
                 # Store record_id and habit_id in UserRole for auto-save

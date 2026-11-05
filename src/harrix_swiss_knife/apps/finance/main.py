@@ -38,7 +38,6 @@ from PySide6.QtCore import (
     QTimer,
 )
 from PySide6.QtGui import (
-    QBrush,
     QCloseEvent,
     QColor,
     QKeyEvent,
@@ -82,13 +81,13 @@ from harrix_swiss_knife import (
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.app_entry import run_app_main
 from harrix_swiss_knife.apps.common.apps_config import get_apps_list_limits
-from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
 from harrix_swiss_knife.apps.common.chart_theme import themed_figure
 from harrix_swiss_knife.apps.common.date_edit_quick import (
     attach_date_edit_quick_controls,
     match_date_edit_form_height,
     match_layout_control_heights_many,
 )
+from harrix_swiss_knife.apps.common.day_bands import day_band_colors, day_band_id_item, set_day_band
 from harrix_swiss_knife.apps.common.db_init import init_tracker_database
 from harrix_swiss_knife.apps.common.delegates import LucideCheckableItemDelegate
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
@@ -324,9 +323,6 @@ class MainWindow(
         self._bg_tx_translate_timer = QTimer(self)
         self._bg_tx_translate_timer.setSingleShot(True)
         self._bg_tx_translate_timer.timeout.connect(self._on_background_transaction_translate_timer)
-
-        # Generate pastel colors for date-based coloring
-        self.date_colors: list[QColor] = generate_pastel_qcolors(50)
 
         # Initialize mouse button tracking
         self._right_click_in_progress: bool = False
@@ -1637,11 +1633,11 @@ class MainWindow(
 
             for value in display_data:
                 item: QStandardItem = QStandardItem(str(value) if value is not None else "")
-                item.setBackground(QBrush(row_color))
+                set_day_band(item, row_color)
                 items.append(item)
 
             model.appendRow(items)
-            model.setVerticalHeaderItem(row_idx, QStandardItem(str(row_id)))
+            model.setVerticalHeaderItem(row_idx, day_band_id_item(row_id, row_color))
 
     def _append_transformed_rows_to_model(
         self,
@@ -1660,7 +1656,7 @@ class MainWindow(
 
             for col_idx, value in enumerate(display_data):
                 item: QStandardItem = QStandardItem(str(value) if value is not None else "")
-                item.setBackground(QBrush(row_color))
+                set_day_band(item, row_color)
 
                 if col_idx == self._TRANSACTION_AMOUNT_COLUMN:
                     original_value: str = (
@@ -1674,7 +1670,7 @@ class MainWindow(
                 items.append(item)
 
             model.appendRow(items)
-            model.setVerticalHeaderItem(row_idx, QStandardItem(str(row_id)))
+            model.setVerticalHeaderItem(row_idx, day_band_id_item(row_id, row_color))
 
     def _apply_background_transaction_translate_response(
         self,
@@ -2227,9 +2223,7 @@ class MainWindow(
 
             for col_idx, value in enumerate(display_data):
                 item: QStandardItem = QStandardItem(str(value) if value is not None else "")
-
-                # Set background color for the item
-                item.setBackground(QBrush(row_color))
+                set_day_band(item, row_color)
 
                 # For amount column, store original value without minus sign for editing
                 if col_idx == self._TRANSACTION_AMOUNT_COLUMN:
@@ -2248,10 +2242,7 @@ class MainWindow(
             model.appendRow(items)
 
             # Set the ID in vertical header
-            model.setVerticalHeaderItem(
-                row_idx,
-                QStandardItem(str(row_id)),
-            )
+            model.setVerticalHeaderItem(row_idx, day_band_id_item(row_id, row_color))
 
         proxy: QSortFilterProxyModel = RecordIdSortProxyModel()
         proxy.setSourceModel(model)
@@ -6339,7 +6330,7 @@ class MainWindow(
         result = transform_transaction_data_helper(
             rows,
             daily_expenses,
-            self.date_colors,
+            day_band_colors(),
             self.db_manager,
             dates_with_totals=self._transactions_dates_with_totals if append_state else None,
             date_to_color_index=self._transactions_date_color_map if append_state else None,

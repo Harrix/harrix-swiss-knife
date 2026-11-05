@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import contextlib
 import logging
+import warnings
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, cast
 
@@ -957,8 +958,11 @@ def _disconnect_emitted_signals(worker: QThread) -> None:
             signal = getattr(worker, name, None)
             if signal is None:
                 continue
-            with contextlib.suppress(RuntimeError, TypeError):
-                signal.disconnect()
+            # disconnect() warns when a Qt signal has no Python slots.
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", RuntimeWarning)
+                with contextlib.suppress(RuntimeError, TypeError):
+                    signal.disconnect()
 
 
 def _require_db_filename_for_worker(db_manager: object) -> str:

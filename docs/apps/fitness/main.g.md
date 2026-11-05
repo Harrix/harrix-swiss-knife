@@ -251,9 +251,6 @@ class MainWindow(
             "statistics": (self.tableView_statistics, "statistics", ["Exercise", "Type", "Value", "Unit", "Date"]),
         }
 
-        # Define colors for different exercises (expanded palette)
-        self.exercise_colors = generate_pastel_qcolors(50)
-
         # For charts
         self._chart_update_timer = QTimer(self)
         self._chart_update_timer.setSingleShot(True)
@@ -4432,7 +4429,7 @@ class MainWindow(
             id_col_date = 3
             for col_idx, value in enumerate(row[:4]):
                 item = QStandardItem(str(value) if value is not None else "")
-                item.setBackground(QBrush(row_color))
+                set_day_band(item, row_color)
 
                 if col_idx == id_col_date and str(value) == today:
                     font = item.font()
@@ -4442,7 +4439,7 @@ class MainWindow(
                 items.append(item)
 
             model.appendRow(items)
-            model.setVerticalHeaderItem(row_idx, QStandardItem(str(row_id)))
+            model.setVerticalHeaderItem(row_idx, day_band_id_item(row_id, row_color))
 
     def _apply_count_input_mode(self, unit: str) -> None:
         seconds_mode = is_seconds_exercise_unit(unit)
@@ -5069,9 +5066,7 @@ class MainWindow(
             items = []
             for col_idx, value in enumerate(row[:4]):  # Only first 4 elements for display
                 item = QStandardItem(str(value) if value is not None else "")
-
-                # Set background color for the item
-                item.setBackground(QBrush(row_color))
+                set_day_band(item, row_color)
 
                 # Check if this is today's record and make it bold
                 today = QDateTime.currentDateTime().toString("yyyy-MM-dd")
@@ -5086,10 +5081,7 @@ class MainWindow(
             model.appendRow(items)
 
             # Set the ID in vertical header
-            model.setVerticalHeaderItem(
-                row_idx,
-                QStandardItem(str(row_id)),
-            )
+            model.setVerticalHeaderItem(row_idx, day_band_id_item(row_id, row_color))
 
         proxy = RecordIdSortProxyModel()
         proxy.setSourceModel(model)
@@ -8786,7 +8778,7 @@ class MainWindow(
         for row in rows:
             date_str = row[5]
             if date_str and date_str not in date_to_color:
-                date_to_color[date_str] = self.exercise_colors[color_index % len(self.exercise_colors)]
+                date_to_color[date_str] = day_band_color(color_index)
                 color_index += 1
 
             date_color = date_to_color.get(date_str, QColor(255, 255, 255))
@@ -9325,9 +9317,6 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
             "weight": (self.tableView_weight, "weight", ["Weight", "Date"]),
             "statistics": (self.tableView_statistics, "statistics", ["Exercise", "Type", "Value", "Unit", "Date"]),
         }
-
-        # Define colors for different exercises (expanded palette)
-        self.exercise_colors = generate_pastel_qcolors(50)
 
         # For charts
         self._chart_update_timer = QTimer(self)
