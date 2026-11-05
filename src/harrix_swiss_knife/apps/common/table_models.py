@@ -9,18 +9,16 @@ from PySide6.QtCore import (
     QModelIndex,
     QObject,
     QPersistentModelIndex,
-    QPoint,
     QRect,
     QSortFilterProxyModel,
     Qt,
     QTimer,
 )
-from PySide6.QtGui import QBrush, QColor, QGuiApplication, QIcon, QPainter, QPolygon, QStandardItem, QStandardItemModel
-from PySide6.QtWidgets import QAbstractButton, QWidget
+from PySide6.QtGui import QBrush, QGuiApplication, QIcon, QPainter, QStandardItem, QStandardItemModel
+from PySide6.QtWidgets import QAbstractButton, QStyle, QStyleOptionHeader, QWidget
 
 from harrix_swiss_knife.apps.common.record_id_sort import ROW_ID_SORT_SECTION as _ROW_ID_SORT_SECTION
 from harrix_swiss_knife.apps.common.record_id_sort import RecordIdSortProxyModel
-from harrix_swiss_knife.apps.common.ui_chrome import MUTED_TEXT
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -81,13 +79,24 @@ class _RecordIdCornerMark(QWidget):
         if self._order is None:
             return
         painter = QPainter(self)
-        _paint_sort_triangle(painter, self.rect(), self._order)
+        _paint_header_sort_indicator(painter, self._indicator_widget(), self.rect(), self._order)
         painter.end()
 
     def set_order(self, order: Qt.SortOrder | None) -> None:
         """Show an up or down mark, or nothing when the ID column is not sorted."""
         self._order = order
         self.update()
+
+    def _indicator_widget(self) -> QWidget:
+        """Use the column header so the ID mark is drawn with that header's arrow."""
+        button = self.parentWidget()
+        table = button.parentWidget() if button is not None else None
+        header_getter = getattr(table, "horizontalHeader", None)
+        if callable(header_getter):
+            header = header_getter()
+            if isinstance(header, QWidget):
+                return header
+        return self
 
 
 def append_colored_table_row(
@@ -600,25 +609,26 @@ def _normalize_column_index(index: int, row_length: int) -> int:
     return index
 
 
-def _paint_sort_triangle(painter: QPainter, rect: QRect, order: Qt.SortOrder) -> None:
-    """Draw a small up or down mark in the center of `rect`."""
-    center = rect.center()
-    size = 4
-    if order == Qt.SortOrder.AscendingOrder:
-        points = (
-            QPoint(center.x(), center.y() - size),
-            QPoint(center.x() - size, center.y() + size // 2),
-            QPoint(center.x() + size, center.y() + size // 2),
-        )
-    else:
-        points = (
-            QPoint(center.x(), center.y() + size),
-            QPoint(center.x() - size, center.y() - size // 2),
-            QPoint(center.x() + size, center.y() - size // 2),
-        )
-    painter.setPen(Qt.PenStyle.NoPen)
-    painter.setBrush(QColor(MUTED_TEXT))
-    painter.drawPolygon(QPolygon(points))
+def _paint_header_sort_indicator(painter: QPainter, widget: QWidget, rect: QRect, order: Qt.SortOrder) -> None:
+    """Draw the same sort chevron a column header uses for `order`."""
+    style = widget.style()
+    if style is None:
+        return
+    option = QStyleOptionHeader()
+    option.initFrom(widget)
+    option.rect = rect
+    option.position = QStyleOptionHeader.SectionPosition.OnlyOneSection
+    # Ascending is SortDown in Qt. That value is the header's up chevron.
+    option.sortIndicator = (
+        QStyleOptionHeader.SortIndicator.SortDown
+        if order == Qt.SortOrder.AscendingOrder
+        else QStyleOptionHeader.SortIndicator.SortUp
+    )
+    arrow = style.subElementRect(QStyle.SubElement.SE_HeaderArrow, option, widget)
+    if not arrow.isValid():
+        return
+    option.rect = arrow
+    style.drawPrimitive(QStyle.PrimitiveElement.PE_IndicatorHeaderArrow, option, painter, widget)
 
 
 def _set_record_id_corner_order(table: QTableView, order: Qt.SortOrder | None) -> None:
