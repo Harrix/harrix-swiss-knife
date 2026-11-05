@@ -5,11 +5,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
-from PySide6.QtCore import QCoreApplication, QEvent
-from PySide6.QtWidgets import QApplication, QWidget
+from PySide6.QtCore import QCoreApplication, QEvent, QSortFilterProxyModel
+from PySide6.QtGui import QStandardItem, QStandardItemModel
+from PySide6.QtWidgets import QApplication, QTableView, QWidget
 from shiboken6 import isValid
 
 from harrix_swiss_knife.fluent import FluentTheme, ThemeMode, is_fluent_themed, palette_for
+from harrix_swiss_knife.fluent.app_chrome import _sync_record_id_header, _watch_record_id_header
 from harrix_swiss_knife.fluent.gallery import build_gallery
 from harrix_swiss_knife.fluent.tokens import DARK_PALETTE, LIGHT_PALETTE
 from harrix_swiss_knife.fluent.widgets import (
@@ -181,3 +183,40 @@ def test_popups_instantiate(qapp: QApplication, light_theme: FluentTheme) -> Non
     qapp.processEvents()
     _dispose(qapp, dialog)
     _dispose(qapp, host)
+
+
+def test_record_id_header_appears_after_rows_arrive(qapp: QApplication) -> None:
+    """An empty table keeps its id column, then shows database ids once rows exist."""
+    assert qapp is not None
+    table = QTableView()
+    _watch_record_id_header(table)
+    _sync_record_id_header(table)
+    assert not table.verticalHeader().isHidden()
+
+    source = QStandardItemModel()
+    source.setHorizontalHeaderLabels(["Name"])
+    source.appendRow([QStandardItem("Milk")])
+    source.setVerticalHeaderItem(0, QStandardItem("42"))
+    proxy = QSortFilterProxyModel()
+    proxy.setSourceModel(source)
+    table.setModel(proxy)
+    qapp.processEvents()
+
+    header = table.verticalHeader()
+    assert not header.isHidden()
+    assert header.minimumWidth() >= 16
+    _dispose(qapp, table)
+
+
+def test_row_number_header_stays_hidden(qapp: QApplication) -> None:
+    """Tables without record ids do not keep the default row-number column."""
+    assert qapp is not None
+    table = QTableView()
+    _watch_record_id_header(table)
+    model = QStandardItemModel()
+    model.setHorizontalHeaderLabels(["Name"])
+    model.appendRow([QStandardItem("Milk")])
+    table.setModel(model)
+    qapp.processEvents()
+    assert table.verticalHeader().isHidden()
+    _dispose(qapp, table)

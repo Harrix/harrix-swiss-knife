@@ -97,9 +97,11 @@ class WordWrapHeaderView(QHeaderView):
         if self._hover_boundary_x is None:
             return
         painter = QPainter(self.viewport())
-        painter.setPen(QPen(QColor(SELECTION_BORDER), 2))
+        painter.setPen(QPen(QColor(MUTED_TEXT), 1))
         x = self._hover_boundary_x
-        painter.drawLine(x, 0, x, self.viewport().height())
+        height = self.viewport().height()
+        inset = min(_BOUNDARY_INSET_PX, max((height - 8) // 2, 0))
+        painter.drawLine(x, inset, x, max(inset, height - inset - 1))
         painter.end()
 
     def paintSection(self, painter: QPainter, rect: QRect, logical_index: int) -> None:  # noqa: N802
@@ -330,9 +332,11 @@ def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
         if self._hover_boundary_x is None:
             return
         painter = QPainter(self.viewport())
-        painter.setPen(QPen(QColor(SELECTION_BORDER), 2))
+        painter.setPen(QPen(QColor(MUTED_TEXT), 1))
         x = self._hover_boundary_x
-        painter.drawLine(x, 0, x, self.viewport().height())
+        height = self.viewport().height()
+        inset = min(_BOUNDARY_INSET_PX, max((height - 8) // 2, 0))
+        painter.drawLine(x, inset, x, max(inset, height - inset - 1))
         painter.end()
 ```
 

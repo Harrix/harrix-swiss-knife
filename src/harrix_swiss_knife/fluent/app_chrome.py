@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QSize, Qt
+from PySide6.QtCore import QSize, Qt, QTimer
 from PySide6.QtGui import QColor, QFont, QPalette
 from PySide6.QtWidgets import (
     QAbstractButton,
@@ -639,7 +639,8 @@ def _style_table(table: QTableView, palette: FluentPalette) -> None:
     if isinstance(header, QHeaderView):
         header.setMinimumHeight(CONTROL_HEIGHT)
     vertical = table.verticalHeader()
-    vertical.setVisible(_table_shows_record_ids(table))
+    _watch_record_id_header(table)
+    _sync_record_id_header(table)
     floor = CONTROL_HEIGHT + SPACE_S
     if vertical.defaultSectionSize() < floor:
         vertical.setDefaultSectionSize(floor)
@@ -681,6 +682,32 @@ def _style_table(table: QTableView, palette: FluentPalette) -> None:
     header.viewport().setPalette(tuned)
 
 
+def _sync_record_id_header(table: QTableView) -> None:
+    """Show the vertical header once its labels are record ids, not row numbers.
+
+    Chrome runs before tracker tables are filled. An empty model must not hide the
+    header, or the ids never come back when the rows arrive.
+
+    """
+    model = table.model()
+    if model is None or model.rowCount() <= 0:
+        return
+    vertical = table.verticalHeader()
+    show = _table_shows_record_ids(table)
+    vertical.setVisible(show)
+    if not show:
+        return
+    metrics = vertical.fontMetrics()
+    text_width = 0
+    sample = min(model.rowCount(), 40)
+    for row in range(sample):
+        value = model.headerData(row, Qt.Orientation.Vertical, Qt.ItemDataRole.DisplayRole)
+        text_width = max(text_width, metrics.horizontalAdvance("" if value is None else str(value)))
+    width = max(text_width + 16, vertical.sizeHint().width())
+    if width > vertical.minimumWidth():
+        vertical.setMinimumWidth(width)
+
+
 def _table_shows_record_ids(table: QTableView) -> bool:
     """Return whether the vertical header carries labels other than row numbers."""
     model = table.model()
@@ -693,3 +720,26 @@ def _table_shows_record_ids(table: QTableView) -> bool:
         if text and text != str(row + 1):
             return True
     return False
+
+
+def _watch_record_id_header(table: QTableView) -> None:
+    """Re-check record-id labels when the table gains rows."""
+    if table.property("hskRecordIdHeaderWatch"):
+        return
+    table.setProperty("hskRecordIdHeaderWatch", 1)
+
+    def _defer_sync() -> None:
+        try:
+            _sync_record_id_header(table)
+        except RuntimeError:
+            return
+
+    def _on_section_count_changed(_old_count: int, new_count: int) -> None:
+        # sectionCountChanged is emitted inside setModel, before the view model is ready.
+        if new_count > 0:
+            QTimer.singleShot(0, _defer_sync)
+
+    # PySide does not keep a Python slot alive by itself.
+    table._hsk_record_id_header_slot = _defer_sync  # type: ignore[attr-defined]  # noqa: SLF001
+    table._hsk_record_id_header_watch = _on_section_count_changed  # type: ignore[attr-defined]  # noqa: SLF001
+    table.verticalHeader().sectionCountChanged.connect(_on_section_count_changed)
