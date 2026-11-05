@@ -16,16 +16,16 @@ from PySide6.QtCore import (
     QTimer,
 )
 from PySide6.QtGui import QBrush, QColor, QGuiApplication, QIcon, QPainter, QPolygon, QStandardItem, QStandardItemModel
-from PySide6.QtWidgets import QAbstractButton
+from PySide6.QtWidgets import QAbstractButton, QWidget
 
 from harrix_swiss_knife.apps.common.record_id_sort import ROW_ID_SORT_SECTION as _ROW_ID_SORT_SECTION
 from harrix_swiss_knife.apps.common.record_id_sort import RecordIdSortProxyModel
-from harrix_swiss_knife.apps.common.ui_chrome import MUTED_TEXT, SELECTION_HOVER
+from harrix_swiss_knife.apps.common.ui_chrome import MUTED_TEXT
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from PySide6.QtGui import QEnterEvent, QPaintEvent
+    from PySide6.QtGui import QPaintEvent
     from PySide6.QtWidgets import QTableView
 
 _COLUMN_FILL_GUARD_PROP = "hskColumnFillGuard"
@@ -57,45 +57,37 @@ class ColoredTableProxyModel(RecordIdSortProxyModel):
         return super().lessThan(source_left, source_right)
 
 
-class RecordIdCornerButton(QAbstractButton):
-    """Corner control above the record-id header. Clicks cycle the ID sort."""
+class _RecordIdCornerMark(QWidget):
+    """Sort triangle drawn on top of the table's header-corner button."""
 
-    def __init__(self, table: QTableView) -> None:
-        """Create the corner button for `table`."""
-        super().__init__(table)
-        self._table = table
+    def __init__(self, button: QAbstractButton) -> None:
+        """Cover `button` without taking its clicks."""
+        super().__init__(button)
         self._order: Qt.SortOrder | None = None
-        self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setMouseTracking(True)
-        self.setToolTip("Sort by ID")
-        self.clicked.connect(self._on_clicked)
+        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
+        self.setAttribute(Qt.WidgetAttribute.WA_NoSystemBackground, on=True)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, on=True)
+        button.installEventFilter(self)
+        self.setGeometry(button.rect())
 
-    def enterEvent(self, event: QEnterEvent) -> None:  # noqa: N802
-        """Repaint so the hover fill appears."""
-        self.update()
-        super().enterEvent(event)
-
-    def leaveEvent(self, event: QEvent) -> None:  # noqa: N802
-        """Repaint so the hover fill disappears."""
-        self.update()
-        super().leaveEvent(event)
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
+        """Keep the mark the same size as the corner button."""
+        if event.type() in {QEvent.Type.Resize, QEvent.Type.Show}:
+            self.setGeometry(watched.rect())
+        return False
 
     def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
-        """Paint a header cell and the current id-sort direction."""
+        """Draw the current id-sort direction, or nothing when unsorted."""
+        if self._order is None:
+            return
         painter = QPainter(self)
-        color = QColor(SELECTION_HOVER) if self.underMouse() else self.palette().color(self.backgroundRole())
-        painter.fillRect(self.rect(), color)
-        if self._order is not None:
-            _paint_sort_triangle(painter, self.rect(), self._order)
+        _paint_sort_triangle(painter, self.rect(), self._order)
         painter.end()
 
     def set_order(self, order: Qt.SortOrder | None) -> None:
         """Show an up or down mark, or nothing when the ID column is not sorted."""
         self._order = order
         self.update()
-
-    def _on_clicked(self) -> None:
-        sort_table_by_record_id_click(self._table)
 
 
 def append_colored_table_row(
@@ -259,21 +251,33 @@ def create_table_proxy_model(
 
 
 def enable_record_id_corner_sort(table: QTableView) -> None:
-    """Put a clickable sort control in the corner above the record-id header.
+    """Sort by record ID when the header corner above that column is clicked.
 
-    Clicks follow the same cycle as a column header: ascending, descending, then
-    the original order.
+    Qt's corner button selects every row. `QTableView` has no setter for that
+    button; `setCornerWidget` only fills the scrollbar corner. This disconnects
+    select-all and uses the same click cycle as a column header.
 
     """
     if table.property("hskRecordIdCorner"):
         return
-    button = RecordIdCornerButton(table)
-    table.setCornerWidget(button)
+    button = _table_corner_button(table)
+    if button is None:
+        return
+    button.clicked.disconnect()
+
+    def _on_corner_clicked() -> None:
+        sort_table_by_record_id_click(table)
+
+    table._hsk_record_id_corner_slot = _on_corner_clicked  # type: ignore[attr-defined]  # noqa: SLF001
+    button.clicked.connect(_on_corner_clicked)
+    button.setCursor(Qt.CursorShape.PointingHandCursor)
+    button.setToolTip("Sort by ID")
+    mark = _RecordIdCornerMark(button)
     table.setProperty("hskRecordIdCorner", 1)
-    table._hsk_record_id_corner = button  # type: ignore[attr-defined]  # noqa: SLF001
+    table._hsk_record_id_corner = mark  # type: ignore[attr-defined]  # noqa: SLF001
     stored = get_stored_table_header_sort(table)
     if stored is not None and stored[0] == _ROW_ID_SORT_SECTION:
-        button.set_order(stored[1])
+        mark.set_order(stored[1])
 
 
 def enable_table_header_sorting(
@@ -619,10 +623,18 @@ def _paint_sort_triangle(painter: QPainter, rect: QRect, order: Qt.SortOrder) ->
 
 def _set_record_id_corner_order(table: QTableView, order: Qt.SortOrder | None) -> None:
     corner = getattr(table, "_hsk_record_id_corner", None)
-    if isinstance(corner, RecordIdCornerButton):
+    if isinstance(corner, _RecordIdCornerMark):
         corner.set_order(order)
 
 
 def _sortable_row_id(index: QModelIndex | QPersistentModelIndex) -> int | None:
     """Read a numeric ID stored on an icon cell for first-column sorting."""
     return _as_sort_id(index.data(Qt.ItemDataRole.UserRole))
+
+
+def _table_corner_button(table: QTableView) -> QAbstractButton | None:
+    """Return the header-corner button that Qt uses to select every row."""
+    for child in table.findChildren(QAbstractButton):
+        if child.metaObject().className() == "QTableCornerButton":
+            return child
+    return None

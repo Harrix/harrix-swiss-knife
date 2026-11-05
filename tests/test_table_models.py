@@ -5,7 +5,8 @@ from __future__ import annotations
 import pytest
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QIcon
-from PySide6.QtWidgets import QApplication, QTableView
+from PySide6.QtTest import QTest
+from PySide6.QtWidgets import QAbstractButton, QApplication, QTableView
 
 from harrix_swiss_knife.apps.common.table_models import (
     append_colored_table_row,
@@ -60,10 +61,18 @@ def test_record_id_corner_cycles_sort(qapp: QApplication) -> None:
     assert get_stored_table_header_sort(table) is None
     assert [proxy.index(row, 0).data() for row in range(3)] == ["C", "A", "B"]
 
-    corner = table.cornerWidget()
-    assert corner is not None
-    corner.click()
+    table.resize(400, 200)
+    table.show()
+    qapp.processEvents()
+    corner = next(
+        child for child in table.findChildren(QAbstractButton) if child.metaObject().className() == "QTableCornerButton"
+    )
+    QTest.mouseClick(corner, Qt.MouseButton.LeftButton)
+    qapp.processEvents()
+    assert table.selectionModel() is not None
+    assert table.selectionModel().selectedRows() == []
     assert [proxy.index(row, 0).data() for row in range(3)] == ["A", "B", "C"]
+    table.close()
 
 
 def test_next_table_sort_order_toggles_same_column() -> None:

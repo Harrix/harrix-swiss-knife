@@ -13,12 +13,6 @@ lang: en
 
 - [🏛️ Class `ColoredTableProxyModel`](#%EF%B8%8F-class-coloredtableproxymodel)
   - [⚙️ Method `lessThan`](#%EF%B8%8F-method-lessthan)
-- [🏛️ Class `RecordIdCornerButton`](#%EF%B8%8F-class-recordidcornerbutton)
-  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
-  - [⚙️ Method `enterEvent`](#%EF%B8%8F-method-enterevent)
-  - [⚙️ Method `leaveEvent`](#%EF%B8%8F-method-leaveevent)
-  - [⚙️ Method `paintEvent`](#%EF%B8%8F-method-paintevent)
-  - [⚙️ Method `set_order`](#%EF%B8%8F-method-set_order)
 - [🔧 Function `append_colored_table_row`](#-function-append_colored_table_row)
 - [🔧 Function `apply_stored_table_header_sort`](#-function-apply_stored_table_header_sort)
 - [🔧 Function `bind_column_fill_on_resize`](#-function-bind_column_fill_on_resize)
@@ -95,164 +89,6 @@ def lessThan(  # noqa: N802
             if left_id is not None and right_id is not None:
                 return left_id < right_id
         return super().lessThan(source_left, source_right)
-```
-
-</details>
-
-## 🏛️ Class `RecordIdCornerButton`
-
-```python
-class RecordIdCornerButton(QAbstractButton)
-```
-
-Corner control above the record-id header. Clicks cycle the ID sort.
-
-<details>
-<summary>Code:</summary>
-
-```python
-class RecordIdCornerButton(QAbstractButton):
-
-    def __init__(self, table: QTableView) -> None:
-        """Create the corner button for `table`."""
-        super().__init__(table)
-        self._table = table
-        self._order: Qt.SortOrder | None = None
-        self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setMouseTracking(True)
-        self.setToolTip("Sort by ID")
-        self.clicked.connect(self._on_clicked)
-
-    def enterEvent(self, event: QEnterEvent) -> None:  # noqa: N802
-        """Repaint so the hover fill appears."""
-        self.update()
-        super().enterEvent(event)
-
-    def leaveEvent(self, event: QEvent) -> None:  # noqa: N802
-        """Repaint so the hover fill disappears."""
-        self.update()
-        super().leaveEvent(event)
-
-    def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
-        """Paint a header cell and the current id-sort direction."""
-        painter = QPainter(self)
-        color = QColor(SELECTION_HOVER) if self.underMouse() else self.palette().color(self.backgroundRole())
-        painter.fillRect(self.rect(), color)
-        if self._order is not None:
-            _paint_sort_triangle(painter, self.rect(), self._order)
-        painter.end()
-
-    def set_order(self, order: Qt.SortOrder | None) -> None:
-        """Show an up or down mark, or nothing when the ID column is not sorted."""
-        self._order = order
-        self.update()
-
-    def _on_clicked(self) -> None:
-        sort_table_by_record_id_click(self._table)
-```
-
-</details>
-
-### ⚙️ Method `__init__`
-
-```python
-def __init__(self, table: QTableView) -> None
-```
-
-Create the corner button for `table`.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def __init__(self, table: QTableView) -> None:
-        super().__init__(table)
-        self._table = table
-        self._order: Qt.SortOrder | None = None
-        self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setMouseTracking(True)
-        self.setToolTip("Sort by ID")
-        self.clicked.connect(self._on_clicked)
-```
-
-</details>
-
-### ⚙️ Method `enterEvent`
-
-```python
-def enterEvent(self, event: QEnterEvent) -> None
-```
-
-Repaint so the hover fill appears.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def enterEvent(self, event: QEnterEvent) -> None:  # noqa: N802
-        self.update()
-        super().enterEvent(event)
-```
-
-</details>
-
-### ⚙️ Method `leaveEvent`
-
-```python
-def leaveEvent(self, event: QEvent) -> None
-```
-
-Repaint so the hover fill disappears.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def leaveEvent(self, event: QEvent) -> None:  # noqa: N802
-        self.update()
-        super().leaveEvent(event)
-```
-
-</details>
-
-### ⚙️ Method `paintEvent`
-
-```python
-def paintEvent(self, _event: QPaintEvent) -> None
-```
-
-Paint a header cell and the current id-sort direction.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
-        painter = QPainter(self)
-        color = QColor(SELECTION_HOVER) if self.underMouse() else self.palette().color(self.backgroundRole())
-        painter.fillRect(self.rect(), color)
-        if self._order is not None:
-            _paint_sort_triangle(painter, self.rect(), self._order)
-        painter.end()
-```
-
-</details>
-
-### ⚙️ Method `set_order`
-
-```python
-def set_order(self, order: Qt.SortOrder | None) -> None
-```
-
-Show an up or down mark, or nothing when the ID column is not sorted.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def set_order(self, order: Qt.SortOrder | None) -> None:
-        self._order = order
-        self.update()
 ```
 
 </details>
@@ -508,10 +344,11 @@ def create_table_proxy_model(
 def enable_record_id_corner_sort(table: QTableView) -> None
 ```
 
-Put a clickable sort control in the corner above the record-id header.
+Sort by record ID when the header corner above that column is clicked.
 
-Clicks follow the same cycle as a column header: ascending, descending, then
-the original order.
+Qt's corner button selects every row. `QTableView` has no setter for that
+button; `setCornerWidget` only fills the scrollbar corner. This disconnects
+select-all and uses the same click cycle as a column header.
 
 <details>
 <summary>Code:</summary>
@@ -520,13 +357,24 @@ the original order.
 def enable_record_id_corner_sort(table: QTableView) -> None:
     if table.property("hskRecordIdCorner"):
         return
-    button = RecordIdCornerButton(table)
-    table.setCornerWidget(button)
+    button = _table_corner_button(table)
+    if button is None:
+        return
+    button.clicked.disconnect()
+
+    def _on_corner_clicked() -> None:
+        sort_table_by_record_id_click(table)
+
+    table._hsk_record_id_corner_slot = _on_corner_clicked  # type: ignore[attr-defined]  # noqa: SLF001
+    button.clicked.connect(_on_corner_clicked)
+    button.setCursor(Qt.CursorShape.PointingHandCursor)
+    button.setToolTip("Sort by ID")
+    mark = _RecordIdCornerMark(button)
     table.setProperty("hskRecordIdCorner", 1)
-    table._hsk_record_id_corner = button  # type: ignore[attr-defined]  # noqa: SLF001
+    table._hsk_record_id_corner = mark  # type: ignore[attr-defined]  # noqa: SLF001
     stored = get_stored_table_header_sort(table)
     if stored is not None and stored[0] == _ROW_ID_SORT_SECTION:
-        button.set_order(stored[1])
+        mark.set_order(stored[1])
 ```
 
 </details>
