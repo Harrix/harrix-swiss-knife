@@ -20,7 +20,7 @@ lang: en
 ## 🏛️ Class `CategoriesTableProxyModel`
 
 ```python
-class CategoriesTableProxyModel(QSortFilterProxyModel)
+class CategoriesTableProxyModel(RecordIdSortProxyModel)
 ```
 
 Sort categories by type, then by plain name (ignoring display icon).
@@ -29,7 +29,7 @@ Sort categories by type, then by plain name (ignoring display icon).
 <summary>Code:</summary>
 
 ```python
-class CategoriesTableProxyModel(QSortFilterProxyModel):
+class CategoriesTableProxyModel(RecordIdSortProxyModel):
 
     def lessThan(  # noqa: N802
         self,
@@ -37,6 +37,8 @@ class CategoriesTableProxyModel(QSortFilterProxyModel):
         source_right: QModelIndex | QPersistentModelIndex,
     ) -> bool:
         """Compare rows by type UserRole, then name UserRole."""
+        if self._sort_by_record_id:
+            return super().lessThan(source_left, source_right)
         source_model = self.sourceModel()
         if source_model is None:
             return False
@@ -76,6 +78,8 @@ def lessThan(  # noqa: N802
         source_left: QModelIndex | QPersistentModelIndex,
         source_right: QModelIndex | QPersistentModelIndex,
     ) -> bool:
+        if self._sort_by_record_id:
+            return super().lessThan(source_left, source_right)
         source_model = self.sourceModel()
         if source_model is None:
             return False

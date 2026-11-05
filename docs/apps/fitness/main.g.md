@@ -5091,7 +5091,7 @@ class MainWindow(
                 QStandardItem(str(row_id)),
             )
 
-        proxy = QSortFilterProxyModel()
+        proxy = RecordIdSortProxyModel()
         proxy.setSourceModel(model)
         return proxy
 

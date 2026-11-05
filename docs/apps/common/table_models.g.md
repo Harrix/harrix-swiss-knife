@@ -13,6 +13,12 @@ lang: en
 
 - [🏛️ Class `ColoredTableProxyModel`](#%EF%B8%8F-class-coloredtableproxymodel)
   - [⚙️ Method `lessThan`](#%EF%B8%8F-method-lessthan)
+- [🏛️ Class `RecordIdCornerButton`](#%EF%B8%8F-class-recordidcornerbutton)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `enterEvent`](#%EF%B8%8F-method-enterevent)
+  - [⚙️ Method `leaveEvent`](#%EF%B8%8F-method-leaveevent)
+  - [⚙️ Method `paintEvent`](#%EF%B8%8F-method-paintevent)
+  - [⚙️ Method `set_order`](#%EF%B8%8F-method-set_order)
 - [🔧 Function `append_colored_table_row`](#-function-append_colored_table_row)
 - [🔧 Function `apply_stored_table_header_sort`](#-function-apply_stored_table_header_sort)
 - [🔧 Function `bind_column_fill_on_resize`](#-function-bind_column_fill_on_resize)
@@ -20,12 +26,14 @@ lang: en
 - [🔧 Function `columns_fill_viewport`](#-function-columns_fill_viewport)
 - [🔧 Function `create_colored_table_proxy_model`](#-function-create_colored_table_proxy_model)
 - [🔧 Function `create_table_proxy_model`](#-function-create_table_proxy_model)
+- [🔧 Function `enable_record_id_corner_sort`](#-function-enable_record_id_corner_sort)
 - [🔧 Function `enable_table_header_sorting`](#-function-enable_table_header_sorting)
 - [🔧 Function `get_stored_table_header_sort`](#-function-get_stored_table_header_sort)
 - [🔧 Function `make_table_columns_resizable`](#-function-make_table_columns_resizable)
 - [🔧 Function `next_table_sort_order`](#-function-next_table_sort_order)
 - [🔧 Function `set_stored_table_header_sort`](#-function-set_stored_table_header_sort)
 - [🔧 Function `sort_table_by_header_click`](#-function-sort_table_by_header_click)
+- [🔧 Function `sort_table_by_record_id_click`](#-function-sort_table_by_record_id_click)
 - [🔧 Function `user_resized_columns`](#-function-user_resized_columns)
 
 </details>
@@ -33,7 +41,7 @@ lang: en
 ## 🏛️ Class `ColoredTableProxyModel`
 
 ```python
-class ColoredTableProxyModel(QSortFilterProxyModel)
+class ColoredTableProxyModel(RecordIdSortProxyModel)
 ```
 
 Proxy that sorts an icon-only first column by the row database ID.
@@ -42,7 +50,7 @@ Proxy that sorts an icon-only first column by the row database ID.
 <summary>Code:</summary>
 
 ```python
-class ColoredTableProxyModel(QSortFilterProxyModel):
+class ColoredTableProxyModel(RecordIdSortProxyModel):
 
     def lessThan(  # noqa: N802
         self,
@@ -50,6 +58,8 @@ class ColoredTableProxyModel(QSortFilterProxyModel):
         source_right: QModelIndex | QPersistentModelIndex,
     ) -> bool:
         """Compare icon cells by stored ID; other columns use the default sort."""
+        if self._sort_by_record_id:
+            return super().lessThan(source_left, source_right)
         if source_left.column() == 0 and source_right.column() == 0:
             left_id = _sortable_row_id(source_left)
             right_id = _sortable_row_id(source_right)
@@ -77,12 +87,172 @@ def lessThan(  # noqa: N802
         source_left: QModelIndex | QPersistentModelIndex,
         source_right: QModelIndex | QPersistentModelIndex,
     ) -> bool:
+        if self._sort_by_record_id:
+            return super().lessThan(source_left, source_right)
         if source_left.column() == 0 and source_right.column() == 0:
             left_id = _sortable_row_id(source_left)
             right_id = _sortable_row_id(source_right)
             if left_id is not None and right_id is not None:
                 return left_id < right_id
         return super().lessThan(source_left, source_right)
+```
+
+</details>
+
+## 🏛️ Class `RecordIdCornerButton`
+
+```python
+class RecordIdCornerButton(QAbstractButton)
+```
+
+Corner control above the record-id header. Clicks cycle the ID sort.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class RecordIdCornerButton(QAbstractButton):
+
+    def __init__(self, table: QTableView) -> None:
+        """Create the corner button for `table`."""
+        super().__init__(table)
+        self._table = table
+        self._order: Qt.SortOrder | None = None
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setMouseTracking(True)
+        self.setToolTip("Sort by ID")
+        self.clicked.connect(self._on_clicked)
+
+    def enterEvent(self, event: QEnterEvent) -> None:  # noqa: N802
+        """Repaint so the hover fill appears."""
+        self.update()
+        super().enterEvent(event)
+
+    def leaveEvent(self, event: QEvent) -> None:  # noqa: N802
+        """Repaint so the hover fill disappears."""
+        self.update()
+        super().leaveEvent(event)
+
+    def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
+        """Paint a header cell and the current id-sort direction."""
+        painter = QPainter(self)
+        color = QColor(SELECTION_HOVER) if self.underMouse() else self.palette().color(self.backgroundRole())
+        painter.fillRect(self.rect(), color)
+        if self._order is not None:
+            _paint_sort_triangle(painter, self.rect(), self._order)
+        painter.end()
+
+    def set_order(self, order: Qt.SortOrder | None) -> None:
+        """Show an up or down mark, or nothing when the ID column is not sorted."""
+        self._order = order
+        self.update()
+
+    def _on_clicked(self) -> None:
+        sort_table_by_record_id_click(self._table)
+```
+
+</details>
+
+### ⚙️ Method `__init__`
+
+```python
+def __init__(self, table: QTableView) -> None
+```
+
+Create the corner button for `table`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __init__(self, table: QTableView) -> None:
+        super().__init__(table)
+        self._table = table
+        self._order: Qt.SortOrder | None = None
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setMouseTracking(True)
+        self.setToolTip("Sort by ID")
+        self.clicked.connect(self._on_clicked)
+```
+
+</details>
+
+### ⚙️ Method `enterEvent`
+
+```python
+def enterEvent(self, event: QEnterEvent) -> None
+```
+
+Repaint so the hover fill appears.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def enterEvent(self, event: QEnterEvent) -> None:  # noqa: N802
+        self.update()
+        super().enterEvent(event)
+```
+
+</details>
+
+### ⚙️ Method `leaveEvent`
+
+```python
+def leaveEvent(self, event: QEvent) -> None
+```
+
+Repaint so the hover fill disappears.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def leaveEvent(self, event: QEvent) -> None:  # noqa: N802
+        self.update()
+        super().leaveEvent(event)
+```
+
+</details>
+
+### ⚙️ Method `paintEvent`
+
+```python
+def paintEvent(self, _event: QPaintEvent) -> None
+```
+
+Paint a header cell and the current id-sort direction.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
+        painter = QPainter(self)
+        color = QColor(SELECTION_HOVER) if self.underMouse() else self.palette().color(self.backgroundRole())
+        painter.fillRect(self.rect(), color)
+        if self._order is not None:
+            _paint_sort_triangle(painter, self.rect(), self._order)
+        painter.end()
+```
+
+</details>
+
+### ⚙️ Method `set_order`
+
+```python
+def set_order(self, order: Qt.SortOrder | None) -> None
+```
+
+Show an up or down mark, or nothing when the ID column is not sorted.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_order(self, order: Qt.SortOrder | None) -> None:
+        self._order = order
+        self.update()
 ```
 
 </details>
@@ -137,9 +307,17 @@ Re-apply the last header sort after the table model was replaced.
 ```python
 def apply_stored_table_header_sort(table: QTableView) -> None:
     stored = get_stored_table_header_sort(table)
+    _set_record_id_corner_order(table, None)
     if stored is None:
         return
     section, order = stored
+    if section == _ROW_ID_SORT_SECTION:
+        model = table.model()
+        if model is not None:
+            model.sort(_ROW_ID_SORT_SECTION, order)
+        table.horizontalHeader().setSortIndicatorShown(False)
+        _set_record_id_corner_order(table, order)
+        return
     table.sortByColumn(section, order)
     header = table.horizontalHeader()
     header.setSortIndicatorShown(True)
@@ -317,9 +495,38 @@ def create_table_proxy_model(
         model.appendRow(items)
         model.setVerticalHeaderItem(row_idx, QStandardItem(str(row[id_column])))
 
-    proxy = QSortFilterProxyModel()
+    proxy = RecordIdSortProxyModel()
     proxy.setSourceModel(model)
     return proxy
+```
+
+</details>
+
+## 🔧 Function `enable_record_id_corner_sort`
+
+```python
+def enable_record_id_corner_sort(table: QTableView) -> None
+```
+
+Put a clickable sort control in the corner above the record-id header.
+
+Clicks follow the same cycle as a column header: ascending, descending, then
+the original order.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def enable_record_id_corner_sort(table: QTableView) -> None:
+    if table.property("hskRecordIdCorner"):
+        return
+    button = RecordIdCornerButton(table)
+    table.setCornerWidget(button)
+    table.setProperty("hskRecordIdCorner", 1)
+    table._hsk_record_id_corner = button  # type: ignore[attr-defined]  # noqa: SLF001
+    stored = get_stored_table_header_sort(table)
+    if stored is not None and stored[0] == _ROW_ID_SORT_SECTION:
+        button.set_order(stored[1])
 ```
 
 </details>
@@ -337,7 +544,7 @@ table so [`apply_stored_table_header_sort`](#-function-apply_stored_table_header
 
 Args:
 
-- `table` (`QTableView`): Table whose model supports `sort`.
+- `table` (`QTableView`): Table whose model supports [`sort`](record_id_sort.g.md#%EF%B8%8F-method-sort).
 - `skip_section` (`int | None`): Column that must not sort. Defaults to none.
 
 <details>
@@ -379,6 +586,9 @@ def enable_table_header_sorting(
                 header.setSortIndicator(*stored)
             return
         section, order = result
+        if section == _ROW_ID_SORT_SECTION:
+            set_stored_table_header_sort(table, section, order)
+            return
         if section < 0:
             clear_stored_table_header_sort(table)
             return
@@ -405,7 +615,7 @@ Return the last header sort stored on `table`, if any.
 def get_stored_table_header_sort(table: QTableView) -> tuple[int, Qt.SortOrder] | None:
     section = table.property(_HEADER_SORT_SECTION_PROP)
     order_raw = table.property(_HEADER_SORT_ORDER_PROP)
-    if not isinstance(section, int) or section < 0:
+    if not isinstance(section, int) or (section < 0 and section != _ROW_ID_SORT_SECTION):
         return None
     if not isinstance(order_raw, int):
         return None
@@ -558,7 +768,7 @@ toggles it when the indicator is shown.
 
 Args:
 
-- `table` (`QTableView`): Table whose proxy/source model supports `sort`.
+- `table` (`QTableView`): Table whose proxy/source model supports [`sort`](record_id_sort.g.md#%EF%B8%8F-method-sort).
 - `section` (`int`): Clicked logical column.
 - `skip_section` (`int | None`): Column that must not sort. Defaults to none.
 - `current_section` (`int | None`): Last sorted column, or `None` if unknown.
@@ -594,11 +804,47 @@ def sort_table_by_header_click(
         if model is not None:
             model.sort(-1)
         header.setSortIndicatorShown(False)
+        _set_record_id_corner_order(table, None)
         return -1, Qt.SortOrder.AscendingOrder
     table.sortByColumn(section, order)
     header.setSortIndicatorShown(True)
     header.setSortIndicator(section, order)
+    _set_record_id_corner_order(table, None)
     return section, order
+```
+
+</details>
+
+## 🔧 Function `sort_table_by_record_id_click`
+
+```python
+def sort_table_by_record_id_click(table: QTableView) -> None
+```
+
+Cycle the record-id sort from the corner above that header.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def sort_table_by_record_id_click(table: QTableView) -> None:
+    model = table.model()
+    if not isinstance(model, RecordIdSortProxyModel):
+        return
+    stored = get_stored_table_header_sort(table)
+    current_section, current_order = stored if stored is not None else (-1, Qt.SortOrder.AscendingOrder)
+    order = next_table_sort_order(current_section, current_order, _ROW_ID_SORT_SECTION)
+    header = table.horizontalHeader()
+    if order is None:
+        model.sort(-1)
+        header.setSortIndicatorShown(False)
+        clear_stored_table_header_sort(table)
+        _set_record_id_corner_order(table, None)
+        return
+    model.sort(_ROW_ID_SORT_SECTION, order)
+    header.setSortIndicatorShown(False)
+    set_stored_table_header_sort(table, _ROW_ID_SORT_SECTION, order)
+    _set_record_id_corner_order(table, order)
 ```
 
 </details>

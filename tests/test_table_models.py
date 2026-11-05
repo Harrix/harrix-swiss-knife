@@ -11,12 +11,15 @@ from harrix_swiss_knife.apps.common.table_models import (
     append_colored_table_row,
     apply_stored_table_header_sort,
     create_colored_table_proxy_model,
+    create_table_proxy_model,
+    enable_record_id_corner_sort,
     enable_table_header_sorting,
     get_stored_table_header_sort,
     make_table_columns_resizable,
     next_table_sort_order,
     set_stored_table_header_sort,
     sort_table_by_header_click,
+    sort_table_by_record_id_click,
 )
 
 
@@ -30,6 +33,37 @@ def qapp() -> QApplication:
         msg = "QApplication.instance() returned a non-QApplication object."
         raise TypeError(msg)
     return app
+
+
+def test_record_id_corner_cycles_sort(qapp: QApplication) -> None:
+    """The corner above the id header sorts by id, then reverses, then clears."""
+    assert qapp is not None
+    proxy = create_table_proxy_model(
+        [[30, "C"], [10, "A"], [20, "B"]],
+        ["Name"],
+        id_column=0,
+    )
+    table = QTableView()
+    table.setModel(proxy)
+    enable_record_id_corner_sort(table)
+
+    sort_table_by_record_id_click(table)
+    assert [proxy.index(row, 0).data() for row in range(3)] == ["A", "B", "C"]
+    assert get_stored_table_header_sort(table) == (-2, Qt.SortOrder.AscendingOrder)
+    assert table.horizontalHeader().isSortIndicatorShown() is False
+
+    sort_table_by_record_id_click(table)
+    assert [proxy.index(row, 0).data() for row in range(3)] == ["C", "B", "A"]
+    assert get_stored_table_header_sort(table) == (-2, Qt.SortOrder.DescendingOrder)
+
+    sort_table_by_record_id_click(table)
+    assert get_stored_table_header_sort(table) is None
+    assert [proxy.index(row, 0).data() for row in range(3)] == ["C", "A", "B"]
+
+    corner = table.cornerWidget()
+    assert corner is not None
+    corner.click()
+    assert [proxy.index(row, 0).data() for row in range(3)] == ["A", "B", "C"]
 
 
 def test_next_table_sort_order_toggles_same_column() -> None:

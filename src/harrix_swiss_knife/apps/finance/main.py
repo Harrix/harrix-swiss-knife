@@ -111,6 +111,7 @@ from harrix_swiss_knife.apps.common.table_context_menu import (
 )
 from harrix_swiss_knife.apps.common.table_export import export_table_via_dialog
 from harrix_swiss_knife.apps.common.table_models import (
+    RecordIdSortProxyModel,
     apply_stored_table_header_sort,
     bind_column_fill_on_resize,
     columns_fill_viewport,
@@ -2252,7 +2253,7 @@ class MainWindow(
                 QStandardItem(str(row_id)),
             )
 
-        proxy: QSortFilterProxyModel = QSortFilterProxyModel()
+        proxy: QSortFilterProxyModel = RecordIdSortProxyModel()
         proxy.setSourceModel(model)
         return proxy
 

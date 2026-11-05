@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import QModelIndex, QPersistentModelIndex, QSortFilterProxyModel, Qt
+from PySide6.QtCore import QModelIndex, QPersistentModelIndex, Qt
 from PySide6.QtGui import QBrush, QStandardItem, QStandardItemModel
 
+from harrix_swiss_knife.apps.common.table_models import RecordIdSortProxyModel
 
-class CategoriesTableProxyModel(QSortFilterProxyModel):
+
+class CategoriesTableProxyModel(RecordIdSortProxyModel):
     """Sort categories by type, then by plain name (ignoring display icon)."""
 
     def lessThan(  # noqa: N802
@@ -15,6 +17,8 @@ class CategoriesTableProxyModel(QSortFilterProxyModel):
         source_right: QModelIndex | QPersistentModelIndex,
     ) -> bool:
         """Compare rows by type UserRole, then name UserRole."""
+        if self._sort_by_record_id:
+            return super().lessThan(source_left, source_right)
         source_model = self.sourceModel()
         if source_model is None:
             return False

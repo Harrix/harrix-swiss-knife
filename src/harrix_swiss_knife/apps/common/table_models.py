@@ -4,12 +4,28 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QEvent, QModelIndex, QObject, QPersistentModelIndex, QSortFilterProxyModel, Qt, QTimer
-from PySide6.QtGui import QBrush, QGuiApplication, QIcon, QStandardItem, QStandardItemModel
+from PySide6.QtCore import (
+    QEvent,
+    QModelIndex,
+    QObject,
+    QPersistentModelIndex,
+    QPoint,
+    QRect,
+    QSortFilterProxyModel,
+    Qt,
+    QTimer,
+)
+from PySide6.QtGui import QBrush, QColor, QGuiApplication, QIcon, QPainter, QPolygon, QStandardItem, QStandardItemModel
+from PySide6.QtWidgets import QAbstractButton
+
+from harrix_swiss_knife.apps.common.record_id_sort import ROW_ID_SORT_SECTION as _ROW_ID_SORT_SECTION
+from harrix_swiss_knife.apps.common.record_id_sort import RecordIdSortProxyModel
+from harrix_swiss_knife.apps.common.ui_chrome import MUTED_TEXT, SELECTION_HOVER
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
+    from PySide6.QtGui import QEnterEvent, QPaintEvent
     from PySide6.QtWidgets import QTableView
 
 _COLUMN_FILL_GUARD_PROP = "hskColumnFillGuard"
@@ -22,7 +38,7 @@ _NO_SKIP_SECTION = -999
 _USER_SIZED_COLUMNS_PROP = "hskUserSizedColumns"
 
 
-class ColoredTableProxyModel(QSortFilterProxyModel):
+class ColoredTableProxyModel(RecordIdSortProxyModel):
     """Proxy that sorts an icon-only first column by the row database ID."""
 
     def lessThan(  # noqa: N802
@@ -31,12 +47,55 @@ class ColoredTableProxyModel(QSortFilterProxyModel):
         source_right: QModelIndex | QPersistentModelIndex,
     ) -> bool:
         """Compare icon cells by stored ID; other columns use the default sort."""
+        if self._sort_by_record_id:
+            return super().lessThan(source_left, source_right)
         if source_left.column() == 0 and source_right.column() == 0:
             left_id = _sortable_row_id(source_left)
             right_id = _sortable_row_id(source_right)
             if left_id is not None and right_id is not None:
                 return left_id < right_id
         return super().lessThan(source_left, source_right)
+
+
+class RecordIdCornerButton(QAbstractButton):
+    """Corner control above the record-id header. Clicks cycle the ID sort."""
+
+    def __init__(self, table: QTableView) -> None:
+        """Create the corner button for `table`."""
+        super().__init__(table)
+        self._table = table
+        self._order: Qt.SortOrder | None = None
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setMouseTracking(True)
+        self.setToolTip("Sort by ID")
+        self.clicked.connect(self._on_clicked)
+
+    def enterEvent(self, event: QEnterEvent) -> None:  # noqa: N802
+        """Repaint so the hover fill appears."""
+        self.update()
+        super().enterEvent(event)
+
+    def leaveEvent(self, event: QEvent) -> None:  # noqa: N802
+        """Repaint so the hover fill disappears."""
+        self.update()
+        super().leaveEvent(event)
+
+    def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
+        """Paint a header cell and the current id-sort direction."""
+        painter = QPainter(self)
+        color = QColor(SELECTION_HOVER) if self.underMouse() else self.palette().color(self.backgroundRole())
+        painter.fillRect(self.rect(), color)
+        if self._order is not None:
+            _paint_sort_triangle(painter, self.rect(), self._order)
+        painter.end()
+
+    def set_order(self, order: Qt.SortOrder | None) -> None:
+        """Show an up or down mark, or nothing when the ID column is not sorted."""
+        self._order = order
+        self.update()
+
+    def _on_clicked(self) -> None:
+        sort_table_by_record_id_click(self._table)
 
 
 def append_colored_table_row(
@@ -65,9 +124,17 @@ def append_colored_table_row(
 def apply_stored_table_header_sort(table: QTableView) -> None:
     """Re-apply the last header sort after the table model was replaced."""
     stored = get_stored_table_header_sort(table)
+    _set_record_id_corner_order(table, None)
     if stored is None:
         return
     section, order = stored
+    if section == _ROW_ID_SORT_SECTION:
+        model = table.model()
+        if model is not None:
+            model.sort(_ROW_ID_SORT_SECTION, order)
+        table.horizontalHeader().setSortIndicatorShown(False)
+        _set_record_id_corner_order(table, order)
+        return
     table.sortByColumn(section, order)
     header = table.horizontalHeader()
     header.setSortIndicatorShown(True)
@@ -186,9 +253,27 @@ def create_table_proxy_model(
         model.appendRow(items)
         model.setVerticalHeaderItem(row_idx, QStandardItem(str(row[id_column])))
 
-    proxy = QSortFilterProxyModel()
+    proxy = RecordIdSortProxyModel()
     proxy.setSourceModel(model)
     return proxy
+
+
+def enable_record_id_corner_sort(table: QTableView) -> None:
+    """Put a clickable sort control in the corner above the record-id header.
+
+    Clicks follow the same cycle as a column header: ascending, descending, then
+    the original order.
+
+    """
+    if table.property("hskRecordIdCorner"):
+        return
+    button = RecordIdCornerButton(table)
+    table.setCornerWidget(button)
+    table.setProperty("hskRecordIdCorner", 1)
+    table._hsk_record_id_corner = button  # type: ignore[attr-defined]  # noqa: SLF001
+    stored = get_stored_table_header_sort(table)
+    if stored is not None and stored[0] == _ROW_ID_SORT_SECTION:
+        button.set_order(stored[1])
 
 
 def enable_table_header_sorting(
@@ -237,6 +322,9 @@ def enable_table_header_sorting(
                 header.setSortIndicator(*stored)
             return
         section, order = result
+        if section == _ROW_ID_SORT_SECTION:
+            set_stored_table_header_sort(table, section, order)
+            return
         if section < 0:
             clear_stored_table_header_sort(table)
             return
@@ -250,7 +338,7 @@ def get_stored_table_header_sort(table: QTableView) -> tuple[int, Qt.SortOrder] 
     """Return the last header sort stored on `table`, if any."""
     section = table.property(_HEADER_SORT_SECTION_PROP)
     order_raw = table.property(_HEADER_SORT_ORDER_PROP)
-    if not isinstance(section, int) or section < 0:
+    if not isinstance(section, int) or (section < 0 and section != _ROW_ID_SORT_SECTION):
         return None
     if not isinstance(order_raw, int):
         return None
@@ -393,11 +481,34 @@ def sort_table_by_header_click(
         if model is not None:
             model.sort(-1)
         header.setSortIndicatorShown(False)
+        _set_record_id_corner_order(table, None)
         return -1, Qt.SortOrder.AscendingOrder
     table.sortByColumn(section, order)
     header.setSortIndicatorShown(True)
     header.setSortIndicator(section, order)
+    _set_record_id_corner_order(table, None)
     return section, order
+
+
+def sort_table_by_record_id_click(table: QTableView) -> None:
+    """Cycle the record-id sort from the corner above that header."""
+    model = table.model()
+    if not isinstance(model, RecordIdSortProxyModel):
+        return
+    stored = get_stored_table_header_sort(table)
+    current_section, current_order = stored if stored is not None else (-1, Qt.SortOrder.AscendingOrder)
+    order = next_table_sort_order(current_section, current_order, _ROW_ID_SORT_SECTION)
+    header = table.horizontalHeader()
+    if order is None:
+        model.sort(-1)
+        header.setSortIndicatorShown(False)
+        clear_stored_table_header_sort(table)
+        _set_record_id_corner_order(table, None)
+        return
+    model.sort(_ROW_ID_SORT_SECTION, order)
+    header.setSortIndicatorShown(False)
+    set_stored_table_header_sort(table, _ROW_ID_SORT_SECTION, order)
+    _set_record_id_corner_order(table, order)
 
 
 def user_resized_columns(table: QTableView) -> bool:
@@ -483,6 +594,33 @@ def _normalize_column_index(index: int, row_length: int) -> int:
     if index < 0:
         return row_length + index
     return index
+
+
+def _paint_sort_triangle(painter: QPainter, rect: QRect, order: Qt.SortOrder) -> None:
+    """Draw a small up or down mark in the center of `rect`."""
+    center = rect.center()
+    size = 4
+    if order == Qt.SortOrder.AscendingOrder:
+        points = (
+            QPoint(center.x(), center.y() - size),
+            QPoint(center.x() - size, center.y() + size // 2),
+            QPoint(center.x() + size, center.y() + size // 2),
+        )
+    else:
+        points = (
+            QPoint(center.x(), center.y() + size),
+            QPoint(center.x() - size, center.y() - size // 2),
+            QPoint(center.x() + size, center.y() - size // 2),
+        )
+    painter.setPen(Qt.PenStyle.NoPen)
+    painter.setBrush(QColor(MUTED_TEXT))
+    painter.drawPolygon(QPolygon(points))
+
+
+def _set_record_id_corner_order(table: QTableView, order: Qt.SortOrder | None) -> None:
+    corner = getattr(table, "_hsk_record_id_corner", None)
+    if isinstance(corner, RecordIdCornerButton):
+        corner.set_order(order)
 
 
 def _sortable_row_id(index: QModelIndex | QPersistentModelIndex) -> int | None:

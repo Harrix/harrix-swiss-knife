@@ -39,6 +39,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife.apps.common.table_models import enable_record_id_corner_sort
 from harrix_swiss_knife.apps.common.ui_chrome import (
     INPUT_BORDER,
     SELECTION_BG,
@@ -639,8 +640,13 @@ def _style_table(table: QTableView, palette: FluentPalette) -> None:
     if isinstance(header, QHeaderView):
         header.setMinimumHeight(CONTROL_HEIGHT)
     vertical = table.verticalHeader()
+    vertical.setProperty("hskRecordIds", "true")
     _watch_record_id_header(table)
     _sync_record_id_header(table)
+    id_point = table.font().pointSizeF()
+    if id_point <= 0:
+        id_point = 10.0
+    id_point = max(8.0, id_point - 2.0)
     floor = CONTROL_HEIGHT + SPACE_S
     if vertical.defaultSectionSize() < floor:
         vertical.setDefaultSectionSize(floor)
@@ -664,6 +670,11 @@ def _style_table(table: QTableView, palette: FluentPalette) -> None:
  padding: 0px 8px;
  min-height: {CONTROL_HEIGHT}px;
  font-weight: 600;
+}}
+{selector} QHeaderView[hskRecordIds="true"]::section {{
+ font-size: {id_point:.1f}pt;
+ font-weight: 400;
+ padding: 0px 4px;
 }}
 {scroll_bar_qss(palette)}
 """,
@@ -697,13 +708,22 @@ def _sync_record_id_header(table: QTableView) -> None:
     vertical.setVisible(show)
     if not show:
         return
+    enable_record_id_corner_sort(table)
+    font = QFont(table.font())
+    point = font.pointSizeF()
+    if point > 0:
+        font.setPointSizeF(max(8.0, point - 2.0))
+    elif font.pixelSize() > 0:
+        font.setPixelSize(max(10, font.pixelSize() - 3))
+    font.setBold(False)
+    vertical.setFont(font)
     metrics = vertical.fontMetrics()
     text_width = 0
     sample = min(model.rowCount(), 40)
     for row in range(sample):
         value = model.headerData(row, Qt.Orientation.Vertical, Qt.ItemDataRole.DisplayRole)
         text_width = max(text_width, metrics.horizontalAdvance("" if value is None else str(value)))
-    width = max(text_width + 16, vertical.sizeHint().width())
+    width = max(text_width + 10, vertical.sizeHint().width())
     if width > vertical.minimumWidth():
         vertical.setMinimumWidth(width)
 

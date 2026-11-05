@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 from PySide6.QtCore import QCoreApplication, QEvent, QSortFilterProxyModel
-from PySide6.QtGui import QStandardItem, QStandardItemModel
+from PySide6.QtGui import QFont, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import QApplication, QTableView, QWidget
 from shiboken6 import isValid
 
@@ -189,6 +189,7 @@ def test_record_id_header_appears_after_rows_arrive(qapp: QApplication) -> None:
     """An empty table keeps its id column, then shows database ids once rows exist."""
     assert qapp is not None
     table = QTableView()
+    table.setFont(QFont("Roboto", 12))
     _watch_record_id_header(table)
     _sync_record_id_header(table)
     assert not table.verticalHeader().isHidden()
@@ -205,6 +206,7 @@ def test_record_id_header_appears_after_rows_arrive(qapp: QApplication) -> None:
     header = table.verticalHeader()
     assert not header.isHidden()
     assert header.minimumWidth() >= 16
+    assert header.font().pointSizeF() < table.font().pointSizeF()
     _dispose(qapp, table)
 
 
