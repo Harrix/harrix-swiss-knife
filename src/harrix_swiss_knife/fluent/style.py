@@ -16,7 +16,6 @@ from PySide6.QtGui import QColor, QIcon, QPainter, QPixmap
 from harrix_swiss_knife.fluent.theme import css, mix
 from harrix_swiss_knife.fluent.tokens import (
     CONTROL_HEIGHT,
-    CONTROL_HEIGHT_COMPACT,
     CONTROL_PADDING_H,
     ICON_SIZE,
     RADIUS_CARD,
@@ -171,8 +170,7 @@ def filled_button_qss(palette: FluentPalette, fill: QColor, ink: QColor, selecto
     border-bottom-color: {css(pressed)};
     border-radius: {RADIUS_CONTROL}px;
     padding: 0px {CONTROL_PADDING_H}px;
-    min-height: {CONTROL_HEIGHT_COMPACT}px;
-    max-height: {CONTROL_HEIGHT}px;
+    min-height: {CONTROL_HEIGHT - 2}px;
 }}
 {selector}:hover {{ background-color: {css(hover)}; border-color: {css(hover)}; }}
 {selector}:pressed {{ background-color: {css(pressed)}; border-color: {css(pressed)}; }}

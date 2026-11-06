@@ -286,29 +286,7 @@
                <item>
                 <layout class="QHBoxLayout" name="horizontalLayout_2">
                  <item>
-                  <spacer name="horizontalSpacer_food_commands">
-                   <property name="orientation">
-                    <enum>Qt::Orientation::Horizontal</enum>
-                   </property>
-                   <property name="sizeHint" stdset="0">
-                    <size>
-                     <width>40</width>
-                     <height>20</height>
-                    </size>
-                   </property>
-                   <property name="sizeType">
-                    <enum>QSizePolicy::Policy::Expanding</enum>
-                   </property>
-                  </spacer>
-                 </item>
-                 <item>
                   <widget class="QPushButton" name="pushButton_food_add_with_ai">
-                   <property name="sizePolicy">
-                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                     <horstretch>0</horstretch>
-                     <verstretch>0</verstretch>
-                    </sizepolicy>
-                   </property>
                    <property name="styleSheet">
                     <string notr="true">QPushButton {
                                       background-color: #79b1d1;
@@ -335,12 +313,6 @@
                  </item>
                  <item>
                   <widget class="QPushButton" name="pushButton_food_add_by_voice">
-                   <property name="sizePolicy">
-                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                     <horstretch>0</horstretch>
-                     <verstretch>0</verstretch>
-                    </sizepolicy>
-                   </property>
                    <property name="styleSheet">
                     <string notr="true">QPushButton {
                                       background-color: #79b1d1;
@@ -367,12 +339,6 @@
                  </item>
                  <item>
                   <widget class="QPushButton" name="pushButton_food_analyze_macros">
-                   <property name="sizePolicy">
-                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                     <horstretch>0</horstretch>
-                     <verstretch>0</verstretch>
-                    </sizepolicy>
-                   </property>
                    <property name="toolTip">
                     <string>Analyze missing or outdated day macros for the current week, then open the week report</string>
                    </property>

@@ -284,17 +284,8 @@ class Ui_MainWindow(object):
         self.verticalLayout_2.setObjectName(u"verticalLayout_2")
         self.horizontalLayout_2 = QHBoxLayout()
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
-        self.horizontalSpacer_food_commands = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        self.horizontalLayout_2.addItem(self.horizontalSpacer_food_commands)
-
         self.pushButton_food_add_with_ai = QPushButton(self.groupBox_food_commands)
         self.pushButton_food_add_with_ai.setObjectName(u"pushButton_food_add_with_ai")
-        sizePolicy = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.pushButton_food_add_with_ai.sizePolicy().hasHeightForWidth())
-        self.pushButton_food_add_with_ai.setSizePolicy(sizePolicy)
         self.pushButton_food_add_with_ai.setStyleSheet(u"QPushButton {\n"
 "                                      background-color: #79b1d1;\n"
 "                                      color: #ffffff;\n"
@@ -317,8 +308,6 @@ class Ui_MainWindow(object):
 
         self.pushButton_food_add_by_voice = QPushButton(self.groupBox_food_commands)
         self.pushButton_food_add_by_voice.setObjectName(u"pushButton_food_add_by_voice")
-        sizePolicy.setHeightForWidth(self.pushButton_food_add_by_voice.sizePolicy().hasHeightForWidth())
-        self.pushButton_food_add_by_voice.setSizePolicy(sizePolicy)
         self.pushButton_food_add_by_voice.setStyleSheet(u"QPushButton {\n"
 "                                      background-color: #79b1d1;\n"
 "                                      color: #ffffff;\n"
@@ -341,8 +330,6 @@ class Ui_MainWindow(object):
 
         self.pushButton_food_analyze_macros = QPushButton(self.groupBox_food_commands)
         self.pushButton_food_analyze_macros.setObjectName(u"pushButton_food_analyze_macros")
-        sizePolicy.setHeightForWidth(self.pushButton_food_analyze_macros.sizePolicy().hasHeightForWidth())
-        self.pushButton_food_analyze_macros.setSizePolicy(sizePolicy)
         self.pushButton_food_analyze_macros.setStyleSheet(u"QPushButton {\n"
 "                                      background-color: #4caf50;\n"
 "                                      color: #ffffff;\n"
@@ -456,11 +443,11 @@ class Ui_MainWindow(object):
 
         self.lineEdit_filter_name = QLineEdit(self.groupBox_filter)
         self.lineEdit_filter_name.setObjectName(u"lineEdit_filter_name")
-        sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        sizePolicy1.setHorizontalStretch(3)
-        sizePolicy1.setVerticalStretch(0)
-        sizePolicy1.setHeightForWidth(self.lineEdit_filter_name.sizePolicy().hasHeightForWidth())
-        self.lineEdit_filter_name.setSizePolicy(sizePolicy1)
+        sizePolicy = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        sizePolicy.setHorizontalStretch(3)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.lineEdit_filter_name.sizePolicy().hasHeightForWidth())
+        self.lineEdit_filter_name.setSizePolicy(sizePolicy)
         self.lineEdit_filter_name.setMinimumSize(QSize(80, 0))
 
         self.horizontalLayout_filter.addWidget(self.lineEdit_filter_name)
@@ -475,11 +462,11 @@ class Ui_MainWindow(object):
         self.comboBox_filter_type.addItem("")
         self.comboBox_filter_type.addItem("")
         self.comboBox_filter_type.setObjectName(u"comboBox_filter_type")
-        sizePolicy2 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        sizePolicy2.setHorizontalStretch(1)
-        sizePolicy2.setVerticalStretch(0)
-        sizePolicy2.setHeightForWidth(self.comboBox_filter_type.sizePolicy().hasHeightForWidth())
-        self.comboBox_filter_type.setSizePolicy(sizePolicy2)
+        sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        sizePolicy1.setHorizontalStretch(1)
+        sizePolicy1.setVerticalStretch(0)
+        sizePolicy1.setHeightForWidth(self.comboBox_filter_type.sizePolicy().hasHeightForWidth())
+        self.comboBox_filter_type.setSizePolicy(sizePolicy1)
         self.comboBox_filter_type.setMinimumSize(QSize(70, 0))
 
         self.horizontalLayout_filter.addWidget(self.comboBox_filter_type)
@@ -517,8 +504,11 @@ class Ui_MainWindow(object):
 
         self.pushButton_clear_filter = QPushButton(self.groupBox_filter)
         self.pushButton_clear_filter.setObjectName(u"pushButton_clear_filter")
-        sizePolicy.setHeightForWidth(self.pushButton_clear_filter.sizePolicy().hasHeightForWidth())
-        self.pushButton_clear_filter.setSizePolicy(sizePolicy)
+        sizePolicy2 = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        sizePolicy2.setHorizontalStretch(0)
+        sizePolicy2.setVerticalStretch(0)
+        sizePolicy2.setHeightForWidth(self.pushButton_clear_filter.sizePolicy().hasHeightForWidth())
+        self.pushButton_clear_filter.setSizePolicy(sizePolicy2)
         self.pushButton_clear_filter.setMaximumSize(QSize(32, 16777215))
 
         self.horizontalLayout_filter.addWidget(self.pushButton_clear_filter)
@@ -1000,17 +990,8 @@ def setupUi(self, MainWindow):
         self.verticalLayout_2.setObjectName(u"verticalLayout_2")
         self.horizontalLayout_2 = QHBoxLayout()
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
-        self.horizontalSpacer_food_commands = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        self.horizontalLayout_2.addItem(self.horizontalSpacer_food_commands)
-
         self.pushButton_food_add_with_ai = QPushButton(self.groupBox_food_commands)
         self.pushButton_food_add_with_ai.setObjectName(u"pushButton_food_add_with_ai")
-        sizePolicy = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.pushButton_food_add_with_ai.sizePolicy().hasHeightForWidth())
-        self.pushButton_food_add_with_ai.setSizePolicy(sizePolicy)
         self.pushButton_food_add_with_ai.setStyleSheet(u"QPushButton {\n"
 "                                      background-color: #79b1d1;\n"
 "                                      color: #ffffff;\n"
@@ -1033,8 +1014,6 @@ def setupUi(self, MainWindow):
 
         self.pushButton_food_add_by_voice = QPushButton(self.groupBox_food_commands)
         self.pushButton_food_add_by_voice.setObjectName(u"pushButton_food_add_by_voice")
-        sizePolicy.setHeightForWidth(self.pushButton_food_add_by_voice.sizePolicy().hasHeightForWidth())
-        self.pushButton_food_add_by_voice.setSizePolicy(sizePolicy)
         self.pushButton_food_add_by_voice.setStyleSheet(u"QPushButton {\n"
 "                                      background-color: #79b1d1;\n"
 "                                      color: #ffffff;\n"
@@ -1057,8 +1036,6 @@ def setupUi(self, MainWindow):
 
         self.pushButton_food_analyze_macros = QPushButton(self.groupBox_food_commands)
         self.pushButton_food_analyze_macros.setObjectName(u"pushButton_food_analyze_macros")
-        sizePolicy.setHeightForWidth(self.pushButton_food_analyze_macros.sizePolicy().hasHeightForWidth())
-        self.pushButton_food_analyze_macros.setSizePolicy(sizePolicy)
         self.pushButton_food_analyze_macros.setStyleSheet(u"QPushButton {\n"
 "                                      background-color: #4caf50;\n"
 "                                      color: #ffffff;\n"
@@ -1172,11 +1149,11 @@ def setupUi(self, MainWindow):
 
         self.lineEdit_filter_name = QLineEdit(self.groupBox_filter)
         self.lineEdit_filter_name.setObjectName(u"lineEdit_filter_name")
-        sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        sizePolicy1.setHorizontalStretch(3)
-        sizePolicy1.setVerticalStretch(0)
-        sizePolicy1.setHeightForWidth(self.lineEdit_filter_name.sizePolicy().hasHeightForWidth())
-        self.lineEdit_filter_name.setSizePolicy(sizePolicy1)
+        sizePolicy = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        sizePolicy.setHorizontalStretch(3)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.lineEdit_filter_name.sizePolicy().hasHeightForWidth())
+        self.lineEdit_filter_name.setSizePolicy(sizePolicy)
         self.lineEdit_filter_name.setMinimumSize(QSize(80, 0))
 
         self.horizontalLayout_filter.addWidget(self.lineEdit_filter_name)
@@ -1191,11 +1168,11 @@ def setupUi(self, MainWindow):
         self.comboBox_filter_type.addItem("")
         self.comboBox_filter_type.addItem("")
         self.comboBox_filter_type.setObjectName(u"comboBox_filter_type")
-        sizePolicy2 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        sizePolicy2.setHorizontalStretch(1)
-        sizePolicy2.setVerticalStretch(0)
-        sizePolicy2.setHeightForWidth(self.comboBox_filter_type.sizePolicy().hasHeightForWidth())
-        self.comboBox_filter_type.setSizePolicy(sizePolicy2)
+        sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        sizePolicy1.setHorizontalStretch(1)
+        sizePolicy1.setVerticalStretch(0)
+        sizePolicy1.setHeightForWidth(self.comboBox_filter_type.sizePolicy().hasHeightForWidth())
+        self.comboBox_filter_type.setSizePolicy(sizePolicy1)
         self.comboBox_filter_type.setMinimumSize(QSize(70, 0))
 
         self.horizontalLayout_filter.addWidget(self.comboBox_filter_type)
@@ -1233,8 +1210,11 @@ def setupUi(self, MainWindow):
 
         self.pushButton_clear_filter = QPushButton(self.groupBox_filter)
         self.pushButton_clear_filter.setObjectName(u"pushButton_clear_filter")
-        sizePolicy.setHeightForWidth(self.pushButton_clear_filter.sizePolicy().hasHeightForWidth())
-        self.pushButton_clear_filter.setSizePolicy(sizePolicy)
+        sizePolicy2 = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        sizePolicy2.setHorizontalStretch(0)
+        sizePolicy2.setVerticalStretch(0)
+        sizePolicy2.setHeightForWidth(self.pushButton_clear_filter.sizePolicy().hasHeightForWidth())
+        self.pushButton_clear_filter.setSizePolicy(sizePolicy2)
         self.pushButton_clear_filter.setMaximumSize(QSize(32, 16777215))
 
         self.horizontalLayout_filter.addWidget(self.pushButton_clear_filter)

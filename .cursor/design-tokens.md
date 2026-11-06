@@ -45,7 +45,7 @@ Model: **solid primary** (Bulma `.button.is-primary`) — filled brand, no contr
 | App CTA green (was lightgreen / soft green) | — | `BUTTON_CTA_GREEN_BG` | `#4caf50` |
 | App CTA mint (was `#C1ECDD`) | — | `BUTTON_CTA_MINT_BG` | `#3aaf9d` |
 
-Solid button QSS always sets `padding: 5px 14px` and `min-height: 32px` so filled buttons match Fluent `CONTROL_HEIGHT` / form fields. Text/icon on fill: white/`#f4f4f4` when luminance &lt; 0.55, else `#122a3a`; low-chroma gray fills keep semantic Lucide icon colors.
+Solid button QSS always sets `padding: 0px 14px` and `min-height: 32px` so filled buttons match Fluent `CONTROL_HEIGHT` / form fields. Text/icon on fill: white/`#f4f4f4` when luminance &lt; 0.55, else `#122a3a`; low-chroma gray fills keep semantic Lucide icon colors.
 
 Dialog idle buttons use `button_idle_qss()` (`SURFACE` + `INPUT_BORDER`). Drop zones use `drop_zone_qss()` (white, not `#f9f9f9`). `QCheckBox` / `QRadioButton` get Lucide indicators app-wide via `qt_form_chrome`.
 

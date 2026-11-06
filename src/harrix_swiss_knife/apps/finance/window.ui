@@ -226,38 +226,14 @@
               </property>
               <layout class="QVBoxLayout" name="verticalLayout_2">
                <item>
-                <layout class="QHBoxLayout" name="horizontalLayout_add_with_ai">
-                 <item>
-                  <spacer name="horizontalSpacer_add_with_ai">
-                   <property name="orientation">
-                    <enum>Qt::Orientation::Horizontal</enum>
-                   </property>
-                   <property name="sizeHint" stdset="0">
-                    <size>
-                     <width>40</width>
-                     <height>20</height>
-                    </size>
-                   </property>
-                   <property name="sizeType">
-                    <enum>QSizePolicy::Policy::Expanding</enum>
-                   </property>
-                  </spacer>
-                 </item>
-                 <item>
-                  <widget class="QPushButton" name="pushButton_add_as_text_with_ai">
-                   <property name="sizePolicy">
-                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                     <horstretch>0</horstretch>
-                     <verstretch>0</verstretch>
-                    </sizepolicy>
-                   </property>
-                   <property name="font">
-                    <font>
-                     <bold>true</bold>
-                    </font>
-                   </property>
-                   <property name="styleSheet">
-                    <string notr="true">QPushButton {
+                <widget class="QPushButton" name="pushButton_add_as_text_with_ai">
+                 <property name="font">
+                  <font>
+                   <bold>true</bold>
+                  </font>
+                 </property>
+                 <property name="styleSheet">
+                  <string notr="true">QPushButton {
                                       background-color: #3aaf9d;
                                       color: #ffffff;
                                       border: 1px solid #3aaf9d;
@@ -274,13 +250,11 @@
                                       color: #ffffff;
                                       border-color: #026a6d;
                                       }</string>
-                   </property>
-                   <property name="text">
-                    <string>Add with AI</string>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
+                 </property>
+                 <property name="text">
+                  <string>Add with AI</string>
+                 </property>
+                </widget>
                </item>
               </layout>
              </widget>

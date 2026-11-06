@@ -385,9 +385,8 @@ def _is_icon_grid(view: QAbstractItemView) -> bool:
 
 
 def _lock_control_height(widget: QWidget) -> None:
-    """Keep inputs at the standard Fluent control height so spin arrows fit."""
-    widget.setMinimumHeight(CONTROL_HEIGHT)
-    widget.setMaximumHeight(CONTROL_HEIGHT)
+    """Keep inputs and CTAs at the standard Fluent control height."""
+    widget.setFixedHeight(CONTROL_HEIGHT)
 
 
 def _normalize_control_metrics(root: QWidget) -> None:
