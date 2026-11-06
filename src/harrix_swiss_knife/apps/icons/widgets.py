@@ -30,6 +30,7 @@ from PySide6.QtGui import (
     QIcon,
     QKeyEvent,
     QKeySequence,
+    QMouseEvent,
     QPainter,
     QPixmap,
     QResizeEvent,
@@ -101,6 +102,7 @@ ROLE_TRADEMARK = int(Qt.ItemDataRole.UserRole) + 4
 ROLE_NUMBER = int(Qt.ItemDataRole.UserRole) + 5
 ROLE_DATE = int(Qt.ItemDataRole.UserRole) + 6
 LABEL_EXTRA_HEIGHT = 58
+ICON_CELL_PADDING = 24
 ICON_GRID_MIN_SCALE = 0.82
 FALLBACK_ICON_OPACITY = 0.38
 FALLBACK_TITLE_ALPHA = 120
@@ -490,7 +492,12 @@ class DraggableIconList(QListWidget):
         drag.exec(Qt.DropAction.CopyAction)
 
     def sync_fill_row_width(self) -> None:
-        """Stretch grid cells so a full row fills the viewport (main catalog only)."""
+        """Stretch grid cells so a full row fills the viewport (main catalog only).
+
+        Display icon size follows the stretched cell so artwork scales with the tile,
+        while `_icon_size` (slider) remains the preferred/minimum column basis.
+
+        """
         if not self._fill_row_width:
             return
         available = self.viewport().width()
@@ -503,13 +510,15 @@ class DraggableIconList(QListWidget):
             base_width=base.width(),
             min_scale=ICON_GRID_MIN_SCALE,
         )
-        grid = QSize(width, base.height())
-        if width == self._applied_grid_width and self.gridSize() == grid:
+        icon_display = max(1, width - ICON_CELL_PADDING)
+        grid = QSize(width, icon_display + self._label_extra_height())
+        icon = QSize(icon_display, icon_display)
+        if width == self._applied_grid_width and self.gridSize() == grid and self.iconSize() == icon:
             return
         self._applied_grid_width = width
         self.setUpdatesEnabled(False)
         try:
-            # UniformItemSizes is on — only the grid size needs to change.
+            self.setIconSize(icon)
             self.setGridSize(grid)
         finally:
             self.setUpdatesEnabled(True)
@@ -763,7 +772,7 @@ class DraggableIconList(QListWidget):
             label_h = VARIANT_LABEL_EXTRA_HEIGHT
         else:
             label_h = 48
-        return QSize(icon_size + 24, icon_size + label_h)
+        return QSize(icon_size + ICON_CELL_PADDING, icon_size + label_h)
 
     def _handle_main_view_menu_choice(
         self,
@@ -787,6 +796,13 @@ class DraggableIconList(QListWidget):
             self.reset_icon_size_requested.emit()
             return True
         return False
+
+    def _label_extra_height(self) -> int:
+        if self._dual_line_labels:
+            return LABEL_EXTRA_HEIGHT
+        if self._variants_context:
+            return VARIANT_LABEL_EXTRA_HEIGHT
+        return 48
 
     def _on_context_menu(self, pos: QPoint) -> None:
         item = self.itemAt(pos)
@@ -1114,6 +1130,26 @@ class IconLabelDelegate(QStyledItemDelegate):
         icon_h = option.decorationSize.height() if option.decorationSize.isValid() else DEFAULT_THUMB_SIZE
         width = max(base.width(), icon_h + 16)
         return QSize(width, icon_h + LABEL_EXTRA_HEIGHT)
+
+
+class IconSizeValueLabel(QLabel):
+    """Toolbar size readout that requests an edit dialog on double-click."""
+
+    edit_requested = Signal()
+
+    def __init__(self, text: str = "", parent: QWidget | None = None) -> None:
+        """Show `text` and advertise that a double-click opens a size editor."""
+        super().__init__(text, parent)
+        self.setToolTip("Double-click to type an icon size")
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+
+    def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        """Ask the owner to open a numeric size editor."""
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.edit_requested.emit()
+            event.accept()
+            return
+        super().mouseDoubleClickEvent(event)
 
 
 class VariantsPanel(QWidget):

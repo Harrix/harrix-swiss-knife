@@ -5,11 +5,18 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from PySide6.QtCore import Qt
+from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife.apps.icons.catalog import IconFamily, IconVariant
 from harrix_swiss_knife.apps.icons.variant_view import GridEntry
-from harrix_swiss_knife.apps.icons.widgets import DraggableIconList, placeholder_pixmap
+from harrix_swiss_knife.apps.icons.widgets import (
+    ICON_CELL_PADDING,
+    DraggableIconList,
+    IconSizeValueLabel,
+    placeholder_pixmap,
+)
 from harrix_swiss_knife.qt_uniform_width import resolve_uniform_item_width
 
 _MIN_SVG = (
@@ -71,20 +78,34 @@ def test_main_grid_fills_viewport_width(qapp: QApplication, tmp_path: Path) -> N
     QApplication.processEvents()
     lst.sync_fill_row_width()
     QApplication.processEvents()
-    base_w = 48 + 24
+    base_w = 48 + ICON_CELL_PADDING
     available = lst.viewport().width()
     expected = resolve_uniform_item_width(available, spacing=lst.spacing(), base_width=base_w)
     assert available > 0
     assert lst.gridSize().width() == expected
+    assert lst.iconSize().width() == expected - ICON_CELL_PADDING
     assert expected >= int(base_w * 0.82)
     lst.setFixedWidth(620)
     QApplication.processEvents()
     lst.sync_fill_row_width()
     QApplication.processEvents()
     wider = lst.viewport().width()
-    assert lst.gridSize().width() == resolve_uniform_item_width(wider, spacing=lst.spacing(), base_width=base_w)
+    wider_cell = resolve_uniform_item_width(wider, spacing=lst.spacing(), base_width=base_w)
+    assert lst.gridSize().width() == wider_cell
+    assert lst.iconSize().width() == wider_cell - ICON_CELL_PADDING
     assert wider > available
     lst.close()
+
+
+def test_icon_size_value_label_emits_edit_on_double_click(qapp: QApplication) -> None:
+    label = IconSizeValueLabel("160")
+    label.show()
+    qapp.processEvents()
+    emitted: list[bool] = []
+    label.edit_requested.connect(lambda: emitted.append(True))
+    QTest.mouseDClick(label, Qt.MouseButton.LeftButton)
+    assert emitted == [True]
+    label.close()
 
 
 def test_visible_row_span_covers_only_screenful(qapp: QApplication, tmp_path: Path) -> None:  # noqa: ARG001

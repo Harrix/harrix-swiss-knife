@@ -22,6 +22,7 @@ from PySide6.QtWidgets import (
     QFileDialog,
     QHBoxLayout,
     QHeaderView,
+    QInputDialog,
     QLabel,
     QLineEdit,
     QListWidget,
@@ -189,6 +190,7 @@ from harrix_swiss_knife.apps.icons.variant_view import (
 from harrix_swiss_knife.apps.icons.widgets import (
     CategoryDropList,
     DraggableIconList,
+    IconSizeValueLabel,
     VariantsPanel,
     apply_frameless_item_view,
     read_svg_text,
@@ -458,6 +460,10 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._icon_size_save_timer.setSingleShot(True)
         self._icon_size_save_timer.setInterval(300)
         self._icon_size_save_timer.timeout.connect(self._persist_icon_size)
+        self._icon_size_pixmap_timer = QTimer(self)
+        self._icon_size_pixmap_timer.setSingleShot(True)
+        self._icon_size_pixmap_timer.setInterval(120)
+        self._icon_size_pixmap_timer.timeout.connect(self._refresh_after_icon_size_change)
         self._search_filter_timer = QTimer(self)
         self._search_filter_timer.setSingleShot(True)
         self._search_filter_timer.setInterval(SEARCH_DEBOUNCE_MS)
@@ -471,6 +477,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Stop background work and optionally hide instead of closing."""
         self._search_filter_timer.stop()
+        self._icon_size_pixmap_timer.stop()
         self._persist_icon_size()
         self._persist_layout_settings()
         if self._hide_instead_of_close(event):
@@ -701,20 +708,14 @@ class MainWindow(QMainWindow, AppWindowMixin):
             self._grid_fill_timer.start()
 
     def _apply_icon_size(self, size: int) -> None:
-        """Apply display size to grids without writing config."""
+        """Apply display size to grids without rebuilding the catalog filter."""
         self._icon_size = size
         self._placeholder = placeholder_pixmap(size)
-        self._variant_pixmaps.clear()
         self.icon_list.set_display_icon_size(size)
         self.variants_panel.set_thumb_size(self._variant_thumb_size(size))
         self.size_value_label.setText(str(size))
-        selected_id = self._selected_family_id
-        self._apply_filters()
-        if selected_id is not None and self._catalog is not None and self._repo_root is not None:
-            family = next((item for item in self._catalog.icons if item.id == selected_id), None)
-            if family is not None:
-                self._selected_family_id = selected_id
-                self.variants_panel.show_family(family, self._repo_root)
+        # Debounce pixmap reloads so dragging the slider stays smooth.
+        self._icon_size_pixmap_timer.start()
 
     def _apply_loaded_catalog(self, catalog: IconCatalog) -> None:
         remember = self._pending_open_remember
@@ -845,10 +846,11 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.size_slider.customContextMenuRequested.connect(self._on_size_slider_context_menu)
         self.size_slider.valueChanged.connect(self._on_icon_size_changed)
         toolbar.addWidget(self.size_slider, alignment=Qt.AlignmentFlag.AlignVCenter)
-        self.size_value_label = QLabel(str(self._icon_size))
+        self.size_value_label = IconSizeValueLabel(str(self._icon_size))
         self.size_value_label.setMinimumWidth(28)
         self.size_value_label.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.size_value_label.customContextMenuRequested.connect(self._on_size_value_label_context_menu)
+        self.size_value_label.edit_requested.connect(self._on_size_value_edit_requested)
         toolbar.addWidget(self.size_value_label, alignment=Qt.AlignmentFlag.AlignVCenter)
 
         self._variant_view_label = QLabel("View")
@@ -1297,6 +1299,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
     def _entry_pixmap(self, entry: GridEntry) -> QPixmap | None:
         """Return the thumbnail for one tile, from memory, disk cache, or a fresh render."""
         key = str(entry.svg_path)
+        display_size = max(1, self.icon_list.iconSize().width() or self._icon_size)
         featured = entry.family.featured_path(self._repo_root) if self._repo_root is not None else None
         is_featured_tile = self._variant_view_mode == MODE_FEATURED or (
             featured is not None and entry.svg_path.resolve() == featured.resolve()
@@ -1307,14 +1310,14 @@ class MainWindow(QMainWindow, AppWindowMixin):
                 cached = self._thumb_cache.load_pixmap(entry.family.id)
                 if cached is not None:
                     self._cache_pixmap(self._pixmaps, entry.family.id, cached)
-            if cached is not None and not cached.isNull():
+            # Prefer disk/cache thumbs when they are close enough to the display size.
+            if cached is not None and not cached.isNull() and cached.width() >= int(display_size * 0.85):
                 return cached
-        # No disk thumbnail yet: render now so the tile is not stuck on a placeholder
-        # while the background worker walks through the rest of the folder.
+        # No disk thumbnail yet (or cache is too small): render at the on-screen size.
         session = self._variant_pixmaps.get(key)
-        if session is not None and not session.isNull():
+        if session is not None and not session.isNull() and session.width() >= int(display_size * 0.85):
             return session
-        image = render_icon_to_image(entry.svg_path, self._icon_size)
+        image = render_icon_to_image(entry.svg_path, display_size)
         if image is None:
             return None
         pixmap = QPixmap.fromImage(image)
@@ -2818,6 +2821,19 @@ class MainWindow(QMainWindow, AppWindowMixin):
     def _on_size_slider_context_menu(self, pos: QPoint) -> None:
         self._show_icon_size_reset_menu(self.size_slider.mapToGlobal(pos))
 
+    def _on_size_value_edit_requested(self) -> None:
+        """Let the user type an exact icon size after double-clicking the readout."""
+        value, accepted = QInputDialog.getInt(
+            self,
+            "Icon size",
+            f"Size ({ICON_SIZE_MIN}-{ICON_SIZE_MAX}):",
+            self.size_slider.value(),
+            ICON_SIZE_MIN,
+            ICON_SIZE_MAX,
+        )
+        if accepted:
+            self.size_slider.setValue(value)
+
     def _on_size_value_label_context_menu(self, pos: QPoint) -> None:
         self._show_icon_size_reset_menu(self.size_value_label.mapToGlobal(pos))
 
@@ -3111,6 +3127,26 @@ class MainWindow(QMainWindow, AppWindowMixin):
             for path in recent:
                 action = self._recent_menu.addAction(self._folder_label(path))
                 action.triggered.connect(lambda _checked=False, target=path: self._open_folder(target))
+
+    def _refresh_after_icon_size_change(self) -> None:
+        """Reload visible thumbs after the icon-size slider settles."""
+        self._variant_pixmaps.clear()
+        self._loaded_rows.clear()
+        count = self.icon_list.count()
+        if count > 0:
+            first, last = self.icon_list.visible_row_span(VIEWPORT_MARGIN_LINES)
+            last = min(last, count - 1)
+            if last >= first:
+                self.icon_list.reset_row_pixmaps(
+                    list(range(first, last + 1)),
+                    placeholder=self._placeholder,
+                )
+        self._refresh_viewport_pixmaps()
+        selected_id = self._selected_family_id
+        if selected_id is not None and self._catalog is not None and self._repo_root is not None:
+            family = next((item for item in self._catalog.icons if item.id == selected_id), None)
+            if family is not None:
+                self.variants_panel.show_family(family, self._repo_root)
 
     def _refresh_category_icons(self) -> None:
         for index in range(self.category_list.count()):

@@ -43,8 +43,11 @@ lang: en
 - [🏛️ Class `IconLabelDelegate`](#%EF%B8%8F-class-iconlabeldelegate)
   - [⚙️ Method `paint`](#%EF%B8%8F-method-paint)
   - [⚙️ Method `sizeHint`](#%EF%B8%8F-method-sizehint)
-- [🏛️ Class `VariantsPanel`](#%EF%B8%8F-class-variantspanel)
+- [🏛️ Class `IconSizeValueLabel`](#%EF%B8%8F-class-iconsizevaluelabel)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-2)
+  - [⚙️ Method `mouseDoubleClickEvent`](#%EF%B8%8F-method-mousedoubleclickevent)
+- [🏛️ Class `VariantsPanel`](#%EF%B8%8F-class-variantspanel)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-3)
   - [⚙️ Method `clear_variants`](#%EF%B8%8F-method-clear_variants)
   - [⚙️ Method `current_family (property)`](#%EF%B8%8F-method-current_family-property)
   - [⚙️ Method `resizeEvent`](#%EF%B8%8F-method-resizeevent-1)
@@ -534,7 +537,12 @@ class DraggableIconList(QListWidget):
         drag.exec(Qt.DropAction.CopyAction)
 
     def sync_fill_row_width(self) -> None:
-        """Stretch grid cells so a full row fills the viewport (main catalog only)."""
+        """Stretch grid cells so a full row fills the viewport (main catalog only).
+
+        Display icon size follows the stretched cell so artwork scales with the tile,
+        while `_icon_size` (slider) remains the preferred/minimum column basis.
+
+        """
         if not self._fill_row_width:
             return
         available = self.viewport().width()
@@ -547,13 +555,15 @@ class DraggableIconList(QListWidget):
             base_width=base.width(),
             min_scale=ICON_GRID_MIN_SCALE,
         )
-        grid = QSize(width, base.height())
-        if width == self._applied_grid_width and self.gridSize() == grid:
+        icon_display = max(1, width - ICON_CELL_PADDING)
+        grid = QSize(width, icon_display + self._label_extra_height())
+        icon = QSize(icon_display, icon_display)
+        if width == self._applied_grid_width and self.gridSize() == grid and self.iconSize() == icon:
             return
         self._applied_grid_width = width
         self.setUpdatesEnabled(False)
         try:
-            # UniformItemSizes is on — only the grid size needs to change.
+            self.setIconSize(icon)
             self.setGridSize(grid)
         finally:
             self.setUpdatesEnabled(True)
@@ -807,7 +817,7 @@ class DraggableIconList(QListWidget):
             label_h = VARIANT_LABEL_EXTRA_HEIGHT
         else:
             label_h = 48
-        return QSize(icon_size + 24, icon_size + label_h)
+        return QSize(icon_size + ICON_CELL_PADDING, icon_size + label_h)
 
     def _handle_main_view_menu_choice(
         self,
@@ -831,6 +841,13 @@ class DraggableIconList(QListWidget):
             self.reset_icon_size_requested.emit()
             return True
         return False
+
+    def _label_extra_height(self) -> int:
+        if self._dual_line_labels:
+            return LABEL_EXTRA_HEIGHT
+        if self._variants_context:
+            return VARIANT_LABEL_EXTRA_HEIGHT
+        return 48
 
     def _on_context_menu(self, pos: QPoint) -> None:
         item = self.itemAt(pos)
@@ -1575,6 +1592,9 @@ def sync_fill_row_width(self) -> None
 
 Stretch grid cells so a full row fills the viewport (main catalog only).
 
+Display icon size follows the stretched cell so artwork scales with the tile,
+while `_icon_size` (slider) remains the preferred/minimum column basis.
+
 <details>
 <summary>Code:</summary>
 
@@ -1592,13 +1612,15 @@ def sync_fill_row_width(self) -> None:
             base_width=base.width(),
             min_scale=ICON_GRID_MIN_SCALE,
         )
-        grid = QSize(width, base.height())
-        if width == self._applied_grid_width and self.gridSize() == grid:
+        icon_display = max(1, width - ICON_CELL_PADDING)
+        grid = QSize(width, icon_display + self._label_extra_height())
+        icon = QSize(icon_display, icon_display)
+        if width == self._applied_grid_width and self.gridSize() == grid and self.iconSize() == icon:
             return
         self._applied_grid_width = width
         self.setUpdatesEnabled(False)
         try:
-            # UniformItemSizes is on — only the grid size needs to change.
+            self.setIconSize(icon)
             self.setGridSize(grid)
         finally:
             self.setUpdatesEnabled(True)
@@ -2014,6 +2036,81 @@ def sizeHint(  # noqa: N802
         icon_h = option.decorationSize.height() if option.decorationSize.isValid() else DEFAULT_THUMB_SIZE
         width = max(base.width(), icon_h + 16)
         return QSize(width, icon_h + LABEL_EXTRA_HEIGHT)
+```
+
+</details>
+
+## 🏛️ Class `IconSizeValueLabel`
+
+```python
+class IconSizeValueLabel(QLabel)
+```
+
+Toolbar size readout that requests an edit dialog on double-click.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class IconSizeValueLabel(QLabel):
+
+    edit_requested = Signal()
+
+    def __init__(self, text: str = "", parent: QWidget | None = None) -> None:
+        """Show `text` and advertise that a double-click opens a size editor."""
+        super().__init__(text, parent)
+        self.setToolTip("Double-click to type an icon size")
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+
+    def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        """Ask the owner to open a numeric size editor."""
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.edit_requested.emit()
+            event.accept()
+            return
+        super().mouseDoubleClickEvent(event)
+```
+
+</details>
+
+### ⚙️ Method `__init__`
+
+```python
+def __init__(self, text: str = '', parent: QWidget | None = None) -> None
+```
+
+Show `text` and advertise that a double-click opens a size editor.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __init__(self, text: str = "", parent: QWidget | None = None) -> None:
+        super().__init__(text, parent)
+        self.setToolTip("Double-click to type an icon size")
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+```
+
+</details>
+
+### ⚙️ Method `mouseDoubleClickEvent`
+
+```python
+def mouseDoubleClickEvent(self, event: QMouseEvent) -> None
+```
+
+Ask the owner to open a numeric size editor.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.edit_requested.emit()
+            event.accept()
+            return
+        super().mouseDoubleClickEvent(event)
 ```
 
 </details>
