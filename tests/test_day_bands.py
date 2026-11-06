@@ -43,6 +43,9 @@ def test_day_bands_alternate_and_follow_theme(qapp: QApplication) -> None:
     light_even = day_band_color(0)
     light_odd = day_band_color(1)
     assert light_even.rgb() != light_odd.rgb()
+    # Cool bluish bands, not a flat gray plate against the window wallpaper.
+    assert light_even.blue() >= light_even.red()
+    assert light_odd.blue() >= light_odd.red()
     theme.set_mode(ThemeMode.DARK, persist=False)
     dark_even = day_band_color(0)
     assert dark_even.rgb() != light_even.rgb()

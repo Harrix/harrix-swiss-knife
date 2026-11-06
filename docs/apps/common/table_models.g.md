@@ -28,6 +28,7 @@ lang: en
 - [🔧 Function `set_stored_table_header_sort`](#-function-set_stored_table_header_sort)
 - [🔧 Function `sort_table_by_header_click`](#-function-sort_table_by_header_click)
 - [🔧 Function `sort_table_by_record_id_click`](#-function-sort_table_by_record_id_click)
+- [🔧 Function `table_corner_button`](#-function-table_corner_button)
 - [🔧 Function `user_resized_columns`](#-function-user_resized_columns)
 
 </details>
@@ -357,7 +358,7 @@ select-all and uses the same click cycle as a column header.
 def enable_record_id_corner_sort(table: QTableView) -> None:
     if table.property("hskRecordIdCorner"):
         return
-    button = _table_corner_button(table)
+    button = table_corner_button(table)
     if button is None:
         return
     button.clicked.disconnect()
@@ -693,6 +694,27 @@ def sort_table_by_record_id_click(table: QTableView) -> None:
     header.setSortIndicatorShown(False)
     set_stored_table_header_sort(table, _ROW_ID_SORT_SECTION, order)
     _set_record_id_corner_order(table, order)
+```
+
+</details>
+
+## 🔧 Function `table_corner_button`
+
+```python
+def table_corner_button(table: QTableView) -> QAbstractButton | None
+```
+
+Return the header-corner button that Qt uses to select every row.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def table_corner_button(table: QTableView) -> QAbstractButton | None:
+    for child in table.findChildren(QAbstractButton):
+        if child.metaObject().className() == "QTableCornerButton":
+            return child
+    return None
 ```
 
 </details>

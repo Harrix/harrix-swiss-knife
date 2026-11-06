@@ -6,12 +6,14 @@ from typing import TYPE_CHECKING
 
 import pytest
 from PySide6.QtCore import QCoreApplication, QEvent, QSortFilterProxyModel
-from PySide6.QtGui import QFont, QStandardItem, QStandardItemModel
+from PySide6.QtGui import QFont, QPalette, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import QApplication, QTableView, QWidget
 from shiboken6 import isValid
 
+from harrix_swiss_knife.apps.common.day_bands import table_surface_color
+from harrix_swiss_knife.apps.common.table_models import table_corner_button
 from harrix_swiss_knife.fluent import FluentTheme, ThemeMode, is_fluent_themed, palette_for
-from harrix_swiss_knife.fluent.app_chrome import _sync_record_id_header, _watch_record_id_header
+from harrix_swiss_knife.fluent.app_chrome import _style_table, _sync_record_id_header, _watch_record_id_header
 from harrix_swiss_knife.fluent.gallery import build_gallery
 from harrix_swiss_knife.fluent.tokens import DARK_PALETTE, LIGHT_PALETTE
 from harrix_swiss_knife.fluent.widgets import (
@@ -183,6 +185,24 @@ def test_popups_instantiate(qapp: QApplication, light_theme: FluentTheme) -> Non
     qapp.processEvents()
     _dispose(qapp, dialog)
     _dispose(qapp, host)
+
+
+def test_table_corner_follows_dark_surface(qapp: QApplication) -> None:
+    """The header corner above the id column uses the table surface in dark mode."""
+    assert qapp is not None
+    table = QTableView()
+    model = QStandardItemModel()
+    model.setHorizontalHeaderLabels(["Name"])
+    model.appendRow([QStandardItem("Milk")])
+    model.setVerticalHeaderItem(0, QStandardItem("42"))
+    table.setModel(model)
+    _style_table(table, DARK_PALETTE)
+    corner = table_corner_button(table)
+    assert corner is not None
+    surface = table_surface_color(DARK_PALETTE)
+    assert corner.palette().color(QPalette.ColorRole.Button).rgb() == surface.rgb()
+    assert "QTableCornerButton::section" in (table.styleSheet() or "")
+    _dispose(qapp, table)
 
 
 def test_record_id_header_appears_after_rows_arrive(qapp: QApplication) -> None:

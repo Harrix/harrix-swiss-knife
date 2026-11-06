@@ -44,7 +44,7 @@ from harrix_swiss_knife.apps.common.day_bands import (
     refresh_day_bands,
     table_surface_color,
 )
-from harrix_swiss_knife.apps.common.table_models import enable_record_id_corner_sort
+from harrix_swiss_knife.apps.common.table_models import enable_record_id_corner_sort, table_corner_button
 from harrix_swiss_knife.apps.common.ui_chrome import (
     INPUT_BORDER,
     SELECTION_BG,
@@ -677,6 +677,12 @@ def _style_table(table: QTableView, palette: FluentPalette) -> None:
  font-weight: 400;
  padding: 0px 4px;
 }}
+{selector} QTableCornerButton::section {{
+ background: {surface.name()};
+ color: {secondary};
+ border: none;
+ border-bottom: 1px solid {divider};
+}}
 {scroll_bar_qss(palette)}
 """,
     )
@@ -694,6 +700,11 @@ def _style_table(table: QTableView, palette: FluentPalette) -> None:
     header.viewport().setPalette(tuned)
     vertical.setPalette(tuned)
     vertical.viewport().setPalette(tuned)
+    corner = table_corner_button(table)
+    if corner is not None:
+        corner.setPalette(tuned)
+        corner.setAutoFillBackground(True)
+        corner.update()
 
 
 def _sync_record_id_header(table: QTableView) -> None:

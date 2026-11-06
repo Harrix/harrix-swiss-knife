@@ -269,7 +269,7 @@ def enable_record_id_corner_sort(table: QTableView) -> None:
     """
     if table.property("hskRecordIdCorner"):
         return
-    button = _table_corner_button(table)
+    button = table_corner_button(table)
     if button is None:
         return
     button.clicked.disconnect()
@@ -524,6 +524,14 @@ def sort_table_by_record_id_click(table: QTableView) -> None:
     _set_record_id_corner_order(table, order)
 
 
+def table_corner_button(table: QTableView) -> QAbstractButton | None:
+    """Return the header-corner button that Qt uses to select every row."""
+    for child in table.findChildren(QAbstractButton):
+        if child.metaObject().className() == "QTableCornerButton":
+            return child
+    return None
+
+
 def user_resized_columns(table: QTableView) -> bool:
     """Return whether the user has dragged a column edge on `table`."""
     return bool(table.property(_USER_SIZED_COLUMNS_PROP))
@@ -640,11 +648,3 @@ def _set_record_id_corner_order(table: QTableView, order: Qt.SortOrder | None) -
 def _sortable_row_id(index: QModelIndex | QPersistentModelIndex) -> int | None:
     """Read a numeric ID stored on an icon cell for first-column sorting."""
     return _as_sort_id(index.data(Qt.ItemDataRole.UserRole))
-
-
-def _table_corner_button(table: QTableView) -> QAbstractButton | None:
-    """Return the header-corner button that Qt uses to select every row."""
-    for child in table.findChildren(QAbstractButton):
-        if child.metaObject().className() == "QTableCornerButton":
-            return child
-    return None
