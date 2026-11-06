@@ -10,6 +10,7 @@ from PySide6.QtWidgets import QApplication
 from harrix_swiss_knife.apps.icons.catalog import IconFamily, IconVariant
 from harrix_swiss_knife.apps.icons.variant_view import GridEntry
 from harrix_swiss_knife.apps.icons.widgets import DraggableIconList, placeholder_pixmap
+from harrix_swiss_knife.qt_uniform_width import resolve_uniform_item_width
 
 _MIN_SVG = (
     '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" fill="#336699"/></svg>'
@@ -56,6 +57,34 @@ def test_append_grid_entries_keeps_all_tiles(qapp: QApplication, tmp_path: Path)
     assert lst.count() == len(entries)
     assert lst.select_family(entries[-1].family.id)
     assert lst.currentRow() == len(entries) - 1
+
+
+def test_main_grid_fills_viewport_width(qapp: QApplication, tmp_path: Path) -> None:  # noqa: ARG001
+    entries = _entries(tmp_path, 12)
+    placeholder = placeholder_pixmap(48)
+    lst = DraggableIconList(icon_size=48, dual_line_labels=True, fill_row_width=True)
+    lst.setSpacing(8)
+    lst.setFixedWidth(540)
+    lst.show()
+    QApplication.processEvents()
+    lst.set_grid_entries(entries, pixmaps_by_path={}, placeholder=placeholder)
+    QApplication.processEvents()
+    lst.sync_fill_row_width()
+    QApplication.processEvents()
+    base_w = 48 + 24
+    available = lst.viewport().width()
+    expected = resolve_uniform_item_width(available, spacing=lst.spacing(), base_width=base_w)
+    assert available > 0
+    assert lst.gridSize().width() == expected
+    assert expected >= int(base_w * 0.82)
+    lst.setFixedWidth(620)
+    QApplication.processEvents()
+    lst.sync_fill_row_width()
+    QApplication.processEvents()
+    wider = lst.viewport().width()
+    assert lst.gridSize().width() == resolve_uniform_item_width(wider, spacing=lst.spacing(), base_width=base_w)
+    assert wider > available
+    lst.close()
 
 
 def test_visible_row_span_covers_only_screenful(qapp: QApplication, tmp_path: Path) -> None:  # noqa: ARG001

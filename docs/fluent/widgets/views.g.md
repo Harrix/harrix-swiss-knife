@@ -2101,14 +2101,12 @@ def resolve_command_card_width(
     base_width: int = COMMAND_CARD_WIDTH,
     min_scale: float = COMMAND_CARD_MIN_SCALE,
 ) -> int:
-    if available_width <= 0:
-        return base_width
-    columns = max(1, (available_width + spacing) // (base_width + spacing))
-    extra = columns + 1
-    width_for_extra = (available_width - (extra - 1) * spacing) // extra
-    if width_for_extra / base_width >= min_scale:
-        columns = extra
-    return max(1, (available_width - (columns - 1) * spacing) // columns)
+    return resolve_uniform_item_width(
+        available_width,
+        spacing=spacing,
+        base_width=base_width,
+        min_scale=min_scale,
+    )
 ```
 
 </details>

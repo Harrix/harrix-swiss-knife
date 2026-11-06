@@ -82,6 +82,7 @@ from harrix_swiss_knife.qt_lucide_icon import (
     apply_leading_chrome_icons,
     set_action_text_with_lucide_icon,
 )
+from harrix_swiss_knife.qt_uniform_width import resolve_uniform_item_width
 
 if TYPE_CHECKING:
     from harrix_swiss_knife.apps.icons.catalog import IconFamily
@@ -100,6 +101,7 @@ ROLE_TRADEMARK = int(Qt.ItemDataRole.UserRole) + 4
 ROLE_NUMBER = int(Qt.ItemDataRole.UserRole) + 5
 ROLE_DATE = int(Qt.ItemDataRole.UserRole) + 6
 LABEL_EXTRA_HEIGHT = 58
+ICON_GRID_MIN_SCALE = 0.82
 FALLBACK_ICON_OPACITY = 0.38
 FALLBACK_TITLE_ALPHA = 120
 FALLBACK_SUBTITLE_ALPHA = 90
@@ -214,6 +216,7 @@ class DraggableIconList(QListWidget):
         emit_family_selection: bool = True,
         dual_line_labels: bool = False,
         variants_context: bool = False,
+        fill_row_width: bool = False,
     ) -> None:
         """Configure icon mode and drag-only outward behavior."""
         super().__init__(parent)
@@ -222,6 +225,8 @@ class DraggableIconList(QListWidget):
         self._emit_family_selection = emit_family_selection
         self._dual_line_labels = dual_line_labels
         self._variants_context = variants_context
+        self._fill_row_width = fill_row_width
+        self._applied_grid_width = 0
         self._variants_family: IconFamily | None = None
         self._favorite_family_ids: set[str] = set()
         self._repo_root: Path | None = None
@@ -353,6 +358,7 @@ class DraggableIconList(QListWidget):
     def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
         """Reflow tiles and ask the owner to reload pixmaps for the new visible rows."""
         super().resizeEvent(event)
+        self.sync_fill_row_width()
         self.schedule_viewport_changed()
 
     def schedule_viewport_changed(self) -> None:
@@ -406,7 +412,11 @@ class DraggableIconList(QListWidget):
         """Update icon and grid sizes used by the list."""
         self._icon_size = icon_size
         self.setIconSize(QSize(icon_size, icon_size))
-        self.setGridSize(self._grid_size_for(icon_size))
+        if self._fill_row_width:
+            self._applied_grid_width = 0
+            self.sync_fill_row_width()
+        else:
+            self.setGridSize(self._grid_size_for(icon_size))
 
     def set_favorite_family_ids(self, family_ids: set[str] | list[str]) -> None:
         """Update the favorite family IDs used by the context menu labels."""
@@ -433,6 +443,7 @@ class DraggableIconList(QListWidget):
             )
         self.setCurrentRow(-1)
         self.blockSignals(False)  # noqa: FBT003
+        self.sync_fill_row_width()
 
     def set_note_repo_features(self, *, enabled: bool) -> None:
         """Enable note-repo-only context actions (edit, trademark, AI keywords)."""
@@ -477,6 +488,31 @@ class DraggableIconList(QListWidget):
                 drag.setPixmap(icon.pixmap(64, 64))
                 drag.setHotSpot(QPoint(32, 32))
         drag.exec(Qt.DropAction.CopyAction)
+
+    def sync_fill_row_width(self) -> None:
+        """Stretch grid cells so a full row fills the viewport (main catalog only)."""
+        if not self._fill_row_width:
+            return
+        available = self.viewport().width()
+        if available <= 0:
+            return
+        base = self._grid_size_for(self._icon_size)
+        width = resolve_uniform_item_width(
+            available,
+            spacing=self.spacing(),
+            base_width=base.width(),
+            min_scale=ICON_GRID_MIN_SCALE,
+        )
+        grid = QSize(width, base.height())
+        if width == self._applied_grid_width and self.gridSize() == grid:
+            return
+        self._applied_grid_width = width
+        self.setUpdatesEnabled(False)
+        try:
+            # UniformItemSizes is on — only the grid size needs to change.
+            self.setGridSize(grid)
+        finally:
+            self.setUpdatesEnabled(True)
 
     def update_row_pixmaps(self, pixmaps: dict[int, QPixmap]) -> None:
         """Apply thumbnails for the given rows with a single repaint."""
@@ -562,7 +598,11 @@ class DraggableIconList(QListWidget):
         if entry.is_fallback:
             tip = f"{tip}\nFallback: family has no selected variant kind"
         item.setToolTip(tip)
-        item.setSizeHint(QSize(self._icon_size + 16, self._icon_size + LABEL_EXTRA_HEIGHT))
+        grid = self.gridSize()
+        if grid.isValid() and grid.width() > 0 and grid.height() > 0:
+            item.setSizeHint(grid)
+        else:
+            item.setSizeHint(QSize(self._icon_size + 16, self._icon_size + LABEL_EXTRA_HEIGHT))
         self._family_rows.setdefault(entry.family.id, self.count())
         self.addItem(item)
 

@@ -36,6 +36,7 @@ lang: en
   - [⚙️ Method `set_variants_family`](#%EF%B8%8F-method-set_variants_family)
   - [⚙️ Method `set_view_options`](#%EF%B8%8F-method-set_view_options)
   - [⚙️ Method `startDrag`](#%EF%B8%8F-method-startdrag)
+  - [⚙️ Method `sync_fill_row_width`](#%EF%B8%8F-method-sync_fill_row_width)
   - [⚙️ Method `update_row_pixmaps`](#%EF%B8%8F-method-update_row_pixmaps)
   - [⚙️ Method `visible_row_span`](#%EF%B8%8F-method-visible_row_span)
   - [⚙️ Method `wheelEvent`](#%EF%B8%8F-method-wheelevent)
@@ -259,6 +260,7 @@ class DraggableIconList(QListWidget):
         emit_family_selection: bool = True,
         dual_line_labels: bool = False,
         variants_context: bool = False,
+        fill_row_width: bool = False,
     ) -> None:
         """Configure icon mode and drag-only outward behavior."""
         super().__init__(parent)
@@ -267,6 +269,8 @@ class DraggableIconList(QListWidget):
         self._emit_family_selection = emit_family_selection
         self._dual_line_labels = dual_line_labels
         self._variants_context = variants_context
+        self._fill_row_width = fill_row_width
+        self._applied_grid_width = 0
         self._variants_family: IconFamily | None = None
         self._favorite_family_ids: set[str] = set()
         self._repo_root: Path | None = None
@@ -398,6 +402,7 @@ class DraggableIconList(QListWidget):
     def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
         """Reflow tiles and ask the owner to reload pixmaps for the new visible rows."""
         super().resizeEvent(event)
+        self.sync_fill_row_width()
         self.schedule_viewport_changed()
 
     def schedule_viewport_changed(self) -> None:
@@ -451,7 +456,11 @@ class DraggableIconList(QListWidget):
         """Update icon and grid sizes used by the list."""
         self._icon_size = icon_size
         self.setIconSize(QSize(icon_size, icon_size))
-        self.setGridSize(self._grid_size_for(icon_size))
+        if self._fill_row_width:
+            self._applied_grid_width = 0
+            self.sync_fill_row_width()
+        else:
+            self.setGridSize(self._grid_size_for(icon_size))
 
     def set_favorite_family_ids(self, family_ids: set[str] | list[str]) -> None:
         """Update the favorite family IDs used by the context menu labels."""
@@ -478,6 +487,7 @@ class DraggableIconList(QListWidget):
             )
         self.setCurrentRow(-1)
         self.blockSignals(False)  # noqa: FBT003
+        self.sync_fill_row_width()
 
     def set_note_repo_features(self, *, enabled: bool) -> None:
         """Enable note-repo-only context actions (edit, trademark, AI keywords)."""
@@ -522,6 +532,31 @@ class DraggableIconList(QListWidget):
                 drag.setPixmap(icon.pixmap(64, 64))
                 drag.setHotSpot(QPoint(32, 32))
         drag.exec(Qt.DropAction.CopyAction)
+
+    def sync_fill_row_width(self) -> None:
+        """Stretch grid cells so a full row fills the viewport (main catalog only)."""
+        if not self._fill_row_width:
+            return
+        available = self.viewport().width()
+        if available <= 0:
+            return
+        base = self._grid_size_for(self._icon_size)
+        width = resolve_uniform_item_width(
+            available,
+            spacing=self.spacing(),
+            base_width=base.width(),
+            min_scale=ICON_GRID_MIN_SCALE,
+        )
+        grid = QSize(width, base.height())
+        if width == self._applied_grid_width and self.gridSize() == grid:
+            return
+        self._applied_grid_width = width
+        self.setUpdatesEnabled(False)
+        try:
+            # UniformItemSizes is on — only the grid size needs to change.
+            self.setGridSize(grid)
+        finally:
+            self.setUpdatesEnabled(True)
 
     def update_row_pixmaps(self, pixmaps: dict[int, QPixmap]) -> None:
         """Apply thumbnails for the given rows with a single repaint."""
@@ -607,7 +642,11 @@ class DraggableIconList(QListWidget):
         if entry.is_fallback:
             tip = f"{tip}\nFallback: family has no selected variant kind"
         item.setToolTip(tip)
-        item.setSizeHint(QSize(self._icon_size + 16, self._icon_size + LABEL_EXTRA_HEIGHT))
+        grid = self.gridSize()
+        if grid.isValid() and grid.width() > 0 and grid.height() > 0:
+            item.setSizeHint(grid)
+        else:
+            item.setSizeHint(QSize(self._icon_size + 16, self._icon_size + LABEL_EXTRA_HEIGHT))
         self._family_rows.setdefault(entry.family.id, self.count())
         self.addItem(item)
 
@@ -984,7 +1023,7 @@ class DraggableIconList(QListWidget):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None = None, *, icon_size: int = DEFAULT_THUMB_SIZE, emit_family_selection: bool = True, dual_line_labels: bool = False, variants_context: bool = False) -> None
+def __init__(self, parent: QWidget | None = None, *, icon_size: int = DEFAULT_THUMB_SIZE, emit_family_selection: bool = True, dual_line_labels: bool = False, variants_context: bool = False, fill_row_width: bool = False) -> None
 ```
 
 Configure icon mode and drag-only outward behavior.
@@ -1001,6 +1040,7 @@ def __init__(
         emit_family_selection: bool = True,
         dual_line_labels: bool = False,
         variants_context: bool = False,
+        fill_row_width: bool = False,
     ) -> None:
         super().__init__(parent)
         apply_frameless_item_view(self)
@@ -1008,6 +1048,8 @@ def __init__(
         self._emit_family_selection = emit_family_selection
         self._dual_line_labels = dual_line_labels
         self._variants_context = variants_context
+        self._fill_row_width = fill_row_width
+        self._applied_grid_width = 0
         self._variants_family: IconFamily | None = None
         self._favorite_family_ids: set[str] = set()
         self._repo_root: Path | None = None
@@ -1209,6 +1251,7 @@ Reflow tiles and ask the owner to reload pixmaps for the new visible rows.
 ```python
 def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
         super().resizeEvent(event)
+        self.sync_fill_row_width()
         self.schedule_viewport_changed()
 ```
 
@@ -1346,7 +1389,11 @@ Update icon and grid sizes used by the list.
 def set_display_icon_size(self, icon_size: int) -> None:
         self._icon_size = icon_size
         self.setIconSize(QSize(icon_size, icon_size))
-        self.setGridSize(self._grid_size_for(icon_size))
+        if self._fill_row_width:
+            self._applied_grid_width = 0
+            self.sync_fill_row_width()
+        else:
+            self.setGridSize(self._grid_size_for(icon_size))
 ```
 
 </details>
@@ -1401,6 +1448,7 @@ def set_grid_entries(
             )
         self.setCurrentRow(-1)
         self.blockSignals(False)  # noqa: FBT003
+        self.sync_fill_row_width()
 ```
 
 </details>
@@ -1515,6 +1563,45 @@ def startDrag(self, supported_actions: Qt.DropAction) -> None:  # noqa: ARG002, 
                 drag.setPixmap(icon.pixmap(64, 64))
                 drag.setHotSpot(QPoint(32, 32))
         drag.exec(Qt.DropAction.CopyAction)
+```
+
+</details>
+
+### ⚙️ Method `sync_fill_row_width`
+
+```python
+def sync_fill_row_width(self) -> None
+```
+
+Stretch grid cells so a full row fills the viewport (main catalog only).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def sync_fill_row_width(self) -> None:
+        if not self._fill_row_width:
+            return
+        available = self.viewport().width()
+        if available <= 0:
+            return
+        base = self._grid_size_for(self._icon_size)
+        width = resolve_uniform_item_width(
+            available,
+            spacing=self.spacing(),
+            base_width=base.width(),
+            min_scale=ICON_GRID_MIN_SCALE,
+        )
+        grid = QSize(width, base.height())
+        if width == self._applied_grid_width and self.gridSize() == grid:
+            return
+        self._applied_grid_width = width
+        self.setUpdatesEnabled(False)
+        try:
+            # UniformItemSizes is on — only the grid size needs to change.
+            self.setGridSize(grid)
+        finally:
+            self.setUpdatesEnabled(True)
 ```
 
 </details>

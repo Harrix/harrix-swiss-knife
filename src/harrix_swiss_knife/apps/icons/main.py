@@ -952,7 +952,11 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.count_label = QLabel("")
         center_layout.addWidget(self.count_label)
         bind_theme(center, self._refresh_center_chrome)
-        self.icon_list = DraggableIconList(icon_size=self._icon_size, dual_line_labels=True)
+        self.icon_list = DraggableIconList(
+            icon_size=self._icon_size,
+            dual_line_labels=True,
+            fill_row_width=True,
+        )
         self.icon_list.set_view_options(
             show_numbers=self._show_numbers,
             sort_mode=self._grid_sort_mode,
