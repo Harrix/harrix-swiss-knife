@@ -15,7 +15,7 @@ from harrix_swiss_knife.apps.common.table_models import table_corner_button
 from harrix_swiss_knife.fluent import FluentTheme, ThemeMode, is_fluent_themed, palette_for
 from harrix_swiss_knife.fluent.app_chrome import _style_table, _sync_record_id_header, _watch_record_id_header
 from harrix_swiss_knife.fluent.gallery import build_gallery
-from harrix_swiss_knife.fluent.tokens import DARK_PALETTE, LIGHT_PALETTE
+from harrix_swiss_knife.fluent.tokens import CARD_GRID_SPACING, COMMAND_CARD_WIDTH, DARK_PALETTE, LIGHT_PALETTE
 from harrix_swiss_knife.fluent.widgets import (
     FluentCardGrid,
     FluentCommandCard,
@@ -30,6 +30,7 @@ from harrix_swiss_knife.fluent.widgets import (
     FluentToggleSwitch,
     Severity,
 )
+from harrix_swiss_knife.fluent.widgets.views import resolve_command_card_width
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -126,6 +127,62 @@ def test_command_cards_and_navigation(qapp: QApplication, light_theme: FluentThe
     assert changed == ["b"]
     _dispose(qapp, grid)
     _dispose(qapp, nav)
+
+
+def test_command_card_grid_fills_available_width(qapp: QApplication, light_theme: FluentTheme) -> None:
+    """Command cards stretch so a full row uses the free width of the pane."""
+    del light_theme
+    spacing = CARD_GRID_SPACING
+    available = COMMAND_CARD_WIDTH * 3 + spacing * 2 + 90
+    expected = resolve_command_card_width(available, spacing=spacing)
+    assert expected > COMMAND_CARD_WIDTH
+
+    grid = FluentCardGrid()
+    grid.setFixedWidth(available)
+    for index in range(3):
+        grid.add_card(FluentCommandCard(f"Command {index}", "Description", icon="terminal"))
+    grid.show()
+    qapp.processEvents()
+    grid.flow_layout().setGeometry(grid.rect())
+    qapp.processEvents()
+    assert {card.width() for card in grid.cards()} == {expected}
+    assert expected * 3 + spacing * 2 == available
+
+    wider = available + 120
+    grid.setFixedWidth(wider)
+    qapp.processEvents()
+    grid.flow_layout().setGeometry(grid.rect())
+    qapp.processEvents()
+    assert {card.width() for card in grid.cards()} == {resolve_command_card_width(wider, spacing=spacing)}
+    _dispose(qapp, grid)
+
+
+def test_command_card_grids_share_width_across_sections(qapp: QApplication, light_theme: FluentTheme) -> None:
+    """Short and dense command sections use the same card width for one pane width."""
+    del light_theme
+    spacing = CARD_GRID_SPACING
+    available = COMMAND_CARD_WIDTH * 4 + spacing * 3 + 60
+    expected = resolve_command_card_width(available, spacing=spacing)
+
+    short = FluentCardGrid()
+    dense = FluentCardGrid()
+    short.setFixedWidth(available)
+    dense.setFixedWidth(available)
+    for index in range(3):
+        short.add_card(FluentCommandCard(f"Short {index}", "Description", icon="terminal"))
+    for index in range(9):
+        dense.add_card(FluentCommandCard(f"Dense {index}", "Description", icon="terminal"))
+    short.show()
+    dense.show()
+    qapp.processEvents()
+    short.flow_layout().setGeometry(short.rect())
+    dense.flow_layout().setGeometry(dense.rect())
+    qapp.processEvents()
+
+    assert {card.width() for card in short.cards()} == {expected}
+    assert {card.width() for card in dense.cards()} == {expected}
+    _dispose(qapp, short)
+    _dispose(qapp, dense)
 
 
 def test_setting_cards(qapp: QApplication, light_theme: FluentTheme) -> None:

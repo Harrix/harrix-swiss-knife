@@ -107,6 +107,10 @@ class MainWindow(QMainWindow):
         self._all_actions: list[QAction] = []
         self._action_sections: dict[QAction, str] = {}
         self._sort_mode = get_main_window_sort_mode()
+        self._cards_layout_timer = QTimer(self)
+        self._cards_layout_timer.setSingleShot(True)
+        self._cards_layout_timer.setInterval(80)
+        self._cards_layout_timer.timeout.connect(self._on_cards_layout_changed)
 
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
@@ -132,9 +136,9 @@ class MainWindow(QMainWindow):
         self.hide()
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
-        """Refit Recent when the cards pane resizes."""
+        """Refit Recent when the cards pane resizes (debounced while dragging)."""
         if event.type() == QEvent.Type.Resize and watched is self._scroll.viewport():
-            QTimer.singleShot(0, self._on_cards_layout_changed)
+            self._cards_layout_timer.start()
         return super().eventFilter(watched, event)
 
     def focus_initial_input(self) -> None:
@@ -163,14 +167,14 @@ class MainWindow(QMainWindow):
             self._scroll_to_section(data)
 
     def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
-        """Refit Recent when the window width changes."""
+        """Refit Recent when the window width changes (debounced while dragging)."""
         super().resizeEvent(event)
-        QTimer.singleShot(0, self._on_cards_layout_changed)
+        self._cards_layout_timer.start()
 
     def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
         """Refresh Recent and focus the primary input when the window is shown."""
         super().showEvent(event)
-        QTimer.singleShot(0, self._on_cards_layout_changed)
+        self._on_cards_layout_changed()
         QTimer.singleShot(0, self.focus_initial_input)
 
     def show_window(self) -> None:

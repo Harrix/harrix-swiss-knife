@@ -18,6 +18,7 @@ lang: en
 - [🏛️ Class `FluentCommandCard`](#%EF%B8%8F-class-fluentcommandcard)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
   - [⚙️ Method `description`](#%EF%B8%8F-method-description)
+  - [⚙️ Method `minimumSizeHint`](#%EF%B8%8F-method-minimumsizehint)
   - [⚙️ Method `paintEvent`](#%EF%B8%8F-method-paintevent-1)
   - [⚙️ Method `set_icon`](#%EF%B8%8F-method-set_icon)
   - [⚙️ Method `sizeHint`](#%EF%B8%8F-method-sizehint)
@@ -241,10 +242,11 @@ def url(self) -> str:
 class FluentCommandCard(FluentInteractiveCard)
 ```
 
-Fixed-size command tile: icon on the left, bold title and two-line description.
+Command tile: icon on the left, bold title and two-line description.
 
-The tray command window shows every action as one of these. All sizes come
-from `fluent.tokens`, so grids of cards line up without per-card fitting.
+The tray command window shows every action as one of these. Height comes from
+`fluent.tokens`; preferred width is `COMMAND_CARD_WIDTH` and a [`FluentCardGrid`](views.g.md#%EF%B8%8F-class-fluentcardgrid)
+assigns the shared column width in its layout pass (no fixed-width thrash).
 
 <details>
 <summary>Code:</summary>
@@ -280,13 +282,19 @@ class FluentCommandCard(FluentInteractiveCard):
         self._overline = overline
         self.user_data = user_data
         super().__init__(parent)
-        self.setFixedSize(COMMAND_CARD_WIDTH, COMMAND_CARD_HEIGHT)
+        self.setFixedHeight(COMMAND_CARD_HEIGHT)
+        self.setMinimumWidth(max(1, int(COMMAND_CARD_WIDTH * COMMAND_CARD_MIN_SCALE)))
+        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         tip = "\n".join(part for part in (overline, title, description) if part)
         self.setToolTip(tip)
 
     def description(self) -> str:
         """Return the description text."""
         return self._description
+
+    def minimumSizeHint(self) -> QSize:  # noqa: N802
+        """Return the smallest width a command grid may squeeze to."""
+        return QSize(self.minimumWidth(), COMMAND_CARD_HEIGHT)
 
     def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
         """Paint the surface, icon, title, and description."""
@@ -349,7 +357,7 @@ class FluentCommandCard(FluentInteractiveCard):
         self.update()
 
     def sizeHint(self) -> QSize:  # noqa: N802
-        """Return the fixed command card size."""
+        """Return the preferred command card size before the grid stretches it."""
         return QSize(COMMAND_CARD_WIDTH, COMMAND_CARD_HEIGHT)
 
     def title(self) -> str:
@@ -396,7 +404,9 @@ def __init__(
         self._overline = overline
         self.user_data = user_data
         super().__init__(parent)
-        self.setFixedSize(COMMAND_CARD_WIDTH, COMMAND_CARD_HEIGHT)
+        self.setFixedHeight(COMMAND_CARD_HEIGHT)
+        self.setMinimumWidth(max(1, int(COMMAND_CARD_WIDTH * COMMAND_CARD_MIN_SCALE)))
+        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         tip = "\n".join(part for part in (overline, title, description) if part)
         self.setToolTip(tip)
 ```
@@ -417,6 +427,24 @@ Return the description text.
 ```python
 def description(self) -> str:
         return self._description
+```
+
+</details>
+
+### ⚙️ Method `minimumSizeHint`
+
+```python
+def minimumSizeHint(self) -> QSize
+```
+
+Return the smallest width a command grid may squeeze to.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def minimumSizeHint(self) -> QSize:  # noqa: N802
+        return QSize(self.minimumWidth(), COMMAND_CARD_HEIGHT)
 ```
 
 </details>
@@ -515,7 +543,7 @@ def set_icon(self, icon: QIcon | str | None) -> None:
 def sizeHint(self) -> QSize
 ```
 
-Return the fixed command card size.
+Return the preferred command card size before the grid stretches it.
 
 <details>
 <summary>Code:</summary>

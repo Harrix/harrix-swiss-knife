@@ -14,6 +14,7 @@ from harrix_swiss_knife.fluent.theme import bind_theme, fluent_font, palette_for
 from harrix_swiss_knife.fluent.tokens import (
     CARD_ICON_SIZE,
     COMMAND_CARD_HEIGHT,
+    COMMAND_CARD_MIN_SCALE,
     COMMAND_CARD_WIDTH,
     ICON_SIZE,
     ICON_SIZE_LARGE,
@@ -115,10 +116,11 @@ class FluentAcrylicUrlCard(FluentInteractiveCard):
 
 
 class FluentCommandCard(FluentInteractiveCard):
-    """Fixed-size command tile: icon on the left, bold title and two-line description.
+    """Command tile: icon on the left, bold title and two-line description.
 
-    The tray command window shows every action as one of these. All sizes come
-    from `fluent.tokens`, so grids of cards line up without per-card fitting.
+    The tray command window shows every action as one of these. Height comes from
+    `fluent.tokens`; preferred width is `COMMAND_CARD_WIDTH` and a `FluentCardGrid`
+    assigns the shared column width in its layout pass (no fixed-width thrash).
 
     """
 
@@ -150,13 +152,19 @@ class FluentCommandCard(FluentInteractiveCard):
         self._overline = overline
         self.user_data = user_data
         super().__init__(parent)
-        self.setFixedSize(COMMAND_CARD_WIDTH, COMMAND_CARD_HEIGHT)
+        self.setFixedHeight(COMMAND_CARD_HEIGHT)
+        self.setMinimumWidth(max(1, int(COMMAND_CARD_WIDTH * COMMAND_CARD_MIN_SCALE)))
+        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         tip = "\n".join(part for part in (overline, title, description) if part)
         self.setToolTip(tip)
 
     def description(self) -> str:
         """Return the description text."""
         return self._description
+
+    def minimumSizeHint(self) -> QSize:  # noqa: N802
+        """Return the smallest width a command grid may squeeze to."""
+        return QSize(self.minimumWidth(), COMMAND_CARD_HEIGHT)
 
     def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
         """Paint the surface, icon, title, and description."""
@@ -219,7 +227,7 @@ class FluentCommandCard(FluentInteractiveCard):
         self.update()
 
     def sizeHint(self) -> QSize:  # noqa: N802
-        """Return the fixed command card size."""
+        """Return the preferred command card size before the grid stretches it."""
         return QSize(COMMAND_CARD_WIDTH, COMMAND_CARD_HEIGHT)
 
     def title(self) -> str:

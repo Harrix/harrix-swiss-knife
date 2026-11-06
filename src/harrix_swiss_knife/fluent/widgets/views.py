@@ -49,6 +49,8 @@ from harrix_swiss_knife.fluent.tokens import (
     ANIMATION_NORMAL,
     ANIMATION_SLOW,
     CARD_GRID_SPACING,
+    COMMAND_CARD_MIN_SCALE,
+    COMMAND_CARD_WIDTH,
     RADIUS_CARD,
     RADIUS_CONTROL,
     SPACE_S,
@@ -66,16 +68,31 @@ _CAROUSEL_INTERVAL_MS = 5000
 
 
 class FluentCardGrid(QWidget):
-    """Wrapping grid of fixed-size cards on a `FlowLayout` (height follows width)."""
+    """Wrapping grid of command cards on a `FlowLayout` (height follows width).
+
+    Command cards share one width derived from the pane width (how many columns
+    fit), so every section aligns — short groups do not stretch wider than dense
+    ones. Width is applied in the layout's geometry pass (no per-card
+    `setFixedSize` during resize). Mixed grids of other card types keep their
+    own sizes when built without this grid's uniform-width hook.
+
+    """
 
     def __init__(self, parent: QWidget | None = None, *, spacing: int = CARD_GRID_SPACING) -> None:
         """Create an empty card grid."""
         super().__init__(parent)
-        self._layout = FlowLayout(self, margin=0, h_spacing=spacing, v_spacing=spacing)
+        self._spacing = spacing
+        self._layout = FlowLayout(
+            self,
+            margin=0,
+            h_spacing=spacing,
+            v_spacing=spacing,
+            item_width_for=lambda width: resolve_command_card_width(width, spacing=spacing),
+        )
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
 
     def add_card(self, card: QWidget) -> None:
-        """Append a card."""
+        """Append a card; the flow layout assigns the shared column width."""
         card.setParent(self)
         self._layout.addWidget(card)
         card.show()
@@ -631,6 +648,30 @@ class _StringListModel(QAbstractListModel):
         if parent is not None and parent.isValid():
             return 0
         return self._count
+
+
+def resolve_command_card_width(
+    available_width: int,
+    *,
+    spacing: int = CARD_GRID_SPACING,
+    base_width: int = COMMAND_CARD_WIDTH,
+    min_scale: float = COMMAND_CARD_MIN_SCALE,
+) -> int:
+    """Return card width so every section shares the same columns for this pane.
+
+    Column count comes only from `available_width` (how many `base_width` cards
+    fit, optionally one more when the squeeze is still at least `min_scale`).
+    Incomplete last rows keep that width and leave a trailing gap.
+
+    """
+    if available_width <= 0:
+        return base_width
+    columns = max(1, (available_width + spacing) // (base_width + spacing))
+    extra = columns + 1
+    width_for_extra = (available_width - (extra - 1) * spacing) // extra
+    if width_for_extra / base_width >= min_scale:
+        columns = extra
+    return max(1, (available_width - (columns - 1) * spacing) // columns)
 
 
 def _header_qss(selector: str, *, palette_widget: QWidget) -> str:

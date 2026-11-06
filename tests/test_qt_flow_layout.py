@@ -56,6 +56,25 @@ def test_flow_layout_skips_hidden_widgets(qapp: QApplication) -> None:
     host.close()
 
 
+def test_flow_layout_uniform_item_width(qapp: QApplication) -> None:
+    host = QWidget()
+    layout = FlowLayout(host, margin=0, h_spacing=8, v_spacing=8, item_width_for=lambda width: (width - 8) // 2)
+    buttons = [QPushButton(f"Button {index}") for index in range(3)]
+    for button in buttons:
+        button.setFixedHeight(30)
+        layout.addWidget(button)
+    host.resize(208, 120)
+    host.show()
+    qapp.processEvents()
+    layout.setGeometry(host.rect())
+    qapp.processEvents()
+    assert buttons[0].width() == 100
+    assert buttons[1].width() == 100
+    assert buttons[0].geometry().top() == buttons[1].geometry().top()
+    assert buttons[2].geometry().top() > buttons[0].geometry().top()
+    host.close()
+
+
 def test_flow_layout_aligns_rows_to_the_right(qapp: QApplication) -> None:
     host = QWidget()
     layout = FlowLayout(host, h_spacing=4, v_spacing=4, alignment=Qt.AlignmentFlag.AlignRight)

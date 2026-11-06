@@ -222,6 +222,8 @@ SCROLLBAR_THICKNESS_HOVER = 8
 # Command / setting card metrics.
 COMMAND_CARD_WIDTH = 320
 COMMAND_CARD_HEIGHT = 88
+# Allow one more column when the leftover width is at least this fraction of a card.
+COMMAND_CARD_MIN_SCALE = 0.82
 SETTING_CARD_HEIGHT = 64
 SETTING_CARD_HEIGHT_COMPACT = 48
 CARD_GRID_SPACING = SPACE_S

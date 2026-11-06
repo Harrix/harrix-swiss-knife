@@ -48,6 +48,7 @@ class FlowLayout(QLayout):
         h_spacing: int = -1,
         v_spacing: int = -1,
         alignment: Qt.AlignmentFlag = Qt.AlignmentFlag.AlignLeft,
+        item_width_for: Callable[[int], int] | None = None,
     ) -> None:
         """Create an empty flow layout.
 
@@ -59,6 +60,9 @@ class FlowLayout(QLayout):
         - `v_spacing` (`int`): Vertical gap; `-1` uses style spacing.
         - `alignment` (`Qt.AlignmentFlag`): Horizontal alignment of each row
           (`AlignLeft`, `AlignRight`, or `AlignHCenter`).
+        - `item_width_for` (`Callable[[int], int] | None`): When set, every
+          visible item uses this width for wrapping and geometry (one layout
+          pass; avoids per-child `setFixedSize` thrash while resizing).
 
         """
         super().__init__(parent)
@@ -66,6 +70,7 @@ class FlowLayout(QLayout):
         self._h_spacing = h_spacing
         self._v_spacing = v_spacing
         self._alignment = alignment
+        self._item_width_for = item_width_for
         if margin >= 0:
             self.setContentsMargins(margin, margin, margin, margin)
 
@@ -107,7 +112,16 @@ class FlowLayout(QLayout):
     def setGeometry(self, rect: QRect) -> None:  # noqa: N802
         """Position children inside `rect`."""
         super().setGeometry(rect)
-        self._do_layout(rect, test_only=False)
+        parent = self.parentWidget()
+        freeze = parent is not None and self._item_width_for is not None
+        if freeze and parent is not None:
+            parent.setUpdatesEnabled(False)
+        try:
+            self._do_layout(rect, test_only=False)
+        finally:
+            if freeze and parent is not None:
+                parent.setUpdatesEnabled(True)
+                parent.update()
 
     def sizeHint(self) -> QSize:  # noqa: N802
         """Prefer the minimum size that can fit every child."""
@@ -127,7 +141,7 @@ class FlowLayout(QLayout):
             widget = item.widget()
             if widget is not None and widget.isHidden():
                 continue
-            size = item.sizeHint()
+            size = self._size_for(item, available_width)
             space_x_eff = self._item_spacing(item, horizontal=True, fallback=space_x)
             needed = size.width() if not current else size.width() + space_x_eff
             if current and x + needed > available_width:
@@ -157,7 +171,7 @@ class FlowLayout(QLayout):
             line_height = 0
             for item, size in row:
                 if not test_only:
-                    item.setGeometry(QRect(QPoint(x, y), size))
+                    self._place_item(item, QRect(QPoint(x, y), size))
                 x += size.width() + space_x
                 line_height = max(line_height, size.height())
             y += line_height
@@ -191,12 +205,27 @@ class FlowLayout(QLayout):
     def _margins(self) -> tuple[int, int, int, int]:
         return cast("tuple[int, int, int, int]", self.getContentsMargins())
 
+    def _place_item(self, item: QLayoutItem, rect: QRect) -> None:
+        # Uniform widths must bypass QWidgetItem size-policy clamping, which would
+        # otherwise keep Preferred children at sizeHint instead of the stretched size.
+        widget = item.widget()
+        if widget is not None and self._item_width_for is not None:
+            widget.setGeometry(rect)
+            return
+        item.setGeometry(rect)
+
     def _row_start_x(self, effective: QRect, row_width: int) -> int:
         if self._alignment & Qt.AlignmentFlag.AlignRight:
             return effective.x() + max(0, effective.width() - row_width)
         if self._alignment & Qt.AlignmentFlag.AlignHCenter:
             return effective.x() + max(0, (effective.width() - row_width) // 2)
         return effective.x()
+
+    def _size_for(self, item: QLayoutItem, available_width: int) -> QSize:
+        hint = item.sizeHint()
+        if self._item_width_for is None:
+            return hint
+        return QSize(max(1, self._item_width_for(available_width)), hint.height())
 
     def _smart_spacing(self, metric: QStyle.PixelMetric) -> int:
         parent = self.parent()
@@ -215,7 +244,7 @@ class FlowLayout(QLayout):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None = None, *, margin: int = -1, h_spacing: int = -1, v_spacing: int = -1, alignment: Qt.AlignmentFlag = Qt.AlignmentFlag.AlignLeft) -> None
+def __init__(self, parent: QWidget | None = None, *, margin: int = -1, h_spacing: int = -1, v_spacing: int = -1, alignment: Qt.AlignmentFlag = Qt.AlignmentFlag.AlignLeft, item_width_for: Callable[[int], int] | None = None) -> None
 ```
 
 Create an empty flow layout.
@@ -228,6 +257,9 @@ Args:
 - `v_spacing` (`int`): Vertical gap; `-1` uses style spacing.
 - `alignment` (`Qt.AlignmentFlag`): Horizontal alignment of each row
   (`AlignLeft`, `AlignRight`, or `AlignHCenter`).
+- `item_width_for` (`Callable[[int], int] | None`): When set, every
+  visible item uses this width for wrapping and geometry (one layout
+  pass; avoids per-child `setFixedSize` thrash while resizing).
 
 <details>
 <summary>Code:</summary>
@@ -241,12 +273,14 @@ def __init__(
         h_spacing: int = -1,
         v_spacing: int = -1,
         alignment: Qt.AlignmentFlag = Qt.AlignmentFlag.AlignLeft,
+        item_width_for: Callable[[int], int] | None = None,
     ) -> None:
         super().__init__(parent)
         self._items: list[QLayoutItem] = []
         self._h_spacing = h_spacing
         self._v_spacing = v_spacing
         self._alignment = alignment
+        self._item_width_for = item_width_for
         if margin >= 0:
             self.setContentsMargins(margin, margin, margin, margin)
 ```
@@ -400,7 +434,16 @@ Position children inside `rect`.
 ```python
 def setGeometry(self, rect: QRect) -> None:  # noqa: N802
         super().setGeometry(rect)
-        self._do_layout(rect, test_only=False)
+        parent = self.parentWidget()
+        freeze = parent is not None and self._item_width_for is not None
+        if freeze and parent is not None:
+            parent.setUpdatesEnabled(False)
+        try:
+            self._do_layout(rect, test_only=False)
+        finally:
+            if freeze and parent is not None:
+                parent.setUpdatesEnabled(True)
+                parent.update()
 ```
 
 </details>
