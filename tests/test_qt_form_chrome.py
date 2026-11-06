@@ -24,7 +24,7 @@ def _qapp() -> QApplication:
 def test_button_idle_qss_uses_white_surface() -> None:
     sheet = button_idle_qss()
     assert SURFACE in sheet
-    assert "min-height: 28px" in sheet
+    assert "min-height: 32px" in sheet
 
 
 def test_apply_white_surface_palette_sets_window_base() -> None:

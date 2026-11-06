@@ -62,7 +62,7 @@ BUTTON_ON_DARK_ICON = "#f4f4f4"
 BUTTON_ON_LIGHT_FG = "#122a3a"
 # Shared metrics for solid and secondary `QPushButton` chrome.
 BUTTON_PADDING = "5px 14px"
-BUTTON_MIN_HEIGHT_PX = 28
+BUTTON_MIN_HEIGHT_PX = 32
 # Contrast / “ordinary gray” thresholds for solid fills.
 _BUTTON_DARK_LUMINANCE_MAX = 0.55
 _ORDINARY_FILL_CHROMA_MAX = 18

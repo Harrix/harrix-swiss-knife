@@ -156,12 +156,6 @@
                </item>
                <item>
                 <widget class="QPushButton" name="pushButton_add">
-                 <property name="minimumSize">
-                  <size>
-                   <width>0</width>
-                   <height>41</height>
-                  </size>
-                 </property>
                  <property name="font">
                   <font>
                    <pointsize>12</pointsize>
@@ -193,15 +187,33 @@
                 </widget>
                </item>
                <item>
-                <widget class="QPushButton" name="pushButton_add_by_voice">
-                 <property name="minimumSize">
-                  <size>
-                   <width>0</width>
-                   <height>41</height>
-                  </size>
-                 </property>
-                 <property name="styleSheet">
-                  <string notr="true">QPushButton {
+                <layout class="QHBoxLayout" name="horizontalLayout_add_by_voice">
+                 <item>
+                  <spacer name="horizontalSpacer_add_by_voice">
+                   <property name="orientation">
+                    <enum>Qt::Orientation::Horizontal</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>40</width>
+                     <height>20</height>
+                    </size>
+                   </property>
+                   <property name="sizeType">
+                    <enum>QSizePolicy::Policy::Expanding</enum>
+                   </property>
+                  </spacer>
+                 </item>
+                 <item>
+                  <widget class="QPushButton" name="pushButton_add_by_voice">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <property name="styleSheet">
+                    <string notr="true">QPushButton {
                                       background-color: #79b1d1;
                                       color: #ffffff;
                                       border: 1px solid #79b1d1;
@@ -218,11 +230,13 @@
                                       color: #ffffff;
                                       border-color: #1a5f7a;
                                       }</string>
-                 </property>
-                 <property name="text">
-                  <string>Add by voice</string>
-                 </property>
-                </widget>
+                   </property>
+                   <property name="text">
+                    <string>Add by voice</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
                </item>
               </layout>
              </widget>

@@ -73,7 +73,6 @@ from harrix_swiss_knife.fluent.style import (
 from harrix_swiss_knife.fluent.theme import bind_theme, css, enable_fluent_theme, mix, palette_for, to_qpalette
 from harrix_swiss_knife.fluent.tokens import (
     CONTROL_HEIGHT,
-    CONTROL_HEIGHT_COMPACT,
     ICON_SIZE,
     RADIUS_CARD,
     RADIUS_CONTROL,
@@ -445,16 +444,15 @@ def _restyle_buttons(root: QWidget, palette: FluentPalette) -> None:
         kind = _button_kind(sheet) or button.property("_hskFluentButton")
         if isinstance(kind, str) and kind in {"accent", "mint", "info", "success", "danger"}:
             _set_sheet(button, f"/* hsk-fluent-{kind} */\n{semantic_button_qss(palette, kind)}")
-            button.setMinimumHeight(CONTROL_HEIGHT_COMPACT)
-            button.setMaximumHeight(CONTROL_HEIGHT)
+            _lock_control_height(button)
             button.setProperty("_hskFluentButton", kind)
         elif any(marker.lower() in sheet.lower() for marker in _SECONDARY_MARKERS):
             _set_sheet(button, secondary)
-            button.setMinimumHeight(CONTROL_HEIGHT_COMPACT)
-            button.setMaximumHeight(CONTROL_HEIGHT)
+            _lock_control_height(button)
             button.setProperty("_hskFluentButton", "secondary")
         elif kind == "secondary":
             _set_sheet(button, secondary)
+            _lock_control_height(button)
 
 
 def _restyle_inputs(root: QWidget, palette: FluentPalette) -> None:
