@@ -2183,7 +2183,7 @@ class VariantsPanel(QWidget):
         )
         self.list.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
-        self._splitter = QSplitter(Qt.Orientation.Vertical)
+        self._splitter = FluentSplitter(Qt.Orientation.Vertical)
         self._splitter.setChildrenCollapsible(False)
         self._splitter.addWidget(self._header_scroll)
         self._splitter.addWidget(self.list)
@@ -2383,7 +2383,7 @@ def __init__(self, parent: QWidget | None = None, *, thumb_size: int = VARIANT_T
         )
         self.list.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
-        self._splitter = QSplitter(Qt.Orientation.Vertical)
+        self._splitter = FluentSplitter(Qt.Orientation.Vertical)
         self._splitter.setChildrenCollapsible(False)
         self._splitter.addWidget(self._header_scroll)
         self._splitter.addWidget(self.list)

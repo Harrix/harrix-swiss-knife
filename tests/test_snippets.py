@@ -65,7 +65,7 @@ from harrix_swiss_knife.apps.snippets.zone_panel import (
 )
 from harrix_swiss_knife.fluent.style import list_item_selected
 from harrix_swiss_knife.fluent.theme import palette_for
-from harrix_swiss_knife.fluent.tokens import CONTROL_HEIGHT
+from harrix_swiss_knife.fluent.tokens import CONTROL_HEIGHT, SPACE_S
 from harrix_swiss_knife.menu_structure import get_menu_structure
 from harrix_swiss_knife.qt_app_font import MONO_FONT_FAMILY
 
@@ -562,9 +562,7 @@ def test_header_menu_includes_add_and_sort(qapp: QApplication, monkeypatch: pyte
         assert not dialog._close_button.icon().isNull()
     splitters = dialog.findChildren(QSplitter)
     assert splitters
-    assert all(splitter.handleWidth() == 1 for splitter in splitters)
-    assert all("QSplitter::handle" in splitter.styleSheet() for splitter in splitters)
-    assert all("background:" in splitter.styleSheet() for splitter in splitters)
+    assert all(splitter.handleWidth() == SPACE_S for splitter in splitters)
     dialog._fill_header_menu()
     texts = [action.text() for action in dialog._header_menu.actions() if action.text()]
     assert texts[:4] == ["Add phrase", "Add emoji", "Add symbol", "Add color"]

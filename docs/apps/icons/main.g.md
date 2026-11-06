@@ -791,9 +791,9 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.refresh_btn.setFixedWidth(toolbar_h)
         root.addWidget(toolbar_widget, stretch=0)
 
-        splitter = QSplitter(Qt.Orientation.Horizontal)
+        splitter = FluentSplitter(Qt.Orientation.Horizontal)
         self._main_splitter = splitter
-        left_splitter = QSplitter(Qt.Orientation.Vertical)
+        left_splitter = FluentSplitter(Qt.Orientation.Vertical)
         self._left_splitter = left_splitter
         left_splitter.setMinimumWidth(160)
         left_splitter.setMaximumWidth(260)

@@ -148,6 +148,7 @@ from harrix_swiss_knife.fluent.widgets.navigation import (
     FluentTabBar,
     FluentTabWidget,
     NavigationItem,
+    polish_fluent_splitter,
 )
 from harrix_swiss_knife.fluent.widgets.panels import (
     DrawerEdge,
@@ -370,6 +371,7 @@ __all__ = [
     "elide_lines",
     "fade_in",
     "install_fluent_tooltip",
+    "polish_fluent_splitter",
     "severity_colors",
     "severity_icon_name",
 ]

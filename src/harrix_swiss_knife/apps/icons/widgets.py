@@ -45,7 +45,6 @@ from PySide6.QtWidgets import (
     QMenu,
     QScrollArea,
     QSizePolicy,
-    QSplitter,
     QStyle,
     QStyledItemDelegate,
     QStyleOptionViewItem,
@@ -78,6 +77,7 @@ from harrix_swiss_knife.apps.icons.settings import (
     load_variants_splitter_sizes,
 )
 from harrix_swiss_knife.apps.icons.thumb_cache import DEFAULT_THUMB_SIZE, placeholder_pixmap, render_icon_to_image
+from harrix_swiss_knife.fluent.widgets.navigation import FluentSplitter
 from harrix_swiss_knife.qt_lucide_icon import (
     LUCIDE_COLOR_BLUE,
     apply_leading_chrome_icons,
@@ -1209,7 +1209,7 @@ class VariantsPanel(QWidget):
         )
         self.list.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
-        self._splitter = QSplitter(Qt.Orientation.Vertical)
+        self._splitter = FluentSplitter(Qt.Orientation.Vertical)
         self._splitter.setChildrenCollapsible(False)
         self._splitter.addWidget(self._header_scroll)
         self._splitter.addWidget(self.list)

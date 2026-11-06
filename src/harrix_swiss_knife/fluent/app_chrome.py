@@ -30,6 +30,7 @@ from PySide6.QtWidgets import (
     QPlainTextEdit,
     QPushButton,
     QScrollArea,
+    QSplitter,
     QStatusBar,
     QTabBar,
     QTableView,
@@ -78,6 +79,7 @@ from harrix_swiss_knife.fluent.tokens import (
     RADIUS_CONTROL,
     SPACE_S,
 )
+from harrix_swiss_knife.fluent.widgets.navigation import polish_fluent_splitter
 from harrix_swiss_knife.qt_flat_scrollbar import apply_flat_scrollbars
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
 
@@ -197,6 +199,7 @@ def refresh_fluent_app_window(window: QWidget) -> None:
         _restyle_tabs(window, palette)
         _apply_fluent_list_selection(window, palette)
         _restyle_buttons(window, palette)
+        _restyle_splitters(window)
         apply_flat_scrollbars(window)
     window.update()
 
@@ -357,14 +360,6 @@ QGroupBox::title {{
 {menu_qss(palette)}
 QStatusBar {{ background: {status}; color: {text}; border: none; }}
 QStatusBar QLabel {{ color: {text}; background: transparent; }}
-QSplitter::handle:horizontal {{
- width: 1px;
- background: {divider};
-}}
-QSplitter::handle:vertical {{
- height: 1px;
- background: {divider};
-}}
 QMenuBar {{
  background: {bar};
  color: {text};
@@ -490,6 +485,12 @@ def _restyle_inputs(root: QWidget, palette: FluentPalette) -> None:
     rich = text_edit_qss(palette, "QTextEdit")
     for edit in root.findChildren(QTextEdit):
         _set_sheet(edit, rich)
+
+
+def _restyle_splitters(root: QWidget) -> None:
+    """Apply Fluent wide-handle gripper chrome to every splitter under `root`."""
+    for splitter in root.findChildren(QSplitter):
+        polish_fluent_splitter(splitter)
 
 
 def _restyle_tables(root: QWidget, palette: FluentPalette) -> None:

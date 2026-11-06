@@ -198,6 +198,7 @@ from harrix_swiss_knife.apps.icons.widgets import (
 )
 from harrix_swiss_knife.fluent.style import list_item_selected
 from harrix_swiss_knife.fluent.theme import bind_theme, css, mix, palette_for
+from harrix_swiss_knife.fluent.widgets.navigation import FluentSplitter
 from harrix_swiss_knife.installer.icon_assets import apply_window_icon
 from harrix_swiss_knife.paths import get_config_path_str
 from harrix_swiss_knife.qt_lucide_icon import (
@@ -891,9 +892,9 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.refresh_btn.setFixedWidth(toolbar_h)
         root.addWidget(toolbar_widget, stretch=0)
 
-        splitter = QSplitter(Qt.Orientation.Horizontal)
+        splitter = FluentSplitter(Qt.Orientation.Horizontal)
         self._main_splitter = splitter
-        left_splitter = QSplitter(Qt.Orientation.Vertical)
+        left_splitter = FluentSplitter(Qt.Orientation.Vertical)
         self._left_splitter = left_splitter
         left_splitter.setMinimumWidth(160)
         left_splitter.setMaximumWidth(260)

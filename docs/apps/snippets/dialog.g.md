@@ -334,7 +334,7 @@ class SnippetsDialog(QDialog):
         self._emoji.ai_paste_requested.connect(self._paste_ai_emoji)
         self._emoji.ai_dismiss_requested.connect(self._update_ai_pick_button)
 
-        right_split = QSplitter(Qt.Orientation.Vertical, self)
+        right_split = FluentSplitter(Qt.Orientation.Vertical, self)
         right_split.addWidget(self._emoji)
         right_split.addWidget(self._symbols)
         right_split.setStretchFactor(0, _EMOJI_SPLIT_RATIO)
@@ -342,16 +342,14 @@ class SnippetsDialog(QDialog):
         right_split.setSizes(
             [_EMOJI_SPLIT_RATIO * _EMOJI_SYMBOL_SPLIT_UNIT, _SYMBOL_SPLIT_RATIO * _EMOJI_SYMBOL_SPLIT_UNIT],
         )
-        _style_snippets_splitter(right_split)
 
-        columns = QSplitter(Qt.Orientation.Horizontal, self)
+        columns = FluentSplitter(Qt.Orientation.Horizontal, self)
         columns.addWidget(self._phrases)
         columns.addWidget(right_split)
         columns.addWidget(self._colors)
         columns.setStretchFactor(0, 2)
         columns.setStretchFactor(1, 2)
         columns.setStretchFactor(2, 2)
-        _style_snippets_splitter(columns)
 
         snippets_page = QWidget(self)
         snippets_layout = QVBoxLayout(snippets_page)
@@ -631,7 +629,6 @@ class SnippetsDialog(QDialog):
         palette = palette_for(self)
         border = css(mix(palette.window_bg, palette.popup_stroke))
         window = css(palette.window_bg)
-        divider = css(mix(palette.window_bg, palette.divider))
         self.setStyleSheet(
             f"#snippetsDialog {{ background-color: {window}; border: 1px solid {border}; }}",
         )
@@ -641,18 +638,10 @@ class SnippetsDialog(QDialog):
                 "QTabWidget::pane { border: none; background: transparent; }"
                 + fluent_tab_bar_qss(palette, pad_v=SPACE_XS),
             )
-        for splitter in self.findChildren(QSplitter):
-            splitter.setHandleWidth(1)
-            splitter.setStyleSheet(
-                "QSplitter::handle {"
-                f" background: {divider};"
-                " border: none; margin: 0; padding: 0;"
-                "}"
-                "QSplitter::handle:horizontal { width: 1px; }"
-                "QSplitter::handle:vertical { height: 1px; }",
-            )
         if getattr(self, "_input", None) is not None:
             self._input.setStyleSheet(line_edit_qss(palette))
+        for splitter in self.findChildren(QSplitter):
+            polish_fluent_splitter(splitter)
 
     def _reload_zone(self, zone: str, panel: ZonePanel) -> None:
         if self.db_manager is None:

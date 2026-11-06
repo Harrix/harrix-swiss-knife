@@ -67,6 +67,7 @@ from harrix_swiss_knife.fluent.theme import bind_theme, css, mix, palette_for
 from harrix_swiss_knife.fluent.tokens import SPACE_L, SPACE_M, SPACE_XS
 from harrix_swiss_knife.fluent.widgets.buttons import FluentToolButton
 from harrix_swiss_knife.fluent.widgets.menus import FluentMenu
+from harrix_swiss_knife.fluent.widgets.navigation import FluentSplitter, polish_fluent_splitter
 from harrix_swiss_knife.installer.icon_assets import apply_window_icon
 from harrix_swiss_knife.integrations.bothub import BothubRequestState
 from harrix_swiss_knife.paths import get_config_path_str
@@ -391,7 +392,7 @@ class SnippetsDialog(QDialog):
         self._emoji.ai_paste_requested.connect(self._paste_ai_emoji)
         self._emoji.ai_dismiss_requested.connect(self._update_ai_pick_button)
 
-        right_split = QSplitter(Qt.Orientation.Vertical, self)
+        right_split = FluentSplitter(Qt.Orientation.Vertical, self)
         right_split.addWidget(self._emoji)
         right_split.addWidget(self._symbols)
         right_split.setStretchFactor(0, _EMOJI_SPLIT_RATIO)
@@ -399,16 +400,14 @@ class SnippetsDialog(QDialog):
         right_split.setSizes(
             [_EMOJI_SPLIT_RATIO * _EMOJI_SYMBOL_SPLIT_UNIT, _SYMBOL_SPLIT_RATIO * _EMOJI_SYMBOL_SPLIT_UNIT],
         )
-        _style_snippets_splitter(right_split)
 
-        columns = QSplitter(Qt.Orientation.Horizontal, self)
+        columns = FluentSplitter(Qt.Orientation.Horizontal, self)
         columns.addWidget(self._phrases)
         columns.addWidget(right_split)
         columns.addWidget(self._colors)
         columns.setStretchFactor(0, 2)
         columns.setStretchFactor(1, 2)
         columns.setStretchFactor(2, 2)
-        _style_snippets_splitter(columns)
 
         snippets_page = QWidget(self)
         snippets_layout = QVBoxLayout(snippets_page)
@@ -688,7 +687,6 @@ class SnippetsDialog(QDialog):
         palette = palette_for(self)
         border = css(mix(palette.window_bg, palette.popup_stroke))
         window = css(palette.window_bg)
-        divider = css(mix(palette.window_bg, palette.divider))
         self.setStyleSheet(
             f"#snippetsDialog {{ background-color: {window}; border: 1px solid {border}; }}",
         )
@@ -698,18 +696,10 @@ class SnippetsDialog(QDialog):
                 "QTabWidget::pane { border: none; background: transparent; }"
                 + fluent_tab_bar_qss(palette, pad_v=SPACE_XS),
             )
-        for splitter in self.findChildren(QSplitter):
-            splitter.setHandleWidth(1)
-            splitter.setStyleSheet(
-                "QSplitter::handle {"
-                f" background: {divider};"
-                " border: none; margin: 0; padding: 0;"
-                "}"
-                "QSplitter::handle:horizontal { width: 1px; }"
-                "QSplitter::handle:vertical { height: 1px; }",
-            )
         if getattr(self, "_input", None) is not None:
             self._input.setStyleSheet(line_edit_qss(palette))
+        for splitter in self.findChildren(QSplitter):
+            polish_fluent_splitter(splitter)
 
     def _reload_zone(self, zone: str, panel: ZonePanel) -> None:
         if self.db_manager is None:
@@ -852,11 +842,6 @@ def _overlay_window_flags() -> Qt.WindowType:
         | Qt.WindowType.WindowMaximizeButtonHint
         | Qt.WindowType.WindowCloseButtonHint
     )
-
-
-def _style_snippets_splitter(splitter: QSplitter) -> None:
-    """Keep pane stretch/sizes; theme paints handle colors via `_refresh_overlay_theme`."""
-    splitter.setHandleWidth(1)
 
 
 _ZONE_TITLES = {

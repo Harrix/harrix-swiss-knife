@@ -20,7 +20,6 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QScrollArea,
-    QSplitter,
     QStackedWidget,
     QToolTip,
     QVBoxLayout,
@@ -66,6 +65,7 @@ from harrix_swiss_knife.fluent.tokens import (
     SPACE_XXL,
     FluentPalette,
 )
+from harrix_swiss_knife.fluent.widgets.navigation import FluentSplitter
 from harrix_swiss_knife.qt_flat_scrollbar import with_flat_scrollbars
 from harrix_swiss_knife.qt_lucide_icon import add_lucide_action, make_lucide_push_button
 
@@ -307,7 +307,7 @@ class HabitDashboardWidget(QWidget):
         root.setContentsMargins(SPACE_S, SPACE_S, SPACE_S, SPACE_S)
         root.setSpacing(0)
 
-        splitter = QSplitter(Qt.Orientation.Horizontal)
+        splitter = FluentSplitter(Qt.Orientation.Horizontal)
         splitter.setObjectName("habitDashSplitter")
         splitter.setChildrenCollapsible(False)
 

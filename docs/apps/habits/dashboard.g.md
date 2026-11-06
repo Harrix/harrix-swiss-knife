@@ -256,7 +256,7 @@ class HabitDashboardWidget(QWidget):
         root.setContentsMargins(SPACE_S, SPACE_S, SPACE_S, SPACE_S)
         root.setSpacing(0)
 
-        splitter = QSplitter(Qt.Orientation.Horizontal)
+        splitter = FluentSplitter(Qt.Orientation.Horizontal)
         splitter.setObjectName("habitDashSplitter")
         splitter.setChildrenCollapsible(False)
 

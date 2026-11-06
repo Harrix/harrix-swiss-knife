@@ -132,6 +132,7 @@ def refresh_fluent_app_window(window: QWidget) -> None:
         _restyle_tabs(window, palette)
         _apply_fluent_list_selection(window, palette)
         _restyle_buttons(window, palette)
+        _restyle_splitters(window)
         apply_flat_scrollbars(window)
     window.update()
 ```

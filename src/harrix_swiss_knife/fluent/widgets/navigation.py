@@ -5,21 +5,22 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QEasingCurve, QPoint, QRectF, QSize, Qt, QVariantAnimation, Signal
-from PySide6.QtGui import QFont, QFontMetrics
+from PySide6.QtCore import QEasingCurve, QEvent, QObject, QPoint, QRectF, QSize, Qt, QVariantAnimation, Signal
+from PySide6.QtGui import QEnterEvent, QFont, QFontMetrics, QMouseEvent, QPaintEvent
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QSizePolicy,
     QSplitter,
+    QSplitterHandle,
     QStackedWidget,
     QTabBar,
     QVBoxLayout,
     QWidget,
 )
 
-from harrix_swiss_knife.fluent.paint import antialiased_painter, paint_surface
+from harrix_swiss_knife.fluent.paint import antialiased_painter, paint_fluent_splitter_handle, paint_surface
 from harrix_swiss_knife.fluent.style import fluent_tab_bar_qss, themed_icon
-from harrix_swiss_knife.fluent.theme import bind_theme, css, fluent_font, palette_for
+from harrix_swiss_knife.fluent.theme import bind_theme, fluent_font, palette_for
 from harrix_swiss_knife.fluent.tokens import (
     ANIMATION_NORMAL,
     CONTROL_HEIGHT,
@@ -47,9 +48,11 @@ from harrix_swiss_knife.fluent.widgets.views import FluentScrollArea
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from PySide6.QtCore import QEvent
-    from PySide6.QtGui import QEnterEvent, QMouseEvent, QPaintEvent, QResizeEvent
+    from PySide6.QtGui import QResizeEvent
 
+_PROP_SPLITTER_POLISHED = "_hskFluentSplitter"
+_PROP_HANDLE_GRIP = "_hskFluentSplitterHandle"
+_PROP_HANDLE_FILTER = "_hskFluentSplitterGripFilter"
 _NAV_COMPACT_WIDTH = 48
 _NAV_EXPANDED_WIDTH = 280
 _PAGINATION_WINDOW = 2
@@ -669,21 +672,69 @@ class FluentPivot(QWidget):
 
 
 class FluentSplitter(QSplitter):
-    """Splitter with a thin hairline handle that turns accent on hover."""
+    """Splitter with a wide hit-target and three-dot gripper on hover."""
 
     def __init__(self, orientation: Qt.Orientation = Qt.Orientation.Horizontal, parent: QWidget | None = None) -> None:
         """Create a splitter."""
         super().__init__(orientation, parent)
-        self.setHandleWidth(SPACE_XS + 1)
+        self.setHandleWidth(SPACE_S)
         self.setChildrenCollapsible(False)
+        self.setStyleSheet("QSplitter::handle { background: transparent; border: none; }")
         bind_theme(self, self.refresh_theme)
 
+    def createHandle(self) -> QSplitterHandle:  # noqa: N802
+        """Return a Fluent gripper handle."""
+        return FluentSplitterHandle(self.orientation(), self)
+
     def refresh_theme(self) -> None:
-        """Re-color the handle."""
-        palette = palette_for(self)
-        self.setStyleSheet(
-            f"QSplitter::handle {{ background: transparent; margin: 2px; }}"
-            f" QSplitter::handle:hover {{ background: {css(palette.accent)}; border-radius: 1px; }}",
+        """Repaint handles after light/dark changes."""
+        polish_fluent_splitter(self)
+
+
+class FluentSplitterHandle(QSplitterHandle):
+    """Wide hit-target handle: 1px divider idle, three accent dots on hover."""
+
+    def __init__(self, orientation: Qt.Orientation, parent: QSplitter) -> None:
+        """Create a Fluent gripper handle."""
+        super().__init__(orientation, parent)
+        self.setAttribute(Qt.WidgetAttribute.WA_Hover, on=True)
+        self._hovered = False
+        self._pressed = False
+
+    def enterEvent(self, event: QEnterEvent) -> None:  # noqa: N802
+        """Show gripper dots while the pointer is over the handle."""
+        self._hovered = True
+        self.update()
+        super().enterEvent(event)
+
+    def leaveEvent(self, event: QEvent) -> None:  # noqa: N802
+        """Hide gripper dots when the pointer leaves."""
+        self._hovered = False
+        self.update()
+        super().leaveEvent(event)
+
+    def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        """Keep pressed styling while dragging."""
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._pressed = True
+            self.update()
+        super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        """Clear pressed styling after a drag."""
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._pressed = False
+            self.update()
+        super().mouseReleaseEvent(event)
+
+    def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
+        """Draw the divider and optional three-dot gripper."""
+        paint_fluent_splitter_handle(
+            self,
+            palette_for(self),
+            self.orientation(),
+            hovered=self._hovered,
+            pressed=self._pressed,
         )
 
 
@@ -868,3 +919,73 @@ class _ExpanderHeader(QWidget):
 
     def _trailing_contains(self, event: QMouseEvent) -> bool:
         return self._trailing_host.geometry().contains(event.position().toPoint())
+
+
+class _SplitterGripFilter(QObject):
+    """Paint Fluent gripper chrome on stock `QSplitterHandle` widgets."""
+
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
+        """Replace handle painting and track hover/press for gripper dots."""
+        if not isinstance(watched, QSplitterHandle):
+            return super().eventFilter(watched, event)
+        event_type = event.type()
+        if event_type == QEvent.Type.Enter:
+            watched.setProperty("_hskFluentHandleHovered", True)  # noqa: FBT003
+            watched.update()
+        elif event_type == QEvent.Type.Leave:
+            watched.setProperty("_hskFluentHandleHovered", False)  # noqa: FBT003
+            watched.update()
+        elif event_type == QEvent.Type.MouseButtonPress and isinstance(event, QMouseEvent):
+            if event.button() == Qt.MouseButton.LeftButton:
+                watched.setProperty("_hskFluentHandlePressed", True)  # noqa: FBT003
+                watched.update()
+        elif event_type == QEvent.Type.MouseButtonRelease and isinstance(event, QMouseEvent):
+            if event.button() == Qt.MouseButton.LeftButton:
+                watched.setProperty("_hskFluentHandlePressed", False)  # noqa: FBT003
+                watched.update()
+        elif event_type == QEvent.Type.Paint:
+            paint_fluent_splitter_handle(
+                watched,
+                palette_for(watched),
+                watched.orientation(),
+                hovered=bool(watched.property("_hskFluentHandleHovered")),
+                pressed=bool(watched.property("_hskFluentHandlePressed")),
+            )
+            return True
+        return super().eventFilter(watched, event)
+
+
+def polish_fluent_splitter(splitter: QSplitter) -> None:
+    """Apply Fluent gripper chrome to `splitter` (Designer or code-built).
+
+    Sets a wide handle, clears conflicting 1px stylesheets, and installs
+    painted gripper handles. Safe to call repeatedly on theme refresh.
+
+    """
+    splitter.setHandleWidth(SPACE_S)
+    sheet = splitter.styleSheet()
+    if sheet and ("width: 1px" in sheet or "height: 1px" in sheet or "QSplitter::handle" in sheet):
+        splitter.setStyleSheet("")
+    if isinstance(splitter, FluentSplitter):
+        splitter.setProperty(_PROP_SPLITTER_POLISHED, True)  # noqa: FBT003
+        for index in range(1, splitter.count()):
+            handle = splitter.handle(index)
+            if handle is not None:
+                handle.update()
+        return
+
+    splitter.setProperty(_PROP_SPLITTER_POLISHED, True)  # noqa: FBT003
+    grip = splitter.property(_PROP_HANDLE_FILTER)
+    if not isinstance(grip, _SplitterGripFilter):
+        grip = _SplitterGripFilter(splitter)
+        splitter.setProperty(_PROP_HANDLE_FILTER, grip)
+    for index in range(1, splitter.count()):
+        handle = splitter.handle(index)
+        if handle is None or handle.property(_PROP_HANDLE_GRIP):
+            if handle is not None:
+                handle.update()
+            continue
+        handle.setAttribute(Qt.WidgetAttribute.WA_Hover, on=True)
+        handle.setProperty(_PROP_HANDLE_GRIP, True)  # noqa: FBT003
+        handle.installEventFilter(grip)
+        handle.update()
