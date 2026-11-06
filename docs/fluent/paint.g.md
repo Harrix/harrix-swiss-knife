@@ -67,7 +67,7 @@ def inset(rect: QRect | QRectF, amount: float = 0.5) -> QRectF:
 def paint_fluent_splitter_handle(device: QWidget, palette: FluentPalette, orientation: Qt.Orientation, *, hovered: bool, pressed: bool) -> None
 ```
 
-Paint a Fluent splitter handle: 1px divider, three dots on hover/press.
+Paint a Fluent splitter handle: 1px divider idle, 2px accent + dots on hover.
 
 Args:
 
@@ -91,9 +91,16 @@ def paint_fluent_splitter_handle(
 ) -> None:
     painter = antialiased_painter(device)
     rect = device.rect()
-    divider = mix(palette.window_bg, palette.divider)
-    pen = QPen(divider)
-    pen.setWidth(1)
+    active = hovered or pressed
+    if active:
+        line = palette.accent_pressed if pressed else palette.accent
+        line_width = 2
+    else:
+        line = mix(palette.window_bg, palette.divider)
+        line_width = 1
+    pen = QPen(line)
+    pen.setWidth(line_width)
+    pen.setCapStyle(Qt.PenCapStyle.FlatCap)
     painter.setPen(pen)
     if orientation == Qt.Orientation.Horizontal:
         x = rect.center().x()
@@ -102,7 +109,7 @@ def paint_fluent_splitter_handle(
         y = rect.center().y()
         painter.drawLine(rect.left(), y, rect.right(), y)
 
-    if hovered or pressed:
+    if active:
         fill = palette.accent_pressed if pressed else palette.accent
         painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(fill)
