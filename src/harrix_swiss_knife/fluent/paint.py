@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QPointF, QRectF, Qt
+from PySide6.QtCore import QRectF, Qt
 from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen
 
 from harrix_swiss_knife.fluent.theme import mix
@@ -15,10 +15,6 @@ if TYPE_CHECKING:
     from PySide6.QtWidgets import QWidget
 
     from harrix_swiss_knife.fluent.tokens import FluentPalette
-
-_SPLITTER_DOT_COUNT = 3
-_SPLITTER_DOT_RADIUS = 1.75
-_SPLITTER_DOT_GAP = 5.0
 
 
 def antialiased_painter(device: QPaintDevice) -> QPainter:
@@ -44,7 +40,7 @@ def paint_fluent_splitter_handle(
     hovered: bool,
     pressed: bool,
 ) -> None:
-    """Paint a Fluent splitter handle: 1px divider idle, 2px accent + dots on hover.
+    """Paint a Fluent splitter handle: 1px divider idle, 2px accent on hover/press.
 
     Args:
 
@@ -74,19 +70,6 @@ def paint_fluent_splitter_handle(
     else:
         y = rect.center().y()
         painter.drawLine(rect.left(), y, rect.right(), y)
-
-    if active:
-        fill = palette.accent_pressed if pressed else palette.accent
-        painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(fill)
-        cx = float(rect.center().x())
-        cy = float(rect.center().y())
-        span = (_SPLITTER_DOT_COUNT - 1) * _SPLITTER_DOT_GAP
-        start = -span / 2
-        for index in range(_SPLITTER_DOT_COUNT):
-            offset = start + index * _SPLITTER_DOT_GAP
-            center = QPointF(cx, cy + offset) if orientation == Qt.Orientation.Horizontal else QPointF(cx + offset, cy)
-            painter.drawEllipse(center, _SPLITTER_DOT_RADIUS, _SPLITTER_DOT_RADIUS)
     painter.end()
 
 

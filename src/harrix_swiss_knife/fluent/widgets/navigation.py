@@ -672,7 +672,7 @@ class FluentPivot(QWidget):
 
 
 class FluentSplitter(QSplitter):
-    """Splitter with a wide hit-target and three-dot gripper on hover."""
+    """Splitter with a wide hit-target and accent hairline on hover."""
 
     def __init__(self, orientation: Qt.Orientation = Qt.Orientation.Horizontal, parent: QWidget | None = None) -> None:
         """Create a splitter."""
@@ -683,7 +683,7 @@ class FluentSplitter(QSplitter):
         bind_theme(self, self.refresh_theme)
 
     def createHandle(self) -> QSplitterHandle:  # noqa: N802
-        """Return a Fluent gripper handle."""
+        """Return a Fluent accent hairline handle."""
         return FluentSplitterHandle(self.orientation(), self)
 
     def refresh_theme(self) -> None:
@@ -692,23 +692,23 @@ class FluentSplitter(QSplitter):
 
 
 class FluentSplitterHandle(QSplitterHandle):
-    """Wide hit-target handle: 1px divider idle, three accent dots on hover."""
+    """Wide hit-target handle: 1px divider idle, 2px accent line on hover."""
 
     def __init__(self, orientation: Qt.Orientation, parent: QSplitter) -> None:
-        """Create a Fluent gripper handle."""
+        """Create a Fluent accent hairline handle."""
         super().__init__(orientation, parent)
         self.setAttribute(Qt.WidgetAttribute.WA_Hover, on=True)
         self._hovered = False
         self._pressed = False
 
     def enterEvent(self, event: QEnterEvent) -> None:  # noqa: N802
-        """Show gripper dots while the pointer is over the handle."""
+        """Highlight the hairline while the pointer is over the handle."""
         self._hovered = True
         self.update()
         super().enterEvent(event)
 
     def leaveEvent(self, event: QEvent) -> None:  # noqa: N802
-        """Hide gripper dots when the pointer leaves."""
+        """Restore the idle hairline when the pointer leaves."""
         self._hovered = False
         self.update()
         super().leaveEvent(event)
@@ -728,7 +728,7 @@ class FluentSplitterHandle(QSplitterHandle):
         super().mouseReleaseEvent(event)
 
     def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
-        """Draw the divider and optional three-dot gripper."""
+        """Draw the idle or accent hairline."""
         paint_fluent_splitter_handle(
             self,
             palette_for(self),
@@ -922,10 +922,10 @@ class _ExpanderHeader(QWidget):
 
 
 class _SplitterGripFilter(QObject):
-    """Paint Fluent gripper chrome on stock `QSplitterHandle` widgets."""
+    """Paint Fluent accent hairline chrome on stock `QSplitterHandle` widgets."""
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
-        """Replace handle painting and track hover/press for gripper dots."""
+        """Replace handle painting and track hover/press for the accent line."""
         if not isinstance(watched, QSplitterHandle):
             return super().eventFilter(watched, event)
         event_type = event.type()
@@ -956,10 +956,10 @@ class _SplitterGripFilter(QObject):
 
 
 def polish_fluent_splitter(splitter: QSplitter) -> None:
-    """Apply Fluent gripper chrome to `splitter` (Designer or code-built).
+    """Apply Fluent accent-hairline chrome to `splitter` (Designer or code-built).
 
     Sets a wide handle, clears conflicting 1px stylesheets, and installs
-    painted gripper handles. Safe to call repeatedly on theme refresh.
+    painted handles. Safe to call repeatedly on theme refresh.
 
     """
     splitter.setHandleWidth(SPACE_S)

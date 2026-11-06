@@ -488,7 +488,7 @@ def _restyle_inputs(root: QWidget, palette: FluentPalette) -> None:
 
 
 def _restyle_splitters(root: QWidget) -> None:
-    """Apply Fluent wide-handle gripper chrome to every splitter under `root`."""
+    """Apply Fluent wide-handle accent hairline chrome to every splitter under `root`."""
     for splitter in root.findChildren(QSplitter):
         polish_fluent_splitter(splitter)
 

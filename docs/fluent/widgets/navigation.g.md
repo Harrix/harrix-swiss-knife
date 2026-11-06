@@ -1916,7 +1916,7 @@ def set_current(self, index: int) -> None:
 class FluentSplitter(QSplitter)
 ```
 
-Splitter with a wide hit-target and three-dot gripper on hover.
+Splitter with a wide hit-target and accent hairline on hover.
 
 <details>
 <summary>Code:</summary>
@@ -1933,7 +1933,7 @@ class FluentSplitter(QSplitter):
         bind_theme(self, self.refresh_theme)
 
     def createHandle(self) -> QSplitterHandle:  # noqa: N802
-        """Return a Fluent gripper handle."""
+        """Return a Fluent accent hairline handle."""
         return FluentSplitterHandle(self.orientation(), self)
 
     def refresh_theme(self) -> None:
@@ -1971,7 +1971,7 @@ def __init__(self, orientation: Qt.Orientation = Qt.Orientation.Horizontal, pare
 def createHandle(self) -> QSplitterHandle
 ```
 
-Return a Fluent gripper handle.
+Return a Fluent accent hairline handle.
 
 <details>
 <summary>Code:</summary>
@@ -2007,7 +2007,7 @@ def refresh_theme(self) -> None:
 class FluentSplitterHandle(QSplitterHandle)
 ```
 
-Wide hit-target handle: 1px divider idle, three accent dots on hover.
+Wide hit-target handle: 1px divider idle, 2px accent line on hover.
 
 <details>
 <summary>Code:</summary>
@@ -2016,20 +2016,20 @@ Wide hit-target handle: 1px divider idle, three accent dots on hover.
 class FluentSplitterHandle(QSplitterHandle):
 
     def __init__(self, orientation: Qt.Orientation, parent: QSplitter) -> None:
-        """Create a Fluent gripper handle."""
+        """Create a Fluent accent hairline handle."""
         super().__init__(orientation, parent)
         self.setAttribute(Qt.WidgetAttribute.WA_Hover, on=True)
         self._hovered = False
         self._pressed = False
 
     def enterEvent(self, event: QEnterEvent) -> None:  # noqa: N802
-        """Show gripper dots while the pointer is over the handle."""
+        """Highlight the hairline while the pointer is over the handle."""
         self._hovered = True
         self.update()
         super().enterEvent(event)
 
     def leaveEvent(self, event: QEvent) -> None:  # noqa: N802
-        """Hide gripper dots when the pointer leaves."""
+        """Restore the idle hairline when the pointer leaves."""
         self._hovered = False
         self.update()
         super().leaveEvent(event)
@@ -2049,7 +2049,7 @@ class FluentSplitterHandle(QSplitterHandle):
         super().mouseReleaseEvent(event)
 
     def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
-        """Draw the divider and optional three-dot gripper."""
+        """Draw the idle or accent hairline."""
         paint_fluent_splitter_handle(
             self,
             palette_for(self),
@@ -2067,7 +2067,7 @@ class FluentSplitterHandle(QSplitterHandle):
 def __init__(self, orientation: Qt.Orientation, parent: QSplitter) -> None
 ```
 
-Create a Fluent gripper handle.
+Create a Fluent accent hairline handle.
 
 <details>
 <summary>Code:</summary>
@@ -2088,7 +2088,7 @@ def __init__(self, orientation: Qt.Orientation, parent: QSplitter) -> None:
 def enterEvent(self, event: QEnterEvent) -> None
 ```
 
-Show gripper dots while the pointer is over the handle.
+Highlight the hairline while the pointer is over the handle.
 
 <details>
 <summary>Code:</summary>
@@ -2108,7 +2108,7 @@ def enterEvent(self, event: QEnterEvent) -> None:  # noqa: N802
 def leaveEvent(self, event: QEvent) -> None
 ```
 
-Hide gripper dots when the pointer leaves.
+Restore the idle hairline when the pointer leaves.
 
 <details>
 <summary>Code:</summary>
@@ -2170,7 +2170,7 @@ def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
 def paintEvent(self, _event: QPaintEvent) -> None
 ```
 
-Draw the divider and optional three-dot gripper.
+Draw the idle or accent hairline.
 
 <details>
 <summary>Code:</summary>
@@ -2518,10 +2518,10 @@ class NavigationItem:
 def polish_fluent_splitter(splitter: QSplitter) -> None
 ```
 
-Apply Fluent gripper chrome to `splitter` (Designer or code-built).
+Apply Fluent accent-hairline chrome to `splitter` (Designer or code-built).
 
 Sets a wide handle, clears conflicting 1px stylesheets, and installs
-painted gripper handles. Safe to call repeatedly on theme refresh.
+painted handles. Safe to call repeatedly on theme refresh.
 
 <details>
 <summary>Code:</summary>
