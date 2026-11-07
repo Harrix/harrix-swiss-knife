@@ -5,8 +5,9 @@ from __future__ import annotations
 from typing import Any
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QHBoxLayout, QPushButton, QSizePolicy, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QSizePolicy, QVBoxLayout, QWidget
 
+from harrix_swiss_knife.apps.common.ui_chrome import MUTED_TEXT
 from harrix_swiss_knife.fluent.tokens import CONTROL_HEIGHT, SPACE_S, SPACE_XS
 from harrix_swiss_knife.fluent.widgets.display import FluentTag
 from harrix_swiss_knife.fluent.widgets.enums import Severity
@@ -78,20 +79,31 @@ def install_transactions_filter_chrome(host: Any) -> None:
     host.filter_chips_host = chips_host
     host.filter_chips_layout = chips_row
 
+    if host.comboBox_filter_type.itemText(0).strip() in {"", "All"}:
+        host.comboBox_filter_type.setItemText(0, "All types")
+    host.checkBox_use_date_filter.setText("Use date range")
+
     advanced = QWidget(host.groupBox_filter)
     advanced.setObjectName("transactionsFilterAdvanced")
     advanced_row = QHBoxLayout(advanced)
     advanced_row.setContentsMargins(0, SPACE_XS, 0, 0)
     advanced_row.setSpacing(SPACE_S)
-    for widget in (
-        host.comboBox_filter_type,
-        host.comboBox_filter_category,
-        host.comboBox_filter_currency,
-        host.dateEdit_filter_from,
-        host.dateEdit_filter_to,
-        host.checkBox_use_date_filter,
+    advanced_row.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignBottom)
+    for caption, widget, stretch in (
+        ("Type", host.comboBox_filter_type, 1),
+        ("Category", host.comboBox_filter_category, 2),
+        ("Currency", host.comboBox_filter_currency, 1),
+        ("From", host.dateEdit_filter_from, 1),
+        ("To", host.dateEdit_filter_to, 1),
     ):
-        advanced_row.addWidget(widget, 0 if widget is host.checkBox_use_date_filter else 1)
+        advanced_row.addWidget(_labeled_filter_field(caption, widget, advanced), stretch)
+    checkbox_wrap = QWidget(advanced)
+    checkbox_column = QVBoxLayout(checkbox_wrap)
+    checkbox_column.setContentsMargins(0, 0, 0, 0)
+    checkbox_column.setSpacing(0)
+    checkbox_column.addStretch(1)
+    checkbox_column.addWidget(host.checkBox_use_date_filter)
+    advanced_row.addWidget(checkbox_wrap, 0)
     advanced_row.addStretch(1)
     advanced.hide()
     host.filter_advanced_panel = advanced
@@ -148,3 +160,18 @@ def refresh_transactions_filter_chips(host: Any) -> None:
         layout.addWidget(tag)
     layout.addStretch(1)
     host.filter_chips_host.setVisible(bool(chips))
+
+
+def _labeled_filter_field(caption: str, widget: QWidget, parent: QWidget) -> QWidget:
+    """Wrap a filter control with a muted caption above it."""
+    field = QWidget(parent)
+    column = QVBoxLayout(field)
+    column.setContentsMargins(0, 0, 0, 0)
+    column.setSpacing(2)
+    label = QLabel(caption, field)
+    label.setObjectName(f"label_caption_{widget.objectName() or caption.lower()}")
+    label.setStyleSheet(f"color: {MUTED_TEXT}; font-size: 11px;")
+    column.addWidget(label)
+    column.addWidget(widget)
+    widget.setToolTip(caption)
+    return field
