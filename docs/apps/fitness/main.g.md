@@ -15,6 +15,9 @@ lang: en
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `apply_filter`](#%EF%B8%8F-method-apply_filter)
   - [⚙️ Method `clear_filter`](#%EF%B8%8F-method-clear_filter)
+  - [⚙️ Method `clear_process_date_filter`](#%EF%B8%8F-method-clear_process_date_filter)
+  - [⚙️ Method `clear_process_exercise_filter`](#%EF%B8%8F-method-clear_process_exercise_filter)
+  - [⚙️ Method `clear_process_type_filter`](#%EF%B8%8F-method-clear_process_type_filter)
   - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
   - [⚙️ Method `delete_record`](#%EF%B8%8F-method-delete_record)
   - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
@@ -291,6 +294,7 @@ class MainWindow(
     def apply_filter(self, *_args: object) -> None:
         """Apply combo-box/date filters to the process table."""
         self._update_clear_filter_button_visibility()
+        refresh_process_filter_chips(self)
         if self.db_manager is None:
             logger.error("❌ Database manager is not initialized")
             return
@@ -331,6 +335,30 @@ class MainWindow(
 
         self._update_date_filter_controls_enabled()
         self._update_clear_filter_button_visibility()
+        refresh_process_filter_chips(self)
+        self.apply_filter()
+
+    def clear_process_date_filter(self) -> None:
+        """Clear only the date-range filter chip."""
+        self.checkBox_use_date_filter.blockSignals(True)  # noqa: FBT003
+        self.checkBox_use_date_filter.setChecked(False)
+        self.checkBox_use_date_filter.blockSignals(False)  # noqa: FBT003
+        self._update_date_filter_controls_enabled()
+        self.apply_filter()
+
+    def clear_process_exercise_filter(self) -> None:
+        """Clear only the exercise filter chip."""
+        self.comboBox_filter_exercise.blockSignals(True)  # noqa: FBT003
+        self.comboBox_filter_exercise.setCurrentIndex(0)
+        self.comboBox_filter_exercise.blockSignals(False)  # noqa: FBT003
+        self.update_filter_type_combobox()
+        self.apply_filter()
+
+    def clear_process_type_filter(self) -> None:
+        """Clear only the exercise-type filter chip."""
+        self.comboBox_filter_type.blockSignals(True)  # noqa: FBT003
+        self.comboBox_filter_type.setCurrentIndex(0)
+        self.comboBox_filter_type.blockSignals(False)  # noqa: FBT003
         self.apply_filter()
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
@@ -3256,12 +3284,13 @@ class MainWindow(
             return
 
         try:
-            current_exercise = self.comboBox_filter_exercise.currentText()
+            current_exercise = selected_process_filter_value(self.comboBox_filter_exercise.currentText())
             exercises = self.db_manager.get_exercises_by_frequency(500)
             set_combo_plain_items(
                 self.comboBox_filter_exercise,
                 exercises,
                 leading_empty=True,
+                leading_empty_text=FILTER_ALL_EXERCISES,
                 select=current_exercise,
             )
             self.update_filter_type_combobox()
@@ -3289,9 +3318,9 @@ class MainWindow(
             return
 
         try:
-            current_type = self.comboBox_filter_type.currentText()
+            current_type = selected_process_filter_value(self.comboBox_filter_type.currentText())
 
-            exercise = self.comboBox_filter_exercise.currentText()
+            exercise = selected_process_filter_value(self.comboBox_filter_exercise.currentText())
             types: list[str] = []
             ex_id: int | None = None
             if exercise:
@@ -3315,6 +3344,7 @@ class MainWindow(
                 self.comboBox_filter_type,
                 types,
                 leading_empty=True,
+                leading_empty_text=FILTER_ALL_TYPES,
                 select=selected_type,
             )
 
@@ -5999,8 +6029,8 @@ class MainWindow(
     def _get_process_filter_params(self) -> dict[str, str | None]:
         """Return current process table filter parameters."""
         use_date_filter: bool = self.checkBox_use_date_filter.isChecked()
-        exercise: str = self.comboBox_filter_exercise.currentText().strip()
-        exercise_type: str = self.comboBox_filter_type.currentText().strip()
+        exercise = selected_process_filter_value(self.comboBox_filter_exercise.currentText())
+        exercise_type = selected_process_filter_value(self.comboBox_filter_type.currentText())
         return {
             "exercise_name": exercise or None,
             "exercise_type": exercise_type or None,
@@ -7359,9 +7389,9 @@ class MainWindow(
 
     def _process_filter_is_active(self) -> bool:
         """Return whether any process table filter is currently applied."""
-        if self.comboBox_filter_exercise.currentText().strip():
+        if selected_process_filter_value(self.comboBox_filter_exercise.currentText()):
             return True
-        if self.comboBox_filter_type.currentText().strip():
+        if selected_process_filter_value(self.comboBox_filter_type.currentText()):
             return True
         return self.checkBox_use_date_filter.isChecked()
 
@@ -8089,18 +8119,9 @@ class MainWindow(
         # Set emoji for buttons
         self.pushButton_add.setText(f"➕  {self.pushButton_add.text()}")  # noqa: RUF001
         self.pushButton_add_by_voice.setText(f"🎙️ {self.pushButton_add_by_voice.text()}")
-        self.groupBox_filter.setTitle("")
-        self.groupBox_filter.setStyleSheet(
-            "QGroupBox#groupBox_filter { border: none; margin-top: 0px; padding-top: 0px; }"
-            "QGroupBox#groupBox_filter::title { height: 0px; width: 0px; padding: 0px; margin: 0px; }"
-        )
-        self.pushButton_clear_filter.setToolTip("Clear filter")
-        apply_lucide_button_icon(self.pushButton_clear_filter, CLEAR_BUTTON_ICON)
-        self.pushButton_clear_filter.setText("")
-        self.pushButton_clear_filter.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        clear_h = max(self.pushButton_clear_filter.sizeHint().height(), 24)
-        self.pushButton_clear_filter.setFixedSize(clear_h, clear_h)
+        install_process_filter_chrome(self)
         self._update_clear_filter_button_visibility()
+        refresh_process_filter_chips(self)
         self.pushButton_select_exercise.setText(f"🏋️ {self.pushButton_select_exercise.text()}")
         self.pushButton_exercise_add.setText(f"➕ {self.pushButton_exercise_add.text()}")  # noqa: RUF001
         self.pushButton_type_add.setText(f"➕ {self.pushButton_type_add.text()}")  # noqa: RUF001
@@ -8126,7 +8147,6 @@ class MainWindow(
         match_date_edit_form_height(self.dateEdit_weight, self.doubleSpinBox_weight)
         match_layout_control_heights_many(
             (
-                self.horizontalLayout_filter,
                 self.horizontalLayout_charts_controls_1,
                 self.horizontalLayout_charts_controls_2,
                 self.horizontalLayout_weight_controls,
@@ -8856,6 +8876,7 @@ class MainWindow(
     def _update_clear_filter_button_visibility(self) -> None:
         """Show the clear-filter button only while a process filter is active."""
         self.pushButton_clear_filter.setVisible(self._process_filter_is_active())
+        sync_process_filter_button(self)
 
     def _update_comboboxes(
         self,
@@ -9371,6 +9392,7 @@ Apply combo-box/date filters to the process table.
 ```python
 def apply_filter(self, *_args: object) -> None:
         self._update_clear_filter_button_visibility()
+        refresh_process_filter_chips(self)
         if self.db_manager is None:
             logger.error("❌ Database manager is not initialized")
             return
@@ -9423,6 +9445,72 @@ def clear_filter(self) -> None:
 
         self._update_date_filter_controls_enabled()
         self._update_clear_filter_button_visibility()
+        refresh_process_filter_chips(self)
+        self.apply_filter()
+```
+
+</details>
+
+### ⚙️ Method `clear_process_date_filter`
+
+```python
+def clear_process_date_filter(self) -> None
+```
+
+Clear only the date-range filter chip.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def clear_process_date_filter(self) -> None:
+        self.checkBox_use_date_filter.blockSignals(True)  # noqa: FBT003
+        self.checkBox_use_date_filter.setChecked(False)
+        self.checkBox_use_date_filter.blockSignals(False)  # noqa: FBT003
+        self._update_date_filter_controls_enabled()
+        self.apply_filter()
+```
+
+</details>
+
+### ⚙️ Method `clear_process_exercise_filter`
+
+```python
+def clear_process_exercise_filter(self) -> None
+```
+
+Clear only the exercise filter chip.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def clear_process_exercise_filter(self) -> None:
+        self.comboBox_filter_exercise.blockSignals(True)  # noqa: FBT003
+        self.comboBox_filter_exercise.setCurrentIndex(0)
+        self.comboBox_filter_exercise.blockSignals(False)  # noqa: FBT003
+        self.update_filter_type_combobox()
+        self.apply_filter()
+```
+
+</details>
+
+### ⚙️ Method `clear_process_type_filter`
+
+```python
+def clear_process_type_filter(self) -> None
+```
+
+Clear only the exercise-type filter chip.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def clear_process_type_filter(self) -> None:
+        self.comboBox_filter_type.blockSignals(True)  # noqa: FBT003
+        self.comboBox_filter_type.setCurrentIndex(0)
+        self.comboBox_filter_type.blockSignals(False)  # noqa: FBT003
         self.apply_filter()
 ```
 
@@ -13028,12 +13116,13 @@ def update_filter_comboboxes(self) -> None:
             return
 
         try:
-            current_exercise = self.comboBox_filter_exercise.currentText()
+            current_exercise = selected_process_filter_value(self.comboBox_filter_exercise.currentText())
             exercises = self.db_manager.get_exercises_by_frequency(500)
             set_combo_plain_items(
                 self.comboBox_filter_exercise,
                 exercises,
                 leading_empty=True,
+                leading_empty_text=FILTER_ALL_EXERCISES,
                 select=current_exercise,
             )
             self.update_filter_type_combobox()
@@ -13072,9 +13161,9 @@ def update_filter_type_combobox(self, _index: int = -1, *, apply_type_default: b
             return
 
         try:
-            current_type = self.comboBox_filter_type.currentText()
+            current_type = selected_process_filter_value(self.comboBox_filter_type.currentText())
 
-            exercise = self.comboBox_filter_exercise.currentText()
+            exercise = selected_process_filter_value(self.comboBox_filter_exercise.currentText())
             types: list[str] = []
             ex_id: int | None = None
             if exercise:
@@ -13098,6 +13187,7 @@ def update_filter_type_combobox(self, _index: int = -1, *, apply_type_default: b
                 self.comboBox_filter_type,
                 types,
                 leading_empty=True,
+                leading_empty_text=FILTER_ALL_TYPES,
                 select=selected_type,
             )
 

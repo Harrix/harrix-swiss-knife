@@ -56,7 +56,6 @@ from PySide6.QtWidgets import (
     QMenu,
     QMessageBox,
     QPushButton,
-    QSizePolicy,
     QTableView,
     QVBoxLayout,
     QWidget,
@@ -175,6 +174,14 @@ from harrix_swiss_knife.apps.food.food_log_calories import (
     parse_food_log_number,
     refresh_food_log_calorie_columns,
 )
+from harrix_swiss_knife.apps.food.food_log_filter_chrome import (
+    FILTER_TYPE_DRINK,
+    FILTER_TYPE_FOOD,
+    food_log_filter_type_value,
+    install_food_log_filter_chrome,
+    refresh_food_log_filter_chips,
+    sync_food_log_filter_button,
+)
 from harrix_swiss_knife.apps.food.food_log_transfer import (
     FoodLogTransferItem,
     build_transfer_item_from_log_row,
@@ -236,7 +243,6 @@ from harrix_swiss_knife.integrations.bothub import (
 from harrix_swiss_knife.paths import get_config_path_str
 from harrix_swiss_knife.qt_lucide_icon import (
     CANCEL_BUTTON_ICON,
-    CLEAR_BUTTON_ICON,
     OK_BUTTON_ICON,
     apply_leading_chrome_button_icon,
     apply_leading_chrome_buttons,
@@ -425,6 +431,7 @@ class MainWindow(
         """Reload the food log table from the database with the toolbar filters."""
         self._clear_food_log_table_filter()
         self._update_clear_filter_button_visibility()
+        refresh_food_log_filter_chips(self)
         if self.db_manager is None:
             logger.error("❌ Database manager is not initialized")
             return
@@ -457,7 +464,23 @@ class MainWindow(
         self._clear_food_log_table_filter()
         self._update_date_filter_controls_enabled()
         self._update_clear_filter_button_visibility()
+        refresh_food_log_filter_chips(self)
         self._update_food_log_table()
+
+    def clear_food_log_date_filter(self) -> None:
+        """Clear only the date-range filter chip."""
+        self.checkBox_use_date_filter.blockSignals(True)  # noqa: FBT003
+        self.checkBox_use_date_filter.setChecked(False)
+        self.checkBox_use_date_filter.blockSignals(False)  # noqa: FBT003
+        self._update_date_filter_controls_enabled()
+        self.apply_filter()
+
+    def clear_food_log_type_filter(self) -> None:
+        """Clear only the food/drink type filter chip."""
+        self.comboBox_filter_type.blockSignals(True)  # noqa: FBT003
+        self.comboBox_filter_type.setCurrentIndex(0)
+        self.comboBox_filter_type.blockSignals(False)  # noqa: FBT003
+        self.apply_filter()
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Handle application close event.
@@ -2474,7 +2497,7 @@ class MainWindow(
 
     def _food_log_filter_is_active(self) -> bool:
         """Return `True` when any food log toolbar filter is applied."""
-        if self.comboBox_filter_type.currentText().strip() in {"Food", "Drink"}:
+        if food_log_filter_type_value(self.comboBox_filter_type) in {FILTER_TYPE_FOOD, FILTER_TYPE_DRINK}:
             return True
         if self.lineEdit_filter_name.text().strip():
             return True
@@ -2499,7 +2522,7 @@ class MainWindow(
         """Return whether the current filter hides some rows of a visible day."""
         if self.lineEdit_filter_name.text().strip():
             return True
-        return self.comboBox_filter_type.currentText().strip() in {"Food", "Drink"}
+        return food_log_filter_type_value(self.comboBox_filter_type) in {FILTER_TYPE_FOOD, FILTER_TYPE_DRINK}
 
     @staticmethod
     def _food_log_row_missing_calories(row: list[Any]) -> bool:
@@ -2563,10 +2586,10 @@ class MainWindow(
             return None
 
         is_drink: int | None = None
-        filter_type = self.comboBox_filter_type.currentText().strip()
-        if filter_type == "Food":
+        filter_type = food_log_filter_type_value(self.comboBox_filter_type)
+        if filter_type == FILTER_TYPE_FOOD:
             is_drink = 0
-        elif filter_type == "Drink":
+        elif filter_type == FILTER_TYPE_DRINK:
             is_drink = 1
 
         use_date_filter = self.checkBox_use_date_filter.isChecked()
@@ -4405,23 +4428,13 @@ class MainWindow(
         self._apply_food_stats_splitter_sizes()
         QTimer.singleShot(60, self._apply_food_stats_splitter_sizes)
 
-        self.groupBox_filter.setTitle("")
-        self.groupBox_filter.setStyleSheet(
-            "QGroupBox#groupBox_filter { border: none; margin-top: 0px; padding-top: 0px; }"
-            "QGroupBox#groupBox_filter::title { height: 0px; width: 0px; padding: 0px; margin: 0px; }"
-        )
-        self.pushButton_clear_filter.setToolTip("Clear filter")
-        apply_lucide_button_icon(self.pushButton_clear_filter, CLEAR_BUTTON_ICON)
-        self.pushButton_clear_filter.setText("")
-        self.pushButton_clear_filter.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        clear_h = max(self.pushButton_clear_filter.sizeHint().height(), 24)
-        self.pushButton_clear_filter.setFixedSize(clear_h, clear_h)
+        install_food_log_filter_chrome(self)
         self._init_filter_controls()
         self._update_clear_filter_button_visibility()
+        refresh_food_log_filter_chips(self)
         apply_leading_chrome_buttons(self)
         match_layout_control_heights_many(
             (
-                self.horizontalLayout_filter,
                 self.horizontalLayout_food_stats_period,
                 self.horizontalLayout_food_stats_charts,
             ),
@@ -4984,6 +4997,7 @@ class MainWindow(
     def _update_clear_filter_button_visibility(self) -> None:
         """Show the clear-filter button only while a food log filter is active."""
         self.pushButton_clear_filter.setVisible(self._food_log_filter_is_active())
+        sync_food_log_filter_button(self)
 
     def _update_date_filter_controls_enabled(self, *_args: object) -> None:
         """Enable date edits only while the Use date checkbox is checked."""
