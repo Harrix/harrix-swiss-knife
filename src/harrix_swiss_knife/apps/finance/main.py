@@ -179,9 +179,14 @@ from harrix_swiss_knife.apps.finance.transaction_day_totals import (
     sum_transaction_rows_in_default_currency,
 )
 from harrix_swiss_knife.apps.finance.transaction_filter_chrome import (
+    FILTER_TYPE_EXPENSE,
+    FILTER_TYPE_INCOME,
     advanced_transactions_filter_is_active,
     install_transactions_filter_chrome,
+    populate_transactions_category_filter,
+    populate_transactions_currency_filter,
     refresh_transactions_filter_chips,
+    transactions_filter_combo_value,
 )
 from harrix_swiss_knife.apps.finance.transaction_helpers import (
     MIN_TRANSACTION_ROW_LENGTH,
@@ -1380,24 +1385,14 @@ class MainWindow(
             return
 
         try:
-            # Update category filter
-            categories: list[str] = self.db_manager.get_categories_by_type(0) + self.db_manager.get_categories_by_type(
-                1
-            )
-            set_combo_plain_items(
+            populate_transactions_category_filter(
                 self.comboBox_filter_category,
-                categories,
-                leading_empty=True,
-                select=self.comboBox_filter_category.currentText(),
+                self.db_manager.get_categories_with_icons_by_type(0),
+                self.db_manager.get_categories_with_icons_by_type(1),
             )
-
-            # Update currency filter
-            currencies: list[str] = [row[1] for row in self.db_manager.get_all_currencies()]  # Get codes
-            set_combo_plain_items(
+            populate_transactions_currency_filter(
                 self.comboBox_filter_currency,
-                currencies,
-                leading_empty=True,
-                select=self.comboBox_filter_currency.currentText(),
+                self.db_manager.get_all_currencies(),
             )
 
         except Exception:
@@ -2913,8 +2908,11 @@ class MainWindow(
             # Remove "(Income)" suffix
             clean_category_name = clean_category_name.replace(" (Income)", "")
 
-            # Set the category in the filter combo box
-            self.comboBox_filter_category.setCurrentText(clean_category_name)
+            index = self.comboBox_filter_category.findData(clean_category_name)
+            if index >= 0:
+                self.comboBox_filter_category.setCurrentIndex(index)
+            else:
+                self.comboBox_filter_category.setCurrentText(clean_category_name)
 
             # Apply the filter
             self.apply_filter()
@@ -3121,14 +3119,14 @@ class MainWindow(
             return None
 
         transaction_type: int | None = None
-        filter_type: str = self.comboBox_filter_type.currentText().strip()
-        if filter_type == "Expense":
+        filter_type: str = transactions_filter_combo_value(self.comboBox_filter_type)
+        if filter_type == FILTER_TYPE_EXPENSE:
             transaction_type = 0
-        elif filter_type == "Income":
+        elif filter_type == FILTER_TYPE_INCOME:
             transaction_type = 1
 
-        category: str | None = self.comboBox_filter_category.currentText() or None
-        currency: str | None = self.comboBox_filter_currency.currentText() or None
+        category: str | None = transactions_filter_combo_value(self.comboBox_filter_category) or None
+        currency: str | None = transactions_filter_combo_value(self.comboBox_filter_currency) or None
         description_filter: str | None = self.lineEdit_filter_description.text().strip() or None
 
         use_date_filter: bool = self.checkBox_use_date_filter.isChecked()
@@ -6348,11 +6346,11 @@ class MainWindow(
 
     def _transactions_filter_is_active(self) -> bool:
         """Return `True` when any transaction table filter is applied."""
-        if self.comboBox_filter_type.currentText().strip() in {"Expense", "Income"}:
+        if transactions_filter_combo_value(self.comboBox_filter_type) in {FILTER_TYPE_EXPENSE, FILTER_TYPE_INCOME}:
             return True
-        if self.comboBox_filter_category.currentText().strip():
+        if transactions_filter_combo_value(self.comboBox_filter_category):
             return True
-        if self.comboBox_filter_currency.currentText().strip():
+        if transactions_filter_combo_value(self.comboBox_filter_currency):
             return True
         if self.lineEdit_filter_description.text().strip():
             return True

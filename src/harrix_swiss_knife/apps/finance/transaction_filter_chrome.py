@@ -5,7 +5,15 @@ from __future__ import annotations
 from typing import Any
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QSizePolicy, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QComboBox,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
+)
 
 from harrix_swiss_knife.apps.common.ui_chrome import MUTED_TEXT
 from harrix_swiss_knife.fluent.tokens import CONTROL_HEIGHT, SPACE_S, SPACE_XS
@@ -13,16 +21,23 @@ from harrix_swiss_knife.fluent.widgets.display import FluentTag
 from harrix_swiss_knife.fluent.widgets.enums import Severity
 from harrix_swiss_knife.qt_lucide_icon import CLEAR_BUTTON_ICON, apply_lucide_button_icon, create_lucide_icon
 
+FILTER_ALL_CATEGORIES = "All categories"
+FILTER_ALL_CURRENCIES = "All currencies"
+FILTER_ALL_TYPES = "All types"
+FILTER_TYPE_EXPENSE = "Expense"
+FILTER_TYPE_INCOME = "Income"
+_FILTER_ALL_VALUES = frozenset({"", "All", FILTER_ALL_TYPES, FILTER_ALL_CATEGORIES, FILTER_ALL_CURRENCIES})
 _FILTER_MAX_POLICY = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
+_DATE_FIELD_MIN_WIDTH = 128
 
 
 def advanced_transactions_filter_is_active(host: Any) -> bool:
     """Return whether any non-search transaction filter is applied."""
-    if host.comboBox_filter_type.currentText().strip() in {"Expense", "Income"}:
+    if transactions_filter_combo_value(host.comboBox_filter_type) in {FILTER_TYPE_EXPENSE, FILTER_TYPE_INCOME}:
         return True
-    if host.comboBox_filter_category.currentText().strip():
+    if transactions_filter_combo_value(host.comboBox_filter_category):
         return True
-    if host.comboBox_filter_currency.currentText().strip():
+    if transactions_filter_combo_value(host.comboBox_filter_currency):
         return True
     return bool(host.checkBox_use_date_filter.isChecked())
 
@@ -83,34 +98,43 @@ def install_transactions_filter_chrome(host: Any) -> None:
     host.filter_chips_host = chips_host
     host.filter_chips_layout = chips_row
 
-    if host.comboBox_filter_type.itemText(0).strip() in {"", "All"}:
-        host.comboBox_filter_type.setItemText(0, "All types")
-    host.comboBox_filter_category.setPlaceholderText("Category")
-    host.comboBox_filter_currency.setPlaceholderText("Currency")
-    host.comboBox_filter_type.setToolTip("Type")
-    host.comboBox_filter_category.setToolTip("Category")
-    host.comboBox_filter_currency.setToolTip("Currency")
+    populate_transactions_type_filter(host.comboBox_filter_type)
+    _prepare_filter_combo(host.comboBox_filter_type, FILTER_ALL_TYPES, "Type")
+    _prepare_filter_combo(host.comboBox_filter_category, FILTER_ALL_CATEGORIES, "Category")
+    _prepare_filter_combo(host.comboBox_filter_currency, "₽ RUB", "Currency")
+    for date_edit in (host.dateEdit_filter_from, host.dateEdit_filter_to):
+        date_edit.setMinimumWidth(_DATE_FIELD_MIN_WIDTH)
+        date_edit.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
     host.dateEdit_filter_from.setToolTip("From date")
     host.dateEdit_filter_to.setToolTip("To date")
-    host.checkBox_use_date_filter.setText("Use date range")
+    host.checkBox_use_date_filter.setText("Date range")
+    host.checkBox_use_date_filter.setToolTip("Filter by date range")
 
     advanced = QWidget(host.groupBox_filter)
     advanced.setObjectName("transactionsFilterAdvanced")
     advanced.setSizePolicy(_FILTER_MAX_POLICY)
-    advanced_row = QHBoxLayout(advanced)
-    advanced_row.setContentsMargins(0, SPACE_XS, 0, 0)
-    advanced_row.setSpacing(SPACE_S)
-    advanced_row.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-    for widget, stretch in (
-        (host.comboBox_filter_type, 1),
-        (host.comboBox_filter_category, 2),
-        (host.comboBox_filter_currency, 1),
-        (_inline_caption("From", host.dateEdit_filter_from, advanced), 1),
-        (_inline_caption("To", host.dateEdit_filter_to, advanced), 1),
-        (host.checkBox_use_date_filter, 0),
-    ):
-        advanced_row.addWidget(widget, stretch)
-    advanced_row.addStretch(1)
+    advanced_column = QVBoxLayout(advanced)
+    advanced_column.setContentsMargins(0, SPACE_XS, 0, 0)
+    advanced_column.setSpacing(SPACE_XS)
+
+    combos_row = QHBoxLayout()
+    combos_row.setContentsMargins(0, 0, 0, 0)
+    combos_row.setSpacing(SPACE_S)
+    combos_row.addWidget(host.comboBox_filter_type, 1)
+    combos_row.addWidget(host.comboBox_filter_category, 2)
+    combos_row.addWidget(host.comboBox_filter_currency, 1)
+
+    dates_row = QHBoxLayout()
+    dates_row.setContentsMargins(0, 0, 0, 0)
+    dates_row.setSpacing(SPACE_S)
+    dates_row.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+    dates_row.addWidget(_inline_caption("From", host.dateEdit_filter_from, advanced), 0)
+    dates_row.addWidget(_inline_caption("To", host.dateEdit_filter_to, advanced), 0)
+    dates_row.addWidget(host.checkBox_use_date_filter, 0)
+    dates_row.addStretch(1)
+
+    advanced_column.addLayout(combos_row)
+    advanced_column.addLayout(dates_row)
     advanced.hide()
     host.filter_advanced_panel = advanced
 
@@ -146,6 +170,66 @@ def install_transactions_filter_chrome(host: Any) -> None:
     host.pushButton_filter.toggled.connect(advanced.setVisible)
 
 
+def populate_transactions_category_filter(
+    combo: QComboBox,
+    expense_categories: list[tuple[str, str, str]],
+    income_categories: list[tuple[str, str, str]],
+) -> None:
+    """Fill the category filter with icons and optional local-name parentheses."""
+    selected = transactions_filter_combo_value(combo)
+    combo.blockSignals(True)  # noqa: FBT003
+    try:
+        combo.clear()
+        combo.addItem(FILTER_ALL_CATEGORIES, "")
+        for name, icon, name_local in expense_categories:
+            combo.addItem(_category_filter_display(name, icon, name_local, income=False), name)
+        for name, icon, name_local in income_categories:
+            combo.addItem(_category_filter_display(name, icon, name_local, income=True), name)
+        index = combo.findData(selected)
+        combo.setCurrentIndex(max(index, 0))
+    finally:
+        combo.blockSignals(False)  # noqa: FBT003
+    _prepare_filter_combo(combo, FILTER_ALL_CATEGORIES, "Category")
+
+
+def populate_transactions_currency_filter(combo: QComboBox, currencies: list[list[Any]]) -> None:
+    """Fill the currency filter with DB symbols before each code."""
+    selected = transactions_filter_combo_value(combo)
+    combo.blockSignals(True)  # noqa: FBT003
+    try:
+        combo.clear()
+        combo.addItem(FILTER_ALL_CURRENCIES, "")
+        longest = FILTER_ALL_CURRENCIES
+        for row in currencies:
+            code = str(row[1])
+            symbol = str(row[3] or "").strip()
+            display = f"{symbol} {code}".strip() if symbol else code
+            combo.addItem(display, code)
+            if len(display) > len(longest):
+                longest = display
+        index = combo.findData(selected)
+        combo.setCurrentIndex(max(index, 0))
+    finally:
+        combo.blockSignals(False)  # noqa: FBT003
+    _prepare_filter_combo(combo, longest, "Currency")
+
+
+def populate_transactions_type_filter(combo: QComboBox) -> None:
+    """Fill the type filter with Expense/Income emoji icons."""
+    selected = transactions_filter_combo_value(combo)
+    combo.blockSignals(True)  # noqa: FBT003
+    try:
+        combo.clear()
+        combo.addItem(FILTER_ALL_TYPES, "")
+        combo.addItem(f"💸 {FILTER_TYPE_EXPENSE}", FILTER_TYPE_EXPENSE)
+        combo.addItem(f"💰 {FILTER_TYPE_INCOME}", FILTER_TYPE_INCOME)
+        index = combo.findData(selected)
+        combo.setCurrentIndex(max(index, 0))
+    finally:
+        combo.blockSignals(False)  # noqa: FBT003
+    _prepare_filter_combo(combo, FILTER_ALL_TYPES, "Type")
+
+
 def refresh_transactions_filter_chips(host: Any) -> None:
     """Rebuild closable chips for active advanced filters (not description search)."""
     layout = host.filter_chips_layout
@@ -156,15 +240,17 @@ def refresh_transactions_filter_chips(host: Any) -> None:
             widget.deleteLater()
 
     chips: list[tuple[str, Any]] = []
-    type_text = host.comboBox_filter_type.currentText().strip()
-    if type_text in {"Expense", "Income"}:
-        chips.append((type_text, host.clear_transactions_type_filter))
-    category = host.comboBox_filter_category.currentText().strip()
+    type_value = transactions_filter_combo_value(host.comboBox_filter_type)
+    if type_value == FILTER_TYPE_EXPENSE:
+        chips.append((f"💸 {FILTER_TYPE_EXPENSE}", host.clear_transactions_type_filter))
+    elif type_value == FILTER_TYPE_INCOME:
+        chips.append((f"💰 {FILTER_TYPE_INCOME}", host.clear_transactions_type_filter))
+    category = transactions_filter_combo_value(host.comboBox_filter_category)
     if category:
-        chips.append((category, host.clear_transactions_category_filter))
-    currency = host.comboBox_filter_currency.currentText().strip()
+        chips.append((host.comboBox_filter_category.currentText(), host.clear_transactions_category_filter))
+    currency = transactions_filter_combo_value(host.comboBox_filter_currency)
     if currency:
-        chips.append((currency, host.clear_transactions_currency_filter))
+        chips.append((host.comboBox_filter_currency.currentText(), host.clear_transactions_currency_filter))
     if host.checkBox_use_date_filter.isChecked():
         date_from = host.dateEdit_filter_from.date().toString("yyyy-MM-dd")
         date_to = host.dateEdit_filter_to.date().toString("yyyy-MM-dd")
@@ -178,10 +264,38 @@ def refresh_transactions_filter_chips(host: Any) -> None:
     host.filter_chips_host.setVisible(bool(chips))
 
 
+def selected_transactions_filter_value(text: str) -> str:
+    """Return a concrete filter value, or `""` for an 'all / empty' sentinel."""
+    value = text.strip()
+    return "" if value in _FILTER_ALL_VALUES else value
+
+
+def transactions_filter_combo_value(combo: QComboBox) -> str:
+    """Return the stored filter value for a combo item (`itemData`), not display text."""
+    data = combo.currentData()
+    if isinstance(data, str):
+        return data.strip()
+    if data is not None:
+        text = str(data).strip()
+        if text:
+            return text
+    return selected_transactions_filter_value(combo.currentText())
+
+
+def _category_filter_display(name: str, icon: str, name_local: str, *, income: bool) -> str:
+    display = f"{icon} {name}".strip() if icon else name
+    if income:
+        display = f"{display} (Income)"
+    local = name_local.strip()
+    if local:
+        display = f"{display} ({local})"
+    return display
+
+
 def _inline_caption(caption: str, widget: QWidget, parent: QWidget) -> QWidget:
     """Keep a short caption beside a control on one baseline row."""
     field = QWidget(parent)
-    field.setSizePolicy(QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed))
+    field.setSizePolicy(QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed))
     row = QHBoxLayout(field)
     row.setContentsMargins(0, 0, 0, 0)
     row.setSpacing(SPACE_XS)
@@ -189,5 +303,13 @@ def _inline_caption(caption: str, widget: QWidget, parent: QWidget) -> QWidget:
     label.setStyleSheet(f"color: {MUTED_TEXT};")
     label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
     row.addWidget(label, 0)
-    row.addWidget(widget, 1)
+    row.addWidget(widget, 0)
     return field
+
+
+def _prepare_filter_combo(combo: QComboBox, sample_text: str, tooltip: str) -> None:
+    """Size a filter combo so its default label is not elided."""
+    combo.setToolTip(tooltip)
+    combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+    combo.setMinimumContentsLength(max(8, len(sample_text)))
+    combo.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)

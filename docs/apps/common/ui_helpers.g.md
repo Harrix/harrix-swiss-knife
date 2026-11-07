@@ -177,7 +177,7 @@ def reveal_in_file_explorer(path: Path | str) -> None:
 ## 🔧 Function `set_combo_plain_items`
 
 ```python
-def set_combo_plain_items(combo: QComboBox, items: Sequence[str], *, leading_empty: bool = False, select: str | None = None, block_signals: bool = True) -> bool
+def set_combo_plain_items(combo: QComboBox, items: Sequence[str], *, leading_empty: bool = False, leading_empty_text: str = '', select: str | None = None, block_signals: bool = True) -> bool
 ```
 
 Replace plain-text combo items only when the list actually changes.
@@ -190,7 +190,9 @@ Args:
 
 - `combo` (`QComboBox`): Target combo.
 - `items` (`Sequence[str]`): Item labels after an optional leading empty.
-- `leading_empty` (`bool`): When `True`, prepend an empty "" item.
+- `leading_empty` (`bool`): When `True`, prepend a leading "all / none" item.
+- `leading_empty_text` (`str`): Label for the leading item when
+  `leading_empty` is `True` (default blank).
 - `select` (`str | None`): Text to select after update. When `None`, keep
   the previous `currentText` if it still exists.
 - `block_signals` (`bool`): Block `currentIndexChanged` during mutation.
@@ -208,16 +210,17 @@ def set_combo_plain_items(
     items: Sequence[str],
     *,
     leading_empty: bool = False,
+    leading_empty_text: str = "",
     select: str | None = None,
     block_signals: bool = True,
 ) -> bool:
-    desired = ["", *list(items)] if leading_empty else list(items)
+    desired = [leading_empty_text, *list(items)] if leading_empty else list(items)
     current = [combo.itemText(i) for i in range(combo.count())]
     selection = combo.currentText() if select is None else select
 
     def _apply_selection() -> None:
-        if not selection:
-            if combo.currentIndex() != 0 and combo.count() > 0 and combo.itemText(0) == "":
+        if not selection or selection == leading_empty_text:
+            if combo.count() > 0 and combo.currentIndex() != 0:
                 combo.setCurrentIndex(0)
             return
         index = combo.findText(selection)
@@ -240,7 +243,7 @@ def set_combo_plain_items(
     try:
         combo.clear()
         if leading_empty:
-            combo.addItem("")
+            combo.addItem(leading_empty_text)
             combo.addItems(list(items))
         else:
             combo.addItems(list(items))
