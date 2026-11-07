@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife.apps.common.date_edit_quick import attach_date_edit_quick_controls
 from harrix_swiss_knife.apps.common.ui_chrome import MUTED_TEXT
 from harrix_swiss_knife.fluent.tokens import CONTROL_HEIGHT, SPACE_S, SPACE_XS
 from harrix_swiss_knife.fluent.widgets.display import FluentTag
@@ -29,8 +30,8 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
 FILTER_MAX_POLICY = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
-# Calendar leading icon + `yyyy-MM-dd` + dropdown/padding on Fluent date chrome.
-_DATE_FIELD_CHROME_PADDING = 64
+# Leading calendar action + dropdown + frame; sized for post-match form fonts.
+_DATE_FIELD_CHROME_PADDING = 88
 _EXPANDING_TOOLBAR_TYPES = (QComboBox, QLineEdit)
 
 
@@ -46,7 +47,14 @@ def clear_filter_layout_widgets(layout: QLayout, parent: QWidget) -> None:
 def date_filter_field_width(date_edit: QDateEdit) -> int:
     """Return a compact width that still fits `yyyy-MM-dd` with calendar chrome."""
     text_width = date_edit.fontMetrics().horizontalAdvance("0000-00-00")
-    return text_width + _DATE_FIELD_CHROME_PADDING
+    return max(date_edit.minimumSizeHint().width(), text_width + _DATE_FIELD_CHROME_PADDING)
+
+
+def fit_date_filter_field_widths(*date_edits: QDateEdit) -> None:
+    """Re-apply compact widths after font/height matching changes metrics."""
+    for date_edit in date_edits:
+        date_edit.setFixedWidth(date_filter_field_width(date_edit))
+        date_edit.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
 
 
 def hide_filter_labels(*labels: QLabel) -> None:
@@ -183,8 +191,8 @@ def prepare_date_filter_fields(
 ) -> None:
     """Normalize date filter controls for the advanced filter row."""
     for date_edit in (date_from, date_to):
-        date_edit.setFixedWidth(date_filter_field_width(date_edit))
-        date_edit.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        attach_date_edit_quick_controls(date_edit)
+    fit_date_filter_field_widths(date_from, date_to)
     date_from.setToolTip("From date")
     date_to.setToolTip("To date")
     checkbox.setText(checkbox_text)

@@ -117,14 +117,11 @@ def install_transactions_filter_chrome(host: Any) -> None:
     _prepare_filter_combo(host.comboBox_filter_type, FILTER_ALL_TYPES, "Type")
     _prepare_filter_combo(host.comboBox_filter_category, FILTER_ALL_CATEGORIES, "Category")
     _prepare_filter_combo(host.comboBox_filter_currency, "₽ RUB", "Currency")
-    for date_edit in (host.dateEdit_filter_from, host.dateEdit_filter_to):
-        date_edit.setFixedWidth(date_filter_field_width(date_edit))
-        date_edit.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-    host.dateEdit_filter_from.setToolTip("From date")
-    host.dateEdit_filter_to.setToolTip("To date")
-    host.checkBox_use_date_filter.setText("Date range")
-    host.checkBox_use_date_filter.setToolTip("Filter by date range")
-    host.checkBox_use_date_filter.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+    prepare_date_filter_fields(
+        host.dateEdit_filter_from,
+        host.dateEdit_filter_to,
+        host.checkBox_use_date_filter,
+    )
 
     advanced = QWidget(host.groupBox_filter)
     advanced.setObjectName("transactionsFilterAdvanced")

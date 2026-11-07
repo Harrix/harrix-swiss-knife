@@ -121,6 +121,7 @@ from harrix_swiss_knife.apps.common.table_models import (
     user_resized_columns,
 )
 from harrix_swiss_knife.apps.common.text_case import capitalize_first_letter
+from harrix_swiss_knife.apps.common.tracker_filter_chrome import fit_date_filter_field_widths
 from harrix_swiss_knife.apps.common.ui_helpers import set_combo_plain_items
 from harrix_swiss_knife.apps.common.widgets.image_picker import ImagePicker, ImagePickerMode
 from harrix_swiss_knife.apps.common.widgets.shrinkable_scroll_area import install_shrinkable_tab_scroll
@@ -5611,6 +5612,7 @@ class MainWindow(
             self.comboBox_filter_currency,
             self.checkBox_use_date_filter,
         )
+        fit_date_filter_field_widths(self.dateEdit_filter_from, self.dateEdit_filter_to)
         match_layout_control_heights_many(
             (
                 self.horizontalLayout_exchange_date,

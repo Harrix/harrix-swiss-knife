@@ -5427,6 +5427,7 @@ class MainWindow(
             self.comboBox_filter_currency,
             self.checkBox_use_date_filter,
         )
+        fit_date_filter_field_widths(self.dateEdit_filter_from, self.dateEdit_filter_to)
         match_layout_control_heights_many(
             (
                 self.horizontalLayout_exchange_date,
