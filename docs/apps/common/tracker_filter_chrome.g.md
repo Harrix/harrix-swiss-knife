@@ -12,6 +12,7 @@ lang: en
 ## Contents
 
 - [🔧 Function `clear_filter_layout_widgets`](#-function-clear_filter_layout_widgets)
+- [🔧 Function `date_filter_field_width`](#-function-date_filter_field_width)
 - [🔧 Function `hide_filter_labels`](#-function-hide_filter_labels)
 - [🔧 Function `inline_filter_caption`](#-function-inline_filter_caption)
 - [🔧 Function `install_tracker_filter_shell`](#-function-install_tracker_filter_shell)
@@ -41,6 +42,25 @@ def clear_filter_layout_widgets(layout: QLayout, parent: QWidget) -> None:
         widget = item.widget()
         if widget is not None:
             widget.setParent(parent)
+```
+
+</details>
+
+## 🔧 Function `date_filter_field_width`
+
+```python
+def date_filter_field_width(date_edit: QDateEdit) -> int
+```
+
+Return a compact width that still fits `yyyy-MM-dd` with calendar chrome.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def date_filter_field_width(date_edit: QDateEdit) -> int:
+    text_width = date_edit.fontMetrics().horizontalAdvance("0000-00-00")
+    return text_width + _DATE_FIELD_CHROME_PADDING
 ```
 
 </details>
@@ -229,7 +249,7 @@ def prepare_date_filter_fields(
     checkbox_text: str = "Date range",
 ) -> None:
     for date_edit in (date_from, date_to):
-        date_edit.setFixedWidth(DATE_FIELD_WIDTH)
+        date_edit.setFixedWidth(date_filter_field_width(date_edit))
         date_edit.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
     date_from.setToolTip("From date")
     date_to.setToolTip("To date")

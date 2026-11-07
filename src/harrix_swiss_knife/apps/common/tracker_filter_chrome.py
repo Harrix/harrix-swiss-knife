@@ -29,7 +29,8 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
 FILTER_MAX_POLICY = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
-DATE_FIELD_WIDTH = 112
+# Calendar leading icon + `yyyy-MM-dd` + dropdown/padding on Fluent date chrome.
+_DATE_FIELD_CHROME_PADDING = 64
 _EXPANDING_TOOLBAR_TYPES = (QComboBox, QLineEdit)
 
 
@@ -40,6 +41,12 @@ def clear_filter_layout_widgets(layout: QLayout, parent: QWidget) -> None:
         widget = item.widget()
         if widget is not None:
             widget.setParent(parent)
+
+
+def date_filter_field_width(date_edit: QDateEdit) -> int:
+    """Return a compact width that still fits `yyyy-MM-dd` with calendar chrome."""
+    text_width = date_edit.fontMetrics().horizontalAdvance("0000-00-00")
+    return text_width + _DATE_FIELD_CHROME_PADDING
 
 
 def hide_filter_labels(*labels: QLabel) -> None:
@@ -176,7 +183,7 @@ def prepare_date_filter_fields(
 ) -> None:
     """Normalize date filter controls for the advanced filter row."""
     for date_edit in (date_from, date_to):
-        date_edit.setFixedWidth(DATE_FIELD_WIDTH)
+        date_edit.setFixedWidth(date_filter_field_width(date_edit))
         date_edit.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
     date_from.setToolTip("From date")
     date_to.setToolTip("To date")

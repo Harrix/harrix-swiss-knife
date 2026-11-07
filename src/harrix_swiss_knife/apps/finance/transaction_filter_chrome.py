@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife.apps.common.tracker_filter_chrome import date_filter_field_width
 from harrix_swiss_knife.apps.common.ui_chrome import MUTED_TEXT
 from harrix_swiss_knife.fluent.tokens import CONTROL_HEIGHT, SPACE_S, SPACE_XS
 from harrix_swiss_knife.fluent.widgets.display import FluentTag
@@ -31,7 +32,6 @@ INCOME_LUCIDE_ICON = "banknote-arrow-up"
 _FILTER_TYPE_ICON_SIZE = 16
 _FILTER_ALL_VALUES = frozenset({"", "All", FILTER_ALL_TYPES, FILTER_ALL_CATEGORIES, FILTER_ALL_CURRENCIES})
 _FILTER_MAX_POLICY = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
-_DATE_FIELD_WIDTH = 112
 
 
 def advanced_transactions_filter_is_active(host: Any) -> bool:
@@ -106,12 +106,13 @@ def install_transactions_filter_chrome(host: Any) -> None:
     _prepare_filter_combo(host.comboBox_filter_category, FILTER_ALL_CATEGORIES, "Category")
     _prepare_filter_combo(host.comboBox_filter_currency, "₽ RUB", "Currency")
     for date_edit in (host.dateEdit_filter_from, host.dateEdit_filter_to):
-        date_edit.setFixedWidth(_DATE_FIELD_WIDTH)
+        date_edit.setFixedWidth(date_filter_field_width(date_edit))
         date_edit.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
     host.dateEdit_filter_from.setToolTip("From date")
     host.dateEdit_filter_to.setToolTip("To date")
     host.checkBox_use_date_filter.setText("Date range")
     host.checkBox_use_date_filter.setToolTip("Filter by date range")
+    host.checkBox_use_date_filter.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
 
     advanced = QWidget(host.groupBox_filter)
     advanced.setObjectName("transactionsFilterAdvanced")
