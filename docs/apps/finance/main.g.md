@@ -15,6 +15,10 @@ lang: en
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `apply_filter`](#%EF%B8%8F-method-apply_filter)
   - [⚙️ Method `clear_filter`](#%EF%B8%8F-method-clear_filter)
+  - [⚙️ Method `clear_transactions_category_filter`](#%EF%B8%8F-method-clear_transactions_category_filter)
+  - [⚙️ Method `clear_transactions_currency_filter`](#%EF%B8%8F-method-clear_transactions_currency_filter)
+  - [⚙️ Method `clear_transactions_date_filter`](#%EF%B8%8F-method-clear_transactions_date_filter)
+  - [⚙️ Method `clear_transactions_type_filter`](#%EF%B8%8F-method-clear_transactions_type_filter)
   - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
   - [⚙️ Method `delete_record`](#%EF%B8%8F-method-delete_record)
   - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
@@ -117,6 +121,10 @@ class MainWindow(
         self._auto_save_source_models: dict[str, QObject | None] = {}
         self._transaction_selection_selection_model: QItemSelectionModel | None = None
         self._transactions_selection_status_label: QLabel | None = None
+        self.pushButton_filter: QPushButton
+        self.filter_advanced_panel: QWidget
+        self.filter_chips_host: QWidget
+        self.filter_chips_layout: QHBoxLayout
         self._setup_ui()
         self._finish_fluent_window_chrome()
         apply_window_icon(self)
@@ -280,6 +288,7 @@ class MainWindow(
     def apply_filter(self, *_args: object) -> None:
         """Apply combo-box/date filters to the transactions table."""
         self._update_clear_filter_button_visibility()
+        refresh_transactions_filter_chips(self)
         if self.db_manager is None:
             logger.error("❌ Database manager is not initialized")
             return
@@ -316,8 +325,38 @@ class MainWindow(
         self._description_filter_timer.stop()
         self._update_date_filter_controls_enabled()
         self._update_clear_filter_button_visibility()
+        refresh_transactions_filter_chips(self)
         self._load_transactions_table()
         self._connect_table_auto_save_signals()
+
+    def clear_transactions_category_filter(self) -> None:
+        """Clear only the category filter chip."""
+        self.comboBox_filter_category.blockSignals(True)  # noqa: FBT003
+        self.comboBox_filter_category.setCurrentIndex(0)
+        self.comboBox_filter_category.blockSignals(False)  # noqa: FBT003
+        self.apply_filter()
+
+    def clear_transactions_currency_filter(self) -> None:
+        """Clear only the currency filter chip."""
+        self.comboBox_filter_currency.blockSignals(True)  # noqa: FBT003
+        self.comboBox_filter_currency.setCurrentIndex(0)
+        self.comboBox_filter_currency.blockSignals(False)  # noqa: FBT003
+        self.apply_filter()
+
+    def clear_transactions_date_filter(self) -> None:
+        """Clear only the date-range filter chip."""
+        self.checkBox_use_date_filter.blockSignals(True)  # noqa: FBT003
+        self.checkBox_use_date_filter.setChecked(False)
+        self.checkBox_use_date_filter.blockSignals(False)  # noqa: FBT003
+        self._update_date_filter_controls_enabled()
+        self.apply_filter()
+
+    def clear_transactions_type_filter(self) -> None:
+        """Clear only the expense/income type filter chip."""
+        self.comboBox_filter_type.blockSignals(True)  # noqa: FBT003
+        self.comboBox_filter_type.setCurrentIndex(0)
+        self.comboBox_filter_type.blockSignals(False)  # noqa: FBT003
+        self.apply_filter()
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Handle application close event.
@@ -5256,13 +5295,14 @@ class MainWindow(
         QWidget.setTabOrder(self.pushButton_add, self.lineEdit_tag)
         QWidget.setTabOrder(self.lineEdit_tag, self.listView_categories)
         QWidget.setTabOrder(self.listView_categories, self.lineEdit_filter_description)
-        QWidget.setTabOrder(self.lineEdit_filter_description, self.comboBox_filter_type)
+        QWidget.setTabOrder(self.lineEdit_filter_description, self.pushButton_filter)
+        QWidget.setTabOrder(self.pushButton_filter, self.pushButton_clear_filter)
+        QWidget.setTabOrder(self.pushButton_clear_filter, self.comboBox_filter_type)
         QWidget.setTabOrder(self.comboBox_filter_type, self.comboBox_filter_category)
         QWidget.setTabOrder(self.comboBox_filter_category, self.comboBox_filter_currency)
         QWidget.setTabOrder(self.comboBox_filter_currency, self.dateEdit_filter_from)
         QWidget.setTabOrder(self.dateEdit_filter_from, self.dateEdit_filter_to)
         QWidget.setTabOrder(self.dateEdit_filter_to, self.checkBox_use_date_filter)
-        QWidget.setTabOrder(self.checkBox_use_date_filter, self.pushButton_clear_filter)
 
     def _setup_transactions_table_column_widths(self) -> None:
         """Configure column resize modes for the transactions table."""
@@ -5309,6 +5349,8 @@ class MainWindow(
 
         attach_date_edit_quick_controls(self.dateEdit)
         attach_date_edit_quick_controls(self.dateEdit_exchange)
+        attach_date_edit_quick_controls(self.dateEdit_filter_from)
+        attach_date_edit_quick_controls(self.dateEdit_filter_to)
 
         # Set emoji for buttons
         self.pushButton_add.setText(f"➕ {self.pushButton_add.text()}")  # noqa: RUF001
@@ -5325,18 +5367,9 @@ class MainWindow(
         self.action_exchanges_delete.setText(f"🗑️ {self.action_exchanges_delete.text()}")
         self.action_standard_items.setText(f"📋 {self.action_standard_items.text()}")
         self._apply_menu_bar_emoji_icons()
-        self.groupBox_filter.setTitle("")
-        self.groupBox_filter.setStyleSheet(
-            "QGroupBox#groupBox_filter { border: none; margin-top: 0px; padding-top: 0px; }"
-            "QGroupBox#groupBox_filter::title { height: 0px; width: 0px; padding: 0px; margin: 0px; }"
-        )
-        self.pushButton_clear_filter.setToolTip("Clear filter")
-        apply_lucide_button_icon(self.pushButton_clear_filter, CLEAR_BUTTON_ICON)
-        self.pushButton_clear_filter.setText("")
-        self.pushButton_clear_filter.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        clear_h = max(self.pushButton_clear_filter.sizeHint().height(), 24)
-        self.pushButton_clear_filter.setFixedSize(clear_h, clear_h)
+        install_transactions_filter_chrome(self)
         self._update_clear_filter_button_visibility()
+        refresh_transactions_filter_chips(self)
         # Multi-line natural currency summaries (Quick Summary / today)
         self.label_total_income.setWordWrap(True)
         self.label_total_expenses.setWordWrap(True)
@@ -5380,9 +5413,21 @@ class MainWindow(
             self.doubleSpinBox_exchange_from,
             self.doubleSpinBox_exchange_to,
         )
+        match_control_heights(
+            self.lineEdit_filter_description,
+            self.pushButton_filter,
+            self.pushButton_clear_filter,
+        )
+        match_date_edit_form_height(
+            self.dateEdit_filter_from,
+            self.dateEdit_filter_to,
+            self.comboBox_filter_type,
+            self.comboBox_filter_category,
+            self.comboBox_filter_currency,
+            self.checkBox_use_date_filter,
+        )
         match_layout_control_heights_many(
             (
-                self.horizontalLayout_filter,
                 self.horizontalLayout_exchange_date,
                 self.horizontalLayout_16,
                 self.horizontalLayout_exchange_item_rate,
@@ -6218,6 +6263,9 @@ class MainWindow(
     def _update_clear_filter_button_visibility(self) -> None:
         """Show the clear-filter button only while a transaction filter is active."""
         self.pushButton_clear_filter.setVisible(self._transactions_filter_is_active())
+        if hasattr(self, "pushButton_filter"):
+            active = advanced_transactions_filter_is_active(self)
+            self.pushButton_filter.setText("Filter •" if active else "Filter")
 
     @requires_database()
     def _update_comboboxes(self) -> None:
@@ -6548,6 +6596,10 @@ def __init__(self, *, hide_on_close: bool = False) -> None:
         self._auto_save_source_models: dict[str, QObject | None] = {}
         self._transaction_selection_selection_model: QItemSelectionModel | None = None
         self._transactions_selection_status_label: QLabel | None = None
+        self.pushButton_filter: QPushButton
+        self.filter_advanced_panel: QWidget
+        self.filter_chips_host: QWidget
+        self.filter_chips_layout: QHBoxLayout
         self._setup_ui()
         self._finish_fluent_window_chrome()
         apply_window_icon(self)
@@ -6724,6 +6776,7 @@ Apply combo-box/date filters to the transactions table.
 ```python
 def apply_filter(self, *_args: object) -> None:
         self._update_clear_filter_button_visibility()
+        refresh_transactions_filter_chips(self)
         if self.db_manager is None:
             logger.error("❌ Database manager is not initialized")
             return
@@ -6774,8 +6827,94 @@ def clear_filter(self) -> None:
         self._description_filter_timer.stop()
         self._update_date_filter_controls_enabled()
         self._update_clear_filter_button_visibility()
+        refresh_transactions_filter_chips(self)
         self._load_transactions_table()
         self._connect_table_auto_save_signals()
+```
+
+</details>
+
+### ⚙️ Method `clear_transactions_category_filter`
+
+```python
+def clear_transactions_category_filter(self) -> None
+```
+
+Clear only the category filter chip.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def clear_transactions_category_filter(self) -> None:
+        self.comboBox_filter_category.blockSignals(True)  # noqa: FBT003
+        self.comboBox_filter_category.setCurrentIndex(0)
+        self.comboBox_filter_category.blockSignals(False)  # noqa: FBT003
+        self.apply_filter()
+```
+
+</details>
+
+### ⚙️ Method `clear_transactions_currency_filter`
+
+```python
+def clear_transactions_currency_filter(self) -> None
+```
+
+Clear only the currency filter chip.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def clear_transactions_currency_filter(self) -> None:
+        self.comboBox_filter_currency.blockSignals(True)  # noqa: FBT003
+        self.comboBox_filter_currency.setCurrentIndex(0)
+        self.comboBox_filter_currency.blockSignals(False)  # noqa: FBT003
+        self.apply_filter()
+```
+
+</details>
+
+### ⚙️ Method `clear_transactions_date_filter`
+
+```python
+def clear_transactions_date_filter(self) -> None
+```
+
+Clear only the date-range filter chip.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def clear_transactions_date_filter(self) -> None:
+        self.checkBox_use_date_filter.blockSignals(True)  # noqa: FBT003
+        self.checkBox_use_date_filter.setChecked(False)
+        self.checkBox_use_date_filter.blockSignals(False)  # noqa: FBT003
+        self._update_date_filter_controls_enabled()
+        self.apply_filter()
+```
+
+</details>
+
+### ⚙️ Method `clear_transactions_type_filter`
+
+```python
+def clear_transactions_type_filter(self) -> None
+```
+
+Clear only the expense/income type filter chip.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def clear_transactions_type_filter(self) -> None:
+        self.comboBox_filter_type.blockSignals(True)  # noqa: FBT003
+        self.comboBox_filter_type.setCurrentIndex(0)
+        self.comboBox_filter_type.blockSignals(False)  # noqa: FBT003
+        self.apply_filter()
 ```
 
 </details>
