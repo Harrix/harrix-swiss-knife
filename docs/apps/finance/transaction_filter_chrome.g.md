@@ -118,8 +118,8 @@ def install_transactions_filter_chrome(host: Any) -> None:
     _prepare_filter_combo(host.comboBox_filter_category, FILTER_ALL_CATEGORIES, "Category")
     _prepare_filter_combo(host.comboBox_filter_currency, "₽ RUB", "Currency")
     for date_edit in (host.dateEdit_filter_from, host.dateEdit_filter_to):
-        date_edit.setMinimumWidth(_DATE_FIELD_MIN_WIDTH)
-        date_edit.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+        date_edit.setFixedWidth(_DATE_FIELD_WIDTH)
+        date_edit.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
     host.dateEdit_filter_from.setToolTip("From date")
     host.dateEdit_filter_to.setToolTip("To date")
     host.checkBox_use_date_filter.setText("Date range")

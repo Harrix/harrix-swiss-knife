@@ -29,7 +29,8 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
 FILTER_MAX_POLICY = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
-DATE_FIELD_MIN_WIDTH = 128
+DATE_FIELD_WIDTH = 112
+_EXPANDING_TOOLBAR_TYPES = (QComboBox, QLineEdit)
 
 
 def clear_filter_layout_widgets(layout: QLayout, parent: QWidget) -> None:
@@ -50,7 +51,7 @@ def hide_filter_labels(*labels: QLabel) -> None:
 def inline_filter_caption(caption: str, widget: QWidget, parent: QWidget) -> QWidget:
     """Keep a short caption beside a control on one baseline row."""
     field = QWidget(parent)
-    field.setSizePolicy(QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed))
+    field.setSizePolicy(QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed))
     row = QHBoxLayout(field)
     row.setContentsMargins(0, 0, 0, 0)
     row.setSpacing(SPACE_XS)
@@ -126,7 +127,7 @@ def install_tracker_filter_shell(
         row.setSpacing(SPACE_S)
         row.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         for widget in row_widgets:
-            stretch = 0 if isinstance(widget, QCheckBox) else 1
+            stretch = 1 if isinstance(widget, _EXPANDING_TOOLBAR_TYPES) else 0
             row.addWidget(widget, stretch)
         row.addStretch(1)
         advanced_column.addLayout(row)
@@ -175,12 +176,13 @@ def prepare_date_filter_fields(
 ) -> None:
     """Normalize date filter controls for the advanced filter row."""
     for date_edit in (date_from, date_to):
-        date_edit.setMinimumWidth(DATE_FIELD_MIN_WIDTH)
-        date_edit.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+        date_edit.setFixedWidth(DATE_FIELD_WIDTH)
+        date_edit.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
     date_from.setToolTip("From date")
     date_to.setToolTip("To date")
     checkbox.setText(checkbox_text)
     checkbox.setToolTip("Filter by date range")
+    checkbox.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
 
 
 def prepare_filter_combo(combo: QComboBox, sample_text: str, tooltip: str) -> None:

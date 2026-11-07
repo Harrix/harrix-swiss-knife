@@ -31,7 +31,7 @@ INCOME_LUCIDE_ICON = "banknote-arrow-up"
 _FILTER_TYPE_ICON_SIZE = 16
 _FILTER_ALL_VALUES = frozenset({"", "All", FILTER_ALL_TYPES, FILTER_ALL_CATEGORIES, FILTER_ALL_CURRENCIES})
 _FILTER_MAX_POLICY = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
-_DATE_FIELD_MIN_WIDTH = 128
+_DATE_FIELD_WIDTH = 112
 
 
 def advanced_transactions_filter_is_active(host: Any) -> bool:
@@ -106,8 +106,8 @@ def install_transactions_filter_chrome(host: Any) -> None:
     _prepare_filter_combo(host.comboBox_filter_category, FILTER_ALL_CATEGORIES, "Category")
     _prepare_filter_combo(host.comboBox_filter_currency, "₽ RUB", "Currency")
     for date_edit in (host.dateEdit_filter_from, host.dateEdit_filter_to):
-        date_edit.setMinimumWidth(_DATE_FIELD_MIN_WIDTH)
-        date_edit.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+        date_edit.setFixedWidth(_DATE_FIELD_WIDTH)
+        date_edit.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
     host.dateEdit_filter_from.setToolTip("From date")
     host.dateEdit_filter_to.setToolTip("To date")
     host.checkBox_use_date_filter.setText("Date range")
@@ -306,7 +306,7 @@ def _category_filter_display(name: str, icon: str, name_local: str, *, income: b
 def _inline_caption(caption: str, widget: QWidget, parent: QWidget) -> QWidget:
     """Keep a short caption beside a control on one baseline row."""
     field = QWidget(parent)
-    field.setSizePolicy(QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed))
+    field.setSizePolicy(QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed))
     row = QHBoxLayout(field)
     row.setContentsMargins(0, 0, 0, 0)
     row.setSpacing(SPACE_XS)
