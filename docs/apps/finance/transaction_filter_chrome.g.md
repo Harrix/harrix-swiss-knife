@@ -89,6 +89,7 @@ def install_transactions_filter_chrome(host: Any) -> None:
 
     toolbar = QWidget(host.groupBox_filter)
     toolbar.setObjectName("transactionsFilterToolbar")
+    toolbar.setSizePolicy(_FILTER_MAX_POLICY)
     toolbar_row = QHBoxLayout(toolbar)
     toolbar_row.setContentsMargins(0, 0, 0, 0)
     toolbar_row.setSpacing(SPACE_S)
@@ -98,6 +99,7 @@ def install_transactions_filter_chrome(host: Any) -> None:
 
     chips_host = QWidget(host.groupBox_filter)
     chips_host.setObjectName("transactionsFilterChips")
+    chips_host.setSizePolicy(_FILTER_MAX_POLICY)
     chips_row = QHBoxLayout(chips_host)
     chips_row.setContentsMargins(0, 0, 0, 0)
     chips_row.setSpacing(SPACE_XS)
@@ -108,51 +110,63 @@ def install_transactions_filter_chrome(host: Any) -> None:
 
     if host.comboBox_filter_type.itemText(0).strip() in {"", "All"}:
         host.comboBox_filter_type.setItemText(0, "All types")
+    host.comboBox_filter_category.setPlaceholderText("Category")
+    host.comboBox_filter_currency.setPlaceholderText("Currency")
+    host.comboBox_filter_type.setToolTip("Type")
+    host.comboBox_filter_category.setToolTip("Category")
+    host.comboBox_filter_currency.setToolTip("Currency")
+    host.dateEdit_filter_from.setToolTip("From date")
+    host.dateEdit_filter_to.setToolTip("To date")
     host.checkBox_use_date_filter.setText("Use date range")
 
     advanced = QWidget(host.groupBox_filter)
     advanced.setObjectName("transactionsFilterAdvanced")
+    advanced.setSizePolicy(_FILTER_MAX_POLICY)
     advanced_row = QHBoxLayout(advanced)
     advanced_row.setContentsMargins(0, SPACE_XS, 0, 0)
     advanced_row.setSpacing(SPACE_S)
-    advanced_row.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignBottom)
-    for caption, widget, stretch in (
-        ("Type", host.comboBox_filter_type, 1),
-        ("Category", host.comboBox_filter_category, 2),
-        ("Currency", host.comboBox_filter_currency, 1),
-        ("From", host.dateEdit_filter_from, 1),
-        ("To", host.dateEdit_filter_to, 1),
+    advanced_row.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+    for widget, stretch in (
+        (host.comboBox_filter_type, 1),
+        (host.comboBox_filter_category, 2),
+        (host.comboBox_filter_currency, 1),
+        (_inline_caption("From", host.dateEdit_filter_from, advanced), 1),
+        (_inline_caption("To", host.dateEdit_filter_to, advanced), 1),
+        (host.checkBox_use_date_filter, 0),
     ):
-        advanced_row.addWidget(_labeled_filter_field(caption, widget, advanced), stretch)
-    checkbox_wrap = QWidget(advanced)
-    checkbox_column = QVBoxLayout(checkbox_wrap)
-    checkbox_column.setContentsMargins(0, 0, 0, 0)
-    checkbox_column.setSpacing(0)
-    checkbox_column.addStretch(1)
-    checkbox_column.addWidget(host.checkBox_use_date_filter)
-    advanced_row.addWidget(checkbox_wrap, 0)
+        advanced_row.addWidget(widget, stretch)
     advanced_row.addStretch(1)
     advanced.hide()
     host.filter_advanced_panel = advanced
 
     shell = QWidget(host.groupBox_filter)
     shell.setObjectName("transactionsFilterShell")
+    shell.setSizePolicy(_FILTER_MAX_POLICY)
     shell_column = QVBoxLayout(shell)
     shell_column.setContentsMargins(0, 0, 0, 0)
     shell_column.setSpacing(SPACE_XS)
-    shell_column.addWidget(toolbar)
-    shell_column.addWidget(chips_host)
-    shell_column.addWidget(advanced)
+    shell_column.setSizeConstraint(QVBoxLayout.SizeConstraint.SetMinAndMaxSize)
+    shell_column.addWidget(toolbar, 0)
+    shell_column.addWidget(chips_host, 0)
+    shell_column.addWidget(advanced, 0)
     layout.setContentsMargins(SPACE_S, SPACE_XS, SPACE_S, SPACE_XS)
     layout.setSpacing(0)
-    layout.addWidget(shell)
+    layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+    layout.addWidget(shell, 0)
 
     host.groupBox_filter.setTitle("")
     host.groupBox_filter.setFlat(True)
+    host.groupBox_filter.setSizePolicy(_FILTER_MAX_POLICY)
     host.groupBox_filter.setStyleSheet(
         "QGroupBox#groupBox_filter { border: none; margin-top: 0px; padding-top: 0px; background: transparent; }"
         "QGroupBox#groupBox_filter::title { height: 0px; width: 0px; padding: 0px; margin: 0px; }",
     )
+    transactions_layout = host.verticalLayout_transactions
+    transactions_layout.setAlignment(host.groupBox_filter, Qt.AlignmentFlag.AlignTop)
+    transactions_layout.setStretch(transactions_layout.indexOf(host.groupBox_filter), 0)
+    table_index = transactions_layout.indexOf(host.tableView_transactions)
+    if table_index >= 0:
+        transactions_layout.setStretch(table_index, 1)
 
     host.pushButton_filter.toggled.connect(advanced.setVisible)
 ```
