@@ -263,7 +263,7 @@ def populate_transactions_currency_filter(combo: QComboBox, currencies: list[lis
 def populate_transactions_type_filter(combo: QComboBox) -> None
 ```
 
-Fill the type filter with Expense/Income emoji icons.
+Fill the type filter with Expense/Income Lucide icons.
 
 <details>
 <summary>Code:</summary>
@@ -275,8 +275,16 @@ def populate_transactions_type_filter(combo: QComboBox) -> None:
     try:
         combo.clear()
         combo.addItem(FILTER_ALL_TYPES, "")
-        combo.addItem(f"💸 {FILTER_TYPE_EXPENSE}", FILTER_TYPE_EXPENSE)
-        combo.addItem(f"💰 {FILTER_TYPE_INCOME}", FILTER_TYPE_INCOME)
+        combo.addItem(
+            create_lucide_icon(EXPENSE_LUCIDE_ICON, _FILTER_TYPE_ICON_SIZE),
+            FILTER_TYPE_EXPENSE,
+            FILTER_TYPE_EXPENSE,
+        )
+        combo.addItem(
+            create_lucide_icon(INCOME_LUCIDE_ICON, _FILTER_TYPE_ICON_SIZE),
+            FILTER_TYPE_INCOME,
+            FILTER_TYPE_INCOME,
+        )
         index = combo.findData(selected)
         combo.setCurrentIndex(max(index, 0))
     finally:
@@ -309,9 +317,9 @@ def refresh_transactions_filter_chips(host: Any) -> None:
     chips: list[tuple[str, Any]] = []
     type_value = transactions_filter_combo_value(host.comboBox_filter_type)
     if type_value == FILTER_TYPE_EXPENSE:
-        chips.append((f"💸 {FILTER_TYPE_EXPENSE}", host.clear_transactions_type_filter))
+        chips.append((FILTER_TYPE_EXPENSE, host.clear_transactions_type_filter))
     elif type_value == FILTER_TYPE_INCOME:
-        chips.append((f"💰 {FILTER_TYPE_INCOME}", host.clear_transactions_type_filter))
+        chips.append((FILTER_TYPE_INCOME, host.clear_transactions_type_filter))
     category = transactions_filter_combo_value(host.comboBox_filter_category)
     if category:
         chips.append((host.comboBox_filter_category.currentText(), host.clear_transactions_category_filter))

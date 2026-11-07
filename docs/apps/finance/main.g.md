@@ -5383,8 +5383,16 @@ class MainWindow(
         chart_category_button_icon_size = 18
         self.pushButton_select_all.setIcon(create_lucide_icon("square-check", chart_category_button_icon_size))
         self.pushButton_select_deselect_all.setIcon(create_lucide_icon("square", chart_category_button_icon_size))
-        self.pushButton_select_only_expense.setText(f"💸 {self.pushButton_select_only_expense.text()}")
-        self.pushButton_select_only_income.setText(f"💰 {self.pushButton_select_only_income.text()}")
+        apply_lucide_button_icon(
+            self.pushButton_select_only_expense,
+            EXPENSE_LUCIDE_ICON,
+            icon_size=chart_category_button_icon_size,
+        )
+        apply_lucide_button_icon(
+            self.pushButton_select_only_income,
+            INCOME_LUCIDE_ICON,
+            icon_size=chart_category_button_icon_size,
+        )
 
         # Set emoji for additional exchange and currency buttons
         self.pushButton_calculate_exchange.setText(f"🧮 {self.pushButton_calculate_exchange.text()}")

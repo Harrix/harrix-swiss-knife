@@ -224,7 +224,7 @@ CHROME_EMOJI_TO_LUCIDE: dict[str, str] = {
     "✍": "square-pen",
     "🔀": "git-merge",
     "💱": "arrow-left-right",
-    "💸": "trending-down",
+    "💸": "banknote-arrow-down",
     "💰": "wallet",
     "🏆": "trophy",
     "👟": "footprints",

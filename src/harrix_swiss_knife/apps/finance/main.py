@@ -179,8 +179,10 @@ from harrix_swiss_knife.apps.finance.transaction_day_totals import (
     sum_transaction_rows_in_default_currency,
 )
 from harrix_swiss_knife.apps.finance.transaction_filter_chrome import (
+    EXPENSE_LUCIDE_ICON,
     FILTER_TYPE_EXPENSE,
     FILTER_TYPE_INCOME,
+    INCOME_LUCIDE_ICON,
     advanced_transactions_filter_is_active,
     install_transactions_filter_chrome,
     populate_transactions_category_filter,
@@ -230,6 +232,7 @@ from harrix_swiss_knife.qt_lucide_icon import (
     COPY_BUTTON_ICON,
     apply_leading_chrome_buttons,
     apply_leading_chrome_icons,
+    apply_lucide_button_icon,
     apply_lucide_dialog_buttons,
     create_lucide_icon,
     install_line_edit_search_chrome,
@@ -5564,8 +5567,16 @@ class MainWindow(
         chart_category_button_icon_size = 18
         self.pushButton_select_all.setIcon(create_lucide_icon("square-check", chart_category_button_icon_size))
         self.pushButton_select_deselect_all.setIcon(create_lucide_icon("square", chart_category_button_icon_size))
-        self.pushButton_select_only_expense.setText(f"💸 {self.pushButton_select_only_expense.text()}")
-        self.pushButton_select_only_income.setText(f"💰 {self.pushButton_select_only_income.text()}")
+        apply_lucide_button_icon(
+            self.pushButton_select_only_expense,
+            EXPENSE_LUCIDE_ICON,
+            icon_size=chart_category_button_icon_size,
+        )
+        apply_lucide_button_icon(
+            self.pushButton_select_only_income,
+            INCOME_LUCIDE_ICON,
+            icon_size=chart_category_button_icon_size,
+        )
 
         # Set emoji for additional exchange and currency buttons
         self.pushButton_calculate_exchange.setText(f"🧮 {self.pushButton_calculate_exchange.text()}")
