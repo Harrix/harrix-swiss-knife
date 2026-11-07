@@ -25,17 +25,13 @@ lang: en
 def advanced_process_filter_is_active(host: Any) -> bool
 ```
 
-Return whether any process advanced filter is applied.
+Return whether any process advanced (date) filter is applied.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def advanced_process_filter_is_active(host: Any) -> bool:
-    if selected_process_filter_value(host.comboBox_filter_exercise.currentText()):
-        return True
-    if selected_process_filter_value(host.comboBox_filter_type.currentText()):
-        return True
     return bool(host.checkBox_use_date_filter.isChecked())
 ```
 
@@ -47,7 +43,7 @@ def advanced_process_filter_is_active(host: Any) -> bool:
 def install_process_filter_chrome(host: Any) -> None
 ```
 
-Rebuild the process filter strip: Filter + chips + advanced panel.
+Rebuild the process filter strip: exercise/type always on, dates behind Filter.
 
 <details>
 <summary>Code:</summary>
@@ -80,8 +76,8 @@ def install_process_filter_chrome(host: Any) -> None:
         object_name_prefix="process",
         search_edit=None,
         search_placeholder="",
+        toolbar_widgets=(host.comboBox_filter_exercise, host.comboBox_filter_type),
         advanced_rows=(
-            (host.comboBox_filter_exercise, host.comboBox_filter_type),
             (
                 inline_filter_caption("From", host.dateEdit_filter_from, host.groupBox_filter),
                 inline_filter_caption("To", host.dateEdit_filter_to, host.groupBox_filter),

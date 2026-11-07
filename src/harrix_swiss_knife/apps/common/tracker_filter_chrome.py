@@ -71,6 +71,7 @@ def install_tracker_filter_shell(
     advanced_rows: Sequence[Sequence[QWidget]],
     vertical_layout: QVBoxLayout,
     table_widget: QWidget,
+    toolbar_widgets: Sequence[QWidget] = (),
 ) -> None:
     """Rebuild a tracker filter strip: optional search + Filter + chips + advanced panel."""
     layout = host.horizontalLayout_filter
@@ -95,7 +96,9 @@ def install_tracker_filter_shell(
         search_edit.setPlaceholderText(search_placeholder)
         search_edit.setClearButtonEnabled(False)
         toolbar_row.addWidget(search_edit, 1)
-    else:
+    for widget in toolbar_widgets:
+        toolbar_row.addWidget(widget, 1)
+    if search_edit is None and not toolbar_widgets:
         toolbar_row.addStretch(1)
     toolbar_row.addWidget(host.pushButton_filter, 0)
     toolbar_row.addWidget(host.pushButton_clear_filter, 0)

@@ -95,7 +95,7 @@ def inline_filter_caption(caption: str, widget: QWidget, parent: QWidget) -> QWi
 ## 🔧 Function `install_tracker_filter_shell`
 
 ```python
-def install_tracker_filter_shell(host: Any, *, object_name_prefix: str, search_edit: QLineEdit | None, search_placeholder: str, advanced_rows: Sequence[Sequence[QWidget]], vertical_layout: QVBoxLayout, table_widget: QWidget) -> None
+def install_tracker_filter_shell(host: Any, *, object_name_prefix: str, search_edit: QLineEdit | None, search_placeholder: str, advanced_rows: Sequence[Sequence[QWidget]], vertical_layout: QVBoxLayout, table_widget: QWidget, toolbar_widgets: Sequence[QWidget] = ()) -> None
 ```
 
 Rebuild a tracker filter strip: optional search + Filter + chips + advanced panel.
@@ -113,6 +113,7 @@ def install_tracker_filter_shell(
     advanced_rows: Sequence[Sequence[QWidget]],
     vertical_layout: QVBoxLayout,
     table_widget: QWidget,
+    toolbar_widgets: Sequence[QWidget] = (),
 ) -> None:
     layout = host.horizontalLayout_filter
     clear_filter_layout_widgets(layout, host.groupBox_filter)
@@ -136,7 +137,9 @@ def install_tracker_filter_shell(
         search_edit.setPlaceholderText(search_placeholder)
         search_edit.setClearButtonEnabled(False)
         toolbar_row.addWidget(search_edit, 1)
-    else:
+    for widget in toolbar_widgets:
+        toolbar_row.addWidget(widget, 1)
+    if search_edit is None and not toolbar_widgets:
         toolbar_row.addStretch(1)
     toolbar_row.addWidget(host.pushButton_filter, 0)
     toolbar_row.addWidget(host.pushButton_clear_filter, 0)

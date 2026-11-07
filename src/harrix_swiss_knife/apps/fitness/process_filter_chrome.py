@@ -20,16 +20,12 @@ _FILTER_ALL_VALUES = frozenset({"", FILTER_ALL_EXERCISES, FILTER_ALL_TYPES})
 
 
 def advanced_process_filter_is_active(host: Any) -> bool:
-    """Return whether any process advanced filter is applied."""
-    if selected_process_filter_value(host.comboBox_filter_exercise.currentText()):
-        return True
-    if selected_process_filter_value(host.comboBox_filter_type.currentText()):
-        return True
+    """Return whether any process advanced (date) filter is applied."""
     return bool(host.checkBox_use_date_filter.isChecked())
 
 
 def install_process_filter_chrome(host: Any) -> None:
-    """Rebuild the process filter strip: Filter + chips + advanced panel."""
+    """Rebuild the process filter strip: exercise/type always on, dates behind Filter."""
     hide_filter_labels(
         host.label_filter_exercise,
         host.label_filter_type,
@@ -56,8 +52,8 @@ def install_process_filter_chrome(host: Any) -> None:
         object_name_prefix="process",
         search_edit=None,
         search_placeholder="",
+        toolbar_widgets=(host.comboBox_filter_exercise, host.comboBox_filter_type),
         advanced_rows=(
-            (host.comboBox_filter_exercise, host.comboBox_filter_type),
             (
                 inline_filter_caption("From", host.dateEdit_filter_from, host.groupBox_filter),
                 inline_filter_caption("To", host.dateEdit_filter_to, host.groupBox_filter),
