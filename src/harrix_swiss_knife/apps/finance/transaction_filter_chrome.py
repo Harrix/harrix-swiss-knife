@@ -31,7 +31,7 @@ EXPENSE_LUCIDE_ICON = "banknote-arrow-down"
 INCOME_LUCIDE_ICON = "banknote-arrow-up"
 _FILTER_TYPE_ICON_SIZE = 16
 _FILTER_ALL_VALUES = frozenset({"", "All", FILTER_ALL_TYPES, FILTER_ALL_CATEGORIES, FILTER_ALL_CURRENCIES})
-_FILTER_MAX_POLICY = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
+_FILTER_MAX_POLICY = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
 
 
 def advanced_transactions_filter_is_active(host: Any) -> bool:
@@ -145,14 +145,12 @@ def install_transactions_filter_chrome(host: Any) -> None:
     shell_column = QVBoxLayout(shell)
     shell_column.setContentsMargins(0, 0, 0, 0)
     shell_column.setSpacing(SPACE_XS)
-    shell_column.setSizeConstraint(QVBoxLayout.SizeConstraint.SetMinAndMaxSize)
     shell_column.addWidget(toolbar, 0)
     shell_column.addWidget(chips_host, 0)
     shell_column.addWidget(advanced, 0)
     layout.setContentsMargins(SPACE_S, SPACE_XS, SPACE_S, SPACE_XS)
     layout.setSpacing(0)
-    layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-    layout.addWidget(shell, 0)
+    layout.addWidget(shell, 1)
 
     host.groupBox_filter.setTitle("")
     host.groupBox_filter.setFlat(True)
@@ -162,7 +160,6 @@ def install_transactions_filter_chrome(host: Any) -> None:
         "QGroupBox#groupBox_filter::title { height: 0px; width: 0px; padding: 0px; margin: 0px; }",
     )
     transactions_layout = host.verticalLayout_transactions
-    transactions_layout.setAlignment(host.groupBox_filter, Qt.AlignmentFlag.AlignTop)
     transactions_layout.setStretch(transactions_layout.indexOf(host.groupBox_filter), 0)
     table_index = transactions_layout.indexOf(host.tableView_transactions)
     if table_index >= 0:

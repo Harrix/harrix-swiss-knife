@@ -29,7 +29,7 @@ from harrix_swiss_knife.qt_lucide_icon import CLEAR_BUTTON_ICON, apply_lucide_bu
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-FILTER_MAX_POLICY = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
+FILTER_MAX_POLICY = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
 # Leading calendar action + dropdown + frame; sized for post-match form fonts.
 _DATE_FIELD_CHROME_PADDING = 88
 _EXPANDING_TOOLBAR_TYPES = (QComboBox, QLineEdit)
@@ -155,14 +155,14 @@ def install_tracker_filter_shell(
     shell_column = QVBoxLayout(shell)
     shell_column.setContentsMargins(0, 0, 0, 0)
     shell_column.setSpacing(SPACE_XS)
-    shell_column.setSizeConstraint(QVBoxLayout.SizeConstraint.SetMinAndMaxSize)
+    # Do not use SetMinAndMaxSize: it caps the shell width to sizeHint and the
+    # search row / table above never fill the pane (unlike Finance/Fitness).
     shell_column.addWidget(toolbar, 0)
     shell_column.addWidget(chips_host, 0)
     shell_column.addWidget(advanced, 0)
     layout.setContentsMargins(SPACE_S, SPACE_XS, SPACE_S, SPACE_XS)
     layout.setSpacing(0)
-    layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-    layout.addWidget(shell, 0)
+    layout.addWidget(shell, 1)
 
     host.groupBox_filter.setTitle("")
     host.groupBox_filter.setFlat(True)
@@ -171,7 +171,6 @@ def install_tracker_filter_shell(
         "QGroupBox#groupBox_filter { border: none; margin-top: 0px; padding-top: 0px; background: transparent; }"
         "QGroupBox#groupBox_filter::title { height: 0px; width: 0px; padding: 0px; margin: 0px; }",
     )
-    vertical_layout.setAlignment(host.groupBox_filter, Qt.AlignmentFlag.AlignTop)
     group_index = vertical_layout.indexOf(host.groupBox_filter)
     if group_index >= 0:
         vertical_layout.setStretch(group_index, 0)

@@ -79,7 +79,6 @@ from harrix_swiss_knife.fluent.tokens import (
     RADIUS_CONTROL,
     SPACE_S,
 )
-from harrix_swiss_knife.fluent.widgets.navigation import polish_fluent_splitter
 from harrix_swiss_knife.qt_flat_scrollbar import apply_flat_scrollbars
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
 
@@ -489,6 +488,9 @@ def _restyle_inputs(root: QWidget, palette: FluentPalette) -> None:
 
 def _restyle_splitters(root: QWidget) -> None:
     """Apply Fluent wide-handle accent hairline chrome to every splitter under `root`."""
+    # Lazy import: navigation → window → win11_caption → qt_main_window → app_chrome.
+    from harrix_swiss_knife.fluent.widgets.navigation import polish_fluent_splitter  # noqa: PLC0415
+
     for splitter in root.findChildren(QSplitter):
         polish_fluent_splitter(splitter)
 

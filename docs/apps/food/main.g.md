@@ -1282,7 +1282,7 @@ class MainWindow(
             logger.exception("Error adding food item from log record")
 
     def _adjust_food_log_table_columns(self) -> None:
-        """Size food-log columns so English name stretches and the day total fits its button."""
+        """Size food-log columns so English name fills the leftover width like Fitness tables."""
         if not hasattr(self, "tableView_food_log") or not self.tableView_food_log.model():
             return
         # Hidden tabs report a dummy width; wait until Food is actually shown.
@@ -1294,30 +1294,33 @@ class MainWindow(
             return
 
         food_log_header = self.tableView_food_log.horizontalHeader()
-        already_interactive = all(
-            food_log_header.sectionResizeMode(column) == food_log_header.ResizeMode.Interactive
-            for column in range(food_log_header.count())
-        )
-        if not already_interactive:
-            # Shares of the viewport for the columns that stay fixed. English name takes the rest.
-            proportions = (
-                (0, 0.18),  # Name
-                (1, 0.06),  # Is Drink
-                (2, 0.08),  # Weight
-                (3, 0.14),  # kcal/100g
-                (4, 0.11),  # Date
-            )
+        food_log_header.setStretchLastSection(False)
 
-            food_log_header.setStretchLastSection(False)
-            for column in range(food_log_header.count()):
+        # Fixed shares; English Name gets the remainder; Total per day keeps its button width.
+        proportions = (
+            (0, 0.18),  # Name
+            (1, 0.06),  # Is Drink
+            (2, 0.08),  # Weight
+            (3, 0.14),  # kcal/100g
+            (4, 0.11),  # Date
+        )
+        total_width = food_log_total_column_width(self.tableView_food_log.font())
+        used_width = total_width
+        for column in range(food_log_header.count()):
+            if column == FOOD_LOG_COL_NAME_EN:
+                food_log_header.setSectionResizeMode(column, food_log_header.ResizeMode.Stretch)
+            else:
                 food_log_header.setSectionResizeMode(column, food_log_header.ResizeMode.Interactive)
 
-            for column, prop in proportions:
-                self.tableView_food_log.setColumnWidth(column, max(40, int(available_width * prop)))
-            self.tableView_food_log.setColumnWidth(
-                FOOD_LOG_COL_TOTAL_PER_DAY,
-                food_log_total_column_width(self.tableView_food_log.font()),
-            )
+        for column, prop in proportions:
+            width = max(40, int(available_width * prop))
+            self.tableView_food_log.setColumnWidth(column, width)
+            used_width += width
+        self.tableView_food_log.setColumnWidth(FOOD_LOG_COL_TOTAL_PER_DAY, total_width)
+        self.tableView_food_log.setColumnWidth(
+            FOOD_LOG_COL_NAME_EN,
+            max(80, available_width - used_width),
+        )
         enable_table_header_sorting(self.tableView_food_log)
         apply_stored_table_header_sort(self.tableView_food_log)
         if isinstance(food_log_header, WordWrapHeaderView):
@@ -4214,6 +4217,7 @@ class MainWindow(
         self.splitter_food.setStretchFactor(2, 3)  # widget_food_log (filter + table)
         self._apply_food_splitter_sizes()
         QTimer.singleShot(60, self._apply_food_splitter_sizes)
+        self.splitter_food.splitterMoved.connect(lambda *_args: self._adjust_food_log_table_columns())
         self.splitter_food_stats.setStretchFactor(0, 0)
         self.splitter_food_stats.setStretchFactor(1, 1)
         self._apply_food_stats_splitter_sizes()
