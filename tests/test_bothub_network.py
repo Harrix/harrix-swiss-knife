@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from PySide6.QtNetwork import QNetworkProxy
 
-from harrix_swiss_knife.apps.common.bothub_network import qnetwork_proxy_to_url, resolve_bothub_proxy_url
+from harrix_swiss_knife.integrations.bothub.network import qnetwork_proxy_to_url, resolve_bothub_proxy_url
 
 
 def test_resolve_bothub_proxy_url_from_config() -> None:

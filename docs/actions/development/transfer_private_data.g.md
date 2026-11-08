@@ -27,10 +27,11 @@ class OnTransferPrivateData(ActionBase)
 Export or import personal private data for another machine.
 
 Choose **Export** or **Import**, then one dialog: data types (API keys,
-exercise catalog plus `fitness_img`, finance catalog, food catalog) and
-which `api-keys/*.txt` files. History tables are never included. Import
-overlays images next to existing files and upserts catalogs by name.
-Pack and install run in a background thread with a progress toast.
+`config.json`, exercise catalog plus `fitness_img`, finance catalog, food
+catalog) and which `api-keys/*.txt` files. History tables are never
+included. Import overlays images next to existing files and upserts
+catalogs by name. Pack and install run in a background thread with a
+progress toast.
 
 <details>
 <summary>Code:</summary>
@@ -47,10 +48,11 @@ class OnTransferPrivateData(ActionBase):
     CHOICE_EXPORT = "Export"
     CHOICE_IMPORT = "Import"
     PART_API_KEYS = "API keys"
+    PART_CONFIG = "config.json"
     PART_FITNESS = "Exercise catalog and images"
     PART_FINANCE = "Finance catalog"
     PART_FOOD = "Food catalog"
-    _DATA_PARTS = (PART_API_KEYS, PART_FITNESS, PART_FINANCE, PART_FOOD)
+    _DATA_PARTS = (PART_API_KEYS, PART_CONFIG, PART_FITNESS, PART_FINANCE, PART_FOOD)
 
     _export_job: _TransferExportJob | None = None
     _import_job: _TransferImportJob | None = None
@@ -102,6 +104,7 @@ class OnTransferPrivateData(ActionBase):
                 include_fitness=bool(kwargs.get("include_fitness")),
                 include_finance=bool(kwargs.get("include_finance")),
                 include_food=bool(kwargs.get("include_food")),
+                include_config=bool(kwargs.get("include_config")),
                 parts_specified=bool(kwargs.get("parts_specified")),
                 api_key_files=_kwargs_api_key_files(kwargs),
             )
@@ -122,6 +125,7 @@ class OnTransferPrivateData(ActionBase):
                 include_fitness=bool(kwargs.get("include_fitness")),
                 include_finance=bool(kwargs.get("include_finance")),
                 include_food=bool(kwargs.get("include_food")),
+                include_config=bool(kwargs.get("include_config")),
                 parts_specified=bool(kwargs.get("parts_specified")),
                 api_key_files=_kwargs_api_key_files(kwargs),
             )
@@ -148,6 +152,8 @@ class OnTransferPrivateData(ActionBase):
         if selection.api_keys:
             names = ", ".join(result.api_key_files)
             self.add_line(f"Exported {result.api_keys_count} API key file(s): {names}")
+        if selection.config and result.config_exported:
+            self.add_line("Exported `config/config.json`.")
         if selection.fitness:
             self.add_line(f"Exported {result.fitness_img_count} fitness image file(s).")
             self.add_line(f"Exported catalog: {result.exercises_count} exercise(s), {result.types_count} type(s).")
@@ -178,6 +184,8 @@ class OnTransferPrivateData(ActionBase):
             self.add_line(f"Created food database from recover.sql: `{result.food_db_path}`")
         if selection.api_keys:
             self.add_line(f"Imported {result.api_keys_count} API key file(s).")
+        if selection.config and result.config_imported:
+            self.add_line("Imported `config/config.json` (restart the app to reload settings).")
         if selection.fitness:
             img_dir = result.fitness_img_dir
             self.add_line(f"Imported {result.fitness_img_count} fitness image file(s) -> `{img_dir}`")
@@ -329,10 +337,11 @@ class OnTransferPrivateData(ActionBase):
             return None
         parts, keys = selected
         want_keys = self.PART_API_KEYS in parts or bool(keys)
+        want_config = self.PART_CONFIG in parts
         want_fitness = self.PART_FITNESS in parts
         want_finance = self.PART_FINANCE in parts
         want_food = self.PART_FOOD in parts
-        if not want_keys and not want_fitness and not want_finance and not want_food:
+        if not want_keys and not want_config and not want_fitness and not want_finance and not want_food:
             self.add_line("❌ Select at least one data type or API key file.")
             self.show_result()
             return None
@@ -349,6 +358,7 @@ class OnTransferPrivateData(ActionBase):
             fitness=want_fitness,
             finance=want_finance,
             food=want_food,
+            config=want_config,
             api_key_files=tuple(keys),
         )
 
@@ -413,24 +423,33 @@ class OnTransferPrivateData(ActionBase):
         include_fitness: bool,
         include_finance: bool,
         include_food: bool,
+        include_config: bool,
         parts_specified: bool,
         requested_names: tuple[str, ...],
     ) -> PrivateDataSelection | None:
         key_names = self._local_api_key_names(project_root)
+        has_config = (project_root / "config" / "config.json").is_file()
         if noninteractive or parts_specified:
             selection = selection_from_part_flags(
                 api_keys=include_api_keys,
                 fitness=include_fitness,
                 finance=include_finance,
                 food=include_food,
+                config=include_config,
             )
             return self._apply_cli_api_key_files(
                 selection,
                 available_names=key_names,
                 requested_names=requested_names,
             )
-        part_disabled = [] if key_names else [self.PART_API_KEYS]
+        part_disabled: list[str] = []
+        if not key_names:
+            part_disabled.append(self.PART_API_KEYS)
+        if not has_config:
+            part_disabled.append(self.PART_CONFIG)
         part_defaults = [self.PART_FITNESS, self.PART_FINANCE, self.PART_FOOD]
+        if has_config:
+            part_defaults.insert(0, self.PART_CONFIG)
         if key_names:
             part_defaults.insert(0, self.PART_API_KEYS)
         return self._interactive_parts_and_keys(
@@ -451,6 +470,7 @@ class OnTransferPrivateData(ActionBase):
         include_fitness: bool,
         include_finance: bool,
         include_food: bool,
+        include_config: bool,
         parts_specified: bool,
         requested_names: tuple[str, ...],
     ) -> PrivateDataSelection | None:
@@ -461,6 +481,7 @@ class OnTransferPrivateData(ActionBase):
                 fitness=include_fitness,
                 finance=include_finance,
                 food=include_food,
+                config=include_config,
             )
             if not parts_specified:
                 wanted = PrivateDataSelection(
@@ -468,6 +489,7 @@ class OnTransferPrivateData(ActionBase):
                     fitness=wanted.fitness and present.fitness,
                     finance=wanted.finance and present.finance,
                     food=wanted.food and present.food,
+                    config=wanted.config and present.config,
                 )
             return self._apply_cli_api_key_files(
                 wanted,
@@ -478,6 +500,7 @@ class OnTransferPrivateData(ActionBase):
         part_defaults: list[str] = []
         present_by_part = {
             self.PART_API_KEYS: present.api_keys,
+            self.PART_CONFIG: present.config,
             self.PART_FITNESS: present.fitness,
             self.PART_FINANCE: present.finance,
             self.PART_FOOD: present.food,
@@ -532,6 +555,7 @@ class OnTransferPrivateData(ActionBase):
         include_fitness: bool,
         include_finance: bool,
         include_food: bool,
+        include_config: bool,
         parts_specified: bool,
         api_key_files: tuple[str, ...],
     ) -> None:
@@ -542,6 +566,7 @@ class OnTransferPrivateData(ActionBase):
             include_fitness=include_fitness,
             include_finance=include_finance,
             include_food=include_food,
+            include_config=include_config,
             parts_specified=parts_specified,
             requested_names=api_key_files,
         )
@@ -587,6 +612,7 @@ class OnTransferPrivateData(ActionBase):
         include_fitness: bool,
         include_finance: bool,
         include_food: bool,
+        include_config: bool,
         parts_specified: bool,
         api_key_files: tuple[str, ...],
     ) -> None:
@@ -609,6 +635,7 @@ class OnTransferPrivateData(ActionBase):
             include_fitness=include_fitness,
             include_finance=include_finance,
             include_food=include_food,
+            include_config=include_config,
             parts_specified=parts_specified,
             requested_names=api_key_files,
         )
@@ -695,6 +722,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
                 include_fitness=bool(kwargs.get("include_fitness")),
                 include_finance=bool(kwargs.get("include_finance")),
                 include_food=bool(kwargs.get("include_food")),
+                include_config=bool(kwargs.get("include_config")),
                 parts_specified=bool(kwargs.get("parts_specified")),
                 api_key_files=_kwargs_api_key_files(kwargs),
             )
@@ -715,6 +743,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
                 include_fitness=bool(kwargs.get("include_fitness")),
                 include_finance=bool(kwargs.get("include_finance")),
                 include_food=bool(kwargs.get("include_food")),
+                include_config=bool(kwargs.get("include_config")),
                 parts_specified=bool(kwargs.get("parts_specified")),
                 api_key_files=_kwargs_api_key_files(kwargs),
             )

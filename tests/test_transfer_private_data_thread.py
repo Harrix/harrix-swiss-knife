@@ -27,6 +27,7 @@ def _run_export(action: OnTransferPrivateData, tmp_path: Path, *, noninteractive
         include_fitness=True,
         include_finance=False,
         include_food=False,
+        include_config=False,
         parts_specified=True,
         api_key_files=(),
     )
@@ -50,6 +51,7 @@ def _run_import(action: OnTransferPrivateData, tmp_path: Path, *, noninteractive
         include_fitness=True,
         include_finance=False,
         include_food=False,
+        include_config=False,
         parts_specified=True,
         api_key_files=(),
     )

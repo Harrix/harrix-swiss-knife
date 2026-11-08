@@ -12,10 +12,11 @@ import sys
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QDate, QPoint, QPointF, QRectF, QStringListModel, Qt, QTime, QTimer
-from PySide6.QtGui import QGuiApplication
-from PySide6.QtWidgets import QApplication, QMenu, QTableWidgetItem, QTreeWidgetItem, QVBoxLayout, QWidget
+from PySide6.QtGui import QGuiApplication, QPixmap
+from PySide6.QtWidgets import QApplication, QLabel, QMenu, QTableWidgetItem, QTreeWidgetItem, QVBoxLayout, QWidget
 
 from harrix_swiss_knife.fluent import widgets as fw
+from harrix_swiss_knife.fluent.system import ScreenCaptureManager, exponential_blur
 from harrix_swiss_knife.fluent.theme import FluentTheme, ThemeMode
 from harrix_swiss_knife.fluent.tokens import SPACE_L, SPACE_M, SPACE_XL
 from harrix_swiss_knife.qt_app_font import install_app_fonts
@@ -23,6 +24,8 @@ from harrix_swiss_knife.qt_flow_layout import FlowLayout
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+    from PySide6.QtGui import QImage
 
 _GALLERY_SIZE = (1200, 820)
 _SHOWCASE_COUNTS: dict[str, int] = {}
@@ -49,6 +52,7 @@ def build_gallery() -> fw.FluentNavigationWindow:
         ("dialogs", "Dialogs and flyouts", "message-square", _dialogs_page(window)),
         ("pickers", "Date and time", "calendar", _pickers_page()),
         ("editors", "Editors", "code", _editors_page()),
+        ("system", "System helpers", "monitor", _system_page()),
     )
     for key, text, icon, page in pages:
         window.add_page(key, text, page, icon=icon)
@@ -468,6 +472,71 @@ def _start_spotlight(window: QWidget, target: QWidget) -> None:
         window, [fw.SpotlightStep(target, "Teaching tip button", "Spotlight highlights a control.")]
     )
     tour.start()
+
+
+def _system_page() -> QWidget:
+    """Showcase `ScreenCaptureManager` and `exponential_blur` (not Fluent controls)."""
+    capture = ScreenCaptureManager()
+    preview = QLabel("Capture a monitor to preview, then blur with the slider.")
+    preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
+    preview.setMinimumHeight(280)
+    preview.setStyleSheet("background: transparent; border: 1px solid palette(mid);")
+    preview.setObjectName("systemCapturePreview")
+    state: dict[str, QImage | None] = {"source": None}
+    radius = fw.FluentSlider()
+    radius.setObjectName("systemBlurRadius")
+    radius.setRange(0, 40)
+    radius.setValue(12)
+    radius_label = fw.CaptionLabel("Blur radius: 12")
+    screens = capture.screens()
+    screen_items = [f"{info.index}: {info.name}" for info in screens] or ["0: (no screen)"]
+    screen_combo = fw.FluentComboBox(items=screen_items)
+    screen_combo.setObjectName("systemScreenCombo")
+
+    def _show_preview() -> None:
+        source = state["source"]
+        if source is None or source.isNull():
+            return
+        blurred = exponential_blur(source, radius.value())
+        pixmap = QPixmap.fromImage(blurred)
+        preview.setPixmap(
+            pixmap.scaled(
+                preview.size(),
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            )
+        )
+
+    def _capture() -> None:
+        index = max(0, screen_combo.currentIndex())
+        pixmap = capture.capture_screen(index)
+        if pixmap.isNull():
+            preview.setText("Capture failed.")
+            state["source"] = None
+            return
+        state["source"] = pixmap.toImage()
+        _show_preview()
+
+    def _on_radius(value: int) -> None:
+        radius_label.setText(f"Blur radius: {value}")
+        _show_preview()
+
+    capture_button = fw.FluentPrimaryButton("Capture screen", icon="camera")
+    capture_button.setObjectName("systemCaptureButton")
+    capture_button.clicked.connect(_capture)
+    radius.valueChanged.connect(_on_radius)
+    note = fw.BodyLabel(
+        "Helpers from fluent.system: ScreenCaptureManager (QScreen.grabWindow) and exponential_blur (IIR)."
+    )
+    return _page(
+        "System helpers",
+        [
+            _section("Note", note, flow=False),
+            _section("Capture", screen_combo, capture_button),
+            _section("Blur", radius_label, radius, flow=False),
+            _section("Preview", preview, flow=False),
+        ],
+    )
 
 
 def _text_page() -> QWidget:

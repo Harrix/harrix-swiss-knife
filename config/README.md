@@ -14,4 +14,6 @@
 2. Edit `config.json`: replace `<YOUR_…>` placeholders with real paths.
 3. Put API secrets under `api-keys/` (see `api-keys/README.md`); keep using `snippet:api-keys/…` keys in config.
 
-Do not commit `config.json` — it contains machine-specific absolute paths.
+Do not commit `config.json` — it contains machine-specific absolute paths. Move it
+between machines with **Transfer private data** / `hsk dev private-data export|import --config`
+(together with API keys as needed).

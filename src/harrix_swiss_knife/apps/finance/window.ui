@@ -367,7 +367,7 @@
                                 color: black;
                                 }
                                 QListView::item:hover {
-                                background-color: #F0FAF0;
+                                background-color: #f0f8f0;
                                 }</string>
               </property>
              </widget>
@@ -2070,7 +2070,7 @@
                                 color: black;
                                 }
                                 QListView::item:hover {
-                                background-color: #F0F8F0;
+                                background-color: #f0f8f0;
                                 }</string>
                  </property>
                  <property name="editTriggers">

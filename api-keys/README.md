@@ -102,7 +102,7 @@ If `ai` is omitted, the app keeps the previous BotHub-only behavior.
 
 ## Transfer to another machine
 
-Personal ZIP (gitignored): secrets from this folder and/or exercise images from `{parent(sqlite_fitness)}/fitness_img` plus the exercise/type catalog from the fitness SQLite database. Workout history (`process`, `weight`) is **not** included. Export checkboxes (or `--api-keys` / `--fitness`) choose which parts to pack. Import overlays `{English name}.avif` next to existing files (does not delete extras) and upserts the catalog by English name without wiping local-only exercises or workouts. Not part of the public install bundles.
+Personal ZIP (gitignored): secrets from this folder, optional `config/config.json`, and/or exercise images from `{parent(sqlite_fitness)}/fitness_img` plus the exercise/type catalog from the fitness SQLite database. Workout history (`process`, `weight`) is **not** included. Export checkboxes (or `--api-keys` / `--config` / `--fitness`) choose which parts to pack. Import overlays `{English name}.avif` next to existing files (does not delete extras) and upserts the catalog by English name without wiping local-only exercises or workouts. Not part of the public install bundles.
 
 Commands (or tray **Dev** → **Transfer private data**):
 
@@ -111,14 +111,16 @@ Commands (or tray **Dev** → **Transfer private data**):
 hsk dev private-data export
 # optional: hsk dev private-data export --zip path\to\out.zip
 # optional: hsk dev private-data export --api-keys
+# optional: hsk dev private-data export --config
 # optional: hsk dev private-data export --fitness
 
 # Copy install\private-data-harrix-swiss-knife.zip to the new machine
 
-# Target machine: set sqlite_fitness in config.json first; close Fitness tracker if open
+# Target machine: set sqlite_fitness in config.json first (or import --config); close Fitness tracker if open
 hsk dev private-data import
 # optional: hsk dev private-data import --zip path\to\in.zip
 # optional: hsk dev private-data import --api-keys
+# optional: hsk dev private-data import --config
 # optional: hsk dev private-data import --fitness
 ```
 

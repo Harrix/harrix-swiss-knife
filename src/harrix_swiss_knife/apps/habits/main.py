@@ -1079,6 +1079,7 @@ class MainWindow(
                     if raw_is_bool in (0, 1):
                         is_bool_flag = bool(raw_is_bool)
             except Exception:
+                logger.exception("Error reading is_bool for habit %s", habit_name)
                 is_bool_flag = None
 
             is_bool_case = is_bool_flag is True and display_values_set.issubset({0, 1})

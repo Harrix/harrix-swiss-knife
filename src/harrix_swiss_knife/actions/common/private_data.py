@@ -1,4 +1,4 @@
-"""Pack and install personal private data ZIP (api-keys and tracker catalogs).
+"""Pack and install personal private data ZIP (api-keys, config, catalogs).
 
 Not part of public install bundles. History tables are never included: fitness
 `process`/`weight`, finance transactions/accounts, and food `food_log`. Catalog
@@ -6,6 +6,7 @@ upsert preserves existing IDs on the target machine. Fitness images are
 `{exercise English name}.avif` under `fitness_img/` next to the DB, optional
 high-resolution copies in `fitness_img/high/`, static WebP table icons in
 `fitness_img/min/`, and static WebP dialog previews in `fitness_img/static/`.
+Optional `config.json` copies machine paths between installs.
 
 """
 
@@ -57,6 +58,7 @@ ZIP_FITNESS_IMG_DIR = "fitness_img"
 ZIP_CATALOG_NAME = "fitness_catalog.json"
 ZIP_FINANCE_CATALOG_NAME = "finance_catalog.json"
 ZIP_FOOD_CATALOG_NAME = "food_catalog.json"
+ZIP_CONFIG_NAME = "config.json"
 ZIP_MANIFEST_NAME = "manifest.json"
 _STAGE_INSTALL_PREFIX = ".hsk-private-data-install-"
 _STAGE_PACK_PREFIX = ".hsk-private-data-pack-"
@@ -81,6 +83,7 @@ class InstallPrivateDataResult:
     food_db_path: Path | None = None
     created_finance_database: bool = False
     created_food_database: bool = False
+    config_imported: bool = False
 
 
 @dataclass(frozen=True)
@@ -99,6 +102,7 @@ class PackPrivateDataResult:
     finance_standard_items_count: int = 0
     food_items_count: int = 0
     food_recipes_count: int = 0
+    config_exported: bool = False
 
 
 @dataclass(frozen=True)
@@ -109,11 +113,12 @@ class PrivateDataSelection:
     fitness: bool = True
     finance: bool = False
     food: bool = False
+    config: bool = False
     api_key_files: tuple[str, ...] = ()
 
     def any_selected(self) -> bool:
         """Return whether at least one part is selected."""
-        return self.api_keys or self.fitness or self.finance or self.food
+        return self.api_keys or self.fitness or self.finance or self.food or self.config
 
 
 def api_key_file_matches_config_token(filename: str, token: str) -> bool:
@@ -235,11 +240,13 @@ def inspect_private_data_zip(zip_path: Path) -> PrivateDataSelection:
     has_images = any(name.startswith(f"{ZIP_FITNESS_IMG_DIR}/") and not name.endswith("/") for name in names)
     has_finance = ZIP_FINANCE_CATALOG_NAME in names
     has_food = ZIP_FOOD_CATALOG_NAME in names
+    has_config = ZIP_CONFIG_NAME in names
     return PrivateDataSelection(
         api_keys=has_api_keys,
         fitness=has_catalog or has_images,
         finance=has_finance,
         food=has_food,
+        config=has_config,
     )
 
 
@@ -277,6 +284,7 @@ def install_private_data(
     include_fitness = wanted.fitness and present.fitness
     include_finance = wanted.finance and present.finance
     include_food = wanted.food and present.food
+    include_config = wanted.config and present.config
     if wanted.api_keys and not present.api_keys:
         msg = f"ZIP has no API keys: {zip_path}"
         raise FileNotFoundError(msg)
@@ -289,7 +297,10 @@ def install_private_data(
     if wanted.food and not present.food:
         msg = f"ZIP has no food catalog: {zip_path}"
         raise FileNotFoundError(msg)
-    if not include_api_keys and not include_fitness and not include_finance and not include_food:
+    if wanted.config and not present.config:
+        msg = f"ZIP has no config.json: {zip_path}"
+        raise FileNotFoundError(msg)
+    if not include_api_keys and not include_fitness and not include_finance and not include_food and not include_config:
         msg = "Nothing to import from this ZIP with the current selection."
         raise ValueError(msg)
 
@@ -333,6 +344,7 @@ def install_private_data(
     finance_stats = FinanceCatalogUpsertStats()
     food_stats = FoodCatalogUpsertStats()
     missing_images: list[str] = []
+    config_imported = False
     try:
         with zipfile.ZipFile(zip_path, "r") as archive:
             archive.extractall(stage_root)
@@ -342,6 +354,11 @@ def install_private_data(
                 stage_root / ZIP_API_KEYS_DIR,
                 project_root / ZIP_API_KEYS_DIR,
                 selected_names=wanted.api_key_files,
+            )
+
+        if include_config:
+            config_imported = _install_config_json(
+                stage_root / ZIP_CONFIG_NAME, project_root / "config" / ZIP_CONFIG_NAME
             )
 
         if include_fitness:
@@ -392,6 +409,7 @@ def install_private_data(
         food_db_path=food_db_path,
         created_finance_database=created_finance_database,
         created_food_database=created_food_database,
+        config_imported=config_imported,
     )
 
 
@@ -485,6 +503,13 @@ def pack_private_data(
         food_db_path = resolve_configured_sqlite_path(sqlite_food, setting_name="sqlite_food")
         food_catalog = export_food_catalog(food_db_path)
 
+    config_path: Path | None = None
+    if wanted.config:
+        config_path = project_root / "config" / ZIP_CONFIG_NAME
+        if not config_path.is_file():
+            msg = f"config.json not found: {config_path}"
+            raise FileNotFoundError(msg)
+
     finance_currencies_count = len(finance_catalog["currencies"]) if finance_catalog is not None else 0
     finance_categories_count = len(finance_catalog["categories"]) if finance_catalog is not None else 0
     finance_standard_items_count = len(finance_catalog["standard_items"]) if finance_catalog is not None else 0
@@ -536,6 +561,12 @@ def pack_private_data(
                 encoding="utf-8",
             )
 
+        if wanted.config:
+            if config_path is None:
+                msg = "config.json is not resolved."
+                raise ValueError(msg)
+            shutil.copy2(config_path, stage_root / ZIP_CONFIG_NAME)
+
         manifest: dict[str, Any] = {
             "created_utc": datetime.now(UTC).isoformat(),
             "parts": {
@@ -543,6 +574,7 @@ def pack_private_data(
                 "fitness": wanted.fitness,
                 "finance": wanted.finance,
                 "food": wanted.food,
+                "config": wanted.config,
             },
             "api_keys_count": len(key_files),
             "fitness_img_count": len(fitness_files),
@@ -553,6 +585,7 @@ def pack_private_data(
             "finance_standard_items_count": finance_standard_items_count,
             "food_items_count": food_items_count,
             "food_recipes_count": food_recipes_count,
+            "config": wanted.config,
             "api_key_files": [path.name for path in key_files],
             "missing_exercise_images": missing_images,
         }
@@ -593,6 +626,7 @@ def pack_private_data(
         finance_standard_items_count=finance_standard_items_count,
         food_items_count=food_items_count,
         food_recipes_count=food_recipes_count,
+        config_exported=wanted.config,
     )
 
 
@@ -646,11 +680,18 @@ def selection_from_part_flags(
     fitness: bool,
     finance: bool = False,
     food: bool = False,
+    config: bool = False,
 ) -> PrivateDataSelection:
     """Build a selection; when every flag is false, include every part."""
-    if not api_keys and not fitness and not finance and not food:
-        return PrivateDataSelection(api_keys=True, fitness=True, finance=True, food=True)
-    return PrivateDataSelection(api_keys=api_keys, fitness=fitness, finance=finance, food=food)
+    if not api_keys and not fitness and not finance and not food and not config:
+        return PrivateDataSelection(api_keys=True, fitness=True, finance=True, food=True, config=True)
+    return PrivateDataSelection(
+        api_keys=api_keys,
+        fitness=fitness,
+        finance=finance,
+        food=food,
+        config=config,
+    )
 
 
 def _cleanup_adjacent_stage_dirs(zip_path: Path) -> None:
@@ -730,6 +771,27 @@ def _install_api_keys(
     for key_file in key_files:
         shutil.copy2(key_file, dest_api / key_file.name)
     return len(key_files)
+
+
+def _install_config_json(stage_config: Path, dest_config: Path) -> bool:
+    """Overwrite local `config.json` from the extracted ZIP member.
+
+    Args:
+
+    - `stage_config` (`Path`): Extracted `config.json` from the ZIP.
+    - `dest_config` (`Path`): Project `config/config.json`.
+
+    Returns:
+
+    - `bool`: `True` when the file was copied.
+
+    """
+    if not stage_config.is_file():
+        msg = f"ZIP is missing {ZIP_CONFIG_NAME}"
+        raise FileNotFoundError(msg)
+    dest_config.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(stage_config, dest_config)
+    return True
 
 
 def _install_fitness_data(

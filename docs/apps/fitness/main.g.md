@@ -2710,6 +2710,7 @@ class MainWindow(
             else:
                 self.dateEdit_weight.setDate(QDate.currentDate())
         except Exception:
+            logger.exception("Error parsing weight date %s", weight_date)
             self.dateEdit_weight.setDate(QDate.currentDate())
 
     def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
@@ -3688,11 +3689,11 @@ class MainWindow(
 
         # Set text
         self.label_chart_info.setText(recommendation_text)
-        self.label_chart_info.setStyleSheet("""
+        self.label_chart_info.setStyleSheet(f"""
             margin: 5px 0px;
             padding: 10px;
-            background-color: #F8F9FA;
-            border: 1px solid #E9ECEF;
+            background-color: {HAIRLINE};
+            border: 1px solid {SEPARATOR};
             border-radius: 5px;
             line-height: 1.2;
         """)
@@ -3899,11 +3900,11 @@ class MainWindow(
 
         # Set text
         self.label_chart_info.setText(recommendation_text)
-        self.label_chart_info.setStyleSheet("""
+        self.label_chart_info.setStyleSheet(f"""
             margin: 5px 0px;
             padding: 10px;
-            background-color: #F8F9FA;
-            border: 1px solid #E9ECEF;
+            background-color: {HAIRLINE};
+            border: 1px solid {SEPARATOR};
             border-radius: 5px;
             line-height: 1.2;
         """)
@@ -4121,11 +4122,11 @@ class MainWindow(
 
         # Set text
         self.label_chart_info.setText(recommendation_text)
-        self.label_chart_info.setStyleSheet("""
+        self.label_chart_info.setStyleSheet(f"""
             margin: 5px 0px;
             padding: 10px;
-            background-color: #F8F9FA;
-            border: 1px solid #E9ECEF;
+            background-color: {HAIRLINE};
+            border: 1px solid {SEPARATOR};
             border-radius: 5px;
             line-height: 1.2;
         """)
@@ -4265,11 +4266,11 @@ class MainWindow(
 
         # Set text
         self.label_chart_info.setText(recommendation_text)
-        self.label_chart_info.setStyleSheet("""
+        self.label_chart_info.setStyleSheet(f"""
             margin: 5px 0px;
             padding: 10px;
-            background-color: #F8F9FA;
-            border: 1px solid #E9ECEF;
+            background-color: {HAIRLINE};
+            border: 1px solid {SEPARATOR};
             border-radius: 5px;
             line-height: 1.2;
         """)
@@ -7960,36 +7961,25 @@ class MainWindow(
 
     def _set_date_from_table(self, date_value: str) -> None:
         """Set the date from a process row into the main `dateEdit` field."""
-        try:
-            date_obj = QDate.fromString(date_value.strip()[:10], "yyyy-MM-dd")
-            if not date_obj.isNull():
-                self.dateEdit.setDate(date_obj)
-            else:
-                logger.error("%s", f"❌ Invalid date format: {date_value}")
-        except Exception:
-            logger.exception("❌ Error setting date from table")
+        self._apply_date_string_to_widget(self.dateEdit, date_value)
 
     def _set_date_from_table_minus_one_day(self, date_value: str) -> None:
         """Set main `dateEdit` to the process row date minus one day."""
-        try:
-            date_obj = QDate.fromString(date_value.strip()[:10], "yyyy-MM-dd")
-            if not date_obj.isNull():
-                self.dateEdit.setDate(date_obj.addDays(-1))
-            else:
-                logger.error("%s", f"❌ Invalid date format: {date_value}")
-        except Exception:
-            logger.exception("❌ Error setting date from table - 1 day")
+        self._apply_date_string_to_widget(
+            self.dateEdit,
+            date_value,
+            day_offset=-1,
+            log_label="date from table - 1 day",
+        )
 
     def _set_date_from_table_plus_one_day(self, date_value: str) -> None:
         """Set main `dateEdit` to the process row date plus one day."""
-        try:
-            date_obj = QDate.fromString(date_value.strip()[:10], "yyyy-MM-dd")
-            if not date_obj.isNull():
-                self.dateEdit.setDate(date_obj.addDays(1))
-            else:
-                logger.error("%s", f"❌ Invalid date format: {date_value}")
-        except Exception:
-            logger.exception("❌ Error setting date from table + 1 day")
+        self._apply_date_string_to_widget(
+            self.dateEdit,
+            date_value,
+            day_offset=1,
+            log_label="date from table + 1 day",
+        )
 
     # Add to MainWindow class (near other small helpers)
     def _set_no_data_info_label(self, text: str | None = None) -> None:
@@ -8007,11 +7997,11 @@ class MainWindow(
             text = f"No data for the last {months} months." if months > 0 else "No data for the selected period."
 
         self.label_chart_info.setText(text)
-        self.label_chart_info.setStyleSheet("""
+        self.label_chart_info.setStyleSheet(f"""
             margin: 5px 0px;
             padding: 10px;
-            background-color: #F8F9FA;
-            border: 1px solid #E9ECEF;
+            background-color: {HAIRLINE};
+            border: 1px solid {SEPARATOR};
             border-radius: 5px;
             line-height: 1.2;
         """)
@@ -12332,6 +12322,7 @@ def on_weight_selection_changed(self, _current: QModelIndex, _previous: QModelIn
             else:
                 self.dateEdit_weight.setDate(QDate.currentDate())
         except Exception:
+            logger.exception("Error parsing weight date %s", weight_date)
             self.dateEdit_weight.setDate(QDate.currentDate())
 ```
 

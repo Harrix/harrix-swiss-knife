@@ -11,6 +11,7 @@ import pytest
 from harrix_swiss_knife.actions.common.private_data import (
     ZIP_API_KEYS_DIR,
     ZIP_CATALOG_NAME,
+    ZIP_CONFIG_NAME,
     ZIP_FINANCE_CATALOG_NAME,
     ZIP_FITNESS_IMG_DIR,
     ZIP_FOOD_CATALOG_NAME,
@@ -97,11 +98,16 @@ def test_selection_from_part_flags_defaults_to_all() -> None:
     assert both.fitness
     assert both.finance
     assert both.food
+    assert both.config
     keys_only = selection_from_part_flags(api_keys=True, fitness=False)
     assert keys_only.api_keys
     assert not keys_only.fitness
     assert not keys_only.finance
     assert not keys_only.food
+    assert not keys_only.config
+    config_only = selection_from_part_flags(api_keys=False, fitness=False, config=True)
+    assert config_only.config
+    assert not config_only.api_keys
 
 
 def test_avif_manager_has_any_exercise_avif(tmp_path: Path) -> None:
@@ -285,6 +291,40 @@ def test_install_api_keys_subset_skips_other_secrets(tmp_path: Path) -> None:
     dest = target_root / "api-keys"
     assert (dest / "openai-api-key.txt").read_text(encoding="utf-8") == "openai\n"
     assert not (dest / "bothub-api-key.txt").exists()
+
+
+def test_pack_and_install_config_json(tmp_path: Path) -> None:
+    """Export and import local `config/config.json` as a private-data part."""
+    source_root = tmp_path / "source"
+    config_dir = source_root / "config"
+    config_dir.mkdir(parents=True)
+    (config_dir / ZIP_CONFIG_NAME).write_text('{"path_notes": "D:/Notes"}\n', encoding="utf-8")
+    zip_path = tmp_path / "config.zip"
+    packed = pack_private_data(
+        project_root=source_root,
+        sqlite_fitness="",
+        output_zip=zip_path,
+        selection=PrivateDataSelection(api_keys=False, fitness=False, config=True),
+    )
+    assert packed.config_exported
+    with zipfile.ZipFile(zip_path) as archive:
+        assert ZIP_CONFIG_NAME in archive.namelist()
+    present = inspect_private_data_zip(zip_path)
+    assert present.config
+    assert not present.api_keys
+
+    target_root = tmp_path / "target"
+    target_root.mkdir()
+    result = install_private_data(
+        project_root=target_root,
+        sqlite_fitness="",
+        zip_path=zip_path,
+        recover_sql_path=tmp_path / "missing-recover.sql",
+        selection=PrivateDataSelection(api_keys=False, fitness=False, config=True),
+    )
+    assert result.config_imported
+    dest = target_root / "config" / ZIP_CONFIG_NAME
+    assert dest.read_text(encoding="utf-8") == '{"path_notes": "D:/Notes"}\n'
 
 
 def test_pack_api_keys_only_omits_fitness(tmp_path: Path) -> None:

@@ -334,7 +334,7 @@ def dev_install_harrix_notes_explorer_hsk(editor: str, *, with_public: bool) -> 
 ## 🔧 Function `dev_install_private_data`
 
 ```python
-def dev_install_private_data(zip_path: Path | None, *, api_keys: bool, fitness: bool, finance: bool, food: bool) -> None
+def dev_install_private_data(zip_path: Path | None, *, api_keys: bool, fitness: bool, finance: bool, food: bool, config: bool) -> None
 ```
 
 Alias for `private-data import`.
@@ -350,6 +350,7 @@ def dev_install_private_data(
     fitness: bool,
     finance: bool,
     food: bool,
+    config: bool,
 ) -> None:
     _invoke_transfer_private_data(
         mode="import",
@@ -358,6 +359,7 @@ def dev_install_private_data(
         fitness=fitness,
         finance=finance,
         food=food,
+        config=config,
     )
 ```
 
@@ -366,7 +368,7 @@ def dev_install_private_data(
 ## 🔧 Function `dev_pack_private_data`
 
 ```python
-def dev_pack_private_data(zip_path: Path | None, *, api_keys: bool, fitness: bool, finance: bool, food: bool) -> None
+def dev_pack_private_data(zip_path: Path | None, *, api_keys: bool, fitness: bool, finance: bool, food: bool, config: bool) -> None
 ```
 
 Alias for `private-data export`.
@@ -382,6 +384,7 @@ def dev_pack_private_data(
     fitness: bool,
     finance: bool,
     food: bool,
+    config: bool,
 ) -> None:
     _invoke_transfer_private_data(
         mode="export",
@@ -390,6 +393,7 @@ def dev_pack_private_data(
         fitness=fitness,
         finance=finance,
         food=food,
+        config=config,
     )
 ```
 
@@ -834,7 +838,7 @@ def private_data_group() -> None:
 ## 🔧 Function `private_data_export`
 
 ```python
-def private_data_export(zip_path: Path | None, *, api_keys: bool, fitness: bool, finance: bool, food: bool, api_key_files: tuple[str, ...]) -> None
+def private_data_export(zip_path: Path | None, *, api_keys: bool, fitness: bool, finance: bool, food: bool, config: bool, api_key_files: tuple[str, ...]) -> None
 ```
 
 Pack selected private data into a personal ZIP (history not included).
@@ -850,6 +854,7 @@ def private_data_export(
     fitness: bool,
     finance: bool,
     food: bool,
+    config: bool,
     api_key_files: tuple[str, ...],
 ) -> None:
     _invoke_transfer_private_data(
@@ -859,6 +864,7 @@ def private_data_export(
         fitness=fitness,
         finance=finance,
         food=food,
+        config=config,
         api_key_files=api_key_files,
     )
 ```
@@ -868,7 +874,7 @@ def private_data_export(
 ## 🔧 Function `private_data_import`
 
 ```python
-def private_data_import(zip_path: Path | None, *, api_keys: bool, fitness: bool, finance: bool, food: bool, api_key_files: tuple[str, ...]) -> None
+def private_data_import(zip_path: Path | None, *, api_keys: bool, fitness: bool, finance: bool, food: bool, config: bool, api_key_files: tuple[str, ...]) -> None
 ```
 
 Install selected private data; upsert catalogs and keep history tables.
@@ -884,6 +890,7 @@ def private_data_import(
     fitness: bool,
     finance: bool,
     food: bool,
+    config: bool,
     api_key_files: tuple[str, ...],
 ) -> None:
     _invoke_transfer_private_data(
@@ -893,6 +900,7 @@ def private_data_import(
         fitness=fitness,
         finance=finance,
         food=food,
+        config=config,
         api_key_files=api_key_files,
     )
 ```

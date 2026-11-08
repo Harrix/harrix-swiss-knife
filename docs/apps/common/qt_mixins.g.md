@@ -187,6 +187,33 @@ class DateMixin:
 
     db_manager: Any
 
+    def _apply_date_string_to_widget(
+        self,
+        date_widget: QDateEdit,
+        date_value: str,
+        *,
+        day_offset: int = 0,
+        log_label: str = "date from table",
+    ) -> None:
+        """Parse `yyyy-MM-dd` (optionally with a day offset) into `date_widget`.
+
+        Args:
+
+        - `date_widget` (`QDateEdit`): Target date edit.
+        - `date_value` (`str`): Date string, optionally longer than 10 chars.
+        - `day_offset` (`int`): Days to add after parsing (default `0`).
+        - `log_label` (`str`): Fragment for error logs.
+
+        """
+        try:
+            date_obj = QDate.fromString(date_value.strip()[:10], "yyyy-MM-dd")
+            if not date_obj.isNull():
+                date_widget.setDate(date_obj.addDays(day_offset))
+            else:
+                logger.error("❌ Invalid date format: %s", date_value)
+        except Exception:
+            logger.exception("❌ Error setting %s", log_label)
+
     def _get_earliest_date_for_chart_range(self, from_widget: QDateEdit) -> str | None:
         """Resolve earliest available date for an all-time chart range."""
         db = self.db_manager

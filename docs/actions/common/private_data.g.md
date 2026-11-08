@@ -59,6 +59,7 @@ class InstallPrivateDataResult:
     food_db_path: Path | None = None
     created_finance_database: bool = False
     created_food_database: bool = False
+    config_imported: bool = False
 ```
 
 </details>
@@ -89,6 +90,7 @@ class PackPrivateDataResult:
     finance_standard_items_count: int = 0
     food_items_count: int = 0
     food_recipes_count: int = 0
+    config_exported: bool = False
 ```
 
 </details>
@@ -111,11 +113,12 @@ class PrivateDataSelection:
     fitness: bool = True
     finance: bool = False
     food: bool = False
+    config: bool = False
     api_key_files: tuple[str, ...] = ()
 
     def any_selected(self) -> bool:
         """Return whether at least one part is selected."""
-        return self.api_keys or self.fitness or self.finance or self.food
+        return self.api_keys or self.fitness or self.finance or self.food or self.config
 ```
 
 </details>
@@ -133,7 +136,7 @@ Return whether at least one part is selected.
 
 ```python
 def any_selected(self) -> bool:
-        return self.api_keys or self.fitness or self.finance or self.food
+        return self.api_keys or self.fitness or self.finance or self.food or self.config
 ```
 
 </details>
@@ -325,11 +328,13 @@ def inspect_private_data_zip(zip_path: Path) -> PrivateDataSelection:
     has_images = any(name.startswith(f"{ZIP_FITNESS_IMG_DIR}/") and not name.endswith("/") for name in names)
     has_finance = ZIP_FINANCE_CATALOG_NAME in names
     has_food = ZIP_FOOD_CATALOG_NAME in names
+    has_config = ZIP_CONFIG_NAME in names
     return PrivateDataSelection(
         api_keys=has_api_keys,
         fitness=has_catalog or has_images,
         finance=has_finance,
         food=has_food,
+        config=has_config,
     )
 ```
 
@@ -378,6 +383,7 @@ def install_private_data(
     include_fitness = wanted.fitness and present.fitness
     include_finance = wanted.finance and present.finance
     include_food = wanted.food and present.food
+    include_config = wanted.config and present.config
     if wanted.api_keys and not present.api_keys:
         msg = f"ZIP has no API keys: {zip_path}"
         raise FileNotFoundError(msg)
@@ -390,7 +396,10 @@ def install_private_data(
     if wanted.food and not present.food:
         msg = f"ZIP has no food catalog: {zip_path}"
         raise FileNotFoundError(msg)
-    if not include_api_keys and not include_fitness and not include_finance and not include_food:
+    if wanted.config and not present.config:
+        msg = f"ZIP has no config.json: {zip_path}"
+        raise FileNotFoundError(msg)
+    if not include_api_keys and not include_fitness and not include_finance and not include_food and not include_config:
         msg = "Nothing to import from this ZIP with the current selection."
         raise ValueError(msg)
 
@@ -434,6 +443,7 @@ def install_private_data(
     finance_stats = FinanceCatalogUpsertStats()
     food_stats = FoodCatalogUpsertStats()
     missing_images: list[str] = []
+    config_imported = False
     try:
         with zipfile.ZipFile(zip_path, "r") as archive:
             archive.extractall(stage_root)
@@ -443,6 +453,11 @@ def install_private_data(
                 stage_root / ZIP_API_KEYS_DIR,
                 project_root / ZIP_API_KEYS_DIR,
                 selected_names=wanted.api_key_files,
+            )
+
+        if include_config:
+            config_imported = _install_config_json(
+                stage_root / ZIP_CONFIG_NAME, project_root / "config" / ZIP_CONFIG_NAME
             )
 
         if include_fitness:
@@ -493,6 +508,7 @@ def install_private_data(
         food_db_path=food_db_path,
         created_finance_database=created_finance_database,
         created_food_database=created_food_database,
+        config_imported=config_imported,
     )
 ```
 
@@ -623,6 +639,13 @@ def pack_private_data(
         food_db_path = resolve_configured_sqlite_path(sqlite_food, setting_name="sqlite_food")
         food_catalog = export_food_catalog(food_db_path)
 
+    config_path: Path | None = None
+    if wanted.config:
+        config_path = project_root / "config" / ZIP_CONFIG_NAME
+        if not config_path.is_file():
+            msg = f"config.json not found: {config_path}"
+            raise FileNotFoundError(msg)
+
     finance_currencies_count = len(finance_catalog["currencies"]) if finance_catalog is not None else 0
     finance_categories_count = len(finance_catalog["categories"]) if finance_catalog is not None else 0
     finance_standard_items_count = len(finance_catalog["standard_items"]) if finance_catalog is not None else 0
@@ -674,6 +697,12 @@ def pack_private_data(
                 encoding="utf-8",
             )
 
+        if wanted.config:
+            if config_path is None:
+                msg = "config.json is not resolved."
+                raise ValueError(msg)
+            shutil.copy2(config_path, stage_root / ZIP_CONFIG_NAME)
+
         manifest: dict[str, Any] = {
             "created_utc": datetime.now(UTC).isoformat(),
             "parts": {
@@ -681,6 +710,7 @@ def pack_private_data(
                 "fitness": wanted.fitness,
                 "finance": wanted.finance,
                 "food": wanted.food,
+                "config": wanted.config,
             },
             "api_keys_count": len(key_files),
             "fitness_img_count": len(fitness_files),
@@ -691,6 +721,7 @@ def pack_private_data(
             "finance_standard_items_count": finance_standard_items_count,
             "food_items_count": food_items_count,
             "food_recipes_count": food_recipes_count,
+            "config": wanted.config,
             "api_key_files": [path.name for path in key_files],
             "missing_exercise_images": missing_images,
         }
@@ -731,6 +762,7 @@ def pack_private_data(
         finance_standard_items_count=finance_standard_items_count,
         food_items_count=food_items_count,
         food_recipes_count=food_recipes_count,
+        config_exported=wanted.config,
     )
 ```
 
@@ -820,7 +852,7 @@ def resolve_fitness_paths(sqlite_fitness: str) -> tuple[Path, Path]:
 ## 🔧 Function `selection_from_part_flags`
 
 ```python
-def selection_from_part_flags(*, api_keys: bool, fitness: bool, finance: bool = False, food: bool = False) -> PrivateDataSelection
+def selection_from_part_flags(*, api_keys: bool, fitness: bool, finance: bool = False, food: bool = False, config: bool = False) -> PrivateDataSelection
 ```
 
 Build a selection; when every flag is false, include every part.
@@ -835,10 +867,17 @@ def selection_from_part_flags(
     fitness: bool,
     finance: bool = False,
     food: bool = False,
+    config: bool = False,
 ) -> PrivateDataSelection:
-    if not api_keys and not fitness and not finance and not food:
-        return PrivateDataSelection(api_keys=True, fitness=True, finance=True, food=True)
-    return PrivateDataSelection(api_keys=api_keys, fitness=fitness, finance=finance, food=food)
+    if not api_keys and not fitness and not finance and not food and not config:
+        return PrivateDataSelection(api_keys=True, fitness=True, finance=True, food=True, config=True)
+    return PrivateDataSelection(
+        api_keys=api_keys,
+        fitness=fitness,
+        finance=finance,
+        food=food,
+        config=config,
+    )
 ```
 
 </details>

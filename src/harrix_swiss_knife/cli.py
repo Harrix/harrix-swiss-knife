@@ -237,6 +237,7 @@ def dev_install_harrix_notes_explorer_hsk(editor: str, *, with_public: bool) -> 
 @click.option("--fitness", is_flag=True, help="Import exercise catalog and images only if this flag is set.")
 @click.option("--finance", is_flag=True, help="Import finance catalog only if this flag is set.")
 @click.option("--food", is_flag=True, help="Import food catalog only if this flag is set.")
+@click.option("--config", is_flag=True, help="Import config.json only if this flag is set.")
 def dev_install_private_data(
     zip_path: Path | None,
     *,
@@ -244,6 +245,7 @@ def dev_install_private_data(
     fitness: bool,
     finance: bool,
     food: bool,
+    config: bool,
 ) -> None:
     """Alias for `private-data import`."""
     _invoke_transfer_private_data(
@@ -253,6 +255,7 @@ def dev_install_private_data(
         fitness=fitness,
         finance=finance,
         food=food,
+        config=config,
     )
 
 
@@ -270,6 +273,7 @@ def dev_install_private_data(
 @click.option("--fitness", is_flag=True, help="Include exercise catalog and images only if this flag is set.")
 @click.option("--finance", is_flag=True, help="Include finance catalog only if this flag is set.")
 @click.option("--food", is_flag=True, help="Include food catalog only if this flag is set.")
+@click.option("--config", is_flag=True, help="Include config.json only if this flag is set.")
 def dev_pack_private_data(
     zip_path: Path | None,
     *,
@@ -277,6 +281,7 @@ def dev_pack_private_data(
     fitness: bool,
     finance: bool,
     food: bool,
+    config: bool,
 ) -> None:
     """Alias for `private-data export`."""
     _invoke_transfer_private_data(
@@ -286,6 +291,7 @@ def dev_pack_private_data(
         fitness=fitness,
         finance=finance,
         food=food,
+        config=config,
     )
 
 
@@ -751,6 +757,11 @@ def private_data_group() -> None:
     help="Include food catalog (food items).",
 )
 @click.option(
+    "--config",
+    is_flag=True,
+    help="Include config/config.json (machine paths). Omit all part flags to include every part.",
+)
+@click.option(
     "--api-key",
     "api_key_files",
     multiple=True,
@@ -763,6 +774,7 @@ def private_data_export(
     fitness: bool,
     finance: bool,
     food: bool,
+    config: bool,
     api_key_files: tuple[str, ...],
 ) -> None:
     """Pack selected private data into a personal ZIP (history not included)."""
@@ -773,6 +785,7 @@ def private_data_export(
         fitness=fitness,
         finance=finance,
         food=food,
+        config=config,
         api_key_files=api_key_files,
     )
 
@@ -806,6 +819,11 @@ def private_data_export(
     help="Import food catalog (food items).",
 )
 @click.option(
+    "--config",
+    is_flag=True,
+    help="Import config/config.json. Omit all part flags to import parts present in the ZIP.",
+)
+@click.option(
     "--api-key",
     "api_key_files",
     multiple=True,
@@ -818,6 +836,7 @@ def private_data_import(
     fitness: bool,
     finance: bool,
     food: bool,
+    config: bool,
     api_key_files: tuple[str, ...],
 ) -> None:
     """Install selected private data; upsert catalogs and keep history tables."""
@@ -828,6 +847,7 @@ def private_data_import(
         fitness=fitness,
         finance=finance,
         food=food,
+        config=config,
         api_key_files=api_key_files,
     )
 
@@ -1126,6 +1146,7 @@ def _invoke_transfer_private_data(
     fitness: bool,
     finance: bool = False,
     food: bool = False,
+    config: bool = False,
     api_key_files: tuple[str, ...] = (),
 ) -> None:
     """Run `OnTransferPrivateData` for CLI export/import (including hidden aliases)."""
@@ -1137,7 +1158,8 @@ def _invoke_transfer_private_data(
         "include_fitness": fitness,
         "include_finance": finance,
         "include_food": food,
-        "parts_specified": api_keys or fitness or finance or food or bool(api_key_files),
+        "include_config": config,
+        "parts_specified": api_keys or fitness or finance or food or config or bool(api_key_files),
         "api_key_files": api_key_files,
     }
     if zip_path is not None:

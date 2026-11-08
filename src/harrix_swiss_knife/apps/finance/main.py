@@ -122,6 +122,7 @@ from harrix_swiss_knife.apps.common.table_models import (
 )
 from harrix_swiss_knife.apps.common.text_case import capitalize_first_letter
 from harrix_swiss_knife.apps.common.tracker_filter_chrome import fit_date_filter_field_widths
+from harrix_swiss_knife.apps.common.ui_chrome import MUTED_TEXT
 from harrix_swiss_knife.apps.common.ui_helpers import set_combo_plain_items
 from harrix_swiss_knife.apps.common.widgets.image_picker import ImagePicker, ImagePickerMode
 from harrix_swiss_knife.apps.common.widgets.shrinkable_scroll_area import install_shrinkable_tab_scroll
@@ -3327,6 +3328,7 @@ class MainWindow(
             if self.db_manager is not None:
                 default_currency_id = self.db_manager.get_default_currency_id()
         except Exception:
+            logger.exception("Error resolving default currency for exchanges table")
             default_currency_id = None
         exchanges_transformed_data: list[list] = []
         for row in exchanges_data:
@@ -5348,60 +5350,26 @@ class MainWindow(
             message_box.warning(self, "Date", "Could not update date for one or more transactions.")
 
     def _set_date_from_table(self, date_value: str) -> None:
-        """Set the date from table row to the main dateEdit field.
-
-        Args:
-
-        - `date_value` (`str`): Date string from the table (format: yyyy-MM-dd).
-
-        """
-        try:
-            # Parse the date string and set it in dateEdit
-            date_obj: QDate = QDate.fromString(date_value, "yyyy-MM-dd")
-            if not date_obj.isNull():
-                self.dateEdit.setDate(date_obj)
-            else:
-                logger.error("%s", f"❌ Invalid date format: {date_value}")
-        except Exception:
-            logger.exception("❌ Error setting date from table")
+        """Set the date from table row to the main dateEdit field."""
+        self._apply_date_string_to_widget(self.dateEdit, date_value)
 
     def _set_date_from_table_minus_one_day(self, date_value: str) -> None:
-        """Set the date from table row — 1 day to the main dateEdit field.
-
-        Args:
-
-        - `date_value` (`str`): Date string from the table (format: yyyy-MM-dd).
-
-        """
-        try:
-            # Parse the date string, subtract 1 day and set it in dateEdit
-            date_obj: QDate = QDate.fromString(date_value, "yyyy-MM-dd")
-            if not date_obj.isNull():
-                new_date: QDate = date_obj.addDays(-1)
-                self.dateEdit.setDate(new_date)
-            else:
-                logger.error("%s", f"❌ Invalid date format: {date_value}")
-        except Exception:
-            logger.exception("❌ Error setting date from table - 1 day")
+        """Set the date from table row — 1 day to the main dateEdit field."""
+        self._apply_date_string_to_widget(
+            self.dateEdit,
+            date_value,
+            day_offset=-1,
+            log_label="date from table - 1 day",
+        )
 
     def _set_date_from_table_plus_one_day(self, date_value: str) -> None:
-        """Set the date from table row + 1 day to the main dateEdit field.
-
-        Args:
-
-        - `date_value` (`str`): Date string from the table (format: yyyy-MM-dd).
-
-        """
-        try:
-            # Parse the date string, add 1 day and set it in dateEdit
-            date_obj: QDate = QDate.fromString(date_value, "yyyy-MM-dd")
-            if not date_obj.isNull():
-                new_date: QDate = date_obj.addDays(1)
-                self.dateEdit.setDate(new_date)
-            else:
-                logger.error("%s", f"❌ Invalid date format: {date_value}")
-        except Exception:
-            logger.exception("❌ Error setting date from table + 1 day")
+        """Set the date from table row + 1 day to the main dateEdit field."""
+        self._apply_date_string_to_widget(
+            self.dateEdit,
+            date_value,
+            day_offset=1,
+            log_label="date from table + 1 day",
+        )
 
     @staticmethod
     def _set_descendant_buttons_enabled(root: QWidget | None, *, enabled: bool) -> None:
@@ -5868,7 +5836,7 @@ class MainWindow(
         # Create and add label
         label: QLabel = QLabel(text)
         label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        label.setStyleSheet("color: #666; padding: 20px;")
+        label.setStyleSheet(f"color: {MUTED_TEXT}; padding: 20px;")
         layout.addWidget(label)
 
     def _show_test_balance_dialog(

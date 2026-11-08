@@ -417,7 +417,7 @@ class Ui_MainWindow(object):
 "                                color: black;\n"
 "                                }\n"
 "                                QListView::item:hover {\n"
-"                                background-color: #bbdefb;\n"
+"                                background-color: #f3f8fb;\n"
 "                                }")
 
         self.verticalLayout_food_middle.addWidget(self.listView_food_items)
@@ -1123,7 +1123,7 @@ def setupUi(self, MainWindow):
 "                                color: black;\n"
 "                                }\n"
 "                                QListView::item:hover {\n"
-"                                background-color: #bbdefb;\n"
+"                                background-color: #f3f8fb;\n"
 "                                }")
 
         self.verticalLayout_food_middle.addWidget(self.listView_food_items)

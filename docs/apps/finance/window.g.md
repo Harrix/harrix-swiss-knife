@@ -420,7 +420,7 @@ class Ui_MainWindow(object):
 "                                color: black;\n"
 "                                }\n"
 "                                QListView::item:hover {\n"
-"                                background-color: #F0FAF0;\n"
+"                                background-color: #f0f8f0;\n"
 "                                }")
 
         self.verticalLayout.addWidget(self.listView_categories)
@@ -1417,7 +1417,7 @@ class Ui_MainWindow(object):
 "                                color: black;\n"
 "                                }\n"
 "                                QListView::item:hover {\n"
-"                                background-color: #F0F8F0;\n"
+"                                background-color: #f0f8f0;\n"
 "                                }")
         self.listView_report_type.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.listView_report_type.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
@@ -1924,7 +1924,7 @@ def setupUi(self, MainWindow):
 "                                color: black;\n"
 "                                }\n"
 "                                QListView::item:hover {\n"
-"                                background-color: #F0FAF0;\n"
+"                                background-color: #f0f8f0;\n"
 "                                }")
 
         self.verticalLayout.addWidget(self.listView_categories)
@@ -2921,7 +2921,7 @@ def setupUi(self, MainWindow):
 "                                color: black;\n"
 "                                }\n"
 "                                QListView::item:hover {\n"
-"                                background-color: #F0F8F0;\n"
+"                                background-color: #f0f8f0;\n"
 "                                }")
         self.listView_report_type.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.listView_report_type.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)

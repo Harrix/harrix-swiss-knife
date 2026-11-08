@@ -14,6 +14,7 @@ These mixins centralize common functionality that was previously duplicated in
 from __future__ import annotations
 
 import contextlib
+import logging
 import re
 from datetime import UTC, datetime
 from functools import partial
@@ -21,7 +22,7 @@ from typing import TYPE_CHECKING, Any
 
 from PySide6.QtCore import QDate, QModelIndex, QSortFilterProxyModel, Qt
 from PySide6.QtGui import QStandardItemModel
-from PySide6.QtWidgets import QWidget
+from PySide6.QtWidgets import QDateEdit, QWidget
 
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.table_models import create_colored_table_proxy_model
@@ -30,7 +31,8 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from PySide6.QtCore import QObject
-    from PySide6.QtWidgets import QDateEdit
+
+logger = logging.getLogger(__name__)
 
 # Roles that carry user-visible data; anything else (icons, colours) must not be saved.
 _AUTO_SAVE_DATA_ROLES = frozenset({int(Qt.ItemDataRole.DisplayRole), int(Qt.ItemDataRole.EditRole)})
@@ -179,6 +181,33 @@ class DateMixin:
     """Mixin class for date widget helpers."""
 
     db_manager: Any
+
+    def _apply_date_string_to_widget(
+        self,
+        date_widget: QDateEdit,
+        date_value: str,
+        *,
+        day_offset: int = 0,
+        log_label: str = "date from table",
+    ) -> None:
+        """Parse `yyyy-MM-dd` (optionally with a day offset) into `date_widget`.
+
+        Args:
+
+        - `date_widget` (`QDateEdit`): Target date edit.
+        - `date_value` (`str`): Date string, optionally longer than 10 chars.
+        - `day_offset` (`int`): Days to add after parsing (default `0`).
+        - `log_label` (`str`): Fragment for error logs.
+
+        """
+        try:
+            date_obj = QDate.fromString(date_value.strip()[:10], "yyyy-MM-dd")
+            if not date_obj.isNull():
+                date_widget.setDate(date_obj.addDays(day_offset))
+            else:
+                logger.error("❌ Invalid date format: %s", date_value)
+        except Exception:
+            logger.exception("❌ Error setting %s", log_label)
 
     def _get_earliest_date_for_chart_range(self, from_widget: QDateEdit) -> str | None:
         """Resolve earliest available date for an all-time chart range."""

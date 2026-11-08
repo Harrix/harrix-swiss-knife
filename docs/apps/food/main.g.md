@@ -4023,36 +4023,25 @@ class MainWindow(
 
     def _set_date_from_table(self, date_value: str) -> None:
         """Set the date from a food log row into `dateEdit_food`."""
-        try:
-            date_obj = QDate.fromString(date_value.strip()[:10], "yyyy-MM-dd")
-            if not date_obj.isNull():
-                self.dateEdit_food.setDate(date_obj)
-            else:
-                logger.error("%s", f"❌ Invalid date format: {date_value}")
-        except Exception:
-            logger.exception("❌ Error setting date from table")
+        self._apply_date_string_to_widget(self.dateEdit_food, date_value)
 
     def _set_date_from_table_minus_one_day(self, date_value: str) -> None:
         """Set `dateEdit_food` to the food log row date minus one day."""
-        try:
-            date_obj = QDate.fromString(date_value.strip()[:10], "yyyy-MM-dd")
-            if not date_obj.isNull():
-                self.dateEdit_food.setDate(date_obj.addDays(-1))
-            else:
-                logger.error("%s", f"❌ Invalid date format: {date_value}")
-        except Exception:
-            logger.exception("❌ Error setting date from table - 1 day")
+        self._apply_date_string_to_widget(
+            self.dateEdit_food,
+            date_value,
+            day_offset=-1,
+            log_label="date from table - 1 day",
+        )
 
     def _set_date_from_table_plus_one_day(self, date_value: str) -> None:
         """Set `dateEdit_food` to the food log row date plus one day."""
-        try:
-            date_obj = QDate.fromString(date_value.strip()[:10], "yyyy-MM-dd")
-            if not date_obj.isNull():
-                self.dateEdit_food.setDate(date_obj.addDays(1))
-            else:
-                logger.error("%s", f"❌ Invalid date format: {date_value}")
-        except Exception:
-            logger.exception("❌ Error setting date from table + 1 day")
+        self._apply_date_string_to_widget(
+            self.dateEdit_food,
+            date_value,
+            day_offset=1,
+            log_label="date from table + 1 day",
+        )
 
     def _setup_autocomplete(self) -> None:
         """Set up autocomplete functionality for food name input."""

@@ -47,6 +47,7 @@ def build_gallery() -> fw.FluentNavigationWindow:
         ("dialogs", "Dialogs and flyouts", "message-square", _dialogs_page(window)),
         ("pickers", "Date and time", "calendar", _pickers_page()),
         ("editors", "Editors", "code", _editors_page()),
+        ("system", "System helpers", "monitor", _system_page()),
     )
     for key, text, icon, page in pages:
         window.add_page(key, text, page, icon=icon)
