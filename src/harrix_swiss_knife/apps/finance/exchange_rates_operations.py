@@ -1012,4 +1012,5 @@ EXCHANGE_RATES_BOUND_METHODS: tuple[str, ...] = (
     "_mark_exchange_rates_changed",
     "_on_exchange_rates_scroll",
     "_setup_exchange_rates_controls",
+    "_start_startup_exchange_rate_update",
 )
