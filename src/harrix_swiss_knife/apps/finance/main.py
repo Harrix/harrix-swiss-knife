@@ -153,6 +153,7 @@ from harrix_swiss_knife.apps.finance.description_autocomplete import (
 )
 from harrix_swiss_knife.apps.finance.exchange_edit_dialog import ExchangeEditDialog
 from harrix_swiss_knife.apps.finance.exchange_rates_operations import (
+    EXCHANGE_RATES_BOUND_METHODS,
     DbFilenameUnavailableForWorkerThreadError,
     ExchangeRatesOperations,
     _require_db_filename_for_worker,
@@ -262,7 +263,6 @@ class MainWindow(
     ChartOperations,
     AutoSaveOperations,
     ValidationOperations,
-    ExchangeRatesOperations,
     ReportOperations,
 ):
     """Main application window for the finance tracking application.
@@ -270,6 +270,10 @@ class MainWindow(
     This class implements the main GUI window for the finance tracker, providing
     functionality to record transactions, manage categories, accounts, currencies
     and track financial progress.
+
+    Exchange rates live on a composed `ExchangeRatesOperations` controller
+    (`self._exchange_rates`); selected methods are bound onto the window for
+    existing slots.
 
     Attributes:
 
@@ -311,6 +315,8 @@ class MainWindow(
         self.filter_advanced_panel: QWidget
         self.filter_chips_host: QWidget
         self.filter_chips_layout: QHBoxLayout
+        self._exchange_rates = ExchangeRatesOperations(self)
+        self._bind_exchange_rates_operations()
         self._setup_ui()
         self._finish_fluent_window_chrome()
         apply_window_icon(self)
@@ -1788,6 +1794,12 @@ class MainWindow(
         if self._is_closing:
             return
         self._bg_tx_translate_timer.start(_BACKGROUND_TX_TRANSLATE_INTERVAL_MS)
+
+    def _bind_exchange_rates_operations(self) -> None:
+        """Expose exchange-rates controller methods on the window for existing slots."""
+        ops = self._exchange_rates
+        for name in EXCHANGE_RATES_BOUND_METHODS:
+            setattr(self, name, getattr(ops, name))
 
     def _calculate_exchange_loss(
         self,

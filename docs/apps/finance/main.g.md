@@ -61,7 +61,7 @@ lang: en
 ## 🏛️ Class `MainWindow`
 
 ```python
-class MainWindow(QMainWindow, window.Ui_MainWindow, AppWindowMixin, TableOperations, DateOperations, ChartOperations, AutoSaveOperations, ValidationOperations, ExchangeRatesOperations, ReportOperations)
+class MainWindow(QMainWindow, window.Ui_MainWindow, AppWindowMixin, TableOperations, DateOperations, ChartOperations, AutoSaveOperations, ValidationOperations, ReportOperations)
 ```
 
 Main application window for the finance tracking application.
@@ -69,6 +69,10 @@ Main application window for the finance tracking application.
 This class implements the main GUI window for the finance tracker, providing
 functionality to record transactions, manage categories, accounts, currencies
 and track financial progress.
+
+Exchange rates live on a composed [`ExchangeRatesOperations`](exchange_rates_operations.g.md#%EF%B8%8F-class-exchangeratesoperations) controller
+(`self._exchange_rates`); selected methods are bound onto the window for
+existing slots.
 
 Attributes:
 
@@ -94,7 +98,6 @@ class MainWindow(
     ChartOperations,
     AutoSaveOperations,
     ValidationOperations,
-    ExchangeRatesOperations,
     ReportOperations,
 ):
 
@@ -125,6 +128,8 @@ class MainWindow(
         self.filter_advanced_panel: QWidget
         self.filter_chips_host: QWidget
         self.filter_chips_layout: QHBoxLayout
+        self._exchange_rates = ExchangeRatesOperations(self)
+        self._bind_exchange_rates_operations()
         self._setup_ui()
         self._finish_fluent_window_chrome()
         apply_window_icon(self)
@@ -1602,6 +1607,12 @@ class MainWindow(
         if self._is_closing:
             return
         self._bg_tx_translate_timer.start(_BACKGROUND_TX_TRANSLATE_INTERVAL_MS)
+
+    def _bind_exchange_rates_operations(self) -> None:
+        """Expose exchange-rates controller methods on the window for existing slots."""
+        ops = self._exchange_rates
+        for name in EXCHANGE_RATES_BOUND_METHODS:
+            setattr(self, name, getattr(ops, name))
 
     def _calculate_exchange_loss(
         self,
@@ -6569,6 +6580,8 @@ def __init__(self, *, hide_on_close: bool = False) -> None:
         self.filter_advanced_panel: QWidget
         self.filter_chips_host: QWidget
         self.filter_chips_layout: QHBoxLayout
+        self._exchange_rates = ExchangeRatesOperations(self)
+        self._bind_exchange_rates_operations()
         self._setup_ui()
         self._finish_fluent_window_chrome()
         apply_window_icon(self)

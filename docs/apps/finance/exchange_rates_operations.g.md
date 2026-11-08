@@ -14,6 +14,9 @@ lang: en
 - [🏛️ Class `DbFilenameUnavailableForWorkerThreadError`](#%EF%B8%8F-class-dbfilenameunavailableforworkerthreaderror)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
 - [🏛️ Class `ExchangeRatesOperations`](#%EF%B8%8F-class-exchangeratesoperations)
+  - [⚙️ Method `__getattr__`](#%EF%B8%8F-method-__getattr__)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
+  - [⚙️ Method `__setattr__`](#%EF%B8%8F-method-__setattr__)
   - [⚙️ Method `load_exchange_rates_table`](#%EF%B8%8F-method-load_exchange_rates_table)
   - [⚙️ Method `on_delete_exchange_rates_by_days`](#%EF%B8%8F-method-on_delete_exchange_rates_by_days)
   - [⚙️ Method `on_exchange_rates_all_time`](#%EF%B8%8F-method-on_exchange_rates_all_time)
@@ -73,13 +76,31 @@ def __init__(self) -> None:
 class ExchangeRatesOperations
 ```
 
-Mixin class for exchange rates operations.
+Exchange-rates feature controller composed into finance `MainWindow`.
+
+Reads and writes window state through `_host` (widgets, `db_manager`, flags).
+Not a mixin: construct with the window and bind public methods onto it.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 class ExchangeRatesOperations:
+
+    def __getattr__(self, name: str) -> Any:
+        """Forward unknown attribute reads to the host window."""
+        return getattr(object.__getattribute__(self, "_host"), name)
+
+    def __init__(self, host: Any) -> None:
+        """Attach this controller to the finance main window."""
+        object.__setattr__(self, "_host", host)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        """Keep `_host` local; store all other attributes on the host window."""
+        if name == "_host":
+            object.__setattr__(self, name, value)
+            return
+        setattr(object.__getattribute__(self, "_host"), name, value)
 
     def load_exchange_rates_table(self) -> None:
         """Load exchange rates table data (lazy loading)."""
@@ -109,12 +130,12 @@ class ExchangeRatesOperations:
             days = self.spinBox_exchange_rate_count_days.value()
 
             if days <= 0:
-                message_box.warning(cast("QWidget", self), "Invalid Input", "Number of days must be greater than 0.")
+                message_box.warning(self._widget_parent(), "Invalid Input", "Number of days must be greater than 0.")
                 return
 
             # Show confirmation dialog
             reply = message_box.question(
-                cast("QWidget", self),
+                self._widget_parent(),
                 "Confirm Deletion",
                 f"Are you sure you want to delete exchange rates for the last {days} days?\n\n"
                 "This action cannot be undone.",
@@ -131,13 +152,13 @@ class ExchangeRatesOperations:
             if success:
                 if deleted_count > 0:
                     message_box.information(
-                        cast("QWidget", self),
+                        self._widget_parent(),
                         "Deletion Successful",
                         f"Successfully deleted {deleted_count} exchange rate records for the last {days} days.",
                     )
                 else:
                     message_box.information(
-                        cast("QWidget", self),
+                        self._widget_parent(),
                         "No Records Found",
                         (f"No exchange rate records were found for the last {days} days."),
                     )
@@ -148,14 +169,14 @@ class ExchangeRatesOperations:
                 self.update_summary_labels()
             else:
                 message_box.warning(
-                    cast("QWidget", self),
+                    self._widget_parent(),
                     "Deletion Failed",
                     "Failed to delete exchange rate records. Please check the database connection.",
                 )
 
         except Exception as e:
             message_box.critical(
-                cast("QWidget", self), "Error", f"An error occurred while deleting exchange rates: {e}"
+                self._widget_parent(), "Error", f"An error occurred while deleting exchange rates: {e}"
             )
 
     def on_exchange_rates_all_time(self) -> None:
@@ -231,7 +252,7 @@ class ExchangeRatesOperations:
 
             # Validate date range
             if self.dateEdit_exchange_rates_from.date() > self.dateEdit_exchange_rates_to.date():
-                message_box.warning(cast("QWidget", self), "Invalid Date Range", "Start date cannot be after end date.")
+                message_box.warning(self._widget_parent(), "Invalid Date Range", "Start date cannot be after end date.")
                 return
 
             # Create chart
@@ -260,7 +281,7 @@ class ExchangeRatesOperations:
 
             # Validate date range
             if self.dateEdit_filter_exchange_rates_from.date() > self.dateEdit_filter_exchange_rates_to.date():
-                message_box.warning(cast("QWidget", self), "Invalid Date Range", "Start date cannot be after end date.")
+                message_box.warning(self._widget_parent(), "Invalid Date Range", "Start date cannot be after end date.")
                 return
 
             self._exchange_rates_filter_params = {
@@ -284,13 +305,13 @@ class ExchangeRatesOperations:
                 filter_info.append("Scroll down to load more records")
 
             message_box.information(
-                cast("QWidget", self),
+                self._widget_parent(),
                 "Filter Applied",
                 "Exchange rates filter has been applied.\n\n" + "\n".join(filter_info),
             )
 
         except Exception as e:
-            message_box.critical(cast("QWidget", self), "Filter Error", f"An error occurred while applying filter: {e}")
+            message_box.critical(self._widget_parent(), "Filter Error", f"An error occurred while applying filter: {e}")
 
     def on_filter_exchange_rates_clear(self) -> None:
         """Clear exchange rates filter and show default number of records."""
@@ -309,7 +330,7 @@ class ExchangeRatesOperations:
             self._load_exchange_rates_page(reset=True)
 
             message_box.information(
-                cast("QWidget", self),
+                self._widget_parent(),
                 "Filter Cleared",
                 (
                     "Exchange rates filter has been cleared.\n"
@@ -319,7 +340,7 @@ class ExchangeRatesOperations:
 
         except Exception as e:
             message_box.critical(
-                cast("QWidget", self), "Clear Filter Error", f"An error occurred while clearing filter: {e}"
+                self._widget_parent(), "Clear Filter Error", f"An error occurred while clearing filter: {e}"
             )
 
     def on_update_exchange_rates(self) -> None:
@@ -335,7 +356,7 @@ class ExchangeRatesOperations:
             # Check if checker is already running
             if hasattr(self, "exchange_rate_checker") and self.exchange_rate_checker.isRunning():
                 message_box.warning(
-                    cast("QWidget", self),
+                    self._widget_parent(),
                     "Check in Progress",
                     "Exchange rate check is already running. Please wait for it to complete.",
                 )
@@ -344,7 +365,7 @@ class ExchangeRatesOperations:
             # Check if updater is already running
             if hasattr(self, "exchange_rate_worker") and self.exchange_rate_worker.isRunning():
                 reply = message_box.question(
-                    cast("QWidget", self),
+                    self._widget_parent(),
                     "Update in Progress",
                     "Exchange rate update is already running. Do you want to stop it and start a new check?",
                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
@@ -356,7 +377,7 @@ class ExchangeRatesOperations:
                     return
 
             # Create and configure check progress dialog
-            self.check_progress_dialog = QMessageBox(cast("QWidget", self))
+            self.check_progress_dialog = QMessageBox(self._widget_parent())
             self.check_progress_dialog.setWindowTitle("Checking Exchange Rates")
             check_mode = "from first transaction" if check_from_first_transaction else "from last exchange rate"
             self.check_progress_dialog.setText(
@@ -381,7 +402,7 @@ class ExchangeRatesOperations:
             self.exchange_rate_checker = ExchangeRateCheckerWorker(
                 db_filename,
                 check_from_first_transaction=check_from_first_transaction,
-                parent=cast("QObject", self),
+                parent=cast("QObject", object.__getattribute__(self, "_host")),
             )
 
             # Connect checker signals
@@ -395,7 +416,7 @@ class ExchangeRatesOperations:
         except Exception as e:
             if hasattr(self, "check_progress_dialog"):
                 self.check_progress_dialog.close()
-            message_box.critical(cast("QWidget", self), "Check Error", f"Failed to start exchange rate check: {e}")
+            message_box.critical(self._widget_parent(), "Check Error", f"Failed to start exchange rate check: {e}")
             logger.exception("❌ Exchange rate check error")
 
     def _auto_update_exchange_rates_on_startup(self) -> None:
@@ -452,7 +473,7 @@ class ExchangeRatesOperations:
             self.startup_exchange_rate_checker = ExchangeRateCheckerWorker(
                 db_filename,
                 check_from_first_transaction=check_from_first_transaction,
-                parent=cast("QObject", self),
+                parent=cast("QObject", object.__getattribute__(self, "_host")),
             )
 
             # Connect signals
@@ -849,7 +870,7 @@ class ExchangeRatesOperations:
         """
         try:
             # Create and configure update progress dialog
-            self.progress_dialog = QMessageBox(cast("QWidget", self))
+            self.progress_dialog = QMessageBox(self._widget_parent())
             self.progress_dialog.setWindowTitle("Updating Exchange Rates")
             self.progress_dialog.setText(
                 f"Starting exchange rate update for {len(currencies_to_process)} currencies from yfinance..."
@@ -873,7 +894,7 @@ class ExchangeRatesOperations:
             self.exchange_rate_worker = ExchangeRateUpdateWorker(
                 db_filename,
                 currencies_to_process,
-                parent=cast("QObject", self),
+                parent=cast("QObject", object.__getattribute__(self, "_host")),
             )
 
             # Connect signals
@@ -889,7 +910,7 @@ class ExchangeRatesOperations:
         except Exception as e:
             if hasattr(self, "progress_dialog"):
                 self.progress_dialog.close()
-            message_box.critical(cast("QWidget", self), "Update Error", f"Failed to start exchange rate update: {e}")
+            message_box.critical(self._widget_parent(), "Update Error", f"Failed to start exchange rate update: {e}")
             logger.exception("❌ Exchange rate update error")
 
     def _start_startup_exchange_rate_update(self, currencies_to_process: list) -> None:
@@ -920,7 +941,7 @@ class ExchangeRatesOperations:
             self.startup_exchange_rate_worker = ExchangeRateUpdateWorker(
                 db_filename,
                 currencies_to_process,
-                parent=cast("QObject", self),
+                parent=cast("QObject", object.__getattribute__(self, "_host")),
             )
 
             # Connect signals
@@ -947,6 +968,67 @@ class ExchangeRatesOperations:
             transformed_row = [row[2], row[1], f"{currency_to_usd_rate:.6f}", row[4], row[0], color]
             rates_transformed_data.append(transformed_row)
         return rates_transformed_data
+
+    def _widget_parent(self) -> QWidget:
+        """Return the host window as a `QWidget` for dialogs."""
+        return cast("QWidget", object.__getattribute__(self, "_host"))
+```
+
+</details>
+
+### ⚙️ Method `__getattr__`
+
+```python
+def __getattr__(self, name: str) -> Any
+```
+
+Forward unknown attribute reads to the host window.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __getattr__(self, name: str) -> Any:
+        return getattr(object.__getattribute__(self, "_host"), name)
+```
+
+</details>
+
+### ⚙️ Method `__init__`
+
+```python
+def __init__(self, host: Any) -> None
+```
+
+Attach this controller to the finance main window.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __init__(self, host: Any) -> None:
+        object.__setattr__(self, "_host", host)
+```
+
+</details>
+
+### ⚙️ Method `__setattr__`
+
+```python
+def __setattr__(self, name: str, value: Any) -> None
+```
+
+Keep `_host` local; store all other attributes on the host window.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __setattr__(self, name: str, value: Any) -> None:
+        if name == "_host":
+            object.__setattr__(self, name, value)
+            return
+        setattr(object.__getattribute__(self, "_host"), name, value)
 ```
 
 </details>
@@ -1004,12 +1086,12 @@ def on_delete_exchange_rates_by_days(self) -> None:
             days = self.spinBox_exchange_rate_count_days.value()
 
             if days <= 0:
-                message_box.warning(cast("QWidget", self), "Invalid Input", "Number of days must be greater than 0.")
+                message_box.warning(self._widget_parent(), "Invalid Input", "Number of days must be greater than 0.")
                 return
 
             # Show confirmation dialog
             reply = message_box.question(
-                cast("QWidget", self),
+                self._widget_parent(),
                 "Confirm Deletion",
                 f"Are you sure you want to delete exchange rates for the last {days} days?\n\n"
                 "This action cannot be undone.",
@@ -1026,13 +1108,13 @@ def on_delete_exchange_rates_by_days(self) -> None:
             if success:
                 if deleted_count > 0:
                     message_box.information(
-                        cast("QWidget", self),
+                        self._widget_parent(),
                         "Deletion Successful",
                         f"Successfully deleted {deleted_count} exchange rate records for the last {days} days.",
                     )
                 else:
                     message_box.information(
-                        cast("QWidget", self),
+                        self._widget_parent(),
                         "No Records Found",
                         (f"No exchange rate records were found for the last {days} days."),
                     )
@@ -1043,14 +1125,14 @@ def on_delete_exchange_rates_by_days(self) -> None:
                 self.update_summary_labels()
             else:
                 message_box.warning(
-                    cast("QWidget", self),
+                    self._widget_parent(),
                     "Deletion Failed",
                     "Failed to delete exchange rate records. Please check the database connection.",
                 )
 
         except Exception as e:
             message_box.critical(
-                cast("QWidget", self), "Error", f"An error occurred while deleting exchange rates: {e}"
+                self._widget_parent(), "Error", f"An error occurred while deleting exchange rates: {e}"
             )
 ```
 
@@ -1196,7 +1278,7 @@ def on_exchange_rates_update(self) -> None:
 
             # Validate date range
             if self.dateEdit_exchange_rates_from.date() > self.dateEdit_exchange_rates_to.date():
-                message_box.warning(cast("QWidget", self), "Invalid Date Range", "Start date cannot be after end date.")
+                message_box.warning(self._widget_parent(), "Invalid Date Range", "Start date cannot be after end date.")
                 return
 
             # Create chart
@@ -1239,7 +1321,7 @@ def on_filter_exchange_rates_apply(self) -> None:
 
             # Validate date range
             if self.dateEdit_filter_exchange_rates_from.date() > self.dateEdit_filter_exchange_rates_to.date():
-                message_box.warning(cast("QWidget", self), "Invalid Date Range", "Start date cannot be after end date.")
+                message_box.warning(self._widget_parent(), "Invalid Date Range", "Start date cannot be after end date.")
                 return
 
             self._exchange_rates_filter_params = {
@@ -1263,13 +1345,13 @@ def on_filter_exchange_rates_apply(self) -> None:
                 filter_info.append("Scroll down to load more records")
 
             message_box.information(
-                cast("QWidget", self),
+                self._widget_parent(),
                 "Filter Applied",
                 "Exchange rates filter has been applied.\n\n" + "\n".join(filter_info),
             )
 
         except Exception as e:
-            message_box.critical(cast("QWidget", self), "Filter Error", f"An error occurred while applying filter: {e}")
+            message_box.critical(self._widget_parent(), "Filter Error", f"An error occurred while applying filter: {e}")
 ```
 
 </details>
@@ -1302,7 +1384,7 @@ def on_filter_exchange_rates_clear(self) -> None:
             self._load_exchange_rates_page(reset=True)
 
             message_box.information(
-                cast("QWidget", self),
+                self._widget_parent(),
                 "Filter Cleared",
                 (
                     "Exchange rates filter has been cleared.\n"
@@ -1312,7 +1394,7 @@ def on_filter_exchange_rates_clear(self) -> None:
 
         except Exception as e:
             message_box.critical(
-                cast("QWidget", self), "Clear Filter Error", f"An error occurred while clearing filter: {e}"
+                self._widget_parent(), "Clear Filter Error", f"An error occurred while clearing filter: {e}"
             )
 ```
 
@@ -1342,7 +1424,7 @@ def on_update_exchange_rates(self) -> None:
             # Check if checker is already running
             if hasattr(self, "exchange_rate_checker") and self.exchange_rate_checker.isRunning():
                 message_box.warning(
-                    cast("QWidget", self),
+                    self._widget_parent(),
                     "Check in Progress",
                     "Exchange rate check is already running. Please wait for it to complete.",
                 )
@@ -1351,7 +1433,7 @@ def on_update_exchange_rates(self) -> None:
             # Check if updater is already running
             if hasattr(self, "exchange_rate_worker") and self.exchange_rate_worker.isRunning():
                 reply = message_box.question(
-                    cast("QWidget", self),
+                    self._widget_parent(),
                     "Update in Progress",
                     "Exchange rate update is already running. Do you want to stop it and start a new check?",
                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
@@ -1363,7 +1445,7 @@ def on_update_exchange_rates(self) -> None:
                     return
 
             # Create and configure check progress dialog
-            self.check_progress_dialog = QMessageBox(cast("QWidget", self))
+            self.check_progress_dialog = QMessageBox(self._widget_parent())
             self.check_progress_dialog.setWindowTitle("Checking Exchange Rates")
             check_mode = "from first transaction" if check_from_first_transaction else "from last exchange rate"
             self.check_progress_dialog.setText(
@@ -1388,7 +1470,7 @@ def on_update_exchange_rates(self) -> None:
             self.exchange_rate_checker = ExchangeRateCheckerWorker(
                 db_filename,
                 check_from_first_transaction=check_from_first_transaction,
-                parent=cast("QObject", self),
+                parent=cast("QObject", object.__getattribute__(self, "_host")),
             )
 
             # Connect checker signals
@@ -1402,7 +1484,7 @@ def on_update_exchange_rates(self) -> None:
         except Exception as e:
             if hasattr(self, "check_progress_dialog"):
                 self.check_progress_dialog.close()
-            message_box.critical(cast("QWidget", self), "Check Error", f"Failed to start exchange rate check: {e}")
+            message_box.critical(self._widget_parent(), "Check Error", f"Failed to start exchange rate check: {e}")
             logger.exception("❌ Exchange rate check error")
 ```
 
