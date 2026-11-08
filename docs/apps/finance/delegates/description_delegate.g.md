@@ -14,6 +14,7 @@ lang: en
 - [🏛️ Class `DescriptionDelegate`](#%EF%B8%8F-class-descriptiondelegate)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `createEditor`](#%EF%B8%8F-method-createeditor)
+  - [⚙️ Method `helpEvent`](#%EF%B8%8F-method-helpevent)
   - [⚙️ Method `setEditorData`](#%EF%B8%8F-method-seteditordata)
   - [⚙️ Method `setModelData`](#%EF%B8%8F-method-setmodeldata)
 
@@ -67,6 +68,24 @@ class DescriptionDelegate(QStyledItemDelegate):
         apply_white_editor_background(editor, "QLineEdit")
 
         return editor
+
+    def helpEvent(  # noqa: N802
+        self,
+        event: QHelpEvent,
+        view: QWidget | None,
+        option: QStyleOptionViewItem,
+        index: QModelIndex | QPersistentModelIndex,
+    ) -> bool:
+        """Show the full description when the cell text is elided."""
+        del option
+        if view is None:
+            return False
+        text = index.data(Qt.ItemDataRole.DisplayRole)
+        tip = "" if text is None else str(text).strip()
+        if not tip:
+            return False
+        QToolTip.showText(event.globalPos(), tip, view)
+        return True
 
     def setEditorData(self, editor: QWidget, index: QModelIndex | QPersistentModelIndex) -> None:  # noqa: N802
         """Set the current value in the editor.
@@ -156,6 +175,38 @@ def createEditor(  # noqa: N802
         apply_white_editor_background(editor, "QLineEdit")
 
         return editor
+```
+
+</details>
+
+### ⚙️ Method `helpEvent`
+
+```python
+def helpEvent(self, event: QHelpEvent, view: QWidget | None, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> bool
+```
+
+Show the full description when the cell text is elided.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def helpEvent(  # noqa: N802
+        self,
+        event: QHelpEvent,
+        view: QWidget | None,
+        option: QStyleOptionViewItem,
+        index: QModelIndex | QPersistentModelIndex,
+    ) -> bool:
+        del option
+        if view is None:
+            return False
+        text = index.data(Qt.ItemDataRole.DisplayRole)
+        tip = "" if text is None else str(text).strip()
+        if not tip:
+            return False
+        QToolTip.showText(event.globalPos(), tip, view)
+        return True
 ```
 
 </details>

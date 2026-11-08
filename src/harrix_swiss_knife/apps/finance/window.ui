@@ -33,13 +33,13 @@
           <property name="childrenCollapsible">
            <bool>false</bool>
           </property>
-          <widget class="QFrame" name="frame">
+                    <widget class="QFrame" name="frame">
            <property name="styleSheet">
             <string notr="true">QFrame#frame { border: none; }</string>
            </property>
            <property name="minimumSize">
             <size>
-             <width>380</width>
+             <width>320</width>
              <height>0</height>
             </size>
            </property>
@@ -56,18 +56,30 @@
             <enum>QFrame::Shadow::Plain</enum>
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_5">
+            <property name="spacing">
+             <number>8</number>
+            </property>
+            <property name="leftMargin">
+             <number>8</number>
+            </property>
+            <property name="topMargin">
+             <number>8</number>
+            </property>
+            <property name="rightMargin">
+             <number>8</number>
+            </property>
+            <property name="bottomMargin">
+             <number>8</number>
+            </property>
             <item>
              <widget class="QGroupBox" name="groupBox_transaction">
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>0</height>
-               </size>
-              </property>
               <property name="title">
-               <string>Transaction Details</string>
+               <string>New transaction</string>
               </property>
               <layout class="QVBoxLayout" name="verticalLayout_3">
+               <property name="spacing">
+                <number>6</number>
+               </property>
                <item>
                 <widget class="QLabel" name="label_category_now">
                  <property name="font">
@@ -79,7 +91,14 @@
                   <enum>Qt::FocusPolicy::NoFocus</enum>
                  </property>
                  <property name="text">
-                  <string>TextLabel</string>
+                  <string>No category selected</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="label_field_description">
+                 <property name="text">
+                  <string>Description</string>
                  </property>
                 </widget>
                </item>
@@ -93,11 +112,18 @@
                     </font>
                    </property>
                    <property name="placeholderText">
-                    <string>Description</string>
+                    <string>What did you buy?</string>
                    </property>
                   </widget>
                  </item>
                 </layout>
+               </item>
+               <item>
+                <widget class="QLabel" name="label_field_amount">
+                 <property name="text">
+                  <string>Amount</string>
+                 </property>
+                </widget>
                </item>
                <item>
                 <layout class="QHBoxLayout" name="horizontalLayout_amount">
@@ -108,11 +134,6 @@
                      <pointsize>12</pointsize>
                      <bold>true</bold>
                     </font>
-                   </property>
-                   <property name="styleSheet">
-                    <string notr="true">QDoubleSpinBox {
-                                          background-color: #e8f4fc;
-                                          }</string>
                    </property>
                    <property name="alignment">
                     <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
@@ -133,6 +154,13 @@
                   </widget>
                  </item>
                 </layout>
+               </item>
+               <item>
+                <widget class="QLabel" name="label_field_date">
+                 <property name="text">
+                  <string>Date</string>
+                 </property>
+                </widget>
                </item>
                <item>
                 <layout class="QHBoxLayout" name="horizontalLayout_date">
@@ -158,34 +186,9 @@
                 </layout>
                </item>
                <item>
-                <widget class="QPushButton" name="pushButton_add">
-                 <property name="font">
-                  <font>
-                   <pointsize>12</pointsize>
-                   <bold>true</bold>
-                  </font>
-                 </property>
-                 <property name="styleSheet">
-                  <string notr="true">QPushButton {
-                                      background-color: #3aaf9d;
-                                      color: #ffffff;
-                                      border: 1px solid #3aaf9d;
-                                      border-radius: 4px;
-                                      padding: 5px 14px;
-                                      }
-                                      QPushButton:hover {
-                                      background-color: #038387;
-                                      color: #ffffff;
-                                      border-color: #038387;
-                                      }
-                                      QPushButton:pressed {
-                                      background-color: #026a6d;
-                                      color: #ffffff;
-                                      border-color: #026a6d;
-                                      }</string>
-                 </property>
+                <widget class="QLabel" name="label_field_tag">
                  <property name="text">
-                  <string>Add Transaction</string>
+                  <string>Tags</string>
                  </property>
                 </widget>
                </item>
@@ -210,47 +213,39 @@
                  </item>
                 </layout>
                </item>
+               <item>
+                <widget class="QPushButton" name="pushButton_add">
+                 <property name="font">
+                  <font>
+                   <pointsize>12</pointsize>
+                   <bold>true</bold>
+                  </font>
+                 </property>
+                 <property name="styleSheet">
+                  <string notr="true">/* hsk-fluent-mint */</string>
+                 </property>
+                 <property name="text">
+                  <string>Add transaction</string>
+                 </property>
+                </widget>
+               </item>
               </layout>
              </widget>
             </item>
             <item>
              <widget class="QGroupBox" name="groupBox_commands">
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>1</height>
-               </size>
-              </property>
               <property name="title">
-               <string>Commands</string>
+               <string/>
+              </property>
+              <property name="flat">
+               <bool>true</bool>
               </property>
               <layout class="QVBoxLayout" name="verticalLayout_2">
+               <property name="spacing">
+                <number>6</number>
+               </property>
                <item>
                 <widget class="QPushButton" name="pushButton_add_as_text_with_ai">
-                 <property name="font">
-                  <font>
-                   <bold>true</bold>
-                  </font>
-                 </property>
-                 <property name="styleSheet">
-                  <string notr="true">QPushButton {
-                                      background-color: #3aaf9d;
-                                      color: #ffffff;
-                                      border: 1px solid #3aaf9d;
-                                      border-radius: 4px;
-                                      padding: 5px 14px;
-                                      }
-                                      QPushButton:hover {
-                                      background-color: #038387;
-                                      color: #ffffff;
-                                      border-color: #038387;
-                                      }
-                                      QPushButton:pressed {
-                                      background-color: #026a6d;
-                                      color: #ffffff;
-                                      border-color: #026a6d;
-                                      }</string>
-                 </property>
                  <property name="text">
                   <string>Add with AI</string>
                  </property>
@@ -260,61 +255,58 @@
              </widget>
             </item>
             <item>
-             <widget class="QGroupBox" name="groupBox_today_expense">
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>100</height>
-               </size>
-              </property>
+             <widget class="QGroupBox" name="groupBox_expenses">
               <property name="title">
-               <string>Today's Expenses</string>
+               <string>Expenses</string>
               </property>
-              <layout class="QVBoxLayout" name="verticalLayout_20">
-               <item>
-                <widget class="QLabel" name="label_today_expense">
-                 <property name="font">
-                  <font>
-                   <pointsize>16</pointsize>
-                   <bold>true</bold>
-                  </font>
-                 </property>
+              <layout class="QGridLayout" name="gridLayout_expenses">
+               <property name="horizontalSpacing">
+                <number>12</number>
+               </property>
+               <property name="verticalSpacing">
+                <number>4</number>
+               </property>
+               <item row="0" column="0">
+                <widget class="QLabel" name="label_expense_today_caption">
                  <property name="text">
-                  <string>0.0₀₽</string>
-                 </property>
-                 <property name="alignment">
-                  <set>Qt::AlignmentFlag::AlignCenter</set>
+                  <string>Today</string>
                  </property>
                 </widget>
                </item>
-              </layout>
-             </widget>
-            </item>
-            <item>
-             <widget class="QGroupBox" name="groupBox_yesterday_expense">
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>80</height>
-               </size>
-              </property>
-              <property name="title">
-               <string>Yesterday's Expenses</string>
-              </property>
-              <layout class="QHBoxLayout" name="horizontalLayout_30">
-               <item>
-                <widget class="QLabel" name="label_yesterday_expense">
+               <item row="0" column="1">
+                <widget class="QLabel" name="label_today_expense">
                  <property name="font">
                   <font>
-                   <pointsize>12</pointsize>
                    <bold>true</bold>
                   </font>
                  </property>
                  <property name="text">
-                  <string>0.0₀₽</string>
+                  <string>0.00₽</string>
                  </property>
                  <property name="alignment">
-                  <set>Qt::AlignmentFlag::AlignCenter</set>
+                  <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="0">
+                <widget class="QLabel" name="label_expense_yesterday_caption">
+                 <property name="text">
+                  <string>Yesterday</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="1">
+                <widget class="QLabel" name="label_yesterday_expense">
+                 <property name="font">
+                  <font>
+                   <bold>true</bold>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>0.00₽</string>
+                 </property>
+                 <property name="alignment">
+                  <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
                  </property>
                 </widget>
                </item>
@@ -336,12 +328,34 @@
             </item>
            </layout>
           </widget>
+
           <widget class="QWidget" name="widget_middle">
+           <property name="minimumSize">
+            <size>
+             <width>200</width>
+             <height>0</height>
+            </size>
+           </property>
            <layout class="QVBoxLayout" name="verticalLayout">
+            <property name="spacing">
+             <number>4</number>
+            </property>
+            <property name="leftMargin">
+             <number>4</number>
+            </property>
+            <property name="topMargin">
+             <number>8</number>
+            </property>
+            <property name="rightMargin">
+             <number>4</number>
+            </property>
+            <property name="bottomMargin">
+             <number>8</number>
+            </property>
             <item>
              <widget class="QLabel" name="label_categories">
               <property name="text">
-               <string>Categories:</string>
+               <string>Categories</string>
               </property>
              </widget>
             </item>
@@ -353,28 +367,12 @@
                 <height>16777215</height>
                </size>
               </property>
-              <property name="styleSheet">
-               <string notr="true">QListView {
-                                border: none;
-                                background-color: white;
-                                }
-                                QListView::item {
-                                padding: 4px;
-                                border-bottom: 1px solid #e0e0e0;
-                                }
-                                QListView::item:selected {
-                                background-color: #E8F5E8;
-                                color: black;
-                                }
-                                QListView::item:hover {
-                                background-color: #f0f8f0;
-                                }</string>
-              </property>
              </widget>
             </item>
            </layout>
           </widget>
-          <widget class="QWidget" name="widget_transactions">
+
+<widget class="QWidget" name="widget_transactions">
            <layout class="QVBoxLayout" name="verticalLayout_transactions">
             <property name="spacing">
              <number>4</number>

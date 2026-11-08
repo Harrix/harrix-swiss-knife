@@ -15,6 +15,7 @@ lang: en
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `clear_suggestions`](#%EF%B8%8F-method-clear_suggestions)
   - [⚙️ Method `editorEvent`](#%EF%B8%8F-method-editorevent)
+  - [⚙️ Method `helpEvent`](#%EF%B8%8F-method-helpevent)
   - [⚙️ Method `paint`](#%EF%B8%8F-method-paint)
   - [⚙️ Method `set_suggested_categories`](#%EF%B8%8F-method-set_suggested_categories)
   - [⚙️ Method `sizeHint`](#%EF%B8%8F-method-sizehint)
@@ -27,7 +28,7 @@ lang: en
 class CategorySuggestDelegate(QStyledItemDelegate)
 ```
 
-Paint category rows with an opaque Use button on the right for suggestions.
+Paint compact category rows with selection chrome and optional Use buttons.
 
 <details>
 <summary>Code:</summary>
@@ -70,40 +71,82 @@ class CategorySuggestDelegate(QStyledItemDelegate):
 
         return super().editorEvent(event, model, option, index)
 
+    def helpEvent(  # noqa: N802
+        self,
+        event: QHelpEvent,
+        view: QWidget | None,
+        option: QStyleOptionViewItem,
+        index: QModelIndex | QPersistentModelIndex,
+    ) -> bool:
+        """Show the full category label when the visible text is elided."""
+        del option
+        if view is None:
+            return False
+        tip = index.data(Qt.ItemDataRole.ToolTipRole)
+        if tip is None:
+            tip = index.data(Qt.ItemDataRole.DisplayRole)
+        text = "" if tip is None else str(tip).strip()
+        if not text:
+            return False
+        QToolTip.showText(event.globalPos(), text, view)
+        return True
+
     def paint(
         self,
         painter: QPainter,
         option: QStyleOptionViewItem,
         index: QModelIndex | QPersistentModelIndex,
     ) -> None:
-        """Paint category text on the left and Use button on the right when suggested."""
+        """Paint category text, selection chrome, and optional Use button."""
         opt = QStyleOptionViewItem(option)
         self.initStyleOption(opt, index)
 
         category_name = self._category_name(index)
         show_button = bool(category_name and category_name in self._suggested)
-        reserved = (self._button_width(opt) + _BUTTON_MARGIN) if show_button else 0
+        selected = bool(opt.state & QStyle.StateFlag.State_Selected)
+        hovered = bool(opt.state & QStyle.StateFlag.State_MouseOver)
+        focused = bool(opt.state & QStyle.StateFlag.State_HasFocus)
+
+        reserved_right = (self._button_width(opt) + _BUTTON_MARGIN) if show_button else 0
+        if selected and not show_button:
+            reserved_right = _CHECK_WIDTH + _BUTTON_MARGIN
 
         host = self._host_widget(option)
         fluent = palette_for(host)
         text_color = mix(fluent.window_bg, fluent.text_primary)
-        if opt.state & QStyle.StateFlag.State_Selected:
+        if selected:
             background = list_item_selected(fluent)
-        elif opt.state & QStyle.StateFlag.State_MouseOver:
+        elif hovered:
             background = list_item_hover(fluent)
         else:
             background = QColor(0, 0, 0, 0)
 
         painter.save()
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
         if background.alpha() > 0:
-            painter.fillRect(option.rect, background)
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(background)
+            painter.drawRoundedRect(option.rect.adjusted(1, 1, -1, -1), RADIUS_CONTROL, RADIUS_CONTROL)
 
-        text_rect = option.rect.adjusted(6, 0, -(reserved + 4), 0)
+        if selected:
+            marker = QRect(option.rect.left() + 1, option.rect.top() + 4, _MARKER_WIDTH, option.rect.height() - 8)
+            painter.fillRect(marker, fluent.accent)
+
+        if focused and not selected:
+            pen = QPen(fluent.focus_stroke_outer, 1)
+            painter.setPen(pen)
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            painter.drawRoundedRect(option.rect.adjusted(1, 1, -2, -2), RADIUS_CONTROL, RADIUS_CONTROL)
+
+        text_left = 8 if not selected else 8 + _MARKER_WIDTH
+        text_rect = option.rect.adjusted(text_left, 0, -(reserved_right + 4), 0)
         secondary = mix(fluent.window_bg, fluent.text_secondary)
         self._paint_category_label(painter, opt, index, text_rect, text_color, secondary)
 
         if show_button:
             self._paint_use_button(painter, opt, host)
+        elif selected:
+            self._paint_check(painter, option.rect, fluent.accent_text)
         painter.restore()
 
     def set_suggested_categories(self, category_names: Collection[str]) -> None:
@@ -115,12 +158,9 @@ class CategorySuggestDelegate(QStyledItemDelegate):
         option: QStyleOptionViewItem,
         index: QModelIndex | QPersistentModelIndex,
     ) -> QSize:
-        """Keep enough vertical space for the Use button."""
-        hint = super().sizeHint(option, index)
-        category_name = self._category_name(index)
-        if category_name and category_name in self._suggested:
-            hint.setHeight(max(hint.height(), _BUTTON_HEIGHT + 2 * _BUTTON_MARGIN))
-        return hint
+        """Keep a compact, stable row height for dense category picking."""
+        del option, index
+        return QSize(120, CATEGORY_ROW_HEIGHT)
 
     def _button_rect(self, item_rect: QRect, option: QStyleOptionViewItem) -> QRect:
         width = self._button_width(option)
@@ -173,7 +213,11 @@ class CategorySuggestDelegate(QStyledItemDelegate):
         flags = int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft | Qt.TextFlag.TextSingleLine)
 
         if not name_local:
-            painter.drawText(text_rect, flags, main_text)
+            painter.drawText(
+                text_rect,
+                flags,
+                main_metrics.elidedText(main_text, Qt.TextElideMode.ElideRight, max(0, text_rect.width())),
+            )
             return
 
         local_font = QFont(option.font)
@@ -202,7 +246,6 @@ class CategorySuggestDelegate(QStyledItemDelegate):
             painter.drawText(local_rect, flags, local_text)
             return
 
-        # Prefer keeping local name visible when space is tight: elide main text.
         remaining_for_main = max(0, available - local_width)
         elided_main = main_metrics.elidedText(main_text, Qt.TextElideMode.ElideRight, remaining_for_main)
         elided_main_width = main_metrics.horizontalAdvance(elided_main)
@@ -221,6 +264,14 @@ class CategorySuggestDelegate(QStyledItemDelegate):
                 flags,
                 local_metrics.elidedText(local_text, Qt.TextElideMode.ElideRight, local_rect.width()),
             )
+
+    def _paint_check(self, painter: QPainter, item_rect: QRect, color: QColor) -> None:
+        size = 10
+        x = item_rect.right() - _CHECK_WIDTH - 2
+        y = item_rect.top() + (item_rect.height() - size) // 2
+        painter.setPen(QPen(color, 1.8, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
+        painter.drawLine(x + 1, y + size // 2, x + 3, y + size - 1)
+        painter.drawLine(x + 3, y + size - 1, x + size - 1, y + 1)
 
     def _paint_use_button(self, painter: QPainter, option: QStyleOptionViewItem, host: QWidget | None) -> None:
         fluent = palette_for(host)
@@ -311,13 +362,47 @@ def editorEvent(  # noqa: N802
 
 </details>
 
+### ⚙️ Method `helpEvent`
+
+```python
+def helpEvent(self, event: QHelpEvent, view: QWidget | None, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> bool
+```
+
+Show the full category label when the visible text is elided.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def helpEvent(  # noqa: N802
+        self,
+        event: QHelpEvent,
+        view: QWidget | None,
+        option: QStyleOptionViewItem,
+        index: QModelIndex | QPersistentModelIndex,
+    ) -> bool:
+        del option
+        if view is None:
+            return False
+        tip = index.data(Qt.ItemDataRole.ToolTipRole)
+        if tip is None:
+            tip = index.data(Qt.ItemDataRole.DisplayRole)
+        text = "" if tip is None else str(tip).strip()
+        if not text:
+            return False
+        QToolTip.showText(event.globalPos(), text, view)
+        return True
+```
+
+</details>
+
 ### ⚙️ Method `paint`
 
 ```python
 def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> None
 ```
 
-Paint category text on the left and Use button on the right when suggested.
+Paint category text, selection chrome, and optional Use button.
 
 <details>
 <summary>Code:</summary>
@@ -334,28 +419,50 @@ def paint(
 
         category_name = self._category_name(index)
         show_button = bool(category_name and category_name in self._suggested)
-        reserved = (self._button_width(opt) + _BUTTON_MARGIN) if show_button else 0
+        selected = bool(opt.state & QStyle.StateFlag.State_Selected)
+        hovered = bool(opt.state & QStyle.StateFlag.State_MouseOver)
+        focused = bool(opt.state & QStyle.StateFlag.State_HasFocus)
+
+        reserved_right = (self._button_width(opt) + _BUTTON_MARGIN) if show_button else 0
+        if selected and not show_button:
+            reserved_right = _CHECK_WIDTH + _BUTTON_MARGIN
 
         host = self._host_widget(option)
         fluent = palette_for(host)
         text_color = mix(fluent.window_bg, fluent.text_primary)
-        if opt.state & QStyle.StateFlag.State_Selected:
+        if selected:
             background = list_item_selected(fluent)
-        elif opt.state & QStyle.StateFlag.State_MouseOver:
+        elif hovered:
             background = list_item_hover(fluent)
         else:
             background = QColor(0, 0, 0, 0)
 
         painter.save()
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
         if background.alpha() > 0:
-            painter.fillRect(option.rect, background)
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(background)
+            painter.drawRoundedRect(option.rect.adjusted(1, 1, -1, -1), RADIUS_CONTROL, RADIUS_CONTROL)
 
-        text_rect = option.rect.adjusted(6, 0, -(reserved + 4), 0)
+        if selected:
+            marker = QRect(option.rect.left() + 1, option.rect.top() + 4, _MARKER_WIDTH, option.rect.height() - 8)
+            painter.fillRect(marker, fluent.accent)
+
+        if focused and not selected:
+            pen = QPen(fluent.focus_stroke_outer, 1)
+            painter.setPen(pen)
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            painter.drawRoundedRect(option.rect.adjusted(1, 1, -2, -2), RADIUS_CONTROL, RADIUS_CONTROL)
+
+        text_left = 8 if not selected else 8 + _MARKER_WIDTH
+        text_rect = option.rect.adjusted(text_left, 0, -(reserved_right + 4), 0)
         secondary = mix(fluent.window_bg, fluent.text_secondary)
         self._paint_category_label(painter, opt, index, text_rect, text_color, secondary)
 
         if show_button:
             self._paint_use_button(painter, opt, host)
+        elif selected:
+            self._paint_check(painter, option.rect, fluent.accent_text)
         painter.restore()
 ```
 
@@ -385,7 +492,7 @@ def set_suggested_categories(self, category_names: Collection[str]) -> None:
 def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> QSize
 ```
 
-Keep enough vertical space for the Use button.
+Keep a compact, stable row height for dense category picking.
 
 <details>
 <summary>Code:</summary>
@@ -396,11 +503,8 @@ def sizeHint(  # noqa: N802
         option: QStyleOptionViewItem,
         index: QModelIndex | QPersistentModelIndex,
     ) -> QSize:
-        hint = super().sizeHint(option, index)
-        category_name = self._category_name(index)
-        if category_name and category_name in self._suggested:
-            hint.setHeight(max(hint.height(), _BUTTON_HEIGHT + 2 * _BUTTON_MARGIN))
-        return hint
+        del option, index
+        return QSize(120, CATEGORY_ROW_HEIGHT)
 ```
 
 </details>

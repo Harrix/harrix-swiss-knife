@@ -64,7 +64,8 @@ def install_transactions_filter_chrome(host: Any) -> None:
     ):
         label.hide()
 
-    host.lineEdit_filter_description.setPlaceholderText("Search description…")
+    host.lineEdit_filter_description.setPlaceholderText("Search by description…")
+    host.lineEdit_filter_description.setToolTip("Filters the Description column only")
     host.lineEdit_filter_description.setClearButtonEnabled(False)
 
     host.pushButton_filter = QPushButton("Filter", host.groupBox_filter)

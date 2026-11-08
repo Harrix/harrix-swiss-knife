@@ -108,7 +108,7 @@ class MainWindow(
     about_description = "Track accounts, transactions, and exchange rates."
     settings_app_id = "finance"
     defer_initial_show = True
-    _NO_CATEGORY_LABEL: str = "❓ No selected category"
+    _NO_CATEGORY_LABEL: str = "No category selected"
     _TRANSACTION_AMOUNT_COLUMN: int = 2
     _TRANSLATION_FAILURE_PREVIEW_LIMIT: int = 8
 
@@ -132,6 +132,7 @@ class MainWindow(
         self._bind_exchange_rates_operations()
         self._setup_ui()
         self._finish_fluent_window_chrome()
+        install_transactions_entry_chrome(self)
         apply_window_icon(self)
         self._init_hide_on_close(hide_on_close=hide_on_close)
         app = QApplication.instance()
@@ -375,6 +376,7 @@ class MainWindow(
             return
 
         self._is_closing = True
+        persist_transactions_splitter_sizes(self)
         self._stop_background_transaction_translate_timer()
         bg_worker = getattr(self, "_bg_tx_translate_state", None)
         if bg_worker is not None and bg_worker.worker is not None:
@@ -827,17 +829,14 @@ class MainWindow(
         if current.isValid():
             # Get the display text (with icon and income marker if applicable)
             display_text: str | None = current.data(Qt.ItemDataRole.DisplayRole)
-            if display_text:
-                self.label_category_now.setText(display_text)
-            else:
-                self.label_category_now.setText(self._NO_CATEGORY_LABEL)
+            refresh_category_state_label(self, display_text)
 
             # Defer so Use-button click handlers are not destroyed mid-signal.
             QTimer.singleShot(0, self._clear_category_suggestions)
             # Move focus to description field and select all text
             QTimer.singleShot(100, self._focus_description_and_select_text)
         else:
-            self.label_category_now.setText(self._NO_CATEGORY_LABEL)
+            refresh_category_state_label(self, None)
 
     def on_clear_description(self) -> None:
         """Clear the description field."""
@@ -1584,23 +1583,9 @@ class MainWindow(
             splitter.setSizes([left_width, right_width])
 
     def _apply_transactions_splitter_sizes(self) -> None:
-        """Restore Transactions-tab splitter widths so categories list is not squeezed."""
-        if getattr(self, "_is_closing", False) or not hasattr(self, "splitter"):
-            return
-
-        total = self.splitter.width()
-        if total <= 0:
-            total = max(self.width(), 1200)
-
-        left = max(self.frame.minimumWidth(), 380)
-        remaining = max(total - left, 0)
-        min_table_width = 400
-        middle = max(self.widget_middle.minimumWidth(), remaining // 4)
-        right = remaining - middle
-        if right < min_table_width:
-            right = min(min_table_width, remaining // 2)
-            middle = remaining - right
-        self.splitter.setSizes([left, middle, right])
+        """Restore Transactions-tab splitter widths (persisted or defaults)."""
+        # `install_transactions_entry_chrome` replaces this on the instance after setup.
+        return
 
     def _arm_background_transaction_translate_timer(self) -> None:
         """Start or restart the 1-minute debounce before another silent translate pass."""
@@ -1725,7 +1710,7 @@ class MainWindow(
 
     def _clear_category_selection(self) -> None:
         """Clear selected category in the transaction form."""
-        self.label_category_now.setText(self._NO_CATEGORY_LABEL)
+        refresh_category_state_label(self, None)
         selection_model = self.listView_categories.selectionModel()
         if selection_model is not None:
             selection_model.blockSignals(True)  # noqa: FBT003
@@ -4273,7 +4258,7 @@ class MainWindow(
             category_name: str = category_data[1]  # name
             category_type: int = category_data[2]  # type
             display_text: str = f"{category_name} ({'Income' if category_type == 1 else 'Expense'})"
-            self.label_category_now.setText(display_text)
+            refresh_category_state_label(self, display_text)
 
             # Select category in listView_categories
             self._select_category_by_id(category_id)
@@ -4993,8 +4978,7 @@ class MainWindow(
 
                         # Update the category label
                         display_text: str | None = model.data(index, Qt.ItemDataRole.DisplayRole)
-                        if display_text:
-                            self.label_category_now.setText(display_text)
+                        refresh_category_state_label(self, display_text)
                         break
 
         except Exception:
@@ -5262,9 +5246,9 @@ class MainWindow(
         QWidget.setTabOrder(self.lineEdit_description, self.doubleSpinBox_amount)
         QWidget.setTabOrder(self.doubleSpinBox_amount, self.comboBox_currency)
         QWidget.setTabOrder(self.comboBox_currency, self.dateEdit)
-        QWidget.setTabOrder(self.dateEdit, self.pushButton_add)
-        QWidget.setTabOrder(self.pushButton_add, self.lineEdit_tag)
-        QWidget.setTabOrder(self.lineEdit_tag, self.listView_categories)
+        QWidget.setTabOrder(self.dateEdit, self.lineEdit_tag)
+        QWidget.setTabOrder(self.lineEdit_tag, self.pushButton_add)
+        QWidget.setTabOrder(self.pushButton_add, self.listView_categories)
         QWidget.setTabOrder(self.listView_categories, self.lineEdit_filter_description)
         QWidget.setTabOrder(self.lineEdit_filter_description, self.pushButton_filter)
         QWidget.setTabOrder(self.pushButton_filter, self.pushButton_clear_filter)
@@ -5278,6 +5262,7 @@ class MainWindow(
     def _setup_transactions_table_column_widths(self) -> None:
         """Configure column resize modes for the transactions table."""
         apply_transactions_table_column_widths(self.tableView_transactions)
+        apply_transactions_column_visibility(self)
 
     def _setup_transactions_table_delegates(self) -> None:
         """Set up item delegates for the transactions table."""
@@ -5323,9 +5308,7 @@ class MainWindow(
         attach_date_edit_quick_controls(self.dateEdit_filter_from)
         attach_date_edit_quick_controls(self.dateEdit_filter_to)
 
-        # Set emoji for buttons
-        self.pushButton_add.setText(f"➕ {self.pushButton_add.text()}")  # noqa: RUF001
-        self.pushButton_add_as_text_with_ai.setText(f"🤖 {self.pushButton_add_as_text_with_ai.text()}")
+        # Transaction entry buttons are polished by install_transactions_entry_chrome.
         self.action_transactions_translate_with_ai.setText(f"🤖 {self.action_transactions_translate_with_ai.text()}")
         self.action_transactions_refresh.setText(f"🔄 {self.action_transactions_refresh.text()}")
         self.action_transactions_show_all_records.setText("📊 Show All Transactions")
@@ -5451,24 +5434,15 @@ class MainWindow(
             old_label.deleteLater()
             self.label_category_now = new_label
 
-        # Enable category selection via label context menu
+        # Enable category selection via label context menu (status indicator, not a combo)
         self.label_category_now.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.label_category_now.customContextMenuRequested.connect(self._show_category_label_context_menu)
         self.label_category_now.installEventFilter(self)
+        refresh_category_state_label(self, None)
 
         # Add context menu for categories list (Filter by this category)
         self.listView_categories.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.listView_categories.customContextMenuRequested.connect(self._show_categories_list_context_menu)
-
-        # Configure splitter proportions.
-        # Filter bar above the transactions table has a wide sizeHint; without explicit
-        # sizes QSplitter steals width from listView_categories.
-        self.widget_middle.setMinimumWidth(220)
-        self.splitter.setStretchFactor(0, 0)  # frame with fixed size
-        self.splitter.setStretchFactor(1, 2)  # categories list
-        self.splitter.setStretchFactor(2, 3)  # transaction filters + table
-        self._apply_transactions_splitter_sizes()
-        QTimer.singleShot(60, self._apply_transactions_splitter_sizes)
 
         # Configure splitter_4 proportions (frame_exchange narrow, tableView_exchange wide)
         self.splitter_4.setStretchFactor(0, 1)  # frame_exchange gets less space
@@ -6279,6 +6253,7 @@ class MainWindow(
                 # Store the original category name as data for selection handling
                 item.setData(category_name, Qt.ItemDataRole.UserRole)
                 item.setData(name_local, NAME_LOCAL_ROLE)
+                item.setData(display_text, Qt.ItemDataRole.ToolTipRole)
                 item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
                 model.appendRow(item)
 
@@ -6291,6 +6266,7 @@ class MainWindow(
                 # Store the original category name as data for selection handling
                 item.setData(category_name, Qt.ItemDataRole.UserRole)
                 item.setData(name_local, NAME_LOCAL_ROLE)
+                item.setData(display_text, Qt.ItemDataRole.ToolTipRole)
                 item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
                 model.appendRow(item)
 
@@ -6584,6 +6560,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:
         self._bind_exchange_rates_operations()
         self._setup_ui()
         self._finish_fluent_window_chrome()
+        install_transactions_entry_chrome(self)
         apply_window_icon(self)
         self._init_hide_on_close(hide_on_close=hide_on_close)
         app = QApplication.instance()
@@ -6922,6 +6899,7 @@ def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
             return
 
         self._is_closing = True
+        persist_transactions_splitter_sizes(self)
         self._stop_background_transaction_translate_timer()
         bg_worker = getattr(self, "_bg_tx_translate_state", None)
         if bg_worker is not None and bg_worker.worker is not None:
@@ -7527,17 +7505,14 @@ def on_category_selection_changed(self, current: QModelIndex, _previous: QModelI
         if current.isValid():
             # Get the display text (with icon and income marker if applicable)
             display_text: str | None = current.data(Qt.ItemDataRole.DisplayRole)
-            if display_text:
-                self.label_category_now.setText(display_text)
-            else:
-                self.label_category_now.setText(self._NO_CATEGORY_LABEL)
+            refresh_category_state_label(self, display_text)
 
             # Defer so Use-button click handlers are not destroyed mid-signal.
             QTimer.singleShot(0, self._clear_category_suggestions)
             # Move focus to description field and select all text
             QTimer.singleShot(100, self._focus_description_and_select_text)
         else:
-            self.label_category_now.setText(self._NO_CATEGORY_LABEL)
+            refresh_category_state_label(self, None)
 ```
 
 </details>

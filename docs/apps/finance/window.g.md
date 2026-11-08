@@ -47,20 +47,25 @@ class Ui_MainWindow(object):
         self.action_transactions_translate_with_ai.setText(QCoreApplication.translate("MainWindow", u"Translate Transactions with AI", None))
         self.actionExit.setText(QCoreApplication.translate("MainWindow", u"Exit", None))
         self.actionAbout.setText(QCoreApplication.translate("MainWindow", u"About", None))
-        self.groupBox_transaction.setTitle(QCoreApplication.translate("MainWindow", u"Transaction Details", None))
-        self.label_category_now.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
-        self.lineEdit_description.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Description", None))
+        self.groupBox_transaction.setTitle(QCoreApplication.translate("MainWindow", u"New transaction", None))
+        self.label_category_now.setText(QCoreApplication.translate("MainWindow", u"No category selected", None))
+        self.label_field_description.setText(QCoreApplication.translate("MainWindow", u"Description", None))
+        self.lineEdit_description.setPlaceholderText(QCoreApplication.translate("MainWindow", u"What did you buy?", None))
+        self.label_field_amount.setText(QCoreApplication.translate("MainWindow", u"Amount", None))
+        self.label_field_date.setText(QCoreApplication.translate("MainWindow", u"Date", None))
         self.dateEdit.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
-        self.pushButton_add.setText(QCoreApplication.translate("MainWindow", u"Add Transaction", None))
+        self.label_field_tag.setText(QCoreApplication.translate("MainWindow", u"Tags", None))
         self.label_tag.setText(QCoreApplication.translate("MainWindow", u"Tag:", None))
         self.lineEdit_tag.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Optional, comma-separated", None))
-        self.groupBox_commands.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
+        self.pushButton_add.setText(QCoreApplication.translate("MainWindow", u"Add transaction", None))
+        self.groupBox_commands.setTitle("")
         self.pushButton_add_as_text_with_ai.setText(QCoreApplication.translate("MainWindow", u"Add with AI", None))
-        self.groupBox_today_expense.setTitle(QCoreApplication.translate("MainWindow", u"Today's Expenses", None))
-        self.label_today_expense.setText(QCoreApplication.translate("MainWindow", u"0.0\u2080\u20bd", None))
-        self.groupBox_yesterday_expense.setTitle(QCoreApplication.translate("MainWindow", u"Yesterday's Expenses", None))
-        self.label_yesterday_expense.setText(QCoreApplication.translate("MainWindow", u"0.0\u2080\u20bd", None))
-        self.label_categories.setText(QCoreApplication.translate("MainWindow", u"Categories:", None))
+        self.groupBox_expenses.setTitle(QCoreApplication.translate("MainWindow", u"Expenses", None))
+        self.label_expense_today_caption.setText(QCoreApplication.translate("MainWindow", u"Today", None))
+        self.label_today_expense.setText(QCoreApplication.translate("MainWindow", u"0.00\u20bd", None))
+        self.label_expense_yesterday_caption.setText(QCoreApplication.translate("MainWindow", u"Yesterday", None))
+        self.label_yesterday_expense.setText(QCoreApplication.translate("MainWindow", u"0.00\u20bd", None))
+        self.label_categories.setText(QCoreApplication.translate("MainWindow", u"Categories", None))
         self.groupBox_filter.setTitle("")
         self.label_filter_description.setText(QCoreApplication.translate("MainWindow", u"Description:", None))
         self.label_filter_type.setText(QCoreApplication.translate("MainWindow", u"Type:", None))
@@ -212,16 +217,18 @@ class Ui_MainWindow(object):
         self.frame = QFrame(self.splitter)
         self.frame.setObjectName(u"frame")
         self.frame.setStyleSheet(u"QFrame#frame { border: none; }")
-        self.frame.setMinimumSize(QSize(380, 0))
+        self.frame.setMinimumSize(QSize(320, 0))
         self.frame.setMaximumSize(QSize(16777215, 16777215))
         self.frame.setFrameShape(QFrame.Shape.NoFrame)
         self.frame.setFrameShadow(QFrame.Shadow.Plain)
         self.verticalLayout_5 = QVBoxLayout(self.frame)
+        self.verticalLayout_5.setSpacing(8)
         self.verticalLayout_5.setObjectName(u"verticalLayout_5")
+        self.verticalLayout_5.setContentsMargins(8, 8, 8, 8)
         self.groupBox_transaction = QGroupBox(self.frame)
         self.groupBox_transaction.setObjectName(u"groupBox_transaction")
-        self.groupBox_transaction.setMinimumSize(QSize(0, 0))
         self.verticalLayout_3 = QVBoxLayout(self.groupBox_transaction)
+        self.verticalLayout_3.setSpacing(6)
         self.verticalLayout_3.setObjectName(u"verticalLayout_3")
         self.label_category_now = QLabel(self.groupBox_transaction)
         self.label_category_now.setObjectName(u"label_category_now")
@@ -231,6 +238,11 @@ class Ui_MainWindow(object):
         self.label_category_now.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
         self.verticalLayout_3.addWidget(self.label_category_now)
+
+        self.label_field_description = QLabel(self.groupBox_transaction)
+        self.label_field_description.setObjectName(u"label_field_description")
+
+        self.verticalLayout_3.addWidget(self.label_field_description)
 
         self.horizontalLayout_2 = QHBoxLayout()
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
@@ -245,6 +257,11 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_3.addLayout(self.horizontalLayout_2)
 
+        self.label_field_amount = QLabel(self.groupBox_transaction)
+        self.label_field_amount.setObjectName(u"label_field_amount")
+
+        self.verticalLayout_3.addWidget(self.label_field_amount)
+
         self.horizontalLayout_amount = QHBoxLayout()
         self.horizontalLayout_amount.setObjectName(u"horizontalLayout_amount")
         self.doubleSpinBox_amount = CompactDoubleSpinBox(self.groupBox_transaction)
@@ -253,9 +270,6 @@ class Ui_MainWindow(object):
         font2.setPointSize(12)
         font2.setBold(True)
         self.doubleSpinBox_amount.setFont(font2)
-        self.doubleSpinBox_amount.setStyleSheet(u"QDoubleSpinBox {\n"
-"                                          background-color: #e8f4fc;\n"
-"                                          }")
         self.doubleSpinBox_amount.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
         self.doubleSpinBox_amount.setValue(100.000000000000000)
 
@@ -270,6 +284,11 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_3.addLayout(self.horizontalLayout_amount)
 
+        self.label_field_date = QLabel(self.groupBox_transaction)
+        self.label_field_date.setObjectName(u"label_field_date")
+
+        self.verticalLayout_3.addWidget(self.label_field_date)
+
         self.horizontalLayout_date = QHBoxLayout()
         self.horizontalLayout_date.setObjectName(u"horizontalLayout_date")
         self.dateEdit = QDateEdit(self.groupBox_transaction)
@@ -283,28 +302,10 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_3.addLayout(self.horizontalLayout_date)
 
-        self.pushButton_add = QPushButton(self.groupBox_transaction)
-        self.pushButton_add.setObjectName(u"pushButton_add")
-        self.pushButton_add.setFont(font2)
-        self.pushButton_add.setStyleSheet(u"QPushButton {\n"
-"                                      background-color: #3aaf9d;\n"
-"                                      color: #ffffff;\n"
-"                                      border: 1px solid #3aaf9d;\n"
-"                                      border-radius: 4px;\n"
-"                                      padding: 5px 14px;\n"
-"                                      }\n"
-"                                      QPushButton:hover {\n"
-"                                      background-color: #038387;\n"
-"                                      color: #ffffff;\n"
-"                                      border-color: #038387;\n"
-"                                      }\n"
-"                                      QPushButton:pressed {\n"
-"                                      background-color: #026a6d;\n"
-"                                      color: #ffffff;\n"
-"                                      border-color: #026a6d;\n"
-"                                      }")
+        self.label_field_tag = QLabel(self.groupBox_transaction)
+        self.label_field_tag.setObjectName(u"label_field_tag")
 
-        self.verticalLayout_3.addWidget(self.pushButton_add)
+        self.verticalLayout_3.addWidget(self.label_field_tag)
 
         self.horizontalLayout_3 = QHBoxLayout()
         self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
@@ -322,72 +323,62 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_3.addLayout(self.horizontalLayout_3)
 
+        self.pushButton_add = QPushButton(self.groupBox_transaction)
+        self.pushButton_add.setObjectName(u"pushButton_add")
+        self.pushButton_add.setFont(font2)
+        self.pushButton_add.setStyleSheet(u"/* hsk-fluent-mint */")
+
+        self.verticalLayout_3.addWidget(self.pushButton_add)
+
 
         self.verticalLayout_5.addWidget(self.groupBox_transaction)
 
         self.groupBox_commands = QGroupBox(self.frame)
         self.groupBox_commands.setObjectName(u"groupBox_commands")
-        self.groupBox_commands.setMinimumSize(QSize(0, 1))
+        self.groupBox_commands.setFlat(True)
         self.verticalLayout_2 = QVBoxLayout(self.groupBox_commands)
+        self.verticalLayout_2.setSpacing(6)
         self.verticalLayout_2.setObjectName(u"verticalLayout_2")
         self.pushButton_add_as_text_with_ai = QPushButton(self.groupBox_commands)
         self.pushButton_add_as_text_with_ai.setObjectName(u"pushButton_add_as_text_with_ai")
-        self.pushButton_add_as_text_with_ai.setFont(font)
-        self.pushButton_add_as_text_with_ai.setStyleSheet(u"QPushButton {\n"
-"                                      background-color: #3aaf9d;\n"
-"                                      color: #ffffff;\n"
-"                                      border: 1px solid #3aaf9d;\n"
-"                                      border-radius: 4px;\n"
-"                                      padding: 5px 14px;\n"
-"                                      }\n"
-"                                      QPushButton:hover {\n"
-"                                      background-color: #038387;\n"
-"                                      color: #ffffff;\n"
-"                                      border-color: #038387;\n"
-"                                      }\n"
-"                                      QPushButton:pressed {\n"
-"                                      background-color: #026a6d;\n"
-"                                      color: #ffffff;\n"
-"                                      border-color: #026a6d;\n"
-"                                      }")
 
         self.verticalLayout_2.addWidget(self.pushButton_add_as_text_with_ai)
 
 
         self.verticalLayout_5.addWidget(self.groupBox_commands)
 
-        self.groupBox_today_expense = QGroupBox(self.frame)
-        self.groupBox_today_expense.setObjectName(u"groupBox_today_expense")
-        self.groupBox_today_expense.setMinimumSize(QSize(0, 100))
-        self.verticalLayout_20 = QVBoxLayout(self.groupBox_today_expense)
-        self.verticalLayout_20.setObjectName(u"verticalLayout_20")
-        self.label_today_expense = QLabel(self.groupBox_today_expense)
+        self.groupBox_expenses = QGroupBox(self.frame)
+        self.groupBox_expenses.setObjectName(u"groupBox_expenses")
+        self.gridLayout_expenses = QGridLayout(self.groupBox_expenses)
+        self.gridLayout_expenses.setObjectName(u"gridLayout_expenses")
+        self.gridLayout_expenses.setHorizontalSpacing(12)
+        self.gridLayout_expenses.setVerticalSpacing(4)
+        self.label_expense_today_caption = QLabel(self.groupBox_expenses)
+        self.label_expense_today_caption.setObjectName(u"label_expense_today_caption")
+
+        self.gridLayout_expenses.addWidget(self.label_expense_today_caption, 0, 0, 1, 1)
+
+        self.label_today_expense = QLabel(self.groupBox_expenses)
         self.label_today_expense.setObjectName(u"label_today_expense")
-        font3 = QFont()
-        font3.setPointSize(16)
-        font3.setBold(True)
-        self.label_today_expense.setFont(font3)
-        self.label_today_expense.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.label_today_expense.setFont(font)
+        self.label_today_expense.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
 
-        self.verticalLayout_20.addWidget(self.label_today_expense)
+        self.gridLayout_expenses.addWidget(self.label_today_expense, 0, 1, 1, 1)
 
+        self.label_expense_yesterday_caption = QLabel(self.groupBox_expenses)
+        self.label_expense_yesterday_caption.setObjectName(u"label_expense_yesterday_caption")
 
-        self.verticalLayout_5.addWidget(self.groupBox_today_expense)
+        self.gridLayout_expenses.addWidget(self.label_expense_yesterday_caption, 1, 0, 1, 1)
 
-        self.groupBox_yesterday_expense = QGroupBox(self.frame)
-        self.groupBox_yesterday_expense.setObjectName(u"groupBox_yesterday_expense")
-        self.groupBox_yesterday_expense.setMinimumSize(QSize(0, 80))
-        self.horizontalLayout_30 = QHBoxLayout(self.groupBox_yesterday_expense)
-        self.horizontalLayout_30.setObjectName(u"horizontalLayout_30")
-        self.label_yesterday_expense = QLabel(self.groupBox_yesterday_expense)
+        self.label_yesterday_expense = QLabel(self.groupBox_expenses)
         self.label_yesterday_expense.setObjectName(u"label_yesterday_expense")
-        self.label_yesterday_expense.setFont(font2)
-        self.label_yesterday_expense.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.label_yesterday_expense.setFont(font)
+        self.label_yesterday_expense.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
 
-        self.horizontalLayout_30.addWidget(self.label_yesterday_expense)
+        self.gridLayout_expenses.addWidget(self.label_yesterday_expense, 1, 1, 1, 1)
 
 
-        self.verticalLayout_5.addWidget(self.groupBox_yesterday_expense)
+        self.verticalLayout_5.addWidget(self.groupBox_expenses)
 
         self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
@@ -396,9 +387,11 @@ class Ui_MainWindow(object):
         self.splitter.addWidget(self.frame)
         self.widget_middle = QWidget(self.splitter)
         self.widget_middle.setObjectName(u"widget_middle")
+        self.widget_middle.setMinimumSize(QSize(200, 0))
         self.verticalLayout = QVBoxLayout(self.widget_middle)
+        self.verticalLayout.setSpacing(4)
         self.verticalLayout.setObjectName(u"verticalLayout")
-        self.verticalLayout.setContentsMargins(0, 0, 0, 0)
+        self.verticalLayout.setContentsMargins(4, 8, 4, 8)
         self.label_categories = QLabel(self.widget_middle)
         self.label_categories.setObjectName(u"label_categories")
 
@@ -407,21 +400,6 @@ class Ui_MainWindow(object):
         self.listView_categories = QListView(self.widget_middle)
         self.listView_categories.setObjectName(u"listView_categories")
         self.listView_categories.setMaximumSize(QSize(16777215, 16777215))
-        self.listView_categories.setStyleSheet(u"QListView {\n"
-"                                border: none;\n"
-"                                background-color: white;\n"
-"                                }\n"
-"                                QListView::item {\n"
-"                                padding: 4px;\n"
-"                                border-bottom: 1px solid #e0e0e0;\n"
-"                                }\n"
-"                                QListView::item:selected {\n"
-"                                background-color: #E8F5E8;\n"
-"                                color: black;\n"
-"                                }\n"
-"                                QListView::item:hover {\n"
-"                                background-color: #f0f8f0;\n"
-"                                }")
 
         self.verticalLayout.addWidget(self.listView_categories)
 
@@ -582,6 +560,9 @@ class Ui_MainWindow(object):
         self.verticalLayout_16.setObjectName(u"verticalLayout_16")
         self.label_balance_accounts = QLabel(self.groupBox_balance_accounts)
         self.label_balance_accounts.setObjectName(u"label_balance_accounts")
+        font3 = QFont()
+        font3.setPointSize(16)
+        font3.setBold(True)
         self.label_balance_accounts.setFont(font3)
         self.label_balance_accounts.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
@@ -1535,20 +1516,25 @@ def retranslateUi(self, MainWindow):
         self.action_transactions_translate_with_ai.setText(QCoreApplication.translate("MainWindow", u"Translate Transactions with AI", None))
         self.actionExit.setText(QCoreApplication.translate("MainWindow", u"Exit", None))
         self.actionAbout.setText(QCoreApplication.translate("MainWindow", u"About", None))
-        self.groupBox_transaction.setTitle(QCoreApplication.translate("MainWindow", u"Transaction Details", None))
-        self.label_category_now.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
-        self.lineEdit_description.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Description", None))
+        self.groupBox_transaction.setTitle(QCoreApplication.translate("MainWindow", u"New transaction", None))
+        self.label_category_now.setText(QCoreApplication.translate("MainWindow", u"No category selected", None))
+        self.label_field_description.setText(QCoreApplication.translate("MainWindow", u"Description", None))
+        self.lineEdit_description.setPlaceholderText(QCoreApplication.translate("MainWindow", u"What did you buy?", None))
+        self.label_field_amount.setText(QCoreApplication.translate("MainWindow", u"Amount", None))
+        self.label_field_date.setText(QCoreApplication.translate("MainWindow", u"Date", None))
         self.dateEdit.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
-        self.pushButton_add.setText(QCoreApplication.translate("MainWindow", u"Add Transaction", None))
+        self.label_field_tag.setText(QCoreApplication.translate("MainWindow", u"Tags", None))
         self.label_tag.setText(QCoreApplication.translate("MainWindow", u"Tag:", None))
         self.lineEdit_tag.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Optional, comma-separated", None))
-        self.groupBox_commands.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
+        self.pushButton_add.setText(QCoreApplication.translate("MainWindow", u"Add transaction", None))
+        self.groupBox_commands.setTitle("")
         self.pushButton_add_as_text_with_ai.setText(QCoreApplication.translate("MainWindow", u"Add with AI", None))
-        self.groupBox_today_expense.setTitle(QCoreApplication.translate("MainWindow", u"Today's Expenses", None))
-        self.label_today_expense.setText(QCoreApplication.translate("MainWindow", u"0.0\u2080\u20bd", None))
-        self.groupBox_yesterday_expense.setTitle(QCoreApplication.translate("MainWindow", u"Yesterday's Expenses", None))
-        self.label_yesterday_expense.setText(QCoreApplication.translate("MainWindow", u"0.0\u2080\u20bd", None))
-        self.label_categories.setText(QCoreApplication.translate("MainWindow", u"Categories:", None))
+        self.groupBox_expenses.setTitle(QCoreApplication.translate("MainWindow", u"Expenses", None))
+        self.label_expense_today_caption.setText(QCoreApplication.translate("MainWindow", u"Today", None))
+        self.label_today_expense.setText(QCoreApplication.translate("MainWindow", u"0.00\u20bd", None))
+        self.label_expense_yesterday_caption.setText(QCoreApplication.translate("MainWindow", u"Yesterday", None))
+        self.label_yesterday_expense.setText(QCoreApplication.translate("MainWindow", u"0.00\u20bd", None))
+        self.label_categories.setText(QCoreApplication.translate("MainWindow", u"Categories", None))
         self.groupBox_filter.setTitle("")
         self.label_filter_description.setText(QCoreApplication.translate("MainWindow", u"Description:", None))
         self.label_filter_type.setText(QCoreApplication.translate("MainWindow", u"Type:", None))
@@ -1716,16 +1702,18 @@ def setupUi(self, MainWindow):
         self.frame = QFrame(self.splitter)
         self.frame.setObjectName(u"frame")
         self.frame.setStyleSheet(u"QFrame#frame { border: none; }")
-        self.frame.setMinimumSize(QSize(380, 0))
+        self.frame.setMinimumSize(QSize(320, 0))
         self.frame.setMaximumSize(QSize(16777215, 16777215))
         self.frame.setFrameShape(QFrame.Shape.NoFrame)
         self.frame.setFrameShadow(QFrame.Shadow.Plain)
         self.verticalLayout_5 = QVBoxLayout(self.frame)
+        self.verticalLayout_5.setSpacing(8)
         self.verticalLayout_5.setObjectName(u"verticalLayout_5")
+        self.verticalLayout_5.setContentsMargins(8, 8, 8, 8)
         self.groupBox_transaction = QGroupBox(self.frame)
         self.groupBox_transaction.setObjectName(u"groupBox_transaction")
-        self.groupBox_transaction.setMinimumSize(QSize(0, 0))
         self.verticalLayout_3 = QVBoxLayout(self.groupBox_transaction)
+        self.verticalLayout_3.setSpacing(6)
         self.verticalLayout_3.setObjectName(u"verticalLayout_3")
         self.label_category_now = QLabel(self.groupBox_transaction)
         self.label_category_now.setObjectName(u"label_category_now")
@@ -1735,6 +1723,11 @@ def setupUi(self, MainWindow):
         self.label_category_now.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
         self.verticalLayout_3.addWidget(self.label_category_now)
+
+        self.label_field_description = QLabel(self.groupBox_transaction)
+        self.label_field_description.setObjectName(u"label_field_description")
+
+        self.verticalLayout_3.addWidget(self.label_field_description)
 
         self.horizontalLayout_2 = QHBoxLayout()
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
@@ -1749,6 +1742,11 @@ def setupUi(self, MainWindow):
 
         self.verticalLayout_3.addLayout(self.horizontalLayout_2)
 
+        self.label_field_amount = QLabel(self.groupBox_transaction)
+        self.label_field_amount.setObjectName(u"label_field_amount")
+
+        self.verticalLayout_3.addWidget(self.label_field_amount)
+
         self.horizontalLayout_amount = QHBoxLayout()
         self.horizontalLayout_amount.setObjectName(u"horizontalLayout_amount")
         self.doubleSpinBox_amount = CompactDoubleSpinBox(self.groupBox_transaction)
@@ -1757,9 +1755,6 @@ def setupUi(self, MainWindow):
         font2.setPointSize(12)
         font2.setBold(True)
         self.doubleSpinBox_amount.setFont(font2)
-        self.doubleSpinBox_amount.setStyleSheet(u"QDoubleSpinBox {\n"
-"                                          background-color: #e8f4fc;\n"
-"                                          }")
         self.doubleSpinBox_amount.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
         self.doubleSpinBox_amount.setValue(100.000000000000000)
 
@@ -1774,6 +1769,11 @@ def setupUi(self, MainWindow):
 
         self.verticalLayout_3.addLayout(self.horizontalLayout_amount)
 
+        self.label_field_date = QLabel(self.groupBox_transaction)
+        self.label_field_date.setObjectName(u"label_field_date")
+
+        self.verticalLayout_3.addWidget(self.label_field_date)
+
         self.horizontalLayout_date = QHBoxLayout()
         self.horizontalLayout_date.setObjectName(u"horizontalLayout_date")
         self.dateEdit = QDateEdit(self.groupBox_transaction)
@@ -1787,28 +1787,10 @@ def setupUi(self, MainWindow):
 
         self.verticalLayout_3.addLayout(self.horizontalLayout_date)
 
-        self.pushButton_add = QPushButton(self.groupBox_transaction)
-        self.pushButton_add.setObjectName(u"pushButton_add")
-        self.pushButton_add.setFont(font2)
-        self.pushButton_add.setStyleSheet(u"QPushButton {\n"
-"                                      background-color: #3aaf9d;\n"
-"                                      color: #ffffff;\n"
-"                                      border: 1px solid #3aaf9d;\n"
-"                                      border-radius: 4px;\n"
-"                                      padding: 5px 14px;\n"
-"                                      }\n"
-"                                      QPushButton:hover {\n"
-"                                      background-color: #038387;\n"
-"                                      color: #ffffff;\n"
-"                                      border-color: #038387;\n"
-"                                      }\n"
-"                                      QPushButton:pressed {\n"
-"                                      background-color: #026a6d;\n"
-"                                      color: #ffffff;\n"
-"                                      border-color: #026a6d;\n"
-"                                      }")
+        self.label_field_tag = QLabel(self.groupBox_transaction)
+        self.label_field_tag.setObjectName(u"label_field_tag")
 
-        self.verticalLayout_3.addWidget(self.pushButton_add)
+        self.verticalLayout_3.addWidget(self.label_field_tag)
 
         self.horizontalLayout_3 = QHBoxLayout()
         self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
@@ -1826,72 +1808,62 @@ def setupUi(self, MainWindow):
 
         self.verticalLayout_3.addLayout(self.horizontalLayout_3)
 
+        self.pushButton_add = QPushButton(self.groupBox_transaction)
+        self.pushButton_add.setObjectName(u"pushButton_add")
+        self.pushButton_add.setFont(font2)
+        self.pushButton_add.setStyleSheet(u"/* hsk-fluent-mint */")
+
+        self.verticalLayout_3.addWidget(self.pushButton_add)
+
 
         self.verticalLayout_5.addWidget(self.groupBox_transaction)
 
         self.groupBox_commands = QGroupBox(self.frame)
         self.groupBox_commands.setObjectName(u"groupBox_commands")
-        self.groupBox_commands.setMinimumSize(QSize(0, 1))
+        self.groupBox_commands.setFlat(True)
         self.verticalLayout_2 = QVBoxLayout(self.groupBox_commands)
+        self.verticalLayout_2.setSpacing(6)
         self.verticalLayout_2.setObjectName(u"verticalLayout_2")
         self.pushButton_add_as_text_with_ai = QPushButton(self.groupBox_commands)
         self.pushButton_add_as_text_with_ai.setObjectName(u"pushButton_add_as_text_with_ai")
-        self.pushButton_add_as_text_with_ai.setFont(font)
-        self.pushButton_add_as_text_with_ai.setStyleSheet(u"QPushButton {\n"
-"                                      background-color: #3aaf9d;\n"
-"                                      color: #ffffff;\n"
-"                                      border: 1px solid #3aaf9d;\n"
-"                                      border-radius: 4px;\n"
-"                                      padding: 5px 14px;\n"
-"                                      }\n"
-"                                      QPushButton:hover {\n"
-"                                      background-color: #038387;\n"
-"                                      color: #ffffff;\n"
-"                                      border-color: #038387;\n"
-"                                      }\n"
-"                                      QPushButton:pressed {\n"
-"                                      background-color: #026a6d;\n"
-"                                      color: #ffffff;\n"
-"                                      border-color: #026a6d;\n"
-"                                      }")
 
         self.verticalLayout_2.addWidget(self.pushButton_add_as_text_with_ai)
 
 
         self.verticalLayout_5.addWidget(self.groupBox_commands)
 
-        self.groupBox_today_expense = QGroupBox(self.frame)
-        self.groupBox_today_expense.setObjectName(u"groupBox_today_expense")
-        self.groupBox_today_expense.setMinimumSize(QSize(0, 100))
-        self.verticalLayout_20 = QVBoxLayout(self.groupBox_today_expense)
-        self.verticalLayout_20.setObjectName(u"verticalLayout_20")
-        self.label_today_expense = QLabel(self.groupBox_today_expense)
+        self.groupBox_expenses = QGroupBox(self.frame)
+        self.groupBox_expenses.setObjectName(u"groupBox_expenses")
+        self.gridLayout_expenses = QGridLayout(self.groupBox_expenses)
+        self.gridLayout_expenses.setObjectName(u"gridLayout_expenses")
+        self.gridLayout_expenses.setHorizontalSpacing(12)
+        self.gridLayout_expenses.setVerticalSpacing(4)
+        self.label_expense_today_caption = QLabel(self.groupBox_expenses)
+        self.label_expense_today_caption.setObjectName(u"label_expense_today_caption")
+
+        self.gridLayout_expenses.addWidget(self.label_expense_today_caption, 0, 0, 1, 1)
+
+        self.label_today_expense = QLabel(self.groupBox_expenses)
         self.label_today_expense.setObjectName(u"label_today_expense")
-        font3 = QFont()
-        font3.setPointSize(16)
-        font3.setBold(True)
-        self.label_today_expense.setFont(font3)
-        self.label_today_expense.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.label_today_expense.setFont(font)
+        self.label_today_expense.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
 
-        self.verticalLayout_20.addWidget(self.label_today_expense)
+        self.gridLayout_expenses.addWidget(self.label_today_expense, 0, 1, 1, 1)
 
+        self.label_expense_yesterday_caption = QLabel(self.groupBox_expenses)
+        self.label_expense_yesterday_caption.setObjectName(u"label_expense_yesterday_caption")
 
-        self.verticalLayout_5.addWidget(self.groupBox_today_expense)
+        self.gridLayout_expenses.addWidget(self.label_expense_yesterday_caption, 1, 0, 1, 1)
 
-        self.groupBox_yesterday_expense = QGroupBox(self.frame)
-        self.groupBox_yesterday_expense.setObjectName(u"groupBox_yesterday_expense")
-        self.groupBox_yesterday_expense.setMinimumSize(QSize(0, 80))
-        self.horizontalLayout_30 = QHBoxLayout(self.groupBox_yesterday_expense)
-        self.horizontalLayout_30.setObjectName(u"horizontalLayout_30")
-        self.label_yesterday_expense = QLabel(self.groupBox_yesterday_expense)
+        self.label_yesterday_expense = QLabel(self.groupBox_expenses)
         self.label_yesterday_expense.setObjectName(u"label_yesterday_expense")
-        self.label_yesterday_expense.setFont(font2)
-        self.label_yesterday_expense.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.label_yesterday_expense.setFont(font)
+        self.label_yesterday_expense.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
 
-        self.horizontalLayout_30.addWidget(self.label_yesterday_expense)
+        self.gridLayout_expenses.addWidget(self.label_yesterday_expense, 1, 1, 1, 1)
 
 
-        self.verticalLayout_5.addWidget(self.groupBox_yesterday_expense)
+        self.verticalLayout_5.addWidget(self.groupBox_expenses)
 
         self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
@@ -1900,9 +1872,11 @@ def setupUi(self, MainWindow):
         self.splitter.addWidget(self.frame)
         self.widget_middle = QWidget(self.splitter)
         self.widget_middle.setObjectName(u"widget_middle")
+        self.widget_middle.setMinimumSize(QSize(200, 0))
         self.verticalLayout = QVBoxLayout(self.widget_middle)
+        self.verticalLayout.setSpacing(4)
         self.verticalLayout.setObjectName(u"verticalLayout")
-        self.verticalLayout.setContentsMargins(0, 0, 0, 0)
+        self.verticalLayout.setContentsMargins(4, 8, 4, 8)
         self.label_categories = QLabel(self.widget_middle)
         self.label_categories.setObjectName(u"label_categories")
 
@@ -1911,21 +1885,6 @@ def setupUi(self, MainWindow):
         self.listView_categories = QListView(self.widget_middle)
         self.listView_categories.setObjectName(u"listView_categories")
         self.listView_categories.setMaximumSize(QSize(16777215, 16777215))
-        self.listView_categories.setStyleSheet(u"QListView {\n"
-"                                border: none;\n"
-"                                background-color: white;\n"
-"                                }\n"
-"                                QListView::item {\n"
-"                                padding: 4px;\n"
-"                                border-bottom: 1px solid #e0e0e0;\n"
-"                                }\n"
-"                                QListView::item:selected {\n"
-"                                background-color: #E8F5E8;\n"
-"                                color: black;\n"
-"                                }\n"
-"                                QListView::item:hover {\n"
-"                                background-color: #f0f8f0;\n"
-"                                }")
 
         self.verticalLayout.addWidget(self.listView_categories)
 
@@ -2086,6 +2045,9 @@ def setupUi(self, MainWindow):
         self.verticalLayout_16.setObjectName(u"verticalLayout_16")
         self.label_balance_accounts = QLabel(self.groupBox_balance_accounts)
         self.label_balance_accounts.setObjectName(u"label_balance_accounts")
+        font3 = QFont()
+        font3.setPointSize(16)
+        font3.setBold(True)
         self.label_balance_accounts.setFont(font3)
         self.label_balance_accounts.setAlignment(Qt.AlignmentFlag.AlignCenter)
 

@@ -3,7 +3,8 @@
 from typing import cast
 
 from PySide6.QtCore import QAbstractItemModel, QModelIndex, QObject, QPersistentModelIndex, Qt
-from PySide6.QtWidgets import QLineEdit, QStyledItemDelegate, QStyleOptionViewItem, QWidget
+from PySide6.QtGui import QHelpEvent
+from PySide6.QtWidgets import QLineEdit, QStyledItemDelegate, QStyleOptionViewItem, QToolTip, QWidget
 
 from harrix_swiss_knife.apps.common.ui_helpers import apply_white_editor_background
 
@@ -45,6 +46,24 @@ class DescriptionDelegate(QStyledItemDelegate):
         apply_white_editor_background(editor, "QLineEdit")
 
         return editor
+
+    def helpEvent(  # noqa: N802
+        self,
+        event: QHelpEvent,
+        view: QWidget | None,
+        option: QStyleOptionViewItem,
+        index: QModelIndex | QPersistentModelIndex,
+    ) -> bool:
+        """Show the full description when the cell text is elided."""
+        del option
+        if view is None:
+            return False
+        text = index.data(Qt.ItemDataRole.DisplayRole)
+        tip = "" if text is None else str(text).strip()
+        if not tip:
+            return False
+        QToolTip.showText(event.globalPos(), tip, view)
+        return True
 
     def setEditorData(self, editor: QWidget, index: QModelIndex | QPersistentModelIndex) -> None:  # noqa: N802
         """Set the current value in the editor.

@@ -124,25 +124,9 @@ class AmountDelegate(QStyledItemDelegate):
                     formatted_integer = " " + formatted_integer
                 formatted_integer = digit + formatted_integer
 
-            # Convert decimal digits to subscript Unicode characters
-            subscript_map = {
-                "0": "₀",
-                "1": "₁",
-                "2": "₂",
-                "3": "₃",
-                "4": "₄",
-                "5": "₅",
-                "6": "₆",
-                "7": "₇",
-                "8": "₈",
-                "9": "₉",
-            }
-
-            subscript_decimal = "".join(subscript_map.get(digit, digit) for digit in decimal_part)
-
-            # Construct final formatted number with subscript decimals
-            # Skip decimal part if it's actually zero
-            formatted = formatted_integer if num == int(num) else f"{formatted_integer}.{subscript_decimal}"
+            # Keep integer and fractional digits the same size for vertical scanning.
+            decimal_digits = (decimal_part + "00")[:2]
+            formatted = f"{formatted_integer}.{decimal_digits}"
 
             # Add minus sign back if needed
             if is_negative:
@@ -190,7 +174,9 @@ class AmountDelegate(QStyledItemDelegate):
                 brush = index.data(Qt.ItemDataRole.BackgroundRole)
                 if isinstance(brush, QBrush) and brush.style() != Qt.BrushStyle.NoBrush:
                     painter.fillRect(option.rect, brush)
-                painter.setFont(option.font)
+                font = QFont(option.font)
+                font.setStyleHint(QFont.StyleHint.SansSerif)
+                painter.setFont(font)
                 top_pad = 3 if alignment & Qt.AlignmentFlag.AlignTop else 0
                 painter.drawText(
                     option.rect.adjusted(5, top_pad, -5, 0),
@@ -212,38 +198,29 @@ class AmountDelegate(QStyledItemDelegate):
 
             # Check if this is an income transaction (has "(Income)" suffix)
             is_income = category_text and "(Income)" in str(category_text)
+            amount_text = self.displayText(index.data(), QLocale())
+            alignment = int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
 
             if is_income:
-                # Create a copy of the option to modify font
-                income_option = option
-                income_option.font = QFont(option.font)
-                income_option.font.setBold(True)
+                painter.save()
+                brush = index.data(Qt.ItemDataRole.BackgroundRole)
+                if isinstance(brush, QBrush) and brush.style() != Qt.BrushStyle.NoBrush:
+                    painter.fillRect(option.rect, brush)
+                font = QFont(option.font)
+                font.setBold(True)
+                painter.setFont(font)
+                painter.drawText(option.rect.adjusted(5, 0, -5, 0), alignment, amount_text)
+                painter.restore()
+                return
 
-                # Get the amount value and add emoji
-                amount_text = self.displayText(index.data(), QLocale())
-
-                # Add emoji prefix for display (but not for editing)
-                if not amount_text.startswith("💰"):
-                    display_text = f"💰 {amount_text}"
-
-                    # Create a temporary index with modified data for display
-                    painter.save()
-
-                    # Set bold font
-                    painter.setFont(income_option.font)
-
-                    # Draw the text manually
-                    painter.drawText(
-                        option.rect.adjusted(5, 0, 0, 0),
-                        Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft,
-                        display_text,
-                    )
-
-                    painter.restore()
-                    return
-
-            # For expenses or other cases, use default painting
-            super().paint(painter, option, index)
+            painter.save()
+            brush = index.data(Qt.ItemDataRole.BackgroundRole)
+            if isinstance(brush, QBrush) and brush.style() != Qt.BrushStyle.NoBrush:
+                painter.fillRect(option.rect, brush)
+            font = QFont(option.font)
+            painter.setFont(font)
+            painter.drawText(option.rect.adjusted(5, 0, -5, 0), alignment, amount_text)
+            painter.restore()
 
         except Exception:
             # Fallback to default painting on any error
@@ -438,25 +415,9 @@ def displayText(self, value: object, _locale: QLocale | QLocale.Language) -> str
                     formatted_integer = " " + formatted_integer
                 formatted_integer = digit + formatted_integer
 
-            # Convert decimal digits to subscript Unicode characters
-            subscript_map = {
-                "0": "₀",
-                "1": "₁",
-                "2": "₂",
-                "3": "₃",
-                "4": "₄",
-                "5": "₅",
-                "6": "₆",
-                "7": "₇",
-                "8": "₈",
-                "9": "₉",
-            }
-
-            subscript_decimal = "".join(subscript_map.get(digit, digit) for digit in decimal_part)
-
-            # Construct final formatted number with subscript decimals
-            # Skip decimal part if it's actually zero
-            formatted = formatted_integer if num == int(num) else f"{formatted_integer}.{subscript_decimal}"
+            # Keep integer and fractional digits the same size for vertical scanning.
+            decimal_digits = (decimal_part + "00")[:2]
+            formatted = f"{formatted_integer}.{decimal_digits}"
 
             # Add minus sign back if needed
             if is_negative:
@@ -516,7 +477,9 @@ def paint(
                 brush = index.data(Qt.ItemDataRole.BackgroundRole)
                 if isinstance(brush, QBrush) and brush.style() != Qt.BrushStyle.NoBrush:
                     painter.fillRect(option.rect, brush)
-                painter.setFont(option.font)
+                font = QFont(option.font)
+                font.setStyleHint(QFont.StyleHint.SansSerif)
+                painter.setFont(font)
                 top_pad = 3 if alignment & Qt.AlignmentFlag.AlignTop else 0
                 painter.drawText(
                     option.rect.adjusted(5, top_pad, -5, 0),
@@ -538,38 +501,29 @@ def paint(
 
             # Check if this is an income transaction (has "(Income)" suffix)
             is_income = category_text and "(Income)" in str(category_text)
+            amount_text = self.displayText(index.data(), QLocale())
+            alignment = int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
 
             if is_income:
-                # Create a copy of the option to modify font
-                income_option = option
-                income_option.font = QFont(option.font)
-                income_option.font.setBold(True)
+                painter.save()
+                brush = index.data(Qt.ItemDataRole.BackgroundRole)
+                if isinstance(brush, QBrush) and brush.style() != Qt.BrushStyle.NoBrush:
+                    painter.fillRect(option.rect, brush)
+                font = QFont(option.font)
+                font.setBold(True)
+                painter.setFont(font)
+                painter.drawText(option.rect.adjusted(5, 0, -5, 0), alignment, amount_text)
+                painter.restore()
+                return
 
-                # Get the amount value and add emoji
-                amount_text = self.displayText(index.data(), QLocale())
-
-                # Add emoji prefix for display (but not for editing)
-                if not amount_text.startswith("💰"):
-                    display_text = f"💰 {amount_text}"
-
-                    # Create a temporary index with modified data for display
-                    painter.save()
-
-                    # Set bold font
-                    painter.setFont(income_option.font)
-
-                    # Draw the text manually
-                    painter.drawText(
-                        option.rect.adjusted(5, 0, 0, 0),
-                        Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft,
-                        display_text,
-                    )
-
-                    painter.restore()
-                    return
-
-            # For expenses or other cases, use default painting
-            super().paint(painter, option, index)
+            painter.save()
+            brush = index.data(Qt.ItemDataRole.BackgroundRole)
+            if isinstance(brush, QBrush) and brush.style() != Qt.BrushStyle.NoBrush:
+                painter.fillRect(option.rect, brush)
+            font = QFont(option.font)
+            painter.setFont(font)
+            painter.drawText(option.rect.adjusted(5, 0, -5, 0), alignment, amount_text)
+            painter.restore()
 
         except Exception:
             # Fallback to default painting on any error
