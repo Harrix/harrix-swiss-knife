@@ -21,6 +21,7 @@ from harrix_swiss_knife.fluent.theme import FluentTheme, ThemeMode
 from harrix_swiss_knife.fluent.tokens import SPACE_L, SPACE_M, SPACE_XL
 from harrix_swiss_knife.qt_app_font import install_app_fonts
 from harrix_swiss_knife.qt_flow_layout import FlowLayout
+from harrix_swiss_knife.qt_lucide_icon import apply_leading_chrome_icons
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -434,18 +435,15 @@ def _setting_cards() -> QWidget:
 def _show_showcase_menu(widget: QWidget, pos: QPoint) -> None:
     label = str(widget.property(_PROP_SHOWCASE) or widget.objectName() or type(widget).__name__)
     class_name = type(widget).__qualname__
-    module_name = type(widget).__module__
     menu = QMenu(widget)
-    copy_name = menu.addAction(f"Copy object name ({label})")
-    copy_class = menu.addAction(f"Copy class name ({class_name})")
-    copy_qual = menu.addAction("Copy module.Class")
+    copy_name = menu.addAction(f"📋 Copy object name ({label})")
+    copy_class = menu.addAction(f"📋 Copy class name ({class_name})")
+    apply_leading_chrome_icons(menu)
     chosen = menu.exec(widget.mapToGlobal(pos))
     if chosen is copy_name:
         _copy_text(label)
     elif chosen is copy_class:
         _copy_text(class_name)
-    elif chosen is copy_qual:
-        _copy_text(f"{module_name}.{class_name}")
 
 
 def _show_splash() -> None:
