@@ -11,11 +11,37 @@ lang: en
 
 ## Contents
 
+- [🔧 Function `advanced_process_filter_count`](#-function-advanced_process_filter_count)
 - [🔧 Function `advanced_process_filter_is_active`](#-function-advanced_process_filter_is_active)
 - [🔧 Function `install_process_filter_chrome`](#-function-install_process_filter_chrome)
 - [🔧 Function `refresh_process_filter_chips`](#-function-refresh_process_filter_chips)
 - [🔧 Function `selected_process_filter_value`](#-function-selected_process_filter_value)
 - [🔧 Function `sync_process_filter_button`](#-function-sync_process_filter_button)
+
+</details>
+
+## 🔧 Function `advanced_process_filter_count`
+
+```python
+def advanced_process_filter_count(host: Any) -> int
+```
+
+Return how many process filters are applied (exercise, type, date).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def advanced_process_filter_count(host: Any) -> int:
+    count = 0
+    if selected_process_filter_value(host.comboBox_filter_exercise.currentText()):
+        count += 1
+    if selected_process_filter_value(host.comboBox_filter_type.currentText()):
+        count += 1
+    if host.checkBox_use_date_filter.isChecked():
+        count += 1
+    return count
+```
 
 </details>
 
@@ -25,14 +51,14 @@ lang: en
 def advanced_process_filter_is_active(host: Any) -> bool
 ```
 
-Return whether any process advanced (date) filter is applied.
+Return whether any process advanced filter is applied.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def advanced_process_filter_is_active(host: Any) -> bool:
-    return bool(host.checkBox_use_date_filter.isChecked())
+    return advanced_process_filter_count(host) > 0
 ```
 
 </details>
@@ -145,7 +171,7 @@ def selected_process_filter_value(text: str) -> str:
 def sync_process_filter_button(host: Any) -> None
 ```
 
-Update Filter button marker for advanced process filters.
+Update Filter button text with the active filter count.
 
 <details>
 <summary>Code:</summary>
@@ -153,10 +179,8 @@ Update Filter button marker for advanced process filters.
 ```python
 def sync_process_filter_button(host: Any) -> None:
     if hasattr(host, "pushButton_filter"):
-        sync_filter_button_marker(
-            host.pushButton_filter,
-            advanced_active=advanced_process_filter_is_active(host),
-        )
+        count = advanced_process_filter_count(host)
+        host.pushButton_filter.setText(f"Filter ({count})" if count else "Filter")
 ```
 
 </details>

@@ -11,7 +11,6 @@ from harrix_swiss_knife.apps.common.tracker_filter_chrome import (
     prepare_date_filter_fields,
     prepare_filter_combo,
     refresh_tracker_filter_chips,
-    sync_filter_button_marker,
 )
 from harrix_swiss_knife.qt_lucide_icon import create_lucide_icon
 
@@ -26,11 +25,19 @@ DRINK_LUCIDE_ICON = "cup-soda"
 _FILTER_TYPE_ICON_SIZE = 16
 
 
+def advanced_food_log_filter_count(host: Any) -> int:
+    """Return how many non-search food log filters are applied."""
+    count = 0
+    if food_log_filter_type_value(host.comboBox_filter_type) in {FILTER_TYPE_FOOD, FILTER_TYPE_DRINK}:
+        count += 1
+    if host.checkBox_use_date_filter.isChecked():
+        count += 1
+    return count
+
+
 def advanced_food_log_filter_is_active(host: Any) -> bool:
     """Return whether any non-search food log filter is applied."""
-    if food_log_filter_type_value(host.comboBox_filter_type) in {FILTER_TYPE_FOOD, FILTER_TYPE_DRINK}:
-        return True
-    return bool(host.checkBox_use_date_filter.isChecked())
+    return advanced_food_log_filter_count(host) > 0
 
 
 def food_log_filter_type_value(combo: QComboBox) -> str:
@@ -66,7 +73,7 @@ def install_food_log_filter_chrome(host: Any) -> None:
         host,
         object_name_prefix="foodLog",
         search_edit=host.lineEdit_filter_name,
-        search_placeholder="Search name…",
+        search_placeholder="Search by name…",
         advanced_rows=(
             (host.comboBox_filter_type,),
             (
@@ -78,6 +85,7 @@ def install_food_log_filter_chrome(host: Any) -> None:
         vertical_layout=host.verticalLayout_food_log,
         table_widget=host.tableView_food_log,
     )
+    host.lineEdit_filter_name.setToolTip("Filters the Name column only")
 
 
 def populate_food_log_type_filter(combo: QComboBox) -> None:
@@ -119,9 +127,7 @@ def refresh_food_log_filter_chips(host: Any) -> None:
 
 
 def sync_food_log_filter_button(host: Any) -> None:
-    """Update Filter button marker for advanced food log filters."""
+    """Update Filter button text with the active advanced-filter count."""
     if hasattr(host, "pushButton_filter"):
-        sync_filter_button_marker(
-            host.pushButton_filter,
-            advanced_active=advanced_food_log_filter_is_active(host),
-        )
+        count = advanced_food_log_filter_count(host)
+        host.pushButton_filter.setText(f"Filter ({count})" if count else "Filter")

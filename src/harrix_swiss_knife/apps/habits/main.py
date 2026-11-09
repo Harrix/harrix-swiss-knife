@@ -93,6 +93,7 @@ from harrix_swiss_knife.apps.habits.delegates import (
 )
 from harrix_swiss_knife.apps.habits.habit_emoji_picker_dialog import HabitEmojiPickerDialog
 from harrix_swiss_knife.apps.habits.habits_backup import export_hsk_habits_json, write_habits_backup
+from harrix_swiss_knife.apps.habits.habits_entry_chrome import install_habits_entry_chrome
 from harrix_swiss_knife.apps.habits.habits_ticktick_sync import (
     apply_habits_ticktick_sync,
     build_habits_ticktick_sync_preview,
@@ -185,6 +186,7 @@ class MainWindow(
         self._setup_ui()
         self._finish_fluent_window_chrome()
         install_habits_layout_chrome(self)
+        install_habits_entry_chrome(self)
 
         apply_window_icon(self)
 

@@ -151,6 +151,7 @@ class MainWindow(
         self._setup_ui()
         self._finish_fluent_window_chrome()
         install_fitness_layout_chrome(self)
+        install_fitness_entry_chrome(self)
 
         apply_window_icon(self)
 
@@ -374,6 +375,7 @@ class MainWindow(
             return
 
         self._is_closing = True
+        persist_sets_splitter_sizes(self)
         self._exercise_add_queue.clear()
         self._exercise_add_busy = False
         self._exercise_add_after_media = None
@@ -1543,7 +1545,7 @@ class MainWindow(
         exercise = self._get_current_selected_exercise()
         if not exercise:
             self.comboBox_type.setEnabled(False)
-            self.label_exercise.setText("No exercise selected")
+            refresh_exercise_state_label(self, None)
             self.label_unit.setText("")
             self.label_last_date_count_today.setText("")
             self._apply_count_input_mode("")
@@ -1553,6 +1555,7 @@ class MainWindow(
         if not self._validate_database_connection():
             logger.warning("Database manager not available or connection not open")
             self.comboBox_type.setEnabled(False)
+            refresh_exercise_state_label(self, None)
             self.label_exercise.setText("Database error")
             self.label_unit.setText("")
             self.label_last_date_count_today.setText("")
@@ -1560,12 +1563,13 @@ class MainWindow(
             return
 
         # Update exercise name label
-        self.label_exercise.setText(
+        refresh_exercise_state_label(
+            self,
             format_favorite_exercise_label(
                 exercise,
                 favorite=exercise in (self.db_manager.get_favorite_exercise_names() if self.db_manager else set()),
                 dumbbell=exercise in self._cached_dumbbell_exercise_names(),
-            )
+            ),
         )
 
         # Check if a new AVIF needs to be loaded
@@ -6254,7 +6258,7 @@ class MainWindow(
         )
 
         # Initialize labels with default values
-        self.label_exercise.setText("No exercise selected")
+        refresh_exercise_state_label(self, None)
         self.label_unit.setText("")
         self.label_last_date_count_today.setText("")
 
@@ -8107,13 +8111,9 @@ class MainWindow(
         attach_date_edit_quick_controls(self.dateEdit)
         attach_date_edit_quick_controls(self.dateEdit_weight)
 
-        # Set emoji for buttons
-        self.pushButton_add.setText(f"➕  {self.pushButton_add.text()}")  # noqa: RUF001
-        self.pushButton_add_by_voice.setText(f"🎙️ {self.pushButton_add_by_voice.text()}")
         install_process_filter_chrome(self)
         self._update_clear_filter_button_visibility()
         refresh_process_filter_chips(self)
-        self.pushButton_select_exercise.setText(f"🏋️ {self.pushButton_select_exercise.text()}")
         self.pushButton_exercise_add.setText(f"➕ {self.pushButton_exercise_add.text()}")  # noqa: RUF001
         self.pushButton_type_add.setText(f"➕ {self.pushButton_type_add.text()}")  # noqa: RUF001
         self.pushButton_weight_add.setText(f"➕ {self.pushButton_weight_add.text()}")  # noqa: RUF001
@@ -9227,6 +9227,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
         self._setup_ui()
         self._finish_fluent_window_chrome()
         install_fitness_layout_chrome(self)
+        install_fitness_entry_chrome(self)
 
         apply_window_icon(self)
 
@@ -9529,6 +9530,7 @@ def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
             return
 
         self._is_closing = True
+        persist_sets_splitter_sizes(self)
         self._exercise_add_queue.clear()
         self._exercise_add_busy = False
         self._exercise_add_after_media = None
@@ -10923,7 +10925,7 @@ def on_exercise_selection_changed_list(self) -> None:
         exercise = self._get_current_selected_exercise()
         if not exercise:
             self.comboBox_type.setEnabled(False)
-            self.label_exercise.setText("No exercise selected")
+            refresh_exercise_state_label(self, None)
             self.label_unit.setText("")
             self.label_last_date_count_today.setText("")
             self._apply_count_input_mode("")
@@ -10933,6 +10935,7 @@ def on_exercise_selection_changed_list(self) -> None:
         if not self._validate_database_connection():
             logger.warning("Database manager not available or connection not open")
             self.comboBox_type.setEnabled(False)
+            refresh_exercise_state_label(self, None)
             self.label_exercise.setText("Database error")
             self.label_unit.setText("")
             self.label_last_date_count_today.setText("")
@@ -10940,12 +10943,13 @@ def on_exercise_selection_changed_list(self) -> None:
             return
 
         # Update exercise name label
-        self.label_exercise.setText(
+        refresh_exercise_state_label(
+            self,
             format_favorite_exercise_label(
                 exercise,
                 favorite=exercise in (self.db_manager.get_favorite_exercise_names() if self.db_manager else set()),
                 dumbbell=exercise in self._cached_dumbbell_exercise_names(),
-            )
+            ),
         )
 
         # Check if a new AVIF needs to be loaded

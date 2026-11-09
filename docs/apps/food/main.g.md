@@ -133,6 +133,7 @@ class MainWindow(
         self._setup_ui()
         self._finish_fluent_window_chrome()
         install_food_layout_chrome(self)
+        install_food_entry_chrome(self)
 
         apply_window_icon(self)
 
@@ -286,6 +287,7 @@ class MainWindow(
             return
 
         self._is_closing = True
+        persist_food_splitter_sizes(self)
         self._stop_background_food_translate_timer()
 
         # Dispose Models
@@ -917,6 +919,7 @@ class MainWindow(
 
         """
         if not current.isValid():
+            refresh_food_item_state_label(self, None)
             return
 
         if self.food_items_list_model:
@@ -924,6 +927,7 @@ class MainWindow(
             if item:
                 food_name = extract_food_name_from_display(item.text())
                 self._process_food_item_selection(food_name)
+                refresh_food_item_state_label(self, food_name)
 
     def on_open_photos(self) -> None:
         """Open `path_photos` from config in the configured image viewer."""
@@ -4744,13 +4748,13 @@ class MainWindow(
     def _update_add_button_appearance(self) -> None:
         """Update the appearance of the add button based on whether it's a drink or food."""
         is_drink = self.checkBox_food_is_drink.isChecked()
-
         if is_drink:
-            self.pushButton_food_add.setText("🥤 Add Drink")
+            self.pushButton_food_add.setText("Add drink")
+            apply_lucide_button_icon(self.pushButton_food_add, "cup-soda")
         else:
-            self.pushButton_food_add.setText("➕ Add Food")  # noqa: RUF001
+            self.pushButton_food_add.setText("Add food")
+            apply_lucide_button_icon(self.pushButton_food_add, "utensils")
         self.pushButton_food_add.setStyleSheet(button_cta_cyan_qss())
-        apply_leading_chrome_button_icon(self.pushButton_food_add)
 
     def _update_autocomplete_data(self) -> None:
         """Update autocomplete data from database."""
@@ -5309,6 +5313,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
         self._setup_ui()
         self._finish_fluent_window_chrome()
         install_food_layout_chrome(self)
+        install_food_entry_chrome(self)
 
         apply_window_icon(self)
 
@@ -5530,6 +5535,7 @@ def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
             return
 
         self._is_closing = True
+        persist_food_splitter_sizes(self)
         self._stop_background_food_translate_timer()
 
         # Dispose Models
@@ -6594,6 +6600,7 @@ Args:
 ```python
 def on_main_food_item_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
         if not current.isValid():
+            refresh_food_item_state_label(self, None)
             return
 
         if self.food_items_list_model:
@@ -6601,6 +6608,7 @@ def on_main_food_item_selection_changed(self, current: QModelIndex, _previous: Q
             if item:
                 food_name = extract_food_name_from_display(item.text())
                 self._process_food_item_selection(food_name)
+                refresh_food_item_state_label(self, food_name)
 ```
 
 </details>

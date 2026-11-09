@@ -11,7 +11,6 @@ from harrix_swiss_knife.apps.common.tracker_filter_chrome import (
     prepare_date_filter_fields,
     prepare_filter_combo,
     refresh_tracker_filter_chips,
-    sync_filter_button_marker,
 )
 
 FILTER_ALL_EXERCISES = "All exercises"
@@ -19,9 +18,21 @@ FILTER_ALL_TYPES = "All types"
 _FILTER_ALL_VALUES = frozenset({"", FILTER_ALL_EXERCISES, FILTER_ALL_TYPES})
 
 
+def advanced_process_filter_count(host: Any) -> int:
+    """Return how many process filters are applied (exercise, type, date)."""
+    count = 0
+    if selected_process_filter_value(host.comboBox_filter_exercise.currentText()):
+        count += 1
+    if selected_process_filter_value(host.comboBox_filter_type.currentText()):
+        count += 1
+    if host.checkBox_use_date_filter.isChecked():
+        count += 1
+    return count
+
+
 def advanced_process_filter_is_active(host: Any) -> bool:
-    """Return whether any process advanced (date) filter is applied."""
-    return bool(host.checkBox_use_date_filter.isChecked())
+    """Return whether any process advanced filter is applied."""
+    return advanced_process_filter_count(host) > 0
 
 
 def install_process_filter_chrome(host: Any) -> None:
@@ -88,9 +99,7 @@ def selected_process_filter_value(text: str) -> str:
 
 
 def sync_process_filter_button(host: Any) -> None:
-    """Update Filter button marker for advanced process filters."""
+    """Update Filter button text with the active filter count."""
     if hasattr(host, "pushButton_filter"):
-        sync_filter_button_marker(
-            host.pushButton_filter,
-            advanced_active=advanced_process_filter_is_active(host),
-        )
+        count = advanced_process_filter_count(host)
+        host.pushButton_filter.setText(f"Filter ({count})" if count else "Filter")
