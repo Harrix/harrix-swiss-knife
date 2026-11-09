@@ -161,7 +161,10 @@ from harrix_swiss_knife.apps.finance.exchange_rates_operations import (
     stop_running_qthread,
 )
 from harrix_swiss_knife.apps.finance.exchange_validation import validate_exchange_data
-from harrix_swiss_knife.apps.finance.layout_chrome import install_finance_layout_chrome
+from harrix_swiss_knife.apps.finance.layout_chrome import (
+    install_finance_layout_chrome,
+    persist_finance_tabs_splitter_sizes,
+)
 from harrix_swiss_knife.apps.finance.mixins import (
     AutoSaveOperations,
     ChartOperations,
@@ -184,10 +187,8 @@ from harrix_swiss_knife.apps.finance.transaction_day_totals import (
     sum_transaction_rows_in_default_currency,
 )
 from harrix_swiss_knife.apps.finance.transaction_filter_chrome import (
-    EXPENSE_LUCIDE_ICON,
     FILTER_TYPE_EXPENSE,
     FILTER_TYPE_INCOME,
-    INCOME_LUCIDE_ICON,
     advanced_transactions_filter_count,
     install_transactions_filter_chrome,
     populate_transactions_category_filter,
@@ -243,9 +244,7 @@ from harrix_swiss_knife.qt_lucide_icon import (
     COPY_BUTTON_ICON,
     apply_leading_chrome_buttons,
     apply_leading_chrome_icons,
-    apply_lucide_button_icon,
     apply_lucide_dialog_buttons,
-    create_lucide_icon,
     install_line_edit_search_chrome,
     make_lucide_push_button,
     set_action_text_with_lucide_icon,
@@ -573,6 +572,7 @@ class MainWindow(
 
         self._is_closing = True
         persist_transactions_splitter_sizes(self)
+        persist_finance_tabs_splitter_sizes(self)
         self._stop_background_transaction_translate_timer()
         bg_worker = getattr(self, "_bg_tx_translate_state", None)
         if bg_worker is not None and bg_worker.worker is not None:
@@ -1757,24 +1757,13 @@ class MainWindow(
         self.listView_categories.viewport().update()
 
     def _apply_charts_exchange_splitter_sizes(self) -> None:
-        """Keep Charts and Exchange Rates left panes at the same width."""
+        """Restore Charts / Exchange Rates splitters (persisted via layout chrome)."""
         if getattr(self, "_is_closing", False):
             return
-        if not hasattr(self, "splitter_6") or not hasattr(self, "splitter_7"):
-            return
-
-        left = max(
-            self.frame_accounts_2.sizeHint().width(),
-            self.frame_rates.minimumWidth(),
-            360,
-        )
-        for splitter in (self.splitter_6, self.splitter_7):
-            total = splitter.width()
-            if total <= 0:
-                total = max(self.width(), 1200)
-            left_width = min(left, max(total // 2, 300))
-            right_width = max(total - left_width, 200)
-            splitter.setSizes([left_width, right_width])
+        for apply_name in ("_apply_finance_rates_splitter_sizes", "_apply_finance_charts_splitter_sizes"):
+            apply_sizes = getattr(self, apply_name, None)
+            if callable(apply_sizes):
+                apply_sizes()
 
     def _apply_transactions_splitter_sizes(self) -> None:
         """Restore Transactions-tab splitter widths (persisted or defaults)."""
@@ -5534,40 +5523,7 @@ class MainWindow(
         self.label_total_expenses.setWordWrap(True)
         self.label_today_expense.setWordWrap(True)
         self.label_yesterday_expense.setWordWrap(True)
-        # Set emoji for exchange rate buttons
-        self.pushButton_exchange_update.setText(f"🔄 {self.pushButton_exchange_update.text()}")
-        self.pushButton_rates_delete.setText(f"🗑️ {self.pushButton_rates_delete.text()}")
-        self.pushButton_exchange_item_update.setText(f"✏️ {self.pushButton_exchange_item_update.text()}")
-        self.pushButton_filter_exchange_rates_clear.setText(f"🧹 {self.pushButton_filter_exchange_rates_clear.text()}")
-        self.pushButton_filter_exchange_rates_apply.setText(f"✔️ {self.pushButton_filter_exchange_rates_apply.text()}")
-        self.pushButton_exchange_rates_last_month.setText(f"📅 {self.pushButton_exchange_rates_last_month.text()}")
-        self.pushButton_exchange_rates_last_year.setText(f"📅 {self.pushButton_exchange_rates_last_year.text()}")
-        self.pushButton_exchange_rates_all_time.setText(f"📊 {self.pushButton_exchange_rates_all_time.text()}")
-        self.pushButton_chart_last_month.setText(f"📅 {self.pushButton_chart_last_month.text()}")
-        self.pushButton_chart_last_year.setText(f"📅 {self.pushButton_chart_last_year.text()}")
-        self.pushButton_chart_all_time.setText(f"📅 {self.pushButton_chart_all_time.text()}")
-        chart_category_button_icon_size = 18
-        self.pushButton_select_all.setIcon(create_lucide_icon("square-check", chart_category_button_icon_size))
-        self.pushButton_select_deselect_all.setIcon(create_lucide_icon("square", chart_category_button_icon_size))
-        apply_lucide_button_icon(
-            self.pushButton_select_only_expense,
-            EXPENSE_LUCIDE_ICON,
-            icon_size=chart_category_button_icon_size,
-        )
-        apply_lucide_button_icon(
-            self.pushButton_select_only_income,
-            INCOME_LUCIDE_ICON,
-            icon_size=chart_category_button_icon_size,
-        )
-
-        # Set emoji for additional exchange and currency buttons
-        self.pushButton_calculate_exchange.setText(f"🧮 {self.pushButton_calculate_exchange.text()}")
-
-        # Set emoji for exchange buttons
-        self.pushButton_exchange_add.setText(f"➕ {self.pushButton_exchange_add.text()}")  # noqa: RUF001
-
-        self.pushButton_calculate_fee.setText(f"💰 {self.pushButton_calculate_fee.text()}")
-        self.pushButton_rates_refresh.setText(f"🔄 {self.pushButton_rates_refresh.text()}")
+        # Non-Transactions tab buttons are polished by install_finance_layout_chrome.
         apply_leading_chrome_buttons(self)
         match_date_edit_form_height(
             self.dateEdit,
