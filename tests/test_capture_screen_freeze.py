@@ -89,19 +89,14 @@ def test_grabs_for_overlay_pass_uses_pending_once(qapp: QApplication) -> None:  
     grab.assert_called_once()
 
 
-def test_capture_loop_consumes_pending_freeze_on_first_pass(
-    qapp: QApplication,  # noqa: ARG001
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    frozen, _geometry = _fake_grab()
-    live, live_geometry = _fake_grab()
-    set_pending_screen_freeze(frozen, _geometry)
-    grab_calls: list[str] = []
+def _patch_capture_loop(
+    monkeypatch: pytest.MonkeyPatch, *, live: tuple[list[ScreenGrab], QRect]
+) -> list[list[ScreenGrab]]:
     overlay_grabs: list[list[ScreenGrab]] = []
+    live_grabs, live_geometry = live
 
     def fake_grab() -> tuple[list[ScreenGrab], QRect]:
-        grab_calls.append("live")
-        return live, live_geometry
+        return live_grabs, live_geometry
 
     class FakeOverlay:
         adjust_mode = False
@@ -126,15 +121,101 @@ def test_capture_loop_consumes_pending_freeze_on_first_pass(
     monkeypatch.setattr(capture, "RegionOverlay", FakeOverlay)
     monkeypatch.setattr(capture, "play_screenshot_shutter_sound", lambda: None)
     monkeypatch.setattr(capture, "_copy_image_to_clipboard", lambda _image: None)
+    return overlay_grabs
+
+
+def test_capture_loop_consumes_pending_freeze_on_first_pass(
+    qapp: QApplication,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    frozen, _geometry = _fake_grab()
+    live = _fake_grab()
+    set_pending_screen_freeze(frozen, _geometry)
+    overlay_grabs = _patch_capture_loop(monkeypatch, live=live)
 
     session = capture._HideSession(hide_app=False, show_preview=False)
     image = capture._capture_loop(with_controls=False, session=session)
 
     assert image is not None
-    assert grab_calls == []
     assert take_pending_screen_freeze() is None
     assert len(overlay_grabs) == 1
     assert overlay_grabs[0][0] is frozen[0]
+
+
+def test_capture_loop_hide_app_ignores_pending_freeze(
+    qapp: QApplication,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    frozen, _geometry = _fake_grab()
+    live_grabs, live_geometry = _fake_grab()
+    set_pending_screen_freeze(frozen, _geometry)
+    overlay_grabs = _patch_capture_loop(monkeypatch, live=(live_grabs, live_geometry))
+
+    session = capture._HideSession(hide_app=True, show_preview=False)
+    image = capture._capture_loop(with_controls=False, session=session)
+
+    assert image is not None
+    assert len(overlay_grabs) == 1
+    assert overlay_grabs[0][0] is live_grabs[0]
+    # Pending was not consumed by the hide-app loop; still present until cleared.
+    pending = take_pending_screen_freeze()
+    assert pending is not None
+    assert pending[0][0] is frozen[0]
+
+
+def test_prepare_freeze_for_capture_clears_when_hiding(qapp: QApplication) -> None:  # noqa: ARG001
+    frozen, geometry = _fake_grab()
+    set_pending_screen_freeze(frozen, geometry)
+    capture._prepare_freeze_for_capture(hide_app=True)
+    assert take_pending_screen_freeze() is None
+
+
+def test_prepare_freeze_for_capture_keeps_existing_when_showing(qapp: QApplication) -> None:  # noqa: ARG001
+    frozen, geometry = _fake_grab()
+    set_pending_screen_freeze(frozen, geometry)
+    with patch.object(capture, "grab_all_screens") as grab:
+        capture._prepare_freeze_for_capture(hide_app=False)
+    grab.assert_not_called()
+    pending = take_pending_screen_freeze()
+    assert pending is not None
+    assert pending[0][0] is frozen[0]
+
+
+def test_prepare_freeze_for_capture_creates_when_showing_without_pending(
+    qapp: QApplication,  # noqa: ARG001
+) -> None:
+    grabs, geometry = _fake_grab()
+    with patch.object(capture, "grab_all_screens", return_value=(grabs, geometry)) as grab:
+        capture._prepare_freeze_for_capture(hide_app=False)
+    grab.assert_called_once()
+    pending = take_pending_screen_freeze()
+    assert pending is not None
+    assert pending[0][0] is grabs[0]
+
+
+def test_long_press_freezes_before_popup_defer_retry(qapp: QApplication) -> None:  # noqa: ARG001
+    """Freeze once while popups may still be open; deferred retry must not re-grab."""
+    first, first_geometry = _fake_grab()
+    second, second_geometry = _fake_grab()
+    grabs_seq = iter([(first, first_geometry), (second, second_geometry)])
+
+    def fake_grab() -> tuple[list[ScreenGrab], QRect]:
+        return next(grabs_seq)
+
+    freeze_ready = False
+    with patch.object(capture, "grab_all_screens", side_effect=fake_grab) as grab:
+        # First attempt: freeze before defer_until_popups_close.
+        if not freeze_ready:
+            prepare_capture_long_press_freeze()
+            freeze_ready = True
+        # Deferred retry after popups closed: freeze_ready stays True → no second grab.
+        if not freeze_ready:
+            prepare_capture_long_press_freeze()
+            freeze_ready = True
+    assert grab.call_count == 1
+    pending = take_pending_screen_freeze()
+    assert pending is not None
+    assert pending[0][0] is first[0]
 
 
 def test_long_press_flow_clears_leftover_freeze_after_cancel(qapp: QApplication) -> None:  # noqa: ARG001
@@ -154,8 +235,8 @@ def test_long_press_flow_clears_leftover_freeze_after_cancel(qapp: QApplication)
     assert take_pending_screen_freeze() is None
 
 
-def test_long_press_flow_keeps_freeze_until_action_runs(qapp: QApplication) -> None:  # noqa: ARG001
-    """Freeze must still be pending while the chosen capture action runs."""
+def test_long_press_flow_keeps_freeze_until_show_app_action(qapp: QApplication) -> None:  # noqa: ARG001
+    """Show-app consumes the freeze; hide-app would clear it before the overlay."""
     grabs, geometry = _fake_grab()
     with patch(
         "harrix_swiss_knife.screenshot.capture.grab_all_screens",
@@ -164,8 +245,9 @@ def test_long_press_flow_keeps_freeze_until_action_runs(qapp: QApplication) -> N
         prepare_capture_long_press_freeze()
     seen_during_action: list[bool] = []
     try:
-        chosen = "OnScreenshotRegion"
+        chosen = "OnScreenshotRegionKeepWindows"
         if chosen:
+            capture._prepare_freeze_for_capture(hide_app=False)
             seen_during_action.append(take_pending_screen_freeze() is not None)
     finally:
         clear_pending_screen_freeze()

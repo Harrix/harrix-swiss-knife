@@ -126,6 +126,7 @@ def capture_region(
     if hide_app is None:
         hide_app = True
 
+    _prepare_freeze_for_capture(hide_app=hide_app)
     close_active_popups()
     session = _HideSession(
         hide_app=hide_app,
@@ -192,10 +193,12 @@ def grab_all_screens() -> tuple[list[ScreenGrab], QRect]:
 
 
 def prepare_capture_long_press_freeze() -> bool:
-    """Grab all screens now and store them for the next capture overlay pass.
+    """Grab all screens now and store them for the next show-app overlay pass.
 
-    Call this before opening the capture-action picker so foreign UI (for example
-    a VS Code context menu) is frozen before focus changes dismiss it.
+    Call this before closing popups / opening the capture-action picker so open
+    menus and combos (HSK or foreign apps) are frozen before focus dismisses them.
+    Hide-app capture actions discard this stash and live-grab after concealing
+    Windows.
 
     Returns:
 
@@ -228,6 +231,7 @@ def select_region(
     if hide_app is None:
         hide_app = True
 
+    _prepare_freeze_for_capture(hide_app=hide_app)
     close_active_popups()
     session = _HideSession(
         hide_app=hide_app,
@@ -266,7 +270,8 @@ def _capture_loop(*, with_controls: bool, session: _HideSession) -> QImage | Non
     guides_mode = False
     ocr_translate = session.ocr_translate
     clipboard_only = not session.show_preview and not ocr_translate
-    use_pending_freeze = True
+    # Pending long-press freeze is only for show-app; hide-app always live-grabs.
+    use_pending_freeze = not session.hide_app
     while True:
         window_rects = list_snappable_window_rects(exclude_hwnds=session.exclude_hwnds())
         grabs, geometry = _grabs_for_overlay_pass(use_pending=use_pending_freeze)
@@ -354,11 +359,26 @@ def _hwnds_from_widgets(widgets: Iterable[QWidget]) -> list[int]:
     return handles
 
 
+def _prepare_freeze_for_capture(*, hide_app: bool) -> None:
+    """Decide whether the next overlay uses a pre-popup freeze or a live grab.
+
+    Show-app keeps (or creates) a freeze before popups are closed so open combos
+    stay in the frame. Hide-app discards any stash and will live-grab after Windows
+    are concealed.
+
+    """
+    if hide_app:
+        clear_pending_screen_freeze()
+        return
+    if _pending_screen_freeze is None:
+        prepare_capture_long_press_freeze()
+
+
 def _select_loop(*, with_controls: bool, session: _HideSession) -> QRect | None:
     """Alternate between region selection and desktop-arrangement until a rect is chosen."""
     adjust_mode = False
     guides_mode = False
-    use_pending_freeze = True
+    use_pending_freeze = not session.hide_app
     while True:
         window_rects = list_snappable_window_rects(exclude_hwnds=session.exclude_hwnds())
         grabs, geometry = _grabs_for_overlay_pass(use_pending=use_pending_freeze)

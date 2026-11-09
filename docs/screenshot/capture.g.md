@@ -88,6 +88,7 @@ def capture_region(
     if hide_app is None:
         hide_app = True
 
+    _prepare_freeze_for_capture(hide_app=hide_app)
     close_active_popups()
     session = _HideSession(
         hide_app=hide_app,
@@ -185,10 +186,12 @@ def grab_all_screens() -> tuple[list[ScreenGrab], QRect]:
 def prepare_capture_long_press_freeze() -> bool
 ```
 
-Grab all screens now and store them for the next capture overlay pass.
+Grab all screens now and store them for the next show-app overlay pass.
 
-Call this before opening the capture-action picker so foreign UI (for example
-a VS Code context menu) is frozen before focus changes dismiss it.
+Call this before closing popups / opening the capture-action picker so open
+menus and combos (HSK or foreign apps) are frozen before focus dismisses them.
+Hide-app capture actions discard this stash and live-grab after concealing
+Windows.
 
 Returns:
 
@@ -236,6 +239,7 @@ def select_region(
     if hide_app is None:
         hide_app = True
 
+    _prepare_freeze_for_capture(hide_app=hide_app)
     close_active_popups()
     session = _HideSession(
         hide_app=hide_app,

@@ -329,13 +329,26 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
             except Exception:
                 log.exception("Hotkey action %s failed", action_name)
 
-        def run_capture_long_press(action_name: str, _popup_attempt: int = 0) -> None:
+        def run_capture_long_press(
+            action_name: str,
+            _popup_attempt: int = 0,
+            *,
+            freeze_ready: bool = False,
+        ) -> None:
+            # Freeze while menus/combos are still open, then dismiss popups so the
+            # picker and overlay can receive mouse input.
+            if not freeze_ready:
+                prepare_capture_long_press_freeze()
+                freeze_ready = True
             if defer_until_popups_close(
-                lambda name=action_name, attempt=_popup_attempt + 1: run_capture_long_press(name, attempt),
+                lambda name=action_name, attempt=_popup_attempt + 1: run_capture_long_press(
+                    name,
+                    attempt,
+                    freeze_ready=True,
+                ),
                 attempt=_popup_attempt,
             ):
                 return
-            prepare_capture_long_press_freeze()
             try:
                 try:
                     chosen = choose_capture_hotkey_action(parent=None)
