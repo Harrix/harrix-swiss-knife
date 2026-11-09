@@ -352,10 +352,11 @@ class MainWindow(QMainWindow):
         )
         card.clicked.connect(lambda listed=action: self._run_listed_action(listed))
         card.context_menu_requested.connect(
-            lambda global_pos, listed=action: show_action_item_context_menu(
+            lambda global_pos, listed=action, host=card: show_action_item_context_menu(
                 parent=self,
                 global_pos=global_pos,
                 action=listed,
+                host_widget=host,
             ),
         )
         return card
@@ -579,6 +580,7 @@ class MainWindow(QMainWindow):
             parent=self,
             global_pos=QCursor.pos(),
             action=action,
+            host_widget=list_widget.itemWidget(item) or list_widget,
         )
 
     def _sync_sort_combo(self) -> None:

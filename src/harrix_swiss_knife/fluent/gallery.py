@@ -12,8 +12,8 @@ import sys
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QDate, QPoint, QPointF, QRectF, QStringListModel, Qt, QTime, QTimer
-from PySide6.QtGui import QGuiApplication, QPixmap
-from PySide6.QtWidgets import QApplication, QLabel, QMenu, QTableWidgetItem, QTreeWidgetItem, QVBoxLayout, QWidget
+from PySide6.QtGui import QPixmap
+from PySide6.QtWidgets import QApplication, QLabel, QTableWidgetItem, QTreeWidgetItem, QVBoxLayout, QWidget
 
 from harrix_swiss_knife.fluent import widgets as fw
 from harrix_swiss_knife.fluent.system import ScreenCaptureManager, exponential_blur
@@ -21,7 +21,10 @@ from harrix_swiss_knife.fluent.theme import FluentTheme, ThemeMode
 from harrix_swiss_knife.fluent.tokens import SPACE_L, SPACE_M, SPACE_XL
 from harrix_swiss_knife.qt_app_font import install_app_fonts
 from harrix_swiss_knife.qt_flow_layout import FlowLayout
-from harrix_swiss_knife.qt_lucide_icon import apply_leading_chrome_icons
+from harrix_swiss_knife.qt_widget_identity_menu import (
+    install_widget_identity_context_menus,
+    show_widget_identity_context_menu,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -125,12 +128,6 @@ def _cards_page() -> QWidget:
             _section("Expander", _expander(), flow=False),
         ],
     )
-
-
-def _copy_text(value: str) -> None:
-    clipboard = QGuiApplication.clipboard()
-    if clipboard is not None:
-        clipboard.setText(value)
 
 
 def _dialogs_page(window: QWidget) -> QWidget:
@@ -433,17 +430,7 @@ def _setting_cards() -> QWidget:
 
 
 def _show_showcase_menu(widget: QWidget, pos: QPoint) -> None:
-    label = str(widget.property(_PROP_SHOWCASE) or widget.objectName() or type(widget).__name__)
-    class_name = type(widget).__qualname__
-    menu = QMenu(widget)
-    copy_name = menu.addAction(f"📋 Copy object name ({label})")
-    copy_class = menu.addAction(f"📋 Copy class name ({class_name})")
-    apply_leading_chrome_icons(menu)
-    chosen = menu.exec(widget.mapToGlobal(pos))
-    if chosen is copy_name:
-        _copy_text(label)
-    elif chosen is copy_class:
-        _copy_text(class_name)
+    show_widget_identity_context_menu(widget, widget.mapToGlobal(pos))
 
 
 def _show_splash() -> None:
@@ -650,6 +637,7 @@ def main() -> int:
     existing = QApplication.instance()
     app = existing if isinstance(existing, QApplication) else QApplication(sys.argv)
     install_app_fonts(app)
+    install_widget_identity_context_menus(app)
     FluentTheme.instance().load_from_config()
     window = build_gallery()
     window.show()

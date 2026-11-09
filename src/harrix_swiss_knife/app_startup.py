@@ -45,6 +45,7 @@ from harrix_swiss_knife.paths import get_config_path_str, prune_action_output_di
 from harrix_swiss_knife.qt_app_font import install_app_fonts
 from harrix_swiss_knife.qt_flexible_decimal import install_flexible_decimal_separators
 from harrix_swiss_knife.qt_ui_effects import install_ui_effects
+from harrix_swiss_knife.qt_widget_identity_menu import install_widget_identity_context_menus
 from harrix_swiss_knife.screenshot.capture import (
     clear_pending_screen_freeze,
     prepare_capture_long_press_freeze,
@@ -216,6 +217,7 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
     install_spellcheck(app)
     install_app_fonts(app)
     install_ui_effects(app)
+    install_widget_identity_context_menus(app)
     install_safe_qt_translate()
     FluentTheme.instance().load_from_config(config)
     if early_splash_hwnd():

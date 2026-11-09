@@ -82,6 +82,7 @@ def main() -> int:
     existing = QApplication.instance()
     app = existing if isinstance(existing, QApplication) else QApplication(sys.argv)
     install_app_fonts(app)
+    install_widget_identity_context_menus(app)
     FluentTheme.instance().load_from_config()
     window = build_gallery()
     window.show()

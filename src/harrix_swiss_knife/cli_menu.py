@@ -12,6 +12,7 @@ from harrix_swiss_knife.action_identity import (
     format_action_identity_text,
 )
 from harrix_swiss_knife.qt_lucide_icon import apply_leading_chrome_icons
+from harrix_swiss_knife.qt_widget_identity_menu import add_widget_identity_actions
 
 CLI_EXECUTABLE = "hsk"
 CLI_MENU_SUFFIX = " ꟲᴸᴵ"
@@ -121,6 +122,7 @@ def show_action_class_context_menu(
     parent: QWidget | None,
     global_pos: QPoint,
     action_cls: type,
+    host_widget: QWidget | None = None,
 ) -> None:
     """Show copy name/class/path (and CLI when available) for an action class."""
     identity_parts = action_identity_parts(action_cls)
@@ -134,6 +136,7 @@ def show_action_class_context_menu(
         identity_text=identity_text,
         identity_parts=identity_parts,
         cli_copy_command=cli_copy_command,
+        host_widget=host_widget,
     )
 
 
@@ -144,9 +147,10 @@ def show_action_identity_context_menu(
     identity_text: str | None = None,
     identity_parts: ActionIdentityParts | None = None,
     cli_copy_command: str | None = None,
+    host_widget: QWidget | None = None,
 ) -> None:
     """Show a context menu to copy action identity fields and optional CLI command."""
-    if identity_text is None and identity_parts is None and cli_copy_command is None:
+    if identity_text is None and identity_parts is None and cli_copy_command is None and host_widget is None:
         return
 
     menu = QMenu(parent)
@@ -175,11 +179,21 @@ def show_action_identity_context_menu(
         copy_cli.triggered.connect(
             lambda *_args, cmd=cli_copy_command: copy_cli_command_to_clipboard(cmd),
         )
+    if host_widget is not None:
+        if not menu.isEmpty():
+            menu.addSeparator()
+        add_widget_identity_actions(menu, host_widget)
     apply_leading_chrome_icons(menu)
     menu.exec_(global_pos)
 
 
-def show_action_item_context_menu(*, parent: QWidget | None, global_pos: QPoint, action: QAction) -> None:
+def show_action_item_context_menu(
+    *,
+    parent: QWidget | None,
+    global_pos: QPoint,
+    action: QAction,
+    host_widget: QWidget | None = None,
+) -> None:
     """Show a context menu to copy action identity and, when present, the CLI command."""
     show_action_identity_context_menu(
         parent=parent,
@@ -187,6 +201,7 @@ def show_action_item_context_menu(*, parent: QWidget | None, global_pos: QPoint,
         identity_text=get_action_identity_text(action),
         identity_parts=get_action_identity_parts(action),
         cli_copy_command=get_cli_copy_command(action),
+        host_widget=host_widget,
     )
 
 

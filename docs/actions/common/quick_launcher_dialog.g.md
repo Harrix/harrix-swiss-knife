@@ -492,6 +492,7 @@ class QuickLauncherDialog(QDialog):
             parent=self,
             global_pos=self._cards.mapToGlobal(pos),
             action_cls=action_cls,
+            host_widget=self._cards.itemWidget(item) or self._cards,
         )
 
     def _on_item_clicked(self, item: QListWidgetItem) -> None:

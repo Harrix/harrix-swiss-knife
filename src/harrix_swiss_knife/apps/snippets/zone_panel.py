@@ -55,7 +55,12 @@ from harrix_swiss_knife.qt_app_font import apply_mono_font
 from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
 from harrix_swiss_knife.qt_flat_scrollbar import with_flat_scrollbars
 from harrix_swiss_knife.qt_flow_layout import FlowLayout
-from harrix_swiss_knife.qt_lucide_icon import add_lucide_action, create_ai_lucide_icon
+from harrix_swiss_knife.qt_lucide_icon import (
+    add_lucide_action,
+    apply_leading_chrome_icons,
+    create_ai_lucide_icon,
+)
+from harrix_swiss_knife.qt_widget_identity_menu import add_widget_identity_actions
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -563,6 +568,9 @@ class ZonePanel(QWidget):
             descending=self._sort_descending,
             on_sort=self.sort_requested.emit,
         )
+        menu.addSeparator()
+        add_widget_identity_actions(menu, self)
+        apply_leading_chrome_icons(menu)
         return menu
 
     def _clear_ai_candidate_widgets(self) -> None:

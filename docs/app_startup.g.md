@@ -215,6 +215,7 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
     install_spellcheck(app)
     install_app_fonts(app)
     install_ui_effects(app)
+    install_widget_identity_context_menus(app)
     install_safe_qt_translate()
     FluentTheme.instance().load_from_config(config)
     if early_splash_hwnd():

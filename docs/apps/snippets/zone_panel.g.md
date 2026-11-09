@@ -763,6 +763,9 @@ class ZonePanel(QWidget):
             descending=self._sort_descending,
             on_sort=self.sort_requested.emit,
         )
+        menu.addSeparator()
+        add_widget_identity_actions(menu, self)
+        apply_leading_chrome_icons(menu)
         return menu
 
     def _clear_ai_candidate_widgets(self) -> None:
