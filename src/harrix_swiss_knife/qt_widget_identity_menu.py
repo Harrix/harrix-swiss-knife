@@ -1,8 +1,7 @@
 """Copy object name / class name for any widget (Fluent gallery — style inspector).
 
-Plain right-click shows the menu on widgets that do not already own a useful
-context menu. Hold Ctrl and right-click to force the identity menu on tables,
-command cards, editors, and other CustomContextMenu hosts.
+Middle-click a widget to open the identity menu. Right-click keeps each control's
+own context menu (editors, tables, command cards, etc.).
 
 """
 
@@ -11,20 +10,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QEvent, QObject, Qt
-from PySide6.QtGui import QClipboard, QContextMenuEvent, QGuiApplication
-from PySide6.QtWidgets import (
-    QAbstractItemView,
-    QAbstractSpinBox,
-    QApplication,
-    QComboBox,
-    QLineEdit,
-    QMenu,
-    QMenuBar,
-    QPlainTextEdit,
-    QTextEdit,
-    QWidget,
-)
+from PySide6.QtGui import QClipboard, QGuiApplication, QMouseEvent
+from PySide6.QtWidgets import QApplication, QMenu, QMenuBar, QWidget
 
+from harrix_swiss_knife.fluent.widgets.menus import FluentMenu
 from harrix_swiss_knife.qt_lucide_icon import apply_leading_chrome_icons
 
 if TYPE_CHECKING:
@@ -34,28 +23,20 @@ _PROP_FILTER = "_hskWidgetIdentityFilter"
 _COPY_OBJECT_NAME_PREFIX = "📋 Copy object name ("
 _COPY_CLASS_NAME_PREFIX = "📋 Copy class name ("
 
-# Widgets whose DefaultContextMenu is useful; plain right-click keeps it.
-_KEEP_DEFAULT_CONTEXT_MENU: tuple[type[QWidget], ...] = (
-    QAbstractItemView,
-    QAbstractSpinBox,
-    QComboBox,
-    QLineEdit,
-    QPlainTextEdit,
-    QTextEdit,
-)
-
 
 class WidgetIdentityEventFilter(QObject):
     """Application filter that offers Copy object name / Copy class name."""
 
     def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
-        """Open the identity menu on ContextMenu when appropriate."""
-        if event.type() != QEvent.Type.ContextMenu or not isinstance(event, QContextMenuEvent):
+        """Open the identity menu on middle-click."""
+        if event.type() != QEvent.Type.MouseButtonPress or not isinstance(event, QMouseEvent):
+            return False
+        if event.button() != Qt.MouseButton.MiddleButton:
             return False
         widget = resolve_identity_widget(obj)
-        if widget is None or not _should_handle_context_menu(widget, event):
+        if widget is None or _is_menu_chrome(widget):
             return False
-        show_widget_identity_context_menu(widget, event.globalPos())
+        show_widget_identity_context_menu(widget, event.globalPosition().toPoint())
         return True
 
 
@@ -92,7 +73,7 @@ def install_widget_identity_context_menus(app: QApplication) -> None:
 
 
 def resolve_identity_widget(obj: QObject | None) -> QWidget | None:
-    """Map a context-menu target (often a viewport) to the identity widget."""
+    """Map a click target (often a viewport) to the identity widget."""
     if not isinstance(obj, QWidget):
         return None
     widget: QWidget = obj
@@ -106,9 +87,10 @@ def resolve_identity_widget(obj: QObject | None) -> QWidget | None:
 
 def show_widget_identity_context_menu(widget: QWidget, global_pos: QPoint) -> None:
     """Show Copy object name / Copy class name for `widget` at `global_pos`."""
-    menu = QMenu(widget)
+    menu = FluentMenu("", widget)
     add_widget_identity_actions(menu, widget)
     apply_leading_chrome_icons(menu)
+    menu.refresh_theme()
     menu.exec(global_pos)
 
 
@@ -135,28 +117,3 @@ def _is_menu_chrome(widget: QWidget) -> bool:
             return True
         current = current.parentWidget()
     return False
-
-
-def _plain_right_click_shows_identity(widget: QWidget) -> bool:
-    """Whether a normal right-click may open the identity menu on `widget`."""
-    policy = widget.contextMenuPolicy()
-    if policy in {
-        Qt.ContextMenuPolicy.PreventContextMenu,
-        Qt.ContextMenuPolicy.CustomContextMenu,
-    }:
-        return False
-    # Cards and similar hosts emit their own context_menu_requested signal.
-    if hasattr(widget, "context_menu_requested") and type(widget).contextMenuEvent is not QWidget.contextMenuEvent:
-        return False
-    return not isinstance(widget, _KEEP_DEFAULT_CONTEXT_MENU)
-
-
-def _should_handle_context_menu(widget: QWidget, event: QContextMenuEvent) -> bool:
-    if _is_menu_chrome(widget):
-        return False
-    modifiers = event.modifiers()
-    if modifiers == Qt.KeyboardModifier.NoModifier:
-        modifiers = QGuiApplication.keyboardModifiers()
-    if bool(modifiers & Qt.KeyboardModifier.ControlModifier):
-        return True
-    return _plain_right_click_shows_identity(widget)

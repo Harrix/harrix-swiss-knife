@@ -3,6 +3,7 @@
 Run with `python -m harrix_swiss_knife.fluent.gallery`.
 
 Each showcase control has a context menu to copy its object name or class name.
+Elsewhere in the app, middle-click opens the same identity menu.
 
 """
 

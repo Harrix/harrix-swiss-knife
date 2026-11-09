@@ -39,13 +39,15 @@ Application filter that offers Copy object name / Copy class name.
 class WidgetIdentityEventFilter(QObject):
 
     def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
-        """Open the identity menu on ContextMenu when appropriate."""
-        if event.type() != QEvent.Type.ContextMenu or not isinstance(event, QContextMenuEvent):
+        """Open the identity menu on middle-click."""
+        if event.type() != QEvent.Type.MouseButtonPress or not isinstance(event, QMouseEvent):
+            return False
+        if event.button() != Qt.MouseButton.MiddleButton:
             return False
         widget = resolve_identity_widget(obj)
-        if widget is None or not _should_handle_context_menu(widget, event):
+        if widget is None or _is_menu_chrome(widget):
             return False
-        show_widget_identity_context_menu(widget, event.globalPos())
+        show_widget_identity_context_menu(widget, event.globalPosition().toPoint())
         return True
 ```
 
@@ -57,19 +59,21 @@ class WidgetIdentityEventFilter(QObject):
 def eventFilter(self, obj: QObject, event: QEvent) -> bool
 ```
 
-Open the identity menu on ContextMenu when appropriate.
+Open the identity menu on middle-click.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
-        if event.type() != QEvent.Type.ContextMenu or not isinstance(event, QContextMenuEvent):
+        if event.type() != QEvent.Type.MouseButtonPress or not isinstance(event, QMouseEvent):
+            return False
+        if event.button() != Qt.MouseButton.MiddleButton:
             return False
         widget = resolve_identity_widget(obj)
-        if widget is None or not _should_handle_context_menu(widget, event):
+        if widget is None or _is_menu_chrome(widget):
             return False
-        show_widget_identity_context_menu(widget, event.globalPos())
+        show_widget_identity_context_menu(widget, event.globalPosition().toPoint())
         return True
 ```
 
@@ -165,7 +169,7 @@ def install_widget_identity_context_menus(app: QApplication) -> None:
 def resolve_identity_widget(obj: QObject | None) -> QWidget | None
 ```
 
-Map a context-menu target (often a viewport) to the identity widget.
+Map a click target (often a viewport) to the identity widget.
 
 <details>
 <summary>Code:</summary>
@@ -198,9 +202,10 @@ Show Copy object name / Copy class name for `widget` at `global_pos`.
 
 ```python
 def show_widget_identity_context_menu(widget: QWidget, global_pos: QPoint) -> None:
-    menu = QMenu(widget)
+    menu = FluentMenu("", widget)
     add_widget_identity_actions(menu, widget)
     apply_leading_chrome_icons(menu)
+    menu.refresh_theme()
     menu.exec(global_pos)
 ```
 

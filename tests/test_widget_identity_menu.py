@@ -5,16 +5,9 @@ from __future__ import annotations
 from unittest.mock import patch
 
 import pytest
-from PySide6.QtCore import QEvent, QPoint, Qt
-from PySide6.QtGui import QContextMenuEvent
-from PySide6.QtWidgets import (
-    QApplication,
-    QLabel,
-    QLineEdit,
-    QListWidget,
-    QPushButton,
-    QWidget,
-)
+from PySide6.QtCore import QEvent, QPoint, QPointF, Qt
+from PySide6.QtGui import QMouseEvent
+from PySide6.QtWidgets import QApplication, QLabel, QLineEdit, QListWidget, QPushButton, QWidget
 
 from harrix_swiss_knife.qt_widget_identity_menu import (
     WidgetIdentityEventFilter,
@@ -36,6 +29,18 @@ def qapp() -> QApplication:
         msg = "QApplication.instance() returned a non-QApplication object."
         raise TypeError(msg)
     return app
+
+
+def _middle_press(widget: QWidget) -> QMouseEvent:
+    local = QPointF(1, 1)
+    return QMouseEvent(
+        QEvent.Type.MouseButtonPress,
+        local,
+        widget.mapToGlobal(local.toPoint()),
+        Qt.MouseButton.MiddleButton,
+        Qt.MouseButton.MiddleButton,
+        Qt.KeyboardModifier.NoModifier,
+    )
 
 
 def test_widget_object_name_falls_back_to_class(qapp: QApplication) -> None:  # noqa: ARG001
@@ -69,66 +74,56 @@ def test_install_widget_identity_context_menus_is_idempotent(qapp: QApplication)
     assert first is second
 
 
-def test_filter_handles_plain_label_context_menu(qapp: QApplication) -> None:
+def test_filter_handles_middle_click_on_label(qapp: QApplication) -> None:
     install_widget_identity_context_menus(qapp)
     event_filter = qapp.property("_hskWidgetIdentityFilter")
     assert isinstance(event_filter, WidgetIdentityEventFilter)
     label = QLabel("hi")
     label.setObjectName("label_exercise")
-    event = QContextMenuEvent(
-        QContextMenuEvent.Reason.Mouse,
-        QPoint(1, 1),
-        label.mapToGlobal(QPoint(1, 1)),
-    )
     with patch(
         "harrix_swiss_knife.qt_widget_identity_menu.show_widget_identity_context_menu",
     ) as show_menu:
-        handled = event_filter.eventFilter(label, event)
+        handled = event_filter.eventFilter(label, _middle_press(label))
     assert handled is True
     show_menu.assert_called_once()
 
 
-def test_filter_keeps_line_edit_default_menu(qapp: QApplication) -> None:
+def test_filter_handles_middle_click_on_line_edit(qapp: QApplication) -> None:
     install_widget_identity_context_menus(qapp)
     event_filter = qapp.property("_hskWidgetIdentityFilter")
     assert isinstance(event_filter, WidgetIdentityEventFilter)
     edit = QLineEdit()
-    event = QContextMenuEvent(
-        QContextMenuEvent.Reason.Mouse,
-        QPoint(1, 1),
-        edit.mapToGlobal(QPoint(1, 1)),
+    edit.setObjectName("lineEdit_tag")
+    with patch(
+        "harrix_swiss_knife.qt_widget_identity_menu.show_widget_identity_context_menu",
+    ) as show_menu:
+        handled = event_filter.eventFilter(edit, _middle_press(edit))
+    assert handled is True
+    show_menu.assert_called_once()
+
+
+def test_filter_ignores_right_click_context_menu(qapp: QApplication) -> None:
+    install_widget_identity_context_menus(qapp)
+    event_filter = qapp.property("_hskWidgetIdentityFilter")
+    assert isinstance(event_filter, WidgetIdentityEventFilter)
+    label = QLabel("hi")
+    right = QMouseEvent(
+        QEvent.Type.MouseButtonPress,
+        QPointF(1, 1),
+        label.mapToGlobal(QPoint(1, 1)),
+        Qt.MouseButton.RightButton,
+        Qt.MouseButton.RightButton,
+        Qt.KeyboardModifier.NoModifier,
     )
     with patch(
         "harrix_swiss_knife.qt_widget_identity_menu.show_widget_identity_context_menu",
     ) as show_menu:
-        handled = event_filter.eventFilter(edit, event)
+        handled = event_filter.eventFilter(label, right)
     assert handled is False
     show_menu.assert_not_called()
 
 
-def test_filter_ctrl_overrides_custom_context_menu(qapp: QApplication) -> None:
-    install_widget_identity_context_menus(qapp)
-    event_filter = qapp.property("_hskWidgetIdentityFilter")
-    assert isinstance(event_filter, WidgetIdentityEventFilter)
-    button = QPushButton("x")
-    button.setObjectName("pushButton_select_exercise")
-    button.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-    event = QContextMenuEvent(
-        QContextMenuEvent.Reason.Mouse,
-        QPoint(1, 1),
-        button.mapToGlobal(QPoint(1, 1)),
-        Qt.KeyboardModifier.ControlModifier,
-    )
-    with patch(
-        "harrix_swiss_knife.qt_widget_identity_menu.show_widget_identity_context_menu",
-    ) as show_menu:
-        handled = event_filter.eventFilter(button, event)
-    assert handled is True
-    show_menu.assert_called_once()
-    assert event.type() == QEvent.Type.ContextMenu
-
-
-def test_filter_ignores_non_context_events(qapp: QApplication) -> None:
+def test_filter_ignores_non_mouse_events(qapp: QApplication) -> None:
     event_filter = WidgetIdentityEventFilter(qapp)
     widget = QWidget()
     assert event_filter.eventFilter(widget, QEvent(QEvent.Type.Show)) is False
