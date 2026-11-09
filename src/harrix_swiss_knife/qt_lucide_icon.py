@@ -44,11 +44,10 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife.apps.common.ui_chrome import (
-    BUTTON_ON_DARK_ICON,
+    BUTTON_ON_DARK_FG,
     button_danger_qss,
-    button_fill_from_stylesheet,
-    button_icon_color_for_bg,
     button_idle_qss,
+    button_lucide_color_from_stylesheet,
     button_success_qss,
 )
 from harrix_swiss_knife.qt_emoji_icon import split_leading_emoji
@@ -83,7 +82,7 @@ LUCIDE_COLOR_RED = "#cc584c"
 LUCIDE_COLOR_ORANGE = "#ffa000"
 LUCIDE_COLOR_YELLOW = "#eec646"
 LUCIDE_COLOR_DARK = "#122a3a"
-LUCIDE_COLOR_ON_FILLED = BUTTON_ON_DARK_ICON
+LUCIDE_COLOR_ON_FILLED = BUTTON_ON_DARK_FG
 
 AI_BUTTON_ICON_COLOR = LUCIDE_COLOR_BLUE
 # Solid semantic buttons — shared with ui_chrome / HTML `$h-success` / `$h-danger`.
@@ -305,10 +304,10 @@ def apply_button_stylesheet(
     *,
     icon_size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE,
 ) -> None:
-    """Set button QSS and recolor the Lucide icon for fill contrast.
+    """Set button QSS and recolor the Lucide icon to match button text.
 
-    Solid fills (primary / success / danger / CTAs) get white or dark icons to
-    match the text; ordinary gray / white idle chrome keeps semantic colors.
+    Accent fills force a monochrome Lucide stroke from the stylesheet text
+    color; ordinary gray / white idle chrome keeps semantic colors.
 
     """
     button.setStyleSheet(stylesheet)
@@ -415,13 +414,13 @@ def apply_lucide_button_icon(
 ) -> None:
     """Set a Lucide icon on an existing button.
 
-    When `color` is omitted, a solid fill from the button stylesheet forces a
-    matching light/dark stroke; ordinary gray buttons keep semantic colors.
+    When `color` is omitted, accent fills force a Lucide stroke matching the
+    button text color; ordinary gray buttons keep semantic colors.
 
     """
     resolved = color
     if resolved is None:
-        resolved = button_icon_color_for_bg(button_fill_from_stylesheet(button.styleSheet()))
+        resolved = button_lucide_color_from_stylesheet(button.styleSheet())
     button.setIcon(create_lucide_icon(name, icon_size, color=resolved))
     button.setIconSize(QSize(icon_size, icon_size))
     button.setProperty(_LUCIDE_NAME_PROP, name)
@@ -766,12 +765,11 @@ def sync_button_icon_to_fill(
     *,
     icon_size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE,
 ) -> None:
-    """Recolor the Lucide icon to match text contrast on the button fill."""
+    """Recolor the Lucide icon to match the button text on accent fills."""
     name = button.property(_LUCIDE_NAME_PROP)
     if not isinstance(name, str) or not name.strip():
         return
-    forced = button_icon_color_for_bg(button_fill_from_stylesheet(button.styleSheet()))
-    apply_lucide_button_icon(button, name, icon_size=icon_size, color=forced)
+    apply_lucide_button_icon(button, name, icon_size=icon_size)
 
 
 def _is_ai_chrome_emoji(emoji: str) -> bool:

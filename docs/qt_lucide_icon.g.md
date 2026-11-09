@@ -74,10 +74,10 @@ def add_lucide_action(
 def apply_button_stylesheet(button: QAbstractButton, stylesheet: str, *, icon_size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE) -> None
 ```
 
-Set button QSS and recolor the Lucide icon for fill contrast.
+Set button QSS and recolor the Lucide icon to match button text.
 
-Solid fills (primary / success / danger / CTAs) get white or dark icons to
-match the text; ordinary gray / white idle chrome keeps semantic colors.
+Accent fills force a monochrome Lucide stroke from the stylesheet text
+color; ordinary gray / white idle chrome keeps semantic colors.
 
 <details>
 <summary>Code:</summary>
@@ -255,8 +255,8 @@ def apply_lucide_button_icon(button: QAbstractButton, name: str, *, icon_size: i
 
 Set a Lucide icon on an existing button.
 
-When [`color`](fluent/widgets/dialogs.g.md#%EF%B8%8F-method-color) is omitted, a solid fill from the button stylesheet forces a
-matching light/dark stroke; ordinary gray buttons keep semantic colors.
+When [`color`](fluent/widgets/dialogs.g.md#%EF%B8%8F-method-color) is omitted, accent fills force a Lucide stroke matching the
+button text color; ordinary gray buttons keep semantic colors.
 
 <details>
 <summary>Code:</summary>
@@ -271,7 +271,7 @@ def apply_lucide_button_icon(
 ) -> None:
     resolved = color
     if resolved is None:
-        resolved = button_icon_color_for_bg(button_fill_from_stylesheet(button.styleSheet()))
+        resolved = button_lucide_color_from_stylesheet(button.styleSheet())
     button.setIcon(create_lucide_icon(name, icon_size, color=resolved))
     button.setIconSize(QSize(icon_size, icon_size))
     button.setProperty(_LUCIDE_NAME_PROP, name)
@@ -839,7 +839,7 @@ def style_delete_button(
 def sync_button_icon_to_fill(button: QAbstractButton, *, icon_size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE) -> None
 ```
 
-Recolor the Lucide icon to match text contrast on the button fill.
+Recolor the Lucide icon to match the button text on accent fills.
 
 <details>
 <summary>Code:</summary>
@@ -853,8 +853,7 @@ def sync_button_icon_to_fill(
     name = button.property(_LUCIDE_NAME_PROP)
     if not isinstance(name, str) or not name.strip():
         return
-    forced = button_icon_color_for_bg(button_fill_from_stylesheet(button.styleSheet()))
-    apply_lucide_button_icon(button, name, icon_size=icon_size, color=forced)
+    apply_lucide_button_icon(button, name, icon_size=icon_size)
 ```
 
 </details>

@@ -25,9 +25,11 @@ lang: en
 - [🔧 Function `button_fill_is_ordinary`](#-function-button_fill_is_ordinary)
 - [🔧 Function `button_icon_color_for_bg`](#-function-button_icon_color_for_bg)
 - [🔧 Function `button_idle_qss`](#-function-button_idle_qss)
+- [🔧 Function `button_lucide_color_from_stylesheet`](#-function-button_lucide_color_from_stylesheet)
 - [🔧 Function `button_primary_qss`](#-function-button_primary_qss)
 - [🔧 Function `button_secondary_qss`](#-function-button_secondary_qss)
 - [🔧 Function `button_success_qss`](#-function-button_success_qss)
+- [🔧 Function `button_text_color_from_stylesheet`](#-function-button_text_color_from_stylesheet)
 - [🔧 Function `drop_zone_qss`](#-function-drop_zone_qss)
 - [🔧 Function `list_view_item_selection_qss`](#-function-list_view_item_selection_qss)
 - [🔧 Function `list_view_panel_qss`](#-function-list_view_panel_qss)
@@ -188,9 +190,8 @@ def button_content_colors(bg_hex: str) -> tuple[str, str]
 
 Return `(text_hex, icon_hex)` for a solid fill.
 
-Dark / saturated fills use white text and near-white icons. Light fills use
-dark ink for both. Low-chroma gray fills are treated as ordinary chrome:
-dark text, but callers should keep semantic (colored) icons.
+Accent fills use the same stroke for text and Lucide icons. Low-chroma gray
+fills are ordinary chrome: dark text, but callers keep semantic icons.
 
 <details>
 <summary>Code:</summary>
@@ -200,7 +201,7 @@ def button_content_colors(bg_hex: str) -> tuple[str, str]:
     if button_fill_is_ordinary(bg_hex):
         return BUTTON_SECONDARY_FG, BUTTON_ON_LIGHT_FG
     if relative_luminance(bg_hex) < _BUTTON_DARK_LUMINANCE_MAX:
-        return BUTTON_ON_DARK_FG, BUTTON_ON_DARK_ICON
+        return BUTTON_ON_DARK_FG, BUTTON_ON_DARK_FG
     return BUTTON_ON_LIGHT_FG, BUTTON_ON_LIGHT_FG
 ```
 
@@ -374,6 +375,33 @@ def button_idle_qss(*, radius: int = PANEL_RADIUS) -> str:
 
 </details>
 
+## 🔧 Function `button_lucide_color_from_stylesheet`
+
+```python
+def button_lucide_color_from_stylesheet(stylesheet: str | None) -> str | None
+```
+
+Return Lucide stroke matching accent button text, or `None` for semantic.
+
+Fluent CTA QSS uses `rgba(...)` fills; ordinary gray/white chrome keeps
+CodeStyle semantic icon colors.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def button_lucide_color_from_stylesheet(stylesheet: str | None) -> str | None:
+    fill = button_fill_from_stylesheet(stylesheet)
+    if fill is None or button_fill_is_ordinary(fill):
+        return None
+    text = button_text_color_from_stylesheet(stylesheet)
+    if text is not None:
+        return text
+    return button_content_colors(fill)[1]
+```
+
+</details>
+
 ## 🔧 Function `button_primary_qss`
 
 ```python
@@ -440,6 +468,29 @@ def button_success_qss(*, radius: int = PANEL_RADIUS) -> str:
         pressed="#2e7d4f",
         radius=radius,
     )
+```
+
+</details>
+
+## 🔧 Function `button_text_color_from_stylesheet`
+
+```python
+def button_text_color_from_stylesheet(stylesheet: str | None) -> str | None
+```
+
+Parse the first idle `color:` from a button stylesheet, if any.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def button_text_color_from_stylesheet(stylesheet: str | None) -> str | None:
+    if not stylesheet:
+        return None
+    match = _FG_COLOR_RE.search(stylesheet)
+    if match is None:
+        return None
+    return normalize_hex_color(match.group(1))
 ```
 
 </details>
@@ -594,7 +645,7 @@ def nearest_codestyle_color(
 def normalize_hex_color(value: str) -> str | None
 ```
 
-Normalize `#rgb` / `#rrggbb` / named Qt colors used in stylesheets.
+Normalize `#rgb` / `#rrggbb` / `rgb()` / `rgba()` / named colors to `#rrggbb`.
 
 <details>
 <summary>Code:</summary>
@@ -604,7 +655,17 @@ def normalize_hex_color(value: str) -> str | None:
     text = value.strip()
     if not text:
         return None
-    color = QColor(text)
+    match = _RGBA_RE.fullmatch(text)
+    if match is not None:
+        red, green, blue = int(match.group(1)), int(match.group(2)), int(match.group(3))
+        alpha = 255
+        if match.group(4) is not None:
+            raw = float(match.group(4))
+            # Fluent `css()` uses 0-255; CSS rgba often uses 0-1.
+            alpha = round(raw) if raw > 1.0 else round(raw * 255)
+        color = QColor(red, green, blue, max(0, min(255, alpha)))
+    else:
+        color = QColor(text)
     if not color.isValid():
         return None
     return color.name(QColor.NameFormat.HexRgb)

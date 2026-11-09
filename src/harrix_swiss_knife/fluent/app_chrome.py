@@ -423,6 +423,8 @@ def _paint_viewport(view: QAbstractItemView, color: QColor, text: QColor) -> Non
 
 
 def _restyle_buttons(root: QWidget, palette: FluentPalette) -> None:
+    from harrix_swiss_knife.qt_lucide_icon import sync_button_icon_to_fill  # noqa: PLC0415
+
     secondary = push_button_qss(palette)
     for button in root.findChildren(QPushButton):
         if _skip_fluent_button(button):
@@ -433,13 +435,16 @@ def _restyle_buttons(root: QWidget, palette: FluentPalette) -> None:
             _set_sheet(button, f"/* hsk-fluent-{kind} */\n{semantic_button_qss(palette, kind)}")
             _lock_control_height(button)
             button.setProperty("_hskFluentButton", kind)
+            sync_button_icon_to_fill(button)
         elif any(marker.lower() in sheet.lower() for marker in _SECONDARY_MARKERS):
             _set_sheet(button, secondary)
             _lock_control_height(button)
             button.setProperty("_hskFluentButton", "secondary")
+            sync_button_icon_to_fill(button)
         elif kind == "secondary":
             _set_sheet(button, secondary)
             _lock_control_height(button)
+            sync_button_icon_to_fill(button)
 
 
 def _restyle_inputs(root: QWidget, palette: FluentPalette) -> None:

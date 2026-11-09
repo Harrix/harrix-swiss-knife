@@ -4738,13 +4738,13 @@ class MainWindow(
     def _update_add_button_appearance(self) -> None:
         """Update the appearance of the add button based on whether it's a drink or food."""
         is_drink = self.checkBox_food_is_drink.isChecked()
+        self.pushButton_food_add.setStyleSheet(button_cta_cyan_qss())
         if is_drink:
             self.pushButton_food_add.setText("Add drink")
             apply_lucide_button_icon(self.pushButton_food_add, "cup-soda")
         else:
             self.pushButton_food_add.setText("Add food")
             apply_lucide_button_icon(self.pushButton_food_add, "utensils")
-        self.pushButton_food_add.setStyleSheet(button_cta_cyan_qss())
 
     def _update_autocomplete_data(self) -> None:
         """Update autocomplete data from database."""
