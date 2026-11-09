@@ -50,10 +50,18 @@ def paint_fluent_splitter_handle(
     - `hovered` (`bool`): Pointer is over the handle.
     - `pressed` (`bool`): Handle is being dragged.
 
+    When the parent splitter has `_hskQuietSplitter`, idle state paints nothing so
+    columns can separate by surface alone; the accent line still appears on hover.
+
     """
     painter = antialiased_painter(device)
     rect = device.rect()
     active = hovered or pressed
+    parent = device.parentWidget()
+    quiet = bool(parent is not None and parent.property("_hskQuietSplitter"))
+    if not active and quiet:
+        painter.end()
+        return
     if active:
         line = palette.accent_pressed if pressed else palette.accent
         line_width = 2
