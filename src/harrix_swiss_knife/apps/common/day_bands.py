@@ -130,13 +130,13 @@ def table_surface_color(palette: FluentPalette) -> QColor:
 def _band_pair(palette: FluentPalette) -> tuple[tuple[int, int, int], tuple[int, int, int]]:
     """Return even and odd RGB triples. Odd is darker in light mode and lighter in dark.
 
-    Light bands follow the cool bluish window gradient (`#f3f6f8` / `#e8eef3`), not
-    a flat gray that clashes with the Fluent wallpaper.
+    Light bands stay near-white with a very weak neutral tint so day groups do not
+    look like a multi-row selection over the Fluent wallpaper.
 
     """
     if palette.dark:
-        return (0x2C, 0x2C, 0x2C), (0x40, 0x40, 0x40)
-    return (0xF3, 0xF6, 0xF8), (0xE4, 0xEB, 0xF2)
+        return (0x2C, 0x2C, 0x2C), (0x36, 0x36, 0x36)
+    return (0xFC, 0xFC, 0xFC), (0xF4, 0xF5, 0xF6)
 
 
 def _refresh_model(model: QStandardItemModel) -> None:

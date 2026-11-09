@@ -138,6 +138,7 @@ from harrix_swiss_knife.apps.finance.chart_year_start_dialog import ChartYearSta
 from harrix_swiss_knife.apps.finance.currencies_dialog import CurrenciesDialog
 from harrix_swiss_knife.apps.finance.deferred_ui_refresh import DeferredUiRefreshScheduler
 from harrix_swiss_knife.apps.finance.delegates import (
+    ICON_ROLE,
     NAME_LOCAL_ROLE,
     AmountDelegate,
     CategoryComboBoxDelegate,
@@ -186,7 +187,7 @@ from harrix_swiss_knife.apps.finance.transaction_filter_chrome import (
     FILTER_TYPE_EXPENSE,
     FILTER_TYPE_INCOME,
     INCOME_LUCIDE_ICON,
-    advanced_transactions_filter_is_active,
+    advanced_transactions_filter_count,
     install_transactions_filter_chrome,
     populate_transactions_category_filter,
     populate_transactions_currency_filter,
@@ -301,7 +302,7 @@ class MainWindow(
     about_description = "Track accounts, transactions, and exchange rates."
     settings_app_id = "finance"
     defer_initial_show = True
-    _NO_CATEGORY_LABEL: str = "No category selected"
+    _NO_CATEGORY_LABEL: str = "Category: not selected"
     _TRANSACTION_AMOUNT_COLUMN: int = 2
     _TRANSLATION_FAILURE_PREVIEW_LIMIT: int = 8
 
@@ -911,7 +912,7 @@ class MainWindow(
                 if not description:
                     return ("Enter description", None)
                 if not category_name:
-                    return ("Select a category", None)
+                    return ("Select a category in the category list", None)
                 if not currency_code:
                     return ("Select a currency", None)
                 if self.db_manager is None:
@@ -1020,9 +1021,7 @@ class MainWindow(
 
         """
         if current.isValid():
-            # Get the display text (with icon and income marker if applicable)
-            display_text: str | None = current.data(Qt.ItemDataRole.DisplayRole)
-            refresh_category_state_label(self, display_text)
+            refresh_category_state_label(self, self._category_form_label_from_index(current))
 
             # Defer so Use-button click handlers are not destroyed mid-signal.
             QTimer.singleShot(0, self._clear_category_suggestions)
@@ -1852,6 +1851,17 @@ class MainWindow(
             return False
         revision_rows = self.db_manager.get_revision_expense_transactions(currency_id)
         return plan_revision_expense_consolidation_for_positive_diff(revision_rows, diff_minor) is not None
+
+    def _category_form_label_from_index(self, index: QModelIndex) -> str | None:
+        """Build form category status text with icon + title from a list index."""
+        if not index.isValid():
+            return None
+        title = index.data(Qt.ItemDataRole.DisplayRole)
+        if not title:
+            return None
+        icon = index.data(ICON_ROLE)
+        icon_text = "" if icon is None else str(icon).strip()
+        return f"{icon_text} {title}".strip() if icon_text else str(title)
 
     @staticmethod
     def _chart_date_nums(x_values: list[datetime]) -> list[float]:
@@ -5170,8 +5180,7 @@ class MainWindow(
                             selection_model.select(index, selection_model.SelectionFlag.Select)
 
                         # Update the category label
-                        display_text: str | None = model.data(index, Qt.ItemDataRole.DisplayRole)
-                        refresh_category_state_label(self, display_text)
+                        refresh_category_state_label(self, self._category_form_label_from_index(index))
                         break
 
         except Exception:
@@ -5461,6 +5470,7 @@ class MainWindow(
         """Set up item delegates for the transactions table."""
         self.description_delegate = DescriptionDelegate(self.tableView_transactions)
         self.tableView_transactions.setItemDelegateForColumn(0, self.description_delegate)
+        self.tableView_transactions.setItemDelegateForColumn(1, self.description_delegate)
 
         categories: list[str] = self._get_categories_for_delegate()
         self.category_delegate = CategoryComboBoxDelegate(self.tableView_transactions, categories)
@@ -5728,10 +5738,10 @@ class MainWindow(
         context_menu = QMenu(self)
         for row in range(model.rowCount()):
             index = model.index(row, 0)
-            display_text = model.data(index, Qt.ItemDataRole.DisplayRole)
-            if not display_text:
+            label = self._category_form_label_from_index(index)
+            if not label:
                 continue
-            action = context_menu.addAction(display_text)
+            action = context_menu.addAction(label)
             action.setData(row)
 
         if context_menu.isEmpty():
@@ -6411,8 +6421,8 @@ class MainWindow(
         """Show the clear-filter button only while a transaction filter is active."""
         self.pushButton_clear_filter.setVisible(self._transactions_filter_is_active())
         if hasattr(self, "pushButton_filter"):
-            active = advanced_transactions_filter_is_active(self)
-            self.pushButton_filter.setText("Filter •" if active else "Filter")
+            count = advanced_transactions_filter_count(self)
+            self.pushButton_filter.setText(f"Filter ({count})" if count else "Filter")
 
     @requires_database()
     def _update_comboboxes(self) -> None:
@@ -6440,26 +6450,25 @@ class MainWindow(
 
             # Add expense categories first
             for category_name, icon, name_local in expense_categories:
-                # Create display text with icon
-                display_text: str = f"{icon} {category_name}" if icon else category_name
-                item: QStandardItem = QStandardItem(display_text)
-                # Store the original category name as data for selection handling
+                title = category_name
+                tip = f"{icon} {title}".strip() if icon else title
+                item: QStandardItem = QStandardItem(title)
                 item.setData(category_name, Qt.ItemDataRole.UserRole)
                 item.setData(name_local, NAME_LOCAL_ROLE)
-                item.setData(display_text, Qt.ItemDataRole.ToolTipRole)
+                item.setData(icon or "", ICON_ROLE)
+                item.setData(tip, Qt.ItemDataRole.ToolTipRole)
                 item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
                 model.appendRow(item)
 
             # Add income categories with special marking
             for category_name, icon, name_local in income_categories:
-                # Create display text with icon and income marker
-                base_text: str = f"{icon} {category_name}" if icon else category_name
-                display_text: str = f"{base_text} (Income)"  # Add income marker in parentheses
-                item: QStandardItem = QStandardItem(display_text)
-                # Store the original category name as data for selection handling
+                title = f"{category_name} (Income)"
+                tip = f"{icon} {title}".strip() if icon else title
+                item = QStandardItem(title)
                 item.setData(category_name, Qt.ItemDataRole.UserRole)
                 item.setData(name_local, NAME_LOCAL_ROLE)
-                item.setData(display_text, Qt.ItemDataRole.ToolTipRole)
+                item.setData(icon or "", ICON_ROLE)
+                item.setData(tip, Qt.ItemDataRole.ToolTipRole)
                 item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
                 model.appendRow(item)
 

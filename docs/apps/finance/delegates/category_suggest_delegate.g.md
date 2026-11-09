@@ -115,7 +115,9 @@ class CategorySuggestDelegate(QStyledItemDelegate):
         fluent = palette_for(host)
         text_color = mix(fluent.window_bg, fluent.text_primary)
         if selected:
-            background = list_item_selected(fluent)
+            accent_fill = QColor(fluent.accent)
+            accent_fill.setAlpha(36 if fluent.dark else 28)
+            background = mix(fluent.window_bg, accent_fill)
         elif hovered:
             background = list_item_hover(fluent)
         else:
@@ -138,8 +140,23 @@ class CategorySuggestDelegate(QStyledItemDelegate):
             painter.setBrush(Qt.BrushStyle.NoBrush)
             painter.drawRoundedRect(option.rect.adjusted(1, 1, -2, -2), RADIUS_CONTROL, RADIUS_CONTROL)
 
-        text_left = 8 if not selected else 8 + _MARKER_WIDTH
-        text_rect = option.rect.adjusted(text_left, 0, -(reserved_right + 4), 0)
+        content_left = 8 if not selected else 8 + _MARKER_WIDTH
+        icon = self._category_icon(index)
+        icon_rect = QRect(
+            option.rect.left() + content_left,
+            option.rect.top(),
+            _ICON_COLUMN_WIDTH,
+            option.rect.height(),
+        )
+        if icon:
+            painter.setPen(text_color)
+            painter.setFont(opt.font)
+            painter.drawText(
+                icon_rect,
+                int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignHCenter | Qt.TextFlag.TextSingleLine),
+                icon,
+            )
+        text_rect = option.rect.adjusted(content_left + _ICON_COLUMN_WIDTH + 4, 0, -(reserved_right + 4), 0)
         secondary = mix(fluent.window_bg, fluent.text_secondary)
         self._paint_category_label(painter, opt, index, text_rect, text_color, secondary)
 
@@ -173,6 +190,10 @@ class CategorySuggestDelegate(QStyledItemDelegate):
         metrics = QFontMetrics(option.font)
         return metrics.horizontalAdvance(_BUTTON_TEXT) + 2 * _BUTTON_PADDING_X
 
+    def _category_icon(self, index: QModelIndex | QPersistentModelIndex) -> str:
+        value = index.data(ICON_ROLE)
+        return "" if value is None else str(value).strip()
+
     def _category_name(self, index: QModelIndex | QPersistentModelIndex) -> str | None:
         value = index.data(Qt.ItemDataRole.UserRole)
         if value is None:
@@ -204,6 +225,7 @@ class CategorySuggestDelegate(QStyledItemDelegate):
         secondary_color: QColor,
     ) -> None:
         """Draw main category text and optional gray smaller local name."""
+        # DisplayRole keeps the title without the emoji; emoji is painted in ICON_ROLE.
         main_text = option.text
         name_local = self._category_name_local(index)
 
@@ -431,7 +453,9 @@ def paint(
         fluent = palette_for(host)
         text_color = mix(fluent.window_bg, fluent.text_primary)
         if selected:
-            background = list_item_selected(fluent)
+            accent_fill = QColor(fluent.accent)
+            accent_fill.setAlpha(36 if fluent.dark else 28)
+            background = mix(fluent.window_bg, accent_fill)
         elif hovered:
             background = list_item_hover(fluent)
         else:
@@ -454,8 +478,23 @@ def paint(
             painter.setBrush(Qt.BrushStyle.NoBrush)
             painter.drawRoundedRect(option.rect.adjusted(1, 1, -2, -2), RADIUS_CONTROL, RADIUS_CONTROL)
 
-        text_left = 8 if not selected else 8 + _MARKER_WIDTH
-        text_rect = option.rect.adjusted(text_left, 0, -(reserved_right + 4), 0)
+        content_left = 8 if not selected else 8 + _MARKER_WIDTH
+        icon = self._category_icon(index)
+        icon_rect = QRect(
+            option.rect.left() + content_left,
+            option.rect.top(),
+            _ICON_COLUMN_WIDTH,
+            option.rect.height(),
+        )
+        if icon:
+            painter.setPen(text_color)
+            painter.setFont(opt.font)
+            painter.drawText(
+                icon_rect,
+                int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignHCenter | Qt.TextFlag.TextSingleLine),
+                icon,
+            )
+        text_rect = option.rect.adjusted(content_left + _ICON_COLUMN_WIDTH + 4, 0, -(reserved_right + 4), 0)
         secondary = mix(fluent.window_bg, fluent.text_secondary)
         self._paint_category_label(painter, opt, index, text_rect, text_color, secondary)
 

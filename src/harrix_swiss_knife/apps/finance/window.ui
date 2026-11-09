@@ -39,7 +39,7 @@
            </property>
            <property name="minimumSize">
             <size>
-             <width>320</width>
+             <width>280</width>
              <height>0</height>
             </size>
            </property>
@@ -91,7 +91,10 @@
                   <enum>Qt::FocusPolicy::NoFocus</enum>
                  </property>
                  <property name="text">
-                  <string>No category selected</string>
+                  <string>Category: not selected</string>
+                 </property>
+                 <property name="wordWrap">
+                  <bool>true</bool>
                  </property>
                 </widget>
                </item>
@@ -168,7 +171,7 @@
                   <widget class="QDateEdit" name="dateEdit">
                    <property name="minimumSize">
                     <size>
-                     <width>191</width>
+                     <width>140</width>
                      <height>0</height>
                     </size>
                    </property>
@@ -332,7 +335,7 @@
           <widget class="QWidget" name="widget_middle">
            <property name="minimumSize">
             <size>
-             <width>200</width>
+             <width>260</width>
              <height>0</height>
             </size>
            </property>
@@ -355,7 +358,7 @@
             <item>
              <widget class="QLabel" name="label_categories">
               <property name="text">
-               <string>Categories</string>
+               <string>Transaction category</string>
               </property>
              </widget>
             </item>

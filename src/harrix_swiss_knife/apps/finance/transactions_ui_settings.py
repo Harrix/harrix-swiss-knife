@@ -11,9 +11,10 @@ from harrix_swiss_knife.paths import get_config_path_str, get_temp_config_path
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-SPLITTER_SIZES_KEY = "finance_transactions_splitter_sizes"
+# v2 defaults: narrower form (~320), steadier categories (~290), table gets the rest.
+SPLITTER_SIZES_KEY = "finance_transactions_splitter_sizes_v2"
 COLUMN_VISIBILITY_KEY = "finance_transactions_column_visibility"
-SPLITTER_SIZES_DEFAULT = (380, 260, 700)
+SPLITTER_SIZES_DEFAULT = (320, 290, 958)
 # Logical column indices in `tableView_transactions` (Description=0 … Total=7).
 OPTIONAL_COLUMN_ENGLISH = 1
 EXPECTED_SPLITTER_LEN = 3

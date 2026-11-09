@@ -27,17 +27,19 @@ from harrix_swiss_knife.apps.finance.transactions_ui_settings import (
     save_splitter_sizes,
 )
 from harrix_swiss_knife.fluent.theme import bind_theme, css, mix, palette_for
-from harrix_swiss_knife.fluent.tokens import ICON_SIZE, SPACE_XS
+from harrix_swiss_knife.fluent.tokens import CONTROL_HEIGHT, ICON_SIZE, SPACE_S, SPACE_XS
 from harrix_swiss_knife.qt_lucide_icon import apply_lucide_button_icon
 
 TRANSACTIONS_ROW_HEIGHT = 30
-_FORM_MIN_WIDTH = 320
-_CATEGORIES_MIN_WIDTH = 200
-_TABLE_MIN_WIDTH = 360
+_FORM_MIN_WIDTH = 280
+_CATEGORIES_MIN_WIDTH = 260
+_TABLE_MIN_WIDTH = 400
 _SPLITTER_SAVE_DELAY_MS = 400
 _VIS_KEY_ENGLISH = "english"
 _VIS_KEY_RECORD_ID = "record_id"
-_NO_CATEGORY = "No category selected"
+_NO_CATEGORY = "Category: not selected"
+_CATEGORY_HINT = "Choose a category in the adjacent panel"
+_CATEGORY_PREFIX = "Category: "
 
 
 def apply_transactions_column_visibility(host: Any) -> None:
@@ -49,16 +51,16 @@ def apply_transactions_column_visibility(host: Any) -> None:
 
 
 def category_state_text(display_name: str | None) -> str:
-    """Return the form category indicator text."""
+    """Return the form category indicator text (with optional hint when empty)."""
     name = (display_name or "").strip()
     if not name:
-        return _NO_CATEGORY
+        return f"{_NO_CATEGORY}\n{_CATEGORY_HINT}"
     lowered = name.casefold()
-    if lowered.startswith("category:"):
+    if lowered.startswith(_CATEGORY_PREFIX.casefold()):
         return name
-    if lowered == _NO_CATEGORY.casefold():
-        return _NO_CATEGORY
-    return f"Category: {name}"
+    if lowered in {_NO_CATEGORY.casefold(), "no category selected"}:
+        return f"{_NO_CATEGORY}\n{_CATEGORY_HINT}"
+    return f"{_CATEGORY_PREFIX}{name}"
 
 
 def install_transactions_entry_chrome(host: Any) -> None:
@@ -90,8 +92,12 @@ def persist_transactions_splitter_sizes(host: Any) -> None:
 
 def refresh_category_state_label(host: Any, display_name: str | None = None) -> None:
     """Update `label_category_now` with a Fluent status string."""
-    host.label_category_now.setText(category_state_text(display_name))
-    host.label_category_now.setProperty("hskCategorySelected", bool((display_name or "").strip()))
+    text = category_state_text(display_name)
+    selected = bool((display_name or "").strip()) and not text.startswith(_NO_CATEGORY)
+    host.label_category_now.setText(text)
+    host.label_category_now.setWordWrap(True)
+    host.label_category_now.setToolTip(_CATEGORY_HINT if not selected else text.split("\n", 1)[0])
+    host.label_category_now.setProperty("hskCategorySelected", selected)
     host.label_category_now.style().unpolish(host.label_category_now)
     host.label_category_now.style().polish(host.label_category_now)
 
@@ -119,6 +125,10 @@ def _configure_transactions_splitter(host: Any) -> None:
             scale = total / max(sum(sizes), 1)
             sizes = [max(1, round(size * scale)) for size in sizes]
             sizes[2] = max(1, total - sizes[0] - sizes[1])
+        # Keep form from eating table space after DPI scale.
+        sizes[0] = min(sizes[0], max(_FORM_MIN_WIDTH, total // 4))
+        sizes[1] = max(sizes[1], _CATEGORIES_MIN_WIDTH)
+        sizes[2] = max(1, total - sizes[0] - sizes[1])
         host.splitter.setSizes(sizes)
 
     def on_splitter_moved(*_args: object) -> None:
@@ -186,16 +196,17 @@ def _polish_category_list(host: Any) -> None:
     view.setMouseTracking(True)
     view.setWordWrap(False)
     view.setStyleSheet("")
-    host.label_categories.setText("Categories")
+    host.label_categories.setText("Transaction category")
     host.label_categories.setStyleSheet(_field_caption_qss())
     font = QFont(host.label_categories.font())
     font.setBold(True)
     host.label_categories.setFont(font)
+    host.label_categories.setToolTip("Select the category for the new transaction")
 
 
 def _polish_entry_surfaces(host: Any) -> None:
     palette = palette_for(host)
-    panel = css(mix(palette.window_bg, palette.layer_alt_bg))
+    panel = css(mix(palette.window_bg, palette.card_bg))
     soft_divider = css(mix(palette.window_bg, palette.divider))
     strong_divider = css(mix(palette.window_bg, palette.card_stroke))
     text = css(mix(palette.window_bg, palette.text_primary))
@@ -240,6 +251,19 @@ def _polish_entry_surfaces(host: Any) -> None:
         QLabel#label_category_now[hskCategorySelected="true"] {{
             color: {text};
         }}
+        QGroupBox#groupBox_commands {{
+            border: none;
+            border-top: 1px solid {soft_divider};
+            margin-top: {SPACE_XS}px;
+            padding-top: {SPACE_S}px;
+            border-radius: 0px;
+        }}
+        QGroupBox#groupBox_commands::title {{
+            height: 0px;
+            width: 0px;
+            padding: 0px;
+            margin: 0px;
+        }}
         """,
     )
 
@@ -250,6 +274,13 @@ def _polish_form_column(host: Any) -> None:
     host.groupBox_commands.setFlat(True)
     if hasattr(host, "groupBox_expenses"):
         host.groupBox_expenses.setTitle("Expenses")
+
+    form_layout = host.verticalLayout_5
+    form_layout.setSpacing(SPACE_S)
+    form_layout.setContentsMargins(SPACE_S, SPACE_S, SPACE_S, SPACE_S)
+    host.verticalLayout_3.setSpacing(SPACE_XS)
+    host.verticalLayout_2.setContentsMargins(0, SPACE_XS, 0, 0)
+    host.verticalLayout_2.setSpacing(SPACE_XS)
 
     for name in (
         "label_field_description",
@@ -265,6 +296,19 @@ def _polish_form_column(host: Any) -> None:
 
     if hasattr(host, "label_tag"):
         host.label_tag.hide()
+
+    for control_name in (
+        "lineEdit_description",
+        "doubleSpinBox_amount",
+        "comboBox_currency",
+        "dateEdit",
+        "lineEdit_tag",
+        "pushButton_add",
+        "pushButton_add_as_text_with_ai",
+    ):
+        control = getattr(host, control_name, None)
+        if control is not None:
+            control.setMinimumHeight(CONTROL_HEIGHT)
 
     host.pushButton_add.setText("Add transaction")
     host.pushButton_add.setStyleSheet(button_cta_mint_qss())

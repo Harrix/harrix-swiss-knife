@@ -34,15 +34,23 @@ _FILTER_ALL_VALUES = frozenset({"", "All", FILTER_ALL_TYPES, FILTER_ALL_CATEGORI
 _FILTER_MAX_POLICY = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
 
 
+def advanced_transactions_filter_count(host: Any) -> int:
+    """Return how many non-search transaction filters are applied."""
+    count = 0
+    if transactions_filter_combo_value(host.comboBox_filter_type) in {FILTER_TYPE_EXPENSE, FILTER_TYPE_INCOME}:
+        count += 1
+    if transactions_filter_combo_value(host.comboBox_filter_category):
+        count += 1
+    if transactions_filter_combo_value(host.comboBox_filter_currency):
+        count += 1
+    if host.checkBox_use_date_filter.isChecked():
+        count += 1
+    return count
+
+
 def advanced_transactions_filter_is_active(host: Any) -> bool:
     """Return whether any non-search transaction filter is applied."""
-    if transactions_filter_combo_value(host.comboBox_filter_type) in {FILTER_TYPE_EXPENSE, FILTER_TYPE_INCOME}:
-        return True
-    if transactions_filter_combo_value(host.comboBox_filter_category):
-        return True
-    if transactions_filter_combo_value(host.comboBox_filter_currency):
-        return True
-    return bool(host.checkBox_use_date_filter.isChecked())
+    return advanced_transactions_filter_count(host) > 0
 
 
 def install_transactions_filter_chrome(host: Any) -> None:

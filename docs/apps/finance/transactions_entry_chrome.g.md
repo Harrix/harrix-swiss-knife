@@ -46,7 +46,7 @@ def apply_transactions_column_visibility(host: Any) -> None:
 def category_state_text(display_name: str | None) -> str
 ```
 
-Return the form category indicator text.
+Return the form category indicator text (with optional hint when empty).
 
 <details>
 <summary>Code:</summary>
@@ -55,13 +55,13 @@ Return the form category indicator text.
 def category_state_text(display_name: str | None) -> str:
     name = (display_name or "").strip()
     if not name:
-        return _NO_CATEGORY
+        return f"{_NO_CATEGORY}\n{_CATEGORY_HINT}"
     lowered = name.casefold()
-    if lowered.startswith("category:"):
+    if lowered.startswith(_CATEGORY_PREFIX.casefold()):
         return name
-    if lowered == _NO_CATEGORY.casefold():
-        return _NO_CATEGORY
-    return f"Category: {name}"
+    if lowered in {_NO_CATEGORY.casefold(), "no category selected"}:
+        return f"{_NO_CATEGORY}\n{_CATEGORY_HINT}"
+    return f"{_CATEGORY_PREFIX}{name}"
 ```
 
 </details>
@@ -132,8 +132,12 @@ Update `label_category_now` with a Fluent status string.
 
 ```python
 def refresh_category_state_label(host: Any, display_name: str | None = None) -> None:
-    host.label_category_now.setText(category_state_text(display_name))
-    host.label_category_now.setProperty("hskCategorySelected", bool((display_name or "").strip()))
+    text = category_state_text(display_name)
+    selected = bool((display_name or "").strip()) and not text.startswith(_NO_CATEGORY)
+    host.label_category_now.setText(text)
+    host.label_category_now.setWordWrap(True)
+    host.label_category_now.setToolTip(_CATEGORY_HINT if not selected else text.split("\n", 1)[0])
+    host.label_category_now.setProperty("hskCategorySelected", selected)
     host.label_category_now.style().unpolish(host.label_category_now)
     host.label_category_now.style().polish(host.label_category_now)
 ```

@@ -11,6 +11,7 @@ lang: en
 
 ## Contents
 
+- [🔧 Function `advanced_transactions_filter_count`](#-function-advanced_transactions_filter_count)
 - [🔧 Function `advanced_transactions_filter_is_active`](#-function-advanced_transactions_filter_is_active)
 - [🔧 Function `install_transactions_filter_chrome`](#-function-install_transactions_filter_chrome)
 - [🔧 Function `populate_transactions_category_filter`](#-function-populate_transactions_category_filter)
@@ -19,6 +20,33 @@ lang: en
 - [🔧 Function `refresh_transactions_filter_chips`](#-function-refresh_transactions_filter_chips)
 - [🔧 Function `selected_transactions_filter_value`](#-function-selected_transactions_filter_value)
 - [🔧 Function `transactions_filter_combo_value`](#-function-transactions_filter_combo_value)
+
+</details>
+
+## 🔧 Function `advanced_transactions_filter_count`
+
+```python
+def advanced_transactions_filter_count(host: Any) -> int
+```
+
+Return how many non-search transaction filters are applied.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def advanced_transactions_filter_count(host: Any) -> int:
+    count = 0
+    if transactions_filter_combo_value(host.comboBox_filter_type) in {FILTER_TYPE_EXPENSE, FILTER_TYPE_INCOME}:
+        count += 1
+    if transactions_filter_combo_value(host.comboBox_filter_category):
+        count += 1
+    if transactions_filter_combo_value(host.comboBox_filter_currency):
+        count += 1
+    if host.checkBox_use_date_filter.isChecked():
+        count += 1
+    return count
+```
 
 </details>
 
@@ -35,13 +63,7 @@ Return whether any non-search transaction filter is applied.
 
 ```python
 def advanced_transactions_filter_is_active(host: Any) -> bool:
-    if transactions_filter_combo_value(host.comboBox_filter_type) in {FILTER_TYPE_EXPENSE, FILTER_TYPE_INCOME}:
-        return True
-    if transactions_filter_combo_value(host.comboBox_filter_category):
-        return True
-    if transactions_filter_combo_value(host.comboBox_filter_currency):
-        return True
-    return bool(host.checkBox_use_date_filter.isChecked())
+    return advanced_transactions_filter_count(host) > 0
 ```
 
 </details>
