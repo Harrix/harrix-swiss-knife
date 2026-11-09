@@ -101,6 +101,7 @@ from harrix_swiss_knife.apps.habits.habits_ticktick_sync import (
     habits_ticktick_sync_needs_apply,
     load_ticktick_sync_payload,
 )
+from harrix_swiss_knife.apps.habits.layout_chrome import install_habits_layout_chrome
 from harrix_swiss_knife.apps.habits.mixins import (
     AutoSaveOperations,
     ChartOperations,
@@ -183,6 +184,7 @@ class MainWindow(
         self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
         self._setup_ui()
         self._finish_fluent_window_chrome()
+        install_habits_layout_chrome(self)
 
         apply_window_icon(self)
 

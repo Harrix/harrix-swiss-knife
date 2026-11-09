@@ -8,7 +8,6 @@ from PySide6.QtCore import QPoint, QSize, Qt, QTimer
 from PySide6.QtGui import QAction, QFont
 from PySide6.QtWidgets import (
     QAbstractItemView,
-    QFrame,
     QHeaderView,
     QLabel,
     QListView,
@@ -17,6 +16,10 @@ from PySide6.QtWidgets import (
     QTableView,
 )
 
+from harrix_swiss_knife.apps.common.tracker_layout_chrome import (
+    apply_tracker_column_surfaces,
+    quiet_group_box,
+)
 from harrix_swiss_knife.apps.common.ui_chrome import MUTED_TEXT, button_cta_mint_qss, button_idle_qss
 from harrix_swiss_knife.apps.finance.transactions_ui_settings import (
     EXPECTED_SPLITTER_LEN,
@@ -206,34 +209,26 @@ def _polish_category_list(host: Any) -> None:
 
 def _polish_entry_surfaces(host: Any) -> None:
     palette = palette_for(host)
-    panel = css(mix(palette.window_bg, palette.card_bg))
     text = css(mix(palette.window_bg, palette.text_primary))
     muted = css(mix(palette.window_bg, palette.text_secondary))
-
-    host.frame.setObjectName("financeEntryForm")
-    host.widget_middle.setObjectName("financeEntryCategories")
-    host.widget_transactions.setObjectName("financeTransactionsPane")
-    host.frame.setFrameShape(QFrame.Shape.NoFrame)
-    for pane in (host.frame, host.widget_middle):
-        pane.setAutoFillBackground(False)
-    # Idle splitter hairlines stay off; accent line appears only while dragging/hover.
-    host.splitter.setProperty("_hskQuietSplitter", True)  # noqa: FBT003
-    for index in range(1, host.splitter.count()):
-        handle = host.splitter.handle(index)
-        if handle is not None:
-            handle.update()
 
     # Keep styles on the panes themselves — never on `splitter`. Fluent
     # `polish_fluent_splitter` clears splitter stylesheets that mention handles,
     # and stacking pane borders on top of painted splitter hairlines doubled the
     # vertical lines between columns.
-    host.frame.setStyleSheet(f"QFrame#financeEntryForm {{ background: {panel}; border: none; }}")
-    host.widget_middle.setStyleSheet(
-        f"QWidget#financeEntryCategories {{ background: {panel}; border: none; }}",
+    quiet_boxes = [host.groupBox_transaction]
+    if hasattr(host, "groupBox_expenses"):
+        quiet_boxes.append(host.groupBox_expenses)
+    apply_tracker_column_surfaces(
+        host,
+        soft_panes=(
+            (host.frame, "financeEntryForm"),
+            (host.widget_middle, "financeEntryCategories"),
+        ),
+        content_panes=((host.widget_transactions, "financeTransactionsPane"),),
+        quiet_boxes=quiet_boxes,
     )
-    host.widget_transactions.setStyleSheet(
-        "QWidget#financeTransactionsPane { background: transparent; border: none; }",
-    )
+    quiet_group_box(host.groupBox_commands, untitled=True)
     host.label_category_now.setStyleSheet(
         f"""
         QLabel#label_category_now {{
@@ -248,12 +243,6 @@ def _polish_entry_surfaces(host: Any) -> None:
         }}
         """,
     )
-    # Drop Fluent GroupBox underline hairlines in the entry column — titles alone
-    # are enough hierarchy; the bottom borders read as clutter next to the splitter.
-    _quiet_entry_group_box(host.groupBox_transaction)
-    _quiet_entry_group_box(host.groupBox_commands, untitled=True)
-    if hasattr(host, "groupBox_expenses"):
-        _quiet_entry_group_box(host.groupBox_expenses)
     host.label_categories.setStyleSheet(f"{_field_caption_qss()} border: none; background: transparent;")
 
 
@@ -332,29 +321,6 @@ def _polish_transactions_table(host: Any) -> None:
     table.setWordWrap(False)
     table.setTextElideMode(Qt.TextElideMode.ElideRight)
     _install_column_visibility_menu(host, table)
-
-
-def _quiet_entry_group_box(group: Any, *, untitled: bool = False) -> None:
-    """Remove the global Fluent GroupBox bottom hairline from an entry-column box."""
-    name = group.objectName() or "groupBox"
-    margin_top = "0px" if untitled else "1.2em"
-    padding_top = f"{SPACE_XS}px" if untitled else "2px"
-    title_rule = (
-        f"QGroupBox#{name}::title {{ height: 0px; width: 0px; padding: 0px; margin: 0px; }}" if untitled else ""
-    )
-    group.setStyleSheet(
-        f"""
-        QGroupBox#{name} {{
-            background: transparent;
-            border: none;
-            margin-top: {margin_top};
-            padding-top: {padding_top};
-            padding-bottom: 4px;
-            border-radius: 0px;
-        }}
-        {title_rule}
-        """,
-    )
 
 
 def _set_english_visible(table: QTableView, *, visible: bool, persist: bool = True) -> None:

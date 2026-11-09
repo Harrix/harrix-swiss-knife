@@ -200,6 +200,7 @@ from harrix_swiss_knife.apps.fitness.exercise_media_worker import (
 )
 from harrix_swiss_knife.apps.fitness.exercise_type_add_dialog import ExerciseTypeAddDialog
 from harrix_swiss_knife.apps.fitness.fitness_lightbox import FitnessExerciseLightboxDialog
+from harrix_swiss_knife.apps.fitness.layout_chrome import install_fitness_layout_chrome
 from harrix_swiss_knife.apps.fitness.lightbox_logic import (
     ExerciseStopwatchState,
     FitnessLightboxConfirm,
@@ -346,6 +347,7 @@ class MainWindow(
         self.label_exercise_avif_5.setToolTip("Double-click to open in lightbox")
         self._setup_ui()
         self._finish_fluent_window_chrome()
+        install_fitness_layout_chrome(self)
 
         apply_window_icon(self)
 

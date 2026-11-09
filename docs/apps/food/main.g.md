@@ -132,6 +132,7 @@ class MainWindow(
         self.label_macros_notes: QLabel | None = None
         self._setup_ui()
         self._finish_fluent_window_chrome()
+        install_food_layout_chrome(self)
 
         apply_window_icon(self)
 
@@ -5307,6 +5308,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
         self.label_macros_notes: QLabel | None = None
         self._setup_ui()
         self._finish_fluent_window_chrome()
+        install_food_layout_chrome(self)
 
         apply_window_icon(self)
 

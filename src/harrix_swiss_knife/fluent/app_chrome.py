@@ -322,7 +322,6 @@ def _clear_viewport(view: QAbstractItemView, palette: FluentPalette) -> None:
 def _fluent_surface_qss(palette: FluentPalette) -> str:
     text = css(mix(palette.window_bg, palette.text_primary))
     secondary = css(mix(palette.window_bg, palette.text_secondary))
-    divider = css(mix(palette.window_bg, palette.divider))
     hover = css(list_item_hover(palette))
     status = chrome_bottom_color(palette).name()
     bar = chrome_top_color(palette).name()
@@ -336,7 +335,6 @@ QLabel, QCheckBox, QRadioButton {{
 QGroupBox {{
  background: transparent;
  border: none;
- border-bottom: 1px solid {divider};
  border-radius: 0px;
  margin-top: 1.5em;
  padding-top: 2px;

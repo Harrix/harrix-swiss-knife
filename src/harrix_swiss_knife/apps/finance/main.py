@@ -161,6 +161,7 @@ from harrix_swiss_knife.apps.finance.exchange_rates_operations import (
     stop_running_qthread,
 )
 from harrix_swiss_knife.apps.finance.exchange_validation import validate_exchange_data
+from harrix_swiss_knife.apps.finance.layout_chrome import install_finance_layout_chrome
 from harrix_swiss_knife.apps.finance.mixins import (
     AutoSaveOperations,
     ChartOperations,
@@ -327,6 +328,7 @@ class MainWindow(
         self._setup_ui()
         self._finish_fluent_window_chrome()
         install_transactions_entry_chrome(self)
+        install_finance_layout_chrome(self)
         apply_window_icon(self)
         self._init_hide_on_close(hide_on_close=hide_on_close)
         app = QApplication.instance()

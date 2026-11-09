@@ -211,6 +211,7 @@ from harrix_swiss_knife.apps.food.kcal_lookup_parser import (
     calories_from_kcal_lookup,
     parse_kcal_lookup_response,
 )
+from harrix_swiss_knife.apps.food.layout_chrome import install_food_layout_chrome
 from harrix_swiss_knife.apps.food.mixins import (
     AutoSaveOperations,
     ChartOperations,
@@ -342,6 +343,7 @@ class MainWindow(
         self.label_macros_notes: QLabel | None = None
         self._setup_ui()
         self._finish_fluent_window_chrome()
+        install_food_layout_chrome(self)
 
         apply_window_icon(self)
 

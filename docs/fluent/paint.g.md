@@ -67,7 +67,7 @@ def inset(rect: QRect | QRectF, amount: float = 0.5) -> QRectF:
 def paint_fluent_splitter_handle(device: QWidget, palette: FluentPalette, orientation: Qt.Orientation, *, hovered: bool, pressed: bool) -> None
 ```
 
-Paint a Fluent splitter handle: 1px divider idle, 2px accent on hover/press.
+Paint a Fluent splitter handle: quiet idle, 2px accent on hover/press.
 
 Args:
 
@@ -77,8 +77,9 @@ Args:
 - `hovered` (`bool`): Pointer is over the handle.
 - `pressed` (`bool`): Handle is being dragged.
 
-When the parent splitter has `_hskQuietSplitter`, idle state paints nothing so
-columns can separate by surface alone; the accent line still appears on hover.
+Idle state paints nothing so columns separate by surface alone (tracker
+default via `_hskQuietSplitter`). Set that property to `False` to keep a
+1px divider at rest. The accent line still appears on hover/press.
 
 <details>
 <summary>Code:</summary>
@@ -96,7 +97,8 @@ def paint_fluent_splitter_handle(
     rect = device.rect()
     active = hovered or pressed
     parent = device.parentWidget()
-    quiet = bool(parent is not None and parent.property("_hskQuietSplitter"))
+    quiet_prop = parent.property("_hskQuietSplitter") if parent is not None else None
+    quiet = True if quiet_prop is None else bool(quiet_prop)
     if not active and quiet:
         painter.end()
         return

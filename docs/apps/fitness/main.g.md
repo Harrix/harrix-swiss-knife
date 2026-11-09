@@ -150,6 +150,7 @@ class MainWindow(
         self.label_exercise_avif_5.setToolTip("Double-click to open in lightbox")
         self._setup_ui()
         self._finish_fluent_window_chrome()
+        install_fitness_layout_chrome(self)
 
         apply_window_icon(self)
 
@@ -9225,6 +9226,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
         self.label_exercise_avif_5.setToolTip("Double-click to open in lightbox")
         self._setup_ui()
         self._finish_fluent_window_chrome()
+        install_fitness_layout_chrome(self)
 
         apply_window_icon(self)
 

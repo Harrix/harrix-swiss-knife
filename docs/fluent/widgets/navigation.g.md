@@ -2007,7 +2007,7 @@ def refresh_theme(self) -> None:
 class FluentSplitterHandle(QSplitterHandle)
 ```
 
-Wide hit-target handle: 1px divider idle, 2px accent line on hover.
+Wide hit-target handle: quiet idle by default, 2px accent line on hover.
 
 <details>
 <summary>Code:</summary>
@@ -2523,6 +2523,9 @@ Apply Fluent accent-hairline chrome to `splitter` (Designer or code-built).
 Sets a wide handle, clears conflicting 1px stylesheets, and installs
 painted handles. Safe to call repeatedly on theme refresh.
 
+Idle hairlines stay off by default (`_hskQuietSplitter`); the accent line
+appears on hover/press so columns can separate by surface alone.
+
 <details>
 <summary>Code:</summary>
 
@@ -2532,6 +2535,8 @@ def polish_fluent_splitter(splitter: QSplitter) -> None:
     sheet = splitter.styleSheet()
     if sheet and ("width: 1px" in sheet or "height: 1px" in sheet or "QSplitter::handle" in sheet):
         splitter.setStyleSheet("")
+    if splitter.property("_hskQuietSplitter") is None:
+        splitter.setProperty("_hskQuietSplitter", True)  # noqa: FBT003
     if isinstance(splitter, FluentSplitter):
         splitter.setProperty(_PROP_SPLITTER_POLISHED, True)  # noqa: FBT003
         for index in range(1, splitter.count()):

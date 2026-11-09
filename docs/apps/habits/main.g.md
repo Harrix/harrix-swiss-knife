@@ -102,6 +102,7 @@ class MainWindow(
         self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
         self._setup_ui()
         self._finish_fluent_window_chrome()
+        install_habits_layout_chrome(self)
 
         apply_window_icon(self)
 
@@ -2393,6 +2394,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107  (inhe
         self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
         self._setup_ui()
         self._finish_fluent_window_chrome()
+        install_habits_layout_chrome(self)
 
         apply_window_icon(self)
 
