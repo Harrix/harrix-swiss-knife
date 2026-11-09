@@ -30,7 +30,6 @@ from PySide6.QtCore import (
     QDate,
     QDateTime,
     QEvent,
-    QEventLoop,
     QModelIndex,
     QObject,
     QPoint,
@@ -115,7 +114,6 @@ from harrix_swiss_knife.apps.common.dialogs.text_input_dialog import TextInputDi
 from harrix_swiss_knife.apps.common.exercise_media import (
     RebuildMinThumbnailResult,
     RebuildStaticThumbnailResult,
-    has_missing_static_thumbnails,
     is_exercise_media_path,
 )
 from harrix_swiss_knife.apps.common.keyboard_shortcuts import ShortcutHelpEntry, merge_shortcut_help
@@ -5526,30 +5524,12 @@ class MainWindow(
             self._exercises_catalog_loaded = False
 
     def _ensure_static_thumbnails_for_select_exercise(self) -> bool:
-        """Build missing `static/*.webp` previews before opening Select Exercise."""
-        if self._is_closing or self.avif_manager is None:
-            return True
-        avif_dir = self.avif_manager.avif_dir
-        if not has_missing_static_thumbnails(avif_dir):
-            return True
-        worker = self._static_thumbnail_rebuild_worker
-        if worker is not None and worker.isRunning():
-            return self._wait_for_static_thumbnail_rebuild(worker)
-        static_max_size = get_apps_fitness_image_static_max_size(self._app_config)
-        worker = StaticThumbnailRebuildWorker(
-            avif_dir,
-            static_max_size=static_max_size,
-            parent=self,
-        )
-        self._static_thumbnail_rebuild_worker = worker
-        worker.rebuild_completed.connect(self._on_static_thumbnails_rebuilt)
-        worker.rebuild_failed.connect(
-            lambda message: logger.warning("Static preview rebuild failed: %s", message),
-        )
-        worker.finished.connect(self._cleanup_static_thumbnail_rebuild_worker)
-        worker.finished.connect(worker.deleteLater)
-        worker.start()
-        return self._wait_for_static_thumbnail_rebuild(worker)
+        """Start missing `static/*.webp` rebuild without blocking Select Exercise."""
+        if self._is_closing:
+            return False
+        # Dialog can open immediately; stills fall back to AVIF until WebPs exist.
+        self._start_missing_static_thumbnails_rebuild()
+        return True
 
     def _ensure_types_table_shows_exercise(self, exercise_name: str) -> None:
         """Reload the types table so newly copied weights are visible."""
@@ -9338,20 +9318,6 @@ class MainWindow(
         if self._workouts_widget is not None:
             for name, icon in icons.items():
                 self._workouts_widget.update_exercise_icon(name, icon)
-
-    def _wait_for_static_thumbnail_rebuild(self, worker: StaticThumbnailRebuildWorker) -> bool:
-        """Block until `worker` finishes; return `False` when the window is closing."""
-        if self._is_closing:
-            return False
-        app = QApplication.instance()
-        if isinstance(app, QApplication):
-            app.setOverrideCursor(Qt.CursorShape.WaitCursor)
-        loop = QEventLoop(self)
-        worker.finished.connect(loop.quit)
-        loop.exec()
-        if isinstance(app, QApplication):
-            app.restoreOverrideCursor()
-        return not self._is_closing
 
     def _workout_prompt_replacements(
         self,

@@ -57,7 +57,7 @@ def test_exercise_selection_uses_lucide_check_icon(qapp: QApplication) -> None:
     dialog = _dialog()
     item = dialog.list_widget.item(0)
     assert item is not None
-    tile = dialog._tile_for_item(item)
+    tile = dialog._ensure_item_tile(item)
     assert tile is not None
 
     dialog._on_tile_clicked(item)
@@ -125,12 +125,26 @@ def test_exercise_selection_dialog_multi_clear_selection(qapp: QApplication) -> 
     assert dialog.selected_exercises == []
     assert dialog._selection_count_label.text() == "No exercises selected"
     assert not dialog._clear_button.isEnabled()
-    first_tile = dialog._tile_for_item(first)
-    second_tile = dialog._tile_for_item(second)
+    first_tile = dialog._ensure_item_tile(first)
+    second_tile = dialog._ensure_item_tile(second)
     assert first_tile is not None
     assert second_tile is not None
     assert not first_tile.is_selected
     assert not second_tile.is_selected
+    dialog.close()
+
+
+def test_exercise_selection_dialog_defers_tile_widgets(qapp: QApplication) -> None:
+    """List items are created immediately; tile widgets wait until first use."""
+    assert qapp is not None
+    dialog = _dialog()
+    assert dialog.list_widget.count() == 3
+    first = dialog.list_widget.item(0)
+    assert first is not None
+    assert dialog._tile_for_item(first) is None
+    tile = dialog._ensure_item_tile(first)
+    assert tile is not None
+    assert dialog._tile_for_item(first) is tile
     dialog.close()
 
 

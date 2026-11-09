@@ -16,6 +16,7 @@ lang: en
   - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
   - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
   - [⚙️ Method `reject`](#%EF%B8%8F-method-reject)
+  - [⚙️ Method `resizeEvent`](#%EF%B8%8F-method-resizeevent)
   - [⚙️ Method `showEvent`](#%EF%B8%8F-method-showevent)
 
 </details>
@@ -80,7 +81,13 @@ class ExerciseSelectionDialog(QDialog):
         self._pending_preview_rows: list[int] = []
         self._preview_load_started = False
         has_any_local = any(self._name_locals.get(name, "").strip() for name in exercises)
-        text_area_height = 54 if has_any_local else 36
+        self._text_area_height = 54 if has_any_local else 36
+        self._item_size_hint = QSize(
+            preview_size.width() + 16 + 4,
+            preview_size.height() + self._text_area_height + 16 + 4,
+        )
+        check_size = QSize(_CHECK_OVERLAY_EDGE, _CHECK_OVERLAY_EDGE)
+        self._check_pixmap = create_lucide_icon("square-check", _CHECK_OVERLAY_EDGE, color="#FFFFFF").pixmap(check_size)
 
         layout = QVBoxLayout(self)
 
@@ -134,36 +141,21 @@ class ExerciseSelectionDialog(QDialog):
         )
         layout.addWidget(self.list_widget)
 
+        # Items first (cheap); tile widgets are created for visible rows on show/scroll.
         self.list_widget.setUpdatesEnabled(False)
         try:
             for exercise in exercises:
                 item = QListWidgetItem()
-                item.setData(Qt.ItemDataRole.UserRole, exercise)
+                item.setData(_ROLE_EXERCISE, exercise)
+                item.setData(_ROLE_SELECTED, 0)
                 item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
-
-                name_local = self._name_locals.get(exercise, "").strip()
-                tile = _ExercisePreviewTile(
-                    exercise_name=exercise,
-                    display_name=self._display_names.get(exercise, exercise),
-                    name_local=name_local,
-                    static_pixmap=None,
-                    preview_size=preview_size,
-                    text_area_height=text_area_height,
-                    pixmap_pending=True,
-                )
-                item.setSizeHint(tile.sizeHint())
+                item.setSizeHint(self._item_size_hint)
                 self.list_widget.addItem(item)
-                self.list_widget.setItemWidget(item, tile)
                 self._pending_preview_rows.append(self.list_widget.count() - 1)
 
-                tile.clicked.connect(lambda modifiers, row_item=item: self._on_tile_clicked(row_item, modifiers))
-                tile.double_clicked.connect(lambda row_item=item: self._on_tile_double_clicked(row_item))
-                tile.hover_entered.connect(lambda row_tile=tile: self._on_tile_hover_entered(row_tile))
-                tile.hover_left.connect(lambda row_tile=tile: self._on_tile_hover_left(row_tile))
-
                 if current_selection and exercise == current_selection:
+                    item.setData(_ROLE_SELECTED, 1)
                     self.list_widget.setCurrentItem(item)
-                    tile.set_selected(selected=True)
         finally:
             self.list_widget.setUpdatesEnabled(True)
 
@@ -231,9 +223,15 @@ class ExerciseSelectionDialog(QDialog):
         self._stop_animation()
         super().reject()
 
+    def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
+        """Create tiles for newly visible cells after the dialog is resized."""
+        super().resizeEvent(event)
+        self._materialize_visible_tiles()
+
     def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
-        """Start deferred preview loading after the dialog is visible."""
+        """Materialize visible tiles, then start deferred preview loading."""
         super().showEvent(event)
+        self._materialize_visible_tiles()
         if not self._preview_load_started and self._pending_preview_rows:
             self._preview_load_started = True
             QTimer.singleShot(0, self._decode_next_preview_batch)
@@ -243,7 +241,7 @@ class ExerciseSelectionDialog(QDialog):
         for row in range(self.list_widget.count()):
             item = self.list_widget.item(row)
             if item is not None:
-                self._set_item_selected(item, selected=False)
+                self._set_item_selected(item, selected=False, ensure_tile=False)
 
     def _clear_multi_selection(self) -> None:
         """Deselect every exercise tile in multi-select mode."""
@@ -253,27 +251,69 @@ class ExerciseSelectionDialog(QDialog):
         self._sync_selected_exercises()
 
     def _decode_next_preview_batch(self) -> None:
-        """Decode a time-budgeted batch of still previews, visible rows first."""
+        """Decode a time-budgeted batch of still previews for materialized tiles."""
         if not self._pending_preview_rows:
             return
 
         self._prioritize_visible_preview_rows()
         deadline = time.perf_counter() + _PREVIEW_DECODE_BUDGET_S
-        while self._pending_preview_rows:
-            row = self._pending_preview_rows.pop(0)
+        next_pending: list[int] = []
+        rows = self._pending_preview_rows
+        idx = 0
+        while idx < len(rows):
+            row = rows[idx]
+            idx += 1
             item = self.list_widget.item(row)
-            tile = self._tile_for_item(item)
-            if tile is None or not tile.pixmap_pending:
+            if item is None:
                 continue
-            exercise = item.data(Qt.ItemDataRole.UserRole) if item is not None else None
+            tile = self._tile_for_item(item)
+            if tile is None:
+                # Not on screen yet — keep in queue until materialize/scroll.
+                next_pending.append(row)
+                continue
+            if not tile.pixmap_pending:
+                continue
+            exercise = item.data(_ROLE_EXERCISE)
             name = str(exercise) if exercise else tile.exercise_name
             pixmap = self._pixmap_provider(name)
             tile.set_static_pixmap(pixmap)
             if time.perf_counter() >= deadline:
+                next_pending.extend(rows[idx:])
                 break
+        self._pending_preview_rows = next_pending
+        self._schedule_preview_decode()
 
-        if self._pending_preview_rows:
-            QTimer.singleShot(0, self._decode_next_preview_batch)
+    def _ensure_item_tile(self, item: QListWidgetItem) -> _ExercisePreviewTile | None:
+        """Create the preview tile for `item` on first use."""
+        existing = self._tile_for_item(item)
+        if existing is not None:
+            return existing
+
+        exercise = item.data(_ROLE_EXERCISE)
+        name = str(exercise) if exercise else ""
+        if not name:
+            return None
+
+        name_local = self._name_locals.get(name, "").strip()
+        tile = _ExercisePreviewTile(
+            exercise_name=name,
+            display_name=self._display_names.get(name, name),
+            name_local=name_local,
+            static_pixmap=None,
+            preview_size=self._preview_size,
+            text_area_height=self._text_area_height,
+            check_pixmap=self._check_pixmap,
+            pixmap_pending=True,
+        )
+        item.setSizeHint(tile.sizeHint())
+        self.list_widget.setItemWidget(item, tile)
+        tile.clicked.connect(lambda modifiers, row_item=item: self._on_tile_clicked(row_item, modifiers))
+        tile.double_clicked.connect(lambda row_item=item: self._on_tile_double_clicked(row_item))
+        tile.hover_entered.connect(lambda row_tile=tile: self._on_tile_hover_entered(row_tile))
+        tile.hover_left.connect(lambda row_tile=tile: self._on_tile_hover_left(row_tile))
+        if bool(item.data(_ROLE_SELECTED)):
+            tile.set_selected(selected=True)
+        return tile
 
     def _filter_exercises(self, text: str) -> None:
         """Show only tiles whose English or local name matches the query."""
@@ -282,7 +322,7 @@ class ExerciseSelectionDialog(QDialog):
             item = self.list_widget.item(row)
             if item is None:
                 continue
-            exercise = item.data(Qt.ItemDataRole.UserRole)
+            exercise = item.data(_ROLE_EXERCISE)
             name = str(exercise) if exercise else ""
             name_local = self._name_locals.get(name, "").strip()
             matches = (not query) or text_matches_autocomplete(name, query)
@@ -293,12 +333,53 @@ class ExerciseSelectionDialog(QDialog):
                 tile = self._tile_for_item(item)
                 if tile is not None and self._hovered_tile is tile:
                     self._stop_animation()
+        self._materialize_visible_tiles()
         if self._pending_preview_rows:
             self._prioritize_visible_preview_rows()
 
     def _is_item_selected(self, item: QListWidgetItem) -> bool:
-        tile = self._tile_for_item(item)
-        return tile is not None and tile.is_selected
+        return bool(item.data(_ROLE_SELECTED))
+
+    def _materialize_visible_tiles(self) -> None:
+        """Build tile widgets for rows near the viewport so scrolling stays smooth."""
+        if self.list_widget.count() == 0:
+            return
+        viewport = self.list_widget.viewport().rect()
+        first_visible: int | None = None
+        last_visible: int | None = None
+        for row in range(self.list_widget.count()):
+            item = self.list_widget.item(row)
+            if item is None or item.isHidden():
+                continue
+            rect = self.list_widget.visualItemRect(item)
+            if not rect.intersects(viewport):
+                if first_visible is not None and last_visible is not None and rect.top() > viewport.bottom():
+                    break
+                continue
+            if first_visible is None:
+                first_visible = row
+            last_visible = row
+        if first_visible is None or last_visible is None:
+            # Before layout settles, visual rects may be empty — seed the first page.
+            created = 0
+            for row in range(self.list_widget.count()):
+                item = self.list_widget.item(row)
+                if item is None or item.isHidden():
+                    continue
+                self._ensure_item_tile(item)
+                created += 1
+                if created >= _MATERIALIZE_ROW_BUFFER:
+                    break
+            self._schedule_preview_decode()
+            return
+
+        start = max(0, first_visible - _MATERIALIZE_ROW_BUFFER)
+        end = min(self.list_widget.count() - 1, last_visible + _MATERIALIZE_ROW_BUFFER)
+        for row in range(start, end + 1):
+            item = self.list_widget.item(row)
+            if item is not None and not item.isHidden():
+                self._ensure_item_tile(item)
+        self._schedule_preview_decode()
 
     def _on_accept(self) -> None:
         self._stop_animation()
@@ -319,6 +400,7 @@ class ExerciseSelectionDialog(QDialog):
 
     def _on_list_scrolled(self, *_args: object) -> None:
         """Prefer decoding previews that just scrolled into view."""
+        self._materialize_visible_tiles()
         if self._pending_preview_rows:
             self._prioritize_visible_preview_rows()
 
@@ -414,8 +496,26 @@ class ExerciseSelectionDialog(QDialog):
                 return row
         return None
 
-    def _set_item_selected(self, item: QListWidgetItem, *, selected: bool) -> None:
-        tile = self._tile_for_item(item)
+    def _schedule_preview_decode(self) -> None:
+        """Continue decoding when at least one pending row already has a tile."""
+        if not self._pending_preview_rows:
+            return
+        for row in self._pending_preview_rows:
+            item = self.list_widget.item(row)
+            tile = self._tile_for_item(item)
+            if tile is not None and tile.pixmap_pending:
+                QTimer.singleShot(0, self._decode_next_preview_batch)
+                return
+
+    def _set_item_selected(
+        self,
+        item: QListWidgetItem,
+        *,
+        selected: bool,
+        ensure_tile: bool = True,
+    ) -> None:
+        item.setData(_ROLE_SELECTED, 1 if selected else 0)
+        tile = self._ensure_item_tile(item) if ensure_tile else self._tile_for_item(item)
         if tile is not None:
             tile.set_selected(selected=selected)
 
@@ -443,7 +543,7 @@ class ExerciseSelectionDialog(QDialog):
             item = self.list_widget.item(row)
             if item is None or not self._is_item_selected(item):
                 continue
-            exercise = item.data(Qt.ItemDataRole.UserRole)
+            exercise = item.data(_ROLE_EXERCISE)
             if exercise:
                 names.append(str(exercise))
         self.selected_exercises = names
@@ -534,7 +634,13 @@ def __init__(
         self._pending_preview_rows: list[int] = []
         self._preview_load_started = False
         has_any_local = any(self._name_locals.get(name, "").strip() for name in exercises)
-        text_area_height = 54 if has_any_local else 36
+        self._text_area_height = 54 if has_any_local else 36
+        self._item_size_hint = QSize(
+            preview_size.width() + 16 + 4,
+            preview_size.height() + self._text_area_height + 16 + 4,
+        )
+        check_size = QSize(_CHECK_OVERLAY_EDGE, _CHECK_OVERLAY_EDGE)
+        self._check_pixmap = create_lucide_icon("square-check", _CHECK_OVERLAY_EDGE, color="#FFFFFF").pixmap(check_size)
 
         layout = QVBoxLayout(self)
 
@@ -588,36 +694,21 @@ def __init__(
         )
         layout.addWidget(self.list_widget)
 
+        # Items first (cheap); tile widgets are created for visible rows on show/scroll.
         self.list_widget.setUpdatesEnabled(False)
         try:
             for exercise in exercises:
                 item = QListWidgetItem()
-                item.setData(Qt.ItemDataRole.UserRole, exercise)
+                item.setData(_ROLE_EXERCISE, exercise)
+                item.setData(_ROLE_SELECTED, 0)
                 item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
-
-                name_local = self._name_locals.get(exercise, "").strip()
-                tile = _ExercisePreviewTile(
-                    exercise_name=exercise,
-                    display_name=self._display_names.get(exercise, exercise),
-                    name_local=name_local,
-                    static_pixmap=None,
-                    preview_size=preview_size,
-                    text_area_height=text_area_height,
-                    pixmap_pending=True,
-                )
-                item.setSizeHint(tile.sizeHint())
+                item.setSizeHint(self._item_size_hint)
                 self.list_widget.addItem(item)
-                self.list_widget.setItemWidget(item, tile)
                 self._pending_preview_rows.append(self.list_widget.count() - 1)
 
-                tile.clicked.connect(lambda modifiers, row_item=item: self._on_tile_clicked(row_item, modifiers))
-                tile.double_clicked.connect(lambda row_item=item: self._on_tile_double_clicked(row_item))
-                tile.hover_entered.connect(lambda row_tile=tile: self._on_tile_hover_entered(row_tile))
-                tile.hover_left.connect(lambda row_tile=tile: self._on_tile_hover_left(row_tile))
-
                 if current_selection and exercise == current_selection:
+                    item.setData(_ROLE_SELECTED, 1)
                     self.list_widget.setCurrentItem(item)
-                    tile.set_selected(selected=True)
         finally:
             self.list_widget.setUpdatesEnabled(True)
 
@@ -730,13 +821,32 @@ def reject(self) -> None:
 
 </details>
 
+### ⚙️ Method `resizeEvent`
+
+```python
+def resizeEvent(self, event: QResizeEvent) -> None
+```
+
+Create tiles for newly visible cells after the dialog is resized.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
+        super().resizeEvent(event)
+        self._materialize_visible_tiles()
+```
+
+</details>
+
 ### ⚙️ Method `showEvent`
 
 ```python
 def showEvent(self, event: QShowEvent) -> None
 ```
 
-Start deferred preview loading after the dialog is visible.
+Materialize visible tiles, then start deferred preview loading.
 
 <details>
 <summary>Code:</summary>
@@ -744,6 +854,7 @@ Start deferred preview loading after the dialog is visible.
 ```python
 def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
         super().showEvent(event)
+        self._materialize_visible_tiles()
         if not self._preview_load_started and self._pending_preview_rows:
             self._preview_load_started = True
             QTimer.singleShot(0, self._decode_next_preview_batch)
