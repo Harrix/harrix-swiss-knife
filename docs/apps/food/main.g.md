@@ -288,6 +288,7 @@ class MainWindow(
 
         self._is_closing = True
         persist_food_splitter_sizes(self)
+        persist_food_stats_splitter_sizes(self)
         self._stop_background_food_translate_timer()
 
         # Dispose Models
@@ -4108,9 +4109,9 @@ class MainWindow(
         self.label_macros_notes.setWordWrap(True)
         self.verticalLayout_3.addWidget(self.label_macros_notes)
 
-        self.pushButton_food_stats_macros_protein = QPushButton("🥩 Protein")
-        self.pushButton_food_stats_macros_fat = QPushButton("🧈 Fat")
-        self.pushButton_food_stats_macros_carb = QPushButton("🍞 Carbs")
+        self.pushButton_food_stats_macros_protein = QPushButton("Protein")
+        self.pushButton_food_stats_macros_fat = QPushButton("Fat")
+        self.pushButton_food_stats_macros_carb = QPushButton("Carbs")
 
         charts = self.horizontalLayout_food_stats_charts
         charts.insertWidget(2, self.pushButton_food_stats_macros_protein)
@@ -4161,11 +4162,7 @@ class MainWindow(
 
         attach_date_edit_quick_controls(self.dateEdit_food)
 
-        # Set emoji for buttons
-        self.pushButton_food_add.setText(f"➕ {self.pushButton_food_add.text()}")  # noqa: RUF001
-        self.pushButton_food_add_with_ai.setText(f"🤖 {self.pushButton_food_add_with_ai.text()}")
-        self.pushButton_food_add_by_voice.setText(f"🎙️ {self.pushButton_food_add_by_voice.text()}")
-        self.pushButton_food_analyze_macros.setText(f"📊 {self.pushButton_food_analyze_macros.text()}")
+        # Entry / stats buttons are polished by food_entry_chrome + layout_chrome.
         self.action_refresh.setText(f"🔄 {self.action_refresh.text()}")
         self.action_add_food_item.setText(f"➕ {self.action_add_food_item.text()}")  # noqa: RUF001
         self.action_show_food_items.setText(f"📋 {self.action_show_food_items.text()}")
@@ -4177,10 +4174,11 @@ class MainWindow(
         self._setup_calorie_thresholds_action()
         self._setup_open_photos_action()
         self._apply_exit_about_menu_emojis()
-        self.pushButton_kcal_with_ai.setText("🤖")
         self.pushButton_kcal_with_ai.setToolTip(
             "Look up calories, drink flag, weight, and entry mode via AI from the food name",
         )
+        apply_lucide_button_icon(self.pushButton_kcal_with_ai, "sparkles")
+        self.pushButton_kcal_with_ai.setText("")
         apply_lucide_button_icon(self.pushButton_portion_calories, "calculator")
         self.pushButton_portion_calories.setText("")
         self.pushButton_portion_calories.setToolTip(
@@ -4188,15 +4186,7 @@ class MainWindow(
         )
         portion_h = max(self.pushButton_portion_calories.sizeHint().height(), 24)
         self.pushButton_portion_calories.setFixedSize(portion_h, portion_h)
-
-        # Set emoji for food stats buttons
-        self.pushButton_food_stats_last_week.setText(f"📅 {self.pushButton_food_stats_last_week.text()}")
-        self.pushButton_food_stats_last_month.setText(f"📅 {self.pushButton_food_stats_last_month.text()}")
-        self.pushButton_food_stats_last_year.setText(f"📅 {self.pushButton_food_stats_last_year.text()}")
-        self.pushButton_food_stats_all_time.setText(f"📅 {self.pushButton_food_stats_all_time.text()}")
-        self.pushButton_food_stats_food_weight.setText(f"⚖️ {self.pushButton_food_stats_food_weight.text()}")
-        self.pushButton_food_stats_drink.setText(f"🥤 {self.pushButton_food_stats_drink.text()}")
-        self.pushButton_food_stats_update.setText(f"🔄 {self.pushButton_food_stats_update.text()}")
+        self.pushButton_kcal_with_ai.setFixedSize(portion_h, portion_h)
 
         # Set decimal places for calorie spin boxes
         self.doubleSpinBox_food_calories.setDecimals(1)
@@ -5536,6 +5526,7 @@ def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
 
         self._is_closing = True
         persist_food_splitter_sizes(self)
+        persist_food_stats_splitter_sizes(self)
         self._stop_background_food_translate_timer()
 
         # Dispose Models

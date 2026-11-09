@@ -102,7 +102,10 @@ from harrix_swiss_knife.apps.habits.habits_ticktick_sync import (
     habits_ticktick_sync_needs_apply,
     load_ticktick_sync_payload,
 )
-from harrix_swiss_knife.apps.habits.layout_chrome import install_habits_layout_chrome
+from harrix_swiss_knife.apps.habits.layout_chrome import (
+    install_habits_layout_chrome,
+    persist_habits_tabs_splitter_sizes,
+)
 from harrix_swiss_knife.apps.habits.mixins import (
     AutoSaveOperations,
     ChartOperations,
@@ -2002,11 +2005,7 @@ class MainWindow(
         self._apply_menu_bar_emoji_icons()
         self.tabWidget.currentChanged.connect(self._on_tab_changed)
 
-        self.pushButton_habits_delete.setText(f"🗑️ {self.pushButton_habits_delete.text()}")
-        self.pushButton_habits_refresh.setText(f"🔄 {self.pushButton_habits_refresh.text()}")
-        self.pushButton_habits_show_all_records.setText(f"📋 {self.pushButton_habits_show_all_records.text()}")
-        self.pushButton_habits_export_csv.setText(f"📤 {self.pushButton_habits_export_csv.text()}")
-        self.pushButton_habit_add_new.setText(f"➕ {self.pushButton_habit_add_new.text()}")  # noqa: RUF001
+        # Habit form buttons are polished by habits_entry_chrome / layout_chrome.
         apply_leading_chrome_buttons(self)
 
         self._install_word_wrap_table_headers(skip={self.tableView_process_habits})
@@ -2202,6 +2201,7 @@ class MainWindow(
     def _shutdown_window_resources(self) -> None:
         """Release timers, models, charts, and database before window destruction."""
         self._is_closing = True
+        persist_habits_tabs_splitter_sizes(self)
 
         refresh_timer = getattr(self, "_habits_refresh_timer", None)
         if refresh_timer is not None:

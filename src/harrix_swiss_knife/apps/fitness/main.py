@@ -205,7 +205,10 @@ from harrix_swiss_knife.apps.fitness.fitness_entry_chrome import (
     refresh_exercise_state_label,
 )
 from harrix_swiss_knife.apps.fitness.fitness_lightbox import FitnessExerciseLightboxDialog
-from harrix_swiss_knife.apps.fitness.layout_chrome import install_fitness_layout_chrome
+from harrix_swiss_knife.apps.fitness.layout_chrome import (
+    install_fitness_layout_chrome,
+    persist_fitness_tabs_splitter_sizes,
+)
 from harrix_swiss_knife.apps.fitness.lightbox_logic import (
     ExerciseStopwatchState,
     FitnessLightboxConfirm,
@@ -578,6 +581,7 @@ class MainWindow(
 
         self._is_closing = True
         persist_sets_splitter_sizes(self)
+        persist_fitness_tabs_splitter_sizes(self)
         self._exercise_add_queue.clear()
         self._exercise_add_busy = False
         self._exercise_add_after_media = None
@@ -8316,25 +8320,7 @@ class MainWindow(
         install_process_filter_chrome(self)
         self._update_clear_filter_button_visibility()
         refresh_process_filter_chips(self)
-        self.pushButton_exercise_add.setText(f"➕ {self.pushButton_exercise_add.text()}")  # noqa: RUF001
-        self.pushButton_type_add.setText(f"➕ {self.pushButton_type_add.text()}")  # noqa: RUF001
-        self.pushButton_weight_add.setText(f"➕ {self.pushButton_weight_add.text()}")  # noqa: RUF001
-        self.pushButton_weight_delete.setText(f"🗑️ {self.pushButton_weight_delete.text()}")
-        self.pushButton_weight_refresh.setText(f"🔄 {self.pushButton_weight_refresh.text()}")
-        self.pushButton_statistics_refresh.setText(f"🏆 {self.pushButton_statistics_refresh.text()}")
-        self.pushButton_last_exercises.setText(f"📅 {self.pushButton_last_exercises.text()}")
-        self.pushButton_check_steps.setText(f"👟 {self.pushButton_check_steps.text()}")
-        self.pushButton_update_chart.setText(f"🔄 {self.pushButton_update_chart.text()}")
-        self.pushButton_chart_last_month.setText(f"📅 {self.pushButton_chart_last_month.text()}")
-        self.pushButton_chart_last_year.setText(f"📅 {self.pushButton_chart_last_year.text()}")
-        self.pushButton_chart_all_time.setText(f"📅 {self.pushButton_chart_all_time.text()}")
-        self.pushButton_weight_last_month.setText(f"📅 {self.pushButton_weight_last_month.text()}")
-        self.pushButton_weight_last_year.setText(f"📅 {self.pushButton_weight_last_year.text()}")
-        self.pushButton_weight_all_time.setText(f"📅 {self.pushButton_weight_all_time.text()}")
-        self.pushButton_update_weight_chart.setText(f"🔄 {self.pushButton_update_weight_chart.text()}")
-        self.pushButton_exercise_goal_recommendations.setText(
-            f"🎯 {self.pushButton_exercise_goal_recommendations.text()}"
-        )
+        # Secondary-tab buttons are polished by install_fitness_layout_chrome.
         apply_leading_chrome_buttons(self)
         match_date_edit_form_height(self.dateEdit, self.spinBox_count)
         match_date_edit_form_height(self.dateEdit_weight, self.doubleSpinBox_weight)
