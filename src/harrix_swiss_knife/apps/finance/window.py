@@ -1137,7 +1137,7 @@ class Ui_MainWindow(object):
         self.frame_accounts_2 = QFrame(self.splitter_7)
         self.frame_accounts_2.setObjectName(u"frame_accounts_2")
         self.frame_accounts_2.setStyleSheet(u"QFrame#frame_accounts_2 { border: none; }")
-        self.frame_accounts_2.setMinimumSize(QSize(360, 0))
+        self.frame_accounts_2.setMinimumSize(QSize(440, 0))
         self.frame_accounts_2.setMaximumSize(QSize(16777215, 16777215))
         self.frame_accounts_2.setFrameShape(QFrame.Shape.NoFrame)
         self.frame_accounts_2.setFrameShadow(QFrame.Shadow.Plain)

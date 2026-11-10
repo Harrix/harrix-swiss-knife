@@ -16,8 +16,8 @@ EXCHANGE_SPLITTER_KEY = "finance_exchange_splitter_sizes_v2"
 EXCHANGE_SPLITTER_DEFAULT = (460, 1108)
 RATES_SPLITTER_KEY = "finance_rates_splitter_sizes_v2"
 RATES_SPLITTER_DEFAULT = (460, 1108)
-CHARTS_SPLITTER_KEY = "finance_charts_splitter_sizes_v2"
-CHARTS_SPLITTER_DEFAULT = (420, 1148)
+CHARTS_SPLITTER_KEY = "finance_charts_splitter_sizes_v3"
+CHARTS_SPLITTER_DEFAULT = (460, 1108)
 REPORTS_SPLITTER_KEY = "finance_reports_splitter_sizes_v1"
 REPORTS_SPLITTER_DEFAULT = (300, 1268)
 

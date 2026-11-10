@@ -27,6 +27,7 @@ from harrix_swiss_knife.apps.finance.finance_tabs_ui_settings import (
 )
 from harrix_swiss_knife.fluent.theme import bind_theme
 from harrix_swiss_knife.fluent.tokens import CONTROL_HEIGHT, ICON_SIZE, SPACE_S, SPACE_XS
+from harrix_swiss_knife.qt_flow_layout import FlowLayout
 from harrix_swiss_knife.qt_lucide_icon import apply_lucide_button_icon
 
 TABLE_ROW_HEIGHT = 30
@@ -128,7 +129,7 @@ def _configure_all_splitters(host: Any) -> None:
         splitter_attr="splitter_7",
         left=host.frame_accounts_2,
         right=host.layoutWidget,
-        left_min=_SIDE_MIN_WIDTH,
+        left_min=_EXCHANGE_FORM_MIN_WIDTH,
         right_min=_CONTENT_MIN_WIDTH,
         load_sizes=load_charts_splitter_sizes,
         save_sizes=save_charts_splitter_sizes,
@@ -287,6 +288,12 @@ def _polish_charts(host: Any) -> None:
         EXPENSE_LUCIDE_ICON,
         INCOME_LUCIDE_ICON,
     )
+
+    host.pushButton_select_all.setText("Select all")
+    host.pushButton_select_deselect_all.setText("Deselect all")
+    host.pushButton_select_only_expense.setText("Select only expense")
+    host.pushButton_select_only_income.setText("Select only income")
+    _wrap_chart_category_buttons(host)
 
     for name, icon in (
         ("pushButton_select_all", "square-check"),
@@ -481,3 +488,32 @@ def _polish_reports(host: Any) -> None:
     if isinstance(host.label_total_expenses, QLabel):
         host.label_total_expenses.setWordWrap(True)
         host.label_total_expenses.setStyleSheet("color: #cc584c; font-weight: 700;")
+
+
+def _wrap_chart_category_buttons(host: Any) -> None:
+    """Replace the single-row category actions with a wrapping flow layout."""
+    if getattr(host, "_finance_chart_category_buttons_wrapped", False):
+        return
+    row = getattr(host, "horizontalLayout_14", None)
+    column = getattr(host, "verticalLayout_24", None)
+    if row is None or column is None:
+        return
+    buttons = (
+        host.pushButton_select_all,
+        host.pushButton_select_deselect_all,
+        host.pushButton_select_only_expense,
+        host.pushButton_select_only_income,
+    )
+    index = column.indexOf(row)
+    if index < 0:
+        return
+    while row.count():
+        row.takeAt(0)
+    column.removeItem(row)
+    flow = FlowLayout(margin=0, h_spacing=SPACE_XS, v_spacing=SPACE_XS)
+    for button in buttons:
+        button.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+        flow.addWidget(button)
+    column.insertLayout(index, flow)
+    host.horizontalLayout_14 = flow
+    host._finance_chart_category_buttons_wrapped = True  # noqa: SLF001
