@@ -323,17 +323,21 @@ def _clear_viewport(view: QAbstractItemView, palette: FluentPalette) -> None:
 
 
 def _ensure_date_edit_text_fits(box: QDateEdit) -> None:
-    """Keep yyyy-MM-dd clear of the calendar chevron on any DPI / font size."""
+    """Keep yyyy-MM-dd clear of the calendar chevron on any DPI / font size.
+
+    Do not set line-edit text margins. `QDateEdit` already insets `qt_spinbox_lineedit`
+    for `::drop-down`; a right text margin clips the last digit and leaves a gap.
+
+    """
     line = box.lineEdit()
     if line is not None:
         # Match the polished control font; qt_spinbox_lineedit can lag behind.
         line.setFont(box.font())
-        # Stylesheet padding does not keep the line edit clear of ::drop-down.
-        line.setTextMargins(0, 0, DATE_EDIT_DROP_WIDTH, 0)
+        line.setTextMargins(0, 0, 0, 0)
         metrics = line.fontMetrics()
     else:
         metrics = box.fontMetrics()
-    needed = metrics.horizontalAdvance("2024-11-10") + DATE_EDIT_DROP_WIDTH + DATE_EDIT_CHROME_WIDTH
+    needed = metrics.horizontalAdvance("8888-88-88") + DATE_EDIT_DROP_WIDTH + DATE_EDIT_CHROME_WIDTH
     floor = max(DATE_EDIT_MIN_WIDTH, needed)
     if box.minimumWidth() < floor:
         box.setMinimumWidth(floor)

@@ -42,10 +42,10 @@ def test_fluent_chrome_keeps_yyyy_mm_dd_clear_of_chevron(qapp: QApplication) -> 
     line = date_edit.lineEdit()
     assert line is not None
     assert date_edit.minimumWidth() >= DATE_EDIT_MIN_WIDTH
-    assert line.textMargins().right() == DATE_EDIT_DROP_WIDTH
+    assert line.textMargins().right() == 0
     date_edit.setFixedWidth(date_edit.minimumWidth())
     host.show()
     qapp.processEvents()
-    usable = line.contentsRect().width() - line.textMargins().right()
-    assert usable >= line.fontMetrics().horizontalAdvance("2024-11-10")
+    # Right text margins clip the day even when contentsRect looks wide enough.
+    assert line.contentsRect().width() >= line.fontMetrics().horizontalAdvance("8888-88-88") + DATE_EDIT_DROP_WIDTH
     host.close()
