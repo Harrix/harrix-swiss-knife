@@ -5,6 +5,8 @@ from __future__ import annotations
 import pytest
 from PySide6.QtWidgets import QApplication, QMenu
 
+from harrix_swiss_knife.fluent.tokens import CONTROL_HEIGHT
+from harrix_swiss_knife.fluent.widgets.button_base import FluentPushButton
 from harrix_swiss_knife.fluent.widgets.buttons import FluentSplitButton
 
 
@@ -33,15 +35,20 @@ def test_fluent_split_button_shows_lucide_menu_arrow(qapp: QApplication) -> None
     button.close()
 
 
-def test_fluent_split_button_size_hint_reserves_chevron_gutter(qapp: QApplication) -> None:  # noqa: ARG001
-    plain = FluentSplitButton("Recognize")
+def test_fluent_split_button_matches_control_height(qapp: QApplication) -> None:  # noqa: ARG001
     menu = QMenu()
     menu.addAction("One")
     split = FluentSplitButton("Recognize", menu=menu)
+    plain = FluentPushButton("Recognize")
     split.refresh_theme()
-    assert split.sizeHint().width() >= plain.sizeHint().width() + FluentSplitButton._MENU_BUTTON_WIDTH
-    plain.close()
+    plain.refresh_theme()
+    split.adjustSize()
+    plain.adjustSize()
+    assert split.sizeHint().height() == CONTROL_HEIGHT
+    assert split.minimumSizeHint().height() == CONTROL_HEIGHT
+    assert split.height() == plain.height() == CONTROL_HEIGHT
     split.close()
+    plain.close()
 
 
 def test_fluent_split_button_without_menu_hides_arrow(qapp: QApplication) -> None:  # noqa: ARG001

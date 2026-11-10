@@ -40,6 +40,7 @@ lang: en
   - [⚙️ Method `refresh_theme`](#%EF%B8%8F-method-refresh_theme-7)
 - [🏛️ Class `FluentSplitButton`](#%EF%B8%8F-class-fluentsplitbutton)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-7)
+  - [⚙️ Method `minimumSizeHint`](#%EF%B8%8F-method-minimumsizehint)
   - [⚙️ Method `refresh_theme`](#%EF%B8%8F-method-refresh_theme-8)
   - [⚙️ Method `sizeHint`](#%EF%B8%8F-method-sizehint)
 - [🏛️ Class `FluentToggleButton`](#%EF%B8%8F-class-fluenttogglebutton)
@@ -865,15 +866,28 @@ class FluentSplitButton(FluentIconMixin, QToolButton):
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         self.setPopupMode(QToolButton.ToolButtonPopupMode.MenuButtonPopup)
-        self.setMinimumHeight(CONTROL_HEIGHT)
+        # Match FluentPushButton row height; QToolButton sizeHint is otherwise taller.
+        self.setFixedHeight(CONTROL_HEIGHT)
         if menu is not None:
             self.setMenu(menu)
         bind_theme(self, self.refresh_theme)
+
+    def minimumSizeHint(self) -> QSize:  # noqa: N802
+        """Keep width flexible but lock height to the shared control size."""
+        hint = super().minimumSizeHint()
+        return QSize(hint.width(), CONTROL_HEIGHT)
 
     def refresh_theme(self) -> None:
         """Re-apply push-button chrome with a Lucide chevron in the menu split."""
         palette = palette_for(self)
         sheet = push_button_qss(palette, "QToolButton")
+        # Kill vertical padding inflation from QToolButton + MenuButtonPopup.
+        sheet += (
+            f"QToolButton {{"
+            f" padding-top: 0px; padding-bottom: 0px;"
+            f" min-height: {CONTROL_HEIGHT - 2}px; max-height: {CONTROL_HEIGHT - 2}px;"
+            f" }}"
+        )
         if self.menu() is None:
             sheet += (
                 "QToolButton::menu-button { width: 0px; border: none; }"
@@ -894,7 +908,9 @@ class FluentSplitButton(FluentIconMixin, QToolButton):
                 f"QToolButton::menu-button {{"
                 f" subcontrol-origin: padding;"
                 f" subcontrol-position: center right;"
-                f" width: {gutter}px; border: none;"
+                f" width: {gutter}px;"
+                f" top: 0px; bottom: 0px;"
+                f" border: none;"
                 f" border-left: 1px solid {css(palette.control_stroke)};"
                 f" }}"
                 f"QToolButton::menu-button:hover {{ background: {css(palette.control_fill_hover)}; }}"
@@ -907,11 +923,9 @@ class FluentSplitButton(FluentIconMixin, QToolButton):
         self._sync_icon()
 
     def sizeHint(self) -> QSize:  # noqa: N802
-        """Include the chevron gutter so Maximum-policy footers do not squeeze labels."""
+        """Return content width with the shared control height."""
         hint = super().sizeHint()
-        if self.menu() is None:
-            return hint
-        return QSize(hint.width() + self._MENU_BUTTON_WIDTH, hint.height())
+        return QSize(hint.width(), CONTROL_HEIGHT)
 ```
 
 </details>
@@ -949,10 +963,30 @@ def __init__(
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         self.setPopupMode(QToolButton.ToolButtonPopupMode.MenuButtonPopup)
-        self.setMinimumHeight(CONTROL_HEIGHT)
+        # Match FluentPushButton row height; QToolButton sizeHint is otherwise taller.
+        self.setFixedHeight(CONTROL_HEIGHT)
         if menu is not None:
             self.setMenu(menu)
         bind_theme(self, self.refresh_theme)
+```
+
+</details>
+
+### ⚙️ Method `minimumSizeHint`
+
+```python
+def minimumSizeHint(self) -> QSize
+```
+
+Keep width flexible but lock height to the shared control size.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def minimumSizeHint(self) -> QSize:  # noqa: N802
+        hint = super().minimumSizeHint()
+        return QSize(hint.width(), CONTROL_HEIGHT)
 ```
 
 </details>
@@ -972,6 +1006,13 @@ Re-apply push-button chrome with a Lucide chevron in the menu split.
 def refresh_theme(self) -> None:
         palette = palette_for(self)
         sheet = push_button_qss(palette, "QToolButton")
+        # Kill vertical padding inflation from QToolButton + MenuButtonPopup.
+        sheet += (
+            f"QToolButton {{"
+            f" padding-top: 0px; padding-bottom: 0px;"
+            f" min-height: {CONTROL_HEIGHT - 2}px; max-height: {CONTROL_HEIGHT - 2}px;"
+            f" }}"
+        )
         if self.menu() is None:
             sheet += (
                 "QToolButton::menu-button { width: 0px; border: none; }"
@@ -992,7 +1033,9 @@ def refresh_theme(self) -> None:
                 f"QToolButton::menu-button {{"
                 f" subcontrol-origin: padding;"
                 f" subcontrol-position: center right;"
-                f" width: {gutter}px; border: none;"
+                f" width: {gutter}px;"
+                f" top: 0px; bottom: 0px;"
+                f" border: none;"
                 f" border-left: 1px solid {css(palette.control_stroke)};"
                 f" }}"
                 f"QToolButton::menu-button:hover {{ background: {css(palette.control_fill_hover)}; }}"
@@ -1013,7 +1056,7 @@ def refresh_theme(self) -> None:
 def sizeHint(self) -> QSize
 ```
 
-Include the chevron gutter so Maximum-policy footers do not squeeze labels.
+Return content width with the shared control height.
 
 <details>
 <summary>Code:</summary>
@@ -1021,9 +1064,7 @@ Include the chevron gutter so Maximum-policy footers do not squeeze labels.
 ```python
 def sizeHint(self) -> QSize:  # noqa: N802
         hint = super().sizeHint()
-        if self.menu() is None:
-            return hint
-        return QSize(hint.width() + self._MENU_BUTTON_WIDTH, hint.height())
+        return QSize(hint.width(), CONTROL_HEIGHT)
 ```
 
 </details>
