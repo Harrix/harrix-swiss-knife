@@ -16,12 +16,12 @@ from typing import TYPE_CHECKING, Any, cast
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.dates import date2num
 from PySide6.QtCore import QDate, QSortFilterProxyModel, QThread, QTimer, Signal
-from PySide6.QtGui import QColor, QStandardItemModel
 from PySide6.QtWidgets import QAbstractItemView, QMessageBox, QWidget
 
 from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.chart_theme import chart_label_face, themed_figure
+from harrix_swiss_knife.apps.common.day_bands import day_band_color
 from harrix_swiss_knife.apps.common.scroll_pagination import on_scroll_load_more
 from harrix_swiss_knife.apps.finance.delegates import AmountDelegate
 from harrix_swiss_knife.apps.finance.exchange_rate_checker_worker import ExchangeRateCheckerWorker
@@ -29,6 +29,7 @@ from harrix_swiss_knife.apps.finance.exchange_rate_worker import ExchangeRateUpd
 
 if TYPE_CHECKING:
     from PySide6.QtCore import QObject
+    from PySide6.QtGui import QStandardItemModel
 
 logger = logging.getLogger(__name__)
 
@@ -926,10 +927,16 @@ class ExchangeRatesOperations:
     def _transform_exchange_rates_data(self, rows: list[list[Any]]) -> list[list]:
         """Transform raw exchange rate rows for table display."""
         rates_transformed_data: list[list] = []
-        color = QColor(240, 255, 255)
+        date_band: dict[str, int] = {}
+        next_band = 0
         for row in rows:
             usd_to_currency_rate = float(row[3]) if row[3] else 0.0
             currency_to_usd_rate = 1.0 / usd_to_currency_rate if usd_to_currency_rate != 0 else 0.0
+            date_key = str(row[4] or "")
+            if date_key not in date_band:
+                date_band[date_key] = next_band % 2
+                next_band += 1
+            color = day_band_color(date_band[date_key])
             transformed_row = [row[2], row[1], f"{currency_to_usd_rate:.6f}", row[4], row[0], color]
             rates_transformed_data.append(transformed_row)
         return rates_transformed_data

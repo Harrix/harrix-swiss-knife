@@ -961,10 +961,16 @@ class ExchangeRatesOperations:
     def _transform_exchange_rates_data(self, rows: list[list[Any]]) -> list[list]:
         """Transform raw exchange rate rows for table display."""
         rates_transformed_data: list[list] = []
-        color = QColor(240, 255, 255)
+        date_band: dict[str, int] = {}
+        next_band = 0
         for row in rows:
             usd_to_currency_rate = float(row[3]) if row[3] else 0.0
             currency_to_usd_rate = 1.0 / usd_to_currency_rate if usd_to_currency_rate != 0 else 0.0
+            date_key = str(row[4] or "")
+            if date_key not in date_band:
+                date_band[date_key] = next_band % 2
+                next_band += 1
+            color = day_band_color(date_band[date_key])
             transformed_row = [row[2], row[1], f"{currency_to_usd_rate:.6f}", row[4], row[0], color]
             rates_transformed_data.append(transformed_row)
         return rates_transformed_data

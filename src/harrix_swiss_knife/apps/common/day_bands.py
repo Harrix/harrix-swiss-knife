@@ -103,6 +103,20 @@ def install_day_band_vertical_header(table: QTableView) -> DayBandVerticalHeader
     return header
 
 
+def readable_row_tint(light: QColor, *, band_index: int = 0) -> DayBand:
+    """Return a row fill that stays readable in the active Fluent theme.
+
+    Light mode keeps the pastel `light` color (tagged so theme refresh works).
+    Dark mode uses the neutral day band — pastel cells with light text are
+    illegible on Fluent dark chrome.
+
+    """
+    index = band_index % 2
+    if FluentTheme.instance().palette().dark:
+        return day_band_color(index)
+    return DayBand(light.red(), light.green(), light.blue(), index)
+
+
 def refresh_day_bands(table: QTableView) -> None:
     """Repaint stored day bands with the colors of the current theme."""
     model = table.model()

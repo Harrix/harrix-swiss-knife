@@ -21,10 +21,11 @@ def _qapp() -> QApplication:
     return app
 
 
-def test_button_idle_qss_uses_white_surface() -> None:
+def test_button_idle_qss_uses_fluent_or_white_surface() -> None:
     sheet = button_idle_qss()
-    assert SURFACE in sheet
-    assert "min-height: 32px" in sheet
+    # Fluent secondary when a theme exists; otherwise the legacy white plate.
+    assert "background-color:" in sheet
+    assert "min-height:" in sheet
 
 
 def test_apply_white_surface_palette_sets_window_base() -> None:

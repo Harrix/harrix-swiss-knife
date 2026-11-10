@@ -124,7 +124,11 @@ _KIND_MARKERS = (
 _SECONDARY_MARKERS = (
     "#f5f5f5",
     "#ececec",
+    "#ffffff",
+    "#fff",
+    "background-color: white",
     "button_secondary",
+    "button_idle",
 )
 
 
@@ -331,8 +335,9 @@ def _button_kind(sheet: str) -> str | None:
     if index < 0:
         return None
     chunk = lowered[index + len(key) : index + len(key) + 28]
+    # White / idle plates become Fluent secondary (layout chrome used to leave them).
     if "transparent" in chunk or "#fff" in chunk or "white" in chunk:
-        return None
+        return "secondary"
     for hex_key, kind in _FILL_KINDS.items():
         if hex_key in chunk:
             return kind
@@ -465,14 +470,14 @@ def _restyle_buttons(root: QWidget, palette: FluentPalette) -> None:
             _lock_control_height(button)
             button.setProperty("_hskFluentButton", kind)
             sync_button_icon_to_fill(button)
-        elif any(marker.lower() in sheet.lower() for marker in _SECONDARY_MARKERS):
+        elif (
+            kind == "secondary"
+            or not sheet.strip()
+            or any(marker.lower() in sheet.lower() for marker in _SECONDARY_MARKERS)
+        ):
             _set_sheet(button, secondary)
             _lock_control_height(button)
             button.setProperty("_hskFluentButton", "secondary")
-            sync_button_icon_to_fill(button)
-        elif kind == "secondary":
-            _set_sheet(button, secondary)
-            _lock_control_height(button)
             sync_button_icon_to_fill(button)
 
 

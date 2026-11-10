@@ -6,7 +6,7 @@ import warnings
 
 import pytest
 from PySide6.QtCore import QThread
-from PySide6.QtGui import QStandardItem, QStandardItemModel
+from PySide6.QtGui import QColor, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import QApplication, QTableView
 
 from harrix_swiss_knife.apps.common.day_bands import (
@@ -15,6 +15,7 @@ from harrix_swiss_knife.apps.common.day_bands import (
     day_band_color,
     day_band_id_item,
     install_day_band_vertical_header,
+    readable_row_tint,
     refresh_day_bands,
     set_day_band,
 )
@@ -77,6 +78,21 @@ def test_refresh_day_bands_updates_rows_and_ids(qapp: QApplication) -> None:
     assert isinstance(table.verticalHeader(), DayBandVerticalHeader)
     theme.set_mode(previous, persist=False)
     table.close()
+
+
+def test_readable_row_tint_drops_pastels_in_dark(qapp: QApplication) -> None:
+    """Pastel row fills become neutral day bands under Fluent dark theme."""
+    assert qapp is not None
+    theme = FluentTheme.instance()
+    previous = theme.mode()
+    pastel = QColor(240, 255, 255)
+    theme.set_mode(ThemeMode.LIGHT, persist=False)
+    light_tint = readable_row_tint(pastel, band_index=0)
+    assert light_tint.red() == pastel.red()
+    theme.set_mode(ThemeMode.DARK, persist=False)
+    dark_tint = readable_row_tint(pastel, band_index=0)
+    assert dark_tint.rgb() == day_band_color(0).rgb()
+    theme.set_mode(previous, persist=False)
 
 
 def test_disconnect_without_slots_is_quiet(qapp: QApplication) -> None:

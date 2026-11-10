@@ -177,6 +177,7 @@ class AmountDelegate(QStyledItemDelegate):
                 font = QFont(option.font)
                 font.setStyleHint(QFont.StyleHint.SansSerif)
                 painter.setFont(font)
+                painter.setPen(option.palette.color(QPalette.ColorRole.Text))
                 top_pad = 3 if alignment & Qt.AlignmentFlag.AlignTop else 0
                 painter.drawText(
                     option.rect.adjusted(5, top_pad, -5, 0),
@@ -200,6 +201,7 @@ class AmountDelegate(QStyledItemDelegate):
             is_income = category_text and "(Income)" in str(category_text)
             amount_text = self.displayText(index.data(), QLocale())
             alignment = int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+            text_pen = option.palette.color(QPalette.ColorRole.Text)
 
             if is_income:
                 painter.save()
@@ -209,6 +211,7 @@ class AmountDelegate(QStyledItemDelegate):
                 font = QFont(option.font)
                 font.setBold(True)
                 painter.setFont(font)
+                painter.setPen(text_pen)
                 painter.drawText(option.rect.adjusted(5, 0, -5, 0), alignment, amount_text)
                 painter.restore()
                 return
@@ -219,6 +222,7 @@ class AmountDelegate(QStyledItemDelegate):
                 painter.fillRect(option.rect, brush)
             font = QFont(option.font)
             painter.setFont(font)
+            painter.setPen(text_pen)
             painter.drawText(option.rect.adjusted(5, 0, -5, 0), alignment, amount_text)
             painter.restore()
 
@@ -480,6 +484,7 @@ def paint(
                 font = QFont(option.font)
                 font.setStyleHint(QFont.StyleHint.SansSerif)
                 painter.setFont(font)
+                painter.setPen(option.palette.color(QPalette.ColorRole.Text))
                 top_pad = 3 if alignment & Qt.AlignmentFlag.AlignTop else 0
                 painter.drawText(
                     option.rect.adjusted(5, top_pad, -5, 0),
@@ -503,6 +508,7 @@ def paint(
             is_income = category_text and "(Income)" in str(category_text)
             amount_text = self.displayText(index.data(), QLocale())
             alignment = int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+            text_pen = option.palette.color(QPalette.ColorRole.Text)
 
             if is_income:
                 painter.save()
@@ -512,6 +518,7 @@ def paint(
                 font = QFont(option.font)
                 font.setBold(True)
                 painter.setFont(font)
+                painter.setPen(text_pen)
                 painter.drawText(option.rect.adjusted(5, 0, -5, 0), alignment, amount_text)
                 painter.restore()
                 return
@@ -522,6 +529,7 @@ def paint(
                 painter.fillRect(option.rect, brush)
             font = QFont(option.font)
             painter.setFont(font)
+            painter.setPen(text_pen)
             painter.drawText(option.rect.adjusted(5, 0, -5, 0), alignment, amount_text)
             painter.restore()
 

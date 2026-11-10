@@ -357,20 +357,30 @@ def button_icon_color_for_bg(bg_hex: str | None) -> str | None:
 def button_idle_qss(*, radius: int = PANEL_RADIUS) -> str
 ```
 
-Return white outlined idle `QPushButton` chrome (Cancel / Copy / Add row).
+Return idle `QPushButton` chrome (Cancel / Copy / filter / Add row).
+
+Tracker layout polish often runs after Fluent app chrome and on theme change.
+Hard white plates stay wrong in dark mode, so idle buttons follow the active
+Fluent secondary control fill whenever a theme is available.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def button_idle_qss(*, radius: int = PANEL_RADIUS) -> str:
-    return solid_button_qss(
-        SURFACE,
-        hover=SELECTION_HOVER,
-        pressed=BUTTON_SECONDARY_HOVER,
-        border=INPUT_BORDER,
-        radius=radius,
-    )
+    try:
+        from harrix_swiss_knife.fluent.style import push_button_qss  # noqa: PLC0415
+        from harrix_swiss_knife.fluent.theme import FluentTheme  # noqa: PLC0415
+
+        return push_button_qss(FluentTheme.instance().palette())
+    except Exception:
+        return solid_button_qss(
+            SURFACE,
+            hover=SELECTION_HOVER,
+            pressed=BUTTON_SECONDARY_HOVER,
+            border=INPUT_BORDER,
+            radius=radius,
+        )
 ```
 
 </details>

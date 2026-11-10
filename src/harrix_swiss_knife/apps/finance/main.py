@@ -88,7 +88,13 @@ from harrix_swiss_knife.apps.common.date_edit_quick import (
     match_date_edit_form_height,
     match_layout_control_heights_many,
 )
-from harrix_swiss_knife.apps.common.day_bands import day_band_colors, day_band_id_item, set_day_band
+from harrix_swiss_knife.apps.common.day_bands import (
+    day_band_color,
+    day_band_colors,
+    day_band_id_item,
+    readable_row_tint,
+    set_day_band,
+)
 from harrix_swiss_knife.apps.common.db_init import init_tracker_database
 from harrix_swiss_knife.apps.common.delegates import LucideCheckableItemDelegate
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
@@ -3259,10 +3265,10 @@ class MainWindow(
 
         # Define colors for different account groups
         account_colors: dict[tuple[int, int], QColor] = {
-            (0, 1): QColor(220, 255, 220),  # is_cash=0, is_liquid=1 - Light green
-            (1, 1): QColor(255, 255, 200),  # is_cash=1, is_liquid=1 - Light yellow
-            (0, 0): QColor(255, 220, 220),  # is_cash=0, is_liquid=0 - Light red
-            (1, 0): QColor(255, 200, 255),  # is_cash=1, is_liquid=0 - Light purple
+            (0, 1): readable_row_tint(QColor(220, 255, 220), band_index=0),
+            (1, 1): readable_row_tint(QColor(255, 255, 200), band_index=1),
+            (0, 0): readable_row_tint(QColor(255, 220, 220), band_index=0),
+            (1, 0): readable_row_tint(QColor(255, 200, 255), band_index=1),
         }
 
         # Group accounts by (is_cash, is_liquid) and sort within groups
@@ -3384,7 +3390,7 @@ class MainWindow(
                 loss = 0.0
                 today_loss = 0.0
 
-            color: QColor = QColor(255, 240, 255)
+            color: QColor = day_band_color(len(exchanges_transformed_data))
             transformed_row: list = [
                 row[1],  # from_code
                 row[2],  # to_code

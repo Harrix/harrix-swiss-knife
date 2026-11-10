@@ -5,7 +5,7 @@ import re
 from typing import cast
 
 from PySide6.QtCore import QAbstractItemModel, QLocale, QModelIndex, QPersistentModelIndex, Qt
-from PySide6.QtGui import QBrush, QFont, QPainter
+from PySide6.QtGui import QBrush, QFont, QPainter, QPalette
 from PySide6.QtWidgets import QDoubleSpinBox, QStyledItemDelegate, QStyleOptionViewItem, QWidget
 
 from harrix_swiss_knife.apps.common.ui_helpers import apply_white_editor_background
@@ -161,6 +161,7 @@ class AmountDelegate(QStyledItemDelegate):
                 font = QFont(option.font)
                 font.setStyleHint(QFont.StyleHint.SansSerif)
                 painter.setFont(font)
+                painter.setPen(option.palette.color(QPalette.ColorRole.Text))
                 top_pad = 3 if alignment & Qt.AlignmentFlag.AlignTop else 0
                 painter.drawText(
                     option.rect.adjusted(5, top_pad, -5, 0),
@@ -184,6 +185,7 @@ class AmountDelegate(QStyledItemDelegate):
             is_income = category_text and "(Income)" in str(category_text)
             amount_text = self.displayText(index.data(), QLocale())
             alignment = int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+            text_pen = option.palette.color(QPalette.ColorRole.Text)
 
             if is_income:
                 painter.save()
@@ -193,6 +195,7 @@ class AmountDelegate(QStyledItemDelegate):
                 font = QFont(option.font)
                 font.setBold(True)
                 painter.setFont(font)
+                painter.setPen(text_pen)
                 painter.drawText(option.rect.adjusted(5, 0, -5, 0), alignment, amount_text)
                 painter.restore()
                 return
@@ -203,6 +206,7 @@ class AmountDelegate(QStyledItemDelegate):
                 painter.fillRect(option.rect, brush)
             font = QFont(option.font)
             painter.setFont(font)
+            painter.setPen(text_pen)
             painter.drawText(option.rect.adjusted(5, 0, -5, 0), alignment, amount_text)
             painter.restore()
 

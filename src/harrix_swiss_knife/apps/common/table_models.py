@@ -14,9 +14,10 @@ from PySide6.QtCore import (
     Qt,
     QTimer,
 )
-from PySide6.QtGui import QBrush, QGuiApplication, QIcon, QPainter, QStandardItem, QStandardItemModel
+from PySide6.QtGui import QBrush, QColor, QGuiApplication, QIcon, QPainter, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import QAbstractButton, QStyle, QStyleOptionHeader, QWidget
 
+from harrix_swiss_knife.apps.common.day_bands import day_band_id_item, set_day_band
 from harrix_swiss_knife.apps.common.record_id_sort import ROW_ID_SORT_SECTION as _ROW_ID_SORT_SECTION
 from harrix_swiss_knife.apps.common.record_id_sort import RecordIdSortProxyModel
 
@@ -119,7 +120,8 @@ def append_colored_table_row(
     display_indices = [i for i in range(row_len) if i not in {id_idx, color_idx}]
     items = [_colored_standard_item(row_list[col_idx], row_color, row_id=row_id) for col_idx in display_indices]
     source.appendRow(items)
-    source.setVerticalHeaderItem(source.rowCount() - 1, QStandardItem(str(row_id)))
+    header_color = row_color if isinstance(row_color, QColor) else QColor()
+    source.setVerticalHeaderItem(source.rowCount() - 1, day_band_id_item(row_id, header_color))
 
 
 def apply_stored_table_header_sort(table: QTableView) -> None:
@@ -224,7 +226,8 @@ def create_colored_table_proxy_model(
         items = [_colored_standard_item(row_list[col_idx], row_color, row_id=row_id) for col_idx in display_indices]
 
         model.appendRow(items)
-        model.setVerticalHeaderItem(row_idx, QStandardItem(str(row_id)))
+        header_color = row_color if isinstance(row_color, QColor) else QColor()
+        model.setVerticalHeaderItem(row_idx, day_band_id_item(row_id, header_color))
 
     proxy = ColoredTableProxyModel()
     proxy.setSourceModel(model)
@@ -606,7 +609,10 @@ def _colored_standard_item(value: object, row_color: object, *, row_id: object =
             item.setData(sort_id, Qt.ItemDataRole.UserRole)
     else:
         item = QStandardItem(str(value) if value is not None else "")
-    item.setBackground(QBrush(row_color))
+    if isinstance(row_color, QColor):
+        set_day_band(item, row_color)
+    else:
+        item.setBackground(QBrush(row_color))
     return item
 
 
