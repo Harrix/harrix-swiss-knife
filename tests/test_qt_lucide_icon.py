@@ -10,16 +10,20 @@ from PySide6.QtWidgets import QAbstractButton, QApplication, QDialogButtonBox, Q
 from harrix_swiss_knife import qt_lucide_icon as lucide_mod
 from harrix_swiss_knife.apps.common.ui_chrome import button_primary_qss
 from harrix_swiss_knife.fluent.widgets.input_base import FluentLineEdit
+from harrix_swiss_knife.fluent.theme import FluentTheme, ThemeMode
 from harrix_swiss_knife.qt_lucide_icon import (
     ACCEPT_BUTTON_STYLE,
     AI_BUTTON_ICON,
     CANCEL_BUTTON_STYLE,
     DELETE_BUTTON_STYLE,
     LUCIDE_COLOR_BLUE,
+    LUCIDE_COLOR_CYAN,
     LUCIDE_COLOR_DARK,
     LUCIDE_COLOR_GREEN,
+    LUCIDE_COLOR_LIGHT,
     LUCIDE_COLOR_ON_FILLED,
     LUCIDE_COLOR_RED,
+    LUCIDE_COLOR_TURQUOISE,
     add_lucide_action,
     apply_button_stylesheet,
     apply_leading_chrome_icons,
@@ -94,10 +98,32 @@ def test_create_lucide_icon_uses_device_pixel_ratio(qapp: QApplication) -> None:
 
 
 def test_lucide_color_for_semantic_map() -> None:
-    assert lucide_color_for("trash") == LUCIDE_COLOR_RED
-    assert lucide_color_for("circle-check") == LUCIDE_COLOR_GREEN
-    assert lucide_color_for("sparkles") == LUCIDE_COLOR_BLUE
-    assert lucide_color_for("folder") == LUCIDE_COLOR_DARK
+    theme = FluentTheme.instance()
+    previous = theme.mode()
+    theme.set_mode(ThemeMode.LIGHT, persist=False)
+    try:
+        assert lucide_color_for("trash") == LUCIDE_COLOR_RED
+        assert lucide_color_for("circle-check") == LUCIDE_COLOR_GREEN
+        assert lucide_color_for("sparkles") == LUCIDE_COLOR_BLUE
+        assert lucide_color_for("folder") == LUCIDE_COLOR_DARK
+        assert lucide_color_for("broom") == LUCIDE_COLOR_TURQUOISE
+    finally:
+        theme.set_mode(previous, persist=False)
+
+
+def test_lucide_color_for_dark_theme_readable_defaults() -> None:
+    theme = FluentTheme.instance()
+    previous = theme.mode()
+    theme.set_mode(ThemeMode.DARK, persist=False)
+    try:
+        assert lucide_color_for("folder") == LUCIDE_COLOR_LIGHT
+        assert lucide_color_for("clock") == LUCIDE_COLOR_LIGHT
+        assert lucide_color_for("keyboard") == LUCIDE_COLOR_LIGHT
+        assert lucide_color_for("broom") == LUCIDE_COLOR_CYAN
+        assert lucide_color_for("trash") == LUCIDE_COLOR_RED
+        assert lucide_color_for("plus") == LUCIDE_COLOR_GREEN
+    finally:
+        theme.set_mode(previous, persist=False)
 
 
 def test_create_lucide_icon_uses_semantic_colors(qapp: QApplication) -> None:

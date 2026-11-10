@@ -82,6 +82,8 @@ LUCIDE_COLOR_RED = "#cc584c"
 LUCIDE_COLOR_ORANGE = "#ffa000"
 LUCIDE_COLOR_YELLOW = "#eec646"
 LUCIDE_COLOR_DARK = "#122a3a"
+# Unmapped Lucide stroke on dark chrome (menus, idle buttons, lists).
+LUCIDE_COLOR_LIGHT = "#e8eaed"
 LUCIDE_COLOR_ON_FILLED = BUTTON_ON_DARK_FG
 
 AI_BUTTON_ICON_COLOR = LUCIDE_COLOR_BLUE
@@ -95,7 +97,7 @@ _LUCIDE_NAME_PROP = "_harrix_lucide_name"
 _LINE_EDIT_CLEAR_PROP = "_hskLucideClearAction"
 _LINE_EDIT_CLEAR_ICON_SIZE = 14
 
-# Semantic Lucide ID → CodeStyle hex (unlisted IDs use LUCIDE_COLOR_DARK).
+# Semantic Lucide ID → CodeStyle hex (unlisted IDs use dark/light default by theme).
 LUCIDE_ICON_COLORS: dict[str, str] = {
     "archive-restore": LUCIDE_COLOR_GREEN,
     "check": LUCIDE_COLOR_GREEN,
@@ -626,8 +628,30 @@ def is_delete_like_button_label(label: str) -> bool:
 
 
 def lucide_color_for(name: str) -> str:
-    """Return the CodeStyle hex color for Lucide ID `name` (or dark default)."""
-    return LUCIDE_ICON_COLORS.get(name, LUCIDE_COLOR_DARK)
+    """Return the CodeStyle hex color for Lucide ID `name`.
+
+    Unlisted IDs use `LUCIDE_COLOR_DARK` on light chrome and `LUCIDE_COLOR_LIGHT`
+    on Fluent dark chrome so menu and button icons stay visible. Dark turquoise
+    accents lift to cyan on the same chrome.
+
+    """
+    mapped = LUCIDE_ICON_COLORS.get(name)
+    dark = _fluent_is_dark()
+    if mapped is None:
+        return LUCIDE_COLOR_LIGHT if dark else LUCIDE_COLOR_DARK
+    if dark and mapped == LUCIDE_COLOR_TURQUOISE:
+        return LUCIDE_COLOR_CYAN
+    return mapped
+
+
+def _fluent_is_dark() -> bool:
+    """Return whether the app Fluent theme is dark (False when theme is unavailable)."""
+    try:
+        from harrix_swiss_knife.fluent.theme import FluentTheme  # noqa: PLC0415
+
+        return FluentTheme.instance().is_dark()
+    except Exception:
+        return False
 
 
 def lucide_name_for_chrome_emoji(emoji: str) -> str | None:
