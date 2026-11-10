@@ -13,7 +13,6 @@ from PySide6.QtGui import (
     QIcon,
     QKeySequence,
     QPainter,
-    QPalette,
     QShortcut,
     QStandardItem,
     QStandardItemModel,
@@ -319,10 +318,10 @@ class WorkoutsWidget(QWidget):
                 item.setBackground(brush)
         cell = self.table_items.cellWidget(row, _COL_DONE)
         if cell is not None:
-            palette = cell.palette()
-            palette.setColor(QPalette.ColorRole.Window, color)
-            cell.setAutoFillBackground(True)
-            cell.setPalette(palette)
+            # Fluent window QSS ignores QPalette autofill on cell widgets, so paint
+            # the Done cell with an explicit background (avoids white plates in dark).
+            cell.setAutoFillBackground(False)
+            cell.setStyleSheet(f"background-color: {color.name()};")
 
     def _build_ui(self) -> None:
         self.setObjectName("workoutsWidget")
@@ -1011,7 +1010,8 @@ def estimate_workout_item_kcal(
 def _make_done_cell(checkbox: QCheckBox) -> QWidget:
     """Wrap a Done checkbox so row selection does not paint blue behind it."""
     cell = QWidget()
-    cell.setAutoFillBackground(True)
+    cell.setAutoFillBackground(False)
+    checkbox.setStyleSheet("QCheckBox { background: transparent; }")
     layout = QHBoxLayout(cell)
     layout.setContentsMargins(0, 0, 0, 0)
     layout.addWidget(checkbox, alignment=Qt.AlignmentFlag.AlignCenter)

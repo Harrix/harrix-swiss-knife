@@ -6,12 +6,13 @@ from typing import TYPE_CHECKING, cast
 from unittest.mock import MagicMock
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QIcon, QPixmap
-from PySide6.QtWidgets import QApplication, QCheckBox
+from PySide6.QtGui import QColor, QIcon, QPixmap
+from PySide6.QtWidgets import QApplication, QCheckBox, QWidget
 
 from harrix_swiss_knife.apps.fitness.database_manager import WorkoutItemRow
 from harrix_swiss_knife.apps.fitness.lightbox_logic import ExerciseStopwatchState, StopwatchPhase
 from harrix_swiss_knife.apps.fitness.workouts_widget import (
+    _COL_DONE,
     _COL_EXERCISE,
     _COL_IMAGE,
     _COL_KCAL,
@@ -21,7 +22,7 @@ from harrix_swiss_knife.apps.fitness.workouts_widget import (
     estimate_workout_item_kcal,
 )
 from harrix_swiss_knife.fluent.app_chrome import install_fluent_app_window
-from harrix_swiss_knife.fluent.theme import FluentTheme, ThemeMode
+from harrix_swiss_knife.fluent.theme import FluentTheme, ThemeMode, enable_fluent_theme
 
 if TYPE_CHECKING:
     import pytest
@@ -238,6 +239,34 @@ def test_workouts_table_stretches_and_alternates_row_colors() -> None:
     second_bg = table.item(1, _COL_EXERCISE).background().color()
     assert first_bg != second_bg
     widget.close()
+
+
+def test_workouts_done_cell_not_white_in_dark_theme() -> None:
+    """Done cell widgets must use the row fill, not a white Fluent-QSS plate."""
+    assert _qapp() is not None
+    theme = FluentTheme.instance()
+    previous = theme.mode()
+    theme.set_mode(ThemeMode.DARK, persist=False)
+    host = QWidget()
+    enable_fluent_theme(host)
+    install_fluent_app_window(host)
+    try:
+        widget = WorkoutsWidget(host)
+        widget._fill_items([_sample_item()])
+        cell = widget.table_items.cellWidget(0, _COL_DONE)
+        assert cell is not None
+        sheet = cell.styleSheet().casefold()
+        assert "background-color:" in sheet
+        assert "#ffffff" not in sheet
+        assert "white" not in sheet
+        row_color = widget.table_items.item(0, _COL_EXERCISE).background().color()
+        assert QColor(row_color.name()).name() in sheet
+        checkbox = cell.findChild(QCheckBox)
+        assert checkbox is not None
+        assert "transparent" in checkbox.styleSheet().casefold()
+    finally:
+        theme.set_mode(previous, persist=False)
+        host.close()
 
 
 def test_workout_session_shows_timer_bar_and_hides_start() -> None:
