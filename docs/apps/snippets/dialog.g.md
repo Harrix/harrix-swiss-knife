@@ -625,13 +625,20 @@ class SnippetsDialog(QDialog):
         for zone, panel in self._panels.items():
             panel.set_input_match(text if zone == self._active_zone else "")
 
+    def _refresh_overlay_caption(self) -> None:
+        """Re-apply caption fill after dialog stylesheet polish."""
+        if not isValid(self):
+            return
+        refresh_win11_caption(self)
+
     def _refresh_overlay_theme(self) -> None:
         """Apply Fluent overlay border, tabs, splitter, and input chrome."""
         palette = palette_for(self)
         border = css(mix(palette.window_bg, palette.popup_stroke))
         window = css(palette.window_bg)
         self.setStyleSheet(
-            f"#snippetsDialog {{ background-color: {window}; border: 1px solid {border}; }}",
+            f"#snippetsDialog {{ background-color: {window}; border: 1px solid {border}; }}"
+            f"#captionBar, #captionButtonRow {{ background-color: {window}; }}",
         )
         pages = getattr(self, "_page_tabs", None)
         if pages is not None and not pages.property(CAPTION_TABS_PROPERTY):
@@ -644,6 +651,7 @@ class SnippetsDialog(QDialog):
         for splitter in self.findChildren(QSplitter):
             polish_fluent_splitter(splitter)
         refresh_win11_caption(self)
+        QTimer.singleShot(0, self._refresh_overlay_caption)
 
     def _reload_zone(self, zone: str, panel: ZonePanel) -> None:
         if self.db_manager is None:

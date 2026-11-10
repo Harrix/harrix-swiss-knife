@@ -572,6 +572,12 @@ class QuickLauncherDialog(QDialog):
         if metrics.content_height <= screen_max_height and self.height() < metrics.content_height:
             self.resize(self.width(), metrics.content_height)
 
+    def _refresh_overlay_caption(self) -> None:
+        """Re-apply caption fill after dialog stylesheet polish."""
+        if not isValid(self):
+            return
+        refresh_win11_caption(self)
+
     def _refresh_overlay_theme(self) -> None:
         """Apply Fluent overlay border and divider for the current theme."""
         palette = palette_for(self)
@@ -581,6 +587,7 @@ class QuickLauncherDialog(QDialog):
         divider = css(palette.divider)
         self.setStyleSheet(
             f"#quickLauncherDialog {{ background-color: {window}; border: 1px solid {border}; }}"
+            f"#captionBar, #captionButtonRow {{ background-color: {window}; }}"
             "#quickLauncherContent, #quickLauncherScrollBody { background: transparent; }"
             f"#quickLauncherDivider {{ background-color: {divider}; }}",
         )
@@ -595,6 +602,8 @@ class QuickLauncherDialog(QDialog):
             divider_widget.setPalette(divider_palette)
         # Caption must follow solid window_bg (see OVERLAY_CAPTION_PROPERTY), not wallpaper top.
         refresh_win11_caption(self)
+        # setStyleSheet polish can reset caption palettes after the call above.
+        QTimer.singleShot(0, self._refresh_overlay_caption)
 
     def _retarget_to_active_modal_parent(self) -> None:
         """Parent launcher to active modal dialog so it stays interactive."""

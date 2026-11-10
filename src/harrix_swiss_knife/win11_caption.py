@@ -159,6 +159,13 @@ _FITTING_ATTR = "_hsk_caption_fitting"
 _MENU_BUTTON_NAME = "captionMenuButton"
 _SUITE_NAME = "Harrix Swiss Knife"
 _LIGHTNESS_THRESHOLD = 128
+_STICKY_CAPTION_FILL_NAMES = frozenset(
+    {
+        "captionBar",
+        "captionButtonRow",
+        "captionRightCluster",
+    }
+)
 
 _WM_NCCALCSIZE = 0x0083
 _WM_NCHITTEST = 0x0084
@@ -1166,11 +1173,29 @@ def _fill_caption_overflow_menu(window: QWidget, popup: QMenu) -> None:
 
 
 def _fill_widget(widget: QWidget, color: QColor) -> None:
+    """Paint `widget` with `color` via palette and, for caption strips, sticky QSS.
+
+    Overlay dialogs call `setStyleSheet` on the window after caption sync. That
+    polish can reset child palettes back to the light app plate (`#f3f3f3`) while
+    leaving the dark title QSS in place — white text on a light caption. A
+    named-widget rule on the caption strip survives that pass.
+
+    Do not put a fill rule on `QTabWidget` / pages: `_style_caption_chrome` owns
+    those sheets (including the pane `margin-top` gap under the tab line).
+
+    """
     palette = widget.palette()
     if palette.color(QPalette.ColorRole.Window) != color:
         palette.setColor(QPalette.ColorRole.Window, color)
         widget.setPalette(palette)
     widget.setAutoFillBackground(True)
+    name = widget.objectName()
+    if name not in _STICKY_CAPTION_FILL_NAMES and not name.startswith("hskWhiteSurface"):
+        return
+    rgb = color.name(QColor.NameFormat.HexRgb)
+    rule = f"QWidget#{name} {{ background-color: {rgb}; border: none; }}"
+    if widget.styleSheet() != rule:
+        widget.setStyleSheet(rule)
 
 
 def _fit_caption_fonts(window: QWidget) -> None:

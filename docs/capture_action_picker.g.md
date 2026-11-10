@@ -319,6 +319,12 @@ class CaptureActionPickerDialog(QDialog):
             return
         self._fit_to_content()
 
+    def _refresh_overlay_caption(self) -> None:
+        """Re-apply caption fill after dialog stylesheet polish."""
+        if not isValid(self):
+            return
+        refresh_win11_caption(self)
+
     def _refresh_overlay_theme(self) -> None:
         palette = palette_for(self)
         border = css(mix(palette.window_bg, palette.popup_stroke))
@@ -326,10 +332,12 @@ class CaptureActionPickerDialog(QDialog):
         muted = css(mix(palette.window_bg, palette.text_secondary))
         self.setStyleSheet(
             f"#captureActionPickerDialog {{ background-color: {window}; border: 1px solid {border}; }}"
+            f"#captionBar, #captionButtonRow {{ background-color: {window}; }}"
             "#captureActionPickerContent { background: transparent; }",
         )
         self._hint.setStyleSheet(f"color: {muted};")
         refresh_win11_caption(self)
+        QTimer.singleShot(0, self._refresh_overlay_caption)
 
     def _select_card(self, card: FluentIconTileCard) -> None:
         previous = self._selected_card

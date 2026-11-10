@@ -137,6 +137,12 @@ def test_overlay_caption_matches_window_bg_in_dark_theme(qapp: QApplication) -> 
         host = window.findChild(QWidget, "captionBar")
         assert host is not None
         assert host.palette().color(QPalette.ColorRole.Window) == DARK_PALETTE.window_bg
+        assert DARK_PALETTE.window_bg.name() in host.styleSheet().casefold()
+        # Dialog stylesheet polish must not leave the light plate under a dark title.
+        window.setStyleSheet(f"QWidget {{ background-color: {DARK_PALETTE.window_bg.name()}; }}")
+        refresh_win11_caption(window)
+        assert host.palette().color(QPalette.ColorRole.Window) == DARK_PALETTE.window_bg
+        assert DARK_PALETTE.window_bg.name() in host.styleSheet().casefold()
         title = window.findChild(QLabel, "captionTitleLabel")
         assert title is not None
         assert "rgba(255, 255, 255" in title.styleSheet() or "#ffffff" in title.styleSheet().casefold()
