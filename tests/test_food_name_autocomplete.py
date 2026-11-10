@@ -117,3 +117,17 @@ def test_setup_completer_item_tooltips_sets_icon_size(qapp: QApplication) -> Non
     popup = completer.popup()
     assert popup is not None
     assert popup.iconSize() == food_autocomplete_popup_icon_size()
+
+
+def test_completer_tooltip_helper_survives_popup_teardown(qapp: QApplication) -> None:
+    """Popup teardown must not raise on late filters or a cleared `_popup`."""
+    from PySide6.QtCore import QEvent
+
+    assert qapp is not None
+    completer = QCompleter(["Apple", "Banana"])
+    helper = setup_completer_item_tooltips(completer)
+    assert helper.parent() is completer
+    helper._on_popup_destroyed()  # noqa: SLF001
+    assert helper._is_popup_alive() is False  # noqa: SLF001
+    assert helper.eventFilter(completer, QEvent(QEvent.Type.Hide)) is False
+
