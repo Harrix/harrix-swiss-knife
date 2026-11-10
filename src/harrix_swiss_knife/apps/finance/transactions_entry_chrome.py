@@ -38,6 +38,7 @@ _FORM_MIN_WIDTH = 280
 _CATEGORIES_MIN_WIDTH = 260
 _TABLE_MIN_WIDTH = 400
 _SPLITTER_SAVE_DELAY_MS = 400
+_FIELD_LABEL_WIDTH = 90
 _VIS_KEY_ENGLISH = "english"
 _VIS_KEY_RECORD_ID = "record_id"
 _NO_CATEGORY = "Category: not selected"
@@ -154,7 +155,7 @@ def _configure_transactions_splitter(host: Any) -> None:
 
 
 def _field_caption_qss() -> str:
-    return f"color: {MUTED_TEXT}; font-weight: 600; padding-top: 2px;"
+    return f"color: {MUTED_TEXT}; font-weight: 600;"
 
 
 def _install_column_visibility_menu(host: Any, table: QTableView) -> None:
@@ -261,16 +262,26 @@ def _polish_form_column(host: Any) -> None:
     host.verticalLayout_2.setSpacing(SPACE_XS)
 
     for name in (
-        "label_field_description",
-        "label_field_amount",
-        "label_field_date",
-        "label_field_tag",
         "label_expense_today_caption",
         "label_expense_yesterday_caption",
     ):
         label = getattr(host, name, None)
         if isinstance(label, QLabel):
             label.setStyleSheet(_field_caption_qss())
+
+    for name, text in (
+        ("label_field_description", "Description:"),
+        ("label_field_amount", "Amount:"),
+        ("label_field_date", "Date:"),
+        ("label_field_tag", "Tags:"),
+    ):
+        label = getattr(host, name, None)
+        if isinstance(label, QLabel):
+            label.setText(text)
+            label.setStyleSheet(_field_caption_qss())
+            label.setMinimumWidth(_FIELD_LABEL_WIDTH)
+            label.setFixedWidth(_FIELD_LABEL_WIDTH)
+            label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 
     if hasattr(host, "label_tag"):
         host.label_tag.hide()

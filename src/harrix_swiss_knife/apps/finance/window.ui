@@ -99,14 +99,20 @@
                 </widget>
                </item>
                <item>
-                <widget class="QLabel" name="label_field_description">
-                 <property name="text">
-                  <string>Description</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
                 <layout class="QHBoxLayout" name="horizontalLayout_2">
+                 <item>
+                  <widget class="QLabel" name="label_field_description">
+                   <property name="minimumSize">
+                    <size>
+                     <width>90</width>
+                     <height>0</height>
+                    </size>
+                   </property>
+                   <property name="text">
+                    <string>Description:</string>
+                   </property>
+                  </widget>
+                 </item>
                  <item>
                   <widget class="QLineEdit" name="lineEdit_description">
                    <property name="font">
@@ -122,14 +128,20 @@
                 </layout>
                </item>
                <item>
-                <widget class="QLabel" name="label_field_amount">
-                 <property name="text">
-                  <string>Amount</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
                 <layout class="QHBoxLayout" name="horizontalLayout_amount">
+                 <item>
+                  <widget class="QLabel" name="label_field_amount">
+                   <property name="minimumSize">
+                    <size>
+                     <width>90</width>
+                     <height>0</height>
+                    </size>
+                   </property>
+                   <property name="text">
+                    <string>Amount:</string>
+                   </property>
+                  </widget>
+                 </item>
                  <item>
                   <widget class="CompactDoubleSpinBox" name="doubleSpinBox_amount">
                    <property name="font">
@@ -159,14 +171,20 @@
                 </layout>
                </item>
                <item>
-                <widget class="QLabel" name="label_field_date">
-                 <property name="text">
-                  <string>Date</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
                 <layout class="QHBoxLayout" name="horizontalLayout_date">
+                 <item>
+                  <widget class="QLabel" name="label_field_date">
+                   <property name="minimumSize">
+                    <size>
+                     <width>90</width>
+                     <height>0</height>
+                    </size>
+                   </property>
+                   <property name="text">
+                    <string>Date:</string>
+                   </property>
+                  </widget>
+                 </item>
                  <item>
                   <widget class="QDateEdit" name="dateEdit">
                    <property name="minimumSize">
@@ -189,21 +207,17 @@
                 </layout>
                </item>
                <item>
-                <widget class="QLabel" name="label_field_tag">
-                 <property name="text">
-                  <string>Tags</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
                 <layout class="QHBoxLayout" name="horizontalLayout_3">
                  <item>
-                  <widget class="QLabel" name="label_tag">
-                   <property name="focusPolicy">
-                    <enum>Qt::FocusPolicy::NoFocus</enum>
+                  <widget class="QLabel" name="label_field_tag">
+                   <property name="minimumSize">
+                    <size>
+                     <width>90</width>
+                     <height>0</height>
+                    </size>
                    </property>
                    <property name="text">
-                    <string>Tag:</string>
+                    <string>Tags:</string>
                    </property>
                   </widget>
                  </item>

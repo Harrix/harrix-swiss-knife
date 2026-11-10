@@ -46,12 +46,12 @@ class Ui_MainWindow(object):
         self.actionAbout.setText(QCoreApplication.translate("MainWindow", u"About", None))
         self.groupBox_transaction.setTitle(QCoreApplication.translate("MainWindow", u"New transaction", None))
         self.label_category_now.setText(QCoreApplication.translate("MainWindow", u"Category: not selected", None))
-        self.label_field_description.setText(QCoreApplication.translate("MainWindow", u"Description", None))
+        self.label_field_description.setText(QCoreApplication.translate("MainWindow", u"Description:", None))
         self.lineEdit_description.setPlaceholderText(QCoreApplication.translate("MainWindow", u"What did you buy?", None))
-        self.label_field_amount.setText(QCoreApplication.translate("MainWindow", u"Amount", None))
-        self.label_field_date.setText(QCoreApplication.translate("MainWindow", u"Date", None))
+        self.label_field_amount.setText(QCoreApplication.translate("MainWindow", u"Amount:", None))
+        self.label_field_date.setText(QCoreApplication.translate("MainWindow", u"Date:", None))
         self.dateEdit.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
-        self.label_field_tag.setText(QCoreApplication.translate("MainWindow", u"Tags", None))
+        self.label_field_tag.setText(QCoreApplication.translate("MainWindow", u"Tags:", None))
         self.label_tag.setText(QCoreApplication.translate("MainWindow", u"Tag:", None))
         self.lineEdit_tag.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Optional, comma-separated", None))
         self.pushButton_add.setText(QCoreApplication.translate("MainWindow", u"Add transaction", None))
@@ -237,13 +237,14 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_3.addWidget(self.label_category_now)
 
-        self.label_field_description = QLabel(self.groupBox_transaction)
-        self.label_field_description.setObjectName(u"label_field_description")
-
-        self.verticalLayout_3.addWidget(self.label_field_description)
-
         self.horizontalLayout_2 = QHBoxLayout()
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
+        self.label_field_description = QLabel(self.groupBox_transaction)
+        self.label_field_description.setObjectName(u"label_field_description")
+        self.label_field_description.setMinimumSize(QSize(90, 0))
+
+        self.horizontalLayout_2.addWidget(self.label_field_description)
+
         self.lineEdit_description = QLineEdit(self.groupBox_transaction)
         self.lineEdit_description.setObjectName(u"lineEdit_description")
         font1 = QFont()
@@ -255,13 +256,14 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_3.addLayout(self.horizontalLayout_2)
 
-        self.label_field_amount = QLabel(self.groupBox_transaction)
-        self.label_field_amount.setObjectName(u"label_field_amount")
-
-        self.verticalLayout_3.addWidget(self.label_field_amount)
-
         self.horizontalLayout_amount = QHBoxLayout()
         self.horizontalLayout_amount.setObjectName(u"horizontalLayout_amount")
+        self.label_field_amount = QLabel(self.groupBox_transaction)
+        self.label_field_amount.setObjectName(u"label_field_amount")
+        self.label_field_amount.setMinimumSize(QSize(90, 0))
+
+        self.horizontalLayout_amount.addWidget(self.label_field_amount)
+
         self.doubleSpinBox_amount = CompactDoubleSpinBox(self.groupBox_transaction)
         self.doubleSpinBox_amount.setObjectName(u"doubleSpinBox_amount")
         font2 = QFont()
@@ -282,13 +284,14 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_3.addLayout(self.horizontalLayout_amount)
 
-        self.label_field_date = QLabel(self.groupBox_transaction)
-        self.label_field_date.setObjectName(u"label_field_date")
-
-        self.verticalLayout_3.addWidget(self.label_field_date)
-
         self.horizontalLayout_date = QHBoxLayout()
         self.horizontalLayout_date.setObjectName(u"horizontalLayout_date")
+        self.label_field_date = QLabel(self.groupBox_transaction)
+        self.label_field_date.setObjectName(u"label_field_date")
+        self.label_field_date.setMinimumSize(QSize(90, 0))
+
+        self.horizontalLayout_date.addWidget(self.label_field_date)
+
         self.dateEdit = QDateEdit(self.groupBox_transaction)
         self.dateEdit.setObjectName(u"dateEdit")
         self.dateEdit.setMinimumSize(QSize(140, 0))
@@ -300,18 +303,18 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_3.addLayout(self.horizontalLayout_date)
 
-        self.label_field_tag = QLabel(self.groupBox_transaction)
-        self.label_field_tag.setObjectName(u"label_field_tag")
-
-        self.verticalLayout_3.addWidget(self.label_field_tag)
-
         self.horizontalLayout_3 = QHBoxLayout()
         self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
+        self.label_field_tag = QLabel(self.groupBox_transaction)
+        self.label_field_tag.setObjectName(u"label_field_tag")
+        self.label_field_tag.setMinimumSize(QSize(90, 0))
+
+        self.horizontalLayout_3.addWidget(self.label_field_tag)
+
         self.label_tag = QLabel(self.groupBox_transaction)
         self.label_tag.setObjectName(u"label_tag")
         self.label_tag.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-
-        self.horizontalLayout_3.addWidget(self.label_tag)
+        self.label_tag.hide()
 
         self.lineEdit_tag = QLineEdit(self.groupBox_transaction)
         self.lineEdit_tag.setObjectName(u"lineEdit_tag")
