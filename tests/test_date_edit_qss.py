@@ -25,10 +25,12 @@ def qapp() -> QApplication:
 def test_date_edit_qss_reserves_chevron_gutter(qapp: QApplication) -> None:  # noqa: ARG001
     FluentTheme.instance()
     sheet = date_edit_qss(palette_for(QDateEdit()))
-    assert f"padding-right: {DATE_EDIT_DROP_WIDTH}px" in sheet
+    assert "padding: 0px 4px 0px 10px" in sheet
     assert "QDateEdit::drop-down" in sheet
     assert f"width: {DATE_EDIT_DROP_WIDTH}px" in sheet
     assert "subcontrol-origin: border" in sheet
+    # Full drop width as padding-right doubles the gutter and leaves a dead gap.
+    assert f"padding-right: {DATE_EDIT_DROP_WIDTH}px" not in sheet
 
 
 def test_fluent_chrome_keeps_yyyy_mm_dd_clear_of_chevron(qapp: QApplication) -> None:
@@ -46,6 +48,5 @@ def test_fluent_chrome_keeps_yyyy_mm_dd_clear_of_chevron(qapp: QApplication) -> 
     date_edit.setFixedWidth(date_edit.minimumWidth())
     host.show()
     qapp.processEvents()
-    # Right text margins clip the day even when contentsRect looks wide enough.
-    assert line.contentsRect().width() >= line.fontMetrics().horizontalAdvance("8888-88-88") + DATE_EDIT_DROP_WIDTH
+    assert line.contentsRect().width() >= line.fontMetrics().horizontalAdvance("8888-88-88")
     host.close()

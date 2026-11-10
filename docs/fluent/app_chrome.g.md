@@ -11,10 +11,47 @@ lang: en
 
 ## Contents
 
+- [🔧 Function `ensure_date_edit_text_fits`](#-function-ensure_date_edit_text_fits)
 - [🔧 Function `install_fluent_app_window`](#-function-install_fluent_app_window)
 - [🔧 Function `install_fluent_dialog_chrome`](#-function-install_fluent_dialog_chrome)
 - [🔧 Function `prepare_fluent_app_window`](#-function-prepare_fluent_app_window)
 - [🔧 Function `refresh_fluent_app_window`](#-function-refresh_fluent_app_window)
+
+</details>
+
+## 🔧 Function `ensure_date_edit_text_fits`
+
+```python
+def ensure_date_edit_text_fits(box: QDateEdit) -> None
+```
+
+Keep yyyy-MM-dd clear of the calendar chevron on any DPI / font size.
+
+Do not set line-edit text margins. `QDateEdit` already insets `qt_spinbox_lineedit`
+for `::drop-down`; a right text margin clips the last digit and leaves a gap.
+Call again after adding a leading calendar action.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def ensure_date_edit_text_fits(box: QDateEdit) -> None:
+    line = box.lineEdit()
+    leading = 0
+    if line is not None:
+        # Match the polished control font; qt_spinbox_lineedit can lag behind.
+        line.setFont(box.font())
+        line.setTextMargins(0, 0, 0, 0)
+        metrics = line.fontMetrics()
+        if line.actions():
+            leading = DATE_EDIT_LEADING_ICON_WIDTH
+    else:
+        metrics = box.fontMetrics()
+    needed = metrics.horizontalAdvance("8888-88-88") + DATE_EDIT_DROP_WIDTH + DATE_EDIT_CHROME_WIDTH + leading
+    floor = max(DATE_EDIT_MIN_WIDTH, needed)
+    if box.minimumWidth() < floor:
+        box.setMinimumWidth(floor)
+```
 
 </details>
 

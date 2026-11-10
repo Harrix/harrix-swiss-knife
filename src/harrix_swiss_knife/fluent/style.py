@@ -115,13 +115,13 @@ def combo_box_qss(palette: FluentPalette, selector: str = "QComboBox", *, height
 def date_edit_qss(palette: FluentPalette, *, height: int = CONTROL_HEIGHT) -> str:
     """Return a Fluent date field with a flat chevron instead of a beveled arrow."""
     arrow = lucide_qss_url("chevron-down", mix(palette.control_fill, palette.text_primary), 12)
-    # line_edit_qss pads only 10px; the calendar drop-down is wider. Do not also set
-    # QLineEdit text margins — that clips the last digit of yyyy-MM-dd.
+    # Match combo: keep padding-right small. ::drop-down already reserves the chevron
+    # gutter; padding-right equal to drop width leaves a dead gap before the arrow.
     drop = DATE_EDIT_DROP_WIDTH
     return f"""
 {line_edit_qss(palette, "QDateEdit", height=height)}
 QDateEdit {{
-    padding-right: {drop}px;
+    padding: 0px 4px 0px 10px;
 }}
 QDateEdit QLineEdit {{
     background: transparent;

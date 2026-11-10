@@ -489,7 +489,7 @@ class Ui_MainWindow(object):
 
         self.dateEdit_filter_from = QDateEdit(self.groupBox_filter)
         self.dateEdit_filter_from.setObjectName(u"dateEdit_filter_from")
-        self.dateEdit_filter_from.setMinimumSize(QSize(152, 0))
+        self.dateEdit_filter_from.setMinimumSize(QSize(120, 0))
         self.dateEdit_filter_from.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
         self.dateEdit_filter_from.setCalendarPopup(True)
 
@@ -502,7 +502,7 @@ class Ui_MainWindow(object):
 
         self.dateEdit_filter_to = QDateEdit(self.groupBox_filter)
         self.dateEdit_filter_to.setObjectName(u"dateEdit_filter_to")
-        self.dateEdit_filter_to.setMinimumSize(QSize(152, 0))
+        self.dateEdit_filter_to.setMinimumSize(QSize(120, 0))
         self.dateEdit_filter_to.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
         self.dateEdit_filter_to.setCalendarPopup(True)
 
@@ -1975,7 +1975,7 @@ def setupUi(self, MainWindow):
 
         self.dateEdit_filter_from = QDateEdit(self.groupBox_filter)
         self.dateEdit_filter_from.setObjectName(u"dateEdit_filter_from")
-        self.dateEdit_filter_from.setMinimumSize(QSize(152, 0))
+        self.dateEdit_filter_from.setMinimumSize(QSize(120, 0))
         self.dateEdit_filter_from.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
         self.dateEdit_filter_from.setCalendarPopup(True)
 
@@ -1988,7 +1988,7 @@ def setupUi(self, MainWindow):
 
         self.dateEdit_filter_to = QDateEdit(self.groupBox_filter)
         self.dateEdit_filter_to.setObjectName(u"dateEdit_filter_to")
-        self.dateEdit_filter_to.setMinimumSize(QSize(152, 0))
+        self.dateEdit_filter_to.setMinimumSize(QSize(120, 0))
         self.dateEdit_filter_to.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
         self.dateEdit_filter_to.setCalendarPopup(True)
 

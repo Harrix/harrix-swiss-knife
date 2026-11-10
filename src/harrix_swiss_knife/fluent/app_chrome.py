@@ -76,6 +76,7 @@ from harrix_swiss_knife.fluent.tokens import (
     CONTROL_HEIGHT,
     DATE_EDIT_CHROME_WIDTH,
     DATE_EDIT_DROP_WIDTH,
+    DATE_EDIT_LEADING_ICON_WIDTH,
     DATE_EDIT_MIN_WIDTH,
     ICON_SIZE,
     RADIUS_CARD,
@@ -125,6 +126,31 @@ _SECONDARY_MARKERS = (
     "#ececec",
     "button_secondary",
 )
+
+
+def ensure_date_edit_text_fits(box: QDateEdit) -> None:
+    """Keep yyyy-MM-dd clear of the calendar chevron on any DPI / font size.
+
+    Do not set line-edit text margins. `QDateEdit` already insets `qt_spinbox_lineedit`
+    for `::drop-down`; a right text margin clips the last digit and leaves a gap.
+    Call again after adding a leading calendar action.
+
+    """
+    line = box.lineEdit()
+    leading = 0
+    if line is not None:
+        # Match the polished control font; qt_spinbox_lineedit can lag behind.
+        line.setFont(box.font())
+        line.setTextMargins(0, 0, 0, 0)
+        metrics = line.fontMetrics()
+        if line.actions():
+            leading = DATE_EDIT_LEADING_ICON_WIDTH
+    else:
+        metrics = box.fontMetrics()
+    needed = metrics.horizontalAdvance("8888-88-88") + DATE_EDIT_DROP_WIDTH + DATE_EDIT_CHROME_WIDTH + leading
+    floor = max(DATE_EDIT_MIN_WIDTH, needed)
+    if box.minimumWidth() < floor:
+        box.setMinimumWidth(floor)
 
 
 def install_fluent_app_window(window: QWidget) -> None:
@@ -322,27 +348,6 @@ def _clear_viewport(view: QAbstractItemView, palette: FluentPalette) -> None:
     _set_sheet(viewport, f"background: {wallpaper_fill(palette)}; color: {text};")
 
 
-def _ensure_date_edit_text_fits(box: QDateEdit) -> None:
-    """Keep yyyy-MM-dd clear of the calendar chevron on any DPI / font size.
-
-    Do not set line-edit text margins. `QDateEdit` already insets `qt_spinbox_lineedit`
-    for `::drop-down`; a right text margin clips the last digit and leaves a gap.
-
-    """
-    line = box.lineEdit()
-    if line is not None:
-        # Match the polished control font; qt_spinbox_lineedit can lag behind.
-        line.setFont(box.font())
-        line.setTextMargins(0, 0, 0, 0)
-        metrics = line.fontMetrics()
-    else:
-        metrics = box.fontMetrics()
-    needed = metrics.horizontalAdvance("8888-88-88") + DATE_EDIT_DROP_WIDTH + DATE_EDIT_CHROME_WIDTH
-    floor = max(DATE_EDIT_MIN_WIDTH, needed)
-    if box.minimumWidth() < floor:
-        box.setMinimumWidth(floor)
-
-
 def _fluent_surface_qss(palette: FluentPalette) -> str:
     text = css(mix(palette.window_bg, palette.text_primary))
     secondary = css(mix(palette.window_bg, palette.text_secondary))
@@ -501,7 +506,7 @@ def _restyle_inputs(root: QWidget, palette: FluentPalette) -> None:
     for box in root.findChildren(QDateEdit):
         _set_sheet(box, date)
         _lock_control_height(box)
-        _ensure_date_edit_text_fits(box)
+        ensure_date_edit_text_fits(box)
     plain = text_edit_qss(palette, "QPlainTextEdit")
     for edit in root.findChildren(QPlainTextEdit):
         _set_sheet(edit, plain)

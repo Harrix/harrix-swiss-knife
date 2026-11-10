@@ -126,3 +126,7 @@ def _apply_date_edit_field_chrome(date_edit: QDateEdit) -> None:
         action.triggered.connect(lambda: show_date_calendar_popup(date_edit))
         line_edit.addAction(action, QLineEdit.ActionPosition.LeadingPosition)
     date_edit.setProperty(_PROP_FIELD_CHROME, True)  # noqa: FBT003
+    # Fluent chrome may have sized the field before this leading icon existed.
+    from harrix_swiss_knife.fluent.app_chrome import ensure_date_edit_text_fits  # noqa: PLC0415
+
+    ensure_date_edit_text_fits(date_edit)
