@@ -580,14 +580,24 @@ def is_delete_like_button_label(label: str) -> bool:
 def lucide_color_for(name: str) -> str
 ```
 
-Return the CodeStyle hex color for Lucide ID `name` (or dark default).
+Return the CodeStyle hex color for Lucide ID `name`.
+
+Unlisted IDs use `LUCIDE_COLOR_DARK` on light chrome and `LUCIDE_COLOR_LIGHT`
+on Fluent dark chrome so menu and button icons stay visible. Dark turquoise
+accents lift to cyan on the same chrome.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def lucide_color_for(name: str) -> str:
-    return LUCIDE_ICON_COLORS.get(name, LUCIDE_COLOR_DARK)
+    mapped = LUCIDE_ICON_COLORS.get(name)
+    dark = _fluent_is_dark()
+    if mapped is None:
+        return LUCIDE_COLOR_LIGHT if dark else LUCIDE_COLOR_DARK
+    if dark and mapped == LUCIDE_COLOR_TURQUOISE:
+        return LUCIDE_COLOR_CYAN
+    return mapped
 ```
 
 </details>

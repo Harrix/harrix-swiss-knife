@@ -115,8 +115,8 @@ class NameLocalListDelegate(QStyledItemDelegate):
             mode = QIcon.Mode.Selected if opt.state & QStyle.StateFlag.State_Selected else QIcon.Mode.Normal
             opt.icon.paint(painter, decoration_rect, Qt.AlignmentFlag.AlignCenter, mode, QIcon.State.Off)
 
-        if self._layout == NameLocalLayout.LIST and opt.state & QStyle.StateFlag.State_Selected:
-            text_color = QColor("#000000")
+        if opt.state & QStyle.StateFlag.State_Selected:
+            text_color = opt.palette.highlightedText().color()
         else:
             text_color = opt.palette.text().color()
 
@@ -363,8 +363,8 @@ def paint(
             mode = QIcon.Mode.Selected if opt.state & QStyle.StateFlag.State_Selected else QIcon.Mode.Normal
             opt.icon.paint(painter, decoration_rect, Qt.AlignmentFlag.AlignCenter, mode, QIcon.State.Off)
 
-        if self._layout == NameLocalLayout.LIST and opt.state & QStyle.StateFlag.State_Selected:
-            text_color = QColor("#000000")
+        if opt.state & QStyle.StateFlag.State_Selected:
+            text_color = opt.palette.highlightedText().color()
         else:
             text_color = opt.palette.text().color()
 

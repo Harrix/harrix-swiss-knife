@@ -21,9 +21,11 @@ lang: en
 - [🔧 Function `day_band_colors`](#-function-day_band_colors)
 - [🔧 Function `day_band_id_item`](#-function-day_band_id_item)
 - [🔧 Function `install_day_band_vertical_header`](#-function-install_day_band_vertical_header)
+- [🔧 Function `readable_cell_fill`](#-function-readable_cell_fill)
 - [🔧 Function `readable_row_tint`](#-function-readable_row_tint)
 - [🔧 Function `refresh_day_bands`](#-function-refresh_day_bands)
 - [🔧 Function `set_day_band`](#-function-set_day_band)
+- [🔧 Function `set_readable_cell_fill`](#-function-set_readable_cell_fill)
 - [🔧 Function `table_surface_color`](#-function-table_surface_color)
 
 </details>
@@ -241,25 +243,75 @@ def day_band_id_item(row_id: object, color: QColor) -> QStandardItem:
 ## 🔧 Function `install_day_band_vertical_header`
 
 ```python
-def install_day_band_vertical_header(table: QTableView) -> DayBandVerticalHeader
+def install_day_band_vertical_header(table: QTableView) -> QHeaderView
 ```
 
 Use a day-band ID header on `table`, keeping the one already installed.
+
+Preserves row heights from the previous header. Replacing the header without
+copying `defaultSectionSize` used to shrink thumbnail tables (Workouts) so
+64px icons overlapped across ~30px rows.
+
+Hidden vertical headers (no record-id column) are left alone.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def install_day_band_vertical_header(table: QTableView) -> DayBandVerticalHeader:
+def install_day_band_vertical_header(table: QTableView) -> QHeaderView:
     current = table.verticalHeader()
     if isinstance(current, DayBandVerticalHeader):
         return current
+    if current.isHidden():
+        return current
+    default_size = current.defaultSectionSize()
+    min_size = current.minimumSectionSize()
+    section_sizes = [current.sectionSize(index) for index in range(current.count())]
     header = DayBandVerticalHeader(table)
-    header.setVisible(not current.isHidden())
+    header.setVisible(True)
     header.setDefaultAlignment(Qt.AlignmentFlag.AlignCenter)
     header.setMinimumWidth(current.minimumWidth())
+    header.setMinimumSectionSize(min_size)
+    header.setDefaultSectionSize(default_size)
     table.setVerticalHeader(header)
+    # setVerticalHeader can reset metrics; restore after the swap.
+    header.setMinimumSectionSize(min_size)
+    header.setDefaultSectionSize(default_size)
+    for index, size in enumerate(section_sizes):
+        header.resizeSection(index, size)
     return header
+```
+
+</details>
+
+## 🔧 Function `readable_cell_fill`
+
+```python
+def readable_cell_fill(light: QColor, *, band_index: int = 0) -> QColor
+```
+
+Return a cell fill that stays readable with Fluent text in dark theme.
+
+Light mode keeps `light`. Dark mode darkens chromatic pastels (hue kept) so
+light table text remains legible, and maps near-gray pastels to the neutral
+day band.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def readable_cell_fill(light: QColor, *, band_index: int = 0) -> QColor:
+    if not FluentTheme.instance().palette().dark:
+        return QColor(light)
+    hue = light.hue()
+    saturation = light.saturation()
+    value = light.value()
+    alpha = light.alpha()
+    if hue < 0 or saturation < _MIN_CHROMATIC_SATURATION:
+        return day_band_color(band_index % 2)
+    dark_value = min(100, max(48, value // 3))
+    dark_saturation = min(255, max(saturation, 90))
+    return QColor.fromHsv(hue, dark_saturation, dark_value, alpha)
 ```
 
 </details>
@@ -320,15 +372,42 @@ def set_day_band(item: QStandardItem, color: QColor) -> None
 
 Paint [`item`](../../fluent/widgets/navigation.g.md#%EF%B8%8F-method-item) with [`color`](../../fluent/widgets/dialogs.g.md#%EF%B8%8F-method-color) and remember the band index when it has one.
 
+Plain pastel `QColor` values (not [`DayBand`](#%EF%B8%8F-class-dayband)) go through [`readable_cell_fill`](#-function-readable_cell_fill)
+so tracker tables stay legible under Fluent dark chrome.
+
 <details>
 <summary>Code:</summary>
 
 ```python
 def set_day_band(item: QStandardItem, color: QColor) -> None:
+    if not isinstance(color, DayBand):
+        set_readable_cell_fill(item, color)
+        return
     item.setBackground(QBrush(color))
-    band = getattr(color, "band_index", None)
-    if isinstance(band, int):
-        item.setData(band, DAY_BAND_ROLE)
+    item.setData(color.band_index, DAY_BAND_ROLE)
+```
+
+</details>
+
+## 🔧 Function `set_readable_cell_fill`
+
+```python
+def set_readable_cell_fill(item: QStandardItem, light: QColor, *, band_index: int = 0) -> None
+```
+
+Paint [`item`](../../fluent/widgets/navigation.g.md#%EF%B8%8F-method-item) with [`readable_cell_fill`](#-function-readable_cell_fill), tagging day bands when used.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_readable_cell_fill(item: QStandardItem, light: QColor, *, band_index: int = 0) -> None:
+    fill = readable_cell_fill(light, band_index=band_index)
+    if isinstance(fill, DayBand):
+        set_day_band(item, fill)
+        return
+    clear_day_band(item)
+    item.setBackground(QBrush(fill))
 ```
 
 </details>

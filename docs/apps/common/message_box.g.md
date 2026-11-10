@@ -14,6 +14,7 @@ lang: en
 - [🔧 Function `add_copy_button`](#-function-add_copy_button)
 - [🔧 Function `ask_retry`](#-function-ask_retry)
 - [🔧 Function `clipboard_text_from_box`](#-function-clipboard_text_from_box)
+- [🔧 Function `colorize_html_links`](#-function-colorize_html_links)
 - [🔧 Function `critical`](#-function-critical)
 - [🔧 Function `information`](#-function-information)
 - [🔧 Function `prepare_box`](#-function-prepare_box)
@@ -124,6 +125,34 @@ def clipboard_text_from_box(box: QMessageBox) -> str:
 
 </details>
 
+## 🔧 Function `colorize_html_links`
+
+```python
+def colorize_html_links(html: str, color: QColor | str) -> str
+```
+
+Return `html` with inline `style="color:…"` on every `<a>` tag.
+
+Qt's rich-text engine ignores style sheets for anchors inside `QLabel` /
+`QMessageBox`, so palette alone is not enough on Windows dark chrome.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def colorize_html_links(html: str, color: QColor | str) -> str:
+    hex_color = QColor(color).name(QColor.NameFormat.HexRgb)
+
+    def _inject(match: re.Match[str]) -> str:
+        attrs = match.group(1)
+        cleaned = _ANCHOR_STYLE_RE.sub("", attrs)
+        return f'<a{cleaned} style="color:{hex_color}">'
+
+    return _ANCHOR_OPEN_RE.sub(_inject, html)
+```
+
+</details>
+
 ## 🔧 Function `critical`
 
 ```python
@@ -181,6 +210,9 @@ def information(
     box.setWindowTitle(title)
     if rich_text:
         box.setTextFormat(Qt.TextFormat.RichText)
+        if is_fluent_themed(parent):
+            palette = palette_for(parent)
+            text = colorize_html_links(text, mix(palette.window_bg, palette.accent_text))
     box.setText(text)
     box.setStandardButtons(QMessageBox.StandardButton.Ok)
     if stylesheet:
@@ -210,7 +242,8 @@ def prepare_box(box: QMessageBox) -> None:
         add_copy_button(box)
         setattr(box, _COPY_BUTTON_ATTR, True)
     if is_fluent_themed(box):
-        bind_theme(box, lambda: _style_fluent_buttons(box))
+        bind_theme(box, lambda: _style_fluent_box(box))
+        _style_fluent_box(box)
         return
     for button in box.buttons():
         role = box.buttonRole(button)

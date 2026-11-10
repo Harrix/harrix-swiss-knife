@@ -45,21 +45,27 @@ class CompleterPopupTooltipHelper(QObject):
     _CURSOR_OFFSET = QPoint(12, 18)
 
     def __init__(self, completer: QCompleter) -> None:
-        """Attach tooltip handling to the completer popup list."""
+        """Attach tooltip handling to the completer popup list.
+
+        Parent is the completer (not the popup): parenting to the popup made this
+        helper die with the list view, so late `eventFilter` / `destroyed` calls
+        hit a half-cleared Python object (`_popup` missing, empty slot name).
+
+        """
+        # Attributes first — filters/signals can run before the rest of __init__.
+        super().__init__(completer)
+        self._popup: QAbstractItemView | None = None
+        self._viewport: QWidget | None = None
+        self._hover_index = QPersistentModelIndex()
+        self._tooltip: QLabel | None = None
+        self._show_timer: QTimer | None = None
+
         popup = completer.popup()
         if popup is None:
-            super().__init__(completer)
-            self._popup = None
-            self._viewport = None
-            self._hover_index = QPersistentModelIndex()
-            self._tooltip: QLabel | None = None
-            self._show_timer: QTimer | None = None
             return
 
-        super().__init__(popup)
         self._popup = popup
         self._viewport = popup.viewport()
-        self._hover_index = QPersistentModelIndex()
         self._show_timer = QTimer(self)
         self._show_timer.setSingleShot(True)
         self._show_timer.setInterval(self._SHOW_DELAY_MS)
@@ -78,8 +84,10 @@ class CompleterPopupTooltipHelper(QObject):
         popup.setMouseTracking(True)
         popup.entered.connect(self._on_item_entered)
         popup.installEventFilter(self)
-        self._viewport.installEventFilter(self)
-        popup.destroyed.connect(self._detach_from_popup)
+        if self._viewport is not None:
+            self._viewport.installEventFilter(self)
+        # Explicit QObject* overload; ignore args so teardown stays callable.
+        popup.destroyed.connect(self._on_popup_destroyed)
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
         """Hide tooltip when popup closes or mouse leaves the hovered item."""
@@ -90,29 +98,39 @@ class CompleterPopupTooltipHelper(QObject):
             self._hide_tooltip()
             return False
 
-        if self._viewport is not None and watched is self._viewport and event.type() == QEvent.Type.MouseMove:
+        viewport = getattr(self, "_viewport", None)
+        if viewport is not None and watched is viewport and event.type() == QEvent.Type.MouseMove:
             self._on_viewport_mouse_move(event.position().toPoint())
 
         return False
 
     def _detach_from_popup(self) -> None:
         self._hide_tooltip()
-        if self._popup is not None and isValid(self._popup):
-            self._popup.removeEventFilter(self)
-        if self._viewport is not None and isValid(self._viewport):
-            self._viewport.removeEventFilter(self)
+        popup = getattr(self, "_popup", None)
+        viewport = getattr(self, "_viewport", None)
+        if popup is not None and isValid(popup):
+            popup.removeEventFilter(self)
+            with contextlib.suppress(RuntimeError, TypeError):
+                popup.entered.disconnect(self._on_item_entered)
+            with contextlib.suppress(RuntimeError, TypeError):
+                popup.destroyed.disconnect(self._on_popup_destroyed)
+        if viewport is not None and isValid(viewport):
+            viewport.removeEventFilter(self)
         self._popup = None
         self._viewport = None
 
     def _hide_tooltip(self) -> None:
-        if self._show_timer is not None and isValid(self._show_timer):
-            self._show_timer.stop()
-        if self._tooltip is not None and isValid(self._tooltip):
-            self._tooltip.hide()
+        show_timer = getattr(self, "_show_timer", None)
+        tooltip = getattr(self, "_tooltip", None)
+        if show_timer is not None and isValid(show_timer):
+            show_timer.stop()
+        if tooltip is not None and isValid(tooltip):
+            tooltip.hide()
         self._hover_index = QPersistentModelIndex()
 
     def _is_popup_alive(self) -> bool:
-        return self._popup is not None and isValid(self._popup)
+        popup = getattr(self, "_popup", None)
+        return popup is not None and isValid(popup)
 
     def _is_text_elided(self, index: QModelIndex | QPersistentModelIndex) -> tuple[bool, str]:
         if not self._is_popup_alive() or not index.isValid():
@@ -148,6 +166,12 @@ class CompleterPopupTooltipHelper(QObject):
         self._hover_index = QPersistentModelIndex(index)
         if self._show_timer is not None:
             self._show_timer.start()
+
+    def _on_popup_destroyed(self, *_args: object) -> None:
+        """Clear popup refs when the list view is deleted (helper stays on completer)."""
+        self._popup = None
+        self._viewport = None
+        self._hide_tooltip()
 
     def _on_viewport_mouse_move(self, pos: QPoint) -> None:
         if not self._is_popup_alive() or not self._hover_index.isValid():
@@ -199,25 +223,29 @@ def __init__(self, completer: QCompleter) -> None
 
 Attach tooltip handling to the completer popup list.
 
+Parent is the completer (not the popup): parenting to the popup made this
+helper die with the list view, so late `eventFilter` / `destroyed` calls
+hit a half-cleared Python object (`_popup` missing, empty slot name).
+
 <details>
 <summary>Code:</summary>
 
 ```python
 def __init__(self, completer: QCompleter) -> None:
+        # Attributes first — filters/signals can run before the rest of __init__.
+        super().__init__(completer)
+        self._popup: QAbstractItemView | None = None
+        self._viewport: QWidget | None = None
+        self._hover_index = QPersistentModelIndex()
+        self._tooltip: QLabel | None = None
+        self._show_timer: QTimer | None = None
+
         popup = completer.popup()
         if popup is None:
-            super().__init__(completer)
-            self._popup = None
-            self._viewport = None
-            self._hover_index = QPersistentModelIndex()
-            self._tooltip: QLabel | None = None
-            self._show_timer: QTimer | None = None
             return
 
-        super().__init__(popup)
         self._popup = popup
         self._viewport = popup.viewport()
-        self._hover_index = QPersistentModelIndex()
         self._show_timer = QTimer(self)
         self._show_timer.setSingleShot(True)
         self._show_timer.setInterval(self._SHOW_DELAY_MS)
@@ -236,8 +264,10 @@ def __init__(self, completer: QCompleter) -> None:
         popup.setMouseTracking(True)
         popup.entered.connect(self._on_item_entered)
         popup.installEventFilter(self)
-        self._viewport.installEventFilter(self)
-        popup.destroyed.connect(self._detach_from_popup)
+        if self._viewport is not None:
+            self._viewport.installEventFilter(self)
+        # Explicit QObject* overload; ignore args so teardown stays callable.
+        popup.destroyed.connect(self._on_popup_destroyed)
 ```
 
 </details>
@@ -262,7 +292,8 @@ def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
             self._hide_tooltip()
             return False
 
-        if self._viewport is not None and watched is self._viewport and event.type() == QEvent.Type.MouseMove:
+        viewport = getattr(self, "_viewport", None)
+        if viewport is not None and watched is viewport and event.type() == QEvent.Type.MouseMove:
             self._on_viewport_mouse_move(event.position().toPoint())
 
         return False

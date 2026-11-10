@@ -835,6 +835,18 @@ def test_reduce_size_max_side_and_custom_dialog(qapp: QApplication) -> None:  # 
     dialog.close()
 
 
+def test_ask_ai_button_offers_menu(qapp: QApplication) -> None:  # noqa: ARG001
+    image = QImage(8, 8, QImage.Format.Format_RGB32)
+    image.fill(Qt.GlobalColor.white)
+    window = show_screenshot_preview(image)
+    button = next(item for item in window.findChildren(FluentSplitButton) if item.text() == "Ask AI")
+    menu = button.menu()
+    assert menu is not None
+    assert [action.text() for action in menu.actions()] == ["Ask AI", "Ask with note…"]
+    assert all(not action.icon().isNull() for action in menu.actions())
+    window.close()
+
+
 def test_recognize_button_offers_recognition_menu(qapp: QApplication) -> None:  # noqa: ARG001
     image = QImage(8, 8, QImage.Format.Format_RGB32)
     image.fill(Qt.GlobalColor.white)

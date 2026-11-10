@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from harrix_swiss_knife.fluent.tokens import FluentPalette
 
 DAY_BAND_ROLE = Qt.ItemDataRole.UserRole + 410
+_MIN_CHROMATIC_SATURATION = 25
 
 
 class DayBand(QColor):
@@ -133,8 +134,11 @@ def readable_cell_fill(light: QColor, *, band_index: int = 0) -> QColor:
     """
     if not FluentTheme.instance().palette().dark:
         return QColor(light)
-    hue, saturation, value, alpha = light.getHsv()
-    if hue < 0 or saturation < 25:
+    hue = light.hue()
+    saturation = light.saturation()
+    value = light.value()
+    alpha = light.alpha()
+    if hue < 0 or saturation < _MIN_CHROMATIC_SATURATION:
         return day_band_color(band_index % 2)
     dark_value = min(100, max(48, value // 3))
     dark_saturation = min(255, max(saturation, 90))
@@ -153,16 +157,6 @@ def readable_row_tint(light: QColor, *, band_index: int = 0) -> DayBand:
     if FluentTheme.instance().palette().dark:
         return day_band_color(index)
     return DayBand(light.red(), light.green(), light.blue(), index)
-
-
-def set_readable_cell_fill(item: QStandardItem, light: QColor, *, band_index: int = 0) -> None:
-    """Paint `item` with `readable_cell_fill`, tagging day bands when used."""
-    fill = readable_cell_fill(light, band_index=band_index)
-    if isinstance(fill, DayBand):
-        set_day_band(item, fill)
-        return
-    clear_day_band(item)
-    item.setBackground(QBrush(fill))
 
 
 def refresh_day_bands(table: QTableView) -> None:
@@ -187,6 +181,16 @@ def set_day_band(item: QStandardItem, color: QColor) -> None:
         return
     item.setBackground(QBrush(color))
     item.setData(color.band_index, DAY_BAND_ROLE)
+
+
+def set_readable_cell_fill(item: QStandardItem, light: QColor, *, band_index: int = 0) -> None:
+    """Paint `item` with `readable_cell_fill`, tagging day bands when used."""
+    fill = readable_cell_fill(light, band_index=band_index)
+    if isinstance(fill, DayBand):
+        set_day_band(item, fill)
+        return
+    clear_day_band(item)
+    item.setBackground(QBrush(fill))
 
 
 def table_surface_color(palette: FluentPalette) -> QColor:

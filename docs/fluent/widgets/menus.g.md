@@ -277,12 +277,16 @@ class FluentMenu(QMenu):
     def __init__(self, title: str = "", parent: QWidget | None = None) -> None:
         """Create a menu."""
         super().__init__(title, parent)
+        # Tray / orphan menus have no Fluent window ancestor; mark the menu itself
+        # so `palette_for` follows the process light/dark mode.
+        self.setProperty(FLUENT_THEMED_PROPERTY, True)  # noqa: FBT003
         self.setWindowFlags(
             self.windowFlags() | Qt.WindowType.FramelessWindowHint | Qt.WindowType.NoDropShadowWindowHint
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, on=True)
         self.aboutToShow.connect(self.refresh_theme)
         bind_theme(self, self.refresh_theme)
+        self.refresh_theme()
 
     def add_lucide_action(self, text: str, icon: str = "", slot: Callable[[], None] | None = None) -> QAction:
         """Append an action with a Lucide icon that follows the theme."""
@@ -329,12 +333,16 @@ Create a menu.
 ```python
 def __init__(self, title: str = "", parent: QWidget | None = None) -> None:
         super().__init__(title, parent)
+        # Tray / orphan menus have no Fluent window ancestor; mark the menu itself
+        # so `palette_for` follows the process light/dark mode.
+        self.setProperty(FLUENT_THEMED_PROPERTY, True)  # noqa: FBT003
         self.setWindowFlags(
             self.windowFlags() | Qt.WindowType.FramelessWindowHint | Qt.WindowType.NoDropShadowWindowHint
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, on=True)
         self.aboutToShow.connect(self.refresh_theme)
         bind_theme(self, self.refresh_theme)
+        self.refresh_theme()
 ```
 
 </details>

@@ -16,6 +16,7 @@ lang: en
 - [🔧 Function `install_fluent_dialog_chrome`](#-function-install_fluent_dialog_chrome)
 - [🔧 Function `prepare_fluent_app_window`](#-function-prepare_fluent_app_window)
 - [🔧 Function `refresh_fluent_app_window`](#-function-refresh_fluent_app_window)
+- [🔧 Function `style_fluent_item_view`](#-function-style_fluent_item_view)
 
 </details>
 
@@ -172,6 +173,27 @@ def refresh_fluent_app_window(window: QWidget) -> None:
         _restyle_splitters(window)
         apply_flat_scrollbars(window)
     window.update()
+```
+
+</details>
+
+## 🔧 Function `style_fluent_item_view`
+
+```python
+def style_fluent_item_view(view: QAbstractItemView, palette: FluentPalette | None = None) -> None
+```
+
+Apply Fluent list selection chrome and a readable text palette.
+
+Layout chrome must call this instead of clearing the view stylesheet: an
+empty sheet re-polishes the widget onto the system palette (black ink).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def style_fluent_item_view(view: QAbstractItemView, palette: FluentPalette | None = None) -> None:
+    _style_item_view(view, palette if palette is not None else palette_for(view))
 ```
 
 </details>

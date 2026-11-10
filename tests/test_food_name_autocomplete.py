@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QEvent, Qt
 from PySide6.QtWidgets import QApplication, QCompleter
 
 from harrix_swiss_knife.apps.food.database_manager import FoodAutocompleteEntry, merge_food_autocomplete_entries
@@ -121,13 +121,10 @@ def test_setup_completer_item_tooltips_sets_icon_size(qapp: QApplication) -> Non
 
 def test_completer_tooltip_helper_survives_popup_teardown(qapp: QApplication) -> None:
     """Popup teardown must not raise on late filters or a cleared `_popup`."""
-    from PySide6.QtCore import QEvent
-
     assert qapp is not None
     completer = QCompleter(["Apple", "Banana"])
     helper = setup_completer_item_tooltips(completer)
     assert helper.parent() is completer
-    helper._on_popup_destroyed()  # noqa: SLF001
-    assert helper._is_popup_alive() is False  # noqa: SLF001
+    helper._on_popup_destroyed()
+    assert helper._is_popup_alive() is False
     assert helper.eventFilter(completer, QEvent(QEvent.Type.Hide)) is False
-

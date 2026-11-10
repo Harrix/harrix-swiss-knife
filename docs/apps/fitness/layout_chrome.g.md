@@ -11,8 +11,29 @@ lang: en
 
 ## Contents
 
+- [🔧 Function `apply_exercises_splitter_sizes`](#-function-apply_exercises_splitter_sizes)
 - [🔧 Function `install_fitness_layout_chrome`](#-function-install_fitness_layout_chrome)
 - [🔧 Function `persist_fitness_tabs_splitter_sizes`](#-function-persist_fitness_tabs_splitter_sizes)
+
+</details>
+
+## 🔧 Function `apply_exercises_splitter_sizes`
+
+```python
+def apply_exercises_splitter_sizes(host: Any) -> None
+```
+
+Re-apply the Exercises 50/50 splitter after the tab is shown.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def apply_exercises_splitter_sizes(host: Any) -> None:
+    apply = getattr(host, "_apply_fitness_exercises_splitter_sizes", None)
+    if callable(apply):
+        apply()
+```
 
 </details>
 

@@ -644,16 +644,6 @@ def lucide_color_for(name: str) -> str:
     return mapped
 
 
-def _fluent_is_dark() -> bool:
-    """Return whether the app Fluent theme is dark (False when theme is unavailable)."""
-    try:
-        from harrix_swiss_knife.fluent.theme import FluentTheme  # noqa: PLC0415
-
-        return FluentTheme.instance().is_dark()
-    except Exception:
-        return False
-
-
 def lucide_name_for_chrome_emoji(emoji: str) -> str | None:
     """Return the Lucide ID for a chrome emoji, or `None` when unmapped."""
     if emoji in CHROME_EMOJI_TO_LUCIDE:
@@ -794,6 +784,16 @@ def sync_button_icon_to_fill(
     if not isinstance(name, str) or not name.strip():
         return
     apply_lucide_button_icon(button, name, icon_size=icon_size)
+
+
+def _fluent_is_dark() -> bool:
+    """Return whether the app Fluent theme is dark (`False` when theme is unavailable)."""
+    try:
+        from harrix_swiss_knife.fluent.theme import FluentTheme  # noqa: PLC0415
+
+        return FluentTheme.instance().is_dark()
+    except Exception:
+        return False
 
 
 def _is_ai_chrome_emoji(emoji: str) -> bool:

@@ -86,7 +86,7 @@ class ReportOperations:
             items: list[QStandardItem] = [QStandardItem(str(value)) for value in row_data]
             if row_data[0] == "TOTAL":
                 for item in items:
-                    item.setBackground(QBrush(QColor(255, 255, 0)))
+                    set_readable_cell_fill(item, _REPORT_TOTAL_FILL)
             model.appendRow(items)
         self._set_reports_model_and_stretch(model)
 
@@ -110,7 +110,7 @@ class ReportOperations:
             items = [QStandardItem(str(value)) for value in row_data]
             if row_data[0] in ["EXPENSES", "INCOME"]:
                 for item in items:
-                    item.setBackground(QBrush(QColor(200, 200, 255)))
+                    set_readable_cell_fill(item, _REPORT_SECTION_FILL)
             model.appendRow(items)
         self._set_reports_model_and_stretch(model)
 
@@ -136,9 +136,9 @@ class ReportOperations:
             try:
                 balance_value: float = float(balance_str.split(maxsplit=1)[0])
                 if balance_value > 0:
-                    items[3].setBackground(QBrush(QColor(200, 255, 200)))
+                    set_readable_cell_fill(items[3], _REPORT_POSITIVE_FILL)
                 elif balance_value < 0:
-                    items[3].setBackground(QBrush(QColor(255, 200, 200)))
+                    set_readable_cell_fill(items[3], _REPORT_NEGATIVE_FILL)
             except (ValueError, IndexError):
                 pass
             model.appendRow(items)
@@ -152,7 +152,7 @@ class ReportOperations:
             items = [QStandardItem(str(value)) for value in row_data]
             if row_data and row_data[0] == "TOTAL":
                 for item in items:
-                    item.setBackground(QBrush(QColor(255, 255, 0)))
+                    set_readable_cell_fill(item, _REPORT_TOTAL_FILL)
             else:
                 for column, item in enumerate(items[1:], start=1):
                     text = str(row_data[column]) if column < len(row_data) else ""
@@ -161,17 +161,17 @@ class ReportOperations:
                         continue
                     header = headers[column] if column < len(headers) else ""
                     if header.isdigit():
-                        color = QColor(255, 250, 205) if column == 1 else QColor(220, 235, 255)
-                        item.setBackground(QBrush(color))
+                        fill = _REPORT_AMOUNT_FILL if column == 1 else _REPORT_YEAR_FILL
+                        set_readable_cell_fill(item, fill, band_index=column % 2)
                         continue
                     try:
                         amount = float(first_line.replace("+", "").split(maxsplit=1)[0])
                     except (ValueError, IndexError):
                         continue
                     if amount > 0:
-                        item.setBackground(QBrush(QColor(200, 255, 200)))
+                        set_readable_cell_fill(item, _REPORT_POSITIVE_FILL)
                     elif amount < 0:
-                        item.setBackground(QBrush(QColor(255, 200, 200)))
+                        set_readable_cell_fill(item, _REPORT_NEGATIVE_FILL)
             model.appendRow(items)
         self._set_reports_model_and_stretch(model)
         delegate = YearDeltaCellDelegate(self.tableView_reports)
@@ -217,19 +217,19 @@ class ReportOperations:
             row_items.append(month_item)
 
             total_item = QStandardItem(f"{month_total:.2f}")
-            total_item.setBackground(QBrush(QColor(255, 250, 205)))
+            set_readable_cell_fill(total_item, _REPORT_AMOUNT_FILL)
             total_item.setData(month_total, Qt.ItemDataRole.UserRole)
             row_items.append(total_item)
 
             combined_item = QStandardItem(f"{combined_total:.2f}")
-            combined_item.setBackground(QBrush(QColor(220, 220, 220)))
+            set_readable_cell_fill(combined_item, _REPORT_COMBINED_FILL, band_index=1)
             combined_item.setData(combined_total, Qt.ItemDataRole.UserRole)
             row_items.append(combined_item)
 
             for idx, (category_id, _name, _icon) in enumerate(expense_categories):
                 amount = by_category.get(category_id, 0.0)
                 item = QStandardItem(f"{amount:.2f}")
-                item.setBackground(QBrush(category_colors[idx]))
+                set_readable_cell_fill(item, category_colors[idx], band_index=idx % 2)
                 item.setData(amount, Qt.ItemDataRole.UserRole)
                 row_items.append(item)
 

@@ -70,6 +70,7 @@ from harrix_swiss_knife.actions.files.tree_view_folder import OnTreeViewFolder
 from harrix_swiss_knife.actions.files.tree_view_folder_ignore_hidden_folders import (
     OnTreeViewFolderIgnoreHiddenFolders,
 )
+from harrix_swiss_knife.actions.images.ask_screenshot_with_ai import OnAskScreenshotWithAI
 from harrix_swiss_knife.actions.images.clear_images import OnClearImages
 from harrix_swiss_knife.actions.images.open_images import OnOpenImages
 from harrix_swiss_knife.actions.images.open_optimized_images import OnOpenOptimizedImages
@@ -194,6 +195,7 @@ def get_menu_structure() -> list[Any]:
             "🖼️",
             [
                 OnOpenPhotosInViewer,
+                OnAskScreenshotWithAI,
                 OnRecognizeTextWithOcr,
                 OnRecognizeTextWithAI,
                 OnRecognizeTableWithAI,

@@ -675,6 +675,21 @@ class WorkoutsWidget(QWidget):
                 continue
         self.label_totals.setText(f"Estimated: {total_kcal:.0f} kcal")
 
+    def _refresh_list_duration_label(self, duration_min: int) -> None:
+        workout_id = self._current_workout_id
+        if workout_id is None:
+            return
+        name = self.label_title.text()
+        for row in range(self._list_model.rowCount()):
+            item = self._list_model.item(row)
+            if item is not None and item.data(Qt.ItemDataRole.UserRole) == workout_id:
+                item.setText(f"{name} (~{duration_min} min)")
+                return
+
+    def _refresh_row_highlights(self) -> None:
+        for row in range(self.table_items.rowCount()):
+            self._apply_row_background(row)
+
     def _refresh_theme(self) -> None:
         """Paint panes / list / labels for the current Fluent theme."""
         palette = palette_for(self)
@@ -705,24 +720,6 @@ class WorkoutsWidget(QWidget):
         style_fluent_item_view(self.list_workouts)
         self._apply_image_column_metrics()
         self._refresh_row_highlights()
-
-    def _row_height(self) -> int:
-        return self._icon_size + _ROW_PAD
-
-    def _refresh_list_duration_label(self, duration_min: int) -> None:
-        workout_id = self._current_workout_id
-        if workout_id is None:
-            return
-        name = self.label_title.text()
-        for row in range(self._list_model.rowCount()):
-            item = self._list_model.item(row)
-            if item is not None and item.data(Qt.ItemDataRole.UserRole) == workout_id:
-                item.setText(f"{name} (~{duration_min} min)")
-                return
-
-    def _refresh_row_highlights(self) -> None:
-        for row in range(self.table_items.rowCount()):
-            self._apply_row_background(row)
 
     def _reload_list(self, *, keep_selection: bool) -> None:
         selected_id = self._current_workout_id if keep_selection else None
@@ -775,6 +772,9 @@ class WorkoutsWidget(QWidget):
             message_box.warning(self, "Error", "Select a workout first")
             return
         self.add_exercise_requested.emit(self._current_workout_id)
+
+    def _row_height(self) -> int:
+        return self._icon_size + _ROW_PAD
 
     def _selected_exercise_names(self) -> list[str]:
         names: list[str] = []

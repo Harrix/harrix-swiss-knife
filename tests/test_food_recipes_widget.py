@@ -40,7 +40,7 @@ def test_recipes_dialog_embeds_widget(qapp: QApplication, tmp_path: Path) -> Non
     assert dialog.windowTitle() == "Recipes"
     assert isinstance(dialog.recipes_widget, RecipesWidget)
     assert bool(dialog.property("hskOverlayCaption"))
-    assert dialog.recipes_widget._controls_panel.frameShape().name == "NoFrame"  # noqa: SLF001
+    assert dialog.recipes_widget._controls_panel.frameShape().name == "NoFrame"
     dialog.close()
     db.close()
 
@@ -80,7 +80,7 @@ def test_recipes_widget_controls_not_white_in_dark(qapp: QApplication) -> None:
     enable_fluent_theme(host)
     try:
         widget = RecipesWidget(host)
-        sheet = widget._controls_panel.styleSheet().casefold()  # noqa: SLF001
+        sheet = widget._controls_panel.styleSheet().casefold()
         assert "background-color: white" not in sheet
         assert "#ffffff" not in sheet
         assert "color:" in widget.list_recipes.styleSheet().casefold()

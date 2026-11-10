@@ -1,5 +1,6 @@
 """Image optimization and management actions."""
 
+from harrix_swiss_knife.actions.images.ask_screenshot_with_ai import OnAskScreenshotWithAI
 from harrix_swiss_knife.actions.images.clear_images import OnClearImages
 from harrix_swiss_knife.actions.images.open_images import OnOpenImages
 from harrix_swiss_knife.actions.images.open_optimized_images import OnOpenOptimizedImages
@@ -21,6 +22,7 @@ from harrix_swiss_knife.actions.images.screenshot_region_keep_windows import OnS
 from harrix_swiss_knife.actions.images.screenshot_region_translate import OnScreenshotRegionTranslate
 
 __all__ = [
+    "OnAskScreenshotWithAI",
     "OnClearImages",
     "OnOpenImages",
     "OnOpenOptimizedImages",

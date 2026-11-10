@@ -211,30 +211,6 @@ def warning(parent: QWidget | None, title: str, text: str) -> QMessageBox.Standa
     return _exec_box(box)
 
 
-def _exec_box(box: QMessageBox) -> QMessageBox.StandardButton:
-    """Run `box` until the user clicks a standard button."""
-    # Prefer WindowModal so sibling apps in the same process stay interactive.
-    qt_modality.set_owner_window_modal(box)
-    result_code = box.exec()
-    clicked = box.clickedButton()
-    if clicked is None or result_code == QMessageBox.DialogCode.Rejected:
-        return QMessageBox.StandardButton.Cancel
-    sb = box.standardButton(clicked)
-    return QMessageBox.StandardButton(sb)
-
-
-def _style_fluent_box(box: QMessageBox) -> None:
-    """Apply Fluent button chrome and readable rich-text link colors."""
-    palette = palette_for(box)
-    box.setPalette(to_qpalette(palette, box.palette()))
-    _apply_fluent_link_colors(box, palette)
-    primary = accent_button_qss(palette)
-    standard = push_button_qss(palette)
-    for button in box.buttons():
-        role = box.buttonRole(button)
-        button.setStyleSheet(primary if role in _PRIMARY_ROLES else standard)
-
-
 def _apply_fluent_link_colors(box: QMessageBox, palette: FluentPalette) -> None:
     """Paint `<a href>` via palette + inline HTML color (QSS cannot style rich text)."""
     link = mix(palette.window_bg, palette.accent_text)
@@ -266,3 +242,27 @@ def _apply_fluent_link_colors(box: QMessageBox, palette: FluentPalette) -> None:
         if colored != raw:
             label.setTextFormat(Qt.TextFormat.RichText)
             label.setText(colored)
+
+
+def _exec_box(box: QMessageBox) -> QMessageBox.StandardButton:
+    """Run `box` until the user clicks a standard button."""
+    # Prefer WindowModal so sibling apps in the same process stay interactive.
+    qt_modality.set_owner_window_modal(box)
+    result_code = box.exec()
+    clicked = box.clickedButton()
+    if clicked is None or result_code == QMessageBox.DialogCode.Rejected:
+        return QMessageBox.StandardButton.Cancel
+    sb = box.standardButton(clicked)
+    return QMessageBox.StandardButton(sb)
+
+
+def _style_fluent_box(box: QMessageBox) -> None:
+    """Apply Fluent button chrome and readable rich-text link colors."""
+    palette = palette_for(box)
+    box.setPalette(to_qpalette(palette, box.palette()))
+    _apply_fluent_link_colors(box, palette)
+    primary = accent_button_qss(palette)
+    standard = push_button_qss(palette)
+    for button in box.buttons():
+        role = box.buttonRole(button)
+        button.setStyleSheet(primary if role in _PRIMARY_ROLES else standard)

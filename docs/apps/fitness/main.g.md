@@ -1122,14 +1122,7 @@ class MainWindow(
                     textcoords="offset points",
                     xytext=(0, 10),
                     ha="center",
-                    fontsize=9,
-                    alpha=0.8,
-                    bbox={
-                        "boxstyle": "round,pad=0.2",
-                        "facecolor": chart_label_face(),
-                        "edgecolor": "none",
-                        "alpha": 0.7,
-                    },
+                    **chart_annotation_style(),
                 )
 
         # Plot current month last to appear on top
@@ -1165,14 +1158,7 @@ class MainWindow(
                     textcoords="offset points",
                     xytext=(0, 10),
                     ha="center",
-                    fontsize=9,
-                    alpha=0.8,
-                    bbox={
-                        "boxstyle": "round,pad=0.2",
-                        "facecolor": chart_label_face(),
-                        "edgecolor": "none",
-                        "alpha": 0.7,
-                    },
+                    **chart_annotation_style(),
                 )
 
         # Customize plot
@@ -1408,14 +1394,7 @@ class MainWindow(
                         textcoords="offset points",
                         xytext=(0, 10),
                         ha="center",
-                        fontsize=9,
-                        alpha=0.8,
-                        bbox={
-                            "boxstyle": "round,pad=0.2",
-                            "facecolor": chart_label_face(),
-                            "edgecolor": "none",
-                            "alpha": 0.7,
-                        },
+                        **chart_annotation_style(),
                     )
 
         # Now plot the current year last (so it appears on top)
@@ -1454,14 +1433,7 @@ class MainWindow(
                     textcoords="offset points",
                     xytext=(0, 10),
                     ha="center",
-                    fontsize=9,
-                    alpha=0.8,
-                    bbox={
-                        "boxstyle": "round,pad=0.2",
-                        "facecolor": chart_label_face(),
-                        "edgecolor": "none",
-                        "alpha": 0.7,
-                    },
+                    **chart_annotation_style(),
                 )
 
         # Customize plot
@@ -2062,7 +2034,7 @@ class MainWindow(
                             int(base_color.red() * 0.85), int(base_color.green() * 0.85), int(base_color.blue() * 0.85)
                         )
 
-                    item.setBackground(QBrush(final_color))
+                    set_readable_cell_fill(item, final_color, band_index=0 if is_light_group else 1)
 
                     # For "TODAY" or "YESTERDAY" entries, make text bold
                     if any(marker in str(value) for marker in ("TODAY", "YESTERDAY", "LAST 30 DAYS", "LAST 365 DAYS")):
@@ -2105,10 +2077,9 @@ class MainWindow(
                 type_item = QStandardItem(type_name)
 
                 if is_light_for_span:
-                    exercise_item.setBackground(QBrush(base_column_colors[0]))  # Light Exercise column color
-                    type_item.setBackground(QBrush(base_column_colors[1]))  # Light Type column color
+                    set_readable_cell_fill(exercise_item, base_column_colors[0], band_index=0)
+                    set_readable_cell_fill(type_item, base_column_colors[1], band_index=0)
                 else:
-                    # Dark versions
                     dark_exercise_color = QColor(
                         int(base_column_colors[0].red() * 0.85),
                         int(base_column_colors[0].green() * 0.85),
@@ -2119,8 +2090,8 @@ class MainWindow(
                         int(base_column_colors[1].green() * 0.85),
                         int(base_column_colors[1].blue() * 0.85),
                     )
-                    exercise_item.setBackground(QBrush(dark_exercise_color))
-                    type_item.setBackground(QBrush(dark_type_color))
+                    set_readable_cell_fill(exercise_item, dark_exercise_color, band_index=1)
+                    set_readable_cell_fill(type_item, dark_type_color, band_index=1)
 
                 model.setItem(start_row, 0, exercise_item)
                 model.setItem(start_row, 1, type_item)
@@ -2383,13 +2354,13 @@ class MainWindow(
 
                     # Apply color based on priority
                     if color_priority == color_priority_green:  # Green - all goals achieved
-                        item.setBackground(QBrush(QColor(200, 255, 200)))  # Light green background
+                        set_readable_cell_fill(item, QColor(200, 255, 200))
                     elif color_priority == color_priority_orange:  # Orange - no records in current and previous month
-                        item.setBackground(QBrush(QColor(255, 255, 150)))  # Light yellow background
+                        set_readable_cell_fill(item, QColor(255, 255, 150))
                     elif color_priority == color_priority_yellow:  # Yellow - incomplete goals but has recent records
-                        item.setBackground(QBrush(QColor(255, 200, 150)))  # Light orange background
+                        set_readable_cell_fill(item, QColor(255, 200, 150))
                     elif color_priority == color_priority_dark_red:  # Dark red - no data or error
-                        item.setBackground(QBrush(QColor(255, 150, 150)))  # Dark red background
+                        set_readable_cell_fill(item, QColor(255, 150, 150))
 
                     items.append(item)
                 model.appendRow(items)
@@ -2468,7 +2439,7 @@ class MainWindow(
 
             # Calculate days ago for each exercise
             today = datetime.now(UTC).astimezone().date()
-            table_data = []
+            table_data: list[tuple[str, str, str, QColor]] = []
 
             for exercise_name, last_date_str in exercise_dates:
                 try:
@@ -2498,7 +2469,7 @@ class MainWindow(
                         row_color = QColor(255, 192, 203)  # Light pink for longer periods
 
                     table_data.append(
-                        [
+                        (
                             format_favorite_exercise_label(
                                 exercise_name,
                                 favorite=False,
@@ -2507,7 +2478,7 @@ class MainWindow(
                             formatted_date,
                             days_display,
                             row_color,
-                        ]
+                        )
                     )
 
                 except ValueError:
@@ -2523,14 +2494,13 @@ class MainWindow(
 
             for row_data in table_data:
                 items = []
-                row_color = row_data[3]  # Get the color from the last element
+                row_color = row_data[3]
 
                 # Create items for display columns only (first 3 elements)
-                for col_idx, value in enumerate(row_data[:3]):  # Only first 3 elements (exclude color)
+                for col_idx, value in enumerate(row_data[:3]):
                     item = QStandardItem(str(value))
 
-                    # Set background color for the item
-                    item.setBackground(QBrush(row_color))
+                    set_readable_cell_fill(item, row_color)
 
                     # Make "Today" entries bold
                     id_col_date = 2
@@ -2622,6 +2592,8 @@ class MainWindow(
             return
         if widget is self.tab_2:
             self._ensure_exercises_catalog_loaded()
+            apply_exercises_splitter_sizes(self)
+            QTimer.singleShot(0, lambda: apply_exercises_splitter_sizes(self))
             return
         if widget is self.tab_charts:  # Exercise Chart tab
             self.update_chart_comboboxes()
@@ -3695,14 +3667,7 @@ class MainWindow(
 
         # Set text
         self.label_chart_info.setText(recommendation_text)
-        self.label_chart_info.setStyleSheet(f"""
-            margin: 5px 0px;
-            padding: 10px;
-            background-color: {HAIRLINE};
-            border: 1px solid {SEPARATOR};
-            border-radius: 5px;
-            line-height: 1.2;
-        """)
+        self.label_chart_info.setStyleSheet(chart_info_panel_qss())
 
     def _add_catalog_exercise_to_workout(self, workout_id: int, exercise_name: str) -> bool:
         """Append one catalog exercise to `workout_id` using last type and value."""
@@ -3906,14 +3871,7 @@ class MainWindow(
 
         # Set text
         self.label_chart_info.setText(recommendation_text)
-        self.label_chart_info.setStyleSheet(f"""
-            margin: 5px 0px;
-            padding: 10px;
-            background-color: {HAIRLINE};
-            border: 1px solid {SEPARATOR};
-            border-radius: 5px;
-            line-height: 1.2;
-        """)
+        self.label_chart_info.setStyleSheet(chart_info_panel_qss())
 
     def _add_exercise_recommendations_to_label_for_standard_chart(
         self, exercise: str, exercise_type: str | None, exercise_unit: str
@@ -4128,14 +4086,7 @@ class MainWindow(
 
         # Set text
         self.label_chart_info.setText(recommendation_text)
-        self.label_chart_info.setStyleSheet(f"""
-            margin: 5px 0px;
-            padding: 10px;
-            background-color: {HAIRLINE};
-            border: 1px solid {SEPARATOR};
-            border-radius: 5px;
-            line-height: 1.2;
-        """)
+        self.label_chart_info.setStyleSheet(chart_info_panel_qss())
 
     def _add_sets_recommendations_to_label(self) -> None:
         """Add sets recommendations to label_chart_info.
@@ -4272,14 +4223,7 @@ class MainWindow(
 
         # Set text
         self.label_chart_info.setText(recommendation_text)
-        self.label_chart_info.setStyleSheet(f"""
-            margin: 5px 0px;
-            padding: 10px;
-            background-color: {HAIRLINE};
-            border: 1px solid {SEPARATOR};
-            border-radius: 5px;
-            line-height: 1.2;
-        """)
+        self.label_chart_info.setStyleSheet(chart_info_panel_qss())
 
     def _adjust_process_table_columns(self) -> None:
         """Size process columns so they fill the visible table viewport."""
@@ -7985,14 +7929,7 @@ class MainWindow(
             text = f"No data for the last {months} months." if months > 0 else "No data for the selected period."
 
         self.label_chart_info.setText(text)
-        self.label_chart_info.setStyleSheet(f"""
-            margin: 5px 0px;
-            padding: 10px;
-            background-color: {HAIRLINE};
-            border: 1px solid {SEPARATOR};
-            border-radius: 5px;
-            line-height: 1.2;
-        """)
+        self.label_chart_info.setStyleSheet(chart_info_panel_qss())
 
     def _setup_exercise_media_widgets(self) -> None:
         """Install drop handlers so media can be assigned from the exercise tables."""
@@ -10415,14 +10352,7 @@ def on_compare_last_months(self) -> None:
                     textcoords="offset points",
                     xytext=(0, 10),
                     ha="center",
-                    fontsize=9,
-                    alpha=0.8,
-                    bbox={
-                        "boxstyle": "round,pad=0.2",
-                        "facecolor": chart_label_face(),
-                        "edgecolor": "none",
-                        "alpha": 0.7,
-                    },
+                    **chart_annotation_style(),
                 )
 
         # Plot current month last to appear on top
@@ -10458,14 +10388,7 @@ def on_compare_last_months(self) -> None:
                     textcoords="offset points",
                     xytext=(0, 10),
                     ha="center",
-                    fontsize=9,
-                    alpha=0.8,
-                    bbox={
-                        "boxstyle": "round,pad=0.2",
-                        "facecolor": chart_label_face(),
-                        "edgecolor": "none",
-                        "alpha": 0.7,
-                    },
+                    **chart_annotation_style(),
                 )
 
         # Customize plot
@@ -10712,14 +10635,7 @@ def on_compare_same_months(self) -> None:
                         textcoords="offset points",
                         xytext=(0, 10),
                         ha="center",
-                        fontsize=9,
-                        alpha=0.8,
-                        bbox={
-                            "boxstyle": "round,pad=0.2",
-                            "facecolor": chart_label_face(),
-                            "edgecolor": "none",
-                            "alpha": 0.7,
-                        },
+                        **chart_annotation_style(),
                     )
 
         # Now plot the current year last (so it appears on top)
@@ -10758,14 +10674,7 @@ def on_compare_same_months(self) -> None:
                     textcoords="offset points",
                     xytext=(0, 10),
                     ha="center",
-                    fontsize=9,
-                    alpha=0.8,
-                    bbox={
-                        "boxstyle": "round,pad=0.2",
-                        "facecolor": chart_label_face(),
-                        "edgecolor": "none",
-                        "alpha": 0.7,
-                    },
+                    **chart_annotation_style(),
                 )
 
         # Customize plot
@@ -11513,7 +11422,7 @@ def on_refresh_statistics(self) -> None:
                             int(base_color.red() * 0.85), int(base_color.green() * 0.85), int(base_color.blue() * 0.85)
                         )
 
-                    item.setBackground(QBrush(final_color))
+                    set_readable_cell_fill(item, final_color, band_index=0 if is_light_group else 1)
 
                     # For "TODAY" or "YESTERDAY" entries, make text bold
                     if any(marker in str(value) for marker in ("TODAY", "YESTERDAY", "LAST 30 DAYS", "LAST 365 DAYS")):
@@ -11556,10 +11465,9 @@ def on_refresh_statistics(self) -> None:
                 type_item = QStandardItem(type_name)
 
                 if is_light_for_span:
-                    exercise_item.setBackground(QBrush(base_column_colors[0]))  # Light Exercise column color
-                    type_item.setBackground(QBrush(base_column_colors[1]))  # Light Type column color
+                    set_readable_cell_fill(exercise_item, base_column_colors[0], band_index=0)
+                    set_readable_cell_fill(type_item, base_column_colors[1], band_index=0)
                 else:
-                    # Dark versions
                     dark_exercise_color = QColor(
                         int(base_column_colors[0].red() * 0.85),
                         int(base_column_colors[0].green() * 0.85),
@@ -11570,8 +11478,8 @@ def on_refresh_statistics(self) -> None:
                         int(base_column_colors[1].green() * 0.85),
                         int(base_column_colors[1].blue() * 0.85),
                     )
-                    exercise_item.setBackground(QBrush(dark_exercise_color))
-                    type_item.setBackground(QBrush(dark_type_color))
+                    set_readable_cell_fill(exercise_item, dark_exercise_color, band_index=1)
+                    set_readable_cell_fill(type_item, dark_type_color, band_index=1)
 
                 model.setItem(start_row, 0, exercise_item)
                 model.setItem(start_row, 1, type_item)
@@ -11860,13 +11768,13 @@ def on_show_exercise_goal_recommendations(self) -> None:
 
                     # Apply color based on priority
                     if color_priority == color_priority_green:  # Green - all goals achieved
-                        item.setBackground(QBrush(QColor(200, 255, 200)))  # Light green background
+                        set_readable_cell_fill(item, QColor(200, 255, 200))
                     elif color_priority == color_priority_orange:  # Orange - no records in current and previous month
-                        item.setBackground(QBrush(QColor(255, 255, 150)))  # Light yellow background
+                        set_readable_cell_fill(item, QColor(255, 255, 150))
                     elif color_priority == color_priority_yellow:  # Yellow - incomplete goals but has recent records
-                        item.setBackground(QBrush(QColor(255, 200, 150)))  # Light orange background
+                        set_readable_cell_fill(item, QColor(255, 200, 150))
                     elif color_priority == color_priority_dark_red:  # Dark red - no data or error
-                        item.setBackground(QBrush(QColor(255, 150, 150)))  # Dark red background
+                        set_readable_cell_fill(item, QColor(255, 150, 150))
 
                     items.append(item)
                 model.appendRow(items)
@@ -11958,7 +11866,7 @@ def on_show_last_exercises(self) -> None:
 
             # Calculate days ago for each exercise
             today = datetime.now(UTC).astimezone().date()
-            table_data = []
+            table_data: list[tuple[str, str, str, QColor]] = []
 
             for exercise_name, last_date_str in exercise_dates:
                 try:
@@ -11988,7 +11896,7 @@ def on_show_last_exercises(self) -> None:
                         row_color = QColor(255, 192, 203)  # Light pink for longer periods
 
                     table_data.append(
-                        [
+                        (
                             format_favorite_exercise_label(
                                 exercise_name,
                                 favorite=False,
@@ -11997,7 +11905,7 @@ def on_show_last_exercises(self) -> None:
                             formatted_date,
                             days_display,
                             row_color,
-                        ]
+                        )
                     )
 
                 except ValueError:
@@ -12013,14 +11921,13 @@ def on_show_last_exercises(self) -> None:
 
             for row_data in table_data:
                 items = []
-                row_color = row_data[3]  # Get the color from the last element
+                row_color = row_data[3]
 
                 # Create items for display columns only (first 3 elements)
-                for col_idx, value in enumerate(row_data[:3]):  # Only first 3 elements (exclude color)
+                for col_idx, value in enumerate(row_data[:3]):
                     item = QStandardItem(str(value))
 
-                    # Set background color for the item
-                    item.setBackground(QBrush(row_color))
+                    set_readable_cell_fill(item, row_color)
 
                     # Make "Today" entries bold
                     id_col_date = 2
@@ -12163,6 +12070,8 @@ def on_tab_changed(self, index: int) -> None:
             return
         if widget is self.tab_2:
             self._ensure_exercises_catalog_loaded()
+            apply_exercises_splitter_sizes(self)
+            QTimer.singleShot(0, lambda: apply_exercises_splitter_sizes(self))
             return
         if widget is self.tab_charts:  # Exercise Chart tab
             self.update_chart_comboboxes()

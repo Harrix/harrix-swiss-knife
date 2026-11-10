@@ -9,8 +9,8 @@ from PySide6.QtWidgets import QAbstractButton, QApplication, QDialogButtonBox, Q
 
 from harrix_swiss_knife import qt_lucide_icon as lucide_mod
 from harrix_swiss_knife.apps.common.ui_chrome import button_primary_qss
-from harrix_swiss_knife.fluent.widgets.input_base import FluentLineEdit
 from harrix_swiss_knife.fluent.theme import FluentTheme, ThemeMode
+from harrix_swiss_knife.fluent.widgets.input_base import FluentLineEdit
 from harrix_swiss_knife.qt_lucide_icon import (
     ACCEPT_BUTTON_STYLE,
     AI_BUTTON_ICON,

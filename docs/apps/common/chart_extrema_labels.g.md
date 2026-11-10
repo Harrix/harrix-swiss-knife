@@ -182,10 +182,8 @@ def annotate_chart_extrema_labels(
             textcoords="offset points",
             xytext=label_offset,
             ha="center",
-            fontsize=cfg.label_fontsize,
-            alpha=0.8,
-            bbox={"boxstyle": "round,pad=0.2", "facecolor": chart_label_face(), "edgecolor": "none", "alpha": 0.7},
             arrowprops=arrowprops,
+            **chart_annotation_style(fontsize=cfg.label_fontsize),
         )
         placed_boxes.append(
             _measure_label_bbox(

@@ -2650,7 +2650,7 @@ class MainWindow(
 
             # Calculate days ago for each exercise
             today = datetime.now(UTC).astimezone().date()
-            table_data = []
+            table_data: list[tuple[str, str, str, QColor]] = []
 
             for exercise_name, last_date_str in exercise_dates:
                 try:
@@ -2680,7 +2680,7 @@ class MainWindow(
                         row_color = QColor(255, 192, 203)  # Light pink for longer periods
 
                     table_data.append(
-                        [
+                        (
                             format_favorite_exercise_label(
                                 exercise_name,
                                 favorite=False,
@@ -2689,7 +2689,7 @@ class MainWindow(
                             formatted_date,
                             days_display,
                             row_color,
-                        ]
+                        )
                     )
 
                 except ValueError:
@@ -2705,10 +2705,10 @@ class MainWindow(
 
             for row_data in table_data:
                 items = []
-                row_color = row_data[3]  # Get the color from the last element
+                row_color = row_data[3]
 
                 # Create items for display columns only (first 3 elements)
-                for col_idx, value in enumerate(row_data[:3]):  # Only first 3 elements (exclude color)
+                for col_idx, value in enumerate(row_data[:3]):
                     item = QStandardItem(str(value))
 
                     set_readable_cell_fill(item, row_color)

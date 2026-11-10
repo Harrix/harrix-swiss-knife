@@ -46,6 +46,8 @@ class RecipesWidget(QWidget):
         self._completer_proxy.setSourceModel(self._completer_source)
         self._build_ui()
         self._setup_ingredient_completer()
+        bind_theme(self, self._refresh_theme)
+        self._refresh_theme()
 
     def refresh(self) -> None:
         """Reload recipe list and ingredient-name autocomplete from the database."""
@@ -108,7 +110,10 @@ class RecipesWidget(QWidget):
         self.line_ingredient_name.setFocus()
 
     def _apply_ingredient_row_background(self, row: int) -> None:
-        color = _ROW_COLOR_ODD if row % 2 else _ROW_COLOR_EVEN
+        color = readable_cell_fill(
+            _ROW_COLOR_ODD if row % 2 else _ROW_COLOR_EVEN,
+            band_index=row % 2,
+        )
         brush = QBrush(color)
         for column in range(_INGREDIENT_COLUMN_COUNT):
             item = self.table_ingredients.item(row, column)
@@ -144,9 +149,10 @@ class RecipesWidget(QWidget):
         totals_font.setBold(True)
 
         controls = QFrame()
+        controls.setObjectName("recipesControlsPanel")
         controls.setMinimumWidth(_CONTROLS_MIN_WIDTH)
-        controls.setFrameShape(QFrame.Shape.StyledPanel)
-        controls.setFrameShadow(QFrame.Shadow.Raised)
+        controls.setFrameShape(QFrame.Shape.NoFrame)
+        self._controls_panel = controls
         controls_layout = QVBoxLayout(controls)
 
         group_add = QGroupBox("Add ingredient")
@@ -159,20 +165,20 @@ class RecipesWidget(QWidget):
         amount_row = QHBoxLayout()
         self.spin_ingredient_weight = QSpinBox()
         self.spin_ingredient_weight.setFont(standard_bold_font)
-        self.spin_ingredient_weight.setStyleSheet(_SPINBOX_STYLE)
         self.spin_ingredient_weight.setAlignment(Qt.AlignmentFlag.AlignRight)
         self.spin_ingredient_weight.setRange(1, 100_000)
         self.spin_ingredient_weight.setValue(100)
         self.spin_ingredient_calories = QDoubleSpinBox()
         self.spin_ingredient_calories.setFont(standard_bold_font)
-        self.spin_ingredient_calories.setStyleSheet(_DOUBLE_SPINBOX_STYLE)
         self.spin_ingredient_calories.setAlignment(Qt.AlignmentFlag.AlignRight)
         self.spin_ingredient_calories.setRange(0, 100_000)
         self.spin_ingredient_calories.setDecimals(1)
+        self.label_weight_unit = QLabel("g")
+        self.label_kcal_unit = QLabel("kcal")
         amount_row.addWidget(self.spin_ingredient_weight)
-        amount_row.addWidget(QLabel("g"))
+        amount_row.addWidget(self.label_weight_unit)
         amount_row.addWidget(self.spin_ingredient_calories)
-        amount_row.addWidget(QLabel("kcal"))
+        amount_row.addWidget(self.label_kcal_unit)
         self.check_ingredient_drink = QCheckBox("Drink")
         amount_row.addWidget(self.check_ingredient_drink)
         add_layout.addLayout(amount_row)
@@ -203,11 +209,14 @@ class RecipesWidget(QWidget):
         controls_layout.addStretch()
 
         middle = QWidget()
+        middle.setObjectName("recipesListPanel")
+        self._list_panel = middle
         middle_layout = QVBoxLayout(middle)
         middle_layout.setContentsMargins(8, 8, 8, 8)
-        middle_layout.addWidget(QLabel("Recipes"))
+        self.label_recipes_heading = QLabel("Recipes")
+        middle_layout.addWidget(self.label_recipes_heading)
         self.list_recipes = QListView()
-        self.list_recipes.setStyleSheet(_LIST_STYLE)
+        self.list_recipes.setObjectName("listView_recipes")
         self._recipes_model = QStandardItemModel(self.list_recipes)
         self.list_recipes.setModel(self._recipes_model)
         self.list_recipes.clicked.connect(self._on_recipe_clicked)
@@ -224,6 +233,8 @@ class RecipesWidget(QWidget):
         splitter.addWidget(controls)
 
         right = QWidget()
+        right.setObjectName("recipesEditorPanel")
+        self._editor_panel = right
         right_layout = QVBoxLayout(right)
         right_layout.setContentsMargins(8, 8, 8, 8)
 
@@ -427,6 +438,28 @@ class RecipesWidget(QWidget):
             f"{nutrition.total_weight:.0f} g\n{nutrition.total_calories:.1f} kcal\n{per_100}"
         )
 
+    def _refresh_theme(self) -> None:
+        """Paint panes / list for the current Fluent theme (no light StyledPanel)."""
+        palette = palette_for(self)
+        panel = soft_panel_css(self)
+        text = css(mix(palette.window_bg, palette.text_primary))
+        muted = css(mix(palette.window_bg, palette.text_secondary))
+        self._list_panel.setStyleSheet(
+            f"QWidget#recipesListPanel {{ background: {panel}; border: none; color: {text}; }}",
+        )
+        self._controls_panel.setStyleSheet(
+            f"QFrame#recipesControlsPanel {{ background: {panel}; border: none; color: {text}; }}",
+        )
+        self._editor_panel.setStyleSheet(
+            f"QWidget#recipesEditorPanel {{ background: transparent; border: none; color: {text}; }}",
+        )
+        self.label_recipes_heading.setStyleSheet(f"color: {text}; background: transparent;")
+        for label in (self.label_weight_unit, self.label_kcal_unit, self.label_recipe_totals):
+            label.setStyleSheet(f"color: {muted}; background: transparent;")
+        style_fluent_item_view(self.list_recipes)
+        for row in range(self.table_ingredients.rowCount()):
+            self._apply_ingredient_row_background(row)
+
     def _reload_recipe_list(self, *, keep_selection: bool) -> None:
         selected_id = self._current_recipe_id if keep_selection else None
         self._recipes_model.clear()
@@ -565,6 +598,8 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self._completer_proxy.setSourceModel(self._completer_source)
         self._build_ui()
         self._setup_ingredient_completer()
+        bind_theme(self, self._refresh_theme)
+        self._refresh_theme()
 ```
 
 </details>

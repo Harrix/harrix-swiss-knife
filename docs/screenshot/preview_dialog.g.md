@@ -170,6 +170,7 @@ class ScreenshotPreviewWindow(QMainWindow):
             "Choose a format, then pick where to save the screenshot.",
             self._save_as,
         )
+        self._add_ask_menu_button()
         self._add_recognize_menu_button()
         self._add_reduce_size_menu_button()
         self._add_footer_button(
@@ -367,6 +368,26 @@ class ScreenshotPreviewWindow(QMainWindow):
         """Reflow the top tool row when the window width changes."""
         super().resizeEvent(event)
         self._refit_tools_host()
+
+    def _add_ask_menu_button(self) -> None:
+        """Add a footer split button that sends the screenshot to AI for an answer."""
+        menu = FluentMenu("", self)
+        ask_action = menu.addAction(_ASK_BUTTON_LABEL)
+        ask_action.setIcon(
+            create_lucide_icon(_ASK_BUTTON_ICON, DEFAULT_LUCIDE_MENU_ICON_SIZE, color=AI_BUTTON_ICON_COLOR)
+        )
+        ask_action.triggered.connect(lambda _checked=False: self._run_ask_ai())
+        note_action = menu.addAction(_ASK_WITH_NOTE_LABEL)
+        note_action.setIcon(
+            create_lucide_icon("message-square-plus", DEFAULT_LUCIDE_MENU_ICON_SIZE, color=AI_BUTTON_ICON_COLOR)
+        )
+        note_action.triggered.connect(lambda _checked=False: self._run_ask_ai_with_note())
+        button = FluentSplitButton(_ASK_BUTTON_LABEL, self, icon=_ASK_BUTTON_ICON, menu=menu)
+        button.setToolTip("Send the screenshot to AI for an answer. Main: send now. Arrow: add a note first.")
+        button.clicked.connect(self._run_ask_ai)
+        button.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
+        self._buttons.addWidget(button)
+        self._action_buttons.append(button)
 
     def _add_footer_button(
         self,
@@ -842,6 +863,30 @@ class ScreenshotPreviewWindow(QMainWindow):
             return
         self._apply_pixel_resize(*target)
 
+    def _run_ask_ai(self, note: str = "") -> None:
+        path = self._save_temp_png()
+        if path is None:
+            return
+        self._close_current_tab()
+
+        def run() -> None:
+            from harrix_swiss_knife.actions.images.ask_screenshot_with_ai import (  # noqa: PLC0415
+                OnAskScreenshotWithAI,
+            )
+
+            OnAskScreenshotWithAI()(image_paths=[path], note=note)
+
+        QTimer.singleShot(0, run)
+
+    def _run_ask_ai_with_note(self) -> None:
+        note, accepted = QInputDialog.getMultiLineText(self, "Ask AI", "Note for the AI:")
+        if not accepted:
+            return
+        text = note.strip()
+        if not text:
+            return
+        self._run_ask_ai(note=text)
+
     def _run_markdown_with_ai(self) -> None:
         path = self._save_temp_png()
         if path is None:
@@ -926,18 +971,20 @@ class ScreenshotPreviewWindow(QMainWindow):
         tab = self._current_tab()
         if tab is None:
             return
-        suffix = _format_suffix(fmt)
         suggested = _suggested_save_path(tab, fmt)
-        file_filter = next(item[2] for item in _SAVE_FORMATS if item[0] == fmt)
-        path_str, _selected_filter = QFileDialog.getSaveFileName(
+        initial_filter = _filter_for_format(fmt)
+        path_str, selected_filter = QFileDialog.getSaveFileName(
             self,
             "Save screenshot",
             suggested,
-            file_filter,
+            _SAVE_FILE_FILTERS,
+            initial_filter,
         )
         if not path_str:
             return
+        fmt = _format_from_selected_filter(selected_filter, fmt)
         path = Path(path_str)
+        suffix = _format_suffix(fmt)
         if path.suffix.lower() not in _accepted_suffixes(fmt):
             path = path.with_suffix(suffix)
         try:
@@ -1283,6 +1330,7 @@ def __init__(self, parent: QWidget | None = None) -> None:
             "Choose a format, then pick where to save the screenshot.",
             self._save_as,
         )
+        self._add_ask_menu_button()
         self._add_recognize_menu_button()
         self._add_reduce_size_menu_button()
         self._add_footer_button(

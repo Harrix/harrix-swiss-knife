@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QPoint, Qt
-from PySide6.QtGui import QShowEvent
 from PySide6.QtWidgets import QDialog, QHBoxLayout, QVBoxLayout, QWidget
 
 from harrix_swiss_knife import qt_modality
@@ -15,6 +14,8 @@ from harrix_swiss_knife.qt_lucide_icon import CANCEL_BUTTON_ICON, make_lucide_pu
 from harrix_swiss_knife.win11_caption import OVERLAY_CAPTION_PROPERTY, install_win11_caption
 
 if TYPE_CHECKING:
+    from PySide6.QtGui import QShowEvent
+
     from harrix_swiss_knife.apps.food.database_manager import DatabaseManager
 
 _FALLBACK_SIZE = (1200, 720)

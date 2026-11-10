@@ -448,28 +448,6 @@ class RecipesWidget(QWidget):
         self.radio_use_weight.setChecked(True)
         self.spin_ingredient_calories.setValue(log_item.calories_per_100g or 0)
 
-    def _refresh_theme(self) -> None:
-        """Paint panes / list for the current Fluent theme (no light StyledPanel)."""
-        palette = palette_for(self)
-        panel = soft_panel_css(self)
-        text = css(mix(palette.window_bg, palette.text_primary))
-        muted = css(mix(palette.window_bg, palette.text_secondary))
-        self._list_panel.setStyleSheet(
-            f"QWidget#recipesListPanel {{ background: {panel}; border: none; color: {text}; }}",
-        )
-        self._controls_panel.setStyleSheet(
-            f"QFrame#recipesControlsPanel {{ background: {panel}; border: none; color: {text}; }}",
-        )
-        self._editor_panel.setStyleSheet(
-            f"QWidget#recipesEditorPanel {{ background: transparent; border: none; color: {text}; }}",
-        )
-        self.label_recipes_heading.setStyleSheet(f"color: {text}; background: transparent;")
-        for label in (self.label_weight_unit, self.label_kcal_unit, self.label_recipe_totals):
-            label.setStyleSheet(f"color: {muted}; background: transparent;")
-        style_fluent_item_view(self.list_recipes)
-        for row in range(self.table_ingredients.rowCount()):
-            self._apply_ingredient_row_background(row)
-
     def _recipe_id_and_name_from_index(self, index: QModelIndex) -> tuple[int, str] | None:
         if not index.isValid():
             return None
@@ -515,6 +493,28 @@ class RecipesWidget(QWidget):
         self.label_recipe_totals.setText(
             f"{nutrition.total_weight:.0f} g\n{nutrition.total_calories:.1f} kcal\n{per_100}"
         )
+
+    def _refresh_theme(self) -> None:
+        """Paint panes / list for the current Fluent theme (no light StyledPanel)."""
+        palette = palette_for(self)
+        panel = soft_panel_css(self)
+        text = css(mix(palette.window_bg, palette.text_primary))
+        muted = css(mix(palette.window_bg, palette.text_secondary))
+        self._list_panel.setStyleSheet(
+            f"QWidget#recipesListPanel {{ background: {panel}; border: none; color: {text}; }}",
+        )
+        self._controls_panel.setStyleSheet(
+            f"QFrame#recipesControlsPanel {{ background: {panel}; border: none; color: {text}; }}",
+        )
+        self._editor_panel.setStyleSheet(
+            f"QWidget#recipesEditorPanel {{ background: transparent; border: none; color: {text}; }}",
+        )
+        self.label_recipes_heading.setStyleSheet(f"color: {text}; background: transparent;")
+        for label in (self.label_weight_unit, self.label_kcal_unit, self.label_recipe_totals):
+            label.setStyleSheet(f"color: {muted}; background: transparent;")
+        style_fluent_item_view(self.list_recipes)
+        for row in range(self.table_ingredients.rowCount()):
+            self._apply_ingredient_row_background(row)
 
     def _reload_recipe_list(self, *, keep_selection: bool) -> None:
         selected_id = self._current_recipe_id if keep_selection else None

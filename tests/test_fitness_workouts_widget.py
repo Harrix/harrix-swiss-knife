@@ -109,7 +109,9 @@ def test_workouts_row_height_survives_fluent_chrome() -> None:
         assert host.table_items.rowHeight(0) >= 72
         assert host.table_items.verticalHeader().defaultSectionSize() >= 72
         assert "#ffffff" not in host._left_panel.styleSheet().casefold()
-        assert "transparent" in host.styleSheet().casefold() or "background:" in host._left_panel.styleSheet().casefold()
+        assert (
+            "transparent" in host.styleSheet().casefold() or "background:" in host._left_panel.styleSheet().casefold()
+        )
     finally:
         theme.set_mode(previous, persist=False)
         host.close()

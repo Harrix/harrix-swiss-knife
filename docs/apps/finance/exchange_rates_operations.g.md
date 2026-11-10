@@ -604,7 +604,8 @@ class ExchangeRatesOperations:
                     xy=(date_numeric[0], transformed_rates[0]),
                     xytext=(10, 10),
                     textcoords="offset points",
-                    bbox={"boxstyle": "round,pad=0.3", "facecolor": chart_label_face(), "alpha": 0.9},
+                    color=chart_ink(),
+                    bbox=chart_label_bbox(),
                     fontsize=10,
                 )
 
@@ -614,7 +615,8 @@ class ExchangeRatesOperations:
                     xy=(date_numeric[-1], transformed_rates[-1]),
                     xytext=(10, 10),
                     textcoords="offset points",
-                    bbox={"boxstyle": "round,pad=0.3", "facecolor": chart_label_face(), "alpha": 0.9},
+                    color=chart_ink(),
+                    bbox=chart_label_bbox(),
                     fontsize=10,
                 )
 
@@ -626,7 +628,7 @@ class ExchangeRatesOperations:
                         xy=(date_numeric[min_index], min_rate),
                         xytext=(10, -20),
                         textcoords="offset points",
-                        bbox={"boxstyle": "round,pad=0.3", "facecolor": chart_label_face(), "alpha": 0.9},
+                        bbox=chart_label_bbox(),
                         fontsize=10,
                         color="red",
                     )
@@ -639,7 +641,7 @@ class ExchangeRatesOperations:
                         xy=(date_numeric[max_index], max_rate),
                         xytext=(10, 20),
                         textcoords="offset points",
-                        bbox={"boxstyle": "round,pad=0.3", "facecolor": chart_label_face(), "alpha": 0.9},
+                        bbox=chart_label_bbox(),
                         fontsize=10,
                         color="green",
                     )

@@ -34,6 +34,13 @@ _EQUAL_MIN_RATIO = 0.35
 _EQUAL_MAX_RATIO = 0.65
 
 
+def apply_exercises_splitter_sizes(host: Any) -> None:
+    """Re-apply the Exercises 50/50 splitter after the tab is shown."""
+    apply = getattr(host, "_apply_fitness_exercises_splitter_sizes", None)
+    if callable(apply):
+        apply()
+
+
 def install_fitness_layout_chrome(host: Any) -> None:
     """Polish Charts / Exercises / Weight / Statistics secondary tabs."""
     _polish_all(host)
@@ -58,13 +65,6 @@ def persist_fitness_tabs_splitter_sizes(host: Any) -> None:
         sizes = splitter.sizes()
         if len(sizes) == _TWO_PANE and all(size > 0 for size in sizes):
             save_splitter_sizes(key, [int(size) for size in sizes], default)
-
-
-def apply_exercises_splitter_sizes(host: Any) -> None:
-    """Re-apply the Exercises 50/50 splitter after the tab is shown."""
-    apply = getattr(host, "_apply_fitness_exercises_splitter_sizes", None)
-    if callable(apply):
-        apply()
 
 
 def _caption_qss() -> str:

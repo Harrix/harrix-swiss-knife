@@ -14,6 +14,13 @@ from harrix_swiss_knife.integrations.bothub.image import (
     image_mime_from_suffix,
     qimage_bytes_and_mime,
 )
+from harrix_swiss_knife.integrations.bothub.image_ask import (
+    PROMPT_MISSING_MSG as IMAGE_ASK_PROMPT_MISSING_MSG,
+)
+from harrix_swiss_knife.integrations.bothub.image_ask import (
+    build_image_ask_prompt,
+    get_image_ask_prompt_template,
+)
 from harrix_swiss_knife.integrations.bothub.image_ocr import (
     PROMPT_MISSING_MSG as IMAGE_OCR_PROMPT_MISSING_MSG,
 )
@@ -72,6 +79,7 @@ from harrix_swiss_knife.integrations.bothub.worker import BothubChatWorker
 __all__ = [
     "API_KEY_MISSING_MSG",
     "CLIPBOARD_PROMPT_MISSING_MSG",
+    "IMAGE_ASK_PROMPT_MISSING_MSG",
     "IMAGE_OCR_PROMPT_MISSING_MSG",
     "IMAGE_OCR_TRANSLATE_PROMPT_MISSING_MSG",
     "PROMPT_MISSING_MSG",
@@ -80,6 +88,7 @@ __all__ = [
     "BothubRequestState",
     "audio_bytes_and_mime",
     "audio_format_from_suffix",
+    "build_image_ask_prompt",
     "build_image_ocr_prompt",
     "build_image_ocr_translate_prompt",
     "build_image_table_prompt",
@@ -93,6 +102,7 @@ __all__ = [
     "fix_text_sync",
     "get_active_provider",
     "get_connection_params",
+    "get_image_ask_prompt_template",
     "get_image_ocr_prompt_template",
     "get_image_ocr_translate_prompt_template",
     "get_image_table_model",

@@ -133,12 +133,6 @@ class CompleterPopupTooltipHelper(QObject):
         popup = getattr(self, "_popup", None)
         return popup is not None and isValid(popup)
 
-    def _on_popup_destroyed(self, *_args: object) -> None:
-        """Clear popup refs when the list view is deleted (helper stays on completer)."""
-        self._popup = None
-        self._viewport = None
-        self._hide_tooltip()
-
     def _is_text_elided(self, index: QModelIndex | QPersistentModelIndex) -> tuple[bool, str]:
         if not self._is_popup_alive() or not index.isValid():
             return False, ""
@@ -173,6 +167,12 @@ class CompleterPopupTooltipHelper(QObject):
         self._hover_index = QPersistentModelIndex(index)
         if self._show_timer is not None:
             self._show_timer.start()
+
+    def _on_popup_destroyed(self, *_args: object) -> None:
+        """Clear popup refs when the list view is deleted (helper stays on completer)."""
+        self._popup = None
+        self._viewport = None
+        self._hide_tooltip()
 
     def _on_viewport_mouse_move(self, pos: QPoint) -> None:
         if not self._is_popup_alive() or not self._hover_index.isValid():
