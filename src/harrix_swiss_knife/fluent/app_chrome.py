@@ -74,6 +74,7 @@ from harrix_swiss_knife.fluent.style import (
 from harrix_swiss_knife.fluent.theme import bind_theme, css, enable_fluent_theme, mix, palette_for, to_qpalette
 from harrix_swiss_knife.fluent.tokens import (
     CONTROL_HEIGHT,
+    DATE_EDIT_MIN_WIDTH,
     ICON_SIZE,
     RADIUS_CARD,
     RADIUS_CONTROL,
@@ -477,6 +478,9 @@ def _restyle_inputs(root: QWidget, palette: FluentPalette) -> None:
     for box in root.findChildren(QDateEdit):
         _set_sheet(box, date)
         _lock_control_height(box)
+        # Designer mins of 100px clip yyyy-MM-dd under the calendar chevron.
+        if box.minimumWidth() < DATE_EDIT_MIN_WIDTH:
+            box.setMinimumWidth(DATE_EDIT_MIN_WIDTH)
     plain = text_edit_qss(palette, "QPlainTextEdit")
     for edit in root.findChildren(QPlainTextEdit):
         _set_sheet(edit, plain)

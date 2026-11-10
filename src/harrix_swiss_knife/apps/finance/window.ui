@@ -534,7 +534,7 @@
                 <widget class="QDateEdit" name="dateEdit_filter_from">
                  <property name="minimumSize">
                   <size>
-                   <width>100</width>
+                   <width>124</width>
                    <height>0</height>
                   </size>
                  </property>
@@ -560,7 +560,7 @@
                 <widget class="QDateEdit" name="dateEdit_filter_to">
                  <property name="minimumSize">
                   <size>
-                   <width>100</width>
+                   <width>124</width>
                    <height>0</height>
                   </size>
                  </property>
