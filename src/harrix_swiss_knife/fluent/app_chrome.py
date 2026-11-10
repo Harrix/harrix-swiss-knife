@@ -93,7 +93,8 @@ CAPTION_TABS_PROPERTY = "_hskCaptionTabs"
 _PROP_BOUND = "_hskFluentAppChromeBound"
 _PROP_CANVAS = "_hskFluentCanvas"
 _MEDIA_PLATE_NAMES = frozenset({"label_exercise_avif", "label_exercise_avif_4", "label_exercise_avif_5"})
-_MEDIA_LIST_NAMES = frozenset({"listView_exercises"})
+# Preview labels stay on a white plate; catalog lists follow Fluent theme (not white).
+_MEDIA_LIST_NAMES: frozenset[str] = frozenset()
 _KEEP_LARGE_FONT: frozenset[str] = frozenset()
 # First solid fill in a button stylesheet maps to a Fluent role.
 # Text-only uses of these hexes (calendar links) must not match.

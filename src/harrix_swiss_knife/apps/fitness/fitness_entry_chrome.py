@@ -21,6 +21,7 @@ from harrix_swiss_knife.apps.fitness.fitness_ui_settings import (
     load_sets_splitter_sizes,
     save_sets_splitter_sizes,
 )
+from harrix_swiss_knife.fluent.app_chrome import style_fluent_item_view
 from harrix_swiss_knife.fluent.theme import bind_theme, css, mix, palette_for
 from harrix_swiss_knife.fluent.tokens import CONTROL_HEIGHT, ICON_SIZE, SPACE_S, SPACE_XS
 from harrix_swiss_knife.qt_lucide_icon import apply_lucide_button_icon
@@ -166,7 +167,8 @@ def _polish_exercise_list(host: Any) -> None:
     view.setSelectionRectVisible(False)
     view.setMouseTracking(True)
     view.setWordWrap(False)
-    view.setStyleSheet("")
+    # Do not clear the sheet: empty QSS re-polishes onto a white system Base.
+    style_fluent_item_view(view)
     label = getattr(host, "label_exercises_list", None)
     if isinstance(label, QLabel):
         label.setText("Exercise")

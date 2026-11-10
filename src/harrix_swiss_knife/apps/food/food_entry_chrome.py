@@ -21,6 +21,7 @@ from harrix_swiss_knife.apps.food.food_ui_settings import (
     load_food_splitter_sizes,
     save_food_splitter_sizes,
 )
+from harrix_swiss_knife.fluent.app_chrome import style_fluent_item_view
 from harrix_swiss_knife.fluent.theme import bind_theme, css, mix, palette_for
 from harrix_swiss_knife.fluent.tokens import CONTROL_HEIGHT, ICON_SIZE, SPACE_S, SPACE_XS
 from harrix_swiss_knife.qt_lucide_icon import apply_lucide_button_icon
@@ -269,7 +270,8 @@ def _polish_items_list(host: Any) -> None:
     view.setSelectionRectVisible(False)
     view.setMouseTracking(True)
     view.setWordWrap(False)
-    view.setStyleSheet("")
+    # Do not clear the sheet: empty QSS re-polishes onto a white system Base.
+    style_fluent_item_view(view)
     host.label_food_items.setText("Food item")
     host.label_food_items.setStyleSheet(f"{_field_caption_qss()} border: none; background: transparent;")
     font = QFont(host.label_food_items.font())
