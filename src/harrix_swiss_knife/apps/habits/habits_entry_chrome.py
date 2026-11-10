@@ -4,10 +4,13 @@ from __future__ import annotations
 
 from typing import Any
 
+from PySide6.QtWidgets import QCheckBox
+
 from harrix_swiss_knife.apps.common.tracker_layout_chrome import polish_left_field_labels, quiet_group_box
 from harrix_swiss_knife.apps.common.ui_chrome import button_cta_cyan_qss, button_idle_qss
-from harrix_swiss_knife.fluent.theme import bind_theme
+from harrix_swiss_knife.fluent.theme import bind_theme, css, mix, palette_for
 from harrix_swiss_knife.fluent.tokens import CONTROL_HEIGHT, SPACE_S, SPACE_XS
+from harrix_swiss_knife.qt_lucide_checkbox import apply_lucide_checkbox_style
 from harrix_swiss_knife.qt_lucide_icon import apply_lucide_button_icon
 
 
@@ -70,6 +73,16 @@ def _polish_form(host: Any) -> None:
         if button is not None:
             button.setStyleSheet(button_idle_qss())
             apply_lucide_button_icon(button, icon)
+
+    checkbox = getattr(host, "checkBox_habit_is_bool", None)
+    if isinstance(checkbox, QCheckBox):
+        apply_lucide_checkbox_style(checkbox)
+        palette = palette_for(host)
+        ink = css(mix(palette.window_bg, palette.text_primary))
+        checkbox.setStyleSheet(
+            f"QCheckBox {{ color: {ink}; spacing: {SPACE_S}px; background: transparent; }}"
+            f"QCheckBox:disabled {{ color: {css(mix(palette.window_bg, palette.text_disabled))}; }}",
+        )
 
     # Keep a little air under the commands block before the add form.
     if hasattr(host, "verticalLayout_habits_10"):

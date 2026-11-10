@@ -126,8 +126,8 @@ def _polish_all(host: Any) -> None:
         soft.append((host.frame_habits, "habitsEntryForm"))
     if hasattr(host, "layoutWidget"):
         soft.append((host.layoutWidget, "habitsChartsForm"))
-    if hasattr(host, "tableView_process_habits"):
-        content.append((host.tableView_process_habits, "habitsProcessPane"))
+    # Do not put tableView_process_habits in content_panes: setStyleSheet there
+    # wipes Fluent table/header chrome and leaves a white word-wrap header.
     if hasattr(host, "widget_charts_heatmap"):
         content.append((host.widget_charts_heatmap, "habitsChartsPane"))
 

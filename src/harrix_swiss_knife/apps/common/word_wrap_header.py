@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from PySide6.QtCore import QAbstractItemModel, QEvent, QRect, QSize, Qt
 from PySide6.QtGui import QColor, QFontMetrics, QMouseEvent, QPainter, QPaintEvent, QPalette, QPen
-from PySide6.QtWidgets import QHeaderView, QStyle, QStyleOptionHeader, QTableView, QWidget
+from PySide6.QtWidgets import QHeaderView, QStyleOptionHeader, QTableView, QWidget
 
 from harrix_swiss_knife.apps.common.ui_chrome import MUTED_TEXT
 from harrix_swiss_knife.fluent.theme import is_fluent_themed
@@ -81,26 +81,32 @@ class WordWrapHeaderView(QHeaderView):
         painter.end()
 
     def paintSection(self, painter: QPainter, rect: QRect, logical_index: int) -> None:  # noqa: N802
-        """Paint the section chrome, then draw the title with wrapping."""
+        """Paint the section from the header palette, then draw the wrapped title.
+
+        Custom painting must not call `CE_Header`: under Fluent window QSS that
+        control often fills white even when the header palette is dark.
+        """
         if not rect.isValid():
             return
 
         option = QStyleOptionHeader()
         self.initStyleOption(option)
         self.initStyleOptionForIndex(option, logical_index)
-        option.rect = rect
-        option.text = ""
-        style = self.style()
-        if style is not None:
-            style.drawControl(QStyle.ControlElement.CE_Header, option, painter, self)
-
-        text = self._section_text(logical_index)
-        if not text:
-            return
+        palette = option.palette
+        fill = palette.color(QPalette.ColorRole.Button)
+        ink = palette.color(QPalette.ColorRole.ButtonText)
 
         painter.save()
-        painter.setPen(option.palette.color(QPalette.ColorRole.ButtonText))
-        painter.drawText(rect.adjusted(_TEXT_INSET, 2, -_TEXT_INSET, -2), int(HEADER_TEXT_FLAGS), text)
+        painter.fillRect(rect, fill)
+        hairline = QColor(ink)
+        hairline.setAlpha(64)
+        painter.setPen(QPen(hairline, 1))
+        painter.drawLine(rect.bottomLeft(), rect.bottomRight())
+
+        text = self._section_text(logical_index)
+        if text:
+            painter.setPen(ink)
+            painter.drawText(rect.adjusted(_TEXT_INSET, 2, -_TEXT_INSET, -2), int(HEADER_TEXT_FLAGS), text)
         painter.restore()
 
     def refresh_wrapped_height(self) -> None:

@@ -14,7 +14,7 @@ from PySide6.QtCore import QAbstractProxyModel, Qt
 from PySide6.QtGui import QBrush, QColor, QPainter, QPalette, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import QHeaderView, QTableView
 
-from harrix_swiss_knife.fluent.theme import FluentTheme
+from harrix_swiss_knife.fluent.theme import FluentTheme, mix
 
 if TYPE_CHECKING:
     from PySide6.QtCore import QRect
@@ -181,6 +181,7 @@ def set_day_band(item: QStandardItem, color: QColor) -> None:
         return
     item.setBackground(QBrush(color))
     item.setData(color.band_index, DAY_BAND_ROLE)
+    item.setForeground(QBrush(_band_ink()))
 
 
 def set_readable_cell_fill(item: QStandardItem, light: QColor, *, band_index: int = 0) -> None:
@@ -211,7 +212,14 @@ def _band_pair(palette: FluentPalette) -> tuple[tuple[int, int, int], tuple[int,
     return (0xFC, 0xFC, 0xFC), (0xF4, 0xF5, 0xF6)
 
 
+def _band_ink() -> QColor:
+    """Return primary text color readable on the current day-band fills."""
+    palette = FluentTheme.instance().palette()
+    return mix(palette.window_bg, palette.text_primary)
+
+
 def _refresh_model(model: QStandardItemModel) -> None:
+    ink = QBrush(_band_ink())
     for row in range(model.rowCount()):
         band: int | None = None
         for column in range(model.columnCount()):
@@ -223,6 +231,7 @@ def _refresh_model(model: QStandardItemModel) -> None:
                 continue
             band = stored
             item.setBackground(QBrush(day_band_color(stored)))
+            item.setForeground(ink)
         header = model.verticalHeaderItem(row)
         if header is not None and band is not None:
             set_day_band(header, day_band_color(band))

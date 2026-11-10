@@ -104,6 +104,36 @@ def test_install_word_wrap_header_keeps_dark_fluent_chrome(qapp: QApplication) -
         host.close()
 
 
+def test_habits_layout_chrome_does_not_wipe_process_table_sheet(qapp: QApplication) -> None:
+    """Process table must keep Fluent header QSS after Habits layout polish."""
+    assert qapp is not None
+    from harrix_swiss_knife.apps.habits.layout_chrome import _polish_all
+
+    theme = FluentTheme.instance()
+    previous = theme.mode()
+    theme.set_mode(ThemeMode.DARK, persist=False)
+    host = QWidget()
+    enable_fluent_theme(host)
+    install_fluent_app_window(host)
+    try:
+        table = QTableView(host)
+        table.setObjectName("tableView_process_habits")
+        host.tableView_process_habits = table
+        host._is_closing = False
+        model = QStandardItemModel()
+        model.setHorizontalHeaderLabels(["Date", "Sport"])
+        table.setModel(model)
+        install_word_wrap_header(table, wrap_width=86, wrap_first_section=False)
+        style_fluent_table(table)
+        _polish_all(host)
+        assert "QHeaderView::section" in (table.styleSheet() or "")
+        assert table.objectName() == "tableView_process_habits"
+        assert table.horizontalHeader().palette().color(QPalette.ColorRole.Button).lightness() < 80
+    finally:
+        theme.set_mode(previous, persist=False)
+        host.close()
+
+
 def test_word_wrap_header_finds_interactive_column_boundary(qapp: QApplication) -> None:
     """The resize mark sits on an interactive edge and skips the table's outer edge."""
     assert qapp is not None

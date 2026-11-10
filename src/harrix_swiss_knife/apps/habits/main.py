@@ -34,6 +34,7 @@ from PySide6.QtCore import (
     QTimer,
 )
 from PySide6.QtGui import (
+    QBrush,
     QCloseEvent,
     QColor,
     QKeyEvent,
@@ -53,6 +54,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QSizePolicy,
     QTableView,
+    QWidget,
 )
 
 from harrix_swiss_knife import resources_rc  # noqa: F401
@@ -83,6 +85,7 @@ from harrix_swiss_knife.apps.common.ui_helpers import close_table_editor_if_open
 from harrix_swiss_knife.apps.common.widgets.shrinkable_scroll_area import install_shrinkable_tab_scroll
 from harrix_swiss_knife.apps.common.word_wrap_header import WordWrapHeaderView, install_word_wrap_header
 from harrix_swiss_knife.fluent.app_chrome import style_fluent_table
+from harrix_swiss_knife.fluent.theme import mix, palette_for
 from harrix_swiss_knife.apps.habits import database_manager, window
 from harrix_swiss_knife.apps.habits.dashboard import HabitDashboardWidget
 from harrix_swiss_knife.apps.habits.dashboard_widgets import style_calendar_nav_button
@@ -507,6 +510,7 @@ class MainWindow(
             # Date column (not editable)
             date_item = QStandardItem(date_str)
             set_day_band(date_item, row_color)
+            date_item.setForeground(QBrush(_process_habits_ink(self)))
             date_item.setEditable(False)
             model.setItem(row_idx, 0, date_item)
 
@@ -570,6 +574,7 @@ class MainWindow(
         apply_stored_table_header_sort(self.tableView_process_habits)
         if isinstance(process_habits_header, WordWrapHeaderView):
             process_habits_header.refresh_wrapped_height()
+        style_fluent_table(self.tableView_process_habits)
 
     def nativeEvent(self, event_type, message) -> tuple[bool, int]:  # noqa: ANN001, N802
         """Drag, resize, and size the client area for the custom caption bar."""
@@ -2606,6 +2611,12 @@ def numeric_habit_heatmap_cell_labels(
         if value != 0:
             labels.append((index, value))
     return labels
+
+
+def _process_habits_ink(host: QWidget) -> QColor:
+    """Return readable table ink for the process-habits date column."""
+    palette = palette_for(host)
+    return mix(palette.window_bg, palette.text_primary)
 
 
 if __name__ == "__main__":
