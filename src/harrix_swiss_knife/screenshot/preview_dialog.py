@@ -116,9 +116,10 @@ _ScreenshotFormat = Literal["png", "jpeg", "avif_hq", "avif_optimized"]
 _SAVE_FORMATS: tuple[tuple[_ScreenshotFormat, str, str], ...] = (
     ("png", "PNG", "PNG Image (*.png)"),
     ("jpeg", "JPEG", "JPEG Image (*.jpg *.jpeg)"),
-    ("avif_hq", "AVIF high quality", "AVIF Image (*.avif)"),
-    ("avif_optimized", "AVIF optimized", "AVIF Image (*.avif)"),
+    ("avif_hq", "AVIF high quality", "AVIF high quality (*.avif)"),
+    ("avif_optimized", "AVIF optimized", "AVIF optimized (*.avif)"),
 )
+_SAVE_FILE_FILTERS = ";;".join(item[2] for item in _SAVE_FORMATS)
 _FORMAT_ICON = "file-image"
 _JPEG_QUALITY = 95
 _JPEG_SUFFIXES = frozenset({".jpg", ".jpeg"})
@@ -1058,18 +1059,20 @@ class ScreenshotPreviewWindow(QMainWindow):
         tab = self._current_tab()
         if tab is None:
             return
-        suffix = _format_suffix(fmt)
         suggested = _suggested_save_path(tab, fmt)
-        file_filter = next(item[2] for item in _SAVE_FORMATS if item[0] == fmt)
-        path_str, _selected_filter = QFileDialog.getSaveFileName(
+        initial_filter = _filter_for_format(fmt)
+        path_str, selected_filter = QFileDialog.getSaveFileName(
             self,
             "Save screenshot",
             suggested,
-            file_filter,
+            _SAVE_FILE_FILTERS,
+            initial_filter,
         )
         if not path_str:
             return
+        fmt = _format_from_selected_filter(selected_filter, fmt)
         path = Path(path_str)
+        suffix = _format_suffix(fmt)
         if path.suffix.lower() not in _accepted_suffixes(fmt):
             path = path.with_suffix(suffix)
         try:
@@ -1425,6 +1428,29 @@ def _accepted_suffixes(fmt: _ScreenshotFormat) -> frozenset[str]:
     if fmt == "jpeg":
         return _JPEG_SUFFIXES
     return frozenset({_format_suffix(fmt)})
+
+
+def _filter_for_format(fmt: _ScreenshotFormat) -> str:
+    """Return the QFileDialog filter string for `fmt`."""
+    return next(item[2] for item in _SAVE_FORMATS if item[0] == fmt)
+
+
+def _format_from_selected_filter(selected: str, fallback: _ScreenshotFormat) -> _ScreenshotFormat:
+    """Map a Save dialog filter back to a screenshot format.
+
+    Empty `selected` keeps `fallback` (menu choice). AVIF high quality and
+    AVIF optimized share `*.avif`, so the filter label decides the encoder.
+    """
+    selected = selected.strip()
+    if not selected:
+        return fallback
+    for fmt, _title, file_filter in _SAVE_FORMATS:
+        if selected == file_filter:
+            return fmt
+    for fmt, _title, file_filter in _SAVE_FORMATS:
+        if file_filter in selected or selected in file_filter:
+            return fmt
+    return fallback
 
 
 def _annotation_tool_button(icon: str, tooltip: str, parent: QWidget) -> FluentIconButton:

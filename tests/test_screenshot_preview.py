@@ -39,7 +39,10 @@ from harrix_swiss_knife.screenshot.dated_image_path import images_folder, next_d
 from harrix_swiss_knife.screenshot.preview_canvas import _ZOOM_STEP, ScreenshotPreviewCanvas
 from harrix_swiss_knife.screenshot.preview_dialog import (
     _MIN_WINDOW_WIDTH,
+    _SAVE_FILE_FILTERS,
     ScreenshotPreviewWindow,
+    _filter_for_format,
+    _format_from_selected_filter,
     _half_pixel_size,
     _is_ctrl_s,
     _max_side_pixel_size,
@@ -737,6 +740,53 @@ def test_save_as_remembers_last_directory(
     window.add_image(image)
     window._save_as()
     assert suggested[3] == "screenshot.png"
+    window.close()
+
+
+def test_save_as_offers_all_format_filters(
+    qapp: QApplication,  # noqa: ARG001
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    dialog_args: list[tuple[object, ...]] = []
+    qualities: list[bool] = []
+
+    def dialog(*args: object) -> tuple[str, str]:
+        dialog_args.append(args)
+        return str(tmp_path / "shot.avif"), _filter_for_format("avif_hq")
+
+    def fake_avif(
+        source: Path,
+        output_folder: Path,
+        _project_root: Path,
+        *,
+        quality: bool = False,
+        max_size: int | None = None,
+    ) -> str:
+        del max_size
+        qualities.append(quality)
+        destination = Path(output_folder) / f"{Path(source).stem}.avif"
+        destination.write_bytes(b"avif")
+        return "ok"
+
+    monkeypatch.setattr(QFileDialog, "getSaveFileName", dialog)
+    monkeypatch.setattr("harrix_swiss_knife.screenshot.preview_dialog.process_png_to_avif", fake_avif)
+    image = QImage(8, 8, QImage.Format.Format_RGB32)
+    image.fill(Qt.GlobalColor.cyan)
+    window = show_screenshot_preview(image)
+    window._save_as("avif_optimized")
+    assert len(dialog_args) == 1
+    assert dialog_args[0][3] == _SAVE_FILE_FILTERS
+    assert dialog_args[0][4] == _filter_for_format("avif_optimized")
+    assert "PNG Image (*.png)" in _SAVE_FILE_FILTERS
+    assert "JPEG Image (*.jpg *.jpeg)" in _SAVE_FILE_FILTERS
+    assert "AVIF high quality (*.avif)" in _SAVE_FILE_FILTERS
+    assert "AVIF optimized (*.avif)" in _SAVE_FILE_FILTERS
+    assert _filter_for_format("avif_hq") != _filter_for_format("avif_optimized")
+    assert _format_from_selected_filter(_filter_for_format("avif_hq"), "png") == "avif_hq"
+    assert _format_from_selected_filter("", "jpeg") == "jpeg"
+    assert qualities == [True]
+    assert (tmp_path / "shot.avif").is_file()
     window.close()
 
 
