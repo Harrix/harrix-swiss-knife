@@ -41,6 +41,7 @@ lang: en
 - [🏛️ Class `FluentSplitButton`](#%EF%B8%8F-class-fluentsplitbutton)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-7)
   - [⚙️ Method `refresh_theme`](#%EF%B8%8F-method-refresh_theme-8)
+  - [⚙️ Method `sizeHint`](#%EF%B8%8F-method-sizehint)
 - [🏛️ Class `FluentToggleButton`](#%EF%B8%8F-class-fluenttogglebutton)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-8)
   - [⚙️ Method `refresh_theme`](#%EF%B8%8F-method-refresh_theme-9)
@@ -49,7 +50,7 @@ lang: en
   - [⚙️ Method `get_knob`](#%EF%B8%8F-method-get_knob)
   - [⚙️ Method `paintEvent`](#%EF%B8%8F-method-paintevent-1)
   - [⚙️ Method `set_knob`](#%EF%B8%8F-method-set_knob)
-  - [⚙️ Method `sizeHint`](#%EF%B8%8F-method-sizehint)
+  - [⚙️ Method `sizeHint`](#%EF%B8%8F-method-sizehint-1)
 - [🏛️ Class `FluentToolButton`](#%EF%B8%8F-class-fluenttoolbutton)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-10)
   - [⚙️ Method `refresh_theme`](#%EF%B8%8F-method-refresh_theme-10)
@@ -837,6 +838,9 @@ Primary action on the left; a chevron opens an optional menu on the right.
 ```python
 class FluentSplitButton(FluentIconMixin, QToolButton):
 
+    _MENU_BUTTON_WIDTH = 28
+    _MENU_ARROW_SIZE = 12
+
     def __init__(
         self,
         text: str = "",
@@ -867,22 +871,47 @@ class FluentSplitButton(FluentIconMixin, QToolButton):
         bind_theme(self, self.refresh_theme)
 
     def refresh_theme(self) -> None:
-        """Re-apply push-button chrome with a visible menu split."""
-        self.setStyleSheet(
-            push_button_qss(palette_for(self), "QToolButton")
-            + "QToolButton { padding-right: 4px; }"
-            + "QToolButton::menu-button { width: 24px; border: none; border-left: 1px solid transparent; }"
-            + "QToolButton::menu-arrow { image: none; width: 0px; }",
-        )
-        self._sync_icon()
-        if self.menu() is not None:
-            palette = palette_for(self)
-            sheet = self.styleSheet()
-            self.setStyleSheet(
-                sheet
-                + f"QToolButton::menu-button {{ border-left: 1px solid {css(palette.control_stroke)}; }}"
-                + f"QToolButton::menu-button:hover {{ background: {css(palette.control_fill_hover)}; }}",
+        """Re-apply push-button chrome with a Lucide chevron in the menu split."""
+        palette = palette_for(self)
+        sheet = push_button_qss(palette, "QToolButton")
+        if self.menu() is None:
+            sheet += (
+                "QToolButton::menu-button { width: 0px; border: none; }"
+                "QToolButton::menu-arrow { image: none; width: 0px; }"
             )
+        else:
+            # Opaque mix on the control fill so the PNG stays readable (same as combo).
+            # Reserve the chevron gutter with padding-right and place ::menu-button
+            # inside that padding so the label never paints over the arrow.
+            arrow = lucide_qss_url(
+                "chevron-down",
+                mix(palette.control_fill, palette.text_primary),
+                self._MENU_ARROW_SIZE,
+            )
+            gutter = self._MENU_BUTTON_WIDTH
+            sheet += (
+                f"QToolButton {{ padding-right: {gutter}px; }}"
+                f"QToolButton::menu-button {{"
+                f" subcontrol-origin: padding;"
+                f" subcontrol-position: center right;"
+                f" width: {gutter}px; border: none;"
+                f" border-left: 1px solid {css(palette.control_stroke)};"
+                f" }}"
+                f"QToolButton::menu-button:hover {{ background: {css(palette.control_fill_hover)}; }}"
+                f"QToolButton::menu-arrow {{"
+                f' image: url("{arrow}");'
+                f" width: {self._MENU_ARROW_SIZE}px; height: {self._MENU_ARROW_SIZE}px;"
+                f" }}"
+            )
+        self.setStyleSheet(sheet)
+        self._sync_icon()
+
+    def sizeHint(self) -> QSize:  # noqa: N802
+        """Include the chevron gutter so Maximum-policy footers do not squeeze labels."""
+        hint = super().sizeHint()
+        if self.menu() is None:
+            return hint
+        return QSize(hint.width() + self._MENU_BUTTON_WIDTH, hint.height())
 ```
 
 </details>
@@ -934,28 +963,67 @@ def __init__(
 def refresh_theme(self) -> None
 ```
 
-Re-apply push-button chrome with a visible menu split.
+Re-apply push-button chrome with a Lucide chevron in the menu split.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def refresh_theme(self) -> None:
-        self.setStyleSheet(
-            push_button_qss(palette_for(self), "QToolButton")
-            + "QToolButton { padding-right: 4px; }"
-            + "QToolButton::menu-button { width: 24px; border: none; border-left: 1px solid transparent; }"
-            + "QToolButton::menu-arrow { image: none; width: 0px; }",
-        )
-        self._sync_icon()
-        if self.menu() is not None:
-            palette = palette_for(self)
-            sheet = self.styleSheet()
-            self.setStyleSheet(
-                sheet
-                + f"QToolButton::menu-button {{ border-left: 1px solid {css(palette.control_stroke)}; }}"
-                + f"QToolButton::menu-button:hover {{ background: {css(palette.control_fill_hover)}; }}",
+        palette = palette_for(self)
+        sheet = push_button_qss(palette, "QToolButton")
+        if self.menu() is None:
+            sheet += (
+                "QToolButton::menu-button { width: 0px; border: none; }"
+                "QToolButton::menu-arrow { image: none; width: 0px; }"
             )
+        else:
+            # Opaque mix on the control fill so the PNG stays readable (same as combo).
+            # Reserve the chevron gutter with padding-right and place ::menu-button
+            # inside that padding so the label never paints over the arrow.
+            arrow = lucide_qss_url(
+                "chevron-down",
+                mix(palette.control_fill, palette.text_primary),
+                self._MENU_ARROW_SIZE,
+            )
+            gutter = self._MENU_BUTTON_WIDTH
+            sheet += (
+                f"QToolButton {{ padding-right: {gutter}px; }}"
+                f"QToolButton::menu-button {{"
+                f" subcontrol-origin: padding;"
+                f" subcontrol-position: center right;"
+                f" width: {gutter}px; border: none;"
+                f" border-left: 1px solid {css(palette.control_stroke)};"
+                f" }}"
+                f"QToolButton::menu-button:hover {{ background: {css(palette.control_fill_hover)}; }}"
+                f"QToolButton::menu-arrow {{"
+                f' image: url("{arrow}");'
+                f" width: {self._MENU_ARROW_SIZE}px; height: {self._MENU_ARROW_SIZE}px;"
+                f" }}"
+            )
+        self.setStyleSheet(sheet)
+        self._sync_icon()
+```
+
+</details>
+
+### ⚙️ Method `sizeHint`
+
+```python
+def sizeHint(self) -> QSize
+```
+
+Include the chevron gutter so Maximum-policy footers do not squeeze labels.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def sizeHint(self) -> QSize:  # noqa: N802
+        hint = super().sizeHint()
+        if self.menu() is None:
+            return hint
+        return QSize(hint.width() + self._MENU_BUTTON_WIDTH, hint.height())
 ```
 
 </details>
