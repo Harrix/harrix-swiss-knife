@@ -14,7 +14,7 @@ from harrix_swiss_knife.apps.common.tracker_layout_chrome import (
 )
 from harrix_swiss_knife.apps.common.tracker_splitter_settings import load_splitter_sizes, save_splitter_sizes
 from harrix_swiss_knife.apps.common.ui_chrome import button_idle_qss
-from harrix_swiss_knife.fluent.app_chrome import style_fluent_item_view
+from harrix_swiss_knife.fluent.app_chrome import style_fluent_item_view, style_fluent_table
 from harrix_swiss_knife.fluent.theme import FluentTheme, bind_theme, css, mix
 from harrix_swiss_knife.fluent.tokens import ICON_SIZE, SPACE_S
 from harrix_swiss_knife.qt_lucide_icon import apply_lucide_button_icon
@@ -82,6 +82,7 @@ def _compact_table(table: QTableView) -> None:
     vertical.setMinimumSectionSize(24)
     table.setWordWrap(False)
     table.setTextElideMode(Qt.TextElideMode.ElideRight)
+    style_fluent_table(table)
 
 
 def _configure_charts_splitter(host: Any) -> None:

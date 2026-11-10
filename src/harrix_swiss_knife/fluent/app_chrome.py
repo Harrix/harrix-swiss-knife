@@ -242,6 +242,17 @@ def style_fluent_item_view(view: QAbstractItemView, palette: FluentPalette | Non
     _style_item_view(view, palette if palette is not None else palette_for(view))
 
 
+def style_fluent_table(table: QTableView, palette: FluentPalette | None = None) -> None:
+    """Apply Fluent table chrome, day-band header palette, and row band refresh.
+
+    Call again after replacing the horizontal header (for example with
+    `WordWrapHeaderView`): a new header starts on the system light palette.
+    """
+    chosen = palette if palette is not None else palette_for(table)
+    _style_table(table, chosen)
+    refresh_day_bands(table)
+
+
 def _apply_fluent_list_selection(root: QWidget, palette: FluentPalette) -> None:
     for view in root.findChildren(QListView):
         _style_item_view(view, palette)

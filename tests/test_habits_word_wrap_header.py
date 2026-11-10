@@ -4,14 +4,17 @@ from __future__ import annotations
 
 import pytest
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QFont, QFontMetrics, QStandardItemModel
-from PySide6.QtWidgets import QApplication, QTableView
+from PySide6.QtGui import QFont, QFontMetrics, QPalette, QStandardItemModel
+from PySide6.QtWidgets import QApplication, QTableView, QWidget
 
+from harrix_swiss_knife.apps.common.day_bands import table_surface_color
 from harrix_swiss_knife.apps.common.word_wrap_header import (
     WordWrapHeaderView,
     install_word_wrap_header,
     wrapped_header_text_size,
 )
+from harrix_swiss_knife.fluent.app_chrome import install_fluent_app_window, style_fluent_table
+from harrix_swiss_knife.fluent.theme import FluentTheme, ThemeMode, enable_fluent_theme, palette_for
 
 _LONG_HABIT_NAME = "Read technical documentation about Python every evening"
 
@@ -73,6 +76,32 @@ def test_install_word_wrap_header_replaces_default_header(qapp: QApplication) ->
     expected = wrapped_header_text_size(_LONG_HABIT_NAME, 86, header.fontMetrics())
     assert first.width() == expected.width()
     assert first.height() == expected.height()
+
+
+def test_install_word_wrap_header_keeps_dark_fluent_chrome(qapp: QApplication) -> None:
+    """Replacing the header must not leave a white light-mode section strip."""
+    assert qapp is not None
+    theme = FluentTheme.instance()
+    previous = theme.mode()
+    theme.set_mode(ThemeMode.DARK, persist=False)
+    host = QWidget()
+    enable_fluent_theme(host)
+    install_fluent_app_window(host)
+    try:
+        table = QTableView(host)
+        table.setObjectName("tableView_process_habits")
+        model = QStandardItemModel()
+        model.setHorizontalHeaderLabels(["Date", "Sport"])
+        table.setModel(model)
+        style_fluent_table(table)
+        header = install_word_wrap_header(table, wrap_width=86, wrap_first_section=False)
+        surface = table_surface_color(palette_for(host))
+        assert header.palette().color(QPalette.ColorRole.Button).rgb() == surface.rgb()
+        assert header.palette().color(QPalette.ColorRole.ButtonText).lightness() > 140
+        assert "#ffffff" not in (table.styleSheet() or "").casefold()
+    finally:
+        theme.set_mode(previous, persist=False)
+        host.close()
 
 
 def test_word_wrap_header_finds_interactive_column_boundary(qapp: QApplication) -> None:

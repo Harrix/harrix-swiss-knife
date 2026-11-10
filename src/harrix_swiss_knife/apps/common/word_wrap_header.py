@@ -7,6 +7,7 @@ from PySide6.QtGui import QColor, QFontMetrics, QMouseEvent, QPainter, QPaintEve
 from PySide6.QtWidgets import QHeaderView, QStyle, QStyleOptionHeader, QTableView, QWidget
 
 from harrix_swiss_knife.apps.common.ui_chrome import MUTED_TEXT
+from harrix_swiss_knife.fluent.theme import is_fluent_themed
 
 HEADER_TEXT_FLAGS = Qt.AlignmentFlag.AlignCenter | Qt.TextFlag.TextWordWrap
 _BOUNDARY_GRIP_PX = 5
@@ -228,6 +229,11 @@ def install_word_wrap_header(
         header.setSectionsMovable(current.sectionsMovable())
     header.setTextElideMode(Qt.TextElideMode.ElideNone)
     table.setHorizontalHeader(header)
+    # New headers start on the system light palette; restore Fluent dark chrome.
+    if is_fluent_themed(table):
+        from harrix_swiss_knife.fluent.app_chrome import style_fluent_table  # noqa: PLC0415
+
+        style_fluent_table(table)
     return header
 
 

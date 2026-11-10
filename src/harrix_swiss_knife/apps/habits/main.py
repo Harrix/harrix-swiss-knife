@@ -81,7 +81,8 @@ from harrix_swiss_knife.apps.common.table_models import (
 )
 from harrix_swiss_knife.apps.common.ui_helpers import close_table_editor_if_open
 from harrix_swiss_knife.apps.common.widgets.shrinkable_scroll_area import install_shrinkable_tab_scroll
-from harrix_swiss_knife.apps.common.word_wrap_header import WordWrapHeaderView
+from harrix_swiss_knife.apps.common.word_wrap_header import WordWrapHeaderView, install_word_wrap_header
+from harrix_swiss_knife.fluent.app_chrome import style_fluent_table
 from harrix_swiss_knife.apps.habits import database_manager, window
 from harrix_swiss_knife.apps.habits.dashboard import HabitDashboardWidget
 from harrix_swiss_knife.apps.habits.dashboard_widgets import style_calendar_nav_button
@@ -2009,12 +2010,12 @@ class MainWindow(
         apply_leading_chrome_buttons(self)
 
         self._install_word_wrap_table_headers(skip={self.tableView_process_habits})
-        process_habits_header = WordWrapHeaderView(
-            Qt.Orientation.Horizontal,
+        install_word_wrap_header(
             self.tableView_process_habits,
             wrap_width=PROCESS_HABIT_VALUE_COLUMN_MIN_WIDTH,
+            wrap_first_section=False,
         )
-        self.tableView_process_habits.setHorizontalHeader(process_habits_header)
+        style_fluent_table(self.tableView_process_habits)
         enable_table_header_sorting(self.tableView_process_habits)
 
         self.splitter_habits.setStretchFactor(0, 1)
