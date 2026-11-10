@@ -42,13 +42,13 @@ from PySide6.QtWidgets import (
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.day_bands import readable_cell_fill
 from harrix_swiss_knife.apps.common.table_context_menu import add_delete_action, add_lightbox_action
+from harrix_swiss_knife.apps.common.tracker_layout_chrome import soft_panel_css
 from harrix_swiss_knife.apps.common.ui_chrome import (
     SELECTION_BG,
     SELECTION_BORDER,
     button_cta_green_qss,
     button_danger_qss,
     button_secondary_qss,
-    list_view_panel_qss,
 )
 from harrix_swiss_knife.apps.common.widgets.exercise_list_hover_preview import exercise_at_table_image
 from harrix_swiss_knife.apps.fitness.lightbox_logic import (
@@ -59,7 +59,9 @@ from harrix_swiss_knife.apps.fitness.lightbox_logic import (
 )
 from harrix_swiss_knife.apps.fitness.lightbox_sounds import play_fitness_timer_cue
 from harrix_swiss_knife.apps.fitness.workouts_ai import estimate_workout_duration_min
-from harrix_swiss_knife.qt_flat_scrollbar import with_flat_scrollbars
+from harrix_swiss_knife.fluent.app_chrome import style_fluent_item_view
+from harrix_swiss_knife.fluent.theme import bind_theme, css, mix, palette_for
+from harrix_swiss_knife.qt_lucide_checkbox import apply_lucide_indicators
 from harrix_swiss_knife.qt_lucide_icon import (
     apply_leading_chrome_icons,
     apply_lucide_button_icon,
@@ -90,26 +92,8 @@ _ROW_COLOR_CURRENT = QColor(255, 236, 179)  # Amber highlight for the active exe
 _COL_TYPE_WIDTH = 140
 _COL_VALUE_WIDTH = 90
 _COL_UNIT_WIDTH = 90
-_GREEN_BUTTON_STYLE = (
-    button_cta_green_qss()
-    + """
-QPushButton:disabled {
-    background-color: #e8e8e8;
-    border: 1px solid #bdbdbd;
-    color: #9e9e9e;
-}
-"""
-)
-_GREY_BUTTON_STYLE = (
-    button_secondary_qss()
-    + """
-QPushButton:disabled {
-    background-color: #f3f3f3;
-    border: 1px solid #d0d0d0;
-    color: #9e9e9e;
-}
-"""
-)
+_GREEN_BUTTON_STYLE = button_cta_green_qss()
+_GREY_BUTTON_STYLE = button_secondary_qss()
 _CONTINUE_BUTTON_STYLE = _GREEN_BUTTON_STYLE
 _STOP_BUTTON_STYLE = button_danger_qss()
 _SESSION_BAR_STYLE = f"""
@@ -119,8 +103,7 @@ QFrame#workoutsSessionBar {{
     border-radius: 6px;
 }}
 """
-_LIST_STYLE = with_flat_scrollbars(list_view_panel_qss(border_color=SELECTION_BORDER))
-_WHITE_SURFACE = "background-color: #ffffff;"
+_ROW_PAD = 8
 
 
 class WorkoutsWidget(QWidget):
@@ -158,6 +141,8 @@ class WorkoutsWidget(QWidget):
         self._exercise_timer_limit_seconds: int | None = None
         self._exercise_timer_stop_at_limit = False
         self._build_ui()
+        bind_theme(self, self._refresh_theme)
+        self._refresh_theme()
 
     def clear_exercise_timer_state(self) -> None:
         """Drop any saved lightbox stopwatch so the next open starts fresh."""
@@ -296,8 +281,11 @@ class WorkoutsWidget(QWidget):
         return bool(items) and all(item.is_done for item in items)
 
     def _apply_image_column_metrics(self) -> None:
+        row_height = self._row_height()
         self.table_items.setIconSize(QSize(self._icon_size, self._icon_size))
-        self.table_items.verticalHeader().setDefaultSectionSize(self._icon_size + 8)
+        vertical = self.table_items.verticalHeader()
+        vertical.setMinimumSectionSize(row_height)
+        vertical.setDefaultSectionSize(row_height)
         header = self.table_items.horizontalHeader()
         header.setSectionResizeMode(_COL_DONE, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(_COL_IMAGE, QHeaderView.ResizeMode.Fixed)
@@ -313,6 +301,8 @@ class WorkoutsWidget(QWidget):
         self.table_items.setColumnWidth(_COL_VALUE, _COL_VALUE_WIDTH)
         self.table_items.setColumnWidth(_COL_UNIT, _COL_UNIT_WIDTH)
         self.table_items.setColumnWidth(_COL_KCAL, _COL_VALUE_WIDTH)
+        for row in range(self.table_items.rowCount()):
+            self.table_items.setRowHeight(row, row_height)
 
     def _apply_row_background(self, row: int) -> None:
         current_id = self._first_incomplete_item_id() if self._session_active else None
@@ -336,7 +326,6 @@ class WorkoutsWidget(QWidget):
 
     def _build_ui(self) -> None:
         self.setObjectName("workoutsWidget")
-        self.setStyleSheet(f"QWidget#workoutsWidget {{ {_WHITE_SURFACE} }}")
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
@@ -370,7 +359,6 @@ class WorkoutsWidget(QWidget):
         self.label_exercise_timer.setFont(secondary_timer_font)
         self.label_exercise_timer.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.label_exercise_timer.setMinimumWidth(72)
-        self.label_exercise_timer.setStyleSheet("color: #374151;")
         self.label_exercise_timer.setToolTip("Current exercise timer")
         self.label_exercise_timer.hide()
         session_layout.addWidget(self.label_exercise_timer)
@@ -396,15 +384,16 @@ class WorkoutsWidget(QWidget):
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
         splitter.setObjectName("workoutsSplitter")
-        splitter.setStyleSheet(f"QWidget#workoutsSplitter {{ {_WHITE_SURFACE} }}")
+        self._workouts_splitter = splitter
         root.addWidget(splitter, 1)
 
         left = QWidget()
         left.setObjectName("workoutsLeftPanel")
-        left.setStyleSheet(f"QWidget#workoutsLeftPanel {{ {_WHITE_SURFACE} }}")
+        self._left_panel = left
         left_layout = QVBoxLayout(left)
         left_layout.setContentsMargins(8, 8, 8, 8)
-        left_layout.addWidget(QLabel("Workouts"))
+        self.label_workouts_heading = QLabel("Workouts")
+        left_layout.addWidget(self.label_workouts_heading)
         new_row = QHBoxLayout()
         self.button_new = QPushButton("New")
         self.button_new.setMinimumHeight(41)
@@ -424,7 +413,7 @@ class WorkoutsWidget(QWidget):
         new_row.addWidget(self.button_new_empty, 1)
         left_layout.addLayout(new_row)
         self.list_workouts = QListView()
-        self.list_workouts.setStyleSheet(_LIST_STYLE)
+        self.list_workouts.setObjectName("listView_workouts")
         self._list_model = QStandardItemModel(self.list_workouts)
         self.list_workouts.setModel(self._list_model)
         self.list_workouts.clicked.connect(self._on_workout_clicked)
@@ -435,7 +424,7 @@ class WorkoutsWidget(QWidget):
 
         right = QWidget()
         right.setObjectName("workoutsRightPanel")
-        right.setStyleSheet(f"QWidget#workoutsRightPanel {{ {_WHITE_SURFACE} }}")
+        self._right_panel = right
         right_layout = QVBoxLayout(right)
         right_layout.setContentsMargins(8, 8, 8, 8)
         title_row = QHBoxLayout()
@@ -463,7 +452,8 @@ class WorkoutsWidget(QWidget):
         self.label_meta = QLabel("")
         right_layout.addWidget(self.label_meta)
         duration_row = QHBoxLayout()
-        duration_row.addWidget(QLabel("Duration:"))
+        self.label_duration_caption = QLabel("Duration:")
+        duration_row.addWidget(self.label_duration_caption)
         self.label_duration = QLabel("")
         duration_row.addWidget(self.label_duration)
         duration_row.addStretch()
@@ -580,7 +570,9 @@ class WorkoutsWidget(QWidget):
                 checkbox.clicked.connect(
                     lambda checked, item_id=item.id: self._on_done_toggled(item_id=item_id, checked=checked),
                 )
-                self.table_items.setCellWidget(row, _COL_DONE, _make_done_cell(checkbox))
+                done_cell = _make_done_cell(checkbox)
+                apply_lucide_indicators(done_cell)
+                self.table_items.setCellWidget(row, _COL_DONE, done_cell)
                 image_item = QTableWidgetItem()
                 image_item.setFlags(image_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                 icon = self._icon_getter(item.exercise_name) if self._icon_getter is not None else None
@@ -598,6 +590,7 @@ class WorkoutsWidget(QWidget):
                 kcal = self._estimated_kcal(item)
                 total_kcal += kcal
                 self._set_readonly_item(row, _COL_KCAL, f"{kcal:.1f}")
+                self.table_items.setRowHeight(row, self._row_height())
                 self._apply_row_background(row)
             self.label_totals.setText(f"Estimated: {total_kcal:.0f} kcal")
             self._sync_duration_from_items()
@@ -681,6 +674,40 @@ class WorkoutsWidget(QWidget):
             except ValueError:
                 continue
         self.label_totals.setText(f"Estimated: {total_kcal:.0f} kcal")
+
+    def _refresh_theme(self) -> None:
+        """Paint panes / list / labels for the current Fluent theme."""
+        palette = palette_for(self)
+        panel = soft_panel_css(self)
+        text = css(mix(palette.window_bg, palette.text_primary))
+        muted = css(mix(palette.window_bg, palette.text_secondary))
+        self.setStyleSheet(f"QWidget#workoutsWidget {{ background: transparent; color: {text}; }}")
+        self._workouts_splitter.setStyleSheet("QSplitter#workoutsSplitter { background: transparent; }")
+        self._left_panel.setStyleSheet(
+            f"QWidget#workoutsLeftPanel {{ background: {panel}; border: none; color: {text}; }}",
+        )
+        self._right_panel.setStyleSheet(
+            f"QWidget#workoutsRightPanel {{ background: transparent; border: none; color: {text}; }}",
+        )
+        for label in (
+            self.label_workouts_heading,
+            self.label_title,
+            self.label_meta,
+            self.label_duration_caption,
+            self.label_duration,
+            self.label_totals,
+            self.label_session_timer,
+        ):
+            label.setStyleSheet(f"color: {text}; background: transparent;")
+        self.label_exercise_timer.setStyleSheet(f"color: {muted}; background: transparent;")
+        self.label_meta.setStyleSheet(f"color: {muted}; background: transparent;")
+        self.label_totals.setStyleSheet(f"color: {muted}; background: transparent;")
+        style_fluent_item_view(self.list_workouts)
+        self._apply_image_column_metrics()
+        self._refresh_row_highlights()
+
+    def _row_height(self) -> int:
+        return self._icon_size + _ROW_PAD
 
     def _refresh_list_duration_label(self, duration_min: int) -> None:
         workout_id = self._current_workout_id
@@ -943,11 +970,28 @@ class _WorkoutImageDelegate(QStyledItemDelegate):
         option: QStyleOptionViewItem,
         index: QModelIndex | QPersistentModelIndex,
     ) -> None:
-        """Draw the icon on the normal table background even when the row is selected."""
+        """Draw the icon clipped to the cell so tall pixmaps cannot bleed into neighbors."""
         option = QStyleOptionViewItem(option)
         option.state &= ~QStyle.StateFlag.State_Selected
         option.state &= ~QStyle.StateFlag.State_HasFocus
+        painter.save()
+        painter.setClipRect(option.rect)
         super().paint(painter, option, index)
+        painter.restore()
+
+    def sizeHint(  # noqa: N802
+        self,
+        option: QStyleOptionViewItem,
+        index: QModelIndex | QPersistentModelIndex,
+    ) -> QSize:
+        """Keep the thumbnail cell at least as tall as the view icon size."""
+        hint = super().sizeHint(option, index)
+        view = option.widget
+        if isinstance(view, QTableWidget):
+            icon = view.iconSize()
+            hint.setHeight(max(hint.height(), icon.height() + _ROW_PAD))
+            hint.setWidth(max(hint.width(), icon.width() + 12))
+        return hint
 
 
 def estimate_workout_item_kcal(

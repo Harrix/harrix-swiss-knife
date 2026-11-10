@@ -7,7 +7,7 @@ import warnings
 import pytest
 from PySide6.QtCore import QThread
 from PySide6.QtGui import QColor, QStandardItem, QStandardItemModel
-from PySide6.QtWidgets import QApplication, QTableView
+from PySide6.QtWidgets import QApplication, QTableView, QTableWidget
 
 from harrix_swiss_knife.apps.common.day_bands import (
     DAY_BAND_ROLE,
@@ -79,6 +79,32 @@ def test_refresh_day_bands_updates_rows_and_ids(qapp: QApplication) -> None:
     assert header.background().color().rgb() == day_band_color(1).rgb()
     assert isinstance(table.verticalHeader(), DayBandVerticalHeader)
     theme.set_mode(previous, persist=False)
+    table.close()
+
+
+def test_install_day_band_header_preserves_row_height(qapp: QApplication) -> None:
+    """Thumbnail tables keep a tall default section size after the header swap."""
+    assert qapp is not None
+    table = QTableView()
+    table.verticalHeader().setDefaultSectionSize(72)
+    table.verticalHeader().setMinimumSectionSize(72)
+    header = install_day_band_vertical_header(table)
+    assert isinstance(header, DayBandVerticalHeader)
+    assert header.defaultSectionSize() == 72
+    assert header.minimumSectionSize() == 72
+    table.close()
+
+
+def test_install_day_band_header_skips_hidden_vertical_header(qapp: QApplication) -> None:
+    """Workouts-style tables with a hidden ID column keep their existing header."""
+    assert qapp is not None
+    table = QTableWidget(1, 1)
+    table.verticalHeader().setVisible(False)
+    table.verticalHeader().setDefaultSectionSize(72)
+    header = install_day_band_vertical_header(table)
+    assert header is table.verticalHeader()
+    assert not isinstance(header, DayBandVerticalHeader)
+    assert header.defaultSectionSize() == 72
     table.close()
 
 

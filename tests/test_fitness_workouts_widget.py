@@ -20,6 +20,8 @@ from harrix_swiss_knife.apps.fitness.workouts_widget import (
     WorkoutsWidget,
     estimate_workout_item_kcal,
 )
+from harrix_swiss_knife.fluent.app_chrome import install_fluent_app_window
+from harrix_swiss_knife.fluent.theme import FluentTheme, ThemeMode
 
 if TYPE_CHECKING:
     import pytest
@@ -79,6 +81,8 @@ def test_workouts_table_has_image_column_like_other_tables() -> None:
     assert name_item is not None
     assert name_item.text() == "Pull-up"
     assert not image_item.icon().isNull()
+    assert table.rowHeight(0) >= 40
+    assert table.iconSize().height() == 32
 
     widget.resize(800, 400)
     widget.show()
@@ -89,6 +93,26 @@ def test_workouts_table_has_image_column_like_other_tables() -> None:
     widget.update_exercise_icon("Pull-up", QIcon())
     assert image_item.icon().isNull()
     widget.close()
+
+
+def test_workouts_row_height_survives_fluent_chrome() -> None:
+    """Fluent table polish must not shrink thumbnail rows below the icon size."""
+    assert _qapp() is not None
+    theme = FluentTheme.instance()
+    previous = theme.mode()
+    theme.set_mode(ThemeMode.DARK, persist=False)
+    host = WorkoutsWidget()
+    try:
+        host.configure_exercise_images(icon_size=64, icon_getter=lambda _name: QIcon())
+        host._fill_items([_sample_item(), _sample_item()])
+        install_fluent_app_window(host)
+        assert host.table_items.rowHeight(0) >= 72
+        assert host.table_items.verticalHeader().defaultSectionSize() >= 72
+        assert "#ffffff" not in host._left_panel.styleSheet().casefold()
+        assert "transparent" in host.styleSheet().casefold() or "background:" in host._left_panel.styleSheet().casefold()
+    finally:
+        theme.set_mode(previous, persist=False)
+        host.close()
 
 
 def test_workouts_widget_shows_estimated_duration() -> None:

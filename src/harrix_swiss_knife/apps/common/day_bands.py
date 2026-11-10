@@ -90,16 +90,36 @@ def day_band_id_item(row_id: object, color: QColor) -> QStandardItem:
     return item
 
 
-def install_day_band_vertical_header(table: QTableView) -> DayBandVerticalHeader:
-    """Use a day-band ID header on `table`, keeping the one already installed."""
+def install_day_band_vertical_header(table: QTableView) -> QHeaderView:
+    """Use a day-band ID header on `table`, keeping the one already installed.
+
+    Preserves row heights from the previous header. Replacing the header without
+    copying `defaultSectionSize` used to shrink thumbnail tables (Workouts) so
+    64px icons overlapped across ~30px rows.
+
+    Hidden vertical headers (no record-id column) are left alone.
+
+    """
     current = table.verticalHeader()
     if isinstance(current, DayBandVerticalHeader):
         return current
+    if current.isHidden():
+        return current
+    default_size = current.defaultSectionSize()
+    min_size = current.minimumSectionSize()
+    section_sizes = [current.sectionSize(index) for index in range(current.count())]
     header = DayBandVerticalHeader(table)
-    header.setVisible(not current.isHidden())
+    header.setVisible(True)
     header.setDefaultAlignment(Qt.AlignmentFlag.AlignCenter)
     header.setMinimumWidth(current.minimumWidth())
+    header.setMinimumSectionSize(min_size)
+    header.setDefaultSectionSize(default_size)
     table.setVerticalHeader(header)
+    # setVerticalHeader can reset metrics; restore after the swap.
+    header.setMinimumSectionSize(min_size)
+    header.setDefaultSectionSize(default_size)
+    for index, size in enumerate(section_sizes):
+        header.resizeSection(index, size)
     return header
 
 

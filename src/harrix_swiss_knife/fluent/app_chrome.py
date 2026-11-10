@@ -34,7 +34,6 @@ from PySide6.QtWidgets import (
     QStatusBar,
     QTabBar,
     QTableView,
-    QTableWidget,
     QTabWidget,
     QTextEdit,
     QWidget,
@@ -549,10 +548,8 @@ def _restyle_splitters(root: QWidget) -> None:
 
 
 def _restyle_tables(root: QWidget, palette: FluentPalette) -> None:
+    # QTableWidget subclasses QTableView — one pass covers both.
     for table in root.findChildren(QTableView):
-        _style_table(table, palette)
-        refresh_day_bands(table)
-    for table in root.findChildren(QTableWidget):
         _style_table(table, palette)
         refresh_day_bands(table)
 
