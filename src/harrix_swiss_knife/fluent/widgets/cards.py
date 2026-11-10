@@ -1,4 +1,4 @@
-"""Fluent cards: plain, interactive, command, setting, popular, image, URL, promotion, and reminder cards."""
+"""Fluent cards: command, icon tile, setting, popular, image, URL, promotion, and reminder cards."""
 
 from __future__ import annotations
 
@@ -18,6 +18,9 @@ from harrix_swiss_knife.fluent.tokens import (
     COMMAND_CARD_WIDTH,
     ICON_SIZE,
     ICON_SIZE_LARGE,
+    ICON_TILE_HEIGHT,
+    ICON_TILE_ICON_SIZE,
+    ICON_TILE_WIDTH,
     RADIUS_CARD,
     SETTING_CARD_HEIGHT,
     SETTING_CARD_HEIGHT_COMPACT,
@@ -229,6 +232,87 @@ class FluentCommandCard(FluentInteractiveCard):
     def sizeHint(self) -> QSize:  # noqa: N802
         """Return the preferred command card size before the grid stretches it."""
         return QSize(COMMAND_CARD_WIDTH, COMMAND_CARD_HEIGHT)
+
+    def title(self) -> str:
+        """Return the title text."""
+        return self._title
+
+
+class FluentIconTileCard(FluentInteractiveCard):
+    """Compact tile: centered icon above a wrapped title (no description).
+
+    Used by Quick launcher and the capture picker. Preferred width is
+    `ICON_TILE_WIDTH`; a `FluentCardGrid` with matching `base_width` assigns the
+    shared column width.
+
+    """
+
+    _TITLE_LINES = 3
+
+    def __init__(
+        self,
+        title: str,
+        parent: QWidget | None = None,
+        *,
+        icon: QIcon | str | None = None,
+        user_data: object = None,
+    ) -> None:
+        """Create an icon tile card.
+
+        Args:
+
+        - `title` (`str`): Label under the icon (up to three wrapped lines).
+        - `parent` (`QWidget | None`): Optional parent.
+        - `icon` (`QIcon | str | None`): Ready icon, or a Lucide ID.
+        - `user_data` (`object`): Arbitrary payload (for example an action class).
+
+        """
+        self._title = title
+        self._icon = icon
+        self.user_data = user_data
+        super().__init__(parent)
+        self.setFixedHeight(ICON_TILE_HEIGHT)
+        self.setMinimumWidth(max(1, int(ICON_TILE_WIDTH * COMMAND_CARD_MIN_SCALE)))
+        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+        self.setToolTip(title)
+
+    def minimumSizeHint(self) -> QSize:  # noqa: N802
+        """Return the smallest width a tile grid may squeeze to."""
+        return QSize(self.minimumWidth(), ICON_TILE_HEIGHT)
+
+    def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
+        """Paint the surface, centered icon, and wrapped title."""
+        palette = palette_for(self)
+        painter = antialiased_painter(self)
+        self.paint_background(painter, palette)
+        rect = self.rect().adjusted(SPACE_S, SPACE_M, -SPACE_S, -SPACE_M)
+        icon = _icon_for(self._icon, palette, ICON_TILE_ICON_SIZE)
+        if icon is not None:
+            icon_x = rect.left() + max(0, (rect.width() - ICON_TILE_ICON_SIZE) // 2)
+            icon.paint(painter, QRect(icon_x, rect.top(), ICON_TILE_ICON_SIZE, ICON_TILE_ICON_SIZE))
+        title_font = fluent_font(self.font(), TYPE_CAPTION, weight=QFont.Weight.DemiBold)
+        metrics = QFontMetrics(title_font)
+        lines = elide_lines(self._title, metrics, rect.width(), self._TITLE_LINES)
+        line_height = metrics.height()
+        text_top = rect.top() + ICON_TILE_ICON_SIZE + SPACE_S
+        painter.setFont(title_font)
+        painter.setPen(palette.text_primary)
+        for index, line in enumerate(lines):
+            painter.drawText(
+                QRect(rect.left(), text_top + index * line_height, rect.width(), line_height),
+                int(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop),
+                line,
+            )
+        painter.end()
+
+    def set_icon(self, icon: QIcon | str | None) -> None:
+        """Replace the icon."""
+        self._icon = icon
+        self.update()
+
+    def sizeHint(self) -> QSize:  # noqa: N802
+        """Return the preferred tile size before the grid stretches width."""
+        return QSize(ICON_TILE_WIDTH, ICON_TILE_HEIGHT)
 
     def title(self) -> str:
         """Return the title text."""

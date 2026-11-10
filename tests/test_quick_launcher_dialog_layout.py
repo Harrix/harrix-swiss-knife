@@ -4,6 +4,10 @@ import pytest
 from PySide6.QtWidgets import QApplication, QListWidget, QListWidgetItem, QVBoxLayout, QWidget
 
 from harrix_swiss_knife.actions.common.quick_launcher_dialog import QuickLauncherDialog, _layout_spacing_total
+from harrix_swiss_knife.actions.files.flip_slashes import OnFlipSlashes
+from harrix_swiss_knife.fluent.tokens import SPACE_M
+from harrix_swiss_knife.fluent.widgets.buttons import FluentIconButton
+from harrix_swiss_knife.fluent.widgets.cards import FluentIconTileCard
 from harrix_swiss_knife.qt_action_card_grid import (
     CARD_GRID_CELL_HEIGHT,
     CARD_ICON_SIZE,
@@ -28,25 +32,31 @@ def qapp() -> QApplication:
 
 
 def test_layout_spacing_total_without_markdown_panel(qapp: QApplication) -> None:  # noqa: ARG001
-    widget = QWidget()
-    layout = QVBoxLayout(widget)
-    layout.setSpacing(12)
+    content = QWidget()
+    content_layout = QVBoxLayout(content)
+    content_layout.setSpacing(SPACE_M)
+    scroll = QWidget()
+    scroll_layout = QVBoxLayout(scroll)
+    scroll_layout.setSpacing(SPACE_M)
 
-    # header, actions, divider, footer → 3 spacings
-    assert _layout_spacing_total(layout, split=False) == 36
-    # actions, divider, footer → 2 spacings
-    assert _layout_spacing_total(layout, split=False, has_fallback_header=False) == 24
+    # content: header + scroll + footer (2 spacings) + scroll: title + grid (1 spacing)
+    assert _layout_spacing_total(content_layout, scroll_layout, split=False) == SPACE_M * 3
+    # content: scroll + footer (1) + scroll: title + grid (1)
+    assert _layout_spacing_total(content_layout, scroll_layout, split=False, has_fallback_header=False) == SPACE_M * 2
 
 
 def test_layout_spacing_total_with_markdown_panel(qapp: QApplication) -> None:  # noqa: ARG001
-    widget = QWidget()
-    layout = QVBoxLayout(widget)
-    layout.setSpacing(12)
+    content = QWidget()
+    content_layout = QVBoxLayout(content)
+    content_layout.setSpacing(SPACE_M)
+    scroll = QWidget()
+    scroll_layout = QVBoxLayout(scroll)
+    scroll_layout.setSpacing(SPACE_M)
 
-    # header, actions, divider, markdown, footer → 4 spacings
-    assert _layout_spacing_total(layout, split=True) == 48
-    # actions, divider, markdown, footer → 3 spacings
-    assert _layout_spacing_total(layout, split=True, has_fallback_header=False) == 36
+    # content: header + scroll + footer (2) + scroll: title, grid, divider, md title, md grid (4)
+    assert _layout_spacing_total(content_layout, scroll_layout, split=True) == SPACE_M * 6
+    # content: scroll + footer (1) + scroll spacings (4)
+    assert _layout_spacing_total(content_layout, scroll_layout, split=True, has_fallback_header=False) == SPACE_M * 5
 
 
 def test_action_card_metrics_shrink_mildly_to_fit_extra_column() -> None:
@@ -71,6 +81,39 @@ def test_quick_launcher_hint_and_size_grip_share_footer(qapp: QApplication) -> N
     dialog.close()
 
 
+def test_quick_launcher_builds_fluent_icon_tiles(qapp: QApplication) -> None:  # noqa: ARG001
+    dialog = QuickLauncherDialog()
+    try:
+        dialog.set_action_classes([OnFlipSlashes])
+        cards = dialog._actions_grid.cards()
+        assert len(cards) == 1
+        card = cards[0]
+        assert isinstance(card, FluentIconTileCard)
+        assert card.user_data is OnFlipSlashes
+        assert card.title()
+    finally:
+        dialog.close()
+        dialog.deleteLater()
+
+
+def test_quick_launcher_markdown_ai_button(qapp: QApplication) -> None:  # noqa: ARG001
+    dialog = QuickLauncherDialog()
+    try:
+        dialog._apply_split_layout(enabled=True)
+        dialog._set_markdown_choices(
+            [("📚", "Book"), ("📑", "Template")],
+            ai_screenshot_titles={"Template"},
+        )
+        cards = [card for card in dialog._markdown_grid.cards() if isinstance(card, FluentIconTileCard)]
+        assert len(cards) == 2
+        book, template = cards
+        assert book.findChild(FluentIconButton, "quickLauncherAiButton") is None
+        assert template.findChild(FluentIconButton, "quickLauncherAiButton") is not None
+    finally:
+        dialog.close()
+        dialog.deleteLater()
+
+
 def test_action_card_grid_grows_for_wrapped_captions(qapp: QApplication) -> None:
     host = QWidget()
     host.resize(220, 320)
@@ -89,7 +132,6 @@ def test_action_card_grid_grows_for_wrapped_captions(qapp: QApplication) -> None
     assert grid.gridSize().height() > CARD_ICON_SIZE + CARD_TEXT_AREA_HEIGHT - 20
     assert item.sizeHint().height() == grid.gridSize().height()
     assert grid.visualItemRect(item).height() >= item.sizeHint().height() - 2
-    # Caption needs more than the default one-line text strip under a shrunk icon.
     assert grid.gridSize().height() - grid.iconSize().height() > CARD_TEXT_AREA_HEIGHT
     host.close()
 

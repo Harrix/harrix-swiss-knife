@@ -106,8 +106,26 @@ own sizes when built without this grid's uniform-width hook.
 ```python
 class FluentCardGrid(QWidget):
 
-    def __init__(self, parent: QWidget | None = None, *, spacing: int = CARD_GRID_SPACING) -> None:
-        """Create an empty card grid."""
+    def __init__(
+        self,
+        parent: QWidget | None = None,
+        *,
+        spacing: int = CARD_GRID_SPACING,
+        base_width: int = COMMAND_CARD_WIDTH,
+        min_scale: float = COMMAND_CARD_MIN_SCALE,
+    ) -> None:
+        """Create an empty card grid.
+
+        Args:
+
+        - `parent` (`QWidget | None`): Optional parent.
+        - `spacing` (`int`): Gap between cards. Defaults to `CARD_GRID_SPACING`.
+        - `base_width` (`int`): Preferred column width before squeeze (command cards
+          or icon tiles).
+        - `min_scale` (`float`): Lowest fraction of `base_width` allowed when
+          fitting one more column.
+
+        """
         super().__init__(parent)
         self._spacing = spacing
         self._layout = FlowLayout(
@@ -115,7 +133,12 @@ class FluentCardGrid(QWidget):
             margin=0,
             h_spacing=spacing,
             v_spacing=spacing,
-            item_width_for=lambda width: resolve_command_card_width(width, spacing=spacing),
+            item_width_for=lambda width: resolve_command_card_width(
+                width,
+                spacing=spacing,
+                base_width=base_width,
+                min_scale=min_scale,
+            ),
         )
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
 
@@ -158,16 +181,32 @@ class FluentCardGrid(QWidget):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None = None, *, spacing: int = CARD_GRID_SPACING) -> None
+def __init__(self, parent: QWidget | None = None, *, spacing: int = CARD_GRID_SPACING, base_width: int = COMMAND_CARD_WIDTH, min_scale: float = COMMAND_CARD_MIN_SCALE) -> None
 ```
 
 Create an empty card grid.
+
+Args:
+
+- `parent` (`QWidget | None`): Optional parent.
+- `spacing` (`int`): Gap between cards. Defaults to `CARD_GRID_SPACING`.
+- `base_width` (`int`): Preferred column width before squeeze (command cards
+  or icon tiles).
+- `min_scale` (`float`): Lowest fraction of `base_width` allowed when
+  fitting one more column.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def __init__(self, parent: QWidget | None = None, *, spacing: int = CARD_GRID_SPACING) -> None:
+def __init__(
+        self,
+        parent: QWidget | None = None,
+        *,
+        spacing: int = CARD_GRID_SPACING,
+        base_width: int = COMMAND_CARD_WIDTH,
+        min_scale: float = COMMAND_CARD_MIN_SCALE,
+    ) -> None:
         super().__init__(parent)
         self._spacing = spacing
         self._layout = FlowLayout(
@@ -175,7 +214,12 @@ def __init__(self, parent: QWidget | None = None, *, spacing: int = CARD_GRID_SP
             margin=0,
             h_spacing=spacing,
             v_spacing=spacing,
-            item_width_for=lambda width: resolve_command_card_width(width, spacing=spacing),
+            item_width_for=lambda width: resolve_command_card_width(
+                width,
+                spacing=spacing,
+                base_width=base_width,
+                min_scale=min_scale,
+            ),
         )
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
 ```

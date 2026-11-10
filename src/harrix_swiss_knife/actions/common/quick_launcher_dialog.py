@@ -6,15 +6,12 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, ClassVar, cast
 
 from PySide6.QtCore import QEvent, QEventLoop, QObject, QPoint, QSize, Qt, QTimer
-from PySide6.QtGui import QFont, QIcon, QKeyEvent, QKeySequence, QMouseEvent, QResizeEvent
+from PySide6.QtGui import QColor, QFont, QKeyEvent, QKeySequence, QMouseEvent, QResizeEvent
 from PySide6.QtWidgets import (
     QApplication,
     QDialog,
-    QFrame,
     QHBoxLayout,
     QLabel,
-    QListWidget,
-    QListWidgetItem,
     QPushButton,
     QSizeGrip,
     QSizePolicy,
@@ -35,28 +32,29 @@ from harrix_swiss_knife.apps.common.keyboard_shortcuts import (
     show_keyboard_shortcuts_help,
 )
 from harrix_swiss_knife.cli_menu import show_action_class_context_menu
-from harrix_swiss_knife.fluent.app_chrome import install_fluent_app_window
+from harrix_swiss_knife.fluent.app_chrome import install_fluent_app_window, prepare_fluent_app_window
 from harrix_swiss_knife.fluent.theme import bind_theme, css, mix, palette_for
-from harrix_swiss_knife.fluent.tokens import SPACE_L, SPACE_M
-from harrix_swiss_knife.fluent.widgets.buttons import FluentToolButton
+from harrix_swiss_knife.fluent.tokens import (
+    COMMAND_CARD_MIN_SCALE,
+    ICON_TILE_HEIGHT,
+    ICON_TILE_ICON_SIZE,
+    ICON_TILE_WIDTH,
+    SPACE_L,
+    SPACE_M,
+    SPACE_S,
+)
+from harrix_swiss_knife.fluent.widgets.buttons import FluentIconButton, FluentToolButton
+from harrix_swiss_knife.fluent.widgets.cards import FluentIconTileCard
 from harrix_swiss_knife.fluent.widgets.menus import FluentMenu
+from harrix_swiss_knife.fluent.widgets.text import SubtitleLabel
+from harrix_swiss_knife.fluent.widgets.views import FluentCardGrid, FluentScrollArea
 from harrix_swiss_knife.installer.icon_assets import apply_window_icon
-from harrix_swiss_knife.qt_action_card_grid import (
-    CARD_ICON_SIZE,
-    configure_action_card_grid,
-    sync_action_card_grid,
-)
 from harrix_swiss_knife.qt_action_icon import create_action_icon
-from harrix_swiss_knife.qt_command_section import (
-    create_command_section,
-    create_command_section_divider,
-    grow_qfont,
-    measure_icon_grid_height,
-    style_transparent_icon_grid,
-)
+from harrix_swiss_knife.qt_command_section import grow_qfont
+from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
 from harrix_swiss_knife.qt_frameless_window import frameless_stay_on_top_flags, try_handle_frameless_resize_native_event
 from harrix_swiss_knife.qt_lucide_icon import CLOSE_BUTTON_ICON, apply_lucide_button_icon
-from harrix_swiss_knife.qt_markdown_choice_cards import populate_icon_choice_cards
+from harrix_swiss_knife.qt_markdown_choice_cards import AI_SCREENSHOT_TOOLTIP
 from harrix_swiss_knife.win11_caption import (
     CAPTION_BUTTON_HEIGHT,
     install_win11_caption,
@@ -71,6 +69,7 @@ if TYPE_CHECKING:
 
 _OVERLAY_MIN_SIZE = QSize(900, 560)
 _OVERLAY_DEFAULT_SIZE = QSize(1024, 720)
+_AI_BUTTON_SIZE = 28
 
 
 class QuickLauncherDialog(QDialog):
@@ -97,55 +96,72 @@ class QuickLauncherDialog(QDialog):
         self._win11_caption = False
         self._close_button: QPushButton | None = None
         self._allow_destroy = False
+        self._selected_card: FluentIconTileCard | None = None
 
         self.setObjectName("quickLauncherDialog")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
+        prepare_fluent_app_window(self)
 
         self._layout = QVBoxLayout(self)
         self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.setSpacing(0)
 
         content = QWidget(self)
+        content.setObjectName("quickLauncherContent")
+        content.setAutoFillBackground(False)
         self._content_layout = QVBoxLayout(content)
         self._content_layout.setContentsMargins(SPACE_L, SPACE_M, SPACE_L, SPACE_L)
         self._content_layout.setSpacing(SPACE_M)
 
         menu_button = self._build_menu_button()
-        install_fluent_app_window(self)
-        bind_theme(self, self._refresh_overlay_theme)
         self._win11_caption = install_win11_caption(self, trailing_widgets=[menu_button])
         if not self._win11_caption:
             self._build_fallback_header(menu_button)
 
-        self._cards = QListWidget(self)
-        configure_action_card_grid(self._cards)
-        style_transparent_icon_grid(self._cards)
-        self._cards.itemClicked.connect(self._on_item_clicked)
-        self._cards.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self._cards.customContextMenuRequested.connect(self._on_cards_context_menu)
-        self._actions_section, _, actions_layout = create_command_section(title="Actions", bordered=False)
-        actions_layout.addWidget(self._cards)
-        self._content_layout.addWidget(self._actions_section, stretch=1)
+        self._scroll = FluentScrollArea(content)
+        self._scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self._scroll.setWidgetResizable(True)
+        self._scroll_body = QWidget()
+        self._scroll_body.setObjectName("quickLauncherScrollBody")
+        self._scroll_body.setAutoFillBackground(False)
+        self._scroll_layout = QVBoxLayout(self._scroll_body)
+        self._scroll_layout.setContentsMargins(0, 0, 0, 0)
+        self._scroll_layout.setSpacing(SPACE_M)
+        self._scroll_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        self._actions_divider = create_command_section_divider()
-        self._content_layout.addWidget(self._actions_divider)
+        self._actions_title = SubtitleLabel("Actions", self._scroll_body)
+        self._actions_title.setCursor(Qt.CursorShape.OpenHandCursor)
+        self._scroll_layout.addWidget(self._actions_title)
 
-        self._markdown_cards = QListWidget(self)
-        configure_action_card_grid(self._markdown_cards)
-        style_transparent_icon_grid(self._markdown_cards)
-        self._markdown_section, self._markdown_section_label, markdown_layout = create_command_section(
-            title="New Markdown",
-            bordered=False,
+        self._actions_grid = FluentCardGrid(
+            self._scroll_body,
+            base_width=ICON_TILE_WIDTH,
+            min_scale=COMMAND_CARD_MIN_SCALE,
         )
-        if self._markdown_section_label is not None:
-            self._markdown_section_label.setCursor(Qt.CursorShape.OpenHandCursor)
-        markdown_layout.addWidget(self._markdown_cards)
-        self._content_layout.addWidget(self._markdown_section, stretch=1)
+        self._scroll_layout.addWidget(self._actions_grid)
+
+        self._actions_divider = QWidget(self._scroll_body)
+        self._actions_divider.setObjectName("quickLauncherDivider")
+        self._actions_divider.setFixedHeight(1)
+        self._actions_divider.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self._scroll_layout.addWidget(self._actions_divider)
+
+        self._markdown_title = SubtitleLabel("New Markdown", self._scroll_body)
+        self._markdown_title.setCursor(Qt.CursorShape.OpenHandCursor)
+        self._scroll_layout.addWidget(self._markdown_title)
+
+        self._markdown_grid = FluentCardGrid(
+            self._scroll_body,
+            base_width=ICON_TILE_WIDTH,
+            min_scale=COMMAND_CARD_MIN_SCALE,
+        )
+        self._scroll_layout.addWidget(self._markdown_grid)
+
+        self._scroll.setWidget(self._scroll_body)
+        self._content_layout.addWidget(self._scroll, stretch=1)
 
         self._hint = QLabel(self)
         self._hint.setCursor(Qt.CursorShape.OpenHandCursor)
-        self._update_hint()
-        self._refresh_overlay_theme()
 
         footer = QHBoxLayout()
         footer.setContentsMargins(0, 0, 0, 0)
@@ -156,12 +172,13 @@ class QuickLauncherDialog(QDialog):
 
         self._layout.addWidget(content, stretch=1)
 
-        draggable_widgets: list[QWidget] = [self._hint]
-        if self._markdown_section_label is not None:
-            draggable_widgets.append(self._markdown_section_label)
-        for draggable_widget in draggable_widgets:
+        for draggable_widget in (self._hint, self._actions_title, self._markdown_title):
             draggable_widget.installEventFilter(self)
 
+        install_fluent_app_window(self)
+        bind_theme(self, self._refresh_overlay_theme)
+        self._update_hint()
+        self._refresh_overlay_theme()
         self._apply_split_layout(enabled=False)
         self.setMouseTracking(True)
         self.setCursor(Qt.CursorShape.OpenHandCursor)
@@ -200,7 +217,13 @@ class QuickLauncherDialog(QDialog):
         dialog.deleteLater()
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
-        """Start window drag from passive header and hint widgets."""
+        """Start window drag from passive header and hint widgets; reposition AI buttons."""
+        if isinstance(watched, FluentIconTileCard) and event.type() == QEvent.Type.Resize:
+            button = watched.findChild(FluentIconButton, "quickLauncherAiButton")
+            if button is not None:
+                _position_ai_button(watched, button)
+            return False
+
         if isinstance(watched, QWidget) and self._is_drag_excluded_widget(watched):
             return False
 
@@ -233,9 +256,17 @@ class QuickLauncherDialog(QDialog):
         return False
 
     def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
-        """Hide the overlay on Escape."""
+        """Hide the overlay on Escape; move focus between cards with arrows."""
         if event.key() == Qt.Key.Key_Escape:
             self.hide()
+            event.accept()
+            return
+        if event.key() in {
+            Qt.Key.Key_Left,
+            Qt.Key.Key_Right,
+            Qt.Key.Key_Up,
+            Qt.Key.Key_Down,
+        } and self._move_card_focus(Qt.Key(event.key())):
             event.accept()
             return
         super().keyPressEvent(event)
@@ -280,39 +311,32 @@ class QuickLauncherDialog(QDialog):
         self._retarget_to_active_modal_parent()
         width = max(self.width(), _OVERLAY_DEFAULT_SIZE.width())
         self.resize(width, max(self.height(), _OVERLAY_MIN_SIZE.height()))
-        # Layout off-screen first: a DontShowOnScreen show/hide cycle blinks on Win11
-        # for this frameless stay-on-top window, and fitting after a normal show jumps.
         opening = not self.isVisible()
         if opening:
             self.move(-10_000, -10_000)
         self.show()
         self._fit_to_content()
         if opening:
-            # Flush resize-triggered refits while still off-screen, then re-fit.
             QApplication.processEvents(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
             self._fit_to_content()
         self._center_on_screen()
         self.raise_()
         self.activateWindow()
-        if self._cards.count():
-            self._cards.setCurrentRow(0)
-            self._cards.setFocus()
+        self._focus_first_card()
 
     def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
-        """Reflow icon grids when the window width changes."""
+        """Reflow card grids when the window width changes."""
         super().resizeEvent(event)
         QTimer.singleShot(0, self._refit_grids_for_width)
 
     def set_action_classes(self, action_classes: list[type[ActionBase]]) -> None:
         """Rebuild the action card grid."""
         self._action_classes = list(action_classes)
-        self._cards.clear()
+        self._actions_grid.clear()
+        self._selected_card = None
         for action_cls in self._action_classes:
-            item = QListWidgetItem(strip_md_inline_code_markers(action_cls.title), self._cards)
-            item.setData(Qt.ItemDataRole.UserRole, action_cls)
-            item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
-            item.setIcon(_action_icon(action_cls, CARD_ICON_SIZE))
-            self._cards.addItem(item)
+            card = self._make_action_card(action_cls)
+            self._actions_grid.add_card(card)
 
     @classmethod
     def toggle(
@@ -350,20 +374,15 @@ class QuickLauncherDialog(QDialog):
             template_titles = {title for title, (kind, _) in action_map.items() if kind == "template"}
             self._set_markdown_choices(choices, ai_screenshot_titles=template_titles)
         else:
-            self._markdown_cards.clear()
+            self._markdown_grid.clear()
         if self.isVisible():
             self._fit_to_content()
 
     def _apply_split_layout(self, *, enabled: bool) -> None:
         """Show or hide the Markdown panel."""
-        self._markdown_section.setVisible(enabled)
-        configure_action_card_grid(self._cards)
-        style_transparent_icon_grid(self._cards)
-        if enabled:
-            configure_action_card_grid(self._markdown_cards)
-            style_transparent_icon_grid(self._markdown_cards)
-        self._content_layout.setStretch(self._content_layout.indexOf(self._actions_section), 1)
-        self._content_layout.setStretch(self._content_layout.indexOf(self._markdown_section), 1 if enabled else 0)
+        self._actions_divider.setVisible(enabled)
+        self._markdown_title.setVisible(enabled)
+        self._markdown_grid.setVisible(enabled)
 
     def _build_fallback_header(self, menu_button: FluentToolButton) -> None:
         """Build a simple title row when Win11 caption is unavailable."""
@@ -375,7 +394,7 @@ class QuickLauncherDialog(QDialog):
         title.setCursor(Qt.CursorShape.OpenHandCursor)
 
         close_button = QPushButton("")
-        close_button.setFixedSize(28, 28)
+        close_button.setFixedSize(CAPTION_BUTTON_HEIGHT, CAPTION_BUTTON_HEIGHT)
         close_button.setFlat(True)
         close_button.setToolTip("Close")
         close_button.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -419,16 +438,12 @@ class QuickLauncherDialog(QDialog):
         center_widget_on_available_screen(self)
 
     def _content_height_metrics(self) -> _ContentHeightMetrics:
-        for grid in (self._cards, self._markdown_cards):
-            grid.setMinimumHeight(0)
-            grid.setMaximumHeight(16777215)
-            sync_action_card_grid(grid)
-
-        split = self._markdown_section.isVisible()
-        cards_natural = measure_icon_grid_height(self._cards)
-        markdown_natural = measure_icon_grid_height(self._markdown_cards) if split else 0
-        actions_chrome = _section_chrome_height(self._actions_section)
-        markdown_chrome = _section_chrome_height(self._markdown_section) if split else 0
+        split = self._markdown_grid.isVisible()
+        grid_width = self._grid_content_width()
+        cards_natural = _grid_natural_height(self._actions_grid, grid_width)
+        markdown_natural = _grid_natural_height(self._markdown_grid, grid_width) if split else 0
+        actions_chrome = self._actions_title.sizeHint().height()
+        markdown_chrome = self._markdown_title.sizeHint().height() if split else 0
         divider_height = self._actions_divider.height() if self._actions_divider.isVisible() else 0
         window_chrome = _layout_vertical_chrome(
             self._content_layout,
@@ -438,6 +453,7 @@ class QuickLauncherDialog(QDialog):
             window_chrome += CAPTION_BUTTON_HEIGHT
         spacing_total = _layout_spacing_total(
             self._content_layout,
+            self._scroll_layout,
             split=split,
             has_fallback_header=not self._win11_caption,
         )
@@ -466,50 +482,23 @@ class QuickLauncherDialog(QDialog):
         metrics = self._content_height_metrics()
         screen = QApplication.primaryScreen()
         screen_max_height = screen.availableGeometry().height() if screen is not None else metrics.content_height
-
-        min_height = min(metrics.content_height, screen_max_height)
-        self.setMinimumHeight(min_height)
-
-        target_height = min_height
-        available_for_grids = max(
-            0,
-            target_height - metrics.window_chrome - metrics.spacing_total - metrics.sections_chrome,
-        )
-
-        if metrics.grids_natural <= available_for_grids:
-            _apply_card_grid_height(
-                self._cards,
-                natural=metrics.cards_natural,
-                allocated=metrics.cards_natural,
-            )
-            if metrics.split:
-                _apply_card_grid_height(
-                    self._markdown_cards,
-                    natural=metrics.markdown_natural,
-                    allocated=metrics.markdown_natural,
-                )
-        elif metrics.split and metrics.grids_natural > 0:
-            cards_allocated = max(120, int(available_for_grids * metrics.cards_natural / metrics.grids_natural))
-            markdown_allocated = max(120, available_for_grids - cards_allocated)
-            _apply_card_grid_height(
-                self._cards,
-                natural=metrics.cards_natural,
-                allocated=cards_allocated,
-            )
-            _apply_card_grid_height(
-                self._markdown_cards,
-                natural=metrics.markdown_natural,
-                allocated=markdown_allocated,
-            )
-        else:
-            _apply_card_grid_height(
-                self._cards,
-                natural=metrics.cards_natural,
-                allocated=max(120, available_for_grids),
-            )
-
+        target_height = min(max(metrics.content_height, _OVERLAY_MIN_SIZE.height()), screen_max_height)
+        self.setMinimumHeight(min(metrics.content_height, screen_max_height, _OVERLAY_MIN_SIZE.height()))
         width = max(self.width(), _OVERLAY_MIN_SIZE.width())
         self.resize(width, target_height)
+
+    def _focus_first_card(self) -> None:
+        cards = [card for card in self._actions_grid.cards() if isinstance(card, FluentIconTileCard)]
+        if not cards:
+            cards = [card for card in self._markdown_grid.cards() if isinstance(card, FluentIconTileCard)]
+        if not cards:
+            return
+        self._select_card(cards[0])
+        cards[0].setFocus(Qt.FocusReason.OtherFocusReason)
+
+    def _grid_content_width(self) -> int:
+        margins = self._content_layout.contentsMargins()
+        return max(1, self.width() - margins.left() - margins.right())
 
     def _is_drag_excluded_widget(self, widget: QWidget) -> bool:
         if self._close_button is not None and (widget is self._close_button or self._close_button.isAncestorOf(widget)):
@@ -517,99 +506,123 @@ class QuickLauncherDialog(QDialog):
         caption = self.findChild(QWidget, "captionBar")
         if caption is not None and (widget is caption or caption.isAncestorOf(widget)):
             return True
-        if widget is self._cards or self._cards.isAncestorOf(widget):
+        if widget is self._actions_grid or self._actions_grid.isAncestorOf(widget):
             return True
-        if widget is self._markdown_cards or self._markdown_cards.isAncestorOf(widget):
+        if widget is self._markdown_grid or self._markdown_grid.isAncestorOf(widget):
             return True
         return widget is self._size_grip or self._size_grip.isAncestorOf(widget)
+
+    def _make_action_card(self, action_cls: type[ActionBase]) -> FluentIconTileCard:
+        title = strip_md_inline_code_markers(action_cls.title)
+        icon = create_action_icon(action_cls, ICON_TILE_ICON_SIZE)
+        card = FluentIconTileCard(
+            title,
+            icon=icon if not icon.isNull() else None,
+            user_data=action_cls,
+        )
+        card.clicked.connect(lambda listed=action_cls, host=card: self._on_action_card_clicked(listed, host))
+        card.context_menu_requested.connect(
+            lambda global_pos, listed=action_cls, host=card: show_action_class_context_menu(
+                parent=self,
+                global_pos=global_pos,
+                action_cls=listed,
+                host_widget=host,
+            ),
+        )
+        return card
+
+    def _make_markdown_card(
+        self,
+        icon_emoji: str,
+        title: str,
+        *,
+        show_ai: bool,
+    ) -> FluentIconTileCard:
+        icon = create_emoji_icon(icon_emoji or "📝", ICON_TILE_ICON_SIZE)
+        card = FluentIconTileCard(title, icon=icon if not icon.isNull() else None, user_data=title)
+        card.clicked.connect(lambda choice=title, host=card: self._on_markdown_card_clicked(choice, host))
+        if show_ai:
+            button = FluentIconButton("camera", card, tooltip=AI_SCREENSHOT_TOOLTIP)
+            button.setObjectName("quickLauncherAiButton")
+            button.setFixedSize(_AI_BUTTON_SIZE, _AI_BUTTON_SIZE)
+            button.clicked.connect(lambda choice=title: self._on_markdown_ai_screenshot(choice))
+            card.installEventFilter(self)
+            _position_ai_button(card, button)
+        return card
+
+    def _move_card_focus(self, key: Qt.Key) -> bool:
+        cards = [card for card in self._actions_grid.cards() if isinstance(card, FluentIconTileCard)]
+        if self._markdown_grid.isVisible():
+            cards.extend(card for card in self._markdown_grid.cards() if isinstance(card, FluentIconTileCard))
+        if not cards:
+            return False
+        current = self.focusWidget()
+        index = next((i for i, card in enumerate(cards) if card is current or card.isAncestorOf(current)), -1)
+        if index < 0 and self._selected_card is not None:
+            index = next((i for i, card in enumerate(cards) if card is self._selected_card), -1)
+        index = max(index, 0)
+        columns = max(1, self._grid_content_width() // max(1, cards[0].width() or 1))
+        if key == Qt.Key.Key_Left:
+            index = max(0, index - 1)
+        elif key == Qt.Key.Key_Right:
+            index = min(len(cards) - 1, index + 1)
+        elif key == Qt.Key.Key_Up:
+            index = max(0, index - columns)
+        elif key == Qt.Key.Key_Down:
+            index = min(len(cards) - 1, index + columns)
+        else:
+            return False
+        self._select_card(cards[index])
+        cards[index].setFocus(Qt.FocusReason.OtherFocusReason)
+        return True
 
     def _move_drag(self, global_pos: QPoint) -> None:
         self.move(global_pos - self._drag_position)
 
-    def _on_cards_context_menu(self, pos: QPoint) -> None:
-        """Show copy name/class/path for the action card under the cursor."""
-        item = self._cards.itemAt(pos)
-        if item is None:
-            return
-        action_cls = item.data(Qt.ItemDataRole.UserRole)
-        if not isinstance(action_cls, type):
-            return
-        show_action_class_context_menu(
-            parent=self,
-            global_pos=self._cards.mapToGlobal(pos),
-            action_cls=action_cls,
-            host_widget=self._cards.itemWidget(item) or self._cards,
-        )
-
-    def _on_item_clicked(self, item: QListWidgetItem) -> None:
-        self._run_action(item)
+    def _on_action_card_clicked(self, action_cls: type[ActionBase], card: FluentIconTileCard) -> None:
+        self._select_card(card)
+        self._run_action(action_cls)
 
     def _on_markdown_ai_screenshot(self, title: str) -> None:
         self._run_markdown_choice(title, ai_screenshot=True)
 
+    def _on_markdown_card_clicked(self, title: str, card: FluentIconTileCard) -> None:
+        self._select_card(card)
+        self._run_markdown_choice(title, ai_screenshot=False)
+
     def _refit_grids_for_width(self) -> None:
-        """Update card grid heights and enforce content-based minimum height."""
+        """Update minimum height when the window width changes."""
         if not self.isVisible():
             return
-
         metrics = self._content_height_metrics()
         screen = QApplication.primaryScreen()
         screen_max_height = screen.availableGeometry().height() if screen is not None else metrics.content_height
-        min_height = min(metrics.content_height, screen_max_height)
-        self.setMinimumHeight(min_height)
-
-        if metrics.content_height <= screen_max_height:
-            _apply_card_grid_height(
-                self._cards,
-                natural=metrics.cards_natural,
-                allocated=metrics.cards_natural,
-            )
-            if metrics.split:
-                _apply_card_grid_height(
-                    self._markdown_cards,
-                    natural=metrics.markdown_natural,
-                    allocated=metrics.markdown_natural,
-                )
-            if self.height() < min_height:
-                self.resize(self.width(), min_height)
-            return
-
-        available_for_grids = max(
-            0,
-            self.height() - metrics.window_chrome - metrics.spacing_total - metrics.sections_chrome,
-        )
-        if metrics.split and metrics.grids_natural > 0:
-            cards_allocated = max(120, int(available_for_grids * metrics.cards_natural / metrics.grids_natural))
-            markdown_allocated = max(120, available_for_grids - cards_allocated)
-            _apply_card_grid_height(
-                self._cards,
-                natural=metrics.cards_natural,
-                allocated=cards_allocated,
-            )
-            _apply_card_grid_height(
-                self._markdown_cards,
-                natural=metrics.markdown_natural,
-                allocated=markdown_allocated,
-            )
-        else:
-            _apply_card_grid_height(
-                self._cards,
-                natural=metrics.cards_natural,
-                allocated=max(120, available_for_grids),
-            )
+        min_height = min(max(metrics.content_height, _OVERLAY_MIN_SIZE.height()), screen_max_height)
+        self.setMinimumHeight(min(_OVERLAY_MIN_SIZE.height(), min_height))
+        if metrics.content_height <= screen_max_height and self.height() < metrics.content_height:
+            self.resize(self.width(), metrics.content_height)
 
     def _refresh_overlay_theme(self) -> None:
-        """Apply Fluent overlay border for the current theme."""
+        """Apply Fluent overlay border and divider for the current theme."""
         palette = palette_for(self)
         border = css(mix(palette.window_bg, palette.popup_stroke))
         window = css(palette.window_bg)
         muted = css(mix(palette.window_bg, palette.text_secondary))
+        divider = css(palette.divider)
         self.setStyleSheet(
-            f"#quickLauncherDialog {{ background-color: {window}; border: 1px solid {border}; }}",
+            f"#quickLauncherDialog {{ background-color: {window}; border: 1px solid {border}; }}"
+            "#quickLauncherContent, #quickLauncherScrollBody { background: transparent; }"
+            f"#quickLauncherDivider {{ background-color: {divider}; }}",
         )
         hint = getattr(self, "_hint", None)
         if hint is not None:
             hint.setStyleSheet(f"color: {muted};")
+        divider_widget = getattr(self, "_actions_divider", None)
+        if divider_widget is not None:
+            divider_palette = divider_widget.palette()
+            divider_palette.setColor(divider_widget.backgroundRole(), QColor(palette.divider))
+            divider_widget.setAutoFillBackground(True)
+            divider_widget.setPalette(divider_palette)
 
     def _retarget_to_active_modal_parent(self) -> None:
         """Parent launcher to active modal dialog so it stays interactive."""
@@ -620,18 +633,13 @@ class QuickLauncherDialog(QDialog):
 
         flags = _overlay_window_flags()
         if self.parentWidget() is not target_parent:
-            # setParent recreates the HWND; skip when already attached correctly.
             self.setParent(target_parent, flags)
         elif self.windowFlags() != flags:
             self.setWindowFlags(flags)
         self.setModal(False)
         self.setWindowModality(Qt.WindowModality.NonModal)
 
-    def _run_action(self, item: QListWidgetItem) -> None:
-        action_cls = item.data(Qt.ItemDataRole.UserRole)
-        if not isinstance(action_cls, type):
-            return
-
+    def _run_action(self, action_cls: type[ActionBase]) -> None:
         self.hide()
         action = action_cls(output_bus=self._output_bus)
         action()
@@ -643,19 +651,24 @@ class QuickLauncherDialog(QDialog):
             ai_screenshot=ai_screenshot,
         )
 
+    def _select_card(self, card: FluentIconTileCard) -> None:
+        previous = self._selected_card
+        if previous is not None and previous is not card:
+            previous.set_selected(selected=False)
+        card.set_selected(selected=True)
+        self._selected_card = card
+
     def _set_markdown_choices(
         self,
         choices: list[tuple[str, str]],
         *,
         ai_screenshot_titles: set[str] | None = None,
     ) -> None:
-        populate_icon_choice_cards(
-            self._markdown_cards,
-            choices,
-            ai_screenshot_titles=ai_screenshot_titles,
-            on_select=lambda title: self._run_markdown_choice(title, ai_screenshot=False),
-            on_ai_screenshot=self._on_markdown_ai_screenshot,
-        )
+        self._markdown_grid.clear()
+        ai_titles = ai_screenshot_titles or set()
+        for icon_emoji, title in choices:
+            card = self._make_markdown_card(icon_emoji, title, show_ai=title in ai_titles)
+            self._markdown_grid.add_card(card)
 
     def _show_keyboard_shortcuts(self) -> None:
         show_keyboard_shortcuts_help(
@@ -663,8 +676,9 @@ class QuickLauncherDialog(QDialog):
             "Quick launcher — Keyboard shortcuts",
             [
                 ShortcutHelpEntry("Esc", "Hide Quick launcher", "Window"),
-                ShortcutHelpEntry("Enter", "Run the selected action card", "Actions"),
-                ShortcutHelpEntry("Arrow keys", "Move between action cards", "Actions"),
+                ShortcutHelpEntry("Enter / Space", "Run the focused action card", "Actions"),
+                ShortcutHelpEntry("Tab", "Move focus between cards", "Actions"),
+                ShortcutHelpEntry("Arrow keys", "Move focus between cards", "Actions"),
                 ShortcutHelpEntry("F1", "Show this keyboard shortcuts help", "Help"),
             ],
         )
@@ -698,30 +712,26 @@ class _ContentHeightMetrics:
     content_height: int
 
 
-def _action_icon(action_cls: type[ActionBase], size: int = CARD_ICON_SIZE) -> QIcon:
-    return create_action_icon(action_cls, size)
+def _grid_natural_height(grid: FluentCardGrid, width: int) -> int:
+    if grid.count() == 0:
+        return 0
+    return max(ICON_TILE_HEIGHT, grid.flow_layout().heightForWidth(max(1, width)))
 
 
-def _apply_card_grid_height(
-    grid: QListWidget,
+def _layout_spacing_total(
+    content_layout: QVBoxLayout,
+    scroll_layout: QVBoxLayout,
     *,
-    natural: int,
-    allocated: int,
-) -> None:
-    grid.setMinimumHeight(allocated)
-    grid.setMaximumHeight(allocated)
-    grid.setVerticalScrollBarPolicy(
-        Qt.ScrollBarPolicy.ScrollBarAsNeeded if allocated < natural else Qt.ScrollBarPolicy.ScrollBarAlwaysOff,
-    )
-    if allocated >= natural:
-        grid.verticalScrollBar().setRange(0, 0)
-        grid.horizontalScrollBar().setRange(0, 0)
-
-
-def _layout_spacing_total(layout: QVBoxLayout, *, split: bool, has_fallback_header: bool = True) -> int:
-    # [fallback header,] actions section, divider, [markdown section], footer
-    visible_items = (4 if has_fallback_header else 3) + (1 if split else 0)
-    return layout.spacing() * max(0, visible_items - 1)
+    split: bool,
+    has_fallback_header: bool = True,
+) -> int:
+    # content: [fallback header,] scroll, footer
+    content_items = 3 if has_fallback_header else 2
+    content_spacing = content_layout.spacing() * max(0, content_items - 1)
+    # scroll: actions title, actions grid, [divider, markdown title, markdown grid]
+    scroll_items = 2 + (3 if split else 0)
+    scroll_spacing = scroll_layout.spacing() * max(0, scroll_items - 1)
+    return content_spacing + scroll_spacing
 
 
 def _layout_vertical_chrome(layout: QVBoxLayout, *, has_fallback_header: bool = True) -> int:
@@ -747,17 +757,6 @@ def _overlay_window_flags() -> Qt.WindowType:
     )
 
 
-def _section_chrome_height(section: QFrame) -> int:
-    """Height of section card chrome (margins, title, spacing) excluding the grid."""
-    layout = section.layout()
-    if layout is None:
-        return 0
-    margins = layout.contentsMargins()
-    chrome = margins.top() + margins.bottom()
-    if layout.count() == 0:
-        return chrome
-    first = layout.itemAt(0)
-    widget = first.widget() if first is not None else None
-    if isinstance(widget, QLabel):
-        chrome += widget.sizeHint().height() + layout.spacing()
-    return chrome
+def _position_ai_button(card: QWidget, button: QWidget) -> None:
+    button.move(max(0, card.width() - button.width() - SPACE_S), SPACE_S)
+    button.raise_()

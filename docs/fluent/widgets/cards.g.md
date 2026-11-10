@@ -23,32 +23,39 @@ lang: en
   - [⚙️ Method `set_icon`](#%EF%B8%8F-method-set_icon)
   - [⚙️ Method `sizeHint`](#%EF%B8%8F-method-sizehint)
   - [⚙️ Method `title`](#%EF%B8%8F-method-title)
-- [🏛️ Class `FluentImageCard`](#%EF%B8%8F-class-fluentimagecard)
+- [🏛️ Class `FluentIconTileCard`](#%EF%B8%8F-class-fluenticontilecard)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-2)
+  - [⚙️ Method `minimumSizeHint`](#%EF%B8%8F-method-minimumsizehint-1)
   - [⚙️ Method `paintEvent`](#%EF%B8%8F-method-paintevent-2)
-  - [⚙️ Method `set_pixmap`](#%EF%B8%8F-method-set_pixmap)
-- [🏛️ Class `FluentPopularCard`](#%EF%B8%8F-class-fluentpopularcard)
-  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-3)
-  - [⚙️ Method `paintEvent`](#%EF%B8%8F-method-paintevent-3)
-- [🏛️ Class `FluentPromotionCard`](#%EF%B8%8F-class-fluentpromotioncard)
-  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-4)
-  - [⚙️ Method `paintEvent`](#%EF%B8%8F-method-paintevent-4)
-- [🏛️ Class `FluentReminderCard`](#%EF%B8%8F-class-fluentremindercard)
-  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-5)
-- [🏛️ Class `FluentSettingCard`](#%EF%B8%8F-class-fluentsettingcard)
-  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-6)
-  - [⚙️ Method `content`](#%EF%B8%8F-method-content)
-  - [⚙️ Method `paintEvent`](#%EF%B8%8F-method-paintevent-5)
-  - [⚙️ Method `set_content`](#%EF%B8%8F-method-set_content)
   - [⚙️ Method `set_icon`](#%EF%B8%8F-method-set_icon-1)
-  - [⚙️ Method `set_title`](#%EF%B8%8F-method-set_title)
   - [⚙️ Method `sizeHint`](#%EF%B8%8F-method-sizehint-1)
   - [⚙️ Method `title`](#%EF%B8%8F-method-title-1)
+- [🏛️ Class `FluentImageCard`](#%EF%B8%8F-class-fluentimagecard)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-3)
+  - [⚙️ Method `paintEvent`](#%EF%B8%8F-method-paintevent-3)
+  - [⚙️ Method `set_pixmap`](#%EF%B8%8F-method-set_pixmap)
+- [🏛️ Class `FluentPopularCard`](#%EF%B8%8F-class-fluentpopularcard)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-4)
+  - [⚙️ Method `paintEvent`](#%EF%B8%8F-method-paintevent-4)
+- [🏛️ Class `FluentPromotionCard`](#%EF%B8%8F-class-fluentpromotioncard)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-5)
+  - [⚙️ Method `paintEvent`](#%EF%B8%8F-method-paintevent-5)
+- [🏛️ Class `FluentReminderCard`](#%EF%B8%8F-class-fluentremindercard)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-6)
+- [🏛️ Class `FluentSettingCard`](#%EF%B8%8F-class-fluentsettingcard)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-7)
+  - [⚙️ Method `content`](#%EF%B8%8F-method-content)
+  - [⚙️ Method `paintEvent`](#%EF%B8%8F-method-paintevent-6)
+  - [⚙️ Method `set_content`](#%EF%B8%8F-method-set_content)
+  - [⚙️ Method `set_icon`](#%EF%B8%8F-method-set_icon-2)
+  - [⚙️ Method `set_title`](#%EF%B8%8F-method-set_title)
+  - [⚙️ Method `sizeHint`](#%EF%B8%8F-method-sizehint-2)
+  - [⚙️ Method `title`](#%EF%B8%8F-method-title-2)
   - [⚙️ Method `url`](#%EF%B8%8F-method-url-1)
 - [🏛️ Class `FluentSettingEditorCard`](#%EF%B8%8F-class-fluentsettingeditorcard)
-  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-7)
-- [🏛️ Class `FluentSettingHyperlinkCard`](#%EF%B8%8F-class-fluentsettinghyperlinkcard)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-8)
+- [🏛️ Class `FluentSettingHyperlinkCard`](#%EF%B8%8F-class-fluentsettinghyperlinkcard)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-9)
 - [🔧 Function `elide_lines`](#-function-elide_lines)
 
 </details>
@@ -551,6 +558,249 @@ Return the preferred command card size before the grid stretches it.
 ```python
 def sizeHint(self) -> QSize:  # noqa: N802
         return QSize(COMMAND_CARD_WIDTH, COMMAND_CARD_HEIGHT)
+```
+
+</details>
+
+### ⚙️ Method `title`
+
+```python
+def title(self) -> str
+```
+
+Return the title text.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def title(self) -> str:
+        return self._title
+```
+
+</details>
+
+## 🏛️ Class `FluentIconTileCard`
+
+```python
+class FluentIconTileCard(FluentInteractiveCard)
+```
+
+Compact tile: centered icon above a wrapped title (no description).
+
+Used by Quick launcher and the capture picker. Preferred width is
+`ICON_TILE_WIDTH`; a [`FluentCardGrid`](views.g.md#%EF%B8%8F-class-fluentcardgrid) with matching `base_width` assigns the
+shared column width.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class FluentIconTileCard(FluentInteractiveCard):
+
+    _TITLE_LINES = 3
+
+    def __init__(
+        self,
+        title: str,
+        parent: QWidget | None = None,
+        *,
+        icon: QIcon | str | None = None,
+        user_data: object = None,
+    ) -> None:
+        """Create an icon tile card.
+
+        Args:
+
+        - `title` (`str`): Label under the icon (up to three wrapped lines).
+        - `parent` (`QWidget | None`): Optional parent.
+        - `icon` (`QIcon | str | None`): Ready icon, or a Lucide ID.
+        - `user_data` (`object`): Arbitrary payload (for example an action class).
+
+        """
+        self._title = title
+        self._icon = icon
+        self.user_data = user_data
+        super().__init__(parent)
+        self.setFixedHeight(ICON_TILE_HEIGHT)
+        self.setMinimumWidth(max(1, int(ICON_TILE_WIDTH * COMMAND_CARD_MIN_SCALE)))
+        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+        self.setToolTip(title)
+
+    def minimumSizeHint(self) -> QSize:  # noqa: N802
+        """Return the smallest width a tile grid may squeeze to."""
+        return QSize(self.minimumWidth(), ICON_TILE_HEIGHT)
+
+    def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
+        """Paint the surface, centered icon, and wrapped title."""
+        palette = palette_for(self)
+        painter = antialiased_painter(self)
+        self.paint_background(painter, palette)
+        rect = self.rect().adjusted(SPACE_S, SPACE_M, -SPACE_S, -SPACE_M)
+        icon = _icon_for(self._icon, palette, ICON_TILE_ICON_SIZE)
+        if icon is not None:
+            icon_x = rect.left() + max(0, (rect.width() - ICON_TILE_ICON_SIZE) // 2)
+            icon.paint(painter, QRect(icon_x, rect.top(), ICON_TILE_ICON_SIZE, ICON_TILE_ICON_SIZE))
+        title_font = fluent_font(self.font(), TYPE_CAPTION, weight=QFont.Weight.DemiBold)
+        metrics = QFontMetrics(title_font)
+        lines = elide_lines(self._title, metrics, rect.width(), self._TITLE_LINES)
+        line_height = metrics.height()
+        text_top = rect.top() + ICON_TILE_ICON_SIZE + SPACE_S
+        painter.setFont(title_font)
+        painter.setPen(palette.text_primary)
+        for index, line in enumerate(lines):
+            painter.drawText(
+                QRect(rect.left(), text_top + index * line_height, rect.width(), line_height),
+                int(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop),
+                line,
+            )
+        painter.end()
+
+    def set_icon(self, icon: QIcon | str | None) -> None:
+        """Replace the icon."""
+        self._icon = icon
+        self.update()
+
+    def sizeHint(self) -> QSize:  # noqa: N802
+        """Return the preferred tile size before the grid stretches width."""
+        return QSize(ICON_TILE_WIDTH, ICON_TILE_HEIGHT)
+
+    def title(self) -> str:
+        """Return the title text."""
+        return self._title
+```
+
+</details>
+
+### ⚙️ Method `__init__`
+
+```python
+def __init__(self, title: str, parent: QWidget | None = None, *, icon: QIcon | str | None = None, user_data: object = None) -> None
+```
+
+Create an icon tile card.
+
+Args:
+
+- `title` (`str`): Label under the icon (up to three wrapped lines).
+- `parent` (`QWidget | None`): Optional parent.
+- [`icon`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-icon) (`QIcon | str | None`): Ready icon, or a Lucide ID.
+- `user_data` (`object`): Arbitrary payload (for example an action class).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __init__(
+        self,
+        title: str,
+        parent: QWidget | None = None,
+        *,
+        icon: QIcon | str | None = None,
+        user_data: object = None,
+    ) -> None:
+        self._title = title
+        self._icon = icon
+        self.user_data = user_data
+        super().__init__(parent)
+        self.setFixedHeight(ICON_TILE_HEIGHT)
+        self.setMinimumWidth(max(1, int(ICON_TILE_WIDTH * COMMAND_CARD_MIN_SCALE)))
+        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+        self.setToolTip(title)
+```
+
+</details>
+
+### ⚙️ Method `minimumSizeHint`
+
+```python
+def minimumSizeHint(self) -> QSize
+```
+
+Return the smallest width a tile grid may squeeze to.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def minimumSizeHint(self) -> QSize:  # noqa: N802
+        return QSize(self.minimumWidth(), ICON_TILE_HEIGHT)
+```
+
+</details>
+
+### ⚙️ Method `paintEvent`
+
+```python
+def paintEvent(self, _event: QPaintEvent) -> None
+```
+
+Paint the surface, centered icon, and wrapped title.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
+        palette = palette_for(self)
+        painter = antialiased_painter(self)
+        self.paint_background(painter, palette)
+        rect = self.rect().adjusted(SPACE_S, SPACE_M, -SPACE_S, -SPACE_M)
+        icon = _icon_for(self._icon, palette, ICON_TILE_ICON_SIZE)
+        if icon is not None:
+            icon_x = rect.left() + max(0, (rect.width() - ICON_TILE_ICON_SIZE) // 2)
+            icon.paint(painter, QRect(icon_x, rect.top(), ICON_TILE_ICON_SIZE, ICON_TILE_ICON_SIZE))
+        title_font = fluent_font(self.font(), TYPE_CAPTION, weight=QFont.Weight.DemiBold)
+        metrics = QFontMetrics(title_font)
+        lines = elide_lines(self._title, metrics, rect.width(), self._TITLE_LINES)
+        line_height = metrics.height()
+        text_top = rect.top() + ICON_TILE_ICON_SIZE + SPACE_S
+        painter.setFont(title_font)
+        painter.setPen(palette.text_primary)
+        for index, line in enumerate(lines):
+            painter.drawText(
+                QRect(rect.left(), text_top + index * line_height, rect.width(), line_height),
+                int(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop),
+                line,
+            )
+        painter.end()
+```
+
+</details>
+
+### ⚙️ Method `set_icon`
+
+```python
+def set_icon(self, icon: QIcon | str | None) -> None
+```
+
+Replace the icon.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_icon(self, icon: QIcon | str | None) -> None:
+        self._icon = icon
+        self.update()
+```
+
+</details>
+
+### ⚙️ Method `sizeHint`
+
+```python
+def sizeHint(self) -> QSize
+```
+
+Return the preferred tile size before the grid stretches width.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def sizeHint(self) -> QSize:  # noqa: N802
+        return QSize(ICON_TILE_WIDTH, ICON_TILE_HEIGHT)
 ```
 
 </details>

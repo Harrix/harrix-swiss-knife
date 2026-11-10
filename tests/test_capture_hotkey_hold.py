@@ -14,6 +14,7 @@ from harrix_swiss_knife.capture_action_picker import (
     choose_capture_hotkey_action,
 )
 from harrix_swiss_knife.capture_hotkey import CAPTURE_HOTKEY_ACTIONS, CAPTURE_HOTKEY_LONG_PRESS_MS
+from harrix_swiss_knife.fluent.widgets.cards import FluentIconTileCard
 from harrix_swiss_knife.global_hotkey import GlobalHotkeyManager
 
 
@@ -83,17 +84,17 @@ def test_hold_long_press_emits_action_long_press(qapp: QApplication) -> None:
 def test_capture_picker_matches_quick_launcher_chrome(qapp: QApplication) -> None:  # noqa: ARG001
     dialog = CaptureActionPickerDialog()
     try:
-        assert dialog.objectName() == "quickLauncherDialog"
+        assert dialog.objectName() == "captureActionPickerDialog"
         assert dialog.windowFlags() & Qt.WindowType.FramelessWindowHint
-        assert dialog._cards.count() == len(CAPTURE_PICKER_ACTIONS)
-        footer = dialog._layout.itemAt(dialog._layout.count() - 1).layout()
+        assert dialog._actions_grid.count() == len(CAPTURE_PICKER_ACTIONS)
+        footer = dialog._content_layout.itemAt(dialog._content_layout.count() - 1).layout()
         assert footer is not None
         assert footer.indexOf(dialog._hint) >= 0
         assert footer.indexOf(dialog._size_grip) >= 0
         names = {
-            item.data(Qt.ItemDataRole.UserRole).__name__
-            for index in range(dialog._cards.count())
-            if (item := dialog._cards.item(index)) is not None
+            card.user_data.__name__
+            for card in dialog._actions_grid.cards()
+            if isinstance(card, FluentIconTileCard) and isinstance(card.user_data, type)
         }
         assert names == CAPTURE_HOTKEY_ACTIONS
     finally:
@@ -115,11 +116,10 @@ def test_capture_picker_accepts_selected_action(qapp: QApplication) -> None:  # 
 def test_capture_picker_context_menu_uses_action_class_menu(qapp: QApplication) -> None:  # noqa: ARG001
     dialog = CaptureActionPickerDialog()
     try:
-        item = dialog._cards.item(0)
-        assert item is not None
-        rect = dialog._cards.visualItemRect(item)
+        cards = [card for card in dialog._actions_grid.cards() if isinstance(card, FluentIconTileCard)]
+        assert cards
         with patch("harrix_swiss_knife.capture_action_picker.show_action_class_context_menu") as show_menu:
-            dialog._on_cards_context_menu(rect.center())
+            cards[0].context_menu_requested.emit(cards[0].mapToGlobal(cards[0].rect().center()))
             show_menu.assert_called_once()
             kwargs = show_menu.call_args.kwargs
             assert kwargs["action_cls"] is CAPTURE_PICKER_ACTIONS[0]
