@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, ClassVar, cast
 
-from PySide6.QtCore import QEvent, QObject, QPoint, QSize, Qt, QTimer
+from PySide6.QtCore import QEvent, QEventLoop, QObject, QPoint, QSize, Qt, QTimer
 from PySide6.QtGui import QFont, QIcon, QKeyEvent, QKeySequence, QMouseEvent, QResizeEvent
 from PySide6.QtWidgets import (
     QApplication,
@@ -275,15 +275,28 @@ class QuickLauncherDialog(QDialog):
         return cast("tuple[bool, int]", super().nativeEvent(event_type, message))
 
     def present(self) -> None:
-        """Show and focus the overlay."""
+        """Show and focus the overlay without a visible size jump."""
         self._update_hint()
         self._retarget_to_active_modal_parent()
         width = max(self.width(), _OVERLAY_DEFAULT_SIZE.width())
-        self.resize(width, _OVERLAY_DEFAULT_SIZE.height())
+        self.resize(width, max(self.height(), _OVERLAY_MIN_SIZE.height()))
+        # Layout off-screen first: a DontShowOnScreen show/hide cycle blinks on Win11
+        # for this frameless stay-on-top window, and fitting after a normal show jumps.
+        opening = not self.isVisible()
+        if opening:
+            self.move(-10_000, -10_000)
         self.show()
+        self._fit_to_content()
+        if opening:
+            # Flush resize-triggered refits while still off-screen, then re-fit.
+            QApplication.processEvents(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
+            self._fit_to_content()
+        self._center_on_screen()
         self.raise_()
         self.activateWindow()
-        QTimer.singleShot(0, self._present_after_show)
+        if self._cards.count():
+            self._cards.setCurrentRow(0)
+            self._cards.setFocus()
 
     def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
         """Reflow icon grids when the window width changes."""
@@ -338,7 +351,8 @@ class QuickLauncherDialog(QDialog):
             self._set_markdown_choices(choices, ai_screenshot_titles=template_titles)
         else:
             self._markdown_cards.clear()
-        QTimer.singleShot(0, self._fit_to_content)
+        if self.isVisible():
+            self._fit_to_content()
 
     def _apply_split_layout(self, *, enabled: bool) -> None:
         """Show or hide the Markdown panel."""
@@ -532,13 +546,6 @@ class QuickLauncherDialog(QDialog):
 
     def _on_markdown_ai_screenshot(self, title: str) -> None:
         self._run_markdown_choice(title, ai_screenshot=True)
-
-    def _present_after_show(self) -> None:
-        self._fit_to_content()
-        self._center_on_screen()
-        if self._cards.count():
-            self._cards.setCurrentRow(0)
-            self._cards.setFocus()
 
     def _refit_grids_for_width(self) -> None:
         """Update card grid heights and enforce content-based minimum height."""
