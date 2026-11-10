@@ -12,6 +12,7 @@ from harrix_swiss_knife.cli_menu import (
     COPY_ACTION_NAME_MENU_PREFIX,
     COPY_ACTION_NAME_PREVIEW_MAX_LEN,
     COPY_ACTION_PATH_MENU_PREFIX,
+    CliContextMenu,
     format_copy_action_class_menu_label,
     format_copy_action_name_menu_label,
     format_copy_action_path_menu_label,
@@ -91,3 +92,19 @@ def test_action_identity_context_menu_uses_fluent_dark_chrome(
     finally:
         theme.set_mode(previous, persist=False)
         host.close()
+
+
+def test_tray_context_menu_follows_dark_theme_without_host(qapp: QApplication) -> None:
+    """Root tray menu has no Fluent window parent but still uses dark popup chrome."""
+    assert qapp is not None
+    theme = FluentTheme.instance()
+    previous = theme.mode()
+    theme.set_mode(ThemeMode.DARK, persist=False)
+    try:
+        menu = CliContextMenu()
+        menu.refresh_theme()
+        sheet = menu.styleSheet().casefold()
+        assert DARK_PALETTE.popup_bg.name().casefold() in sheet or "rgba(44, 44, 44" in sheet
+        assert "rgba(255, 255, 255" in sheet or "#ffffff" in sheet
+    finally:
+        theme.set_mode(previous, persist=False)
