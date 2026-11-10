@@ -206,8 +206,12 @@ SPACE_XXL = 36
 CONTROL_HEIGHT = 32
 CONTROL_HEIGHT_COMPACT = 24
 CONTROL_PADDING_H = 12
-# yyyy-MM-dd plus calendar chevron gutter (see date_edit_qss).
-DATE_EDIT_MIN_WIDTH = 124
+# Calendar chevron gutter; QDateEdit's line edit paints under ::drop-down without this.
+DATE_EDIT_DROP_WIDTH = 24
+# Floor for yyyy-MM-dd at default UI font; chrome also grows from font metrics.
+DATE_EDIT_MIN_WIDTH = 152
+# Non-text chrome excluding the drop gutter (border + left pad + layout slack).
+DATE_EDIT_CHROME_WIDTH = 64
 ICON_SIZE = 16
 ICON_SIZE_LARGE = 24
 CARD_ICON_SIZE = 40

@@ -17,6 +17,7 @@ from harrix_swiss_knife.fluent.theme import css, mix
 from harrix_swiss_knife.fluent.tokens import (
     CONTROL_HEIGHT,
     CONTROL_PADDING_H,
+    DATE_EDIT_DROP_WIDTH,
     ICON_SIZE,
     RADIUS_CARD,
     RADIUS_CONTROL,
@@ -114,16 +115,23 @@ def combo_box_qss(palette: FluentPalette, selector: str = "QComboBox", *, height
 def date_edit_qss(palette: FluentPalette, *, height: int = CONTROL_HEIGHT) -> str:
     """Return a Fluent date field with a flat chevron instead of a beveled arrow."""
     arrow = lucide_qss_url("chevron-down", mix(palette.control_fill, palette.text_primary), 12)
-    # line_edit_qss pads only 10px; the calendar drop-down is wider, so without a
-    # matching padding-right the last digit of yyyy-MM-dd paints under the chevron.
-    drop = 24
+    # line_edit_qss pads only 10px; the calendar drop-down is wider. Padding alone does
+    # not keep qt_spinbox_lineedit text clear of the chevron — app chrome also sets
+    # QLineEdit text margins to DATE_EDIT_DROP_WIDTH.
+    drop = DATE_EDIT_DROP_WIDTH
     return f"""
 {line_edit_qss(palette, "QDateEdit", height=height)}
 QDateEdit {{
     padding-right: {drop}px;
 }}
+QDateEdit QLineEdit {{
+    background: transparent;
+    border: none;
+    padding: 0px;
+    margin: 0px;
+}}
 QDateEdit::drop-down {{
-    subcontrol-origin: padding;
+    subcontrol-origin: border;
     subcontrol-position: center right;
     width: {drop}px;
     border: none;

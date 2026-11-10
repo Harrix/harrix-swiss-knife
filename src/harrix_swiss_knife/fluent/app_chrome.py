@@ -74,6 +74,8 @@ from harrix_swiss_knife.fluent.style import (
 from harrix_swiss_knife.fluent.theme import bind_theme, css, enable_fluent_theme, mix, palette_for, to_qpalette
 from harrix_swiss_knife.fluent.tokens import (
     CONTROL_HEIGHT,
+    DATE_EDIT_CHROME_WIDTH,
+    DATE_EDIT_DROP_WIDTH,
     DATE_EDIT_MIN_WIDTH,
     ICON_SIZE,
     RADIUS_CARD,
@@ -320,6 +322,23 @@ def _clear_viewport(view: QAbstractItemView, palette: FluentPalette) -> None:
     _set_sheet(viewport, f"background: {wallpaper_fill(palette)}; color: {text};")
 
 
+def _ensure_date_edit_text_fits(box: QDateEdit) -> None:
+    """Keep yyyy-MM-dd clear of the calendar chevron on any DPI / font size."""
+    line = box.lineEdit()
+    if line is not None:
+        # Match the polished control font; qt_spinbox_lineedit can lag behind.
+        line.setFont(box.font())
+        # Stylesheet padding does not keep the line edit clear of ::drop-down.
+        line.setTextMargins(0, 0, DATE_EDIT_DROP_WIDTH, 0)
+        metrics = line.fontMetrics()
+    else:
+        metrics = box.fontMetrics()
+    needed = metrics.horizontalAdvance("2024-11-10") + DATE_EDIT_DROP_WIDTH + DATE_EDIT_CHROME_WIDTH
+    floor = max(DATE_EDIT_MIN_WIDTH, needed)
+    if box.minimumWidth() < floor:
+        box.setMinimumWidth(floor)
+
+
 def _fluent_surface_qss(palette: FluentPalette) -> str:
     text = css(mix(palette.window_bg, palette.text_primary))
     secondary = css(mix(palette.window_bg, palette.text_secondary))
@@ -478,9 +497,7 @@ def _restyle_inputs(root: QWidget, palette: FluentPalette) -> None:
     for box in root.findChildren(QDateEdit):
         _set_sheet(box, date)
         _lock_control_height(box)
-        # Designer mins of 100px clip yyyy-MM-dd under the calendar chevron.
-        if box.minimumWidth() < DATE_EDIT_MIN_WIDTH:
-            box.setMinimumWidth(DATE_EDIT_MIN_WIDTH)
+        _ensure_date_edit_text_fits(box)
     plain = text_edit_qss(palette, "QPlainTextEdit")
     for edit in root.findChildren(QPlainTextEdit):
         _set_sheet(edit, plain)
