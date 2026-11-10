@@ -32,6 +32,7 @@ from PySide6.QtGui import (
     QKeySequence,
     QMouseEvent,
     QPainter,
+    QPalette,
     QPixmap,
     QResizeEvent,
     QWheelEvent,
@@ -59,7 +60,6 @@ from harrix_swiss_knife.apps.common.ui_chrome import (
     SELECTION_BORDER,
     SELECTION_HOVER,
     SELECTION_TEXT,
-    apply_readable_selection_palette,
 )
 from harrix_swiss_knife.apps.icons.catalog import (
     family_has_svg_files,
@@ -67,7 +67,11 @@ from harrix_swiss_knife.apps.icons.catalog import (
     family_svg_paths,
     is_openable_license_url,
 )
-from harrix_swiss_knife.apps.icons.meta_filter import build_variants_header_html, parse_meta_link
+from harrix_swiss_knife.apps.icons.meta_filter import (
+    build_variants_header_html,
+    meta_chrome_for_palette,
+    parse_meta_link,
+)
 from harrix_swiss_knife.apps.icons.settings import (
     GRID_SORT_DATE,
     GRID_SORT_MODES,
@@ -77,9 +81,11 @@ from harrix_swiss_knife.apps.icons.settings import (
     load_variants_splitter_sizes,
 )
 from harrix_swiss_knife.apps.icons.thumb_cache import DEFAULT_THUMB_SIZE, placeholder_pixmap, render_icon_to_image
+from harrix_swiss_knife.apps.icons.vector_render import ensure_dark_theme_contrast_plate
+from harrix_swiss_knife.fluent.style import list_item_hover, list_item_selected
+from harrix_swiss_knife.fluent.theme import bind_theme, css, mix, palette_for
 from harrix_swiss_knife.fluent.widgets.navigation import FluentSplitter
 from harrix_swiss_knife.qt_lucide_icon import (
-    LUCIDE_COLOR_BLUE,
     apply_leading_chrome_icons,
     set_action_text_with_lucide_icon,
 )
@@ -108,29 +114,6 @@ FALLBACK_ICON_OPACITY = 0.38
 FALLBACK_TITLE_ALPHA = 120
 FALLBACK_SUBTITLE_ALPHA = 90
 FAMILY_IDS_MIME = "application/x-harrix-icon-family-ids"
-_SELECTION_FILL = SELECTION_BG
-_SELECTION_BORDER = SELECTION_BORDER
-_HOVER_FILL = SELECTION_HOVER
-_ITEM_VIEW_NO_BORDER = (
-    "QAbstractItemView {"
-    " border: none;"
-    " outline: none;"
-    " background: transparent;"
-    "}"
-    "QAbstractItemView::item {"
-    f" color: {SELECTION_TEXT};"
-    "}"
-    "QAbstractItemView::item:selected {"
-    f" background-color: {_SELECTION_FILL};"
-    f" border: 1px solid {_SELECTION_BORDER};"
-    " border-radius: 6px;"
-    f" color: {SELECTION_TEXT};"
-    "}"
-    "QAbstractItemView::item:hover:!selected {"
-    f" background-color: {_HOVER_FILL};"
-    " border-radius: 6px;"
-    "}"
-)
 
 
 class CategoryDropList(QListWidget):
@@ -533,7 +516,10 @@ class DraggableIconList(QListWidget):
                 item = self.item(row)
                 if item is None:
                     continue
-                icon_pixmap = _muted_pixmap(pixmap, FALLBACK_ICON_OPACITY) if bool(item.data(ROLE_FALLBACK)) else pixmap
+                display = _display_icon_pixmap(pixmap, widget=self)
+                icon_pixmap = (
+                    _muted_pixmap(display, FALLBACK_ICON_OPACITY) if bool(item.data(ROLE_FALLBACK)) else display
+                )
                 item.setIcon(QIcon(icon_pixmap))
         finally:
             self.setUpdatesEnabled(True)
@@ -1057,7 +1043,11 @@ class IconLabelDelegate(QStyledItemDelegate):
         )
 
         if subtitle_text:
-            muted = QColor(MUTED_TEXT)
+            if widget is not None:
+                fluent = palette_for(widget)
+                muted = mix(fluent.window_bg, fluent.text_secondary)
+            else:
+                muted = QColor(MUTED_TEXT)
             if is_fallback:
                 muted.setAlpha(FALLBACK_SUBTITLE_ALPHA)
             painter.setPen(muted)
@@ -1178,20 +1168,9 @@ class VariantsPanel(QWidget):
             Qt.TextInteractionFlag.TextBrowserInteraction | Qt.TextInteractionFlag.LinksAccessibleByMouse,
         )
         self.header.setOpenExternalLinks(False)
-        self.header.setStyleSheet(
-            "QLabel {"
-            " background: transparent;"
-            "}"
-            "QLabel a {"
-            f" color: {LUCIDE_COLOR_BLUE};"
-            " text-decoration: none;"
-            "}"
-            "QLabel a:hover {"
-            " text-decoration: underline;"
-            "}",
-        )
         self.header.linkActivated.connect(self._on_header_link_activated)
         self.header.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
+        bind_theme(self, self._refresh_theme_chrome)
 
         self._header_scroll = QScrollArea()
         self._header_scroll.setWidget(self.header)
@@ -1279,7 +1258,7 @@ class VariantsPanel(QWidget):
         for variant in family.variants:
             path = variant.absolute_path(repo_root, family.folder)
             try:
-                pixmap = self._preview(path, self._thumb_size)
+                pixmap = self._preview(path, self._thumb_size, widget=self)
             except (OSError, ValueError, RuntimeError):
                 pixmap = placeholder_pixmap(self._thumb_size)
             item = QListWidgetItem(QIcon(pixmap), variant.name)
@@ -1304,19 +1283,39 @@ class VariantsPanel(QWidget):
         self._fit_header_to_content = False
 
     @staticmethod
-    def _preview(path: Path, size: int) -> QPixmap:
+    def _preview(path: Path, size: int, *, widget: QWidget | None = None) -> QPixmap:
         image = render_icon_to_image(path, size)
         if image is None:
             return placeholder_pixmap(size)
-        return QPixmap.fromImage(image)
+        return _display_icon_pixmap(QPixmap.fromImage(image), widget=widget)
 
     def _refresh_header(self) -> None:
         family = self._family
         if family is None:
             return
+        chrome = meta_chrome_for_palette(palette_for(self))
         self.header.setTextFormat(Qt.TextFormat.RichText)
-        self.header.setText(build_variants_header_html(family, self._catalog_icons))
+        self.header.setText(build_variants_header_html(family, self._catalog_icons, chrome=chrome))
         self._sync_header_scroll_height()
+
+    def _refresh_theme_chrome(self) -> None:
+        """Keep meta HTML + link colors aligned with light/dark Fluent chrome."""
+        palette = palette_for(self)
+        link = css(mix(palette.window_bg, palette.accent_text))
+        self.header.setStyleSheet(
+            "QLabel {"
+            " background: transparent;"
+            "}"
+            "QLabel a {"
+            f" color: {link};"
+            " text-decoration: none;"
+            "}"
+            "QLabel a:hover {"
+            " text-decoration: underline;"
+            "}",
+        )
+        if self._family is not None:
+            self.show_family(self._family, self._repo_root)
 
     def _sync_header_scroll_height(self) -> None:
         """Size the meta header to content, capped at one third of the panel."""
@@ -1347,8 +1346,69 @@ class VariantsPanel(QWidget):
 def apply_frameless_item_view(view: QAbstractItemView) -> None:
     """Remove the default gray frame and apply soft selection / hover chrome."""
     view.setFrameShape(QFrame.Shape.NoFrame)
-    view.setStyleSheet(_ITEM_VIEW_NO_BORDER)
-    apply_readable_selection_palette(view)
+    bind_theme(view, lambda: _refresh_frameless_item_view(view))
+
+
+def _display_icon_pixmap(pixmap: QPixmap, *, widget: QWidget | None = None) -> QPixmap:
+    """Return `pixmap`, with a gray plate under dark artwork when the UI is dark."""
+    if pixmap.isNull():
+        return pixmap
+    host = widget
+    if host is None:
+        return pixmap
+    if not palette_for(host).dark:
+        return pixmap
+    return ensure_dark_theme_contrast_plate(pixmap)
+
+
+def _item_view_selection_qss(*, fill: str, border: str, hover: str, text: str) -> str:
+    return (
+        "QAbstractItemView {"
+        " border: none;"
+        " outline: none;"
+        " background: transparent;"
+        "}"
+        "QAbstractItemView::item {"
+        f" color: {text};"
+        "}"
+        "QAbstractItemView::item:selected {"
+        f" background-color: {fill};"
+        f" border: 1px solid {border};"
+        " border-radius: 6px;"
+        f" color: {text};"
+        "}"
+        "QAbstractItemView::item:hover:!selected {"
+        f" background-color: {hover};"
+        " border-radius: 6px;"
+        "}"
+    )
+
+
+def _refresh_frameless_item_view(view: QAbstractItemView) -> None:
+    """Paint Vector Icons lists from the active Fluent palette (soft blue in light)."""
+    palette = palette_for(view)
+    if palette.dark:
+        fill = css(list_item_selected(palette))
+        hover = css(list_item_hover(palette))
+        border = css(mix(palette.window_bg, palette.accent))
+        text = css(mix(palette.window_bg, palette.text_primary))
+        highlight = list_item_selected(palette)
+        primary = mix(palette.window_bg, palette.text_primary)
+    else:
+        fill = SELECTION_BG
+        hover = SELECTION_HOVER
+        border = SELECTION_BORDER
+        text = SELECTION_TEXT
+        highlight = QColor(SELECTION_BG)
+        primary = QColor(SELECTION_TEXT)
+    view.setStyleSheet(_item_view_selection_qss(fill=fill, border=border, hover=hover, text=text))
+    tuned = view.palette()
+    for group in (QPalette.ColorGroup.Active, QPalette.ColorGroup.Inactive, QPalette.ColorGroup.Disabled):
+        tuned.setColor(group, QPalette.ColorRole.Highlight, highlight)
+        tuned.setColor(group, QPalette.ColorRole.HighlightedText, primary)
+        tuned.setColor(group, QPalette.ColorRole.Text, primary)
+    view.setPalette(tuned)
+    view.viewport().setPalette(tuned)
 
 
 def batch_context_action_texts(count: int, *, all_favorites: bool = False) -> list[str]:

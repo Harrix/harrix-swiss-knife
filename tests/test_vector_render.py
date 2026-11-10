@@ -5,12 +5,18 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import QRectF
-from PySide6.QtGui import QColor, QImage
+from PySide6.QtCore import QRectF, Qt
+from PySide6.QtGui import QColor, QImage, QPainter, QPixmap
 from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import QApplication
 
-from harrix_swiss_knife.apps.icons.vector_render import fitted_content_rect, render_svg_to_image
+from harrix_swiss_knife.apps.icons.vector_render import (
+    PREVIEW_BACKGROUND,
+    ensure_dark_theme_contrast_plate,
+    fitted_content_rect,
+    pixmap_content_is_dark,
+    render_svg_to_image,
+)
 
 _WIDE_SVG = (
     '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="50" viewBox="0 0 200 50">'
@@ -88,3 +94,30 @@ def test_tall_svg_thumbnail_is_not_stretched(qapp: QApplication, tmp_path: Path)
     assert _alpha(image, 0, 50) == 0
     assert _alpha(image, 99, 50) == 0
     assert _alpha(image, 50, 50) > 200
+
+
+def test_dark_theme_contrast_plate_under_dark_pixmap(qapp: QApplication) -> None:  # noqa: ARG001
+    image = QImage(64, 64, QImage.Format.Format_ARGB32_Premultiplied)
+    image.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(image)
+    painter.fillRect(16, 16, 32, 32, QColor(20, 20, 20))
+    painter.end()
+    pixmap = QPixmap.fromImage(image)
+    assert pixmap_content_is_dark(pixmap)
+    plated = ensure_dark_theme_contrast_plate(pixmap)
+    corner = plated.toImage().pixelColor(2, 2)
+    assert corner.alpha() > 200
+    assert corner.red() == pytest.approx(PREVIEW_BACKGROUND.red(), abs=5)
+    assert corner.green() == pytest.approx(PREVIEW_BACKGROUND.green(), abs=5)
+    assert corner.blue() == pytest.approx(PREVIEW_BACKGROUND.blue(), abs=5)
+
+
+def test_dark_theme_contrast_plate_skips_bright_pixmap(qapp: QApplication) -> None:  # noqa: ARG001
+    image = QImage(64, 64, QImage.Format.Format_ARGB32_Premultiplied)
+    image.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(image)
+    painter.fillRect(16, 16, 32, 32, QColor(240, 240, 240))
+    painter.end()
+    pixmap = QPixmap.fromImage(image)
+    assert not pixmap_content_is_dark(pixmap)
+    assert ensure_dark_theme_contrast_plate(pixmap) is pixmap

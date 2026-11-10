@@ -12,10 +12,12 @@ from harrix_swiss_knife.apps.icons.meta_filter import (
     build_variants_header_html,
     count_families_for_meta,
     filter_families_by_meta,
+    meta_chrome_for_palette,
     meta_filter_label,
     meta_link_href,
     parse_meta_link,
 )
+from harrix_swiss_knife.fluent.tokens import DARK_PALETTE, LIGHT_PALETTE
 
 
 def _family(
@@ -84,3 +86,16 @@ def test_parse_meta_link_roundtrip() -> None:
     assert parse_meta_link(href) == (META_KIND_TAG, "foo/bar")
     assert parse_meta_link("https://example.com") is None
     assert meta_filter_label(META_KIND_CATEGORY, "building") == "Category: building"
+
+
+def test_meta_chrome_dark_keeps_plain_tags_readable() -> None:
+    icons = [
+        _family("a", tags=["unique-tag", "shared"]),
+        _family("b", tags=["shared"]),
+    ]
+    chrome = meta_chrome_for_palette(DARK_PALETTE)
+    html = build_variants_header_html(icons[0], icons, chrome=chrome)
+    assert chrome.plain.startswith("rgba(")
+    assert chrome.plain in html
+    assert chrome.chip_bg in html
+    assert meta_chrome_for_palette(LIGHT_PALETTE).chip_bg == "#e8f4fc"

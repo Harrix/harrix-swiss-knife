@@ -63,7 +63,6 @@ from harrix_swiss_knife.apps.common.keyboard_shortcuts import (
 )
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.table_context_menu import add_reveal_in_explorer_action
-from harrix_swiss_knife.apps.common.ui_chrome import MUTED_TEXT
 from harrix_swiss_knife.apps.common.ui_helpers import reveal_in_file_explorer
 from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import install_url_drop_handlers
 from harrix_swiss_knife.apps.icons.add_vector import (
@@ -113,9 +112,11 @@ from harrix_swiss_knife.apps.icons.meta_filter import (
     build_meta_date_html,
     build_meta_list_html,
     filter_families_by_meta,
+    meta_chrome_for_palette,
     meta_filter_label,
     parse_meta_link,
 )
+from harrix_swiss_knife.apps.icons.vector_render import ensure_dark_theme_contrast_plate
 from harrix_swiss_knife.apps.icons.repo_maintenance import (
     MaintenanceKind,
     RepoMaintenanceWorker,
@@ -960,6 +961,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
             dual_line_labels=True,
             fill_row_width=True,
         )
+        bind_theme(self, self._refresh_icons_theme_chrome)
         self.icon_list.set_view_options(
             show_numbers=self._show_numbers,
             sort_mode=self._grid_sort_mode,
@@ -2452,10 +2454,16 @@ class MainWindow(QMainWindow, AppWindowMixin):
             ("Selected SVG", str(svg_path)),
             (f"Variants ({len(family.variants)})", variants),
         ]
+        chrome = meta_chrome_for_palette(palette_for(self))
         rich_values = {
-            "Date": build_meta_date_html(catalog_icons, family.date),
-            "Categories": build_meta_list_html(catalog_icons, META_KIND_CATEGORY, family.categories),
-            "Tags": build_meta_list_html(catalog_icons, META_KIND_TAG, family.tags),
+            "Date": build_meta_date_html(catalog_icons, family.date, chrome=chrome),
+            "Categories": build_meta_list_html(
+                catalog_icons,
+                META_KIND_CATEGORY,
+                family.categories,
+                chrome=chrome,
+            ),
+            "Tags": build_meta_list_html(catalog_icons, META_KIND_TAG, family.tags, chrome=chrome),
         }
 
         selected = Path(svg_path) if svg_path else None
@@ -3081,16 +3089,16 @@ class MainWindow(QMainWindow, AppWindowMixin):
                 if cached is None:
                     cached = self._thumb_cache.load_pixmap(family.id)
                 if cached is not None and not cached.isNull():
-                    return cached
+                    return self._theme_display_pixmap(cached)
         session = self._variant_pixmaps.get(str(path)) or self._variant_pixmaps.get(str(resolved))
         if session is not None and not session.isNull():
-            return session
+            return self._theme_display_pixmap(session)
         image = render_icon_to_image(path, _DETAILS_PREVIEW_SIZE)
         if image is None:
             return None
         pixmap = QPixmap.fromImage(image)
         self._cache_pixmap(self._variant_pixmaps, str(path), pixmap)
-        return pixmap
+        return self._theme_display_pixmap(pixmap)
 
     def _prime_pixmaps_from_cache(self) -> None:
         if self._catalog is None:
@@ -3177,6 +3185,19 @@ class MainWindow(QMainWindow, AppWindowMixin):
             "}",
         )
         self.count_label.setStyleSheet(f"color: {css(mix(palette.window_bg, palette.text_secondary))};")
+
+    def _refresh_icons_theme_chrome(self) -> None:
+        """Reload visible thumbs so dark-theme contrast plates follow theme flips."""
+        if not hasattr(self, "icon_list"):
+            return
+        self._loaded_rows.clear()
+        self._schedule_viewport_pixmaps()
+
+    def _theme_display_pixmap(self, pixmap: QPixmap) -> QPixmap:
+        """Return `pixmap`, plating dark artwork when the window is in dark mode."""
+        if pixmap.isNull() or not palette_for(self).dark:
+            return pixmap
+        return ensure_dark_theme_contrast_plate(pixmap)
 
     def _refresh_variant_view_icons(self) -> None:
         """Update example icons already shown in the View combobox."""
@@ -3352,11 +3373,22 @@ class MainWindow(QMainWindow, AppWindowMixin):
         title_font.setBold(True)
         title_label.setFont(title_font)
         layout.addWidget(title_label)
+        hint_label: QLabel | None = None
         if hint:
             hint_label = QLabel(hint)
             hint_label.setWordWrap(True)
-            hint_label.setStyleSheet(f"color: {MUTED_TEXT}; font-size: 11px;")
+            hint_label.setStyleSheet("font-size: 11px;")
             layout.addWidget(hint_label)
+
+        def refresh_sidebar_chrome() -> None:
+            palette = palette_for(panel)
+            primary = css(mix(palette.window_bg, palette.text_primary))
+            secondary = css(mix(palette.window_bg, palette.text_secondary))
+            title_label.setStyleSheet(f"color: {primary}; font-weight: 600;")
+            if hint_label is not None:
+                hint_label.setStyleSheet(f"color: {secondary}; font-size: 11px;")
+
+        bind_theme(panel, refresh_sidebar_chrome)
         layout.addWidget(widget, stretch=1)
         return panel
 
