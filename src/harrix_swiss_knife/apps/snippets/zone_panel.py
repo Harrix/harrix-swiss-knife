@@ -507,7 +507,7 @@ class ZonePanel(QWidget):
                 list_item.setIcon(create_emoji_icon(snippet.value, _ICON_PIXEL_SIZE))
                 list_item.setToolTip(snippet.value)
             elif self.zone == ZONE_SYMBOL:
-                list_item.setIcon(create_emoji_icon(snippet.value, _ICON_PIXEL_SIZE))
+                list_item.setIcon(create_emoji_icon(snippet.value, _ICON_PIXEL_SIZE, color=self._symbol_ink()))
                 list_item.setToolTip(hint_tooltip(snippet.hint, snippet.value))
             elif self.zone == ZONE_COLOR:
                 list_item.setData(_COLOR_ROLE, snippet.value)
@@ -652,6 +652,8 @@ class ZonePanel(QWidget):
         )
         _apply_list_highlight_palette(self._list)
         _paint_zone_viewport(self._list, palette)
+        if self.zone == ZONE_SYMBOL:
+            self._restyle_symbol_icons()
         self._list.viewport().update()
 
     def _remember_current(self) -> None:
@@ -670,6 +672,23 @@ class ZonePanel(QWidget):
                 self.select_row(row)
                 return True
         return False
+
+    def _restyle_symbol_icons(self) -> None:
+        """Repaint monochrome symbol tiles with the current theme ink."""
+        ink = self._symbol_ink()
+        for row in range(self._list.count()):
+            item = self._list.item(row)
+            if item is None:
+                continue
+            snippet = item.data(_ITEM_ROLE)
+            if snippet is None:
+                continue
+            item.setIcon(create_emoji_icon(snippet.value, _ICON_PIXEL_SIZE, color=ink))
+
+    def _symbol_ink(self) -> QColor:
+        """Return the pen color for monochrome symbol glyphs."""
+        palette = palette_for(self)
+        return mix(palette.window_bg, palette.text_primary)
 
 
 def add_sort_menu_actions(

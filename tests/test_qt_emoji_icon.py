@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 from PySide6.QtCore import QSize
+from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QApplication, QMenu
 
 from harrix_swiss_knife.qt_emoji_icon import (
@@ -89,6 +90,26 @@ def test_create_emoji_icon_uses_device_pixel_ratio(qapp: QApplication) -> None:
     assert pixmap.devicePixelRatio() == 2.0
     assert pixmap.width() == 40
     assert pixmap.height() == 40
+
+
+def test_create_emoji_icon_honors_monochrome_pen_color(qapp: QApplication) -> None:
+    """Text symbols use the pen color (unlike color-emoji fonts)."""
+    assert qapp is not None
+    icon = create_emoji_icon("→", 24, color=QColor("#ffffff"), device_pixel_ratio=1.0)
+    pixmap = icon.pixmap(QSize(24, 24), 1.0)
+    whites = 0
+    blacks = 0
+    for y in range(pixmap.height()):
+        for x in range(pixmap.width()):
+            pixel = pixmap.toImage().pixelColor(x, y)
+            if pixel.alpha() < 32:
+                continue
+            if pixel.lightness() >= 200:
+                whites += 1
+            elif pixel.lightness() <= 40:
+                blacks += 1
+    assert whites > 0
+    assert blacks == 0
 
 
 def test_create_emoji_row_icon_is_wider_for_two_emojis(qapp: QApplication) -> None:

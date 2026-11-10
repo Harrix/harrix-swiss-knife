@@ -12,7 +12,7 @@ from __future__ import annotations
 import unicodedata
 
 from PySide6.QtCore import QPointF, QRectF, QSize, Qt
-from PySide6.QtGui import QAction, QCursor, QFont, QFontMetricsF, QGuiApplication, QIcon, QPainter, QPixmap
+from PySide6.QtGui import QAction, QColor, QCursor, QFont, QFontMetricsF, QGuiApplication, QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import QDialogButtonBox, QMenu, QMenuBar, QPushButton, QWidget
 
 DEFAULT_EMOJI_BUTTON_ICON_SIZE = 18
@@ -123,12 +123,14 @@ def create_emoji_icon(
     size: int = 64,
     *,
     align: Qt.AlignmentFlag = Qt.AlignmentFlag.AlignCenter,
+    color: QColor | None = None,
     device_pixel_ratio: float | None = None,
 ) -> QIcon:
     """Create a square `QIcon` for an emoji, scaled to avoid clipping.
 
     The pixmap is rasterized at the screen device-pixel ratio so icons stay
-    sharp on HiDPI displays such as 4K.
+    sharp on HiDPI displays such as 4K. Color emoji fonts ignore `color`;
+    monochrome glyphs (Quick paste Symbols) use it as the pen.
 
     """
     ratio = device_pixel_ratio if device_pixel_ratio is not None else _emoji_device_pixel_ratio()
@@ -147,6 +149,7 @@ def create_emoji_icon(
         QRectF(0.0, 0.0, float(physical), float(physical)),
         fill=0.90,
         align=align,
+        color=color,
     )
     painter.end()
     pixmap.setDevicePixelRatio(ratio)
@@ -226,12 +229,13 @@ def paint_centered_emoji(
     *,
     fill: float = 0.90,
     align: Qt.AlignmentFlag = Qt.AlignmentFlag.AlignCenter,
+    color: QColor | None = None,
 ) -> None:
     """Draw ``emoji`` in ``rect``, scaled to ``fill`` of the shorter side."""
     if not emoji:
         return
     painter.save()
-    painter.setPen(Qt.GlobalColor.black)
+    painter.setPen(color if color is not None else QColor(Qt.GlobalColor.black))
     size = min(rect.width(), rect.height())
     target = size * fill
     base_font = QFont()

@@ -174,13 +174,14 @@ def apply_leading_emoji_icons(
 ## 🔧 Function `create_emoji_icon`
 
 ```python
-def create_emoji_icon(emoji: str, size: int = 64, *, align: Qt.AlignmentFlag = Qt.AlignmentFlag.AlignCenter, device_pixel_ratio: float | None = None) -> QIcon
+def create_emoji_icon(emoji: str, size: int = 64, *, align: Qt.AlignmentFlag = Qt.AlignmentFlag.AlignCenter, color: QColor | None = None, device_pixel_ratio: float | None = None) -> QIcon
 ```
 
 Create a square `QIcon` for an emoji, scaled to avoid clipping.
 
 The pixmap is rasterized at the screen device-pixel ratio so icons stay
-sharp on HiDPI displays such as 4K.
+sharp on HiDPI displays such as 4K. Color emoji fonts ignore [`color`](fluent/widgets/dialogs.g.md#%EF%B8%8F-method-color);
+monochrome glyphs (Quick paste Symbols) use it as the pen.
 
 <details>
 <summary>Code:</summary>
@@ -191,6 +192,7 @@ def create_emoji_icon(
     size: int = 64,
     *,
     align: Qt.AlignmentFlag = Qt.AlignmentFlag.AlignCenter,
+    color: QColor | None = None,
     device_pixel_ratio: float | None = None,
 ) -> QIcon:
     ratio = device_pixel_ratio if device_pixel_ratio is not None else _emoji_device_pixel_ratio()
@@ -209,6 +211,7 @@ def create_emoji_icon(
         QRectF(0.0, 0.0, float(physical), float(physical)),
         fill=0.90,
         align=align,
+        color=color,
     )
     painter.end()
     pixmap.setDevicePixelRatio(ratio)
@@ -310,7 +313,7 @@ def make_emoji_push_button(
 ## 🔧 Function `paint_centered_emoji`
 
 ```python
-def paint_centered_emoji(painter: QPainter, emoji: str, rect: QRectF, *, fill: float = 0.9, align: Qt.AlignmentFlag = Qt.AlignmentFlag.AlignCenter) -> None
+def paint_centered_emoji(painter: QPainter, emoji: str, rect: QRectF, *, fill: float = 0.9, align: Qt.AlignmentFlag = Qt.AlignmentFlag.AlignCenter, color: QColor | None = None) -> None
 ```
 
 Draw `[`emoji`](apps/common/emoji_picker_dialog.g.md#%EF%B8%8F-method-emoji)` in ``rect``, scaled to ``fill`` of the shorter side.
@@ -326,11 +329,12 @@ def paint_centered_emoji(
     *,
     fill: float = 0.90,
     align: Qt.AlignmentFlag = Qt.AlignmentFlag.AlignCenter,
+    color: QColor | None = None,
 ) -> None:
     if not emoji:
         return
     painter.save()
-    painter.setPen(Qt.GlobalColor.black)
+    painter.setPen(color if color is not None else QColor(Qt.GlobalColor.black))
     size = min(rect.width(), rect.height())
     target = size * fill
     base_font = QFont()
