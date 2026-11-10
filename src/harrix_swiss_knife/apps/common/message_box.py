@@ -2,15 +2,16 @@
 
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QGuiApplication, QPalette
+from PySide6.QtGui import QColor, QGuiApplication, QPalette
 from PySide6.QtWidgets import QAbstractButton, QLabel, QMessageBox, QWidget
 
 from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.fluent.style import accent_button_qss, push_button_qss
-from harrix_swiss_knife.fluent.theme import bind_theme, css, is_fluent_themed, mix, palette_for, to_qpalette
+from harrix_swiss_knife.fluent.theme import bind_theme, is_fluent_themed, mix, palette_for, to_qpalette
 from harrix_swiss_knife.qt_lucide_icon import (
     style_accept_button,
     style_cancel_button,
@@ -27,6 +28,9 @@ _PRIMARY_ROLES = (
     QMessageBox.ButtonRole.YesRole,
     QMessageBox.ButtonRole.ApplyRole,
 )
+# Qt rich text ignores QSS for <a>; only palette + inline style= are reliable.
+_ANCHOR_OPEN_RE = re.compile(r"<a\b([^>]*)>", re.IGNORECASE)
+_ANCHOR_STYLE_RE = re.compile(r"""\sstyle\s*=\s*(['"]).*?\1""", re.IGNORECASE | re.DOTALL)
 
 
 def add_copy_button(box: QMessageBox) -> QAbstractButton:
@@ -94,6 +98,23 @@ def clipboard_text_from_box(box: QMessageBox) -> str:
     return "\n\n".join(parts)
 
 
+def colorize_html_links(html: str, color: QColor | str) -> str:
+    """Return `html` with inline `style="color:…"` on every `<a>` tag.
+
+    Qt's rich-text engine ignores style sheets for anchors inside `QLabel` /
+    `QMessageBox`, so palette alone is not enough on Windows dark chrome.
+
+    """
+    hex_color = QColor(color).name(QColor.NameFormat.HexRgb)
+
+    def _inject(match: re.Match[str]) -> str:
+        attrs = match.group(1)
+        cleaned = _ANCHOR_STYLE_RE.sub("", attrs)
+        return f'<a{cleaned} style="color:{hex_color}">'
+
+    return _ANCHOR_OPEN_RE.sub(_inject, html)
+
+
 def critical(parent: QWidget | None, title: str, text: str) -> QMessageBox.StandardButton:
     """Like `QMessageBox.critical` with a Copy button."""
     box = QMessageBox(parent)
@@ -129,6 +150,9 @@ def information(
     box.setWindowTitle(title)
     if rich_text:
         box.setTextFormat(Qt.TextFormat.RichText)
+        if is_fluent_themed(parent):
+            palette = palette_for(parent)
+            text = colorize_html_links(text, mix(palette.window_bg, palette.accent_text))
     box.setText(text)
     box.setStandardButtons(QMessageBox.StandardButton.Ok)
     if stylesheet:
@@ -212,9 +236,21 @@ def _style_fluent_box(box: QMessageBox) -> None:
 
 
 def _apply_fluent_link_colors(box: QMessageBox, palette: FluentPalette) -> None:
-    """Paint `<a href>` in Accent text so dark chrome stays readable."""
+    """Paint `<a href>` via palette + inline HTML color (QSS cannot style rich text)."""
     link = mix(palette.window_bg, palette.accent_text)
     text = mix(palette.window_bg, palette.text_primary)
+    hex_link = link.name(QColor.NameFormat.HexRgb)
+    body = box.text()
+    if "<a" in body.casefold():
+        colored_body = colorize_html_links(body, hex_link)
+        if colored_body != body:
+            box.setTextFormat(Qt.TextFormat.RichText)
+            box.setText(colored_body)
+    informative = box.informativeText()
+    if "<a" in informative.casefold():
+        colored_info = colorize_html_links(informative, hex_link)
+        if colored_info != informative:
+            box.setInformativeText(colored_info)
     for label in box.findChildren(QLabel):
         qp = label.palette()
         for group in (QPalette.ColorGroup.Active, QPalette.ColorGroup.Inactive):
@@ -223,9 +259,10 @@ def _apply_fluent_link_colors(box: QMessageBox, palette: FluentPalette) -> None:
             qp.setColor(group, QPalette.ColorRole.WindowText, text)
             qp.setColor(group, QPalette.ColorRole.Text, text)
         label.setPalette(qp)
-        # Qt rich text often ignores Link; force the accent on anchors.
-        existing = (label.styleSheet() or "").strip()
-        rule = f"a {{ color: {css(link)}; }}"
-        if "a {" in existing.casefold():
+        raw = label.text()
+        if "<a" not in raw.casefold():
             continue
-        label.setStyleSheet(f"{existing}\n{rule}".strip() if existing else rule)
+        colored = colorize_html_links(raw, hex_link)
+        if colored != raw:
+            label.setTextFormat(Qt.TextFormat.RichText)
+            label.setText(colored)
