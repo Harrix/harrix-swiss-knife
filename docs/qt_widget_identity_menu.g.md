@@ -14,6 +14,7 @@ lang: en
 - [🏛️ Class `WidgetIdentityEventFilter`](#%EF%B8%8F-class-widgetidentityeventfilter)
   - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
 - [🔧 Function `add_widget_identity_actions`](#-function-add_widget_identity_actions)
+- [🔧 Function `ensure_widget_object_name`](#-function-ensure_widget_object_name)
 - [🔧 Function `format_copy_class_name_menu_label`](#-function-format_copy_class_name_menu_label)
 - [🔧 Function `format_copy_object_name_menu_label`](#-function-format_copy_object_name_menu_label)
 - [🔧 Function `install_widget_identity_context_menus`](#-function-install_widget_identity_context_menus)
@@ -30,7 +31,7 @@ lang: en
 class WidgetIdentityEventFilter(QObject)
 ```
 
-Application filter that offers Copy object name / Copy class name.
+Application filter: auto object names + middle-click identity menu.
 
 <details>
 <summary>Code:</summary>
@@ -39,7 +40,10 @@ Application filter that offers Copy object name / Copy class name.
 class WidgetIdentityEventFilter(QObject):
 
     def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
-        """Open the identity menu on middle-click."""
+        """Assign missing object names; open the identity menu on middle-click."""
+        if event.type() in {QEvent.Type.Polish, QEvent.Type.Show} and isinstance(obj, QWidget):
+            ensure_widget_object_name(obj)
+            return False
         if event.type() != QEvent.Type.MouseButtonPress or not isinstance(event, QMouseEvent):
             return False
         if event.button() != Qt.MouseButton.MiddleButton:
@@ -59,13 +63,16 @@ class WidgetIdentityEventFilter(QObject):
 def eventFilter(self, obj: QObject, event: QEvent) -> bool
 ```
 
-Open the identity menu on middle-click.
+Assign missing object names; open the identity menu on middle-click.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
+        if event.type() in {QEvent.Type.Polish, QEvent.Type.Show} and isinstance(obj, QWidget):
+            ensure_widget_object_name(obj)
+            return False
         if event.type() != QEvent.Type.MouseButtonPress or not isinstance(event, QMouseEvent):
             return False
         if event.button() != Qt.MouseButton.MiddleButton:
@@ -98,6 +105,31 @@ def add_widget_identity_actions(menu: QMenu, widget: QWidget) -> None:
     copy_name.triggered.connect(lambda *_args, text=object_name: _copy_text(text))
     copy_class = menu.addAction(format_copy_class_name_menu_label(class_name))
     copy_class.triggered.connect(lambda *_args, text=class_name: _copy_text(text))
+```
+
+</details>
+
+## 🔧 Function `ensure_widget_object_name`
+
+```python
+def ensure_widget_object_name(widget: QWidget) -> str
+```
+
+Set a stable object name when missing; return the name used for copy.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def ensure_widget_object_name(widget: QWidget) -> str:
+    existing = widget.objectName().strip()
+    if existing:
+        return existing
+    if _is_menu_chrome(widget):
+        return type(widget).__name__
+    name = _allocate_object_name(_compose_object_name_base(widget))
+    widget.setObjectName(name)
+    return name
 ```
 
 </details>
@@ -144,7 +176,7 @@ def format_copy_object_name_menu_label(object_name: str) -> str:
 def install_widget_identity_context_menus(app: QApplication) -> None
 ```
 
-Install an app-wide filter for the widget identity context menu.
+Install an app-wide filter for auto object names and the identity menu.
 
 <details>
 <summary>Code:</summary>
@@ -242,7 +274,7 @@ Return the object name shown and copied for `widget`.
 
 ```python
 def widget_object_name_for_copy(widget: QWidget) -> str:
-    return widget.objectName().strip() or type(widget).__name__
+    return ensure_widget_object_name(widget)
 ```
 
 </details>

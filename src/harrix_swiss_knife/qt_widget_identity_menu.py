@@ -3,10 +3,15 @@
 Middle-click a widget to open the identity menu. Right-click keeps each control's
 own context menu (editors, tables, command cards, etc.).
 
+Widgets without an `objectName` get one automatically on polish/show (and again
+when the identity menu opens). Existing names — Designer ids, Fluent QSS hooks
+like `FluentListView` — are never overwritten.
+
 """
 
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QEvent, QObject, Qt
@@ -22,13 +27,19 @@ if TYPE_CHECKING:
 _PROP_FILTER = "_hskWidgetIdentityFilter"
 _COPY_OBJECT_NAME_PREFIX = "📋 Copy object name ("
 _COPY_CLASS_NAME_PREFIX = "📋 Copy class name ("
+_AUTO_NAME_COUNTS: dict[str, int] = {}
+_SLUG_RE = re.compile(r"[^\w]+", re.UNICODE)
+_WHITESPACE_RE = re.compile(r"\s+")
 
 
 class WidgetIdentityEventFilter(QObject):
-    """Application filter that offers Copy object name / Copy class name."""
+    """Application filter: auto object names + middle-click identity menu."""
 
     def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
-        """Open the identity menu on middle-click."""
+        """Assign missing object names; open the identity menu on middle-click."""
+        if event.type() in {QEvent.Type.Polish, QEvent.Type.Show} and isinstance(obj, QWidget):
+            ensure_widget_object_name(obj)
+            return False
         if event.type() != QEvent.Type.MouseButtonPress or not isinstance(event, QMouseEvent):
             return False
         if event.button() != Qt.MouseButton.MiddleButton:
@@ -50,6 +61,18 @@ def add_widget_identity_actions(menu: QMenu, widget: QWidget) -> None:
     copy_class.triggered.connect(lambda *_args, text=class_name: _copy_text(text))
 
 
+def ensure_widget_object_name(widget: QWidget) -> str:
+    """Set a stable object name when missing; return the name used for copy."""
+    existing = widget.objectName().strip()
+    if existing:
+        return existing
+    if _is_menu_chrome(widget):
+        return type(widget).__name__
+    name = _allocate_object_name(_compose_object_name_base(widget))
+    widget.setObjectName(name)
+    return name
+
+
 def format_copy_class_name_menu_label(class_name: str) -> str:
     """Build the Copy class name menu label."""
     return f"{_COPY_CLASS_NAME_PREFIX}{class_name})"
@@ -61,7 +84,7 @@ def format_copy_object_name_menu_label(object_name: str) -> str:
 
 
 def install_widget_identity_context_menus(app: QApplication) -> None:
-    """Install an app-wide filter for the widget identity context menu."""
+    """Install an app-wide filter for auto object names and the identity menu."""
     if not isinstance(app, QApplication):
         return
     existing = app.property(_PROP_FILTER)
@@ -101,7 +124,19 @@ def widget_class_name_for_copy(widget: QWidget) -> str:
 
 def widget_object_name_for_copy(widget: QWidget) -> str:
     """Return the object name shown and copied for `widget`."""
-    return widget.objectName().strip() or type(widget).__name__
+    return ensure_widget_object_name(widget)
+
+
+def _allocate_object_name(base: str) -> str:
+    count = _AUTO_NAME_COUNTS.get(base, 0) + 1
+    _AUTO_NAME_COUNTS[base] = count
+    return base if count == 1 else f"{base}_{count}"
+
+
+def _compose_object_name_base(widget: QWidget) -> str:
+    class_name = type(widget).__name__
+    slug = _slugify(_label_for_widget(widget))
+    return f"{class_name}_{slug}" if slug else class_name
 
 
 def _copy_text(text: str) -> None:
@@ -117,3 +152,23 @@ def _is_menu_chrome(widget: QWidget) -> bool:
             return True
         current = current.parentWidget()
     return False
+
+
+def _label_for_widget(widget: QWidget) -> str:
+    for attr in ("text", "title", "windowTitle", "accessibleName"):
+        getter = getattr(widget, attr, None)
+        if not callable(getter):
+            continue
+        value = getter()
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    tip = widget.toolTip().strip()
+    if tip:
+        return tip.splitlines()[0].strip()
+    return ""
+
+
+def _slugify(text: str) -> str:
+    collapsed = _WHITESPACE_RE.sub("_", text.strip())
+    slug = _SLUG_RE.sub("", collapsed)
+    return slug[:48].strip("_")
