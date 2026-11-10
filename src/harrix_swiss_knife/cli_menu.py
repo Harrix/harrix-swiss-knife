@@ -2,17 +2,22 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from PySide6.QtCore import QPoint, Qt
 from PySide6.QtGui import QAction, QClipboard, QGuiApplication, QMouseEvent
-from PySide6.QtWidgets import QMenu, QWidget
 
 from harrix_swiss_knife.action_identity import (
     ActionIdentityParts,
     action_identity_parts,
     format_action_identity_text,
 )
+from harrix_swiss_knife.fluent.widgets.menus import FluentMenu
 from harrix_swiss_knife.qt_lucide_icon import apply_leading_chrome_icons
 from harrix_swiss_knife.qt_widget_identity_menu import add_widget_identity_actions
+
+if TYPE_CHECKING:
+    from PySide6.QtWidgets import QWidget
 
 CLI_EXECUTABLE = "hsk"
 CLI_MENU_SUFFIX = " ꟲᴸᴵ"
@@ -26,8 +31,8 @@ COPY_CLI_MENU_PREFIX = "📋 Copy CLI command: "
 _ELLIPSIS = "…"
 
 
-class CliContextMenu(QMenu):
-    """QMenu that offers copy name/class/path and Copy CLI command on right-click."""
+class CliContextMenu(FluentMenu):
+    """Fluent menu that offers copy name/class/path and Copy CLI command on right-click."""
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         """On right-click over a leaf action, show copy name/class/path and CLI command."""
@@ -153,7 +158,7 @@ def show_action_identity_context_menu(
     if identity_text is None and identity_parts is None and cli_copy_command is None and host_widget is None:
         return
 
-    menu = QMenu(parent)
+    menu = FluentMenu("", parent)
     if identity_text is not None:
         copy_identity = menu.addAction(COPY_ACTION_IDENTITY_MENU_LABEL)
         copy_identity.triggered.connect(
@@ -184,7 +189,8 @@ def show_action_identity_context_menu(
             menu.addSeparator()
         add_widget_identity_actions(menu, host_widget)
     apply_leading_chrome_icons(menu)
-    menu.exec_(global_pos)
+    menu.refresh_theme()
+    menu.exec(global_pos)
 
 
 def show_action_item_context_menu(

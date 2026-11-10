@@ -743,8 +743,8 @@ class ZonePanel(QWidget):
         if current is not None and current.isHidden():
             self._clear_list_current()
 
-    def _build_context_menu(self, snippet: SnippetItem | None) -> QMenu:
-        menu = QMenu(self)
+    def _build_context_menu(self, snippet: SnippetItem | None) -> FluentMenu:
+        menu = FluentMenu("", self)
         add_lucide_action(menu, "Add item", "plus").triggered.connect(self.add_requested.emit)
         add_lucide_action(menu, "Add many items", "download").triggered.connect(self.add_many_requested.emit)
         edit_action = add_lucide_action(menu, "Edit item", "pencil")
@@ -766,6 +766,7 @@ class ZonePanel(QWidget):
         menu.addSeparator()
         add_widget_identity_actions(menu, self)
         apply_leading_chrome_icons(menu)
+        menu.refresh_theme()
         return menu
 
     def _clear_ai_candidate_widgets(self) -> None:

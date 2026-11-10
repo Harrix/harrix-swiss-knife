@@ -33,16 +33,16 @@ lang: en
 ## 🏛️ Class `CliContextMenu`
 
 ```python
-class CliContextMenu(QMenu)
+class CliContextMenu(FluentMenu)
 ```
 
-QMenu that offers copy name/class/path and Copy CLI command on right-click.
+Fluent menu that offers copy name/class/path and Copy CLI command on right-click.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-class CliContextMenu(QMenu):
+class CliContextMenu(FluentMenu):
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         """On right-click over a leaf action, show copy name/class/path and CLI command."""
@@ -352,7 +352,7 @@ def show_action_identity_context_menu(
     if identity_text is None and identity_parts is None and cli_copy_command is None and host_widget is None:
         return
 
-    menu = QMenu(parent)
+    menu = FluentMenu("", parent)
     if identity_text is not None:
         copy_identity = menu.addAction(COPY_ACTION_IDENTITY_MENU_LABEL)
         copy_identity.triggered.connect(
@@ -383,7 +383,8 @@ def show_action_identity_context_menu(
             menu.addSeparator()
         add_widget_identity_actions(menu, host_widget)
     apply_leading_chrome_icons(menu)
-    menu.exec_(global_pos)
+    menu.refresh_theme()
+    menu.exec(global_pos)
 ```
 
 </details>

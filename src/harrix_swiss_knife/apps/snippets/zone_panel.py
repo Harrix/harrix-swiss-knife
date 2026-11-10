@@ -51,6 +51,7 @@ from harrix_swiss_knife.apps.snippets.parse import (
 from harrix_swiss_knife.fluent.style import item_view_qss, list_item_hover, list_item_selected
 from harrix_swiss_knife.fluent.theme import bind_theme, css, mix, palette_for
 from harrix_swiss_knife.fluent.tokens import RADIUS_CONTROL
+from harrix_swiss_knife.fluent.widgets.menus import FluentMenu
 from harrix_swiss_knife.qt_app_font import apply_mono_font
 from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
 from harrix_swiss_knife.qt_flat_scrollbar import with_flat_scrollbars
@@ -548,8 +549,8 @@ class ZonePanel(QWidget):
         if current is not None and current.isHidden():
             self._clear_list_current()
 
-    def _build_context_menu(self, snippet: SnippetItem | None) -> QMenu:
-        menu = QMenu(self)
+    def _build_context_menu(self, snippet: SnippetItem | None) -> FluentMenu:
+        menu = FluentMenu("", self)
         add_lucide_action(menu, "Add item", "plus").triggered.connect(self.add_requested.emit)
         add_lucide_action(menu, "Add many items", "download").triggered.connect(self.add_many_requested.emit)
         edit_action = add_lucide_action(menu, "Edit item", "pencil")
@@ -571,6 +572,7 @@ class ZonePanel(QWidget):
         menu.addSeparator()
         add_widget_identity_actions(menu, self)
         apply_leading_chrome_icons(menu)
+        menu.refresh_theme()
         return menu
 
     def _clear_ai_candidate_widgets(self) -> None:
