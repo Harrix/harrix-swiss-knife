@@ -422,6 +422,8 @@ class SnippetsDialog(QDialog):
         self._scripts = ScriptsPanel(self)
         self._scripts.add_requested.connect(self._paste_scripts)
         scripts_page = QWidget(self)
+        scripts_page.setObjectName("scriptsPage")
+        scripts_page.setAutoFillBackground(False)
         scripts_layout = QVBoxLayout(scripts_page)
         scripts_layout.setContentsMargins(SPACE_L, SPACE_M, SPACE_L, SPACE_L)
         scripts_layout.setSpacing(SPACE_M)
@@ -698,7 +700,8 @@ class SnippetsDialog(QDialog):
         window = css(palette.window_bg)
         self.setStyleSheet(
             f"#snippetsDialog {{ background-color: {window}; border: 1px solid {border}; }}"
-            f"#captionBar, #captionButtonRow {{ background-color: {window}; }}",
+            f"#captionBar, #captionButtonRow {{ background-color: {window}; }}"
+            f"#scriptsPage {{ background-color: {window}; }}",
         )
         pages = getattr(self, "_page_tabs", None)
         if pages is not None and not pages.property(CAPTION_TABS_PROPERTY):

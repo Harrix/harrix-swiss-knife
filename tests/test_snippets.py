@@ -45,7 +45,7 @@ from harrix_swiss_knife.apps.snippets.parse import (
     parse_bulk_lines,
     parse_value_hint_line,
 )
-from harrix_swiss_knife.apps.snippets.scripts import SCRIPT_SECTIONS
+from harrix_swiss_knife.apps.snippets.scripts import SCRIPT_SECTIONS, ScriptsPanel
 from harrix_swiss_knife.apps.snippets.seed import (
     SEED_EMOJIS_BASE,
     SEED_PHRASES,
@@ -64,8 +64,8 @@ from harrix_swiss_knife.apps.snippets.zone_panel import (
     color_hex_label,
 )
 from harrix_swiss_knife.fluent.style import list_item_selected
-from harrix_swiss_knife.fluent.theme import palette_for
-from harrix_swiss_knife.fluent.tokens import CONTROL_HEIGHT, SPACE_S
+from harrix_swiss_knife.fluent.theme import FluentTheme, ThemeMode, enable_fluent_theme, palette_for
+from harrix_swiss_knife.fluent.tokens import CONTROL_HEIGHT, DARK_PALETTE, SPACE_S
 from harrix_swiss_knife.menu_structure import get_menu_structure
 from harrix_swiss_knife.qt_app_font import MONO_FONT_FAMILY
 
@@ -908,3 +908,26 @@ def test_example_config_binds_ctrl_shift_f3() -> None:
     matching = [entry for entry in data["hotkeys"] if entry.get("action") == "OnSnippets"]
     assert matching
     assert "Ctrl+Shift+F3" in matching[0]["hotkeys"]
+
+
+def test_scripts_panel_scroll_uses_dark_window_bg(qapp: QApplication) -> None:
+    """Scripts glyph grid stays on Fluent window_bg in dark theme, not the light plate."""
+    assert qapp is not None
+    theme = FluentTheme.instance()
+    previous = theme.mode()
+    theme.set_mode(ThemeMode.DARK, persist=False)
+    host = QWidget()
+    enable_fluent_theme(host)
+    panel = ScriptsPanel(host)
+    try:
+        viewport = panel._scroll.viewport()
+        assert viewport.palette().color(QPalette.ColorRole.Base) == DARK_PALETTE.window_bg
+        scroll_sheet = panel._scroll.styleSheet().casefold()
+        assert "rgba(32, 32, 32" in scroll_sheet or DARK_PALETTE.window_bg.name().casefold() in scroll_sheet
+        sections_sheet = panel._sections.styleSheet().casefold()
+        assert "rgba(32, 32, 32" in sections_sheet or DARK_PALETTE.window_bg.name().casefold() in sections_sheet
+        assert "#f3f3f3" not in scroll_sheet
+    finally:
+        theme.set_mode(previous, persist=False)
+        panel.close()
+        host.close()

@@ -39,6 +39,7 @@ class ScriptsPanel(QWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         """Build the composer and the glyph buttons."""
         super().__init__(parent)
+        self.setObjectName("scriptsPanel")
         self._edit = QLineEdit(self)
         self._edit.setPlaceholderText("Click characters, then Add")
         install_line_edit_clear_button(self._edit)
@@ -56,30 +57,33 @@ class ScriptsPanel(QWidget):
         composer.addWidget(self._edit, stretch=1)
         composer.addWidget(self._add_button)
 
-        sections = QWidget(self)
-        sections_layout = QVBoxLayout(sections)
+        self._sections = QWidget(self)
+        self._sections.setObjectName("scriptsSections")
+        self._sections.setAutoFillBackground(False)
+        sections_layout = QVBoxLayout(self._sections)
         sections_layout.setContentsMargins(0, 0, 0, 0)
         sections_layout.setSpacing(SPACE_S)
         self._section_labels: list[QLabel] = []
         self._glyph_buttons: list[QPushButton] = []
         for title, glyphs in SCRIPT_SECTIONS:
-            label = _section_label(title, sections)
+            label = _section_label(title, self._sections)
             self._section_labels.append(label)
             sections_layout.addWidget(label)
-            flow = _glyph_flow(glyphs, title, self._append_glyph, sections)
+            flow = _glyph_flow(glyphs, title, self._append_glyph, self._sections)
             self._glyph_buttons.extend(flow.findChildren(QPushButton))
             sections_layout.addWidget(flow)
         sections_layout.addStretch(1)
 
-        scroll = QScrollArea(self)
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.Shape.NoFrame)
-        scroll.setWidget(sections)
+        self._scroll = QScrollArea(self)
+        self._scroll.setObjectName("scriptsScroll")
+        self._scroll.setWidgetResizable(True)
+        self._scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self._scroll.setWidget(self._sections)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, SPACE_S, 0, 0)
         layout.addLayout(composer)
-        layout.addWidget(scroll, stretch=1)
+        layout.addWidget(self._scroll, stretch=1)
         bind_theme(self, self._refresh_theme)
 
     def append_glyph(self, char: str) -> None:
@@ -116,14 +120,18 @@ class ScriptsPanel(QWidget):
 
     def _refresh_theme(self) -> None:
         palette = palette_for(self)
+        page = css(palette.window_bg)
+        self.setStyleSheet(f"QWidget#scriptsPanel {{ background: {page}; }}")
+        self.setAutoFillBackground(False)
         self._edit.setStyleSheet(line_edit_qss(palette))
         self._add_button.setStyleSheet(accent_button_qss(palette, "QPushButton#scriptsAddButton"))
         secondary = css(mix(palette.window_bg, palette.text_secondary))
         for label in self._section_labels:
-            label.setStyleSheet(f"color: {secondary};")
+            label.setStyleSheet(f"color: {secondary}; background: transparent;")
         glyph_qss = push_button_qss(palette) + f"QPushButton {{ padding: 0 {SPACE_XS}px; }}"
         for button in self._glyph_buttons:
             button.setStyleSheet(glyph_qss)
+        _paint_scripts_scroll(self._scroll, self._sections, palette)
 ```
 
 </details>
@@ -142,6 +150,7 @@ Build the composer and the glyph buttons.
 ```python
 def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        self.setObjectName("scriptsPanel")
         self._edit = QLineEdit(self)
         self._edit.setPlaceholderText("Click characters, then Add")
         install_line_edit_clear_button(self._edit)
@@ -159,30 +168,33 @@ def __init__(self, parent: QWidget | None = None) -> None:
         composer.addWidget(self._edit, stretch=1)
         composer.addWidget(self._add_button)
 
-        sections = QWidget(self)
-        sections_layout = QVBoxLayout(sections)
+        self._sections = QWidget(self)
+        self._sections.setObjectName("scriptsSections")
+        self._sections.setAutoFillBackground(False)
+        sections_layout = QVBoxLayout(self._sections)
         sections_layout.setContentsMargins(0, 0, 0, 0)
         sections_layout.setSpacing(SPACE_S)
         self._section_labels: list[QLabel] = []
         self._glyph_buttons: list[QPushButton] = []
         for title, glyphs in SCRIPT_SECTIONS:
-            label = _section_label(title, sections)
+            label = _section_label(title, self._sections)
             self._section_labels.append(label)
             sections_layout.addWidget(label)
-            flow = _glyph_flow(glyphs, title, self._append_glyph, sections)
+            flow = _glyph_flow(glyphs, title, self._append_glyph, self._sections)
             self._glyph_buttons.extend(flow.findChildren(QPushButton))
             sections_layout.addWidget(flow)
         sections_layout.addStretch(1)
 
-        scroll = QScrollArea(self)
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.Shape.NoFrame)
-        scroll.setWidget(sections)
+        self._scroll = QScrollArea(self)
+        self._scroll.setObjectName("scriptsScroll")
+        self._scroll.setWidgetResizable(True)
+        self._scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self._scroll.setWidget(self._sections)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, SPACE_S, 0, 0)
         layout.addLayout(composer)
-        layout.addWidget(scroll, stretch=1)
+        layout.addWidget(self._scroll, stretch=1)
         bind_theme(self, self._refresh_theme)
 ```
 
