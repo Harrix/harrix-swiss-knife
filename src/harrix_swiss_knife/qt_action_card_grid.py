@@ -6,6 +6,7 @@ from PySide6.QtCore import QSize, Qt
 from PySide6.QtWidgets import QAbstractItemView, QListWidget, QSizePolicy, QWidget
 
 from harrix_swiss_knife.apps.common.ui_chrome import action_card_selection_qss, apply_readable_selection_palette
+from harrix_swiss_knife.fluent.theme import bind_theme
 
 CARD_ICON_SIZE = 64
 CARD_SPACING = 8
@@ -18,6 +19,12 @@ _TEXT_WIDTH_INSET = 24
 # Includes room for QSS item padding (2px top/bottom) under the selection border.
 _TEXT_HEIGHT_PAD = 12
 _ICON_TEXT_GAP = 8
+_ACTION_CARD_GRID_THEME_FLAG = "_hsk_action_card_grid_theme_bound"
+
+
+def _apply_action_card_grid_chrome(list_widget: QListWidget) -> None:
+    list_widget.setStyleSheet(action_card_selection_qss())
+    apply_readable_selection_palette(list_widget)
 
 
 def configure_action_card_grid(list_widget: QListWidget, *, min_height: int | None = None) -> None:
@@ -33,8 +40,10 @@ def configure_action_card_grid(list_widget: QListWidget, *, min_height: int | No
     list_widget.setGridSize(QSize(CARD_GRID_CELL_WIDTH, CARD_GRID_CELL_HEIGHT))
     list_widget.setWordWrap(True)
     list_widget.setUniformItemSizes(False)
-    list_widget.setStyleSheet(action_card_selection_qss())
-    apply_readable_selection_palette(list_widget)
+    _apply_action_card_grid_chrome(list_widget)
+    if not getattr(list_widget, _ACTION_CARD_GRID_THEME_FLAG, False):
+        bind_theme(list_widget, lambda: _apply_action_card_grid_chrome(list_widget))
+        setattr(list_widget, _ACTION_CARD_GRID_THEME_FLAG, True)
     list_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
     list_widget.setFrameShape(QListWidget.Shape.NoFrame)
 

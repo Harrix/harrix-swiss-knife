@@ -19,14 +19,14 @@ RECORD_CAPTION_IDLE_STYLE = """
     }
 """
 
-RECORD_CAPTION_STOP_STYLE = """
-    QLabel {
-        color: #1a1a1a;
-    }
-    QLabel:hover {
-        color: #333333;
-    }
-"""
+def record_caption_stop_style() -> str:
+    """Theme-aware QSS for the recording stop-state caption."""
+    from harrix_swiss_knife.apps.common.ui_chrome import record_caption_stop_qss  # noqa: PLC0415
+
+    return record_caption_stop_qss()
+
+
+RECORD_CAPTION_STOP_STYLE = record_caption_stop_style()
 
 
 class ClickableLabel(QLabel):

@@ -13,7 +13,7 @@ from harrix_swiss_knife.apps.common.tracker_layout_chrome import (
     install_tracker_column_chrome,
 )
 from harrix_swiss_knife.apps.common.tracker_splitter_settings import load_splitter_sizes, save_splitter_sizes
-from harrix_swiss_knife.apps.common.ui_chrome import MUTED_TEXT, button_idle_qss
+from harrix_swiss_knife.apps.common.ui_chrome import button_idle_qss, muted_caption_qss
 from harrix_swiss_knife.fluent.theme import bind_theme
 from harrix_swiss_knife.fluent.tokens import CONTROL_HEIGHT, SPACE_S
 from harrix_swiss_knife.qt_lucide_icon import apply_lucide_button_icon
@@ -69,7 +69,7 @@ def persist_food_stats_splitter_sizes(host: Any) -> None:
 
 
 def _caption_qss() -> str:
-    return f"color: {MUTED_TEXT}; font-weight: 600; padding-top: 2px;"
+    return muted_caption_qss(extra=" padding-top: 2px;")
 
 
 def _compact_table(table: QTableView) -> None:

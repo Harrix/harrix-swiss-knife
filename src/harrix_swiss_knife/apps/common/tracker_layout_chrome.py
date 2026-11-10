@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QFrame, QLabel, QWidget
 
-from harrix_swiss_knife.apps.common.ui_chrome import MUTED_TEXT
+from harrix_swiss_knife.apps.common.ui_chrome import muted_caption_qss
 from harrix_swiss_knife.fluent.theme import bind_theme, css, mix, palette_for
 from harrix_swiss_knife.fluent.tokens import SPACE_XS
 
@@ -87,7 +87,7 @@ def polish_left_field_labels(host: Any, pairs: Sequence[tuple[str, str]]) -> Non
         if not isinstance(label, QLabel):
             continue
         label.setText(text)
-        label.setStyleSheet(f"color: {MUTED_TEXT}; font-weight: 600;")
+        label.setStyleSheet(muted_caption_qss())
         label.setMinimumWidth(FIELD_LABEL_WIDTH)
         label.setFixedWidth(FIELD_LABEL_WIDTH)
         label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)

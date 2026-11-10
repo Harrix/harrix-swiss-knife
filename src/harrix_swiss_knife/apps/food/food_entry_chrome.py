@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife.apps.common.tracker_layout_chrome import polish_left_field_labels, quiet_group_box
-from harrix_swiss_knife.apps.common.ui_chrome import MUTED_TEXT, button_idle_qss
+from harrix_swiss_knife.apps.common.ui_chrome import apply_soft_form_spin_fills, button_idle_qss, muted_caption_qss
 from harrix_swiss_knife.apps.food.food_ui_settings import (
     EXPECTED_FOOD_SPLITTER_LEN,
     load_food_splitter_sizes,
@@ -149,10 +149,6 @@ def _ensure_item_state_label(host: Any) -> None:
     layout.insertWidget(0, label)
 
 
-def _field_caption_qss() -> str:
-    return f"color: {MUTED_TEXT}; font-weight: 600;"
-
-
 def _polish_food_log_table(host: Any) -> None:
     table: QTableView = host.tableView_food_log
     vertical = table.verticalHeader()
@@ -183,7 +179,7 @@ def _polish_form_column(host: Any) -> None:
     for name in ("label_food_weight_unit", "label_food_calories"):
         label = getattr(host, name, None)
         if isinstance(label, QLabel):
-            label.setStyleSheet(_field_caption_qss())
+            label.setStyleSheet(muted_caption_qss())
 
     polish_left_field_labels(
         host,
@@ -233,6 +229,7 @@ def _polish_form_column(host: Any) -> None:
             label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
             label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
 
+    apply_soft_form_spin_fills(host, ("spinBox_food_weight", "doubleSpinBox_food_calories"))
     refresh_food_item_state_label(host, host.lineEdit_food_manual_name.text() or None)
 
 
@@ -273,7 +270,7 @@ def _polish_items_list(host: Any) -> None:
     # Do not clear the sheet: empty QSS re-polishes onto a white system Base.
     style_fluent_item_view(view)
     host.label_food_items.setText("Food item")
-    host.label_food_items.setStyleSheet(f"{_field_caption_qss()} border: none; background: transparent;")
+    host.label_food_items.setStyleSheet(f"{muted_caption_qss()} border: none; background: transparent;")
     font = QFont(host.label_food_items.font())
     font.setBold(True)
     host.label_food_items.setFont(font)

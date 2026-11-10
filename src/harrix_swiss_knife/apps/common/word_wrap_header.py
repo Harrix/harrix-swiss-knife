@@ -7,7 +7,7 @@ from PySide6.QtGui import QColor, QFontMetrics, QMouseEvent, QPainter, QPaintEve
 from PySide6.QtWidgets import QHeaderView, QStyleOptionHeader, QTableView, QWidget
 
 from harrix_swiss_knife.apps.common.ui_chrome import MUTED_TEXT
-from harrix_swiss_knife.fluent.theme import is_fluent_themed
+from harrix_swiss_knife.fluent.theme import FluentTheme, css, is_fluent_themed, mix
 
 HEADER_TEXT_FLAGS = Qt.AlignmentFlag.AlignCenter | Qt.TextFlag.TextWordWrap
 _BOUNDARY_GRIP_PX = 5
@@ -73,7 +73,13 @@ class WordWrapHeaderView(QHeaderView):
         if self._hover_boundary_x is None:
             return
         painter = QPainter(self.viewport())
-        painter.setPen(QPen(QColor(MUTED_TEXT), 1))
+        grip = MUTED_TEXT
+        try:
+            palette = FluentTheme.instance().palette()
+            grip = css(mix(palette.window_bg, palette.text_secondary))
+        except Exception:
+            pass
+        painter.setPen(QPen(QColor(grip), 1))
         x = self._hover_boundary_x
         height = self.viewport().height()
         inset = min(_BOUNDARY_INSET_PX, max((height - 8) // 2, 0))

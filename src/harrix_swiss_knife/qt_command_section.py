@@ -7,34 +7,66 @@ from PySide6.QtGui import QColor, QFont, QPalette
 from PySide6.QtWidgets import QFrame, QLabel, QListWidget, QSizePolicy, QVBoxLayout, QWidget
 
 from harrix_swiss_knife.apps.common.ui_chrome import action_card_selection_qss, apply_readable_selection_palette
+from harrix_swiss_knife.fluent.theme import bind_theme
 from harrix_swiss_knife.qt_action_card_grid import CARD_GRID_CELL_HEIGHT
 from harrix_swiss_knife.qt_flat_scrollbar import with_flat_scrollbars
 
 COMMAND_SECTION_OBJECT_NAME = "commandSection"
 COMMAND_SECTION_DIVIDER_OBJECT_NAME = "commandSectionDivider"
 COMMAND_SECTION_BORDER_COLOR = "#c0c0c0"
+_COMMAND_SECTION_THEME_FLAG = "_command_section_theme_bound"
 _COMMAND_SECTION_LABEL_STYLE = (
     f"#{COMMAND_SECTION_OBJECT_NAME} > QLabel {{ background: transparent; padding: 4px 8px 0px 8px;}}"
 )
-COMMAND_SECTION_STYLE = (
-    f"#{COMMAND_SECTION_OBJECT_NAME} {{"
-    " background-color: #ffffff;"
-    f" border: 1px solid {COMMAND_SECTION_BORDER_COLOR};"
-    " border-radius: 8px;"
-    "}"
-    f"{_COMMAND_SECTION_LABEL_STYLE}"
-)
-COMMAND_SECTION_FLAT_STYLE = (
-    f"#{COMMAND_SECTION_OBJECT_NAME} {{ background-color: #ffffff; border: none;}}{_COMMAND_SECTION_LABEL_STYLE}"
-)
+
+
+def _command_section_surface_qcolor() -> QColor:
+    """Opaque card fill (white in light, Fluent card mix in dark)."""
+    try:
+        from harrix_swiss_knife.fluent.theme import FluentTheme, mix  # noqa: PLC0415
+
+        palette = FluentTheme.instance().palette()
+        if palette.dark:
+            return mix(palette.window_bg, palette.card_bg)
+    except Exception:
+        pass
+    return QColor("#ffffff")
+
+
+def _command_section_border_qcolor() -> QColor:
+    try:
+        from harrix_swiss_knife.fluent.theme import FluentTheme, mix  # noqa: PLC0415
+
+        palette = FluentTheme.instance().palette()
+        if palette.dark:
+            return mix(palette.window_bg, palette.control_stroke)
+    except Exception:
+        pass
+    return QColor(COMMAND_SECTION_BORDER_COLOR)
+
+
+def _command_section_stylesheet(*, bordered: bool) -> str:
+    bg = _command_section_surface_qcolor().name(QColor.NameFormat.HexRgb)
+    if bordered:
+        border = _command_section_border_qcolor().name(QColor.NameFormat.HexRgb)
+        card = (
+            f"#{COMMAND_SECTION_OBJECT_NAME} {{"
+            f" background-color: {bg};"
+            f" border: 1px solid {border};"
+            " border-radius: 8px;"
+            "}"
+        )
+    else:
+        card = f"#{COMMAND_SECTION_OBJECT_NAME} {{ background-color: {bg}; border: none;}}"
+    return f"{card}{_COMMAND_SECTION_LABEL_STYLE}"
 
 
 def apply_opaque_white(widget: QWidget) -> None:
-    """Paint an opaque white background without stylesheets (keeps native scrollbars)."""
+    """Paint an opaque card surface without stylesheets (keeps native scrollbars)."""
     palette = widget.palette()
-    white = QColor("#ffffff")
-    palette.setColor(QPalette.ColorRole.Window, white)
-    palette.setColor(QPalette.ColorRole.Base, white)
+    fill = _command_section_surface_qcolor()
+    palette.setColor(QPalette.ColorRole.Window, fill)
+    palette.setColor(QPalette.ColorRole.Base, fill)
     widget.setAutoFillBackground(True)
     widget.setPalette(palette)
 
@@ -83,7 +115,14 @@ def create_command_section(
     frame.setFrameShape(QFrame.Shape.NoFrame)
     frame.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
     frame.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-    frame.setStyleSheet(COMMAND_SECTION_STYLE if bordered else COMMAND_SECTION_FLAT_STYLE)
+
+    def refresh_style() -> None:
+        frame.setStyleSheet(_command_section_stylesheet(bordered=bordered))
+
+    refresh_style()
+    if not getattr(frame, _COMMAND_SECTION_THEME_FLAG, False):
+        bind_theme(frame, refresh_style)
+        setattr(frame, _COMMAND_SECTION_THEME_FLAG, True)
 
     layout = QVBoxLayout(frame)
     layout.setContentsMargins(8, 4, 8, 8)
@@ -115,12 +154,19 @@ def create_command_section_divider() -> QWidget:
     line.setMinimumHeight(1)
     line.setMaximumHeight(1)
     line.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-    palette = line.palette()
-    color = QColor(COMMAND_SECTION_BORDER_COLOR)
-    palette.setColor(QPalette.ColorRole.Window, color)
-    palette.setColor(QPalette.ColorRole.Base, color)
-    line.setAutoFillBackground(True)
-    line.setPalette(palette)
+
+    def refresh_divider() -> None:
+        palette = line.palette()
+        color = _command_section_border_qcolor()
+        palette.setColor(QPalette.ColorRole.Window, color)
+        palette.setColor(QPalette.ColorRole.Base, color)
+        line.setAutoFillBackground(True)
+        line.setPalette(palette)
+
+    refresh_divider()
+    if not getattr(line, _COMMAND_SECTION_THEME_FLAG, False):
+        bind_theme(line, refresh_divider)
+        setattr(line, _COMMAND_SECTION_THEME_FLAG, True)
     return line
 
 

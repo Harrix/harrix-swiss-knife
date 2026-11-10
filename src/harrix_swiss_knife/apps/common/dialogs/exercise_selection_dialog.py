@@ -25,6 +25,8 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common.avif_manager import AvifLabelKey
+from harrix_swiss_knife.apps.common.ui_chrome import media_preview_plate_qss
+from harrix_swiss_knife.fluent.theme import bind_theme
 from harrix_swiss_knife.keyboard_layout_search import text_matches_autocomplete
 from harrix_swiss_knife.qt_lucide_icon import (
     CLEAR_BUTTON_ICON,
@@ -640,8 +642,9 @@ class _ExercisePreviewTile(QFrame):
         self.preview_label = QLabel(self)
         self.preview_label.setFixedSize(preview_size)
         self.preview_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.preview_label.setStyleSheet("background-color: white; border: none;")
+        self.preview_label.setStyleSheet(media_preview_plate_qss())
         self.preview_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
+        bind_theme(self, lambda: self.preview_label.setStyleSheet(media_preview_plate_qss()))
         self.restore_static_pixmap()
         self._check_overlay = QLabel(self.preview_label)
         self._check_overlay.setObjectName("exercisePreviewCheck")

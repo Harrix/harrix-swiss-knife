@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife.apps.common.tracker_filter_chrome import prepare_date_filter_fields
-from harrix_swiss_knife.apps.common.ui_chrome import MUTED_TEXT
+from harrix_swiss_knife.apps.common.ui_chrome import muted_caption_qss
 from harrix_swiss_knife.fluent.tokens import CONTROL_HEIGHT, SPACE_S, SPACE_XS
 from harrix_swiss_knife.fluent.widgets.display import FluentTag
 from harrix_swiss_knife.fluent.widgets.enums import Severity
@@ -315,7 +315,7 @@ def _inline_caption(caption: str, widget: QWidget, parent: QWidget) -> QWidget:
     row.setContentsMargins(0, 0, 0, 0)
     row.setSpacing(SPACE_XS)
     label = QLabel(caption, field)
-    label.setStyleSheet(f"color: {MUTED_TEXT};")
+    label.setStyleSheet(muted_caption_qss(bold=False))
     label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
     row.addWidget(label, 0)
     row.addWidget(widget, 0)

@@ -27,7 +27,10 @@ else:
 
 
 def apply_white_editor_background(editor: QWidget, widget_type_name: str | None = None) -> None:
-    """Apply an opaque white background stylesheet to an inline editor widget.
+    """Apply an opaque editor fill so inline delegates do not show through the row.
+
+    Light mode keeps a white plate. Dark mode uses the Fluent input fill so
+    editors match the surrounding chrome.
 
     Args:
 
@@ -37,7 +40,16 @@ def apply_white_editor_background(editor: QWidget, widget_type_name: str | None 
 
     """
     selector = widget_type_name or type(editor).__name__
-    editor.setStyleSheet(f"{selector} {{ background-color: white; }}")
+    background = "white"
+    try:
+        from harrix_swiss_knife.fluent.theme import FluentTheme, css, mix  # noqa: PLC0415
+
+        palette = FluentTheme.instance().palette()
+        if palette.dark:
+            background = css(mix(palette.window_bg, palette.control_fill_input_active))
+    except Exception:
+        background = "white"
+    editor.setStyleSheet(f"{selector} {{ background-color: {background}; }}")
 
 
 def close_table_editor_if_open(view: QAbstractItemView) -> None:

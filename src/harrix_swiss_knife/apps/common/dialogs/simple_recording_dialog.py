@@ -13,7 +13,7 @@ from PySide6.QtWidgets import QComboBox, QDialog, QFileDialog, QHBoxLayout, QLab
 from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.audio_recording import (
-    RECORD_CAPTION_STOP_STYLE,
+    record_caption_stop_style,
     AudioLevelWidget,
     ClickableLabel,
     FinalizeResult,
@@ -268,7 +268,7 @@ class SimpleRecordingDialog(QDialog):
 
         self._stop_caption = ClickableLabel("Stop")
         self._stop_caption.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        self._stop_caption.setStyleSheet(RECORD_CAPTION_STOP_STYLE)
+        self._stop_caption.setStyleSheet(record_caption_stop_style())
         self._stop_caption.clicked.connect(self._on_stop_clicked)
         column.addWidget(self._stop_caption)
 
@@ -297,7 +297,7 @@ class SimpleRecordingDialog(QDialog):
                 QPushButton { min-height: 48px; padding: 8px 16px; }
                 """
             )
-            self._stop_caption.setStyleSheet(RECORD_CAPTION_STOP_STYLE)
+            self._stop_caption.setStyleSheet(record_caption_stop_style())
         self._update_stop_button()
 
     def _start_recording_with_current_device(self) -> None:

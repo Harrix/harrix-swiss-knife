@@ -128,7 +128,7 @@ from harrix_swiss_knife.apps.common.table_models import (
 )
 from harrix_swiss_knife.apps.common.text_case import capitalize_first_letter
 from harrix_swiss_knife.apps.common.tracker_filter_chrome import fit_date_filter_field_widths
-from harrix_swiss_knife.apps.common.ui_chrome import MUTED_TEXT
+from harrix_swiss_knife.apps.common.ui_chrome import muted_caption_qss
 from harrix_swiss_knife.apps.common.ui_helpers import set_combo_plain_items
 from harrix_swiss_knife.apps.common.widgets.image_picker import ImagePicker, ImagePickerMode
 from harrix_swiss_knife.apps.common.widgets.shrinkable_scroll_area import install_shrinkable_tab_scroll
@@ -5802,7 +5802,7 @@ class MainWindow(
         # Create and add label
         label: QLabel = QLabel(text)
         label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        label.setStyleSheet(f"color: {MUTED_TEXT}; padding: 20px;")
+        label.setStyleSheet(f"{muted_caption_qss(bold=False)} padding: 20px;")
         layout.addWidget(label)
 
     def _show_test_balance_dialog(

@@ -151,11 +151,6 @@
                      <bold>true</bold>
                     </font>
                    </property>
-                   <property name="styleSheet">
-                    <string notr="true">QSpinBox {
-                                          background-color: #e8f4fc;
-                                          }</string>
-                   </property>
                    <property name="alignment">
                     <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
                    </property>
@@ -181,11 +176,6 @@
                      <pointsize>12</pointsize>
                      <bold>true</bold>
                     </font>
-                   </property>
-                   <property name="styleSheet">
-                    <string notr="true">QDoubleSpinBox {
-                                          background-color: #e8f4fc;
-                                          }</string>
                    </property>
                    <property name="alignment">
                     <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
@@ -487,21 +477,7 @@
             <item>
              <widget class="QListView" name="listView_food_items">
               <property name="styleSheet">
-               <string notr="true">QListView {
-                                border: none;
-                                background-color: white;
-                                }
-                                QListView::item {
-                                padding: 4px;
-                                border-bottom: 1px solid #e0e0e0;
-                                }
-                                QListView::item:selected {
-                                background-color: #e8f4fc;
-                                color: black;
-                                }
-                                QListView::item:hover {
-                                background-color: #f3f8fb;
-                                }</string>
+               <string notr="true"/>
               </property>
              </widget>
             </item>

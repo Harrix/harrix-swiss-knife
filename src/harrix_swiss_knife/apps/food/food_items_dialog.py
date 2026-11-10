@@ -26,6 +26,7 @@ from harrix_swiss_knife.apps.common.table_context_menu import (
     add_refresh_action,
     add_separator,
 )
+from harrix_swiss_knife.apps.common.day_bands import day_band_color
 from harrix_swiss_knife.apps.common.table_models import create_colored_table_proxy_model
 from harrix_swiss_knife.apps.common.word_wrap_header import install_word_wrap_header
 from harrix_swiss_knife.apps.food.database_manager import FoodItemByNameRow
@@ -40,8 +41,6 @@ if TYPE_CHECKING:
     from harrix_swiss_knife.apps.food.database_manager import DatabaseManager
 
 _HEADERS = ["Name", "Name EN", "Drink", "kcal/100g", "Portion g", "Portion kcal"]
-_ROW_COLOR_EVEN = QColor(255, 255, 255)
-_ROW_COLOR_ODD = QColor(227, 242, 253)  # Light blue, matches Food accents
 
 
 class FoodItemsDialog(QDialog):
@@ -173,7 +172,7 @@ class FoodItemsDialog(QDialog):
     def _reload_table(self) -> None:
         rows: list[list[Any]] = []
         for index, row in enumerate(self.db_manager.get_all_food_items()):
-            color = _ROW_COLOR_ODD if index % 2 else _ROW_COLOR_EVEN
+            color = day_band_color(index)
             rows.append(
                 [
                     str(row[1] or ""),

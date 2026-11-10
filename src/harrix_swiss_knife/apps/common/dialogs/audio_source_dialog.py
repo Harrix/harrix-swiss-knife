@@ -28,7 +28,7 @@ from harrix_swiss_knife.apps.common.audio_compress import audio_file_to_mono_pcm
 from harrix_swiss_knife.apps.common.audio_recording import (
     PLAY_BUTTON_GAP,
     RECORD_CAPTION_IDLE_STYLE,
-    RECORD_CAPTION_STOP_STYLE,
+    record_caption_stop_style,
     AudioLevelWidget,
     ClickableLabel,
     FinalizeResult,
@@ -740,7 +740,7 @@ class AudioSourceDialog(QDialog):
         self._record_button.set_recording(recording=self._recorder.is_recording)
         if self._recorder.is_recording:
             self._record_caption.setText("Stop")
-            self._record_caption.setStyleSheet(RECORD_CAPTION_STOP_STYLE)
+            self._record_caption.setStyleSheet(record_caption_stop_style())
         else:
             self._record_caption.setText("Record")
             self._record_caption.setStyleSheet(RECORD_CAPTION_IDLE_STYLE)

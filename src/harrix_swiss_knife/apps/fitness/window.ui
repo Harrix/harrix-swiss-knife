@@ -110,11 +110,6 @@
                      <bold>true</bold>
                     </font>
                    </property>
-                   <property name="styleSheet">
-                    <string notr="true">QSpinBox {
-                                          background-color: #e8f4fc;
-                                          }</string>
-                   </property>
                    <property name="alignment">
                     <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
                    </property>

@@ -81,6 +81,7 @@ from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.dialogs.text_image_source_dialog import TextImageSourceDialog
 from harrix_swiss_knife.apps.common.qt_main_window import apply_app_window_size_and_position
 from harrix_swiss_knife.apps.common.widgets.image_picker import ImagePickerMode
+from harrix_swiss_knife.fluent.theme import enable_fluent_theme, is_fluent_themed
 from harrix_swiss_knife.qt_action_card_grid import configure_action_card_grid
 from harrix_swiss_knife.qt_command_section import create_command_section, style_transparent_icon_grid
 from harrix_swiss_knife.qt_compact_spin_box import CompactSpinBox as QSpinBox
@@ -1794,6 +1795,8 @@ class ActionDialogService:
         dialog_parent = QApplication.activeWindow() if parent is None else parent
         dialog_size = size if size is not None else self._default_size
         dialog = StandardActionDialog(dialog_size, dialog_parent)
+        if not is_fluent_themed(dialog):
+            enable_fluent_theme(dialog)
         dialog.setWindowTitle(title)
 
         layout = QVBoxLayout()

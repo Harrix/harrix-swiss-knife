@@ -11,6 +11,8 @@ from shiboken6 import isValid
 
 from harrix_swiss_knife.apps.common.avif_manager import AvifLabelKey
 from harrix_swiss_knife.apps.common.delegates.name_local_list_delegate import NameLocalListDelegate
+from harrix_swiss_knife.apps.common.ui_chrome import media_preview_plate_qss, media_preview_popup_frame_qss
+from harrix_swiss_knife.fluent.theme import bind_theme
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -69,22 +71,22 @@ class ExerciseListHoverPreview(QObject):
         )
         self._popup.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, on=True)
         self._popup.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
-        self._popup.setStyleSheet(
-            """
-            QFrame {
-                background: white;
-                border: 1px solid #bdbdbd;
-                border-radius: 6px;
-            }
-            """
-        )
+        self._popup.setStyleSheet(media_preview_popup_frame_qss())
         popup_layout = QVBoxLayout(self._popup)
         popup_layout.setContentsMargins(4, 4, 4, 4)
         self._label = QLabel(self._popup)
         self._label.setFixedSize(self._preview_size)
         self._label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._label.setStyleSheet("background-color: white; border: none;")
+        self._label.setStyleSheet(media_preview_plate_qss())
         popup_layout.addWidget(self._label)
+
+        def _refresh_preview_chrome() -> None:
+            if isValid(self._popup):
+                self._popup.setStyleSheet(media_preview_popup_frame_qss())
+            if isValid(self._label):
+                self._label.setStyleSheet(media_preview_plate_qss())
+
+        bind_theme(self._popup, _refresh_preview_chrome)
 
         resolver = exercise_at if exercise_at is not None else (lambda pos: exercise_at_list_icon(list_view, pos))
         self.add_view(list_view, resolver)

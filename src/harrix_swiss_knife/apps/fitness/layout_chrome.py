@@ -14,9 +14,9 @@ from harrix_swiss_knife.apps.common.tracker_layout_chrome import (
     quiet_group_box,
 )
 from harrix_swiss_knife.apps.common.tracker_splitter_settings import load_splitter_sizes, save_splitter_sizes
-from harrix_swiss_knife.apps.common.ui_chrome import button_cta_green_qss, button_idle_qss
+from harrix_swiss_knife.apps.common.ui_chrome import apply_soft_form_spin_fills, button_cta_green_qss, button_idle_qss
 from harrix_swiss_knife.fluent.app_chrome import style_fluent_item_view
-from harrix_swiss_knife.fluent.theme import FluentTheme, bind_theme, css, mix
+from harrix_swiss_knife.fluent.theme import FluentTheme, bind_theme, css, mix, palette_for
 from harrix_swiss_knife.fluent.tokens import CONTROL_HEIGHT, ICON_SIZE, SPACE_S, SPACE_XS
 from harrix_swiss_knife.qt_lucide_icon import apply_lucide_button_icon
 
@@ -210,6 +210,7 @@ def _polish_charts(host: Any) -> None:
         control = getattr(host, control_name, None)
         if control is not None:
             control.setMinimumHeight(CONTROL_HEIGHT)
+    apply_soft_form_spin_fills(host, ("spinBox_compare_last",))
 
     for view_name in ("listView_chart_exercise", "listView_chart_type"):
         view = getattr(host, view_name, None)
@@ -264,6 +265,7 @@ def _polish_statistics(host: Any) -> None:
         control = getattr(host, control_name, None)
         if control is not None:
             control.setMinimumHeight(CONTROL_HEIGHT)
+    apply_soft_form_spin_fills(host, ("spinBox_record_count",))
     if hasattr(host, "tableView_statistics"):
         _compact_table(host.tableView_statistics)
 
@@ -312,6 +314,8 @@ def _polish_weight(host: Any) -> None:
         control = getattr(host, control_name, None)
         if control is not None:
             control.setMinimumHeight(CONTROL_HEIGHT)
+    apply_soft_form_spin_fills(host, ("doubleSpinBox_weight",))
+    _polish_weight_chart_viewport(host)
     if hasattr(host, "tableView_weight"):
         _compact_table(host.tableView_weight)
     if hasattr(host, "verticalLayout_9"):
@@ -395,3 +399,13 @@ def _wire_two_pane(
         setattr(host, timer_attr, timer)
         splitter.splitterMoved.connect(on_moved)
         setattr(host, bound_attr, True)
+
+
+def _polish_weight_chart_viewport(host: Any) -> None:
+    if not hasattr(host, "scrollArea_weight_chart"):
+        return
+    palette = palette_for(host)
+    surface = css(mix(palette.window_bg, palette.card_bg))
+    viewport = host.scrollArea_weight_chart.viewport()
+    viewport.setAutoFillBackground(not palette.dark)
+    viewport.setStyleSheet(f"background-color: {surface};")

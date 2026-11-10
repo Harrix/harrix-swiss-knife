@@ -43,11 +43,10 @@ from harrix_swiss_knife.apps.common.day_bands import readable_cell_fill
 from harrix_swiss_knife.apps.common.table_context_menu import add_delete_action, add_lightbox_action
 from harrix_swiss_knife.apps.common.tracker_layout_chrome import soft_panel_css
 from harrix_swiss_knife.apps.common.ui_chrome import (
-    SELECTION_BG,
-    SELECTION_BORDER,
     button_cta_green_qss,
     button_danger_qss,
     button_secondary_qss,
+    selection_chrome_colors,
 )
 from harrix_swiss_knife.apps.common.widgets.exercise_list_hover_preview import exercise_at_table_image
 from harrix_swiss_knife.apps.fitness.lightbox_logic import (
@@ -95,13 +94,6 @@ _GREEN_BUTTON_STYLE = button_cta_green_qss()
 _GREY_BUTTON_STYLE = button_secondary_qss()
 _CONTINUE_BUTTON_STYLE = _GREEN_BUTTON_STYLE
 _STOP_BUTTON_STYLE = button_danger_qss()
-_SESSION_BAR_STYLE = f"""
-QFrame#workoutsSessionBar {{
-    background-color: {SELECTION_BG};
-    border: 1px solid {SELECTION_BORDER};
-    border-radius: 6px;
-}}
-"""
 _ROW_PAD = 8
 
 
@@ -343,7 +335,6 @@ class WorkoutsWidget(QWidget):
 
         self._session_bar = QFrame()
         self._session_bar.setObjectName("workoutsSessionBar")
-        self._session_bar.setStyleSheet(_SESSION_BAR_STYLE)
         session_layout = QHBoxLayout(self._session_bar)
         session_layout.setContentsMargins(12, 8, 12, 8)
         session_layout.setSpacing(16)
@@ -695,6 +686,16 @@ class WorkoutsWidget(QWidget):
         panel = soft_panel_css(self)
         text = css(mix(palette.window_bg, palette.text_primary))
         muted = css(mix(palette.window_bg, palette.text_secondary))
+        fill, _hover, border, _selection_text = selection_chrome_colors()
+        self._session_bar.setStyleSheet(
+            f"""
+            QFrame#workoutsSessionBar {{
+                background-color: {fill};
+                border: 1px solid {border};
+                border-radius: 6px;
+            }}
+            """,
+        )
         self.setStyleSheet(f"QWidget#workoutsWidget {{ background: transparent; color: {text}; }}")
         self._workouts_splitter.setStyleSheet("QSplitter#workoutsSplitter { background: transparent; }")
         self._left_panel.setStyleSheet(

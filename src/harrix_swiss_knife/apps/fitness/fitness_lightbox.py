@@ -64,6 +64,8 @@ from harrix_swiss_knife.apps.fitness.lightbox_sounds import (
 )
 from harrix_swiss_knife.qt_compact_spin_box import CompactSpinBox as QSpinBox
 from harrix_swiss_knife.qt_lucide_icon import apply_lucide_button_icon
+from harrix_swiss_knife.fluent.theme import bind_theme, css, mix, palette_for
+from harrix_swiss_knife.fluent.tokens import FluentPalette
 from harrix_swiss_knife.qt_toolbar_style import (
     TOOLBAR_BORDER_RADIUS,
     TOOLBAR_BUTTON_GAP,
@@ -436,17 +438,36 @@ class FitnessLightboxSidebar(QFrame):
         self._tick.setInterval(_TICK_MS)
         self._tick.timeout.connect(self._on_tick)
         self._build_ui()
+        bind_theme(self, self._refresh_sidebar_theme)
+        self._refresh_sidebar_theme()
         self._apply_snapshot(self._stopwatch.snapshot())
 
     def apply_backdrop(self, color: str) -> None:
         """Match label colors to the lightbox backdrop (`white` or `black`)."""
         self._backdrop_dark = color == "black"
-        title = _COLOR_TITLE_ON_DARK if self._backdrop_dark else _COLOR_TITLE
-        muted = _COLOR_MUTED_ON_DARK if self._backdrop_dark else _COLOR_MUTED
+        self._refresh_sidebar_theme()
+        self._apply_snapshot(self._stopwatch.snapshot())
+
+    def _refresh_sidebar_theme(self) -> None:
+        """Re-theme sidebar controls for Fluent light/dark (not only AVIF backdrop)."""
+        palette = palette_for(self)
+        value_style = _fitness_lightbox_value_qss(palette)
+        for spin in (
+            self._value_spin,
+            self._value_minutes_spin,
+            self._value_seconds_spin,
+        ):
+            spin.setStyleSheet(value_style)
+        self._type_combo.setStyleSheet(_fitness_lightbox_type_qss(palette))
+        if palette.dark:
+            title = css(mix(palette.window_bg, palette.text_primary))
+            muted = css(mix(palette.window_bg, palette.text_secondary))
+        else:
+            title = _COLOR_TITLE_ON_DARK if self._backdrop_dark else _COLOR_TITLE
+            muted = _COLOR_MUTED_ON_DARK if self._backdrop_dark else _COLOR_MUTED
         self._title.setStyleSheet(f"color: {title}; background: transparent;")
         self._limit_label.setStyleSheet(f"color: {muted};")
         self._unit_label.setStyleSheet(f"color: {muted};")
-        self._apply_snapshot(self._stopwatch.snapshot())
 
     def bind(
         self,
@@ -628,7 +649,7 @@ class FitnessLightboxSidebar(QFrame):
         spin.setAlignment(Qt.AlignmentFlag.AlignCenter)
         spin.setButtonSymbols(QSpinBox.ButtonSymbols.NoButtons)
         spin.setFixedSize(_DURATION_SPIN_WIDTH, _DURATION_SPIN_HEIGHT)
-        spin.setStyleSheet(_VALUE_STYLE)
+        spin.setStyleSheet(_fitness_lightbox_value_qss(palette_for(spin)))
         _apply_pixel_font(spin, pixel_size=28, weight=QFont.Weight.ExtraBold)
         spin.lineEdit().returnPressed.connect(self.confirm_requested.emit)
         spin.valueChanged.connect(self._on_value_changed)
@@ -728,7 +749,7 @@ class FitnessLightboxSidebar(QFrame):
 
         self._type_combo = _LightboxTypeCombo()
         self._type_combo.setObjectName("fitnessLightboxTypeCombo")
-        self._type_combo.setStyleSheet(_TYPE_STYLE)
+        self._type_combo.setStyleSheet(_fitness_lightbox_type_qss(palette_for(self)))
         _apply_pixel_font(self._type_combo, pixel_size=16)
         self._type_combo.setItemDelegate(
             NameLocalListDelegate(self._type_combo, layout=NameLocalLayout.LIST),
@@ -741,7 +762,7 @@ class FitnessLightboxSidebar(QFrame):
         self._value_spin.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._value_spin.setButtonSymbols(QSpinBox.ButtonSymbols.NoButtons)
         self._value_spin.setMinimumSize(220, _DURATION_SPIN_HEIGHT)
-        self._value_spin.setStyleSheet(_VALUE_STYLE)
+        self._value_spin.setStyleSheet(_fitness_lightbox_value_qss(palette_for(self)))
         _apply_pixel_font(self._value_spin, pixel_size=40, weight=QFont.Weight.ExtraBold)
         self._value_spin.lineEdit().returnPressed.connect(self.confirm_requested.emit)
         self._value_spin.valueChanged.connect(self._on_value_changed)
@@ -1190,55 +1211,68 @@ QFrame#fitnessLightboxPane {
 """
 
 
-_VALUE_STYLE = """
+def _fitness_lightbox_value_qss(palette: FluentPalette) -> str:
+    fill = css(mix(palette.window_bg, palette.control_fill_input_active))
+    border = css(mix(palette.window_bg, palette.control_stroke))
+    text = css(mix(palette.window_bg, palette.text_primary))
+    accent = css(mix(palette.window_bg, palette.accent))
+    return f"""
 QSpinBox#fitnessLightboxValueSpin,
 QSpinBox#fitnessLightboxValueMinutesSpin,
-QSpinBox#fitnessLightboxValueSecondsSpin {
-    background: #FFFFFF;
-    border: 2px solid #D1D5DB;
+QSpinBox#fitnessLightboxValueSecondsSpin {{
+    background: {fill};
+    border: 2px solid {border};
     border-radius: 16px;
     padding: 8px 12px;
-    color: #111827;
-}
+    color: {text};
+}}
 QSpinBox#fitnessLightboxValueSpin:focus,
 QSpinBox#fitnessLightboxValueMinutesSpin:focus,
-QSpinBox#fitnessLightboxValueSecondsSpin:focus {
-    border-color: #3B82F6;
-}
-"""
+QSpinBox#fitnessLightboxValueSecondsSpin:focus {{
+    border-color: {accent};
+}}
+""".strip()
 
-_TYPE_STYLE = """
-QComboBox#fitnessLightboxTypeCombo {
-    background: #FFFFFF;
-    border: 1px solid #D1D5DB;
+
+def _fitness_lightbox_type_qss(palette: FluentPalette) -> str:
+    fill = css(mix(palette.window_bg, palette.control_fill_input_active))
+    border = css(mix(palette.window_bg, palette.control_stroke))
+    text = css(mix(palette.window_bg, palette.text_primary))
+    accent = css(mix(palette.window_bg, palette.accent))
+    popup = css(mix(palette.window_bg, palette.card_bg))
+    selection_bg = css(mix(palette.window_bg, palette.accent))
+    return f"""
+QComboBox#fitnessLightboxTypeCombo {{
+    background: {fill};
+    border: 1px solid {border};
     border-radius: 12px;
     padding: 6px 32px 6px 12px;
-    color: #111827;
-}
+    color: {text};
+}}
 QComboBox#fitnessLightboxTypeCombo:focus,
-QComboBox#fitnessLightboxTypeCombo:on {
-    border-color: #3B82F6;
-}
-QComboBox#fitnessLightboxTypeCombo::drop-down {
+QComboBox#fitnessLightboxTypeCombo:on {{
+    border-color: {accent};
+}}
+QComboBox#fitnessLightboxTypeCombo::drop-down {{
     subcontrol-origin: padding;
     subcontrol-position: center right;
     width: 28px;
     border: none;
     background: transparent;
-}
-QComboBox#fitnessLightboxTypeCombo::down-arrow {
+}}
+QComboBox#fitnessLightboxTypeCombo::down-arrow {{
     image: none;
     width: 0;
     height: 0;
-}
-QComboBox#fitnessLightboxTypeCombo QAbstractItemView {
-    background: #FFFFFF;
-    border: 1px solid #D1D5DB;
+}}
+QComboBox#fitnessLightboxTypeCombo QAbstractItemView {{
+    background: {popup};
+    border: 1px solid {border};
     outline: none;
-    selection-background-color: #DBEAFE;
-    selection-color: #111827;
-}
-"""
+    selection-background-color: {selection_bg};
+    selection-color: {text};
+}}
+""".strip()
 
 _ADD_BUTTON_STYLE = """
 QPushButton#fitnessLightboxAddButton {

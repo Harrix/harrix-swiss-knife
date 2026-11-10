@@ -15,7 +15,12 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife.apps.common.tracker_layout_chrome import polish_left_field_labels, quiet_group_box
-from harrix_swiss_knife.apps.common.ui_chrome import MUTED_TEXT, button_cta_green_qss, button_idle_qss
+from harrix_swiss_knife.apps.common.ui_chrome import (
+    apply_soft_form_spin_fills,
+    button_cta_green_qss,
+    button_idle_qss,
+    muted_caption_qss,
+)
 from harrix_swiss_knife.apps.fitness.fitness_ui_settings import (
     EXPECTED_SETS_SPLITTER_LEN,
     load_sets_splitter_sizes,
@@ -152,10 +157,6 @@ def _ensure_exercise_list_header(host: Any) -> None:
             layout.insertWidget(list_index, label)
 
 
-def _field_caption_qss() -> str:
-    return f"color: {MUTED_TEXT}; font-weight: 600;"
-
-
 def _polish_exercise_list(host: Any) -> None:
     view: QListView = host.listView_exercises
     view.setUniformItemSizes(True)
@@ -172,7 +173,7 @@ def _polish_exercise_list(host: Any) -> None:
     label = getattr(host, "label_exercises_list", None)
     if isinstance(label, QLabel):
         label.setText("Exercise")
-        label.setStyleSheet(f"{_field_caption_qss()} border: none; background: transparent;")
+        label.setStyleSheet(f"{muted_caption_qss()} border: none; background: transparent;")
         font = QFont(label.font())
         font.setBold(True)
         label.setFont(font)
@@ -214,7 +215,7 @@ def _polish_form_column(host: Any) -> None:
     for name in ("label_unit", "label_last_date_count_today"):
         label = getattr(host, name, None)
         if isinstance(label, QLabel):
-            label.setStyleSheet(_field_caption_qss())
+            label.setStyleSheet(muted_caption_qss())
 
     polish_left_field_labels(
         host,
@@ -250,6 +251,10 @@ def _polish_form_column(host: Any) -> None:
     host.pushButton_select_exercise.setStyleSheet(button_idle_qss())
     apply_lucide_button_icon(host.pushButton_select_exercise, "dumbbell")
 
+    apply_soft_form_spin_fills(
+        host,
+        ("spinBox_count", "spinBox_count_minutes", "spinBox_count_seconds"),
+    )
     current = host.label_exercise.text().strip()
     if current and current.casefold() not in {"no exercise selected", "database error"}:
         refresh_exercise_state_label(host, current)

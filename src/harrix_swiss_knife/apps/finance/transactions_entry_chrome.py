@@ -21,7 +21,7 @@ from harrix_swiss_knife.apps.common.tracker_layout_chrome import (
     polish_left_field_labels,
     quiet_group_box,
 )
-from harrix_swiss_knife.apps.common.ui_chrome import MUTED_TEXT, button_cta_mint_qss, button_idle_qss
+from harrix_swiss_knife.apps.common.ui_chrome import button_cta_mint_qss, button_idle_qss, muted_caption_qss
 from harrix_swiss_knife.apps.finance.transactions_ui_settings import (
     EXPECTED_SPLITTER_LEN,
     OPTIONAL_COLUMN_ENGLISH,
@@ -155,10 +155,6 @@ def _configure_transactions_splitter(host: Any) -> None:
         host._transactions_splitter_save_bound = True  # noqa: SLF001
 
 
-def _field_caption_qss() -> str:
-    return f"color: {MUTED_TEXT}; font-weight: 600;"
-
-
 def _install_column_visibility_menu(host: Any, table: QTableView) -> None:
     header = table.horizontalHeader()
     header.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -202,7 +198,7 @@ def _polish_category_list(host: Any) -> None:
     view.setWordWrap(False)
     style_fluent_item_view(view)
     host.label_categories.setText("Transaction category")
-    host.label_categories.setStyleSheet(_field_caption_qss())
+    host.label_categories.setStyleSheet(muted_caption_qss())
     font = QFont(host.label_categories.font())
     font.setBold(True)
     host.label_categories.setFont(font)
@@ -245,7 +241,7 @@ def _polish_entry_surfaces(host: Any) -> None:
         }}
         """,
     )
-    host.label_categories.setStyleSheet(f"{_field_caption_qss()} border: none; background: transparent;")
+    host.label_categories.setStyleSheet(f"{muted_caption_qss()} border: none; background: transparent;")
 
 
 def _polish_form_column(host: Any) -> None:
@@ -268,7 +264,7 @@ def _polish_form_column(host: Any) -> None:
     ):
         label = getattr(host, name, None)
         if isinstance(label, QLabel):
-            label.setStyleSheet(_field_caption_qss())
+            label.setStyleSheet(muted_caption_qss())
 
     polish_left_field_labels(
         host,

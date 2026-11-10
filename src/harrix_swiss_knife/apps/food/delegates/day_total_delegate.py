@@ -23,7 +23,9 @@ from PySide6.QtWidgets import (
     QTableView,
 )
 
+from harrix_swiss_knife.apps.common.day_bands import readable_cell_fill
 from harrix_swiss_knife.apps.food.day_macros import DayMacrosStatus, day_macros_menu_label
+from harrix_swiss_knife.fluent.theme import FluentTheme, css, mix
 from harrix_swiss_knife.apps.food.food_log_calories import (
     FOOD_LOG_COL_DATE,
     FOOD_LOG_COL_TOTAL_PER_DAY,
@@ -279,6 +281,24 @@ def food_log_total_column_width(font: QFont) -> int:
     return text_width + (2 * _BUTTON_TEXT_PAD) + (2 * _CELL_SIDE_PAD) + _BUTTON_BORDER
 
 
+def _themed_chip_colors(
+    background: str,
+    border: str,
+    text: str,
+    hover: str,
+    *,
+    band_index: int,
+) -> MacrosButtonAppearance:
+    palette = FluentTheme.instance().palette()
+    bg = readable_cell_fill(QColor(background), band_index=band_index)
+    hover_bg = readable_cell_fill(QColor(hover), band_index=band_index)
+    if palette.dark:
+        ink = QColor(css(mix(palette.window_bg, palette.text_primary)))
+        edge = QColor(css(mix(palette.window_bg, palette.text_secondary)))
+        return MacrosButtonAppearance("", bg, edge, ink, hover_bg)
+    return MacrosButtonAppearance("", QColor(background), QColor(border), QColor(text), QColor(hover))
+
+
 def macros_button_appearance(status: DayMacrosStatus) -> MacrosButtonAppearance:
     """Return the label and colors for a day-macros button.
 
@@ -293,27 +313,17 @@ def macros_button_appearance(status: DayMacrosStatus) -> MacrosButtonAppearance:
     """
     label = day_macros_menu_label(status)
     if status is DayMacrosStatus.OK:
-        return MacrosButtonAppearance(
-            label,
-            QColor("#e8f5e9"),
-            QColor("#43a047"),
-            QColor("#1b5e20"),
-            QColor("#c8e6c9"),
-        )
-    if status is DayMacrosStatus.STALE:
-        return MacrosButtonAppearance(
-            label,
-            QColor("#fff8e1"),
-            QColor("#f9a825"),
-            QColor("#e65100"),
-            QColor("#ffecb3"),
-        )
+        appearance = _themed_chip_colors("#e8f5e9", "#43a047", "#1b5e20", "#c8e6c9", band_index=0)
+    elif status is DayMacrosStatus.STALE:
+        appearance = _themed_chip_colors("#fff8e1", "#f9a825", "#e65100", "#ffecb3", band_index=1)
+    else:
+        appearance = _themed_chip_colors("#1e88e5", "#1565c0", "#ffffff", "#1976d2", band_index=0)
     return MacrosButtonAppearance(
         label,
-        QColor("#1e88e5"),
-        QColor("#1565c0"),
-        QColor("#ffffff"),
-        QColor("#1976d2"),
+        appearance.background,
+        appearance.border,
+        appearance.text,
+        appearance.hover_background,
     )
 
 

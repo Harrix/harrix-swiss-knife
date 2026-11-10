@@ -6490,8 +6490,8 @@ class MainWindow(
         self.dateEdit_weight_from.setDate(current_date.addMonths(-1))
         self.dateEdit_weight_to.setDate(current_date)
         viewport = self.scrollArea_weight_chart.viewport()
-        viewport.setAutoFillBackground(True)
-        viewport.setStyleSheet("background-color: #ffffff;")
+        viewport.setAutoFillBackground(False)
+        viewport.setStyleSheet("")
 
     def _init_weight_controls(self) -> None:
         """Initialize weight input controls with last recorded values."""
