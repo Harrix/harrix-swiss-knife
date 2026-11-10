@@ -16,6 +16,7 @@ from harrix_swiss_knife.apps.food.recipe_calories import RecipeIngredientInput
 from harrix_swiss_knife.apps.food.recipes_dialog import RecipesDialog
 from harrix_swiss_knife.apps.food.recipes_widget import RecipesWidget
 from harrix_swiss_knife.apps.food.services.food_display import DRINK_EMOJI
+from harrix_swiss_knife.fluent.theme import FluentTheme, ThemeMode, enable_fluent_theme
 
 
 @pytest.fixture
@@ -38,6 +39,8 @@ def test_recipes_dialog_embeds_widget(qapp: QApplication, tmp_path: Path) -> Non
     dialog = RecipesDialog(None, db)
     assert dialog.windowTitle() == "Recipes"
     assert isinstance(dialog.recipes_widget, RecipesWidget)
+    assert bool(dialog.property("hskOverlayCaption"))
+    assert dialog.recipes_widget._controls_panel.frameShape().name == "NoFrame"  # noqa: SLF001
     dialog.close()
     db.close()
 
@@ -66,6 +69,24 @@ def test_recipes_widget_has_no_bottom_delete_button(qapp: QApplication) -> None:
     assert widget.button_new is not None
     assert widget.list_recipes.contextMenuPolicy() == Qt.ContextMenuPolicy.CustomContextMenu
     widget.close()
+
+
+def test_recipes_widget_controls_not_white_in_dark(qapp: QApplication) -> None:
+    assert qapp is not None
+    theme = FluentTheme.instance()
+    previous = theme.mode()
+    theme.set_mode(ThemeMode.DARK, persist=False)
+    host = QWidget()
+    enable_fluent_theme(host)
+    try:
+        widget = RecipesWidget(host)
+        sheet = widget._controls_panel.styleSheet().casefold()  # noqa: SLF001
+        assert "background-color: white" not in sheet
+        assert "#ffffff" not in sheet
+        assert "color:" in widget.list_recipes.styleSheet().casefold()
+    finally:
+        theme.set_mode(previous, persist=False)
+        host.close()
 
 
 def test_recipe_id_and_name_from_index(qapp: QApplication) -> None:  # noqa: ARG001

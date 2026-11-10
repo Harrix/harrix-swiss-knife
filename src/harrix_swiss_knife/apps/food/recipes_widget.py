@@ -34,12 +34,8 @@ from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.day_bands import readable_cell_fill
 from harrix_swiss_knife.apps.common.table_context_menu import add_delete_action
 from harrix_swiss_knife.apps.common.text_case import capitalize_first_letter
-from harrix_swiss_knife.apps.common.ui_chrome import (
-    SELECTION_BORDER,
-    button_cta_cyan_qss,
-    list_view_panel_qss,
-    soft_field_qss,
-)
+from harrix_swiss_knife.apps.common.tracker_layout_chrome import soft_panel_css
+from harrix_swiss_knife.apps.common.ui_chrome import button_cta_cyan_qss
 from harrix_swiss_knife.apps.food.database_manager import merge_food_autocomplete_entries
 from harrix_swiss_knife.apps.food.delegates import IsDrinkDelegate, is_drink_to_model, parse_is_drink_cell
 from harrix_swiss_knife.apps.food.food_log_calories import calculate_food_log_calories
@@ -55,11 +51,12 @@ from harrix_swiss_knife.apps.food.services.food_display import (
     extract_food_name_from_display,
     format_food_name_with_calories,
 )
+from harrix_swiss_knife.fluent.app_chrome import style_fluent_item_view
+from harrix_swiss_knife.fluent.theme import bind_theme, css, mix, palette_for
 from harrix_swiss_knife.qt_compact_spin_box import (
     CompactDoubleSpinBox as QDoubleSpinBox,
 )
 from harrix_swiss_knife.qt_compact_spin_box import CompactSpinBox as QSpinBox
-from harrix_swiss_knife.qt_flat_scrollbar import with_flat_scrollbars
 from harrix_swiss_knife.qt_lucide_checkbox import apply_lucide_indicators
 from harrix_swiss_knife.qt_lucide_icon import (
     apply_leading_chrome_icons,
@@ -71,10 +68,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-_SPINBOX_STYLE = soft_field_qss("QSpinBox")
-_DOUBLE_SPINBOX_STYLE = soft_field_qss("QDoubleSpinBox")
 _FOOD_BUTTON_STYLE = button_cta_cyan_qss()
-_LIST_STYLE = with_flat_scrollbars(list_view_panel_qss(border_color=SELECTION_BORDER))
 _CONTROLS_MIN_WIDTH = 350
 _COL_NAME = 0
 _COL_WEIGHT = 1
@@ -108,6 +102,8 @@ class RecipesWidget(QWidget):
         self._completer_proxy.setSourceModel(self._completer_source)
         self._build_ui()
         self._setup_ingredient_completer()
+        bind_theme(self, self._refresh_theme)
+        self._refresh_theme()
 
     def refresh(self) -> None:
         """Reload recipe list and ingredient-name autocomplete from the database."""
@@ -209,9 +205,10 @@ class RecipesWidget(QWidget):
         totals_font.setBold(True)
 
         controls = QFrame()
+        controls.setObjectName("recipesControlsPanel")
         controls.setMinimumWidth(_CONTROLS_MIN_WIDTH)
-        controls.setFrameShape(QFrame.Shape.StyledPanel)
-        controls.setFrameShadow(QFrame.Shadow.Raised)
+        controls.setFrameShape(QFrame.Shape.NoFrame)
+        self._controls_panel = controls
         controls_layout = QVBoxLayout(controls)
 
         group_add = QGroupBox("Add ingredient")
@@ -224,20 +221,20 @@ class RecipesWidget(QWidget):
         amount_row = QHBoxLayout()
         self.spin_ingredient_weight = QSpinBox()
         self.spin_ingredient_weight.setFont(standard_bold_font)
-        self.spin_ingredient_weight.setStyleSheet(_SPINBOX_STYLE)
         self.spin_ingredient_weight.setAlignment(Qt.AlignmentFlag.AlignRight)
         self.spin_ingredient_weight.setRange(1, 100_000)
         self.spin_ingredient_weight.setValue(100)
         self.spin_ingredient_calories = QDoubleSpinBox()
         self.spin_ingredient_calories.setFont(standard_bold_font)
-        self.spin_ingredient_calories.setStyleSheet(_DOUBLE_SPINBOX_STYLE)
         self.spin_ingredient_calories.setAlignment(Qt.AlignmentFlag.AlignRight)
         self.spin_ingredient_calories.setRange(0, 100_000)
         self.spin_ingredient_calories.setDecimals(1)
+        self.label_weight_unit = QLabel("g")
+        self.label_kcal_unit = QLabel("kcal")
         amount_row.addWidget(self.spin_ingredient_weight)
-        amount_row.addWidget(QLabel("g"))
+        amount_row.addWidget(self.label_weight_unit)
         amount_row.addWidget(self.spin_ingredient_calories)
-        amount_row.addWidget(QLabel("kcal"))
+        amount_row.addWidget(self.label_kcal_unit)
         self.check_ingredient_drink = QCheckBox("Drink")
         amount_row.addWidget(self.check_ingredient_drink)
         add_layout.addLayout(amount_row)
@@ -268,11 +265,14 @@ class RecipesWidget(QWidget):
         controls_layout.addStretch()
 
         middle = QWidget()
+        middle.setObjectName("recipesListPanel")
+        self._list_panel = middle
         middle_layout = QVBoxLayout(middle)
         middle_layout.setContentsMargins(8, 8, 8, 8)
-        middle_layout.addWidget(QLabel("Recipes"))
+        self.label_recipes_heading = QLabel("Recipes")
+        middle_layout.addWidget(self.label_recipes_heading)
         self.list_recipes = QListView()
-        self.list_recipes.setStyleSheet(_LIST_STYLE)
+        self.list_recipes.setObjectName("listView_recipes")
         self._recipes_model = QStandardItemModel(self.list_recipes)
         self.list_recipes.setModel(self._recipes_model)
         self.list_recipes.clicked.connect(self._on_recipe_clicked)
@@ -289,6 +289,8 @@ class RecipesWidget(QWidget):
         splitter.addWidget(controls)
 
         right = QWidget()
+        right.setObjectName("recipesEditorPanel")
+        self._editor_panel = right
         right_layout = QVBoxLayout(right)
         right_layout.setContentsMargins(8, 8, 8, 8)
 
@@ -445,6 +447,28 @@ class RecipesWidget(QWidget):
         self.check_ingredient_drink.setChecked(log_item.is_drink)
         self.radio_use_weight.setChecked(True)
         self.spin_ingredient_calories.setValue(log_item.calories_per_100g or 0)
+
+    def _refresh_theme(self) -> None:
+        """Paint panes / list for the current Fluent theme (no light StyledPanel)."""
+        palette = palette_for(self)
+        panel = soft_panel_css(self)
+        text = css(mix(palette.window_bg, palette.text_primary))
+        muted = css(mix(palette.window_bg, palette.text_secondary))
+        self._list_panel.setStyleSheet(
+            f"QWidget#recipesListPanel {{ background: {panel}; border: none; color: {text}; }}",
+        )
+        self._controls_panel.setStyleSheet(
+            f"QFrame#recipesControlsPanel {{ background: {panel}; border: none; color: {text}; }}",
+        )
+        self._editor_panel.setStyleSheet(
+            f"QWidget#recipesEditorPanel {{ background: transparent; border: none; color: {text}; }}",
+        )
+        self.label_recipes_heading.setStyleSheet(f"color: {text}; background: transparent;")
+        for label in (self.label_weight_unit, self.label_kcal_unit, self.label_recipe_totals):
+            label.setStyleSheet(f"color: {muted}; background: transparent;")
+        style_fluent_item_view(self.list_recipes)
+        for row in range(self.table_ingredients.rowCount()):
+            self._apply_ingredient_row_background(row)
 
     def _recipe_id_and_name_from_index(self, index: QModelIndex) -> tuple[int, str] | None:
         if not index.isValid():

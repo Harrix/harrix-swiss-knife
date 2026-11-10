@@ -5,11 +5,14 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QPoint, Qt
+from PySide6.QtGui import QShowEvent
 from PySide6.QtWidgets import QDialog, QHBoxLayout, QVBoxLayout, QWidget
 
 from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.food.recipes_widget import RecipesWidget
+from harrix_swiss_knife.fluent.app_chrome import install_fluent_app_window, prepare_fluent_app_window
 from harrix_swiss_knife.qt_lucide_icon import CANCEL_BUTTON_ICON, make_lucide_push_button
+from harrix_swiss_knife.win11_caption import OVERLAY_CAPTION_PROPERTY, install_win11_caption
 
 if TYPE_CHECKING:
     from harrix_swiss_knife.apps.food.database_manager import DatabaseManager
@@ -29,30 +32,52 @@ class RecipesDialog(QDialog):
     ) -> None:
         """Build the dialog, attach `db_manager`, and optionally select a recipe."""
         super().__init__(parent)
+        self.setObjectName("recipesDialog")
         self.setWindowTitle("Recipes")
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
+        self.setProperty(OVERLAY_CAPTION_PROPERTY, True)  # noqa: FBT003
         qt_modality.set_owner_window_modal(self)
-        self._match_parent_window()
 
-        self._widget = RecipesWidget(self)
+        prepare_fluent_app_window(self)
+
+        self._root = QVBoxLayout(self)
+        self._root.setContentsMargins(0, 0, 0, 0)
+        self._root.setSpacing(0)
+
+        self._win11_caption = install_win11_caption(self)
+
+        body = QWidget(self)
+        body.setObjectName("recipesDialogBody")
+        body_layout = QVBoxLayout(body)
+        body_layout.setContentsMargins(8, 8, 8, 8)
+        body_layout.setSpacing(8)
+
+        self._widget = RecipesWidget(body)
         self._widget.set_database_manager(db_manager)
         if select_recipe_id is not None:
             self._widget.select_recipe_by_id(select_recipe_id)
-
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(8, 8, 8, 8)
-        layout.addWidget(self._widget, 1)
+        body_layout.addWidget(self._widget, 1)
 
         buttons = QHBoxLayout()
         buttons.addStretch(1)
         close_button = make_lucide_push_button("Close", CANCEL_BUTTON_ICON)
         close_button.clicked.connect(self.accept)
         buttons.addWidget(close_button)
-        layout.addLayout(buttons)
+        body_layout.addLayout(buttons)
+
+        self._root.addWidget(body, 1)
+        install_fluent_app_window(self)
+        self._match_parent_window()
 
     @property
     def recipes_widget(self) -> RecipesWidget:
         """Embedded recipes editor."""
         return self._widget
+
+    def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
+        """Keep Fluent chrome after the first polish pass."""
+        super().showEvent(event)
+        install_fluent_app_window(self)
 
     def _match_parent_window(self) -> None:
         """Use the same size and screen position as the owning Food window."""
