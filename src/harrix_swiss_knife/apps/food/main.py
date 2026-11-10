@@ -78,7 +78,13 @@ from harrix_swiss_knife.apps.common.date_edit_quick import (
     match_layout_control_heights,
     match_layout_control_heights_many,
 )
-from harrix_swiss_knife.apps.common.day_bands import clear_day_band, day_band_color, day_band_id_item, set_day_band
+from harrix_swiss_knife.apps.common.day_bands import (
+    clear_day_band,
+    day_band_color,
+    day_band_id_item,
+    set_day_band,
+    set_readable_cell_fill,
+)
 from harrix_swiss_knife.apps.common.db_init import init_tracker_database
 from harrix_swiss_knife.apps.common.dialogs.simple_recording_dialog import SimpleRecordingDialog
 from harrix_swiss_knife.apps.common.qt_database_manager_base import QtSqliteDatabaseManagerBase
@@ -1750,8 +1756,7 @@ class MainWindow(
                     total_item.setBackground(date_brush)
                     clear_day_band(total_item)
                     continue
-                total_item.setBackground(QBrush(QColor(*band)))
-                clear_day_band(total_item)
+                set_readable_cell_fill(total_item, QColor(*band))
                 font = total_item.font()
                 font.setBold(True)
                 total_item.setFont(font)
@@ -2066,8 +2071,7 @@ class MainWindow(
                     if total_text:
                         try:
                             band = calorie_band_rgb(float(total_text), thresholds)
-                            item.setBackground(QBrush(QColor(*band)))
-                            clear_day_band(item)
+                            set_readable_cell_fill(item, QColor(*band))
                             font = item.font()
                             font.setBold(True)
                             item.setFont(font)
@@ -2134,7 +2138,7 @@ class MainWindow(
                 item = QStandardItem(str(value) if value is not None else "")
                 item.setEditable(False)
                 if col_idx == _STATS_DAY_CALORIES_COLUMN and calories_value is not None:
-                    item.setBackground(QBrush(QColor(*calorie_band_rgb(calories_value, thresholds))))
+                    set_readable_cell_fill(item, QColor(*calorie_band_rgb(calories_value, thresholds)))
                 elif tones is not None and col_idx in {
                     _STATS_DAY_PROTEIN_COLUMN,
                     _STATS_DAY_FAT_COLUMN,
@@ -2145,7 +2149,7 @@ class MainWindow(
                     tone_index = col_idx - _STATS_DAY_PROTEIN_COLUMN
                     rgb = macro_tone_rgb(tones[tone_index])
                     if rgb is not None:
-                        item.setBackground(QBrush(QColor(*rgb)))
+                        set_readable_cell_fill(item, QColor(*rgb))
                 items.append(item)
 
             model.appendRow(items)

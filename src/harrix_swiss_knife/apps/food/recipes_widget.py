@@ -31,6 +31,7 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife.apps.common import message_box
+from harrix_swiss_knife.apps.common.day_bands import readable_cell_fill
 from harrix_swiss_knife.apps.common.table_context_menu import add_delete_action
 from harrix_swiss_knife.apps.common.text_case import capitalize_first_letter
 from harrix_swiss_knife.apps.common.ui_chrome import (
@@ -169,7 +170,10 @@ class RecipesWidget(QWidget):
         self.line_ingredient_name.setFocus()
 
     def _apply_ingredient_row_background(self, row: int) -> None:
-        color = _ROW_COLOR_ODD if row % 2 else _ROW_COLOR_EVEN
+        color = readable_cell_fill(
+            _ROW_COLOR_ODD if row % 2 else _ROW_COLOR_EVEN,
+            band_index=row % 2,
+        )
         brush = QBrush(color)
         for column in range(_INGREDIENT_COLUMN_COUNT):
             item = self.table_ingredients.item(row, column)

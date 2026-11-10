@@ -117,6 +117,18 @@ def test_readable_cell_fill_darkens_chromatic_pastels(qapp: QApplication) -> Non
     theme.set_mode(previous, persist=False)
 
 
+def test_set_day_band_adapts_plain_pastel_in_dark(qapp: QApplication) -> None:
+    """Plain pastel QColor passed to set_day_band becomes readable in dark theme."""
+    assert qapp is not None
+    theme = FluentTheme.instance()
+    previous = theme.mode()
+    theme.set_mode(ThemeMode.DARK, persist=False)
+    item = QStandardItem("row")
+    set_day_band(item, QColor(200, 255, 200))
+    assert item.background().color().lightness() < 140
+    theme.set_mode(previous, persist=False)
+
+
 def test_disconnect_without_slots_is_quiet(qapp: QApplication) -> None:
     """Detaching a worker does not warn about signals that have no slots."""
     assert qapp is not None

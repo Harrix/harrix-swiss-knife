@@ -17,7 +17,7 @@ from PySide6.QtCore import (
 from PySide6.QtGui import QBrush, QColor, QGuiApplication, QIcon, QPainter, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import QAbstractButton, QStyle, QStyleOptionHeader, QWidget
 
-from harrix_swiss_knife.apps.common.day_bands import day_band_id_item, set_day_band
+from harrix_swiss_knife.apps.common.day_bands import DayBand, day_band_id_item, set_day_band, set_readable_cell_fill
 from harrix_swiss_knife.apps.common.record_id_sort import ROW_ID_SORT_SECTION as _ROW_ID_SORT_SECTION
 from harrix_swiss_knife.apps.common.record_id_sort import RecordIdSortProxyModel
 
@@ -609,8 +609,10 @@ def _colored_standard_item(value: object, row_color: object, *, row_id: object =
             item.setData(sort_id, Qt.ItemDataRole.UserRole)
     else:
         item = QStandardItem(str(value) if value is not None else "")
-    if isinstance(row_color, QColor):
+    if isinstance(row_color, DayBand):
         set_day_band(item, row_color)
+    elif isinstance(row_color, QColor):
+        set_readable_cell_fill(item, row_color)
     else:
         item.setBackground(QBrush(row_color))
     return item

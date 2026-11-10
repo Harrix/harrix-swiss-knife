@@ -40,6 +40,7 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife.apps.common import message_box
+from harrix_swiss_knife.apps.common.day_bands import readable_cell_fill
 from harrix_swiss_knife.apps.common.table_context_menu import add_delete_action, add_lightbox_action
 from harrix_swiss_knife.apps.common.ui_chrome import (
     SELECTION_BG,
@@ -317,9 +318,10 @@ class WorkoutsWidget(QWidget):
         current_id = self._first_incomplete_item_id() if self._session_active else None
         item_id = self._item_ids[row] if 0 <= row < len(self._item_ids) else None
         if current_id is not None and item_id == current_id:
-            color = _ROW_COLOR_CURRENT
+            light = _ROW_COLOR_CURRENT
         else:
-            color = _ROW_COLOR_ODD if row % 2 else _ROW_COLOR_EVEN
+            light = _ROW_COLOR_ODD if row % 2 else _ROW_COLOR_EVEN
+        color = readable_cell_fill(light, band_index=row % 2)
         brush = QBrush(color)
         for column in range(_ITEM_COLUMN_COUNT):
             item = self.table_items.item(row, column)

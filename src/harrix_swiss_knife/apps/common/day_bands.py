@@ -156,11 +156,17 @@ def refresh_day_bands(table: QTableView) -> None:
 
 
 def set_day_band(item: QStandardItem, color: QColor) -> None:
-    """Paint `item` with `color` and remember the band index when it has one."""
+    """Paint `item` with `color` and remember the band index when it has one.
+
+    Plain pastel `QColor` values (not `DayBand`) go through `readable_cell_fill`
+    so tracker tables stay legible under Fluent dark chrome.
+
+    """
+    if not isinstance(color, DayBand):
+        set_readable_cell_fill(item, color)
+        return
     item.setBackground(QBrush(color))
-    band = getattr(color, "band_index", None)
-    if isinstance(band, int):
-        item.setData(band, DAY_BAND_ROLE)
+    item.setData(color.band_index, DAY_BAND_ROLE)
 
 
 def table_surface_color(palette: FluentPalette) -> QColor:
