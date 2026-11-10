@@ -153,7 +153,7 @@
                   <widget class="QLabel" name="label_habits_5">
                    <property name="minimumSize">
                     <size>
-                     <width>111</width>
+                     <width>90</width>
                      <height>0</height>
                     </size>
                    </property>
@@ -180,7 +180,7 @@
                   <widget class="QLabel" name="label_habit_emoji">
                    <property name="minimumSize">
                     <size>
-                     <width>111</width>
+                     <width>90</width>
                      <height>0</height>
                     </size>
                    </property>

@@ -83,6 +83,19 @@
                <item>
                 <layout class="QHBoxLayout" name="horizontalLayout_food_manual_name">
                  <item>
+                  <widget class="QLabel" name="label_field_food_name">
+                   <property name="minimumSize">
+                    <size>
+                     <width>90</width>
+                     <height>0</height>
+                    </size>
+                   </property>
+                   <property name="text">
+                    <string>Description:</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
                   <widget class="QLineEdit" name="lineEdit_food_manual_name">
                    <property name="font">
                     <font>
@@ -117,6 +130,19 @@
                </item>
                <item>
                 <layout class="QHBoxLayout" name="horizontalLayout_food_weight">
+                 <item>
+                  <widget class="QLabel" name="label_field_food_weight">
+                   <property name="minimumSize">
+                    <size>
+                     <width>90</width>
+                     <height>0</height>
+                    </size>
+                   </property>
+                   <property name="text">
+                    <string>Weight:</string>
+                   </property>
+                  </widget>
+                 </item>
                  <item>
                   <widget class="CompactSpinBox" name="spinBox_food_weight">
                    <property name="font">
@@ -222,10 +248,23 @@
                <item>
                 <layout class="QHBoxLayout" name="horizontalLayout_food_date">
                  <item>
+                  <widget class="QLabel" name="label_field_food_date">
+                   <property name="minimumSize">
+                    <size>
+                     <width>90</width>
+                     <height>0</height>
+                    </size>
+                   </property>
+                   <property name="text">
+                    <string>Date:</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
                   <widget class="QDateEdit" name="dateEdit_food">
                    <property name="minimumSize">
                     <size>
-                     <width>191</width>
+                     <width>140</width>
                      <height>0</height>
                     </size>
                    </property>

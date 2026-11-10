@@ -10,6 +10,7 @@ from PySide6.QtWidgets import QAbstractItemView, QLabel, QListView, QTableView
 
 from harrix_swiss_knife.apps.common.tracker_layout_chrome import (
     apply_tracker_column_surfaces,
+    polish_left_field_labels,
     quiet_group_box,
 )
 from harrix_swiss_knife.apps.common.tracker_splitter_settings import load_splitter_sizes, save_splitter_sizes
@@ -275,6 +276,13 @@ def _polish_weight(host: Any) -> None:
         label = getattr(host, name, None)
         if isinstance(label, QLabel):
             label.setStyleSheet(_caption_qss())
+    polish_left_field_labels(
+        host,
+        (
+            ("label_field_weight", "Weight:"),
+            ("label_field_weight_date", "Date:"),
+        ),
+    )
     for control_name in (
         "doubleSpinBox_weight",
         "dateEdit_weight",

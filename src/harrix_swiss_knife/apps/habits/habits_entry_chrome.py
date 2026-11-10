@@ -4,10 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from PySide6.QtWidgets import QLabel
-
-from harrix_swiss_knife.apps.common.tracker_layout_chrome import quiet_group_box
-from harrix_swiss_knife.apps.common.ui_chrome import MUTED_TEXT, button_cta_cyan_qss, button_idle_qss
+from harrix_swiss_knife.apps.common.tracker_layout_chrome import polish_left_field_labels, quiet_group_box
+from harrix_swiss_knife.apps.common.ui_chrome import button_cta_cyan_qss, button_idle_qss
 from harrix_swiss_knife.fluent.theme import bind_theme
 from harrix_swiss_knife.fluent.tokens import CONTROL_HEIGHT, SPACE_S, SPACE_XS
 from harrix_swiss_knife.qt_lucide_icon import apply_lucide_button_icon
@@ -19,10 +17,6 @@ def install_habits_entry_chrome(host: Any) -> None:
     if not getattr(host, "_habits_entry_theme_bound", False):
         bind_theme(host, lambda: _polish_form(host))
         host._habits_entry_theme_bound = True  # noqa: SLF001
-
-
-def _field_caption_qss() -> str:
-    return f"color: {MUTED_TEXT}; font-weight: 600; padding-top: 2px;"
 
 
 def _polish_form(host: Any) -> None:
@@ -37,10 +31,13 @@ def _polish_form(host: Any) -> None:
         host.verticalLayout_23.setSpacing(SPACE_S)
         host.verticalLayout_23.setContentsMargins(SPACE_S, SPACE_S, SPACE_S, SPACE_S)
 
-    for name in ("label_habits_5", "label_habit_emoji"):
-        label = getattr(host, name, None)
-        if isinstance(label, QLabel):
-            label.setStyleSheet(_field_caption_qss())
+    polish_left_field_labels(
+        host,
+        (
+            ("label_habits_5", "Name:"),
+            ("label_habit_emoji", "Emoji:"),
+        ),
+    )
 
     for control_name in (
         "lineEdit_habit_name",

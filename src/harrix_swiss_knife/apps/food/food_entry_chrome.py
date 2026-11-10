@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
     QTableView,
 )
 
-from harrix_swiss_knife.apps.common.tracker_layout_chrome import quiet_group_box
+from harrix_swiss_knife.apps.common.tracker_layout_chrome import polish_left_field_labels, quiet_group_box
 from harrix_swiss_knife.apps.common.ui_chrome import MUTED_TEXT, button_idle_qss
 from harrix_swiss_knife.apps.food.food_ui_settings import (
     EXPECTED_FOOD_SPLITTER_LEN,
@@ -149,7 +149,7 @@ def _ensure_item_state_label(host: Any) -> None:
 
 
 def _field_caption_qss() -> str:
-    return f"color: {MUTED_TEXT}; font-weight: 600; padding-top: 2px;"
+    return f"color: {MUTED_TEXT}; font-weight: 600;"
 
 
 def _polish_food_log_table(host: Any) -> None:
@@ -184,7 +184,16 @@ def _polish_form_column(host: Any) -> None:
         if isinstance(label, QLabel):
             label.setStyleSheet(_field_caption_qss())
 
-    host.lineEdit_food_manual_name.setPlaceholderText("Description")
+    polish_left_field_labels(
+        host,
+        (
+            ("label_field_food_name", "Description:"),
+            ("label_field_food_weight", "Weight:"),
+            ("label_field_food_date", "Date:"),
+        ),
+    )
+
+    host.lineEdit_food_manual_name.setPlaceholderText("What did you eat?")
     host.lineEdit_food_manual_name.setToolTip("Food or drink name")
 
     for control_name in (

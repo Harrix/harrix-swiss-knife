@@ -13,6 +13,7 @@ lang: en
 
 - [🔧 Function `apply_tracker_column_surfaces`](#-function-apply_tracker_column_surfaces)
 - [🔧 Function `install_tracker_column_chrome`](#-function-install_tracker_column_chrome)
+- [🔧 Function `polish_left_field_labels`](#-function-polish_left_field_labels)
 - [🔧 Function `quiet_group_box`](#-function-quiet_group_box)
 - [🔧 Function `soft_panel_css`](#-function-soft_panel_css)
 
@@ -88,6 +89,37 @@ def install_tracker_column_chrome(
     if not getattr(host, theme_flag, False):
         bind_theme(host, refresh)
         setattr(host, theme_flag, True)
+```
+
+</details>
+
+## 🔧 Function `polish_left_field_labels`
+
+```python
+def polish_left_field_labels(host: Any, pairs: Sequence[tuple[str, str]]) -> None
+```
+
+Put muted fixed-width captions to the left of form fields.
+
+Args:
+
+- `host` (`Any`): Window owning the labels.
+- `pairs` (`Sequence[tuple[str, str]]`): `(attribute_name, caption)` rows.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def polish_left_field_labels(host: Any, pairs: Sequence[tuple[str, str]]) -> None:
+    for name, text in pairs:
+        label = getattr(host, name, None)
+        if not isinstance(label, QLabel):
+            continue
+        label.setText(text)
+        label.setStyleSheet(f"color: {MUTED_TEXT}; font-weight: 600;")
+        label.setMinimumWidth(FIELD_LABEL_WIDTH)
+        label.setFixedWidth(FIELD_LABEL_WIDTH)
+        label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 ```
 
 </details>

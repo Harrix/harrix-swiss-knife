@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife.apps.common.tracker_layout_chrome import (
     apply_tracker_column_surfaces,
+    polish_left_field_labels,
     quiet_group_box,
 )
 from harrix_swiss_knife.apps.common.ui_chrome import MUTED_TEXT, button_cta_mint_qss, button_idle_qss
@@ -38,7 +39,6 @@ _FORM_MIN_WIDTH = 280
 _CATEGORIES_MIN_WIDTH = 260
 _TABLE_MIN_WIDTH = 400
 _SPLITTER_SAVE_DELAY_MS = 400
-_FIELD_LABEL_WIDTH = 90
 _VIS_KEY_ENGLISH = "english"
 _VIS_KEY_RECORD_ID = "record_id"
 _NO_CATEGORY = "Category: not selected"
@@ -269,19 +269,15 @@ def _polish_form_column(host: Any) -> None:
         if isinstance(label, QLabel):
             label.setStyleSheet(_field_caption_qss())
 
-    for name, text in (
-        ("label_field_description", "Description:"),
-        ("label_field_amount", "Amount:"),
-        ("label_field_date", "Date:"),
-        ("label_field_tag", "Tags:"),
-    ):
-        label = getattr(host, name, None)
-        if isinstance(label, QLabel):
-            label.setText(text)
-            label.setStyleSheet(_field_caption_qss())
-            label.setMinimumWidth(_FIELD_LABEL_WIDTH)
-            label.setFixedWidth(_FIELD_LABEL_WIDTH)
-            label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+    polish_left_field_labels(
+        host,
+        (
+            ("label_field_description", "Description:"),
+            ("label_field_amount", "Amount:"),
+            ("label_field_date", "Date:"),
+            ("label_field_tag", "Tags:"),
+        ),
+    )
 
     if hasattr(host, "label_tag"):
         host.label_tag.hide()

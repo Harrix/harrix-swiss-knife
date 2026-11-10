@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-from harrix_swiss_knife.apps.common.tracker_layout_chrome import quiet_group_box
+from harrix_swiss_knife.apps.common.tracker_layout_chrome import polish_left_field_labels, quiet_group_box
 from harrix_swiss_knife.apps.common.ui_chrome import MUTED_TEXT, button_cta_green_qss, button_idle_qss
 from harrix_swiss_knife.apps.fitness.fitness_ui_settings import (
     EXPECTED_SETS_SPLITTER_LEN,
@@ -152,7 +152,7 @@ def _ensure_exercise_list_header(host: Any) -> None:
 
 
 def _field_caption_qss() -> str:
-    return f"color: {MUTED_TEXT}; font-weight: 600; padding-top: 2px;"
+    return f"color: {MUTED_TEXT}; font-weight: 600;"
 
 
 def _polish_exercise_list(host: Any) -> None:
@@ -213,6 +213,15 @@ def _polish_form_column(host: Any) -> None:
         label = getattr(host, name, None)
         if isinstance(label, QLabel):
             label.setStyleSheet(_field_caption_qss())
+
+    polish_left_field_labels(
+        host,
+        (
+            ("label_field_count", "Count:"),
+            ("label_field_type", "Type:"),
+            ("label_field_date", "Date:"),
+        ),
+    )
 
     for control_name in (
         "spinBox_count",

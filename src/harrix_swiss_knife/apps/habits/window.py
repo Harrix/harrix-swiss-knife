@@ -151,7 +151,7 @@ class Ui_MainWindow(object):
         self.horizontalLayout_habits_17.setObjectName(u"horizontalLayout_habits_17")
         self.label_habits_5 = QLabel(self.groupBox_habits_2)
         self.label_habits_5.setObjectName(u"label_habits_5")
-        self.label_habits_5.setMinimumSize(QSize(111, 0))
+        self.label_habits_5.setMinimumSize(QSize(90, 0))
 
         self.horizontalLayout_habits_17.addWidget(self.label_habits_5)
 
@@ -168,7 +168,7 @@ class Ui_MainWindow(object):
         self.horizontalLayout_habit_emoji.setObjectName(u"horizontalLayout_habit_emoji")
         self.label_habit_emoji = QLabel(self.groupBox_habits_2)
         self.label_habit_emoji.setObjectName(u"label_habit_emoji")
-        self.label_habit_emoji.setMinimumSize(QSize(111, 0))
+        self.label_habit_emoji.setMinimumSize(QSize(90, 0))
 
         self.horizontalLayout_habit_emoji.addWidget(self.label_habit_emoji)
 

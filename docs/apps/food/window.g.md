@@ -45,8 +45,10 @@ class Ui_MainWindow(object):
         self.actionExit.setText(QCoreApplication.translate("MainWindow", u"Exit", None))
         self.actionAbout.setText(QCoreApplication.translate("MainWindow", u"About", None))
         self.groupBox_food_add.setTitle(QCoreApplication.translate("MainWindow", u"Add Food Entry", None))
+        self.label_field_food_name.setText(QCoreApplication.translate("MainWindow", u"Description:", None))
         self.lineEdit_food_manual_name.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Enter food name", None))
         self.pushButton_kcal_with_ai.setText("")
+        self.label_field_food_weight.setText(QCoreApplication.translate("MainWindow", u"Weight:", None))
         self.label_food_weight_unit.setText(QCoreApplication.translate("MainWindow", u"g", None))
         self.label_food_calories.setText(QCoreApplication.translate("MainWindow", u"kcal/100g", None))
 #if QT_CONFIG(tooltip)
@@ -55,6 +57,7 @@ class Ui_MainWindow(object):
         self.pushButton_portion_calories.setText("")
         self.checkBox_food_is_drink.setText(QCoreApplication.translate("MainWindow", u"Drink", None))
         self.label_food_calories_calc.setText(QCoreApplication.translate("MainWindow", u"Calculated calories: 0", None))
+        self.label_field_food_date.setText(QCoreApplication.translate("MainWindow", u"Date:", None))
         self.dateEdit_food.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
         self.pushButton_food_add.setText(QCoreApplication.translate("MainWindow", u"Add Food", None))
         self.groupBox_food_commands.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
@@ -160,6 +163,12 @@ class Ui_MainWindow(object):
         self.verticalLayout.setObjectName(u"verticalLayout")
         self.horizontalLayout_food_manual_name = QHBoxLayout()
         self.horizontalLayout_food_manual_name.setObjectName(u"horizontalLayout_food_manual_name")
+        self.label_field_food_name = QLabel(self.groupBox_food_add)
+        self.label_field_food_name.setObjectName(u"label_field_food_name")
+        self.label_field_food_name.setMinimumSize(QSize(90, 0))
+
+        self.horizontalLayout_food_manual_name.addWidget(self.label_field_food_name)
+
         self.lineEdit_food_manual_name = QLineEdit(self.groupBox_food_add)
         self.lineEdit_food_manual_name.setObjectName(u"lineEdit_food_manual_name")
         font = QFont()
@@ -180,6 +189,12 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_food_weight = QHBoxLayout()
         self.horizontalLayout_food_weight.setObjectName(u"horizontalLayout_food_weight")
+        self.label_field_food_weight = QLabel(self.groupBox_food_add)
+        self.label_field_food_weight.setObjectName(u"label_field_food_weight")
+        self.label_field_food_weight.setMinimumSize(QSize(90, 0))
+
+        self.horizontalLayout_food_weight.addWidget(self.label_field_food_weight)
+
         self.spinBox_food_weight = CompactSpinBox(self.groupBox_food_add)
         self.spinBox_food_weight.setObjectName(u"spinBox_food_weight")
         font1 = QFont()
@@ -241,9 +256,15 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_food_date = QHBoxLayout()
         self.horizontalLayout_food_date.setObjectName(u"horizontalLayout_food_date")
+        self.label_field_food_date = QLabel(self.groupBox_food_add)
+        self.label_field_food_date.setObjectName(u"label_field_food_date")
+        self.label_field_food_date.setMinimumSize(QSize(90, 0))
+
+        self.horizontalLayout_food_date.addWidget(self.label_field_food_date)
+
         self.dateEdit_food = QDateEdit(self.groupBox_food_add)
         self.dateEdit_food.setObjectName(u"dateEdit_food")
-        self.dateEdit_food.setMinimumSize(QSize(191, 0))
+        self.dateEdit_food.setMinimumSize(QSize(140, 0))
         self.dateEdit_food.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
         self.dateEdit_food.setCalendarPopup(True)
 
@@ -735,8 +756,10 @@ def retranslateUi(self, MainWindow):
         self.actionExit.setText(QCoreApplication.translate("MainWindow", u"Exit", None))
         self.actionAbout.setText(QCoreApplication.translate("MainWindow", u"About", None))
         self.groupBox_food_add.setTitle(QCoreApplication.translate("MainWindow", u"Add Food Entry", None))
+        self.label_field_food_name.setText(QCoreApplication.translate("MainWindow", u"Description:", None))
         self.lineEdit_food_manual_name.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Enter food name", None))
         self.pushButton_kcal_with_ai.setText("")
+        self.label_field_food_weight.setText(QCoreApplication.translate("MainWindow", u"Weight:", None))
         self.label_food_weight_unit.setText(QCoreApplication.translate("MainWindow", u"g", None))
         self.label_food_calories.setText(QCoreApplication.translate("MainWindow", u"kcal/100g", None))
 #if QT_CONFIG(tooltip)
@@ -745,6 +768,7 @@ def retranslateUi(self, MainWindow):
         self.pushButton_portion_calories.setText("")
         self.checkBox_food_is_drink.setText(QCoreApplication.translate("MainWindow", u"Drink", None))
         self.label_food_calories_calc.setText(QCoreApplication.translate("MainWindow", u"Calculated calories: 0", None))
+        self.label_field_food_date.setText(QCoreApplication.translate("MainWindow", u"Date:", None))
         self.dateEdit_food.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
         self.pushButton_food_add.setText(QCoreApplication.translate("MainWindow", u"Add Food", None))
         self.groupBox_food_commands.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
@@ -866,6 +890,12 @@ def setupUi(self, MainWindow):
         self.verticalLayout.setObjectName(u"verticalLayout")
         self.horizontalLayout_food_manual_name = QHBoxLayout()
         self.horizontalLayout_food_manual_name.setObjectName(u"horizontalLayout_food_manual_name")
+        self.label_field_food_name = QLabel(self.groupBox_food_add)
+        self.label_field_food_name.setObjectName(u"label_field_food_name")
+        self.label_field_food_name.setMinimumSize(QSize(90, 0))
+
+        self.horizontalLayout_food_manual_name.addWidget(self.label_field_food_name)
+
         self.lineEdit_food_manual_name = QLineEdit(self.groupBox_food_add)
         self.lineEdit_food_manual_name.setObjectName(u"lineEdit_food_manual_name")
         font = QFont()
@@ -886,6 +916,12 @@ def setupUi(self, MainWindow):
 
         self.horizontalLayout_food_weight = QHBoxLayout()
         self.horizontalLayout_food_weight.setObjectName(u"horizontalLayout_food_weight")
+        self.label_field_food_weight = QLabel(self.groupBox_food_add)
+        self.label_field_food_weight.setObjectName(u"label_field_food_weight")
+        self.label_field_food_weight.setMinimumSize(QSize(90, 0))
+
+        self.horizontalLayout_food_weight.addWidget(self.label_field_food_weight)
+
         self.spinBox_food_weight = CompactSpinBox(self.groupBox_food_add)
         self.spinBox_food_weight.setObjectName(u"spinBox_food_weight")
         font1 = QFont()
@@ -947,9 +983,15 @@ def setupUi(self, MainWindow):
 
         self.horizontalLayout_food_date = QHBoxLayout()
         self.horizontalLayout_food_date.setObjectName(u"horizontalLayout_food_date")
+        self.label_field_food_date = QLabel(self.groupBox_food_add)
+        self.label_field_food_date.setObjectName(u"label_field_food_date")
+        self.label_field_food_date.setMinimumSize(QSize(90, 0))
+
+        self.horizontalLayout_food_date.addWidget(self.label_field_food_date)
+
         self.dateEdit_food = QDateEdit(self.groupBox_food_add)
         self.dateEdit_food.setObjectName(u"dateEdit_food")
-        self.dateEdit_food.setMinimumSize(QSize(191, 0))
+        self.dateEdit_food.setMinimumSize(QSize(140, 0))
         self.dateEdit_food.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
         self.dateEdit_food.setCalendarPopup(True)
 

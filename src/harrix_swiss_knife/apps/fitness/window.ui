@@ -90,6 +90,19 @@
                <item>
                 <layout class="QHBoxLayout" name="horizontalLayout_14">
                  <item>
+                  <widget class="QLabel" name="label_field_count">
+                   <property name="minimumSize">
+                    <size>
+                     <width>90</width>
+                     <height>0</height>
+                    </size>
+                   </property>
+                   <property name="text">
+                    <string>Count:</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
                   <widget class="CompactSpinBox" name="spinBox_count">
                    <property name="font">
                     <font>
@@ -129,15 +142,45 @@
                 </layout>
                </item>
                <item>
-                <widget class="QComboBox" name="comboBox_type" />
+                <layout class="QHBoxLayout" name="horizontalLayout_type">
+                 <item>
+                  <widget class="QLabel" name="label_field_type">
+                   <property name="minimumSize">
+                    <size>
+                     <width>90</width>
+                     <height>0</height>
+                    </size>
+                   </property>
+                   <property name="text">
+                    <string>Type:</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QComboBox" name="comboBox_type" />
+                 </item>
+                </layout>
                </item>
                <item>
                 <layout class="QHBoxLayout" name="horizontalLayout_13">
                  <item>
+                  <widget class="QLabel" name="label_field_date">
+                   <property name="minimumSize">
+                    <size>
+                     <width>90</width>
+                     <height>0</height>
+                    </size>
+                   </property>
+                   <property name="text">
+                    <string>Date:</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
                   <widget class="QDateEdit" name="dateEdit">
                    <property name="minimumSize">
                     <size>
-                     <width>191</width>
+                     <width>140</width>
                      <height>0</height>
                     </size>
                    </property>
@@ -1083,33 +1126,67 @@
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_7">
               <item>
-               <widget class="CompactDoubleSpinBox" name="doubleSpinBox_weight">
-                <property name="maximum">
-                 <double>300.000000000000000</double>
-                </property>
-                <property name="value">
-                 <double>89.000000000000000</double>
-                </property>
-               </widget>
+               <layout class="QHBoxLayout" name="horizontalLayout_weight_value">
+                <item>
+                 <widget class="QLabel" name="label_field_weight">
+                  <property name="minimumSize">
+                   <size>
+                    <width>90</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string>Weight:</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="CompactDoubleSpinBox" name="doubleSpinBox_weight">
+                  <property name="maximum">
+                   <double>300.000000000000000</double>
+                  </property>
+                  <property name="value">
+                   <double>89.000000000000000</double>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
               </item>
               <item>
-               <widget class="QDateEdit" name="dateEdit_weight">
-                <property name="minimumSize">
-                 <size>
-                  <width>191</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <property name="alignment">
-                 <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
-                </property>
-                <property name="displayFormat">
-                 <string>yyyy-MM-dd</string>
-                </property>
-                <property name="calendarPopup">
-                 <bool>true</bool>
-                </property>
-               </widget>
+               <layout class="QHBoxLayout" name="horizontalLayout_weight_date">
+                <item>
+                 <widget class="QLabel" name="label_field_weight_date">
+                  <property name="minimumSize">
+                   <size>
+                    <width>90</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string>Date:</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QDateEdit" name="dateEdit_weight">
+                  <property name="minimumSize">
+                   <size>
+                    <width>140</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+                  </property>
+                  <property name="displayFormat">
+                   <string>yyyy-MM-dd</string>
+                  </property>
+                  <property name="calendarPopup">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
               </item>
               <item>
                <layout class="QHBoxLayout" name="horizontalLayout_15">

@@ -46,7 +46,10 @@ class Ui_MainWindow(object):
         self.groupBox.setTitle(QCoreApplication.translate("MainWindow", u"Set parameters", None))
         self.label_exercise.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
         self.label_last_date_count_today.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
+        self.label_field_count.setText(QCoreApplication.translate("MainWindow", u"Count:", None))
         self.label_unit.setText(QCoreApplication.translate("MainWindow", u"times", None))
+        self.label_field_type.setText(QCoreApplication.translate("MainWindow", u"Type:", None))
+        self.label_field_date.setText(QCoreApplication.translate("MainWindow", u"Date:", None))
         self.dateEdit.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
         self.pushButton_add.setText(QCoreApplication.translate("MainWindow", u"Add", None))
         self.pushButton_add_by_voice.setText(QCoreApplication.translate("MainWindow", u"Add by voice", None))
@@ -101,6 +104,8 @@ class Ui_MainWindow(object):
         self.pushButton_type_add.setText(QCoreApplication.translate("MainWindow", u"Add Exercise Type", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), QCoreApplication.translate("MainWindow", u"Exercises", None))
         self.groupBox_4.setTitle(QCoreApplication.translate("MainWindow", u"Add New Weight", None))
+        self.label_field_weight.setText(QCoreApplication.translate("MainWindow", u"Weight:", None))
+        self.label_field_weight_date.setText(QCoreApplication.translate("MainWindow", u"Date:", None))
         self.dateEdit_weight.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
         self.pushButton_weight_add.setText(QCoreApplication.translate("MainWindow", u"Add", None))
         self.groupBox_6.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
@@ -193,6 +198,12 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_14 = QHBoxLayout()
         self.horizontalLayout_14.setObjectName(u"horizontalLayout_14")
+        self.label_field_count = QLabel(self.groupBox)
+        self.label_field_count.setObjectName(u"label_field_count")
+        self.label_field_count.setMinimumSize(QSize(90, 0))
+
+        self.horizontalLayout_14.addWidget(self.label_field_count)
+
         self.spinBox_count = CompactSpinBox(self.groupBox)
         self.spinBox_count.setObjectName(u"spinBox_count")
         font1 = QFont()
@@ -217,16 +228,33 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_5.addLayout(self.horizontalLayout_14)
 
+        self.horizontalLayout_type = QHBoxLayout()
+        self.horizontalLayout_type.setObjectName(u"horizontalLayout_type")
+        self.label_field_type = QLabel(self.groupBox)
+        self.label_field_type.setObjectName(u"label_field_type")
+        self.label_field_type.setMinimumSize(QSize(90, 0))
+
+        self.horizontalLayout_type.addWidget(self.label_field_type)
+
         self.comboBox_type = QComboBox(self.groupBox)
         self.comboBox_type.setObjectName(u"comboBox_type")
 
-        self.verticalLayout_5.addWidget(self.comboBox_type)
+        self.horizontalLayout_type.addWidget(self.comboBox_type)
+
+
+        self.verticalLayout_5.addLayout(self.horizontalLayout_type)
 
         self.horizontalLayout_13 = QHBoxLayout()
         self.horizontalLayout_13.setObjectName(u"horizontalLayout_13")
+        self.label_field_date = QLabel(self.groupBox)
+        self.label_field_date.setObjectName(u"label_field_date")
+        self.label_field_date.setMinimumSize(QSize(90, 0))
+
+        self.horizontalLayout_13.addWidget(self.label_field_date)
+
         self.dateEdit = QDateEdit(self.groupBox)
         self.dateEdit.setObjectName(u"dateEdit")
-        self.dateEdit.setMinimumSize(QSize(191, 0))
+        self.dateEdit.setMinimumSize(QSize(140, 0))
         self.dateEdit.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
         self.dateEdit.setCalendarPopup(True)
 
@@ -809,20 +837,42 @@ class Ui_MainWindow(object):
         self.groupBox_4.setObjectName(u"groupBox_4")
         self.verticalLayout_7 = QVBoxLayout(self.groupBox_4)
         self.verticalLayout_7.setObjectName(u"verticalLayout_7")
+        self.horizontalLayout_weight_value = QHBoxLayout()
+        self.horizontalLayout_weight_value.setObjectName(u"horizontalLayout_weight_value")
+        self.label_field_weight = QLabel(self.groupBox_4)
+        self.label_field_weight.setObjectName(u"label_field_weight")
+        self.label_field_weight.setMinimumSize(QSize(90, 0))
+
+        self.horizontalLayout_weight_value.addWidget(self.label_field_weight)
+
         self.doubleSpinBox_weight = CompactDoubleSpinBox(self.groupBox_4)
         self.doubleSpinBox_weight.setObjectName(u"doubleSpinBox_weight")
         self.doubleSpinBox_weight.setMaximum(300.000000000000000)
         self.doubleSpinBox_weight.setValue(89.000000000000000)
 
-        self.verticalLayout_7.addWidget(self.doubleSpinBox_weight)
+        self.horizontalLayout_weight_value.addWidget(self.doubleSpinBox_weight)
+
+
+        self.verticalLayout_7.addLayout(self.horizontalLayout_weight_value)
+
+        self.horizontalLayout_weight_date = QHBoxLayout()
+        self.horizontalLayout_weight_date.setObjectName(u"horizontalLayout_weight_date")
+        self.label_field_weight_date = QLabel(self.groupBox_4)
+        self.label_field_weight_date.setObjectName(u"label_field_weight_date")
+        self.label_field_weight_date.setMinimumSize(QSize(90, 0))
+
+        self.horizontalLayout_weight_date.addWidget(self.label_field_weight_date)
 
         self.dateEdit_weight = QDateEdit(self.groupBox_4)
         self.dateEdit_weight.setObjectName(u"dateEdit_weight")
-        self.dateEdit_weight.setMinimumSize(QSize(191, 0))
+        self.dateEdit_weight.setMinimumSize(QSize(140, 0))
         self.dateEdit_weight.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
         self.dateEdit_weight.setCalendarPopup(True)
 
-        self.verticalLayout_7.addWidget(self.dateEdit_weight)
+        self.horizontalLayout_weight_date.addWidget(self.dateEdit_weight)
+
+
+        self.verticalLayout_7.addLayout(self.horizontalLayout_weight_date)
 
         self.horizontalLayout_15 = QHBoxLayout()
         self.horizontalLayout_15.setObjectName(u"horizontalLayout_15")
@@ -1099,7 +1149,10 @@ def retranslateUi(self, MainWindow):
         self.groupBox.setTitle(QCoreApplication.translate("MainWindow", u"Set parameters", None))
         self.label_exercise.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
         self.label_last_date_count_today.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
+        self.label_field_count.setText(QCoreApplication.translate("MainWindow", u"Count:", None))
         self.label_unit.setText(QCoreApplication.translate("MainWindow", u"times", None))
+        self.label_field_type.setText(QCoreApplication.translate("MainWindow", u"Type:", None))
+        self.label_field_date.setText(QCoreApplication.translate("MainWindow", u"Date:", None))
         self.dateEdit.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
         self.pushButton_add.setText(QCoreApplication.translate("MainWindow", u"Add", None))
         self.pushButton_add_by_voice.setText(QCoreApplication.translate("MainWindow", u"Add by voice", None))
@@ -1154,6 +1207,8 @@ def retranslateUi(self, MainWindow):
         self.pushButton_type_add.setText(QCoreApplication.translate("MainWindow", u"Add Exercise Type", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), QCoreApplication.translate("MainWindow", u"Exercises", None))
         self.groupBox_4.setTitle(QCoreApplication.translate("MainWindow", u"Add New Weight", None))
+        self.label_field_weight.setText(QCoreApplication.translate("MainWindow", u"Weight:", None))
+        self.label_field_weight_date.setText(QCoreApplication.translate("MainWindow", u"Date:", None))
         self.dateEdit_weight.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
         self.pushButton_weight_add.setText(QCoreApplication.translate("MainWindow", u"Add", None))
         self.groupBox_6.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
@@ -1262,6 +1317,12 @@ def setupUi(self, MainWindow):
 
         self.horizontalLayout_14 = QHBoxLayout()
         self.horizontalLayout_14.setObjectName(u"horizontalLayout_14")
+        self.label_field_count = QLabel(self.groupBox)
+        self.label_field_count.setObjectName(u"label_field_count")
+        self.label_field_count.setMinimumSize(QSize(90, 0))
+
+        self.horizontalLayout_14.addWidget(self.label_field_count)
+
         self.spinBox_count = CompactSpinBox(self.groupBox)
         self.spinBox_count.setObjectName(u"spinBox_count")
         font1 = QFont()
@@ -1286,16 +1347,33 @@ def setupUi(self, MainWindow):
 
         self.verticalLayout_5.addLayout(self.horizontalLayout_14)
 
+        self.horizontalLayout_type = QHBoxLayout()
+        self.horizontalLayout_type.setObjectName(u"horizontalLayout_type")
+        self.label_field_type = QLabel(self.groupBox)
+        self.label_field_type.setObjectName(u"label_field_type")
+        self.label_field_type.setMinimumSize(QSize(90, 0))
+
+        self.horizontalLayout_type.addWidget(self.label_field_type)
+
         self.comboBox_type = QComboBox(self.groupBox)
         self.comboBox_type.setObjectName(u"comboBox_type")
 
-        self.verticalLayout_5.addWidget(self.comboBox_type)
+        self.horizontalLayout_type.addWidget(self.comboBox_type)
+
+
+        self.verticalLayout_5.addLayout(self.horizontalLayout_type)
 
         self.horizontalLayout_13 = QHBoxLayout()
         self.horizontalLayout_13.setObjectName(u"horizontalLayout_13")
+        self.label_field_date = QLabel(self.groupBox)
+        self.label_field_date.setObjectName(u"label_field_date")
+        self.label_field_date.setMinimumSize(QSize(90, 0))
+
+        self.horizontalLayout_13.addWidget(self.label_field_date)
+
         self.dateEdit = QDateEdit(self.groupBox)
         self.dateEdit.setObjectName(u"dateEdit")
-        self.dateEdit.setMinimumSize(QSize(191, 0))
+        self.dateEdit.setMinimumSize(QSize(140, 0))
         self.dateEdit.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
         self.dateEdit.setCalendarPopup(True)
 
@@ -1878,20 +1956,42 @@ def setupUi(self, MainWindow):
         self.groupBox_4.setObjectName(u"groupBox_4")
         self.verticalLayout_7 = QVBoxLayout(self.groupBox_4)
         self.verticalLayout_7.setObjectName(u"verticalLayout_7")
+        self.horizontalLayout_weight_value = QHBoxLayout()
+        self.horizontalLayout_weight_value.setObjectName(u"horizontalLayout_weight_value")
+        self.label_field_weight = QLabel(self.groupBox_4)
+        self.label_field_weight.setObjectName(u"label_field_weight")
+        self.label_field_weight.setMinimumSize(QSize(90, 0))
+
+        self.horizontalLayout_weight_value.addWidget(self.label_field_weight)
+
         self.doubleSpinBox_weight = CompactDoubleSpinBox(self.groupBox_4)
         self.doubleSpinBox_weight.setObjectName(u"doubleSpinBox_weight")
         self.doubleSpinBox_weight.setMaximum(300.000000000000000)
         self.doubleSpinBox_weight.setValue(89.000000000000000)
 
-        self.verticalLayout_7.addWidget(self.doubleSpinBox_weight)
+        self.horizontalLayout_weight_value.addWidget(self.doubleSpinBox_weight)
+
+
+        self.verticalLayout_7.addLayout(self.horizontalLayout_weight_value)
+
+        self.horizontalLayout_weight_date = QHBoxLayout()
+        self.horizontalLayout_weight_date.setObjectName(u"horizontalLayout_weight_date")
+        self.label_field_weight_date = QLabel(self.groupBox_4)
+        self.label_field_weight_date.setObjectName(u"label_field_weight_date")
+        self.label_field_weight_date.setMinimumSize(QSize(90, 0))
+
+        self.horizontalLayout_weight_date.addWidget(self.label_field_weight_date)
 
         self.dateEdit_weight = QDateEdit(self.groupBox_4)
         self.dateEdit_weight.setObjectName(u"dateEdit_weight")
-        self.dateEdit_weight.setMinimumSize(QSize(191, 0))
+        self.dateEdit_weight.setMinimumSize(QSize(140, 0))
         self.dateEdit_weight.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
         self.dateEdit_weight.setCalendarPopup(True)
 
-        self.verticalLayout_7.addWidget(self.dateEdit_weight)
+        self.horizontalLayout_weight_date.addWidget(self.dateEdit_weight)
+
+
+        self.verticalLayout_7.addLayout(self.horizontalLayout_weight_date)
 
         self.horizontalLayout_15 = QHBoxLayout()
         self.horizontalLayout_15.setObjectName(u"horizontalLayout_15")
