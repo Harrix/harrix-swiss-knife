@@ -621,7 +621,7 @@ class Ui_MainWindow(object):
         self.frame_exchange = QFrame(self.splitter_4)
         self.frame_exchange.setObjectName(u"frame_exchange")
         self.frame_exchange.setStyleSheet(u"QFrame#frame_exchange { border: none; }")
-        self.frame_exchange.setMinimumSize(QSize(350, 0))
+        self.frame_exchange.setMinimumSize(QSize(440, 0))
         self.frame_exchange.setMaximumSize(QSize(16777215, 16777215))
         self.frame_exchange.setFrameShape(QFrame.Shape.NoFrame)
         self.frame_exchange.setFrameShadow(QFrame.Shadow.Plain)
@@ -716,7 +716,7 @@ class Ui_MainWindow(object):
 
         self.doubleSpinBox_exchange_fee = CompactDoubleSpinBox(self.groupBox_exchange_operation)
         self.doubleSpinBox_exchange_fee.setObjectName(u"doubleSpinBox_exchange_fee")
-        self.doubleSpinBox_exchange_fee.setMinimumSize(QSize(260, 0))
+        self.doubleSpinBox_exchange_fee.setMinimumSize(QSize(100, 0))
         self.doubleSpinBox_exchange_fee.setMaximum(999999.989999999990687)
         self.doubleSpinBox_exchange_fee.setValue(0.000000000000000)
 
@@ -740,7 +740,7 @@ class Ui_MainWindow(object):
 
         self.lineEdit_exchange_description = QLineEdit(self.groupBox_exchange_operation)
         self.lineEdit_exchange_description.setObjectName(u"lineEdit_exchange_description")
-        self.lineEdit_exchange_description.setMinimumSize(QSize(260, 0))
+        self.lineEdit_exchange_description.setMinimumSize(QSize(100, 0))
 
         self.horizontalLayout_exchange_description.addWidget(self.lineEdit_exchange_description)
 
@@ -816,7 +816,7 @@ class Ui_MainWindow(object):
         self.frame_rates = QFrame(self.splitter_6)
         self.frame_rates.setObjectName(u"frame_rates")
         self.frame_rates.setStyleSheet(u"QFrame#frame_rates { border: none; }")
-        self.frame_rates.setMinimumSize(QSize(300, 0))
+        self.frame_rates.setMinimumSize(QSize(360, 0))
         self.frame_rates.setMaximumSize(QSize(16777215, 16777215))
         self.frame_rates.setFrameShape(QFrame.Shape.NoFrame)
         self.frame_rates.setFrameShadow(QFrame.Shadow.Plain)
@@ -1137,7 +1137,7 @@ class Ui_MainWindow(object):
         self.frame_accounts_2 = QFrame(self.splitter_7)
         self.frame_accounts_2.setObjectName(u"frame_accounts_2")
         self.frame_accounts_2.setStyleSheet(u"QFrame#frame_accounts_2 { border: none; }")
-        self.frame_accounts_2.setMinimumSize(QSize(300, 0))
+        self.frame_accounts_2.setMinimumSize(QSize(360, 0))
         self.frame_accounts_2.setMaximumSize(QSize(16777215, 16777215))
         self.frame_accounts_2.setFrameShape(QFrame.Shape.NoFrame)
         self.frame_accounts_2.setFrameShadow(QFrame.Shadow.Plain)

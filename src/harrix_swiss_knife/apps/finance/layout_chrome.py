@@ -31,8 +31,12 @@ from harrix_swiss_knife.qt_lucide_icon import apply_lucide_button_icon
 
 TABLE_ROW_HEIGHT = 30
 _FORM_MIN_WIDTH = 280
-_SIDE_MIN_WIDTH = 300
+# Currency Exchange / Rates / Charts need room for Lucide CTAs beside spin boxes.
+_EXCHANGE_FORM_MIN_WIDTH = 440
+_SIDE_MIN_WIDTH = 360
 _CONTENT_MIN_WIDTH = 400
+_EXCHANGE_LABEL_WIDTH = 90
+_EXCHANGE_FIELD_MIN_WIDTH = 100
 _SPLITTER_SAVE_DELAY_MS = 400
 _TWO_PANE_SPLITTER_LEN = 2
 
@@ -100,12 +104,12 @@ def _configure_all_splitters(host: Any) -> None:
         splitter_attr="splitter_4",
         left=host.frame_exchange,
         right=host.tableView_exchange,
-        left_min=_FORM_MIN_WIDTH,
+        left_min=_EXCHANGE_FORM_MIN_WIDTH,
         right_min=_CONTENT_MIN_WIDTH,
         load_sizes=load_exchange_splitter_sizes,
         save_sizes=save_exchange_splitter_sizes,
         flag="finance_exchange_splitter",
-        left_max_share=4,
+        left_max_share=3,
     )
     _configure_two_pane_splitter(
         host,
@@ -345,6 +349,8 @@ def _polish_exchange(host: Any) -> None:
         label = getattr(host, name, None)
         if isinstance(label, QLabel):
             label.setStyleSheet(_caption_qss())
+            label.setMinimumWidth(_EXCHANGE_LABEL_WIDTH)
+            label.setFixedWidth(_EXCHANGE_LABEL_WIDTH)
 
     for control_name in (
         "comboBox_exchange_from",
@@ -363,6 +369,19 @@ def _polish_exchange(host: Any) -> None:
         if control is not None:
             control.setMinimumHeight(CONTROL_HEIGHT)
 
+    # Fee / description had 260px mins in the .ui; that crushed the Calculate buttons.
+    for field_name in (
+        "doubleSpinBox_exchange_from",
+        "doubleSpinBox_exchange_to",
+        "doubleSpinBox_exchange_rate",
+        "doubleSpinBox_exchange_fee",
+        "lineEdit_exchange_description",
+    ):
+        field = getattr(host, field_name, None)
+        if field is not None:
+            field.setMinimumWidth(_EXCHANGE_FIELD_MIN_WIDTH)
+            field.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+
     host.pushButton_exchange_add.setText("Add exchange")
     host.pushButton_exchange_add.setStyleSheet(button_cta_mint_qss())
     apply_lucide_button_icon(host.pushButton_exchange_add, "plus")
@@ -370,10 +389,12 @@ def _polish_exchange(host: Any) -> None:
     host.pushButton_calculate_exchange.setText("Calculate to by rate")
     host.pushButton_calculate_exchange.setStyleSheet(button_idle_qss())
     apply_lucide_button_icon(host.pushButton_calculate_exchange, "calculator")
+    host.pushButton_calculate_exchange.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
 
     host.pushButton_calculate_fee.setText("Calculate fee")
     host.pushButton_calculate_fee.setStyleSheet(button_idle_qss())
     apply_lucide_button_icon(host.pushButton_calculate_fee, "percent")
+    host.pushButton_calculate_fee.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
     _compact_table(host.tableView_exchange)
 
 

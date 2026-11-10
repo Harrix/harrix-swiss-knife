@@ -11,12 +11,13 @@ if TYPE_CHECKING:
 
 ACCOUNTS_SPLITTER_KEY = "finance_accounts_splitter_sizes_v1"
 ACCOUNTS_SPLITTER_DEFAULT = (300, 1268)
-EXCHANGE_SPLITTER_KEY = "finance_exchange_splitter_sizes_v1"
-EXCHANGE_SPLITTER_DEFAULT = (340, 1228)
-RATES_SPLITTER_KEY = "finance_rates_splitter_sizes_v1"
-RATES_SPLITTER_DEFAULT = (420, 1148)
-CHARTS_SPLITTER_KEY = "finance_charts_splitter_sizes_v1"
-CHARTS_SPLITTER_DEFAULT = (320, 1248)
+# v2: wider left pane so Calculate / filter chrome fits without clipping.
+EXCHANGE_SPLITTER_KEY = "finance_exchange_splitter_sizes_v2"
+EXCHANGE_SPLITTER_DEFAULT = (460, 1108)
+RATES_SPLITTER_KEY = "finance_rates_splitter_sizes_v2"
+RATES_SPLITTER_DEFAULT = (460, 1108)
+CHARTS_SPLITTER_KEY = "finance_charts_splitter_sizes_v2"
+CHARTS_SPLITTER_DEFAULT = (420, 1148)
 REPORTS_SPLITTER_KEY = "finance_reports_splitter_sizes_v1"
 REPORTS_SPLITTER_DEFAULT = (300, 1268)
 

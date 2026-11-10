@@ -784,7 +784,7 @@
            </property>
            <property name="minimumSize">
             <size>
-             <width>350</width>
+             <width>440</width>
              <height>0</height>
             </size>
            </property>
@@ -958,7 +958,7 @@
                   <widget class="CompactDoubleSpinBox" name="doubleSpinBox_exchange_fee">
                    <property name="minimumSize">
                     <size>
-                     <width>260</width>
+                     <width>100</width>
                      <height>0</height>
                     </size>
                    </property>
@@ -998,7 +998,7 @@
                   <widget class="QLineEdit" name="lineEdit_exchange_description">
                    <property name="minimumSize">
                     <size>
-                     <width>260</width>
+                     <width>100</width>
                      <height>0</height>
                     </size>
                    </property>
@@ -1133,7 +1133,7 @@
            </property>
            <property name="minimumSize">
             <size>
-             <width>300</width>
+             <width>360</width>
              <height>0</height>
             </size>
            </property>
@@ -1657,7 +1657,7 @@
            </property>
            <property name="minimumSize">
             <size>
-             <width>300</width>
+             <width>360</width>
              <height>0</height>
             </size>
            </property>
