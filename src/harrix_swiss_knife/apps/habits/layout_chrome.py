@@ -13,8 +13,9 @@ from harrix_swiss_knife.apps.common.tracker_layout_chrome import (
     quiet_group_box,
 )
 from harrix_swiss_knife.apps.common.tracker_splitter_settings import load_splitter_sizes, save_splitter_sizes
-from harrix_swiss_knife.apps.common.ui_chrome import MUTED_TEXT, button_idle_qss
-from harrix_swiss_knife.fluent.theme import bind_theme
+from harrix_swiss_knife.apps.common.ui_chrome import button_idle_qss
+from harrix_swiss_knife.fluent.app_chrome import style_fluent_item_view
+from harrix_swiss_knife.fluent.theme import FluentTheme, bind_theme, css, mix
 from harrix_swiss_knife.fluent.tokens import ICON_SIZE, SPACE_S
 from harrix_swiss_knife.qt_lucide_icon import apply_lucide_button_icon
 
@@ -57,7 +58,9 @@ def persist_habits_tabs_splitter_sizes(host: Any) -> None:
 
 
 def _caption_qss() -> str:
-    return f"color: {MUTED_TEXT}; font-weight: 600; padding-top: 2px;"
+    palette = FluentTheme.instance().palette()
+    muted = css(mix(palette.window_bg, palette.text_secondary))
+    return f"color: {muted}; font-weight: 600; padding-top: 2px;"
 
 
 def _compact_list(view: QListView) -> None:
@@ -70,7 +73,7 @@ def _compact_list(view: QListView) -> None:
     view.setSelectionRectVisible(False)
     view.setMouseTracking(True)
     view.setWordWrap(False)
-    view.setStyleSheet("")
+    style_fluent_item_view(view)
 
 
 def _compact_table(table: QTableView) -> None:

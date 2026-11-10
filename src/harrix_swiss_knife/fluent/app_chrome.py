@@ -232,6 +232,16 @@ def refresh_fluent_app_window(window: QWidget) -> None:
     window.update()
 
 
+def style_fluent_item_view(view: QAbstractItemView, palette: FluentPalette | None = None) -> None:
+    """Apply Fluent list selection chrome and a readable text palette.
+
+    Layout chrome must call this instead of clearing the view stylesheet: an
+    empty sheet re-polishes the widget onto the system palette (black ink).
+
+    """
+    _style_item_view(view, palette if palette is not None else palette_for(view))
+
+
 def _apply_fluent_list_selection(root: QWidget, palette: FluentPalette) -> None:
     for view in root.findChildren(QListView):
         _style_item_view(view, palette)
@@ -303,6 +313,10 @@ def _apply_list_palette(view: QAbstractItemView, palette: FluentPalette) -> None
     text = mix(palette.window_bg, palette.text_primary)
     highlight = list_item_selected(palette)
     for group in (QPalette.ColorGroup.Active, QPalette.ColorGroup.Inactive, QPalette.ColorGroup.Disabled):
+        # Text must be set: clearing a view stylesheet (layout chrome) can reset
+        # the palette to system ink, which is black on dark Fluent lists.
+        qp.setColor(group, QPalette.ColorRole.Text, text)
+        qp.setColor(group, QPalette.ColorRole.WindowText, text)
         qp.setColor(group, QPalette.ColorRole.Highlight, highlight)
         qp.setColor(group, QPalette.ColorRole.HighlightedText, text)
     view.setPalette(qp)

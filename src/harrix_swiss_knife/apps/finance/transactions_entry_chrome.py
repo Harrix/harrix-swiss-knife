@@ -30,6 +30,7 @@ from harrix_swiss_knife.apps.finance.transactions_ui_settings import (
     save_column_visibility,
     save_splitter_sizes,
 )
+from harrix_swiss_knife.fluent.app_chrome import style_fluent_item_view
 from harrix_swiss_knife.fluent.theme import bind_theme, css, mix, palette_for
 from harrix_swiss_knife.fluent.tokens import CONTROL_HEIGHT, ICON_SIZE, SPACE_S, SPACE_XS
 from harrix_swiss_knife.qt_lucide_icon import apply_lucide_button_icon
@@ -199,7 +200,7 @@ def _polish_category_list(host: Any) -> None:
     view.setSelectionRectVisible(False)
     view.setMouseTracking(True)
     view.setWordWrap(False)
-    view.setStyleSheet("")
+    style_fluent_item_view(view)
     host.label_categories.setText("Transaction category")
     host.label_categories.setStyleSheet(_field_caption_qss())
     font = QFont(host.label_categories.font())
