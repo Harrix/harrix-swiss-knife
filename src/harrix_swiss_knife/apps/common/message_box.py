@@ -2,18 +2,23 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QGuiApplication
-from PySide6.QtWidgets import QAbstractButton, QMessageBox, QWidget
+from PySide6.QtGui import QGuiApplication, QPalette
+from PySide6.QtWidgets import QAbstractButton, QLabel, QMessageBox, QWidget
 
 from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.fluent.style import accent_button_qss, push_button_qss
-from harrix_swiss_knife.fluent.theme import bind_theme, is_fluent_themed, palette_for
+from harrix_swiss_knife.fluent.theme import bind_theme, css, is_fluent_themed, mix, palette_for, to_qpalette
 from harrix_swiss_knife.qt_lucide_icon import (
     style_accept_button,
     style_cancel_button,
     style_delete_button,
 )
+
+if TYPE_CHECKING:
+    from harrix_swiss_knife.fluent.tokens import FluentPalette
 
 _COPY_BUTTON_ATTR = "_harrix_copy_button_added"
 _CLIPBOARD_TEXT_ATTR = "_harrix_clipboard_text"
@@ -140,7 +145,8 @@ def prepare_box(box: QMessageBox) -> None:
         add_copy_button(box)
         setattr(box, _COPY_BUTTON_ATTR, True)
     if is_fluent_themed(box):
-        bind_theme(box, lambda: _style_fluent_buttons(box))
+        bind_theme(box, lambda: _style_fluent_box(box))
+        _style_fluent_box(box)
         return
     for button in box.buttons():
         role = box.buttonRole(button)
@@ -193,10 +199,33 @@ def _exec_box(box: QMessageBox) -> QMessageBox.StandardButton:
     return QMessageBox.StandardButton(sb)
 
 
-def _style_fluent_buttons(box: QMessageBox) -> None:
+def _style_fluent_box(box: QMessageBox) -> None:
+    """Apply Fluent button chrome and readable rich-text link colors."""
     palette = palette_for(box)
+    box.setPalette(to_qpalette(palette, box.palette()))
+    _apply_fluent_link_colors(box, palette)
     primary = accent_button_qss(palette)
     standard = push_button_qss(palette)
     for button in box.buttons():
         role = box.buttonRole(button)
         button.setStyleSheet(primary if role in _PRIMARY_ROLES else standard)
+
+
+def _apply_fluent_link_colors(box: QMessageBox, palette: FluentPalette) -> None:
+    """Paint `<a href>` in Accent text so dark chrome stays readable."""
+    link = mix(palette.window_bg, palette.accent_text)
+    text = mix(palette.window_bg, palette.text_primary)
+    for label in box.findChildren(QLabel):
+        qp = label.palette()
+        for group in (QPalette.ColorGroup.Active, QPalette.ColorGroup.Inactive):
+            qp.setColor(group, QPalette.ColorRole.Link, link)
+            qp.setColor(group, QPalette.ColorRole.LinkVisited, link)
+            qp.setColor(group, QPalette.ColorRole.WindowText, text)
+            qp.setColor(group, QPalette.ColorRole.Text, text)
+        label.setPalette(qp)
+        # Qt rich text often ignores Link; force the accent on anchors.
+        existing = (label.styleSheet() or "").strip()
+        rule = f"a {{ color: {css(link)}; }}"
+        if "a {" in existing.casefold():
+            continue
+        label.setStyleSheet(f"{existing}\n{rule}".strip() if existing else rule)

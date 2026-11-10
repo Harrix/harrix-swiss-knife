@@ -370,6 +370,7 @@ def _clear_viewport(view: QAbstractItemView, palette: FluentPalette) -> None:
 def _fluent_surface_qss(palette: FluentPalette) -> str:
     text = css(mix(palette.window_bg, palette.text_primary))
     secondary = css(mix(palette.window_bg, palette.text_secondary))
+    link = css(mix(palette.window_bg, palette.accent_text))
     hover = css(list_item_hover(palette))
     status = chrome_bottom_color(palette).name()
     bar = chrome_top_color(palette).name()
@@ -379,6 +380,9 @@ def _fluent_surface_qss(palette: FluentPalette) -> str:
 QLabel, QCheckBox, QRadioButton {{
  color: {text};
  background: transparent;
+}}
+QLabel a {{
+ color: {link};
 }}
 QGroupBox {{
  background: transparent;

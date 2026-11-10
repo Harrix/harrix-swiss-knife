@@ -5,7 +5,7 @@ from __future__ import annotations
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QApplication, QLabel, QWidget
 
-from harrix_swiss_knife.fluent.theme import bind_theme, css, fluent_font, palette_for
+from harrix_swiss_knife.fluent.theme import bind_theme, css, fluent_font, mix, palette_for
 from harrix_swiss_knife.fluent.widgets.enums import TextRole, TextStyle
 
 
@@ -49,7 +49,9 @@ class FluentText(QLabel):
             TextRole.ACCENT: palette.accent_text,
             TextRole.DISABLED: palette.text_disabled,
         }
-        self.setStyleSheet(f"QLabel {{ color: {css(colors[self._role])}; background: transparent; }}")
+        # Flatten token alphas onto the window so Accent links stay readable.
+        ink = mix(palette.window_bg, colors[self._role])
+        self.setStyleSheet(f"QLabel {{ color: {css(ink)}; background: transparent; }}")
 
     def set_role(self, role: TextRole) -> None:
         """Switch the color role."""
