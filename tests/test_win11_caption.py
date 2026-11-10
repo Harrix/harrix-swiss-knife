@@ -26,7 +26,9 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife.apps.common.qt_main_window import resolve_window_menu_bar
-from harrix_swiss_knife.fluent.theme import enable_fluent_theme
+from harrix_swiss_knife.fluent.style import chrome_top_color
+from harrix_swiss_knife.fluent.theme import FluentTheme, ThemeMode, enable_fluent_theme
+from harrix_swiss_knife.fluent.tokens import DARK_PALETTE
 from harrix_swiss_knife.fluent.widgets.buttons import FluentIconButton
 from harrix_swiss_knife.win11_caption import (
     _SPLITTER_HANDLE_PX,
@@ -37,10 +39,13 @@ from harrix_swiss_knife.win11_caption import (
     HTCLIENT,
     HTRIGHT,
     HTTOP,
+    OVERLAY_CAPTION_PROPERTY,
     CaptionButton,
+    _caption_surface,
     _sync_caption_button_hover,
     caption_hit_test,
     install_win11_caption,
+    refresh_win11_caption,
     write_nccalcsize_client_rect,
 )
 
@@ -112,6 +117,32 @@ def test_fluent_caption_theme_toggle_is_fluent_icon_button(qapp: QApplication) -
     assert toggle.height() == CAPTION_BUTTON_HEIGHT
     assert ":hover" in toggle.styleSheet()
     window.close()
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Win11 caption is Windows-only")
+def test_overlay_caption_matches_window_bg_in_dark_theme(qapp: QApplication) -> None:  # noqa: ARG001
+    """Solid overlay dialogs keep caption fill on window_bg, not lilac wallpaper top."""
+    theme = FluentTheme.instance()
+    previous = theme.mode()
+    theme.set_mode(ThemeMode.DARK)
+    window = QWidget()
+    try:
+        window.setLayout(QVBoxLayout(window))
+        enable_fluent_theme(window)
+        window.setProperty(OVERLAY_CAPTION_PROPERTY, True)  # noqa: FBT003
+        assert install_win11_caption(window)
+        refresh_win11_caption(window)
+        assert _caption_surface(window) == DARK_PALETTE.window_bg
+        assert _caption_surface(window) != chrome_top_color(DARK_PALETTE)
+        host = window.findChild(QWidget, "captionBar")
+        assert host is not None
+        assert host.palette().color(QPalette.ColorRole.Window) == DARK_PALETTE.window_bg
+        title = window.findChild(QLabel, "captionTitleLabel")
+        assert title is not None
+        assert "rgba(255, 255, 255" in title.styleSheet() or "#ffffff" in title.styleSheet().casefold()
+    finally:
+        theme.set_mode(previous)
+        window.close()
 
 
 @pytest.mark.skipif(sys.platform != "win32", reason="Win11 caption is Windows-only")

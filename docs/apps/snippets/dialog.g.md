@@ -71,6 +71,7 @@ class SnippetsDialog(QDialog):
         self.setObjectName("snippetsDialog")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
         self.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips, on=True)
+        self.setProperty(OVERLAY_CAPTION_PROPERTY, True)  # noqa: FBT003
 
         self._active_zone: ZoneName = ZONE_PHRASE
         self._zone_input_text = dict.fromkeys(ZONES, "")
@@ -642,6 +643,7 @@ class SnippetsDialog(QDialog):
             self._input.setStyleSheet(line_edit_qss(palette))
         for splitter in self.findChildren(QSplitter):
             polish_fluent_splitter(splitter)
+        refresh_win11_caption(self)
 
     def _reload_zone(self, zone: str, panel: ZonePanel) -> None:
         if self.db_manager is None:
@@ -813,6 +815,7 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self.setObjectName("snippetsDialog")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
         self.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips, on=True)
+        self.setProperty(OVERLAY_CAPTION_PROPERTY, True)  # noqa: FBT003
 
         self._active_zone: ZoneName = ZONE_PHRASE
         self._zone_input_text = dict.fromkeys(ZONES, "")

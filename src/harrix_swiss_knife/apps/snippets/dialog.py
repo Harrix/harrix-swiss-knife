@@ -82,7 +82,9 @@ from harrix_swiss_knife.qt_lucide_icon import (
 )
 from harrix_swiss_knife.win11_caption import (
     CAPTION_BUTTON_HEIGHT,
+    OVERLAY_CAPTION_PROPERTY,
     install_win11_caption,
+    refresh_win11_caption,
     try_handle_win11_caption_native_event,
 )
 
@@ -129,6 +131,7 @@ class SnippetsDialog(QDialog):
         self.setObjectName("snippetsDialog")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
         self.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips, on=True)
+        self.setProperty(OVERLAY_CAPTION_PROPERTY, True)  # noqa: FBT003
 
         self._active_zone: ZoneName = ZONE_PHRASE
         self._zone_input_text = dict.fromkeys(ZONES, "")
@@ -700,6 +703,7 @@ class SnippetsDialog(QDialog):
             self._input.setStyleSheet(line_edit_qss(palette))
         for splitter in self.findChildren(QSplitter):
             polish_fluent_splitter(splitter)
+        refresh_win11_caption(self)
 
     def _reload_zone(self, zone: str, panel: ZonePanel) -> None:
         if self.db_manager is None:

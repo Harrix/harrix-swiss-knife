@@ -199,6 +199,9 @@ _SC_RESTORE = 0xF120
 
 _INSTALLED_ATTR = "_hsk_win11_caption"
 _CONTROLLER_ATTR = "_hsk_win11_caption_controller"
+# Solid-plate overlays (Quick launcher, Quick paste) match caption to window_bg
+# instead of the wallpaper gradient top, which reads pink/lilac on dark dialogs.
+OVERLAY_CAPTION_PROPERTY = "hskOverlayCaption"
 _FRAME_GUARD_ATTR = "_hsk_win11_frame_applying"
 _NATIVE_GUARD_ATTR = "_hsk_win11_native_handling"
 _DRAG_FILTER_ATTR = "_hsk_caption_drag_filter"
@@ -1026,9 +1029,17 @@ def _caption_strip_rect(window: QWidget) -> QRect:
 
 
 def _caption_surface(window: QWidget) -> QColor:
-    """Return the caption fill: wallpaper top when Fluent, otherwise the window color."""
+    """Return the caption fill: wallpaper top when Fluent, otherwise the window color.
+
+    Windows marked with `OVERLAY_CAPTION_PROPERTY` use solid `window_bg` so the
+    caption matches a solid dialog plate (not the lilac wallpaper stop).
+
+    """
     if is_fluent_themed(window):
-        return chrome_top_color(palette_for(window))
+        palette = palette_for(window)
+        if bool(window.property(OVERLAY_CAPTION_PROPERTY)):
+            return palette.window_bg
+        return chrome_top_color(palette)
     return window.palette().color(QPalette.ColorRole.Window)
 
 

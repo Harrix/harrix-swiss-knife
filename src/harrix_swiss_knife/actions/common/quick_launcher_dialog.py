@@ -57,7 +57,9 @@ from harrix_swiss_knife.qt_lucide_icon import CLOSE_BUTTON_ICON, apply_lucide_bu
 from harrix_swiss_knife.qt_markdown_choice_cards import AI_SCREENSHOT_TOOLTIP
 from harrix_swiss_knife.win11_caption import (
     CAPTION_BUTTON_HEIGHT,
+    OVERLAY_CAPTION_PROPERTY,
     install_win11_caption,
+    refresh_win11_caption,
     try_handle_win11_caption_native_event,
 )
 
@@ -100,6 +102,7 @@ class QuickLauncherDialog(QDialog):
 
         self.setObjectName("quickLauncherDialog")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
+        self.setProperty(OVERLAY_CAPTION_PROPERTY, True)  # noqa: FBT003
         prepare_fluent_app_window(self)
 
         self._layout = QVBoxLayout(self)
@@ -623,6 +626,8 @@ class QuickLauncherDialog(QDialog):
             divider_palette.setColor(divider_widget.backgroundRole(), QColor(palette.divider))
             divider_widget.setAutoFillBackground(True)
             divider_widget.setPalette(divider_palette)
+        # Caption must follow solid window_bg (see OVERLAY_CAPTION_PROPERTY), not wallpaper top.
+        refresh_win11_caption(self)
 
     def _retarget_to_active_modal_parent(self) -> None:
         """Parent launcher to active modal dialog so it stays interactive."""

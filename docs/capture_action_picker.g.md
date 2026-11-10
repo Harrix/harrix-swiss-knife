@@ -60,6 +60,7 @@ class CaptureActionPickerDialog(QDialog):
 
         self.setObjectName("captureActionPickerDialog")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
+        self.setProperty(OVERLAY_CAPTION_PROPERTY, True)  # noqa: FBT003
 
         self._layout = QVBoxLayout(self)
         self._layout.setContentsMargins(0, 0, 0, 0)
@@ -328,6 +329,7 @@ class CaptureActionPickerDialog(QDialog):
             "#captureActionPickerContent { background: transparent; }",
         )
         self._hint.setStyleSheet(f"color: {muted};")
+        refresh_win11_caption(self)
 
     def _select_card(self, card: FluentIconTileCard) -> None:
         previous = self._selected_card
@@ -376,6 +378,7 @@ def __init__(self, parent: QWidget | None = None) -> None:
 
         self.setObjectName("captureActionPickerDialog")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
+        self.setProperty(OVERLAY_CAPTION_PROPERTY, True)  # noqa: FBT003
 
         self._layout = QVBoxLayout(self)
         self._layout.setContentsMargins(0, 0, 0, 0)

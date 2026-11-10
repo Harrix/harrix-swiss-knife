@@ -46,7 +46,9 @@ from harrix_swiss_knife.qt_frameless_window import frameless_stay_on_top_flags, 
 from harrix_swiss_knife.qt_lucide_icon import CLOSE_BUTTON_ICON, apply_lucide_button_icon
 from harrix_swiss_knife.win11_caption import (
     CAPTION_BUTTON_HEIGHT,
+    OVERLAY_CAPTION_PROPERTY,
     install_win11_caption,
+    refresh_win11_caption,
     try_handle_win11_caption_native_event,
 )
 
@@ -89,6 +91,7 @@ class CaptureActionPickerDialog(QDialog):
 
         self.setObjectName("captureActionPickerDialog")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
+        self.setProperty(OVERLAY_CAPTION_PROPERTY, True)  # noqa: FBT003
 
         self._layout = QVBoxLayout(self)
         self._layout.setContentsMargins(0, 0, 0, 0)
@@ -357,6 +360,7 @@ class CaptureActionPickerDialog(QDialog):
             "#captureActionPickerContent { background: transparent; }",
         )
         self._hint.setStyleSheet(f"color: {muted};")
+        refresh_win11_caption(self)
 
     def _select_card(self, card: FluentIconTileCard) -> None:
         previous = self._selected_card
