@@ -208,6 +208,7 @@ from harrix_swiss_knife.apps.fitness.fitness_entry_chrome import (
 )
 from harrix_swiss_knife.apps.fitness.fitness_lightbox import FitnessExerciseLightboxDialog
 from harrix_swiss_knife.apps.fitness.layout_chrome import (
+    apply_exercises_splitter_sizes,
     install_fitness_layout_chrome,
     persist_fitness_tabs_splitter_sizes,
 )
@@ -2827,6 +2828,8 @@ class MainWindow(
             return
         if widget is self.tab_2:
             self._ensure_exercises_catalog_loaded()
+            apply_exercises_splitter_sizes(self)
+            QTimer.singleShot(0, lambda: apply_exercises_splitter_sizes(self))
             return
         if widget is self.tab_charts:  # Exercise Chart tab
             self.update_chart_comboboxes()

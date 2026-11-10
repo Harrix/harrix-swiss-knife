@@ -23,12 +23,15 @@ from harrix_swiss_knife.qt_lucide_icon import apply_lucide_button_icon
 TABLE_ROW_HEIGHT = 30
 _CHARTS_SPLITTER_KEY = "fitness_charts_splitter_sizes_v1"
 _CHARTS_SPLITTER_DEFAULT = (320, 1248)
-_EXERCISES_SPLITTER_KEY = "fitness_exercises_splitter_sizes_v1"
+# v2: ignore v1 saves that locked a tiny left pane after programmatic setSizes.
+_EXERCISES_SPLITTER_KEY = "fitness_exercises_splitter_sizes_v2"
 _EXERCISES_SPLITTER_DEFAULT = (640, 640)
 _SIDE_MIN = 280
 _CONTENT_MIN = 400
 _SPLITTER_SAVE_DELAY_MS = 400
 _TWO_PANE = 2
+_EQUAL_MIN_RATIO = 0.35
+_EQUAL_MAX_RATIO = 0.65
 
 
 def install_fitness_layout_chrome(host: Any) -> None:
@@ -57,6 +60,13 @@ def persist_fitness_tabs_splitter_sizes(host: Any) -> None:
             save_splitter_sizes(key, [int(size) for size in sizes], default)
 
 
+def apply_exercises_splitter_sizes(host: Any) -> None:
+    """Re-apply the Exercises 50/50 splitter after the tab is shown."""
+    apply = getattr(host, "_apply_fitness_exercises_splitter_sizes", None)
+    if callable(apply):
+        apply()
+
+
 def _caption_qss() -> str:
     palette = FluentTheme.instance().palette()
     muted = css(mix(palette.window_bg, palette.text_secondary))
@@ -78,8 +88,11 @@ def _compact_list(view: QListView) -> None:
 
 def _compact_table(table: QTableView) -> None:
     vertical = table.verticalHeader()
-    vertical.setDefaultSectionSize(TABLE_ROW_HEIGHT)
-    vertical.setMinimumSectionSize(24)
+    icon_h = table.iconSize().height()
+    row_height = max(TABLE_ROW_HEIGHT, icon_h + 8) if icon_h > 0 else TABLE_ROW_HEIGHT
+    # Keep thumbnail rows from collapsing under the icon size.
+    vertical.setMinimumSectionSize(row_height if icon_h > TABLE_ROW_HEIGHT else 24)
+    vertical.setDefaultSectionSize(row_height)
     table.setWordWrap(False)
     table.setTextElideMode(Qt.TextElideMode.ElideRight)
 
@@ -98,12 +111,15 @@ def _configure_charts_splitter(host: Any) -> None:
         left_min=_SIDE_MIN,
         right_min=_CONTENT_MIN,
         left_max_share=3,
+        equal=False,
     )
 
 
 def _configure_exercises_splitter(host: Any) -> None:
     if not hasattr(host, "splitter_2"):
         return
+    host.widget_top.setMinimumWidth(_CONTENT_MIN)
+    host.widget_bottom.setMinimumWidth(_CONTENT_MIN)
     _wire_two_pane(
         host,
         splitter=host.splitter_2,
@@ -113,6 +129,7 @@ def _configure_exercises_splitter(host: Any) -> None:
         left_min=_CONTENT_MIN,
         right_min=_CONTENT_MIN,
         left_max_share=2,
+        equal=True,
     )
 
 
@@ -312,39 +329,64 @@ def _wire_two_pane(
     left_min: int,
     right_min: int,
     left_max_share: int,
+    equal: bool = False,
 ) -> None:
     splitter.setChildrenCollapsible(False)
-    splitter.setStretchFactor(0, 0)
+    # Equal panes both grow; sidebar+content keeps the left width fixed.
+    stretch = 1 if equal else 0
+    splitter.setStretchFactor(0, stretch)
     splitter.setStretchFactor(1, 1)
     saved = load_splitter_sizes(key, default)
     moved_attr = f"_{flag}_user_moved"
     timer_attr = f"_{flag}_save_timer"
     bound_attr = f"_{flag}_save_bound"
+    applying_attr = f"_{flag}_applying"
     setattr(host, moved_attr, False)
+    setattr(host, applying_attr, False)
 
     def apply_sizes() -> None:
         if getattr(host, "_is_closing", False) or getattr(host, moved_attr, False):
             return
+        min_total = left_min + right_min
         total = splitter.width()
-        if total <= 0:
-            total = max(host.width(), sum(saved))
+        # Hidden / not-yet-laid-out tabs often report a tiny positive width; using
+        # that used to call setSizes, emit splitterMoved, and lock a skinny left pane.
+        if total < min_total:
+            total = max(host.width(), sum(saved), min_total)
         sizes = list(saved)
         if sum(sizes) != total and total > 0:
             scale = total / max(sum(sizes), 1)
             sizes = [max(1, round(size * scale)) for size in sizes]
             sizes[1] = max(1, total - sizes[0])
-        sizes[0] = min(max(sizes[0], left_min), max(left_min, total // left_max_share))
-        sizes[1] = max(right_min, total - sizes[0])
-        sizes[0] = max(1, total - sizes[1])
-        splitter.setSizes(sizes)
+        if equal:
+            ratio = sizes[0] / max(total, 1)
+            if ratio < _EQUAL_MIN_RATIO or ratio > _EQUAL_MAX_RATIO:
+                sizes[0] = total // 2
+                sizes[1] = total - sizes[0]
+            sizes[0] = min(max(sizes[0], left_min), total - right_min)
+            sizes[1] = total - sizes[0]
+        else:
+            sizes[0] = min(max(sizes[0], left_min), max(left_min, total // left_max_share))
+            sizes[1] = max(right_min, total - sizes[0])
+            sizes[0] = max(1, total - sizes[1])
+        setattr(host, applying_attr, True)
+        try:
+            splitter.blockSignals(True)  # noqa: FBT003
+            splitter.setSizes(sizes)
+        finally:
+            splitter.blockSignals(False)  # noqa: FBT003
+            setattr(host, applying_attr, False)
 
     def on_moved(*_args: object) -> None:
+        if getattr(host, applying_attr, False):
+            return
         setattr(host, moved_attr, True)
         getattr(host, timer_attr).start()
 
     setattr(host, f"_apply_{flag}_sizes", apply_sizes)
     apply_sizes()
     QTimer.singleShot(60, apply_sizes)
+    QTimer.singleShot(300, apply_sizes)
     if not getattr(host, bound_attr, False):
         timer = QTimer(host)
         timer.setSingleShot(True)
