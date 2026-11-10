@@ -15,9 +15,11 @@ from harrix_swiss_knife.apps.common.day_bands import (
     day_band_color,
     day_band_id_item,
     install_day_band_vertical_header,
+    readable_cell_fill,
     readable_row_tint,
     refresh_day_bands,
     set_day_band,
+    set_readable_cell_fill,
 )
 from harrix_swiss_knife.apps.finance.exchange_rates_operations import _disconnect_emitted_signals
 from harrix_swiss_knife.fluent.theme import FluentTheme, ThemeMode
@@ -92,6 +94,26 @@ def test_readable_row_tint_drops_pastels_in_dark(qapp: QApplication) -> None:
     theme.set_mode(ThemeMode.DARK, persist=False)
     dark_tint = readable_row_tint(pastel, band_index=0)
     assert dark_tint.rgb() == day_band_color(0).rgb()
+    theme.set_mode(previous, persist=False)
+
+
+def test_readable_cell_fill_darkens_chromatic_pastels(qapp: QApplication) -> None:
+    """Report category hues stay chromatic but dark enough for light text."""
+    assert qapp is not None
+    theme = FluentTheme.instance()
+    previous = theme.mode()
+    pastel = QColor.fromHsv(120, 80, 240)
+    gray = QColor(220, 220, 220)
+    theme.set_mode(ThemeMode.LIGHT, persist=False)
+    assert readable_cell_fill(pastel).rgb() == pastel.rgb()
+    theme.set_mode(ThemeMode.DARK, persist=False)
+    dark = readable_cell_fill(pastel, band_index=0)
+    assert dark.value() <= 100
+    assert dark.hue() == pastel.hue()
+    assert readable_cell_fill(gray, band_index=1).rgb() == day_band_color(1).rgb()
+    item = QStandardItem("12.00")
+    set_readable_cell_fill(item, pastel)
+    assert item.background().color().value() <= 100
     theme.set_mode(previous, persist=False)
 
 
