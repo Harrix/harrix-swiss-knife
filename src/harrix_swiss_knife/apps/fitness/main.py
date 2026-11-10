@@ -93,7 +93,11 @@ from harrix_swiss_knife.apps.common.apps_config import (
     set_apps_fitness_workout_duration_min,
     set_apps_fitness_workout_gender,
 )
-from harrix_swiss_knife.apps.common.chart_theme import chart_label_face, themed_figure
+from harrix_swiss_knife.apps.common.chart_theme import (
+    chart_annotation_style,
+    chart_info_panel_qss,
+    themed_figure,
+)
 from harrix_swiss_knife.apps.common.date_edit_quick import (
     attach_date_edit_quick_controls,
     match_date_edit_form_height,
@@ -158,7 +162,6 @@ from harrix_swiss_knife.apps.common.table_models import (
     get_stored_table_header_sort,
     set_stored_table_header_sort,
 )
-from harrix_swiss_knife.apps.common.ui_chrome import HAIRLINE, SEPARATOR
 from harrix_swiss_knife.apps.common.ui_helpers import reveal_in_file_explorer, set_combo_plain_items
 from harrix_swiss_knife.apps.common.widgets.exercise_list_hover_preview import (
     ExerciseListHoverPreview,
@@ -1330,14 +1333,7 @@ class MainWindow(
                     textcoords="offset points",
                     xytext=(0, 10),
                     ha="center",
-                    fontsize=9,
-                    alpha=0.8,
-                    bbox={
-                        "boxstyle": "round,pad=0.2",
-                        "facecolor": chart_label_face(),
-                        "edgecolor": "none",
-                        "alpha": 0.7,
-                    },
+                    **chart_annotation_style(),
                 )
 
         # Plot current month last to appear on top
@@ -1373,14 +1369,7 @@ class MainWindow(
                     textcoords="offset points",
                     xytext=(0, 10),
                     ha="center",
-                    fontsize=9,
-                    alpha=0.8,
-                    bbox={
-                        "boxstyle": "round,pad=0.2",
-                        "facecolor": chart_label_face(),
-                        "edgecolor": "none",
-                        "alpha": 0.7,
-                    },
+                    **chart_annotation_style(),
                 )
 
         # Customize plot
@@ -1616,14 +1605,7 @@ class MainWindow(
                         textcoords="offset points",
                         xytext=(0, 10),
                         ha="center",
-                        fontsize=9,
-                        alpha=0.8,
-                        bbox={
-                            "boxstyle": "round,pad=0.2",
-                            "facecolor": chart_label_face(),
-                            "edgecolor": "none",
-                            "alpha": 0.7,
-                        },
+                        **chart_annotation_style(),
                     )
 
         # Now plot the current year last (so it appears on top)
@@ -1662,14 +1644,7 @@ class MainWindow(
                     textcoords="offset points",
                     xytext=(0, 10),
                     ha="center",
-                    fontsize=9,
-                    alpha=0.8,
-                    bbox={
-                        "boxstyle": "round,pad=0.2",
-                        "facecolor": chart_label_face(),
-                        "edgecolor": "none",
-                        "alpha": 0.7,
-                    },
+                    **chart_annotation_style(),
                 )
 
         # Customize plot
@@ -3903,14 +3878,7 @@ class MainWindow(
 
         # Set text
         self.label_chart_info.setText(recommendation_text)
-        self.label_chart_info.setStyleSheet(f"""
-            margin: 5px 0px;
-            padding: 10px;
-            background-color: {HAIRLINE};
-            border: 1px solid {SEPARATOR};
-            border-radius: 5px;
-            line-height: 1.2;
-        """)
+        self.label_chart_info.setStyleSheet(chart_info_panel_qss())
 
     def _add_catalog_exercise_to_workout(self, workout_id: int, exercise_name: str) -> bool:
         """Append one catalog exercise to `workout_id` using last type and value."""
@@ -4114,14 +4082,7 @@ class MainWindow(
 
         # Set text
         self.label_chart_info.setText(recommendation_text)
-        self.label_chart_info.setStyleSheet(f"""
-            margin: 5px 0px;
-            padding: 10px;
-            background-color: {HAIRLINE};
-            border: 1px solid {SEPARATOR};
-            border-radius: 5px;
-            line-height: 1.2;
-        """)
+        self.label_chart_info.setStyleSheet(chart_info_panel_qss())
 
     def _add_exercise_recommendations_to_label_for_standard_chart(
         self, exercise: str, exercise_type: str | None, exercise_unit: str
@@ -4336,14 +4297,7 @@ class MainWindow(
 
         # Set text
         self.label_chart_info.setText(recommendation_text)
-        self.label_chart_info.setStyleSheet(f"""
-            margin: 5px 0px;
-            padding: 10px;
-            background-color: {HAIRLINE};
-            border: 1px solid {SEPARATOR};
-            border-radius: 5px;
-            line-height: 1.2;
-        """)
+        self.label_chart_info.setStyleSheet(chart_info_panel_qss())
 
     def _add_sets_recommendations_to_label(self) -> None:
         """Add sets recommendations to label_chart_info.
@@ -4480,14 +4434,7 @@ class MainWindow(
 
         # Set text
         self.label_chart_info.setText(recommendation_text)
-        self.label_chart_info.setStyleSheet(f"""
-            margin: 5px 0px;
-            padding: 10px;
-            background-color: {HAIRLINE};
-            border: 1px solid {SEPARATOR};
-            border-radius: 5px;
-            line-height: 1.2;
-        """)
+        self.label_chart_info.setStyleSheet(chart_info_panel_qss())
 
     def _adjust_process_table_columns(self) -> None:
         """Size process columns so they fill the visible table viewport."""
@@ -8193,14 +8140,7 @@ class MainWindow(
             text = f"No data for the last {months} months." if months > 0 else "No data for the selected period."
 
         self.label_chart_info.setText(text)
-        self.label_chart_info.setStyleSheet(f"""
-            margin: 5px 0px;
-            padding: 10px;
-            background-color: {HAIRLINE};
-            border: 1px solid {SEPARATOR};
-            border-radius: 5px;
-            line-height: 1.2;
-        """)
+        self.label_chart_info.setStyleSheet(chart_info_panel_qss())
 
     def _setup_exercise_media_widgets(self) -> None:
         """Install drop handlers so media can be assigned from the exercise tables."""

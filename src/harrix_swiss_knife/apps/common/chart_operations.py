@@ -38,7 +38,7 @@ from matplotlib.ticker import MaxNLocator
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QLabel
 
-from harrix_swiss_knife.apps.common.chart_theme import chart_label_face, themed_figure
+from harrix_swiss_knife.apps.common.chart_theme import chart_annotation_style, chart_label_face, themed_figure
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
@@ -471,15 +471,7 @@ class ChartOperationsBase:
                         textcoords="offset points",
                         xytext=(0, 10),
                         ha="center",
-                        fontsize=9,
-                        alpha=0.8,
-                        # Add white outline for better readability
-                        bbox={
-                            "boxstyle": "round,pad=0.2",
-                            "facecolor": chart_label_face(),
-                            "edgecolor": "none",
-                            "alpha": 0.7,
-                        },
+                        **chart_annotation_style(),
                     )
         else:
             ax.plot(x_nums, y_values, color=plot_color, linestyle="-", linewidth=2, alpha=0.8)  # Use numerical x-values
@@ -508,15 +500,7 @@ class ChartOperationsBase:
                         textcoords="offset points",
                         xytext=(0, 10),
                         ha="center",
-                        fontsize=9,
-                        alpha=0.8,
-                        # Add white outline for better readability
-                        bbox={
-                            "boxstyle": "round,pad=0.2",
-                            "facecolor": chart_label_face(),
-                            "edgecolor": "none",
-                            "alpha": 0.7,
-                        },
+                        **chart_annotation_style(),
                     )
 
     def _set_y_axis_limits(self, ax: Axes, y_values: list[float]) -> None:
