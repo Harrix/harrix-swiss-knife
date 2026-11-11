@@ -113,14 +113,15 @@ _FILL_KINDS = {
     "1a5f7a": "accent",
 }
 _KIND_MARKERS = (
-    ("button_cta_mint", "mint"),
-    ("button_cta_green", "success"),
-    ("button_cta_cyan", "info"),
-    ("hsk-fluent-mint", "mint"),
-    ("hsk-fluent-info", "info"),
+    ("button_cta_mint", "accent"),
+    ("button_cta_green", "accent"),
+    ("button_cta_cyan", "accent"),
+    ("hsk-fluent-mint", "accent"),
+    ("hsk-fluent-info", "accent"),
     ("hsk-fluent-success", "success"),
     ("hsk-fluent-danger", "danger"),
     ("hsk-fluent-cta", "accent"),
+    ("hsk-fluent-accent", "accent"),
     ("button_cta_", "accent"),
 )
 _SECONDARY_MARKERS = (

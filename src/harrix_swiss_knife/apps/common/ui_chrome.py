@@ -50,13 +50,13 @@ BUTTON_SUCCESS_BG = "#4caf50"
 BUTTON_SUCCESS_HOVER = "#35965f"
 BUTTON_DANGER_BG = "#cc584c"
 BUTTON_DANGER_HOVER = "#ad403b"
-# App CTAs restored from pre-unify soft fills → nearest CodeStyle brand hex.
-BUTTON_CTA_CYAN_BG = "#79b1d1"  # was Material soft blue `#e3f2fd`
-BUTTON_CTA_CYAN_HOVER = "#3a78bc"
-BUTTON_CTA_GREEN_BG = "#4caf50"  # was soft green / lightgreen
-BUTTON_CTA_GREEN_HOVER = "#35965f"
-BUTTON_CTA_MINT_BG = "#3aaf9d"  # was finance mint `#C1ECDD`
-BUTTON_CTA_MINT_HOVER = "#038387"
+# Tracker Add / primary CTAs use brand accent (aliases kept for call-site names).
+BUTTON_CTA_CYAN_BG = BUTTON_PRIMARY_BG
+BUTTON_CTA_CYAN_HOVER = BUTTON_PRIMARY_HOVER
+BUTTON_CTA_GREEN_BG = BUTTON_PRIMARY_BG
+BUTTON_CTA_GREEN_HOVER = BUTTON_PRIMARY_HOVER
+BUTTON_CTA_MINT_BG = BUTTON_PRIMARY_BG
+BUTTON_CTA_MINT_HOVER = BUTTON_PRIMARY_HOVER
 # Text / icon on solid fills (CodeStyle white-on-fill + dark ink).
 BUTTON_ON_DARK_FG = "#ffffff"
 BUTTON_ON_DARK_ICON = "#f4f4f4"
@@ -243,21 +243,21 @@ def button_content_colors(bg_hex: str) -> tuple[str, str]:
 
 
 def button_cta_cyan_qss(*, radius: int = PANEL_RADIUS) -> str:
-    """Info CTA fill. `radius` is kept for call-site compatibility."""
+    """Brand accent CTA fill (legacy cyan name). `radius` kept for callers."""
     del radius
-    return _fluent_role_button_qss("info")
+    return _fluent_cta_button_qss()
 
 
 def button_cta_green_qss(*, radius: int = PANEL_RADIUS) -> str:
-    """Success CTA fill. `radius` is kept for call-site compatibility."""
+    """Brand accent CTA fill (legacy green name). `radius` kept for callers."""
     del radius
-    return _fluent_role_button_qss("success")
+    return _fluent_cta_button_qss()
 
 
 def button_cta_mint_qss(*, radius: int = PANEL_RADIUS) -> str:
-    """Mint CTA fill. `radius` is kept for call-site compatibility."""
+    """Brand accent CTA fill (legacy mint name). `radius` kept for callers."""
     del radius
-    return _fluent_role_button_qss("mint")
+    return _fluent_cta_button_qss()
 
 
 def button_danger_qss(*, radius: int = PANEL_RADIUS) -> str:

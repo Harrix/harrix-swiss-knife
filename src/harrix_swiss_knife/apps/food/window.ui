@@ -278,23 +278,7 @@
                     </font>
                    </property>
                    <property name="styleSheet">
-                    <string notr="true">QPushButton {
-                                      background-color: #79b1d1;
-                                      color: #ffffff;
-                                      border: 1px solid #79b1d1;
-                                      border-radius: 4px;
-                                      padding: 5px 14px;
-                                      }
-                                      QPushButton:hover {
-                                      background-color: #3a78bc;
-                                      color: #ffffff;
-                                      border-color: #3a78bc;
-                                      }
-                                      QPushButton:pressed {
-                                      background-color: #2a5687;
-                                      color: #ffffff;
-                                      border-color: #2a5687;
-                                      }</string>
+                    <string notr="true">/* hsk-fluent-accent */</string>
                    </property>
                    <property name="text">
                     <string>Add Food</string>

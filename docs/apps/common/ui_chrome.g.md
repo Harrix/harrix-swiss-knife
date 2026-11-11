@@ -257,7 +257,7 @@ def button_content_colors(bg_hex: str) -> tuple[str, str]:
 def button_cta_cyan_qss(*, radius: int = PANEL_RADIUS) -> str
 ```
 
-Info CTA fill. `radius` is kept for call-site compatibility.
+Brand accent CTA fill (legacy cyan name). `radius` kept for callers.
 
 <details>
 <summary>Code:</summary>
@@ -265,7 +265,7 @@ Info CTA fill. `radius` is kept for call-site compatibility.
 ```python
 def button_cta_cyan_qss(*, radius: int = PANEL_RADIUS) -> str:
     del radius
-    return _fluent_role_button_qss("info")
+    return _fluent_cta_button_qss()
 ```
 
 </details>
@@ -276,7 +276,7 @@ def button_cta_cyan_qss(*, radius: int = PANEL_RADIUS) -> str:
 def button_cta_green_qss(*, radius: int = PANEL_RADIUS) -> str
 ```
 
-Success CTA fill. `radius` is kept for call-site compatibility.
+Brand accent CTA fill (legacy green name). `radius` kept for callers.
 
 <details>
 <summary>Code:</summary>
@@ -284,7 +284,7 @@ Success CTA fill. `radius` is kept for call-site compatibility.
 ```python
 def button_cta_green_qss(*, radius: int = PANEL_RADIUS) -> str:
     del radius
-    return _fluent_role_button_qss("success")
+    return _fluent_cta_button_qss()
 ```
 
 </details>
@@ -295,7 +295,7 @@ def button_cta_green_qss(*, radius: int = PANEL_RADIUS) -> str:
 def button_cta_mint_qss(*, radius: int = PANEL_RADIUS) -> str
 ```
 
-Mint CTA fill. `radius` is kept for call-site compatibility.
+Brand accent CTA fill (legacy mint name). `radius` kept for callers.
 
 <details>
 <summary>Code:</summary>
@@ -303,7 +303,7 @@ Mint CTA fill. `radius` is kept for call-site compatibility.
 ```python
 def button_cta_mint_qss(*, radius: int = PANEL_RADIUS) -> str:
     del radius
-    return _fluent_role_button_qss("mint")
+    return _fluent_cta_button_qss()
 ```
 
 </details>

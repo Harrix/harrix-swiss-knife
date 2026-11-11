@@ -36,13 +36,13 @@ class Ui_MainWindow(object):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Fitness tracker", None))
         self.actionAbout.setText(QCoreApplication.translate("MainWindow", u"About", None))
         self.actionExit.setText(QCoreApplication.translate("MainWindow", u"Exit", None))
-        self.actionShow_All_Set_Records.setText(QCoreApplication.translate("MainWindow", u"\ud83d\udccb Show All Set Records", None))
-        self.actionRefresh_Set_Table.setText(QCoreApplication.translate("MainWindow", u"\ud83d\udd04 Refresh Set Table", None))
-        self.actionExport_Set_Table.setText(QCoreApplication.translate("MainWindow", u"\ud83d\udce4 Export Set Table", None))
+        self.actionShow_All_Set_Records.setText(QCoreApplication.translate("MainWindow", u"\U0001f4cb Show All Set Records", None))
+        self.actionRefresh_Set_Table.setText(QCoreApplication.translate("MainWindow", u"\U0001f504 Refresh Set Table", None))
+        self.actionExport_Set_Table.setText(QCoreApplication.translate("MainWindow", u"\U0001f4e4 Export Set Table", None))
         self.actionAdd_Exercise.setText(QCoreApplication.translate("MainWindow", u"\u2795 Add Exercise", None))
-        self.actionRefresh_Exercises_Table.setText(QCoreApplication.translate("MainWindow", u"\ud83d\udd04 Refresh Exercises Table", None))
+        self.actionRefresh_Exercises_Table.setText(QCoreApplication.translate("MainWindow", u"\U0001f504 Refresh Exercises Table", None))
         self.actionAdd_Exercise_Type.setText(QCoreApplication.translate("MainWindow", u"\u2795 Add Exercise Type", None))
-        self.actionRefresh_Types_Table.setText(QCoreApplication.translate("MainWindow", u"\ud83d\udd04 Refresh Types Table", None))
+        self.actionRefresh_Types_Table.setText(QCoreApplication.translate("MainWindow", u"\U0001f504 Refresh Types Table", None))
         self.groupBox.setTitle(QCoreApplication.translate("MainWindow", u"Set parameters", None))
         self.label_exercise.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
         self.label_last_date_count_today.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
@@ -69,7 +69,7 @@ class Ui_MainWindow(object):
 #if QT_CONFIG(tooltip)
         self.pushButton_clear_filter.setToolTip(QCoreApplication.translate("MainWindow", u"Clear filter", None))
 #endif // QT_CONFIG(tooltip)
-        self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", u"\ud83e\uddf9", None))
+        self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", u"\U0001f9f9", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), QCoreApplication.translate("MainWindow", u"Sets", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_workouts), QCoreApplication.translate("MainWindow", u"Workouts", None))
         self.label_chart_exercise.setText(QCoreApplication.translate("MainWindow", u"Exercise:", None))
@@ -263,23 +263,7 @@ class Ui_MainWindow(object):
         self.pushButton_add = QPushButton(self.groupBox)
         self.pushButton_add.setObjectName(u"pushButton_add")
         self.pushButton_add.setFont(font1)
-        self.pushButton_add.setStyleSheet(u"QPushButton {\n"
-"                                      background-color: #4caf50;\n"
-"                                      color: #ffffff;\n"
-"                                      border: 1px solid #4caf50;\n"
-"                                      border-radius: 4px;\n"
-"                                      padding: 5px 14px;\n"
-"                                      }\n"
-"                                      QPushButton:hover {\n"
-"                                      background-color: #35965f;\n"
-"                                      color: #ffffff;\n"
-"                                      border-color: #35965f;\n"
-"                                      }\n"
-"                                      QPushButton:pressed {\n"
-"                                      background-color: #2e7d4f;\n"
-"                                      color: #ffffff;\n"
-"                                      border-color: #2e7d4f;\n"
-"                                      }")
+        self.pushButton_add.setStyleSheet(u"/* hsk-fluent-accent */")
 
         self.verticalLayout_5.addWidget(self.pushButton_add)
 
@@ -1136,13 +1120,13 @@ def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Fitness tracker", None))
         self.actionAbout.setText(QCoreApplication.translate("MainWindow", u"About", None))
         self.actionExit.setText(QCoreApplication.translate("MainWindow", u"Exit", None))
-        self.actionShow_All_Set_Records.setText(QCoreApplication.translate("MainWindow", u"\ud83d\udccb Show All Set Records", None))
-        self.actionRefresh_Set_Table.setText(QCoreApplication.translate("MainWindow", u"\ud83d\udd04 Refresh Set Table", None))
-        self.actionExport_Set_Table.setText(QCoreApplication.translate("MainWindow", u"\ud83d\udce4 Export Set Table", None))
+        self.actionShow_All_Set_Records.setText(QCoreApplication.translate("MainWindow", u"\U0001f4cb Show All Set Records", None))
+        self.actionRefresh_Set_Table.setText(QCoreApplication.translate("MainWindow", u"\U0001f504 Refresh Set Table", None))
+        self.actionExport_Set_Table.setText(QCoreApplication.translate("MainWindow", u"\U0001f4e4 Export Set Table", None))
         self.actionAdd_Exercise.setText(QCoreApplication.translate("MainWindow", u"\u2795 Add Exercise", None))
-        self.actionRefresh_Exercises_Table.setText(QCoreApplication.translate("MainWindow", u"\ud83d\udd04 Refresh Exercises Table", None))
+        self.actionRefresh_Exercises_Table.setText(QCoreApplication.translate("MainWindow", u"\U0001f504 Refresh Exercises Table", None))
         self.actionAdd_Exercise_Type.setText(QCoreApplication.translate("MainWindow", u"\u2795 Add Exercise Type", None))
-        self.actionRefresh_Types_Table.setText(QCoreApplication.translate("MainWindow", u"\ud83d\udd04 Refresh Types Table", None))
+        self.actionRefresh_Types_Table.setText(QCoreApplication.translate("MainWindow", u"\U0001f504 Refresh Types Table", None))
         self.groupBox.setTitle(QCoreApplication.translate("MainWindow", u"Set parameters", None))
         self.label_exercise.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
         self.label_last_date_count_today.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
@@ -1169,7 +1153,7 @@ def retranslateUi(self, MainWindow):
 #if QT_CONFIG(tooltip)
         self.pushButton_clear_filter.setToolTip(QCoreApplication.translate("MainWindow", u"Clear filter", None))
 #endif // QT_CONFIG(tooltip)
-        self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", u"\ud83e\uddf9", None))
+        self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", u"\U0001f9f9", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), QCoreApplication.translate("MainWindow", u"Sets", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_workouts), QCoreApplication.translate("MainWindow", u"Workouts", None))
         self.label_chart_exercise.setText(QCoreApplication.translate("MainWindow", u"Exercise:", None))
@@ -1379,23 +1363,7 @@ def setupUi(self, MainWindow):
         self.pushButton_add = QPushButton(self.groupBox)
         self.pushButton_add.setObjectName(u"pushButton_add")
         self.pushButton_add.setFont(font1)
-        self.pushButton_add.setStyleSheet(u"QPushButton {\n"
-"                                      background-color: #4caf50;\n"
-"                                      color: #ffffff;\n"
-"                                      border: 1px solid #4caf50;\n"
-"                                      border-radius: 4px;\n"
-"                                      padding: 5px 14px;\n"
-"                                      }\n"
-"                                      QPushButton:hover {\n"
-"                                      background-color: #35965f;\n"
-"                                      color: #ffffff;\n"
-"                                      border-color: #35965f;\n"
-"                                      }\n"
-"                                      QPushButton:pressed {\n"
-"                                      background-color: #2e7d4f;\n"
-"                                      color: #ffffff;\n"
-"                                      border-color: #2e7d4f;\n"
-"                                      }")
+        self.pushButton_add.setStyleSheet(u"/* hsk-fluent-accent */")
 
         self.verticalLayout_5.addWidget(self.pushButton_add)
 

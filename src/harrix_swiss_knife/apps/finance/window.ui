@@ -239,7 +239,7 @@
                   </font>
                  </property>
                  <property name="styleSheet">
-                  <string notr="true">/* hsk-fluent-mint */</string>
+                  <string notr="true">/* hsk-fluent-accent */</string>
                  </property>
                  <property name="text">
                   <string>Add transaction</string>
@@ -727,23 +727,7 @@
                </font>
               </property>
               <property name="styleSheet">
-               <string notr="true">QPushButton {
-                                      background-color: #3aaf9d;
-                                      color: #ffffff;
-                                      border: 1px solid #3aaf9d;
-                                      border-radius: 4px;
-                                      padding: 5px 14px;
-                                      }
-                                      QPushButton:hover {
-                                      background-color: #038387;
-                                      color: #ffffff;
-                                      border-color: #038387;
-                                      }
-                                      QPushButton:pressed {
-                                      background-color: #026a6d;
-                                      color: #ffffff;
-                                      border-color: #026a6d;
-                                      }</string>
+               <string notr="true">/* hsk-fluent-accent */</string>
               </property>
               <property name="text">
                <string>🧮 Balance Check</string>
@@ -1073,23 +1057,7 @@
                   </font>
                  </property>
                  <property name="styleSheet">
-                  <string notr="true">QPushButton {
-                                      background-color: #3aaf9d;
-                                      color: #ffffff;
-                                      border: 1px solid #3aaf9d;
-                                      border-radius: 4px;
-                                      padding: 5px 14px;
-                                      }
-                                      QPushButton:hover {
-                                      background-color: #038387;
-                                      color: #ffffff;
-                                      border-color: #038387;
-                                      }
-                                      QPushButton:pressed {
-                                      background-color: #026a6d;
-                                      color: #ffffff;
-                                      border-color: #026a6d;
-                                      }</string>
+                  <string notr="true">/* hsk-fluent-accent */</string>
                  </property>
                  <property name="text">
                   <string>Add Exchange</string>
@@ -1217,23 +1185,7 @@
                      </font>
                     </property>
                     <property name="styleSheet">
-                     <string notr="true">QPushButton {
-                                      background-color: #3aaf9d;
-                                      color: #ffffff;
-                                      border: 1px solid #3aaf9d;
-                                      border-radius: 4px;
-                                      padding: 5px 14px;
-                                      }
-                                      QPushButton:hover {
-                                      background-color: #038387;
-                                      color: #ffffff;
-                                      border-color: #038387;
-                                      }
-                                      QPushButton:pressed {
-                                      background-color: #026a6d;
-                                      color: #ffffff;
-                                      border-color: #026a6d;
-                                      }</string>
+                     <string notr="true">/* hsk-fluent-accent */</string>
                     </property>
                     <property name="text">
                      <string>Update</string>

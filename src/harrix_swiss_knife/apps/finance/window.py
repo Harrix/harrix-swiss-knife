@@ -327,7 +327,7 @@ class Ui_MainWindow(object):
         self.pushButton_add = QPushButton(self.groupBox_transaction)
         self.pushButton_add.setObjectName(u"pushButton_add")
         self.pushButton_add.setFont(font2)
-        self.pushButton_add.setStyleSheet(u"/* hsk-fluent-mint */")
+        self.pushButton_add.setStyleSheet(u"/* hsk-fluent-accent */")
 
         self.verticalLayout_3.addWidget(self.pushButton_add)
 
@@ -581,23 +581,7 @@ class Ui_MainWindow(object):
         self.pushButton_balance_check.setObjectName(u"pushButton_balance_check")
         self.pushButton_balance_check.setMinimumSize(QSize(0, 41))
         self.pushButton_balance_check.setFont(font)
-        self.pushButton_balance_check.setStyleSheet(u"QPushButton {\n"
-"                                      background-color: #3aaf9d;\n"
-"                                      color: #ffffff;\n"
-"                                      border: 1px solid #3aaf9d;\n"
-"                                      border-radius: 4px;\n"
-"                                      padding: 5px 14px;\n"
-"                                      }\n"
-"                                      QPushButton:hover {\n"
-"                                      background-color: #038387;\n"
-"                                      color: #ffffff;\n"
-"                                      border-color: #038387;\n"
-"                                      }\n"
-"                                      QPushButton:pressed {\n"
-"                                      background-color: #026a6d;\n"
-"                                      color: #ffffff;\n"
-"                                      border-color: #026a6d;\n"
-"                                      }")
+        self.pushButton_balance_check.setStyleSheet(u"/* hsk-fluent-accent */")
 
         self.verticalLayout_21.addWidget(self.pushButton_balance_check)
 
@@ -773,23 +757,7 @@ class Ui_MainWindow(object):
         self.pushButton_exchange_add.setObjectName(u"pushButton_exchange_add")
         self.pushButton_exchange_add.setMinimumSize(QSize(0, 41))
         self.pushButton_exchange_add.setFont(font)
-        self.pushButton_exchange_add.setStyleSheet(u"QPushButton {\n"
-"                                      background-color: #3aaf9d;\n"
-"                                      color: #ffffff;\n"
-"                                      border: 1px solid #3aaf9d;\n"
-"                                      border-radius: 4px;\n"
-"                                      padding: 5px 14px;\n"
-"                                      }\n"
-"                                      QPushButton:hover {\n"
-"                                      background-color: #038387;\n"
-"                                      color: #ffffff;\n"
-"                                      border-color: #038387;\n"
-"                                      }\n"
-"                                      QPushButton:pressed {\n"
-"                                      background-color: #026a6d;\n"
-"                                      color: #ffffff;\n"
-"                                      border-color: #026a6d;\n"
-"                                      }")
+        self.pushButton_exchange_add.setStyleSheet(u"/* hsk-fluent-accent */")
 
         self.verticalLayout_exchange_operation.addWidget(self.pushButton_exchange_add)
 
@@ -843,23 +811,7 @@ class Ui_MainWindow(object):
         self.pushButton_exchange_update.setObjectName(u"pushButton_exchange_update")
         self.pushButton_exchange_update.setMinimumSize(QSize(0, 24))
         self.pushButton_exchange_update.setFont(font)
-        self.pushButton_exchange_update.setStyleSheet(u"QPushButton {\n"
-"                                      background-color: #3aaf9d;\n"
-"                                      color: #ffffff;\n"
-"                                      border: 1px solid #3aaf9d;\n"
-"                                      border-radius: 4px;\n"
-"                                      padding: 5px 14px;\n"
-"                                      }\n"
-"                                      QPushButton:hover {\n"
-"                                      background-color: #038387;\n"
-"                                      color: #ffffff;\n"
-"                                      border-color: #038387;\n"
-"                                      }\n"
-"                                      QPushButton:pressed {\n"
-"                                      background-color: #026a6d;\n"
-"                                      color: #ffffff;\n"
-"                                      border-color: #026a6d;\n"
-"                                      }")
+        self.pushButton_exchange_update.setStyleSheet(u"/* hsk-fluent-accent */")
 
         self.verticalLayout_13.addWidget(self.pushButton_exchange_update)
 

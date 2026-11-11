@@ -201,23 +201,7 @@
                   </font>
                  </property>
                  <property name="styleSheet">
-                  <string notr="true">QPushButton {
-                                      background-color: #4caf50;
-                                      color: #ffffff;
-                                      border: 1px solid #4caf50;
-                                      border-radius: 4px;
-                                      padding: 5px 14px;
-                                      }
-                                      QPushButton:hover {
-                                      background-color: #35965f;
-                                      color: #ffffff;
-                                      border-color: #35965f;
-                                      }
-                                      QPushButton:pressed {
-                                      background-color: #2e7d4f;
-                                      color: #ffffff;
-                                      border-color: #2e7d4f;
-                                      }</string>
+                  <string notr="true">/* hsk-fluent-accent */</string>
                  </property>
                  <property name="text">
                   <string>Add</string>

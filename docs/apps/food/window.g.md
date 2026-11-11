@@ -87,7 +87,7 @@ class Ui_MainWindow(object):
 #if QT_CONFIG(tooltip)
         self.pushButton_clear_filter.setToolTip(QCoreApplication.translate("MainWindow", u"Clear filter", None))
 #endif // QT_CONFIG(tooltip)
-        self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", u"\ud83e\uddf9", None))
+        self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", u"\U0001f9f9", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_food), QCoreApplication.translate("MainWindow", u"Food", None))
         self.label.setText(QCoreApplication.translate("MainWindow", u"Daily calories & macros:", None))
         self.label_food_stats_from.setText(QCoreApplication.translate("MainWindow", u"From:", None))
@@ -267,23 +267,7 @@ class Ui_MainWindow(object):
         self.pushButton_food_add = QPushButton(self.groupBox_food_add)
         self.pushButton_food_add.setObjectName(u"pushButton_food_add")
         self.pushButton_food_add.setFont(font1)
-        self.pushButton_food_add.setStyleSheet(u"QPushButton {\n"
-"                                      background-color: #79b1d1;\n"
-"                                      color: #ffffff;\n"
-"                                      border: 1px solid #79b1d1;\n"
-"                                      border-radius: 4px;\n"
-"                                      padding: 5px 14px;\n"
-"                                      }\n"
-"                                      QPushButton:hover {\n"
-"                                      background-color: #3a78bc;\n"
-"                                      color: #ffffff;\n"
-"                                      border-color: #3a78bc;\n"
-"                                      }\n"
-"                                      QPushButton:pressed {\n"
-"                                      background-color: #2a5687;\n"
-"                                      color: #ffffff;\n"
-"                                      border-color: #2a5687;\n"
-"                                      }")
+        self.pushButton_food_add.setStyleSheet(u"/* hsk-fluent-accent */")
 
         self.horizontalLayout_food_date.addWidget(self.pushButton_food_add)
 
@@ -778,7 +762,7 @@ def retranslateUi(self, MainWindow):
 #if QT_CONFIG(tooltip)
         self.pushButton_clear_filter.setToolTip(QCoreApplication.translate("MainWindow", u"Clear filter", None))
 #endif // QT_CONFIG(tooltip)
-        self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", u"\ud83e\uddf9", None))
+        self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", u"\U0001f9f9", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_food), QCoreApplication.translate("MainWindow", u"Food", None))
         self.label.setText(QCoreApplication.translate("MainWindow", u"Daily calories & macros:", None))
         self.label_food_stats_from.setText(QCoreApplication.translate("MainWindow", u"From:", None))
@@ -974,23 +958,7 @@ def setupUi(self, MainWindow):
         self.pushButton_food_add = QPushButton(self.groupBox_food_add)
         self.pushButton_food_add.setObjectName(u"pushButton_food_add")
         self.pushButton_food_add.setFont(font1)
-        self.pushButton_food_add.setStyleSheet(u"QPushButton {\n"
-"                                      background-color: #79b1d1;\n"
-"                                      color: #ffffff;\n"
-"                                      border: 1px solid #79b1d1;\n"
-"                                      border-radius: 4px;\n"
-"                                      padding: 5px 14px;\n"
-"                                      }\n"
-"                                      QPushButton:hover {\n"
-"                                      background-color: #3a78bc;\n"
-"                                      color: #ffffff;\n"
-"                                      border-color: #3a78bc;\n"
-"                                      }\n"
-"                                      QPushButton:pressed {\n"
-"                                      background-color: #2a5687;\n"
-"                                      color: #ffffff;\n"
-"                                      border-color: #2a5687;\n"
-"                                      }")
+        self.pushButton_food_add.setStyleSheet(u"/* hsk-fluent-accent */")
 
         self.horizontalLayout_food_date.addWidget(self.pushButton_food_add)
 

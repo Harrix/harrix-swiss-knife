@@ -259,23 +259,7 @@ class Ui_MainWindow(object):
         self.pushButton_add = QPushButton(self.groupBox)
         self.pushButton_add.setObjectName(u"pushButton_add")
         self.pushButton_add.setFont(font1)
-        self.pushButton_add.setStyleSheet(u"QPushButton {\n"
-"                                      background-color: #4caf50;\n"
-"                                      color: #ffffff;\n"
-"                                      border: 1px solid #4caf50;\n"
-"                                      border-radius: 4px;\n"
-"                                      padding: 5px 14px;\n"
-"                                      }\n"
-"                                      QPushButton:hover {\n"
-"                                      background-color: #35965f;\n"
-"                                      color: #ffffff;\n"
-"                                      border-color: #35965f;\n"
-"                                      }\n"
-"                                      QPushButton:pressed {\n"
-"                                      background-color: #2e7d4f;\n"
-"                                      color: #ffffff;\n"
-"                                      border-color: #2e7d4f;\n"
-"                                      }")
+        self.pushButton_add.setStyleSheet(u"/* hsk-fluent-accent */")
 
         self.verticalLayout_5.addWidget(self.pushButton_add)
 

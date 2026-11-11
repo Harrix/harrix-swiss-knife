@@ -263,23 +263,7 @@ class Ui_MainWindow(object):
         self.pushButton_food_add = QPushButton(self.groupBox_food_add)
         self.pushButton_food_add.setObjectName(u"pushButton_food_add")
         self.pushButton_food_add.setFont(font1)
-        self.pushButton_food_add.setStyleSheet(u"QPushButton {\n"
-"                                      background-color: #79b1d1;\n"
-"                                      color: #ffffff;\n"
-"                                      border: 1px solid #79b1d1;\n"
-"                                      border-radius: 4px;\n"
-"                                      padding: 5px 14px;\n"
-"                                      }\n"
-"                                      QPushButton:hover {\n"
-"                                      background-color: #3a78bc;\n"
-"                                      color: #ffffff;\n"
-"                                      border-color: #3a78bc;\n"
-"                                      }\n"
-"                                      QPushButton:pressed {\n"
-"                                      background-color: #2a5687;\n"
-"                                      color: #ffffff;\n"
-"                                      border-color: #2a5687;\n"
-"                                      }")
+        self.pushButton_food_add.setStyleSheet(u"/* hsk-fluent-accent */")
 
         self.horizontalLayout_food_date.addWidget(self.pushButton_food_add)
 
