@@ -365,10 +365,11 @@ class ExchangeRatesOperations:
             # Create and start checker thread
             db_filename = _require_db_filename_for_worker(self.db_manager)
             stop_running_qthread(getattr(self, "exchange_rate_checker", None))
+            # Do not parent QThreads to the window: Fluent theme refresh destroys
+            # window-owned QObjects and Qt 6.12 qFatal's on a still-running thread.
             self.exchange_rate_checker = ExchangeRateCheckerWorker(
                 db_filename,
                 check_from_first_transaction=check_from_first_transaction,
-                parent=cast("QObject", object.__getattribute__(self, "_host")),
             )
 
             # Connect checker signals
@@ -436,10 +437,10 @@ class ExchangeRatesOperations:
             # Create and start checker thread
             db_filename = _require_db_filename_for_worker(self.db_manager)
             stop_running_qthread(getattr(self, "startup_exchange_rate_checker", None))
+            # Unparented: theme refresh must not destroy a running QThread (Qt 6.12).
             self.startup_exchange_rate_checker = ExchangeRateCheckerWorker(
                 db_filename,
                 check_from_first_transaction=check_from_first_transaction,
-                parent=cast("QObject", object.__getattribute__(self, "_host")),
             )
 
             # Connect signals
@@ -859,10 +860,10 @@ class ExchangeRatesOperations:
             # Create and start worker thread
             db_filename = _require_db_filename_for_worker(self.db_manager)
             stop_running_qthread(getattr(self, "exchange_rate_worker", None))
+            # Unparented: theme refresh must not destroy a running QThread (Qt 6.12).
             self.exchange_rate_worker = ExchangeRateUpdateWorker(
                 db_filename,
                 currencies_to_process,
-                parent=cast("QObject", object.__getattribute__(self, "_host")),
             )
 
             # Connect signals
@@ -906,10 +907,10 @@ class ExchangeRatesOperations:
             # Create and start worker thread
             db_filename = _require_db_filename_for_worker(self.db_manager)
             stop_running_qthread(getattr(self, "startup_exchange_rate_worker", None))
+            # Unparented: theme refresh must not destroy a running QThread (Qt 6.12).
             self.startup_exchange_rate_worker = ExchangeRateUpdateWorker(
                 db_filename,
                 currencies_to_process,
-                parent=cast("QObject", object.__getattribute__(self, "_host")),
             )
 
             # Connect signals
@@ -948,12 +949,31 @@ class ExchangeRatesOperations:
         return cast("QWidget", object.__getattribute__(self, "_host"))
 
 
+def join_released_qthreads(*, timeout_ms: int = 5000) -> None:
+    """Wait for detached exchange-rate workers before process teardown.
+
+    Closing the Finance window only stops and detaches workers so the UI stays
+    responsive. On tray Exit / `aboutToQuit`, those threads must be joined:
+    Qt 6.12 calls `qFatal` when a still-running `QThread` is destroyed during
+    interpreter shutdown.
+
+    """
+    for worker in list(_released_qthreads):
+        if worker.isRunning() and not worker.wait(timeout_ms):
+            worker.terminate()
+            worker.wait(1000)
+        _released_qthread_ids.discard(id(worker))
+        with contextlib.suppress(ValueError):
+            _released_qthreads.remove(worker)
+
+
 def stop_running_qthread(worker: QThread | None) -> None:
     """Ask a worker to stop and detach it so closing the window does not wait.
 
     A running `QThread` must not be destroyed with its window (Qt 6.12 calls
     `qFatal`). The thread keeps running until the current network call returns
-    and sees the stop flag. The UI thread does not join it.
+    and sees the stop flag. Call `join_released_qthreads` from `aboutToQuit`
+    before the process exits.
 
     Args:
 

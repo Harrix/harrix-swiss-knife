@@ -474,6 +474,9 @@ def _on_about_to_quit() -> None:
 
     """
     from harrix_swiss_knife.actions.common.base import stop_active_action_workers  # noqa: PLC0415
+    from harrix_swiss_knife.apps.finance.exchange_rates_operations import (  # noqa: PLC0415
+        join_released_qthreads,
+    )
     from harrix_swiss_knife.integrations.bothub.qt_runner import (  # noqa: PLC0415
         stop_active_bothub_workers,
     )
@@ -481,6 +484,8 @@ def _on_about_to_quit() -> None:
 
     stop_active_bothub_workers()
     stop_active_action_workers()
+    # Finance may have detached exchange-rate workers while a yfinance call is in flight.
+    join_released_qthreads()
     release_held_instance()
     _dispose_overlay_singletons()
 

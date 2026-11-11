@@ -164,6 +164,7 @@ from harrix_swiss_knife.apps.finance.exchange_rates_operations import (
     DbFilenameUnavailableForWorkerThreadError,
     ExchangeRatesOperations,
     _require_db_filename_for_worker,
+    join_released_qthreads,
     stop_running_qthread,
 )
 from harrix_swiss_knife.apps.finance.exchange_validation import validate_exchange_data
@@ -338,7 +339,7 @@ class MainWindow(
         self._init_hide_on_close(hide_on_close=hide_on_close)
         app = QApplication.instance()
         if app is not None:
-            app.aboutToQuit.connect(self._stop_exchange_rate_threads)
+            app.aboutToQuit.connect(self._stop_exchange_rate_threads_for_quit)
 
         # Table models dictionary
         self.models: dict[str, QSortFilterProxyModel | None] = {
@@ -6275,6 +6276,11 @@ class MainWindow(
         stop_running_qthread(getattr(self, "exchange_rate_checker", None))
         stop_running_qthread(getattr(self, "startup_exchange_rate_worker", None))
         stop_running_qthread(getattr(self, "startup_exchange_rate_checker", None))
+
+    def _stop_exchange_rate_threads_for_quit(self) -> None:
+        """Stop exchange-rate workers and join them before process teardown."""
+        self._stop_exchange_rate_threads()
+        join_released_qthreads()
 
     def _sync_amount_spin_limit(self, *_args: object) -> None:
         """Raise the amount field to the largest value a SQLite INTEGER can store."""

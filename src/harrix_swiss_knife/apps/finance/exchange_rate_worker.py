@@ -58,7 +58,10 @@ class ExchangeRateUpdateWorker(QThread):
 
         - `db_filename` (`str`): Path to SQLite database file.
         - `currencies_to_process` (`list`): List of tuples (currency_id, code, records_dict).
-        - `parent` (`QObject | None`): Optional Qt parent so the thread is owned by the window.
+        - `parent` (`QObject | None`): Optional Qt parent. Prefer `None` and keep a
+          strong Python reference: parenting to a Fluent window is unsafe because
+          theme refresh can destroy window-owned QObjects while the thread runs
+          (Qt 6.12 `qFatal`).
 
         """
         super().__init__(parent)
