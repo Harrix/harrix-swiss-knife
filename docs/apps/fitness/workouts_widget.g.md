@@ -242,10 +242,9 @@ class WorkoutsWidget(QWidget):
         current_id = self._first_incomplete_item_id() if self._session_active else None
         item_id = self._item_ids[row] if 0 <= row < len(self._item_ids) else None
         if current_id is not None and item_id == current_id:
-            light = _ROW_COLOR_CURRENT
+            color = readable_cell_fill(_ROW_COLOR_CURRENT, band_index=row % 2)
         else:
-            light = _ROW_COLOR_ODD if row % 2 else _ROW_COLOR_EVEN
-        color = readable_cell_fill(light, band_index=row % 2)
+            color = day_band_color(row % 2)
         brush = QBrush(color)
         for column in range(_ITEM_COLUMN_COUNT):
             item = self.table_items.item(row, column)

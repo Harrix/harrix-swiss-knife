@@ -823,7 +823,6 @@ class MainWindow(
             else:
                 habits_data = self.db_manager.get_all_habits()
                 habits_transformed_data = []
-                light_blue = QColor(240, 248, 255)  # Light blue background
 
                 # Minimum habit row length: habit_id (index 0) + habit_name (index 1)
                 min_habit_row_length = 2
@@ -840,7 +839,8 @@ class MainWindow(
                         habit_name = row[1] or ""
                         habit_id = row[0] if row[0] is not None else 0
                         emoji = str(row[emoji_idx]) if len(row) > emoji_idx and row[emoji_idx] else ""
-                        transformed_row = [habit_name, emoji, is_bool_str, is_archived_str, habit_id, light_blue]
+                        band = day_band_color(len(habits_transformed_data) % 2)
+                        transformed_row = [habit_name, emoji, is_bool_str, is_archived_str, habit_id, band]
                         habits_transformed_data.append(transformed_row)
                     except Exception:
                         logger.exception("Error processing habit row")
@@ -905,7 +905,6 @@ class MainWindow(
             else:
                 habits_data = self.db_manager.get_all_habits()
                 habits_transformed_data = []
-                light_blue = QColor(240, 248, 255)  # Light blue background
                 min_habit_row_length = 2
                 for row in habits_data:
                     try:
@@ -920,13 +919,14 @@ class MainWindow(
                         habit_name = row[1] or ""
                         habit_id = row[0] if row[0] is not None else 0
                         emoji = str(row[emoji_idx]) if len(row) > emoji_idx and row[emoji_idx] else ""
+                        band = day_band_color(len(habits_transformed_data) % 2)
                         transformed_row = [
                             habit_name,
                             emoji,
                             is_bool_str,
                             is_archived_str,
                             habit_id,
-                            light_blue,
+                            band,
                         ]
                         habits_transformed_data.append(transformed_row)
                     except Exception:
@@ -2428,7 +2428,6 @@ class MainWindow(
             else:
                 habits_data = self.db_manager.get_all_habits()
                 habits_transformed_data = []
-                light_blue = QColor(240, 248, 255)  # Light blue background
 
                 # Minimum habit row length: habit_id (index 0) + habit_name (index 1)
                 min_habit_row_length = 2
@@ -2445,7 +2444,8 @@ class MainWindow(
                         habit_name = row[1] or ""
                         habit_id = row[0] if row[0] is not None else 0
                         emoji = str(row[emoji_idx]) if len(row) > emoji_idx and row[emoji_idx] else ""
-                        transformed_row = [habit_name, emoji, is_bool_str, is_archived_str, habit_id, light_blue]
+                        band = day_band_color(len(habits_transformed_data) % 2)
+                        transformed_row = [habit_name, emoji, is_bool_str, is_archived_str, habit_id, band]
                         habits_transformed_data.append(transformed_row)
                     except Exception:
                         logger.exception("Error processing habit row")

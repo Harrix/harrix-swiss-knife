@@ -4511,7 +4511,8 @@ class MainWindow(
         row = rows[0]
         proxy = self.models.get("exercises")
         if proxy is not None:
-            light_green = QColor(240, 255, 240)
+            source = proxy.sourceModel()
+            band_index = source.rowCount() if isinstance(source, QStandardItemModel) else proxy.rowCount()
             dumbbell_names = self._cached_dumbbell_exercise_names()
             append_colored_table_row(
                 proxy,
@@ -4527,7 +4528,7 @@ class MainWindow(
                     f"{float(row[4] or 0):.1f}",
                     row[5] or "",
                     row[0],
-                    light_green,
+                    day_band_color(band_index % 2),
                 ],
             )
             self._update_exercises_catalog_count_labels()
@@ -7486,10 +7487,9 @@ class MainWindow(
             return
         exercises_data = self.db_manager.get_all_exercises()
         exercises_transformed_data = []
-        light_green = QColor(240, 255, 240)
         dumbbell_names = self._cached_dumbbell_exercise_names()
 
-        for row in exercises_data:
+        for band_index, row in enumerate(exercises_data):
             exercise_name = str(row[1] or "")
             transformed_row = [
                 self._exercise_icon_or_defer(exercise_name),
@@ -7503,7 +7503,7 @@ class MainWindow(
                 f"{row[4]:.1f}",
                 row[5] or "",
                 row[0],
-                light_green,
+                day_band_color(band_index % 2),
             ]
             exercises_transformed_data.append(transformed_row)
 
@@ -7682,9 +7682,8 @@ class MainWindow(
             return
         names = dumbbell_names if dumbbell_names is not None else self._cached_dumbbell_exercise_names()
         types_data = self.db_manager.get_all_exercise_types()
-        light_orange = QColor(255, 248, 220)
         types_transformed_data = []
-        for row in types_data:
+        for band_index, row in enumerate(types_data):
             exercise_name = str(row[1] or "")
             if defer_icons and exercise_name:
                 enqueue_deferred_exercise_icon(self._exercise_icons_defer_decode, exercise_name)
@@ -7700,7 +7699,7 @@ class MainWindow(
                     f"{float(row[3] or 0):.1f}",
                     row[4] or "",
                     row[0],
-                    light_orange,
+                    day_band_color(band_index % 2),
                 ]
             )
         self.models["types"] = self._create_colored_table_model(types_transformed_data, self.table_config["types"][2])

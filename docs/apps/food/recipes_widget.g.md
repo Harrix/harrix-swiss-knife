@@ -110,10 +110,7 @@ class RecipesWidget(QWidget):
         self.line_ingredient_name.setFocus()
 
     def _apply_ingredient_row_background(self, row: int) -> None:
-        color = readable_cell_fill(
-            _ROW_COLOR_ODD if row % 2 else _ROW_COLOR_EVEN,
-            band_index=row % 2,
-        )
+        color = day_band_color(row % 2)
         brush = QBrush(color)
         for column in range(_INGREDIENT_COLUMN_COUNT):
             item = self.table_ingredients.item(row, column)

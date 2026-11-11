@@ -39,7 +39,7 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife.apps.common import message_box
-from harrix_swiss_knife.apps.common.day_bands import readable_cell_fill
+from harrix_swiss_knife.apps.common.day_bands import day_band_color, readable_cell_fill
 from harrix_swiss_knife.apps.common.table_context_menu import add_delete_action, add_lightbox_action
 from harrix_swiss_knife.apps.common.tracker_layout_chrome import soft_panel_css
 from harrix_swiss_knife.apps.common.ui_chrome import (
@@ -84,8 +84,6 @@ _COL_KCAL = 6
 _DEFAULT_TABLE_ICON_SIZE = 64
 _ITEM_COLUMN_COUNT = 7
 _DONE_COLUMN_WIDTH = 56
-_ROW_COLOR_EVEN = QColor(255, 255, 255)
-_ROW_COLOR_ODD = QColor(240, 255, 240)  # Same light green as Exercises table
 _ROW_COLOR_CURRENT = QColor(255, 236, 179)  # Amber highlight for the active exercise
 _COL_TYPE_WIDTH = 140
 _COL_VALUE_WIDTH = 90
@@ -299,10 +297,9 @@ class WorkoutsWidget(QWidget):
         current_id = self._first_incomplete_item_id() if self._session_active else None
         item_id = self._item_ids[row] if 0 <= row < len(self._item_ids) else None
         if current_id is not None and item_id == current_id:
-            light = _ROW_COLOR_CURRENT
+            color = readable_cell_fill(_ROW_COLOR_CURRENT, band_index=row % 2)
         else:
-            light = _ROW_COLOR_ODD if row % 2 else _ROW_COLOR_EVEN
-        color = readable_cell_fill(light, band_index=row % 2)
+            color = day_band_color(row % 2)
         brush = QBrush(color)
         for column in range(_ITEM_COLUMN_COUNT):
             item = self.table_items.item(row, column)
