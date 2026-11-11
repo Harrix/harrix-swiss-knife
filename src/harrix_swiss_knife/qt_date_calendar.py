@@ -2,7 +2,7 @@
 
 Keeps Qt's native month grid (so columns stay aligned) and restyles the
 navigation chrome, selection painting, and preset footer. Light mode uses
-Harrix soft-blue tokens; dark Fluent windows follow the active palette.
+Harrix soft-blue tokens; dark Fluent Windows follow the active palette.
 
 """
 
@@ -335,6 +335,17 @@ class SoftCalendarWidget(QCalendarWidget):
         panel, self._year_buttons = self._build_choice_grid("hskCalendarYearPanel", self._on_year_button_clicked)
         return panel
 
+    def _cell_chrome_qss(self) -> dict[str, QColor]:
+        return {
+            "text": self._c_text,
+            "muted_text": self._c_muted,
+            "surface": self._c_sel_fill,
+            "border": self._c_sel_border,
+            "hover": self._c_hover,
+            "today_fill": self._c_today_fill,
+            "today_text": self._c_today_text,
+        }
+
     def _date_at(self, row: int, column: int) -> QDate | None:
         if row < 0 or column < 0 or row >= _WEEK_ROWS or column >= _WEEK_COLUMNS:
             return None
@@ -487,17 +498,6 @@ class SoftCalendarWidget(QCalendarWidget):
     def _popup_height(self) -> int:
         # header + separators + weekday row + 6 week rows + preset footer
         return 44 + 1 + _WEEKDAY_ROW_HEIGHT + (_CELL_SIZE * _WEEK_ROWS) + 1 + _FOOTER_HEIGHT
-
-    def _cell_chrome_qss(self) -> dict[str, QColor]:
-        return {
-            "text": self._c_text,
-            "muted_text": self._c_muted,
-            "surface": self._c_sel_fill,
-            "border": self._c_sel_border,
-            "hover": self._c_hover,
-            "today_fill": self._c_today_fill,
-            "today_text": self._c_today_text,
-        }
 
     def _rebuild_month_cells(self) -> None:
         today = QDate.currentDate()

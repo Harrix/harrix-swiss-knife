@@ -385,6 +385,7 @@ def set_day_band(item: QStandardItem, color: QColor) -> None:
         return
     item.setBackground(QBrush(color))
     item.setData(color.band_index, DAY_BAND_ROLE)
+    item.setForeground(QBrush(_band_ink()))
 ```
 
 </details>

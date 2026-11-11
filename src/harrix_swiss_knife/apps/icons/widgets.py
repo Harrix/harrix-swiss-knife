@@ -1349,68 +1349,6 @@ def apply_frameless_item_view(view: QAbstractItemView) -> None:
     bind_theme(view, lambda: _refresh_frameless_item_view(view))
 
 
-def _display_icon_pixmap(pixmap: QPixmap, *, widget: QWidget | None = None) -> QPixmap:
-    """Return `pixmap`, with a gray plate under dark artwork when the UI is dark."""
-    if pixmap.isNull():
-        return pixmap
-    host = widget
-    if host is None:
-        return pixmap
-    if not palette_for(host).dark:
-        return pixmap
-    return ensure_dark_theme_contrast_plate(pixmap)
-
-
-def _item_view_selection_qss(*, fill: str, border: str, hover: str, text: str) -> str:
-    return (
-        "QAbstractItemView {"
-        " border: none;"
-        " outline: none;"
-        " background: transparent;"
-        "}"
-        "QAbstractItemView::item {"
-        f" color: {text};"
-        "}"
-        "QAbstractItemView::item:selected {"
-        f" background-color: {fill};"
-        f" border: 1px solid {border};"
-        " border-radius: 6px;"
-        f" color: {text};"
-        "}"
-        "QAbstractItemView::item:hover:!selected {"
-        f" background-color: {hover};"
-        " border-radius: 6px;"
-        "}"
-    )
-
-
-def _refresh_frameless_item_view(view: QAbstractItemView) -> None:
-    """Paint Vector Icons lists from the active Fluent palette (soft blue in light)."""
-    palette = palette_for(view)
-    if palette.dark:
-        fill = css(list_item_selected(palette))
-        hover = css(list_item_hover(palette))
-        border = css(mix(palette.window_bg, palette.accent))
-        text = css(mix(palette.window_bg, palette.text_primary))
-        highlight = list_item_selected(palette)
-        primary = mix(palette.window_bg, palette.text_primary)
-    else:
-        fill = SELECTION_BG
-        hover = SELECTION_HOVER
-        border = SELECTION_BORDER
-        text = SELECTION_TEXT
-        highlight = QColor(SELECTION_BG)
-        primary = QColor(SELECTION_TEXT)
-    view.setStyleSheet(_item_view_selection_qss(fill=fill, border=border, hover=hover, text=text))
-    tuned = view.palette()
-    for group in (QPalette.ColorGroup.Active, QPalette.ColorGroup.Inactive, QPalette.ColorGroup.Disabled):
-        tuned.setColor(group, QPalette.ColorRole.Highlight, highlight)
-        tuned.setColor(group, QPalette.ColorRole.HighlightedText, primary)
-        tuned.setColor(group, QPalette.ColorRole.Text, primary)
-    view.setPalette(tuned)
-    view.viewport().setPalette(tuned)
-
-
 def batch_context_action_texts(count: int, *, all_favorites: bool = False) -> list[str]:
     """Return labels for the multi-select context menu."""
     favorite_label = (
@@ -1512,11 +1450,46 @@ def stage_clipboard_icon_file(source: Path, display_name: str, stage_dir: Path) 
     return dest.resolve()
 
 
+def _display_icon_pixmap(pixmap: QPixmap, *, widget: QWidget | None = None) -> QPixmap:
+    """Return `pixmap`, with a gray plate under dark artwork when the UI is dark."""
+    if pixmap.isNull():
+        return pixmap
+    host = widget
+    if host is None:
+        return pixmap
+    if not palette_for(host).dark:
+        return pixmap
+    return ensure_dark_theme_contrast_plate(pixmap)
+
+
 def _filename_label_font(base: QFont) -> QFont:
     font = QFont(base)
     font.setPointSizeF(max(7.0, base.pointSizeF() * 0.68))
     font.setBold(False)
     return font
+
+
+def _item_view_selection_qss(*, fill: str, border: str, hover: str, text: str) -> str:
+    return (
+        "QAbstractItemView {"
+        " border: none;"
+        " outline: none;"
+        " background: transparent;"
+        "}"
+        "QAbstractItemView::item {"
+        f" color: {text};"
+        "}"
+        "QAbstractItemView::item:selected {"
+        f" background-color: {fill};"
+        f" border: 1px solid {border};"
+        " border-radius: 6px;"
+        f" color: {text};"
+        "}"
+        "QAbstractItemView::item:hover:!selected {"
+        f" background-color: {hover};"
+        " border-radius: 6px;"
+        "}"
+    )
 
 
 def _muted_pixmap(pixmap: QPixmap, opacity: float) -> QPixmap:
@@ -1554,3 +1527,30 @@ def _paint_corner_badge(painter: QPainter, icon_rect: QRect, label: str, *, font
     painter.setPen(QColor(255, 255, 255))
     painter.drawText(badge, int(Qt.AlignmentFlag.AlignCenter), label)
     return badge.bottom()
+
+
+def _refresh_frameless_item_view(view: QAbstractItemView) -> None:
+    """Paint Vector Icons lists from the active Fluent palette (soft blue in light)."""
+    palette = palette_for(view)
+    if palette.dark:
+        fill = css(list_item_selected(palette))
+        hover = css(list_item_hover(palette))
+        border = css(mix(palette.window_bg, palette.accent))
+        text = css(mix(palette.window_bg, palette.text_primary))
+        highlight = list_item_selected(palette)
+        primary = mix(palette.window_bg, palette.text_primary)
+    else:
+        fill = SELECTION_BG
+        hover = SELECTION_HOVER
+        border = SELECTION_BORDER
+        text = SELECTION_TEXT
+        highlight = QColor(SELECTION_BG)
+        primary = QColor(SELECTION_TEXT)
+    view.setStyleSheet(_item_view_selection_qss(fill=fill, border=border, hover=hover, text=text))
+    tuned = view.palette()
+    for group in (QPalette.ColorGroup.Active, QPalette.ColorGroup.Inactive, QPalette.ColorGroup.Disabled):
+        tuned.setColor(group, QPalette.ColorRole.Highlight, highlight)
+        tuned.setColor(group, QPalette.ColorRole.HighlightedText, primary)
+        tuned.setColor(group, QPalette.ColorRole.Text, primary)
+    view.setPalette(tuned)
+    view.viewport().setPalette(tuned)

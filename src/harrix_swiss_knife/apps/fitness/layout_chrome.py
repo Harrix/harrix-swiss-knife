@@ -323,6 +323,16 @@ def _polish_weight(host: Any) -> None:
         host.verticalLayout_9.setContentsMargins(SPACE_S, SPACE_S, SPACE_S, SPACE_S)
 
 
+def _polish_weight_chart_viewport(host: Any) -> None:
+    if not hasattr(host, "scrollArea_weight_chart"):
+        return
+    palette = palette_for(host)
+    surface = css(mix(palette.window_bg, palette.card_bg))
+    viewport = host.scrollArea_weight_chart.viewport()
+    viewport.setAutoFillBackground(not palette.dark)
+    viewport.setStyleSheet(f"background-color: {surface};")
+
+
 def _wire_two_pane(
     host: Any,
     *,
@@ -399,13 +409,3 @@ def _wire_two_pane(
         setattr(host, timer_attr, timer)
         splitter.splitterMoved.connect(on_moved)
         setattr(host, bound_attr, True)
-
-
-def _polish_weight_chart_viewport(host: Any) -> None:
-    if not hasattr(host, "scrollArea_weight_chart"):
-        return
-    palette = palette_for(host)
-    surface = css(mix(palette.window_bg, palette.card_bg))
-    viewport = host.scrollArea_weight_chart.viewport()
-    viewport.setAutoFillBackground(not palette.dark)
-    viewport.setStyleSheet(f"background-color: {surface};")

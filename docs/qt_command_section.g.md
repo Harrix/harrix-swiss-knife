@@ -29,7 +29,7 @@ lang: en
 def apply_opaque_white(widget: QWidget) -> None
 ```
 
-Paint an opaque white background without stylesheets (keeps native scrollbars).
+Paint an opaque card surface without stylesheets (keeps native scrollbars).
 
 <details>
 <summary>Code:</summary>
@@ -37,9 +37,9 @@ Paint an opaque white background without stylesheets (keeps native scrollbars).
 ```python
 def apply_opaque_white(widget: QWidget) -> None:
     palette = widget.palette()
-    white = QColor("#ffffff")
-    palette.setColor(QPalette.ColorRole.Window, white)
-    palette.setColor(QPalette.ColorRole.Base, white)
+    fill = _command_section_surface_qcolor()
+    palette.setColor(QPalette.ColorRole.Window, fill)
+    palette.setColor(QPalette.ColorRole.Base, fill)
     widget.setAutoFillBackground(True)
     widget.setPalette(palette)
 ```
@@ -112,7 +112,14 @@ def create_command_section(
     frame.setFrameShape(QFrame.Shape.NoFrame)
     frame.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
     frame.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-    frame.setStyleSheet(COMMAND_SECTION_STYLE if bordered else COMMAND_SECTION_FLAT_STYLE)
+
+    def refresh_style() -> None:
+        frame.setStyleSheet(_command_section_stylesheet(bordered=bordered))
+
+    refresh_style()
+    if not getattr(frame, _COMMAND_SECTION_THEME_FLAG, False):
+        bind_theme(frame, refresh_style)
+        setattr(frame, _COMMAND_SECTION_THEME_FLAG, True)
 
     layout = QVBoxLayout(frame)
     layout.setContentsMargins(8, 4, 8, 8)
@@ -155,12 +162,19 @@ def create_command_section_divider() -> QWidget:
     line.setMinimumHeight(1)
     line.setMaximumHeight(1)
     line.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-    palette = line.palette()
-    color = QColor(COMMAND_SECTION_BORDER_COLOR)
-    palette.setColor(QPalette.ColorRole.Window, color)
-    palette.setColor(QPalette.ColorRole.Base, color)
-    line.setAutoFillBackground(True)
-    line.setPalette(palette)
+
+    def refresh_divider() -> None:
+        palette = line.palette()
+        color = _command_section_border_qcolor()
+        palette.setColor(QPalette.ColorRole.Window, color)
+        palette.setColor(QPalette.ColorRole.Base, color)
+        line.setAutoFillBackground(True)
+        line.setPalette(palette)
+
+    refresh_divider()
+    if not getattr(line, _COMMAND_SECTION_THEME_FLAG, False):
+        bind_theme(line, refresh_divider)
+        setattr(line, _COMMAND_SECTION_THEME_FLAG, True)
     return line
 ```
 

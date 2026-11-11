@@ -253,10 +253,10 @@ class WorkoutsWidget(QWidget):
                 item.setBackground(brush)
         cell = self.table_items.cellWidget(row, _COL_DONE)
         if cell is not None:
-            palette = cell.palette()
-            palette.setColor(QPalette.ColorRole.Window, color)
-            cell.setAutoFillBackground(True)
-            cell.setPalette(palette)
+            # Fluent window QSS ignores QPalette autofill on cell widgets, so paint
+            # the Done cell with an explicit background (avoids white plates in dark).
+            cell.setAutoFillBackground(False)
+            cell.setStyleSheet(f"background-color: {color.name()};")
 
     def _build_ui(self) -> None:
         self.setObjectName("workoutsWidget")
@@ -278,7 +278,6 @@ class WorkoutsWidget(QWidget):
 
         self._session_bar = QFrame()
         self._session_bar.setObjectName("workoutsSessionBar")
-        self._session_bar.setStyleSheet(_SESSION_BAR_STYLE)
         session_layout = QHBoxLayout(self._session_bar)
         session_layout.setContentsMargins(12, 8, 12, 8)
         session_layout.setSpacing(16)
@@ -630,6 +629,16 @@ class WorkoutsWidget(QWidget):
         panel = soft_panel_css(self)
         text = css(mix(palette.window_bg, palette.text_primary))
         muted = css(mix(palette.window_bg, palette.text_secondary))
+        fill, _hover, border, _selection_text = selection_chrome_colors()
+        self._session_bar.setStyleSheet(
+            f"""
+            QFrame#workoutsSessionBar {{
+                background-color: {fill};
+                border: 1px solid {border};
+                border-radius: 6px;
+            }}
+            """,
+        )
         self.setStyleSheet(f"QWidget#workoutsWidget {{ background: transparent; color: {text}; }}")
         self._workouts_splitter.setStyleSheet("QSplitter#workoutsSplitter { background: transparent; }")
         self._left_panel.setStyleSheet(

@@ -21,6 +21,7 @@ from harrix_swiss_knife.apps.food.food_log_calories import (
     FOOD_LOG_COL_TOTAL_PER_DAY,
     food_log_day_groups,
 )
+from harrix_swiss_knife.fluent.theme import FluentTheme, ThemeMode
 
 
 @pytest.fixture
@@ -44,17 +45,23 @@ def test_total_column_width_fits_the_widest_macros_button(qapp: QApplication) ->
 
 
 def test_macros_button_states_use_distinct_labels_and_colors(qapp: QApplication) -> None:  # noqa: ARG001
-    view = macros_button_appearance(DayMacrosStatus.OK)
-    stale = macros_button_appearance(DayMacrosStatus.STALE)
-    missing = macros_button_appearance(DayMacrosStatus.MISSING)
+    theme = FluentTheme.instance()
+    previous = theme.mode()
+    theme.set_mode(ThemeMode.LIGHT, persist=False)
+    try:
+        view = macros_button_appearance(DayMacrosStatus.OK)
+        stale = macros_button_appearance(DayMacrosStatus.STALE)
+        missing = macros_button_appearance(DayMacrosStatus.MISSING)
 
-    assert view.label == "View macros"
-    assert stale.label == "Recalculate macros"
-    assert missing.label == "Analyze macros"
-    assert len({view.label, stale.label, missing.label}) == 3
-    assert len({view.background.name(), stale.background.name(), missing.background.name()}) == 3
-    assert view.text.name() != stale.text.name()
-    assert stale.text.name() != missing.text.name()
+        assert view.label == "View macros"
+        assert stale.label == "Recalculate macros"
+        assert missing.label == "Analyze macros"
+        assert len({view.label, stale.label, missing.label}) == 3
+        assert len({view.background.name(), stale.background.name(), missing.background.name()}) == 3
+        assert view.text.name() != stale.text.name()
+        assert stale.text.name() != missing.text.name()
+    finally:
+        theme.set_mode(previous, persist=False)
 
 
 def test_macros_button_sits_under_the_calorie_line(qapp: QApplication) -> None:  # noqa: ARG001

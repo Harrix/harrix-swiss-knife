@@ -8,6 +8,7 @@ See `.cursor/design-tokens.md` for the cross-repo table.
 from __future__ import annotations
 
 import colorsys
+import contextlib
 import re
 from typing import TYPE_CHECKING
 
@@ -18,12 +19,12 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
 
 # Soft blue selection (site `$h-soft-*` / `$h-primary`).
-SELECTION_BG = "#e8f4fc"
-SELECTION_BORDER = "#2e86b7"
-SELECTION_HOVER = "#f3f8fb"
+SELECTION_BG = "#eaf1f8"
+SELECTION_BORDER = "#3a78bc"
+SELECTION_HOVER = "#f3f7fb"
 SELECTION_TEXT = "#1a1a1a"
 # Text on soft-blue chips / status labels (site `$h-brand-ink`).
-BRAND_INK = "#1a5f7a"
+BRAND_INK = "#2a5687"
 # Secondary labels — avoid palette(mid), which is nearly white on some light themes.
 MUTED_TEXT = "#5c6370"
 SURFACE = "#ffffff"
@@ -51,7 +52,7 @@ BUTTON_DANGER_BG = "#cc584c"
 BUTTON_DANGER_HOVER = "#ad403b"
 # App CTAs restored from pre-unify soft fills → nearest CodeStyle brand hex.
 BUTTON_CTA_CYAN_BG = "#79b1d1"  # was Material soft blue `#e3f2fd`
-BUTTON_CTA_CYAN_HOVER = "#2e86b7"
+BUTTON_CTA_CYAN_HOVER = "#3a78bc"
 BUTTON_CTA_GREEN_BG = "#4caf50"  # was soft green / lightgreen
 BUTTON_CTA_GREEN_HOVER = "#35965f"
 BUTTON_CTA_MINT_BG = "#3aaf9d"  # was finance mint `#C1ECDD`
@@ -85,6 +86,7 @@ CODESTYLE_PALETTE: tuple[str, ...] = (
     "#122a3a",
     "#121e28",
     "#79b1d1",
+    "#3a78bc",
     "#2e86b7",
     "#038387",
     "#3aaf9d",
@@ -122,6 +124,7 @@ CHIP_BORDER = "#d0d7de"
 CHIP_HOVER = "#e4ebf2"
 CHIP_CHECKED_BG = SELECTION_BG
 CHIP_CHECKED_BORDER = SELECTION_BORDER
+
 
 def action_card_selection_qss() -> str:
     """Return selection / hover QSS for Quick launcher action cards."""
@@ -162,6 +165,15 @@ def apply_readable_selection_palette(view: QAbstractItemView) -> None:
         palette.setColor(group, QPalette.ColorRole.Highlight, highlight)
         palette.setColor(group, QPalette.ColorRole.HighlightedText, ink)
     view.setPalette(palette)
+
+
+def apply_soft_form_spin_fills(host: object, names: tuple[str, ...]) -> None:
+    """Apply `soft_field_qss` to named spin boxes on a tracker main window."""
+    for name in names:
+        control = getattr(host, name, None)
+        if control is None:
+            continue
+        control.setStyleSheet(soft_field_qss(type(control).__name__))
 
 
 def apply_soft_item_selection(view: QAbstractItemView) -> None:
@@ -393,75 +405,6 @@ def drop_zone_qss(
 """.strip()
 
 
-def muted_caption_qss(*, bold: bool = True, extra: str = "") -> str:
-    """Return theme-aware muted caption QSS (`MUTED_TEXT` in light)."""
-    _surface, _hairline, _input_border, muted = _surface_chrome_colors()
-    weight = "600" if bold else "400"
-    suffix = f" {extra}" if extra and not extra.startswith(" ") else extra
-    return f"color: {muted}; font-weight: {weight};{suffix}"
-
-
-def selection_chrome_colors() -> tuple[str, str, str, str]:
-    """Return `(fill, hover, border, text)` for soft list/card selection.
-
-    Light mode keeps the shared soft-blue tokens. Dark mode uses Fluent list
-    selection fills so tiles are not bright white islands.
-
-    """
-    try:
-        from harrix_swiss_knife.fluent.style import list_item_hover, list_item_selected  # noqa: PLC0415
-        from harrix_swiss_knife.fluent.theme import FluentTheme, css, mix  # noqa: PLC0415
-
-        palette = FluentTheme.instance().palette()
-        if palette.dark:
-            return (
-                css(list_item_selected(palette)),
-                css(list_item_hover(palette)),
-                css(mix(palette.window_bg, palette.accent)),
-                css(mix(palette.window_bg, palette.text_primary)),
-            )
-    except Exception:
-        pass
-    return SELECTION_BG, SELECTION_HOVER, SELECTION_BORDER, SELECTION_TEXT
-
-
-def _qcolor_from_css(value: str) -> QColor:
-    """Parse `#RRGGBB` or `rgba(r, g, b, a)` into a `QColor`."""
-    text = value.strip()
-    if text.startswith("#"):
-        return QColor(text)
-    match = re.fullmatch(
-        r"rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+(?:\.\d+)?)\s*\)",
-        text,
-        flags=re.IGNORECASE,
-    )
-    if match is None:
-        return QColor(SELECTION_TEXT)
-    red, green, blue, alpha = match.groups()
-    color = QColor(int(red), int(green), int(blue))
-    alpha_f = float(alpha)
-    color.setAlpha(int(alpha_f * 255) if alpha_f <= 1.0 else int(alpha_f))
-    return color
-
-
-def _surface_chrome_colors() -> tuple[str, str, str, str]:
-    """Return `(surface, hairline, input_border, muted_text)` for panels/captions."""
-    try:
-        from harrix_swiss_knife.fluent.theme import FluentTheme, css, mix  # noqa: PLC0415
-
-        palette = FluentTheme.instance().palette()
-        if palette.dark:
-            return (
-                css(mix(palette.window_bg, palette.card_bg)),
-                css(mix(palette.window_bg, palette.divider)),
-                css(mix(palette.window_bg, palette.control_stroke)),
-                css(mix(palette.window_bg, palette.text_secondary)),
-            )
-    except Exception:
-        pass
-    return SURFACE, HAIRLINE, INPUT_BORDER, MUTED_TEXT
-
-
 def list_view_item_selection_qss(*, with_row_separators: bool = False) -> str:
     """Return QSS for `QListView::item` selected / hover states.
 
@@ -517,6 +460,45 @@ QListView {{
 """.strip()
 
 
+def media_preview_plate_qss(*, selector: str = "QLabel") -> str:
+    """Return AVIF preview plate QSS (white in light, soft card gray in dark)."""
+    plate = SURFACE
+    with contextlib.suppress(Exception):
+        from harrix_swiss_knife.fluent.theme import FluentTheme, css, mix  # noqa: PLC0415
+
+        palette = FluentTheme.instance().palette()
+        if palette.dark:
+            plate = css(mix(palette.window_bg, palette.card_bg))
+    return f"{selector} {{ background-color: {plate}; border: none; }}"
+
+
+def media_preview_popup_frame_qss() -> str:
+    """Return themed QSS for the exercise hover-preview popup frame."""
+    plate = SURFACE
+    border = INPUT_BORDER
+    with contextlib.suppress(Exception):
+        from harrix_swiss_knife.fluent.theme import FluentTheme, css, mix  # noqa: PLC0415
+
+        palette = FluentTheme.instance().palette()
+        plate = css(mix(palette.window_bg, palette.card_bg)) if palette.dark else SURFACE
+        border = css(mix(palette.window_bg, palette.control_stroke))
+    return f"""
+QFrame {{
+    background-color: {plate};
+    border: 1px solid {border};
+    border-radius: 6px;
+}}
+""".strip()
+
+
+def muted_caption_qss(*, bold: bool = True, extra: str = "") -> str:
+    """Return theme-aware muted caption QSS (`MUTED_TEXT` in light)."""
+    _surface, _hairline, _input_border, muted = _surface_chrome_colors()
+    weight = "600" if bold else "400"
+    suffix = f" {extra}" if extra and not extra.startswith(" ") else extra
+    return f"color: {muted}; font-weight: {weight};{suffix}"
+
+
 def nearest_codestyle_color(
     hex_color: str,
     *,
@@ -551,6 +533,26 @@ def normalize_hex_color(value: str) -> str | None:
     return color.name(QColor.NameFormat.HexRgb)
 
 
+def record_caption_stop_qss() -> str:
+    """Return theme-aware QSS for the recording stop-state caption."""
+    base = "#1a1a1a"
+    hover = "#333333"
+    with contextlib.suppress(Exception):
+        from harrix_swiss_knife.fluent.theme import FluentTheme, css, mix  # noqa: PLC0415
+
+        palette = FluentTheme.instance().palette()
+        base = css(mix(palette.window_bg, palette.text_primary))
+        hover = css(mix(palette.window_bg, palette.text_secondary))
+    return f"""
+    QLabel {{
+        color: {base};
+    }}
+    QLabel:hover {{
+        color: {hover};
+    }}
+""".strip()
+
+
 def relative_luminance(hex_color: str) -> float:
     """WCAG relative luminance of `hex_color` in `0..1`."""
     rgb = _parse_rgb(hex_color)
@@ -563,6 +565,28 @@ def relative_luminance(hex_color: str) -> float:
 
     r, g, b = rgb
     return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
+
+
+def selection_chrome_colors() -> tuple[str, str, str, str]:
+    """Return `(fill, hover, border, text)` for soft list/card selection.
+
+    Light mode keeps the shared soft-blue tokens. Dark mode uses Fluent list
+    selection fills so tiles are not bright white islands.
+
+    """
+    with contextlib.suppress(Exception):
+        from harrix_swiss_knife.fluent.style import list_item_hover, list_item_selected  # noqa: PLC0415
+        from harrix_swiss_knife.fluent.theme import FluentTheme, css, mix  # noqa: PLC0415
+
+        palette = FluentTheme.instance().palette()
+        if palette.dark:
+            return (
+                css(list_item_selected(palette)),
+                css(list_item_hover(palette)),
+                css(mix(palette.window_bg, palette.accent)),
+                css(mix(palette.window_bg, palette.text_primary)),
+            )
+    return SELECTION_BG, SELECTION_HOVER, SELECTION_BORDER, SELECTION_TEXT
 
 
 def snippet_list_selection_qss() -> str:
@@ -593,7 +617,7 @@ QListWidget::item:selected:hover {{
 def soft_field_qss(selector: str = "QWidget") -> str:
     """Return theme-aware fill for highlighted form fields (spin boxes, etc.)."""
     fill = SELECTION_BG
-    try:
+    with contextlib.suppress(Exception):
         from harrix_swiss_knife.fluent.theme import FluentTheme, css, mix  # noqa: PLC0415
 
         palette = FluentTheme.instance().palette()
@@ -601,78 +625,10 @@ def soft_field_qss(selector: str = "QWidget") -> str:
             fill = css(mix(palette.window_bg, palette.control_fill_input_active))
         else:
             fill, _, _, _ = selection_chrome_colors()
-    except Exception:
-        pass
     return f"""
 {selector} {{
     background-color: {fill};
 }}
-""".strip()
-
-
-def apply_soft_form_spin_fills(host: object, names: tuple[str, ...]) -> None:
-    """Apply `soft_field_qss` to named spin boxes on a tracker main window."""
-    for name in names:
-        control = getattr(host, name, None)
-        if control is None:
-            continue
-        control.setStyleSheet(soft_field_qss(type(control).__name__))
-
-
-def media_preview_plate_qss(*, selector: str = "QLabel") -> str:
-    """Return AVIF preview plate QSS (white in light, soft card gray in dark)."""
-    plate = SURFACE
-    try:
-        from harrix_swiss_knife.fluent.theme import FluentTheme, css, mix  # noqa: PLC0415
-
-        palette = FluentTheme.instance().palette()
-        if palette.dark:
-            plate = css(mix(palette.window_bg, palette.card_bg))
-    except Exception:
-        pass
-    return f"{selector} {{ background-color: {plate}; border: none; }}"
-
-
-def media_preview_popup_frame_qss() -> str:
-    """Return themed QSS for the exercise hover-preview popup frame."""
-    plate = SURFACE
-    border = INPUT_BORDER
-    try:
-        from harrix_swiss_knife.fluent.theme import FluentTheme, css, mix  # noqa: PLC0415
-
-        palette = FluentTheme.instance().palette()
-        plate = css(mix(palette.window_bg, palette.card_bg)) if palette.dark else SURFACE
-        border = css(mix(palette.window_bg, palette.control_stroke))
-    except Exception:
-        pass
-    return f"""
-QFrame {{
-    background-color: {plate};
-    border: 1px solid {border};
-    border-radius: 6px;
-}}
-""".strip()
-
-
-def record_caption_stop_qss() -> str:
-    """Return theme-aware QSS for the recording stop-state caption."""
-    base = "#1a1a1a"
-    hover = "#333333"
-    try:
-        from harrix_swiss_knife.fluent.theme import FluentTheme, css, mix  # noqa: PLC0415
-
-        palette = FluentTheme.instance().palette()
-        base = css(mix(palette.window_bg, palette.text_primary))
-        hover = css(mix(palette.window_bg, palette.text_secondary))
-    except Exception:
-        pass
-    return f"""
-    QLabel {{
-        color: {base};
-    }}
-    QLabel:hover {{
-        color: {hover};
-    }}
 """.strip()
 
 
@@ -752,3 +708,38 @@ def _parse_rgb(hex_color: str | None) -> tuple[int, int, int] | None:
         return None
     value = normalized.lstrip("#")
     return int(value[0:2], 16), int(value[2:4], 16), int(value[4:6], 16)
+
+
+def _qcolor_from_css(value: str) -> QColor:
+    """Parse `#RRGGBB` or `rgba(r, g, b, a)` into a `QColor`."""
+    text = value.strip()
+    if text.startswith("#"):
+        return QColor(text)
+    match = re.fullmatch(
+        r"rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+(?:\.\d+)?)\s*\)",
+        text,
+        flags=re.IGNORECASE,
+    )
+    if match is None:
+        return QColor(SELECTION_TEXT)
+    red, green, blue, alpha = match.groups()
+    color = QColor(int(red), int(green), int(blue))
+    alpha_f = float(alpha)
+    color.setAlpha(int(alpha_f * 255) if alpha_f <= 1.0 else int(alpha_f))
+    return color
+
+
+def _surface_chrome_colors() -> tuple[str, str, str, str]:
+    """Return `(surface, hairline, input_border, muted_text)` for panels/captions."""
+    with contextlib.suppress(Exception):
+        from harrix_swiss_knife.fluent.theme import FluentTheme, css, mix  # noqa: PLC0415
+
+        palette = FluentTheme.instance().palette()
+        if palette.dark:
+            return (
+                css(mix(palette.window_bg, palette.card_bg)),
+                css(mix(palette.window_bg, palette.divider)),
+                css(mix(palette.window_bg, palette.control_stroke)),
+                css(mix(palette.window_bg, palette.text_secondary)),
+            )
+    return SURFACE, HAIRLINE, INPUT_BORDER, MUTED_TEXT

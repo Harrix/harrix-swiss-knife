@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import contextlib
+
 from PySide6.QtCore import QAbstractItemModel, QEvent, QRect, QSize, Qt
 from PySide6.QtGui import QColor, QFontMetrics, QMouseEvent, QPainter, QPaintEvent, QPalette, QPen
 from PySide6.QtWidgets import QHeaderView, QStyleOptionHeader, QTableView, QWidget
@@ -74,11 +76,9 @@ class WordWrapHeaderView(QHeaderView):
             return
         painter = QPainter(self.viewport())
         grip = MUTED_TEXT
-        try:
+        with contextlib.suppress(Exception):
             palette = FluentTheme.instance().palette()
             grip = css(mix(palette.window_bg, palette.text_secondary))
-        except Exception:
-            pass
         painter.setPen(QPen(QColor(grip), 1))
         x = self._hover_boundary_x
         height = self.viewport().height()
@@ -91,6 +91,7 @@ class WordWrapHeaderView(QHeaderView):
 
         Custom painting must not call `CE_Header`: under Fluent window QSS that
         control often fills white even when the header palette is dark.
+
         """
         if not rect.isValid():
             return

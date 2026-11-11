@@ -36,31 +36,6 @@ class MetaChrome:
     id_color: str
 
 
-def light_meta_chrome() -> MetaChrome:
-    """Return chip colors for the light theme (also used as HTML defaults)."""
-    return MetaChrome(
-        chip_bg=SELECTION_BG,
-        chip_fg=BRAND_INK,
-        chip_count="#6a6a6a",
-        plain="#444444",
-        id_color=MUTED_TEXT,
-    )
-
-
-def meta_chrome_for_palette(palette: FluentPalette) -> MetaChrome:
-    """Return meta chip colors that stay readable on the active Fluent palette."""
-    if not palette.dark:
-        return light_meta_chrome()
-    chip_fill = mix(palette.window_bg, QColor(palette.accent.red(), palette.accent.green(), palette.accent.blue(), 72))
-    return MetaChrome(
-        chip_bg=css(chip_fill),
-        chip_fg=css(mix(palette.window_bg, palette.accent_text)),
-        chip_count=css(mix(palette.window_bg, palette.text_secondary)),
-        plain=css(mix(palette.window_bg, palette.text_primary)),
-        id_color=css(mix(palette.window_bg, palette.text_secondary)),
-    )
-
-
 def build_meta_date_html(
     icons: Sequence[IconFamily],
     date: str,
@@ -115,9 +90,8 @@ def build_variants_header_html(
         lines.append('<div style="margin-top:2px;">Categories: —</div>')
     tags = [item.strip() for item in family.tags if item.strip()]
     if tags:
-        lines.append(
-            f'<div style="margin-top:2px;">Tags: {build_meta_list_html(icons, META_KIND_TAG, tags, chrome=style)}</div>',
-        )
+        tags_html = build_meta_list_html(icons, META_KIND_TAG, tags, chrome=style)
+        lines.append(f'<div style="margin-top:2px;">Tags: {tags_html}</div>')
     else:
         lines.append('<div style="margin-top:2px;">Tags: —</div>')
     return "".join(lines)
@@ -148,6 +122,31 @@ def family_matches_meta(family: IconFamily, kind: str, value: str) -> bool:
 def filter_families_by_meta(icons: Sequence[IconFamily], kind: str, value: str) -> list[IconFamily]:
     """Return families matching the meta filter, preserving input order."""
     return [family for family in icons if family_matches_meta(family, kind, value)]
+
+
+def light_meta_chrome() -> MetaChrome:
+    """Return chip colors for the light theme (also used as HTML defaults)."""
+    return MetaChrome(
+        chip_bg=SELECTION_BG,
+        chip_fg=BRAND_INK,
+        chip_count="#6a6a6a",
+        plain="#444444",
+        id_color=MUTED_TEXT,
+    )
+
+
+def meta_chrome_for_palette(palette: FluentPalette) -> MetaChrome:
+    """Return meta chip colors that stay readable on the active Fluent palette."""
+    if not palette.dark:
+        return light_meta_chrome()
+    chip_fill = mix(palette.window_bg, QColor(palette.accent.red(), palette.accent.green(), palette.accent.blue(), 72))
+    return MetaChrome(
+        chip_bg=css(chip_fill),
+        chip_fg=css(mix(palette.window_bg, palette.accent_text)),
+        chip_count=css(mix(palette.window_bg, palette.text_secondary)),
+        plain=css(mix(palette.window_bg, palette.text_primary)),
+        id_color=css(mix(palette.window_bg, palette.text_secondary)),
+    )
 
 
 def meta_filter_label(kind: str, value: str) -> str:
@@ -195,7 +194,4 @@ def _meta_value_html(icons: Sequence[IconFamily], kind: str, value: str, *, chro
         f"background-color:{chrome.chip_bg};color:{chrome.chip_fg};text-decoration:none;"
         "border-radius:8px;padding:1px 6px;margin:0 2px 2px 0;"
     )
-    return (
-        f'<a href="{href}" style="{chip}">{escaped} '
-        f'<span style="color:{chrome.chip_count};">{count}</span></a>'
-    )
+    return f'<a href="{href}" style="{chip}">{escaped} <span style="color:{chrome.chip_count};">{count}</span></a>'

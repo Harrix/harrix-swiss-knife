@@ -320,7 +320,7 @@ INSERT INTO items (zone, value, hint, created_at, last_used_at, sort_index) VALU
 INSERT INTO items (zone, value, hint, created_at, last_used_at, sort_index) VALUES ('color', '#122a3a', 'dark grey', '2026-08-25T00:00:00+00:00', NULL, 10);
 INSERT INTO items (zone, value, hint, created_at, last_used_at, sort_index) VALUES ('color', '#121e28', 'almost black', '2026-08-25T00:00:00+00:00', NULL, 11);
 INSERT INTO items (zone, value, hint, created_at, last_used_at, sort_index) VALUES ('color', '#79b1d1', 'cyan', '2026-08-25T00:00:00+00:00', NULL, 12);
-INSERT INTO items (zone, value, hint, created_at, last_used_at, sort_index) VALUES ('color', '#2e86b7', 'blue', '2026-08-25T00:00:00+00:00', NULL, 13);
+INSERT INTO items (zone, value, hint, created_at, last_used_at, sort_index) VALUES ('color', '#3a78bc', 'blue', '2026-08-25T00:00:00+00:00', NULL, 13);
 INSERT INTO items (zone, value, hint, created_at, last_used_at, sort_index) VALUES ('color', '#038387', 'turquoise', '2026-08-25T00:00:00+00:00', NULL, 14);
 INSERT INTO items (zone, value, hint, created_at, last_used_at, sort_index) VALUES ('color', '#3aaf9d', 'light turquoise', '2026-08-25T00:00:00+00:00', NULL, 15);
 INSERT INTO items (zone, value, hint, created_at, last_used_at, sort_index) VALUES ('color', '#de2b26', 'logo', '2026-08-25T00:00:00+00:00', NULL, 16);

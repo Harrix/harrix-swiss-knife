@@ -25,12 +25,12 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife.apps.common.day_bands import readable_cell_fill
 from harrix_swiss_knife.apps.food.day_macros import DayMacrosStatus, day_macros_menu_label
-from harrix_swiss_knife.fluent.theme import FluentTheme, css, mix
 from harrix_swiss_knife.apps.food.food_log_calories import (
     FOOD_LOG_COL_DATE,
     FOOD_LOG_COL_TOTAL_PER_DAY,
     food_log_day_groups,
 )
+from harrix_swiss_knife.fluent.theme import FluentTheme, mix
 
 _CELL_TOP_PAD = 3
 _CELL_SIDE_PAD = 6
@@ -281,24 +281,6 @@ def food_log_total_column_width(font: QFont) -> int:
     return text_width + (2 * _BUTTON_TEXT_PAD) + (2 * _CELL_SIDE_PAD) + _BUTTON_BORDER
 
 
-def _themed_chip_colors(
-    background: str,
-    border: str,
-    text: str,
-    hover: str,
-    *,
-    band_index: int,
-) -> MacrosButtonAppearance:
-    palette = FluentTheme.instance().palette()
-    bg = readable_cell_fill(QColor(background), band_index=band_index)
-    hover_bg = readable_cell_fill(QColor(hover), band_index=band_index)
-    if palette.dark:
-        ink = QColor(css(mix(palette.window_bg, palette.text_primary)))
-        edge = QColor(css(mix(palette.window_bg, palette.text_secondary)))
-        return MacrosButtonAppearance("", bg, edge, ink, hover_bg)
-    return MacrosButtonAppearance("", QColor(background), QColor(border), QColor(text), QColor(hover))
-
-
 def macros_button_appearance(status: DayMacrosStatus) -> MacrosButtonAppearance:
     """Return the label and colors for a day-macros button.
 
@@ -353,3 +335,21 @@ def macros_button_rect(cell: QRect, font: QFont) -> QRect:
 def _day_key(value: object) -> str:
     text = str(value or "").strip()
     return text[:10]
+
+
+def _themed_chip_colors(
+    background: str,
+    border: str,
+    text: str,
+    hover: str,
+    *,
+    band_index: int,
+) -> MacrosButtonAppearance:
+    palette = FluentTheme.instance().palette()
+    bg = readable_cell_fill(QColor(background), band_index=band_index)
+    hover_bg = readable_cell_fill(QColor(hover), band_index=band_index)
+    if palette.dark:
+        ink = mix(palette.window_bg, palette.text_primary)
+        edge = mix(palette.window_bg, palette.text_secondary)
+        return MacrosButtonAppearance("", bg, edge, ink, hover_bg)
+    return MacrosButtonAppearance("", QColor(background), QColor(border), QColor(text), QColor(hover))

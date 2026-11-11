@@ -265,7 +265,7 @@ def test_style_accept_button_sets_shared_green(qapp: QApplication) -> None:
 def test_apply_button_stylesheet_forces_on_filled_icon_for_primary(qapp: QApplication) -> None:
     assert qapp is not None
     lucide_mod._CACHE.clear()
-    button = make_lucide_push_button("Send to AI", AI_BUTTON_ICON, color="#2e86b7")
+    button = make_lucide_push_button("Send to AI", AI_BUTTON_ICON, color="#3a78bc")
     apply_button_stylesheet(button, button_primary_qss())
     pixmap = button.icon().pixmap(QSize(18, 18), 1.0)
     image = pixmap.toImage()

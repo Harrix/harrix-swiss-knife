@@ -22,11 +22,6 @@ _ICON_TEXT_GAP = 8
 _ACTION_CARD_GRID_THEME_FLAG = "_hsk_action_card_grid_theme_bound"
 
 
-def _apply_action_card_grid_chrome(list_widget: QListWidget) -> None:
-    list_widget.setStyleSheet(action_card_selection_qss())
-    apply_readable_selection_palette(list_widget)
-
-
 def configure_action_card_grid(list_widget: QListWidget, *, min_height: int | None = None) -> None:
     """Apply the same icon-card layout used by New Markdown command picker."""
     list_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -103,6 +98,11 @@ def sync_action_card_grid(list_widget: QListWidget) -> bool:
     if changed:
         list_widget.doItemsLayout()
     return changed
+
+
+def _apply_action_card_grid_chrome(list_widget: QListWidget) -> None:
+    list_widget.setStyleSheet(action_card_selection_qss())
+    apply_readable_selection_palette(list_widget)
 
 
 def _apply_widget_grid_metrics(widget: QWidget, cell_width: int, icon_size: int, cell_height: int) -> bool:

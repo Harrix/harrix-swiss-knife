@@ -7,11 +7,11 @@ from harrix_swiss_knife.apps.common.audio_recording.buttons import (
     RECORD_CAPTION_IDLE_STYLE,
     RECORD_CAPTION_STOP_STYLE,
     ClickableLabel,
-    record_caption_stop_style,
     PauseButton,
     PlayButton,
     RecordButton,
     StopPlaybackButton,
+    record_caption_stop_style,
 )
 from harrix_swiss_knife.apps.common.audio_recording.level_widget import AudioLevelWidget
 from harrix_swiss_knife.apps.common.audio_recording.pcm_utils import (
@@ -26,7 +26,6 @@ __all__ = [
     "PLAY_BUTTON_GAP",
     "RECORD_CAPTION_IDLE_STYLE",
     "RECORD_CAPTION_STOP_STYLE",
-    "record_caption_stop_style",
     "AudioLevelWidget",
     "ClickableLabel",
     "FinalizeResult",
@@ -40,4 +39,5 @@ __all__ = [
     "format_file_size",
     "format_recording_duration",
     "load_saved_microphone_id",
+    "record_caption_stop_style",
 ]

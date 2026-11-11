@@ -420,6 +420,7 @@ class MainWindow(
             # Date column (not editable)
             date_item = QStandardItem(date_str)
             set_day_band(date_item, row_color)
+            date_item.setForeground(QBrush(_process_habits_ink(self)))
             date_item.setEditable(False)
             model.setItem(row_idx, 0, date_item)
 
@@ -483,6 +484,7 @@ class MainWindow(
         apply_stored_table_header_sort(self.tableView_process_habits)
         if isinstance(process_habits_header, WordWrapHeaderView):
             process_habits_header.refresh_wrapped_height()
+        style_fluent_table(self.tableView_process_habits)
 
     def nativeEvent(self, event_type, message) -> tuple[bool, int]:  # noqa: ANN001, N802
         """Drag, resize, and size the client area for the custom caption bar."""
@@ -1923,12 +1925,12 @@ class MainWindow(
         apply_leading_chrome_buttons(self)
 
         self._install_word_wrap_table_headers(skip={self.tableView_process_habits})
-        process_habits_header = WordWrapHeaderView(
-            Qt.Orientation.Horizontal,
+        install_word_wrap_header(
             self.tableView_process_habits,
             wrap_width=PROCESS_HABIT_VALUE_COLUMN_MIN_WIDTH,
+            wrap_first_section=False,
         )
-        self.tableView_process_habits.setHorizontalHeader(process_habits_header)
+        style_fluent_table(self.tableView_process_habits)
         enable_table_header_sorting(self.tableView_process_habits)
 
         self.splitter_habits.setStretchFactor(0, 1)
@@ -2756,6 +2758,7 @@ def load_process_habits_table(self, *, ignore_filter: bool = False) -> None:
             # Date column (not editable)
             date_item = QStandardItem(date_str)
             set_day_band(date_item, row_color)
+            date_item.setForeground(QBrush(_process_habits_ink(self)))
             date_item.setEditable(False)
             model.setItem(row_idx, 0, date_item)
 
@@ -2819,6 +2822,7 @@ def load_process_habits_table(self, *, ignore_filter: bool = False) -> None:
         apply_stored_table_header_sort(self.tableView_process_habits)
         if isinstance(process_habits_header, WordWrapHeaderView):
             process_habits_header.refresh_wrapped_height()
+        style_fluent_table(self.tableView_process_habits)
 ```
 
 </details>

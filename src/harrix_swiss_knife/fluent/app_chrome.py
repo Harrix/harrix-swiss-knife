@@ -106,8 +106,10 @@ _FILL_KINDS = {
     "2e7d32": "success",
     "cc584c": "danger",
     "c42b1c": "danger",
+    "3a78bc": "accent",
     "2e86b7": "accent",
     "005fb8": "accent",
+    "2a5687": "accent",
     "1a5f7a": "accent",
 }
 _KIND_MARKERS = (
@@ -247,6 +249,7 @@ def style_fluent_table(table: QTableView, palette: FluentPalette | None = None) 
 
     Call again after replacing the horizontal header (for example with
     `WordWrapHeaderView`): a new header starts on the system light palette.
+
     """
     chosen = palette if palette is not None else palette_for(table)
     _style_table(table, chosen)

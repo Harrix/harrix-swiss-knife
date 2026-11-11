@@ -200,6 +200,12 @@ def table_surface_color(palette: FluentPalette) -> QColor:
     return QColor(red, green, blue)
 
 
+def _band_ink() -> QColor:
+    """Return primary text color readable on the current day-band fills."""
+    palette = FluentTheme.instance().palette()
+    return mix(palette.window_bg, palette.text_primary)
+
+
 def _band_pair(palette: FluentPalette) -> tuple[tuple[int, int, int], tuple[int, int, int]]:
     """Return even and odd RGB triples. Odd is darker in light mode and lighter in dark.
 
@@ -210,12 +216,6 @@ def _band_pair(palette: FluentPalette) -> tuple[tuple[int, int, int], tuple[int,
     if palette.dark:
         return (0x2C, 0x2C, 0x2C), (0x36, 0x36, 0x36)
     return (0xFC, 0xFC, 0xFC), (0xF4, 0xF5, 0xF6)
-
-
-def _band_ink() -> QColor:
-    """Return primary text color readable on the current day-band fills."""
-    palette = FluentTheme.instance().palette()
-    return mix(palette.window_bg, palette.text_primary)
 
 
 def _refresh_model(model: QStandardItemModel) -> None:

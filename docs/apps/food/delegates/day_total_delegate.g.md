@@ -512,27 +512,17 @@ Returns:
 def macros_button_appearance(status: DayMacrosStatus) -> MacrosButtonAppearance:
     label = day_macros_menu_label(status)
     if status is DayMacrosStatus.OK:
-        return MacrosButtonAppearance(
-            label,
-            QColor("#e8f5e9"),
-            QColor("#43a047"),
-            QColor("#1b5e20"),
-            QColor("#c8e6c9"),
-        )
-    if status is DayMacrosStatus.STALE:
-        return MacrosButtonAppearance(
-            label,
-            QColor("#fff8e1"),
-            QColor("#f9a825"),
-            QColor("#e65100"),
-            QColor("#ffecb3"),
-        )
+        appearance = _themed_chip_colors("#e8f5e9", "#43a047", "#1b5e20", "#c8e6c9", band_index=0)
+    elif status is DayMacrosStatus.STALE:
+        appearance = _themed_chip_colors("#fff8e1", "#f9a825", "#e65100", "#ffecb3", band_index=1)
+    else:
+        appearance = _themed_chip_colors("#1e88e5", "#1565c0", "#ffffff", "#1976d2", band_index=0)
     return MacrosButtonAppearance(
         label,
-        QColor("#1e88e5"),
-        QColor("#1565c0"),
-        QColor("#ffffff"),
-        QColor("#1976d2"),
+        appearance.background,
+        appearance.border,
+        appearance.text,
+        appearance.hover_background,
     )
 ```
 

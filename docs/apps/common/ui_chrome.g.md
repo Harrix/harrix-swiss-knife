@@ -13,6 +13,7 @@ lang: en
 
 - [🔧 Function `action_card_selection_qss`](#-function-action_card_selection_qss)
 - [🔧 Function `apply_readable_selection_palette`](#-function-apply_readable_selection_palette)
+- [🔧 Function `apply_soft_form_spin_fills`](#-function-apply_soft_form_spin_fills)
 - [🔧 Function `apply_soft_item_selection`](#-function-apply_soft_item_selection)
 - [🔧 Function `apply_soft_list_selection_chrome`](#-function-apply_soft_list_selection_chrome)
 - [🔧 Function `apply_white_surface_palette`](#-function-apply_white_surface_palette)
@@ -33,9 +34,14 @@ lang: en
 - [🔧 Function `drop_zone_qss`](#-function-drop_zone_qss)
 - [🔧 Function `list_view_item_selection_qss`](#-function-list_view_item_selection_qss)
 - [🔧 Function `list_view_panel_qss`](#-function-list_view_panel_qss)
+- [🔧 Function `media_preview_plate_qss`](#-function-media_preview_plate_qss)
+- [🔧 Function `media_preview_popup_frame_qss`](#-function-media_preview_popup_frame_qss)
+- [🔧 Function `muted_caption_qss`](#-function-muted_caption_qss)
 - [🔧 Function `nearest_codestyle_color`](#-function-nearest_codestyle_color)
 - [🔧 Function `normalize_hex_color`](#-function-normalize_hex_color)
+- [🔧 Function `record_caption_stop_qss`](#-function-record_caption_stop_qss)
 - [🔧 Function `relative_luminance`](#-function-relative_luminance)
+- [🔧 Function `selection_chrome_colors`](#-function-selection_chrome_colors)
 - [🔧 Function `snippet_list_selection_qss`](#-function-snippet_list_selection_qss)
 - [🔧 Function `soft_field_qss`](#-function-soft_field_qss)
 - [🔧 Function `solid_button_qss`](#-function-solid_button_qss)
@@ -55,6 +61,7 @@ Return selection / hover QSS for Quick launcher action cards.
 
 ```python
 def action_card_selection_qss() -> str:
+    fill, hover, border, text = selection_chrome_colors()
     return f"""
 QListWidget {{
     outline: none;
@@ -67,16 +74,16 @@ QListWidget::item {{
     border-radius: 8px;
     border: 1px solid transparent;
     background: transparent;
-    color: {SELECTION_TEXT};
+    color: {text};
 }}
 QListWidget::item:hover:!selected {{
-    background: {SELECTION_HOVER};
+    background: {hover};
     border-color: {CHIP_BORDER};
 }}
 QListWidget::item:selected {{
-    background: {SELECTION_BG};
-    border: 1px solid {SELECTION_BORDER};
-    color: {SELECTION_TEXT};
+    background: {fill};
+    border: 1px solid {border};
+    color: {text};
 }}
 """.strip()
 ```
@@ -89,20 +96,43 @@ QListWidget::item:selected {{
 def apply_readable_selection_palette(view: QAbstractItemView) -> None
 ```
 
-Keep selected-item text dark on soft blue highlights (not system white).
+Keep selected-item text readable on soft selection fills (not system invert).
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def apply_readable_selection_palette(view: QAbstractItemView) -> None:
+    fill, _hover, _border, text = selection_chrome_colors()
     palette = view.palette()
-    text = QColor(SELECTION_TEXT)
-    highlight = QColor(SELECTION_BG)
+    highlight = QColor(fill) if fill.startswith("#") else _qcolor_from_css(fill)
+    ink = QColor(text) if text.startswith("#") else _qcolor_from_css(text)
     for group in (QPalette.ColorGroup.Active, QPalette.ColorGroup.Inactive, QPalette.ColorGroup.Disabled):
         palette.setColor(group, QPalette.ColorRole.Highlight, highlight)
-        palette.setColor(group, QPalette.ColorRole.HighlightedText, text)
+        palette.setColor(group, QPalette.ColorRole.HighlightedText, ink)
     view.setPalette(palette)
+```
+
+</details>
+
+## 🔧 Function `apply_soft_form_spin_fills`
+
+```python
+def apply_soft_form_spin_fills(host: object, names: tuple[str, ...]) -> None
+```
+
+Apply [`soft_field_qss`](#-function-soft_field_qss) to named spin boxes on a tracker main window.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def apply_soft_form_spin_fills(host: object, names: tuple[str, ...]) -> None:
+    for name in names:
+        control = getattr(host, name, None)
+        if control is None:
+            continue
+        control.setStyleSheet(soft_field_qss(type(control).__name__))
 ```
 
 </details>
@@ -113,7 +143,7 @@ def apply_readable_selection_palette(view: QAbstractItemView) -> None:
 def apply_soft_item_selection(view: QAbstractItemView) -> None
 ```
 
-Append soft blue selected / hover rules to a list view or list widget.
+Append soft selected / hover rules to a list view or list widget.
 
 <details>
 <summary>Code:</summary>
@@ -121,7 +151,21 @@ Append soft blue selected / hover rules to a list view or list widget.
 ```python
 def apply_soft_item_selection(view: QAbstractItemView) -> None:
     existing = (view.styleSheet() or "").rstrip()
-    fragment = _LIST_WIDGET_ITEM_SELECTION_QSS if isinstance(view, QListWidget) else _LIST_ITEM_SELECTION_QSS
+    fill, hover, border, text = selection_chrome_colors()
+    selector = "QListWidget" if isinstance(view, QListWidget) else "QListView"
+    fragment = f"""
+{selector}::item {{
+    border-radius: 6px;
+}}
+{selector}::item:selected {{
+    background-color: {fill};
+    color: {text};
+    border: 1px solid {border};
+}}
+{selector}::item:hover:!selected {{
+    background-color: {hover};
+}}
+""".strip()
     view.setStyleSheet(f"{existing}\n{fragment}" if existing else fragment)
     apply_readable_selection_palette(view)
 ```
@@ -511,7 +555,7 @@ def button_text_color_from_stylesheet(stylesheet: str | None) -> str | None:
 def drop_zone_qss(*, selected: bool = False, focused: bool = False, padding: str = '20px', radius: int = 5, selector: str = 'QLabel') -> str
 ```
 
-Return white drop-zone QSS (replaces legacy gray `#f9f9f9` panels).
+Return drop-zone QSS (surface in light, Fluent card fill in dark).
 
 <details>
 <summary>Code:</summary>
@@ -525,15 +569,17 @@ def drop_zone_qss(
     radius: int = 5,
     selector: str = "QLabel",
 ) -> str:
+    surface, hairline, input_border, muted = _surface_chrome_colors()
+    _fill, hover, _border, _text = selection_chrome_colors()
     if selected:
         border = f"2px solid {BUTTON_SUCCESS_BG}"
-        background = SELECTION_HOVER
+        background = hover
     elif focused:
-        border = f"2px dashed {MUTED_TEXT}"
-        background = HAIRLINE
+        border = f"2px dashed {muted}"
+        background = hairline
     else:
-        border = f"2px dashed {INPUT_BORDER}"
-        background = SURFACE
+        border = f"2px dashed {input_border}"
+        background = surface
     return f"""
 {selector} {{
     border: {border};
@@ -623,6 +669,84 @@ QListView {{
 
 </details>
 
+## 🔧 Function `media_preview_plate_qss`
+
+```python
+def media_preview_plate_qss(*, selector: str = 'QLabel') -> str
+```
+
+Return AVIF preview plate QSS (white in light, soft card gray in dark).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def media_preview_plate_qss(*, selector: str = "QLabel") -> str:
+    plate = SURFACE
+    with contextlib.suppress(Exception):
+        from harrix_swiss_knife.fluent.theme import FluentTheme, css, mix  # noqa: PLC0415
+
+        palette = FluentTheme.instance().palette()
+        if palette.dark:
+            plate = css(mix(palette.window_bg, palette.card_bg))
+    return f"{selector} {{ background-color: {plate}; border: none; }}"
+```
+
+</details>
+
+## 🔧 Function `media_preview_popup_frame_qss`
+
+```python
+def media_preview_popup_frame_qss() -> str
+```
+
+Return themed QSS for the exercise hover-preview popup frame.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def media_preview_popup_frame_qss() -> str:
+    plate = SURFACE
+    border = INPUT_BORDER
+    with contextlib.suppress(Exception):
+        from harrix_swiss_knife.fluent.theme import FluentTheme, css, mix  # noqa: PLC0415
+
+        palette = FluentTheme.instance().palette()
+        plate = css(mix(palette.window_bg, palette.card_bg)) if palette.dark else SURFACE
+        border = css(mix(palette.window_bg, palette.control_stroke))
+    return f"""
+QFrame {{
+    background-color: {plate};
+    border: 1px solid {border};
+    border-radius: 6px;
+}}
+""".strip()
+```
+
+</details>
+
+## 🔧 Function `muted_caption_qss`
+
+```python
+def muted_caption_qss(*, bold: bool = True, extra: str = '') -> str
+```
+
+Return theme-aware muted caption QSS (`MUTED_TEXT` in light).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def muted_caption_qss(*, bold: bool = True, extra: str = "") -> str:
+    _surface, _hairline, _input_border, muted = _surface_chrome_colors()
+    weight = "600" if bold else "400"
+    suffix = f" {extra}" if extra and not extra.startswith(" ") else extra
+    return f"color: {muted}; font-weight: {weight};{suffix}"
+```
+
+</details>
+
 ## 🔧 Function `nearest_codestyle_color`
 
 ```python
@@ -683,6 +807,39 @@ def normalize_hex_color(value: str) -> str | None:
 
 </details>
 
+## 🔧 Function `record_caption_stop_qss`
+
+```python
+def record_caption_stop_qss() -> str
+```
+
+Return theme-aware QSS for the recording stop-state caption.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def record_caption_stop_qss() -> str:
+    base = "#1a1a1a"
+    hover = "#333333"
+    with contextlib.suppress(Exception):
+        from harrix_swiss_knife.fluent.theme import FluentTheme, css, mix  # noqa: PLC0415
+
+        palette = FluentTheme.instance().palette()
+        base = css(mix(palette.window_bg, palette.text_primary))
+        hover = css(mix(palette.window_bg, palette.text_secondary))
+    return f"""
+    QLabel {{
+        color: {base};
+    }}
+    QLabel:hover {{
+        color: {hover};
+    }}
+""".strip()
+```
+
+</details>
+
 ## 🔧 Function `relative_luminance`
 
 ```python
@@ -706,6 +863,39 @@ def relative_luminance(hex_color: str) -> float:
 
     r, g, b = rgb
     return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
+```
+
+</details>
+
+## 🔧 Function `selection_chrome_colors`
+
+```python
+def selection_chrome_colors() -> tuple[str, str, str, str]
+```
+
+Return `(fill, hover, border, text)` for soft list/card selection.
+
+Light mode keeps the shared soft-blue tokens. Dark mode uses Fluent list
+selection fills so tiles are not bright white islands.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def selection_chrome_colors() -> tuple[str, str, str, str]:
+    with contextlib.suppress(Exception):
+        from harrix_swiss_knife.fluent.style import list_item_hover, list_item_selected  # noqa: PLC0415
+        from harrix_swiss_knife.fluent.theme import FluentTheme, css, mix  # noqa: PLC0415
+
+        palette = FluentTheme.instance().palette()
+        if palette.dark:
+            return (
+                css(list_item_selected(palette)),
+                css(list_item_hover(palette)),
+                css(mix(palette.window_bg, palette.accent)),
+                css(mix(palette.window_bg, palette.text_primary)),
+            )
+    return SELECTION_BG, SELECTION_HOVER, SELECTION_BORDER, SELECTION_TEXT
 ```
 
 </details>
@@ -754,16 +944,25 @@ QListWidget::item:selected:hover {{
 def soft_field_qss(selector: str = 'QWidget') -> str
 ```
 
-Return soft-blue fill for highlighted form fields (spin boxes, etc.).
+Return theme-aware fill for highlighted form fields (spin boxes, etc.).
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def soft_field_qss(selector: str = "QWidget") -> str:
+    fill = SELECTION_BG
+    with contextlib.suppress(Exception):
+        from harrix_swiss_knife.fluent.theme import FluentTheme, css, mix  # noqa: PLC0415
+
+        palette = FluentTheme.instance().palette()
+        if palette.dark:
+            fill = css(mix(palette.window_bg, palette.control_fill_input_active))
+        else:
+            fill, _, _, _ = selection_chrome_colors()
     return f"""
 {selector} {{
-    background-color: {SELECTION_BG};
+    background-color: {fill};
 }}
 """.strip()
 ```

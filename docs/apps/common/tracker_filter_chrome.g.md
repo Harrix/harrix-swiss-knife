@@ -124,7 +124,7 @@ def inline_filter_caption(caption: str, widget: QWidget, parent: QWidget) -> QWi
     row.setContentsMargins(0, 0, 0, 0)
     row.setSpacing(SPACE_XS)
     label = QLabel(caption, field)
-    label.setStyleSheet(f"color: {MUTED_TEXT};")
+    label.setStyleSheet(muted_caption_qss(bold=False))
     label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
     row.addWidget(label, 0)
     row.addWidget(widget, 0)

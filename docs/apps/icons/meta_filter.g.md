@@ -11,22 +11,48 @@ lang: en
 
 ## Contents
 
+- [🏛️ Class `MetaChrome`](#%EF%B8%8F-class-metachrome)
 - [🔧 Function `build_meta_date_html`](#-function-build_meta_date_html)
 - [🔧 Function `build_meta_list_html`](#-function-build_meta_list_html)
 - [🔧 Function `build_variants_header_html`](#-function-build_variants_header_html)
 - [🔧 Function `count_families_for_meta`](#-function-count_families_for_meta)
 - [🔧 Function `family_matches_meta`](#-function-family_matches_meta)
 - [🔧 Function `filter_families_by_meta`](#-function-filter_families_by_meta)
+- [🔧 Function `light_meta_chrome`](#-function-light_meta_chrome)
+- [🔧 Function `meta_chrome_for_palette`](#-function-meta_chrome_for_palette)
 - [🔧 Function `meta_filter_label`](#-function-meta_filter_label)
 - [🔧 Function `meta_link_href`](#-function-meta_link_href)
 - [🔧 Function `parse_meta_link`](#-function-parse_meta_link)
 
 </details>
 
+## 🏛️ Class `MetaChrome`
+
+```python
+class MetaChrome
+```
+
+Inline HTML colors for the variants meta header.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class MetaChrome:
+
+    chip_bg: str
+    chip_fg: str
+    chip_count: str
+    plain: str
+    id_color: str
+```
+
+</details>
+
 ## 🔧 Function `build_meta_date_html`
 
 ```python
-def build_meta_date_html(icons: Sequence[IconFamily], date: str) -> str
+def build_meta_date_html(icons: Sequence[IconFamily], date: str, *, chrome: MetaChrome | None = None) -> str
 ```
 
 Return HTML for a date value, with a count link when shared by other icons.
@@ -35,11 +61,16 @@ Return HTML for a date value, with a count link when shared by other icons.
 <summary>Code:</summary>
 
 ```python
-def build_meta_date_html(icons: Sequence[IconFamily], date: str) -> str:
+def build_meta_date_html(
+    icons: Sequence[IconFamily],
+    date: str,
+    *,
+    chrome: MetaChrome | None = None,
+) -> str:
     cleaned = date.strip()
     if not cleaned:
         return "—"
-    return _meta_value_html(icons, META_KIND_DATE, cleaned)
+    return _meta_value_html(icons, META_KIND_DATE, cleaned, chrome=chrome or light_meta_chrome())
 ```
 
 </details>
@@ -47,7 +78,7 @@ def build_meta_date_html(icons: Sequence[IconFamily], date: str) -> str:
 ## 🔧 Function `build_meta_list_html`
 
 ```python
-def build_meta_list_html(icons: Sequence[IconFamily], kind: str, values: Sequence[str]) -> str
+def build_meta_list_html(icons: Sequence[IconFamily], kind: str, values: Sequence[str], *, chrome: MetaChrome | None = None) -> str
 ```
 
 Return HTML for category/tag lists with count links when shared.
@@ -56,11 +87,18 @@ Return HTML for category/tag lists with count links when shared.
 <summary>Code:</summary>
 
 ```python
-def build_meta_list_html(icons: Sequence[IconFamily], kind: str, values: Sequence[str]) -> str:
+def build_meta_list_html(
+    icons: Sequence[IconFamily],
+    kind: str,
+    values: Sequence[str],
+    *,
+    chrome: MetaChrome | None = None,
+) -> str:
     cleaned = [item.strip() for item in values if item.strip()]
     if not cleaned:
         return "—"
-    return " ".join(_meta_value_html(icons, kind, item) for item in cleaned)
+    style = chrome or light_meta_chrome()
+    return " ".join(_meta_value_html(icons, kind, item, chrome=style) for item in cleaned)
 ```
 
 </details>
@@ -68,7 +106,7 @@ def build_meta_list_html(icons: Sequence[IconFamily], kind: str, values: Sequenc
 ## 🔧 Function `build_variants_header_html`
 
 ```python
-def build_variants_header_html(family: IconFamily, icons: Sequence[IconFamily]) -> str
+def build_variants_header_html(family: IconFamily, icons: Sequence[IconFamily], *, chrome: MetaChrome | None = None) -> str
 ```
 
 Return rich-text header with chip-style meta links when values are shared.
@@ -77,26 +115,33 @@ Return rich-text header with chip-style meta links when values are shared.
 <summary>Code:</summary>
 
 ```python
-def build_variants_header_html(family: IconFamily, icons: Sequence[IconFamily]) -> str:
+def build_variants_header_html(
+    family: IconFamily,
+    icons: Sequence[IconFamily],
+    *,
+    chrome: MetaChrome | None = None,
+) -> str:
+    style = chrome or light_meta_chrome()
     lines = [
         f'<div style="font-weight:600;">{html.escape(family.title)}</div>',
-        f'<div style="color:#5c6370;font-size:11px;">{html.escape(family.id)}</div>',
+        f'<div style="color:{style.id_color};font-size:11px;">{html.escape(family.id)}</div>',
     ]
     if family.date.strip():
-        lines.append(f'<div style="margin-top:4px;">Date: {build_meta_date_html(icons, family.date)}</div>')
+        lines.append(
+            f'<div style="margin-top:4px;">Date: {build_meta_date_html(icons, family.date, chrome=style)}</div>',
+        )
     categories = [item.strip() for item in family.categories if item.strip()]
     if categories:
         lines.append(
             '<div style="margin-top:2px;">Categories: '
-            f"{build_meta_list_html(icons, META_KIND_CATEGORY, categories)}</div>",
+            f"{build_meta_list_html(icons, META_KIND_CATEGORY, categories, chrome=style)}</div>",
         )
     else:
         lines.append('<div style="margin-top:2px;">Categories: —</div>')
     tags = [item.strip() for item in family.tags if item.strip()]
     if tags:
-        lines.append(
-            f'<div style="margin-top:2px;">Tags: {build_meta_list_html(icons, META_KIND_TAG, tags)}</div>',
-        )
+        tags_html = build_meta_list_html(icons, META_KIND_TAG, tags, chrome=style)
+        lines.append(f'<div style="margin-top:2px;">Tags: {tags_html}</div>')
     else:
         lines.append('<div style="margin-top:2px;">Tags: —</div>')
     return "".join(lines)
@@ -166,6 +211,57 @@ Return families matching the meta filter, preserving input order.
 ```python
 def filter_families_by_meta(icons: Sequence[IconFamily], kind: str, value: str) -> list[IconFamily]:
     return [family for family in icons if family_matches_meta(family, kind, value)]
+```
+
+</details>
+
+## 🔧 Function `light_meta_chrome`
+
+```python
+def light_meta_chrome() -> MetaChrome
+```
+
+Return chip colors for the light theme (also used as HTML defaults).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def light_meta_chrome() -> MetaChrome:
+    return MetaChrome(
+        chip_bg=SELECTION_BG,
+        chip_fg=BRAND_INK,
+        chip_count="#6a6a6a",
+        plain="#444444",
+        id_color=MUTED_TEXT,
+    )
+```
+
+</details>
+
+## 🔧 Function `meta_chrome_for_palette`
+
+```python
+def meta_chrome_for_palette(palette: FluentPalette) -> MetaChrome
+```
+
+Return meta chip colors that stay readable on the active Fluent palette.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def meta_chrome_for_palette(palette: FluentPalette) -> MetaChrome:
+    if not palette.dark:
+        return light_meta_chrome()
+    chip_fill = mix(palette.window_bg, QColor(palette.accent.red(), palette.accent.green(), palette.accent.blue(), 72))
+    return MetaChrome(
+        chip_bg=css(chip_fill),
+        chip_fg=css(mix(palette.window_bg, palette.accent_text)),
+        chip_count=css(mix(palette.window_bg, palette.text_secondary)),
+        plain=css(mix(palette.window_bg, palette.text_primary)),
+        id_color=css(mix(palette.window_bg, palette.text_secondary)),
+    )
 ```
 
 </details>

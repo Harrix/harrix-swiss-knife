@@ -578,7 +578,10 @@ class DraggableIconList(QListWidget):
                 item = self.item(row)
                 if item is None:
                     continue
-                icon_pixmap = _muted_pixmap(pixmap, FALLBACK_ICON_OPACITY) if bool(item.data(ROLE_FALLBACK)) else pixmap
+                display = _display_icon_pixmap(pixmap, widget=self)
+                icon_pixmap = (
+                    _muted_pixmap(display, FALLBACK_ICON_OPACITY) if bool(item.data(ROLE_FALLBACK)) else display
+                )
                 item.setIcon(QIcon(icon_pixmap))
         finally:
             self.setUpdatesEnabled(True)
@@ -1649,7 +1652,10 @@ def update_row_pixmaps(self, pixmaps: dict[int, QPixmap]) -> None:
                 item = self.item(row)
                 if item is None:
                     continue
-                icon_pixmap = _muted_pixmap(pixmap, FALLBACK_ICON_OPACITY) if bool(item.data(ROLE_FALLBACK)) else pixmap
+                display = _display_icon_pixmap(pixmap, widget=self)
+                icon_pixmap = (
+                    _muted_pixmap(display, FALLBACK_ICON_OPACITY) if bool(item.data(ROLE_FALLBACK)) else display
+                )
                 item.setIcon(QIcon(icon_pixmap))
         finally:
             self.setUpdatesEnabled(True)
@@ -1797,7 +1803,11 @@ class IconLabelDelegate(QStyledItemDelegate):
         )
 
         if subtitle_text:
-            muted = QColor(MUTED_TEXT)
+            if widget is not None:
+                fluent = palette_for(widget)
+                muted = mix(fluent.window_bg, fluent.text_secondary)
+            else:
+                muted = QColor(MUTED_TEXT)
             if is_fallback:
                 muted.setAlpha(FALLBACK_SUBTITLE_ALPHA)
             painter.setPen(muted)
@@ -1949,7 +1959,11 @@ def paint(
         )
 
         if subtitle_text:
-            muted = QColor(MUTED_TEXT)
+            if widget is not None:
+                fluent = palette_for(widget)
+                muted = mix(fluent.window_bg, fluent.text_secondary)
+            else:
+                muted = QColor(MUTED_TEXT)
             if is_fallback:
                 muted.setAlpha(FALLBACK_SUBTITLE_ALPHA)
             painter.setPen(muted)
@@ -2152,20 +2166,9 @@ class VariantsPanel(QWidget):
             Qt.TextInteractionFlag.TextBrowserInteraction | Qt.TextInteractionFlag.LinksAccessibleByMouse,
         )
         self.header.setOpenExternalLinks(False)
-        self.header.setStyleSheet(
-            "QLabel {"
-            " background: transparent;"
-            "}"
-            "QLabel a {"
-            f" color: {LUCIDE_COLOR_BLUE};"
-            " text-decoration: none;"
-            "}"
-            "QLabel a:hover {"
-            " text-decoration: underline;"
-            "}",
-        )
         self.header.linkActivated.connect(self._on_header_link_activated)
         self.header.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
+        bind_theme(self, self._refresh_theme_chrome)
 
         self._header_scroll = QScrollArea()
         self._header_scroll.setWidget(self.header)
@@ -2253,7 +2256,7 @@ class VariantsPanel(QWidget):
         for variant in family.variants:
             path = variant.absolute_path(repo_root, family.folder)
             try:
-                pixmap = self._preview(path, self._thumb_size)
+                pixmap = self._preview(path, self._thumb_size, widget=self)
             except (OSError, ValueError, RuntimeError):
                 pixmap = placeholder_pixmap(self._thumb_size)
             item = QListWidgetItem(QIcon(pixmap), variant.name)
@@ -2278,19 +2281,39 @@ class VariantsPanel(QWidget):
         self._fit_header_to_content = False
 
     @staticmethod
-    def _preview(path: Path, size: int) -> QPixmap:
+    def _preview(path: Path, size: int, *, widget: QWidget | None = None) -> QPixmap:
         image = render_icon_to_image(path, size)
         if image is None:
             return placeholder_pixmap(size)
-        return QPixmap.fromImage(image)
+        return _display_icon_pixmap(QPixmap.fromImage(image), widget=widget)
 
     def _refresh_header(self) -> None:
         family = self._family
         if family is None:
             return
+        chrome = meta_chrome_for_palette(palette_for(self))
         self.header.setTextFormat(Qt.TextFormat.RichText)
-        self.header.setText(build_variants_header_html(family, self._catalog_icons))
+        self.header.setText(build_variants_header_html(family, self._catalog_icons, chrome=chrome))
         self._sync_header_scroll_height()
+
+    def _refresh_theme_chrome(self) -> None:
+        """Keep meta HTML + link colors aligned with light/dark Fluent chrome."""
+        palette = palette_for(self)
+        link = css(mix(palette.window_bg, palette.accent_text))
+        self.header.setStyleSheet(
+            "QLabel {"
+            " background: transparent;"
+            "}"
+            "QLabel a {"
+            f" color: {link};"
+            " text-decoration: none;"
+            "}"
+            "QLabel a:hover {"
+            " text-decoration: underline;"
+            "}",
+        )
+        if self._family is not None:
+            self.show_family(self._family, self._repo_root)
 
     def _sync_header_scroll_height(self) -> None:
         """Size the meta header to content, capped at one third of the panel."""
@@ -2352,20 +2375,9 @@ def __init__(self, parent: QWidget | None = None, *, thumb_size: int = VARIANT_T
             Qt.TextInteractionFlag.TextBrowserInteraction | Qt.TextInteractionFlag.LinksAccessibleByMouse,
         )
         self.header.setOpenExternalLinks(False)
-        self.header.setStyleSheet(
-            "QLabel {"
-            " background: transparent;"
-            "}"
-            "QLabel a {"
-            f" color: {LUCIDE_COLOR_BLUE};"
-            " text-decoration: none;"
-            "}"
-            "QLabel a:hover {"
-            " text-decoration: underline;"
-            "}",
-        )
         self.header.linkActivated.connect(self._on_header_link_activated)
         self.header.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
+        bind_theme(self, self._refresh_theme_chrome)
 
         self._header_scroll = QScrollArea()
         self._header_scroll.setWidget(self.header)
@@ -2536,7 +2548,7 @@ def show_family(self, family: IconFamily | None, repo_root: Path | None) -> None
         for variant in family.variants:
             path = variant.absolute_path(repo_root, family.folder)
             try:
-                pixmap = self._preview(path, self._thumb_size)
+                pixmap = self._preview(path, self._thumb_size, widget=self)
             except (OSError, ValueError, RuntimeError):
                 pixmap = placeholder_pixmap(self._thumb_size)
             item = QListWidgetItem(QIcon(pixmap), variant.name)
@@ -2581,8 +2593,7 @@ Remove the default gray frame and apply soft selection / hover chrome.
 ```python
 def apply_frameless_item_view(view: QAbstractItemView) -> None:
     view.setFrameShape(QFrame.Shape.NoFrame)
-    view.setStyleSheet(_ITEM_VIEW_NO_BORDER)
-    apply_readable_selection_palette(view)
+    bind_theme(view, lambda: _refresh_frameless_item_view(view))
 ```
 
 </details>

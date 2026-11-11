@@ -9,6 +9,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QIcon, QPixmap
 from PySide6.QtWidgets import QApplication, QCheckBox, QWidget
 
+from harrix_swiss_knife.apps.common.day_bands import readable_cell_fill
 from harrix_swiss_knife.apps.fitness.database_manager import WorkoutItemRow
 from harrix_swiss_knife.apps.fitness.lightbox_logic import ExerciseStopwatchState, StopwatchPhase
 from harrix_swiss_knife.apps.fitness.workouts_widget import (
@@ -334,8 +335,9 @@ def test_workout_session_highlights_current_incomplete_row(monkeypatch: pytest.M
     widget._session_active = True
     monkeypatch.setattr(widget, "_first_incomplete_item_id", lambda: 1)
     widget._fill_items(items)
-    assert widget.table_items.item(0, _COL_EXERCISE).background().color() == _ROW_COLOR_CURRENT
-    assert widget.table_items.item(1, _COL_EXERCISE).background().color() != _ROW_COLOR_CURRENT
+    expected_current = readable_cell_fill(_ROW_COLOR_CURRENT, band_index=0)
+    assert widget.table_items.item(0, _COL_EXERCISE).background().color() == expected_current
+    assert widget.table_items.item(1, _COL_EXERCISE).background().color() != expected_current
     widget.close()
 
 

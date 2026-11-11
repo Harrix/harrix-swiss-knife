@@ -28,7 +28,6 @@ from harrix_swiss_knife.apps.finance.exchange_rate_checker_worker import Exchang
 from harrix_swiss_knife.apps.finance.exchange_rate_worker import ExchangeRateUpdateWorker
 
 if TYPE_CHECKING:
-    from PySide6.QtCore import QObject
     from PySide6.QtGui import QStandardItemModel
 
 logger = logging.getLogger(__name__)

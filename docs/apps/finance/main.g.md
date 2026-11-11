@@ -138,7 +138,7 @@ class MainWindow(
         self._init_hide_on_close(hide_on_close=hide_on_close)
         app = QApplication.instance()
         if app is not None:
-            app.aboutToQuit.connect(self._stop_exchange_rate_threads)
+            app.aboutToQuit.connect(self._stop_exchange_rate_threads_for_quit)
 
         # Table models dictionary
         self.models: dict[str, QSortFilterProxyModel | None] = {
@@ -5602,7 +5602,7 @@ class MainWindow(
         # Create and add label
         label: QLabel = QLabel(text)
         label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        label.setStyleSheet(f"color: {MUTED_TEXT}; padding: 20px;")
+        label.setStyleSheet(f"{muted_caption_qss(bold=False)} padding: 20px;")
         layout.addWidget(label)
 
     def _show_test_balance_dialog(
@@ -6076,6 +6076,11 @@ class MainWindow(
         stop_running_qthread(getattr(self, "startup_exchange_rate_worker", None))
         stop_running_qthread(getattr(self, "startup_exchange_rate_checker", None))
 
+    def _stop_exchange_rate_threads_for_quit(self) -> None:
+        """Stop exchange-rate workers and join them before process teardown."""
+        self._stop_exchange_rate_threads()
+        join_released_qthreads()
+
     def _sync_amount_spin_limit(self, *_args: object) -> None:
         """Raise the amount field to the largest value a SQLite INTEGER can store."""
         subdivision = 100
@@ -6532,7 +6537,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:
         self._init_hide_on_close(hide_on_close=hide_on_close)
         app = QApplication.instance()
         if app is not None:
-            app.aboutToQuit.connect(self._stop_exchange_rate_threads)
+            app.aboutToQuit.connect(self._stop_exchange_rate_threads_for_quit)
 
         # Table models dictionary
         self.models: dict[str, QSortFilterProxyModel | None] = {

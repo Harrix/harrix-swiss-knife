@@ -13,7 +13,6 @@ from PySide6.QtWidgets import QComboBox, QDialog, QFileDialog, QHBoxLayout, QLab
 from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.audio_recording import (
-    record_caption_stop_style,
     AudioLevelWidget,
     ClickableLabel,
     FinalizeResult,
@@ -21,6 +20,7 @@ from harrix_swiss_knife.apps.common.audio_recording import (
     RecordButton,
     audio_device_id,
     load_saved_microphone_id,
+    record_caption_stop_style,
 )
 from harrix_swiss_knife.qt_lucide_icon import (
     SAVE_BUTTON_ICON,

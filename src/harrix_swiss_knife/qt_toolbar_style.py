@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import contextlib
+
 from harrix_swiss_knife.apps.common.ui_chrome import (
     BUTTON_SECONDARY_BG,
     BUTTON_SECONDARY_BORDER,
@@ -86,7 +88,7 @@ QPushButton:checked:hover {{
 
 def _toolbar_secondary_colors() -> tuple[str, str, str, str]:
     """Return `(bg, hover, pressed, border)` for idle toolbar plates."""
-    try:
+    with contextlib.suppress(Exception):
         from harrix_swiss_knife.fluent.theme import FluentTheme, css, mix  # noqa: PLC0415
 
         palette = FluentTheme.instance().palette()
@@ -97,8 +99,6 @@ def _toolbar_secondary_colors() -> tuple[str, str, str, str]:
                 css(mix(palette.window_bg, palette.control_fill_pressed)),
                 css(mix(palette.window_bg, palette.control_stroke)),
             )
-    except Exception:
-        pass
     return BUTTON_SECONDARY_BG, BUTTON_SECONDARY_HOVER, BUTTON_SECONDARY_PRESSED, BUTTON_SECONDARY_BORDER
 
 

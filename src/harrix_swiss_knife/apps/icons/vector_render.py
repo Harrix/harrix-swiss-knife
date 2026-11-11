@@ -24,9 +24,39 @@ PREVIEW_ICON_INSET_RATIO = 0.1
 # Opaque-pixel luminance below this gets a gray plate in dark UI chrome.
 _DARK_CONTENT_LUMINANCE = 72
 _DARK_CONTENT_SAMPLE_STEP = 4
+_DARK_CONTENT_ALPHA_MIN = 40
+_DARK_CONTENT_SAMPLE_MIN = 8
 
 _VECTOR_SUFFIXES = frozenset({".ai", ".pdf", ".eps"})
 _SVG_SUFFIXES = frozenset({".svg"})
+
+
+def ensure_dark_theme_contrast_plate(pixmap: QPixmap) -> QPixmap:
+    """Composite a rounded gray plate under dark artwork so it stays visible on dark chrome.
+
+    White `*_white_*` thumbs already include a plate and average bright, so they are left alone.
+    Light / colorful icons are also unchanged.
+
+    """
+    if pixmap.isNull() or not pixmap_content_is_dark(pixmap):
+        return pixmap
+    size = max(pixmap.width(), pixmap.height())
+    if size <= 0:
+        return pixmap
+    image = QImage(size, size, QImage.Format.Format_ARGB32_Premultiplied)
+    image.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(image)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
+    tile = QRectF(0, 0, size, size)
+    radius = max(4.0, size * PREVIEW_CORNER_RADIUS_RATIO)
+    path = QPainterPath()
+    path.addRoundedRect(tile, radius, radius)
+    painter.fillPath(path, PREVIEW_BACKGROUND)
+    inset = max(2.0, size * PREVIEW_ICON_INSET_RATIO)
+    target = tile.adjusted(inset, inset, -inset, -inset)
+    painter.drawPixmap(target.toRect(), pixmap)
+    painter.end()
+    return QPixmap.fromImage(image)
 
 
 def fitted_content_rect(renderer: QSvgRenderer, bounds: QRectF) -> QRectF:
@@ -79,6 +109,29 @@ def paint_svg_preview(
     else:
         bounds = tile
     renderer.render(painter, fitted_content_rect(renderer, bounds))
+
+
+def pixmap_content_is_dark(pixmap: QPixmap) -> bool:
+    """Return whether opaque pixels in `pixmap` are mostly dark (need a contrast plate)."""
+    if pixmap.isNull():
+        return False
+    image = pixmap.toImage()
+    if image.isNull():
+        return False
+    total = 0
+    weight = 0
+    step = _DARK_CONTENT_SAMPLE_STEP
+    for y in range(0, image.height(), step):
+        for x in range(0, image.width(), step):
+            color = image.pixelColor(x, y)
+            if color.alpha() < _DARK_CONTENT_ALPHA_MIN:
+                continue
+            # Rec. 601 luma
+            total += int(0.299 * color.red() + 0.587 * color.green() + 0.114 * color.blue())
+            weight += 1
+    if weight < _DARK_CONTENT_SAMPLE_MIN:
+        return False
+    return (total // weight) <= _DARK_CONTENT_LUMINANCE
 
 
 def render_icon_to_image(path: Path, size: int) -> QImage | None:
@@ -141,57 +194,6 @@ def render_vector_document_to_image(path: Path, size: int) -> QImage | None:
 def svg_needs_contrast_background(svg_path: Path) -> bool:
     """Return whether the SVG is a white-fill variant that needs a gray tile."""
     return "_white" in svg_path.stem.casefold()
-
-
-def ensure_dark_theme_contrast_plate(pixmap: QPixmap) -> QPixmap:
-    """Composite a rounded gray plate under dark artwork so it stays visible on dark chrome.
-
-    White `*_white_*` thumbs already include a plate and average bright, so they are left alone.
-    Light / colorful icons are also unchanged.
-
-    """
-    if pixmap.isNull() or not pixmap_content_is_dark(pixmap):
-        return pixmap
-    size = max(pixmap.width(), pixmap.height())
-    if size <= 0:
-        return pixmap
-    image = QImage(size, size, QImage.Format.Format_ARGB32_Premultiplied)
-    image.fill(Qt.GlobalColor.transparent)
-    painter = QPainter(image)
-    painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
-    tile = QRectF(0, 0, size, size)
-    radius = max(4.0, size * PREVIEW_CORNER_RADIUS_RATIO)
-    path = QPainterPath()
-    path.addRoundedRect(tile, radius, radius)
-    painter.fillPath(path, PREVIEW_BACKGROUND)
-    inset = max(2.0, size * PREVIEW_ICON_INSET_RATIO)
-    target = tile.adjusted(inset, inset, -inset, -inset)
-    painter.drawPixmap(target.toRect(), pixmap)
-    painter.end()
-    return QPixmap.fromImage(image)
-
-
-def pixmap_content_is_dark(pixmap: QPixmap) -> bool:
-    """Return whether opaque pixels in `pixmap` are mostly dark (need a contrast plate)."""
-    if pixmap.isNull():
-        return False
-    image = pixmap.toImage()
-    if image.isNull():
-        return False
-    total = 0
-    weight = 0
-    step = _DARK_CONTENT_SAMPLE_STEP
-    for y in range(0, image.height(), step):
-        for x in range(0, image.width(), step):
-            color = image.pixelColor(x, y)
-            if color.alpha() < 40:
-                continue
-            # Rec. 601 luma
-            total += int(0.299 * color.red() + 0.587 * color.green() + 0.114 * color.blue())
-            weight += 1
-    if weight < 8:
-        return False
-    return (total // weight) <= _DARK_CONTENT_LUMINANCE
 
 
 def _fit_image_to_square(source: QImage, size: int) -> QImage:

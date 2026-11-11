@@ -127,12 +127,14 @@ class ChoiceWithDescriptionDelegate(QStyledItemDelegate):
         escaped_choice = escape(choice)
         escaped_description = escape(description).replace("\n", "<br>")
 
+        desc_color = _delegate_description_color(option)
         html_content = f"""
         <div style="font-family: '{APP_FONT_FAMILY}', sans-serif;">
             <div style="font-size: 12pt; font-weight: bold; margin-bottom: 2px;">
                 {escaped_choice}
             </div>
-            <div style="font-size: 9pt; font-style: italic; color: #666666; margin-left: 10px; white-space: pre-wrap;">
+            <div style="font-size: 9pt; font-style: italic; color: {desc_color};
+                margin-left: 10px; white-space: pre-wrap;">
                 {escaped_description}
             </div>
         </div>
@@ -253,12 +255,14 @@ def sizeHint(  # noqa: N802
         escaped_choice = escape(choice)
         escaped_description = escape(description).replace("\n", "<br>")
 
+        desc_color = _delegate_description_color(option)
         html_content = f"""
         <div style="font-family: '{APP_FONT_FAMILY}', sans-serif;">
             <div style="font-size: 12pt; font-weight: bold; margin-bottom: 2px;">
                 {escaped_choice}
             </div>
-            <div style="font-size: 9pt; font-style: italic; color: #666666; margin-left: 10px; white-space: pre-wrap;">
+            <div style="font-size: 9pt; font-style: italic; color: {desc_color};
+                margin-left: 10px; white-space: pre-wrap;">
                 {escaped_description}
             </div>
         </div>
@@ -300,6 +304,7 @@ class DragDropFileDialog(QDialog):
     ) -> None:
         """Create file-selection dialog with optional resize controls."""
         super().__init__(parent)
+        enable_fluent_theme(self)
         self.setWindowTitle(title)
         qt_modality.set_owner_window_modal(self)
         self.setAcceptDrops(True)
@@ -366,21 +371,10 @@ class DragDropFileDialog(QDialog):
         layout.addWidget(title_label)
 
         self.drop_area = QLabel("Drag files here or click 'Select Files' button")
-        empty = drop_zone_qss(padding="40px", radius=10)
-        self.drop_area.setStyleSheet(
-            f"""
-            {empty}
-            QLabel {{
-                text-align: center;
-                color: {MUTED_TEXT};
-                font-size: 12px;
-            }}
-            QLabel:hover {{
-                border-color: {SELECTION_BORDER};
-                background-color: {SELECTION_HOVER};
-            }}
-            """.strip()
-        )
+        self._apply_drop_area_qss()
+        if not getattr(self, _DRAG_DROP_THEME_FLAG, False):
+            bind_theme(self, self._apply_drop_area_qss)
+            setattr(self, _DRAG_DROP_THEME_FLAG, True)
         self.drop_area.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.drop_area.setMinimumHeight(_DROP_AREA_MIN_HEIGHT)
         self.drop_area.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -435,6 +429,23 @@ class DragDropFileDialog(QDialog):
         self.setMinimumWidth(self._target_size.width())
         self.resize(self._target_size)
 
+    def _apply_drop_area_qss(self) -> None:
+        _fill, hover, border, _text = selection_chrome_colors()
+        empty = drop_zone_qss(padding="40px", radius=10)
+        label_props = muted_caption_qss(bold=False, extra="text-align: center; font-size: 12px;")
+        self.drop_area.setStyleSheet(
+            f"""
+            {empty}
+            QLabel {{
+                {label_props}
+            }}
+            QLabel:hover {{
+                border-color: {border};
+                background-color: {hover};
+            }}
+            """.strip()
+        )
+
     def _refit_geometry(self) -> None:
         """Recompute adaptive dialog size from current content."""
         if self.files_list.isVisible() and self.files_list.count() > 0:
@@ -481,6 +492,7 @@ def __init__(
         with_resize_option: bool = False,
     ) -> None:
         super().__init__(parent)
+        enable_fluent_theme(self)
         self.setWindowTitle(title)
         qt_modality.set_owner_window_modal(self)
         self.setAcceptDrops(True)
@@ -645,21 +657,10 @@ def setup_ui(self) -> None:
         layout.addWidget(title_label)
 
         self.drop_area = QLabel("Drag files here or click 'Select Files' button")
-        empty = drop_zone_qss(padding="40px", radius=10)
-        self.drop_area.setStyleSheet(
-            f"""
-            {empty}
-            QLabel {{
-                text-align: center;
-                color: {MUTED_TEXT};
-                font-size: 12px;
-            }}
-            QLabel:hover {{
-                border-color: {SELECTION_BORDER};
-                background-color: {SELECTION_HOVER};
-            }}
-            """.strip()
-        )
+        self._apply_drop_area_qss()
+        if not getattr(self, _DRAG_DROP_THEME_FLAG, False):
+            bind_theme(self, self._apply_drop_area_qss)
+            setattr(self, _DRAG_DROP_THEME_FLAG, True)
         self.drop_area.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.drop_area.setMinimumHeight(_DROP_AREA_MIN_HEIGHT)
         self.drop_area.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -748,6 +749,7 @@ class StandardActionDialog(QDialog):
 
     def __init__(self, target_size: QSize, parent: QWidget | None = None) -> None:  # noqa: D107
         super().__init__(parent)
+        enable_fluent_theme(self)
         self._target_size = target_size
 
     def set_target_size(self, size: QSize) -> None:
@@ -776,6 +778,7 @@ _No docstring provided._
 ```python
 def __init__(self, target_size: QSize, parent: QWidget | None = None) -> None:  # noqa: D107
         super().__init__(parent)
+        enable_fluent_theme(self)
         self._target_size = target_size
 ```
 

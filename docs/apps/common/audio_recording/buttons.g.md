@@ -35,6 +35,7 @@ lang: en
   - [⚙️ Method `enterEvent`](#%EF%B8%8F-method-enterevent-3)
   - [⚙️ Method `leaveEvent`](#%EF%B8%8F-method-leaveevent-3)
   - [⚙️ Method `paintEvent`](#%EF%B8%8F-method-paintevent-3)
+- [🔧 Function `record_caption_stop_style`](#-function-record_caption_stop_style)
 
 </details>
 
@@ -845,6 +846,26 @@ def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802, ARG002
             corner_radius,
             corner_radius,
         )
+```
+
+</details>
+
+## 🔧 Function `record_caption_stop_style`
+
+```python
+def record_caption_stop_style() -> str
+```
+
+Theme-aware QSS for the recording stop-state caption.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def record_caption_stop_style() -> str:
+    from harrix_swiss_knife.apps.common.ui_chrome import record_caption_stop_qss  # noqa: PLC0415
+
+    return record_caption_stop_qss()
 ```
 
 </details>

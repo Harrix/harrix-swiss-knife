@@ -11,13 +11,54 @@ lang: en
 
 ## Contents
 
+- [🔧 Function `ensure_dark_theme_contrast_plate`](#-function-ensure_dark_theme_contrast_plate)
 - [🔧 Function `fitted_content_rect`](#-function-fitted_content_rect)
 - [🔧 Function `is_svg_path`](#-function-is_svg_path)
 - [🔧 Function `paint_svg_preview`](#-function-paint_svg_preview)
+- [🔧 Function `pixmap_content_is_dark`](#-function-pixmap_content_is_dark)
 - [🔧 Function `render_icon_to_image`](#-function-render_icon_to_image)
 - [🔧 Function `render_svg_to_image`](#-function-render_svg_to_image)
 - [🔧 Function `render_vector_document_to_image`](#-function-render_vector_document_to_image)
 - [🔧 Function `svg_needs_contrast_background`](#-function-svg_needs_contrast_background)
+
+</details>
+
+## 🔧 Function `ensure_dark_theme_contrast_plate`
+
+```python
+def ensure_dark_theme_contrast_plate(pixmap: QPixmap) -> QPixmap
+```
+
+Composite a rounded gray plate under dark artwork so it stays visible on dark chrome.
+
+White `*_white_*` thumbs already include a plate and average bright, so they are left alone.
+Light / colorful icons are also unchanged.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def ensure_dark_theme_contrast_plate(pixmap: QPixmap) -> QPixmap:
+    if pixmap.isNull() or not pixmap_content_is_dark(pixmap):
+        return pixmap
+    size = max(pixmap.width(), pixmap.height())
+    if size <= 0:
+        return pixmap
+    image = QImage(size, size, QImage.Format.Format_ARGB32_Premultiplied)
+    image.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(image)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
+    tile = QRectF(0, 0, size, size)
+    radius = max(4.0, size * PREVIEW_CORNER_RADIUS_RATIO)
+    path = QPainterPath()
+    path.addRoundedRect(tile, radius, radius)
+    painter.fillPath(path, PREVIEW_BACKGROUND)
+    inset = max(2.0, size * PREVIEW_ICON_INSET_RATIO)
+    target = tile.adjusted(inset, inset, -inset, -inset)
+    painter.drawPixmap(target.toRect(), pixmap)
+    painter.end()
+    return QPixmap.fromImage(image)
+```
 
 </details>
 
@@ -106,6 +147,42 @@ def paint_svg_preview(
     else:
         bounds = tile
     renderer.render(painter, fitted_content_rect(renderer, bounds))
+```
+
+</details>
+
+## 🔧 Function `pixmap_content_is_dark`
+
+```python
+def pixmap_content_is_dark(pixmap: QPixmap) -> bool
+```
+
+Return whether opaque pixels in `pixmap` are mostly dark (need a contrast plate).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def pixmap_content_is_dark(pixmap: QPixmap) -> bool:
+    if pixmap.isNull():
+        return False
+    image = pixmap.toImage()
+    if image.isNull():
+        return False
+    total = 0
+    weight = 0
+    step = _DARK_CONTENT_SAMPLE_STEP
+    for y in range(0, image.height(), step):
+        for x in range(0, image.width(), step):
+            color = image.pixelColor(x, y)
+            if color.alpha() < _DARK_CONTENT_ALPHA_MIN:
+                continue
+            # Rec. 601 luma
+            total += int(0.299 * color.red() + 0.587 * color.green() + 0.114 * color.blue())
+            weight += 1
+    if weight < _DARK_CONTENT_SAMPLE_MIN:
+        return False
+    return (total // weight) <= _DARK_CONTENT_LUMINANCE
 ```
 
 </details>

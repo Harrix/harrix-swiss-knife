@@ -52,6 +52,23 @@ class SoftCalendarWidget(QCalendarWidget):
         self._month_pick_year = QDate.currentDate().year()
         self._year_buttons: list[QPushButton] = []
         self._month_buttons: list[QPushButton] = []
+        self._weekday_labels: list[QLabel] = []
+        self._header_line: QFrame | None = None
+        self._footer_line: QFrame | None = None
+        self._c_surface = QColor("#ffffff")
+        self._c_text = QColor(SELECTION_TEXT)
+        self._c_muted = QColor(_DAY_OUTSIDE)
+        self._c_sel_border = QColor(SELECTION_BORDER)
+        self._c_sel_fill = QColor("#ffffff")
+        self._c_hover = QColor(SELECTION_HOVER)
+        self._c_today_fill = QColor(SELECTION_BG)
+        self._c_today_text = QColor(SELECTION_BORDER)
+        self._c_selected_text = QColor(SELECTION_TEXT)
+        self._c_footer_link = QColor(SELECTION_BORDER)
+        self._c_weekday = QColor(MUTED_TEXT)
+        self._c_nav_icon = QColor(MUTED_TEXT)
+        self._c_panel_border = QColor(_PANEL_BORDER)
+        self._c_header_sep = QColor(_HEADER_SEP)
 
         self.setVerticalHeaderFormat(QCalendarWidget.VerticalHeaderFormat.NoVerticalHeader)
         # Own weekday labels — QHeaderView collapses/overlaps after selection on Windows.
@@ -75,7 +92,6 @@ class SoftCalendarWidget(QCalendarWidget):
         self._title_month.setFlat(True)
         self._title_month.setFont(title_font)
         self._title_month.setProperty("_hskSkipFluentButton", True)  # noqa: FBT003
-        self._title_month.setStyleSheet(_title_chip_qss("hskCalendarMonth"))
         self._title_month.setToolTip("Choose month")
         self._title_month.clicked.connect(self._on_title_month_clicked)
 
@@ -85,7 +101,6 @@ class SoftCalendarWidget(QCalendarWidget):
         self._title_year.setFlat(True)
         self._title_year.setFont(title_font)
         self._title_year.setProperty("_hskSkipFluentButton", True)  # noqa: FBT003
-        self._title_year.setStyleSheet(_title_chip_qss("hskCalendarYear"))
         self._title_year.clicked.connect(self._on_title_year_clicked)
         self._title = self._title_year
 
@@ -119,11 +134,11 @@ class SoftCalendarWidget(QCalendarWidget):
         header_layout.addWidget(self._next_month)
         header_layout.addWidget(self._next_year)
 
-        header_line = _hairline(self)
+        self._header_line = _hairline(self)
         self._weekdays = self._build_weekdays()
         self._month_panel = self._build_month_panel()
         self._year_panel = self._build_year_panel()
-        footer_line = _hairline(self)
+        self._footer_line = _hairline(self)
 
         self._yesterday_button = self._footer_preset_button("Yesterday", self._go_yesterday)
         self._today_button = self._footer_preset_button("Today", self._go_today)
@@ -145,38 +160,14 @@ class SoftCalendarWidget(QCalendarWidget):
             root.setContentsMargins(8, 0, 8, 0)
             root.setSpacing(0)
             root.insertWidget(0, header)
-            root.insertWidget(1, header_line)
+            root.insertWidget(1, self._header_line)
             root.insertWidget(2, self._weekdays)
             root.insertWidget(3, self._month_panel)
             root.insertWidget(4, self._year_panel)
-            root.addWidget(footer_line)
+            root.addWidget(self._footer_line)
             root.addWidget(footer)
 
-        self.setStyleSheet(
-            f"""
-            SoftCalendarWidget {{
-                background: #ffffff;
-                border: 1px solid {_PANEL_BORDER};
-                border-radius: 8px;
-            }}
-            SoftCalendarWidget QWidget#hskCalendarHeader,
-            SoftCalendarWidget QWidget#hskCalendarFooter,
-            SoftCalendarWidget QWidget#hskCalendarWeekdays,
-            SoftCalendarWidget QWidget#hskCalendarYearPanel,
-            SoftCalendarWidget QWidget#hskCalendarMonthPanel,
-            SoftCalendarWidget QWidget#hskCalendarTitle {{
-                background: #ffffff;
-                border: none;
-            }}
-            SoftCalendarWidget QAbstractItemView {{
-                background: #ffffff;
-                outline: none;
-                border: none;
-                selection-background-color: transparent;
-                selection-color: {SELECTION_TEXT};
-            }}
-            """.strip()
-        )
+        bind_theme(self, self._refresh_theme_chrome)
 
         self._month_panel.hide()
         self._year_panel.hide()
@@ -211,7 +202,7 @@ class SoftCalendarWidget(QCalendarWidget):
         self._painted_cells.append((QRect(rect), date))
         painter.save()
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
-        painter.fillRect(rect, QColor("#ffffff"))
+        painter.fillRect(rect, self._c_surface)
 
         selected = date == self.selectedDate()
         today = date == QDate.currentDate()
@@ -220,24 +211,24 @@ class SoftCalendarWidget(QCalendarWidget):
         cell = rect.adjusted(3, 3, -3, -3)
 
         if selected:
-            painter.setPen(QPen(QColor(SELECTION_BORDER), 1.5))
-            painter.setBrush(QColor("#ffffff"))
+            painter.setPen(QPen(self._c_sel_border, 1.5))
+            painter.setBrush(self._c_sel_fill)
             painter.drawRoundedRect(cell, 4, 4)
-            text_color = QColor(SELECTION_TEXT)
+            text_color = self._c_selected_text
         elif today:
             painter.setPen(Qt.PenStyle.NoPen)
-            painter.setBrush(QColor(SELECTION_BG))
+            painter.setBrush(self._c_today_fill)
             painter.drawRoundedRect(cell, 4, 4)
-            text_color = QColor(SELECTION_BORDER)
+            text_color = self._c_today_text
         elif hovered:
             painter.setPen(Qt.PenStyle.NoPen)
-            painter.setBrush(QColor(SELECTION_HOVER))
+            painter.setBrush(self._c_hover)
             painter.drawRoundedRect(cell, 4, 4)
-            text_color = QColor(SELECTION_TEXT if in_month else _DAY_OUTSIDE)
+            text_color = self._c_text if in_month else self._c_muted
         elif in_month:
-            text_color = QColor(SELECTION_TEXT)
+            text_color = self._c_text
         else:
-            text_color = QColor(_DAY_OUTSIDE)
+            text_color = self._c_muted
 
         painter.setPen(text_color)
         painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, str(date.day()))
@@ -302,12 +293,24 @@ class SoftCalendarWidget(QCalendarWidget):
             label = QLabel(_UI_LOCALE.dayName(day, QLocale.FormatType.ShortFormat))
             label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             label.setStyleSheet(f"color: {MUTED_TEXT}; background: transparent; border: none;")
+            self._weekday_labels.append(label)
             layout.addWidget(label, stretch=1)
         return row
 
     def _build_year_panel(self) -> QWidget:
         panel, self._year_buttons = self._build_choice_grid("hskCalendarYearPanel", self._on_year_button_clicked)
         return panel
+
+    def _cell_chrome_qss(self) -> dict[str, QColor]:
+        return {
+            "text": self._c_text,
+            "muted_text": self._c_muted,
+            "surface": self._c_sel_fill,
+            "border": self._c_sel_border,
+            "hover": self._c_hover,
+            "today_fill": self._c_today_fill,
+            "today_text": self._c_today_text,
+        }
 
     def _date_at(self, row: int, column: int) -> QDate | None:
         if row < 0 or column < 0 or row >= _WEEK_ROWS or column >= _WEEK_COLUMNS:
@@ -464,6 +467,7 @@ class SoftCalendarWidget(QCalendarWidget):
 
     def _rebuild_month_cells(self) -> None:
         today = QDate.currentDate()
+        chrome = self._cell_chrome_qss()
         for month in range(1, _MONTHS_IN_YEAR + 1):
             button = self._month_buttons[month - 1]
             label = _UI_LOCALE.toString(QDate(2000, month, 1), "MMM")
@@ -471,19 +475,162 @@ class SoftCalendarWidget(QCalendarWidget):
             is_current = month == today.month() and self._month_pick_year == today.year()
             button.setText(label)
             button.setProperty("hskMonth", month)
-            button.setStyleSheet(_year_cell_qss(muted=False, selected=selected, current=is_current))
+            button.setStyleSheet(_year_cell_qss(muted=False, selected=selected, current=is_current, **chrome))
 
     def _rebuild_year_cells(self) -> None:
         _start, years = decade_panel_years(self._decade_start)
         selected_year = self.yearShown()
         current_year = QDate.currentDate().year()
+        chrome = self._cell_chrome_qss()
         for button, year in zip(self._year_buttons, years, strict=True):
             muted = year < self._decade_start or year >= self._decade_start + _DECADE_LENGTH
             selected = year == selected_year
             is_current = year == current_year
             button.setText(str(year))
             button.setProperty("hskYear", year)
-            button.setStyleSheet(_year_cell_qss(muted=muted, selected=selected, current=is_current))
+            button.setStyleSheet(_year_cell_qss(muted=muted, selected=selected, current=is_current, **chrome))
+
+    def _refresh_theme_chrome(self) -> None:
+        palette = palette_for(self)
+        if palette.dark:
+            window = palette.window_bg
+            surface = mix(window, palette.card_bg)
+            text = mix(window, palette.text_primary)
+            muted = mix(window, palette.text_tertiary)
+            sel_border = mix(window, palette.accent)
+            sel_fill = surface
+            hover = list_item_hover(palette)
+            today_fill = list_item_selected(palette)
+            today_text = mix(window, palette.accent_text)
+            footer_link = mix(window, palette.accent_text)
+            weekday = mix(window, palette.text_secondary)
+            nav_icon = mix(window, palette.text_secondary)
+            panel_border = mix(window, palette.layer_stroke)
+            header_sep = mix(window, palette.divider)
+            chip_hover_text = mix(window, palette.accent_text)
+            self._c_surface = surface
+            self._c_text = text
+            self._c_muted = muted
+            self._c_sel_border = sel_border
+            self._c_sel_fill = sel_fill
+            self._c_hover = hover
+            self._c_today_fill = today_fill
+            self._c_today_text = today_text
+            self._c_selected_text = text
+            self._c_footer_link = footer_link
+            self._c_weekday = weekday
+            self._c_nav_icon = nav_icon
+            self._c_panel_border = panel_border
+            self._c_header_sep = header_sep
+        else:
+            self._c_surface = QColor("#ffffff")
+            self._c_text = QColor(SELECTION_TEXT)
+            self._c_muted = QColor(_DAY_OUTSIDE)
+            self._c_sel_border = QColor(SELECTION_BORDER)
+            self._c_sel_fill = QColor("#ffffff")
+            self._c_hover = QColor(SELECTION_HOVER)
+            self._c_today_fill = QColor(SELECTION_BG)
+            self._c_today_text = QColor(SELECTION_BORDER)
+            self._c_selected_text = QColor(SELECTION_TEXT)
+            self._c_footer_link = QColor(SELECTION_BORDER)
+            self._c_weekday = QColor(MUTED_TEXT)
+            self._c_nav_icon = QColor(MUTED_TEXT)
+            self._c_panel_border = QColor(_PANEL_BORDER)
+            self._c_header_sep = QColor(_HEADER_SEP)
+            chip_hover_text = QColor(SELECTION_BORDER)
+
+        surface_s = css(self._c_surface)
+        text_s = css(self._c_text)
+        border_s = css(self._c_panel_border)
+        sep_s = css(self._c_header_sep)
+        hover_s = css(self._c_hover)
+        chip_hover_text_s = css(chip_hover_text)
+        footer_link_s = css(self._c_footer_link)
+        weekday_s = css(self._c_weekday)
+
+        self.setStyleSheet(
+            f"""
+            SoftCalendarWidget {{
+                background: {surface_s};
+                border: 1px solid {border_s};
+                border-radius: 8px;
+            }}
+            SoftCalendarWidget QWidget#hskCalendarHeader,
+            SoftCalendarWidget QWidget#hskCalendarFooter,
+            SoftCalendarWidget QWidget#hskCalendarWeekdays,
+            SoftCalendarWidget QWidget#hskCalendarYearPanel,
+            SoftCalendarWidget QWidget#hskCalendarMonthPanel,
+            SoftCalendarWidget QWidget#hskCalendarTitle {{
+                background: {surface_s};
+                border: none;
+            }}
+            SoftCalendarWidget QAbstractItemView {{
+                background: {surface_s};
+                outline: none;
+                border: none;
+                selection-background-color: transparent;
+                selection-color: {text_s};
+            }}
+            """.strip()
+        )
+
+        chip = _title_chip_qss(
+            "hskCalendarMonth",
+            text=text_s,
+            hover_bg=hover_s,
+            hover_text=chip_hover_text_s,
+        )
+        self._title_month.setStyleSheet(chip)
+        self._title_year.setStyleSheet(
+            _title_chip_qss("hskCalendarYear", text=text_s, hover_bg=hover_s, hover_text=chip_hover_text_s)
+        )
+
+        hairline_qss = f"background-color: {sep_s}; border: none; color: {sep_s};"
+        if self._header_line is not None:
+            self._header_line.setStyleSheet(hairline_qss)
+        if self._footer_line is not None:
+            self._footer_line.setStyleSheet(hairline_qss)
+
+        for label in self._weekday_labels:
+            label.setStyleSheet(f"color: {weekday_s}; background: transparent; border: none;")
+
+        footer_qss = (
+            f"QPushButton {{ color: {footer_link_s}; border: none; background: transparent;"
+            " padding: 8px 4px; font-weight: 500; }"
+            f"QPushButton:hover {{ color: {text_s}; background: {hover_s}; }}"
+        )
+        for button in (
+            self._yesterday_button,
+            self._today_button,
+            self._plus_day_button,
+            self._minus_day_button,
+        ):
+            button.setStyleSheet(footer_qss)
+
+        nav_qss = (
+            "QToolButton { border: none; border-radius: 4px; background: transparent; padding: 4px; }"
+            f"QToolButton:hover {{ background: {hover_s}; }}"
+        )
+        for button in (self._prev_year, self._prev_month, self._next_month, self._next_year):
+            button.setStyleSheet(nav_qss)
+            icon_name = {
+                self._prev_year: "chevrons-left",
+                self._prev_month: "chevron-left",
+                self._next_month: "chevron-right",
+                self._next_year: "chevrons-right",
+            }[button]
+            button.setIcon(create_lucide_icon(icon_name, _NAV_ICON_SIZE, color=self._c_nav_icon))
+
+        if self._panel_mode == _PANEL_MONTH_PICK:
+            self._rebuild_month_cells()
+        elif self._panel_mode == _PANEL_YEAR:
+            self._rebuild_year_cells()
+
+        view = self._grid_view
+        if view is None:
+            view = self.findChild(QTableView, "qt_calendar_calendarview")
+        if view is not None and view.viewport() is not None:
+            view.viewport().update()
 
     def _refresh_title(self, *_args: object) -> None:
         page = QDate(self.yearShown(), self.monthShown(), 1)
@@ -629,6 +776,23 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self._month_pick_year = QDate.currentDate().year()
         self._year_buttons: list[QPushButton] = []
         self._month_buttons: list[QPushButton] = []
+        self._weekday_labels: list[QLabel] = []
+        self._header_line: QFrame | None = None
+        self._footer_line: QFrame | None = None
+        self._c_surface = QColor("#ffffff")
+        self._c_text = QColor(SELECTION_TEXT)
+        self._c_muted = QColor(_DAY_OUTSIDE)
+        self._c_sel_border = QColor(SELECTION_BORDER)
+        self._c_sel_fill = QColor("#ffffff")
+        self._c_hover = QColor(SELECTION_HOVER)
+        self._c_today_fill = QColor(SELECTION_BG)
+        self._c_today_text = QColor(SELECTION_BORDER)
+        self._c_selected_text = QColor(SELECTION_TEXT)
+        self._c_footer_link = QColor(SELECTION_BORDER)
+        self._c_weekday = QColor(MUTED_TEXT)
+        self._c_nav_icon = QColor(MUTED_TEXT)
+        self._c_panel_border = QColor(_PANEL_BORDER)
+        self._c_header_sep = QColor(_HEADER_SEP)
 
         self.setVerticalHeaderFormat(QCalendarWidget.VerticalHeaderFormat.NoVerticalHeader)
         # Own weekday labels — QHeaderView collapses/overlaps after selection on Windows.
@@ -652,7 +816,6 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self._title_month.setFlat(True)
         self._title_month.setFont(title_font)
         self._title_month.setProperty("_hskSkipFluentButton", True)  # noqa: FBT003
-        self._title_month.setStyleSheet(_title_chip_qss("hskCalendarMonth"))
         self._title_month.setToolTip("Choose month")
         self._title_month.clicked.connect(self._on_title_month_clicked)
 
@@ -662,7 +825,6 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self._title_year.setFlat(True)
         self._title_year.setFont(title_font)
         self._title_year.setProperty("_hskSkipFluentButton", True)  # noqa: FBT003
-        self._title_year.setStyleSheet(_title_chip_qss("hskCalendarYear"))
         self._title_year.clicked.connect(self._on_title_year_clicked)
         self._title = self._title_year
 
@@ -696,11 +858,11 @@ def __init__(self, parent: QWidget | None = None) -> None:
         header_layout.addWidget(self._next_month)
         header_layout.addWidget(self._next_year)
 
-        header_line = _hairline(self)
+        self._header_line = _hairline(self)
         self._weekdays = self._build_weekdays()
         self._month_panel = self._build_month_panel()
         self._year_panel = self._build_year_panel()
-        footer_line = _hairline(self)
+        self._footer_line = _hairline(self)
 
         self._yesterday_button = self._footer_preset_button("Yesterday", self._go_yesterday)
         self._today_button = self._footer_preset_button("Today", self._go_today)
@@ -722,38 +884,14 @@ def __init__(self, parent: QWidget | None = None) -> None:
             root.setContentsMargins(8, 0, 8, 0)
             root.setSpacing(0)
             root.insertWidget(0, header)
-            root.insertWidget(1, header_line)
+            root.insertWidget(1, self._header_line)
             root.insertWidget(2, self._weekdays)
             root.insertWidget(3, self._month_panel)
             root.insertWidget(4, self._year_panel)
-            root.addWidget(footer_line)
+            root.addWidget(self._footer_line)
             root.addWidget(footer)
 
-        self.setStyleSheet(
-            f"""
-            SoftCalendarWidget {{
-                background: #ffffff;
-                border: 1px solid {_PANEL_BORDER};
-                border-radius: 8px;
-            }}
-            SoftCalendarWidget QWidget#hskCalendarHeader,
-            SoftCalendarWidget QWidget#hskCalendarFooter,
-            SoftCalendarWidget QWidget#hskCalendarWeekdays,
-            SoftCalendarWidget QWidget#hskCalendarYearPanel,
-            SoftCalendarWidget QWidget#hskCalendarMonthPanel,
-            SoftCalendarWidget QWidget#hskCalendarTitle {{
-                background: #ffffff;
-                border: none;
-            }}
-            SoftCalendarWidget QAbstractItemView {{
-                background: #ffffff;
-                outline: none;
-                border: none;
-                selection-background-color: transparent;
-                selection-color: {SELECTION_TEXT};
-            }}
-            """.strip()
-        )
+        bind_theme(self, self._refresh_theme_chrome)
 
         self._month_panel.hide()
         self._year_panel.hide()
@@ -830,7 +968,7 @@ def paintCell(self, painter: QPainter, rect: QRect, date: QDate) -> None:  # noq
         self._painted_cells.append((QRect(rect), date))
         painter.save()
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
-        painter.fillRect(rect, QColor("#ffffff"))
+        painter.fillRect(rect, self._c_surface)
 
         selected = date == self.selectedDate()
         today = date == QDate.currentDate()
@@ -839,24 +977,24 @@ def paintCell(self, painter: QPainter, rect: QRect, date: QDate) -> None:  # noq
         cell = rect.adjusted(3, 3, -3, -3)
 
         if selected:
-            painter.setPen(QPen(QColor(SELECTION_BORDER), 1.5))
-            painter.setBrush(QColor("#ffffff"))
+            painter.setPen(QPen(self._c_sel_border, 1.5))
+            painter.setBrush(self._c_sel_fill)
             painter.drawRoundedRect(cell, 4, 4)
-            text_color = QColor(SELECTION_TEXT)
+            text_color = self._c_selected_text
         elif today:
             painter.setPen(Qt.PenStyle.NoPen)
-            painter.setBrush(QColor(SELECTION_BG))
+            painter.setBrush(self._c_today_fill)
             painter.drawRoundedRect(cell, 4, 4)
-            text_color = QColor(SELECTION_BORDER)
+            text_color = self._c_today_text
         elif hovered:
             painter.setPen(Qt.PenStyle.NoPen)
-            painter.setBrush(QColor(SELECTION_HOVER))
+            painter.setBrush(self._c_hover)
             painter.drawRoundedRect(cell, 4, 4)
-            text_color = QColor(SELECTION_TEXT if in_month else _DAY_OUTSIDE)
+            text_color = self._c_text if in_month else self._c_muted
         elif in_month:
-            text_color = QColor(SELECTION_TEXT)
+            text_color = self._c_text
         else:
-            text_color = QColor(_DAY_OUTSIDE)
+            text_color = self._c_muted
 
         painter.setPen(text_color)
         painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, str(date.day()))

@@ -36,13 +36,13 @@ class Ui_MainWindow(object):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Fitness tracker", None))
         self.actionAbout.setText(QCoreApplication.translate("MainWindow", u"About", None))
         self.actionExit.setText(QCoreApplication.translate("MainWindow", u"Exit", None))
-        self.actionShow_All_Set_Records.setText(QCoreApplication.translate("MainWindow", u"\U0001f4cb Show All Set Records", None))
-        self.actionRefresh_Set_Table.setText(QCoreApplication.translate("MainWindow", u"\U0001f504 Refresh Set Table", None))
-        self.actionExport_Set_Table.setText(QCoreApplication.translate("MainWindow", u"\U0001f4e4 Export Set Table", None))
+        self.actionShow_All_Set_Records.setText(QCoreApplication.translate("MainWindow", u"\ud83d\udccb Show All Set Records", None))
+        self.actionRefresh_Set_Table.setText(QCoreApplication.translate("MainWindow", u"\ud83d\udd04 Refresh Set Table", None))
+        self.actionExport_Set_Table.setText(QCoreApplication.translate("MainWindow", u"\ud83d\udce4 Export Set Table", None))
         self.actionAdd_Exercise.setText(QCoreApplication.translate("MainWindow", u"\u2795 Add Exercise", None))
-        self.actionRefresh_Exercises_Table.setText(QCoreApplication.translate("MainWindow", u"\U0001f504 Refresh Exercises Table", None))
+        self.actionRefresh_Exercises_Table.setText(QCoreApplication.translate("MainWindow", u"\ud83d\udd04 Refresh Exercises Table", None))
         self.actionAdd_Exercise_Type.setText(QCoreApplication.translate("MainWindow", u"\u2795 Add Exercise Type", None))
-        self.actionRefresh_Types_Table.setText(QCoreApplication.translate("MainWindow", u"\U0001f504 Refresh Types Table", None))
+        self.actionRefresh_Types_Table.setText(QCoreApplication.translate("MainWindow", u"\ud83d\udd04 Refresh Types Table", None))
         self.groupBox.setTitle(QCoreApplication.translate("MainWindow", u"Set parameters", None))
         self.label_exercise.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
         self.label_last_date_count_today.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
@@ -69,7 +69,7 @@ class Ui_MainWindow(object):
 #if QT_CONFIG(tooltip)
         self.pushButton_clear_filter.setToolTip(QCoreApplication.translate("MainWindow", u"Clear filter", None))
 #endif // QT_CONFIG(tooltip)
-        self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", u"\U0001f9f9", None))
+        self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", u"\ud83e\uddf9", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), QCoreApplication.translate("MainWindow", u"Sets", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_workouts), QCoreApplication.translate("MainWindow", u"Workouts", None))
         self.label_chart_exercise.setText(QCoreApplication.translate("MainWindow", u"Exercise:", None))
@@ -210,9 +210,6 @@ class Ui_MainWindow(object):
         font1.setPointSize(12)
         font1.setBold(True)
         self.spinBox_count.setFont(font1)
-        self.spinBox_count.setStyleSheet(u"QSpinBox {\n"
-"                                          background-color: #e8f4fc;\n"
-"                                          }")
         self.spinBox_count.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
         self.spinBox_count.setMaximum(1000000)
         self.spinBox_count.setValue(100)
@@ -296,14 +293,14 @@ class Ui_MainWindow(object):
 "                                      padding: 5px 14px;\n"
 "                                      }\n"
 "                                      QPushButton:hover {\n"
-"                                      background-color: #2e86b7;\n"
+"                                      background-color: #3a78bc;\n"
 "                                      color: #ffffff;\n"
-"                                      border-color: #2e86b7;\n"
+"                                      border-color: #3a78bc;\n"
 "                                      }\n"
 "                                      QPushButton:pressed {\n"
-"                                      background-color: #1a5f7a;\n"
+"                                      background-color: #2a5687;\n"
 "                                      color: #ffffff;\n"
-"                                      border-color: #1a5f7a;\n"
+"                                      border-color: #2a5687;\n"
 "                                      }")
 
         self.verticalLayout_5.addWidget(self.pushButton_add_by_voice)
@@ -1139,13 +1136,13 @@ def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Fitness tracker", None))
         self.actionAbout.setText(QCoreApplication.translate("MainWindow", u"About", None))
         self.actionExit.setText(QCoreApplication.translate("MainWindow", u"Exit", None))
-        self.actionShow_All_Set_Records.setText(QCoreApplication.translate("MainWindow", u"\U0001f4cb Show All Set Records", None))
-        self.actionRefresh_Set_Table.setText(QCoreApplication.translate("MainWindow", u"\U0001f504 Refresh Set Table", None))
-        self.actionExport_Set_Table.setText(QCoreApplication.translate("MainWindow", u"\U0001f4e4 Export Set Table", None))
+        self.actionShow_All_Set_Records.setText(QCoreApplication.translate("MainWindow", u"\ud83d\udccb Show All Set Records", None))
+        self.actionRefresh_Set_Table.setText(QCoreApplication.translate("MainWindow", u"\ud83d\udd04 Refresh Set Table", None))
+        self.actionExport_Set_Table.setText(QCoreApplication.translate("MainWindow", u"\ud83d\udce4 Export Set Table", None))
         self.actionAdd_Exercise.setText(QCoreApplication.translate("MainWindow", u"\u2795 Add Exercise", None))
-        self.actionRefresh_Exercises_Table.setText(QCoreApplication.translate("MainWindow", u"\U0001f504 Refresh Exercises Table", None))
+        self.actionRefresh_Exercises_Table.setText(QCoreApplication.translate("MainWindow", u"\ud83d\udd04 Refresh Exercises Table", None))
         self.actionAdd_Exercise_Type.setText(QCoreApplication.translate("MainWindow", u"\u2795 Add Exercise Type", None))
-        self.actionRefresh_Types_Table.setText(QCoreApplication.translate("MainWindow", u"\U0001f504 Refresh Types Table", None))
+        self.actionRefresh_Types_Table.setText(QCoreApplication.translate("MainWindow", u"\ud83d\udd04 Refresh Types Table", None))
         self.groupBox.setTitle(QCoreApplication.translate("MainWindow", u"Set parameters", None))
         self.label_exercise.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
         self.label_last_date_count_today.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
@@ -1172,7 +1169,7 @@ def retranslateUi(self, MainWindow):
 #if QT_CONFIG(tooltip)
         self.pushButton_clear_filter.setToolTip(QCoreApplication.translate("MainWindow", u"Clear filter", None))
 #endif // QT_CONFIG(tooltip)
-        self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", u"\U0001f9f9", None))
+        self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", u"\ud83e\uddf9", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), QCoreApplication.translate("MainWindow", u"Sets", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_workouts), QCoreApplication.translate("MainWindow", u"Workouts", None))
         self.label_chart_exercise.setText(QCoreApplication.translate("MainWindow", u"Exercise:", None))
@@ -1329,9 +1326,6 @@ def setupUi(self, MainWindow):
         font1.setPointSize(12)
         font1.setBold(True)
         self.spinBox_count.setFont(font1)
-        self.spinBox_count.setStyleSheet(u"QSpinBox {\n"
-"                                          background-color: #e8f4fc;\n"
-"                                          }")
         self.spinBox_count.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
         self.spinBox_count.setMaximum(1000000)
         self.spinBox_count.setValue(100)
@@ -1415,14 +1409,14 @@ def setupUi(self, MainWindow):
 "                                      padding: 5px 14px;\n"
 "                                      }\n"
 "                                      QPushButton:hover {\n"
-"                                      background-color: #2e86b7;\n"
+"                                      background-color: #3a78bc;\n"
 "                                      color: #ffffff;\n"
-"                                      border-color: #2e86b7;\n"
+"                                      border-color: #3a78bc;\n"
 "                                      }\n"
 "                                      QPushButton:pressed {\n"
-"                                      background-color: #1a5f7a;\n"
+"                                      background-color: #2a5687;\n"
 "                                      color: #ffffff;\n"
-"                                      border-color: #1a5f7a;\n"
+"                                      border-color: #2a5687;\n"
 "                                      }")
 
         self.verticalLayout_5.addWidget(self.pushButton_add_by_voice)

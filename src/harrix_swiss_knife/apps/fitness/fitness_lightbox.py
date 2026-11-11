@@ -62,10 +62,9 @@ from harrix_swiss_knife.apps.fitness.lightbox_sounds import (
     play_fitness_timer_cue,
     stop_fitness_timer_alert,
 )
+from harrix_swiss_knife.fluent.theme import bind_theme, css, mix, palette_for
 from harrix_swiss_knife.qt_compact_spin_box import CompactSpinBox as QSpinBox
 from harrix_swiss_knife.qt_lucide_icon import apply_lucide_button_icon
-from harrix_swiss_knife.fluent.theme import bind_theme, css, mix, palette_for
-from harrix_swiss_knife.fluent.tokens import FluentPalette
 from harrix_swiss_knife.qt_toolbar_style import (
     TOOLBAR_BORDER_RADIUS,
     TOOLBAR_BUTTON_GAP,
@@ -76,6 +75,7 @@ from harrix_swiss_knife.qt_toolbar_style import (
 if TYPE_CHECKING:
     from harrix_swiss_knife.apps.common.avif_manager import AvifManager
     from harrix_swiss_knife.apps.fitness.database_manager import WorkoutItemRow
+    from harrix_swiss_knife.fluent.tokens import FluentPalette
 
 _SIDEBAR_MIN_WIDTH = 260
 _SIDEBAR_WIDTH = 300
@@ -447,27 +447,6 @@ class FitnessLightboxSidebar(QFrame):
         self._backdrop_dark = color == "black"
         self._refresh_sidebar_theme()
         self._apply_snapshot(self._stopwatch.snapshot())
-
-    def _refresh_sidebar_theme(self) -> None:
-        """Re-theme sidebar controls for Fluent light/dark (not only AVIF backdrop)."""
-        palette = palette_for(self)
-        value_style = _fitness_lightbox_value_qss(palette)
-        for spin in (
-            self._value_spin,
-            self._value_minutes_spin,
-            self._value_seconds_spin,
-        ):
-            spin.setStyleSheet(value_style)
-        self._type_combo.setStyleSheet(_fitness_lightbox_type_qss(palette))
-        if palette.dark:
-            title = css(mix(palette.window_bg, palette.text_primary))
-            muted = css(mix(palette.window_bg, palette.text_secondary))
-        else:
-            title = _COLOR_TITLE_ON_DARK if self._backdrop_dark else _COLOR_TITLE
-            muted = _COLOR_MUTED_ON_DARK if self._backdrop_dark else _COLOR_MUTED
-        self._title.setStyleSheet(f"color: {title}; background: transparent;")
-        self._limit_label.setStyleSheet(f"color: {muted};")
-        self._unit_label.setStyleSheet(f"color: {muted};")
 
     def bind(
         self,
@@ -885,6 +864,27 @@ class FitnessLightboxSidebar(QFrame):
         self._configure_limit_for_exercise(self._bound_unit, self._planned_value)
         self._apply_snapshot(self._stopwatch.snapshot())
 
+    def _refresh_sidebar_theme(self) -> None:
+        """Re-theme sidebar controls for Fluent light/dark (not only AVIF backdrop)."""
+        palette = palette_for(self)
+        value_style = _fitness_lightbox_value_qss(palette)
+        for spin in (
+            self._value_spin,
+            self._value_minutes_spin,
+            self._value_seconds_spin,
+        ):
+            spin.setStyleSheet(value_style)
+        self._type_combo.setStyleSheet(_fitness_lightbox_type_qss(palette))
+        if palette.dark:
+            title = css(mix(palette.window_bg, palette.text_primary))
+            muted = css(mix(palette.window_bg, palette.text_secondary))
+        else:
+            title = _COLOR_TITLE_ON_DARK if self._backdrop_dark else _COLOR_TITLE
+            muted = _COLOR_MUTED_ON_DARK if self._backdrop_dark else _COLOR_MUTED
+        self._title.setStyleSheet(f"color: {title}; background: transparent;")
+        self._limit_label.setStyleSheet(f"color: {muted};")
+        self._unit_label.setStyleSheet(f"color: {muted};")
+
     def _refresh_timer_button_icon(self, button: QPushButton) -> None:
         """Repaint the Lucide icon active or muted to match enabled state."""
         name = button.property("_fitness_timer_icon")
@@ -1115,6 +1115,70 @@ def _apply_pixel_font(
     widget.setFont(font)
 
 
+def _fitness_lightbox_type_qss(palette: FluentPalette) -> str:
+    fill = css(mix(palette.window_bg, palette.control_fill_input_active))
+    border = css(mix(palette.window_bg, palette.control_stroke))
+    text = css(mix(palette.window_bg, palette.text_primary))
+    accent = css(mix(palette.window_bg, palette.accent))
+    popup = css(mix(palette.window_bg, palette.card_bg))
+    selection_bg = css(mix(palette.window_bg, palette.accent))
+    return f"""
+QComboBox#fitnessLightboxTypeCombo {{
+    background: {fill};
+    border: 1px solid {border};
+    border-radius: 12px;
+    padding: 6px 32px 6px 12px;
+    color: {text};
+}}
+QComboBox#fitnessLightboxTypeCombo:focus,
+QComboBox#fitnessLightboxTypeCombo:on {{
+    border-color: {accent};
+}}
+QComboBox#fitnessLightboxTypeCombo::drop-down {{
+    subcontrol-origin: padding;
+    subcontrol-position: center right;
+    width: 28px;
+    border: none;
+    background: transparent;
+}}
+QComboBox#fitnessLightboxTypeCombo::down-arrow {{
+    image: none;
+    width: 0;
+    height: 0;
+}}
+QComboBox#fitnessLightboxTypeCombo QAbstractItemView {{
+    background: {popup};
+    border: 1px solid {border};
+    outline: none;
+    selection-background-color: {selection_bg};
+    selection-color: {text};
+}}
+""".strip()
+
+
+def _fitness_lightbox_value_qss(palette: FluentPalette) -> str:
+    fill = css(mix(palette.window_bg, palette.control_fill_input_active))
+    border = css(mix(palette.window_bg, palette.control_stroke))
+    text = css(mix(palette.window_bg, palette.text_primary))
+    accent = css(mix(palette.window_bg, palette.accent))
+    return f"""
+QSpinBox#fitnessLightboxValueSpin,
+QSpinBox#fitnessLightboxValueMinutesSpin,
+QSpinBox#fitnessLightboxValueSecondsSpin {{
+    background: {fill};
+    border: 2px solid {border};
+    border-radius: 16px;
+    padding: 8px 12px;
+    color: {text};
+}}
+QSpinBox#fitnessLightboxValueSpin:focus,
+QSpinBox#fitnessLightboxValueMinutesSpin:focus,
+QSpinBox#fitnessLightboxValueSecondsSpin:focus {{
+    border-color: {accent};
+}}
+""".strip()
+
+
 def _fitness_splitter_style(fill: str) -> str:
     return f"""
 QSplitter#fitnessLightboxSplitter {{
@@ -1210,69 +1274,6 @@ QFrame#fitnessLightboxPane {
 }
 """
 
-
-def _fitness_lightbox_value_qss(palette: FluentPalette) -> str:
-    fill = css(mix(palette.window_bg, palette.control_fill_input_active))
-    border = css(mix(palette.window_bg, palette.control_stroke))
-    text = css(mix(palette.window_bg, palette.text_primary))
-    accent = css(mix(palette.window_bg, palette.accent))
-    return f"""
-QSpinBox#fitnessLightboxValueSpin,
-QSpinBox#fitnessLightboxValueMinutesSpin,
-QSpinBox#fitnessLightboxValueSecondsSpin {{
-    background: {fill};
-    border: 2px solid {border};
-    border-radius: 16px;
-    padding: 8px 12px;
-    color: {text};
-}}
-QSpinBox#fitnessLightboxValueSpin:focus,
-QSpinBox#fitnessLightboxValueMinutesSpin:focus,
-QSpinBox#fitnessLightboxValueSecondsSpin:focus {{
-    border-color: {accent};
-}}
-""".strip()
-
-
-def _fitness_lightbox_type_qss(palette: FluentPalette) -> str:
-    fill = css(mix(palette.window_bg, palette.control_fill_input_active))
-    border = css(mix(palette.window_bg, palette.control_stroke))
-    text = css(mix(palette.window_bg, palette.text_primary))
-    accent = css(mix(palette.window_bg, palette.accent))
-    popup = css(mix(palette.window_bg, palette.card_bg))
-    selection_bg = css(mix(palette.window_bg, palette.accent))
-    return f"""
-QComboBox#fitnessLightboxTypeCombo {{
-    background: {fill};
-    border: 1px solid {border};
-    border-radius: 12px;
-    padding: 6px 32px 6px 12px;
-    color: {text};
-}}
-QComboBox#fitnessLightboxTypeCombo:focus,
-QComboBox#fitnessLightboxTypeCombo:on {{
-    border-color: {accent};
-}}
-QComboBox#fitnessLightboxTypeCombo::drop-down {{
-    subcontrol-origin: padding;
-    subcontrol-position: center right;
-    width: 28px;
-    border: none;
-    background: transparent;
-}}
-QComboBox#fitnessLightboxTypeCombo::down-arrow {{
-    image: none;
-    width: 0;
-    height: 0;
-}}
-QComboBox#fitnessLightboxTypeCombo QAbstractItemView {{
-    background: {popup};
-    border: 1px solid {border};
-    outline: none;
-    selection-background-color: {selection_bg};
-    selection-color: {text};
-}}
-""".strip()
 
 _ADD_BUTTON_STYLE = """
 QPushButton#fitnessLightboxAddButton {

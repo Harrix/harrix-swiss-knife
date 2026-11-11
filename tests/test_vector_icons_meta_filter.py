@@ -98,4 +98,4 @@ def test_meta_chrome_dark_keeps_plain_tags_readable() -> None:
     assert chrome.plain.startswith("rgba(")
     assert chrome.plain in html
     assert chrome.chip_bg in html
-    assert meta_chrome_for_palette(LIGHT_PALETTE).chip_bg == "#e8f4fc"
+    assert meta_chrome_for_palette(LIGHT_PALETTE).chip_bg == "#eaf1f8"

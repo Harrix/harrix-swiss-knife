@@ -357,7 +357,7 @@ def apply_menu_icon_size(menu: QMenu, icon_size: int = DEFAULT_LUCIDE_MENU_ICON_
 def create_ai_lucide_icon(size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE) -> QIcon
 ```
 
-Create the shared AI chrome icon (`sparkles` in `#2e86b7`).
+Create the shared AI chrome icon (`sparkles` in `#3a78bc`).
 
 <details>
 <summary>Code:</summary>

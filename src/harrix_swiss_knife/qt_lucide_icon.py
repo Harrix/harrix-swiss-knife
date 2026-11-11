@@ -73,7 +73,7 @@ DELETE_BUTTON_ICON = "trash"
 AI_BUTTON_ICON = "sparkles"
 
 # Harrix CodeStyle vector palette (style__vector-images.md).
-LUCIDE_COLOR_BLUE = "#2e86b7"
+LUCIDE_COLOR_BLUE = "#3a78bc"
 LUCIDE_COLOR_CYAN = "#79b1d1"
 LUCIDE_COLOR_TURQUOISE = "#038387"
 LUCIDE_COLOR_GREEN = "#4caf50"
@@ -477,7 +477,7 @@ def apply_menu_icon_size(menu: QMenu, icon_size: int = DEFAULT_LUCIDE_MENU_ICON_
 
 
 def create_ai_lucide_icon(size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE) -> QIcon:
-    """Create the shared AI chrome icon (`sparkles` in `#2e86b7`)."""
+    """Create the shared AI chrome icon (`sparkles` in `#3a78bc`)."""
     return create_lucide_icon(AI_BUTTON_ICON, size, color=AI_BUTTON_ICON_COLOR)
 
 

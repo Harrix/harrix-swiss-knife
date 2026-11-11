@@ -17,6 +17,7 @@ lang: en
 - [🔧 Function `prepare_fluent_app_window`](#-function-prepare_fluent_app_window)
 - [🔧 Function `refresh_fluent_app_window`](#-function-refresh_fluent_app_window)
 - [🔧 Function `style_fluent_item_view`](#-function-style_fluent_item_view)
+- [🔧 Function `style_fluent_table`](#-function-style_fluent_table)
 
 </details>
 
@@ -194,6 +195,29 @@ empty sheet re-polishes the widget onto the system palette (black ink).
 ```python
 def style_fluent_item_view(view: QAbstractItemView, palette: FluentPalette | None = None) -> None:
     _style_item_view(view, palette if palette is not None else palette_for(view))
+```
+
+</details>
+
+## 🔧 Function `style_fluent_table`
+
+```python
+def style_fluent_table(table: QTableView, palette: FluentPalette | None = None) -> None
+```
+
+Apply Fluent table chrome, day-band header palette, and row band refresh.
+
+Call again after replacing the horizontal header (for example with
+[`WordWrapHeaderView`](../apps/common/word_wrap_header.g.md#%EF%B8%8F-class-wordwrapheaderview)): a new header starts on the system light palette.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def style_fluent_table(table: QTableView, palette: FluentPalette | None = None) -> None:
+    chosen = palette if palette is not None else palette_for(table)
+    _style_table(table, chosen)
+    refresh_day_bands(table)
 ```
 
 </details>

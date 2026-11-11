@@ -286,10 +286,10 @@ def test_caption_tab_line_spans_the_window(qapp: QApplication) -> None:
     tab_bar = tabs.tabBar()
     selected = tab_bar.tabRect(tab_bar.currentIndex())
     selected_x = tab_bar.mapTo(tabs, selected.center()).x()
-    assert _caption_line_color(image, selected_x) == "#2e86b7"
+    assert _caption_line_color(image, selected_x) == "#3a78bc"
     last = tab_bar.tabRect(tab_bar.count() - 1)
     after_tabs = tab_bar.mapTo(tabs, last.bottomRight()).x() + 40
-    assert _caption_line_color(image, after_tabs) != "#2e86b7"
+    assert _caption_line_color(image, after_tabs) != "#3a78bc"
     assert _caption_line_color(image, after_tabs) != "#f4f4f4"
     right = tabs.cornerWidget(Qt.Corner.TopRightCorner)
     assert right is not None

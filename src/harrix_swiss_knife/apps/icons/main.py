@@ -116,7 +116,6 @@ from harrix_swiss_knife.apps.icons.meta_filter import (
     meta_filter_label,
     parse_meta_link,
 )
-from harrix_swiss_knife.apps.icons.vector_render import ensure_dark_theme_contrast_plate
 from harrix_swiss_knife.apps.icons.repo_maintenance import (
     MaintenanceKind,
     RepoMaintenanceWorker,
@@ -188,6 +187,7 @@ from harrix_swiss_knife.apps.icons.variant_view import (
     sort_icon_families,
     view_mode_examples,
 )
+from harrix_swiss_knife.apps.icons.vector_render import ensure_dark_theme_contrast_plate
 from harrix_swiss_knife.apps.icons.widgets import (
     CategoryDropList,
     DraggableIconList,
@@ -3193,12 +3193,6 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._loaded_rows.clear()
         self._schedule_viewport_pixmaps()
 
-    def _theme_display_pixmap(self, pixmap: QPixmap) -> QPixmap:
-        """Return `pixmap`, plating dark artwork when the window is in dark mode."""
-        if pixmap.isNull() or not palette_for(self).dark:
-            return pixmap
-        return ensure_dark_theme_contrast_plate(pixmap)
-
     def _refresh_variant_view_icons(self) -> None:
         """Update example icons already shown in the View combobox."""
         if not hasattr(self, "variant_view_combo"):
@@ -3803,6 +3797,12 @@ class MainWindow(QMainWindow, AppWindowMixin):
         if self._current_category and self._current_category in family.categories:
             return self._current_category
         return family.categories[0] if family.categories else None
+
+    def _theme_display_pixmap(self, pixmap: QPixmap) -> QPixmap:
+        """Return `pixmap`, plating dark artwork when the window is in dark mode."""
+        if pixmap.isNull() or not palette_for(self).dark:
+            return pixmap
+        return ensure_dark_theme_contrast_plate(pixmap)
 
     def _update_grid_counters(self) -> None:
         loaded = self.icon_list.count()

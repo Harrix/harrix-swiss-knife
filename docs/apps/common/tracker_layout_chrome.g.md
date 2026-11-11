@@ -116,7 +116,7 @@ def polish_left_field_labels(host: Any, pairs: Sequence[tuple[str, str]]) -> Non
         if not isinstance(label, QLabel):
             continue
         label.setText(text)
-        label.setStyleSheet(f"color: {MUTED_TEXT}; font-weight: 600;")
+        label.setStyleSheet(muted_caption_qss())
         label.setMinimumWidth(FIELD_LABEL_WIDTH)
         label.setFixedWidth(FIELD_LABEL_WIDTH)
         label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)

@@ -5,6 +5,7 @@ from __future__ import annotations
 from PySide6.QtGui import QFont, QPalette
 from PySide6.QtWidgets import QApplication
 
+from harrix_swiss_knife.fluent.theme import FluentTheme, ThemeMode
 from harrix_swiss_knife.qt_command_section import (
     COMMAND_SECTION_BORDER_COLOR,
     COMMAND_SECTION_DIVIDER_OBJECT_NAME,
@@ -60,9 +61,15 @@ def test_create_command_section_flat_has_no_border() -> None:
 
 def test_create_command_section_divider_uses_border_color() -> None:
     assert _qapp() is not None
-    line = create_command_section_divider()
-    assert line.objectName() == COMMAND_SECTION_DIVIDER_OBJECT_NAME
-    assert line.minimumHeight() == 1
-    assert line.maximumHeight() == 1
-    assert line.autoFillBackground()
-    assert line.palette().color(QPalette.ColorRole.Window).name() == COMMAND_SECTION_BORDER_COLOR
+    theme = FluentTheme.instance()
+    previous = theme.mode()
+    theme.set_mode(ThemeMode.LIGHT, persist=False)
+    try:
+        line = create_command_section_divider()
+        assert line.objectName() == COMMAND_SECTION_DIVIDER_OBJECT_NAME
+        assert line.minimumHeight() == 1
+        assert line.maximumHeight() == 1
+        assert line.autoFillBackground()
+        assert line.palette().color(QPalette.ColorRole.Window).name() == COMMAND_SECTION_BORDER_COLOR
+    finally:
+        theme.set_mode(previous, persist=False)

@@ -97,7 +97,11 @@ class WordWrapHeaderView(QHeaderView):
         if self._hover_boundary_x is None:
             return
         painter = QPainter(self.viewport())
-        painter.setPen(QPen(QColor(MUTED_TEXT), 1))
+        grip = MUTED_TEXT
+        with contextlib.suppress(Exception):
+            palette = FluentTheme.instance().palette()
+            grip = css(mix(palette.window_bg, palette.text_secondary))
+        painter.setPen(QPen(QColor(grip), 1))
         x = self._hover_boundary_x
         height = self.viewport().height()
         inset = min(_BOUNDARY_INSET_PX, max((height - 8) // 2, 0))
@@ -105,26 +109,33 @@ class WordWrapHeaderView(QHeaderView):
         painter.end()
 
     def paintSection(self, painter: QPainter, rect: QRect, logical_index: int) -> None:  # noqa: N802
-        """Paint the section chrome, then draw the title with wrapping."""
+        """Paint the section from the header palette, then draw the wrapped title.
+
+        Custom painting must not call `CE_Header`: under Fluent window QSS that
+        control often fills white even when the header palette is dark.
+
+        """
         if not rect.isValid():
             return
 
         option = QStyleOptionHeader()
         self.initStyleOption(option)
         self.initStyleOptionForIndex(option, logical_index)
-        option.rect = rect
-        option.text = ""
-        style = self.style()
-        if style is not None:
-            style.drawControl(QStyle.ControlElement.CE_Header, option, painter, self)
-
-        text = self._section_text(logical_index)
-        if not text:
-            return
+        palette = option.palette
+        fill = palette.color(QPalette.ColorRole.Button)
+        ink = palette.color(QPalette.ColorRole.ButtonText)
 
         painter.save()
-        painter.setPen(option.palette.color(QPalette.ColorRole.ButtonText))
-        painter.drawText(rect.adjusted(_TEXT_INSET, 2, -_TEXT_INSET, -2), int(HEADER_TEXT_FLAGS), text)
+        painter.fillRect(rect, fill)
+        hairline = QColor(ink)
+        hairline.setAlpha(64)
+        painter.setPen(QPen(hairline, 1))
+        painter.drawLine(rect.bottomLeft(), rect.bottomRight())
+
+        text = self._section_text(logical_index)
+        if text:
+            painter.setPen(ink)
+            painter.drawText(rect.adjusted(_TEXT_INSET, 2, -_TEXT_INSET, -2), int(HEADER_TEXT_FLAGS), text)
         painter.restore()
 
     def refresh_wrapped_height(self) -> None:
@@ -332,7 +343,11 @@ def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
         if self._hover_boundary_x is None:
             return
         painter = QPainter(self.viewport())
-        painter.setPen(QPen(QColor(MUTED_TEXT), 1))
+        grip = MUTED_TEXT
+        with contextlib.suppress(Exception):
+            palette = FluentTheme.instance().palette()
+            grip = css(mix(palette.window_bg, palette.text_secondary))
+        painter.setPen(QPen(QColor(grip), 1))
         x = self._hover_boundary_x
         height = self.viewport().height()
         inset = min(_BOUNDARY_INSET_PX, max((height - 8) // 2, 0))
@@ -348,7 +363,10 @@ def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
 def paintSection(self, painter: QPainter, rect: QRect, logical_index: int) -> None
 ```
 
-Paint the section chrome, then draw the title with wrapping.
+Paint the section from the header palette, then draw the wrapped title.
+
+Custom painting must not call `CE_Header`: under Fluent window QSS that
+control often fills white even when the header palette is dark.
 
 <details>
 <summary>Code:</summary>
@@ -361,19 +379,21 @@ def paintSection(self, painter: QPainter, rect: QRect, logical_index: int) -> No
         option = QStyleOptionHeader()
         self.initStyleOption(option)
         self.initStyleOptionForIndex(option, logical_index)
-        option.rect = rect
-        option.text = ""
-        style = self.style()
-        if style is not None:
-            style.drawControl(QStyle.ControlElement.CE_Header, option, painter, self)
-
-        text = self._section_text(logical_index)
-        if not text:
-            return
+        palette = option.palette
+        fill = palette.color(QPalette.ColorRole.Button)
+        ink = palette.color(QPalette.ColorRole.ButtonText)
 
         painter.save()
-        painter.setPen(option.palette.color(QPalette.ColorRole.ButtonText))
-        painter.drawText(rect.adjusted(_TEXT_INSET, 2, -_TEXT_INSET, -2), int(HEADER_TEXT_FLAGS), text)
+        painter.fillRect(rect, fill)
+        hairline = QColor(ink)
+        hairline.setAlpha(64)
+        painter.setPen(QPen(hairline, 1))
+        painter.drawLine(rect.bottomLeft(), rect.bottomRight())
+
+        text = self._section_text(logical_index)
+        if text:
+            painter.setPen(ink)
+            painter.drawText(rect.adjusted(_TEXT_INSET, 2, -_TEXT_INSET, -2), int(HEADER_TEXT_FLAGS), text)
         painter.restore()
 ```
 
@@ -535,6 +555,11 @@ def install_word_wrap_header(
         header.setSectionsMovable(current.sectionsMovable())
     header.setTextElideMode(Qt.TextElideMode.ElideNone)
     table.setHorizontalHeader(header)
+    # New headers start on the system light palette; restore Fluent dark chrome.
+    if is_fluent_themed(table):
+        from harrix_swiss_knife.fluent.app_chrome import style_fluent_table  # noqa: PLC0415
+
+        style_fluent_table(table)
     return header
 ```
 

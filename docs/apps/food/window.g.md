@@ -87,7 +87,7 @@ class Ui_MainWindow(object):
 #if QT_CONFIG(tooltip)
         self.pushButton_clear_filter.setToolTip(QCoreApplication.translate("MainWindow", u"Clear filter", None))
 #endif // QT_CONFIG(tooltip)
-        self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", u"\U0001f9f9", None))
+        self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", u"\ud83e\uddf9", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_food), QCoreApplication.translate("MainWindow", u"Food", None))
         self.label.setText(QCoreApplication.translate("MainWindow", u"Daily calories & macros:", None))
         self.label_food_stats_from.setText(QCoreApplication.translate("MainWindow", u"From:", None))
@@ -201,9 +201,6 @@ class Ui_MainWindow(object):
         font1.setPointSize(12)
         font1.setBold(True)
         self.spinBox_food_weight.setFont(font1)
-        self.spinBox_food_weight.setStyleSheet(u"QSpinBox {\n"
-"                                          background-color: #e8f4fc;\n"
-"                                          }")
         self.spinBox_food_weight.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
         self.spinBox_food_weight.setMaximum(10000)
         self.spinBox_food_weight.setValue(100)
@@ -218,9 +215,6 @@ class Ui_MainWindow(object):
         self.doubleSpinBox_food_calories = CompactDoubleSpinBox(self.groupBox_food_add)
         self.doubleSpinBox_food_calories.setObjectName(u"doubleSpinBox_food_calories")
         self.doubleSpinBox_food_calories.setFont(font1)
-        self.doubleSpinBox_food_calories.setStyleSheet(u"QDoubleSpinBox {\n"
-"                                          background-color: #e8f4fc;\n"
-"                                          }")
         self.doubleSpinBox_food_calories.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
         self.doubleSpinBox_food_calories.setMaximum(10000.000000000000000)
 
@@ -281,14 +275,14 @@ class Ui_MainWindow(object):
 "                                      padding: 5px 14px;\n"
 "                                      }\n"
 "                                      QPushButton:hover {\n"
-"                                      background-color: #2e86b7;\n"
+"                                      background-color: #3a78bc;\n"
 "                                      color: #ffffff;\n"
-"                                      border-color: #2e86b7;\n"
+"                                      border-color: #3a78bc;\n"
 "                                      }\n"
 "                                      QPushButton:pressed {\n"
-"                                      background-color: #1a5f7a;\n"
+"                                      background-color: #2a5687;\n"
 "                                      color: #ffffff;\n"
-"                                      border-color: #1a5f7a;\n"
+"                                      border-color: #2a5687;\n"
 "                                      }")
 
         self.horizontalLayout_food_date.addWidget(self.pushButton_food_add)
@@ -315,14 +309,14 @@ class Ui_MainWindow(object):
 "                                      padding: 5px 14px;\n"
 "                                      }\n"
 "                                      QPushButton:hover {\n"
-"                                      background-color: #2e86b7;\n"
+"                                      background-color: #3a78bc;\n"
 "                                      color: #ffffff;\n"
-"                                      border-color: #2e86b7;\n"
+"                                      border-color: #3a78bc;\n"
 "                                      }\n"
 "                                      QPushButton:pressed {\n"
-"                                      background-color: #1a5f7a;\n"
+"                                      background-color: #2a5687;\n"
 "                                      color: #ffffff;\n"
-"                                      border-color: #1a5f7a;\n"
+"                                      border-color: #2a5687;\n"
 "                                      }")
 
         self.horizontalLayout_2.addWidget(self.pushButton_food_add_with_ai)
@@ -337,14 +331,14 @@ class Ui_MainWindow(object):
 "                                      padding: 5px 14px;\n"
 "                                      }\n"
 "                                      QPushButton:hover {\n"
-"                                      background-color: #2e86b7;\n"
+"                                      background-color: #3a78bc;\n"
 "                                      color: #ffffff;\n"
-"                                      border-color: #2e86b7;\n"
+"                                      border-color: #3a78bc;\n"
 "                                      }\n"
 "                                      QPushButton:pressed {\n"
-"                                      background-color: #1a5f7a;\n"
+"                                      background-color: #2a5687;\n"
 "                                      color: #ffffff;\n"
-"                                      border-color: #1a5f7a;\n"
+"                                      border-color: #2a5687;\n"
 "                                      }")
 
         self.horizontalLayout_2.addWidget(self.pushButton_food_add_by_voice)
@@ -425,21 +419,7 @@ class Ui_MainWindow(object):
 
         self.listView_food_items = QListView(self.widget_food_middle)
         self.listView_food_items.setObjectName(u"listView_food_items")
-        self.listView_food_items.setStyleSheet(u"QListView {\n"
-"                                border: none;\n"
-"                                background-color: white;\n"
-"                                }\n"
-"                                QListView::item {\n"
-"                                padding: 4px;\n"
-"                                border-bottom: 1px solid #e0e0e0;\n"
-"                                }\n"
-"                                QListView::item:selected {\n"
-"                                background-color: #e8f4fc;\n"
-"                                color: black;\n"
-"                                }\n"
-"                                QListView::item:hover {\n"
-"                                background-color: #f3f8fb;\n"
-"                                }")
+        self.listView_food_items.setStyleSheet(u"")
 
         self.verticalLayout_food_middle.addWidget(self.listView_food_items)
 
@@ -798,7 +778,7 @@ def retranslateUi(self, MainWindow):
 #if QT_CONFIG(tooltip)
         self.pushButton_clear_filter.setToolTip(QCoreApplication.translate("MainWindow", u"Clear filter", None))
 #endif // QT_CONFIG(tooltip)
-        self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", u"\U0001f9f9", None))
+        self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", u"\ud83e\uddf9", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_food), QCoreApplication.translate("MainWindow", u"Food", None))
         self.label.setText(QCoreApplication.translate("MainWindow", u"Daily calories & macros:", None))
         self.label_food_stats_from.setText(QCoreApplication.translate("MainWindow", u"From:", None))
@@ -928,9 +908,6 @@ def setupUi(self, MainWindow):
         font1.setPointSize(12)
         font1.setBold(True)
         self.spinBox_food_weight.setFont(font1)
-        self.spinBox_food_weight.setStyleSheet(u"QSpinBox {\n"
-"                                          background-color: #e8f4fc;\n"
-"                                          }")
         self.spinBox_food_weight.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
         self.spinBox_food_weight.setMaximum(10000)
         self.spinBox_food_weight.setValue(100)
@@ -945,9 +922,6 @@ def setupUi(self, MainWindow):
         self.doubleSpinBox_food_calories = CompactDoubleSpinBox(self.groupBox_food_add)
         self.doubleSpinBox_food_calories.setObjectName(u"doubleSpinBox_food_calories")
         self.doubleSpinBox_food_calories.setFont(font1)
-        self.doubleSpinBox_food_calories.setStyleSheet(u"QDoubleSpinBox {\n"
-"                                          background-color: #e8f4fc;\n"
-"                                          }")
         self.doubleSpinBox_food_calories.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
         self.doubleSpinBox_food_calories.setMaximum(10000.000000000000000)
 
@@ -1008,14 +982,14 @@ def setupUi(self, MainWindow):
 "                                      padding: 5px 14px;\n"
 "                                      }\n"
 "                                      QPushButton:hover {\n"
-"                                      background-color: #2e86b7;\n"
+"                                      background-color: #3a78bc;\n"
 "                                      color: #ffffff;\n"
-"                                      border-color: #2e86b7;\n"
+"                                      border-color: #3a78bc;\n"
 "                                      }\n"
 "                                      QPushButton:pressed {\n"
-"                                      background-color: #1a5f7a;\n"
+"                                      background-color: #2a5687;\n"
 "                                      color: #ffffff;\n"
-"                                      border-color: #1a5f7a;\n"
+"                                      border-color: #2a5687;\n"
 "                                      }")
 
         self.horizontalLayout_food_date.addWidget(self.pushButton_food_add)
@@ -1042,14 +1016,14 @@ def setupUi(self, MainWindow):
 "                                      padding: 5px 14px;\n"
 "                                      }\n"
 "                                      QPushButton:hover {\n"
-"                                      background-color: #2e86b7;\n"
+"                                      background-color: #3a78bc;\n"
 "                                      color: #ffffff;\n"
-"                                      border-color: #2e86b7;\n"
+"                                      border-color: #3a78bc;\n"
 "                                      }\n"
 "                                      QPushButton:pressed {\n"
-"                                      background-color: #1a5f7a;\n"
+"                                      background-color: #2a5687;\n"
 "                                      color: #ffffff;\n"
-"                                      border-color: #1a5f7a;\n"
+"                                      border-color: #2a5687;\n"
 "                                      }")
 
         self.horizontalLayout_2.addWidget(self.pushButton_food_add_with_ai)
@@ -1064,14 +1038,14 @@ def setupUi(self, MainWindow):
 "                                      padding: 5px 14px;\n"
 "                                      }\n"
 "                                      QPushButton:hover {\n"
-"                                      background-color: #2e86b7;\n"
+"                                      background-color: #3a78bc;\n"
 "                                      color: #ffffff;\n"
-"                                      border-color: #2e86b7;\n"
+"                                      border-color: #3a78bc;\n"
 "                                      }\n"
 "                                      QPushButton:pressed {\n"
-"                                      background-color: #1a5f7a;\n"
+"                                      background-color: #2a5687;\n"
 "                                      color: #ffffff;\n"
-"                                      border-color: #1a5f7a;\n"
+"                                      border-color: #2a5687;\n"
 "                                      }")
 
         self.horizontalLayout_2.addWidget(self.pushButton_food_add_by_voice)
@@ -1152,21 +1126,7 @@ def setupUi(self, MainWindow):
 
         self.listView_food_items = QListView(self.widget_food_middle)
         self.listView_food_items.setObjectName(u"listView_food_items")
-        self.listView_food_items.setStyleSheet(u"QListView {\n"
-"                                border: none;\n"
-"                                background-color: white;\n"
-"                                }\n"
-"                                QListView::item {\n"
-"                                padding: 4px;\n"
-"                                border-bottom: 1px solid #e0e0e0;\n"
-"                                }\n"
-"                                QListView::item:selected {\n"
-"                                background-color: #e8f4fc;\n"
-"                                color: black;\n"
-"                                }\n"
-"                                QListView::item:hover {\n"
-"                                background-color: #f3f8fb;\n"
-"                                }")
+        self.listView_food_items.setStyleSheet(u"")
 
         self.verticalLayout_food_middle.addWidget(self.listView_food_items)
 

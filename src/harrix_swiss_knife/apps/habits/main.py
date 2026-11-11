@@ -84,8 +84,6 @@ from harrix_swiss_knife.apps.common.table_models import (
 from harrix_swiss_knife.apps.common.ui_helpers import close_table_editor_if_open
 from harrix_swiss_knife.apps.common.widgets.shrinkable_scroll_area import install_shrinkable_tab_scroll
 from harrix_swiss_knife.apps.common.word_wrap_header import WordWrapHeaderView, install_word_wrap_header
-from harrix_swiss_knife.fluent.app_chrome import style_fluent_table
-from harrix_swiss_knife.fluent.theme import mix, palette_for
 from harrix_swiss_knife.apps.habits import database_manager, window
 from harrix_swiss_knife.apps.habits.dashboard import HabitDashboardWidget
 from harrix_swiss_knife.apps.habits.dashboard_widgets import style_calendar_nav_button
@@ -126,6 +124,8 @@ from harrix_swiss_knife.apps.habits.ticktick_api import (
     iso_to_ticktick_stamp,
     resolve_ticktick_api_token,
 )
+from harrix_swiss_knife.fluent.app_chrome import style_fluent_table
+from harrix_swiss_knife.fluent.theme import mix, palette_for
 from harrix_swiss_knife.installer.icon_assets import apply_window_icon
 from harrix_swiss_knife.paths import get_config_path_str, get_project_root
 from harrix_swiss_knife.qt_lucide_icon import (

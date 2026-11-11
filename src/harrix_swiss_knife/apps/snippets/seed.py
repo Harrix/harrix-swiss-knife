@@ -252,7 +252,7 @@ SEED_COLORS: tuple[tuple[str, str], ...] = (
     ("#122a3a", "dark grey"),
     ("#121e28", "almost black"),
     ("#79b1d1", "cyan"),
-    ("#2e86b7", "blue"),
+    ("#3a78bc", "blue"),
     ("#038387", "turquoise"),
     ("#3aaf9d", "light turquoise"),
     ("#de2b26", "logo"),

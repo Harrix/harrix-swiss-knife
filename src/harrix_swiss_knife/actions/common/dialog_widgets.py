@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 from html import escape
 
 from PySide6.QtCore import QModelIndex, QPersistentModelIndex, QSize, Qt
@@ -42,21 +43,6 @@ from harrix_swiss_knife.qt_lucide_icon import CLEAR_BUTTON_ICON, apply_lucide_di
 _FILES_LIST_MAX_HEIGHT = 100
 _DROP_AREA_MIN_HEIGHT = 150
 _DRAG_DROP_THEME_FLAG = "_drag_drop_file_dialog_theme_bound"
-
-
-def _delegate_description_color(option: QStyleOptionViewItem) -> str:
-    try:
-        from harrix_swiss_knife.fluent.theme import FluentTheme, css, mix  # noqa: PLC0415
-
-        palette = FluentTheme.instance().palette()
-        if palette.dark:
-            return css(mix(palette.window_bg, palette.text_secondary))
-    except Exception:
-        pass
-    color = option.palette.color(QPalette.ColorRole.PlaceholderText)
-    if color.alpha() > 0:
-        return color.name()
-    return MUTED_TEXT
 
 
 class ChoiceWithDescriptionDelegate(QStyledItemDelegate):
@@ -144,12 +130,14 @@ class ChoiceWithDescriptionDelegate(QStyledItemDelegate):
         escaped_choice = escape(choice)
         escaped_description = escape(description).replace("\n", "<br>")
 
+        desc_color = _delegate_description_color(option)
         html_content = f"""
         <div style="font-family: '{APP_FONT_FAMILY}', sans-serif;">
             <div style="font-size: 12pt; font-weight: bold; margin-bottom: 2px;">
                 {escaped_choice}
             </div>
-            <div style="font-size: 9pt; font-style: italic; color: {_delegate_description_color(option)}; margin-left: 10px; white-space: pre-wrap;">
+            <div style="font-size: 9pt; font-style: italic; color: {desc_color};
+                margin-left: 10px; white-space: pre-wrap;">
                 {escaped_description}
             </div>
         </div>
@@ -357,3 +345,16 @@ class StandardActionDialog(QDialog):
         super().showEvent(event)
         self.setMinimumWidth(self._target_size.width())
         self.resize(self._target_size)
+
+
+def _delegate_description_color(option: QStyleOptionViewItem) -> str:
+    with contextlib.suppress(Exception):
+        from harrix_swiss_knife.fluent.theme import FluentTheme, css, mix  # noqa: PLC0415
+
+        palette = FluentTheme.instance().palette()
+        if palette.dark:
+            return css(mix(palette.window_bg, palette.text_secondary))
+    color = option.palette.color(QPalette.ColorRole.PlaceholderText)
+    if color.alpha() > 0:
+        return color.name()
+    return MUTED_TEXT

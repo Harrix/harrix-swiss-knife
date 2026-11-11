@@ -156,7 +156,7 @@ class FoodItemsDialog(QDialog):
     def _reload_table(self) -> None:
         rows: list[list[Any]] = []
         for index, row in enumerate(self.db_manager.get_all_food_items()):
-            color = _ROW_COLOR_ODD if index % 2 else _ROW_COLOR_EVEN
+            color = day_band_color(index)
             rows.append(
                 [
                     str(row[1] or ""),

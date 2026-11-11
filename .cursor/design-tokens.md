@@ -10,10 +10,10 @@ When changing a row below, update **both** repos (SCSS + Python + Cursor rules).
 
 | Role | HTML | HSK | Hex |
 | --- | --- | --- | --- |
-| Brand / primary | `$h-primary` | `SELECTION_BORDER` / `BUTTON_PRIMARY_BG` | `#2e86b7` |
-| Soft selected fill | `$h-soft-bg` | `SELECTION_BG` | `#e8f4fc` |
-| Soft hover | `$h-soft-hover` | `SELECTION_HOVER` | `#f3f8fb` |
-| Brand ink | `$h-brand-ink` | `BRAND_INK` | `#1a5f7a` |
+| Brand / primary | `$h-primary` | `SELECTION_BORDER` / `BUTTON_PRIMARY_BG` | `#3a78bc` |
+| Soft selected fill | `$h-soft-bg` | `SELECTION_BG` | `#eaf1f8` |
+| Soft hover | `$h-soft-hover` | `SELECTION_HOVER` | `#f3f7fb` |
+| Brand ink | `$h-brand-ink` | `BRAND_INK` | `#2a5687` |
 | Text on soft fill | `$h-text` | `SELECTION_TEXT` | `#1a1a1a` |
 | Muted text | `$h-muted-text` | `MUTED_TEXT` | `#5c6370` |
 | Surface | `$h-surface` | `SURFACE` | `#ffffff` |
@@ -34,9 +34,9 @@ Model: **solid primary** (Bulma `.button.is-primary`) — filled brand, no contr
 
 | Role | HTML | HSK | Hex |
 | --- | --- | --- | --- |
-| Primary fill / border | `$h-primary` | `BUTTON_PRIMARY_BG` / `BUTTON_PRIMARY_BORDER` | `#2e86b7` |
+| Primary fill / border | `$h-primary` | `BUTTON_PRIMARY_BG` / `BUTTON_PRIMARY_BORDER` | `#3a78bc` |
 | Primary text | white | `BUTTON_PRIMARY_FG` | `#ffffff` |
-| Primary hover/pressed | `$h-brand-ink` | `BUTTON_PRIMARY_HOVER` | `#1a5f7a` |
+| Primary hover/pressed | `$h-brand-ink` | `BUTTON_PRIMARY_HOVER` | `#2a5687` |
 | Secondary fill | `$h-button-secondary-bg` | `BUTTON_SECONDARY_BG` | `#f5f5f5` |
 | Secondary border | `$h-border` | `BUTTON_SECONDARY_BORDER` | `#dbdbdb` |
 | Success solid | `$h-success` | `BUTTON_SUCCESS_BG` | `#4caf50` |

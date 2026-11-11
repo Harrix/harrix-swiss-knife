@@ -28,7 +28,6 @@ from harrix_swiss_knife.apps.common.audio_compress import audio_file_to_mono_pcm
 from harrix_swiss_knife.apps.common.audio_recording import (
     PLAY_BUTTON_GAP,
     RECORD_CAPTION_IDLE_STYLE,
-    record_caption_stop_style,
     AudioLevelWidget,
     ClickableLabel,
     FinalizeResult,
@@ -41,6 +40,7 @@ from harrix_swiss_knife.apps.common.audio_recording import (
     format_file_size,
     format_recording_duration,
     load_saved_microphone_id,
+    record_caption_stop_style,
 )
 from harrix_swiss_knife.apps.common.ui_chrome import button_primary_qss, drop_zone_qss
 from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import install_url_drop_handlers

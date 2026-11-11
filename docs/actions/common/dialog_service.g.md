@@ -1740,6 +1740,8 @@ class ActionDialogService:
         dialog_parent = QApplication.activeWindow() if parent is None else parent
         dialog_size = size if size is not None else self._default_size
         dialog = StandardActionDialog(dialog_size, dialog_parent)
+        if not is_fluent_themed(dialog):
+            enable_fluent_theme(dialog)
         dialog.setWindowTitle(title)
 
         layout = QVBoxLayout()

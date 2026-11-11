@@ -641,16 +641,14 @@ class FitnessLightboxSidebar(QFrame):
         self._tick.setInterval(_TICK_MS)
         self._tick.timeout.connect(self._on_tick)
         self._build_ui()
+        bind_theme(self, self._refresh_sidebar_theme)
+        self._refresh_sidebar_theme()
         self._apply_snapshot(self._stopwatch.snapshot())
 
     def apply_backdrop(self, color: str) -> None:
         """Match label colors to the lightbox backdrop (`white` or `black`)."""
         self._backdrop_dark = color == "black"
-        title = _COLOR_TITLE_ON_DARK if self._backdrop_dark else _COLOR_TITLE
-        muted = _COLOR_MUTED_ON_DARK if self._backdrop_dark else _COLOR_MUTED
-        self._title.setStyleSheet(f"color: {title}; background: transparent;")
-        self._limit_label.setStyleSheet(f"color: {muted};")
-        self._unit_label.setStyleSheet(f"color: {muted};")
+        self._refresh_sidebar_theme()
         self._apply_snapshot(self._stopwatch.snapshot())
 
     def bind(
@@ -833,7 +831,7 @@ class FitnessLightboxSidebar(QFrame):
         spin.setAlignment(Qt.AlignmentFlag.AlignCenter)
         spin.setButtonSymbols(QSpinBox.ButtonSymbols.NoButtons)
         spin.setFixedSize(_DURATION_SPIN_WIDTH, _DURATION_SPIN_HEIGHT)
-        spin.setStyleSheet(_VALUE_STYLE)
+        spin.setStyleSheet(_fitness_lightbox_value_qss(palette_for(spin)))
         _apply_pixel_font(spin, pixel_size=28, weight=QFont.Weight.ExtraBold)
         spin.lineEdit().returnPressed.connect(self.confirm_requested.emit)
         spin.valueChanged.connect(self._on_value_changed)
@@ -933,7 +931,7 @@ class FitnessLightboxSidebar(QFrame):
 
         self._type_combo = _LightboxTypeCombo()
         self._type_combo.setObjectName("fitnessLightboxTypeCombo")
-        self._type_combo.setStyleSheet(_TYPE_STYLE)
+        self._type_combo.setStyleSheet(_fitness_lightbox_type_qss(palette_for(self)))
         _apply_pixel_font(self._type_combo, pixel_size=16)
         self._type_combo.setItemDelegate(
             NameLocalListDelegate(self._type_combo, layout=NameLocalLayout.LIST),
@@ -946,7 +944,7 @@ class FitnessLightboxSidebar(QFrame):
         self._value_spin.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._value_spin.setButtonSymbols(QSpinBox.ButtonSymbols.NoButtons)
         self._value_spin.setMinimumSize(220, _DURATION_SPIN_HEIGHT)
-        self._value_spin.setStyleSheet(_VALUE_STYLE)
+        self._value_spin.setStyleSheet(_fitness_lightbox_value_qss(palette_for(self)))
         _apply_pixel_font(self._value_spin, pixel_size=40, weight=QFont.Weight.ExtraBold)
         self._value_spin.lineEdit().returnPressed.connect(self.confirm_requested.emit)
         self._value_spin.valueChanged.connect(self._on_value_changed)
@@ -1069,6 +1067,27 @@ class FitnessLightboxSidebar(QFrame):
         self._configure_limit_for_exercise(self._bound_unit, self._planned_value)
         self._apply_snapshot(self._stopwatch.snapshot())
 
+    def _refresh_sidebar_theme(self) -> None:
+        """Re-theme sidebar controls for Fluent light/dark (not only AVIF backdrop)."""
+        palette = palette_for(self)
+        value_style = _fitness_lightbox_value_qss(palette)
+        for spin in (
+            self._value_spin,
+            self._value_minutes_spin,
+            self._value_seconds_spin,
+        ):
+            spin.setStyleSheet(value_style)
+        self._type_combo.setStyleSheet(_fitness_lightbox_type_qss(palette))
+        if palette.dark:
+            title = css(mix(palette.window_bg, palette.text_primary))
+            muted = css(mix(palette.window_bg, palette.text_secondary))
+        else:
+            title = _COLOR_TITLE_ON_DARK if self._backdrop_dark else _COLOR_TITLE
+            muted = _COLOR_MUTED_ON_DARK if self._backdrop_dark else _COLOR_MUTED
+        self._title.setStyleSheet(f"color: {title}; background: transparent;")
+        self._limit_label.setStyleSheet(f"color: {muted};")
+        self._unit_label.setStyleSheet(f"color: {muted};")
+
     def _refresh_timer_button_icon(self, button: QPushButton) -> None:
         """Repaint the Lucide icon active or muted to match enabled state."""
         name = button.property("_fitness_timer_icon")
@@ -1183,6 +1202,8 @@ def __init__(
         self._tick.setInterval(_TICK_MS)
         self._tick.timeout.connect(self._on_tick)
         self._build_ui()
+        bind_theme(self, self._refresh_sidebar_theme)
+        self._refresh_sidebar_theme()
         self._apply_snapshot(self._stopwatch.snapshot())
 ```
 
@@ -1202,11 +1223,7 @@ Match label colors to the lightbox backdrop (`white` or `black`).
 ```python
 def apply_backdrop(self, color: str) -> None:
         self._backdrop_dark = color == "black"
-        title = _COLOR_TITLE_ON_DARK if self._backdrop_dark else _COLOR_TITLE
-        muted = _COLOR_MUTED_ON_DARK if self._backdrop_dark else _COLOR_MUTED
-        self._title.setStyleSheet(f"color: {title}; background: transparent;")
-        self._limit_label.setStyleSheet(f"color: {muted};")
-        self._unit_label.setStyleSheet(f"color: {muted};")
+        self._refresh_sidebar_theme()
         self._apply_snapshot(self._stopwatch.snapshot())
 ```
 

@@ -1437,7 +1437,7 @@ class ScreenshotPreviewCanvas(QWidget):
         editor.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         editor.setTabChangesFocus(False)
         editor.setStyleSheet(
-            "QPlainTextEdit {  background: rgba(255, 255, 255, 210);  border: 1px dashed #2e86b7;  padding: 2px;}"
+            "QPlainTextEdit {  background: rgba(255, 255, 255, 210);  border: 1px dashed #3a78bc;  padding: 2px;}"
         )
         self._text_editor = editor
         self._text_edit_active = True
@@ -1687,7 +1687,7 @@ class ScreenshotPreviewCanvas(QWidget):
         cursor.endEditBlock()
         editor.setTextCursor(cursor)
         editor.setStyleSheet(
-            f"QPlainTextEdit {{  color: {color};  background: {bg};  border: 1px dashed #2e86b7;  padding: 2px;}}"
+            f"QPlainTextEdit {{  color: {color};  background: {bg};  border: 1px dashed #3a78bc;  padding: 2px;}}"
         )
         document = self._document
         if document is None:

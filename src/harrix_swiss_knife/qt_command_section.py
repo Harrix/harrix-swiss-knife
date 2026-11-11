@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import contextlib
+
 from PySide6.QtCore import QObject, Qt
 from PySide6.QtGui import QColor, QFont, QPalette
 from PySide6.QtWidgets import QFrame, QLabel, QListWidget, QSizePolicy, QVBoxLayout, QWidget
@@ -18,47 +20,6 @@ _COMMAND_SECTION_THEME_FLAG = "_command_section_theme_bound"
 _COMMAND_SECTION_LABEL_STYLE = (
     f"#{COMMAND_SECTION_OBJECT_NAME} > QLabel {{ background: transparent; padding: 4px 8px 0px 8px;}}"
 )
-
-
-def _command_section_surface_qcolor() -> QColor:
-    """Opaque card fill (white in light, Fluent card mix in dark)."""
-    try:
-        from harrix_swiss_knife.fluent.theme import FluentTheme, mix  # noqa: PLC0415
-
-        palette = FluentTheme.instance().palette()
-        if palette.dark:
-            return mix(palette.window_bg, palette.card_bg)
-    except Exception:
-        pass
-    return QColor("#ffffff")
-
-
-def _command_section_border_qcolor() -> QColor:
-    try:
-        from harrix_swiss_knife.fluent.theme import FluentTheme, mix  # noqa: PLC0415
-
-        palette = FluentTheme.instance().palette()
-        if palette.dark:
-            return mix(palette.window_bg, palette.control_stroke)
-    except Exception:
-        pass
-    return QColor(COMMAND_SECTION_BORDER_COLOR)
-
-
-def _command_section_stylesheet(*, bordered: bool) -> str:
-    bg = _command_section_surface_qcolor().name(QColor.NameFormat.HexRgb)
-    if bordered:
-        border = _command_section_border_qcolor().name(QColor.NameFormat.HexRgb)
-        card = (
-            f"#{COMMAND_SECTION_OBJECT_NAME} {{"
-            f" background-color: {bg};"
-            f" border: 1px solid {border};"
-            " border-radius: 8px;"
-            "}"
-        )
-    else:
-        card = f"#{COMMAND_SECTION_OBJECT_NAME} {{ background-color: {bg}; border: none;}}"
-    return f"{card}{_COMMAND_SECTION_LABEL_STYLE}"
 
 
 def apply_opaque_white(widget: QWidget) -> None:
@@ -246,3 +207,40 @@ def style_transparent_icon_grid(grid: QListWidget) -> None:
     grid.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=False)
     grid.setStyleSheet(with_flat_scrollbars(action_card_selection_qss()))
     apply_readable_selection_palette(grid)
+
+
+def _command_section_border_qcolor() -> QColor:
+    with contextlib.suppress(Exception):
+        from harrix_swiss_knife.fluent.theme import FluentTheme, mix  # noqa: PLC0415
+
+        palette = FluentTheme.instance().palette()
+        if palette.dark:
+            return mix(palette.window_bg, palette.control_stroke)
+    return QColor(COMMAND_SECTION_BORDER_COLOR)
+
+
+def _command_section_stylesheet(*, bordered: bool) -> str:
+    bg = _command_section_surface_qcolor().name(QColor.NameFormat.HexRgb)
+    if bordered:
+        border = _command_section_border_qcolor().name(QColor.NameFormat.HexRgb)
+        card = (
+            f"#{COMMAND_SECTION_OBJECT_NAME} {{"
+            f" background-color: {bg};"
+            f" border: 1px solid {border};"
+            " border-radius: 8px;"
+            "}"
+        )
+    else:
+        card = f"#{COMMAND_SECTION_OBJECT_NAME} {{ background-color: {bg}; border: none;}}"
+    return f"{card}{_COMMAND_SECTION_LABEL_STYLE}"
+
+
+def _command_section_surface_qcolor() -> QColor:
+    """Opaque card fill (white in light, Fluent card mix in dark)."""
+    with contextlib.suppress(Exception):
+        from harrix_swiss_knife.fluent.theme import FluentTheme, mix  # noqa: PLC0415
+
+        palette = FluentTheme.instance().palette()
+        if palette.dark:
+            return mix(palette.window_bg, palette.card_bg)
+    return QColor("#ffffff")

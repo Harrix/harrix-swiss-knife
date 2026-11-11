@@ -13,6 +13,7 @@ from harrix_swiss_knife.apps.common.word_wrap_header import (
     install_word_wrap_header,
     wrapped_header_text_size,
 )
+from harrix_swiss_knife.apps.habits.layout_chrome import _polish_all
 from harrix_swiss_knife.fluent.app_chrome import install_fluent_app_window, style_fluent_table
 from harrix_swiss_knife.fluent.theme import FluentTheme, ThemeMode, enable_fluent_theme, palette_for
 
@@ -107,8 +108,6 @@ def test_install_word_wrap_header_keeps_dark_fluent_chrome(qapp: QApplication) -
 def test_habits_layout_chrome_does_not_wipe_process_table_sheet(qapp: QApplication) -> None:
     """Process table must keep Fluent header QSS after Habits layout polish."""
     assert qapp is not None
-    from harrix_swiss_knife.apps.habits.layout_chrome import _polish_all
-
     theme = FluentTheme.instance()
     previous = theme.mode()
     theme.set_mode(ThemeMode.DARK, persist=False)
