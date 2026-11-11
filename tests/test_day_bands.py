@@ -49,9 +49,24 @@ def test_day_bands_alternate_and_follow_theme(qapp: QApplication) -> None:
     # Cool bluish bands, not a flat gray plate against the window wallpaper.
     assert light_even.blue() >= light_even.red()
     assert light_odd.blue() >= light_odd.red()
+    # Odd day is clearly darker than even in light mode (not a ~8-unit whisper).
+    light_gap = (
+        light_even.red()
+        + light_even.green()
+        + light_even.blue()
+        - light_odd.red()
+        - light_odd.green()
+        - light_odd.blue()
+    )
+    assert light_gap >= 40
     theme.set_mode(ThemeMode.DARK, persist=False)
     dark_even = day_band_color(0)
+    dark_odd = day_band_color(1)
     assert dark_even.rgb() != light_even.rgb()
+    dark_gap = (
+        dark_odd.red() + dark_odd.green() + dark_odd.blue() - dark_even.red() - dark_even.green() - dark_even.blue()
+    )
+    assert dark_gap >= 40
     theme.set_mode(previous, persist=False)
 
 

@@ -46,7 +46,7 @@ def apply_transactions_column_visibility(host: Any) -> None:
 def category_state_text(display_name: str | None) -> str
 ```
 
-Return the form category indicator text (with optional hint when empty).
+Return the one-line form category indicator (long hint stays in the tooltip).
 
 <details>
 <summary>Code:</summary>
@@ -55,12 +55,12 @@ Return the form category indicator text (with optional hint when empty).
 def category_state_text(display_name: str | None) -> str:
     name = (display_name or "").strip()
     if not name:
-        return f"{_NO_CATEGORY}\n{_CATEGORY_HINT}"
+        return _NO_CATEGORY
     lowered = name.casefold()
     if lowered.startswith(_CATEGORY_PREFIX.casefold()):
-        return name
+        return name.split("\n", 1)[0].strip()
     if lowered in {_NO_CATEGORY.casefold(), "no category selected"}:
-        return f"{_NO_CATEGORY}\n{_CATEGORY_HINT}"
+        return _NO_CATEGORY
     return f"{_CATEGORY_PREFIX}{name}"
 ```
 

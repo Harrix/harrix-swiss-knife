@@ -209,13 +209,13 @@ def _band_ink() -> QColor:
 def _band_pair(palette: FluentPalette) -> tuple[tuple[int, int, int], tuple[int, int, int]]:
     """Return even and odd RGB triples. Odd is darker in light mode and lighter in dark.
 
-    Light bands stay near-white with a very weak neutral tint so day groups do not
-    look like a multi-row selection over the Fluent wallpaper.
+    Bands stay cool-neutral (not rainbow pastels) with a clear step between days,
+    while staying lighter than soft-blue selection chrome (`#eaf1f8`).
 
     """
     if palette.dark:
-        return (0x2C, 0x2C, 0x2C), (0x36, 0x36, 0x36)
-    return (0xFC, 0xFC, 0xFC), (0xF4, 0xF5, 0xF6)
+        return (0x2A, 0x2A, 0x2C), (0x3A, 0x3D, 0x42)
+    return (0xFC, 0xFC, 0xFC), (0xE4, 0xE8, 0xED)
 
 
 def _refresh_model(model: QStandardItemModel) -> None:
