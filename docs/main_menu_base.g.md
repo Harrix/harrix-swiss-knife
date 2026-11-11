@@ -195,14 +195,15 @@ class MainMenuBase:
         """
         return create_emoji_icon(emoji, size)
 
-    def get_icon(self, icon: str, size: int = ICON_SIZE) -> QIcon:
+    def get_icon(self, icon: str, size: int = 20) -> QIcon:
         """Retrieve an icon for menu items.
 
         Args:
 
         - `icon` (`str`): Action SVG under `assets/actions/`, Qt resource SVG
           (`resources_rc.py`), or emoji. Example: `object__palette.svg`, `py.svg`, `🏆`.
-        - `size` (`int`): The size of the icon in pixels. Defaults to `ICON_SIZE`.
+        - `size` (`int`): The size of the icon in pixels. Defaults to `20`
+          (between the old 32px tray icons and the 16px Lucide chrome size).
 
         Returns:
 
@@ -498,7 +499,7 @@ def create_emoji_icon(self, emoji: str, size: int = 32) -> QIcon:
 ### ⚙️ Method `get_icon`
 
 ```python
-def get_icon(self, icon: str, size: int = ICON_SIZE) -> QIcon
+def get_icon(self, icon: str, size: int = 20) -> QIcon
 ```
 
 Retrieve an icon for menu items.
@@ -507,7 +508,8 @@ Args:
 
 - [`icon`](qt_split_menu_button.g.md#%EF%B8%8F-method-icon) (`str`): Action SVG under `assets/actions/`, Qt resource SVG
   (`resources_rc.py`), or emoji. Example: `object__palette.svg`, `py.svg`, `🏆`.
-- [`size`](apps/icons/lightbox_cache.g.md#%EF%B8%8F-method-size-property) (`int`): The size of the icon in pixels. Defaults to `ICON_SIZE`.
+- [`size`](apps/icons/lightbox_cache.g.md#%EF%B8%8F-method-size-property) (`int`): The size of the icon in pixels. Defaults to `20`
+  (between the old 32px tray icons and the 16px Lucide chrome size).
 
 Returns:
 
@@ -517,7 +519,7 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def get_icon(self, icon: str, size: int = ICON_SIZE) -> QIcon:
+def get_icon(self, icon: str, size: int = 20) -> QIcon:
         return create_menu_icon(icon, size)
 ```
 

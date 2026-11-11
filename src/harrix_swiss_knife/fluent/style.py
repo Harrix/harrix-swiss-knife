@@ -24,8 +24,8 @@ from harrix_swiss_knife.fluent.tokens import (
     RADIUS_OVERLAY,
     SCROLLBAR_THICKNESS,
     SPACE_L,
+    SPACE_S,
     SPACE_XS,
-    SPACE_XXS,
     TAB_GAP,
     TAB_INDICATOR_HEIGHT,
     FluentPalette,
@@ -339,30 +339,33 @@ def menu_qss(palette: FluentPalette, selector: str = "QMenu") -> str:
     leaves a wide empty gap (or, if too small, paints the icon on the text).
 
     """
+    # Slightly denser than the old 6/24 padding and 32px icons, without the
+    # ultra-tight 2px rows that felt cramped in the tray menu.
+    menu_icon = 20
     return f"""
 {selector} {{
     background-color: {css(palette.popup_bg)};
     color: {css(palette.text_primary)};
     border: 1px solid {css(palette.popup_stroke)};
     border-radius: {RADIUS_OVERLAY}px;
-    padding: {SPACE_XXS}px;
+    padding: {SPACE_XS}px;
 }}
 {selector}::item {{
     background: transparent;
     color: {css(palette.text_primary)};
     border-radius: {RADIUS_CONTROL}px;
-    padding: {SPACE_XXS}px {SPACE_L}px {SPACE_XXS}px {SPACE_XS}px;
-    margin: 0px;
+    padding: {SPACE_XS}px {SPACE_L}px {SPACE_XS}px {SPACE_S}px;
+    margin: 1px 0px;
 }}
 {selector}::item:selected {{ background: {css(palette.subtle_hover)}; }}
 {selector}::item:disabled {{ color: {css(palette.text_disabled)}; }}
 {selector}::icon {{
-    width: {ICON_SIZE}px;
-    height: {ICON_SIZE}px;
-    padding-left: {SPACE_XS}px;
-    padding-right: {SPACE_XXS}px;
+    width: {menu_icon}px;
+    height: {menu_icon}px;
+    padding-left: {SPACE_S}px;
+    padding-right: {SPACE_XS}px;
 }}
-{selector}::separator {{ height: 1px; background: {css(palette.divider)}; margin: {SPACE_XXS}px 0px; }}
+{selector}::separator {{ height: 1px; background: {css(palette.divider)}; margin: {SPACE_XS}px 0px; }}
 """
 
 
