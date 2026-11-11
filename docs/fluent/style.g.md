@@ -523,24 +523,24 @@ def menu_qss(palette: FluentPalette, selector: str = "QMenu") -> str:
     color: {css(palette.text_primary)};
     border: 1px solid {css(palette.popup_stroke)};
     border-radius: {RADIUS_OVERLAY}px;
-    padding: {SPACE_XS}px;
+    padding: {SPACE_XXS}px;
 }}
 {selector}::item {{
     background: transparent;
     color: {css(palette.text_primary)};
     border-radius: {RADIUS_CONTROL}px;
-    padding: 6px {SPACE_XL}px 6px {SPACE_S}px;
-    margin: 1px 0px;
+    padding: {SPACE_XXS}px {SPACE_L}px {SPACE_XXS}px {SPACE_XS}px;
+    margin: 0px;
 }}
 {selector}::item:selected {{ background: {css(palette.subtle_hover)}; }}
 {selector}::item:disabled {{ color: {css(palette.text_disabled)}; }}
 {selector}::icon {{
     width: {ICON_SIZE}px;
     height: {ICON_SIZE}px;
-    padding-left: {SPACE_S}px;
-    padding-right: {SPACE_XS}px;
+    padding-left: {SPACE_XS}px;
+    padding-right: {SPACE_XXS}px;
 }}
-{selector}::separator {{ height: 1px; background: {css(palette.divider)}; margin: 4px 0px; }}
+{selector}::separator {{ height: 1px; background: {css(palette.divider)}; margin: {SPACE_XXS}px 0px; }}
 """
 ```
 

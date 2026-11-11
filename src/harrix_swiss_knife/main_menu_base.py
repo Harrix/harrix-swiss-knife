@@ -14,6 +14,7 @@ from harrix_swiss_knife.cli_menu import (
     CliContextMenu,
     build_cli_copy_command,
 )
+from harrix_swiss_knife.fluent.tokens import ICON_SIZE
 from harrix_swiss_knife.paths import get_config_path_str
 from harrix_swiss_knife.qt_action_icon import create_menu_icon, resolve_ui_icon_spec
 from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
@@ -186,14 +187,14 @@ class MainMenuBase:
         """
         return create_emoji_icon(emoji, size)
 
-    def get_icon(self, icon: str, size: int = 32) -> QIcon:
+    def get_icon(self, icon: str, size: int = ICON_SIZE) -> QIcon:
         """Retrieve an icon for menu items.
 
         Args:
 
         - `icon` (`str`): Action SVG under `assets/actions/`, Qt resource SVG
           (`resources_rc.py`), or emoji. Example: `object__palette.svg`, `py.svg`, `🏆`.
-        - `size` (`int`): The size of the icon in pixels. Defaults to `32`.
+        - `size` (`int`): The size of the icon in pixels. Defaults to `ICON_SIZE`.
 
         Returns:
 
