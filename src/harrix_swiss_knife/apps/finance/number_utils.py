@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import re
 
 from harrix_pylib.funcs_text import (
     clean_number_text,
@@ -10,35 +11,42 @@ from harrix_pylib.funcs_text import (
     try_evaluate_arithmetic_expression,
 )
 
+_SUBSCRIPT_DIGITS = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
+_SUBSCRIPT_TO_ASCII = str.maketrans("₀₁₂₃₄₅₆₇₈₉", "0123456789")
 
-def format_amount(value: float | str) -> str:
-    """Format amount with spaces for thousands separator and subscript decimals.
+
+def format_amount(value: float | str, *, always_decimals: bool = True, decimals: int | None = None) -> str:
+    """Format amount with spaces for thousands and subscript decimal digits.
 
     Args:
 
     - `value` (`float | str`): The value to format.
+    - `always_decimals` (`bool`): When `True` (default), always show fractional digits.
+      When `False`, omit decimals for whole numbers.
+    - `decimals` (`int | None`): Fractional digits to keep. When `None`, infer from
+      the input (at least 2, at most 6) so rates with more places are preserved.
 
     Returns:
 
-    - `str`: The formatted text with spaces as thousands separators and subscript decimal digits.
+    - `str`: Formatted text (e.g. `1 234.₅₆`).
 
     """
     try:
-        text = str(value)
+        text = str(value).strip()
         is_negative = text.startswith("-")
         if is_negative:
-            text = text[1:]
+            text = text[1:].strip()
 
+        # Strip currency / letters that may already be in the cell.
+        text = re.sub(r"[^\d.]", "", text.translate(_SUBSCRIPT_TO_ASCII))
         try:
             num = float(text)
         except (ValueError, TypeError):
             return str(value)
 
-        if "." in str(num):
-            integer_part, decimal_part = str(num).split(".")
-        else:
-            integer_part = str(int(num))
-            decimal_part = "00"
+        places = decimals if decimals is not None else _infer_decimal_places(text)
+        num_str = f"{num:.{places}f}"
+        integer_part, decimal_part = num_str.split(".")
 
         formatted_integer = ""
         for i, digit in enumerate(reversed(integer_part)):
@@ -46,27 +54,26 @@ def format_amount(value: float | str) -> str:
                 formatted_integer = " " + formatted_integer
             formatted_integer = digit + formatted_integer
 
-        subscript_map = {
-            "0": "₀",
-            "1": "₁",
-            "2": "₂",
-            "3": "₃",
-            "4": "₄",
-            "5": "₅",
-            "6": "₆",
-            "7": "₇",
-            "8": "₈",
-            "9": "₉",
-        }
-        subscript_decimal = "".join(subscript_map.get(digit, digit) for digit in decimal_part)
+        if not always_decimals and abs(num - round(num)) < 10 ** (-places):
+            formatted = formatted_integer
+        else:
+            formatted = f"{formatted_integer}.{decimal_part.translate(_SUBSCRIPT_DIGITS)}"
 
-        formatted = formatted_integer if num == int(num) else f"{formatted_integer}.{subscript_decimal}"
         if is_negative:
-            formatted = "-" + formatted
+            formatted = f"-{formatted}"
     except Exception:
         return str(value)
     else:
         return formatted
+
+
+def _infer_decimal_places(cleaned: str) -> int:
+    if "." not in cleaned:
+        return 2
+    frac = cleaned.split(".", 1)[1]
+    if not frac:
+        return 2
+    return max(2, min(6, len(frac)))
 
 
 def major_units_to_minor(amount_major: float, subdivision: int) -> int:

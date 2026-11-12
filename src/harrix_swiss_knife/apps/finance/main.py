@@ -3289,8 +3289,12 @@ class MainWindow(
             return
         self._set_table_model_and_stretch_columns(self.tableView_accounts, accounts_model, stretch_last=False)
 
-        # Set up amount delegate for the Balance column (index 1)
-        self.accounts_balance_delegate = AmountDelegate(self.tableView_accounts, self.db_manager)
+        # Set up amount delegate for the Balance column (index 1); currency code is column 2
+        self.accounts_balance_delegate = AmountDelegate(
+            self.tableView_accounts,
+            self.db_manager,
+            currency_column=2,
+        )
         self.tableView_accounts.setItemDelegateForColumn(1, self.accounts_balance_delegate)
 
         # Make accounts table non-editable and connect double-click signal
@@ -3400,6 +3404,33 @@ class MainWindow(
 
         # Disable all editing triggers
         self.tableView_exchange.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+
+        # Amount From / Fee use source currency; Amount To uses target; losses use default
+        self.exchange_amount_from_delegate = AmountDelegate(
+            self.tableView_exchange,
+            self.db_manager,
+            currency_column=0,
+        )
+        self.exchange_amount_to_delegate = AmountDelegate(
+            self.tableView_exchange,
+            self.db_manager,
+            currency_column=1,
+        )
+        self.exchange_fee_delegate = AmountDelegate(
+            self.tableView_exchange,
+            self.db_manager,
+            currency_column=0,
+        )
+        self.exchange_loss_delegate = AmountDelegate(
+            self.tableView_exchange,
+            self.db_manager,
+            use_default_currency=True,
+        )
+        self.tableView_exchange.setItemDelegateForColumn(2, self.exchange_amount_from_delegate)
+        self.tableView_exchange.setItemDelegateForColumn(3, self.exchange_amount_to_delegate)
+        self.tableView_exchange.setItemDelegateForColumn(5, self.exchange_fee_delegate)
+        self.tableView_exchange.setItemDelegateForColumn(8, self.exchange_loss_delegate)
+        self.tableView_exchange.setItemDelegateForColumn(9, self.exchange_loss_delegate)
 
     def _load_essential_tables(self) -> None:
         """Load essential tables at startup (excluding exchange rates for lazy loading)."""
@@ -5440,10 +5471,21 @@ class MainWindow(
         )
         self.tableView_transactions.setItemDelegateForColumn(6, self.tag_delegate)
 
-        self.amount_delegate = AmountDelegate(self.tableView_transactions, self.db_manager)
+        self.amount_delegate = AmountDelegate(
+            self.tableView_transactions,
+            self.db_manager,
+            currency_column=4,
+            category_column=3,
+            amount_column=2,
+        )
         self.tableView_transactions.setItemDelegateForColumn(2, self.amount_delegate)
 
-        self.total_per_day_delegate = AmountDelegate(self.tableView_transactions, self.db_manager)
+        self.total_per_day_delegate = AmountDelegate(
+            self.tableView_transactions,
+            self.db_manager,
+            use_default_currency=True,
+            total_per_day=True,
+        )
         self.tableView_transactions.setItemDelegateForColumn(7, self.total_per_day_delegate)
 
         self.tableView_transactions.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked)
@@ -6108,51 +6150,7 @@ class MainWindow(
         # Add sum action if there are selected amount cells
         if selected_amount_values:
             total_sum = sum(selected_amount_values)
-            # Format the sum using AmountDelegate logic
-            is_negative = total_sum < 0
-            num = abs(total_sum)
-
-            # Format with spaces as thousands separator
-            # Format number to 2 decimal places
-            num_str = f"{num:.2f}"
-            if "." in num_str:
-                integer_part, decimal_part = num_str.split(".")
-            else:
-                integer_part = str(int(num))
-                decimal_part = "00"
-
-            # Add spaces every 3 digits from right to left
-            formatted_integer = ""
-            for i, digit in enumerate(reversed(integer_part)):
-                if i > 0 and i % 3 == 0:
-                    formatted_integer = " " + formatted_integer
-                formatted_integer = digit + formatted_integer
-
-            # Convert decimal digits to subscript Unicode characters
-            subscript_map = {
-                "0": "₀",
-                "1": "₁",
-                "2": "₂",
-                "3": "₃",
-                "4": "₄",
-                "5": "₅",
-                "6": "₆",
-                "7": "₇",
-                "8": "₈",
-                "9": "₉",
-            }
-            subscript_decimal = "".join(subscript_map.get(digit, digit) for digit in decimal_part)
-
-            # Construct final formatted number with subscript decimals
-            # Check if the original sum is a whole number (within floating point precision)
-            near_zero = 0.01
-            is_whole_number = abs(total_sum - round(total_sum)) < near_zero
-            formatted = formatted_integer if is_whole_number else f"{formatted_integer}.{subscript_decimal}"
-
-            # Add minus sign back if needed
-            if is_negative:
-                formatted = "-" + formatted
-
+            formatted = format_amount(f"{total_sum:.2f}")
             add_info_action(context_menu, f"💰 Sum of selected: {formatted}")
 
         begin_filters_block(context_menu)

@@ -1,10 +1,15 @@
 """Report amount delegate for formatting amounts in reports without editing."""
 
+from __future__ import annotations
+
 import logging
+import re
 
 from PySide6.QtCore import QLocale, QModelIndex, QPersistentModelIndex
 from PySide6.QtGui import QFont, QPainter
 from PySide6.QtWidgets import QStyledItemDelegate, QStyleOptionViewItem, QWidget
+
+from harrix_swiss_knife.apps.finance.number_utils import format_amount
 
 logger = logging.getLogger(__name__)
 
@@ -30,84 +35,18 @@ class ReportAmountDelegate(QStyledItemDelegate):
         self.is_bold = is_bold
 
     def displayText(self, value: object, _locale: QLocale | QLocale.Language) -> str:  # noqa: N802
-        """Format display text with spaces for thousands separator and subscript decimals.
-
-        Args:
-
-        - `value` (`object`): The value to format for display.
-        - `_locale` (`QLocale`): The locale for formatting (unused in this implementation).
-
-        Returns:
-
-        - `str`: The formatted text with spaces as thousands separators and subscript decimal digits.
-
-        """
+        """Format display text with spaces for thousands separator and subscript decimals."""
         try:
-            # Get the raw text value
             text = str(value)
-
-            # Check if it's a negative number (starts with -)
-            is_negative = text.startswith("-")
-
-            # Remove minus sign for processing
-            if is_negative:
-                text = text[1:]
-
-            # Try to parse as float, handling optional currency suffix
-            parts = text.split(" ", 1)
-            num_str = parts[0]
-            suffix = f" {parts[1]}" if len(parts) > 1 else ""
-
-            try:
-                num = float(num_str)
-            except (ValueError, TypeError):
-                return str(value)  # Return original if can't parse
-
-            # Format with spaces as thousands separator
-            # Split into integer and decimal parts
-            if "." in str(num):
-                integer_part, decimal_part = str(num).split(".")
-            else:
-                integer_part = str(int(num))
-                decimal_part = "00"
-
-            # Add spaces every 3 digits from right to left
-            formatted_integer = ""
-            for i, digit in enumerate(reversed(integer_part)):
-                if i > 0 and i % 3 == 0:
-                    formatted_integer = " " + formatted_integer
-                formatted_integer = digit + formatted_integer
-
-            # Convert decimal digits to subscript Unicode characters
-            subscript_map = {
-                "0": "₀",
-                "1": "₁",
-                "2": "₂",
-                "3": "₃",
-                "4": "₄",
-                "5": "₅",
-                "6": "₆",
-                "7": "₇",
-                "8": "₈",
-                "9": "₉",
-            }
-
-            subscript_decimal = "".join(subscript_map.get(digit, digit) for digit in decimal_part)
-
-            # Construct final formatted number with subscript decimals
-            # Skip decimal part if it's actually zero
-            formatted = formatted_integer if num == int(num) else f"{formatted_integer}.{subscript_decimal}"
-
-            # Add minus sign back if needed
-            if is_negative:
-                formatted = "-" + formatted
-
-            # Add the suffix back
-            formatted += suffix
+            # Preserve a non-numeric suffix (e.g. currency already in the cell).
+            match = re.match(r"^(-?\s*[\d\s₀₁₂₃₄₅₆₇₈₉.]+)(.*)$", text)
+            if match is None:
+                return format_amount(text)
+            number_part, suffix = match.group(1), match.group(2)
+            return f"{format_amount(number_part)}{suffix}"
         except Exception:
             logger.exception("Error while formatting amount")
             return str(value)
-        return formatted
 
     def paint(
         self,
