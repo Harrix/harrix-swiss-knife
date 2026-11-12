@@ -16,6 +16,11 @@ from PySide6.QtWidgets import (
     QTableView,
 )
 
+from harrix_swiss_knife.apps.common.table_models import (
+    bind_column_fill_on_resize,
+    columns_fill_viewport,
+    user_resized_columns,
+)
 from harrix_swiss_knife.apps.common.tracker_layout_chrome import (
     apply_tracker_column_surfaces,
     polish_left_field_labels,
@@ -26,6 +31,7 @@ from harrix_swiss_knife.apps.finance.transactions_ui_settings import (
     ALWAYS_HIDDEN_COLUMNS,
     EXPECTED_SPLITTER_LEN,
     TOGGLEABLE_COLUMNS,
+    TRANSACTION_COL_TAG,
     load_column_visibility,
     load_splitter_sizes,
     save_column_visibility,
@@ -41,6 +47,7 @@ _FORM_MIN_WIDTH = 280
 _CATEGORIES_MIN_WIDTH = 260
 _TABLE_MIN_WIDTH = 400
 _SPLITTER_SAVE_DELAY_MS = 400
+_TAG_COLUMN_WIDTH = 100
 _NO_CATEGORY = "Category: not selected"
 _CATEGORY_HINT = "Choose a category in the adjacent panel"
 _CATEGORY_PREFIX = "Category: "
@@ -55,13 +62,58 @@ def apply_transactions_column_visibility(host: Any) -> None:
         if column < 0:
             _set_record_id_visible(table, visible=visible, persist=False)
         else:
-            _set_data_column_visible(table, column, visible=visible, persist=False)
+            _set_data_column_visible(table, column, visible=visible, persist=False, refill=False)
     _hide_day_header_source_columns(table)
     from harrix_swiss_knife.apps.finance.transaction_day_headers import (  # noqa: PLC0415
         apply_transaction_day_header_spans,
     )
 
     apply_transaction_day_header_spans(table)
+    apply_transactions_table_column_widths(table)
+
+
+def apply_transactions_table_column_widths(table_view: QTableView) -> None:
+    """Fill the viewport among _visible_ columns, then keep them Interactive.
+
+    Date / Total (and any user-hidden columns) must not reserve space, or the
+    table leaves an empty strip to the right of Tag.
+
+    """
+    bind_column_fill_on_resize(table_view, apply_transactions_table_column_widths)
+    if not table_view.isVisible() or user_resized_columns(table_view):
+        return
+    header = table_view.horizontalHeader()
+    count = header.count()
+    if count <= 0 or table_view.property("hskColumnFillGuard"):
+        return
+    viewport_w = table_view.viewport().width()
+    if viewport_w <= 0 or columns_fill_viewport(table_view):
+        return
+
+    visible = [i for i in range(count) if not table_view.isColumnHidden(i)]
+    if not visible:
+        return
+
+    header.setStretchLastSection(False)
+    header.setMinimumSectionSize(min(header.minimumSectionSize(), 24))
+    min_size = header.minimumSectionSize()
+    tag_idx = TRANSACTION_COL_TAG if TRANSACTION_COL_TAG in visible else None
+    flexible = [i for i in visible if i != tag_idx]
+    widths = _visible_transaction_column_widths(
+        viewport_w,
+        count,
+        flexible=flexible,
+        tag_idx=tag_idx,
+        min_size=min_size,
+    )
+
+    table_view.setProperty("hskColumnFillGuard", 1)
+    try:
+        for column in visible:
+            header.setSectionResizeMode(column, header.ResizeMode.Interactive)
+            table_view.setColumnWidth(column, widths[column])
+    finally:
+        table_view.setProperty("hskColumnFillGuard", 0)
 
 
 def category_state_text(display_name: str | None) -> str:
@@ -372,6 +424,7 @@ def _set_data_column_visible(
     visible: bool,
     persist: bool = True,
     key: str | None = None,
+    refill: bool = True,
 ) -> None:
     model = table.model()
     if model is not None and 0 <= column < model.columnCount():
@@ -381,6 +434,8 @@ def _set_data_column_visible(
         flags[key] = visible
         save_column_visibility(flags)
     _hide_day_header_source_columns(table)
+    if refill:
+        apply_transactions_table_column_widths(table)
 
 
 def _set_record_id_visible(table: QTableView, *, visible: bool, persist: bool = True) -> None:
@@ -389,3 +444,34 @@ def _set_record_id_visible(table: QTableView, *, visible: bool, persist: bool = 
         flags = load_column_visibility()
         flags["record_id"] = visible
         save_column_visibility(flags)
+
+
+def _visible_transaction_column_widths(
+    viewport_w: int,
+    count: int,
+    *,
+    flexible: list[int],
+    tag_idx: int | None,
+    min_size: int,
+) -> list[int]:
+    """Split `viewport_w` across visible columns; keep Tag compact when shown."""
+    widths = [min_size] * count
+    tag_w = _TAG_COLUMN_WIDTH if tag_idx is not None else 0
+    flex_min = len(flexible) * min_size if flexible else 0
+    if tag_w + flex_min > viewport_w:
+        tag_w = max(0, viewport_w - flex_min) if tag_idx is not None else 0
+    flex_budget = max(viewport_w - tag_w, flex_min)
+    if not flexible:
+        if tag_idx is not None:
+            widths[tag_idx] = max(viewport_w, min_size)
+        return widths
+    base = flex_budget // len(flexible)
+    extra = flex_budget - base * len(flexible)
+    for index, column in enumerate(flexible):
+        widths[column] = base + (extra if index == len(flexible) - 1 else 0)
+    if tag_idx is not None:
+        widths[tag_idx] = tag_w
+    drift = viewport_w - sum(widths[i] for i in (*flexible, *((tag_idx,) if tag_idx is not None else ())))
+    if drift != 0:
+        widths[flexible[-1]] = max(widths[flexible[-1]] + drift, min_size)
+    return widths

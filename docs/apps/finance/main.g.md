@@ -54,7 +54,6 @@ lang: en
   - [⚙️ Method `update_all`](#%EF%B8%8F-method-update_all)
   - [⚙️ Method `update_filter_comboboxes`](#%EF%B8%8F-method-update_filter_comboboxes)
   - [⚙️ Method `update_summary_labels`](#%EF%B8%8F-method-update_summary_labels)
-- [🔧 Function `apply_transactions_table_column_widths`](#-function-apply_transactions_table_column_widths)
 
 </details>
 
@@ -5241,8 +5240,7 @@ class MainWindow(
         QWidget.setTabOrder(self.dateEdit_filter_to, self.checkBox_use_date_filter)
 
     def _setup_transactions_table_column_widths(self) -> None:
-        """Configure column resize modes for the transactions table."""
-        apply_transactions_table_column_widths(self.tableView_transactions)
+        """Hide day-header source columns, then fill widths among visible ones."""
         apply_transactions_column_visibility(self)
 
     def _setup_transactions_table_delegates(self) -> None:
@@ -8172,60 +8170,6 @@ def update_summary_labels(self) -> None:
             self.label_total_expenses.setText(f"Total Expenses: {format_amount_with_currency('0.00', '₽')}")
             self.label_today_expense.setText(format_amount_with_currency("0.00", "₽"))
             self.label_yesterday_expense.setText(format_amount_with_currency("0.00", "₽"))
-```
-
-</details>
-
-## 🔧 Function `apply_transactions_table_column_widths`
-
-```python
-def apply_transactions_table_column_widths(table_view: QTableView) -> None
-```
-
-Fill the viewport like Stretch, then make every column Interactive.
-
-Hidden views report a dummy size, so widths are skipped until the table is visible.
-Qt's default mode is already Interactive, so that alone is not treated as a finished
-layout. Widths are reapplied when the table grows until the user drags a column.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def apply_transactions_table_column_widths(table_view: QTableView) -> None:
-    bind_column_fill_on_resize(table_view, apply_transactions_table_column_widths)
-    if not table_view.isVisible() or user_resized_columns(table_view):
-        return
-    header = table_view.horizontalHeader()
-    count = header.count()
-    if count <= 0 or table_view.property("hskColumnFillGuard"):
-        return
-    viewport_w = table_view.viewport().width()
-    if viewport_w <= 0 or columns_fill_viewport(table_view):
-        return
-
-    header.setStretchLastSection(False)
-    header.setMinimumSectionSize(min(header.minimumSectionSize(), 24))
-    min_size = header.minimumSectionSize()
-    tag_idx = count - _TRANSACTIONS_FIXED_COLUMN_COUNT if count >= _TRANSACTIONS_FIXED_COLUMN_COUNT else None
-    total_idx = count - 1
-    flexible = [i for i in range(count) if i not in {tag_idx, total_idx}]
-    widths = _transaction_column_widths(
-        viewport_w,
-        count,
-        flexible=flexible,
-        tag_idx=tag_idx,
-        total_idx=total_idx,
-        min_size=min_size,
-    )
-
-    table_view.setProperty("hskColumnFillGuard", 1)
-    try:
-        for column, width in enumerate(widths):
-            header.setSectionResizeMode(column, header.ResizeMode.Interactive)
-            table_view.setColumnWidth(column, width)
-    finally:
-        table_view.setProperty("hskColumnFillGuard", 0)
 ```
 
 </details>

@@ -120,12 +120,9 @@ from harrix_swiss_knife.apps.common.table_export import export_table_via_dialog
 from harrix_swiss_knife.apps.common.table_models import (
     RecordIdSortProxyModel,
     apply_stored_table_header_sort,
-    bind_column_fill_on_resize,
-    columns_fill_viewport,
     create_table_proxy_model,
     enable_table_header_sorting,
     make_table_columns_resizable,
-    user_resized_columns,
 )
 from harrix_swiss_knife.apps.common.text_case import capitalize_first_letter
 from harrix_swiss_knife.apps.common.tracker_filter_chrome import fit_date_filter_field_widths
@@ -280,9 +277,6 @@ from harrix_swiss_knife.win11_caption import install_win11_caption, try_handle_w
 
 logger = logging.getLogger(__name__)
 
-_TRANSACTIONS_FIXED_COLUMN_COUNT = 2
-_TRANSACTIONS_TAG_COLUMN_WIDTH = 100
-_TRANSACTIONS_TOTAL_COLUMN_WIDTH = 120
 # Debounce interval after transaction inserts before another silent AI translate pass.
 _BACKGROUND_TX_TRANSLATE_INTERVAL_MS = 1 * 60 * 1000
 _BACKGROUND_TX_TRANSLATE_STATUS = "Translating transaction descriptions…"
@@ -5462,8 +5456,7 @@ class MainWindow(
         QWidget.setTabOrder(self.dateEdit_filter_to, self.checkBox_use_date_filter)
 
     def _setup_transactions_table_column_widths(self) -> None:
-        """Configure column resize modes for the transactions table."""
-        apply_transactions_table_column_widths(self.tableView_transactions)
+        """Hide day-header source columns, then fill widths among visible ones."""
         apply_transactions_column_visibility(self)
 
     def _setup_transactions_table_delegates(self) -> None:
@@ -6639,81 +6632,6 @@ class MainWindow(
 
         count, total = sum_transaction_rows_in_default_currency(source_model, source_rows, self.db_manager)
         label.setText(format_transaction_selection_status(count, total, self._get_default_currency_symbol()))
-
-
-def apply_transactions_table_column_widths(table_view: QTableView) -> None:
-    """Fill the viewport like Stretch, then make every column Interactive.
-
-    Hidden views report a dummy size, so widths are skipped until the table is visible.
-    Qt's default mode is already Interactive, so that alone is not treated as a finished
-    layout. Widths are reapplied when the table grows until the user drags a column.
-
-    """
-    bind_column_fill_on_resize(table_view, apply_transactions_table_column_widths)
-    if not table_view.isVisible() or user_resized_columns(table_view):
-        return
-    header = table_view.horizontalHeader()
-    count = header.count()
-    if count <= 0 or table_view.property("hskColumnFillGuard"):
-        return
-    viewport_w = table_view.viewport().width()
-    if viewport_w <= 0 or columns_fill_viewport(table_view):
-        return
-
-    header.setStretchLastSection(False)
-    header.setMinimumSectionSize(min(header.minimumSectionSize(), 24))
-    min_size = header.minimumSectionSize()
-    tag_idx = count - _TRANSACTIONS_FIXED_COLUMN_COUNT if count >= _TRANSACTIONS_FIXED_COLUMN_COUNT else None
-    total_idx = count - 1
-    flexible = [i for i in range(count) if i not in {tag_idx, total_idx}]
-    widths = _transaction_column_widths(
-        viewport_w,
-        count,
-        flexible=flexible,
-        tag_idx=tag_idx,
-        total_idx=total_idx,
-        min_size=min_size,
-    )
-
-    table_view.setProperty("hskColumnFillGuard", 1)
-    try:
-        for column, width in enumerate(widths):
-            header.setSectionResizeMode(column, header.ResizeMode.Interactive)
-            table_view.setColumnWidth(column, width)
-    finally:
-        table_view.setProperty("hskColumnFillGuard", 0)
-
-
-def _transaction_column_widths(
-    viewport_w: int,
-    count: int,
-    *,
-    flexible: list[int],
-    tag_idx: int | None,
-    total_idx: int,
-    min_size: int,
-) -> list[int]:
-    """Split `viewport_w` so Tag and Total stay compact and the row still fits."""
-    widths = [min_size] * count
-    tag_w = _TRANSACTIONS_TAG_COLUMN_WIDTH if tag_idx is not None else 0
-    total_w = _TRANSACTIONS_TOTAL_COLUMN_WIDTH
-    flex_min = len(flexible) * min_size
-    if tag_w + total_w + flex_min > viewport_w:
-        leftover = max(viewport_w - flex_min, 0)
-        tag_w = min(tag_w, leftover // 2) if tag_idx is not None else 0
-        total_w = leftover - tag_w
-    flex_budget = max(viewport_w - tag_w - total_w, flex_min)
-    base = flex_budget // len(flexible) if flexible else 0
-    extra = flex_budget - base * len(flexible) if flexible else 0
-    for index, column in enumerate(flexible):
-        widths[column] = base + (extra if index == len(flexible) - 1 else 0)
-    if tag_idx is not None:
-        widths[tag_idx] = tag_w
-    widths[total_idx] = max(total_w, 0)
-    drift = viewport_w - sum(widths)
-    if flexible and drift != 0:
-        widths[flexible[-1]] = max(widths[flexible[-1]] + drift, min_size)
-    return widths
 
 
 if __name__ == "__main__":
