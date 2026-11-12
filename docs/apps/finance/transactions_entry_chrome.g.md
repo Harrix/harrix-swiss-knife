@@ -25,7 +25,7 @@ lang: en
 def apply_transactions_column_visibility(host: Any) -> None
 ```
 
-Re-apply persisted English/ID visibility after the table model is ready.
+Re-apply persisted column visibility after the table model is ready.
 
 <details>
 <summary>Code:</summary>
@@ -34,8 +34,18 @@ Re-apply persisted English/ID visibility after the table model is ready.
 def apply_transactions_column_visibility(host: Any) -> None:
     table = host.tableView_transactions
     flags = load_column_visibility()
-    _set_english_visible(table, visible=flags.get(_VIS_KEY_ENGLISH, True), persist=False)
-    _set_record_id_visible(table, visible=flags.get(_VIS_KEY_RECORD_ID, True), persist=False)
+    for key, column, _label in TOGGLEABLE_COLUMNS:
+        visible = flags.get(key, True)
+        if column < 0:
+            _set_record_id_visible(table, visible=visible, persist=False)
+        else:
+            _set_data_column_visible(table, column, visible=visible, persist=False)
+    _hide_day_header_source_columns(table)
+    from harrix_swiss_knife.apps.finance.transaction_day_headers import (  # noqa: PLC0415
+        apply_transaction_day_header_spans,
+    )
+
+    apply_transaction_day_header_spans(table)
 ```
 
 </details>

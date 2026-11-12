@@ -23,8 +23,9 @@ from harrix_swiss_knife.apps.common.tracker_layout_chrome import (
 )
 from harrix_swiss_knife.apps.common.ui_chrome import button_cta_mint_qss, button_idle_qss, muted_caption_qss
 from harrix_swiss_knife.apps.finance.transactions_ui_settings import (
+    ALWAYS_HIDDEN_COLUMNS,
     EXPECTED_SPLITTER_LEN,
-    OPTIONAL_COLUMN_ENGLISH,
+    TOGGLEABLE_COLUMNS,
     load_column_visibility,
     load_splitter_sizes,
     save_column_visibility,
@@ -40,19 +41,27 @@ _FORM_MIN_WIDTH = 280
 _CATEGORIES_MIN_WIDTH = 260
 _TABLE_MIN_WIDTH = 400
 _SPLITTER_SAVE_DELAY_MS = 400
-_VIS_KEY_ENGLISH = "english"
-_VIS_KEY_RECORD_ID = "record_id"
 _NO_CATEGORY = "Category: not selected"
 _CATEGORY_HINT = "Choose a category in the adjacent panel"
 _CATEGORY_PREFIX = "Category: "
 
 
 def apply_transactions_column_visibility(host: Any) -> None:
-    """Re-apply persisted English/ID visibility after the table model is ready."""
+    """Re-apply persisted column visibility after the table model is ready."""
     table = host.tableView_transactions
     flags = load_column_visibility()
-    _set_english_visible(table, visible=flags.get(_VIS_KEY_ENGLISH, True), persist=False)
-    _set_record_id_visible(table, visible=flags.get(_VIS_KEY_RECORD_ID, True), persist=False)
+    for key, column, _label in TOGGLEABLE_COLUMNS:
+        visible = flags.get(key, True)
+        if column < 0:
+            _set_record_id_visible(table, visible=visible, persist=False)
+        else:
+            _set_data_column_visible(table, column, visible=visible, persist=False)
+    _hide_day_header_source_columns(table)
+    from harrix_swiss_knife.apps.finance.transaction_day_headers import (  # noqa: PLC0415
+        apply_transaction_day_header_spans,
+    )
+
+    apply_transaction_day_header_spans(table)
 
 
 def category_state_text(display_name: str | None) -> str:
@@ -155,6 +164,15 @@ def _configure_transactions_splitter(host: Any) -> None:
         host._transactions_splitter_save_bound = True  # noqa: SLF001
 
 
+def _hide_day_header_source_columns(table: QTableView) -> None:
+    model = table.model()
+    if model is None:
+        return
+    for column in ALWAYS_HIDDEN_COLUMNS:
+        if column < model.columnCount():
+            table.setColumnHidden(column, True)  # noqa: FBT003
+
+
 def _install_column_visibility_menu(host: Any, table: QTableView) -> None:
     header = table.horizontalHeader()
     header.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -162,20 +180,22 @@ def _install_column_visibility_menu(host: Any, table: QTableView) -> None:
     def show_menu(pos: QPoint) -> None:
         menu = QMenu(table)
         flags = load_column_visibility()
-        english_visible = flags.get(_VIS_KEY_ENGLISH, True)
-        ids_visible = flags.get(_VIS_KEY_RECORD_ID, True)
-
-        english_action = QAction("Show English", menu)
-        english_action.setCheckable(True)
-        english_action.setChecked(english_visible)
-        english_action.toggled.connect(lambda checked: _set_english_visible(table, visible=checked))
-        menu.addAction(english_action)
-
-        id_action = QAction("Show record ID", menu)
-        id_action.setCheckable(True)
-        id_action.setChecked(ids_visible)
-        id_action.toggled.connect(lambda checked: _set_record_id_visible(table, visible=checked))
-        menu.addAction(id_action)
+        for key, column, label in TOGGLEABLE_COLUMNS:
+            action = QAction(label, menu)
+            action.setCheckable(True)
+            action.setChecked(flags.get(key, True))
+            if column < 0:
+                action.toggled.connect(lambda checked, table=table: _set_record_id_visible(table, visible=checked))
+            else:
+                action.toggled.connect(
+                    lambda checked, table=table, column=column, key=key: _set_data_column_visible(
+                        table,
+                        column,
+                        visible=checked,
+                        key=key,
+                    ),
+                )
+            menu.addAction(action)
         menu.exec(header.mapToGlobal(pos))
 
     if not getattr(host, "_transactions_column_menu_bound", False):
@@ -183,6 +203,21 @@ def _install_column_visibility_menu(host: Any, table: QTableView) -> None:
         host._transactions_column_menu_bound = True  # noqa: SLF001
 
     apply_transactions_column_visibility(host)
+
+
+def _polish_ai_attach_block(host: Any) -> None:
+    """Keep AI add + image attach compact without a permanent dashed card."""
+    drop_zone = getattr(host, "_ai_image_drop_zone", None)
+    if drop_zone is None:
+        return
+    set_quiet = getattr(drop_zone, "set_quiet_idle", None)
+    if callable(set_quiet):
+        set_quiet(quiet=True)
+    hint = getattr(drop_zone, "set_hint_text", None)
+    if callable(hint):
+        hint("Attach receipt · Ctrl+V")
+    elif hasattr(drop_zone, "_drop_hint") and drop_zone._drop_hint is not None:  # noqa: SLF001
+        drop_zone._drop_hint.setText("Attach receipt · Ctrl+V")  # noqa: SLF001
 
 
 def _polish_category_list(host: Any) -> None:
@@ -211,23 +246,24 @@ def _polish_entry_surfaces(host: Any) -> None:
     text = css(mix(palette.window_bg, palette.text_primary))
     muted = css(mix(palette.window_bg, palette.text_secondary))
 
-    # Keep styles on the panes themselves — never on `splitter`. Fluent
-    # `polish_fluent_splitter` clears splitter stylesheets that mention handles,
-    # and stacking pane borders on top of painted splitter hairlines doubled the
-    # vertical lines between columns.
+    # Flat panes on the shared window surface — columns separate by a thin
+    # splitter hairline, not by card fills, radius, or nested frames.
     quiet_boxes = [host.groupBox_transaction]
     if hasattr(host, "groupBox_expenses"):
         quiet_boxes.append(host.groupBox_expenses)
     apply_tracker_column_surfaces(
         host,
-        soft_panes=(
+        soft_panes=(),
+        content_panes=(
             (host.frame, "financeEntryForm"),
             (host.widget_middle, "financeEntryCategories"),
+            (host.widget_transactions, "financeTransactionsPane"),
         ),
-        content_panes=((host.widget_transactions, "financeTransactionsPane"),),
         quiet_boxes=quiet_boxes,
     )
     quiet_group_box(host.groupBox_commands, untitled=True)
+    # Keep a light idle splitter hairline; handle width stays SPACE_S for grip.
+    host.splitter.setProperty("_hskQuietSplitter", False)  # noqa: FBT003
     host.label_category_now.setStyleSheet(
         f"""
         QLabel#label_category_now {{
@@ -300,6 +336,7 @@ def _polish_form_column(host: Any) -> None:
     host.pushButton_add_as_text_with_ai.setText("Add with AI")
     host.pushButton_add_as_text_with_ai.setStyleSheet(button_idle_qss())
     apply_lucide_button_icon(host.pushButton_add_as_text_with_ai, "sparkles")
+    _polish_ai_attach_block(host)
 
     for label_name in ("label_today_expense", "label_yesterday_expense"):
         label = getattr(host, label_name, None)
@@ -328,19 +365,27 @@ def _polish_transactions_table(host: Any) -> None:
     _install_column_visibility_menu(host, table)
 
 
-def _set_english_visible(table: QTableView, *, visible: bool, persist: bool = True) -> None:
+def _set_data_column_visible(
+    table: QTableView,
+    column: int,
+    *,
+    visible: bool,
+    persist: bool = True,
+    key: str | None = None,
+) -> None:
     model = table.model()
-    if model is not None and model.columnCount() > OPTIONAL_COLUMN_ENGLISH:
-        table.setColumnHidden(OPTIONAL_COLUMN_ENGLISH, not visible)
-    if persist:
+    if model is not None and 0 <= column < model.columnCount():
+        table.setColumnHidden(column, not visible)
+    if persist and key is not None:
         flags = load_column_visibility()
-        flags[_VIS_KEY_ENGLISH] = visible
+        flags[key] = visible
         save_column_visibility(flags)
+    _hide_day_header_source_columns(table)
 
 
 def _set_record_id_visible(table: QTableView, *, visible: bool, persist: bool = True) -> None:
     table.verticalHeader().setVisible(visible)
     if persist:
         flags = load_column_visibility()
-        flags[_VIS_KEY_RECORD_ID] = visible
+        flags["record_id"] = visible
         save_column_visibility(flags)

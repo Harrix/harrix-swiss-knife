@@ -259,18 +259,9 @@ class CategorySuggestDelegate(QStyledItemDelegate):
             )
             return
 
-        local_font = QFont(option.font)
-        pixel = option.font.pixelSize()
-        if pixel > 0:
-            local_font.setPixelSize(max(_NAME_LOCAL_MIN_PIXEL_SIZE, round(pixel * _NAME_LOCAL_FONT_SCALE)))
-        else:
-            base_size = option.font.pointSizeF()
-            if base_size <= 0:
-                base_size = float(option.font.pointSize())
-            if base_size <= 0:
-                base_size = _NAME_LOCAL_FALLBACK_POINT_SIZE
-            local_font.setPointSizeF(max(_NAME_LOCAL_MIN_POINT_SIZE, base_size * _NAME_LOCAL_FONT_SCALE))
-        local_metrics = QFontMetrics(local_font)
+        # Keep the translation at the same type size as the primary name; only
+        # the color marks it as secondary.
+        local_metrics = main_metrics
         local_text = f" ({name_local})"
 
         available = max(0, text_rect.width())
@@ -281,7 +272,6 @@ class CategorySuggestDelegate(QStyledItemDelegate):
             painter.drawText(text_rect, flags, main_text)
             local_rect = QRect(text_rect.left() + main_width, text_rect.top(), local_width, text_rect.height())
             painter.setPen(secondary_color)
-            painter.setFont(local_font)
             painter.drawText(local_rect, flags, local_text)
             return
 
@@ -297,7 +287,6 @@ class CategorySuggestDelegate(QStyledItemDelegate):
                 text_rect.height(),
             )
             painter.setPen(secondary_color)
-            painter.setFont(local_font)
             painter.drawText(
                 local_rect,
                 flags,

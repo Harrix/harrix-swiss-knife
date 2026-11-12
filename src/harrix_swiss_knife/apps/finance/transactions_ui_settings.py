@@ -17,19 +17,45 @@ COLUMN_VISIBILITY_KEY = "finance_transactions_column_visibility"
 SPLITTER_SIZES_DEFAULT = (320, 290, 958)
 # Logical column indices in `tableView_transactions` (Description=0 … Total=7).
 OPTIONAL_COLUMN_ENGLISH = 1
+TRANSACTION_COL_DESCRIPTION = 0
+TRANSACTION_COL_ENGLISH = 1
+TRANSACTION_COL_AMOUNT = 2
+TRANSACTION_COL_CATEGORY = 3
+TRANSACTION_COL_CURRENCY = 4
+TRANSACTION_COL_DATE = 5
+TRANSACTION_COL_TAG = 6
+TRANSACTION_COL_TOTAL_PER_DAY = 7
 EXPECTED_SPLITTER_LEN = 3
+
+# Ordinary columns the user may toggle. Date and Total per day stay hidden: their
+# information lives in day group headers.
+# Description stays visible: day headers paint through that column when spanned.
+TOGGLEABLE_COLUMNS: tuple[tuple[str, int, str], ...] = (
+    ("record_id", -1, "Show record ID"),
+    ("english", TRANSACTION_COL_ENGLISH, "Show English"),
+    ("amount", TRANSACTION_COL_AMOUNT, "Show Amount"),
+    ("category", TRANSACTION_COL_CATEGORY, "Show Category"),
+    ("currency", TRANSACTION_COL_CURRENCY, "Show Currency"),
+    ("tag", TRANSACTION_COL_TAG, "Show Tag"),
+)
+ALWAYS_HIDDEN_COLUMNS: tuple[int, ...] = (TRANSACTION_COL_DATE, TRANSACTION_COL_TOTAL_PER_DAY)
+DEFAULT_COLUMN_VISIBILITY: dict[str, bool] = {key: True for key, _index, _label in TOGGLEABLE_COLUMNS}
 
 
 def load_column_visibility() -> dict[str, bool]:
-    """Return persisted column/header visibility flags."""
+    """Return persisted column/header visibility flags merged with defaults."""
+    flags = dict(DEFAULT_COLUMN_VISIBILITY)
     try:
         config = h.dev.config_load(get_config_path_str(), is_temp=True)
     except (FileNotFoundError, OSError, ValueError):
-        return {}
+        return flags
     raw = config.get(COLUMN_VISIBILITY_KEY)
     if not isinstance(raw, dict):
-        return {}
-    return {key: value for key, value in raw.items() if isinstance(key, str) and isinstance(value, bool)}
+        return flags
+    for key, value in raw.items():
+        if isinstance(key, str) and isinstance(value, bool) and key in flags:
+            flags[key] = value
+    return flags
 
 
 def load_splitter_sizes() -> list[int]:
@@ -40,14 +66,17 @@ def load_splitter_sizes() -> list[int]:
 def save_column_visibility(flags: dict[str, bool]) -> dict[str, bool]:
     """Persist column/header visibility flags."""
     cleaned = {key: bool(value) for key, value in flags.items() if isinstance(key, str)}
+    # Keep unknown keys (forward-compatible) but always store known defaults too.
+    merged = dict(DEFAULT_COLUMN_VISIBILITY)
+    merged.update(cleaned)
     _ensure_temp_config()
     h.dev.config_update_value(
         COLUMN_VISIBILITY_KEY,
-        cleaned,
+        merged,
         get_config_path_str(),
         is_temp=True,
     )
-    return cleaned
+    return merged
 
 
 def save_splitter_sizes(sizes: Sequence[int]) -> list[int]:

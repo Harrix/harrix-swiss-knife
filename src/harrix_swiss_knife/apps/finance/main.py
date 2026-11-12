@@ -25,6 +25,7 @@ import harrix_pylib as h
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.dates import date2num
 from PySide6.QtCore import (
+    QAbstractProxyModel,
     QDate,
     QDateTime,
     QEvent,
@@ -200,9 +201,14 @@ from harrix_swiss_knife.apps.finance.services.account_balance import format_tota
 from harrix_swiss_knife.apps.finance.standard_items_dialog import StandardItemsDialog
 from harrix_swiss_knife.apps.finance.tags import parse_tag_text
 from harrix_swiss_knife.apps.finance.text_input_dialog import TextInputDialog
+from harrix_swiss_knife.apps.finance.transaction_day_headers import (
+    apply_transaction_day_header_spans,
+    install_transaction_day_headers,
+    map_transactions_index_to_source,
+    ultimate_transactions_source,
+)
 from harrix_swiss_knife.apps.finance.transaction_day_totals import (
     TRANSACTION_COL_DATE,
-    apply_transaction_day_spans,
     format_transaction_selection_status,
     refresh_transaction_day_totals,
     sum_transaction_rows_in_default_currency,
@@ -355,8 +361,8 @@ class MainWindow(
         if app is not None:
             app.aboutToQuit.connect(self._stop_exchange_rate_threads_for_quit)
 
-        # Table models dictionary
-        self.models: dict[str, QSortFilterProxyModel | None] = {
+        # Table models dictionary (transactions may wrap a day-header proxy)
+        self.models: dict[str, QAbstractProxyModel | None] = {
             "transactions": None,
             "accounts": None,
             "currency_exchanges": None,
@@ -2027,7 +2033,9 @@ class MainWindow(
             on_double_click=self.pushButton_add_as_text_with_ai.click,
             extra_drop_targets=[self.pushButton_add_as_text_with_ai],
             max_image_side=max_image_side,
+            hint_text="Attach receipt · Ctrl+V",
         )
+        self._ai_image_drop_zone.set_quiet_idle(quiet=True)
         self.verticalLayout_2.insertWidget(1, self._ai_image_drop_zone)
         install_line_edit_search_chrome(
             self.lineEdit_description,
@@ -2891,7 +2899,7 @@ class MainWindow(
     def _export_transactions_table(self, *, prefer: Literal["csv", "xlsx"]) -> None:
         """Export the transactions source model as CSV or Excel."""
         proxy = self.models.get("transactions")
-        model = proxy.sourceModel() if isinstance(proxy, QSortFilterProxyModel) else proxy
+        model = ultimate_transactions_source(proxy) if proxy is not None else None
         export_table_via_dialog(self, model, prefer=prefer, sheet_name="Transactions")
 
     def _fetch_transaction_rows(self, limit: int | None, offset: int) -> list[list[Any]]:
@@ -3481,10 +3489,10 @@ class MainWindow(
 
         def append_rows(rows: list) -> None:
             transformed_data: list[list] = self._transform_transaction_data(rows, append_state=True)
-            proxy = cast("QSortFilterProxyModel", self.models["transactions"])
-            source_model = cast("QStandardItemModel", proxy.sourceModel())
+            proxy = self.models["transactions"]
+            source_model = cast("QStandardItemModel", ultimate_transactions_source(proxy))
             self._append_transformed_rows_to_model(source_model, transformed_data)
-            apply_transaction_day_spans(self.tableView_transactions)
+            apply_transaction_day_header_spans(self.tableView_transactions)
 
         self._transactions_pagination.load_more(
             load_more_count=self.transactions_load_more_count,
@@ -3504,12 +3512,11 @@ class MainWindow(
         rows: list = self._fetch_transaction_rows(limit, 0)
         transformed_data: list[list] = self._transform_transaction_data(rows, append_state=False)
 
-        self.models["transactions"] = self._create_transactions_table_model(
-            transformed_data, self.table_config["transactions"][2]
-        )
-        self.tableView_transactions.setModel(self.models["transactions"])
-        apply_transaction_day_spans(self.tableView_transactions)
+        sort_proxy = self._create_transactions_table_model(transformed_data, self.table_config["transactions"][2])
+        self.tableView_transactions.setModel(sort_proxy)
         self._setup_transactions_table_delegates()
+        day_proxy = install_transaction_day_headers(self.tableView_transactions, sort_proxy)
+        self.models["transactions"] = day_proxy
         self._setup_transactions_table_column_widths()
         enable_table_header_sorting(self.tableView_transactions)
         apply_stored_table_header_sort(self.tableView_transactions)
@@ -3586,7 +3593,7 @@ class MainWindow(
 
         try:
             # Get the row ID from vertical header
-            proxy_model: QSortFilterProxyModel | None = self.models["accounts"]
+            proxy_model = self.models["accounts"]
             if proxy_model is None:
                 return
 
@@ -3594,7 +3601,11 @@ class MainWindow(
             if source_model is None or not isinstance(source_model, QStandardItemModel):
                 return
 
-            row_id_item = source_model.verticalHeaderItem(index.row())
+            source_index = proxy_model.mapToSource(index)
+            if not source_index.isValid():
+                return
+
+            row_id_item = source_model.verticalHeaderItem(source_index.row())
             if row_id_item is None:
                 return
 
@@ -4430,17 +4441,12 @@ class MainWindow(
             return
 
         try:
-            # Get the proxy model and source model
-            proxy_model: QSortFilterProxyModel | None = self.models["transactions"]
-            if proxy_model is None:
-                return
-
-            source_model = proxy_model.sourceModel()
-            if source_model is None or not isinstance(source_model, QStandardItemModel):
+            source_index, source_model = map_transactions_index_to_source(current)
+            if not isinstance(source_model, QStandardItemModel) or not source_index.isValid():
                 return
 
             # Get the row ID from vertical header
-            row_id_item = source_model.verticalHeaderItem(current.row())
+            row_id_item = source_model.verticalHeaderItem(source_index.row())
             if row_id_item is None:
                 return
 
@@ -4935,7 +4941,7 @@ class MainWindow(
         proxy_model = self.models.get("transactions")
         if proxy_model is None:
             return
-        source_model = proxy_model.sourceModel()
+        source_model = ultimate_transactions_source(proxy_model)
         if not isinstance(source_model, QStandardItemModel):
             return
 
@@ -4950,7 +4956,7 @@ class MainWindow(
                 break
 
         refresh_transaction_day_totals(source_model, self.db_manager)
-        apply_transaction_day_spans(self.tableView_transactions)
+        apply_transaction_day_header_spans(self.tableView_transactions)
         self.tableView_transactions.viewport().update()
 
         self._mark_summary_dirty()
@@ -5391,7 +5397,7 @@ class MainWindow(
     def _set_table_model_and_stretch_columns(
         self,
         table_view: QTableView,
-        model: QSortFilterProxyModel,
+        model: QAbstractProxyModel,
         *,
         stretch_last: bool = True,
     ) -> None:
@@ -6609,7 +6615,7 @@ class MainWindow(
             label.setText("")
             return
 
-        source_model = proxy_model.sourceModel()
+        source_model = ultimate_transactions_source(proxy_model)
         if not isinstance(source_model, QStandardItemModel):
             label.setText("")
             return
@@ -6622,8 +6628,8 @@ class MainWindow(
         source_rows: list[int] = []
         seen_source_rows: set[int] = set()
         for proxy_index in selection_model.selectedIndexes():
-            source_index = proxy_model.mapToSource(proxy_index)
-            if not source_index.isValid():
+            source_index, mapped_model = map_transactions_index_to_source(proxy_index)
+            if mapped_model is not source_model or not source_index.isValid():
                 continue
             row = source_index.row()
             if row in seen_source_rows:

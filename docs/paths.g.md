@@ -41,7 +41,7 @@ Args:
 
 - `directory` (`Path`): Folder whose children are removed.
 - `keep_names` (`frozenset[str] | set[str] | None`): Top-level child names to leave
-  untouched (for example `.venv` or `data` during an in-place ZIP update).
+  untouched (for example `.venv` or [`data`](apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-data) during an in-place ZIP update).
 
 <details>
 <summary>Code:</summary>

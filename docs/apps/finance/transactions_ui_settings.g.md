@@ -24,21 +24,25 @@ lang: en
 def load_column_visibility() -> dict[str, bool]
 ```
 
-Return persisted column/header visibility flags.
+Return persisted column/header visibility flags merged with defaults.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def load_column_visibility() -> dict[str, bool]:
+    flags = dict(DEFAULT_COLUMN_VISIBILITY)
     try:
         config = h.dev.config_load(get_config_path_str(), is_temp=True)
     except (FileNotFoundError, OSError, ValueError):
-        return {}
+        return flags
     raw = config.get(COLUMN_VISIBILITY_KEY)
     if not isinstance(raw, dict):
-        return {}
-    return {key: value for key, value in raw.items() if isinstance(key, str) and isinstance(value, bool)}
+        return flags
+    for key, value in raw.items():
+        if isinstance(key, str) and isinstance(value, bool) and key in flags:
+            flags[key] = value
+    return flags
 ```
 
 </details>
@@ -75,14 +79,17 @@ Persist column/header visibility flags.
 ```python
 def save_column_visibility(flags: dict[str, bool]) -> dict[str, bool]:
     cleaned = {key: bool(value) for key, value in flags.items() if isinstance(key, str)}
+    # Keep unknown keys (forward-compatible) but always store known defaults too.
+    merged = dict(DEFAULT_COLUMN_VISIBILITY)
+    merged.update(cleaned)
     _ensure_temp_config()
     h.dev.config_update_value(
         COLUMN_VISIBILITY_KEY,
-        cleaned,
+        merged,
         get_config_path_str(),
         is_temp=True,
     )
-    return cleaned
+    return merged
 ```
 
 </details>

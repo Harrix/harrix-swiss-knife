@@ -188,7 +188,7 @@ def clear_day_band(item: QStandardItem) -> None:
 def day_band_color(index: int) -> DayBand
 ```
 
-Return the neutral fill for day `index` in the current theme.
+Return the neutral fill for day [`index`](../finance/transaction_day_headers.g.md#%EF%B8%8F-method-index) in the current theme.
 
 <details>
 <summary>Code:</summary>

@@ -578,7 +578,7 @@ def set_caption(self, text: str) -> None:
 def show_item(self, index: int) -> None
 ```
 
-Display the item at `index`. Subclasses must implement this.
+Display the item at [`index`](../../finance/transaction_day_headers.g.md#%EF%B8%8F-method-index). Subclasses must implement this.
 
 <details>
 <summary>Code:</summary>

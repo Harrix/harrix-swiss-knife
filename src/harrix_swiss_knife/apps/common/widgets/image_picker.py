@@ -40,7 +40,7 @@ from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import (
     unique_path_numbered,
 )
 from harrix_swiss_knife.fluent.style import drop_zone_qss as fluent_drop_zone_qss
-from harrix_swiss_knife.fluent.theme import bind_theme, is_fluent_themed, palette_for
+from harrix_swiss_knife.fluent.theme import bind_theme, css, is_fluent_themed, mix, palette_for
 from harrix_swiss_knife.qt_lucide_icon import (
     CLEAR_BUTTON_ICON,
     apply_lucide_button_icon,
@@ -182,6 +182,8 @@ class ImagePicker(QWidget):
         self._single_marked_for_removal = False
         self._clear_button: QPushButton | None = None
         self._drop_has_focus = False
+        self._drop_dragging = False
+        self._quiet_idle = False
 
         self.setObjectName("ImagePicker")
         if mode == ImagePickerMode.COMPACT:
@@ -272,6 +274,12 @@ class ImagePicker(QWidget):
                 self._refresh_drop_style()
             elif event.type() == QEvent.Type.FocusOut:
                 self._drop_has_focus = False
+                self._refresh_drop_style()
+            elif event.type() == QEvent.Type.DragEnter:
+                self._drop_dragging = True
+                self._refresh_drop_style()
+            elif event.type() in {QEvent.Type.DragLeave, QEvent.Type.Drop}:
+                self._drop_dragging = False
                 self._refresh_drop_style()
             elif (
                 event.type() == QEvent.Type.KeyPress
@@ -392,6 +400,15 @@ class ImagePicker(QWidget):
         self._filename_line_edit = None
         self._filename_row = None
 
+    def set_hint_text(self, text: str) -> None:
+        """Update the compact/single drop hint label."""
+        self._hint_text = text
+        if getattr(self, "_drop_hint", None) is not None:
+            self._drop_hint.setText(text)
+        preview = getattr(self, "_preview_label", None)
+        if preview is not None and not self.image_path:
+            preview.setText(text)
+
     def set_image_path(self, path: str, *, soft_removable: bool = False) -> None:
         """Set a single image path (single mode), or clear when empty."""
         if self._mode == ImagePickerMode.MULTI:
@@ -436,6 +453,11 @@ class ImagePicker(QWidget):
     def set_on_paths_added(self, callback: Callable[[list[str]], None] | None) -> None:
         """Register callback invoked with original paths when user adds images."""
         self._on_paths_added = callback
+
+    def set_quiet_idle(self, *, quiet: bool) -> None:
+        """When `True`, omit the permanent dashed border until focus or drag-over."""
+        self._quiet_idle = quiet
+        self._refresh_drop_style()
 
     def set_save_dir(self, save_dir: Path | None) -> None:
         """Update target directory for copied images."""
@@ -774,21 +796,42 @@ class ImagePicker(QWidget):
             row.addWidget(self._make_in_zone_screenshot_button(), alignment=Qt.AlignmentFlag.AlignVCenter)
         row.addWidget(self._make_in_zone_paste_button(), alignment=Qt.AlignmentFlag.AlignVCenter)
 
+    def _quiet_idle_drop_qss(self) -> str:
+        muted = "#888"
+        if is_fluent_themed(self):
+            palette = palette_for(self)
+            muted = css(mix(palette.window_bg, palette.text_secondary))
+        return f"""
+#ImagePickerDropArea {{
+    border: none;
+    border-radius: 5px;
+    padding: 0px;
+    background-color: transparent;
+}}
+#ImagePickerDropArea QLabel {{
+    border: none;
+    background: transparent;
+    color: {muted};
+}}
+""".strip()
+
     def _refresh_drop_style(self) -> None:
         if not hasattr(self, "_drop_area"):
             return
         selected = self._mode == ImagePickerMode.SINGLE and bool(self.image_path)
-        focused = not selected and self._drop_has_focus
-        if is_fluent_themed(self):
+        active = not selected and (self._drop_has_focus or self._drop_dragging)
+        if self._quiet_idle and not selected and not active:
+            sheet = self._quiet_idle_drop_qss()
+        elif is_fluent_themed(self):
             sheet = fluent_drop_zone_qss(
                 palette_for(self),
                 "#ImagePickerDropArea",
                 selected=selected,
-                focused=focused,
+                focused=active,
             )
         elif selected:
             sheet = _DROP_SELECTED_STYLE
-        elif focused:
+        elif active:
             sheet = _DROP_FOCUSED_STYLE
         else:
             sheet = _DROP_NORMAL_STYLE

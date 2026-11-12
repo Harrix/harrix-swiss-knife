@@ -185,7 +185,7 @@ Set the current value in the editor.
 Args:
 
 - `editor` (`QWidget`): The editor widget.
-- `index` (`QModelIndex | QPersistentModelIndex`): Model index.
+- [`index`](../../finance/transaction_day_headers.g.md#%EF%B8%8F-method-index) (`QModelIndex | QPersistentModelIndex`): Model index.
 
 <details>
 <summary>Code:</summary>
@@ -217,7 +217,7 @@ Args:
 
 - `editor` (`QWidget`): The editor widget.
 - `model` (`QAbstractItemModel`): The data model.
-- `index` (`QModelIndex | QPersistentModelIndex`): Model index.
+- [`index`](../../finance/transaction_day_headers.g.md#%EF%B8%8F-method-index) (`QModelIndex | QPersistentModelIndex`): Model index.
 
 <details>
 <summary>Code:</summary>

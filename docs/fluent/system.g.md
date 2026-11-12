@@ -87,7 +87,7 @@ def capture_region(self, region: QRect) -> QPixmap:
 def capture_screen(self, index: int = 0) -> QPixmap
 ```
 
-Grab the whole monitor at `index`.
+Grab the whole monitor at [`index`](../apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-index).
 
 <details>
 <summary>Code:</summary>

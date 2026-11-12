@@ -485,7 +485,7 @@ def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
 def show_item(self, index: int) -> None
 ```
 
-Load the exercise AVIF at `index`.
+Load the exercise AVIF at [`index`](../../finance/transaction_day_headers.g.md#%EF%B8%8F-method-index).
 
 <details>
 <summary>Code:</summary>

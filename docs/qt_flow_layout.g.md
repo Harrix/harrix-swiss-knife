@@ -383,7 +383,7 @@ def heightForWidth(self, width: int) -> int:  # noqa: N802
 def itemAt(self, index: int) -> QLayoutItem | None
 ```
 
-Return the item at `index`, or `None`.
+Return the item at [`index`](apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-index), or `None`.
 
 <details>
 <summary>Code:</summary>
@@ -472,7 +472,7 @@ def sizeHint(self) -> QSize:  # noqa: N802
 def takeAt(self, index: int) -> QLayoutItem | None
 ```
 
-Remove and return the item at `index`.
+Remove and return the item at [`index`](apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-index).
 
 <details>
 <summary>Code:</summary>

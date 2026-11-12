@@ -12049,7 +12049,7 @@ React to `QTabWidget` index change.
 
 Args:
 
-- `index` (`int`): The index of the newly selected tab.
+- [`index`](../finance/transaction_day_headers.g.md#%EF%B8%8F-method-index) (`int`): The index of the newly selected tab.
 
 <details>
 <summary>Code:</summary>

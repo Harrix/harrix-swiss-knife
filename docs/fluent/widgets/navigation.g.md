@@ -2454,7 +2454,7 @@ def refresh_theme(self) -> None:
 def remove_tab(self, index: int) -> None
 ```
 
-Close the page at `index`.
+Close the page at [`index`](../../apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-index).
 
 <details>
 <summary>Code:</summary>

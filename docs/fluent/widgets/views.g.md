@@ -1212,7 +1212,7 @@ def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
 def set_current(self, index: int) -> None
 ```
 
-Show slide `index`.
+Show slide [`index`](../../apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-index).
 
 <details>
 <summary>Code:</summary>

@@ -395,7 +395,7 @@ table so [`apply_stored_table_header_sort`](#-function-apply_stored_table_header
 
 Args:
 
-- `table` (`QTableView`): Table whose model supports [`sort`](record_id_sort.g.md#%EF%B8%8F-method-sort).
+- `table` (`QTableView`): Table whose model supports `sort`.
 - `skip_section` (`int | None`): Column that must not sort. Defaults to none.
 
 <details>
@@ -619,7 +619,7 @@ toggles it when the indicator is shown.
 
 Args:
 
-- `table` (`QTableView`): Table whose proxy/source model supports [`sort`](record_id_sort.g.md#%EF%B8%8F-method-sort).
+- `table` (`QTableView`): Table whose proxy/source model supports `sort`.
 - `section` (`int`): Clicked logical column.
 - `skip_section` (`int | None`): Column that must not sort. Defaults to none.
 - `current_section` (`int | None`): Last sorted column, or `None` if unknown.

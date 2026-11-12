@@ -20,7 +20,7 @@ from datetime import UTC, datetime
 from functools import partial
 from typing import TYPE_CHECKING, Any
 
-from PySide6.QtCore import QDate, QModelIndex, QSortFilterProxyModel, Qt
+from PySide6.QtCore import QAbstractProxyModel, QDate, QModelIndex, QSortFilterProxyModel, Qt
 from PySide6.QtGui import QStandardItemModel
 from PySide6.QtWidgets import QDateEdit, QWidget
 
@@ -77,8 +77,8 @@ class AutoSaveMixin:
         if proxy_model is None or not hasattr(proxy_model, "sourceModel"):
             return
 
-        source_model = proxy_model.sourceModel()
-        if source_model is None:
+        source_model = _ultimate_source_model(proxy_model)
+        if source_model is None or not isinstance(source_model, QStandardItemModel):
             return
 
         if not hasattr(self, "_auto_save_handlers"):
@@ -151,7 +151,9 @@ class AutoSaveMixin:
             proxy_model: QSortFilterProxyModel | None = self.models.get(table_name)
             if proxy_model is None:
                 return
-            source_model = proxy_model.sourceModel()
+            # dataChanged is connected to the ultimate source model, so indices
+            # are already source rows (including nested day-header proxies).
+            source_model = _ultimate_source_model(proxy_model)
             if not isinstance(source_model, QStandardItemModel):
                 return
 
@@ -338,12 +340,8 @@ class TableOperations:
             if not index.isValid():
                 return None
 
-            source_model = model.sourceModel()
-            if not isinstance(source_model, QStandardItemModel):
-                return None
-
-            source_index = model.mapToSource(index)
-            if not source_index.isValid():
+            source_index, source_model = _map_index_through_proxies(index)
+            if not isinstance(source_model, QStandardItemModel) or not source_index.isValid():
                 return None
 
             vertical_header_item = source_model.verticalHeaderItem(source_index.row())
@@ -376,14 +374,10 @@ class TableOperations:
             if selection_model is None:
                 return ids
 
-            source_model = proxy_model.sourceModel()
-            if not isinstance(source_model, QStandardItemModel):
-                return ids
-
             seen_source_rows: set[int] = set()
             for proxy_index in selection_model.selectedIndexes():
-                source_index = proxy_model.mapToSource(proxy_index)
-                if not source_index.isValid():
+                source_index, source_model = _map_index_through_proxies(proxy_index)
+                if not isinstance(source_model, QStandardItemModel) or not source_index.isValid():
                     continue
                 row = source_index.row()
                 if row in seen_source_rows:
@@ -479,6 +473,18 @@ def clear_model_cell_without_autosave(model: QStandardItemModel, row: int, colum
         model.blockSignals(was_blocked)
 
 
+def _map_index_through_proxies(index: QModelIndex) -> tuple[QModelIndex, Any]:
+    """Walk nested proxies until the ultimate source model index."""
+    model: Any = index.model()
+    current = index
+    while isinstance(model, QAbstractProxyModel):
+        current = model.mapToSource(current)
+        if not current.isValid():
+            return current, model.sourceModel()
+        model = model.sourceModel()
+    return current, model
+
+
 def _roles_affect_saved_data(roles: list | None) -> bool:
     """Return whether a `dataChanged` notification touches persisted cell data.
 
@@ -497,3 +503,11 @@ def _roles_affect_saved_data(roles: list | None) -> bool:
     if not roles:
         return True
     return any(int(role) in _AUTO_SAVE_DATA_ROLES for role in roles)
+
+
+def _ultimate_source_model(model: Any) -> Any:
+    """Return the innermost model under nested proxies."""
+    current = model
+    while isinstance(current, QAbstractProxyModel):
+        current = current.sourceModel()
+    return current

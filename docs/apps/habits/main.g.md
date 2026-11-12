@@ -2992,7 +2992,7 @@ Handle habit filter list view click or activation.
 
 Args:
 
-- `index` (`QModelIndex`): Clicked/activated index.
+- [`index`](../finance/transaction_day_headers.g.md#%EF%B8%8F-method-index) (`QModelIndex`): Clicked/activated index.
 
 <details>
 <summary>Code:</summary>
@@ -3138,7 +3138,7 @@ Handle habit year list view change.
 
 Args:
 
-- `index` (`QModelIndex`): Selected index.
+- [`index`](../finance/transaction_day_headers.g.md#%EF%B8%8F-method-index) (`QModelIndex`): Selected index.
 
 <details>
 <summary>Code:</summary>

@@ -156,7 +156,7 @@ Args:
 
 - `painter` (`QPainter`): The painter used for drawing.
 - `option` (`QStyleOptionViewItem`): The style options for the item.
-- `index` (`QModelIndex`): The model index of the item being painted.
+- [`index`](../transaction_day_headers.g.md#%EF%B8%8F-method-index) (`QModelIndex`): The model index of the item being painted.
 
 <details>
 <summary>Code:</summary>
