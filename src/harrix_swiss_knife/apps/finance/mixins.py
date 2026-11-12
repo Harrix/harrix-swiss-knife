@@ -26,7 +26,7 @@ from harrix_swiss_knife.apps.common.qt_mixins import (
 from harrix_swiss_knife.apps.common.text_case import capitalize_first_letter, edited_source_text_differs
 from harrix_swiss_knife.apps.finance.category_icon_display import strip_category_display_value
 from harrix_swiss_knife.apps.finance.exchange_validation import validate_exchange_data
-from harrix_swiss_knife.apps.finance.number_utils import clean_number_text
+from harrix_swiss_knife.apps.finance.number_utils import clean_number_text, with_currency
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -468,7 +468,8 @@ class ChartOperations(ChartOperationsBase):
             return
 
         value_str = self._format_chart_last_point_value(y_values[-1])
-        label_text = f"{prefix}: {value_str}{currency_symbol}" if prefix else f"{value_str}{currency_symbol}"
+        value_with_currency = with_currency(value_str, currency_symbol)
+        label_text = f"{prefix}: {value_with_currency}" if prefix else value_with_currency
         if period == "Years":
             label_text += f" ({x_values[-1].year})"
 
@@ -503,7 +504,7 @@ class ChartOperations(ChartOperationsBase):
         """Format balance-chart annotation as `period-date: value`."""
         date_label = self._format_chart_period_date(date_str, period)
         value_label = self._format_chart_last_point_value(value)
-        return f"{date_label}: {value_label}{currency_symbol}"
+        return f"{date_label}: {with_currency(value_label, currency_symbol)}"
 
     @staticmethod
     def _sparse_integer_ticks(max_value: int, *, max_ticks: int = 12) -> list[int]:

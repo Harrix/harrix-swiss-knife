@@ -12,7 +12,7 @@ from PySide6.QtWidgets import QDoubleSpinBox, QStyledItemDelegate, QStyleOptionV
 
 from harrix_swiss_knife.apps.common.ui_chrome import BUTTON_SUCCESS_BG
 from harrix_swiss_knife.apps.common.ui_helpers import apply_white_editor_background
-from harrix_swiss_knife.apps.finance.number_utils import format_amount
+from harrix_swiss_knife.apps.finance.number_utils import format_amount, with_currency
 from harrix_swiss_knife.apps.finance.transaction_day_totals import is_income_category_display
 from harrix_swiss_knife.fluent.theme import palette_for
 from harrix_swiss_knife.qt_compact_spin_box import CompactDoubleSpinBox
@@ -100,7 +100,7 @@ class AmountDelegate(QStyledItemDelegate):
 
             amount_text = self.displayText(raw_value, QLocale())
             symbol = self._currency_symbol(index)
-            display_text = f"{amount_text}{symbol}" if symbol else amount_text
+            display_text = with_currency(amount_text, symbol)
 
             is_income = self._is_income_row(index)
             if self.total_per_day:

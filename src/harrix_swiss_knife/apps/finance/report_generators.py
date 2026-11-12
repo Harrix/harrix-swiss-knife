@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
+from harrix_swiss_knife.apps.finance.number_utils import with_currency
 from harrix_swiss_knife.apps.finance.transaction_helpers import (
     compute_average_salary_by_year,
 )
@@ -49,10 +50,10 @@ def get_account_balances_report_data(
     total_balance: float = 0.0
 
     for account_name, balance in account_balances:
-        report_data.append([account_name, f"{balance:.2f} {currency_code}"])
+        report_data.append([account_name, with_currency(f"{balance:.2f}", currency_code)])
         total_balance += balance
 
-    report_data.append(["TOTAL", f"{total_balance:.2f} {currency_code}"])
+    report_data.append(["TOTAL", with_currency(f"{total_balance:.2f}", currency_code)])
     return ["Account", "Balance"], report_data
 
 
@@ -74,8 +75,8 @@ def get_average_salary_by_year_report_data(
     report_data: list[list[str]] = [
         [
             label,
-            f"{average_monthly:.2f} {currency_code}",
-            f"{annual:.2f} {currency_code}",
+            with_currency(f"{average_monthly:.2f}", currency_code),
+            with_currency(f"{annual:.2f}", currency_code),
         ]
         for label, average_monthly, annual in year_rows
     ]
@@ -101,11 +102,11 @@ def get_category_analysis_report_data(
     if expense_totals:
         report_data.append(["EXPENSES", "", ""])
         for category, amount in sorted(expense_totals.items(), key=lambda x: x[1], reverse=True):
-            report_data.append([category, f"{amount:.2f} {currency_code}", "Expense"])
+            report_data.append([category, with_currency(f"{amount:.2f}", currency_code), "Expense"])
     if income_totals:
         report_data.append(["INCOME", "", ""])
         for category, amount in sorted(income_totals.items(), key=lambda x: x[1], reverse=True):
-            report_data.append([category, f"{amount:.2f} {currency_code}", "Income"])
+            report_data.append([category, with_currency(f"{amount:.2f}", currency_code), "Income"])
 
     return ["Category", "Amount", "Type"], report_data
 
@@ -154,9 +155,9 @@ def get_income_vs_expenses_report_data(
         report_data.append(
             [
                 period_name,
-                f"{income:.2f} {currency_code}",
-                f"{expenses:.2f} {currency_code}",
-                f"{balance:.2f} {currency_code}",
+                with_currency(f"{income:.2f}", currency_code),
+                with_currency(f"{expenses:.2f}", currency_code),
+                with_currency(f"{balance:.2f}", currency_code),
             ]
         )
 
@@ -204,11 +205,11 @@ def get_monthly_income_year_delta_report_data(
         return monthly.get(f"{year}-{month:02d}", 0.0)
 
     def format_amount(amount: float) -> str:
-        return f"{amount:.2f} {currency_symbol}"
+        return with_currency(f"{amount:.2f}", currency_symbol)
 
     def format_delta(amount: float) -> str:
         sign = "+" if amount > 0 else ""
-        return f"{sign}{amount:.2f} {currency_symbol}"
+        return f"{sign}{with_currency(f'{amount:.2f}', currency_symbol)}"
 
     def delta_cell(reference: float, baseline: float) -> str:
         return f"{format_delta(reference - baseline)}\n{format_amount(baseline)}"

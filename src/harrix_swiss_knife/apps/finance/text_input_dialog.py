@@ -29,7 +29,7 @@ PURCHASE_TEXT_PLACEHOLDER = (
     "Enter your purchases here...\n"
     "Example:\n"
     "Sugar-free Cola 'From Store'\tFood\t99 ₽\n"
-    "Milk Cocktail 'Wonder'\tFood\t65 ₽"
+    "Milk Cocktail 'Wonder'\tFood\t65\u00a0₽"
 )
 
 

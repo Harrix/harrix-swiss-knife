@@ -320,7 +320,8 @@ class ChartOperationsBase:
         min_val = min(values)
         max_val = max(values)
         avg_val = sum(values) / len(values)
-        unit_suffix = f" {unit}" if unit else ""
+        # Non-breaking space before unit / currency (ГОСТ typography).
+        unit_suffix = f"\u00a0{unit}" if unit else ""
 
         if all(isinstance(v, int) for v in values):
             return (

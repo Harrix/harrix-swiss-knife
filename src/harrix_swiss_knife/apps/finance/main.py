@@ -189,7 +189,12 @@ from harrix_swiss_knife.apps.finance.mixins import (
     ValidationOperations,
     requires_database,
 )
-from harrix_swiss_knife.apps.finance.number_utils import format_amount, sqlite_max_major_amount
+from harrix_swiss_knife.apps.finance.number_utils import (
+    format_amount,
+    format_amount_with_currency,
+    sqlite_max_major_amount,
+    with_currency,
+)
 from harrix_swiss_knife.apps.finance.report_operations import ReportOperations
 from harrix_swiss_knife.apps.finance.services.account_balance import format_total_accounts_balance_details
 from harrix_swiss_knife.apps.finance.standard_items_dialog import StandardItemsDialog
@@ -1449,11 +1454,11 @@ class MainWindow(
                 sym = cur[2] if cur else ""
                 major = db.convert_from_minor_units(minor, cid)
                 formatted_major = format_amount(f"{major:.2f}")
-                income_lines.append(f"{code}: {formatted_major}{sym}")
+                income_lines.append(f"{code}: {with_currency(formatted_major, sym)}")
             income_text = (
                 "Total Income:\n" + "\n".join(income_lines)
                 if income_lines
-                else f"Total Income:\n{format_amount('0.00')}{currency_symbol}"
+                else f"Total Income:\n{format_amount_with_currency('0.00', currency_symbol)}"
             )
             self.label_total_income.setText(income_text)
 
@@ -1467,11 +1472,11 @@ class MainWindow(
                 sym = cur[2] if cur else ""
                 major = db.convert_from_minor_units(minor, cid)
                 formatted_major = format_amount(f"{major:.2f}")
-                expense_lines.append(f"{code}: {formatted_major}{sym}")
+                expense_lines.append(f"{code}: {with_currency(formatted_major, sym)}")
             expense_text = (
                 "Total Expenses:\n" + "\n".join(expense_lines)
                 if expense_lines
-                else f"Total Expenses:\n{format_amount('0.00')}{currency_symbol}"
+                else f"Total Expenses:\n{format_amount_with_currency('0.00', currency_symbol)}"
             )
             self.label_total_expenses.setText(expense_text)
 
@@ -1492,11 +1497,11 @@ class MainWindow(
                     sym = cur[2] if cur else ""
                     major = db.convert_from_minor_units(minor, cid)
                     formatted_major = format_amount(f"{major:.2f}")
-                    lines.append(f"{code}: {formatted_major}{sym}")
+                    lines.append(f"{code}: {with_currency(formatted_major, sym)}")
                 return lines
 
             expense_today_lines: list[str] = _expense_lines_for_date(today_str)
-            zero_today = f"{format_amount('0.00')}{currency_symbol}"
+            zero_today = format_amount_with_currency("0.00", currency_symbol)
             if expense_today_lines:
                 self.label_today_expense.setText("\n".join(expense_today_lines))
             else:
@@ -1506,15 +1511,15 @@ class MainWindow(
             if expense_yesterday_lines:
                 self.label_yesterday_expense.setText("\n".join(expense_yesterday_lines))
             else:
-                self.label_yesterday_expense.setText(f"{format_amount('0.00')}{currency_symbol}")
+                self.label_yesterday_expense.setText(format_amount_with_currency("0.00", currency_symbol))
 
         except Exception:
             logger.exception("Error updating summary labels")
             # Set default values on error
-            self.label_total_income.setText(f"Total Income: {format_amount('0.00')}₽")
-            self.label_total_expenses.setText(f"Total Expenses: {format_amount('0.00')}₽")
-            self.label_today_expense.setText(f"{format_amount('0.00')}₽")
-            self.label_yesterday_expense.setText(f"{format_amount('0.00')}₽")
+            self.label_total_income.setText(f"Total Income: {format_amount_with_currency('0.00', '₽')}")
+            self.label_total_expenses.setText(f"Total Expenses: {format_amount_with_currency('0.00', '₽')}")
+            self.label_today_expense.setText(format_amount_with_currency("0.00", "₽"))
+            self.label_yesterday_expense.setText(format_amount_with_currency("0.00", "₽"))
 
     def _account_id_from_table_index(self, index: QModelIndex) -> int | None:
         """Return account database ID for an accounts table model index."""
@@ -1617,7 +1622,7 @@ class MainWindow(
                                 "Error",
                                 f"The account name must be unique.\n"
                                 f"An account with the name “{name}” already exists.\n"
-                                f"Balance: {balance_major:,.2f}{symbol}",
+                                f"Balance: {with_currency(f'{balance_major:,.2f}', symbol)}",
                             )
                             return
 
@@ -2206,7 +2211,10 @@ class MainWindow(
             a_maj = self.db_manager.convert_from_minor_units(int(item["accounts_minor"]), cid)
             d_maj = self.db_manager.convert_from_minor_units(int(item["diff_minor"]), cid)
             lines.append(
-                f"{item['code']} ({item['symbol']}): journal {j_maj:,.2f}, accounts {a_maj:,.2f}, diff {d_maj:,.2f}"
+                f"{item['code']} ({item['symbol']}): "
+                f"journal {with_currency(f'{j_maj:,.2f}', item['symbol'])}, "
+                f"accounts {with_currency(f'{a_maj:,.2f}', item['symbol'])}, "
+                f"diff {with_currency(f'{d_maj:,.2f}', item['symbol'])}"
             )
         text = "\n".join(lines)
         clipboard = QApplication.clipboard()
@@ -4223,7 +4231,7 @@ class MainWindow(
 
             if remainder_minor > 0:
                 remainder_major = self.db_manager.convert_from_minor_units(remainder_minor, currency_id)
-                remainder_line = f"Add Revision Expense {remainder_major:,.2f} {currency_code}."
+                remainder_line = f"Add Revision Expense {with_currency(f'{remainder_major:,.2f}', currency_code)}."
             else:
                 remainder_line = "No new revision will be added."
 
@@ -5802,15 +5810,27 @@ class MainWindow(
         layout = QVBoxLayout(dialog)
         fx_revaluation_effect = difference_historical - difference_latest
         summary_lines = [
-            f"Total of all accounts: {accounts_balance:,.2f}{default_currency_symbol}",
-            f"Accounting total (latest rates): {accounting_balance_latest:,.2f}{default_currency_symbol}",
-            f"Difference (accounts - accounting, latest rates): {difference_latest:,.2f}{default_currency_symbol}",
+            f"Total of all accounts: {with_currency(f'{accounts_balance:,.2f}', default_currency_symbol)}",
             (
-                f"Accounting total (historical rates by operation date): "
-                f"{accounting_balance_historical:,.2f}{default_currency_symbol}"
+                "Accounting total (latest rates): "
+                f"{with_currency(f'{accounting_balance_latest:,.2f}', default_currency_symbol)}"
             ),
-            f"Difference (accounts - accounting, historical): {difference_historical:,.2f}{default_currency_symbol}",
-            f"FX revaluation effect (historical - latest): {fx_revaluation_effect:,.2f}{default_currency_symbol}",
+            (
+                "Difference (accounts - accounting, latest rates): "
+                f"{with_currency(f'{difference_latest:,.2f}', default_currency_symbol)}"
+            ),
+            (
+                "Accounting total (historical rates by operation date): "
+                f"{with_currency(f'{accounting_balance_historical:,.2f}', default_currency_symbol)}"
+            ),
+            (
+                "Difference (accounts - accounting, historical): "
+                f"{with_currency(f'{difference_historical:,.2f}', default_currency_symbol)}"
+            ),
+            (
+                "FX revaluation effect (historical - latest): "
+                f"{with_currency(f'{fx_revaluation_effect:,.2f}', default_currency_symbol)}"
+            ),
         ]
         summary_label = QLabel("\n".join(summary_lines), dialog)
         summary_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
@@ -5969,7 +5989,7 @@ class MainWindow(
                 total_parts: list[str] = []
                 for currency_id, code, symbol, sum_minor in expense_totals:
                     total_major = db.convert_from_minor_units(sum_minor, currency_id)
-                    total_parts.append(f"{total_major:,.2f}{symbol} ({code})")
+                    total_parts.append(f"{with_currency(f'{total_major:,.2f}', symbol)} ({code})")
                 totals_label.setText(f"Expenses: {' · '.join(total_parts)}")
             else:
                 totals_label.setText("Expenses: —")
@@ -6286,7 +6306,7 @@ class MainWindow(
             default_currency_symbol: str = default_currency_info[2] if default_currency_info else ""
 
             # Update main balance label with proper currency symbol
-            self.label_balance_accounts.setText(f"{total_balance:,.2f}{default_currency_symbol}")
+            self.label_balance_accounts.setText(with_currency(f"{total_balance:,.2f}", default_currency_symbol))
 
             # Update details label
             self.label_balance_account_details.setText(details)

@@ -13,6 +13,8 @@ from harrix_pylib.funcs_text import (
 
 _SUBSCRIPT_DIGITS = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
 _SUBSCRIPT_TO_ASCII = str.maketrans("₀₁₂₃₄₅₆₇₈₉", "0123456789")
+# Typographic non-breaking space between amount and currency (ГОСТ / Грамота.ру).
+NBSP = "\u00a0"
 
 
 def format_amount(value: float | str, *, always_decimals: bool = True, decimals: int | None = None) -> str:
@@ -76,6 +78,40 @@ def _infer_decimal_places(cleaned: str) -> int:
     return max(2, min(6, len(frac)))
 
 
+def with_currency(amount_text: str, currency_symbol: str) -> str:
+    """Join a formatted amount and currency with a non-breaking space.
+
+    Args:
+
+    - `amount_text` (`str`): Already formatted amount (may include subscript decimals).
+    - `currency_symbol` (`str`): Currency symbol such as `₽`.
+
+    Returns:
+
+    - `str`: `amount` + NBSP + `symbol`, or just `amount` when the symbol is empty.
+
+    """
+    amount = str(amount_text).rstrip()
+    symbol = str(currency_symbol or "").strip()
+    if not symbol:
+        return amount
+    return f"{amount}{NBSP}{symbol}"
+
+
+def format_amount_with_currency(
+    value: float | str,
+    currency_symbol: str,
+    *,
+    always_decimals: bool = True,
+    decimals: int | None = None,
+) -> str:
+    """Format an amount and append the currency symbol with a non-breaking space."""
+    return with_currency(
+        format_amount(value, always_decimals=always_decimals, decimals=decimals),
+        currency_symbol,
+    )
+
+
 def major_units_to_minor(amount_major: float, subdivision: int) -> int:
     """Convert major units to minor units without float truncation.
 
@@ -119,10 +155,13 @@ _SQLITE_INT64_MAX = 2**63 - 1
 
 
 __all__ = [
+    "NBSP",
     "clean_number_text",
     "evaluate_arithmetic_expression",
     "format_amount",
+    "format_amount_with_currency",
     "major_units_to_minor",
     "sqlite_max_major_amount",
     "try_evaluate_arithmetic_expression",
+    "with_currency",
 ]

@@ -6,7 +6,7 @@ from PySide6.QtCore import QLocale, QModelIndex, QPersistentModelIndex, QRect, Q
 from PySide6.QtGui import QFont, QFontMetrics, QPainter
 from PySide6.QtWidgets import QApplication, QStyle, QStyledItemDelegate, QStyleOptionViewItem
 
-from harrix_swiss_knife.apps.finance.number_utils import format_amount
+from harrix_swiss_knife.apps.finance.number_utils import NBSP, format_amount, with_currency
 
 _SMALLER_FONT_DELTA_PT = 2.0
 _MIN_POINT_SIZE = 7.0
@@ -112,12 +112,18 @@ def _format_amount_line(text: str) -> str:
     if body[0] in "+-":
         sign = body[0]
         body = body[1:]
-    number_text, separator, suffix = body.partition(" ")
+    number_text, separator, suffix = "", "", ""
+    for sep in (NBSP, " "):
+        number_text, separator, suffix = body.partition(sep)
+        if separator:
+            break
+    else:
+        number_text = body
     formatted = format_amount(f"-{number_text}" if sign == "-" else number_text)
     if sign == "+":
         formatted = f"+{formatted}"
     if separator:
-        return f"{formatted} {suffix}"
+        return with_currency(formatted, suffix)
     return formatted
 
 

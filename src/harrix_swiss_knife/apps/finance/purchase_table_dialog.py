@@ -26,6 +26,7 @@ from PySide6.QtWidgets import (
 from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common.ui_helpers import enumerate_stripped_non_empty_lines
 from harrix_swiss_knife.apps.common.word_wrap_header import install_word_wrap_header
+from harrix_swiss_knife.apps.finance.number_utils import with_currency
 from harrix_swiss_knife.apps.finance.text_parser import ParsedPurchaseItem, TextParser
 from harrix_swiss_knife.qt_lucide_icon import make_lucide_push_button, style_accept_button
 
@@ -115,9 +116,9 @@ class PurchaseTableDialog(QDialog):
     def _format_amount_cell(self, item: ParsedPurchaseItem) -> str:
         amount_text = f"{item.amount:g}"
         if item.currency_symbol:
-            return f"{amount_text} {item.currency_symbol}"
+            return with_currency(amount_text, item.currency_symbol)
         if self._currency_symbol:
-            return f"{amount_text} {self._currency_symbol}"
+            return with_currency(amount_text, self._currency_symbol)
         return amount_text
 
     def _is_text_mode(self) -> bool:
@@ -382,7 +383,7 @@ class PurchaseTableDialog(QDialog):
             total_amount = sum(item.amount for item in items)
             symbol = self._currency_symbol
             if symbol:
-                self.total_label.setText(f"Total: {total_amount:,.2f} {symbol}")
+                self.total_label.setText(f"Total: {with_currency(f'{total_amount:,.2f}', symbol)}")
             else:
                 self.total_label.setText(f"Total: {total_amount:,.2f}")
         finally:

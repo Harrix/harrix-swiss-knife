@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QStandardItem, QStandardItemModel
 
-from harrix_swiss_knife.apps.finance.number_utils import clean_number_text, format_amount
+from harrix_swiss_knife.apps.finance.number_utils import clean_number_text, format_amount, with_currency
 from harrix_swiss_knife.apps.finance.transaction_helpers import convert_currency_amount
 
 if TYPE_CHECKING:
@@ -120,7 +120,7 @@ def format_transaction_selection_status(count: int, total: float, currency_symbo
         return ""
     rows_word = "row" if count == 1 else "rows"
     formatted = format_amount(f"{total:.2f}")
-    return f"{count} {rows_word} selected · sum {formatted}{currency_symbol}"
+    return f"{count} {rows_word} selected · sum {with_currency(formatted, currency_symbol)}"
 
 
 def is_income_category_display(category: str) -> bool:
