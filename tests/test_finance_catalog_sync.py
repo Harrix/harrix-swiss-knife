@@ -94,7 +94,9 @@ def test_export_omits_ids_and_history(tmp_path: Path) -> None:
     assert catalog["currencies"] == [
         {"code": "USD", "name": "US Dollar", "symbol": "$", "subdivision": 100, "ticker": None},
     ]
-    assert catalog["categories"] == [{"name": "Food", "type": 0, "icon": "🍔", "name_local": "Еда"}]
+    assert catalog["categories"] == [
+        {"name": "Food", "type": 0, "icon": "🍔", "name_local": "Еда", "icon_lucide": ""},
+    ]
     assert catalog["standard_items"] == [
         {"name": "Вода", "name_en": "Drinking water", "category_name": "Food", "category_type": 0},
     ]

@@ -223,7 +223,8 @@ class StandardItemsDialog(QDialog):
         rows = self.db_manager.get_all_standard_items()
         self.table.setRowCount(len(rows))
         for row_idx, row in enumerate(rows):
-            item_id, name, name_en, category_id, category_name, icon, category_type = row
+            item_id, name, name_en, category_id, category_name, icon, category_type, *rest = row
+            lucide = str(rest[0] or "") if rest else ""
             name_item = QTableWidgetItem(str(name))
             name_item.setData(_COL_ID, int(item_id))
             name_item.setData(_COL_CATEGORY_ID, int(category_id))
@@ -231,8 +232,9 @@ class StandardItemsDialog(QDialog):
             suffix = " (Income)" if int(category_type) == 1 else ""
             category_display = f"{category_name}{suffix}"
             category_item = QTableWidgetItem(category_display)
-            if icon:
-                category_item.setIcon(category_lucide_icon(str(icon)))
+            painted = category_lucide_icon(str(icon or ""), lucide_name=lucide)
+            if not painted.isNull():
+                category_item.setIcon(painted)
             self.table.setItem(row_idx, 0, name_item)
             self.table.setItem(row_idx, 1, en_item)
             self.table.setItem(row_idx, 2, category_item)
@@ -390,10 +392,12 @@ class _StandardItemEditDialog(QDialog):
             name = str(row[1])
             category_type = int(row[2])
             icon = str(row[3] or "")
+            lucide = str(row[5] or "") if len(row) > 5 else ""
             suffix = " (Income)" if category_type == 1 else ""
             display = f"{name}{suffix}"
-            if icon:
-                self.category_combo.addItem(category_lucide_icon(icon), display, category_id)
+            painted = category_lucide_icon(icon, lucide_name=lucide)
+            if not painted.isNull():
+                self.category_combo.addItem(painted, display, category_id)
             else:
                 self.category_combo.addItem(display, category_id)
         form.addRow("Name:", self.name_edit)

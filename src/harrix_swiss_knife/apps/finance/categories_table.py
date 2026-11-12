@@ -42,7 +42,7 @@ class CategoriesTableProxyModel(RecordIdSortProxyModel):
 
 
 def create_categories_table_proxy_model(
-    rows: list[tuple[str, str, int, str, str, object, object, str]],
+    rows: list[tuple[str, str, int, str, str, object, object, str, str]],
     headers: list[str],
 ) -> CategoriesTableProxyModel:
     """Build categories proxy from display rows.
@@ -50,7 +50,7 @@ def create_categories_table_proxy_model(
     Args:
 
     - `rows` (`list[tuple]`): Each item is
-      `(display_name, type_label, type_value, plain_name, name_local, color, row_id, emoji)`.
+      `(display_name, type_label, type_value, plain_name, name_local, color, row_id, emoji, lucide)`.
     - `headers` (`list[str]`): Column headers for display columns.
 
     Returns:
@@ -61,14 +61,16 @@ def create_categories_table_proxy_model(
     model = QStandardItemModel()
     model.setHorizontalHeaderLabels(headers)
 
-    for row_idx, (display_name, type_label, type_value, plain_name, name_local, color, row_id, emoji) in enumerate(
-        rows
-    ):
+    for (
+        row_idx,
+        (display_name, type_label, type_value, plain_name, name_local, color, row_id, emoji, lucide),
+    ) in enumerate(rows):
         fill = color if isinstance(color, QColor) else QColor(color)
         name_item = QStandardItem(display_name)
         name_item.setData(plain_name, Qt.ItemDataRole.UserRole)
-        if emoji:
-            name_item.setIcon(category_lucide_icon(emoji))
+        icon = category_lucide_icon(emoji, lucide_name=lucide)
+        if not icon.isNull():
+            name_item.setIcon(icon)
         set_readable_cell_fill(name_item, fill)
         name_item.setEditable(False)
 

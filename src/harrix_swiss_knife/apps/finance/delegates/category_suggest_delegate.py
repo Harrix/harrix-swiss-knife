@@ -28,6 +28,7 @@ _MARKER_WIDTH = 3
 _ICON_COLUMN_WIDTH = 24
 NAME_LOCAL_ROLE = Qt.ItemDataRole.UserRole + 1
 ICON_ROLE = Qt.ItemDataRole.UserRole + 2
+ICON_LUCIDE_ROLE = Qt.ItemDataRole.UserRole + 3
 _NAME_LOCAL_FONT_SCALE = 0.85
 _NAME_LOCAL_MIN_PIXEL_SIZE = 12
 _NAME_LOCAL_MIN_POINT_SIZE = 7.0
@@ -149,8 +150,8 @@ class CategorySuggestDelegate(QStyledItemDelegate):
             _ICON_COLUMN_WIDTH,
             option.rect.height(),
         )
-        if emoji:
-            lucide = category_lucide_icon(emoji, size=16)
+        if emoji or self._category_lucide(index):
+            lucide = category_lucide_icon(emoji, size=16, lucide_name=self._category_lucide(index))
             if not lucide.isNull():
                 pixmap = lucide.pixmap(16, 16)
                 x = icon_rect.left() + (icon_rect.width() - pixmap.width()) // 2
@@ -192,6 +193,10 @@ class CategorySuggestDelegate(QStyledItemDelegate):
 
     def _category_icon(self, index: QModelIndex | QPersistentModelIndex) -> str:
         value = index.data(ICON_ROLE)
+        return "" if value is None else str(value).strip()
+
+    def _category_lucide(self, index: QModelIndex | QPersistentModelIndex) -> str:
+        value = index.data(ICON_LUCIDE_ROLE)
         return "" if value is None else str(value).strip()
 
     def _category_name(self, index: QModelIndex | QPersistentModelIndex) -> str | None:

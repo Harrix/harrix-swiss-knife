@@ -1,10 +1,8 @@
 """Map finance category emoji (DB `categories.icon`) to Lucide for UI display.
 
-The database and catalog keep emoji strings. Lists, filters, tables, and
-dialogs show the matching Lucide `QIcon` instead of drawing the emoji glyph.
-
-Unknown emoji is not shown as emoji: it maps to a neutral `tags` glyph. There is
-no Lucide picker yet — add/edit dialogs still choose emoji only.
+The database and catalog keep emoji strings in `icon`. Optional `icon_lucide`
+stores an explicit Lucide id chosen in the category dialog. When empty, UI
+falls back to the emoji→Lucide map (or `tags` for unknown emoji).
 
 Category icons always use a neutral dark stroke so they do not inherit
 CodeStyle semantic colors (`sparkles` blue, `pencil` orange, …).
@@ -21,6 +19,7 @@ from harrix_swiss_knife.qt_lucide_icon import (
     LUCIDE_COLOR_DARK,
     create_lucide_icon,
     lucide_name_for_chrome_emoji,
+    lucide_svg_path,
 )
 
 # Seed / preset emoji → Lucide id. Unknown custom emoji falls back below.
@@ -65,6 +64,11 @@ FINANCE_CATEGORY_EMOJI_TO_LUCIDE: dict[str, str] = {
     "🛍️": "shopping-bag",
 }
 
+# Preset strip in the Lucide picker (finance-relevant ids).
+FINANCE_CATEGORY_LUCIDE_PRESETS: tuple[str, ...] = tuple(
+    dict.fromkeys([*sorted(FINANCE_CATEGORY_EMOJI_TO_LUCIDE.values()), "tags"])
+)
+
 _FALLBACK_LUCIDE = "tags"
 _CATEGORY_ICON_SIZE = ICON_SIZE
 
@@ -80,14 +84,19 @@ def category_display_label(name: str, *, income: bool = False, name_local: str =
     return display
 
 
-def category_lucide_icon(emoji: str, size: int = _CATEGORY_ICON_SIZE) -> QIcon:
-    """Return a neutral Lucide `QIcon` for a category emoji, or empty when blank.
+def category_lucide_icon(
+    emoji: str = "",
+    size: int = _CATEGORY_ICON_SIZE,
+    *,
+    lucide_name: str = "",
+) -> QIcon:
+    """Return a neutral Lucide `QIcon` for a category.
 
-    Stroke is always `LUCIDE_COLOR_DARK` so category rows stay gray even when the
-    Lucide ID is shared with a colored chrome action (`pencil`, `refresh-cw`, …).
+    Prefers an explicit `lucide_name` override from `categories.icon_lucide`.
+    Otherwise resolves from the DB emoji via `lucide_name_for_category_icon`.
 
     """
-    name = lucide_name_for_category_icon(emoji)
+    name = resolve_category_lucide_name(emoji=emoji, lucide_name=lucide_name)
     if name is None:
         return QIcon()
     return create_lucide_icon(name, size, color=LUCIDE_COLOR_DARK)
@@ -106,6 +115,14 @@ def lucide_name_for_category_icon(emoji: str) -> str | None:
     if mapped is None:
         mapped = lucide_name_for_chrome_emoji(raw)
     return mapped or _FALLBACK_LUCIDE
+
+
+def resolve_category_lucide_name(*, emoji: str = "", lucide_name: str = "") -> str | None:
+    """Return the Lucide id to paint for a category row."""
+    override = lucide_name.strip()
+    if override and lucide_svg_path(override) is not None:
+        return override
+    return lucide_name_for_category_icon(emoji)
 
 
 def strip_category_display_value(category_value: str) -> str:

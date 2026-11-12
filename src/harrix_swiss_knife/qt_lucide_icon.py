@@ -137,6 +137,7 @@ LUCIDE_ICON_COLORS: dict[str, str] = {
 
 _ICON_NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 _CACHE: dict[tuple[str, int, str, float], QIcon] = {}
+_LUCIDE_NAME_LIST: tuple[str, ...] | None = None
 
 # Leading emoji on chrome labels → Lucide id. Content/action emojis are not listed.
 CHROME_EMOJI_TO_LUCIDE: dict[str, str] = {
@@ -650,6 +651,16 @@ def lucide_name_for_chrome_emoji(emoji: str) -> str | None:
         return CHROME_EMOJI_TO_LUCIDE[emoji]
     stripped = emoji.replace("\ufe0f", "").replace("\u200d", "")
     return CHROME_EMOJI_TO_LUCIDE.get(stripped)
+
+
+def list_lucide_icon_names() -> tuple[str, ...]:
+    """Return sorted Lucide IDs available under `assets/lucide` (cached)."""
+    global _LUCIDE_NAME_LIST  # noqa: PLW0603
+    if _LUCIDE_NAME_LIST is not None:
+        return _LUCIDE_NAME_LIST
+    names = sorted(path.stem for path in _lucide_dir().glob("*.svg") if _ICON_NAME_RE.fullmatch(path.stem))
+    _LUCIDE_NAME_LIST = tuple(names)
+    return _LUCIDE_NAME_LIST
 
 
 def lucide_svg_path(name: str) -> Path | None:

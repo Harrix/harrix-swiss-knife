@@ -5,6 +5,7 @@ from __future__ import annotations
 from harrix_swiss_knife.apps.finance.category_icon_display import (
     category_display_label,
     lucide_name_for_category_icon,
+    resolve_category_lucide_name,
     strip_category_display_value,
 )
 
@@ -33,3 +34,9 @@ def test_strip_category_display_value() -> None:
     assert strip_category_display_value("Food (Income)") == "Food"
     assert strip_category_display_value("🍔 Food") == "Food"
     assert strip_category_display_value("💰 Salary (Income)") == "Salary"
+
+
+def test_lucide_override_wins_over_emoji_map() -> None:
+    assert resolve_category_lucide_name(emoji="🍔", lucide_name="car") == "car"
+    assert resolve_category_lucide_name(emoji="🍔", lucide_name="") == "utensils"
+    assert resolve_category_lucide_name(emoji="🍔", lucide_name="not-a-real-icon") == "utensils"

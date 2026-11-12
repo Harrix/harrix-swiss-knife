@@ -98,9 +98,15 @@ class CategoriesDialog(QDialog):
         result = dialog.get_result()
         if result is None:
             return
-        name, category_type, icon, name_local = result
+        name, category_type, icon, name_local, icon_lucide = result
         try:
-            if not self.db_manager.add_category(name, category_type, icon, name_local=name_local):
+            if not self.db_manager.add_category(
+                name,
+                category_type,
+                icon,
+                name_local=name_local,
+                icon_lucide=icon_lucide,
+            ):
                 message_box.warning(self, "Error", "Failed to add category")
                 return
         except Exception as e:
@@ -167,6 +173,7 @@ class CategoriesDialog(QDialog):
             "type": int(category_data[2] or 0),
             "icon": category_data[3] or "",
             "name_local": category_data[4] or "",
+            "icon_lucide": (str(category_data[5] or "") if len(category_data) > 5 else ""),
         }
         self._edit_dialog_open = True
         dialog = CategoryEditDialog(
@@ -187,6 +194,7 @@ class CategoriesDialog(QDialog):
                 int(result["type"]),
                 result.get("icon", "") or "",
                 result.get("name_local", "") or "",
+                result.get("icon_lucide", "") or "",
             )
             if success:
                 self.catalog_changed = True
@@ -205,7 +213,7 @@ class CategoriesDialog(QDialog):
 
     def _reload_table(self) -> None:
         """Reload the categories table from the database."""
-        rows: list[tuple[str, str, int, str, str, object, object, str]] = []
+        rows: list[tuple[str, str, int, str, str, object, object, str, str]] = []
         for row in self.db_manager.get_all_categories():
             category_id, name, category_type, icon, name_local = (
                 row[0],
@@ -214,9 +222,10 @@ class CategoriesDialog(QDialog):
                 str(row[3] or ""),
                 str(row[4] or "") if row[4] is not None else "",
             )
+            icon_lucide = str(row[5] or "") if len(row) > 5 and row[5] is not None else ""
             type_label = "Expense" if category_type == 0 else "Income"
             color = QColor(255, 200, 200) if category_type == 0 else QColor(200, 255, 200)
-            rows.append((name, type_label, category_type, name, name_local, color, category_id, icon))
+            rows.append((name, type_label, category_type, name, name_local, color, category_id, icon, icon_lucide))
         proxy = create_categories_table_proxy_model(rows, _HEADERS)
         self.table.setModel(proxy)
         header = self.table.horizontalHeader()

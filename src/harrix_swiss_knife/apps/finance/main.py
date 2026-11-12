@@ -148,6 +148,7 @@ from harrix_swiss_knife.apps.finance.chart_year_start_dialog import ChartYearSta
 from harrix_swiss_knife.apps.finance.currencies_dialog import CurrenciesDialog
 from harrix_swiss_knife.apps.finance.deferred_ui_refresh import DeferredUiRefreshScheduler
 from harrix_swiss_knife.apps.finance.delegates import (
+    ICON_LUCIDE_ROLE,
     ICON_ROLE,
     NAME_LOCAL_ROLE,
     AmountDelegate,
@@ -1705,7 +1706,7 @@ class MainWindow(
         self,
         model: QStandardItemModel,
         transformed_data: list[list],
-        id_column: int = -3,
+        id_column: int = -4,
     ) -> None:
         """Append transformed transaction rows to an existing source model."""
         start_row_idx: int = model.rowCount()
@@ -1713,10 +1714,11 @@ class MainWindow(
         for row_offset, row in enumerate(transformed_data):
             row_idx: int = start_row_idx + row_offset
             row_color: QColor = row[-1]
-            category_emoji = str(row[-2] or "")
+            category_lucide = str(row[-2] or "")
+            category_emoji = str(row[-3] or "")
             row_id: int = row[id_column]
             items: list[QStandardItem] = []
-            display_data: list = row[:-3]
+            display_data: list = row[:-4]
 
             for col_idx, value in enumerate(display_data):
                 item: QStandardItem = QStandardItem(str(value) if value is not None else "")
@@ -1728,8 +1730,8 @@ class MainWindow(
                     )
                     item.setData(original_value, Qt.ItemDataRole.UserRole)
 
-                if col_idx == category_column and category_emoji:
-                    item.setIcon(category_lucide_icon(category_emoji))
+                if col_idx == category_column and (category_emoji or category_lucide):
+                    item.setIcon(category_lucide_icon(category_emoji, lucide_name=category_lucide))
 
                 if col_idx == len(display_data) - 1:
                     item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
@@ -2242,7 +2244,7 @@ class MainWindow(
         self,
         data: list[list],
         headers: list[str],
-        id_column: int = -3,
+        id_column: int = -4,
     ) -> QSortFilterProxyModel:
         """Create a special model for transactions table with non-editable total column.
 
@@ -2250,8 +2252,8 @@ class MainWindow(
 
         - `data` (`list[list]`): The table data with color information.
         - `headers` (`list[str]`): Column header names.
-        - `id_column` (`int`): Index of the ID column. Defaults to `-3`
-          (`…, id, category_emoji, color`).
+        - `id_column` (`int`): Index of the ID column. Defaults to `-4`
+          (`…, id, emoji, lucide, color`).
 
         Returns:
 
@@ -2263,13 +2265,14 @@ class MainWindow(
         category_column = 3
 
         for row_idx, row in enumerate(data):
-            # Trailing meta: id, DB category emoji, day-band color.
+            # Trailing meta: id, DB emoji, optional Lucide override, day-band color.
             row_color: QColor = row[-1]
-            category_emoji = str(row[-2] or "")
+            category_lucide = str(row[-2] or "")
+            category_emoji = str(row[-3] or "")
             row_id: int = row[id_column]
 
             items: list[QStandardItem] = []
-            display_data: list = row[:-3]
+            display_data: list = row[:-4]
 
             for col_idx, value in enumerate(display_data):
                 item: QStandardItem = QStandardItem(str(value) if value is not None else "")
@@ -2281,8 +2284,8 @@ class MainWindow(
                     )
                     item.setData(original_value, Qt.ItemDataRole.UserRole)
 
-                if col_idx == category_column and category_emoji:
-                    item.setIcon(category_lucide_icon(category_emoji))
+                if col_idx == category_column and (category_emoji or category_lucide):
+                    item.setIcon(category_lucide_icon(category_emoji, lucide_name=category_lucide))
 
                 if col_idx == len(display_data) - 1:  # Last column
                     item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
@@ -2972,12 +2975,12 @@ class MainWindow(
         summary = ", ".join(f"{code} ({len(set(dates))})" for code, dates in sorted(unresolved.items()))
         return f"Exchange rates updated; missing rates for {summary} — see console"
 
-    def _get_categories_for_delegate(self) -> list[tuple[str, str]]:
-        """Get category dropdown entries as `(display_label, db_emoji)`.
+    def _get_categories_for_delegate(self) -> list[tuple[str, str, str]]:
+        """Get category dropdown entries as `(display_label, emoji, lucide)`.
 
         Returns:
 
-        - `list[tuple[str, str]]`: Plain labels (with Income marker) and DB emoji.
+        - `list[tuple[str, str, str]]`: Plain labels (with Income marker), emoji, Lucide.
 
         """
         if self.db_manager is None:
@@ -2985,14 +2988,15 @@ class MainWindow(
 
         try:
             categories: list = self.db_manager.get_all_categories()
-            entries: list[tuple[str, str]] = []
+            entries: list[tuple[str, str, str]] = []
             for category in categories:
                 name: str = category[1]
                 category_type: int = category[2]
                 icon: str = str(category[3] or "")
+                lucide: str = str(category[5] or "") if len(category) > 5 else ""
                 if category_type == 1:
                     name = f"{name} (Income)"
-                entries.append((name, icon))
+                entries.append((name, icon, lucide))
 
         except Exception:
             logger.exception("Error getting categories for delegate")
@@ -4639,6 +4643,7 @@ class MainWindow(
         model = QStandardItemModel()
         for cat_id, name, category_type, icon, *_rest in self.db_manager.get_all_categories():
             display_text = f"{name} (Income)" if category_type == 1 else name
+            lucide = str(_rest[1] or "") if len(_rest) > 1 else ""
 
             item = QStandardItem(display_text)
             item.setCheckable(True)
@@ -4646,8 +4651,9 @@ class MainWindow(
             item.setData(name, Qt.ItemDataRole.UserRole)
             item.setData(int(category_type), Qt.ItemDataRole.UserRole + 1)
             item.setData(int(cat_id), Qt.ItemDataRole.UserRole + 2)
-            if icon:
-                item.setIcon(category_lucide_icon(str(icon)))
+            painted = category_lucide_icon(str(icon or ""), lucide_name=lucide)
+            if not painted.isNull():
+                item.setIcon(painted)
             model.appendRow(item)
 
         self.list_chart_categories.setModel(model)
@@ -5450,7 +5456,7 @@ class MainWindow(
         self.tableView_transactions.setItemDelegateForColumn(0, self.description_delegate)
         self.tableView_transactions.setItemDelegateForColumn(1, self.description_delegate)
 
-        categories: list[tuple[str, str]] = self._get_categories_for_delegate()
+        categories: list[tuple[str, str, str]] = self._get_categories_for_delegate()
         self.category_delegate = CategoryComboBoxDelegate(self.tableView_transactions, categories)
         self.tableView_transactions.setItemDelegateForColumn(3, self.category_delegate)
 
@@ -6393,29 +6399,31 @@ class MainWindow(
                 set_combo_plain_items(combo, currencies, select=combo.currentText())
 
             # Update categories list view with icons
-            expense_categories: list[tuple[str, str, str]] = self.db_manager.get_categories_with_icons_by_type(0)
-            income_categories: list[tuple[str, str, str]] = self.db_manager.get_categories_with_icons_by_type(1)
+            expense_categories = self.db_manager.get_categories_with_icons_by_type(0)
+            income_categories = self.db_manager.get_categories_with_icons_by_type(1)
 
             model: QStandardItemModel = QStandardItemModel()
 
             # Add expense categories first
-            for category_name, icon, name_local in expense_categories:
+            for category_name, icon, name_local, icon_lucide in expense_categories:
                 title = category_name
                 item: QStandardItem = QStandardItem(title)
                 item.setData(category_name, Qt.ItemDataRole.UserRole)
                 item.setData(name_local, NAME_LOCAL_ROLE)
                 item.setData(icon or "", ICON_ROLE)
+                item.setData(icon_lucide or "", ICON_LUCIDE_ROLE)
                 item.setData(title, Qt.ItemDataRole.ToolTipRole)
                 item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
                 model.appendRow(item)
 
             # Add income categories with special marking
-            for category_name, icon, name_local in income_categories:
+            for category_name, icon, name_local, icon_lucide in income_categories:
                 title = f"{category_name} (Income)"
                 item = QStandardItem(title)
                 item.setData(category_name, Qt.ItemDataRole.UserRole)
                 item.setData(name_local, NAME_LOCAL_ROLE)
                 item.setData(icon or "", ICON_ROLE)
+                item.setData(icon_lucide or "", ICON_LUCIDE_ROLE)
                 item.setData(title, Qt.ItemDataRole.ToolTipRole)
                 item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
                 model.appendRow(item)

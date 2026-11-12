@@ -51,7 +51,7 @@ def test_category_add_dialog_capitalizes_names(qapp: QApplication) -> None:  # n
     dialog._name_edit.setText("cafe")
     dialog._name_local_edit.setText("кафе")
     dialog._on_accept()
-    assert dialog.get_result() == ("Cafe", 0, "", "Кафе")
+    assert dialog.get_result() == ("Cafe", 0, "", "Кафе", "")
     dialog.close()
 
 

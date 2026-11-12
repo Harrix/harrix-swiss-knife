@@ -3,6 +3,7 @@
 from harrix_swiss_knife.apps.finance.delegates.amount_delegate import AmountDelegate
 from harrix_swiss_knife.apps.finance.delegates.category_combo_box_delegate import CategoryComboBoxDelegate
 from harrix_swiss_knife.apps.finance.delegates.category_suggest_delegate import (
+    ICON_LUCIDE_ROLE,
     ICON_ROLE,
     NAME_LOCAL_ROLE,
     CategorySuggestDelegate,
@@ -15,6 +16,7 @@ from harrix_swiss_knife.apps.finance.delegates.tag_delegate import TagDelegate
 from harrix_swiss_knife.apps.finance.delegates.year_delta_cell_delegate import YearDeltaCellDelegate
 
 __all__ = [
+    "ICON_LUCIDE_ROLE",
     "ICON_ROLE",
     "NAME_LOCAL_ROLE",
     "AmountDelegate",
