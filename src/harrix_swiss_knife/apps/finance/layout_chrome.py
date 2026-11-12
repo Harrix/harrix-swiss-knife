@@ -8,6 +8,11 @@ from PySide6.QtCore import QSize, Qt, QTimer
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QAbstractItemView, QLabel, QListView, QSizePolicy, QTableView
 
+from harrix_swiss_knife.apps.common.table_models import (
+    bind_column_fill_on_resize,
+    columns_fill_viewport,
+    user_resized_columns,
+)
 from harrix_swiss_knife.apps.common.tracker_layout_chrome import (
     apply_tracker_column_surfaces,
     quiet_group_box,
@@ -42,6 +47,49 @@ _EXCHANGE_LABEL_WIDTH = 90
 _EXCHANGE_FIELD_MIN_WIDTH = 100
 _SPLITTER_SAVE_DELAY_MS = 400
 _TWO_PANE_SPLITTER_LEN = 2
+# Exchange rates table: From / To / Rate / Date — Rate needs the leftover width.
+_RATES_COL_FROM = 0
+_RATES_COL_TO = 1
+_RATES_COL_RATE = 2
+_RATES_COL_DATE = 3
+_RATES_FROM_WIDTH = 48
+_RATES_TO_WIDTH = 48
+_RATES_DATE_WIDTH = 100
+_RATES_RATE_MIN_WIDTH = 96
+
+
+def apply_exchange_rates_table_column_widths(table: QTableView, *, force: bool = False) -> None:
+    """Give Rate the leftover width; keep From/To/Date compact so values fit."""
+    bind_column_fill_on_resize(table, apply_exchange_rates_table_column_widths)
+    if not table.isVisible() or user_resized_columns(table):
+        return
+    header = table.horizontalHeader()
+    if header.count() < 4 or table.property("hskColumnFillGuard"):
+        return
+    viewport_w = table.viewport().width()
+    if viewport_w <= 0:
+        return
+    if not force and columns_fill_viewport(table):
+        return
+
+    rate_w = max(
+        viewport_w - _RATES_FROM_WIDTH - _RATES_TO_WIDTH - _RATES_DATE_WIDTH,
+        _RATES_RATE_MIN_WIDTH,
+    )
+    widths = {
+        _RATES_COL_FROM: _RATES_FROM_WIDTH,
+        _RATES_COL_TO: _RATES_TO_WIDTH,
+        _RATES_COL_RATE: rate_w,
+        _RATES_COL_DATE: _RATES_DATE_WIDTH,
+    }
+    header.setStretchLastSection(False)
+    table.setProperty("hskColumnFillGuard", 1)
+    try:
+        for column, width in widths.items():
+            header.setSectionResizeMode(column, header.ResizeMode.Interactive)
+            table.setColumnWidth(column, width)
+    finally:
+        table.setProperty("hskColumnFillGuard", 0)
 
 
 def install_finance_layout_chrome(host: Any) -> None:
@@ -484,6 +532,8 @@ def _polish_rates(host: Any) -> None:
         apply_lucide_button_icon(button, icon)
 
     _compact_table(host.tableView_exchange_rates)
+    if host.tableView_exchange_rates.model() is not None:
+        apply_exchange_rates_table_column_widths(host.tableView_exchange_rates, force=True)
 
 
 def _polish_reports(host: Any) -> None:

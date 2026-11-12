@@ -23,9 +23,14 @@ from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.chart_theme import chart_ink, chart_label_bbox, themed_figure
 from harrix_swiss_knife.apps.common.day_bands import day_band_color
 from harrix_swiss_knife.apps.common.scroll_pagination import on_scroll_load_more
+from harrix_swiss_knife.apps.common.table_models import (
+    apply_stored_table_header_sort,
+    enable_table_header_sorting,
+)
 from harrix_swiss_knife.apps.finance.delegates import AmountDelegate
 from harrix_swiss_knife.apps.finance.exchange_rate_checker_worker import ExchangeRateCheckerWorker
 from harrix_swiss_knife.apps.finance.exchange_rate_worker import ExchangeRateUpdateWorker
+from harrix_swiss_knife.apps.finance.layout_chrome import apply_exchange_rates_table_column_widths
 
 if TYPE_CHECKING:
     from PySide6.QtGui import QStandardItemModel
@@ -690,7 +695,10 @@ class ExchangeRatesOperations:
         self.models["exchange_rates"] = self._create_colored_table_model(
             transformed_data, self.table_config["exchange_rates"][2]
         )
-        self._set_table_model_and_stretch_columns(self.tableView_exchange_rates, self.models["exchange_rates"])
+        self.tableView_exchange_rates.setModel(self.models["exchange_rates"])
+        enable_table_header_sorting(self.tableView_exchange_rates)
+        apply_stored_table_header_sort(self.tableView_exchange_rates)
+        apply_exchange_rates_table_column_widths(self.tableView_exchange_rates, force=True)
         self._setup_exchange_rates_table_delegates()
 
         self._exchange_rates_pagination.record_first_page(len(rows), limit)

@@ -4975,10 +4975,17 @@ class MainWindow(
         if self._is_current_tab("tab_transactions"):
             self._setup_transactions_table_column_widths()
             return
+        if self._is_current_tab("tab_exchange_rates"):
+            from harrix_swiss_knife.apps.finance.layout_chrome import (  # noqa: PLC0415
+                apply_exchange_rates_table_column_widths,
+            )
+
+            if self.tableView_exchange_rates.model() is not None:
+                apply_exchange_rates_table_column_widths(self.tableView_exchange_rates, force=True)
+            return
         tables: list[tuple[QTableView, bool]] = [
             (self.tableView_accounts, False),
             (self.tableView_exchange, False),
-            (self.tableView_exchange_rates, True),
         ]
         for table_view, stretch_last in tables:
             if not table_view.isVisible() or table_view.model() is None:
