@@ -47,7 +47,7 @@ def apply_transactions_column_visibility(host: Any) -> None:
     )
 
     apply_transaction_day_header_spans(table)
-    apply_transactions_table_column_widths(table)
+    apply_transactions_table_column_widths(table, force=True)
 ```
 
 </details>
@@ -55,19 +55,20 @@ def apply_transactions_column_visibility(host: Any) -> None:
 ## 🔧 Function `apply_transactions_table_column_widths`
 
 ```python
-def apply_transactions_table_column_widths(table_view: QTableView) -> None
+def apply_transactions_table_column_widths(table_view: QTableView, *, force: bool = False) -> None
 ```
 
 Fill the viewport among _visible_ columns, then keep them Interactive.
 
-Date / Total (and any user-hidden columns) must not reserve space, or the
-table leaves an empty strip to the right of Tag.
+Date / Total (and any user-hidden columns) must not reserve space.
+Description gets a larger share than English / Category; Amount / Currency /
+Tag stay compact.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def apply_transactions_table_column_widths(table_view: QTableView) -> None:
+def apply_transactions_table_column_widths(table_view: QTableView, *, force: bool = False) -> None:
     bind_column_fill_on_resize(table_view, apply_transactions_table_column_widths)
     if not table_view.isVisible() or user_resized_columns(table_view):
         return
@@ -76,7 +77,9 @@ def apply_transactions_table_column_widths(table_view: QTableView) -> None:
     if count <= 0 or table_view.property("hskColumnFillGuard"):
         return
     viewport_w = table_view.viewport().width()
-    if viewport_w <= 0 or columns_fill_viewport(table_view):
+    if viewport_w <= 0:
+        return
+    if not force and columns_fill_viewport(table_view):
         return
 
     visible = [i for i in range(count) if not table_view.isColumnHidden(i)]
@@ -86,21 +89,19 @@ def apply_transactions_table_column_widths(table_view: QTableView) -> None:
     header.setStretchLastSection(False)
     header.setMinimumSectionSize(min(header.minimumSectionSize(), 24))
     min_size = header.minimumSectionSize()
-    tag_idx = TRANSACTION_COL_TAG if TRANSACTION_COL_TAG in visible else None
-    flexible = [i for i in visible if i != tag_idx]
     widths = _visible_transaction_column_widths(
         viewport_w,
         count,
-        flexible=flexible,
-        tag_idx=tag_idx,
+        visible=visible,
         min_size=min_size,
     )
 
     table_view.setProperty("hskColumnFillGuard", 1)
     try:
-        for column in visible:
+        for column in range(count):
             header.setSectionResizeMode(column, header.ResizeMode.Interactive)
-            table_view.setColumnWidth(column, widths[column])
+            # Zero hidden sections so they cannot inflate header.length().
+            table_view.setColumnWidth(column, widths[column] if column in set(visible) else 0)
     finally:
         table_view.setProperty("hskColumnFillGuard", 0)
 ```

@@ -219,19 +219,35 @@ def _band_pair(palette: FluentPalette) -> tuple[tuple[int, int, int], tuple[int,
 
 
 def _refresh_model(model: QStandardItemModel) -> None:
+    """Repaint day-band fills without emitting per-cell `dataChanged` storms."""
+    rows = model.rowCount()
+    columns = model.columnCount()
+    if rows <= 0 or columns <= 0:
+        return
     ink = QBrush(_band_ink())
-    for row in range(model.rowCount()):
-        band: int | None = None
-        for column in range(model.columnCount()):
-            item = model.item(row, column)
-            if item is None:
-                continue
-            stored = item.data(DAY_BAND_ROLE)
-            if not isinstance(stored, int):
-                continue
-            band = stored
-            item.setBackground(QBrush(day_band_color(stored)))
-            item.setForeground(ink)
-        header = model.verticalHeaderItem(row)
-        if header is not None and band is not None:
-            set_day_band(header, day_band_color(band))
+    model.blockSignals(True)  # noqa: FBT003
+    try:
+        for row in range(rows):
+            band: int | None = None
+            for column in range(columns):
+                item = model.item(row, column)
+                if item is None:
+                    continue
+                stored = item.data(DAY_BAND_ROLE)
+                if not isinstance(stored, int):
+                    continue
+                band = stored
+                item.setBackground(QBrush(day_band_color(stored)))
+                item.setForeground(ink)
+            header = model.verticalHeaderItem(row)
+            if header is not None and band is not None:
+                set_day_band(header, day_band_color(band))
+    finally:
+        model.blockSignals(False)  # noqa: FBT003
+    top_left = model.index(0, 0)
+    bottom_right = model.index(rows - 1, columns - 1)
+    model.dataChanged.emit(
+        top_left,
+        bottom_right,
+        [int(Qt.ItemDataRole.BackgroundRole), int(Qt.ItemDataRole.ForegroundRole)],
+    )

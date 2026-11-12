@@ -31,6 +31,11 @@ from harrix_swiss_knife.apps.finance.transactions_ui_settings import (
     ALWAYS_HIDDEN_COLUMNS,
     EXPECTED_SPLITTER_LEN,
     TOGGLEABLE_COLUMNS,
+    TRANSACTION_COL_AMOUNT,
+    TRANSACTION_COL_CATEGORY,
+    TRANSACTION_COL_CURRENCY,
+    TRANSACTION_COL_DESCRIPTION,
+    TRANSACTION_COL_ENGLISH,
     TRANSACTION_COL_TAG,
     load_column_visibility,
     load_splitter_sizes,
@@ -47,7 +52,17 @@ _FORM_MIN_WIDTH = 280
 _CATEGORIES_MIN_WIDTH = 260
 _TABLE_MIN_WIDTH = 400
 _SPLITTER_SAVE_DELAY_MS = 400
-_TAG_COLUMN_WIDTH = 100
+# Compact columns stay fixed; Description absorbs most leftover width.
+_FIXED_COLUMN_WIDTHS: dict[int, int] = {
+    TRANSACTION_COL_AMOUNT: 118,
+    TRANSACTION_COL_CURRENCY: 72,
+    TRANSACTION_COL_TAG: 110,
+}
+_FLEX_COLUMN_WEIGHTS: dict[int, int] = {
+    TRANSACTION_COL_DESCRIPTION: 5,
+    TRANSACTION_COL_ENGLISH: 2,
+    TRANSACTION_COL_CATEGORY: 2,
+}
 _NO_CATEGORY = "Category: not selected"
 _CATEGORY_HINT = "Choose a category in the adjacent panel"
 _CATEGORY_PREFIX = "Category: "
@@ -69,14 +84,15 @@ def apply_transactions_column_visibility(host: Any) -> None:
     )
 
     apply_transaction_day_header_spans(table)
-    apply_transactions_table_column_widths(table)
+    apply_transactions_table_column_widths(table, force=True)
 
 
-def apply_transactions_table_column_widths(table_view: QTableView) -> None:
+def apply_transactions_table_column_widths(table_view: QTableView, *, force: bool = False) -> None:
     """Fill the viewport among _visible_ columns, then keep them Interactive.
 
-    Date / Total (and any user-hidden columns) must not reserve space, or the
-    table leaves an empty strip to the right of Tag.
+    Date / Total (and any user-hidden columns) must not reserve space.
+    Description gets a larger share than English / Category; Amount / Currency /
+    Tag stay compact.
 
     """
     bind_column_fill_on_resize(table_view, apply_transactions_table_column_widths)
@@ -87,7 +103,9 @@ def apply_transactions_table_column_widths(table_view: QTableView) -> None:
     if count <= 0 or table_view.property("hskColumnFillGuard"):
         return
     viewport_w = table_view.viewport().width()
-    if viewport_w <= 0 or columns_fill_viewport(table_view):
+    if viewport_w <= 0:
+        return
+    if not force and columns_fill_viewport(table_view):
         return
 
     visible = [i for i in range(count) if not table_view.isColumnHidden(i)]
@@ -97,21 +115,19 @@ def apply_transactions_table_column_widths(table_view: QTableView) -> None:
     header.setStretchLastSection(False)
     header.setMinimumSectionSize(min(header.minimumSectionSize(), 24))
     min_size = header.minimumSectionSize()
-    tag_idx = TRANSACTION_COL_TAG if TRANSACTION_COL_TAG in visible else None
-    flexible = [i for i in visible if i != tag_idx]
     widths = _visible_transaction_column_widths(
         viewport_w,
         count,
-        flexible=flexible,
-        tag_idx=tag_idx,
+        visible=visible,
         min_size=min_size,
     )
 
     table_view.setProperty("hskColumnFillGuard", 1)
     try:
-        for column in visible:
+        for column in range(count):
             header.setSectionResizeMode(column, header.ResizeMode.Interactive)
-            table_view.setColumnWidth(column, widths[column])
+            # Zero hidden sections so they cannot inflate header.length().
+            table_view.setColumnWidth(column, widths[column] if column in set(visible) else 0)
     finally:
         table_view.setProperty("hskColumnFillGuard", 0)
 
@@ -435,7 +451,7 @@ def _set_data_column_visible(
         save_column_visibility(flags)
     _hide_day_header_source_columns(table)
     if refill:
-        apply_transactions_table_column_widths(table)
+        apply_transactions_table_column_widths(table, force=True)
 
 
 def _set_record_id_visible(table: QTableView, *, visible: bool, persist: bool = True) -> None:
@@ -450,28 +466,47 @@ def _visible_transaction_column_widths(
     viewport_w: int,
     count: int,
     *,
-    flexible: list[int],
-    tag_idx: int | None,
+    visible: list[int],
     min_size: int,
 ) -> list[int]:
-    """Split `viewport_w` across visible columns; keep Tag compact when shown."""
-    widths = [min_size] * count
-    tag_w = _TAG_COLUMN_WIDTH if tag_idx is not None else 0
-    flex_min = len(flexible) * min_size if flexible else 0
-    if tag_w + flex_min > viewport_w:
-        tag_w = max(0, viewport_w - flex_min) if tag_idx is not None else 0
-    flex_budget = max(viewport_w - tag_w, flex_min)
-    if not flexible:
-        if tag_idx is not None:
-            widths[tag_idx] = max(viewport_w, min_size)
+    """Split `viewport_w` with Description weighted larger than other flex cols."""
+    widths = [0] * count
+    if not visible:
         return widths
-    base = flex_budget // len(flexible)
-    extra = flex_budget - base * len(flexible)
-    for index, column in enumerate(flexible):
-        widths[column] = base + (extra if index == len(flexible) - 1 else 0)
-    if tag_idx is not None:
-        widths[tag_idx] = tag_w
-    drift = viewport_w - sum(widths[i] for i in (*flexible, *((tag_idx,) if tag_idx is not None else ())))
+
+    fixed = [col for col in visible if col in _FIXED_COLUMN_WIDTHS]
+    flexible = [col for col in visible if col not in _FIXED_COLUMN_WIDTHS]
+    fixed_total = sum(_FIXED_COLUMN_WIDTHS[col] for col in fixed)
+    flex_min = len(flexible) * min_size
+
+    if fixed_total + flex_min > viewport_w and fixed:
+        # Shrink fixed columns proportionally when the pane is too narrow.
+        scale = max(viewport_w - flex_min, 0) / max(fixed_total, 1)
+        for col in fixed:
+            widths[col] = max(int(_FIXED_COLUMN_WIDTHS[col] * scale), min_size // 2)
+        fixed_total = sum(widths[col] for col in fixed)
+    else:
+        for col in fixed:
+            widths[col] = _FIXED_COLUMN_WIDTHS[col]
+
+    flex_budget = max(viewport_w - fixed_total, flex_min if flexible else 0)
+    if not flexible:
+        if fixed:
+            widths[fixed[-1]] = max(widths[fixed[-1]] + (viewport_w - sum(widths[c] for c in fixed)), min_size)
+        return widths
+
+    weight_sum = sum(_FLEX_COLUMN_WEIGHTS.get(col, 1) for col in flexible)
+    assigned = 0
+    for col in flexible[:-1]:
+        share = max(flex_budget * _FLEX_COLUMN_WEIGHTS.get(col, 1) // weight_sum, min_size)
+        widths[col] = share
+        assigned += share
+    widths[flexible[-1]] = max(flex_budget - assigned, min_size)
+
+    # Prefer giving remainder / rounding drift to Description when present.
+    used = sum(widths[col] for col in visible)
+    drift = viewport_w - used
     if drift != 0:
-        widths[flexible[-1]] = max(widths[flexible[-1]] + drift, min_size)
+        sink = TRANSACTION_COL_DESCRIPTION if TRANSACTION_COL_DESCRIPTION in visible else flexible[-1]
+        widths[sink] = max(widths[sink] + drift, min_size)
     return widths

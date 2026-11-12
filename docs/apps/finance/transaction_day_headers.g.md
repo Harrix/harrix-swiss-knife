@@ -42,7 +42,7 @@ lang: en
 class DayHeaderDelegate(QStyledItemDelegate)
 ```
 
-Paint a compact day header (date left, day total right) for spanned rows.
+Paint a compact day header (date left, day total above Amount) for spanned rows.
 
 <details>
 <summary>Code:</summary>
@@ -82,7 +82,11 @@ class DayHeaderDelegate(QStyledItemDelegate):
         font.setBold(True)
         painter.setFont(font)
         metrics = QFontMetrics(font)
-        text_rect = option.rect.adjusted(_HEADER_PAD_X, 0, -_HEADER_PAD_X, 0)
+        # Align the day total with the Amount column so it does not sit over Tag.
+        total_right = _day_header_total_right(host, option.rect)
+        text_left = option.rect.left() + _HEADER_PAD_X
+        text_right = max(text_left, total_right - _HEADER_PAD_X)
+        text_rect = QRect(text_left, option.rect.top(), text_right - text_left, option.rect.height())
 
         total_display = _format_header_total(total_raw, host)
         total_width = metrics.horizontalAdvance(total_display) if total_display else 0
@@ -148,7 +152,11 @@ def paint(
         font.setBold(True)
         painter.setFont(font)
         metrics = QFontMetrics(font)
-        text_rect = option.rect.adjusted(_HEADER_PAD_X, 0, -_HEADER_PAD_X, 0)
+        # Align the day total with the Amount column so it does not sit over Tag.
+        total_right = _day_header_total_right(host, option.rect)
+        text_left = option.rect.left() + _HEADER_PAD_X
+        text_right = max(text_left, total_right - _HEADER_PAD_X)
+        text_rect = QRect(text_left, option.rect.top(), text_right - text_left, option.rect.height())
 
         total_display = _format_header_total(total_raw, host)
         total_width = metrics.horizontalAdvance(total_display) if total_display else 0

@@ -11,16 +11,28 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, overload
 
-from PySide6.QtCore import QAbstractItemModel, QAbstractProxyModel, QModelIndex, QObject, QSize, Qt, Signal
+from PySide6.QtCore import (
+    QAbstractItemModel,
+    QAbstractProxyModel,
+    QModelIndex,
+    QObject,
+    QRect,
+    QSize,
+    Qt,
+    QTimer,
+    Signal,
+)
 from PySide6.QtGui import QColor, QFont, QFontMetrics, QPainter, QPen
 from PySide6.QtWidgets import QAbstractItemDelegate, QStyledItemDelegate, QStyleOptionViewItem, QTableView, QWidget
 
-from harrix_swiss_knife.apps.common.day_bands import day_band_color
+from harrix_swiss_knife.apps.common.day_bands import DAY_BAND_ROLE, day_band_color
 from harrix_swiss_knife.apps.finance.number_utils import format_amount, with_currency
 from harrix_swiss_knife.apps.finance.transaction_day_totals import (
+    TRANSACTION_COL_AMOUNT,
     TRANSACTION_COL_DATE,
     TRANSACTION_COL_TOTAL_PER_DAY,
 )
+from harrix_swiss_knife.apps.finance.transactions_ui_settings import TRANSACTION_COL_TAG
 from harrix_swiss_knife.fluent.theme import mix, palette_for
 
 if TYPE_CHECKING:
@@ -31,10 +43,20 @@ DAY_HEADER_DATE_ROLE = Qt.ItemDataRole.UserRole + 521
 DAY_HEADER_TOTAL_ROLE = Qt.ItemDataRole.UserRole + 522
 _HEADER_PAD_X = 8
 _SEPARATOR_ALPHA = 90
+# Theme day-band refresh paints fills only — must not rebuild headers per cell.
+_COSMETIC_ROLES = frozenset(
+    {
+        int(Qt.ItemDataRole.BackgroundRole),
+        int(Qt.ItemDataRole.ForegroundRole),
+        int(Qt.ItemDataRole.FontRole),
+        int(Qt.ItemDataRole.DecorationRole),
+        int(DAY_BAND_ROLE),
+    },
+)
 
 
 class DayHeaderDelegate(QStyledItemDelegate):
-    """Paint a compact day header (date left, day total right) for spanned rows."""
+    """Paint a compact day header (date left, day total above Amount) for spanned rows."""
 
     def paint(
         self,
@@ -68,7 +90,11 @@ class DayHeaderDelegate(QStyledItemDelegate):
         font.setBold(True)
         painter.setFont(font)
         metrics = QFontMetrics(font)
-        text_rect = option.rect.adjusted(_HEADER_PAD_X, 0, -_HEADER_PAD_X, 0)
+        # Align the day total with the Amount column so it does not sit over Tag.
+        total_right = _day_header_total_right(host, option.rect)
+        text_left = option.rect.left() + _HEADER_PAD_X
+        text_right = max(text_left, total_right - _HEADER_PAD_X)
+        text_rect = QRect(text_left, option.rect.top(), text_right - text_left, option.rect.height())
 
         total_display = _format_header_total(total_raw, host)
         total_width = metrics.horizontalAdvance(total_display) if total_display else 0
@@ -102,6 +128,7 @@ class TransactionDayHeaderProxy(QAbstractProxyModel):
         self._header_totals: dict[int, str] = {}
         self._header_bands: dict[int, int] = {}
         self._source_to_proxy: dict[int, int] = {}
+        self._rebuild_scheduled = False
 
     def columnCount(self, parent: QModelIndex | QPersistentModelIndex | None = None) -> int:  # noqa: N802
         """Match the source column count."""
@@ -225,7 +252,6 @@ class TransactionDayHeaderProxy(QAbstractProxyModel):
     def rebuild(self) -> None:
         """Rebuild header insertion from the current source row order."""
         self._rebuild_mapping()
-        self.mapping_reset.emit()
 
     def rowCount(self, parent: QModelIndex | QPersistentModelIndex | None = None) -> int:  # noqa: N802
         """Return data rows plus inserted day headers."""
@@ -265,29 +291,48 @@ class TransactionDayHeaderProxy(QAbstractProxyModel):
     def _is_header_row(self, proxy_row: int) -> bool:
         return 0 <= proxy_row < len(self._proxy_rows) and self._proxy_rows[proxy_row] < 0
 
-    def _on_source_data_changed(
+    def _forward_source_data_changed(
         self,
         top_left: QModelIndex,
         bottom_right: QModelIndex,
-        _roles: list[int] | None = None,
+        roles: list[int] | None,
     ) -> None:
-        if top_left.column() <= TRANSACTION_COL_DATE <= bottom_right.column() or (
-            top_left.column() <= TRANSACTION_COL_TOTAL_PER_DAY <= bottom_right.column()
-        ):
-            self._rebuild_mapping()
-            return
+        role_args: list[int] = list(roles) if roles else []
         for source_row in range(top_left.row(), bottom_right.row() + 1):
             proxy_row = self._source_to_proxy.get(source_row)
             if proxy_row is None:
                 continue
             left = self.index(proxy_row, top_left.column())
             right = self.index(proxy_row, bottom_right.column())
-            self.dataChanged.emit(left, right)
+            if role_args:
+                self.dataChanged.emit(left, right, role_args)
+            else:
+                self.dataChanged.emit(left, right)
+
+    def _on_source_data_changed(
+        self,
+        top_left: QModelIndex,
+        bottom_right: QModelIndex,
+        roles: list[int] | None = None,
+    ) -> None:
+        role_values = [int(role) for role in roles] if roles else []
+        # Theme refresh paints Background/Foreground on every cell, including Date
+        # and Total. Rebuilding headers for each cell freezes the UI.
+        if role_values and set(role_values) <= _COSMETIC_ROLES:
+            self._forward_source_data_changed(top_left, bottom_right, role_values)
+            return
+        if top_left.column() <= TRANSACTION_COL_DATE <= bottom_right.column() or (
+            top_left.column() <= TRANSACTION_COL_TOTAL_PER_DAY <= bottom_right.column()
+        ):
+            self._schedule_rebuild()
+            return
+        self._forward_source_data_changed(top_left, bottom_right, role_values)
 
     def _on_source_reset(self, *_args: object) -> None:
-        self._rebuild_mapping()
+        self._schedule_rebuild()
 
     def _rebuild_mapping(self) -> None:
+        self._rebuild_scheduled = False
         self.beginResetModel()
         self._proxy_rows = []
         self._header_dates = {}
@@ -319,6 +364,12 @@ class TransactionDayHeaderProxy(QAbstractProxyModel):
             self._proxy_rows.append(source_row)
         self.endResetModel()
         self.mapping_reset.emit()
+
+    def _schedule_rebuild(self) -> None:
+        if self._rebuild_scheduled:
+            return
+        self._rebuild_scheduled = True
+        QTimer.singleShot(0, self._rebuild_mapping)
 
 
 class _DayHeaderOrDelegate(QStyledItemDelegate):
@@ -433,6 +484,32 @@ def ultimate_transactions_source(model: Any) -> Any:
     while isinstance(current, QAbstractProxyModel):
         current = current.sourceModel()
     return current
+
+
+def _day_header_total_right(host: QWidget | None, span_rect: QRect) -> int:
+    """Return the right edge for the day total (Amount column, else before Tag)."""
+    if not isinstance(host, QTableView):
+        return span_rect.right()
+    model = host.model()
+    if model is None:
+        return span_rect.right()
+
+    x = span_rect.left()
+    amount_right: int | None = None
+    last_non_tag_right = span_rect.left()
+    for column in range(model.columnCount()):
+        if host.isColumnHidden(column):
+            continue
+        width = host.columnWidth(column)
+        right = x + width
+        if column == TRANSACTION_COL_AMOUNT:
+            amount_right = right
+        if column != TRANSACTION_COL_TAG:
+            last_non_tag_right = right
+        x = right
+    if amount_right is not None:
+        return amount_right
+    return last_non_tag_right if last_non_tag_right > span_rect.left() else span_rect.right()
 
 
 def _format_header_total(total_raw: str, host: QWidget | None) -> str:
