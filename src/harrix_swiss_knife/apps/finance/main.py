@@ -58,6 +58,7 @@ from PySide6.QtWidgets import (
     QHeaderView,
     QLabel,
     QLayout,
+    QListView,
     QMainWindow,
     QMenu,
     QMessageBox,
@@ -143,14 +144,18 @@ from harrix_swiss_knife.apps.finance.category_icon_display import (
     category_lucide_icon,
     strip_category_display_value,
 )
-from harrix_swiss_knife.apps.finance.category_list_model import populate_category_picker_model
+from harrix_swiss_knife.apps.finance.category_list_model import (
+    category_picker_views,
+    fill_category_picker_model,
+    find_category_in_picker_views,
+    iter_category_picker_rows,
+    selected_category_name,
+)
 from harrix_swiss_knife.apps.finance.category_suggest import suggest_categories
 from harrix_swiss_knife.apps.finance.chart_year_start_dialog import ChartYearStartDialog
 from harrix_swiss_knife.apps.finance.currencies_dialog import CurrenciesDialog
 from harrix_swiss_knife.apps.finance.deferred_ui_refresh import DeferredUiRefreshScheduler
 from harrix_swiss_knife.apps.finance.delegates import (
-    IS_SECTION_ROLE,
-    NAME_LOCAL_ROLE,
     AmountDelegate,
     CategoryComboBoxDelegate,
     CategorySuggestDelegate,
@@ -393,9 +398,11 @@ class MainWindow(
         self._description_filter_timer.timeout.connect(self.apply_filter)
         self._suppress_category_suggest: bool = False
         self._suppress_transaction_form_fill: bool = False
-        self._category_suggest_delegate = CategorySuggestDelegate(self.listView_categories)
+        self._category_selection_syncing: bool = False
+        self._category_suggest_delegate = CategorySuggestDelegate(self)
         self._category_suggest_delegate.use_clicked.connect(self._select_category_by_name)
-        self.listView_categories.setItemDelegate(self._category_suggest_delegate)
+        for category_view in category_picker_views(self):
+            category_view.setItemDelegate(self._category_suggest_delegate)
         self.show_all_transactions: bool = False
 
         # Transactions table pagination state
@@ -913,11 +920,7 @@ class MainWindow(
             def get_and_validate() -> tuple[str | None, Any]:
                 amount = self.doubleSpinBox_amount.value()
                 description = capitalize_first_letter(self.lineEdit_description.text())
-                category_name = (
-                    self.listView_categories.currentIndex().data(Qt.ItemDataRole.UserRole)
-                    if self.listView_categories.currentIndex().isValid()
-                    else None
-                )
+                category_name = selected_category_name(self)
                 currency_code = self.comboBox_currency.currentText()
                 date = self.dateEdit.date().toString("yyyy-MM-dd")
                 tag = self.lineEdit_tag.text().strip()
@@ -1026,24 +1029,14 @@ class MainWindow(
             self.update_filter_comboboxes()
 
     def on_category_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
-        """Handle category selection change in listView_categories.
-
-        Args:
-
-        - `current` (`QModelIndex`): Current selected index.
-        - `_previous` (`QModelIndex`): Previously selected index.
-
-        """
-        label = self._category_form_label_from_index(current) if current.isValid() else None
-        if label:
-            refresh_category_state_label(self, label)
-
-            # Defer so Use-button click handlers are not destroyed mid-signal.
-            QTimer.singleShot(0, self._clear_category_suggestions)
-            # Move focus to description field and select all text
-            QTimer.singleShot(100, self._focus_description_and_select_text)
-        else:
-            refresh_category_state_label(self, None)
+        """Handle category selection change in either Expense or Income list."""
+        if self._category_selection_syncing:
+            return
+        sender = self.sender()
+        view = sender.parent() if isinstance(sender, QItemSelectionModel) else None
+        if not isinstance(view, QListView):
+            view = self.listView_categories
+        self._on_category_list_current_changed(view, current)
 
     def on_clear_description(self) -> None:
         """Clear the description field."""
@@ -1770,10 +1763,11 @@ class MainWindow(
             self._stop_background_transaction_translate_timer()
 
     def _apply_category_suggestions(self, category_names: list[str]) -> None:
-        """Show Use buttons on suggested category rows in `listView_categories`."""
+        """Show Use buttons on suggested category rows in both category lists."""
         self._category_suggest_delegate.set_suggested_categories(category_names)
-        self.listView_categories.doItemsLayout()
-        self.listView_categories.viewport().update()
+        for view in category_picker_views(self):
+            view.doItemsLayout()
+            view.viewport().update()
 
     def _apply_charts_exchange_splitter_sizes(self) -> None:
         """Restore Charts / Exchange Rates splitters (persisted via layout chrome)."""
@@ -1864,9 +1858,7 @@ class MainWindow(
 
     def _category_form_label_from_index(self, index: QModelIndex) -> str | None:
         """Build form category status text from a list index (plain title)."""
-        if not index.isValid() or bool(index.data(IS_SECTION_ROLE)):
-            return None
-        if not index.data(Qt.ItemDataRole.UserRole):
+        if not index.isValid() or not index.data(Qt.ItemDataRole.UserRole):
             return None
         title = index.data(Qt.ItemDataRole.DisplayRole)
         if not title:
@@ -1915,19 +1907,57 @@ class MainWindow(
     def _clear_category_selection(self) -> None:
         """Clear selected category in the transaction form."""
         refresh_category_state_label(self, None)
-        selection_model = self.listView_categories.selectionModel()
-        if selection_model is not None:
-            selection_model.blockSignals(True)  # noqa: FBT003
-            selection_model.clear()
-            selection_model.setCurrentIndex(QModelIndex(), QItemSelectionModel.SelectionFlag.NoUpdate)
-            selection_model.blockSignals(False)  # noqa: FBT003
-        self.listView_categories.setCurrentIndex(QModelIndex())
+        self._category_selection_syncing = True
+        try:
+            for view in category_picker_views(self):
+                selection_model = view.selectionModel()
+                if selection_model is not None:
+                    selection_model.blockSignals(True)  # noqa: FBT003
+                    selection_model.clear()
+                    selection_model.setCurrentIndex(QModelIndex(), QItemSelectionModel.SelectionFlag.NoUpdate)
+                    selection_model.blockSignals(False)  # noqa: FBT003
+                view.setCurrentIndex(QModelIndex())
+        finally:
+            self._category_selection_syncing = False
 
     def _clear_category_suggestions(self) -> None:
-        """Hide Use suggestion buttons in `listView_categories`."""
+        """Hide Use suggestion buttons in both category lists."""
         self._category_suggest_delegate.clear_suggestions()
-        self.listView_categories.doItemsLayout()
-        self.listView_categories.viewport().update()
+        for view in category_picker_views(self):
+            view.doItemsLayout()
+            view.viewport().update()
+
+    def _on_category_list_current_changed(self, view: QListView, current: QModelIndex) -> None:
+        """Keep Expense/Income selection exclusive and refresh the form label."""
+        label = self._category_form_label_from_index(current) if current.isValid() else None
+        if not label:
+            name = selected_category_name(self)
+            if name:
+                found = find_category_in_picker_views(self, name)
+                if found is not None:
+                    refresh_category_state_label(self, self._category_form_label_from_index(found[1]))
+                    return
+            refresh_category_state_label(self, None)
+            return
+
+        self._category_selection_syncing = True
+        try:
+            for other in category_picker_views(self):
+                if other is view:
+                    continue
+                other_selection = other.selectionModel()
+                if other_selection is not None:
+                    other_selection.blockSignals(True)  # noqa: FBT003
+                    other_selection.clear()
+                    other.setCurrentIndex(QModelIndex())
+                    other_selection.blockSignals(False)  # noqa: FBT003
+        finally:
+            self._category_selection_syncing = False
+
+        refresh_category_state_label(self, label)
+        # Defer so Use-button click handlers are not destroyed mid-signal.
+        QTimer.singleShot(0, self._clear_category_suggestions)
+        QTimer.singleShot(100, self._focus_description_and_select_text)
 
     def _clear_exchange_form(self) -> None:
         """Clear the exchange addition form."""
@@ -5082,23 +5112,16 @@ class MainWindow(
             self._clear_category_suggestions()
             return
 
-        model = self.listView_categories.model()
-        if model is None:
-            return
-
         category_names: list[str] = []
         category_aliases: dict[str, list[str]] = {}
-        for row in range(model.rowCount()):
-            name = model.data(model.index(row, 0), Qt.ItemDataRole.UserRole)
-            if not name:
-                continue
-            category_name = str(name)
+        for _index, category_name, local in iter_category_picker_rows(self):
             category_names.append(category_name)
-            local = model.data(model.index(row, 0), NAME_LOCAL_ROLE)
             aliases = [category_name]
             if local:
-                aliases.append(str(local))
+                aliases.append(local)
             category_aliases[category_name] = aliases
+        if not category_names:
+            return
         suggested = suggest_categories(
             text,
             self._description_category_pairs,
@@ -5150,44 +5173,38 @@ class MainWindow(
                 return
 
             category_name: str = rows[0][0]
-
-            # Find the category in the list view
-            model = self.listView_categories.model()
-            if model:
-                for row in range(model.rowCount()):
-                    index: QModelIndex = model.index(row, 0)
-                    item_data = model.data(index, Qt.ItemDataRole.UserRole)
-                    if item_data == category_name:
-                        # Set the current index
-                        self.listView_categories.setCurrentIndex(index)
-
-                        # Also try to select the item in the selection model
-                        selection_model = self.listView_categories.selectionModel()
-                        if selection_model:
-                            selection_model.select(index, selection_model.SelectionFlag.Select)
-
-                        # Update the category label
-                        refresh_category_state_label(self, self._category_form_label_from_index(index))
-                        break
+            self._select_category_by_name(str(category_name))
 
         except Exception:
             logger.exception("Error selecting category by ID")
 
     def _select_category_by_name(self, category_name: str) -> None:
-        """Select a category in `listView_categories` by stored name (`UserRole`)."""
+        """Select a category in the Expense or Income list by stored name (`UserRole`)."""
         if not category_name:
             return
-        model = self.listView_categories.model()
-        if model is None:
+        found = find_category_in_picker_views(self, category_name)
+        if found is None:
             return
-        for row in range(model.rowCount()):
-            index = model.index(row, 0)
-            if model.data(index, Qt.ItemDataRole.UserRole) == category_name:
-                self.listView_categories.setCurrentIndex(index)
-                selection_model = self.listView_categories.selectionModel()
-                if selection_model is not None:
-                    selection_model.select(index, QItemSelectionModel.SelectionFlag.ClearAndSelect)
-                return
+        view, index = found
+        self._category_selection_syncing = True
+        try:
+            for other in category_picker_views(self):
+                if other is view:
+                    continue
+                other_selection = other.selectionModel()
+                if other_selection is not None:
+                    other_selection.blockSignals(True)  # noqa: FBT003
+                    other_selection.clear()
+                    other.setCurrentIndex(QModelIndex())
+                    other_selection.blockSignals(False)  # noqa: FBT003
+            view.setCurrentIndex(index)
+            selection_model = view.selectionModel()
+            if selection_model is not None:
+                selection_model.select(index, QItemSelectionModel.SelectionFlag.ClearAndSelect)
+        finally:
+            self._category_selection_syncing = False
+        refresh_category_state_label(self, self._category_form_label_from_index(index))
+        QTimer.singleShot(0, self._clear_category_suggestions)
 
     def _select_only_chart_categories(self, category_type: int) -> None:
         """Check categories of the given type and uncheck all others (0 expense, 1 income)."""
@@ -5438,7 +5455,8 @@ class MainWindow(
         QWidget.setTabOrder(self.dateEdit, self.lineEdit_tag)
         QWidget.setTabOrder(self.lineEdit_tag, self.pushButton_add)
         QWidget.setTabOrder(self.pushButton_add, self.listView_categories)
-        QWidget.setTabOrder(self.listView_categories, self.lineEdit_filter_description)
+        QWidget.setTabOrder(self.listView_categories, self.listView_categories_income)
+        QWidget.setTabOrder(self.listView_categories_income, self.lineEdit_filter_description)
         QWidget.setTabOrder(self.lineEdit_filter_description, self.pushButton_filter)
         QWidget.setTabOrder(self.pushButton_filter, self.pushButton_clear_filter)
         QWidget.setTabOrder(self.pushButton_clear_filter, self.comboBox_filter_type)
@@ -5598,8 +5616,9 @@ class MainWindow(
         refresh_category_state_label(self, None)
 
         # Add context menu for categories list (Filter by this category)
-        self.listView_categories.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.listView_categories.customContextMenuRequested.connect(self._show_categories_list_context_menu)
+        for category_view in category_picker_views(self):
+            category_view.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+            category_view.customContextMenuRequested.connect(self._show_categories_list_context_menu)
 
         # Configure splitter_4 proportions (frame_exchange narrow, tableView_exchange wide)
         self.splitter_4.setStretchFactor(0, 1)  # frame_exchange gets less space
@@ -5664,18 +5683,24 @@ class MainWindow(
         context_menu.exec_(self.doubleSpinBox_amount.mapToGlobal(position))
 
     def _show_categories_list_context_menu(self, position: QPoint) -> None:
-        """Show context menu on listView_categories with Filter by this category."""
-        index: QModelIndex = self.listView_categories.indexAt(position)
+        """Show context menu on a category list with Filter by this category."""
+        view = self.sender()
+        if not isinstance(view, QListView):
+            return
+        index: QModelIndex = view.indexAt(position)
         if not index.isValid():
             return
-        category_value: str | None = self.listView_categories.model().data(index, Qt.ItemDataRole.UserRole)
+        model = view.model()
+        if model is None:
+            return
+        category_value: str | None = model.data(index, Qt.ItemDataRole.UserRole)
         if not category_value:
             return
         context_menu = QMenu(self)
         filter_action = add_filter_action(context_menu, LABEL_FILTER_BY_CATEGORY)
-        filter_action.triggered.connect(lambda: self._filter_by_category_from_table(category_value))
+        filter_action.triggered.connect(lambda: self._filter_by_category_from_table(str(category_value)))
         apply_leading_chrome_icons(context_menu)
-        context_menu.exec_(self.listView_categories.mapToGlobal(position))
+        context_menu.exec_(view.mapToGlobal(position))
 
     def _show_category_label_context_menu(self, position: QPoint) -> None:
         """Show context menu on the category label with all available categories.
@@ -5685,42 +5710,21 @@ class MainWindow(
         - `position` (`QPoint`): Position where the menu is requested.
 
         """
-        model = self.listView_categories.model()
-        if model is None or model.rowCount() == 0:
-            return
-
         context_menu = QMenu(self)
-        for row in range(model.rowCount()):
-            index = model.index(row, 0)
-            label = self._category_form_label_from_index(index)
-            if not label:
-                continue
-            action = context_menu.addAction(label)
-            action.setData(row)
+        for _index, category_name, _local in iter_category_picker_rows(self):
+            action = context_menu.addAction(category_name)
+            action.setData(category_name)
 
         if context_menu.isEmpty():
             return
 
-        # Execute the context menu and get the selected action
         selected_action = context_menu.exec_(self.label_category_now.mapToGlobal(position))
         if selected_action is None:
             return
 
-        row_data = selected_action.data()
-        if not isinstance(row_data, int):
-            return
-
-        index = model.index(row_data, 0)
-        if not index.isValid():
-            return
-
-        self.listView_categories.setCurrentIndex(index)
-        selection_model = self.listView_categories.selectionModel()
-        if selection_model:
-            selection_model.setCurrentIndex(
-                index,
-                QItemSelectionModel.SelectionFlag.ClearAndSelect | QItemSelectionModel.SelectionFlag.Rows,
-            )
+        category_name = selected_action.data()
+        if isinstance(category_name, str) and category_name:
+            self._select_category_by_name(category_name)
 
     def _show_chart_categories_context_menu(self, position: QPoint) -> None:
         """Context menu for bulk selection of chart categories."""
@@ -6401,22 +6405,24 @@ class MainWindow(
             ]:
                 set_combo_plain_items(combo, currencies, select=combo.currentText())
 
-            # Update categories list view with Expense / Income blocks
+            # Update Expense / Income category lists
             expense_categories = self.db_manager.get_categories_with_icons_by_type(0)
             income_categories = self.db_manager.get_categories_with_icons_by_type(1)
 
-            model: QStandardItemModel = QStandardItemModel()
-            populate_category_picker_model(
-                model,
-                expense_categories=expense_categories,
-                income_categories=income_categories,
-            )
+            expense_model = QStandardItemModel()
+            income_model = QStandardItemModel()
+            fill_category_picker_model(expense_model, expense_categories)
+            fill_category_picker_model(income_model, income_categories)
 
-            self.listView_categories.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
-            self.listView_categories.setModel(model)
-
-            # Connect category selection signal after model is set
-            self.listView_categories.selectionModel().currentChanged.connect(self.on_category_selection_changed)
+            for view, model in (
+                (self.listView_categories, expense_model),
+                (self.listView_categories_income, income_model),
+            ):
+                view.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
+                view.setModel(model)
+                selection_model = view.selectionModel()
+                if selection_model is not None:
+                    selection_model.currentChanged.connect(self.on_category_selection_changed)
 
             # Reset category selection
             self._clear_category_selection()

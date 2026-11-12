@@ -377,7 +377,31 @@
              </widget>
             </item>
             <item>
+             <widget class="QLabel" name="label_categories_expense">
+              <property name="text">
+               <string>Expense</string>
+              </property>
+             </widget>
+            </item>
+            <item>
              <widget class="QListView" name="listView_categories">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>16777215</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="label_categories_income">
+              <property name="text">
+               <string>Income</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QListView" name="listView_categories_income">
               <property name="maximumSize">
                <size>
                 <width>16777215</width>
