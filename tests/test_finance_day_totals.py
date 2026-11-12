@@ -66,6 +66,18 @@ def test_income_category_uses_display_marker() -> None:
     assert not is_income_category_display("🍕 Food")
 
 
+def test_amount_delegate_treats_unsigned_as_income(qapp: QApplication) -> None:  # noqa: ARG001
+    from harrix_swiss_knife.apps.finance.delegates.amount_delegate import AmountDelegate
+
+    model = QStandardItemModel()
+    model.setColumnCount(4)
+    model.appendRow([QStandardItem(""), QStandardItem(""), QStandardItem("1500.00"), QStandardItem("Salary")])
+    model.appendRow([QStandardItem(""), QStandardItem(""), QStandardItem("-10.00"), QStandardItem("Food")])
+    delegate = AmountDelegate(category_column=3, amount_column=2)
+    assert delegate._is_income_amount(model.index(0, 2), "1500.00")  # noqa: SLF001
+    assert not delegate._is_income_amount(model.index(1, 2), "-10.00")  # noqa: SLF001
+
+
 def test_income_does_not_count_toward_day_total() -> None:
     assert (
         expense_in_default_currency(

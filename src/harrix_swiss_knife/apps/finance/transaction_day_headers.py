@@ -29,8 +29,11 @@ from harrix_swiss_knife.apps.common.day_bands import DAY_BAND_ROLE, day_band_col
 from harrix_swiss_knife.apps.finance.number_utils import format_amount, with_currency
 from harrix_swiss_knife.apps.finance.transaction_day_totals import (
     TRANSACTION_COL_AMOUNT,
+    TRANSACTION_COL_CATEGORY,
     TRANSACTION_COL_DATE,
     TRANSACTION_COL_TOTAL_PER_DAY,
+    is_income_category_display,
+    parse_transaction_amount_display,
 )
 from harrix_swiss_knife.apps.finance.transactions_ui_settings import TRANSACTION_COL_TAG
 from harrix_swiss_knife.fluent.theme import mix, palette_for
@@ -41,7 +44,9 @@ if TYPE_CHECKING:
 IS_DAY_HEADER_ROLE = Qt.ItemDataRole.UserRole + 520
 DAY_HEADER_DATE_ROLE = Qt.ItemDataRole.UserRole + 521
 DAY_HEADER_TOTAL_ROLE = Qt.ItemDataRole.UserRole + 522
+DAY_HEADER_INCOME_ROLE = Qt.ItemDataRole.UserRole + 523
 _HEADER_PAD_X = 8
+_HEADER_TOTAL_GAP = 12
 _SEPARATOR_ALPHA = 90
 # Theme day-band refresh paints fills only — must not rebuild headers per cell.
 _COSMETIC_ROLES = frozenset(
@@ -71,6 +76,7 @@ class DayHeaderDelegate(QStyledItemDelegate):
 
         date_text = str(index.data(DAY_HEADER_DATE_ROLE) or "")
         total_raw = str(index.data(DAY_HEADER_TOTAL_ROLE) or "")
+        income_raw = str(index.data(DAY_HEADER_INCOME_ROLE) or "")
         host = option.widget if isinstance(option.widget, QWidget) else None
         fluent = palette_for(host)
         fill = index.data(Qt.ItemDataRole.BackgroundRole)
@@ -94,17 +100,20 @@ class DayHeaderDelegate(QStyledItemDelegate):
             total_font.setPointSize(total_font.pointSize() + 1)
         date_metrics = QFontMetrics(date_font)
         total_metrics = QFontMetrics(total_font)
-        # Align the day total with the Amount column so it does not sit over Tag.
+        # Align day totals with the Amount column so they do not sit over Tag.
         total_right = _day_header_total_right(host, option.rect)
         text_left = option.rect.left() + _HEADER_PAD_X
         text_right = max(text_left, total_right - _HEADER_PAD_X)
         text_rect = QRect(text_left, option.rect.top(), text_right - text_left, option.rect.height())
 
-        total_display = _format_header_total(total_raw, host)
-        total_width = total_metrics.horizontalAdvance(total_display) if total_display else 0
-        date_width = max(0, text_rect.width() - total_width - 12)
-        # Date stays secondary; the day total is the header accent (was muted for
-        # expenses and blended into the Amount column).
+        expense_display = _format_header_total(total_raw, host)
+        income_display = _format_header_income(income_raw, host)
+        expense_width = total_metrics.horizontalAdvance(expense_display) if expense_display else 0
+        income_width = total_metrics.horizontalAdvance(income_display) if income_display else 0
+        totals_gap = _HEADER_TOTAL_GAP if expense_display and income_display else 0
+        totals_width = expense_width + income_width + totals_gap
+        date_width = max(0, text_rect.width() - totals_width - 12)
+        # Date stays secondary; expense total is primary ink, income total is success green.
         painter.setFont(date_font)
         painter.setPen(muted)
         painter.drawText(
@@ -112,16 +121,34 @@ class DayHeaderDelegate(QStyledItemDelegate):
             int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft),
             date_metrics.elidedText(date_text, Qt.TextElideMode.ElideRight, date_width),
         )
-        if total_display:
-            painter.setFont(total_font)
-            if total_display.startswith("-"):
-                painter.setPen(ink)
-            else:
-                painter.setPen(fluent.success)
+        cursor_right = text_rect.right()
+        painter.setFont(total_font)
+        if expense_display:
+            painter.setPen(ink if expense_display.startswith("-") else fluent.success)
+            expense_rect = QRect(
+                cursor_right - expense_width,
+                text_rect.top(),
+                expense_width,
+                text_rect.height(),
+            )
             painter.drawText(
-                text_rect,
+                expense_rect,
                 int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight),
-                total_display,
+                expense_display,
+            )
+            cursor_right = expense_rect.left() - totals_gap
+        if income_display:
+            painter.setPen(fluent.success)
+            income_rect = QRect(
+                cursor_right - income_width,
+                text_rect.top(),
+                income_width,
+                text_rect.height(),
+            )
+            painter.drawText(
+                income_rect,
+                int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight),
+                income_display,
             )
         painter.restore()
 
@@ -137,6 +164,7 @@ class TransactionDayHeaderProxy(QAbstractProxyModel):
         self._proxy_rows: list[int] = []  # source row, or -1 for a header
         self._header_dates: dict[int, str] = {}
         self._header_totals: dict[int, str] = {}
+        self._header_incomes: dict[int, str] = {}
         self._header_bands: dict[int, int] = {}
         self._source_to_proxy: dict[int, int] = {}
         self._rebuild_scheduled = False
@@ -160,6 +188,8 @@ class TransactionDayHeaderProxy(QAbstractProxyModel):
                 return self._header_dates.get(proxy_row, "")
             if role == DAY_HEADER_TOTAL_ROLE:
                 return self._header_totals.get(proxy_row, "")
+            if role == DAY_HEADER_INCOME_ROLE:
+                return self._header_incomes.get(proxy_row, "")
             if role == Qt.ItemDataRole.DisplayRole:
                 if index.column() == 0:
                     return self._header_dates.get(proxy_row, "")
@@ -332,8 +362,11 @@ class TransactionDayHeaderProxy(QAbstractProxyModel):
         if role_values and set(role_values) <= _COSMETIC_ROLES:
             self._forward_source_data_changed(top_left, bottom_right, role_values)
             return
-        if top_left.column() <= TRANSACTION_COL_DATE <= bottom_right.column() or (
-            top_left.column() <= TRANSACTION_COL_TOTAL_PER_DAY <= bottom_right.column()
+        if (
+            top_left.column() <= TRANSACTION_COL_DATE <= bottom_right.column()
+            or top_left.column() <= TRANSACTION_COL_TOTAL_PER_DAY <= bottom_right.column()
+            or top_left.column() <= TRANSACTION_COL_AMOUNT <= bottom_right.column()
+            or top_left.column() <= TRANSACTION_COL_CATEGORY <= bottom_right.column()
         ):
             self._schedule_rebuild()
             return
@@ -348,6 +381,7 @@ class TransactionDayHeaderProxy(QAbstractProxyModel):
         self._proxy_rows = []
         self._header_dates = {}
         self._header_totals = {}
+        self._header_incomes = {}
         self._header_bands = {}
         self._source_to_proxy = {}
         source = self.sourceModel()
@@ -356,6 +390,7 @@ class TransactionDayHeaderProxy(QAbstractProxyModel):
             self.mapping_reset.emit()
             return
 
+        income_by_date = _income_totals_by_date(source)
         previous_date = object()
         band_index = 0
         for source_row in range(source.rowCount()):
@@ -364,10 +399,13 @@ class TransactionDayHeaderProxy(QAbstractProxyModel):
             if date_str and date_str != previous_date:
                 total_value = source.index(source_row, TRANSACTION_COL_TOTAL_PER_DAY).data(Qt.ItemDataRole.DisplayRole)
                 total_text = "" if total_value is None else str(total_value)
+                income_major = income_by_date.get(date_str, 0.0)
+                income_text = f"{income_major:.2f}" if income_major > 0 else ""
                 header_row = len(self._proxy_rows)
                 self._proxy_rows.append(-1)
                 self._header_dates[header_row] = date_str
                 self._header_totals[header_row] = total_text
+                self._header_incomes[header_row] = income_text
                 self._header_bands[header_row] = band_index
                 band_index = 1 - band_index
                 previous_date = date_str
@@ -523,12 +561,41 @@ def _day_header_total_right(host: QWidget | None, span_rect: QRect) -> int:
     return last_non_tag_right if last_non_tag_right > span_rect.left() else span_rect.right()
 
 
+def _format_header_income(income_raw: str, host: QWidget | None) -> str:
+    text = (income_raw or "").strip()
+    if not text:
+        return ""
+    formatted = format_amount(text)
+    if not formatted.startswith("+") and not formatted.startswith("-"):
+        formatted = f"+{formatted}"
+    return _with_header_currency(formatted, host)
+
+
 def _format_header_total(total_raw: str, host: QWidget | None) -> str:
     text = (total_raw or "").strip()
     if not text:
         return ""
     # Stored as "-12.50"; show with the same amount formatting as the table.
-    formatted = format_amount(text)
+    return _with_header_currency(format_amount(text), host)
+
+
+def _income_totals_by_date(source: QAbstractItemModel) -> dict[str, float]:
+    """Sum income major units per date from the current source row order."""
+    totals: dict[str, float] = {}
+    for row in range(source.rowCount()):
+        date_value = source.index(row, TRANSACTION_COL_DATE).data(Qt.ItemDataRole.DisplayRole)
+        date_str = "" if date_value is None else str(date_value)
+        if not date_str:
+            continue
+        category = source.index(row, TRANSACTION_COL_CATEGORY).data(Qt.ItemDataRole.DisplayRole)
+        if not is_income_category_display(str(category or "")):
+            continue
+        amount = source.index(row, TRANSACTION_COL_AMOUNT).data(Qt.ItemDataRole.DisplayRole)
+        totals[date_str] = totals.get(date_str, 0.0) + parse_transaction_amount_display(str(amount or ""))
+    return totals
+
+
+def _with_header_currency(formatted: str, host: QWidget | None) -> str:
     symbol = ""
     if host is not None:
         getter = getattr(host.window(), "_get_default_currency_symbol", None)

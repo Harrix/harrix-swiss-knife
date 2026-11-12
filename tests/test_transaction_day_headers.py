@@ -8,6 +8,7 @@ from PySide6.QtGui import QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import QApplication, QTableView
 
 from harrix_swiss_knife.apps.finance.transaction_day_headers import (
+    DAY_HEADER_INCOME_ROLE,
     IS_DAY_HEADER_ROLE,
     TransactionDayHeaderProxy,
     _day_header_total_right,
@@ -15,6 +16,7 @@ from harrix_swiss_knife.apps.finance.transaction_day_headers import (
 )
 from harrix_swiss_knife.apps.finance.transaction_day_totals import (
     TRANSACTION_COL_AMOUNT,
+    TRANSACTION_COL_CATEGORY,
     TRANSACTION_COL_DATE,
     TRANSACTION_COL_TOTAL_PER_DAY,
 )
@@ -100,6 +102,24 @@ def test_day_header_total_aligns_with_amount_not_tag(qapp: QApplication) -> None
     assert total_right == amount_right
     assert total_right < span.width() - view.columnWidth(TRANSACTION_COL_TAG)
     view.close()
+
+
+def test_day_header_includes_income_total(qapp: QApplication) -> None:  # noqa: ARG001
+    source = QStandardItemModel()
+    source.setColumnCount(8)
+    expense = _row("2026-08-25", "-80.00")
+    expense[TRANSACTION_COL_AMOUNT] = QStandardItem("-80.00")
+    expense[TRANSACTION_COL_CATEGORY] = QStandardItem("Food")
+    income = _row("2026-08-25", "")
+    income[TRANSACTION_COL_AMOUNT] = QStandardItem("1500.00")
+    income[TRANSACTION_COL_CATEGORY] = QStandardItem("Salary (Income)")
+    source.appendRow(expense)
+    source.appendRow(income)
+
+    proxy = TransactionDayHeaderProxy()
+    proxy.setSourceModel(source)
+    assert bool(proxy.index(0, 0).data(IS_DAY_HEADER_ROLE))
+    assert proxy.index(0, 0).data(DAY_HEADER_INCOME_ROLE) == "1500.00"
 
 
 def test_cosmetic_data_changed_does_not_rebuild_headers(qapp: QApplication) -> None:
