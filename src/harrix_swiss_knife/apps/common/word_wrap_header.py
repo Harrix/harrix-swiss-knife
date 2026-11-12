@@ -17,7 +17,6 @@ HEADER_TEXT_FLAGS = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter |
 # Wide enough to grab after Amount is right-padded / narrowed against Category.
 _BOUNDARY_GRIP_PX = 10
 _BOUNDARY_INSET_PX = 8
-_IDLE_BOUNDARY_ALPHA = 70
 _TEXT_PADDING = 8
 _TEXT_INSET = 4
 _HEADER_ICON_SIZE = 16
@@ -141,22 +140,18 @@ class WordWrapHeaderView(QHeaderView):
         """Paint wrapped titles, idle column rules, then the hovered splitter."""
         super().paintEvent(event)
         boundaries = self._visible_boundary_xs()
-        show_after_id = self._shows_record_id_column()
-        if not boundaries and not show_after_id:
+        # Include x=0 when the ID corner is visible — same rule as between data columns.
+        leading = [0] if self._shows_record_id_column() else []
+        xs = [*leading, *boundaries]
+        if not xs:
             return
         painter = QPainter(self.viewport())
         idle = header_column_separator_color(self)
         hover = self._hover_boundary_color()
-        height = self.viewport().height()
-        inset = min(_BOUNDARY_INSET_PX, max((height - 8) // 2, 0))
-        y0 = inset
-        y1 = max(inset, height - inset - 1)
-        if show_after_id:
-            # Left edge of Description = trailing edge of the ID column.
-            painter.setPen(QPen(idle, 1))
-            painter.drawLine(0, y0, 0, y1)
-        for x in boundaries:
-            color = hover if self._hover_boundary_x == x else idle
+        y0, y1 = header_column_separator_insets(self.viewport().height())
+        for x in xs:
+            # Leading after-ID rule is not a resize grip — keep it idle gray.
+            color = hover if x != 0 and self._hover_boundary_x == x else idle
             painter.setPen(QPen(color, 1))
             painter.drawLine(x, y0, x, y1)
         painter.end()
@@ -412,16 +407,19 @@ def install_word_wrap_headers(
 def header_column_separator_color(widget: QWidget | None = None) -> QColor:
     """Return a light idle color for header column rules (not selection blue)."""
     del widget  # reserved for future per-widget palette hooks
-    color = QColor(HAIRLINE)
     with contextlib.suppress(Exception):
         palette = FluentTheme.instance().palette()
         if palette.dark:
-            wash = QColor(255, 255, 255, 36)
+            wash = QColor(255, 255, 255, 28)
             return mix(palette.window_bg, wash)
-        muted = QColor(css(mix(palette.window_bg, palette.text_secondary)))
-        muted.setAlpha(_IDLE_BOUNDARY_ALPHA)
-        return muted
-    return color
+    # Site hairline — lighter than SEPARATOR (`#e0e0e0`).
+    return QColor(HAIRLINE)
+
+
+def header_column_separator_insets(height: int) -> tuple[int, int]:
+    """Return `(y0, y1)` for a short vertical rule centered in the header."""
+    inset = min(_BOUNDARY_INSET_PX, max((height - 8) // 2, 0))
+    return inset, max(inset, height - inset - 1)
 
 
 def wrapped_header_text_size(

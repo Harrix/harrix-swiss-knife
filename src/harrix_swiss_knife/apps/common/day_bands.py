@@ -11,10 +11,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QAbstractProxyModel, Qt
-from PySide6.QtGui import QBrush, QColor, QPainter, QPalette, QPen, QStandardItem, QStandardItemModel
+from PySide6.QtGui import QBrush, QColor, QPainter, QPalette, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import QHeaderView, QTableView
 
-from harrix_swiss_knife.apps.common.word_wrap_header import header_column_separator_color
 from harrix_swiss_knife.fluent.theme import FluentTheme, mix
 
 if TYPE_CHECKING:
@@ -55,9 +54,6 @@ class DayBandVerticalHeader(QHeaderView):
         painter.setPen(self.palette().color(QPalette.ColorRole.ButtonText))
         painter.setFont(self.font())
         painter.drawText(rect, int(Qt.AlignmentFlag.AlignCenter), text)
-        # Trailing rule after ID — matches horizontal header column separators.
-        painter.setPen(QPen(header_column_separator_color(self), 1))
-        painter.drawLine(rect.topRight(), rect.bottomRight())
         painter.restore()
 
     def _section_fill(self, logical_index: int) -> QColor:
