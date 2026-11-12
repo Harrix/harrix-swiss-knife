@@ -48,7 +48,10 @@ def category_display_label(name: str, *, income: bool = False, name_local: str =
 def category_lucide_icon(emoji: str, size: int = _CATEGORY_ICON_SIZE) -> QIcon
 ```
 
-Return a Lucide `QIcon` for a category emoji, or empty when [`emoji`](../common/emoji_picker_dialog.g.md#%EF%B8%8F-method-emoji) is blank.
+Return a neutral Lucide `QIcon` for a category emoji, or empty when blank.
+
+Stroke is always `LUCIDE_COLOR_DARK` so category rows stay gray even when the
+Lucide ID is shared with a colored chrome action (`pencil`, `refresh-cw`, …).
 
 <details>
 <summary>Code:</summary>
@@ -58,7 +61,7 @@ def category_lucide_icon(emoji: str, size: int = _CATEGORY_ICON_SIZE) -> QIcon:
     name = lucide_name_for_category_icon(emoji)
     if name is None:
         return QIcon()
-    return create_lucide_icon(name, size)
+    return create_lucide_icon(name, size, color=LUCIDE_COLOR_DARK)
 ```
 
 </details>

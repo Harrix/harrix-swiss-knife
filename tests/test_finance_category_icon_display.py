@@ -14,6 +14,7 @@ def test_seed_emojis_map_to_lucide() -> None:
     assert lucide_name_for_category_icon("☕") == "coffee"
     assert lucide_name_for_category_icon("💰") == "wallet"
     assert lucide_name_for_category_icon("🔄") == "refresh-cw"
+    assert lucide_name_for_category_icon("💄") == "spray-can"
     assert lucide_name_for_category_icon("") is None
 
 

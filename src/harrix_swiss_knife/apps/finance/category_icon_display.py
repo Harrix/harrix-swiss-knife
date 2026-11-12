@@ -3,6 +3,12 @@
 The database and catalog keep emoji strings. Lists, filters, tables, and
 dialogs show the matching Lucide `QIcon` instead of drawing the emoji glyph.
 
+Unknown emoji is not shown as emoji: it maps to a neutral `tags` glyph. There is
+no Lucide picker yet — add/edit dialogs still choose emoji only.
+
+Category icons always use a neutral dark stroke so they do not inherit
+CodeStyle semantic colors (`sparkles` blue, `pencil` orange, …).
+
 """
 
 from __future__ import annotations
@@ -11,12 +17,16 @@ from PySide6.QtGui import QIcon
 
 from harrix_swiss_knife.fluent.tokens import ICON_SIZE
 from harrix_swiss_knife.qt_emoji_icon import split_leading_emoji
-from harrix_swiss_knife.qt_lucide_icon import create_lucide_icon, lucide_name_for_chrome_emoji
+from harrix_swiss_knife.qt_lucide_icon import (
+    LUCIDE_COLOR_DARK,
+    create_lucide_icon,
+    lucide_name_for_chrome_emoji,
+)
 
 # Seed / preset emoji → Lucide id. Unknown custom emoji falls back below.
 FINANCE_CATEGORY_EMOJI_TO_LUCIDE: dict[str, str] = {
     "🔌": "plug",
-    "💄": "sparkles",
+    "💄": "spray-can",  # not `sparkles` — that is the AI chrome glyph
     "📖": "book-open",
     "☕": "coffee",
     "👶": "baby",
@@ -71,11 +81,16 @@ def category_display_label(name: str, *, income: bool = False, name_local: str =
 
 
 def category_lucide_icon(emoji: str, size: int = _CATEGORY_ICON_SIZE) -> QIcon:
-    """Return a Lucide `QIcon` for a category emoji, or empty when `emoji` is blank."""
+    """Return a neutral Lucide `QIcon` for a category emoji, or empty when blank.
+
+    Stroke is always `LUCIDE_COLOR_DARK` so category rows stay gray even when the
+    Lucide ID is shared with a colored chrome action (`pencil`, `refresh-cw`, …).
+
+    """
     name = lucide_name_for_category_icon(emoji)
     if name is None:
         return QIcon()
-    return create_lucide_icon(name, size)
+    return create_lucide_icon(name, size, color=LUCIDE_COLOR_DARK)
 
 
 def lucide_name_for_category_icon(emoji: str) -> str | None:
