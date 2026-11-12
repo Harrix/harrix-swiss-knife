@@ -33,7 +33,7 @@ from PySide6.QtGui import QColor, QFont, QFontMetrics, QPainter, QPen
 from PySide6.QtWidgets import QAbstractItemDelegate, QStyledItemDelegate, QStyleOptionViewItem, QTableView, QWidget
 
 from harrix_swiss_knife.apps.common.day_bands import DAY_BAND_ROLE, day_band_color
-from harrix_swiss_knife.apps.common.ui_chrome import SELECTION_BG
+from harrix_swiss_knife.apps.common.ui_chrome import HAIRLINE
 from harrix_swiss_knife.apps.finance.number_utils import format_amount, with_currency
 from harrix_swiss_knife.apps.finance.transaction_day_totals import (
     TRANSACTION_COL_AMOUNT,
@@ -59,10 +59,9 @@ DAY_HEADER_IS_CURRENT_MONTH_ROLE = Qt.ItemDataRole.UserRole + 525
 _HEADER_PAD_X = 8
 _HEADER_TOTAL_GAP = 12
 _SEPARATOR_ALPHA = 90
-_MONTH_ACCENT_BAR = 3
+_MONTH_SEPARATOR_ALPHA = 160
 _MONTH_MIN_HEIGHT = 36
-_MONTH_WASH_ALPHA_LIGHT = 255
-_MONTH_WASH_ALPHA_DARK = 48
+_MONTH_WASH_ALPHA_DARK = 28
 _PROXY_DAY_HEADER = -1
 _PROXY_MONTH_HEADER = -2
 # Theme day-band refresh paints fills only — must not rebuild headers per cell.
@@ -96,7 +95,6 @@ class DayHeaderDelegate(QStyledItemDelegate):
         date_text = str(index.data(DAY_HEADER_DATE_ROLE) or "")
         total_raw = str(index.data(DAY_HEADER_TOTAL_ROLE) or "")
         income_raw = str(index.data(DAY_HEADER_INCOME_ROLE) or "")
-        is_current_month = bool(index.data(DAY_HEADER_IS_CURRENT_MONTH_ROLE))
         host = option.widget if isinstance(option.widget, QWidget) else None
         fluent = palette_for(host)
         fill = index.data(Qt.ItemDataRole.BackgroundRole)
@@ -109,19 +107,12 @@ class DayHeaderDelegate(QStyledItemDelegate):
         ink = mix(fluent.window_bg, fluent.text_primary)
         muted = mix(fluent.window_bg, fluent.text_secondary)
         hairline = mix(fluent.window_bg, fluent.divider)
-        hairline.setAlpha(_SEPARATOR_ALPHA)
-        if is_month:
-            muted = ink
+        hairline.setAlpha(_MONTH_SEPARATOR_ALPHA if is_month else _SEPARATOR_ALPHA)
 
         painter.save()
         painter.fillRect(option.rect, background)
-        if is_month:
-            bar = QColor(fluent.accent)
-            painter.fillRect(
-                QRect(option.rect.left(), option.rect.top(), _MONTH_ACCENT_BAR, option.rect.height()),
-                bar,
-            )
-        if index.row() > 0:
+        # Month: stronger top rule (no accent bar — that reads as selection chrome).
+        if is_month or index.row() > 0:
             painter.setPen(QPen(hairline, 1))
             painter.drawLine(option.rect.topLeft(), option.rect.topRight())
 
@@ -135,7 +126,7 @@ class DayHeaderDelegate(QStyledItemDelegate):
         total_metrics = QFontMetrics(total_font)
         # Align day totals with the Amount column so they do not sit over Tag.
         total_right = _day_header_total_right(host, option.rect)
-        text_left = option.rect.left() + _HEADER_PAD_X + (_MONTH_ACCENT_BAR if is_month else 0)
+        text_left = option.rect.left() + _HEADER_PAD_X
         text_right = max(text_left, total_right - _HEADER_PAD_X)
         text_rect = QRect(text_left, option.rect.top(), text_right - text_left, option.rect.height())
 
@@ -146,15 +137,13 @@ class DayHeaderDelegate(QStyledItemDelegate):
             host,
             has_income=bool(income_display) or is_month,
         )
-        if is_month and not expense_display and not income_display and is_current_month:
-            expense_display = _format_header_total("0.00", host, has_income=True)
         expense_width = total_metrics.horizontalAdvance(expense_display) if expense_display else 0
         income_width = total_metrics.horizontalAdvance(income_display) if income_display else 0
         totals_gap = _HEADER_TOTAL_GAP if expense_display and income_display else 0
         totals_width = expense_width + income_width + totals_gap
         date_width = max(0, text_rect.width() - totals_width - 12)
         painter.setFont(date_font)
-        painter.setPen(muted if not is_month else ink)
+        painter.setPen(ink if is_month else muted)
         painter.drawText(
             text_rect,
             int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft),
@@ -496,11 +485,14 @@ class TransactionDayHeaderProxy(QAbstractProxyModel):
         income_by_date = _income_totals_by_date(source)
         expense_by_month, income_by_month = _month_flow_totals(source, income_by_date)
         current_month = self._current_month_key()
-        if source.rowCount() > 0:
+        current_expense = expense_by_month.get(current_month, 0.0)
+        current_income = income_by_month.get(current_month, 0.0)
+        # Skip an empty current-month banner when history starts in an earlier month.
+        if source.rowCount() > 0 and (current_expense > 0 or current_income > 0):
             self._append_month_header(
                 month_key=current_month,
-                expense_text=_expense_text_from_major(expense_by_month.get(current_month, 0.0)),
-                income_text=_income_text_from_major(income_by_month.get(current_month, 0.0)),
+                expense_text=_expense_text_from_major(current_expense),
+                income_text=_income_text_from_major(current_income),
                 is_current=True,
             )
 
@@ -773,14 +765,11 @@ def _month_flow_totals(
 
 
 def _month_header_fill(fluent: Any) -> QColor:
-    """Soft brand wash so month banners stand out from day bands."""
+    """Neutral wash for month banners — not soft-blue selection chrome."""
     if getattr(fluent, "dark", False):
-        wash = QColor(fluent.accent)
-        wash.setAlpha(_MONTH_WASH_ALPHA_DARK)
+        wash = QColor(255, 255, 255, _MONTH_WASH_ALPHA_DARK)
         return mix(fluent.window_bg, wash)
-    fill = QColor(SELECTION_BG)
-    fill.setAlpha(_MONTH_WASH_ALPHA_LIGHT)
-    return fill
+    return QColor(HAIRLINE)
 
 
 def _month_key(date_str: str) -> str:

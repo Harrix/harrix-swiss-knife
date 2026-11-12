@@ -107,6 +107,20 @@ def test_month_header_above_previous_month_block(qapp: QApplication) -> None:  #
     assert proxy.index(4, 0).data(Qt.ItemDataRole.DisplayRole) == "2026-10-31"
 
 
+def test_empty_current_month_banner_omitted(qapp: QApplication) -> None:  # noqa: ARG001
+    source = QStandardItemModel()
+    source.setColumnCount(8)
+    source.appendRow(_row("2026-10-31", "-50.00"))
+    source.appendRow(_row("2026-10-01", "-10.00"))
+
+    proxy = _proxy_with_current_month(source, "2026-11")
+    # No Current month · … — only October month + 2 day headers + 2 data
+    assert proxy.rowCount() == 5
+    assert bool(proxy.index(0, 0).data(IS_MONTH_HEADER_ROLE))
+    assert proxy.index(0, 0).data(Qt.ItemDataRole.DisplayRole) == "October 2026"
+    assert "Current month" not in str(proxy.index(0, 0).data(Qt.ItemDataRole.DisplayRole))
+
+
 def test_day_header_spans_full_row(qapp: QApplication) -> None:  # noqa: ARG001
     source = QStandardItemModel()
     source.setColumnCount(8)

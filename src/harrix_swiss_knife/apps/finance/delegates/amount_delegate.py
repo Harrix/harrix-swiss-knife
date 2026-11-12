@@ -128,7 +128,8 @@ class AmountDelegate(QStyledItemDelegate):
                 painter.setPen(option.palette.color(QPalette.ColorRole.Text))
 
             top_pad = 3 if alignment & Qt.AlignmentFlag.AlignTop else 0
-            painter.drawText(option.rect.adjusted(5, top_pad, -5, 0), alignment, display_text)
+            # Extra right inset so amounts do not crowd the Category column.
+            painter.drawText(option.rect.adjusted(5, top_pad, -10, 0), alignment, display_text)
             painter.restore()
         except Exception:
             super().paint(painter, option, index)

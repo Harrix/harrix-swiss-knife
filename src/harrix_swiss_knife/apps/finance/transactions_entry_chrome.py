@@ -58,7 +58,8 @@ _TABLE_MIN_WIDTH = 400
 _SPLITTER_SAVE_DELAY_MS = 400
 # Compact columns stay fixed; Description absorbs most leftover width.
 _FIXED_COLUMN_WIDTHS: dict[int, int] = {
-    TRANSACTION_COL_AMOUNT: 118,
+    # Extra width keeps Amount figures clear of Category without splitter changes.
+    TRANSACTION_COL_AMOUNT: 132,
     TRANSACTION_COL_CURRENCY: 72,
     TRANSACTION_COL_DATE: 100,
     TRANSACTION_COL_TAG: 110,
