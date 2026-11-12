@@ -4,23 +4,32 @@ The database and catalog keep emoji strings in `icon`. Optional `icon_lucide`
 stores an explicit Lucide ID chosen in the category dialog. When empty, UI
 falls back to the emoji→Lucide map (or `tags` for unknown emoji).
 
-Category icons always use a chrome-neutral stroke (dark on light, light on
-Fluent dark) so they do not inherit CodeStyle semantic colors
-(`sparkles` blue, `pencil` orange, …).
+Category icons use a stable chromatic stroke per Lucide ID (semantic colors for
+seed icons, otherwise a hashed CodeStyle palette) so the picker and table stay
+colorful without inheriting chrome action colors (`sparkles` blue, …).
 
 """
 
 from __future__ import annotations
+
+import hashlib
 
 from PySide6.QtGui import QIcon
 
 from harrix_swiss_knife.fluent.tokens import ICON_SIZE
 from harrix_swiss_knife.qt_emoji_icon import split_leading_emoji
 from harrix_swiss_knife.qt_lucide_icon import (
+    LUCIDE_COLOR_BLUE,
+    LUCIDE_COLOR_CYAN,
+    LUCIDE_COLOR_GREEN,
+    LUCIDE_COLOR_GREEN_2,
+    LUCIDE_COLOR_ORANGE,
+    LUCIDE_COLOR_RED,
+    LUCIDE_COLOR_TURQUOISE,
+    LUCIDE_COLOR_YELLOW,
     create_lucide_icon,
     lucide_name_for_chrome_emoji,
     lucide_svg_path,
-    neutral_lucide_color,
 )
 
 # Seed / preset emoji → Lucide id. Unknown custom emoji falls back below.
@@ -70,6 +79,59 @@ FINANCE_CATEGORY_LUCIDE_PRESETS: tuple[str, ...] = tuple(
     dict.fromkeys([*sorted(FINANCE_CATEGORY_EMOJI_TO_LUCIDE.values()), "tags"])
 )
 
+# Semantic strokes for known category Lucide IDs (visible on light and dark chrome).
+CATEGORY_LUCIDE_COLORS: dict[str, str] = {
+    "utensils": LUCIDE_COLOR_ORANGE,
+    "coffee": LUCIDE_COLOR_ORANGE,
+    "shopping-cart": LUCIDE_COLOR_ORANGE,
+    "shopping-bag": LUCIDE_COLOR_ORANGE,
+    "car": LUCIDE_COLOR_BLUE,
+    "plug": LUCIDE_COLOR_YELLOW,
+    "zap": LUCIDE_COLOR_YELLOW,
+    "house": LUCIDE_COLOR_TURQUOISE,
+    "hotel": LUCIDE_COLOR_TURQUOISE,
+    "armchair": LUCIDE_COLOR_TURQUOISE,
+    "laptop": LUCIDE_COLOR_CYAN,
+    "wrench": LUCIDE_COLOR_CYAN,
+    "receipt": LUCIDE_COLOR_CYAN,
+    "wallet": LUCIDE_COLOR_GREEN,
+    "credit-card": LUCIDE_COLOR_GREEN,
+    "landmark": LUCIDE_COLOR_GREEN,
+    "briefcase": LUCIDE_COLOR_GREEN_2,
+    "handshake": LUCIDE_COLOR_GREEN_2,
+    "gift": LUCIDE_COLOR_YELLOW,
+    "party-popper": LUCIDE_COLOR_YELLOW,
+    "ticket": LUCIDE_COLOR_YELLOW,
+    "hospital": LUCIDE_COLOR_RED,
+    "spray-can": LUCIDE_COLOR_RED,
+    "scale": LUCIDE_COLOR_BLUE,
+    "book-open": LUCIDE_COLOR_BLUE,
+    "graduation-cap": LUCIDE_COLOR_BLUE,
+    "clapperboard": LUCIDE_COLOR_CYAN,
+    "volleyball": LUCIDE_COLOR_GREEN,
+    "dog": LUCIDE_COLOR_ORANGE,
+    "baby": LUCIDE_COLOR_ORANGE,
+    "shirt": LUCIDE_COLOR_CYAN,
+    "user": LUCIDE_COLOR_TURQUOISE,
+    "users": LUCIDE_COLOR_TURQUOISE,
+    "pencil": LUCIDE_COLOR_ORANGE,
+    "toy-brick": LUCIDE_COLOR_YELLOW,
+    "refresh-cw": LUCIDE_COLOR_TURQUOISE,
+    "undo-2": LUCIDE_COLOR_TURQUOISE,
+    "circle-help": LUCIDE_COLOR_CYAN,
+    "tags": LUCIDE_COLOR_CYAN,
+}
+
+_CATEGORY_COLOR_PALETTE: tuple[str, ...] = (
+    LUCIDE_COLOR_BLUE,
+    LUCIDE_COLOR_CYAN,
+    LUCIDE_COLOR_TURQUOISE,
+    LUCIDE_COLOR_GREEN,
+    LUCIDE_COLOR_GREEN_2,
+    LUCIDE_COLOR_ORANGE,
+    LUCIDE_COLOR_YELLOW,
+)
+
 _FALLBACK_LUCIDE = "tags"
 _CATEGORY_ICON_SIZE = ICON_SIZE
 
@@ -85,13 +147,25 @@ def category_display_label(name: str, *, income: bool = False, name_local: str =
     return display
 
 
+def category_lucide_color(lucide_name: str) -> str:
+    """Return a stable chromatic stroke for category Lucide ID `lucide_name`."""
+    name = lucide_name.strip()
+    if not name:
+        return LUCIDE_COLOR_CYAN
+    mapped = CATEGORY_LUCIDE_COLORS.get(name)
+    if mapped is not None:
+        return mapped
+    digest = hashlib.sha256(name.encode("utf-8")).digest()
+    return _CATEGORY_COLOR_PALETTE[digest[0] % len(_CATEGORY_COLOR_PALETTE)]
+
+
 def category_lucide_icon(
     emoji: str = "",
     size: int = _CATEGORY_ICON_SIZE,
     *,
     lucide_name: str = "",
 ) -> QIcon:
-    """Return a neutral Lucide `QIcon` for a category.
+    """Return a colored Lucide `QIcon` for a category.
 
     Prefers an explicit `lucide_name` override from `categories.icon_lucide`.
     Otherwise resolves from the DB emoji via `lucide_name_for_category_icon`.
@@ -100,7 +174,7 @@ def category_lucide_icon(
     name = resolve_category_lucide_name(emoji=emoji, lucide_name=lucide_name)
     if name is None:
         return QIcon()
-    return create_lucide_icon(name, size, color=neutral_lucide_color())
+    return create_lucide_icon(name, size, color=category_lucide_color(name))
 
 
 def lucide_name_for_category_icon(emoji: str) -> str | None:
