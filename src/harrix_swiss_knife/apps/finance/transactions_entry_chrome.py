@@ -32,10 +32,12 @@ from harrix_swiss_knife.apps.finance.delegates.category_suggest_delegate import 
 from harrix_swiss_knife.apps.finance.transactions_ui_settings import (
     ALWAYS_HIDDEN_COLUMNS,
     EXPECTED_SPLITTER_LEN,
+    GROUPED_HIDDEN_COLUMNS,
     TOGGLEABLE_COLUMNS,
     TRANSACTION_COL_AMOUNT,
     TRANSACTION_COL_CATEGORY,
     TRANSACTION_COL_CURRENCY,
+    TRANSACTION_COL_DATE,
     TRANSACTION_COL_DESCRIPTION,
     TRANSACTION_COL_ENGLISH,
     TRANSACTION_COL_TAG,
@@ -58,6 +60,7 @@ _SPLITTER_SAVE_DELAY_MS = 400
 _FIXED_COLUMN_WIDTHS: dict[int, int] = {
     TRANSACTION_COL_AMOUNT: 118,
     TRANSACTION_COL_CURRENCY: 72,
+    TRANSACTION_COL_DATE: 100,
     TRANSACTION_COL_TAG: 110,
 }
 _FLEX_COLUMN_WEIGHTS: dict[int, int] = {
@@ -80,12 +83,16 @@ def apply_transactions_column_visibility(host: Any) -> None:
             _set_record_id_visible(table, visible=visible, persist=False)
         else:
             _set_data_column_visible(table, column, visible=visible, persist=False, refill=False)
-    _hide_day_header_source_columns(table)
+    _apply_day_header_column_policy(table)
     from harrix_swiss_knife.apps.finance.transaction_day_headers import (  # noqa: PLC0415
+        TransactionDayHeaderProxy,
         apply_transaction_day_header_spans,
     )
 
-    apply_transaction_day_header_spans(table)
+    if isinstance(table.model(), TransactionDayHeaderProxy):
+        apply_transaction_day_header_spans(table)
+    else:
+        table.clearSpans()
     apply_transactions_table_column_widths(table, force=True)
 
 
@@ -280,13 +287,27 @@ def _configure_transactions_splitter(host: Any) -> None:
         host._transactions_splitter_save_bound = True  # noqa: SLF001
 
 
-def _hide_day_header_source_columns(table: QTableView) -> None:
+def _apply_day_header_column_policy(table: QTableView) -> None:
+    """Hide Date/Total while grouped; show Date (keep Total hidden) when flat/filtered."""
     model = table.model()
     if model is None:
         return
-    for column in ALWAYS_HIDDEN_COLUMNS:
-        if column < model.columnCount():
+    from harrix_swiss_knife.apps.finance.transaction_day_headers import (  # noqa: PLC0415
+        TransactionDayHeaderProxy,
+    )
+
+    grouped = isinstance(model, TransactionDayHeaderProxy)
+    hide_columns = GROUPED_HIDDEN_COLUMNS if grouped else ALWAYS_HIDDEN_COLUMNS
+    for column in range(model.columnCount()):
+        if column in hide_columns:
             table.setColumnHidden(column, True)  # noqa: FBT003
+        elif column == TRANSACTION_COL_DATE and not grouped:
+            table.setColumnHidden(column, False)  # noqa: FBT003
+
+
+def _hide_day_header_source_columns(table: QTableView) -> None:
+    """Backward-compatible alias for the grouped/flat column policy."""
+    _apply_day_header_column_policy(table)
 
 
 def _install_column_visibility_menu(host: Any, table: QTableView) -> None:

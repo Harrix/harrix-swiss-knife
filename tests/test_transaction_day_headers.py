@@ -169,6 +169,28 @@ def test_day_header_labels_expenses_when_income_present() -> None:
     assert _format_header_income("1500.00", None) == "Income: +1 500.₀₀"
 
 
+def test_flat_filtered_mode_shows_date_hides_total(qapp: QApplication) -> None:
+    from harrix_swiss_knife.apps.finance.transactions_entry_chrome import (  # noqa: PLC0415
+        _apply_day_header_column_policy,
+    )
+
+    source = QStandardItemModel()
+    source.setColumnCount(8)
+    source.appendRow(_row("2026-08-25", "-80.00"))
+    view = QTableView()
+    view.setModel(source)
+    _apply_day_header_column_policy(view)
+    assert not view.isColumnHidden(TRANSACTION_COL_DATE)
+    assert view.isColumnHidden(TRANSACTION_COL_TOTAL_PER_DAY)
+
+    proxy = _proxy_with_current_month(source, "2026-08")
+    view.setModel(proxy)
+    _apply_day_header_column_policy(view)
+    assert view.isColumnHidden(TRANSACTION_COL_DATE)
+    assert view.isColumnHidden(TRANSACTION_COL_TOTAL_PER_DAY)
+    view.close()
+
+
 def test_cosmetic_data_changed_does_not_rebuild_headers(qapp: QApplication) -> None:
     source = QStandardItemModel()
     source.setColumnCount(8)

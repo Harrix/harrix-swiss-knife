@@ -27,8 +27,8 @@ TRANSACTION_COL_TAG = 6
 TRANSACTION_COL_TOTAL_PER_DAY = 7
 EXPECTED_SPLITTER_LEN = 3
 
-# Ordinary columns the user may toggle. Date and Total per day stay hidden: their
-# information lives in day group headers.
+# Ordinary columns the user may toggle. Total per day stays hidden (lives in day
+# headers). Date stays hidden while day/month grouping is on; filtered views show it.
 # Description stays visible: day headers paint through that column when spanned.
 TOGGLEABLE_COLUMNS: tuple[tuple[str, int, str], ...] = (
     ("record_id", -1, "Show record ID"),
@@ -38,7 +38,10 @@ TOGGLEABLE_COLUMNS: tuple[tuple[str, int, str], ...] = (
     ("currency", TRANSACTION_COL_CURRENCY, "Show Currency"),
     ("tag", TRANSACTION_COL_TAG, "Show Tag"),
 )
-ALWAYS_HIDDEN_COLUMNS: tuple[int, ...] = (TRANSACTION_COL_DATE, TRANSACTION_COL_TOTAL_PER_DAY)
+# Hidden whenever day/month grouping is active. Filtered (flat) mode shows Date.
+GROUPED_HIDDEN_COLUMNS: tuple[int, ...] = (TRANSACTION_COL_DATE, TRANSACTION_COL_TOTAL_PER_DAY)
+# Always hidden — day totals are only shown in group banners.
+ALWAYS_HIDDEN_COLUMNS: tuple[int, ...] = (TRANSACTION_COL_TOTAL_PER_DAY,)
 DEFAULT_COLUMN_VISIBILITY: dict[str, bool] = {key: True for key, _index, _label in TOGGLEABLE_COLUMNS}
 
 

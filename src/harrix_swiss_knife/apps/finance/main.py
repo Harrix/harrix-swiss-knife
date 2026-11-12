@@ -203,6 +203,7 @@ from harrix_swiss_knife.apps.finance.text_input_dialog import TextInputDialog
 from harrix_swiss_knife.apps.finance.transaction_day_headers import (
     IS_DAY_HEADER_ROLE,
     IS_MONTH_HEADER_ROLE,
+    TransactionDayHeaderProxy,
     apply_transaction_day_header_spans,
     install_transaction_day_headers,
     map_transactions_index_to_source,
@@ -3493,7 +3494,8 @@ class MainWindow(
             proxy = self.models["transactions"]
             source_model = cast("QStandardItemModel", ultimate_transactions_source(proxy))
             self._append_transformed_rows_to_model(source_model, transformed_data)
-            apply_transaction_day_header_spans(self.tableView_transactions)
+            if isinstance(self.tableView_transactions.model(), TransactionDayHeaderProxy):
+                apply_transaction_day_header_spans(self.tableView_transactions)
 
         self._transactions_pagination.load_more(
             load_more_count=self.transactions_load_more_count,
@@ -3516,8 +3518,13 @@ class MainWindow(
         sort_proxy = self._create_transactions_table_model(transformed_data, self.table_config["transactions"][2])
         self.tableView_transactions.setModel(sort_proxy)
         self._setup_transactions_table_delegates()
-        day_proxy = install_transaction_day_headers(self.tableView_transactions, sort_proxy)
-        self.models["transactions"] = day_proxy
+        # Filters: flat list with Date visible — day/month banners and totals confuse search.
+        if self._transactions_filter_is_active():
+            self.tableView_transactions.clearSpans()
+            self.models["transactions"] = sort_proxy
+        else:
+            day_proxy = install_transaction_day_headers(self.tableView_transactions, sort_proxy)
+            self.models["transactions"] = day_proxy
         self._setup_transactions_table_column_widths()
         enable_table_header_sorting(self.tableView_transactions)
         apply_stored_table_header_sort(self.tableView_transactions)
@@ -4957,7 +4964,8 @@ class MainWindow(
                 break
 
         refresh_transaction_day_totals(source_model, self.db_manager)
-        apply_transaction_day_header_spans(self.tableView_transactions)
+        if isinstance(self.tableView_transactions.model(), TransactionDayHeaderProxy):
+            apply_transaction_day_header_spans(self.tableView_transactions)
         self.tableView_transactions.viewport().update()
 
         self._mark_summary_dirty()
