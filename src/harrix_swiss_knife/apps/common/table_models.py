@@ -21,6 +21,7 @@ from PySide6.QtGui import (
     QIcon,
     QPainter,
     QPalette,
+    QPen,
     QStandardItem,
     QStandardItemModel,
 )
@@ -29,6 +30,7 @@ from PySide6.QtWidgets import QAbstractButton, QStyle, QStyleOptionHeader, QWidg
 from harrix_swiss_knife.apps.common.day_bands import DayBand, day_band_id_item, set_day_band, set_readable_cell_fill
 from harrix_swiss_knife.apps.common.record_id_sort import ROW_ID_SORT_SECTION as _ROW_ID_SORT_SECTION
 from harrix_swiss_knife.apps.common.record_id_sort import RecordIdSortProxyModel
+from harrix_swiss_knife.apps.common.word_wrap_header import header_column_separator_color
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -101,6 +103,9 @@ class _RecordIdCornerMark(QWidget):
         painter.drawText(label_rect, int(Qt.AlignmentFlag.AlignCenter), "ID")
         if self._order is not None:
             _paint_header_sort_indicator(painter, self._indicator_widget(), self.rect(), self._order)
+        # Match horizontal header rules after the ID corner.
+        painter.setPen(QPen(header_column_separator_color(self), 1))
+        painter.drawLine(self.rect().topRight(), self.rect().bottomRight())
         painter.end()
 
     def set_order(self, order: Qt.SortOrder | None) -> None:

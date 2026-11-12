@@ -8,7 +8,7 @@ from PySide6.QtCore import QAbstractItemModel, QEvent, QPointF, QRect, QSize, Qt
 from PySide6.QtGui import QColor, QFontMetrics, QIcon, QMouseEvent, QPainter, QPaintEvent, QPalette, QPen
 from PySide6.QtWidgets import QHeaderView, QStyleOptionHeader, QTableView, QWidget
 
-from harrix_swiss_knife.apps.common.ui_chrome import SELECTION_BORDER, SEPARATOR
+from harrix_swiss_knife.apps.common.ui_chrome import HAIRLINE, SELECTION_BORDER
 from harrix_swiss_knife.fluent.theme import FluentTheme, css, is_fluent_themed, mix
 
 HEADER_WRAP_FLAG = Qt.TextFlag.TextWordWrap
@@ -17,6 +17,7 @@ HEADER_TEXT_FLAGS = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter |
 # Wide enough to grab after Amount is right-padded / narrowed against Category.
 _BOUNDARY_GRIP_PX = 10
 _BOUNDARY_INSET_PX = 8
+_IDLE_BOUNDARY_ALPHA = 70
 _TEXT_PADDING = 8
 _TEXT_INSET = 4
 _HEADER_ICON_SIZE = 16
@@ -140,15 +141,20 @@ class WordWrapHeaderView(QHeaderView):
         """Paint wrapped titles, idle column rules, then the hovered splitter."""
         super().paintEvent(event)
         boundaries = self._visible_boundary_xs()
-        if not boundaries:
+        show_after_id = self._shows_record_id_column()
+        if not boundaries and not show_after_id:
             return
         painter = QPainter(self.viewport())
-        idle = self._idle_boundary_color()
+        idle = header_column_separator_color(self)
         hover = self._hover_boundary_color()
         height = self.viewport().height()
         inset = min(_BOUNDARY_INSET_PX, max((height - 8) // 2, 0))
         y0 = inset
         y1 = max(inset, height - inset - 1)
+        if show_after_id:
+            # Left edge of Description = trailing edge of the ID column.
+            painter.setPen(QPen(idle, 1))
+            painter.drawLine(0, y0, 0, y1)
         for x in boundaries:
             color = hover if self._hover_boundary_x == x else idle
             painter.setPen(QPen(color, 1))
@@ -256,15 +262,9 @@ class WordWrapHeaderView(QHeaderView):
                 color = QColor(css(mix(palette.window_bg, palette.accent)))
         return color
 
-    def _idle_boundary_color(self) -> QColor:
-        """Soft gray column rules — same tone as the old hover mark."""
-        color = QColor(SEPARATOR)
-        with contextlib.suppress(Exception):
-            palette = FluentTheme.instance().palette()
-            muted = QColor(css(mix(palette.window_bg, palette.text_secondary)))
-            muted.setAlpha(120)
-            return muted
-        return color
+    def _shows_record_id_column(self) -> bool:
+        parent = self.parent()
+        return isinstance(parent, QTableView) and parent.verticalHeader().isVisible()
 
     def _visible_boundary_xs(self) -> list[int]:
         """Right edges of every visible Interactive section except the last visible."""
@@ -407,6 +407,21 @@ def install_word_wrap_headers(
         if table in skipped:
             continue
         install_word_wrap_header(table, wrap_first_section=wrap_first_section)
+
+
+def header_column_separator_color(widget: QWidget | None = None) -> QColor:
+    """Return a light idle color for header column rules (not selection blue)."""
+    del widget  # reserved for future per-widget palette hooks
+    color = QColor(HAIRLINE)
+    with contextlib.suppress(Exception):
+        palette = FluentTheme.instance().palette()
+        if palette.dark:
+            wash = QColor(255, 255, 255, 36)
+            return mix(palette.window_bg, wash)
+        muted = QColor(css(mix(palette.window_bg, palette.text_secondary)))
+        muted.setAlpha(_IDLE_BOUNDARY_ALPHA)
+        return muted
+    return color
 
 
 def wrapped_header_text_size(
