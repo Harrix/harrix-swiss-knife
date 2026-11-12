@@ -12,6 +12,8 @@ from harrix_swiss_knife.apps.finance.transaction_day_headers import (
     IS_DAY_HEADER_ROLE,
     TransactionDayHeaderProxy,
     _day_header_total_right,
+    _format_header_income,
+    _format_header_total,
     apply_transaction_day_header_spans,
 )
 from harrix_swiss_knife.apps.finance.transaction_day_totals import (
@@ -120,6 +122,12 @@ def test_day_header_includes_income_total(qapp: QApplication) -> None:  # noqa: 
     proxy.setSourceModel(source)
     assert bool(proxy.index(0, 0).data(IS_DAY_HEADER_ROLE))
     assert proxy.index(0, 0).data(DAY_HEADER_INCOME_ROLE) == "1500.00"
+
+
+def test_day_header_labels_expenses_when_income_present() -> None:
+    assert _format_header_total("-80.00", None) == "Total: -80.₀₀"
+    assert _format_header_total("-80.00", None, has_income=True) == "Expenses: -80.₀₀"
+    assert _format_header_income("1500.00", None) == "Income: +1 500.₀₀"
 
 
 def test_cosmetic_data_changed_does_not_rebuild_headers(qapp: QApplication) -> None:

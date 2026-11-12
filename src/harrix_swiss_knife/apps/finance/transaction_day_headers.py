@@ -106,14 +106,15 @@ class DayHeaderDelegate(QStyledItemDelegate):
         text_right = max(text_left, total_right - _HEADER_PAD_X)
         text_rect = QRect(text_left, option.rect.top(), text_right - text_left, option.rect.height())
 
-        expense_display = _format_header_total(total_raw, host)
         income_display = _format_header_income(income_raw, host)
+        # With income present, "Total" reads as net — use Expenses instead.
+        expense_display = _format_header_total(total_raw, host, has_income=bool(income_display))
         expense_width = total_metrics.horizontalAdvance(expense_display) if expense_display else 0
         income_width = total_metrics.horizontalAdvance(income_display) if income_display else 0
         totals_gap = _HEADER_TOTAL_GAP if expense_display and income_display else 0
         totals_width = expense_width + income_width + totals_gap
         date_width = max(0, text_rect.width() - totals_width - 12)
-        # Date stays secondary; expense total is primary ink, income total is success green.
+        # Date stays secondary; expenses are primary ink, income is success green.
         painter.setFont(date_font)
         painter.setPen(muted)
         painter.drawText(
@@ -568,15 +569,17 @@ def _format_header_income(income_raw: str, host: QWidget | None) -> str:
     formatted = format_amount(text)
     if not formatted.startswith("+") and not formatted.startswith("-"):
         formatted = f"+{formatted}"
-    return _with_header_currency(formatted, host)
+    return f"Income: {_with_header_currency(formatted, host)}"
 
 
-def _format_header_total(total_raw: str, host: QWidget | None) -> str:
+def _format_header_total(total_raw: str, host: QWidget | None, *, has_income: bool = False) -> str:
     text = (total_raw or "").strip()
     if not text:
         return ""
     # Stored as "-12.50"; show with the same amount formatting as the table.
-    return f"Total: {_with_header_currency(format_amount(text), host)}"
+    # Expense-only days keep "Total:"; with income, spell out Expenses so it is not net.
+    label = "Expenses" if has_income else "Total"
+    return f"{label}: {_with_header_currency(format_amount(text), host)}"
 
 
 def _income_totals_by_date(source: QAbstractItemModel) -> dict[str, float]:
