@@ -171,6 +171,36 @@ def drop_zone_qss(
 """.strip()
 
 
+def soft_drop_zone_qss(
+    palette: FluentPalette,
+    selector: str,
+    *,
+    padding: str = "0px",
+) -> str:
+    """Return a compact idle drop strip: hairline stroke + soft fill (Fluent).
+
+    Used for AI attach rows (Finance/Food): quieter than a permanent dashed card,
+    but still readable as a drop target. Focus/drag keep `drop_zone_qss(focused=…)`.
+    """
+    stroke = mix(palette.window_bg, palette.control_stroke_bottom)
+    fill = mix(palette.window_bg, palette.control_alt_fill)
+    muted = mix(palette.window_bg, palette.text_secondary)
+    return f"""
+{selector} {{
+    border: 1px solid {css(stroke)};
+    border-radius: {RADIUS_CONTROL}px;
+    padding: {padding};
+    background-color: {css(fill)};
+    color: {css(muted)};
+}}
+{selector} QLabel {{
+    border: none;
+    background: transparent;
+    color: {css(muted)};
+}}
+""".strip()
+
+
 def filled_button_qss(palette: FluentPalette, fill: QColor, ink: QColor, selector: str = "QPushButton") -> str:
     """Return a Fluent solid button in `fill` with `ink` text."""
     hover = mix(fill, QColor(255, 255, 255, 48) if palette.dark else QColor(0, 0, 0, 36))

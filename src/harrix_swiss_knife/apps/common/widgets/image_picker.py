@@ -40,7 +40,9 @@ from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import (
     unique_path_numbered,
 )
 from harrix_swiss_knife.fluent.style import drop_zone_qss as fluent_drop_zone_qss
+from harrix_swiss_knife.fluent.style import soft_drop_zone_qss as fluent_soft_drop_zone_qss
 from harrix_swiss_knife.fluent.theme import bind_theme, css, is_fluent_themed, mix, palette_for
+from harrix_swiss_knife.fluent.tokens import RADIUS_CONTROL
 from harrix_swiss_knife.qt_lucide_icon import (
     CLEAR_BUTTON_ICON,
     apply_lucide_button_icon,
@@ -183,7 +185,8 @@ class ImagePicker(QWidget):
         self._clear_button: QPushButton | None = None
         self._drop_has_focus = False
         self._drop_dragging = False
-        self._quiet_idle = False
+        # Compact AI rows use a soft Fluent strip (hairline + fill), not a dashed card.
+        self._quiet_idle = mode == ImagePickerMode.COMPACT
 
         self.setObjectName("ImagePicker")
         if mode == ImagePickerMode.COMPACT:
@@ -455,7 +458,10 @@ class ImagePicker(QWidget):
         self._on_paths_added = callback
 
     def set_quiet_idle(self, *, quiet: bool) -> None:
-        """When `True`, omit the permanent dashed border until focus or drag-over."""
+        """When `True`, use a soft hairline strip idle; focus/drag still use dashed accent.
+
+        Compact AI attach rows default to this so Finance and Food stay aligned.
+        """
         self._quiet_idle = quiet
         self._refresh_drop_style()
 
@@ -797,16 +803,15 @@ class ImagePicker(QWidget):
         row.addWidget(self._make_in_zone_paste_button(), alignment=Qt.AlignmentFlag.AlignVCenter)
 
     def _quiet_idle_drop_qss(self) -> str:
-        muted = "#888"
         if is_fluent_themed(self):
-            palette = palette_for(self)
-            muted = css(mix(palette.window_bg, palette.text_secondary))
+            return fluent_soft_drop_zone_qss(palette_for(self), "#ImagePickerDropArea")
+        muted = "#888"
         return f"""
 #ImagePickerDropArea {{
-    border: none;
-    border-radius: 5px;
+    border: 1px solid #dbdbdb;
+    border-radius: {RADIUS_CONTROL}px;
     padding: 0px;
-    background-color: transparent;
+    background-color: #fafafa;
 }}
 #ImagePickerDropArea QLabel {{
     border: none;

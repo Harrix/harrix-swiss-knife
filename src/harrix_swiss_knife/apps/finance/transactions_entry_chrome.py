@@ -322,7 +322,7 @@ def _install_column_visibility_menu(host: Any, table: QTableView) -> None:
 
 
 def _polish_ai_attach_block(host: Any) -> None:
-    """Keep AI add + image attach compact without a permanent dashed card."""
+    """Keep AI attach as a soft Fluent strip (same compact idle as Food)."""
     drop_zone = getattr(host, "_ai_image_drop_zone", None)
     if drop_zone is None:
         return

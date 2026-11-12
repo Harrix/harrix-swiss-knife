@@ -2033,7 +2033,6 @@ class MainWindow(
             max_image_side=max_image_side,
             hint_text="Attach receipt · Ctrl+V",
         )
-        self._ai_image_drop_zone.set_quiet_idle(quiet=True)
         self.verticalLayout_2.insertWidget(1, self._ai_image_drop_zone)
         install_line_edit_search_chrome(
             self.lineEdit_description,
