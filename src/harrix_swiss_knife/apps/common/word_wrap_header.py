@@ -140,18 +140,14 @@ class WordWrapHeaderView(QHeaderView):
         """Paint wrapped titles, idle column rules, then the hovered splitter."""
         super().paintEvent(event)
         boundaries = self._visible_boundary_xs()
-        # Include x=0 when the ID corner is visible — same rule as between data columns.
-        leading = [0] if self._shows_record_id_column() else []
-        xs = [*leading, *boundaries]
-        if not xs:
+        if not boundaries:
             return
         painter = QPainter(self.viewport())
         idle = header_column_separator_color(self)
         hover = self._hover_boundary_color()
         y0, y1 = header_column_separator_insets(self.viewport().height())
-        for x in xs:
-            # Leading after-ID rule is not a resize grip — keep it idle gray.
-            color = hover if x != 0 and self._hover_boundary_x == x else idle
+        for x in boundaries:
+            color = hover if self._hover_boundary_x == x else idle
             painter.setPen(QPen(color, 1))
             painter.drawLine(x, y0, x, y1)
         painter.end()
@@ -256,10 +252,6 @@ class WordWrapHeaderView(QHeaderView):
             if color.alpha() < 255:
                 color = QColor(css(mix(palette.window_bg, palette.accent)))
         return color
-
-    def _shows_record_id_column(self) -> bool:
-        parent = self.parent()
-        return isinstance(parent, QTableView) and parent.verticalHeader().isVisible()
 
     def _visible_boundary_xs(self) -> list[int]:
         """Right edges of every visible Interactive section except the last visible."""
