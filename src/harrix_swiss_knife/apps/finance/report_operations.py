@@ -6,7 +6,7 @@ import logging
 from datetime import UTC, datetime
 from typing import cast
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QColor, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import QAbstractItemView, QWidget
 
@@ -21,17 +21,28 @@ from harrix_swiss_knife.apps.finance.exchange_rates_operations import (
 )
 from harrix_swiss_knife.apps.finance.mixins import requires_database
 from harrix_swiss_knife.apps.finance.report_build_worker import ReportBuildResult, ReportBuildWorker
+from harrix_swiss_knife.fluent.tokens import ICON_SIZE
+from harrix_swiss_knife.qt_lucide_icon import (
+    LUCIDE_COLOR_BLUE,
+    LUCIDE_COLOR_CYAN,
+    LUCIDE_COLOR_GREEN,
+    LUCIDE_COLOR_ORANGE,
+    LUCIDE_COLOR_TURQUOISE,
+    LUCIDE_COLOR_YELLOW,
+    create_lucide_icon,
+)
 
 logger = logging.getLogger(__name__)
 
-REPORT_TYPES: tuple[tuple[str, str], ...] = (
-    ("📅", "Monthly Summary"),
-    ("🗂️", "Category Analysis"),
-    ("💱", "Currency Analysis"),
-    ("🏦", "Account Balances"),
-    ("⚖️", "Income vs Expenses"),
-    ("💹", "Monthly Income vs Previous Years"),
-    ("💼", "Average Salary by Year"),
+# Lucide id, CodeStyle stroke, report title (UserRole / worker key).
+REPORT_TYPES: tuple[tuple[str, str, str], ...] = (
+    ("calendar", LUCIDE_COLOR_BLUE, "Monthly Summary"),
+    ("folders", LUCIDE_COLOR_YELLOW, "Category Analysis"),
+    ("arrow-left-right", LUCIDE_COLOR_TURQUOISE, "Currency Analysis"),
+    ("landmark", LUCIDE_COLOR_BLUE, "Account Balances"),
+    ("scale", LUCIDE_COLOR_CYAN, "Income vs Expenses"),
+    ("chart-line", LUCIDE_COLOR_GREEN, "Monthly Income vs Previous Years"),
+    ("briefcase", LUCIDE_COLOR_ORANGE, "Average Salary by Year"),
 )
 
 _REPORT_TOTAL_FILL = QColor(255, 255, 0)
@@ -330,7 +341,7 @@ class ReportOperations:
             text = index.data(Qt.ItemDataRole.UserRole)
             if isinstance(text, str) and text.strip():
                 return text
-        return REPORT_TYPES[0][1]
+        return REPORT_TYPES[0][2]
 
     @staticmethod
     def _set_monthly_summary_header_icons(
@@ -357,14 +368,16 @@ class ReportOperations:
                 reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Stretch)
 
     def _setup_report_type_list(self) -> None:
-        """Populate `listView_report_type` and select the first report type."""
+        """Populate `listView_report_type` with colored Lucide icons."""
         model = QStandardItemModel(self.listView_report_type)
-        for icon, report_type in REPORT_TYPES:
-            item = QStandardItem(f"{icon} {report_type}")
+        for lucide_name, color, report_type in REPORT_TYPES:
+            item = QStandardItem(report_type)
+            item.setIcon(create_lucide_icon(lucide_name, ICON_SIZE, color=color))
             item.setData(report_type, Qt.ItemDataRole.UserRole)
             item.setEditable(False)
             model.appendRow(item)
         self.listView_report_type.setModel(model)
+        self.listView_report_type.setIconSize(QSize(ICON_SIZE, ICON_SIZE))
         self.listView_report_type.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.listView_report_type.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         if model.rowCount() > 0:

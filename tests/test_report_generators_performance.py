@@ -252,5 +252,6 @@ def test_year_delta_cell_width_follows_text(qapp: QApplication) -> None:
 
 
 def test_report_types_include_monthly_income_year_delta() -> None:
-    names = [report_type for _icon, report_type in REPORT_TYPES]
+    names = [report_type for _lucide, _color, report_type in REPORT_TYPES]
     assert "Monthly Income vs Previous Years" in names
+    assert all(lucide and color and title for lucide, color, title in REPORT_TYPES)
