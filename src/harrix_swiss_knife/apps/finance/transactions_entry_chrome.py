@@ -22,7 +22,6 @@ from harrix_swiss_knife.apps.common.tracker_layout_chrome import (
     quiet_group_box,
 )
 from harrix_swiss_knife.apps.common.ui_chrome import button_cta_mint_qss, button_idle_qss, muted_caption_qss
-from harrix_swiss_knife.apps.finance.category_list_model import category_picker_views
 from harrix_swiss_knife.apps.finance.transactions_ui_settings import (
     EXPECTED_SPLITTER_LEN,
     OPTIONAL_COLUMN_ENGLISH,
@@ -187,45 +186,24 @@ def _install_column_visibility_menu(host: Any, table: QTableView) -> None:
 
 
 def _polish_category_list(host: Any) -> None:
-    for view in category_picker_views(host):
-        view.setUniformItemSizes(True)
-        view.setSpacing(0)
-        view.setIconSize(QSize(ICON_SIZE, ICON_SIZE))
-        view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        view.setVerticalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
-        view.setTextElideMode(Qt.TextElideMode.ElideRight)
-        view.setSelectionRectVisible(False)
-        view.setMouseTracking(True)
-        view.setWordWrap(False)
-        style_fluent_item_view(view)
-
+    view: QListView = host.listView_categories
+    # Section headers and category rows have different heights.
+    view.setUniformItemSizes(False)
+    view.setSpacing(0)
+    view.setIconSize(QSize(ICON_SIZE, ICON_SIZE))
+    view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+    view.setVerticalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
+    view.setTextElideMode(Qt.TextElideMode.ElideRight)
+    view.setSelectionRectVisible(False)
+    view.setMouseTracking(True)
+    view.setWordWrap(False)
+    style_fluent_item_view(view)
     host.label_categories.setText("Transaction category")
     host.label_categories.setStyleSheet(muted_caption_qss())
     font = QFont(host.label_categories.font())
     font.setBold(True)
     host.label_categories.setFont(font)
     host.label_categories.setToolTip("Select the category for the new transaction")
-
-    _polish_category_section_caption(host.label_categories_expense, "Expense")
-    _polish_category_section_caption(host.label_categories_income, "Income", top_gap=True)
-
-    layout = host.verticalLayout
-    # title, expense caption, expense list, income caption, income list
-    layout.setStretch(2, 3)
-    layout.setStretch(4, 1)
-
-
-def _polish_category_section_caption(label: QLabel, title: str, *, top_gap: bool = False) -> None:
-    label.setText(title)
-    top = SPACE_S if top_gap else 0
-    label.setStyleSheet(
-        f"{muted_caption_qss()} border: none; background: transparent; "
-        f"padding: {top}px 0px {SPACE_XS}px 0px;"
-    )
-    font = QFont(label.font())
-    font.setBold(True)
-    label.setFont(font)
-    label.setToolTip(title)
 
 
 def _polish_entry_surfaces(host: Any) -> None:
@@ -265,13 +243,6 @@ def _polish_entry_surfaces(host: Any) -> None:
         """,
     )
     host.label_categories.setStyleSheet(f"{muted_caption_qss()} border: none; background: transparent;")
-    host.label_categories_expense.setStyleSheet(
-        f"{muted_caption_qss()} border: none; background: transparent; padding: 0px 0px {SPACE_XS}px 0px;"
-    )
-    host.label_categories_income.setStyleSheet(
-        f"{muted_caption_qss()} border: none; background: transparent; "
-        f"padding: {SPACE_S}px 0px {SPACE_XS}px 0px;"
-    )
 
 
 def _polish_form_column(host: Any) -> None:

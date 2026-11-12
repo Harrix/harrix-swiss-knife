@@ -5,6 +5,7 @@ from harrix_swiss_knife.apps.finance.delegates.category_combo_box_delegate impor
 from harrix_swiss_knife.apps.finance.delegates.category_suggest_delegate import (
     ICON_LUCIDE_ROLE,
     ICON_ROLE,
+    IS_SECTION_ROLE,
     NAME_LOCAL_ROLE,
     CategorySuggestDelegate,
 )
@@ -18,6 +19,7 @@ from harrix_swiss_knife.apps.finance.delegates.year_delta_cell_delegate import Y
 __all__ = [
     "ICON_LUCIDE_ROLE",
     "ICON_ROLE",
+    "IS_SECTION_ROLE",
     "NAME_LOCAL_ROLE",
     "AmountDelegate",
     "CategoryComboBoxDelegate",

@@ -255,27 +255,11 @@ class Ui_MainWindow(object):
 
         self.verticalLayout.addWidget(self.label_categories)
 
-        self.label_categories_expense = QLabel(self.widget_middle)
-        self.label_categories_expense.setObjectName(u"label_categories_expense")
-
-        self.verticalLayout.addWidget(self.label_categories_expense)
-
         self.listView_categories = QListView(self.widget_middle)
         self.listView_categories.setObjectName(u"listView_categories")
         self.listView_categories.setMaximumSize(QSize(16777215, 16777215))
 
         self.verticalLayout.addWidget(self.listView_categories)
-
-        self.label_categories_income = QLabel(self.widget_middle)
-        self.label_categories_income.setObjectName(u"label_categories_income")
-
-        self.verticalLayout.addWidget(self.label_categories_income)
-
-        self.listView_categories_income = QListView(self.widget_middle)
-        self.listView_categories_income.setObjectName(u"listView_categories_income")
-        self.listView_categories_income.setMaximumSize(QSize(16777215, 16777215))
-
-        self.verticalLayout.addWidget(self.listView_categories_income)
 
         self.splitter.addWidget(self.widget_middle)
         self.widget_transactions = QWidget(self.splitter)
@@ -1346,8 +1330,6 @@ class Ui_MainWindow(object):
         self.label_expense_yesterday_caption.setText(QCoreApplication.translate("MainWindow", u"Yesterday", None))
         self.label_yesterday_expense.setText(QCoreApplication.translate("MainWindow", u"0.00\u20bd", None))
         self.label_categories.setText(QCoreApplication.translate("MainWindow", u"Transaction category", None))
-        self.label_categories_expense.setText(QCoreApplication.translate("MainWindow", u"Expense", None))
-        self.label_categories_income.setText(QCoreApplication.translate("MainWindow", u"Income", None))
         self.groupBox_filter.setTitle("")
         self.label_filter_description.setText(QCoreApplication.translate("MainWindow", u"Description:", None))
         self.label_filter_type.setText(QCoreApplication.translate("MainWindow", u"Type:", None))

@@ -29,6 +29,8 @@ _ICON_COLUMN_WIDTH = 24
 NAME_LOCAL_ROLE = Qt.ItemDataRole.UserRole + 1
 ICON_ROLE = Qt.ItemDataRole.UserRole + 2
 ICON_LUCIDE_ROLE = Qt.ItemDataRole.UserRole + 3
+IS_SECTION_ROLE = Qt.ItemDataRole.UserRole + 4
+CATEGORY_SECTION_HEIGHT = 26
 _NAME_LOCAL_FONT_SCALE = 0.85
 _NAME_LOCAL_MIN_PIXEL_SIZE = 12
 _NAME_LOCAL_MIN_POINT_SIZE = 7.0
@@ -57,6 +59,8 @@ class CategorySuggestDelegate(QStyledItemDelegate):
         index: QModelIndex | QPersistentModelIndex,
     ) -> bool:
         """Handle clicks on the Use button."""
+        if self._is_section(index):
+            return False
         category_name = self._category_name(index)
         if not category_name or category_name not in self._suggested:
             return super().editorEvent(event, model, option, index)
@@ -82,7 +86,7 @@ class CategorySuggestDelegate(QStyledItemDelegate):
     ) -> bool:
         """Show the full category label when the visible text is elided."""
         del option
-        if view is None:
+        if view is None or self._is_section(index):
             return False
         tip = index.data(Qt.ItemDataRole.ToolTipRole)
         if tip is None:
@@ -100,6 +104,10 @@ class CategorySuggestDelegate(QStyledItemDelegate):
         index: QModelIndex | QPersistentModelIndex,
     ) -> None:
         """Paint category text, selection chrome, and optional Use button."""
+        if self._is_section(index):
+            self._paint_section_header(painter, option, index)
+            return
+
         opt = QStyleOptionViewItem(option)
         self.initStyleOption(opt, index)
 
@@ -176,8 +184,10 @@ class CategorySuggestDelegate(QStyledItemDelegate):
         option: QStyleOptionViewItem,
         index: QModelIndex | QPersistentModelIndex,
     ) -> QSize:
-        """Keep a compact, stable row height for dense category picking."""
-        del option, index
+        """Keep compact rows; section captions are slightly shorter."""
+        del option
+        if self._is_section(index):
+            return QSize(120, CATEGORY_SECTION_HEIGHT)
         return QSize(120, CATEGORY_ROW_HEIGHT)
 
     def _button_rect(self, item_rect: QRect, option: QStyleOptionViewItem) -> QRect:
@@ -200,11 +210,17 @@ class CategorySuggestDelegate(QStyledItemDelegate):
         return "" if value is None else str(value).strip()
 
     def _category_name(self, index: QModelIndex | QPersistentModelIndex) -> str | None:
+        if self._is_section(index):
+            return None
         value = index.data(Qt.ItemDataRole.UserRole)
         if value is None:
             return None
         text = str(value).strip()
         return text or None
+
+    @staticmethod
+    def _is_section(index: QModelIndex | QPersistentModelIndex) -> bool:
+        return bool(index.data(IS_SECTION_ROLE))
 
     def _category_name_local(self, index: QModelIndex | QPersistentModelIndex) -> str | None:
         value = index.data(NAME_LOCAL_ROLE)
@@ -219,6 +235,50 @@ class CategorySuggestDelegate(QStyledItemDelegate):
             return widget
         parent = self.parent()
         return parent if isinstance(parent, QWidget) else None
+
+    def _paint_section_header(
+        self,
+        painter: QPainter,
+        option: QStyleOptionViewItem,
+        index: QModelIndex | QPersistentModelIndex,
+    ) -> None:
+        """Paint a caption-style section header (not a category row)."""
+        opt = QStyleOptionViewItem(option)
+        self.initStyleOption(opt, index)
+        host = self._host_widget(option)
+        fluent = palette_for(host)
+        secondary = mix(fluent.window_bg, fluent.text_secondary)
+        hairline = mix(fluent.window_bg, fluent.divider)
+
+        painter.save()
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
+        painter.fillRect(option.rect, QColor(0, 0, 0, 0))
+        if index.row() > 0:
+            y = option.rect.top() + 1
+            painter.setPen(QPen(hairline, 1))
+            painter.drawLine(option.rect.left() + 8, y, option.rect.right() - 8, y)
+
+        font = QFont(opt.font)
+        font.setBold(True)
+        # Slightly smaller caption so it does not read as a category title.
+        pixel = opt.font.pixelSize()
+        if pixel > 0:
+            font.setPixelSize(max(11, pixel - 1))
+        else:
+            point = opt.font.pointSizeF()
+            if point <= 0:
+                point = float(opt.font.pointSize()) or 9.0
+            font.setPointSizeF(max(8.0, point - 0.5))
+        painter.setFont(font)
+        painter.setPen(secondary)
+        text_rect = option.rect.adjusted(10, 2 if index.row() > 0 else 0, -8, 0)
+        metrics = QFontMetrics(font)
+        painter.drawText(
+            text_rect,
+            int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft | Qt.TextFlag.TextSingleLine),
+            metrics.elidedText(opt.text.upper(), Qt.TextElideMode.ElideRight, max(0, text_rect.width())),
+        )
+        painter.restore()
 
     def _paint_category_label(
         self,
