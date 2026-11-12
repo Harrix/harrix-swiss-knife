@@ -42,6 +42,9 @@ def test_categories_dialog_title_and_table(qapp: QApplication) -> None:  # noqa:
     assert model.rowCount() == 1
     assert model.columnCount() == 3
     assert [model.headerData(i, Qt.Orientation.Horizontal) for i in range(3)] == ["Name", "Type", "Local"]
+    assert dialog.edit_button.isEnabled() is False
+    dialog.table.selectRow(0)
+    assert dialog.edit_button.isEnabled() is True
     dialog.close()
 
 

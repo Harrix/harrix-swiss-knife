@@ -159,6 +159,12 @@ class CategoriesDialog(QDialog):
         if category_id is not None:
             self._open_edit_dialog(category_id)
 
+    def _on_edit(self) -> None:
+        """Edit the currently selected category."""
+        category_id = self._selected_category_id()
+        if category_id is not None:
+            self._open_edit_dialog(category_id)
+
     def _open_edit_dialog(self, category_id: int) -> None:
         """Open the edit dialog for `category_id`."""
         if self._edit_dialog_open:
@@ -232,6 +238,21 @@ class CategoriesDialog(QDialog):
         if header.count() > 0:
             for i in range(header.count()):
                 header.setSectionResizeMode(i, QHeaderView.ResizeMode.Stretch)
+        selection_model = self.table.selectionModel()
+        if selection_model is not None:
+            selection_model.selectionChanged.connect(self._update_edit_button_enabled)
+        self._update_edit_button_enabled()
+
+    def _selected_category_id(self) -> int | None:
+        """Return the database ID of the selected category row, if any."""
+        index = self.table.currentIndex()
+        if not index.isValid():
+            selection_model = self.table.selectionModel()
+            if selection_model is not None:
+                selected = selection_model.selectedRows()
+                if selected:
+                    index = selected[0]
+        return self._category_id_from_index(index)
 
     def _setup_ui(self) -> None:
         """Build the dialog layout."""
@@ -249,19 +270,27 @@ class CategoriesDialog(QDialog):
 
         buttons = QHBoxLayout()
         self.add_button = make_lucide_push_button("Add", "plus")
+        self.edit_button = make_lucide_push_button("Edit", "pencil")
         self.refresh_button = make_lucide_push_button("Refresh", "refresh-cw")
         self.copy_button = make_lucide_push_button("Copy as Text", COPY_BUTTON_ICON)
         self.close_button = make_lucide_push_button("Close", CANCEL_BUTTON_ICON)
         self.add_button.clicked.connect(self._on_add)
+        self.edit_button.clicked.connect(self._on_edit)
         self.refresh_button.clicked.connect(self._reload_table)
         self.copy_button.clicked.connect(self._on_copy_as_text)
         self.close_button.clicked.connect(self.accept)
+        self.edit_button.setEnabled(False)
         buttons.addWidget(self.add_button)
+        buttons.addWidget(self.edit_button)
         buttons.addWidget(self.refresh_button)
         buttons.addWidget(self.copy_button)
         buttons.addStretch(1)
         buttons.addWidget(self.close_button)
         layout.addLayout(buttons)
+
+    def _update_edit_button_enabled(self, *_args: object) -> None:
+        """Enable Edit only when a category row is selected."""
+        self.edit_button.setEnabled(self._selected_category_id() is not None)
 
     def _show_table_context_menu(self, position: QPoint) -> None:
         """Show the categories table context menu."""
