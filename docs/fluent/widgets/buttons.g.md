@@ -215,7 +215,7 @@ Create a copy button.
 Args:
 
 - `text_to_copy` (`str`): Clipboard payload (see [`set_text_to_copy`](#%EF%B8%8F-method-set_text_to_copy)).
-- `parent` (`QWidget | None`): Optional parent.
+- [`parent`](../../apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Optional parent.
 - `label` (`str`): Optional caption beside the icon.
 
 <details>
@@ -346,7 +346,7 @@ Create a drop-down button.
 Args:
 
 - `text` (`str`): Caption.
-- `parent` (`QWidget | None`): Optional parent.
+- [`parent`](../../apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Optional parent.
 - [`icon`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-icon) (`str`): Optional Lucide icon ID.
 - [`menu`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-menu) (`QMenu | None`): Menu shown on click.
 
@@ -470,7 +470,7 @@ Args:
 
 - `text` (`str`): Caption.
 - `url` (`str`): URL opened on click (empty: only `clicked` is emitted).
-- `parent` (`QWidget | None`): Optional parent.
+- [`parent`](../../apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Optional parent.
 
 <details>
 <summary>Code:</summary>
@@ -580,7 +580,7 @@ Create an icon button.
 Args:
 
 - [`icon`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-icon) (`str`): Lucide icon ID.
-- `parent` (`QWidget | None`): Optional parent.
+- [`parent`](../../apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Optional parent.
 - `tooltip` (`str`): Tooltip and accessible name.
 
 <details>
@@ -941,7 +941,7 @@ Create a split button.
 Args:
 
 - `text` (`str`): Caption on the main face.
-- `parent` (`QWidget | None`): Optional parent.
+- [`parent`](../../apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Optional parent.
 - [`icon`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-icon) (`str`): Optional Lucide icon ID.
 - [`menu`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-menu) (`QMenu | None`): Menu opened from the chevron side.
 
@@ -1250,7 +1250,7 @@ Create a toggle switch.
 
 Args:
 
-- `parent` (`QWidget | None`): Optional parent.
+- [`parent`](../../apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Optional parent.
 - `on_text` (`str`): Label while checked (empty hides it).
 - `off_text` (`str`): Label while unchecked.
 
@@ -1451,7 +1451,7 @@ Create a tool button.
 Args:
 
 - `text` (`str`): Caption beside the icon.
-- `parent` (`QWidget | None`): Optional parent.
+- [`parent`](../../apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Optional parent.
 - [`icon`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-icon) (`str`): Lucide icon ID.
 - [`menu`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-menu) (`QMenu | None`): Menu shown instantly on click.
 

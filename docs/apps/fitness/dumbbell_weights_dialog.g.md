@@ -181,7 +181,7 @@ Build the editor for [`drafts`](#%EF%B8%8F-method-drafts).
 
 Args:
 
-- `parent` (`QWidget | None`): Owner window.
+- [`parent`](../finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Owner window.
 - [`drafts`](#%EF%B8%8F-method-drafts) (`list[WeightDraft]`): Current template weights.
 - `used_names` (`set[str]`): Weight names that appear in any set.
 

@@ -43,7 +43,7 @@ Args:
 
 - `message` (`str`, optional): The text to be displayed in the notification.
   Defaults to `Process is running…`.
-- `parent` (`QWidget | None`, optional): The parent widget. Defaults to `None`.
+- [`parent`](apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`, optional): The parent widget. Defaults to `None`.
 
 <details>
 <summary>Code:</summary>
@@ -145,7 +145,7 @@ Args:
 
 - `message` (`str`, optional): The text to be displayed in the notification.
   Defaults to `Process is running…`.
-- `parent` (`QWidget | None`, optional): The parent widget. Defaults to `None`.
+- [`parent`](apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`, optional): The parent widget. Defaults to `None`.
 
 <details>
 <summary>Code:</summary>

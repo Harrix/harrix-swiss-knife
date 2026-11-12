@@ -58,7 +58,7 @@ Ask whether to resend a failed or cancelled AI request.
 
 Args:
 
-- `parent` (`QWidget | None`): Parent for modality.
+- [`parent`](../finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Parent for modality.
 - `title` (`str`): Dialog title.
 - `text` (`str`): Explanation (error message or cancel note).
 - [`critical`](#-function-critical) (`bool`): When `True`, use a critical icon. Defaults to `False`.

@@ -318,7 +318,7 @@ Build chrome fitted to the owner window.
 
 Args:
 
-- `parent` (`QWidget | None`): Widget whose top-level window is covered.
+- [`parent`](../../finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Widget whose top-level window is covered.
 - `item_count` (`int`): Number of browsable items. Defaults to `0`.
 - `current_index` (`int`): Initial item index. Defaults to `0`.
 

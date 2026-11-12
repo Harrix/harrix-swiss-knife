@@ -402,7 +402,7 @@ def merge_shortcut_help(*groups: list[ShortcutHelpEntry]) -> list[ShortcutHelpEn
 def show_keyboard_shortcuts_help(parent: QWidget | None, title: str, entries: list[ShortcutHelpEntry]) -> KeyboardShortcutsDialog
 ```
 
-Show or raise a non-modal shortcuts window for `parent`.
+Show or raise a non-modal shortcuts window for [`parent`](../finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent).
 
 <details>
 <summary>Code:</summary>

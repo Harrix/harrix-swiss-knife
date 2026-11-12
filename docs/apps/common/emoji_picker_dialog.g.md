@@ -112,7 +112,7 @@ Create a compact emoji chooser row.
 
 Args:
 
-- `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
+- [`parent`](../finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Parent widget. Defaults to `None`.
 - `current_emoji` (`str`): Initial emoji. Defaults to `""`.
 - `presets` (`Sequence[str] | None`): Grid emojis. Defaults to popular presets.
 - `allow_empty` (`bool`): Allow clearing the emoji. Defaults to `False`.
@@ -327,7 +327,7 @@ Initialize the emoji picker dialog.
 
 Args:
 
-- `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
+- [`parent`](../finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Parent widget. Defaults to `None`.
 - `current_emoji` (`str`): Preselected emoji. Defaults to `""`.
 - `presets` (`Sequence[str] | None`): Grid emojis. Defaults to popular presets.
 - `allow_empty` (`bool`): Show Clear and keep an empty selection.

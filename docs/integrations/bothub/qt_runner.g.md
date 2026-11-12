@@ -135,7 +135,7 @@ Validate config, show toast, start worker. Returns `True` if the request started
 
 Args:
 
-- `parent`: Parent widget for message boxes.
+- [`parent`](../../apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent): Parent widget for message boxes.
 - [`config`](../../actions/common/base.g.md#%EF%B8%8F-method-config-property): Application config dict.
 - `prompt_text`: Full prompt to send.
 - `on_success`: Called with assistant text when the request succeeds.

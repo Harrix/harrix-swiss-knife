@@ -65,7 +65,7 @@ Initialize CurrencyComboBoxDelegate.
 
 Args:
 
-- `parent` (`QObject | None`): Parent widget.
+- [`parent`](../transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QObject | None`): Parent widget.
 - `currencies` (`list[str] | None`): List of currency codes.
 
 <details>

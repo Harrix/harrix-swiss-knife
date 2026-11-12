@@ -79,7 +79,7 @@ Initialize the finance purchase input dialog.
 
 Args:
 
-- `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
+- [`parent`](transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Parent widget. Defaults to `None`.
 - `default_date` (`QDate | None`): Default date for purchases. Defaults to `None` (current date).
 - `initial_text` (`str | None`): Pre-filled purchase lines from AI. Defaults to `None`.
 - `focus_text_on_show` (`bool`): Ignored; kept for API compatibility.

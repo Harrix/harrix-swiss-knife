@@ -260,7 +260,7 @@ Create a wrapping header.
 Args:
 
 - `orientation` (`Qt.Orientation`): Header orientation.
-- `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
+- [`parent`](../finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Parent widget. Defaults to `None`.
 - `wrap_width` (`int | None`): Preferred wrap width for compact columns. Defaults to `None`.
 - `wrap_first_section` (`bool`): Also wrap the first section. Defaults to `False`.
 
@@ -609,7 +609,7 @@ def install_word_wrap_header(
 def install_word_wrap_headers(parent: QWidget, *, skip: set[QTableView] | frozenset[QTableView] | None = None, wrap_first_section: bool = True) -> None
 ```
 
-Install wrapping headers on every `QTableView` under `parent`.
+Install wrapping headers on every `QTableView` under [`parent`](../finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent).
 
 <details>
 <summary>Code:</summary>

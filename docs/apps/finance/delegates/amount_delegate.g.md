@@ -228,7 +228,7 @@ Initialize the amount delegate.
 
 Args:
 
-- `parent` (`QWidget | None`): Parent widget.
+- [`parent`](../transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Parent widget.
 - `db_manager` (`object | None`): Database manager for currency symbols.
 - `currency_column` (`int | None`): Column with a currency code for the symbol.
 - `use_default_currency` (`bool`): Use the project default currency symbol.

@@ -123,7 +123,7 @@ class DayBandVerticalHeader(QHeaderView):
 def __init__(self, parent: QTableView | None = None) -> None
 ```
 
-Create a vertical header for `parent`.
+Create a vertical header for [`parent`](../finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent).
 
 <details>
 <summary>Code:</summary>

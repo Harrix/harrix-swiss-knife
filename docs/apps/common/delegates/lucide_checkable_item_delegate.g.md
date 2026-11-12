@@ -58,7 +58,7 @@ class LucideCheckableItemDelegate(QStyledItemDelegate):
 def __init__(self, parent: QWidget | None = None) -> None
 ```
 
-Install on `parent` and give that view the Lucide toggle style.
+Install on [`parent`](../../finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) and give that view the Lucide toggle style.
 
 <details>
 <summary>Code:</summary>

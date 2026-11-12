@@ -80,7 +80,7 @@ Create a text box.
 
 Args:
 
-- `parent` (`QWidget | None`): Optional parent.
+- [`parent`](../../apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Optional parent.
 - `placeholder` (`str`): Placeholder text.
 - `clearable` (`bool`): Show the shared red Lucide clear button while
   non-empty. Defaults to `True`.

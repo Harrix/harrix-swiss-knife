@@ -9,7 +9,7 @@ ultimate `QStandardItemModel`.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, overload
 
 from PySide6.QtCore import QAbstractItemModel, QAbstractProxyModel, QModelIndex, QObject, QSize, Qt, Signal
 from PySide6.QtGui import QColor, QFont, QFontMetrics, QPainter, QPen
@@ -205,6 +205,22 @@ class TransactionDayHeaderProxy(QAbstractProxyModel):
             return QModelIndex()
         source_row = self._proxy_rows[proxy_index.row()]
         return source.index(source_row, proxy_index.column())
+
+    @overload
+    def parent(self, /) -> QObject | None: ...
+
+    @overload
+    def parent(self, child: QModelIndex | QPersistentModelIndex, /) -> QModelIndex: ...
+
+    def parent(
+        self,
+        child: QModelIndex | QPersistentModelIndex | None = None,
+        /,
+    ) -> QModelIndex | QObject | None:
+        """QObject parent, or an invalid model parent for this flat table."""
+        if child is None:
+            return QObject.parent(self)
+        return QModelIndex()
 
     def rebuild(self) -> None:
         """Rebuild header insertion from the current source row order."""

@@ -860,7 +860,7 @@ Create the shutter panel with desktop/adjust/close controls.
 
 Args:
 
-- `parent` (`QWidget | None`): Parent widget.
+- [`parent`](../apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Parent widget.
 - `capture_options` (`bool`): When `False` (screen recording), hide Adjust /
   Show Harrix app / Clipboard / OCR — only Desktop, Guides, and Cancel remain.
 

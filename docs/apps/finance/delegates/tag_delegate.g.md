@@ -159,7 +159,7 @@ Initialize the tag delegate.
 
 Args:
 
-- `parent` (`QObject | None`): Parent object, usually the transactions view.
+- [`parent`](../transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QObject | None`): Parent object, usually the transactions view.
 - `tags` (`list[str] | None`): Fallback names when `tags_provider` is omitted.
 - `tags_provider` (`Callable[[], list[str]] | None`): Called each time the
   editor opens so newly saved tags appear without rebuilding the delegate.

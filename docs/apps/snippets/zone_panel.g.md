@@ -899,7 +899,7 @@ Build the zone header and list.
 
 Args:
 
-- `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
+- [`parent`](../finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Parent widget. Defaults to `None`.
 - `zone` (`str`): Zone identifier.
 - `title` (`str`): Header label.
 

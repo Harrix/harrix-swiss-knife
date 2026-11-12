@@ -58,6 +58,8 @@ def test_day_header_proxy_inserts_headers_per_date(qapp: QApplication) -> None: 
     assert mapped.isValid()
     assert mapped.row() == 0
     assert not proxy.mapToSource(proxy.index(0, 0)).isValid()
+    # QAbstractProxyModel.parent is pure virtual; views call it via isValid/selection.
+    assert not proxy.parent(proxy.index(0, 0)).isValid()
 
 
 def test_day_header_spans_full_row(qapp: QApplication) -> None:  # noqa: ARG001
@@ -69,6 +71,8 @@ def test_day_header_spans_full_row(qapp: QApplication) -> None:  # noqa: ARG001
     view = QTableView()
     view.setModel(proxy)
     apply_transaction_day_header_spans(view)
+    # Force view paths that call parent() (selection / index validation).
+    view.selectRow(0)
     assert view.rowSpan(0, 0) == 1
     assert view.columnSpan(0, 0) == 8
     view.close()

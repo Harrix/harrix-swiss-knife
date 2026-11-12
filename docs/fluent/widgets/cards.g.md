@@ -386,7 +386,7 @@ Args:
 
 - `title` (`str`): Command title (one line, elided).
 - [`description`](#%EF%B8%8F-method-description) (`str`): Hint text (two lines, elided).
-- `parent` (`QWidget | None`): Optional parent.
+- [`parent`](../../apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Optional parent.
 - [`icon`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-icon) (`QIcon | str | None`): Ready icon, or a Lucide ID painted in the text color.
 - `overline` (`str`): Small caption above the title (for example the section name).
 - `user_data` (`object`): Arbitrary payload (for example a `QAction`).
@@ -683,7 +683,7 @@ Create an icon tile card.
 Args:
 
 - `title` (`str`): Label under the icon (up to three wrapped lines).
-- `parent` (`QWidget | None`): Optional parent.
+- [`parent`](../../apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Optional parent.
 - [`icon`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-icon) (`QIcon | str | None`): Ready icon, or a Lucide ID.
 - `user_data` (`object`): Arbitrary payload (for example an action class).
 
@@ -1565,7 +1565,7 @@ Args:
 
 - `title` (`str`): Primary label (one line, elided).
 - [`content`](#%EF%B8%8F-method-content) (`str`): Secondary description (one line, elided).
-- `parent` (`QWidget | None`): Optional parent.
+- [`parent`](../../apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Optional parent.
 - [`icon`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-icon) (`QIcon | str | None`): Ready icon, or a Lucide ID.
 - `url` (`str`): When set, clicking also opens this URL.
 - `trailing_icon` (`str`): Lucide ID on the right (`chevron-right` by default).
@@ -1871,7 +1871,7 @@ Create an editor setting card.
 Args:
 
 - `title` (`str`): Primary label.
-- `parent` (`QWidget | None`): Optional parent.
+- [`parent`](../../apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Optional parent.
 - [`description`](#%EF%B8%8F-method-description) (`str`): Secondary caption under the title.
 - [`icon`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-icon) (`str`): Optional Lucide ID on the left.
 

@@ -1051,7 +1051,7 @@ Initialize the settings editor.
 
 Args:
 
-- `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
+- [`parent`](../finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Parent widget. Defaults to `None`.
 - `app_id` (`str | None`): When set, show only keys for this app
   (`fitness`, `food`, `finance`, `habits`, `icons`). Defaults to all keys.
 - `window_title` (`str | None`): Dialog title. Defaults to `Settings`.

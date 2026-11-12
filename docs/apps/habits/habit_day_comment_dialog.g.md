@@ -117,7 +117,7 @@ Initialize the comment dialog.
 
 Args:
 
-- `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
+- [`parent`](../finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Parent widget. Defaults to `None`.
 - [`habit_name`](habit_edit_dialog.g.md#%EF%B8%8F-method-habit_name) (`str`): Habit title shown in the heading.
 - `date_str` (`str`): Day in `YYYY-MM-DD` format.
 - `text` (`str`): Current comment. Defaults to `""`.

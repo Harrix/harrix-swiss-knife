@@ -219,7 +219,7 @@ Initialize the delegate and track button hover on the food log view.
 
 Args:
 
-- `parent` (`QObject | None`): Parent object. A `QTableView` installs the hover filter.
+- [`parent`](../../finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QObject | None`): Parent object. A `QTableView` installs the hover filter.
 
 <details>
 <summary>Code:</summary>

@@ -109,7 +109,7 @@ Create a themed label.
 Args:
 
 - `text` (`str`): Label text.
-- `parent` (`QWidget | None`): Optional parent.
+- [`parent`](../../apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Optional parent.
 - `style` ([`TextStyle`](enums.g.md#%EF%B8%8F-class-textstyle)): Type ramp entry. Defaults to `BODY`.
 - `role` ([`TextRole`](enums.g.md#%EF%B8%8F-class-textrole)): Color role. Defaults to `PRIMARY`.
 - `word_wrap` (`bool`): Wrap long text. Defaults to `False`.

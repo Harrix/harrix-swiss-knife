@@ -188,7 +188,7 @@ Create an empty card grid.
 
 Args:
 
-- `parent` (`QWidget | None`): Optional parent.
+- [`parent`](../../apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Optional parent.
 - `spacing` (`int`): Gap between cards. Defaults to `CARD_GRID_SPACING`.
 - `base_width` (`int`): Preferred column width before squeeze (command cards
   or icon tiles).
@@ -1937,7 +1937,7 @@ Create a virtual list.
 
 Args:
 
-- `parent` (`QWidget | None`): Optional parent.
+- [`parent`](../../apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Optional parent.
 - `count` (`int`): Number of rows.
 - `provider` (`Callable[[int], str] | None`): Returns the text of a row.
 

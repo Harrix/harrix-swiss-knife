@@ -102,7 +102,7 @@ Initialize the report amount delegate.
 
 Args:
 
-- `parent` (`QWidget | None`): The parent widget. Defaults to `None`.
+- [`parent`](../transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): The parent widget. Defaults to `None`.
 - `is_bold` (`bool`): Whether to display text in bold. Defaults to `False`.
 
 <details>

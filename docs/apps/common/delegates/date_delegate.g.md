@@ -121,7 +121,7 @@ Initialize DateDelegate.
 
 Args:
 
-- `parent` (`QObject | None`): Parent object for the delegate.
+- [`parent`](../../finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QObject | None`): Parent object for the delegate.
 
 <details>
 <summary>Code:</summary>
@@ -143,7 +143,7 @@ Create a date editor for the date column.
 
 Args:
 
-- `parent` (`QWidget`): Parent widget.
+- [`parent`](../../finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget`): Parent widget.
 - `_option` (`QStyleOptionViewItem`): Style option.
 - `_index` (`QModelIndex | QPersistentModelIndex`): Model index.
 

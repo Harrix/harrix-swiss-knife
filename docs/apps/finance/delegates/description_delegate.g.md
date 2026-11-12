@@ -130,7 +130,7 @@ Initialize DescriptionDelegate.
 
 Args:
 
-- `parent` (`QObject | None`): Parent object for the delegate.
+- [`parent`](../transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QObject | None`): Parent object for the delegate.
 
 <details>
 <summary>Code:</summary>
@@ -152,7 +152,7 @@ Create a line edit editor for the description column.
 
 Args:
 
-- `parent` (`QWidget`): Parent widget.
+- [`parent`](../transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget`): Parent widget.
 - `_option` (`QStyleOptionViewItem`): Style option.
 - `_index` (`QModelIndex | QPersistentModelIndex`): Model index.
 

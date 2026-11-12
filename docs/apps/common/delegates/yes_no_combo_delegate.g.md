@@ -99,7 +99,7 @@ Initialize YesNoComboDelegate.
 
 Args:
 
-- `parent` (`QObject | None`): Parent object for the delegate.
+- [`parent`](../../finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QObject | None`): Parent object for the delegate.
 
 <details>
 <summary>Code:</summary>

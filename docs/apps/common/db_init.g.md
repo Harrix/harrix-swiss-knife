@@ -92,7 +92,7 @@ After a successful open (new or existing file), if the database folder has no
 
 Args:
 
-- `parent` (`QWidget`): Parent widget for dialogs.
+- [`parent`](../finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget`): Parent widget for dialogs.
 - `configured_path` (`Path`): Database path from application config.
 - `app_name` (`str`): Application name for path fallback resolution.
 - `recover_sql_path` (`Path`): Path to `recover.sql` schema file.

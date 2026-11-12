@@ -375,7 +375,7 @@ Create a divider.
 
 Args:
 
-- `parent` (`QWidget | None`): Optional parent.
+- [`parent`](../../apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Optional parent.
 - `orientation` (`Qt.Orientation`): Line direction.
 - `text` (`str`): Optional label in the line (horizontal only).
 - `alignment` (`Qt.AlignmentFlag`): Label position: left, center, or right.
@@ -545,7 +545,7 @@ Create a badge.
 
 Args:
 
-- `parent` (`QWidget | None`): Optional parent.
+- [`parent`](../../apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Optional parent.
 - `value` (`int | None`): Number to show (`None` = dot or icon).
 - [`icon`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-icon) (`str`): Lucide icon ID shown when `value` is `None`.
 - [`severity`](feedback.g.md#%EF%B8%8F-method-severity) ([`Severity`](enums.g.md#%EF%B8%8F-class-severity)): Badge color.
@@ -853,7 +853,7 @@ Create an avatar.
 
 Args:
 
-- `parent` (`QWidget | None`): Optional parent.
+- [`parent`](../../apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Optional parent.
 - `name` (`str`): Display name used for initials.
 - `pixmap` (`QPixmap | None`): Picture (cropped to a circle).
 - [`size`](../../apps/icons/lightbox_cache.g.md#%EF%B8%8F-method-size-property) (`int`): Diameter in pixels. Defaults to `48`.

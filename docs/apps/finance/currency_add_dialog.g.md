@@ -123,7 +123,7 @@ Initialize the add-currency dialog.
 
 Args:
 
-- `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
+- [`parent`](transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Parent widget. Defaults to `None`.
 
 <details>
 <summary>Code:</summary>

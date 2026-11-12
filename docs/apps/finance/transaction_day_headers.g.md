@@ -22,6 +22,9 @@ lang: en
   - [⚙️ Method `index`](#%EF%B8%8F-method-index)
   - [⚙️ Method `mapFromSource`](#%EF%B8%8F-method-mapfromsource)
   - [⚙️ Method `mapToSource`](#%EF%B8%8F-method-maptosource)
+  - [⚙️ Method `parent (overload)`](#%EF%B8%8F-method-parent-overload)
+  - [⚙️ Method `parent (overload 2)`](#%EF%B8%8F-method-parent-overload-2)
+  - [⚙️ Method `parent`](#%EF%B8%8F-method-parent)
   - [⚙️ Method `rebuild`](#%EF%B8%8F-method-rebuild)
   - [⚙️ Method `rowCount`](#%EF%B8%8F-method-rowcount)
   - [⚙️ Method `setSourceModel`](#%EF%B8%8F-method-setsourcemodel)
@@ -295,6 +298,22 @@ class TransactionDayHeaderProxy(QAbstractProxyModel):
             return QModelIndex()
         source_row = self._proxy_rows[proxy_index.row()]
         return source.index(source_row, proxy_index.column())
+
+    @overload
+    def parent(self, /) -> QObject | None: ...
+
+    @overload
+    def parent(self, child: QModelIndex | QPersistentModelIndex, /) -> QModelIndex: ...
+
+    def parent(
+        self,
+        child: QModelIndex | QPersistentModelIndex | None = None,
+        /,
+    ) -> QModelIndex | QObject | None:
+        """QObject parent, or an invalid model parent for this flat table."""
+        if child is None:
+            return QObject.parent(self)
+        return QModelIndex()
 
     def rebuild(self) -> None:
         """Rebuild header insertion from the current source row order."""
@@ -617,6 +636,64 @@ def mapToSource(self, proxy_index: QModelIndex | QPersistentModelIndex) -> QMode
             return QModelIndex()
         source_row = self._proxy_rows[proxy_index.row()]
         return source.index(source_row, proxy_index.column())
+```
+
+</details>
+
+### ⚙️ Method `parent (overload)`
+
+```python
+def parent(self, /) -> QObject | None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def parent(self, /) -> QObject | None: ...
+```
+
+</details>
+
+### ⚙️ Method `parent (overload 2)`
+
+```python
+def parent(self, child: QModelIndex | QPersistentModelIndex, /) -> QModelIndex
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def parent(self, child: QModelIndex | QPersistentModelIndex, /) -> QModelIndex: ...
+```
+
+</details>
+
+### ⚙️ Method `parent`
+
+```python
+def parent(self, child: QModelIndex | QPersistentModelIndex | None = None, /) -> QModelIndex | QObject | None
+```
+
+QObject parent, or an invalid model parent for this flat table.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def parent(
+        self,
+        child: QModelIndex | QPersistentModelIndex | None = None,
+        /,
+    ) -> QModelIndex | QObject | None:
+        if child is None:
+            return QObject.parent(self)
+        return QModelIndex()
 ```
 
 </details>

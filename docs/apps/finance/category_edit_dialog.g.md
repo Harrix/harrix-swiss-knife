@@ -204,7 +204,7 @@ Initialize the dialog.
 
 Args:
 
-- `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
+- [`parent`](transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Parent widget. Defaults to `None`.
 - `category_data` (`dict | None`): Category fields including optional `icon_lucide`.
 - `app_config` (`dict[str, Any] | None`): App config for BotHub translation.
 - `bothub_state` (`BothubRequestState | None`): Shared in-flight BotHub request state.

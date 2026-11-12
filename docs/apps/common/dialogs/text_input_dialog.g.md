@@ -180,7 +180,7 @@ Initialize the text input dialog.
 
 Args:
 
-- `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
+- [`parent`](../../finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Parent widget. Defaults to `None`.
 - `title` (`str`): Window title. Defaults to `Add Text`.
 - [`description`](../../../fluent/widgets/cards.g.md#%EF%B8%8F-method-description) (`str | None`): Optional description label shown above the text area.
 - `placeholder` (`str | None`): Optional placeholder text for the text area.

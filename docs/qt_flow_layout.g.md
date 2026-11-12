@@ -251,7 +251,7 @@ Create an empty flow layout.
 
 Args:
 
-- `parent` (`QWidget | None`): Optional parent widget.
+- [`parent`](apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Optional parent widget.
 - `margin` (`int`): Uniform contents margin; `-1` keeps the style default.
 - `h_spacing` (`int`): Horizontal gap; `-1` uses style spacing.
 - `v_spacing` (`int`): Vertical gap; `-1` uses style spacing.

@@ -274,7 +274,7 @@ Initialize the dialog.
 
 Args:
 
-- `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
+- [`parent`](transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Parent widget. Defaults to `None`.
 - `account_data` (`dict | None`): Dictionary with account data (ID, name, balance, currency_code, is_liquid,
   is_cash). Defaults to `None`.
 - `currencies` (`list | None`): List of currency codes. Defaults to `None`.

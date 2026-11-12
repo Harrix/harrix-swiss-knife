@@ -358,7 +358,7 @@ Args:
 - `details_loader` (`DetailsLoader`): Loads types, unit, and default value.
 - `confirm_handler` (`ConfirmHandler`): Persists a completed set.
 - `current_index` (`int`): Initial exercise index. Defaults to `0`.
-- `parent` (`QWidget | None`): Widget whose top-level window is covered.
+- [`parent`](../finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Widget whose top-level window is covered.
 - `countdown_seconds` (`int`): Ready countdown before the stopwatch.
 - `workout_items` (`Sequence[WorkoutItemRow] | None`): Workout rows when
   opened from a saved workout. `None` is browse mode.

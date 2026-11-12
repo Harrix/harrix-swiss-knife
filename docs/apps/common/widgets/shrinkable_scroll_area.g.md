@@ -81,7 +81,7 @@ Create a frameless expanding scroll area.
 
 Args:
 
-- `parent` (`QWidget | None`): Owner widget.
+- [`parent`](../../finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Owner widget.
 - `transparent` (`bool`): Let the Fluent window wallpaper show through
   instead of painting a white page. Defaults to `False`.
 

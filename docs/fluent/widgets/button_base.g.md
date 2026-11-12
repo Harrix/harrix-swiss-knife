@@ -104,7 +104,7 @@ Create a standard button.
 Args:
 
 - `text` (`str`): Caption.
-- `parent` (`QWidget | None`): Optional parent.
+- [`parent`](../../apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Optional parent.
 - [`icon`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-icon) (`str`): Optional Lucide icon ID.
 
 <details>

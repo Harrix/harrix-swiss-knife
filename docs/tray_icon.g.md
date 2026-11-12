@@ -113,7 +113,7 @@ Args:
   The icon to display in the system tray.
 - [`menu`](qt_split_menu_button.g.md#%EF%B8%8F-method-menu) (`QMenu`):
   The context menu to associate with the tray icon.
-- `parent` (`QWidget | None`):
+- [`parent`](apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`):
   The parent widget. Defaults to `None`.
 
 Sets up the system tray icon, context menu, and connects the activation signal

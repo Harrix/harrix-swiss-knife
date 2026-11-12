@@ -133,7 +133,7 @@ Initialize CategoryComboBoxDelegate.
 
 Args:
 
-- `parent` (`QObject | None`): Parent object.
+- [`parent`](../transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QObject | None`): Parent object.
 - `categories`: Display labels with optional `(label, emoji, lucide)`.
 
 <details>

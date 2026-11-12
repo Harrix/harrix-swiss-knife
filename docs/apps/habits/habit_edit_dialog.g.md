@@ -173,7 +173,7 @@ Initialize the habit edit dialog.
 
 Args:
 
-- `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
+- [`parent`](../finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Parent widget. Defaults to `None`.
 - `title` (`str`): Window title. Defaults to `"Add Habit"`.
 - `name` (`str`): Initial habit name. Defaults to `""`.
 - `is_bool` (`bool`): Initial boolean habit flag. Defaults to `True`.

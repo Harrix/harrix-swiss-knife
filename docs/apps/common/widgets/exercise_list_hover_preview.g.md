@@ -283,7 +283,7 @@ Args:
 - `list_view` (`QAbstractItemView`): Exercise list or other view with icons.
 - `get_avif_manager` (`Callable`): Returns the current [`AvifManager`](../avif_manager.g.md#%EF%B8%8F-class-avifmanager) (may be `None`).
 - `preview_size` (`QSize | None`): Popup size. Defaults to `_PREVIEW_EDGE` square.
-- `parent` (`QObject | None`): Qt parent. Prefer a longer-lived owner than `list_view`.
+- [`parent`](../../finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QObject | None`): Qt parent. Prefer a longer-lived owner than `list_view`.
 - `exercise_at` (`Callable | None`): Viewport-position resolver. Defaults to list-icon hit-test.
 
 <details>

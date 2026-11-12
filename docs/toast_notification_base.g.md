@@ -379,7 +379,7 @@ Initialize the toast notification with the specified message and parent widget.
 Args:
 
 - `message` (`str`): The message to display in the toast notification.
-- `parent` (`QWidget | None`): The parent widget of the notification. Defaults to `None`.
+- [`parent`](apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): The parent widget of the notification. Defaults to `None`.
 
 <details>
 <summary>Code:</summary>

@@ -1454,7 +1454,7 @@ Initialize the template dialog.
 
 Args:
 
-- `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
+- [`parent`](apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Parent widget. Defaults to `None`.
 - `fields` (`list[TemplateField]`): List of template fields to display.
 - `title` (`str`): Dialog title. Defaults to `Fill Template`.
 - `links` (`list[tuple[str, str]] | None`): Optional list of `(label, url)` helper links.
