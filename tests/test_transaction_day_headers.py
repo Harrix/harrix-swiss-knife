@@ -10,6 +10,7 @@ from PySide6.QtWidgets import QApplication, QTableView
 from harrix_swiss_knife.apps.finance.transaction_day_headers import (
     DAY_HEADER_INCOME_ROLE,
     IS_DAY_HEADER_ROLE,
+    IS_MONTH_HEADER_ROLE,
     TransactionDayHeaderProxy,
     _day_header_total_right,
     _format_header_income,
@@ -43,6 +44,13 @@ def _row(date: str, total: str = "") -> list[QStandardItem]:
     return items
 
 
+def _proxy_with_current_month(source: QStandardItemModel, month_key: str) -> TransactionDayHeaderProxy:
+    proxy = TransactionDayHeaderProxy()
+    proxy.current_month_key_override = month_key
+    proxy.setSourceModel(source)
+    return proxy
+
+
 def test_day_header_proxy_inserts_headers_per_date(qapp: QApplication) -> None:  # noqa: ARG001
     source = QStandardItemModel()
     source.setColumnCount(8)
@@ -50,18 +58,19 @@ def test_day_header_proxy_inserts_headers_per_date(qapp: QApplication) -> None: 
     source.appendRow(_row("2026-08-25", ""))
     source.appendRow(_row("2026-08-24", "-10.00"))
 
-    proxy = TransactionDayHeaderProxy()
-    proxy.setSourceModel(source)
+    proxy = _proxy_with_current_month(source, "2026-08")
 
-    # 2 headers + 3 data rows
-    assert proxy.rowCount() == 5
-    assert bool(proxy.index(0, 0).data(IS_DAY_HEADER_ROLE))
-    assert proxy.index(0, 0).data(Qt.ItemDataRole.DisplayRole) == "2026-08-25"
-    assert not bool(proxy.index(1, 0).data(IS_DAY_HEADER_ROLE))
-    assert bool(proxy.index(3, 0).data(IS_DAY_HEADER_ROLE))
-    assert proxy.index(3, 0).data(Qt.ItemDataRole.DisplayRole) == "2026-08-24"
+    # current-month banner + 2 day headers + 3 data rows
+    assert proxy.rowCount() == 6
+    assert bool(proxy.index(0, 0).data(IS_MONTH_HEADER_ROLE))
+    assert "Current month" in str(proxy.index(0, 0).data(Qt.ItemDataRole.DisplayRole))
+    assert bool(proxy.index(1, 0).data(IS_DAY_HEADER_ROLE))
+    assert proxy.index(1, 0).data(Qt.ItemDataRole.DisplayRole) == "2026-08-25"
+    assert not bool(proxy.index(2, 0).data(IS_DAY_HEADER_ROLE))
+    assert bool(proxy.index(4, 0).data(IS_DAY_HEADER_ROLE))
+    assert proxy.index(4, 0).data(Qt.ItemDataRole.DisplayRole) == "2026-08-24"
 
-    mapped = proxy.mapToSource(proxy.index(1, TRANSACTION_COL_DATE))
+    mapped = proxy.mapToSource(proxy.index(2, TRANSACTION_COL_DATE))
     assert mapped.isValid()
     assert mapped.row() == 0
     assert not proxy.mapToSource(proxy.index(0, 0)).isValid()
@@ -69,12 +78,40 @@ def test_day_header_proxy_inserts_headers_per_date(qapp: QApplication) -> None: 
     assert not proxy.parent(proxy.index(0, 0)).isValid()
 
 
+def test_month_header_above_previous_month_block(qapp: QApplication) -> None:  # noqa: ARG001
+    source = QStandardItemModel()
+    source.setColumnCount(8)
+    source.appendRow(_row("2026-11-02", "-20.00"))
+    source.appendRow(_row("2026-10-31", "-50.00"))
+    source.appendRow(_row("2026-10-31", ""))
+    expense = _row("2026-10-01", "-10.00")
+    expense[TRANSACTION_COL_AMOUNT] = QStandardItem("-10.00")
+    expense[TRANSACTION_COL_CATEGORY] = QStandardItem("Food")
+    income = _row("2026-10-01", "")
+    income[TRANSACTION_COL_AMOUNT] = QStandardItem("100.00")
+    income[TRANSACTION_COL_CATEGORY] = QStandardItem("Salary (Income)")
+    source.appendRow(expense)
+    source.appendRow(income)
+
+    proxy = _proxy_with_current_month(source, "2026-11")
+    # current Nov + Nov day + Oct month + Oct-31 day + Oct-01 day + 5 data
+    assert proxy.rowCount() == 10
+    assert bool(proxy.index(0, 0).data(IS_MONTH_HEADER_ROLE))
+    assert "Current month" in str(proxy.index(0, 0).data(Qt.ItemDataRole.DisplayRole))
+    assert bool(proxy.index(1, 0).data(IS_DAY_HEADER_ROLE))
+    assert proxy.index(1, 0).data(Qt.ItemDataRole.DisplayRole) == "2026-11-02"
+    assert bool(proxy.index(3, 0).data(IS_MONTH_HEADER_ROLE))
+    assert proxy.index(3, 0).data(Qt.ItemDataRole.DisplayRole) == "October 2026"
+    assert proxy.index(3, 0).data(DAY_HEADER_INCOME_ROLE) == "100.00"
+    assert bool(proxy.index(4, 0).data(IS_DAY_HEADER_ROLE))
+    assert proxy.index(4, 0).data(Qt.ItemDataRole.DisplayRole) == "2026-10-31"
+
+
 def test_day_header_spans_full_row(qapp: QApplication) -> None:  # noqa: ARG001
     source = QStandardItemModel()
     source.setColumnCount(8)
     source.appendRow(_row("2026-08-25", "-80.00"))
-    proxy = TransactionDayHeaderProxy()
-    proxy.setSourceModel(source)
+    proxy = _proxy_with_current_month(source, "2026-08")
     view = QTableView()
     view.setModel(proxy)
     apply_transaction_day_header_spans(view)
@@ -118,9 +155,11 @@ def test_day_header_includes_income_total(qapp: QApplication) -> None:  # noqa: 
     source.appendRow(expense)
     source.appendRow(income)
 
-    proxy = TransactionDayHeaderProxy()
-    proxy.setSourceModel(source)
-    assert bool(proxy.index(0, 0).data(IS_DAY_HEADER_ROLE))
+    proxy = _proxy_with_current_month(source, "2026-08")
+    day_row = 1
+    assert bool(proxy.index(day_row, 0).data(IS_DAY_HEADER_ROLE))
+    assert proxy.index(day_row, 0).data(DAY_HEADER_INCOME_ROLE) == "1500.00"
+    assert bool(proxy.index(0, 0).data(IS_MONTH_HEADER_ROLE))
     assert proxy.index(0, 0).data(DAY_HEADER_INCOME_ROLE) == "1500.00"
 
 
@@ -135,9 +174,9 @@ def test_cosmetic_data_changed_does_not_rebuild_headers(qapp: QApplication) -> N
     source.setColumnCount(8)
     source.appendRow(_row("2026-08-25", "-80.00"))
     source.appendRow(_row("2026-08-24", "-10.00"))
-    proxy = TransactionDayHeaderProxy()
-    proxy.setSourceModel(source)
-    assert proxy.rowCount() == 4
+    proxy = _proxy_with_current_month(source, "2026-08")
+    # current-month + 2 day headers + 2 data rows
+    assert proxy.rowCount() == 5
     resets = {"count": 0}
     proxy.modelAboutToBeReset.connect(lambda: resets.__setitem__("count", resets["count"] + 1))
     # Simulate theme day-band refresh across Date/Total columns.
@@ -150,4 +189,4 @@ def test_cosmetic_data_changed_does_not_rebuild_headers(qapp: QApplication) -> N
     )
     qapp.processEvents()
     assert resets["count"] == 0
-    assert proxy.rowCount() == 4
+    assert proxy.rowCount() == 5

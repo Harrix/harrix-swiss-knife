@@ -202,6 +202,7 @@ from harrix_swiss_knife.apps.finance.tags import parse_tag_text
 from harrix_swiss_knife.apps.finance.text_input_dialog import TextInputDialog
 from harrix_swiss_knife.apps.finance.transaction_day_headers import (
     IS_DAY_HEADER_ROLE,
+    IS_MONTH_HEADER_ROLE,
     apply_transaction_day_header_spans,
     install_transaction_day_headers,
     map_transactions_index_to_source,
@@ -6098,7 +6099,8 @@ class MainWindow(
 
         # Get the clicked index
         index: QModelIndex = self.tableView_transactions.indexAt(position)
-        if index.isValid() and not bool(index.data(IS_DAY_HEADER_ROLE)):
+        is_banner_row = bool(index.data(IS_DAY_HEADER_ROLE)) or bool(index.data(IS_MONTH_HEADER_ROLE))
+        if index.isValid() and not is_banner_row:
             # Get the category from the Category column
             category_index: QModelIndex = self.tableView_transactions.model().index(index.row(), 3)
             if category_index.isValid():
@@ -6139,7 +6141,7 @@ class MainWindow(
                     )
 
         add_to_standard_items_action = None
-        if index.isValid() and not bool(index.data(IS_DAY_HEADER_ROLE)):
+        if index.isValid() and not is_banner_row:
             add_separator(context_menu)
             add_to_standard_items_action = context_menu.addAction("📋 Add to Standard Items")
 
@@ -6147,7 +6149,7 @@ class MainWindow(
         selected_transaction_ids = self._get_selected_row_ids("transactions")
         change_date_action = None
         ids_for_date_change: list[int] = list(selected_transaction_ids)
-        if not ids_for_date_change and index.isValid() and not bool(index.data(IS_DAY_HEADER_ROLE)):
+        if not ids_for_date_change and index.isValid() and not is_banner_row:
             source_index, source_model = map_transactions_index_to_source(index)
             if isinstance(source_model, QStandardItemModel) and source_index.isValid():
                 header_item = source_model.verticalHeaderItem(source_index.row())
