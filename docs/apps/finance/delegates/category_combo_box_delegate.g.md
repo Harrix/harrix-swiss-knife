@@ -37,19 +37,19 @@ class CategoryComboBoxDelegate(ComboBoxDelegate):
     def __init__(
         self,
         parent: QObject | None = None,
-        categories: list[tuple[str, str]] | list[str] | None = None,
+        categories: list[tuple[str, str, str]] | list[tuple[str, str]] | list[str] | None = None,
     ) -> None:
         """Initialize CategoryComboBoxDelegate.
 
         Args:
 
         - `parent` (`QObject | None`): Parent object.
-        - `categories` (`list[tuple[str, str]] | list[str] | None`): Display
-          labels, optionally with DB emoji as `(label, emoji)`.
+        - `categories`: Display labels with optional `(label, emoji, lucide)`.
 
         """
         super().__init__(parent, items=[])
         self._category_emojis: list[str] = []
+        self._category_lucides: list[str] = []
         self.categories = categories
 
     @property
@@ -58,20 +58,24 @@ class CategoryComboBoxDelegate(ComboBoxDelegate):
         return self.items
 
     @categories.setter
-    def categories(self, value: list[tuple[str, str]] | list[str] | None) -> None:
+    def categories(self, value: list[tuple[str, str, str]] | list[tuple[str, str]] | list[str] | None) -> None:
         labels: list[str] = []
         emojis: list[str] = []
+        lucides: list[str] = []
         for entry in value or []:
             if isinstance(entry, tuple):
-                label = str(entry[0])
-                emoji = str(entry[1] or "") if len(entry) > 1 else ""
-                labels.append(label)
-                emojis.append(emoji)
+                labels.append(str(entry[0]))
+                emojis.append(str(entry[1] or "") if len(entry) > _CATEGORY_ENTRY_EMOJI_INDEX else "")
+                lucides.append(
+                    str(entry[_CATEGORY_ENTRY_LUCIDE_INDEX] or "") if len(entry) > _CATEGORY_ENTRY_LUCIDE_INDEX else ""
+                )
             else:
                 labels.append(str(entry))
                 emojis.append("")
+                lucides.append("")
         self.items = labels
         self._category_emojis = emojis
+        self._category_lucides = lucides
 
     def createEditor(  # noqa: N802
         self,
@@ -85,8 +89,10 @@ class CategoryComboBoxDelegate(ComboBoxDelegate):
         apply_white_editor_background(combo, "QComboBox")
         for index, label in enumerate(self.items):
             emoji = self._category_emojis[index] if index < len(self._category_emojis) else ""
-            if emoji:
-                combo.addItem(category_lucide_icon(emoji), label)
+            lucide = self._category_lucides[index] if index < len(self._category_lucides) else ""
+            icon = category_lucide_icon(emoji, lucide_name=lucide)
+            if not icon.isNull():
+                combo.addItem(icon, label)
             else:
                 combo.addItem(label)
         return combo
@@ -102,13 +108,16 @@ class CategoryComboBoxDelegate(ComboBoxDelegate):
         combo = cast("QComboBox", editor)
         selected = combo.currentText().strip() if self.strip_values else combo.currentText()
         emoji = ""
+        lucide = ""
         try:
             item_index = self.items.index(selected)
         except ValueError:
             item_index = -1
         if 0 <= item_index < len(self._category_emojis):
             emoji = self._category_emojis[item_index]
-        icon = category_lucide_icon(emoji) if emoji else QIcon()
+        if 0 <= item_index < len(self._category_lucides):
+            lucide = self._category_lucides[item_index]
+        icon = category_lucide_icon(emoji, lucide_name=lucide) if (emoji or lucide) else QIcon()
         model.setData(index, icon, Qt.ItemDataRole.DecorationRole)
 ```
 
@@ -117,7 +126,7 @@ class CategoryComboBoxDelegate(ComboBoxDelegate):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QObject | None = None, categories: list[tuple[str, str]] | list[str] | None = None) -> None
+def __init__(self, parent: QObject | None = None, categories: list[tuple[str, str, str]] | list[tuple[str, str]] | list[str] | None = None) -> None
 ```
 
 Initialize CategoryComboBoxDelegate.
@@ -125,8 +134,7 @@ Initialize CategoryComboBoxDelegate.
 Args:
 
 - `parent` (`QObject | None`): Parent object.
-- `categories` (`list[tuple[str, str]] | list[str] | None`): Display
-  labels, optionally with DB emoji as `(label, emoji)`.
+- `categories`: Display labels with optional `(label, emoji, lucide)`.
 
 <details>
 <summary>Code:</summary>
@@ -135,10 +143,11 @@ Args:
 def __init__(
         self,
         parent: QObject | None = None,
-        categories: list[tuple[str, str]] | list[str] | None = None,
+        categories: list[tuple[str, str, str]] | list[tuple[str, str]] | list[str] | None = None,
     ) -> None:
         super().__init__(parent, items=[])
         self._category_emojis: list[str] = []
+        self._category_lucides: list[str] = []
         self.categories = categories
 ```
 
@@ -165,7 +174,7 @@ def categories(self) -> list[str]:
 ### ⚙️ Method `categories (setter)`
 
 ```python
-def categories(self, value: list[tuple[str, str]] | list[str] | None) -> None
+def categories(self, value: list[tuple[str, str, str]] | list[tuple[str, str]] | list[str] | None) -> None
 ```
 
 _No docstring provided._
@@ -174,20 +183,24 @@ _No docstring provided._
 <summary>Code:</summary>
 
 ```python
-def categories(self, value: list[tuple[str, str]] | list[str] | None) -> None:
+def categories(self, value: list[tuple[str, str, str]] | list[tuple[str, str]] | list[str] | None) -> None:
         labels: list[str] = []
         emojis: list[str] = []
+        lucides: list[str] = []
         for entry in value or []:
             if isinstance(entry, tuple):
-                label = str(entry[0])
-                emoji = str(entry[1] or "") if len(entry) > 1 else ""
-                labels.append(label)
-                emojis.append(emoji)
+                labels.append(str(entry[0]))
+                emojis.append(str(entry[1] or "") if len(entry) > _CATEGORY_ENTRY_EMOJI_INDEX else "")
+                lucides.append(
+                    str(entry[_CATEGORY_ENTRY_LUCIDE_INDEX] or "") if len(entry) > _CATEGORY_ENTRY_LUCIDE_INDEX else ""
+                )
             else:
                 labels.append(str(entry))
                 emojis.append("")
+                lucides.append("")
         self.items = labels
         self._category_emojis = emojis
+        self._category_lucides = lucides
 ```
 
 </details>
@@ -215,8 +228,10 @@ def createEditor(  # noqa: N802
         apply_white_editor_background(combo, "QComboBox")
         for index, label in enumerate(self.items):
             emoji = self._category_emojis[index] if index < len(self._category_emojis) else ""
-            if emoji:
-                combo.addItem(category_lucide_icon(emoji), label)
+            lucide = self._category_lucides[index] if index < len(self._category_lucides) else ""
+            icon = category_lucide_icon(emoji, lucide_name=lucide)
+            if not icon.isNull():
+                combo.addItem(icon, label)
             else:
                 combo.addItem(label)
         return combo
@@ -246,13 +261,16 @@ def setModelData(  # noqa: N802
         combo = cast("QComboBox", editor)
         selected = combo.currentText().strip() if self.strip_values else combo.currentText()
         emoji = ""
+        lucide = ""
         try:
             item_index = self.items.index(selected)
         except ValueError:
             item_index = -1
         if 0 <= item_index < len(self._category_emojis):
             emoji = self._category_emojis[item_index]
-        icon = category_lucide_icon(emoji) if emoji else QIcon()
+        if 0 <= item_index < len(self._category_lucides):
+            lucide = self._category_lucides[item_index]
+        icon = category_lucide_icon(emoji, lucide_name=lucide) if (emoji or lucide) else QIcon()
         model.setData(index, icon, Qt.ItemDataRole.DecorationRole)
 ```
 

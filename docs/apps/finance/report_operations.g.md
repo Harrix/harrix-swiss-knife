@@ -187,7 +187,7 @@ class ReportOperations:
         self,
         headers: list[str],
         rows: list[tuple[str, float, float, dict[int, float]]],
-        expense_categories: list[tuple[int, str, str]],
+        expense_categories: list[tuple[int, str, str, str]],
     ) -> None:
         """Bind monthly summary report data to the reports table."""
         if not expense_categories:
@@ -198,6 +198,7 @@ class ReportOperations:
 
         model = QStandardItemModel()
         model.setHorizontalHeaderLabels(headers)
+        self._set_monthly_summary_header_icons(model, expense_categories)
 
         num_categories = len(expense_categories)
         category_colors: list[QColor] = []
@@ -226,7 +227,7 @@ class ReportOperations:
             combined_item.setData(combined_total, Qt.ItemDataRole.UserRole)
             row_items.append(combined_item)
 
-            for idx, (category_id, _name, _icon) in enumerate(expense_categories):
+            for idx, (category_id, _name, _emoji, _lucide) in enumerate(expense_categories):
                 amount = by_category.get(category_id, 0.0)
                 item = QStandardItem(f"{amount:.2f}")
                 set_readable_cell_fill(item, category_colors[idx], band_index=idx % 2)
@@ -314,6 +315,22 @@ class ReportOperations:
             if isinstance(text, str) and text.strip():
                 return text
         return REPORT_TYPES[0][1]
+
+    @staticmethod
+    def _set_monthly_summary_header_icons(
+        model: QStandardItemModel,
+        expense_categories: list[tuple[int, str, str, str]],
+    ) -> None:
+        """Attach Lucide category icons to Monthly Summary column headers."""
+        combined = model.horizontalHeaderItem(2)
+        if combined is not None:
+            combined.setIcon(category_lucide_icon("🍔", lucide_name="utensils"))
+
+        for col, (_cid, _name, emoji, lucide) in enumerate(expense_categories, start=3):
+            header_item = model.horizontalHeaderItem(col)
+            if header_item is None:
+                continue
+            header_item.setIcon(category_lucide_icon(emoji, lucide_name=lucide))
 
     def _set_reports_model_and_stretch(self, model: QStandardItemModel) -> None:
         """Set model on reports table and stretch columns."""

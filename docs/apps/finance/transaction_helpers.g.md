@@ -2028,6 +2028,9 @@ def transform_transaction_data(
         tag: str = row[6]
         category_type: int = row[7]
         icon: str = row[8]
+        icon_lucide: str = (
+            str(row[TRANSACTION_ICON_LUCIDE_INDEX] or "") if len(row) > TRANSACTION_ICON_LUCIDE_INDEX else ""
+        )
         description_en: str = (
             str(row[TRANSACTION_DESCRIPTION_EN_INDEX] or "") if len(row) > TRANSACTION_DESCRIPTION_EN_INDEX else ""
         )
@@ -2059,7 +2062,7 @@ def transform_transaction_data(
 
         amount_display: str = f"-{amount:.2f}" if category_type == 0 else f"{amount:.2f}"
 
-        # Trailing: transaction id, DB category emoji (UI → Lucide), day-band color.
+        # Trailing: id, DB emoji, optional Lucide override, day-band color.
         transformed_row: list[Any] = [
             description,
             description_en,
@@ -2071,6 +2074,7 @@ def transform_transaction_data(
             total_display,
             transaction_id,
             icon or "",
+            icon_lucide,
             color,
         ]
         transformed_data.append(transformed_row)

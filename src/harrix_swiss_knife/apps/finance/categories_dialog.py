@@ -31,6 +31,7 @@ from harrix_swiss_knife.apps.common.word_wrap_header import install_word_wrap_he
 from harrix_swiss_knife.apps.finance.categories_table import create_categories_table_proxy_model
 from harrix_swiss_knife.apps.finance.category_add_dialog import CategoryAddDialog
 from harrix_swiss_knife.apps.finance.category_edit_dialog import CategoryEditDialog
+from harrix_swiss_knife.apps.finance.database_manager import CATEGORY_ROW_ICON_LUCIDE_INDEX
 from harrix_swiss_knife.integrations.bothub import BothubRequestState
 from harrix_swiss_knife.qt_lucide_icon import (
     CANCEL_BUTTON_ICON,
@@ -179,7 +180,11 @@ class CategoriesDialog(QDialog):
             "type": int(category_data[2] or 0),
             "icon": category_data[3] or "",
             "name_local": category_data[4] or "",
-            "icon_lucide": (str(category_data[5] or "") if len(category_data) > 5 else ""),
+            "icon_lucide": (
+                str(category_data[CATEGORY_ROW_ICON_LUCIDE_INDEX] or "")
+                if len(category_data) > CATEGORY_ROW_ICON_LUCIDE_INDEX
+                else ""
+            ),
         }
         self._edit_dialog_open = True
         dialog = CategoryEditDialog(
@@ -228,7 +233,11 @@ class CategoriesDialog(QDialog):
                 str(row[3] or ""),
                 str(row[4] or "") if row[4] is not None else "",
             )
-            icon_lucide = str(row[5] or "") if len(row) > 5 and row[5] is not None else ""
+            icon_lucide = (
+                str(row[CATEGORY_ROW_ICON_LUCIDE_INDEX] or "")
+                if len(row) > CATEGORY_ROW_ICON_LUCIDE_INDEX and row[CATEGORY_ROW_ICON_LUCIDE_INDEX] is not None
+                else ""
+            )
             type_label = "Expense" if category_type == 0 else "Income"
             color = QColor(255, 200, 200) if category_type == 0 else QColor(200, 255, 200)
             rows.append((name, type_label, category_type, name, name_local, color, category_id, icon, icon_lucide))
@@ -288,10 +297,6 @@ class CategoriesDialog(QDialog):
         buttons.addWidget(self.close_button)
         layout.addLayout(buttons)
 
-    def _update_edit_button_enabled(self, *_args: object) -> None:
-        """Enable Edit only when a category row is selected."""
-        self.edit_button.setEnabled(self._selected_category_id() is not None)
-
     def _show_table_context_menu(self, position: QPoint) -> None:
         """Show the categories table context menu."""
         index = self.table.indexAt(position)
@@ -320,3 +325,7 @@ class CategoriesDialog(QDialog):
         if viewport is None:
             return
         context_menu.exec_(viewport.mapToGlobal(position))
+
+    def _update_edit_button_enabled(self, *_args: object) -> None:
+        """Enable Edit only when a category row is selected."""
+        self.edit_button.setEnabled(self._selected_category_id() is not None)

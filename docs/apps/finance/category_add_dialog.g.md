@@ -23,7 +23,7 @@ lang: en
 class CategoryAddDialog(QDialog)
 ```
 
-Modal dialog to enter category name, local name, type, and icon.
+Modal dialog to enter category name, local name, type, emoji, and Lucide.
 
 <details>
 <summary>Code:</summary>
@@ -42,11 +42,11 @@ class CategoryAddDialog(QDialog):
         super().__init__(parent)
         self._app_config = app_config or {}
         self._bothub_state = bothub_state or BothubRequestState()
-        self._result: tuple[str, int, str, str] | None = None
+        self._result: tuple[str, int, str, str, str] | None = None
 
         self.setWindowTitle("Add Category")
         qt_modality.set_owner_window_modal(self)
-        self.setMinimumWidth(400)
+        self.setMinimumWidth(440)
 
         layout = QVBoxLayout(self)
 
@@ -79,15 +79,28 @@ class CategoryAddDialog(QDialog):
         type_row.addWidget(self._type_combo, 1)
         form_layout.addLayout(type_row)
 
-        icon_row = QHBoxLayout()
-        icon_row.addWidget(QLabel("Icon:", form_group))
+        emoji_row = QHBoxLayout()
+        emoji_row.addWidget(QLabel("Emoji:", form_group))
         self._icon_row = EmojiChoiceRow(
             form_group,
             presets=FINANCE_EMOJI_PRESETS,
             allow_empty=True,
         )
-        icon_row.addWidget(self._icon_row, 1)
-        form_layout.addLayout(icon_row)
+        emoji_row.addWidget(self._icon_row, 1)
+        form_layout.addLayout(emoji_row)
+
+        lucide_row = QHBoxLayout()
+        lucide_row.addWidget(QLabel("Lucide:", form_group))
+        self._lucide_row = LucideChoiceRow(
+            form_group,
+            presets=FINANCE_CATEGORY_LUCIDE_PRESETS,
+            allow_empty=True,
+            app_config=self._app_config,
+            bothub_state=self._bothub_state,
+            suggest_query_provider=self._name_edit.text,
+        )
+        lucide_row.addWidget(self._lucide_row, 1)
+        form_layout.addLayout(lucide_row)
 
         layout.addWidget(form_group)
 
@@ -99,8 +112,8 @@ class CategoryAddDialog(QDialog):
 
         self._name_edit.setFocus()
 
-    def get_result(self) -> tuple[str, int, str, str] | None:
-        """Return `(name, category_type, icon, name_local)` when accepted, else `None`."""
+    def get_result(self) -> tuple[str, int, str, str, str] | None:
+        """Return `(name, type, emoji, name_local, icon_lucide)` when accepted."""
         return self._result
 
     def _on_accept(self) -> None:
@@ -113,6 +126,7 @@ class CategoryAddDialog(QDialog):
             self._type_combo.currentIndex(),
             self._icon_row.emoji(),
             capitalize_first_letter(self._name_local_edit.text()),
+            self._lucide_row.lucide_name(),
         )
         self.accept()
 
@@ -151,11 +165,11 @@ def __init__(
         super().__init__(parent)
         self._app_config = app_config or {}
         self._bothub_state = bothub_state or BothubRequestState()
-        self._result: tuple[str, int, str, str] | None = None
+        self._result: tuple[str, int, str, str, str] | None = None
 
         self.setWindowTitle("Add Category")
         qt_modality.set_owner_window_modal(self)
-        self.setMinimumWidth(400)
+        self.setMinimumWidth(440)
 
         layout = QVBoxLayout(self)
 
@@ -188,15 +202,28 @@ def __init__(
         type_row.addWidget(self._type_combo, 1)
         form_layout.addLayout(type_row)
 
-        icon_row = QHBoxLayout()
-        icon_row.addWidget(QLabel("Icon:", form_group))
+        emoji_row = QHBoxLayout()
+        emoji_row.addWidget(QLabel("Emoji:", form_group))
         self._icon_row = EmojiChoiceRow(
             form_group,
             presets=FINANCE_EMOJI_PRESETS,
             allow_empty=True,
         )
-        icon_row.addWidget(self._icon_row, 1)
-        form_layout.addLayout(icon_row)
+        emoji_row.addWidget(self._icon_row, 1)
+        form_layout.addLayout(emoji_row)
+
+        lucide_row = QHBoxLayout()
+        lucide_row.addWidget(QLabel("Lucide:", form_group))
+        self._lucide_row = LucideChoiceRow(
+            form_group,
+            presets=FINANCE_CATEGORY_LUCIDE_PRESETS,
+            allow_empty=True,
+            app_config=self._app_config,
+            bothub_state=self._bothub_state,
+            suggest_query_provider=self._name_edit.text,
+        )
+        lucide_row.addWidget(self._lucide_row, 1)
+        form_layout.addLayout(lucide_row)
 
         layout.addWidget(form_group)
 
@@ -214,16 +241,16 @@ def __init__(
 ### ⚙️ Method `get_result`
 
 ```python
-def get_result(self) -> tuple[str, int, str, str] | None
+def get_result(self) -> tuple[str, int, str, str, str] | None
 ```
 
-Return `(name, category_type, icon, name_local)` when accepted, else `None`.
+Return `(name, type, emoji, name_local, icon_lucide)` when accepted.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def get_result(self) -> tuple[str, int, str, str] | None:
+def get_result(self) -> tuple[str, int, str, str, str] | None:
         return self._result
 ```
 

@@ -80,7 +80,10 @@ class AmountDelegate(QStyledItemDelegate):
     def displayText(self, value: object, _locale: QLocale | QLocale.Language) -> str:  # noqa: N802
         """Format display text with spaces and subscript decimals."""
         try:
-            return format_amount(value)
+            if isinstance(value, bool) or not isinstance(value, (int, float, str)):
+                return str(value)
+            amount: float | str = float(value) if isinstance(value, int) else value
+            return format_amount(amount)
         except Exception:
             logger.exception("Error while formatting amount")
             return str(value)

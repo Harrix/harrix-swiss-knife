@@ -628,6 +628,16 @@ def is_delete_like_button_label(label: str) -> bool:
     return is_clear_like_button_label(label)
 
 
+def list_lucide_icon_names() -> tuple[str, ...]:
+    """Return sorted Lucide IDs available under `assets/lucide` (cached)."""
+    global _LUCIDE_NAME_LIST  # noqa: PLW0603
+    if _LUCIDE_NAME_LIST is not None:
+        return _LUCIDE_NAME_LIST
+    names = sorted(path.stem for path in _lucide_dir().glob("*.svg") if _ICON_NAME_RE.fullmatch(path.stem))
+    _LUCIDE_NAME_LIST = tuple(names)
+    return _LUCIDE_NAME_LIST
+
+
 def lucide_color_for(name: str) -> str:
     """Return the CodeStyle hex color for Lucide ID `name`.
 
@@ -651,16 +661,6 @@ def lucide_name_for_chrome_emoji(emoji: str) -> str | None:
         return CHROME_EMOJI_TO_LUCIDE[emoji]
     stripped = emoji.replace("\ufe0f", "").replace("\u200d", "")
     return CHROME_EMOJI_TO_LUCIDE.get(stripped)
-
-
-def list_lucide_icon_names() -> tuple[str, ...]:
-    """Return sorted Lucide IDs available under `assets/lucide` (cached)."""
-    global _LUCIDE_NAME_LIST  # noqa: PLW0603
-    if _LUCIDE_NAME_LIST is not None:
-        return _LUCIDE_NAME_LIST
-    names = sorted(path.stem for path in _lucide_dir().glob("*.svg") if _ICON_NAME_RE.fullmatch(path.stem))
-    _LUCIDE_NAME_LIST = tuple(names)
-    return _LUCIDE_NAME_LIST
 
 
 def lucide_svg_path(name: str) -> Path | None:

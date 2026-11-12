@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
+from harrix_swiss_knife.apps.finance.database_manager import CATEGORY_ROW_ICON_LUCIDE_INDEX
 from harrix_swiss_knife.apps.finance.number_utils import with_currency
 from harrix_swiss_knife.apps.finance.transaction_helpers import (
     compute_average_salary_by_year,
@@ -262,32 +263,38 @@ def get_monthly_summary_report_data(
 ) -> tuple[
     list[str],
     list[tuple[str, float, float, dict[int, float]]],
-    list[tuple[int, str, str]],
+    list[tuple[int, str, str, str]],
     set[int],
 ]:
-    """Build monthly summary report data (expenses by category per month)."""
+    """Build monthly summary report data (expenses by category per month).
+
+    Each expense category is `(id, name, emoji, icon_lucide)`.
+
+    """
     db_manager = ctx.db_manager
     currency_id = ctx.currency_id
     all_categories: list = db_manager.get_all_categories()
-    expense_categories: list[tuple[int, str, str]] = []
+    expense_categories: list[tuple[int, str, str, str]] = []
     category_name_to_id: dict[str, int] = {}
 
     for category in all_categories:
-        cat_id, category_name, category_type, category_icon = (
-            category[0],
-            category[1],
-            category[2],
-            category[3],
+        cat_id = category[0]
+        category_name = str(category[1] or "")
+        category_type = int(category[2] or 0)
+        category_icon = str(category[3] or "")
+        icon_lucide = (
+            str(category[CATEGORY_ROW_ICON_LUCIDE_INDEX] or "")
+            if len(category) > CATEGORY_ROW_ICON_LUCIDE_INDEX and category[CATEGORY_ROW_ICON_LUCIDE_INDEX] is not None
+            else ""
         )
         if category_type == 0:
-            # UI / report headers use plain names; DB emoji stays in the third tuple slot.
-            expense_categories.append((cat_id, category_name, category_icon or ""))
+            expense_categories.append((cat_id, category_name, category_icon, icon_lucide))
             category_name_to_id[category_name] = cat_id
 
     if not expense_categories:
         return ["Month"], [], [], set()
 
-    def _sort_key(cat: tuple[int, str, str]) -> tuple[int, str]:
+    def _sort_key(cat: tuple[int, str, str, str]) -> tuple[int, str]:
         tokens = _normalize_category_tokens(cat[1])
         if "cafe" in tokens:
             return (0, cat[1])
@@ -316,7 +323,7 @@ def get_monthly_summary_report_data(
 
     rows: list[tuple[str, float, float, dict[int, float]]] = []
     for month_name in reversed(month_names):
-        month_total = sum(monthly_data[month_name].get(cid, 0.0) for cid, _name, _icon in expense_categories)
+        month_total = sum(monthly_data[month_name].get(cid, 0.0) for cid, _name, _emoji, _lucide in expense_categories)
         combined_total = sum(monthly_data[month_name].get(cid, 0.0) for cid in combined_category_ids)
         rows.append((month_name, month_total, combined_total, monthly_data[month_name]))
 

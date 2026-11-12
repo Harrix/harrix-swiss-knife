@@ -52,12 +52,13 @@ def format_total_accounts_balance_details(db_manager: DatabaseManager) -> tuple[
 
         details_lines: list[str] = []
         for currency_code, balance in currency_balances.items():
+            balance_text = f"{balance:,.2f}"
             if currency_code == default_currency_code:
-                details_lines.append(f"{currency_code}: {balance:,.2f}{default_currency_symbol}")
+                details_lines.append(f"{currency_code}: {with_currency(balance_text, default_currency_symbol)}")
             else:
                 code_row = db_manager.get_currency_by_code(currency_code)
                 if code_row is None:
-                    details_lines.append(f"{currency_code}: {balance:,.2f} (unknown currency)")
+                    details_lines.append(f"{currency_code}: {balance_text} (unknown currency)")
                     continue
                 currency_id = code_row[0]
                 currency_info = db_manager.get_currency_by_id(currency_id)
@@ -66,11 +67,13 @@ def format_total_accounts_balance_details(db_manager: DatabaseManager) -> tuple[
                 converted_amount: float = convert_currency(balance, currency_id, default_currency_id, db_manager, today)
 
                 if converted_amount == balance and currency_id != default_currency_id:
-                    details_lines.append(f"{currency_code}: {balance:,.2f}{currency_symbol} (exchange rate not found)")
+                    details_lines.append(
+                        f"{currency_code}: {with_currency(balance_text, currency_symbol)} (exchange rate not found)"
+                    )
                 else:
                     details_lines.append(
-                        f"{currency_code}: {balance:,.2f}{currency_symbol} → "
-                        f"{converted_amount:,.2f}{default_currency_symbol}"
+                        f"{currency_code}: {with_currency(balance_text, currency_symbol)} → "
+                        f"{with_currency(f'{converted_amount:,.2f}', default_currency_symbol)}"
                     )
 
         details_text: str = "\n".join(details_lines)

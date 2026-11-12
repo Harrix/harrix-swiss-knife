@@ -208,7 +208,7 @@ def install_transactions_filter_chrome(host: Any) -> None:
 ## 🔧 Function `populate_transactions_category_filter`
 
 ```python
-def populate_transactions_category_filter(combo: QComboBox, expense_categories: list[tuple[str, str, str]], income_categories: list[tuple[str, str, str]]) -> None
+def populate_transactions_category_filter(combo: QComboBox, expense_categories: list[tuple[str, str, str, str]] | list[tuple[str, str, str]], income_categories: list[tuple[str, str, str, str]] | list[tuple[str, str, str]]) -> None
 ```
 
 Fill the category filter with Lucide icons and optional local-name parentheses.
@@ -219,20 +219,26 @@ Fill the category filter with Lucide icons and optional local-name parentheses.
 ```python
 def populate_transactions_category_filter(
     combo: QComboBox,
-    expense_categories: list[tuple[str, str, str]],
-    income_categories: list[tuple[str, str, str]],
+    expense_categories: list[tuple[str, str, str, str]] | list[tuple[str, str, str]],
+    income_categories: list[tuple[str, str, str, str]] | list[tuple[str, str, str]],
 ) -> None:
     selected = transactions_filter_combo_value(combo)
     combo.blockSignals(True)  # noqa: FBT003
     try:
         combo.clear()
         combo.addItem(FILTER_ALL_CATEGORIES, "")
-        for name, icon, name_local in expense_categories:
+        for entry in expense_categories:
+            name, icon, name_local, *rest = entry
+            lucide = str(rest[0] or "") if rest else ""
             label = category_display_label(name, name_local=name_local)
-            combo.addItem(category_lucide_icon(icon, size=_FILTER_TYPE_ICON_SIZE), label, name)
-        for name, icon, name_local in income_categories:
+            painted = category_lucide_icon(icon, size=_FILTER_TYPE_ICON_SIZE, lucide_name=lucide)
+            combo.addItem(painted, label, name)
+        for entry in income_categories:
+            name, icon, name_local, *rest = entry
+            lucide = str(rest[0] or "") if rest else ""
             label = category_display_label(name, income=True, name_local=name_local)
-            combo.addItem(category_lucide_icon(icon, size=_FILTER_TYPE_ICON_SIZE), label, name)
+            painted = category_lucide_icon(icon, size=_FILTER_TYPE_ICON_SIZE, lucide_name=lucide)
+            combo.addItem(painted, label, name)
         index = combo.findData(selected)
         combo.setCurrentIndex(max(index, 0))
     finally:

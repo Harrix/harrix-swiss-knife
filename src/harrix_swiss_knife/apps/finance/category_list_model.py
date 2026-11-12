@@ -97,7 +97,7 @@ def _append_category(
     item.setData(name_local, NAME_LOCAL_ROLE)
     item.setData(icon or "", ICON_ROLE)
     item.setData(icon_lucide or "", ICON_LUCIDE_ROLE)
-    item.setData(False, IS_SECTION_ROLE)
+    item.setData(False, IS_SECTION_ROLE)  # noqa: FBT003
     item.setData(category_name, Qt.ItemDataRole.ToolTipRole)
     item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
     model.appendRow(item)
@@ -107,7 +107,7 @@ def _append_section(model: QStandardItemModel, title: str) -> None:
     item = QStandardItem(title)
     item.setFlags(Qt.ItemFlag.ItemIsEnabled)
     item.setData("", Qt.ItemDataRole.UserRole)
-    item.setData(True, IS_SECTION_ROLE)
+    item.setData(True, IS_SECTION_ROLE)  # noqa: FBT003
     item.setData(title, Qt.ItemDataRole.ToolTipRole)
     item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
     model.appendRow(item)

@@ -98,9 +98,15 @@ def export_finance_catalog(db_path: Path) -> dict[str, Any]:
             ORDER BY code COLLATE NOCASE
             """
         ).fetchall()
+        _ensure_categories_icon_lucide_column(conn)
         category_rows = conn.execute(
             """
-            SELECT name, type, IFNULL(icon, '') AS icon, IFNULL(name_local, '') AS name_local
+            SELECT
+                name,
+                type,
+                IFNULL(icon, '') AS icon,
+                IFNULL(name_local, '') AS name_local,
+                IFNULL(icon_lucide, '') AS icon_lucide
             FROM categories
             ORDER BY type, name COLLATE NOCASE
             """
@@ -136,6 +142,7 @@ def export_finance_catalog(db_path: Path) -> dict[str, Any]:
                 "type": int(row["type"]),
                 "icon": str(row["icon"] or ""),
                 "name_local": str(row["name_local"] or ""),
+                "icon_lucide": str(row["icon_lucide"] or ""),
             }
             for row in category_rows
         ],
@@ -261,6 +268,7 @@ def upsert_finance_catalog(db_path: Path, catalog: dict[str, Any]) -> FinanceCat
                 )
                 currencies_updated += 1
 
+        _ensure_categories_icon_lucide_column(conn)
         for category in normalized["categories"]:
             row = conn.execute(
                 "SELECT _id FROM categories WHERE name = ? AND type = ?",
@@ -269,14 +277,15 @@ def upsert_finance_catalog(db_path: Path, catalog: dict[str, Any]) -> FinanceCat
             if row is None:
                 conn.execute(
                     """
-                    INSERT INTO categories (name, type, icon, name_local)
-                    VALUES (?, ?, ?, ?)
+                    INSERT INTO categories (name, type, icon, name_local, icon_lucide)
+                    VALUES (?, ?, ?, ?, ?)
                     """,
                     (
                         category["name"],
                         category["type"],
                         category["icon"] or None,
                         category["name_local"] or None,
+                        category["icon_lucide"] or None,
                     ),
                 )
                 categories_inserted += 1
@@ -284,12 +293,13 @@ def upsert_finance_catalog(db_path: Path, catalog: dict[str, Any]) -> FinanceCat
                 conn.execute(
                     """
                     UPDATE categories
-                    SET icon = ?, name_local = ?
+                    SET icon = ?, name_local = ?, icon_lucide = ?
                     WHERE _id = ?
                     """,
                     (
                         category["icon"] or None,
                         category["name_local"] or None,
+                        category["icon_lucide"] or None,
                         int(row[0]),
                     ),
                 )

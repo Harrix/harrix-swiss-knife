@@ -12,6 +12,11 @@ from harrix_swiss_knife.apps.finance.tags import format_tag_text, parse_tag_text
 
 logger = logging.getLogger(__name__)
 
+# Full category row: _id, name, type, icon, name_local, icon_lucide
+CATEGORY_ROW_ICON_LUCIDE_INDEX = 5
+# get_categories_with_icons_by_type: name, icon, name_local, icon_lucide
+CATEGORY_ICONS_LUCIDE_INDEX = 3
+
 _DESCRIPTION_COLUMN_INDEX = 2
 _TRANSACTION_HAS_TAG_SQL = """
 EXISTS (
@@ -115,7 +120,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `category_type` (`int`): Category type (0 = expense, 1 = income).
         - `icon` (`str`): Category emoji icon. Defaults to `""`.
         - `name_local` (`str`): Local-language category name. Defaults to `""`.
-        - `icon_lucide` (`str`): Optional Lucide id override. Defaults to `""`.
+        - `icon_lucide` (`str`): Optional Lucide ID override. Defaults to `""`.
 
         Returns:
 
@@ -807,7 +812,11 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
                 str(row[0] or ""),
                 str(row[1] or ""),
                 str(row[2] or "") if row[2] is not None else "",
-                str(row[3] or "") if len(row) > 3 and row[3] is not None else "",
+                (
+                    str(row[CATEGORY_ICONS_LUCIDE_INDEX] or "")
+                    if len(row) > CATEGORY_ICONS_LUCIDE_INDEX and row[CATEGORY_ICONS_LUCIDE_INDEX] is not None
+                    else ""
+                ),
             )
             for row in rows
         ]
@@ -1995,7 +2004,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `category_type` (`int`): Category type.
         - `icon` (`str`): Category emoji icon. Defaults to `""`.
         - `name_local` (`str`): Local-language category name. Defaults to `""`.
-        - `icon_lucide` (`str`): Optional Lucide id override. Defaults to `""`.
+        - `icon_lucide` (`str`): Optional Lucide ID override. Defaults to `""`.
 
         Returns:
 

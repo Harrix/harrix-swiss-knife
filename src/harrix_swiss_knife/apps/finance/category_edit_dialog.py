@@ -175,7 +175,7 @@ class CategoryEditDialog(QDialog):
             allow_empty=True,
             app_config=self._app_config,
             bothub_state=self._bothub_state,
-            suggest_query_provider=lambda: self.name_edit.text(),
+            suggest_query_provider=self.name_edit.text,
         )
         lucide_layout.addWidget(self._lucide_row, 1)
         layout.addLayout(lucide_layout)

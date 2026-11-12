@@ -27,6 +27,7 @@ lang: en
 - [🔧 Function `install_line_edit_search_chrome`](#-function-install_line_edit_search_chrome)
 - [🔧 Function `is_clear_like_button_label`](#-function-is_clear_like_button_label)
 - [🔧 Function `is_delete_like_button_label`](#-function-is_delete_like_button_label)
+- [🔧 Function `list_lucide_icon_names`](#-function-list_lucide_icon_names)
 - [🔧 Function `lucide_color_for`](#-function-lucide_color_for)
 - [🔧 Function `lucide_name_for_chrome_emoji`](#-function-lucide_name_for_chrome_emoji)
 - [🔧 Function `lucide_svg_path`](#-function-lucide_svg_path)
@@ -570,6 +571,29 @@ def is_delete_like_button_label(label: str) -> bool:
     if folded.startswith(("delete ", "remove ", "discard ")):
         return True
     return is_clear_like_button_label(label)
+```
+
+</details>
+
+## 🔧 Function `list_lucide_icon_names`
+
+```python
+def list_lucide_icon_names() -> tuple[str, ...]
+```
+
+Return sorted Lucide IDs available under `assets/lucide` (cached).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def list_lucide_icon_names() -> tuple[str, ...]:
+    global _LUCIDE_NAME_LIST  # noqa: PLW0603
+    if _LUCIDE_NAME_LIST is not None:
+        return _LUCIDE_NAME_LIST
+    names = sorted(path.stem for path in _lucide_dir().glob("*.svg") if _ICON_NAME_RE.fullmatch(path.stem))
+    _LUCIDE_NAME_LIST = tuple(names)
+    return _LUCIDE_NAME_LIST
 ```
 
 </details>

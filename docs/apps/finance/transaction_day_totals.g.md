@@ -163,7 +163,7 @@ def format_transaction_selection_status(count: int, total: float, currency_symbo
         return ""
     rows_word = "row" if count == 1 else "rows"
     formatted = format_amount(f"{total:.2f}")
-    return f"{count} {rows_word} selected · sum {formatted}{currency_symbol}"
+    return f"{count} {rows_word} selected · sum {with_currency(formatted, currency_symbol)}"
 ```
 
 </details>

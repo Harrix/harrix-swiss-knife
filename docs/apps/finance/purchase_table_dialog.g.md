@@ -111,9 +111,9 @@ class PurchaseTableDialog(QDialog):
     def _format_amount_cell(self, item: ParsedPurchaseItem) -> str:
         amount_text = f"{item.amount:g}"
         if item.currency_symbol:
-            return f"{amount_text} {item.currency_symbol}"
+            return with_currency(amount_text, item.currency_symbol)
         if self._currency_symbol:
-            return f"{amount_text} {self._currency_symbol}"
+            return with_currency(amount_text, self._currency_symbol)
         return amount_text
 
     def _is_text_mode(self) -> bool:
@@ -378,7 +378,7 @@ class PurchaseTableDialog(QDialog):
             total_amount = sum(item.amount for item in items)
             symbol = self._currency_symbol
             if symbol:
-                self.total_label.setText(f"Total: {total_amount:,.2f} {symbol}")
+                self.total_label.setText(f"Total: {with_currency(f'{total_amount:,.2f}', symbol)}")
             else:
                 self.total_label.setText(f"Total: {total_amount:,.2f}")
         finally:

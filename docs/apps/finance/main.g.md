@@ -707,11 +707,7 @@ class MainWindow(
             def get_and_validate() -> tuple[str | None, Any]:
                 amount = self.doubleSpinBox_amount.value()
                 description = capitalize_first_letter(self.lineEdit_description.text())
-                category_name = (
-                    self.listView_categories.currentIndex().data(Qt.ItemDataRole.UserRole)
-                    if self.listView_categories.currentIndex().isValid()
-                    else None
-                )
+                category_name = selected_category_name(self)
                 currency_code = self.comboBox_currency.currentText()
                 date = self.dateEdit.date().toString("yyyy-MM-dd")
                 tag = self.lineEdit_tag.text().strip()
@@ -820,20 +816,12 @@ class MainWindow(
             self.update_filter_comboboxes()
 
     def on_category_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
-        """Handle category selection change in listView_categories.
-
-        Args:
-
-        - `current` (`QModelIndex`): Current selected index.
-        - `_previous` (`QModelIndex`): Previously selected index.
-
-        """
-        if current.isValid():
-            refresh_category_state_label(self, self._category_form_label_from_index(current))
-
+        """Handle category selection change in listView_categories."""
+        label = self._category_form_label_from_index(current) if current.isValid() else None
+        if label:
+            refresh_category_state_label(self, label)
             # Defer so Use-button click handlers are not destroyed mid-signal.
             QTimer.singleShot(0, self._clear_category_suggestions)
-            # Move focus to description field and select all text
             QTimer.singleShot(100, self._focus_description_and_select_text)
         else:
             refresh_category_state_label(self, None)
@@ -1251,11 +1239,11 @@ class MainWindow(
                 sym = cur[2] if cur else ""
                 major = db.convert_from_minor_units(minor, cid)
                 formatted_major = format_amount(f"{major:.2f}")
-                income_lines.append(f"{code}: {formatted_major}{sym}")
+                income_lines.append(f"{code}: {with_currency(formatted_major, sym)}")
             income_text = (
                 "Total Income:\n" + "\n".join(income_lines)
                 if income_lines
-                else f"Total Income:\n{format_amount('0.00')}{currency_symbol}"
+                else f"Total Income:\n{format_amount_with_currency('0.00', currency_symbol)}"
             )
             self.label_total_income.setText(income_text)
 
@@ -1269,11 +1257,11 @@ class MainWindow(
                 sym = cur[2] if cur else ""
                 major = db.convert_from_minor_units(minor, cid)
                 formatted_major = format_amount(f"{major:.2f}")
-                expense_lines.append(f"{code}: {formatted_major}{sym}")
+                expense_lines.append(f"{code}: {with_currency(formatted_major, sym)}")
             expense_text = (
                 "Total Expenses:\n" + "\n".join(expense_lines)
                 if expense_lines
-                else f"Total Expenses:\n{format_amount('0.00')}{currency_symbol}"
+                else f"Total Expenses:\n{format_amount_with_currency('0.00', currency_symbol)}"
             )
             self.label_total_expenses.setText(expense_text)
 
@@ -1294,11 +1282,11 @@ class MainWindow(
                     sym = cur[2] if cur else ""
                     major = db.convert_from_minor_units(minor, cid)
                     formatted_major = format_amount(f"{major:.2f}")
-                    lines.append(f"{code}: {formatted_major}{sym}")
+                    lines.append(f"{code}: {with_currency(formatted_major, sym)}")
                 return lines
 
             expense_today_lines: list[str] = _expense_lines_for_date(today_str)
-            zero_today = f"{format_amount('0.00')}{currency_symbol}"
+            zero_today = format_amount_with_currency("0.00", currency_symbol)
             if expense_today_lines:
                 self.label_today_expense.setText("\n".join(expense_today_lines))
             else:
@@ -1308,15 +1296,15 @@ class MainWindow(
             if expense_yesterday_lines:
                 self.label_yesterday_expense.setText("\n".join(expense_yesterday_lines))
             else:
-                self.label_yesterday_expense.setText(f"{format_amount('0.00')}{currency_symbol}")
+                self.label_yesterday_expense.setText(format_amount_with_currency("0.00", currency_symbol))
 
         except Exception:
             logger.exception("Error updating summary labels")
             # Set default values on error
-            self.label_total_income.setText(f"Total Income: {format_amount('0.00')}₽")
-            self.label_total_expenses.setText(f"Total Expenses: {format_amount('0.00')}₽")
-            self.label_today_expense.setText(f"{format_amount('0.00')}₽")
-            self.label_yesterday_expense.setText(f"{format_amount('0.00')}₽")
+            self.label_total_income.setText(f"Total Income: {format_amount_with_currency('0.00', '₽')}")
+            self.label_total_expenses.setText(f"Total Expenses: {format_amount_with_currency('0.00', '₽')}")
+            self.label_today_expense.setText(format_amount_with_currency("0.00", "₽"))
+            self.label_yesterday_expense.setText(format_amount_with_currency("0.00", "₽"))
 
     def _account_id_from_table_index(self, index: QModelIndex) -> int | None:
         """Return account database ID for an accounts table model index."""
@@ -1419,7 +1407,7 @@ class MainWindow(
                                 "Error",
                                 f"The account name must be unique.\n"
                                 f"An account with the name “{name}” already exists.\n"
-                                f"Balance: {balance_major:,.2f}{symbol}",
+                                f"Balance: {with_currency(f'{balance_major:,.2f}', symbol)}",
                             )
                             return
 
@@ -1500,7 +1488,7 @@ class MainWindow(
         self,
         model: QStandardItemModel,
         transformed_data: list[list],
-        id_column: int = -3,
+        id_column: int = -4,
     ) -> None:
         """Append transformed transaction rows to an existing source model."""
         start_row_idx: int = model.rowCount()
@@ -1508,10 +1496,11 @@ class MainWindow(
         for row_offset, row in enumerate(transformed_data):
             row_idx: int = start_row_idx + row_offset
             row_color: QColor = row[-1]
-            category_emoji = str(row[-2] or "")
+            category_lucide = str(row[-2] or "")
+            category_emoji = str(row[-3] or "")
             row_id: int = row[id_column]
             items: list[QStandardItem] = []
-            display_data: list = row[:-3]
+            display_data: list = row[:-4]
 
             for col_idx, value in enumerate(display_data):
                 item: QStandardItem = QStandardItem(str(value) if value is not None else "")
@@ -1523,8 +1512,8 @@ class MainWindow(
                     )
                     item.setData(original_value, Qt.ItemDataRole.UserRole)
 
-                if col_idx == category_column and category_emoji:
-                    item.setIcon(category_lucide_icon(category_emoji))
+                if col_idx == category_column and (category_emoji or category_lucide):
+                    item.setIcon(category_lucide_icon(category_emoji, lucide_name=category_lucide))
 
                 if col_idx == len(display_data) - 1:
                     item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
@@ -1656,7 +1645,9 @@ class MainWindow(
 
     def _category_form_label_from_index(self, index: QModelIndex) -> str | None:
         """Build form category status text from a list index (plain title)."""
-        if not index.isValid():
+        if not index.isValid() or bool(index.data(IS_SECTION_ROLE)):
+            return None
+        if not index.data(Qt.ItemDataRole.UserRole):
             return None
         title = index.data(Qt.ItemDataRole.DisplayRole)
         if not title:
@@ -2005,7 +1996,10 @@ class MainWindow(
             a_maj = self.db_manager.convert_from_minor_units(int(item["accounts_minor"]), cid)
             d_maj = self.db_manager.convert_from_minor_units(int(item["diff_minor"]), cid)
             lines.append(
-                f"{item['code']} ({item['symbol']}): journal {j_maj:,.2f}, accounts {a_maj:,.2f}, diff {d_maj:,.2f}"
+                f"{item['code']} ({item['symbol']}): "
+                f"journal {with_currency(f'{j_maj:,.2f}', item['symbol'])}, "
+                f"accounts {with_currency(f'{a_maj:,.2f}', item['symbol'])}, "
+                f"diff {with_currency(f'{d_maj:,.2f}', item['symbol'])}"
             )
         text = "\n".join(lines)
         clipboard = QApplication.clipboard()
@@ -2037,7 +2031,7 @@ class MainWindow(
         self,
         data: list[list],
         headers: list[str],
-        id_column: int = -3,
+        id_column: int = -4,
     ) -> QSortFilterProxyModel:
         """Create a special model for transactions table with non-editable total column.
 
@@ -2045,8 +2039,8 @@ class MainWindow(
 
         - `data` (`list[list]`): The table data with color information.
         - `headers` (`list[str]`): Column header names.
-        - `id_column` (`int`): Index of the ID column. Defaults to `-3`
-          (`…, id, category_emoji, color`).
+        - `id_column` (`int`): Index of the ID column. Defaults to `-4`
+          (`…, id, emoji, lucide, color`).
 
         Returns:
 
@@ -2058,13 +2052,14 @@ class MainWindow(
         category_column = 3
 
         for row_idx, row in enumerate(data):
-            # Trailing meta: id, DB category emoji, day-band color.
+            # Trailing meta: id, DB emoji, optional Lucide override, day-band color.
             row_color: QColor = row[-1]
-            category_emoji = str(row[-2] or "")
+            category_lucide = str(row[-2] or "")
+            category_emoji = str(row[-3] or "")
             row_id: int = row[id_column]
 
             items: list[QStandardItem] = []
-            display_data: list = row[:-3]
+            display_data: list = row[:-4]
 
             for col_idx, value in enumerate(display_data):
                 item: QStandardItem = QStandardItem(str(value) if value is not None else "")
@@ -2076,8 +2071,8 @@ class MainWindow(
                     )
                     item.setData(original_value, Qt.ItemDataRole.UserRole)
 
-                if col_idx == category_column and category_emoji:
-                    item.setIcon(category_lucide_icon(category_emoji))
+                if col_idx == category_column and (category_emoji or category_lucide):
+                    item.setIcon(category_lucide_icon(category_emoji, lucide_name=category_lucide))
 
                 if col_idx == len(display_data) - 1:  # Last column
                     item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
@@ -2767,12 +2762,12 @@ class MainWindow(
         summary = ", ".join(f"{code} ({len(set(dates))})" for code, dates in sorted(unresolved.items()))
         return f"Exchange rates updated; missing rates for {summary} — see console"
 
-    def _get_categories_for_delegate(self) -> list[tuple[str, str]]:
-        """Get category dropdown entries as `(display_label, db_emoji)`.
+    def _get_categories_for_delegate(self) -> list[tuple[str, str, str]]:
+        """Get category dropdown entries as `(display_label, emoji, lucide)`.
 
         Returns:
 
-        - `list[tuple[str, str]]`: Plain labels (with Income marker) and DB emoji.
+        - `list[tuple[str, str, str]]`: Plain labels (with Income marker), emoji, Lucide.
 
         """
         if self.db_manager is None:
@@ -2780,14 +2775,19 @@ class MainWindow(
 
         try:
             categories: list = self.db_manager.get_all_categories()
-            entries: list[tuple[str, str]] = []
+            entries: list[tuple[str, str, str]] = []
             for category in categories:
                 name: str = category[1]
                 category_type: int = category[2]
                 icon: str = str(category[3] or "")
+                lucide: str = (
+                    str(category[database_manager.CATEGORY_ROW_ICON_LUCIDE_INDEX] or "")
+                    if len(category) > database_manager.CATEGORY_ROW_ICON_LUCIDE_INDEX
+                    else ""
+                )
                 if category_type == 1:
                     name = f"{name} (Income)"
-                entries.append((name, icon))
+                entries.append((name, icon, lucide))
 
         except Exception:
             logger.exception("Error getting categories for delegate")
@@ -3086,8 +3086,12 @@ class MainWindow(
             return
         self._set_table_model_and_stretch_columns(self.tableView_accounts, accounts_model, stretch_last=False)
 
-        # Set up amount delegate for the Balance column (index 1)
-        self.accounts_balance_delegate = AmountDelegate(self.tableView_accounts, self.db_manager)
+        # Set up amount delegate for the Balance column (index 1); currency code is column 2
+        self.accounts_balance_delegate = AmountDelegate(
+            self.tableView_accounts,
+            self.db_manager,
+            currency_column=2,
+        )
         self.tableView_accounts.setItemDelegateForColumn(1, self.accounts_balance_delegate)
 
         # Make accounts table non-editable and connect double-click signal
@@ -3197,6 +3201,33 @@ class MainWindow(
 
         # Disable all editing triggers
         self.tableView_exchange.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+
+        # Amount From / Fee use source currency; Amount To uses target; losses use default
+        self.exchange_amount_from_delegate = AmountDelegate(
+            self.tableView_exchange,
+            self.db_manager,
+            currency_column=0,
+        )
+        self.exchange_amount_to_delegate = AmountDelegate(
+            self.tableView_exchange,
+            self.db_manager,
+            currency_column=1,
+        )
+        self.exchange_fee_delegate = AmountDelegate(
+            self.tableView_exchange,
+            self.db_manager,
+            currency_column=0,
+        )
+        self.exchange_loss_delegate = AmountDelegate(
+            self.tableView_exchange,
+            self.db_manager,
+            use_default_currency=True,
+        )
+        self.tableView_exchange.setItemDelegateForColumn(2, self.exchange_amount_from_delegate)
+        self.tableView_exchange.setItemDelegateForColumn(3, self.exchange_amount_to_delegate)
+        self.tableView_exchange.setItemDelegateForColumn(5, self.exchange_fee_delegate)
+        self.tableView_exchange.setItemDelegateForColumn(8, self.exchange_loss_delegate)
+        self.tableView_exchange.setItemDelegateForColumn(9, self.exchange_loss_delegate)
 
     def _load_essential_tables(self) -> None:
         """Load essential tables at startup (excluding exchange rates for lazy loading)."""
@@ -3989,7 +4020,7 @@ class MainWindow(
 
             if remainder_minor > 0:
                 remainder_major = self.db_manager.convert_from_minor_units(remainder_minor, currency_id)
-                remainder_line = f"Add Revision Expense {remainder_major:,.2f} {currency_code}."
+                remainder_line = f"Add Revision Expense {with_currency(f'{remainder_major:,.2f}', currency_code)}."
             else:
                 remainder_line = "No new revision will be added."
 
@@ -4434,6 +4465,7 @@ class MainWindow(
         model = QStandardItemModel()
         for cat_id, name, category_type, icon, *_rest in self.db_manager.get_all_categories():
             display_text = f"{name} (Income)" if category_type == 1 else name
+            lucide = str(_rest[1] or "") if len(_rest) > 1 else ""
 
             item = QStandardItem(display_text)
             item.setCheckable(True)
@@ -4441,8 +4473,9 @@ class MainWindow(
             item.setData(name, Qt.ItemDataRole.UserRole)
             item.setData(int(category_type), Qt.ItemDataRole.UserRole + 1)
             item.setData(int(cat_id), Qt.ItemDataRole.UserRole + 2)
-            if icon:
-                item.setIcon(category_lucide_icon(str(icon)))
+            painted = category_lucide_icon(str(icon or ""), lucide_name=lucide)
+            if not painted.isNull():
+                item.setIcon(painted)
             model.appendRow(item)
 
         self.list_chart_categories.setModel(model)
@@ -4868,23 +4901,16 @@ class MainWindow(
             self._clear_category_suggestions()
             return
 
-        model = self.listView_categories.model()
-        if model is None:
-            return
-
         category_names: list[str] = []
         category_aliases: dict[str, list[str]] = {}
-        for row in range(model.rowCount()):
-            name = model.data(model.index(row, 0), Qt.ItemDataRole.UserRole)
-            if not name:
-                continue
-            category_name = str(name)
+        for _index, category_name, local in iter_category_picker_rows(self):
             category_names.append(category_name)
-            local = model.data(model.index(row, 0), NAME_LOCAL_ROLE)
             aliases = [category_name]
             if local:
-                aliases.append(str(local))
+                aliases.append(local)
             category_aliases[category_name] = aliases
+        if not category_names:
+            return
         suggested = suggest_categories(
             text,
             self._description_category_pairs,
@@ -4936,25 +4962,7 @@ class MainWindow(
                 return
 
             category_name: str = rows[0][0]
-
-            # Find the category in the list view
-            model = self.listView_categories.model()
-            if model:
-                for row in range(model.rowCount()):
-                    index: QModelIndex = model.index(row, 0)
-                    item_data = model.data(index, Qt.ItemDataRole.UserRole)
-                    if item_data == category_name:
-                        # Set the current index
-                        self.listView_categories.setCurrentIndex(index)
-
-                        # Also try to select the item in the selection model
-                        selection_model = self.listView_categories.selectionModel()
-                        if selection_model:
-                            selection_model.select(index, selection_model.SelectionFlag.Select)
-
-                        # Update the category label
-                        refresh_category_state_label(self, self._category_form_label_from_index(index))
-                        break
+            self._select_category_by_name(str(category_name))
 
         except Exception:
             logger.exception("Error selecting category by ID")
@@ -4963,17 +4971,15 @@ class MainWindow(
         """Select a category in `listView_categories` by stored name (`UserRole`)."""
         if not category_name:
             return
-        model = self.listView_categories.model()
-        if model is None:
+        index = find_category_in_picker(self, category_name)
+        if index is None:
             return
-        for row in range(model.rowCount()):
-            index = model.index(row, 0)
-            if model.data(index, Qt.ItemDataRole.UserRole) == category_name:
-                self.listView_categories.setCurrentIndex(index)
-                selection_model = self.listView_categories.selectionModel()
-                if selection_model is not None:
-                    selection_model.select(index, QItemSelectionModel.SelectionFlag.ClearAndSelect)
-                return
+        self.listView_categories.setCurrentIndex(index)
+        selection_model = self.listView_categories.selectionModel()
+        if selection_model is not None:
+            selection_model.select(index, QItemSelectionModel.SelectionFlag.ClearAndSelect)
+        refresh_category_state_label(self, self._category_form_label_from_index(index))
+        QTimer.singleShot(0, self._clear_category_suggestions)
 
     def _select_only_chart_categories(self, category_type: int) -> None:
         """Check categories of the given type and uncheck all others (0 expense, 1 income)."""
@@ -5245,7 +5251,7 @@ class MainWindow(
         self.tableView_transactions.setItemDelegateForColumn(0, self.description_delegate)
         self.tableView_transactions.setItemDelegateForColumn(1, self.description_delegate)
 
-        categories: list[tuple[str, str]] = self._get_categories_for_delegate()
+        categories: list[tuple[str, str, str]] = self._get_categories_for_delegate()
         self.category_delegate = CategoryComboBoxDelegate(self.tableView_transactions, categories)
         self.tableView_transactions.setItemDelegateForColumn(3, self.category_delegate)
 
@@ -5262,10 +5268,21 @@ class MainWindow(
         )
         self.tableView_transactions.setItemDelegateForColumn(6, self.tag_delegate)
 
-        self.amount_delegate = AmountDelegate(self.tableView_transactions, self.db_manager)
+        self.amount_delegate = AmountDelegate(
+            self.tableView_transactions,
+            self.db_manager,
+            currency_column=4,
+            category_column=3,
+            amount_column=2,
+        )
         self.tableView_transactions.setItemDelegateForColumn(2, self.amount_delegate)
 
-        self.total_per_day_delegate = AmountDelegate(self.tableView_transactions, self.db_manager)
+        self.total_per_day_delegate = AmountDelegate(
+            self.tableView_transactions,
+            self.db_manager,
+            use_default_currency=True,
+            total_per_day=True,
+        )
         self.tableView_transactions.setItemDelegateForColumn(7, self.total_per_day_delegate)
 
         self.tableView_transactions.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked)
@@ -5452,14 +5469,17 @@ class MainWindow(
     def _show_categories_list_context_menu(self, position: QPoint) -> None:
         """Show context menu on listView_categories with Filter by this category."""
         index: QModelIndex = self.listView_categories.indexAt(position)
-        if not index.isValid():
+        if not index.isValid() or bool(index.data(IS_SECTION_ROLE)):
             return
-        category_value: str | None = self.listView_categories.model().data(index, Qt.ItemDataRole.UserRole)
+        model = self.listView_categories.model()
+        if model is None:
+            return
+        category_value: str | None = model.data(index, Qt.ItemDataRole.UserRole)
         if not category_value:
             return
         context_menu = QMenu(self)
         filter_action = add_filter_action(context_menu, LABEL_FILTER_BY_CATEGORY)
-        filter_action.triggered.connect(lambda: self._filter_by_category_from_table(category_value))
+        filter_action.triggered.connect(lambda: self._filter_by_category_from_table(str(category_value)))
         apply_leading_chrome_icons(context_menu)
         context_menu.exec_(self.listView_categories.mapToGlobal(position))
 
@@ -5471,42 +5491,21 @@ class MainWindow(
         - `position` (`QPoint`): Position where the menu is requested.
 
         """
-        model = self.listView_categories.model()
-        if model is None or model.rowCount() == 0:
-            return
-
         context_menu = QMenu(self)
-        for row in range(model.rowCount()):
-            index = model.index(row, 0)
-            label = self._category_form_label_from_index(index)
-            if not label:
-                continue
-            action = context_menu.addAction(label)
-            action.setData(row)
+        for _index, category_name, _local in iter_category_picker_rows(self):
+            action = context_menu.addAction(category_name)
+            action.setData(category_name)
 
         if context_menu.isEmpty():
             return
 
-        # Execute the context menu and get the selected action
         selected_action = context_menu.exec_(self.label_category_now.mapToGlobal(position))
         if selected_action is None:
             return
 
-        row_data = selected_action.data()
-        if not isinstance(row_data, int):
-            return
-
-        index = model.index(row_data, 0)
-        if not index.isValid():
-            return
-
-        self.listView_categories.setCurrentIndex(index)
-        selection_model = self.listView_categories.selectionModel()
-        if selection_model:
-            selection_model.setCurrentIndex(
-                index,
-                QItemSelectionModel.SelectionFlag.ClearAndSelect | QItemSelectionModel.SelectionFlag.Rows,
-            )
+        category_name = selected_action.data()
+        if isinstance(category_name, str) and category_name:
+            self._select_category_by_name(category_name)
 
     def _show_chart_categories_context_menu(self, position: QPoint) -> None:
         """Context menu for bulk selection of chart categories."""
@@ -5600,15 +5599,27 @@ class MainWindow(
         layout = QVBoxLayout(dialog)
         fx_revaluation_effect = difference_historical - difference_latest
         summary_lines = [
-            f"Total of all accounts: {accounts_balance:,.2f}{default_currency_symbol}",
-            f"Accounting total (latest rates): {accounting_balance_latest:,.2f}{default_currency_symbol}",
-            f"Difference (accounts - accounting, latest rates): {difference_latest:,.2f}{default_currency_symbol}",
+            f"Total of all accounts: {with_currency(f'{accounts_balance:,.2f}', default_currency_symbol)}",
             (
-                f"Accounting total (historical rates by operation date): "
-                f"{accounting_balance_historical:,.2f}{default_currency_symbol}"
+                "Accounting total (latest rates): "
+                f"{with_currency(f'{accounting_balance_latest:,.2f}', default_currency_symbol)}"
             ),
-            f"Difference (accounts - accounting, historical): {difference_historical:,.2f}{default_currency_symbol}",
-            f"FX revaluation effect (historical - latest): {fx_revaluation_effect:,.2f}{default_currency_symbol}",
+            (
+                "Difference (accounts - accounting, latest rates): "
+                f"{with_currency(f'{difference_latest:,.2f}', default_currency_symbol)}"
+            ),
+            (
+                "Accounting total (historical rates by operation date): "
+                f"{with_currency(f'{accounting_balance_historical:,.2f}', default_currency_symbol)}"
+            ),
+            (
+                "Difference (accounts - accounting, historical): "
+                f"{with_currency(f'{difference_historical:,.2f}', default_currency_symbol)}"
+            ),
+            (
+                "FX revaluation effect (historical - latest): "
+                f"{with_currency(f'{fx_revaluation_effect:,.2f}', default_currency_symbol)}"
+            ),
         ]
         summary_label = QLabel("\n".join(summary_lines), dialog)
         summary_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
@@ -5767,7 +5778,7 @@ class MainWindow(
                 total_parts: list[str] = []
                 for currency_id, code, symbol, sum_minor in expense_totals:
                     total_major = db.convert_from_minor_units(sum_minor, currency_id)
-                    total_parts.append(f"{total_major:,.2f}{symbol} ({code})")
+                    total_parts.append(f"{with_currency(f'{total_major:,.2f}', symbol)} ({code})")
                 totals_label.setText(f"Expenses: {' · '.join(total_parts)}")
             else:
                 totals_label.setText("Expenses: —")
@@ -5948,51 +5959,7 @@ class MainWindow(
         # Add sum action if there are selected amount cells
         if selected_amount_values:
             total_sum = sum(selected_amount_values)
-            # Format the sum using AmountDelegate logic
-            is_negative = total_sum < 0
-            num = abs(total_sum)
-
-            # Format with spaces as thousands separator
-            # Format number to 2 decimal places
-            num_str = f"{num:.2f}"
-            if "." in num_str:
-                integer_part, decimal_part = num_str.split(".")
-            else:
-                integer_part = str(int(num))
-                decimal_part = "00"
-
-            # Add spaces every 3 digits from right to left
-            formatted_integer = ""
-            for i, digit in enumerate(reversed(integer_part)):
-                if i > 0 and i % 3 == 0:
-                    formatted_integer = " " + formatted_integer
-                formatted_integer = digit + formatted_integer
-
-            # Convert decimal digits to subscript Unicode characters
-            subscript_map = {
-                "0": "₀",
-                "1": "₁",
-                "2": "₂",
-                "3": "₃",
-                "4": "₄",
-                "5": "₅",
-                "6": "₆",
-                "7": "₇",
-                "8": "₈",
-                "9": "₉",
-            }
-            subscript_decimal = "".join(subscript_map.get(digit, digit) for digit in decimal_part)
-
-            # Construct final formatted number with subscript decimals
-            # Check if the original sum is a whole number (within floating point precision)
-            near_zero = 0.01
-            is_whole_number = abs(total_sum - round(total_sum)) < near_zero
-            formatted = formatted_integer if is_whole_number else f"{formatted_integer}.{subscript_decimal}"
-
-            # Add minus sign back if needed
-            if is_negative:
-                formatted = "-" + formatted
-
+            formatted = format_amount(f"{total_sum:.2f}")
             add_info_action(context_menu, f"💰 Sum of selected: {formatted}")
 
         begin_filters_block(context_menu)
@@ -6128,7 +6095,7 @@ class MainWindow(
             default_currency_symbol: str = default_currency_info[2] if default_currency_info else ""
 
             # Update main balance label with proper currency symbol
-            self.label_balance_accounts.setText(f"{total_balance:,.2f}{default_currency_symbol}")
+            self.label_balance_accounts.setText(with_currency(f"{total_balance:,.2f}", default_currency_symbol))
 
             # Update details label
             self.label_balance_account_details.setText(details)
@@ -6187,39 +6154,20 @@ class MainWindow(
             ]:
                 set_combo_plain_items(combo, currencies, select=combo.currentText())
 
-            # Update categories list view with icons
-            expense_categories: list[tuple[str, str, str]] = self.db_manager.get_categories_with_icons_by_type(0)
-            income_categories: list[tuple[str, str, str]] = self.db_manager.get_categories_with_icons_by_type(1)
-
-            model: QStandardItemModel = QStandardItemModel()
-
-            # Add expense categories first
-            for category_name, icon, name_local in expense_categories:
-                title = category_name
-                item: QStandardItem = QStandardItem(title)
-                item.setData(category_name, Qt.ItemDataRole.UserRole)
-                item.setData(name_local, NAME_LOCAL_ROLE)
-                item.setData(icon or "", ICON_ROLE)
-                item.setData(title, Qt.ItemDataRole.ToolTipRole)
-                item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-                model.appendRow(item)
-
-            # Add income categories with special marking
-            for category_name, icon, name_local in income_categories:
-                title = f"{category_name} (Income)"
-                item = QStandardItem(title)
-                item.setData(category_name, Qt.ItemDataRole.UserRole)
-                item.setData(name_local, NAME_LOCAL_ROLE)
-                item.setData(icon or "", ICON_ROLE)
-                item.setData(title, Qt.ItemDataRole.ToolTipRole)
-                item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-                model.appendRow(item)
-
+            # One scrollable list: Expense section, then Income section
+            expense_categories = self.db_manager.get_categories_with_icons_by_type(0)
+            income_categories = self.db_manager.get_categories_with_icons_by_type(1)
+            model = QStandardItemModel()
+            fill_category_picker_model(
+                model,
+                expense_categories=expense_categories,
+                income_categories=income_categories,
+            )
             self.listView_categories.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
             self.listView_categories.setModel(model)
-
-            # Connect category selection signal after model is set
-            self.listView_categories.selectionModel().currentChanged.connect(self.on_category_selection_changed)
+            selection_model = self.listView_categories.selectionModel()
+            if selection_model is not None:
+                selection_model.currentChanged.connect(self.on_category_selection_changed)
 
             # Reset category selection
             self._clear_category_selection()
@@ -7276,11 +7224,7 @@ def on_add_transaction(self) -> None:
             def get_and_validate() -> tuple[str | None, Any]:
                 amount = self.doubleSpinBox_amount.value()
                 description = capitalize_first_letter(self.lineEdit_description.text())
-                category_name = (
-                    self.listView_categories.currentIndex().data(Qt.ItemDataRole.UserRole)
-                    if self.listView_categories.currentIndex().isValid()
-                    else None
-                )
+                category_name = selected_category_name(self)
                 currency_code = self.comboBox_currency.currentText()
                 date = self.dateEdit.date().toString("yyyy-MM-dd")
                 tag = self.lineEdit_tag.text().strip()
@@ -7439,22 +7383,16 @@ def on_category_selection_changed(self, current: QModelIndex, _previous: QModelI
 
 Handle category selection change in listView_categories.
 
-Args:
-
-- `current` (`QModelIndex`): Current selected index.
-- `_previous` (`QModelIndex`): Previously selected index.
-
 <details>
 <summary>Code:</summary>
 
 ```python
 def on_category_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
-        if current.isValid():
-            refresh_category_state_label(self, self._category_form_label_from_index(current))
-
+        label = self._category_form_label_from_index(current) if current.isValid() else None
+        if label:
+            refresh_category_state_label(self, label)
             # Defer so Use-button click handlers are not destroyed mid-signal.
             QTimer.singleShot(0, self._clear_category_suggestions)
-            # Move focus to description field and select all text
             QTimer.singleShot(100, self._focus_description_and_select_text)
         else:
             refresh_category_state_label(self, None)
@@ -8168,11 +8106,11 @@ def update_summary_labels(self) -> None:
                 sym = cur[2] if cur else ""
                 major = db.convert_from_minor_units(minor, cid)
                 formatted_major = format_amount(f"{major:.2f}")
-                income_lines.append(f"{code}: {formatted_major}{sym}")
+                income_lines.append(f"{code}: {with_currency(formatted_major, sym)}")
             income_text = (
                 "Total Income:\n" + "\n".join(income_lines)
                 if income_lines
-                else f"Total Income:\n{format_amount('0.00')}{currency_symbol}"
+                else f"Total Income:\n{format_amount_with_currency('0.00', currency_symbol)}"
             )
             self.label_total_income.setText(income_text)
 
@@ -8186,11 +8124,11 @@ def update_summary_labels(self) -> None:
                 sym = cur[2] if cur else ""
                 major = db.convert_from_minor_units(minor, cid)
                 formatted_major = format_amount(f"{major:.2f}")
-                expense_lines.append(f"{code}: {formatted_major}{sym}")
+                expense_lines.append(f"{code}: {with_currency(formatted_major, sym)}")
             expense_text = (
                 "Total Expenses:\n" + "\n".join(expense_lines)
                 if expense_lines
-                else f"Total Expenses:\n{format_amount('0.00')}{currency_symbol}"
+                else f"Total Expenses:\n{format_amount_with_currency('0.00', currency_symbol)}"
             )
             self.label_total_expenses.setText(expense_text)
 
@@ -8211,11 +8149,11 @@ def update_summary_labels(self) -> None:
                     sym = cur[2] if cur else ""
                     major = db.convert_from_minor_units(minor, cid)
                     formatted_major = format_amount(f"{major:.2f}")
-                    lines.append(f"{code}: {formatted_major}{sym}")
+                    lines.append(f"{code}: {with_currency(formatted_major, sym)}")
                 return lines
 
             expense_today_lines: list[str] = _expense_lines_for_date(today_str)
-            zero_today = f"{format_amount('0.00')}{currency_symbol}"
+            zero_today = format_amount_with_currency("0.00", currency_symbol)
             if expense_today_lines:
                 self.label_today_expense.setText("\n".join(expense_today_lines))
             else:
@@ -8225,15 +8163,15 @@ def update_summary_labels(self) -> None:
             if expense_yesterday_lines:
                 self.label_yesterday_expense.setText("\n".join(expense_yesterday_lines))
             else:
-                self.label_yesterday_expense.setText(f"{format_amount('0.00')}{currency_symbol}")
+                self.label_yesterday_expense.setText(format_amount_with_currency("0.00", currency_symbol))
 
         except Exception:
             logger.exception("Error updating summary labels")
             # Set default values on error
-            self.label_total_income.setText(f"Total Income: {format_amount('0.00')}₽")
-            self.label_total_expenses.setText(f"Total Expenses: {format_amount('0.00')}₽")
-            self.label_today_expense.setText(f"{format_amount('0.00')}₽")
-            self.label_yesterday_expense.setText(f"{format_amount('0.00')}₽")
+            self.label_total_income.setText(f"Total Income: {format_amount_with_currency('0.00', '₽')}")
+            self.label_total_expenses.setText(f"Total Expenses: {format_amount_with_currency('0.00', '₽')}")
+            self.label_today_expense.setText(format_amount_with_currency("0.00", "₽"))
+            self.label_yesterday_expense.setText(format_amount_with_currency("0.00", "₽"))
 ```
 
 </details>

@@ -155,6 +155,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         # Initialize default settings if they don't exist
         self._init_default_settings()
         self._ensure_category_name_local_column()
+        self._ensure_category_icon_lucide_column()
         self._ensure_transaction_description_en_column()
         self._ensure_standard_items_table()
         self._ensure_system_categories()
@@ -194,27 +195,39 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         }
         return self.execute_simple_query(query, params)
 
-    def add_category(self, name: str, category_type: int, icon: str = "", name_local: str = "") -> bool:
+    def add_category(
+        self,
+        name: str,
+        category_type: int,
+        icon: str = "",
+        name_local: str = "",
+        icon_lucide: str = "",
+    ) -> bool:
         """Add a new category to the database.
 
         Args:
 
         - `name` (`str`): Category name.
         - `category_type` (`int`): Category type (0 = expense, 1 = income).
-        - `icon` (`str`): Category icon. Defaults to `""`.
+        - `icon` (`str`): Category emoji icon. Defaults to `""`.
         - `name_local` (`str`): Local-language category name. Defaults to `""`.
+        - `icon_lucide` (`str`): Optional Lucide ID override. Defaults to `""`.
 
         Returns:
 
         - `bool`: `True` if successful, `False` otherwise.
 
         """
-        query = "INSERT INTO categories (name, type, icon, name_local) VALUES (:name, :type, :icon, :name_local)"
+        query = """
+            INSERT INTO categories (name, type, icon, name_local, icon_lucide)
+            VALUES (:name, :type, :icon, :name_local, :icon_lucide)
+        """
         params = {
             "name": name,
             "type": category_type,
             "icon": icon,
             "name_local": name_local or None,
+            "icon_lucide": icon_lucide or None,
         }
         return self.execute_simple_query(query, params)
 
@@ -723,10 +736,13 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `list[list[Any]]`: List of category records [\_id, name, type, icon, name_local].
+        - `list[list[Any]]`: Records
+          [\_id, name, type, icon, name_local, icon_lucide].
 
         """
-        return self.get_rows("SELECT _id, name, type, icon, name_local FROM categories ORDER BY type, name")
+        return self.get_rows(
+            "SELECT _id, name, type, icon, name_local, icon_lucide FROM categories ORDER BY type, name"
+        )
 
     def get_all_currencies(self) -> list[list[Any]]:
         r"""Get all currencies.
@@ -810,7 +826,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         return self.get_rows(
             """
-            SELECT s._id, s.name, s.name_en, s._id_categories, c.name, c.icon, c.type
+            SELECT s._id, s.name, s.name_en, s._id_categories, c.name, c.icon, c.type, c.icon_lucide
             FROM standard_items s
             JOIN categories c ON s._id_categories = c._id
             ORDER BY s.name COLLATE NOCASE
@@ -832,7 +848,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         query = """
             SELECT t._id, t.amount, t.description, cat.name, c.code, t.date, t.tag,
-                   cat.type, cat.icon, c.symbol, t.description_en
+                   cat.type, cat.icon, c.symbol, t.description_en, cat.icon_lucide
             FROM transactions t
             JOIN categories cat ON t._id_categories = cat._id
             JOIN currencies c ON t._id_currencies = c._id
@@ -861,8 +877,8 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         rows = self.get_rows("SELECT name FROM categories WHERE type = :type ORDER BY name", {"type": category_type})
         return [row[0] for row in rows]
 
-    def get_categories_with_icons_by_type(self, category_type: int) -> list[tuple[str, str, str]]:
-        """Get category names, icons, and local names by type.
+    def get_categories_with_icons_by_type(self, category_type: int) -> list[tuple[str, str, str, str]]:
+        """Get category names, emoji, local names, and Lucide overrides by type.
 
         Args:
 
@@ -870,14 +886,31 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `list[tuple[str, str, str]]`: List of `(name, icon, name_local)` tuples.
+        - `list[tuple[str, str, str, str]]`: `(name, icon, name_local, icon_lucide)`.
 
         """
         rows = self.get_rows(
-            "SELECT name, icon, name_local FROM categories WHERE type = :type ORDER BY name",
+            """
+            SELECT name, icon, name_local, icon_lucide
+            FROM categories
+            WHERE type = :type
+            ORDER BY name
+            """,
             {"type": category_type},
         )
-        return [(str(row[0] or ""), str(row[1] or ""), str(row[2] or "") if row[2] is not None else "") for row in rows]
+        return [
+            (
+                str(row[0] or ""),
+                str(row[1] or ""),
+                str(row[2] or "") if row[2] is not None else "",
+                (
+                    str(row[CATEGORY_ICONS_LUCIDE_INDEX] or "")
+                    if len(row) > CATEGORY_ICONS_LUCIDE_INDEX and row[CATEGORY_ICONS_LUCIDE_INDEX] is not None
+                    else ""
+                ),
+            )
+            for row in rows
+        ]
 
     def get_category_by_id(self, category_id: int) -> list[Any] | None:
         r"""Get category by ID.
@@ -888,10 +921,15 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `list[Any] | None`: Category data [\_id, name, type, icon, name_local] or `None` if not found.
+        - `list[Any] | None`: Category data
+          [\_id, name, type, icon, name_local, icon_lucide] or `None` if not found.
 
         """
-        query = "SELECT _id, name, type, icon, name_local FROM categories WHERE _id = :category_id"
+        query = """
+            SELECT _id, name, type, icon, name_local, icon_lucide
+            FROM categories
+            WHERE _id = :category_id
+        """
         rows = self.get_rows(query, {"category_id": category_id})
         return rows[0] if rows else None
 
@@ -1251,7 +1289,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         query_text = """
             SELECT t._id, t.amount, t.description, cat.name, c.code, t.date, t.tag,
-                   cat.type, cat.icon, c.symbol, t.description_en
+                   cat.type, cat.icon, c.symbol, t.description_en, cat.icon_lucide
             FROM transactions t
             JOIN categories cat ON t._id_categories = cat._id
             JOIN currencies c ON t._id_currencies = c._id
@@ -1547,7 +1585,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         query = """
             SELECT t._id, t.amount, t.description, cat.name, c.code, t.date, t.tag,
-                   cat.type, cat.icon, c.symbol, t.description_en
+                   cat.type, cat.icon, c.symbol, t.description_en, cat.icon_lucide
             FROM transactions t
             JOIN categories cat ON t._id_categories = cat._id
             JOIN currencies c ON t._id_currencies = c._id
@@ -1571,7 +1609,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         query = """
             SELECT t._id, t.amount, t.description, cat.name, c.code, t.date, t.tag,
-                   cat.type, cat.icon, c.symbol, t.description_en
+                   cat.type, cat.icon, c.symbol, t.description_en, cat.icon_lucide
             FROM transactions t
             JOIN categories cat ON t._id_categories = cat._id
             JOIN currencies c ON t._id_currencies = c._id
@@ -1594,7 +1632,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         rows = self.get_rows(
             """
-            SELECT s._id, s.name, s.name_en, s._id_categories, c.name, c.icon, c.type
+            SELECT s._id, s.name, s.name_en, s._id_categories, c.name, c.icon, c.type, c.icon_lucide
             FROM standard_items s
             JOIN categories c ON s._id_categories = c._id
             WHERE s.name = :name
@@ -2046,6 +2084,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         category_type: int,
         icon: str = "",
         name_local: str = "",
+        icon_lucide: str = "",
     ) -> bool:
         """Update an existing category.
 
@@ -2054,8 +2093,9 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `category_id` (`int`): Category ID.
         - `name` (`str`): Category name.
         - `category_type` (`int`): Category type.
-        - `icon` (`str`): Category icon. Defaults to `""`.
+        - `icon` (`str`): Category emoji icon. Defaults to `""`.
         - `name_local` (`str`): Local-language category name. Defaults to `""`.
+        - `icon_lucide` (`str`): Optional Lucide ID override. Defaults to `""`.
 
         Returns:
 
@@ -2064,7 +2104,11 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         query = """
             UPDATE categories
-            SET name = :name, type = :type, icon = :icon, name_local = :name_local
+            SET name = :name,
+                type = :type,
+                icon = :icon,
+                name_local = :name_local,
+                icon_lucide = :icon_lucide
             WHERE _id = :id
         """
         params = {
@@ -2072,6 +2116,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             "type": category_type,
             "icon": icon,
             "name_local": name_local or None,
+            "icon_lucide": icon_lucide or None,
             "id": category_id,
         }
         return self.execute_simple_query(query, params)
@@ -2401,6 +2446,21 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
                 (int(row[0]), str(row[1]), str(row[2]), str(row[3]), int(row[4] or 100), row[5]) for row in rows
             ]
         return self._currencies_cache
+
+    def _ensure_category_icon_lucide_column(self) -> None:
+        """Ensure optional `icon_lucide` exists on categories."""
+        try:
+            columns = {
+                str(row[1])
+                for row in self.get_rows("PRAGMA table_info(categories)")
+                if row and len(row) > 1 and row[1] is not None
+            }
+            if "icon_lucide" in columns:
+                return
+            if not self.execute_simple_query("ALTER TABLE categories ADD COLUMN icon_lucide TEXT"):
+                logger.error("Failed to add categories.icon_lucide column")
+        except Exception:
+            logger.exception("Could not ensure categories.icon_lucide column")
 
     def _ensure_category_name_local_column(self) -> None:
         """Ensure `name_local` exists on categories (migrate from `name_ru` if needed)."""
@@ -2807,6 +2867,7 @@ def __init__(self, db_filename: str) -> None:
         # Initialize default settings if they don't exist
         self._init_default_settings()
         self._ensure_category_name_local_column()
+        self._ensure_category_icon_lucide_column()
         self._ensure_transaction_description_en_column()
         self._ensure_standard_items_table()
         self._ensure_system_categories()
@@ -2864,7 +2925,7 @@ def add_account(
 ### ⚙️ Method `add_category`
 
 ```python
-def add_category(self, name: str, category_type: int, icon: str = '', name_local: str = '') -> bool
+def add_category(self, name: str, category_type: int, icon: str = '', name_local: str = '', icon_lucide: str = '') -> bool
 ```
 
 Add a new category to the database.
@@ -2873,8 +2934,9 @@ Args:
 
 - `name` (`str`): Category name.
 - `category_type` (`int`): Category type (0 = expense, 1 = income).
-- [`icon`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-icon) (`str`): Category icon. Defaults to `""`.
+- [`icon`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-icon) (`str`): Category emoji icon. Defaults to `""`.
 - `name_local` (`str`): Local-language category name. Defaults to `""`.
+- `icon_lucide` (`str`): Optional Lucide ID override. Defaults to `""`.
 
 Returns:
 
@@ -2884,13 +2946,24 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def add_category(self, name: str, category_type: int, icon: str = "", name_local: str = "") -> bool:
-        query = "INSERT INTO categories (name, type, icon, name_local) VALUES (:name, :type, :icon, :name_local)"
+def add_category(
+        self,
+        name: str,
+        category_type: int,
+        icon: str = "",
+        name_local: str = "",
+        icon_lucide: str = "",
+    ) -> bool:
+        query = """
+            INSERT INTO categories (name, type, icon, name_local, icon_lucide)
+            VALUES (:name, :type, :icon, :name_local, :icon_lucide)
+        """
         params = {
             "name": name,
             "type": category_type,
             "icon": icon,
             "name_local": name_local or None,
+            "icon_lucide": icon_lucide or None,
         }
         return self.execute_simple_query(query, params)
 ```
@@ -3697,14 +3770,17 @@ Get all categories.
 
 Returns:
 
-- `list[list[Any]]`: List of category records [\_id, name, type, icon, name_local].
+- `list[list[Any]]`: Records
+  [\_id, name, type, icon, name_local, icon_lucide].
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def get_all_categories(self) -> list[list[Any]]:
-        return self.get_rows("SELECT _id, name, type, icon, name_local FROM categories ORDER BY type, name")
+        return self.get_rows(
+            "SELECT _id, name, type, icon, name_local, icon_lucide FROM categories ORDER BY type, name"
+        )
 ```
 
 </details>
@@ -3850,7 +3926,7 @@ Returns:
 def get_all_standard_items(self) -> list[list[Any]]:
         return self.get_rows(
             """
-            SELECT s._id, s.name, s.name_en, s._id_categories, c.name, c.icon, c.type
+            SELECT s._id, s.name, s.name_en, s._id_categories, c.name, c.icon, c.type, c.icon_lucide
             FROM standard_items s
             JOIN categories c ON s._id_categories = c._id
             ORDER BY s.name COLLATE NOCASE
@@ -3884,7 +3960,7 @@ Returns:
 def get_all_transactions(self, limit: int | None = None, offset: int = 0) -> list[list[Any]]:
         query = """
             SELECT t._id, t.amount, t.description, cat.name, c.code, t.date, t.tag,
-                   cat.type, cat.icon, c.symbol, t.description_en
+                   cat.type, cat.icon, c.symbol, t.description_en, cat.icon_lucide
             FROM transactions t
             JOIN categories cat ON t._id_categories = cat._id
             JOIN currencies c ON t._id_currencies = c._id
@@ -3931,10 +4007,10 @@ def get_categories_by_type(self, category_type: int) -> list[str]:
 ### ⚙️ Method `get_categories_with_icons_by_type`
 
 ```python
-def get_categories_with_icons_by_type(self, category_type: int) -> list[tuple[str, str, str]]
+def get_categories_with_icons_by_type(self, category_type: int) -> list[tuple[str, str, str, str]]
 ```
 
-Get category names, icons, and local names by type.
+Get category names, emoji, local names, and Lucide overrides by type.
 
 Args:
 
@@ -3942,18 +4018,35 @@ Args:
 
 Returns:
 
-- `list[tuple[str, str, str]]`: List of `(name, icon, name_local)` tuples.
+- `list[tuple[str, str, str, str]]`: `(name, icon, name_local, icon_lucide)`.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def get_categories_with_icons_by_type(self, category_type: int) -> list[tuple[str, str, str]]:
+def get_categories_with_icons_by_type(self, category_type: int) -> list[tuple[str, str, str, str]]:
         rows = self.get_rows(
-            "SELECT name, icon, name_local FROM categories WHERE type = :type ORDER BY name",
+            """
+            SELECT name, icon, name_local, icon_lucide
+            FROM categories
+            WHERE type = :type
+            ORDER BY name
+            """,
             {"type": category_type},
         )
-        return [(str(row[0] or ""), str(row[1] or ""), str(row[2] or "") if row[2] is not None else "") for row in rows]
+        return [
+            (
+                str(row[0] or ""),
+                str(row[1] or ""),
+                str(row[2] or "") if row[2] is not None else "",
+                (
+                    str(row[CATEGORY_ICONS_LUCIDE_INDEX] or "")
+                    if len(row) > CATEGORY_ICONS_LUCIDE_INDEX and row[CATEGORY_ICONS_LUCIDE_INDEX] is not None
+                    else ""
+                ),
+            )
+            for row in rows
+        ]
 ```
 
 </details>
@@ -3972,14 +4065,19 @@ Args:
 
 Returns:
 
-- `list[Any] | None`: Category data [\_id, name, type, icon, name_local] or `None` if not found.
+- `list[Any] | None`: Category data
+  [\_id, name, type, icon, name_local, icon_lucide] or `None` if not found.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def get_category_by_id(self, category_id: int) -> list[Any] | None:
-        query = "SELECT _id, name, type, icon, name_local FROM categories WHERE _id = :category_id"
+        query = """
+            SELECT _id, name, type, icon, name_local, icon_lucide
+            FROM categories
+            WHERE _id = :category_id
+        """
         rows = self.get_rows(query, {"category_id": category_id})
         return rows[0] if rows else None
 ```
@@ -4559,7 +4657,7 @@ def get_filtered_transactions(
 
         query_text = """
             SELECT t._id, t.amount, t.description, cat.name, c.code, t.date, t.tag,
-                   cat.type, cat.icon, c.symbol, t.description_en
+                   cat.type, cat.icon, c.symbol, t.description_en, cat.icon_lucide
             FROM transactions t
             JOIN categories cat ON t._id_categories = cat._id
             JOIN currencies c ON t._id_currencies = c._id
@@ -4967,7 +5065,7 @@ Returns:
 def get_revision_expense_transactions(self, currency_id: int) -> list[list[Any]]:
         query = """
             SELECT t._id, t.amount, t.description, cat.name, c.code, t.date, t.tag,
-                   cat.type, cat.icon, c.symbol, t.description_en
+                   cat.type, cat.icon, c.symbol, t.description_en, cat.icon_lucide
             FROM transactions t
             JOIN categories cat ON t._id_categories = cat._id
             JOIN currencies c ON t._id_currencies = c._id
@@ -5003,7 +5101,7 @@ Returns:
 def get_revision_transactions_for_currency_on_date(self, currency_id: int, date: str) -> list[list[Any]]:
         query = """
             SELECT t._id, t.amount, t.description, cat.name, c.code, t.date, t.tag,
-                   cat.type, cat.icon, c.symbol, t.description_en
+                   cat.type, cat.icon, c.symbol, t.description_en, cat.icon_lucide
             FROM transactions t
             JOIN categories cat ON t._id_categories = cat._id
             JOIN currencies c ON t._id_currencies = c._id
@@ -5038,7 +5136,7 @@ Returns:
 def get_standard_item_by_name(self, name: str) -> list[Any] | None:
         rows = self.get_rows(
             """
-            SELECT s._id, s.name, s.name_en, s._id_categories, c.name, c.icon, c.type
+            SELECT s._id, s.name, s.name_en, s._id_categories, c.name, c.icon, c.type, c.icon_lucide
             FROM standard_items s
             JOIN categories c ON s._id_categories = c._id
             WHERE s.name = :name
@@ -5727,7 +5825,7 @@ def update_account(
 ### ⚙️ Method `update_category`
 
 ```python
-def update_category(self, category_id: int, name: str, category_type: int, icon: str = '', name_local: str = '') -> bool
+def update_category(self, category_id: int, name: str, category_type: int, icon: str = '', name_local: str = '', icon_lucide: str = '') -> bool
 ```
 
 Update an existing category.
@@ -5737,8 +5835,9 @@ Args:
 - `category_id` (`int`): Category ID.
 - `name` (`str`): Category name.
 - `category_type` (`int`): Category type.
-- [`icon`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-icon) (`str`): Category icon. Defaults to `""`.
+- [`icon`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-icon) (`str`): Category emoji icon. Defaults to `""`.
 - `name_local` (`str`): Local-language category name. Defaults to `""`.
+- `icon_lucide` (`str`): Optional Lucide ID override. Defaults to `""`.
 
 Returns:
 
@@ -5755,10 +5854,15 @@ def update_category(
         category_type: int,
         icon: str = "",
         name_local: str = "",
+        icon_lucide: str = "",
     ) -> bool:
         query = """
             UPDATE categories
-            SET name = :name, type = :type, icon = :icon, name_local = :name_local
+            SET name = :name,
+                type = :type,
+                icon = :icon,
+                name_local = :name_local,
+                icon_lucide = :icon_lucide
             WHERE _id = :id
         """
         params = {
@@ -5766,6 +5870,7 @@ def update_category(
             "type": category_type,
             "icon": icon,
             "name_local": name_local or None,
+            "icon_lucide": icon_lucide or None,
             "id": category_id,
         }
         return self.execute_simple_query(query, params)

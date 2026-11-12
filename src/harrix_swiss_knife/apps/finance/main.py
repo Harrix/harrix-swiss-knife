@@ -2995,7 +2995,11 @@ class MainWindow(
                 name: str = category[1]
                 category_type: int = category[2]
                 icon: str = str(category[3] or "")
-                lucide: str = str(category[5] or "") if len(category) > 5 else ""
+                lucide: str = (
+                    str(category[database_manager.CATEGORY_ROW_ICON_LUCIDE_INDEX] or "")
+                    if len(category) > database_manager.CATEGORY_ROW_ICON_LUCIDE_INDEX
+                    else ""
+                )
                 if category_type == 1:
                     name = f"{name} (Income)"
                 entries.append((name, icon, lucide))

@@ -13,6 +13,7 @@ from PySide6.QtWidgets import QApplication, QStyleOptionViewItem
 
 from harrix_swiss_knife.apps.finance.database_manager import DatabaseManager
 from harrix_swiss_knife.apps.finance.delegates import YearDeltaCellDelegate
+from harrix_swiss_knife.apps.finance.number_utils import NBSP
 from harrix_swiss_knife.apps.finance.report_build_context import ReportBuildContext
 from harrix_swiss_knife.apps.finance.report_generators import (
     get_account_balances_report_data,
@@ -85,8 +86,8 @@ def test_monthly_summary_totals_per_month(report_ctx: ReportBuildContext) -> Non
 
     assert headers[:3] == ["Month", "Total", "Cafe + Food"]
     # Only expense categories are reported, and Cafe/Food are pinned to the front.
-    assert [name for _cid, name, _icon in categories[:2]] == ["Cafe", "Food"]
-    assert combined_ids == {cid for cid, name, _icon in categories if name in {"Cafe", "Food"}}
+    assert [name for _cid, name, _emoji, _lucide in categories[:2]] == ["Cafe", "Food"]
+    assert combined_ids == {cid for cid, name, _emoji, _lucide in categories if name in {"Cafe", "Food"}}
 
     # Rows run newest first and cover every month from the earliest transaction to today.
     assert rows[-1][0] == "2024-01"
@@ -127,8 +128,8 @@ def test_category_analysis_groups_recent_expenses(finance_db: DatabaseManager) -
     assert headers == ["Category", "Amount", "Type"]
     assert rows[0] == ["EXPENSES", "", ""]
     # Expenses are listed largest first, grouped by category name rather than description.
-    assert rows[1] == ["Beauty Services", "400.00 RUB", "Expense"]
-    assert rows[2] == ["Books", "150.00 RUB", "Expense"]
+    assert rows[1] == ["Beauty Services", f"400.00{NBSP}RUB", "Expense"]
+    assert rows[2] == ["Books", f"150.00{NBSP}RUB", "Expense"]
 
 
 def test_currency_analysis_counts_and_totals_per_currency(report_ctx: ReportBuildContext) -> None:
@@ -205,20 +206,20 @@ def test_monthly_income_year_delta_compares_same_month(
     assert headers[:4] == ["Month", str(current_year), str(last_year), f"vs {last_year}"]
     assert f"vs {two_years_ago}" in headers
     january = next(row for row in rows if row[0] == "January")
-    assert january[1] == "1500.00 ₽"
+    assert january[1] == f"1500.00{NBSP}₽"
     assert january[2] == "—"
-    assert january[3] == "+300.00 ₽\n1200.00 ₽"
-    assert january[4] == "+500.00 ₽\n1000.00 ₽"
+    assert january[3] == f"+300.00{NBSP}₽\n1200.00{NBSP}₽"
+    assert january[4] == f"+500.00{NBSP}₽\n1000.00{NBSP}₽"
     december = next(row for row in rows if row[0] == "December")
     assert december[1] == "—"
-    assert december[2] == "800.00 ₽"
+    assert december[2] == f"800.00{NBSP}₽"
     assert december[3] == "—"
-    assert december[4] == "+300.00 ₽\n500.00 ₽"
+    assert december[4] == f"+300.00{NBSP}₽\n500.00{NBSP}₽"
     assert rows[-1][0] == "TOTAL"
-    assert rows[-1][1] == "1500.00 ₽"
+    assert rows[-1][1] == f"1500.00{NBSP}₽"
     assert rows[-1][2] == "—"
-    assert rows[-1][3] == "+300.00 ₽\n1200.00 ₽"
-    assert rows[-1][4] == "+500.00 ₽\n1000.00 ₽"
+    assert rows[-1][3] == f"+300.00{NBSP}₽\n1200.00{NBSP}₽"
+    assert rows[-1][4] == f"+500.00{NBSP}₽\n1000.00{NBSP}₽"
 
     monkeypatch.setattr(
         "harrix_swiss_knife.apps.finance.report_generators._report_today",
@@ -233,9 +234,9 @@ def test_year_delta_cell_shows_subscript_decimals(qapp: QApplication) -> None:
     assert qapp is not None
     delegate = YearDeltaCellDelegate()
     locale = QLocale()
-    assert delegate.displayText("1500.50 ₽", locale) == "1 500.₅ ₽"
-    assert delegate.displayText("+1300.25 ₽\n1000.00 ₽", locale) == "+1 300.₂₅ ₽\n1 000 ₽"
-    assert delegate.displayText("-40.10 ₽", locale) == "-40.₁ ₽"
+    assert delegate.displayText("1500.50 ₽", locale) == f"1 500.₅₀{NBSP}₽"
+    assert delegate.displayText("+1300.25 ₽\n1000.00 ₽", locale) == f"+1 300.₂₅{NBSP}₽\n1 000.₀₀{NBSP}₽"
+    assert delegate.displayText("-40.10 ₽", locale) == f"-40.₁₀{NBSP}₽"
     assert delegate.displayText("—", locale) == "—"
 
 

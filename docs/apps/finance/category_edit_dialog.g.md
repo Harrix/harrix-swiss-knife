@@ -23,7 +23,7 @@ lang: en
 class CategoryEditDialog(QDialog)
 ```
 
-Dialog for editing category name, local name, type, and icon.
+Dialog for editing category name, local name, type, emoji, and Lucide.
 
 <details>
 <summary>Code:</summary>
@@ -44,7 +44,7 @@ class CategoryEditDialog(QDialog):
         Args:
 
         - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
-        - `category_data` (`dict | None`): Category fields (`id`, `name`, `type`, `icon`, `name_local`).
+        - `category_data` (`dict | None`): Category fields including optional `icon_lucide`.
         - `app_config` (`dict[str, Any] | None`): App config for BotHub translation.
         - `bothub_state` (`BothubRequestState | None`): Shared in-flight BotHub request state.
 
@@ -57,7 +57,7 @@ class CategoryEditDialog(QDialog):
 
         self.setWindowTitle("Edit Category")
         qt_modality.set_owner_window_modal(self)
-        self.setMinimumWidth(400)
+        self.setMinimumWidth(440)
 
         self._setup_ui()
         self._populate_data()
@@ -94,6 +94,7 @@ class CategoryEditDialog(QDialog):
             "type": self.type_combo.currentIndex(),
             "icon": self._icon_row.emoji(),
             "name_local": capitalize_first_letter(self.name_local_edit.text()),
+            "icon_lucide": self._lucide_row.lucide_name(),
         }
         self.accept()
 
@@ -113,6 +114,7 @@ class CategoryEditDialog(QDialog):
         category_type = int(self.category_data.get("type", 0) or 0)
         self.type_combo.setCurrentIndex(0 if category_type == 0 else 1)
         self._icon_row.set_emoji(str(self.category_data.get("icon", "") or ""))
+        self._lucide_row.set_lucide_name(str(self.category_data.get("icon_lucide", "") or ""))
         self.name_local_edit.setText(str(self.category_data.get("name_local", "") or ""))
         self.name_edit.setFocus()
         self.name_edit.selectAll()
@@ -147,16 +149,30 @@ class CategoryEditDialog(QDialog):
         type_layout.addWidget(self.type_combo, 1)
         layout.addLayout(type_layout)
 
-        icon_layout = QHBoxLayout()
-        icon_layout.addWidget(QLabel("Icon:"))
+        emoji_layout = QHBoxLayout()
+        emoji_layout.addWidget(QLabel("Emoji:"))
         self._icon_row = EmojiChoiceRow(
             self,
             current_emoji=str(self.category_data.get("icon", "") or ""),
             presets=FINANCE_EMOJI_PRESETS,
             allow_empty=True,
         )
-        icon_layout.addWidget(self._icon_row, 1)
-        layout.addLayout(icon_layout)
+        emoji_layout.addWidget(self._icon_row, 1)
+        layout.addLayout(emoji_layout)
+
+        lucide_layout = QHBoxLayout()
+        lucide_layout.addWidget(QLabel("Lucide:"))
+        self._lucide_row = LucideChoiceRow(
+            self,
+            current_name=str(self.category_data.get("icon_lucide", "") or ""),
+            presets=FINANCE_CATEGORY_LUCIDE_PRESETS,
+            allow_empty=True,
+            app_config=self._app_config,
+            bothub_state=self._bothub_state,
+            suggest_query_provider=self.name_edit.text,
+        )
+        lucide_layout.addWidget(self._lucide_row, 1)
+        layout.addLayout(lucide_layout)
 
         button_layout = QHBoxLayout()
         self.delete_button = make_lucide_push_button("Delete", DELETE_BUTTON_ICON)
@@ -189,7 +205,7 @@ Initialize the dialog.
 Args:
 
 - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
-- `category_data` (`dict | None`): Category fields (`id`, `name`, `type`, [`icon`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-icon), `name_local`).
+- `category_data` (`dict | None`): Category fields including optional `icon_lucide`.
 - `app_config` (`dict[str, Any] | None`): App config for BotHub translation.
 - `bothub_state` (`BothubRequestState | None`): Shared in-flight BotHub request state.
 
@@ -213,7 +229,7 @@ def __init__(
 
         self.setWindowTitle("Edit Category")
         qt_modality.set_owner_window_modal(self)
-        self.setMinimumWidth(400)
+        self.setMinimumWidth(440)
 
         self._setup_ui()
         self._populate_data()

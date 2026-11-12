@@ -55,7 +55,6 @@ class Ui_MainWindow(object):
         self.label_field_date.setText(QCoreApplication.translate("MainWindow", u"Date:", None))
         self.dateEdit.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
         self.label_field_tag.setText(QCoreApplication.translate("MainWindow", u"Tags:", None))
-        self.label_tag.setText(QCoreApplication.translate("MainWindow", u"Tag:", None))
         self.lineEdit_tag.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Optional, comma-separated", None))
         self.pushButton_add.setText(QCoreApplication.translate("MainWindow", u"Add transaction", None))
         self.groupBox_commands.setTitle("")
@@ -313,11 +312,6 @@ class Ui_MainWindow(object):
         self.label_field_tag.setMinimumSize(QSize(90, 0))
 
         self.horizontalLayout_3.addWidget(self.label_field_tag)
-
-        self.label_tag = QLabel(self.groupBox_transaction)
-        self.label_tag.setObjectName(u"label_tag")
-        self.label_tag.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self.label_tag.hide()
 
         self.lineEdit_tag = QLineEdit(self.groupBox_transaction)
         self.lineEdit_tag.setObjectName(u"lineEdit_tag")
@@ -1480,7 +1474,6 @@ def retranslateUi(self, MainWindow):
         self.label_field_date.setText(QCoreApplication.translate("MainWindow", u"Date:", None))
         self.dateEdit.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
         self.label_field_tag.setText(QCoreApplication.translate("MainWindow", u"Tags:", None))
-        self.label_tag.setText(QCoreApplication.translate("MainWindow", u"Tag:", None))
         self.lineEdit_tag.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Optional, comma-separated", None))
         self.pushButton_add.setText(QCoreApplication.translate("MainWindow", u"Add transaction", None))
         self.groupBox_commands.setTitle("")
@@ -1754,11 +1747,6 @@ def setupUi(self, MainWindow):
         self.label_field_tag.setMinimumSize(QSize(90, 0))
 
         self.horizontalLayout_3.addWidget(self.label_field_tag)
-
-        self.label_tag = QLabel(self.groupBox_transaction)
-        self.label_tag.setObjectName(u"label_tag")
-        self.label_tag.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self.label_tag.hide()
 
         self.lineEdit_tag = QLineEdit(self.groupBox_transaction)
         self.lineEdit_tag.setObjectName(u"lineEdit_tag")

@@ -65,7 +65,7 @@ def test_category_add_dialog_returns_icon(qapp: QApplication) -> None:
     dialog._name_local_edit.setText("Кафе")
     dialog._icon_row.set_emoji("☕")
     dialog._on_accept()
-    assert dialog.get_result() == ("Cafe", 0, "☕", "Кафе")
+    assert dialog.get_result() == ("Cafe", 0, "☕", "Кафе", "")
 
 
 def test_category_edit_dialog_keeps_icon(qapp: QApplication) -> None:

@@ -276,6 +276,14 @@ def upsert_finance_catalog(db_path: Path, catalog: dict[str, Any]) -> FinanceCat
     )
 
 
+def _ensure_categories_icon_lucide_column(conn: sqlite3.Connection) -> None:
+    """Add `icon_lucide` when an older finance DB is missing the column."""
+    columns = {str(row[1]) for row in conn.execute("PRAGMA table_info(categories)").fetchall()}
+    if "icon_lucide" in columns:
+        return
+    conn.execute("ALTER TABLE categories ADD COLUMN icon_lucide TEXT")
+
+
 def _normalize_categories(raw: Any) -> list[dict[str, Any]]:
     if raw is None:
         raw = []
@@ -301,14 +309,6 @@ def _normalize_categories(raw: Any) -> list[dict[str, Any]]:
             }
         )
     return categories
-
-
-def _ensure_categories_icon_lucide_column(conn: sqlite3.Connection) -> None:
-    """Add `icon_lucide` when an older finance DB is missing the column."""
-    columns = {str(row[1]) for row in conn.execute("PRAGMA table_info(categories)").fetchall()}
-    if "icon_lucide" in columns:
-        return
-    conn.execute("ALTER TABLE categories ADD COLUMN icon_lucide TEXT")
 
 
 def _normalize_currencies(raw: Any) -> list[dict[str, Any]]:

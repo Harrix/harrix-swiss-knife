@@ -1568,7 +1568,9 @@ def transform_transaction_data(
         tag: str = row[6]
         category_type: int = row[7]
         icon: str = row[8]
-        icon_lucide: str = str(row[11] or "") if len(row) > 11 else ""
+        icon_lucide: str = (
+            str(row[TRANSACTION_ICON_LUCIDE_INDEX] or "") if len(row) > TRANSACTION_ICON_LUCIDE_INDEX else ""
+        )
         description_en: str = (
             str(row[TRANSACTION_DESCRIPTION_EN_INDEX] or "") if len(row) > TRANSACTION_DESCRIPTION_EN_INDEX else ""
         )
@@ -1968,6 +1970,7 @@ def _transaction_matches_chart_filter(
 # Minimum row length for get_filtered_transactions / get_all_transactions (up to category_type index 7)
 MIN_TRANSACTION_ROW_LENGTH = 8
 TRANSACTION_DESCRIPTION_EN_INDEX = 10
+TRANSACTION_ICON_LUCIDE_INDEX = 11
 
 # Minimum row length for get_all_currency_exchanges (up to date index 7, description 8)
 MIN_EXCHANGE_ROW_LENGTH = 9

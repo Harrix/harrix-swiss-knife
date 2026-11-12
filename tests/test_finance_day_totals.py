@@ -10,6 +10,7 @@ from PySide6.QtGui import QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import QApplication, QTableView
 
 from harrix_swiss_knife.apps.finance.delegates.amount_delegate import _total_per_day_alignment
+from harrix_swiss_knife.apps.finance.number_utils import NBSP
 from harrix_swiss_knife.apps.finance.transaction_day_totals import (
     TRANSACTION_COL_AMOUNT,
     TRANSACTION_COL_DATE,
@@ -138,8 +139,8 @@ def test_signed_amount_income_positive_expense_negative() -> None:
 
 def test_format_transaction_selection_status() -> None:
     assert format_transaction_selection_status(0, 0.0, "₽") == ""
-    assert format_transaction_selection_status(1, -80.0, "₽") == "1 row selected · sum -80₽"
-    assert format_transaction_selection_status(3, 1234.5, "₽") == "3 rows selected · sum 1 234.₅₽"
+    assert format_transaction_selection_status(1, -80.0, "₽") == f"1 row selected · sum -80.₀₀{NBSP}₽"
+    assert format_transaction_selection_status(3, 1234.5, "₽") == f"3 rows selected · sum 1 234.₅₀{NBSP}₽"
 
 
 def test_sum_transaction_rows_in_default_currency(qapp: QApplication) -> None:  # noqa: ARG001

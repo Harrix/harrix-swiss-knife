@@ -5,7 +5,7 @@ from __future__ import annotations
 import contextlib
 
 from PySide6.QtCore import QAbstractItemModel, QEvent, QRect, QSize, Qt
-from PySide6.QtGui import QColor, QFontMetrics, QMouseEvent, QPainter, QPaintEvent, QPalette, QPen
+from PySide6.QtGui import QColor, QFontMetrics, QIcon, QMouseEvent, QPainter, QPaintEvent, QPalette, QPen
 from PySide6.QtWidgets import QHeaderView, QStyleOptionHeader, QTableView, QWidget
 
 from harrix_swiss_knife.apps.common.ui_chrome import MUTED_TEXT
@@ -16,6 +16,9 @@ _BOUNDARY_GRIP_PX = 5
 _BOUNDARY_INSET_PX = 8
 _TEXT_PADDING = 8
 _TEXT_INSET = 4
+_HEADER_ICON_SIZE = 16
+_HEADER_ICON_TOP = 4
+_HEADER_ICON_GAP = 2
 
 
 class WordWrapHeaderView(QHeaderView):
@@ -110,10 +113,23 @@ class WordWrapHeaderView(QHeaderView):
         painter.setPen(QPen(hairline, 1))
         painter.drawLine(rect.bottomLeft(), rect.bottomRight())
 
+        icon = self._section_icon(logical_index)
+        text_top = 2
+        if not icon.isNull():
+            pixmap = icon.pixmap(_HEADER_ICON_SIZE, _HEADER_ICON_SIZE)
+            icon_x = rect.x() + (rect.width() - pixmap.width()) // 2
+            icon_y = rect.y() + _HEADER_ICON_TOP
+            painter.drawPixmap(icon_x, icon_y, pixmap)
+            text_top = _HEADER_ICON_TOP + pixmap.height() + _HEADER_ICON_GAP
+
         text = self._section_text(logical_index)
         if text:
             painter.setPen(ink)
-            painter.drawText(rect.adjusted(_TEXT_INSET, 2, -_TEXT_INSET, -2), int(HEADER_TEXT_FLAGS), text)
+            painter.drawText(
+                rect.adjusted(_TEXT_INSET, text_top, -_TEXT_INSET, -2),
+                int(HEADER_TEXT_FLAGS),
+                text,
+            )
         painter.restore()
 
     def refresh_wrapped_height(self) -> None:
@@ -174,14 +190,26 @@ class WordWrapHeaderView(QHeaderView):
                 width = self._wrap_width
             if width <= 0:
                 continue
-            max_height = max(
-                max_height,
-                wrapped_header_text_size(self._section_text(logical_index), width, self.fontMetrics()).height(),
-            )
+            text_height = wrapped_header_text_size(
+                self._section_text(logical_index),
+                width,
+                self.fontMetrics(),
+            ).height()
+            icon_extra = 0
+            if not self._section_icon(logical_index).isNull():
+                icon_extra = _HEADER_ICON_TOP + _HEADER_ICON_SIZE + _HEADER_ICON_GAP
+            max_height = max(max_height, text_height + icon_extra)
         return max_height
 
     def _on_section_resized(self, _logical_index: int, _old_size: int, _new_size: int) -> None:
         self.refresh_wrapped_height()
+
+    def _section_icon(self, logical_index: int) -> QIcon:
+        model = self.model()
+        if model is None:
+            return QIcon()
+        value = model.headerData(logical_index, self.orientation(), Qt.ItemDataRole.DecorationRole)
+        return value if isinstance(value, QIcon) else QIcon()
 
     def _section_text(self, logical_index: int) -> str:
         model = self.model()

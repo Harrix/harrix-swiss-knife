@@ -36,7 +36,7 @@ class ReportBuildResult:
     headers: list[str]
     table_rows: list[list[str]] | None = None
     monthly_rows: list[tuple[str, float, float, dict[int, float]]] | None = None
-    expense_categories: list[tuple[int, str, str]] | None = None
+    expense_categories: list[tuple[int, str, str, str]] | None = None
 ```
 
 </details>

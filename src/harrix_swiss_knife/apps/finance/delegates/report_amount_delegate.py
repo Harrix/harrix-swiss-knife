@@ -4,12 +4,15 @@ from __future__ import annotations
 
 import logging
 import re
+from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QLocale, QModelIndex, QPersistentModelIndex
 from PySide6.QtGui import QFont, QPainter
 from PySide6.QtWidgets import QStyledItemDelegate, QStyleOptionViewItem, QWidget
 
 from harrix_swiss_knife.apps.finance.number_utils import format_amount
+
+if TYPE_CHECKING:
+    from PySide6.QtCore import QLocale, QModelIndex, QPersistentModelIndex
 
 logger = logging.getLogger(__name__)
 

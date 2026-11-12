@@ -27,11 +27,10 @@ lang: en
 class AmountDelegate(QStyledItemDelegate)
 ```
 
-Delegate for amount column with custom formatting and editing.
+Delegate for amount columns with subscript decimals, currency, and income chrome.
 
-This delegate provides custom formatting for amount values in the
-transactions table, including thousands separators, subscript decimals,
-and special formatting for income transactions.
+Formatting includes thousands separators, subscript decimals, an optional
+currency symbol suffix, and bold green text for income amounts.
 
 <details>
 <summary>Code:</summary>
@@ -39,17 +38,38 @@ and special formatting for income transactions.
 ```python
 class AmountDelegate(QStyledItemDelegate):
 
-    def __init__(self, parent: QWidget | None = None, db_manager: object = None) -> None:
+    def __init__(
+        self,
+        parent: QWidget | None = None,
+        db_manager: object = None,
+        *,
+        currency_column: int | None = None,
+        use_default_currency: bool = False,
+        category_column: int | None = None,
+        amount_column: int | None = None,
+        total_per_day: bool = False,
+    ) -> None:
         """Initialize the amount delegate.
 
         Args:
 
-        - `parent` (`QWidget | None`): The parent widget. Defaults to `None`.
-        - `db_manager` (`object | None`): The database manager instance. Defaults to `None`.
+        - `parent` (`QWidget | None`): Parent widget.
+        - `db_manager` (`object | None`): Database manager for currency symbols.
+        - `currency_column` (`int | None`): Column with a currency code for the symbol.
+        - `use_default_currency` (`bool`): Use the project default currency symbol.
+        - `category_column` (`int | None`): Category column used to detect income rows.
+        - `amount_column` (`int | None`): Column index that applies expense/income sign
+          rules when editing (transactions Amount).
+        - `total_per_day` (`bool`): Honor per-cell alignment used by day spans.
 
         """
         super().__init__(parent)
         self.db_manager = db_manager
+        self.currency_column = currency_column
+        self.use_default_currency = use_default_currency
+        self.category_column = category_column
+        self.amount_column = amount_column
+        self.total_per_day = total_per_day
 
     def createEditor(  # noqa: N802
         self,
@@ -57,84 +77,24 @@ class AmountDelegate(QStyledItemDelegate):
         _option: QStyleOptionViewItem,
         _index: QModelIndex | QPersistentModelIndex,
     ) -> QWidget:
-        """Create editor for amount editing.
-
-        Args:
-
-        - `parent` (`QWidget`): The parent widget for the editor.
-        - `_option` (`QStyleOptionViewItem`): The style options for the item.
-        - `_index` (`QModelIndex`): The model index of the item being edited.
-
-        Returns:
-
-        - `QDoubleSpinBox`: A configured double spin box editor for amount input.
-
-        """
+        """Create editor for amount editing."""
         editor = CompactDoubleSpinBox(parent)
         editor.setRange(-999999999.99, 999999999.99)
         editor.setDecimals(2)
-        editor.setGroupSeparatorShown(False)  # No separators in editor
-
+        editor.setGroupSeparatorShown(False)
         apply_white_editor_background(editor, "QDoubleSpinBox")
-
         return editor
 
     def displayText(self, value: object, _locale: QLocale | QLocale.Language) -> str:  # noqa: N802
-        """Format display text with spaces for thousands separator and subscript decimals.
-
-        Args:
-
-        - `value` (`object`): The value to format for display.
-        - `_locale` (`QLocale | None`): The locale for formatting (unused in this implementation).
-
-        Returns:
-
-        - `str`: The formatted text with spaces as thousands separators and subscript decimal digits.
-
-        """
+        """Format display text with spaces and subscript decimals."""
         try:
-            # Get the raw text value
-            text = str(value)
-
-            # Check if it's a negative number (starts with -)
-            is_negative = text.startswith("-")
-
-            # Remove minus sign for processing
-            if is_negative:
-                text = text[1:]
-
-            # Try to parse as float
-            try:
-                num = float(text)
-            except (ValueError, TypeError):
-                return str(value)  # Return original if can't parse
-
-            # Format with spaces as thousands separator
-            # Split into integer and decimal parts
-            if "." in str(num):
-                integer_part, decimal_part = str(num).split(".")
-            else:
-                integer_part = str(int(num))
-                decimal_part = "00"
-
-            # Add spaces every 3 digits from right to left
-            formatted_integer = ""
-            for i, digit in enumerate(reversed(integer_part)):
-                if i > 0 and i % 3 == 0:
-                    formatted_integer = " " + formatted_integer
-                formatted_integer = digit + formatted_integer
-
-            # Keep integer and fractional digits the same size for vertical scanning.
-            decimal_digits = (decimal_part + "00")[:2]
-            formatted = f"{formatted_integer}.{decimal_digits}"
-
-            # Add minus sign back if needed
-            if is_negative:
-                formatted = "-" + formatted
+            if isinstance(value, bool) or not isinstance(value, (int, float, str)):
+                return str(value)
+            amount: float | str = float(value) if isinstance(value, int) else value
+            return format_amount(amount)
         except Exception:
             logger.exception("Error while formatting amount")
             return str(value)
-        return formatted
 
     def paint(
         self,
@@ -142,161 +102,118 @@ class AmountDelegate(QStyledItemDelegate):
         option: QStyleOptionViewItem,
         index: QModelIndex | QPersistentModelIndex,
     ) -> None:
-        """Paint cell with special formatting for income transactions.
-
-        Args:
-
-        - `painter` (`QPainter`): The painter used for drawing.
-        - `option` (`QStyleOptionViewItem`): The style options for the item.
-        - `index` (`QModelIndex`): The model index of the item being painted.
-
-        """
+        """Paint amount with optional income styling and currency suffix."""
         try:
-            total_per_day_column = 7  # Column index for "Total per day"
-            if index.column() == total_per_day_column:
-                raw_value = index.data(Qt.ItemDataRole.DisplayRole)
-                # Show currency symbol only in cells that have a sum (non-empty value)
-                if raw_value is None or (isinstance(raw_value, str) and not raw_value.strip()):
-                    super().paint(painter, option, index)
-                    return
-                # Total per day is in default (target) currency, not transaction currency
-                currency_symbol = ""
-                if self.db_manager is not None:
-                    default_code = self.db_manager.get_default_currency()
-                    if default_code:
-                        currency_info = self.db_manager.get_currency_by_code(default_code)
-                        if currency_info:
-                            currency_symbol = currency_info[2]
-                amount_text = self.displayText(raw_value, QLocale())
-                display_text = f"{amount_text}{currency_symbol}"
-                alignment = _total_per_day_alignment(index.data(Qt.ItemDataRole.TextAlignmentRole))
-                painter.save()
-                brush = index.data(Qt.ItemDataRole.BackgroundRole)
-                if isinstance(brush, QBrush) and brush.style() != Qt.BrushStyle.NoBrush:
-                    painter.fillRect(option.rect, brush)
-                font = QFont(option.font)
-                font.setStyleHint(QFont.StyleHint.SansSerif)
-                painter.setFont(font)
-                painter.setPen(option.palette.color(QPalette.ColorRole.Text))
-                top_pad = 3 if alignment & Qt.AlignmentFlag.AlignTop else 0
-                painter.drawText(
-                    option.rect.adjusted(5, top_pad, -5, 0),
-                    alignment,
-                    display_text,
-                )
-                painter.restore()
-                return
-
-            # Get the model and check if this is an income transaction
-            model = index.model()
-            if model is None:
+            raw_value = index.data(Qt.ItemDataRole.DisplayRole)
+            if raw_value is None or (isinstance(raw_value, str) and not str(raw_value).strip()):
                 super().paint(painter, option, index)
                 return
 
-            # Get the category column (index 3) from the same row
-            category_index = model.index(index.row(), 3)
-            category_text = model.data(category_index, Qt.ItemDataRole.DisplayRole)
+            amount_text = self.displayText(raw_value, QLocale())
+            symbol = self._currency_symbol(index)
+            display_text = with_currency(amount_text, symbol)
 
-            # Check if this is an income transaction (has "(Income)" suffix)
-            is_income = category_text and "(Income)" in str(category_text)
-            amount_text = self.displayText(index.data(), QLocale())
-            alignment = int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
-            text_pen = option.palette.color(QPalette.ColorRole.Text)
-
-            if is_income:
-                painter.save()
-                brush = index.data(Qt.ItemDataRole.BackgroundRole)
-                if isinstance(brush, QBrush) and brush.style() != Qt.BrushStyle.NoBrush:
-                    painter.fillRect(option.rect, brush)
-                font = QFont(option.font)
-                font.setBold(True)
-                painter.setFont(font)
-                painter.setPen(text_pen)
-                painter.drawText(option.rect.adjusted(5, 0, -5, 0), alignment, amount_text)
-                painter.restore()
-                return
+            is_income = self._is_income_row(index)
+            if self.total_per_day:
+                alignment = int(_total_per_day_alignment(index.data(Qt.ItemDataRole.TextAlignmentRole)))
+            else:
+                alignment = int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
 
             painter.save()
             brush = index.data(Qt.ItemDataRole.BackgroundRole)
             if isinstance(brush, QBrush) and brush.style() != Qt.BrushStyle.NoBrush:
                 painter.fillRect(option.rect, brush)
-            font = QFont(option.font)
-            painter.setFont(font)
-            painter.setPen(text_pen)
-            painter.drawText(option.rect.adjusted(5, 0, -5, 0), alignment, amount_text)
-            painter.restore()
 
+            font = QFont(option.font)
+            font.setStyleHint(QFont.StyleHint.SansSerif)
+            if is_income:
+                font.setBold(True)
+            painter.setFont(font)
+
+            if is_income:
+                painter.setPen(self._income_pen_color(option))
+            else:
+                painter.setPen(option.palette.color(QPalette.ColorRole.Text))
+
+            top_pad = 3 if alignment & Qt.AlignmentFlag.AlignTop else 0
+            painter.drawText(option.rect.adjusted(5, top_pad, -5, 0), alignment, display_text)
+            painter.restore()
         except Exception:
-            # Fallback to default painting on any error
             super().paint(painter, option, index)
 
     def setEditorData(self, editor: QWidget, index: QModelIndex | QPersistentModelIndex) -> None:  # noqa: N802
-        """Set data in editor (without spaces).
-
-        Args:
-
-        - `editor` (`QWidget`): The editor widget to set data in.
-        - `index` (`QModelIndex | QPersistentModelIndex`): The model index containing the data.
-
-        """
+        """Set data in editor (without spaces / currency / subscripts)."""
         spin = cast("QDoubleSpinBox", editor)
         try:
-            # Get the original value without formatting
-            text = str(index.data(Qt.ItemDataRole.DisplayRole))
-
-            # Remove spaces and convert to float
-            clean_text = text.replace(" ", "")
-
-            # Handle cases where the text might already be a formatted number
-            # Remove any non-numeric characters except decimal point and minus
-            clean_text = re.sub(r"[^\d.-]", "", clean_text)
-
-            value = float(clean_text)
-            spin.setValue(value)
+            text = str(index.data(Qt.ItemDataRole.DisplayRole) or "")
+            clean_text = re.sub(r"[^\d.-]", "", text.translate(str.maketrans("₀₁₂₃₄₅₆₇₈₉", "0123456789")))
+            spin.setValue(float(clean_text) if clean_text not in {"", "-", ".", "-."} else 0.0)
         except (ValueError, TypeError):
             spin.setValue(0.0)
 
     def setModelData(  # noqa: N802
-        self, editor: QWidget, model: QAbstractItemModel, index: QModelIndex | QPersistentModelIndex
+        self,
+        editor: QWidget,
+        model: QAbstractItemModel,
+        index: QModelIndex | QPersistentModelIndex,
     ) -> None:
-        """Set data from editor back to model.
-
-        Args:
-
-        - `editor` (`QWidget`): The editor widget containing the edited value.
-        - `model` (`QAbstractItemModel`): The model to update with the new data.
-        - `index` (`QModelIndex | QPersistentModelIndex`): The model index to update.
-
-        """
+        """Set data from editor back to model."""
         spin = cast("QDoubleSpinBox", editor)
         value = spin.value()
 
-        # Only apply transaction type logic for Amount column, not for Total per day
-        amount_column_index = 2
-        if index.column() == amount_column_index:
-            # Get the category column from the same row to determine transaction type
-            category_index = model.index(index.row(), 3)
-            category_text = model.data(category_index, Qt.ItemDataRole.DisplayRole)
-
-            # Check if this is an income transaction (has "(Income)" suffix)
-            is_income = category_text and "(Income)" in str(category_text)
-
-            # For expenses (not income), ensure negative sign is present
-            # For income, ensure no negative sign
+        if self.amount_column is not None and index.column() == self.amount_column and self.category_column is not None:
+            category_text = model.data(model.index(index.row(), self.category_column), Qt.ItemDataRole.DisplayRole)
+            is_income = is_income_category_display(str(category_text or ""))
             if not is_income:
-                # Expense: ensure value is negative
                 if value > 0:
                     value = -value
-            # Income: ensure value is positive
             elif value < 0:
                 value = abs(value)
 
-        # Format the value as string with 2 decimal places for storage
         formatted_value = f"{value:.2f}"
-
-        # Set both DisplayRole and EditRole to ensure consistency
         model.setData(index, formatted_value, Qt.ItemDataRole.DisplayRole)
         model.setData(index, formatted_value, Qt.ItemDataRole.EditRole)
+
+    def _currency_symbol(self, index: QModelIndex | QPersistentModelIndex) -> str:
+        db = cast("Any", self.db_manager)
+        if db is None:
+            return ""
+        try:
+            if self.use_default_currency:
+                code = db.get_default_currency()
+            elif self.currency_column is not None:
+                model = index.model()
+                if model is None:
+                    return ""
+                code = model.data(model.index(index.row(), self.currency_column), Qt.ItemDataRole.DisplayRole)
+            else:
+                return ""
+            code_text = str(code or "").strip()
+            if not code_text:
+                return ""
+            info = db.get_currency_by_code(code_text)
+            if not info:
+                return ""
+            return str(info[2] or "")
+        except Exception:
+            logger.exception("Error resolving currency symbol for amount cell")
+            return ""
+
+    def _income_pen_color(self, option: QStyleOptionViewItem) -> QColor:
+        host = option.widget if isinstance(option.widget, QWidget) else None
+        try:
+            return palette_for(host).success
+        except Exception:
+            return _INCOME_TEXT
+
+    def _is_income_row(self, index: QModelIndex | QPersistentModelIndex) -> bool:
+        if self.category_column is None:
+            return False
+        model = index.model()
+        if model is None:
+            return False
+        category_text = model.data(model.index(index.row(), self.category_column), Qt.ItemDataRole.DisplayRole)
+        return is_income_category_display(str(category_text or ""))
 ```
 
 </details>
@@ -304,23 +221,44 @@ class AmountDelegate(QStyledItemDelegate):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None = None, db_manager: object = None) -> None
+def __init__(self, parent: QWidget | None = None, db_manager: object = None, *, currency_column: int | None = None, use_default_currency: bool = False, category_column: int | None = None, amount_column: int | None = None, total_per_day: bool = False) -> None
 ```
 
 Initialize the amount delegate.
 
 Args:
 
-- `parent` (`QWidget | None`): The parent widget. Defaults to `None`.
-- `db_manager` (`object | None`): The database manager instance. Defaults to `None`.
+- `parent` (`QWidget | None`): Parent widget.
+- `db_manager` (`object | None`): Database manager for currency symbols.
+- `currency_column` (`int | None`): Column with a currency code for the symbol.
+- `use_default_currency` (`bool`): Use the project default currency symbol.
+- `category_column` (`int | None`): Category column used to detect income rows.
+- `amount_column` (`int | None`): Column index that applies expense/income sign
+  rules when editing (transactions Amount).
+- `total_per_day` (`bool`): Honor per-cell alignment used by day spans.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def __init__(self, parent: QWidget | None = None, db_manager: object = None) -> None:
+def __init__(
+        self,
+        parent: QWidget | None = None,
+        db_manager: object = None,
+        *,
+        currency_column: int | None = None,
+        use_default_currency: bool = False,
+        category_column: int | None = None,
+        amount_column: int | None = None,
+        total_per_day: bool = False,
+    ) -> None:
         super().__init__(parent)
         self.db_manager = db_manager
+        self.currency_column = currency_column
+        self.use_default_currency = use_default_currency
+        self.category_column = category_column
+        self.amount_column = amount_column
+        self.total_per_day = total_per_day
 ```
 
 </details>
@@ -332,16 +270,6 @@ def createEditor(self, parent: QWidget, _option: QStyleOptionViewItem, _index: Q
 ```
 
 Create editor for amount editing.
-
-Args:
-
-- `parent` (`QWidget`): The parent widget for the editor.
-- `_option` (`QStyleOptionViewItem`): The style options for the item.
-- `_index` (`QModelIndex`): The model index of the item being edited.
-
-Returns:
-
-- `QDoubleSpinBox`: A configured double spin box editor for amount input.
 
 <details>
 <summary>Code:</summary>
@@ -356,10 +284,8 @@ def createEditor(  # noqa: N802
         editor = CompactDoubleSpinBox(parent)
         editor.setRange(-999999999.99, 999999999.99)
         editor.setDecimals(2)
-        editor.setGroupSeparatorShown(False)  # No separators in editor
-
+        editor.setGroupSeparatorShown(False)
         apply_white_editor_background(editor, "QDoubleSpinBox")
-
         return editor
 ```
 
@@ -371,16 +297,7 @@ def createEditor(  # noqa: N802
 def displayText(self, value: object, _locale: QLocale | QLocale.Language) -> str
 ```
 
-Format display text with spaces for thousands separator and subscript decimals.
-
-Args:
-
-- `value` (`object`): The value to format for display.
-- `_locale` (`QLocale | None`): The locale for formatting (unused in this implementation).
-
-Returns:
-
-- `str`: The formatted text with spaces as thousands separators and subscript decimal digits.
+Format display text with spaces and subscript decimals.
 
 <details>
 <summary>Code:</summary>
@@ -388,48 +305,13 @@ Returns:
 ```python
 def displayText(self, value: object, _locale: QLocale | QLocale.Language) -> str:  # noqa: N802
         try:
-            # Get the raw text value
-            text = str(value)
-
-            # Check if it's a negative number (starts with -)
-            is_negative = text.startswith("-")
-
-            # Remove minus sign for processing
-            if is_negative:
-                text = text[1:]
-
-            # Try to parse as float
-            try:
-                num = float(text)
-            except (ValueError, TypeError):
-                return str(value)  # Return original if can't parse
-
-            # Format with spaces as thousands separator
-            # Split into integer and decimal parts
-            if "." in str(num):
-                integer_part, decimal_part = str(num).split(".")
-            else:
-                integer_part = str(int(num))
-                decimal_part = "00"
-
-            # Add spaces every 3 digits from right to left
-            formatted_integer = ""
-            for i, digit in enumerate(reversed(integer_part)):
-                if i > 0 and i % 3 == 0:
-                    formatted_integer = " " + formatted_integer
-                formatted_integer = digit + formatted_integer
-
-            # Keep integer and fractional digits the same size for vertical scanning.
-            decimal_digits = (decimal_part + "00")[:2]
-            formatted = f"{formatted_integer}.{decimal_digits}"
-
-            # Add minus sign back if needed
-            if is_negative:
-                formatted = "-" + formatted
+            if isinstance(value, bool) or not isinstance(value, (int, float, str)):
+                return str(value)
+            amount: float | str = float(value) if isinstance(value, int) else value
+            return format_amount(amount)
         except Exception:
             logger.exception("Error while formatting amount")
             return str(value)
-        return formatted
 ```
 
 </details>
@@ -440,13 +322,7 @@ def displayText(self, value: object, _locale: QLocale | QLocale.Language) -> str
 def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> None
 ```
 
-Paint cell with special formatting for income transactions.
-
-Args:
-
-- `painter` (`QPainter`): The painter used for drawing.
-- `option` (`QStyleOptionViewItem`): The style options for the item.
-- `index` (`QModelIndex`): The model index of the item being painted.
+Paint amount with optional income styling and currency suffix.
 
 <details>
 <summary>Code:</summary>
@@ -459,82 +335,41 @@ def paint(
         index: QModelIndex | QPersistentModelIndex,
     ) -> None:
         try:
-            total_per_day_column = 7  # Column index for "Total per day"
-            if index.column() == total_per_day_column:
-                raw_value = index.data(Qt.ItemDataRole.DisplayRole)
-                # Show currency symbol only in cells that have a sum (non-empty value)
-                if raw_value is None or (isinstance(raw_value, str) and not raw_value.strip()):
-                    super().paint(painter, option, index)
-                    return
-                # Total per day is in default (target) currency, not transaction currency
-                currency_symbol = ""
-                if self.db_manager is not None:
-                    default_code = self.db_manager.get_default_currency()
-                    if default_code:
-                        currency_info = self.db_manager.get_currency_by_code(default_code)
-                        if currency_info:
-                            currency_symbol = currency_info[2]
-                amount_text = self.displayText(raw_value, QLocale())
-                display_text = f"{amount_text}{currency_symbol}"
-                alignment = _total_per_day_alignment(index.data(Qt.ItemDataRole.TextAlignmentRole))
-                painter.save()
-                brush = index.data(Qt.ItemDataRole.BackgroundRole)
-                if isinstance(brush, QBrush) and brush.style() != Qt.BrushStyle.NoBrush:
-                    painter.fillRect(option.rect, brush)
-                font = QFont(option.font)
-                font.setStyleHint(QFont.StyleHint.SansSerif)
-                painter.setFont(font)
-                painter.setPen(option.palette.color(QPalette.ColorRole.Text))
-                top_pad = 3 if alignment & Qt.AlignmentFlag.AlignTop else 0
-                painter.drawText(
-                    option.rect.adjusted(5, top_pad, -5, 0),
-                    alignment,
-                    display_text,
-                )
-                painter.restore()
-                return
-
-            # Get the model and check if this is an income transaction
-            model = index.model()
-            if model is None:
+            raw_value = index.data(Qt.ItemDataRole.DisplayRole)
+            if raw_value is None or (isinstance(raw_value, str) and not str(raw_value).strip()):
                 super().paint(painter, option, index)
                 return
 
-            # Get the category column (index 3) from the same row
-            category_index = model.index(index.row(), 3)
-            category_text = model.data(category_index, Qt.ItemDataRole.DisplayRole)
+            amount_text = self.displayText(raw_value, QLocale())
+            symbol = self._currency_symbol(index)
+            display_text = with_currency(amount_text, symbol)
 
-            # Check if this is an income transaction (has "(Income)" suffix)
-            is_income = category_text and "(Income)" in str(category_text)
-            amount_text = self.displayText(index.data(), QLocale())
-            alignment = int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
-            text_pen = option.palette.color(QPalette.ColorRole.Text)
-
-            if is_income:
-                painter.save()
-                brush = index.data(Qt.ItemDataRole.BackgroundRole)
-                if isinstance(brush, QBrush) and brush.style() != Qt.BrushStyle.NoBrush:
-                    painter.fillRect(option.rect, brush)
-                font = QFont(option.font)
-                font.setBold(True)
-                painter.setFont(font)
-                painter.setPen(text_pen)
-                painter.drawText(option.rect.adjusted(5, 0, -5, 0), alignment, amount_text)
-                painter.restore()
-                return
+            is_income = self._is_income_row(index)
+            if self.total_per_day:
+                alignment = int(_total_per_day_alignment(index.data(Qt.ItemDataRole.TextAlignmentRole)))
+            else:
+                alignment = int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
 
             painter.save()
             brush = index.data(Qt.ItemDataRole.BackgroundRole)
             if isinstance(brush, QBrush) and brush.style() != Qt.BrushStyle.NoBrush:
                 painter.fillRect(option.rect, brush)
-            font = QFont(option.font)
-            painter.setFont(font)
-            painter.setPen(text_pen)
-            painter.drawText(option.rect.adjusted(5, 0, -5, 0), alignment, amount_text)
-            painter.restore()
 
+            font = QFont(option.font)
+            font.setStyleHint(QFont.StyleHint.SansSerif)
+            if is_income:
+                font.setBold(True)
+            painter.setFont(font)
+
+            if is_income:
+                painter.setPen(self._income_pen_color(option))
+            else:
+                painter.setPen(option.palette.color(QPalette.ColorRole.Text))
+
+            top_pad = 3 if alignment & Qt.AlignmentFlag.AlignTop else 0
+            painter.drawText(option.rect.adjusted(5, top_pad, -5, 0), alignment, display_text)
+            painter.restore()
         except Exception:
-            # Fallback to default painting on any error
             super().paint(painter, option, index)
 ```
 
@@ -546,12 +381,7 @@ def paint(
 def setEditorData(self, editor: QWidget, index: QModelIndex | QPersistentModelIndex) -> None
 ```
 
-Set data in editor (without spaces).
-
-Args:
-
-- `editor` (`QWidget`): The editor widget to set data in.
-- `index` (`QModelIndex | QPersistentModelIndex`): The model index containing the data.
+Set data in editor (without spaces / currency / subscripts).
 
 <details>
 <summary>Code:</summary>
@@ -560,18 +390,9 @@ Args:
 def setEditorData(self, editor: QWidget, index: QModelIndex | QPersistentModelIndex) -> None:  # noqa: N802
         spin = cast("QDoubleSpinBox", editor)
         try:
-            # Get the original value without formatting
-            text = str(index.data(Qt.ItemDataRole.DisplayRole))
-
-            # Remove spaces and convert to float
-            clean_text = text.replace(" ", "")
-
-            # Handle cases where the text might already be a formatted number
-            # Remove any non-numeric characters except decimal point and minus
-            clean_text = re.sub(r"[^\d.-]", "", clean_text)
-
-            value = float(clean_text)
-            spin.setValue(value)
+            text = str(index.data(Qt.ItemDataRole.DisplayRole) or "")
+            clean_text = re.sub(r"[^\d.-]", "", text.translate(str.maketrans("₀₁₂₃₄₅₆₇₈₉", "0123456789")))
+            spin.setValue(float(clean_text) if clean_text not in {"", "-", ".", "-."} else 0.0)
         except (ValueError, TypeError):
             spin.setValue(0.0)
 ```
@@ -586,46 +407,29 @@ def setModelData(self, editor: QWidget, model: QAbstractItemModel, index: QModel
 
 Set data from editor back to model.
 
-Args:
-
-- `editor` (`QWidget`): The editor widget containing the edited value.
-- `model` (`QAbstractItemModel`): The model to update with the new data.
-- `index` (`QModelIndex | QPersistentModelIndex`): The model index to update.
-
 <details>
 <summary>Code:</summary>
 
 ```python
 def setModelData(  # noqa: N802
-        self, editor: QWidget, model: QAbstractItemModel, index: QModelIndex | QPersistentModelIndex
+        self,
+        editor: QWidget,
+        model: QAbstractItemModel,
+        index: QModelIndex | QPersistentModelIndex,
     ) -> None:
         spin = cast("QDoubleSpinBox", editor)
         value = spin.value()
 
-        # Only apply transaction type logic for Amount column, not for Total per day
-        amount_column_index = 2
-        if index.column() == amount_column_index:
-            # Get the category column from the same row to determine transaction type
-            category_index = model.index(index.row(), 3)
-            category_text = model.data(category_index, Qt.ItemDataRole.DisplayRole)
-
-            # Check if this is an income transaction (has "(Income)" suffix)
-            is_income = category_text and "(Income)" in str(category_text)
-
-            # For expenses (not income), ensure negative sign is present
-            # For income, ensure no negative sign
+        if self.amount_column is not None and index.column() == self.amount_column and self.category_column is not None:
+            category_text = model.data(model.index(index.row(), self.category_column), Qt.ItemDataRole.DisplayRole)
+            is_income = is_income_category_display(str(category_text or ""))
             if not is_income:
-                # Expense: ensure value is negative
                 if value > 0:
                     value = -value
-            # Income: ensure value is positive
             elif value < 0:
                 value = abs(value)
 
-        # Format the value as string with 2 decimal places for storage
         formatted_value = f"{value:.2f}"
-
-        # Set both DisplayRole and EditRole to ensure consistency
         model.setData(index, formatted_value, Qt.ItemDataRole.DisplayRole)
         model.setData(index, formatted_value, Qt.ItemDataRole.EditRole)
 ```

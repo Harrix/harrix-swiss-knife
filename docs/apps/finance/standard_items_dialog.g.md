@@ -193,7 +193,8 @@ class StandardItemsDialog(QDialog):
         rows = self.db_manager.get_all_standard_items()
         self.table.setRowCount(len(rows))
         for row_idx, row in enumerate(rows):
-            item_id, name, name_en, category_id, category_name, icon, category_type = row
+            item_id, name, name_en, category_id, category_name, icon, category_type, *rest = row
+            lucide = str(rest[0] or "") if rest else ""
             name_item = QTableWidgetItem(str(name))
             name_item.setData(_COL_ID, int(item_id))
             name_item.setData(_COL_CATEGORY_ID, int(category_id))
@@ -201,8 +202,9 @@ class StandardItemsDialog(QDialog):
             suffix = " (Income)" if int(category_type) == 1 else ""
             category_display = f"{category_name}{suffix}"
             category_item = QTableWidgetItem(category_display)
-            if icon:
-                category_item.setIcon(category_lucide_icon(str(icon)))
+            painted = category_lucide_icon(str(icon or ""), lucide_name=lucide)
+            if not painted.isNull():
+                category_item.setIcon(painted)
             self.table.setItem(row_idx, 0, name_item)
             self.table.setItem(row_idx, 1, en_item)
             self.table.setItem(row_idx, 2, category_item)

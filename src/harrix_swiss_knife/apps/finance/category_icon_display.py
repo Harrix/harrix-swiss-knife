@@ -1,7 +1,7 @@
 """Map finance category emoji (DB `categories.icon`) to Lucide for UI display.
 
 The database and catalog keep emoji strings in `icon`. Optional `icon_lucide`
-stores an explicit Lucide id chosen in the category dialog. When empty, UI
+stores an explicit Lucide ID chosen in the category dialog. When empty, UI
 falls back to the emoji→Lucide map (or `tags` for unknown emoji).
 
 Category icons always use a neutral dark stroke so they do not inherit
@@ -118,7 +118,7 @@ def lucide_name_for_category_icon(emoji: str) -> str | None:
 
 
 def resolve_category_lucide_name(*, emoji: str = "", lucide_name: str = "") -> str | None:
-    """Return the Lucide id to paint for a category row."""
+    """Return the Lucide ID to paint for a category row."""
     override = lucide_name.strip()
     if override and lucide_svg_path(override) is not None:
         return override

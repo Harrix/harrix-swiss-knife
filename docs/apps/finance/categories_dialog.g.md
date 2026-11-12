@@ -80,9 +80,15 @@ class CategoriesDialog(QDialog):
         result = dialog.get_result()
         if result is None:
             return
-        name, category_type, icon, name_local = result
+        name, category_type, icon, name_local, icon_lucide = result
         try:
-            if not self.db_manager.add_category(name, category_type, icon, name_local=name_local):
+            if not self.db_manager.add_category(
+                name,
+                category_type,
+                icon,
+                name_local=name_local,
+                icon_lucide=icon_lucide,
+            ):
                 message_box.warning(self, "Error", "Failed to add category")
                 return
         except Exception as e:
@@ -135,6 +141,12 @@ class CategoriesDialog(QDialog):
         if category_id is not None:
             self._open_edit_dialog(category_id)
 
+    def _on_edit(self) -> None:
+        """Edit the currently selected category."""
+        category_id = self._selected_category_id()
+        if category_id is not None:
+            self._open_edit_dialog(category_id)
+
     def _open_edit_dialog(self, category_id: int) -> None:
         """Open the edit dialog for `category_id`."""
         if self._edit_dialog_open:
@@ -149,6 +161,11 @@ class CategoriesDialog(QDialog):
             "type": int(category_data[2] or 0),
             "icon": category_data[3] or "",
             "name_local": category_data[4] or "",
+            "icon_lucide": (
+                str(category_data[CATEGORY_ROW_ICON_LUCIDE_INDEX] or "")
+                if len(category_data) > CATEGORY_ROW_ICON_LUCIDE_INDEX
+                else ""
+            ),
         }
         self._edit_dialog_open = True
         dialog = CategoryEditDialog(
@@ -169,6 +186,7 @@ class CategoriesDialog(QDialog):
                 int(result["type"]),
                 result.get("icon", "") or "",
                 result.get("name_local", "") or "",
+                result.get("icon_lucide", "") or "",
             )
             if success:
                 self.catalog_changed = True
@@ -187,7 +205,7 @@ class CategoriesDialog(QDialog):
 
     def _reload_table(self) -> None:
         """Reload the categories table from the database."""
-        rows: list[tuple[str, str, int, str, str, object, object, str]] = []
+        rows: list[tuple[str, str, int, str, str, object, object, str, str]] = []
         for row in self.db_manager.get_all_categories():
             category_id, name, category_type, icon, name_local = (
                 row[0],
@@ -196,15 +214,35 @@ class CategoriesDialog(QDialog):
                 str(row[3] or ""),
                 str(row[4] or "") if row[4] is not None else "",
             )
+            icon_lucide = (
+                str(row[CATEGORY_ROW_ICON_LUCIDE_INDEX] or "")
+                if len(row) > CATEGORY_ROW_ICON_LUCIDE_INDEX and row[CATEGORY_ROW_ICON_LUCIDE_INDEX] is not None
+                else ""
+            )
             type_label = "Expense" if category_type == 0 else "Income"
             color = QColor(255, 200, 200) if category_type == 0 else QColor(200, 255, 200)
-            rows.append((name, type_label, category_type, name, name_local, color, category_id, icon))
+            rows.append((name, type_label, category_type, name, name_local, color, category_id, icon, icon_lucide))
         proxy = create_categories_table_proxy_model(rows, _HEADERS)
         self.table.setModel(proxy)
         header = self.table.horizontalHeader()
         if header.count() > 0:
             for i in range(header.count()):
                 header.setSectionResizeMode(i, QHeaderView.ResizeMode.Stretch)
+        selection_model = self.table.selectionModel()
+        if selection_model is not None:
+            selection_model.selectionChanged.connect(self._update_edit_button_enabled)
+        self._update_edit_button_enabled()
+
+    def _selected_category_id(self) -> int | None:
+        """Return the database ID of the selected category row, if any."""
+        index = self.table.currentIndex()
+        if not index.isValid():
+            selection_model = self.table.selectionModel()
+            if selection_model is not None:
+                selected = selection_model.selectedRows()
+                if selected:
+                    index = selected[0]
+        return self._category_id_from_index(index)
 
     def _setup_ui(self) -> None:
         """Build the dialog layout."""
@@ -222,14 +260,18 @@ class CategoriesDialog(QDialog):
 
         buttons = QHBoxLayout()
         self.add_button = make_lucide_push_button("Add", "plus")
+        self.edit_button = make_lucide_push_button("Edit", "pencil")
         self.refresh_button = make_lucide_push_button("Refresh", "refresh-cw")
         self.copy_button = make_lucide_push_button("Copy as Text", COPY_BUTTON_ICON)
         self.close_button = make_lucide_push_button("Close", CANCEL_BUTTON_ICON)
         self.add_button.clicked.connect(self._on_add)
+        self.edit_button.clicked.connect(self._on_edit)
         self.refresh_button.clicked.connect(self._reload_table)
         self.copy_button.clicked.connect(self._on_copy_as_text)
         self.close_button.clicked.connect(self.accept)
+        self.edit_button.setEnabled(False)
         buttons.addWidget(self.add_button)
+        buttons.addWidget(self.edit_button)
         buttons.addWidget(self.refresh_button)
         buttons.addWidget(self.copy_button)
         buttons.addStretch(1)
@@ -264,6 +306,10 @@ class CategoriesDialog(QDialog):
         if viewport is None:
             return
         context_menu.exec_(viewport.mapToGlobal(position))
+
+    def _update_edit_button_enabled(self, *_args: object) -> None:
+        """Enable Edit only when a category row is selected."""
+        self.edit_button.setEnabled(self._selected_category_id() is not None)
 ```
 
 </details>

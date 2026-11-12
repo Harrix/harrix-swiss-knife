@@ -1,4 +1,4 @@
-"""Shared dialog and row for choosing a Lucide icon by id."""
+"""Shared dialog and row for choosing a Lucide icon by ID."""
 
 from __future__ import annotations
 
@@ -89,11 +89,11 @@ class LucideChoiceRow(QWidget):
         self._refresh_preview()
 
     def lucide_name(self) -> str:
-        """Return the selected Lucide id, possibly empty for auto-from-emoji."""
+        """Return the selected Lucide ID, possibly empty for auto-from-emoji."""
         return self._name
 
     def set_lucide_name(self, name: str) -> None:
-        """Update the preview and stored Lucide id."""
+        """Update the preview and stored Lucide ID."""
         self._name = name.strip()
         self._refresh_preview()
 
@@ -224,7 +224,7 @@ class LucidePickerDialog(QDialog):
         self._rebuild_grid()
 
     def selected_name(self) -> str:
-        """Return the chosen Lucide id, possibly empty when auto-from-emoji is allowed."""
+        """Return the chosen Lucide ID, possibly empty when auto-from-emoji is allowed."""
         return self._selected.strip()
 
     def _ai_query_text(self) -> str:
@@ -286,8 +286,7 @@ class LucidePickerDialog(QDialog):
             if len(names) > _MAX_SEARCH_RESULTS:
                 names = names[:_MAX_SEARCH_RESULTS]
             self._hint.setText(
-                f"Showing {len(names)} match(es)"
-                + (" (truncated)" if len(names) == _MAX_SEARCH_RESULTS else "")
+                f"Showing {len(names)} match(es)" + (" (truncated)" if len(names) == _MAX_SEARCH_RESULTS else "")
             )
 
         selected_row = -1
@@ -328,9 +327,7 @@ class LucidePickerDialog(QDialog):
 
     def _sync_preview(self) -> None:
         if self._selected and lucide_svg_path(self._selected) is not None:
-            self._preview.setPixmap(
-                create_lucide_icon(self._selected, 28, color=LUCIDE_COLOR_DARK).pixmap(28, 28)
-            )
+            self._preview.setPixmap(create_lucide_icon(self._selected, 28, color=LUCIDE_COLOR_DARK).pixmap(28, 28))
             self._preview_name.setText(self._selected)
             return
         self._preview.clear()

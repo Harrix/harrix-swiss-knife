@@ -29,6 +29,7 @@ from harrix_swiss_knife.apps.common.table_context_menu import add_delete_action
 from harrix_swiss_knife.apps.common.text_case import capitalize_first_letter
 from harrix_swiss_knife.apps.common.word_wrap_header import install_word_wrap_header
 from harrix_swiss_knife.apps.finance.category_icon_display import category_lucide_icon
+from harrix_swiss_knife.apps.finance.database_manager import CATEGORY_ROW_ICON_LUCIDE_INDEX
 from harrix_swiss_knife.apps.finance.transaction_translate_parser import (
     align_translations_to_descriptions,
     parse_transaction_translate_response,
@@ -392,7 +393,7 @@ class _StandardItemEditDialog(QDialog):
             name = str(row[1])
             category_type = int(row[2])
             icon = str(row[3] or "")
-            lucide = str(row[5] or "") if len(row) > 5 else ""
+            lucide = str(row[CATEGORY_ROW_ICON_LUCIDE_INDEX] or "") if len(row) > CATEGORY_ROW_ICON_LUCIDE_INDEX else ""
             suffix = " (Income)" if category_type == 1 else ""
             display = f"{name}{suffix}"
             painted = category_lucide_icon(icon, lucide_name=lucide)

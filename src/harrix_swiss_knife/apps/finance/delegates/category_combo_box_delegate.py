@@ -12,6 +12,9 @@ from harrix_swiss_knife.apps.common.delegates import ComboBoxDelegate
 from harrix_swiss_knife.apps.common.ui_helpers import apply_white_editor_background
 from harrix_swiss_knife.apps.finance.category_icon_display import category_lucide_icon
 
+_CATEGORY_ENTRY_EMOJI_INDEX = 1
+_CATEGORY_ENTRY_LUCIDE_INDEX = 2
+
 
 class CategoryComboBoxDelegate(ComboBoxDelegate):
     """Delegate for category column in transactions table with dropdown list."""
@@ -47,8 +50,10 @@ class CategoryComboBoxDelegate(ComboBoxDelegate):
         for entry in value or []:
             if isinstance(entry, tuple):
                 labels.append(str(entry[0]))
-                emojis.append(str(entry[1] or "") if len(entry) > 1 else "")
-                lucides.append(str(entry[2] or "") if len(entry) > 2 else "")
+                emojis.append(str(entry[1] or "") if len(entry) > _CATEGORY_ENTRY_EMOJI_INDEX else "")
+                lucides.append(
+                    str(entry[_CATEGORY_ENTRY_LUCIDE_INDEX] or "") if len(entry) > _CATEGORY_ENTRY_LUCIDE_INDEX else ""
+                )
             else:
                 labels.append(str(entry))
                 emojis.append("")
