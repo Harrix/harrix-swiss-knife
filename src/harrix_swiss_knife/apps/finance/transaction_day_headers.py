@@ -86,10 +86,14 @@ class DayHeaderDelegate(QStyledItemDelegate):
             painter.setPen(QPen(hairline, 1))
             painter.drawLine(option.rect.topLeft(), option.rect.topRight())
 
-        font = QFont(option.font)
-        font.setBold(True)
-        painter.setFont(font)
-        metrics = QFontMetrics(font)
+        date_font = QFont(option.font)
+        date_font.setBold(True)
+        total_font = QFont(option.font)
+        total_font.setBold(True)
+        if total_font.pointSize() > 0:
+            total_font.setPointSize(total_font.pointSize() + 1)
+        date_metrics = QFontMetrics(date_font)
+        total_metrics = QFontMetrics(total_font)
         # Align the day total with the Amount column so it does not sit over Tag.
         total_right = _day_header_total_right(host, option.rect)
         text_left = option.rect.left() + _HEADER_PAD_X
@@ -97,16 +101,23 @@ class DayHeaderDelegate(QStyledItemDelegate):
         text_rect = QRect(text_left, option.rect.top(), text_right - text_left, option.rect.height())
 
         total_display = _format_header_total(total_raw, host)
-        total_width = metrics.horizontalAdvance(total_display) if total_display else 0
+        total_width = total_metrics.horizontalAdvance(total_display) if total_display else 0
         date_width = max(0, text_rect.width() - total_width - 12)
-        painter.setPen(ink)
+        # Date stays secondary; the day total is the header accent (was muted for
+        # expenses and blended into the Amount column).
+        painter.setFont(date_font)
+        painter.setPen(muted)
         painter.drawText(
             text_rect,
             int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft),
-            metrics.elidedText(date_text, Qt.TextElideMode.ElideRight, date_width),
+            date_metrics.elidedText(date_text, Qt.TextElideMode.ElideRight, date_width),
         )
         if total_display:
-            painter.setPen(muted if total_display.startswith("-") else ink)
+            painter.setFont(total_font)
+            if total_display.startswith("-"):
+                painter.setPen(ink)
+            else:
+                painter.setPen(fluent.success)
             painter.drawText(
                 text_rect,
                 int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight),
