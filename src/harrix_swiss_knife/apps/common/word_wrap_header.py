@@ -4,17 +4,18 @@ from __future__ import annotations
 
 import contextlib
 
-from PySide6.QtCore import QAbstractItemModel, QEvent, QRect, QSize, Qt
+from PySide6.QtCore import QAbstractItemModel, QEvent, QPointF, QRect, QSize, Qt
 from PySide6.QtGui import QColor, QFontMetrics, QIcon, QMouseEvent, QPainter, QPaintEvent, QPalette, QPen
 from PySide6.QtWidgets import QHeaderView, QStyleOptionHeader, QTableView, QWidget
 
-from harrix_swiss_knife.apps.common.ui_chrome import MUTED_TEXT
+from harrix_swiss_knife.apps.common.ui_chrome import SELECTION_BORDER, SEPARATOR
 from harrix_swiss_knife.fluent.theme import FluentTheme, css, is_fluent_themed, mix
 
 HEADER_WRAP_FLAG = Qt.TextFlag.TextWordWrap
 # Legacy name used by size helpers; alignment is chosen per section.
 HEADER_TEXT_FLAGS = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter | HEADER_WRAP_FLAG
-_BOUNDARY_GRIP_PX = 5
+# Wide enough to grab after Amount is right-padded / narrowed against Category.
+_BOUNDARY_GRIP_PX = 10
 _BOUNDARY_INSET_PX = 8
 _TEXT_PADDING = 8
 _TEXT_INSET = 4
@@ -94,29 +95,64 @@ class WordWrapHeaderView(QHeaderView):
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         """Show a vertical mark and resize cursor on the boundary between columns."""
-        super().mouseMoveEvent(event)
+        # While dragging a section edge, do not snap — let QHeaderView resize.
+        if event.buttons() & Qt.MouseButton.LeftButton:
+            super().mouseMoveEvent(event)
+            return
         boundary = self._boundary_x_at(int(event.position().x()))
+        # Snap to the edge so QHeaderView's native handle hit-test still works.
+        if boundary is not None:
+            snapped = QMouseEvent(
+                event.type(),
+                QPointF(float(boundary), event.position().y()),
+                event.globalPosition(),
+                event.button(),
+                event.buttons(),
+                event.modifiers(),
+            )
+            super().mouseMoveEvent(snapped)
+        else:
+            super().mouseMoveEvent(event)
         self._set_hover_boundary(boundary)
         if boundary is not None:
             self.setCursor(Qt.CursorShape.SplitHCursor)
         elif self.cursor().shape() == Qt.CursorShape.SplitHCursor:
             self.unsetCursor()
 
+    def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        """Start column resize from a wider grip than the native handle."""
+        if event.button() == Qt.MouseButton.LeftButton:
+            boundary = self._boundary_x_at(int(event.position().x()))
+            if boundary is not None:
+                snapped = QMouseEvent(
+                    event.type(),
+                    QPointF(float(boundary), event.position().y()),
+                    event.globalPosition(),
+                    event.button(),
+                    event.buttons(),
+                    event.modifiers(),
+                )
+                super().mousePressEvent(snapped)
+                return
+        super().mousePressEvent(event)
+
     def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
-        """Paint wrapped titles, then the hovered column boundary."""
+        """Paint wrapped titles, idle column rules, then the hovered splitter."""
         super().paintEvent(event)
-        if self._hover_boundary_x is None:
+        boundaries = self._visible_boundary_xs()
+        if not boundaries:
             return
         painter = QPainter(self.viewport())
-        grip = MUTED_TEXT
-        with contextlib.suppress(Exception):
-            palette = FluentTheme.instance().palette()
-            grip = css(mix(palette.window_bg, palette.text_secondary))
-        painter.setPen(QPen(QColor(grip), 1))
-        x = self._hover_boundary_x
+        idle = self._idle_boundary_color()
+        hover = self._hover_boundary_color()
         height = self.viewport().height()
         inset = min(_BOUNDARY_INSET_PX, max((height - 8) // 2, 0))
-        painter.drawLine(x, inset, x, max(inset, height - inset - 1))
+        y0 = inset
+        y1 = max(inset, height - inset - 1)
+        for x in boundaries:
+            color = hover if self._hover_boundary_x == x else idle
+            painter.setPen(QPen(color, 1))
+            painter.drawLine(x, y0, x, y1)
         painter.end()
 
     def paintSection(self, painter: QPainter, rect: QRect, logical_index: int) -> None:  # noqa: N802
@@ -205,16 +241,42 @@ class WordWrapHeaderView(QHeaderView):
 
     def _boundary_x_at(self, viewport_x: int) -> int | None:
         """Return the position of an interactive section edge near the pointer."""
-        last = self.count() - 1
-        for logical in range(self.count()):
-            if self.isSectionHidden(logical) or logical == last:
-                continue
+        for x in self._visible_boundary_xs():
+            if abs(viewport_x - x) <= _BOUNDARY_GRIP_PX:
+                return x
+        return None
+
+    def _hover_boundary_color(self) -> QColor:
+        """Brand blue for the hovered column splitter (matches app splitters)."""
+        color = QColor(SELECTION_BORDER)
+        with contextlib.suppress(Exception):
+            palette = FluentTheme.instance().palette()
+            color = QColor(palette.accent)
+            if color.alpha() < 255:
+                color = QColor(css(mix(palette.window_bg, palette.accent)))
+        return color
+
+    def _idle_boundary_color(self) -> QColor:
+        """Soft gray column rules — same tone as the old hover mark."""
+        color = QColor(SEPARATOR)
+        with contextlib.suppress(Exception):
+            palette = FluentTheme.instance().palette()
+            muted = QColor(css(mix(palette.window_bg, palette.text_secondary)))
+            muted.setAlpha(120)
+            return muted
+        return color
+
+    def _visible_boundary_xs(self) -> list[int]:
+        """Right edges of every visible Interactive section except the last visible."""
+        visible = [logical for logical in range(self.count()) if not self.isSectionHidden(logical)]
+        if len(visible) < 2:
+            return []
+        edges: list[int] = []
+        for logical in visible[:-1]:
             if self.sectionResizeMode(logical) != QHeaderView.ResizeMode.Interactive:
                 continue
-            right = self.sectionViewportPosition(logical) + self.sectionSize(logical)
-            if abs(viewport_x - right) <= _BOUNDARY_GRIP_PX:
-                return right
-        return None
+            edges.append(self.sectionViewportPosition(logical) + self.sectionSize(logical))
+        return edges
 
     def _max_wrapped_height(self) -> int:
         if self.count() == 0:
